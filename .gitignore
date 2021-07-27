@@ -5,3 +5,5 @@ dist-ssr
 *.local
 .env.*
 .env
+generated
+graphql.*
