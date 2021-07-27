@@ -31,14 +31,19 @@ const AuthProvider = ({ children }: { children: JSX.Element }) => {
 
   useEffect(() => {
     onAuthStateChanged(auth, async (user) => {
-      console.log({ user })
+      setAuth((auth) => ({ ...auth, loading: true }))
       if (user) {
         const token = await user.getIdToken()
         const idTokenResult = await user.getIdTokenResult()
         const hasuraClaim = idTokenResult.claims['https://hasura.io/jwt/claims']
 
         if (hasuraClaim) {
-          setAuth((auth) => ({ ...auth, isAuthenticated: true, token }))
+          setAuth((auth) => ({
+            ...auth,
+            isAuthenticated: true,
+            token,
+            loading: false,
+          }))
           setFirebaseUser((firebaseUser) => ({ ...firebaseUser, user }))
         } else {
           const metadataRef = ref(
@@ -49,7 +54,12 @@ const AuthProvider = ({ children }: { children: JSX.Element }) => {
           onValue(metadataRef, async (data) => {
             if (!data.exists) return
             const token = await user.getIdToken(true)
-            setAuth((auth) => ({ ...auth, isAuthenticated: true, token }))
+            setAuth((auth) => ({
+              ...auth,
+              isAuthenticated: true,
+              token,
+              loading: false,
+            }))
             setFirebaseUser((firebaseUser) => ({ ...firebaseUser, user }))
           })
         }
