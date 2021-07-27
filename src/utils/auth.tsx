@@ -1,3 +1,4 @@
+// eslint-disable-next-line
 import React, { useEffect } from 'react'
 import {
   onAuthStateChanged,
@@ -8,8 +9,8 @@ import {
 } from 'firebase/auth'
 import { getDatabase, ref, onValue } from 'firebase/database'
 import { initializeApp } from 'firebase/app'
+import { useRecoilState, useSetRecoilState } from 'recoil'
 import { authState } from '../stores/auth.store'
-import { useSetRecoilState } from 'recoil'
 import { firebaseUserState } from '../stores/user.store'
 import config from '../config'
 
@@ -18,20 +19,15 @@ const {
 } = config
 const app = initializeApp(firebaseConfig)
 
-const auth = getAuth(app)
+const firebaseAuth = getAuth(app)
 const database = getDatabase(app)
 
-const AuthProvider = ({ children }: { children: JSX.Element }) => {
-  const setAuth = useSetRecoilState(authState)
+const AuthProvider = ({ children }: { children: JSX.Element }): JSX.Element => {
+  const [auth, setAuth] = useRecoilState(authState)
   const setFirebaseUser = useSetRecoilState(firebaseUserState)
 
   useEffect(() => {
-    setAuth((auth) => ({ ...auth, signInWithGoogle, signOut }))
-  }, [])
-
-  useEffect(() => {
-    onAuthStateChanged(auth, async (user) => {
-      console.log({ user })
+    onAuthStateChanged(firebaseAuth, async (user) => {
       if (user) {
         const token = await user.getIdToken()
         const idTokenResult = await user.getIdTokenResult()
@@ -41,10 +37,7 @@ const AuthProvider = ({ children }: { children: JSX.Element }) => {
           setAuth((auth) => ({ ...auth, isAuthenticated: true, token }))
           setFirebaseUser((firebaseUser) => ({ ...firebaseUser, user }))
         } else {
-          const metadataRef = ref(
-            database,
-            'metadata/' + user.uid + '/refreshTime'
-          )
+          const metadataRef = ref(database, `metadata/${user.uid}/refreshTime`)
 
           onValue(metadataRef, async (data) => {
             if (!data.exists) return
@@ -68,20 +61,30 @@ const AuthProvider = ({ children }: { children: JSX.Element }) => {
   const signInWithGoogle = async () => {
     try {
       const provider = new GoogleAuthProvider()
-      await signInWithPopup(auth, provider)
+      await signInWithPopup(firebaseAuth, provider)
     } catch (error) {
-      console.log({ error })
+      setAuth((auth) => ({ ...auth, error }))
     }
   }
 
   const signOut = async () => {
     try {
       setAuth((auth) => ({ ...auth, loading: true }))
-      await firebaseSignOut(auth)
+      await firebaseSignOut(firebaseAuth)
     } catch (error) {
-      console.log(error)
+      setAuth((auth) => ({ ...auth, error }))
     }
   }
+
+  useEffect(() => {
+    setAuth((auth) => ({ ...auth, signInWithGoogle, signOut }))
+  }, [])
+
+  useEffect(() => {
+    if (auth?.loading) {
+      setAuth((auth) => ({ ...auth, error: undefined }))
+    }
+  }, [auth?.loading])
 
   return children
 }

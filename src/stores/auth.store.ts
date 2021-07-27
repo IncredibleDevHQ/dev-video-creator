@@ -5,7 +5,7 @@ export interface Auth {
   signOut?: () => Promise<void>
   loading?: boolean
   isAuthenticated?: boolean
-  error?: any
+  error?: Error
   token?: string
 }
 
