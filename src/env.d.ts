@@ -5,6 +5,11 @@
  *
  */
 
+/// <reference types="vite/client" />
+
 interface ImportMetaEnv {
+  NODE_ENV: string
+  VITE_HASURA_SERVER: string
   VITE_FIREBASE_CONFIG: string
+  HASURA_ADMIN_SECRET: string
 }

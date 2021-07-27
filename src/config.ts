@@ -4,6 +4,12 @@ const firebaseConfig = JSON.parse(
 
 const config = {
   /**
+   * Hasura configs
+   */
+  hasura: {
+    server: import.meta.env.VITE_HASURA_SERVER,
+  },
+  /**
    * Firebase configs...
    */
   firebase: {
