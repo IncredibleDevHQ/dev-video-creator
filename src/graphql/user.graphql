@@ -1,0 +1,12 @@
+fragment User on User {
+  displayName
+  email
+  sub
+  picture
+}
+
+query GetUserById($id: String!) {
+  User_by_pk(sub: $id) {
+    ...User
+  }
+}

@@ -22,6 +22,12 @@ rules:
   '@typescript-eslint/no-shadow': 'off'
   'react/jsx-uses-react': 0
   'react/jsx-uses-vars': 0
+  react/jsx-props-no-spreading: 'off'
+  script-eslint/no-explicit-any: 'off'
+  t/prefer-default-export: 'off'
+  import/prefer-default-export: 'off'
+  '@typescript-eslint/explicit-module-boundary-types': 'off'
+  '@typescript-eslint/no-explicit-any': 'off'
 
 settings:
   import/resolver:

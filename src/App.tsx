@@ -1,35 +1,26 @@
 import React from 'react'
-import { RecoilRoot, useRecoilValue } from 'recoil'
-import { Auth, authState } from './stores/auth.store'
-import { User, userState } from './stores/user.store'
+import { RecoilRoot } from 'recoil'
+import { BrowserRouter as Router, Switch, Route } from 'react-router-dom'
 import AuthProvider from './utils/auth'
+import AuthorizedApolloProvider from './utils/AuthorizedApolloProvider'
+import PrivateRoute from './utils/PrivateRoute'
+import { Login } from './components'
+import { Home } from './modules'
 
-const SomeComponent = () => {
-  const { signInWithGoogle, signOut, token } =
-    (useRecoilValue(authState) as Auth) || {}
-  const user = (useRecoilValue(userState) as User) || {}
-
-  return (
-    <>
-      <button type="button" onClick={signInWithGoogle}>
-        sign in
-      </button>
-      <button type="button" onClick={signOut}>
-        sign out
-      </button>
-      <div>{JSON.stringify(user)}</div>
-      <h1 className="text-2xl font-bold">{token}</h1>
-    </>
-  )
-}
-
-const App = (): JSX.Element => {
+const App = () => {
   return (
     <RecoilRoot>
       <AuthProvider>
-        <div className="App">
-          <SomeComponent />
-        </div>
+        <AuthorizedApolloProvider>
+          <Router>
+            <Switch>
+              <PrivateRoute exact path="/home" component={Home} />
+              <Route exact path="/login">
+                <Login />
+              </Route>
+            </Switch>
+          </Router>
+        </AuthorizedApolloProvider>
       </AuthProvider>
     </RecoilRoot>
   )
