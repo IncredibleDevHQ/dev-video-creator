@@ -2,8 +2,12 @@
   "name": "incredibledev-next",
   "version": "0.0.0",
   "scripts": {
-    "dev": "vite",
+    "build:production": "tsc && NODE_ENV=production vite build",
+    "build:staging": "tsc && NODE_ENV=production vite build --mode staging",
     "build": "tsc && vite build",
+    "deploy:production": "firebase deploy --only hosting:production",
+    "deploy:staging": "firebase deploy --only hosting:staging",
+    "dev": "vite",
     "serve": "vite preview"
   },
   "dependencies": {
