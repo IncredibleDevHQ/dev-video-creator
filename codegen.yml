@@ -1,0 +1,17 @@
+overwrite: true
+schema:
+  - https://incredibledev-next-staging.hasura.app/v1/graphql:
+      headers:
+        'x-hasura-admin-secret': ${HASURA_ADMIN_SECRET}
+documents: 'src/**/*.graphql'
+generates:
+  src/generated/graphql.tsx:
+    plugins:
+      - 'typescript'
+      - 'typescript-operations'
+      - 'typescript-react-apollo'
+      - 'fragment-matcher'
+
+  ./graphql.schema.json:
+    plugins:
+      - 'introspection'
