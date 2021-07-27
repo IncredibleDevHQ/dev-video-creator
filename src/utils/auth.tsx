@@ -44,7 +44,7 @@ const AuthProvider = ({ children }: { children: JSX.Element }) => {
             token,
             loading: false,
           }))
-          setFirebaseUser((firebaseUser) => ({ ...firebaseUser, user }))
+          setFirebaseUser((firebaseUser) => ({ ...firebaseUser, ...user }))
         } else {
           const metadataRef = ref(
             database,
@@ -60,7 +60,7 @@ const AuthProvider = ({ children }: { children: JSX.Element }) => {
               token,
               loading: false,
             }))
-            setFirebaseUser((firebaseUser) => ({ ...firebaseUser, user }))
+            setFirebaseUser((firebaseUser) => ({ ...firebaseUser, ...user }))
           })
         }
       } else {
