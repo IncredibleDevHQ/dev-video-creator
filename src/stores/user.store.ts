@@ -19,4 +19,5 @@ export const userState = selector<User>({
 
     return { ...firebaseUser }
   },
+  dangerouslyAllowMutability: true,
 })
