@@ -1,6 +1,6 @@
 {
   "name": "incredibledev-next",
-  "version": "0.0.0",
+  "version": "0.0.1-alpha",
   "scripts": {
     "build:production": "tsc && NODE_ENV=production vite build",
     "build:staging": "tsc && NODE_ENV=production vite build --mode staging",
