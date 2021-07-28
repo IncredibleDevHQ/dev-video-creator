@@ -4,25 +4,16 @@ import {
   onAuthStateChanged,
   GoogleAuthProvider,
   signInWithPopup,
-  getAuth,
   signOut as firebaseSignOut,
 } from 'firebase/auth'
-import { getDatabase, ref, onValue } from 'firebase/database'
-import { initializeApp } from 'firebase/app'
-import { useRecoilState, useSetRecoilState } from 'recoil'
+import { ref, onValue } from 'firebase/database'
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
 import { authState } from '../stores/auth.store'
 import { firebaseUserState } from '../stores/user.store'
-import config from '../config'
-
-const {
-  firebase: { default: firebaseConfig },
-} = config
-const app = initializeApp(firebaseConfig)
-
-const firebaseAuth = getAuth(app)
-const database = getDatabase(app)
+import firebaseState from '../stores/firebase.store'
 
 const AuthProvider = ({ children }: { children: JSX.Element }): JSX.Element => {
+  const { database, auth: firebaseAuth } = useRecoilValue(firebaseState)
   const [auth, setAuth] = useRecoilState(authState)
   const setFirebaseUser = useSetRecoilState(firebaseUserState)
 
@@ -30,7 +21,7 @@ const AuthProvider = ({ children }: { children: JSX.Element }): JSX.Element => {
     try {
       const provider = new GoogleAuthProvider()
       await signInWithPopup(firebaseAuth, provider)
-    } catch (error) {
+    } catch (error: any) {
       setAuth((auth) => ({ ...auth, error }))
     }
   }
@@ -39,7 +30,7 @@ const AuthProvider = ({ children }: { children: JSX.Element }): JSX.Element => {
     try {
       setAuth((auth) => ({ ...auth, loading: true }))
       await firebaseSignOut(firebaseAuth)
-    } catch (error) {
+    } catch (error: any) {
       setAuth((auth) => ({ ...auth, error }))
     }
   }
