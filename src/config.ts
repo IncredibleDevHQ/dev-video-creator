@@ -4,7 +4,7 @@ const firebaseConfig = JSON.parse(
 
 const config = {
   /**
-   * Hasura configs
+   * Hasura configs...
    */
   hasura: {
     server: import.meta.env.VITE_HASURA_SERVER,
@@ -14,6 +14,13 @@ const config = {
    */
   firebase: {
     default: firebaseConfig,
+  },
+  /**
+   * Sentry configs...
+   */
+  sentry: {
+    dsn: import.meta.env.VITE_SENTRY_DSN,
+    enabled: !!(import.meta.env.VITE_SENTRY_ENABLED === 'true'),
   },
 }
 
