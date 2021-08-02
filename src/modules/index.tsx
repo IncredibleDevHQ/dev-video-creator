@@ -1,3 +1,6 @@
-import Home from './Home'
+import Home from './Home/Home'
+import Profile from './Profile/Profile'
+import AuthenticateScreen from './AuthenticateScreen'
+import Onboarding from './Onboarding/Onboarding'
 
-export { Home }
+export { Home, AuthenticateScreen, Profile, Onboarding }

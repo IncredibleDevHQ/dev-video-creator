@@ -1,0 +1,5 @@
+mutation CreatePrivateFlick($description: String!, $name: String!) {
+  CreateFlick(name: $name, scope: Private, description: $description) {
+    id
+  }
+}
