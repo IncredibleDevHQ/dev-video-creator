@@ -18,7 +18,7 @@ const TextField = ({
   return (
     <div className={cx('flex flex-col w-full', className)}>
       <small className="text-xs">{label}</small>
-      <div className="flex justify-between items-center p-2 bg-brand-background">
+      <div className="flex justify-between items-center p-2 bg-background">
         <input
           className="rounded-sm border-none outline-none flex-1"
           {...rest}

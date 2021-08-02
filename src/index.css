@@ -20,12 +20,12 @@
 ::-moz-selection {
   /* Code for Firefox */
   @apply bg-brand-alt;
-  @apply text-brand-background;
+  @apply text-background;
 }
 
 ::selection {
   @apply bg-brand-alt;
-  @apply text-brand-background;
+  @apply text-background;
 }
 
 *,

@@ -158,7 +158,7 @@ const Onboarding = () => {
 
   return (
     <div className="flex justify-center items-center min-h-screen">
-      <div className="w-full md:w-80 bg-brand-background-alt p-4 rounded-md flex flex-col items-center shadow-sm">
+      <div className="w-full md:w-80 bg-background-alt p-4 rounded-md flex flex-col items-center shadow-sm">
         <Logo size="large" className="mb-4" />
         <form className="w-full">
           <TextField
@@ -181,10 +181,10 @@ const Onboarding = () => {
               if (usernameAvailabilityLoading) return [<Loader />]
               if (!usernameAvailable) return undefined
               if (usernameAvailabilityError)
-                return [<FiX className="text-brand-error" />]
+                return [<FiX className="text-error" />]
               return usernameAvailable.valid
-                ? [<FiCheck className="text-brand-success" />]
-                : [<FiX className="text-brand-error" />]
+                ? [<FiCheck className="text-success" />]
+                : [<FiX className="text-error" />]
             })()}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
               handleCredentialChange('username', e.target.value)
