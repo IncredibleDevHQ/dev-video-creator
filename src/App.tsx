@@ -1,28 +1,47 @@
 import React from 'react'
 import { RecoilRoot } from 'recoil'
 import { BrowserRouter as Router, Switch, Route } from 'react-router-dom'
+import { ToastContainer } from 'react-toastify'
 import AuthProvider from './utils/auth'
 import AuthorizedApolloProvider from './utils/AuthorizedApolloProvider'
 import PrivateRoute from './utils/PrivateRoute'
-import { Login } from './components'
-import { Home } from './modules'
+import { Home, AuthenticateScreen, Profile } from './modules'
+import { ErrorBoundary } from './components'
 
 const App = () => {
   return (
-    <RecoilRoot>
-      <AuthProvider>
+    <ErrorBoundary>
+      <RecoilRoot>
         <AuthorizedApolloProvider>
-          <Router>
-            <Switch>
-              <PrivateRoute exact path="/home" component={Home} />
-              <Route exact path="/login">
-                <Login />
-              </Route>
-            </Switch>
-          </Router>
+          <AuthProvider>
+            <>
+              <ToastContainer
+                position="bottom-right"
+                autoClose={5000}
+                newestOnTop
+                hideProgressBar
+                closeOnClick
+                draggable={false}
+                toastClassName="rounded-2xl shadow-lg"
+                closeButton={false}
+              />
+              <Router>
+                <Switch>
+                  <PrivateRoute exact path="/home" component={Home} />
+                  <PrivateRoute exact path="/profile" component={Profile} />
+                  <Route exact path="/login">
+                    <AuthenticateScreen />
+                  </Route>
+                  <Route exact path="/signup">
+                    <AuthenticateScreen />
+                  </Route>
+                </Switch>
+              </Router>
+            </>
+          </AuthProvider>
         </AuthorizedApolloProvider>
-      </AuthProvider>
-    </RecoilRoot>
+      </RecoilRoot>
+    </ErrorBoundary>
   )
 }
 
