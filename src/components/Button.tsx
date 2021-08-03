@@ -28,6 +28,7 @@ const Button = ({
             buttonStyle === 'primary',
           'border-gray-50 text-gray-50  hover:text-white hover:border-white':
             buttonStyle === 'light',
+          'border-none': buttonStyle === 'default',
         },
         className
       )}
