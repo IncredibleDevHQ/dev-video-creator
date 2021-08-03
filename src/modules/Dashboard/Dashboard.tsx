@@ -2,7 +2,7 @@ import React from 'react'
 import { Navbar } from '../../components'
 import NewFlickBanner from './NewFlickBanner'
 
-const Home = () => {
+const Dashboard = () => {
   return (
     <div className="relative min-h-screen">
       <Navbar />
@@ -11,4 +11,4 @@ const Home = () => {
   )
 }
 
-export default Home
+export default Dashboard

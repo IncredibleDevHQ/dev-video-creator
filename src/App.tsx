@@ -5,7 +5,7 @@ import { ToastContainer } from 'react-toastify'
 import AuthProvider from './utils/auth'
 import AuthorizedApolloProvider from './utils/AuthorizedApolloProvider'
 import PrivateRoute from './utils/PrivateRoute'
-import { Home, AuthenticateScreen, Profile } from './modules'
+import { Dashboard, AuthenticateScreen, Profile, Landing } from './modules'
 import { ErrorBoundary } from './components'
 
 const App = () => {
@@ -27,7 +27,10 @@ const App = () => {
               />
               <Router>
                 <Switch>
-                  <PrivateRoute exact path="/home" component={Home} />
+                  <Route exact path="/">
+                    <Landing />
+                  </Route>
+                  <PrivateRoute exact path="/dashboard" component={Dashboard} />
                   <PrivateRoute exact path="/profile" component={Profile} />
                   <Route exact path="/login">
                     <AuthenticateScreen />

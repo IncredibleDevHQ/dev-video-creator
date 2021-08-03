@@ -60,7 +60,7 @@ const AuthenticateScreen = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      history.push('/home')
+      history.push('/dashboard')
     }
   }, [isAuthenticated])
 
@@ -87,7 +87,7 @@ const AuthenticateScreen = () => {
         type: 'success',
         description: 'We welcome you to Incredible.dev!!',
       })
-      history.push('/home')
+      history.push('/dashboard')
     } catch (error: any) {
       emitToast({
         title: "We couldn't sign you in",
@@ -107,7 +107,7 @@ const AuthenticateScreen = () => {
         type: 'success',
         description: 'We welcome you to Incredible.dev!!',
       })
-      history.push('/home')
+      history.push('/dashboard')
     } catch (error: any) {
       emitToast({
         title: "We couldn't sign you up",
