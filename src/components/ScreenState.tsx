@@ -32,7 +32,7 @@ const ScreenState = ({
 
       {button && (
         <Button
-          buttonStyle="primary"
+          appearance="primary"
           type="button"
           className="mt-12"
           onClick={() => {

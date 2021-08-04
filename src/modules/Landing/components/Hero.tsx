@@ -31,13 +31,13 @@ const Hero = () => {
           <div className="flex mx-2 my-16">
             <Button
               type="button"
-              buttonStyle="primary"
+              appearance="primary"
               className="bg-yellow-500 border-none text-background mr-4 py-2"
               onClick={() => history.push('/dashboard')}
             >
               Explore
             </Button>
-            <Button type="button" buttonStyle="primary">
+            <Button type="button" appearance="primary">
               Request a demo
             </Button>
           </div>

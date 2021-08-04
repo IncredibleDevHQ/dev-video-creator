@@ -4,7 +4,6 @@ import { Link, useHistory, useLocation } from 'react-router-dom'
 import * as yup from 'yup'
 import { Auth, authState } from '../stores/auth.store'
 import { Button, emitToast, Logo, TextField } from '../components'
-import { ASSETS } from '../constants'
 
 type Authentication = 'login' | 'signup'
 
@@ -135,12 +134,12 @@ const AuthenticateScreen = () => {
       <div className="w-2/3 sm:w-1/3 lg:w-1/4 bg-gray-50 p-4 rounded-md flex flex-col items-center">
         <Logo size="large" className="mb-4" />
         <Button
-          buttonStyle="primary"
+          appearance="primary"
           className="w-full"
           type="button"
-          icon={
-            <img className="w-8 h-8" src={ASSETS.ICONS.GOOGLE} alt="google" />
-          }
+          // icon={
+          //   <img className="w-8 h-8" src={ASSETS.ICONS.GOOGLE} alt="google" />
+          // }
           onClick={() => {
             signInWithGoogle?.()
           }}
@@ -148,12 +147,12 @@ const AuthenticateScreen = () => {
           Sign in with Google
         </Button>
         <Button
-          buttonStyle="primary"
+          appearance="primary"
           className="w-full"
           type="button"
-          icon={
-            <img className="w-8 h-8" src={ASSETS.ICONS.GITHUB} alt="google" />
-          }
+          // icon={
+          //   <img className="w-8 h-8" src={ASSETS.ICONS.GITHUB} alt="google" />
+          // }
           onClick={() => {
             signInWithGithub?.()
           }}
@@ -186,7 +185,7 @@ const AuthenticateScreen = () => {
           <Button
             type="submit"
             className="my-2"
-            buttonStyle="primary"
+            appearance="primary"
             onClick={(e) => {
               e?.preventDefault()
               if (authenticationType === 'login') {

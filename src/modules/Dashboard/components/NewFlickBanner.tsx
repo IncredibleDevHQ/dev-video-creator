@@ -30,7 +30,8 @@ const NewFlickBanner = ({
       </div>
       <Button
         type="button"
-        buttonStyle={randomGradient.type === 'dark' ? 'light' : 'primary'}
+        // buttonStyle={randomGradient.type === 'dark' ? 'light' : 'primary'}
+        appearance="primary"
         className="border-white h-auto"
         onClick={() => history.push('/new-flick')}
       >

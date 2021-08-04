@@ -4,7 +4,6 @@ import {
   Button,
   emitToast,
   Heading,
-  Loader,
   TextArea,
   TextField,
 } from '../../components'
@@ -73,9 +72,9 @@ const NewFlick = () => {
           }
         />
         <Button
-          icon={loading ? <Loader /> : undefined}
+          loading={loading}
           type="submit"
-          buttonStyle="primary"
+          appearance="primary"
           className="my-2"
           onClick={(e) => {
             e?.preventDefault()

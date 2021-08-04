@@ -9,7 +9,7 @@ const Navbar = () => {
     <nav className="flex justify-end items-center">
       <Button
         type="button"
-        buttonStyle="default"
+        appearance="secondary"
         className="mr-4 hover:text-yellow-500"
         onClick={() => history.push('/dashboard')}
       >
@@ -17,14 +17,14 @@ const Navbar = () => {
       </Button>
       <Button
         type="button"
-        buttonStyle="default"
+        appearance="secondary"
         className="mr-4 hover:text-yellow-500"
       >
         About Us
       </Button>
       <Button
         type="button"
-        buttonStyle="default"
+        appearance="secondary"
         className="mr-4 hover:text-yellow-500"
       >
         Contact Us

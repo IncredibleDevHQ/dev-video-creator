@@ -223,12 +223,8 @@ const Onboarding = () => {
           <Button
             type="submit"
             className="my-2"
-            buttonStyle="primary"
-            icon={
-              updateOnboardingUserLoading || setOnboardingLoading ? (
-                <Loader />
-              ) : undefined
-            }
+            appearance="primary"
+            loading={updateOnboardingUserLoading || setOnboardingLoading}
             disabled={
               loading ||
               usernameAvailabilityLoading ||
