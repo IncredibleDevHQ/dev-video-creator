@@ -1,5 +1,6 @@
 import { dismissToast, emitToast, updateToast } from './Toast'
 import Button from './Button'
+import ContainerWithSidebar from './ContainerWithSidebar'
 import ErrorBoundary from './ErrorBoundary'
 import EmptyState from './EmptyState'
 import Heading from './Heading'
@@ -8,12 +9,14 @@ import Loader from './Loader'
 import Logo from './Logo'
 import Navbar from './Navbar'
 import ScreenState from './ScreenState'
+import Sidebar from './Sidebar'
 import Text from './Text'
 import TextField from './TextField'
 import TextArea from './TextArea'
 
 export {
   Button,
+  ContainerWithSidebar,
   dismissToast,
   emitToast,
   ErrorBoundary,
@@ -24,6 +27,7 @@ export {
   Logo,
   Navbar,
   ScreenState,
+  Sidebar,
   Text,
   TextField,
   TextArea,
