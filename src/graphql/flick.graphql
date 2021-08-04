@@ -1,5 +1,40 @@
-mutation CreatePrivateFlick($description: String!, $name: String!) {
-  CreateFlick(name: $name, scope: Private, description: $description) {
+fragment Flick on Flick {
+  color
+  description
+  joinLink
+  lobbyPicture
+  id
+  name
+  scope
+  plannedEnd
+  startAt
+  status
+}
+
+query GetFlickById($id: uuid!) {
+  Flick_by_pk(id: $id) {
+    ...Flick
+  }
+}
+
+query GetUserFlicks($sub: String!) {
+  Flick(
+    where: {
+      startAt: { _gte: "now()" }
+      participants: { userSub: { _eq: $sub } }
+    }
+    order_by: { startAt: asc }
+  ) {
+    ...Flick
+  }
+}
+
+mutation CreateNewFlick(
+  $name: String!
+  $description: String!
+  $scope: CreateFlickFlickScopeEnumEnum!
+) {
+  CreateFlick(name: $name, scope: $scope, description: $description) {
     id
   }
 }

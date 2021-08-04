@@ -1,12 +1,20 @@
 import React from 'react'
-import { RecoilRoot } from 'recoil'
 import { BrowserRouter as Router, Switch, Route } from 'react-router-dom'
+import { RecoilRoot } from 'recoil'
 import { ToastContainer } from 'react-toastify'
-import AuthProvider from './utils/auth'
-import AuthorizedApolloProvider from './utils/AuthorizedApolloProvider'
-import PrivateRoute from './utils/PrivateRoute'
-import { Dashboard, AuthenticateScreen, Profile, Landing } from './modules'
 import { ErrorBoundary } from './components'
+import AuthorizedApolloProvider from './utils/AuthorizedApolloProvider'
+import AuthProvider from './utils/auth'
+import PrivateRoute from './utils/PrivateRoute'
+import {
+  AuthenticateScreen,
+  Dashboard,
+  Flick,
+  Flicks,
+  Landing,
+  NewFlick,
+  Profile,
+} from './modules'
 
 const App = () => {
   return (
@@ -32,6 +40,9 @@ const App = () => {
                   </Route>
                   <PrivateRoute exact path="/dashboard" component={Dashboard} />
                   <PrivateRoute exact path="/profile" component={Profile} />
+                  <PrivateRoute exact path="/new-flick" component={NewFlick} />
+                  <PrivateRoute exact path="/flick/:id" component={Flick} />
+                  <PrivateRoute exact path="/flicks" component={Flicks} />
                   <Route exact path="/login">
                     <AuthenticateScreen />
                   </Route>

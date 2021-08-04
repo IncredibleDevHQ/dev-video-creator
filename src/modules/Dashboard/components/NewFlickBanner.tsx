@@ -1,7 +1,8 @@
 import { cx } from '@emotion/css'
 import React, { HTMLAttributes } from 'react'
-import { Button } from '../../components'
-import { getRandomGradient } from '../../utils/globalStyles'
+import { useHistory } from 'react-router-dom'
+import { Button, Text } from '../../../components'
+import { getRandomGradient } from '../../../utils/globalStyles'
 
 const randomGradient = getRandomGradient()
 
@@ -9,6 +10,8 @@ const NewFlickBanner = ({
   className,
   ...rest
 }: HTMLAttributes<HTMLDivElement>) => {
+  const history = useHistory()
+
   return (
     <div
       className={cx(
@@ -23,15 +26,15 @@ const NewFlickBanner = ({
       {...rest}
     >
       <div className="flex-1">
-        <h2>New flick title</h2>
-        <p>New flick description</p>
+        <Text fontSize="normal">Create a new flick to get started</Text>
       </div>
       <Button
         type="button"
         buttonStyle={randomGradient.type === 'dark' ? 'light' : 'primary'}
         className="border-white h-auto"
+        onClick={() => history.push('/new-flick')}
       >
-        Join
+        Create
       </Button>
     </div>
   )
