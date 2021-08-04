@@ -17,8 +17,8 @@ const TextField = ({
 }: TextFieldProps) => {
   return (
     <div className={cx('flex flex-col w-full', className)}>
-      <small className="text-xs">{label}</small>
-      <div className="flex justify-between items-center p-2 bg-background">
+      <small className="text-xs uppercase mb-1">{label}</small>
+      <div className="flex rounded-md justify-between border-2 border-transparent transition-all focus-within:border-brand items-center p-2 bg-background">
         <input
           className="rounded-sm border-none outline-none flex-1"
           {...rest}
@@ -29,7 +29,11 @@ const TextField = ({
           })}
         </div>
       </div>
-      {C}
+      {typeof C === 'string' ? (
+        <span className="text-sm mt-1 font-semibold text-red-600">{C}</span>
+      ) : (
+        C
+      )}
     </div>
   )
 }

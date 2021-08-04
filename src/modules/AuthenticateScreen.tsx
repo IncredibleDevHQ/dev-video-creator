@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react'
+import { FaGithub, FaGoogle } from 'react-icons/fa'
+import { FiArrowRight } from 'react-icons/fi'
 import { useRecoilValue } from 'recoil'
 import { Link, useHistory, useLocation } from 'react-router-dom'
 import * as yup from 'yup'
@@ -22,15 +24,14 @@ const validateCredentials = async (
     case 'email':
       return yup
         .string()
-        .email('Not a valid email')
-        .required('No email provided')
+        .email("Hmm...that doesn't look like an email address. Try again.")
+        .required('Please provide your email.')
         .validate(credential)
     case 'password':
       return yup
         .string()
-        .required('No password provided.')
-        .min(8, 'Password is too short - should be 8 chars minimum.')
-        .matches(/[a-zA-Z]/, 'Password can only contain Latin letters.')
+        .required('Please key-in your password.')
+        .min(8, 'Erm, you need 8 or more characters! You can do it!')
         .validate(credential)
     default:
       return null
@@ -131,15 +132,14 @@ const AuthenticateScreen = () => {
 
   return (
     <div className="flex justify-center items-center min-h-screen">
-      <div className="w-2/3 sm:w-1/3 lg:w-1/4 bg-gray-50 p-4 rounded-md flex flex-col items-center">
+      <div className="w-2/3 sm:w-1/3 lg:w-1/4 bg-gray-100 p-4 rounded-md flex flex-col items-center">
         <Logo size="large" className="mb-4" />
         <Button
           appearance="primary"
-          className="w-full"
+          className="w-full mb-2"
           type="button"
-          // icon={
-          //   <img className="w-8 h-8" src={ASSETS.ICONS.GOOGLE} alt="google" />
-          // }
+          icon={FaGoogle}
+          size="small"
           onClick={() => {
             signInWithGoogle?.()
           }}
@@ -150,20 +150,26 @@ const AuthenticateScreen = () => {
           appearance="primary"
           className="w-full"
           type="button"
-          // icon={
-          //   <img className="w-8 h-8" src={ASSETS.ICONS.GITHUB} alt="google" />
-          // }
+          icon={FaGithub}
+          size="small"
           onClick={() => {
             signInWithGithub?.()
           }}
         >
-          Sign in with Github
+          Sign in with GitHub
         </Button>
+
+        <span className="w-full mt-8 mb-4 border-t relative border-gray-700 border-dashed block h-px">
+          <span className="uppercase text-sm absolute left-1/2 top-0 -translate-y-1/2 px-2 bg-gray-100 transform -translate-x-1/2">
+            Or
+          </span>
+        </span>
+
         <form className="w-full">
           <TextField
             label="Email"
             type="email"
-            className="my-2"
+            className="mb-2"
             value={credentials?.email}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
               handleCredentialChange('email', e.target.value)
@@ -182,30 +188,35 @@ const AuthenticateScreen = () => {
             caption={credentialErrors.password}
             required
           />
-          <Button
-            type="submit"
-            className="my-2"
-            appearance="primary"
-            onClick={(e) => {
-              e?.preventDefault()
-              if (authenticationType === 'login') {
-                signInUserWithEmail()
-              } else {
-                signUpWithEmail()
-              }
-            }}
-          >
-            {authenticationType === 'login' ? 'Sign In' : 'Sign Up'}
-          </Button>
+          <div className="flex items-center justify-end">
+            <Button
+              type="submit"
+              className="my-2"
+              appearance="primary"
+              size="small"
+              icon={FiArrowRight}
+              iconPosition="right"
+              onClick={(e) => {
+                e?.preventDefault()
+                if (authenticationType === 'login') {
+                  signInUserWithEmail()
+                } else {
+                  signUpWithEmail()
+                }
+              }}
+            >
+              {authenticationType === 'login' ? 'Sign In' : 'Sign Up'}
+            </Button>
+          </div>
           {authenticationType === 'login' ? (
-            <small>
+            <small className="font-semibold">
               New user?{' '}
               <Link to="/signup" className="text-blue-800">
                 Sign Up
               </Link>
             </small>
           ) : (
-            <small>
+            <small className="font-semibold">
               Already a member?{' '}
               <Link to="/login" className="text-blue-800">
                 Sign In
