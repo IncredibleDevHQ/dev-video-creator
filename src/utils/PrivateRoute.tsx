@@ -21,9 +21,8 @@ const PrivateRoute = ({
   const history = useHistory()
 
   useEffect(() => {
-    if (!auth || !user || !auth.isAuthenticated)
-      history.push(redirectTo || '/login')
-  }, [redirectTo])
+    if (!auth || !auth.isAuthenticated) history.push('/login')
+  }, [auth])
 
   if (auth?.loading === true || typeof auth?.loading === 'undefined')
     return <ScreenState title="Just a jiffy" loading />

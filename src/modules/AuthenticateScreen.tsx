@@ -51,8 +51,9 @@ const AuthenticateScreen = () => {
     useState<UserCredentials>(initialState)
   const [authenticationType, setAuthenticationType] =
     useState<Authentication>('signup')
-  const location = useLocation()
+  const location = useLocation<{ from: string }>()
   const history = useHistory()
+  const { from } = location.state || { from: { pathname: '/' } }
 
   useEffect(() => {
     setAuthenticationType(location.pathname === '/login' ? 'login' : 'signup')
@@ -60,7 +61,7 @@ const AuthenticateScreen = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      history.push('/dashboard')
+      history.replace(from)
     }
   }, [isAuthenticated])
 
