@@ -48,10 +48,14 @@ body {
 }
 
 .Toastify__toast {
-  background: #ebebeb !important;
+  @apply bg-gray-200 !important;
   @apply w-full !important;
   @apply rounded-lg !important;
   @apply border-gray-200 !important;
   @apply border-opacity-20 !important;
   @apply border !important;
+}
+
+.Toastify__toast-body {
+  @apply w-full !important;
 }
