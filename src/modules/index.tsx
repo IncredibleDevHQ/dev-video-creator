@@ -1,4 +1,4 @@
-import AuthenticateScreen from './AuthenticateScreen'
+import AuthenticateScreen from './Authentication/Authentication'
 import Dashboard from './Dashboard/Dashboard'
 import Flick from './Flick/Flick'
 import Flicks from './Flick/Flicks'
