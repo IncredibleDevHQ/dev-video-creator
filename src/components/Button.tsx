@@ -45,6 +45,7 @@ const Button = ({
           'border-red-600 bg-red-600 text-white hover:shadow-lg hover:bg-red-700 hover:border-red-700 active:bg-red-800 active:border-red-800':
             appearance === 'danger',
           'w-full': stretch,
+          'opacity-70 cursor-not-allowed': disabled,
         },
         {
           'text-2xl': size === 'large',
@@ -54,7 +55,7 @@ const Button = ({
         className
       )}
       type={type}
-      onClick={() => !(disabled || loading) && onClick?.()}
+      onClick={(e) => !(disabled || loading) && onClick?.(e)}
       {...rest}
     >
       <FiLoader
