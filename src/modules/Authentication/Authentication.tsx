@@ -28,13 +28,11 @@ const AuthenticateScreen = () => {
   const {
     errors,
     handleChange,
-    handleReset,
     handleSubmit,
     values,
     handleBlur,
     touched,
     isValid,
-    isSubmitting,
     setSubmitting,
   } = useFormik({
     initialValues: {
@@ -52,7 +50,6 @@ const AuthenticateScreen = () => {
           await createUserWithEmail?.(values.email, values.password)
         }
       } catch (e) {
-        console.log('akaka')
         emitToast({
           title: 'Something went wrong.',
           description: e.message,

@@ -5,7 +5,7 @@ import { NewFlickBanner } from './components'
 
 const Dashboard = () => {
   return (
-    <div className="relative min-h-screen">
+    <div>
       <Navbar />
       <EmptyState width={400} text="There's no activity in your feed" />
       <Link to="/flicks">View Upcoming Flicks</Link>

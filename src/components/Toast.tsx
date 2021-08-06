@@ -1,5 +1,5 @@
 import { cx } from '@emotion/css'
-import React, { ReactNode } from 'react'
+import React from 'react'
 import { toast } from 'react-toastify'
 import {
   FiAlertOctagon,
