@@ -7,6 +7,7 @@ import AuthorizedApolloProvider from './utils/AuthorizedApolloProvider'
 import AuthProvider from './utils/auth'
 import PrivateRoute from './utils/PrivateRoute'
 import 'react-toastify/dist/ReactToastify.css'
+import 'react-responsive-modal/styles.css'
 
 import {
   AuthenticateScreen,

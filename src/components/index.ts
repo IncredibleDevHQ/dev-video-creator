@@ -13,6 +13,7 @@ import Sidebar from './Sidebar'
 import Text from './Text'
 import TextField from './TextField'
 import TextArea from './TextArea'
+import TabBar, { Tab } from './TabBar'
 
 export {
   Button,
@@ -31,5 +32,8 @@ export {
   Text,
   TextField,
   TextArea,
+  TabBar,
   updateToast,
 }
+
+export type { Tab }
