@@ -128,7 +128,7 @@ const FragmentsSidebar = ({
   setAddFragmentModal,
 }: {
   fragments: FlickFragmentFragment[]
-  activeFragmentId: string
+  activeFragmentId?: string
   setActiveFragmentId: (id: string) => void
   setAddFragmentModal: (isOpen: boolean) => void
 }) => {
@@ -144,13 +144,21 @@ const FragmentsSidebar = ({
           }}
         />
       </div>
-      <FragmentDND
-        activeFragmentId={activeFragmentId}
-        setActiveFragmentId={setActiveFragmentId}
-        fragments={fragments}
-      />
+      {activeFragmentId ? (
+        <FragmentDND
+          activeFragmentId={activeFragmentId}
+          setActiveFragmentId={setActiveFragmentId}
+          fragments={fragments}
+        />
+      ) : (
+        <Text>No Fragments</Text>
+      )}
     </div>
   )
+}
+
+FragmentsSidebar.defaultProps = {
+  activeFragmentId: undefined,
 }
 
 export default FragmentsSidebar

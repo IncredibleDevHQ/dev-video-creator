@@ -32,14 +32,16 @@ const Flick = () => {
   const [currentTab, setCurrentTab] = useState<Tab>(tabs[0])
   const [isParticipants, setParticipants] = useState(true)
   const [isAddFragmentModal, setAddFragmentModal] = useState(false)
-  const [activeFragmentId, setActiveFragmentId] = useState<string>(
-    flick?.fragments[0].id
-  )
+  const [activeFragmentId, setActiveFragmentId] = useState<string>()
 
   useEffect(() => {
     if (!data?.Flick_by_pk) return
     setFlick(data.Flick_by_pk)
-    setActiveFragmentId(data.Flick_by_pk.fragments[0].id)
+    setActiveFragmentId(
+      data.Flick_by_pk.fragments.length > 0
+        ? data.Flick_by_pk.fragments[0].id
+        : undefined
+    )
   }, [data])
 
   if (loading) return <ScreenState title="Just a jiffy" loading />
