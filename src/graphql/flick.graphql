@@ -1,4 +1,4 @@
-fragment Flick on Flick {
+fragment BaseFlick on Flick {
   color
   description
   joinLink
@@ -9,6 +9,16 @@ fragment Flick on Flick {
   plannedEnd
   startAt
   status
+}
+
+fragment Flick on Flick {
+  ...BaseFlick
+  participants {
+    ...FlickParticipants
+  }
+  fragments {
+    ...FlickFragment
+  }
 }
 
 query GetFlickById($id: uuid!) {

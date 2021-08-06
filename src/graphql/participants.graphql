@@ -1,0 +1,10 @@
+fragment FlickParticipants on Participant {
+  id
+  status
+  role
+  owner
+  inviteStatus
+  user {
+    ...FlickParticipant
+  }
+}
