@@ -113,7 +113,10 @@ const Members = ({
       )}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 grid-cols-1">
         {members.map((member: MemberFragment) => (
-          <div className="flex items-center justify-between bg-blue-100 p-3 rounded-md m-1">
+          <div
+            key={member.id}
+            className="flex items-center justify-between bg-blue-100 p-3 rounded-md m-1"
+          >
             <div className="flex items-center gap-5">
               <img
                 className="rounded-md max-h-20"

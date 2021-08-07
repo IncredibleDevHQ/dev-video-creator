@@ -45,3 +45,38 @@ query GetUserOrganisations($sub: String = "") {
     ...Organisation
   }
 }
+
+fragment Series on Series {
+  id
+  name
+  organisationSlug
+  picture
+  description
+  ownerSub
+}
+
+query GetSeries($organisationSlug: String = "") {
+  Series(where: { organisationSlug: { _eq: $organisationSlug } }) {
+    ...Series
+  }
+}
+
+mutation CreateSeries(
+  $description: String = ""
+  $name: String = ""
+  $organisationSlug: String = ""
+  $ownerSub: String = ""
+  $picture: String = ""
+) {
+  insert_Series_one(
+    object: {
+      name: $name
+      description: $description
+      organisationSlug: $organisationSlug
+      picture: $picture
+      ownerSub: $ownerSub
+    }
+  ) {
+    ...Series
+  }
+}

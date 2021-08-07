@@ -48,7 +48,9 @@ const SingleOrganisation = ({
         </button>
       </div>
       <div>
-        {selectedTab === 1 && <Series />}
+        {selectedTab === 1 && (
+          <Series organisationSlug={selectedOrganisation.slug} />
+        )}
         {selectedTab === 2 && (
           <Members
             GetUserOrganisations={GetUserOrganisations}
