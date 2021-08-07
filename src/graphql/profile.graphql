@@ -1,0 +1,28 @@
+query GetUserSeries($userId: String!, $limit: Int) {
+  Series(where: { ownerSub: { _eq: $userId } }, limit: $limit) {
+    id
+    name
+    description
+    picture
+  }
+}
+
+query GetMyFlicks($limit: Int) {
+  Flick(limit: $limit) {
+    id
+    name
+    description
+  }
+}
+
+mutation CreateSeries($name: String!, $organisationSlug: String) {
+  CreateSeries(name: $name, organisationSlug: $organisationSlug) {
+    id
+  }
+}
+
+mutation UpdateSeriesFlick($flickIds: [uuid!]!, $seriesId: uuid!) {
+  UpdateSeriesFlicks(flickIds: $flickIds, seriesId: $seriesId) {
+    success
+  }
+}
