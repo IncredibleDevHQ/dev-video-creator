@@ -18,7 +18,6 @@ interface Flicks {
 }
 
 type FlicksTypes = Flicks[]
-
 interface SelectedFlicksList {
   flicksList: FlicksTypes
 }
@@ -38,13 +37,12 @@ const AddFlicksToSeriesModal = ({
 
   const [flicks, setFlick] = useState<SelectedFlicksList>({ flicksList: [] })
   const [addFlickToSeries, { data: success }] = useUpdateSeriesFlickMutation()
-  const seriesId = useRecoilValue<number>(recoilState)
-  let newSeriesId = 0
+  const seriesId = useRecoilValue<string>(recoilState)
 
   useEffect(() => {
     if (data && data?.Flick.length > 0) {
       let list: FlicksTypes = []
-      const updatedList = data.Flick.forEach((flick) => {
+      data.Flick.forEach((flick) => {
         const flickItem: Flicks = {
           id: flick.id,
           name: flick.name,
@@ -52,14 +50,9 @@ const AddFlicksToSeriesModal = ({
         }
         list = [...list, flickItem]
       })
-
-      setFlick({ flicksList: updatedList as unknown as FlicksTypes })
+      setFlick({ flicksList: list })
     }
   }, [data])
-
-  useEffect(() => {
-    newSeriesId = seriesId
-  }, [seriesId])
 
   useEffect(() => {
     handleClose(true)
@@ -101,6 +94,7 @@ const AddFlicksToSeriesModal = ({
   }
 
   const FlicksInSeries = async () => {
+    const newSeriesId = seriesId
     await addFlickToSeries({
       variables: {
         flickIds: SelectedFlicks(),
@@ -133,11 +127,11 @@ const AddFlicksToSeriesModal = ({
       }}
     >
       <div className="w-100,h-100">
-        <text className="text-xl font-bold"> Add Flicks to Series! </text>
+        <p className="text-xl font-bold"> Add Flicks to Series! </p>
 
         <div className="p-4">
           {flicks.flicksList.map((flick) => (
-            <div className="flex items-center mr-4 mb-2">
+            <div key={flick.id} className="flex items-center mr-4 mb-2">
               <input
                 type="checkbox"
                 id={flick.id}
@@ -169,12 +163,6 @@ const AddFlicksToSeriesModal = ({
           </button>
         </div>
       </div>
-      {/* <ToastContainer
-        position="bottom-center"
-        closeOnClick
-        bodyClassName="bg-pink-600"
-        className="bg-pink-700"
-      /> */}
     </Modal>
   )
 }

@@ -12,9 +12,9 @@ interface AddFlick {
   open: boolean
 }
 
-export const recoilState: RecoilState<number> = atom({
+export const recoilState: RecoilState<string> = atom({
   key: 'mutatedSeriesId',
-  default: 0,
+  default: '',
 })
 
 const UserSeries = ({ userdata }: Props) => {
@@ -32,9 +32,7 @@ const UserSeries = ({ userdata }: Props) => {
 
   return (
     <div className="flex w-full flex-col ">
-      <text className="mt-4 ml-2 align-middle text-xl rounded-lg">
-        My Series
-      </text>
+      <p className="mt-4 ml-2 align-middle text-xl rounded-lg">My Series</p>
       <div className="flex justify-end flex-row gap-3">
         <AddNewSeriesModal
           open={newSeriesModal}
@@ -72,7 +70,10 @@ const UserSeries = ({ userdata }: Props) => {
       <div className=" max-w-full flex flex-row">
         {data && data.Series.length > 0 ? (
           data?.Series.map((series) => (
-            <div className="p-8 w-3/5 m-2 bg-gradient-to-r from-pink-400 via-orange-500 to-red-500 rounded shadow-md">
+            <div
+              key={series.id}
+              className="p-8 w-3/5 m-2 bg-gradient-to-r from-pink-400 via-orange-500 to-red-500 rounded shadow-md"
+            >
               <h2 className="text-base text-gray-700  ">{series.name}</h2>
             </div>
           ))

@@ -11,9 +11,7 @@ const UserFlicks = () => {
 
   return (
     <div className="flex w-full flex-col ">
-      <text className="mt-4 ml-2 align-middle text-xl rounded-lg">
-        My Flicks
-      </text>
+      <p className="mt-4 ml-2 align-middle text-xl rounded-lg">My Flicks</p>
       <div className="flex justify-end flex-row gap-3">
         <button
           className="flex justify-end align-middle p-2 text-base cursor-pointer bg-pink-400 bg-opacity-50 rounded-lg"
@@ -35,13 +33,13 @@ const UserFlicks = () => {
       <div className=" max-w-full flex flex-row">
         {data && data.Flick.length > 0 ? (
           data?.Flick.map((flick) => (
-            <>
-              <div className="p-8 m-2 bg-gradient-to-r from-pink-400 via-orange-500 to-red-500 rounded shadow-md">
-                <h2 className="text-base text-gray-700  ">{flick.name}</h2>
-
-                <p className="text-gray-600">{flick.description}</p>
-              </div>
-            </>
+            <div
+              key={flick.id}
+              className="p-8 m-2 bg-gradient-to-r from-pink-400 via-orange-500 to-red-500 rounded shadow-md"
+            >
+              <h2 className="text-base text-gray-700  ">{flick.name}</h2>
+              <p className="text-gray-600">{flick.description}</p>
+            </div>
           ))
         ) : (
           <p className="max-w-full mt-4 text-lg flex justify-center align-middle">

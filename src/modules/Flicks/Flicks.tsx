@@ -10,9 +10,9 @@ const Flicks = () => {
 
   return (
     <div className="  flex flex-col max-w-full">
-      <text className="m-2 p-3 bg-pink-400 bg-opacity-25 text-3xl rounded-lg w-auto">
+      <p className="m-2 p-3 bg-pink-400 bg-opacity-25 text-3xl rounded-lg w-auto">
         Flicks
-      </text>
+      </p>
       <div className=" max-w-full grid grid-flow-row grid-cols-3 grid-rows-3 gap-4">
         {data && data.Flick.length > 0 ? (
           data?.Flick.map((flick) => (

@@ -25,7 +25,7 @@ const AddNewSeriesModal = ({
 }) => {
   const [createSeriesMutation, { data }] = useCreateSeriesMutation()
   const [details, setDetails] = useState<SeriesDetails>({ name: '' })
-  const setSeriesId = useSetRecoilState<number>(recoilState)
+  const setSeriesId = useSetRecoilState<string>(recoilState)
 
   useEffect(() => {
     setDetails({ name: '' })
@@ -72,7 +72,7 @@ const AddNewSeriesModal = ({
       }}
     >
       <div className="w-100,h-100">
-        <text className="text-xl font-bold"> Add Series! </text>
+        <p className="text-xl font-bold"> Add Series! </p>
         <TextField
           label="Name"
           type="text"
