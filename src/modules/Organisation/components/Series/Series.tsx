@@ -3,25 +3,27 @@ import React, { useEffect, useState } from 'react'
 import { Button } from '../../../../components'
 import {
   SeriesFragment,
-  useGetSeriesQuery,
+  useGetSeriesLazyQuery,
 } from '../../../../generated/graphql'
+import CreateSeriesModal from './CreateSeriesModal'
 
 const Series = ({ organisationSlug }: { organisationSlug: string }) => {
   const [series, setSeries] = useState<SeriesFragment[]>()
+  const [seriesModal, setSeriesModal] = useState<boolean>(false)
+  const [seriesCreated, setSeriesCreated] = useState<boolean>(false)
 
-  const {
-    data,
-    error: errorSeries,
-    loading: loadingSeries,
-  } = useGetSeriesQuery({
-    variables: {
-      organisationSlug,
-    },
-  })
+  const [GetSeries, { data, error: errorSeries, loading: loadingSeries }] =
+    useGetSeriesLazyQuery()
 
   useEffect(() => {
+    GetSeries({
+      variables: {
+        organisationSlug,
+      },
+    })
+
     setSeries(data?.Series)
-  }, [data])
+  }, [data, seriesCreated])
 
   if (loadingSeries) {
     return <div className="text-xl">Loading...</div>
@@ -34,7 +36,12 @@ const Series = ({ organisationSlug }: { organisationSlug: string }) => {
   return (
     <div>
       <div className="w-1/3 flex m-1 mt-0 gap-2">
-        <Button appearance="primary" type="button" size="small">
+        <Button
+          appearance="primary"
+          type="button"
+          size="small"
+          onClick={() => setSeriesModal(true)}
+        >
           Create Series
         </Button>
       </div>
@@ -58,6 +65,14 @@ const Series = ({ organisationSlug }: { organisationSlug: string }) => {
           </div>
         ))}
       </div>
+
+      <CreateSeriesModal
+        seriesModal={seriesModal}
+        setSeriesModal={setSeriesModal}
+        organisationSlug={organisationSlug}
+        seriesCreated={seriesCreated}
+        setSeriesCreated={setSeriesCreated}
+      />
     </div>
   )
 }

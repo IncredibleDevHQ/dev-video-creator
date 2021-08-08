@@ -62,21 +62,15 @@ query GetSeries($organisationSlug: String = "") {
 }
 
 mutation CreateSeries(
-  $description: String = ""
   $name: String = ""
   $organisationSlug: String = ""
-  $ownerSub: String = ""
   $picture: String = ""
 ) {
-  insert_Series_one(
-    object: {
-      name: $name
-      description: $description
-      organisationSlug: $organisationSlug
-      picture: $picture
-      ownerSub: $ownerSub
-    }
+  CreateSeries(
+    name: $name
+    organisationSlug: $organisationSlug
+    picture: $picture
   ) {
-    ...Series
+    id
   }
 }

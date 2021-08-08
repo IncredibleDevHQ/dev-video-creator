@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react'
 import mime from 'mime'
 import { emitToast } from '../components/Toast'
 import { useUploadFileMutation } from '../generated/graphql'
+import config from '../config'
 
 type AllowedFileExtensions =
   | 'png'
@@ -68,7 +69,7 @@ export const useUploadFile = () => {
         },
       })
 
-      return { url, uuid: key }
+      return { url: config.storage.baseUrl + key, uuid: key }
     } catch (e) {
       emitToast({
         title: 'That upload failed.',

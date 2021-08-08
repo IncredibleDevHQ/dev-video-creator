@@ -22,6 +22,12 @@ const config = {
     dsn: import.meta.env.VITE_SENTRY_DSN,
     enabled: !!(import.meta.env.VITE_SENTRY_ENABLED === 'true'),
   },
+  /**
+  storage config
+  */
+  storage: {
+    baseUrl: import.meta.env.VITE_STORAGE_BASE_URL,
+  },
 }
 
 export default config
