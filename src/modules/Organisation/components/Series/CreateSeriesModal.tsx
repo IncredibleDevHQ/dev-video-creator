@@ -32,15 +32,12 @@ const seriesModal = ({
     const pic = await uploadFile({
       extension: file.name.split('.')[1],
       file,
-      handleProgress: ({ percentage }) => {
-        console.log({ percentage })
-      },
     })
     setLoadingPic(false)
     setPic(pic.url)
   }
 
-  const [CreateSeries, { data, loading }] = useCreateSeriesMutation()
+  const [CreateSeries, { loading }] = useCreateSeriesMutation()
 
   const handleCreateSeries = async () => {
     await CreateSeries({
