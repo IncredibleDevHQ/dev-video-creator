@@ -9,13 +9,13 @@ const Text = ({ fontSize, className, children, ...rest }: TextProps) => {
   switch (fontSize) {
     case 'normal':
       return (
-        <p className={cx('text-base', className)} {...rest}>
+        <p className={cx('text-sm', className)} {...rest}>
           {children}
         </p>
       )
     case 'small':
       return (
-        <small className={cx('text-sm', className)} {...rest}>
+        <small className={cx('text-xs', className)} {...rest}>
           {children}
         </small>
       )

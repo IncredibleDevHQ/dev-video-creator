@@ -1,0 +1,28 @@
+fragment FlickFragment on Fragment {
+  configuration
+  description
+  id
+  name
+  order
+  type
+}
+
+mutation AddFragmentToFlick(
+  $type: FRAGMENT_TYPE_ENUM_enum!
+  $order: Int!
+  $name: String!
+  $flickId: uuid!
+  $description: String!
+) {
+  insert_Fragment_one(
+    object: {
+      name: $name
+      order: $order
+      type: $type
+      flickId: $flickId
+      description: $description
+    }
+  ) {
+    createdAt
+  }
+}

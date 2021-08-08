@@ -2,7 +2,13 @@ import { cx } from '@emotion/css'
 import React, { HTMLProps } from 'react'
 
 interface HeadingProps extends HTMLProps<HTMLHeadingElement> {
-  fontSize?: 'extra-small' | 'small' | 'medium' | 'large' | 'extra-large'
+  fontSize?:
+    | 'extra-small'
+    | 'small'
+    | 'medium'
+    | 'base'
+    | 'large'
+    | 'extra-large'
 }
 
 const Heading = ({ fontSize, children, className, ...rest }: HeadingProps) => {
@@ -21,7 +27,13 @@ const Heading = ({ fontSize, children, className, ...rest }: HeadingProps) => {
       )
     case 'medium':
       return (
-        <h3 className={cx('text-base font-medium', className)} {...rest}>
+        <h3 className={cx('text-2xl font-medium', className)} {...rest}>
+          {children}
+        </h3>
+      )
+    case 'base':
+      return (
+        <h3 className={cx('text-base font-normal', className)} {...rest}>
           {children}
         </h3>
       )
