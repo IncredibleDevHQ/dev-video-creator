@@ -23,6 +23,8 @@ const Organisation = () => {
   const [selectedOrganisation, setSelectedOrganisation] =
     useState<OrganisationFragment>()
 
+  const [organisationCreated, setOrganisationCreated] = useState<boolean>(false)
+
   useEffect(() => {
     GetUserOrganisations({
       variables: {
@@ -31,7 +33,7 @@ const Organisation = () => {
     })
     if (!data) return
     setOrganisations(data.Organisation)
-  }, [data])
+  }, [data, organisationCreated])
 
   useEffect(() => {
     if (!error) return
@@ -55,8 +57,9 @@ const Organisation = () => {
             setSelectedOrganisation={setSelectedOrganisation}
           />
           <SingleOrganisation
-            GetUserOrganisations={GetUserOrganisations}
             selectedOrganisation={selectedOrganisation}
+            organisationCreated={organisationCreated}
+            setOrganisationCreated={setOrganisationCreated}
           />
         </div>
       )}

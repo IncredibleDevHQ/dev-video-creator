@@ -1,25 +1,18 @@
-import { QueryLazyOptions } from '@apollo/client'
 import React, { useState } from 'react'
-import { Exact, Maybe, OrganisationFragment } from '../../../generated/graphql'
+import { OrganisationFragment } from '../../../generated/graphql'
 import Members from './Members/Members'
 import Series from './Series/Series'
 
 interface Props {
   selectedOrganisation: OrganisationFragment | undefined
-  GetUserOrganisations: (
-    options?:
-      | QueryLazyOptions<
-          Exact<{
-            sub?: Maybe<string> | undefined
-          }>
-        >
-      | undefined
-  ) => void
+  organisationCreated: boolean
+  setOrganisationCreated: React.Dispatch<React.SetStateAction<boolean>>
 }
 
 const SingleOrganisation = ({
   selectedOrganisation,
-  GetUserOrganisations,
+  organisationCreated,
+  setOrganisationCreated,
 }: Props) => {
   const [selectedTab, setSelectedTab] = useState<number>(1)
 
@@ -53,9 +46,10 @@ const SingleOrganisation = ({
         )}
         {selectedTab === 2 && (
           <Members
-            GetUserOrganisations={GetUserOrganisations}
             members={selectedOrganisation.members}
             organisationSlug={selectedOrganisation.slug}
+            organisationCreated={organisationCreated}
+            setOrganisationCreated={setOrganisationCreated}
           />
         )}
       </div>

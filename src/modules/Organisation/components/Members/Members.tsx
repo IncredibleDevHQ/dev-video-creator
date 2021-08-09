@@ -18,21 +18,15 @@ import { userState } from '../../../../stores/user.store'
 interface Props {
   members: MemberFragment[]
   organisationSlug: string
-  GetUserOrganisations: (
-    options?:
-      | QueryLazyOptions<
-          Exact<{
-            sub?: Maybe<string> | undefined
-          }>
-        >
-      | undefined
-  ) => void
+  organisationCreated: boolean
+  setOrganisationCreated: React.Dispatch<React.SetStateAction<boolean>>
 }
 
 const Members = ({
   members,
   organisationSlug,
-  GetUserOrganisations,
+  organisationCreated,
+  setOrganisationCreated,
 }: Props) => {
   const { uid } = (useRecoilValue(userState) as User) || {}
   const [search, setSearch] = useState<string>('')
@@ -60,11 +54,7 @@ const Members = ({
         },
       })
 
-      GetUserOrganisations({
-        variables: {
-          sub: uid as string,
-        },
-      })
+      setOrganisationCreated(!organisationCreated)
     } catch (error) {
       emitToast({
         title: 'User Already added',
