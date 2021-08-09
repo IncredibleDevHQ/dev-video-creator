@@ -1,10 +1,10 @@
 import React from 'react'
 import { useHistory } from 'react-router-dom'
 import { Heading, Text } from '../../../components'
-import { FlickFragment } from '../../../generated/graphql'
+import { BaseFlickFragment } from '../../../generated/graphql'
 import { formatDate } from '../../../utils/FormatDate'
 
-const FlickCard = ({ flick }: { flick: FlickFragment }) => {
+const FlickCard = ({ flick }: { flick: BaseFlickFragment }) => {
   const history = useHistory()
 
   return (

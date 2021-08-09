@@ -10,11 +10,11 @@ const Landing = () => {
   return (
     <div className="h-screen flex flex-col overflow-hidden">
       <Navbar hideNav />
-      <div className="flex-grow flex flex-col mt-12 w-full md:w-1/2 mx-auto">
+      <div className="flex-grow flex flex-col mt-8 w-full md:w-1/2 mx-auto">
         <h1 className="text-5xl bg-clip-text text-transparent bg-gradient-to-r from-brand to-brand-alt leading-snug text-center font-extrabold">
           Create Developer Videos That Soar
         </h1>
-        <p className="mt-2 text-2xl text-center">
+        <p className="mt-2 text-xl text-center">
           Welcome to the world&apos;s most innovative, easiest and coolest tools
           for making developer content.
         </p>

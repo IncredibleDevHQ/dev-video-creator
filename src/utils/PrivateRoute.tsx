@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 import { Route, Redirect, RouteProps, useHistory } from 'react-router-dom'
 import { useRecoilValue } from 'recoil'
 import { ScreenState } from '../components'
@@ -18,11 +18,6 @@ const PrivateRoute = ({
 }: PrivateRouteProps): JSX.Element | null => {
   const auth = useRecoilValue(authState)
   const user = useRecoilValue(userState)
-  const history = useHistory()
-
-  useEffect(() => {
-    if (!auth || !auth.isAuthenticated) history.push('/login')
-  }, [auth])
 
   if (auth?.loading === true || typeof auth?.loading === 'undefined')
     return <ScreenState title="Just a jiffy" loading />

@@ -10,6 +10,12 @@ fragment User on MeOutput {
   updatedAt
 }
 
+fragment FlickParticipant on User {
+  displayName
+  picture
+  email
+}
+
 query GetUser {
   Me {
     ...User
