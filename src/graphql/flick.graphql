@@ -39,6 +39,19 @@ query GetUserFlicks($sub: String!) {
   }
 }
 
+query GetUpcomingFlick($sub: String!) {
+  Flick(
+    where: {
+      startAt: { _gte: "now()" }
+      participants: { userSub: { _eq: $sub } }
+    }
+    order_by: { startAt: asc }
+    limit: 1
+  ) {
+    ...Flick
+  }
+}
+
 mutation CreateNewFlick(
   $name: String!
   $description: String!
