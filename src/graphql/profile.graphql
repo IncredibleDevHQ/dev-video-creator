@@ -7,11 +7,25 @@ query GetUserSeries($userId: String!, $limit: Int) {
   }
 }
 
-query GetMyFlicks($limit: Int) {
-  Flick(limit: $limit) {
+query GetMyFlicks {
+  Flick {
     id
     name
     description
+  }
+}
+
+query SeriesFlicks($id: uuid) {
+  Flick_Series(where: { seriesId: { _eq: $id } }) {
+    flickId
+    order
+    Series_Flicks {
+      id
+      producedLink
+      name
+      previewLink
+      description
+    }
   }
 }
 

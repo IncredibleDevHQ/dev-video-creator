@@ -2,7 +2,8 @@ import { css, cx } from '@emotion/css'
 import 'react-responsive-modal/styles.css'
 import React, { useEffect, useState } from 'react'
 import Modal from 'react-responsive-modal'
-import { useSetRecoilState } from 'recoil'
+import { useRecoilState } from 'recoil'
+import { toast } from 'react-toastify'
 import { useCreateSeriesMutation } from '../../../generated/graphql'
 import { recoilState } from './UserSeries'
 import { emitToast, TextField } from '../../../components'
@@ -12,6 +13,7 @@ interface SeriesDetails {
 }
 interface AddFlick {
   open: boolean
+  seriesId: string
 }
 
 const AddNewSeriesModal = ({
@@ -25,12 +27,25 @@ const AddNewSeriesModal = ({
 }) => {
   const [createSeriesMutation, { data }] = useCreateSeriesMutation()
   const [details, setDetails] = useState<SeriesDetails>({ name: '' })
-  const setSeriesId = useSetRecoilState<string>(recoilState)
+  const [id, setSeriesId] = useRecoilState<string>(recoilState)
 
   useEffect(() => {
     setDetails({ name: '' })
     if (data && data.CreateSeries) {
       setSeriesId(data.CreateSeries.id)
+
+      toast('🥳 Smile a little, because your Series is ready! 🥳', {
+        position: 'top-right',
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        className: css({
+          background: '#ffe2eb !important',
+        }),
+      })
     }
   }, [data])
 
@@ -92,6 +107,7 @@ const AddNewSeriesModal = ({
               handleAddSeries()
               setAddFlickSeriesModal({
                 open: true,
+                seriesId: id,
               })
             }}
           >

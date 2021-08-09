@@ -1,5 +1,6 @@
 import React from 'react'
 import { useRecoilValue } from 'recoil'
+import { Link } from 'react-router-dom'
 import { useGetUserSeriesQuery } from '../../generated/graphql'
 import { User, userState } from '../../stores/user.store'
 
@@ -25,7 +26,9 @@ const Series = () => {
               key={series.id}
               className="p-8 m-2 bg-gradient-to-r from-pink-400 via-orange-500 to-red-500 rounded shadow-md"
             >
-              <h2 className="text-base text-gray-700  ">{series.name}</h2>
+              <Link to={`/profile/series/${series.id}`}>
+                <h2 className="text-base text-gray-700  ">{series.name}</h2>
+              </Link>
               <p className="text-gray-600">{series.description}</p>
             </div>
           ))

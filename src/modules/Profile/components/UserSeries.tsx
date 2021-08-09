@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { atom, RecoilState } from 'recoil'
+import { atom, RecoilState, useRecoilValue } from 'recoil'
 import { useGetUserSeriesQuery, UserFragment } from '../../../generated/graphql'
 import { User } from '../../../stores/user.store'
 import { AddNewSeriesModal, AddFlicksToSeriesModal } from './index'
@@ -10,6 +10,7 @@ interface Props {
 }
 interface AddFlick {
   open: boolean
+  seriesId: string
 }
 
 export const recoilState: RecoilState<string> = atom({
@@ -19,8 +20,11 @@ export const recoilState: RecoilState<string> = atom({
 
 const UserSeries = ({ userdata }: Props) => {
   const [newSeriesModal, setNewSeriesModal] = useState<boolean>(false)
+  const seriesId = useRecoilValue<string>(recoilState)
+  const newSeriesId = seriesId
   const [addFlickSeriesModal, setAddFlickSeriesModal] = useState<AddFlick>({
     open: false,
+    seriesId: '',
   })
 
   const { data } = useGetUserSeriesQuery({
@@ -43,9 +47,11 @@ const UserSeries = ({ userdata }: Props) => {
         />
         <AddFlicksToSeriesModal
           open={addFlickSeriesModal.open}
+          seriesId={addFlickSeriesModal.seriesId}
           handleClose={() => {
             setAddFlickSeriesModal({
               open: false,
+              seriesId: newSeriesId,
             })
           }}
         />
@@ -74,7 +80,9 @@ const UserSeries = ({ userdata }: Props) => {
               key={series.id}
               className="p-8 w-3/5 m-2 bg-gradient-to-r from-pink-400 via-orange-500 to-red-500 rounded shadow-md"
             >
-              <h2 className="text-base text-gray-700  ">{series.name}</h2>
+              <Link to={`/profile/series/${series.id}`}>
+                <h2 className="text-base text-gray-700  ">{series.name}</h2>
+              </Link>
             </div>
           ))
         ) : (

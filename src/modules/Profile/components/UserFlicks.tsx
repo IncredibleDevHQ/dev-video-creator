@@ -1,13 +1,33 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { useRecoilState } from 'recoil'
 import { useGetMyFlicksQuery } from '../../../generated/graphql'
+import {
+  Flick,
+  FlicksList,
+  FlicksTypes,
+  recoilFlicksArray,
+} from '../../DataStructure'
 
 const UserFlicks = () => {
-  const { data } = useGetMyFlicksQuery({
-    variables: {
-      limit: 5,
-    },
-  })
+  const [FlickList, setFlickList] =
+    useRecoilState<FlicksList>(recoilFlicksArray)
+
+  const { data } = useGetMyFlicksQuery()
+
+  useEffect(() => {
+    let list: FlicksTypes = []
+    if (data && data?.Flick.length > 0) {
+      data.Flick.forEach((flick) => {
+        const flickItem: Flick = {
+          id: flick.id,
+          name: flick.name,
+        }
+        list = [...list, flickItem]
+      })
+    }
+    setFlickList({ userFlicksList: list })
+  }, [data])
 
   return (
     <div className="flex w-full flex-col ">
@@ -20,7 +40,7 @@ const UserFlicks = () => {
           Add Flicks
         </button>
 
-        {data && data.Flick.length > 0 ? (
+        {FlickList.userFlicksList.length > 0 ? (
           <Link to="/profile/flicks">
             <button type="button" className="object-none object-right">
               see all
@@ -31,14 +51,13 @@ const UserFlicks = () => {
         )}
       </div>
       <div className=" max-w-full flex flex-row">
-        {data && data.Flick.length > 0 ? (
-          data?.Flick.map((flick) => (
+        {FlickList.userFlicksList.length > 0 ? (
+          FlickList.userFlicksList.slice(0, 5).map((flick) => (
             <div
               key={flick.id}
               className="p-8 m-2 bg-gradient-to-r from-pink-400 via-orange-500 to-red-500 rounded shadow-md"
             >
               <h2 className="text-base text-gray-700  ">{flick.name}</h2>
-              <p className="text-gray-600">{flick.description}</p>
             </div>
           ))
         ) : (

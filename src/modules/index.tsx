@@ -4,5 +4,14 @@ import Series from './Series/Series'
 import Flicks from './Flicks/Flicks'
 import AuthenticateScreen from './AuthenticateScreen'
 import Onboarding from './Onboarding/Onboarding'
+import UserSeriesFlicks from './UserSeriesFlicks/UserSeriesFlicks'
 
-export { Home, AuthenticateScreen, Profile, Onboarding, Series, Flicks }
+export {
+  Home,
+  AuthenticateScreen,
+  Profile,
+  Onboarding,
+  Series,
+  Flicks,
+  UserSeriesFlicks,
+}

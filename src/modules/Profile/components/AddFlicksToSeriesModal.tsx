@@ -1,94 +1,66 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect } from 'react'
 import Modal from 'react-responsive-modal'
-import { useRecoilValue } from 'recoil'
+import { useRecoilState, useRecoilValue } from 'recoil'
 import 'react-responsive-modal/styles.css'
 import { css, cx } from '@emotion/css'
-import { toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
+import { useUpdateSeriesFlickMutation } from '../../../generated/graphql'
 import {
-  useGetMyFlicksQuery,
-  useUpdateSeriesFlickMutation,
-} from '../../../generated/graphql'
-import { recoilState } from './UserSeries'
-
-interface Flicks {
-  id: string
-  name: string
-  isChecked: boolean
-}
-
-type FlicksTypes = Flicks[]
-interface SelectedFlicksList {
-  flicksList: FlicksTypes
-}
+  SeriesFlicks,
+  FlicksList,
+  FlicksTypes,
+  recoilFlicksArray,
+  recoilSeriesFlicksArray,
+  SelectedFlicksList,
+  SeriesFlicksTypes,
+} from '../../DataStructure'
 
 const AddFlicksToSeriesModal = ({
   open,
   handleClose,
+  seriesId,
 }: {
   open: boolean
   handleClose: (refresh?: boolean) => void
+  seriesId: string
 }) => {
-  const { data } = useGetMyFlicksQuery({
-    variables: {
-      limit: 60,
-    },
-  })
+  const [addFlickToSeries] = useUpdateSeriesFlickMutation()
 
-  const [flicks, setFlick] = useState<SelectedFlicksList>({ flicksList: [] })
-  const [addFlickToSeries, { data: success }] = useUpdateSeriesFlickMutation()
-  const seriesId = useRecoilValue<string>(recoilState)
+  // const seriesId = useRecoilValue<string>(recoilState)
+  const FlickList = useRecoilValue<FlicksList>(recoilFlicksArray)
+  const [SeriesFlickList, setSeriesFlickList] =
+    useRecoilState<SelectedFlicksList>(recoilSeriesFlicksArray)
 
   useEffect(() => {
-    if (data && data?.Flick.length > 0) {
-      let list: FlicksTypes = []
-      data.Flick.forEach((flick) => {
-        const flickItem: Flicks = {
+    if (FlickList.userFlicksList.length > 0) {
+      let list: SeriesFlicksTypes = []
+      FlickList.userFlicksList.forEach((flick) => {
+        const flickItem: SeriesFlicks = {
           id: flick.id,
           name: flick.name,
           isChecked: false,
         }
         list = [...list, flickItem]
       })
-      setFlick({ flicksList: list })
+      setSeriesFlickList({ seriesFlicksList: list })
     }
-  }, [data])
+  }, [FlickList])
 
-  useEffect(() => {
-    handleClose(true)
-    if (
-      success &&
-      success.UpdateSeriesFlicks &&
-      success.UpdateSeriesFlicks.success
-    ) {
-      toast('🥳 Smile a little, because your Series is ready! 🥳', {
-        position: 'top-right',
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-        className: css({
-          background: '#ffe2eb !important',
-        }),
-      })
-    }
-  }, [success])
-
-  const reverseChecked = (id: Flicks['id']) => {
-    const updatedList: FlicksTypes = flicks.flicksList.map((flick) => {
-      if (flick.id === id) {
-        return { ...flick, isChecked: !flick.isChecked }
+  const reverseChecked = (id: SeriesFlicks['id']) => {
+    const updatedList: SeriesFlicksTypes = SeriesFlickList.seriesFlicksList.map(
+      (flick) => {
+        if (flick.id === id) {
+          return { ...flick, isChecked: !flick.isChecked }
+        }
+        return flick
       }
-      return flick
-    })
-    setFlick({ flicksList: updatedList })
+    )
+    setSeriesFlickList({ seriesFlicksList: updatedList })
   }
 
   const SelectedFlicks = (): string[] => {
-    const flick: FlicksTypes = flicks.flicksList.filter(
-      (t: Flicks): boolean => t.isChecked !== false
+    const flick: FlicksTypes = SeriesFlickList.seriesFlicksList.filter(
+      (t: SeriesFlicks): boolean => t.isChecked !== false
     )
     return flick.map((id) => id.id)
   }
@@ -130,7 +102,7 @@ const AddFlicksToSeriesModal = ({
         <p className="text-xl font-bold"> Add Flicks to Series! </p>
 
         <div className="p-4">
-          {flicks.flicksList.map((flick) => (
+          {SeriesFlickList.seriesFlicksList.map((flick) => (
             <div key={flick.id} className="flex items-center mr-4 mb-2">
               <input
                 type="checkbox"
