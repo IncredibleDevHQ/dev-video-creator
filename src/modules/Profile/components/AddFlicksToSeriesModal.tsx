@@ -24,9 +24,8 @@ const AddFlicksToSeriesModal = ({
   handleClose: (refresh?: boolean) => void
   seriesId: string
 }) => {
+  const newSeriesId = seriesId
   const [addFlickToSeries] = useUpdateSeriesFlickMutation()
-
-  // const seriesId = useRecoilValue<string>(recoilState)
   const FlickList = useRecoilValue<FlicksList>(recoilFlicksArray)
   const [SeriesFlickList, setSeriesFlickList] =
     useRecoilState<SelectedFlicksList>(recoilSeriesFlicksArray)
@@ -66,7 +65,6 @@ const AddFlicksToSeriesModal = ({
   }
 
   const FlicksInSeries = async () => {
-    const newSeriesId = seriesId
     await addFlickToSeries({
       variables: {
         flickIds: SelectedFlicks(),
@@ -76,6 +74,7 @@ const AddFlicksToSeriesModal = ({
     if (!Error) {
       handleClose(true)
     }
+    handleClose(true)
   }
 
   return (
@@ -124,13 +123,15 @@ const AddFlicksToSeriesModal = ({
             className="flex justify-end p-2 bg-pink-800 rounded-lg"
             type="button"
           >
-            Add
+            Save
           </button>
           <button
             type="button"
             className="flex justify-end p-2 rounded-lg bg-pink-800"
+            onClick={() => {
+              handleClose(true)
+            }}
           >
-            {' '}
             Cancel
           </button>
         </div>

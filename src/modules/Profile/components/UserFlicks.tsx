@@ -42,9 +42,7 @@ const UserFlicks = () => {
 
         {FlickList.userFlicksList.length > 0 ? (
           <Link to="/profile/flicks">
-            <button type="button" className="object-none object-right">
-              see all
-            </button>
+            <p className="object-none object-right">see all</p>
           </Link>
         ) : (
           <></>

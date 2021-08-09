@@ -5,7 +5,7 @@ import Modal from 'react-responsive-modal'
 import { useRecoilState } from 'recoil'
 import { toast } from 'react-toastify'
 import { useCreateSeriesMutation } from '../../../generated/graphql'
-import { recoilState } from './UserSeries'
+
 import { emitToast, TextField } from '../../../components'
 
 interface SeriesDetails {
@@ -27,13 +27,10 @@ const AddNewSeriesModal = ({
 }) => {
   const [createSeriesMutation, { data }] = useCreateSeriesMutation()
   const [details, setDetails] = useState<SeriesDetails>({ name: '' })
-  const [id, setSeriesId] = useRecoilState<string>(recoilState)
 
   useEffect(() => {
     setDetails({ name: '' })
     if (data && data.CreateSeries) {
-      setSeriesId(data.CreateSeries.id)
-
       toast('🥳 Smile a little, because your Series is ready! 🥳', {
         position: 'top-right',
         autoClose: 5000,
@@ -45,6 +42,10 @@ const AddNewSeriesModal = ({
         className: css({
           background: '#ffe2eb !important',
         }),
+      })
+      setAddFlickSeriesModal({
+        open: true,
+        seriesId: data.CreateSeries.id,
       })
     }
   }, [data])
@@ -105,10 +106,6 @@ const AddNewSeriesModal = ({
             onClick={() => {
               handleClose(true)
               handleAddSeries()
-              setAddFlickSeriesModal({
-                open: true,
-                seriesId: id,
-              })
             }}
           >
             Add
@@ -116,6 +113,9 @@ const AddNewSeriesModal = ({
           <button
             type="button"
             className="flex justify-end p-2 rounded-lg bg-pink-800"
+            onClick={() => {
+              handleClose(true)
+            }}
           >
             Cancel
           </button>

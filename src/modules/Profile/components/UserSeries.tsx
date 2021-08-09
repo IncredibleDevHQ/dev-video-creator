@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { atom, RecoilState, useRecoilValue } from 'recoil'
 import { useGetUserSeriesQuery, UserFragment } from '../../../generated/graphql'
@@ -13,15 +13,8 @@ interface AddFlick {
   seriesId: string
 }
 
-export const recoilState: RecoilState<string> = atom({
-  key: 'mutatedSeriesId',
-  default: '',
-})
-
 const UserSeries = ({ userdata }: Props) => {
   const [newSeriesModal, setNewSeriesModal] = useState<boolean>(false)
-  const seriesId = useRecoilValue<string>(recoilState)
-  const newSeriesId = seriesId
   const [addFlickSeriesModal, setAddFlickSeriesModal] = useState<AddFlick>({
     open: false,
     seriesId: '',
@@ -51,7 +44,7 @@ const UserSeries = ({ userdata }: Props) => {
           handleClose={() => {
             setAddFlickSeriesModal({
               open: false,
-              seriesId: newSeriesId,
+              seriesId: '',
             })
           }}
         />
@@ -65,9 +58,7 @@ const UserSeries = ({ userdata }: Props) => {
 
         {data && data.Series.length > 0 ? (
           <Link to="/profile/series">
-            <button type="button" className="object-none object-right">
-              see all
-            </button>
+            <p className="object-none object-right">see all</p>
           </Link>
         ) : (
           <></>
@@ -75,7 +66,7 @@ const UserSeries = ({ userdata }: Props) => {
       </div>
       <div className=" max-w-full flex flex-row">
         {data && data.Series.length > 0 ? (
-          data?.Series.map((series) => (
+          data.Series.map((series) => (
             <div
               key={series.id}
               className="p-8 w-3/5 m-2 bg-gradient-to-r from-pink-400 via-orange-500 to-red-500 rounded shadow-md"

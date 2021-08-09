@@ -1,14 +1,27 @@
 import { atom, RecoilState } from 'recoil'
 
+// This is the structure of item of user flicks
 export interface Flick {
   id: string
   name: string
 }
-export type FlicksTypes = Flick[]
 
+// This is the list of user flicks
+export type FlicksTypes = Flick[]
 export interface FlicksList {
   userFlicksList: FlicksTypes
 }
+
+const BlankFlickList: FlicksList = {
+  userFlicksList: [],
+}
+
+// Atom containing the user flicks
+
+export const recoilFlicksArray: RecoilState<FlicksList> = atom({
+  key: 'recoilFlicksArray',
+  default: BlankFlickList,
+})
 
 export interface SeriesFlicks {
   id: string
@@ -22,18 +35,12 @@ export interface SelectedFlicksList {
   seriesFlicksList: SeriesFlicksTypes
 }
 
-const BlankFlickList: FlicksList = {
-  userFlicksList: [],
-}
-
-export const recoilFlicksArray: RecoilState<FlicksList> = atom({
-  key: 'recoilFlicksArray',
-  default: BlankFlickList,
-})
-
 const BlankSeriesFlickList: SelectedFlicksList = {
   seriesFlicksList: [],
 }
+
+// This is for Series Flick, with structure -> id, name, isChecked
+// Atom for updating the series flick list
 
 export const recoilSeriesFlicksArray: RecoilState<SelectedFlicksList> = atom({
   key: 'recoilSeriesFlicksArray',
