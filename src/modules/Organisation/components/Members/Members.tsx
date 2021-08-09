@@ -1,14 +1,11 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { QueryLazyOptions } from '@apollo/client'
 import { User } from '@sentry/react'
 import React, { useState } from 'react'
 import Select from 'react-select'
 import { useRecoilValue } from 'recoil'
 import { emitToast } from '../../../../components'
 import {
-  Exact,
   FilteredUserFragment,
-  Maybe,
   MemberFragment,
   useAddMemberToOrganisationMutation,
   useGetFilteredUsersQuery,
