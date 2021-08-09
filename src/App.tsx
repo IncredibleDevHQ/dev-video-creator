@@ -16,6 +16,8 @@ import {
   Flicks,
   Landing,
   NewFlick,
+  NewOrganisation,
+  Organisation,
   Profile,
 } from './modules'
 
@@ -42,8 +44,18 @@ const App = () => {
                     <Landing />
                   </Route>
                   <PrivateRoute exact path="/dashboard" component={Dashboard} />
+                  <PrivateRoute
+                    exact
+                    path="/organisations"
+                    component={Organisation}
+                  />
                   <PrivateRoute exact path="/profile" component={Profile} />
                   <PrivateRoute exact path="/new-flick" component={NewFlick} />
+                  <PrivateRoute
+                    exact
+                    path="/new-organisation"
+                    component={NewOrganisation}
+                  />
                   <PrivateRoute exact path="/flick/:id" component={Flick} />
                   <PrivateRoute exact path="/flicks" component={Flicks} />
                   <Route exact path="/login">

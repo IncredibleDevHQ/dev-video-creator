@@ -48,3 +48,17 @@ mutation SetOnboarding {
     success
   }
 }
+
+fragment FilteredUser on User {
+  displayName
+  email
+  picture
+  sub
+  username
+}
+
+query GetFilteredUsers($_ilike: String = "") {
+  User(where: { displayName: { _ilike: $_ilike } }) {
+    ...FilteredUser
+  }
+}
