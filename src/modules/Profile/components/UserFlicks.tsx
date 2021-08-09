@@ -22,6 +22,7 @@ const UserFlicks = () => {
         const flickItem: Flick = {
           id: flick.id,
           name: flick.name,
+          discription: flick.description as string,
         }
         list = [...list, flickItem]
       })
@@ -30,11 +31,11 @@ const UserFlicks = () => {
   }, [data])
 
   return (
-    <div className="flex w-full flex-col ">
-      <p className="mt-4 ml-2 align-middle text-xl rounded-lg">My Flicks</p>
+    <div className="flex w-full flex-col p-2 ">
+      <p className="mt-2 ml-4 align-middle text-2xl rounded-lg">My Flicks</p>
       <div className="flex justify-end flex-row gap-3">
         <button
-          className="flex justify-end align-middle p-2 text-base cursor-pointer bg-pink-400 bg-opacity-50 rounded-lg"
+          className="flex justify-end align-middle p-2 text-base text-white cursor-pointer bg-blue-400 bg-opacity-50 rounded-lg"
           type="button"
         >
           Add Flicks
@@ -42,7 +43,9 @@ const UserFlicks = () => {
 
         {FlickList.userFlicksList.length > 0 ? (
           <Link to="/profile/flicks">
-            <p className="object-none object-right">see all</p>
+            <p className="object-none m-2 object-right text-blue-400 underline">
+              see all
+            </p>
           </Link>
         ) : (
           <></>
@@ -53,9 +56,24 @@ const UserFlicks = () => {
           FlickList.userFlicksList.slice(0, 5).map((flick) => (
             <div
               key={flick.id}
-              className="p-8 m-2 bg-gradient-to-r from-pink-400 via-orange-500 to-red-500 rounded shadow-md"
+              className="flex flex-col h-80 md:max-h-80 rounded-lg ml-7 w-60 md:w-80 lg:w-80 m-2 border-blue-400 border-2 bg-white shadow-md"
             >
-              <h2 className="text-base text-gray-700  ">{flick.name}</h2>
+              <div className="max-h-48 ">
+                <img
+                  src="https://cdn.educba.com/academy/wp-content/uploads/2019/05/What-is-Coding.jpg"
+                  className="max-h-48 w-80 rounded-md"
+                  alt="https://www.google.com/url?sa=i&url=http%3A%2F%2Fwww.manuscriptorium.com%2Fapps%2Fgbank%2Fgbank_table.php&psig=AOvVaw0VwFCv74ldPzmrxJXJEJaV&ust=1628622050638000&source=images&cd=vfe&ved=0CAsQjRxqFwoTCMjLn4jQpPICFQAAAAAdAAAAABAI"
+                />
+                <p className=" text-gray-600 flex justify-end  text-sm p-1">
+                  ▪️12:38
+                </p>
+              </div>
+              <h2 className="text-md md:capitalize text-gray-600 pl-4 font-bold ">
+                {flick.name}
+              </h2>
+              <h2 className="text-md md:capitalize text-gray-600 pt-2 p-4 font-light ">
+                {flick.discription}
+              </h2>
             </div>
           ))
         ) : (

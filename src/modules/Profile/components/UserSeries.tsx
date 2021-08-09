@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { atom, RecoilState, useRecoilValue } from 'recoil'
 import { useGetUserSeriesQuery, UserFragment } from '../../../generated/graphql'
 import { User } from '../../../stores/user.store'
 import { AddNewSeriesModal, AddFlicksToSeriesModal } from './index'
@@ -28,8 +27,8 @@ const UserSeries = ({ userdata }: Props) => {
   })
 
   return (
-    <div className="flex w-full flex-col ">
-      <p className="mt-4 ml-2 align-middle text-xl rounded-lg">My Series</p>
+    <div className="flex w-full flex-col bg-blue-100 p-2">
+      <p className="mt-2 ml-4 align-middle text-2xl rounded-lg">My Series</p>
       <div className="flex justify-end flex-row gap-3">
         <AddNewSeriesModal
           open={newSeriesModal}
@@ -49,7 +48,7 @@ const UserSeries = ({ userdata }: Props) => {
           }}
         />
         <button
-          className="flex justify-end align-middle p-2 text-base cursor-pointer bg-pink-400 bg-opacity-50 rounded-lg"
+          className="flex justify-end align-middle p-2 pb-2 text-base cursor-pointer bg-blue-400 bg-opacity-50 rounded-lg text-white"
           type="button"
           onClick={() => setNewSeriesModal(true)}
         >
@@ -58,7 +57,9 @@ const UserSeries = ({ userdata }: Props) => {
 
         {data && data.Series.length > 0 ? (
           <Link to="/profile/series">
-            <p className="object-none object-right">see all</p>
+            <p className="object-none object-right text-blue-400 underline m-2">
+              see all
+            </p>
           </Link>
         ) : (
           <></>
@@ -69,11 +70,31 @@ const UserSeries = ({ userdata }: Props) => {
           data.Series.map((series) => (
             <div
               key={series.id}
-              className="p-8 w-3/5 m-2 bg-gradient-to-r from-pink-400 via-orange-500 to-red-500 rounded shadow-md"
+              className="flex flex-row h-20 md:h-32 rounded-lg p-4 ml-7 w-60 md:w-80 lg:w-80 m-2 border-blue-400 border-2 bg-white shadow-md"
             >
-              <Link to={`/profile/series/${series.id}`}>
-                <h2 className="text-base text-gray-700  ">{series.name}</h2>
-              </Link>
+              <img
+                src={
+                  series.picture
+                    ? series.picture
+                    : 'https://png.pngitem.com/pimgs/s/31-316453_firebase-logo-png-transparent-firebase-logo-png-png.png '
+                }
+                alt="https://www.google.com/url?sa=i&url=http%3A%2F%2Fwww.manuscriptorium.com%2Fapps%2Fgbank%2Fgbank_table.php&psig=AOvVaw0VwFCv74ldPzmrxJXJEJaV&ust=1628622050638000&source=images&cd=vfe&ved=0CAsQjRxqFwoTCMjLn4jQpPICFQAAAAAdAAAAABAI"
+                className="w-10 md:w-10 lg:w-10 h-10 md:h-10 lg:h-10 border-blue-300 border-2 rounded-lg"
+              />
+              <div className="w-full">
+                <Link to={`/profile/series/${series.id}`}>
+                  <h2 className="text-gray-600 text-md md:capitalize font-bold p-2">
+                    {series.name ? series.name : '  '}
+                  </h2>
+                </Link>
+                <h2 className="text-gray-600 md:font-light md:capitalize text-md p-2">
+                  {series.description}
+                </h2>
+
+                <p className="  text-sm flex justify-end align-bottom object-bottom">
+                  2 Flicks
+                </p>
+              </div>
             </div>
           ))
         ) : (

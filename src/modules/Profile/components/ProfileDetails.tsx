@@ -9,12 +9,12 @@ interface Props {
 
 const ProfileDetails = ({ userdata }: Props) => {
   return (
-    <div className="flex flex-row px-4 max-w-full ">
+    <div className="flex flex-row px-4 mb-4 max-w-full ">
       {userdata.picture ? (
         <img
           src={userdata.picture}
           alt={userdata.displayName || 'user'}
-          className="w-40 h-40 mx-3 my-2 rounded-full"
+          className="w-40 h-40 mx-3 my-2 rounded-full border-blue-200 border-4"
         />
       ) : (
         <Gravatar

@@ -9,9 +9,9 @@ const Profile = () => {
   const userdata = (useRecoilValue(userState) as User) || {}
 
   return (
-    <div className="  flex flex-col max-w-full">
+    <div className="  flex flex-col  relative min-h-screen">
       <button
-        className="w-full mr-5 mt-5 px-4 flex justify-end"
+        className="w-full mr-5 mt-5 px-4 flex justify-end text-blue-400"
         type="button"
         onClick={async () => {
           await signOut?.()
@@ -19,10 +19,12 @@ const Profile = () => {
       >
         Sign Out
       </button>
-      <p className="m-2 p-3 bg-pink-400 bg-opacity-25 text-3xl rounded-lg w-auto">
-        Profile
-      </p>
-      <div className="grid-cols-1 divide-y divide-pink-400 divide-opacity-25 p-4">
+      <div className="m-1 p-1 rounded-lg border-blue-400 border-2 w-auto">
+        <p className="m-1 p-1  text-3xl text-black rounded-lg w-auto">
+          Profile
+        </p>
+      </div>
+      <div className="grid-cols-1 divide-y divide-blue-400 divide-opacity-25 ">
         <ProfileDetails userdata={userdata} />
         <UserSeries userdata={userdata} />
         <UserFlicks />

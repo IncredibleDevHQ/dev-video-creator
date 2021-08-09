@@ -2,11 +2,11 @@ import { css, cx } from '@emotion/css'
 import 'react-responsive-modal/styles.css'
 import React, { useEffect, useState } from 'react'
 import Modal from 'react-responsive-modal'
-import { useRecoilState } from 'recoil'
 import { toast } from 'react-toastify'
-import { useCreateSeriesMutation } from '../../../generated/graphql'
 
-import { emitToast, TextField } from '../../../components'
+import { Button, emitToast, TextField } from '../../../components'
+import { useUploadFile } from '../../../hooks/use-upload-file'
+import { useCreateSeriesMutation } from '../../../generated/graphql'
 
 interface SeriesDetails {
   name: string
@@ -27,6 +27,22 @@ const AddNewSeriesModal = ({
 }) => {
   const [createSeriesMutation, { data }] = useCreateSeriesMutation()
   const [details, setDetails] = useState<SeriesDetails>({ name: '' })
+  const [pic, setPic] = useState<string>()
+  const [loadingPic, setLoadingPic] = useState<boolean>(false)
+
+  const [uploadFile] = useUploadFile()
+
+  const handleClick = async (file: File | Blob) => {
+    if (!file) return
+
+    setLoadingPic(true)
+    const pic = await uploadFile({
+      extension: file.name.split('.')[1],
+      file,
+    })
+    setLoadingPic(false)
+    setPic(pic.url)
+  }
 
   useEffect(() => {
     setDetails({ name: '' })
@@ -55,6 +71,7 @@ const AddNewSeriesModal = ({
       await createSeriesMutation({
         variables: {
           name: details.name,
+          picture: pic,
         },
       })
     } catch (error: any) {
@@ -77,12 +94,14 @@ const AddNewSeriesModal = ({
         modal: cx(
           'rounded-lg w-auto md:w-1/2',
           css`
-            background-color: #ff99ab !important;
+            background-color: #9ef7ff !important
+            border: #02737d !important
+      ;
           `
         ),
         closeButton: css`
           svg {
-            fill: #000000;
+            fill: #02737d;
           }
         `,
       }}
@@ -92,27 +111,41 @@ const AddNewSeriesModal = ({
         <TextField
           label="Name"
           type="text"
-          className="my-2"
+          className="my-2 border-2 border-blue-400 rounded-md "
           value={details.name}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
             setDetails({ name: e.target.value })
           }}
         />
-        <TextField label="Description" type="text" className="my-2" />
+        <TextField
+          label="Description"
+          type="text"
+          className="my-2 border-2 border-blue-400 rounded-md"
+        />
+
+        <input
+          type="file"
+          className="w-full mb-2"
+          accept="image/*"
+          onChange={(e) => handleClick(e.target.files[0])}
+        />
         <div className="flex flex-row gap-3">
-          <button
+          <Button
+            appearance="primary"
             type="button"
-            className="flex justify-end p-2 bg-pink-800 rounded-lg"
             onClick={() => {
               handleClose(true)
               handleAddSeries()
             }}
+            disabled={loadingPic}
+            loading={loadingPic}
           >
-            Add
-          </button>
+            Save
+          </Button>
+
           <button
             type="button"
-            className="flex justify-end p-2 rounded-lg bg-pink-800"
+            className="flex justify-end text-sm p-2 text-white rounded-lg bg-blue-400 mt-4"
             onClick={() => {
               handleClose(true)
             }}

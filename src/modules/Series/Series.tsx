@@ -15,21 +15,41 @@ const Series = () => {
   })
 
   return (
-    <div className="  flex flex-col max-w-full">
-      <p className="m-2 p-3 bg-pink-400 bg-opacity-25 text-3xl rounded-lg w-auto">
-        Series
-      </p>
-      <div className=" max-w-full grid grid-flow-row grid-cols-3 grid-rows-3 gap-4">
+    <div className="  flex p-2 flex-col bg-blue-100 max-w-full">
+      <div className="m-1 p-1 rounded-lg border-blue-400 border-2 bg-white w-auto">
+        <p className="m-1 p-1  text-3xl text-black rounded-lg w-auto">Series</p>
+      </div>
+      <div className=" max-w-full grid grid-flow-row grid-cols-5 gap-4">
         {data && data.Series.length > 0 ? (
-          data?.Series.map((series) => (
+          data.Series.map((series) => (
             <div
               key={series.id}
-              className="p-8 m-2 bg-gradient-to-r from-pink-400 via-orange-500 to-red-500 rounded shadow-md"
+              className="flex flex-row h-20 md:h-32 rounded-lg p-4 ml-7 w-60 md:w-80 lg:w-80 m-2 border-blue-400 border-2 bg-white shadow-md"
             >
-              <Link to={`/profile/series/${series.id}`}>
-                <h2 className="text-base text-gray-700  ">{series.name}</h2>
-              </Link>
-              <p className="text-gray-600">{series.description}</p>
+              {/* <p>{series.picture as string}</p> */}
+              <img
+                src={
+                  series.picture
+                    ? series.picture
+                    : 'https://png.pngitem.com/pimgs/s/31-316453_firebase-logo-png-transparent-firebase-logo-png-png.png '
+                }
+                alt="https://www.google.com/url?sa=i&url=http%3A%2F%2Fwww.manuscriptorium.com%2Fapps%2Fgbank%2Fgbank_table.php&psig=AOvVaw0VwFCv74ldPzmrxJXJEJaV&ust=1628622050638000&source=images&cd=vfe&ved=0CAsQjRxqFwoTCMjLn4jQpPICFQAAAAAdAAAAABAI"
+                className="w-10 md:w-10 lg:w-10 h-10 md:h-10 lg:h-10 border-blue-300 border-2 rounded-lg"
+              />
+              <div className="w-full">
+                <Link to={`/profile/series/${series.id}`}>
+                  <h2 className="text-gray-600 text-md md:capitalize font-bold p-2">
+                    {series.name ? series.name : '  '}
+                  </h2>
+                </Link>
+                <h2 className="text-gray-600 md:font-light md:capitalize text-md p-2">
+                  {series.description}
+                </h2>
+
+                <p className="  text-sm flex justify-end align-bottom object-bottom">
+                  2 Flicks
+                </p>
+              </div>
             </div>
           ))
         ) : (

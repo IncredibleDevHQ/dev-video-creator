@@ -4,6 +4,7 @@ import { atom, RecoilState } from 'recoil'
 export interface Flick {
   id: string
   name: string
+  discription: string
 }
 
 // This is the list of user flicks
@@ -26,6 +27,7 @@ export const recoilFlicksArray: RecoilState<FlicksList> = atom({
 export interface SeriesFlicks {
   id: string
   name: string
+  description: string
   isChecked: boolean
 }
 

@@ -29,8 +29,16 @@ query SeriesFlicks($id: uuid) {
   }
 }
 
-mutation CreateSeries($name: String!, $organisationSlug: String) {
-  CreateSeries(name: $name, organisationSlug: $organisationSlug) {
+mutation CreateSeries(
+  $name: String!
+  $organisationSlug: String
+  $picture: String
+) {
+  CreateSeries(
+    name: $name
+    organisationSlug: $organisationSlug
+    picture: $picture
+  ) {
     id
   }
 }
