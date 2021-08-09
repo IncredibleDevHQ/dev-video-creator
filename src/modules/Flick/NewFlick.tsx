@@ -1,3 +1,4 @@
+/* eslint-disable jsx-a11y/label-has-associated-control */
 import React, { useEffect, useState } from 'react'
 import { useHistory } from 'react-router-dom'
 import {
@@ -48,7 +49,7 @@ const NewFlick = () => {
   }
 
   const createFlick = async () => {
-    await createNewFlick({ variables: newFlick })
+    if (newFlick.name) await createNewFlick({ variables: newFlick })
   }
 
   return (
@@ -71,6 +72,21 @@ const NewFlick = () => {
             updateFlick('description', e.target.value)
           }
         />
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            // onChange={(e) => console.log(e.target.checked)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              updateFlick(
+                'scope',
+                e.target.checked
+                  ? CreateFlickFlickScopeEnumEnum.Public
+                  : CreateFlickFlickScopeEnumEnum.Private
+              )
+            }
+          />
+          <label>Public</label>
+        </div>
         <Button
           loading={loading}
           type="submit"
