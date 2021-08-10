@@ -98,7 +98,7 @@ const AddFlicksToSeriesModal = ({
       }}
     >
       <div className="w-100,h-100">
-        <p className="text-xl font-bold"> Add Flicks to Series! </p>
+        <p className="text-xl font-semibold"> Add Flicks to Series! </p>
 
         <div className="p-4">
           {SeriesFlickList.seriesFlicksList.map((flick) => (
@@ -110,10 +110,11 @@ const AddFlicksToSeriesModal = ({
                 value={flick.id}
                 checked={flick.isChecked}
                 onChange={() => reverseChecked(flick.id)}
+                className="lg:relative  gap-3 h-5 w-5"
               />
               <label
                 htmlFor="click-yes"
-                className="select-none border-2 border-blue-400"
+                className="select-none text-lg text-black ml-4 lg:capitalize"
               >
                 {flick.name}
               </label>
@@ -123,14 +124,14 @@ const AddFlicksToSeriesModal = ({
         <div className="flex flex-row gap-3">
           <button
             onClick={FlicksInSeries}
-            className="flex justify-end p-2 bg-white rounded-lg"
+            className="flex justify-end p-2  bg-blue-400  text-white rounded-lg"
             type="button"
           >
             Save
           </button>
           <button
             type="button"
-            className="flex justify-end p-2 rounded-lg bg-blue-400"
+            className="flex justify-end p-2 text-white rounded-lg bg-blue-400"
             onClick={() => {
               handleClose(true)
             }}

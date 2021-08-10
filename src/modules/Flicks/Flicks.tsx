@@ -10,7 +10,7 @@ const Flicks = () => {
       <div className="m-1 p-1 rounded-lg border-blue-400 border-2 w-auto">
         <p className="m-1 p-1  text-3xl text-black rounded-lg w-auto">Flicks</p>
       </div>
-      <div className=" max-w-full grid grid-flow-row grid-cols-">
+      <div className=" max-w-full grid grid-flow-row grid-cols-4">
         {FlickList.userFlicksList.length > 0 ? (
           FlickList.userFlicksList.slice(0, 5).map((flick) => (
             <div

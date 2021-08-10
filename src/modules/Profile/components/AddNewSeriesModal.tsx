@@ -101,31 +101,32 @@ const AddNewSeriesModal = ({
         ),
         closeButton: css`
           svg {
-            fill: #02737d;
+            fill: #000000;
           }
         `,
       }}
     >
       <div className="w-100,h-100">
-        <p className="text-xl font-bold"> Add Series! </p>
-        <TextField
-          label="Name"
+        <p className="text-xl font-semibold mb-4"> Add Series! </p>
+        <p className="m-2">Name</p>
+        <input
           type="text"
-          className="my-2 border-2 border-blue-400 rounded-md "
+          className="px-3 py-3 mb-3 placeholder-blueGray-300 text-blueGray-600 relative border-2 border-blue-400  rounded text-lg shadow outline-none focus:outline-none focus:ring w-full"
           value={details.name}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
             setDetails({ name: e.target.value })
           }}
         />
-        <TextField
-          label="Description"
+
+        <p className="mb-2 ml-2">Description (optional)</p>
+        <input
           type="text"
-          className="my-2 border-2 border-blue-400 rounded-md"
+          className="px-3 py-3 placeholder-blueGray-300 text-blueGray-600 relative border-2 border-blue-400  rounded text-lg shadow outline-none focus:outline-none focus:ring w-full"
         />
 
         <input
           type="file"
-          className="w-full mb-2"
+          className=" px-1 py-3 text-blueGray-600 relative rounded text-lg w-full mt-8"
           accept="image/*"
           onChange={(e) => handleClick(e.target.files[0])}
         />
@@ -137,21 +138,23 @@ const AddNewSeriesModal = ({
               handleClose(true)
               handleAddSeries()
             }}
+            className="flex justify-end p-2 text-base bg-blue-400  text-white rounded-lg mt-4"
             disabled={loadingPic}
             loading={loadingPic}
           >
             Save
           </Button>
 
-          <button
+          <Button
+            appearance="primary"
             type="button"
-            className="flex justify-end text-sm p-2 text-white rounded-lg bg-blue-400 mt-4"
+            className="flex justify-end text-base p-2 text-white rounded-lg bg-blue-400 mt-4"
             onClick={() => {
               handleClose(true)
             }}
           >
             Cancel
-          </button>
+          </Button>
         </div>
       </div>
     </Modal>
