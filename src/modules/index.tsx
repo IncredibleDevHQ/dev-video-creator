@@ -11,7 +11,7 @@ import Studio from './Studio/Studio'
 import '@fontsource/fira-mono'
 import NewOrganisation from './Organisation/NewOrganisation'
 import Series from './Series/Series'
-import UserFlicks from './Flicks/UserFlicks'
+import AllUserFlicks from './Flicks/AllUserFlicks'
 import UserSeriesFlicks from './UserSeriesFlicks/UserSeriesFlicks'
 
 export {
@@ -27,6 +27,6 @@ export {
   Organisation,
   NewOrganisation,
   Series,
-  UserFlicks,
+  AllUserFlicks,
   UserSeriesFlicks,
 }

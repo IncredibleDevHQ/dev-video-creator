@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useRecoilValue } from 'recoil'
 import { Auth, authState } from '../../stores/auth.store'
 import { User, userState } from '../../stores/user.store'
+import { Text } from '../../components'
 import {
   ProfileDetails,
   UserSeries,
@@ -11,7 +12,7 @@ import {
 
 const Profile = () => {
   const { signOut } = (useRecoilValue(authState) as Auth) || {}
-  const userdata = (useRecoilValue(userState) as User) || {}
+  const userData = (useRecoilValue(userState) as User) || {}
   const [editProfileModal, setEditProfileModal] = useState<boolean>(false)
 
   return (
@@ -37,20 +38,20 @@ const Profile = () => {
         </button>
       </div>
       <div className="m-1 p-1 rounded-lg border-blue-400 border-2 w-auto">
-        <p className="m-1 p-1  text-3xl text-black rounded-lg w-auto">
+        <Text className="m-1 p-1  text-3xl text-black rounded-lg w-auto">
           Profile
-        </p>
+        </Text>
       </div>
       <div className="grid-cols-1 divide-y divide-blue-400 divide-opacity-25 ">
         <EditProfileModal
-          userdata={userdata}
+          userData={userData}
           open={editProfileModal}
           handleClose={() => {
             setEditProfileModal(false)
           }}
         />
-        <ProfileDetails userdata={userdata} />
-        <UserSeries userdata={userdata} />
+        <ProfileDetails userdata={userData} />
+        <UserSeries userdata={userData} />
         <UserFlicks />
       </div>
     </div>

@@ -1,6 +1,6 @@
 import { cx } from '@emotion/css'
 import React, { HTMLAttributes } from 'react'
-import { Button } from '../../../components'
+import { Button, Heading, Text } from '../../../components'
 import { getRandomGradient } from '../../../utils/globalStyles'
 
 const randomGradient = getRandomGradient()
@@ -23,8 +23,8 @@ const UpcomingFlickBanner = ({
       {...rest}
     >
       <div className="flex-1">
-        <h2>New flick title</h2>
-        <p>New flick description</p>
+        <Heading>New flick title</Heading>
+        <Text>New flick description</Text>
       </div>
       <Button
         type="button"

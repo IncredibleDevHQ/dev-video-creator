@@ -1,15 +1,16 @@
 import { css, cx } from '@emotion/css'
-import 'react-responsive-modal/styles.css'
 import React, { useEffect, useState } from 'react'
 import Modal from 'react-responsive-modal'
 import { toast } from 'react-toastify'
 
-import { Button, emitToast } from '../../../components'
+import { Button, emitToast, ScreenState, TextField } from '../../../components'
 import { useUploadFile } from '../../../hooks/use-upload-file'
 import { useCreateUserSeriesMutation } from '../../../generated/graphql'
+import { Text } from '../../../components'
 
 interface SeriesDetails {
   name: string
+  pic: string
 }
 interface AddFlick {
   open: boolean
@@ -25,40 +26,35 @@ const AddNewSeriesModal = ({
   handleClose: (refresh?: boolean) => void
   setAddFlickSeriesModal: React.Dispatch<React.SetStateAction<AddFlick>>
 }) => {
-  const [createSeriesMutation, { data }] = useCreateUserSeriesMutation()
-  const [details, setDetails] = useState<SeriesDetails>({ name: '' })
-  const [pic, setPic] = useState<string>()
-  const [loadingPic, setLoadingPic] = useState<boolean>(false)
+  const [createSeriesMutation, { data, loading, error }] =
+    useCreateUserSeriesMutation()
+  const [details, setDetails] = useState<SeriesDetails>({ name: '', pic: '' })
+  const [loadingAssets, setLoadingAssets] = useState<boolean>(false)
 
   const [uploadFile] = useUploadFile()
 
   const handleClick = async (file: File | Blob) => {
     if (!file) return
 
-    setLoadingPic(true)
+    setLoadingAssets(true)
     const pic = await uploadFile({
       extension: file.name.split('.')[1],
       file,
     })
-    setLoadingPic(false)
-    setPic(pic.url)
+    setLoadingAssets(false)
+    setDetails({ ...details, pic: pic.url })
   }
 
   useEffect(() => {
-    setDetails({ name: '' })
+    setDetails({ name: '', pic: '' })
     if (data && data.CreateSeries) {
-      toast('🥳 Smile a little, because your Series is ready! 🥳', {
-        position: 'top-right',
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-        className: css({
-          background: '#ffe2eb !important',
-        }),
+      emitToast({
+        title: 'Success',
+        autoClose: false,
+        description: '🥳 Smile a little, because your Series is ready! 🥳',
+        type: 'success',
       })
+
       setAddFlickSeriesModal({
         open: true,
         seriesId: data.CreateSeries.id,
@@ -67,23 +63,21 @@ const AddNewSeriesModal = ({
   }, [data])
 
   const handleAddSeries = async () => {
-    try {
-      await createSeriesMutation({
-        variables: {
-          name: details.name,
-          picture: pic,
-        },
-      })
-    } catch (error: any) {
-      emitToast({
-        title: "We couldn't add your series",
-        autoClose: false,
-        type: 'error',
-        description: `Click this toast to refresh and give it another try. (${error.code})`,
-        onClick: () => window.location.reload(),
-      })
-    }
+    await createSeriesMutation({
+      variables: {
+        name: details.name,
+        picture: details.pic,
+      },
+    })
   }
+
+  if (loading) return <ScreenState title="Updating...." loading />
+
+  if (error)
+    return (
+      <ScreenState title="Something went wrong!!" subtitle={error.message} />
+    )
+
   return (
     <Modal
       open={open}
@@ -107,19 +101,20 @@ const AddNewSeriesModal = ({
       }}
     >
       <div className="w-100,h-100">
-        <p className="text-xl font-semibold mb-4"> Add Series! </p>
-        <p className="m-2">Name</p>
-        <input
+        <Text className="text-xl font-semibold mb-4"> Add Series! </Text>
+
+        <TextField
+          label="Name"
           type="text"
           className="px-3 py-3 mb-3 placeholder-blueGray-300 text-blueGray-600 relative border-2 border-blue-400  rounded text-lg shadow outline-none focus:outline-none focus:ring w-full"
           value={details.name}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-            setDetails({ name: e.target.value })
+            setDetails({ ...details, name: e.target.value })
           }}
         />
 
-        <p className="mb-2 ml-2">Description (optional)</p>
-        <input
+        <TextField
+          label="Description (optional)"
           type="text"
           className="px-3 py-3 placeholder-blueGray-300 text-blueGray-600 relative border-2 border-blue-400  rounded text-lg shadow outline-none focus:outline-none focus:ring w-full"
         />
@@ -139,8 +134,8 @@ const AddNewSeriesModal = ({
               handleAddSeries()
             }}
             className="flex justify-end p-2 text-base bg-blue-400  text-white rounded-lg mt-4"
-            disabled={loadingPic}
-            loading={loadingPic}
+            disabled={loadingAssets}
+            loading={loadingAssets}
           >
             Save
           </Button>

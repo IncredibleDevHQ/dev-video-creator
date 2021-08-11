@@ -20,6 +20,7 @@ import {
   Organisation,
   Profile,
   Series,
+  AllUserFlicks,
   Studio,
   UserSeriesFlicks,
 } from './modules'
@@ -74,7 +75,7 @@ const App = () => {
                   <PrivateRoute
                     exact
                     path="/profile/flicks"
-                    component={Flicks}
+                    component={AllUserFlicks}
                   />
                   <PrivateRoute
                     exact

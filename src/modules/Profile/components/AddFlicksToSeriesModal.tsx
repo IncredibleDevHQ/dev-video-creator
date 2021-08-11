@@ -1,18 +1,18 @@
 import React, { useEffect } from 'react'
 import Modal from 'react-responsive-modal'
 import { useRecoilState, useRecoilValue } from 'recoil'
-import 'react-responsive-modal/styles.css'
+import { ScreenState, Text } from '../../../components'
 import { css, cx } from '@emotion/css'
-import 'react-toastify/dist/ReactToastify.css'
-import { useUpdateSeriesFlickMutation } from '../../../generated/graphql'
 import {
-  SeriesFlicks,
-  FlicksList,
-  recoilFlicksArray,
+  useGetMyFlicksQuery,
+  useUpdateSeriesFlickMutation,
+} from '../../../generated/graphql'
+import {
   recoilSeriesFlicksArray,
   SelectedFlicksList,
+  SeriesFlicks,
   SeriesFlicksTypes,
-} from '../../DataStructure'
+} from '../../../stores/series.store'
 
 const AddFlicksToSeriesModal = ({
   open,
@@ -25,28 +25,33 @@ const AddFlicksToSeriesModal = ({
 }) => {
   const newSeriesId = seriesId
   const [addFlickToSeries] = useUpdateSeriesFlickMutation()
-  const FlickList = useRecoilValue<FlicksList>(recoilFlicksArray)
-  const [SeriesFlickList, setSeriesFlickList] =
+  const [seriesFlickList, setSeriesFlickList] =
     useRecoilState<SelectedFlicksList>(recoilSeriesFlicksArray)
+  const { data, loading, error } = useGetMyFlicksQuery({
+    variables: {
+      limit: 30,
+    },
+  })
 
   useEffect(() => {
-    if (FlickList.userFlicksList.length > 0) {
+    if (data?.Flick.length) {
       let list: SeriesFlicksTypes = []
-      FlickList.userFlicksList.forEach((flick) => {
+      data?.Flick.forEach((flick) => {
         const flickItem: SeriesFlicks = {
           id: flick.id,
           name: flick.name,
-          description: flick.discription,
+          description: flick.description as string,
           isChecked: false,
         }
         list = [...list, flickItem]
       })
+
       setSeriesFlickList({ seriesFlicksList: list })
     }
-  }, [FlickList])
+  }, [data])
 
   const reverseChecked = (id: SeriesFlicks['id']) => {
-    const updatedList: SeriesFlicksTypes = SeriesFlickList.seriesFlicksList.map(
+    const updatedList: SeriesFlicksTypes = seriesFlickList.seriesFlicksList.map(
       (flick) => {
         if (flick.id === id) {
           return { ...flick, isChecked: !flick.isChecked }
@@ -58,13 +63,13 @@ const AddFlicksToSeriesModal = ({
   }
 
   const SelectedFlicks = (): string[] => {
-    const flick: SeriesFlicksTypes = SeriesFlickList.seriesFlicksList.filter(
+    const flick: SeriesFlicksTypes = seriesFlickList.seriesFlicksList.filter(
       (t: SeriesFlicks): boolean => t.isChecked !== false
     )
     return flick.map((id) => id.id)
   }
 
-  const FlicksInSeries = async () => {
+  const flicksInSeries = async () => {
     await addFlickToSeries({
       variables: {
         flickIds: SelectedFlicks(),
@@ -76,6 +81,13 @@ const AddFlicksToSeriesModal = ({
     }
     handleClose(true)
   }
+
+  if (loading) return <ScreenState title="Loading...." loading />
+
+  if (error)
+    return (
+      <ScreenState title="Something went wrong!!" subtitle={error.message} />
+    )
 
   return (
     <Modal
@@ -98,10 +110,10 @@ const AddFlicksToSeriesModal = ({
       }}
     >
       <div className="w-100,h-100">
-        <p className="text-xl font-semibold"> Add Flicks to Series! </p>
+        <Text className="text-xl font-semibold"> Add Flicks to Series! </Text>
 
         <div className="p-4">
-          {SeriesFlickList.seriesFlicksList.map((flick) => (
+          {seriesFlickList.seriesFlicksList.map((flick) => (
             <div key={flick.id} className="flex items-center mr-4 mb-2">
               <input
                 type="checkbox"
@@ -123,7 +135,7 @@ const AddFlicksToSeriesModal = ({
         </div>
         <div className="flex flex-row gap-3">
           <button
-            onClick={FlicksInSeries}
+            onClick={flicksInSeries}
             className="flex justify-end p-2  bg-blue-400  text-white rounded-lg"
             type="button"
           >

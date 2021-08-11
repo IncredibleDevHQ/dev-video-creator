@@ -1,7 +1,6 @@
 import { cx, css } from '@emotion/css'
 import React, { useEffect, useState } from 'react'
 import Modal from 'react-responsive-modal'
-import { toast } from 'react-toastify'
 import { useRecoilState } from 'recoil'
 import { Maybe } from 'graphql/jsutils/Maybe'
 import { databaseUserState, User } from '../../../stores/user.store'
@@ -9,33 +8,29 @@ import {
   UserFragment,
   useUpdateProfileMutation,
 } from '../../../generated/graphql'
+import { emitToast, ScreenState, Text, TextField } from '../../../components'
 
 const EditProfileModal = ({
   open,
   handleClose,
-  userdata,
+  userData,
 }: {
   open: boolean
   handleClose: () => void
-  userdata: Partial<User> & Partial<UserFragment>
+  userData: Partial<User> & Partial<UserFragment>
 }) => {
-  const [updateProfileDetails, { data }] = useUpdateProfileMutation()
+  const [updateProfileDetails, { data, loading, error }] =
+    useUpdateProfileMutation()
   const [userDetails, setUserDetails] = useRecoilState(databaseUserState)
   const [name, setName] = useState<Maybe<string>>(userDetails?.displayName)
 
   useEffect(() => {
     if (data && data.update_User) {
-      toast('🥳 Your profile details have been updated successfully! 🥳', {
-        position: 'top-right',
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-        className: css({
-          background: '#ffe2eb !important',
-        }),
+      emitToast({
+        title: 'Success',
+        description: '🥳 Smile a little, because your Series is ready! 🥳',
+        type: 'success',
+        autoClose: false,
       })
     }
   }, [data])
@@ -47,12 +42,17 @@ const EditProfileModal = ({
   const updateDetails = async () => {
     await updateProfileDetails({
       variables: {
-        userId: userdata.sub as string,
+        userId: userData.sub as string,
         displayName: name as string,
       },
     })
   }
+  if (loading) return <ScreenState title="Updating..." loading />
 
+  if (error)
+    return (
+      <ScreenState title="Something went wrong!!" subtitle={error.message} />
+    )
   return (
     <Modal
       open={open}
@@ -76,9 +76,9 @@ const EditProfileModal = ({
       }}
     >
       <div className="w-100,h-100">
-        <p className="text-xl font-semibold mb-4"> Edit Profile! </p>
-        <p className="m-2">Display Name</p>
-        <input
+        <Text className="text-xl font-semibold mb-4"> Edit Profile! </Text>
+        <TextField
+          label="Display Name"
           type="text"
           className="px-3 py-3 mb-3 placeholder-blueGray-300 text-blueGray-600 relative border-2 border-blue-400  rounded text-lg shadow outline-none focus:outline-none focus:ring w-full"
           value={name as string}

@@ -7,8 +7,8 @@ query GetUserSeries($userId: String!, $limit: Int) {
   }
 }
 
-query GetMyFlicks {
-  Flick {
+query GetMyFlicks($limit: Int) {
+  Flick(limit: $limit) {
     id
     name
     description
