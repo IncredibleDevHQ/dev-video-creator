@@ -1,13 +1,12 @@
 import { cx, css } from '@emotion/css'
 import React, { useEffect, useState } from 'react'
 import Modal from 'react-responsive-modal'
-import { Button } from '../../../components'
+import { toast } from 'react-toastify'
 import { User } from '../../../stores/user.store'
 import {
   UserFragment,
   useUpdateProfileMutation,
 } from '../../../generated/graphql'
-import { toast } from 'react-toastify'
 
 interface UpdatedProfileDetails {
   name: string

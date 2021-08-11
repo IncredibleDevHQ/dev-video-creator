@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react'
 import Modal from 'react-responsive-modal'
 import { toast } from 'react-toastify'
 
-import { Button, emitToast, TextField } from '../../../components'
+import { Button, emitToast } from '../../../components'
 import { useUploadFile } from '../../../hooks/use-upload-file'
 import { useCreateSeriesMutation } from '../../../generated/graphql'
 
