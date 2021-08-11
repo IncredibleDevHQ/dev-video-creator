@@ -24,7 +24,7 @@ fragment Flick on Flick {
 
 query GetFlickById($id: uuid!) {
   Flick_by_pk(id: $id) {
-    ...BaseFlick
+    ...Flick
   }
 }
 
