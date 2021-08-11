@@ -33,6 +33,12 @@ fragment Member on Member {
   }
 }
 
+query GetOrganisationMembers($organisationSlug: String = "") {
+  Member(where: { organisationSlug: { _eq: $organisationSlug } }) {
+    ...Member
+  }
+}
+
 fragment Organisation on Organisation {
   slug
   members {
@@ -61,7 +67,7 @@ query GetSeries($organisationSlug: String = "") {
   }
 }
 
-mutation CreateSeries(
+mutation CreateOrganisationSeries(
   $name: String = ""
   $organisationSlug: String = ""
   $picture: String = ""

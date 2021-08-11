@@ -1,13 +1,24 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
+import { User } from '@sentry/react'
 import React, { useEffect, useState } from 'react'
+import { useRecoilValue } from 'recoil'
 import { Button } from '../../../../components'
 import {
+  OrganisationFragment,
   SeriesFragment,
   useGetSeriesLazyQuery,
 } from '../../../../generated/graphql'
+import { userState } from '../../../../stores/user.store'
 import CreateSeriesModal from './CreateSeriesModal'
 
-const Series = ({ organisationSlug }: { organisationSlug: string }) => {
+const Series = ({
+  organisationSlug,
+  selectedOrganisation,
+}: {
+  organisationSlug: string
+  selectedOrganisation: OrganisationFragment
+}) => {
+  const { uid } = (useRecoilValue(userState) as User) || {}
   const [series, setSeries] = useState<SeriesFragment[]>()
   const [seriesModal, setSeriesModal] = useState<boolean>(false)
   const [seriesCreated, setSeriesCreated] = useState<boolean>(false)
@@ -35,16 +46,20 @@ const Series = ({ organisationSlug }: { organisationSlug: string }) => {
 
   return (
     <div>
-      <div className="w-1/3 flex m-1 mt-0 gap-2">
-        <Button
-          appearance="primary"
-          type="button"
-          size="small"
-          onClick={() => setSeriesModal(true)}
-        >
-          Create Series
-        </Button>
-      </div>
+      {uid ===
+        selectedOrganisation.members.find((member) => member.role === 'Owner')
+          ?.user.sub && (
+        <div className="w-1/3 flex m-1 mt-0 gap-2">
+          <Button
+            appearance="primary"
+            type="button"
+            size="small"
+            onClick={() => setSeriesModal(true)}
+          >
+            Create Series
+          </Button>
+        </div>
+      )}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 grid-cols-1">
         {series?.map((series: SeriesFragment) => (
           <div

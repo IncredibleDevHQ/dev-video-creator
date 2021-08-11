@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import Modal from 'react-responsive-modal'
 import { Button, TextField } from '../../../../components'
-import { useCreateSeriesMutation } from '../../../../generated/graphql'
+import { useCreateOrganisationSeriesMutation } from '../../../../generated/graphql'
 import { useUploadFile } from '../../../../hooks/use-upload-file'
 
 interface Props {
@@ -37,7 +37,7 @@ const seriesModal = ({
     setPic(pic.url)
   }
 
-  const [CreateSeries, { loading }] = useCreateSeriesMutation()
+  const [CreateSeries, { loading }] = useCreateOrganisationSeriesMutation()
 
   const handleCreateSeries = async () => {
     await CreateSeries({
@@ -55,7 +55,7 @@ const seriesModal = ({
   return (
     <Modal
       classNames={{
-        modal: 'w-full h-2/5',
+        modal: 'w-full ',
         closeButton: 'focus:outline-none',
       }}
       open={seriesModal}
@@ -79,6 +79,7 @@ const seriesModal = ({
             accept="image/*"
             onChange={(e) => handleClick(e.target.files[0])}
           />
+          {pic && <img height="200px" src={pic} alt="series pic" />}
           <Button
             appearance="primary"
             type="button"

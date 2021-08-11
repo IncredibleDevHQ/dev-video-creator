@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { User } from '@sentry/react'
 import React, { useState } from 'react'
+import { useEffect } from 'react'
 import Select from 'react-select'
 import { useRecoilValue } from 'recoil'
 import { emitToast } from '../../../../components'
@@ -9,25 +10,19 @@ import {
   MemberFragment,
   useAddMemberToOrganisationMutation,
   useGetFilteredUsersQuery,
+  useGetOrganisationMembersLazyQuery,
 } from '../../../../generated/graphql'
 import { userState } from '../../../../stores/user.store'
 
 interface Props {
-  members: MemberFragment[]
   organisationSlug: string
-  organisationCreated: boolean
-  setOrganisationCreated: React.Dispatch<React.SetStateAction<boolean>>
 }
 
-const Members = ({
-  members,
-  organisationSlug,
-  organisationCreated,
-  setOrganisationCreated,
-}: Props) => {
+const Members = ({ organisationSlug }: Props) => {
   const { uid } = (useRecoilValue(userState) as User) || {}
   const [search, setSearch] = useState<string>('')
   const [selectedMember, setSelectedMember] = useState<FilteredUserFragment>()
+  const [memberCreated, setMemberCreated] = useState<boolean>(false)
 
   const {
     data,
@@ -38,6 +33,19 @@ const Members = ({
       _ilike: `%${search}%`,
     },
   })
+
+  const [
+    GetOrganisationMembers,
+    { data: dataMembers, error: errorMembers, loading: loadingMembers },
+  ] = useGetOrganisationMembersLazyQuery()
+
+  useEffect(() => {
+    GetOrganisationMembers({
+      variables: {
+        organisationSlug,
+      },
+    })
+  }, [memberCreated, organisationSlug])
 
   const [AddMemberToOrganisationMutation, { loading }] =
     useAddMemberToOrganisationMutation()
@@ -51,7 +59,7 @@ const Members = ({
         },
       })
 
-      setOrganisationCreated(!organisationCreated)
+      setMemberCreated(!memberCreated)
     } catch (error) {
       emitToast({
         title: 'User Already added',
@@ -62,9 +70,19 @@ const Members = ({
     }
   }
 
+  if (loadingMembers) {
+    return <div className="text-xl">Loading...</div>
+  }
+
+  if (errorMembers) {
+    return <div className="text-xl">Error Loading Series</div>
+  }
+
   return (
     <>
-      {uid === members[0].user.sub && (
+      {uid ===
+        dataMembers?.Member.find((member) => member.role === 'Owner')?.user
+          .sub && (
         <div className="w-1/3 flex m-1 mt-0 gap-2">
           <Select
             className="flex-1"
@@ -99,7 +117,7 @@ const Members = ({
         </div>
       )}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 grid-cols-1">
-        {members.map((member: MemberFragment) => (
+        {dataMembers?.Member.map((member: MemberFragment) => (
           <div
             key={member.id}
             className="flex items-center justify-between bg-blue-100 p-3 rounded-md m-1"
