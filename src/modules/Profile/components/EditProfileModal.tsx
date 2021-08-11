@@ -2,15 +2,13 @@ import { cx, css } from '@emotion/css'
 import React, { useEffect, useState } from 'react'
 import Modal from 'react-responsive-modal'
 import { toast } from 'react-toastify'
-import { User } from '../../../stores/user.store'
+import { useRecoilState } from 'recoil'
+import { Maybe } from 'graphql/jsutils/Maybe'
+import { databaseUserState, User } from '../../../stores/user.store'
 import {
   UserFragment,
   useUpdateProfileMutation,
 } from '../../../generated/graphql'
-
-interface UpdatedProfileDetails {
-  name: string
-}
 
 const EditProfileModal = ({
   open,
@@ -18,14 +16,14 @@ const EditProfileModal = ({
   userdata,
 }: {
   open: boolean
-  handleClose: (refresh?: boolean) => void
+  handleClose: () => void
   userdata: Partial<User> & Partial<UserFragment>
 }) => {
-  const [details, setDetails] = useState<UpdatedProfileDetails>({ name: '' })
   const [updateProfileDetails, { data }] = useUpdateProfileMutation()
+  const [userDetails, setUserDetails] = useRecoilState(databaseUserState)
+  const [name, setName] = useState<Maybe<string>>(userDetails?.displayName)
 
   useEffect(() => {
-    setDetails({ name: '' })
     if (data && data.update_User) {
       toast('🥳 Your profile details have been updated successfully! 🥳', {
         position: 'top-right',
@@ -42,12 +40,15 @@ const EditProfileModal = ({
     }
   }, [data])
 
+  useEffect(() => {
+    setUserDetails({ ...userDetails, displayName: name as string })
+  }, [name])
+
   const updateDetails = async () => {
     await updateProfileDetails({
       variables: {
-        userId: userdata.sub,
-        picture: userdata.picture,
-        displayName: details.name,
+        userId: userdata.sub as string,
+        displayName: name as string,
       },
     })
   }
@@ -56,7 +57,7 @@ const EditProfileModal = ({
     <Modal
       open={open}
       onClose={() => {
-        handleClose(true)
+        handleClose()
       }}
       classNames={{
         modal: cx(
@@ -80,9 +81,9 @@ const EditProfileModal = ({
         <input
           type="text"
           className="px-3 py-3 mb-3 placeholder-blueGray-300 text-blueGray-600 relative border-2 border-blue-400  rounded text-lg shadow outline-none focus:outline-none focus:ring w-full"
-          value={details.name}
+          value={name as string}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-            setDetails({ name: e.target.value })
+            setName(e.target.value)
           }}
         />
 
@@ -91,8 +92,8 @@ const EditProfileModal = ({
             type="button"
             className="flex justify-end p-2 text-base bg-blue-400  text-white rounded-lg mt-4"
             onClick={() => {
-              handleClose(true)
               updateDetails()
+              handleClose()
             }}
           >
             Save
@@ -102,7 +103,7 @@ const EditProfileModal = ({
             type="button"
             className="flex justify-end text-base p-2 text-white rounded-lg bg-blue-400 mt-4"
             onClick={() => {
-              handleClose(true)
+              handleClose()
             }}
           >
             Cancel

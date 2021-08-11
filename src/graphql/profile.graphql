@@ -49,13 +49,9 @@ mutation UpdateSeriesFlick($flickIds: [uuid!]!, $seriesId: uuid!) {
   }
 }
 
-mutation UpdateProfile(
-  $displayName: String = ""
-  $picture: String = ""
-  $userId: String = ""
-) {
+mutation UpdateProfile($displayName: String!, $userId: String!) {
   update_User(
-    _set: { displayName: $displayName, picture: $picture }
+    _set: { displayName: $displayName }
     where: { sub: { _eq: $userId } }
   ) {
     affected_rows
