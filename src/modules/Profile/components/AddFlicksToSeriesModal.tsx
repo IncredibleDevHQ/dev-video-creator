@@ -1,8 +1,9 @@
 import React, { useEffect } from 'react'
 import Modal from 'react-responsive-modal'
-import { useRecoilState, useRecoilValue } from 'recoil'
-import { ScreenState, Text } from '../../../components'
+import { useRecoilState } from 'recoil'
 import { css, cx } from '@emotion/css'
+import { ScreenState, Text } from '../../../components'
+
 import {
   useGetMyFlicksQuery,
   useUpdateSeriesFlickMutation,

@@ -49,7 +49,7 @@ const UserFlicks = () => {
                 <img
                   src="https://cdn.educba.com/academy/wp-content/uploads/2019/05/What-is-Coding.jpg"
                   className="max-h-48 w-80 rounded-md"
-                  alt="picture"
+                  alt="https://cdn.educba.com/academy/wp-content/uploads/2019/05/What-is-Coding.jpg"
                 />
               </div>
               <Heading className="text-md md:capitalize text-gray-600 pl-4 font-bold ">

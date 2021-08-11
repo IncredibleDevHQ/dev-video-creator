@@ -104,8 +104,8 @@ const UserSeriesFlicks = () => {
                   <div className="max-h-48">
                     <img
                       src="https://cdn.educba.com/academy/wp-content/uploads/2019/05/What-is-Coding.jpg"
+                      alt="https://cdn.educba.com/academy/wp-content/uploads/2019/05/What-is-Coding.jpg"
                       className="max-h-48 w-80 rounded-md"
-                      alt="picture"
                     />
                     <Text className=" text-gray-600 flex justify-end  text-sm p-1">
                       ▪️12:38

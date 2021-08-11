@@ -45,8 +45,8 @@ const Series = () => {
                     ? series.picture
                     : 'https://png.pngitem.com/pimgs/s/31-316453_firebase-logo-png-transparent-firebase-logo-png-png.png '
                 }
-                alt="picture"
                 className="w-10 md:w-10 lg:w-10 h-10 md:h-10 lg:h-10 border-blue-300 border-2 rounded-lg"
+                alt="https://png.pngitem.com/pimgs/s/31-316453_firebase-logo-png-transparent-firebase-logo-png-png.png"
               />
               <div className="w-full">
                 <Link to={`/profile/series/${series.id}`}>

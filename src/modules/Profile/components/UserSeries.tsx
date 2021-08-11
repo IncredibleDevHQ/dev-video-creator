@@ -4,6 +4,7 @@ import { useGetUserSeriesQuery, UserFragment } from '../../../generated/graphql'
 import { User } from '../../../stores/user.store'
 import { AddNewSeriesModal, AddFlicksToSeriesModal } from './index'
 import { Text, Heading, EmptyState, ScreenState } from '../../../components'
+
 interface Props {
   userData: Partial<User> & Partial<UserFragment>
 }
@@ -87,7 +88,7 @@ const UserSeries = ({ userData }: Props) => {
                     ? series.picture
                     : 'https://png.pngitem.com/pimgs/s/31-316453_firebase-logo-png-transparent-firebase-logo-png-png.png '
                 }
-                alt="picture"
+                alt="https://png.pngitem.com/pimgs/s/31-316453_firebase-logo-png-transparent-firebase-logo-png-png.png "
                 className="w-10 md:w-10 lg:w-10 h-10 md:h-10 lg:h-10 border-blue-300 border-2 rounded-lg"
               />
               <div className="w-full">

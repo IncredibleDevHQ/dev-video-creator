@@ -50,8 +50,8 @@ const Profile = () => {
             setEditProfileModal(false)
           }}
         />
-        <ProfileDetails userdata={userData} />
-        <UserSeries userdata={userData} />
+        <ProfileDetails userData={userData} />
+        <UserSeries userData={userData} />
         <UserFlicks />
       </div>
     </div>
