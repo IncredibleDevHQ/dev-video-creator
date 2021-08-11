@@ -29,7 +29,7 @@ query SeriesFlicks($id: uuid) {
   }
 }
 
-mutation CreateSeries(
+mutation CreateUserSeries(
   $name: String!
   $organisationSlug: String
   $picture: String

@@ -1,11 +1,11 @@
 import { cx } from '@emotion/css'
 import React, { HTMLAttributes } from 'react'
-import { Button } from '../../components'
-import { getRandomGradient } from '../../utils/globalStyles'
+import { Button } from '../../../components'
+import { getRandomGradient } from '../../../utils/globalStyles'
 
 const randomGradient = getRandomGradient()
 
-const NewFlickBanner = ({
+const UpcomingFlickBanner = ({
   className,
   ...rest
 }: HTMLAttributes<HTMLDivElement>) => {
@@ -28,8 +28,9 @@ const NewFlickBanner = ({
       </div>
       <Button
         type="button"
-        buttonStyle={randomGradient.type === 'dark' ? 'light' : 'primary'}
+        // buttonStyle={randomGradient.type === 'dark' ? 'light' : 'primary'}
         className="border-white h-auto"
+        appearance="primary"
       >
         Join
       </Button>
@@ -37,4 +38,4 @@ const NewFlickBanner = ({
   )
 }
 
-export default NewFlickBanner
+export default UpcomingFlickBanner

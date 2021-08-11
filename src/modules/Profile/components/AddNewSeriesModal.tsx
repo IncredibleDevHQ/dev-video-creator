@@ -6,7 +6,7 @@ import { toast } from 'react-toastify'
 
 import { Button, emitToast } from '../../../components'
 import { useUploadFile } from '../../../hooks/use-upload-file'
-import { useCreateSeriesMutation } from '../../../generated/graphql'
+import { useCreateUserSeriesMutation } from '../../../generated/graphql'
 
 interface SeriesDetails {
   name: string
@@ -25,7 +25,7 @@ const AddNewSeriesModal = ({
   handleClose: (refresh?: boolean) => void
   setAddFlickSeriesModal: React.Dispatch<React.SetStateAction<AddFlick>>
 }) => {
-  const [createSeriesMutation, { data }] = useCreateSeriesMutation()
+  const [createSeriesMutation, { data }] = useCreateUserSeriesMutation()
   const [details, setDetails] = useState<SeriesDetails>({ name: '' })
   const [pic, setPic] = useState<string>()
   const [loadingPic, setLoadingPic] = useState<boolean>(false)

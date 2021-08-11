@@ -25,37 +25,21 @@ const AuthProvider = ({ children }: { children: JSX.Element }): JSX.Element => {
   const [getUserQuery, { data: me }] = useGetUserLazyQuery()
 
   const signInWithEmail = async (email: string, password: string) => {
-    try {
-      await signInWithEmailAndPassword(firebaseAuth, email, password)
-    } catch (error: any) {
-      setAuth((auth) => ({ ...auth, error }))
-    }
+    return signInWithEmailAndPassword(firebaseAuth, email, password)
   }
 
   const signInWithGoogle = async () => {
-    try {
-      const provider = new GoogleAuthProvider()
-      await signInWithPopup(firebaseAuth, provider)
-    } catch (error: any) {
-      setAuth((auth) => ({ ...auth, error }))
-    }
+    const provider = new GoogleAuthProvider()
+    return signInWithPopup(firebaseAuth, provider)
   }
 
   const signInWithGithub = async () => {
-    try {
-      const provider = new GithubAuthProvider()
-      await signInWithPopup(firebaseAuth, provider)
-    } catch (error: any) {
-      setAuth((auth) => ({ ...auth, error }))
-    }
+    const provider = new GithubAuthProvider()
+    return signInWithPopup(firebaseAuth, provider)
   }
 
   const createUserWithEmail = async (email: string, password: string) => {
-    try {
-      await createUserWithEmailAndPassword(firebaseAuth, email, password)
-    } catch (error: any) {
-      setAuth((auth) => ({ ...auth, error }))
-    }
+    return createUserWithEmailAndPassword(firebaseAuth, email, password)
   }
 
   const signOut = async () => {

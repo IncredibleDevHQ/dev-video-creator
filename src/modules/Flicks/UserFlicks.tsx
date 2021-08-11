@@ -2,7 +2,7 @@ import React from 'react'
 import { useRecoilValue } from 'recoil'
 import { FlicksList, recoilFlicksArray } from '../DataStructure'
 
-const Flicks = () => {
+const UserFlicks = () => {
   const FlickList = useRecoilValue<FlicksList>(recoilFlicksArray)
 
   return (
@@ -45,4 +45,4 @@ const Flicks = () => {
   )
 }
 
-export default Flicks
+export default UserFlicks

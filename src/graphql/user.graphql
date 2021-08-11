@@ -10,6 +10,12 @@ fragment User on MeOutput {
   updatedAt
 }
 
+fragment FlickParticipant on User {
+  displayName
+  picture
+  email
+}
+
 query GetUser {
   Me {
     ...User
@@ -40,5 +46,19 @@ mutation UpdateOnboardingUser(
 mutation SetOnboarding {
   Onboarded {
     success
+  }
+}
+
+fragment FilteredUser on User {
+  displayName
+  email
+  picture
+  sub
+  username
+}
+
+query GetFilteredUsers($_ilike: String = "") {
+  User(where: { displayName: { _ilike: $_ilike } }) {
+    ...FilteredUser
   }
 }
