@@ -3,6 +3,7 @@ const Color = require('color')
 const alpha = (clr, val) => Color(clr).alpha(val).rgb().string()
 const lighten = (clr, val) => Color(clr).lighten(val).rgb().string()
 const darken = (clr, val) => Color(clr).darken(val).rgb().string()
+const fade = (clr, val) => Color(clr).fade(val).rgb().string()
 
 module.exports = {
   purge: ['./src/**/*.{js,jsx,ts,tsx}', './public/index.html'],
@@ -17,6 +18,7 @@ module.exports = {
           dark: darken('#5156EA', 0.05),
           darker: darken('#5156EA', 0.1),
           75: alpha('#5156EA', 0.75),
+          10: 'rgba(81, 92, 234, 0.1)',
         },
         'brand-alt': {
           DEFAULT: '#51A3EA',
@@ -32,9 +34,12 @@ module.exports = {
           darker: darken('#1f1f1f', 0.05),
           75: alpha('#1f1f1f', 0.75),
         },
-        success: '#137547',
+        success: { DEFAULT: '#137547', 10: `rgba(19,117,71, 0.1)` },
         warning: '#ED7D3A',
-        error: '#EF2D56',
+        error: {
+          DEFAULT: '#EF2D56',
+          10: `rgba(239,45,86, 0.1)`,
+        },
       },
       animation: {
         'spin-slow': 'spin 3s linear infinite',

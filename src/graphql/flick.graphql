@@ -9,6 +9,7 @@ fragment BaseFlick on Flick {
   plannedEnd
   startAt
   status
+  producedLink
 }
 
 fragment Flick on Flick {
@@ -23,16 +24,25 @@ fragment Flick on Flick {
 
 query GetFlickById($id: uuid!) {
   Flick_by_pk(id: $id) {
+    ...BaseFlick
+  }
+}
+
+query GetUpcomingUserFlicks($sub: String!) {
+  Flick(
+    where: {
+      startAt: { _gte: "now()" }
+      participants: { userSub: { _eq: $sub } }
+    }
+    order_by: { startAt: asc }
+  ) {
     ...Flick
   }
 }
 
 query GetUserFlicks($sub: String!) {
   Flick(
-    where: {
-      startAt: { _gte: "now()" }
-      participants: { userSub: { _eq: $sub } }
-    }
+    where: { participants: { userSub: { _eq: $sub } } }
     order_by: { startAt: asc }
   ) {
     ...Flick
@@ -58,6 +68,12 @@ mutation CreateNewFlick(
   $scope: CreateFlickFlickScopeEnumEnum!
 ) {
   CreateFlick(name: $name, scope: $scope, description: $description) {
+    id
+  }
+}
+
+mutation ProduceVideo($flickId: uuid!, $objectNames: [String!]!) {
+  ProduceVideo(flickId: $flickId, objectNames: $objectNames) {
     id
   }
 }

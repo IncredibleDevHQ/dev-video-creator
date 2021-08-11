@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useHistory, useParams } from 'react-router-dom'
 import { useRecoilState } from 'recoil'
 import {
   AddFragmentModal,
@@ -9,8 +9,9 @@ import {
   Participants,
 } from './components'
 import { currentFlickStore } from '../../stores/flick.store'
-import { EmptyState, ScreenState, Tab, TabBar } from '../../components'
+import { Button, EmptyState, ScreenState, Tab, TabBar } from '../../components'
 import { useGetFlickByIdQuery } from '../../generated/graphql'
+import config from '../../config'
 
 const tabs: Tab[] = [
   {
@@ -33,6 +34,7 @@ const Flick = () => {
   const [isParticipants, setParticipants] = useState(true)
   const [isAddFragmentModal, setAddFragmentModal] = useState(false)
   const [activeFragmentId, setActiveFragmentId] = useState<string>()
+  const history = useHistory()
 
   useEffect(() => {
     if (!data?.Flick_by_pk) return
@@ -62,6 +64,7 @@ const Flick = () => {
   return (
     <section className="flex flex-row relative">
       <FragmentsSidebar
+        flickId={flick.id}
         fragments={flick.fragments}
         activeFragmentId={activeFragmentId}
         setActiveFragmentId={setActiveFragmentId}
@@ -70,6 +73,7 @@ const Flick = () => {
       <div className="flex-1 p-4">
         {activeFragmentId ? (
           <div>
+            <h3 className="font-black text-2xl mb-2">{flick.name}</h3>
             <TabBar
               tabs={tabs}
               current={currentTab}
@@ -83,6 +87,32 @@ const Flick = () => {
               />
             )}
             {currentTab.value === 'Activity' && <FragmentActivity />}
+
+            {flick.fragments.find((f) => f.id === activeFragmentId)
+              ?.producedLink && (
+              // eslint-disable-next-line jsx-a11y/media-has-caption
+              <video
+                className="w-full rounded-md p-2"
+                controls
+                preload="auto"
+                src={
+                  config.storage.baseUrl +
+                  flick.fragments.find((f) => f.id === activeFragmentId)
+                    ?.producedLink
+                }
+              />
+            )}
+            <Button
+              type="button"
+              className="ml-auto"
+              size="small"
+              appearance="primary"
+              onClick={() => {
+                history.push(`/${activeFragmentId}/studio`)
+              }}
+            >
+              Record
+            </Button>
           </div>
         ) : (
           <EmptyState text="No Fragment is selected" width={400} />

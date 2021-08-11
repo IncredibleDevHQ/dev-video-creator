@@ -8,7 +8,7 @@ const FragmentConfiguration = ({
   fragment: FlickFragmentFragment | undefined
 }) => {
   if (!fragment) return <EmptyState text="No fragment Selected" width={400} />
-  return <div>{fragment.name}</div>
+  return <div className="h-96">{fragment.name}</div>
 }
 
 export default FragmentConfiguration

@@ -19,6 +19,7 @@ import {
   NewOrganisation,
   Organisation,
   Profile,
+  Studio,
 } from './modules'
 
 const App = () => {
@@ -58,6 +59,11 @@ const App = () => {
                   />
                   <PrivateRoute exact path="/flick/:id" component={Flick} />
                   <PrivateRoute exact path="/flicks" component={Flicks} />
+                  <PrivateRoute
+                    exact
+                    path="/:fragmentId/studio"
+                    component={Studio}
+                  />
                   <Route exact path="/login">
                     <AuthenticateScreen />
                   </Route>

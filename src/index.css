@@ -48,10 +48,10 @@ body {
 }
 
 .Toastify__toast {
-  @apply bg-gray-200 !important;
+  @apply bg-gray-100 !important;
   @apply w-full !important;
-  @apply rounded-lg !important;
-  @apply border-gray-200 !important;
+  @apply rounded-md !important;
+  @apply border-gray-100 !important;
   @apply border-opacity-20 !important;
   @apply border !important;
 }

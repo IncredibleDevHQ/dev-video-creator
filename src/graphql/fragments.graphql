@@ -1,10 +1,32 @@
 fragment FlickFragment on Fragment {
   configuration
   description
+  flickId
   id
   name
   order
   type
+  producedLink
+}
+
+fragment StudioFragment on Fragment {
+  ...FlickFragment
+  flick {
+    ...BaseFlick
+  }
+}
+
+query GetFragmentById($id: uuid!, $sub: String!) {
+  Fragment(
+    where: {
+      _and: {
+        id: { _eq: $id }
+        flick: { participants: { userSub: { _eq: $sub } } }
+      }
+    }
+  ) {
+    ...StudioFragment
+  }
 }
 
 mutation AddFragmentToFlick(
@@ -24,5 +46,14 @@ mutation AddFragmentToFlick(
     }
   ) {
     createdAt
+  }
+}
+
+mutation MarkFragmentCompleted($id: uuid!, $producedLink: String!) {
+  update_Fragment_by_pk(
+    pk_columns: { id: $id }
+    _set: { status: Completed, producedLink: $producedLink }
+  ) {
+    updatedAt
   }
 }

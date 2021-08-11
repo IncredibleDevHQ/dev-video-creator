@@ -1,7 +1,7 @@
 import React from 'react'
 
 const FragmentActivity = () => {
-  return <div>Frgament Activity</div>
+  return <div>Fragment Activity</div>
 }
 
 export default FragmentActivity

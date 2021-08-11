@@ -41,7 +41,7 @@ const Toast = ({
 }: Pick<ToastProps, 'description' | 'title' | 'type'>) => {
   const { color, icon: I } = getStyles(type)
   return (
-    <div className="text-gray-900 bg-gray-200 flex items-center justify-between">
+    <div className="text-gray-900 bg-gray-100 flex items-center justify-between">
       <div
         className={cx(
           `h-16 flex flex-grow items-center w-1/4 flex-shrink-0 justify-center`

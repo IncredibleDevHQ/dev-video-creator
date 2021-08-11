@@ -49,7 +49,7 @@ const AuthenticateScreen = () => {
         } else {
           await createUserWithEmail?.(values.email, values.password)
         }
-      } catch (e) {
+      } catch (e: any) {
         emitToast({
           title: 'Something went wrong.',
           description: e.message,

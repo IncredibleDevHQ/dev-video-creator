@@ -1,5 +1,6 @@
 import { cx } from '@emotion/css'
 import React, { useEffect, useState } from 'react'
+import { useHistory } from 'react-router-dom'
 import {
   DragDropContext,
   Droppable,
@@ -7,9 +8,18 @@ import {
   DraggableProvided,
   DraggableStateSnapshot,
 } from 'react-beautiful-dnd'
-import { FiPlus } from 'react-icons/fi'
-import { Heading, Text } from '../../../components'
-import { FlickFragmentFragment } from '../../../generated/graphql'
+import { FiCheckCircle, FiPlus } from 'react-icons/fi'
+import {
+  Button,
+  emitToast,
+  Heading,
+  Text,
+  updateToast,
+} from '../../../components'
+import {
+  FlickFragmentFragment,
+  useProduceVideoMutation,
+} from '../../../generated/graphql'
 
 const reorder = (
   list: FlickFragmentFragment[],
@@ -41,7 +51,7 @@ const FragmentItem = ({
       role="button"
       tabIndex={0}
       onKeyUp={() => {}}
-      className={cx('my-1 p-2 border-2 border-dotted rounded-md', {
+      className={cx('my-1 p-2 border-2 border-dotted rounded-md relative', {
         'border-brand text-brand': fragment.id === activeFragmentId,
         'border-grey-lighter text-black': fragment.id !== activeFragmentId,
         'bg-brand text-background-alt border-brand': snapshot.isDragging,
@@ -51,6 +61,9 @@ const FragmentItem = ({
       {...provided.draggableProps}
       {...provided.dragHandleProps}
     >
+      {fragment.producedLink && (
+        <FiCheckCircle className="text-success absolute top-1 right-1" />
+      )}
       <Heading fontSize="base">{fragment.name}</Heading>
       <Text fontSize="normal">{fragment.description}</Text>
       <Text fontSize="small">{fragment.type}</Text>
@@ -60,32 +73,26 @@ const FragmentItem = ({
 
 const FragmentDND = ({
   fragments,
+  setFragments,
   activeFragmentId,
   setActiveFragmentId,
 }: {
   fragments: FlickFragmentFragment[]
+  setFragments: (fragments: FlickFragmentFragment[]) => void
   activeFragmentId: string
   setActiveFragmentId: (id: string) => void
 }) => {
-  const [fragmentItems, setFragmentItems] = useState<FlickFragmentFragment[]>(
-    []
-  )
-
-  useEffect(() => {
-    setFragmentItems(fragments)
-  }, [fragments])
-
   const onDragEnd = (result: any) => {
     if (!result.destination) {
       return
     }
 
     const items = reorder(
-      fragmentItems,
+      fragments,
       result.source.index,
       result.destination.index
     )
-    setFragmentItems(items)
+    setFragments(items)
   }
 
   return (
@@ -97,7 +104,7 @@ const FragmentDND = ({
             {...provided.droppableProps}
             ref={provided.innerRef}
           >
-            {fragmentItems.map((fragment, index) => (
+            {fragments.map((fragment, index) => (
               <Draggable
                 draggableId={fragment.id}
                 key={fragment.id}
@@ -122,16 +129,69 @@ const FragmentDND = ({
 }
 
 const FragmentsSidebar = ({
+  flickId,
   fragments,
   activeFragmentId,
   setActiveFragmentId,
   setAddFragmentModal,
 }: {
+  flickId: string
   fragments: FlickFragmentFragment[]
   activeFragmentId?: string
   setActiveFragmentId: (id: string) => void
   setAddFragmentModal: (isOpen: boolean) => void
 }) => {
+  const [fragmentItems, setFragmentItems] = useState<FlickFragmentFragment[]>(
+    []
+  )
+  const [produceVideoMutation] = useProduceVideoMutation()
+
+  const history = useHistory()
+
+  useEffect(() => {
+    setFragmentItems(fragments)
+  }, [fragments])
+
+  const produceVideo = async () => {
+    const toastProps = {
+      title: 'Pushing pixels...',
+      type: 'info',
+      autoClose: false,
+      description: 'Our hamsters are gift-wrapping your Fragment. Do hold. :)',
+    }
+
+    // @ts-ignore
+    const toast = emitToast(toastProps)
+
+    try {
+      const { errors } = await produceVideoMutation({
+        variables: {
+          flickId,
+          objectNames: fragmentItems.map((fragment) => {
+            return fragment.producedLink as string
+          }),
+        },
+      })
+      if (errors) throw errors[0]
+
+      updateToast({
+        id: toast,
+        ...toastProps,
+        autoClose: false,
+        type: 'info',
+        description: 'Almost done! Click here to see all your Flicks!',
+        onClick: () => history.push('/dashboard'),
+      })
+    } catch (e) {
+      emitToast({
+        title: 'Yikes. Something went wrong.',
+        type: 'error',
+        autoClose: false,
+        description: 'Our servers are a bit cranky today. Try in a while?',
+      })
+    }
+  }
+
   return (
     <div className="flex flex-col w-1/6 h-screen py-2 px-4 bg-background-alt">
       <div className="flex flex-row justify-between items-center mb-8">
@@ -148,11 +208,21 @@ const FragmentsSidebar = ({
         <FragmentDND
           activeFragmentId={activeFragmentId}
           setActiveFragmentId={setActiveFragmentId}
-          fragments={fragments}
+          setFragments={setFragmentItems}
+          fragments={fragmentItems}
         />
       ) : (
         <Text>No Fragments</Text>
       )}
+      <Button
+        className="mt-auto"
+        type="button"
+        appearance="primary"
+        disabled={!fragmentItems.every((f) => f.producedLink !== null)}
+        onClick={produceVideo}
+      >
+        Produce
+      </Button>
     </div>
   )
 }
