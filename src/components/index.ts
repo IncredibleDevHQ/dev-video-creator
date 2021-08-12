@@ -17,6 +17,7 @@ import Sidebar from './Sidebar'
 import Text from './Text'
 import TextField from './TextField'
 import TextArea from './TextArea'
+import Loading from './Loading'
 import TabBar, { Tab } from './TabBar'
 
 export {
@@ -40,6 +41,7 @@ export {
   Text,
   TextField,
   TextArea,
+  Loading,
   TabBar,
   updateToast,
 }

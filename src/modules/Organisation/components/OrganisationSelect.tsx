@@ -1,3 +1,4 @@
+/* eslint-disable react/require-default-props */
 import React, { useEffect } from 'react'
 import Select from 'react-select'
 import { EmptyState } from '../../../components'
@@ -12,7 +13,7 @@ const OrganisationSelect = ({
   setSelectedOrganisation: React.Dispatch<
     React.SetStateAction<OrganisationFragment | undefined>
   >
-  selectedOrganisation: OrganisationFragment
+  selectedOrganisation?: OrganisationFragment
 }) => {
   if (!organisations)
     return (

@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import { useEffect } from 'react'
 import Select from 'react-select'
 import { useRecoilValue } from 'recoil'
-import { emitToast } from '../../../../components'
+import { emitToast, Loading } from '../../../../components'
 import {
   FilteredUserFragment,
   MemberFragment,
@@ -54,7 +54,7 @@ const Members = ({ organisationSlug }: Props) => {
     try {
       await AddMemberToOrganisationMutation({
         variables: {
-          email: selectedMember?.email,
+          email: selectedMember?.email as string,
           organisationSlug,
         },
       })
@@ -71,7 +71,7 @@ const Members = ({ organisationSlug }: Props) => {
   }
 
   if (loadingMembers) {
-    return <div className="text-xl">Loading...</div>
+    return <Loading>Loading...</Loading>
   }
 
   if (errorMembers) {

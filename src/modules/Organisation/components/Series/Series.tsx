@@ -2,7 +2,7 @@
 import { User } from '@sentry/react'
 import React, { useEffect, useState } from 'react'
 import { useRecoilValue } from 'recoil'
-import { Button } from '../../../../components'
+import { Button, Loading } from '../../../../components'
 import {
   OrganisationFragment,
   SeriesFragment,
@@ -37,7 +37,7 @@ const Series = ({
   }, [data, seriesCreated])
 
   if (loadingSeries) {
-    return <div className="text-xl">Loading...</div>
+    return <Loading>Loading...</Loading>
   }
 
   if (errorSeries) {

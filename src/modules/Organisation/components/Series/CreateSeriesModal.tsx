@@ -1,6 +1,6 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import Modal from 'react-responsive-modal'
-import { Button, TextField } from '../../../../components'
+import { Button, emitToast, TextField } from '../../../../components'
 import { useCreateOrganisationSeriesMutation } from '../../../../generated/graphql'
 import { useUploadFile } from '../../../../hooks/use-upload-file'
 
@@ -37,7 +37,8 @@ const seriesModal = ({
     setPic(pic.url)
   }
 
-  const [CreateSeries, { loading }] = useCreateOrganisationSeriesMutation()
+  const [CreateSeries, { loading, error }] =
+    useCreateOrganisationSeriesMutation()
 
   const handleCreateSeries = async () => {
     await CreateSeries({
@@ -51,6 +52,16 @@ const seriesModal = ({
     setSeriesCreated(!seriesCreated)
     setSeriesModal(false)
   }
+
+  useEffect(() => {
+    if (!error) return
+    emitToast({
+      title: "Couldn't create the series",
+      type: 'error',
+      description: `Click this toast to refresh and give it another try.`,
+      onClick: () => window.location.reload(),
+    })
+  }, [error])
 
   return (
     <Modal
