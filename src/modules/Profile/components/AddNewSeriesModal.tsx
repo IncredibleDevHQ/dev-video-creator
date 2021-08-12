@@ -7,14 +7,11 @@ import { Button, emitToast, ScreenState, TextField } from '../../../components'
 import { useUploadFile } from '../../../hooks/use-upload-file'
 import { useCreateUserSeriesMutation } from '../../../generated/graphql'
 import { Text } from '../../../components'
+import { AddFlick } from './UserSeries'
 
 interface SeriesDetails {
   name: string
   pic: string
-}
-interface AddFlick {
-  open: boolean
-  seriesId: string
 }
 
 const AddNewSeriesModal = ({

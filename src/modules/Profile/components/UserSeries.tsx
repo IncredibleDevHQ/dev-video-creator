@@ -5,15 +5,16 @@ import { User } from '../../../stores/user.store'
 import { AddNewSeriesModal, AddFlicksToSeriesModal } from './index'
 import { Text, Heading, EmptyState, ScreenState } from '../../../components'
 
-interface Props {
-  userData: Partial<User> & Partial<UserFragment>
-}
-interface AddFlick {
+export interface AddFlick {
   open: boolean
   seriesId: string
 }
 
-const UserSeries = ({ userData }: Props) => {
+const UserSeries = ({
+  userData,
+}: {
+  userData: Partial<User> & Partial<UserFragment>
+}) => {
   const [newSeriesModal, setNewSeriesModal] = useState<boolean>(false)
   const [addFlickSeriesModal, setAddFlickSeriesModal] = useState<AddFlick>({
     open: false,

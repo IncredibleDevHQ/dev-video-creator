@@ -14,11 +14,7 @@ import {
   SeriesFlicks,
   SeriesFlicksTypes,
 } from '../../stores/series.store'
-
-interface AddFlick {
-  open: boolean
-  seriesId: string
-}
+import { AddFlick } from '../Profile/components/UserSeries'
 
 const UserSeriesFlicks = () => {
   const { id } = useParams<{ id: string }>()

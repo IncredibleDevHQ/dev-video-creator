@@ -4,11 +4,11 @@ import { User } from '../../../stores/user.store'
 import { UserFragment } from '../../../generated/graphql'
 import { Text } from '../../../components'
 
-interface Props {
+const ProfileDetails = ({
+  userData,
+}: {
   userData: Partial<User> & Partial<UserFragment>
-}
-
-const ProfileDetails = ({ userData }: Props) => {
+}) => {
   return (
     <div className="flex flex-row px-4 mb-4 w-full ">
       {userData.picture ? (
