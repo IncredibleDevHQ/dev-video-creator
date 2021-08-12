@@ -4,16 +4,10 @@ import Members from './Members/Members'
 import Series from './Series/Series'
 
 interface Props {
-  selectedOrganisation: OrganisationFragment | undefined
-  organisationCreated: boolean
-  setOrganisationCreated: React.Dispatch<React.SetStateAction<boolean>>
+  selectedOrganisation: OrganisationFragment
 }
 
-const SingleOrganisation = ({
-  selectedOrganisation,
-  organisationCreated,
-  setOrganisationCreated,
-}: Props) => {
+const SingleOrganisation = ({ selectedOrganisation }: Props) => {
   const [selectedTab, setSelectedTab] = useState<number>(1)
 
   if (!selectedOrganisation) return <></>
@@ -42,15 +36,13 @@ const SingleOrganisation = ({
       </div>
       <div>
         {selectedTab === 1 && (
-          <Series organisationSlug={selectedOrganisation.slug} />
+          <Series
+            organisationSlug={selectedOrganisation.slug}
+            selectedOrganisation={selectedOrganisation}
+          />
         )}
         {selectedTab === 2 && (
-          <Members
-            members={selectedOrganisation.members}
-            organisationSlug={selectedOrganisation.slug}
-            organisationCreated={organisationCreated}
-            setOrganisationCreated={setOrganisationCreated}
-          />
+          <Members organisationSlug={selectedOrganisation.slug} />
         )}
       </div>
     </div>

@@ -1,7 +1,7 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import Modal from 'react-responsive-modal'
-import { Button, TextField } from '../../../../components'
-import { useCreateSeriesMutation } from '../../../../generated/graphql'
+import { Button, emitToast, TextField } from '../../../../components'
+import { useCreateOrganisationSeriesMutation } from '../../../../generated/graphql'
 import { useUploadFile } from '../../../../hooks/use-upload-file'
 
 interface Props {
@@ -37,7 +37,8 @@ const seriesModal = ({
     setPic(pic.url)
   }
 
-  const [CreateSeries, { loading }] = useCreateSeriesMutation()
+  const [CreateSeries, { loading, error }] =
+    useCreateOrganisationSeriesMutation()
 
   const handleCreateSeries = async () => {
     await CreateSeries({
@@ -52,10 +53,20 @@ const seriesModal = ({
     setSeriesModal(false)
   }
 
+  useEffect(() => {
+    if (!error) return
+    emitToast({
+      title: "Couldn't create the series",
+      type: 'error',
+      description: `Click this toast to refresh and give it another try.`,
+      onClick: () => window.location.reload(),
+    })
+  }, [error])
+
   return (
     <Modal
       classNames={{
-        modal: 'w-full h-2/5',
+        modal: 'w-full ',
         closeButton: 'focus:outline-none',
       }}
       open={seriesModal}
@@ -79,6 +90,7 @@ const seriesModal = ({
             accept="image/*"
             onChange={(e) => handleClick(e.target.files[0])}
           />
+          {pic && <img height="200px" src={pic} alt="series pic" />}
           <Button
             appearance="primary"
             type="button"
