@@ -1,12 +1,64 @@
-fragment User on User {
+fragment User on MeOutput {
+  createdAt
   displayName
   email
-  sub
+  onboarded
   picture
+  provider
+  sub
+  username
+  updatedAt
 }
 
-query GetUserById($id: String!) {
-  User_by_pk(sub: $id) {
+fragment FlickParticipant on User {
+  displayName
+  picture
+  email
+}
+
+query GetUser {
+  Me {
     ...User
+  }
+}
+
+query IsUsernameAvailable($username: String!) {
+  UsernameAvailability(username: $username) {
+    message
+    suggestion
+    valid
+  }
+}
+
+mutation UpdateOnboardingUser(
+  $sub: String!
+  $displayName: String!
+  $username: String!
+) {
+  update_User_by_pk(
+    pk_columns: { sub: $sub }
+    _set: { displayName: $displayName, username: $username }
+  ) {
+    updatedAt
+  }
+}
+
+mutation SetOnboarding {
+  Onboarded {
+    success
+  }
+}
+
+fragment FilteredUser on User {
+  displayName
+  email
+  picture
+  sub
+  username
+}
+
+query GetFilteredUsers($_ilike: String = "") {
+  User(where: { displayName: { _ilike: $_ilike } }) {
+    ...FilteredUser
   }
 }
