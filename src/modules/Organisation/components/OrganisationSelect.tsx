@@ -12,7 +12,7 @@ const OrganisationSelect = ({
   setSelectedOrganisation: React.Dispatch<
     React.SetStateAction<OrganisationFragment | undefined>
   >
-  selectedOrganisation: OrganisationFragment | undefined
+  selectedOrganisation: OrganisationFragment
 }) => {
   if (!organisations)
     return (

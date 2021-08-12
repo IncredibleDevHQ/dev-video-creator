@@ -6,8 +6,8 @@ mutation CreateOrganisation($slug: String!) {
 }
 
 mutation AddMemberToOrganisation(
-  $email: String = ""
-  $organisationSlug: String = ""
+  $email: String!
+  $organisationSlug: String!
   $role: MEMBER_ROLE_ENUM_ACTION_enum = Member
 ) {
   AddMemberToOrganisation(
@@ -19,21 +19,25 @@ mutation AddMemberToOrganisation(
   }
 }
 
+fragment PublicUser on User {
+  displayName
+  picture
+  username
+}
+
 fragment Member on Member {
   id
   role
   user {
-    displayName
     email
-    picture
     sub
     updatedAt
     onboarded
-    username
+    ...PublicUser
   }
 }
 
-query GetOrganisationMembers($organisationSlug: String = "") {
+query GetOrganisationMembers($organisationSlug: String!) {
   Member(where: { organisationSlug: { _eq: $organisationSlug } }) {
     ...Member
   }
@@ -46,7 +50,7 @@ fragment Organisation on Organisation {
   }
 }
 
-query GetUserOrganisations($sub: String = "") {
+query GetUserOrganisations($sub: String!) {
   Organisation(where: { members: { user: { sub: { _eq: $sub } } } }) {
     ...Organisation
   }
@@ -61,16 +65,16 @@ fragment Series on Series {
   ownerSub
 }
 
-query GetSeries($organisationSlug: String = "") {
+query GetSeries($organisationSlug: String!) {
   Series(where: { organisationSlug: { _eq: $organisationSlug } }) {
     ...Series
   }
 }
 
 mutation CreateOrganisationSeries(
-  $name: String = ""
-  $organisationSlug: String = ""
-  $picture: String = ""
+  $name: String!
+  $organisationSlug: String!
+  $picture: String!
 ) {
   CreateSeries(
     name: $name
