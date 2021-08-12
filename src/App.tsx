@@ -19,7 +19,10 @@ import {
   NewOrganisation,
   Organisation,
   Profile,
+  Series,
+  AllUserFlicks,
   Studio,
+  UserSeriesFlicks,
 } from './modules'
 
 const App = () => {
@@ -63,6 +66,21 @@ const App = () => {
                     exact
                     path="/:fragmentId/studio"
                     component={Studio}
+                  />
+                  <PrivateRoute
+                    exact
+                    path="/profile/series"
+                    component={Series}
+                  />
+                  <PrivateRoute
+                    exact
+                    path="/profile/flicks"
+                    component={AllUserFlicks}
+                  />
+                  <PrivateRoute
+                    exact
+                    path="/profile/series/:id"
+                    component={UserSeriesFlicks}
                   />
                   <Route exact path="/login">
                     <AuthenticateScreen />

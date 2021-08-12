@@ -10,6 +10,9 @@ import Profile from './Profile/Profile'
 import Studio from './Studio/Studio'
 import '@fontsource/fira-mono'
 import NewOrganisation from './Organisation/NewOrganisation'
+import Series from './Series/Series'
+import AllUserFlicks from './Flicks/AllUserFlicks'
+import UserSeriesFlicks from './UserSeriesFlicks/UserSeriesFlicks'
 
 export {
   AuthenticateScreen,
@@ -23,4 +26,7 @@ export {
   Studio,
   Organisation,
   NewOrganisation,
+  Series,
+  AllUserFlicks,
+  UserSeriesFlicks,
 }

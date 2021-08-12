@@ -20,6 +20,7 @@
     "@monaco-editor/react": "^4.2.1",
     "@sentry/react": "^6.10.0",
     "@sentry/tracing": "^6.10.0",
+    "@types/mime": "^2.0.3",
     "apollo-cache-persist": "^0.1.1",
     "axios": "^0.21.1",
     "change-case": "^4.1.2",

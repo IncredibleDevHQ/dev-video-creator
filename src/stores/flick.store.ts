@@ -1,4 +1,4 @@
-import { atom } from 'recoil'
+import { atom, RecoilState } from 'recoil'
 import { FlickFragment } from '../generated/graphql'
 
 export const currentFlickStore = atom<FlickFragment | null>({
