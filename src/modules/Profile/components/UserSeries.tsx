@@ -103,7 +103,10 @@ const UserSeries = ({
                 </Heading>
 
                 <Text className="  text-sm flex justify-end align-bottom object-bottom">
-                  2 Flicks
+                  {series.Flick_Series_aggregate.aggregate?.count}
+                  {series.Flick_Series_aggregate.aggregate?.count == 1
+                    ? ' Flick'
+                    : ' Flicks'}
                 </Text>
               </div>
             </div>

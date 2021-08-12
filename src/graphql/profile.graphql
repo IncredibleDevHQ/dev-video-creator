@@ -4,6 +4,11 @@ query GetUserSeries($userId: String!, $limit: Int) {
     name
     description
     picture
+    Flick_Series_aggregate {
+      aggregate {
+        count
+      }
+    }
   }
 }
 
@@ -19,7 +24,7 @@ query SeriesFlicks($id: uuid) {
   Flick_Series(where: { seriesId: { _eq: $id } }) {
     flickId
     order
-    Series_Flicks {
+    flicks {
       id
       producedLink
       name
@@ -55,5 +60,13 @@ mutation UpdateProfile($displayName: String!, $userId: String!) {
     where: { sub: { _eq: $userId } }
   ) {
     affected_rows
+  }
+}
+
+query SeriesFlickCount($seriesId: uuid) {
+  Flick_Series_aggregate(where: { seriesId: { _eq: $seriesId } }) {
+    aggregate {
+      count(columns: flickId)
+    }
   }
 }
