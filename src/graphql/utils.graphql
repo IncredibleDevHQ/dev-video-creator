@@ -1,0 +1,6 @@
+mutation UploadFile($key: String!) {
+  UploadFile(key: $key) {
+    success
+    url
+  }
+}

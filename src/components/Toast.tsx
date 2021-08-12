@@ -1,5 +1,5 @@
 import { cx } from '@emotion/css'
-import React, { ReactNode } from 'react'
+import React from 'react'
 import { toast } from 'react-toastify'
 import {
   FiAlertOctagon,
@@ -7,6 +7,7 @@ import {
   FiCheck,
   FiInfo,
 } from 'react-icons/fi'
+import { IconType } from 'react-icons/lib'
 
 type ToastType = 'success' | 'info' | 'error' | 'warning'
 
@@ -18,53 +19,18 @@ interface ToastProps {
   onClick?: () => void
 }
 
-const getStyles = (type: ToastType): ReactNode => {
+const getStyles = (type: ToastType): { color: string; icon: IconType } => {
   switch (type) {
     case 'success':
-      return (
-        <FiCheck
-          className={cx(
-            `w-16 h-16 rounded-full flex items-center justify-center bg-green-800 text-green-800 bg-opacity-10`
-          )}
-          color="green-800"
-        />
-      )
+      return { color: 'green-800', icon: FiCheck }
     case 'info':
-      return (
-        <FiInfo
-          className={cx(
-            `w-16 h-16 rounded-full flex items-center justify-center bg-blue-800 text-blue-800 bg-opacity-10`
-          )}
-          color="blue-800"
-        />
-      )
+      return { color: 'blue-800', icon: FiInfo }
     case 'warning':
-      return (
-        <FiAlertOctagon
-          className={cx(
-            `w-16 h-16 rounded-full flex items-center justify-center bg-yellow-800 text-yellow-800 bg-opacity-10`
-          )}
-          color="yellow-800"
-        />
-      )
+      return { color: 'yellow-800', icon: FiAlertOctagon }
     case 'error':
-      return (
-        <FiAlertTriangle
-          className={cx(
-            `w-16 h-16 rounded-full flex items-center justify-center bg-red-800 text-red-800 bg-opacity-10`
-          )}
-          color="red-800"
-        />
-      )
+      return { color: 'red-800', icon: FiAlertTriangle }
     default:
-      return (
-        <FiCheck
-          className={cx(
-            `w-16 h-16 rounded-full flex items-center justify-center bg-gray-800 text-gray-800 bg-opacity-10`
-          )}
-          color="gray-800"
-        />
-      )
+      return { color: 'gray-800', icon: FiAlertTriangle }
   }
 }
 
@@ -73,14 +39,21 @@ const Toast = ({
   description,
   type,
 }: Pick<ToastProps, 'description' | 'title' | 'type'>) => {
+  const { color, icon: I } = getStyles(type)
   return (
-    <div className="text-gray-900 bg-gray-50 flex items-center justify-between">
+    <div className="text-gray-900 bg-gray-100 flex items-center justify-between">
       <div
         className={cx(
           `h-16 flex flex-grow items-center w-1/4 flex-shrink-0 justify-center`
         )}
       >
-        {getStyles(type)}
+        <div
+          className={cx(
+            `w-16 h-16 rounded-full flex items-center justify-center bg-${color} text-${color} bg-opacity-10`
+          )}
+        >
+          <I size={24} />
+        </div>
       </div>
       <div className="flex w-3/4 flex-col justify-center mr-2 flex-shrink-1 flex-grow-0">
         <h3 className="font-semibold">{title}</h3>

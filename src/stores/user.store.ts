@@ -10,7 +10,7 @@ export const firebaseUserState = atom<Partial<FirebaseUser> | null>({
   dangerouslyAllowMutability: true,
 })
 
-export const databaseUserState = atom<UserFragment | null>({
+export const databaseUserState = atom<Partial<UserFragment> | null>({
   key: 'databaseUser',
   default: null,
 })

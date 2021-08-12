@@ -12,4 +12,5 @@ interface ImportMetaEnv {
   VITE_FIREBASE_CONFIG: string
   VITE_SENTRY_DSN: string
   VITE_SENTRY_ENABLED: string
+  VITE_STORAGE_BASE_URL: string
 }

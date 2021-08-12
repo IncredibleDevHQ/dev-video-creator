@@ -1,5 +1,79 @@
-mutation CreatePrivateFlick($description: String!, $name: String!) {
-  CreateFlick(name: $name, scope: Private, description: $description) {
+fragment BaseFlick on Flick {
+  color
+  description
+  joinLink
+  lobbyPicture
+  id
+  name
+  scope
+  plannedEnd
+  startAt
+  status
+  producedLink
+}
+
+fragment Flick on Flick {
+  ...BaseFlick
+  participants {
+    ...FlickParticipants
+  }
+  fragments {
+    ...FlickFragment
+  }
+}
+
+query GetFlickById($id: uuid!) {
+  Flick_by_pk(id: $id) {
+    ...Flick
+  }
+}
+
+query GetUpcomingUserFlicks($sub: String!) {
+  Flick(
+    where: {
+      startAt: { _gte: "now()" }
+      participants: { userSub: { _eq: $sub } }
+    }
+    order_by: { startAt: asc }
+  ) {
+    ...Flick
+  }
+}
+
+query GetUserFlicks($sub: String!) {
+  Flick(
+    where: { participants: { userSub: { _eq: $sub } } }
+    order_by: { startAt: asc }
+  ) {
+    ...Flick
+  }
+}
+
+query GetUpcomingFlick($sub: String!) {
+  Flick(
+    where: {
+      startAt: { _gte: "now()" }
+      participants: { userSub: { _eq: $sub } }
+    }
+    order_by: { startAt: asc }
+    limit: 1
+  ) {
+    ...Flick
+  }
+}
+
+mutation CreateNewFlick(
+  $name: String!
+  $description: String!
+  $scope: CreateFlickFlickScopeEnumEnum!
+) {
+  CreateFlick(name: $name, scope: $scope, description: $description) {
+    id
+  }
+}
+
+mutation ProduceVideo($flickId: uuid!, $objectNames: [String!]!) {
+  ProduceVideo(flickId: $flickId, objectNames: $objectNames) {
     id
   }
 }
