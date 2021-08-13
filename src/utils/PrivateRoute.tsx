@@ -1,5 +1,5 @@
 import React from 'react'
-import { Route, Redirect, RouteProps, useHistory } from 'react-router-dom'
+import { Route, Redirect, RouteProps } from 'react-router-dom'
 import { useRecoilValue } from 'recoil'
 import { ScreenState } from '../components'
 import { Onboarding } from '../modules'
