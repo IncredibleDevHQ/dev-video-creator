@@ -17,7 +17,7 @@ const NewFlickBanner = ({
   const history = useHistory()
   const { uid } = (useRecoilValue(userState) as User) || {}
 
-  const { data, loading } = useGetUpcomingFlickQuery({
+  const { data } = useGetUpcomingFlickQuery({
     variables: {
       sub: uid,
     },

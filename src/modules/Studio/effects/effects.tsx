@@ -1,4 +1,3 @@
-import React from 'react'
 import { Fragment_Type_Enum_Enum } from '../../../generated/graphql'
 import CodeJam from './CodeJam'
 import VideoJam from './VideoJam'

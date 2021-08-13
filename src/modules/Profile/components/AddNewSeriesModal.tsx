@@ -1,12 +1,15 @@
 import { css, cx } from '@emotion/css'
 import React, { useEffect, useState } from 'react'
 import Modal from 'react-responsive-modal'
-import { toast } from 'react-toastify'
-
-import { Button, emitToast, ScreenState, TextField } from '../../../components'
+import {
+  Button,
+  emitToast,
+  ScreenState,
+  TextField,
+  Text,
+} from '../../../components'
 import { useUploadFile } from '../../../hooks/use-upload-file'
 import { useCreateUserSeriesMutation } from '../../../generated/graphql'
-import { Text } from '../../../components'
 import { AddFlick } from './UserSeries'
 
 interface SeriesDetails {
