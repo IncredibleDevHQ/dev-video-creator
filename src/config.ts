@@ -4,6 +4,12 @@ const firebaseConfig = JSON.parse(
 
 const config = {
   /**
+   * Agora configs...
+   */
+  agora: {
+    appId: import.meta.env.VITE_AGORA_APP_ID,
+  },
+  /**
    * Hasura configs...
    */
   hasura: {
