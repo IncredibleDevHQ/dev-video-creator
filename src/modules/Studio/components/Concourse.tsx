@@ -95,7 +95,10 @@ const Concourse = ({
                   <>
                     <StudioUser stream={stream as MediaStream} />
                     {users.map((user) => (
-                      <StudioUser stream={user.mediaStream as MediaStream} />
+                      <StudioUser
+                        key={user.uid}
+                        stream={user.mediaStream as MediaStream}
+                      />
                     ))}
                   </>
                 )}
