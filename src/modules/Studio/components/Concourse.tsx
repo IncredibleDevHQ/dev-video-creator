@@ -1,4 +1,4 @@
-import React, { createRef, useContext } from 'react'
+import React, { createRef, useContext, useEffect } from 'react'
 import Konva from 'konva'
 import { Stage, Layer, Rect } from 'react-konva'
 import { KonvaEventObject } from 'konva/lib/Node'
@@ -10,6 +10,7 @@ interface ConcourseProps {
   controls: JSX.Element[]
   layerChildren: any[]
   disableUserMedia?: boolean
+  json?: any
 }
 
 export const CONFIG = {
@@ -21,9 +22,16 @@ const Concourse = ({
   controls,
   layerChildren,
   disableUserMedia,
+  json,
 }: ConcourseProps) => {
   const { state, stream, getBlob } = useContext(StudioContext)
   const stageRef = createRef<Konva.Stage>()
+
+  useEffect(() => {
+    if (json) {
+      Konva.Node.create(json, 'konvaContainer')
+    }
+  }, [])
 
   const handleZoom = (e: KonvaEventObject<WheelEvent>) => {
     e.evt.preventDefault()
@@ -67,32 +75,36 @@ const Concourse = ({
       <div className="bg-gray-100 flex-1 rounded-md p-4 flex justify-center items-center mr-8">
         {state === 'ready' || state === 'recording' ? (
           <StudioContext.Consumer>
-            {(value) => (
-              <Stage
-                ref={stageRef}
-                onWheel={handleZoom}
-                height={CONFIG.height}
-                width={CONFIG.width}
-              >
-                <StudioContext.Provider value={value}>
-                  <Layer>
-                    <Rect
-                      x={0}
-                      y={0}
-                      width={CONFIG.width}
-                      height={CONFIG.height}
-                      fill="black"
-                      cornerRadius={8}
-                    />
-                    {layerChildren}
+            {(value) =>
+              !json ? (
+                <Stage
+                  ref={stageRef}
+                  onWheel={handleZoom}
+                  height={CONFIG.height}
+                  width={CONFIG.width}
+                >
+                  <StudioContext.Provider value={value}>
+                    <Layer>
+                      <Rect
+                        x={0}
+                        y={0}
+                        width={CONFIG.width}
+                        height={CONFIG.height}
+                        fill="black"
+                        cornerRadius={8}
+                      />
+                      {layerChildren}
 
-                    {!disableUserMedia && (
-                      <StudioUser stream={stream as MediaStream} />
-                    )}
-                  </Layer>
-                </StudioContext.Provider>
-              </Stage>
-            )}
+                      {!disableUserMedia && (
+                        <StudioUser stream={stream as MediaStream} />
+                      )}
+                    </Layer>
+                  </StudioContext.Provider>
+                </Stage>
+              ) : (
+                <div id="konvaContainer" />
+              )
+            }
           </StudioContext.Consumer>
         ) : (
           // eslint-disable-next-line jsx-a11y/media-has-caption
@@ -116,6 +128,7 @@ const Concourse = ({
 
 Concourse.defaultProps = {
   disableUserMedia: undefined,
+  json: undefined,
 }
 
 export default Concourse
