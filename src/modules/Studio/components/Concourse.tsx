@@ -27,6 +27,12 @@ const Concourse = ({
   const { state, stream, getBlob } = useContext(StudioContext)
   const stageRef = createRef<Konva.Stage>()
 
+  const context = useContext(StudioContext)
+
+  useEffect(() => {
+    console.log({ context })
+  }, [context])
+
   useEffect(() => {
     if (json) {
       Konva.Node.create(json, 'konvaContainer')

@@ -13,12 +13,14 @@ import {
 import {
   StudioFragmentFragment,
   useGetFragmentByIdQuery,
+  useGetRtcTokenQuery,
   useMarkFragmentCompletedMutation,
 } from '../../generated/graphql'
 import { useCanvasRecorder, useLazyUserStream } from '../../hooks'
 import { User, userState } from '../../stores/user.store'
 import { getEffect } from './effects/effects'
 import { useUploadFile } from '../../hooks/use-upload-file'
+import { useAgora } from './hooks'
 
 type StudioState = 'ready' | 'recording' | 'preview' | 'upload'
 interface StudioProviderProps {
@@ -50,6 +52,8 @@ const Studio = () => {
   const { fragmentId } = useParams<{ fragmentId: string }>()
   const { sub, picture } = (useRecoilValue(userState) as User) || {}
   const [fragment, setFragment] = useState<StudioFragmentFragment>()
+
+  const [localStream, setLocalStream] = useState<MediaStream>()
   const history = useHistory()
 
   const { data, loading } = useGetFragmentByIdQuery({
@@ -59,6 +63,24 @@ const Studio = () => {
   const [markFragmentCompleted] = useMarkFragmentCompletedMutation()
 
   const [uploadFile] = useUploadFile()
+
+  const { stream, tracks, join, users, ready, leave } = useAgora(fragmentId)
+
+  const { data: rtcData } = useGetRtcTokenQuery({ variables: { fragmentId } })
+
+  useEffect(() => {
+    if (tracks?.length) {
+      console.log(stream)
+      setLocalStream(stream)
+    }
+  }, [tracks])
+
+  // useEffect(() => {
+  //   // console.log(rtcData)
+  //   // if (!rtcData?.RTCToken?.token) return
+
+  //   // join(rtcData?.RTCToken?.token, sub as string)
+  // }, [rtcData?.RTCToken?.token])
 
   useEffect(() => {
     if (!data?.Fragment) return
@@ -74,7 +96,6 @@ const Studio = () => {
   const {
     initiateUserStream,
     stopUserStream,
-    stream,
     toggleAudio,
     toggleVideo,
     constraints,
@@ -84,14 +105,14 @@ const Studio = () => {
     options: {},
   })
 
-  useEffect(() => {
-    initiateUserStream({ audio: true, video: { width: 120, height: 120 } })
+  // useEffect(() => {
+  //   initiateUserStream({ audio: true, video: { width: 120, height: 120 } })
 
-    return () => {
-      stopRecording()
-      stopUserStream()
-    }
-  }, [])
+  //   return () => {
+  //     stopRecording()
+  //     stopUserStream()
+  //   }
+  // }, [])
 
   /**
    * END STREAM HOOKS...
@@ -158,7 +179,7 @@ const Studio = () => {
       .getElementsByClassName('konvajs-content')[0]
       .getElementsByTagName('canvas')[0]
 
-    const audio = stream?.getAudioTracks()[0]
+    const audio = localStream?.getAudioTracks()[0]
 
     if (audio) {
       startRecording(canvas, audio)
@@ -196,7 +217,7 @@ const Studio = () => {
         constraints,
         picture: picture as string,
         state,
-        stream: stream as MediaStream,
+        stream: localStream as MediaStream,
         getBlob,
         fragment,
       }}

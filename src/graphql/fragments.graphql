@@ -57,3 +57,10 @@ mutation MarkFragmentCompleted($id: uuid!, $producedLink: String!) {
     updatedAt
   }
 }
+
+query GetRTCToken($fragmentId: uuid!) {
+  RTCToken(fragmentId: $fragmentId) {
+    token
+    success
+  }
+}

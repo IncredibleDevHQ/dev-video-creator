@@ -13,6 +13,7 @@ const StudioUser = ({ stream }: { stream: MediaStream | null }) => {
   const [image] = useImage(picture as string)
 
   const videoElement = React.useMemo(() => {
+    console.log({ stream })
     if (!stream) return
     const element = document.createElement('video')
     element.srcObject = stream
