@@ -28,6 +28,7 @@ export interface StudioProviderProps {
 const studioStore = atom<StudioProviderProps | null>({
   key: 'studio',
   default: null,
+  dangerouslyAllowMutability: true,
 })
 
 export default studioStore
