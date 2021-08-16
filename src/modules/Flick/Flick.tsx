@@ -4,6 +4,7 @@ import { useRecoilState } from 'recoil'
 import {
   AddFragmentModal,
   FragmentActivity,
+  FragmentCreators,
   FragmentConfiguration,
   FragmentsSidebar,
   Participants,
@@ -21,6 +22,10 @@ const tabs: Tab[] = [
   {
     name: 'Configuration',
     value: 'Configuration',
+  },
+  {
+    name: 'Creators',
+    value: 'Creators',
   },
 ]
 
@@ -87,6 +92,9 @@ const Flick = () => {
               />
             )}
             {currentTab.value === 'Activity' && <FragmentActivity />}
+            {currentTab.value === 'Creators' && (
+              <FragmentCreators participants={flick.participants} />
+            )}
 
             {flick.fragments.find((f) => f.id === activeFragmentId)
               ?.producedLink && (
@@ -126,6 +134,7 @@ const Flick = () => {
       <AddFragmentModal
         open={isAddFragmentModal}
         flickId={flick.id}
+        participants={flick.participants}
         totalFragments={flick.fragments.length}
         handleClose={(refresh) => {
           if (refresh) refetch()
