@@ -1,10 +1,10 @@
 import React, { useState } from 'react'
 import { OrganisationFragment } from '../../../generated/graphql'
 import Members from './Members/Members'
-import Series from './Series/Series'
+import OrganisationSeries from '../../Series/OrganisationSeries/Series'
 
 interface Props {
-  selectedOrganisation: OrganisationFragment
+  selectedOrganisation: OrganisationFragment | undefined
 }
 
 const SingleOrganisation = ({ selectedOrganisation }: Props) => {
@@ -36,7 +36,7 @@ const SingleOrganisation = ({ selectedOrganisation }: Props) => {
       </div>
       <div>
         {selectedTab === 1 && (
-          <Series
+          <OrganisationSeries
             organisationSlug={selectedOrganisation.slug}
             selectedOrganisation={selectedOrganisation}
           />

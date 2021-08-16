@@ -1,9 +1,9 @@
 import React from 'react'
 import { useRecoilValue } from 'recoil'
 import { Link } from 'react-router-dom'
-import { useGetUserSeriesQuery } from '../../generated/graphql'
-import { User, userState } from '../../stores/user.store'
-import { Text, Heading, EmptyState, ScreenState } from '../../components'
+import { useGetUserSeriesQuery } from '../../../generated/graphql'
+import { User, userState } from '../../../stores/user.store'
+import { Text, Heading, EmptyState, ScreenState } from '../../../components'
 
 const Series = () => {
   const userdata = (useRecoilValue(userState) as User) || {}

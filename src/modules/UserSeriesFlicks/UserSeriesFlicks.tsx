@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { useRecoilState, useRecoilValue } from 'recoil'
+import { useRecoilState } from 'recoil'
 import {
   useGetMyFlicksQuery,
   useSeriesFlicksQuery,
@@ -14,7 +14,7 @@ import {
   SeriesFlicks,
   SeriesFlicksTypes,
 } from '../../stores/series.store'
-import { AddFlick } from '../Profile/components/UserSeries'
+import { AddFlick } from '../Series/userSeries/UserSeries'
 
 const UserSeriesFlicks = () => {
   const { id } = useParams<{ id: string }>()

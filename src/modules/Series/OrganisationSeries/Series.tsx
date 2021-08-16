@@ -1,17 +1,18 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { User } from '@sentry/react'
 import React, { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useRecoilValue } from 'recoil'
-import { Button, Loading } from '../../../../components'
+import { Button, Loading } from '../../../components'
 import {
   OrganisationFragment,
   SeriesFragment,
   useGetSeriesLazyQuery,
-} from '../../../../generated/graphql'
-import { userState } from '../../../../stores/user.store'
+} from '../../../generated/graphql'
+import { userState } from '../../../stores/user.store'
 import CreateSeriesModal from './CreateSeriesModal'
 
-const Series = ({
+const OrganisationSeries = ({
   organisationSlug,
   selectedOrganisation,
 }: {
@@ -34,7 +35,7 @@ const Series = ({
     })
 
     setSeries(data?.Series)
-  }, [data, seriesCreated])
+  }, [data, seriesCreated, organisationSlug])
 
   if (loadingSeries) {
     return <Loading>Loading...</Loading>
@@ -62,7 +63,8 @@ const Series = ({
       )}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 grid-cols-1">
         {series?.map((series: SeriesFragment) => (
-          <div
+          <Link
+            to={`/series/${series.id}`}
             key={series.id}
             className="flex cursor-pointer hover:bg-blue-200 items-center justify-between bg-blue-100 p-3 rounded-md m-1"
           >
@@ -77,7 +79,7 @@ const Series = ({
                 <span>{series.description}</span>
               </div>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
 
@@ -92,4 +94,4 @@ const Series = ({
   )
 }
 
-export default Series
+export default OrganisationSeries

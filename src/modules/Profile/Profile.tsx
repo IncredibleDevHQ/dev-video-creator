@@ -5,10 +5,10 @@ import { User, userState } from '../../stores/user.store'
 import { Text } from '../../components'
 import {
   ProfileDetails,
-  UserSeries,
   UserFlicks,
   EditProfileModal,
 } from './components/index'
+import UserSeries from '../Series/userSeries/UserSeries'
 
 const Profile = () => {
   const { signOut } = (useRecoilValue(authState) as Auth) || {}
