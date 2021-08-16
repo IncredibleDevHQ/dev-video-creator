@@ -42,9 +42,11 @@ const Studio = () => {
 
   const { stream, tracks, join, users, ready, leave } = useAgora(fragmentId)
 
-  const [getRTCToken, { data: rtcData, called }] = useGetRtcTokenLazyQuery({
+  const [getRTCToken, { data: rtcData }] = useGetRtcTokenLazyQuery({
     variables: { fragmentId },
   })
+
+  const [didInit, setDidInit] = useState(false)
 
   useEffect(() => {
     getRTCToken()
@@ -58,8 +60,9 @@ const Studio = () => {
   }, [tracks, stream])
 
   useEffect(() => {
-    if (!rtcData?.RTCToken?.token || called) return
+    if (!rtcData?.RTCToken?.token || didInit) return
 
+    setDidInit(true)
     join(rtcData?.RTCToken?.token, sub as string)
   }, [rtcData])
 
