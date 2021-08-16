@@ -40,7 +40,7 @@ const Studio = () => {
 
   const [uploadFile] = useUploadFile()
 
-  const { stream, tracks, join, users, ready, leave } = useAgora(fragmentId)
+  const { stream, tracks, join, users, leave } = useAgora(fragmentId)
 
   const [getRTCToken, { data: rtcData }] = useGetRtcTokenLazyQuery({
     variables: { fragmentId },
@@ -50,11 +50,14 @@ const Studio = () => {
 
   useEffect(() => {
     getRTCToken()
+
+    return () => {
+      leave()
+    }
   }, [])
 
   useEffect(() => {
     if (tracks?.length) {
-      console.log({ stream, tracks })
       setLocalStream(stream)
     }
   }, [tracks, stream])
@@ -76,15 +79,6 @@ const Studio = () => {
   const { startRecording, stopRecording, reset, getBlobs } = useCanvasRecorder({
     options: {},
   })
-
-  // useEffect(() => {
-  //   initiateUserStream({ audio: true, video: { width: 120, height: 120 } })
-
-  //   return () => {
-  //     stopRecording()
-  //     stopUserStream()
-  //   }
-  // }, [])
 
   /**
    * END STREAM HOOKS...
@@ -181,7 +175,7 @@ const Studio = () => {
       constraints: { audio: true, video: true },
       users,
     })
-  }, [fragment, stream, users])
+  }, [fragment, stream, users, state])
 
   /**
    * =======================
@@ -215,25 +209,3 @@ const Studio = () => {
 }
 
 export default Studio
-
-/**
- *     <StudioContext.Provider
-      value={{
-        toggleAudio,
-        toggleVideo,
-        togglePresenterNotes,
-        reset: resetRecording,
-        upload,
-        startRecording: start,
-        stopRecording: stop,
-        constraints,
-        picture: picture as string,
-        state,
-        stream: localStream as MediaStream,
-        getBlob,
-        fragment,
-      }}
-    >
-
-
-    */
