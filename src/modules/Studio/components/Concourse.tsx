@@ -26,7 +26,7 @@ const Concourse = ({
   layerChildren,
   disableUserMedia,
 }: ConcourseProps) => {
-  const { state, stream, getBlobs } =
+  const { state, stream, getBlobs, users } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const stageRef = createRef<Konva.Stage>()
 
@@ -92,7 +92,12 @@ const Concourse = ({
                 {layerChildren}
 
                 {!disableUserMedia && (
-                  <StudioUser stream={stream as MediaStream} />
+                  <>
+                    <StudioUser stream={stream as MediaStream} />
+                    {users.map((user) => (
+                      <StudioUser stream={user.mediaStream as MediaStream} />
+                    ))}
+                  </>
                 )}
               </Layer>
             </Bridge>

@@ -176,8 +176,9 @@ const Studio = () => {
       state,
       picture: picture as string,
       constraints: { audio: true, video: true },
+      users,
     })
-  }, [fragment, stream])
+  }, [fragment, stream, users])
 
   /**
    * =======================
