@@ -146,9 +146,14 @@ const Studio = () => {
       .getElementsByTagName('canvas')[0]
 
     const audio = localStream?.getAudioTracks()[0]
+    const remoteAudioTracks = users
+      .filter((user) => user.mediaStream !== undefined)
+      .map((user) => {
+        return user.audioTrack?.getMediaStreamTrack()
+      }) as MediaStreamTrack[]
 
     if (audio) {
-      startRecording(canvas, audio)
+      startRecording(canvas, audio, ...remoteAudioTracks)
     } else startRecording(canvas)
     setState('recording')
   }
