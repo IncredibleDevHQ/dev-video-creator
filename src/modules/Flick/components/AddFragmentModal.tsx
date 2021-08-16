@@ -20,8 +20,6 @@ import {
   useAddFragmentToFlickMutation,
   useGetFilteredUsersQuery,
 } from '../../../generated/graphql'
-import Select from 'react-select'
-import { id } from 'date-fns/locale'
 
 const FragmentType = ({
   fragment,
@@ -158,11 +156,6 @@ const FragmentType = ({
   }
 }
 
-export interface options {
-  value: string
-  lable: string
-}
-
 const AddFragmentModal = ({
   open,
   flickId,
@@ -176,8 +169,6 @@ const AddFragmentModal = ({
   handleClose: (refresh?: boolean) => void
   participants: FlickParticipantsFragment[]
 }) => {
-  const [selectedMember, setSelectedMember] = useState<options[]>([])
-
   const [fragment, setFragment] = useState<AddFragmentToFlickMutationVariables>(
     {
       name: '',
@@ -210,16 +201,10 @@ const AddFragmentModal = ({
   }
 
   const onSubmit = async () => {
-    selectedMember.map((m) => {
-      console.log('selectedMember', m.value)
-    })
-
     await addFragment({ variables: fragment })
     handleClose(true)
   }
-  const handleChange = (e: any) => {
-    console.log('id', e, 'name', e)
-  }
+
   return (
     <Modal
       open={open}
@@ -257,21 +242,6 @@ const AddFragmentModal = ({
           updateFragment('description', e.target.value)
         }
         required
-      />
-      <Text>Creators</Text>
-      <Select
-        className="flex-1 mt-2"
-        isMulti={true}
-        noOptionsMessage={() => 'Search a Name..'}
-        onChange={(value) => setSelectedMember(value as [])}
-        options={participants.map((user: FlickParticipantsFragment) => {
-          const option = {
-            value: user.id,
-            label: user.user.displayName as string,
-          }
-          return option
-        })}
-        placeholder="Search a Creator"
       />
 
       <Button

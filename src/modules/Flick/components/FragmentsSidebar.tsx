@@ -1,4 +1,5 @@
 import { cx } from '@emotion/css'
+import { useRecoilValue } from 'recoil'
 import React, { useEffect, useState } from 'react'
 import { useHistory } from 'react-router-dom'
 import {
@@ -19,7 +20,10 @@ import {
 import {
   FlickFragmentFragment,
   useProduceVideoMutation,
+  useFragmentRoleQuery,
 } from '../../../generated/graphql'
+
+import { User, userState } from '../../../stores/user.store'
 
 const reorder = (
   list: FlickFragmentFragment[],
@@ -37,6 +41,7 @@ const FragmentItem = ({
   fragment,
   provided,
   snapshot,
+  isParticipant,
   activeFragmentId,
   setActiveFragmentId,
 }: {
@@ -44,6 +49,7 @@ const FragmentItem = ({
   provided: DraggableProvided
   snapshot: DraggableStateSnapshot
   activeFragmentId: string
+  isParticipant: boolean
   setActiveFragmentId: (id: string) => void
 }) => {
   return (
@@ -51,11 +57,20 @@ const FragmentItem = ({
       role="button"
       tabIndex={0}
       onKeyUp={() => {}}
-      className={cx('my-1 p-2 border-2 border-dotted rounded-md relative', {
-        'border-brand text-brand': fragment.id === activeFragmentId,
-        'border-grey-lighter text-black': fragment.id !== activeFragmentId,
-        'bg-brand text-background-alt border-brand': snapshot.isDragging,
-      })}
+      className={cx(
+        'my-1 p-2 border-2 border-dotted rounded-md text-gray relative',
+        {
+          ' border-gray-300 text-gray-400':
+            (fragment.id === activeFragmentId && !isParticipant) ||
+            (fragment.id === !activeFragmentId && !isParticipant),
+          'border-brand text-brand':
+            fragment.id === activeFragmentId && isParticipant,
+          'border-grey-lighter text-black':
+            fragment.id === !activeFragmentId && isParticipant,
+          'bg-brand text-background-alt border-brand':
+            snapshot.isDragging && isParticipant,
+        }
+      )}
       onClick={() => setActiveFragmentId(fragment.id)}
       ref={provided.innerRef}
       {...provided.draggableProps}
@@ -82,6 +97,14 @@ const FragmentDND = ({
   activeFragmentId: string
   setActiveFragmentId: (id: string) => void
 }) => {
+  const userData = (useRecoilValue(userState) as User) || {}
+  const { data } = useFragmentRoleQuery({
+    variables: {
+      fragmentId: activeFragmentId,
+      sub: userData.sub,
+    },
+  })
+
   const onDragEnd = (result: any) => {
     if (!result.destination) {
       return
@@ -115,6 +138,9 @@ const FragmentDND = ({
                     provided={provided}
                     snapshot={snapshot}
                     fragment={fragment}
+                    isParticipant={
+                      (data && data.Participant.length === 0) as boolean
+                    }
                     activeFragmentId={activeFragmentId}
                     setActiveFragmentId={setActiveFragmentId}
                   />

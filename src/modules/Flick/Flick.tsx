@@ -24,7 +24,7 @@ const tabs: Tab[] = [
     value: 'Configuration',
   },
   {
-    name: 'Creators',
+    name: 'Participants',
     value: 'Creators',
   },
 ]
@@ -93,7 +93,14 @@ const Flick = () => {
             )}
             {currentTab.value === 'Activity' && <FragmentActivity />}
             {currentTab.value === 'Creators' && (
-              <FragmentCreators participants={flick.participants} />
+              <FragmentCreators
+                participants={flick.participants}
+                fragmentId={
+                  flick.fragments.find(
+                    (fragment) => fragment.id === activeFragmentId
+                  )?.id
+                }
+              />
             )}
 
             {flick.fragments.find((f) => f.id === activeFragmentId)

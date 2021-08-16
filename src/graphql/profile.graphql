@@ -24,7 +24,7 @@ query SeriesFlicks($id: uuid) {
   Flick_Series(where: { seriesId: { _eq: $id } }) {
     flickId
     order
-    flicks {
+    flick {
       id
       producedLink
       name
