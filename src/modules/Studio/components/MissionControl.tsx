@@ -1,5 +1,5 @@
 import { cx } from '@emotion/css'
-import React, { HTMLAttributes, useContext } from 'react'
+import React, { HTMLAttributes } from 'react'
 import { IconType } from 'react-icons'
 import {
   FiMic,
@@ -13,7 +13,8 @@ import {
   FiVideoOff,
 } from 'react-icons/fi'
 import { BiReset } from 'react-icons/bi'
-import { StudioContext } from '../Studio'
+import { useRecoilValue } from 'recoil'
+import { StudioProviderProps, studioStore } from '../stores'
 
 export const ControlButton = ({
   appearance,
@@ -63,16 +64,8 @@ const MissionControl = ({
   controls: JSX.Element[]
   resetCanvas: () => void
 }) => {
-  const {
-    constraints,
-    toggleVideo,
-    toggleAudio,
-    startRecording,
-    stopRecording,
-    upload,
-    reset,
-    state,
-  } = useContext(StudioContext)
+  const { constraints, startRecording, stopRecording, upload, reset, state } =
+    (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   return (
     <div className="bg-gray-100 py-2 px-4 rounded-md">
@@ -94,13 +87,13 @@ const MissionControl = ({
             icon={constraints?.audio ? FiMic : FiMicOff}
             className="my-2"
             appearance={constraints?.audio ? 'primary' : 'danger'}
-            onClick={() => toggleAudio(!constraints?.audio)}
+            onClick={() => {}}
           />
           <ControlButton
             icon={constraints?.video ? FiVideo : FiVideoOff}
             className="my-2"
             appearance={constraints?.video ? 'primary' : 'danger'}
-            onClick={() => toggleVideo(!constraints?.video)}
+            onClick={() => {}}
           />
 
           <hr className="bg-grey-darker h-px my-2" />

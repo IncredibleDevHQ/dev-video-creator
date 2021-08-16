@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { extension } from 'mime-types'
 import { saveAs } from 'file-saver'
 
@@ -86,13 +86,13 @@ const useCanvasRecorder = ({
   }
 
   const download = (fileName?: string) => {
-    const blob = getBlob()
+    const blob = getBlobs()
     // eslint-disable-next-line no-param-reassign
     fileName = fileName || `${'recording.'}${extension(type as string)}`
     saveAs(blob, fileName)
   }
 
-  const getBlob = () => {
+  const getBlobs = () => {
     const superblob = new Blob(recordedBlobs, { type })
     return superblob
   }
@@ -101,7 +101,7 @@ const useCanvasRecorder = ({
     setRecordedBlobs([])
   }
 
-  return { startRecording, stopRecording, download, getBlob, reset }
+  return { startRecording, stopRecording, download, getBlobs, reset }
 }
 
 export default useCanvasRecorder

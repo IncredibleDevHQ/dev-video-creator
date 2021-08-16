@@ -1,11 +1,12 @@
+import React, { useEffect, useState } from 'react'
+import { useRecoilValue } from 'recoil'
 import Konva from 'konva'
-import React, { useContext, useEffect, useState } from 'react'
 import { Image } from 'react-konva'
 import { FiPlay, FiPause } from 'react-icons/fi'
 import { Concourse } from '../components'
 import { ControlButton } from '../components/MissionControl'
 import { CONFIG } from '../components/Concourse'
-import { StudioContext } from '../Studio'
+import { StudioProviderProps, studioStore } from '../stores'
 
 // @ts-ignore
 const Video = ({ videoElement }: { videoElement: HTMLVideoElement }) => {
@@ -59,7 +60,7 @@ const VideoJam = () => {
     return element
   }, [])
 
-  const { state } = useContext(StudioContext)
+  const { state } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   useEffect(() => {
     switch (state) {

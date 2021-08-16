@@ -1,11 +1,11 @@
-import React, { useContext, useEffect, useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Group, Image, Rect, Text } from 'react-konva'
 import useImage from 'use-image'
 import { useRecoilValue } from 'recoil'
 import { Concourse } from '../components'
-import { StudioContext } from '../Studio'
 import { User, userState } from '../../../stores/user.store'
 import { CONFIG } from '../components/Concourse'
+import { StudioProviderProps, studioStore } from '../stores'
 
 const Splash = () => {
   const { picture, displayName, username } =
@@ -13,13 +13,10 @@ const Splash = () => {
 
   const [image] = useImage(picture as string, 'anonymous')
 
-  const { fragment, toggleAudio, state } = useContext(StudioContext)
+  const { fragment, state } =
+    (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const controls: any = []
-
-  useEffect(() => {
-    toggleAudio(false)
-  }, [])
 
   useEffect(() => {
     if (state === 'recording') {
@@ -39,12 +36,6 @@ const Splash = () => {
       cornerRadius={8}
     />,
   ])
-
-  // const ref = useRef<any>(null)
-
-  // useEffect(() => {
-  //   if (!ref.current) return
-  // }, [ref.current])
 
   const handleRecord = () => {
     setLayerChildren((layerChildren) => [
@@ -102,7 +93,6 @@ const Splash = () => {
       disableUserMedia
       layerChildren={layerChildren}
       controls={controls}
-      // json={BasicTemplate}
     />
   )
 }

@@ -20,6 +20,7 @@ export interface RTCUser extends IAgoraRTCRemoteUser {
 export default function useAgora(channel: string) {
   const client = useClient()
   const [users, setUsers] = useState<RTCUser[]>([])
+  const [stream, setStream] = useState<MediaStream>()
 
   const { ready, tracks } = useMicrophoneAndCameraTracks()
   useEffect(() => {
@@ -27,6 +28,17 @@ export default function useAgora(channel: string) {
       init()
     })()
   }, [])
+
+  useEffect(() => {
+    setStream(
+      tracks && tracks?.length > 0
+        ? new MediaStream([
+            tracks?.[0].getMediaStreamTrack?.(),
+            tracks?.[1].getMediaStreamTrack?.(),
+          ])
+        : undefined
+    )
+  }, [tracks])
 
   const init = async () => {
     try {
@@ -94,12 +106,6 @@ export default function useAgora(channel: string) {
     join,
     leave,
     tracks,
-    stream:
-      tracks && tracks?.length > 0
-        ? new MediaStream([
-            tracks?.[0].getMediaStreamTrack?.(),
-            tracks?.[1].getMediaStreamTrack?.(),
-          ])
-        : undefined,
+    stream,
   }
 }

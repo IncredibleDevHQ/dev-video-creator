@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { FiArrowLeft } from 'react-icons/fi'
 import { useHistory, useParams } from 'react-router-dom'
-import { useRecoilValue } from 'recoil'
+import { useRecoilState, useRecoilValue } from 'recoil'
 import {
   emitToast,
   dismissToast,
@@ -13,43 +13,19 @@ import {
 import {
   StudioFragmentFragment,
   useGetFragmentByIdQuery,
-  useGetRtcTokenQuery,
+  useGetRtcTokenLazyQuery,
   useMarkFragmentCompletedMutation,
 } from '../../generated/graphql'
-import { useCanvasRecorder, useLazyUserStream } from '../../hooks'
+import { useCanvasRecorder } from '../../hooks'
 import { User, userState } from '../../stores/user.store'
 import { getEffect } from './effects/effects'
 import { useUploadFile } from '../../hooks/use-upload-file'
 import { useAgora } from './hooks'
-
-type StudioState = 'ready' | 'recording' | 'preview' | 'upload'
-interface StudioProviderProps {
-  toggleAudio: (to: boolean) => void
-  toggleVideo: (to: boolean) => void
-  stream: MediaStream
-  getBlob: () => Blob
-
-  reset: () => void
-  upload: () => void
-
-  startRecording: () => void
-  stopRecording: () => void
-
-  togglePresenterNotes?: (to: boolean) => void
-
-  fragment?: StudioFragmentFragment
-
-  picture?: string
-
-  constraints?: MediaStreamConstraints
-  state: StudioState
-}
-export const StudioContext = React.createContext<StudioProviderProps>(
-  {} as StudioProviderProps
-)
+import { StudioState, studioStore } from './stores'
 
 const Studio = () => {
   const { fragmentId } = useParams<{ fragmentId: string }>()
+  const [studio, setStudio] = useRecoilState(studioStore)
   const { sub, picture } = (useRecoilValue(userState) as User) || {}
   const [fragment, setFragment] = useState<StudioFragmentFragment>()
 
@@ -66,21 +42,26 @@ const Studio = () => {
 
   const { stream, tracks, join, users, ready, leave } = useAgora(fragmentId)
 
-  const { data: rtcData } = useGetRtcTokenQuery({ variables: { fragmentId } })
+  const [getRTCToken, { data: rtcData, called }] = useGetRtcTokenLazyQuery({
+    variables: { fragmentId },
+  })
+
+  useEffect(() => {
+    getRTCToken()
+  }, [])
 
   useEffect(() => {
     if (tracks?.length) {
-      console.log(stream)
+      console.log({ stream, tracks })
       setLocalStream(stream)
     }
-  }, [tracks])
+  }, [tracks, stream])
 
-  // useEffect(() => {
-  //   // console.log(rtcData)
-  //   // if (!rtcData?.RTCToken?.token) return
+  useEffect(() => {
+    if (!rtcData?.RTCToken?.token || called) return
 
-  //   // join(rtcData?.RTCToken?.token, sub as string)
-  // }, [rtcData?.RTCToken?.token])
+    join(rtcData?.RTCToken?.token, sub as string)
+  }, [rtcData])
 
   useEffect(() => {
     if (!data?.Fragment) return
@@ -89,19 +70,7 @@ const Studio = () => {
 
   const [state, setState] = useState<StudioState>('ready')
 
-  /**
-   * Stream Hooks
-   */
-
-  const {
-    initiateUserStream,
-    stopUserStream,
-    toggleAudio,
-    toggleVideo,
-    constraints,
-  } = useLazyUserStream()
-
-  const { startRecording, stopRecording, reset, getBlob } = useCanvasRecorder({
+  const { startRecording, stopRecording, reset, getBlobs } = useCanvasRecorder({
     options: {},
   })
 
@@ -147,7 +116,7 @@ const Studio = () => {
     try {
       const { uuid } = await uploadFile({
         extension: 'webm',
-        file: getBlob(),
+        file: getBlobs(),
         handleProgress: ({ percentage }) => {
           updateToast({
             id: toast,
@@ -192,6 +161,24 @@ const Studio = () => {
     setState('preview')
   }
 
+  useEffect(() => {
+    if (!fragment || !stream) return
+    setStudio({
+      ...studio,
+      fragment,
+      togglePresenterNotes,
+      stream: stream as MediaStream,
+      startRecording: start,
+      stopRecording: stop,
+      reset: resetRecording,
+      upload,
+      getBlobs,
+      state,
+      picture: picture as string,
+      constraints: { audio: true, video: true },
+    })
+  }, [fragment, stream])
+
   /**
    * =======================
    * END EVENT HANDLERS...
@@ -205,7 +192,28 @@ const Studio = () => {
   const C = getEffect(fragment.type)
 
   return (
-    <StudioContext.Provider
+    <div>
+      <div className="py-2 px-4">
+        <div className="flex flex-row justify-between bg-gray-100 p-2 rounded-md">
+          <div className="flex-1 flex flex-row items-center">
+            <FiArrowLeft
+              className="cursor-pointer mr-2"
+              onClick={() => history.goBack()}
+            />
+            <Heading className="font-semibold">{fragment.name}</Heading>
+          </div>
+          {/* <Timer target={10} timer={timer} /> */}
+        </div>
+        <C />
+      </div>
+    </div>
+  )
+}
+
+export default Studio
+
+/**
+ *     <StudioContext.Provider
       value={{
         toggleAudio,
         toggleVideo,
@@ -222,23 +230,6 @@ const Studio = () => {
         fragment,
       }}
     >
-      <div>
-        <div className="py-2 px-4">
-          <div className="flex flex-row justify-between bg-gray-100 p-2 rounded-md">
-            <div className="flex-1 flex flex-row items-center">
-              <FiArrowLeft
-                className="cursor-pointer mr-2"
-                onClick={() => history.goBack()}
-              />
-              <Heading className="font-semibold">{fragment.name}</Heading>
-            </div>
-            {/* <Timer target={10} timer={timer} /> */}
-          </div>
-          <C />
-        </div>
-      </div>
-    </StudioContext.Provider>
-  )
-}
 
-export default Studio
+
+    */
