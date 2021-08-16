@@ -12,6 +12,7 @@ import {
   FiMicOff,
   FiVideoOff,
 } from 'react-icons/fi'
+import { BiReset } from 'react-icons/bi'
 import { StudioContext } from '../Studio'
 
 export const ControlButton = ({
@@ -55,7 +56,13 @@ export const ControlButton = ({
   )
 }
 
-const MissionControl = ({ controls }: { controls: JSX.Element[] }) => {
+const MissionControl = ({
+  controls,
+  resetCanvas,
+}: {
+  controls: JSX.Element[]
+  resetCanvas: () => void
+}) => {
   const {
     constraints,
     toggleVideo,
@@ -72,7 +79,12 @@ const MissionControl = ({ controls }: { controls: JSX.Element[] }) => {
       <div className="flex flex-col items-center justify-between h-full">
         <div className="flex items-center flex-col">
           <ControlButton icon={FiClipboard} appearance="primary" />
-
+          <ControlButton
+            icon={BiReset}
+            className="my-2"
+            appearance="primary"
+            onClick={resetCanvas}
+          />
           <hr className="bg-grey-darker h-px my-2" />
 
           {controls}
