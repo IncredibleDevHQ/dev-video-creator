@@ -89,7 +89,9 @@ const ParticipantsTab = ({
       participantsList &&
       participantsList.map((member) => {
         if (member.id === id) {
-          setNewParticipants([...newParticipants, member.id])
+          console.log('newParticipants', newParticipants)
+          if (!member.isChecked)
+            setNewParticipants([...newParticipants, member.id])
           return { ...member, isChecked: true }
         }
         return member
@@ -125,6 +127,7 @@ const ParticipantsTab = ({
           <RiRefreshLine
             className="ml-auto w-1/16 m-2"
             onClick={() => {
+              setNewParticipants([])
               refetch()
               getParticipants(fragmentParticipants)
             }}

@@ -54,7 +54,7 @@ const FragmentItem = ({
   const { data } = useFragmentRoleQuery({
     variables: {
       fragmentId: activeFragmentId,
-      sub: userData.sub,
+      sub: userData.sub as string,
     },
   })
   const isParticipant = !(data && data.Participant.length === 0) as boolean
