@@ -1,5 +1,5 @@
 import { cx } from '@emotion/css'
-import React, { HTMLAttributes } from 'react'
+import React, { HTMLAttributes, useEffect, useState } from 'react'
 import { IconType } from 'react-icons'
 import {
   FiMic,
@@ -15,6 +15,7 @@ import {
 import { BiReset } from 'react-icons/bi'
 import { useRecoilValue } from 'recoil'
 import { StudioProviderProps, studioStore } from '../stores'
+import { FaAdobe, FaPrayingHands } from 'react-icons/fa'
 
 export const ControlButton = ({
   appearance,
@@ -64,8 +65,25 @@ const MissionControl = ({
   controls: JSX.Element[]
   resetCanvas: () => void
 }) => {
-  const { constraints, startRecording, stopRecording, upload, reset, state } =
-    (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const {
+    constraints,
+    startRecording,
+    stopRecording,
+    upload,
+    reset,
+    state,
+    payload,
+    participants,
+    updateParticipant,
+    participantId,
+  } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
+
+  const [participant, setParticipant] = useState<any>()
+  useEffect(() => {
+    if (participants && participantId) {
+      setParticipant(participants[participantId])
+    }
+  }, [participants, participantId])
 
   return (
     <div className="bg-gray-100 py-2 px-4 rounded-md">
@@ -83,6 +101,14 @@ const MissionControl = ({
           {controls}
         </div>
         <div>
+          <ControlButton
+            icon={participant?.raiseHands ? FaPrayingHands : FaAdobe}
+            className="my-2"
+            appearance={participant?.raiseHands ? 'primary' : 'danger'}
+            onClick={() => {
+              updateParticipant?.({ raiseHands: !participant?.raiseHands })
+            }}
+          />
           <ControlButton
             icon={constraints?.audio ? FiMic : FiMicOff}
             className="my-2"
