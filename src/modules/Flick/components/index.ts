@@ -4,7 +4,7 @@ import FragmentActivity from './FragmentActivity'
 import FragmentConfiguration from './FragmentConfiguration'
 import FragmentsSidebar from './FragmentsSidebar'
 import Participants from './Participants'
-import FragmentCreators from './FragmentCreators'
+import FragmentParticipants from './FragmentParticipants'
 
 export {
   AddFragmentModal,
@@ -13,5 +13,5 @@ export {
   FragmentsSidebar,
   FragmentConfiguration,
   Participants,
-  FragmentCreators,
+  FragmentParticipants,
 }

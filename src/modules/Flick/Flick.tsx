@@ -4,7 +4,7 @@ import { useRecoilState } from 'recoil'
 import {
   AddFragmentModal,
   FragmentActivity,
-  FragmentCreators,
+  FragmentParticipants,
   FragmentConfiguration,
   FragmentsSidebar,
   Participants,
@@ -25,7 +25,7 @@ const tabs: Tab[] = [
   },
   {
     name: 'Participants',
-    value: 'Creators',
+    value: 'Participants',
   },
 ]
 
@@ -92,8 +92,8 @@ const Flick = () => {
               />
             )}
             {currentTab.value === 'Activity' && <FragmentActivity />}
-            {currentTab.value === 'Creators' && (
-              <FragmentCreators
+            {currentTab.value === 'Participants' && (
+              <FragmentParticipants
                 participants={flick.participants}
                 fragmentId={
                   flick.fragments.find(

@@ -1,23 +1,25 @@
 import React, { useEffect, useState } from 'react'
 import Select from 'react-select'
-import { RiCheckboxCircleFill } from 'react-icons/ri'
+import { RiCheckboxCircleFill, RiRefreshLine } from 'react-icons/ri'
 import { useRecoilValue } from 'recoil'
 import { Button, Heading, ScreenState, Text } from '../../../components'
 import {
   FlickParticipantsFragment,
   useInsertParticipantToFragmentMutation,
   useFragmentParticipantsQuery,
+  useFragmentParticipantsLazyQuery,
+  FragmentParticipantsQuery,
 } from '../../../generated/graphql'
 import { User, userState } from '../../../stores/user.store'
 
-const CreatorsTab = ({
+const ParticipantsTab = ({
   participants,
   fragmentId,
 }: {
   participants: FlickParticipantsFragment[]
   fragmentId: string
 }) => {
-  type IsStatus = 'Host' | 'Assistant' | 'Participant' | undefined
+  type IsStatus = 'Host' | 'Assistant' | 'Viewer' | undefined
 
   interface Participants {
     name: string
@@ -33,10 +35,15 @@ const CreatorsTab = ({
       fragmentId,
     },
   })
-  const [creators, setCreators] = useState<Participants[]>([])
+  const [participantsList, setParticipantsList] = useState<Participants[]>([])
+  const [newlyAdded, setNewlyAdded] = useState<string[]>([])
+
   const userData = (useRecoilValue(userState) as User) || {}
   const [role, setRole] = useState<IsStatus>(undefined)
-  useEffect(() => {
+
+  const getParticipants = (
+    fragmentParticipants: FragmentParticipantsQuery | undefined
+  ) => {
     if (participants.length) {
       let list: Participants[] = []
 
@@ -59,34 +66,37 @@ const CreatorsTab = ({
         list = [...list, member]
       })
 
-      setCreators(list)
+      setParticipantsList(list)
     }
+  }
+
+  useEffect(() => {
+    getParticipants(fragmentParticipants)
   }, [fragmentParticipants])
 
   const onSave = () => {
-    creators.map(async (member) => {
-      if (member.isChecked === true) {
-        await insertParticipants({
-          variables: {
-            fragmentId,
-            participantId: member.id,
-          },
-        })
-      }
+    newlyAdded.map(async (member) => {
+      await insertParticipants({
+        variables: {
+          fragmentId,
+          participantId: member,
+        },
+      })
     })
+    setNewlyAdded([])
   }
   const reverseChecked = (id: Participants['id']) => {
     const updatedList: Participants[] =
-      creators &&
-      creators.map((member) => {
+      participantsList &&
+      participantsList.map((member) => {
         if (member.id === id) {
+          setNewlyAdded([...newlyAdded, member.id])
           return { ...member, isChecked: true }
         }
         return member
       })
-    setCreators(updatedList)
+    setParticipantsList(updatedList)
   }
-
   if (loading) return <ScreenState title="Updating...." loading />
 
   if (error)
@@ -102,7 +112,7 @@ const CreatorsTab = ({
             className="flex-1 mt-2"
             noOptionsMessage={() => 'Search a Name..'}
             onChange={(value) => reverseChecked(value?.value as string)}
-            options={creators
+            options={participantsList
               .filter((t) => !t.isChecked)
               .map((user) => {
                 const option = {
@@ -113,7 +123,12 @@ const CreatorsTab = ({
               })}
             placeholder="Search a Participant"
           />
-
+          <RiRefreshLine
+            className="ml-auto  w-1/16 m-2"
+            onClick={() => {
+              getParticipants(fragmentParticipants)
+            }}
+          />
           <Button
             type="button"
             className="ml-auto w-1/16 m-2"
@@ -128,7 +143,7 @@ const CreatorsTab = ({
         </>
       )}
       <div className="w-full m-2 grid grid-flow-row grid-cols-4 gap-4">
-        {creators.map((details) =>
+        {participantsList.map((details) =>
           role === 'Host' ? (
             <div
               key={details.id}
@@ -186,4 +201,4 @@ const CreatorsTab = ({
   )
 }
 
-export default CreatorsTab
+export default ParticipantsTab

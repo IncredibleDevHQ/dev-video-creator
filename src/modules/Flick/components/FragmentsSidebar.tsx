@@ -41,7 +41,6 @@ const FragmentItem = ({
   fragment,
   provided,
   snapshot,
-  isParticipant,
   activeFragmentId,
   setActiveFragmentId,
 }: {
@@ -49,9 +48,17 @@ const FragmentItem = ({
   provided: DraggableProvided
   snapshot: DraggableStateSnapshot
   activeFragmentId: string
-  isParticipant: boolean
   setActiveFragmentId: (id: string) => void
 }) => {
+  const userData = (useRecoilValue(userState) as User) || {}
+  const { data } = useFragmentRoleQuery({
+    variables: {
+      fragmentId: activeFragmentId,
+      sub: userData.sub,
+    },
+  })
+  const isParticipant = !(data && data.Participant.length === 0) as boolean
+  console.log(isParticipant)
   return (
     <div
       role="button"
@@ -97,14 +104,6 @@ const FragmentDND = ({
   activeFragmentId: string
   setActiveFragmentId: (id: string) => void
 }) => {
-  const userData = (useRecoilValue(userState) as User) || {}
-  const { data } = useFragmentRoleQuery({
-    variables: {
-      fragmentId: activeFragmentId,
-      sub: userData.sub,
-    },
-  })
-
   const onDragEnd = (result: any) => {
     if (!result.destination) {
       return
@@ -138,9 +137,6 @@ const FragmentDND = ({
                     provided={provided}
                     snapshot={snapshot}
                     fragment={fragment}
-                    isParticipant={
-                      (data && data.Participant.length === 0) as boolean
-                    }
                     activeFragmentId={activeFragmentId}
                     setActiveFragmentId={setActiveFragmentId}
                   />
