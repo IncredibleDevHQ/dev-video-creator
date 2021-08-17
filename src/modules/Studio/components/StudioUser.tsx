@@ -1,14 +1,16 @@
 /* eslint-disable consistent-return */
-import React, { useContext, useEffect, useRef } from 'react'
+import React, { useEffect, useRef } from 'react'
 import Konva from 'konva'
 import { Group, Image } from 'react-konva'
 import useImage from 'use-image'
-import { StudioContext } from '../Studio'
+import { useRecoilValue } from 'recoil'
+import { StudioProviderProps, studioStore } from '../stores'
 
 const StudioUser = ({ stream }: { stream: MediaStream | null }) => {
   const imageRef = useRef<Konva.Image | null>(null)
 
-  const { picture, constraints } = useContext(StudioContext)
+  const { picture, constraints } =
+    (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [image] = useImage(picture as string)
 

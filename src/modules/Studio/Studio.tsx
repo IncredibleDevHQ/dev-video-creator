@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { FiArrowLeft } from 'react-icons/fi'
 import { useHistory, useParams } from 'react-router-dom'
-import { useRecoilValue } from 'recoil'
+import { useRecoilState, useRecoilValue } from 'recoil'
 import {
   emitToast,
   dismissToast,
@@ -13,43 +13,22 @@ import {
 import {
   StudioFragmentFragment,
   useGetFragmentByIdQuery,
+  useGetRtcTokenLazyQuery,
   useMarkFragmentCompletedMutation,
 } from '../../generated/graphql'
-import { useCanvasRecorder, useLazyUserStream } from '../../hooks'
+import { useCanvasRecorder } from '../../hooks'
 import { User, userState } from '../../stores/user.store'
 import { getEffect } from './effects/effects'
 import { useUploadFile } from '../../hooks/use-upload-file'
-
-type StudioState = 'ready' | 'recording' | 'preview' | 'upload'
-interface StudioProviderProps {
-  toggleAudio: (to: boolean) => void
-  toggleVideo: (to: boolean) => void
-  stream: MediaStream
-  getBlob: () => Blob
-
-  reset: () => void
-  upload: () => void
-
-  startRecording: () => void
-  stopRecording: () => void
-
-  togglePresenterNotes?: (to: boolean) => void
-
-  fragment?: StudioFragmentFragment
-
-  picture?: string
-
-  constraints?: MediaStreamConstraints
-  state: StudioState
-}
-export const StudioContext = React.createContext<StudioProviderProps>(
-  {} as StudioProviderProps
-)
+import { useAgora } from './hooks'
+import { StudioState, studioStore } from './stores'
 
 const Studio = () => {
   const { fragmentId } = useParams<{ fragmentId: string }>()
+  const [studio, setStudio] = useRecoilState(studioStore)
   const { sub, picture } = (useRecoilValue(userState) as User) || {}
   const [fragment, setFragment] = useState<StudioFragmentFragment>()
+
   const history = useHistory()
 
   const { data, loading } = useGetFragmentByIdQuery({
@@ -60,6 +39,29 @@ const Studio = () => {
 
   const [uploadFile] = useUploadFile()
 
+  const { stream, join, users, leave, ready, userAudios } = useAgora(fragmentId)
+
+  const [getRTCToken, { data: rtcData }] = useGetRtcTokenLazyQuery({
+    variables: { fragmentId },
+  })
+
+  const [didInit, setDidInit] = useState(false)
+
+  useEffect(() => {
+    getRTCToken()
+
+    return () => {
+      leave()
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!rtcData?.RTCToken?.token || didInit || !ready) return
+
+    setDidInit(true)
+    join(rtcData?.RTCToken?.token, sub as string)
+  }, [rtcData, ready])
+
   useEffect(() => {
     if (!data?.Fragment) return
     setFragment(data.Fragment[0])
@@ -67,31 +69,9 @@ const Studio = () => {
 
   const [state, setState] = useState<StudioState>('ready')
 
-  /**
-   * Stream Hooks
-   */
-
-  const {
-    initiateUserStream,
-    stopUserStream,
-    stream,
-    toggleAudio,
-    toggleVideo,
-    constraints,
-  } = useLazyUserStream()
-
-  const { startRecording, stopRecording, reset, getBlob } = useCanvasRecorder({
+  const { startRecording, stopRecording, reset, getBlobs } = useCanvasRecorder({
     options: {},
   })
-
-  useEffect(() => {
-    initiateUserStream({ audio: true, video: { width: 120, height: 120 } })
-
-    return () => {
-      stopRecording()
-      stopUserStream()
-    }
-  }, [])
 
   /**
    * END STREAM HOOKS...
@@ -126,7 +106,7 @@ const Studio = () => {
     try {
       const { uuid } = await uploadFile({
         extension: 'webm',
-        file: getBlob(),
+        file: getBlobs(),
         handleProgress: ({ percentage }) => {
           updateToast({
             id: toast,
@@ -158,11 +138,12 @@ const Studio = () => {
       .getElementsByClassName('konvajs-content')[0]
       .getElementsByTagName('canvas')[0]
 
-    const audio = stream?.getAudioTracks()[0]
+    // @ts-ignore
+    startRecording(canvas, {
+      localStream: stream as MediaStream,
+      remoteStreams: userAudios,
+    })
 
-    if (audio) {
-      startRecording(canvas, audio)
-    } else startRecording(canvas)
     setState('recording')
   }
 
@@ -170,6 +151,25 @@ const Studio = () => {
     stopRecording()
     setState('preview')
   }
+
+  useEffect(() => {
+    if (!fragment || !stream) return
+    setStudio({
+      ...studio,
+      fragment,
+      togglePresenterNotes,
+      stream: stream as MediaStream,
+      startRecording: start,
+      stopRecording: stop,
+      reset: resetRecording,
+      upload,
+      getBlobs,
+      state,
+      picture: picture as string,
+      constraints: { audio: true, video: true },
+      users,
+    })
+  }, [fragment, stream, users, state, userAudios])
 
   /**
    * =======================
@@ -184,39 +184,21 @@ const Studio = () => {
   const C = getEffect(fragment.type, fragment.configuration)
 
   return (
-    <StudioContext.Provider
-      value={{
-        toggleAudio,
-        toggleVideo,
-        togglePresenterNotes,
-        reset: resetRecording,
-        upload,
-        startRecording: start,
-        stopRecording: stop,
-        constraints,
-        picture: picture as string,
-        state,
-        stream: stream as MediaStream,
-        getBlob,
-        fragment,
-      }}
-    >
-      <div>
-        <div className="py-2 px-4">
-          <div className="flex flex-row justify-between bg-gray-100 p-2 rounded-md">
-            <div className="flex-1 flex flex-row items-center">
-              <FiArrowLeft
-                className="cursor-pointer mr-2"
-                onClick={() => history.goBack()}
-              />
-              <Heading className="font-semibold">{fragment.name}</Heading>
-            </div>
-            {/* <Timer target={10} timer={timer} /> */}
+    <div>
+      <div className="py-2 px-4">
+        <div className="flex flex-row justify-between bg-gray-100 p-2 rounded-md">
+          <div className="flex-1 flex flex-row items-center">
+            <FiArrowLeft
+              className="cursor-pointer mr-2"
+              onClick={() => history.goBack()}
+            />
+            <Heading className="font-semibold">{fragment.name}</Heading>
           </div>
-          <C />
+          {/* <Timer target={10} timer={timer} /> */}
         </div>
+        <C />
       </div>
-    </StudioContext.Provider>
+    </div>
   )
 }
 

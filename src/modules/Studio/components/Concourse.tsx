@@ -1,16 +1,19 @@
-import React, { createRef, useContext, useEffect } from 'react'
+import React, { createRef } from 'react'
+import {
+  useRecoilBridgeAcrossReactRoots_UNSTABLE,
+  useRecoilValue,
+} from 'recoil'
 import Konva from 'konva'
 import { Stage, Layer, Rect } from 'react-konva'
 import { KonvaEventObject } from 'konva/lib/Node'
 import MissionControl from './MissionControl'
 import StudioUser from './StudioUser'
-import { StudioContext } from '../Studio'
+import { StudioProviderProps, studioStore } from '../stores'
 
 interface ConcourseProps {
   controls: JSX.Element[]
   layerChildren: any[]
   disableUserMedia?: boolean
-  json?: any
 }
 
 export const CONFIG = {
@@ -22,16 +25,12 @@ const Concourse = ({
   controls,
   layerChildren,
   disableUserMedia,
-  json,
 }: ConcourseProps) => {
-  const { state, stream, getBlob } = useContext(StudioContext)
+  const { state, stream, getBlobs, users } =
+    (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const stageRef = createRef<Konva.Stage>()
 
-  useEffect(() => {
-    if (json) {
-      Konva.Node.create(json, 'konvaContainer')
-    }
-  }, [])
+  const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
 
   const handleZoom = (e: KonvaEventObject<WheelEvent>) => {
     e.evt.preventDefault()
@@ -74,46 +73,46 @@ const Concourse = ({
     <div className="flex-1 mt-4 justify-between items-stretch flex">
       <div className="bg-gray-100 flex-1 rounded-md p-4 flex justify-center items-center mr-8">
         {state === 'ready' || state === 'recording' ? (
-          <StudioContext.Consumer>
-            {(value) =>
-              !json ? (
-                <Stage
-                  ref={stageRef}
-                  onWheel={handleZoom}
-                  height={CONFIG.height}
+          <Stage
+            ref={stageRef}
+            onWheel={handleZoom}
+            height={CONFIG.height}
+            width={CONFIG.width}
+          >
+            <Bridge>
+              <Layer>
+                <Rect
+                  x={0}
+                  y={0}
                   width={CONFIG.width}
-                >
-                  <StudioContext.Provider value={value}>
-                    <Layer>
-                      <Rect
-                        x={0}
-                        y={0}
-                        width={CONFIG.width}
-                        height={CONFIG.height}
-                        fill="black"
-                        cornerRadius={8}
-                      />
-                      {layerChildren}
+                  height={CONFIG.height}
+                  fill="black"
+                  cornerRadius={8}
+                />
+                {layerChildren}
 
-                      {!disableUserMedia && (
-                        <StudioUser stream={stream as MediaStream} />
-                      )}
-                    </Layer>
-                  </StudioContext.Provider>
-                </Stage>
-              ) : (
-                <div id="konvaContainer" />
-              )
-            }
-          </StudioContext.Consumer>
+                {!disableUserMedia && (
+                  <>
+                    <StudioUser stream={stream as MediaStream} />
+                    {users.map((user) => (
+                      <StudioUser
+                        key={user.uid}
+                        stream={user.mediaStream as MediaStream}
+                      />
+                    ))}
+                  </>
+                )}
+              </Layer>
+            </Bridge>
+          </Stage>
         ) : (
           // eslint-disable-next-line jsx-a11y/media-has-caption
           <video
             className="w-8/12 rounded-md"
             controls
             ref={(ref) => {
-              if (!ref) return
-              const blob = getBlob()
+              if (!ref || !getBlobs) return
+              const blob = getBlobs()
               const url = window.URL.createObjectURL(blob)
               // eslint-disable-next-line no-param-reassign
               ref.src = url
@@ -128,7 +127,6 @@ const Concourse = ({
 
 Concourse.defaultProps = {
   disableUserMedia: undefined,
-  json: undefined,
 }
 
 export default Concourse

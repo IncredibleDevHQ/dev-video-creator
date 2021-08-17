@@ -1,12 +1,12 @@
-import React, { useContext, useEffect, useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Group, Image, Rect, Text } from 'react-konva'
 import useImage from 'use-image'
 import { useRecoilValue } from 'recoil'
 import { useParams } from 'react-router-dom'
 import { Concourse } from '../components'
-import { StudioContext } from '../Studio'
 import { User, userState } from '../../../stores/user.store'
 import { CONFIG } from '../components/Concourse'
+import { StudioProviderProps, studioStore } from '../stores'
 import { useGetFragmentByIdQuery } from '../../../generated/graphql'
 import { ScreenState } from '../../../components'
 
@@ -25,13 +25,10 @@ const Splash = ({ config }: { config: string }) => {
 
   const [image] = useImage(picture as string, 'anonymous')
 
-  const { fragment, toggleAudio, state } = useContext(StudioContext)
+  const { fragment, state } =
+    (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const controls: any = []
-
-  useEffect(() => {
-    toggleAudio(false)
-  }, [])
 
   useEffect(() => {
     if (state === 'recording') {
@@ -56,12 +53,6 @@ const Splash = ({ config }: { config: string }) => {
       cornerRadius={8}
     />,
   ])
-
-  // const ref = useRef<any>(null)
-
-  // useEffect(() => {
-  //   if (!ref.current) return
-  // }, [ref.current])
 
   const handleRecord = () => {
     setLayerChildren((layerChildren) => [

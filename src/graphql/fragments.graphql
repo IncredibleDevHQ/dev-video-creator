@@ -73,6 +73,13 @@ mutation MarkFragmentCompleted($id: uuid!, $producedLink: String!) {
   }
 }
 
+query GetRTCToken($fragmentId: uuid!) {
+  RTCToken(fragmentId: $fragmentId) {
+    token
+    success
+  }
+}
+
 mutation AddConfiguration($configuration: json!, $id: uuid!) {
   update_Fragment_by_pk(
     pk_columns: { id: $id }

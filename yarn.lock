@@ -2165,6 +2165,17 @@ agent-base@6:
   dependencies:
     debug "4"
 
+"agora-rtc-react@git://github.com/AgoraIO-Community/agora-rtc-react#v1.0.0":
+  version "1.0.0"
+  resolved "git://github.com/AgoraIO-Community/agora-rtc-react#89b689e77fa01cac7187e5d6106f4fc2e6e8f2e6"
+  dependencies:
+    agora-rtc-sdk-ng "^4.3.0"
+
+agora-rtc-sdk-ng@^4.3.0, agora-rtc-sdk-ng@^4.6.3:
+  version "4.6.3"
+  resolved "https://registry.yarnpkg.com/agora-rtc-sdk-ng/-/agora-rtc-sdk-ng-4.6.3.tgz#ac90a6b705cee048ea4a0685d62a6b96a0fe9d27"
+  integrity sha512-/p+ZXhae1RnVVM4cXVZqnVCUhUrhtkccJdETxuJnhq49btaTLnkQSR9j4Xq9k5oRU4FqBxtgxwBNPzRgkFNGMA==
+
 ajv@^6.10.0, ajv@^6.12.4:
   version "6.12.6"
   resolved "https://registry.yarnpkg.com/ajv/-/ajv-6.12.6.tgz#baf5a62e802b07d977034586f8c3baf5adf26df4"

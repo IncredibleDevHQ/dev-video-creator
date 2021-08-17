@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { extension } from 'mime-types'
 import { saveAs } from 'file-saver'
 
@@ -46,7 +46,10 @@ const useCanvasRecorder = ({
    */
   const startRecording = (
     canvas: HTMLCanvasElement,
-    ...tracks: MediaStreamTrack[]
+    {
+      localStream,
+      remoteStreams,
+    }: { localStream: MediaStream; remoteStreams: MediaStream[] }
   ) => {
     if (!canvas) return
 
@@ -64,16 +67,32 @@ const useCanvasRecorder = ({
     setType(type)
 
     try {
-      tracks.forEach((track) => {
-        stream.addTrack(track)
+      const ctx = new AudioContext({})
+
+      const streams = remoteStreams.map((r) => {
+        const tracks = r.getTracks().filter((t) => t.kind === 'audio')
+        const stream = new MediaStream(tracks)
+        return ctx.createMediaStreamSource(stream)
       })
 
-      const mediaRecorder = new MediaRecorder(stream, {
-        videoBitsPerSecond,
-        mimeType: type,
+      const dest = ctx.createMediaStreamDestination()
+
+      streams.forEach((stream) => {
+        stream.connect(dest)
       })
+
+      ctx.createMediaStreamSource(localStream).connect(dest)
+
+      const mediaRecorder = new MediaRecorder(
+        new MediaStream([...stream.getTracks(), ...dest.stream.getTracks()]),
+        {
+          videoBitsPerSecond,
+          mimeType: type,
+        }
+      )
+
       mediaRecorder.ondataavailable = handleDataAvailable
-      mediaRecorder.start(1000) // collect 100ms of data blobs
+      mediaRecorder.start(100) // collect 100ms of data blobs
 
       setMediaRecorder(mediaRecorder)
     } catch (e) {
@@ -82,18 +101,19 @@ const useCanvasRecorder = ({
   }
 
   const stopRecording = (fileName?: string) => {
-    if (mediaRecorder?.state === 'recording') mediaRecorder?.stop()
-    else console.log('Cannot stop canvas recorder', mediaRecorder?.state)
+    if (mediaRecorder?.state === 'recording') {
+      mediaRecorder?.stop()
+    } else console.log('Cannot stop canvas recorder', mediaRecorder?.state)
   }
 
   const download = (fileName?: string) => {
-    const blob = getBlob()
+    const blob = getBlobs()
     // eslint-disable-next-line no-param-reassign
     fileName = fileName || `${'recording.'}${extension(type as string)}`
     saveAs(blob, fileName)
   }
 
-  const getBlob = () => {
+  const getBlobs = () => {
     const superblob = new Blob(recordedBlobs, { type })
     return superblob
   }
@@ -102,7 +122,7 @@ const useCanvasRecorder = ({
     setRecordedBlobs([])
   }
 
-  return { startRecording, stopRecording, download, getBlob, reset }
+  return { startRecording, stopRecording, download, getBlobs, reset }
 }
 
 export default useCanvasRecorder
