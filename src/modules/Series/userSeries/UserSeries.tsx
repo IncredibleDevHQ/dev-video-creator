@@ -2,7 +2,10 @@ import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useGetUserSeriesQuery, UserFragment } from '../../../generated/graphql'
 import { User } from '../../../stores/user.store'
-import { AddNewSeriesModal, AddFlicksToSeriesModal } from './index'
+import {
+  AddNewSeriesModal,
+  AddFlicksToSeriesModal,
+} from '../../Profile/components/index'
 import { Text, Heading, EmptyState, ScreenState } from '../../../components'
 
 export interface AddFlick {

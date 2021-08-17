@@ -49,6 +49,15 @@ query GetUserFlicks($sub: String!) {
   }
 }
 
+query GetUserPublicFlicks($sub: String!) {
+  Flick(
+    where: { participants: { userSub: { _eq: $sub } }, scope: { _eq: Public } }
+    order_by: { startAt: asc }
+  ) {
+    ...Flick
+  }
+}
+
 query GetUpcomingFlick($sub: String!) {
   Flick(
     where: {
