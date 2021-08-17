@@ -15,7 +15,8 @@ export const getEffect = (type: Fragment_Type_Enum_Enum, config: string) => {
 
   switch (type) {
     case Fragment_Type_Enum_Enum.Splash:
-      return configuration?.template === 'Splash' ? Intro : SplashTwo
+      return configuration?.template.template === 'Splash' ? Intro : SplashTwo
+
     case Fragment_Type_Enum_Enum.CodeJam:
       return CodeJam
     case Fragment_Type_Enum_Enum.Videoshow:

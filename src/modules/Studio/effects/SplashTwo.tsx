@@ -21,7 +21,7 @@ interface CircleItems {
 
 const SplashTwo = () => {
   const { sub } = (useRecoilValue(userState) as User) || {}
-
+  const [items, setItems] = useState<CircleItems[]>([])
   const params: { fragmentId: string } = useParams()
 
   const { data, error } = useGetFragmentByIdQuery({
@@ -40,6 +40,7 @@ const SplashTwo = () => {
 
   useEffect(() => {
     toggleAudio(false)
+    generateItems()
   }, [])
 
   useEffect(() => {
@@ -66,14 +67,6 @@ const SplashTwo = () => {
     />,
   ])
 
-  // const ref = useRef<any>(null)
-
-  // useEffect(() => {
-  //   if (!ref.current) return
-  // }, [ref.current])
-
-  const [items, setItems] = useState<CircleItems[]>([])
-
   function generateItems() {
     const items = []
     for (let i = 0; i < 15; i += 1) {
@@ -90,8 +83,6 @@ const SplashTwo = () => {
   }
 
   const handleRecord = () => {
-    generateItems()
-
     setLayerChildren((layerChildren) => [
       ...layerChildren,
 
@@ -103,7 +94,7 @@ const SplashTwo = () => {
             draggable
             x={item.x}
             y={item.y}
-            opacity={0.7}
+            opacity={0.4}
             fill={item.color}
             radius={item.r}
           />
@@ -114,7 +105,7 @@ const SplashTwo = () => {
           x={20}
           y={15}
           fill="#000"
-          opacity={0.3}
+          opacity={0.1}
           width={500}
           height={80}
           cornerRadius={5}

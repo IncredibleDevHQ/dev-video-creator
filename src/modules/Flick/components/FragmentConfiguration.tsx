@@ -93,6 +93,10 @@ const FragmentConfiguration = ({
                     alt="series pic"
                   />
                 </span>
+                <span>
+                  Template:{' '}
+                  {JSON.parse(fragment.configuration).template.template}
+                </span>
               </span>
               <Button
                 type="button"
