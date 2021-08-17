@@ -45,7 +45,6 @@ export default function useAgora(channel: string) {
   const init = async () => {
     try {
       client.on('user-published', async (user, mediaType) => {
-        console.log({ user, mediaType })
         await client.subscribe(user, mediaType)
         const tracks: MediaStreamTrack[] = []
         if (user.audioTrack) tracks.push(user.audioTrack?.getMediaStreamTrack())

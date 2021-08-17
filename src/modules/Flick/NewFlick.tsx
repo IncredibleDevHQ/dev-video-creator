@@ -75,7 +75,6 @@ const NewFlick = () => {
         <div className="flex items-center gap-2">
           <input
             type="checkbox"
-            // onChange={(e) => console.log(e.target.checked)}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
               updateFlick(
                 'scope',

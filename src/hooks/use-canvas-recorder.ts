@@ -69,9 +69,7 @@ const useCanvasRecorder = ({
       const ctx = new AudioContext({})
 
       const streams = remoteStreams.map((r) => {
-        console.log(r.getTracks(), r.getAudioTracks())
         const tracks = r.getTracks().filter((t) => t.kind === 'audio')
-        console.log({ tracks })
         const stream = new MediaStream(tracks)
         return ctx.createMediaStreamSource(stream)
       })
@@ -79,15 +77,11 @@ const useCanvasRecorder = ({
       const dest = ctx.createMediaStreamDestination()
 
       streams.forEach((stream) => {
-        console.log('Mai ola wale se maar khaunga')
         stream.connect(dest)
       })
 
-      console.log(localStream, typeof localStream)
-
       ctx.createMediaStreamSource(localStream).connect(dest)
 
-      console.log('Mai baadme chalunda')
       const mediaRecorder = new MediaRecorder(
         new MediaStream([...stream.getTracks(), ...dest.stream.getTracks()]),
         {
