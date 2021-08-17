@@ -1,16 +1,24 @@
-import React from 'react'
-import { useHistory, useParams } from 'react-router-dom'
+import React, { useEffect, useState } from 'react'
+import { useParams } from 'react-router-dom'
 import { Button, Navbar, ScreenState } from '../../components'
-import { useGetSingleSeriesQuery } from '../../generated/graphql'
+import { useGetSingleSeriesLazyQuery } from '../../generated/graphql'
+import AddFlicksToSeriesModal from './components/AddFlicksToSeriesModal'
 
 const SingleSeries = () => {
+  const [open, setOpen] = useState(false)
+  const [flicksAdded, setFlicksAdded] = useState<boolean>(false)
   const params: { id?: string } = useParams()
 
-  const { data, loading, error } = useGetSingleSeriesQuery({
-    variables: {
-      id: params.id,
-    },
-  })
+  const [GetSingleSeries, { data, loading, error }] =
+    useGetSingleSeriesLazyQuery()
+
+  useEffect(() => {
+    GetSingleSeries({
+      variables: {
+        id: params.id,
+      },
+    })
+  }, [flicksAdded])
 
   if (loading) return <ScreenState title="Just a jiffy" loading />
 
@@ -20,8 +28,6 @@ const SingleSeries = () => {
     )
 
   console.log(data?.Series_by_pk)
-
-  const history = useHistory()
 
   return (
     <>
@@ -42,19 +48,28 @@ const SingleSeries = () => {
           appearance="primary"
           type="button"
           size="small"
-          onClick={() =>
-            history.push(
-              `/new-flick?seriesid=${data?.Series_by_pk?.id}&seriesname=${data?.Series_by_pk?.name}`
-            )
+          onClick={
+            // history.push(
+            //   `/new-flick?seriesid=${data?.Series_by_pk?.id}&seriesname=${data?.Series_by_pk?.name}`
+            // )
+            () => setOpen(true)
           }
         >
-          Create New Flick
+          Add Flick
         </Button>
         <div className="p-4 bg-red-50 rounded-md">
           <h3 className="text-3xl">Flicks</h3>
           <div>flicks</div>
         </div>
       </div>
+      <AddFlicksToSeriesModal
+        setFlicksAdded={setFlicksAdded}
+        open={open}
+        setOpen={setOpen}
+        seriesId={data?.Series_by_pk?.id}
+        seriesName={data?.Series_by_pk?.name}
+        flicksAdded={flicksAdded}
+      />
     </>
   )
 }

@@ -77,20 +77,26 @@ const NewFlick = () => {
             updateFlick('description', e.target.value)
           }
         />
-        <div className="flex items-center gap-2">
+        <div
+          className="flex items-center gap-2"
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            updateFlick('scope', e.target.value)
+          }
+        >
           <input
-            type="checkbox"
-            // onChange={(e) => console.log(e.target.checked)}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              updateFlick(
-                'scope',
-                e.target.checked
-                  ? CreateFlickFlickScopeEnumEnum.Public
-                  : CreateFlickFlickScopeEnumEnum.Private
-              )
-            }
+            type="radio"
+            name="access"
+            value={CreateFlickFlickScopeEnumEnum.Public}
+            id="public"
           />
-          <label>Public</label>
+          <label htmlFor="public">Public</label>
+          <input
+            type="radio"
+            name="access"
+            value={CreateFlickFlickScopeEnumEnum.Private}
+            id="private"
+          />
+          <label htmlFor="private">Private</label>
         </div>
         <Button
           loading={loading}

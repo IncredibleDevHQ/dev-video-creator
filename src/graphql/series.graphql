@@ -6,7 +6,7 @@ fragment SingleSeries on Series {
   description
   ownerSub
   Flick_Series {
-    flicks {
+    flick {
       ...BaseFlick
     }
   }
