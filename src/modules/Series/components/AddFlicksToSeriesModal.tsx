@@ -1,6 +1,5 @@
 import { User } from '@sentry/react'
-import React from 'react'
-import { useState } from 'react'
+import React, { useState } from 'react'
 import Modal from 'react-responsive-modal'
 import { useRecoilValue } from 'recoil'
 import { Button, ScreenState } from '../../../components'
@@ -22,7 +21,7 @@ const AddFlicksToSeriesModal = ({
   open: boolean
   setOpen: React.Dispatch<React.SetStateAction<boolean>>
   seriesId: string
-  seriesName: string | undefined
+  seriesName?: string
   setFlicksAdded: React.Dispatch<React.SetStateAction<boolean>>
   flicksAdded: boolean
 }) => {
@@ -38,8 +37,6 @@ const AddFlicksToSeriesModal = ({
   ] = useUpdateSeriesFlickMutation()
 
   const flicksInSeries = async () => {
-    // console.log(selectedFlicks)
-
     await addFlickToSeries({
       variables: {
         flickIds: selectedFlicks,
@@ -58,8 +55,6 @@ const AddFlicksToSeriesModal = ({
         subtitle={errorUser?.message || error?.message}
       />
     )
-
-  console.log(data)
 
   if (loading) return <ScreenState title="Just a jiffy..." loading />
 
@@ -102,6 +97,10 @@ const AddFlicksToSeriesModal = ({
       </Button>
     </Modal>
   )
+}
+
+AddFlicksToSeriesModal.defaultProps = {
+  seriesName: undefined,
 }
 
 export default AddFlicksToSeriesModal

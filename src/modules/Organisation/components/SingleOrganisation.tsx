@@ -4,7 +4,7 @@ import Members from './Members/Members'
 import OrganisationSeries from '../../Series/OrganisationSeries/Series'
 
 interface Props {
-  selectedOrganisation: OrganisationFragment | undefined
+  selectedOrganisation: OrganisationFragment
 }
 
 const SingleOrganisation = ({ selectedOrganisation }: Props) => {

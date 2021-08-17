@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import Modal from 'react-responsive-modal'
 import { Button, emitToast, TextField } from '../../../components'
 import { useCreateOrganisationSeriesMutation } from '../../../generated/graphql'
-import { useUploadFile } from '../../../hooks/use-upload-file'
+import { useUploadFile } from '../../../hooks'
 
 interface Props {
   seriesModal: boolean

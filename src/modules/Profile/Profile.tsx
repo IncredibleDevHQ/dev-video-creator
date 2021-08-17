@@ -8,7 +8,7 @@ import {
   UserFlicks,
   EditProfileModal,
 } from './components/index'
-import UserSeries from '../Series/userSeries/UserSeries'
+import { UserSeries } from '../Series'
 
 const Profile = () => {
   const { signOut } = (useRecoilValue(authState) as Auth) || {}

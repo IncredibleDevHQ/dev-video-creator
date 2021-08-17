@@ -8,7 +8,7 @@ import {
   Text,
   TextField,
 } from '../../../components'
-import { useUploadFile } from '../../../hooks/use-upload-file'
+import { useUploadFile } from '../../../hooks'
 import { useCreateUserSeriesMutation } from '../../../generated/graphql'
 import { AddFlick } from '../../Series/userSeries/UserSeries'
 

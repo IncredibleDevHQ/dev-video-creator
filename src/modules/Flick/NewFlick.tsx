@@ -5,6 +5,7 @@ import {
   Button,
   emitToast,
   Heading,
+  Radio,
   TextArea,
   TextField,
 } from '../../components'
@@ -83,20 +84,16 @@ const NewFlick = () => {
             updateFlick('scope', e.target.value)
           }
         >
-          <input
-            type="radio"
+          <Radio
+            label="Public"
             name="access"
             value={CreateFlickFlickScopeEnumEnum.Public}
-            id="public"
           />
-          <label htmlFor="public">Public</label>
-          <input
-            type="radio"
+          <Radio
+            label="Private"
             name="access"
             value={CreateFlickFlickScopeEnumEnum.Private}
-            id="private"
           />
-          <label htmlFor="private">Private</label>
         </div>
         <Button
           loading={loading}

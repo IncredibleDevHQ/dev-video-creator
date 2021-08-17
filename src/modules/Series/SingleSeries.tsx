@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
+import Gravatar from 'react-gravatar'
 import { useParams } from 'react-router-dom'
-import { Button, Navbar, ScreenState } from '../../components'
+import { Button, Heading, Navbar, ScreenState, Text } from '../../components'
 import { useGetSingleSeriesLazyQuery } from '../../generated/graphql'
 import AddFlicksToSeriesModal from './components/AddFlicksToSeriesModal'
 
@@ -27,21 +28,28 @@ const SingleSeries = () => {
       <ScreenState title="Something went wrong!!" subtitle={error.message} />
     )
 
-  console.log(data?.Series_by_pk)
-
   return (
     <>
       <Navbar />
       <div className="relative m-4 flex flex-col gap-2">
         <div className="flex p-4 gap-5 bg-red-50 rounded-md">
-          <img
-            className="rounded-md max-h-28"
-            src={data?.Series_by_pk?.picture}
-            alt={data?.Series_by_pk?.name}
-          />
+          {data?.Series_by_pk?.picture ? (
+            <img
+              className="rounded-md max-h-28"
+              src={data?.Series_by_pk?.picture}
+              alt={data?.Series_by_pk?.name}
+            />
+          ) : (
+            <Gravatar
+              className="rounded-md h-28 w-28"
+              email={data?.Series_by_pk?.name}
+            />
+          )}
           <div className="flex flex-col justify-evenly">
-            <h1 className="text-5xl font-bold">{data?.Series_by_pk?.name}</h1>
-            <span className="text-lg">{data?.Series_by_pk?.description}</span>
+            <Heading className="text-5xl font-bold">
+              {data?.Series_by_pk?.name}
+            </Heading>
+            <Text className="text-lg">{data?.Series_by_pk?.description}</Text>
           </div>
         </div>
         <Button
@@ -58,7 +66,7 @@ const SingleSeries = () => {
           Add Flick
         </Button>
         <div className="p-4 bg-red-50 rounded-md">
-          <h3 className="text-3xl">Flicks</h3>
+          <Heading className="text-3xl">Flicks</Heading>
           <div>flicks</div>
         </div>
       </div>
