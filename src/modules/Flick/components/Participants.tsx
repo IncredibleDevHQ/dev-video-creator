@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import Gravatar from 'react-gravatar'
 import { FiUsers, FiX } from 'react-icons/fi'
 import { Heading, Text, Button } from '../../../components'

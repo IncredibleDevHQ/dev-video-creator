@@ -21,8 +21,6 @@ const Splash = () => {
     toggleAudio(false)
   }, [])
 
-  const [width, setWidth] = useState(0)
-
   useEffect(() => {
     if (state === 'recording') {
       handleRecord()
@@ -42,12 +40,11 @@ const Splash = () => {
     />,
   ])
 
-  const ref = useRef<any>(null)
+  // const ref = useRef<any>(null)
 
-  useEffect(() => {
-    if (!ref.current) return
-    setWidth(ref?.current.textWidth)
-  }, [ref.current])
+  // useEffect(() => {
+  //   if (!ref.current) return
+  // }, [ref.current])
 
   const handleRecord = () => {
     setLayerChildren((layerChildren) => [
@@ -61,7 +58,6 @@ const Splash = () => {
           fill="#5156EA"
           fontSize={40}
           align="center"
-          ref={ref}
         />
       </Group>,
       <Group x={20} y={360}>
@@ -106,6 +102,7 @@ const Splash = () => {
       disableUserMedia
       layerChildren={layerChildren}
       controls={controls}
+      // json={BasicTemplate}
     />
   )
 }

@@ -14,7 +14,7 @@ const Video = ({ videoElement }: { videoElement: HTMLVideoElement }) => {
 
   // when video is loaded, we should read it size
   React.useEffect(() => {
-    const onload = function () {
+    const onload = () => {
       setSize({
         width: CONFIG.width,
         height: (CONFIG.width * 9) / 16,

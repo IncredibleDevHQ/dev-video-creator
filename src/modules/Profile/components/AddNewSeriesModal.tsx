@@ -12,6 +12,7 @@ import { useUploadFile } from '../../../hooks'
 import { useCreateUserSeriesMutation } from '../../../generated/graphql'
 import { AddFlick } from '../../Series/userSeries/UserSeries'
 
+
 interface SeriesDetails {
   name: string
   pic: string

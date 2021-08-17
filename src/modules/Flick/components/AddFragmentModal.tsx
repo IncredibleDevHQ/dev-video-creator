@@ -14,8 +14,11 @@ import {
 } from '../../../components'
 import {
   AddFragmentToFlickMutationVariables,
+  FilteredUserFragment,
+  FlickParticipantsFragment,
   Fragment_Type_Enum_Enum,
   useAddFragmentToFlickMutation,
+  useGetFilteredUsersQuery,
 } from '../../../generated/graphql'
 
 const FragmentType = ({
@@ -158,11 +161,13 @@ const AddFragmentModal = ({
   flickId,
   totalFragments,
   handleClose,
+  participants,
 }: {
   open: boolean
   flickId: string
   totalFragments: number
   handleClose: (refresh?: boolean) => void
+  participants: FlickParticipantsFragment[]
 }) => {
   const [fragment, setFragment] = useState<AddFragmentToFlickMutationVariables>(
     {
@@ -238,6 +243,7 @@ const AddFragmentModal = ({
         }
         required
       />
+
       <Button
         appearance="primary"
         type="button"
