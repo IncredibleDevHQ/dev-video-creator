@@ -1,15 +1,13 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable react/jsx-pascal-case */
-import React, { useEffect } from 'react'
-import { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useRecoilState } from 'recoil'
-import { Button, EmptyState, ScreenState } from '../../../components'
+import { Button, EmptyState, ScreenState, TextField } from '../../../components'
 import {
   FlickFragmentFragment,
   Fragment_Type_Enum_Enum,
   useAddConfigurationMutation,
 } from '../../../generated/graphql'
-import { useUploadFile } from '../../../hooks/use-upload-file'
+import { useUploadFile } from '../../../hooks'
 // import { BasicTemplate } from '../../Studio/effects/Templates/SplashTemplates'
 import { fragmentTemplateStore } from '../../../stores/fragment.store'
 import TemplateMarket from '../../TemplateMarket/TemplateMarket'
@@ -26,9 +24,9 @@ const FragmentConfiguration = ({
   }>()
   const [displayName, setDisplayName] = useState<string>()
   const [username, setUsername] = useState<string>()
-  const [open, setOpen] = useState<boolean>(false)
-  const [pic, setPic] = useState<string>()
-  const [loadingPic, setLoadingPic] = useState<boolean>(false)
+  const [open, setOpen] = useState(false)
+  const [picture, setPicture] = useState<string>()
+  const [loadingPic, setLoadingPic] = useState(false)
 
   const [uploadFile] = useUploadFile()
 
@@ -41,14 +39,17 @@ const FragmentConfiguration = ({
       file,
     })
     setLoadingPic(false)
-    setPic(pic.url)
+    setPicture(pic.url)
   }
 
-  const [AddConfiguration, { data, loading, error }] =
-    useAddConfigurationMutation()
+  const [AddConfiguration, { loading, error }] = useAddConfigurationMutation()
+
+  useEffect(() => {
+    setTemplate(selectedTemplates.find((t) => t.id === fragment?.id))
+  }, [selectedTemplates])
 
   const handleConfiguration = () => {
-    const config = { displayName, username, picture: pic, template }
+    const config = { displayName, username, picture, template }
 
     AddConfiguration({
       variables: {
@@ -58,16 +59,10 @@ const FragmentConfiguration = ({
     })
   }
 
-  console.log(data)
-
   if (error)
     return (
       <ScreenState title="Something went wrong!!" subtitle={error.message} />
     )
-
-  useEffect(() => {
-    setTemplate(selectedTemplates.find((t) => t.id === fragment?.id))
-  }, [selectedTemplates])
 
   if (!fragment) return <EmptyState text="No fragment Selected" width={400} />
   return (
@@ -118,22 +113,24 @@ const FragmentConfiguration = ({
 
       {fragment.type === Fragment_Type_Enum_Enum.Splash && template && (
         <div className="flex flex-col mt-2 mb-2 gap-3">
-          <input
+          <TextField
             value={displayName}
-            className="p-2 border-2 rounded"
             type="text"
-            placeholder="Enter Display Name"
+            label="Enter Display Name"
             onChange={(e) => setDisplayName(e.target.value)}
           />
-          <input
+          <TextField
             value={username}
-            className="p-2 border-2 rounded"
             type="text"
-            placeholder="Enter Username"
+            label="Enter Username"
             onChange={(e) => setUsername(e.target.value)}
           />
-          {pic && (
-            <img className="h-32 object-contain" src={pic} alt="fragment pic" />
+          {picture && (
+            <img
+              className="h-32 object-contain"
+              src={picture}
+              alt="fragment pic"
+            />
           )}
           <input
             type="file"
