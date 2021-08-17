@@ -90,9 +90,6 @@ const useCanvasRecorder = ({
         }
       )
 
-      // mixer.frameInterval = 100
-      // mixer.startDrawingFrames()
-
       mediaRecorder.ondataavailable = handleDataAvailable
       mediaRecorder.start(100) // collect 100ms of data blobs
 

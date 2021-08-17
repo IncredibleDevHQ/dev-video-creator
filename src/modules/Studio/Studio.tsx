@@ -29,7 +29,6 @@ const Studio = () => {
   const { sub, picture } = (useRecoilValue(userState) as User) || {}
   const [fragment, setFragment] = useState<StudioFragmentFragment>()
 
-  const [localStream, setLocalStream] = useState<MediaStream>()
   const history = useHistory()
 
   const { data, loading } = useGetFragmentByIdQuery({
@@ -40,8 +39,7 @@ const Studio = () => {
 
   const [uploadFile] = useUploadFile()
 
-  const { stream, tracks, join, users, leave, ready, userAudios } =
-    useAgora(fragmentId)
+  const { stream, join, users, leave, ready, userAudios } = useAgora(fragmentId)
 
   const [getRTCToken, { data: rtcData }] = useGetRtcTokenLazyQuery({
     variables: { fragmentId },
@@ -56,12 +54,6 @@ const Studio = () => {
       leave()
     }
   }, [])
-
-  useEffect(() => {
-    if (tracks?.length) {
-      setLocalStream(stream)
-    }
-  }, [tracks, stream])
 
   useEffect(() => {
     if (!rtcData?.RTCToken?.token || didInit || !ready) return
