@@ -35,7 +35,7 @@ const ParticipantsTab = ({
     },
   })
   const [participantsList, setParticipantsList] = useState<Participant[]>([])
-  const [addParticipants, setAddParticipants] = useState<string[]>([])
+  const [newParticipants, setNewParticipants] = useState<string[]>([])
 
   const userData = (useRecoilValue(userState) as User) || {}
   const [role, setRole] = useState<IsStatus>(undefined)
@@ -74,7 +74,7 @@ const ParticipantsTab = ({
   }, [fragmentParticipants])
 
   const onSave = () => {
-    addParticipants.map(async (member) => {
+    newParticipants.map(async (member) => {
       await insertParticipants({
         variables: {
           fragmentId,
@@ -82,14 +82,14 @@ const ParticipantsTab = ({
         },
       })
     })
-    setAddParticipants([])
+    setNewParticipants([])
   }
-  const reverseChecked = (id: Participant['id']) => {
+  const toggleCardSelection = (id: Participant['id']) => {
     const updatedList: Participant[] =
       participantsList &&
       participantsList.map((member) => {
         if (member.id === id) {
-          setAddParticipants([...addParticipants, member.id])
+          setNewParticipants([...newParticipants, member.id])
           return { ...member, isChecked: true }
         }
         return member
@@ -110,7 +110,7 @@ const ParticipantsTab = ({
           <Select
             className="flex-1 mt-2"
             noOptionsMessage={() => 'Search a Name'}
-            onChange={(value) => reverseChecked(value?.value as string)}
+            onChange={(value) => toggleCardSelection(value?.value as string)}
             options={participantsList
               .filter((t) => !t.isChecked)
               .map((user) => {
@@ -143,38 +143,38 @@ const ParticipantsTab = ({
         </>
       )}
       <div className="w-full m-2 grid grid-flow-row grid-cols-4 gap-4">
-        {participantsList.map((details) =>
+        {participantsList.map((participant) =>
           role === 'Host' ? (
             <div
-              key={details.id}
+              key={participant.id}
               role="button"
               onKeyUp={() => {}}
               tabIndex={0}
               className="flex relative flex-row h-3/4 rounded-lg p-4 ml-7 w-3/4 m-2 border-blue-400 border-2 bg-white shadow-md"
               onClick={() => {
-                reverseChecked(details.id)
+                toggleCardSelection(participant.id)
               }}
             >
-              {details.isChecked && (
+              {participant.isChecked && (
                 <span className="p-0.5 rounded-full scale-150 bg-blue-100 text-white absolute top-0 right-0 transform translate-x-1/2 translate-y-1/2">
                   <RiCheckboxCircleFill color="green" />
                 </span>
               )}
 
               <img
-                src={details.picture as string}
+                src={participant.picture as string}
                 className="w-10 md:w-10 lg:w-10 h-10 md:h-10 lg:h-10 border-blue-300 border-2 rounded-lg"
                 alt="https://png.pngitem.com/pimgs/s/31-316453_firebase-logo-png-transparent-firebase-logo-png-png.png"
               />
 
               <Text className="h-20 m-2 flex align-middle justify-center text-center text-base overflow-hidden overflow-ellipsis">
-                {details.name}
+                {participant.name}
               </Text>
             </div>
           ) : (
-            details.isChecked && (
+            participant.isChecked && (
               <div
-                key={details.id}
+                key={participant.id}
                 className="flex relative flex-row h-3/4 rounded-lg p-4 ml-7 w-3/4 m-2 border-blue-400 border-2 bg-white shadow-md"
               >
                 <span className="p-0.5 rounded-full scale-150 bg-blue-100 text-white absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2">
@@ -183,14 +183,14 @@ const ParticipantsTab = ({
 
                 <div className="flex items-center">
                   <img
-                    src={details.picture as string}
+                    src={participant.picture as string}
                     className="w-10 md:w-10 lg:w-10 h-10 md:h-10 lg:h-10 border-blue-300 border-2 rounded-lg"
                     alt="https://png.pngitem.com/pimgs/s/31-316453_firebase-logo-png-transparent-firebase-logo-png-png.png"
                   />
                 </div>
 
                 <Text className="h-20 m-2 flex align-middle justify-center text-center text-base overflow-hidden overflow-ellipsis ">
-                  {details.name}
+                  {participant.name}
                 </Text>
               </div>
             )
