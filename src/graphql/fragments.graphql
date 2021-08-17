@@ -29,6 +29,21 @@ query GetFragmentById($id: uuid!, $sub: String!) {
   }
 }
 
+query FragmentRole($fragmentId: uuid!, $sub: String!) {
+  Participant(
+    where: {
+      _and: {
+        fragments: {
+          fragmentId: { _eq: $fragmentId }
+          participant: { userSub: { _eq: $sub } }
+        }
+      }
+    }
+  ) {
+    role
+  }
+}
+
 mutation AddFragmentToFlick(
   $type: FRAGMENT_TYPE_ENUM_enum!
   $order: Int!
@@ -55,5 +70,23 @@ mutation MarkFragmentCompleted($id: uuid!, $producedLink: String!) {
     _set: { status: Completed, producedLink: $producedLink }
   ) {
     updatedAt
+  }
+}
+
+mutation InsertParticipantToFragment(
+  $participantId: uuid!
+  $fragmentId: uuid!
+) {
+  InviteParticipantToFragment(
+    fragmentId: $fragmentId
+    participantId: $participantId
+  ) {
+    createdAt
+  }
+}
+
+query FragmentParticipants($fragmentId: uuid!) {
+  Fragment_Participant(where: { fragmentId: { _eq: $fragmentId } }) {
+    participantId
   }
 }
