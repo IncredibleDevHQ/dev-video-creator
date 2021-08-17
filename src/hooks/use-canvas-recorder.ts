@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useState } from 'react'
 import { extension } from 'mime-types'
 import { saveAs } from 'file-saver'

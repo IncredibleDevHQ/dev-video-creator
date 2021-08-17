@@ -23,6 +23,7 @@ import {
   AllUserFlicks,
   Studio,
   UserSeriesFlicks,
+  SingleSeries,
 } from './modules'
 
 const App = () => {
@@ -71,6 +72,11 @@ const App = () => {
                     exact
                     path="/profile/series"
                     component={Series}
+                  />
+                  <PrivateRoute
+                    exact
+                    path="/series/:id"
+                    component={SingleSeries}
                   />
                   <PrivateRoute
                     exact

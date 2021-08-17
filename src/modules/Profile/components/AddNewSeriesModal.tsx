@@ -5,12 +5,13 @@ import {
   Button,
   emitToast,
   ScreenState,
-  TextField,
   Text,
+  TextField,
 } from '../../../components'
-import { useUploadFile } from '../../../hooks/use-upload-file'
+import { useUploadFile } from '../../../hooks'
 import { useCreateUserSeriesMutation } from '../../../generated/graphql'
-import { AddFlick } from './UserSeries'
+import { AddFlick } from '../../Series/userSeries/UserSeries'
+
 
 interface SeriesDetails {
   name: string

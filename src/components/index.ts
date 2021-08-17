@@ -18,6 +18,7 @@ import Text from './Text'
 import TextField from './TextField'
 import TextArea from './TextArea'
 import Loading from './Loading'
+import Radio from './Radio'
 import TabBar, { Tab } from './TabBar'
 
 export {
@@ -44,6 +45,7 @@ export {
   Loading,
   TabBar,
   updateToast,
+  Radio,
 }
 
 export type { Tab }
