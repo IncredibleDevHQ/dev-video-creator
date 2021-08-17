@@ -22,6 +22,8 @@ export default function useAgora(channel: string) {
   const [users, setUsers] = useState<RTCUser[]>([])
   const [stream, setStream] = useState<MediaStream>()
 
+  const [userAudios, setUserAudios] = useState<MediaStream[]>([])
+
   const { ready, tracks } = useMicrophoneAndCameraTracks()
   useEffect(() => {
     ;(async () => {
@@ -43,12 +45,13 @@ export default function useAgora(channel: string) {
   const init = async () => {
     try {
       client.on('user-published', async (user, mediaType) => {
+        console.log({ user, mediaType })
         await client.subscribe(user, mediaType)
+        const tracks: MediaStreamTrack[] = []
+        if (user.audioTrack) tracks.push(user.audioTrack?.getMediaStreamTrack())
+        if (user.videoTrack) tracks.push(user.videoTrack?.getMediaStreamTrack())
+
         if (mediaType === 'video') {
-          const tracks = [
-            user.audioTrack?.getMediaStreamTrack(),
-            user.videoTrack?.getMediaStreamTrack(),
-          ]
           setUsers((prevUsers) => {
             return [
               ...prevUsers,
@@ -65,6 +68,12 @@ export default function useAgora(channel: string) {
         }
         if (mediaType === 'audio') {
           user.audioTrack?.play()
+          setUserAudios((prev) => [
+            ...prev,
+            new MediaStream([
+              user.audioTrack?.getMediaStreamTrack() as MediaStreamTrack,
+            ]),
+          ])
         }
       })
       client.on('user-left', (user) => {
@@ -107,5 +116,6 @@ export default function useAgora(channel: string) {
     leave,
     tracks,
     stream,
+    userAudios,
   }
 }

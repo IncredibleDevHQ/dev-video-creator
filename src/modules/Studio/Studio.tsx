@@ -40,7 +40,8 @@ const Studio = () => {
 
   const [uploadFile] = useUploadFile()
 
-  const { stream, tracks, join, users, leave } = useAgora(fragmentId)
+  const { stream, tracks, join, users, leave, ready, userAudios } =
+    useAgora(fragmentId)
 
   const [getRTCToken, { data: rtcData }] = useGetRtcTokenLazyQuery({
     variables: { fragmentId },
@@ -63,11 +64,11 @@ const Studio = () => {
   }, [tracks, stream])
 
   useEffect(() => {
-    if (!rtcData?.RTCToken?.token || didInit) return
+    if (!rtcData?.RTCToken?.token || didInit || !ready) return
 
     setDidInit(true)
     join(rtcData?.RTCToken?.token, sub as string)
-  }, [rtcData])
+  }, [rtcData, ready])
 
   useEffect(() => {
     if (!data?.Fragment) return
@@ -145,12 +146,12 @@ const Studio = () => {
       .getElementsByClassName('konvajs-content')[0]
       .getElementsByTagName('canvas')[0]
 
-    const audio = localStream?.getAudioTracks()[0]
+    // @ts-ignore
+    startRecording(canvas, {
+      localStream: stream as MediaStream,
+      remoteStreams: userAudios,
+    })
 
-    if (audio) {
-      // @ts-ignore
-      startRecording(canvas, localStream, ...users.map((u) => u.mediaStream))
-    } else startRecording(canvas)
     setState('recording')
   }
 
@@ -176,7 +177,7 @@ const Studio = () => {
       constraints: { audio: true, video: true },
       users,
     })
-  }, [fragment, stream, users, state])
+  }, [fragment, stream, users, state, userAudios])
 
   /**
    * =======================
