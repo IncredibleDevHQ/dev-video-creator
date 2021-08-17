@@ -181,7 +181,7 @@ const Studio = () => {
 
   if (!fragment) return <EmptyState text="Fragment not found" width={400} />
 
-  const C = getEffect(fragment.type)
+  const C = getEffect(fragment.type, fragment.configuration)
 
   return (
     <StudioContext.Provider
