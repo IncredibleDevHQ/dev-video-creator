@@ -7,7 +7,6 @@ import {
   FlickParticipantsFragment,
   useInsertParticipantToFragmentMutation,
   useFragmentParticipantsQuery,
-  useFragmentParticipantsLazyQuery,
   FragmentParticipantsQuery,
 } from '../../../generated/graphql'
 import { User, userState } from '../../../stores/user.store'
@@ -21,7 +20,7 @@ const ParticipantsTab = ({
 }) => {
   type IsStatus = 'Host' | 'Assistant' | 'Viewer' | undefined
 
-  interface Participants {
+  interface Participant {
     name: string
     id: string
     picture: string
@@ -30,13 +29,13 @@ const ParticipantsTab = ({
 
   const [insertParticipants, { data, loading, error }] =
     useInsertParticipantToFragmentMutation()
-  const { data: fragmentParticipants } = useFragmentParticipantsQuery({
+  const { data: fragmentParticipants, refetch } = useFragmentParticipantsQuery({
     variables: {
       fragmentId,
     },
   })
-  const [participantsList, setParticipantsList] = useState<Participants[]>([])
-  const [newlyAdded, setNewlyAdded] = useState<string[]>([])
+  const [participantsList, setParticipantsList] = useState<Participant[]>([])
+  const [addParticipants, setAddParticipants] = useState<string[]>([])
 
   const userData = (useRecoilValue(userState) as User) || {}
   const [role, setRole] = useState<IsStatus>(undefined)
@@ -45,14 +44,14 @@ const ParticipantsTab = ({
     fragmentParticipants: FragmentParticipantsQuery | undefined
   ) => {
     if (participants.length) {
-      let list: Participants[] = []
+      let list: Participant[] = []
 
       participants.forEach((participant) => {
         if (participant.userSub === userData.sub) {
           setRole(participant.role as IsStatus)
         }
 
-        const member: Participants = {
+        const member: Participant = {
           id: participant.id,
           name: participant.user.displayName as string,
           picture: participant.user.picture as string,
@@ -75,7 +74,7 @@ const ParticipantsTab = ({
   }, [fragmentParticipants])
 
   const onSave = () => {
-    newlyAdded.map(async (member) => {
+    addParticipants.map(async (member) => {
       await insertParticipants({
         variables: {
           fragmentId,
@@ -83,25 +82,25 @@ const ParticipantsTab = ({
         },
       })
     })
-    setNewlyAdded([])
+    setAddParticipants([])
   }
-  const reverseChecked = (id: Participants['id']) => {
-    const updatedList: Participants[] =
+  const reverseChecked = (id: Participant['id']) => {
+    const updatedList: Participant[] =
       participantsList &&
       participantsList.map((member) => {
         if (member.id === id) {
-          setNewlyAdded([...newlyAdded, member.id])
+          setAddParticipants([...addParticipants, member.id])
           return { ...member, isChecked: true }
         }
         return member
       })
     setParticipantsList(updatedList)
   }
-  if (loading) return <ScreenState title="Updating...." loading />
+  if (loading) return <ScreenState title="Updating..." loading />
 
   if (error)
     return (
-      <ScreenState title="Something went wrong!!" subtitle={error.message} />
+      <ScreenState title="Something went wrong!" subtitle={error.message} />
     )
 
   return (
@@ -110,7 +109,7 @@ const ParticipantsTab = ({
         <>
           <Select
             className="flex-1 mt-2"
-            noOptionsMessage={() => 'Search a Name..'}
+            noOptionsMessage={() => 'Search a Name'}
             onChange={(value) => reverseChecked(value?.value as string)}
             options={participantsList
               .filter((t) => !t.isChecked)
@@ -124,8 +123,9 @@ const ParticipantsTab = ({
             placeholder="Search a Participant"
           />
           <RiRefreshLine
-            className="ml-auto  w-1/16 m-2"
+            className="ml-auto w-1/16 m-2"
             onClick={() => {
+              refetch()
               getParticipants(fragmentParticipants)
             }}
           />
@@ -148,15 +148,15 @@ const ParticipantsTab = ({
             <div
               key={details.id}
               role="button"
-              aria-hidden="true"
+              onKeyUp={() => {}}
               tabIndex={0}
-              className="flex  relative flex-row h-3/4 rounded-lg p-4 ml-7 w-3/4 m-2 border-blue-400 border-2 bg-white shadow-md"
+              className="flex relative flex-row h-3/4 rounded-lg p-4 ml-7 w-3/4 m-2 border-blue-400 border-2 bg-white shadow-md"
               onClick={() => {
                 reverseChecked(details.id)
               }}
             >
               {details.isChecked && (
-                <span className="p-0.5 rounded-full scale-150 bg-blue-100 text-white absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2">
+                <span className="p-0.5 rounded-full scale-150 bg-blue-100 text-white absolute top-0 right-0 transform translate-x-1/2 translate-y-1/2">
                   <RiCheckboxCircleFill color="green" />
                 </span>
               )}
@@ -167,7 +167,7 @@ const ParticipantsTab = ({
                 alt="https://png.pngitem.com/pimgs/s/31-316453_firebase-logo-png-transparent-firebase-logo-png-png.png"
               />
 
-              <Text className="h-20 m-2 flex align-middle justify-center text-center text-base overflow-hidden overflow-ellipsis ">
+              <Text className="h-20 m-2 flex align-middle justify-center text-center text-base overflow-hidden overflow-ellipsis">
                 {details.name}
               </Text>
             </div>
@@ -175,7 +175,7 @@ const ParticipantsTab = ({
             details.isChecked && (
               <div
                 key={details.id}
-                className="flex  relative flex-row h-3/4 rounded-lg p-4 ml-7 w-3/4 m-2 border-blue-400 border-2 bg-white shadow-md"
+                className="flex relative flex-row h-3/4 rounded-lg p-4 ml-7 w-3/4 m-2 border-blue-400 border-2 bg-white shadow-md"
               >
                 <span className="p-0.5 rounded-full scale-150 bg-blue-100 text-white absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2">
                   <RiCheckboxCircleFill color="green" />

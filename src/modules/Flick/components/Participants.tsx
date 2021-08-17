@@ -39,9 +39,6 @@ const Participants = ({
   setParticipants: (val: boolean) => void
   participants: FlickParticipantsFragment[]
 }) => {
-  useEffect(() => {
-    console.log('participants', participants)
-  }, [participants])
   if (!isParticipants)
     return (
       <Button

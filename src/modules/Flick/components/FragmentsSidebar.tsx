@@ -58,7 +58,6 @@ const FragmentItem = ({
     },
   })
   const isParticipant = !(data && data.Participant.length === 0) as boolean
-  console.log(isParticipant)
   return (
     <div
       role="button"
@@ -67,7 +66,7 @@ const FragmentItem = ({
       className={cx(
         'my-1 p-2 border-2 border-dotted rounded-md text-gray relative',
         {
-          ' border-gray-300 text-gray-400':
+          'border-gray-300 text-gray-400':
             (fragment.id === activeFragmentId && !isParticipant) ||
             (fragment.id === !activeFragmentId && !isParticipant),
           'border-brand text-brand':

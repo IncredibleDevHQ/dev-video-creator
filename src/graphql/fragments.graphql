@@ -29,7 +29,7 @@ query GetFragmentById($id: uuid!, $sub: String!) {
   }
 }
 
-query fragmentRole($fragmentId: uuid = "", $sub: String = "") {
+query FragmentRole($fragmentId: uuid, $sub: String) {
   Participant(
     where: {
       _and: {
@@ -85,7 +85,7 @@ mutation InsertParticipantToFragment(
   }
 }
 
-query FragmentParticipants($fragmentId: uuid = "") {
+query FragmentParticipants($fragmentId: uuid) {
   Fragment_Participant(where: { fragmentId: { _eq: $fragmentId } }) {
     participantId
   }
