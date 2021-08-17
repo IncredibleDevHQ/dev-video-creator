@@ -5,6 +5,7 @@ import {
   Button,
   emitToast,
   Heading,
+  Radio,
   TextArea,
   TextField,
 } from '../../components'
@@ -13,6 +14,7 @@ import {
   CreateNewFlickMutationVariables,
   useCreateNewFlickMutation,
 } from '../../generated/graphql'
+import { useQueryVariables } from '../../hooks'
 
 const initialFlick: CreateNewFlickMutationVariables = {
   name: '',
@@ -25,6 +27,8 @@ const NewFlick = () => {
     useState<CreateNewFlickMutationVariables>(initialFlick)
   const [createNewFlick, { data, error, loading }] = useCreateNewFlickMutation()
   const history = useHistory()
+
+  const query = useQueryVariables()
 
   useEffect(() => {
     if (!error) return
@@ -55,7 +59,9 @@ const NewFlick = () => {
   return (
     <section className="w-full min-h-screen flex flex-col justify-center items-center">
       <Heading fontSize="large" className="text-5xl mb-12">
-        Create Your New Flick
+        {query.get('seriesid')
+          ? `Create Flick for "${query.get('seriesname')}"`
+          : 'Create Your New Flick'}
       </Heading>
       <form className="shadow-md bg-background-alt w-full md:w-80 p-4 flex flex-col">
         <TextField
@@ -72,19 +78,22 @@ const NewFlick = () => {
             updateFlick('description', e.target.value)
           }
         />
-        <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              updateFlick(
-                'scope',
-                e.target.checked
-                  ? CreateFlickFlickScopeEnumEnum.Public
-                  : CreateFlickFlickScopeEnumEnum.Private
-              )
-            }
+        <div
+          className="flex items-center gap-2"
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            updateFlick('scope', e.target.value)
+          }
+        >
+          <Radio
+            label="Public"
+            name="access"
+            value={CreateFlickFlickScopeEnumEnum.Public}
           />
-          <label>Public</label>
+          <Radio
+            label="Private"
+            name="access"
+            value={CreateFlickFlickScopeEnumEnum.Private}
+          />
         </div>
         <Button
           loading={loading}
