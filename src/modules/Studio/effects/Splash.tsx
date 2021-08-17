@@ -2,14 +2,26 @@ import React, { useContext, useEffect, useRef, useState } from 'react'
 import { Group, Image, Rect, Text } from 'react-konva'
 import useImage from 'use-image'
 import { useRecoilValue } from 'recoil'
+import { useParams } from 'react-router-dom'
 import { Concourse } from '../components'
 import { StudioContext } from '../Studio'
 import { User, userState } from '../../../stores/user.store'
 import { CONFIG } from '../components/Concourse'
+import { useGetFragmentByIdQuery } from '../../../generated/graphql'
+import { ScreenState } from '../../../components'
 
-const Splash = () => {
-  const { picture, displayName, username } =
-    (useRecoilValue(userState) as User) || {}
+const Splash = ({ config }: { config: string }) => {
+  const { sub } = (useRecoilValue(userState) as User) || {}
+
+  const params: { fragmentId: string } = useParams()
+
+  const { data, error } = useGetFragmentByIdQuery({
+    variables: { id: params.fragmentId, sub: sub as string },
+  })
+
+  const { displayName, username, picture } = JSON.parse(
+    data?.Fragment[0].configuration
+  )
 
   const [image] = useImage(picture as string, 'anonymous')
 
@@ -26,6 +38,11 @@ const Splash = () => {
       handleRecord()
     }
   }, [state])
+
+  if (error)
+    return (
+      <ScreenState title="Something went wrong!!" subtitle={error.message} />
+    )
 
   const [layerChildren, setLayerChildren] = useState([
     <Rect
