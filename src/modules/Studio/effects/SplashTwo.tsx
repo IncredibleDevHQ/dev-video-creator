@@ -5,11 +5,11 @@ import { useRecoilValue } from 'recoil'
 import { useParams } from 'react-router-dom'
 import Konva from 'konva'
 import { Concourse } from '../components'
-import { StudioContext } from '../Studio'
 import { User, userState } from '../../../stores/user.store'
 import { CONFIG } from '../components/Concourse'
 import { useGetFragmentByIdQuery } from '../../../generated/graphql'
 import { ScreenState } from '../../../components'
+import { StudioProviderProps, studioStore } from '../stores'
 
 interface CircleItems {
   x: number
@@ -34,12 +34,14 @@ const SplashTwo = () => {
 
   const [image] = useImage(picture as string, 'anonymous')
 
-  const { fragment, toggleAudio, state } = useContext(StudioContext)
+  const { fragment, state } =
+    (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const controls: any = []
 
   useEffect(() => {
-    toggleAudio(false)
+    // FIXME: This is a temporarily commented code to toggleAudio. Do uncomment when audio handlers are passed in by the store.
+    // toggleAudio(false)
     generateItems()
   }, [])
 

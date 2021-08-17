@@ -12,7 +12,6 @@ import { useUploadFile } from '../../../hooks'
 import { useCreateUserSeriesMutation } from '../../../generated/graphql'
 import { AddFlick } from '../../Series/userSeries/UserSeries'
 
-
 interface SeriesDetails {
   name: string
   pic: string
@@ -34,11 +33,12 @@ const AddNewSeriesModal = ({
 
   const [uploadFile] = useUploadFile()
 
-  const handleClick = async (file: File | Blob) => {
+  const handleClick = async (file: File) => {
     if (!file) return
 
     setLoadingAssets(true)
     const pic = await uploadFile({
+      // @ts-ignore
       extension: file.name.split('.')[1],
       file,
     })
@@ -123,8 +123,10 @@ const AddNewSeriesModal = ({
         <input
           type="file"
           className=" px-1 py-3 text-blueGray-600 relative rounded text-lg w-full mt-8"
-          accept="image/*"
-          onChange={(e) => handleClick(e.target.files[0])}
+          accept="image/png,image/jpg,image/webp,image/svg"
+          onChange={(e) =>
+            e.target.files?.[0] && handleClick(e.target.files[0])
+          }
         />
         <div className="flex flex-row gap-3">
           <Button
