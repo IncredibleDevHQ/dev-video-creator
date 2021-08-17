@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { extension } from 'mime-types'
 import { saveAs } from 'file-saver'
+import MultiStreamsMixer from 'multistreamsmixer'
 
 const types = [
   'video/webm',
@@ -31,6 +32,7 @@ const useCanvasRecorder = ({
 }) => {
   const [recordedBlobs, setRecordedBlobs] = useState<Blob[]>([])
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
+  const [mixer, setMixer] = useState<MultiStreamsMixer>()
 
   const [type, setType] = useState<ElementType<typeof types>>()
 
@@ -45,7 +47,7 @@ const useCanvasRecorder = ({
    */
   const startRecording = (
     canvas: HTMLCanvasElement,
-    ...tracks: MediaStreamTrack[]
+    ...users: MediaStream[]
   ) => {
     if (!canvas) return
 
@@ -63,26 +65,45 @@ const useCanvasRecorder = ({
     setType(type)
 
     try {
-      tracks.forEach((track) => {
-        stream.addTrack(track)
-      })
+      // @ts-ignore
+      stream.fullcanvas = true
+      // @ts-ignore
+      stream.width = 3840 // or 3840
+      // @ts-ignore
+      stream.height = 2160 // or 2160
 
-      const mediaRecorder = new MediaRecorder(stream, {
+      const mixer = new MultiStreamsMixer([
+        stream,
+        ...users.map((u) => {
+          const tracks = u.getTracks().filter((t) => t.kind === 'audio')
+          console.log({ tracks })
+          return new MediaStream(tracks)
+        }),
+      ])
+
+      const mediaRecorder = new MediaRecorder(mixer.getMixedStream(), {
         videoBitsPerSecond,
         mimeType: type,
       })
+
+      mixer.frameInterval = 1
+      mixer.startDrawingFrames()
+
       mediaRecorder.ondataavailable = handleDataAvailable
       mediaRecorder.start(1000) // collect 100ms of data blobs
 
       setMediaRecorder(mediaRecorder)
+      setMixer(mixer)
     } catch (e) {
       console.error(e)
     }
   }
 
   const stopRecording = (fileName?: string) => {
-    if (mediaRecorder?.state === 'recording') mediaRecorder?.stop()
-    else console.log('Cannot stop canvas recorder', mediaRecorder?.state)
+    if (mediaRecorder?.state === 'recording') {
+      mediaRecorder?.stop()
+      mixer?.releaseStreams()
+    } else console.log('Cannot stop canvas recorder', mediaRecorder?.state)
   }
 
   const download = (fileName?: string) => {
