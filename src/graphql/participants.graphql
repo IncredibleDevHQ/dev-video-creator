@@ -2,6 +2,7 @@ fragment FlickParticipants on Participant {
   id
   status
   role
+  userSub
   owner
   inviteStatus
   user {
