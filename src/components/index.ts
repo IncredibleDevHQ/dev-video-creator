@@ -1,4 +1,5 @@
 import { dismissToast, emitToast, updateToast } from './Toast'
+import Avatar from './Avatar'
 import Button from './Button'
 import ClipBoardIcon from './ClipBoardIcon'
 import ContainerWithSidebar from './ContainerWithSidebar'
@@ -20,8 +21,10 @@ import TextArea from './TextArea'
 import Loading from './Loading'
 import Radio from './Radio'
 import TabBar, { Tab } from './TabBar'
+import Tooltip from './Tooltip'
 
 export {
+  Avatar,
   Button,
   ClipBoardIcon,
   ContainerWithSidebar,
@@ -44,6 +47,7 @@ export {
   TextArea,
   Loading,
   TabBar,
+  Tooltip,
   updateToast,
   Radio,
 }

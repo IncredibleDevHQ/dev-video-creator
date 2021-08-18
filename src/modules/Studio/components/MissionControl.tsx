@@ -1,3 +1,5 @@
+/* eslint-disable no-restricted-syntax */
+/* eslint-disable guard-for-in */
 import { cx } from '@emotion/css'
 import React, { HTMLAttributes, useEffect, useState } from 'react'
 import { IconType } from 'react-icons'
@@ -14,8 +16,9 @@ import {
 } from 'react-icons/fi'
 import { BiReset } from 'react-icons/bi'
 import { useRecoilValue } from 'recoil'
-import { StudioProviderProps, studioStore } from '../stores'
 import { FaAdobe, FaPrayingHands } from 'react-icons/fa'
+import { StudioProviderProps, studioStore } from '../stores'
+import { Avatar, Heading, Tooltip } from '../../../components'
 
 export const ControlButton = ({
   appearance,
@@ -58,6 +61,29 @@ export const ControlButton = ({
   )
 }
 
+const RaiseHandsMenu = ({ participants }: { participants: any[] }) => {
+  return (
+    <div className="flex flex-col p-1 rounded-md bg-background w-40">
+      {participants.map(({ name, id, picture, email }, index) => (
+        <div
+          className="flex justify-start items-center w-full"
+          key={id || index}
+        >
+          <Avatar
+            className="w-8 h-8 rounded-md"
+            src={picture}
+            alt={name}
+            email={email}
+          />
+          <Heading fontSize="medium" className="ml-2">
+            {name}
+          </Heading>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 const MissionControl = ({
   controls,
   resetCanvas,
@@ -72,18 +98,42 @@ const MissionControl = ({
     upload,
     reset,
     state,
-    payload,
     participants,
     updateParticipant,
     participantId,
   } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
+  const [isRaiseHandsTooltip, setRaiseHandsTooltip] = useState(false)
   const [participant, setParticipant] = useState<any>()
+  const [participantsArray, setParticipantsArray] = useState<any[]>([])
+
+  useEffect(() => {
+    if (!participants) return
+    const arr = []
+    for (const i in participants) {
+      arr.push({
+        id: participants[i].id,
+        name: participants[i].displayName,
+        email: participants[i].email,
+        picture: participants[i].picture,
+        raiseHands: participants[i].raiseHands,
+        audio: participants[i].audio,
+        video: participants[i].video,
+      })
+    }
+    setParticipantsArray(arr)
+  }, [participants])
+
   useEffect(() => {
     if (participants && participantId) {
       setParticipant(participants[participantId])
     }
   }, [participants, participantId])
+
+  useEffect(() => {
+    if (!participantsArray) return
+    setRaiseHandsTooltip(participantsArray.some((p) => p.raiseHands))
+  }, [participantsArray])
 
   return (
     <div className="bg-gray-100 py-2 px-4 rounded-md">
@@ -101,14 +151,25 @@ const MissionControl = ({
           {controls}
         </div>
         <div>
-          <ControlButton
-            icon={participant?.raiseHands ? FaPrayingHands : FaAdobe}
-            className="my-2"
-            appearance={participant?.raiseHands ? 'primary' : 'danger'}
-            onClick={() => {
-              updateParticipant?.({ raiseHands: !participant?.raiseHands })
-            }}
-          />
+          <Tooltip
+            isOpen={isRaiseHandsTooltip}
+            setIsOpen={setRaiseHandsTooltip}
+            content={
+              <RaiseHandsMenu
+                participants={participantsArray.filter((p) => p.raiseHands)}
+              />
+            }
+            placement="left-end"
+          >
+            <ControlButton
+              icon={participant?.raiseHands ? FaPrayingHands : FaAdobe}
+              className="my-2"
+              appearance={participant?.raiseHands ? 'primary' : 'danger'}
+              onClick={() => {
+                updateParticipant?.({ raiseHands: !participant?.raiseHands })
+              }}
+            />
+          </Tooltip>
           <ControlButton
             icon={constraints?.audio ? FiMic : FiMicOff}
             className="my-2"

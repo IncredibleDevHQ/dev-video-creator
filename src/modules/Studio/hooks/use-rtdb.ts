@@ -58,10 +58,10 @@ const useRTDB = <T, S>(
   const [participants, setParticipants] = useState<T[] | null>(null)
   const [payload, setPayload] = useState<S | null>(null)
 
-  const [executable, setExecutable] = useState(!!!props.lazy)
+  const [executable, setExecutable] = useState(!props.lazy)
 
   useEffect(() => {
-    var unsubscribe: Unsubscribe | null = null
+    let unsubscribe: Unsubscribe | null = null
 
     if (props.participants?.enabled && executable) {
       const pathRef = ref(database, props.participants?.path || props.path)
@@ -78,7 +78,7 @@ const useRTDB = <T, S>(
   }, [props.participants?.enabled, executable])
 
   useEffect(() => {
-    var unsubscribe: Unsubscribe | null = null
+    let unsubscribe: Unsubscribe | null = null
 
     if (props.payload?.enabled && executable) {
       const pathRef = ref(database, props.payload?.path || props.path)
@@ -95,7 +95,7 @@ const useRTDB = <T, S>(
   }, [props.payload?.enabled, executable])
 
   useEffect(() => {
-    var unsubscribe: Unsubscribe | null = null
+    let unsubscribe: Unsubscribe | null = null
 
     if (props.presence?.enabled && executable) {
       const presenceRef = ref(database, '.info/connected')
@@ -124,7 +124,7 @@ const useRTDB = <T, S>(
   }, [props.presence?.enabled, executable])
 
   const init = () => {
-    if (!!!props.lazy)
+    if (!props.lazy)
       throw Error(
         "The hook isn't lazy. To lazily use it, pass param lazy as true."
       )

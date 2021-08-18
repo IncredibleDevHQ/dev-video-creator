@@ -3,7 +3,7 @@ import { StudioFragmentFragment } from '../../../generated/graphql'
 import { RTCUser } from '../hooks/use-agora'
 
 export type StudioState = 'ready' | 'recording' | 'preview' | 'upload'
-export interface StudioProviderProps<T = {}, S = {}> {
+export interface StudioProviderProps<T = any, S = any> {
   stream: MediaStream
   getBlobs: () => Blob
 
@@ -24,8 +24,8 @@ export interface StudioProviderProps<T = {}, S = {}> {
 
   users: RTCUser[]
 
-  payload?: S
-  participants: T[] | null
+  payload: S | null
+  participants: T | null
   updatePayload?: (value: S) => void
   updateParticipant?: (value: T) => void
 

@@ -21,7 +21,7 @@ import { User, userState } from '../../stores/user.store'
 import { getEffect } from './effects/effects'
 import { useUploadFile } from '../../hooks/use-upload-file'
 import { useAgora } from './hooks'
-import { StudioProviderProps, StudioState, studioStore } from './stores'
+import { StudioState, studioStore } from './stores'
 import { useRTDB } from './hooks/use-rtdb'
 
 const Studio = () => {
@@ -57,7 +57,7 @@ const Studio = () => {
   }, [])
 
   const { participants, init, payload, updatePayload, updateParticipant } =
-    useRTDB({
+    useRTDB<any, any>({
       lazy: true,
       path: `rtdb/fragments/${fragmentId}`,
       participants: {
@@ -203,12 +203,10 @@ const Studio = () => {
       picture: picture as string,
       constraints: { audio: true, video: true },
       users,
-
       payload,
       participants,
       updateParticipant,
       updatePayload,
-
       participantId: fragment?.participants.find(
         ({ participant }) => participant.userSub === sub
       )?.participant.id,
@@ -248,6 +246,7 @@ const Studio = () => {
             <Heading className="font-semibold">{fragment.name}</Heading>
           </div>
           <button
+            type="button"
             onClick={() => {
               updatePayload({ done: true })
             }}
@@ -256,7 +255,7 @@ const Studio = () => {
           </button>
           {/* <Timer target={10} timer={timer} /> */}
         </div>
-        <C />
+        <C config="" />
       </div>
     </div>
   )
