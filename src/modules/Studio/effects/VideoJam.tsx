@@ -67,11 +67,22 @@ const VideoJam = () => {
     if (!videoElement) return
     switch (state) {
       case 'preview':
-        videoElement.pause()
+        updatePayload?.({
+          playing: false,
+          currentTime: videoElement?.currentTime,
+        })
         break
       case 'ready':
         videoElement.currentTime = 0
+
         break
+      case 'recording':
+        const next = !playing
+
+        updatePayload?.({
+          playing: next,
+          currentTime: videoElement?.currentTime,
+        })
       default:
         videoElement.currentTime = 0
     }
