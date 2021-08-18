@@ -19,3 +19,9 @@ export const ASSETS = {
     EMPTY_ACTIVITY,
   },
 }
+
+export const API = {
+  GITHUB: {
+    BASE_URL: 'https://api.github.com/',
+  },
+}

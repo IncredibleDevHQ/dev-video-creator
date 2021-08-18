@@ -51,18 +51,20 @@ const Video = ({ videoElement }: { videoElement: HTMLVideoElement }) => {
 }
 
 const VideoJam = () => {
+  const { state, fragment } =
+    (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const videoElement = React.useMemo(() => {
+    if (!fragment?.configuration) return
     const element = document.createElement('video')
     element.autoplay = false
     element.crossOrigin = 'anonymous'
-    element.src =
-      'https://incredible-uploads-staging.s3.us-west-1.amazonaws.com/hasura.mp4'
+    element.src = JSON.parse(fragment?.configuration || {}).videoURL
+    // eslint-disable-next-line consistent-return
     return element
-  }, [])
-
-  const { state } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  }, [fragment?.configuration])
 
   useEffect(() => {
+    if (!videoElement) return
     switch (state) {
       case 'preview':
         videoElement.pause()
@@ -87,17 +89,20 @@ const VideoJam = () => {
         const next = !playing
         setPlaying(next)
         if (next) {
-          videoElement.play()
+          videoElement?.play()
         } else {
-          videoElement.pause()
+          videoElement?.pause()
         }
       }}
     />,
   ]
 
-  const layerChildren = [<Video videoElement={videoElement} />]
-
-  return <Concourse layerChildren={layerChildren} controls={controls} />
+  return videoElement ? (
+    <Concourse
+      layerChildren={[<Video videoElement={videoElement} />]}
+      controls={controls}
+    />
+  ) : null
 }
 
 export default VideoJam

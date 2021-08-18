@@ -1,0 +1,41 @@
+const allowedLanguages = {
+  batch: '.bat',
+  c: '.c',
+  'c++': '.cpp',
+  clojure: '.clj',
+  css: '.css',
+  dockerfile: '.dockerfile',
+  go: '.go',
+  html: '.html',
+  jade: '.jade',
+  java: '.java',
+  javascript: '.js',
+  javascriptreact: '.jsx',
+  json: '.json',
+  markdown: '.md',
+  'objective-c': '.m',
+  perl: '.pl',
+  php: '.php',
+  powershell: '.ps1',
+  properties: '.properties',
+  python: '.py',
+  r: '.r',
+  ruby: '.rb',
+  rust: '.rs',
+  scss: '.scss',
+  shellscript: '.sh',
+  sql: '.sql',
+  swift: '.swift',
+  typescript: '.ts',
+  typescriptreact: '.tsx',
+  xml: '.xml',
+  yaml: '.yaml',
+  graphql: '.graphql',
+  haskell: '.hs',
+  matlab: '.m',
+}
+
+const allowedExtensions: string[] = Object.values(allowedLanguages)
+
+export { allowedExtensions }
+export default allowedLanguages
