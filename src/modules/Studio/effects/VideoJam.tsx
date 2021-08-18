@@ -11,7 +11,10 @@ import { StudioProviderProps, studioStore } from '../stores'
 // @ts-ignore
 const Video = ({ videoElement }: { videoElement: HTMLVideoElement }) => {
   const imageRef = React.useRef(null)
-  const [size, setSize] = React.useState({ width: 50, height: 50 })
+  const [size, setSize] = React.useState({
+    width: CONFIG.width,
+    height: (CONFIG.width * 9) / 16,
+  })
 
   // when video is loaded, we should read it size
   React.useEffect(() => {
@@ -66,25 +69,8 @@ const VideoJam = () => {
   useEffect(() => {
     if (!videoElement) return
     switch (state) {
-      case 'preview':
-        updatePayload?.({
-          playing: false,
-          currentTime: videoElement?.currentTime,
-        })
-        break
       case 'ready':
         videoElement.currentTime = 0
-
-        break
-      case 'recording':
-        {
-          const next = !playing
-
-          updatePayload?.({
-            playing: next,
-            currentTime: videoElement?.currentTime,
-          })
-        }
 
         break
       default:
