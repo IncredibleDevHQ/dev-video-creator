@@ -40,7 +40,8 @@ const Studio = () => {
 
   const [uploadFile] = useUploadFile()
 
-  const { stream, join, users, leave, ready, userAudios } = useAgora(fragmentId)
+  const { stream, join, users, leave, ready, userAudios, tracks } =
+    useAgora(fragmentId)
 
   const [getRTCToken, { data: rtcData }] = useGetRtcTokenLazyQuery({
     variables: { fragmentId },
