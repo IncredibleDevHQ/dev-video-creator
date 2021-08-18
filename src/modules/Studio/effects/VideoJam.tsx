@@ -77,12 +77,16 @@ const VideoJam = () => {
 
         break
       case 'recording':
-        const next = !playing
+        {
+          const next = !playing
 
-        updatePayload?.({
-          playing: next,
-          currentTime: videoElement?.currentTime,
-        })
+          updatePayload?.({
+            playing: next,
+            currentTime: videoElement?.currentTime,
+          })
+        }
+
+        break
       default:
         videoElement.currentTime = 0
     }
