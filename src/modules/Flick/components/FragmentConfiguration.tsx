@@ -56,7 +56,11 @@ const FragmentConfiguration = ({
 
   useEffect(() => {
     if (!fragment || !fragment.configuration) return
-    if (Object.keys(JSON.parse(fragment.configuration || {})).length > 0) {
+    const config = JSON.parse(fragment.configuration || {})
+
+    if (Object.keys(config).length > 0) {
+      if (config.gistURL) setGistURL(config.gistURL)
+      if (config.videoURL) setVideoURL(config.videoURL)
       setConfigured(true)
     }
   }, [fragment?.configuration])
