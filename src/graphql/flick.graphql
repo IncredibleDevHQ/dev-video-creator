@@ -86,3 +86,9 @@ mutation ProduceVideo($flickId: uuid!, $objectNames: [String!]!) {
     id
   }
 }
+
+mutation InviteParticipantToFlick($email: String!, $flickId: String!) {
+  InviteParticipant(email: $email, flickId: $flickId) {
+    id
+  }
+}

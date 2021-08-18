@@ -39,6 +39,7 @@ const Flick = () => {
   const [isParticipants, setParticipants] = useState(true)
   const [isAddFragmentModal, setAddFragmentModal] = useState(false)
   const [activeFragmentId, setActiveFragmentId] = useState<string>()
+
   const history = useHistory()
 
   useEffect(() => {
@@ -137,6 +138,10 @@ const Flick = () => {
         isParticipants={isParticipants}
         setParticipants={setParticipants}
         participants={flick.participants}
+        flickId={flick.id}
+        handleRefetch={(refresh) => {
+          if (refresh) refetch()
+        }}
       />
       <AddFragmentModal
         open={isAddFragmentModal}
