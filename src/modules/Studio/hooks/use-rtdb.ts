@@ -4,7 +4,6 @@ import {
   onValue,
   serverTimestamp,
   onDisconnect,
-  set as setDatabase,
   Unsubscribe,
   update,
 } from 'firebase/database'
@@ -105,12 +104,12 @@ const useRTDB = <T, S>(
         presenceRef,
         (snapshot) => {
           if (snapshot.val() === true) {
-            setDatabase(pathRef, isOnlineForDatabase)
+            update(pathRef, isOnlineForDatabase)
           } else {
-            setDatabase(pathRef, isOfflineForDatabase)
+            update(pathRef, isOfflineForDatabase)
           }
 
-          onDisconnect(pathRef).set(isOfflineForDatabase)
+          onDisconnect(pathRef).update(isOfflineForDatabase)
         },
         (error) => {
           console.error(error)
