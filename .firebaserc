@@ -1,0 +1,17 @@
+{
+  "projects": {
+    "default": "incredibledev-next-staging"
+  },
+  "targets": {
+    "incredibledev-next-staging": {
+      "hosting": {
+        "staging": [
+          "incredibledev-next-staging"
+        ],
+        "production": [
+          "incredibledev-ca786"
+        ]
+      }
+    }
+  }
+}
