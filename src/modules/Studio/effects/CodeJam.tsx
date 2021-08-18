@@ -53,7 +53,7 @@ const codeConfig = {
 }
 
 const CodeJam = () => {
-  const { fragment } =
+  const { fragment, payload, updatePayload } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const { initUseCode, computedTokens } = useCode()
   const [getTokenisedCode, { data, error, loading }] =
@@ -96,6 +96,10 @@ const CodeJam = () => {
     })
   }, [data])
 
+  useEffect(() => {
+    setIndex(payload?.index || 0)
+  }, [payload?.index])
+
   const controls = [
     <ControlButton
       key="nextToken"
@@ -103,7 +107,7 @@ const CodeJam = () => {
       className="my-2"
       appearance="primary"
       onClick={() => {
-        setIndex((index) => index + 1)
+        updatePayload?.({ index: index + 1 })
       }}
     />,
     <ControlButton

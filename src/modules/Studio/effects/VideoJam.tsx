@@ -51,7 +51,7 @@ const Video = ({ videoElement }: { videoElement: HTMLVideoElement }) => {
 }
 
 const VideoJam = () => {
-  const { state, fragment } =
+  const { state, fragment, payload, updatePayload } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const videoElement = React.useMemo(() => {
     if (!fragment?.configuration) return
@@ -79,6 +79,17 @@ const VideoJam = () => {
 
   const [playing, setPlaying] = useState(false)
 
+  useEffect(() => {
+    // eslint-disable-next-line
+    setPlaying(!!payload?.playing)
+    // eslint-disable-next-line
+    if (!!payload?.playing) {
+      videoElement?.play()
+    } else {
+      videoElement?.pause()
+    }
+  }, [payload?.playing])
+
   const controls = [
     <ControlButton
       key="control"
@@ -87,12 +98,8 @@ const VideoJam = () => {
       appearance={playing ? 'danger' : 'primary'}
       onClick={() => {
         const next = !playing
-        setPlaying(next)
-        if (next) {
-          videoElement?.play()
-        } else {
-          videoElement?.pause()
-        }
+
+        updatePayload?.({ playing: next })
       }}
     />,
   ]
