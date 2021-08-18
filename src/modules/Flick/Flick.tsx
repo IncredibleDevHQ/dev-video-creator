@@ -100,6 +100,10 @@ const Flick = () => {
         isParticipants={isParticipants}
         setParticipants={setParticipants}
         participants={flick.participants}
+        flickId={flick.id}
+        handleRefetch={(refresh) => {
+          if (refresh) refetch()
+        }}
       />
       <AddFragmentModal
         open={isAddFragmentModal}
