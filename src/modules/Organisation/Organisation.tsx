@@ -55,6 +55,7 @@ const Organisation = () => {
             setSelectedOrganisation={setSelectedOrganisation}
             selectedOrganisation={selectedOrganisation}
           />
+          {/* @ts-ignore */}
           <SingleOrganisation selectedOrganisation={selectedOrganisation} />
         </div>
       )}

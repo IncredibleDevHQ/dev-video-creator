@@ -5,6 +5,7 @@ import {
   AddFragmentModal,
   FragmentActivity,
   FragmentConfiguration,
+  FragmentParticipants,
   FragmentsSidebar,
   Participants,
 } from './components'
@@ -20,6 +21,10 @@ const tabs: Tab[] = [
   {
     name: 'Configuration',
     value: 'Configuration',
+  },
+  {
+    name: 'Participants',
+    value: 'Participants',
   },
 ]
 
@@ -89,6 +94,16 @@ const Flick = () => {
                 fragment={flick.fragments.find(
                   (fragment) => fragment.id === activeFragmentId
                 )}
+              />
+            )}
+            {currentTab.value === 'Participants' && (
+              <FragmentParticipants
+                participants={flick.participants}
+                fragmentId={
+                  flick.fragments.find(
+                    (fragment) => fragment.id === activeFragmentId
+                  )?.id
+                }
               />
             )}
           </div>

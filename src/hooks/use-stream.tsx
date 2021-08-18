@@ -69,7 +69,9 @@ export const useLazyDisplayStream = () => {
   }
 
   const initiateDisplayStream = () => {
+    // Ignoring the below line since it breaks on build. Here's why: https://stackoverflow.com/questions/65123841/getting-property-getdisplaymedia-does-not-exist-on-type-mediadevices-in-an
     navigator.mediaDevices
+      // @ts-ignore
       .getDisplayMedia()
       .then((mediaStream: MediaStream) => {
         setStream(mediaStream)

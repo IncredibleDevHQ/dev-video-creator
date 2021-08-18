@@ -25,11 +25,12 @@ const seriesModal = ({
 
   const [uploadFile] = useUploadFile()
 
-  const handleClick = async (file: File | Blob) => {
+  const handleClick = async (file: File) => {
     if (!file) return
 
     setLoadingPic(true)
     const pic = await uploadFile({
+      // @ts-ignore
       extension: file.name.split('.')[1],
       file,
     })
@@ -43,9 +44,9 @@ const seriesModal = ({
   const handleCreateSeries = async () => {
     await CreateSeries({
       variables: {
-        name,
+        name: name as string,
         organisationSlug,
-        picture: pic,
+        picture: pic as string,
       },
     })
 
@@ -88,7 +89,7 @@ const seriesModal = ({
             type="file"
             className="w-full mb-2"
             accept="image/*"
-            onChange={(e) => handleClick(e.target.files[0])}
+            onChange={(e) => e.target.files && handleClick(e.target.files?.[0])}
           />
           {pic && <img height="200px" src={pic} alt="series pic" />}
           <Button
