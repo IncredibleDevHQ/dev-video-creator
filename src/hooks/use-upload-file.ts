@@ -70,7 +70,7 @@ export const useUploadFile = () => {
       })
 
       return { url: config.storage.baseUrl + key, uuid: key }
-    } catch (e) {
+    } catch (e: any) {
       emitToast({
         title: 'That upload failed.',
         description:

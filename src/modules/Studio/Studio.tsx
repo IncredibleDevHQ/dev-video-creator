@@ -22,6 +22,7 @@ import { getEffect } from './effects/effects'
 import { useUploadFile } from '../../hooks/use-upload-file'
 import { useAgora } from './hooks'
 import { StudioState, studioStore } from './stores'
+import { useRTDB } from './hooks/use-rtdb'
 
 const Studio = () => {
   const { fragmentId } = useParams<{ fragmentId: string }>()
@@ -39,7 +40,8 @@ const Studio = () => {
 
   const [uploadFile] = useUploadFile()
 
-  const { stream, join, users, leave, ready, userAudios } = useAgora(fragmentId)
+  const { stream, join, users, leave, ready, userAudios, tracks } =
+    useAgora(fragmentId)
 
   const [getRTCToken, { data: rtcData }] = useGetRtcTokenLazyQuery({
     variables: { fragmentId },
@@ -54,6 +56,40 @@ const Studio = () => {
       leave()
     }
   }, [])
+
+  const { participants, init, payload, updatePayload, updateParticipant } =
+    useRTDB<any, any>({
+      lazy: true,
+      path: `rtdb/fragments/${fragmentId}`,
+      participants: {
+        enabled: true,
+        path: `rtdb/fragments/${fragmentId}/participants`,
+        childPath: `rtdb/fragments/${fragmentId}/participants/${
+          fragment?.participants.find(
+            ({ participant }) => participant.userSub === sub
+          )?.participant.id
+        }`,
+      },
+      presence: {
+        enabled: true,
+        path: `rtdb/fragments/${fragmentId}/participants/${
+          fragment?.participants.find(
+            ({ participant }) => participant.userSub === sub
+          )?.participant.id
+        }`,
+      },
+      payload: { enabled: true, path: `rtdb/fragments/${fragmentId}/payload` },
+    })
+
+  useEffect(() => {
+    console.log({ payload })
+  }, [payload])
+
+  useEffect(() => {
+    if (fragment) {
+      init()
+    }
+  }, [fragment])
 
   useEffect(() => {
     if (!rtcData?.RTCToken?.token || didInit || !ready) return
@@ -168,8 +204,24 @@ const Studio = () => {
       picture: picture as string,
       constraints: { audio: true, video: true },
       users,
+      payload,
+      participants,
+      updateParticipant,
+      updatePayload,
+      participantId: fragment?.participants.find(
+        ({ participant }) => participant.userSub === sub
+      )?.participant.id,
     })
-  }, [fragment, stream, users, state, userAudios])
+  }, [
+    fragment,
+    stream,
+    users,
+    state,
+    userAudios,
+    payload,
+    participants,
+    payload,
+  ])
 
   /**
    * =======================
@@ -194,9 +246,17 @@ const Studio = () => {
             />
             <Heading className="font-semibold">{fragment.name}</Heading>
           </div>
+          <button
+            type="button"
+            onClick={() => {
+              updatePayload({ done: true })
+            }}
+          >
+            Update
+          </button>
           {/* <Timer target={10} timer={timer} /> */}
         </div>
-        <C />
+        <C config="" />
       </div>
     </div>
   )

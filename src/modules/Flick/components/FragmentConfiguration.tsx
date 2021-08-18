@@ -1,5 +1,6 @@
 /* eslint-disable react/jsx-pascal-case */
 import React, { useEffect, useState } from 'react'
+import { useHistory } from 'react-router-dom'
 import { useRecoilState } from 'recoil'
 import { Button, EmptyState, ScreenState, TextField } from '../../../components'
 import {
@@ -8,14 +9,13 @@ import {
   useAddConfigurationMutation,
 } from '../../../generated/graphql'
 import { useUploadFile } from '../../../hooks'
-// import { BasicTemplate } from '../../Studio/effects/Templates/SplashTemplates'
 import { fragmentTemplateStore } from '../../../stores/fragment.store'
 import TemplateMarket from '../../TemplateMarket/TemplateMarket'
 
 const FragmentConfiguration = ({
   fragment,
 }: {
-  fragment: FlickFragmentFragment | undefined
+  fragment?: FlickFragmentFragment
 }) => {
   const [selectedTemplates] = useRecoilState(fragmentTemplateStore)
   const [template, setTemplate] = useState<{
@@ -26,37 +26,65 @@ const FragmentConfiguration = ({
   const [username, setUsername] = useState<string>()
   const [open, setOpen] = useState(false)
   const [picture, setPicture] = useState<string>()
+  const [gistURL, setGistURL] = useState('')
+  const [videoURL, setVideoURL] = useState('')
   const [loadingPic, setLoadingPic] = useState(false)
+
+  const history = useHistory()
+
+  const [isConfigured, setConfigured] = useState(false)
 
   const [uploadFile] = useUploadFile()
 
-  const handleClick = async (file: File | Blob) => {
+  const handleClick = async (file: File) => {
     if (!file) return
 
     setLoadingPic(true)
     const pic = await uploadFile({
-      extension: file.name.split('.')[1],
+      extension: file.name.split('.')[1] as any,
       file,
     })
     setLoadingPic(false)
     setPicture(pic.url)
   }
 
-  const [AddConfiguration, { loading, error }] = useAddConfigurationMutation()
+  const [addConfiguration, { loading, error }] = useAddConfigurationMutation()
 
   useEffect(() => {
     setTemplate(selectedTemplates.find((t) => t.id === fragment?.id))
   }, [selectedTemplates])
 
-  const handleConfiguration = () => {
-    const config = { displayName, username, picture, template }
+  useEffect(() => {
+    if (!fragment || !fragment.configuration) return
+    if (Object.keys(JSON.parse(fragment.configuration || {})).length > 0) {
+      setConfigured(true)
+    }
+  }, [fragment?.configuration])
 
-    AddConfiguration({
+  const handleConfiguration = async () => {
+    if (!fragment) return
+    let config = {}
+    switch (fragment.type) {
+      case Fragment_Type_Enum_Enum.CodeJam:
+        config = { gistURL }
+        break
+      case Fragment_Type_Enum_Enum.Splash:
+        config = { displayName, username, picture, template }
+        break
+      case Fragment_Type_Enum_Enum.Videoshow:
+        config = { videoURL }
+        break
+      default:
+        config = {}
+    }
+
+    await addConfiguration({
       variables: {
         id: fragment?.id,
         configuration: JSON.stringify(config),
       },
     })
+    setConfigured(true)
   }
 
   if (error)
@@ -67,7 +95,29 @@ const FragmentConfiguration = ({
   if (!fragment) return <EmptyState text="No fragment Selected" width={400} />
   return (
     <div>
-      {/* <span>{fragment?.type}</span> */}
+      {/* <TextField type="text" label="Enter Template Id" /> */}
+      {fragment.type === Fragment_Type_Enum_Enum.Videoshow && (
+        <TextField
+          type="text"
+          label="Video URL"
+          value={videoURL}
+          caption="Demo only"
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+            setVideoURL(e.target.value)
+          }}
+        />
+      )}
+      {fragment.type === Fragment_Type_Enum_Enum.CodeJam && (
+        <TextField
+          type="text"
+          label="Gist URL"
+          value={gistURL}
+          caption="Demo only"
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+            setGistURL(e.target.value)
+          }}
+        />
+      )}
       {fragment.type === Fragment_Type_Enum_Enum.Splash && !template && (
         <div className="h-96 flex flex-col items-center justify-center">
           {fragment.configuration ? (
@@ -121,13 +171,17 @@ const FragmentConfiguration = ({
             value={displayName}
             type="text"
             label="Enter Display Name"
-            onChange={(e) => setDisplayName(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setDisplayName(e.target.value)
+            }
           />
           <TextField
             value={username}
             type="text"
             label="Enter Username"
-            onChange={(e) => setUsername(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setUsername(e.target.value)
+            }
           />
           {picture && (
             <img
@@ -139,22 +193,25 @@ const FragmentConfiguration = ({
           <input
             type="file"
             className="w-full mb-2"
-            accept="image/*"
-            onChange={(e) => handleClick(e.target.files[0])}
+            accept="image/png, image/jpg"
+            onChange={(e) =>
+              e.target.files?.[0] && handleClick(e.target.files[0])
+            }
             placeholder="Upload a Pic"
           />
-          <Button
-            disabled={loadingPic || loading}
-            loading={loadingPic || loading}
-            type="button"
-            size="small"
-            appearance="secondary"
-            onClick={handleConfiguration}
-          >
-            Add Configuration
-          </Button>
         </div>
       )}
+
+      <Button
+        disabled={loadingPic || loading}
+        loading={loadingPic || loading}
+        type="button"
+        size="small"
+        appearance="secondary"
+        onClick={handleConfiguration}
+      >
+        Add Configuration
+      </Button>
 
       <TemplateMarket
         fragmentType={fragment.type}
@@ -162,8 +219,24 @@ const FragmentConfiguration = ({
         open={open}
         setOpen={setOpen}
       />
+      <Button
+        type="button"
+        className="ml-auto"
+        size="medium"
+        appearance="primary"
+        disabled={!isConfigured}
+        onClick={() => {
+          history.push(`/${fragment.id}/studio`)
+        }}
+      >
+        Record
+      </Button>
     </div>
   )
+}
+
+FragmentConfiguration.defaultProps = {
+  fragment: undefined,
 }
 
 export default FragmentConfiguration

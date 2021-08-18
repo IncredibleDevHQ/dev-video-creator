@@ -3,7 +3,7 @@ import { StudioFragmentFragment } from '../../../generated/graphql'
 import { RTCUser } from '../hooks/use-agora'
 
 export type StudioState = 'ready' | 'recording' | 'preview' | 'upload'
-export interface StudioProviderProps {
+export interface StudioProviderProps<T = any, S = any> {
   stream: MediaStream
   getBlobs: () => Blob
 
@@ -23,11 +23,18 @@ export interface StudioProviderProps {
   state: StudioState
 
   users: RTCUser[]
+
+  payload: S | null
+  participants: T | null
+  updatePayload?: (value: S) => void
+  updateParticipant?: (value: T) => void
+
+  participantId?: string
 }
 
-const studioStore = atom<StudioProviderProps | null>({
+const studioStore = atom<StudioProviderProps>({
   key: 'studio',
-  default: null,
+  default: {} as StudioProviderProps,
   dangerouslyAllowMutability: true,
 })
 
