@@ -16,7 +16,7 @@ import {
 } from 'react-icons/fi'
 import { BiReset } from 'react-icons/bi'
 import { useRecoilValue } from 'recoil'
-import { FaAdobe, FaPrayingHands } from 'react-icons/fa'
+import { IoHandRightOutline } from 'react-icons/io5'
 import { StudioProviderProps, studioStore } from '../stores'
 import { Avatar, Heading, Tooltip } from '../../../components'
 
@@ -63,19 +63,19 @@ export const ControlButton = ({
 
 const RaiseHandsMenu = ({ participants }: { participants: any[] }) => {
   return (
-    <div className="flex flex-col p-1 rounded-md bg-background w-40">
+    <div className="flex flex-col shadow-2xl p-1 rounded-md bg-background">
       {participants.map(({ name, id, picture, email }, index) => (
         <div
-          className="flex justify-start items-center w-full"
+          className="flex justify-start items-center w-full mb-2 last:mb-0"
           key={id || index}
         >
           <Avatar
-            className="w-8 h-8 rounded-md"
+            className="w-6 h-6 rounded-full"
             src={picture}
             alt={name}
             email={email}
           />
-          <Heading fontSize="medium" className="ml-2">
+          <Heading fontSize="small" className="ml-1">
             {name}
           </Heading>
         </div>
@@ -160,11 +160,16 @@ const MissionControl = ({
               />
             }
             placement="left-end"
+            hideOnOutsideClick={false}
           >
             <ControlButton
-              icon={participant?.raiseHands ? FaPrayingHands : FaAdobe}
+              icon={
+                participant?.raiseHands
+                  ? IoHandRightOutline
+                  : IoHandRightOutline
+              }
               className="my-2"
-              appearance={participant?.raiseHands ? 'primary' : 'danger'}
+              appearance={!participant?.raiseHands ? 'primary' : 'danger'}
               onClick={() => {
                 updateParticipant?.({ raiseHands: !participant?.raiseHands })
               }}

@@ -13,7 +13,7 @@ const Avatar = ({
   if (!src)
     return (
       <Gravatar
-        className="w-6 h-6 rounded-full bg-gray-100"
+        className={cx(className)}
         email={email}
         alt={alt}
         onClick={onClick}
