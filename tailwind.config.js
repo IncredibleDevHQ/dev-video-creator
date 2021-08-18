@@ -53,6 +53,7 @@ module.exports = {
       borderColor: ['active'],
       transform: ['group-hover'],
       translate: ['group-hover'],
+      margin: ['last'],
     },
   },
   plugins: [],

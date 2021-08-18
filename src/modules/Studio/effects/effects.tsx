@@ -10,12 +10,12 @@ export interface Effect {
   layerChildren: any[]
 }
 
-export const getEffect = (type: Fragment_Type_Enum_Enum, config: string) => {
-  const configuration = JSON.parse(config)
+export const getEffect = (type: Fragment_Type_Enum_Enum, config?: string) => {
+  const configuration = config && JSON.parse(config)
 
   switch (type) {
     case Fragment_Type_Enum_Enum.Splash:
-      return configuration?.template.template === 'Splash' ? Intro : SplashTwo
+      return configuration?.template?.template === 'Splash' ? Intro : SplashTwo
 
     case Fragment_Type_Enum_Enum.CodeJam:
       return CodeJam

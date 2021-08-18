@@ -1,9 +1,14 @@
+import axios from 'axios'
 import React, { useEffect, useState } from 'react'
 import { Group, Text } from 'react-konva'
+import { useRecoilValue } from 'recoil'
 import { NextLineIcon, NextTokenIcon } from '../../../components'
+import { API } from '../../../constants'
+import { useGetTokenisedCodeLazyQuery } from '../../../generated/graphql'
 import { Concourse } from '../components'
 import { ControlButton } from '../components/MissionControl'
 import useCode from '../hooks/use-code'
+import { StudioProviderProps, studioStore } from '../stores'
 
 const codeTokens = [
   { content: '# simple hello world example', color: '#608B4E', lineNumber: 0 },
@@ -48,18 +53,48 @@ const codeConfig = {
 }
 
 const CodeJam = () => {
+  const { fragment } =
+    (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const { initUseCode, computedTokens } = useCode()
+  const [getTokenisedCode, { data, error, loading }] =
+    useGetTokenisedCodeLazyQuery()
   const [index, setIndex] = useState(0)
 
   useEffect(() => {
+    if (!fragment) return
+    const config = JSON.parse(fragment.configuration || '{}')
+    if (!config.gistURL) throw new Error('Missing gist URL')
+    ;(async () => {
+      try {
+        const { data } = await axios.get(
+          `${API.GITHUB.BASE_URL}gists/${(config.gistURL as string)
+            .split('/')
+            .pop()}`
+        )
+        const file = data.files[Object.keys(data.files)[0]]
+        getTokenisedCode({
+          variables: {
+            code: file.content,
+            language: (file.language as string).toLowerCase(),
+          },
+        })
+      } catch (e) {
+        console.error(e)
+        throw e
+      }
+    })()
+  }, [fragment])
+
+  useEffect(() => {
+    if (!data?.TokenisedCode) return
     initUseCode({
-      tokens: codeTokens,
+      tokens: data.TokenisedCode.data || codeTokens,
       canvasWidth: 1200,
       gutter: 10,
       fontFamily: codeConfig.fontFamily,
       fontSize: codeConfig.fontSize,
     })
-  }, [])
+  }, [data])
 
   const controls = [
     <ControlButton
