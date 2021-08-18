@@ -86,7 +86,12 @@ const VideoJam = () => {
     if (!!payload?.playing) {
       videoElement?.play()
     } else {
-      videoElement?.pause()
+      // eslint-disable-next-line
+      if (videoElement) {
+        videoElement.currentTime =
+          typeof payload.currentTime === 'number' ? payload.currentTime : 0
+        videoElement?.pause()
+      }
     }
   }, [payload?.playing])
 
@@ -99,7 +104,10 @@ const VideoJam = () => {
       onClick={() => {
         const next = !playing
 
-        updatePayload?.({ playing: next })
+        updatePayload?.({
+          playing: next,
+          currentTime: videoElement?.currentTime,
+        })
       }}
     />,
   ]
