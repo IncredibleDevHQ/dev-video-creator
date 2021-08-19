@@ -1,20 +1,16 @@
 import { cx } from '@emotion/css'
-import React, { HTMLAttributes } from 'react'
+import React, { HTMLProps } from 'react'
 
-interface CheckBoxProps extends HTMLAttributes<HTMLInputElement> {
-  value: string
+interface CheckBoxProps extends HTMLProps<HTMLInputElement> {
   name: string
   label: string
-  checked: boolean
 }
 
 const Checkbox = ({
-  value,
   name,
   label,
   className,
   onChange,
-  checked,
   ...rest
 }: CheckBoxProps) => {
   return (
@@ -23,8 +19,6 @@ const Checkbox = ({
         onChange={onChange}
         type="checkbox"
         name={name}
-        value={value}
-        checked={checked}
         id={label}
         {...rest}
       />
