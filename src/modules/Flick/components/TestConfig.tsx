@@ -29,13 +29,14 @@ export const getSchemaElement = (
           id={schema.key}
           checked={value}
           onChange={handleChange}
-          className="flex flex-wrap lg:align-middle gap-3 text-lg text-black ml-4 lg:capitalize"
+          className="flex flex-wrap lg:align-middle gap-3 text-lg text-black ml-4 lg:capitalize p-4"
         />
       )
 
     case 'TextField':
       return (
         <TextField
+          className="text-lg m-4"
           name={schema.key}
           onChange={handleChange}
           value={value}

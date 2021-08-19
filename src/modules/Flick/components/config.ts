@@ -1,7 +1,7 @@
 export const codeJamConfig = [
   {
     key: 'allowRaiseHand',
-    type: 'Checkbox', // lowercase
+    type: 'checkbox', // lowercase
     name: 'Raise Hands',
     description: 'Allow participants to raise hands?',
     value: true,
