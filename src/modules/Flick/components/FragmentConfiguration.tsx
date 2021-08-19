@@ -1,7 +1,7 @@
 /* eslint-disable react/jsx-pascal-case */
 import React, { useEffect, useState } from 'react'
 import { useHistory } from 'react-router-dom'
-import { useRecoilState } from 'recoil'
+import { constSelector, useRecoilState } from 'recoil'
 import { Button, EmptyState, ScreenState, TextField } from '../../../components'
 import {
   FlickFragmentFragment,
@@ -11,6 +11,7 @@ import {
 import { useUploadFile } from '../../../hooks'
 import { fragmentTemplateStore } from '../../../stores/fragment.store'
 import TemplateMarket from '../../TemplateMarket/TemplateMarket'
+import TestConfig from './TestConfig'
 
 const FragmentConfiguration = ({
   fragment,
@@ -235,6 +236,7 @@ const FragmentConfiguration = ({
       >
         Record
       </Button>
+      <TestConfig />
     </div>
   )
 }
