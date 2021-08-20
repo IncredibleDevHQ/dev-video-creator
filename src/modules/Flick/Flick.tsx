@@ -4,7 +4,7 @@ import { useRecoilState } from 'recoil'
 import {
   AddFragmentModal,
   FragmentActivity,
-  FragmentConfiguration,
+  TestFragmentConfiguration,
   FragmentParticipants,
   FragmentsSidebar,
   Participants,
@@ -83,7 +83,7 @@ const Flick = () => {
               onTabChange={setCurrentTab}
             />
             {currentTab.value === 'Configuration' && (
-              <FragmentConfiguration
+              <TestFragmentConfiguration
                 fragment={flick.fragments.find(
                   (fragment) => fragment.id === activeFragmentId
                 )}
