@@ -6,7 +6,7 @@ export interface SchemaElementProps {
   type: string
   name: string
   description?: string
-  value?: any | [string]
+  value?: any
   dirty: boolean
   required: boolean
   editable: boolean

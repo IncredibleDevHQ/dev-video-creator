@@ -21,36 +21,27 @@ const TestFragmentConfiguration = ({
   const history = useHistory()
 
   const [isConfigured, setConfigured] = useState(false)
-  // const [updateFragment,{data, error}] = useUpdateFragmentConfigurationMutation(
-  //   {
-  //     variables: {
-  //        fragmentId: fragment?.id
-  //        items: schema
-  //     },
-  //   }
-  // )
-
-  // const submit = () => {
-
-  // }
+  const [updateFragment, { data, error }] =
+    useUpdateFragmentConfigurationMutation()
 
   useEffect(() => {
     if (!fragment || !fragment.configuration) return
     setConfig(fragment!.configuration.properties)
   }, [fragment?.configuration])
 
-  // if (error)
-  //   return (
-  //     <ScreenState title="Something went wrong!!" subtitle={error.message} />
-  //   )
+  if (error)
+    return (
+      <ScreenState title="Something went wrong!!" subtitle={error.message} />
+    )
 
   if (!fragment) return <EmptyState text="No fragment Selected" width={400} />
-
+  console.log('config', config)
   const obj: { [key: string]: any } = {}
-
-  config?.forEach((code) => {
-    obj[code.key] = code.value
-  })
+  useEffect(() => {
+    config?.forEach((code) => {
+      obj[code.key] = code.value
+    })
+  }, [config])
 
   const {
     errors,
@@ -67,7 +58,21 @@ const TestFragmentConfiguration = ({
       if (!isValid) return
       try {
         setSubmitting(true)
-        console.log('submit', values)
+        console.log(
+          Object.entries(values).map((e) => ({
+            key: e[0],
+            value: e[1],
+          }))
+        )
+        updateFragment({
+          variables: {
+            fragmentId: fragment?.id,
+            items: Object.entries(values).map((e) => ({
+              key: e[0],
+              value: e[1],
+            })),
+          },
+        })
       } catch (e: any) {
         emitToast({
           title: 'Something went wrong.',
