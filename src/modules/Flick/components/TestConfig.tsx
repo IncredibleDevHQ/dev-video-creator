@@ -1,7 +1,7 @@
 import { useFormik } from 'formik'
 import React from 'react'
 import { Checkbox, emitToast, TextField } from '../../../components'
-import { codeJamConfig } from './config'
+// import { videoJamConfig } from './config'
 
 interface SchemaElementProps {
   key: string
@@ -11,7 +11,6 @@ interface SchemaElementProps {
   value?: any
   dirty: boolean
   required: boolean
-  default: any
   editable: boolean
 }
 
@@ -21,7 +20,7 @@ export const getSchemaElement = (
   value: any
 ) => {
   switch (schema.type) {
-    case 'Checkbox':
+    case 'checkbox':
       return (
         <Checkbox
           name={schema.key}
@@ -33,7 +32,7 @@ export const getSchemaElement = (
         />
       )
 
-    case 'TextField':
+    case 'text':
       return (
         <TextField
           className="text-lg m-4"
@@ -51,14 +50,10 @@ export const getSchemaElement = (
 }
 
 const TestConfig = () => {
-  // const initialValues = useMemo(() => {
   const obj: { [key: string]: any } = {}
-  codeJamConfig.forEach((code) => {
-    obj[code.key] = code.value || code.default
+  videoJamConfig.forEach((code) => {
+    obj[code.key] = code.value
   })
-  // console.log(obj)
-  // return obj
-  // }, [])
 
   const {
     errors,
@@ -91,7 +86,7 @@ const TestConfig = () => {
   return (
     <div>
       <form onSubmit={handleSubmit}>
-        {codeJamConfig.map((attribute) =>
+        {videoJamConfig.map((attribute) =>
           getSchemaElement(attribute, handleChange, values[attribute.key])
         )}
         <button

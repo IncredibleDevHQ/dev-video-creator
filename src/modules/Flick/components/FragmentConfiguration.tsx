@@ -56,8 +56,9 @@ const FragmentConfiguration = ({
   }, [selectedTemplates])
 
   useEffect(() => {
+    console.log('configuration', fragment?.configuration)
     if (!fragment || !fragment.configuration) return
-    const config = JSON.parse(fragment.configuration || {})
+    const config = fragment.configuration.properties
 
     if (Object.keys(config).length > 0) {
       if (config.gistURL) setGistURL(config.gistURL)
