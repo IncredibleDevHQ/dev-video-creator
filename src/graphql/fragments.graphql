@@ -127,3 +127,9 @@ mutation CreateFragment(
     id
   }
 }
+
+mutation UpdateFragmentConfiguration($fragmentId: uuid!, $items: json!) {
+  UpdateFragmentConfiguration(fragmentId: $fragmentId, items: $items) {
+    success
+  }
+}

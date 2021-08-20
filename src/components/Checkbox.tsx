@@ -12,6 +12,7 @@ const Checkbox = ({
   className,
   onChange,
   checked,
+  key,
 }: CheckBoxProps) => {
   const switchCSS = css`
     position: relative;
@@ -67,7 +68,7 @@ const Checkbox = ({
   `
 
   return (
-    <div className="flex gap-1 items-center">
+    <div className="flex gap-1 items-center p-4" key={key}>
       <span className="text-base mr-2">{label}</span>
       <label className={switchCSS} htmlFor={label}>
         <input
@@ -80,8 +81,6 @@ const Checkbox = ({
         />
         <span className={`${slider} round`} />
       </label>
-
-      {/* <div className={test}>This has a hotpink background.</div> */}
     </div>
   )
 }
