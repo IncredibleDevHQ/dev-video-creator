@@ -14,6 +14,7 @@ import Series from './Series/userSeries/Series'
 import AllUserFlicks from './Flicks/AllUserFlicks'
 import UserSeriesFlicks from './UserSeriesFlicks/UserSeriesFlicks'
 import SingleSeries from './Series/SingleSeries'
+import Circle from './Circle/Circle'
 
 export {
   AuthenticateScreen,
@@ -31,4 +32,5 @@ export {
   AllUserFlicks,
   UserSeriesFlicks,
   SingleSeries,
+  Circle,
 }

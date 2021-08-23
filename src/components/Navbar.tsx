@@ -80,6 +80,7 @@ const Navbar = ({ hideNav }: { hideNav?: boolean }) => {
         <ul className="grid grid-flow-col md:gap-x-6 gap-x-4">
           <LinkItem to="/dashboard">Dashboard</LinkItem>
           <LinkItem to="/organisations">Organisations</LinkItem>
+          <LinkItem to="/circle">Circle</LinkItem>
         </ul>
       )}
 
