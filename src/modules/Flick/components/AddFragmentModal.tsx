@@ -17,8 +17,10 @@ import {
   FilteredUserFragment,
   FlickParticipantsFragment,
   Fragment_Type_Enum_Enum,
-  useAddFragmentToFlickMutation,
+  CreateFragmentMutationVariables,
+  useCreateFragmentMutation,
   useGetFilteredUsersQuery,
+  CreateFragmentTypeEnum,
 } from '../../../generated/graphql'
 
 const FragmentType = ({
@@ -26,12 +28,12 @@ const FragmentType = ({
   setFragment,
   type,
 }: {
-  fragment: AddFragmentToFlickMutationVariables
-  setFragment: (fragment: AddFragmentToFlickMutationVariables) => void
-  type: Fragment_Type_Enum_Enum
+  fragment: CreateFragmentMutationVariables
+  setFragment: (fragment: CreateFragmentMutationVariables) => void
+  type: CreateFragmentTypeEnum
 }) => {
   switch (type) {
-    case Fragment_Type_Enum_Enum.Splash:
+    case CreateFragmentTypeEnum.Splash:
       return (
         <div
           role="button"
@@ -39,16 +41,16 @@ const FragmentType = ({
           onKeyUp={() => {}}
           className={cx(
             'flex flex-col items-center p-2 rounded-md border-2 border-dotted mx-2 focus:outline-none',
-            { 'border-brand': fragment.type === Fragment_Type_Enum_Enum.Splash }
+            { 'border-brand': fragment.type === CreateFragmentTypeEnum.Splash }
           )}
           onClick={() =>
-            setFragment({ ...fragment, type: Fragment_Type_Enum_Enum.Splash })
+            setFragment({ ...fragment, type: CreateFragmentTypeEnum.Splash })
           }
         >
           <GiSplash
             size={30}
             className={cx('mb-2', {
-              'text-brand': fragment.type === Fragment_Type_Enum_Enum.Splash,
+              'text-brand': fragment.type === CreateFragmentTypeEnum.Splash,
             })}
           />
           <Heading fontSize="base" className="font-semibold">
@@ -59,7 +61,7 @@ const FragmentType = ({
           </Text>
         </div>
       )
-    case Fragment_Type_Enum_Enum.CodeJam:
+    case CreateFragmentTypeEnum.CodeJam:
       return (
         <div
           role="button"
@@ -68,17 +70,17 @@ const FragmentType = ({
           className={cx(
             'flex flex-col items-center p-2 rounded-md border-2 border-dotted mx-2',
             {
-              'border-brand': fragment.type === Fragment_Type_Enum_Enum.CodeJam,
+              'border-brand': fragment.type === CreateFragmentTypeEnum.CodeJam,
             }
           )}
           onClick={() =>
-            setFragment({ ...fragment, type: Fragment_Type_Enum_Enum.CodeJam })
+            setFragment({ ...fragment, type: CreateFragmentTypeEnum.CodeJam })
           }
         >
           <FiCode
             size={30}
             className={cx('mb-2', {
-              'text-brand': fragment.type === Fragment_Type_Enum_Enum.CodeJam,
+              'text-brand': fragment.type === CreateFragmentTypeEnum.CodeJam,
             })}
           />
           <Heading fontSize="base" className="font-semibold">
@@ -89,7 +91,7 @@ const FragmentType = ({
           </Text>
         </div>
       )
-    case Fragment_Type_Enum_Enum.Trivia:
+    case CreateFragmentTypeEnum.Trivia:
       return (
         <div
           role="button"
@@ -97,16 +99,16 @@ const FragmentType = ({
           onKeyUp={() => {}}
           className={cx(
             'flex flex-col items-center p-2 rounded-md border-2 border-dotted mx-2',
-            { 'border-brand': fragment.type === Fragment_Type_Enum_Enum.Trivia }
+            { 'border-brand': fragment.type === CreateFragmentTypeEnum.Trivia }
           )}
           onClick={() =>
-            setFragment({ ...fragment, type: Fragment_Type_Enum_Enum.Trivia })
+            setFragment({ ...fragment, type: CreateFragmentTypeEnum.Trivia })
           }
         >
           <BsQuestionCircle
             size={30}
             className={cx('mb-2', {
-              'text-brand': fragment.type === Fragment_Type_Enum_Enum.Trivia,
+              'text-brand': fragment.type === CreateFragmentTypeEnum.Trivia,
             })}
           />
           <Heading fontSize="base" className="font-semibold">
@@ -117,7 +119,7 @@ const FragmentType = ({
           </Text>
         </div>
       )
-    case Fragment_Type_Enum_Enum.Videoshow:
+    case CreateFragmentTypeEnum.Videoshow:
       return (
         <div
           role="button"
@@ -127,20 +129,20 @@ const FragmentType = ({
             'flex flex-col items-center p-2 rounded-md border-2 border-dotted mx-2',
             {
               'border-brand':
-                fragment.type === Fragment_Type_Enum_Enum.Videoshow,
+                fragment.type === CreateFragmentTypeEnum.Videoshow,
             }
           )}
           onClick={() =>
             setFragment({
               ...fragment,
-              type: Fragment_Type_Enum_Enum.Videoshow,
+              type: CreateFragmentTypeEnum.Videoshow,
             })
           }
         >
           <FiTv
             size={30}
             className={cx('mb-2', {
-              'text-brand': fragment.type === Fragment_Type_Enum_Enum.Videoshow,
+              'text-brand': fragment.type === CreateFragmentTypeEnum.Videoshow,
             })}
           />
           <Heading fontSize="base" className="font-semibold">
@@ -169,16 +171,13 @@ const AddFragmentModal = ({
   handleClose: (refresh?: boolean) => void
   participants: FlickParticipantsFragment[]
 }) => {
-  const [fragment, setFragment] = useState<AddFragmentToFlickMutationVariables>(
-    {
-      name: '',
-      description: '',
-      flickId,
-      order: totalFragments,
-      type: Fragment_Type_Enum_Enum.CodeJam,
-    }
-  )
-  const [addFragment, { error, loading }] = useAddFragmentToFlickMutation()
+  const [fragment, setFragment] = useState<CreateFragmentMutationVariables>({
+    name: '',
+    description: '',
+    flickId,
+    type: CreateFragmentTypeEnum.CodeJam,
+  })
+  const [addFragment, { error, loading }] = useCreateFragmentMutation()
 
   useEffect(() => {
     if (!error) return
@@ -218,7 +217,7 @@ const AddFragmentModal = ({
     >
       <Heading fontSize="medium">Add new Fragment</Heading>
       <div className="flex flex-row justify-evenly items-center my-4">
-        {Object.entries(Fragment_Type_Enum_Enum).map(([, type]) => (
+        {Object.entries(CreateFragmentTypeEnum).map(([, type]) => (
           <FragmentType
             key={type}
             fragment={fragment}
@@ -237,7 +236,7 @@ const AddFragmentModal = ({
       />
       <TextArea
         label="Description"
-        value={fragment.description}
+        value={fragment.description as string}
         onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
           updateFragment('description', e.target.value)
         }

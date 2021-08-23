@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import Modal from 'react-responsive-modal'
-import { Button, emitToast, TextField } from '../../../components'
+import { Button, emitToast, TextField, Photo } from '../../../components'
 import { useCreateOrganisationSeriesMutation } from '../../../generated/graphql'
 import { useUploadFile } from '../../../hooks'
 
@@ -85,10 +85,8 @@ const seriesModal = ({
               setName(e.target.value)
             }
           />
-          <input
-            type="file"
+          <Photo
             className="w-full mb-2"
-            accept="image/*"
             onChange={(e) => e.target.files && handleClick(e.target.files?.[0])}
           />
           {pic && <img height="200px" src={pic} alt="series pic" />}
