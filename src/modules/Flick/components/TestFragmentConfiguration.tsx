@@ -17,6 +17,7 @@ const TestFragmentConfiguration = ({
 }) => {
   const [selectedTemplates] = useRecoilState(fragmentTemplateStore)
   const [config, setConfig] = useState<SchemaElementProps[]>()
+  const [obj, setObj] = useState<{ [key: string]: any }>({})
 
   const history = useHistory()
 
@@ -36,12 +37,18 @@ const TestFragmentConfiguration = ({
 
   if (!fragment) return <EmptyState text="No fragment Selected" width={400} />
   console.log('config', config)
-  const obj: { [key: string]: any } = {}
+
   useEffect(() => {
+    const objj: { [key: string]: any } = {}
     config?.forEach((code) => {
-      obj[code.key] = code.value
+      objj[code.key] = code.value
     })
+    setObj(objj)
   }, [config])
+
+  useEffect(() => {
+    console.log('obj', obj)
+  }, [obj])
 
   const {
     errors,
@@ -51,14 +58,17 @@ const TestFragmentConfiguration = ({
     handleBlur,
     touched,
     isValid,
+    setFieldValue,
     setSubmitting,
   } = useFormik({
+    enableReinitialize: true,
     initialValues: obj,
     onSubmit: async (values) => {
       if (!isValid) return
       try {
         setSubmitting(true)
         console.log(
+          'default values',
           Object.entries(values).map((e) => ({
             key: e[0],
             value: e[1],
@@ -102,7 +112,12 @@ const TestFragmentConfiguration = ({
     <div>
       <form onSubmit={handleSubmit}>
         {config?.map((attribute) =>
-          getSchemaElement(attribute, handleChange, values[attribute.key])
+          getSchemaElement(
+            attribute,
+            handleChange,
+            setFieldValue,
+            values[attribute.key]
+          )
         )}
         <Button
           type="button"

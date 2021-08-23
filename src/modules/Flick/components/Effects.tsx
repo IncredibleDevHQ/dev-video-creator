@@ -1,3 +1,4 @@
+import { FormikErrors } from 'formik'
 import React from 'react'
 import { Checkbox, TextField } from '../../../components'
 
@@ -15,8 +16,21 @@ export interface SchemaElementProps {
 export const getSchemaElement = (
   schema: SchemaElementProps,
   handleChange: (e: React.ChangeEvent<any>) => void,
+  setFieldValue: (
+    field: string,
+    value: any,
+    shouldValidate?: boolean | undefined
+  ) =>
+    | Promise<void>
+    | Promise<
+        FormikErrors<{
+          [key: string]: any
+        }>
+      >,
   value: any
 ) => {
+  console.log('value', value)
+  console.log('schema', schema)
   switch (schema.type) {
     case 'boolean':
       return (
@@ -27,7 +41,7 @@ export const getSchemaElement = (
           value={value}
           key={schema.key}
           checked={value}
-          onChange={handleChange}
+          onChange={() => setFieldValue(schema.key, !value)}
           className="flex flex-wrap lg:align-middle gap-3 text-lg text-black ml-4 lg:capitalize p-4"
         />
       )
@@ -40,6 +54,7 @@ export const getSchemaElement = (
           onChange={handleChange}
           value={value}
           key={schema.key}
+          defaultValue={value}
           placeholder={schema.description}
           label={schema.name}
         />
