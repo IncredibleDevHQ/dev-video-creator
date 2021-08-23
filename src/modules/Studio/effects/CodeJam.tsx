@@ -1,6 +1,6 @@
 import axios from 'axios'
 import React, { useEffect, useState } from 'react'
-import { Group, Text } from 'react-konva'
+import { Group, Circle } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import { NextLineIcon, NextTokenIcon } from '../../../components'
 import { API } from '../../../constants'
@@ -9,6 +9,7 @@ import { Concourse } from '../components'
 import { ControlButton } from '../components/MissionControl'
 import useCode from '../hooks/use-code'
 import { StudioProviderProps, studioStore } from '../stores'
+import TypingEffect from './TypingEffect'
 
 const codeTokens = [
   { content: '# simple hello world example', color: '#608B4E', lineNumber: 0 },
@@ -89,9 +90,9 @@ const CodeJam = () => {
     if (!data?.TokenisedCode) return
     initUseCode({
       tokens: data.TokenisedCode.data || codeTokens,
-      canvasWidth: 1200,
-      gutter: 10,
-      fontFamily: codeConfig.fontFamily,
+      canvasWidth: 900,
+      canvasHeight: 460,
+      gutter: 5,
       fontSize: codeConfig.fontSize,
     })
   }, [data])
@@ -117,30 +118,27 @@ const CodeJam = () => {
       appearance="primary"
       onClick={() => {
         const current = computedTokens.current[index]
-        const next =
-          computedTokens.current.findIndex(
-            (t) => t.lineNumber === current.lineNumber + 1
-          ) - 1
-
+        let next = computedTokens.current.findIndex(
+          (t) => t.lineNumber > current.lineNumber
+        )
+        if (next === -1) next = computedTokens.current.length
         setIndex(next)
       }}
     />,
   ]
 
   const layerChildren = [
-    <Group y={20} x={20} key="group">
+    <Group y={15} x={15} key="circleGroup">
+      <Circle key="redCircle" x={0} y={0} fill="#FF605C" radius={5} />
+      <Circle key="yellowCircle" x={14} y={0} fill="#FFBD44" radius={5} />
+      <Circle key="greenCircle" x={28} y={0} fill="#00CA4E" radius={5} />
+    </Group>,
+    <Group y={30} x={20} key="group">
       {computedTokens.current
-        .filter((_, i) => i < index)
-        .map((token) => (
-          <Text
-            fontSize={codeConfig.fontSize}
-            fill={token.color}
-            text={token.content}
-            x={token.x}
-            y={token.y}
-            align="left"
-          />
-        ))}
+        .filter((token, i) => i < index && i >= token.startFromIndex)
+        .map((token) => {
+          return <TypingEffect token={token} />
+        })}
     </Group>,
   ]
 
