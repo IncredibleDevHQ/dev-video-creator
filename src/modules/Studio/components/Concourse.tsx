@@ -86,7 +86,7 @@ const Concourse = ({
                   y={0}
                   width={CONFIG.width}
                   height={CONFIG.height}
-                  fill="black"
+                  fill="#202026"
                   cornerRadius={8}
                 />
                 {layerChildren}
