@@ -69,26 +69,19 @@ const FragmentConfiguration = ({
       if (!isValid) return
       try {
         setSubmitting(true)
-        console.log(
-          'default values',
-          Object.entries(values).map((e) => ({
-            key: e[0],
-            value: e[1],
-          }))
-        )
         updateFragment({
           variables: {
             fragmentId: fragment?.id,
-            items: Object.entries(values).map((e) => ({
-              key: e[0],
-              value: e[1],
+            items: Object.entries(values).map((entry) => ({
+              key: entry[0],
+              value: entry[1],
             })),
           },
         })
-      } catch (e: any) {
+      } catch (error: any) {
         emitToast({
           title: 'Something went wrong.',
-          description: e.message,
+          description: error.message,
           type: 'error',
         })
       } finally {

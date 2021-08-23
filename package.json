@@ -21,7 +21,6 @@
     "@sentry/react": "^6.10.0",
     "@sentry/tracing": "^6.10.0",
     "@types/mime": "^2.0.3",
-    "@types/uuid": "^8.3.1",
     "agora-rtc-react": "git://github.com/AgoraIO-Community/agora-rtc-react#v1.0.0",
     "agora-rtc-sdk-ng": "^4.6.3",
     "apollo-cache-persist": "^0.1.1",
@@ -53,7 +52,6 @@
     "recoil": "^0.3.1",
     "use-debounce": "^7.0.0",
     "use-image": "^1.0.8",
-    "uuid": "^8.3.2",
     "yup": "^0.32.9"
   },
   "devDependencies": {

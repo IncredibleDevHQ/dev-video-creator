@@ -17,8 +17,8 @@ const Checkbox = ({
   const switchCSS = css`
     position: relative;
     display: inline-block;
-    width: 55px;
-    height: 28px;
+    width: 3.4375rem;
+    height: 1.75rem;
     & input {
       opacity: 0;
       width: 0;
@@ -40,8 +40,8 @@ const Checkbox = ({
     &:before {
       position: absolute;
       content: '';
-      height: 20px;
-      width: 20px;
+      height: 1.25rem;
+      width: 1.25rem;
       left: 4px;
       bottom: 4px;
       background-color: white;
@@ -59,12 +59,12 @@ const Checkbox = ({
     }
 
     input:checked + &:before {
-      -webkit-transform: translateX(26px);
-      -ms-transform: translateX(26px);
-      transform: translateX(26px);
+      -webkit-transform: translateX(1.625rem);
+      -ms-transform: translateX(1.625rem);
+      transform: translateX(1.625rem);
     }
 
-    border-radius: 34px;
+    border-radius: 2.125rem;
   `
 
   return (

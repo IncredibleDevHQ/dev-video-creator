@@ -73,7 +73,7 @@ export const getSchemaElement = (
                   onChange={handleChange}
                   value={value ? value[index] : ''}
                   placeholder={schema.description}
-                  label=""
+                  label={`Question ${index + 1}`}
                 />
               ))}
           </div>

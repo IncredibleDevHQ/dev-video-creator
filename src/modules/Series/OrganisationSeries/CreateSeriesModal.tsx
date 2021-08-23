@@ -88,10 +88,6 @@ const seriesModal = ({
           <Photo
             className="w-full mb-2"
             onChange={(e) => e.target.files && handleClick(e.target.files?.[0])}
-            // onChange={(e) =>
-            //   (e.target as HTMLInputElement)?.files &&
-            //   handleClick((e.target as HTMLInputElement).files?.[0])
-            // }
           />
           {pic && <img height="200px" src={pic} alt="series pic" />}
           <Button
