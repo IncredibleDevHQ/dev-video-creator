@@ -19,6 +19,8 @@ import { useRecoilValue } from 'recoil'
 import { IoHandRightOutline } from 'react-icons/io5'
 import { StudioProviderProps, studioStore } from '../stores'
 import { Avatar, Heading, Tooltip } from '../../../components'
+import { User, userState } from '../../../stores/user.store'
+import { FlickParticipantsFragment } from '../../../generated/graphql'
 
 export const ControlButton = ({
   appearance,
@@ -87,9 +89,11 @@ const RaiseHandsMenu = ({ participants }: { participants: any[] }) => {
 const MissionControl = ({
   controls,
   resetCanvas,
+  participants: creators,
 }: {
   controls: JSX.Element[]
   resetCanvas: () => void
+  participants: FlickParticipantsFragment[]
 }) => {
   const {
     constraints,
@@ -106,6 +110,7 @@ const MissionControl = ({
   const [isRaiseHandsTooltip, setRaiseHandsTooltip] = useState(false)
   const [participant, setParticipant] = useState<any>()
   const [participantsArray, setParticipantsArray] = useState<any[]>([])
+  const userData = (useRecoilValue(userState) as User) || {}
 
   useEffect(() => {
     if (!participants) return
@@ -190,15 +195,20 @@ const MissionControl = ({
 
           <hr className="bg-grey-darker h-px my-2" />
 
-          {state === 'recording' && (
-            <ControlButton
-              className="my-2"
-              icon={FiStopCircle}
-              appearance="danger"
-              onClick={() => {
-                stopRecording()
-              }}
-            />
+          {creators.map(
+            (participant) =>
+              participant.role === 'Host' &&
+              userData.sub === participant.userSub &&
+              state === 'recording' && (
+                <ControlButton
+                  className="my-2"
+                  icon={FiStopCircle}
+                  appearance="danger"
+                  onClick={() => {
+                    stopRecording()
+                  }}
+                />
+              )
           )}
 
           {state === 'preview' && (
@@ -222,15 +232,21 @@ const MissionControl = ({
               }}
             />
           )}
-          {state === 'ready' && (
-            <ControlButton
-              className="my-2"
-              icon={FiCircle}
-              appearance="primary"
-              onClick={() => {
-                startRecording()
-              }}
-            />
+
+          {creators.map(
+            (participant) =>
+              participant.role === 'Host' &&
+              userData.sub === participant.userSub &&
+              state === 'ready' && (
+                <ControlButton
+                  className="my-2"
+                  icon={FiCircle}
+                  appearance="primary"
+                  onClick={() => {
+                    startRecording()
+                  }}
+                />
+              )
           )}
         </div>
       </div>
