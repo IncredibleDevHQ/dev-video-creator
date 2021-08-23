@@ -28,27 +28,24 @@ const Trivia = () => {
       icon={NextTokenIcon}
       className="my-2"
       appearance="primary"
-      onClick={() =>
-        setActiveQuestionIndex(
-          activeQuestionIndex === questions.length - 1
-            ? 0
-            : activeQuestionIndex + 1
-        )
-      }
+      disabled={activeQuestionIndex === questions.length - 1}
+      onClick={() => setActiveQuestionIndex(activeQuestionIndex + 1)}
     />,
   ]
 
   const layerChildren = [
     <Group key="group">
-      <Text
-        fontSize={24}
-        fill="#ffffff"
-        width={CONFIG.width}
-        height={CONFIG.height}
-        text={questions[activeQuestionIndex]}
-        align="center"
-        verticalAlign="middle"
-      />
+      {questions.length > 0 ? (
+        <Text
+          fontSize={24}
+          fill="#ffffff"
+          width={CONFIG.width}
+          height={CONFIG.height}
+          text={questions[activeQuestionIndex]}
+          align="center"
+          verticalAlign="middle"
+        />
+      ) : null}
     </Group>,
   ]
 
