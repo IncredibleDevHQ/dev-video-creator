@@ -11,7 +11,6 @@ import {
 import { useUploadFile } from '../../../hooks'
 import { fragmentTemplateStore } from '../../../stores/fragment.store'
 import TemplateMarket from '../../TemplateMarket/TemplateMarket'
-import TestConfig from './TestConfig'
 
 const FragmentConfiguration = ({
   fragment,
@@ -237,7 +236,6 @@ const FragmentConfiguration = ({
       >
         Record
       </Button>
-      <TestConfig />
     </div>
   )
 }

@@ -28,6 +28,8 @@ const TestFragmentConfiguration = ({
   useEffect(() => {
     if (!fragment || !fragment.configuration) return
     setConfig(fragment!.configuration.properties)
+
+    console.log(config)
   }, [fragment?.configuration])
 
   if (error)
@@ -45,10 +47,6 @@ const TestFragmentConfiguration = ({
     })
     setObj(objj)
   }, [config])
-
-  useEffect(() => {
-    console.log('obj', obj)
-  }, [obj])
 
   const {
     errors,
@@ -95,18 +93,18 @@ const TestFragmentConfiguration = ({
     },
   })
 
-  const questions = [
-    {
-      key: 'questions',
-      type: 'text[]',
-      name: 'Please Enter Your Questions',
-      description: 'Add Your Question',
-      dirty: false,
-      required: true,
-      editable: true,
-      value: [],
-    },
-  ]
+  // const questions = [
+  //   {
+  //     key: 'questions',
+  //     type: 'text[]',
+  //     name: 'Please Enter Your Questions',
+  //     description: 'Add Your Question',
+  //     dirty: false,
+  //     required: true,
+  //     editable: true,
+  //     value: [],
+  //   },
+  // ]
 
   return (
     <div>
