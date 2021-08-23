@@ -22,7 +22,7 @@ const TestFragmentConfiguration = ({
   const history = useHistory()
 
   const [isConfigured, setConfigured] = useState(false)
-  const [updateFragment, { data, error }] =
+  const [updateFragment, { data, error, loading }] =
     useUpdateFragmentConfigurationMutation()
 
   useEffect(() => {
@@ -41,11 +41,11 @@ const TestFragmentConfiguration = ({
   console.log('config', config)
 
   useEffect(() => {
-    const objj: { [key: string]: any } = {}
+    const object: { [key: string]: any } = {}
     config?.forEach((code) => {
-      objj[code.key] = code.value
+      object[code.key] = code.value
     })
-    setObj(objj)
+    setObj(object)
   }, [config])
 
   const {
@@ -126,6 +126,7 @@ const TestFragmentConfiguration = ({
             e?.preventDefault()
             handleSubmit()
           }}
+          loading={loading}
         >
           Save Configuration
         </Button>
