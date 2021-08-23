@@ -61,15 +61,15 @@ const CodeJam = () => {
   const [index, setIndex] = useState(0)
 
   useEffect(() => {
-    if (!fragment) return
-    const config = JSON.parse(fragment.configuration || '{}')
-    if (!config.gistURL) throw new Error('Missing gist URL')
+    if (!fragment?.configuration.properties) return
+    const gistURL = fragment.configuration.properties.find(
+      (property: any) => property.key === 'gistUrl'
+    ).value
+    if (!gistURL) throw new Error('Missing gist URL')
     ;(async () => {
       try {
         const { data } = await axios.get(
-          `${API.GITHUB.BASE_URL}gists/${(config.gistURL as string)
-            .split('/')
-            .pop()}`
+          `${API.GITHUB.BASE_URL}gists/${(gistURL as string).split('/').pop()}`
         )
         const file = data.files[Object.keys(data.files)[0]]
         getTokenisedCode({
@@ -83,7 +83,7 @@ const CodeJam = () => {
         throw e
       }
     })()
-  }, [fragment])
+  }, [fragment?.configuration.properties])
 
   useEffect(() => {
     if (!data?.TokenisedCode) return

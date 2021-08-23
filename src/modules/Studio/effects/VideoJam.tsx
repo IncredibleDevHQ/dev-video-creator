@@ -57,14 +57,16 @@ const VideoJam = () => {
   const { state, fragment, payload, updatePayload } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const videoElement = React.useMemo(() => {
-    if (!fragment?.configuration) return
+    if (!fragment?.configuration.properties) return
     const element = document.createElement('video')
     element.autoplay = false
     element.crossOrigin = 'anonymous'
-    element.src = JSON.parse(fragment?.configuration || {}).videoURL
+    element.src = fragment.configuration.properties.find(
+      (property: any) => property.key === 'source'
+    )?.value
     // eslint-disable-next-line consistent-return
     return element
-  }, [fragment?.configuration])
+  }, [fragment?.configuration.properties])
 
   useEffect(() => {
     if (!videoElement) return
