@@ -29,8 +29,6 @@ export const getSchemaElement = (
       >,
   value: any
 ) => {
-  console.log('value', value)
-  console.log('schema', schema)
   switch (schema.type) {
     case 'boolean':
       return (
@@ -64,7 +62,7 @@ export const getSchemaElement = (
       return (
         <div className="flex flex-col gap-1 m-4" key={schema.key}>
           <div className="flex flex-col gap-2 items-end">
-            {Array(value?.length + 1)
+            {Array(value ? value?.length + 1 : 1)
               .fill('')
               .map((_, index) => (
                 <TextField
@@ -72,13 +70,8 @@ export const getSchemaElement = (
                   key={`${schema.key}[${index}]`}
                   className="text-lg"
                   name={`${schema.key}[${index}]`}
-                  onKeyDown={(e) => {
-                    if (e.keyCode === 13) {
-                      e.preventDefault()
-                      handleChange(e)
-                    }
-                  }}
-                  value={value[index]}
+                  onChange={handleChange}
+                  value={value ? value[index] : ''}
                   placeholder={schema.description}
                   label=""
                 />
