@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import Select from 'react-select'
 import { RiCheckboxCircleFill, RiRefreshLine } from 'react-icons/ri'
 import { useRecoilValue } from 'recoil'
-import { Button, Heading, ScreenState, Text } from '../../../components'
+import { Button, ScreenState, Text } from '../../../components'
 import {
   FlickParticipantsFragment,
   useInsertParticipantToFragmentMutation,
@@ -27,7 +27,7 @@ const ParticipantsTab = ({
     isChecked: boolean
   }
 
-  const [insertParticipants, { data, loading, error }] =
+  const [insertParticipants, { loading, error }] =
     useInsertParticipantToFragmentMutation()
   const { data: fragmentParticipants, refetch } = useFragmentParticipantsQuery({
     variables: {
