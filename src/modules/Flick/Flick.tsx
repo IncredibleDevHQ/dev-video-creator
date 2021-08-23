@@ -72,6 +72,7 @@ const Flick = () => {
         activeFragmentId={activeFragmentId}
         setActiveFragmentId={setActiveFragmentId}
         setAddFragmentModal={setAddFragmentModal}
+        participants={flick.participants}
       />
       <div className="flex-1 p-4">
         {activeFragmentId ? (
