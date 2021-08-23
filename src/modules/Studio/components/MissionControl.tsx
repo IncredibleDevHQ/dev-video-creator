@@ -1,7 +1,7 @@
 /* eslint-disable no-restricted-syntax */
 /* eslint-disable guard-for-in */
 import { cx } from '@emotion/css'
-import React, { HTMLAttributes, useEffect, useState } from 'react'
+import React, { HTMLProps, useEffect, useState } from 'react'
 import { IconType } from 'react-icons'
 import {
   FiMic,
@@ -28,7 +28,7 @@ export const ControlButton = ({
 }: {
   appearance: 'primary' | 'danger' | 'success'
   icon: IconType
-} & HTMLAttributes<HTMLButtonElement>) => {
+} & HTMLProps<HTMLButtonElement>) => {
   return (
     <button
       type="button"

@@ -1,9 +1,7 @@
-import React from 'react'
 import { Fragment_Type_Enum_Enum } from '../../../generated/graphql'
 import CodeJam from './CodeJam'
 import VideoJam from './VideoJam'
 import Intro from './Splash'
-import SplashTwo from './SplashTwo'
 import Trivia from './Trivia'
 
 export interface Effect {
@@ -11,13 +9,10 @@ export interface Effect {
   layerChildren: any[]
 }
 
-export const getEffect = (type: Fragment_Type_Enum_Enum, config?: string) => {
-  const configuration = config && JSON.parse(config)
-
+export const getEffect = (type: Fragment_Type_Enum_Enum) => {
   switch (type) {
     case Fragment_Type_Enum_Enum.Splash:
-      return configuration?.template?.template === 'Splash' ? Intro : SplashTwo
-
+      return Intro
     case Fragment_Type_Enum_Enum.CodeJam:
       return CodeJam
     case Fragment_Type_Enum_Enum.Videoshow:
