@@ -4,6 +4,7 @@ import CodeJam from './CodeJam'
 import VideoJam from './VideoJam'
 import Intro from './Splash'
 import SplashTwo from './SplashTwo'
+import Trivia from './Trivia'
 
 export interface Effect {
   controls: JSX.Element[]
@@ -21,6 +22,8 @@ export const getEffect = (type: Fragment_Type_Enum_Enum, config?: string) => {
       return CodeJam
     case Fragment_Type_Enum_Enum.Videoshow:
       return VideoJam
+    case Fragment_Type_Enum_Enum.Trivia:
+      return Trivia
     default:
       throw Error('No effect found')
   }

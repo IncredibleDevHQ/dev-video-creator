@@ -121,7 +121,6 @@ const FragmentConfiguration = ({
         className="ml-auto"
         size="medium"
         appearance="primary"
-        disabled={!isConfigured}
         onClick={() => {
           history.push(`/${fragment.id}/studio`)
         }}
