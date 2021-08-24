@@ -10,7 +10,7 @@ import { StudioProviderProps, studioStore } from '../stores'
 const Trivia = () => {
   const [activeQuestionIndex, setActiveQuestionIndex] = useState<number>(0)
   const [questions, setQuestions] = useState<string[]>([])
-  const { fragment } =
+  const { fragment, isHost, state } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   useEffect(() => {
@@ -22,16 +22,19 @@ const Trivia = () => {
     )
   }, [fragment?.configuration.properties])
 
-  const controls = [
-    <ControlButton
-      key="nextQuestion"
-      icon={NextTokenIcon}
-      className="my-2"
-      appearance="primary"
-      disabled={activeQuestionIndex === questions.length - 1}
-      onClick={() => setActiveQuestionIndex(activeQuestionIndex + 1)}
-    />,
-  ]
+  const controls =
+    isHost && state === 'recording'
+      ? [
+          <ControlButton
+            key="nextQuestion"
+            icon={NextTokenIcon}
+            className="my-2"
+            appearance="primary"
+            disabled={activeQuestionIndex === questions.length - 1}
+            onClick={() => setActiveQuestionIndex(activeQuestionIndex + 1)}
+          />,
+        ]
+      : []
 
   const layerChildren = [
     <Group key="group">
