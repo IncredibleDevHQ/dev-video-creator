@@ -1,3 +1,4 @@
+import { cx } from '@emotion/css'
 import React, { useEffect, useState } from 'react'
 import { Group, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
@@ -28,9 +29,10 @@ const Trivia = () => {
           <ControlButton
             key="nextQuestion"
             icon={NextTokenIcon}
-            className="my-2"
+            className={cx('my-2 ', {
+              hidden: activeQuestionIndex === questions.length - 1,
+            })}
             appearance="primary"
-            disabled={activeQuestionIndex === questions.length - 1}
             onClick={() => setActiveQuestionIndex(activeQuestionIndex + 1)}
           />,
         ]
