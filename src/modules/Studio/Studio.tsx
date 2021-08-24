@@ -185,7 +185,7 @@ const Studio = () => {
 
   const stop = () => {
     stopRecording()
-
+    leave()
     setState('preview')
   }
 
@@ -247,7 +247,10 @@ const Studio = () => {
           <div className="flex-1 flex flex-row items-center">
             <FiArrowLeft
               className="cursor-pointer mr-2"
-              onClick={() => history.goBack()}
+              onClick={() => {
+                leave()
+                history.goBack()
+              }}
             />
             <Heading className="font-semibold">{fragment.name}</Heading>
           </div>
