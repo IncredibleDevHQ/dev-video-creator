@@ -145,7 +145,7 @@ const Studio = () => {
     try {
       const { uuid } = await uploadFile({
         extension: 'webm',
-        file: getBlobs(),
+        file: await getBlobs(),
         handleProgress: ({ percentage }) => {
           updateToast({
             id: toast,

@@ -50,6 +50,7 @@
     "react-select": "^4.3.1",
     "react-toastify": "^7.0.4",
     "recoil": "^0.3.1",
+    "ts-ebml": "^2.0.2",
     "use-debounce": "^7.0.0",
     "use-image": "^1.0.8",
     "yup": "^0.32.9"

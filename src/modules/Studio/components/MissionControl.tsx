@@ -102,6 +102,7 @@ const MissionControl = ({
     updateParticipant,
     participantId,
     isHost,
+    payload,
   } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [isRaiseHandsTooltip, setRaiseHandsTooltip] = useState(false)
@@ -199,6 +200,7 @@ const MissionControl = ({
                   appearance="danger"
                   onClick={() => {
                     stopRecording()
+                    payload.playing = false
                   }}
                 />
               )}

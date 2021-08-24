@@ -9,7 +9,6 @@ import { KonvaEventObject } from 'konva/lib/Node'
 import MissionControl from './MissionControl'
 import StudioUser from './StudioUser'
 import { StudioProviderProps, studioStore } from '../stores'
-import { currentFlickStore } from '../../../stores/flick.store'
 
 interface ConcourseProps {
   controls: JSX.Element[]
@@ -110,9 +109,9 @@ const Concourse = ({
           <video
             className="w-8/12 rounded-md"
             controls
-            ref={(ref) => {
+            ref={async (ref) => {
               if (!ref || !getBlobs) return
-              const blob = getBlobs()
+              const blob = await getBlobs()
               const url = window.URL.createObjectURL(blob)
               // eslint-disable-next-line no-param-reassign
               ref.src = url

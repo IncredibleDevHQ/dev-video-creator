@@ -99,20 +99,24 @@ const VideoJam = () => {
   }, [payload?.playing])
 
   const controls = [
-    <ControlButton
-      key="control"
-      icon={playing ? FiPause : FiPlay}
-      className="my-2"
-      appearance={playing ? 'danger' : 'primary'}
-      onClick={() => {
-        const next = !playing
+    state === 'ready' || state === 'recording' ? (
+      <ControlButton
+        key="control"
+        icon={playing ? FiPause : FiPlay}
+        className="my-2"
+        appearance={playing ? 'danger' : 'primary'}
+        onClick={() => {
+          const next = !playing
 
-        updatePayload?.({
-          playing: next,
-          currentTime: videoElement?.currentTime,
-        })
-      }}
-    />,
+          updatePayload?.({
+            playing: next,
+            currentTime: videoElement?.currentTime,
+          })
+        }}
+      />
+    ) : (
+      <></>
+    ),
   ]
 
   return videoElement ? (
