@@ -185,6 +185,7 @@ const Studio = () => {
 
   const stop = () => {
     stopRecording()
+
     setState('preview')
   }
 
@@ -211,6 +212,10 @@ const Studio = () => {
       participantId: fragment?.participants.find(
         ({ participant }) => participant.userSub === sub
       )?.participant.id,
+      isHost:
+        fragment?.participants.find(
+          ({ participant }) => participant.userSub === sub
+        )?.participant.owner || false,
     })
   }, [
     fragment,
@@ -233,7 +238,7 @@ const Studio = () => {
 
   if (!fragment) return <EmptyState text="Fragment not found" width={400} />
 
-  const C = getEffect(fragment.type, fragment.configuration)
+  const C = getEffect(fragment.type)
 
   return (
     <div>

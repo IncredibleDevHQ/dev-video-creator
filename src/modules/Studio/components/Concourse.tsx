@@ -30,7 +30,6 @@ const Concourse = ({
   const { state, stream, getBlobs, users } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const stageRef = createRef<Konva.Stage>()
-  const flick = useRecoilValue(currentFlickStore)
   const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
 
   const handleZoom = (e: KonvaEventObject<WheelEvent>) => {
@@ -121,13 +120,8 @@ const Concourse = ({
           />
         )}
       </div>
-      {flick && (
-        <MissionControl
-          controls={controls}
-          resetCanvas={resetCanvas}
-          participants={flick.participants}
-        />
-      )}
+
+      <MissionControl controls={controls} resetCanvas={resetCanvas} />
     </div>
   )
 }

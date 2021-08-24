@@ -19,8 +19,6 @@ import { useRecoilValue } from 'recoil'
 import { IoHandRightOutline } from 'react-icons/io5'
 import { StudioProviderProps, studioStore } from '../stores'
 import { Avatar, Heading, Tooltip } from '../../../components'
-import { User, userState } from '../../../stores/user.store'
-import { FlickParticipantsFragment } from '../../../generated/graphql'
 
 export const ControlButton = ({
   appearance,
@@ -89,11 +87,9 @@ const RaiseHandsMenu = ({ participants }: { participants: any[] }) => {
 const MissionControl = ({
   controls,
   resetCanvas,
-  participants: creators,
 }: {
   controls: JSX.Element[]
   resetCanvas: () => void
-  participants: FlickParticipantsFragment[]
 }) => {
   const {
     constraints,
@@ -105,12 +101,12 @@ const MissionControl = ({
     participants,
     updateParticipant,
     participantId,
+    isHost,
   } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [isRaiseHandsTooltip, setRaiseHandsTooltip] = useState(false)
   const [participant, setParticipant] = useState<any>()
   const [participantsArray, setParticipantsArray] = useState<any[]>([])
-  const userData = (useRecoilValue(userState) as User) || {}
 
   useEffect(() => {
     if (!participants) return
@@ -194,12 +190,9 @@ const MissionControl = ({
           />
 
           <hr className="bg-grey-darker h-px my-2" />
-
-          {creators.map(
-            (participant) =>
-              participant.role === 'Host' &&
-              userData.sub === participant.userSub &&
-              state === 'recording' && (
+          {isHost && (
+            <>
+              {state === 'recording' && (
                 <ControlButton
                   className="my-2"
                   icon={FiStopCircle}
@@ -208,36 +201,30 @@ const MissionControl = ({
                     stopRecording()
                   }}
                 />
-              )
-          )}
+              )}
 
-          {state === 'preview' && (
-            <ControlButton
-              className="my-2"
-              icon={FiXCircle}
-              appearance="danger"
-              onClick={() => {
-                reset()
-              }}
-            />
-          )}
+              {state === 'preview' && (
+                <>
+                  <ControlButton
+                    className="my-2"
+                    icon={FiXCircle}
+                    appearance="danger"
+                    onClick={() => {
+                      reset()
+                    }}
+                  />
+                  <ControlButton
+                    className="my-2"
+                    icon={FiCheckCircle}
+                    appearance="success"
+                    onClick={() => {
+                      upload()
+                    }}
+                  />
+                </>
+              )}
 
-          {state === 'preview' && (
-            <ControlButton
-              className="my-2"
-              icon={FiCheckCircle}
-              appearance="success"
-              onClick={() => {
-                upload()
-              }}
-            />
-          )}
-
-          {creators.map(
-            (participant) =>
-              participant.role === 'Host' &&
-              userData.sub === participant.userSub &&
-              state === 'ready' && (
+              {state === 'ready' && (
                 <ControlButton
                   className="my-2"
                   icon={FiCircle}
@@ -246,7 +233,8 @@ const MissionControl = ({
                     startRecording()
                   }}
                 />
-              )
+              )}
+            </>
           )}
         </div>
       </div>
