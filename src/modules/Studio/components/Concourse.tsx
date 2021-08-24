@@ -110,9 +110,9 @@ const Concourse = ({
           <video
             className="w-8/12 rounded-md"
             controls
-            ref={(ref) => {
+            ref={async (ref) => {
               if (!ref || !getBlobs) return
-              const blob = getBlobs()
+              const blob = await getBlobs()
               const url = window.URL.createObjectURL(blob)
               // eslint-disable-next-line no-param-reassign
               ref.src = url

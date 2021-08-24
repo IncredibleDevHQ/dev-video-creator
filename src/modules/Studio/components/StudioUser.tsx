@@ -27,7 +27,7 @@ const StudioUser = ({ stream }: { stream: MediaStream | null }) => {
   useEffect(() => {
     if (!videoElement || !imageRef.current) return
     videoElement.play()
-    videoElement.focus()
+
     const layer = imageRef.current.getLayer()
 
     const anim = new Konva.Animation(() => {}, layer)
