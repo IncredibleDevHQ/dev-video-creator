@@ -53,7 +53,7 @@ const codeConfig = {
 }
 
 const CodeJam = () => {
-  const { fragment, payload, updatePayload } =
+  const { fragment, payload, updatePayload, state, isHost } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const { initUseCode, computedTokens } = useCode()
   const [getTokenisedCode, { data, error, loading }] =
@@ -100,32 +100,35 @@ const CodeJam = () => {
     setIndex(payload?.index || 0)
   }, [payload?.index])
 
-  const controls = [
-    <ControlButton
-      key="nextToken"
-      icon={NextTokenIcon}
-      className="my-2"
-      appearance="primary"
-      onClick={() => {
-        updatePayload?.({ index: index + 1 })
-      }}
-    />,
-    <ControlButton
-      className="my-2"
-      key="nextLine"
-      icon={NextLineIcon}
-      appearance="primary"
-      onClick={() => {
-        const current = computedTokens.current[index]
-        const next =
-          computedTokens.current.findIndex(
-            (t) => t.lineNumber === current.lineNumber + 1
-          ) - 1
+  const controls =
+    isHost && state === 'recording'
+      ? [
+          <ControlButton
+            key="nextToken"
+            icon={NextTokenIcon}
+            className="my-2"
+            appearance="primary"
+            onClick={() => {
+              updatePayload?.({ index: index + 1 })
+            }}
+          />,
+          <ControlButton
+            className="my-2"
+            key="nextLine"
+            icon={NextLineIcon}
+            appearance="primary"
+            onClick={() => {
+              const current = computedTokens.current[index]
+              const next =
+                computedTokens.current.findIndex(
+                  (t) => t.lineNumber === current.lineNumber + 1
+                ) - 1
 
-        setIndex(next)
-      }}
-    />,
-  ]
+              setIndex(next)
+            }}
+          />,
+        ]
+      : []
 
   const layerChildren = [
     <Group y={20} x={20} key="group">
