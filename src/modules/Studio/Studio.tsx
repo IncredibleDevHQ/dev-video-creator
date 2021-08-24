@@ -53,7 +53,10 @@ const Studio = () => {
     getRTCToken()
 
     return () => {
-      leave()
+      if (history.action === 'POP') {
+        console.log('on back pressed', stream)
+        stream?.getTracks().forEach((track) => track.stop())
+      }
     }
   }, [])
 
@@ -185,7 +188,7 @@ const Studio = () => {
 
   const stop = () => {
     stopRecording()
-    leave()
+    stream?.getTracks().forEach((track) => track.stop())
     setState('preview')
   }
 
@@ -248,7 +251,7 @@ const Studio = () => {
             <FiArrowLeft
               className="cursor-pointer mr-2"
               onClick={() => {
-                leave()
+                stream?.getTracks().forEach((track) => track.stop())
                 history.goBack()
               }}
             />
