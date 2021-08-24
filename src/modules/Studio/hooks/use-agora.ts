@@ -98,14 +98,24 @@ export default function useAgora(channel: string) {
   }
 
   const join = async (token: string, uid: string) => {
-    if (!ready) throw new Error('Not ready')
-    await client.join(appId, channel, token, uid)
-    if (tracks) await client.publish(tracks)
+    try {
+      if (!ready) throw new Error('Not ready')
+      await client.join(appId, channel, token, uid)
+      if (tracks) await client.publish(tracks)
+    } catch (error) {
+      console.error(error)
+      throw error
+    }
   }
 
   const leave = async () => {
-    tracks?.forEach((track) => track.stop())
-    await client.leave()
+    try {
+      tracks?.forEach((track) => track.stop())
+      await client.leave()
+    } catch (error) {
+      console.error(error)
+      throw error
+    }
   }
 
   return {
