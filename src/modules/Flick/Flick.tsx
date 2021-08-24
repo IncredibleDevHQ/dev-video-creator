@@ -74,9 +74,11 @@ const Flick = () => {
         setAddFragmentModal={setAddFragmentModal}
       />
       <div className="flex-1 p-4">
+        <h3 className=" flex font-black text-2xl capitalize justify-center mb-2">
+          {flick.name}
+        </h3>
         {activeFragmentId ? (
           <div>
-            <h3 className="font-black text-2xl mb-2">{flick.name}</h3>
             <TabBar
               tabs={tabs}
               current={currentTab}
@@ -108,7 +110,9 @@ const Flick = () => {
             )}
           </div>
         ) : (
-          <EmptyState text="No Fragment is selected" width={400} />
+          <>
+            <EmptyState text="No Fragment is selected" width={400} />
+          </>
         )}
       </div>
       <Participants
