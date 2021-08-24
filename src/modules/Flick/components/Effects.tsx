@@ -1,6 +1,8 @@
+/* eslint-disable no-case-declarations */
 import { FormikErrors } from 'formik'
-import React from 'react'
-import { Checkbox, TextField } from '../../../components'
+import React, { useState } from 'react'
+import { Checkbox, Photo, Text, TextField } from '../../../components'
+import { useUploadFile } from '../../../hooks'
 
 export interface SchemaElementProps {
   key: string
@@ -78,6 +80,48 @@ export const getSchemaElement = (
               ))}
           </div>
         </div>
+      )
+
+    case 'pic':
+      const [uploadFile] = useUploadFile()
+      const [picture, setPicture] = useState<string>()
+
+      const handleClick = async (file: File) => {
+        if (!file) return
+
+        const pic = await uploadFile({
+          extension: file.name.split('.')[1] as any,
+          file,
+        })
+
+        setPicture(pic.url)
+
+        const event = new Event('input', { bubbles: true })
+        dispatchEvent(event)
+        // @ts-ignore
+        event.target.name = schema.key
+        // @ts-ignore
+        event.target.value = pic.url
+        handleChange(event as any)
+      }
+
+      return (
+        <>
+          <Text className="ml-4">{schema.description}</Text>
+          <Photo
+            className="text-lg m-4"
+            onChange={(e) =>
+              e.target.files?.[0] && handleClick(e.target.files[0])
+            }
+          />
+          {picture && (
+            <img
+              className="h-32 m-4 object-contain"
+              src={picture}
+              alt={value}
+            />
+          )}
+        </>
       )
 
     default:
