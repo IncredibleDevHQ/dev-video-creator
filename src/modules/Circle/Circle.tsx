@@ -70,20 +70,19 @@ const Circle = () => {
                     email={member.circle_member.email as string}
                   />
                 )}
-                <div className=" flex-1 relative px-4 h-40 my-1 w-full">
-                  <div className="  flex flex-col content-center my-12 ">
-                    <Text className="text-black font-bold">
-                      {member.circle_member.displayName}
-                    </Text>
-                    <Text className=" text-black  text-opacity-50 ">
-                      {member.circle_member.username}
-                    </Text>
-                  </div>
+                <div className=" flex flex-col content-center my-12 relative px-4 h-40 w-full">
+                  <Text className="text-black font-bold">
+                    {member.circle_member.displayName}
+                  </Text>
+                  <Text className=" text-black  text-opacity-50 ">
+                    {member.circle_member.username}
+                  </Text>
                 </div>
+
                 <Button
                   appearance="primary"
                   type="submit"
-                  className=""
+                  className="my-5 p-2 mx-2 flex justify-end text-white bg-blue-300 rounded-md"
                   onClick={(e) => {
                     e?.preventDefault()
                     deleteMember(
