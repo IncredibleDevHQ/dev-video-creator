@@ -34,7 +34,7 @@ const Trivia = () => {
             onClick={() => setActiveQuestionIndex(activeQuestionIndex + 1)}
           />,
         ]
-      : []
+      : [<></>]
 
   const layerChildren = [
     <Group key="group">

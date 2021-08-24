@@ -128,7 +128,7 @@ const CodeJam = () => {
             }}
           />,
         ]
-      : []
+      : [<></>]
 
   const layerChildren = [
     <Group y={20} x={20} key="group">
