@@ -9,7 +9,6 @@ import { KonvaEventObject } from 'konva/lib/Node'
 import MissionControl from './MissionControl'
 import StudioUser from './StudioUser'
 import { StudioProviderProps, studioStore } from '../stores'
-import { currentFlickStore } from '../../../stores/flick.store'
 
 interface ConcourseProps {
   controls: JSX.Element[]
