@@ -10,7 +10,7 @@ import {
   Participants,
 } from './components'
 import { currentFlickStore } from '../../stores/flick.store'
-import { EmptyState, ScreenState, Tab, TabBar } from '../../components'
+import { EmptyState, Heading, ScreenState, Tab, TabBar } from '../../components'
 import { useGetFlickByIdQuery } from '../../generated/graphql'
 
 const tabs: Tab[] = [
@@ -75,9 +75,9 @@ const Flick = () => {
         participants={flick.participants}
       />
       <div className="flex-1 p-4">
-        <h3 className=" flex font-black text-2xl capitalize justify-center mb-2">
+        <Heading className=" flex font-black text-2xl capitalize justify-center mb-2">
           {flick.name}
-        </h3>
+        </Heading>
         {activeFragmentId ? (
           <div>
             <TabBar

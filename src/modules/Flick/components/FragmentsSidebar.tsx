@@ -25,6 +25,7 @@ import {
 } from '../../../generated/graphql'
 
 import { User, userState } from '../../../stores/user.store'
+import { StudioProviderProps, studioStore } from '../../Studio/stores'
 
 const reorder = (
   list: FlickFragmentFragment[],
@@ -37,6 +38,7 @@ const reorder = (
 
   return results.map((result, index) => ({ ...result, order: index }))
 }
+const { isHost } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
 const FragmentItem = ({
   fragment,
@@ -239,21 +241,16 @@ const FragmentsSidebar = ({
         <Text>No Fragments</Text>
       )}
 
-      {participants.map(
-        (participant) =>
-          participant.role === 'Host' &&
-          userData.sub === participant.userSub &&
-          fragmentItems.length > 0 && (
-            <Button
-              className="mt-auto"
-              type="button"
-              appearance="primary"
-              disabled={!fragmentItems.every((f) => f.producedLink !== null)}
-              onClick={produceVideo}
-            >
-              Produce
-            </Button>
-          )
+      {isHost && fragmentItems.length > 0 && (
+        <Button
+          className="mt-auto"
+          type="button"
+          appearance="primary"
+          disabled={!fragmentItems.every((f) => f.producedLink !== null)}
+          onClick={produceVideo}
+        >
+          Produce
+        </Button>
       )}
     </div>
   )

@@ -53,10 +53,7 @@ const Studio = () => {
     getRTCToken()
 
     return () => {
-      if (history.action === 'POP') {
-        console.log('on back pressed', stream)
-        stream?.getTracks().forEach((track) => track.stop())
-      }
+      stream?.getTracks().forEach((track) => track.stop())
     }
   }, [])
 
@@ -266,7 +263,6 @@ const Studio = () => {
           >
             Update
           </button>
-          {/* <Timer target={10} timer={timer} /> */}
         </div>
         <C />
       </div>

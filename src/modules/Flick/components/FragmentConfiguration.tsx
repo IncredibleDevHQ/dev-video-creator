@@ -106,15 +106,7 @@ const FragmentConfiguration = ({
             setLoadingAssets={setLoadingAssets}
           />
         ))}
-        {/* <Button
-          type="button"
-          size="small"
-          className="ml-4 mb-2"
-          appearance="danger"
-          onClick={() => setOpen(true)}
-        >
-          Select Splash Template
-        </Button> */}
+
         <Button
           type="button"
           size="small"
@@ -131,23 +123,19 @@ const FragmentConfiguration = ({
         </Button>
       </form>
 
-      {/* <TemplateMarket
-        fragmentType={fragment.type}
-        fragmentId={fragment?.id}
-        open={open}
-        setOpen={setOpen}
-      /> */}
-      <Button
-        type="button"
-        className="ml-auto"
-        size="medium"
-        appearance="primary"
-        onClick={() => {
-          history.push(`/${fragment.id}/studio`)
-        }}
-      >
-        Record
-      </Button>
+      {isConfigured && (
+        <Button
+          type="button"
+          className="ml-auto"
+          size="medium"
+          appearance="primary"
+          onClick={() => {
+            history.push(`/${fragment.id}/studio`)
+          }}
+        >
+          Record
+        </Button>
+      )}
     </div>
   )
 }
