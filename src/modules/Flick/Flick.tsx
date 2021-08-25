@@ -10,7 +10,7 @@ import {
   Participants,
 } from './components'
 import { currentFlickStore } from '../../stores/flick.store'
-import { EmptyState, ScreenState, Tab, TabBar } from '../../components'
+import { EmptyState, Heading, ScreenState, Tab, TabBar } from '../../components'
 import { useGetFlickByIdQuery } from '../../generated/graphql'
 
 const tabs: Tab[] = [
@@ -72,11 +72,14 @@ const Flick = () => {
         activeFragmentId={activeFragmentId}
         setActiveFragmentId={setActiveFragmentId}
         setAddFragmentModal={setAddFragmentModal}
+        participants={flick.participants}
       />
       <div className="flex-1 p-4">
+        <Heading className=" flex font-black text-2xl capitalize justify-center mb-2">
+          {flick.name}
+        </Heading>
         {activeFragmentId ? (
           <div>
-            <h3 className="font-black text-2xl mb-2">{flick.name}</h3>
             <TabBar
               tabs={tabs}
               current={currentTab}
@@ -87,6 +90,9 @@ const Flick = () => {
                 fragment={flick.fragments.find(
                   (fragment) => fragment.id === activeFragmentId
                 )}
+                handleRefetch={(refresh) => {
+                  if (refresh) refetch()
+                }}
               />
             )}
             {currentTab.value === 'Activity' && (
@@ -108,7 +114,9 @@ const Flick = () => {
             )}
           </div>
         ) : (
-          <EmptyState text="No Fragment is selected" width={400} />
+          <>
+            <EmptyState text="No Fragment is selected" width={400} />
+          </>
         )}
       </div>
       <Participants

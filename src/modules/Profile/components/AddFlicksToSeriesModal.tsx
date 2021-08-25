@@ -2,7 +2,7 @@ import React, { useEffect } from 'react'
 import Modal from 'react-responsive-modal'
 import { useRecoilState } from 'recoil'
 import { css, cx } from '@emotion/css'
-import { ScreenState, Text } from '../../../components'
+import { Checkbox, ScreenState, Text } from '../../../components'
 
 import {
   useGetMyFlicksQuery,
@@ -115,22 +115,20 @@ const AddFlicksToSeriesModal = ({
 
         <div className="p-4">
           {seriesFlickList.seriesFlicksList.map((flick) => (
-            <div key={flick.id} className="flex items-center mr-4 mb-2">
-              <input
-                type="checkbox"
+            <div
+              key={flick.id}
+              className="flex justify-between items-center mr-4 mb-2"
+            >
+              <Text> {flick.name}</Text>
+              <Checkbox
                 id={flick.id}
                 name={flick.name}
                 value={flick.id}
                 checked={flick.isChecked}
                 onChange={() => reverseChecked(flick.id)}
-                className="lg:relative  gap-3 h-5 w-5"
+                className="flex flex-wrap lg:align-middle gap-3  text-lg text-black ml-4 lg:capitalize"
+                label=""
               />
-              <label
-                htmlFor="click-yes"
-                className="select-none text-lg text-black ml-4 lg:capitalize"
-              >
-                {flick.name}
-              </label>
             </div>
           ))}
         </div>

@@ -29,7 +29,6 @@ const Concourse = ({
   const { state, stream, getBlobs, users } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const stageRef = createRef<Konva.Stage>()
-
   const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
 
   const handleZoom = (e: KonvaEventObject<WheelEvent>) => {
@@ -110,9 +109,9 @@ const Concourse = ({
           <video
             className="w-8/12 rounded-md"
             controls
-            ref={(ref) => {
+            ref={async (ref) => {
               if (!ref || !getBlobs) return
-              const blob = getBlobs()
+              const blob = await getBlobs()
               const url = window.URL.createObjectURL(blob)
               // eslint-disable-next-line no-param-reassign
               ref.src = url
@@ -120,6 +119,7 @@ const Concourse = ({
           />
         )}
       </div>
+
       <MissionControl controls={controls} resetCanvas={resetCanvas} />
     </div>
   )

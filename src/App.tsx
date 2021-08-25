@@ -24,6 +24,7 @@ import {
   Studio,
   UserSeriesFlicks,
   SingleSeries,
+  Circle,
 } from './modules'
 
 const App = () => {
@@ -88,6 +89,7 @@ const App = () => {
                     path="/profile/series/:id"
                     component={UserSeriesFlicks}
                   />
+                  <PrivateRoute exact path="/circle" component={Circle} />
                   <Route exact path="/login">
                     <AuthenticateScreen />
                   </Route>

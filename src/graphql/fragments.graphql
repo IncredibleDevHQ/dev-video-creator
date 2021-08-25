@@ -111,3 +111,25 @@ query FragmentParticipants($fragmentId: uuid!) {
     participantId
   }
 }
+
+mutation CreateFragment(
+  $flickId: uuid!
+  $name: String!
+  $type: CreateFragmentTypeEnum!
+  $description: String
+) {
+  CreateFragment(
+    flickId: $flickId
+    name: $name
+    type: $type
+    description: $description
+  ) {
+    id
+  }
+}
+
+mutation UpdateFragmentConfiguration($fragmentId: uuid!, $items: json!) {
+  UpdateFragmentConfiguration(fragmentId: $fragmentId, items: $items) {
+    success
+  }
+}

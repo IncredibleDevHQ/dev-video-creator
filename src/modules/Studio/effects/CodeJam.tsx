@@ -1,8 +1,8 @@
 import axios from 'axios'
+import { Contrast } from 'konva/lib/filters/Contrast'
 import React, { useEffect, useState } from 'react'
-import { Group, Circle } from 'react-konva'
+import { Group, Circle, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
-import { Text } from 'react-konva'
 import { NextLineIcon, NextTokenIcon } from '../../../components'
 import { API } from '../../../constants'
 import { useGetTokenisedCodeLazyQuery } from '../../../generated/graphql'
@@ -33,7 +33,7 @@ interface TokenRenderState {
 }
 
 const CodeJam = () => {
-  const { fragment, payload, updatePayload } =
+  const { fragment, payload, updatePayload, state, isHost } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const { initUseCode, computedTokens } = useCode()
   const [getTokenisedCode, { data, error, loading }] =
@@ -44,15 +44,15 @@ const CodeJam = () => {
   })
 
   useEffect(() => {
-    if (!fragment) return
-    const config = JSON.parse(fragment.configuration || '{}')
-    if (!config.gistURL) throw new Error('Missing gist URL')
+    if (!fragment?.configuration.properties) return
+    const gistURL = fragment.configuration.properties.find(
+      (property: any) => property.key === 'gistUrl'
+    )?.value
+    if (!gistURL) throw new Error('Missing gist URL')
     ;(async () => {
       try {
         const { data } = await axios.get(
-          `${API.GITHUB.BASE_URL}gists/${(config.gistURL as string)
-            .split('/')
-            .pop()}`
+          `${API.GITHUB.BASE_URL}gists/${(gistURL as string).split('/').pop()}`
         )
         const file = data.files[Object.keys(data.files)[0]]
         getTokenisedCode({
@@ -66,7 +66,7 @@ const CodeJam = () => {
         throw e
       }
     })()
-  }, [fragment])
+  }, [fragment?.configuration.properties])
 
   useEffect(() => {
     if (!data?.TokenisedCode) return
@@ -86,37 +86,40 @@ const CodeJam = () => {
     })
   }, [payload])
 
-  const controls = [
-    <ControlButton
-      key="nextToken"
-      icon={NextTokenIcon}
-      className="my-2"
-      appearance="primary"
-      onClick={() => {
-        updatePayload?.({
-          currentIndex: position.currentIndex + 1,
-          prevIndex: position.currentIndex,
-        })
-      }}
-    />,
-    <ControlButton
-      className="my-2"
-      key="nextLine"
-      icon={NextLineIcon}
-      appearance="primary"
-      onClick={() => {
-        const current = computedTokens.current[position.currentIndex]
-        let next = computedTokens.current.findIndex(
-          (t) => t.lineNumber > current.lineNumber
-        )
-        if (next === -1) next = computedTokens.current.length
-        updatePayload?.({
-          prevIndex: position.currentIndex,
-          currentIndex: next,
-        })
-      }}
-    />,
-  ]
+  const controls =
+    isHost && state === 'recording'
+      ? [
+          <ControlButton
+            key="nextToken"
+            icon={NextTokenIcon}
+            className="my-2"
+            appearance="primary"
+            onClick={() => {
+              updatePayload?.({
+                currentIndex: position.currentIndex + 1,
+                prevIndex: position.currentIndex,
+              })
+            }}
+          />,
+          <ControlButton
+            className="my-2"
+            key="nextLine"
+            icon={NextLineIcon}
+            appearance="primary"
+            onClick={() => {
+              const current = computedTokens.current[position.currentIndex]
+              let next = computedTokens.current.findIndex(
+                (t) => t.lineNumber > current.lineNumber
+              )
+              if (next === -1) next = computedTokens.current.length
+              updatePayload?.({
+                prevIndex: position.currentIndex,
+                currentIndex: next,
+              })
+            }}
+          />,
+        ]
+      : [<></>]
 
   const layerChildren = [
     <Group y={15} x={15} key="circleGroup">

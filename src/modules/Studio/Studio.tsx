@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { FiArrowLeft } from 'react-icons/fi'
 import { useHistory, useParams } from 'react-router-dom'
 import { useRecoilState, useRecoilValue } from 'recoil'
@@ -40,7 +40,7 @@ const Studio = () => {
 
   const [uploadFile] = useUploadFile()
 
-  const { stream, join, users, leave, ready, userAudios, tracks } =
+  const { stream, join, users, mute, leave, ready, userAudios, tracks } =
     useAgora(fragmentId)
 
   const [getRTCToken, { data: rtcData }] = useGetRtcTokenLazyQuery({
@@ -53,7 +53,7 @@ const Studio = () => {
     getRTCToken()
 
     return () => {
-      leave()
+      stream?.getTracks().forEach((track) => track.stop())
     }
   }, [])
 
@@ -142,7 +142,7 @@ const Studio = () => {
     try {
       const { uuid } = await uploadFile({
         extension: 'webm',
-        file: getBlobs(),
+        file: await getBlobs(),
         handleProgress: ({ percentage }) => {
           updateToast({
             id: toast,
@@ -185,10 +185,11 @@ const Studio = () => {
 
   const stop = () => {
     stopRecording()
+    stream?.getTracks().forEach((track) => track.stop())
     setState('preview')
   }
 
-  useEffect(() => {
+  useMemo(() => {
     if (!fragment || !stream) return
     setStudio({
       ...studio,
@@ -205,12 +206,17 @@ const Studio = () => {
       constraints: { audio: true, video: true },
       users,
       payload,
+      mute: (type: 'audio' | 'video') => mute(type),
       participants,
       updateParticipant,
       updatePayload,
       participantId: fragment?.participants.find(
         ({ participant }) => participant.userSub === sub
       )?.participant.id,
+      isHost:
+        fragment?.participants.find(
+          ({ participant }) => participant.userSub === sub
+        )?.participant.owner || false,
     })
   }, [
     fragment,
@@ -233,7 +239,7 @@ const Studio = () => {
 
   if (!fragment) return <EmptyState text="Fragment not found" width={400} />
 
-  const C = getEffect(fragment.type, fragment.configuration)
+  const C = getEffect(fragment.type)
 
   return (
     <div>
@@ -242,7 +248,10 @@ const Studio = () => {
           <div className="flex-1 flex flex-row items-center">
             <FiArrowLeft
               className="cursor-pointer mr-2"
-              onClick={() => history.goBack()}
+              onClick={() => {
+                stream?.getTracks().forEach((track) => track.stop())
+                history.goBack()
+              }}
             />
             <Heading className="font-semibold">{fragment.name}</Heading>
           </div>
@@ -254,9 +263,8 @@ const Studio = () => {
           >
             Update
           </button>
-          {/* <Timer target={10} timer={timer} /> */}
         </div>
-        <C config="" />
+        <C />
       </div>
     </div>
   )

@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react'
 import { useRecoilValue } from 'recoil'
 import Konva from 'konva'
-import { Image } from 'react-konva'
+import { Group, Image } from 'react-konva'
 import { FiPlay, FiPause } from 'react-icons/fi'
 import { Concourse } from '../components'
 import { ControlButton } from '../components/MissionControl'
 import { CONFIG } from '../components/Concourse'
 import { StudioProviderProps, studioStore } from '../stores'
+import { titleSplash } from './effects'
 
 // @ts-ignore
 const Video = ({ videoElement }: { videoElement: HTMLVideoElement }) => {
@@ -57,14 +58,16 @@ const VideoJam = () => {
   const { state, fragment, payload, updatePayload } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const videoElement = React.useMemo(() => {
-    if (!fragment?.configuration) return
+    if (!fragment?.configuration.properties) return
     const element = document.createElement('video')
     element.autoplay = false
     element.crossOrigin = 'anonymous'
-    element.src = JSON.parse(fragment?.configuration || {}).videoURL
+    element.src = fragment.configuration.properties.find(
+      (property: any) => property.key === 'source'
+    )?.value
     // eslint-disable-next-line consistent-return
     return element
-  }, [fragment?.configuration])
+  }, [fragment?.configuration.properties])
 
   useEffect(() => {
     if (!videoElement) return
@@ -97,20 +100,24 @@ const VideoJam = () => {
   }, [payload?.playing])
 
   const controls = [
-    <ControlButton
-      key="control"
-      icon={playing ? FiPause : FiPlay}
-      className="my-2"
-      appearance={playing ? 'danger' : 'primary'}
-      onClick={() => {
-        const next = !playing
+    state === 'ready' || state === 'recording' ? (
+      <ControlButton
+        key="control"
+        icon={playing ? FiPause : FiPlay}
+        className="my-2"
+        appearance={playing ? 'danger' : 'primary'}
+        onClick={() => {
+          const next = !playing
 
-        updatePayload?.({
-          playing: next,
-          currentTime: videoElement?.currentTime,
-        })
-      }}
-    />,
+          updatePayload?.({
+            playing: next,
+            currentTime: videoElement?.currentTime,
+          })
+        }}
+      />
+    ) : (
+      <></>
+    ),
   ]
 
   return videoElement ? (
@@ -118,7 +125,9 @@ const VideoJam = () => {
       layerChildren={[<Video videoElement={videoElement} />]}
       controls={controls}
     />
-  ) : null
+  ) : (
+    <></>
+  )
 }
 
 export default VideoJam

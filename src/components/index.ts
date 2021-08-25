@@ -22,6 +22,8 @@ import Loading from './Loading'
 import Radio from './Radio'
 import TabBar, { Tab } from './TabBar'
 import Tooltip from './Tooltip'
+import Checkbox from './Checkbox'
+import Photo from './Photo'
 
 export {
   Avatar,
@@ -50,6 +52,8 @@ export {
   Tooltip,
   updateToast,
   Radio,
+  Checkbox,
+  Photo,
 }
 
 export type { Tab }

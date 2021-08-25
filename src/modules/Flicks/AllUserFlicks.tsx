@@ -1,5 +1,5 @@
 import React from 'react'
-import { EmptyState, Heading, Text } from '../../components'
+import { EmptyState, Heading, Navbar, Text } from '../../components'
 import { useGetMyFlicksQuery } from '../../generated/graphql'
 
 const AllUserFlicks = () => {
@@ -7,11 +7,11 @@ const AllUserFlicks = () => {
 
   return (
     <div className="  flex flex-col w-full">
-      <div className="m-1 p-1 rounded-lg border-blue-400 border-2 w-auto">
-        <Text className="m-1 p-1  text-3xl text-black rounded-lg w-auto">
-          Flicks
-        </Text>
-      </div>
+      <Navbar />
+      <Text className="m-1 p-1  text-3xl text-black rounded-lg w-auto">
+        Flicks
+      </Text>
+
       <div className=" w-full grid grid-flow-row grid-cols-4">
         {!data && (
           <EmptyState

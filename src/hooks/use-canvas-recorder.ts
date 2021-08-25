@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { extension } from 'mime-types'
 import { saveAs } from 'file-saver'
+import { getSeekableWebM } from '../utils/helpers'
 
 const types = [
   'video/webm',
@@ -106,15 +107,19 @@ const useCanvasRecorder = ({
     } else console.log('Cannot stop canvas recorder', mediaRecorder?.state)
   }
 
-  const download = (fileName?: string) => {
-    const blob = getBlobs()
+  const download = async (fileName?: string) => {
+    const blob = await getBlobs()
     // eslint-disable-next-line no-param-reassign
     fileName = fileName || `${'recording.'}${extension(type as string)}`
     saveAs(blob, fileName)
   }
 
-  const getBlobs = () => {
+  const getBlobs = async () => {
     const superblob = new Blob(recordedBlobs, { type })
+    const arrayBuffer = await superblob.arrayBuffer()
+    if (arrayBuffer) {
+      return getSeekableWebM(arrayBuffer)
+    }
     return superblob
   }
 
