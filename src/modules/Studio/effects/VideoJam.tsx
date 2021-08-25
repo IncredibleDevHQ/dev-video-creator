@@ -63,6 +63,7 @@ const VideoJam = () => {
     if (!fragment?.configuration.properties) return
     const element = document.createElement('video')
     element.autoplay = false
+    element.controls = true
     element.crossOrigin = 'anonymous'
     element.src = fragment.configuration.properties.find(
       (property: any) => property.key === 'source'

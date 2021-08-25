@@ -19,6 +19,8 @@ export interface StudioProviderProps<T = any, S = any> {
 
   picture?: string
 
+  mute: (type: 'audio' | 'video') => Promise<void>
+
   constraints?: MediaStreamConstraints
   state: StudioState
 
