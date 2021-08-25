@@ -91,7 +91,7 @@ const VideoJam = () => {
       videoElement?.play()
     } else {
       // eslint-disable-next-line
-      if (videoElement) {
+      if (videoElement && payload) {
         videoElement.currentTime =
           typeof payload.currentTime === 'number' ? payload.currentTime : 0
         videoElement?.pause()
