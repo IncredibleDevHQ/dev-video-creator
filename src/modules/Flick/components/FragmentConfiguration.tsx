@@ -19,6 +19,7 @@ const FragmentConfiguration = ({
   const [isConfigured, setConfigured] = useState(false)
   const [updateFragment, { data, error, loading }] =
     useUpdateFragmentConfigurationMutation()
+  const [loadingAssets, setLoadingAssets] = useState<boolean>(false)
   const history = useHistory()
 
   useEffect(() => {
@@ -101,6 +102,7 @@ const FragmentConfiguration = ({
             setFieldValue={setFieldValue}
             handleChange={handleChange}
             value={values[attribute.key]}
+            setLoadingAssets={setLoadingAssets}
           />
         ))}
         {/* <Button
@@ -121,7 +123,8 @@ const FragmentConfiguration = ({
             e?.preventDefault()
             handleSubmit()
           }}
-          loading={loading}
+          disabled={loadingAssets}
+          loading={loadingAssets || loading}
         >
           Save Configuration
         </Button>
