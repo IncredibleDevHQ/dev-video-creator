@@ -2,48 +2,18 @@ import axios from 'axios'
 import React, { useEffect, useState } from 'react'
 import { Group, Circle } from 'react-konva'
 import { useRecoilValue } from 'recoil'
+import { Text } from 'react-konva'
 import { NextLineIcon, NextTokenIcon } from '../../../components'
 import { API } from '../../../constants'
 import { useGetTokenisedCodeLazyQuery } from '../../../generated/graphql'
 import { Concourse } from '../components'
 import { ControlButton } from '../components/MissionControl'
-import useCode from '../hooks/use-code'
+import useCode, { ComputedToken } from '../hooks/use-code'
 import { StudioProviderProps, studioStore } from '../stores'
 import TypingEffect from './TypingEffect'
 
 const codeTokens = [
   { content: '# simple hello world example', color: '#608B4E', lineNumber: 0 },
-  { content: 'greetings= ', color: '#D4D4D4', lineNumber: 1 },
-  { content: ' "Hello World"', color: '#CE9178', lineNumber: 1 },
-  { content: 'print', color: '#DCDCAA', lineNumber: 2 },
-  { content: '(', color: '#D4D4D4', lineNumber: 2 },
-  { content: '"Bot:"', color: '#CE9178', lineNumber: 2 },
-  { content: ' greetings)', color: '#D4D4D4', lineNumber: 2 },
-  { content: '# output', color: '#608B4E', lineNumber: 4 },
-  { content: '# Bot:Hello World', color: '#608B4E', lineNumber: 5 },
-  { content: '# Multiple print statements', color: '#608B4E', lineNumber: 7 },
-  { content: 'greetings1 = ', color: '#D4D4D4', lineNumber: 8 },
-  { content: ' "Hello World!"', color: '#CE9178', lineNumber: 8 },
-  { content: 'greetings2 = ', color: '#D4D4D4', lineNumber: 9 },
-  { content: ' "Nice to meet you."', color: '#CE9178', lineNumber: 9 },
-  { content: 'print', color: '#DCDCAA', lineNumber: 10 },
-  { content: '(', color: '#D4D4D4', lineNumber: 10 },
-  { content: '"Bot:"', color: '#CE9178', lineNumber: 10 },
-  { content: 'greetings1)', color: '#D4D4D4', lineNumber: 10 },
-  { content: 'print', color: '#DCDCAA', lineNumber: 11 },
-  { content: '(greetings2)', color: '#D4D4D4', lineNumber: 11 },
-  { content: 'print', color: '#DCDCAA', lineNumber: 12 },
-  { content: '(', color: '#D4D4D4', lineNumber: 12 },
-  { content: '"Bot:"', color: '#CE9178', lineNumber: 12 },
-  { content: 'greetings1, greetings2)', color: '#D4D4D4', lineNumber: 12 },
-  { content: '#output', color: '#608B4E', lineNumber: 14 },
-  { content: '# Bot: Hello World!', color: '#608B4E', lineNumber: 15 },
-  { content: '# Nice to meet you.', color: '#608B4E', lineNumber: 16 },
-  {
-    content: '# Bot: Hello World! Nice to meet you.',
-    color: '#608B4E',
-    lineNumber: 17,
-  },
 ]
 
 const codeConfig = {
@@ -53,13 +23,25 @@ const codeConfig = {
   height: 513,
 }
 
+interface Position {
+  prevIndex: number
+  currentIndex: number
+}
+interface TokenRenderState {
+  tokens: ComputedToken[]
+  index: number
+}
+
 const CodeJam = () => {
   const { fragment, payload, updatePayload } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const { initUseCode, computedTokens } = useCode()
   const [getTokenisedCode, { data, error, loading }] =
     useGetTokenisedCodeLazyQuery()
-  const [index, setIndex] = useState(0)
+  const [position, setPosition] = useState<Position>({
+    prevIndex: -1,
+    currentIndex: 0,
+  })
 
   useEffect(() => {
     if (!fragment) return
@@ -95,10 +77,14 @@ const CodeJam = () => {
       gutter: 5,
       fontSize: codeConfig.fontSize,
     })
+    console.log(computedTokens.current)
   }, [data])
 
   useEffect(() => {
-    setIndex(payload?.index || 0)
+    setPosition({
+      prevIndex: payload?.index || -1,
+      currentIndex: payload?.index ? payload.index : 0,
+    })
   }, [payload?.index])
 
   const controls = [
@@ -108,7 +94,11 @@ const CodeJam = () => {
       className="my-2"
       appearance="primary"
       onClick={() => {
-        updatePayload?.({ index: index + 1 })
+        // TODO updatePayload?.({ index: index.currentIndex + 1 })
+        setPosition((prev) => ({
+          currentIndex: prev.currentIndex + 1,
+          prevIndex: prev.currentIndex,
+        }))
       }}
     />,
     <ControlButton
@@ -117,12 +107,15 @@ const CodeJam = () => {
       icon={NextLineIcon}
       appearance="primary"
       onClick={() => {
-        const current = computedTokens.current[index]
+        const current = computedTokens.current[position.currentIndex]
         let next = computedTokens.current.findIndex(
           (t) => t.lineNumber > current.lineNumber
         )
         if (next === -1) next = computedTokens.current.length
-        setIndex(next)
+        setPosition((prev) => ({
+          prevIndex: prev.currentIndex,
+          currentIndex: next,
+        }))
       }}
     />,
   ]
@@ -134,16 +127,76 @@ const CodeJam = () => {
       <Circle key="greenCircle" x={28} y={0} fill="#00CA4E" radius={5} />
     </Group>,
     <Group y={30} x={20} key="group">
-      {computedTokens.current
-        .filter((token, i) => i < index && i >= token.startFromIndex)
-        .map((token) => {
-          return <TypingEffect token={token} />
-        })}
+      {getRenderedTokens(computedTokens.current, position)}
+      {computedTokens.current.length > 0 && (
+        <RenderTokens
+          key={position.prevIndex}
+          tokens={computedTokens.current}
+          startIndex={position.prevIndex}
+          endIndex={position.currentIndex}
+        />
+      )}
     </Group>,
   ]
 
   return <Concourse layerChildren={layerChildren} controls={controls} />
   //   return { controls, layerChildren }
+}
+
+const getRenderedTokens = (tokens: ComputedToken[], position: Position) => {
+  return tokens
+    .filter((token, i) => i < position.prevIndex && i >= token.startFromIndex)
+    .map((token, position) => {
+      return (
+        <Text
+          key="token"
+          fontSize={codeConfig.fontSize}
+          fill={token.color}
+          text={token.content}
+          x={token.x}
+          y={token.y}
+          align="left"
+        />
+      )
+    })
+}
+
+const RenderTokens = ({
+  tokens,
+  startIndex,
+  endIndex,
+}: {
+  tokens: ComputedToken[]
+  startIndex: number
+  endIndex: number
+}) => {
+  const tokenSegment = tokens.slice(startIndex, endIndex)
+
+  const [renderState, setRenderState] = useState<TokenRenderState>({
+    index: startIndex,
+    tokens: [tokens[startIndex]],
+  })
+
+  useEffect(() => {
+    if (renderState.index === endIndex - 1) return
+    const newToken = tokenSegment[renderState.index - startIndex + 1]
+    const prevToken = tokenSegment[renderState.index - startIndex]
+    setTimeout(() => {
+      setRenderState((prev) => ({
+        index: prev.index + 1,
+        tokens: [...prev.tokens, newToken],
+      }))
+    }, prevToken.content.length * 100)
+  }, [renderState])
+
+  return (
+    <Group>
+      {renderState.tokens.length > 0 &&
+        renderState.tokens.map((token, index) => {
+          return <TypingEffect key="type" token={token} />
+        })}
+    </Group>
+  )
 }
 
 export default CodeJam
