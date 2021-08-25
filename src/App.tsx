@@ -29,80 +29,74 @@ import {
 
 const App = () => {
   return (
-    <ErrorBoundary>
-      <RecoilRoot>
-        <AuthorizedApolloProvider>
-          <AuthProvider>
-            <>
-              <ToastContainer
-                position="bottom-right"
-                autoClose={5000}
-                newestOnTop
-                hideProgressBar
-                closeOnClick
-                draggable={false}
-                toastClassName="rounded-2xl shadow-lg"
-                closeButton={false}
-              />
-              <Router>
-                <Switch>
-                  <Route exact path="/">
-                    <Landing />
-                  </Route>
-                  <PrivateRoute exact path="/dashboard" component={Dashboard} />
-                  <PrivateRoute
-                    exact
-                    path="/organisations"
-                    component={Organisation}
-                  />
-                  <PrivateRoute exact path="/profile" component={Profile} />
-                  <PrivateRoute exact path="/new-flick" component={NewFlick} />
-                  <PrivateRoute
-                    exact
-                    path="/new-organisation"
-                    component={NewOrganisation}
-                  />
-                  <PrivateRoute exact path="/flick/:id" component={Flick} />
-                  <PrivateRoute exact path="/flicks" component={Flicks} />
-                  <PrivateRoute
-                    exact
-                    path="/:fragmentId/studio"
-                    component={Studio}
-                  />
-                  <PrivateRoute
-                    exact
-                    path="/profile/series"
-                    component={Series}
-                  />
-                  <PrivateRoute
-                    exact
-                    path="/series/:id"
-                    component={SingleSeries}
-                  />
-                  <PrivateRoute
-                    exact
-                    path="/profile/flicks"
-                    component={AllUserFlicks}
-                  />
-                  <PrivateRoute
-                    exact
-                    path="/profile/series/:id"
-                    component={UserSeriesFlicks}
-                  />
-                  <PrivateRoute exact path="/circle" component={Circle} />
-                  <Route exact path="/login">
-                    <AuthenticateScreen />
-                  </Route>
-                  <Route exact path="/signup">
-                    <AuthenticateScreen />
-                  </Route>
-                </Switch>
-              </Router>
-            </>
-          </AuthProvider>
-        </AuthorizedApolloProvider>
-      </RecoilRoot>
-    </ErrorBoundary>
+    <RecoilRoot>
+      <AuthorizedApolloProvider>
+        <AuthProvider>
+          <>
+            <ToastContainer
+              position="bottom-right"
+              autoClose={5000}
+              newestOnTop
+              hideProgressBar
+              closeOnClick
+              draggable={false}
+              toastClassName="rounded-2xl shadow-lg"
+              closeButton={false}
+            />
+            <Router>
+              <Switch>
+                <Route exact path="/">
+                  <Landing />
+                </Route>
+                <PrivateRoute exact path="/dashboard" component={Dashboard} />
+                <PrivateRoute
+                  exact
+                  path="/organisations"
+                  component={Organisation}
+                />
+                <PrivateRoute exact path="/profile" component={Profile} />
+                <PrivateRoute exact path="/new-flick" component={NewFlick} />
+                <PrivateRoute
+                  exact
+                  path="/new-organisation"
+                  component={NewOrganisation}
+                />
+                <PrivateRoute exact path="/flick/:id" component={Flick} />
+                <PrivateRoute exact path="/flicks" component={Flicks} />
+                <PrivateRoute
+                  exact
+                  path="/:fragmentId/studio"
+                  component={Studio}
+                />
+                <PrivateRoute exact path="/profile/series" component={Series} />
+                <PrivateRoute
+                  exact
+                  path="/series/:id"
+                  component={SingleSeries}
+                />
+                <PrivateRoute
+                  exact
+                  path="/profile/flicks"
+                  component={AllUserFlicks}
+                />
+                <PrivateRoute
+                  exact
+                  path="/profile/series/:id"
+                  component={UserSeriesFlicks}
+                />
+                <PrivateRoute exact path="/circle" component={Circle} />
+                <Route exact path="/login">
+                  <AuthenticateScreen />
+                </Route>
+                <Route exact path="/signup">
+                  <AuthenticateScreen />
+                </Route>
+              </Switch>
+            </Router>
+          </>
+        </AuthProvider>
+      </AuthorizedApolloProvider>
+    </RecoilRoot>
   )
 }
 
