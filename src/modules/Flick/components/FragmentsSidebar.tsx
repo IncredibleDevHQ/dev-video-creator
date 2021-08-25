@@ -38,7 +38,6 @@ const reorder = (
 
   return results.map((result, index) => ({ ...result, order: index }))
 }
-const { isHost } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
 const FragmentItem = ({
   fragment,
@@ -61,6 +60,7 @@ const FragmentItem = ({
     },
   })
   const isParticipant = !(data && data.Participant.length === 0) as boolean
+
   return (
     <div
       role="button"
@@ -173,6 +173,7 @@ const FragmentsSidebar = ({
   const [produceVideoMutation] = useProduceVideoMutation()
   const userData = (useRecoilValue(userState) as User) || {}
   const history = useHistory()
+  const { isHost } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   useEffect(() => {
     setFragmentItems(fragments)
