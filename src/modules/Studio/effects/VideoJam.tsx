@@ -119,14 +119,15 @@ const VideoJam = () => {
       <></>
     ),
   ]
-  let layerChildren = [<></>]
-  if (state === 'recording' && videoElement) {
-    layerChildren = [<Video videoElement={videoElement} />]
-  } else {
-    layerChildren = [<></>]
-  }
 
-  return <Concourse layerChildren={layerChildren} controls={controls} />
+  return videoElement ? (
+    <Concourse
+      layerChildren={[<Video videoElement={videoElement} />]}
+      controls={controls}
+    />
+  ) : (
+    <></>
+  )
 }
 
 export default VideoJam
