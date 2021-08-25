@@ -12,6 +12,7 @@ import { ScreenState } from '../../../components'
 
 const Splash = () => {
   const { sub } = (useRecoilValue(userState) as User) || {}
+  const [aspectRatio, setAspectRatio] = useState(1)
 
   const params: { fragmentId: string } = useParams()
 
@@ -28,6 +29,14 @@ const Splash = () => {
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const controls: any = []
+
+  useEffect(() => {
+    console.log('width', image?.width)
+    console.log('height', image?.height)
+    if (!image) return
+    setAspectRatio(image.width / image.height)
+    console.log(aspectRatio)
+  }, [image])
 
   useEffect(() => {
     if (state === 'recording') {
@@ -72,14 +81,21 @@ const Splash = () => {
           x={-200}
           y={-10}
           clipFunc={(ctx: any) => {
-            ctx.arc(80, 80, 80, 0, Math.PI * 2, true)
+            ctx.arc(
+              75,
+              75 / aspectRatio,
+              Math.min(75, 75 / aspectRatio),
+              0,
+              Math.PI * 2,
+              true
+            )
           }}
           scaleX={1}
           scaleY={1}
           draggable
           ref={(ref) => ref?.to({ x: 30, duration: 1 })}
         >
-          <Image image={image} width={160} height={160} />
+          <Image image={image} width={150} height={150 / aspectRatio} />
         </Group>
         <Text
           x={10}
