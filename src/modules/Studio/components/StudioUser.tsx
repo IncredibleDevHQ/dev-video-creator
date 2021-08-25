@@ -6,7 +6,15 @@ import useImage from 'use-image'
 import { useRecoilValue } from 'recoil'
 import { StudioProviderProps, studioStore } from '../stores'
 
-const StudioUser = ({ stream }: { stream: MediaStream | null }) => {
+const StudioUser = ({
+  stream,
+  x,
+  y,
+}: {
+  x: number
+  y: number
+  stream: MediaStream | null
+}) => {
   const imageConfig = { width: 160, height: 120 }
   const imageRef = useRef<Konva.Image | null>(null)
 
@@ -48,8 +56,8 @@ const StudioUser = ({ stream }: { stream: MediaStream | null }) => {
 
   return (
     <Group
-      x={760}
-      y={380}
+      x={x}
+      y={y}
       clipFunc={(ctx: any) => {
         ctx.arc(
           imageConfig.width / 2,
@@ -72,7 +80,11 @@ const StudioUser = ({ stream }: { stream: MediaStream | null }) => {
           height={imageConfig.height}
         />
       ) : (
-        <Image image={image} width={100} height={100} />
+        <Image
+          image={image}
+          width={imageConfig.width}
+          height={imageConfig.height}
+        />
       )}
     </Group>
   )

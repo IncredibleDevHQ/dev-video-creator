@@ -30,6 +30,8 @@ const Concourse = ({
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const stageRef = createRef<Konva.Stage>()
   const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
+  const initialPos = { x: 760, y: 380 }
+  const userStudioImageGap = 130
 
   const handleZoom = (e: KonvaEventObject<WheelEvent>) => {
     e.evt.preventDefault()
@@ -92,9 +94,15 @@ const Concourse = ({
 
                 {!disableUserMedia && (
                   <>
-                    <StudioUser stream={stream as MediaStream} />
-                    {users.map((user) => (
+                    <StudioUser
+                      x={initialPos.x}
+                      y={initialPos.y}
+                      stream={stream as MediaStream}
+                    />
+                    {users.map((user, index) => (
                       <StudioUser
+                        x={initialPos.x - (index + 1) * userStudioImageGap}
+                        y={initialPos.y}
                         key={user.uid}
                         stream={user.mediaStream as MediaStream}
                       />
