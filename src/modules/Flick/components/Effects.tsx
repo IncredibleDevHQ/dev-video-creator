@@ -15,9 +15,9 @@ export interface SchemaElementProps {
   editable: boolean
 }
 
-export const getSchemaElement = (
-  schema: SchemaElementProps,
-  handleChange: (e: React.ChangeEvent<any>) => void,
+interface GetSchemaElementProps {
+  schema: SchemaElementProps
+  handleChange: (e: React.ChangeEvent<any>) => void
   setFieldValue: (
     field: string,
     value: any,
@@ -28,9 +28,18 @@ export const getSchemaElement = (
         FormikErrors<{
           [key: string]: any
         }>
-      >,
+      >
   value: any
-) => {
+  setLoadingAssets: React.Dispatch<React.SetStateAction<boolean>>
+}
+
+export const GetSchemaElement = ({
+  schema,
+  handleChange,
+  setFieldValue,
+  value,
+  setLoadingAssets,
+}: GetSchemaElementProps) => {
   switch (schema.type) {
     case 'boolean':
       return (
@@ -88,12 +97,12 @@ export const getSchemaElement = (
 
       const handleClick = async (file: File) => {
         if (!file) return
-
+        setLoadingAssets(true)
         const pic = await uploadFile({
           extension: file.name.split('.')[1] as any,
           file,
         })
-
+        setLoadingAssets(false)
         setPicture(pic.url)
 
         const event = new Event('input', { bubbles: true })
@@ -114,13 +123,14 @@ export const getSchemaElement = (
               e.target.files?.[0] && handleClick(e.target.files[0])
             }
           />
-          {picture && (
-            <img
-              className="h-32 m-4 object-contain"
-              src={picture}
-              alt={value}
-            />
-          )}
+          {picture ||
+            (value && (
+              <img
+                className="h-32 m-4 object-contain"
+                src={picture || value}
+                alt={value}
+              />
+            ))}
         </>
       )
 

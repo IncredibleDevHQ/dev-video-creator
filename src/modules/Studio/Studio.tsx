@@ -267,7 +267,7 @@ const Studio = () => {
           </button>
           {/* <Timer target={10} timer={timer} /> */}
         </div>
-        <C config="" />
+        <C />
       </div>
     </div>
   )
