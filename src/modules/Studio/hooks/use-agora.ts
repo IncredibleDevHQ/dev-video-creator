@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { ClientConfig, IAgoraRTCRemoteUser } from 'agora-rtc-sdk-ng'
 import { createClient, createMicrophoneAndCameraTracks } from 'agora-rtc-react'
+import { useRecoilState } from 'recoil'
 import config from '../../../config'
+import { studioStore } from '../stores'
 
 const videoConfig: ClientConfig = {
   mode: 'rtc',
@@ -21,7 +23,7 @@ export default function useAgora(channel: string) {
   const client = useClient()
   const [users, setUsers] = useState<RTCUser[]>([])
   const [stream, setStream] = useState<MediaStream>()
-
+  const [studio, setStudio] = useRecoilState(studioStore)
   const [userAudios, setUserAudios] = useState<MediaStream[]>([])
 
   const { ready, tracks } = useMicrophoneAndCameraTracks()
@@ -108,6 +110,37 @@ export default function useAgora(channel: string) {
     }
   }
 
+  const mute = async (type: 'audio' | 'video') => {
+    const { constraints } = studio
+    console.log({ constraints })
+    if (type === 'audio') {
+      const newValue = !constraints?.audio
+      console.log('newValue', newValue)
+      await tracks?.[0].setEnabled(newValue)
+      setStudio((studio) => {
+        return {
+          ...studio,
+          constraints: {
+            ...studio.constraints,
+            audio: newValue,
+          },
+        }
+      })
+    } else if (type === 'video') {
+      const newValue = !constraints?.video
+      await tracks?.[1].setEnabled(newValue)
+      setStudio((studio) => {
+        return {
+          ...studio,
+          constraints: {
+            ...studio.constraints,
+            video: newValue,
+          },
+        }
+      })
+    }
+  }
+
   const leave = async () => {
     try {
       tracks?.forEach((track) => track.stop())
@@ -123,6 +156,7 @@ export default function useAgora(channel: string) {
     users,
     join,
     leave,
+    mute,
     tracks,
     stream,
     userAudios,

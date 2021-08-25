@@ -1,7 +1,7 @@
 /* eslint-disable no-restricted-syntax */
 /* eslint-disable guard-for-in */
 import { cx } from '@emotion/css'
-import React, { HTMLProps, useEffect, useState } from 'react'
+import React, { HTMLAttributes, useEffect, useState } from 'react'
 import { IconType } from 'react-icons'
 import {
   FiMic,
@@ -24,14 +24,17 @@ export const ControlButton = ({
   appearance,
   className,
   icon: I,
+  disabled,
   ...rest
 }: {
   appearance: 'primary' | 'danger' | 'success'
   icon: IconType
-} & HTMLProps<HTMLButtonElement>) => {
+  disabled?: boolean
+} & HTMLAttributes<HTMLButtonElement>) => {
   return (
     <button
       type="button"
+      disabled={disabled}
       className={cx(
         'p-2 rounded-full flex items-center justify-center',
         {
@@ -98,6 +101,7 @@ const MissionControl = ({
     upload,
     reset,
     state,
+    mute,
     participants,
     updateParticipant,
     participantId,
@@ -181,13 +185,21 @@ const MissionControl = ({
             icon={constraints?.audio ? FiMic : FiMicOff}
             className="my-2"
             appearance={constraints?.audio ? 'primary' : 'danger'}
-            onClick={() => {}}
+            disabled
+            onClick={async () => {
+              updateParticipant?.({ audio: !constraints?.audio })
+              await mute('audio')
+            }}
           />
           <ControlButton
             icon={constraints?.video ? FiVideo : FiVideoOff}
             className="my-2"
             appearance={constraints?.video ? 'primary' : 'danger'}
-            onClick={() => {}}
+            disabled
+            onClick={async () => {
+              updateParticipant?.({ video: !constraints?.video })
+              await mute('video')
+            }}
           />
 
           <hr className="bg-grey-darker h-px my-2" />
@@ -242,6 +254,10 @@ const MissionControl = ({
       </div>
     </div>
   )
+}
+
+ControlButton.defaultProps = {
+  disabled: false,
 }
 
 export default MissionControl

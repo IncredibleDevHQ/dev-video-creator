@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { FiArrowLeft } from 'react-icons/fi'
 import { useHistory, useParams } from 'react-router-dom'
 import { useRecoilState, useRecoilValue } from 'recoil'
@@ -40,7 +40,7 @@ const Studio = () => {
 
   const [uploadFile] = useUploadFile()
 
-  const { stream, join, users, leave, ready, userAudios, tracks } =
+  const { stream, join, users, mute, leave, ready, userAudios, tracks } =
     useAgora(fragmentId)
 
   const [getRTCToken, { data: rtcData }] = useGetRtcTokenLazyQuery({
@@ -192,7 +192,7 @@ const Studio = () => {
     setState('preview')
   }
 
-  useEffect(() => {
+  useMemo(() => {
     if (!fragment || !stream) return
     setStudio({
       ...studio,
@@ -209,6 +209,7 @@ const Studio = () => {
       constraints: { audio: true, video: true },
       users,
       payload,
+      mute: (type: 'audio' | 'video') => mute(type),
       participants,
       updateParticipant,
       updatePayload,
