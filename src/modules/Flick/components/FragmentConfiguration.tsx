@@ -31,6 +31,11 @@ const FragmentConfiguration = ({
     if (config) {
       setConfigured(true)
     }
+    const object: { [key: string]: any } = {}
+    config?.forEach((code) => {
+      object[code.key] = code.value || ''
+    })
+    setInitial(object)
   }, [config])
 
   useEffect(() => {
@@ -47,15 +52,6 @@ const FragmentConfiguration = ({
     )
 
   if (!fragment) return <EmptyState text="No fragment Selected" width={400} />
-
-  useEffect(() => {
-    const object: { [key: string]: any } = {}
-
-    config?.forEach((code) => {
-      object[code.key] = code.value
-    })
-    setInitial(object)
-  }, [config])
 
   const {
     handleChange,

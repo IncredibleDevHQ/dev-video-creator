@@ -131,7 +131,7 @@ const VideoJam = () => {
         height={(CONFIG.width * 9) / 16}
         ref={(ref) =>
           ref?.to({
-            duration: 2,
+            duration: 3,
             onFinish: () => {
               setisSplash(false)
             },

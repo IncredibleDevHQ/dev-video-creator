@@ -143,7 +143,7 @@ const CodeJam = () => {
         height={codeConfig.height}
         ref={(ref) =>
           ref?.to({
-            duration: 2,
+            duration: 3,
             onFinish: () => {
               setisSplash(false)
             },
