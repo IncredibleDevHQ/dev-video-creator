@@ -242,7 +242,7 @@ const FragmentsSidebar = ({
         <Text>No Fragments</Text>
       )}
 
-      {isHost && fragmentItems.length > 0 && (
+      {fragmentItems.length > 0 && (
         <Button
           className="mt-auto"
           type="button"
