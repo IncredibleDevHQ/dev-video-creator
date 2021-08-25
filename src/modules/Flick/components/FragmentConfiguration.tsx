@@ -11,7 +11,9 @@ import TemplateMarket from '../../TemplateMarket/TemplateMarket'
 
 const FragmentConfiguration = ({
   fragment,
+  handleRefetch,
 }: {
+  handleRefetch: (refresh?: boolean) => void
   fragment?: FlickFragmentFragment
 }) => {
   const [config, setConfig] = useState<SchemaElementProps[]>()
@@ -53,6 +55,32 @@ const FragmentConfiguration = ({
 
   if (!fragment) return <EmptyState text="No fragment Selected" width={400} />
 
+  const handleOnSubmit = async (values: { [key: string]: any }) => {
+    if (!isValid) return
+    try {
+      setSubmitting(true)
+
+      await updateFragment({
+        variables: {
+          fragmentId: fragment?.id,
+          items: Object.entries(values).map((entry) => ({
+            key: entry[0],
+            value: entry[1],
+          })),
+        },
+      })
+      handleRefetch(true)
+    } catch (error: any) {
+      emitToast({
+        title: 'Something went wrong.',
+        description: error.message,
+        type: 'error',
+      })
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   const {
     handleChange,
     handleSubmit,
@@ -63,30 +91,7 @@ const FragmentConfiguration = ({
   } = useFormik({
     enableReinitialize: true,
     initialValues: initial,
-    onSubmit: async (values) => {
-      if (!isValid) return
-      try {
-        setSubmitting(true)
-
-        updateFragment({
-          variables: {
-            fragmentId: fragment?.id,
-            items: Object.entries(values).map((entry) => ({
-              key: entry[0],
-              value: entry[1],
-            })),
-          },
-        })
-      } catch (error: any) {
-        emitToast({
-          title: 'Something went wrong.',
-          description: error.message,
-          type: 'error',
-        })
-      } finally {
-        setSubmitting(false)
-      }
-    },
+    onSubmit: handleOnSubmit,
   })
 
   return (

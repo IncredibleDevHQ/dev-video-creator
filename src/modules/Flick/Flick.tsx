@@ -90,6 +90,9 @@ const Flick = () => {
                 fragment={flick.fragments.find(
                   (fragment) => fragment.id === activeFragmentId
                 )}
+                handleRefetch={(refresh) => {
+                  if (refresh) refetch()
+                }}
               />
             )}
             {currentTab.value === 'Activity' && (
