@@ -1,5 +1,4 @@
 import axios from 'axios'
-import { Contrast } from 'konva/lib/filters/Contrast'
 import React, { useEffect, useState } from 'react'
 import { Group, Circle, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
@@ -12,13 +11,8 @@ import useCode, { ComputedToken } from '../hooks/use-code'
 import { StudioProviderProps, studioStore } from '../stores'
 import TypingEffect from './TypingEffect'
 
-const codeTokens = [
-  { content: '# simple hello world example', color: '#608B4E', lineNumber: 0 },
-]
-
 const codeConfig = {
-  fontSize: 20,
-  fontFamily: "'Fira Mono'",
+  fontSize: 14,
   width: 912,
   height: 513,
 }
@@ -71,7 +65,7 @@ const CodeJam = () => {
   useEffect(() => {
     if (!data?.TokenisedCode) return
     initUseCode({
-      tokens: data.TokenisedCode.data || codeTokens,
+      tokens: data.TokenisedCode.data,
       canvasWidth: 900,
       canvasHeight: 460,
       gutter: 5,
@@ -201,7 +195,7 @@ const RenderTokens = ({
       {renderState.tokens.length > 0 &&
         renderState.tokens.map((token, index) => {
           // eslint-disable-next-line
-          return <TypingEffect key={index} token={token} />
+          return <TypingEffect config={codeConfig} key={index} token={token} />
         })}
     </Group>
   )
