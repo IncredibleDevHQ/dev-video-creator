@@ -11,6 +11,7 @@ import {
   updateToast,
 } from '../../components'
 import {
+  Fragment_Status_Enum_Enum,
   StudioFragmentFragment,
   useGetFragmentByIdQuery,
   useGetRtcTokenLazyQuery,
@@ -29,6 +30,8 @@ const Studio = () => {
   const [studio, setStudio] = useRecoilState(studioStore)
   const { sub, picture } = (useRecoilValue(userState) as User) || {}
   const [fragment, setFragment] = useState<StudioFragmentFragment>()
+
+  const [isHost, setIsHost] = useState(false)
 
   const history = useHistory()
 
@@ -88,6 +91,11 @@ const Studio = () => {
   useEffect(() => {
     if (fragment) {
       init()
+      setIsHost(
+        fragment?.participants.find(
+          ({ participant }) => participant.userSub === sub
+        )?.participant.owner || false
+      )
     }
   }, [fragment])
 
@@ -189,6 +197,17 @@ const Studio = () => {
     setState('preview')
   }
 
+  useEffect(() => {
+    if (!isHost && payload?.status === Fragment_Status_Enum_Enum.Completed) {
+      history.goBack()
+      emitToast({
+        title: 'This Fragment is completed.',
+        type: 'success',
+        autoClose: 3000,
+      })
+    }
+  }, [payload, isHost])
+
   useMemo(() => {
     if (!fragment || !stream) return
     setStudio({
@@ -213,10 +232,7 @@ const Studio = () => {
       participantId: fragment?.participants.find(
         ({ participant }) => participant.userSub === sub
       )?.participant.id,
-      isHost:
-        fragment?.participants.find(
-          ({ participant }) => participant.userSub === sub
-        )?.participant.owner || false,
+      isHost,
     })
   }, [
     fragment,
@@ -227,6 +243,7 @@ const Studio = () => {
     payload,
     participants,
     payload,
+    isHost,
   ])
 
   /**

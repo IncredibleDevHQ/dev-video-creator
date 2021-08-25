@@ -19,6 +19,7 @@ import { useRecoilValue } from 'recoil'
 import { IoHandRightOutline } from 'react-icons/io5'
 import { StudioProviderProps, studioStore } from '../stores'
 import { Avatar, Heading, Tooltip } from '../../../components'
+import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
 
 export const ControlButton = ({
   appearance,
@@ -104,6 +105,7 @@ const MissionControl = ({
     mute,
     participants,
     updateParticipant,
+    updatePayload,
     participantId,
     isHost,
     payload,
@@ -213,6 +215,7 @@ const MissionControl = ({
                   onClick={() => {
                     stopRecording()
                     payload.playing = false
+                    updatePayload?.({ status: Fragment_Status_Enum_Enum.Ended })
                   }}
                 />
               )}
@@ -225,6 +228,9 @@ const MissionControl = ({
                     appearance="danger"
                     onClick={() => {
                       reset()
+                      updatePayload?.({
+                        status: Fragment_Status_Enum_Enum.NotStarted,
+                      })
                     }}
                   />
                   <ControlButton
@@ -233,6 +239,9 @@ const MissionControl = ({
                     appearance="success"
                     onClick={() => {
                       upload()
+                      updatePayload?.({
+                        status: Fragment_Status_Enum_Enum.Completed,
+                      })
                     }}
                   />
                 </>
@@ -245,6 +254,7 @@ const MissionControl = ({
                   appearance="primary"
                   onClick={() => {
                     startRecording()
+                    updatePayload?.({ status: Fragment_Status_Enum_Enum.Live })
                   }}
                 />
               )}
