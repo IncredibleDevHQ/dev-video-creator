@@ -9,6 +9,7 @@ import {
   Heading,
   ScreenState,
   updateToast,
+  Text,
 } from '../../components'
 import {
   Fragment_Status_Enum_Enum,
@@ -199,6 +200,7 @@ const Studio = () => {
 
   useEffect(() => {
     if (!isHost && payload?.status === Fragment_Status_Enum_Enum.Completed) {
+      stream?.getTracks().forEach((track) => track.stop())
       history.goBack()
       emitToast({
         title: 'This Fragment is completed.',
@@ -272,14 +274,15 @@ const Studio = () => {
             />
             <Heading className="font-semibold">{fragment.name}</Heading>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              updatePayload({ done: true })
-            }}
-          >
-            Update
-          </button>
+          {payload?.status === Fragment_Status_Enum_Enum.Live ? (
+            <div className="flex px-2 py-1 rounded-sm bg-error-10 animate-pulse">
+              <Text className="text-sm text-error font-semibold">
+                Recording
+              </Text>
+            </div>
+          ) : (
+            <></>
+          )}
         </div>
         <C />
       </div>
