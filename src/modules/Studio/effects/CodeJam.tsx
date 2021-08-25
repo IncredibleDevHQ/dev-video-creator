@@ -77,15 +77,14 @@ const CodeJam = () => {
       gutter: 5,
       fontSize: codeConfig.fontSize,
     })
-    console.log(computedTokens.current)
   }, [data])
 
   useEffect(() => {
     setPosition({
-      prevIndex: payload?.prevIndex || -1,
-      currentIndex: payload?.currentIndex ? payload.currentIndex : 0,
+      prevIndex: payload?.prevIndex || 0,
+      currentIndex: payload?.currentIndex || 1,
     })
-  }, [payload?.currentIndex])
+  }, [payload])
 
   const controls = [
     <ControlButton
@@ -98,10 +97,6 @@ const CodeJam = () => {
           currentIndex: position.currentIndex + 1,
           prevIndex: position.currentIndex,
         })
-        setPosition((prev) => ({
-          currentIndex: prev.currentIndex + 1,
-          prevIndex: prev.currentIndex,
-        }))
       }}
     />,
     <ControlButton
@@ -119,10 +114,6 @@ const CodeJam = () => {
           prevIndex: position.currentIndex,
           currentIndex: next,
         })
-        setPosition((prev) => ({
-          prevIndex: prev.currentIndex,
-          currentIndex: next,
-        }))
       }}
     />,
   ]
@@ -147,16 +138,22 @@ const CodeJam = () => {
   ]
 
   return <Concourse layerChildren={layerChildren} controls={controls} />
-  //   return { controls, layerChildren }
 }
 
 const getRenderedTokens = (tokens: ComputedToken[], position: Position) => {
+  const startFromIndex = Math.max(
+    ...tokens
+      .filter((_, i) => i <= position.prevIndex)
+      .map((token) => token.startFromIndex)
+  )
+
   return tokens
-    .filter((token, i) => i < position.prevIndex && i >= token.startFromIndex)
-    .map((token, position) => {
+    .filter((_, i) => i < position.prevIndex && i >= startFromIndex)
+    .map((token, index) => {
       return (
         <Text
-          key="token"
+          // eslint-disable-next-line
+          key={index}
           fontSize={codeConfig.fontSize}
           fill={token.color}
           text={token.content}
@@ -200,7 +197,8 @@ const RenderTokens = ({
     <Group>
       {renderState.tokens.length > 0 &&
         renderState.tokens.map((token, index) => {
-          return <TypingEffect key="type" token={token} />
+          // eslint-disable-next-line
+          return <TypingEffect key={index} token={token} />
         })}
     </Group>
   )
