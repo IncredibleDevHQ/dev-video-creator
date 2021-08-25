@@ -18,14 +18,11 @@ const ScreenState = ({
 }) => {
   return (
     <div className="z-10 p-4 flex flex-col items-center justify-center fixed w-screen left-0 top-0 min-h-screen">
-      {!loading ? (
-        <img src={logo} className="w-24 mb-6" alt="Logo" />
-      ) : (
-        <Loader className="mb-4 text-brand" size={64} />
-      )}
-      <h2 className="text-center">{title}</h2>
+      <img src={logo} className="w-24 mb-6 animate-bounce" alt="Logo" />
+
+      <h2 className="text-center text-4xl font-extrabold">{title}</h2>
       {subtitle && (
-        <h4 color="gray-400" className="mt-2 text-center">
+        <h4 color="gray-400" className="mt-3 text-xl text-center">
           {subtitle}
         </h4>
       )}
