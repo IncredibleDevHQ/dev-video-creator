@@ -86,7 +86,7 @@ const ParticipantsTab = ({
     getParticipants(fragmentParticipants)
   }
   const toggleCardSelection = (id: Participant['id']) => {
-    if (!fragmentparticipants?.includes(id) || newParticipants === []) {
+    if (!fragmentparticipants?.includes(id) || newParticipants.length < 1) {
       setNewParticipants([...newParticipants, id])
       setFragmentparticipants([...fragmentparticipants, id])
     }
