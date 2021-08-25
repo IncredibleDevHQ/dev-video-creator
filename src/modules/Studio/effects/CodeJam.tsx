@@ -82,10 +82,10 @@ const CodeJam = () => {
 
   useEffect(() => {
     setPosition({
-      prevIndex: payload?.index || -1,
-      currentIndex: payload?.index ? payload.index : 0,
+      prevIndex: payload?.prevIndex || -1,
+      currentIndex: payload?.currentIndex ? payload.currentIndex : 0,
     })
-  }, [payload?.index])
+  }, [payload?.currentIndex])
 
   const controls = [
     <ControlButton
@@ -94,7 +94,10 @@ const CodeJam = () => {
       className="my-2"
       appearance="primary"
       onClick={() => {
-        // TODO updatePayload?.({ index: index.currentIndex + 1 })
+        updatePayload?.({
+          currentIndex: position.currentIndex + 1,
+          prevIndex: position.currentIndex,
+        })
         setPosition((prev) => ({
           currentIndex: prev.currentIndex + 1,
           prevIndex: prev.currentIndex,
@@ -112,6 +115,10 @@ const CodeJam = () => {
           (t) => t.lineNumber > current.lineNumber
         )
         if (next === -1) next = computedTokens.current.length
+        updatePayload?.({
+          prevIndex: position.currentIndex,
+          currentIndex: next,
+        })
         setPosition((prev) => ({
           prevIndex: prev.currentIndex,
           currentIndex: next,
