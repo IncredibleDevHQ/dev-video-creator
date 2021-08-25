@@ -55,15 +55,12 @@ const Video = ({ videoElement }: { videoElement: HTMLVideoElement }) => {
 }
 
 const VideoJam = () => {
-  const [isSplash, setisSplash] = useState<boolean>(true)
-
   const { state, fragment, payload, updatePayload } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const videoElement = React.useMemo(() => {
     if (!fragment?.configuration.properties) return
     const element = document.createElement('video')
     element.autoplay = false
-    element.controls = true
     element.crossOrigin = 'anonymous'
     element.src = fragment.configuration.properties.find(
       (property: any) => property.key === 'source'
@@ -123,38 +120,13 @@ const VideoJam = () => {
     ),
   ]
   let layerChildren = [<></>]
-  if (state === 'recording' && isSplash) {
-    layerChildren = [
-      <Group
-        x={0}
-        y={0}
-        width={CONFIG.width}
-        height={(CONFIG.width * 9) / 16}
-        ref={(ref) =>
-          ref?.to({
-            duration: 3,
-            onFinish: () => {
-              setisSplash(false)
-            },
-          })
-        }
-      >
-        {titleSplash(fragment?.name as string)}
-      </Group>,
-    ]
-  } else if (state === 'recording' && videoElement) {
+  if (state === 'recording' && videoElement) {
     layerChildren = [<Video videoElement={videoElement} />]
   } else {
     layerChildren = [<></>]
   }
 
-  return (
-    <Concourse
-      layerChildren={layerChildren}
-      controls={controls}
-      disableUserMedia={isSplash}
-    />
-  )
+  return <Concourse layerChildren={layerChildren} controls={controls} />
 }
 
 export default VideoJam

@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { Contrast } from 'konva/lib/filters/Contrast'
 import React, { useEffect, useState } from 'react'
 import { Group, Rect, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
@@ -55,7 +56,6 @@ const codeConfig = {
 }
 
 const CodeJam = () => {
-  const [isSplash, setisSplash] = useState<boolean>(true)
   const { fragment, payload, updatePayload, state, isHost } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const { initUseCode, computedTokens } = useCode()
@@ -133,52 +133,24 @@ const CodeJam = () => {
         ]
       : [<></>]
 
-  let layerChildren = [<></>]
-  if (state === 'recording' && isSplash) {
-    layerChildren = [
-      <Group
-        x={0}
-        y={0}
-        width={codeConfig.width}
-        height={codeConfig.height}
-        ref={(ref) =>
-          ref?.to({
-            duration: 3,
-            onFinish: () => {
-              setisSplash(false)
-            },
-          })
-        }
-      >
-        {titleSplash(fragment?.name as string)}
-      </Group>,
-    ]
-  } else if (state === 'recording') {
-    layerChildren = [
-      <Group y={20} x={20} key="group">
-        {computedTokens.current
-          .filter((_, i) => i < index)
-          .map((token) => (
-            <Text
-              fontSize={codeConfig.fontSize}
-              fill={token.color}
-              text={token.content}
-              x={token.x}
-              y={token.y}
-              align="left"
-            />
-          ))}
-      </Group>,
-    ]
-  }
+  const layerChildren = [
+    <Group y={20} x={20} key="group">
+      {computedTokens.current
+        .filter((_, i) => i < index)
+        .map((token) => (
+          <Text
+            fontSize={codeConfig.fontSize}
+            fill={token.color}
+            text={token.content}
+            x={token.x}
+            y={token.y}
+            align="left"
+          />
+        ))}
+    </Group>,
+  ]
 
-  return (
-    <Concourse
-      layerChildren={layerChildren}
-      controls={controls}
-      disableUserMedia={isSplash}
-    />
-  )
+  return <Concourse layerChildren={layerChildren} controls={controls} />
   //   return { controls, layerChildren }
 }
 
