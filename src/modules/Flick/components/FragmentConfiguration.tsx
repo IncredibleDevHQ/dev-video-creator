@@ -11,7 +11,9 @@ import TemplateMarket from '../../TemplateMarket/TemplateMarket'
 
 const FragmentConfiguration = ({
   fragment,
+  handleRefetch,
 }: {
+  handleRefetch: (refresh?: boolean) => void
   fragment?: FlickFragmentFragment
 }) => {
   const [config, setConfig] = useState<SchemaElementProps[]>()
@@ -19,6 +21,7 @@ const FragmentConfiguration = ({
   const [isConfigured, setConfigured] = useState(false)
   const [updateFragment, { data, error, loading }] =
     useUpdateFragmentConfigurationMutation()
+  const [loadingAssets, setLoadingAssets] = useState<boolean>(false)
   const history = useHistory()
 
   useEffect(() => {
@@ -30,6 +33,11 @@ const FragmentConfiguration = ({
     if (config) {
       setConfigured(true)
     }
+    const object: { [key: string]: any } = {}
+    config?.forEach((code) => {
+      object[code.key] = code.value || ''
+    })
+    setInitial(object)
   }, [config])
 
   useEffect(() => {
@@ -47,14 +55,31 @@ const FragmentConfiguration = ({
 
   if (!fragment) return <EmptyState text="No fragment Selected" width={400} />
 
-  useEffect(() => {
-    const object: { [key: string]: any } = {}
+  const handleOnSubmit = async (values: { [key: string]: any }) => {
+    if (!isValid) return
+    try {
+      setSubmitting(true)
 
-    config?.forEach((code) => {
-      object[code.key] = code.value
-    })
-    setInitial(object)
-  }, [config])
+      await updateFragment({
+        variables: {
+          fragmentId: fragment?.id,
+          items: Object.entries(values).map((entry) => ({
+            key: entry[0],
+            value: entry[1],
+          })),
+        },
+      })
+      handleRefetch(true)
+    } catch (error: any) {
+      emitToast({
+        title: 'Something went wrong.',
+        description: error.message,
+        type: 'error',
+      })
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   const {
     handleChange,
@@ -66,30 +91,7 @@ const FragmentConfiguration = ({
   } = useFormik({
     enableReinitialize: true,
     initialValues: initial,
-    onSubmit: async (values) => {
-      if (!isValid) return
-      try {
-        setSubmitting(true)
-
-        updateFragment({
-          variables: {
-            fragmentId: fragment?.id,
-            items: Object.entries(values).map((entry) => ({
-              key: entry[0],
-              value: entry[1],
-            })),
-          },
-        })
-      } catch (error: any) {
-        emitToast({
-          title: 'Something went wrong.',
-          description: error.message,
-          type: 'error',
-        })
-      } finally {
-        setSubmitting(false)
-      }
-    },
+    onSubmit: handleOnSubmit,
   })
 
   return (
@@ -101,6 +103,7 @@ const FragmentConfiguration = ({
             setFieldValue={setFieldValue}
             handleChange={handleChange}
             value={values[attribute.key]}
+            setLoadingAssets={setLoadingAssets}
           />
         ))}
         {/* <Button
@@ -121,7 +124,8 @@ const FragmentConfiguration = ({
             e?.preventDefault()
             handleSubmit()
           }}
-          loading={loading}
+          disabled={loadingAssets}
+          loading={loadingAssets || loading}
         >
           Save Configuration
         </Button>

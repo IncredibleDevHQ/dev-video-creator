@@ -30,6 +30,7 @@ interface GetSchemaElementProps {
         }>
       >
   value: any
+  setLoadingAssets: React.Dispatch<React.SetStateAction<boolean>>
 }
 
 export const GetSchemaElement = ({
@@ -37,6 +38,7 @@ export const GetSchemaElement = ({
   handleChange,
   setFieldValue,
   value,
+  setLoadingAssets,
 }: GetSchemaElementProps) => {
   switch (schema.type) {
     case 'boolean':
@@ -95,12 +97,12 @@ export const GetSchemaElement = ({
 
       const handleClick = async (file: File) => {
         if (!file) return
-
+        setLoadingAssets(true)
         const pic = await uploadFile({
           extension: file.name.split('.')[1] as any,
           file,
         })
-
+        setLoadingAssets(false)
         setPicture(pic.url)
 
         const event = new Event('input', { bubbles: true })
