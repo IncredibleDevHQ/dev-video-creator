@@ -14,7 +14,7 @@ const defaultOptions = {
 const EmptyState = ({ width, text }: { width: number; text: string }) => {
   return (
     <div className="flex h-full justify-center items-center flex-col">
-      <h2 className="font-black text-3xl">Nothing selected. 🙈</h2>
+      {/* <h2 className="font-black text-3xl">Nothing selected. 🙈</h2> */}
       <Lottie
         width={width}
         options={defaultOptions}

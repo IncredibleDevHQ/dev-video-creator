@@ -1,14 +1,16 @@
 import axios from 'axios'
 import React, { useEffect, useState } from 'react'
-import { Group, Text } from 'react-konva'
+import { Group, Rect, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import { NextLineIcon, NextTokenIcon } from '../../../components'
+import config from '../../../config'
 import { API } from '../../../constants'
 import { useGetTokenisedCodeLazyQuery } from '../../../generated/graphql'
 import { Concourse } from '../components'
 import { ControlButton } from '../components/MissionControl'
 import useCode from '../hooks/use-code'
 import { StudioProviderProps, studioStore } from '../stores'
+import { titleSplash } from './effects'
 
 const codeTokens = [
   { content: '# simple hello world example', color: '#608B4E', lineNumber: 0 },
@@ -53,7 +55,8 @@ const codeConfig = {
 }
 
 const CodeJam = () => {
-  const { fragment, payload, updatePayload } =
+  const [isSplash, setisSplash] = useState<boolean>(true)
+  const { fragment, payload, updatePayload, state, isHost } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const { initUseCode, computedTokens } = useCode()
   const [getTokenisedCode, { data, error, loading }] =
@@ -64,7 +67,7 @@ const CodeJam = () => {
     if (!fragment?.configuration.properties) return
     const gistURL = fragment.configuration.properties.find(
       (property: any) => property.key === 'gistUrl'
-    ).value
+    )?.value
     if (!gistURL) throw new Error('Missing gist URL')
     ;(async () => {
       try {
@@ -100,51 +103,82 @@ const CodeJam = () => {
     setIndex(payload?.index || 0)
   }, [payload?.index])
 
-  const controls = [
-    <ControlButton
-      key="nextToken"
-      icon={NextTokenIcon}
-      className="my-2"
-      appearance="primary"
-      onClick={() => {
-        updatePayload?.({ index: index + 1 })
-      }}
-    />,
-    <ControlButton
-      className="my-2"
-      key="nextLine"
-      icon={NextLineIcon}
-      appearance="primary"
-      onClick={() => {
-        const current = computedTokens.current[index]
-        const next =
-          computedTokens.current.findIndex(
-            (t) => t.lineNumber === current.lineNumber + 1
-          ) - 1
+  const controls =
+    isHost && state === 'recording'
+      ? [
+          <ControlButton
+            key="nextToken"
+            icon={NextTokenIcon}
+            className="my-2"
+            appearance="primary"
+            onClick={() => {
+              updatePayload?.({ index: index + 1 })
+            }}
+          />,
+          <ControlButton
+            className="my-2"
+            key="nextLine"
+            icon={NextLineIcon}
+            appearance="primary"
+            onClick={() => {
+              const current = computedTokens.current[index]
+              const next =
+                computedTokens.current.findIndex(
+                  (t) => t.lineNumber === current.lineNumber + 1
+                ) - 1
 
-        setIndex(next)
-      }}
-    />,
-  ]
+              setIndex(next)
+            }}
+          />,
+        ]
+      : [<></>]
 
-  const layerChildren = [
-    <Group y={20} x={20} key="group">
-      {computedTokens.current
-        .filter((_, i) => i < index)
-        .map((token) => (
-          <Text
-            fontSize={codeConfig.fontSize}
-            fill={token.color}
-            text={token.content}
-            x={token.x}
-            y={token.y}
-            align="left"
-          />
-        ))}
-    </Group>,
-  ]
+  let layerChildren = [<></>]
+  if (state === 'recording' && isSplash) {
+    layerChildren = [
+      <Group
+        x={0}
+        y={0}
+        width={codeConfig.width}
+        height={codeConfig.height}
+        ref={(ref) =>
+          ref?.to({
+            duration: 3,
+            onFinish: () => {
+              setisSplash(false)
+            },
+          })
+        }
+      >
+        {titleSplash(fragment?.name as string)}
+      </Group>,
+    ]
+  } else if (state === 'recording') {
+    layerChildren = [
+      <Group y={20} x={20} key="group">
+        {computedTokens.current
+          .filter((_, i) => i < index)
+          .map((token) => (
+            <Text
+              fontSize={codeConfig.fontSize}
+              fill={token.color}
+              text={token.content}
+              x={token.x}
+              y={token.y}
+              align="left"
+            />
+          ))}
+      </Group>,
+    ]
+  }
 
-  return <Concourse layerChildren={layerChildren} controls={controls} />
+  return (
+    <Concourse
+      layerChildren={layerChildren}
+      controls={controls}
+      disableUserMedia={isSplash}
+    />
+  )
   //   return { controls, layerChildren }
 }
 

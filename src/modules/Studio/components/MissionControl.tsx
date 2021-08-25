@@ -1,7 +1,7 @@
 /* eslint-disable no-restricted-syntax */
 /* eslint-disable guard-for-in */
 import { cx } from '@emotion/css'
-import React, { HTMLProps, useEffect, useState } from 'react'
+import React, { HTMLAttributes, useEffect, useState } from 'react'
 import { IconType } from 'react-icons'
 import {
   FiMic,
@@ -24,14 +24,17 @@ export const ControlButton = ({
   appearance,
   className,
   icon: I,
+  disabled,
   ...rest
 }: {
   appearance: 'primary' | 'danger' | 'success'
   icon: IconType
-} & HTMLProps<HTMLButtonElement>) => {
+  disabled?: boolean
+} & HTMLAttributes<HTMLButtonElement>) => {
   return (
     <button
       type="button"
+      disabled={disabled}
       className={cx(
         'p-2 rounded-full flex items-center justify-center',
         {
@@ -98,9 +101,12 @@ const MissionControl = ({
     upload,
     reset,
     state,
+    mute,
     participants,
     updateParticipant,
     participantId,
+    isHost,
+    payload,
   } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [isRaiseHandsTooltip, setRaiseHandsTooltip] = useState(false)
@@ -179,63 +185,79 @@ const MissionControl = ({
             icon={constraints?.audio ? FiMic : FiMicOff}
             className="my-2"
             appearance={constraints?.audio ? 'primary' : 'danger'}
-            onClick={() => {}}
+            disabled
+            onClick={async () => {
+              updateParticipant?.({ audio: !constraints?.audio })
+              await mute('audio')
+            }}
           />
           <ControlButton
             icon={constraints?.video ? FiVideo : FiVideoOff}
             className="my-2"
             appearance={constraints?.video ? 'primary' : 'danger'}
-            onClick={() => {}}
+            disabled
+            onClick={async () => {
+              updateParticipant?.({ video: !constraints?.video })
+              await mute('video')
+            }}
           />
 
           <hr className="bg-grey-darker h-px my-2" />
+          {isHost && (
+            <>
+              {state === 'recording' && (
+                <ControlButton
+                  className="my-2"
+                  icon={FiStopCircle}
+                  appearance="danger"
+                  onClick={() => {
+                    stopRecording()
+                    payload.playing = false
+                  }}
+                />
+              )}
 
-          {state === 'recording' && (
-            <ControlButton
-              className="my-2"
-              icon={FiStopCircle}
-              appearance="danger"
-              onClick={() => {
-                stopRecording()
-              }}
-            />
-          )}
+              {state === 'preview' && (
+                <>
+                  <ControlButton
+                    className="my-2"
+                    icon={FiXCircle}
+                    appearance="danger"
+                    onClick={() => {
+                      reset()
+                    }}
+                  />
+                  <ControlButton
+                    className="my-2"
+                    icon={FiCheckCircle}
+                    appearance="success"
+                    onClick={() => {
+                      upload()
+                    }}
+                  />
+                </>
+              )}
 
-          {state === 'preview' && (
-            <ControlButton
-              className="my-2"
-              icon={FiXCircle}
-              appearance="danger"
-              onClick={() => {
-                reset()
-              }}
-            />
-          )}
-
-          {state === 'preview' && (
-            <ControlButton
-              className="my-2"
-              icon={FiCheckCircle}
-              appearance="success"
-              onClick={() => {
-                upload()
-              }}
-            />
-          )}
-          {state === 'ready' && (
-            <ControlButton
-              className="my-2"
-              icon={FiCircle}
-              appearance="primary"
-              onClick={() => {
-                startRecording()
-              }}
-            />
+              {state === 'ready' && (
+                <ControlButton
+                  className="my-2"
+                  icon={FiCircle}
+                  appearance="primary"
+                  onClick={() => {
+                    startRecording()
+                  }}
+                />
+              )}
+            </>
           )}
         </div>
       </div>
     </div>
   )
+}
+
+ControlButton.defaultProps = {
+  disabled: false,
 }
 
 export default MissionControl

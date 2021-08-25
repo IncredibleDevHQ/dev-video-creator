@@ -21,9 +21,11 @@ import {
   FlickFragmentFragment,
   useProduceVideoMutation,
   useFragmentRoleQuery,
+  FlickParticipantsFragment,
 } from '../../../generated/graphql'
 
 import { User, userState } from '../../../stores/user.store'
+import { StudioProviderProps, studioStore } from '../../Studio/stores'
 
 const reorder = (
   list: FlickFragmentFragment[],
@@ -36,6 +38,7 @@ const reorder = (
 
   return results.map((result, index) => ({ ...result, order: index }))
 }
+const { isHost } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
 const FragmentItem = ({
   fragment,
@@ -155,18 +158,20 @@ const FragmentsSidebar = ({
   activeFragmentId,
   setActiveFragmentId,
   setAddFragmentModal,
+  participants,
 }: {
   flickId: string
   fragments: FlickFragmentFragment[]
   activeFragmentId?: string
   setActiveFragmentId: (id: string) => void
   setAddFragmentModal: (isOpen: boolean) => void
+  participants: FlickParticipantsFragment[]
 }) => {
   const [fragmentItems, setFragmentItems] = useState<FlickFragmentFragment[]>(
     []
   )
   const [produceVideoMutation] = useProduceVideoMutation()
-
+  const userData = (useRecoilValue(userState) as User) || {}
   const history = useHistory()
 
   useEffect(() => {
@@ -235,15 +240,18 @@ const FragmentsSidebar = ({
       ) : (
         <Text>No Fragments</Text>
       )}
-      <Button
-        className="mt-auto"
-        type="button"
-        appearance="primary"
-        disabled={!fragmentItems.every((f) => f.producedLink !== null)}
-        onClick={produceVideo}
-      >
-        Produce
-      </Button>
+
+      {isHost && fragmentItems.length > 0 && (
+        <Button
+          className="mt-auto"
+          type="button"
+          appearance="primary"
+          disabled={!fragmentItems.every((f) => f.producedLink !== null)}
+          onClick={produceVideo}
+        >
+          Produce
+        </Button>
+      )}
     </div>
   )
 }

@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react'
 import { useRecoilValue } from 'recoil'
 import Konva from 'konva'
-import { Image } from 'react-konva'
+import { Group, Image } from 'react-konva'
 import { FiPlay, FiPause } from 'react-icons/fi'
 import { Concourse } from '../components'
 import { ControlButton } from '../components/MissionControl'
 import { CONFIG } from '../components/Concourse'
 import { StudioProviderProps, studioStore } from '../stores'
+import { titleSplash } from './effects'
 
 // @ts-ignore
 const Video = ({ videoElement }: { videoElement: HTMLVideoElement }) => {
@@ -54,12 +55,15 @@ const Video = ({ videoElement }: { videoElement: HTMLVideoElement }) => {
 }
 
 const VideoJam = () => {
+  const [isSplash, setisSplash] = useState<boolean>(true)
+
   const { state, fragment, payload, updatePayload } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const videoElement = React.useMemo(() => {
     if (!fragment?.configuration.properties) return
     const element = document.createElement('video')
     element.autoplay = false
+    element.controls = true
     element.crossOrigin = 'anonymous'
     element.src = fragment.configuration.properties.find(
       (property: any) => property.key === 'source'
@@ -99,28 +103,58 @@ const VideoJam = () => {
   }, [payload?.playing])
 
   const controls = [
-    <ControlButton
-      key="control"
-      icon={playing ? FiPause : FiPlay}
-      className="my-2"
-      appearance={playing ? 'danger' : 'primary'}
-      onClick={() => {
-        const next = !playing
+    state === 'ready' || state === 'recording' ? (
+      <ControlButton
+        key="control"
+        icon={playing ? FiPause : FiPlay}
+        className="my-2"
+        appearance={playing ? 'danger' : 'primary'}
+        onClick={() => {
+          const next = !playing
 
-        updatePayload?.({
-          playing: next,
-          currentTime: videoElement?.currentTime,
-        })
-      }}
-    />,
+          updatePayload?.({
+            playing: next,
+            currentTime: videoElement?.currentTime,
+          })
+        }}
+      />
+    ) : (
+      <></>
+    ),
   ]
+  let layerChildren = [<></>]
+  if (state === 'recording' && isSplash) {
+    layerChildren = [
+      <Group
+        x={0}
+        y={0}
+        width={CONFIG.width}
+        height={(CONFIG.width * 9) / 16}
+        ref={(ref) =>
+          ref?.to({
+            duration: 3,
+            onFinish: () => {
+              setisSplash(false)
+            },
+          })
+        }
+      >
+        {titleSplash(fragment?.name as string)}
+      </Group>,
+    ]
+  } else if (state === 'recording' && videoElement) {
+    layerChildren = [<Video videoElement={videoElement} />]
+  } else {
+    layerChildren = [<></>]
+  }
 
-  return videoElement ? (
+  return (
     <Concourse
-      layerChildren={[<Video videoElement={videoElement} />]}
+      layerChildren={layerChildren}
       controls={controls}
+      disableUserMedia={isSplash}
     />
-  ) : null
+  )
 }
 
 export default VideoJam
