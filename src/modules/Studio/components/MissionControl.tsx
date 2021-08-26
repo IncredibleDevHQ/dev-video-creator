@@ -205,61 +205,60 @@ const MissionControl = ({
           />
 
           <hr className="bg-grey-darker h-px my-2" />
-          {isHost && (
-            <>
-              {state === 'recording' && (
+
+          <>
+            {state === 'recording' && (
+              <ControlButton
+                className="my-2"
+                icon={FiStopCircle}
+                appearance="danger"
+                onClick={() => {
+                  stopRecording()
+                  payload.playing = false
+                  updatePayload?.({ status: Fragment_Status_Enum_Enum.Ended })
+                }}
+              />
+            )}
+
+            {state === 'preview' && (
+              <>
                 <ControlButton
                   className="my-2"
-                  icon={FiStopCircle}
+                  icon={FiXCircle}
                   appearance="danger"
                   onClick={() => {
-                    stopRecording()
-                    payload.playing = false
-                    updatePayload?.({ status: Fragment_Status_Enum_Enum.Ended })
+                    reset()
+                    updatePayload?.({
+                      status: Fragment_Status_Enum_Enum.NotStarted,
+                    })
                   }}
                 />
-              )}
-
-              {state === 'preview' && (
-                <>
-                  <ControlButton
-                    className="my-2"
-                    icon={FiXCircle}
-                    appearance="danger"
-                    onClick={() => {
-                      reset()
-                      updatePayload?.({
-                        status: Fragment_Status_Enum_Enum.NotStarted,
-                      })
-                    }}
-                  />
-                  <ControlButton
-                    className="my-2"
-                    icon={FiCheckCircle}
-                    appearance="success"
-                    onClick={() => {
-                      upload()
-                      updatePayload?.({
-                        status: Fragment_Status_Enum_Enum.Completed,
-                      })
-                    }}
-                  />
-                </>
-              )}
-
-              {state === 'ready' && (
                 <ControlButton
                   className="my-2"
-                  icon={FiCircle}
-                  appearance="primary"
+                  icon={FiCheckCircle}
+                  appearance="success"
                   onClick={() => {
-                    startRecording()
-                    updatePayload?.({ status: Fragment_Status_Enum_Enum.Live })
+                    upload()
+                    updatePayload?.({
+                      status: Fragment_Status_Enum_Enum.Completed,
+                    })
                   }}
                 />
-              )}
-            </>
-          )}
+              </>
+            )}
+
+            {state === 'ready' && (
+              <ControlButton
+                className="my-2"
+                icon={FiCircle}
+                appearance="primary"
+                onClick={() => {
+                  startRecording()
+                  updatePayload?.({ status: Fragment_Status_Enum_Enum.Live })
+                }}
+              />
+            )}
+          </>
         </div>
       </div>
     </div>
