@@ -11,7 +11,12 @@
     "dev": "vite",
     "serve": "vite preview",
     "prepare": "husky install",
-    "lint": "npx eslint --format=pretty ./src --ext .js,.jsx,.ts,.tsx"
+    "lint": "eslint"
+  },
+  "lint-staged": {
+    "src/**/*.{js,jsx,ts,tsx}": [
+      "yarn lint"
+    ]
   },
   "dependencies": {
     "@apollo/client": "^3.3.21",
@@ -89,7 +94,8 @@
     "eslint-plugin-prettier": "^3.4.0",
     "eslint-plugin-react": "^7.24.0",
     "eslint-plugin-react-hooks": "^4.2.0",
-    "husky": "^7.0.0",
+    "husky": "^7.0.2",
+    "lint-staged": "^11.1.2",
     "postcss": "7",
     "prettier": "^2.3.2",
     "tailwindcss": "npm:@tailwindcss/postcss7-compat",
