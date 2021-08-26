@@ -110,6 +110,11 @@ const Flick = () => {
                     (fragment) => fragment.id === activeFragmentId
                   )?.id
                 }
+                fragmentType={
+                  flick.fragments.find(
+                    (fragment) => fragment.id === activeFragmentId
+                  )?.type
+                }
               />
             )}
           </div>

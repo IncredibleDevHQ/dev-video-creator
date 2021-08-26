@@ -24,7 +24,7 @@ const Trivia = () => {
   }, [fragment?.configuration.properties])
 
   const controls =
-    isHost && state === 'recording'
+    state === 'recording'
       ? [
           <ControlButton
             key="nextQuestion"
