@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { User } from '@sentry/react'
-import React, { useState } from 'react'
-import { useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import Select from 'react-select'
 import { useRecoilValue } from 'recoil'
 import { emitToast, Loading } from '../../../../components'

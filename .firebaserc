@@ -1,0 +1,6 @@
+{
+  "projects": {
+    "default": "incredibledev-next-staging",
+    "production": "incredible-next"
+  }
+}

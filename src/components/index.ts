@@ -1,4 +1,5 @@
 import { dismissToast, emitToast, updateToast } from './Toast'
+import Avatar from './Avatar'
 import Button from './Button'
 import ClipBoardIcon from './ClipBoardIcon'
 import ContainerWithSidebar from './ContainerWithSidebar'
@@ -18,9 +19,14 @@ import Text from './Text'
 import TextField from './TextField'
 import TextArea from './TextArea'
 import Loading from './Loading'
+import Radio from './Radio'
 import TabBar, { Tab } from './TabBar'
+import Tooltip from './Tooltip'
+import Checkbox from './Checkbox'
+import Photo from './Photo'
 
 export {
+  Avatar,
   Button,
   ClipBoardIcon,
   ContainerWithSidebar,
@@ -43,7 +49,11 @@ export {
   TextArea,
   Loading,
   TabBar,
+  Tooltip,
   updateToast,
+  Radio,
+  Checkbox,
+  Photo,
 }
 
 export type { Tab }

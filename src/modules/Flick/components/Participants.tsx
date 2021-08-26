@@ -1,16 +1,31 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import Gravatar from 'react-gravatar'
 import { FiUsers, FiX } from 'react-icons/fi'
-import { Heading, Text, Button } from '../../../components'
-import { FlickParticipantsFragment } from '../../../generated/graphql'
+import Select from 'react-select'
+import { useRecoilValue } from 'recoil'
+import { Heading, Text, Button, emitToast } from '../../../components'
+import {
+  FilteredUserFragment,
+  FlickParticipantsFragment,
+  GetFlickByIdQuery,
+  useGetFilteredUsersQuery,
+  useInviteParticipantToFlickMutation,
+} from '../../../generated/graphql'
+import { User, userState } from '../../../stores/user.store'
 
+let isOwner = false
 const Participant = ({
   participant,
 }: {
   participant: FlickParticipantsFragment
 }) => {
+  const userData = (useRecoilValue(userState) as User) || {}
+  if (participant.role === 'Host' && userData.sub === participant.userSub) {
+    isOwner = true
+  }
+
   return (
-    <div className="flex flex-row items-center">
+    <div className="flex flex-row mt-2 items-center">
       {participant.user.picture ? (
         <img
           src={participant.user.picture}
@@ -34,11 +49,51 @@ const Participants = ({
   isParticipants,
   setParticipants,
   participants,
+  flickId,
+  handleRefetch,
 }: {
   isParticipants: boolean
   setParticipants: (val: boolean) => void
   participants: FlickParticipantsFragment[]
+  flickId: string
+  handleRefetch: (refresh?: boolean) => void
 }) => {
+  const [search, setSearch] = useState<string>('')
+  const [selectedMember, setSelectedMember] = useState<FilteredUserFragment>()
+  const isNewMember = true
+
+  const {
+    data,
+    error: errorSelect,
+    loading: loadingSelect,
+  } = useGetFilteredUsersQuery({
+    variables: {
+      _ilike: `%${search}%`,
+    },
+  })
+
+  const [AddMemberToFlickMutation, { loading }] =
+    useInviteParticipantToFlickMutation()
+
+  const handleAddMember = async () => {
+    try {
+      await AddMemberToFlickMutation({
+        variables: {
+          email: selectedMember?.email as string,
+          flickId: flickId as string,
+        },
+      })
+      handleRefetch(isNewMember)
+    } catch (error) {
+      emitToast({
+        title: 'User Already added',
+        type: 'error',
+        description: `Click this toast to refresh and give it another try.`,
+        onClick: () => window.location.reload(),
+      })
+    }
+  }
+
   if (!isParticipants)
     return (
       <Button
@@ -64,6 +119,41 @@ const Participants = ({
           }}
         />
       </div>
+      {isOwner && (
+        <div className="w-auto   flex m-1 mt-0 gap-2">
+          <Select
+            className="flex-1"
+            noOptionsMessage={() =>
+              errorSelect ? 'Error Occured' : 'Search a Name..'
+            }
+            onChange={(value) => setSelectedMember(value?.value)}
+            options={
+              search
+                ? data?.User?.map((user: FilteredUserFragment) => {
+                    const option = {
+                      value: user,
+                      label: user.displayName,
+                    }
+                    return option
+                  })
+                : []
+            }
+            isLoading={loadingSelect}
+            onInputChange={(value: string) => setSearch(value)}
+            placeholder="Search a user"
+          />
+
+          {selectedMember && (
+            <button
+              onClick={handleAddMember}
+              type="button"
+              className="bg-blue-500 pl-5 pr-5 rounded-md text-white"
+            >
+              {loading ? 'Adding...' : 'Add'}
+            </button>
+          )}
+        </div>
+      )}
       {participants.map((participant) => (
         <Participant participant={participant} key={participant.id} />
       ))}

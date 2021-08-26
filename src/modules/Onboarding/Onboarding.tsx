@@ -75,7 +75,7 @@ const Onboarding = () => {
     if (!user) return
     setLocalUser({
       displayName: user.displayName || '',
-      username: user.username,
+      username: user.username as string,
     })
     setLoading(false)
   }, [user])

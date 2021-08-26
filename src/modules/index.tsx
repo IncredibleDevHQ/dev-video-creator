@@ -10,9 +10,11 @@ import Profile from './Profile/Profile'
 import Studio from './Studio/Studio'
 import '@fontsource/fira-mono'
 import NewOrganisation from './Organisation/NewOrganisation'
-import Series from './Series/Series'
+import Series from './Series/userSeries/Series'
 import AllUserFlicks from './Flicks/AllUserFlicks'
 import UserSeriesFlicks from './UserSeriesFlicks/UserSeriesFlicks'
+import SingleSeries from './Series/SingleSeries'
+import Circle from './Circle/Circle'
 
 export {
   AuthenticateScreen,
@@ -29,4 +31,6 @@ export {
   Series,
   AllUserFlicks,
   UserSeriesFlicks,
+  SingleSeries,
+  Circle,
 }

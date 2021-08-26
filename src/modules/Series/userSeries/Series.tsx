@@ -1,9 +1,15 @@
 import React from 'react'
 import { useRecoilValue } from 'recoil'
 import { Link } from 'react-router-dom'
-import { useGetUserSeriesQuery } from '../../generated/graphql'
-import { User, userState } from '../../stores/user.store'
-import { Text, Heading, EmptyState, ScreenState } from '../../components'
+import { useGetUserSeriesQuery } from '../../../generated/graphql'
+import { User, userState } from '../../../stores/user.store'
+import {
+  Text,
+  Heading,
+  EmptyState,
+  ScreenState,
+  Navbar,
+} from '../../../components'
 
 const Series = () => {
   const userdata = (useRecoilValue(userState) as User) || {}
@@ -23,11 +29,10 @@ const Series = () => {
     )
   return (
     <div className="  flex p-2 flex-col bg-blue-100 w-full">
-      <div className="m-1 p-1 rounded-lg border-blue-400 border-2 bg-white w-auto">
-        <Text className="m-1 p-1  text-3xl text-black rounded-lg w-auto">
-          Series
-        </Text>
-      </div>
+      <Navbar />
+      <Text className="m-1 p-1  text-3xl text-black rounded-lg w-auto">
+        Series
+      </Text>
       {!data && (
         <EmptyState text=" You dont have any series yet!" width={400} />
       )}

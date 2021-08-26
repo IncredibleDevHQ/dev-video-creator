@@ -1,3 +1,10 @@
+query GetTokenisedCode($code: String!, $language: String!, $theme: String) {
+  TokenisedCode(code: $code, language: $language, theme: $theme) {
+    success
+    data
+  }
+}
+
 mutation UploadFile($key: String!) {
   UploadFile(key: $key) {
     success

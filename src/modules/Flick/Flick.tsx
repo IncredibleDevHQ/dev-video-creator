@@ -1,17 +1,17 @@
 import React, { useEffect, useState } from 'react'
-import { useHistory, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { useRecoilState } from 'recoil'
 import {
   AddFragmentModal,
   FragmentActivity,
   FragmentConfiguration,
+  FragmentParticipants,
   FragmentsSidebar,
   Participants,
 } from './components'
 import { currentFlickStore } from '../../stores/flick.store'
-import { Button, EmptyState, ScreenState, Tab, TabBar } from '../../components'
+import { EmptyState, Heading, ScreenState, Tab, TabBar } from '../../components'
 import { useGetFlickByIdQuery } from '../../generated/graphql'
-import config from '../../config'
 
 const tabs: Tab[] = [
   {
@@ -21,6 +21,10 @@ const tabs: Tab[] = [
   {
     name: 'Configuration',
     value: 'Configuration',
+  },
+  {
+    name: 'Participants',
+    value: 'Participants',
   },
 ]
 
@@ -34,7 +38,6 @@ const Flick = () => {
   const [isParticipants, setParticipants] = useState(true)
   const [isAddFragmentModal, setAddFragmentModal] = useState(false)
   const [activeFragmentId, setActiveFragmentId] = useState<string>()
-  const history = useHistory()
 
   useEffect(() => {
     if (!data?.Flick_by_pk) return
@@ -69,11 +72,14 @@ const Flick = () => {
         activeFragmentId={activeFragmentId}
         setActiveFragmentId={setActiveFragmentId}
         setAddFragmentModal={setAddFragmentModal}
+        participants={flick.participants}
       />
       <div className="flex-1 p-4">
+        <Heading className=" flex font-black text-2xl capitalize justify-center mb-2">
+          {flick.name}
+        </Heading>
         {activeFragmentId ? (
           <div>
-            <h3 className="font-black text-2xl mb-2">{flick.name}</h3>
             <TabBar
               tabs={tabs}
               current={currentTab}
@@ -84,48 +90,48 @@ const Flick = () => {
                 fragment={flick.fragments.find(
                   (fragment) => fragment.id === activeFragmentId
                 )}
+                handleRefetch={(refresh) => {
+                  if (refresh) refetch()
+                }}
               />
             )}
-            {currentTab.value === 'Activity' && <FragmentActivity />}
-
-            {flick.fragments.find((f) => f.id === activeFragmentId)
-              ?.producedLink && (
-              // eslint-disable-next-line jsx-a11y/media-has-caption
-              <video
-                className="w-full rounded-md p-2"
-                controls
-                preload="auto"
-                src={
-                  config.storage.baseUrl +
-                  flick.fragments.find((f) => f.id === activeFragmentId)
-                    ?.producedLink
+            {currentTab.value === 'Activity' && (
+              <FragmentActivity
+                fragment={flick.fragments.find(
+                  (fragment) => fragment.id === activeFragmentId
+                )}
+              />
+            )}
+            {currentTab.value === 'Participants' && (
+              <FragmentParticipants
+                participants={flick.participants}
+                fragmentId={
+                  flick.fragments.find(
+                    (fragment) => fragment.id === activeFragmentId
+                  )?.id
                 }
               />
             )}
-            <Button
-              type="button"
-              className="ml-auto"
-              size="small"
-              appearance="primary"
-              onClick={() => {
-                history.push(`/${activeFragmentId}/studio`)
-              }}
-            >
-              Record
-            </Button>
           </div>
         ) : (
-          <EmptyState text="No Fragment is selected" width={400} />
+          <>
+            <EmptyState text="No Fragment is selected" width={400} />
+          </>
         )}
       </div>
       <Participants
         isParticipants={isParticipants}
         setParticipants={setParticipants}
         participants={flick.participants}
+        flickId={flick.id}
+        handleRefetch={(refresh) => {
+          if (refresh) refetch()
+        }}
       />
       <AddFragmentModal
         open={isAddFragmentModal}
         flickId={flick.id}
+        participants={flick.participants}
         totalFragments={flick.fragments.length}
         handleClose={(refresh) => {
           if (refresh) refetch()

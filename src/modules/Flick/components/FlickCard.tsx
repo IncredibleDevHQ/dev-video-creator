@@ -4,7 +4,15 @@ import { Heading, Text } from '../../../components'
 import { BaseFlickFragment } from '../../../generated/graphql'
 import { formatDate } from '../../../utils/FormatDate'
 
-const FlickCard = ({ flick }: { flick: BaseFlickFragment }) => {
+const FlickCard = ({
+  flick,
+  onClick,
+  selected,
+}: {
+  flick: BaseFlickFragment
+  onClick?: React.MouseEventHandler<HTMLDivElement>
+  selected?: boolean
+}) => {
   const history = useHistory()
 
   return (
@@ -12,8 +20,10 @@ const FlickCard = ({ flick }: { flick: BaseFlickFragment }) => {
       role="link"
       onKeyUp={() => {}}
       tabIndex={flick.id}
-      onClick={() => history.push(`/flick/${flick.id}`)}
-      className="bg-background-alt shadow-md p-4 rounded-md cursor-pointer border-l-2 hover:border-brand"
+      onClick={onClick || (() => history.push(`/flick/${flick.id}`))}
+      className={`bg-background-alt shadow-md p-4 rounded-md cursor-pointer border-l-2 hover:border-brand ${
+        selected && 'border-brand border-l-4'
+      }`}
     >
       <Heading fontSize="medium" className="text-xl">
         {flick.name}
@@ -29,6 +39,11 @@ const FlickCard = ({ flick }: { flick: BaseFlickFragment }) => {
       </div>
     </div>
   )
+}
+
+FlickCard.defaultProps = {
+  onClick: {},
+  selected: false,
 }
 
 export default FlickCard

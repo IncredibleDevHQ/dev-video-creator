@@ -1,0 +1,19 @@
+fragment SingleSeries on Series {
+  id
+  name
+  organisationSlug
+  picture
+  description
+  ownerSub
+  Flick_Series {
+    flick {
+      ...BaseFlick
+    }
+  }
+}
+
+query GetSingleSeries($id: uuid!) {
+  Series_by_pk(id: $id) {
+    ...SingleSeries
+  }
+}

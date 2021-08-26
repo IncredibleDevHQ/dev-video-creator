@@ -1,4 +1,5 @@
 import { cx } from '@emotion/css'
+import { useRecoilValue } from 'recoil'
 import React, { useEffect, useState } from 'react'
 import { useHistory } from 'react-router-dom'
 import {
@@ -19,7 +20,12 @@ import {
 import {
   FlickFragmentFragment,
   useProduceVideoMutation,
+  useFragmentRoleQuery,
+  FlickParticipantsFragment,
 } from '../../../generated/graphql'
+
+import { User, userState } from '../../../stores/user.store'
+import { StudioProviderProps, studioStore } from '../../Studio/stores'
 
 const reorder = (
   list: FlickFragmentFragment[],
@@ -46,16 +52,34 @@ const FragmentItem = ({
   activeFragmentId: string
   setActiveFragmentId: (id: string) => void
 }) => {
+  const userData = (useRecoilValue(userState) as User) || {}
+  const { data } = useFragmentRoleQuery({
+    variables: {
+      fragmentId: activeFragmentId,
+      sub: userData.sub as string,
+    },
+  })
+  const isParticipant = !(data && data.Participant.length === 0) as boolean
+
   return (
     <div
       role="button"
       tabIndex={0}
       onKeyUp={() => {}}
-      className={cx('my-1 p-2 border-2 border-dotted rounded-md relative', {
-        'border-brand text-brand': fragment.id === activeFragmentId,
-        'border-grey-lighter text-black': fragment.id !== activeFragmentId,
-        'bg-brand text-background-alt border-brand': snapshot.isDragging,
-      })}
+      className={cx(
+        'my-1 p-2 border-2 border-dotted rounded-md text-gray relative',
+        {
+          'border-gray-500 text-gray-600':
+            (fragment.id === activeFragmentId && !isParticipant) ||
+            (fragment.id === !activeFragmentId && !isParticipant),
+          'border-brand text-brand':
+            fragment.id === activeFragmentId && isParticipant,
+          'border-grey-lighter text-black':
+            fragment.id === !activeFragmentId && isParticipant,
+          'bg-brand text-background-alt border-brand':
+            snapshot.isDragging && isParticipant,
+        }
+      )}
       onClick={() => setActiveFragmentId(fragment.id)}
       ref={provided.innerRef}
       {...provided.draggableProps}
@@ -134,19 +158,22 @@ const FragmentsSidebar = ({
   activeFragmentId,
   setActiveFragmentId,
   setAddFragmentModal,
+  participants,
 }: {
   flickId: string
   fragments: FlickFragmentFragment[]
   activeFragmentId?: string
   setActiveFragmentId: (id: string) => void
   setAddFragmentModal: (isOpen: boolean) => void
+  participants: FlickParticipantsFragment[]
 }) => {
   const [fragmentItems, setFragmentItems] = useState<FlickFragmentFragment[]>(
     []
   )
   const [produceVideoMutation] = useProduceVideoMutation()
-
+  const userData = (useRecoilValue(userState) as User) || {}
   const history = useHistory()
+  const { isHost } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   useEffect(() => {
     setFragmentItems(fragments)
@@ -214,15 +241,18 @@ const FragmentsSidebar = ({
       ) : (
         <Text>No Fragments</Text>
       )}
-      <Button
-        className="mt-auto"
-        type="button"
-        appearance="primary"
-        disabled={!fragmentItems.every((f) => f.producedLink !== null)}
-        onClick={produceVideo}
-      >
-        Produce
-      </Button>
+
+      {fragmentItems.length > 0 && (
+        <Button
+          className="mt-auto"
+          type="button"
+          appearance="primary"
+          disabled={!fragmentItems.every((f) => f.producedLink !== null)}
+          onClick={produceVideo}
+        >
+          Produce
+        </Button>
+      )}
     </div>
   )
 }
