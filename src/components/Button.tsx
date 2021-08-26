@@ -11,7 +11,7 @@ interface ButtonProps extends HTMLAttributes<HTMLButtonElement> {
   iconPosition?: 'left' | 'right'
   onClick?: (e?: React.MouseEvent<HTMLElement>) => void
   stretch?: boolean
-  size?: 'small' | 'medium' | 'large'
+  size?: 'extraSmall' | 'small' | 'medium' | 'large'
   loading?: boolean
   disabled?: boolean
 }
@@ -51,6 +51,7 @@ const Button = ({
           'text-2xl': size === 'large',
           'text-lg': size === 'medium',
           'text-base': size === 'small',
+          'text-small': size === 'extraSmall',
         },
         className
       )}
