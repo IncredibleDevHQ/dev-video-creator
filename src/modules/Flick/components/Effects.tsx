@@ -120,6 +120,7 @@ export const GetSchemaElement = ({
           <Photo
             className="text-lg m-4"
             onChange={(e) =>
+              // @ts-ignore
               e.target.files?.[0] && handleClick(e.target.files[0])
             }
           />
