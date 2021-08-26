@@ -19,7 +19,13 @@ export interface RTCUser extends IAgoraRTCRemoteUser {
   mediaStream?: MediaStream
 }
 
-export default function useAgora(channel: string) {
+export default function useAgora(
+  channel: string,
+  {
+    onTokenWillExpire,
+    onTokenDidExpire,
+  }: { onTokenWillExpire: () => void; onTokenDidExpire: () => void }
+) {
   const client = useClient()
   const [users, setUsers] = useState<RTCUser[]>([])
   const [stream, setStream] = useState<MediaStream>()
@@ -83,20 +89,27 @@ export default function useAgora(channel: string) {
         })
       })
 
-      client.on('user-unpublished', (user, type) => {
-        if (type === 'audio') {
-          user.audioTrack?.stop()
-        }
-        if (type === 'video') {
-          setUsers((prevUsers) => {
-            return prevUsers.filter((User) => User.uid !== user.uid)
-          })
-        }
+      client.on('token-privilege-will-expire', () => {
+        onTokenWillExpire()
+      })
+
+      client.on('token-privilege-did-expire', () => {
+        onTokenDidExpire()
+      })
+
+      client.on('user-left', (user) => {
+        setUsers((prevUsers) => {
+          return prevUsers.filter((User) => User.uid !== user.uid)
+        })
       })
     } catch (error) {
       console.log(error)
       throw error
     }
+  }
+
+  const renewToken = async (token: string) => {
+    client.renewToken(token)
   }
 
   const join = async (token: string, uid: string) => {
@@ -160,5 +173,6 @@ export default function useAgora(channel: string) {
     tracks,
     stream,
     userAudios,
+    renewToken,
   }
 }

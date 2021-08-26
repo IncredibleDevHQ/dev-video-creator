@@ -15,7 +15,7 @@ import {
   Fragment_Status_Enum_Enum,
   StudioFragmentFragment,
   useGetFragmentByIdQuery,
-  useGetRtcTokenLazyQuery,
+  useGetRtcTokenMutation,
   useMarkFragmentCompletedMutation,
 } from '../../generated/graphql'
 import { useCanvasRecorder } from '../../hooks'
@@ -44,18 +44,36 @@ const Studio = () => {
 
   const [uploadFile] = useUploadFile()
 
-  const { stream, join, users, mute, leave, ready, userAudios, tracks } =
-    useAgora(fragmentId)
+  const {
+    stream,
+    join,
+    users,
+    mute,
+    leave,
+    ready,
+    userAudios,
+    tracks,
+    renewToken,
+  } = useAgora(fragmentId, {
+    onTokenWillExpire: async () => {
+      const { data } = await getRTCToken({ variables: { fragmentId } })
+      if (data?.RTCToken?.token) {
+        renewToken(data.RTCToken.token)
+      }
+    },
+    onTokenDidExpire: async () => {
+      const { data } = await getRTCToken({ variables: { fragmentId } })
+      if (data?.RTCToken?.token) {
+        join(data?.RTCToken?.token, sub as string)
+      }
+    },
+  })
 
-  const [getRTCToken, { data: rtcData }] = useGetRtcTokenLazyQuery({
+  const [getRTCToken] = useGetRtcTokenMutation({
     variables: { fragmentId },
   })
 
-  const [didInit, setDidInit] = useState(false)
-
   useEffect(() => {
-    getRTCToken()
-
     return () => {
       stream?.getTracks().forEach((track) => track.stop())
     }
@@ -91,21 +109,20 @@ const Studio = () => {
 
   useEffect(() => {
     if (fragment) {
-      init()
-      setIsHost(
-        fragment?.participants.find(
-          ({ participant }) => participant.userSub === sub
-        )?.participant.owner || false
-      )
+      ;(async () => {
+        init()
+        const { data } = await getRTCToken({ variables: { fragmentId } })
+        if (data?.RTCToken?.token) {
+          join(data?.RTCToken?.token, sub as string)
+        }
+        setIsHost(
+          fragment?.participants.find(
+            ({ participant }) => participant.userSub === sub
+          )?.participant.owner || false
+        )
+      })()
     }
   }, [fragment])
-
-  useEffect(() => {
-    if (!rtcData?.RTCToken?.token || didInit || !ready) return
-
-    setDidInit(true)
-    join(rtcData?.RTCToken?.token, sub as string)
-  }, [rtcData, ready])
 
   useEffect(() => {
     if (!data?.Fragment) return
