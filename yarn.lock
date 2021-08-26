@@ -2001,6 +2001,13 @@
     "@types/react-dom" "*"
     "@types/react-transition-group" "*"
 
+"@types/react-table@^7.7.2":
+  version "7.7.2"
+  resolved "https://registry.yarnpkg.com/@types/react-table/-/react-table-7.7.2.tgz#434f8230eb011c7eed8f3550fdf25befafebcfac"
+  integrity sha512-NwB78t3YV5pZ1NK3m2vylb/d0DKVyWH4y4GMCtlE4tg2n5ENM4ejzKnT46YKuqG2cPjWc+PIxuRVMd5OYX1z4A==
+  dependencies:
+    "@types/react" "*"
+
 "@types/react-transition-group@*":
   version "4.4.2"
   resolved "https://registry.yarnpkg.com/@types/react-transition-group/-/react-transition-group-4.4.2.tgz#38890fd9db68bf1f2252b99a942998dc7877c5b3"
@@ -5938,6 +5945,11 @@ rc@^1.2.8:
     minimist "^1.2.0"
     strip-json-comments "~2.0.1"
 
+react-aspect-ratio@^1.0.49:
+  version "1.0.49"
+  resolved "https://registry.yarnpkg.com/react-aspect-ratio/-/react-aspect-ratio-1.0.49.tgz#346863ebb7eec542b8a5a4d6548440bf95a88608"
+  integrity sha512-zSKVJdy7QjmFeWTNNoL+gLf4KugIVln6XdKNIxjY8yebJ0buCeKcKoEQPfxruSbPGFakFGVl/abtF9SDpauh/A==
+
 react-beautiful-dnd@^13.1.0:
   version "13.1.0"
   resolved "https://registry.yarnpkg.com/react-beautiful-dnd/-/react-beautiful-dnd-13.1.0.tgz#ec97c81093593526454b0de69852ae433783844d"
@@ -6098,6 +6110,11 @@ react-select@^4.3.1:
     prop-types "^15.6.0"
     react-input-autosize "^3.0.0"
     react-transition-group "^4.3.0"
+
+react-table@^7.7.0:
+  version "7.7.0"
+  resolved "https://registry.yarnpkg.com/react-table/-/react-table-7.7.0.tgz#e2ce14d7fe3a559f7444e9ecfe8231ea8373f912"
+  integrity sha512-jBlj70iBwOTvvImsU9t01LjFjy4sXEtclBovl3mTiqjz23Reu0DKnRza4zlLtOPACx6j2/7MrQIthIK1Wi+LIA==
 
 react-toastify@^7.0.4:
   version "7.0.4"
