@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { ClientConfig, IAgoraRTCRemoteUser } from 'agora-rtc-sdk-ng'
 import { createClient, createMicrophoneAndCameraTracks } from 'agora-rtc-react'
+import { useRecoilState } from 'recoil'
 import config from '../../../config'
+import { studioStore } from '../stores'
 
 const videoConfig: ClientConfig = {
   mode: 'rtc',
@@ -17,11 +19,17 @@ export interface RTCUser extends IAgoraRTCRemoteUser {
   mediaStream?: MediaStream
 }
 
-export default function useAgora(channel: string) {
+export default function useAgora(
+  channel: string,
+  {
+    onTokenWillExpire,
+    onTokenDidExpire,
+  }: { onTokenWillExpire: () => void; onTokenDidExpire: () => void }
+) {
   const client = useClient()
   const [users, setUsers] = useState<RTCUser[]>([])
   const [stream, setStream] = useState<MediaStream>()
-
+  const [studio, setStudio] = useRecoilState(studioStore)
   const [userAudios, setUserAudios] = useState<MediaStream[]>([])
 
   const { ready, tracks } = useMicrophoneAndCameraTracks()
@@ -81,15 +89,18 @@ export default function useAgora(channel: string) {
         })
       })
 
-      client.on('user-unpublished', (user, type) => {
-        if (type === 'audio') {
-          user.audioTrack?.stop()
-        }
-        if (type === 'video') {
-          setUsers((prevUsers) => {
-            return prevUsers.filter((User) => User.uid !== user.uid)
-          })
-        }
+      client.on('token-privilege-will-expire', () => {
+        onTokenWillExpire()
+      })
+
+      client.on('token-privilege-did-expire', () => {
+        onTokenDidExpire()
+      })
+
+      client.on('user-left', (user) => {
+        setUsers((prevUsers) => {
+          return prevUsers.filter((User) => User.uid !== user.uid)
+        })
       })
     } catch (error) {
       console.log(error)
@@ -97,15 +108,60 @@ export default function useAgora(channel: string) {
     }
   }
 
+  const renewToken = async (token: string) => {
+    client.renewToken(token)
+  }
+
   const join = async (token: string, uid: string) => {
-    if (!ready) throw new Error('Not ready')
-    await client.join(appId, channel, token, uid)
-    if (tracks) await client.publish(tracks)
+    try {
+      if (!ready) throw new Error('Not ready')
+      await client.join(appId, channel, token, uid)
+      if (tracks) await client.publish(tracks)
+    } catch (error) {
+      console.error(error)
+      throw error
+    }
+  }
+
+  const mute = async (type: 'audio' | 'video') => {
+    const { constraints } = studio
+    console.log({ constraints })
+    if (type === 'audio') {
+      const newValue = !constraints?.audio
+      console.log('newValue', newValue)
+      await tracks?.[0].setEnabled(newValue)
+      setStudio((studio) => {
+        return {
+          ...studio,
+          constraints: {
+            ...studio.constraints,
+            audio: newValue,
+          },
+        }
+      })
+    } else if (type === 'video') {
+      const newValue = !constraints?.video
+      await tracks?.[1].setEnabled(newValue)
+      setStudio((studio) => {
+        return {
+          ...studio,
+          constraints: {
+            ...studio.constraints,
+            video: newValue,
+          },
+        }
+      })
+    }
   }
 
   const leave = async () => {
-    tracks?.forEach((track) => track.stop())
-    await client.leave()
+    try {
+      tracks?.forEach((track) => track.stop())
+      await client.leave()
+    } catch (error) {
+      console.error(error)
+      throw error
+    }
   }
 
   return {
@@ -113,8 +169,10 @@ export default function useAgora(channel: string) {
     users,
     join,
     leave,
+    mute,
     tracks,
     stream,
     userAudios,
+    renewToken,
   }
 }

@@ -8,6 +8,7 @@ import NewFlick from './Flick/NewFlick'
 import Onboarding from './Onboarding/Onboarding'
 import Profile from './Profile/Profile'
 import Studio from './Studio/Studio'
+import Designer from './Designer/Designer'
 import '@fontsource/fira-mono'
 import NewOrganisation from './Organisation/NewOrganisation'
 import Series from './Series/userSeries/Series'
@@ -19,6 +20,7 @@ import Circle from './Circle/Circle'
 export {
   AuthenticateScreen,
   Dashboard,
+  Designer,
   Flick,
   Flicks,
   Landing,

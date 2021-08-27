@@ -29,8 +29,9 @@ const Concourse = ({
   const { state, stream, getBlobs, users } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const stageRef = createRef<Konva.Stage>()
-
   const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
+  const initialPos = { x: 760, y: 380 }
+  const userStudioImageGap = 130
 
   const handleZoom = (e: KonvaEventObject<WheelEvent>) => {
     e.evt.preventDefault()
@@ -86,16 +87,22 @@ const Concourse = ({
                   y={0}
                   width={CONFIG.width}
                   height={CONFIG.height}
-                  fill="black"
+                  fill="#202026"
                   cornerRadius={8}
                 />
                 {layerChildren}
 
                 {!disableUserMedia && (
                   <>
-                    <StudioUser stream={stream as MediaStream} />
-                    {users.map((user) => (
+                    <StudioUser
+                      x={initialPos.x}
+                      y={initialPos.y}
+                      stream={stream as MediaStream}
+                    />
+                    {users.map((user, index) => (
                       <StudioUser
+                        x={initialPos.x - (index + 1) * userStudioImageGap}
+                        y={initialPos.y}
                         key={user.uid}
                         stream={user.mediaStream as MediaStream}
                       />
@@ -110,9 +117,9 @@ const Concourse = ({
           <video
             className="w-8/12 rounded-md"
             controls
-            ref={(ref) => {
+            ref={async (ref) => {
               if (!ref || !getBlobs) return
-              const blob = getBlobs()
+              const blob = await getBlobs()
               const url = window.URL.createObjectURL(blob)
               // eslint-disable-next-line no-param-reassign
               ref.src = url
@@ -120,6 +127,7 @@ const Concourse = ({
           />
         )}
       </div>
+
       <MissionControl controls={controls} resetCanvas={resetCanvas} />
     </div>
   )

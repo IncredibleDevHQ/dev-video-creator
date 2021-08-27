@@ -5,7 +5,7 @@ import { RTCUser } from '../hooks/use-agora'
 export type StudioState = 'ready' | 'recording' | 'preview' | 'upload'
 export interface StudioProviderProps<T = any, S = any> {
   stream: MediaStream
-  getBlobs: () => Blob
+  getBlobs: () => Promise<Blob>
 
   reset: () => void
   upload: () => void
@@ -19,6 +19,8 @@ export interface StudioProviderProps<T = any, S = any> {
 
   picture?: string
 
+  mute: (type: 'audio' | 'video') => Promise<void>
+
   constraints?: MediaStreamConstraints
   state: StudioState
 
@@ -26,6 +28,7 @@ export interface StudioProviderProps<T = any, S = any> {
 
   payload: S | null
   participants: T | null
+  isHost: boolean
   updatePayload?: (value: S) => void
   updateParticipant?: (value: T) => void
 

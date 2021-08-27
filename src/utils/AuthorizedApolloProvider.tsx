@@ -11,8 +11,8 @@ import React from 'react'
 import { useRecoilValue } from 'recoil'
 import config from '../config'
 import { useCrash } from '../hooks'
-import IDError from './IDError'
 import { authState } from '../stores/auth.store'
+import { emitToast } from '../components'
 
 const AuthorizedApolloProvider = ({
   children,
@@ -30,11 +30,17 @@ const AuthorizedApolloProvider = ({
   const errorLink = onError(({ graphQLErrors, networkError }) => {
     if (graphQLErrors) {
       const error = graphQLErrors[0]
-
-      crash(new IDError(error.message, 'Our APIs are going bonkers.'))
-
-      if (networkError) crash(new IDError(error.message, 'We lost connection.'))
-    }
+      emitToast({
+        title: "There's something really wrong.",
+        type: 'error',
+        description: error.message,
+      })
+    } else if (networkError)
+      emitToast({
+        title: 'We lost connection.',
+        type: 'error',
+        description: networkError.message,
+      })
   })
 
   const authLink = setContext(async () => {

@@ -2,25 +2,28 @@ import React, { useEffect, useState } from 'react'
 import Select from 'react-select'
 import { RiCheckboxCircleFill, RiRefreshLine } from 'react-icons/ri'
 import { useRecoilValue } from 'recoil'
-import { Button, ScreenState, Text } from '../../../components'
+import { Button, emitToast, ScreenState, Text } from '../../../components'
 import {
   FlickParticipantsFragment,
   useInsertParticipantToFragmentMutation,
   useFragmentParticipantsQuery,
   FragmentParticipantsQuery,
+  Fragment_Type_Enum_Enum,
 } from '../../../generated/graphql'
 import { User, userState } from '../../../stores/user.store'
 
 const ParticipantsTab = ({
   participants,
   fragmentId,
+  fragmentType,
 }: {
   participants: FlickParticipantsFragment[]
   fragmentId: string
+  fragmentType: Fragment_Type_Enum_Enum | undefined
 }) => {
   type IsStatus = 'Host' | 'Assistant' | 'Viewer' | undefined
 
-  interface Participant {
+  interface Participant extends FragmentParticipantsQuery {
     name: string
     id: string
     picture: string
@@ -34,7 +37,8 @@ const ParticipantsTab = ({
       fragmentId,
     },
   })
-  const [participantsList, setParticipantsList] = useState<Participant[]>([])
+  const [fragmentparticipants, setFragmentparticipants] = useState<string[]>([])
+
   const [newParticipants, setNewParticipants] = useState<string[]>([])
 
   const userData = (useRecoilValue(userState) as User) || {}
@@ -43,30 +47,22 @@ const ParticipantsTab = ({
   const getParticipants = (
     fragmentParticipants: FragmentParticipantsQuery | undefined
   ) => {
-    if (participants.length) {
-      let list: Participant[] = []
+    let participantslist: string[] = []
 
+    if (participants.length) {
       participants.forEach((participant) => {
         if (participant.userSub === userData.sub) {
           setRole(participant.role as IsStatus)
         }
-
-        const member: Participant = {
-          id: participant.id,
-          name: participant.user.displayName as string,
-          picture: participant.user.picture as string,
-          isChecked: false,
-        }
-        fragmentParticipants?.Fragment_Participant.forEach((id) => {
-          if (id.participantId === member.id) {
-            member.isChecked = true
-          }
-        })
-        list = [...list, member]
       })
-
-      setParticipantsList(list)
     }
+    fragmentParticipants?.Fragment_Participant.forEach((id) => {
+      if (!participantslist?.includes(id.participantId)) {
+        participantslist = [...participantslist, id.participantId]
+      }
+    })
+
+    setFragmentparticipants(participantslist)
   }
 
   useEffect(() => {
@@ -74,32 +70,47 @@ const ParticipantsTab = ({
   }, [fragmentParticipants])
 
   const onSave = () => {
-    newParticipants.map(async (member) => {
+    newParticipants.map(async (memberId) => {
       await insertParticipants({
         variables: {
           fragmentId,
-          participantId: member,
+          participantId: memberId,
         },
       })
     })
+
+    refresh()
+  }
+
+  const refresh = () => {
+    setFragmentparticipants([])
     setNewParticipants([])
+    refetch()
+    getParticipants(fragmentParticipants)
   }
   const toggleCardSelection = (id: Participant['id']) => {
-    const updatedList: Participant[] =
-      participantsList &&
-      participantsList.map((member) => {
-        if (member.id === id) {
-          console.log('newParticipants', newParticipants)
-          if (!member.isChecked)
-            setNewParticipants([...newParticipants, member.id])
-          return { ...member, isChecked: true }
-        }
-        return member
+    if (
+      fragmentType === Fragment_Type_Enum_Enum.Trivia &&
+      (fragmentparticipants.length === 1 || newParticipants.length === 1)
+    ) {
+      emitToast({
+        title: 'Oopps!',
+        type: 'error',
+        description: `Oops! Trivia can only have one Creator`,
+        onClick: () => window.location.reload(),
       })
-    setParticipantsList(updatedList)
+    } else if (
+      !fragmentparticipants?.includes(id) ||
+      newParticipants.length < 1
+    ) {
+      setNewParticipants([...newParticipants, id])
+      setFragmentparticipants([...fragmentparticipants, id])
+    }
   }
-  if (loading) return <ScreenState title="Updating..." loading />
 
+  useEffect(() => {}, [newParticipants])
+
+  if (loading) return <ScreenState title="Updating..." loading />
   if (error)
     return (
       <ScreenState title="Something went wrong!" subtitle={error.message} />
@@ -113,23 +124,19 @@ const ParticipantsTab = ({
             className="flex-1 mt-2"
             noOptionsMessage={() => 'Search a Name'}
             onChange={(value) => toggleCardSelection(value?.value as string)}
-            options={participantsList
-              .filter((t) => !t.isChecked)
-              .map((user) => {
-                const option = {
-                  value: user.id,
-                  label: user.name as string,
-                }
-                return option
-              })}
+            options={participants.map((participants) => {
+              const option = {
+                value: participants.id,
+                label: participants.user.displayName as string,
+              }
+              return option
+            })}
             placeholder="Search a Participant"
           />
           <RiRefreshLine
             className="ml-auto w-1/16 m-2"
             onClick={() => {
-              setNewParticipants([])
-              refetch()
-              getParticipants(fragmentParticipants)
+              refresh()
             }}
           />
           <Button
@@ -146,59 +153,60 @@ const ParticipantsTab = ({
         </>
       )}
       <div className="w-full m-2 grid grid-flow-row grid-cols-4 gap-4">
-        {participantsList.map((participant) =>
-          role === 'Host' ? (
-            <div
-              key={participant.id}
-              role="button"
-              onKeyUp={() => {}}
-              tabIndex={0}
-              className="flex relative flex-row h-3/4 rounded-lg p-4 ml-7 w-3/4 m-2 border-blue-400 border-2 bg-white shadow-md"
-              onClick={() => {
-                toggleCardSelection(participant.id)
-              }}
-            >
-              {participant.isChecked && (
-                <span className="p-0.5 rounded-full scale-150 bg-blue-100 text-white absolute top-0 right-0 transform translate-x-1/2 translate-y-1/2">
-                  <RiCheckboxCircleFill color="green" />
-                </span>
-              )}
-
-              <img
-                src={participant.picture as string}
-                className="w-10 md:w-10 lg:w-10 h-10 md:h-10 lg:h-10 border-blue-300 border-2 rounded-lg"
-                alt="https://png.pngitem.com/pimgs/s/31-316453_firebase-logo-png-transparent-firebase-logo-png-png.png"
-              />
-
-              <Text className="h-20 m-2 flex align-middle justify-center text-center text-base overflow-hidden overflow-ellipsis">
-                {participant.name}
-              </Text>
-            </div>
-          ) : (
-            participant.isChecked && (
+        {participants &&
+          participants.map((participant) =>
+            role === 'Host' ? (
               <div
                 key={participant.id}
+                role="button"
+                onKeyUp={() => {}}
+                tabIndex={0}
                 className="flex relative flex-row h-3/4 rounded-lg p-4 ml-7 w-3/4 m-2 border-blue-400 border-2 bg-white shadow-md"
+                onClick={() => {
+                  toggleCardSelection(participant.id)
+                }}
               >
-                <span className="p-0.5 rounded-full scale-150 bg-blue-100 text-white absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2">
-                  <RiCheckboxCircleFill color="green" />
-                </span>
+                {fragmentparticipants?.includes(participant.id) && (
+                  <span className="p-0.5 rounded-full scale-150 bg-blue-100 text-white absolute top-0 right-0 transform translate-x-1/2 translate-y-1/2">
+                    <RiCheckboxCircleFill color="green" />
+                  </span>
+                )}
 
-                <div className="flex items-center">
-                  <img
-                    src={participant.picture as string}
-                    className="w-10 md:w-10 lg:w-10 h-10 md:h-10 lg:h-10 border-blue-300 border-2 rounded-lg"
-                    alt="https://png.pngitem.com/pimgs/s/31-316453_firebase-logo-png-transparent-firebase-logo-png-png.png"
-                  />
-                </div>
+                <img
+                  src={participant.user.picture as string}
+                  className="w-10 md:w-10 lg:w-10 h-10 md:h-10 lg:h-10 border-blue-300 border-2 rounded-lg"
+                  alt="https://png.pngitem.com/pimgs/s/31-316453_firebase-logo-png-transparent-firebase-logo-png-png.png"
+                />
 
-                <Text className="h-20 m-2 flex align-middle justify-center text-center text-base overflow-hidden overflow-ellipsis ">
-                  {participant.name}
+                <Text className="h-20 m-2 flex align-middle justify-center text-center text-base overflow-hidden overflow-ellipsis">
+                  {participant.user.displayName}
                 </Text>
               </div>
+            ) : (
+              fragmentparticipants?.includes(participant.id) && (
+                <div
+                  key={participant.id}
+                  className="flex relative flex-row h-3/4 rounded-lg p-4 ml-7 w-3/4 m-2 border-blue-400 border-2 bg-white shadow-md"
+                >
+                  <span className="p-0.5 rounded-full scale-150 bg-blue-100 text-white absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2">
+                    <RiCheckboxCircleFill color="green" />
+                  </span>
+
+                  <div className="flex items-center">
+                    <img
+                      src={participant.user.picture as string}
+                      className="w-10 md:w-10 lg:w-10 h-10 md:h-10 lg:h-10 border-blue-300 border-2 rounded-lg"
+                      alt="https://png.pngitem.com/pimgs/s/31-316453_firebase-logo-png-transparent-firebase-logo-png-png.png"
+                    />
+                  </div>
+
+                  <Text className="h-20 m-2 flex align-middle justify-center text-center text-base overflow-hidden overflow-ellipsis ">
+                    {participant.user.displayName}
+                  </Text>
+                </div>
+              )
             )
-          )
-        )}
+          )}
       </div>
     </div>
   )

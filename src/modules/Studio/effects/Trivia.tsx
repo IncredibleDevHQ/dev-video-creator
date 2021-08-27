@@ -6,11 +6,12 @@ import { Concourse } from '../components'
 import { CONFIG } from '../components/Concourse'
 import { ControlButton } from '../components/MissionControl'
 import { StudioProviderProps, studioStore } from '../stores'
+import { titleSplash } from './effects'
 
 const Trivia = () => {
   const [activeQuestionIndex, setActiveQuestionIndex] = useState<number>(0)
   const [questions, setQuestions] = useState<string[]>([])
-  const { fragment } =
+  const { fragment, isHost, state } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   useEffect(() => {
@@ -18,20 +19,23 @@ const Trivia = () => {
     setQuestions(
       fragment.configuration.properties.find(
         (property: any) => property.type === 'text[]'
-      ).value
+      )?.value
     )
   }, [fragment?.configuration.properties])
 
-  const controls = [
-    <ControlButton
-      key="nextQuestion"
-      icon={NextTokenIcon}
-      className="my-2"
-      appearance="primary"
-      disabled={activeQuestionIndex === questions.length - 1}
-      onClick={() => setActiveQuestionIndex(activeQuestionIndex + 1)}
-    />,
-  ]
+  const controls =
+    state === 'recording'
+      ? [
+          <ControlButton
+            key="nextQuestion"
+            icon={NextTokenIcon}
+            className="my-2"
+            appearance="primary"
+            disabled={activeQuestionIndex === questions.length - 1}
+            onClick={() => setActiveQuestionIndex(activeQuestionIndex + 1)}
+          />,
+        ]
+      : [<></>]
 
   const layerChildren = [
     <Group key="group">

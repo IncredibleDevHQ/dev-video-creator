@@ -6,7 +6,16 @@ import useImage from 'use-image'
 import { useRecoilValue } from 'recoil'
 import { StudioProviderProps, studioStore } from '../stores'
 
-const StudioUser = ({ stream }: { stream: MediaStream | null }) => {
+const StudioUser = ({
+  stream,
+  x,
+  y,
+}: {
+  x: number
+  y: number
+  stream: MediaStream | null
+}) => {
+  const imageConfig = { width: 160, height: 120 }
   const imageRef = useRef<Konva.Image | null>(null)
 
   const { picture, constraints } =
@@ -26,6 +35,7 @@ const StudioUser = ({ stream }: { stream: MediaStream | null }) => {
   useEffect(() => {
     if (!videoElement || !imageRef.current) return
     videoElement.play()
+
     const layer = imageRef.current.getLayer()
 
     const anim = new Konva.Animation(() => {}, layer)
@@ -46,17 +56,35 @@ const StudioUser = ({ stream }: { stream: MediaStream | null }) => {
 
   return (
     <Group
-      x={800}
-      y={400}
+      x={x}
+      y={y}
       clipFunc={(ctx: any) => {
-        ctx.arc(50, 50, 50, 0, Math.PI * 2, true)
+        ctx.arc(
+          imageConfig.width / 2,
+          imageConfig.height / 2,
+          imageConfig.width > imageConfig.height
+            ? imageConfig.height / 2
+            : imageConfig.width / 2,
+          0,
+          Math.PI * 2,
+          true
+        )
       }}
       draggable
     >
       {constraints?.video ? (
-        <Image ref={imageRef} image={videoElement} width={100} height={100} />
+        <Image
+          ref={imageRef}
+          image={videoElement}
+          width={imageConfig.width}
+          height={imageConfig.height}
+        />
       ) : (
-        <Image image={image} width={100} height={100} />
+        <Image
+          image={image}
+          width={imageConfig.width}
+          height={imageConfig.height}
+        />
       )}
     </Group>
   )

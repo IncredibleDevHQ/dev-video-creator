@@ -33,7 +33,7 @@ class ErrorBoundary extends React.Component<
       return (
         <ScreenState
           title={title}
-          subtitle={error?.message}
+          subtitle={error?.message || 'Something went wrong'}
           button="Reload this page"
           handleClick={() => window.location.reload()}
         />

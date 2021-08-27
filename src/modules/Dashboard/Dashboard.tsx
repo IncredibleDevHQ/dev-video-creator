@@ -1,6 +1,8 @@
-import React from 'react'
+import React, { HTMLProps, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useRecoilValue } from 'recoil'
+import { cx } from '@emotion/css'
+import { IconType } from 'react-icons'
 import config from '../../config'
 import { Navbar, ScreenState, Text } from '../../components'
 import {
@@ -9,7 +11,63 @@ import {
 } from '../../generated/graphql'
 import { User, userState } from '../../stores/user.store'
 import { formatDate } from '../../utils/FormatDate'
-import { NewFlickBanner } from './components'
+import { NewFlickBanner, TableView } from './components'
+
+const ViewBarButton = ({
+  icon: I,
+  active,
+  onClick,
+}: {
+  icon: IconType
+  active?: boolean
+  onClick: () => void
+}) => {
+  return (
+    <div
+      className={cx('p-1.5 rounded-md transition-colors cursor-pointer', {
+        'bg-brand text-white': active,
+        'text-brand': !active,
+      })}
+      onClick={onClick}
+      onKeyDown={onClick}
+      role="button"
+      tabIndex={0}
+    >
+      <I />
+    </div>
+  )
+}
+
+const ViewBar = ({
+  className,
+  barItems,
+  value,
+  handleClick,
+  ...rest
+}: HTMLProps<HTMLDivElement> & {
+  barItems: { icon: IconType; value: string }[]
+  value: string
+  handleClick: (value: string) => void
+}) => {
+  return (
+    <div
+      className={cx(
+        'bg-gray-100 px-3 py-1.5 rounded-md grid grid-flow-col gap-x-1',
+        className
+      )}
+      {...rest}
+    >
+      {barItems.map(({ icon, value: v }) => (
+        <ViewBarButton
+          key={v}
+          icon={icon}
+          active={v === value}
+          onClick={() => handleClick(v)}
+        />
+      ))}
+    </div>
+  )
+}
 
 const FlickTile = ({ flick }: { flick: BaseFlickFragment }) => {
   return (
@@ -49,24 +107,33 @@ const Dashboard = () => {
   const { data, loading } = useGetUserFlicksQuery({
     variables: { sub: sub as string },
   })
+  const [view, setView] = useState<'grid' | 'list'>('grid')
 
-  if (loading) return <ScreenState title="Just a jiffy..." loading />
+  if (loading) return <ScreenState title="Just a moment..." loading />
 
   return (
     <div className="relative h-screen">
       <Navbar />
-      <div className="py-2 px-4">
+      <div className="py-2 px-4 pb-24">
         <h2 className="font-black text-3xl mb-4">Your Flicks</h2>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {data?.Flick.map((flick) => (
-            <FlickTile key={flick.id} flick={flick} />
-          ))}
-        </div>
+        {view === 'list' && <TableView />}
+
+        {view === 'grid' && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {data?.Flick.map((flick) => (
+              <FlickTile key={flick.id} flick={flick} />
+            ))}
+          </div>
+        )}
       </div>
       <NewFlickBanner className="fixed bottom-0" />
     </div>
   )
+}
+
+ViewBarButton.defaultProps = {
+  active: undefined,
 }
 
 export default Dashboard

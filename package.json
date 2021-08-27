@@ -2,16 +2,21 @@
   "name": "incredibledev-next",
   "version": "0.0.1-alpha",
   "scripts": {
-    "build:production": "tsc && NODE_ENV=production vite build",
+    "build:production": "tsc && NODE_ENV=production vite build --mode production",
     "build:staging": "tsc && NODE_ENV=production vite build --mode staging",
     "build": "tsc && vite build",
     "codegen": "graphql-codegen --config codegen.yml -r dotenv/config",
-    "deploy:production": "firebase deploy --only hosting:production",
-    "deploy:staging": "firebase deploy --only hosting:staging",
+    "deploy:production": "firebase deploy --only hosting",
+    "deploy:staging": "firebase deploy --only hosting",
     "dev": "vite",
     "serve": "vite preview",
     "prepare": "husky install",
-    "lint": "npx eslint --format=pretty ./src --ext .js,.jsx,.ts,.tsx"
+    "lint": "eslint"
+  },
+  "lint-staged": {
+    "src/**/*.{js,jsx,ts,tsx}": [
+      "yarn lint"
+    ]
   },
   "dependencies": {
     "@apollo/client": "^3.3.21",
@@ -37,6 +42,7 @@
     "mime-types": "^2.1.32",
     "nanoid": "^3.1.23",
     "react": "^17.0.0",
+    "react-aspect-ratio": "^1.0.49",
     "react-beautiful-dnd": "^13.1.0",
     "react-dom": "^17.0.0",
     "react-gravatar": "^2.6.3",
@@ -48,8 +54,10 @@
     "react-responsive-modal": "^6.1.0",
     "react-router-dom": "^5.2.0",
     "react-select": "^4.3.1",
+    "react-table": "^7.7.0",
     "react-toastify": "^7.0.4",
     "recoil": "^0.3.1",
+    "ts-ebml": "^2.0.2",
     "use-debounce": "^7.0.0",
     "use-image": "^1.0.8",
     "yup": "^0.32.9"
@@ -74,6 +82,7 @@
     "@types/react-lottie": "^1.2.6",
     "@types/react-router-dom": "^5.1.8",
     "@types/react-select": "^4.0.17",
+    "@types/react-table": "^7.7.2",
     "@typescript-eslint/eslint-plugin": "^4.28.5",
     "@typescript-eslint/parser": "^4.28.5",
     "@vitejs/plugin-react-refresh": "^1.3.5",
@@ -88,7 +97,8 @@
     "eslint-plugin-prettier": "^3.4.0",
     "eslint-plugin-react": "^7.24.0",
     "eslint-plugin-react-hooks": "^4.2.0",
-    "husky": "^7.0.0",
+    "husky": "^7.0.2",
+    "lint-staged": "^11.1.2",
     "postcss": "7",
     "prettier": "^2.3.2",
     "tailwindcss": "npm:@tailwindcss/postcss7-compat",

@@ -6,11 +6,14 @@ import {
   FlickFragmentFragment,
   useUpdateFragmentConfigurationMutation,
 } from '../../../generated/graphql'
-import { getSchemaElement, SchemaElementProps } from './Effects'
+import { GetSchemaElement, SchemaElementProps } from './Effects'
+import TemplateMarket from '../../TemplateMarket/TemplateMarket'
 
 const FragmentConfiguration = ({
   fragment,
+  handleRefetch,
 }: {
+  handleRefetch: (refresh?: boolean) => void
   fragment?: FlickFragmentFragment
 }) => {
   const [config, setConfig] = useState<SchemaElementProps[]>()
@@ -18,6 +21,7 @@ const FragmentConfiguration = ({
   const [isConfigured, setConfigured] = useState(false)
   const [updateFragment, { data, error, loading }] =
     useUpdateFragmentConfigurationMutation()
+  const [loadingAssets, setLoadingAssets] = useState<boolean>(false)
   const history = useHistory()
 
   useEffect(() => {
@@ -29,6 +33,11 @@ const FragmentConfiguration = ({
     if (config) {
       setConfigured(true)
     }
+    const object: { [key: string]: any } = {}
+    config?.forEach((code) => {
+      object[code.key] = code.value || ''
+    })
+    setInitial(object)
   }, [config])
 
   useEffect(() => {
@@ -46,14 +55,31 @@ const FragmentConfiguration = ({
 
   if (!fragment) return <EmptyState text="No fragment Selected" width={400} />
 
-  useEffect(() => {
-    const object: { [key: string]: any } = {}
+  const handleOnSubmit = async (values: { [key: string]: any }) => {
+    if (!isValid) return
+    try {
+      setSubmitting(true)
 
-    config?.forEach((code) => {
-      object[code.key] = code.value
-    })
-    setInitial(object)
-  }, [config])
+      await updateFragment({
+        variables: {
+          fragmentId: fragment?.id,
+          items: Object.entries(values).map((entry) => ({
+            key: entry[0],
+            value: entry[1],
+          })),
+        },
+      })
+      handleRefetch(true)
+    } catch (error: any) {
+      emitToast({
+        title: 'Something went wrong.',
+        description: error.message,
+        type: 'error',
+      })
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   const {
     handleChange,
@@ -65,68 +91,51 @@ const FragmentConfiguration = ({
   } = useFormik({
     enableReinitialize: true,
     initialValues: initial,
-    onSubmit: async (values) => {
-      if (!isValid) return
-      try {
-        setSubmitting(true)
-        updateFragment({
-          variables: {
-            fragmentId: fragment?.id,
-            items: Object.entries(values).map((entry) => ({
-              key: entry[0],
-              value: entry[1],
-            })),
-          },
-        })
-      } catch (error: any) {
-        emitToast({
-          title: 'Something went wrong.',
-          description: error.message,
-          type: 'error',
-        })
-      } finally {
-        setSubmitting(false)
-      }
-    },
+    onSubmit: handleOnSubmit,
   })
 
   return (
     <div>
       <form onSubmit={handleSubmit}>
-        {config?.map((attribute) =>
-          getSchemaElement(
-            attribute,
-            handleChange,
-            setFieldValue,
-            values[attribute.key]
-          )
-        )}
+        {config?.map((attribute) => (
+          <GetSchemaElement
+            schema={attribute}
+            setFieldValue={setFieldValue}
+            handleChange={handleChange}
+            value={values[attribute.key]}
+            setLoadingAssets={setLoadingAssets}
+          />
+        ))}
+
         <Button
           type="button"
           size="small"
-          className="ml-4"
           appearance="secondary"
+          className="ml-4"
           onClick={(e) => {
             e?.preventDefault()
             handleSubmit()
           }}
-          loading={loading}
+          disabled={loadingAssets}
+          loading={loadingAssets || loading}
         >
           Save Configuration
         </Button>
       </form>
 
-      <Button
-        type="button"
-        className="ml-auto"
-        size="medium"
-        appearance="primary"
-        onClick={() => {
-          history.push(`/${fragment.id}/studio`)
-        }}
-      >
-        Record
-      </Button>
+      {isConfigured && (
+        <Button
+          type="button"
+          className="ml-auto"
+          size="medium"
+          appearance="primary"
+          onClick={() => {
+            history.push(`/${fragment.id}/studio`)
+          }}
+        >
+          Record
+        </Button>
+      )}
     </div>
   )
 }

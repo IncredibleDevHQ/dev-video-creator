@@ -27,7 +27,7 @@ const Heading = ({ fontSize, children, className, ...rest }: HeadingProps) => {
       )
     case 'medium':
       return (
-        <h3 className={cx('text-2xl font-medium', className)} {...rest}>
+        <h3 className={cx('text-2xl font-bold', className)} {...rest}>
           {children}
         </h3>
       )

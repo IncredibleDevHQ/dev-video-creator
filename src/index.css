@@ -4,6 +4,19 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  @font-face {
+    font-family: 'Gilroy';
+    font-weight: 400;
+    src: url('fonts/gilroy-400.woff2') format('woff2');
+  }
+  @font-face {
+    font-family: 'Gilroy';
+    font-weight: 600;
+    src: url('fonts/gilroy-600.woff2') format('woff2');
+  }
+}
+
 @layer utilities {
   @variants responsive {
     /* Hide scrollbar for Chrome, Safari and Opera */
@@ -43,7 +56,8 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: #ffffff;
-  font-family: 'Nunito Sans', sans-serif;
+  /* font-family: 'Nunito Sans', sans-serif; */
+  font-family: 'Gilroy', sans-serif;
   @apply text-black;
 }
 

@@ -10,8 +10,9 @@ import { StudioProviderProps, studioStore } from '../stores'
 import { useGetFragmentByIdQuery } from '../../../generated/graphql'
 import { ScreenState } from '../../../components'
 
-const Splash = ({ config }: { config: string }) => {
+const Splash = () => {
   const { sub } = (useRecoilValue(userState) as User) || {}
+  const [aspectRatio, setAspectRatio] = useState(1)
 
   const params: { fragmentId: string } = useParams()
 
@@ -19,16 +20,23 @@ const Splash = ({ config }: { config: string }) => {
     variables: { id: params.fragmentId, sub: sub as string },
   })
 
-  const { displayName, username, picture } = JSON.parse(
-    data?.Fragment[0].configuration
-  )
+  const [displayName, username, picture] =
+    data?.Fragment[0].configuration.properties // this is temporary for one template, since config doesnt have template section
 
-  const [image] = useImage(picture as string, 'anonymous')
+  const [image] = useImage(picture.value as string, 'anonymous')
 
   const { fragment, state } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const controls: any = []
+
+  useEffect(() => {
+    console.log('width', image?.width)
+    console.log('height', image?.height)
+    if (!image) return
+    setAspectRatio(image.width / image.height)
+    console.log(aspectRatio)
+  }, [image])
 
   useEffect(() => {
     if (state === 'recording') {
@@ -73,14 +81,21 @@ const Splash = ({ config }: { config: string }) => {
           x={-200}
           y={-10}
           clipFunc={(ctx: any) => {
-            ctx.arc(80, 80, 80, 0, Math.PI * 2, true)
+            ctx.arc(
+              75,
+              75 / aspectRatio,
+              Math.min(75, 75 / aspectRatio),
+              0,
+              Math.PI * 2,
+              true
+            )
           }}
           scaleX={1}
           scaleY={1}
           draggable
           ref={(ref) => ref?.to({ x: 30, duration: 1 })}
         >
-          <Image image={image} width={160} height={160} />
+          <Image image={image} width={150} height={150 / aspectRatio} />
         </Group>
         <Text
           x={10}
@@ -88,7 +103,7 @@ const Splash = ({ config }: { config: string }) => {
           fill="#00008B"
           fontSize={24}
           fontStyle="700"
-          text={displayName as string}
+          text={displayName.value as string}
           scaleX={1}
           ref={(ref) => ref?.to({ x: 200, duration: 1 })}
         />
@@ -98,7 +113,7 @@ const Splash = ({ config }: { config: string }) => {
           fill="#7B68EE"
           fontSize={16}
           letterSpacing={1}
-          text={`@${username}`}
+          text={`@${username.value}`}
           scaleY={1}
           ref={(ref) => ref?.to({ x: 200, duration: 1 })}
         />

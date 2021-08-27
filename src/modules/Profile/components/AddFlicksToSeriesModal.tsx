@@ -115,15 +115,19 @@ const AddFlicksToSeriesModal = ({
 
         <div className="p-4">
           {seriesFlickList.seriesFlicksList.map((flick) => (
-            <div key={flick.id} className="flex items-center mr-4 mb-2">
+            <div
+              key={flick.id}
+              className="flex justify-between items-center mr-4 mb-2"
+            >
+              <Text> {flick.name}</Text>
               <Checkbox
                 id={flick.id}
                 name={flick.name}
                 value={flick.id}
                 checked={flick.isChecked}
                 onChange={() => reverseChecked(flick.id)}
-                className="flex flex-wrap lg:align-middle gap-3 text-lg text-black ml-4 lg:capitalize"
-                label={flick.name}
+                className="flex flex-wrap lg:align-middle gap-3  text-lg text-black ml-4 lg:capitalize"
+                label=""
               />
             </div>
           ))}
