@@ -1,7 +1,8 @@
 /* eslint-disable no-case-declarations */
 import { FormikErrors } from 'formik'
-import React, { useState } from 'react'
-import { Checkbox, Photo, Text, TextField } from '../../../components'
+import { AiFillDelete } from 'react-icons/ai'
+import React, { useEffect, useState } from 'react'
+import { Button, Checkbox, Photo, Text, TextField } from '../../../components'
 import { useUploadFile } from '../../../hooks'
 
 export interface SchemaElementProps {
@@ -40,6 +41,8 @@ export const GetSchemaElement = ({
   value,
   setLoadingAssets,
 }: GetSchemaElementProps) => {
+  const [uploadFile] = useUploadFile()
+
   switch (schema.type) {
     case 'boolean':
       return (
@@ -70,80 +73,140 @@ export const GetSchemaElement = ({
       )
 
     case 'text[]':
-      const [uploadIamgeFile] = useUploadFile()
+      interface Question {
+        text: string
+        image?: string
+      }
 
-      const [question, setQuestion] =
-        useState<{ text: string; image?: string }>()
+      const [question, setQuestion] = useState<Question>()
+      const [questions, setQuestions] = useState<Question[]>([])
+      const [loading, setLoading] = useState(false)
 
-      const handleOnClick = async (file: File) => {
-        if (!question?.text) if (!file) return
+      useEffect(() => {
+        setQuestions(value || [])
+      }, [value])
+
+      const addQuestion = async (file: File) => {
+        if (!question?.text) return
+
+        if (!file) return
         setLoadingAssets(true)
-        const pic = await uploadIamgeFile({
+        setLoading(true)
+        const pic = await uploadFile({
           extension: file.name.split('.')[1] as any,
           file,
         })
         setLoadingAssets(false)
-        setQuestion({
-          text: question?.text as string,
-          image: pic.url as string,
-        })
+        setLoading(false)
+        setQuestion({ text: question?.text, image: pic.url })
+      }
 
+      const addToFormik = (questionArray: any) => {
         const event = new Event('input', { bubbles: true })
-        // dispatchEvent(event)
+        dispatchEvent(event)
         // @ts-ignore
         event.target.name = schema.key
         // @ts-ignore
-        event.target.value = question
-        console.log('value', event)
+        event.target.value = questionArray
 
-        console.log('question', question)
         handleChange(event as any)
+      }
+
+      const handleOnClick = () => {
+        if (!question?.text) return
+
+        setQuestions((questions) => [...questions, question])
+        const questionArray = [...questions, question]
+        addToFormik(questionArray)
+        setQuestion({ text: '', image: '' })
+      }
+
+      const handleDeleteQuestion = (text: string) => {
+        const questionArray = questions.filter((ques) => ques.text !== text)
+        setQuestions(questionArray)
+
+        addToFormik(questionArray)
       }
 
       return (
         <div className="flex flex-col gap-1 m-4" key={schema.key}>
-          <div className="flex flex-col gap-2 items-end">
-            {Array(value ? value?.length + 1 : 1)
-              .fill('')
-              .map((_, index) => (
-                <div className="flex flex-row">
-                  <TextField
-                    // eslint-disable-next-line react/no-array-index-key
-                    key={`${schema.key}[${index}]`}
-                    className="text-lg"
-                    name={`${schema.key}[${index}]`}
-                    onChange={(e) =>
-                      setQuestion({ ...question, text: e.target.value })
-                    }
-                    value={value ? value[index] : ''}
-                    placeholder={schema.description}
-                    label={`Question ${index + 1}`}
-                  />
+          <div className="flex gap-2 items-end">
+            <div
+              className="flex flex-col md:flex-row items-center"
+              key={schema.key}
+            >
+              <TextField
+                // eslint-disable-next-line react/no-array-index-key
+                className="text-lg"
+                name={schema.key}
+                onChange={(e) =>
+                  setQuestion({ ...question, text: e.target.value })
+                }
+                value={question?.text}
+                placeholder={schema.description}
+                label="Add a Question"
+              />
 
-                  <Photo
-                    className="text-lg m-4"
-                    key={`${schema.key}`}
-                    onChange={(e) =>
-                      // @ts-ignore
-                      e.target.files?.[0] && handleOnClick(e.target.files[0])
-                    }
+              <Photo
+                className="text-lg m-4"
+                key={`${schema.key}`}
+                onChange={(e) =>
+                  // @ts-ignore
+                  e.target.files?.[0] && addQuestion(e.target.files[0])
+                }
+              />
+              {question?.image && (
+                <img
+                  className="h-32 m-4 object-contain"
+                  alt={question?.text}
+                  src={question?.image}
+                  // eslint-disable-next-line react/no-array-index-key
+                />
+              )}
+
+              <Button
+                onClick={handleOnClick}
+                appearance="secondary"
+                type="button"
+                className="w-full md:w-28"
+                loading={loading}
+              >
+                Add
+              </Button>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2">
+            {questions.map((ques, index) => (
+              <div
+                key={ques.image}
+                className={`bg-blue-200 px-4 py-2 m-1 flex items-center justify-between gap-2 `}
+              >
+                {ques?.image && (
+                  <img
+                    className="h-20 mb-2 object-contain"
+                    alt={ques?.text}
+                    src={ques?.image}
                   />
-                  {value ||
-                    (value && (
-                      <img
-                        className="h-32 m-4 object-contain"
-                        alt="hhh"
-                        key={`${schema.key}`}
-                      />
-                    ))}
+                )}
+                <div className="flex flex-col">
+                  <span className="font-bold">Question {index + 1}:</span>
+                  <span className="capitalize text-justify">{ques.text}</span>
                 </div>
-              ))}
+                <Button
+                  onClick={() => handleDeleteQuestion(ques?.text)}
+                  type="button"
+                  appearance="danger"
+                  size="extraSmall"
+                >
+                  <AiFillDelete />
+                </Button>
+              </div>
+            ))}
           </div>
         </div>
       )
 
     case 'pic':
-      const [uploadFile] = useUploadFile()
       const [picture, setPicture] = useState<string>()
 
       const handleClick = async (file: File) => {
@@ -161,7 +224,7 @@ export const GetSchemaElement = ({
         // @ts-ignore
         event.target.name = schema.key
         // @ts-ignore
-        event.target.value = question
+        event.target.value = pic.url
         handleChange(event as any)
       }
       return (
