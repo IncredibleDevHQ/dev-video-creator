@@ -4,7 +4,7 @@ import { Fragment_Type_Enum_Enum } from '../../../generated/graphql'
 import CodeJam from './CodeJam'
 import VideoJam from './VideoJam'
 import Intro from './Splash'
-import Trivia from './Trivia'
+import Trivia from './NewTrivia'
 
 export interface Effect {
   controls: JSX.Element[]

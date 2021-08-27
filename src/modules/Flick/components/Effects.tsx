@@ -70,22 +70,73 @@ export const GetSchemaElement = ({
       )
 
     case 'text[]':
+      const [uploadIamgeFile] = useUploadFile()
+
+      const [question, setQuestion] =
+        useState<{ text: string; image?: string }>()
+
+      const handleOnClick = async (file: File) => {
+        if (!question?.text) if (!file) return
+        setLoadingAssets(true)
+        const pic = await uploadIamgeFile({
+          extension: file.name.split('.')[1] as any,
+          file,
+        })
+        setLoadingAssets(false)
+        setQuestion({
+          text: question?.text as string,
+          image: pic.url as string,
+        })
+
+        const event = new Event('input', { bubbles: true })
+        // dispatchEvent(event)
+        // @ts-ignore
+        event.target.name = schema.key
+        // @ts-ignore
+        event.target.value = question
+        console.log('value', event)
+
+        console.log('question', question)
+        handleChange(event as any)
+      }
+
       return (
         <div className="flex flex-col gap-1 m-4" key={schema.key}>
           <div className="flex flex-col gap-2 items-end">
             {Array(value ? value?.length + 1 : 1)
               .fill('')
               .map((_, index) => (
-                <TextField
-                  // eslint-disable-next-line react/no-array-index-key
-                  key={`${schema.key}[${index}]`}
-                  className="text-lg"
-                  name={`${schema.key}[${index}]`}
-                  onChange={handleChange}
-                  value={value ? value[index] : ''}
-                  placeholder={schema.description}
-                  label={`Question ${index + 1}`}
-                />
+                <div className="flex flex-row">
+                  <TextField
+                    // eslint-disable-next-line react/no-array-index-key
+                    key={`${schema.key}[${index}]`}
+                    className="text-lg"
+                    name={`${schema.key}[${index}]`}
+                    onChange={(e) =>
+                      setQuestion({ ...question, text: e.target.value })
+                    }
+                    value={value ? value[index] : ''}
+                    placeholder={schema.description}
+                    label={`Question ${index + 1}`}
+                  />
+
+                  <Photo
+                    className="text-lg m-4"
+                    key={`${schema.key}`}
+                    onChange={(e) =>
+                      // @ts-ignore
+                      e.target.files?.[0] && handleOnClick(e.target.files[0])
+                    }
+                  />
+                  {value ||
+                    (value && (
+                      <img
+                        className="h-32 m-4 object-contain"
+                        alt="hhh"
+                        key={`${schema.key}`}
+                      />
+                    ))}
+                </div>
               ))}
           </div>
         </div>
@@ -110,10 +161,9 @@ export const GetSchemaElement = ({
         // @ts-ignore
         event.target.name = schema.key
         // @ts-ignore
-        event.target.value = pic.url
+        event.target.value = question
         handleChange(event as any)
       }
-
       return (
         <>
           <Text className="ml-4">{schema.description}</Text>
