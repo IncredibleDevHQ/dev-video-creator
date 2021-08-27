@@ -108,7 +108,7 @@ const Studio = () => {
   }, [payload])
 
   useEffect(() => {
-    if (fragment) {
+    if (fragment && ready) {
       ;(async () => {
         init()
         const { data } = await getRTCToken({ variables: { fragmentId } })
@@ -122,7 +122,7 @@ const Studio = () => {
         )
       })()
     }
-  }, [fragment])
+  }, [fragment, ready])
 
   useEffect(() => {
     if (!data?.Fragment) return
