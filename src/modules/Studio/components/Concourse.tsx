@@ -1,9 +1,10 @@
-import React, { createRef, useEffect } from 'react'
+import React, { createRef, useEffect, useState } from 'react'
 import {
   useRecoilBridgeAcrossReactRoots_UNSTABLE,
   useRecoilState,
   useRecoilValue,
 } from 'recoil'
+import { cx } from '@emotion/css'
 import Konva from 'konva'
 import { Stage, Layer, Rect } from 'react-konva'
 import { KonvaEventObject } from 'konva/lib/Node'
@@ -30,9 +31,13 @@ const Concourse = ({
   const { state, stream, getBlobs, users } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [canvas, setCanvas] = useRecoilState(canvasStore)
+
+  const [isZooming, setZooming] = useState(false)
+
   const stageRef = createRef<Konva.Stage>()
   const layerRef = createRef<Konva.Layer>()
   const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
+
   const initialPos = { x: 760, y: 380 }
   const userStudioImageGap = 130
   const zoomLevel = 2
@@ -74,27 +79,21 @@ const Concourse = ({
   }
 
   const onLayerClick = () => {
-    if (!layerRef.current || !canvas?.zoomed) return
-    console.log('i was called')
-    if (canvas.zoomed) {
-      onMouseLeave()
+    if (!stageRef.current || !layerRef.current || !canvas?.zoomed) return
+    const tZooming = isZooming
+    if (tZooming) {
+      layerRef.current.x(0)
+      layerRef.current.y(0)
+      layerRef.current.scale({ x: 1, y: 1 })
     } else {
+      const pointer = stageRef.current.getPointerPosition()
+      if (pointer) {
+        layerRef.current.x(-pointer.x)
+        layerRef.current.y(-pointer.y)
+      }
       layerRef.current.scale({ x: zoomLevel, y: zoomLevel })
     }
-  }
-
-  const onMouseEnter = () => {
-    if (!layerRef.current || !canvas?.zoomed) return
-    layerRef.current.scale({ x: zoomLevel, y: zoomLevel })
-  }
-
-  const onMouseMove = () => {
-    if (!stageRef.current || !layerRef.current || !canvas?.zoomed) return
-    const pointer = stageRef.current.getPointerPosition()
-    if (pointer) {
-      layerRef.current.x(-pointer.x)
-      layerRef.current.y(-pointer.y)
-    }
+    setZooming(!isZooming)
   }
 
   const onMouseLeave = () => {
@@ -102,6 +101,7 @@ const Concourse = ({
     layerRef.current.x(0)
     layerRef.current.y(0)
     layerRef.current.scale({ x: 1, y: 1 })
+    setZooming(false)
   }
 
   const resetCanvas = () => {
@@ -124,12 +124,17 @@ const Concourse = ({
             onWheel={handleZoom}
             height={CONFIG.height}
             width={CONFIG.width}
+            onClick={onLayerClick}
+            className={cx({
+              'cursor-zoom-in': canvas?.zoomed && !isZooming,
+              'cursor-zoom-out': canvas?.zoomed && isZooming,
+            })}
           >
             <Bridge>
               <Layer
                 ref={layerRef}
-                onMouseEnter={onMouseEnter}
-                onMouseMove={onMouseMove}
+                // onMouseEnter={onMouseEnter}
+                // onMouseMove={onMouseMove}
                 onMouseLeave={onMouseLeave}
               >
                 <Rect
