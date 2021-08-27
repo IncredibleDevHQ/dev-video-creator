@@ -1,6 +1,7 @@
-import React, { createRef } from 'react'
+import React, { createRef, useEffect } from 'react'
 import {
   useRecoilBridgeAcrossReactRoots_UNSTABLE,
+  useRecoilState,
   useRecoilValue,
 } from 'recoil'
 import Konva from 'konva'
@@ -8,7 +9,7 @@ import { Stage, Layer, Rect } from 'react-konva'
 import { KonvaEventObject } from 'konva/lib/Node'
 import MissionControl from './MissionControl'
 import StudioUser from './StudioUser'
-import { StudioProviderProps, studioStore } from '../stores'
+import { canvasStore, StudioProviderProps, studioStore } from '../stores'
 
 interface ConcourseProps {
   controls: JSX.Element[]
@@ -28,10 +29,18 @@ const Concourse = ({
 }: ConcourseProps) => {
   const { state, stream, getBlobs, users } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const [canvas, setCanvas] = useRecoilState(canvasStore)
   const stageRef = createRef<Konva.Stage>()
+  const layerRef = createRef<Konva.Layer>()
   const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
   const initialPos = { x: 760, y: 380 }
   const userStudioImageGap = 130
+  const zoomLevel = 2
+
+  useEffect(() => {
+    if (!canvas) return
+    if (!canvas.zoomed) onMouseLeave()
+  }, [canvas?.zoomed])
 
   const handleZoom = (e: KonvaEventObject<WheelEvent>) => {
     e.evt.preventDefault()
@@ -64,11 +73,47 @@ const Concourse = ({
     stageRef.current.position(newPos)
   }
 
+  const onLayerClick = () => {
+    if (!layerRef.current || !canvas?.zoomed) return
+    console.log('i was called')
+    if (canvas.zoomed) {
+      onMouseLeave()
+    } else {
+      layerRef.current.scale({ x: zoomLevel, y: zoomLevel })
+    }
+  }
+
+  const onMouseEnter = () => {
+    if (!layerRef.current || !canvas?.zoomed) return
+    layerRef.current.scale({ x: zoomLevel, y: zoomLevel })
+  }
+
+  const onMouseMove = () => {
+    if (!stageRef.current || !layerRef.current || !canvas?.zoomed) return
+    const pointer = stageRef.current.getPointerPosition()
+    if (pointer) {
+      layerRef.current.x(-pointer.x)
+      layerRef.current.y(-pointer.y)
+    }
+  }
+
+  const onMouseLeave = () => {
+    if (!layerRef.current) return
+    layerRef.current.x(0)
+    layerRef.current.y(0)
+    layerRef.current.scale({ x: 1, y: 1 })
+  }
+
   const resetCanvas = () => {
     if (!stageRef.current) return
     stageRef.current.position({ x: 0, y: 0 })
     stageRef.current.scale({ x: 1, y: 1 })
+    onMouseLeave()
   }
+
+  useEffect(() => {
+    setCanvas({ zoomed: false, resetCanvas })
+  }, [])
 
   return (
     <div className="flex-1 mt-4 justify-between items-stretch flex">
@@ -81,7 +126,12 @@ const Concourse = ({
             width={CONFIG.width}
           >
             <Bridge>
-              <Layer>
+              <Layer
+                ref={layerRef}
+                onMouseEnter={onMouseEnter}
+                onMouseMove={onMouseMove}
+                onMouseLeave={onMouseLeave}
+              >
                 <Rect
                   x={0}
                   y={0}
@@ -128,7 +178,7 @@ const Concourse = ({
         )}
       </div>
 
-      <MissionControl controls={controls} resetCanvas={resetCanvas} />
+      <MissionControl controls={controls} />
     </div>
   )
 }
