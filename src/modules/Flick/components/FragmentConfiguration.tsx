@@ -7,7 +7,6 @@ import {
   useUpdateFragmentConfigurationMutation,
 } from '../../../generated/graphql'
 import { GetSchemaElement, SchemaElementProps } from './Effects'
-import TemplateMarket from '../../TemplateMarket/TemplateMarket'
 
 const FragmentConfiguration = ({
   fragment,

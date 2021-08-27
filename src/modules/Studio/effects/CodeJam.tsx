@@ -13,8 +13,8 @@ import TypingEffect from './TypingEffect'
 
 const codeConfig = {
   fontSize: 14,
-  width: 912,
-  height: 513,
+  width: 960,
+  height: 540,
 }
 
 interface Position {

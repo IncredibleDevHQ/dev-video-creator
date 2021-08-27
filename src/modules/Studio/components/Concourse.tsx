@@ -19,8 +19,8 @@ interface ConcourseProps {
 }
 
 export const CONFIG = {
-  width: 912,
-  height: 513,
+  width: 960,
+  height: 540,
 }
 
 const Concourse = ({
