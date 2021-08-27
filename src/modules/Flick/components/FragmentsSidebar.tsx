@@ -10,6 +10,7 @@ import {
   DraggableStateSnapshot,
 } from 'react-beautiful-dnd'
 import { FiCheckCircle, FiPlus } from 'react-icons/fi'
+import { MdDelete } from 'react-icons/md'
 import {
   Button,
   emitToast,
@@ -21,8 +22,8 @@ import {
   FlickFragmentFragment,
   useProduceVideoMutation,
   useFragmentRoleQuery,
+  useDeleteFragmentMutation,
 } from '../../../generated/graphql'
-
 import { User, userState } from '../../../stores/user.store'
 
 const reorder = (
@@ -43,14 +44,32 @@ const FragmentItem = ({
   snapshot,
   activeFragmentId,
   setActiveFragmentId,
+  handleRefetch,
 }: {
   fragment: FlickFragmentFragment
   provided: DraggableProvided
   snapshot: DraggableStateSnapshot
   activeFragmentId: string
   setActiveFragmentId: (id: string) => void
+  handleRefetch: (refresh?: boolean) => void
 }) => {
   const userData = (useRecoilValue(userState) as User) || {}
+  const [deleteFragment, { data: deleteFragmentData }] =
+    useDeleteFragmentMutation()
+
+  const deleteFragmentbyId = (fragmentId: string) => {
+    deleteFragment({
+      variables: {
+        id: fragmentId,
+      },
+    })
+  }
+
+  useEffect(() => {
+    if (!deleteFragmentData) return
+    handleRefetch(true)
+  }, [deleteFragmentData])
+
   const { data } = useFragmentRoleQuery({
     variables: {
       fragmentId: activeFragmentId,
@@ -85,9 +104,22 @@ const FragmentItem = ({
       {fragment.producedLink && (
         <FiCheckCircle className="text-success absolute top-1 right-1" />
       )}
-      <Heading fontSize="base">{fragment.name}</Heading>
-      <Text fontSize="normal">{fragment.description}</Text>
-      <Text fontSize="small">{fragment.type}</Text>
+      <div className="grid grid-cols-3">
+        <div className="col-span-2 bg-white rounded">
+          <Heading fontSize="base">{fragment.name}</Heading>
+          <Text fontSize="normal">{fragment.description}</Text>
+          <Text fontSize="small">{fragment.type}</Text>
+        </div>
+        <div className="p-5">
+          <MdDelete
+            className="cursor-pointer"
+            onClick={(e) => {
+              e?.preventDefault()
+              deleteFragmentbyId(fragment.id)
+            }}
+          />
+        </div>
+      </div>
     </div>
   )
 }
@@ -97,11 +129,13 @@ const FragmentDND = ({
   setFragments,
   activeFragmentId,
   setActiveFragmentId,
+  handleRefetch,
 }: {
   fragments: FlickFragmentFragment[]
   setFragments: (fragments: FlickFragmentFragment[]) => void
   activeFragmentId: string
   setActiveFragmentId: (id: string) => void
+  handleRefetch: (refresh?: boolean) => void
 }) => {
   const onDragEnd = (result: any) => {
     if (!result.destination) {
@@ -138,6 +172,7 @@ const FragmentDND = ({
                     fragment={fragment}
                     activeFragmentId={activeFragmentId}
                     setActiveFragmentId={setActiveFragmentId}
+                    handleRefetch={handleRefetch}
                   />
                 )}
               </Draggable>
@@ -155,12 +190,14 @@ const FragmentsSidebar = ({
   activeFragmentId,
   setActiveFragmentId,
   setAddFragmentModal,
+  handleRefetch,
 }: {
   flickId: string
   fragments: FlickFragmentFragment[]
   activeFragmentId?: string
   setActiveFragmentId: (id: string) => void
   setAddFragmentModal: (isOpen: boolean) => void
+  handleRefetch: (refresh?: boolean) => void
 }) => {
   const [fragmentItems, setFragmentItems] = useState<FlickFragmentFragment[]>(
     []
@@ -231,6 +268,7 @@ const FragmentsSidebar = ({
           setActiveFragmentId={setActiveFragmentId}
           setFragments={setFragmentItems}
           fragments={fragmentItems}
+          handleRefetch={handleRefetch}
         />
       ) : (
         <Text>No Fragments</Text>
