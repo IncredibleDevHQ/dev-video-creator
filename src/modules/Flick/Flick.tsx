@@ -72,6 +72,9 @@ const Flick = () => {
         activeFragmentId={activeFragmentId}
         setActiveFragmentId={setActiveFragmentId}
         setAddFragmentModal={setAddFragmentModal}
+        handleRefetch={(refresh) => {
+          if (refresh) refetch()
+        }}
         participants={flick.participants}
       />
       <div className="flex-1 p-4">
