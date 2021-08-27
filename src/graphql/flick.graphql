@@ -43,7 +43,7 @@ query GetUpcomingUserFlicks($sub: String!) {
 query GetUserFlicks($sub: String!) {
   Flick(
     where: { participants: { userSub: { _eq: $sub } } }
-    order_by: { startAt: asc }
+    order_by: { startAt: desc }
   ) {
     ...Flick
   }
