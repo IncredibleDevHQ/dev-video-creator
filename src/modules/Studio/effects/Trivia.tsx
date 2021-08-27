@@ -123,9 +123,10 @@ const Trivia = () => {
         cornerRadius={4}
         fill="#F5F5F5"
       />
-      {questions.length > 0 ? (
+      {questions.length > 0 &&
+      questions[activeQuestionIndex].image !== undefined ? (
         <Text
-          x={88}
+          x={48}
           verticalAlign="middle"
           fontSize={24}
           fill="#424242"
@@ -135,19 +136,39 @@ const Trivia = () => {
           fontStyle="bold"
           fontFamily="Gilroy"
           textTransform="capitalize"
+          ref={(ref) => ref?.to({ x: 88, duration: 0.3 })}
         />
       ) : null}
-
-      <Rect y={94} fill="#F5F5F5" width={472} height={318} />
-
-      <Image
-        image={qnaImage}
-        y={110}
-        x={16}
-        fill="#F5F5F5"
-        width={438}
-        height={284}
-      />
+      {questions.length > 0 &&
+      questions[activeQuestionIndex].image === undefined ? (
+        <Text
+          x={-24}
+          y={-64}
+          verticalAlign="middle"
+          fontSize={24}
+          fill="#424242"
+          width={472}
+          height={CONFIG.height}
+          text={questions[activeQuestionIndex].text}
+          fontStyle="bold"
+          fontFamily="Gilroy"
+          align="center"
+          textTransform="capitalize"
+          ref={(ref) => ref?.to({ x: 24, duration: 0.3 })}
+        />
+      ) : (
+        <>
+          <Rect y={94} fill="#F5F5F5" width={472} height={318} />
+          <Image
+            image={qnaImage}
+            y={110}
+            x={16}
+            fill="#F5F5F5"
+            width={438}
+            height={284}
+          />
+        </>
+      )}
     </Group>,
     <Group x={664} y={412} width={234} height={64} key="group2">
       <Rect width={234} cornerRadius={4} height={64} fill="#F3F4F6" />
