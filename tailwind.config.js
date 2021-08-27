@@ -44,6 +44,10 @@ module.exports = {
       animation: {
         'spin-slow': 'spin 3s linear infinite',
       },
+      cursor: {
+        'zoom-in': 'zoom-in',
+        'zoom-out': 'zoom-out',
+      },
     },
   },
   variants: {

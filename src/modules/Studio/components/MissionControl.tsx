@@ -15,9 +15,10 @@ import {
   FiVideoOff,
 } from 'react-icons/fi'
 import { BiReset } from 'react-icons/bi'
-import { useRecoilValue } from 'recoil'
 import { IoHandRightOutline } from 'react-icons/io5'
-import { StudioProviderProps, studioStore } from '../stores'
+import { VscSearch, VscSearchStop } from 'react-icons/vsc'
+import { useRecoilState, useRecoilValue } from 'recoil'
+import { canvasStore, StudioProviderProps, studioStore } from '../stores'
 import { Avatar, Heading, Tooltip } from '../../../components'
 import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
 
@@ -88,13 +89,7 @@ const RaiseHandsMenu = ({ participants }: { participants: any[] }) => {
   )
 }
 
-const MissionControl = ({
-  controls,
-  resetCanvas,
-}: {
-  controls: JSX.Element[]
-  resetCanvas: () => void
-}) => {
+const MissionControl = ({ controls }: { controls: JSX.Element[] }) => {
   const {
     constraints,
     startRecording,
@@ -107,9 +102,9 @@ const MissionControl = ({
     updateParticipant,
     updatePayload,
     participantId,
-    isHost,
     payload,
   } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const [canvas, setCanvas] = useRecoilState(canvasStore)
 
   const [isRaiseHandsTooltip, setRaiseHandsTooltip] = useState(false)
   const [participant, setParticipant] = useState<any>()
@@ -152,7 +147,16 @@ const MissionControl = ({
             icon={BiReset}
             className="my-2"
             appearance="primary"
-            onClick={resetCanvas}
+            onClick={canvas?.resetCanvas}
+          />
+          <ControlButton
+            icon={canvas?.zoomed ? VscSearchStop : VscSearch}
+            className="my-2"
+            appearance={canvas?.zoomed ? 'danger' : 'primary'}
+            onClick={() => {
+              console.log(canvas)
+              if (canvas) setCanvas({ ...canvas, zoomed: !canvas.zoomed })
+            }}
           />
           <hr className="bg-grey-darker h-px my-2" />
 
