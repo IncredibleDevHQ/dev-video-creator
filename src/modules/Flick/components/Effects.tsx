@@ -1,7 +1,7 @@
 /* eslint-disable no-case-declarations */
 import { FormikErrors } from 'formik'
 import { AiFillDelete } from 'react-icons/ai'
-import React, { useEffect, useState } from 'react'
+import React, { ChangeEvent, useEffect, useState } from 'react'
 import { Button, Checkbox, Photo, Text, TextField } from '../../../components'
 import { useUploadFile } from '../../../hooks'
 
@@ -138,7 +138,7 @@ export const GetSchemaElement = ({
                 // eslint-disable-next-line react/no-array-index-key
                 className="text-lg"
                 name={schema.key}
-                onChange={(e) =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setQuestion({ ...question, text: e.target.value })
                 }
                 value={question?.text}
