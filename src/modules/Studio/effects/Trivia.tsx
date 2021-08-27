@@ -109,12 +109,12 @@ const Trivia = () => {
         />
       )}
       {/* image */}
-      <Rect y={12} x={857} fill="#C4C4C4" width={91} height={25} />
+      {/* <Rect y={12} x={857} fill="#C4C4C4" width={91} height={25} /> */}
 
       <Rect x={0} y={0} width={600} height={CONFIG.height} fill="#ffffff" />
     </Group>,
     <Group x={64} y={64} key="group1">
-      <Image
+      {/* <Image
         image={logoImage}
         x={0}
         y={0}
@@ -122,9 +122,8 @@ const Trivia = () => {
         height={64}
         cornerRadius={4}
         fill="#F5F5F5"
-      />
-      {questions.length > 0 &&
-      questions[activeQuestionIndex].image !== undefined ? (
+      /> */}
+      {questions.length > 0 && questions[activeQuestionIndex].image ? (
         <Text
           x={48}
           verticalAlign="middle"
@@ -132,15 +131,16 @@ const Trivia = () => {
           fill="#424242"
           width={394}
           height={64}
-          text={questions[activeQuestionIndex].text}
+          text={questions[activeQuestionIndex]?.text}
           fontStyle="bold"
           fontFamily="Gilroy"
           textTransform="capitalize"
           ref={(ref) => ref?.to({ x: 88, duration: 0.3 })}
         />
-      ) : null}
-      {questions.length > 0 &&
-      questions[activeQuestionIndex].image === undefined ? (
+      ) : (
+        <></>
+      )}
+      {questions.length > 0 && !questions[activeQuestionIndex].image ? (
         <Text
           x={-24}
           y={-64}
@@ -149,7 +149,7 @@ const Trivia = () => {
           fill="#424242"
           width={472}
           height={CONFIG.height}
-          text={questions[activeQuestionIndex].text}
+          text={questions[activeQuestionIndex]?.text}
           fontStyle="bold"
           fontFamily="Gilroy"
           align="center"
@@ -172,6 +172,7 @@ const Trivia = () => {
     </Group>,
     <Group x={664} y={412} width={234} height={64} key="group2">
       <Rect width={234} cornerRadius={4} height={64} fill="#F3F4F6" />
+
       <Text
         fontSize={18}
         fill="#1F2937"

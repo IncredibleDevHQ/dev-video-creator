@@ -41,8 +41,6 @@ export const GetSchemaElement = ({
   value,
   setLoadingAssets,
 }: GetSchemaElementProps) => {
-  const [uploadFile] = useUploadFile()
-
   switch (schema.type) {
     case 'boolean':
       return (
@@ -73,6 +71,7 @@ export const GetSchemaElement = ({
       )
 
     case 'text[]':
+      const [uploadFile] = useUploadFile()
       interface Question {
         text: string
         image?: string
@@ -207,12 +206,13 @@ export const GetSchemaElement = ({
       )
 
     case 'pic':
+      const [uploadPicFile] = useUploadFile()
       const [picture, setPicture] = useState<string>()
 
       const handleClick = async (file: File) => {
         if (!file) return
         setLoadingAssets(true)
-        const pic = await uploadFile({
+        const pic = await uploadPicFile({
           extension: file.name.split('.')[1] as any,
           file,
         })
