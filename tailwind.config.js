@@ -10,6 +10,10 @@ module.exports = {
   darkMode: false, // or 'media' or 'class'
   theme: {
     extend: {
+      minHeight: {
+        32: '8rem',
+        48: '12rem',
+      },
       colors: {
         inherit: 'inherit',
         brand: {
@@ -27,7 +31,7 @@ module.exports = {
           75: alpha('#51A3EA', 0.75),
         },
         background: '#FFFFFF',
-        'background-alt': '#FBFCFF',
+        'background-alt': '#FAFAFA',
         grey: {
           DEFAULT: '#1f1f1f',
           lighter: lighten('#1f1f1f', 0.5),
