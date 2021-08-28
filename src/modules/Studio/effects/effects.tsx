@@ -1,5 +1,5 @@
 import { Rect, Text } from 'react-konva'
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Fragment_Type_Enum_Enum } from '../../../generated/graphql'
 import CodeJam from './CodeJam'
 import VideoJam from './VideoJam'
@@ -13,6 +13,12 @@ export interface Effect {
 }
 
 export const titleSplash = (title: string): JSX.Element => {
+  useEffect(() => {
+    var font = new FontFaceObserver('Gilroy')
+
+    font.load()
+  }, [])
+
   const titleSplashChildern: JSX.Element = (
     <>
       <Rect fill="#5156EA" width={CONFIG.width} height={CONFIG.height} />
@@ -26,6 +32,7 @@ export const titleSplash = (title: string): JSX.Element => {
         fill="#ffffff"
         textTransform="capitalize"
         fontStyle="bold"
+        fontFamily="Gilroy"
         fontSize={60}
         align="center"
       />
