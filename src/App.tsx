@@ -25,6 +25,7 @@ import {
   SingleSeries,
   Circle,
   Designer,
+  NewFragment,
 } from './modules'
 
 const App = () => {
@@ -63,6 +64,11 @@ const App = () => {
                 />
                 <PrivateRoute exact path="/designer" component={Designer} />
                 <PrivateRoute exact path="/flick/:id" component={Flick} />
+                <PrivateRoute
+                  exact
+                  path="/flick/:id/new"
+                  component={NewFragment}
+                />
                 <PrivateRoute exact path="/flicks" component={Flicks} />
                 <PrivateRoute
                   exact

@@ -192,7 +192,6 @@ const FragmentsSidebar = ({
   fragments,
   activeFragmentId,
   setActiveFragmentId,
-  setAddFragmentModal,
   handleRefetch,
   participants,
 }: {
@@ -200,7 +199,6 @@ const FragmentsSidebar = ({
   fragments: FlickFragmentFragment[]
   activeFragmentId?: string
   setActiveFragmentId: (id: string) => void
-  setAddFragmentModal: (isOpen: boolean) => void
   handleRefetch: (refresh?: boolean) => void
   participants: FlickParticipantsFragment[]
 }) => {
@@ -264,7 +262,7 @@ const FragmentsSidebar = ({
           className="text-grey-lighter"
           size={20}
           onClick={() => {
-            setAddFragmentModal(true)
+            history.push(`/flick/${flickId}/new`)
           }}
         />
       </div>
