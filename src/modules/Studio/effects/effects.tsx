@@ -13,12 +13,6 @@ export interface Effect {
 }
 
 export const titleSplash = (title: string): JSX.Element => {
-  useEffect(() => {
-    var font = new FontFaceObserver('Gilroy')
-
-    font.load()
-  }, [])
-
   const titleSplashChildern: JSX.Element = (
     <>
       <Rect fill="#5156EA" width={CONFIG.width} height={CONFIG.height} />
