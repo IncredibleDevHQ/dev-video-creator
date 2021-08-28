@@ -16,6 +16,7 @@ import AllUserFlicks from './Flicks/AllUserFlicks'
 import UserSeriesFlicks from './UserSeriesFlicks/UserSeriesFlicks'
 import SingleSeries from './Series/SingleSeries'
 import Circle from './Circle/Circle'
+import NewFragment from './NewFragment/NewFragment'
 
 export {
   AuthenticateScreen,
@@ -35,4 +36,5 @@ export {
   UserSeriesFlicks,
   SingleSeries,
   Circle,
+  NewFragment,
 }
