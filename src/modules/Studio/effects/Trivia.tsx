@@ -1,6 +1,7 @@
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
 import { Group, Text, Image, Rect } from 'react-konva'
+import FontFaceObserver from 'fontfaceobserver'
 import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
 import { Logo, NextTokenIcon } from '../../../components'
@@ -32,6 +33,16 @@ const Trivia = () => {
   const pic =
     'https://user-images.githubusercontent.com/4124733/53160617-55d4aa80-35ee-11e9-8486-7ccde6a235f0.png'
   const [logoImage] = useImage(pic as string, 'anonymous')
+
+  const [isFontLoaded, setIsFontLoaded] = useState(false)
+
+  useEffect(() => {
+    var font = new FontFaceObserver('Gilroy')
+
+    font.load().then(function () {
+      setIsFontLoaded(true)
+    })
+  }, [])
 
   // const [image] = useImage(picture as string)
 
