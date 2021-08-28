@@ -146,7 +146,6 @@ const Concourse = ({
                   cornerRadius={8}
                 />
                 {layerChildren}
-
                 {!disableUserMedia && (
                   <>
                     <StudioUser

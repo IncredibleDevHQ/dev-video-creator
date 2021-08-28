@@ -5,6 +5,7 @@ import CodeJam from './CodeJam'
 import VideoJam from './VideoJam'
 import Intro from './Splash'
 import Trivia from './Trivia'
+import { CONFIG } from '../components/Concourse'
 
 export interface Effect {
   controls: JSX.Element[]
@@ -14,8 +15,8 @@ export interface Effect {
 export const titleSplash = (title: string): JSX.Element => {
   const titleSplashChildern: JSX.Element = (
     <>
-      <Rect fill="#5156EA" width={912} height={513} />
-      <Rect fill="#7f82ef" y={513 / 2 - 40} width={912} height={80} />
+      <Rect fill="#5156EA" width={CONFIG.width} height={CONFIG.height} />
+      <Rect fill="#7f82ef" y={513 / 2 - 40} width={CONFIG.width} height={80} />
       <Text
         x={0}
         y={513 / 2 - 30}

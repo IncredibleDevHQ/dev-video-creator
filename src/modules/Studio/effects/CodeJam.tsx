@@ -1,14 +1,18 @@
 import axios from 'axios'
 import React, { useEffect, useState } from 'react'
-import { Group, Circle, Text } from 'react-konva'
+import { Group, Circle, Text, Rect } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import { NextLineIcon, NextTokenIcon } from '../../../components'
 import { API } from '../../../constants'
-import { useGetTokenisedCodeLazyQuery } from '../../../generated/graphql'
+import {
+  Fragment_Status_Enum_Enum,
+  useGetTokenisedCodeLazyQuery,
+} from '../../../generated/graphql'
 import { Concourse } from '../components'
 import { ControlButton } from '../components/MissionControl'
 import useCode, { ComputedToken } from '../hooks/use-code'
 import { StudioProviderProps, studioStore } from '../stores'
+import { titleSplash } from './effects'
 import TypingEffect from './TypingEffect'
 
 const codeConfig = {
@@ -27,6 +31,7 @@ interface TokenRenderState {
 }
 
 const CodeJam = () => {
+  const [isTitleSplash, setIsTitleSplash] = useState<boolean>(true)
   const { fragment, payload, updatePayload, state, isHost } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const { initUseCode, computedTokens } = useCode()
@@ -74,6 +79,7 @@ const CodeJam = () => {
   }, [data])
 
   useEffect(() => {
+    console.log('payloading', payload)
     setPosition({
       prevIndex: payload?.prevIndex || 0,
       currentIndex: payload?.currentIndex || 1,
@@ -115,25 +121,55 @@ const CodeJam = () => {
         ]
       : [<></>]
 
-  const layerChildren = [
-    <Group y={15} x={15} key="circleGroup">
-      <Circle key="redCircle" x={0} y={0} fill="#FF605C" radius={5} />
-      <Circle key="yellowCircle" x={14} y={0} fill="#FFBD44" radius={5} />
-      <Circle key="greenCircle" x={28} y={0} fill="#00CA4E" radius={5} />
-    </Group>,
-    <Group y={30} x={20} key="group">
-      {getRenderedTokens(computedTokens.current, position)}
-      {computedTokens.current.length > 0 && (
-        <RenderTokens
-          key={position.prevIndex}
-          tokens={computedTokens.current}
-          startIndex={position.prevIndex}
-          endIndex={position.currentIndex}
-        />
-      )}
-    </Group>,
-  ]
-
+  let layerChildren = [<></>]
+  if (
+    (state === 'recording' ||
+      payload?.status === Fragment_Status_Enum_Enum.Live) &&
+    isTitleSplash
+  ) {
+    layerChildren = [
+      <Group
+        x={0}
+        y={0}
+        zIndex={100}
+        width={codeConfig.width}
+        height={codeConfig.height}
+        ref={(ref) =>
+          ref?.to({
+            duration: 3,
+            onFinish: () => {
+              setIsTitleSplash(false)
+            },
+          })
+        }
+      >
+        {titleSplash(fragment?.name as string)}
+      </Group>,
+    ]
+  } else if (
+    (state === 'recording' ||
+      payload?.status === Fragment_Status_Enum_Enum.Live) &&
+    !isTitleSplash
+  ) {
+    layerChildren = [
+      <Group y={15} x={15} key="circleGroup">
+        <Circle key="redCircle" x={0} y={0} fill="#FF605C" radius={5} />
+        <Circle key="yellowCircle" x={14} y={0} fill="#FFBD44" radius={5} />
+        <Circle key="greenCircle" x={28} y={0} fill="#00CA4E" radius={5} />
+      </Group>,
+      <Group y={30} x={20} key="group">
+        {getRenderedTokens(computedTokens.current, position)}
+        {computedTokens.current.length > 0 && (
+          <RenderTokens
+            key={position.prevIndex}
+            tokens={computedTokens.current}
+            startIndex={position.prevIndex}
+            endIndex={position.currentIndex}
+          />
+        )}
+      </Group>,
+    ]
+  }
   return <Concourse layerChildren={layerChildren} controls={controls} />
 }
 

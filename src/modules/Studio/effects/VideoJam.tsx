@@ -8,6 +8,7 @@ import { ControlButton } from '../components/MissionControl'
 import { CONFIG } from '../components/Concourse'
 import { StudioProviderProps, studioStore } from '../stores'
 import { titleSplash } from './effects'
+import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
 
 // @ts-ignore
 const Video = ({ videoElement }: { videoElement: HTMLVideoElement }) => {
@@ -55,6 +56,8 @@ const Video = ({ videoElement }: { videoElement: HTMLVideoElement }) => {
 }
 
 const VideoJam = () => {
+  const [isTitleSplash, setIsTitleSplash] = useState<boolean>(true)
+
   const { state, fragment, payload, updatePayload } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const videoElement = React.useMemo(() => {
@@ -120,14 +123,41 @@ const VideoJam = () => {
     ),
   ]
 
-  return videoElement ? (
-    <Concourse
-      layerChildren={[<Video videoElement={videoElement} />]}
-      controls={controls}
-    />
-  ) : (
-    <></>
-  )
+  let layerChildren = [<></>]
+  if (
+    (state === 'recording' ||
+      payload?.status === Fragment_Status_Enum_Enum.Live) &&
+    isTitleSplash
+  ) {
+    layerChildren = [
+      <Group
+        x={0}
+        y={0}
+        width={CONFIG.width}
+        height={CONFIG.height}
+        ref={(ref) =>
+          ref?.to({
+            duration: 3,
+            onFinish: () => {
+              setIsTitleSplash(false)
+            },
+          })
+        }
+      >
+        {titleSplash(fragment?.name as string)}
+      </Group>,
+    ]
+  } else if (
+    (state === 'recording' ||
+      payload?.status === Fragment_Status_Enum_Enum.Live) &&
+    !isTitleSplash
+  ) {
+    layerChildren = videoElement
+      ? [<Video videoElement={videoElement} />]
+      : [<></>]
+  }
+
+  return <Concourse layerChildren={layerChildren} controls={controls} />
 }
 
 export default VideoJam

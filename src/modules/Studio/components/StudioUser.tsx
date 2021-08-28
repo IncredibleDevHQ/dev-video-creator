@@ -13,6 +13,7 @@ const StudioUser = ({
 }: {
   x: number
   y: number
+
   stream: MediaStream | null
 }) => {
   const imageConfig = { width: 160, height: 120 }
