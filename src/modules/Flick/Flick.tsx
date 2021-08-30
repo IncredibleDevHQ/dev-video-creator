@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useRecoilState } from 'recoil'
 import {
-  AddFragmentModal,
   FragmentActivity,
   FragmentConfiguration,
   FragmentParticipants,
@@ -36,7 +35,7 @@ const Flick = () => {
   const [flick, setFlick] = useRecoilState(currentFlickStore)
   const [currentTab, setCurrentTab] = useState<Tab>(tabs[0])
   const [isParticipants, setParticipants] = useState(true)
-  const [isAddFragmentModal, setAddFragmentModal] = useState(false)
+
   const [activeFragmentId, setActiveFragmentId] = useState<string>()
 
   useEffect(() => {
@@ -71,7 +70,9 @@ const Flick = () => {
         fragments={flick.fragments}
         activeFragmentId={activeFragmentId}
         setActiveFragmentId={setActiveFragmentId}
-        setAddFragmentModal={setAddFragmentModal}
+        handleRefetch={(refresh) => {
+          if (refresh) refetch()
+        }}
         participants={flick.participants}
       />
       <div className="flex-1 p-4">
@@ -110,6 +111,11 @@ const Flick = () => {
                     (fragment) => fragment.id === activeFragmentId
                   )?.id
                 }
+                fragmentType={
+                  flick.fragments.find(
+                    (fragment) => fragment.id === activeFragmentId
+                  )?.type
+                }
               />
             )}
           </div>
@@ -126,16 +132,6 @@ const Flick = () => {
         flickId={flick.id}
         handleRefetch={(refresh) => {
           if (refresh) refetch()
-        }}
-      />
-      <AddFragmentModal
-        open={isAddFragmentModal}
-        flickId={flick.id}
-        participants={flick.participants}
-        totalFragments={flick.fragments.length}
-        handleClose={(refresh) => {
-          if (refresh) refetch()
-          setAddFragmentModal(false)
         }}
       />
     </section>

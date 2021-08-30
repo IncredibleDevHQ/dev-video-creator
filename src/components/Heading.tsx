@@ -21,13 +21,13 @@ const Heading = ({ fontSize, children, className, ...rest }: HeadingProps) => {
       )
     case 'large':
       return (
-        <h2 className={cx('text-4xl font-semibold', className)} {...rest}>
+        <h2 className={cx('text-3xl font-semibold', className)} {...rest}>
           {children}
         </h2>
       )
     case 'medium':
       return (
-        <h3 className={cx('text-2xl font-medium', className)} {...rest}>
+        <h3 className={cx('text-xl font-semibold', className)} {...rest}>
           {children}
         </h3>
       )
@@ -39,13 +39,13 @@ const Heading = ({ fontSize, children, className, ...rest }: HeadingProps) => {
       )
     case 'small':
       return (
-        <h4 className={cx('text-sm font-light', className)} {...rest}>
+        <h4 className={cx('text-sm font-normal', className)} {...rest}>
           {children}
         </h4>
       )
     case 'extra-small':
       return (
-        <h5 className={cx('text-xs font-extralight', className)} {...rest}>
+        <h5 className={cx('text-xs font-normal', className)} {...rest}>
           {children}
         </h5>
       )

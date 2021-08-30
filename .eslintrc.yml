@@ -33,6 +33,8 @@ rules:
   '@typescript-eslint/no-explicit-any': 'off'
   '@typescript-eslint/ban-ts-comment': 'off'
   '@typescript-eslint/no-use-before-define': 'off'
+  'react/prop-types': 'off'
+  'react/require-default-props': 'off'
 
 settings:
   import/resolver:

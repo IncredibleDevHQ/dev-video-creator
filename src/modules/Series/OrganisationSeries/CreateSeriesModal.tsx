@@ -87,6 +87,7 @@ const seriesModal = ({
           />
           <Photo
             className="w-full mb-2"
+            // @ts-ignore
             onChange={(e) => e.target.files && handleClick(e.target.files?.[0])}
           />
           {pic && <img height="200px" src={pic} alt="series pic" />}

@@ -2,21 +2,24 @@ import React, { useEffect, useState } from 'react'
 import Select from 'react-select'
 import { RiCheckboxCircleFill, RiRefreshLine } from 'react-icons/ri'
 import { useRecoilValue } from 'recoil'
-import { Button, ScreenState, Text } from '../../../components'
+import { Button, emitToast, ScreenState, Text } from '../../../components'
 import {
   FlickParticipantsFragment,
   useInsertParticipantToFragmentMutation,
   useFragmentParticipantsQuery,
   FragmentParticipantsQuery,
+  Fragment_Type_Enum_Enum,
 } from '../../../generated/graphql'
 import { User, userState } from '../../../stores/user.store'
 
 const ParticipantsTab = ({
   participants,
   fragmentId,
+  fragmentType,
 }: {
   participants: FlickParticipantsFragment[]
   fragmentId: string
+  fragmentType: Fragment_Type_Enum_Enum | undefined
 }) => {
   type IsStatus = 'Host' | 'Assistant' | 'Viewer' | undefined
 
@@ -86,7 +89,20 @@ const ParticipantsTab = ({
     getParticipants(fragmentParticipants)
   }
   const toggleCardSelection = (id: Participant['id']) => {
-    if (!fragmentparticipants?.includes(id) || newParticipants.length < 1) {
+    if (
+      fragmentType === Fragment_Type_Enum_Enum.Trivia &&
+      (fragmentparticipants.length === 1 || newParticipants.length === 1)
+    ) {
+      emitToast({
+        title: 'Oopps!',
+        type: 'error',
+        description: `Oops! Trivia can only have one Creator`,
+        onClick: () => window.location.reload(),
+      })
+    } else if (
+      !fragmentparticipants?.includes(id) ||
+      newParticipants.length < 1
+    ) {
       setNewParticipants([...newParticipants, id])
       setFragmentparticipants([...fragmentparticipants, id])
     }

@@ -17,8 +17,8 @@ const TextArea = ({
 }: TextAreaProps) => {
   return (
     <div className={cx('flex flex-col w-full ', className)}>
-      <small className="text-xs">{label}</small>
-      <div className="focus-within:border-brand border-2 border-transparent flex justify-between items-center p-2 bg-background">
+      <small className="text-xs mb-1 uppercase">{label}</small>
+      <div className="focus-within:border-brand border-2 border-background-alt rounded-md flex justify-between items-center p-2 bg-background">
         <textarea
           className="rounded-sm border-none outline-none flex-1"
           {...rest}

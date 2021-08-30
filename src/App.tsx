@@ -2,7 +2,6 @@ import React from 'react'
 import { BrowserRouter as Router, Switch, Route } from 'react-router-dom'
 import { RecoilRoot } from 'recoil'
 import { ToastContainer } from 'react-toastify'
-import { ErrorBoundary } from './components'
 import AuthorizedApolloProvider from './utils/AuthorizedApolloProvider'
 import AuthProvider from './utils/auth'
 import PrivateRoute from './utils/PrivateRoute'
@@ -25,6 +24,8 @@ import {
   UserSeriesFlicks,
   SingleSeries,
   Circle,
+  Designer,
+  NewFragment,
 } from './modules'
 
 const App = () => {
@@ -61,7 +62,13 @@ const App = () => {
                   path="/new-organisation"
                   component={NewOrganisation}
                 />
+                <PrivateRoute exact path="/designer" component={Designer} />
                 <PrivateRoute exact path="/flick/:id" component={Flick} />
+                <PrivateRoute
+                  exact
+                  path="/flick/:id/new"
+                  component={NewFragment}
+                />
                 <PrivateRoute exact path="/flicks" component={Flicks} />
                 <PrivateRoute
                   exact
