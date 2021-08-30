@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Group, Image, Rect } from 'react-konva'
 import Konva from 'konva'
 import { useRecoilValue } from 'recoil'
-import useImage from 'use-image'
+import { useImage } from 'react-konva-utils'
 import Concourse, { CONFIG } from '../components/Concourse'
 import { StudioProviderProps, studioStore } from '../stores'
 
