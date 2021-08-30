@@ -10,20 +10,26 @@ import { StudioProviderProps, studioStore } from '../stores'
 import { titleSplash } from './effects'
 import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
 
+interface Dimension {
+  width: number
+  height: number
+}
+
 // @ts-ignore
 const Video = ({ videoElement }: { videoElement: HTMLVideoElement }) => {
-  const imageRef = React.useRef(null)
-  const [size, setSize] = React.useState({
-    width: CONFIG.width,
-    height: (CONFIG.width * 9) / 16,
+  const imageRef = React.useRef<Konva.Image>(null)
+  const [size, setSize] = useState<Dimension>({
+    width: (CONFIG.height * 16) / 9,
+    height: CONFIG.height,
   })
 
   // when video is loaded, we should read it size
   React.useEffect(() => {
     const onload = () => {
       setSize({
-        width: CONFIG.width,
-        height: (CONFIG.width * 9) / 16,
+        width:
+          (CONFIG.height * videoElement.videoWidth) / videoElement.videoHeight,
+        height: CONFIG.height,
       })
     }
     videoElement.addEventListener('loadedmetadata', onload)
@@ -47,9 +53,17 @@ const Video = ({ videoElement }: { videoElement: HTMLVideoElement }) => {
 
   return (
     <Image
+      x={
+        (CONFIG.width -
+          (CONFIG.height * videoElement.videoWidth) /
+            videoElement.videoHeight) /
+        2
+      }
       ref={imageRef}
       image={videoElement}
-      width={size.width}
+      width={
+        (CONFIG.height * videoElement.videoWidth) / videoElement.videoHeight
+      }
       height={size.height}
     />
   )
