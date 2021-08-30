@@ -3,7 +3,7 @@ import React, { useEffect } from 'react'
 import { Fragment_Type_Enum_Enum } from '../../../generated/graphql'
 import CodeJam from './CodeJam'
 import VideoJam from './VideoJam'
-import Intro from './Splash'
+import Intro from './SplashThree'
 import Trivia from './Trivia'
 import { CONFIG } from '../components/Concourse'
 
