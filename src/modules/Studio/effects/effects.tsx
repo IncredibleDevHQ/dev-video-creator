@@ -3,7 +3,7 @@ import React from 'react'
 import { Fragment_Type_Enum_Enum } from '../../../generated/graphql'
 import CodeJam from './CodeJam'
 import VideoJam from './VideoJam'
-import Intro from './Splash'
+import Intro from './SplashThree'
 import Trivia from './Trivia'
 
 export interface Effect {
