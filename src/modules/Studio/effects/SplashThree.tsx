@@ -6,11 +6,6 @@ import { useImage } from 'react-konva-utils'
 import Concourse, { CONFIG } from '../components/Concourse'
 import { StudioProviderProps, studioStore } from '../stores'
 
-interface Dimension {
-  width: number
-  height: number
-}
-
 const SplashThree = () => {
   const { state } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
@@ -28,22 +23,14 @@ const SplashThree = () => {
     'anonymous'
   )
 
-  const [logoDimensions, setLogoDimensions] = useState<Dimension>({
-    width: 60,
-    height: 60,
+  const [imageDimensions, setImageDimensions] = useState({
+    logoWidth: 60,
+    logoHeight: 60,
+    logoTextWidth: 158,
+    logoTextHeight: 26,
+    versionLogoWidth: 265,
+    versionLogoHeight: 30,
   })
-
-  const [logoTextDimensions, setLogoTextDimensions] = useState<Dimension>({
-    width: 158,
-    height: 26,
-  })
-
-  const [versionLogoDimensions, setVersionLogoDimensions] = useState<Dimension>(
-    {
-      width: 265,
-      height: 30,
-    }
-  )
 
   const controls: any = []
 
@@ -71,10 +58,10 @@ const SplashThree = () => {
       <Group x={390} y={227}>
         <Image
           image={logoText}
-          x={-logoTextDimensions.width}
+          x={-imageDimensions.logoTextWidth}
           y={0}
-          width={logoTextDimensions.width}
-          height={logoTextDimensions.height}
+          width={imageDimensions.logoTextWidth}
+          height={imageDimensions.logoTextHeight}
           opacity={0}
           ref={(ref) =>
             ref?.to({
@@ -85,7 +72,7 @@ const SplashThree = () => {
               onFinish: () => {
                 setTimeout(() => {
                   ref?.to({
-                    x: -logoTextDimensions.width,
+                    x: -imageDimensions.logoTextWidth,
                     duration: 0.6,
                   })
                 }, 600)
@@ -117,12 +104,12 @@ const SplashThree = () => {
       />,
       <Image
         image={logo}
-        x={(CONFIG.width - logoDimensions.width) / 2}
-        y={(CONFIG.height - logoDimensions.height) / 2}
-        width={logoDimensions.width}
-        height={logoDimensions.height}
-        offsetX={logoDimensions.width / 2}
-        offsetY={logoDimensions.height / 2}
+        x={(CONFIG.width - imageDimensions.logoWidth) / 2}
+        y={(CONFIG.height - imageDimensions.logoHeight) / 2}
+        width={imageDimensions.logoWidth}
+        height={imageDimensions.logoHeight}
+        offsetX={imageDimensions.logoWidth / 2}
+        offsetY={imageDimensions.logoHeight / 2}
         ref={(ref) => {
           ref?.to({
             rotation: -90,
@@ -132,7 +119,7 @@ const SplashThree = () => {
             onFinish: () => {
               setTimeout(() => {
                 ref?.to({
-                  x: (CONFIG.width - logoDimensions.width) / 2,
+                  x: (CONFIG.width - imageDimensions.logoWidth) / 2,
                   rotation: 90,
                   easing: Konva.Easings.BackEaseInOut,
                   duration: 0.6,
@@ -162,10 +149,10 @@ const SplashThree = () => {
       />,
       <Image
         image={versionLogo}
-        x={(CONFIG.width - versionLogoDimensions.width) / 2}
-        y={(CONFIG.height - versionLogoDimensions.height) / 2 - 20}
-        width={versionLogoDimensions.width}
-        height={versionLogoDimensions.height}
+        x={(CONFIG.width - imageDimensions.versionLogoWidth) / 2}
+        y={(CONFIG.height - imageDimensions.versionLogoHeight) / 2 - 20}
+        width={imageDimensions.versionLogoWidth}
+        height={imageDimensions.versionLogoHeight}
         ref={versionLogoRef}
         opacity={0}
       />,
