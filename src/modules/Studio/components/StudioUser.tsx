@@ -2,7 +2,7 @@
 import React, { useEffect, useRef } from 'react'
 import Konva from 'konva'
 import { Group, Image } from 'react-konva'
-import useImage from 'use-image'
+import { useImage } from 'react-konva-utils'
 import { useRecoilValue } from 'recoil'
 import { StudioProviderProps, studioStore } from '../stores'
 
