@@ -123,14 +123,14 @@ const StoryBook = () => {
         fill="#616161"
         fontFamily="Inter"
         fontStyle="bold"
-        text={'Michale Shilman'}
+        text="Michael Shilman"
         textTransform="capitalize"
       />
       <Text
         fontSize={14}
         fill="#616161"
         fontFamily="Inter"
-        text={'Maintainer @StoryBook'}
+        text="Maintainer @ Storybook"
         textTransform="capitalize"
         y={27}
       />
