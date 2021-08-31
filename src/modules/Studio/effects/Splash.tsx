@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Group, Image, Rect, Text } from 'react-konva'
-import useImage from 'use-image'
+import { useImage } from 'react-konva-utils'
 import { useRecoilValue } from 'recoil'
 import { useParams } from 'react-router-dom'
 import { Concourse } from '../components'

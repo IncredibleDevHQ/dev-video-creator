@@ -2,7 +2,7 @@
 import React, { useEffect, useRef } from 'react'
 import Konva from 'konva'
 import { Group, Image } from 'react-konva'
-import useImage from 'use-image'
+import { useImage } from 'react-konva-utils'
 import { useRecoilValue } from 'recoil'
 import { StudioProviderProps, studioStore } from '../stores'
 
@@ -55,23 +55,27 @@ const StudioUser = ({
     ref.current.srcObject = stream
   }, [ref.current])
 
+  const clipSquare = (ctx: any) => {
+    const x = 0
+    const y = 0
+    const w = imageConfig.width
+    const h = imageConfig.height
+    const r = 8
+    ctx.beginPath()
+    ctx.moveTo(x + r, y)
+    ctx.arcTo(x + w, y, x + w, y + h, r)
+    ctx.arcTo(x + w, y + h, x, y + h, r)
+    ctx.arcTo(x, y + h, x, y, r)
+    ctx.arcTo(x, y, x + w, y, r)
+    ctx.closePath()
+  }
+
   return (
     <Group
       x={x}
       y={y}
       clipFunc={(ctx: any) => {
-        const x = 0
-        const y = 0
-        const w = 150
-        const h = 120
-        let r = 8
-        ctx.beginPath()
-        ctx.moveTo(x + r, y)
-        ctx.arcTo(x + w, y, x + w, y + h, r)
-        ctx.arcTo(x + w, y + h, x, y + h, r)
-        ctx.arcTo(x, y + h, x, y, r)
-        ctx.arcTo(x, y, x + w, y, r)
-        ctx.closePath()
+        clipSquare(ctx)
       }}
       draggable
     >
