@@ -38,8 +38,8 @@ const Concourse = ({
   const layerRef = createRef<Konva.Layer>()
   const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
 
-  const initialPos = { x: 770, y: 390 }
-  const userStudioImageGap = 130
+  const initialPos = { x: 780, y: 400 }
+  const userStudioImageGap = 170
   const zoomLevel = 2
 
   useEffect(() => {
