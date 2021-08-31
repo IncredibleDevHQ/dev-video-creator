@@ -1,7 +1,13 @@
 import React from 'react'
 
-const Loading = ({ children }: { children: string }) => {
-  return <div className="text-xl">{children}</div>
+const Loading = ({
+  children,
+  className,
+}: {
+  children: string
+  className: string
+}) => {
+  return <div className={className}>{children}</div>
 }
 
 export default Loading

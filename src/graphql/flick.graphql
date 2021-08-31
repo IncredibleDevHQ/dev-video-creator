@@ -12,6 +12,16 @@ fragment BaseFlick on Flick {
   producedLink
 }
 
+fragment FlickActivity on FlickActivity {
+  id
+  title
+  description
+  type
+  createdAt
+  flickId
+  fragmentId
+}
+
 fragment Flick on Flick {
   ...BaseFlick
   participants {
@@ -90,5 +100,14 @@ mutation ProduceVideo($flickId: uuid!, $objectNames: [String!]!) {
 mutation InviteParticipantToFlick($email: String!, $flickId: String!) {
   InviteParticipant(email: $email, flickId: $flickId) {
     id
+  }
+}
+
+query FlickActivity($flickId: uuid!) {
+  FlickActivity(
+    where: { flickId: { _eq: $flickId } }
+    order_by: { createdAt: desc }
+  ) {
+    ...FlickActivity
   }
 }
