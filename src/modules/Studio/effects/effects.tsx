@@ -5,6 +5,7 @@ import CodeJam from './CodeJam'
 import VideoJam from './VideoJam'
 import Intro from './Splash'
 import Trivia from './Trivia'
+import Slides from './Slides'
 import { CONFIG } from '../components/Concourse'
 
 export interface Effect {
@@ -44,6 +45,8 @@ export const getEffect = (type: Fragment_Type_Enum_Enum) => {
       return VideoJam
     case Fragment_Type_Enum_Enum.Trivia:
       return Trivia
+    case Fragment_Type_Enum_Enum.Slides:
+      return Slides
     default:
       throw Error('No effect found')
   }

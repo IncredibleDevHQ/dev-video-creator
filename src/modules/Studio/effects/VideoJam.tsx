@@ -111,7 +111,6 @@ const VideoJam = () => {
         appearance={playing ? 'danger' : 'primary'}
         onClick={() => {
           const next = !playing
-
           updatePayload?.({
             playing: next,
             currentTime: videoElement?.currentTime,

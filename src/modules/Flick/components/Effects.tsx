@@ -1,9 +1,11 @@
 /* eslint-disable no-case-declarations */
 import { FormikErrors } from 'formik'
-import { AiFillDelete } from 'react-icons/ai'
 import React, { ChangeEvent, useEffect, useState } from 'react'
 import { Button, Checkbox, Photo, Text, TextField } from '../../../components'
 import { useUploadFile } from '../../../hooks'
+import { FiLoader } from 'react-icons/fi'
+import { cx } from '@emotion/css'
+import { IoRemoveSharp } from 'react-icons/io5'
 
 export interface SchemaElementProps {
   key: string
@@ -41,6 +43,16 @@ export const GetSchemaElement = ({
   value,
   setLoadingAssets,
 }: GetSchemaElementProps) => {
+  const addToFormik = (valueArray: any) => {
+    const event = new Event('input', { bubbles: true })
+    dispatchEvent(event)
+    // @ts-ignore
+    event.target.name = schema.key
+    // @ts-ignore
+    event.target.value = valueArray
+    handleChange(event as any)
+  }
+
   switch (schema.type) {
     case 'boolean':
       return (
@@ -70,7 +82,7 @@ export const GetSchemaElement = ({
         />
       )
 
-    case 'text[]':
+    case 'json':
       const [uploadFile] = useUploadFile()
       interface Question {
         text: string
@@ -98,17 +110,6 @@ export const GetSchemaElement = ({
         setLoadingAssets(false)
         setLoading(false)
         setQuestion({ text: question?.text, image: pic.url })
-      }
-
-      const addToFormik = (questionArray: any) => {
-        const event = new Event('input', { bubbles: true })
-        dispatchEvent(event)
-        // @ts-ignore
-        event.target.name = schema.key
-        // @ts-ignore
-        event.target.value = questionArray
-
-        handleChange(event as any)
       }
 
       const handleOnClick = () => {
@@ -159,7 +160,6 @@ export const GetSchemaElement = ({
                   className="h-32 m-4 object-contain"
                   alt={question?.text}
                   src={question?.image}
-                  // eslint-disable-next-line react/no-array-index-key
                 />
               )}
 
@@ -178,7 +178,7 @@ export const GetSchemaElement = ({
             {questions.map((ques, index) => (
               <div
                 key={ques.image}
-                className={`bg-blue-200 px-4 py-2 m-1 flex items-center justify-between gap-2 `}
+                className="border-blue-200 px-4 py-2 m-1 flex items-center justify-between gap-2"
               >
                 {ques?.image && (
                   <img
@@ -197,7 +197,7 @@ export const GetSchemaElement = ({
                   appearance="danger"
                   size="extraSmall"
                 >
-                  <AiFillDelete />
+                  <IoRemoveSharp />
                 </Button>
               </div>
             ))}
@@ -205,14 +205,93 @@ export const GetSchemaElement = ({
         </div>
       )
 
+    case 'text[]':
+      const [uploadSlides] = useUploadFile()
+      const [loadingSlide, setLoadingSlide] = useState<boolean>(false)
+      const [slides, setSlides] = useState<string[]>([])
+      const [slideImage, setSlideImage] = useState<string>()
+
+      useEffect(() => {
+        setSlides(value || [])
+      }, [value])
+
+      const handleDeleteSlide = (text: string) => {
+        const slideArray = slides.filter((slide) => slide !== text)
+        setSlides(slideArray)
+        addToFormik(slideArray)
+      }
+
+      const handlePhotoClick = async (file: File) => {
+        if (!file) return
+
+        setLoadingAssets(true)
+        setLoadingSlide(true)
+        const pic = await uploadSlides({
+          extension: file.name.split('.')[1] as any,
+          file,
+        })
+        setLoadingAssets(false)
+        setLoadingSlide(false)
+        const slideArray = [...slides, pic.url]
+        setSlideImage(pic.url)
+        setSlides(slideArray)
+        addToFormik(slideArray)
+      }
+      return (
+        <div className="flex flex-col gap-1 m-4" key={schema.key}>
+          <div className="flex flex-col gap-2 ">
+            <div className="flex flex-row gap-2">
+              <Photo
+                className="text-lg m-4"
+                key={`${schema.key}`}
+                onChange={async (e) => {
+                  // @ts-ignore
+                  await handlePhotoClick(e.target.files?.[0])
+                }}
+              />
+            </div>
+            <FiLoader
+              className={cx('absolute animate-spin ', {
+                'invisible ': !loadingSlide,
+              })}
+            />
+            {slides.map((slide, index) => (
+              <div
+                key={slide}
+                className="border-blue-50 px-4 py-2 m-1 flex items-center justify-between gap-2"
+              >
+                <img
+                  className="h-20 mb-2 object-contain"
+                  alt={slide}
+                  src={slide}
+                />
+
+                <div className="flex flex-col">
+                  <span className="font-bold">Slide {index + 1}:</span>
+                </div>
+                <Button
+                  onClick={() => handleDeleteSlide(slide)}
+                  type="button"
+                  className=""
+                  appearance="secondary"
+                  size="extraSmall"
+                >
+                  <IoRemoveSharp />
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )
     case 'pic':
-      const [uploadPicFile] = useUploadFile()
+      const [uploadPic] = useUploadFile()
+
       const [picture, setPicture] = useState<string>()
 
       const handleClick = async (file: File) => {
         if (!file) return
         setLoadingAssets(true)
-        const pic = await uploadPicFile({
+        const pic = await uploadPic({
           extension: file.name.split('.')[1] as any,
           file,
         })

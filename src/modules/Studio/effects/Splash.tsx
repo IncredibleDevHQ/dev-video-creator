@@ -31,11 +31,8 @@ const Splash = () => {
   const controls: any = []
 
   useEffect(() => {
-    console.log('width', image?.width)
-    console.log('height', image?.height)
     if (!image) return
     setAspectRatio(image.width / image.height)
-    console.log(aspectRatio)
   }, [image])
 
   useEffect(() => {
