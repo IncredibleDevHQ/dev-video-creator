@@ -23,7 +23,7 @@ const Slides = () => {
   const imageConfig = { width: 640, height: 480 }
   const imageRef = useRef<Konva.Image | null>(null)
   const [image] = useImage(picture as string, 'anonymous')
-  const [slide] = useImage(slides[activeSlideIndex] as string, 'anonymous')
+  const [slide] = useImage(slides[activeSlideIndex] || '', 'anonymous')
 
   const [slideDim, setSlideDim] = useState<{
     width: number
