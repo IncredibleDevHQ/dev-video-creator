@@ -86,7 +86,7 @@ const FragmentItem = ({
       tabIndex={0}
       onKeyUp={() => {}}
       className={cx(
-        'my-1 p-2 border-2 border-dotted rounded-md text-gray relative',
+        'my-1 p-2 border-2 bg-white border-dotted rounded-md text-gray relative',
         {
           'border-gray-500 text-gray-600':
             (fragment.id === activeFragmentId && !isParticipant) ||
@@ -107,21 +107,17 @@ const FragmentItem = ({
       {fragment.producedLink && (
         <FiCheckCircle className="text-success absolute top-1 right-1" />
       )}
-      <div className="grid grid-cols-3">
-        <div className="col-span-2 bg-white rounded">
-          <Heading fontSize="base">{fragment.name}</Heading>
-          <Text fontSize="normal">{fragment.description}</Text>
-          <Text fontSize="small">{fragment.type}</Text>
-        </div>
-        <div className="p-5">
-          <MdDelete
-            className="cursor-pointer"
-            onClick={(e) => {
-              e?.preventDefault()
-              deleteFragmentbyId(fragment.id)
-            }}
-          />
-        </div>
+      <div className="rounded relative">
+        <Heading fontSize="base">{fragment.name}</Heading>
+        <Text fontSize="normal">{fragment.description}</Text>
+        <Text fontSize="small">{fragment.type}</Text>
+        <MdDelete
+          className="cursor-pointer absolute bottom-2 right-2"
+          onClick={(e) => {
+            e?.preventDefault()
+            deleteFragmentbyId(fragment.id)
+          }}
+        />
       </div>
     </div>
   )

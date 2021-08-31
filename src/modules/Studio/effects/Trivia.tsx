@@ -26,7 +26,7 @@ const Trivia = () => {
   const imageRef = useRef<Konva.Image | null>(null)
   const [image] = useImage(picture as string, 'anonymous')
   const [qnaImage] = useImage(
-    questions[activeQuestionIndex].image || '',
+    questions[activeQuestionIndex] ? questions[activeQuestionIndex].image : '',
     'anonymous'
   )
 
