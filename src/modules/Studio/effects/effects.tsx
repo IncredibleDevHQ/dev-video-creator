@@ -5,6 +5,7 @@ import CodeJam from './CodeJam'
 import VideoJam from './VideoJam'
 import Intro from './SplashThree'
 import Trivia from './Trivia'
+import StoryBook from './StoryBook'
 import { CONFIG } from '../components/Concourse'
 
 export interface Effect {
