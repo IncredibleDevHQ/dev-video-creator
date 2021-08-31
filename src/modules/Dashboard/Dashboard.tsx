@@ -4,7 +4,7 @@ import { useRecoilValue } from 'recoil'
 import { cx } from '@emotion/css'
 import { IconType } from 'react-icons'
 import config from '../../config'
-import { Navbar, ScreenState, Text } from '../../components'
+import { Heading, Navbar, ScreenState, Text } from '../../components'
 import {
   BaseFlickFragment,
   useGetUserFlicksQuery,
@@ -12,6 +12,7 @@ import {
 import { User, userState } from '../../stores/user.store'
 import { formatDate } from '../../utils/FormatDate'
 import { NewFlickBanner, TableView } from './components'
+import { BiVideo } from 'react-icons/bi'
 
 const ViewBarButton = ({
   icon: I,
@@ -72,31 +73,41 @@ const ViewBar = ({
 const FlickTile = ({ flick }: { flick: BaseFlickFragment }) => {
   return (
     <Link to={`/flick/${flick.id}`}>
-      <div className="bg-gray-100 px-4 py-2 rounded-md cursor-pointer">
-        {flick.producedLink && (
+      <div className="bg-background shadow-md transition-all hover:shadow-xl pb-2 rounded-md cursor-pointer">
+        {flick.producedLink ? (
           // eslint-disable-next-line jsx-a11y/media-has-caption
-          <video
-            className="w-full rounded-md p-2"
-            controls
-            preload="auto"
-            src={config.storage.baseUrl + flick.producedLink}
+          <img
+            className="w-full object-cover rounded-t-md h-32"
+            src="https://i.giphy.com/media/l0uJcwRwF5tO7LgB5t/giphy-downsized.gif"
           />
+        ) : (
+          <div className="bg-gray-100 justify-center items-center flex text-gray-300 rounded-t-md h-32">
+            <BiVideo size={40} />
+          </div>
         )}
-        <div className="flex items-center justify-between">
-          <h3 className="text-2xl font-bold">{flick.name}</h3>
-          <div>
-            <span className="bg-brand p-1 rounded-md text-xs font-semibold uppercase text-background-alt ">
+        <div className="mx-4 mt-2">
+          <div className="flex items-center justify-between">
+            <Heading fontSize="medium">{flick.name}</Heading>
+          </div>
+          <Heading
+            fontSize="small"
+            className="h-8 my-1 overflow-hidden overflow-ellipsis"
+          >
+            {flick.description}
+          </Heading>
+
+          <div className="flex items-center justify-between">
+            <Heading fontSize="extra-small" className="uppercase">
+              {formatDate(new Date(flick.startAt))}
+            </Heading>
+            <Heading
+              fontSize="extra-small"
+              className="bg-brand-10 py-1 px-2 rounded-md font-semibold uppercase text-brand "
+            >
               {flick.status}
-            </span>
+            </Heading>
           </div>
         </div>
-        <Text className="h-16 my-1 overflow-hidden overflow-ellipsis">
-          {flick.description}
-        </Text>
-
-        <p className="uppercase text-xs">
-          {formatDate(new Date(flick.startAt))}
-        </p>
       </div>
     </Link>
   )
@@ -120,7 +131,7 @@ const Dashboard = () => {
         {view === 'list' && <TableView />}
 
         {view === 'grid' && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {data?.Flick.map((flick) => (
               <FlickTile key={flick.id} flick={flick} />
             ))}
