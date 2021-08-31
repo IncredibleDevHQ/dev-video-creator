@@ -79,7 +79,6 @@ const CodeJam = () => {
   }, [data])
 
   useEffect(() => {
-    console.log('payloading', payload)
     setPosition({
       prevIndex: payload?.prevIndex || 0,
       currentIndex: payload?.currentIndex || 1,

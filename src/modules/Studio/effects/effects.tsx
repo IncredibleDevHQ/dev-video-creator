@@ -6,6 +6,7 @@ import VideoJam from './VideoJam'
 import Intro from './SplashThree'
 import Trivia from './Trivia'
 import StoryBook from './StoryBook'
+import Slides from './Slides'
 import { CONFIG } from '../components/Concourse'
 
 export interface Effect {
@@ -47,6 +48,8 @@ export const getEffect = (type: Fragment_Type_Enum_Enum) => {
       return Trivia
     case Fragment_Type_Enum_Enum.Storybook:
       return StoryBook
+    case Fragment_Type_Enum_Enum.Slides:
+      return Slides
     default:
       throw Error('No effect found')
   }

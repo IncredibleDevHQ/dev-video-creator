@@ -78,6 +78,13 @@ const BaseFragment = ({
         accessory="1 person"
       />
       <BaseFragmentCard
+        label="Slides"
+        image="https://emoji.craftwork.design/images/modal/shamrock.png"
+        description="Talk about your slides just like Ross and Rachel"
+        onClick={() => handleNext(Fragment_Type_Enum_Enum.Slides)}
+        accessory="1 person"
+      />
+      <BaseFragmentCard
         label="VideoJam"
         image="https://emoji.craftwork.design/images/modal/cooked-rice.png"
         description="Talk about a video with your friends."
