@@ -38,7 +38,10 @@ const Slides = () => {
   }, [])
 
   useEffect(() => {
-    getDimensions({ w: slide?.width!!, h: slide?.height!! })
+    getDimensions({
+      w: (slide && slide.width) || 0,
+      h: (slide && slide.height) || 0,
+    })
   }, [slide])
 
   const videoElement = React.useMemo(() => {
