@@ -37,6 +37,27 @@ fragment Member on Member {
   }
 }
 
+fragment PublicOrganisation on Organisation {
+  slug
+  name
+  description
+  picture
+  members {
+    id
+    role
+    user {
+      displayName
+      picture
+      username
+    }
+  }
+  series {
+    name
+    id
+    description
+  }
+}
+
 query GetOrganisationMembers($organisationSlug: String!) {
   Member(where: { organisationSlug: { _eq: $organisationSlug } }) {
     ...Member
@@ -82,5 +103,11 @@ mutation CreateOrganisationSeries(
     picture: $picture
   ) {
     id
+  }
+}
+
+query PublicOrganisation($organisationSlug: String!) {
+  Organisation_by_pk(slug: $organisationSlug) {
+    ...PublicOrganisation
   }
 }
