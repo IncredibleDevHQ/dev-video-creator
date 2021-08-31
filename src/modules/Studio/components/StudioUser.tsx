@@ -55,21 +55,27 @@ const StudioUser = ({
     ref.current.srcObject = stream
   }, [ref.current])
 
+  const clipSquare = (ctx: any) => {
+    const x = 0
+    const y = 0
+    const w = imageConfig.width
+    const h = imageConfig.height
+    const r = 8
+    ctx.beginPath()
+    ctx.moveTo(x + r, y)
+    ctx.arcTo(x + w, y, x + w, y + h, r)
+    ctx.arcTo(x + w, y + h, x, y + h, r)
+    ctx.arcTo(x, y + h, x, y, r)
+    ctx.arcTo(x, y, x + w, y, r)
+    ctx.closePath()
+  }
+
   return (
     <Group
       x={x}
       y={y}
       clipFunc={(ctx: any) => {
-        ctx.arc(
-          imageConfig.width / 2,
-          imageConfig.height / 2,
-          imageConfig.width > imageConfig.height
-            ? imageConfig.height / 2
-            : imageConfig.width / 2,
-          0,
-          Math.PI * 2,
-          true
-        )
+        clipSquare(ctx)
       }}
       draggable
     >
