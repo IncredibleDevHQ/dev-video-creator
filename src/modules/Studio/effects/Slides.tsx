@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Group, Text, Image, Rect } from 'react-konva'
 import FontFaceObserver from 'fontfaceobserver'
 import { useRecoilValue } from 'recoil'
-import { useImage } from 'react-konva-utils'
+import useImage from 'use-image'
 import { Logo, NextTokenIcon } from '../../../components'
 import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
 import { User, userState } from '../../../stores/user.store'
@@ -13,42 +13,53 @@ import { ControlButton } from '../components/MissionControl'
 import { StudioProviderProps, studioStore } from '../stores'
 import { titleSplash } from './effects'
 
-const Trivia = () => {
+const Slides = () => {
   const [isTitleSplash, setIsTitleSplash] = useState<boolean>(true)
-  const [activeQuestionIndex, setActiveQuestionIndex] = useState<number>(0)
-  const [questions, setQuestions] = useState<{ text: string; image: string }[]>(
-    []
-  )
+  const [activeSlideIndex, setActiveSlideIndex] = useState<number>(0)
+  const [slides, setSlides] = useState<string[]>([])
   const { fragment, state, stream, picture, payload, constraints } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
-  const userData = (useRecoilValue(userState) as User) || {}
-  const imageConfig = { width: 702, height: 540 }
+
+  const imageConfig = { width: 640, height: 480 }
   const imageRef = useRef<Konva.Image | null>(null)
   const [image] = useImage(picture as string, 'anonymous')
-  const [qnaImage] = useImage(
-    questions[activeQuestionIndex].image || '',
-    'anonymous'
-  )
+  const [slide] = useImage(slides[activeSlideIndex] || '', 'anonymous')
+
+  const [slideDim, setSlideDim] = useState<{
+    width: number
+    height: number
+    x: number
+    y: number
+  }>({ width: 0, height: 0, x: 0, y: 0 })
 
   useEffect(() => {
     var font = new FontFaceObserver('Gilroy')
     font.load()
   }, [])
 
+  useEffect(() => {
+    getDimensions({ w: slide?.width!!, h: slide?.height!! })
+  }, [slide])
+
   const videoElement = React.useMemo(() => {
     if (!stream) return undefined
     const element = document.createElement('video')
     element.srcObject = stream
     element.muted = true
-
     return element
   }, [stream])
 
   useEffect(() => {
+    return () => {
+      stream?.getTracks().forEach((track) => track.stop())
+    }
+  }, [])
+
+  useEffect(() => {
     if (!fragment?.configuration.properties) return
-    setQuestions(
+    setSlides(
       fragment.configuration.properties.find(
-        (property: any) => property.type === 'json'
+        (property: any) => property.type === 'text[]'
       )?.value
     )
   }, [fragment?.configuration.properties])
@@ -56,12 +67,9 @@ const Trivia = () => {
   useEffect(() => {
     if (!videoElement || !imageRef.current) return undefined
     videoElement.play()
-
     const layer = imageRef.current.getLayer()
-
     const anim = new Konva.Animation(() => {}, layer)
     anim.start()
-
     return () => {
       anim.stop()
     }
@@ -72,9 +80,30 @@ const Trivia = () => {
 
   useEffect(() => {
     if (!ref.current) return
-
     ref.current.srcObject = stream
   }, [ref.current])
+
+  const getDimensions = (img: { w: number; h: number }) => {
+    let calWidth = 0
+    let calHeight = 0
+    let calX = 0
+    let calY = 0
+    const aspectRatio = img.w / img.h
+    if (aspectRatio > 1.25) {
+      //horizontal img
+      calY = Math.max((540 - 600 * (1 / aspectRatio)) / 2 - 30, 0)
+      calX = 0
+      calHeight = 600 * (1 / aspectRatio)
+      calWidth = 600
+    } else if (aspectRatio <= 1.25) {
+      // sqr or vertical image
+      calY = 0
+      calX = (600 - 480 * aspectRatio) / 2
+      calHeight = 480
+      calWidth = 480 * aspectRatio
+    }
+    setSlideDim({ width: calWidth, height: calHeight, x: calX, y: calY })
+  }
 
   const controls =
     state === 'recording'
@@ -84,11 +113,12 @@ const Trivia = () => {
             icon={NextTokenIcon}
             className="my-2"
             appearance="primary"
-            disabled={activeQuestionIndex === questions.length - 1}
-            onClick={() => setActiveQuestionIndex(activeQuestionIndex + 1)}
+            disabled={activeSlideIndex === slides.length - 1}
+            onClick={() => setActiveSlideIndex(activeSlideIndex + 1)}
           />,
         ]
       : [<></>]
+
   let layerChildren = [<></>]
   if (
     (state === 'recording' ||
@@ -119,11 +149,53 @@ const Trivia = () => {
     !isTitleSplash
   ) {
     layerChildren = [
-      <Group x={600} y={0} key="group0">
+      //To get the white background color
+      <Group x={0} y={0} fill="#ffffff" key="group0">
+        <Rect
+          x={0}
+          y={0}
+          width={CONFIG.width}
+          height={CONFIG.height}
+          fill="#ffffff"
+        />
+      </Group>,
+      <Group x={30} y={30} height={480} width={600} key="group1">
+        {slides.length > 0 && (
+          <>
+            <Rect x={30} fill="#ffffff" width={600} height={480} />
+            <Image
+              image={slide}
+              fill="#F5F5F5"
+              width={slideDim.width}
+              y={slideDim.y}
+              x={slideDim.x}
+              height={slideDim.height}
+            />
+          </>
+        )}
+      </Group>,
+      <Group
+        y={30}
+        x={650}
+        clipFunc={(ctx: any) => {
+          const x = 0
+          const y = 0
+          const w = 280
+          const h = 480
+          let r = 8
+          ctx.beginPath()
+          ctx.moveTo(x + r, y)
+          ctx.arcTo(x + w, y, x + w, y + h, r)
+          ctx.arcTo(x + w, y + h, x, y + h, r)
+          ctx.arcTo(x, y + h, x, y, r)
+          ctx.arcTo(x, y, x + w, y, r)
+          ctx.closePath()
+        }}
+      >
         {constraints?.video ? (
           <Image
-            x={-imageConfig.width / 3}
             ref={imageRef}
+            x={-imageConfig.width / 3}
             image={videoElement}
             width={imageConfig.width}
             height={imageConfig.height}
@@ -135,89 +207,6 @@ const Trivia = () => {
             height={imageConfig.height}
           />
         )}
-
-        <Rect
-          x={-600}
-          y={0}
-          width={600}
-          height={CONFIG.height}
-          fill="#ffffff"
-        />
-      </Group>,
-      <Group x={64} y={64} key="group1">
-        {questions.length > 0 && questions[activeQuestionIndex].image ? (
-          <Text
-            x={-64}
-            align="left"
-            fontSize={24}
-            fill="#424242"
-            width={472}
-            height={64}
-            text={questions[activeQuestionIndex]?.text}
-            fontStyle="bold"
-            fontFamily="Gilroy"
-            textTransform="capitalize"
-            ref={(ref) => ref?.to({ x: 0, duration: 0.3 })}
-          />
-        ) : (
-          <></>
-        )}
-        {questions.length > 0 && !questions[activeQuestionIndex].image ? (
-          <Text
-            x={-64}
-            y={-64}
-            verticalAlign="middle"
-            fontSize={24}
-            fill="#424242"
-            width={472}
-            height={CONFIG.height}
-            text={questions[activeQuestionIndex]?.text}
-            fontStyle="bold"
-            fontFamily="Gilroy"
-            align="center"
-            textTransform="capitalize"
-            ref={(ref) => ref?.to({ x: 0, duration: 0.3 })}
-          />
-        ) : (
-          <>
-            <Rect y={94} fill="#F5F5F5" width={472} height={318} />
-            <Image
-              image={qnaImage}
-              y={110}
-              x={16}
-              fill="#F5F5F5"
-              width={438}
-              height={284}
-            />
-          </>
-        )}
-      </Group>,
-      <Group x={664} y={412} width={234} height={64} key="group2">
-        <Rect width={234} cornerRadius={4} height={64} fill="#F3F4F6" />
-
-        <Text
-          fontSize={18}
-          fill="#1F2937"
-          y={14}
-          fontFamily="Gilroy"
-          width={234}
-          height={64}
-          align="center"
-          fontStyle="bold"
-          text={userData.displayName as string}
-          textTransform="capitalize"
-        />
-        <Text
-          fontSize={9}
-          fill="#1F2937"
-          fontFamily="Inter"
-          align="center"
-          width={234}
-          height={64}
-          text={userData.email as string}
-          textTransform="capitalize"
-          y={36}
-        />
       </Group>,
     ]
   }
@@ -230,4 +219,4 @@ const Trivia = () => {
   )
 }
 
-export default Trivia
+export default Slides
