@@ -45,6 +45,8 @@ export const getEffect = (type: Fragment_Type_Enum_Enum) => {
       return VideoJam
     case Fragment_Type_Enum_Enum.Trivia:
       return Trivia
+    case Fragment_Type_Enum_Enum.Storybook:
+      return StoryBook
     default:
       throw Error('No effect found')
   }

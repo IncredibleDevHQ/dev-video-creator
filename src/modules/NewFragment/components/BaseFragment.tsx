@@ -88,7 +88,7 @@ const BaseFragment = ({
         label="StoryBookIntro"
         image="https://emoji.craftwork.design/images/modal/star.png"
         description="Introduce your story."
-        onClick={() => handleNext(Fragment_Type_Enum_Enum.Videoshow)}
+        onClick={() => handleNext(Fragment_Type_Enum_Enum.Storybook)}
         accessory="1 person"
       />
     </div>

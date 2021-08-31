@@ -1,12 +1,13 @@
 import Konva from 'konva'
 import React, { useEffect, useRef } from 'react'
-import { Group, Image, Rect } from 'react-konva'
+import { Group, Image, Rect, Text } from 'react-konva'
 import FontFaceObserver from 'fontfaceobserver'
 import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
 import { Concourse } from '../components'
 import { CONFIG } from '../components/Concourse'
 import { StudioProviderProps, studioStore } from '../stores'
+import header from '../../../assets/storybookHeader.svg'
 
 const StoryBook = () => {
   const { stream, picture, constraints } =
@@ -14,6 +15,7 @@ const StoryBook = () => {
   const imageConfig = { width: 640, height: 480 }
   const imageRef = useRef<Konva.Image | null>(null)
   const [image] = useImage(picture as string, 'anonymous')
+  const [storybookHeader] = useImage(header)
 
   useEffect(() => {
     var font = new FontFaceObserver('Gilroy')
@@ -67,12 +69,13 @@ const StoryBook = () => {
     </Group>,
 
     <Group
+      key="group1"
       y={30}
-      x={536}
+      x={546}
       clipFunc={(ctx: any) => {
         const x = 0
         const y = 0
-        const w = 348
+        const w = 384
         const h = 480
         let r = 8
         ctx.beginPath()
@@ -99,6 +102,38 @@ const StoryBook = () => {
           height={imageConfig.height}
         />
       )}
+    </Group>,
+    <Group x={30} y={30} width={304} height={24} key="group2">
+      <Image image={storybookHeader} />
+    </Group>,
+    <Group y={191} width={381} height={72} x={30} key="group3">
+      <Text
+        fontSize={48}
+        fill="#616161"
+        fontFamily="Gilroy"
+        align="center"
+        fontStyle="bold"
+        text={'Storybook Docs'}
+        textTransform="capitalize"
+      />
+    </Group>,
+    <Group x={30} y={462} width={165} height={48} key="group4">
+      <Text
+        fontSize={18}
+        fill="#616161"
+        fontFamily="Inter"
+        fontStyle="bold"
+        text={'Michale Shilman'}
+        textTransform="capitalize"
+      />
+      <Text
+        fontSize={14}
+        fill="#616161"
+        fontFamily="Inter"
+        text={'Maintainer @StoryBook'}
+        textTransform="capitalize"
+        y={27}
+      />
     </Group>,
   ]
 
