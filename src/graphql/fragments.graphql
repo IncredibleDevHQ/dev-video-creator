@@ -78,13 +78,6 @@ mutation MarkFragmentCompleted($id: uuid!, $producedLink: String!) {
   }
 }
 
-mutation GetRTCToken($fragmentId: uuid!) {
-  RTCToken(fragmentId: $fragmentId) {
-    token
-    success
-  }
-}
-
 mutation AddConfiguration($configuration: json!, $id: uuid!) {
   update_Fragment_by_pk(
     pk_columns: { id: $id }
@@ -103,12 +96,6 @@ mutation InsertParticipantToFragment(
     participantId: $participantId
   ) {
     createdAt
-  }
-}
-
-query FragmentParticipants($fragmentId: uuid!) {
-  Fragment_Participant(where: { fragmentId: { _eq: $fragmentId } }) {
-    participantId
   }
 }
 

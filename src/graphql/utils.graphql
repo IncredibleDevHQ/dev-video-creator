@@ -5,9 +5,35 @@ query GetTokenisedCode($code: String!, $language: String!, $theme: String) {
   }
 }
 
+query GetLatestFlick($sub: String!) {
+  Flick(
+    where: {
+      startAt: { _gte: "now()" }
+      participants: { userSub: { _eq: $sub } }
+    }
+    order_by: { startAt: asc }
+    limit: 1
+  ) {
+    ...Flick
+  }
+}
+
 mutation UploadFile($key: String!) {
   UploadFile(key: $key) {
     success
     url
+  }
+}
+
+mutation ProduceVideo($flickId: uuid!, $objectNames: [String!]!) {
+  ProduceVideo(flickId: $flickId, objectNames: $objectNames) {
+    id
+  }
+}
+
+mutation GetRTCToken($fragmentId: uuid!) {
+  RTCToken(fragmentId: $fragmentId) {
+    token
+    success
   }
 }

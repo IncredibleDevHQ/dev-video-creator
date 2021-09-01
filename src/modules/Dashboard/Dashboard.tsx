@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom'
 import { useRecoilValue } from 'recoil'
 import { cx } from '@emotion/css'
 import { IconType } from 'react-icons'
-import config from '../../config'
-import { Heading, Navbar, ScreenState, Text } from '../../components'
+import { BiVideo } from 'react-icons/bi'
+import { Heading, Navbar, ScreenState } from '../../components'
 import {
   BaseFlickFragment,
   useGetUserFlicksQuery,
@@ -12,7 +12,6 @@ import {
 import { User, userState } from '../../stores/user.store'
 import { formatDate } from '../../utils/FormatDate'
 import { NewFlickBanner, TableView } from './components'
-import { BiVideo } from 'react-icons/bi'
 
 const ViewBarButton = ({
   icon: I,
@@ -79,6 +78,7 @@ const FlickTile = ({ flick }: { flick: BaseFlickFragment }) => {
           <img
             className="w-full object-cover rounded-t-md h-32"
             src="https://i.giphy.com/media/l0uJcwRwF5tO7LgB5t/giphy-downsized.gif"
+            alt={flick.name}
           />
         ) : (
           <div className="bg-gray-100 justify-center items-center flex text-gray-300 rounded-t-md h-32">

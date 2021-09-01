@@ -1,0 +1,17 @@
+fragment Member on Member {
+  id
+  role
+  user {
+    email
+    sub
+    updatedAt
+    onboarded
+    ...PublicUser
+  }
+}
+
+query GetOrganisationMembers($organisationSlug: String!) {
+  Member(where: { organisationSlug: { _eq: $organisationSlug } }) {
+    ...Member
+  }
+}
