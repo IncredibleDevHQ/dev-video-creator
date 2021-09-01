@@ -4,7 +4,7 @@ import { Group, Text, Image, Rect } from 'react-konva'
 import FontFaceObserver from 'fontfaceobserver'
 import { useRecoilValue } from 'recoil'
 import { useImage } from 'react-konva-utils'
-import { Logo, NextTokenIcon } from '../../../components'
+import { NextTokenIcon } from '../../../components'
 import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
 import { User, userState } from '../../../stores/user.store'
 import { Concourse } from '../components'
@@ -26,12 +26,14 @@ const Trivia = () => {
   const imageRef = useRef<Konva.Image | null>(null)
   const [image] = useImage(picture as string, 'anonymous')
   const [qnaImage] = useImage(
-    questions[activeQuestionIndex] ? questions[activeQuestionIndex].image : '',
+    questions && questions[activeQuestionIndex]
+      ? questions[activeQuestionIndex].image
+      : '',
     'anonymous'
   )
 
   useEffect(() => {
-    var font = new FontFaceObserver('Poppins')
+    const font = new FontFaceObserver('Poppins')
     font.load()
   }, [])
 

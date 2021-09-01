@@ -1,12 +1,10 @@
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
 import { Group, Image, Rect } from 'react-konva'
-import FontFaceObserver from 'fontfaceobserver'
 import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
 import { NextTokenIcon } from '../../../components'
 import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
-import { User, userState } from '../../../stores/user.store'
 import { Concourse } from '../components'
 import { CONFIG } from '../components/Concourse'
 import { ControlButton } from '../components/MissionControl'
@@ -57,7 +55,7 @@ const Slides = () => {
     if (!fragment?.configuration.properties) return
     setSlides(
       fragment.configuration.properties.find(
-        (property: any) => property.type === 'text[]'
+        (property: any) => property.type === 'file[]'
       )?.value
     )
   }, [fragment?.configuration.properties])
@@ -88,7 +86,7 @@ const Slides = () => {
     let calY = 0
     const aspectRatio = img.w / img.h
     if (aspectRatio > 1.25) {
-      //horizontal img
+      // horizontal img
       calY = Math.max((540 - 600 * (1 / aspectRatio)) / 2 - 30, 0)
       calX = 0
       calHeight = 600 * (1 / aspectRatio)
@@ -147,7 +145,7 @@ const Slides = () => {
     !isTitleSplash
   ) {
     layerChildren = [
-      //To get the white background color
+      // To get the white background color
       <Group x={0} y={0} fill="#E5E5E5" key="group0">
         <Rect
           x={0}
@@ -166,11 +164,10 @@ const Slides = () => {
               width={600}
               height={480}
               clipFunc={(ctx: any) => {
-                const x = slideDim.x
-                const y = slideDim.y
+                const { x, y } = slideDim
                 const w = slideDim.width
                 const h = slideDim.height
-                let r = 8
+                const r = 8
                 ctx.beginPath()
                 ctx.moveTo(x + r, y)
                 ctx.arcTo(x + w, y, x + w, y + h, r)
@@ -203,7 +200,7 @@ const Slides = () => {
           const y = 0
           const w = 280
           const h = 480
-          let r = 8
+          const r = 8
           ctx.beginPath()
           ctx.moveTo(x + r, y)
           ctx.arcTo(x + w, y, x + w, y + h, r)

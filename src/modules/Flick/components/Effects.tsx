@@ -1,11 +1,11 @@
 /* eslint-disable no-case-declarations */
 import { FormikErrors } from 'formik'
 import React, { ChangeEvent, useEffect, useState } from 'react'
-import { Button, Checkbox, Photo, Text, TextField } from '../../../components'
-import { useUploadFile } from '../../../hooks'
-import { FiLoader } from 'react-icons/fi'
 import { cx } from '@emotion/css'
 import { IoRemoveSharp } from 'react-icons/io5'
+import { FiLoader } from 'react-icons/fi'
+import { Button, Checkbox, Photo, Text, TextField } from '../../../components'
+import { useUploadFile } from '../../../hooks'
 
 export interface SchemaElementProps {
   key: string
@@ -205,7 +205,7 @@ export const GetSchemaElement = ({
         </div>
       )
 
-    case 'text[]':
+    case 'file[]':
       const [uploadSlides] = useUploadFile()
       const [loadingSlide, setLoadingSlide] = useState<boolean>(false)
       const [slides, setSlides] = useState<string[]>([])
