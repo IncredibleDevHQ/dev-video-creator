@@ -136,39 +136,39 @@ const VideoJam = () => {
     ),
   ]
 
-  let layerChildren = [<></>]
-  if (
-    (state === 'recording' ||
-      payload?.status === Fragment_Status_Enum_Enum.Live) &&
-    isTitleSplash
-  ) {
-    layerChildren = [
-      <Group
-        x={0}
-        y={0}
-        width={CONFIG.width}
-        height={CONFIG.height}
-        ref={(ref) =>
-          ref?.to({
-            duration: 3,
-            onFinish: () => {
-              setIsTitleSplash(false)
-            },
-          })
-        }
-      >
-        {titleSplash(fragment?.name as string)}
-      </Group>,
-    ]
-  } else if (
-    (state === 'recording' ||
-      payload?.status === Fragment_Status_Enum_Enum.Live) &&
-    !isTitleSplash
-  ) {
-    layerChildren = videoElement
-      ? [<Video videoElement={videoElement} />]
-      : [<></>]
-  }
+  // let layerChildren = [<></>]
+  // if (
+  //   (state === 'recording' ||
+  //     payload?.status === Fragment_Status_Enum_Enum.Live) &&
+  //   isTitleSplash
+  // ) {
+  //   layerChildren = [
+  //     <Group
+  //       x={0}
+  //       y={0}
+  //       width={CONFIG.width}
+  //       height={CONFIG.height}
+  //       ref={(ref) =>
+  //         ref?.to({
+  //           duration: 3,
+  //           onFinish: () => {
+  //             setIsTitleSplash(false)
+  //           },
+  //         })
+  //       }
+  //     >
+  //       {titleSplash(fragment?.name as string)}
+  //     </Group>,
+  //   ]
+  // } else if (
+  //   (state === 'recording' ||
+  //     payload?.status === Fragment_Status_Enum_Enum.Live) &&
+  //   !isTitleSplash
+  // ) {
+  const layerChildren = videoElement
+    ? [<Video videoElement={videoElement} />]
+    : [<></>]
+  // }
 
   return <Concourse layerChildren={layerChildren} controls={controls} />
 }
