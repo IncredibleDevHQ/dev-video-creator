@@ -70,7 +70,7 @@ const App = () => {
                 />
                 <PrivateRoute
                   exact
-                  path="/flick/:id/new"
+                  path="/new-fragment/:id"
                   component={NewFragment}
                 />
                 <PrivateRoute exact path="/flicks" component={Flicks} />

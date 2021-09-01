@@ -258,7 +258,7 @@ const FragmentsSidebar = ({
           className="text-grey-lighter"
           size={20}
           onClick={() => {
-            history.push(`/flick/${flickId}/new`)
+            history.push(`/new-fragment/${flickId}`)
           }}
         />
       </div>

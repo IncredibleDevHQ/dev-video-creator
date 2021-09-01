@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
+import { useHistory, useParams } from 'react-router-dom'
 import { BiCog, BiGift, BiNotepad } from 'react-icons/bi'
 import { BsArrowLeft } from 'react-icons/bs'
-import { useHistory, useParams } from 'react-router'
 import {
   BaseFragment,
   Basics,
@@ -130,6 +130,8 @@ const NewFragment = () => {
                 return `${form.type} it is. Now give it a name!`
               case 2:
                 return `Who would you want to feature in this ${form.type}?`
+              default:
+                return ''
             }
           })()}
         </Heading>
