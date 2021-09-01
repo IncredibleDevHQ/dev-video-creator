@@ -21,11 +21,11 @@ const FlickActivity = ({
   })
 
   const ActivityIcon = {
-    FlickCreated: <IoRocketSharp fontSize="45" />,
-    ParticipantAdded: <IoPersonAddSharp fontSize="45" />,
-    FragmentAssignment: <MdAssignmentTurnedIn fontSize="45" />,
-    FragmentCompleted: <MdDone fontSize="45" />,
-    FlickPublished: <IoCloudDone fontSize="45" />,
+    FlickCreated: <IoRocketSharp fontSize="40" opacity="0.4" />,
+    ParticipantAdded: <IoPersonAddSharp fontSize="40" opacity="0.4" />,
+    FragmentAssignment: <MdAssignmentTurnedIn fontSize="40" opacity="0.4" />,
+    FragmentCompleted: <MdDone fontSize="40" opacity="0.4" />,
+    FlickPublished: <IoCloudDone fontSize="40" opacity="0.4" />,
   }
 
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -62,11 +62,11 @@ const FlickActivity = ({
               key={notif.id}
               className="flex items-center border-b-2 hover:bg-gray-100 cursor-pointer text-gray-700 px-4 py-3 text-sm"
             >
-              <span className="w-1/5">
+              <span className="w-1/6">
                 {/* @ts-ignore */}
                 {ActivityIcon[notif.type]}
               </span>
-              <div className="flex flex-col w-4/5">
+              <div className="flex flex-col w-5/6">
                 <span className="font-bold">{notif.title}</span>
                 <span>{notif.description}</span>
                 <span className="text-gray-300">
