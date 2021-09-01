@@ -28,7 +28,7 @@ const tabs: Tab[] = [
 ]
 
 const Flick = () => {
-  const { id } = useParams<{ id: string }>()
+  const { id, fragmentId } = useParams<{ id: string; fragmentId?: string }>()
   const { data, error, loading, refetch } = useGetFlickByIdQuery({
     variables: { id },
   })
@@ -41,11 +41,15 @@ const Flick = () => {
   useEffect(() => {
     if (!data?.Flick_by_pk) return
     setFlick(data.Flick_by_pk)
-    setActiveFragmentId(
-      data.Flick_by_pk.fragments.length > 0
-        ? data.Flick_by_pk.fragments[0].id
-        : undefined
-    )
+    if (fragmentId) {
+      setActiveFragmentId(fragmentId)
+    } else {
+      setActiveFragmentId(
+        data.Flick_by_pk.fragments.length > 0
+          ? data.Flick_by_pk.fragments[0].id
+          : undefined
+      )
+    }
   }, [data])
 
   if (loading) return <ScreenState title="Just a jiffy" loading />

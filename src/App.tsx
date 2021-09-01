@@ -63,7 +63,11 @@ const App = () => {
                   component={NewOrganisation}
                 />
                 <PrivateRoute exact path="/designer" component={Designer} />
-                <PrivateRoute exact path="/flick/:id" component={Flick} />
+                <PrivateRoute
+                  exact
+                  path="/flick/:id/:fragmentId?"
+                  component={Flick}
+                />
                 <PrivateRoute
                   exact
                   path="/flick/:id/new"
