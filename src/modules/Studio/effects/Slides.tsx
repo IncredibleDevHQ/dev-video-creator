@@ -115,119 +115,119 @@ const Slides = () => {
         ]
       : [<></>]
 
-  let layerChildren = [<></>]
-  if (
-    (state === 'recording' ||
-      payload?.status === Fragment_Status_Enum_Enum.Live) &&
-    isTitleSplash
-  ) {
-    layerChildren = [
-      <Group
+  // let layerChildren = [<></>]
+  // if (
+  //   (state === 'recording' ||
+  //     payload?.status === Fragment_Status_Enum_Enum.Live) &&
+  //   isTitleSplash
+  // ) {
+  //   layerChildren = [
+  //     <Group
+  //       x={0}
+  //       y={0}
+  //       width={CONFIG.width}
+  //       height={CONFIG.height}
+  //       ref={(ref) =>
+  //         ref?.to({
+  //           duration: 3,
+  //           onFinish: () => {
+  //             setIsTitleSplash(false)
+  //           },
+  //         })
+  //       }
+  //     >
+  //       {titleSplash(fragment?.name as string)}
+  //     </Group>,
+  //   ]
+  // } else if (
+  //   (state === 'recording' ||
+  //     payload?.status === Fragment_Status_Enum_Enum.Live) &&
+  //   !isTitleSplash
+  // ) {
+  const layerChildren = [
+    // To get the white background color
+    <Group x={0} y={0} fill="#E5E5E5" key="group0">
+      <Rect
         x={0}
         y={0}
         width={CONFIG.width}
         height={CONFIG.height}
-        ref={(ref) =>
-          ref?.to({
-            duration: 3,
-            onFinish: () => {
-              setIsTitleSplash(false)
-            },
-          })
-        }
-      >
-        {titleSplash(fragment?.name as string)}
-      </Group>,
-    ]
-  } else if (
-    (state === 'recording' ||
-      payload?.status === Fragment_Status_Enum_Enum.Live) &&
-    !isTitleSplash
-  ) {
-    layerChildren = [
-      // To get the white background color
-      <Group x={0} y={0} fill="#E5E5E5" key="group0">
-        <Rect
-          x={0}
-          y={0}
-          width={CONFIG.width}
-          height={CONFIG.height}
-          fill="#E5E5E5"
-        />
-      </Group>,
-      <Group x={30} y={30} height={480} width={600} key="group1">
-        {slides.length > 0 && (
-          <>
-            <Group
-              x={30}
+        fill="#E5E5E5"
+      />
+    </Group>,
+    <Group x={30} y={30} height={480} width={600} key="group1">
+      {slides.length > 0 && (
+        <>
+          <Group
+            x={30}
+            fill="#E5E5E5"
+            width={600}
+            height={480}
+            clipFunc={(ctx: any) => {
+              const { x, y } = slideDim
+              const w = slideDim.width
+              const h = slideDim.height
+              const r = 8
+              ctx.beginPath()
+              ctx.moveTo(x + r, y)
+              ctx.arcTo(x + w, y, x + w, y + h, r)
+              ctx.arcTo(x + w, y + h, x, y + h, r)
+              ctx.arcTo(x, y + h, x, y, r)
+              ctx.arcTo(x, y, x + w, y, r)
+              ctx.closePath()
+            }}
+          >
+            <Image
+              image={slide}
               fill="#E5E5E5"
-              width={600}
-              height={480}
-              clipFunc={(ctx: any) => {
-                const { x, y } = slideDim
-                const w = slideDim.width
-                const h = slideDim.height
-                const r = 8
-                ctx.beginPath()
-                ctx.moveTo(x + r, y)
-                ctx.arcTo(x + w, y, x + w, y + h, r)
-                ctx.arcTo(x + w, y + h, x, y + h, r)
-                ctx.arcTo(x, y + h, x, y, r)
-                ctx.arcTo(x, y, x + w, y, r)
-                ctx.closePath()
-              }}
-            >
-              <Image
-                image={slide}
-                fill="#E5E5E5"
-                width={slideDim.width}
-                y={slideDim.y}
-                x={slideDim.x}
-                height={slideDim.height}
-                shadowOpacity={0.3}
-                shadowOffset={{ x: 0, y: 1 }}
-                shadowBlur={2}
-              />
-            </Group>
-          </>
-        )}
-      </Group>,
-      <Group
-        y={30}
-        x={650}
-        clipFunc={(ctx: any) => {
-          const x = 0
-          const y = 0
-          const w = 280
-          const h = 480
-          const r = 8
-          ctx.beginPath()
-          ctx.moveTo(x + r, y)
-          ctx.arcTo(x + w, y, x + w, y + h, r)
-          ctx.arcTo(x + w, y + h, x, y + h, r)
-          ctx.arcTo(x, y + h, x, y, r)
-          ctx.arcTo(x, y, x + w, y, r)
-          ctx.closePath()
-        }}
-      >
-        {constraints?.video ? (
-          <Image
-            ref={imageRef}
-            x={-imageConfig.width / 3}
-            image={videoElement}
-            width={imageConfig.width}
-            height={imageConfig.height}
-          />
-        ) : (
-          <Image
-            image={image}
-            width={imageConfig.width}
-            height={imageConfig.height}
-          />
-        )}
-      </Group>,
-    ]
-  }
+              width={slideDim.width}
+              y={slideDim.y}
+              x={slideDim.x}
+              height={slideDim.height}
+              shadowOpacity={0.3}
+              shadowOffset={{ x: 0, y: 1 }}
+              shadowBlur={2}
+            />
+          </Group>
+        </>
+      )}
+    </Group>,
+    <Group
+      y={30}
+      x={650}
+      clipFunc={(ctx: any) => {
+        const x = 0
+        const y = 0
+        const w = 280
+        const h = 480
+        const r = 8
+        ctx.beginPath()
+        ctx.moveTo(x + r, y)
+        ctx.arcTo(x + w, y, x + w, y + h, r)
+        ctx.arcTo(x + w, y + h, x, y + h, r)
+        ctx.arcTo(x, y + h, x, y, r)
+        ctx.arcTo(x, y, x + w, y, r)
+        ctx.closePath()
+      }}
+    >
+      {constraints?.video ? (
+        <Image
+          ref={imageRef}
+          x={-imageConfig.width / 3}
+          image={videoElement}
+          width={imageConfig.width}
+          height={imageConfig.height}
+        />
+      ) : (
+        <Image
+          image={image}
+          width={imageConfig.width}
+          height={imageConfig.height}
+        />
+      )}
+    </Group>,
+  ]
+  // }
   return (
     <Concourse
       controls={controls}
