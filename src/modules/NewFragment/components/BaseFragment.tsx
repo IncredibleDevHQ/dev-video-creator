@@ -98,6 +98,13 @@ const BaseFragment = ({
         onClick={() => handleNext(Fragment_Type_Enum_Enum.Storybook)}
         accessory="1 person"
       />
+      <BaseFragmentCard
+        label="Points"
+        image="https://emoji.craftwork.design/images/modal/round-pushpin.png"
+        description="Talk about the Points of your Topic."
+        onClick={() => handleNext(Fragment_Type_Enum_Enum.Points)}
+        accessory="1 person"
+      />
     </div>
   )
 }
