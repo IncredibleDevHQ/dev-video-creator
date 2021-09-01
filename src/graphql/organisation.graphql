@@ -55,6 +55,7 @@ fragment PublicOrganisation on Organisation {
     name
     id
     description
+    picture
   }
 }
 
