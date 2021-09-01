@@ -1,6 +1,6 @@
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
-import { Group, Text, Image, Rect } from 'react-konva'
+import { Group, Text, Image, Rect, Circle } from 'react-konva'
 import FontFaceObserver from 'fontfaceobserver'
 import { useRecoilValue } from 'recoil'
 import { useImage } from 'react-konva-utils'
@@ -12,6 +12,7 @@ import { CONFIG } from '../components/Concourse'
 import { ControlButton } from '../components/MissionControl'
 import { StudioProviderProps, studioStore } from '../stores'
 import { titleSplash } from './effects'
+import usePoint, { ComputedPoint } from '../hooks/use-point'
 
 const Points = () => {
   const [isTitleSplash, setIsTitleSplash] = useState<boolean>(true)
@@ -25,6 +26,10 @@ const Points = () => {
 
   const imageConfig = { width: 702, height: 540 }
   const imageRef = useRef<Konva.Image | null>(null)
+
+  const [groupCoordinate, setGroupCoordinate] = useState<number>(0)
+
+  const { initUsePoint, computedPoints, getGroupCoordinates } = usePoint()
 
   const [yCoordinate, setYCoordinate] = useState<number>(0)
 
@@ -50,6 +55,28 @@ const Points = () => {
       )?.value
     )
   }, [fragment?.configuration.properties])
+
+  useEffect(() => {
+    const startingCoordinate = initUsePoint({
+      points,
+      availableWidth: 392,
+      availableHeight: 490,
+      gutter: 3,
+      fontSize: 24,
+    })
+    setGroupCoordinate(startingCoordinate > 32 ? startingCoordinate : 32)
+  }, [points])
+
+  useEffect(() => {
+    return () => {
+      setPoints([])
+      setGroupCoordinate(0)
+    }
+  }, [])
+
+  useEffect(() => {
+    console.log(groupCoordinate)
+  }, [groupCoordinate])
 
   useEffect(() => {
     if (!videoElement || !imageRef.current) return undefined
@@ -82,7 +109,7 @@ const Points = () => {
             icon={NextTokenIcon}
             className="my-2"
             appearance="primary"
-            disabled={activePointIndex === points.length - 1}
+            disabled={activePointIndex === points.length}
             onClick={() => {
               setActivePointIndex(activePointIndex + 1)
               setYCoordinate(yCoordinate + 30)
@@ -110,25 +137,60 @@ const Points = () => {
 
       <Rect x={-600} y={0} width={600} height={CONFIG.height} fill="#ffffff" />
     </Group>,
-    <Group x={64} y={64} key="group1">
-      {points
+    <Group x={32} y={groupCoordinate} key="group">
+      <Text
+        key="fragmentTitle"
+        x={0}
+        y={0}
+        align="left"
+        fontSize={36}
+        fill="#424242"
+        width={472}
+        height={64}
+        text={fragment?.name as string}
+        fontStyle="bold"
+        fontFamily="Poppins"
+      />
+    </Group>,
+    <Group x={64} y={groupCoordinate + 52} key="group1">
+      {computedPoints.current
         .filter((_, i) => i < activePointIndex)
         .map((point, j) => (
-          <Text
-            key={`${point}`}
-            x={-64}
-            y={yCoordinate}
-            align="left"
-            fontSize={24}
-            fill="#424242"
-            width={472}
-            height={64}
-            text={point}
-            fontStyle="bold"
-            fontFamily="Poppins"
-            textTransform="capitalize"
-            ref={(ref) => ref?.to({ x: 0, duration: 0.3 })}
-          />
+          <>
+            <Circle
+              key="redCircle"
+              x={-76}
+              y={point.y + 12}
+              fill="#424242"
+              radius={4}
+              ref={(ref) =>
+                ref?.to({
+                  x: 0,
+                  duration: 0.3,
+                })
+              }
+            />
+            <Text
+              key={`${point.text}`}
+              x={-64}
+              y={point.y}
+              align="left"
+              fontSize={24}
+              fill="#424242"
+              width={460}
+              height={64}
+              text={point.text}
+              fontStyle="normal 400"
+              fontFamily="Poppins"
+              textTransform="capitalize"
+              ref={(ref) =>
+                ref?.to({
+                  x: 16,
+                  duration: 0.3,
+                })
+              }
+            />
+          </>
         ))}
     </Group>,
     <Group x={664} y={412} width={234} height={64} key="group2">
