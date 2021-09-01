@@ -31,7 +31,7 @@ const Trivia = () => {
   )
 
   useEffect(() => {
-    var font = new FontFaceObserver('Gilroy')
+    var font = new FontFaceObserver('Poppins')
     font.load()
   }, [])
 
@@ -155,7 +155,7 @@ const Trivia = () => {
             height={64}
             text={questions[activeQuestionIndex]?.text}
             fontStyle="bold"
-            fontFamily="Gilroy"
+            fontFamily="Poppins"
             textTransform="capitalize"
             ref={(ref) => ref?.to({ x: 0, duration: 0.3 })}
           />
@@ -173,7 +173,7 @@ const Trivia = () => {
             height={CONFIG.height}
             text={questions[activeQuestionIndex]?.text}
             fontStyle="bold"
-            fontFamily="Gilroy"
+            fontFamily="Poppins"
             align="center"
             textTransform="capitalize"
             ref={(ref) => ref?.to({ x: 0, duration: 0.3 })}
@@ -199,7 +199,7 @@ const Trivia = () => {
           fontSize={18}
           fill="#1F2937"
           y={14}
-          fontFamily="Gilroy"
+          fontFamily="Poppins"
           width={234}
           height={64}
           align="center"
@@ -210,7 +210,7 @@ const Trivia = () => {
         <Text
           fontSize={9}
           fill="#1F2937"
-          fontFamily="Inter"
+          fontFamily="Poppins"
           align="center"
           width={234}
           height={64}

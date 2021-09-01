@@ -1,10 +1,10 @@
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
-import { Group, Text, Image, Rect } from 'react-konva'
+import { Group, Image, Rect } from 'react-konva'
 import FontFaceObserver from 'fontfaceobserver'
 import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
-import { Logo, NextTokenIcon } from '../../../components'
+import { NextTokenIcon } from '../../../components'
 import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
 import { User, userState } from '../../../stores/user.store'
 import { Concourse } from '../components'
@@ -31,11 +31,6 @@ const Slides = () => {
     x: number
     y: number
   }>({ width: 0, height: 0, x: 0, y: 0 })
-
-  useEffect(() => {
-    var font = new FontFaceObserver('Gilroy')
-    font.load()
-  }, [])
 
   useEffect(() => {
     getDimensions({
@@ -153,27 +148,50 @@ const Slides = () => {
   ) {
     layerChildren = [
       //To get the white background color
-      <Group x={0} y={0} fill="#ffffff" key="group0">
+      <Group x={0} y={0} fill="#E5E5E5" key="group0">
         <Rect
           x={0}
           y={0}
           width={CONFIG.width}
           height={CONFIG.height}
-          fill="#ffffff"
+          fill="#E5E5E5"
         />
       </Group>,
       <Group x={30} y={30} height={480} width={600} key="group1">
         {slides.length > 0 && (
           <>
-            <Rect x={30} fill="#ffffff" width={600} height={480} />
-            <Image
-              image={slide}
-              fill="#F5F5F5"
-              width={slideDim.width}
-              y={slideDim.y}
-              x={slideDim.x}
-              height={slideDim.height}
-            />
+            <Group
+              x={30}
+              fill="#E5E5E5"
+              width={600}
+              height={480}
+              clipFunc={(ctx: any) => {
+                const x = slideDim.x
+                const y = slideDim.y
+                const w = slideDim.width
+                const h = slideDim.height
+                let r = 8
+                ctx.beginPath()
+                ctx.moveTo(x + r, y)
+                ctx.arcTo(x + w, y, x + w, y + h, r)
+                ctx.arcTo(x + w, y + h, x, y + h, r)
+                ctx.arcTo(x, y + h, x, y, r)
+                ctx.arcTo(x, y, x + w, y, r)
+                ctx.closePath()
+              }}
+            >
+              <Image
+                image={slide}
+                fill="#E5E5E5"
+                width={slideDim.width}
+                y={slideDim.y}
+                x={slideDim.x}
+                height={slideDim.height}
+                shadowOpacity={0.3}
+                shadowOffset={{ x: 0, y: 1 }}
+                shadowBlur={2}
+              />
+            </Group>
           </>
         )}
       </Group>,
