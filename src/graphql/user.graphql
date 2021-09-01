@@ -1,3 +1,15 @@
+fragment PublicUser on User {
+  displayName
+  picture
+  username
+}
+
+fragment FlickParticipant on User {
+  ...PublicUser
+  email
+  sub
+}
+
 fragment User on MeOutput {
   createdAt
   displayName
@@ -10,17 +22,23 @@ fragment User on MeOutput {
   updatedAt
 }
 
-fragment FlickParticipant on User {
-  displayName
-  picture
-  email
-  username
-  sub
-}
-
 query GetUser {
   Me {
     ...User
+  }
+}
+
+query GetFilteredUsers($_ilike: String!) {
+  User(
+    where: {
+      _or: [
+        { displayName: { _ilike: $_ilike } }
+        { email: { _ilike: $_ilike } }
+        { username: { _ilike: $_ilike } }
+      ]
+    }
+  ) {
+    ...FlickParticipant
   }
 }
 
@@ -51,24 +69,11 @@ mutation SetOnboarding {
   }
 }
 
-fragment FilteredUser on User {
-  displayName
-  email
-  picture
-  sub
-  username
-}
-
-query GetFilteredUsers($_ilike: String!) {
-  User(
-    where: {
-      _or: [
-        { displayName: { _ilike: $_ilike } }
-        { email: { _ilike: $_ilike } }
-        { username: { _ilike: $_ilike } }
-      ]
-    }
+mutation UpdateProfile($displayName: String!, $userId: String!) {
+  update_User(
+    _set: { displayName: $displayName }
+    where: { sub: { _eq: $userId } }
   ) {
-    ...FilteredUser
+    affected_rows
   }
 }

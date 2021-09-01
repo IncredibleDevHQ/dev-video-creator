@@ -4,7 +4,7 @@ import React, { HTMLAttributes } from 'react'
 import { useHistory } from 'react-router-dom'
 import { useRecoilValue } from 'recoil'
 import { Button, Text } from '../../../components'
-import { useGetUpcomingFlickQuery } from '../../../generated/graphql'
+import { useGetLatestFlickQuery } from '../../../generated/graphql'
 import { userState } from '../../../stores/user.store'
 import { getRandomGradient } from '../../../utils/globalStyles'
 
@@ -17,7 +17,7 @@ const NewFlickBanner = ({
   const history = useHistory()
   const { uid } = (useRecoilValue(userState) as User) || {}
 
-  const { data } = useGetUpcomingFlickQuery({
+  const { data } = useGetLatestFlickQuery({
     variables: {
       sub: uid,
     },

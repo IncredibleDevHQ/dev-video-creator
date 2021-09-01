@@ -1,10 +1,18 @@
-fragment SingleSeries on Series {
+fragment BaseSeries on Series {
   id
   name
-  organisationSlug
-  picture
   description
+  picture
+}
+
+fragment Series on Series {
+  ...BaseSeries
+  organisationSlug
   ownerSub
+}
+
+fragment SingleSeries on Series {
+  ...Series
   Flick_Series {
     flick {
       ...BaseFlick
@@ -12,8 +20,74 @@ fragment SingleSeries on Series {
   }
 }
 
+fragment PublicSeries on Series {
+  ...BaseSeries
+  Flick_Series(where: { flick: { status: { _eq: Completed } } }) {
+    flickId
+    flick {
+      ...BaseFlick
+    }
+  }
+}
+
+query GetSeries($organisationSlug: String!) {
+  Series(where: { organisationSlug: { _eq: $organisationSlug } }) {
+    ...Series
+  }
+}
+
 query GetSingleSeries($id: uuid!) {
   Series_by_pk(id: $id) {
     ...SingleSeries
+  }
+}
+
+query GetSeriesById($id: uuid!) {
+  Series(where: { id: { _eq: $id } }) {
+    ...PublicSeries
+    Flick_Series_aggregate {
+      aggregate {
+        count
+      }
+    }
+  }
+}
+
+query GetUserSeries($userId: String!, $limit: Int) {
+  Series(where: { ownerSub: { _eq: $userId } }, limit: $limit) {
+    ...PublicSeries
+    Flick_Series_aggregate {
+      aggregate {
+        count
+      }
+    }
+  }
+}
+
+mutation CreateOrganisationSeries(
+  $name: String!
+  $organisationSlug: String!
+  $picture: String!
+) {
+  CreateSeries(
+    name: $name
+    organisationSlug: $organisationSlug
+    picture: $picture
+  ) {
+    id
+  }
+}
+
+mutation CreateUserSeries(
+  $name: String!
+  $organisationSlug: String
+  $picture: String
+) {
+  CreateSeries(
+    name: $name
+    organisationSlug: $organisationSlug
+    picture: $picture
+  ) {
+    id
   }
 }
