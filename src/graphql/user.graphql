@@ -28,6 +28,14 @@ query GetUser {
   }
 }
 
+fragment FilteredUser on User {
+  displayName
+  email
+  picture
+  sub
+  username
+}
+
 query GetFilteredUsers($_ilike: String!) {
   User(
     where: {
@@ -38,7 +46,7 @@ query GetFilteredUsers($_ilike: String!) {
       ]
     }
   ) {
-    ...FlickParticipant
+    ...FilteredUser
   }
 }
 
