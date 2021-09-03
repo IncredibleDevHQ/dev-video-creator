@@ -120,36 +120,6 @@ const CodeJam = () => {
         ]
       : [<></>]
 
-  // let layerChildren = [<></>]
-  // if (
-  //   (state === 'recording' ||
-  //     payload?.status === Fragment_Status_Enum_Enum.Live) &&
-  //   isTitleSplash
-  // ) {
-  //   layerChildren = [
-  //     <Group
-  //       x={0}
-  //       y={0}
-  //       zIndex={100}
-  //       width={codeConfig.width}
-  //       height={codeConfig.height}
-  //       ref={(ref) =>
-  //         ref?.to({
-  //           duration: 3,
-  //           onFinish: () => {
-  //             setIsTitleSplash(false)
-  //           },
-  //         })
-  //       }
-  //     >
-  //       {titleSplash(fragment?.name as string)}
-  //     </Group>,
-  //   ]
-  // } else if (
-  //   (state === 'recording' ||
-  //     payload?.status === Fragment_Status_Enum_Enum.Live) &&
-  //   !isTitleSplash
-  // ) {
   const layerChildren = [
     <Group y={15} x={15} key="circleGroup">
       <Circle key="redCircle" x={0} y={0} fill="#FF605C" radius={5} />
@@ -168,7 +138,7 @@ const CodeJam = () => {
       )}
     </Group>,
   ]
-  // }
+
   return <Concourse layerChildren={layerChildren} controls={controls} />
 }
 

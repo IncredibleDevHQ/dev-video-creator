@@ -5,16 +5,13 @@ import FontFaceObserver from 'fontfaceobserver'
 import { useRecoilValue } from 'recoil'
 import { useImage } from 'react-konva-utils'
 import { NextTokenIcon } from '../../../components'
-import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
 import { User, userState } from '../../../stores/user.store'
 import { Concourse } from '../components'
 import { CONFIG } from '../components/Concourse'
 import { ControlButton } from '../components/MissionControl'
 import { StudioProviderProps, studioStore } from '../stores'
-import { titleSplash } from './effects'
 
 const Trivia = () => {
-  const [isTitleSplash, setIsTitleSplash] = useState<boolean>(true)
   const [activeQuestionIndex, setActiveQuestionIndex] = useState<number>(0)
   const [questions, setQuestions] = useState<{ text: string; image: string }[]>(
     []
@@ -91,35 +88,7 @@ const Trivia = () => {
           />,
         ]
       : [<></>]
-  // let layerChildren = [<></>]
-  // if (
-  //   (state === 'recording' ||
-  //     payload?.status === Fragment_Status_Enum_Enum.Live) &&
-  //   isTitleSplash
-  // ) {
-  //   layerChildren = [
-  //     <Group
-  //       x={0}
-  //       y={0}
-  //       width={CONFIG.width}
-  //       height={CONFIG.height}
-  //       ref={(ref) =>
-  //         ref?.to({
-  //           duration: 3,
-  //           onFinish: () => {
-  //             setIsTitleSplash(false)
-  //           },
-  //         })
-  //       }
-  //     >
-  //       {titleSplash(fragment?.name as string)}
-  //     </Group>,
-  //   ]
-  // } else if (
-  //   (state === 'recording' ||
-  //     payload?.status === Fragment_Status_Enum_Enum.Live) &&
-  //   !isTitleSplash
-  // ) {
+
   const layerChildren = [
     <Group x={600} y={0} key="group0">
       {constraints?.video ? (
@@ -216,7 +185,7 @@ const Trivia = () => {
       />
     </Group>,
   ]
-  // }
+
   return (
     <Concourse
       controls={controls}

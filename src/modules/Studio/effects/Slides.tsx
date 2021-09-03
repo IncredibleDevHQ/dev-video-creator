@@ -4,15 +4,12 @@ import { Group, Image, Rect } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
 import { NextTokenIcon } from '../../../components'
-import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
 import { Concourse } from '../components'
 import { CONFIG } from '../components/Concourse'
 import { ControlButton } from '../components/MissionControl'
 import { StudioProviderProps, studioStore } from '../stores'
-import { titleSplash } from './effects'
 
 const Slides = () => {
-  const [isTitleSplash, setIsTitleSplash] = useState<boolean>(true)
   const [activeSlideIndex, setActiveSlideIndex] = useState<number>(0)
   const [slides, setSlides] = useState<string[]>([])
   const { fragment, state, stream, picture, payload, constraints } =
@@ -115,35 +112,6 @@ const Slides = () => {
         ]
       : [<></>]
 
-  // let layerChildren = [<></>]
-  // if (
-  //   (state === 'recording' ||
-  //     payload?.status === Fragment_Status_Enum_Enum.Live) &&
-  //   isTitleSplash
-  // ) {
-  //   layerChildren = [
-  //     <Group
-  //       x={0}
-  //       y={0}
-  //       width={CONFIG.width}
-  //       height={CONFIG.height}
-  //       ref={(ref) =>
-  //         ref?.to({
-  //           duration: 3,
-  //           onFinish: () => {
-  //             setIsTitleSplash(false)
-  //           },
-  //         })
-  //       }
-  //     >
-  //       {titleSplash(fragment?.name as string)}
-  //     </Group>,
-  //   ]
-  // } else if (
-  //   (state === 'recording' ||
-  //     payload?.status === Fragment_Status_Enum_Enum.Live) &&
-  //   !isTitleSplash
-  // ) {
   const layerChildren = [
     // To get the white background color
     <Group x={0} y={0} fill="#E5E5E5" key="group0">
@@ -227,7 +195,7 @@ const Slides = () => {
       )}
     </Group>,
   ]
-  // }
+
   return (
     <Concourse
       controls={controls}
