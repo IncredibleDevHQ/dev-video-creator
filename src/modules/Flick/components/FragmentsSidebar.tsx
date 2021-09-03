@@ -27,6 +27,7 @@ import {
 } from '../../../generated/graphql'
 import { User, userState } from '../../../stores/user.store'
 import { StudioProviderProps, studioStore } from '../../Studio/stores'
+import ConfirmDeleteModal from './ConfirmDeleteModal'
 
 const reorder = (
   list: FlickFragmentFragment[],
@@ -56,21 +57,7 @@ const FragmentItem = ({
   handleRefetch: (refresh?: boolean) => void
 }) => {
   const userData = (useRecoilValue(userState) as User) || {}
-  const [deleteFragment, { data: deleteFragmentData }] =
-    useDeleteFragmentMutation()
-
-  const deleteFragmentbyId = (fragmentId: string) => {
-    deleteFragment({
-      variables: {
-        id: fragmentId,
-      },
-    })
-  }
-
-  useEffect(() => {
-    if (!deleteFragmentData) return
-    handleRefetch(true)
-  }, [deleteFragmentData])
+  const [confirmDeleteModal, setConfirmDeleteModal] = useState<boolean>(false)
 
   const { data } = useFragmentRoleQuery({
     variables: {
@@ -115,8 +102,19 @@ const FragmentItem = ({
           className="cursor-pointer absolute bottom-2 right-2"
           onClick={(e) => {
             e?.preventDefault()
-            deleteFragmentbyId(fragment.id)
+            setConfirmDeleteModal(true)
           }}
+        />
+        <ConfirmDeleteModal
+          open={confirmDeleteModal}
+          handleClose={(refresh) => {
+            if (refresh) {
+              handleRefetch(true)
+            }
+            setConfirmDeleteModal(false)
+          }}
+          fragmentId={fragment.id}
+          fragmentName={fragment.name || ''}
         />
       </div>
     </div>
