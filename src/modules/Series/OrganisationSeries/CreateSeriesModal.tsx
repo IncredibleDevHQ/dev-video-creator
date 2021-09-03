@@ -3,6 +3,7 @@ import Modal from 'react-responsive-modal'
 import { Button, emitToast, TextField, Photo } from '../../../components'
 import { useCreateOrganisationSeriesMutation } from '../../../generated/graphql'
 import { useUploadFile } from '../../../hooks'
+import { AllowedFileExtensions } from '../../../hooks/use-upload-file'
 
 interface Props {
   seriesModal: boolean
@@ -31,7 +32,7 @@ const seriesModal = ({
     setLoadingPic(true)
     const pic = await uploadFile({
       // @ts-ignore
-      extension: file.name.split('.')[1],
+      extension: file.name.split('.').pop() as AllowedFileExtensions,
       file,
     })
     setLoadingPic(false)
