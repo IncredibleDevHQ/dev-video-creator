@@ -13,6 +13,7 @@ import { ControlButton } from '../components/MissionControl'
 import { StudioProviderProps, studioStore } from '../stores'
 import { titleSplash } from './effects'
 import usePoint, { ComputedPoint } from '../hooks/use-point'
+import docker from '../../../assets/docker.svg'
 
 const Points = () => {
   const [isTitleSplash, setIsTitleSplash] = useState<boolean>(true)
@@ -32,6 +33,10 @@ const Points = () => {
   const { initUsePoint, computedPoints, getGroupCoordinates } = usePoint()
 
   const [yCoordinate, setYCoordinate] = useState<number>(0)
+
+  const [titleNumberOfLines, setTitleNumberOfLines] = useState<number>(0)
+
+  const [dockerLogo] = useImage(docker)
 
   useEffect(() => {
     const font = new FontFaceObserver('Poppins')
@@ -54,15 +59,20 @@ const Points = () => {
         (property: any) => property.type === 'text[]'
       )?.value
     )
+    var titleLineNumber = fragment.name
+      ? Math.ceil(fragment.name.length / 15)
+      : 0
+
+    setTitleNumberOfLines(titleLineNumber)
   }, [fragment?.configuration.properties])
 
   useEffect(() => {
     const startingCoordinate = initUsePoint({
       points,
       availableWidth: 392,
-      availableHeight: 490,
-      gutter: 3,
-      fontSize: 24,
+      availableHeight: 220,
+      gutter: 12,
+      fontSize: 14,
     })
     setGroupCoordinate(startingCoordinate > 32 ? startingCoordinate : 32)
   }, [points])
@@ -73,10 +83,6 @@ const Points = () => {
       setGroupCoordinate(0)
     }
   }, [])
-
-  useEffect(() => {
-    console.log(groupCoordinate)
-  }, [groupCoordinate])
 
   useEffect(() => {
     if (!videoElement || !imageRef.current) return undefined
@@ -118,7 +124,35 @@ const Points = () => {
         ]
       : [<></>]
   const layerChildren = [
-    <Group x={600} y={0} key="group0">
+    <Group x={0} y={0} fill="#ffffff" key="group0">
+      <Rect
+        x={0}
+        y={0}
+        width={CONFIG.width}
+        height={CONFIG.height}
+        fill="#E5E5E5"
+      />
+    </Group>,
+
+    <Group
+      x={546}
+      y={30}
+      key="group1"
+      clipFunc={(ctx: any) => {
+        const x = 0
+        const y = 0
+        const w = 384
+        const h = 480
+        let r = 8
+        ctx.beginPath()
+        ctx.moveTo(x + r, y)
+        ctx.arcTo(x + w, y, x + w, y + h, r)
+        ctx.arcTo(x + w, y + h, x, y + h, r)
+        ctx.arcTo(x, y + h, x, y, r)
+        ctx.arcTo(x, y, x + w, y, r)
+        ctx.closePath()
+      }}
+    >
       {constraints?.video ? (
         <Image
           x={-imageConfig.width / 3}
@@ -134,35 +168,41 @@ const Points = () => {
           height={imageConfig.height}
         />
       )}
-
-      <Rect x={-600} y={0} width={600} height={CONFIG.height} fill="#ffffff" />
     </Group>,
-    <Group x={32} y={groupCoordinate} key="group">
+    <Group x={30} y={30} width={94} height={24} key="group2">
+      <Image image={dockerLogo} />
+    </Group>,
+    <Group x={30} y={94} key="group3">
       <Text
         key="fragmentTitle"
         x={0}
         y={0}
         align="left"
-        fontSize={36}
-        fill="#424242"
-        width={472}
-        height={64}
+        fontSize={48}
+        fill="#374151"
+        width={367}
+        height={128}
         text={fragment?.name as string}
-        fontStyle="bold"
+        fontStyle="normal 600"
         fontFamily="Poppins"
       />
     </Group>,
-    <Group x={64} y={groupCoordinate + 52} key="group1">
+    <Group
+      x={30}
+      y={groupCoordinate + (94 + 64 * titleNumberOfLines)}
+      key="group4"
+    >
       {computedPoints.current
         .filter((_, i) => i < activePointIndex)
         .map((point, j) => (
           <>
-            <Circle
-              key="redCircle"
+            <Rect
+              key="points"
               x={-76}
+              width={4}
+              height={9}
               y={point.y + 12}
-              fill="#424242"
-              radius={4}
+              fill="#374151"
               ref={(ref) =>
                 ref?.to({
                   x: 0,
@@ -173,16 +213,15 @@ const Points = () => {
             <Text
               key={`${point.text}`}
               x={-64}
-              y={point.y}
+              y={point.y + 12}
               align="left"
-              fontSize={24}
-              fill="#424242"
+              fontSize={14}
+              fill="#374151"
               width={460}
               height={64}
               text={point.text}
               fontStyle="normal 400"
               fontFamily="Poppins"
-              textTransform="capitalize"
               ref={(ref) =>
                 ref?.to({
                   x: 16,
@@ -192,33 +231,6 @@ const Points = () => {
             />
           </>
         ))}
-    </Group>,
-    <Group x={664} y={412} width={234} height={64} key="group2">
-      <Rect width={234} cornerRadius={4} height={64} fill="#F3F4F6" />
-
-      <Text
-        fontSize={18}
-        fill="#1F2937"
-        y={14}
-        fontFamily="Poppins"
-        width={234}
-        height={64}
-        align="center"
-        fontStyle="bold"
-        text={userData.displayName as string}
-        textTransform="capitalize"
-      />
-      <Text
-        fontSize={9}
-        fill="#1F2937"
-        fontFamily="Poppins"
-        align="center"
-        width={234}
-        height={64}
-        text={userData.email as string}
-        textTransform="capitalize"
-        y={36}
-      />
     </Group>,
   ]
   // }
