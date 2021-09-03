@@ -16,7 +16,6 @@ import usePoint, { ComputedPoint } from '../hooks/use-point'
 import docker from '../../../assets/docker.svg'
 
 const Points = () => {
-  const [isTitleSplash, setIsTitleSplash] = useState<boolean>(true)
   const [activePointIndex, setActivePointIndex] = useState<number>(0)
   const [points, setPoints] = useState<string[]>([])
   const { fragment, state, stream, picture, payload, constraints } =
@@ -37,6 +36,8 @@ const Points = () => {
   const [titleNumberOfLines, setTitleNumberOfLines] = useState<number>(0)
 
   const [dockerLogo] = useImage(docker)
+  const initialX = 32
+  const lineLength = 15
 
   useEffect(() => {
     const font = new FontFaceObserver('Poppins')
@@ -60,7 +61,8 @@ const Points = () => {
       )?.value
     )
     var titleLineNumber = fragment.name
-      ? Math.ceil(fragment.name.length / 15)
+      ? //This logic is to support titles of multiple length, which can span 1/2/3 lines. Each line at the most can have 15 characters acc to the design.
+        Math.ceil(fragment.name.length / lineLength)
       : 0
 
     setTitleNumberOfLines(titleLineNumber)
@@ -74,7 +76,9 @@ const Points = () => {
       gutter: 12,
       fontSize: 14,
     })
-    setGroupCoordinate(startingCoordinate > 32 ? startingCoordinate : 32)
+    setGroupCoordinate(
+      startingCoordinate > initialX ? startingCoordinate : initialX
+    )
   }, [points])
 
   useEffect(() => {
@@ -85,7 +89,7 @@ const Points = () => {
   }, [])
 
   useEffect(() => {
-    if (!videoElement || !imageRef.current) return undefined
+    if (!videoElement || !imageRef.current) return
     videoElement.play()
 
     const layer = imageRef.current.getLayer()
@@ -211,7 +215,7 @@ const Points = () => {
               }
             />
             <Text
-              key={`${point.text}`}
+              key={point.text}
               x={-64}
               y={point.y + 12}
               align="left"

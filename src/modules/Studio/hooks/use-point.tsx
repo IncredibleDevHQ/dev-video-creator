@@ -8,32 +8,9 @@ export interface ComputedPoint {
 }
 
 const usePoint = () => {
-  /**
-   *
-   * 1 // 1 2
-   * 2 // 3
-   * 3 // 4 5
-   * 4 // 6
-   */
-
   const computedPointNumber = useRef(0)
   const lineNumber = useRef(0)
   const computedPoints = useRef<ComputedPoint[]>([])
-  /**
-   * 1. import
-   * 2. now time
-   * 3. this
-   * 4. ;
-   *
-   * computedLineNumber = 0
-   *
-   * l=1 c=1
-   * now l=2 c=2
-   * time l=2 c=3
-   * this l=3 c=4
-   * ; l=4 c=5
-   *
-   */
 
   const initUsePoint = ({
     points,

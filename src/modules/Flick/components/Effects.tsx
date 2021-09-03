@@ -4,7 +4,14 @@ import React, { ChangeEvent, useEffect, useState } from 'react'
 import { cx } from '@emotion/css'
 import { IoRemoveSharp } from 'react-icons/io5'
 import { FiLoader } from 'react-icons/fi'
-import { Button, Checkbox, Photo, Text, TextField } from '../../../components'
+import {
+  Button,
+  Checkbox,
+  emitToast,
+  Photo,
+  Text,
+  TextField,
+} from '../../../components'
 import { useUploadFile } from '../../../hooks'
 
 export interface SchemaElementProps {
@@ -206,20 +213,21 @@ export const GetSchemaElement = ({
       )
 
     case 'text[]':
-      const [point, setPoint] = useState<string>()
+      const [currentPoint, setCurrentPoint] = useState<string>()
       const [points, setPoints] = useState<string[]>([])
 
       useEffect(() => {
-        setPoints(value || [])
+        if (!value) return
+        setPoints(value)
       }, [value])
 
       const handleOnAdd = () => {
-        if (!point) return
+        if (!currentPoint) return
 
-        setPoints((points) => [...points, point])
-        const pointArray = [...points, point]
+        setPoints((points) => [...points, currentPoint])
+        const pointArray = [...points, currentPoint]
         addToFormik(pointArray)
-        setPoint('')
+        setCurrentPoint('')
       }
 
       const handleDeleteText = (text: string) => {
@@ -241,9 +249,9 @@ export const GetSchemaElement = ({
                 className="text-lg"
                 name={schema.key}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setPoint(e.target.value)
+                  setCurrentPoint(e.target.value)
                 }
-                value={point}
+                value={currentPoint}
                 placeholder={schema.description}
                 label="Add a Point"
               />
