@@ -34,6 +34,7 @@ interface GetSchemaElementProps {
       >
   value: any
   setLoadingAssets: React.Dispatch<React.SetStateAction<boolean>>
+  choosenLink: string
 }
 
 export const GetSchemaElement = ({
@@ -42,6 +43,7 @@ export const GetSchemaElement = ({
   setFieldValue,
   value,
   setLoadingAssets,
+  choosenLink,
 }: GetSchemaElementProps) => {
   const addToFormik = (valueArray: any) => {
     const event = new Event('input', { bubbles: true })
@@ -69,6 +71,7 @@ export const GetSchemaElement = ({
       )
 
     case 'text':
+      console.log('choosenLink', choosenLink)
       return (
         <TextField
           className="text-lg m-4"

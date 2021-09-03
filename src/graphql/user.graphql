@@ -77,3 +77,15 @@ mutation UpdateProfile($displayName: String!, $userId: String!) {
     affected_rows
   }
 }
+
+fragment ArtifactDetails on Artifact {
+  id
+  displayName
+  objectLink
+}
+
+query UserArtifact {
+  Artifact {
+    ...ArtifactDetails
+  }
+}

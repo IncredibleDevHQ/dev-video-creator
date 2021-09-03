@@ -4,9 +4,12 @@ import { useFormik } from 'formik'
 import { Button, emitToast, EmptyState, ScreenState } from '../../../components'
 import {
   FlickFragmentFragment,
+  Fragment_Type_Enum_Enum,
   useUpdateFragmentConfigurationMutation,
 } from '../../../generated/graphql'
 import { GetSchemaElement, SchemaElementProps } from './Effects'
+import { VideoInventoryModal } from './index'
+import { FiPlus } from 'react-icons/fi'
 
 const FragmentConfiguration = ({
   fragment,
@@ -22,6 +25,8 @@ const FragmentConfiguration = ({
     useUpdateFragmentConfigurationMutation()
   const [loadingAssets, setLoadingAssets] = useState<boolean>(false)
   const history = useHistory()
+  const [inventroyModal, setInventoryModal] = useState<boolean>(false)
+  const [choosenLink, setChoosenLink] = useState<string>(' ')
 
   useEffect(() => {
     if (!fragment || !fragment.configuration) return
@@ -103,6 +108,7 @@ const FragmentConfiguration = ({
             handleChange={handleChange}
             value={values[attribute.key]}
             setLoadingAssets={setLoadingAssets}
+            choosenLink={choosenLink}
           />
         ))}
 
@@ -121,7 +127,24 @@ const FragmentConfiguration = ({
           Save Configuration
         </Button>
       </form>
-
+      {fragment.type === Fragment_Type_Enum_Enum.Videoshow && (
+        <>
+          <FiPlus
+            className="text-grey-lighter"
+            size={20}
+            onClick={() => {
+              setInventoryModal(true)
+            }}
+          />
+          <VideoInventoryModal
+            open={inventroyModal}
+            handleClose={() => {
+              setInventoryModal(false)
+            }}
+            setChoosenLink={setChoosenLink}
+          />
+        </>
+      )}
       {isConfigured && (
         <Button
           type="button"

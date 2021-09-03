@@ -4,6 +4,8 @@ import FragmentConfiguration from './FragmentConfiguration'
 import FragmentsSidebar from './FragmentsSidebar'
 import Participants from './Participants'
 import FragmentParticipants from './FragmentParticipants'
+import ScreenRecording from './ScreenRecording'
+import VideoInventoryModal from './VideoInventoryModal'
 
 export {
   FlickCard,
@@ -12,4 +14,6 @@ export {
   FragmentConfiguration,
   Participants,
   FragmentParticipants,
+  ScreenRecording,
+  VideoInventoryModal,
 }
