@@ -1,0 +1,57 @@
+name: Surge Preview
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+      - v/**
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup Node
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: Build Incredible-Next React App
+        run: |
+          yarn install --cache-folder .yarncache --network-concurrency 8 # Install Dependencies
+          yarn codegen # Run GraphQL codegen
+          CI=false yarn build # CI=false to ignore warnings
+          rm -rf .yarncache
+        env:
+          NODE_ENV: 'development'
+          HASURA_ADMIN_SECRET: ${{secrets.HASURA_ADMIN_SECRET}}
+          VITE_AGORA_APP_ID: ${{secrets.AGORA_APP_ID}}
+          VITE_HASURA_SERVER: ${{secrets.HASURA_SERVER}}
+          VITE_FIREBASE_CONFIG: ${{secrets.FIREBASE_CONFIG}}
+          VITE_SENTRY_DSN: ${{secrets.SENTRY_DSN}}
+          VITE_SENTRY_ENABLED: false
+          VITE_STORAGE_BASE_URL: ${{ secrets.STORAGE_BASE_URL }}
+
+      - name: Install Surge and GitHub Status Updater
+        run: |
+          npm install -g surge
+          curl -L "https://github.com/cloudposse/github-status-updater/releases/download/0.5.0/github-status-updater_linux_amd64" -o /usr/local/bin/github-status-updater
+          chmod +x /usr/local/bin/github-status-updater
+
+      - name: Deploy to Surge and update GitHub status
+        run: |
+          echo -e ${{secrets.SURGE_PASSWORD_PROTECTION}} > ./build/AUTH
+          surge ./build "https://incredible-next-$(echo ${{github.sha}} | cut -c1-8).surge.sh/" --token ${{secrets.SURGE_TOKEN}}
+          github-status-updater \
+            -action update_state \
+            -token ${{secrets.PERSONAL_TOKEN}} \
+            -owner IncredibleDevHQ \
+            -repo incredibledev-next \
+            -ref ${{github.event.pull_request.head.sha}} \
+            -state success \
+            -context "surge-preview" \
+            -description "Surge preview build URL" \
+            -url "https://incredible-next-$(echo ${GITHUB_SHA} | cut -c1-8).surge.sh/"
