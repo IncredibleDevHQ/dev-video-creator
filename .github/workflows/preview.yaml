@@ -21,7 +21,7 @@ jobs:
 
       - name: Build Incredible-Next React App
         run: |
-          yarn install --cache-folder .yarncache --network-concurrency 8 # Install Dependencies
+          yarn install --cache-folder .yarncache # Install Dependencies
           yarn codegen # Run GraphQL codegen
           CI=false yarn build # CI=false to ignore warnings
           rm -rf .yarncache
@@ -43,7 +43,7 @@ jobs:
 
       - name: Deploy to Surge and update GitHub status
         run: |
-          echo -e ${{secrets.SURGE_PASSWORD_PROTECTION}} > ./build/AUTH
+          echo -e "${{secrets.SURGE_PASSWORD_PROTECTION}}" > build/AUTH
           surge ./build "https://incredible-next-$(echo ${{github.sha}} | cut -c1-8).surge.sh/" --token ${{secrets.SURGE_TOKEN}}
           github-status-updater \
             -action update_state \
