@@ -39,7 +39,7 @@ const AddNewSeriesModal = ({
     setLoadingAssets(true)
     const pic = await uploadFile({
       // @ts-ignore
-      extension: file.name.split('.')[1],
+      extension: file.name.split('.').pop(),
       file,
     })
     setLoadingAssets(false)

@@ -6,6 +6,7 @@ import { IoRemoveSharp } from 'react-icons/io5'
 import { FiLoader } from 'react-icons/fi'
 import { Button, Checkbox, Photo, Text, TextField } from '../../../components'
 import { useUploadFile } from '../../../hooks'
+import { AllowedFileExtensions } from '../../../hooks/use-upload-file'
 
 export interface SchemaElementProps {
   key: string
@@ -104,7 +105,7 @@ export const GetSchemaElement = ({
         setLoadingAssets(true)
         setLoading(true)
         const pic = await uploadFile({
-          extension: file.name.split('.')[1] as any,
+          extension: file.name.split('.').pop() as AllowedFileExtensions,
           file,
         })
         setLoadingAssets(false)
@@ -227,7 +228,7 @@ export const GetSchemaElement = ({
         setLoadingAssets(true)
         setLoadingSlide(true)
         const pic = await uploadSlides({
-          extension: file.name.split('.')[1] as any,
+          extension: file.name.split('.').pop() as AllowedFileExtensions,
           file,
         })
         setLoadingAssets(false)
@@ -292,7 +293,7 @@ export const GetSchemaElement = ({
         if (!file) return
         setLoadingAssets(true)
         const pic = await uploadPic({
-          extension: file.name.split('.')[1] as any,
+          extension: file.name.split('.').pop() as AllowedFileExtensions,
           file,
         })
         setLoadingAssets(false)
