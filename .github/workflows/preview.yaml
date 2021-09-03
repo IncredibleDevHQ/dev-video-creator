@@ -43,8 +43,13 @@ jobs:
 
       - name: Deploy to Surge and update GitHub status
         run: |
-          echo -e "${{secrets.SURGE_PASSWORD_PROTECTION}}" > build/AUTH
+          echo -e "${{secrets.SURGE_PASSWORD_PROTECTION}}" > build/AUTH # Add surge password protection
+          cp build/index.html build/200.html # All non-root routes will be redirected to 200.html and react router handles the rest
+
+          # deploy the build to surge with token
           surge ./build "https://incredible-next-$(echo ${{github.sha}} | cut -c1-8).surge.sh/" --token ${{secrets.SURGE_TOKEN}}
+
+          # add github status for the preview link
           github-status-updater \
             -action update_state \
             -token ${{secrets.PERSONAL_TOKEN}} \
