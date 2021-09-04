@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
-import { useRecoilState } from 'recoil'
+import { useParams, useHistory } from 'react-router-dom'
+import { useRecoilState, useRecoilValue } from 'recoil'
 import {
   FragmentActivity,
   FragmentConfiguration,
@@ -11,6 +11,8 @@ import {
 import { currentFlickStore } from '../../stores/flick.store'
 import { EmptyState, Heading, ScreenState, Tab, TabBar } from '../../components'
 import { useGetFlickByIdQuery } from '../../generated/graphql'
+import { studioStore } from '../Studio/stores'
+import { User, userState } from '../../stores/user.store'
 
 const tabs: Tab[] = [
   {
@@ -33,10 +35,20 @@ const Flick = () => {
     variables: { id },
   })
   const [flick, setFlick] = useRecoilState(currentFlickStore)
+  const [studio, setStudio] = useRecoilState(studioStore)
+  const { sub } = (useRecoilValue(userState) as User) || {}
+
   const [currentTab, setCurrentTab] = useState<Tab>(tabs[0])
   const [isParticipants, setParticipants] = useState(true)
 
   const [activeFragmentId, setActiveFragmentId] = useState<string>()
+
+  const history = useHistory()
+
+  useEffect(() => {
+    if (!activeFragmentId || !flick) return
+    history.push(`/flick/${flick.id}/${activeFragmentId}`)
+  }, [activeFragmentId, flick])
 
   useEffect(() => {
     if (!data?.Flick_by_pk) return
@@ -51,6 +63,14 @@ const Flick = () => {
       )
     }
   }, [data])
+
+  useEffect(() => {
+    if (!flick) return
+
+    const isHost =
+      flick.participants.find(({ userSub }) => userSub === sub)?.owner || false
+    setStudio({ ...studio, isHost })
+  }, [flick])
 
   if (loading) return <ScreenState title="Just a jiffy" loading />
 
