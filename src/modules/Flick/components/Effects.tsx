@@ -4,7 +4,14 @@ import React, { ChangeEvent, useEffect, useState } from 'react'
 import { cx } from '@emotion/css'
 import { IoRemoveSharp } from 'react-icons/io5'
 import { FiLoader } from 'react-icons/fi'
-import { Button, Checkbox, Photo, Text, TextField } from '../../../components'
+import {
+  Button,
+  Checkbox,
+  emitToast,
+  Photo,
+  Text,
+  TextField,
+} from '../../../components'
 import { useUploadFile } from '../../../hooks'
 import { AllowedFileExtensions } from '../../../hooks/use-upload-file'
 
@@ -194,6 +201,85 @@ export const GetSchemaElement = ({
                 </div>
                 <Button
                   onClick={() => handleDeleteQuestion(ques?.text)}
+                  type="button"
+                  appearance="danger"
+                  size="extraSmall"
+                >
+                  <IoRemoveSharp />
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )
+
+    case 'text[]':
+      const [currentPoint, setCurrentPoint] = useState<string>()
+      const [points, setPoints] = useState<string[]>([])
+
+      useEffect(() => {
+        if (!value) return
+        setPoints(value)
+      }, [value])
+
+      const handleOnAdd = () => {
+        if (!currentPoint) return
+
+        setPoints((points) => [...points, currentPoint])
+        const pointArray = [...points, currentPoint]
+        addToFormik(pointArray)
+        setCurrentPoint('')
+      }
+
+      const handleDeleteText = (text: string) => {
+        const pointArray = points.filter((ques) => ques !== text)
+        setPoints(pointArray)
+
+        addToFormik(pointArray)
+      }
+
+      return (
+        <div className="flex flex-col gap-1 m-4" key={schema.key}>
+          <div className="flex gap-2 items-end">
+            <div
+              className="flex flex-col md:flex-row items-end gap-2"
+              key={schema.key}
+            >
+              <TextField
+                // eslint-disable-next-line react/no-array-index-key
+                className="text-lg"
+                name={schema.key}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setCurrentPoint(e.target.value)
+                }
+                value={currentPoint}
+                placeholder={schema.description}
+                label="Add a Point"
+              />
+
+              <Button
+                onClick={handleOnAdd}
+                appearance="secondary"
+                type="button"
+                size="large"
+                className="w-full md:w-28"
+              >
+                Add
+              </Button>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2">
+            {points.map((ques, index) => (
+              <div
+                key={ques}
+                className="border-blue-200 px-4 py-2 m-1 flex items-center justify-between gap-2"
+              >
+                <div className="flex flex-col">
+                  <span className="font-bold">Point {index + 1}:</span>
+                  <span className="capitalize text-justify">{ques}</span>
+                </div>
+                <Button
+                  onClick={() => handleDeleteText(ques)}
                   type="button"
                   appearance="danger"
                   size="extraSmall"

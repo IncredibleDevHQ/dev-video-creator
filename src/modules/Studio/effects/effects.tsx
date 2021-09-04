@@ -7,6 +7,7 @@ import Intro from './SplashFive'
 import Trivia from './Trivia'
 import StoryBook from './StoryBook'
 import Slides from './Slides'
+import Points from './Points'
 import { CONFIG } from '../components/Concourse'
 
 export interface Effect {
@@ -50,6 +51,8 @@ export const getEffect = (type: Fragment_Type_Enum_Enum) => {
       return StoryBook
     case Fragment_Type_Enum_Enum.Slides:
       return Slides
+    case Fragment_Type_Enum_Enum.Points:
+      return Points
     default:
       throw Error('No effect found')
   }
