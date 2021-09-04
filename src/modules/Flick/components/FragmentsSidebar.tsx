@@ -252,13 +252,15 @@ const FragmentsSidebar = ({
     <div className="flex flex-col w-1/6 h-screen py-2 px-4 bg-background-alt">
       <div className="flex flex-row justify-between items-center mb-8">
         <Heading className="flex-1">Fragments</Heading>
-        <FiPlus
-          className="text-grey-lighter"
-          size={20}
-          onClick={() => {
-            history.push(`/new-fragment/${flickId}`)
-          }}
-        />
+        {isHost && (
+          <FiPlus
+            className="text-grey-lighter"
+            size={20}
+            onClick={() => {
+              history.push(`/new-fragment/${flickId}`)
+            }}
+          />
+        )}
       </div>
       {activeFragmentId ? (
         <FragmentDND
@@ -272,7 +274,7 @@ const FragmentsSidebar = ({
         <Text>No Fragments</Text>
       )}
 
-      {fragmentItems.length > 0 && (
+      {fragmentItems.length > 0 && isHost && (
         <Button
           className="mt-auto"
           type="button"
