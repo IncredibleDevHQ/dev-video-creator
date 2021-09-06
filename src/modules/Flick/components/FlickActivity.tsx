@@ -5,6 +5,7 @@ import { MdAssignmentTurnedIn, MdDone } from 'react-icons/md'
 import { useParams } from 'react-router-dom'
 import { Loading, Text } from '../../../components'
 import { useFlickActivityQuery } from '../../../generated/graphql'
+import { formatDate } from '../../../utils/FormatDate'
 
 const FlickActivity = ({
   menu,
@@ -75,7 +76,7 @@ const FlickActivity = ({
                 <span className="font-bold">{notif.title}</span>
                 <span>{notif.description}</span>
                 <span className="text-gray-300">
-                  {new Date(notif.createdAt).toLocaleString()}
+                  {formatDate(new Date(notif.createdAt))}
                 </span>
               </div>
             </div>
