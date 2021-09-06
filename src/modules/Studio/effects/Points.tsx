@@ -22,11 +22,6 @@ const Points = () => {
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const userData = (useRecoilValue(userState) as User) || {}
 
-  const [useTitleSpalsh, setUseTitleSpalsh] = useState<{
-    enable: boolean
-    title?: string
-  }>({ enable: false })
-
   const [image] = useImage(picture as string, 'anonymous')
 
   const imageConfig = { width: 702, height: 540 }
@@ -60,13 +55,6 @@ const Points = () => {
 
   useEffect(() => {
     if (!fragment?.configuration.properties) return
-    setUseTitleSpalsh({
-      enable: fragment.configuration.properties.find(
-        (property: any) => property.key === 'showTitleSplash'
-      )?.value,
-      title: fragment.name as string,
-    })
-
     setPoints(
       fragment.configuration.properties.find(
         (property: any) => property.type === 'text[]'

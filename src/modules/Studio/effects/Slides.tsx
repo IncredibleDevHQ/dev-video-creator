@@ -12,12 +12,8 @@ import { StudioProviderProps, studioStore } from '../stores'
 const Slides = () => {
   const [activeSlideIndex, setActiveSlideIndex] = useState<number>(0)
   const [slides, setSlides] = useState<string[]>([])
-  const { fragment, state, stream, picture, constraints } =
+  const { fragment, state, stream, picture, payload, constraints } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
-  const [useTitleSpalsh, setUseTitleSpalsh] = useState<{
-    enable: boolean
-    title?: string
-  }>({ enable: false })
 
   const imageConfig = { width: 640, height: 480 }
   const imageRef = useRef<Konva.Image | null>(null)
@@ -59,13 +55,6 @@ const Slides = () => {
         (property: any) => property.type === 'file[]'
       )?.value
     )
-    //setConfig of titleSpalsh
-    setUseTitleSpalsh({
-      enable: fragment.configuration.properties.find(
-        (property: any) => property.key === 'showTitleSplash'
-      )?.value,
-      title: fragment.name as string,
-    })
   }, [fragment?.configuration.properties])
 
   useEffect(() => {
@@ -212,7 +201,6 @@ const Slides = () => {
       controls={controls}
       layerChildren={layerChildren}
       disableUserMedia={isDisableCamera}
-      useTitleSpalsh={useTitleSpalsh}
     />
   )
 }

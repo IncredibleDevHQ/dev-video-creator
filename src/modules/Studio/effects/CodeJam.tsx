@@ -12,6 +12,7 @@ import { Concourse } from '../components'
 import { ControlButton } from '../components/MissionControl'
 import useCode, { ComputedToken } from '../hooks/use-code'
 import { StudioProviderProps, studioStore } from '../stores'
+import { titleSplash } from './effects'
 import TypingEffect from './TypingEffect'
 
 const codeConfig = {
@@ -30,12 +31,9 @@ interface TokenRenderState {
 }
 
 const CodeJam = () => {
+  const [isTitleSplash, setIsTitleSplash] = useState<boolean>(true)
   const { fragment, payload, updatePayload, state, isHost } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
-  const [useTitleSpalsh, setUseTitleSpalsh] = useState<{
-    enable: boolean
-    title?: string
-  }>({ enable: false })
   const { initUseCode, computedTokens } = useCode()
   const [getTokenisedCode, { data, error, loading }] =
     useGetTokenisedCodeLazyQuery()
@@ -49,14 +47,6 @@ const CodeJam = () => {
     const gistURL = fragment.configuration.properties.find(
       (property: any) => property.key === 'gistUrl'
     )?.value
-    //setConfig of titleSpalsh
-    setUseTitleSpalsh({
-      enable: fragment.configuration.properties.find(
-        (property: any) => property.key === 'showTitleSplash'
-      )?.value,
-      title: fragment.name as string,
-    })
-
     if (!gistURL) throw new Error('Missing gist URL')
     ;(async () => {
       try {
@@ -149,13 +139,7 @@ const CodeJam = () => {
     </Group>,
   ]
 
-  return (
-    <Concourse
-      layerChildren={layerChildren}
-      controls={controls}
-      useTitleSpalsh={useTitleSpalsh}
-    />
-  )
+  return <Concourse layerChildren={layerChildren} controls={controls} />
 }
 
 const getRenderedTokens = (tokens: ComputedToken[], position: Position) => {
