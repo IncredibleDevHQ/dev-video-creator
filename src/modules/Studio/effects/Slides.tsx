@@ -1,20 +1,15 @@
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
-import { Group, Text, Image, Rect } from 'react-konva'
-import FontFaceObserver from 'fontfaceobserver'
+import { Group, Image, Rect } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
-import { Logo, NextTokenIcon } from '../../../components'
-import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
-import { User, userState } from '../../../stores/user.store'
+import { NextTokenIcon } from '../../../components'
 import { Concourse } from '../components'
 import { CONFIG } from '../components/Concourse'
 import { ControlButton } from '../components/MissionControl'
 import { StudioProviderProps, studioStore } from '../stores'
-import { titleSplash } from './effects'
 
 const Slides = () => {
-  const [isTitleSplash, setIsTitleSplash] = useState<boolean>(true)
   const [activeSlideIndex, setActiveSlideIndex] = useState<number>(0)
   const [slides, setSlides] = useState<string[]>([])
   const { fragment, state, stream, picture, payload, constraints } =
@@ -33,12 +28,10 @@ const Slides = () => {
   }>({ width: 0, height: 0, x: 0, y: 0 })
 
   useEffect(() => {
-    var font = new FontFaceObserver('Gilroy')
-    font.load()
-  }, [])
-
-  useEffect(() => {
-    getDimensions({ w: slide?.width!!, h: slide?.height!! })
+    getDimensions({
+      w: (slide && slide.width) || 0,
+      h: (slide && slide.height) || 0,
+    })
   }, [slide])
 
   const videoElement = React.useMemo(() => {
@@ -59,7 +52,7 @@ const Slides = () => {
     if (!fragment?.configuration.properties) return
     setSlides(
       fragment.configuration.properties.find(
-        (property: any) => property.type === 'text[]'
+        (property: any) => property.type === 'file[]'
       )?.value
     )
   }, [fragment?.configuration.properties])
@@ -90,7 +83,7 @@ const Slides = () => {
     let calY = 0
     const aspectRatio = img.w / img.h
     if (aspectRatio > 1.25) {
-      //horizontal img
+      // horizontal img
       calY = Math.max((540 - 600 * (1 / aspectRatio)) / 2 - 30, 0)
       calX = 0
       calHeight = 600 * (1 / aspectRatio)
@@ -119,97 +112,90 @@ const Slides = () => {
         ]
       : [<></>]
 
-  let layerChildren = [<></>]
-  if (
-    (state === 'recording' ||
-      payload?.status === Fragment_Status_Enum_Enum.Live) &&
-    isTitleSplash
-  ) {
-    layerChildren = [
-      <Group
+  const layerChildren = [
+    // To get the white background color
+    <Group x={0} y={0} fill="#E5E5E5" key="group0">
+      <Rect
         x={0}
         y={0}
         width={CONFIG.width}
         height={CONFIG.height}
-        ref={(ref) =>
-          ref?.to({
-            duration: 3,
-            onFinish: () => {
-              setIsTitleSplash(false)
-            },
-          })
-        }
-      >
-        {titleSplash(fragment?.name as string)}
-      </Group>,
-    ]
-  } else if (
-    (state === 'recording' ||
-      payload?.status === Fragment_Status_Enum_Enum.Live) &&
-    !isTitleSplash
-  ) {
-    layerChildren = [
-      //To get the white background color
-      <Group x={0} y={0} fill="#ffffff" key="group0">
-        <Rect
-          x={0}
-          y={0}
-          width={CONFIG.width}
-          height={CONFIG.height}
-          fill="#ffffff"
-        />
-      </Group>,
-      <Group x={30} y={30} height={480} width={600} key="group1">
-        {slides.length > 0 && (
-          <>
-            <Rect x={30} fill="#ffffff" width={600} height={480} />
+        fill="#E5E5E5"
+      />
+    </Group>,
+    <Group x={30} y={30} height={480} width={600} key="group1">
+      {slides.length > 0 && (
+        <>
+          <Group
+            x={30}
+            fill="#E5E5E5"
+            width={600}
+            height={480}
+            clipFunc={(ctx: any) => {
+              const { x, y } = slideDim
+              const w = slideDim.width
+              const h = slideDim.height
+              const r = 8
+              ctx.beginPath()
+              ctx.moveTo(x + r, y)
+              ctx.arcTo(x + w, y, x + w, y + h, r)
+              ctx.arcTo(x + w, y + h, x, y + h, r)
+              ctx.arcTo(x, y + h, x, y, r)
+              ctx.arcTo(x, y, x + w, y, r)
+              ctx.closePath()
+            }}
+          >
             <Image
               image={slide}
-              fill="#F5F5F5"
+              fill="#E5E5E5"
               width={slideDim.width}
               y={slideDim.y}
               x={slideDim.x}
               height={slideDim.height}
+              shadowOpacity={0.3}
+              shadowOffset={{ x: 0, y: 1 }}
+              shadowBlur={2}
             />
-          </>
-        )}
-      </Group>,
-      <Group
-        y={30}
-        x={650}
-        clipFunc={(ctx: any) => {
-          const x = 0
-          const y = 0
-          const w = 280
-          const h = 480
-          let r = 8
-          ctx.beginPath()
-          ctx.moveTo(x + r, y)
-          ctx.arcTo(x + w, y, x + w, y + h, r)
-          ctx.arcTo(x + w, y + h, x, y + h, r)
-          ctx.arcTo(x, y + h, x, y, r)
-          ctx.arcTo(x, y, x + w, y, r)
-          ctx.closePath()
-        }}
-      >
-        {constraints?.video ? (
-          <Image
-            ref={imageRef}
-            x={-imageConfig.width / 3}
-            image={videoElement}
-            width={imageConfig.width}
-            height={imageConfig.height}
-          />
-        ) : (
-          <Image
-            image={image}
-            width={imageConfig.width}
-            height={imageConfig.height}
-          />
-        )}
-      </Group>,
-    ]
-  }
+          </Group>
+        </>
+      )}
+    </Group>,
+    <Group
+      y={30}
+      x={650}
+      clipFunc={(ctx: any) => {
+        const x = 0
+        const y = 0
+        const w = 280
+        const h = 480
+        const r = 8
+        ctx.beginPath()
+        ctx.moveTo(x + r, y)
+        ctx.arcTo(x + w, y, x + w, y + h, r)
+        ctx.arcTo(x + w, y + h, x, y + h, r)
+        ctx.arcTo(x, y + h, x, y, r)
+        ctx.arcTo(x, y, x + w, y, r)
+        ctx.closePath()
+      }}
+    >
+      {constraints?.video ? (
+        <Image
+          ref={imageRef}
+          x={-imageConfig.width / 3}
+          image={videoElement}
+          width={imageConfig.width}
+          height={imageConfig.height}
+        />
+      ) : (
+        <Image
+          image={image}
+          width={imageConfig.width}
+          height={imageConfig.height}
+        />
+      )}
+    </Group>,
+  ]
+
   return (
     <Concourse
       controls={controls}

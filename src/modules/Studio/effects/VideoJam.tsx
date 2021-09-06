@@ -7,7 +7,7 @@ import { Concourse } from '../components'
 import { ControlButton } from '../components/MissionControl'
 import { CONFIG } from '../components/Concourse'
 import { StudioProviderProps, studioStore } from '../stores'
-import { titleSplash } from './effects'
+
 import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
 
 interface Dimension {
@@ -70,8 +70,6 @@ const Video = ({ videoElement }: { videoElement: HTMLVideoElement }) => {
 }
 
 const VideoJam = () => {
-  const [isTitleSplash, setIsTitleSplash] = useState<boolean>(true)
-
   const { state, fragment, payload, updatePayload } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const videoElement = React.useMemo(() => {
@@ -91,7 +89,6 @@ const VideoJam = () => {
     switch (state) {
       case 'ready':
         videoElement.currentTime = 0
-
         break
       default:
         videoElement.currentTime = 0
@@ -116,6 +113,11 @@ const VideoJam = () => {
     }
   }, [payload?.playing])
 
+  useEffect(() => {
+    if (videoElement && payload?.status === Fragment_Status_Enum_Enum.Live)
+      videoElement.currentTime = 0
+  }, [payload?.status])
+
   const controls = [
     state === 'ready' || state === 'recording' ? (
       <ControlButton
@@ -136,39 +138,9 @@ const VideoJam = () => {
     ),
   ]
 
-  let layerChildren = [<></>]
-  if (
-    (state === 'recording' ||
-      payload?.status === Fragment_Status_Enum_Enum.Live) &&
-    isTitleSplash
-  ) {
-    layerChildren = [
-      <Group
-        x={0}
-        y={0}
-        width={CONFIG.width}
-        height={CONFIG.height}
-        ref={(ref) =>
-          ref?.to({
-            duration: 3,
-            onFinish: () => {
-              setIsTitleSplash(false)
-            },
-          })
-        }
-      >
-        {titleSplash(fragment?.name as string)}
-      </Group>,
-    ]
-  } else if (
-    (state === 'recording' ||
-      payload?.status === Fragment_Status_Enum_Enum.Live) &&
-    !isTitleSplash
-  ) {
-    layerChildren = videoElement
-      ? [<Video videoElement={videoElement} />]
-      : [<></>]
-  }
+  const layerChildren = videoElement
+    ? [<Video videoElement={videoElement} />]
+    : [<></>]
 
   return <Concourse layerChildren={layerChildren} controls={controls} />
 }

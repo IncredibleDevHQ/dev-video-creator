@@ -22,6 +22,14 @@ fragment Flick on Flick {
   }
 }
 
+query GetMyFlicks($limit: Int) {
+  Flick(limit: $limit) {
+    id
+    name
+    description
+  }
+}
+
 query GetFlickById($id: uuid!) {
   Flick_by_pk(id: $id) {
     ...Flick
@@ -58,16 +66,25 @@ query GetUserPublicFlicks($sub: String!) {
   }
 }
 
-query GetUpcomingFlick($sub: String!) {
-  Flick(
-    where: {
-      startAt: { _gte: "now()" }
-      participants: { userSub: { _eq: $sub } }
+query SeriesFlicks($id: uuid) {
+  Flick_Series(where: { seriesId: { _eq: $id } }) {
+    flickId
+    order
+    flick {
+      id
+      producedLink
+      name
+      previewLink
+      description
     }
-    order_by: { startAt: asc }
-    limit: 1
-  ) {
-    ...Flick
+  }
+}
+
+query SeriesFlickCount($seriesId: uuid) {
+  Flick_Series_aggregate(where: { seriesId: { _eq: $seriesId } }) {
+    aggregate {
+      count(columns: flickId)
+    }
   }
 }
 
@@ -81,9 +98,9 @@ mutation CreateNewFlick(
   }
 }
 
-mutation ProduceVideo($flickId: uuid!, $objectNames: [String!]!) {
-  ProduceVideo(flickId: $flickId, objectNames: $objectNames) {
-    id
+mutation UpdateSeriesFlick($flickIds: [uuid!]!, $seriesId: uuid!) {
+  UpdateSeriesFlicks(flickIds: $flickIds, seriesId: $seriesId) {
+    success
   }
 }
 

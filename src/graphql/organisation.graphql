@@ -1,3 +1,4 @@
+
 mutation CreateOrganisation($slug: String!) {
   CreateOrganisation(slug: $slug) {
     createdAt
@@ -78,30 +79,22 @@ query GetUserOrganisations($sub: String!) {
   }
 }
 
-fragment Series on Series {
-  id
-  name
-  organisationSlug
-  picture
-  description
-  ownerSub
-}
-
-query GetSeries($organisationSlug: String!) {
-  Series(where: { organisationSlug: { _eq: $organisationSlug } }) {
-    ...Series
+mutation CreateOrganisation($slug: String!) {
+  CreateOrganisation(slug: $slug) {
+    createdAt
+    slug
   }
 }
 
-mutation CreateOrganisationSeries(
-  $name: String!
+mutation AddMemberToOrganisation(
+  $email: String!
   $organisationSlug: String!
-  $picture: String!
+  $role: MEMBER_ROLE_ENUM_ACTION_enum = Member
 ) {
-  CreateSeries(
-    name: $name
+  AddMemberToOrganisation(
+    email: $email
     organisationSlug: $organisationSlug
-    picture: $picture
+    role: $role
   ) {
     id
   }

@@ -18,7 +18,7 @@ const StoryBook = () => {
   const [storybookHeader] = useImage(header)
 
   useEffect(() => {
-    var font = new FontFaceObserver('Gilroy')
+    var font = new FontFaceObserver('Poppins')
     font.load()
   }, [])
 
@@ -106,13 +106,13 @@ const StoryBook = () => {
     <Group x={30} y={30} width={304} height={24} key="group2">
       <Image image={storybookHeader} />
     </Group>,
-    <Group y={191} width={381} height={72} x={30} key="group3">
+    <Group x={30} y={222} width={381} height={72} key="group3">
       <Text
         fontSize={48}
-        fill="#616161"
-        fontFamily="Gilroy"
+        fill="#374151"
+        fontFamily="Poppins"
         align="center"
-        fontStyle="bold"
+        fontStyle="normal 600"
         text={'Storybook Docs'}
         textTransform="capitalize"
       />
@@ -120,19 +120,20 @@ const StoryBook = () => {
     <Group x={30} y={462} width={165} height={48} key="group4">
       <Text
         fontSize={18}
-        fill="#616161"
-        fontFamily="Inter"
-        fontStyle="bold"
-        text={'Michale Shilman'}
+        fill="#374151"
+        fontFamily="Poppins"
+        fontStyle="normal 600"
+        text="Michael Shilman"
         textTransform="capitalize"
       />
       <Text
         fontSize={14}
-        fill="#616161"
-        fontFamily="Inter"
-        text={'Maintainer @StoryBook'}
+        fill="#374151"
+        fontFamily="Poppins"
+        text="Maintainer @ Storybook"
         textTransform="capitalize"
-        y={27}
+        fontStyle="normal 300"
+        y={20}
       />
     </Group>,
   ]

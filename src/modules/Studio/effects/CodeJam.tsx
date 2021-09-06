@@ -120,55 +120,25 @@ const CodeJam = () => {
         ]
       : [<></>]
 
-  let layerChildren = [<></>]
-  if (
-    (state === 'recording' ||
-      payload?.status === Fragment_Status_Enum_Enum.Live) &&
-    isTitleSplash
-  ) {
-    layerChildren = [
-      <Group
-        x={0}
-        y={0}
-        zIndex={100}
-        width={codeConfig.width}
-        height={codeConfig.height}
-        ref={(ref) =>
-          ref?.to({
-            duration: 3,
-            onFinish: () => {
-              setIsTitleSplash(false)
-            },
-          })
-        }
-      >
-        {titleSplash(fragment?.name as string)}
-      </Group>,
-    ]
-  } else if (
-    (state === 'recording' ||
-      payload?.status === Fragment_Status_Enum_Enum.Live) &&
-    !isTitleSplash
-  ) {
-    layerChildren = [
-      <Group y={15} x={15} key="circleGroup">
-        <Circle key="redCircle" x={0} y={0} fill="#FF605C" radius={5} />
-        <Circle key="yellowCircle" x={14} y={0} fill="#FFBD44" radius={5} />
-        <Circle key="greenCircle" x={28} y={0} fill="#00CA4E" radius={5} />
-      </Group>,
-      <Group y={30} x={20} key="group">
-        {getRenderedTokens(computedTokens.current, position)}
-        {computedTokens.current.length > 0 && (
-          <RenderTokens
-            key={position.prevIndex}
-            tokens={computedTokens.current}
-            startIndex={position.prevIndex}
-            endIndex={position.currentIndex}
-          />
-        )}
-      </Group>,
-    ]
-  }
+  const layerChildren = [
+    <Group y={15} x={15} key="circleGroup">
+      <Circle key="redCircle" x={0} y={0} fill="#FF605C" radius={5} />
+      <Circle key="yellowCircle" x={14} y={0} fill="#FFBD44" radius={5} />
+      <Circle key="greenCircle" x={28} y={0} fill="#00CA4E" radius={5} />
+    </Group>,
+    <Group y={30} x={20} key="group">
+      {getRenderedTokens(computedTokens.current, position)}
+      {computedTokens.current.length > 0 && (
+        <RenderTokens
+          key={position.prevIndex}
+          tokens={computedTokens.current}
+          startIndex={position.prevIndex}
+          endIndex={position.currentIndex}
+        />
+      )}
+    </Group>,
+  ]
+
   return <Concourse layerChildren={layerChildren} controls={controls} />
 }
 

@@ -1,18 +1,20 @@
+/* eslint-disable no-nested-ternary */
 import React, { HTMLProps, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useRecoilValue } from 'recoil'
 import { cx } from '@emotion/css'
 import { IconType } from 'react-icons'
-import config from '../../config'
-import { Heading, Navbar, ScreenState, Text } from '../../components'
+import { BiVideo } from 'react-icons/bi'
+import { Heading, Navbar, ScreenState } from '../../components'
 import {
   BaseFlickFragment,
+  Flick_Status_Enum_Enum,
   useGetUserFlicksQuery,
 } from '../../generated/graphql'
 import { User, userState } from '../../stores/user.store'
 import { formatDate } from '../../utils/FormatDate'
 import { NewFlickBanner, TableView } from './components'
-import { BiVideo } from 'react-icons/bi'
+import config from '../../config'
 
 const ViewBarButton = ({
   icon: I,
@@ -71,17 +73,28 @@ const ViewBar = ({
 }
 
 const FlickTile = ({ flick }: { flick: BaseFlickFragment }) => {
+  const { baseUrl } = config.storage
+
   return (
     <Link to={`/flick/${flick.id}`}>
       <div className="bg-background shadow-md transition-all hover:shadow-xl pb-2 rounded-md cursor-pointer">
         {flick.producedLink ? (
           // eslint-disable-next-line jsx-a11y/media-has-caption
+          <video
+            controls
+            preload="auto"
+            className="w-full object-cover rounded-t-md h-40"
+          >
+            <source src={baseUrl + flick.producedLink} type="video/mp4" />
+          </video>
+        ) : flick.status === Flick_Status_Enum_Enum.Processing ? (
           <img
-            className="w-full object-cover rounded-t-md h-32"
+            className="w-full object-cover rounded-t-md h-40"
             src="https://i.giphy.com/media/l0uJcwRwF5tO7LgB5t/giphy-downsized.gif"
+            alt={flick.name}
           />
         ) : (
-          <div className="bg-gray-100 justify-center items-center flex text-gray-300 rounded-t-md h-32">
+          <div className="bg-gray-100 justify-center items-center flex text-gray-300 rounded-t-md h-40">
             <BiVideo size={40} />
           </div>
         )}
