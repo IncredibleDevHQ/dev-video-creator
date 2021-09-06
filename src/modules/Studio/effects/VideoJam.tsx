@@ -72,6 +72,10 @@ const Video = ({ videoElement }: { videoElement: HTMLVideoElement }) => {
 const VideoJam = () => {
   const { state, fragment, payload, updatePayload } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const [useTitleSpalsh, setUseTitleSpalsh] = useState<{
+    enable: boolean
+    title?: string
+  }>({ enable: false })
   const videoElement = React.useMemo(() => {
     if (!fragment?.configuration.properties) return
     const element = document.createElement('video')
@@ -81,6 +85,13 @@ const VideoJam = () => {
       (property: any) => property.key === 'source'
     )?.value
     // eslint-disable-next-line consistent-return
+    //setConfig of titleSpalsh
+    setUseTitleSpalsh({
+      enable: fragment.configuration.properties.find(
+        (property: any) => property.key === 'showTitleSplash'
+      )?.value,
+      title: fragment.name as string,
+    })
     return element
   }, [fragment?.configuration.properties])
 
@@ -142,7 +153,13 @@ const VideoJam = () => {
     ? [<Video videoElement={videoElement} />]
     : [<></>]
 
-  return <Concourse layerChildren={layerChildren} controls={controls} />
+  return (
+    <Concourse
+      layerChildren={layerChildren}
+      controls={controls}
+      useTitleSpalsh={useTitleSpalsh}
+    />
+  )
 }
 
 export default VideoJam

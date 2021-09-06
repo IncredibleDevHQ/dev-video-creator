@@ -16,6 +16,10 @@ const Trivia = () => {
   const [questions, setQuestions] = useState<{ text: string; image: string }[]>(
     []
   )
+  const [useTitleSpalsh, setUseTitleSpalsh] = useState<{
+    enable: boolean
+    title?: string
+  }>({ enable: false })
   const { fragment, state, stream, picture, payload, constraints } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const userData = (useRecoilValue(userState) as User) || {}
@@ -50,6 +54,13 @@ const Trivia = () => {
         (property: any) => property.type === 'json'
       )?.value
     )
+    //setConfig of titleSpalsh
+    setUseTitleSpalsh({
+      enable: fragment.configuration.properties.find(
+        (property: any) => property.key === 'showTitleSplash'
+      )?.value,
+      title: fragment.name as string,
+    })
   }, [fragment?.configuration.properties])
 
   useEffect(() => {
@@ -191,6 +202,7 @@ const Trivia = () => {
       controls={controls}
       layerChildren={layerChildren}
       disableUserMedia={isDisableCamera}
+      useTitleSpalsh={useTitleSpalsh}
     />
   )
 }
