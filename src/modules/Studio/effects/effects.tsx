@@ -3,7 +3,8 @@ import React, { useEffect } from 'react'
 import { Fragment_Type_Enum_Enum } from '../../../generated/graphql'
 import CodeJam from './CodeJam'
 import VideoJam from './VideoJam'
-import Intro from './SplashFive'
+import SplashFour from './SplashFour'
+import SplashFive from './SplashFive'
 import Trivia from './Trivia'
 import StoryBook from './StoryBook'
 import Slides from './Slides'
@@ -37,10 +38,13 @@ export const titleSplash = (title: string): JSX.Element => {
   )
   return titleSplashChildern
 }
-export const getEffect = (type: Fragment_Type_Enum_Enum) => {
+export const getEffect = (
+  type: Fragment_Type_Enum_Enum,
+  config: { properties: any }
+) => {
   switch (type) {
     case Fragment_Type_Enum_Enum.Splash:
-      return Intro
+      return config.properties[2].value === '0' ? SplashFive : SplashFour
     case Fragment_Type_Enum_Enum.CodeJam:
       return CodeJam
     case Fragment_Type_Enum_Enum.Videoshow:
