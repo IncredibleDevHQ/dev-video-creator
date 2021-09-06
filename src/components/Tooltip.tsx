@@ -49,10 +49,6 @@ const Tooltip = ({
   })
 
   useEffect(() => {
-    console.log('fill', fill)
-  }, [fill])
-
-  useEffect(() => {
     if (!autoDismiss) return
     const timer = setTimeout(() => setIsOpen?.(false), autoDismiss)
 
