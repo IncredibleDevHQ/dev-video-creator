@@ -94,6 +94,7 @@ const MissionControl = ({ controls }: { controls: JSX.Element[] }) => {
     constraints,
     startRecording,
     stopRecording,
+    showFinalTransition,
     upload,
     reset,
     state,
@@ -217,9 +218,7 @@ const MissionControl = ({ controls }: { controls: JSX.Element[] }) => {
                 icon={FiStopCircle}
                 appearance="danger"
                 onClick={() => {
-                  stopRecording()
-                  payload.playing = false
-                  updatePayload?.({ status: Fragment_Status_Enum_Enum.Ended })
+                  showFinalTransition()
                 }}
               />
             )}

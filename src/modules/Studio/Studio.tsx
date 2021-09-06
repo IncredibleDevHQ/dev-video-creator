@@ -202,6 +202,10 @@ const Studio = () => {
     setState('recording')
   }
 
+  const finalTransition = () => {
+    setState('finalSplash')
+  }
+
   const stop = () => {
     stopRecording()
     stream?.getTracks().forEach((track) => track.stop())
@@ -232,6 +236,7 @@ const Studio = () => {
       stream: stream as MediaStream,
       startRecording: start,
       stopRecording: stop,
+      showFinalTransition: finalTransition,
       reset: resetRecording,
       upload,
       getBlobs,
