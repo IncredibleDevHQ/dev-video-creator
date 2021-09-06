@@ -3,6 +3,7 @@ import { cx } from '@emotion/css'
 import { BiUser } from 'react-icons/bi'
 import { Fragment_Type_Enum_Enum } from '../../../generated/graphql'
 import { Heading } from '../../../components'
+import { fragmentIcons } from '../../../constants'
 
 const BaseFragmentCard = ({
   label,
@@ -58,44 +59,51 @@ const BaseFragment = ({
     >
       <BaseFragmentCard
         label="CodeJam"
-        image="https://emoji.craftwork.design/images/modal/green-book.png"
+        image={fragmentIcons.codeJam}
         description="Talk about a code snippet with your friends."
         onClick={() => handleNext(Fragment_Type_Enum_Enum.CodeJam)}
         accessory="1-4 people"
       />
       <BaseFragmentCard
         label="Splash"
-        image="https://emoji.craftwork.design/images/modal/party-popper.png"
+        image={fragmentIcons.splash}
         description="Create classy intros for your Flicks."
         onClick={() => handleNext(Fragment_Type_Enum_Enum.Splash)}
         accessory="1 person"
       />
       <BaseFragmentCard
         label="Trivia"
-        image="https://emoji.craftwork.design/images/modal/exclamation-mark.png"
+        image={fragmentIcons.trivia}
         description="A simple quiz to test your knowledge of the topic."
         onClick={() => handleNext(Fragment_Type_Enum_Enum.Trivia)}
         accessory="1 person"
       />
       <BaseFragmentCard
         label="Slides"
-        image="https://emoji.craftwork.design/images/modal/shamrock.png"
+        image={fragmentIcons.slides}
         description="Talk about your slides just like Ross and Rachel"
         onClick={() => handleNext(Fragment_Type_Enum_Enum.Slides)}
         accessory="1 person"
       />
       <BaseFragmentCard
         label="VideoJam"
-        image="https://emoji.craftwork.design/images/modal/cooked-rice.png"
+        image={fragmentIcons.videoJam}
         description="Talk about a video with your friends."
         onClick={() => handleNext(Fragment_Type_Enum_Enum.Videoshow)}
         accessory="1-4 people"
       />
       <BaseFragmentCard
         label="Storybook"
-        image="https://emoji.craftwork.design/images/modal/star.png"
+        image={fragmentIcons.storyBook}
         description="Introduce your story."
         onClick={() => handleNext(Fragment_Type_Enum_Enum.Storybook)}
+        accessory="1 person"
+      />
+      <BaseFragmentCard
+        label="Points"
+        image={fragmentIcons.points}
+        description="Talk about the Points of your Topic."
+        onClick={() => handleNext(Fragment_Type_Enum_Enum.Points)}
         accessory="1 person"
       />
     </div>

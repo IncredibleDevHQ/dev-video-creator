@@ -6,7 +6,7 @@ import { emitToast } from '../components/Toast'
 import { useUploadFileMutation } from '../generated/graphql'
 import config from '../config'
 
-type AllowedFileExtensions =
+export type AllowedFileExtensions =
   | 'png'
   | 'jpg'
   | 'svg'

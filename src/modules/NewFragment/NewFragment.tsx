@@ -66,7 +66,7 @@ const NewFragment = () => {
         form.participants.forEach((participant) => {
           return insertParticipantToFragment({
             variables: {
-              fragmentId: data?.CreateFragment?.id,
+              fragmentId: data.CreateFragment?.id,
               participantId: participant.id,
             },
           })
@@ -80,7 +80,7 @@ const NewFragment = () => {
           description: `${form.name} was created. Do configure this ${form.type} to make it your own! :)`,
         })
 
-        push(`/flick/${flickId}`)
+        push(`/flick/${flickId}/${data.CreateFragment?.id}`)
       }
     } catch (e) {
       emitToast({

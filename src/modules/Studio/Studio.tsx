@@ -32,8 +32,6 @@ const Studio = () => {
   const { sub, picture } = (useRecoilValue(userState) as User) || {}
   const [fragment, setFragment] = useState<StudioFragmentFragment>()
 
-  const [isHost, setIsHost] = useState(false)
-
   const history = useHistory()
 
   const { data, loading } = useGetFragmentByIdQuery({
@@ -115,11 +113,6 @@ const Studio = () => {
         if (data?.RTCToken?.token) {
           join(data?.RTCToken?.token, sub as string)
         }
-        setIsHost(
-          fragment?.participants.find(
-            ({ participant }) => participant.userSub === sub
-          )?.participant.owner || false
-        )
       })()
     }
   }, [fragment, ready])
@@ -184,7 +177,7 @@ const Studio = () => {
       })
 
       dismissToast(toast)
-      history.push(`/flick/${fragment?.flickId}`)
+      history.push(`/flick/${fragment?.flickId}/${fragmentId}`)
     } catch (e) {
       emitToast({
         title: 'Yikes. Something went wrong.',
@@ -216,7 +209,10 @@ const Studio = () => {
   }
 
   useEffect(() => {
-    if (!isHost && payload?.status === Fragment_Status_Enum_Enum.Completed) {
+    if (
+      !studio.isHost &&
+      payload?.status === Fragment_Status_Enum_Enum.Completed
+    ) {
       stream?.getTracks().forEach((track) => track.stop())
       history.goBack()
       emitToast({
@@ -225,7 +221,7 @@ const Studio = () => {
         autoClose: 3000,
       })
     }
-  }, [payload, isHost])
+  }, [payload, studio.isHost])
 
   useMemo(() => {
     if (!fragment || !stream) return
@@ -251,7 +247,6 @@ const Studio = () => {
       participantId: fragment?.participants.find(
         ({ participant }) => participant.userSub === sub
       )?.participant.id,
-      isHost,
     })
   }, [
     fragment,
@@ -262,7 +257,6 @@ const Studio = () => {
     payload,
     participants,
     payload,
-    isHost,
   ])
 
   /**
