@@ -14,7 +14,7 @@ const Slides = () => {
   const [slides, setSlides] = useState<string[]>([])
   const { fragment, state, stream, picture, constraints } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
-  const [useTitleSpalsh, setUseTitleSpalsh] = useState<{
+  const [titleSpalshData, settitleSpalshData] = useState<{
     enable: boolean
     title?: string
   }>({ enable: false })
@@ -60,7 +60,7 @@ const Slides = () => {
       )?.value
     )
     //setConfig of titleSpalsh
-    setUseTitleSpalsh({
+    settitleSpalshData({
       enable: fragment.configuration.properties.find(
         (property: any) => property.key === 'showTitleSplash'
       )?.value,
@@ -215,7 +215,7 @@ const Slides = () => {
       controls={controls}
       layerChildren={layerChildren}
       disableUserMedia={isDisableCamera}
-      useTitleSpalsh={useTitleSpalsh}
+      titleSpalshData={titleSpalshData}
     />
   )
 }

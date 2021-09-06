@@ -16,7 +16,7 @@ const Trivia = () => {
   const [questions, setQuestions] = useState<{ text: string; image: string }[]>(
     []
   )
-  const [useTitleSpalsh, setUseTitleSpalsh] = useState<{
+  const [titleSpalshData, settitleSpalshData] = useState<{
     enable: boolean
     title?: string
   }>({ enable: false })
@@ -55,7 +55,7 @@ const Trivia = () => {
       )?.value
     )
     //setConfig of titleSpalsh
-    setUseTitleSpalsh({
+    settitleSpalshData({
       enable: fragment.configuration.properties.find(
         (property: any) => property.key === 'showTitleSplash'
       )?.value,
@@ -205,7 +205,7 @@ const Trivia = () => {
       controls={controls}
       layerChildren={layerChildren}
       disableUserMedia={isDisableCamera}
-      useTitleSpalsh={useTitleSpalsh}
+      titleSpalshData={titleSpalshData}
     />
   )
 }

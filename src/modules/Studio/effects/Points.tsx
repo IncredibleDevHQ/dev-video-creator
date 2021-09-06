@@ -22,7 +22,7 @@ const Points = () => {
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const userData = (useRecoilValue(userState) as User) || {}
 
-  const [useTitleSpalsh, setUseTitleSpalsh] = useState<{
+  const [titleSpalshData, settitleSpalshData] = useState<{
     enable: boolean
     title?: string
   }>({ enable: false })
@@ -60,7 +60,7 @@ const Points = () => {
 
   useEffect(() => {
     if (!fragment?.configuration.properties) return
-    setUseTitleSpalsh({
+    settitleSpalshData({
       enable: fragment.configuration.properties.find(
         (property: any) => property.key === 'showTitleSplash'
       )?.value,
@@ -259,7 +259,7 @@ const Points = () => {
       controls={controls}
       layerChildren={layerChildren}
       disableUserMedia={isDisableCamera}
-      useTitleSpalsh={useTitleSpalsh}
+      titleSpalshData={titleSpalshData}
     />
   )
 }

@@ -72,7 +72,7 @@ const Video = ({ videoElement }: { videoElement: HTMLVideoElement }) => {
 const VideoJam = () => {
   const { state, fragment, payload, updatePayload } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
-  const [useTitleSpalsh, setUseTitleSpalsh] = useState<{
+  const [titleSpalshData, settitleSpalshData] = useState<{
     enable: boolean
     title?: string
   }>({ enable: false })
@@ -86,7 +86,7 @@ const VideoJam = () => {
     )?.value
     // eslint-disable-next-line consistent-return
     //setConfig of titleSpalsh
-    setUseTitleSpalsh({
+    settitleSpalshData({
       enable: fragment.configuration.properties.find(
         (property: any) => property.key === 'showTitleSplash'
       )?.value,
@@ -157,7 +157,7 @@ const VideoJam = () => {
     <Concourse
       layerChildren={layerChildren}
       controls={controls}
-      useTitleSpalsh={useTitleSpalsh}
+      titleSpalshData={titleSpalshData}
     />
   )
 }

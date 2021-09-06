@@ -32,7 +32,7 @@ interface TokenRenderState {
 const CodeJam = () => {
   const { fragment, payload, updatePayload, state, isHost } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
-  const [useTitleSpalsh, setUseTitleSpalsh] = useState<{
+  const [titleSpalshData, settitleSpalshData] = useState<{
     enable: boolean
     title?: string
   }>({ enable: false })
@@ -43,6 +43,9 @@ const CodeJam = () => {
     prevIndex: -1,
     currentIndex: 0,
   })
+  useEffect(() => {
+    console.log('TypingEffect', TypingEffect)
+  }, [TypingEffect])
 
   useEffect(() => {
     if (!fragment?.configuration.properties) return
@@ -50,7 +53,7 @@ const CodeJam = () => {
       (property: any) => property.key === 'gistUrl'
     )?.value
     //setConfig of titleSpalsh
-    setUseTitleSpalsh({
+    settitleSpalshData({
       enable: fragment.configuration.properties.find(
         (property: any) => property.key === 'showTitleSplash'
       )?.value,
@@ -154,7 +157,7 @@ const CodeJam = () => {
     <Concourse
       layerChildren={layerChildren}
       controls={controls}
-      useTitleSpalsh={useTitleSpalsh}
+      titleSpalshData={titleSpalshData}
     />
   )
 }
