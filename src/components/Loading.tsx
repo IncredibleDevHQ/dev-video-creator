@@ -5,7 +5,7 @@ const Loading = ({
   className,
 }: {
   children: string
-  className: string
+  className?: string
 }) => {
   return <div className={className}>{children}</div>
 }
