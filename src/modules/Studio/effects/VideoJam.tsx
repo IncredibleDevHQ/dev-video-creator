@@ -76,6 +76,7 @@ const VideoJam = () => {
     enable: boolean
     title?: string
   }>({ enable: false })
+
   const videoElement = React.useMemo(() => {
     if (!fragment?.configuration.properties) return
     const element = document.createElement('video')
@@ -92,6 +93,7 @@ const VideoJam = () => {
       )?.value,
       title: fragment.name as string,
     })
+
     return element
   }, [fragment?.configuration.properties])
 
@@ -160,6 +162,7 @@ const VideoJam = () => {
       titleSpalshData={titleSpalshData}
     />
   )
+
 }
 
 export default VideoJam

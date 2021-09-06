@@ -67,6 +67,7 @@ const Points = () => {
       title: fragment.name as string,
     })
 
+
     setPoints(
       fragment.configuration.properties.find(
         (property: any) => property.type === 'text[]'

@@ -12,12 +12,13 @@ import { StudioProviderProps, studioStore } from '../stores'
 const Slides = () => {
   const [activeSlideIndex, setActiveSlideIndex] = useState<number>(0)
   const [slides, setSlides] = useState<string[]>([])
-  const { fragment, state, stream, picture, constraints } =
+  const { fragment, state, stream, picture, payload, constraints } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [titleSpalshData, settitleSpalshData] = useState<{
     enable: boolean
     title?: string
   }>({ enable: false })
+
 
   const imageConfig = { width: 640, height: 480 }
   const imageRef = useRef<Konva.Image | null>(null)
@@ -66,6 +67,7 @@ const Slides = () => {
       )?.value,
       title: fragment.name as string,
     })
+
   }, [fragment?.configuration.properties])
 
   useEffect(() => {
@@ -216,6 +218,7 @@ const Slides = () => {
       layerChildren={layerChildren}
       disableUserMedia={isDisableCamera}
       titleSpalshData={titleSpalshData}
+
     />
   )
 }

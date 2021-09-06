@@ -20,6 +20,7 @@ const Trivia = () => {
     enable: boolean
     title?: string
   }>({ enable: false })
+
   const { fragment, state, stream, picture, payload, constraints } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const userData = (useRecoilValue(userState) as User) || {}
@@ -61,6 +62,7 @@ const Trivia = () => {
       )?.value,
       title: fragment.name as string,
     })
+
   }, [fragment?.configuration.properties])
 
   useEffect(() => {
@@ -206,6 +208,7 @@ const Trivia = () => {
       layerChildren={layerChildren}
       disableUserMedia={isDisableCamera}
       titleSpalshData={titleSpalshData}
+
     />
   )
 }
