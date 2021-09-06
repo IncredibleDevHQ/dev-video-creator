@@ -11,7 +11,10 @@ import { KonvaEventObject } from 'konva/lib/Node'
 import MissionControl from './MissionControl'
 import StudioUser from './StudioUser'
 import { canvasStore, StudioProviderProps, studioStore } from '../stores'
-import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
+import {
+  Fragment_Status_Enum_Enum,
+  Fragment_Type_Enum_Enum,
+} from '../../../generated/graphql'
 import {
   CircleCenterGrow,
   CircleCenterShrink,
@@ -43,6 +46,7 @@ const Concourse = ({
     users,
     stopRecording,
     updatePayload,
+    fragment,
   } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [canvas, setCanvas] = useRecoilState(canvasStore)
   const [isTitleSplash, setIsTitleSplash] = useState<boolean>(false)
@@ -220,6 +224,7 @@ const Concourse = ({
                 />
                 {payload?.status === Fragment_Status_Enum_Enum.Live &&
                   titleSpalshData?.enable &&
+                  fragment?.type !== Fragment_Type_Enum_Enum.Splash &&
                   isTitleSplash && (
                     <>
                       <TitleSplash />
@@ -230,6 +235,7 @@ const Concourse = ({
                   !isTitleSplash &&
                   layerChildren}
                 {payload?.status === Fragment_Status_Enum_Enum.Live &&
+                  fragment?.type !== Fragment_Type_Enum_Enum.Splash &&
                   !titleSpalshData?.enable && <CircleCenterShrink />}
                 {payload?.status === Fragment_Status_Enum_Enum.Ended && (
                   <CircleCenterGrow performFinishAction={performFinishAction} />
