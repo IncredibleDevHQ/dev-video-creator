@@ -57,7 +57,7 @@ const FlickActivity = ({
     >
       {/* eslint-disable-next-line no-nested-ternary */}
       {loading ? (
-        <Loading className="p-3">Loading...</Loading>
+        <Loading className="p-3" />
       ) : data?.FlickActivity.length === 0 ? (
         <Text className="p-3">No New Activity...</Text>
       ) : (
