@@ -4,41 +4,56 @@ import Konva from 'konva'
 import { useRecoilValue } from 'recoil'
 import { useImage } from 'react-konva-utils'
 import FontFaceObserver from 'fontfaceobserver'
+import { useParams } from 'react-router-dom'
 import Concourse, { CONFIG } from '../components/Concourse'
 import { StudioProviderProps, studioStore } from '../stores'
+import { Coordinates } from '../hooks/use-splash'
+import { User, userState } from '../../../stores/user.store'
+import { useGetFragmentByIdQuery } from '../../../generated/graphql'
+import useSplash from '../hooks/use-splash'
 
-const SplashThree = () => {
+const SplashFive = () => {
   const { state } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const { sub } = (useRecoilValue(userState) as User) || {}
 
-  const [logo] = useImage(
-    'http://incredible-uploads-staging.s3.us-west-1.amazonaws.com/idev-logo.svg',
-    'anonymous'
-  )
-  const [logoText] = useImage(
-    'http://incredible-uploads-staging.s3.us-west-1.amazonaws.com/incredible.svg',
-    'anonymous'
-  )
+  const params: { fragmentId: string } = useParams()
 
-  const [versionLogo] = useImage(
-    'https://incredible-uploads-staging.s3.us-west-1.amazonaws.com/version-logo.svg',
-    'anonymous'
-  )
-
-  const [imageDimensions, setImageDimensions] = useState({
-    logoWidth: 60,
-    logoHeight: 60,
-    logoTextWidth: 158,
-    logoTextHeight: 26,
-    versionLogoWidth: 265,
-    versionLogoHeight: 30,
+  const { data, error } = useGetFragmentByIdQuery({
+    variables: { id: params.fragmentId, sub: sub as string },
   })
+
+  const [title, subTitle] = data?.Fragment[0].configuration.properties
+
+  const { getInitCoordinates } = useSplash()
 
   const controls: any = []
 
-  const versionLogoRef = useRef<Konva.Image | null>(null)
+  let coordinate: Coordinates = {
+    titleX: 0,
+    titleY: 0,
+    subTitleX: 0,
+    subTitleY: 0,
+    titleHeight: 0,
+  }
+
+  const gutter = 10
+  const titleWidth = 600
+  const titleFontSize = 60
+  const subTitleFontSize = 30
 
   useEffect(() => {
     if (state === 'recording') {
+      coordinate = getInitCoordinates({
+        title: title.value as string,
+        subTitle: subTitle.value as string,
+        gutter,
+        availableWidth: titleWidth - 100,
+        titleFontSize,
+        subTitleFontSize,
+        stageWidth: 960,
+        stageHeight: 540,
+      })
+
       handleRecord()
     }
   }, [state])
@@ -148,45 +163,41 @@ const SplashThree = () => {
       />,
       <Text
         key="title"
-        x={-1000}
-        y={150}
-        text="Machine Learning Zero to Hero"
+        x={-600}
+        y={coordinate.titleY}
+        text={title.value as string}
         fontSize={60}
         fontFamily="Poppins"
         fill="#000000"
         align="left"
         opacity={1}
-        width={600}
+        width={titleWidth}
         ref={(ref) => {
-          setTimeout(() => {
-            ref?.to({
-              duration: 1,
-              x: 75,
-              easing: Konva.Easings.BackEaseInOut,
-            })
-          }, 1000)
+          ref?.to({
+            duration: 1,
+            x: 75,
+            easing: Konva.Easings.EaseInOut,
+          })
         }}
       />,
       <Text
         key="subTitle"
-        x={-1000}
-        y={290}
-        text="Getting started with TensorFlow - Regression"
+        x={-600}
+        y={coordinate.subTitleY}
+        text={subTitle.value as string}
         fontSize={30}
         fontFamily="Poppins"
         lineHeight={1.25}
         fill="#5C595A"
         align="left"
-        width={400}
+        width={titleWidth}
         opacity={1}
         ref={(ref) => {
-          setTimeout(() => {
-            ref?.to({
-              duration: 1,
-              x: 75,
-              easing: Konva.Easings.BackEaseInOut,
-            })
-          }, 1000)
+          ref?.to({
+            duration: 1,
+            x: 75,
+            easing: Konva.Easings.EaseInOut,
+          })
         }}
       />,
     ])
@@ -201,4 +212,4 @@ const SplashThree = () => {
   )
 }
 
-export default SplashThree
+export default SplashFive

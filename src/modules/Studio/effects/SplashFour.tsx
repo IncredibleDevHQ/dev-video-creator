@@ -4,41 +4,55 @@ import Konva from 'konva'
 import { useRecoilValue } from 'recoil'
 import { useImage } from 'react-konva-utils'
 import FontFaceObserver from 'fontfaceobserver'
+import { useParams } from 'react-router-dom'
 import Concourse, { CONFIG } from '../components/Concourse'
 import { StudioProviderProps, studioStore } from '../stores'
+import { User, userState } from '../../../stores/user.store'
+import { useGetFragmentByIdQuery } from '../../../generated/graphql'
+import useSplash, { Coordinates } from '../hooks/use-splash'
 
-const SplashThree = () => {
+const SplashFour = () => {
   const { state } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
-  const [logo] = useImage(
-    'http://incredible-uploads-staging.s3.us-west-1.amazonaws.com/idev-logo.svg',
-    'anonymous'
-  )
-  const [logoText] = useImage(
-    'http://incredible-uploads-staging.s3.us-west-1.amazonaws.com/incredible.svg',
-    'anonymous'
-  )
+  const { sub } = (useRecoilValue(userState) as User) || {}
 
-  const [versionLogo] = useImage(
-    'https://incredible-uploads-staging.s3.us-west-1.amazonaws.com/version-logo.svg',
-    'anonymous'
-  )
+  const params: { fragmentId: string } = useParams()
 
-  const [imageDimensions, setImageDimensions] = useState({
-    logoWidth: 60,
-    logoHeight: 60,
-    logoTextWidth: 158,
-    logoTextHeight: 26,
-    versionLogoWidth: 265,
-    versionLogoHeight: 30,
+  const { data, error } = useGetFragmentByIdQuery({
+    variables: { id: params.fragmentId, sub: sub as string },
   })
+
+  const [title, subTitle] = data?.Fragment[0].configuration.properties
+
+  const { getInitCoordinates } = useSplash()
 
   const controls: any = []
 
-  const versionLogoRef = useRef<Konva.Image | null>(null)
+  let coordinate: Coordinates = {
+    titleX: 0,
+    titleY: 0,
+    subTitleX: 0,
+    subTitleY: 0,
+    titleHeight: 0,
+  }
+
+  const gutter = 10
+  const titleWidth = 960
+  const titleFontSize = 40
+  const subTitleFontSize = 20
 
   useEffect(() => {
     if (state === 'recording') {
+      coordinate = getInitCoordinates({
+        title: title.value as string,
+        subTitle: subTitle.value as string,
+        gutter,
+        availableWidth: titleWidth - 100,
+        titleFontSize,
+        subTitleFontSize,
+        stageWidth: 960,
+        stageHeight: 540,
+      })
       handleRecord()
     }
   }, [state])
@@ -234,7 +248,7 @@ const SplashThree = () => {
       />,
       <Line
         key="titleDashedLine"
-        points={[300, CONFIG.height / 2, CONFIG.width - 300, CONFIG.height / 2]}
+        points={[200, CONFIG.height / 2, CONFIG.width - 200, CONFIG.height / 2]}
         stroke="#85D4F6"
         strokeWidth={2}
         lineJoin="round"
@@ -243,10 +257,10 @@ const SplashThree = () => {
       />,
       <Text
         key="title"
-        x={CONFIG.width / 2 - 140}
-        y={CONFIG.height / 2 - 70}
-        text="Appsmith"
-        fontSize={60}
+        x={coordinate.titleX}
+        y={CONFIG.height / 2 - 40}
+        text={title.value as string}
+        fontSize={40}
         fontFamily="Poppins"
         fill="#21C5FA"
         align="center"
@@ -260,9 +274,9 @@ const SplashThree = () => {
       />,
       <Text
         key="subTitle"
-        x={CONFIG.width / 2 - 80}
+        x={coordinate.subTitleX}
         y={CONFIG.height / 2 + 20}
-        text="Appsmith in 30s"
+        text={subTitle.value as string}
         fontSize={20}
         fontFamily="Poppins"
         lineHeight={1.25}
@@ -308,16 +322,16 @@ const SplashThree = () => {
             scaleX: 11,
             scaleY: 11,
             easing: Konva.Easings.BackEaseOut,
-            onFinish: () => {
-              setTimeout(() => {
-                ref?.to({
-                  duration: 1,
-                  scaleX: 160,
-                  scaleY: 160,
-                  easing: Konva.Easings.BackEaseInOut,
-                })
-              }, 3000)
-            },
+            // onFinish: () => {
+            //   setTimeout(() => {
+            //     ref?.to({
+            //       duration: 1,
+            //       scaleX: 160,
+            //       scaleY: 160,
+            //       easing: Konva.Easings.BackEaseInOut,
+            //     })
+            //   }, 3000)
+            // },
           })
         }}
       />,
@@ -333,4 +347,4 @@ const SplashThree = () => {
   )
 }
 
-export default SplashThree
+export default SplashFour
