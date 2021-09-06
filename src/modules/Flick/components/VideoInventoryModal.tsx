@@ -3,8 +3,8 @@ import React, { useState } from 'react'
 import Modal from 'react-responsive-modal'
 import { Button, Heading, ScreenState } from '../../../components'
 import Video from '../../../components/Video'
-import { useUserArtifactQuery } from '../../../generated/graphql'
-import { useUploadFile } from '../../../hooks'
+import { useUserAssetQuery } from '../../../generated/graphql'
+
 import { ScreenRecording } from './index'
 import UploadVideoModal from './UploadVideoModal'
 
@@ -20,7 +20,7 @@ const VideoInventoryModal = ({
   const [screenRecordModal, setScreenRecordModal] = useState<boolean>(false)
   const [uploadFileModal, setUploadFileModal] = useState<boolean>(false)
 
-  const { data, loading, error } = useUserArtifactQuery()
+  const { data, loading, error, refetch } = useUserAssetQuery()
 
   if (error)
     return (
@@ -66,20 +66,16 @@ const VideoInventoryModal = ({
           ScreenRecord
         </Button>
       </div>
-      <div className="grid grid-row-3 grid-flow-col m-4 gap-4 ">
+      <div className="grid grid-cols-3 m-4 gap-4 ">
         {data &&
-          data.Artifact.length > 0 &&
-          data.Artifact.map((artifact) => (
+          data.Asset.length > 0 &&
+          data.Asset.map((asset) => (
             <div
+              className="max-w-2xl flex content-center bg-gray-800"
               onClick={() => {
                 setChoosenLink(
                   'https://incredible-uploads-staging.s3.amazonaws.com/' +
-                    artifact.objectLink
-                )
-
-                console.log(
-                  'https://incredible-uploads-staging.s3.amazonaws.com/' +
-                    artifact.objectLink
+                    asset.objectLink
                 )
                 handleClose()
               }}
@@ -89,7 +85,7 @@ const VideoInventoryModal = ({
                 height={225}
                 src={
                   'https://incredible-uploads-staging.s3.amazonaws.com/' +
-                  artifact.objectLink
+                  asset.objectLink
                 }
                 controls
               />
@@ -101,12 +97,14 @@ const VideoInventoryModal = ({
         open={screenRecordModal}
         handleClose={() => {
           setScreenRecordModal(false)
+          refetch()
         }}
       ></ScreenRecording>
       <UploadVideoModal
         open={uploadFileModal}
         handleClose={() => {
           setUploadFileModal(false)
+          refetch()
         }}
       ></UploadVideoModal>
     </Modal>

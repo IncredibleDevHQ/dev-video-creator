@@ -1,8 +1,15 @@
 import { css, cx } from '@emotion/css'
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { Modal } from 'react-responsive-modal'
+import { useRecoilValue } from 'recoil'
 import useScreenRecorder from 'use-screen-recorder'
 import { Button, Heading } from '../../../components'
+import {
+  Asset_Source_Enum_Enum,
+  Asset_Type_Enum_Enum,
+  useAddAssetMutation,
+} from '../../../generated/graphql'
+import { useUploadFile } from '../../../hooks/use-upload-file'
 
 const ScreenRecording = ({
   open,
@@ -22,7 +29,48 @@ const ScreenRecording = ({
   } = useScreenRecorder({
     audio: true,
   })
-  console.log('status', status)
+  const [loadingAssets, setLoadingAssets] = useState<boolean>(false)
+  const [video, setVideo] = useState<{
+    url: string
+    uuid: string
+  }>()
+  const [uploadVideo] = useUploadFile()
+
+  const [addAssetMutation, { data, loading, error }] = useAddAssetMutation()
+
+  const handleClick = async (file: string) => {
+    const blob: Blob = await fetch(file).then((r) => r.blob())
+
+    if (!blob) return
+
+    setLoadingAssets(true)
+    const video = await uploadVideo({
+      // @ts-ignore
+      extension: 'webm',
+      file: blob,
+    })
+
+    setLoadingAssets(false)
+    setVideo({ url: video.url, uuid: video.uuid })
+  }
+
+  useEffect(() => {
+    if (!video) return
+
+    setLoadingAssets(loading)
+    addAssetMutation({
+      variables: {
+        displayName: video ? video.uuid : '',
+        objectLink: video ? video.uuid : '',
+        source: Asset_Source_Enum_Enum.WebClient,
+        type: Asset_Type_Enum_Enum.Video,
+      },
+    })
+  }, [video])
+
+  useEffect(() => {
+    handleClose()
+  }, [data])
 
   return (
     <Modal
@@ -44,9 +92,7 @@ const ScreenRecording = ({
         `,
       }}
     >
-      <div className="flex flex-row gap-3 w-48 m-2">
-        {status === 'stopped' && <video src={blobUrl || ''} controls />}
-
+      <div className="flex flex-row gap-3  m-2">
         {status === 'idle' && (
           <Button
             type="button"
@@ -57,7 +103,6 @@ const ScreenRecording = ({
             Start Recording
           </Button>
         )}
-
         {status === 'paused' && (
           <Button
             type="button"
@@ -68,7 +113,6 @@ const ScreenRecording = ({
             Resume Recording
           </Button>
         )}
-
         {status === 'recording' && (
           <>
             <Button
@@ -89,15 +133,31 @@ const ScreenRecording = ({
             </Button>
           </>
         )}
-        {status !== 'stopped' && (
-          <Button
-            type="button"
-            appearance="primary"
-            className="border-white h-auto"
-            onClick={resetRecording}
-          >
-            Reset Recording
-          </Button>
+
+        {status === 'stopped' && (
+          <div className="flex flex-col gap-3 m-2 mt-8">
+            <video src={blobUrl || ''} controls />
+            <div className="flex flex-row gap-3">
+              <Button
+                type="button"
+                appearance="primary"
+                className="border-white h-auto"
+                loading={loadingAssets}
+                onClick={() => handleClick(blobUrl as string)}
+              >
+                Upload Recording
+              </Button>
+              <Button
+                type="button"
+                appearance="primary"
+                loading={loadingAssets}
+                className="border-white h-auto"
+                onClick={resetRecording}
+              >
+                Reset Recording
+              </Button>
+            </div>
+          </div>
         )}
       </div>
     </Modal>

@@ -25,7 +25,7 @@ const FragmentConfiguration = ({
     useUpdateFragmentConfigurationMutation()
   const [loadingAssets, setLoadingAssets] = useState<boolean>(false)
   const history = useHistory()
-  const [inventroyModal, setInventoryModal] = useState<boolean>(false)
+  const [videoInventoryModal, setVideoInventoryModal] = useState<boolean>(false)
   const [choosenLink, setChoosenLink] = useState<string>(' ')
 
   useEffect(() => {
@@ -109,6 +109,7 @@ const FragmentConfiguration = ({
             value={values[attribute.key]}
             setLoadingAssets={setLoadingAssets}
             choosenLink={choosenLink}
+            setVideoInventoryModal={setVideoInventoryModal}
           />
         ))}
 
@@ -128,22 +129,13 @@ const FragmentConfiguration = ({
         </Button>
       </form>
       {fragment.type === Fragment_Type_Enum_Enum.Videoshow && (
-        <>
-          <FiPlus
-            className="text-grey-lighter"
-            size={20}
-            onClick={() => {
-              setInventoryModal(true)
-            }}
-          />
-          <VideoInventoryModal
-            open={inventroyModal}
-            handleClose={() => {
-              setInventoryModal(false)
-            }}
-            setChoosenLink={setChoosenLink}
-          />
-        </>
+        <VideoInventoryModal
+          open={videoInventoryModal}
+          handleClose={() => {
+            setVideoInventoryModal(false)
+          }}
+          setChoosenLink={setChoosenLink}
+        />
       )}
       {isConfigured && (
         <Button

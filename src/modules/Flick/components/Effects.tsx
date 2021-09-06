@@ -43,6 +43,7 @@ interface GetSchemaElementProps {
   value: any
   setLoadingAssets: React.Dispatch<React.SetStateAction<boolean>>
   choosenLink: string
+  setVideoInventoryModal: React.Dispatch<React.SetStateAction<boolean>>
 }
 
 export const GetSchemaElement = ({
@@ -52,6 +53,7 @@ export const GetSchemaElement = ({
   value,
   setLoadingAssets,
   choosenLink,
+  setVideoInventoryModal,
 }: GetSchemaElementProps) => {
   const addToFormik = (valueArray: any) => {
     const event = new Event('input', { bubbles: true })
@@ -79,18 +81,28 @@ export const GetSchemaElement = ({
       )
 
     case 'text':
-      console.log('choosenLink', choosenLink)
+      useEffect(() => {
+        setFieldValue(schema.key, choosenLink)
+      }, [choosenLink])
+
       return (
-        <TextField
-          className="text-lg m-4"
-          name={schema.key}
-          onChange={handleChange}
-          value={value}
-          key={schema.key}
-          defaultValue={value}
-          placeholder={schema.description}
-          label={schema.name}
-        />
+        <>
+          <TextField
+            className="text-lg m-4"
+            name={schema.key}
+            onChange={handleChange}
+            value={value}
+            key={schema.key}
+            defaultValue={value}
+            onClick={() => {
+              if (schema.key === 'source') {
+                setVideoInventoryModal(true)
+              }
+            }}
+            placeholder={schema.description}
+            label={schema.name}
+          />
+        </>
       )
 
     case 'json':

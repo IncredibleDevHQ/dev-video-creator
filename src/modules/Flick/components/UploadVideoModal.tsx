@@ -1,9 +1,14 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import Modal from 'react-responsive-modal'
 import { css, cx } from '@emotion/css'
 import Video from '../../../components/Video'
 import { useUploadFile } from '../../../hooks/use-upload-file'
 import { Heading } from '../../../components'
+import {
+  Asset_Source_Enum_Enum,
+  Asset_Type_Enum_Enum,
+  useAddAssetMutation,
+} from '../../../generated/graphql'
 
 const UploadVideoModal = ({
   open,
@@ -13,8 +18,12 @@ const UploadVideoModal = ({
   handleClose: () => void
 }) => {
   const [loadingAssets, setLoadingAssets] = useState<boolean>(false)
-  const [video, setVideo] = useState<string>()
+  const [video, setVideo] = useState<{
+    url: string
+    uuid: string
+  }>()
   const [uploadVideo] = useUploadFile()
+  const [addAssetMutation, { data, loading, error }] = useAddAssetMutation()
 
   const handleClick = async (file: File) => {
     if (!file) return
@@ -26,8 +35,27 @@ const UploadVideoModal = ({
       file,
     })
     setLoadingAssets(false)
-    setVideo(video.url)
+    setVideo({ url: video.url, uuid: video.uuid })
   }
+
+  useEffect(() => {
+    if (!video) return
+
+    setLoadingAssets(loading)
+    addAssetMutation({
+      variables: {
+        displayName: video ? video.uuid : '',
+        objectLink: video ? video.uuid : '',
+        source: Asset_Source_Enum_Enum.WebClient,
+        type: Asset_Type_Enum_Enum.Video,
+      },
+    })
+  }, [video])
+
+  useEffect(() => {
+    handleClose()
+  }, [data])
+
   return (
     <Modal
       open={open}
@@ -56,7 +84,7 @@ const UploadVideoModal = ({
         }
       ></Video>
       {video && !loadingAssets && (
-        <video height="200px" src={video || ''} controls />
+        <video height="200px" src={video.url || ''} controls />
       )}
       {loadingAssets && (
         <Heading className="text-xl font-semibold">Uploading...</Heading>
