@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useHistory } from 'react-router-dom'
 import { useRecoilState } from 'recoil'
 import { FiActivity } from 'react-icons/fi'
+import { useRecoilState, useRecoilValue } from 'recoil'
 import {
   FlickActivity,
   FragmentActivity,
@@ -13,6 +14,8 @@ import {
 import { currentFlickStore } from '../../stores/flick.store'
 import { EmptyState, Heading, ScreenState, Tab, TabBar } from '../../components'
 import { useGetFlickByIdQuery } from '../../generated/graphql'
+import { studioStore } from '../Studio/stores'
+import { User, userState } from '../../stores/user.store'
 
 const tabs: Tab[] = [
   {
@@ -30,26 +33,48 @@ const tabs: Tab[] = [
 ]
 
 const Flick = () => {
-  const { id } = useParams<{ id: string }>()
+  const { id, fragmentId } = useParams<{ id: string; fragmentId?: string }>()
   const { data, error, loading, refetch } = useGetFlickByIdQuery({
     variables: { id },
   })
   const [flick, setFlick] = useRecoilState(currentFlickStore)
+  const [studio, setStudio] = useRecoilState(studioStore)
+  const { sub } = (useRecoilValue(userState) as User) || {}
+
   const [currentTab, setCurrentTab] = useState<Tab>(tabs[0])
   const [isParticipants, setParticipants] = useState(true)
   const [menu, setMenu] = useState(false)
 
   const [activeFragmentId, setActiveFragmentId] = useState<string>()
 
+  const history = useHistory()
+
+  useEffect(() => {
+    if (!activeFragmentId || !flick) return
+    history.push(`/flick/${flick.id}/${activeFragmentId}`)
+  }, [activeFragmentId, flick])
+
   useEffect(() => {
     if (!data?.Flick_by_pk) return
     setFlick(data.Flick_by_pk)
-    setActiveFragmentId(
-      data.Flick_by_pk.fragments.length > 0
-        ? data.Flick_by_pk.fragments[0].id
-        : undefined
-    )
+    if (fragmentId) {
+      setActiveFragmentId(fragmentId)
+    } else {
+      setActiveFragmentId(
+        data.Flick_by_pk.fragments.length > 0
+          ? data.Flick_by_pk.fragments[0].id
+          : undefined
+      )
+    }
   }, [data])
+
+  useEffect(() => {
+    if (!flick) return
+
+    const isHost =
+      flick.participants.find(({ userSub }) => userSub === sub)?.owner || false
+    setStudio({ ...studio, isHost })
+  }, [flick])
 
   if (loading) return <ScreenState title="Just a jiffy" loading />
 

@@ -27,6 +27,7 @@ import {
 } from '../../../generated/graphql'
 import { User, userState } from '../../../stores/user.store'
 import { StudioProviderProps, studioStore } from '../../Studio/stores'
+import ConfirmDeleteModal from './ConfirmDeleteModal'
 
 const reorder = (
   list: FlickFragmentFragment[],
@@ -56,21 +57,7 @@ const FragmentItem = ({
   handleRefetch: (refresh?: boolean) => void
 }) => {
   const userData = (useRecoilValue(userState) as User) || {}
-  const [deleteFragment, { data: deleteFragmentData }] =
-    useDeleteFragmentMutation()
-
-  const deleteFragmentbyId = (fragmentId: string) => {
-    deleteFragment({
-      variables: {
-        id: fragmentId,
-      },
-    })
-  }
-
-  useEffect(() => {
-    if (!deleteFragmentData) return
-    handleRefetch(true)
-  }, [deleteFragmentData])
+  const [confirmDeleteModal, setConfirmDeleteModal] = useState<boolean>(false)
 
   const { data } = useFragmentRoleQuery({
     variables: {
@@ -86,7 +73,7 @@ const FragmentItem = ({
       tabIndex={0}
       onKeyUp={() => {}}
       className={cx(
-        'my-1 p-2 border-2 border-dotted rounded-md text-gray relative',
+        'my-1 p-2 border-2 bg-white border-dotted rounded-md text-gray relative',
         {
           'border-gray-500 text-gray-600':
             (fragment.id === activeFragmentId && !isParticipant) ||
@@ -107,21 +94,28 @@ const FragmentItem = ({
       {fragment.producedLink && (
         <FiCheckCircle className="text-success absolute top-1 right-1" />
       )}
-      <div className="grid grid-cols-3">
-        <div className="col-span-2 bg-white rounded">
-          <Heading fontSize="base">{fragment.name}</Heading>
-          <Text fontSize="normal">{fragment.description}</Text>
-          <Text fontSize="small">{fragment.type}</Text>
-        </div>
-        <div className="p-5">
-          <MdDelete
-            className="cursor-pointer"
-            onClick={(e) => {
-              e?.preventDefault()
-              deleteFragmentbyId(fragment.id)
-            }}
-          />
-        </div>
+      <div className="rounded relative">
+        <Heading fontSize="base">{fragment.name}</Heading>
+        <Text fontSize="normal">{fragment.description}</Text>
+        <Text fontSize="small">{fragment.type}</Text>
+        <MdDelete
+          className="cursor-pointer absolute bottom-2 right-2"
+          onClick={(e) => {
+            e?.preventDefault()
+            setConfirmDeleteModal(true)
+          }}
+        />
+        <ConfirmDeleteModal
+          open={confirmDeleteModal}
+          handleClose={(refresh) => {
+            if (refresh) {
+              handleRefetch(true)
+            }
+            setConfirmDeleteModal(false)
+          }}
+          fragmentId={fragment.id}
+          fragmentName={fragment.name || ''}
+        />
       </div>
     </div>
   )
@@ -258,13 +252,15 @@ const FragmentsSidebar = ({
     <div className="flex flex-col w-1/6 h-screen py-2 px-4 bg-background-alt">
       <div className="flex flex-row justify-between items-center mb-8">
         <Heading className="flex-1">Fragments</Heading>
-        <FiPlus
-          className="text-grey-lighter"
-          size={20}
-          onClick={() => {
-            history.push(`/flick/${flickId}/new`)
-          }}
-        />
+        {isHost && (
+          <FiPlus
+            className="text-grey-lighter"
+            size={20}
+            onClick={() => {
+              history.push(`/new-fragment/${flickId}`)
+            }}
+          />
+        )}
       </div>
       {activeFragmentId ? (
         <FragmentDND
@@ -278,7 +274,7 @@ const FragmentsSidebar = ({
         <Text>No Fragments</Text>
       )}
 
-      {fragmentItems.length > 0 && (
+      {fragmentItems.length > 0 && isHost && (
         <Button
           className="mt-auto"
           type="button"

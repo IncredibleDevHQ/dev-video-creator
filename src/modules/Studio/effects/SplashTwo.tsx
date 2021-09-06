@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useState } from 'react'
 import { Circle, Group, Image, Rect, Text } from 'react-konva'
-import useImage from 'use-image'
+import { useImage } from 'react-konva-utils'
 import { useRecoilValue } from 'recoil'
 import { useParams } from 'react-router-dom'
 import Konva from 'konva'

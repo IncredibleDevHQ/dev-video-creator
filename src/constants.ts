@@ -25,3 +25,13 @@ export const API = {
     BASE_URL: 'https://api.github.com/',
   },
 }
+
+export let fragmentIcons = {
+  codeJam: 'https://emoji.craftwork.design/images/modal/green-book.png',
+  videoJam: 'https://emoji.craftwork.design/images/modal/cooked-rice.png',
+  splash: 'https://emoji.craftwork.design/images/modal/party-popper.png',
+  points: 'https://emoji.craftwork.design/images/modal/round-pushpin.png',
+  storyBook: 'https://emoji.craftwork.design/images/modal/star.png',
+  slides: 'https://emoji.craftwork.design/images/modal/shamrock.png',
+  trivia: 'https://emoji.craftwork.design/images/modal/exclamation-mark.png',
+}
