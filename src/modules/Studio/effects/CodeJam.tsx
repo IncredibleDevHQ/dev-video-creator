@@ -47,9 +47,6 @@ const CodeJam = () => {
     prevIndex: -1,
     currentIndex: 0,
   })
-  useEffect(() => {
-    console.log('TypingEffect', TypingEffect)
-  }, [TypingEffect])
 
   useEffect(() => {
     if (!fragment?.configuration.properties) return
@@ -57,7 +54,7 @@ const CodeJam = () => {
       (property: any) => property.key === 'gistUrl'
     )?.value
 
-    //setConfig of titleSpalsh
+    // setConfig of titleSpalsh
     settitleSpalshData({
       enable: fragment.configuration.properties.find(
         (property: any) => property.key === 'showTitleSplash'
@@ -103,7 +100,6 @@ const CodeJam = () => {
     })
   }, [payload])
 
-  console.log('isHost', isHost, state)
   const controls =
     isHost && state === 'recording'
       ? [
@@ -165,7 +161,6 @@ const CodeJam = () => {
       titleSpalshData={titleSpalshData}
     />
   )
-
 }
 
 const getRenderedTokens = (tokens: ComputedToken[], position: Position) => {
