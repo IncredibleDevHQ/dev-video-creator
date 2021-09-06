@@ -86,14 +86,14 @@ mutation UpdateProfile($displayName: String!, $userId: String!) {
   }
 }
 
-fragment ArtifactDetails on Artifact {
+fragment AssetDetails on Asset {
   id
   displayName
   objectLink
 }
 
 query UserArtifact {
-  Artifact {
-    ...ArtifactDetails
+  Asset {
+    ...AssetDetails
   }
 }
