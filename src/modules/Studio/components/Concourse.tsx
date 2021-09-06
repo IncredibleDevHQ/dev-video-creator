@@ -12,6 +12,10 @@ import MissionControl from './MissionControl'
 import StudioUser from './StudioUser'
 import { canvasStore, StudioProviderProps, studioStore } from '../stores'
 import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
+import {
+  CircleCenterGrow,
+  CircleCenterShrink,
+} from '../effects/FragmentTransitions'
 
 interface ConcourseProps {
   controls: JSX.Element[]
@@ -31,8 +35,15 @@ const Concourse = ({
   disableUserMedia,
   titleSpalshData,
 }: ConcourseProps) => {
-  const { state, stream, payload, getBlobs, users } =
-    (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const {
+    state,
+    stream,
+    payload,
+    getBlobs,
+    users,
+    stopRecording,
+    updatePayload,
+  } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [canvas, setCanvas] = useRecoilState(canvasStore)
   const [isTitleSplash, setIsTitleSplash] = useState<boolean>(false)
 
@@ -121,7 +132,7 @@ const Concourse = ({
         <Group
           x={0}
           y={0}
-          name={'titleSplash'}
+          name="titleSplash"
           draggable
           width={CONFIG.width}
           height={CONFIG.height}
@@ -134,23 +145,23 @@ const Concourse = ({
             })
           }
         >
-          <Rect fill="#5156EA" width={CONFIG.width} height={CONFIG.height} />
+          <Rect fill="#1F2937" width={CONFIG.width} height={CONFIG.height} />
           <Rect
-            fill="#7f82ef"
-            y={513 / 2 - 40}
+            fill="#16834A"
+            y={540 / 2 - 80}
             width={CONFIG.width}
-            height={80}
+            height={160}
           />
           <Text
             x={0}
-            y={513 / 2 - 30}
-            width={912}
+            y={540 / 2 - 30}
+            width={960}
             height={80}
             text={titleSpalshData && titleSpalshData.title}
             fill="#ffffff"
             textTransform="capitalize"
             fontStyle="bold"
-            fontFamily="Gilroy"
+            fontFamily="Poppins"
             fontSize={60}
             align="center"
           />
@@ -159,11 +170,18 @@ const Concourse = ({
     )
   }
 
+  const performFinishAction = () => {
+    stopRecording()
+    payload.playing = false
+    updatePayload?.({ status: Fragment_Status_Enum_Enum.Ended })
+  }
+
   useEffect(() => {
     setCanvas({ zoomed: false, resetCanvas })
   }, [])
 
   useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     titleSpalshData?.enable &&
       (payload?.status === Fragment_Status_Enum_Enum.Live
         ? setIsTitleSplash(true)
@@ -173,7 +191,9 @@ const Concourse = ({
   return (
     <div className="flex-1 mt-4 justify-between items-stretch flex">
       <div className="bg-gray-100 flex-1 rounded-md p-4 flex justify-center items-center mr-8">
-        {state === 'ready' || state === 'recording' ? (
+        {state === 'ready' ||
+        state === 'recording' ||
+        state === 'finalSplash' ? (
           <Stage
             ref={stageRef}
             onWheel={handleZoom}
@@ -200,8 +220,21 @@ const Concourse = ({
                   fill="#202026"
                   cornerRadius={8}
                 />
-                {titleSpalshData?.enable && isTitleSplash && <TitleSplash />}
-                {!isTitleSplash && layerChildren}
+                {state === 'recording' &&
+                  titleSpalshData?.enable &&
+                  isTitleSplash && (
+                    <>
+                      <TitleSplash />
+                      <CircleCenterShrink />
+                    </>
+                  )}
+                {state === 'recording' && !isTitleSplash && layerChildren}
+                {state === 'recording' && !titleSpalshData?.enable && (
+                  <CircleCenterShrink />
+                )}
+                {state === 'finalSplash' && (
+                  <CircleCenterGrow performFinishAction={performFinishAction} />
+                )}
 
                 {!disableUserMedia && (
                   <>

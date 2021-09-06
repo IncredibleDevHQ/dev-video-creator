@@ -55,14 +55,13 @@ const Trivia = () => {
         (property: any) => property.type === 'json'
       )?.value
     )
-    //setConfig of titleSpalsh
+    // setConfig of titleSpalsh
     settitleSpalshData({
       enable: fragment.configuration.properties.find(
         (property: any) => property.key === 'showTitleSplash'
       )?.value,
       title: fragment.name as string,
     })
-
   }, [fragment?.configuration.properties])
 
   useEffect(() => {
@@ -208,7 +207,6 @@ const Trivia = () => {
       layerChildren={layerChildren}
       disableUserMedia={isDisableCamera}
       titleSpalshData={titleSpalshData}
-
     />
   )
 }
