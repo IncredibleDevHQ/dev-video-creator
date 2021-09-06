@@ -12,6 +12,8 @@ export interface TooltipProps extends HTMLAttributes<HTMLElement> {
   triggerOffset?: number
   fill?: string
   autoDismiss?: number
+  autoPosition?: boolean
+  overflowContainer?: boolean
   hideOnOutsideClick?: boolean
 }
 
@@ -25,12 +27,15 @@ const Tooltip = ({
   placement = 'bottom-start',
   fill = '#ffffff',
   autoDismiss,
+  autoPosition = true,
+  overflowContainer = false,
   hideOnOutsideClick = true,
 }: TooltipProps) => {
   const { triggerProps, layerProps, arrowProps, renderLayer } = useLayer({
     isOpen,
     placement,
-    overflowContainer: false,
+    auto: autoPosition,
+    overflowContainer,
     arrowOffset,
     triggerOffset,
     onDisappear: (disappearType) => {
@@ -42,6 +47,10 @@ const Tooltip = ({
       if (hideOnOutsideClick) setIsOpen?.(false)
     },
   })
+
+  useEffect(() => {
+    console.log('fill', fill)
+  }, [fill])
 
   useEffect(() => {
     if (!autoDismiss) return
@@ -60,16 +69,7 @@ const Tooltip = ({
         renderLayer(
           <div className="tooltip" {...layerProps}>
             {content}
-            <Arrow
-              className={css`
-                svg {
-                  path {
-                    fill: ${fill};
-                  }
-                }
-              `}
-              {...arrowProps}
-            />
+            <Arrow backgroundColor={fill} {...arrowProps} />
           </div>
         )}
     </>
