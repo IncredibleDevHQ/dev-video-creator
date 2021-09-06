@@ -6,18 +6,18 @@ import {
 } from 'recoil'
 import { cx } from '@emotion/css'
 import Konva from 'konva'
-import { Stage, Layer, Rect } from 'react-konva'
+import { Stage, Layer, Rect, Group, Text } from 'react-konva'
 import { KonvaEventObject } from 'konva/lib/Node'
 import MissionControl from './MissionControl'
 import StudioUser from './StudioUser'
 import { canvasStore, StudioProviderProps, studioStore } from '../stores'
+import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
 
 interface ConcourseProps {
   controls: JSX.Element[]
   layerChildren: any[]
   disableUserMedia?: boolean
   titleSpalshData?: { enable: boolean; title?: string }
-
 }
 
 export const CONFIG = {
@@ -30,11 +30,11 @@ const Concourse = ({
   layerChildren,
   disableUserMedia,
   titleSpalshData,
-
 }: ConcourseProps) => {
-  const { state, stream, getBlobs, users } =
+  const { state, stream, payload, getBlobs, users } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [canvas, setCanvas] = useRecoilState(canvasStore)
+  const [isTitleSplash, setIsTitleSplash] = useState<boolean>(false)
 
   const [isZooming, setZooming] = useState(false)
 
@@ -163,14 +163,12 @@ const Concourse = ({
     setCanvas({ zoomed: false, resetCanvas })
   }, [])
 
-
   useEffect(() => {
     titleSpalshData?.enable &&
       (payload?.status === Fragment_Status_Enum_Enum.Live
         ? setIsTitleSplash(true)
         : setIsTitleSplash(true))
   }, [titleSpalshData, state, payload?.status])
-
 
   return (
     <div className="flex-1 mt-4 justify-between items-stretch flex">

@@ -66,7 +66,6 @@ const Flick = () => {
 
   useEffect(() => {
     if (!flick) return
-
     const isHost =
       flick.participants.find(({ userSub }) => userSub === sub)?.owner || false
     setStudio({ ...studio, isHost })
