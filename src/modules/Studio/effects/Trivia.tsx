@@ -126,7 +126,7 @@ const Trivia = () => {
       <Rect x={-600} y={0} width={600} height={CONFIG.height} fill="#ffffff" />
     </Group>,
     <Group x={64} y={64} key="group1">
-      {questions.length > 0 && questions[activeQuestionIndex].image ? (
+      {questions?.length > 0 && questions[activeQuestionIndex]?.image ? (
         <Text
           x={-64}
           align="left"

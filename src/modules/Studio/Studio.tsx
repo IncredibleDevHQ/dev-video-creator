@@ -247,6 +247,10 @@ const Studio = () => {
       participantId: fragment?.participants.find(
         ({ participant }) => participant.userSub === sub
       )?.participant.id,
+      isHost:
+        fragment?.participants.find(
+          ({ participant }) => participant.userSub === sub
+        )?.participant.owner || false,
     })
   }, [
     fragment,

@@ -140,7 +140,7 @@ const Participants = ({
             }
             isLoading={loadingSelect}
             onInputChange={(value: string) => setSearch(value)}
-            placeholder="Search a user"
+            placeholder="Add a user"
           />
 
           {selectedMember && (
