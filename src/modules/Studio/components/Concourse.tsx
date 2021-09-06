@@ -165,10 +165,17 @@ const Concourse = ({
   }, [])
 
   useEffect(() => {
-    if (useTitleSpalsh?.enable) {
-      setIsTitleSplash(true)
-    }
-  }, [useTitleSpalsh])
+    useTitleSpalsh?.enable &&
+      (payload?.status === Fragment_Status_Enum_Enum.Live
+        ? setIsTitleSplash(true)
+        : setIsTitleSplash(true))
+  }, [useTitleSpalsh, state, payload?.status])
+
+  // useEffect(() => {
+  //   if (useTitleSpalsh?.enable) {
+  //     setIsTitleSplash(true)
+  //   }
+  // }, [state])
 
   return (
     <div className="flex-1 mt-4 justify-between items-stretch flex">
@@ -200,15 +207,10 @@ const Concourse = ({
                   fill="#202026"
                   cornerRadius={8}
                 />
-                {useTitleSpalsh?.enable &&
-                  state == 'recording' &&
-                  payload?.status === Fragment_Status_Enum_Enum.Live &&
-                  isTitleSplash &&
-                  titleSplash()}
-                {!isTitleSplash &&
-                  state == 'recording' &&
-                  payload?.status === Fragment_Status_Enum_Enum.Live &&
-                  layerChildren}
+
+                {useTitleSpalsh?.enable && isTitleSplash && titleSplash()}
+                {!isTitleSplash && layerChildren}
+
                 {!disableUserMedia && (
                   <>
                     <StudioUser

@@ -86,19 +86,22 @@ const Trivia = () => {
     ref.current.srcObject = stream
   }, [ref.current])
 
-  const controls =
-    state === 'recording'
-      ? [
-          <ControlButton
-            key="nextQuestion"
-            icon={NextTokenIcon}
-            className="my-2"
-            appearance="primary"
-            disabled={activeQuestionIndex === questions.length - 1}
-            onClick={() => setActiveQuestionIndex(activeQuestionIndex + 1)}
-          />,
-        ]
-      : [<></>]
+  useEffect(() => {
+    if (state === 'recording') {
+      setActiveQuestionIndex(0)
+    }
+  }, [state])
+
+  const controls = [
+    <ControlButton
+      key="nextQuestion"
+      icon={NextTokenIcon}
+      className="my-2"
+      appearance="primary"
+      disabled={activeQuestionIndex === questions.length - 1}
+      onClick={() => setActiveQuestionIndex(activeQuestionIndex + 1)}
+    />,
+  ]
 
   const layerChildren = [
     <Group x={600} y={0} key="group0">

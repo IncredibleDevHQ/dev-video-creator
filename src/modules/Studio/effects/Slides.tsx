@@ -109,19 +109,22 @@ const Slides = () => {
     setSlideDim({ width: calWidth, height: calHeight, x: calX, y: calY })
   }
 
-  const controls =
-    state === 'recording'
-      ? [
-          <ControlButton
-            key="nextQuestion"
-            icon={NextTokenIcon}
-            className="my-2"
-            appearance="primary"
-            disabled={activeSlideIndex === slides.length - 1}
-            onClick={() => setActiveSlideIndex(activeSlideIndex + 1)}
-          />,
-        ]
-      : [<></>]
+  useEffect(() => {
+    if (state === 'recording') {
+      setActiveSlideIndex(0)
+    }
+  }, [state])
+
+  const controls = [
+    <ControlButton
+      key="nextQuestion"
+      icon={NextTokenIcon}
+      className="my-2"
+      appearance="primary"
+      disabled={activeSlideIndex === slides.length - 1}
+      onClick={() => setActiveSlideIndex(activeSlideIndex + 1)}
+    />,
+  ]
 
   const layerChildren = [
     // To get the white background color

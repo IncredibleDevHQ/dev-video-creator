@@ -123,22 +123,26 @@ const Points = () => {
     ref.current.srcObject = stream
   }, [ref.current])
 
-  const controls =
-    state === 'recording'
-      ? [
-          <ControlButton
-            key="nextQuestion"
-            icon={NextTokenIcon}
-            className="my-2"
-            appearance="primary"
-            disabled={activePointIndex === points.length}
-            onClick={() => {
-              setActivePointIndex(activePointIndex + 1)
-              setYCoordinate(yCoordinate + 30)
-            }}
-          />,
-        ]
-      : [<></>]
+  useEffect(() => {
+    if (state === 'recording') {
+      setActivePointIndex(0)
+    }
+  }, [state])
+
+  const controls = [
+    <ControlButton
+      key="nextQuestion"
+      icon={NextTokenIcon}
+      className="my-2"
+      appearance="primary"
+      disabled={activePointIndex === points.length}
+      onClick={() => {
+        setActivePointIndex(activePointIndex + 1)
+        setYCoordinate(yCoordinate + 30)
+      }}
+    />,
+  ]
+
   const layerChildren = [
     <Group x={0} y={0} fill="#ffffff" key="group0">
       <Rect
@@ -255,6 +259,7 @@ const Points = () => {
       controls={controls}
       layerChildren={layerChildren}
       disableUserMedia={isDisableCamera}
+      useTitleSpalsh={useTitleSpalsh}
     />
   )
 }

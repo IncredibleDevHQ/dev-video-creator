@@ -95,6 +95,7 @@ const CodeJam = () => {
     })
   }, [payload])
 
+  console.log('isHost', isHost, state)
   const controls =
     isHost && state === 'recording'
       ? [
