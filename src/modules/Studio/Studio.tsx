@@ -203,7 +203,8 @@ const Studio = () => {
   }
 
   const finalTransition = () => {
-    setState('finalSplash')
+    payload.playing = false
+    updatePayload?.({ status: Fragment_Status_Enum_Enum.Ended })
   }
 
   const stop = () => {

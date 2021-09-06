@@ -172,8 +172,6 @@ const Concourse = ({
 
   const performFinishAction = () => {
     stopRecording()
-    payload.playing = false
-    updatePayload?.({ status: Fragment_Status_Enum_Enum.Ended })
   }
 
   useEffect(() => {
@@ -220,8 +218,7 @@ const Concourse = ({
                   fill="#202026"
                   cornerRadius={8}
                 />
-                {state === 'recording' &&
-                  payload?.status === Fragment_Status_Enum_Enum.Live &&
+                {payload?.status === Fragment_Status_Enum_Enum.Live &&
                   titleSpalshData?.enable &&
                   isTitleSplash && (
                     <>
@@ -229,19 +226,14 @@ const Concourse = ({
                       <CircleCenterShrink />
                     </>
                   )}
-                {state === 'recording' &&
-                  payload?.status === Fragment_Status_Enum_Enum.Live &&
+                {payload?.status === Fragment_Status_Enum_Enum.Live &&
                   !isTitleSplash &&
                   layerChildren}
-                {state === 'recording' &&
-                  payload?.status === Fragment_Status_Enum_Enum.Live &&
+                {payload?.status === Fragment_Status_Enum_Enum.Live &&
                   !titleSpalshData?.enable && <CircleCenterShrink />}
-                {state === 'finalSplash' &&
-                  payload?.status === Fragment_Status_Enum_Enum.Live && (
-                    <CircleCenterGrow
-                      performFinishAction={performFinishAction}
-                    />
-                  )}
+                {payload?.status === Fragment_Status_Enum_Enum.Ended && (
+                  <CircleCenterGrow performFinishAction={performFinishAction} />
+                )}
 
                 {!disableUserMedia && (
                   <>
