@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, useHistory } from 'react-router-dom'
-import { useRecoilState } from 'recoil'
 import { FiActivity } from 'react-icons/fi'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import {

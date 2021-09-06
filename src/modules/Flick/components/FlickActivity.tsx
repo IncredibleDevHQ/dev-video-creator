@@ -1,3 +1,4 @@
+import { cx } from '@emotion/css'
 import React, { useEffect, useRef } from 'react'
 import { IoCloudDone, IoPersonAddSharp, IoRocketSharp } from 'react-icons/io5'
 import { MdAssignmentTurnedIn, MdDone } from 'react-icons/md'
@@ -28,7 +29,7 @@ const FlickActivity = ({
     FlickPublished: <IoCloudDone fontSize="40" opacity="0.4" />,
   }
 
-  const dropdownRef = useRef<HTMLDivElement>(null)
+  const dropdownRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     function handleClickOutside(e: { target: any }) {
@@ -45,9 +46,13 @@ const FlickActivity = ({
 
   return (
     <div
-      className={`${
-        menu ? 'block' : 'hidden'
-      } absolute right-0 max-h-96 overflow-x-hidden mt-9 w-96 rounded-md shadow-lg bg-white ring-1 z-50 ring-black ring-opacity-5 focus:outline-none`}
+      className={cx(
+        'absolute right-0 max-h-96 overflow-x-hidden mt-9 w-96 rounded-md shadow-lg bg-white ring-1 z-50 ring-black ring-opacity-5 focus:outline-none',
+        {
+          'block ': menu === true,
+          'hidden ': menu === false,
+        }
+      )}
       ref={dropdownRef}
     >
       {/* eslint-disable-next-line no-nested-ternary */}
