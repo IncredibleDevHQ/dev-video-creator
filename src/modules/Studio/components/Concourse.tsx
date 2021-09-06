@@ -6,16 +6,18 @@ import {
 } from 'recoil'
 import { cx } from '@emotion/css'
 import Konva from 'konva'
-import { Stage, Layer, Rect } from 'react-konva'
+import { Stage, Layer, Rect, Group, Text } from 'react-konva'
 import { KonvaEventObject } from 'konva/lib/Node'
 import MissionControl from './MissionControl'
 import StudioUser from './StudioUser'
 import { canvasStore, StudioProviderProps, studioStore } from '../stores'
+import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
 
 interface ConcourseProps {
   controls: JSX.Element[]
   layerChildren: any[]
   disableUserMedia?: boolean
+  titleSpalshData?: { enable: boolean; title?: string }
 }
 
 export const CONFIG = {
@@ -27,10 +29,12 @@ const Concourse = ({
   controls,
   layerChildren,
   disableUserMedia,
+  titleSpalshData,
 }: ConcourseProps) => {
-  const { state, stream, getBlobs, users } =
+  const { state, stream, payload, getBlobs, users } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [canvas, setCanvas] = useRecoilState(canvasStore)
+  const [isTitleSplash, setIsTitleSplash] = useState<boolean>(false)
 
   const [isZooming, setZooming] = useState(false)
 
@@ -111,10 +115,60 @@ const Concourse = ({
     stageRef.current.scale({ x: 1, y: 1 })
     onMouseLeave()
   }
+  const TitleSplash = () => {
+    return (
+      <>
+        <Group
+          x={0}
+          y={0}
+          name={'titleSplash'}
+          draggable
+          width={CONFIG.width}
+          height={CONFIG.height}
+          ref={(ref) =>
+            ref?.to({
+              duration: 3,
+              onFinish: () => {
+                setIsTitleSplash(false)
+              },
+            })
+          }
+        >
+          <Rect fill="#5156EA" width={CONFIG.width} height={CONFIG.height} />
+          <Rect
+            fill="#7f82ef"
+            y={513 / 2 - 40}
+            width={CONFIG.width}
+            height={80}
+          />
+          <Text
+            x={0}
+            y={513 / 2 - 30}
+            width={912}
+            height={80}
+            text={titleSpalshData && titleSpalshData.title}
+            fill="#ffffff"
+            textTransform="capitalize"
+            fontStyle="bold"
+            fontFamily="Gilroy"
+            fontSize={60}
+            align="center"
+          />
+        </Group>
+      </>
+    )
+  }
 
   useEffect(() => {
     setCanvas({ zoomed: false, resetCanvas })
   }, [])
+
+  useEffect(() => {
+    titleSpalshData?.enable &&
+      (payload?.status === Fragment_Status_Enum_Enum.Live
+        ? setIsTitleSplash(true)
+        : setIsTitleSplash(true))
+  }, [titleSpalshData, state, payload?.status])
 
   return (
     <div className="flex-1 mt-4 justify-between items-stretch flex">
@@ -146,7 +200,9 @@ const Concourse = ({
                   fill="#202026"
                   cornerRadius={8}
                 />
-                {layerChildren}
+                {titleSpalshData?.enable && isTitleSplash && <TitleSplash />}
+                {!isTitleSplash && layerChildren}
+
                 {!disableUserMedia && (
                   <>
                     <StudioUser

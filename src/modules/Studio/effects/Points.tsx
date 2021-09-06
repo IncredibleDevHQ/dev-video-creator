@@ -22,6 +22,11 @@ const Points = () => {
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const userData = (useRecoilValue(userState) as User) || {}
 
+  const [titleSpalshData, settitleSpalshData] = useState<{
+    enable: boolean
+    title?: string
+  }>({ enable: false })
+
   const [image] = useImage(picture as string, 'anonymous')
 
   const imageConfig = { width: 702, height: 540 }
@@ -55,6 +60,14 @@ const Points = () => {
 
   useEffect(() => {
     if (!fragment?.configuration.properties) return
+    settitleSpalshData({
+      enable: fragment.configuration.properties.find(
+        (property: any) => property.key === 'showTitleSplash'
+      )?.value,
+      title: fragment.name as string,
+    })
+
+
     setPoints(
       fragment.configuration.properties.find(
         (property: any) => property.type === 'text[]'
@@ -111,22 +124,26 @@ const Points = () => {
     ref.current.srcObject = stream
   }, [ref.current])
 
-  const controls =
-    state === 'recording'
-      ? [
-          <ControlButton
-            key="nextQuestion"
-            icon={NextTokenIcon}
-            className="my-2"
-            appearance="primary"
-            disabled={activePointIndex === points.length}
-            onClick={() => {
-              setActivePointIndex(activePointIndex + 1)
-              setYCoordinate(yCoordinate + 30)
-            }}
-          />,
-        ]
-      : [<></>]
+  useEffect(() => {
+    if (state === 'recording') {
+      setActivePointIndex(0)
+    }
+  }, [state])
+
+  const controls = [
+    <ControlButton
+      key="nextQuestion"
+      icon={NextTokenIcon}
+      className="my-2"
+      appearance="primary"
+      disabled={activePointIndex === points.length}
+      onClick={() => {
+        setActivePointIndex(activePointIndex + 1)
+        setYCoordinate(yCoordinate + 30)
+      }}
+    />,
+  ]
+
   const layerChildren = [
     <Group x={0} y={0} fill="#ffffff" key="group0">
       <Rect
@@ -243,6 +260,7 @@ const Points = () => {
       controls={controls}
       layerChildren={layerChildren}
       disableUserMedia={isDisableCamera}
+      titleSpalshData={titleSpalshData}
     />
   )
 }

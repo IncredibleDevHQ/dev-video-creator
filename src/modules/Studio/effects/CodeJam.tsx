@@ -34,6 +34,12 @@ const CodeJam = () => {
   const [isTitleSplash, setIsTitleSplash] = useState<boolean>(true)
   const { fragment, payload, updatePayload, state, isHost } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
+
+  const [titleSpalshData, settitleSpalshData] = useState<{
+    enable: boolean
+    title?: string
+  }>({ enable: false })
+
   const { initUseCode, computedTokens } = useCode()
   const [getTokenisedCode, { data, error, loading }] =
     useGetTokenisedCodeLazyQuery()
@@ -41,12 +47,24 @@ const CodeJam = () => {
     prevIndex: -1,
     currentIndex: 0,
   })
+  useEffect(() => {
+    console.log('TypingEffect', TypingEffect)
+  }, [TypingEffect])
 
   useEffect(() => {
     if (!fragment?.configuration.properties) return
     const gistURL = fragment.configuration.properties.find(
       (property: any) => property.key === 'gistUrl'
     )?.value
+
+    //setConfig of titleSpalsh
+    settitleSpalshData({
+      enable: fragment.configuration.properties.find(
+        (property: any) => property.key === 'showTitleSplash'
+      )?.value,
+      title: fragment.name as string,
+    })
+
     if (!gistURL) throw new Error('Missing gist URL')
     ;(async () => {
       try {
@@ -85,6 +103,7 @@ const CodeJam = () => {
     })
   }, [payload])
 
+  console.log('isHost', isHost, state)
   const controls =
     isHost && state === 'recording'
       ? [
@@ -139,7 +158,14 @@ const CodeJam = () => {
     </Group>,
   ]
 
-  return <Concourse layerChildren={layerChildren} controls={controls} />
+  return (
+    <Concourse
+      layerChildren={layerChildren}
+      controls={controls}
+      titleSpalshData={titleSpalshData}
+    />
+  )
+
 }
 
 const getRenderedTokens = (tokens: ComputedToken[], position: Position) => {

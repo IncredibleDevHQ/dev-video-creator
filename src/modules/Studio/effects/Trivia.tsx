@@ -16,6 +16,11 @@ const Trivia = () => {
   const [questions, setQuestions] = useState<{ text: string; image: string }[]>(
     []
   )
+  const [titleSpalshData, settitleSpalshData] = useState<{
+    enable: boolean
+    title?: string
+  }>({ enable: false })
+
   const { fragment, state, stream, picture, payload, constraints } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const userData = (useRecoilValue(userState) as User) || {}
@@ -50,6 +55,14 @@ const Trivia = () => {
         (property: any) => property.type === 'json'
       )?.value
     )
+    //setConfig of titleSpalsh
+    settitleSpalshData({
+      enable: fragment.configuration.properties.find(
+        (property: any) => property.key === 'showTitleSplash'
+      )?.value,
+      title: fragment.name as string,
+    })
+
   }, [fragment?.configuration.properties])
 
   useEffect(() => {
@@ -75,19 +88,22 @@ const Trivia = () => {
     ref.current.srcObject = stream
   }, [ref.current])
 
-  const controls =
-    state === 'recording'
-      ? [
-          <ControlButton
-            key="nextQuestion"
-            icon={NextTokenIcon}
-            className="my-2"
-            appearance="primary"
-            disabled={activeQuestionIndex === questions.length - 1}
-            onClick={() => setActiveQuestionIndex(activeQuestionIndex + 1)}
-          />,
-        ]
-      : [<></>]
+  useEffect(() => {
+    if (state === 'recording') {
+      setActiveQuestionIndex(0)
+    }
+  }, [state])
+
+  const controls = [
+    <ControlButton
+      key="nextQuestion"
+      icon={NextTokenIcon}
+      className="my-2"
+      appearance="primary"
+      disabled={activeQuestionIndex === questions.length - 1}
+      onClick={() => setActiveQuestionIndex(activeQuestionIndex + 1)}
+    />,
+  ]
 
   const layerChildren = [
     <Group x={600} y={0} key="group0">
@@ -191,6 +207,8 @@ const Trivia = () => {
       controls={controls}
       layerChildren={layerChildren}
       disableUserMedia={isDisableCamera}
+      titleSpalshData={titleSpalshData}
+
     />
   )
 }
