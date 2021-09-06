@@ -355,13 +355,15 @@ const FragmentItem = ({
             </Tooltip>
           )}
         </div>
-        <MdDelete
-          className="cursor-pointer absolute bottom-1 right-1"
-          onClick={(e) => {
-            e?.preventDefault()
-            setConfirmDeleteModal(true)
-          }}
-        />
+        {isHost && (
+          <MdDelete
+            className="cursor-pointer absolute bottom-1 right-1"
+            onClick={(e) => {
+              e?.preventDefault()
+              setConfirmDeleteModal(true)
+            }}
+          />
+        )}
         <ConfirmDeleteModal
           open={confirmDeleteModal}
           handleClose={(refresh) => {
