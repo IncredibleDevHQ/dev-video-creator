@@ -221,6 +221,7 @@ const Concourse = ({
                   cornerRadius={8}
                 />
                 {state === 'recording' &&
+                  payload?.status === Fragment_Status_Enum_Enum.Live &&
                   titleSpalshData?.enable &&
                   isTitleSplash && (
                     <>
@@ -228,13 +229,19 @@ const Concourse = ({
                       <CircleCenterShrink />
                     </>
                   )}
-                {state === 'recording' && !isTitleSplash && layerChildren}
-                {state === 'recording' && !titleSpalshData?.enable && (
-                  <CircleCenterShrink />
-                )}
-                {state === 'finalSplash' && (
-                  <CircleCenterGrow performFinishAction={performFinishAction} />
-                )}
+                {state === 'recording' &&
+                  payload?.status === Fragment_Status_Enum_Enum.Live &&
+                  !isTitleSplash &&
+                  layerChildren}
+                {state === 'recording' &&
+                  payload?.status === Fragment_Status_Enum_Enum.Live &&
+                  !titleSpalshData?.enable && <CircleCenterShrink />}
+                {state === 'finalSplash' &&
+                  payload?.status === Fragment_Status_Enum_Enum.Live && (
+                    <CircleCenterGrow
+                      performFinishAction={performFinishAction}
+                    />
+                  )}
 
                 {!disableUserMedia && (
                   <>
