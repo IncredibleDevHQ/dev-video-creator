@@ -53,7 +53,7 @@ const SplashFour = () => {
         stageWidth: 960,
         stageHeight: 540,
       })
-      handleRecord()
+      getLayerChildren()
     }
   }, [state])
 
@@ -90,7 +90,7 @@ const SplashFour = () => {
     return lines
   }
 
-  const handleRecord = () => {
+  const getLayerChildren = () => {
     setLayerChildren((layerChildren) => [
       ...layerChildren,
       <Rect

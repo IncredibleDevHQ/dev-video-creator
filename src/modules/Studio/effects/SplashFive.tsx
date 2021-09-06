@@ -54,7 +54,7 @@ const SplashFive = () => {
         stageHeight: 540,
       })
 
-      handleRecord()
+      getLayerChildren()
     }
   }, [state])
 
@@ -73,7 +73,7 @@ const SplashFive = () => {
     />,
   ])
 
-  const handleRecord = () => {
+  const getLayerChildren = () => {
     setLayerChildren((layerChildren) => [
       ...layerChildren,
       <Rect
