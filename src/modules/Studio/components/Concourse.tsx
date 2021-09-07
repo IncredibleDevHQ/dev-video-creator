@@ -18,6 +18,8 @@ import {
 import {
   CircleCenterGrow,
   CircleCenterShrink,
+  RectCenterGrow,
+  RectCenterShrink,
 } from '../effects/FragmentTransitions'
 
 interface ConcourseProps {
@@ -151,10 +153,10 @@ const Concourse = ({
         >
           <Rect fill="#1F2937" width={CONFIG.width} height={CONFIG.height} />
           <Rect
-            fill="#16834A"
-            y={540 / 2 - 80}
+            fill="#16A34A"
+            y={CONFIG.height / 2 - 120}
             width={CONFIG.width}
-            height={160}
+            height={240}
           />
           <Text
             x={0}
@@ -164,7 +166,7 @@ const Concourse = ({
             text={titleSpalshData && titleSpalshData.title}
             fill="#ffffff"
             textTransform="capitalize"
-            fontStyle="bold"
+            fontStyle="normal 700"
             fontFamily="Poppins"
             fontSize={60}
             align="center"
@@ -227,7 +229,7 @@ const Concourse = ({
                       return (
                         <>
                           <TitleSplash />
-                          <CircleCenterShrink />
+                          <RectCenterShrink />
                         </>
                       )
                     }
@@ -238,7 +240,7 @@ const Concourse = ({
                   }
                   if (payload?.status === Fragment_Status_Enum_Enum.Ended)
                     return (
-                      <CircleCenterGrow
+                      <RectCenterGrow
                         performFinishAction={performFinishAction}
                       />
                     )
