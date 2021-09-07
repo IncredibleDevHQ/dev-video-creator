@@ -193,9 +193,7 @@ const Concourse = ({
   return (
     <div className="flex-1 mt-4 justify-between items-stretch flex">
       <div className="bg-gray-100 flex-1 rounded-md p-4 flex justify-center items-center mr-8">
-        {state === 'ready' ||
-        state === 'recording' ||
-        state === 'finalSplash' ? (
+        {state === 'ready' || state === 'recording' ? (
           <Stage
             ref={stageRef}
             onWheel={handleZoom}
@@ -222,24 +220,30 @@ const Concourse = ({
                   fill="#202026"
                   cornerRadius={8}
                 />
-                {payload?.status === Fragment_Status_Enum_Enum.Live &&
-                  titleSpalshData?.enable &&
-                  fragment?.type !== Fragment_Type_Enum_Enum.Splash &&
-                  isTitleSplash && (
-                    <>
-                      <TitleSplash />
-                      <CircleCenterShrink />
-                    </>
-                  )}
-                {payload?.status === Fragment_Status_Enum_Enum.Live &&
-                  !isTitleSplash &&
-                  layerChildren}
-                {payload?.status === Fragment_Status_Enum_Enum.Live &&
-                  fragment?.type !== Fragment_Type_Enum_Enum.Splash &&
-                  !titleSpalshData?.enable && <CircleCenterShrink />}
-                {payload?.status === Fragment_Status_Enum_Enum.Ended && (
-                  <CircleCenterGrow performFinishAction={performFinishAction} />
-                )}
+
+                {(() => {
+                  if (payload?.status === Fragment_Status_Enum_Enum.Live) {
+                    if (titleSpalshData?.enable && isTitleSplash) {
+                      return (
+                        <>
+                          <TitleSplash />
+                          <CircleCenterShrink />
+                        </>
+                      )
+                    }
+                    // if (!titleSpalshData?.enable && !isTitleSplash) {
+                    //   setIsTitleSplash(true)
+                    //   return <CircleCenterShrink />
+                    // }
+                  }
+                  if (payload?.status === Fragment_Status_Enum_Enum.Ended)
+                    return (
+                      <CircleCenterGrow
+                        performFinishAction={performFinishAction}
+                      />
+                    )
+                  return layerChildren
+                })()}
 
                 {!disableUserMedia && (
                   <>
