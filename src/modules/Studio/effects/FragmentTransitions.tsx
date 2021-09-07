@@ -24,7 +24,7 @@ export const CircleShrink = ({
             if (!performFinishAction) return
             setTimeout(() => {
               performFinishAction()
-            }, 1000)
+            }, 200)
           },
         })
       }
@@ -52,7 +52,7 @@ export const CircleGrow = ({
             if (!performFinishAction) return
             setTimeout(() => {
               performFinishAction()
-            }, 1000)
+            }, 200)
           },
         })
       }
@@ -81,7 +81,7 @@ export const CircleCenterShrink = ({
             if (!performFinishAction) return
             setTimeout(() => {
               performFinishAction()
-            }, 1000)
+            }, 200)
           },
         })
       }
@@ -111,7 +111,7 @@ export const CircleCenterGrow = ({
             if (!performFinishAction) return
             setTimeout(() => {
               performFinishAction()
-            }, 1000)
+            }, 200)
           },
         })
       }
@@ -140,7 +140,7 @@ export const SquareCenterTransition = ({
             if (!performFinishAction) return
             setTimeout(() => {
               performFinishAction()
-            }, 1000)
+            }, 200)
           },
         })
       }
