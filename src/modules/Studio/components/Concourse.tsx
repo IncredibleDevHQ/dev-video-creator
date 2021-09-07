@@ -6,16 +6,25 @@ import {
 } from 'recoil'
 import { cx } from '@emotion/css'
 import Konva from 'konva'
-import { Stage, Layer, Rect } from 'react-konva'
+import { Stage, Layer, Rect, Group, Text } from 'react-konva'
 import { KonvaEventObject } from 'konva/lib/Node'
 import MissionControl from './MissionControl'
 import StudioUser from './StudioUser'
 import { canvasStore, StudioProviderProps, studioStore } from '../stores'
+import {
+  Fragment_Status_Enum_Enum,
+  Fragment_Type_Enum_Enum,
+} from '../../../generated/graphql'
+import {
+  CircleCenterGrow,
+  CircleCenterShrink,
+} from '../effects/FragmentTransitions'
 
 interface ConcourseProps {
   controls: JSX.Element[]
   layerChildren: any[]
   disableUserMedia?: boolean
+  titleSpalshData?: { enable: boolean; title?: string }
 }
 
 export const CONFIG = {
@@ -27,10 +36,20 @@ const Concourse = ({
   controls,
   layerChildren,
   disableUserMedia,
+  titleSpalshData,
 }: ConcourseProps) => {
-  const { state, stream, getBlobs, users } =
-    (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const {
+    state,
+    stream,
+    payload,
+    getBlobs,
+    users,
+    stopRecording,
+    updatePayload,
+    fragment,
+  } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [canvas, setCanvas] = useRecoilState(canvasStore)
+  const [isTitleSplash, setIsTitleSplash] = useState<boolean>(false)
 
   const [isZooming, setZooming] = useState(false)
 
@@ -111,15 +130,72 @@ const Concourse = ({
     stageRef.current.scale({ x: 1, y: 1 })
     onMouseLeave()
   }
+  const TitleSplash = () => {
+    return (
+      <>
+        <Group
+          x={0}
+          y={0}
+          name="titleSplash"
+          draggable
+          width={CONFIG.width}
+          height={CONFIG.height}
+          ref={(ref) =>
+            ref?.to({
+              duration: 3,
+              onFinish: () => {
+                setIsTitleSplash(false)
+              },
+            })
+          }
+        >
+          <Rect fill="#1F2937" width={CONFIG.width} height={CONFIG.height} />
+          <Rect
+            fill="#16834A"
+            y={540 / 2 - 80}
+            width={CONFIG.width}
+            height={160}
+          />
+          <Text
+            x={0}
+            y={540 / 2 - 30}
+            width={960}
+            height={80}
+            text={titleSpalshData && titleSpalshData.title}
+            fill="#ffffff"
+            textTransform="capitalize"
+            fontStyle="bold"
+            fontFamily="Poppins"
+            fontSize={60}
+            align="center"
+          />
+        </Group>
+      </>
+    )
+  }
+
+  const performFinishAction = () => {
+    stopRecording()
+  }
 
   useEffect(() => {
     setCanvas({ zoomed: false, resetCanvas })
   }, [])
 
+  useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    titleSpalshData?.enable &&
+      (payload?.status === Fragment_Status_Enum_Enum.Live
+        ? setIsTitleSplash(true)
+        : setIsTitleSplash(true))
+  }, [titleSpalshData, state, payload?.status])
+
   return (
     <div className="flex-1 mt-4 justify-between items-stretch flex">
       <div className="bg-gray-100 flex-1 rounded-md p-4 flex justify-center items-center mr-8">
-        {state === 'ready' || state === 'recording' ? (
+        {state === 'ready' ||
+        state === 'recording' ||
+        state === 'finalSplash' ? (
           <Stage
             ref={stageRef}
             onWheel={handleZoom}
@@ -146,7 +222,25 @@ const Concourse = ({
                   fill="#202026"
                   cornerRadius={8}
                 />
-                {layerChildren}
+                {payload?.status === Fragment_Status_Enum_Enum.Live &&
+                  titleSpalshData?.enable &&
+                  fragment?.type !== Fragment_Type_Enum_Enum.Splash &&
+                  isTitleSplash && (
+                    <>
+                      <TitleSplash />
+                      <CircleCenterShrink />
+                    </>
+                  )}
+                {payload?.status === Fragment_Status_Enum_Enum.Live &&
+                  !isTitleSplash &&
+                  layerChildren}
+                {payload?.status === Fragment_Status_Enum_Enum.Live &&
+                  fragment?.type !== Fragment_Type_Enum_Enum.Splash &&
+                  !titleSpalshData?.enable && <CircleCenterShrink />}
+                {payload?.status === Fragment_Status_Enum_Enum.Ended && (
+                  <CircleCenterGrow performFinishAction={performFinishAction} />
+                )}
+
                 {!disableUserMedia && (
                   <>
                     <StudioUser

@@ -6,30 +6,14 @@ import {
   FlickActivity,
   FragmentActivity,
   FragmentConfiguration,
-  FragmentParticipants,
   FragmentsSidebar,
   Participants,
 } from './components'
 import { currentFlickStore } from '../../stores/flick.store'
-import { EmptyState, Heading, ScreenState, Tab, TabBar } from '../../components'
+import { EmptyState, Heading, ScreenState } from '../../components'
 import { useGetFlickByIdQuery } from '../../generated/graphql'
 import { studioStore } from '../Studio/stores'
 import { User, userState } from '../../stores/user.store'
-
-const tabs: Tab[] = [
-  {
-    name: 'Activity',
-    value: 'Activity',
-  },
-  {
-    name: 'Configuration',
-    value: 'Configuration',
-  },
-  {
-    name: 'Participants',
-    value: 'Participants',
-  },
-]
 
 const Flick = () => {
   const { id, fragmentId } = useParams<{ id: string; fragmentId?: string }>()
@@ -40,7 +24,6 @@ const Flick = () => {
   const [studio, setStudio] = useRecoilState(studioStore)
   const { sub } = (useRecoilValue(userState) as User) || {}
 
-  const [currentTab, setCurrentTab] = useState<Tab>(tabs[0])
   const [isParticipants, setParticipants] = useState(true)
   const [isActivityMenu, setIsActivityMenu] = useState(false)
 
@@ -69,7 +52,6 @@ const Flick = () => {
 
   useEffect(() => {
     if (!flick) return
-
     const isHost =
       flick.participants.find(({ userSub }) => userSub === sub)?.owner || false
     setStudio({ ...studio, isHost })
@@ -122,43 +104,19 @@ const Flick = () => {
         </div>
         {activeFragmentId ? (
           <div>
-            <TabBar
-              tabs={tabs}
-              current={currentTab}
-              onTabChange={setCurrentTab}
+            <FragmentActivity
+              fragment={flick.fragments.find(
+                (fragment) => fragment.id === activeFragmentId
+              )}
             />
-            {currentTab.value === 'Configuration' && (
-              <FragmentConfiguration
-                fragment={flick.fragments.find(
-                  (fragment) => fragment.id === activeFragmentId
-                )}
-                handleRefetch={(refresh) => {
-                  if (refresh) refetch()
-                }}
-              />
-            )}
-            {currentTab.value === 'Activity' && (
-              <FragmentActivity
-                fragment={flick.fragments.find(
-                  (fragment) => fragment.id === activeFragmentId
-                )}
-              />
-            )}
-            {currentTab.value === 'Participants' && (
-              <FragmentParticipants
-                participants={flick.participants}
-                fragmentId={
-                  flick.fragments.find(
-                    (fragment) => fragment.id === activeFragmentId
-                  )?.id
-                }
-                fragmentType={
-                  flick.fragments.find(
-                    (fragment) => fragment.id === activeFragmentId
-                  )?.type
-                }
-              />
-            )}
+            <FragmentConfiguration
+              fragment={flick.fragments.find(
+                (fragment) => fragment.id === activeFragmentId
+              )}
+              handleRefetch={(refresh) => {
+                if (refresh) refetch()
+              }}
+            />
           </div>
         ) : (
           <>

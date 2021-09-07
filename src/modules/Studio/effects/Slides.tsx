@@ -14,6 +14,11 @@ const Slides = () => {
   const [slides, setSlides] = useState<string[]>([])
   const { fragment, state, stream, picture, payload, constraints } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const [titleSpalshData, settitleSpalshData] = useState<{
+    enable: boolean
+    title?: string
+  }>({ enable: false })
+
 
   const imageConfig = { width: 640, height: 480 }
   const imageRef = useRef<Konva.Image | null>(null)
@@ -55,6 +60,14 @@ const Slides = () => {
         (property: any) => property.type === 'file[]'
       )?.value
     )
+    //setConfig of titleSpalsh
+    settitleSpalshData({
+      enable: fragment.configuration.properties.find(
+        (property: any) => property.key === 'showTitleSplash'
+      )?.value,
+      title: fragment.name as string,
+    })
+
   }, [fragment?.configuration.properties])
 
   useEffect(() => {
@@ -98,19 +111,22 @@ const Slides = () => {
     setSlideDim({ width: calWidth, height: calHeight, x: calX, y: calY })
   }
 
-  const controls =
-    state === 'recording'
-      ? [
-          <ControlButton
-            key="nextQuestion"
-            icon={NextTokenIcon}
-            className="my-2"
-            appearance="primary"
-            disabled={activeSlideIndex === slides.length - 1}
-            onClick={() => setActiveSlideIndex(activeSlideIndex + 1)}
-          />,
-        ]
-      : [<></>]
+  useEffect(() => {
+    if (state === 'recording') {
+      setActiveSlideIndex(0)
+    }
+  }, [state])
+
+  const controls = [
+    <ControlButton
+      key="nextQuestion"
+      icon={NextTokenIcon}
+      className="my-2"
+      appearance="primary"
+      disabled={activeSlideIndex === slides.length - 1}
+      onClick={() => setActiveSlideIndex(activeSlideIndex + 1)}
+    />,
+  ]
 
   const layerChildren = [
     // To get the white background color
@@ -201,6 +217,8 @@ const Slides = () => {
       controls={controls}
       layerChildren={layerChildren}
       disableUserMedia={isDisableCamera}
+      titleSpalshData={titleSpalshData}
+
     />
   )
 }

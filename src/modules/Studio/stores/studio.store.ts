@@ -2,7 +2,12 @@ import { atom } from 'recoil'
 import { StudioFragmentFragment } from '../../../generated/graphql'
 import { RTCUser } from '../hooks/use-agora'
 
-export type StudioState = 'ready' | 'recording' | 'preview' | 'upload'
+export type StudioState =
+  | 'ready'
+  | 'recording'
+  | 'preview'
+  | 'upload'
+  | 'finalSplash'
 export interface StudioProviderProps<T = any, S = any> {
   stream: MediaStream
   getBlobs: () => Promise<Blob>
@@ -12,6 +17,7 @@ export interface StudioProviderProps<T = any, S = any> {
 
   startRecording: () => void
   stopRecording: () => void
+  showFinalTransition: () => void
 
   togglePresenterNotes?: (to: boolean) => void
 
