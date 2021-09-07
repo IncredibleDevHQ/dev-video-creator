@@ -202,6 +202,11 @@ const Studio = () => {
     setState('recording')
   }
 
+  const finalTransition = () => {
+    payload.playing = false
+    updatePayload?.({ status: Fragment_Status_Enum_Enum.Ended })
+  }
+
   const stop = () => {
     stopRecording()
     stream?.getTracks().forEach((track) => track.stop())
@@ -232,6 +237,7 @@ const Studio = () => {
       stream: stream as MediaStream,
       startRecording: start,
       stopRecording: stop,
+      showFinalTransition: finalTransition,
       reset: resetRecording,
       upload,
       getBlobs,
@@ -247,6 +253,10 @@ const Studio = () => {
       participantId: fragment?.participants.find(
         ({ participant }) => participant.userSub === sub
       )?.participant.id,
+      isHost:
+        fragment?.participants.find(
+          ({ participant }) => participant.userSub === sub
+        )?.participant.owner || false,
     })
   }, [
     fragment,
@@ -269,7 +279,7 @@ const Studio = () => {
 
   if (!fragment) return <EmptyState text="Fragment not found" width={400} />
 
-  const C = getEffect(fragment.type)
+  const C = getEffect(fragment.type, fragment.configuration)
 
   return (
     <div>

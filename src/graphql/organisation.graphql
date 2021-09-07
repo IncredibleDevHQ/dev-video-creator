@@ -1,3 +1,71 @@
+
+mutation CreateOrganisation($slug: String!) {
+  CreateOrganisation(slug: $slug) {
+    createdAt
+    slug
+  }
+}
+
+mutation AddMemberToOrganisation(
+  $email: String!
+  $organisationSlug: String!
+  $role: MEMBER_ROLE_ENUM_ACTION_enum = Member
+) {
+  AddMemberToOrganisation(
+    email: $email
+    organisationSlug: $organisationSlug
+    role: $role
+  ) {
+    id
+  }
+}
+
+fragment PublicUser on User {
+  displayName
+  picture
+  username
+}
+
+fragment Member on Member {
+  id
+  role
+  user {
+    email
+    sub
+    updatedAt
+    onboarded
+    ...PublicUser
+  }
+}
+
+fragment PublicOrganisation on Organisation {
+  slug
+  name
+  description
+  picture
+  members {
+    id
+    role
+    user {
+      displayName
+      picture
+      username
+    }
+  }
+  series {
+    name
+    id
+    description
+    picture
+  }
+}
+
+query GetOrganisationMembers($organisationSlug: String!) {
+  Member(where: { organisationSlug: { _eq: $organisationSlug } }) {
+    ...Member
+  }
+}
+
 fragment Organisation on Organisation {
   slug
   members {
@@ -29,5 +97,11 @@ mutation AddMemberToOrganisation(
     role: $role
   ) {
     id
+  }
+}
+
+query PublicOrganisation($organisationSlug: String!) {
+  Organisation_by_pk(slug: $organisationSlug) {
+    ...PublicOrganisation
   }
 }

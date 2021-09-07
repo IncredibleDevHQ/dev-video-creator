@@ -17,6 +17,7 @@ import UserSeriesFlicks from './UserSeriesFlicks/UserSeriesFlicks'
 import SingleSeries from './Series/SingleSeries'
 import Circle from './Circle/Circle'
 import NewFragment from './NewFragment/NewFragment'
+import PublicOrganisationPage from './Organisation/PublicOrganisationPage'
 
 export {
   AuthenticateScreen,
@@ -37,4 +38,5 @@ export {
   SingleSeries,
   Circle,
   NewFragment,
+  PublicOrganisationPage,
 }
