@@ -11,6 +11,7 @@ import Slides from './Slides'
 import Points from './Points'
 import { CONFIG } from '../components/Concourse'
 
+const themeEnum = 'theme'
 export interface Effect {
   controls: JSX.Element[]
   layerChildren: any[]
@@ -42,9 +43,12 @@ export const getEffect = (
   type: Fragment_Type_Enum_Enum,
   config: { properties: any }
 ) => {
+  const theme = config.properties.find(
+    (property: any) => property.key === themeEnum
+  )
   switch (type) {
     case Fragment_Type_Enum_Enum.Splash:
-      return config.properties[2].value === '0' ? SplashFive : SplashFour
+      return theme.value === '0' ? SplashFive : SplashFour
     case Fragment_Type_Enum_Enum.CodeJam:
       return CodeJam
     case Fragment_Type_Enum_Enum.Videoshow:

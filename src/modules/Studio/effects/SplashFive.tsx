@@ -12,17 +12,30 @@ import { User, userState } from '../../../stores/user.store'
 import { useGetFragmentByIdQuery } from '../../../generated/graphql'
 import useSplash from '../hooks/use-splash'
 
+const titleEnum = 'title'
+const subTitleEnum = 'subtitle'
+
 const SplashFive = () => {
   const { state } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const { sub } = (useRecoilValue(userState) as User) || {}
-
+  const [configuration, setConfiguration] =
+    useState<{ title: any; subTitle: any }>()
   const params: { fragmentId: string } = useParams()
 
   const { data, error } = useGetFragmentByIdQuery({
     variables: { id: params.fragmentId, sub: sub as string },
   })
 
-  const [title, subTitle] = data?.Fragment[0].configuration.properties
+  useEffect(() => {
+    if (!data?.Fragment[0].configuration.properties) return
+    const title = data?.Fragment[0].configuration.properties.find(
+      (property: any) => property.key === titleEnum
+    )
+    const subTitle = data?.Fragment[0].configuration.properties.find(
+      (property: any) => property.key === subTitleEnum
+    )
+    setConfiguration({ title, subTitle })
+  }, [data])
 
   const { getInitCoordinates } = useSplash()
 
@@ -44,8 +57,8 @@ const SplashFive = () => {
   useEffect(() => {
     if (state === 'recording') {
       coordinate = getInitCoordinates({
-        title: title.value as string,
-        subTitle: subTitle.value as string,
+        title: configuration?.title.value as string,
+        subTitle: configuration?.subTitle.value as string,
         gutter,
         availableWidth: titleWidth - 100,
         titleFontSize,
@@ -165,7 +178,7 @@ const SplashFive = () => {
         key="title"
         x={-600}
         y={coordinate.titleY}
-        text={title.value as string}
+        text={configuration?.title.value as string}
         fontSize={60}
         fontFamily="Poppins"
         fill="#000000"
@@ -184,7 +197,7 @@ const SplashFive = () => {
         key="subTitle"
         x={-600}
         y={coordinate.subTitleY}
-        text={subTitle.value as string}
+        text={configuration?.subTitle.value as string}
         fontSize={30}
         fontFamily="Poppins"
         lineHeight={1.25}
