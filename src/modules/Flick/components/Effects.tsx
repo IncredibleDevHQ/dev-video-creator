@@ -8,9 +8,9 @@ import {
   Button,
   Checkbox,
   emitToast,
-  Photo,
   Text,
   TextField,
+  PhotoFile,
 } from '../../../components'
 import { useUploadFile } from '../../../hooks'
 import { AllowedFileExtensions } from '../../../hooks/use-upload-file'
@@ -155,7 +155,7 @@ export const GetSchemaElement = ({
                 label="Add a Question"
               />
 
-              <Photo
+              <PhotoFile
                 className="text-lg m-4"
                 key={`${schema.key}`}
                 onChange={(e) =>
@@ -328,7 +328,7 @@ export const GetSchemaElement = ({
         <div className="flex flex-col gap-1 m-4" key={schema.key}>
           <div className="flex flex-col gap-2 ">
             <div className="flex flex-row gap-2">
-              <Photo
+              <PhotoFile
                 className="text-lg m-4"
                 key={`${schema.key}`}
                 onChange={async (e) => {
@@ -396,7 +396,7 @@ export const GetSchemaElement = ({
       return (
         <>
           <Text className="ml-4">{schema.description}</Text>
-          <Photo
+          <PhotoFile
             className="text-lg m-4"
             onChange={(e) =>
               // @ts-ignore
