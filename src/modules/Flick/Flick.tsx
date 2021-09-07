@@ -42,7 +42,7 @@ const Flick = () => {
 
   const [currentTab, setCurrentTab] = useState<Tab>(tabs[0])
   const [isParticipants, setParticipants] = useState(true)
-  const [menu, setMenu] = useState(false)
+  const [isActivityMenu, setIsActivityMenu] = useState(false)
 
   const [activeFragmentId, setActiveFragmentId] = useState<string>()
 
@@ -111,14 +111,14 @@ const Flick = () => {
           <button
             type="button"
             className="cursor-pointer"
-            onClick={() => setMenu(!menu)}
+            onClick={() => setIsActivityMenu(!isActivityMenu)}
           >
             <span className="block bg-red-600 absolute w-1.5 h-1.5 rounded-full">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-600 duration-500 opacity-75" />
             </span>
             <FiActivity />
           </button>
-          <FlickActivity menu={menu} setMenu={setMenu} />
+          <FlickActivity menu={isActivityMenu} setMenu={setIsActivityMenu} />
         </div>
         {activeFragmentId ? (
           <div>
