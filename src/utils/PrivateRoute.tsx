@@ -22,7 +22,8 @@ const PrivateRoute = ({
   const user = useRecoilValue(userState)
 
   useEffect(() => {
-    if (!auth?.isAuthenticated) push(redirectTo)
+    if (auth?.isAuthenticated === false && auth?.loading === false)
+      push(redirectTo, { from: rest.location })
   }, [auth])
 
   if (auth?.loading === true || typeof auth?.loading === 'undefined')
