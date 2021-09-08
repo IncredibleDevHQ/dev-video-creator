@@ -31,7 +31,6 @@ interface TokenRenderState {
 }
 
 const CodeJam = () => {
-  const [isTitleSplash, setIsTitleSplash] = useState<boolean>(true)
   const { fragment, payload, updatePayload, state, isHost } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
@@ -99,6 +98,20 @@ const CodeJam = () => {
       currentIndex: payload?.currentIndex || 1,
     })
   }, [payload])
+
+  useEffect(() => {
+    console.log('state', state)
+    if (state == 'ready') {
+      setPosition({
+        prevIndex: -1,
+        currentIndex: 0,
+      })
+      updatePayload?.({
+        currentIndex: 1,
+        prevIndex: 0,
+      })
+    }
+  }, [state])
 
   const controls =
     isHost && state === 'recording'

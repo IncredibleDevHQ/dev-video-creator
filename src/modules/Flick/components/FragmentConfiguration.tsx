@@ -102,6 +102,7 @@ const FragmentConfiguration = ({
             setFieldValue={setFieldValue}
             handleChange={handleChange}
             value={values[attribute.key]}
+            setConfigured={setConfigured}
             setLoadingAssets={setLoadingAssets}
           />
         ))}
