@@ -1,5 +1,5 @@
 import { Rect, Text } from 'react-konva'
-import React, { useEffect } from 'react'
+import React from 'react'
 import { Fragment_Type_Enum_Enum } from '../../../generated/graphql'
 import CodeJam from './CodeJam'
 import VideoJam from './VideoJam'
@@ -11,6 +11,7 @@ import Slides from './Slides'
 import Points from './Points'
 import { CONFIG } from '../components/Concourse'
 import SplashSix from './SplashSix'
+import Outro from './Outro'
 
 const themeEnum = 'theme'
 export interface Effect {
@@ -47,6 +48,40 @@ const getSplash = (theme: any) => {
   return SplashSix
 }
 
+export const getDimensions = (
+  img: { w: number; h: number },
+  maxH: number,
+  maxW: number,
+  setImageDim: React.Dispatch<
+    React.SetStateAction<{
+      width: number
+      height: number
+      x: number
+      y: number
+    }>
+  >
+) => {
+  let calWidth = 0
+  let calHeight = 0
+  let calX = 0
+  let calY = 0
+  const aspectRatio = img.w / img.h
+  if (aspectRatio > maxW / maxH) {
+    // horizontal img
+    calY = Math.max((540 - maxW * (1 / aspectRatio)) / 2 - 30, 0)
+    calX = 0
+    calHeight = maxW * (1 / aspectRatio)
+    calWidth = maxW
+  } else if (aspectRatio <= maxW / maxH) {
+    // sqr or vertical image
+    calY = 0
+    calX = (maxW - maxH * aspectRatio) / 2
+    calHeight = maxH
+    calWidth = maxH * aspectRatio
+  }
+  setImageDim({ width: calWidth, height: calHeight, x: calX, y: calY })
+}
+
 export const getEffect = (
   type: Fragment_Type_Enum_Enum,
   config: { properties: any }
@@ -69,6 +104,8 @@ export const getEffect = (
       return Slides
     case Fragment_Type_Enum_Enum.Points:
       return Points
+    case Fragment_Type_Enum_Enum.Outro:
+      return Outro
     default:
       throw Error('No effect found')
   }

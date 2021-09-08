@@ -8,6 +8,7 @@ import { Concourse } from '../components'
 import { CONFIG } from '../components/Concourse'
 import { ControlButton } from '../components/MissionControl'
 import { StudioProviderProps, studioStore } from '../stores'
+import { getDimensions } from './effects'
 
 const Slides = () => {
   const [activeSlideIndex, setActiveSlideIndex] = useState<number>(0)
@@ -18,7 +19,6 @@ const Slides = () => {
     enable: boolean
     title?: string
   }>({ enable: false })
-
 
   const imageConfig = { width: 640, height: 480 }
   const imageRef = useRef<Konva.Image | null>(null)
@@ -33,10 +33,15 @@ const Slides = () => {
   }>({ width: 0, height: 0, x: 0, y: 0 })
 
   useEffect(() => {
-    getDimensions({
-      w: (slide && slide.width) || 0,
-      h: (slide && slide.height) || 0,
-    })
+    getDimensions(
+      {
+        w: (slide && slide.width) || 0,
+        h: (slide && slide.height) || 0,
+      },
+      480,
+      600,
+      setSlideDim
+    )
   }, [slide])
 
   const videoElement = React.useMemo(() => {
@@ -67,7 +72,6 @@ const Slides = () => {
       )?.value,
       title: fragment.name as string,
     })
-
   }, [fragment?.configuration.properties])
 
   useEffect(() => {
@@ -88,28 +92,6 @@ const Slides = () => {
     if (!ref.current) return
     ref.current.srcObject = stream
   }, [ref.current])
-
-  const getDimensions = (img: { w: number; h: number }) => {
-    let calWidth = 0
-    let calHeight = 0
-    let calX = 0
-    let calY = 0
-    const aspectRatio = img.w / img.h
-    if (aspectRatio > 1.25) {
-      // horizontal img
-      calY = Math.max((540 - 600 * (1 / aspectRatio)) / 2 - 30, 0)
-      calX = 0
-      calHeight = 600 * (1 / aspectRatio)
-      calWidth = 600
-    } else if (aspectRatio <= 1.25) {
-      // sqr or vertical image
-      calY = 0
-      calX = (600 - 480 * aspectRatio) / 2
-      calHeight = 480
-      calWidth = 480 * aspectRatio
-    }
-    setSlideDim({ width: calWidth, height: calHeight, x: calX, y: calY })
-  }
 
   useEffect(() => {
     if (state === 'recording') {
@@ -218,7 +200,6 @@ const Slides = () => {
       layerChildren={layerChildren}
       disableUserMedia={isDisableCamera}
       titleSpalshData={titleSpalshData}
-
     />
   )
 }
