@@ -1,32 +1,73 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Circle, Group, Image, Line, Rect, Text } from 'react-konva'
+import { Image, Rect, Text } from 'react-konva'
 import Konva from 'konva'
 import { useRecoilValue } from 'recoil'
-import { useImage } from 'react-konva-utils'
 import FontFaceObserver from 'fontfaceobserver'
-import { useParams } from 'react-router-dom'
 import Concourse, { CONFIG } from '../components/Concourse'
 import { StudioProviderProps, studioStore } from '../stores'
 import { Coordinates } from '../hooks/use-splash'
-import { User, userState } from '../../../stores/user.store'
-import { useGetFragmentByIdQuery } from '../../../generated/graphql'
 import useSplash from '../hooks/use-splash'
+import { SchemaElementProps } from '../../Flick/components/Effects'
+
+interface Dimension {
+  width: number
+  height: number
+}
+const Video = ({ videoElement }: { videoElement: HTMLVideoElement }) => {
+  const imageRef = React.useRef<Konva.Image>(null)
+  const [size, setSize] = useState<Dimension>({
+    width: (CONFIG.height * 16) / 9,
+    height: CONFIG.height,
+  })
+
+  // when video is loaded, we should read it size
+  React.useEffect(() => {
+    const onload = () => {
+      setSize({
+        width:
+          (CONFIG.height * videoElement.videoWidth) / videoElement.videoHeight,
+        height: CONFIG.height,
+      })
+    }
+    videoElement.addEventListener('loadedmetadata', onload)
+    return () => {
+      videoElement.removeEventListener('loadedmetadata', onload)
+    }
+  }, [videoElement])
+
+  // use Konva.Animation to redraw a layer
+  useEffect(() => {
+    // @ts-ignore
+    const layer = imageRef.current?.getLayer()
+
+    const anim = new Konva.Animation(() => {}, layer)
+    anim.start()
+
+    return () => {
+      anim.stop()
+    }
+  }, [videoElement])
+
+  return (
+    <Image
+      x={
+        (CONFIG.width -
+          (CONFIG.height * videoElement.videoWidth) /
+            videoElement.videoHeight) /
+        2
+      }
+      ref={imageRef}
+      image={videoElement}
+      width={
+        (CONFIG.height * videoElement.videoWidth) / videoElement.videoHeight
+      }
+      height={size.height}
+    />
+  )
+}
 
 const SplashFive = () => {
   const { state } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
-  const { sub } = (useRecoilValue(userState) as User) || {}
-
-  const params: { fragmentId: string } = useParams()
-
-  const { data, error } = useGetFragmentByIdQuery({
-    variables: { id: params.fragmentId, sub: sub as string },
-  })
-
-  const [title, subTitle] = data?.Fragment[0].configuration.properties
-
-  const { getInitCoordinates } = useSplash()
-
-  const controls: any = []
 
   let coordinate: Coordinates = {
     titleX: 0,
@@ -35,14 +76,87 @@ const SplashFive = () => {
     subTitleY: 0,
     titleHeight: 0,
   }
+  const tempConfig: SchemaElementProps[] = [
+    {
+      dirty: false,
+      value: true,
+      editable: true,
+      required: true,
+      key: 'customSplash',
+      name: 'Custom Splash',
+      type: 'boolean',
+      description: 'Do you want to show the title splash?',
+    },
+    {
+      dirty: true,
+      editable: true,
+      value:
+        'https://incredible-uploads-staging.s3.us-west-1.amazonaws.com/YHVvezrJqVm2q9AFCfTcvQY2uZhQ7tyd.mp4',
+      required: true,
+      key: 'source',
+      name: 'Source URL',
+      type: 'text',
+      description: 'Add Custom Splash Video url',
+    },
+    {
+      dirty: true,
+      value: 'title',
+      editable: true,
+      required: true,
+      key: 'title',
+      name: 'Title',
+      type: 'text',
+      description: 'Title',
+    },
+    {
+      dirty: true,
+      value: 'lol',
+      editable: true,
+      required: true,
+      key: 'subtitle',
+      name: 'Subtitle',
+      type: 'text',
+      description: 'Subtitle',
+    },
+    {
+      dirty: true,
+      value: '0',
+      editable: true,
+      required: true,
+      key: 'theme',
+      name: 'Theme Number',
+      type: 'text',
+      description: "The theme's number",
+    },
+  ]
+  const [customSplash, source, title, subTitle] = tempConfig
+
+  const { getInitCoordinates } = useSplash()
+
+  const controls: any = []
 
   const gutter = 10
   const titleWidth = 600
   const titleFontSize = 60
   const subTitleFontSize = 30
 
+  const videoElement = React.useMemo(() => {
+    const element = document.createElement('video')
+    element.autoplay = false
+    element.crossOrigin = 'anonymous'
+    element.src = source.value
+    return element
+  }, [source])
+
   useEffect(() => {
-    if (state === 'recording') {
+    if (customSplash.value) {
+      if (!videoElement) return
+      if (state === 'recording') {
+        videoElement?.play()
+      }
+
+      getLayerChildren()
+    } else if (state === 'recording') {
       coordinate = getInitCoordinates({
         title: title.value as string,
         subTitle: subTitle.value as string,
@@ -74,8 +188,7 @@ const SplashFive = () => {
   ])
 
   const getLayerChildren = () => {
-    setLayerChildren((layerChildren) => [
-      ...layerChildren,
+    let incredibleSplashFiveConfig = [
       <Rect
         key="firstRect"
         x={-500}
@@ -200,6 +313,19 @@ const SplashFive = () => {
           })
         }}
       />,
+    ]
+    console.log('customSplash', customSplash.value)
+    {
+      customSplash.value &&
+        (incredibleSplashFiveConfig = videoElement
+          ? [<Video videoElement={videoElement} />]
+          : [<></>])
+    }
+    console.log('videosrc', videoElement)
+
+    setLayerChildren((layerChildren) => [
+      ...layerChildren,
+      incredibleSplashFiveConfig,
     ])
   }
 

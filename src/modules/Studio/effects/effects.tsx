@@ -44,7 +44,8 @@ export const getEffect = (
 ) => {
   switch (type) {
     case Fragment_Type_Enum_Enum.Splash:
-      return config.properties[2].value === '0' ? SplashFive : SplashFour
+      // return config.properties[2].value === '0' ? SplashFive : SplashFour
+      return SplashFive
     case Fragment_Type_Enum_Enum.CodeJam:
       return CodeJam
     case Fragment_Type_Enum_Enum.Videoshow:
