@@ -42,6 +42,7 @@ interface GetSchemaElementProps {
       >
   value: any
   setLoadingAssets: React.Dispatch<React.SetStateAction<boolean>>
+  setConfigured: React.Dispatch<React.SetStateAction<boolean>>
 }
 
 export const GetSchemaElement = ({
@@ -50,6 +51,7 @@ export const GetSchemaElement = ({
   setFieldValue,
   value,
   setLoadingAssets,
+  setConfigured,
 }: GetSchemaElementProps) => {
   const addToFormik = (valueArray: any) => {
     const event = new Event('input', { bubbles: true })
@@ -77,6 +79,9 @@ export const GetSchemaElement = ({
       )
 
     case 'text':
+      if (!value || (value && value.length <= 0)) {
+        setConfigured(false)
+      }
       return (
         <TextField
           className="text-lg m-4"
@@ -102,6 +107,9 @@ export const GetSchemaElement = ({
       const [loading, setLoading] = useState(false)
 
       useEffect(() => {
+        if (!value || (value && value.length <= 0)) {
+          setConfigured(false)
+        }
         setQuestions(value || [])
       }, [value])
 
@@ -218,7 +226,10 @@ export const GetSchemaElement = ({
       const [points, setPoints] = useState<string[]>([])
 
       useEffect(() => {
-        if (!value) return
+        if (!value || (value && value.length <= 0)) {
+          setConfigured(false)
+          return
+        }
         setPoints(value)
       }, [value])
 
@@ -299,6 +310,10 @@ export const GetSchemaElement = ({
       const [slideImage, setSlideImage] = useState<string>()
 
       useEffect(() => {
+        if (!value || (value && value.length <= 0)) {
+          setConfigured(false)
+          return
+        }
         setSlides(value || [])
       }, [value])
 
