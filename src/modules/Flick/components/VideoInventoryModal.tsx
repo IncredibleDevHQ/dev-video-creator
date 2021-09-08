@@ -3,7 +3,7 @@ import React, { useState } from 'react'
 import Modal from 'react-responsive-modal'
 import { Button, Heading, ScreenState } from '../../../components'
 import Video from '../../../components/UploadVideo'
-import { S3Link } from '../../../constants'
+import config from '../../../config'
 import { useUserAssetQuery } from '../../../generated/graphql'
 
 import { ScreenRecording } from './index'
@@ -18,6 +18,7 @@ const VideoInventoryModal = ({
   handleClose: () => void
   setSelectedVideoLink: React.Dispatch<React.SetStateAction<string>>
 }) => {
+  const { baseUrl } = config.storage
   const [screenRecordModal, setScreenRecordModal] = useState<boolean>(false)
   const [uploadFileModal, setUploadFileModal] = useState<boolean>(false)
 
@@ -36,7 +37,7 @@ const VideoInventoryModal = ({
       }}
       classNames={{
         modal: cx(
-          'rounded-lg w-80% h-50%',
+          'rounded-lg w-3/4 h-1/2',
           css`
             background-color: #fffffff !important;
           `
@@ -74,16 +75,13 @@ const VideoInventoryModal = ({
             <div
               className="max-w-2xl flex content-center bg-gray-800"
               onClick={() => {
-                setSelectedVideoLink(S3Link + asset.objectLink)
+                setSelectedVideoLink(baseUrl + asset.objectLink)
                 handleClose()
               }}
             >
-              <video
-                width={400}
-                height={225}
-                src={S3Link + asset.objectLink}
-                controls
-              />
+              <video width={400} height={225} controls>
+                <source src={baseUrl + asset.objectLink} type="video/mp4" />
+              </video>
             </div>
           ))}
       </div>

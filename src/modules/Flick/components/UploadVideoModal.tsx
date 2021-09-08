@@ -83,7 +83,7 @@ const UploadVideoModal = ({
           e.target.files?.[0] && handleClick(e.target.files[0])
         }
       ></Video>
-      {video && !loadingAssets && (
+      {video && video.url && !loadingAssets && (
         <video height="200px" src={video?.url} controls />
       )}
       {loadingAssets && (
