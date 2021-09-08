@@ -15,60 +15,6 @@ const FragmentConfiguration = ({
   handleRefetch: (refresh?: boolean) => void
   fragment?: FlickFragmentFragment
 }) => {
-  // const tempConfig: SchemaElementProps[] = [
-  //   {
-  //     dirty: false,
-  //     value: true,
-  //     editable: true,
-  //     required: true,
-  //     key: 'customSplash',
-  //     name: 'Custom Splash',
-  //     type: 'boolean',
-  //     description: 'Do you want to show the title splash?',
-  //   },
-  //   {
-  //     dirty: true,
-  //     editable: true,
-  //     value:
-  //       'https://incredible-uploads-staging.s3.us-west-1.amazonaws.com/YHVvezrJqVm2q9AFCfTcvQY2uZhQ7tyd.mp4',
-  //     required: true,
-  //     key: 'source',
-  //     name: 'Source URL',
-  //     type: 'text',
-  //     description: 'Add Custom Splash Video url',
-  //   },
-  //   {
-  //     dirty: true,
-  //     value: 'title',
-  //     editable: true,
-  //     required: true,
-  //     key: 'title',
-  //     name: 'Title',
-  //     type: 'text',
-  //     description: 'Title',
-  //   },
-  //   {
-  //     dirty: true,
-  //     value: 'lol',
-  //     editable: true,
-  //     required: true,
-  //     key: 'subtitle',
-  //     name: 'Subtitle',
-  //     type: 'text',
-  //     description: 'Subtitle',
-  //   },
-  //   {
-  //     dirty: true,
-  //     value: '0',
-  //     editable: true,
-  //     required: true,
-  //     key: 'theme',
-  //     name: 'Theme Number',
-  //     type: 'text',
-  //     description: "The theme's number",
-  //   },
-  // ]
-
   const [config, setConfig] = useState<SchemaElementProps[]>()
   const [initial, setInitial] = useState<{ [key: string]: any }>({})
   const [isConfigured, setConfigured] = useState(false)

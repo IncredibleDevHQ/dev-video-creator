@@ -4,16 +4,10 @@ import React, { ChangeEvent, useEffect, useState } from 'react'
 import { cx } from '@emotion/css'
 import { IoRemoveSharp } from 'react-icons/io5'
 import { FiLoader } from 'react-icons/fi'
-import {
-  Button,
-  Checkbox,
-  emitToast,
-  Photo,
-  Text,
-  TextField,
-} from '../../../components'
+import { Button, Checkbox, Photo, Text, TextField } from '../../../components'
 import { useUploadFile } from '../../../hooks'
 import { AllowedFileExtensions } from '../../../hooks/use-upload-file'
+import SplashFive from '../../Studio/effects/SplashFive'
 
 export interface SchemaElementProps {
   key: string
@@ -63,6 +57,7 @@ export const GetSchemaElement = ({
 
   switch (schema.type) {
     case 'boolean':
+      SplashFive
       return (
         <Checkbox
           name={schema.key}
@@ -77,11 +72,6 @@ export const GetSchemaElement = ({
       )
 
     case 'text':
-      // if(schema.key === 'CustomSplash'){
-      //   if(acceptCustomVideo){
-
-      //   }
-      // }
       return (
         <TextField
           className="text-lg m-4"
