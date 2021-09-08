@@ -14,6 +14,7 @@ const FileArraySchema = ({
   setFieldValue,
   value,
   setLoadingAssets,
+
   setConfigured,
 }: GetSchemaElementProps) => {
   const [uploadSlides] = useUploadFile()
@@ -35,6 +36,7 @@ const FileArraySchema = ({
       setConfigured(false)
       return
     }
+
     setSlides(value || [])
   }, [value])
 

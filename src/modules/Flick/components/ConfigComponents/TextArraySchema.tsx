@@ -10,6 +10,7 @@ const TextArraySchema = ({
   setFieldValue,
   value,
   setLoadingAssets,
+
   setConfigured,
 }: GetSchemaElementProps) => {
   const addToFormik = (valueArray: any) => {
@@ -29,6 +30,7 @@ const TextArraySchema = ({
       setConfigured(false)
       return
     }
+
     setPoints(value)
   }, [value])
 

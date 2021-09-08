@@ -13,6 +13,7 @@ const JsonSchema = ({
   setFieldValue,
   value,
   setLoadingAssets,
+
   setConfigured,
 }: GetSchemaElementProps) => {
   const addToFormik = (valueArray: any) => {
@@ -38,11 +39,13 @@ const JsonSchema = ({
     if (!value || (value && value.length <= 0)) {
       setConfigured(false)
     }
+
     setQuestions(value || [])
   }, [value])
 
   const addQuestion = async (file: File) => {
     if (!question?.text) return
+
     if (!file) return
     setLoadingAssets(true)
     setLoading(true)

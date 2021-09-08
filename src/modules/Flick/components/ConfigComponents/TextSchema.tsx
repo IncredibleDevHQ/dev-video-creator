@@ -9,11 +9,13 @@ const TextSchema = ({
   setFieldValue,
   value,
   setLoadingAssets,
+
   setConfigured,
 }: GetSchemaElementProps) => {
   if (!value || (value && value.length <= 0)) {
     setConfigured(false)
   }
+
   return (
     <TextField
       className="text-lg m-4"
