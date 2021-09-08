@@ -10,6 +10,7 @@ import StoryBook from './StoryBook'
 import Slides from './Slides'
 import Points from './Points'
 import { CONFIG } from '../components/Concourse'
+import SplashSix from './SplashSix'
 
 const themeEnum = 'theme'
 export interface Effect {
@@ -39,6 +40,13 @@ export const titleSplash = (title: string): JSX.Element => {
   )
   return titleSplashChildern
 }
+
+const getSplash = (theme: any) => {
+  if (theme.value === '0') return SplashFive
+  if (theme.value === '1') return SplashFour
+  return SplashSix
+}
+
 export const getEffect = (
   type: Fragment_Type_Enum_Enum,
   config: { properties: any }
@@ -48,7 +56,7 @@ export const getEffect = (
   )
   switch (type) {
     case Fragment_Type_Enum_Enum.Splash:
-      return theme.value === '0' ? SplashFive : SplashFour
+      return getSplash(theme)
     case Fragment_Type_Enum_Enum.CodeJam:
       return CodeJam
     case Fragment_Type_Enum_Enum.Videoshow:
