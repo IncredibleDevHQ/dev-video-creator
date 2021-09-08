@@ -10,6 +10,7 @@ import StoryBook from './StoryBook'
 import Slides from './Slides'
 import Points from './Points'
 import { CONFIG } from '../components/Concourse'
+import Discussion from './Discussion'
 
 const themeEnum = 'theme'
 export interface Effect {
@@ -61,6 +62,8 @@ export const getEffect = (
       return Slides
     case Fragment_Type_Enum_Enum.Points:
       return Points
+    case Fragment_Type_Enum_Enum.Discussion:
+      return Discussion
     default:
       throw Error('No effect found')
   }
