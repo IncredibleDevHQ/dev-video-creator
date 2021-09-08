@@ -18,6 +18,7 @@ import {
 import {
   CircleCenterGrow,
   CircleCenterShrink,
+  MultiCircleCenterGrow,
   RectCenterGrow,
   RectCenterShrink,
 } from '../effects/FragmentTransitions'
@@ -229,7 +230,7 @@ const Concourse = ({
                       return (
                         <>
                           <TitleSplash />
-                          <RectCenterShrink />
+                          <CircleCenterShrink color="#000000" />
                         </>
                       )
                     }
@@ -240,7 +241,7 @@ const Concourse = ({
                   }
                   if (payload?.status === Fragment_Status_Enum_Enum.Ended)
                     return (
-                      <RectCenterGrow
+                      <MultiCircleCenterGrow
                         performFinishAction={performFinishAction}
                       />
                     )
