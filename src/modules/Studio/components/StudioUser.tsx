@@ -10,13 +10,16 @@ const StudioUser = ({
   stream,
   x,
   y,
+  width,
+  height,
 }: {
   x: number
   y: number
-
+  width?: number
+  height?: number
   stream: MediaStream | null
 }) => {
-  const imageConfig = { width: 160, height: 120 }
+  const imageConfig = { width: width || 160, height: height || 120 }
   const imageRef = useRef<Konva.Image | null>(null)
 
   const { picture, constraints } =

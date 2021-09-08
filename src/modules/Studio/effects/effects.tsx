@@ -10,6 +10,7 @@ import StoryBook from './StoryBook'
 import Slides from './Slides'
 import Points from './Points'
 import { CONFIG } from '../components/Concourse'
+import Discussion from './Discussion'
 import SplashSix from './SplashSix'
 import Outro from './Outro'
 
@@ -104,6 +105,8 @@ export const getEffect = (
       return Slides
     case Fragment_Type_Enum_Enum.Points:
       return Points
+    case Fragment_Type_Enum_Enum.Discussion:
+      return Discussion
     case Fragment_Type_Enum_Enum.Outro:
       return Outro
     default:
