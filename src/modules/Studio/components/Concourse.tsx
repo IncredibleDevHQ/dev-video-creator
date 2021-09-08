@@ -22,11 +22,19 @@ import {
   RectCenterShrink,
 } from '../effects/FragmentTransitions'
 
+export interface StudioCoordinates {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
 interface ConcourseProps {
   controls: JSX.Element[]
   layerChildren: any[]
   disableUserMedia?: boolean
   titleSpalshData?: { enable: boolean; title?: string }
+  studioUserConfig?: StudioCoordinates[]
 }
 
 export const CONFIG = {
@@ -39,6 +47,7 @@ const Concourse = ({
   layerChildren,
   disableUserMedia,
   titleSpalshData,
+  studioUserConfig,
 }: ConcourseProps) => {
   const {
     state,
@@ -250,14 +259,32 @@ const Concourse = ({
                 {!disableUserMedia && (
                   <>
                     <StudioUser
-                      x={initialPos.x}
-                      y={initialPos.y}
+                      x={
+                        (studioUserConfig && studioUserConfig[0]?.x) ||
+                        initialPos.x
+                      }
+                      y={
+                        (studioUserConfig && studioUserConfig[0]?.y) ||
+                        initialPos.y
+                      }
                       stream={stream as MediaStream}
+                      width={studioUserConfig && studioUserConfig[0]?.width}
+                      height={studioUserConfig && studioUserConfig[0]?.height}
                     />
                     {users.map((user, index) => (
                       <StudioUser
-                        x={initialPos.x - (index + 1) * userStudioImageGap}
-                        y={initialPos.y}
+                        x={
+                          (studioUserConfig &&
+                            studioUserConfig[index + 1]?.x) ||
+                          initialPos.x - (index + 1) * userStudioImageGap
+                        }
+                        y={
+                          (studioUserConfig &&
+                            studioUserConfig[index + 1]?.y) ||
+                          initialPos.y
+                        }
+                        width={studioUserConfig && studioUserConfig[0]?.width}
+                        height={studioUserConfig && studioUserConfig[0]?.height}
                         key={user.uid}
                         stream={user.mediaStream as MediaStream}
                       />
