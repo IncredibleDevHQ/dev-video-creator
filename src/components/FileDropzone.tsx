@@ -3,7 +3,11 @@ import { FormEvent } from 'react'
 import Dropzone from 'react-dropzone'
 import { FcOpenedFolder } from 'react-icons/fc'
 
-const PhotoFile = ({ onChange, ...rest }: HTMLAttributes<HTMLInputElement>) => {
+const FileDropzone = ({
+  onChange,
+
+  ...rest
+}: HTMLAttributes<HTMLInputElement>) => {
   const onDrop = (acceptedFiles: File[]) => {
     const currentFile = acceptedFiles.map((file) => {
       file.name
@@ -14,7 +18,6 @@ const PhotoFile = ({ onChange, ...rest }: HTMLAttributes<HTMLInputElement>) => {
     <Dropzone
       onDrop={onDrop}
       multiple={true}
-      accept="image/*"
       onDropAccepted={(image) => {
         const event = new Event('input', { bubbles: true })
         dispatchEvent(event)
@@ -45,4 +48,4 @@ const PhotoFile = ({ onChange, ...rest }: HTMLAttributes<HTMLInputElement>) => {
   )
 }
 
-export default PhotoFile
+export default FileDropzone
