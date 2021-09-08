@@ -1,5 +1,5 @@
 import { Rect, Text } from 'react-konva'
-import React, { useEffect } from 'react'
+import React from 'react'
 import { Fragment_Type_Enum_Enum } from '../../../generated/graphql'
 import CodeJam from './CodeJam'
 import VideoJam from './VideoJam'
@@ -10,6 +10,7 @@ import StoryBook from './StoryBook'
 import Slides from './Slides'
 import Points from './Points'
 import { CONFIG } from '../components/Concourse'
+import SplashSix from './SplashSix'
 import Outro from './Outro'
 
 const themeEnum = 'theme'
@@ -39,6 +40,12 @@ export const titleSplash = (title: string): JSX.Element => {
     </>
   )
   return titleSplashChildern
+}
+
+const getSplash = (theme: any) => {
+  if (theme.value === '0') return SplashFive
+  if (theme.value === '1') return SplashFour
+  return SplashSix
 }
 
 export const getDimensions = (
@@ -84,7 +91,7 @@ export const getEffect = (
   )
   switch (type) {
     case Fragment_Type_Enum_Enum.Splash:
-      return theme.value === '0' ? SplashFive : SplashFour
+      return getSplash(theme)
     case Fragment_Type_Enum_Enum.CodeJam:
       return CodeJam
     case Fragment_Type_Enum_Enum.Videoshow:
