@@ -103,6 +103,7 @@ export const CircleCenterGrow = ({
       scaleX={0}
       scaleY={0}
       fill="#16A34A"
+      zIndex={100}
       ref={(ref) =>
         ref?.to({
           scaleX: 10,
@@ -132,6 +133,7 @@ export const RectCenterGrow = ({
       fill="#16A34A"
       width={CONFIG.width}
       height={1}
+      zIndex={100}
       ref={(ref) =>
         ref?.to({
           height: CONFIG.height,

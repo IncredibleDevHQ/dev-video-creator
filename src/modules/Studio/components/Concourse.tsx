@@ -151,6 +151,7 @@ const Concourse = ({
           draggable
           width={CONFIG.width}
           height={CONFIG.height}
+          zIndex={100}
           ref={(ref) =>
             ref?.to({
               duration: 3,
@@ -253,44 +254,57 @@ const Concourse = ({
                         performFinishAction={performFinishAction}
                       />
                     )
+                  if (payload?.status !== Fragment_Status_Enum_Enum.Live)
+                    return (
+                      <Rect
+                        x={0}
+                        y={0}
+                        width={CONFIG.width}
+                        height={CONFIG.height}
+                        fill="#000000"
+                      />
+                    )
                   return layerChildren
                 })()}
 
-                {!disableUserMedia && (
-                  <>
-                    <StudioUser
-                      x={
-                        (studioUserConfig && studioUserConfig[0]?.x) ||
-                        initialPos.x
-                      }
-                      y={
-                        (studioUserConfig && studioUserConfig[0]?.y) ||
-                        initialPos.y
-                      }
-                      stream={stream as MediaStream}
-                      width={studioUserConfig && studioUserConfig[0]?.width}
-                      height={studioUserConfig && studioUserConfig[0]?.height}
-                    />
-                    {users.map((user, index) => (
+                {!disableUserMedia &&
+                  payload?.status === Fragment_Status_Enum_Enum.Live && (
+                    <>
                       <StudioUser
                         x={
-                          (studioUserConfig &&
-                            studioUserConfig[index + 1]?.x) ||
-                          initialPos.x - (index + 1) * userStudioImageGap
+                          (studioUserConfig && studioUserConfig[0]?.x) ||
+                          initialPos.x
                         }
                         y={
-                          (studioUserConfig &&
-                            studioUserConfig[index + 1]?.y) ||
+                          (studioUserConfig && studioUserConfig[0]?.y) ||
                           initialPos.y
                         }
+                        stream={stream as MediaStream}
                         width={studioUserConfig && studioUserConfig[0]?.width}
                         height={studioUserConfig && studioUserConfig[0]?.height}
-                        key={user.uid}
-                        stream={user.mediaStream as MediaStream}
                       />
-                    ))}
-                  </>
-                )}
+                      {users.map((user, index) => (
+                        <StudioUser
+                          x={
+                            (studioUserConfig &&
+                              studioUserConfig[index + 1]?.x) ||
+                            initialPos.x - (index + 1) * userStudioImageGap
+                          }
+                          y={
+                            (studioUserConfig &&
+                              studioUserConfig[index + 1]?.y) ||
+                            initialPos.y
+                          }
+                          width={studioUserConfig && studioUserConfig[0]?.width}
+                          height={
+                            studioUserConfig && studioUserConfig[0]?.height
+                          }
+                          key={user.uid}
+                          stream={user.mediaStream as MediaStream}
+                        />
+                      ))}
+                    </>
+                  )}
               </Layer>
             </Bridge>
           </Stage>
