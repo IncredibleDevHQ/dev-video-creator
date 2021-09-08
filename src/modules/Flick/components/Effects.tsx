@@ -14,6 +14,7 @@ import {
 } from '../../../components'
 import { useUploadFile } from '../../../hooks'
 import { AllowedFileExtensions } from '../../../hooks/use-upload-file'
+import { PicSchema } from './ConfigComponents/index'
 
 export interface SchemaElementProps {
   key: string
@@ -26,7 +27,7 @@ export interface SchemaElementProps {
   editable: boolean
 }
 
-interface GetSchemaElementProps {
+export interface GetSchemaElementProps {
   schema: SchemaElementProps
   handleChange: (e: React.ChangeEvent<any>) => void
   setFieldValue: (
@@ -371,48 +372,7 @@ export const GetSchemaElement = ({
         </div>
       )
     case 'pic':
-      const [uploadPic] = useUploadFile()
-
-      const [picture, setPicture] = useState<string>()
-
-      const handleClick = async (file: File) => {
-        if (!file) return
-        setLoadingAssets(true)
-        const pic = await uploadPic({
-          extension: file.name.split('.').pop() as AllowedFileExtensions,
-          file,
-        })
-        setLoadingAssets(false)
-        setPicture(pic.url)
-
-        const event = new Event('input', { bubbles: true })
-        dispatchEvent(event)
-        // @ts-ignore
-        event.target.name = schema.key
-        // @ts-ignore
-        event.target.value = pic.url
-        handleChange(event as any)
-      }
-      return (
-        <>
-          <Text className="ml-4">{schema.description}</Text>
-          <Photo
-            className="text-lg m-4"
-            onChange={(e) =>
-              // @ts-ignore
-              e.target.files?.[0] && handleClick(e.target.files[0])
-            }
-          />
-          {picture ||
-            (value && (
-              <img
-                className="h-32 m-4 object-contain"
-                src={picture || value}
-                alt={value}
-              />
-            ))}
-        </>
-      )
+      ;<PicSchema />
 
     default:
       return <></>
