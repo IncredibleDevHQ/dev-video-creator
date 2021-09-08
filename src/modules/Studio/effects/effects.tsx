@@ -75,7 +75,7 @@ export const getDimensions = (
     calWidth = maxW
   } else if (aspectRatio <= maxW / maxH) {
     // sqr or vertical image
-    calY = 0
+    calY = 100
     calX = (maxW - maxH * aspectRatio) / 2
     calHeight = maxH
     calWidth = maxH * aspectRatio
