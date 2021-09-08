@@ -27,6 +27,7 @@ import {
   Designer,
   NewFragment,
   PublicOrganisationPage,
+  InviteScreen,
 } from './modules'
 
 const App = () => {
@@ -107,10 +108,15 @@ const App = () => {
             </Router>
           </>
         </AuthProvider>
-        <Router>
+
+        <Router forceRefresh>
+          {/* history.push wasn't working in InviteScreen, therefore added forceRefresh */}
           <Switch>
             <Route exact path="/organisations/:organisationSlug">
               <PublicOrganisationPage />
+            </Route>
+            <Route exact path="/invite/:flickId">
+              <InviteScreen />
             </Route>
           </Switch>
         </Router>

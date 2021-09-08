@@ -35,7 +35,7 @@ const Participant = ({
       ) : (
         <Gravatar
           className="w-8 h-8 rounded-md"
-          email={participant.user.picture as string}
+          email={participant.user.displayName as string}
         />
       )}
       <Text fontSize="normal" className="ml-2">
@@ -59,8 +59,18 @@ const Participants = ({
   handleRefetch: (refresh?: boolean) => void
 }) => {
   const [search, setSearch] = useState<string>('')
-  const [selectedMember, setSelectedMember] = useState<FilteredUserFragment>()
+  const [isEmail, setIsEmail] = useState(false)
+  const [selectedMember, setSelectedMember] = useState<
+    FilteredUserFragment | { email: string }
+  >()
   const isNewMember = true
+
+  useEffect(() => {
+    const re =
+      /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+
+    setIsEmail(re.test(search.toLowerCase()))
+  }, [search])
 
   const {
     data,
@@ -127,8 +137,17 @@ const Participants = ({
               errorSelect ? 'Error Occured' : 'Search a Name..'
             }
             onChange={(value) => setSelectedMember(value?.value)}
+            // @ts-ignore
             options={
-              search
+              // eslint-disable-next-line no-nested-ternary
+              isEmail
+                ? [
+                    {
+                      value: { email: search },
+                      label: search,
+                    },
+                  ]
+                : search
                 ? data?.User?.map((user: FilteredUserFragment) => {
                     const option = {
                       value: user,
