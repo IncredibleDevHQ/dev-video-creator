@@ -34,6 +34,6 @@ export const fragmentIcons = {
   storyBook: 'https://emoji.craftwork.design/images/modal/star.png',
   slides: 'https://emoji.craftwork.design/images/modal/shamrock.png',
   trivia: 'https://emoji.craftwork.design/images/modal/exclamation-mark.png',
-  discussion:
-    'https://emoji.craftwork.design/images/modal/handshake-yellow.png',
+  discussion: 'https://emoji.craftwork.design/images/modal/handshake-yellow.png',
+  outro: 'https://emoji.craftwork.design/images/modal/game-die.png'
 }

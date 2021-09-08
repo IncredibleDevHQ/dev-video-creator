@@ -284,7 +284,7 @@ const FragmentItem = ({
 
   const [isParticipantsTooltip, setParticipantsTooltip] = useState(false)
   const [confirmDeleteModal, setConfirmDeleteModal] = useState(false)
-
+  const { goBack, push } = useHistory()
   const { data } = useFragmentRoleQuery({
     variables: {
       fragmentId: activeFragmentId,
@@ -367,6 +367,7 @@ const FragmentItem = ({
           handleClose={(refresh) => {
             if (refresh) {
               handleRefetch(true)
+              goBack()
             }
             setConfirmDeleteModal(false)
           }}
