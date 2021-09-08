@@ -77,6 +77,11 @@ export const GetSchemaElement = ({
       )
 
     case 'text':
+      // if(schema.key === 'CustomSplash'){
+      //   if(acceptCustomVideo){
+
+      //   }
+      // }
       return (
         <TextField
           className="text-lg m-4"
