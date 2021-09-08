@@ -26,6 +26,7 @@ import {
   Circle,
   Designer,
   NewFragment,
+  PublicOrganisationPage,
 } from './modules'
 
 const App = () => {
@@ -106,6 +107,13 @@ const App = () => {
             </Router>
           </>
         </AuthProvider>
+        <Router>
+          <Switch>
+            <Route exact path="/organisations/:organisationSlug">
+              <PublicOrganisationPage />
+            </Route>
+          </Switch>
+        </Router>
       </AuthorizedApolloProvider>
     </RecoilRoot>
   )
