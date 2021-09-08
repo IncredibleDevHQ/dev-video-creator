@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import Modal from 'react-responsive-modal'
 import { css, cx } from '@emotion/css'
-import Video from '../../../components/Video'
+import Video from '../../../components/UploadVideo'
 import { useUploadFile } from '../../../hooks/use-upload-file'
 import { Heading } from '../../../components'
 import {
@@ -84,7 +84,7 @@ const UploadVideoModal = ({
         }
       ></Video>
       {video && !loadingAssets && (
-        <video height="200px" src={video.url || ''} controls />
+        <video height="200px" src={video?.url} controls />
       )}
       {loadingAssets && (
         <Heading className="text-xl font-semibold">Uploading...</Heading>

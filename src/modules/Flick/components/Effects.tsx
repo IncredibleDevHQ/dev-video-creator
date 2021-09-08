@@ -1,17 +1,10 @@
 /* eslint-disable no-case-declarations */
 import { FormikErrors } from 'formik'
-import React, { ChangeEvent, useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { cx } from '@emotion/css'
 import { IoRemoveSharp } from 'react-icons/io5'
 import { FiLoader } from 'react-icons/fi'
-import {
-  Button,
-  Checkbox,
-  emitToast,
-  Photo,
-  Text,
-  TextField,
-} from '../../../components'
+import { Button, Checkbox, Photo, Text, TextField } from '../../../components'
 import { useUploadFile } from '../../../hooks'
 import { AllowedFileExtensions } from '../../../hooks/use-upload-file'
 
@@ -42,7 +35,7 @@ interface GetSchemaElementProps {
       >
   value: any
   setLoadingAssets: React.Dispatch<React.SetStateAction<boolean>>
-  choosenLink: string
+  selectedVideoLink: string
   setVideoInventoryModal: React.Dispatch<React.SetStateAction<boolean>>
 }
 
@@ -52,7 +45,7 @@ export const GetSchemaElement = ({
   setFieldValue,
   value,
   setLoadingAssets,
-  choosenLink,
+  selectedVideoLink,
   setVideoInventoryModal,
 }: GetSchemaElementProps) => {
   const addToFormik = (valueArray: any) => {
@@ -82,8 +75,8 @@ export const GetSchemaElement = ({
 
     case 'text':
       useEffect(() => {
-        setFieldValue(schema.key, choosenLink)
-      }, [choosenLink])
+        setFieldValue(schema.key, selectedVideoLink)
+      }, [selectedVideoLink])
 
       return (
         <>

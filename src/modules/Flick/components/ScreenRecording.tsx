@@ -1,9 +1,8 @@
 import { css, cx } from '@emotion/css'
 import React, { useEffect, useState } from 'react'
 import { Modal } from 'react-responsive-modal'
-import { useRecoilValue } from 'recoil'
 import useScreenRecorder from 'use-screen-recorder'
-import { Button, Heading } from '../../../components'
+import { Button } from '../../../components'
 import {
   Asset_Source_Enum_Enum,
   Asset_Type_Enum_Enum,
@@ -60,8 +59,8 @@ const ScreenRecording = ({
     setLoadingAssets(loading)
     addAssetMutation({
       variables: {
-        displayName: video ? video.uuid : '',
-        objectLink: video ? video.uuid : '',
+        displayName: video.uuid,
+        objectLink: video.uuid,
         source: Asset_Source_Enum_Enum.WebClient,
         type: Asset_Type_Enum_Enum.Video,
       },
@@ -150,7 +149,6 @@ const ScreenRecording = ({
               <Button
                 type="button"
                 appearance="primary"
-                loading={loadingAssets}
                 className="border-white h-auto"
                 onClick={resetRecording}
               >

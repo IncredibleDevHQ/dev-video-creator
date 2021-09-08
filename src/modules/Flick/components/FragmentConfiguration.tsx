@@ -26,7 +26,7 @@ const FragmentConfiguration = ({
   const [loadingAssets, setLoadingAssets] = useState<boolean>(false)
   const history = useHistory()
   const [videoInventoryModal, setVideoInventoryModal] = useState<boolean>(false)
-  const [choosenLink, setChoosenLink] = useState<string>(' ')
+  const [selectedVideoLink, setSelectedVideoLink] = useState<string>(' ')
 
   useEffect(() => {
     if (!fragment || !fragment.configuration) return
@@ -108,7 +108,7 @@ const FragmentConfiguration = ({
             handleChange={handleChange}
             value={values[attribute.key]}
             setLoadingAssets={setLoadingAssets}
-            choosenLink={choosenLink}
+            selectedVideoLink={selectedVideoLink}
             setVideoInventoryModal={setVideoInventoryModal}
           />
         ))}
@@ -134,7 +134,7 @@ const FragmentConfiguration = ({
           handleClose={() => {
             setVideoInventoryModal(false)
           }}
-          setChoosenLink={setChoosenLink}
+          setSelectedVideoLink={setSelectedVideoLink}
         />
       )}
       {isConfigured && (

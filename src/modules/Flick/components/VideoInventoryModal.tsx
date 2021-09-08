@@ -2,7 +2,8 @@ import { css, cx } from '@emotion/css'
 import React, { useState } from 'react'
 import Modal from 'react-responsive-modal'
 import { Button, Heading, ScreenState } from '../../../components'
-import Video from '../../../components/Video'
+import Video from '../../../components/UploadVideo'
+import { S3Link } from '../../../constants'
 import { useUserAssetQuery } from '../../../generated/graphql'
 
 import { ScreenRecording } from './index'
@@ -11,11 +12,11 @@ import UploadVideoModal from './UploadVideoModal'
 const VideoInventoryModal = ({
   open,
   handleClose,
-  setChoosenLink,
+  setSelectedVideoLink,
 }: {
   open: boolean
   handleClose: () => void
-  setChoosenLink: React.Dispatch<React.SetStateAction<string>>
+  setSelectedVideoLink: React.Dispatch<React.SetStateAction<string>>
 }) => {
   const [screenRecordModal, setScreenRecordModal] = useState<boolean>(false)
   const [uploadFileModal, setUploadFileModal] = useState<boolean>(false)
@@ -35,7 +36,7 @@ const VideoInventoryModal = ({
       }}
       classNames={{
         modal: cx(
-          'rounded-lg w-96% h-50%',
+          'rounded-lg w-80% h-50%',
           css`
             background-color: #fffffff !important;
           `
@@ -73,20 +74,14 @@ const VideoInventoryModal = ({
             <div
               className="max-w-2xl flex content-center bg-gray-800"
               onClick={() => {
-                setChoosenLink(
-                  'https://incredible-uploads-staging.s3.amazonaws.com/' +
-                    asset.objectLink
-                )
+                setSelectedVideoLink(S3Link + asset.objectLink)
                 handleClose()
               }}
             >
               <video
                 width={400}
                 height={225}
-                src={
-                  'https://incredible-uploads-staging.s3.amazonaws.com/' +
-                  asset.objectLink
-                }
+                src={S3Link + asset.objectLink}
                 controls
               />
             </div>
@@ -99,14 +94,14 @@ const VideoInventoryModal = ({
           setScreenRecordModal(false)
           refetch()
         }}
-      ></ScreenRecording>
+      />
       <UploadVideoModal
         open={uploadFileModal}
         handleClose={() => {
           setUploadFileModal(false)
           refetch()
         }}
-      ></UploadVideoModal>
+      />
     </Modal>
   )
 }

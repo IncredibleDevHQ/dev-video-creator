@@ -24,6 +24,7 @@ import TabBar, { Tab } from './TabBar'
 import Tooltip from './Tooltip'
 import Checkbox from './Checkbox'
 import Photo from './Photo'
+import UploadVideo from './UploadVideo'
 
 export {
   Avatar,
@@ -54,6 +55,7 @@ export {
   Radio,
   Checkbox,
   Photo,
+  UploadVideo,
 }
 
 export type { Tab }

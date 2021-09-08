@@ -2,7 +2,7 @@ import { cx } from '@emotion/css'
 import React, { HTMLAttributes } from 'react'
 import { FilterProps } from 'react-table'
 
-const Video = ({
+const UploadVideo = ({
   className,
   onChange,
   ...rest
@@ -18,4 +18,4 @@ const Video = ({
   )
 }
 
-export default Video
+export default UploadVideo

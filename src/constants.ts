@@ -35,3 +35,5 @@ export let fragmentIcons = {
   slides: 'https://emoji.craftwork.design/images/modal/shamrock.png',
   trivia: 'https://emoji.craftwork.design/images/modal/exclamation-mark.png',
 }
+
+export const S3Link = 'https://incredible-uploads-staging.s3.amazonaws.com/'
