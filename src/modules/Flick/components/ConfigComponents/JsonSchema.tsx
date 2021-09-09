@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { IoRemoveSharp } from 'react-icons/io5'
-import { Button, Photo, TextField } from '../../../../components'
+
+import { Button, FileDropzone, TextField } from '../../../../components'
+
 import { useUploadFile } from '../../../../hooks'
 import { AllowedFileExtensions } from '../../../../hooks/use-upload-file'
 import { GetSchemaElementProps } from '../Effects'
@@ -10,7 +12,6 @@ const JsonSchema = ({
   handleChange,
   value,
   setLoadingAssets,
-
   setConfigured,
 }: GetSchemaElementProps) => {
   const addToFormik = (valueArray: any) => {
@@ -24,7 +25,7 @@ const JsonSchema = ({
   }
   const [uploadFile] = useUploadFile()
   interface Question {
-    text: string
+    text?: string
     image?: string
   }
 
@@ -45,9 +46,6 @@ const JsonSchema = ({
   }, [value])
 
   const addQuestion = async (file: File) => {
-    if (!question?.text) return
-
-    if (!file) return
     setLoadingAssets(true)
     setLoading(true)
     const pic = await uploadFile({
@@ -56,7 +54,7 @@ const JsonSchema = ({
     })
     setLoadingAssets(false)
     setLoading(false)
-    setQuestion({ text: question?.text, image: pic.url })
+    setQuestion({ text: question?.text || '', image: pic.url })
   }
 
   const handleOnClick = () => {
@@ -68,7 +66,7 @@ const JsonSchema = ({
     setQuestion({ text: '', image: '' })
   }
 
-  const handleDeleteQuestion = (text: string) => {
+  const handleDeleteQuestion = (text?: string) => {
     const questionArray = questions.filter((ques) => ques.text !== text)
     setQuestions(questionArray)
 
@@ -83,7 +81,6 @@ const JsonSchema = ({
           key={schema.key}
         >
           <TextField
-            // eslint-disable-next-line react/no-array-index-key
             className="text-lg"
             name={schema.key}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
@@ -94,13 +91,14 @@ const JsonSchema = ({
             label="Add a Question"
           />
 
-          <Photo
+          <FileDropzone
             className="text-lg m-4"
             key={`${schema.key}`}
             onChange={(e) =>
               // @ts-ignore
               e.target.files?.[0] && addQuestion(e.target.files[0])
             }
+            typeof="image/*"
           />
           {question?.image && (
             <img
@@ -138,14 +136,16 @@ const JsonSchema = ({
               <span className="font-bold">Question {index + 1}:</span>
               <span className="capitalize text-justify">{ques.text}</span>
             </div>
-            <Button
-              onClick={() => handleDeleteQuestion(ques?.text)}
-              type="button"
-              appearance="danger"
-              size="extraSmall"
-            >
-              <IoRemoveSharp />
-            </Button>
+            {ques.text && (
+              <Button
+                onClick={() => handleDeleteQuestion(ques.text)}
+                type="button"
+                appearance="danger"
+                size="extraSmall"
+              >
+                <IoRemoveSharp />
+              </Button>
+            )}
           </div>
         ))}
       </div>
