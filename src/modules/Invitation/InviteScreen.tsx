@@ -1,22 +1,20 @@
 import { isSignInWithEmailLink, signInWithEmailLink } from 'firebase/auth'
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import { useRecoilValue } from 'recoil'
 import { useParams, useHistory } from 'react-router-dom'
-import Modal from 'react-responsive-modal'
 import firebaseState from '../../stores/firebase.store'
-import { Button, Heading, TextField } from '../../components'
+import { ScreenState } from '../../components'
+import { useGetGuestUserQuery } from '../../generated/graphql'
+import { useQueryVariables } from '../../hooks'
 
 const InviteScreen = () => {
-  const [open, setOpen] = useState(false)
-  const [email, setEmail] = useState('')
   const { flickId }: { flickId: string } = useParams()
   const history = useHistory()
-
-  const onOpenModal = () => setOpen(true)
-  const onCloseModal = () => setOpen(false)
+  const query = useQueryVariables()
 
   const { auth } = useRecoilValue(firebaseState)
-  async function handleSignIn() {
+
+  async function handleSignIn(email: string) {
     if (!email) return
 
     try {
@@ -28,40 +26,41 @@ const InviteScreen = () => {
         )
         console.log('logindata', data)
         history.push(`/flick/${flickId}`)
-        onCloseModal()
       }
     } catch (error) {
-      //   emitToast({
-      //     title: 'Something went Wrong!',
-      //     type: 'error',
-      //     // description: error as string,
-      //     onClick: () => window.location.reload(),
-      //   })
-      console.log(error)
+      // eslint-disable-next-line no-console
+      console.error(error)
     }
   }
 
-  useEffect(() => {
-    onOpenModal()
-  }, [])
+  const state = query.get('state') as string
 
-  return (
-    <Modal open={open} onClose={onCloseModal} center>
-      <div className="m-4 w-96">
-        <Heading className="text-3xl font-bold">Verify Your Email</Heading>
-        <TextField
-          label="Email"
-          className="py-5"
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-            setEmail(e.target?.value)
-          }
+  const { data, loading, error } = useGetGuestUserQuery({
+    variables: {
+      state,
+    },
+  })
+
+  if (loading) return <ScreenState title="Just a jiffy" loading />
+
+  if (data) {
+    if (data.User.length === 0)
+      return (
+        <ScreenState
+          title="Invalid State!!"
+          subtitle="Either the state is invalid or already used"
         />
-        <Button onClick={handleSignIn} type="button" appearance="primary">
-          Verify
-        </Button>
-      </div>
-    </Modal>
-  )
+      )
+
+    handleSignIn(data?.User[0].username as string)
+  }
+
+  if (error)
+    return (
+      <ScreenState title="Something went wrong!!" subtitle={error.message} />
+    )
+
+  return <ScreenState title="Just a jiffy" loading />
 }
 
 export default InviteScreen

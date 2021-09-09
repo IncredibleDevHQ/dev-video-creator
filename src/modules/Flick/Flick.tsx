@@ -95,9 +95,6 @@ const Flick = () => {
             className="cursor-pointer"
             onClick={() => setIsActivityMenu(!isActivityMenu)}
           >
-            <span className="block bg-red-600 absolute w-1.5 h-1.5 rounded-full">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-600 duration-500 opacity-75" />
-            </span>
             <FiActivity />
           </button>
           <FlickActivity menu={isActivityMenu} setMenu={setIsActivityMenu} />
