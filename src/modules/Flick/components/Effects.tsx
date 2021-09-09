@@ -1,16 +1,15 @@
 /* eslint-disable no-case-declarations */
 import { FormikErrors } from 'formik'
-import React, { ChangeEvent, useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { cx } from '@emotion/css'
 import { IoRemoveSharp } from 'react-icons/io5'
 import { FiLoader } from 'react-icons/fi'
 import {
   Button,
   Checkbox,
-  emitToast,
   Text,
   TextField,
-  PhotoFile,
+  FileDropzone,
 } from '../../../components'
 import { useUploadFile } from '../../../hooks'
 import { AllowedFileExtensions } from '../../../hooks/use-upload-file'
@@ -93,7 +92,7 @@ export const GetSchemaElement = ({
     case 'json':
       const [uploadFile] = useUploadFile()
       interface Question {
-        text: string
+        text?: string
         image?: string
       }
 
@@ -106,9 +105,6 @@ export const GetSchemaElement = ({
       }, [value])
 
       const addQuestion = async (file: File) => {
-        if (!question?.text) return
-
-        if (!file) return
         setLoadingAssets(true)
         setLoading(true)
         const pic = await uploadFile({
@@ -117,7 +113,7 @@ export const GetSchemaElement = ({
         })
         setLoadingAssets(false)
         setLoading(false)
-        setQuestion({ text: question?.text, image: pic.url })
+        setQuestion({ text: question?.text || '', image: pic.url })
       }
 
       const handleOnClick = () => {
@@ -129,7 +125,7 @@ export const GetSchemaElement = ({
         setQuestion({ text: '', image: '' })
       }
 
-      const handleDeleteQuestion = (text: string) => {
+      const handleDeleteQuestion = (text?: string) => {
         const questionArray = questions.filter((ques) => ques.text !== text)
         setQuestions(questionArray)
 
@@ -155,13 +151,14 @@ export const GetSchemaElement = ({
                 label="Add a Question"
               />
 
-              <PhotoFile
+              <FileDropzone
                 className="text-lg m-4"
                 key={`${schema.key}`}
                 onChange={(e) =>
                   // @ts-ignore
                   e.target.files?.[0] && addQuestion(e.target.files[0])
                 }
+                typeof="image/*"
               />
               {question?.image && (
                 <img
@@ -199,14 +196,16 @@ export const GetSchemaElement = ({
                   <span className="font-bold">Question {index + 1}:</span>
                   <span className="capitalize text-justify">{ques.text}</span>
                 </div>
-                <Button
-                  onClick={() => handleDeleteQuestion(ques?.text)}
-                  type="button"
-                  appearance="danger"
-                  size="extraSmall"
-                >
-                  <IoRemoveSharp />
-                </Button>
+                {ques.text && (
+                  <Button
+                    onClick={() => handleDeleteQuestion(ques.text)}
+                    type="button"
+                    appearance="danger"
+                    size="extraSmall"
+                  >
+                    <IoRemoveSharp />
+                  </Button>
+                )}
               </div>
             ))}
           </div>
@@ -328,13 +327,14 @@ export const GetSchemaElement = ({
         <div className="flex flex-col gap-1 m-4" key={schema.key}>
           <div className="flex flex-col gap-2 ">
             <div className="flex flex-row gap-2">
-              <PhotoFile
+              <FileDropzone
                 className="text-lg m-4"
                 key={`${schema.key}`}
                 onChange={async (e) => {
                   // @ts-ignore
                   await handlePhotoClick(e.target.files?.[0])
                 }}
+                typeof="image/*"
               />
             </div>
             <FiLoader
@@ -396,12 +396,13 @@ export const GetSchemaElement = ({
       return (
         <>
           <Text className="ml-4">{schema.description}</Text>
-          <PhotoFile
+          <FileDropzone
             className="text-lg m-4"
             onChange={(e) =>
               // @ts-ignore
               e.target.files?.[0] && handleClick(e.target.files[0])
             }
+            typeof="image/*"
           />
           {picture ||
             (value && (
