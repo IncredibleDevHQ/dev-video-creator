@@ -11,7 +11,7 @@ const FileDropzone = ({
       return file.name
     })
   }
-
+  // Returns a dropzone
   return (
     <Dropzone
       onDrop={onDrop}
