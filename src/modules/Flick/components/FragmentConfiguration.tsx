@@ -122,18 +122,19 @@ const FragmentConfiguration = ({
           Save Configuration
         </Button>
       </form>
-
-      <Button
-        type="button"
-        className="ml-auto"
-        size="medium"
-        appearance="primary"
-        onClick={() => {
-          history.push(`/${fragment.id}/studio`)
-        }}
-      >
-        Record
-      </Button>
+      {isConfigured && (
+        <Button
+          type="button"
+          className="ml-auto"
+          size="medium"
+          appearance="primary"
+          onClick={() => {
+            history.push(`/${fragment.id}/studio`)
+          }}
+        >
+          Record
+        </Button>
+      )}
     </div>
   )
 }

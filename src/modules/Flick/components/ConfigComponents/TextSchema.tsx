@@ -12,8 +12,10 @@ const TextSchema = ({
 
   setConfigured,
 }: GetSchemaElementProps) => {
-  if (!value || (value && value.length <= 0)) {
+  if (!schema.value || schema.value.length <= 0) {
     setConfigured(false)
+  } else {
+    setConfigured(true)
   }
 
   return (
