@@ -107,6 +107,7 @@ const FragmentConfiguration = ({
             setFieldValue={setFieldValue}
             handleChange={handleChange}
             value={values[attribute.key]}
+            setConfigured={setConfigured}
             setLoadingAssets={setLoadingAssets}
             selectedVideoLink={selectedVideoLink}
             setVideoInventoryModal={setVideoInventoryModal}
@@ -128,6 +129,7 @@ const FragmentConfiguration = ({
           Save Configuration
         </Button>
       </form>
+
       {fragment.type === Fragment_Type_Enum_Enum.Videoshow && (
         <VideoInventoryModal
           open={videoInventoryModal}
@@ -137,6 +139,7 @@ const FragmentConfiguration = ({
           setSelectedVideoLink={setSelectedVideoLink}
         />
       )}
+
       {isConfigured && (
         <Button
           type="button"

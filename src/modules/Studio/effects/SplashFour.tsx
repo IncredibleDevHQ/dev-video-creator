@@ -11,9 +11,13 @@ import { User, userState } from '../../../stores/user.store'
 import { useGetFragmentByIdQuery } from '../../../generated/graphql'
 import useSplash, { Coordinates } from '../hooks/use-splash'
 
+const titleEnum = 'title'
+const subTitleEnum = 'subtitle'
+
 const SplashFour = () => {
   const { state } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
-
+  const [configuration, setConfiguration] =
+    useState<{ title: any; subTitle: any }>()
   const { sub } = (useRecoilValue(userState) as User) || {}
 
   const params: { fragmentId: string } = useParams()
@@ -22,7 +26,16 @@ const SplashFour = () => {
     variables: { id: params.fragmentId, sub: sub as string },
   })
 
-  const [title, subTitle] = data?.Fragment[0].configuration.properties
+  useEffect(() => {
+    if (!data?.Fragment[0].configuration.properties) return
+    const title = data?.Fragment[0].configuration.properties.find(
+      (property: any) => property.key === titleEnum
+    )
+    const subTitle = data?.Fragment[0].configuration.properties.find(
+      (property: any) => property.key === subTitleEnum
+    )
+    setConfiguration({ title, subTitle })
+  }, [data])
 
   const { getInitCoordinates } = useSplash()
 
@@ -44,8 +57,8 @@ const SplashFour = () => {
   useEffect(() => {
     if (state === 'recording') {
       coordinate = getInitCoordinates({
-        title: title.value as string,
-        subTitle: subTitle.value as string,
+        title: configuration?.title.value as string,
+        subTitle: configuration?.subTitle.value as string,
         gutter,
         availableWidth: titleWidth - 100,
         titleFontSize,
@@ -259,7 +272,7 @@ const SplashFour = () => {
         key="title"
         x={coordinate.titleX}
         y={CONFIG.height / 2 - 40}
-        text={title.value as string}
+        text={configuration?.title.value as string}
         fontSize={40}
         fontFamily="Poppins"
         fill="#21C5FA"
@@ -276,7 +289,7 @@ const SplashFour = () => {
         key="subTitle"
         x={coordinate.subTitleX}
         y={CONFIG.height / 2 + 20}
-        text={subTitle.value as string}
+        text={configuration?.subTitle.value as string}
         fontSize={20}
         fontFamily="Poppins"
         lineHeight={1.25}
