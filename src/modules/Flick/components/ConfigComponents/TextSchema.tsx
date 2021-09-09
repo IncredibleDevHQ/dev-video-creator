@@ -21,7 +21,7 @@ const TextSchema = ({
       className="text-lg m-4"
       name={schema.key}
       onChange={handleChange}
-      value={value}
+      value={value && value.trim()}
       key={schema.key}
       onClick={() => {
         if (schema.key === 'source') {
