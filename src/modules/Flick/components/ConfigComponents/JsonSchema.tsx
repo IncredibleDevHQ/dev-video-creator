@@ -1,16 +1,13 @@
-import { FormikErrors } from 'formik'
-import React, { useEffect } from 'react'
-import { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { IoRemoveSharp } from 'react-icons/io5'
-import { Button, Checkbox, Photo, TextField } from '../../../../components'
+import { Button, Photo, TextField } from '../../../../components'
 import { useUploadFile } from '../../../../hooks'
 import { AllowedFileExtensions } from '../../../../hooks/use-upload-file'
-import { SchemaElementProps, GetSchemaElementProps } from '.././Effects'
+import { GetSchemaElementProps } from '../Effects'
 
 const JsonSchema = ({
   schema,
   handleChange,
-  setFieldValue,
   value,
   setLoadingAssets,
 
@@ -34,14 +31,15 @@ const JsonSchema = ({
   const [question, setQuestion] = useState<Question>()
   const [questions, setQuestions] = useState<Question[]>([])
   const [loading, setLoading] = useState(false)
-
+  if (!schema.value || schema.value.length <= 0) {
+    setConfigured(false)
+  }
   useEffect(() => {
-    if (!schema.value || schema.value.length <= 0) {
+    if (!value) {
       setConfigured(false)
       return
-    } else {
-      setConfigured(true)
     }
+    setConfigured(true)
 
     setQuestions(value || [])
   }, [value])

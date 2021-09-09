@@ -1,15 +1,13 @@
-import { FormikErrors } from 'formik'
 import React, { useEffect, useState } from 'react'
 import { IoRemoveSharp } from 'react-icons/io5'
-import { Button, Checkbox, TextField } from '../../../../components'
-import { SchemaElementProps, GetSchemaElementProps } from '.././Effects'
+import { Button, TextField } from '../../../../components'
+import { GetSchemaElementProps } from '../Effects'
 
 const TextArraySchema = ({
   schema,
   handleChange,
-  setFieldValue,
+
   value,
-  setLoadingAssets,
 
   setConfigured,
 }: GetSchemaElementProps) => {
@@ -24,15 +22,12 @@ const TextArraySchema = ({
   }
   const [currentPoint, setCurrentPoint] = useState<string>()
   const [points, setPoints] = useState<string[]>([])
-
+  if (!schema.value || schema.value.length <= 0) {
+    setConfigured(false)
+  }
   useEffect(() => {
-    if (!schema.value || schema.value.length <= 0) {
-      setConfigured(false)
-      return
-    } else {
-      setConfigured(true)
-    }
-
+    if (!value) return
+    setConfigured(true)
     setPoints(value)
   }, [value])
 
