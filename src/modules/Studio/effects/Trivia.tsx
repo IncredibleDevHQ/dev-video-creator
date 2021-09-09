@@ -22,7 +22,7 @@ const Trivia = () => {
     title?: string
   }>({ enable: false })
 
-  const { fragment, state, stream, picture, payload, constraints } =
+  const { fragment, state, stream, picture, constraints } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const userData = (useRecoilValue(userState) as User) || {}
   const imageConfig = { width: 702, height: 540 }
@@ -237,20 +237,3 @@ const Trivia = () => {
 }
 
 export default Trivia
-function x(
-  arg0: { w: number; h: number },
-  arg1: number,
-  arg2: number,
-  x: any,
-  y: any,
-  setImgDim: React.Dispatch<
-    React.SetStateAction<{
-      width: number
-      height: number
-      x: number
-      y: number
-    }>
-  >
-) {
-  throw new Error('Function not implemented.')
-}

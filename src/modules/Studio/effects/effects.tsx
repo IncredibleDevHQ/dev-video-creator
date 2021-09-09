@@ -10,6 +10,7 @@ import StoryBook from './StoryBook'
 import Slides from './Slides'
 import Points from './Points'
 import { CONFIG } from '../components/Concourse'
+import CustomSplash from './CustomSplash'
 import Discussion from './Discussion'
 import SplashSix from './SplashSix'
 import Outro from './Outro'
@@ -46,7 +47,8 @@ export const titleSplash = (title: string): JSX.Element => {
 const getSplash = (theme: any) => {
   if (theme.value === '0') return SplashFive
   if (theme.value === '1') return SplashFour
-  return SplashSix
+  if (theme.value === '2') return SplashSix
+  return CustomSplash
 }
 
 export const getDimensions = (
