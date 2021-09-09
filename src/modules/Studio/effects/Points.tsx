@@ -1,26 +1,21 @@
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
-import { Group, Text, Image, Rect, Circle } from 'react-konva'
+import { Group, Text, Image, Rect } from 'react-konva'
 import FontFaceObserver from 'fontfaceobserver'
 import { useRecoilValue } from 'recoil'
 import { useImage } from 'react-konva-utils'
 import { NextTokenIcon } from '../../../components'
-import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
-import { User, userState } from '../../../stores/user.store'
 import { Concourse } from '../components'
 import { CONFIG } from '../components/Concourse'
 import { ControlButton } from '../components/MissionControl'
 import { StudioProviderProps, studioStore } from '../stores'
-import { titleSplash } from './effects'
-import usePoint, { ComputedPoint } from '../hooks/use-point'
-import docker from '../../../assets/docker.svg'
+import usePoint from '../hooks/use-point'
 
 const Points = () => {
   const [activePointIndex, setActivePointIndex] = useState<number>(0)
   const [points, setPoints] = useState<string[]>([])
-  const { fragment, state, stream, picture, payload, constraints } =
+  const { fragment, state, stream, picture, constraints } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
-  const userData = (useRecoilValue(userState) as User) || {}
 
   const [titleSpalshData, settitleSpalshData] = useState<{
     enable: boolean
@@ -34,13 +29,12 @@ const Points = () => {
 
   const [groupCoordinate, setGroupCoordinate] = useState<number>(0)
 
-  const { initUsePoint, computedPoints, getGroupCoordinates } = usePoint()
+  const { initUsePoint, computedPoints } = usePoint()
 
   const [yCoordinate, setYCoordinate] = useState<number>(0)
 
   const [titleNumberOfLines, setTitleNumberOfLines] = useState<number>(0)
 
-  const [dockerLogo] = useImage(docker)
   const initialX = 32
   const lineLength = 15
 
@@ -66,15 +60,13 @@ const Points = () => {
       )?.value,
       title: fragment.name as string,
     })
-
-
     setPoints(
       fragment.configuration.properties.find(
         (property: any) => property.type === 'text[]'
       )?.value
     )
-    var titleLineNumber = fragment.name
-      ? //This logic is to support titles of multiple length, which can span 1/2/3 lines. Each line at the most can have 15 characters acc to the design.
+    const titleLineNumber = fragment.name
+      ? // This logic is to support titles of multiple length, which can span 1/2/3 lines. Each line at the most can have 15 characters acc to the design.
         Math.ceil(fragment.name.length / lineLength)
       : 0
 
@@ -110,6 +102,7 @@ const Points = () => {
     const anim = new Konva.Animation(() => {}, layer)
     anim.start()
 
+    // eslint-disable-next-line consistent-return
     return () => {
       anim.stop()
     }
@@ -164,7 +157,7 @@ const Points = () => {
         const y = 0
         const w = 384
         const h = 480
-        let r = 8
+        const r = 8
         ctx.beginPath()
         ctx.moveTo(x + r, y)
         ctx.arcTo(x + w, y, x + w, y + h, r)
@@ -190,9 +183,7 @@ const Points = () => {
         />
       )}
     </Group>,
-    <Group x={30} y={30} width={94} height={24} key="group2">
-      <Image image={dockerLogo} />
-    </Group>,
+
     <Group x={30} y={94} key="group3">
       <Text
         key="fragmentTitle"
@@ -215,7 +206,7 @@ const Points = () => {
     >
       {computedPoints.current
         .filter((_, i) => i < activePointIndex)
-        .map((point, j) => (
+        .map((point) => (
           <>
             <Rect
               key="points"
