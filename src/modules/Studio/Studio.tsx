@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { FiArrowLeft } from 'react-icons/fi'
 import { useHistory, useParams } from 'react-router-dom'
 import { useRecoilState, useRecoilValue } from 'recoil'
+import 'get-blob-duration';
+
 import {
   emitToast,
   dismissToast,
@@ -25,6 +27,8 @@ import { useUploadFile } from '../../hooks/use-upload-file'
 import { useAgora } from './hooks'
 import { StudioState, studioStore } from './stores'
 import { useRTDB } from './hooks/use-rtdb'
+import { from } from '@apollo/client'
+import getBlobDuration from 'get-blob-duration';
 
 const Studio = () => {
   const { fragmentId } = useParams<{ fragmentId: string }>()
@@ -159,9 +163,10 @@ const Studio = () => {
     const toast = emitToast(toastProps)
 
     try {
+      const uploadVideoFile = await getBlobs();
       const { uuid } = await uploadFile({
         extension: 'webm',
-        file: await getBlobs(),
+        file: uploadVideoFile,
         handleProgress: ({ percentage }) => {
           updateToast({
             id: toast,
@@ -172,8 +177,11 @@ const Studio = () => {
           })
         },
       })
+
+      const duration = await getBlobDuration(uploadVideoFile);
+
       await markFragmentCompleted({
-        variables: { id: fragmentId, producedLink: uuid },
+        variables: { id: fragmentId, producedLink: uuid ,duration:duration},
       })
 
       dismissToast(toast)
