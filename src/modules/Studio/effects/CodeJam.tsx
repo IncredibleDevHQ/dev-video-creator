@@ -1,18 +1,15 @@
 import axios from 'axios'
 import React, { useEffect, useState } from 'react'
-import { Group, Circle, Text, Rect } from 'react-konva'
+import { Group, Circle, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import { NextLineIcon, NextTokenIcon } from '../../../components'
 import { API } from '../../../constants'
-import {
-  Fragment_Status_Enum_Enum,
-  useGetTokenisedCodeLazyQuery,
-} from '../../../generated/graphql'
+import { useGetTokenisedCodeLazyQuery } from '../../../generated/graphql'
 import { Concourse } from '../components'
 import { ControlButton } from '../components/MissionControl'
 import useCode, { ComputedToken } from '../hooks/use-code'
 import { StudioProviderProps, studioStore } from '../stores'
-import { titleSplash } from './effects'
+
 import TypingEffect from './TypingEffect'
 
 const codeConfig = {
@@ -40,8 +37,7 @@ const CodeJam = () => {
   }>({ enable: false })
 
   const { initUseCode, computedTokens } = useCode()
-  const [getTokenisedCode, { data, error, loading }] =
-    useGetTokenisedCodeLazyQuery()
+  const [getTokenisedCode, { data }] = useGetTokenisedCodeLazyQuery()
   const [position, setPosition] = useState<Position>({
     prevIndex: -1,
     currentIndex: 0,
@@ -100,8 +96,7 @@ const CodeJam = () => {
   }, [payload])
 
   useEffect(() => {
-    console.log('state', state)
-    if (state == 'ready') {
+    if (state === 'ready') {
       setPosition({
         prevIndex: -1,
         currentIndex: 0,

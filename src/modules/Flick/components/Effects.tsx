@@ -1,7 +1,5 @@
-import { FormikErrors } from 'formik'
-
 import React, { useEffect } from 'react'
-
+import { FormikErrors } from 'formik'
 import {
   CheckboxSchema,
   FileArraySchema,

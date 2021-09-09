@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { IoRemoveSharp } from 'react-icons/io5'
-import { Button, FileDropzone, TextField } from '../../../../components'
+
+import { Button, FileDropzone, TextArea } from '../../../../components'
+
 import { useUploadFile } from '../../../../hooks'
 import { AllowedFileExtensions } from '../../../../hooks/use-upload-file'
 import { GetSchemaElementProps } from '../Effects'
@@ -78,10 +80,10 @@ const JsonSchema = ({
           className="flex flex-col md:flex-row items-center"
           key={schema.key}
         >
-          <TextField
+          <TextArea
             className="text-lg"
             name={schema.key}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
               setQuestion({ ...question, text: e.target.value })
             }
             value={question?.text}
