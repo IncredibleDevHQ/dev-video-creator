@@ -1,5 +1,6 @@
 import React from 'react'
 import { TextField } from '../../../../components'
+// eslint-disable-next-line import/namespace
 import { GetSchemaElementProps } from '../Effects'
 
 const TextSchema = ({

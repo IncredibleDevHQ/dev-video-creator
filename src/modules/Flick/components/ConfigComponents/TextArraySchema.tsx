@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { IoRemoveSharp } from 'react-icons/io5'
 import { Button, TextField } from '../../../../components'
+// eslint-disable-next-line import/namespace
 import { GetSchemaElementProps } from '../Effects'
 
 const TextArraySchema = ({

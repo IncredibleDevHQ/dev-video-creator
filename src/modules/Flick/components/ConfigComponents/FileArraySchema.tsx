@@ -5,6 +5,7 @@ import { IoRemoveSharp } from 'react-icons/io5'
 import { Button, Photo } from '../../../../components'
 import { useUploadFile } from '../../../../hooks'
 import { AllowedFileExtensions } from '../../../../hooks/use-upload-file'
+// eslint-disable-next-line import/namespace
 import { GetSchemaElementProps } from '../Effects'
 
 const FileArraySchema = ({

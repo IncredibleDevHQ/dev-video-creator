@@ -70,18 +70,15 @@ const FragmentConfiguration = ({
     if (!fragment || !fragment.configuration) return
 
     setConfig(fragment.configuration.properties)
-    console.log('set config', fragment.configuration.properties)
   }, [fragment?.configuration])
 
   useEffect(() => {
     if (!config) return
 
-    console.log({ config })
     const object: { [key: string]: any } = {}
     config.forEach((code) => {
       object[code.key] = code.value
     })
-    console.log({ object })
     setInitial(object)
     setConfigured(true)
   }, [config])
