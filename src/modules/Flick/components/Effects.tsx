@@ -1,13 +1,7 @@
 /* eslint-disable no-case-declarations */
 import { FormikErrors } from 'formik'
-
-import React, { useEffect, useState } from 'react'
-import { cx } from '@emotion/css'
-import { IoRemoveSharp } from 'react-icons/io5'
-import { FiLoader } from 'react-icons/fi'
-import { Button, Checkbox, Photo, Text, TextField } from '../../../components'
-import { useUploadFile } from '../../../hooks'
-import { AllowedFileExtensions } from '../../../hooks/use-upload-file'
+import React, { useEffect } from 'react'
+import { TextField } from '../../../components'
 
 import {
   CheckboxSchema,
@@ -15,9 +9,7 @@ import {
   JsonSchema,
   PicSchema,
   TextArraySchema,
-  TextSchema,
 } from './ConfigComponents/index'
-
 
 export interface SchemaElementProps {
   key: string
@@ -46,12 +38,9 @@ export interface GetSchemaElementProps {
       >
   value: any
   setLoadingAssets: React.Dispatch<React.SetStateAction<boolean>>
-
-  selectedVideoLink: string
-  setVideoInventoryModal: React.Dispatch<React.SetStateAction<boolean>>
-
+  selectedVideoLink?: string
+  setVideoInventoryModal?: React.Dispatch<React.SetStateAction<boolean>>
   setConfigured: React.Dispatch<React.SetStateAction<boolean>>
-
 }
 
 export const GetSchemaElement = ({
@@ -60,12 +49,9 @@ export const GetSchemaElement = ({
   setFieldValue,
   value,
   setLoadingAssets,
-
   selectedVideoLink,
   setVideoInventoryModal,
-
   setConfigured,
-
 }: GetSchemaElementProps) => {
   switch (schema.type) {
     case 'boolean':
@@ -81,9 +67,10 @@ export const GetSchemaElement = ({
       )
 
     case 'text':
-    if (!value || (value && value.length <= 0)) {
-        setConfigured(false)}
-      
+      if (!value || (value && value.length <= 0)) {
+        setConfigured(false)
+      }
+
       useEffect(() => {
         setFieldValue(schema.key, selectedVideoLink)
       }, [selectedVideoLink])
@@ -98,7 +85,7 @@ export const GetSchemaElement = ({
             key={schema.key}
             defaultValue={value}
             onClick={() => {
-              if (schema.key === 'source') {
+              if (schema.key === 'source' && setVideoInventoryModal) {
                 setVideoInventoryModal(true)
               }
             }}
@@ -106,9 +93,6 @@ export const GetSchemaElement = ({
             label={schema.name}
           />
         </>
-
-  
-
       )
 
     case 'json':
