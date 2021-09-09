@@ -7212,6 +7212,11 @@ use-memo-one@^1.1.1:
   resolved "https://registry.yarnpkg.com/use-memo-one/-/use-memo-one-1.1.2.tgz#0c8203a329f76e040047a35a1197defe342fab20"
   integrity sha512-u2qFKtxLsia/r8qG0ZKkbytbztzRb317XCkT7yP8wxL0tZ/CzK2G+WWie5vWvpyeP7+YoPIwbJoIHJ4Ba4k0oQ==
 
+use-screen-recorder@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/use-screen-recorder/-/use-screen-recorder-1.0.1.tgz#2698f87de18f425ecfe7de91f2d753253670e047"
+  integrity sha512-k54XmIuLFwDJfEDh9hvxytfuhiii07GAvvLDd6LklKqCjGwubdUamT9Nd8meyIzAY0EaQtVRHaM8BMkWkBfq+A==
+
 util-deprecate@^1.0.2, util-deprecate@~1.0.1:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/util-deprecate/-/util-deprecate-1.0.2.tgz#450d4dc9fa70de732762fbd2d4a28981419a0ccf"
