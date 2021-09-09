@@ -1,4 +1,3 @@
-/* eslint-disable no-case-declarations */
 import { FormikErrors } from 'formik'
 import React, { useEffect } from 'react'
 import { TextField } from '../../../components'

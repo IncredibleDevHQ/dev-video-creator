@@ -3,7 +3,7 @@ import { IoRemoveSharp } from 'react-icons/io5'
 import { Button, FileDropzone, TextField } from '../../../../components'
 import { useUploadFile } from '../../../../hooks'
 import { AllowedFileExtensions } from '../../../../hooks/use-upload-file'
-import { GetSchemaElementProps } from '../../Effects'
+import { GetSchemaElementProps } from '../Effects'
 
 const JsonSchema = ({
   schema,
@@ -70,7 +70,6 @@ const JsonSchema = ({
           key={schema.key}
         >
           <TextField
-            // eslint-disable-next-line react/no-array-index-key
             className="text-lg"
             name={schema.key}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
