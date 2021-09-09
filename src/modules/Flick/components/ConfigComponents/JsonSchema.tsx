@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { IoRemoveSharp } from 'react-icons/io5'
-
 import { Button, FileDropzone, TextField } from '../../../../components'
-
 import { useUploadFile } from '../../../../hooks'
 import { AllowedFileExtensions } from '../../../../hooks/use-upload-file'
 import { GetSchemaElementProps } from '../Effects'

@@ -1,5 +1,6 @@
 import React from 'react'
 import { Checkbox } from '../../../../components'
+// eslint-disable-next-line import/namespace
 import { GetSchemaElementProps } from '../Effects'
 
 export const CheckboxSchema = ({
