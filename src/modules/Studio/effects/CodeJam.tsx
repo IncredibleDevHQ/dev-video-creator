@@ -44,6 +44,7 @@ const CodeJam = () => {
   })
 
   useEffect(() => {
+    console.log('mnbv', fragment?.configuration.properties)
     if (!fragment?.configuration.properties) return
     const gistURL = fragment.configuration.properties.find(
       (property: any) => property.key === 'gistUrl'

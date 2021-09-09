@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { FiArrowLeft } from 'react-icons/fi'
 import { useHistory, useParams } from 'react-router-dom'
 import { useRecoilState, useRecoilValue } from 'recoil'
-import 'get-blob-duration';
+import 'get-blob-duration'
 
 import {
   emitToast,
@@ -27,8 +27,7 @@ import { useUploadFile } from '../../hooks/use-upload-file'
 import { useAgora } from './hooks'
 import { StudioState, studioStore } from './stores'
 import { useRTDB } from './hooks/use-rtdb'
-import { from } from '@apollo/client'
-import getBlobDuration from 'get-blob-duration';
+import getBlobDuration from 'get-blob-duration'
 
 const Studio = () => {
   const { fragmentId } = useParams<{ fragmentId: string }>()
@@ -111,6 +110,7 @@ const Studio = () => {
 
   useEffect(() => {
     if (fragment && ready) {
+      console.log('studio fragmnet', fragment)
       ;(async () => {
         init()
         const { data } = await getRTCToken({ variables: { fragmentId } })
@@ -119,12 +119,23 @@ const Studio = () => {
         }
       })()
     }
-  }, [fragment, ready])
+  }, [fragment])
 
   useEffect(() => {
-    if (!data?.Fragment) return
+    if (data?.Fragment[0] === undefined) return
+    console.log('dataFragment[0]', data?.Fragment[0] === undefined)
     setFragment(data.Fragment[0])
   }, [data])
+
+  useEffect(() => {
+    return () => {
+      setFragment(undefined)
+      setStudio({
+        ...studio,
+        fragment: undefined,
+      })
+    }
+  }, [])
 
   const [state, setState] = useState<StudioState>('ready')
 
@@ -163,7 +174,7 @@ const Studio = () => {
     const toast = emitToast(toastProps)
 
     try {
-      const uploadVideoFile = await getBlobs();
+      const uploadVideoFile = await getBlobs()
       const { uuid } = await uploadFile({
         extension: 'webm',
         file: uploadVideoFile,
@@ -178,13 +189,18 @@ const Studio = () => {
         },
       })
 
-      const duration = await getBlobDuration(uploadVideoFile);
+      const duration = await getBlobDuration(uploadVideoFile)
 
       await markFragmentCompleted({
-        variables: { id: fragmentId, producedLink: uuid ,duration:duration},
+        variables: { id: fragmentId, producedLink: uuid, duration: duration },
       })
 
       dismissToast(toast)
+      setFragment(undefined)
+      setStudio({
+        ...studio,
+        fragment: undefined,
+      })
       history.push(`/flick/${fragment?.flickId}/${fragmentId}`)
     } catch (e) {
       emitToast({
@@ -285,7 +301,8 @@ const Studio = () => {
 
   if (loading) return <ScreenState title="Just a jiffy..." loading />
 
-  if (!fragment) return <EmptyState text="Fragment not found" width={400} />
+  if (!fragment || fragment.id !== fragmentId)
+    return <EmptyState text="Fragment not found" width={400} />
 
   const C = getEffect(fragment.type, fragment.configuration)
 
@@ -297,6 +314,11 @@ const Studio = () => {
             <FiArrowLeft
               className="cursor-pointer mr-2"
               onClick={() => {
+                setFragment(undefined)
+                setStudio({
+                  ...studio,
+                  fragment: undefined,
+                })
                 stream?.getTracks().forEach((track) => track.stop())
                 history.goBack()
               }}
@@ -313,7 +335,7 @@ const Studio = () => {
             <></>
           )}
         </div>
-        <C />
+        {fragment && <C />}
       </div>
     </div>
   )
