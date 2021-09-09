@@ -284,7 +284,7 @@ const FragmentItem = ({
 
   const [isParticipantsTooltip, setParticipantsTooltip] = useState(false)
   const [confirmDeleteModal, setConfirmDeleteModal] = useState(false)
-
+  const { goBack, push } = useHistory()
   const { data } = useFragmentRoleQuery({
     variables: {
       fragmentId: activeFragmentId,
@@ -329,7 +329,7 @@ const FragmentItem = ({
             <Avatar
               className="w-6 h-6 rounded-full mr-1"
               src={participant.user.picture as string}
-              alt={participant.user.picture as string}
+              alt={participant.user.displayName as string}
             />
           ))}
           {isHost && activeFragmentId === fragment.id && (
@@ -367,6 +367,7 @@ const FragmentItem = ({
           handleClose={(refresh) => {
             if (refresh) {
               handleRefetch(true)
+              goBack()
             }
             setConfirmDeleteModal(false)
           }}

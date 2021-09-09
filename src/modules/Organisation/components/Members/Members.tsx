@@ -70,7 +70,7 @@ const Members = ({ organisationSlug }: Props) => {
   }
 
   if (loadingMembers) {
-    return <Loading>Loading...</Loading>
+    return <Loading />
   }
 
   if (errorMembers) {

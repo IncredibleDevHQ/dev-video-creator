@@ -10,6 +10,7 @@ import { Concourse } from '../components'
 import { CONFIG } from '../components/Concourse'
 import { ControlButton } from '../components/MissionControl'
 import { StudioProviderProps, studioStore } from '../stores'
+import { getDimensions } from './effects'
 
 const Trivia = () => {
   const [activeQuestionIndex, setActiveQuestionIndex] = useState<number>(0)
@@ -21,7 +22,7 @@ const Trivia = () => {
     title?: string
   }>({ enable: false })
 
-  const { fragment, state, stream, picture, payload, constraints } =
+  const { fragment, state, stream, picture, constraints } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const userData = (useRecoilValue(userState) as User) || {}
   const imageConfig = { width: 702, height: 540 }
@@ -34,6 +35,12 @@ const Trivia = () => {
     'anonymous'
   )
 
+  const [imgDim, setImgDim] = useState<{
+    width: number
+    height: number
+    x: number
+    y: number
+  }>({ width: 0, height: 0, x: 0, y: 0 })
   useEffect(() => {
     const font = new FontFaceObserver('Poppins')
     font.load()
@@ -47,6 +54,20 @@ const Trivia = () => {
 
     return element
   }, [stream])
+
+  useEffect(() => {
+    getDimensions(
+      {
+        w: (qnaImage && qnaImage.width) || 0,
+        h: (qnaImage && qnaImage.height) || 0,
+      },
+      318,
+      472,
+      0,
+      94,
+      setImgDim
+    )
+  }, [qnaImage])
 
   useEffect(() => {
     if (!fragment?.configuration.properties) return
@@ -163,11 +184,15 @@ const Trivia = () => {
           <Rect y={94} fill="#F5F5F5" width={472} height={318} />
           <Image
             image={qnaImage}
-            y={110}
-            x={16}
-            fill="#F5F5F5"
-            width={438}
-            height={284}
+            y={imgDim.y}
+            x={imgDim.x}
+            fill="#E5E5E5"
+            width={imgDim.width}
+            height={imgDim.height}
+            h
+            shadowOpacity={0.3}
+            shadowOffset={{ x: 0, y: 1 }}
+            shadowBlur={2}
           />
         </>
       )}
