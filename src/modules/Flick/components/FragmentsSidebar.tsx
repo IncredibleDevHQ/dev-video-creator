@@ -329,7 +329,7 @@ const FragmentItem = ({
             <Avatar
               className="w-6 h-6 rounded-full mr-1"
               src={participant.user.picture as string}
-              alt={participant.user.picture as string}
+              alt={participant.user.displayName as string}
             />
           ))}
           {isHost && activeFragmentId === fragment.id && (

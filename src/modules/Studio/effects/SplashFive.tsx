@@ -1,16 +1,14 @@
-import React, { useEffect, useRef, useState } from 'react'
-import { Circle, Group, Image, Line, Rect, Text } from 'react-konva'
+import React, { useEffect, useState } from 'react'
+import { Rect, Text } from 'react-konva'
 import Konva from 'konva'
 import { useRecoilValue } from 'recoil'
-import { useImage } from 'react-konva-utils'
 import FontFaceObserver from 'fontfaceobserver'
 import { useParams } from 'react-router-dom'
 import Concourse, { CONFIG } from '../components/Concourse'
 import { StudioProviderProps, studioStore } from '../stores'
-import { Coordinates } from '../hooks/use-splash'
+import useSplash, { Coordinates } from '../hooks/use-splash'
 import { User, userState } from '../../../stores/user.store'
 import { useGetFragmentByIdQuery } from '../../../generated/graphql'
-import useSplash from '../hooks/use-splash'
 
 const titleEnum = 'title'
 const subTitleEnum = 'subtitle'
@@ -22,7 +20,7 @@ const SplashFive = () => {
     useState<{ title: any; subTitle: any }>()
   const params: { fragmentId: string } = useParams()
 
-  const { data, error } = useGetFragmentByIdQuery({
+  const { data } = useGetFragmentByIdQuery({
     variables: { id: params.fragmentId, sub: sub as string },
   })
 

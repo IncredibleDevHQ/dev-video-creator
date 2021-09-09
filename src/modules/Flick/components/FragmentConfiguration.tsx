@@ -27,37 +27,6 @@ const FragmentConfiguration = ({
   const [videoInventoryModal, setVideoInventoryModal] = useState<boolean>(false)
   const [selectedVideoLink, setSelectedVideoLink] = useState<string>(' ')
 
-  useEffect(() => {
-    if (!fragment || !fragment.configuration) return
-    setConfig(fragment!.configuration.properties)
-  }, [fragment?.configuration])
-
-  useEffect(() => {
-    if (config) {
-      setConfigured(true)
-    }
-    const object: { [key: string]: any } = {}
-    config?.forEach((code) => {
-      object[code.key] = code.value || ''
-    })
-    setInitial(object)
-  }, [config])
-
-  useEffect(() => {
-    if (data)
-      emitToast({
-        title: 'Configuration Added',
-        type: 'success',
-      })
-  }, [data])
-
-  if (error)
-    return (
-      <ScreenState title="Something went wrong!!" subtitle={error.message} />
-    )
-
-  if (!fragment) return <EmptyState text="No fragment Selected" width={400} />
-
   const handleOnSubmit = async (values: { [key: string]: any }) => {
     if (!isValid) return
     try {
@@ -96,6 +65,41 @@ const FragmentConfiguration = ({
     initialValues: initial,
     onSubmit: handleOnSubmit,
   })
+
+  useEffect(() => {
+    if (!fragment || !fragment.configuration) return
+
+    setConfig(fragment.configuration.properties)
+    console.log('set config', fragment.configuration.properties)
+  }, [fragment?.configuration])
+
+  useEffect(() => {
+    if (!config) return
+
+    console.log({ config })
+    const object: { [key: string]: any } = {}
+    config.forEach((code) => {
+      object[code.key] = code.value
+    })
+    console.log({ object })
+    setInitial(object)
+    setConfigured(true)
+  }, [config])
+
+  useEffect(() => {
+    if (data)
+      emitToast({
+        title: 'Configuration Added',
+        type: 'success',
+      })
+  }, [data])
+
+  if (error)
+    return (
+      <ScreenState title="Something went wrong!!" subtitle={error.message} />
+    )
+
+  if (!fragment) return <EmptyState text="No fragment Selected" width={400} />
 
   return (
     <div>

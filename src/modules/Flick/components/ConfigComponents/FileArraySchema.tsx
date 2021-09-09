@@ -1,17 +1,15 @@
 import { cx } from '@emotion/css'
-import { FormikErrors } from 'formik'
 import React, { useEffect, useState } from 'react'
 import { FiLoader } from 'react-icons/fi'
 import { IoRemoveSharp } from 'react-icons/io5'
-import { Button, Checkbox, Photo } from '../../../../components'
+import { Button, Photo } from '../../../../components'
 import { useUploadFile } from '../../../../hooks'
 import { AllowedFileExtensions } from '../../../../hooks/use-upload-file'
-import { SchemaElementProps, GetSchemaElementProps } from '.././Effects'
+import { GetSchemaElementProps } from '../Effects'
 
 const FileArraySchema = ({
   schema,
   handleChange,
-  setFieldValue,
   value,
   setLoadingAssets,
 
@@ -20,7 +18,6 @@ const FileArraySchema = ({
   const [uploadSlides] = useUploadFile()
   const [loadingSlide, setLoadingSlide] = useState<boolean>(false)
   const [slides, setSlides] = useState<string[]>([])
-  const [slideImage, setSlideImage] = useState<string>()
   const addToFormik = (valueArray: any) => {
     const event = new Event('input', { bubbles: true })
     dispatchEvent(event)
@@ -30,13 +27,15 @@ const FileArraySchema = ({
     event.target.value = valueArray
     handleChange(event as any)
   }
+  if (!schema.value || schema.value.length <= 0) {
+    setConfigured(false)
+  } else {
+    setConfigured(true)
+  }
 
   useEffect(() => {
-    if (!schema.value || schema.value.length <= 0) {
-      setConfigured(false)
+    if (!value) {
       return
-    } else {
-      setConfigured(true)
     }
     setSlides(value || [])
   }, [value])
@@ -59,7 +58,6 @@ const FileArraySchema = ({
     setLoadingAssets(false)
     setLoadingSlide(false)
     const slideArray = [...slides, pic.url]
-    setSlideImage(pic.url)
     setSlides(slideArray)
     addToFormik(slideArray)
   }

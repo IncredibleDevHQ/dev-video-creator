@@ -1,15 +1,12 @@
-import { FormikErrors } from 'formik'
 import React from 'react'
-import { Checkbox, TextField } from '../../../../components'
-import { SchemaElementProps, GetSchemaElementProps } from '.././Effects'
+import { TextField } from '../../../../components'
+import { GetSchemaElementProps } from '../Effects'
 
 const TextSchema = ({
   schema,
   handleChange,
-  setFieldValue,
   value,
-  setLoadingAssets,
-
+  setVideoInventoryModal,
   setConfigured,
 }: GetSchemaElementProps) => {
   if (!schema.value || schema.value.length <= 0) {
@@ -25,6 +22,11 @@ const TextSchema = ({
       onChange={handleChange}
       value={value}
       key={schema.key}
+      onClick={() => {
+        if (schema.key === 'source') {
+          if (setVideoInventoryModal) setVideoInventoryModal(true)
+        }
+      }}
       defaultValue={value}
       placeholder={schema.description}
       label={schema.name}

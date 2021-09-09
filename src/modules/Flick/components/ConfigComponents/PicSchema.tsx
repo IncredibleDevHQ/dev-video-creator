@@ -1,14 +1,12 @@
-import { FormikErrors } from 'formik'
 import React, { useState } from 'react'
-import { Checkbox, Photo, Text } from '../../../../components'
+import { Photo, Text } from '../../../../components'
 import { useUploadFile } from '../../../../hooks'
 import { AllowedFileExtensions } from '../../../../hooks/use-upload-file'
-import { SchemaElementProps, GetSchemaElementProps } from '.././Effects'
+import { GetSchemaElementProps } from '../Effects'
 
 export const PicSchema = ({
   schema,
   handleChange,
-  setFieldValue,
   value,
   setLoadingAssets,
 }: GetSchemaElementProps) => {

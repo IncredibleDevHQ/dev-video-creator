@@ -1,7 +1,6 @@
-/* eslint-disable no-case-declarations */
 import { FormikErrors } from 'formik'
+
 import React, { useEffect } from 'react'
-import { TextField } from '../../../components'
 
 import {
   CheckboxSchema,
@@ -9,6 +8,7 @@ import {
   JsonSchema,
   PicSchema,
   TextArraySchema,
+  TextSchema,
 } from './ConfigComponents/index'
 
 export interface SchemaElementProps {
@@ -25,7 +25,7 @@ export interface SchemaElementProps {
 export interface GetSchemaElementProps {
   schema: SchemaElementProps
   handleChange: (e: React.ChangeEvent<any>) => void
-  setFieldValue: (
+  setFieldValue?: (
     field: string,
     value: any,
     shouldValidate?: boolean | undefined
@@ -38,8 +38,10 @@ export interface GetSchemaElementProps {
       >
   value: any
   setLoadingAssets: React.Dispatch<React.SetStateAction<boolean>>
+
   selectedVideoLink?: string
   setVideoInventoryModal?: React.Dispatch<React.SetStateAction<boolean>>
+
   setConfigured: React.Dispatch<React.SetStateAction<boolean>>
 }
 
@@ -67,30 +69,23 @@ export const GetSchemaElement = ({
       )
 
     case 'text':
-      if (!value || (value && value.length <= 0)) {
+      if (!schema.value || (schema.value && schema.value.length <= 0)) {
         setConfigured(false)
       }
 
       useEffect(() => {
-        setFieldValue(schema.key, selectedVideoLink)
+        if (setFieldValue) setFieldValue(schema.key, selectedVideoLink)
       }, [selectedVideoLink])
 
       return (
         <>
-          <TextField
-            className="text-lg m-4"
-            name={schema.key}
-            onChange={handleChange}
+          <TextSchema
+            schema={schema}
+            handleChange={handleChange}
             value={value}
-            key={schema.key}
-            defaultValue={value}
-            onClick={() => {
-              if (schema.key === 'source' && setVideoInventoryModal) {
-                setVideoInventoryModal(true)
-              }
-            }}
-            placeholder={schema.description}
-            label={schema.name}
+            setLoadingAssets={setLoadingAssets}
+            setConfigured={setConfigured}
+            setVideoInventoryModal={setVideoInventoryModal}
           />
         </>
       )

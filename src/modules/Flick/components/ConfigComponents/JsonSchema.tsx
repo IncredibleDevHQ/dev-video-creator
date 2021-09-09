@@ -10,6 +10,7 @@ const JsonSchema = ({
   handleChange,
   value,
   setLoadingAssets,
+  setConfigured,
 }: GetSchemaElementProps) => {
   const addToFormik = (valueArray: any) => {
     const event = new Event('input', { bubbles: true })
@@ -29,8 +30,16 @@ const JsonSchema = ({
   const [question, setQuestion] = useState<Question>()
   const [questions, setQuestions] = useState<Question[]>([])
   const [loading, setLoading] = useState(false)
-
+  if (!schema.value || schema.value.length <= 0) {
+    setConfigured(false)
+  }
   useEffect(() => {
+    if (!value) {
+      setConfigured(false)
+      return
+    }
+    setConfigured(true)
+
     setQuestions(value || [])
   }, [value])
 
@@ -65,10 +74,12 @@ const JsonSchema = ({
   return (
     <div className="flex flex-col gap-1 m-4" key={schema.key}>
       <div className="flex gap-2 items-end">
-        <div>
+        <div
+          className="flex flex-col md:flex-row items-center"
+          key={schema.key}
+        >
           <TextArea
-            // eslint-disable-next-line react/no-array-index-key
-            className="text-lg w-full"
+            className="text-lg"
             name={schema.key}
             onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
               setQuestion({ ...question, text: e.target.value })
