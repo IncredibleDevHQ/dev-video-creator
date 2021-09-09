@@ -41,7 +41,7 @@ const Slides = () => {
       480,
       600,
       0,
-      100,
+      0,
       setSlideDim
     )
   }, [slide])
