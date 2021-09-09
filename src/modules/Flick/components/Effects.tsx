@@ -57,7 +57,6 @@ export const GetSchemaElement = ({
 
   switch (schema.type) {
     case 'boolean':
-      SplashFive
       return (
         <Checkbox
           name={schema.key}

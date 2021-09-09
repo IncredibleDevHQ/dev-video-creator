@@ -1,5 +1,5 @@
 import { Rect, Text } from 'react-konva'
-import React, { useEffect } from 'react'
+import React from 'react'
 import { Fragment_Type_Enum_Enum } from '../../../generated/graphql'
 import CodeJam from './CodeJam'
 import VideoJam from './VideoJam'
@@ -10,7 +10,9 @@ import StoryBook from './StoryBook'
 import Slides from './Slides'
 import Points from './Points'
 import { CONFIG } from '../components/Concourse'
+import CustomSplash from './CustomSplash'
 
+const themeEnum = 'theme'
 export interface Effect {
   controls: JSX.Element[]
   layerChildren: any[]
@@ -38,14 +40,59 @@ export const titleSplash = (title: string): JSX.Element => {
   )
   return titleSplashChildern
 }
+
+const getSplash = (theme: any) => {
+  if (theme.value === '0') return SplashFive
+  if (theme.value === '1') return SplashFour
+  return CustomSplash
+}
+
+export const getDimensions = (
+  img: { w: number; h: number },
+  maxH: number,
+  maxW: number,
+  x: number,
+  y: number,
+  setImageDim: React.Dispatch<
+    React.SetStateAction<{
+      width: number
+      height: number
+      x: number
+      y: number
+    }>
+  >
+) => {
+  let calWidth = 0
+  let calHeight = 0
+  let calX = 0
+  let calY = 0
+  const aspectRatio = img.w / img.h
+  if (aspectRatio > maxW / maxH) {
+    // horizontal img
+    calY = Math.max((540 - maxW * (1 / aspectRatio)) / 2 - 30, 0)
+    calX = x
+    calHeight = maxW * (1 / aspectRatio)
+    calWidth = maxW
+  } else if (aspectRatio <= maxW / maxH) {
+    // sqr or vertical image
+    calY = y
+    calX = (maxW - maxH * aspectRatio) / 2
+    calHeight = maxH
+    calWidth = maxH * aspectRatio
+  }
+  setImageDim({ width: calWidth, height: calHeight, x: calX, y: calY })
+}
+
 export const getEffect = (
   type: Fragment_Type_Enum_Enum,
   config: { properties: any }
 ) => {
+  const theme = config.properties.find(
+    (property: any) => property.key === themeEnum
+  )
   switch (type) {
     case Fragment_Type_Enum_Enum.Splash:
-      // return config.properties[2].value === '0' ? SplashFive : SplashFour
-      return SplashFive
+      return getSplash(theme)
     case Fragment_Type_Enum_Enum.CodeJam:
       return CodeJam
     case Fragment_Type_Enum_Enum.Videoshow:
