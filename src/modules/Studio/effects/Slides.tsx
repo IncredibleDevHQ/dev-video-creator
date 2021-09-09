@@ -40,6 +40,8 @@ const Slides = () => {
       },
       480,
       600,
+      0,
+      100,
       setSlideDim
     )
   }, [slide])
@@ -121,7 +123,7 @@ const Slides = () => {
         fill="#E5E5E5"
       />
     </Group>,
-    <Group x={30} y={30} height={480} width={600} key="group1">
+    <Group y={30} height={480} width={600} key="group1">
       {slides.length > 0 && (
         <>
           <Group

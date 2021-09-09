@@ -34,29 +34,17 @@ const Trivia = () => {
       : '',
     'anonymous'
   )
+
   const [imgDim, setImgDim] = useState<{
     width: number
     height: number
     x: number
     y: number
   }>({ width: 0, height: 0, x: 0, y: 0 })
-
   useEffect(() => {
     const font = new FontFaceObserver('Poppins')
     font.load()
   }, [])
-
-  useEffect(() => {
-    getDimensions(
-      {
-        w: (qnaImage && qnaImage.width) || 0,
-        h: (qnaImage && qnaImage.height) || 0,
-      },
-      318,
-      472,
-      setImgDim
-    )
-  }, [qnaImage])
 
   const videoElement = React.useMemo(() => {
     if (!stream) return undefined
@@ -66,6 +54,20 @@ const Trivia = () => {
 
     return element
   }, [stream])
+
+  useEffect(() => {
+    getDimensions(
+      {
+        w: (qnaImage && qnaImage.width) || 0,
+        h: (qnaImage && qnaImage.height) || 0,
+      },
+      318,
+      472,
+      0,
+      94,
+      setImgDim
+    )
+  }, [qnaImage])
 
   useEffect(() => {
     if (!fragment?.configuration.properties) return
@@ -179,7 +181,7 @@ const Trivia = () => {
         />
       ) : (
         <>
-          <Rect y={imgDim.y - 94 / 4} fill="#F5F5F5" width={472} height={318} />
+          <Rect y={94} fill="#F5F5F5" width={472} height={318} />
           <Image
             image={qnaImage}
             y={imgDim.y}
@@ -187,6 +189,7 @@ const Trivia = () => {
             fill="#E5E5E5"
             width={imgDim.width}
             height={imgDim.height}
+            h
             shadowOpacity={0.3}
             shadowOffset={{ x: 0, y: 1 }}
             shadowBlur={2}
@@ -196,6 +199,7 @@ const Trivia = () => {
     </Group>,
     <Group x={664} y={412} width={234} height={64} key="group2">
       <Rect width={234} cornerRadius={4} height={64} fill="#F3F4F6" />
+
       <Text
         fontSize={18}
         fill="#1F2937"
@@ -233,3 +237,20 @@ const Trivia = () => {
 }
 
 export default Trivia
+function x(
+  arg0: { w: number; h: number },
+  arg1: number,
+  arg2: number,
+  x: any,
+  y: any,
+  setImgDim: React.Dispatch<
+    React.SetStateAction<{
+      width: number
+      height: number
+      x: number
+      y: number
+    }>
+  >
+) {
+  throw new Error('Function not implemented.')
+}

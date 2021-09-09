@@ -53,6 +53,8 @@ export const getDimensions = (
   img: { w: number; h: number },
   maxH: number,
   maxW: number,
+  x: number,
+  y: number,
   setImageDim: React.Dispatch<
     React.SetStateAction<{
       width: number
@@ -70,12 +72,12 @@ export const getDimensions = (
   if (aspectRatio > maxW / maxH) {
     // horizontal img
     calY = Math.max((540 - maxW * (1 / aspectRatio)) / 2 - 30, 0)
-    calX = 0
+    calX = x
     calHeight = maxW * (1 / aspectRatio)
     calWidth = maxW
   } else if (aspectRatio <= maxW / maxH) {
     // sqr or vertical image
-    calY = 100
+    calY = y
     calX = (maxW - maxH * aspectRatio) / 2
     calHeight = maxH
     calWidth = maxH * aspectRatio
