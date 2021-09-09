@@ -4,7 +4,6 @@ import { useFormik } from 'formik'
 import { Button, emitToast, EmptyState, ScreenState } from '../../../components'
 import {
   FlickFragmentFragment,
-  Fragment_Type_Enum_Enum,
   useUpdateFragmentConfigurationMutation,
 } from '../../../generated/graphql'
 import { GetSchemaElement, SchemaElementProps } from './Effects'
@@ -130,15 +129,13 @@ const FragmentConfiguration = ({
         </Button>
       </form>
 
-      {fragment.type === Fragment_Type_Enum_Enum.Videoshow && (
-        <VideoInventoryModal
-          open={videoInventoryModal}
-          handleClose={() => {
-            setVideoInventoryModal(false)
-          }}
-          setSelectedVideoLink={setSelectedVideoLink}
-        />
-      )}
+      <VideoInventoryModal
+        open={videoInventoryModal}
+        handleClose={() => {
+          setVideoInventoryModal(false)
+        }}
+        setSelectedVideoLink={setSelectedVideoLink}
+      />
 
       {isConfigured && (
         <Button
