@@ -9,7 +9,6 @@ import {
 } from '../../../generated/graphql'
 import { GetSchemaElement, SchemaElementProps } from './Effects'
 import { VideoInventoryModal } from './index'
-import { FiPlus } from 'react-icons/fi'
 
 const FragmentConfiguration = ({
   fragment,
