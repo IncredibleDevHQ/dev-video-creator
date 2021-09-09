@@ -36,8 +36,11 @@ const JsonSchema = ({
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (!value || (value && value.length <= 0)) {
+    if (!schema.value || schema.value.length <= 0) {
       setConfigured(false)
+      return
+    } else {
+      setConfigured(true)
     }
 
     setQuestions(value || [])
