@@ -1,5 +1,6 @@
 import { css, cx } from '@emotion/css'
 import React, { useState } from 'react'
+import { FiMonitor, FiUploadCloud } from 'react-icons/fi'
 import Modal from 'react-responsive-modal'
 import { Button, Heading, ScreenState } from '../../../components'
 import Video from '../../../components/UploadVideo'
@@ -26,7 +27,7 @@ const VideoInventoryModal = ({
 
   if (error)
     return (
-      <ScreenState title="Something went wrong!!" subtitle={error.message} />
+      <ScreenState title="Something went wrong!" subtitle={error.message} />
     )
 
   return (
@@ -49,23 +50,27 @@ const VideoInventoryModal = ({
         `,
       }}
     >
-      <Heading>Videos </Heading>
-      <div className="flex flex-row gap-1 justify-end mt-6">
+      <Heading>Videos</Heading>
+      <div className="grid grid-cols-2 gap-x-4 justify-end mt-6">
         <Button
           type="button"
-          appearance="secondary"
+          appearance="primary"
           className="border-white h-auto bg-gray-100 text-black"
           onClick={() => setUploadFileModal(true)}
+          icon={FiUploadCloud}
+          size="extraSmall"
         >
-          Upload Video
+          Upload a File
         </Button>
         <Button
           type="button"
-          appearance="secondary"
+          appearance="primary"
           onClick={() => setScreenRecordModal(true)}
+          icon={FiMonitor}
           className="border-white h-auto bg-gray-100 text-black"
+          size="extraSmall"
         >
-          ScreenRecord
+          Record Your Screen
         </Button>
       </div>
       <div className="grid grid-cols-3 m-4 gap-4 ">
