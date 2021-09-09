@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, useHistory } from 'react-router-dom'
+import { FiActivity } from 'react-icons/fi'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import {
+  FlickActivity,
   FragmentActivity,
   FragmentConfiguration,
   FragmentsSidebar,
@@ -23,6 +25,8 @@ const Flick = () => {
   const { sub } = (useRecoilValue(userState) as User) || {}
 
   const [isParticipants, setParticipants] = useState(true)
+  const [isActivityMenu, setIsActivityMenu] = useState(false)
+
   const [activeFragmentId, setActiveFragmentId] = useState<string>()
 
   const history = useHistory()
@@ -81,9 +85,23 @@ const Flick = () => {
         participants={flick.participants}
       />
       <div className="flex-1 p-4">
-        <Heading className=" flex font-black text-2xl capitalize justify-center mb-2">
-          {flick.name}
-        </Heading>
+        <div className="flex relative mr-4 justify-between">
+          <div />
+          <Heading className=" flex font-black text-2xl capitalize justify-center mb-2">
+            {flick.name}
+          </Heading>
+          <button
+            type="button"
+            className="cursor-pointer"
+            onClick={() => setIsActivityMenu(!isActivityMenu)}
+          >
+            <span className="block bg-red-600 absolute w-1.5 h-1.5 rounded-full">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-600 duration-500 opacity-75" />
+            </span>
+            <FiActivity />
+          </button>
+          <FlickActivity menu={isActivityMenu} setMenu={setIsActivityMenu} />
+        </div>
         {activeFragmentId ? (
           <div>
             <FragmentActivity

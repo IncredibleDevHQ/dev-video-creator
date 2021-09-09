@@ -38,7 +38,7 @@ const OrganisationSeries = ({
   }, [data, seriesCreated, organisationSlug])
 
   if (loadingSeries) {
-    return <Loading>Loading...</Loading>
+    return <Loading />
   }
 
   if (errorSeries) {

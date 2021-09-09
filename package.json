@@ -62,6 +62,7 @@
     "ts-ebml": "^2.0.2",
     "use-debounce": "^7.0.0",
     "use-image": "^1.0.8",
+    "use-screen-recorder": "^1.0.1",
     "yup": "^0.32.9"
   },
   "devDependencies": {

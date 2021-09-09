@@ -25,6 +25,7 @@ import Tooltip from './Tooltip'
 import Checkbox from './Checkbox'
 import Photo from './Photo'
 import FileDropzone from './FileDropzone'
+import UploadVideo from './UploadVideo'
 
 export {
   Avatar,
@@ -56,6 +57,7 @@ export {
   Checkbox,
   Photo,
   FileDropzone,
+  UploadVideo,
 }
 
 export type { Tab }
