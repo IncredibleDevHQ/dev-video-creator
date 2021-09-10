@@ -112,8 +112,8 @@ const useSplash = () => {
     let noOfLines = 1
     let currentWidth = 0
 
-    const titleSplit = text.split(' ')
-    titleSplit.forEach((subText) => {
+    const titleSplit = text?.split(' ')
+    titleSplit?.forEach((subText) => {
       const word = new Konva.Text({
         text: subText,
         fontSize: titleFontSize,
