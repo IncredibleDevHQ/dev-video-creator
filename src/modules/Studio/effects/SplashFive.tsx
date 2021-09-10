@@ -9,6 +9,7 @@ import { StudioProviderProps, studioStore } from '../stores'
 import useSplash, { Coordinates } from '../hooks/use-splash'
 import { User, userState } from '../../../stores/user.store'
 import { useGetFragmentByIdQuery } from '../../../generated/graphql'
+import { EmptyState } from '../../../components'
 
 const titleEnum = 'title'
 const subTitleEnum = 'subtitle'
@@ -67,7 +68,7 @@ const SplashFive = () => {
 
       getLayerChildren()
     }
-  }, [state])
+  }, [state, configuration])
 
   useEffect(() => {
     const font = new FontFaceObserver('Poppins')
@@ -213,7 +214,8 @@ const SplashFive = () => {
       />,
     ])
   }
-
+  if (!configuration)
+    return <EmptyState text="Missing cofiguration, Please Reload" width={400} />
   return (
     <Concourse
       disableUserMedia
