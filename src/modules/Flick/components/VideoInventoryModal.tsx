@@ -77,16 +77,22 @@ const VideoInventoryModal = ({
         {data &&
           data.Asset.length > 0 &&
           data.Asset.map((asset) => (
-            <div
-              className="max-w-2xl flex content-center bg-gray-800"
-              onClick={() => {
-                setSelectedVideoLink(baseUrl + asset.objectLink)
-                handleClose()
-              }}
-            >
+            <div className="max-w-2xl content-center">
               <video width={400} height={225} controls>
                 <source src={baseUrl + asset.objectLink} type="video/mp4" />
               </video>
+              <Button
+                type="button"
+                appearance="primary"
+                onClick={() => {
+                  setSelectedVideoLink(baseUrl + asset.objectLink)
+                  handleClose()
+                }}
+                className="border-white h-auto bg-gray-100 text-black mt-2"
+                size="extraSmall"
+              >
+                Add
+              </Button>
             </div>
           ))}
       </div>
