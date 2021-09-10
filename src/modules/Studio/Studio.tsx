@@ -4,6 +4,7 @@ import { useHistory, useParams } from 'react-router-dom'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import 'get-blob-duration'
 
+import getBlobDuration from 'get-blob-duration'
 import {
   emitToast,
   dismissToast,
@@ -27,7 +28,6 @@ import { useUploadFile } from '../../hooks/use-upload-file'
 import { useAgora } from './hooks'
 import { StudioState, studioStore } from './stores'
 import { useRTDB } from './hooks/use-rtdb'
-import getBlobDuration from 'get-blob-duration'
 
 const Studio = () => {
   const { fragmentId } = useParams<{ fragmentId: string }>()
@@ -119,13 +119,13 @@ const Studio = () => {
         }
       })()
     }
-  }, [fragment])
+  }, [fragment, ready])
 
   useEffect(() => {
     if (data?.Fragment[0] === undefined) return
     console.log('dataFragment[0]', data?.Fragment[0] === undefined)
     setFragment(data.Fragment[0])
-  }, [data])
+  }, [data, fragmentId])
 
   useEffect(() => {
     return () => {
@@ -192,7 +192,7 @@ const Studio = () => {
       const duration = await getBlobDuration(uploadVideoFile)
 
       await markFragmentCompleted({
-        variables: { id: fragmentId, producedLink: uuid, duration: duration },
+        variables: { id: fragmentId, producedLink: uuid, duration },
       })
 
       dismissToast(toast)
@@ -227,6 +227,7 @@ const Studio = () => {
   }
 
   const finalTransition = () => {
+    if (!payload) return
     payload.playing = false
     updatePayload?.({ status: Fragment_Status_Enum_Enum.Ended })
   }
