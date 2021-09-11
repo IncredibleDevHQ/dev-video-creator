@@ -28,6 +28,7 @@ import {
   NewFragment,
   PublicOrganisationPage,
 } from './modules'
+import { VideoJSPlayer } from './modules/VideoJSPlayer/VideoJSPlayer'
 
 const App = () => {
   return (
@@ -99,6 +100,9 @@ const App = () => {
                 <PrivateRoute exact path="/circle" component={Circle} />
                 <Route exact path="/login">
                   <AuthenticateScreen />
+                </Route>
+                <Route exact path="/video">
+                  <VideoJSPlayer />
                 </Route>
                 <Route exact path="/signup">
                   <AuthenticateScreen />
