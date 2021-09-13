@@ -18,7 +18,7 @@ import SingleSeries from './Series/SingleSeries'
 import Circle from './Circle/Circle'
 import NewFragment from './NewFragment/NewFragment'
 import PublicOrganisationPage from './Organisation/PublicOrganisationPage'
-import { PublicVideo } from './Public'
+import PublicVideo from './PublicVideo/PublicVideo'
 
 export {
   AuthenticateScreen,
@@ -40,5 +40,5 @@ export {
   Circle,
   NewFragment,
   PublicOrganisationPage,
-  PublicVideo
+  PublicVideo,
 }
