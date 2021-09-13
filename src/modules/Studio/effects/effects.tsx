@@ -14,7 +14,6 @@ import CustomSplash from './CustomSplash'
 import Discussion from './Discussion'
 import SplashSix from './SplashSix'
 import Outro from './Outro'
-import VideoJamTwo from './VideoJamTwo'
 import SplashSeven from './SplashSeven'
 
 const themeEnum = 'theme'
@@ -54,10 +53,10 @@ const getSplash = (theme: any) => {
   return CustomSplash
 }
 
-const getVideoTheme = (theme: any) => {
-  if (theme.value === '0') return VideoJam
-  return VideoJamTwo
-}
+// const getVideoTheme = (theme: any) => {
+//   if (theme.value === '0') return VideoJam
+//   return VideoJamTwo
+// }
 
 export const getDimensions = (
   img: { w: number; h: number },
@@ -108,7 +107,7 @@ export const getEffect = (
     case Fragment_Type_Enum_Enum.CodeJam:
       return CodeJam
     case Fragment_Type_Enum_Enum.Videoshow:
-      return getVideoTheme(theme)
+      return VideoJam
     case Fragment_Type_Enum_Enum.Trivia:
       return Trivia
     case Fragment_Type_Enum_Enum.Storybook:
