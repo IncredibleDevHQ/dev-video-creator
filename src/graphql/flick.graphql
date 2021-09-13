@@ -128,3 +128,18 @@ query FlickActivity($flickId: uuid!) {
     ...FlickActivity
   }
 }
+fragment Note on Note {
+  id
+  note
+  sourceUrl
+  participant {
+    id
+    userSub
+  }
+}
+
+query GetFlickNotes($flickId: uuid!) {
+  Note(where: { flickId: { _eq: $flickId } }) {
+    ...Note
+  }
+}
