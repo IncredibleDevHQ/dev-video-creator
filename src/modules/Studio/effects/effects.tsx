@@ -16,7 +16,6 @@ import SplashSix from './SplashSix'
 import Outro from './Outro'
 import VideoJamTwo from './VideoJamTwo'
 import SplashSeven from './SplashSeven'
-import SplashEight from './SplashEight'
 
 const themeEnum = 'theme'
 export interface Effect {
