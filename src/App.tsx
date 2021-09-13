@@ -27,6 +27,7 @@ import {
   Designer,
   NewFragment,
   PublicOrganisationPage,
+  PublicVideo,
 } from './modules'
 import { ErrorBoundary, ScreenState } from './components'
 
@@ -127,6 +128,9 @@ const App = () => {
                   component={UserSeriesFlicks}
                 />
                 <PrivateRoute exact path="/circle" component={Circle} />
+                <Route exact path="/view/:joinLink">
+                  <PublicVideo />
+                </Route>
                 <Route exact path="/login">
                   <AuthenticateScreen />
                 </Route>
