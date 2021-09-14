@@ -1,20 +1,22 @@
 import React, { useEffect, useState } from 'react'
-import { Rect, Text } from 'react-konva'
+import { Circle, Rect, Text, Image } from 'react-konva'
 import Konva from 'konva'
 import { useRecoilValue } from 'recoil'
 import FontFaceObserver from 'fontfaceobserver'
 import { useParams } from 'react-router-dom'
+import useImage from 'use-image'
 import Concourse, { CONFIG } from '../components/Concourse'
 import { StudioProviderProps, studioStore } from '../stores'
 import useSplash, { Coordinates } from '../hooks/use-splash'
 import { User, userState } from '../../../stores/user.store'
 import { useGetFragmentByIdQuery } from '../../../generated/graphql'
 import { EmptyState } from '../../../components'
+import config from '../../../config'
 
 const titleEnum = 'title'
 const subTitleEnum = 'subtitle'
 
-const SplashFive = () => {
+const SplashEight = () => {
   const { state } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const { sub } = (useRecoilValue(userState) as User) || {}
   const [configuration, setConfiguration] =
@@ -24,6 +26,15 @@ const SplashFive = () => {
   const { data } = useGetFragmentByIdQuery({
     variables: { id: params.fragmentId, sub: sub as string },
   })
+
+  const [sourceGraphLogo] = useImage(
+    `${config.storage.baseUrl}sourcegraph-logo.png`,
+    'anonymous'
+  )
+  const [sourceGraphUser] = useImage(
+    `${config.storage.baseUrl}sourcegraph-user.png`,
+    'anonymous'
+  )
 
   useEffect(() => {
     if (!data?.Fragment[0].configuration.properties) return
@@ -79,7 +90,7 @@ const SplashFive = () => {
     <Rect
       x={0}
       y={0}
-      fill="#ffffff"
+      fill="#C084FC"
       width={CONFIG.width}
       height={CONFIG.height}
     />,
@@ -88,127 +99,140 @@ const SplashFive = () => {
   const getLayerChildren = () => {
     setLayerChildren((layerChildren) => [
       ...layerChildren,
-      <Rect
-        key="firstRect"
-        x={-500}
-        y={500}
-        width={500}
-        height={75}
-        fill="#7B16A2"
-        rotation={-45}
+      <Image
+        image={sourceGraphLogo}
+        x={44}
+        y={443}
+        opacity={0}
         ref={(ref) => {
           ref?.to({
             duration: 1,
-            x: -60,
-            y: 60,
-            // easing: Konva.Easings.BackEaseInOut,
-          })
-        }}
-      />,
-      <Rect
-        key="secondRect"
-        x={CONFIG.width + 140}
-        y={0}
-        width={600}
-        height={75}
-        fill="#4A148A"
-        rotation={-45}
-        ref={(ref) => {
-          ref?.to({
-            duration: 1,
-            x: 550,
-            y: 550,
-            // easing: Konva.Easings.BackEaseInOut,
-          })
-        }}
-      />,
-      <Rect
-        key="thirdRect"
-        x={200}
-        y={1005}
-        width={600}
-        height={75}
-        fill="#7B16A2"
-        rotation={-45}
-        ref={(ref) => {
-          ref?.to({
-            duration: 1,
-            x: 600,
-            y: 605,
-            // easing: Konva.Easings.BackEaseInOut,
-          })
-        }}
-      />,
-      <Rect
-        key="fourthRect"
-        x={1055}
-        y={255}
-        width={600}
-        height={75}
-        fill="#BB6AC9"
-        rotation={-45}
-        ref={(ref) => {
-          ref?.to({
-            duration: 1,
-            x: 655,
-            y: 655,
-            // easing: Konva.Easings.BackEaseInOut,
-          })
-        }}
-      />,
-      <Rect
-        key="fifthRect"
-        x={310}
-        y={1105}
-        width={500}
-        height={75}
-        fill="#E3BDEA"
-        rotation={-45}
-        ref={(ref) => {
-          ref?.to({
-            duration: 1,
-            x: 710,
-            y: 705,
-            // easing: Konva.Easings.BackEaseInOut,
+            opacity: 1,
           })
         }}
       />,
       <Text
         key="title"
-        x={-600}
-        y={coordinate.titleY}
-        text={configuration?.title.value as string}
-        fontSize={60}
-        fontFamily="Poppins"
-        fill="#000000"
+        x={-550}
+        y={55}
+        text="Getting started with code search using Sourcegraph"
+        fontSize={64}
+        fontFamily="Source Sans Pro"
+        fill="#ffffff"
         align="left"
         opacity={1}
-        width={titleWidth}
+        width={500}
         ref={(ref) => {
           ref?.to({
             duration: 1,
-            x: 75,
-            easing: Konva.Easings.EaseInOut,
+            x: 44,
+          })
+        }}
+      />,
+      <Circle
+        x={750}
+        y={300}
+        radius={100}
+        fill="#C084FC"
+        shadowColor="#000000"
+        shadowBlur={10}
+        shadowOpacity={0.1}
+        shadowOffsetX={0}
+        shadowOffsetY={10}
+        opacity={0}
+        ref={(ref) => {
+          ref?.to({
+            duration: 1,
+            opacity: 1,
+            scaleX: 2,
+            scaleY: 2,
+          })
+        }}
+      />,
+      <Circle
+        x={750}
+        y={300}
+        radius={85}
+        fill="#A855F7"
+        shadowColor="#000000"
+        shadowBlur={10}
+        shadowOpacity={0.12}
+        shadowOffsetX={0}
+        shadowOffsetY={10}
+        opacity={0}
+        ref={(ref) => {
+          ref?.to({
+            duration: 1,
+            opacity: 1,
+            scaleX: 2,
+            scaleY: 2,
+          })
+        }}
+      />,
+      <Circle
+        x={750}
+        y={300}
+        radius={60}
+        fill="#9333EA"
+        shadowColor="#000000"
+        shadowBlur={15}
+        shadowOpacity={0.12}
+        shadowOffsetX={0}
+        shadowOffsetY={20}
+        opacity={0}
+        ref={(ref) => {
+          ref?.to({
+            duration: 1,
+            opacity: 1,
+            scaleX: 2,
+            scaleY: 2,
+          })
+        }}
+      />,
+      <Image
+        image={sourceGraphUser}
+        x={520}
+        y={335}
+        opacity={0}
+        ref={(ref) => {
+          ref?.to({
+            duration: 1,
+            opacity: 1,
           })
         }}
       />,
       <Text
-        key="subTitle"
-        x={-600}
-        y={coordinate.subTitleY}
-        text={configuration?.subTitle.value as string}
-        fontSize={30}
-        fontFamily="Poppins"
-        lineHeight={1.25}
-        fill="#5C595A"
+        key="userName"
+        x={630}
+        y={380}
+        text="Beyang Liu"
+        fontSize={24}
+        fontFamily="Source Sans Pro"
+        fontStyle="normal 400"
+        fill="#ffffff"
         align="left"
-        width={titleWidth}
-        opacity={1}
+        opacity={0}
         ref={(ref) => {
           ref?.to({
             duration: 1,
-            x: 75,
-            easing: Konva.Easings.EaseInOut,
+            opacity: 1,
+          })
+        }}
+      />,
+      <Text
+        key="userDesignation"
+        x={630}
+        y={410}
+        text="CTO and Co-founder @ Sourcegraph"
+        fontSize={16}
+        fontFamily="Source Sans Pro"
+        fill="#ffffff"
+        align="left"
+        opacity={0}
+        ref={(ref) => {
+          ref?.to({
+            duration: 1,
+            opacity: 1,
           })
         }}
       />,
@@ -225,4 +249,4 @@ const SplashFive = () => {
   )
 }
 
-export default SplashFive
+export default SplashEight

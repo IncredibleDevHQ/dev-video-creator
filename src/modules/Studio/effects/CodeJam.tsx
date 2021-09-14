@@ -1,18 +1,15 @@
 import axios from 'axios'
 import React, { useEffect, useState } from 'react'
-import { Group, Circle, Text, Rect } from 'react-konva'
+import { Group, Circle, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import { NextLineIcon, NextTokenIcon } from '../../../components'
 import { API } from '../../../constants'
-import {
-  Fragment_Status_Enum_Enum,
-  useGetTokenisedCodeLazyQuery,
-} from '../../../generated/graphql'
+import { useGetTokenisedCodeLazyQuery } from '../../../generated/graphql'
 import { Concourse } from '../components'
 import { ControlButton } from '../components/MissionControl'
 import useCode, { ComputedToken } from '../hooks/use-code'
 import { StudioProviderProps, studioStore } from '../stores'
-import { titleSplash } from './effects'
+
 import TypingEffect from './TypingEffect'
 
 const codeConfig = {
@@ -31,7 +28,6 @@ interface TokenRenderState {
 }
 
 const CodeJam = () => {
-  const [isTitleSplash, setIsTitleSplash] = useState<boolean>(true)
   const { fragment, payload, updatePayload, state, isHost } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
@@ -41,14 +37,14 @@ const CodeJam = () => {
   }>({ enable: false })
 
   const { initUseCode, computedTokens } = useCode()
-  const [getTokenisedCode, { data, error, loading }] =
-    useGetTokenisedCodeLazyQuery()
+  const [getTokenisedCode, { data }] = useGetTokenisedCodeLazyQuery()
   const [position, setPosition] = useState<Position>({
     prevIndex: -1,
     currentIndex: 0,
   })
 
   useEffect(() => {
+    console.log('mnbv', fragment?.configuration.properties)
     if (!fragment?.configuration.properties) return
     const gistURL = fragment.configuration.properties.find(
       (property: any) => property.key === 'gistUrl'
@@ -99,6 +95,19 @@ const CodeJam = () => {
       currentIndex: payload?.currentIndex || 1,
     })
   }, [payload])
+
+  useEffect(() => {
+    if (state === 'ready') {
+      setPosition({
+        prevIndex: -1,
+        currentIndex: 0,
+      })
+      updatePayload?.({
+        currentIndex: 1,
+        prevIndex: 0,
+      })
+    }
+  }, [state])
 
   const controls =
     isHost && state === 'recording'

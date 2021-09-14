@@ -2,6 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { FiArrowLeft } from 'react-icons/fi'
 import { useHistory, useParams } from 'react-router-dom'
 import { useRecoilState, useRecoilValue } from 'recoil'
+import 'get-blob-duration'
+
+import getBlobDuration from 'get-blob-duration'
 import {
   emitToast,
   dismissToast,
@@ -107,6 +110,7 @@ const Studio = () => {
 
   useEffect(() => {
     if (fragment && ready) {
+      console.log('studio fragmnet', fragment)
       ;(async () => {
         init()
         const { data } = await getRTCToken({ variables: { fragmentId } })
@@ -118,9 +122,20 @@ const Studio = () => {
   }, [fragment, ready])
 
   useEffect(() => {
-    if (!data?.Fragment) return
+    if (data?.Fragment[0] === undefined) return
+    console.log('dataFragment[0]', data?.Fragment[0] === undefined)
     setFragment(data.Fragment[0])
-  }, [data])
+  }, [data, fragmentId])
+
+  useEffect(() => {
+    return () => {
+      setFragment(undefined)
+      setStudio({
+        ...studio,
+        fragment: undefined,
+      })
+    }
+  }, [])
 
   const [state, setState] = useState<StudioState>('ready')
 
@@ -159,9 +174,10 @@ const Studio = () => {
     const toast = emitToast(toastProps)
 
     try {
+      const uploadVideoFile = await getBlobs()
       const { uuid } = await uploadFile({
         extension: 'webm',
-        file: await getBlobs(),
+        file: uploadVideoFile,
         handleProgress: ({ percentage }) => {
           updateToast({
             id: toast,
@@ -172,11 +188,19 @@ const Studio = () => {
           })
         },
       })
+
+      const duration = await getBlobDuration(uploadVideoFile)
+
       await markFragmentCompleted({
-        variables: { id: fragmentId, producedLink: uuid },
+        variables: { id: fragmentId, producedLink: uuid, duration },
       })
 
       dismissToast(toast)
+      setFragment(undefined)
+      setStudio({
+        ...studio,
+        fragment: undefined,
+      })
       history.push(`/flick/${fragment?.flickId}/${fragmentId}`)
     } catch (e) {
       emitToast({
@@ -203,6 +227,7 @@ const Studio = () => {
   }
 
   const finalTransition = () => {
+    if (!payload) return
     payload.playing = false
     updatePayload?.({ status: Fragment_Status_Enum_Enum.Ended })
   }
@@ -277,7 +302,8 @@ const Studio = () => {
 
   if (loading) return <ScreenState title="Just a jiffy..." loading />
 
-  if (!fragment) return <EmptyState text="Fragment not found" width={400} />
+  if (!fragment || fragment.id !== fragmentId)
+    return <EmptyState text="Fragment not found" width={400} />
 
   const C = getEffect(fragment.type, fragment.configuration)
 
@@ -289,6 +315,11 @@ const Studio = () => {
             <FiArrowLeft
               className="cursor-pointer mr-2"
               onClick={() => {
+                setFragment(undefined)
+                setStudio({
+                  ...studio,
+                  fragment: undefined,
+                })
                 stream?.getTracks().forEach((track) => track.stop())
                 history.goBack()
               }}
@@ -305,7 +336,7 @@ const Studio = () => {
             <></>
           )}
         </div>
-        <C />
+        {fragment && <C />}
       </div>
     </div>
   )

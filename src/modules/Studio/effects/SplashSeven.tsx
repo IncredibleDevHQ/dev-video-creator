@@ -1,20 +1,22 @@
 import React, { useEffect, useState } from 'react'
-import { Rect, Text } from 'react-konva'
+import { Circle, Rect, Text, Image, Group, Line } from 'react-konva'
 import Konva from 'konva'
 import { useRecoilValue } from 'recoil'
 import FontFaceObserver from 'fontfaceobserver'
 import { useParams } from 'react-router-dom'
+import useImage from 'use-image'
 import Concourse, { CONFIG } from '../components/Concourse'
 import { StudioProviderProps, studioStore } from '../stores'
 import useSplash, { Coordinates } from '../hooks/use-splash'
 import { User, userState } from '../../../stores/user.store'
 import { useGetFragmentByIdQuery } from '../../../generated/graphql'
 import { EmptyState } from '../../../components'
+import config from '../../../config'
 
 const titleEnum = 'title'
 const subTitleEnum = 'subtitle'
 
-const SplashFive = () => {
+const SplashSeven = () => {
   const { state } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const { sub } = (useRecoilValue(userState) as User) || {}
   const [configuration, setConfiguration] =
@@ -24,6 +26,19 @@ const SplashFive = () => {
   const { data } = useGetFragmentByIdQuery({
     variables: { id: params.fragmentId, sub: sub as string },
   })
+
+  const [hasuraLogo] = useImage(
+    `${config.storage.baseUrl}hasura-logo.png`,
+    'anonymous'
+  )
+  const [hasuraText] = useImage(
+    `${config.storage.baseUrl}hasura.png`,
+    'anonymous'
+  )
+  const [userImage] = useImage(
+    `${config.storage.baseUrl}hasura-user.png`,
+    'anonymous'
+  )
 
   useEffect(() => {
     if (!data?.Fragment[0].configuration.properties) return
@@ -89,125 +104,138 @@ const SplashFive = () => {
     setLayerChildren((layerChildren) => [
       ...layerChildren,
       <Rect
-        key="firstRect"
-        x={-500}
-        y={500}
-        width={500}
-        height={75}
-        fill="#7B16A2"
-        rotation={-45}
-        ref={(ref) => {
-          ref?.to({
-            duration: 1,
-            x: -60,
-            y: 60,
-            // easing: Konva.Easings.BackEaseInOut,
-          })
-        }}
-      />,
-      <Rect
-        key="secondRect"
-        x={CONFIG.width + 140}
+        key="backRect"
+        x={CONFIG.width - 560}
         y={0}
-        width={600}
-        height={75}
-        fill="#4A148A"
+        width={560}
+        height={CONFIG.height}
+        fill="#D6EBFF"
+      />,
+      <Rect
+        key="smallRect1"
+        x={490}
+        y={138}
+        width={18}
+        height={18}
+        fill="#F47E7E"
         rotation={-45}
+        opacity={0}
         ref={(ref) => {
           ref?.to({
             duration: 1,
-            x: 550,
-            y: 550,
-            // easing: Konva.Easings.BackEaseInOut,
+            opacity: 1,
           })
         }}
       />,
       <Rect
-        key="thirdRect"
-        x={200}
-        y={1005}
-        width={600}
-        height={75}
-        fill="#7B16A2"
+        key="smallRect2"
+        x={870}
+        y={415}
+        width={38}
+        height={38}
+        fill="#5C94C8"
         rotation={-45}
+        opacity={0}
         ref={(ref) => {
           ref?.to({
             duration: 1,
-            x: 600,
-            y: 605,
-            // easing: Konva.Easings.BackEaseInOut,
+            opacity: 1,
           })
         }}
       />,
-      <Rect
-        key="fourthRect"
-        x={1055}
-        y={255}
-        width={600}
-        height={75}
-        fill="#BB6AC9"
-        rotation={-45}
-        ref={(ref) => {
-          ref?.to({
-            duration: 1,
-            x: 655,
-            y: 655,
-            // easing: Konva.Easings.BackEaseInOut,
-          })
-        }}
+      <Circle
+        x={CONFIG.width}
+        y={0}
+        radius={100}
+        fill="#D6EBFF"
+        stroke="#ffffff"
+        strokeWidth={4}
       />,
-      <Rect
-        key="fifthRect"
-        x={310}
-        y={1105}
-        width={500}
-        height={75}
-        fill="#E3BDEA"
-        rotation={-45}
-        ref={(ref) => {
-          ref?.to({
-            duration: 1,
-            x: 710,
-            y: 705,
-            // easing: Konva.Easings.BackEaseInOut,
-          })
-        }}
+      <Line
+        key="line1"
+        points={[
+          400,
+          CONFIG.height - 153,
+          540,
+          CONFIG.height - 140,
+          553,
+          CONFIG.height,
+        ]}
+        stroke="#ffffff"
+        strokeWidth={4}
+        lineJoin="round"
+        tension={0.3}
       />,
+      <Image image={hasuraLogo} x={578} y={188} />,
+      <Image image={hasuraText} x={282} y={487} />,
+      <Group x={43.5} y={373}>
+        <Image
+          image={userImage}
+          x={0}
+          y={0}
+          opacity={0}
+          ref={(ref) => {
+            ref?.to({
+              duration: 1,
+              opacity: 1,
+            })
+          }}
+        />
+        <Text
+          key="title"
+          x={96}
+          y={15}
+          text="VISHWA MEHTA"
+          fontSize={18}
+          fontFamily="Darker Grotesque"
+          fontStyle="bold"
+          fill="#000000"
+          align="left"
+          opacity={0}
+          width={276}
+          ref={(ref) => {
+            ref?.to({
+              duration: 1,
+              opacity: 1,
+            })
+          }}
+        />
+        <Text
+          key="title"
+          x={96}
+          y={43}
+          text="DevRel Associate @ Hasura"
+          fontSize={16}
+          fontFamily="Darker Grotesque"
+          fill="#000000"
+          align="left"
+          opacity={0}
+          width={276}
+          fontStyle="normal 400"
+          ref={(ref) => {
+            ref?.to({
+              duration: 1,
+              opacity: 1,
+            })
+          }}
+        />
+      </Group>,
       <Text
         key="title"
         x={-600}
-        y={coordinate.titleY}
-        text={configuration?.title.value as string}
-        fontSize={60}
-        fontFamily="Poppins"
+        y={47}
+        text="GETTING STARTED WITH GRAPHQL IN HASURA"
+        fontSize={56}
+        fontFamily="Darker Grotesque"
         fill="#000000"
         align="left"
         opacity={1}
-        width={titleWidth}
+        width={320}
+        fontStyle="normal 800"
         ref={(ref) => {
           ref?.to({
             duration: 1,
-            x: 75,
-            easing: Konva.Easings.EaseInOut,
-          })
-        }}
-      />,
-      <Text
-        key="subTitle"
-        x={-600}
-        y={coordinate.subTitleY}
-        text={configuration?.subTitle.value as string}
-        fontSize={30}
-        fontFamily="Poppins"
-        lineHeight={1.25}
-        fill="#5C595A"
-        align="left"
-        width={titleWidth}
-        opacity={1}
-        ref={(ref) => {
-          ref?.to({
-            duration: 1,
-            x: 75,
+            x: 44,
             easing: Konva.Easings.EaseInOut,
           })
         }}
@@ -225,4 +253,4 @@ const SplashFive = () => {
   )
 }
 
-export default SplashFive
+export default SplashSeven

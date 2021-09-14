@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useHistory, useParams } from 'react-router-dom'
 import { BiCog, BiGift, BiNotepad } from 'react-icons/bi'
 import { BsArrowLeft } from 'react-icons/bs'
@@ -29,14 +29,18 @@ const NewFragment = () => {
   })
 
   const [createFragmentLoading, setCreateFragmentLoading] = useState(false)
-
+  const [newFragmnetId, setnewFragmnetId] = useState('')
   const [createFragment] = useCreateFragmentMutation()
-  const [insertParticipantToFragment] = useInsertParticipantToFragmentMutation()
+  const [insertParticipantToFragment, { data: ipData }] =
+    useInsertParticipantToFragmentMutation()
 
   const [form, setForm] = useState<Form>({
     name: '',
     participants: [],
   })
+  useEffect(() => {
+    if (newFragmnetId.length > 0) push(`/flick/${flickId}/${newFragmnetId}`)
+  }, [newFragmnetId])
 
   const handleCreate = async (form: Form) => {
     setCreateFragmentLoading(true)
@@ -80,7 +84,7 @@ const NewFragment = () => {
           description: `${form.name} was created. Do configure this ${form.type} to make it your own! :)`,
         })
 
-        push(`/flick/${flickId}/${data.CreateFragment?.id}`)
+        push(`/flick/${flickId}/${data?.CreateFragment?.id}`)
       }
     } catch (e) {
       emitToast({
