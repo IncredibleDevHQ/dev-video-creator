@@ -16,7 +16,10 @@ const Notes = ({ flickId }: { flickId: string }) => {
         data.Note.length > 0 &&
         data.Note.map((note) => (
           <div className="mb-3">
-            <Heading fontSize="medium" className="text-xl">
+            <Heading
+              onClick={() => window.open(note.sourceUrl || undefined)}
+              className="text-xl text-indigo-800"
+            >
               {note.sourceUrl}
             </Heading>
             <Text className="h-20 text-sm overflow-hidden overflow-ellipsis">
