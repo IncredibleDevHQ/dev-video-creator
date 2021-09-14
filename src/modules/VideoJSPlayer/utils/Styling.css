@@ -1,11 +1,3 @@
-/* color: #15803d; */
-.container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-}
-
 .video {
   width: 100%;
 }
@@ -17,12 +9,6 @@
 }
 .video-js {
   display: block;
-}
-
-body {
-  background: #222;
-}
-.video-js {
   margin: 20px auto;
 }
 
@@ -30,6 +16,17 @@ body {
   width: 480px;
   margin: 0 auto;
 }
+
+.vjs-controls button[data-state='play'] {
+  background-image: url('../../../assets/vector.svg');
+}
+
+.video-js .my-image {
+  width: 40px;
+  background: url('../../../assets/IncredibleWhiteLogo.svg') center center
+    no-repeat;
+}
+
 .video-js .vjs-menu-button-inline.vjs-slider-active,
 .video-js .vjs-menu-button-inline:focus,
 .video-js .vjs-menu-button-inline:hover,

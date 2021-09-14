@@ -1,27 +1,39 @@
-import React, { useRef, useState } from 'react'
+import React, { HTMLProps, useEffect, useRef, useState } from 'react'
 import { VideoJS } from './components/VideoJS'
-import PropTypes from 'prop-types'
 import { VideoJsPlayer } from 'video.js'
-import 'videojs-contrib-quality-levels'
-// import videoJsResolutionSwitcher from 'videojs-resolution-switcher'
 
-const VideoJSPlayer = () => {
+interface VideoProps extends HTMLProps<HTMLDivElement> {
+  src: string
+  type: string
+}
+
+const VideoJSPlayer = ({ className, src, type, ...rest }: VideoProps) => {
   const playerRef = useRef<any>()
-  const [videoURL, setVideoURL] = useState<string>(
-    'https://cdn.incredible.dev/teststream/testhlsstream.m3u8'
-  )
+  const [videoURL, setVideoURL] = useState<string>('')
+  const [videoType, setVideoType] = useState<string>('')
+
+  useEffect(() => {
+    if (!videoType) return
+    const data = src.split('.').slice(-1).join()
+    setVideoType(`video/${data}`)
+    setVideoURL(src)
+  }, [src])
+
+  console.log(src)
 
   const videoJsOptions = {
     autoplay: false,
     playbackRates: [0.5, 1, 1.25, 1.5, 2],
-    // aspectratio:'16:9'
+    aspectratio: '16:9',
     controls: true,
-    width: 1280,
     height: 720,
+    width: 1080,
+    fluid: true,
     plugins: {
       qualityLevels: {},
       hlsQualitySelector: {},
     },
+
     // controlBar: {
     //   children: [
     //     'playToggle',
@@ -32,13 +44,14 @@ const VideoJSPlayer = () => {
     //     'durationDisplay',
     //     'progressControl',
     //     'remainingTimeDisplay',
+    //     'shareButton',
     //     'fullscreenToggle',
     //   ],
     // },
     sources: [
       {
-        src: videoURL,
-        type: 'application/x-mpegURL',
+        src: src,
+        type: type || 'application/x-mpegURL',
       },
     ],
   }

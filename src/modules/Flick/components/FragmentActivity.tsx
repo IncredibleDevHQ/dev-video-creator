@@ -2,6 +2,7 @@ import React from 'react'
 import { EmptyState } from '../../../components'
 import config from '../../../config'
 import { FlickFragmentFragment } from '../../../generated/graphql'
+import { VideoJSPlayer } from '../../VideoJSPlayer/VideoJSPlayer'
 
 const FragmentActivity = ({
   fragment,
@@ -14,11 +15,10 @@ const FragmentActivity = ({
     <div>
       {fragment.producedLink && (
         // eslint-disable-next-line jsx-a11y/media-has-caption
-        <video
-          className="w-full rounded-md p-2"
-          controls
-          preload="auto"
+        <VideoJSPlayer
+          className="rounded-t-md w-full"
           src={config.storage.baseUrl + fragment.producedLink}
+          type="video/mp4"
         />
       )}
     </div>
