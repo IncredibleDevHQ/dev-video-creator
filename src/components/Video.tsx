@@ -4,7 +4,6 @@ import React, { HTMLProps, useEffect, useRef, useState } from 'react'
 import videojs, { VideoJsPlayer } from 'video.js'
 import 'video.js/dist/video-js.css'
 import logo from '../assets/IncredibleWhiteLogo.svg'
-import '../assets/video.css'
 import qualityLevels from 'videojs-contrib-quality-levels'
 import hlsQualitySelector from 'videojs-hls-quality-selector'
 import { IoPlayOutline } from 'react-icons/io5'
@@ -26,47 +25,181 @@ const Video = ({ className, src, ...rest }: VideoProps) => {
     const { options, onReady } = props
 
     const videoJs = css`
-      display: block;
-      margin: 20px auto;
-
-      &:my-image {
-        width: 40px;
-        background: url('../../../assets/IncredibleWhiteLogo.svg') center center
-          no-repeat;
-      }
-
-      &:vjs-menu-button-inline.vjs-slider-active,
-      &:vjs-menu-button-inline:focus,
-      &:vjs-menu-button-inline:hover,
-      &:vjs-no-flex .vjs-menu-button-inline {
-        width: 10em;
-      }
-
-      &:vjs-controls-disabled .vjs-big-play-button {
-        display: none !important;
-      }
-
-      &:vjs-control {
-        width: 3em;
-      }
-
-      &:vjs-menu-button-inline:before {
-        width: 1.5em;
-      }
-
-      &:vjs-load-progress div,
-      .vjs-seeking .vjs-big-play-button,
-      .vjs-waiting .vjs-big-play-button {
-        display: none !important;
-      }
-
       &:vjs-mouse-display:after,
       &:vjs-play-progress:after {
         padding: 0 0.4em 0.3em;
       }
-
       &:vjs-ended .vjs-loading-spinner {
         display: none;
+      }
+
+      font-size: 14px;
+      overflow: hidden;
+
+      &:vjs-spacer,
+      &:vjs-time-control {
+        display: -webkit-box;
+        display: -moz-box;
+        display: -ms-flexbox;
+        display: -webkit-flex;
+        display: flex;
+        -webkit-box-flex: 0 1 auto;
+        -moz-box-flex: 1 1 auto;
+        -webkit-flex: 1 1 auto;
+        -ms-flex: 1 1 auto;
+        flex: 1 1 auto;
+      }
+
+      &:vjs-time-control {
+        -webkit-box-flex: 0 1 auto;
+        -moz-box-flex: 0 1 auto;
+        -webkit-flex: 0 1 auto;
+        -ms-flex: 0 1 auto;
+        flex: 0 1 auto;
+        width: auto;
+      }
+
+      &:vjs-time-control,
+      &:vjs-current-time-display {
+        text-align: right;
+      }
+
+      &:vjs-time-control,
+      &:vjs-duration-display {
+        text-align: left;
+      }
+
+      &:vjs-play-progress:before,
+      &:vjs-progress-control.vjs-play-progress:before,
+      &:vjs-remaining-time,
+      &:vjs-volume-level:after,
+      &:vjs-volume-level:before,
+      &:vjs-live.vjs-time-control.vjs-current-time,
+      &:vjs-live.vjs-time-control.vjs-duration,
+      &:vjs-live.vjs-time-control.vjs-time-divider,
+      &:vjs-no-flex.vjs-time-control.vjs-remaining-time {
+        display: none;
+      }
+
+      &:vjs-progress-control {
+        position: absolute;
+        left: 0;
+        right: 0;
+        width: 100%;
+        height: 0.5em;
+        top: -0.5em;
+      }
+
+      &:vjs-progress-control,
+      &:vjs-progress-holder {
+        margin: 0;
+      }
+
+      &:not-hover.vjs-has-started.vjs-paused.vjs-user-active.vjs-control-bar,
+      &:not-hover.vjs-has-started.vjs-paused.vjs-user-inactive.vjs-control-bar,
+      &:not-hover.vjs-has-started.vjs-playing.vjs-user-active.vjs-control-bar,
+      &:not-hover.vjs-has-started.vjs-playing.vjs-user-inactive.vjs-control-bar,
+      &:vjs-has-started.vjs-playing.vjs-user-inactive .vjs-control-bar {
+        visibility: visible;
+        opacity: 1;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        -webkit-transform: translateY(3em);
+        -moz-transform: translateY(3em);
+        -ms-transform: translateY(3em);
+        -o-transform: translateY(3em);
+        transform: translateY(3em);
+        -webkit-transition: -webkit-transform 1s ease 0s;
+        -moz-transition: -moz-transform 1s ease 0s;
+        -ms-transition: -ms-transform 1s ease 0s;
+        -o-transition: -o-transform 1s ease 0s;
+        transition: transform 1s ease 0s;
+      }
+
+      &:not-hover.vjs-has-started.vjs-paused.vjs-user-active.vjs-progress-control,
+      &:not-hover.vjs-has-started.vjs-paused.vjs-user-inactive.vjs-progress-control,
+      &:not-hover.vjs-has-started.vjs-playing.vjs-user-active.vjs-progress-control,
+      &:not-hover.vjs-has-started.vjs-playing.vjs-user-inactive.vjs-progress-control,
+      &:vjs-has-started.vjs-playing.vjs-user-inactive .vjs-progress-control {
+        height: 0.25em;
+        top: -0.25em;
+        pointer-events: none;
+        -webkit-transition: height 1s, top 1s;
+        -moz-transition: height 1s, top 1s;
+        -ms-transition: height 1s, top 1s;
+        -o-transition: height 1s, top 1s;
+        transition: height 1s, top 1s;
+      }
+
+      &:not-hover.vjs-has-started.vjs-paused.vjs-user-active.vjs-fullscreen.vjs-progress-control,
+      &:not-hover.vjs-has-started.vjs-paused.vjs-user-inactive.vjs-fullscreen.vjs-progress-control,
+      &:not-hover.vjs-has-started.vjs-playing.vjs-user-active.vjs-fullscreen.vjs-progress-control,
+      &:not-hover.vjs-has-started.vjs-playing.vjs-user-inactive.vjs-fullscreen.vjs-progress-control,
+      &:vjs-has-started.vjs-playing.vjs-user-inactive.vjs-fullscreen.vjs-progress-control {
+        opacity: 0;
+        -webkit-transition: opacity 1s ease 1s;
+        -moz-transition: opacity 1s ease 1s;
+        -ms-transition: opacity 1s ease 1s;
+        -o-transition: opacity 1s ease 1s;
+        transition: opacity 1s ease 1s;
+      }
+
+      &:vjs-live .vjs-live-control {
+        margin-left: 1em;
+      }
+
+      &:vjs-big-play-button {
+        top: 50%;
+        left: 50%;
+        margin-left: -1em;
+        width: 2em;
+        border: none;
+        color: #fff;
+        -webkit-transition: border-color 0.4s, outline 0.4s,
+          background-color 0.4s;
+        -moz-transition: border-color 0.4s, outline 0.4s, background-color 0.4s;
+        -ms-transition: border-color 0.4s, outline 0.4s, background-color 0.4s;
+        -o-transition: border-color 0.4s, outline 0.4s, background-color 0.4s;
+        transition: border-color 0.4s, outline 0.4s, background-color 0.4s;
+        background-color: rgba(0, 0, 0.3, 0.45);
+        font-size: 3.5em;
+        border-radius: 50%;
+        height: 2em !important;
+        line-height: 2em !important;
+        margin-top: -1em !important;
+      }
+
+      &:vjs-menu-button-popup,
+      &:vjs-menu,
+      &:vjs-menu-content {
+        background-color: Grey;
+        width: 12em;
+        left: -1.5em;
+        padding-bottom: 0.5em;
+        border-radius: 5%;
+      }
+
+      &:vjs-menu-button-popup.vjs-menu.vjs-menu-item,
+      &:vjs-menu-button-popup.vjs-menu.vjs-menu-title {
+        background-color: grey;
+        margin: 0.3em 0;
+        padding: 0.5em;
+        border-radius: 0.3em;
+      }
+
+      &:vjs-loading-spinner {
+        border-color: #15803d;
+      }
+
+      &:vjs-control-bar {
+        background-color: rgba(0, 0, 0, 0.1) !important;
+        color: #fff;
+        font-size: 14px;
+      }
+
+      &:vjs-play-progress,
+      &:vjs-volume-level {
+        background-color: #15803d;
       }
     `
 
@@ -101,11 +234,11 @@ const Video = ({ className, src, ...rest }: VideoProps) => {
 
     return (
       <div className="container">
-        <div data-vjs-player>
+        <div data-vjs-player className={videoJs}>
           <video
             id="flick_video"
             ref={videoRef}
-            className="video-js"
+            className={`video-js`}
             poster={logo}
             controls
             autoPlay
@@ -115,31 +248,6 @@ const Video = ({ className, src, ...rest }: VideoProps) => {
             muted
             data-setup="{}"
           />
-          <div className="vjs-control-bar">
-            <div className="vjs-progress-bar vjs-control" />
-            <Button
-              type="button"
-              className="bg-white-500"
-              appearance="primary"
-              size="small"
-              iconPosition="right"
-              icon={IoPlayOutline}
-            />
-            <div className="vjs-control vjs-button">
-              <div className="vjs-menu-settings vjs-lock-showing">
-                <div className="vjs-menu-div vjs-settings-dev">
-                  <div className="vjs-submenu vjs-settings-home">
-                    <ul className="vjs-menu-conetent vjs-settings-list">
-                      {/* <li className="vjs-settings-item vjs-share-button">
-                        "Share"<span className="vjs-share-icon">::before</span>
-                        ::after
-                      </li> */}
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     )
@@ -157,7 +265,7 @@ const Video = ({ className, src, ...rest }: VideoProps) => {
 
   const videoJsOptions = {
     autoplay: false,
-    playbackRates: [0.5, 1, 1.25, 1.5, 2],
+    playbackRates: [0.5, 1, 1.25, 1.5],
     aspectratio: '16:9',
     controls: true,
     height: 720,
@@ -167,20 +275,20 @@ const Video = ({ className, src, ...rest }: VideoProps) => {
       qualityLevels: {},
       hlsQualitySelector: {},
     },
-    controlBar: {
-      children: [
-        'playToggle',
-        'volumeMenuButton',
-        'playbackRates',
-        'currentTimeDisplay',
-        'timeDivider',
-        'durationDisplay',
-        'progressControl',
-        'remainingTimeDisplay',
-        'shareButton',
-        'fullscreenToggle',
-      ],
-    },
+    // controlBar: {
+    //   children: [
+    //     'playToggle',
+    //     'volumeMenuButton',
+    //     'playbackRates',
+    //     'currentTimeDisplay',
+    //     'timeDivider',
+    //     'durationDisplay',
+    //     'progressControl',
+    //     'remainingTimeDisplay',
+    //     'shareButton',
+    //     'fullscreenToggle',
+    //   ],
+    // },
     sources: [
       {
         src,
