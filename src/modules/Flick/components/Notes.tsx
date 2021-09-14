@@ -12,7 +12,7 @@ const Notes = ({ flickId }: { flickId: string }) => {
   }>({ openModal: false, text: '' })
   const { data, loading } = useGetFlickNotesQuery({
     variables: {
-      flickId: 'c92623d0-7894-4c4e-bf51-589fae64d163', // value for 'flickId'
+      flickId, // value for 'flickId'
     },
   })
   return loading ? (
