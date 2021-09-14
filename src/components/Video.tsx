@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-expressions */
+/* eslint-disable react/default-props-match-prop-types */
 import React, { HTMLProps, useEffect, useRef, useState } from 'react'
 import videojs, { VideoJsPlayer } from 'video.js'
 import 'video.js/dist/video-js.css'
@@ -7,6 +9,7 @@ import qualityLevels from 'videojs-contrib-quality-levels'
 import hlsQualitySelector from 'videojs-hls-quality-selector'
 import { IoPlayOutline } from 'react-icons/io5'
 import Button from './Button'
+import { css } from '@emotion/css'
 
 interface VideoProps extends HTMLProps<HTMLVideoElement> {
   src: string
@@ -21,6 +24,51 @@ const Video = ({ className, src, ...rest }: VideoProps) => {
     const videoRef = useRef<HTMLVideoElement>(null)
     const playerRef = useRef<any>(null)
     const { options, onReady } = props
+
+    const videoJs = css`
+      display: block;
+      margin: 20px auto;
+
+      &:my-image {
+        width: 40px;
+        background: url('../../../assets/IncredibleWhiteLogo.svg') center center
+          no-repeat;
+      }
+
+      &:vjs-menu-button-inline.vjs-slider-active,
+      &:vjs-menu-button-inline:focus,
+      &:vjs-menu-button-inline:hover,
+      &:vjs-no-flex .vjs-menu-button-inline {
+        width: 10em;
+      }
+
+      &:vjs-controls-disabled .vjs-big-play-button {
+        display: none !important;
+      }
+
+      &:vjs-control {
+        width: 3em;
+      }
+
+      &:vjs-menu-button-inline:before {
+        width: 1.5em;
+      }
+
+      &:vjs-load-progress div,
+      .vjs-seeking .vjs-big-play-button,
+      .vjs-waiting .vjs-big-play-button {
+        display: none !important;
+      }
+
+      &:vjs-mouse-display:after,
+      &:vjs-play-progress:after {
+        padding: 0 0.4em 0.3em;
+      }
+
+      &:vjs-ended .vjs-loading-spinner {
+        display: none;
+      }
+    `
 
     useEffect(() => {
       videojs.registerPlugin('qualityLevels', qualityLevels)
@@ -68,7 +116,7 @@ const Video = ({ className, src, ...rest }: VideoProps) => {
             data-setup="{}"
           />
           <div className="vjs-control-bar">
-            <div className="vjs-progress-bar vjs-control"></div>
+            <div className="vjs-progress-bar vjs-control" />
             <Button
               type="button"
               className="bg-white-500"
@@ -76,7 +124,7 @@ const Video = ({ className, src, ...rest }: VideoProps) => {
               size="small"
               iconPosition="right"
               icon={IoPlayOutline}
-            ></Button>
+            />
             <div className="vjs-control vjs-button">
               <div className="vjs-menu-settings vjs-lock-showing">
                 <div className="vjs-menu-div vjs-settings-dev">
@@ -100,7 +148,7 @@ const Video = ({ className, src, ...rest }: VideoProps) => {
   useEffect(() => {
     if (!videoType) return
     const data = src.split('.').slice(-1).join()
-    if (data != 'm3u8') {
+    if (data !== 'm3u8') {
       setVideoType(`video/${data}`)
     }
     setVideoType('application/x-mpegURL')
@@ -135,7 +183,7 @@ const Video = ({ className, src, ...rest }: VideoProps) => {
     },
     sources: [
       {
-        src: src,
+        src,
         type: videoType,
       },
     ],
