@@ -262,6 +262,7 @@ const ParticipantsTooltip = ({
 }
 
 const FragmentItem = ({
+  flickId,
   fragment,
   provided,
   snapshot,
@@ -271,6 +272,7 @@ const FragmentItem = ({
   setActiveFragmentId,
   handleRefetch,
 }: {
+  flickId: string
   fragment: FlickFragmentFragment
   provided: DraggableProvided
   snapshot: DraggableStateSnapshot
@@ -284,7 +286,7 @@ const FragmentItem = ({
 
   const [isParticipantsTooltip, setParticipantsTooltip] = useState(false)
   const [confirmDeleteModal, setConfirmDeleteModal] = useState(false)
-  const { goBack, push } = useHistory()
+  const history = useHistory()
   const { data } = useFragmentRoleQuery({
     variables: {
       fragmentId: activeFragmentId,
@@ -367,7 +369,7 @@ const FragmentItem = ({
           handleClose={(refresh) => {
             if (refresh) {
               handleRefetch(true)
-              goBack()
+              history.push(`/flick/${flickId}`)
             }
             setConfirmDeleteModal(false)
           }}
@@ -380,6 +382,7 @@ const FragmentItem = ({
 }
 
 const FragmentDND = ({
+  flickId,
   fragments,
   setFragments,
   activeFragmentId,
@@ -388,6 +391,7 @@ const FragmentDND = ({
   isHost,
   flickParticipants,
 }: {
+  flickId: string
   fragments: FlickFragmentFragment[]
   setFragments: (fragments: FlickFragmentFragment[]) => void
   activeFragmentId: string
@@ -426,6 +430,7 @@ const FragmentDND = ({
               >
                 {(provided, snapshot) => (
                   <FragmentItem
+                    flickId={flickId}
                     provided={provided}
                     snapshot={snapshot}
                     fragment={fragment}
@@ -528,6 +533,7 @@ const FragmentsSidebar = ({
       </div>
       {activeFragmentId ? (
         <FragmentDND
+          flickId={flickId}
           activeFragmentId={activeFragmentId}
           setActiveFragmentId={setActiveFragmentId}
           flickParticipants={participants}
