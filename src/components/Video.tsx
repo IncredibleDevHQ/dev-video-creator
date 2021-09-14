@@ -257,7 +257,7 @@ const Video = ({ className, src, ...rest }: VideoProps) => {
       player.autoplay(options.autoplay)
       player.src(options.sources)
     }
-  }, [options, videoRef])
+  }, [options, videoRef.current])
 
   return (
     <div className={videoJs}>
