@@ -158,7 +158,7 @@ const Participants = ({
                 : []
             }
             isLoading={loadingSelect}
-            onInputChange={(value: string) => setSearch(value)}
+            onInputChange={(value: string) => setSearch(value.trim())}
             placeholder="Add a user"
           />
 
