@@ -1,8 +1,8 @@
 /* eslint-disable jsx-a11y/media-has-caption */
-import React, { useEffect } from 'react'
-import { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { EmptyState, Heading, Navbar, ScreenState } from '../../components'
+import Video from '../../components/Video'
 import config from '../../config'
 import {
   BaseFlickFragment,
@@ -21,7 +21,6 @@ const PublicVideo = () => {
   })
 
   useEffect(() => {
-    console.log('data', data)
     if (!data?.Flick || data.Flick.length < 1) return
     setFlick(data.Flick[0] as Flick)
   }, [data])
@@ -39,21 +38,18 @@ const PublicVideo = () => {
     )
 
   return (
-    <div>
+    <>
       <Navbar />
-      <div className="flex items-center flex-col justify-center">
+      <div className="flex flex-col items-center">
         <Heading className=" flex font-black text-4xl capitalize justify-center mb-4">
           {flick.name}
         </Heading>
-        <video
-          className=" max-w-7xl bg-gray-800 m-1 rounded-md p-1"
-          src={baseUrl + data?.Flick[0].producedLink}
-          typeof="mp4"
-          preload="auto"
-          controls
+        <Video
+          className="flex-1 flex-grow-1 w-3/5 bg-gray-800 m-1 rounded-md p-1"
+          src={baseUrl + data?.Flick?.[0].producedLink}
         />
       </div>
-    </div>
+    </>
   )
 }
 
