@@ -1,5 +1,6 @@
 import React from 'react'
 import { EmptyState } from '../../../components'
+import Video from '../../../components/Video'
 import config from '../../../config'
 import { FlickFragmentFragment } from '../../../generated/graphql'
 
@@ -14,10 +15,8 @@ const FragmentActivity = ({
     <div>
       {fragment.producedLink && (
         // eslint-disable-next-line jsx-a11y/media-has-caption
-        <video
-          className="w-full rounded-md p-2"
-          controls
-          preload="auto"
+        <Video
+          className="rounded-t-md w-full"
           src={config.storage.baseUrl + fragment.producedLink}
         />
       )}

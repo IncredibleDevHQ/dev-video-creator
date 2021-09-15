@@ -15,6 +15,7 @@ import { User, userState } from '../../stores/user.store'
 import { formatDate } from '../../utils/FormatDate'
 import { NewFlickBanner, TableView } from './components'
 import config from '../../config'
+import Video from '../../components/Video'
 
 const ViewBarButton = ({
   icon: I,
@@ -80,13 +81,10 @@ const FlickTile = ({ flick }: { flick: BaseFlickFragment }) => {
       <div className="bg-background shadow-md transition-all hover:shadow-xl pb-2 rounded-md cursor-pointer">
         {flick.producedLink ? (
           // eslint-disable-next-line jsx-a11y/media-has-caption
-          <video
-            controls
-            preload="auto"
-            className="w-full object-cover rounded-t-md h-40"
-          >
-            <source src={baseUrl + flick.producedLink} type="video/mp4" />
-          </video>
+          <Video
+            className="rounded-t-md w-full"
+            src={baseUrl + flick.producedLink}
+          />
         ) : flick.status === Flick_Status_Enum_Enum.Processing ? (
           <img
             className="w-full object-cover rounded-t-md h-40"

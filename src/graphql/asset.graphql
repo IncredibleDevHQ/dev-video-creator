@@ -1,0 +1,29 @@
+fragment AssetDetails on Asset {
+  id
+  displayName
+  objectLink
+}
+
+query UserAsset {
+  Asset {
+    ...AssetDetails
+  }
+}
+
+mutation AddAsset(
+  $displayName: String!
+  $objectLink: String!
+  $source: ASSET_SOURCE_ENUM_enum!
+  $type: ASSET_TYPE_ENUM_enum!
+) {
+  insert_Asset_one(
+    object: {
+      displayName: $displayName
+      objectLink: $objectLink
+      type: $type
+      source: $source
+    }
+  ) {
+    id
+  }
+}

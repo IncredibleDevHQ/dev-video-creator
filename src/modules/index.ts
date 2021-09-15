@@ -19,6 +19,7 @@ import Circle from './Circle/Circle'
 import NewFragment from './NewFragment/NewFragment'
 import PublicOrganisationPage from './Organisation/PublicOrganisationPage'
 import InviteScreen from './Invitation/InviteScreen'
+import PublicVideo from './PublicVideo/PublicVideo'
 
 export {
   AuthenticateScreen,
@@ -41,4 +42,5 @@ export {
   NewFragment,
   PublicOrganisationPage,
   InviteScreen,
+  PublicVideo,
 }

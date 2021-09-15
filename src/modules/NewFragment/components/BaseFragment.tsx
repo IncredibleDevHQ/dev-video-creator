@@ -106,6 +106,20 @@ const BaseFragment = ({
         onClick={() => handleNext(Fragment_Type_Enum_Enum.Points)}
         accessory="1 person"
       />
+      <BaseFragmentCard
+        label="Discussion"
+        image={fragmentIcons.discussion}
+        description="Have fantabulous discussion with your friend."
+        onClick={() => handleNext(Fragment_Type_Enum_Enum.Discussion)}
+        accessory="2 person"
+       />
+      <BaseFragmentCard
+        label="Outro"
+        image={fragmentIcons.outro}
+        description="Lets end the video gracefully"
+        onClick={() => handleNext(Fragment_Type_Enum_Enum.Outro)}
+        accessory="1 person"
+      />
     </div>
   )
 }

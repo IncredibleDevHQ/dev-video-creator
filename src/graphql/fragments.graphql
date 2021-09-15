@@ -69,10 +69,18 @@ mutation AddFragmentToFlick(
   }
 }
 
-mutation MarkFragmentCompleted($id: uuid!, $producedLink: String!) {
+mutation MarkFragmentCompleted(
+  $id: uuid!
+  $producedLink: String!
+  $duration: float8!
+) {
   update_Fragment_by_pk(
     pk_columns: { id: $id }
-    _set: { status: Completed, producedLink: $producedLink }
+    _set: {
+      status: Completed
+      producedLink: $producedLink
+      duration: $duration
+    }
   ) {
     updatedAt
   }

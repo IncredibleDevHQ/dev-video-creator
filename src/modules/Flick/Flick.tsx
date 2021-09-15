@@ -4,6 +4,7 @@ import { FiActivity } from 'react-icons/fi'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import {
   FlickActivity,
+  FlickSideBar,
   FragmentActivity,
   FragmentConfiguration,
   FragmentsSidebar,
@@ -32,6 +33,7 @@ const Flick = () => {
   const history = useHistory()
 
   useEffect(() => {
+    refetch()
     if (!activeFragmentId || !flick) return
     history.push(`/flick/${flick.id}/${activeFragmentId}`)
   }, [activeFragmentId, flick])
@@ -121,11 +123,7 @@ const Flick = () => {
           </>
         )}
       </div>
-      <Participants
-        isParticipants={isParticipants}
-        setParticipants={setParticipants}
-        participants={flick.participants}
-        flickId={flick.id}
+      <FlickSideBar
         handleRefetch={(refresh) => {
           if (refresh) refetch()
         }}

@@ -17,6 +17,11 @@ query GetLatestFlick($sub: String!) {
     ...Flick
   }
 }
+query GetFlickByJoinLink($joinLink: String!) {
+  Flick(where: { joinLink: { _eq: $joinLink } }) {
+    ...BaseFlick
+  }
+}
 
 mutation UploadFile($key: String!) {
   UploadFile(key: $key) {
