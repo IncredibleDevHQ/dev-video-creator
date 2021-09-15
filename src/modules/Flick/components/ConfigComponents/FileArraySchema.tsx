@@ -2,7 +2,7 @@ import { cx } from '@emotion/css'
 import React, { useEffect, useState } from 'react'
 import { FiLoader } from 'react-icons/fi'
 import { IoRemoveSharp } from 'react-icons/io5'
-import { Button, Photo } from '../../../../components'
+import { Button, FileDropzone } from '../../../../components'
 import { useUploadFile } from '../../../../hooks'
 import { AllowedFileExtensions } from '../../../../hooks/use-upload-file'
 // eslint-disable-next-line import/namespace
@@ -66,7 +66,7 @@ const FileArraySchema = ({
     <div className="flex flex-col gap-1 m-4" key={schema.key}>
       <div className="flex flex-col gap-2 ">
         <div className="flex flex-row gap-2">
-          <Photo
+          <FileDropzone
             className="text-lg m-4"
             key={`${schema.key}`}
             onChange={async (e) => {

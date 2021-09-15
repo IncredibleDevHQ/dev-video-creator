@@ -93,7 +93,6 @@ const MissionControl = ({ controls }: { controls: JSX.Element[] }) => {
   const {
     constraints,
     startRecording,
-    stopRecording,
     showFinalTransition,
     upload,
     reset,
@@ -103,7 +102,6 @@ const MissionControl = ({ controls }: { controls: JSX.Element[] }) => {
     updateParticipant,
     updatePayload,
     participantId,
-    payload,
   } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [canvas, setCanvas] = useRecoilState(canvasStore)
 
@@ -155,7 +153,6 @@ const MissionControl = ({ controls }: { controls: JSX.Element[] }) => {
             className="my-2"
             appearance={canvas?.zoomed ? 'danger' : 'primary'}
             onClick={() => {
-              console.log(canvas)
               if (canvas) setCanvas({ ...canvas, zoomed: !canvas.zoomed })
             }}
           />

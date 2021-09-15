@@ -2,8 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { FiArrowLeft } from 'react-icons/fi'
 import { useHistory, useParams } from 'react-router-dom'
 import { useRecoilState, useRecoilValue } from 'recoil'
-import 'get-blob-duration'
-
 import getBlobDuration from 'get-blob-duration'
 import {
   emitToast,
@@ -45,30 +43,23 @@ const Studio = () => {
 
   const [uploadFile] = useUploadFile()
 
-  const {
-    stream,
-    join,
-    users,
-    mute,
-    leave,
-    ready,
-    userAudios,
-    tracks,
-    renewToken,
-  } = useAgora(fragmentId, {
-    onTokenWillExpire: async () => {
-      const { data } = await getRTCToken({ variables: { fragmentId } })
-      if (data?.RTCToken?.token) {
-        renewToken(data.RTCToken.token)
-      }
-    },
-    onTokenDidExpire: async () => {
-      const { data } = await getRTCToken({ variables: { fragmentId } })
-      if (data?.RTCToken?.token) {
-        join(data?.RTCToken?.token, sub as string)
-      }
-    },
-  })
+  const { stream, join, users, mute, ready, userAudios, renewToken } = useAgora(
+    fragmentId,
+    {
+      onTokenWillExpire: async () => {
+        const { data } = await getRTCToken({ variables: { fragmentId } })
+        if (data?.RTCToken?.token) {
+          renewToken(data.RTCToken.token)
+        }
+      },
+      onTokenDidExpire: async () => {
+        const { data } = await getRTCToken({ variables: { fragmentId } })
+        if (data?.RTCToken?.token) {
+          join(data?.RTCToken?.token, sub as string)
+        }
+      },
+    }
+  )
 
   const [getRTCToken] = useGetRtcTokenMutation({
     variables: { fragmentId },
@@ -105,12 +96,7 @@ const Studio = () => {
     })
 
   useEffect(() => {
-    console.log({ payload })
-  }, [payload])
-
-  useEffect(() => {
     if (fragment && ready) {
-      console.log('studio fragmnet', fragment)
       ;(async () => {
         init()
         const { data } = await getRTCToken({ variables: { fragmentId } })
@@ -123,7 +109,6 @@ const Studio = () => {
 
   useEffect(() => {
     if (data?.Fragment[0] === undefined) return
-    console.log('dataFragment[0]', data?.Fragment[0] === undefined)
     setFragment(data.Fragment[0])
   }, [data, fragmentId])
 

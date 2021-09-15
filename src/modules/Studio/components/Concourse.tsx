@@ -11,16 +11,10 @@ import { KonvaEventObject } from 'konva/lib/Node'
 import MissionControl from './MissionControl'
 import StudioUser from './StudioUser'
 import { canvasStore, StudioProviderProps, studioStore } from '../stores'
+import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
 import {
-  Fragment_Status_Enum_Enum,
-  Fragment_Type_Enum_Enum,
-} from '../../../generated/graphql'
-import {
-  CircleCenterGrow,
   CircleCenterShrink,
   MultiCircleCenterGrow,
-  RectCenterGrow,
-  RectCenterShrink,
 } from '../effects/FragmentTransitions'
 
 export interface StudioCoordinates {
@@ -50,16 +44,8 @@ const Concourse = ({
   titleSpalshData,
   studioUserConfig,
 }: ConcourseProps) => {
-  const {
-    state,
-    stream,
-    payload,
-    getBlobs,
-    users,
-    stopRecording,
-    updatePayload,
-    fragment,
-  } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const { state, stream, payload, getBlobs, users, stopRecording } =
+    (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [canvas, setCanvas] = useRecoilState(canvasStore)
   const [isTitleSplash, setIsTitleSplash] = useState<boolean>(false)
 

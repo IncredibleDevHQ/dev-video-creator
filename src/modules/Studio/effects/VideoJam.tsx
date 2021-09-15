@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useRecoilValue } from 'recoil'
 import Konva from 'konva'
-import { Group, Image } from 'react-konva'
+import { Image } from 'react-konva'
 import { FiPlay, FiPause } from 'react-icons/fi'
 import { Concourse } from '../components'
 import { ControlButton } from '../components/MissionControl'
@@ -86,7 +86,7 @@ const VideoJam = () => {
       (property: any) => property.key === 'source'
     )?.value
     // eslint-disable-next-line consistent-return
-    //setConfig of titleSpalsh
+    // setConfig of titleSpalsh
     settitleSpalshData({
       enable: fragment.configuration.properties.find(
         (property: any) => property.key === 'showTitleSplash'
@@ -162,7 +162,6 @@ const VideoJam = () => {
       titleSpalshData={titleSpalshData}
     />
   )
-
 }
 
 export default VideoJam

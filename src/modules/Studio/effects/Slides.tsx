@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
 import { Group, Image, Rect } from 'react-konva'
@@ -9,6 +10,64 @@ import { CONFIG } from '../components/Concourse'
 import { ControlButton } from '../components/MissionControl'
 import { StudioProviderProps, studioStore } from '../stores'
 import { getDimensions } from './effects'
+import 'gifler'
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+// const Gifler = require('gifler')
+
+const Gif = ({ src }: { src: HTMLImageElement | undefined | string }) => {
+  const imageRef = React.useRef(null)
+  const canvas = React.useMemo(() => {
+    const node = document.createElement('canvas')
+    return node
+  }, [])
+
+  useEffect(() => {
+    // save animation instance to stop it on unmount
+    let anim: any
+    window.gifler(src).get((a: any) => {
+      anim = a
+      anim.animateInCanvas(canvas)
+      anim.onDrawFrame = (ctx: any, frame: any) => {
+        ctx.drawImage(frame.buffer, frame.x, frame.y)
+        imageRef.current.getLayer().draw()
+      }
+    })
+    return () => anim.stop()
+  }, [src, canvas])
+
+  return (
+    <Group
+      x={30}
+      fill="#E5E5E5"
+      width={600}
+      height={480}
+      clipFunc={(ctx: any) => {
+        const x = 0
+        const y = 0
+        const w = 480
+        const h = 600
+        const r = 8
+        ctx.beginPath()
+        ctx.moveTo(x + r, y)
+        ctx.arcTo(x + w, y, x + w, y + h, r)
+        ctx.arcTo(x + w, y + h, x, y + h, r)
+        ctx.arcTo(x, y + h, x, y, r)
+        ctx.arcTo(x, y, x + w, y, r)
+        ctx.closePath()
+      }}
+    >
+      <Image
+        image={canvas}
+        ref={imageRef}
+        width={480}
+        height={600}
+        x={0}
+        y={30}
+      />
+    </Group>
+  )
+}
 
 const Slides = () => {
   const [activeSlideIndex, setActiveSlideIndex] = useState<number>(0)
@@ -24,6 +83,8 @@ const Slides = () => {
   const imageRef = useRef<Konva.Image | null>(null)
   const [image] = useImage(picture as string, 'anonymous')
   const [slide] = useImage(slides[activeSlideIndex] || '', 'anonymous')
+  const [isGif, setIsGif] = useState(false)
+  const [gifUrl, setGifUrl] = useState('')
 
   const [slideDim, setSlideDim] = useState<{
     width: number
@@ -33,6 +94,12 @@ const Slides = () => {
   }>({ width: 0, height: 0, x: 0, y: 0 })
 
   useEffect(() => {
+    if (slide?.src.split('.').pop() === 'gif') {
+      setIsGif(true)
+      setGifUrl(slide.src)
+    } else {
+      setIsGif(false)
+    }
     getDimensions(
       {
         w: (slide && slide.width) || 0,
@@ -67,7 +134,8 @@ const Slides = () => {
         (property: any) => property.type === 'file[]'
       )?.value
     )
-    //setConfig of titleSpalsh
+
+    // setConfig of titleSpalsh
     settitleSpalshData({
       enable: fragment.configuration.properties.find(
         (property: any) => property.key === 'showTitleSplash'
@@ -145,17 +213,20 @@ const Slides = () => {
               ctx.closePath()
             }}
           >
-            <Image
-              image={slide}
-              fill="#E5E5E5"
-              width={slideDim.width}
-              y={slideDim.y}
-              x={slideDim.x}
-              height={slideDim.height}
-              shadowOpacity={0.3}
-              shadowOffset={{ x: 0, y: 1 }}
-              shadowBlur={2}
-            />
+            {!isGif && (
+              <Image
+                image={slide}
+                fill="#E5E5E5"
+                width={slideDim.width}
+                y={slideDim.y}
+                x={slideDim.x}
+                height={slideDim.height}
+                shadowOpacity={0.3}
+                shadowOffset={{ x: 0, y: 1 }}
+                shadowBlur={2}
+              />
+            )}
+            {isGif && <Gif src={gifUrl} />}
           </Group>
         </>
       )}
