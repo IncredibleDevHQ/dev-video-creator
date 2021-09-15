@@ -16,6 +16,8 @@ import SplashSix from './SplashSix'
 import Outro from './Outro'
 import SplashSeven from './SplashSeven'
 import SplashEight from './SplashEight'
+import SplashNine from './SplashNine'
+import SplashEleven from './SplashEleven'
 
 const themeEnum = 'theme'
 export interface Effect {
@@ -52,6 +54,8 @@ const getSplash = (theme: any) => {
   if (theme.value === '2') return SplashSix
   if (theme.value === '3') return SplashSeven
   if (theme.value === '4') return SplashEight
+  if (theme.value === '5') return SplashNine
+  if (theme.value === '6') return SplashEleven
   return CustomSplash
 }
 
