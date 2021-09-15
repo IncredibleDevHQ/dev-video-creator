@@ -40,12 +40,20 @@ const videoJs = css`
     width: auto;
   }
 
-  .video-js .vjs-time-control .vjs-current-time-display {
-    text-align: right;
+  .video-js .vjs-menu-button-popup .vjs-menu .vjs-menu-content {
+    background-color: #2d2f34cc;
+    width: 12em;
+    left: -1.5em;
+    padding-bottom: 0.5em;
+    border-radius: 5%;
   }
 
-  .video-js .vjs-time-control .vjs-duration-display {
-    text-align: left;
+  .video-js .vjs-menu-button-popup .vjs-menu .vjs-menu-item,
+  .video-js .vjs-menu-button-popup .vjs-menu .vjs-menu-title {
+    background-color: #2d2f34cc;
+    margin: 0.3em 0;
+    padding: 0.5em;
+    border-radius: 0.3em;
   }
 
   .video-js .vjs-play-progress:before,
@@ -160,22 +168,6 @@ const videoJs = css`
     margin-top: -1em !important;
   }
 
-  .video-js .vjs-menu-button-popup .vjs-menu .vjs-menu-content {
-    background-color: Grey;
-    width: 12em;
-    left: -1.5em;
-    padding-bottom: 0.5em;
-    border-radius: 5%;
-  }
-
-  .video-js .vjs-menu-button-popup .vjs-menu .vjs-menu-item,
-  .video-js .vjs-menu-button-popup .vjs-menu .vjs-menu-title {
-    background-color: grey;
-    margin: 0.3em 0;
-    padding: 0.5em;
-    border-radius: 0.3em;
-  }
-
   .video-js .vjs-loading-spinner {
     border-color: #15803d;
   }
@@ -226,7 +218,6 @@ const Video = ({ className, src, ...rest }: VideoProps) => {
       qualityLevels: {},
       hlsQualitySelector: {},
     },
-
     sources: [
       {
         src,
@@ -251,6 +242,8 @@ const Video = ({ className, src, ...rest }: VideoProps) => {
 
       const player = videojs(videoElement, options, () => {
         handlePlayerReady && handlePlayerReady(player)
+        // @ts-ignore
+        player.share(shareOptions)
       })
     } else {
       const player = playerRef.current
@@ -259,17 +252,45 @@ const Video = ({ className, src, ...rest }: VideoProps) => {
     }
   }, [options, videoRef.current])
 
+  const shareOptions = {
+    socials: [
+      'fb',
+      'tw',
+      'reddit',
+      'gp',
+      'messenger',
+      'linkedin',
+      'telegram',
+      'whatsapp',
+      'viber',
+      'vk',
+      'ok',
+      'mail',
+    ],
+
+    url: window.location.href,
+    title: 'videojs-share',
+    description: 'video.js share plugin',
+    image: 'https://dummyimage.com/1200x630',
+
+    // required for Facebook and Messenger
+    fbAppId: '12345',
+  }
+
   return (
     <div className={videoJs}>
-      <div data-vjs-player>
+      <div
+        data-vjs-player
+        className="linear-gradient(to bottom, rgba(255,255,255,1) 0%,rgba(255,255,255,0) 100%);"
+      >
         <video
           id="flick_video"
           ref={videoRef}
           className="video-js"
           controls
           autoPlay
-          width="1080"
-          height="720"
+          width="100%"
+          height="100%"
           preload="auto"
           muted
           data-setup="{}"
