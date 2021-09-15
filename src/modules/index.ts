@@ -18,6 +18,7 @@ import SingleSeries from './Series/SingleSeries'
 import Circle from './Circle/Circle'
 import NewFragment from './NewFragment/NewFragment'
 import PublicOrganisationPage from './Organisation/PublicOrganisationPage'
+import InviteScreen from './Invitation/InviteScreen'
 import PublicVideo from './PublicVideo/PublicVideo'
 
 export {
@@ -40,5 +41,6 @@ export {
   Circle,
   NewFragment,
   PublicOrganisationPage,
+  InviteScreen,
   PublicVideo,
 }

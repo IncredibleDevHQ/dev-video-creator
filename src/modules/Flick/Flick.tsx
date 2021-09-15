@@ -4,6 +4,7 @@ import { FiActivity } from 'react-icons/fi'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import {
   FlickActivity,
+  FlickSideBar,
   FragmentActivity,
   FragmentConfiguration,
   FragmentsSidebar,
@@ -96,9 +97,6 @@ const Flick = () => {
             className="cursor-pointer"
             onClick={() => setIsActivityMenu(!isActivityMenu)}
           >
-            <span className="block bg-red-600 absolute w-1.5 h-1.5 rounded-full">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-600 duration-500 opacity-75" />
-            </span>
             <FiActivity />
           </button>
           <FlickActivity menu={isActivityMenu} setMenu={setIsActivityMenu} />
@@ -125,11 +123,7 @@ const Flick = () => {
           </>
         )}
       </div>
-      <Participants
-        isParticipants={isParticipants}
-        setParticipants={setParticipants}
-        participants={flick.participants}
-        flickId={flick.id}
+      <FlickSideBar
         handleRefetch={(refresh) => {
           if (refresh) refetch()
         }}
