@@ -133,6 +133,7 @@ const Studio = () => {
       setStudio({
         ...studio,
         fragment: undefined,
+        tracks,
       })
     }
   }, [])
@@ -267,6 +268,7 @@ const Studio = () => {
       upload,
       getBlobs,
       state,
+      tracks,
       picture: picture as string,
       constraints: { audio: true, video: true },
       users,

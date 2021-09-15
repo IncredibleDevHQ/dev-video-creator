@@ -53,11 +53,13 @@ const Concourse = ({
   const {
     state,
     stream,
+    tracks,
     payload,
     getBlobs,
     users,
     stopRecording,
     updatePayload,
+    constraints,
     fragment,
   } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [canvas, setCanvas] = useRecoilState(canvasStore)
@@ -203,6 +205,19 @@ const Concourse = ({
         : setIsTitleSplash(true))
   }, [titleSpalshData, state, payload?.status])
 
+  const [s, sets] = useState<MediaStream | null>(null)
+  useEffect(() => {
+    console.log('disableUserMedia', constraints?.video)
+    const ss =
+      tracks && tracks?.length > 0
+        ? new MediaStream([
+            tracks?.[0].getMediaStreamTrack?.(),
+            tracks?.[1].getMediaStreamTrack?.(),
+          ])
+        : null
+    sets(ss)
+  }, [constraints?.video])
+
   return (
     <div className="flex-1 mt-4 justify-between items-stretch flex">
       <div className="bg-gray-100 flex-1 rounded-md p-4 flex justify-center items-center mr-8">
@@ -280,7 +295,7 @@ const Concourse = ({
                           (studioUserConfig && studioUserConfig[0]?.y) ||
                           initialPos.y
                         }
-                        stream={stream as MediaStream}
+                        stream={s}
                         width={studioUserConfig && studioUserConfig[0]?.width}
                         height={studioUserConfig && studioUserConfig[0]?.height}
                       />

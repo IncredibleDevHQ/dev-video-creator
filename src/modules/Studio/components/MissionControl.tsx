@@ -192,7 +192,6 @@ const MissionControl = ({ controls }: { controls: JSX.Element[] }) => {
             icon={constraints?.audio ? FiMic : FiMicOff}
             className="my-2"
             appearance={constraints?.audio ? 'primary' : 'danger'}
-            disabled
             onClick={async () => {
               updateParticipant?.({ audio: !constraints?.audio })
               await mute('audio')
@@ -202,7 +201,6 @@ const MissionControl = ({ controls }: { controls: JSX.Element[] }) => {
             icon={constraints?.video ? FiVideo : FiVideoOff}
             className="my-2"
             appearance={constraints?.video ? 'primary' : 'danger'}
-            disabled
             onClick={async () => {
               updateParticipant?.({ video: !constraints?.video })
               await mute('video')

@@ -25,7 +25,7 @@ const StudioUser = ({
   const { picture, constraints } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
-  const [image] = useImage(picture as string)
+  const [image] = useImage(picture as string, 'anonymous')
 
   const videoElement = React.useMemo(() => {
     if (!stream) return
