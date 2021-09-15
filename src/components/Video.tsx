@@ -5,15 +5,13 @@ import videojs, { VideoJsPlayer, VideoJsLogo } from 'video.js'
 import 'video.js/dist/video-js.css'
 import 'videojs-logo'
 import 'videojs-logo/dist/videojs-logo.css'
+import 'videojs-brand'
+import 'videojs-brand/dist/videojs-brand.css'
 import qualityLevels from 'videojs-contrib-quality-levels'
 import hlsQualitySelector from 'videojs-hls-quality-selector'
 import { css } from '@emotion/css'
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import logo from '../assets/new_logo.svg'
-
-interface VideoProps extends HTMLProps<HTMLVideoElement> {
-  src: string
-}
 
 const videoJs = css`
   .video-js {
@@ -187,6 +185,9 @@ const videoJs = css`
     background-color: #15803d;
   }
 `
+interface VideoProps extends HTMLProps<HTMLVideoElement> {
+  src: string
+}
 const Video = ({ className, src, ...rest }: VideoProps) => {
   const playerRef = useRef<any>()
   const [videoType, setVideoType] = useState<string>('')
@@ -230,7 +231,7 @@ const Video = ({ className, src, ...rest }: VideoProps) => {
     ],
   }
 
-  const options1: VideoJsLogo.Options = {
+  const logoOptions: VideoJsLogo.Options = {
     image: '../assets/IncredibleWhiteLogo.svg',
   }
 
@@ -251,9 +252,15 @@ const Video = ({ className, src, ...rest }: VideoProps) => {
       const player = videojs(videoElement, options, () => {
         handlePlayerReady && handlePlayerReady(player)
       })
+
       // @ts-ignore
-      player.share(shareOptions)
-      player.logo(options1)
+      // player.share(shareOptions)
+      // player.brand({
+      //   image: 'https://dev.next.incredible.dev/assets/logo.ba6193e7.svg',
+      //   title: 'Incredible Logo',
+      //   destination: 'https://dev.next.incredible.dev',
+      //   destinationTarget: '_top',
+      // })
     } else {
       const player = playerRef.current
       player.autoplay(options.autoplay)
