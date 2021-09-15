@@ -21,7 +21,6 @@ const PublicVideo = () => {
   })
 
   useEffect(() => {
-    console.log('data', data)
     if (!data?.Flick || data.Flick.length < 1) return
     setFlick(data.Flick[0] as Flick)
   }, [data])

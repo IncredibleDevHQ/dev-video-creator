@@ -118,7 +118,6 @@ const Studio = () => {
 
   useEffect(() => {
     if (fragment && ready) {
-      console.log('studio fragmnet', fragment)
       ;(async () => {
         init()
         const { data } = await getRTCToken({ variables: { fragmentId } })
@@ -131,7 +130,6 @@ const Studio = () => {
 
   useEffect(() => {
     if (data?.Fragment[0] === undefined) return
-    console.log('dataFragment[0]', data?.Fragment[0] === undefined)
     setFragment(data.Fragment[0])
   }, [data, fragmentId])
 
