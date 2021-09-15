@@ -1,5 +1,5 @@
 import { Rect, Text } from 'react-konva'
-import React, { useEffect } from 'react'
+import React from 'react'
 import { Fragment_Type_Enum_Enum } from '../../../generated/graphql'
 import CodeJam from './CodeJam'
 import VideoJam from './VideoJam'
@@ -10,6 +10,12 @@ import StoryBook from './StoryBook'
 import Slides from './Slides'
 import Points from './Points'
 import { CONFIG } from '../components/Concourse'
+import CustomSplash from './CustomSplash'
+import Discussion from './Discussion'
+import SplashSix from './SplashSix'
+import Outro from './Outro'
+import SplashSeven from './SplashSeven'
+import SplashEight from './SplashEight'
 
 const themeEnum = 'theme'
 export interface Effect {
@@ -39,6 +45,57 @@ export const titleSplash = (title: string): JSX.Element => {
   )
   return titleSplashChildern
 }
+
+const getSplash = (theme: any) => {
+  if (theme.value === '0') return SplashFive
+  if (theme.value === '1') return SplashFour
+  if (theme.value === '2') return SplashSix
+  if (theme.value === '3') return SplashSeven
+  if (theme.value === '4') return SplashEight
+  return CustomSplash
+}
+
+// const getVideoTheme = (theme: any) => {
+//   if (theme.value === '0') return VideoJam
+//   return VideoJamTwo
+// }
+
+export const getDimensions = (
+  img: { w: number; h: number },
+  maxH: number,
+  maxW: number,
+  x: number,
+  y: number,
+  setImageDim: React.Dispatch<
+    React.SetStateAction<{
+      width: number
+      height: number
+      x: number
+      y: number
+    }>
+  >
+) => {
+  let calWidth = 0
+  let calHeight = 0
+  let calX = 0
+  let calY = 0
+  const aspectRatio = img.w / img.h
+  if (aspectRatio > maxW / maxH) {
+    // horizontal img
+    calY = Math.max((540 - maxW * (1 / aspectRatio)) / 2 - 30, 0)
+    calX = x
+    calHeight = maxW * (1 / aspectRatio)
+    calWidth = maxW
+  } else if (aspectRatio <= maxW / maxH) {
+    // sqr or vertical image
+    calY = y
+    calX = (maxW - maxH * aspectRatio) / 2
+    calHeight = maxH
+    calWidth = maxH * aspectRatio
+  }
+  setImageDim({ width: calWidth, height: calHeight, x: calX, y: calY })
+}
+
 export const getEffect = (
   type: Fragment_Type_Enum_Enum,
   config: { properties: any }
@@ -48,7 +105,7 @@ export const getEffect = (
   )
   switch (type) {
     case Fragment_Type_Enum_Enum.Splash:
-      return theme.value === '0' ? SplashFive : SplashFour
+      return getSplash(theme)
     case Fragment_Type_Enum_Enum.CodeJam:
       return CodeJam
     case Fragment_Type_Enum_Enum.Videoshow:
@@ -61,6 +118,10 @@ export const getEffect = (
       return Slides
     case Fragment_Type_Enum_Enum.Points:
       return Points
+    case Fragment_Type_Enum_Enum.Discussion:
+      return Discussion
+    case Fragment_Type_Enum_Enum.Outro:
+      return Outro
     default:
       throw Error('No effect found')
   }

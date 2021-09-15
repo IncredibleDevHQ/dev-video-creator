@@ -1,7 +1,7 @@
 import React from 'react'
 import { Link, NavLink, useHistory } from 'react-router-dom'
 import { useRecoilValue } from 'recoil'
-import { FiArrowRight, FiBell } from 'react-icons/fi'
+import { FiArrowRight, FiBell, FiSearch } from 'react-icons/fi'
 import Gravatar from 'react-gravatar'
 import { cx } from '@emotion/css'
 import { User, userState } from '../stores/user.store'
@@ -68,10 +68,11 @@ const AuthenticatedRightCol = () => {
 }
 
 const Navbar = ({ hideNav }: { hideNav?: boolean }) => {
+  const history = useHistory()
   const { isAuthenticated } = (useRecoilValue(authState) as Auth) || {}
 
   return (
-    <nav className="flex items-center m-4 px-4 py-2 bg-gray-100 rounded-lg justify-between">
+    <nav className="flex flex-row items-center m-4 px-4 py-2 bg-gray-100 rounded-lg justify-between">
       <img className="w-10" src={logo} alt="Logo" />
 
       {hideNav ? (
@@ -87,17 +88,30 @@ const Navbar = ({ hideNav }: { hideNav?: boolean }) => {
       {isAuthenticated ? (
         <AuthenticatedRightCol />
       ) : (
-        <Link to="login">
+        <div className="flex gap-2 flex-row">
+          <Link to="login">
+            <Button
+              type="button"
+              appearance="primary"
+              size="small"
+              iconPosition="right"
+              icon={FiArrowRight}
+            >
+              Login
+            </Button>
+          </Link>
+
           <Button
             type="button"
-            appearance="primary"
-            size="small"
+            appearance="link"
+            size="large"
             iconPosition="right"
-            icon={FiArrowRight}
+            icon={FiSearch}
+            onClick={() => history.push('/')}
           >
-            Login
+            Explore Incredible
           </Button>
-        </Link>
+        </div>
       )}
     </nav>
   )

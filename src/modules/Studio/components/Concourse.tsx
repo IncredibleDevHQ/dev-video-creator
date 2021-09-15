@@ -18,15 +18,24 @@ import {
 import {
   CircleCenterGrow,
   CircleCenterShrink,
+  MultiCircleCenterGrow,
   RectCenterGrow,
   RectCenterShrink,
 } from '../effects/FragmentTransitions'
+
+export interface StudioCoordinates {
+  x: number
+  y: number
+  width: number
+  height: number
+}
 
 interface ConcourseProps {
   controls: JSX.Element[]
   layerChildren: any[]
   disableUserMedia?: boolean
   titleSpalshData?: { enable: boolean; title?: string }
+  studioUserConfig?: StudioCoordinates[]
 }
 
 export const CONFIG = {
@@ -39,6 +48,7 @@ const Concourse = ({
   layerChildren,
   disableUserMedia,
   titleSpalshData,
+  studioUserConfig,
 }: ConcourseProps) => {
   const {
     state,
@@ -142,6 +152,7 @@ const Concourse = ({
           draggable
           width={CONFIG.width}
           height={CONFIG.height}
+          zIndex={100}
           ref={(ref) =>
             ref?.to({
               duration: 3,
@@ -229,7 +240,7 @@ const Concourse = ({
                       return (
                         <>
                           <TitleSplash />
-                          <RectCenterShrink />
+                          <CircleCenterShrink color="#000000" />
                         </>
                       )
                     }
@@ -240,30 +251,61 @@ const Concourse = ({
                   }
                   if (payload?.status === Fragment_Status_Enum_Enum.Ended)
                     return (
-                      <RectCenterGrow
+                      <MultiCircleCenterGrow
                         performFinishAction={performFinishAction}
+                      />
+                    )
+                  if (payload?.status !== Fragment_Status_Enum_Enum.Live)
+                    return (
+                      <Rect
+                        x={0}
+                        y={0}
+                        width={CONFIG.width}
+                        height={CONFIG.height}
+                        fill="#000000"
                       />
                     )
                   return layerChildren
                 })()}
 
-                {!disableUserMedia && (
-                  <>
-                    <StudioUser
-                      x={initialPos.x}
-                      y={initialPos.y}
-                      stream={stream as MediaStream}
-                    />
-                    {users.map((user, index) => (
+                {!disableUserMedia &&
+                  payload?.status === Fragment_Status_Enum_Enum.Live && (
+                    <>
                       <StudioUser
-                        x={initialPos.x - (index + 1) * userStudioImageGap}
-                        y={initialPos.y}
-                        key={user.uid}
-                        stream={user.mediaStream as MediaStream}
+                        x={
+                          (studioUserConfig && studioUserConfig[0]?.x) ||
+                          initialPos.x
+                        }
+                        y={
+                          (studioUserConfig && studioUserConfig[0]?.y) ||
+                          initialPos.y
+                        }
+                        stream={stream as MediaStream}
+                        width={studioUserConfig && studioUserConfig[0]?.width}
+                        height={studioUserConfig && studioUserConfig[0]?.height}
                       />
-                    ))}
-                  </>
-                )}
+                      {users.map((user, index) => (
+                        <StudioUser
+                          x={
+                            (studioUserConfig &&
+                              studioUserConfig[index + 1]?.x) ||
+                            initialPos.x - (index + 1) * userStudioImageGap
+                          }
+                          y={
+                            (studioUserConfig &&
+                              studioUserConfig[index + 1]?.y) ||
+                            initialPos.y
+                          }
+                          width={studioUserConfig && studioUserConfig[0]?.width}
+                          height={
+                            studioUserConfig && studioUserConfig[0]?.height
+                          }
+                          key={user.uid}
+                          stream={user.mediaStream as MediaStream}
+                        />
+                      ))}
+                    </>
+                  )}
               </Layer>
             </Bridge>
           </Stage>

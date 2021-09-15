@@ -63,15 +63,17 @@ export const CircleGrow = ({
 
 export const CircleCenterShrink = ({
   performFinishAction,
+  color,
 }: {
   performFinishAction?: () => void
+  color?: string
 }) => {
   return (
     <Circle
       x={CONFIG.width / 2}
       y={CONFIG.height / 2}
       radius={600}
-      fill="#16A34A"
+      fill={!color ? '#16A34A' : color}
       ref={(ref) =>
         ref?.to({
           scaleX: 0,
@@ -103,6 +105,7 @@ export const CircleCenterGrow = ({
       scaleX={0}
       scaleY={0}
       fill="#16A34A"
+      zIndex={100}
       ref={(ref) =>
         ref?.to({
           scaleX: 10,
@@ -132,6 +135,7 @@ export const RectCenterGrow = ({
       fill="#16A34A"
       width={CONFIG.width}
       height={1}
+      zIndex={100}
       ref={(ref) =>
         ref?.to({
           height: CONFIG.height,
@@ -179,5 +183,70 @@ export const RectCenterShrink = ({
         })
       }
     />
+  )
+}
+
+export const MultiCircleCenterGrow = ({
+  performFinishAction,
+}: {
+  performFinishAction?: () => void
+}) => {
+  return (
+    <>
+      <Circle
+        x={CONFIG.width / 2}
+        y={CONFIG.height / 2}
+        radius={150}
+        scaleX={0}
+        scaleY={0}
+        fill="#0745F7"
+        ref={(ref) =>
+          ref?.to({
+            scaleX: 10,
+            scaleY: 10,
+            duration: 0.5,
+            // easing: Konva.Easings.EaseOut,
+          })
+        }
+      />
+      <Circle
+        x={CONFIG.width / 2}
+        y={CONFIG.height / 2}
+        radius={100}
+        scaleX={0}
+        scaleY={0}
+        fill="#ffffff"
+        ref={(ref) =>
+          ref?.to({
+            scaleX: 10,
+            scaleY: 10,
+            duration: 0.5,
+            // easing: Konva.Easings.EaseOut,
+          })
+        }
+      />
+      <Circle
+        x={CONFIG.width / 2}
+        y={CONFIG.height / 2}
+        radius={50}
+        scaleX={0}
+        scaleY={0}
+        fill="#000000"
+        ref={(ref) =>
+          ref?.to({
+            scaleX: 20,
+            scaleY: 20,
+            duration: 0.75,
+            // easing: Konva.Easings.EaseIn,
+            onFinish: () => {
+              if (!performFinishAction) return
+              setTimeout(() => {
+                performFinishAction()
+              }, 200)
+            },
+          })
+        }
+      />
+    </>
   )
 }

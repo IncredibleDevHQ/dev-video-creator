@@ -7,6 +7,7 @@ import {
   useUpdateFragmentConfigurationMutation,
 } from '../../../generated/graphql'
 import { GetSchemaElement, SchemaElementProps } from './Effects'
+import { VideoInventoryModal } from './index'
 
 const FragmentConfiguration = ({
   fragment,
@@ -22,37 +23,8 @@ const FragmentConfiguration = ({
     useUpdateFragmentConfigurationMutation()
   const [loadingAssets, setLoadingAssets] = useState<boolean>(false)
   const history = useHistory()
-
-  useEffect(() => {
-    if (!fragment || !fragment.configuration) return
-    setConfig(fragment!.configuration.properties)
-  }, [fragment?.configuration])
-
-  useEffect(() => {
-    if (config) {
-      setConfigured(true)
-    }
-    const object: { [key: string]: any } = {}
-    config?.forEach((code) => {
-      object[code.key] = code.value || ''
-    })
-    setInitial(object)
-  }, [config])
-
-  useEffect(() => {
-    if (data)
-      emitToast({
-        title: 'Configuration Added',
-        type: 'success',
-      })
-  }, [data])
-
-  if (error)
-    return (
-      <ScreenState title="Something went wrong!!" subtitle={error.message} />
-    )
-
-  if (!fragment) return <EmptyState text="No fragment Selected" width={400} />
+  const [videoInventoryModal, setVideoInventoryModal] = useState<boolean>(false)
+  const [selectedVideoLink, setSelectedVideoLink] = useState<string>(' ')
 
   const handleOnSubmit = async (values: { [key: string]: any }) => {
     if (!isValid) return
@@ -93,6 +65,38 @@ const FragmentConfiguration = ({
     onSubmit: handleOnSubmit,
   })
 
+  useEffect(() => {
+    if (!fragment || !fragment.configuration) return
+
+    setConfig(fragment.configuration.properties)
+  }, [fragment?.configuration])
+
+  useEffect(() => {
+    if (!config) return
+
+    const object: { [key: string]: any } = {}
+    config.forEach((code) => {
+      object[code.key] = code.value
+    })
+    setInitial(object)
+    setConfigured(true)
+  }, [config])
+
+  useEffect(() => {
+    if (data)
+      emitToast({
+        title: 'Configuration Added',
+        type: 'success',
+      })
+  }, [data])
+
+  if (error)
+    return (
+      <ScreenState title="Something went wrong!!" subtitle={error.message} />
+    )
+
+  if (!fragment) return <EmptyState text="No fragment Selected" width={400} />
+
   return (
     <div>
       <form onSubmit={handleSubmit}>
@@ -102,7 +106,10 @@ const FragmentConfiguration = ({
             setFieldValue={setFieldValue}
             handleChange={handleChange}
             value={values[attribute.key]}
+            setConfigured={setConfigured}
             setLoadingAssets={setLoadingAssets}
+            selectedVideoLink={selectedVideoLink}
+            setVideoInventoryModal={setVideoInventoryModal}
           />
         ))}
 
@@ -121,6 +128,14 @@ const FragmentConfiguration = ({
           Save Configuration
         </Button>
       </form>
+
+      <VideoInventoryModal
+        open={videoInventoryModal}
+        handleClose={() => {
+          setVideoInventoryModal(false)
+        }}
+        setSelectedVideoLink={setSelectedVideoLink}
+      />
 
       {isConfigured && (
         <Button

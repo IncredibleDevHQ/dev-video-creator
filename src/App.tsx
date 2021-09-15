@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { BrowserRouter as Router, Switch, Route } from 'react-router-dom'
 import { RecoilRoot } from 'recoil'
 import { ToastContainer } from 'react-toastify'
@@ -27,10 +27,41 @@ import {
   Designer,
   NewFragment,
   PublicOrganisationPage,
+  PublicVideo,
 } from './modules'
+import { ErrorBoundary, ScreenState } from './components'
+
+function detectBrowser() {
+  if (
+    (navigator.userAgent.indexOf('Opera') ||
+      navigator.userAgent.indexOf('OPR')) != -1
+  ) {
+    return 'Opera'
+  } else if (navigator.userAgent.indexOf('Chrome') != -1) {
+    return 'Chrome'
+  } else if (navigator.userAgent.indexOf('Safari') != -1) {
+    return 'Safari'
+  } else if (navigator.userAgent.indexOf('Firefox') != -1) {
+    return 'Firefox'
+  } else if (
+    navigator.userAgent.indexOf('MSIE') != -1 ||
+    // @ts-ignore
+    !!document.documentMode == true
+  ) {
+    return 'IE' //crap
+  } else {
+    return 'Unknown'
+  }
+}
 
 const App = () => {
-  return (
+  const [agentAllowed, setAgentAllowed] = useState(true)
+  useEffect(() => {
+    if (detectBrowser() !== 'Chrome') {
+      setAgentAllowed(false)
+    }
+  }, [])
+  return agentAllowed ? (
     <RecoilRoot>
       <AuthorizedApolloProvider>
         <AuthProvider>
@@ -97,6 +128,9 @@ const App = () => {
                   component={UserSeriesFlicks}
                 />
                 <PrivateRoute exact path="/circle" component={Circle} />
+                <Route exact path="/view/:joinLink">
+                  <PublicVideo />
+                </Route>
                 <Route exact path="/login">
                   <AuthenticateScreen />
                 </Route>
@@ -116,6 +150,11 @@ const App = () => {
         </Router>
       </AuthorizedApolloProvider>
     </RecoilRoot>
+  ) : (
+    <ScreenState
+      title="Regret the interruption"
+      subtitle="Use Chrome to access this preview of Incredible."
+    />
   )
 }
 

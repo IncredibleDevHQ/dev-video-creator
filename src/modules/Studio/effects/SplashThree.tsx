@@ -5,21 +5,18 @@ import { useRecoilValue } from 'recoil'
 import { useImage } from 'react-konva-utils'
 import Concourse, { CONFIG } from '../components/Concourse'
 import { StudioProviderProps, studioStore } from '../stores'
+import config from '../../../config'
 
 const SplashThree = () => {
   const { state } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
-  const [logo] = useImage(
-    'http://incredible-uploads-staging.s3.us-west-1.amazonaws.com/idev-logo.svg',
-    'anonymous'
-  )
+  const [logo] = useImage(`${config.storage.baseUrl}idev-logo.svg`, 'anonymous')
   const [logoText] = useImage(
-    'http://incredible-uploads-staging.s3.us-west-1.amazonaws.com/incredible.svg',
+    `${config.storage.baseUrl}incredible.svg`,
     'anonymous'
   )
-
   const [versionLogo] = useImage(
-    'https://incredible-uploads-staging.s3.us-west-1.amazonaws.com/version-logo.svg',
+    `${config.storage.baseUrl}version-logo.svg`,
     'anonymous'
   )
 

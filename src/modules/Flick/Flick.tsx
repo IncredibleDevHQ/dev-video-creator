@@ -32,6 +32,7 @@ const Flick = () => {
   const history = useHistory()
 
   useEffect(() => {
+    refetch()
     if (!activeFragmentId || !flick) return
     history.push(`/flick/${flick.id}/${activeFragmentId}`)
   }, [activeFragmentId, flick])
