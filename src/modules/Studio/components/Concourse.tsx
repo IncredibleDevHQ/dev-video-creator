@@ -52,19 +52,16 @@ const Concourse = ({
 }: ConcourseProps) => {
   const {
     state,
-    stream,
     tracks,
     payload,
     getBlobs,
     users,
     stopRecording,
-    updatePayload,
     constraints,
-    fragment,
   } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [canvas, setCanvas] = useRecoilState(canvasStore)
   const [isTitleSplash, setIsTitleSplash] = useState<boolean>(false)
-
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null)
   const [isZooming, setZooming] = useState(false)
 
   const stageRef = createRef<Konva.Stage>()
@@ -205,17 +202,15 @@ const Concourse = ({
         : setIsTitleSplash(true))
   }, [titleSpalshData, state, payload?.status])
 
-  const [s, sets] = useState<MediaStream | null>(null)
   useEffect(() => {
-    console.log('disableUserMedia', constraints?.video)
-    const ss =
+    const local =
       tracks && tracks?.length > 0
         ? new MediaStream([
             tracks?.[0].getMediaStreamTrack?.(),
             tracks?.[1].getMediaStreamTrack?.(),
           ])
         : null
-    sets(ss)
+    setLocalStream(local)
   }, [constraints?.video])
 
   return (
@@ -295,30 +290,36 @@ const Concourse = ({
                           (studioUserConfig && studioUserConfig[0]?.y) ||
                           initialPos.y
                         }
-                        stream={s}
+                        stream={localStream}
                         width={studioUserConfig && studioUserConfig[0]?.width}
                         height={studioUserConfig && studioUserConfig[0]?.height}
+                        type="local"
                       />
-                      {users.map((user, index) => (
-                        <StudioUser
-                          x={
-                            (studioUserConfig &&
-                              studioUserConfig[index + 1]?.x) ||
-                            initialPos.x - (index + 1) * userStudioImageGap
-                          }
-                          y={
-                            (studioUserConfig &&
-                              studioUserConfig[index + 1]?.y) ||
-                            initialPos.y
-                          }
-                          width={studioUserConfig && studioUserConfig[0]?.width}
-                          height={
-                            studioUserConfig && studioUserConfig[0]?.height
-                          }
-                          key={user.uid}
-                          stream={user.mediaStream as MediaStream}
-                        />
-                      ))}
+                      {users.map((user, index) => {
+                        return (
+                          <StudioUser
+                            x={
+                              (studioUserConfig &&
+                                studioUserConfig[index + 1]?.x) ||
+                              initialPos.x - (index + 1) * userStudioImageGap
+                            }
+                            y={
+                              (studioUserConfig &&
+                                studioUserConfig[index + 1]?.y) ||
+                              initialPos.y
+                            }
+                            width={
+                              studioUserConfig && studioUserConfig[0]?.width
+                            }
+                            height={
+                              studioUserConfig && studioUserConfig[0]?.height
+                            }
+                            key={user.uid}
+                            stream={user.mediaStream as MediaStream}
+                            type="remote"
+                          />
+                        )
+                      })}
                     </>
                   )}
               </Layer>

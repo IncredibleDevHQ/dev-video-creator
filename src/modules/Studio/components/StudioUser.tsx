@@ -12,11 +12,13 @@ const StudioUser = ({
   y,
   width,
   height,
+  type,
 }: {
   x: number
   y: number
   width?: number
   height?: number
+  type: string
   stream: MediaStream | null
 }) => {
   const imageConfig = { width: width || 160, height: height || 120 }
@@ -82,7 +84,7 @@ const StudioUser = ({
       }}
       draggable
     >
-      {constraints?.video ? (
+      {type === 'local' && constraints?.video ? (
         <Image
           ref={imageRef}
           image={videoElement}
@@ -92,6 +94,14 @@ const StudioUser = ({
       ) : (
         <Image
           image={image}
+          width={imageConfig.width}
+          height={imageConfig.height}
+        />
+      )}
+      {type === 'remote' && (
+        <Image
+          ref={imageRef}
+          image={videoElement}
           width={imageConfig.width}
           height={imageConfig.height}
         />

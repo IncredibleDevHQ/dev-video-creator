@@ -53,25 +53,23 @@ export default function useAgora(
   const init = async () => {
     try {
       client.on('user-published', async (user, mediaType) => {
+        if (users.find((element) => element.uid === user.uid)) return
         await client.subscribe(user, mediaType)
         const tracks: MediaStreamTrack[] = []
         if (user.audioTrack) tracks.push(user.audioTrack?.getMediaStreamTrack())
         if (user.videoTrack) tracks.push(user.videoTrack?.getMediaStreamTrack())
-
         if (mediaType === 'video') {
-          setUsers((prevUsers) => {
-            return [
-              ...prevUsers,
-              {
-                ...user,
-                mediaStream:
-                  tracks && tracks.length > 0
-                    ? // @ts-ignore
-                      new MediaStream(tracks.filter((track) => !!track))
-                    : undefined,
-              },
-            ]
-          })
+          setUsers([
+            ...users,
+            {
+              ...user,
+              mediaStream:
+                tracks && tracks.length > 0
+                  ? // @ts-ignore
+                    new MediaStream(tracks.filter((track) => !!track))
+                  : undefined,
+            },
+          ])
         }
         if (mediaType === 'audio') {
           user.audioTrack?.play()
@@ -125,10 +123,8 @@ export default function useAgora(
 
   const mute = async (type: 'audio' | 'video') => {
     const { constraints } = studio
-    console.log({ constraints })
     if (type === 'audio') {
       const newValue = !constraints?.audio
-      console.log('newValue', newValue)
       await tracks?.[0].setEnabled(newValue)
       setStudio((studio) => {
         return {
