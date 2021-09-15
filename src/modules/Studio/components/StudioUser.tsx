@@ -4,7 +4,9 @@ import Konva from 'konva'
 import { Group, Image } from 'react-konva'
 import { useImage } from 'react-konva-utils'
 import { useRecoilValue } from 'recoil'
+import Gravatar from 'react-gravatar'
 import { StudioProviderProps, studioStore } from '../stores'
+import { Fragment_Participant } from '../../../generated/graphql'
 
 const StudioUser = ({
   stream,
@@ -13,18 +15,20 @@ const StudioUser = ({
   width,
   height,
   type,
+  key,
 }: {
   x: number
   y: number
   width?: number
   height?: number
   type: string
+  key: string
   stream: MediaStream | null
 }) => {
   const imageConfig = { width: width || 160, height: height || 120 }
   const imageRef = useRef<Konva.Image | null>(null)
 
-  const { picture, constraints } =
+  const { picture, participants, constraints } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [image] = useImage(picture as string, 'anonymous')
@@ -98,12 +102,17 @@ const StudioUser = ({
           height={imageConfig.height}
         />
       )}
-      {type === 'remote' && (
+      {type === 'remote' && stream ? (
         <Image
           ref={imageRef}
           image={videoElement}
           width={imageConfig.width}
           height={imageConfig.height}
+        />
+      ) : (
+        <Gravatar
+          className="w-6 h-6 rounded-full bg-gray-100"
+          email={participants[key].email as string}
         />
       )}
     </Group>

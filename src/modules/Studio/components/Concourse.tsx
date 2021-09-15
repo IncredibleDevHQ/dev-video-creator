@@ -290,6 +290,7 @@ const Concourse = ({
                           (studioUserConfig && studioUserConfig[0]?.y) ||
                           initialPos.y
                         }
+                        key=""
                         stream={localStream}
                         width={studioUserConfig && studioUserConfig[0]?.width}
                         height={studioUserConfig && studioUserConfig[0]?.height}
@@ -314,7 +315,7 @@ const Concourse = ({
                             height={
                               studioUserConfig && studioUserConfig[0]?.height
                             }
-                            key={user.uid}
+                            key={user.uid as string}
                             stream={user.mediaStream as MediaStream}
                             type="remote"
                           />

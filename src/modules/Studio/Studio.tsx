@@ -294,17 +294,7 @@ const Studio = () => {
           ({ participant }) => participant.userSub === sub
         )?.participant.owner || false,
     })
-  }, [
-    fragment,
-    stream,
-    users,
-    state,
-    userAudios,
-    payload,
-
-    participants,
-    payload,
-  ])
+  }, [fragment, stream, users, state, userAudios, payload, participants])
 
   /**
    * =======================
