@@ -81,10 +81,10 @@ const useSplash = () => {
     }
 
     const computedCoordinates: Coordinates = {
-      titleX: (stageWidth - titleWidth) / 2 - 32,
+      titleX: (stageWidth - titleWidth) / 2,
       titleY: (stageHeight - (titleHeight + subTitleHeight + gutter)) / 2,
       titleHeight,
-      subTitleX: (stageWidth - subTitleWidth) / 2 - 32,
+      subTitleX: (stageWidth - subTitleWidth) / 2,
       subTitleY:
         (stageHeight - (titleHeight + subTitleHeight + gutter)) / 2 +
         titleHeight +
