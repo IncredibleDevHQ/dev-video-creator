@@ -26,15 +26,17 @@ import { User, userState } from '../../stores/user.store'
 import { getEffect } from './effects/effects'
 import { useUploadFile } from '../../hooks/use-upload-file'
 import { useAgora } from './hooks'
-import { StudioState, studioStore } from './stores'
+import { StudioProviderProps, StudioState, studioStore } from './stores'
 import { useRTDB } from './hooks/use-rtdb'
 
 const Studio = () => {
   const { fragmentId } = useParams<{ fragmentId: string }>()
+  const { constraints } =
+    (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [studio, setStudio] = useRecoilState(studioStore)
   const { sub, picture } = (useRecoilValue(userState) as User) || {}
   const [fragment, setFragment] = useState<StudioFragmentFragment>()
-
+  let consst: MediaStreamConstraints | null = { audio: true, video: true }
   const history = useHistory()
 
   const { data, loading } = useGetFragmentByIdQuery({
@@ -44,6 +46,12 @@ const Studio = () => {
   const [markFragmentCompleted] = useMarkFragmentCompletedMutation()
 
   const [uploadFile] = useUploadFile()
+
+  useEffect(() => {
+    consst = studio.constraints
+      ? studio.constraints
+      : { audio: true, video: true }
+  }, [])
 
   const {
     stream,
@@ -270,7 +278,10 @@ const Studio = () => {
       state,
       tracks,
       picture: picture as string,
-      constraints: { audio: true, video: true },
+      constraints: {
+        audio: constraints ? constraints.audio : true,
+        video: constraints ? constraints.video : true,
+      },
       users,
       payload,
       mute: (type: 'audio' | 'video') => mute(type),
@@ -292,6 +303,7 @@ const Studio = () => {
     state,
     userAudios,
     payload,
+
     participants,
     payload,
   ])
