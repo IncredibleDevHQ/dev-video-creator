@@ -1,11 +1,15 @@
 /* eslint-disable @typescript-eslint/no-unused-expressions */
 /* eslint-disable react/default-props-match-prop-types */
 import React, { HTMLProps, useEffect, useRef, useState } from 'react'
-import videojs, { VideoJsPlayer } from 'video.js'
+import videojs, { VideoJsPlayer, VideoJsLogo } from 'video.js'
 import 'video.js/dist/video-js.css'
+import 'videojs-logo'
+import 'videojs-logo/dist/videojs-logo.css'
 import qualityLevels from 'videojs-contrib-quality-levels'
 import hlsQualitySelector from 'videojs-hls-quality-selector'
 import { css } from '@emotion/css'
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import logo from '../assets/new_logo.svg'
 
 interface VideoProps extends HTMLProps<HTMLVideoElement> {
   src: string
@@ -226,6 +230,10 @@ const Video = ({ className, src, ...rest }: VideoProps) => {
     ],
   }
 
+  const options1: VideoJsLogo.Options = {
+    image: '../assets/IncredibleWhiteLogo.svg',
+  }
+
   const handlePlayerReady = (player: VideoJsPlayer) => {
     playerRef.current = player
     player.on('waiting')
@@ -242,9 +250,10 @@ const Video = ({ className, src, ...rest }: VideoProps) => {
 
       const player = videojs(videoElement, options, () => {
         handlePlayerReady && handlePlayerReady(player)
-        // @ts-ignore
-        player.share(shareOptions)
       })
+      // @ts-ignore
+      player.share(shareOptions)
+      player.logo(options1)
     } else {
       const player = playerRef.current
       player.autoplay(options.autoplay)
