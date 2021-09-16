@@ -1,17 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unused-expressions */
 /* eslint-disable react/default-props-match-prop-types */
 import React, { HTMLProps, useEffect, useRef, useState } from 'react'
-import videojs, { VideoJsPlayer, VideoJsLogo } from 'video.js'
+import videojs, { VideoJsPlayer } from 'video.js'
 import 'video.js/dist/video-js.css'
-import 'videojs-logo'
-import 'videojs-logo/dist/videojs-logo.css'
-import 'videojs-brand'
-import 'videojs-brand/dist/videojs-brand.css'
 import qualityLevels from 'videojs-contrib-quality-levels'
 import hlsQualitySelector from 'videojs-hls-quality-selector'
-import { css } from '@emotion/css'
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import logo from '../assets/new_logo.svg'
+import { css, cx } from '@emotion/css'
 
 const videoJs = css`
   .video-js {
@@ -188,6 +182,27 @@ const videoJs = css`
 interface VideoProps extends HTMLProps<HTMLVideoElement> {
   src: string
 }
+
+const getOptions = (src: string, type: string) => ({
+  autoplay: false,
+  playbackRates: [0.5, 1, 1.25, 1.5],
+  aspectratio: '16:9',
+  controls: true,
+  height: 720,
+  width: 1080,
+  fluid: true,
+  plugins: {
+    qualityLevels: {},
+    hlsQualitySelector: {},
+  },
+  sources: [
+    {
+      src,
+      type,
+    },
+  ],
+})
+
 const Video = ({ className, src, ...rest }: VideoProps) => {
   const playerRef = useRef<any>()
   const [videoType, setVideoType] = useState<string>('')
@@ -198,11 +213,13 @@ const Video = ({ className, src, ...rest }: VideoProps) => {
     const data = src.split('.').slice(-1).join()
     if (data !== 'm3u8') {
       setVideoType(`video/${data}`)
-    }
-    setVideoType('application/x-mpegURL')
+    } else setVideoType('application/x-mpegURL')
   }, [src])
 
   useEffect(() => {
+    videojs.registerPlugin('qualityLevels', qualityLevels)
+    videojs.registerPlugin('hlsQualitySelector', hlsQualitySelector)
+
     return () => {
       if (playerRef.current) {
         playerRef.current.dispose()
@@ -211,90 +228,32 @@ const Video = ({ className, src, ...rest }: VideoProps) => {
     }
   }, [])
 
-  const options = {
-    autoplay: true,
-    playbackRates: [0.5, 1, 1.25, 1.5],
-    aspectratio: '16:9',
-    controls: true,
-    height: 720,
-    width: 1080,
-    fluid: true,
-    plugins: {
-      qualityLevels: {},
-      hlsQualitySelector: {},
-    },
-    sources: [
-      {
-        src,
-        type: videoType,
-      },
-    ],
-  }
-
-  const logoOptions: VideoJsLogo.Options = {
-    image: '../assets/IncredibleWhiteLogo.svg',
-  }
-
   const handlePlayerReady = (player: VideoJsPlayer) => {
     playerRef.current = player
-    player.on('waiting')
-    player.on('dispose')
+    player.on('waiting', () => {
+      console.log('waiting')
+    })
+    player.on('dispose', () => {
+      console.log('dispose')
+    })
   }
 
   useEffect(() => {
-    videojs.registerPlugin('qualityLevels', qualityLevels)
-    videojs.registerPlugin('hlsQualitySelector', hlsQualitySelector)
+    if (!videoRef.current) return
+    const options = getOptions(src, videoType)
 
-    if (!playerRef.current) {
-      const videoElement = videoRef.current
-      if (!videoElement) return
+    const videoElement = videoRef.current
+    console.log('I RAN')
+    if (!videoElement) return
 
-      const player = videojs(videoElement, options, () => {
-        handlePlayerReady && handlePlayerReady(player)
-      })
-
-      // @ts-ignore
-      // player.share(shareOptions)
-      // player.brand({
-      //   image: 'https://dev.next.incredible.dev/assets/logo.ba6193e7.svg',
-      //   title: 'Incredible Logo',
-      //   destination: 'https://dev.next.incredible.dev',
-      //   destinationTarget: '_top',
-      // })
-    } else {
-      const player = playerRef.current
-      player.autoplay(options.autoplay)
-      player.src(options.sources)
-    }
-  }, [options, videoRef.current])
-
-  const shareOptions = {
-    socials: [
-      'fb',
-      'tw',
-      'reddit',
-      'gp',
-      'messenger',
-      'linkedin',
-      'telegram',
-      'whatsapp',
-      'viber',
-      'vk',
-      'ok',
-      'mail',
-    ],
-
-    url: window.location.href,
-    title: 'videojs-share',
-    description: 'video.js share plugin',
-    image: 'https://dummyimage.com/1200x630',
-
-    // required for Facebook and Messenger
-    fbAppId: '12345',
-  }
+    const player = videojs(videoElement, options, () => {
+      handlePlayerReady && handlePlayerReady(player)
+    })
+  }, [videoRef.current])
 
   return (
-    <div className={videoJs}>
+    <div className={cx(videoJs, className)}>
+      {console.log(videoType)}
       <div
         data-vjs-player
         className="linear-gradient(to bottom, rgba(255,255,255,1) 0%,rgba(255,255,255,0) 100%);"
@@ -304,7 +263,6 @@ const Video = ({ className, src, ...rest }: VideoProps) => {
           ref={videoRef}
           className="video-js"
           controls
-          autoPlay
           width="100%"
           height="100%"
           preload="auto"
