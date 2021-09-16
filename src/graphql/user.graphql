@@ -71,6 +71,12 @@ query GetGuestUser($state: String!) {
   }
 }
 
+query FetchEmailUsingState($state: String!) {
+  FetchEmailUsingState(state: $state) {
+    email
+  }
+}
+
 query SendMagicSignInLink($email: String!) {
   SendMagicLink(email: $email) {
     success

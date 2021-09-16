@@ -4,7 +4,10 @@ import { useRecoilValue } from 'recoil'
 import { useHistory } from 'react-router-dom'
 import firebaseState from '../../stores/firebase.store'
 import { ScreenState } from '../../components'
-import { useGetGuestUserQuery } from '../../generated/graphql'
+import {
+  useFetchEmailUsingStateQuery,
+  useGetGuestUserQuery,
+} from '../../generated/graphql'
 import { useQueryVariables } from '../../hooks'
 
 const MagicLinkLogin = () => {
@@ -36,7 +39,7 @@ const MagicLinkLogin = () => {
 
   const state = query.get('state') as string
 
-  const { data, loading, error } = useGetGuestUserQuery({
+  const { data, loading, error } = useFetchEmailUsingStateQuery({
     variables: {
       state,
     },
@@ -45,7 +48,7 @@ const MagicLinkLogin = () => {
   if (loading) return <ScreenState title="Just a jiffy" loading />
 
   if (data) {
-    if (data.User.length === 0)
+    if (!data.FetchEmailUsingState?.email)
       return (
         <ScreenState
           title="Invalid State!!"
@@ -53,7 +56,9 @@ const MagicLinkLogin = () => {
         />
       )
 
-    handleSignIn(data?.User[0].email as string)
+    // console.log(data)
+
+    handleSignIn(data?.FetchEmailUsingState?.email as string)
   }
 
   if (error)
