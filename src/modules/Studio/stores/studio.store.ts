@@ -1,3 +1,4 @@
+import { ICameraVideoTrack, IMicrophoneAudioTrack } from 'agora-rtc-sdk-ng'
 import { atom } from 'recoil'
 import { StudioFragmentFragment } from '../../../generated/graphql'
 import { RTCUser } from '../hooks/use-agora'
@@ -11,7 +12,7 @@ export type StudioState =
 export interface StudioProviderProps<T = any, S = any> {
   stream: MediaStream
   getBlobs: () => Promise<Blob>
-
+  tracks: [IMicrophoneAudioTrack, ICameraVideoTrack] | null
   reset: () => void
   upload: () => void
 
