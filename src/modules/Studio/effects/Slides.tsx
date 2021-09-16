@@ -12,9 +12,6 @@ import { StudioProviderProps, studioStore } from '../stores'
 import { getDimensions } from './effects'
 import 'gifler'
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-// const Gifler = require('gifler')
-
 const Gif = ({ src }: { src: HTMLImageElement | undefined | string }) => {
   const imageRef = React.useRef(null)
   const canvas = React.useMemo(() => {
@@ -23,7 +20,6 @@ const Gif = ({ src }: { src: HTMLImageElement | undefined | string }) => {
   }, [])
 
   useEffect(() => {
-    // save animation instance to stop it on unmount
     let anim: any
     window.gifler(src).get((a: any) => {
       anim = a
@@ -36,37 +32,7 @@ const Gif = ({ src }: { src: HTMLImageElement | undefined | string }) => {
     return () => anim.stop()
   }, [src, canvas])
 
-  return (
-    <Group
-      x={30}
-      fill="#E5E5E5"
-      width={600}
-      height={480}
-      clipFunc={(ctx: any) => {
-        const x = 0
-        const y = 0
-        const w = 480
-        const h = 600
-        const r = 8
-        ctx.beginPath()
-        ctx.moveTo(x + r, y)
-        ctx.arcTo(x + w, y, x + w, y + h, r)
-        ctx.arcTo(x + w, y + h, x, y + h, r)
-        ctx.arcTo(x, y + h, x, y, r)
-        ctx.arcTo(x, y, x + w, y, r)
-        ctx.closePath()
-      }}
-    >
-      <Image
-        image={canvas}
-        ref={imageRef}
-        width={480}
-        height={600}
-        x={0}
-        y={30}
-      />
-    </Group>
-  )
+  return <Image image={canvas} ref={imageRef} />
 }
 
 const Slides = () => {
@@ -226,8 +192,8 @@ const Slides = () => {
                 shadowBlur={2}
               />
             )}
-            {isGif && <Gif src={gifUrl} />}
           </Group>
+          {isGif && <Gif src={gifUrl} />}
         </>
       )}
     </Group>,
