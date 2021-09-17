@@ -8,6 +8,7 @@ fragment GuestUser on User {
   sub
   username
   verified
+  email
 }
 
 fragment FlickParticipant on User {
@@ -67,6 +68,18 @@ query IsUsernameAvailable($username: String!) {
 query GetGuestUser($state: String!) {
   User(where: { state: { _eq: $state } }) {
     ...GuestUser
+  }
+}
+
+query FetchEmailUsingState($state: String!) {
+  FetchEmailUsingState(state: $state) {
+    email
+  }
+}
+
+query SendMagicSignInLink($email: String!) {
+  SendMagicLink(email: $email) {
+    success
   }
 }
 

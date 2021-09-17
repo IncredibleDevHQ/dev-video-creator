@@ -61,11 +61,6 @@ const getSplash = (theme: any) => {
   return CustomSplash
 }
 
-// const getVideoTheme = (theme: any) => {
-//   if (theme.value === '0') return VideoJam
-//   return VideoJamTwo
-// }
-
 export const getDimensions = (
   img: { w: number; h: number },
   maxH: number,
