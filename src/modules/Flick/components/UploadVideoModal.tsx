@@ -23,7 +23,7 @@ const UploadVideoModal = ({
     uuid: string
     fileName: string
   }>()
-  const [uploadVideo] = useUploadFile(File)
+  const [uploadVideo] = useUploadFile()
   const [addAssetMutation, { data, loading, error }] = useAddAssetMutation()
 
   const handleClick = async (file: File) => {
