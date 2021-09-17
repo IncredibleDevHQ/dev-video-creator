@@ -1,6 +1,5 @@
 import React from 'react'
 import { TextField } from '../../../../components'
-// eslint-disable-next-line import/namespace
 import { GetSchemaElementProps } from '../Effects'
 
 const TextSchema = ({
@@ -16,6 +15,7 @@ const TextSchema = ({
     setConfigured(true)
   }
 
+  // Remove the trim
   return (
     <TextField
       className="text-lg m-4"
