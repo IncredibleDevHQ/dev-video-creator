@@ -14,14 +14,14 @@ import config from '../../../config'
 const titleEnum = 'title'
 const subTitleEnum = 'subtitle'
 
-const SplashThirteen = () => {
+const SplashFourteen = () => {
   const { state } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const { sub } = (useRecoilValue(userState) as User) || {}
   const [configuration, setConfiguration] =
     useState<{ title: any; subTitle: any }>()
   const params: { fragmentId: string } = useParams()
-  const [ghLogo] = useImage(`${config.storage.baseUrl}gh-logo.png`, 'anonymous')
-  const [ghUser] = useImage(`${config.storage.baseUrl}gh-user.png`, 'anonymous')
+  const [msLogo] = useImage(`${config.storage.baseUrl}ms-logo.png`, 'anonymous')
+  const [msUser] = useImage(`${config.storage.baseUrl}ms-user.png`, 'anonymous')
 
   const { data } = useGetFragmentByIdQuery({
     variables: { id: params.fragmentId, sub: sub as string },
@@ -98,7 +98,7 @@ const SplashThirteen = () => {
     <Rect
       x={0}
       y={0}
-      fill="#040D21"
+      fill="#FFFFFF"
       width={CONFIG.width}
       height={CONFIG.height}
     />,
@@ -107,15 +107,15 @@ const SplashThirteen = () => {
   const getLayerChildren = () => {
     setLayerChildren((layerChildren) => [
       ...layerChildren,
-      <Group x={82} y={78} width={429} height={192} key="group1">
+      <Group x={61} y={183} width={419} height={174} key="group1">
         <Text
-          fontSize={96}
-          fill="#9DF4D1"
+          fontSize={64}
+          fill="#1F2937"
           fontFamily="Poppins"
-          fontStyle="normal 900"
-          text="Github"
+          fontStyle="normal"
+          text="Microsoft"
           align="center"
-          opacity={1}
+          opacity={0}
           ref={(ref) => {
             ref?.to({
               duration: 1,
@@ -124,14 +124,14 @@ const SplashThirteen = () => {
           }}
         />
         <Text
-          fontSize={36}
-          fill="#FFFFFF"
+          fontSize={64}
+          y={67}
+          fill="#1F2937"
           fontFamily="Poppins"
-          text="Where the world builds"
           fontStyle="normal"
+          text="Dynamics 365"
           align="center"
-          y={108}
-          opacity={1}
+          opacity={0}
           ref={(ref) => {
             ref?.to({
               duration: 1,
@@ -140,25 +140,65 @@ const SplashThirteen = () => {
           }}
         />
         <Text
-          fontSize={36}
-          fill="#FFFFFF"
+          fontSize={24}
+          fill="#6B7280"
           fontFamily="Poppins"
-          text="software"
-          fontStyle="normal"
+          text="Agility without limits"
+          fontStyle="normal 400"
           align="center"
           y={150}
           opacity={0}
           ref={(ref) => {
             ref?.to({
-              duration: 0.5,
+              duration: 1,
               opacity: 1,
             })
           }}
         />
       </Group>,
-      <Group x={826} y={406} width={54} height={54} key="group2">
+
+      <Group>
         <Image
-          image={ghLogo}
+          x={61}
+          y={412}
+          width={72}
+          height={72}
+          cornerRadius={12}
+          image={msUser}
+          opacity={0}
+          ref={(ref) => {
+            ref?.to({
+              duration: 1,
+              opacity: 1,
+            })
+          }}
+        />
+        <Text
+          fontSize={20}
+          fill="#1F2937"
+          fontFamily="Poppins"
+          text="Heather Newman"
+          fontStyle="normal 600"
+          align="center"
+          x={150}
+          y={445}
+          opacity={0}
+          ref={(ref) => {
+            ref?.to({
+              duration: 1,
+              opacity: 1,
+            })
+          }}
+        />
+        <Text
+          fontSize={14}
+          fill="#6B7280"
+          fontFamily="Poppins"
+          text="Principal PM Manager @ Microsoft Dynamics 365"
+          fontStyle="normal 400"
+          align="center"
+          x={150}
+          y={470}
           opacity={0}
           ref={(ref) => {
             ref?.to({
@@ -169,55 +209,13 @@ const SplashThirteen = () => {
         />
       </Group>,
       <Group>
-        <Rect
-          fill="#0C162D"
-          x={80}
-          y={340}
-          cornerRadius={12}
-          width={381}
-          height={120}
-        />
+        <Rect x={553} y={0} fill="#1F2937" width={407} height={540} />
         <Image
-          x={90}
-          y={360}
-          width={80}
-          height={80}
-          cornerRadius={12}
-          image={ghUser}
-          opacity={1}
-          ref={(ref) => {
-            ref?.to({
-              duration: 1,
-              opacity: 1,
-            })
-          }}
-        />
-        <Text
-          fontSize={20}
-          fill="#FFFFFF"
-          fontFamily="Poppins"
-          text="Brian Douglas"
-          fontStyle="normal 600"
-          align="center"
-          x={190}
-          y={400}
-          opacity={0}
-          ref={(ref) => {
-            ref?.to({
-              duration: 1,
-              opacity: 1,
-            })
-          }}
-        />
-        <Text
-          fontSize={16}
-          fill="#FFFFFF"
-          fontFamily="Poppins"
-          text="Developer Advocate @ Github"
-          fontStyle="normal"
-          align="center"
-          x={190}
-          y={425}
+          x={657}
+          y={170}
+          width={200}
+          height={200}
+          image={msLogo}
           opacity={0}
           ref={(ref) => {
             ref?.to({
@@ -240,4 +238,4 @@ const SplashThirteen = () => {
   )
 }
 
-export default SplashThirteen
+export default SplashFourteen
