@@ -3,14 +3,22 @@
 import React, { HTMLProps, useEffect, useRef, useState } from 'react'
 import videojs, { VideoJsPlayer } from 'video.js'
 import 'video.js/dist/video-js.css'
+import 'videojs-logo'
+import 'videojs-logo/dist/videojs-logo.css'
 import qualityLevels from 'videojs-contrib-quality-levels'
 import hlsQualitySelector from 'videojs-hls-quality-selector'
 import { css, cx } from '@emotion/css'
+import { ASSETS } from '../constants'
+import config from '../config'
 
 const videoJs = css`
   .video-js {
     font-size: 14px;
     overflow: hidden;
+  }
+
+  .video-js .vjs-playback-rate {
+    text-align: left;
   }
 
   .video-js .vjs-spacer,
@@ -20,7 +28,7 @@ const videoJs = css`
     display: -ms-flexbox;
     display: -webkit-flex;
     display: flex;
-    -webkit-box-flex: 0 1 auto;
+    -webkit-box-flex: 1 1 auto;
     -moz-box-flex: 1 1 auto;
     -webkit-flex: 1 1 auto;
     -ms-flex: 1 1 auto;
@@ -36,27 +44,22 @@ const videoJs = css`
     width: auto;
   }
 
-  .video-js .vjs-menu-button-popup .vjs-menu .vjs-menu-content {
-    background-color: #2d2f34cc;
+  .video-js .vjs-menu-button-popup .vjs-menu-content {
+    background-color: #2d2f34;
     width: 12em;
-    left: -1.5em;
+    left: 0em;
+    bottom: ;
     padding-bottom: 0.5em;
     border-radius: 5%;
   }
 
-  .video-js .vjs-menu-button-popup .vjs-menu .vjs-menu-item,
-  .video-js .vjs-menu-button-popup .vjs-menu .vjs-menu-title {
-    background-color: #2d2f34cc;
-    margin: 0.3em 0;
-    padding: 0.5em;
-    border-radius: 0.3em;
+  .video-js .vjs-volume-control {
+    height: 50px;
   }
 
   .video-js .vjs-play-progress:before,
   .video-js .vjs-progress-control .vjs-play-progress:before,
   .video-js .vjs-remaining-time,
-  .video-js .vjs-volume-level:after,
-  .video-js .vjs-volume-level:before,
   .video-js.vjs-live .vjs-time-control.vjs-current-time,
   .video-js.vjs-live .vjs-time-control.vjs-duration,
   .video-js.vjs-live .vjs-time-control.vjs-time-divider,
@@ -174,9 +177,21 @@ const videoJs = css`
     font-size: 14px;
   }
 
-  .video-js .vjs-play-progress,
-  .video-js .vjs-volume-level {
+  .video-js .vjs-play-progress {
     background-color: #15803d;
+  }
+
+  .video-js .vjs-volume-level {
+    background-color: #fff;
+    opacity: 80%;
+  }
+
+  .video-js .vjs-volume-vertical {
+    background-color: #2d2f34;
+    opacity: 80%;
+    width: 20px;
+    padding-bottom: 0.5px;
+    border-radius: 5%;
   }
 `
 interface VideoProps extends HTMLProps<HTMLVideoElement> {
@@ -201,6 +216,26 @@ const getOptions = (src: string, type: string) => ({
       type,
     },
   ],
+  controlBar: {
+    volumePanel: { inline: false },
+    children: [
+      'playToggle',
+      'volumeMenuButton',
+      {
+        name: 'volumePanel',
+      },
+      'playbackRateMenuButton',
+      'currentTimeDisplay',
+      'timeDivider',
+      'durationDisplay',
+      'remainingTimeDisplay',
+      'progressControl',
+      'liveDisplay',
+      'spacer',
+      'ResolutionButton',
+      'fullscreenToggle',
+    ],
+  },
 })
 
 const Video = ({ className, src, ...rest }: VideoProps) => {
@@ -219,7 +254,6 @@ const Video = ({ className, src, ...rest }: VideoProps) => {
   useEffect(() => {
     videojs.registerPlugin('qualityLevels', qualityLevels)
     videojs.registerPlugin('hlsQualitySelector', hlsQualitySelector)
-
     return () => {
       if (playerRef.current) {
         playerRef.current.dispose()
@@ -230,34 +264,35 @@ const Video = ({ className, src, ...rest }: VideoProps) => {
 
   const handlePlayerReady = (player: VideoJsPlayer) => {
     playerRef.current = player
-    player.on('waiting', () => {
-      console.log('waiting')
-    })
-    player.on('dispose', () => {
-      console.log('dispose')
-    })
+    player.on('waiting', () => {})
+    player.on('dispose', () => {})
   }
 
   useEffect(() => {
     if (!videoRef.current) return
     const options = getOptions(src, videoType)
-
     const videoElement = videoRef.current
-    console.log('I RAN')
     if (!videoElement) return
 
     const player = videojs(videoElement, options, () => {
       handlePlayerReady && handlePlayerReady(player)
     })
-  }, [videoRef.current])
+
+    player.logo({
+      url: config.client.publicUrl,
+      image: ASSETS.ICONS.WhiteLOGO,
+      fadeDelay: null,
+      height: 10,
+      padding: 10,
+      position: 'top-left',
+      offsetH: 0,
+      hideOnReady: false,
+    })
+  }, [playerRef.current])
 
   return (
     <div className={cx(videoJs, className)}>
-      {console.log(videoType)}
-      <div
-        data-vjs-player
-        className="linear-gradient(to bottom, rgba(255,255,255,1) 0%,rgba(255,255,255,0) 100%);"
-      >
+      <div data-vjs-player>
         <video
           id="flick_video"
           ref={videoRef}

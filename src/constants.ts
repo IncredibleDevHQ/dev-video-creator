@@ -5,12 +5,14 @@ import LOGIN_USER_ANIMATION from './assets/SingIn.json'
 import LANDING_DEVELOPER from './assets/developer.json'
 import COMMUNITY from './assets/community.json'
 import EMPTY_ACTIVITY from './assets/EmptyActivity.json'
+import WhiteLOGO from './assets/IncredibleWhiteLogo.svg'
 
 export const ASSETS = {
   ICONS: {
     LOGO,
     GOOGLE,
     GITHUB,
+    WhiteLOGO,
   },
   ANIMATION: {
     LOGIN_USER_ANIMATION,
@@ -34,8 +36,7 @@ export const fragmentIcons = {
   storyBook: 'https://emoji.craftwork.design/images/modal/star.png',
   slides: 'https://emoji.craftwork.design/images/modal/shamrock.png',
   trivia: 'https://emoji.craftwork.design/images/modal/exclamation-mark.png',
-  discussion: 'https://emoji.craftwork.design/images/modal/handshake-yellow.png',
-  outro: 'https://emoji.craftwork.design/images/modal/game-die.png'
+  discussion:
+    'https://emoji.craftwork.design/images/modal/handshake-yellow.png',
+  outro: 'https://emoji.craftwork.design/images/modal/game-die.png',
 }
-
-
