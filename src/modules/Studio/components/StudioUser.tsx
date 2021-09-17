@@ -4,7 +4,9 @@ import Konva from 'konva'
 import { Group, Image, Circle, Rect } from 'react-konva'
 import { useImage } from 'react-konva-utils'
 import { useRecoilValue } from 'recoil'
+import Gravatar from 'react-gravatar'
 import { StudioProviderProps, studioStore } from '../stores'
+import { Fragment_Participant } from '../../../generated/graphql'
 import { StudioUserConfig } from './Concourse'
 import useEdit, { ClipConfig } from '../hooks/use-edit'
 
@@ -29,10 +31,9 @@ const StudioUser = ({
     radius: 8,
   }
 
-  const { picture, constraints } =
-    (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const { picture, constraints } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
-  const [image] = useImage(picture as string)
+  const [image] = useImage(picture as string, 'anonymous')
 
   const videoElement = React.useMemo(() => {
     if (!stream) return

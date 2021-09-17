@@ -57,17 +57,16 @@ const Concourse = ({
 }: ConcourseProps) => {
   const {
     state,
-    stream,
+    tracks,
     payload,
     getBlobs,
     users,
     stopRecording,
-    updatePayload,
-    fragment,
+    constraints,
   } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [canvas, setCanvas] = useRecoilState(canvasStore)
   const [isTitleSplash, setIsTitleSplash] = useState<boolean>(false)
-
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null)
   const [isZooming, setZooming] = useState(false)
 
   const stageRef = createRef<Konva.Stage>()
@@ -214,6 +213,17 @@ const Concourse = ({
         ? setIsTitleSplash(true)
         : setIsTitleSplash(true))
   }, [titleSpalshData, state, payload?.status])
+
+  useEffect(() => {
+    const local =
+      tracks && tracks?.length > 0
+        ? new MediaStream([
+            tracks?.[0].getMediaStreamTrack?.(),
+            tracks?.[1].getMediaStreamTrack?.(),
+          ])
+        : null
+    setLocalStream(local)
+  }, [constraints?.video])
 
   return (
     <div className="flex-1 mt-4 justify-between items-stretch flex">

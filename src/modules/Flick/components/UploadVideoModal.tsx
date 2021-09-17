@@ -21,8 +21,9 @@ const UploadVideoModal = ({
   const [video, setVideo] = useState<{
     url: string
     uuid: string
+    fileName: string
   }>()
-  const [uploadVideo] = useUploadFile()
+  const [uploadVideo] = useUploadFile(File)
   const [addAssetMutation, { data, loading, error }] = useAddAssetMutation()
 
   const handleClick = async (file: File) => {
@@ -35,7 +36,7 @@ const UploadVideoModal = ({
       file,
     })
     setLoadingAssets(false)
-    setVideo({ url: video.url, uuid: video.uuid })
+    setVideo({ url: video.url, uuid: video.uuid, fileName: file.name })
   }
 
   useEffect(() => {
@@ -44,7 +45,7 @@ const UploadVideoModal = ({
     setLoadingAssets(loading)
     addAssetMutation({
       variables: {
-        displayName: video ? video.uuid : '',
+        displayName: video ? video.fileName : '',
         objectLink: video ? video.uuid : '',
         source: Asset_Source_Enum_Enum.WebClient,
         type: Asset_Type_Enum_Enum.Video,
@@ -82,7 +83,7 @@ const UploadVideoModal = ({
           // @ts-ignore
           e.target.files?.[0] && handleClick(e.target.files[0])
         }
-      ></Video>
+      />
       {video && video.url && !loadingAssets && (
         <video height="200px" src={video?.url} controls />
       )}
