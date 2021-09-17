@@ -127,6 +127,9 @@ const Flick = () => {
         )}
       </div>
       <FlickSideBar
+        fragment={flick.fragments.find(
+          (fragment) => fragment.id === activeFragmentId
+        )}
         handleRefetch={(refresh) => {
           if (refresh) refetch()
         }}

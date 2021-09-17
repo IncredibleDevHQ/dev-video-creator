@@ -3,16 +3,16 @@ import Gravatar from 'react-gravatar'
 import { limit } from 'react-laag/dist/util'
 import Modal from 'react-responsive-modal'
 import { Heading, Text } from '../../../components'
-import { useGetFlickNotesQuery } from '../../../generated/graphql'
+import { useGetFragmentNotesQuery } from '../../../generated/graphql'
 
-const Notes = ({ flickId }: { flickId: string }) => {
+const Notes = ({ fragmentId }: { fragmentId: string }) => {
   const [showMoreText, setShowMoreText] = useState<{
     openModal: boolean
     text: string
   }>({ openModal: false, text: '' })
-  const { data, loading } = useGetFlickNotesQuery({
+  const { data, loading } = useGetFragmentNotesQuery({
     variables: {
-      flickId, // value for 'flickId'
+      fragmentId,
     },
   })
   return loading ? (
@@ -70,18 +70,6 @@ const Notes = ({ flickId }: { flickId: string }) => {
               }
               center
             >
-              {/* <Text
-                className="truncate cursor-pointer whitespace-nowrap  overflow-hidden "
-                key={note.id}
-                onClick={() => {
-                  setShowMoreText({
-                    openModal: false,
-                    text: showMoreText.text,
-                  })
-                }}
-              >
-                {showMoreText.text}
-              </Text> */}
               {showMoreText.text.split('\n').map((str) => (
                 <div>
                   <Text
@@ -104,7 +92,7 @@ const Notes = ({ flickId }: { flickId: string }) => {
       {data && data.Note.length === 0 && (
         <div className="flex flex-col justify-center">
           <Text className="text-center text-xs">
-            Oops you haven't Added any notes yet!
+            Oops you have not Added any notes yet!
           </Text>
         </div>
       )}
