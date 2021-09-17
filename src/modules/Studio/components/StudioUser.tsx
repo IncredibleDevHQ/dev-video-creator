@@ -1,26 +1,33 @@
 /* eslint-disable consistent-return */
 import React, { useEffect, useRef } from 'react'
 import Konva from 'konva'
-import { Group, Image } from 'react-konva'
+import { Group, Image, Circle, Rect } from 'react-konva'
 import { useImage } from 'react-konva-utils'
 import { useRecoilValue } from 'recoil'
 import { StudioProviderProps, studioStore } from '../stores'
+import { StudioUserConfig } from './Concourse'
+import useEdit, { ClipConfig } from '../hooks/use-edit'
 
 const StudioUser = ({
   stream,
-  x,
-  y,
-  width,
-  height,
+  studioUserConfig,
 }: {
-  x: number
-  y: number
-  width?: number
-  height?: number
   stream: MediaStream | null
+  studioUserConfig: StudioUserConfig
 }) => {
+  const { x, y, width, height, clipTheme, borderColor, studioUserClipConfig } =
+    studioUserConfig
   const imageConfig = { width: width || 160, height: height || 120 }
   const imageRef = useRef<Konva.Image | null>(null)
+
+  const { clipCircle, clipRect } = useEdit()
+  const defaultStudioUserClipConfig: ClipConfig = {
+    x: 0,
+    y: 0,
+    width: 160,
+    height: 120,
+    radius: 8,
+  }
 
   const { picture, constraints } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
@@ -58,45 +65,60 @@ const StudioUser = ({
     ref.current.srcObject = stream
   }, [ref.current])
 
-  const clipSquare = (ctx: any) => {
-    const x = 0
-    const y = 0
-    const w = imageConfig.width
-    const h = imageConfig.height
-    const r = 8
-    ctx.beginPath()
-    ctx.moveTo(x + r, y)
-    ctx.arcTo(x + w, y, x + w, y + h, r)
-    ctx.arcTo(x + w, y + h, x, y + h, r)
-    ctx.arcTo(x, y + h, x, y, r)
-    ctx.arcTo(x, y, x + w, y, r)
-    ctx.closePath()
+  const getClipFunc = ({
+    clipTheme,
+    ctx,
+    clipConfig,
+  }: {
+    clipTheme?: string
+    ctx: any
+    clipConfig: ClipConfig
+  }) => {
+    if (clipTheme === 'circle') return clipCircle(ctx, clipConfig)
+    return clipRect(ctx, clipConfig)
   }
 
   return (
-    <Group
-      x={x}
-      y={y}
-      clipFunc={(ctx: any) => {
-        clipSquare(ctx)
-      }}
-      draggable
-    >
-      {constraints?.video ? (
-        <Image
-          ref={imageRef}
-          image={videoElement}
-          width={imageConfig.width}
-          height={imageConfig.height}
-        />
-      ) : (
-        <Image
-          image={image}
-          width={imageConfig.width}
-          height={imageConfig.height}
-        />
-      )}
-    </Group>
+    <>
+      <Rect
+        x={775}
+        y={y}
+        width={160}
+        height={imageConfig.height}
+        stroke={borderColor}
+        strokeWidth={8}
+        cornerRadius={8}
+      />
+      <Group
+        x={x}
+        y={y}
+        clipFunc={(ctx: any) => {
+          getClipFunc({
+            clipTheme,
+            ctx,
+            clipConfig: studioUserClipConfig || defaultStudioUserClipConfig,
+          })
+        }}
+        draggable
+        offsetX={imageConfig.width}
+        scaleX={-1}
+      >
+        {constraints?.video ? (
+          <Image
+            ref={imageRef}
+            image={videoElement}
+            width={imageConfig.width}
+            height={imageConfig.height}
+          />
+        ) : (
+          <Image
+            image={image}
+            width={imageConfig.width}
+            height={imageConfig.height}
+          />
+        )}
+      </Group>
+    </>
   )
 }
 

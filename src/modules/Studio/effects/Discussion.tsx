@@ -6,7 +6,7 @@ import { FiPlay, FiPause } from 'react-icons/fi'
 import useImage from 'use-image'
 import { Concourse } from '../components'
 import { ControlButton } from '../components/MissionControl'
-import { CONFIG, StudioCoordinates } from '../components/Concourse'
+import { CONFIG, StudioUserConfig } from '../components/Concourse'
 import { StudioProviderProps, studioStore } from '../stores'
 import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
 import config from '../../../config'
@@ -115,7 +115,7 @@ const Discussion = () => {
     // />,
   ]
 
-  const studioCoordinates: StudioCoordinates[] = [
+  const studioCoordinates: StudioUserConfig[] = [
     { x: 26, y: 107, width: 435, height: 326.5 },
     { x: 496, y: 107, width: 435, height: 326.5 },
   ]
