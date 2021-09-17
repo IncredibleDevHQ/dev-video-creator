@@ -294,6 +294,7 @@ const SplashFour = () => {
         fontSize={20}
         fontFamily="Poppins"
         lineHeight={1.25}
+        width={CONFIG.width}
         fill="#5C595A"
         align="center"
         opacity={0}
