@@ -34,6 +34,10 @@ const config = {
   storage: {
     baseUrl: import.meta.env.VITE_STORAGE_BASE_URL,
   },
+
+  client: {
+    publicUrl: import.meta.env.VITE_PUBLIC_URL,
+  },
 }
 
 export default config
