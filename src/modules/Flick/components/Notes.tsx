@@ -24,7 +24,7 @@ const Notes = ({ fragmentId }: { fragmentId: string }) => {
         data.Note.map((note) => (
           <div className="mb-5">
             <div className=" flex flex-row gap-4 mb-2">
-              {note.participant.user.picture ? (
+              {note?.participant?.user.picture ? (
                 <img
                   src={note.participant.user.picture}
                   alt={note.participant.user.displayName || 'user'}
@@ -33,7 +33,7 @@ const Notes = ({ fragmentId }: { fragmentId: string }) => {
               ) : (
                 <Gravatar
                   className="w-6 h-6 rounded-md"
-                  email={note.participant.user.picture as string}
+                  email={note?.participant?.user.picture as string}
                 />
               )}
               <Heading
