@@ -29,6 +29,7 @@ import {
   PublicOrganisationPage,
   InviteScreen,
   PublicVideo,
+  MagicLinkLogin,
 } from './modules'
 import { ErrorBoundary, ScreenState } from './components'
 
@@ -151,6 +152,9 @@ const App = () => {
             </Route>
             <Route exact path="/invite/:flickId">
               <InviteScreen />
+            </Route>
+            <Route exact path="/magiclink">
+              <MagicLinkLogin />
             </Route>
           </Switch>
         </Router>

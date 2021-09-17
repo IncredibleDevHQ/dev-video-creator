@@ -112,7 +112,7 @@ const StudioUser = ({
       ) : (
         <Gravatar
           className="w-6 h-6 rounded-full bg-gray-100"
-          email={participants[key].email as string}
+          email={participants[key]?.email as string}
         />
       )}
     </Group>
