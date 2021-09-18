@@ -31,7 +31,8 @@ const StudioUser = ({
     radius: 8,
   }
 
-  const { picture, constraints } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const { picture, constraints } =
+    (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [image] = useImage(picture as string, 'anonymous')
 

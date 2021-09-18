@@ -1,28 +1,30 @@
 import React, { useEffect, useState } from 'react'
 import Konva from 'konva'
-import { Group, Image } from 'react-konva'
+import { Group, Image, Rect } from 'react-konva'
 import { CONFIG } from './Concourse'
-import useEdit, { ClipConfig } from '../hooks/use-edit'
+import useEdit from '../hooks/use-edit'
 
 export interface VideoConfig {
   x?: number
   y?: number
   width: number
   height: number
+  borderColor?: string
+  borderWidth?: number
+  cornerRadius?: number
+  performClip: boolean
 }
 
 // @ts-ignore
 export const Video = ({
   videoElement,
   videoConfig,
-  clipConfig,
 }: {
   videoElement: HTMLVideoElement
   videoConfig: VideoConfig
-  clipConfig?: ClipConfig
 }) => {
   const imageRef = React.useRef<Konva.Image>(null)
-  const [size, setSize] = useState<VideoConfig>({
+  const [size, setSize] = useState({
     width: (CONFIG.height * 16) / 9,
     height: CONFIG.height,
   })
@@ -58,29 +60,59 @@ export const Video = ({
   }, [videoElement])
 
   return (
-    <Group
-      x={
-        videoConfig.x ||
-        (videoConfig.width -
-          (videoConfig.height * videoElement.videoWidth) /
-            videoElement.videoHeight) /
-          2
-      }
-      y={videoConfig.y || 0}
-      clipFunc={(ctx: any) => {
-        if (!clipConfig) return
-        clipRect(ctx, clipConfig)
-      }}
-    >
-      <Image
-        ref={imageRef}
-        image={videoElement}
+    <>
+      <Rect
+        x={
+          videoConfig.x ||
+          (videoConfig.width -
+            (videoConfig.height * videoElement.videoWidth) /
+              videoElement.videoHeight) /
+            2
+        }
+        y={videoConfig.y || 0}
         width={
           (videoConfig.height * videoElement.videoWidth) /
           videoElement.videoHeight
         }
         height={videoConfig.height}
+        stroke={videoConfig.borderColor}
+        strokeWidth={videoConfig?.borderWidth || 0}
+        cornerRadius={videoConfig?.cornerRadius || 0}
       />
-    </Group>
+      <Group
+        x={
+          videoConfig.x ||
+          (videoConfig.width -
+            (videoConfig.height * videoElement.videoWidth) /
+              videoElement.videoHeight) /
+            2
+        }
+        y={videoConfig.y || 0}
+        clipFunc={
+          videoConfig.performClip &&
+          ((ctx: any) => {
+            clipRect(ctx, {
+              x: 0,
+              y: 0,
+              width:
+                (videoConfig.height * videoElement.videoWidth) /
+                videoElement.videoHeight,
+              height: videoConfig.height,
+              radius: videoConfig?.cornerRadius || 8,
+            })
+          })
+        }
+      >
+        <Image
+          ref={imageRef}
+          image={videoElement}
+          width={
+            (videoConfig.height * videoElement.videoWidth) /
+            videoElement.videoHeight
+          }
+          height={videoConfig.height}
+        />
+      </Group>
+    </>
   )
 }

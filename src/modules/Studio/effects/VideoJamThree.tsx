@@ -107,6 +107,10 @@ const VideoJamThree = () => {
     y: 40,
     width: 720,
     height: 405,
+    borderColor: '#1EB4D4',
+    borderWidth: 8,
+    cornerRadius: 8,
+    performClip: true,
   }
 
   const studioCoordinates: StudioUserConfig[] = (() => {
@@ -213,14 +217,6 @@ const VideoJamThree = () => {
     }
   })()
 
-  const videoClipConfig: ClipConfig = {
-    x: 0,
-    y: 0,
-    width: videoConfig.width,
-    height: videoConfig.height,
-    radius: 8,
-  }
-
   const layerChildren = videoElement
     ? [
         <Rect
@@ -251,20 +247,7 @@ const VideoJamThree = () => {
           opacity={1}
         />,
         <Circle x={240} y={460} radius={20} stroke="#F47E7E" strokeWidth={8} />,
-        <Rect
-          x={videoConfig.x || 30}
-          y={videoConfig.y || 40}
-          width={videoConfig.width}
-          height={videoConfig.height}
-          stroke="#1EB4D4"
-          strokeWidth={8}
-          cornerRadius={videoClipConfig.radius}
-        />,
-        <Video
-          videoElement={videoElement}
-          videoConfig={videoConfig}
-          clipConfig={videoClipConfig}
-        />,
+        <Video videoElement={videoElement} videoConfig={videoConfig} />,
         <Image image={hasuraLogo} x={30} y={CONFIG.height - 60} />,
       ]
     : [<></>]

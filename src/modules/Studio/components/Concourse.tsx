@@ -294,7 +294,7 @@ const Concourse = ({
                   payload?.status === Fragment_Status_Enum_Enum.Live && (
                     <>
                       <StudioUser
-                        stream={stream as MediaStream}
+                        stream={localStream}
                         studioUserConfig={
                           (studioUserConfig && studioUserConfig[0]) ||
                           defaultStudioUserConfig

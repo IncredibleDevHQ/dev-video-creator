@@ -115,12 +115,14 @@ const VideoJamTwo = () => {
     y: 40,
     width: 720,
     height: 405,
+    borderColor: '#D1D5DB',
+    borderWidth: 8,
+    cornerRadius: 8,
+    performClip: true,
   }
 
   const studioCoordinates: StudioUserConfig[] = (() => {
-    let a = 1
-    a = 3
-    switch (a) {
+    switch (fragment?.participants.length) {
       case 2:
         return [
           {
@@ -223,14 +225,6 @@ const VideoJamTwo = () => {
     }
   })()
 
-  const videoClipConfig: ClipConfig = {
-    x: 0,
-    y: 0,
-    width: videoConfig.width,
-    height: videoConfig.height,
-    radius: 8,
-  }
-
   const layerChildren = videoElement
     ? [
         <Rect
@@ -249,20 +243,7 @@ const VideoJamTwo = () => {
         <Circle x={270} y={CONFIG.height - 70} radius={10} fill="#0077CC" />,
         <Image image={pinkCircle} x={790} y={400} />,
         <Image image={whiteCircle} x={615} y={245} />,
-        <Rect
-          x={videoConfig.x || 30}
-          y={videoConfig.y || 40}
-          width={videoConfig.width}
-          height={videoConfig.height}
-          stroke="#D1D5DB"
-          strokeWidth={8}
-          cornerRadius={videoClipConfig.radius}
-        />,
-        <Video
-          videoElement={videoElement}
-          videoConfig={videoConfig}
-          clipConfig={videoClipConfig}
-        />,
+        <Video videoElement={videoElement} videoConfig={videoConfig} />,
         <Image image={elasticLogo} x={30} y={CONFIG.height - 60} />,
       ]
     : [<></>]

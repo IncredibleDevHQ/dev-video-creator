@@ -96,6 +96,7 @@ const VideoJam = () => {
     y: 0,
     width: CONFIG.width,
     height: CONFIG.height,
+    performClip: false,
   }
 
   const layerChildren = videoElement
