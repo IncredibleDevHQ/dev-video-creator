@@ -18,7 +18,7 @@ const StoryBook = () => {
   const [storybookHeader] = useImage(header)
 
   useEffect(() => {
-    var font = new FontFaceObserver('Poppins')
+    const font = new FontFaceObserver('Poppins')
     font.load()
   }, [])
 
@@ -57,7 +57,7 @@ const StoryBook = () => {
 
   const controls: any = []
   const layerChildren = [
-    //To get the white background color
+    // To get the white background color
     <Group x={0} y={0} fill="#ffffff" key="group0">
       <Rect
         x={0}
@@ -77,7 +77,7 @@ const StoryBook = () => {
         const y = 0
         const w = 384
         const h = 480
-        let r = 8
+        const r = 8
         ctx.beginPath()
         ctx.moveTo(x + r, y)
         ctx.arcTo(x + w, y, x + w, y + h, r)
@@ -113,7 +113,7 @@ const StoryBook = () => {
         fontFamily="Poppins"
         align="center"
         fontStyle="normal 600"
-        text={'Storybook Docs'}
+        text="Storybook Docs"
         textTransform="capitalize"
       />
     </Group>,
