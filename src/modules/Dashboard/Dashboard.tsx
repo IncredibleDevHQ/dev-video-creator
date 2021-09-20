@@ -1,3 +1,5 @@
+/* eslint-disable jsx-a11y/no-static-element-interactions */
+/* eslint-disable jsx-a11y/click-events-have-key-events */
 /* eslint-disable no-nested-ternary */
 import React, { HTMLProps, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -5,7 +7,8 @@ import { useRecoilValue } from 'recoil'
 import { cx } from '@emotion/css'
 import { IconType } from 'react-icons'
 import { BiVideo } from 'react-icons/bi'
-import { Heading, Navbar, ScreenState } from '../../components'
+import Modal from 'react-responsive-modal'
+import { Button, Heading, Navbar, ScreenState } from '../../components'
 import {
   BaseFlickFragment,
   Flick_Status_Enum_Enum,
@@ -73,29 +76,38 @@ const ViewBar = ({
   )
 }
 
-const FlickTile = ({ flick }: { flick: BaseFlickFragment }) => {
+const VideoTile = ({ flick }: { flick: BaseFlickFragment }) => {
   const { baseUrl } = config.storage
-
+  const [dashboardModal, setDashboardModal] = useState<{
+    openModal: boolean
+  }>({ openModal: false })
   return (
-    <Link to={`/flick/${flick.id}`}>
-      <div className="bg-background shadow-md transition-all hover:shadow-xl pb-2 rounded-md cursor-pointer">
-        {flick.producedLink ? (
-          // eslint-disable-next-line jsx-a11y/media-has-caption
-          <Video
-            className="rounded-t-md w-full"
-            src={baseUrl + flick.producedLink}
-          />
-        ) : flick.status === Flick_Status_Enum_Enum.Processing ? (
-          <img
-            className="w-full object-cover rounded-t-md h-40"
-            src="https://i.giphy.com/media/l0uJcwRwF5tO7LgB5t/giphy-downsized.gif"
-            alt={flick.name}
-          />
-        ) : (
-          <div className="bg-gray-100 justify-center items-center flex text-gray-300 rounded-t-md h-40">
-            <BiVideo size={40} />
-          </div>
-        )}
+    <div
+      className="bg-background shadow-md transition-all hover:shadow-xl pb-2 rounded-md cursor-pointer"
+      onClick={() => {
+        setDashboardModal({
+          openModal: true,
+        })
+      }}
+    >
+      <div className="bg-gray-100 justify-center items-center flex text-gray-300 rounded-t-md h-40">
+        <BiVideo size={40} />
+      </div>
+      <Modal
+        classNames={{
+          modal: 'w-full ',
+          closeButton: 'focus:outline-none',
+        }}
+        // styles={{
+        //   modal: {
+        //     maxWidth: '70%',
+        //     maxHeight: '80%',
+        //   },
+        // }}
+        open={dashboardModal.openModal}
+        onClose={() => setDashboardModal({ openModal: false })}
+        center
+      >
         <div className="mx-4 mt-2">
           <div className="flex items-center justify-between">
             <Heading fontSize="medium">{flick.name}</Heading>
@@ -106,19 +118,75 @@ const FlickTile = ({ flick }: { flick: BaseFlickFragment }) => {
           >
             {flick.description}
           </Heading>
-
-          <div className="flex items-center justify-between">
-            <Heading fontSize="extra-small" className="uppercase">
-              {formatDate(new Date(flick.startAt))}
-            </Heading>
-            <Heading
-              fontSize="extra-small"
-              className="bg-brand-10 py-1 px-2 rounded-md font-semibold uppercase text-brand "
-            >
-              {flick.status}
-            </Heading>
-          </div>
         </div>
+        <Video
+          className="rounded-t-md w-full"
+          src={baseUrl + flick.producedLink}
+        />
+        <div className="grid grid-cols-1  gap-x-4 justify-end mt-6">
+          <Link to={`/flick/${flick.id}`}>
+            <Button
+              type="button"
+              appearance="primary"
+              className="border-white h-auto bg-gray-100 text-black "
+              size="medium"
+            >
+              Go to Studio
+            </Button>
+          </Link>
+        </div>
+      </Modal>
+      <InfoTile key={flick.id} flick={flick} />
+    </div>
+  )
+}
+
+const InfoTile = ({ flick }: { flick: BaseFlickFragment }) => {
+  return (
+    <Link to={`/flick/${flick.id}`}>
+      <div className="mx-4 mt-2">
+        <div className="flex items-center justify-between">
+          <Heading fontSize="medium">{flick.name}</Heading>
+        </div>
+        <Heading
+          fontSize="small"
+          className="h-8 my-1 overflow-hidden overflow-ellipsis"
+        >
+          {flick.description}
+        </Heading>
+
+        <div className="flex items-center justify-between">
+          <Heading fontSize="extra-small" className="uppercase">
+            {formatDate(new Date(flick.startAt))}
+          </Heading>
+          <Heading
+            fontSize="extra-small"
+            className="bg-brand-10 py-1 px-2 rounded-md font-semibold uppercase text-brand "
+          >
+            {flick.status}
+          </Heading>
+        </div>
+      </div>
+    </Link>
+  )
+}
+
+const FlickTile = ({ flick }: { flick: BaseFlickFragment }) => {
+  return (
+    <Link to={`/flick/${flick.id}`}>
+      <div className="bg-background shadow-md transition-all hover:shadow-xl pb-2 rounded-md cursor-pointer">
+        {flick.status === Flick_Status_Enum_Enum.Processing ? (
+          <img
+            className="w-full object-cover rounded-t-md h-40"
+            src="https://i.giphy.com/media/l0uJcwRwF5tO7LgB5t/giphy-downsized.gif"
+            alt={flick.name}
+          />
+        ) : (
+          <div className="bg-gray-100 justify-center items-center flex text-gray-300 rounded-t-md h-40">
+            <BiVideo size={40} />
+          </div>
+        )}
+        <InfoTile key={flick.id} flick={flick} />
       </div>
     </Link>
   )
@@ -143,9 +211,13 @@ const Dashboard = () => {
 
         {view === 'grid' && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {data?.Flick.map((flick) => (
-              <FlickTile key={flick.id} flick={flick} />
-            ))}
+            {data?.Flick.map((flick) =>
+              flick.producedLink ? (
+                <VideoTile key={flick.id} flick={flick} />
+              ) : (
+                <FlickTile key={flick.id} flick={flick} />
+              )
+            )}
           </div>
         )}
       </div>

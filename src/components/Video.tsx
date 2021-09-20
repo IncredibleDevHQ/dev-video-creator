@@ -227,8 +227,8 @@ const getOptions = (src: string, type: string) => ({
   playbackRates: [0.5, 1, 1.25, 1.5],
   aspectratio: '16:9',
   controls: true,
-  height: 720,
-  width: 1280,
+  height: '100%',
+  width: '100%',
   fluid: true,
   plugins: {
     qualityLevels: {},
@@ -275,9 +275,13 @@ const Video = ({ className, src, ...rest }: VideoProps) => {
     } else setVideoType('application/x-mpegURL')
   }, [src])
 
+  const handlePlayerReady = (player: VideoJsPlayer) => {
+    playerRef.current = player
+    player.on('waiting', () => {})
+    player.on('dispose', () => {})
+  }
+
   useEffect(() => {
-    videojs.registerPlugin('qualityLevels', qualityLevels)
-    videojs.registerPlugin('hlsQualitySelector', hlsQualitySelector)
     return () => {
       if (playerRef.current) {
         playerRef.current.dispose()
@@ -286,13 +290,10 @@ const Video = ({ className, src, ...rest }: VideoProps) => {
     }
   }, [])
 
-  const handlePlayerReady = (player: VideoJsPlayer) => {
-    playerRef.current = player
-    player.on('waiting', () => {})
-    player.on('dispose', () => {})
-  }
-
   useEffect(() => {
+    videojs.registerPlugin('qualityLevels', qualityLevels)
+    videojs.registerPlugin('hlsQualitySelector', hlsQualitySelector)
+
     if (!videoRef.current) return
     const options = getOptions(src, videoType)
     const videoElement = videoRef.current
@@ -321,7 +322,6 @@ const Video = ({ className, src, ...rest }: VideoProps) => {
       <div data-vjs-player>
         <video
           id="flick_video"
-          autoPlay
           ref={videoRef}
           className="video-js"
           controls
