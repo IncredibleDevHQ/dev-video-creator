@@ -85,6 +85,7 @@ const UploadVideoModal = ({
         }
       />
       {video && video.url && !loadingAssets && (
+        // eslint-disable-next-line jsx-a11y/media-has-caption
         <video height="200px" src={video?.url} controls />
       )}
       {loadingAssets && (

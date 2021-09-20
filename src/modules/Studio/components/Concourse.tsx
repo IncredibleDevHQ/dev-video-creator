@@ -22,12 +22,17 @@ import {
   RectCenterGrow,
   RectCenterShrink,
 } from '../effects/FragmentTransitions'
+import { ClipConfig } from '../hooks/use-edit'
 
-export interface StudioCoordinates {
+export interface StudioUserConfig {
   x: number
   y: number
   width: number
   height: number
+  clipTheme?: string
+  borderColor?: string
+  borderWidth?: number
+  studioUserClipConfig?: ClipConfig
 }
 
 interface ConcourseProps {
@@ -35,7 +40,7 @@ interface ConcourseProps {
   layerChildren: any[]
   disableUserMedia?: boolean
   titleSpalshData?: { enable: boolean; title?: string }
-  studioUserConfig?: StudioCoordinates[]
+  studioUserConfig?: StudioUserConfig[]
 }
 
 export const CONFIG = {
@@ -67,6 +72,13 @@ const Concourse = ({
   const stageRef = createRef<Konva.Stage>()
   const layerRef = createRef<Konva.Layer>()
   const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
+
+  const defaultStudioUserConfig: StudioUserConfig = {
+    x: 780,
+    y: 400,
+    width: 160,
+    height: 120,
+  }
 
   const initialPos = { x: 780, y: 400 }
   const userStudioImageGap = 170
@@ -282,45 +294,29 @@ const Concourse = ({
                   payload?.status === Fragment_Status_Enum_Enum.Live && (
                     <>
                       <StudioUser
-                        x={
-                          (studioUserConfig && studioUserConfig[0]?.x) ||
-                          initialPos.x
-                        }
-                        y={
-                          (studioUserConfig && studioUserConfig[0]?.y) ||
-                          initialPos.y
-                        }
-                        key=""
                         stream={localStream}
-                        width={studioUserConfig && studioUserConfig[0]?.width}
-                        height={studioUserConfig && studioUserConfig[0]?.height}
-                        type="local"
+                        studioUserConfig={
+                          (studioUserConfig && studioUserConfig[0]) ||
+                          defaultStudioUserConfig
+                        }
                       />
-                      {users.map((user, index) => {
-                        return (
-                          <StudioUser
-                            x={
-                              (studioUserConfig &&
-                                studioUserConfig[index + 1]?.x) ||
-                              initialPos.x - (index + 1) * userStudioImageGap
+                      {users.map((user, index) => (
+                        <StudioUser
+                          key={user.uid}
+                          stream={user.mediaStream as MediaStream}
+                          studioUserConfig={
+                            (studioUserConfig &&
+                              studioUserConfig[index + 1]) || {
+                              x:
+                                defaultStudioUserConfig.x -
+                                (index + 1) * userStudioImageGap,
+                              y: defaultStudioUserConfig.y,
+                              width: defaultStudioUserConfig.width,
+                              height: defaultStudioUserConfig.height,
                             }
-                            y={
-                              (studioUserConfig &&
-                                studioUserConfig[index + 1]?.y) ||
-                              initialPos.y
-                            }
-                            width={
-                              studioUserConfig && studioUserConfig[0]?.width
-                            }
-                            height={
-                              studioUserConfig && studioUserConfig[0]?.height
-                            }
-                            key={user.uid as string}
-                            stream={user.mediaStream as MediaStream}
-                            type="remote"
-                          />
-                        )
-                      })}
+                          }
+                        />
+                      ))}
                     </>
                   )}
               </Layer>
