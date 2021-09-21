@@ -1,9 +1,8 @@
 import React from 'react'
 import { Modal } from 'react-responsive-modal'
 import { Link } from 'react-router-dom'
-import { Button, Heading } from '../../../components'
+import { Button, Heading, Video } from '../../../components'
 import { BaseFlickFragment } from '../../../generated/graphql'
-import Video from '../../../components/Video'
 import config from '../../../config'
 
 const DashboardModal = ({

@@ -2,8 +2,7 @@ import { css, cx } from '@emotion/css'
 import React, { useEffect, useState } from 'react'
 import { Modal } from 'react-responsive-modal'
 import useScreenRecorder from 'use-screen-recorder'
-import { Button } from '../../../components'
-import Video from '../../../components/Video'
+import { Button, Video } from '../../../components'
 import {
   Asset_Source_Enum_Enum,
   Asset_Type_Enum_Enum,
