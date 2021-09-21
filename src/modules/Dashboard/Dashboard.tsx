@@ -1,13 +1,13 @@
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 /* eslint-disable no-nested-ternary */
-import React, { HTMLProps, useState } from 'react'
+import React, { HTMLProps, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useRecoilValue } from 'recoil'
 import { cx } from '@emotion/css'
 import { IconType } from 'react-icons'
 import { BiVideo } from 'react-icons/bi'
-import Modal from 'react-responsive-modal'
+import { FiPlay } from 'react-icons/fi'
 import { Button, Heading, Navbar, ScreenState } from '../../components'
 import {
   BaseFlickFragment,
@@ -18,7 +18,7 @@ import { User, userState } from '../../stores/user.store'
 import { formatDate } from '../../utils/FormatDate'
 import { NewFlickBanner, TableView } from './components'
 import config from '../../config'
-import Video from '../../components/Video'
+import DashboardModal from './components/DashboardModal'
 
 const ViewBarButton = ({
   icon: I,
@@ -77,65 +77,26 @@ const ViewBar = ({
 }
 
 const VideoTile = ({ flick }: { flick: BaseFlickFragment }) => {
-  const { baseUrl } = config.storage
-  const [dashboardModal, setDashboardModal] = useState<{
-    openModal: boolean
-  }>({ openModal: false })
+  const [dashboardModal, setDashboardModal] = useState<boolean>(false)
+
   return (
-    <div
-      className="bg-background shadow-md transition-all hover:shadow-xl pb-2 rounded-md cursor-pointer"
-      onClick={() => {
-        setDashboardModal({
-          openModal: true,
-        })
-      }}
-    >
-      <div className="bg-gray-100 justify-center items-center flex text-gray-300 rounded-t-md h-40">
-        <BiVideo size={40} />
-      </div>
-      <Modal
-        classNames={{
-          modal: 'w-full ',
-          closeButton: 'focus:outline-none',
+    <div className="bg-background shadow-md transition-all hover:shadow-xl pb-2 rounded-md cursor-pointer">
+      <div
+        className="bg-gray-100 justify-center items-center flex text-gray-300 rounded-t-md h-40"
+        onClick={() => {
+          setDashboardModal(true)
         }}
-        // styles={{
-        //   modal: {
-        //     maxWidth: '70%',
-        //     maxHeight: '80%',
-        //   },
-        // }}
-        open={dashboardModal.openModal}
-        onClose={() => setDashboardModal({ openModal: false })}
-        center
       >
-        <div className="mx-4 mt-2">
-          <div className="flex items-center justify-between">
-            <Heading fontSize="medium">{flick.name}</Heading>
-          </div>
-          <Heading
-            fontSize="small"
-            className="h-8 my-1 overflow-hidden overflow-ellipsis"
-          >
-            {flick.description}
-          </Heading>
-        </div>
-        <Video
-          className="rounded-t-md w-full"
-          src={baseUrl + flick.producedLink}
-        />
-        <div className="grid grid-cols-1  gap-x-4 justify-end mt-6">
-          <Link to={`/flick/${flick.id}`}>
-            <Button
-              type="button"
-              appearance="primary"
-              className="border-white h-auto bg-gray-100 text-black "
-              size="medium"
-            >
-              Go to Studio
-            </Button>
-          </Link>
-        </div>
-      </Modal>
+        <FiPlay size={40} />
+      </div>
+      <DashboardModal
+        flick={flick}
+        open={dashboardModal}
+        handleClose={() => {
+          // eslint-disable-next-line no-restricted-globals
+          setDashboardModal(false)
+        }}
+      />
       <InfoTile key={flick.id} flick={flick} />
     </div>
   )

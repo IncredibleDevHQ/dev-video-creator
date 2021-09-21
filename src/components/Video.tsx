@@ -227,8 +227,8 @@ const getOptions = (src: string, type: string) => ({
   playbackRates: [0.5, 1, 1.25, 1.5],
   aspectratio: '16:9',
   controls: true,
-  height: '100%',
-  width: '100%',
+  height: 720,
+  width: 1280,
   fluid: true,
   plugins: {
     qualityLevels: {},
