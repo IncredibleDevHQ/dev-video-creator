@@ -193,9 +193,33 @@ const videoJs = css`
     padding-bottom: 0.5px;
     border-radius: 5%;
   }
+
+  .video-js .vjs-spacer,
+  .video-js .vjs-logo .vjs-image {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 10px;
+  }
+
+  .video-js vjs-tech .vjs-control {
+    width: 100%;
+    height: 50px;
+    opacity: 80%;
+    background: #2d2f34;
+    background: -moz-linear-gradient(bottom, #2d2f34 0%, white 50%);
+    background: -webkit-linear-gradient(bottom, #2d2f34 0%, white 50%);
+    background: linear-gradient(to top, #2d2f34 0%, white 50%);
+  }
 `
 interface VideoProps extends HTMLProps<HTMLVideoElement> {
   src: string
+}
+
+const getLogo = {
+  image: ASSETS.ICONS.WhiteLOGO,
+  destination: config.client.publicUrl,
+  title: 'Incredible',
 }
 
 const getOptions = (src: string, type: string) => ({
@@ -204,7 +228,7 @@ const getOptions = (src: string, type: string) => ({
   aspectratio: '16:9',
   controls: true,
   height: 720,
-  width: 1080,
+  width: 1280,
   fluid: true,
   plugins: {
     qualityLevels: {},
@@ -232,7 +256,7 @@ const getOptions = (src: string, type: string) => ({
       'progressControl',
       'liveDisplay',
       'spacer',
-      'ResolutionButton',
+      'resolutionButton',
       'fullscreenToggle',
     ],
   },
@@ -251,9 +275,13 @@ const Video = ({ className, src, ...rest }: VideoProps) => {
     } else setVideoType('application/x-mpegURL')
   }, [src])
 
+  const handlePlayerReady = (player: VideoJsPlayer) => {
+    playerRef.current = player
+    player.on('waiting', () => {})
+    player.on('dispose', () => {})
+  }
+
   useEffect(() => {
-    videojs.registerPlugin('qualityLevels', qualityLevels)
-    videojs.registerPlugin('hlsQualitySelector', hlsQualitySelector)
     return () => {
       if (playerRef.current) {
         playerRef.current.dispose()
@@ -262,13 +290,10 @@ const Video = ({ className, src, ...rest }: VideoProps) => {
     }
   }, [])
 
-  const handlePlayerReady = (player: VideoJsPlayer) => {
-    playerRef.current = player
-    player.on('waiting', () => {})
-    player.on('dispose', () => {})
-  }
-
   useEffect(() => {
+    videojs.registerPlugin('qualityLevels', qualityLevels)
+    videojs.registerPlugin('hlsQualitySelector', hlsQualitySelector)
+
     if (!videoRef.current) return
     const options = getOptions(src, videoType)
     const videoElement = videoRef.current
@@ -278,17 +303,19 @@ const Video = ({ className, src, ...rest }: VideoProps) => {
       handlePlayerReady && handlePlayerReady(player)
     })
 
-    player.logo({
-      url: config.client.publicUrl,
-      image: ASSETS.ICONS.WhiteLOGO,
-      fadeDelay: null,
-      height: 10,
-      padding: 10,
-      position: 'top-left',
-      offsetH: 0,
-      hideOnReady: false,
-    })
-  }, [playerRef.current])
+    const linkElement = document.createElement('a')
+    linkElement.className = 'vjs-logo'
+    linkElement.setAttribute('href', getLogo.destination)
+    linkElement.setAttribute('title', getLogo.title)
+    const imageElement = document.createElement('img')
+    imageElement.className = 'vjs-image'
+    imageElement.src = getLogo.image
+    linkElement.appendChild(imageElement)
+    player?.controlBar
+      ?.el()
+      .insertBefore(linkElement, player.controlBar.el().lastChild)
+    player.addClass('vjs-logo')
+  }, [getOptions])
 
   return (
     <div className={cx(videoJs, className)}>

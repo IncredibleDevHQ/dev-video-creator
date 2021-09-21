@@ -2,7 +2,7 @@ import { css, cx } from '@emotion/css'
 import React, { useEffect, useState } from 'react'
 import { Modal } from 'react-responsive-modal'
 import useScreenRecorder from 'use-screen-recorder'
-import { Button } from '../../../components'
+import { Button, Video } from '../../../components'
 import {
   Asset_Source_Enum_Enum,
   Asset_Type_Enum_Enum,
@@ -135,7 +135,7 @@ const ScreenRecording = ({
 
         {status === 'stopped' && (
           <div className="flex flex-col gap-3 m-2 mt-8">
-            <video src={blobUrl || ''} controls />
+            <Video src={blobUrl || ''} />
             <div className="flex flex-row gap-3">
               <Button
                 type="button"
