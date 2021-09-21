@@ -1,73 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import { useRecoilValue } from 'recoil'
-import Konva from 'konva'
-import { Group, Image } from 'react-konva'
 import { FiPlay, FiPause } from 'react-icons/fi'
 import { Concourse } from '../components'
 import { ControlButton } from '../components/MissionControl'
 import { CONFIG } from '../components/Concourse'
 import { StudioProviderProps, studioStore } from '../stores'
-
 import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
-
-interface Dimension {
-  width: number
-  height: number
-}
-
-// @ts-ignore
-const Video = ({ videoElement }: { videoElement: HTMLVideoElement }) => {
-  const imageRef = React.useRef<Konva.Image>(null)
-  const [size, setSize] = useState<Dimension>({
-    width: (CONFIG.height * 16) / 9,
-    height: CONFIG.height,
-  })
-
-  // when video is loaded, we should read it size
-  React.useEffect(() => {
-    const onload = () => {
-      setSize({
-        width:
-          (CONFIG.height * videoElement.videoWidth) / videoElement.videoHeight,
-        height: CONFIG.height,
-      })
-    }
-    videoElement.addEventListener('loadedmetadata', onload)
-    return () => {
-      videoElement.removeEventListener('loadedmetadata', onload)
-    }
-  }, [videoElement])
-
-  // use Konva.Animation to redraw a layer
-  useEffect(() => {
-    // @ts-ignore
-    const layer = imageRef.current?.getLayer()
-
-    const anim = new Konva.Animation(() => {}, layer)
-    anim.start()
-
-    return () => {
-      anim.stop()
-    }
-  }, [videoElement])
-
-  return (
-    <Image
-      x={
-        (CONFIG.width -
-          (CONFIG.height * videoElement.videoWidth) /
-            videoElement.videoHeight) /
-        2
-      }
-      ref={imageRef}
-      image={videoElement}
-      width={
-        (CONFIG.height * videoElement.videoWidth) / videoElement.videoHeight
-      }
-      height={size.height}
-    />
-  )
-}
+import { Video, VideoConfig } from '../components/Video'
 
 const VideoJam = () => {
   const { state, fragment, payload, updatePayload } =
@@ -82,11 +21,12 @@ const VideoJam = () => {
     const element = document.createElement('video')
     element.autoplay = false
     element.crossOrigin = 'anonymous'
+    element.preload = 'auto'
     element.src = fragment.configuration.properties.find(
       (property: any) => property.key === 'source'
     )?.value
     // eslint-disable-next-line consistent-return
-    //setConfig of titleSpalsh
+    // setConfig of titleSpalsh
     settitleSpalshData({
       enable: fragment.configuration.properties.find(
         (property: any) => property.key === 'showTitleSplash'
@@ -94,6 +34,7 @@ const VideoJam = () => {
       title: fragment.name as string,
     })
 
+    // eslint-disable-next-line consistent-return
     return element
   }, [fragment?.configuration.properties])
 
@@ -151,8 +92,15 @@ const VideoJam = () => {
     ),
   ]
 
+  const videoConfig: VideoConfig = {
+    y: 0,
+    width: CONFIG.width,
+    height: CONFIG.height,
+    performClip: false,
+  }
+
   const layerChildren = videoElement
-    ? [<Video videoElement={videoElement} />]
+    ? [<Video videoElement={videoElement} videoConfig={videoConfig} />]
     : [<></>]
 
   return (
@@ -162,7 +110,6 @@ const VideoJam = () => {
       titleSpalshData={titleSpalshData}
     />
   )
-
 }
 
 export default VideoJam

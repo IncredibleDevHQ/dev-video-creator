@@ -18,7 +18,11 @@ import SplashSeven from './SplashSeven'
 import SplashEight from './SplashEight'
 import SplashNine from './SplashNine'
 import SplashEleven from './SplashEleven'
+import VideoJamTwo from './VideoJamTwo'
+import VideoJamThree from './VideoJamThree'
 import SplashTwelve from './SplashTwelve'
+import SplashThirteen from './SplashThirteen'
+import SplashFourteen from './SplashFourteen'
 
 const themeEnum = 'theme'
 export interface Effect {
@@ -58,9 +62,16 @@ const getSplash = (theme: any) => {
   if (theme.value === '5') return SplashNine
   if (theme.value === '6') return SplashEleven
   if (theme.value === '7') return SplashTwelve
+  if (theme.value === '8') return SplashThirteen
+  if (theme.value === '9') return SplashFourteen
   return CustomSplash
 }
 
+const getVideoTheme = (theme: any) => {
+  if (theme.value === '1') return VideoJamTwo
+  if (theme.value === '2') return VideoJamThree
+  return VideoJam
+}
 export const getDimensions = (
   img: { w: number; h: number },
   maxH: number,
@@ -110,7 +121,7 @@ export const getEffect = (
     case Fragment_Type_Enum_Enum.CodeJam:
       return CodeJam
     case Fragment_Type_Enum_Enum.Videoshow:
-      return VideoJam
+      return getVideoTheme(theme)
     case Fragment_Type_Enum_Enum.Trivia:
       return Trivia
     case Fragment_Type_Enum_Enum.Storybook:
