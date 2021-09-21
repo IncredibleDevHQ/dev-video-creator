@@ -1,3 +1,4 @@
+import { nanoid } from 'nanoid'
 import React, { useEffect, useState } from 'react'
 import { Text } from 'react-konva'
 import { ComputedToken } from '../hooks/use-code'
@@ -20,7 +21,7 @@ const TypingEffect = ({
   }, [])
   return (
     <Text
-      key={`(${token.x},${token.y})`}
+      key={`(${token?.x || nanoid()},${token?.y || nanoid()})`}
       fontSize={config.fontSize}
       fill={token.color}
       text={text}

@@ -142,8 +142,8 @@ fragment Note on Note {
   }
 }
 
-query GetFlickNotes($flickId: uuid!) {
-  Note(where: { flickId: { _eq: $flickId } }) {
+query GetFragmentNotes($fragmentId: uuid!) {
+  Note(where: { fragmentId: { _eq: $fragmentId } }) {
     ...Note
   }
 }

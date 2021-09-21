@@ -1,16 +1,17 @@
-import { ApolloQueryResult } from '@apollo/client'
 import React, { useState } from 'react'
 import { useRecoilState } from 'recoil'
 import { Tab, TabBar } from '../../../components'
-import { Exact, GetFlickByIdQuery } from '../../../generated/graphql'
+import { FlickFragmentFragment } from '../../../generated/graphql'
 import { currentFlickStore } from '../../../stores/flick.store'
 import Notes from './Notes'
 import Participants from './Participants'
 
 const FlickSideBar = ({
   handleRefetch,
+  fragment,
 }: {
   handleRefetch: (refresh?: boolean) => void
+  fragment?: FlickFragmentFragment
 }) => {
   const tabs: Tab[] = [
     {
@@ -38,7 +39,9 @@ const FlickSideBar = ({
           handleRefetch={handleRefetch}
         />
       )}
-      {currentTab.value === 'Notes' && <Notes flickId={flick?.id as string} />}
+      {currentTab.value === 'Notes' && (
+        <Notes fragmentId={fragment?.id as string} />
+      )}
     </div>
   )
 }

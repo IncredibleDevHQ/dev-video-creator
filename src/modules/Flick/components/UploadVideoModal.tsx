@@ -23,7 +23,7 @@ const UploadVideoModal = ({
     uuid: string
     fileName: string
   }>()
-  const [uploadVideo] = useUploadFile(File)
+  const [uploadVideo] = useUploadFile()
   const [addAssetMutation, { data, loading, error }] = useAddAssetMutation()
 
   const handleClick = async (file: File) => {
@@ -85,6 +85,7 @@ const UploadVideoModal = ({
         }
       />
       {video && video.url && !loadingAssets && (
+        // eslint-disable-next-line jsx-a11y/media-has-caption
         <video height="200px" src={video?.url} controls />
       )}
       {loadingAssets && (

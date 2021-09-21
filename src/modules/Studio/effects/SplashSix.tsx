@@ -7,7 +7,7 @@ import Concourse, { CONFIG } from '../components/Concourse'
 import { StudioProviderProps, studioStore } from '../stores'
 import config from '../../../config'
 
-const SplashThree = () => {
+const SplashSix = () => {
   const { state } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [wallPaper] = useImage(
@@ -163,4 +163,4 @@ const SplashThree = () => {
   )
 }
 
-export default SplashThree
+export default SplashSix
