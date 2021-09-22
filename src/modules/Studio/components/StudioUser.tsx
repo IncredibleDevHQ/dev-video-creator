@@ -137,19 +137,20 @@ const StudioUser = ({
             height={imageConfig.height}
           />
         )}
-        {type === 'remote' && stream ? (
-          <Image
-            ref={imageRef}
-            image={videoElement}
-            width={imageConfig.width}
-            height={imageConfig.height}
-          />
-        ) : (
-          <Gravatar
-            className="w-6 h-6 rounded-full bg-gray-100"
-            email={participants[uid]?.email as string}
-          />
-        )}
+        {type === 'remote' &&
+          (stream ? (
+            <Image
+              ref={imageRef}
+              image={videoElement}
+              width={imageConfig.width}
+              height={imageConfig.height}
+            />
+          ) : (
+            <Gravatar
+              className="w-6 h-6 rounded-full bg-gray-100"
+              email={participants[uid]?.email as string}
+            />
+          ))}
       </Group>
     </>
   )
