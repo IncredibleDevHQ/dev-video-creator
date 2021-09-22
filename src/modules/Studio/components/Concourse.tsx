@@ -11,18 +11,13 @@ import { KonvaEventObject } from 'konva/lib/Node'
 import MissionControl from './MissionControl'
 import StudioUser from './StudioUser'
 import { canvasStore, StudioProviderProps, studioStore } from '../stores'
+import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
 import {
-  Fragment_Status_Enum_Enum,
-  Fragment_Type_Enum_Enum,
-} from '../../../generated/graphql'
-import {
-  CircleCenterGrow,
   CircleCenterShrink,
   MultiCircleCenterGrow,
-  RectCenterGrow,
-  RectCenterShrink,
 } from '../effects/FragmentTransitions'
 import { ClipConfig } from '../hooks/use-edit'
+import { User, userState } from '../../../stores/user.store'
 
 export interface StudioUserConfig {
   x: number
@@ -68,6 +63,8 @@ const Concourse = ({
   const [isTitleSplash, setIsTitleSplash] = useState<boolean>(false)
   const [localStream, setLocalStream] = useState<MediaStream | null>(null)
   const [isZooming, setZooming] = useState(false)
+
+  const { sub } = (useRecoilValue(userState) as User) || {}
 
   const stageRef = createRef<Konva.Stage>()
   const layerRef = createRef<Konva.Layer>()
@@ -299,13 +296,14 @@ const Concourse = ({
                           (studioUserConfig && studioUserConfig[0]) ||
                           defaultStudioUserConfig
                         }
-                        key=""
                         type="local"
+                        uid={sub as string}
                       />
                       {users.map((user, index) => (
                         <StudioUser
-                          key={user.uid}
-                          type="remort"
+                          key={user.uid as string}
+                          uid={user.uid as string}
+                          type="remote"
                           stream={user.mediaStream as MediaStream}
                           studioUserConfig={
                             (studioUserConfig &&

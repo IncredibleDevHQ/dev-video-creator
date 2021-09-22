@@ -10,16 +10,18 @@ import { Fragment_Participant } from '../../../generated/graphql'
 import { StudioUserConfig } from './Concourse'
 import useEdit, { ClipConfig } from '../hooks/use-edit'
 
+type StudioUserType = 'local' | 'remote'
+
 const StudioUser = ({
   stream,
   studioUserConfig,
-  key,
   type,
+  uid,
 }: {
   stream: MediaStream | null
-  key: string
-  type: string
+  type: StudioUserType
   studioUserConfig: StudioUserConfig
+  uid: string
 }) => {
   const { x, y, width, height, clipTheme, borderColor, studioUserClipConfig } =
     studioUserConfig
@@ -133,7 +135,7 @@ const StudioUser = ({
         ) : (
           <Gravatar
             className="w-6 h-6 rounded-full bg-gray-100"
-            email={participants[key]?.email as string}
+            email={participants[uid]?.email as string}
           />
         )}
       </Group>
