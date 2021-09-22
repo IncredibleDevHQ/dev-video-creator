@@ -27,7 +27,7 @@ fragment Flick on Flick {
   participants {
     ...FlickParticipants
   }
-  fragments {
+  fragments(order_by: { order: asc }) {
     ...FlickFragment
   }
 }

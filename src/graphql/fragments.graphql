@@ -134,3 +134,9 @@ mutation DeleteFragment($id: uuid!) {
     id
   }
 }
+
+mutation ReorderFragment($fragmentIds: [uuid!]!, $flick_id: uuid!) {
+  ReorderFragments(fragmentIds: $fragmentIds, flickId: $flick_id) {
+    success
+  }
+}
