@@ -63,6 +63,8 @@ const Studio = () => {
     userAudios,
     tracks,
     renewToken,
+    cameraDevices,
+    microphoneDevices,
   } = useAgora(fragmentId, {
     onTokenWillExpire: async () => {
       const { data } = await getRTCToken({ variables: { fragmentId } })
@@ -275,6 +277,8 @@ const Studio = () => {
       getBlobs,
       state,
       tracks,
+      microphoneDevices,
+      cameraDevices,
       picture: picture as string,
       constraints: {
         audio: constraints ? constraints.audio : true,

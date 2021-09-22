@@ -299,10 +299,13 @@ const Concourse = ({
                           (studioUserConfig && studioUserConfig[0]) ||
                           defaultStudioUserConfig
                         }
+                        key=""
+                        type="local"
                       />
                       {users.map((user, index) => (
                         <StudioUser
                           key={user.uid}
+                          type="remort"
                           stream={user.mediaStream as MediaStream}
                           studioUserConfig={
                             (studioUserConfig &&

@@ -13,8 +13,12 @@ import useEdit, { ClipConfig } from '../hooks/use-edit'
 const StudioUser = ({
   stream,
   studioUserConfig,
+  key,
+  type,
 }: {
   stream: MediaStream | null
+  key: string
+  type: string
   studioUserConfig: StudioUserConfig
 }) => {
   const { x, y, width, height, clipTheme, borderColor, studioUserClipConfig } =
@@ -31,7 +35,7 @@ const StudioUser = ({
     radius: 8,
   }
 
-  const { picture, constraints } =
+  const { picture, participants, constraints } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [image] = useImage(picture as string, 'anonymous')
@@ -105,7 +109,7 @@ const StudioUser = ({
         offsetX={imageConfig.width}
         scaleX={-1}
       >
-        {constraints?.video ? (
+        {type === 'local' && constraints?.video ? (
           <Image
             ref={imageRef}
             image={videoElement}
@@ -117,6 +121,19 @@ const StudioUser = ({
             image={image}
             width={imageConfig.width}
             height={imageConfig.height}
+          />
+        )}
+        {type === 'remote' && stream ? (
+          <Image
+            ref={imageRef}
+            image={videoElement}
+            width={imageConfig.width}
+            height={imageConfig.height}
+          />
+        ) : (
+          <Gravatar
+            className="w-6 h-6 rounded-full bg-gray-100"
+            email={participants[key]?.email as string}
           />
         )}
       </Group>
