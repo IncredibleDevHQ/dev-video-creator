@@ -7,12 +7,11 @@ import { API } from '../../../constants'
 import { useGetTokenisedCodeLazyQuery } from '../../../generated/graphql'
 import { Concourse } from '../components'
 import { ControlButton } from '../components/MissionControl'
+import RenderTokens from '../components/RenderTokens'
 import useCode, { ComputedToken } from '../hooks/use-code'
 import { StudioProviderProps, studioStore } from '../stores'
 
-import TypingEffect from './TypingEffect'
-
-const codeConfig = {
+export const codeConfig = {
   fontSize: 14,
   width: 960,
   height: 540,
@@ -21,10 +20,6 @@ const codeConfig = {
 interface Position {
   prevIndex: number
   currentIndex: number
-}
-interface TokenRenderState {
-  tokens: ComputedToken[]
-  index: number
 }
 
 const CodeJam = () => {
@@ -194,45 +189,6 @@ const getRenderedTokens = (tokens: ComputedToken[], position: Position) => {
         />
       )
     })
-}
-
-const RenderTokens = ({
-  tokens,
-  startIndex,
-  endIndex,
-}: {
-  tokens: ComputedToken[]
-  startIndex: number
-  endIndex: number
-}) => {
-  const tokenSegment = tokens.slice(startIndex, endIndex)
-
-  const [renderState, setRenderState] = useState<TokenRenderState>({
-    index: startIndex,
-    tokens: [tokens[startIndex]],
-  })
-
-  useEffect(() => {
-    if (renderState.index === endIndex - 1) return
-    const newToken = tokenSegment[renderState.index - startIndex + 1]
-    const prevToken = tokenSegment[renderState.index - startIndex]
-    setTimeout(() => {
-      setRenderState((prev) => ({
-        index: prev.index + 1,
-        tokens: [...prev.tokens, newToken],
-      }))
-    }, prevToken.content.length * 100)
-  }, [renderState])
-
-  return (
-    <Group>
-      {renderState.tokens.length > 0 &&
-        renderState.tokens.map((token, index) => {
-          // eslint-disable-next-line
-          return <TypingEffect config={codeConfig} key={index} token={token} />
-        })}
-    </Group>
-  )
 }
 
 export default CodeJam
