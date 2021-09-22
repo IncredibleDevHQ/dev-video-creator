@@ -263,6 +263,7 @@ const Concourse = ({
 
                 {(() => {
                   if (payload?.status === Fragment_Status_Enum_Enum.Live) {
+                    layerRef.current?.destroyChildren()
                     if (titleSpalshData?.enable && isTitleSplash) {
                       return (
                         <>
