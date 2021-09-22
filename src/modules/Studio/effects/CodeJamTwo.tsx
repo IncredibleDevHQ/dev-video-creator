@@ -1,11 +1,14 @@
 import axios from 'axios'
 import React, { useEffect, useState } from 'react'
-import { Group, Circle, Text } from 'react-konva'
+import { Group, Circle, Text, Rect, Image } from 'react-konva'
 import { useRecoilValue } from 'recoil'
+import useImage from 'use-image'
 import { NextLineIcon, NextTokenIcon } from '../../../components'
+import config from '../../../config'
 import { API } from '../../../constants'
 import { useGetTokenisedCodeLazyQuery } from '../../../generated/graphql'
 import { Concourse } from '../components'
+import { CONFIG, StudioUserConfig } from '../components/Concourse'
 import { ControlButton } from '../components/MissionControl'
 import RenderTokens from '../components/RenderTokens'
 import useCode, { ComputedToken } from '../hooks/use-code'
@@ -22,7 +25,7 @@ interface Position {
   currentIndex: number
 }
 
-const CodeJam = () => {
+const CodeJamTwo = () => {
   const { fragment, payload, updatePayload, state, isHost } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
@@ -37,6 +40,19 @@ const CodeJam = () => {
     prevIndex: -1,
     currentIndex: 0,
   })
+
+  const [incredibleLogo] = useImage(
+    `${config.storage.baseUrl}x-incredible.svg`,
+    'anonymous'
+  )
+  const [circleGroup] = useImage(
+    `${config.storage.baseUrl}black-circles.svg`,
+    'anonymous'
+  )
+  const [graphqlLogo] = useImage(
+    `${config.storage.baseUrl}graphql3.svg`,
+    'anonymous'
+  )
 
   useEffect(() => {
     if (!fragment?.configuration.properties) return
@@ -76,8 +92,8 @@ const CodeJam = () => {
     if (!data?.TokenisedCode) return
     initUseCode({
       tokens: data.TokenisedCode.data,
-      canvasWidth: 900,
-      canvasHeight: 460,
+      canvasWidth: 700,
+      canvasHeight: 360,
       gutter: 5,
       fontSize: codeConfig.fontSize,
     })
@@ -138,13 +154,159 @@ const CodeJam = () => {
         ]
       : [<></>]
 
+  const studioCoordinates: StudioUserConfig[] = (() => {
+    switch (fragment?.participants.length) {
+      case 2:
+        return [
+          {
+            x: 735,
+            y: 60,
+            width: 240,
+            height: 180,
+            clipTheme: 'rect',
+            borderWidth: 8,
+            studioUserClipConfig: {
+              x: 40,
+              y: 0,
+              width: 160,
+              height: 180,
+              radius: 8,
+            },
+            backgroundRectX: 765,
+            backgroundRectY: 50,
+            backgroundRectColor: '#C084FC',
+          },
+          {
+            x: 735,
+            y: 265,
+            width: 240,
+            height: 180,
+            clipTheme: 'rect',
+            borderWidth: 8,
+            studioUserClipConfig: {
+              x: 40,
+              y: 0,
+              width: 160,
+              height: 180,
+              radius: 8,
+            },
+            backgroundRectX: 765,
+            backgroundRectY: 255,
+            backgroundRectColor: '#4FD1C5',
+          },
+        ]
+      case 3:
+        return [
+          {
+            x: 775,
+            y: 58.5,
+            width: 160,
+            height: 120,
+            clipTheme: 'rect',
+            borderWidth: 8,
+            studioUserClipConfig: {
+              x: 0,
+              y: 0,
+              width: 160,
+              height: 120,
+              radius: 8,
+            },
+            backgroundRectX: 765,
+            backgroundRectY: 48.5,
+            backgroundRectColor: '#C084FC',
+          },
+          {
+            x: 775,
+            y: 198.5,
+            width: 160,
+            height: 120,
+            clipTheme: 'rect',
+            borderWidth: 8,
+            studioUserClipConfig: {
+              x: 0,
+              y: 0,
+              width: 160,
+              height: 120,
+              radius: 8,
+            },
+            backgroundRectX: 765,
+            backgroundRectY: 188.5,
+            backgroundRectColor: '#4FD1C5',
+          },
+          {
+            x: 775,
+            y: 338.5,
+            width: 160,
+            height: 120,
+            clipTheme: 'rect',
+            borderWidth: 8,
+            studioUserClipConfig: {
+              x: 0,
+              y: 0,
+              width: 160,
+              height: 120,
+              radius: 8,
+            },
+            backgroundRectX: 765,
+            backgroundRectY: 328.5,
+            backgroundRectColor: '#FCA5A5',
+          },
+        ]
+      default:
+        return [
+          {
+            x: 695,
+            y: 120.5,
+            width: 320,
+            height: 240,
+            clipTheme: 'rect',
+            borderWidth: 8,
+            studioUserClipConfig: {
+              x: 80,
+              y: 0,
+              width: 160,
+              height: 240,
+              radius: 8,
+            },
+            backgroundRectX: 765,
+            backgroundRectY: 110.5,
+            backgroundRectColor: '#C084FC',
+          },
+        ]
+    }
+  })()
+
   const layerChildren = [
-    <Group y={15} x={15} key="circleGroup">
+    <Rect
+      x={0}
+      y={0}
+      width={CONFIG.width}
+      height={CONFIG.height}
+      fill="#1F2937"
+    />,
+    <Image image={circleGroup} x={400} y={450} />,
+    <Rect
+      x={27}
+      y={48}
+      width={704}
+      height={396}
+      fill="#60A5FA"
+      cornerRadius={8}
+    />,
+    <Rect
+      x={37}
+      y={58}
+      width={704}
+      height={396}
+      fill="#202026"
+      cornerRadius={8}
+    />,
+    <Group x={52} y={73} key="circleGroup">
       <Circle key="redCircle" x={0} y={0} fill="#FF605C" radius={5} />
       <Circle key="yellowCircle" x={14} y={0} fill="#FFBD44" radius={5} />
       <Circle key="greenCircle" x={28} y={0} fill="#00CA4E" radius={5} />
     </Group>,
-    <Group y={30} x={20} key="group">
+    <Group x={57} y={88} key="group">
       {getRenderedTokens(computedTokens.current, position)}
       {computedTokens.current.length > 0 && (
         <RenderTokens
@@ -155,6 +317,8 @@ const CodeJam = () => {
         />
       )}
     </Group>,
+    <Image image={incredibleLogo} x={30} y={CONFIG.height - 60} />,
+    <Image image={graphqlLogo} x={840} y={CONFIG.height - 58} />,
   ]
 
   return (
@@ -162,6 +326,7 @@ const CodeJam = () => {
       layerChildren={layerChildren}
       controls={controls}
       titleSpalshData={titleSpalshData}
+      studioUserConfig={studioCoordinates}
     />
   )
 }
@@ -191,7 +356,7 @@ const getRenderedTokens = (tokens: ComputedToken[], position: Position) => {
     })
 }
 
-export default CodeJam
+export default CodeJamTwo
 
 /**
  * TODO:

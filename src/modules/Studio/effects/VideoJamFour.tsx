@@ -13,7 +13,7 @@ import { Video, VideoConfig } from '../components/Video'
 import { ClipConfig } from '../hooks/use-edit'
 import config from '../../../config'
 
-const VideoJamTwo = () => {
+const VideoJamFour = () => {
   const { state, fragment, payload, updatePayload } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [titleSpalshData, settitleSpalshData] = useState<{
@@ -21,16 +21,16 @@ const VideoJamTwo = () => {
     title?: string
   }>({ enable: false })
 
-  const [elasticLogo] = useImage(
-    `${config.storage.baseUrl}elastic-logo.png`,
+  const [incredibleLogo] = useImage(
+    `${config.storage.baseUrl}x-incredible.svg`,
     'anonymous'
   )
-  const [whiteCircle] = useImage(
-    `${config.storage.baseUrl}circle.png`,
+  const [circleGroup] = useImage(
+    `${config.storage.baseUrl}black-circles.svg`,
     'anonymous'
   )
-  const [pinkCircle] = useImage(
-    `${config.storage.baseUrl}pink2.png`,
+  const [graphqlLogo] = useImage(
+    `${config.storage.baseUrl}graphql3.svg`,
     'anonymous'
   )
 
@@ -112,14 +112,15 @@ const VideoJamTwo = () => {
   ]
 
   const videoConfig: VideoConfig = {
-    x: 30,
-    y: 40,
-    width: 720,
-    height: 405,
-    borderColor: '#D1D5DB',
-    borderWidth: 8,
+    x: 37,
+    y: 58,
+    width: 704,
+    height: 396,
     cornerRadius: 8,
     performClip: true,
+    backgroundRectX: 27,
+    backgroundRectY: 48,
+    backgroundRectColor: '#60A5FA',
   }
 
   const studioCoordinates: StudioUserConfig[] = (() => {
@@ -128,11 +129,10 @@ const VideoJamTwo = () => {
         return [
           {
             x: 735,
-            y: 50,
+            y: 60,
             width: 240,
             height: 180,
             clipTheme: 'rect',
-            borderColor: '#D1D5DB',
             borderWidth: 8,
             studioUserClipConfig: {
               x: 40,
@@ -141,14 +141,16 @@ const VideoJamTwo = () => {
               height: 180,
               radius: 8,
             },
+            backgroundRectX: 765,
+            backgroundRectY: 50,
+            backgroundRectColor: '#C084FC',
           },
           {
             x: 735,
-            y: 255,
+            y: 265,
             width: 240,
             height: 180,
             clipTheme: 'rect',
-            borderColor: '#D1D5DB',
             borderWidth: 8,
             studioUserClipConfig: {
               x: 40,
@@ -157,17 +159,19 @@ const VideoJamTwo = () => {
               height: 180,
               radius: 8,
             },
+            backgroundRectX: 765,
+            backgroundRectY: 255,
+            backgroundRectColor: '#4FD1C5',
           },
         ]
       case 3:
         return [
           {
             x: 775,
-            y: 42.5,
+            y: 58.5,
             width: 160,
             height: 120,
             clipTheme: 'rect',
-            borderColor: '#D1D5DB',
             borderWidth: 8,
             studioUserClipConfig: {
               x: 0,
@@ -176,14 +180,16 @@ const VideoJamTwo = () => {
               height: 120,
               radius: 8,
             },
+            backgroundRectX: 765,
+            backgroundRectY: 48.5,
+            backgroundRectColor: '#C084FC',
           },
           {
             x: 775,
-            y: 182.5,
+            y: 198.5,
             width: 160,
             height: 120,
             clipTheme: 'rect',
-            borderColor: '#D1D5DB',
             borderWidth: 8,
             studioUserClipConfig: {
               x: 0,
@@ -192,14 +198,16 @@ const VideoJamTwo = () => {
               height: 120,
               radius: 8,
             },
+            backgroundRectX: 765,
+            backgroundRectY: 188.5,
+            backgroundRectColor: '#4FD1C5',
           },
           {
             x: 775,
-            y: 322.5,
+            y: 338.5,
             width: 160,
             height: 120,
             clipTheme: 'rect',
-            borderColor: '#D1D5DB',
             borderWidth: 8,
             studioUserClipConfig: {
               x: 0,
@@ -208,17 +216,19 @@ const VideoJamTwo = () => {
               height: 120,
               radius: 8,
             },
+            backgroundRectX: 765,
+            backgroundRectY: 328.5,
+            backgroundRectColor: '#FCA5A5',
           },
         ]
       default:
         return [
           {
             x: 695,
-            y: 122.5,
+            y: 120.5,
             width: 320,
             height: 240,
             clipTheme: 'rect',
-            borderColor: '#D1D5DB',
             borderWidth: 8,
             studioUserClipConfig: {
               x: 80,
@@ -227,6 +237,9 @@ const VideoJamTwo = () => {
               height: 240,
               radius: 8,
             },
+            backgroundRectX: 765,
+            backgroundRectY: 110.5,
+            backgroundRectColor: '#C084FC',
           },
         ]
     }
@@ -239,19 +252,12 @@ const VideoJamTwo = () => {
           y={0}
           width={CONFIG.width}
           height={CONFIG.height}
-          fill="#ffffff"
-          // fillLinearGradientColorStops={[0, '#60D0ED', 1, '#536FA8']}
-          // fillLinearGradientStartPoint={{ x: 0, y: 0 }}
-          // fillLinearGradientEndPoint={{ x: CONFIG.width, y: CONFIG.height }}
+          fill="#1F2937"
         />,
-        <Circle x={82} y={10} radius={55} fill="#7DE2D1" />,
-        <Circle x={70} y={CONFIG.height - 70} radius={100} fill="#7DE2D1" />,
-        <Circle x={640} y={20} radius={10} fill="#0077CC" />,
-        <Circle x={270} y={CONFIG.height - 70} radius={10} fill="#0077CC" />,
-        <Image image={pinkCircle} x={790} y={400} />,
-        <Image image={whiteCircle} x={615} y={245} />,
+        <Image image={circleGroup} x={400} y={450} />,
         <Video videoElement={videoElement} videoConfig={videoConfig} />,
-        <Image image={elasticLogo} x={30} y={CONFIG.height - 60} />,
+        <Image image={incredibleLogo} x={30} y={CONFIG.height - 60} />,
+        <Image image={graphqlLogo} x={840} y={CONFIG.height - 58} />,
       ]
     : [<></>]
 
@@ -265,4 +271,4 @@ const VideoJamTwo = () => {
   )
 }
 
-export default VideoJamTwo
+export default VideoJamFour

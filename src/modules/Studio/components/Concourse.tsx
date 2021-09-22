@@ -28,6 +28,9 @@ export interface StudioUserConfig {
   borderColor?: string
   borderWidth?: number
   studioUserClipConfig?: ClipConfig
+  backgroundRectX?: number
+  backgroundRectY?: number
+  backgroundRectColor?: string
 }
 
 interface ConcourseProps {

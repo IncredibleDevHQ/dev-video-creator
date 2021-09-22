@@ -13,6 +13,9 @@ export interface VideoConfig {
   borderWidth?: number
   cornerRadius?: number
   performClip: boolean
+  backgroundRectX?: number
+  backgroundRectY?: number
+  backgroundRectColor?: string
 }
 
 // @ts-ignore
@@ -63,17 +66,19 @@ export const Video = ({
     <>
       <Rect
         x={
+          videoConfig.backgroundRectX ||
           videoConfig.x ||
           (videoConfig.width -
             (videoConfig.height * videoElement.videoWidth) /
               videoElement.videoHeight) /
             2
         }
-        y={videoConfig.y || 0}
+        y={videoConfig.backgroundRectY || videoConfig.y || 0}
         width={
           (videoConfig.height * videoElement.videoWidth) /
           videoElement.videoHeight
         }
+        fill={videoConfig.backgroundRectColor}
         height={videoConfig.height}
         stroke={videoConfig.borderColor}
         strokeWidth={videoConfig?.borderWidth || 0}
