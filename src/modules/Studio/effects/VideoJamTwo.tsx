@@ -40,6 +40,7 @@ const VideoJamTwo = () => {
     element.autoplay = false
     element.crossOrigin = 'anonymous'
     element.preload = 'auto'
+    element.muted = true
     element.src = fragment.configuration.properties.find(
       (property: any) => property.key === 'source'
     )?.value
@@ -132,6 +133,7 @@ const VideoJamTwo = () => {
             height: 180,
             clipTheme: 'rect',
             borderColor: '#D1D5DB',
+            borderWidth: 8,
             studioUserClipConfig: {
               x: 40,
               y: 0,
@@ -147,6 +149,7 @@ const VideoJamTwo = () => {
             height: 180,
             clipTheme: 'rect',
             borderColor: '#D1D5DB',
+            borderWidth: 8,
             studioUserClipConfig: {
               x: 40,
               y: 0,
@@ -165,6 +168,7 @@ const VideoJamTwo = () => {
             height: 120,
             clipTheme: 'rect',
             borderColor: '#D1D5DB',
+            borderWidth: 8,
             studioUserClipConfig: {
               x: 0,
               y: 0,
@@ -180,6 +184,7 @@ const VideoJamTwo = () => {
             height: 120,
             clipTheme: 'rect',
             borderColor: '#D1D5DB',
+            borderWidth: 8,
             studioUserClipConfig: {
               x: 0,
               y: 0,
@@ -195,6 +200,7 @@ const VideoJamTwo = () => {
             height: 120,
             clipTheme: 'rect',
             borderColor: '#D1D5DB',
+            borderWidth: 8,
             studioUserClipConfig: {
               x: 0,
               y: 0,
@@ -213,6 +219,7 @@ const VideoJamTwo = () => {
             height: 240,
             clipTheme: 'rect',
             borderColor: '#D1D5DB',
+            borderWidth: 8,
             studioUserClipConfig: {
               x: 80,
               y: 0,
