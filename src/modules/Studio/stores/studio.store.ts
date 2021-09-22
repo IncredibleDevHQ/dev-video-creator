@@ -25,6 +25,10 @@ export interface StudioProviderProps<T = any, S = any> {
   fragment?: StudioFragmentFragment
 
   picture?: string
+  cameraDevices: MediaDeviceInfo[]
+  microphoneDevices: MediaDeviceInfo[]
+  selectedCameraDeviceId: string
+  selectedMicrophoneDeviceId: string
 
   mute: (type: 'audio' | 'video') => Promise<void>
 
