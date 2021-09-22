@@ -175,7 +175,12 @@ const Concourse = ({
         >
           <Rect fill="#1F2937" width={CONFIG.width} height={CONFIG.height} />
           <Rect
-            fill="#16A34A"
+            fillLinearGradientColorStops={[0, '#4ADE80', 1, '#16A34A']}
+            fillLinearGradientStartPoint={{ x: 0, y: CONFIG.height / 2 - 120 }}
+            fillLinearGradientEndPoint={{
+              x: CONFIG.width,
+              y: CONFIG.height / 2 + 120,
+            }}
             y={CONFIG.height / 2 - 120}
             width={CONFIG.width}
             height={240}
@@ -211,7 +216,7 @@ const Concourse = ({
     titleSpalshData?.enable &&
       (payload?.status === Fragment_Status_Enum_Enum.Live
         ? setIsTitleSplash(true)
-        : setIsTitleSplash(true))
+        : setIsTitleSplash(false))
   }, [titleSpalshData, state, payload?.status])
 
   useEffect(() => {
@@ -277,21 +282,12 @@ const Concourse = ({
                         performFinishAction={performFinishAction}
                       />
                     )
-                  if (payload?.status !== Fragment_Status_Enum_Enum.Live)
-                    return (
-                      <Rect
-                        x={0}
-                        y={0}
-                        width={CONFIG.width}
-                        height={CONFIG.height}
-                        fill="#000000"
-                      />
-                    )
                   return layerChildren
                 })()}
 
                 {!disableUserMedia &&
-                  payload?.status === Fragment_Status_Enum_Enum.Live && (
+                  !isTitleSplash &&
+                  payload?.status !== Fragment_Status_Enum_Enum.Ended && (
                     <>
                       <StudioUser
                         stream={localStream}
