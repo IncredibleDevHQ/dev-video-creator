@@ -25,7 +25,7 @@ const VideoTile = ({ flick }: { flick: BaseFlickFragment }) => {
   const [dashboardModal, setDashboardModal] = useState<boolean>(false)
 
   return (
-    <div className="hover:border-green-500 border-2 cursor-pointer w-80 h-40 mt-10">
+    <div className="hover:border-green-500 border-2 cursor-pointer w-60 h-36 mt-10">
       <div
         className="justify-center items-center text-gray-300 h-40 w-80"
         onClick={() => {

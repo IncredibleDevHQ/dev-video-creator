@@ -7,7 +7,7 @@ import Autocomplete, {
 } from '@material-ui/lab/Autocomplete'
 import TextField from '@material-ui/core/TextField'
 import { FiArrowRight } from 'react-icons/fi'
-import { Button, Tab, TabBar, Text } from '../../components'
+import { Button, Navbar, Tab, TabBar, Text } from '../../components'
 import { useGetUserFlicksQuery } from '../../generated/graphql'
 import { User, userState } from '../../stores/user.store'
 import { Drafts, NewFlickBanner, Published } from './components/index'
@@ -95,11 +95,7 @@ const Dashboard = () => {
 
   return (
     <div>
-      <img
-        src={ASSETS.ICONS.IncredibleLogo}
-        alt=""
-        className="w-36 h-auto m-2 p-0"
-      />
+      <Navbar />
       <Text className="text-black ml-28 mt-5 font-semibold text-2xl pt-0">
         {" Let's create a flick"}
       </Text>
@@ -133,7 +129,7 @@ const Dashboard = () => {
       </div>
 
       <div className="px-0">
-        <div className="flex flex-row m-0 p-0 ml-28 pb-24">
+        <div className="flex flex-row m-0 p-0 ml-28">
           <Text className="font-black text-xl mb-4 mt-14">Your flicks</Text>
           <TabBar
             tabs={tabs}

@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react'
 import { BsChevronRight } from 'react-icons/bs'
+import { FiEdit } from 'react-icons/fi'
 import { IoCheckmarkDone } from 'react-icons/io5'
 import { useParams } from 'react-router-dom'
 import {
   Button,
   EmptyState,
   Heading,
+  Navbar,
   ScreenState,
   Text,
 } from '../../components'
@@ -52,12 +54,8 @@ const SingleSeries = () => {
 
   return (
     <>
-      <img
-        src={ASSETS.ICONS.IncredibleLogo}
-        alt=""
-        className="w-36 h-10 m-2 p-0"
-      />
-      <div className="relative flex flex-col gap-2 ml-28 mr-28">
+      <Navbar />
+      <div className="relative flex flex-col gap-2 ml-28 mr-28 mt-10">
         <div className="flex flex-row">
           <Text className="pt-2 mr-3 text-gray-500">Series</Text>
           <BsChevronRight className="mt-3" />
@@ -87,32 +85,46 @@ const SingleSeries = () => {
           {flickData?.Flick_Series.map((flick) => (
             <div
               key={flick.flick?.id}
-              className="flex flex-col h-48 w-2/5 bg-white"
+              className="flex flex-col h-40 w-2/5 mb-7 bg-white"
             >
-              <div className="max-h-48 flex flex-row">
+              <div className="flex flex-row">
                 <img
                   src="https://cdn.educba.com/academy/wp-content/uploads/2019/05/What-is-Coding.jpg"
-                  alt="https://cdn.educba.com/academy/wp-content/uploads/2019/05/What-is-Coding.jpg"
-                  className="w-80 h-48"
+                  alt="thumbnail"
+                  className="w-64 h-36"
                 />
 
                 <div className="flex flex-col">
-                  <div className="bg-green-300 h-5 w-24 ml-4 flex flex-row-1 items-center justify-center">
-                    <IoCheckmarkDone size={15} />
-                    <Text className="text-green-700 text-sm pl-2">
-                      Published
-                    </Text>
-                  </div>
+                  {flick.flick?.producedLink && (
+                    <div className="bg-green-300 h-5 w-24 ml-4 flex flex-row-1 items-center justify-center">
+                      <IoCheckmarkDone size={15} />
+                      <Text className="text-green-700 text-sm pl-2">
+                        Published
+                      </Text>
+                    </div>
+                  )}
 
-                  <Heading className="text-lg md:capitalize text-gray-600 font-bold pl-4 mt-5">
+                  {!flick.flick?.producedLink && (
+                    <div
+                      style={{
+                        background: '#FFEDD5',
+                      }}
+                      className="ml-4 flex flex-row max-w-min px-2 py-1 rounded-sm items-center justify-center"
+                    >
+                      <FiEdit size={12} style={{ color: '#C2410C' }} />
+                      <Text className="text-red-700 text-xs pl-2">Draft</Text>
+                    </div>
+                  )}
+
+                  <Heading className="text-lg md:capitalize font-bold pl-4 mt-5">
                     {flick.flick?.name}
                   </Heading>
                 </div>
               </div>
+              <div className="bg-gray-200 h-0.5 w-full mt-3" />
             </div>
           ))}
         </div>
-        <div className="bg-gray-100 h-0.5 w-3/6 mt-7" />
       </div>
       <AddFlicksToSeriesModal
         setFlicksAdded={setFlicksAdded}

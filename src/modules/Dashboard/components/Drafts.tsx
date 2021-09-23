@@ -15,7 +15,7 @@ import { flickFinalVideoImage } from '../../../constants'
 const InfoTile = ({ flick }: { flick: BaseFlickFragment }) => {
   return (
     <div>
-      <Text className="text-sm text-gray-900 mt-3">{flick.name}</Text>
+      <Text className="text-sm text-gray-900 mt-3 w-44">{flick.name}</Text>
     </div>
   )
 }
@@ -23,15 +23,15 @@ const InfoTile = ({ flick }: { flick: BaseFlickFragment }) => {
 const FlickTile = ({ flick }: { flick: BaseFlickFragment }) => {
   return (
     <Link to={`/flick/${flick.id}`}>
-      <div className="bg-background transition-all  pb-2 cursor-pointer w-80 h-48">
+      <div className="bg-background transition-all pb-2 cursor-pointer w-0 h-36">
         {flick.status === Flick_Status_Enum_Enum.Processing ? (
           <img
-            className="w-64 object-cover h-40 hover:border-green-500 border-2"
+            className="object-cover w-0 h-36 hover:border-green-500 border-2"
             src={flickFinalVideoImage.thumbnailImage}
             alt={flick.name}
           />
         ) : (
-          <div className="bg-background transition-all hover:border-green-500 border-2 cursor-pointer w-80 h-48 mt-10">
+          <div className="bg-background transition-all hover:border-green-500 border-2 cursor-pointer w-64 h-36 mt-10">
             <BiVideo />
           </div>
         )}
@@ -51,7 +51,7 @@ const Drafts = () => {
   return (
     <div>
       {view === 'grid' && (
-        <div className="gap-y-5 p-0 grid grid-cols-4 ml-28 mr-20 justify-center mb-20">
+        <div className="grid grid-cols-4 gap-y-5 gap-x-3 p-0 ml-28 mr-20 justify-center mb-20">
           {data?.Flick.map(
             (flick) =>
               !flick.producedLink && <FlickTile key={flick.id} flick={flick} />

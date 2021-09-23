@@ -35,11 +35,11 @@ const DashboardSeriesFlicks = () => {
             <Link to={`/series/${series.id}`}>
               <div
                 key={series.id}
-                className="bg-gray-50 hover:border-green-500 pb-2 cursor-pointer w-80 h-48 rounded-md border-gray-300 border-4"
+                className="bg-gray-50 hover:border-green-500 pb-2 cursor-pointer w-60 h-36 rounded-md border-gray-300 border-4"
               >
                 <img
                   src={Icons.FoldersIcon}
-                  className="w-16 h-16 m-10 ml-32 mt-16"
+                  className="w-10 h-10 m-10 ml-24 mt-12"
                   alt="I"
                 />
               </div>
