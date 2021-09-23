@@ -6,6 +6,7 @@ import LANDING_DEVELOPER from './assets/developer.json'
 import COMMUNITY from './assets/community.json'
 import EMPTY_ACTIVITY from './assets/EmptyActivity.json'
 import WhiteLOGO from './assets/IncredibleWhiteLogo.svg'
+import IncredibleLogo from './assets/Incredible-Logo.svg'
 
 export const ASSETS = {
   ICONS: {
@@ -13,6 +14,7 @@ export const ASSETS = {
     GOOGLE,
     GITHUB,
     WhiteLOGO,
+    IncredibleLogo,
   },
   ANIMATION: {
     LOGIN_USER_ANIMATION,
@@ -26,6 +28,11 @@ export const API = {
   GITHUB: {
     BASE_URL: 'https://api.github.com/',
   },
+}
+
+export const flickFinalVideoImage = {
+  thumbnailImage:
+    'https://i.giphy.com/media/l0uJcwRwF5tO7LgB5t/giphy-downsized.gif',
 }
 
 export const fragmentIcons = {
