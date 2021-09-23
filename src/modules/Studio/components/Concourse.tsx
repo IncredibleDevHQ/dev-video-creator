@@ -228,7 +228,7 @@ const Concourse = ({
           ])
         : null
     setLocalStream(local)
-  }, [constraints?.video])
+  }, [constraints?.video, constraints?.audio])
 
   return (
     <div className="flex-1 mt-4 justify-between items-stretch flex">

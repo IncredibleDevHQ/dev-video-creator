@@ -113,6 +113,7 @@ const App = () => {
                   path="/:fragmentId/studio"
                   component={Studio}
                 />
+
                 <PrivateRoute exact path="/profile/series" component={Series} />
                 <PrivateRoute
                   exact
