@@ -24,7 +24,7 @@ const FlickSideBar = ({
     },
   ]
   const [currentTab, setCurrentTab] = useState<Tab>(tabs[0])
-  const [flick, setFlick] = useRecoilState(currentFlickStore)
+  const [flick] = useRecoilState(currentFlickStore)
   const [isParticipants, setParticipants] = useState(true)
 
   return (

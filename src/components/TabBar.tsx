@@ -43,7 +43,7 @@ const TabBarItem = ({
   return (
     <li
       className={cx(
-        'cursor-pointer mr-2 text-xs uppercase tracking-wide transition-colors p-2',
+        'cursor-pointer mr-2 text-xs tracking-wide transition-colors p-2',
         {
           'border-b-2 border-brand text-brand': current,
         }

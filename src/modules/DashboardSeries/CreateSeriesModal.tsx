@@ -1,0 +1,96 @@
+import { css, cx } from '@emotion/css'
+import { User } from '@sentry/react'
+import React, { useEffect, useState } from 'react'
+import Modal from 'react-responsive-modal'
+import { useRecoilValue } from 'recoil'
+import { Button, emitToast, ScreenState, TextField } from '../../components'
+import {
+  useCreateUserSeriesMutation,
+  useUpdateSeriesFlickMutation,
+} from '../../generated/graphql'
+import { userState } from '../../stores/user.store'
+
+const CreateSeriesModal = ({
+  open,
+  handleClose,
+}: {
+  open: boolean
+  handleClose: (refresh?: boolean) => void
+}) => {
+  const [seriesName, setSeriesName] = useState('')
+
+  const [createSeriesMutation, { data, loading, error }] =
+    useCreateUserSeriesMutation()
+
+  if (error)
+    return (
+      <ScreenState title="Something went wrong!!" subtitle={error?.message} />
+    )
+
+  if (loading) return <ScreenState title="Just a jiffy..." loading />
+
+  const handleAddSeries = async () => {
+    await createSeriesMutation({
+      variables: {
+        name: seriesName,
+      },
+    })
+  }
+
+  //   useEffect(() => {
+  //     if (data && data.CreateSeries) {
+  //       emitToast({
+  //         title: 'Success',
+  //         autoClose: false,
+  //         description: '🥳 Smile a little, because your Series is ready! 🥳',
+  //         type: 'success',
+  //       })
+  //     }
+  //   }, [data])
+
+  return (
+    <Modal
+      open={open}
+      onClose={() => {
+        handleClose(true)
+      }}
+      classNames={{
+        modal: cx(
+          'rounded-lg w-auto md:w-1/2',
+          css`
+          background-color: #9ef7ff !important
+          border: #02737d !important
+    ;
+        `
+        ),
+        closeButton: css`
+          svg {
+            fill: #000000;
+          }
+        `,
+      }}
+    >
+      <TextField
+        className="text-lg"
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+          setSeriesName(e.target.value)
+        }
+        label="Series name"
+      />
+      <Button
+        className="mt-3"
+        appearance="primary"
+        type="button"
+        onClick={(e) => {
+          e?.preventDefault()
+          handleAddSeries()
+        }}
+        loading={loading}
+      >
+        Add Series
+      </Button>
+    </Modal>
+  )
+}
+
+export default CreateSeriesModal
