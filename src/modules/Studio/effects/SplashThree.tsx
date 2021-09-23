@@ -33,25 +33,21 @@ const SplashThree = () => {
 
   const secondaryLogoRef = useRef<Konva.Image | null>(null)
 
-  const backgroundRect = (
+  useEffect(() => {
+    if (state === 'recording') {
+      handleRecord()
+    }
+  }, [state])
+
+  const [layerChildren, setLayerChildren] = useState([
     <Rect
       x={0}
       y={0}
       fill="#ffffff"
       width={CONFIG.width}
       height={CONFIG.height}
-    />
-  )
-
-  useEffect(() => {
-    if (state === 'recording') {
-      handleRecord()
-    } else {
-      setLayerChildren([backgroundRect])
-    }
-  }, [state])
-
-  const [layerChildren, setLayerChildren] = useState([backgroundRect])
+    />,
+  ])
 
   const handleRecord = () => {
     setLayerChildren((layerChildren) => [

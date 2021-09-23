@@ -306,19 +306,17 @@ const CodeJamTwo = () => {
       <Circle key="yellowCircle" x={14} y={0} fill="#FFBD44" radius={5} />
       <Circle key="greenCircle" x={28} y={0} fill="#00CA4E" radius={5} />
     </Group>,
-    state !== 'ready' && (
-      <Group x={57} y={88} key="group">
-        {getRenderedTokens(computedTokens.current, position)}
-        {computedTokens.current.length > 0 && (
-          <RenderTokens
-            key={position.prevIndex}
-            tokens={computedTokens.current}
-            startIndex={position.prevIndex}
-            endIndex={position.currentIndex}
-          />
-        )}
-      </Group>
-    ),
+    <Group x={57} y={88} key="group">
+      {getRenderedTokens(computedTokens.current, position)}
+      {computedTokens.current.length > 0 && (
+        <RenderTokens
+          key={position.prevIndex}
+          tokens={computedTokens.current}
+          startIndex={position.prevIndex}
+          endIndex={position.currentIndex}
+        />
+      )}
+    </Group>,
     <Image image={incredibleLogo} x={30} y={CONFIG.height - 60} />,
     <Image image={graphqlLogo} x={840} y={CONFIG.height - 58} />,
   ]
