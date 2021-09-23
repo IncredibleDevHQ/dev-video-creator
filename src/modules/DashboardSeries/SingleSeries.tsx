@@ -67,7 +67,7 @@ const SingleSeries = () => {
               className="text-white mt-5"
               onClick={() => setOpen(true)}
             >
-              Add Series
+              Add Flick
             </Button>
           </div>
         </div>
