@@ -30,6 +30,7 @@ import {
   FlickParticipantsFragment,
   Participant_Role_Enum_Enum,
   useInsertParticipantToFragmentMutation,
+  useReorderFragmentMutation,
 } from '../../../generated/graphql'
 import { User, userState } from '../../../stores/user.store'
 import { StudioProviderProps, studioStore } from '../../Studio/stores'
@@ -400,11 +401,30 @@ const FragmentDND = ({
   setActiveFragmentId: (id: string) => void
   handleRefetch: (refresh?: boolean) => void
 }) => {
+  const [reorderFragment, { data: reorderData, loading: reorderLoading }] =
+    useReorderFragmentMutation()
+
+  const reorderFragments = (
+    fragments: FlickFragmentFragment[],
+    flickId: string
+  ) => {
+    reorderFragment({
+      variables: {
+        fragmentIds: fragments.map((x) => x.id),
+        flick_id: flickId,
+      },
+    })
+  }
+
+  useEffect(() => {
+    if (!fragments) return
+    reorderFragments(fragments, flickId)
+  }, [fragments])
+
   const onDragEnd = (result: any) => {
     if (!result.destination || !isHost) {
       return
     }
-
     const items = reorder(
       fragments,
       result.source.index,
@@ -492,9 +512,6 @@ const FragmentsSidebar = ({
       const { errors } = await produceVideoMutation({
         variables: {
           flickId,
-          objectNames: fragmentItems.map((fragment) => {
-            return fragment.producedLink as string
-          }),
         },
       })
       if (errors) throw errors[0]

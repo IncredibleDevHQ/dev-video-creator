@@ -30,8 +30,8 @@ mutation UploadFile($key: String!) {
   }
 }
 
-mutation ProduceVideo($flickId: uuid!, $objectNames: [String!]!) {
-  ProduceVideo(flickId: $flickId, objectNames: $objectNames) {
+mutation ProduceVideo($flickId: uuid!) {
+  ProduceVideo(flickId: $flickId) {
     id
   }
 }
