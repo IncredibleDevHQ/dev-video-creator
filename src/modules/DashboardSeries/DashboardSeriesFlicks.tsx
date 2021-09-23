@@ -1,8 +1,8 @@
 import React from 'react'
+import { IoAlbumsOutline } from 'react-icons/io5'
 import { Link } from 'react-router-dom'
 import { useRecoilValue } from 'recoil'
 import { EmptyState, Heading, ScreenState } from '../../components'
-import { Icons } from '../../constants'
 import { useGetUserSeriesQuery, User } from '../../generated/graphql'
 import { userState } from '../../stores/user.store'
 
@@ -37,11 +37,7 @@ const DashboardSeriesFlicks = () => {
                 key={series.id}
                 className="bg-gray-50 hover:border-green-500 pb-2 cursor-pointer w-60 h-36 rounded-md border-gray-300 border-4"
               >
-                <img
-                  src={Icons.FoldersIcon}
-                  className="w-10 h-10 m-10 ml-24 mt-12"
-                  alt="I"
-                />
+                <IoAlbumsOutline className="w-10 h-10 m-10 ml-24 mt-12" />
               </div>
               <div className="w-full">
                 <Heading className="text-sm md:capitalize p-2 mt-0">

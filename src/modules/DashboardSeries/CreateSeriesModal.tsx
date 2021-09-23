@@ -1,14 +1,8 @@
 import { css, cx } from '@emotion/css'
-import { User } from '@sentry/react'
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import Modal from 'react-responsive-modal'
-import { useRecoilValue } from 'recoil'
-import { Button, emitToast, ScreenState, TextField } from '../../components'
-import {
-  useCreateUserSeriesMutation,
-  useUpdateSeriesFlickMutation,
-} from '../../generated/graphql'
-import { userState } from '../../stores/user.store'
+import { Button, ScreenState, TextField } from '../../components'
+import { useCreateUserSeriesMutation } from '../../generated/graphql'
 
 const CreateSeriesModal = ({
   open,
@@ -36,17 +30,6 @@ const CreateSeriesModal = ({
       },
     })
   }
-
-  //   useEffect(() => {
-  //     if (data && data.CreateSeries) {
-  //       emitToast({
-  //         title: 'Success',
-  //         autoClose: false,
-  //         description: '🥳 Smile a little, because your Series is ready! 🥳',
-  //         type: 'success',
-  //       })
-  //     }
-  //   }, [data])
 
   return (
     <Modal

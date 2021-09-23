@@ -1,17 +1,9 @@
 import React, { useState } from 'react'
-import { useRecoilValue } from 'recoil'
 import { cx } from '@emotion/css'
 import { IconType } from 'react-icons'
-import Autocomplete, {
-  createFilterOptions,
-} from '@material-ui/lab/Autocomplete'
-import TextField from '@material-ui/core/TextField'
 import { FiArrowRight } from 'react-icons/fi'
 import { Button, Navbar, Tab, TabBar, Text } from '../../components'
-import { useGetUserFlicksQuery } from '../../generated/graphql'
-import { User, userState } from '../../stores/user.store'
 import { Drafts, NewFlickBanner, Published } from './components/index'
-import { ASSETS } from '../../constants'
 import CreateSeriesModal from '../DashboardSeries/CreateSeriesModal'
 import DashboardSeriesFlicks from '../DashboardSeries/DashboardSeriesFlicks'
 
@@ -36,43 +28,6 @@ const ViewBarButton = ({
       tabIndex={0}
     >
       <I />
-    </div>
-  )
-}
-
-const SearchFlick = () => {
-  const { sub } = (useRecoilValue(userState) as User) || {}
-  const { data } = useGetUserFlicksQuery({
-    variables: { sub: sub as string },
-  })
-  const filterOptions = createFilterOptions({
-    matchFrom: 'start',
-    stringify: (option) => option as string,
-  })
-
-  const options = data?.Flick.map((f) => {
-    return f.name
-  })
-
-  // const handleOnChange = ({ target: string }) => console.log(target.value)
-  return (
-    <div style={{ marginLeft: '40%', marginTop: '45px' }} className="h-4 w-1/3">
-      <Autocomplete
-        freeSolo
-        filterOptions={filterOptions}
-        options={options as unknown[]}
-        renderInput={(params) => (
-          <TextField
-            {...params}
-            size="small"
-            label="Search Box"
-            className="text-base"
-            variant="outlined"
-
-            // onChange={handleOnChange}
-          />
-        )}
-      />
     </div>
   )
 }

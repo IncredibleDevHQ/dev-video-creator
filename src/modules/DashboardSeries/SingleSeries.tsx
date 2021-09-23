@@ -11,7 +11,6 @@ import {
   ScreenState,
   Text,
 } from '../../components'
-import { ASSETS } from '../../constants'
 import {
   useGetSingleSeriesLazyQuery,
   useSeriesFlicksQuery,
@@ -27,11 +26,7 @@ const SingleSeries = () => {
   const [GetSingleSeries, { data, loading, error }] =
     useGetSingleSeriesLazyQuery()
 
-  const {
-    data: flickData,
-    loading: flickLoading,
-    error: flickError,
-  } = useSeriesFlicksQuery({
+  const { data: flickData } = useSeriesFlicksQuery({
     variables: {
       id: params.id,
     },
@@ -90,7 +85,7 @@ const SingleSeries = () => {
               <div className="flex flex-row">
                 <img
                   src="https://cdn.educba.com/academy/wp-content/uploads/2019/05/What-is-Coding.jpg"
-                  alt="thumbnail"
+                  alt="I"
                   className="w-64 h-36"
                 />
 
