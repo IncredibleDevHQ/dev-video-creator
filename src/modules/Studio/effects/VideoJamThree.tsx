@@ -32,6 +32,7 @@ const VideoJamThree = () => {
     element.autoplay = false
     element.crossOrigin = 'anonymous'
     element.preload = 'auto'
+    element.muted = true
     element.src = fragment.configuration.properties.find(
       (property: any) => property.key === 'source'
     )?.value
@@ -124,6 +125,7 @@ const VideoJamThree = () => {
             height: 180,
             clipTheme: 'rect',
             borderColor: '#1EB4D4',
+            borderWidth: 8,
             studioUserClipConfig: {
               x: 40,
               y: 0,
@@ -139,6 +141,7 @@ const VideoJamThree = () => {
             height: 180,
             clipTheme: 'rect',
             borderColor: '#1EB4D4',
+            borderWidth: 8,
             studioUserClipConfig: {
               x: 40,
               y: 0,
@@ -157,6 +160,7 @@ const VideoJamThree = () => {
             height: 120,
             clipTheme: 'rect',
             borderColor: '#1EB4D4',
+            borderWidth: 8,
             studioUserClipConfig: {
               x: 0,
               y: 0,
@@ -172,6 +176,7 @@ const VideoJamThree = () => {
             height: 120,
             clipTheme: 'rect',
             borderColor: '#1EB4D4',
+            borderWidth: 8,
             studioUserClipConfig: {
               x: 0,
               y: 0,
@@ -187,6 +192,7 @@ const VideoJamThree = () => {
             height: 120,
             clipTheme: 'rect',
             borderColor: '#1EB4D4',
+            borderWidth: 8,
             studioUserClipConfig: {
               x: 0,
               y: 0,
@@ -205,6 +211,7 @@ const VideoJamThree = () => {
             height: 240,
             clipTheme: 'rect',
             borderColor: '#1EB4D4',
+            borderWidth: 8,
             studioUserClipConfig: {
               x: 80,
               y: 0,

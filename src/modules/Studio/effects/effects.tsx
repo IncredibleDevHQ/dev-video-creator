@@ -23,6 +23,9 @@ import VideoJamThree from './VideoJamThree'
 import SplashTwelve from './SplashTwelve'
 import SplashThirteen from './SplashThirteen'
 import SplashFourteen from './SplashFourteen'
+import VideoJamFour from './VideoJamFour'
+import SplashThree from './SplashThree'
+import CodeJamTwo from './CodeJamTwo'
 
 const themeEnum = 'theme'
 export interface Effect {
@@ -55,23 +58,31 @@ export const titleSplash = (title: string): JSX.Element => {
 
 const getSplash = (theme: any) => {
   if (theme.value === '0') return SplashFive
-  if (theme.value === '1') return SplashFour
-  if (theme.value === '2') return SplashSix
-  if (theme.value === '3') return SplashSeven
-  if (theme.value === '4') return SplashEight
-  if (theme.value === '5') return SplashNine
-  if (theme.value === '6') return SplashEleven
-  if (theme.value === '7') return SplashTwelve
-  if (theme.value === '8') return SplashThirteen
-  if (theme.value === '9') return SplashFourteen
+  if (theme.value === '1') return SplashThree
+  if (theme.value === '2') return SplashFour
+  if (theme.value === '3') return SplashSix
+  if (theme.value === '4') return SplashSeven
+  if (theme.value === '5') return SplashEight
+  if (theme.value === '6') return SplashNine
+  if (theme.value === '7') return SplashEleven
+  if (theme.value === '8') return SplashTwelve
+  if (theme.value === '9') return SplashThirteen
+  if (theme.value === '10') return SplashFourteen
   return CustomSplash
 }
 
 const getVideoTheme = (theme: any) => {
-  if (theme.value === '1') return VideoJamTwo
+  if (theme.value === '1') return VideoJamFour
   if (theme.value === '2') return VideoJamThree
+  if (theme.value === '3') return VideoJamTwo
   return VideoJam
 }
+
+const getCodeJamTheme = (theme: any) => {
+  if (theme.value === '1') return CodeJamTwo
+  return CodeJam
+}
+
 export const getDimensions = (
   img: { w: number; h: number },
   maxH: number,
@@ -119,7 +130,7 @@ export const getEffect = (
     case Fragment_Type_Enum_Enum.Splash:
       return getSplash(theme)
     case Fragment_Type_Enum_Enum.CodeJam:
-      return CodeJam
+      return getCodeJamTheme(theme)
     case Fragment_Type_Enum_Enum.Videoshow:
       return getVideoTheme(theme)
     case Fragment_Type_Enum_Enum.Trivia:

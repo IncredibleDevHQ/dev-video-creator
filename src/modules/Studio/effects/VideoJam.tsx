@@ -22,6 +22,7 @@ const VideoJam = () => {
     element.autoplay = false
     element.crossOrigin = 'anonymous'
     element.preload = 'auto'
+    element.muted = true
     element.src = fragment.configuration.properties.find(
       (property: any) => property.key === 'source'
     )?.value

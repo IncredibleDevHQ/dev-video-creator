@@ -23,8 +23,19 @@ const StudioUser = ({
   studioUserConfig: StudioUserConfig
   uid: string
 }) => {
-  const { x, y, width, height, clipTheme, borderColor, studioUserClipConfig } =
-    studioUserConfig
+  const {
+    x,
+    y,
+    width,
+    height,
+    clipTheme,
+    borderColor,
+    borderWidth,
+    studioUserClipConfig,
+    backgroundRectColor,
+    backgroundRectX,
+    backgroundRectY,
+  } = studioUserConfig
   const imageConfig = { width: width || 160, height: height || 120 }
   const imageRef = useRef<Konva.Image | null>(null)
 
@@ -89,12 +100,13 @@ const StudioUser = ({
   return (
     <>
       <Rect
-        x={775}
-        y={y}
+        x={backgroundRectX || 775}
+        y={backgroundRectY || y}
         width={160}
         height={imageConfig.height}
+        fill={backgroundRectColor}
         stroke={borderColor}
-        strokeWidth={8}
+        strokeWidth={borderWidth || 0}
         cornerRadius={8}
       />
       <Group
@@ -125,19 +137,20 @@ const StudioUser = ({
             height={imageConfig.height}
           />
         )}
-        {type === 'remote' && stream ? (
-          <Image
-            ref={imageRef}
-            image={videoElement}
-            width={imageConfig.width}
-            height={imageConfig.height}
-          />
-        ) : (
-          <Gravatar
-            className="w-6 h-6 rounded-full bg-gray-100"
-            email={participants[uid]?.email as string}
-          />
-        )}
+        {type === 'remote' &&
+          (stream ? (
+            <Image
+              ref={imageRef}
+              image={videoElement}
+              width={imageConfig.width}
+              height={imageConfig.height}
+            />
+          ) : (
+            <Gravatar
+              className="w-6 h-6 rounded-full bg-gray-100"
+              email={participants[uid]?.email as string}
+            />
+          ))}
       </Group>
     </>
   )
