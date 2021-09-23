@@ -46,8 +46,6 @@ const SplashThree = () => {
   useEffect(() => {
     if (state === 'recording') {
       handleRecord()
-    } else {
-      setLayerChildren([backgroundRect])
     }
   }, [state])
 

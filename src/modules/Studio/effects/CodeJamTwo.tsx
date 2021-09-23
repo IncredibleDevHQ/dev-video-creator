@@ -6,7 +6,10 @@ import useImage from 'use-image'
 import { NextLineIcon, NextTokenIcon } from '../../../components'
 import config from '../../../config'
 import { API } from '../../../constants'
-import { useGetTokenisedCodeLazyQuery } from '../../../generated/graphql'
+import {
+  Fragment_Status_Enum_Enum,
+  useGetTokenisedCodeLazyQuery,
+} from '../../../generated/graphql'
 import { Concourse } from '../components'
 import { CONFIG, StudioUserConfig } from '../components/Concourse'
 import { ControlButton } from '../components/MissionControl'
@@ -306,7 +309,7 @@ const CodeJamTwo = () => {
       <Circle key="yellowCircle" x={14} y={0} fill="#FFBD44" radius={5} />
       <Circle key="greenCircle" x={28} y={0} fill="#00CA4E" radius={5} />
     </Group>,
-    state !== 'ready' && (
+    payload?.status === Fragment_Status_Enum_Enum.Live && (
       <Group x={57} y={88} key="group">
         {getRenderedTokens(computedTokens.current, position)}
         {computedTokens.current.length > 0 && (
