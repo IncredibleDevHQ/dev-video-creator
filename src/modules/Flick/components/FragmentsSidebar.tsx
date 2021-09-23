@@ -512,9 +512,6 @@ const FragmentsSidebar = ({
       const { errors } = await produceVideoMutation({
         variables: {
           flickId,
-          objectNames: fragmentItems.map((fragment) => {
-            return fragment.producedLink as string
-          }),
         },
       })
       if (errors) throw errors[0]
