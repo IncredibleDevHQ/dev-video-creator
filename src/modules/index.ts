@@ -8,6 +8,7 @@ import NewFlick from './Flick/NewFlick'
 import Onboarding from './Onboarding/Onboarding'
 import Profile from './Profile/Profile'
 import Studio from './Studio/Studio'
+import DuplicateStudio from './Studio/DuplicateStudio'
 import Designer from './Designer/Designer'
 import '@fontsource/fira-mono'
 import NewOrganisation from './Organisation/NewOrganisation'
@@ -33,6 +34,7 @@ export {
   Onboarding,
   Profile,
   Studio,
+  DuplicateStudio,
   Organisation,
   NewOrganisation,
   Series,

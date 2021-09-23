@@ -21,6 +21,7 @@ import {
   Series,
   AllUserFlicks,
   Studio,
+  DuplicateStudio,
   UserSeriesFlicks,
   SingleSeries,
   Circle,
@@ -112,6 +113,11 @@ const App = () => {
                   exact
                   path="/:fragmentId/studio"
                   component={Studio}
+                />
+                <PrivateRoute
+                  exact
+                  path="/:fragmentId/duplicatestudio"
+                  component={DuplicateStudio}
                 />
                 <PrivateRoute exact path="/profile/series" component={Series} />
                 <PrivateRoute
