@@ -22,12 +22,12 @@ const NewFlickBanner = () => {
 
   return (
     <div>
-      <AiOutlinePlus className="text-white m-0 p-0" size={20} />
+      <AiOutlinePlus className="text-white p-2 mx-2" size={20} />
       <Button
         type="button"
         size="extraSmall"
         appearance="primary"
-        className="ml-28 mt-0 p-0"
+        className="h-10"
         onClick={() => history.push('/new-flick')}
         icon={AiOutlinePlus}
       >

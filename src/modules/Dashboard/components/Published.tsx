@@ -25,9 +25,9 @@ const VideoTile = ({ flick }: { flick: BaseFlickFragment }) => {
   const [dashboardModal, setDashboardModal] = useState<boolean>(false)
 
   return (
-    <div className="bg-background shadow-md transition-all hover:shadow-xl pb-2 cursor-pointer w-80 h-40 mt-10">
+    <div className="hover:border-green-500 border-2 cursor-pointer w-80 h-40 mt-10">
       <div
-        className="bg-gray-100 justify-center items-center text-gray-300 h-40 w-80"
+        className="justify-center items-center text-gray-300 h-40 w-80"
         onClick={() => {
           setDashboardModal(true)
         }}
@@ -56,7 +56,7 @@ const Published = () => {
   return (
     <div>
       {view === 'grid' && (
-        <div className="gap-y-5 p-0 grid grid-cols-4 ml-28 mr-20 justify-center mt-1 mb-20">
+        <div className="gap-y-5 p-0 grid grid-cols-4 ml-28 mr-20 justify-center mb-20">
           {data?.Flick.map(
             (flick) =>
               flick.producedLink && <VideoTile key={flick.id} flick={flick} />

@@ -7,6 +7,7 @@ import COMMUNITY from './assets/community.json'
 import EMPTY_ACTIVITY from './assets/EmptyActivity.json'
 import WhiteLOGO from './assets/IncredibleWhiteLogo.svg'
 import IncredibleLogo from './assets/Incredible-Logo.svg'
+import FoldersIcon from './assets/albums.svg'
 
 export const ASSETS = {
   ICONS: {
@@ -28,6 +29,10 @@ export const API = {
   GITHUB: {
     BASE_URL: 'https://api.github.com/',
   },
+}
+
+export const Icons = {
+  FoldersIcon,
 }
 
 export const flickFinalVideoImage = {

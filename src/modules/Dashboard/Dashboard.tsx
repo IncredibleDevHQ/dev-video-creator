@@ -113,7 +113,7 @@ const Dashboard = () => {
         {' some curated templates. '}
       </Text>
 
-      <div className="flex flex-row gap-3">
+      <div className="flex flex-row gap-3 ml-28">
         <NewFlickBanner />
         <Button
           type="button"
@@ -128,20 +128,19 @@ const Dashboard = () => {
       </div>
 
       <div className="flex flex-col m-0 p-0 ml-28">
-        <h2 className="font-black text-xl mt-14">Your series</h2>
+        <Text className="font-black text-xl mt-14">Your series</Text>
         <DashboardSeriesFlicks />
       </div>
 
       <div className="px-0">
         <div className="flex flex-row m-0 p-0 ml-28 pb-24">
-          <h2 className="font-black text-xl mb-4 mt-14">Your flicks</h2>
+          <Text className="font-black text-xl mb-4 mt-14">Your flicks</Text>
           <TabBar
             tabs={tabs}
             current={currentTab}
             onTabChange={setCurrentTab}
             className="text-black gap-2 mt-14 w-auto ml-10"
           />
-          {/* <SearchFlick /> */}
         </div>
         {currentTab.value === 'Drafts' && <Drafts />}
         {currentTab.value === 'Published' && <Published />}
