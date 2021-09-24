@@ -68,11 +68,11 @@ const TriviaTwo = () => {
           h: (qnaImage && qnaImage.height) || 0,
         },
         610,
-        260,
+        250,
         640,
         280,
         37,
-        85
+        90
       )
     )
   }, [qnaImage])
@@ -159,12 +159,13 @@ const TriviaTwo = () => {
     <Group x={37} y={58} key="group1">
       {questions?.length > 0 && questions[activeQuestionIndex]?.image ? (
         <Text
+          x={10}
           y={20}
           align="center"
           fontSize={32}
           fill="#ffffff"
-          width={630}
-          height={64}
+          width={620}
+          lineHeight={1.2}
           text={questions[activeQuestionIndex]?.text}
           fontStyle="bold"
           fontFamily="Poppins"
@@ -175,10 +176,11 @@ const TriviaTwo = () => {
       )}
       {questions.length > 0 && !questions[activeQuestionIndex].image ? (
         <Text
+          x={10}
           verticalAlign="middle"
           fontSize={32}
           fill="#ffffff"
-          width={630}
+          width={620}
           height={390}
           text={questions[activeQuestionIndex]?.text}
           fontStyle="bold"
