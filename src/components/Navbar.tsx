@@ -56,7 +56,11 @@ const Navbar = ({ hideNav }: { hideNav?: boolean }) => {
 
   return (
     <nav className="flex flex-row items-center px-4 py-2 justify-between border-b-2">
-      <img src={ASSETS.ICONS.IncredibleLogo} alt="" className="w-28" />
+      <img
+        src={ASSETS.ICONS.IncredibleLogo}
+        alt=""
+        className="w-28 cursor-pointer"
+      />
 
       {isAuthenticated ? (
         <AuthenticatedRightCol />

@@ -91,6 +91,7 @@ query SeriesFlicks($id: uuid) {
     flick {
       id
       producedLink
+      joinLink
       name
       previewLink
       description

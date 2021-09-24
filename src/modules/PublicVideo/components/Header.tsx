@@ -1,6 +1,9 @@
-import React, { useEffect, useState } from 'react'
+/* eslint-disable jsx-a11y/no-static-element-interactions */
+/* eslint-disable jsx-a11y/click-events-have-key-events */
+/* eslint-disable no-nested-ternary */
+import React, { useState } from 'react'
 import Gravatar from 'react-gravatar'
-import { FiBell, FiDownload } from 'react-icons/fi'
+import { FiDownload } from 'react-icons/fi'
 import {
   IoEllipsisHorizontalSharp,
   IoLinkOutline,
@@ -25,13 +28,9 @@ const AuthenticatedRightCol = ({
   setMoreOptionsModal: React.Dispatch<React.SetStateAction<boolean>>
   producedLink: string
 }) => {
-  const { picture, displayName, email, sub, uid } =
+  const { picture, displayName, email } =
     (useRecoilValue(userState) as User) || {}
   const history = useHistory()
-
-  useEffect(() => {
-    console.log('flickOwnerId  ', owner, uid)
-  }, [owner])
 
   return (
     <div className="flex  flex-row w-full pr-4 justify-end">
@@ -102,11 +101,20 @@ const Header = ({
   const [moreOptionsModal, setMoreOptionsModal] = useState(false)
   const [openShareModal, setOpenShareModal] = useState(false)
   const { isAuthenticated } = (useRecoilValue(authState) as Auth) || {}
+  const history = useHistory()
 
   return (
     <div>
       <div className="flex w-full flex-row pt-3 pb-3 pl-6 ">
-        <img alt="incredible.dev" src={ASSETS.ICONS.Incredible_logo} />
+        <img
+          className="cursor-pointer"
+          aria-hidden
+          alt="incredible.dev"
+          src={ASSETS.ICONS.Incredible_logo}
+          onClick={() => {
+            history.push(`/dashboard`)
+          }}
+        />
 
         {isAuthenticated ? (
           <AuthenticatedRightCol

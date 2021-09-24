@@ -1,9 +1,13 @@
+/* eslint-disable jsx-a11y/no-static-element-interactions */
+/* eslint-disable jsx-a11y/click-events-have-key-events */
+/* eslint-disable no-nested-ternary */
 import React from 'react'
 import Gravatar from 'react-gravatar'
 import { FiEdit } from 'react-icons/fi'
 import { IoCheckmarkDone } from 'react-icons/io5'
-import { useParams } from 'react-router-dom'
+import { useHistory, useParams } from 'react-router-dom'
 import { Heading, Text } from '../../../components'
+import { Icons } from '../../../constants'
 import { useSeriesFlicksQuery } from '../../../generated/graphql'
 
 const FlicksView = () => {
@@ -13,28 +17,33 @@ const FlicksView = () => {
       id: params.id,
     },
   })
+  const history = useHistory()
   return (
     <div>
       {seriesData?.Flick_Series.map((flick) => (
         <div
           key={flick.flick?.id}
           className="flex flex-col h-40 w-2/5 mb-7 bg-white"
+          onClick={() => {
+            history.push(`/flick/${flick.flick?.id}`)
+          }}
         >
-          <div className="flex flex-row">
-            <img
-              src="https://cdn.educba.com/academy/wp-content/uploads/2019/05/What-is-Coding.jpg"
-              alt="I"
-              className="w-64 h-36"
-            />
-
+          <div className="flex flex-row w-full h-36">
+            <div className="w-64 flex items-center justify-center border-2">
+              <img src={Icons.flickIcon} alt="I" className="border-2" />
+            </div>
             <div className="flex flex-col">
               {flick.flick?.producedLink && (
-                <div className="bg-green-300 h-5 w-24 ml-4 flex flex-row-1 items-center justify-center">
+                <div
+                  className="bg-green-300 h-5 w-24 ml-4 flex flex-row-1 items-center justify-center"
+                  onClick={() => {
+                    history.push(`/view/${flick.flick?.joinLink}`)
+                  }}
+                >
                   <IoCheckmarkDone size={15} />
                   <Text className="text-green-700 text-sm pl-2">Published</Text>
                 </div>
               )}
-
               {!flick.flick?.producedLink && (
                 <div
                   style={{
@@ -46,11 +55,9 @@ const FlicksView = () => {
                   <Text className="text-red-700 text-xs pl-2">Draft</Text>
                 </div>
               )}
-
               <Heading className="text-lg md:capitalize font-bold pl-4 mt-5 w-40 truncate overflow-ellipsis">
                 {flick.flick?.name}
               </Heading>
-
               <div className="h-8 relative w-40">
                 <span
                   style={{ zIndex: 0 }}
@@ -77,6 +84,7 @@ const FlicksView = () => {
               </div>
             </div>
           </div>
+
           <div className="bg-gray-200 h-0.5 w-full mt-3" />
         </div>
       ))}

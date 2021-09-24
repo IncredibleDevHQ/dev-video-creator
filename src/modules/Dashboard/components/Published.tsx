@@ -2,9 +2,10 @@
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 /* eslint-disable no-nested-ternary */
 import React, { useState } from 'react'
+import { useHistory } from 'react-router-dom'
 import { useRecoilValue } from 'recoil'
 import { ScreenState, Text } from '../../../components'
-import { Icons } from '../../../constants'
+import { flickFinalVideoImage, Icons } from '../../../constants'
 import {
   BaseFlickFragment,
   useGetUserFlicksQuery,
@@ -24,14 +25,16 @@ const InfoTilePublished = ({ flick }: { flick: BaseFlickFragment }) => {
 }
 
 const VideoTile = ({ flick }: { flick: BaseFlickFragment }) => {
-  const [dashboardModal, setDashboardModal] = useState<boolean>(false)
+  // const [dashboardModal, setDashboardModal] = useState<boolean>(false)
+  const history = useHistory()
 
   return (
     <div className="bg-gray-50 hover:border-green-500 cursor-pointer w-60 h-36 rounded-md items-center justify-center mt-9">
       <div
         className="text-gray-300 hover:border-green-500 cursor-pointer w-60 h-36 border-2"
         onClick={() => {
-          setDashboardModal(true)
+          // setDashboardModal(true)
+          history.push(`/view/${flick.joinLink}`)
         }}
       >
         <img
@@ -40,13 +43,13 @@ const VideoTile = ({ flick }: { flick: BaseFlickFragment }) => {
           className="ml-24 mt-14 border-gray-500 border-2 rounded-md"
         />
       </div>
-      <DashboardModal
+      {/* <DashboardModal
         flick={flick}
         open={dashboardModal}
         handleClose={() => {
           setDashboardModal(false)
         }}
-      />
+      /> */}
       <InfoTilePublished key={flick.id} flick={flick} />
     </div>
   )
