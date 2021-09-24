@@ -78,7 +78,7 @@ const PointsTwo = () => {
     setTitleNumberOfLines(
       getNoOfLinesOfText({
         text: fragment.name,
-        availableWidth: 530,
+        availableWidth: 520,
         fontSize: 40,
         fontFamily: 'Poppins',
         stageWidth: 640,
@@ -116,7 +116,7 @@ const PointsTwo = () => {
     {
       x: 565,
       y: 58,
-      width: 520,
+      width: 530,
       height: 390,
       clipTheme: 'rect',
       borderWidth: 8,
@@ -179,7 +179,7 @@ const PointsTwo = () => {
       align="left"
       fontSize={40}
       fill="#F9FAFB"
-      width={510}
+      width={500}
       lineHeight={1.15}
       text={fragment?.name as string}
       fontStyle="normal 700"
