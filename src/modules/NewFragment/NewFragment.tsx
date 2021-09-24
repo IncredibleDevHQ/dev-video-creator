@@ -29,7 +29,7 @@ const NewFragment = () => {
   })
 
   const [createFragmentLoading, setCreateFragmentLoading] = useState(false)
-  const [newFragmnetId, setnewFragmnetId] = useState('')
+  const [newFragmnetId] = useState('')
   const [createFragment] = useCreateFragmentMutation()
   const [insertParticipantToFragment, { data: ipData }] =
     useInsertParticipantToFragmentMutation()

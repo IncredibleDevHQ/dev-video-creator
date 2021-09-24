@@ -9,6 +9,9 @@ import WhiteLOGO from './assets/IncredibleWhiteLogo.svg'
 import Incredible_logo from './assets/incredible_logo.svg'
 import TWITTER_LOGO from './assets/logos_twitter.svg'
 import SLACK_LOGO from './assets/grommet-icons_slack.svg'
+import IncredibleLogo from './assets/Incredible-Logo.svg'
+import seriesFolder from './assets/albums-outline.svg'
+import flickIcon from './assets/flickIcon.svg'
 
 export const ASSETS = {
   ICONS: {
@@ -19,6 +22,7 @@ export const ASSETS = {
     SLACK_LOGO,
     Incredible_logo,
     TWITTER_LOGO,
+    IncredibleLogo,
   },
   ANIMATION: {
     LOGIN_USER_ANIMATION,
@@ -28,10 +32,20 @@ export const ASSETS = {
   },
 }
 
+export const Icons = {
+  seriesFolder,
+  flickIcon,
+}
+
 export const API = {
   GITHUB: {
     BASE_URL: 'https://api.github.com/',
   },
+}
+
+export const flickFinalVideoImage = {
+  thumbnailImage:
+    'https://i.giphy.com/media/l0uJcwRwF5tO7LgB5t/giphy-downsized.gif',
 }
 
 export const fragmentIcons = {
