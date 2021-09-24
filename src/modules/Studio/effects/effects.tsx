@@ -26,6 +26,9 @@ import SplashFourteen from './SplashFourteen'
 import VideoJamFour from './VideoJamFour'
 import SplashThree from './SplashThree'
 import CodeJamTwo from './CodeJamTwo'
+import SplashTen from './SplashTen'
+import CodeJamThree from './CodeJamThree'
+import VideoJamFive from './VideoJamFive'
 
 const themeEnum = 'theme'
 export interface Effect {
@@ -59,7 +62,7 @@ export const titleSplash = (title: string): JSX.Element => {
 const getSplash = (theme: any) => {
   if (theme.value === '0') return SplashFive
   if (theme.value === '1') return SplashThree
-  if (theme.value === '2') return SplashFour
+  if (theme.value === '2') return SplashTen
   if (theme.value === '3') return SplashSix
   if (theme.value === '4') return SplashSeven
   if (theme.value === '5') return SplashEight
@@ -68,18 +71,21 @@ const getSplash = (theme: any) => {
   if (theme.value === '8') return SplashTwelve
   if (theme.value === '9') return SplashThirteen
   if (theme.value === '10') return SplashFourteen
+  if (theme.value === '11') return SplashFour
   return CustomSplash
 }
 
 const getVideoTheme = (theme: any) => {
   if (theme.value === '1') return VideoJamFour
-  if (theme.value === '2') return VideoJamThree
+  if (theme.value === '2') return VideoJamFive
   if (theme.value === '3') return VideoJamTwo
+  if (theme.value === '4') return VideoJamThree
   return VideoJam
 }
 
 const getCodeJamTheme = (theme: any) => {
   if (theme.value === '1') return CodeJamTwo
+  if (theme.value === '2') return CodeJamThree
   return CodeJam
 }
 

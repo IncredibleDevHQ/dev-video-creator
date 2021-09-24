@@ -44,16 +44,12 @@ const CodeJamTwo = () => {
     currentIndex: 0,
   })
 
-  const [incredibleLogo] = useImage(
-    `${config.storage.baseUrl}x-incredible.svg`,
+  const [openSaucedLogo] = useImage(
+    `${config.storage.baseUrl}open-sauce-logo.svg`,
     'anonymous'
   )
-  const [circleGroup] = useImage(
-    `${config.storage.baseUrl}black-circles.svg`,
-    'anonymous'
-  )
-  const [graphqlLogo] = useImage(
-    `${config.storage.baseUrl}graphql3.svg`,
+  const [openSaucedBg] = useImage(
+    `${config.storage.baseUrl}opensauce-bg.svg`,
     'anonymous'
   )
 
@@ -177,7 +173,7 @@ const CodeJamTwo = () => {
             },
             backgroundRectX: 765,
             backgroundRectY: 50,
-            backgroundRectColor: '#C084FC',
+            backgroundRectColor: '#E0A764',
           },
           {
             x: 735,
@@ -195,7 +191,7 @@ const CodeJamTwo = () => {
             },
             backgroundRectX: 765,
             backgroundRectY: 255,
-            backgroundRectColor: '#4FD1C5',
+            backgroundRectColor: '#E0A764',
           },
         ]
       case 3:
@@ -216,7 +212,7 @@ const CodeJamTwo = () => {
             },
             backgroundRectX: 765,
             backgroundRectY: 48.5,
-            backgroundRectColor: '#C084FC',
+            backgroundRectColor: '#E0A764',
           },
           {
             x: 775,
@@ -234,7 +230,7 @@ const CodeJamTwo = () => {
             },
             backgroundRectX: 765,
             backgroundRectY: 188.5,
-            backgroundRectColor: '#4FD1C5',
+            backgroundRectColor: '#E0A764',
           },
           {
             x: 775,
@@ -252,7 +248,7 @@ const CodeJamTwo = () => {
             },
             backgroundRectX: 765,
             backgroundRectY: 328.5,
-            backgroundRectColor: '#FCA5A5',
+            backgroundRectColor: '#E0A764',
           },
         ]
       default:
@@ -273,7 +269,7 @@ const CodeJamTwo = () => {
             },
             backgroundRectX: 765,
             backgroundRectY: 110.5,
-            backgroundRectColor: '#C084FC',
+            backgroundRectColor: '#E0A764',
           },
         ]
     }
@@ -285,15 +281,21 @@ const CodeJamTwo = () => {
       y={0}
       width={CONFIG.width}
       height={CONFIG.height}
-      fill="#1F2937"
+      fill="#FAEACE"
     />,
-    <Image image={circleGroup} x={400} y={450} />,
+    <Image
+      image={openSaucedBg}
+      x={0}
+      y={0}
+      width={CONFIG.width}
+      height={CONFIG.height}
+    />,
     <Rect
       x={27}
       y={48}
       width={704}
       height={396}
-      fill="#60A5FA"
+      fill="#E0A764"
       cornerRadius={8}
     />,
     <Rect
@@ -322,8 +324,7 @@ const CodeJamTwo = () => {
         )}
       </Group>
     ),
-    <Image image={incredibleLogo} x={30} y={CONFIG.height - 60} />,
-    <Image image={graphqlLogo} x={840} y={CONFIG.height - 58} />,
+    <Image image={openSaucedLogo} x={30} y={CONFIG.height - 60} />,
   ]
 
   return (

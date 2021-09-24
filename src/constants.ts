@@ -6,6 +6,9 @@ import LANDING_DEVELOPER from './assets/developer.json'
 import COMMUNITY from './assets/community.json'
 import EMPTY_ACTIVITY from './assets/EmptyActivity.json'
 import WhiteLOGO from './assets/IncredibleWhiteLogo.svg'
+import Incredible_logo from './assets/incredible_logo.svg'
+import TWITTER_LOGO from './assets/logos_twitter.svg'
+import SLACK_LOGO from './assets/grommet-icons_slack.svg'
 import IncredibleLogo from './assets/Incredible-Logo.svg'
 import seriesFolder from './assets/albums-outline.svg'
 import flickIcon from './assets/flickIcon.svg'
@@ -16,6 +19,9 @@ export const ASSETS = {
     GOOGLE,
     GITHUB,
     WhiteLOGO,
+    SLACK_LOGO,
+    Incredible_logo,
+    TWITTER_LOGO,
     IncredibleLogo,
   },
   ANIMATION: {

@@ -102,7 +102,11 @@ const SwitchMediaDevices = ({
       />
       <Heading>Microphone</Heading>
       <Select
-        onChange={(value) => setcam(value)}
+        onChange={async (value) => {
+          updateParticipant?.({ audio: !constraints?.audio })
+          await mute('audio')
+          setMicrophone(value)
+        }}
         options={microphoneOptions}
         isMulti={false}
         value={{
