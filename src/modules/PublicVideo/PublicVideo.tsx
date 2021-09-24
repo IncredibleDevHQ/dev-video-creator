@@ -43,12 +43,18 @@ const PublicVideo = () => {
   return (
     <>
       <Header
-        owernId={data?.Flick?.[0].ownerId}
+        flickId={flick.id}
+        owner={
+          !!data?.Flick?.[0].participants.find(
+            (user) => data.Flick[0].ownerId === user.id
+          )
+        }
         link={`https://twitter.com/intent/tweet?text=Check this IncredibleDev Flick !%0A${
           data?.Flick?.[0].name
         }%0A${data?.Flick?.[0].description}%0A${
           baseUrl + data?.Flick?.[0].producedLink
         }`}
+        producedLink={baseUrl + data?.Flick?.[0].producedLink}
       />
       <div className="flex flex-col  mt-12 m-60">
         <Video
@@ -62,7 +68,7 @@ const PublicVideo = () => {
         <Heading className=" flex font-normal text-gray-500   text-xs capitalize  ">
           {formatDate(new Date(data?.Flick?.[0].updatedAt))}
         </Heading>
-        <div className="grid grid-cols-3 gap-4 pb-3 pl-4 pt-3 w-4/12  mt-6 rounded-lg min-w-min bg-gray-100 ">
+        <div className="grid grid-cols-3 gap-4 pb-3 pl-4 pt-3   w-1/2 mt-6 rounded-lg min-w-min bg-gray-100 ">
           {data?.Flick?.[0].participants &&
             data.Flick[0].participants.length > 0 &&
             data.Flick[0].participants.map((user) => (
@@ -91,7 +97,7 @@ const PublicVideo = () => {
               // </p>
             ))}
         </div>
-        <Heading className=" flex  w-auto h-auto mt-3  mb-5 font-normal text-base capitalize ">
+        <Heading className=" flex  w-1/2 h-auto mt-3  mb-5 font-normal text-base capitalize ">
           {data?.Flick?.[0].description}
         </Heading>
       </div>

@@ -3,15 +3,18 @@ import { css, cx } from '@emotion/css'
 import React from 'react'
 import { IoShareSocialOutline, IoTrashOutline } from 'react-icons/io5'
 import { FiEdit } from 'react-icons/fi'
+import { Link } from 'react-router-dom'
 import { ASSETS } from '../../../constants'
 import { Heading } from '../../../components'
 
 const MoreOptionsModal = ({
   open,
   handleClose,
+  flickId,
 }: {
   open: boolean
   handleClose: () => void
+  flickId: string
 }) => {
   return (
     <Modal
@@ -33,10 +36,12 @@ const MoreOptionsModal = ({
         `,
       }}
     >
-      <div className=" flex flex-row mr-4 mb-3 ml-4 mt-6 w-auto">
-        <FiEdit />
-        <Heading className="text-xs ml-4"> Edit in Studio </Heading>
-      </div>
+      <Link to={`/flick/${flickId}`} replace>
+        <div className=" flex flex-row mr-4 mb-3 ml-4 mt-6 w-auto">
+          <FiEdit />
+          <Heading className="text-xs ml-4"> Edit in Studio </Heading>
+        </div>
+      </Link>
       <div className=" flex flex-row mr-4 mb-3 ml-4 mt-6 w-auto">
         <IoTrashOutline />
         <Heading className="text-xs ml-4"> Delete </Heading>
