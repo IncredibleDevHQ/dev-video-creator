@@ -116,7 +116,7 @@ const PointsTwo = () => {
     {
       x: 565,
       y: 58,
-      width: 530,
+      width: 520,
       height: 390,
       clipTheme: 'rect',
       borderWidth: 8,
