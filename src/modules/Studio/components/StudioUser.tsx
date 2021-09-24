@@ -102,7 +102,7 @@ const StudioUser = ({
       <Rect
         x={backgroundRectX || 775}
         y={backgroundRectY || y}
-        width={160}
+        width={studioUserClipConfig?.width || defaultStudioUserClipConfig.width}
         height={imageConfig.height}
         fill={backgroundRectColor}
         stroke={borderColor}
