@@ -189,7 +189,6 @@ const Trivia = () => {
             fill="#E5E5E5"
             width={imgDim.width}
             height={imgDim.height}
-            h
             shadowOpacity={0.3}
             shadowOffset={{ x: 0, y: 1 }}
             shadowBlur={2}
