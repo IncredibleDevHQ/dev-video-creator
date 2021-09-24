@@ -8,6 +8,8 @@ fragment BaseFlick on Flick {
   scope
   plannedEnd
   startAt
+  ownerId
+  updatedAt
   status
   producedLink
 }
