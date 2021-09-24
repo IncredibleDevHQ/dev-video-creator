@@ -7,6 +7,8 @@ import COMMUNITY from './assets/community.json'
 import EMPTY_ACTIVITY from './assets/EmptyActivity.json'
 import WhiteLOGO from './assets/IncredibleWhiteLogo.svg'
 import IncredibleLogo from './assets/Incredible-Logo.svg'
+import seriesFolder from './assets/albums-outline.svg'
+import flickIcon from './assets/flickIcon.svg'
 
 export const ASSETS = {
   ICONS: {
@@ -22,6 +24,11 @@ export const ASSETS = {
     COMMUNITY,
     EMPTY_ACTIVITY,
   },
+}
+
+export const Icons = {
+  seriesFolder,
+  flickIcon,
 }
 
 export const API = {

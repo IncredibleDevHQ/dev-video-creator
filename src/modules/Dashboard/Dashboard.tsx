@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { cx } from '@emotion/css'
 import { IconType } from 'react-icons'
-import { FiArrowRight } from 'react-icons/fi'
+import { IoAlbumsOutline } from 'react-icons/io5'
 import { Button, Navbar, Tab, TabBar, Text } from '../../components'
 import { Drafts, NewFlickBanner, Published } from './components/index'
 import CreateSeriesModal from '../DashboardSeries/CreateSeriesModal'
@@ -66,16 +66,18 @@ const Dashboard = () => {
 
       <div className="flex flex-row gap-3 ml-28">
         <NewFlickBanner />
-        <Button
-          type="button"
-          appearance="primary"
-          size="extraSmall"
-          className="my-5 p-2 mx-2 flex justify-end text-white rounded-md"
-          icon={FiArrowRight}
-          onClick={() => setIsOpenNewSeriesCreateModal(true)}
-        >
-          Create series
-        </Button>
+        <div>
+          <Button
+            type="button"
+            appearance="primary"
+            size="extraSmall"
+            className="my-5 p-2 mx-2 flex justify-end text-white rounded-md"
+            icon={IoAlbumsOutline}
+            onClick={() => setIsOpenNewSeriesCreateModal(true)}
+          >
+            Create series
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-col m-0 p-0 ml-28">

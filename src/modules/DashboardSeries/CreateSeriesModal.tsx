@@ -1,6 +1,7 @@
 import { css, cx } from '@emotion/css'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import Modal from 'react-responsive-modal'
+import { useHistory } from 'react-router-dom'
 import { Button, ScreenState, TextField } from '../../components'
 import { useCreateUserSeriesMutation } from '../../generated/graphql'
 
@@ -12,9 +13,17 @@ const CreateSeriesModal = ({
   handleClose: (refresh?: boolean) => void
 }) => {
   const [seriesName, setSeriesName] = useState('')
+  const history = useHistory()
 
   const [createSeriesMutation, { data, loading, error }] =
     useCreateUserSeriesMutation()
+
+  useEffect(() => {
+    if (!data) return
+
+    history.push(`/series/${data.CreateSeries?.id}`)
+    handleClose(false)
+  }, [data])
 
   if (error)
     return (

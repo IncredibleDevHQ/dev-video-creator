@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useRecoilValue } from 'recoil'
 import { Link } from 'react-router-dom'
-import { BiVideo } from 'react-icons/bi'
+import { BiRectangle } from 'react-icons/bi'
 import { ScreenState, Text } from '../../../components'
 import {
   BaseFlickFragment,
@@ -10,12 +10,14 @@ import {
   User,
 } from '../../../generated/graphql'
 import { userState } from '../../../stores/user.store'
-import { flickFinalVideoImage } from '../../../constants'
+import { flickFinalVideoImage, Icons } from '../../../constants'
 
 const InfoTile = ({ flick }: { flick: BaseFlickFragment }) => {
   return (
     <div>
-      <Text className="text-sm text-gray-900 mt-3 w-44">{flick.name}</Text>
+      <Text className="text-sm text-gray-900 mt-3 w-44 truncate overflow-ellipsis capitalize">
+        {flick.name}
+      </Text>
     </div>
   )
 }
@@ -31,8 +33,8 @@ const FlickTile = ({ flick }: { flick: BaseFlickFragment }) => {
             alt={flick.name}
           />
         ) : (
-          <div className="bg-background transition-all hover:border-green-500 border-2 cursor-pointer w-64 h-36 mt-10">
-            <BiVideo />
+          <div className="transition-all border-2 mt-10 bg-gray-50 hover:border-green-500 cursor-pointer w-60 h-36 rounded-md border-gray-300 items-center justify-center">
+            <img src={Icons.flickIcon} alt="I" className="ml-24 mt-14" />
           </div>
         )}
         <InfoTile key={flick.id} flick={flick} />
