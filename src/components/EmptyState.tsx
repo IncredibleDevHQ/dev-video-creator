@@ -1,7 +1,5 @@
 import React from 'react'
-import Lottie from 'react-lottie'
 import { ASSETS } from '../constants'
-import Text from './Text'
 
 const defaultOptions = {
   loop: true,
@@ -13,8 +11,10 @@ const defaultOptions = {
 }
 const EmptyState = ({ width, text }: { width: number; text: string }) => {
   return (
-    <div className="flex h-full justify-center items-center flex-col">
-      <h2 className="font-black text-3xl">Select a Fragment to see it here.</h2>
+    <div className="flex h-full justify-center flex-col">
+      <h2 className="font-black text-base">
+        Select a Fragment to see it here.
+      </h2>
     </div>
   )
 }

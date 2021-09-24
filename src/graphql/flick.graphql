@@ -10,6 +10,12 @@ fragment BaseFlick on Flick {
   startAt
   status
   producedLink
+  participants {
+    user {
+      picture
+      email
+    }
+  }
 }
 
 fragment FlickActivity on FlickActivity {
@@ -86,6 +92,12 @@ query SeriesFlicks($id: uuid) {
       name
       previewLink
       description
+      participants {
+        user {
+          picture
+          email
+        }
+      }
     }
   }
 }

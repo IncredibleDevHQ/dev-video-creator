@@ -1,22 +1,20 @@
 import React from 'react'
-import { IoAlbumsOutline } from 'react-icons/io5'
 import { Link } from 'react-router-dom'
 import { useRecoilValue } from 'recoil'
 import { EmptyState, Heading, ScreenState } from '../../components'
+import { Icons } from '../../constants'
 import { useGetUserSeriesQuery, User } from '../../generated/graphql'
 import { userState } from '../../stores/user.store'
 
 const DashboardSeriesFlicks = () => {
   const userdata = (useRecoilValue(userState) as User) || {}
 
-  const { data, loading, error } = useGetUserSeriesQuery({
+  const { data, error } = useGetUserSeriesQuery({
     variables: {
       userId: userdata.sub as string,
       limit: 60,
     },
   })
-
-  if (loading) return <ScreenState title="Just a jiffy" loading />
 
   if (error)
     return (
@@ -35,12 +33,18 @@ const DashboardSeriesFlicks = () => {
             <Link to={`/series/${series.id}`}>
               <div
                 key={series.id}
-                className="bg-gray-50 hover:border-green-500 pb-2 cursor-pointer w-60 h-36 rounded-md border-gray-300 border-4"
+                className="bg-gray-50 hover:border-green-500 cursor-pointer w-60 h-36 rounded-md border-gray-300 border-2 items-center justify-center"
               >
-                <IoAlbumsOutline className="w-10 h-10 m-10 ml-24 mt-12" />
+                <img src={Icons.seriesFolder} alt="I" className="ml-20 mt-10" />
+                <div className="bg-gray-300 h-5 w-12 p-1 justify-end ml-44 mb-20 mt-2 rounded-sm text-xs items-center">
+                  {series.Flick_Series_aggregate.aggregate?.count &&
+                  series.Flick_Series_aggregate.aggregate?.count > 1
+                    ? `${series.Flick_Series_aggregate.aggregate?.count} Flicks`
+                    : `${series.Flick_Series_aggregate.aggregate?.count} Flick`}
+                </div>
               </div>
               <div className="w-full">
-                <Heading className="text-sm md:capitalize p-2 mt-0">
+                <Heading className="text-sm md:capitalize p-2 mt-0 font-semibold text-gray-800 w-40 truncate overflow-ellipsis">
                   {series.name}
                 </Heading>
               </div>
