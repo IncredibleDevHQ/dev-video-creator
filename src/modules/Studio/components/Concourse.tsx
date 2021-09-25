@@ -60,6 +60,8 @@ const Concourse = ({
     getBlobs,
     users,
     stopRecording,
+    startRecording,
+    updatePayload,
     constraints,
   } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [canvas, setCanvas] = useRecoilState(canvasStore)
@@ -72,6 +74,8 @@ const Concourse = ({
   const stageRef = createRef<Konva.Stage>()
   const layerRef = createRef<Konva.Layer>()
   const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
+
+  const [counter, setCounter] = useState(1)
 
   const defaultStudioUserConfig: StudioUserConfig = {
     x: 780,
@@ -202,6 +206,38 @@ const Concourse = ({
       </>
     )
   }
+  const Counter = ({ number }: { number: string }) => {
+    return (
+      <>
+        <Group
+          x={0}
+          y={0}
+          width={CONFIG.width}
+          height={CONFIG.height}
+          zIndex={100}
+          ref={(ref) => {
+            ref?.to({
+              duration: 1,
+              opacity: 1,
+              scaleX: 2,
+              scaleY: 2,
+            })
+          }}
+        >
+          <Text
+            x={0}
+            y={0}
+            width={960}
+            fontFamily="Poppins"
+            fontSize={100}
+            fill="#ffffff"
+            height={80}
+            text={number}
+          />
+        </Group>
+      </>
+    )
+  }
 
   const performFinishAction = () => {
     stopRecording()
@@ -212,6 +248,7 @@ const Concourse = ({
   }, [])
 
   useEffect(() => {
+    if (state === 'ready') setCounter(1)
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     titleSpalshData?.enable &&
       (payload?.status === Fragment_Status_Enum_Enum.Live
@@ -233,7 +270,7 @@ const Concourse = ({
   return (
     <div className="flex-1 mt-4 justify-between items-stretch flex">
       <div className="bg-gray-100 flex-1 rounded-md p-4 flex justify-center items-center mr-8">
-        {state === 'ready' || state === 'recording' ? (
+        {state === 'ready' || state === 'recording' || state === 'countDown' ? (
           <Stage
             ref={stageRef}
             onWheel={handleZoom}
@@ -319,6 +356,47 @@ const Concourse = ({
                         />
                       ))}
                     </>
+                  )}
+                {counter <= 3 &&
+                  (state === 'countDown' ||
+                    payload?.status ===
+                      Fragment_Status_Enum_Enum.CountDown) && (
+                    <Group
+                      x={0}
+                      y={0}
+                      key="group1"
+                      width={CONFIG.width}
+                      height={CONFIG.height}
+                      zIndex={500}
+                    >
+                      <Text
+                        align="center"
+                        verticalAlign="middle"
+                        fontFamily="Poppins"
+                        fontSize={100}
+                        fill="#ffffff"
+                        width={960 / 2}
+                        height={540 / 2}
+                        text={counter as unknown as string}
+                        ref={(ref) => {
+                          ref?.to({
+                            duration: 1,
+                            opacity: 1,
+                            scaleX: 2,
+                            scaleY: 2,
+                            onFinish: () => {
+                              setCounter(counter + 1)
+                              if (counter === 3 && state === 'countDown') {
+                                startRecording()
+                                updatePayload?.({
+                                  status: Fragment_Status_Enum_Enum.Live,
+                                })
+                              }
+                            },
+                          })
+                        }}
+                      />
+                    </Group>
                   )}
               </Layer>
             </Bridge>
