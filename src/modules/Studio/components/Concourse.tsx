@@ -76,7 +76,7 @@ const Concourse = ({
   const layerRef = createRef<Konva.Layer>()
   const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
 
-  const [counter, setCounter] = useState(1)
+  const [timer, setTimer] = useState(1)
 
   const defaultStudioUserConfig: StudioUserConfig = {
     x: 780,
@@ -217,7 +217,7 @@ const Concourse = ({
   }, [])
 
   useEffect(() => {
-    if (state === 'ready') setCounter(1)
+    if (state === 'ready') setTimer(1)
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     titleSpalshData?.enable &&
       (payload?.status === Fragment_Status_Enum_Enum.Live
@@ -326,7 +326,7 @@ const Concourse = ({
                       ))}
                     </>
                   )}
-                {counter <= 3 &&
+                {timer <= 4 &&
                   (state === 'countDown' ||
                     payload?.status ===
                       Fragment_Status_Enum_Enum.CountDown) && (
@@ -346,7 +346,7 @@ const Concourse = ({
                         fill="#ffffff"
                         width={960 / 2}
                         height={540 / 2}
-                        text={counter as unknown as string}
+                        text={timer === 4 ? ' ' : (timer as unknown as string)}
                         ref={(ref) => {
                           ref?.to({
                             duration: 1,
@@ -354,8 +354,8 @@ const Concourse = ({
                             scaleX: 2,
                             scaleY: 2,
                             onFinish: () => {
-                              setCounter(counter + 1)
-                              if (counter === 3 && isHost) {
+                              setTimer(timer + 1)
+                              if (timer === 4 && isHost) {
                                 startRecording()
                                 updatePayload?.({
                                   status: Fragment_Status_Enum_Enum.Live,
