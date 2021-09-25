@@ -59,6 +59,7 @@ const Concourse = ({
     payload,
     getBlobs,
     users,
+    isHost,
     stopRecording,
     startRecording,
     updatePayload,
@@ -201,38 +202,6 @@ const Concourse = ({
             fontFamily="Poppins"
             fontSize={60}
             align="center"
-          />
-        </Group>
-      </>
-    )
-  }
-  const Counter = ({ number }: { number: string }) => {
-    return (
-      <>
-        <Group
-          x={0}
-          y={0}
-          width={CONFIG.width}
-          height={CONFIG.height}
-          zIndex={100}
-          ref={(ref) => {
-            ref?.to({
-              duration: 1,
-              opacity: 1,
-              scaleX: 2,
-              scaleY: 2,
-            })
-          }}
-        >
-          <Text
-            x={0}
-            y={0}
-            width={960}
-            fontFamily="Poppins"
-            fontSize={100}
-            fill="#ffffff"
-            height={80}
-            text={number}
           />
         </Group>
       </>
@@ -386,7 +355,7 @@ const Concourse = ({
                             scaleY: 2,
                             onFinish: () => {
                               setCounter(counter + 1)
-                              if (counter === 3 && state === 'countDown') {
+                              if (counter === 3 && isHost) {
                                 startRecording()
                                 updatePayload?.({
                                   status: Fragment_Status_Enum_Enum.Live,
