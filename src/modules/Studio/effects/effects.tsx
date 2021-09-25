@@ -31,6 +31,8 @@ import CodeJamThree from './CodeJamThree'
 import VideoJamFive from './VideoJamFive'
 import TriviaTwo from './TriviaTwo'
 import PointsTwo from './PointsTwo'
+import TriviaThree from './TriviaThree'
+import PointsThree from './PointsThree'
 
 const themeEnum = 'theme'
 export interface Effect {
@@ -93,12 +95,14 @@ const getCodeJamTheme = (theme: any) => {
 
 const getTriviaTheme = (theme: any) => {
   if (theme.value === '1') return TriviaTwo
+  if (theme.value === '2') return TriviaThree
   return Trivia
 }
 
 const getPointsTheme = (theme: any) => {
   if (theme.value === '1') return PointsTwo
-  return Trivia
+  if (theme.value === '2') return PointsThree
+  return Points
 }
 
 export const getDimensions = (

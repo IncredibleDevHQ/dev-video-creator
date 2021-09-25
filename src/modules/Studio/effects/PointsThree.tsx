@@ -31,28 +31,20 @@ const PointsTwo = () => {
 
   const [titleNumberOfLines, setTitleNumberOfLines] = useState<number>(0)
 
-  const circleColors = [
-    '#000000',
-    '#1F2937',
-    '#4B5563',
-    '#6B7280',
-    '#9CA3AF',
-    '#ffffff',
-  ]
-
   const initialX = 32
-  const lineLength = 20
 
-  const [incredibleLogo] = useImage(
-    `${config.storage.baseUrl}x-incredible.svg`,
+  const [openSaucedLogo] = useImage(
+    `${config.storage.baseUrl}open-sauce-logo.svg`,
     'anonymous'
   )
-  const [circleGroup] = useImage(
-    `${config.storage.baseUrl}black-circles.svg`,
+
+  const [openSaucedBg] = useImage(
+    `${config.storage.baseUrl}opensauce-bg.svg`,
     'anonymous'
   )
-  const [graphqlLogo] = useImage(
-    `${config.storage.baseUrl}graphql3.svg`,
+
+  const [bulletPizza] = useImage(
+    `${config.storage.baseUrl}pizza-bullet.svg`,
     'anonymous'
   )
 
@@ -91,7 +83,7 @@ const PointsTwo = () => {
       points,
       availableWidth: 392,
       availableHeight: 220,
-      gutter: 12,
+      gutter: 14,
       fontSize: 16,
     })
     setGroupCoordinate(
@@ -129,7 +121,7 @@ const PointsTwo = () => {
       },
       backgroundRectX: 705,
       backgroundRectY: 48,
-      backgroundRectColor: '#C084FC',
+      backgroundRectColor: '#E0A764',
     },
   ]
 
@@ -153,15 +145,21 @@ const PointsTwo = () => {
       y={0}
       width={CONFIG.width}
       height={CONFIG.height}
-      fill="#1F2937"
+      fill="#ffffff"
     />,
-    <Image image={circleGroup} x={380} y={440} />,
+    <Image
+      image={openSaucedBg}
+      x={0}
+      y={0}
+      width={CONFIG.width}
+      height={CONFIG.height}
+    />,
     <Rect
       x={27}
       y={48}
       width={640}
       height={390}
-      fill="#60A5FA"
+      fill="#E0A764"
       cornerRadius={8}
     />,
     <Rect
@@ -169,7 +167,7 @@ const PointsTwo = () => {
       y={58}
       width={640}
       height={390}
-      fill="#374151"
+      fill="#FAEACE"
       cornerRadius={8}
     />,
     <Text
@@ -178,7 +176,7 @@ const PointsTwo = () => {
       y={90}
       align="left"
       fontSize={40}
-      fill="#F9FAFB"
+      fill="#D95C41"
       width={500}
       lineHeight={1.15}
       text={fragment?.name as string}
@@ -190,12 +188,11 @@ const PointsTwo = () => {
         .filter((_, i) => i < activePointIndex)
         .map((point, j) => (
           <>
-            <Circle
-              key="points"
+            <Image
+              key={`points${point.text}`}
               x={-76}
-              radius={11}
-              y={point.y + 8}
-              fill={circleColors[j % 6]}
+              y={point.y - 4}
+              image={bulletPizza}
               ref={(ref) =>
                 ref?.to({
                   x: 0,
@@ -209,16 +206,16 @@ const PointsTwo = () => {
               y={point.y}
               align="left"
               fontSize={16}
-              fill="#F9FAFB"
+              fill="#000000"
               width={460}
               height={64}
               text={point.text}
               lineHeight={1.1}
-              fontStyle="normal 600"
+              fontStyle="normal 400"
               fontFamily="Poppins"
               ref={(ref) =>
                 ref?.to({
-                  x: 30,
+                  x: 42,
                   duration: 0.3,
                 })
               }
@@ -226,8 +223,7 @@ const PointsTwo = () => {
           </>
         ))}
     </Group>,
-    <Image image={incredibleLogo} x={30} y={CONFIG.height - 60} />,
-    <Image image={graphqlLogo} x={840} y={CONFIG.height - 58} />,
+    <Image image={openSaucedLogo} x={30} y={CONFIG.height - 60} />,
   ]
 
   return (
