@@ -49,7 +49,7 @@ const VideoTile = ({ flick }: { flick: BaseFlickFragment }) => {
 const Published = () => {
   const { sub } = (useRecoilValue(userState) as User) || {}
   const { data, loading } = useGetUserFlicksQuery({
-    variables: { sub: sub as string },
+    variables: { sub: sub || '' },
   })
   const [view] = useState<'grid' | 'list'>('grid')
   if (loading) return <ScreenState title="Just a moment..." loading />

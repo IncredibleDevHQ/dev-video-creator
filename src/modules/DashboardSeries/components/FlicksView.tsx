@@ -1,12 +1,12 @@
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 /* eslint-disable no-nested-ternary */
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import Gravatar from 'react-gravatar'
 import { FiEdit } from 'react-icons/fi'
 import { IoCheckmarkDone } from 'react-icons/io5'
 import { Link, useHistory, useParams } from 'react-router-dom'
-import { Button, Heading, Text } from '../../../components'
+import { Heading, Text } from '../../../components'
 import { Icons } from '../../../constants'
 import { useSeriesFlicksQuery } from '../../../generated/graphql'
 import { NewFlickBanner } from '../../Dashboard/components'

@@ -9,6 +9,9 @@ fragment BaseFlick on Flick {
   plannedEnd
   startAt
   ownerId
+  owner {
+    userSub
+  }
   updatedAt
   status
   producedLink
@@ -166,5 +169,11 @@ fragment Note on Note {
 query GetFragmentNotes($fragmentId: uuid!) {
   Note(where: { fragmentId: { _eq: $fragmentId } }) {
     ...Note
+  }
+}
+
+mutation DeleteFlick($flickId: uuid!) {
+  DeleteFlick(flickId: $flickId) {
+    id
   }
 }

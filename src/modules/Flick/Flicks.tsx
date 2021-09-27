@@ -9,7 +9,7 @@ const Flicks = () => {
   const { uid } = (useRecoilValue(userState) as User) || {}
   const { data, error, loading } = useGetUserFlicksQuery({
     variables: {
-      sub: uid as string,
+      sub: uid || '',
     },
   })
 
