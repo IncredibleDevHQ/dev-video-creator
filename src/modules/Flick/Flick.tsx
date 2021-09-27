@@ -9,6 +9,7 @@ import {
   FragmentActivity,
   FragmentConfiguration,
   FragmentsSidebar,
+  // Participants,
 } from './components'
 import { currentFlickStore } from '../../stores/flick.store'
 import {
@@ -32,6 +33,7 @@ const Flick = () => {
   const [studio, setStudio] = useRecoilState(studioStore)
   const { sub } = (useRecoilValue(userState) as User) || {}
 
+  // const [isParticipants, setParticipants] = useState(true)
   const [isActivityMenu, setIsActivityMenu] = useState(false)
 
   const [activeFragmentId, setActiveFragmentId] = useState<string>()

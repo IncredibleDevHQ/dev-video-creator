@@ -54,7 +54,11 @@ query GetSeriesById($id: uuid!) {
 }
 
 query GetUserSeries($userId: String!, $limit: Int) {
-  Series(where: { ownerSub: { _eq: $userId } }, limit: $limit) {
+  Series(
+    where: { ownerSub: { _eq: $userId } }
+    limit: $limit
+    order_by: { createdAt: desc }
+  ) {
     ...PublicSeries
     Flick_Series_aggregate {
       aggregate {
