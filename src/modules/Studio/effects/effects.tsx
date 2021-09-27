@@ -33,6 +33,10 @@ import TriviaTwo from './TriviaTwo'
 import PointsTwo from './PointsTwo'
 import TriviaThree from './TriviaThree'
 import PointsThree from './PointsThree'
+import CodeJamFour from './CodeJamFour'
+import VideoJamSix from './VideoJamSix'
+import TriviaFour from './TriviaFour'
+import PointsFour from './PointsFour'
 
 const themeEnum = 'theme'
 export interface Effect {
@@ -82,26 +86,30 @@ const getSplash = (theme: any) => {
 const getVideoTheme = (theme: any) => {
   if (theme.value === '1') return VideoJamFour
   if (theme.value === '2') return VideoJamFive
-  if (theme.value === '3') return VideoJamTwo
-  if (theme.value === '4') return VideoJamThree
+  if (theme.value === '3') return VideoJamSix
+  if (theme.value === '4') return VideoJamTwo
+  if (theme.value === '5') return VideoJamThree
   return VideoJam
 }
 
 const getCodeJamTheme = (theme: any) => {
   if (theme.value === '1') return CodeJamTwo
   if (theme.value === '2') return CodeJamThree
+  if (theme.value === '3') return CodeJamFour
   return CodeJam
 }
 
 const getTriviaTheme = (theme: any) => {
   if (theme.value === '1') return TriviaTwo
   if (theme.value === '2') return TriviaThree
+  if (theme.value === '3') return TriviaFour
   return Trivia
 }
 
 const getPointsTheme = (theme: any) => {
   if (theme.value === '1') return PointsTwo
   if (theme.value === '2') return PointsThree
+  if (theme.value === '3') return PointsFour
   return Points
 }
 
