@@ -37,6 +37,7 @@ import CodeJamFour from './CodeJamFour'
 import VideoJamSix from './VideoJamSix'
 import TriviaFour from './TriviaFour'
 import PointsFour from './PointsFour'
+import SplashFifteen from './SplashFifteen'
 
 const themeEnum = 'theme'
 export interface Effect {
@@ -71,15 +72,16 @@ const getSplash = (theme: any) => {
   if (theme.value === '0') return SplashFive
   if (theme.value === '1') return SplashThree
   if (theme.value === '2') return SplashTen
-  if (theme.value === '3') return SplashSix
-  if (theme.value === '4') return SplashSeven
-  if (theme.value === '5') return SplashEight
-  if (theme.value === '6') return SplashNine
-  if (theme.value === '7') return SplashEleven
-  if (theme.value === '8') return SplashTwelve
-  if (theme.value === '9') return SplashThirteen
-  if (theme.value === '10') return SplashFourteen
-  if (theme.value === '11') return SplashFour
+  if (theme.value === '3') return SplashFifteen
+  if (theme.value === '4') return SplashSix
+  if (theme.value === '5') return SplashSeven
+  if (theme.value === '6') return SplashEight
+  if (theme.value === '7') return SplashNine
+  if (theme.value === '8') return SplashEleven
+  if (theme.value === '9') return SplashTwelve
+  if (theme.value === '10') return SplashThirteen
+  if (theme.value === '11') return SplashFourteen
+  if (theme.value === '12') return SplashFour
   return CustomSplash
 }
 
