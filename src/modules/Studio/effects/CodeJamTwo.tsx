@@ -362,8 +362,3 @@ const getRenderedTokens = (tokens: ComputedToken[], position: Position) => {
 }
 
 export default CodeJamTwo
-
-/**
- * TODO:
- * 1. Remove Hardcoded program text - (It should come from Inventory)
- */
