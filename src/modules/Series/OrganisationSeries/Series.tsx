@@ -47,20 +47,17 @@ const OrganisationSeries = ({
 
   return (
     <div>
-      {uid ===
-        selectedOrganisation.members.find((member) => member.role === 'Owner')
-          ?.user.sub && (
-        <div className="w-1/3 flex m-1 mt-0 gap-2">
-          <Button
-            appearance="primary"
-            type="button"
-            size="small"
-            onClick={() => setSeriesModal(true)}
-          >
-            Create Series
-          </Button>
-        </div>
-      )}
+      {/* <div className="w-1/3 flex m-1 mt-0 gap-2">
+        <Button
+          appearance="primary"
+          type="button"
+          size="small"
+          onClick={() => setSeriesModal(true)}
+        >
+          Create Series
+        </Button>
+      </div> */}
+
       <div className="grid md:grid-cols-2 lg:grid-cols-3 grid-cols-1">
         {series?.map((series: SeriesFragment) => (
           <Link

@@ -56,8 +56,6 @@ const MagicLinkLogin = () => {
         />
       )
 
-    // console.log(data)
-
     handleSignIn(data?.FetchEmailUsingState?.email as string)
   }
 

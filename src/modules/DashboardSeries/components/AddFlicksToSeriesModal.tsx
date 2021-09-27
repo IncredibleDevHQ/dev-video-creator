@@ -17,6 +17,7 @@ const AddFlicksToSeriesModal = ({
   seriesName,
   setFlicksAdded,
   flicksAdded,
+  flicks,
 }: {
   open: boolean
   setOpen: React.Dispatch<React.SetStateAction<boolean>>
@@ -24,17 +25,16 @@ const AddFlicksToSeriesModal = ({
   seriesName?: string
   setFlicksAdded: React.Dispatch<React.SetStateAction<boolean>>
   flicksAdded: boolean
+  flicks: string[]
 }) => {
-  const [selectedFlicks, setSelectedFlicks] = useState<string[]>([])
+  const [selectedFlicks, setSelectedFlicks] = useState<string[]>(flicks)
   const { sub } = (useRecoilValue(userState) as User) || {}
   const { data, loading, error } = useGetUserPublicFlicksQuery({
-    variables: { sub: sub as string },
+    variables: { userId: sub as string },
   })
 
-  const [
-    addFlickToSeries,
-    { data: dataUser, loading: loadingUser, error: errorUser },
-  ] = useUpdateSeriesFlickMutation()
+  const [addFlickToSeries, { loading: loadingUser, error: errorUser }] =
+    useUpdateSeriesFlickMutation()
 
   const flicksInSeries = async () => {
     await addFlickToSeries({
@@ -61,17 +61,23 @@ const AddFlicksToSeriesModal = ({
   return (
     <Modal
       classNames={{
-        modal: 'w-full',
+        modal: 'w-full ',
         closeButton: 'focus:outline-none',
+      }}
+      styles={{
+        modal: {
+          maxWidth: '60%',
+          maxHeight: '90%',
+        },
       }}
       open={open}
       onClose={() => setOpen(false)}
       center
     >
-      <div className="text-center pb-2 text-xl">
+      <div className="text-center pb-2 text-lg">
         Click on a Flick to Add to &quot;{seriesName}&quot;
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-2 gap-y-2">
+      <div className="grid grid-cols-3 gap-y-3 mt-5">
         {data?.Flick.map((flick) => (
           <FlickCard
             selected={selectedFlicks?.includes(flick.id)}

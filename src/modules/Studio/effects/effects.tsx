@@ -34,15 +34,23 @@ import PointsTwo from './PointsTwo'
 import TriviaThree from './TriviaThree'
 import PointsThree from './PointsThree'
 import CodeJamFour from './CodeJamFour'
+import CodeJamSix from './CodeJamSix'
 import VideoJamSix from './VideoJamSix'
 import TriviaFour from './TriviaFour'
 import PointsFour from './PointsFour'
+import PointsSix from './PointsSix'
+import VideoJamEight from './VideoJamEight'
 import SplashFifteen from './SplashFifteen'
 import CodeJamFive from './CodeJamFive'
 import VideoJamSeven from './VideoJamSeven'
 import TriviaFive from './TriviaFive'
 import PointsFive from './PointsFive'
 import SplashSixteen from './SplashSixteen'
+import TriviaSix from './TriviaSix'
+import CodeJamSeven from './CodeJamSeven'
+import PointsSeven from './PointsSeven'
+import TriviaSeven from './TriviaSeven'
+import VideoJamNine from './VideoJamNine'
 
 const themeEnum = 'theme'
 export interface Effect {
@@ -96,8 +104,10 @@ const getVideoTheme = (theme: any) => {
   if (theme.value === '2') return VideoJamFive
   if (theme.value === '3') return VideoJamSix
   if (theme.value === '4') return VideoJamSeven
-  if (theme.value === '5') return VideoJamTwo
-  if (theme.value === '6') return VideoJamThree
+  if (theme.value === '5') return VideoJamEight
+  if (theme.value === '6') return VideoJamNine
+  if (theme.value === '7') return VideoJamTwo
+  if (theme.value === '8') return VideoJamThree
   return VideoJam
 }
 
@@ -106,6 +116,8 @@ const getCodeJamTheme = (theme: any) => {
   if (theme.value === '2') return CodeJamThree
   if (theme.value === '3') return CodeJamFour
   if (theme.value === '4') return CodeJamFive
+  if (theme.value === '5') return CodeJamSix
+  if (theme.value === '6') return CodeJamSeven
   return CodeJam
 }
 
@@ -114,6 +126,8 @@ const getTriviaTheme = (theme: any) => {
   if (theme.value === '2') return TriviaThree
   if (theme.value === '3') return TriviaFour
   if (theme.value === '4') return TriviaFive
+  if (theme.value === '5') return TriviaSix
+  if (theme.value === '6') return TriviaSeven
   return Trivia
 }
 
@@ -122,6 +136,8 @@ const getPointsTheme = (theme: any) => {
   if (theme.value === '2') return PointsThree
   if (theme.value === '3') return PointsFour
   if (theme.value === '4') return PointsFive
+  if (theme.value === '5') return PointsSix
+  if (theme.value === '6') return PointsSeven
   return Points
 }
 
