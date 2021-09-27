@@ -1,14 +1,17 @@
 import axios from 'axios'
 import React, { useEffect, useState } from 'react'
-import { Group, Circle, Text } from 'react-konva'
+import { Group, Circle, Text, Rect, Image } from 'react-konva'
 import { useRecoilValue } from 'recoil'
+import useImage from 'use-image'
 import { NextLineIcon, NextTokenIcon } from '../../../components'
+import config from '../../../config'
 import { API } from '../../../constants'
 import {
   Fragment_Status_Enum_Enum,
   useGetTokenisedCodeLazyQuery,
 } from '../../../generated/graphql'
 import { Concourse } from '../components'
+import { CONFIG, StudioUserConfig } from '../components/Concourse'
 import { ControlButton } from '../components/MissionControl'
 import RenderTokens from '../components/RenderTokens'
 import useCode, { ComputedToken } from '../hooks/use-code'
@@ -25,7 +28,7 @@ interface Position {
   currentIndex: number
 }
 
-const CodeJam = () => {
+const CodeJamFive = () => {
   const { fragment, payload, updatePayload, state, isHost } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
@@ -40,6 +43,11 @@ const CodeJam = () => {
     prevIndex: -1,
     currentIndex: 0,
   })
+
+  const [wtfjsLogo] = useImage(
+    `${config.storage.baseUrl}WTFJS.svg`,
+    'anonymous'
+  )
 
   useEffect(() => {
     if (!fragment?.configuration.properties) return
@@ -79,8 +87,8 @@ const CodeJam = () => {
     if (!data?.TokenisedCode) return
     initUseCode({
       tokens: data.TokenisedCode.data,
-      canvasWidth: 900,
-      canvasHeight: 460,
+      canvasWidth: 700,
+      canvasHeight: 360,
       gutter: 5,
       fontSize: codeConfig.fontSize,
     })
@@ -141,8 +149,134 @@ const CodeJam = () => {
         ]
       : [<></>]
 
+  const studioCoordinates: StudioUserConfig[] = (() => {
+    switch (fragment?.participants.length) {
+      case 2:
+        return [
+          {
+            x: 728.5,
+            y: 0,
+            width: 240,
+            height: 180,
+            clipTheme: 'rect',
+            borderWidth: 6,
+            borderColor: '#ffffff',
+            studioUserClipConfig: {
+              x: 7.5,
+              y: 0,
+              width: 225,
+              height: 180,
+              radius: 0,
+            },
+          },
+          {
+            x: 728.5,
+            y: 205,
+            width: 240,
+            height: 180,
+            clipTheme: 'rect',
+            borderWidth: 6,
+            borderColor: '#ffffff',
+            studioUserClipConfig: {
+              x: 7.5,
+              y: 0,
+              width: 225,
+              height: 180,
+              radius: 0,
+            },
+          },
+        ]
+      case 3:
+        return [
+          {
+            x: 752,
+            y: 0,
+            width: 160,
+            height: 120,
+            clipTheme: 'rect',
+            borderWidth: 6,
+            borderColor: '#ffffff',
+            studioUserClipConfig: {
+              x: 0,
+              y: 0,
+              width: 160,
+              height: 120,
+              radius: 0,
+            },
+          },
+          {
+            x: 752,
+            y: 140,
+            width: 160,
+            height: 120,
+            clipTheme: 'rect',
+            borderWidth: 6,
+            borderColor: '#ffffff',
+            studioUserClipConfig: {
+              x: 0,
+              y: 0,
+              width: 160,
+              height: 120,
+              radius: 0,
+            },
+          },
+          {
+            x: 752,
+            y: 280,
+            width: 160,
+            height: 120,
+            clipTheme: 'rect',
+            borderWidth: 6,
+            borderColor: '#ffffff',
+            studioUserClipConfig: {
+              x: 0,
+              y: 0,
+              width: 160,
+              height: 120,
+              radius: 0,
+            },
+          },
+        ]
+      default:
+        return [
+          {
+            x: 586,
+            y: 0,
+            width: 528,
+            height: 396,
+            clipTheme: 'rect',
+            borderWidth: 6,
+            borderColor: '#ffffff',
+            studioUserClipConfig: {
+              x: 154,
+              y: 0,
+              width: 220,
+              height: 396,
+              radius: 0,
+            },
+          },
+        ]
+    }
+  })()
+
   const layerChildren = [
-    <Group y={15} x={15} key="circleGroup">
+    <Rect
+      x={0}
+      y={0}
+      width={CONFIG.width}
+      height={CONFIG.height}
+      fill="#1F2937"
+    />,
+    <Rect
+      x={0}
+      y={0}
+      width={704}
+      height={396}
+      fill="#202026"
+      stroke="#ffffff"
+      strokeWidth={3}
+    />,
+    <Group x={15} y={15} key="circleGroup">
       <Circle key="redCircle" x={0} y={0} fill="#FF605C" radius={5} />
       <Circle key="yellowCircle" x={14} y={0} fill="#FFBD44" radius={5} />
       <Circle key="greenCircle" x={28} y={0} fill="#00CA4E" radius={5} />
@@ -160,6 +294,7 @@ const CodeJam = () => {
         )}
       </Group>
     ),
+    <Image image={wtfjsLogo} x={60} y={CONFIG.height - 80} />,
   ]
 
   return (
@@ -167,6 +302,7 @@ const CodeJam = () => {
       layerChildren={layerChildren}
       controls={controls}
       titleSpalshData={titleSpalshData}
+      studioUserConfig={studioCoordinates}
     />
   )
 }
@@ -196,4 +332,4 @@ const getRenderedTokens = (tokens: ComputedToken[], position: Position) => {
     })
 }
 
-export default CodeJam
+export default CodeJamFive

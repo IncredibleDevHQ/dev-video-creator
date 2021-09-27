@@ -105,20 +105,24 @@ const StudioUser = ({
         x={backgroundRectX || 775}
         y={backgroundRectY || y}
         width={studioUserClipConfig?.width || defaultStudioUserClipConfig.width}
-        height={imageConfig.height}
+        height={
+          studioUserClipConfig?.height || defaultStudioUserClipConfig.height
+        }
         fill={backgroundRectColor}
         stroke={backgroundRectBorderColor}
         strokeWidth={backgroundRectBorderWidth || 0}
-        cornerRadius={8}
+        cornerRadius={studioUserClipConfig?.radius || 0}
       />
       <Rect
         x={(studioUserClipConfig && studioUserClipConfig.x + x) || 775}
         y={y}
         width={studioUserClipConfig?.width || defaultStudioUserClipConfig.width}
-        height={imageConfig.height}
+        height={
+          studioUserClipConfig?.height || defaultStudioUserClipConfig.height
+        }
         stroke={borderColor}
         strokeWidth={borderWidth || 0}
-        cornerRadius={8}
+        cornerRadius={studioUserClipConfig?.radius || 0}
       />
       <Group
         x={x}

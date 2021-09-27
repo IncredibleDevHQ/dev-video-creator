@@ -1,14 +1,17 @@
 import axios from 'axios'
 import React, { useEffect, useState } from 'react'
-import { Group, Circle, Text } from 'react-konva'
+import { Group, Circle, Text, Rect, Image } from 'react-konva'
 import { useRecoilValue } from 'recoil'
+import useImage from 'use-image'
 import { NextLineIcon, NextTokenIcon } from '../../../components'
+import config from '../../../config'
 import { API } from '../../../constants'
 import {
   Fragment_Status_Enum_Enum,
   useGetTokenisedCodeLazyQuery,
 } from '../../../generated/graphql'
 import { Concourse } from '../components'
+import { CONFIG, StudioUserConfig } from '../components/Concourse'
 import { ControlButton } from '../components/MissionControl'
 import RenderTokens from '../components/RenderTokens'
 import useCode, { ComputedToken } from '../hooks/use-code'
@@ -25,7 +28,7 @@ interface Position {
   currentIndex: number
 }
 
-const CodeJam = () => {
+const CodeJamSeven = () => {
   const { fragment, payload, updatePayload, state, isHost } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
@@ -40,6 +43,15 @@ const CodeJam = () => {
     prevIndex: -1,
     currentIndex: 0,
   })
+
+  const [nextJSLogo] = useImage(
+    `${config.storage.baseUrl}nextJSLogo.svg`,
+    'anonymous'
+  )
+  const [nextJSBg] = useImage(
+    `${config.storage.baseUrl}nextJS_bg.svg`,
+    'anonymous'
+  )
 
   useEffect(() => {
     if (!fragment?.configuration.properties) return
@@ -79,8 +91,8 @@ const CodeJam = () => {
     if (!data?.TokenisedCode) return
     initUseCode({
       tokens: data.TokenisedCode.data,
-      canvasWidth: 900,
-      canvasHeight: 460,
+      canvasWidth: 700,
+      canvasHeight: 360,
       gutter: 5,
       fontSize: codeConfig.fontSize,
     })
@@ -141,14 +153,151 @@ const CodeJam = () => {
         ]
       : [<></>]
 
+  const studioCoordinates: StudioUserConfig[] = (() => {
+    switch (fragment?.participants.length) {
+      case 2:
+        return [
+          {
+            x: 735,
+            y: 60,
+            width: 240,
+            height: 180,
+            clipTheme: 'rect',
+            borderWidth: 8,
+            borderColor: '#111111',
+            studioUserClipConfig: {
+              x: 40,
+              y: 0,
+              width: 160,
+              height: 180,
+              radius: 0,
+            },
+          },
+          {
+            x: 735,
+            y: 265,
+            width: 240,
+            height: 180,
+            clipTheme: 'rect',
+            borderWidth: 8,
+            borderColor: '#111111',
+            studioUserClipConfig: {
+              x: 40,
+              y: 0,
+              width: 160,
+              height: 180,
+              radius: 0,
+            },
+          },
+        ]
+      case 3:
+        return [
+          {
+            x: 775,
+            y: 58.5,
+            width: 160,
+            height: 120,
+            clipTheme: 'rect',
+            borderWidth: 8,
+            borderColor: '#111111',
+            studioUserClipConfig: {
+              x: 0,
+              y: 0,
+              width: 160,
+              height: 120,
+              radius: 0,
+            },
+          },
+          {
+            x: 775,
+            y: 198.5,
+            width: 160,
+            height: 120,
+            clipTheme: 'rect',
+            borderWidth: 8,
+            borderColor: '#111111',
+            studioUserClipConfig: {
+              x: 0,
+              y: 0,
+              width: 160,
+              height: 120,
+              radius: 0,
+            },
+          },
+          {
+            x: 775,
+            y: 338.5,
+            width: 160,
+            height: 120,
+            clipTheme: 'rect',
+            borderWidth: 8,
+            borderColor: '#111111',
+            studioUserClipConfig: {
+              x: 0,
+              y: 0,
+              width: 160,
+              height: 120,
+              radius: 0,
+            },
+          },
+        ]
+      default:
+        return [
+          {
+            x: 695,
+            y: 120.5,
+            width: 320,
+            height: 240,
+            clipTheme: 'rect',
+            borderWidth: 8,
+            borderColor: '#111111',
+            studioUserClipConfig: {
+              x: 80,
+              y: 0,
+              width: 160,
+              height: 240,
+              radius: 0,
+            },
+          },
+        ]
+    }
+  })()
+
   const layerChildren = [
-    <Group y={15} x={15} key="circleGroup">
+    <Rect
+      strokeWidth={1}
+      x={0}
+      y={0}
+      fill="#F5F6F7"
+      width={CONFIG.width}
+      height={CONFIG.height}
+      stroke="#111111"
+    />,
+    <Image
+      image={nextJSBg}
+      x={1}
+      y={1}
+      fill="#F5F6F7"
+      width={CONFIG.width - 2}
+      height={CONFIG.height - 2}
+    />,
+    <Rect
+      x={37}
+      y={58}
+      width={704}
+      height={396}
+      fill="#202026"
+      strokeWidth={2}
+      stroke="#111111"
+      cornerRadius={8}
+    />,
+    <Group x={52} y={73} key="circleGroup">
       <Circle key="redCircle" x={0} y={0} fill="#FF605C" radius={5} />
       <Circle key="yellowCircle" x={14} y={0} fill="#FFBD44" radius={5} />
       <Circle key="greenCircle" x={28} y={0} fill="#00CA4E" radius={5} />
     </Group>,
     payload?.status === Fragment_Status_Enum_Enum.Live && (
-      <Group x={20} y={30} key="group">
+      <Group x={57} y={88} key="group">
         {getRenderedTokens(computedTokens.current, position)}
         {computedTokens.current.length > 0 && (
           <RenderTokens
@@ -160,6 +309,7 @@ const CodeJam = () => {
         )}
       </Group>
     ),
+    <Image image={nextJSLogo} x={30} y={CONFIG.height - 50} />,
   ]
 
   return (
@@ -167,6 +317,7 @@ const CodeJam = () => {
       layerChildren={layerChildren}
       controls={controls}
       titleSpalshData={titleSpalshData}
+      studioUserConfig={studioCoordinates}
     />
   )
 }
@@ -196,4 +347,4 @@ const getRenderedTokens = (tokens: ComputedToken[], position: Position) => {
     })
 }
 
-export default CodeJam
+export default CodeJamSeven
