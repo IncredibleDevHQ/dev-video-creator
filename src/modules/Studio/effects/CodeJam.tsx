@@ -148,7 +148,7 @@ const CodeJam = () => {
       <Circle key="greenCircle" x={28} y={0} fill="#00CA4E" radius={5} />
     </Group>,
     payload?.status === Fragment_Status_Enum_Enum.Live && (
-      <Group x={57} y={88} key="group">
+      <Group x={20} y={30} key="group">
         {getRenderedTokens(computedTokens.current, position)}
         {computedTokens.current.length > 0 && (
           <RenderTokens
