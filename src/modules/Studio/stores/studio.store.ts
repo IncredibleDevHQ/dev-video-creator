@@ -8,6 +8,7 @@ export type StudioState =
   | 'recording'
   | 'preview'
   | 'upload'
+  | 'countDown'
   | 'finalSplash'
 export interface StudioProviderProps<T = any, S = any> {
   stream: MediaStream
