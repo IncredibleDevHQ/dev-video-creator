@@ -330,7 +330,9 @@ const Studio = () => {
                 history.goBack()
               }}
             />
-            <Heading className="font-semibold">{fragment.name}</Heading>
+            <Heading className="font-semibold">
+              {fragment.flick.name} / {fragment.name}
+            </Heading>
           </div>
           {payload?.status === Fragment_Status_Enum_Enum.Live ? (
             <div className="flex px-2 py-1 rounded-sm bg-error-10 animate-pulse">

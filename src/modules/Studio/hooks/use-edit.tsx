@@ -35,7 +35,37 @@ const useEdit = () => {
     )
   }
 
-  return { clipRect, clipCircle }
+  const getImageDimensions = (
+    img: { w: number; h: number },
+    maxW: number,
+    maxH: number,
+    availableW: number,
+    availableH: number,
+    x: number,
+    y: number
+  ) => {
+    let calWidth = 0
+    let calHeight = 0
+    let calX = 0
+    let calY = 0
+    const aspectRatio = img.w / img.h
+    if (aspectRatio > maxW / maxH) {
+      // horizontal img
+      calHeight = maxW * (1 / aspectRatio)
+      calWidth = maxW
+      calX = (availableW - calWidth) / 2
+      calY = y + (availableH - calHeight) / 2
+    } else if (aspectRatio <= maxW / maxH) {
+      // sqr or vertical image
+      calHeight = maxH
+      calWidth = maxH * aspectRatio
+      calX = (availableW - calWidth) / 2
+      calY = y + (availableH - calHeight) / 2
+    }
+    return { width: calWidth, height: calHeight, x: calX, y: calY }
+  }
+
+  return { clipRect, clipCircle, getImageDimensions }
 }
 
 export default useEdit
