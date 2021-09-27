@@ -35,6 +35,8 @@ const StudioUser = ({
     backgroundRectColor,
     backgroundRectX,
     backgroundRectY,
+    backgroundRectBorderWidth,
+    backgroundRectBorderColor,
   } = studioUserConfig
   const imageConfig = { width: width || 160, height: height || 120 }
   const imageRef = useRef<Konva.Image | null>(null)
@@ -105,6 +107,15 @@ const StudioUser = ({
         width={studioUserClipConfig?.width || defaultStudioUserClipConfig.width}
         height={imageConfig.height}
         fill={backgroundRectColor}
+        stroke={backgroundRectBorderColor}
+        strokeWidth={backgroundRectBorderWidth || 0}
+        cornerRadius={8}
+      />
+      <Rect
+        x={(studioUserClipConfig && studioUserClipConfig.x + x) || 775}
+        y={y}
+        width={studioUserClipConfig?.width || defaultStudioUserClipConfig.width}
+        height={imageConfig.height}
         stroke={borderColor}
         strokeWidth={borderWidth || 0}
         cornerRadius={8}

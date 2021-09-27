@@ -110,7 +110,7 @@ const MissionControl = ({ controls }: { controls: JSX.Element[] }) => {
     payload,
   } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [canvas, setCanvas] = useRecoilState(canvasStore)
-
+  const [studio, setStudio] = useRecoilState(studioStore)
   const [isRaiseHandsTooltip, setRaiseHandsTooltip] = useState(false)
   const [participant, setParticipant] = useState<any>()
   const [participantsArray, setParticipantsArray] = useState<any[]>([])
@@ -268,8 +268,11 @@ const MissionControl = ({ controls }: { controls: JSX.Element[] }) => {
                 icon={FiCircle}
                 appearance="primary"
                 onClick={() => {
-                  startRecording()
-                  updatePayload?.({ status: Fragment_Status_Enum_Enum.Live })
+                  // startRecording()
+                  setStudio({ ...studio, state: 'countDown' })
+                  updatePayload?.({
+                    status: Fragment_Status_Enum_Enum.CountDown,
+                  })
                 }}
               />
             )}
