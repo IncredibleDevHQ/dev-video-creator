@@ -1,20 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import { BsChevronRight } from 'react-icons/bs'
 import { Link, useParams } from 'react-router-dom'
-import {
-  Button,
-  EmptyState,
-  Heading,
-  Navbar,
-  ScreenState,
-  Text,
-} from '../../components'
-import {
-  useGetSingleSeriesLazyQuery,
-  useSeriesFlicksQuery,
-} from '../../generated/graphql'
+import { Button, Heading, Navbar, ScreenState, Text } from '../../components'
+import { useGetSingleSeriesLazyQuery } from '../../generated/graphql'
 import NewFlickBanner from '../Dashboard/components/NewFlickBanner'
-import AddFlicksToSeriesModal from '../Series/components/AddFlicksToSeriesModal'
+import AddFlicksToSeriesModal from './components/AddFlicksToSeriesModal'
 import FlicksView from './components/FlicksView'
 
 const SingleSeries = () => {
@@ -24,12 +14,6 @@ const SingleSeries = () => {
 
   const [GetSingleSeries, { data, loading, error }] =
     useGetSingleSeriesLazyQuery()
-
-  const { data: seriesData } = useSeriesFlicksQuery({
-    variables: {
-      id: params.id,
-    },
-  })
 
   useEffect(() => {
     GetSingleSeries({
@@ -60,7 +44,7 @@ const SingleSeries = () => {
           </Heading>
 
           <div className="flex flex-row ml-auto px-2 items-center gap-x-3 justify-center">
-            <NewFlickBanner />
+            <NewFlickBanner seriesId={params.id} />
             <Button
               type="button"
               appearance="secondary"
@@ -74,11 +58,7 @@ const SingleSeries = () => {
         </div>
 
         <Heading className="text-xl mb-10 font-bold">Flicks</Heading>
-        <div className=" w-full gap-4">
-          {!seriesData && (
-            <EmptyState text="You don't have any series" width={400} />
-          )}
-        </div>
+
         <FlicksView />
       </div>
       <AddFlicksToSeriesModal
@@ -88,6 +68,11 @@ const SingleSeries = () => {
         seriesId={data?.Series_by_pk?.id}
         seriesName={data?.Series_by_pk?.name}
         flicksAdded={flicksAdded}
+        flicks={
+          data?.Series_by_pk?.Flick_Series.map(
+            (flick) => flick.flick?.id as string
+          ) || []
+        }
       />
     </>
   )

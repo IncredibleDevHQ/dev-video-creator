@@ -1,3 +1,6 @@
+/* eslint-disable jsx-a11y/no-static-element-interactions */
+/* eslint-disable jsx-a11y/click-events-have-key-events */
+/* eslint-disable no-nested-ternary */
 import Modal from 'react-responsive-modal'
 import { css, cx } from '@emotion/css'
 import React from 'react'
@@ -22,7 +25,7 @@ const ShareButtonModal = ({
       }}
       classNames={{
         modal: cx(
-          'rounded-lg w-1/4 ',
+          'rounded-lg w-2/4 ',
           css`
             background-color: #fffffff !important;
           `
@@ -36,35 +39,20 @@ const ShareButtonModal = ({
     >
       <div className="m-8 w-auto">
         <div
-          className="flex w-auto border-2"
+          className="flex flex-row border-2 p-6"
           onClick={() => window.open(link, '_blank')}
         >
           <img
-            className=" ml-4 mt-5 mb-5"
+            className="w-7 h-7"
             alt="incredible.dev"
             src={ASSETS.ICONS.TWITTER_LOGO}
           />
-          <Heading className=" flex ml-4 mt-5  w-full text-sm font-normal">
+          <Heading className="flex w-full text-base font-normal ml-2">
             Share the flick on Twitter
           </Heading>
-          <div className="flex flex-row mr-4 mt-5 place-items-end">
-            <IoShareSocialOutline />
-            <Heading className="flex font-semibold ml-2 text-sm">Share</Heading>
-          </div>
-        </div>
-        <div className="flex mt-5 w-auto border-2">
-          <img
-            className=" ml-4 mt-5 mb-5"
-            alt="incredible.dev"
-            src={ASSETS.ICONS.SLACK_LOGO}
-          />
-          <Heading className=" flex ml-4 mt-5  w-full text-sm font-normal">
-            Share the flick on Slack
-          </Heading>
-          <div className="flex flex-row mr-4 mt-5 place-items-end">
-            <IoShareSocialOutline />
-            <Heading className="flex font-semibold ml-2 text-sm">Share</Heading>
-          </div>
+
+          <IoShareSocialOutline size={25} className="ml-5" />
+          <Heading className="flex font-semibold ml-3 text-base">Share</Heading>
         </div>
       </div>
     </Modal>

@@ -3,7 +3,7 @@ import { AiOutlinePlus } from 'react-icons/ai'
 import { useHistory } from 'react-router-dom'
 import { Button } from '../../../components'
 
-const NewFlickBanner = () => {
+const NewFlickBanner = ({ seriesId }: { seriesId?: string }) => {
   const history = useHistory()
 
   return (
@@ -14,7 +14,7 @@ const NewFlickBanner = () => {
         size="extraSmall"
         appearance="primary"
         className="h-10"
-        onClick={() => history.push('/new-flick')}
+        onClick={() => history.push(`/new-flick/${seriesId}`)}
         icon={AiOutlinePlus}
       >
         Create flick

@@ -17,6 +17,7 @@ const AddFlicksToSeriesModal = ({
   seriesName,
   setFlicksAdded,
   flicksAdded,
+  flicks,
 }: {
   open: boolean
   setOpen: React.Dispatch<React.SetStateAction<boolean>>
@@ -24,11 +25,12 @@ const AddFlicksToSeriesModal = ({
   seriesName?: string
   setFlicksAdded: React.Dispatch<React.SetStateAction<boolean>>
   flicksAdded: boolean
+  flicks: string[]
 }) => {
-  const [selectedFlicks, setSelectedFlicks] = useState<string[]>([])
+  const [selectedFlicks, setSelectedFlicks] = useState<string[]>(flicks)
   const { sub } = (useRecoilValue(userState) as User) || {}
   const { data, loading, error } = useGetUserPublicFlicksQuery({
-    variables: { sub: sub as string },
+    variables: { userId: sub as string },
   })
 
   const [addFlickToSeries, { loading: loadingUser, error: errorUser }] =

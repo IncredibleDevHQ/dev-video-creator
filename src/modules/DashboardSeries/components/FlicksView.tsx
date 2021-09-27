@@ -6,7 +6,7 @@ import Gravatar from 'react-gravatar'
 import { FiEdit } from 'react-icons/fi'
 import { IoCheckmarkDone } from 'react-icons/io5'
 import { Link, useHistory, useParams } from 'react-router-dom'
-import { Heading, Text } from '../../../components'
+import { EmptyState, Heading, Text } from '../../../components'
 import { Icons } from '../../../constants'
 import { useSeriesFlicksQuery } from '../../../generated/graphql'
 
@@ -18,8 +18,14 @@ const FlicksView = () => {
     },
   })
   const history = useHistory()
+
   return (
     <div>
+      <div className=" w-full gap-4">
+        {!seriesData && (
+          <EmptyState text="You don't have any flicks" width={400} />
+        )}
+      </div>
       {seriesData?.Flick_Series.map((flick) => (
         <Link to={`/flick/${flick.flick?.id}`}>
           <div
@@ -44,6 +50,7 @@ const FlicksView = () => {
                     </Text>
                   </div>
                 )}
+
                 {!flick.flick?.producedLink && (
                   <div
                     style={{

@@ -24,7 +24,9 @@ const FlickCard = ({
         selected && 'border-brand border-l-4'
       }`}
     >
-      <Heading className="text-sm">{flick.name}</Heading>
+      <Heading className="text-sm w-44 truncate overflow-ellipsis capitalize">
+        {flick.name}
+      </Heading>
     </div>
   )
 }
