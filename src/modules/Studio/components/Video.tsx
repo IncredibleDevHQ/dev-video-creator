@@ -16,6 +16,8 @@ export interface VideoConfig {
   backgroundRectX?: number
   backgroundRectY?: number
   backgroundRectColor?: string
+  backgroundRectBorderColor?: string
+  backgroundRectBorderWidth?: number
 }
 
 // @ts-ignore
@@ -79,6 +81,24 @@ export const Video = ({
           videoElement.videoHeight
         }
         fill={videoConfig.backgroundRectColor}
+        height={videoConfig.height}
+        stroke={videoConfig.backgroundRectBorderColor}
+        strokeWidth={videoConfig?.backgroundRectBorderWidth || 0}
+        cornerRadius={videoConfig?.cornerRadius || 0}
+      />
+      <Rect
+        x={
+          videoConfig.x ||
+          (videoConfig.width -
+            (videoConfig.height * videoElement.videoWidth) /
+              videoElement.videoHeight) /
+            2
+        }
+        y={videoConfig.y || 0}
+        width={
+          (videoConfig.height * videoElement.videoWidth) /
+          videoElement.videoHeight
+        }
         height={videoConfig.height}
         stroke={videoConfig.borderColor}
         strokeWidth={videoConfig?.borderWidth || 0}
