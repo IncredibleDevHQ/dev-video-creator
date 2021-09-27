@@ -1,14 +1,15 @@
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 /* eslint-disable no-nested-ternary */
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import Gravatar from 'react-gravatar'
 import { FiEdit } from 'react-icons/fi'
 import { IoCheckmarkDone } from 'react-icons/io5'
 import { Link, useHistory, useParams } from 'react-router-dom'
-import { EmptyState, Heading, Text } from '../../../components'
+import { Button, Heading, Text } from '../../../components'
 import { Icons } from '../../../constants'
 import { useSeriesFlicksQuery } from '../../../generated/graphql'
+import { NewFlickBanner } from '../../Dashboard/components'
 
 const FlicksView = () => {
   const params: { id?: string } = useParams()
@@ -22,8 +23,14 @@ const FlicksView = () => {
   return (
     <div>
       <div className=" w-full gap-4">
-        {!seriesData && (
-          <EmptyState text="You don't have any flicks" width={400} />
+        {seriesData?.Flick_Series.length === 0 && (
+          <div className="flex flex-col justify-center items-center mt-5">
+            <img src={Icons.EmptyState} alt="I" />
+            <Text className="text-base mt-5">
+              Uh-oh, you don&apos;t have any flicks yet.
+            </Text>
+            <NewFlickBanner seriesId={params.id} />
+          </div>
         )}
       </div>
       {seriesData?.Flick_Series.map((flick) => (
