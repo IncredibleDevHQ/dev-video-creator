@@ -34,10 +34,17 @@ import PointsTwo from './PointsTwo'
 import TriviaThree from './TriviaThree'
 import PointsThree from './PointsThree'
 import CodeJamFour from './CodeJamFour'
+import CodeJamSix from './CodeJamSix'
 import VideoJamSix from './VideoJamSix'
 import TriviaFour from './TriviaFour'
 import PointsFour from './PointsFour'
+import PointsSix from './PointsSix'
+import videoJamEight from './VideoJamEight'
 import SplashFifteen from './SplashFifteen'
+import TriviaSix from './TriviaSix'
+import CodeJamSeven from './CodeJamSeven'
+import PointsSeven from './PointsSeven'
+import TriviaSeven from './TriviaSeven'
 
 const themeEnum = 'theme'
 export interface Effect {
@@ -89,8 +96,9 @@ const getVideoTheme = (theme: any) => {
   if (theme.value === '1') return VideoJamFour
   if (theme.value === '2') return VideoJamFive
   if (theme.value === '3') return VideoJamSix
-  if (theme.value === '4') return VideoJamTwo
-  if (theme.value === '5') return VideoJamThree
+  if (theme.value === '5') return videoJamEight
+  if (theme.value === '7') return VideoJamTwo
+  if (theme.value === '8') return VideoJamThree
   return VideoJam
 }
 
@@ -98,6 +106,8 @@ const getCodeJamTheme = (theme: any) => {
   if (theme.value === '1') return CodeJamTwo
   if (theme.value === '2') return CodeJamThree
   if (theme.value === '3') return CodeJamFour
+  if (theme.value === '5') return CodeJamSix
+  if (theme.value === '6') return CodeJamSeven
   return CodeJam
 }
 
@@ -105,6 +115,8 @@ const getTriviaTheme = (theme: any) => {
   if (theme.value === '1') return TriviaTwo
   if (theme.value === '2') return TriviaThree
   if (theme.value === '3') return TriviaFour
+  if (theme.value === '5') return TriviaSix
+  if (theme.value === '6') return TriviaSeven
   return Trivia
 }
 
@@ -112,6 +124,8 @@ const getPointsTheme = (theme: any) => {
   if (theme.value === '1') return PointsTwo
   if (theme.value === '2') return PointsThree
   if (theme.value === '3') return PointsFour
+  if (theme.value === '5') return PointsSix
+  if (theme.value === '6') return PointsSeven
   return Points
 }
 
