@@ -144,10 +144,6 @@ const Header = ({
               <FiDownload />
             </a>
 
-            <IoEllipsisHorizontalSharp
-              className="m-3 mr-8"
-              onClick={() => setMoreOptionsModal(true)}
-            />
             <div className="bg-gray-300 flex w-0.5 mr-3" />
             <Link to="/login" replace>
               <Button appearance="primary" type="button" className="ml-3">
