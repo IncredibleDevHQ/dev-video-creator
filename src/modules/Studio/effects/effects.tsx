@@ -45,6 +45,7 @@ import TriviaSix from './TriviaSix'
 import CodeJamSeven from './CodeJamSeven'
 import PointsSeven from './PointsSeven'
 import TriviaSeven from './TriviaSeven'
+import VideoJamNine from './VideoJamNine'
 
 const themeEnum = 'theme'
 export interface Effect {
@@ -97,6 +98,7 @@ const getVideoTheme = (theme: any) => {
   if (theme.value === '2') return VideoJamFive
   if (theme.value === '3') return VideoJamSix
   if (theme.value === '5') return videoJamEight
+  if (theme.value === '6') return VideoJamNine
   if (theme.value === '7') return VideoJamTwo
   if (theme.value === '8') return VideoJamThree
   return VideoJam
