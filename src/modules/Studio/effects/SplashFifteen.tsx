@@ -47,16 +47,16 @@ const SplashFifteen = () => {
   const [comet1] = useImage(`${config.storage.baseUrl}comet-1.svg`, 'anonymous')
   const [comet2] = useImage(`${config.storage.baseUrl}comet-2.svg`, 'anonymous')
 
-  // useEffect(() => {
-  //   if (!data?.Fragment[0].configuration.properties) return
-  //   const title = data?.Fragment[0].configuration.properties.find(
-  //     (property: any) => property.key === titleEnum
-  //   )
-  //   const subTitle = data?.Fragment[0].configuration.properties.find(
-  //     (property: any) => property.key === subTitleEnum
-  //   )
-  //   setConfiguration({ title, subTitle })
-  // }, [data])
+  useEffect(() => {
+    if (!data?.Fragment[0].configuration.properties) return
+    const title = data?.Fragment[0].configuration.properties.find(
+      (property: any) => property.key === titleEnum
+    )
+    const subTitle = data?.Fragment[0].configuration.properties.find(
+      (property: any) => property.key === subTitleEnum
+    )
+    setConfiguration({ title, subTitle })
+  }, [data])
 
   // const { getInitCoordinates } = useSplash()
 
