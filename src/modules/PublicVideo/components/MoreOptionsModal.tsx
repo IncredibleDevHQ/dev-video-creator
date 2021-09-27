@@ -1,10 +1,9 @@
 import Modal from 'react-responsive-modal'
 import { css, cx } from '@emotion/css'
 import React from 'react'
-import { IoShareSocialOutline, IoTrashOutline } from 'react-icons/io5'
+import { IoTrashOutline } from 'react-icons/io5'
 import { FiEdit } from 'react-icons/fi'
 import { Link } from 'react-router-dom'
-import { ASSETS } from '../../../constants'
 import { Heading } from '../../../components'
 
 const MoreOptionsModal = ({

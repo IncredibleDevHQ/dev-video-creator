@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import { useRecoilValue } from 'recoil'
 import { Link } from 'react-router-dom'
-import { BiRectangle } from 'react-icons/bi'
 import { ScreenState, Text } from '../../../components'
 import {
   BaseFlickFragment,

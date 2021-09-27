@@ -5,14 +5,13 @@ import React, { useState } from 'react'
 import { useHistory } from 'react-router-dom'
 import { useRecoilValue } from 'recoil'
 import { ScreenState, Text } from '../../../components'
-import { flickFinalVideoImage, Icons } from '../../../constants'
+import { Icons } from '../../../constants'
 import {
   BaseFlickFragment,
   useGetUserFlicksQuery,
   User,
 } from '../../../generated/graphql'
 import { userState } from '../../../stores/user.store'
-import DashboardModal from './DashboardModal'
 
 const InfoTilePublished = ({ flick }: { flick: BaseFlickFragment }) => {
   return (
@@ -25,7 +24,6 @@ const InfoTilePublished = ({ flick }: { flick: BaseFlickFragment }) => {
 }
 
 const VideoTile = ({ flick }: { flick: BaseFlickFragment }) => {
-  // const [dashboardModal, setDashboardModal] = useState<boolean>(false)
   const history = useHistory()
 
   return (
@@ -33,7 +31,6 @@ const VideoTile = ({ flick }: { flick: BaseFlickFragment }) => {
       <div
         className="text-gray-300 hover:border-green-500 cursor-pointer w-60 h-36 border-2"
         onClick={() => {
-          // setDashboardModal(true)
           history.push(`/view/${flick.joinLink}`)
         }}
       >
@@ -43,13 +40,7 @@ const VideoTile = ({ flick }: { flick: BaseFlickFragment }) => {
           className="ml-24 mt-14 border-gray-500 border-2 rounded-md"
         />
       </div>
-      {/* <DashboardModal
-        flick={flick}
-        open={dashboardModal}
-        handleClose={() => {
-          setDashboardModal(false)
-        }}
-      /> */}
+
       <InfoTilePublished key={flick.id} flick={flick} />
     </div>
   )

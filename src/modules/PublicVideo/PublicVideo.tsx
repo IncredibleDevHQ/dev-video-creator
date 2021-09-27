@@ -91,10 +91,6 @@ const PublicVideo = () => {
                   {user.user.displayName}
                 </Heading>
               </div>
-
-              // <p className=" flex font-black text-4xl capitalize justify-center mb-4">
-              //   {flick as string}
-              // </p>
             ))}
         </div>
         <Heading className=" flex  w-1/2 h-auto mt-3  mb-5 font-normal text-base capitalize ">
