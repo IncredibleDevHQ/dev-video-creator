@@ -89,7 +89,8 @@ const App = () => {
                   path="/organisations"
                   component={Organisation}
                 />
-                <PrivateRoute exact path="/profile" component={Profile} />
+                {/* Commenting out Profiles route... */}
+                {/* <PrivateRoute exact path="/profile" component={Profile} /> */}
                 <PrivateRoute exact path="/new-flick" component={NewFlick} />
                 <PrivateRoute
                   exact
