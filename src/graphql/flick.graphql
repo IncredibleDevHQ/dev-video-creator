@@ -8,8 +8,16 @@ fragment BaseFlick on Flick {
   scope
   plannedEnd
   startAt
+  ownerId
+  updatedAt
   status
   producedLink
+  participants {
+    user {
+      picture
+      email
+    }
+  }
 }
 
 fragment FlickActivity on FlickActivity {
@@ -32,7 +40,7 @@ fragment Flick on Flick {
   }
 }
 
-query GetMyFlicks($limit: Int) {
+query GetMyFlicks($limit: Int, $userId: String) {
   Flick(limit: $limit) {
     id
     name
@@ -67,9 +75,9 @@ query GetUserFlicks($sub: String!) {
   }
 }
 
-query GetUserPublicFlicks($sub: String!) {
+query GetUserPublicFlicks($userId: String!) {
   Flick(
-    where: { participants: { userSub: { _eq: $sub } }, scope: { _eq: Public } }
+    where: { scope: { _eq: Public }, owner: { userSub: { _eq: $userId } } }
     order_by: { startAt: asc }
   ) {
     ...Flick
@@ -83,9 +91,16 @@ query SeriesFlicks($id: uuid) {
     flick {
       id
       producedLink
+      joinLink
       name
       previewLink
       description
+      participants {
+        user {
+          picture
+          email
+        }
+      }
     }
   }
 }
@@ -100,10 +115,16 @@ query SeriesFlickCount($seriesId: uuid) {
 
 mutation CreateNewFlick(
   $name: String!
-  $description: String!
+  $description: String
   $scope: CreateFlickFlickScopeEnumEnum!
+  $seriesId: uuid
 ) {
-  CreateFlick(name: $name, scope: $scope, description: $description) {
+  CreateFlick(
+    name: $name
+    scope: $scope
+    description: $description
+    seriesId: $seriesId
+  ) {
     id
   }
 }

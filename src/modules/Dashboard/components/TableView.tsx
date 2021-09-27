@@ -1,5 +1,5 @@
-import React, { forwardRef, HTMLProps, useEffect } from 'react'
-import { useTable, Column, Row, useRowSelect, HeaderProps } from 'react-table'
+import React, { forwardRef, useEffect } from 'react'
+import { useTable, Column, useRowSelect } from 'react-table'
 
 interface Props {
   indeterminate?: boolean
@@ -78,31 +78,25 @@ const TableView = () => {
     []
   )
 
-  const {
-    getTableProps,
-    getTableBodyProps,
-    headerGroups,
-    rows,
-    prepareRow,
-    state,
-  } = useTable({ columns, data }, useRowSelect, (hooks) => {
-    hooks.visibleColumns.push((columns) => [
-      {
-        id: 'selection',
-        Header: ({ getToggleAllRowsSelectedProps }: any) => (
-          <div className="text-left w-4">
-            <IndeterminateCheckbox {...getToggleAllRowsSelectedProps()} />
-          </div>
-        ),
-        Cell: ({ row }: { row: any }) => (
-          <div className="text-left w-4">
-            <IndeterminateCheckbox {...row.getToggleRowSelectedProps()} />
-          </div>
-        ),
-      },
-      ...columns,
-    ])
-  })
+  const { getTableProps, getTableBodyProps, headerGroups, rows, prepareRow } =
+    useTable({ columns, data }, useRowSelect, (hooks) => {
+      hooks.visibleColumns.push((columns) => [
+        {
+          id: 'selection',
+          Header: ({ getToggleAllRowsSelectedProps }: any) => (
+            <div className="text-left w-4">
+              <IndeterminateCheckbox {...getToggleAllRowsSelectedProps()} />
+            </div>
+          ),
+          Cell: ({ row }: { row: any }) => (
+            <div className="text-left w-4">
+              <IndeterminateCheckbox {...row.getToggleRowSelectedProps()} />
+            </div>
+          ),
+        },
+        ...columns,
+      ])
+    })
 
   return (
     <div>

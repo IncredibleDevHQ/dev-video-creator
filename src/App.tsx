@@ -90,7 +90,11 @@ const App = () => {
                   component={Organisation}
                 />
                 <PrivateRoute exact path="/profile" component={Profile} />
-                <PrivateRoute exact path="/new-flick" component={NewFlick} />
+                <PrivateRoute
+                  exact
+                  path="/new-flick/:seriesId?"
+                  component={NewFlick}
+                />
                 <PrivateRoute
                   exact
                   path="/new-organisation"

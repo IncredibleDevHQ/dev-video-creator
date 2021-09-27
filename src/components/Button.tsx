@@ -37,7 +37,7 @@ const Button = ({
         {
           'border-brand bg-brand text-white hover:shadow-lg hover:bg-brand-dark hover:border-brand-dark active:bg-brand-darker active:border-brand-darker':
             appearance === 'primary',
-          'border-gray-500 text-gray-500': appearance === 'secondary',
+          'border-brand text-brand': appearance === 'secondary',
           'border-transparent text-brand hover:text-brand-dark':
             appearance === 'link',
           'border-transparent text-red-600 hover:text-red-700':
