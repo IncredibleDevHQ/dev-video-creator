@@ -1,4 +1,3 @@
-import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
 import { Group, Text, Image, Rect, Circle } from 'react-konva'
 import FontFaceObserver from 'fontfaceobserver'
@@ -12,7 +11,7 @@ import { StudioProviderProps, studioStore } from '../stores'
 import usePoint from '../hooks/use-point'
 import config from '../../../config'
 
-const PointsTwo = () => {
+const PointsFour = () => {
   const [activePointIndex, setActivePointIndex] = useState<number>(0)
   const [points, setPoints] = useState<string[]>([])
   const { fragment, state, stream, picture, constraints } =
@@ -31,28 +30,19 @@ const PointsTwo = () => {
 
   const [titleNumberOfLines, setTitleNumberOfLines] = useState<number>(0)
 
-  const circleColors = [
-    '#000000',
-    '#1F2937',
-    '#4B5563',
-    '#6B7280',
-    '#9CA3AF',
-    '#ffffff',
-  ]
-
   const initialX = 32
   const lineLength = 20
 
-  const [incredibleLogo] = useImage(
-    `${config.storage.baseUrl}x-incredible.svg`,
+  const [astroPlanet] = useImage(
+    `${config.storage.baseUrl}planet.svg`,
     'anonymous'
   )
-  const [circleGroup] = useImage(
-    `${config.storage.baseUrl}black-circles.svg`,
+  const [astroLogo] = useImage(
+    `${config.storage.baseUrl}astro-logo.svg`,
     'anonymous'
   )
-  const [graphqlLogo] = useImage(
-    `${config.storage.baseUrl}graphql3.svg`,
+  const [windowOps] = useImage(
+    `${config.storage.baseUrl}window-ops.svg`,
     'anonymous'
   )
 
@@ -91,7 +81,7 @@ const PointsTwo = () => {
       points,
       availableWidth: 392,
       availableHeight: 220,
-      gutter: 12,
+      gutter: 20,
       fontSize: 16,
     })
     setGroupCoordinate(
@@ -115,11 +105,12 @@ const PointsTwo = () => {
   const studioUserConfig: StudioUserConfig[] = [
     {
       x: 565,
-      y: 58,
+      y: 68,
       width: 520,
       height: 390,
       clipTheme: 'rect',
-      borderWidth: 8,
+      borderWidth: 6,
+      borderColor: '#1F2937',
       studioUserClipConfig: {
         x: 150,
         y: 0,
@@ -128,10 +119,14 @@ const PointsTwo = () => {
         radius: 8,
       },
       backgroundRectX: 705,
-      backgroundRectY: 48,
-      backgroundRectColor: '#C084FC',
+      backgroundRectY: 58,
+      backgroundRectColor: '#FF5D01',
+      backgroundRectBorderWidth: 3,
+      backgroundRectBorderColor: '#1F2937',
     },
   ]
+
+  const windowOpsImages = <Image image={windowOps} x={860} y={25} />
 
   const controls = [
     <ControlButton
@@ -153,24 +148,40 @@ const PointsTwo = () => {
       y={0}
       width={CONFIG.width}
       height={CONFIG.height}
-      fill="#1F2937"
+      fillLinearGradientColorStops={[
+        0,
+        '#140D1F',
+        0.41,
+        '#361367',
+        1,
+        '#6E1DDB',
+      ]}
+      fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+      fillLinearGradientEndPoint={{
+        x: CONFIG.width,
+        y: CONFIG.height,
+      }}
     />,
-    <Image image={circleGroup} x={380} y={440} />,
+    <Image image={astroPlanet} x={-10} y={0} />,
     <Rect
       x={27}
-      y={48}
-      width={640}
-      height={390}
-      fill="#60A5FA"
-      cornerRadius={8}
-    />,
-    <Rect
-      x={37}
       y={58}
       width={640}
       height={390}
-      fill="#374151"
+      fill="#FF5D01"
       cornerRadius={8}
+      stroke="#1F2937"
+      strokeWidth={3}
+    />,
+    <Rect
+      x={37}
+      y={68}
+      width={640}
+      height={390}
+      fill="#ffffff"
+      cornerRadius={8}
+      stroke="#1F2937"
+      strokeWidth={3}
     />,
     <Text
       key="fragmentTitle"
@@ -178,7 +189,7 @@ const PointsTwo = () => {
       y={90}
       align="left"
       fontSize={40}
-      fill="#F9FAFB"
+      fill="#1F2937"
       width={500}
       lineHeight={1.15}
       text={fragment?.name as string}
@@ -195,7 +206,19 @@ const PointsTwo = () => {
               x={-76}
               radius={11}
               y={point.y + 8}
-              fill={circleColors[j % 6]}
+              fillLinearGradientColorStops={[
+                0,
+                '#140D1F',
+                0.41,
+                '#361367',
+                1,
+                '#6E1DDB',
+              ]}
+              fillLinearGradientStartPoint={{ x: -11, y: -11 }}
+              fillLinearGradientEndPoint={{
+                x: 11,
+                y: 11,
+              }}
               ref={(ref) =>
                 ref?.to({
                   x: 0,
@@ -209,12 +232,11 @@ const PointsTwo = () => {
               y={point.y}
               align="left"
               fontSize={16}
-              fill="#F9FAFB"
+              fill="#1F2937"
               width={460}
               height={64}
               text={point.text}
               lineHeight={1.1}
-              fontStyle="normal 600"
               fontFamily="Poppins"
               ref={(ref) =>
                 ref?.to({
@@ -226,8 +248,8 @@ const PointsTwo = () => {
           </>
         ))}
     </Group>,
-    <Image image={incredibleLogo} x={30} y={CONFIG.height - 60} />,
-    <Image image={graphqlLogo} x={840} y={CONFIG.height - 58} />,
+    { ...windowOpsImages },
+    <Image image={astroLogo} x={30} y={CONFIG.height - 60} />,
   ]
 
   return (
@@ -240,4 +262,4 @@ const PointsTwo = () => {
   )
 }
 
-export default PointsTwo
+export default PointsFour

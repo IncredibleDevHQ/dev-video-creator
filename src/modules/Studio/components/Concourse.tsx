@@ -31,6 +31,8 @@ export interface StudioUserConfig {
   backgroundRectX?: number
   backgroundRectY?: number
   backgroundRectColor?: string
+  backgroundRectBorderColor?: string
+  backgroundRectBorderWidth?: number
 }
 
 interface ConcourseProps {

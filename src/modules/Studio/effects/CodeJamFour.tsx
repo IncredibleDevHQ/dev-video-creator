@@ -28,7 +28,7 @@ interface Position {
   currentIndex: number
 }
 
-const CodeJamTwo = () => {
+const CodeJamFour = () => {
   const { fragment, payload, updatePayload, state, isHost } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
@@ -44,16 +44,16 @@ const CodeJamTwo = () => {
     currentIndex: 0,
   })
 
-  const [incredibleLogo] = useImage(
-    `${config.storage.baseUrl}x-incredible.svg`,
+  const [astroPlanet] = useImage(
+    `${config.storage.baseUrl}planet.svg`,
     'anonymous'
   )
-  const [circleGroup] = useImage(
-    `${config.storage.baseUrl}black-circles.svg`,
+  const [astroLogo] = useImage(
+    `${config.storage.baseUrl}astro-logo.svg`,
     'anonymous'
   )
-  const [graphqlLogo] = useImage(
-    `${config.storage.baseUrl}graphql3.svg`,
+  const [windowOps] = useImage(
+    `${config.storage.baseUrl}window-ops.svg`,
     'anonymous'
   )
 
@@ -162,40 +162,46 @@ const CodeJamTwo = () => {
       case 2:
         return [
           {
-            x: 735,
-            y: 60,
-            width: 240,
-            height: 180,
+            x: 755,
+            y: 80,
+            width: 200,
+            height: 150,
             clipTheme: 'rect',
-            borderWidth: 8,
+            borderWidth: 6,
+            borderColor: '#1F2937',
             studioUserClipConfig: {
-              x: 40,
+              x: 20,
               y: 0,
               width: 160,
-              height: 180,
+              height: 150,
               radius: 8,
             },
             backgroundRectX: 765,
-            backgroundRectY: 50,
-            backgroundRectColor: '#C084FC',
+            backgroundRectY: 70,
+            backgroundRectColor: '#FF5D01',
+            backgroundRectBorderWidth: 3,
+            backgroundRectBorderColor: '#1F2937',
           },
           {
-            x: 735,
-            y: 265,
-            width: 240,
-            height: 180,
+            x: 755,
+            y: 305,
+            width: 200,
+            height: 150,
             clipTheme: 'rect',
-            borderWidth: 8,
+            borderWidth: 6,
+            borderColor: '#1F2937',
             studioUserClipConfig: {
-              x: 40,
+              x: 20,
               y: 0,
               width: 160,
-              height: 180,
+              height: 150,
               radius: 8,
             },
             backgroundRectX: 765,
-            backgroundRectY: 255,
-            backgroundRectColor: '#4FD1C5',
+            backgroundRectY: 295,
+            backgroundRectColor: '#FF5D01',
+            backgroundRectBorderWidth: 3,
+            backgroundRectBorderColor: '#1F2937',
           },
         ]
       case 3:
@@ -206,7 +212,8 @@ const CodeJamTwo = () => {
             width: 160,
             height: 120,
             clipTheme: 'rect',
-            borderWidth: 8,
+            borderWidth: 6,
+            borderColor: '#1F2937',
             studioUserClipConfig: {
               x: 0,
               y: 0,
@@ -216,7 +223,9 @@ const CodeJamTwo = () => {
             },
             backgroundRectX: 765,
             backgroundRectY: 48.5,
-            backgroundRectColor: '#C084FC',
+            backgroundRectColor: '#FF5D01',
+            backgroundRectBorderWidth: 3,
+            backgroundRectBorderColor: '#1F2937',
           },
           {
             x: 775,
@@ -224,7 +233,8 @@ const CodeJamTwo = () => {
             width: 160,
             height: 120,
             clipTheme: 'rect',
-            borderWidth: 8,
+            borderWidth: 6,
+            borderColor: '#1F2937',
             studioUserClipConfig: {
               x: 0,
               y: 0,
@@ -234,7 +244,9 @@ const CodeJamTwo = () => {
             },
             backgroundRectX: 765,
             backgroundRectY: 188.5,
-            backgroundRectColor: '#4FD1C5',
+            backgroundRectColor: '#FF5D01',
+            backgroundRectBorderWidth: 3,
+            backgroundRectBorderColor: '#1F2937',
           },
           {
             x: 775,
@@ -242,7 +254,8 @@ const CodeJamTwo = () => {
             width: 160,
             height: 120,
             clipTheme: 'rect',
-            borderWidth: 8,
+            borderWidth: 6,
+            borderColor: '#1F2937',
             studioUserClipConfig: {
               x: 0,
               y: 0,
@@ -252,18 +265,21 @@ const CodeJamTwo = () => {
             },
             backgroundRectX: 765,
             backgroundRectY: 328.5,
-            backgroundRectColor: '#FCA5A5',
+            backgroundRectColor: '#FF5D01',
+            backgroundRectBorderWidth: 3,
+            backgroundRectBorderColor: '#1F2937',
           },
         ]
       default:
         return [
           {
             x: 695,
-            y: 120.5,
+            y: 140.5,
             width: 320,
             height: 240,
             clipTheme: 'rect',
-            borderWidth: 8,
+            borderWidth: 6,
+            borderColor: '#1F2937',
             studioUserClipConfig: {
               x: 80,
               y: 0,
@@ -272,10 +288,28 @@ const CodeJamTwo = () => {
               radius: 8,
             },
             backgroundRectX: 765,
-            backgroundRectY: 110.5,
-            backgroundRectColor: '#C084FC',
+            backgroundRectY: 130.5,
+            backgroundRectColor: '#FF5D01',
+            backgroundRectBorderWidth: 3,
+            backgroundRectBorderColor: '#1F2937',
           },
         ]
+    }
+  })()
+
+  const windowOpsImages = (() => {
+    switch (fragment?.participants.length) {
+      case 2:
+        return (
+          <>
+            <Image image={windowOps} x={860} y={35} />
+            <Image image={windowOps} x={860} y={260} />
+          </>
+        )
+      case 3:
+        return <></>
+      default:
+        return <Image image={windowOps} x={860} y={95} />
     }
   })()
 
@@ -285,16 +319,30 @@ const CodeJamTwo = () => {
       y={0}
       width={CONFIG.width}
       height={CONFIG.height}
-      fill="#1F2937"
+      fillLinearGradientColorStops={[
+        0,
+        '#140D1F',
+        0.41,
+        '#361367',
+        1,
+        '#6E1DDB',
+      ]}
+      fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+      fillLinearGradientEndPoint={{
+        x: CONFIG.width,
+        y: CONFIG.height,
+      }}
     />,
-    <Image image={circleGroup} x={400} y={450} />,
+    <Image image={astroPlanet} x={-10} y={0} />,
     <Rect
       x={27}
       y={48}
       width={704}
       height={396}
-      fill="#60A5FA"
+      fill="#FF5D01"
       cornerRadius={8}
+      stroke="#1F2937"
+      strokeWidth={3}
     />,
     <Rect
       x={37}
@@ -303,6 +351,8 @@ const CodeJamTwo = () => {
       height={396}
       fill="#202026"
       cornerRadius={8}
+      stroke="#1F2937"
+      strokeWidth={3}
     />,
     <Group x={52} y={73} key="circleGroup">
       <Circle key="redCircle" x={0} y={0} fill="#FF605C" radius={5} />
@@ -322,8 +372,8 @@ const CodeJamTwo = () => {
         )}
       </Group>
     ),
-    <Image image={incredibleLogo} x={30} y={CONFIG.height - 60} />,
-    <Image image={graphqlLogo} x={840} y={CONFIG.height - 58} />,
+    { ...windowOpsImages },
+    <Image image={astroLogo} x={30} y={CONFIG.height - 60} />,
   ]
 
   return (
@@ -361,4 +411,4 @@ const getRenderedTokens = (tokens: ComputedToken[], position: Position) => {
     })
 }
 
-export default CodeJamTwo
+export default CodeJamFour
