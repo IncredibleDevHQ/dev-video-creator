@@ -107,7 +107,7 @@ const FlickTile = ({
 const Drafts = () => {
   const { sub } = (useRecoilValue(userState) as User) || {}
   const { data, loading, refetch } = useGetUserFlicksQuery({
-    variables: { sub: sub || '' },
+    variables: { sub: sub as string },
   })
   const [view] = useState<'grid' | 'list'>('grid')
   if (loading) return <ScreenState title="Just a moment..." loading />
@@ -117,8 +117,7 @@ const Drafts = () => {
         <div className="grid grid-cols-4 gap-y-5 gap-x-3 p-0 ml-28 mr-20 justify-center mb-20">
           {data?.Flick.map(
             (flick) =>
-              !flick.producedLink &&
-              !flick.deletedAt && (
+              !flick.producedLink && (
                 <FlickTile
                   key={flick.id}
                   flick={flick}

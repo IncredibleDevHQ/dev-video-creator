@@ -72,7 +72,10 @@ query GetUpcomingUserFlicks($sub: String!) {
 
 query GetUserFlicks($sub: String!) {
   Flick(
-    where: { participants: { userSub: { _eq: $sub } } }
+    where: {
+      participants: { userSub: { _eq: $sub } }
+      deletedAt: { _is_null: true }
+    }
     order_by: { startAt: desc }
   ) {
     ...Flick
@@ -89,7 +92,9 @@ query GetUserPublicFlicks($userId: String!) {
 }
 
 query SeriesFlicks($id: uuid!) {
-  Flick_Series(where: { seriesId: { _eq: $id } }) {
+  Flick_Series(
+    where: { seriesId: { _eq: $id }, flick: { deletedAt: { _is_null: true } } }
+  ) {
     order
     seriesFlickCount {
       count

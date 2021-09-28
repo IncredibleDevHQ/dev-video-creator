@@ -63,7 +63,7 @@ const VideoTile = ({
       <div
         className="text-gray-300 hover:border-green-500 cursor-pointer w-60 h-36 border-2"
         onClick={(e) => {
-          if (e.target !== e.currentTarget) return
+          e.stopPropagation()
           history.push(`/view/${flick.joinLink}`)
         }}
       >
@@ -90,7 +90,7 @@ const VideoTile = ({
           hideOnOutsideClick
         >
           <FiMoreHorizontal
-            className="absolute w-6 h-6 text-gray-400 cursor-pointer"
+            className="w-6 h-6 text-gray-400 cursor-pointer"
             size={30}
             onClick={() => setOptions(!options)}
           />
@@ -110,7 +110,7 @@ const VideoTile = ({
 const Published = () => {
   const { sub } = (useRecoilValue(userState) as User) || {}
   const { data, loading, refetch } = useGetUserFlicksQuery({
-    variables: { sub: sub || '' },
+    variables: { sub: sub as string },
   })
   const [view] = useState<'grid' | 'list'>('grid')
   if (loading) return <ScreenState title="Just a moment..." loading />
@@ -120,8 +120,7 @@ const Published = () => {
         <div className="gap-y-5 p-0 grid grid-cols-4 ml-28 mr-20 justify-center mb-20">
           {data?.Flick.map(
             (flick) =>
-              flick.producedLink &&
-              !flick.deletedAt && (
+              flick.producedLink && (
                 <VideoTile
                   key={flick.id}
                   flick={flick}

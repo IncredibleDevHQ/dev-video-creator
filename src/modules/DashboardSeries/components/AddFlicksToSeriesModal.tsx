@@ -30,7 +30,7 @@ const AddFlicksToSeriesModal = ({
   const [selectedFlicks, setSelectedFlicks] = useState<string[]>(flicks)
   const { sub } = (useRecoilValue(userState) as User) || {}
   const { data, loading, error } = useGetUserPublicFlicksQuery({
-    variables: { userId: sub || '' },
+    variables: { userId: sub as string },
   })
 
   const [addFlickToSeries, { loading: loadingUser, error: errorUser }] =

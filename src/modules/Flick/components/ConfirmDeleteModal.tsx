@@ -55,7 +55,7 @@ const ConfirmDeleteModal = ({
       <div className="flex w-100,h-100">
         <div className="flex-row">
           <Text className="text-xl item-center font-semibold mb-4">
-            Do you want to delete
+            Are you sure you want to delete this Fragment?
           </Text>
         </div>
 

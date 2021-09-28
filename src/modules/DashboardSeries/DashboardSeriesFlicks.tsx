@@ -11,7 +11,7 @@ const DashboardSeriesFlicks = () => {
 
   const { data, error } = useGetUserSeriesQuery({
     variables: {
-      userId: userdata.sub || '',
+      userId: userdata.sub as string,
       limit: 60,
     },
   })

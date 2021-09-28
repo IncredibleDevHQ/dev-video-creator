@@ -16,7 +16,7 @@ const Series = () => {
 
   const { data, loading, error } = useGetUserSeriesQuery({
     variables: {
-      userId: userdata.sub || '',
+      userId: userdata.sub as string,
       limit: 60,
     },
   })
