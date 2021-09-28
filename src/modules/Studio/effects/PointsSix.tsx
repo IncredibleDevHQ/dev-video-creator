@@ -33,8 +33,12 @@ const PointsSix = () => {
 
   const initialX = 32
 
+  const [incredibleLogo] = useImage(
+    `${config.storage.baseUrl}x-incredible-black.svg`,
+    'anonymous'
+  )
   const [tensorflowLogo] = useImage(
-    `${config.storage.baseUrl}tensorflow.svg`,
+    `${config.storage.baseUrl}100DaysOfTF.svg`,
     'anonymous'
   )
   const [tensorflowBg] = useImage(
@@ -222,7 +226,8 @@ const PointsSix = () => {
           </>
         ))}
     </Group>,
-    <Image image={tensorflowLogo} x={30} y={CONFIG.height - 72} />,
+    <Image image={incredibleLogo} x={25} y={CONFIG.height - 72} />,
+    <Image image={tensorflowLogo} x={820} y={CONFIG.height - 60} />,
   ]
 
   return (

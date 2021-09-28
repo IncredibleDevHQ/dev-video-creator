@@ -21,6 +21,10 @@ const videoJamEight = () => {
     title?: string
   }>({ enable: false })
 
+  const [incredibleLogo] = useImage(
+    `${config.storage.baseUrl}x-incredible-black.svg`,
+    'anonymous'
+  )
   const [nextJSLogo] = useImage(
     `${config.storage.baseUrl}nextJSLogo.svg`,
     'anonymous'
@@ -248,7 +252,8 @@ const videoJamEight = () => {
           height={CONFIG.height - 2}
         />,
         <Video videoElement={videoElement} videoConfig={videoConfig} />,
-        <Image image={nextJSLogo} x={40} y={CONFIG.height - 65} />,
+        <Image image={incredibleLogo} x={30} y={CONFIG.height - 70} />,
+        <Image image={nextJSLogo} x={840} y={CONFIG.height - 68} />,
       ]
     : [<></>]
 

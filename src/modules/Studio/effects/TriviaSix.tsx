@@ -35,8 +35,12 @@ const TriviaSix = () => {
       : '',
     'anonymous'
   )
+  const [incredibleLogo] = useImage(
+    `${config.storage.baseUrl}x-incredible-black.svg`,
+    'anonymous'
+  )
   const [tensorflowLogo] = useImage(
-    `${config.storage.baseUrl}tensorflow.svg`,
+    `${config.storage.baseUrl}100DaysOfTF.svg`,
     'anonymous'
   )
   const [tensorflowBg] = useImage(
@@ -207,7 +211,8 @@ const TriviaSix = () => {
         </>
       )}
     </Group>,
-    <Image image={tensorflowLogo} x={25} y={CONFIG.height - 80} />,
+    <Image image={incredibleLogo} x={25} y={CONFIG.height - 72} />,
+    <Image image={tensorflowLogo} x={820} y={CONFIG.height - 60} />,
   ]
 
   return (

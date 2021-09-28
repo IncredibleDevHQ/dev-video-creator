@@ -36,6 +36,10 @@ const TriviaSeven = () => {
     'anonymous'
   )
 
+  const [incredibleLogo] = useImage(
+    `${config.storage.baseUrl}x-incredible-black.svg`,
+    'anonymous'
+  )
   const [nextJSLogo] = useImage(
     `${config.storage.baseUrl}nextJSLogo.svg`,
     'anonymous'
@@ -200,7 +204,8 @@ const TriviaSeven = () => {
         </>
       )}
     </Group>,
-    <Image image={nextJSLogo} x={40} y={CONFIG.height - 65} />,
+    <Image image={incredibleLogo} x={30} y={CONFIG.height - 75} />,
+    <Image image={nextJSLogo} x={840} y={CONFIG.height - 68} />,
   ]
 
   return (
