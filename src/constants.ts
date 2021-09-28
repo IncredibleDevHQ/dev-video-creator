@@ -53,7 +53,7 @@ export const fragmentIcons = {
   videoJam: 'https://emoji.craftwork.design/images/modal/cooked-rice.png',
   splash: 'https://emoji.craftwork.design/images/modal/party-popper.png',
   points: 'https://emoji.craftwork.design/images/modal/round-pushpin.png',
-  storyBook: 'https://emoji.craftwork.design/images/modal/star.png',
+  solo: 'https://emoji.craftwork.design/images/modal/star.png',
   slides: 'https://emoji.craftwork.design/images/modal/shamrock.png',
   trivia: 'https://emoji.craftwork.design/images/modal/exclamation-mark.png',
   discussion:
