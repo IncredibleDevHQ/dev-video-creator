@@ -193,7 +193,7 @@ export const getEffect = (
       return getVideoTheme(theme)
     case Fragment_Type_Enum_Enum.Trivia:
       return getTriviaTheme(theme)
-    case Fragment_Type_Enum_Enum.Storybook:
+    case Fragment_Type_Enum_Enum.Solo:
       return StoryBook
     case Fragment_Type_Enum_Enum.Slides:
       return Slides
