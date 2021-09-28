@@ -13,6 +13,7 @@ import {
   FiClipboard,
   FiMicOff,
   FiVideoOff,
+  FiSettings,
 } from 'react-icons/fi'
 import { BiReset } from 'react-icons/bi'
 import { IoHandRightOutline } from 'react-icons/io5'
@@ -21,6 +22,7 @@ import { useRecoilState, useRecoilValue } from 'recoil'
 import { canvasStore, StudioProviderProps, studioStore } from '../stores'
 import { Avatar, Heading, Tooltip } from '../../../components'
 import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
+import SwitchMediaDevices from './SwitchMediaDevices'
 
 export const ControlButton = ({
   appearance,
@@ -101,13 +103,17 @@ const MissionControl = ({ controls }: { controls: JSX.Element[] }) => {
     participants,
     updateParticipant,
     updatePayload,
+    cameraDevices,
+    microphoneDevices,
     participantId,
   } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [canvas, setCanvas] = useRecoilState(canvasStore)
-
+  const [studio, setStudio] = useRecoilState(studioStore)
   const [isRaiseHandsTooltip, setRaiseHandsTooltip] = useState(false)
   const [participant, setParticipant] = useState<any>()
   const [participantsArray, setParticipantsArray] = useState<any[]>([])
+  const [openSwitchMediaDevicesModal, setOpenSwitchMediaDevicesModal] =
+    useState(false)
 
   useEffect(() => {
     if (!participants) return
@@ -141,6 +147,14 @@ const MissionControl = ({ controls }: { controls: JSX.Element[] }) => {
     <div className="bg-gray-100 py-2 px-4 rounded-md">
       <div className="flex flex-col items-center justify-between h-full">
         <div className="flex items-center flex-col">
+          <ControlButton
+            icon={FiSettings}
+            className="my-2"
+            appearance="primary"
+            onClick={async () => {
+              setOpenSwitchMediaDevicesModal(true)
+            }}
+          />
           <ControlButton icon={FiClipboard} appearance="primary" />
           <ControlButton
             icon={BiReset}
@@ -189,7 +203,6 @@ const MissionControl = ({ controls }: { controls: JSX.Element[] }) => {
             icon={constraints?.audio ? FiMic : FiMicOff}
             className="my-2"
             appearance={constraints?.audio ? 'primary' : 'danger'}
-            disabled
             onClick={async () => {
               updateParticipant?.({ audio: !constraints?.audio })
               await mute('audio')
@@ -199,7 +212,6 @@ const MissionControl = ({ controls }: { controls: JSX.Element[] }) => {
             icon={constraints?.video ? FiVideo : FiVideoOff}
             className="my-2"
             appearance={constraints?.video ? 'primary' : 'danger'}
-            disabled
             onClick={async () => {
               updateParticipant?.({ video: !constraints?.video })
               await mute('video')
@@ -253,14 +265,27 @@ const MissionControl = ({ controls }: { controls: JSX.Element[] }) => {
                 icon={FiCircle}
                 appearance="primary"
                 onClick={() => {
-                  startRecording()
-                  updatePayload?.({ status: Fragment_Status_Enum_Enum.Live })
+                  // startRecording()
+                  setStudio({ ...studio, state: 'countDown' })
+                  updatePayload?.({
+                    status: Fragment_Status_Enum_Enum.CountDown,
+                  })
                 }}
               />
             )}
           </>
         </div>
       </div>
+      <SwitchMediaDevices
+        cameraDevices={cameraDevices}
+        open={openSwitchMediaDevicesModal}
+        audioDevices={microphoneDevices}
+        handleClose={async () => {
+          updateParticipant?.({ video: !constraints?.video })
+          await mute('video')
+          setOpenSwitchMediaDevicesModal(false)
+        }}
+      />
     </div>
   )
 }

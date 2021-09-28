@@ -7,23 +7,30 @@ import { useFormik } from 'formik'
 import * as yup from 'yup'
 import { Auth, authState } from '../../stores/auth.store'
 import { Button, emitToast, Logo, TextField } from '../../components'
-
-type Authentication = 'login' | 'signup'
+import { useSendMagicSignInLinkLazyQuery } from '../../generated/graphql'
 
 const AuthenticateScreen = () => {
-  const {
-    createUserWithEmail,
-    signInWithGoogle,
-    signInWithGithub,
-    signInWithEmail,
-    isAuthenticated,
-  } = (useRecoilValue(authState) as Auth) || {}
+  const { signInWithGoogle, signInWithGithub, isAuthenticated } =
+    (useRecoilValue(authState) as Auth) || {}
 
-  const [authenticationType, setAuthenticationType] =
-    useState<Authentication>('login')
   const location = useLocation<{ from: string }>()
   const history = useHistory()
   const { from } = location.state || { from: { pathname: '/' } }
+
+  const [SendMagicSignIn, { data, loading, error }] =
+    useSendMagicSignInLinkLazyQuery({
+      fetchPolicy: 'network-only',
+    })
+
+  useEffect(() => {
+    if (data?.SendMagicLink?.success) {
+      emitToast({
+        title: 'Link Sent Succesfully!',
+        description: 'Please check your Email!',
+        type: 'success',
+      })
+    }
+  }, [data])
 
   const {
     errors,
@@ -37,18 +44,17 @@ const AuthenticateScreen = () => {
   } = useFormik({
     initialValues: {
       email: '',
-      password: '',
     },
     onSubmit: async (values) => {
       if (!isValid) return
       try {
         setSubmitting(true)
 
-        if (authenticationType === 'login') {
-          await signInWithEmail?.(values.email, values.password)
-        } else {
-          await createUserWithEmail?.(values.email, values.password)
-        }
+        await SendMagicSignIn({
+          variables: {
+            email: values.email,
+          },
+        })
       } catch (e: any) {
         emitToast({
           title: 'Something went wrong.',
@@ -64,16 +70,8 @@ const AuthenticateScreen = () => {
         .string()
         .email("Hmm...that doesn't look like an email address. Try again.")
         .required('Please provide your email.'),
-      password: yup
-        .string()
-        .required('Please key-in your password.')
-        .min(8, 'Erm, you need 8 or more characters! You can do it!'),
     }),
   })
-
-  useEffect(() => {
-    setAuthenticationType(location.pathname === '/login' ? 'login' : 'signup')
-  }, [location])
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -130,19 +128,7 @@ const AuthenticateScreen = () => {
             caption={touched.email && errors.email ? errors.email : undefined}
             required
           />
-          <TextField
-            label="Password"
-            type="password"
-            name="password"
-            className="my-2"
-            onBlur={handleBlur}
-            value={values.password}
-            onChange={handleChange}
-            caption={
-              touched.password && errors.password ? errors.password : undefined
-            }
-            required
-          />
+
           <div className="flex items-center flex-col justify-end">
             <Button
               type="button"
@@ -156,25 +142,10 @@ const AuthenticateScreen = () => {
                 e?.preventDefault()
                 handleSubmit()
               }}
+              loading={loading}
             >
-              {authenticationType === 'login' ? 'Sign In' : 'Sign Up'}
+              Sign in with Email
             </Button>
-
-            {authenticationType === 'login' ? (
-              <small className="font-semibold">
-                New user?{' '}
-                <Link to="/signup" className="text-brand">
-                  Sign Up
-                </Link>
-              </small>
-            ) : (
-              <small className="font-semibold">
-                Already a member?{' '}
-                <Link to="/login" className="text-brand">
-                  Sign In
-                </Link>
-              </small>
-            )}
           </div>
         </form>
       </div>

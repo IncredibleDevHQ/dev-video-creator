@@ -1,13 +1,7 @@
 import React, { useEffect } from 'react'
 import { Modal } from 'react-responsive-modal'
 import { css, cx } from '@emotion/css'
-import {
-  Button,
-  Checkbox,
-  ScreenState,
-  Text,
-  TextField,
-} from '../../../components'
+import { Button, Text } from '../../../components'
 import { useDeleteFragmentMutation } from '../../../generated/graphql'
 
 const ConfirmDeleteModal = ({
@@ -61,7 +55,7 @@ const ConfirmDeleteModal = ({
       <div className="flex w-100,h-100">
         <div className="flex-row">
           <Text className="text-xl item-center font-semibold mb-4">
-            Do you want to delete fragment {fragmentName}
+            Are you sure you want to delete this Fragment?
           </Text>
         </div>
 

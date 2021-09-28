@@ -15,8 +15,8 @@ const SplashThree = () => {
     `${config.storage.baseUrl}incredible.svg`,
     'anonymous'
   )
-  const [versionLogo] = useImage(
-    `${config.storage.baseUrl}version-logo.svg`,
+  const [secondaryLogo] = useImage(
+    `${config.storage.baseUrl}graphql-100days.svg`,
     'anonymous'
   )
 
@@ -25,13 +25,13 @@ const SplashThree = () => {
     logoHeight: 60,
     logoTextWidth: 158,
     logoTextHeight: 26,
-    versionLogoWidth: 265,
-    versionLogoHeight: 30,
+    secondaryLogoWidth: 244,
+    secondaryLogoHeight: 100,
   })
 
   const controls: any = []
 
-  const versionLogoRef = useRef<Konva.Image | null>(null)
+  const secondaryLogoRef = useRef<Konva.Image | null>(null)
 
   useEffect(() => {
     if (state === 'recording') {
@@ -52,7 +52,7 @@ const SplashThree = () => {
   const handleRecord = () => {
     setLayerChildren((layerChildren) => [
       ...layerChildren,
-      <Group x={390} y={227}>
+      <Group x={390} y={247}>
         <Image
           image={logoText}
           x={-imageDimensions.logoTextWidth}
@@ -81,18 +81,20 @@ const SplashThree = () => {
       <Rect
         x={0}
         y={0}
-        width={470}
+        width={460}
         height={CONFIG.height}
         fill="#ffffff"
         ref={(ref) =>
           ref?.to({
-            width: 350,
+            width: 375,
             duration: 0.4,
+            easing: Konva.Easings.BackEaseInOut,
             onFinish: () => {
               setTimeout(() => {
                 ref?.to({
-                  width: 480,
+                  width: 460,
                   duration: 0.6,
+                  easing: Konva.Easings.BackEaseInOut,
                 })
               }, 600)
             },
@@ -101,8 +103,8 @@ const SplashThree = () => {
       />,
       <Image
         image={logo}
-        x={(CONFIG.width - imageDimensions.logoWidth) / 2}
-        y={(CONFIG.height - imageDimensions.logoHeight) / 2}
+        x={CONFIG.width / 2}
+        y={CONFIG.height / 2 - 10}
         width={imageDimensions.logoWidth}
         height={imageDimensions.logoHeight}
         offsetX={imageDimensions.logoWidth / 2}
@@ -116,7 +118,7 @@ const SplashThree = () => {
             onFinish: () => {
               setTimeout(() => {
                 ref?.to({
-                  x: (CONFIG.width - imageDimensions.logoWidth) / 2,
+                  x: CONFIG.width / 2,
                   rotation: 90,
                   easing: Konva.Easings.BackEaseInOut,
                   duration: 0.6,
@@ -125,7 +127,7 @@ const SplashThree = () => {
                       opacity: 0,
                       duration: 0.6,
                       onFinish: () => {
-                        versionLogoRef.current?.to({
+                        secondaryLogoRef.current?.to({
                           opacity: 1,
                           duration: 0.3,
                         })
@@ -145,12 +147,12 @@ const SplashThree = () => {
         }}
       />,
       <Image
-        image={versionLogo}
-        x={(CONFIG.width - imageDimensions.versionLogoWidth) / 2}
-        y={(CONFIG.height - imageDimensions.versionLogoHeight) / 2 - 20}
-        width={imageDimensions.versionLogoWidth}
-        height={imageDimensions.versionLogoHeight}
-        ref={versionLogoRef}
+        image={secondaryLogo}
+        x={(CONFIG.width - imageDimensions.secondaryLogoWidth) / 2}
+        y={(CONFIG.height - imageDimensions.secondaryLogoHeight) / 2}
+        width={imageDimensions.secondaryLogoWidth}
+        height={imageDimensions.secondaryLogoHeight}
+        ref={secondaryLogoRef}
         opacity={0}
       />,
     ])

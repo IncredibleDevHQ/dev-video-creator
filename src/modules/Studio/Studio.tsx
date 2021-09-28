@@ -24,15 +24,17 @@ import { User, userState } from '../../stores/user.store'
 import { getEffect } from './effects/effects'
 import { useUploadFile } from '../../hooks/use-upload-file'
 import { useAgora } from './hooks'
-import { StudioState, studioStore } from './stores'
+import { StudioProviderProps, StudioState, studioStore } from './stores'
 import { useRTDB } from './hooks/use-rtdb'
 
 const Studio = () => {
   const { fragmentId } = useParams<{ fragmentId: string }>()
+  const { constraints } =
+    (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [studio, setStudio] = useRecoilState(studioStore)
   const { sub, picture } = (useRecoilValue(userState) as User) || {}
   const [fragment, setFragment] = useState<StudioFragmentFragment>()
-
+  let consst: MediaStreamConstraints | null = { audio: true, video: true }
   const history = useHistory()
 
   const { data, loading } = useGetFragmentByIdQuery({
@@ -43,23 +45,38 @@ const Studio = () => {
 
   const [uploadFile] = useUploadFile()
 
-  const { stream, join, users, mute, ready, userAudios, renewToken } = useAgora(
-    fragmentId,
-    {
-      onTokenWillExpire: async () => {
-        const { data } = await getRTCToken({ variables: { fragmentId } })
-        if (data?.RTCToken?.token) {
-          renewToken(data.RTCToken.token)
-        }
-      },
-      onTokenDidExpire: async () => {
-        const { data } = await getRTCToken({ variables: { fragmentId } })
-        if (data?.RTCToken?.token) {
-          join(data?.RTCToken?.token, sub as string)
-        }
-      },
-    }
-  )
+  useEffect(() => {
+    consst = studio.constraints
+      ? studio.constraints
+      : { audio: true, video: true }
+  }, [])
+
+  const {
+    stream,
+    join,
+    users,
+    mute,
+    leave,
+    ready,
+    userAudios,
+    tracks,
+    renewToken,
+    cameraDevices,
+    microphoneDevices,
+  } = useAgora(fragmentId, {
+    onTokenWillExpire: async () => {
+      const { data } = await getRTCToken({ variables: { fragmentId } })
+      if (data?.RTCToken?.token) {
+        renewToken(data.RTCToken.token)
+      }
+    },
+    onTokenDidExpire: async () => {
+      const { data } = await getRTCToken({ variables: { fragmentId } })
+      if (data?.RTCToken?.token) {
+        join(data?.RTCToken?.token, sub as string)
+      }
+    },
+  })
 
   const [getRTCToken] = useGetRtcTokenMutation({
     variables: { fragmentId },
@@ -118,6 +135,7 @@ const Studio = () => {
       setStudio({
         ...studio,
         fragment: undefined,
+        tracks,
       })
     }
   }, [])
@@ -252,8 +270,14 @@ const Studio = () => {
       upload,
       getBlobs,
       state,
+      tracks,
+      microphoneDevices,
+      cameraDevices,
       picture: picture as string,
-      constraints: { audio: true, video: true },
+      constraints: {
+        audio: constraints ? constraints.audio : true,
+        video: constraints ? constraints.video : true,
+      },
       users,
       payload,
       mute: (type: 'audio' | 'video') => mute(type),
@@ -268,16 +292,7 @@ const Studio = () => {
           ({ participant }) => participant.userSub === sub
         )?.participant.owner || false,
     })
-  }, [
-    fragment,
-    stream,
-    users,
-    state,
-    userAudios,
-    payload,
-    participants,
-    payload,
-  ])
+  }, [fragment, stream, users, state, userAudios, payload, participants])
 
   /**
    * =======================
@@ -309,7 +324,9 @@ const Studio = () => {
                 history.goBack()
               }}
             />
-            <Heading className="font-semibold">{fragment.name}</Heading>
+            <Heading className="font-semibold">
+              {fragment.flick.name} / {fragment.name}
+            </Heading>
           </div>
           {payload?.status === Fragment_Status_Enum_Enum.Live ? (
             <div className="flex px-2 py-1 rounded-sm bg-error-10 animate-pulse">

@@ -18,7 +18,7 @@ jobs:
         with:
           node-version: '14'
 
-      - name: Deploy staging
+      - name: Build with staging env
         run: |
           yarn install --cache-folder .yarncache # Install Dependencies
           yarn codegen # Run GraphQL codegen
@@ -33,6 +33,7 @@ jobs:
           VITE_SENTRY_DSN: ${{secrets.SENTRY_DSN}}
           VITE_SENTRY_ENABLED: true
           VITE_STORAGE_BASE_URL: ${{ secrets.STORAGE_BASE_URL }}
+      - name: Deploy staging
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'

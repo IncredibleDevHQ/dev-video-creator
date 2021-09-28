@@ -16,12 +16,23 @@ import {
   CircleCenterShrink,
   MultiCircleCenterGrow,
 } from '../effects/FragmentTransitions'
+import { ClipConfig } from '../hooks/use-edit'
+import { User, userState } from '../../../stores/user.store'
 
-export interface StudioCoordinates {
+export interface StudioUserConfig {
   x: number
   y: number
   width: number
   height: number
+  clipTheme?: string
+  borderColor?: string
+  borderWidth?: number
+  studioUserClipConfig?: ClipConfig
+  backgroundRectX?: number
+  backgroundRectY?: number
+  backgroundRectColor?: string
+  backgroundRectBorderColor?: string
+  backgroundRectBorderWidth?: number
 }
 
 interface ConcourseProps {
@@ -29,7 +40,7 @@ interface ConcourseProps {
   layerChildren: any[]
   disableUserMedia?: boolean
   titleSpalshData?: { enable: boolean; title?: string }
-  studioUserConfig?: StudioCoordinates[]
+  studioUserConfig?: StudioUserConfig[]
 }
 
 export const CONFIG = {
@@ -44,16 +55,37 @@ const Concourse = ({
   titleSpalshData,
   studioUserConfig,
 }: ConcourseProps) => {
-  const { state, stream, payload, getBlobs, users, stopRecording } =
-    (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const {
+    state,
+    tracks,
+    payload,
+    getBlobs,
+    users,
+    isHost,
+    stopRecording,
+    startRecording,
+    updatePayload,
+    constraints,
+  } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [canvas, setCanvas] = useRecoilState(canvasStore)
   const [isTitleSplash, setIsTitleSplash] = useState<boolean>(false)
-
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null)
   const [isZooming, setZooming] = useState(false)
+
+  const { sub } = (useRecoilValue(userState) as User) || {}
 
   const stageRef = createRef<Konva.Stage>()
   const layerRef = createRef<Konva.Layer>()
   const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
+
+  const [timer, setTimer] = useState(1)
+
+  const defaultStudioUserConfig: StudioUserConfig = {
+    x: 780,
+    y: 400,
+    width: 160,
+    height: 120,
+  }
 
   const initialPos = { x: 780, y: 400 }
   const userStudioImageGap = 170
@@ -150,7 +182,12 @@ const Concourse = ({
         >
           <Rect fill="#1F2937" width={CONFIG.width} height={CONFIG.height} />
           <Rect
-            fill="#16A34A"
+            fillLinearGradientColorStops={[0, '#4ADE80', 1, '#16A34A']}
+            fillLinearGradientStartPoint={{ x: 0, y: CONFIG.height / 2 - 120 }}
+            fillLinearGradientEndPoint={{
+              x: CONFIG.width,
+              y: CONFIG.height / 2 + 120,
+            }}
             y={CONFIG.height / 2 - 120}
             width={CONFIG.width}
             height={240}
@@ -182,17 +219,29 @@ const Concourse = ({
   }, [])
 
   useEffect(() => {
+    if (state === 'ready') setTimer(1)
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     titleSpalshData?.enable &&
       (payload?.status === Fragment_Status_Enum_Enum.Live
         ? setIsTitleSplash(true)
-        : setIsTitleSplash(true))
+        : setIsTitleSplash(false))
   }, [titleSpalshData, state, payload?.status])
+
+  useEffect(() => {
+    const local =
+      tracks && tracks?.length > 0
+        ? new MediaStream([
+            tracks?.[0].getMediaStreamTrack?.(),
+            tracks?.[1].getMediaStreamTrack?.(),
+          ])
+        : null
+    setLocalStream(local)
+  }, [constraints?.video, constraints?.audio])
 
   return (
     <div className="flex-1 mt-4 justify-between items-stretch flex">
       <div className="bg-gray-100 flex-1 rounded-md p-4 flex justify-center items-center mr-8">
-        {state === 'ready' || state === 'recording' ? (
+        {state === 'ready' || state === 'recording' || state === 'countDown' ? (
           <Stage
             ref={stageRef}
             onWheel={handleZoom}
@@ -222,6 +271,7 @@ const Concourse = ({
 
                 {(() => {
                   if (payload?.status === Fragment_Status_Enum_Enum.Live) {
+                    layerRef.current?.destroyChildren()
                     if (titleSpalshData?.enable && isTitleSplash) {
                       return (
                         <>
@@ -241,56 +291,83 @@ const Concourse = ({
                         performFinishAction={performFinishAction}
                       />
                     )
-                  if (payload?.status !== Fragment_Status_Enum_Enum.Live)
-                    return (
-                      <Rect
-                        x={0}
-                        y={0}
-                        width={CONFIG.width}
-                        height={CONFIG.height}
-                        fill="#000000"
-                      />
-                    )
                   return layerChildren
                 })()}
 
                 {!disableUserMedia &&
-                  payload?.status === Fragment_Status_Enum_Enum.Live && (
+                  !isTitleSplash &&
+                  payload?.status !== Fragment_Status_Enum_Enum.Ended && (
                     <>
                       <StudioUser
-                        x={
-                          (studioUserConfig && studioUserConfig[0]?.x) ||
-                          initialPos.x
+                        stream={localStream}
+                        studioUserConfig={
+                          (studioUserConfig && studioUserConfig[0]) ||
+                          defaultStudioUserConfig
                         }
-                        y={
-                          (studioUserConfig && studioUserConfig[0]?.y) ||
-                          initialPos.y
-                        }
-                        stream={stream as MediaStream}
-                        width={studioUserConfig && studioUserConfig[0]?.width}
-                        height={studioUserConfig && studioUserConfig[0]?.height}
+                        type="local"
+                        uid={sub as string}
                       />
                       {users.map((user, index) => (
                         <StudioUser
-                          x={
-                            (studioUserConfig &&
-                              studioUserConfig[index + 1]?.x) ||
-                            initialPos.x - (index + 1) * userStudioImageGap
-                          }
-                          y={
-                            (studioUserConfig &&
-                              studioUserConfig[index + 1]?.y) ||
-                            initialPos.y
-                          }
-                          width={studioUserConfig && studioUserConfig[0]?.width}
-                          height={
-                            studioUserConfig && studioUserConfig[0]?.height
-                          }
-                          key={user.uid}
+                          key={user.uid as string}
+                          uid={user.uid as string}
+                          type="remote"
                           stream={user.mediaStream as MediaStream}
+                          studioUserConfig={
+                            (studioUserConfig &&
+                              studioUserConfig[index + 1]) || {
+                              x:
+                                defaultStudioUserConfig.x -
+                                (index + 1) * userStudioImageGap,
+                              y: defaultStudioUserConfig.y,
+                              width: defaultStudioUserConfig.width,
+                              height: defaultStudioUserConfig.height,
+                            }
+                          }
                         />
                       ))}
                     </>
+                  )}
+                {timer <= 4 &&
+                  (state === 'countDown' ||
+                    payload?.status ===
+                      Fragment_Status_Enum_Enum.CountDown) && (
+                    <Group
+                      x={0}
+                      y={0}
+                      key="group1"
+                      width={CONFIG.width}
+                      height={CONFIG.height}
+                      zIndex={500}
+                    >
+                      <Text
+                        align="center"
+                        verticalAlign="middle"
+                        fontFamily="Poppins"
+                        fontSize={100}
+                        fill="#ffffff"
+                        width={960 / 2}
+                        height={540 / 2}
+                        text={timer === 4 ? ' ' : (timer as unknown as string)}
+                        ref={(ref) => {
+                          ref?.to({
+                            duration: 1,
+                            opacity: 1,
+                            scaleX: 2,
+                            scaleY: 2,
+                            onFinish: () => {
+                              setTimer(timer + 1)
+                              if (timer === 4 && isHost) {
+                                startRecording()
+                                updatePayload?.({
+                                  status: Fragment_Status_Enum_Enum.Live,
+                                })
+                              }
+                            },
+                          })
+                        }}
+                      />
+                    </Group>
                   )}
               </Layer>
             </Bridge>

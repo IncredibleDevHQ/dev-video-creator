@@ -20,6 +20,9 @@ query GetLatestFlick($sub: String!) {
 query GetFlickByJoinLink($joinLink: String!) {
   Flick(where: { joinLink: { _eq: $joinLink } }) {
     ...BaseFlick
+    participants {
+      ...FlickParticipants
+    }
   }
 }
 
@@ -30,8 +33,8 @@ mutation UploadFile($key: String!) {
   }
 }
 
-mutation ProduceVideo($flickId: uuid!, $objectNames: [String!]!) {
-  ProduceVideo(flickId: $flickId, objectNames: $objectNames) {
+mutation ProduceVideo($flickId: uuid!) {
+  ProduceVideo(flickId: $flickId) {
     id
   }
 }

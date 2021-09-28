@@ -14,11 +14,13 @@ import NewOrganisation from './Organisation/NewOrganisation'
 import Series from './Series/userSeries/Series'
 import AllUserFlicks from './Flicks/AllUserFlicks'
 import UserSeriesFlicks from './UserSeriesFlicks/UserSeriesFlicks'
-import SingleSeries from './Series/SingleSeries'
+import SingleSeries from './DashboardSeries/SingleSeries'
 import Circle from './Circle/Circle'
 import NewFragment from './NewFragment/NewFragment'
 import PublicOrganisationPage from './Organisation/PublicOrganisationPage'
+import InviteScreen from './Invitation/InviteScreen'
 import PublicVideo from './PublicVideo/PublicVideo'
+import MagicLinkLogin from './Authentication/MagicLinkLogin'
 
 export {
   AuthenticateScreen,
@@ -40,5 +42,7 @@ export {
   Circle,
   NewFragment,
   PublicOrganisationPage,
+  InviteScreen,
   PublicVideo,
+  MagicLinkLogin,
 }

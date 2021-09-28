@@ -93,10 +93,10 @@ const BaseFragment = ({
         accessory="1-4 people"
       />
       <BaseFragmentCard
-        label="Storybook"
-        image={fragmentIcons.storyBook}
+        label="Solo"
+        image={fragmentIcons.solo}
         description="Introduce your story."
-        onClick={() => handleNext(Fragment_Type_Enum_Enum.Storybook)}
+        onClick={() => handleNext(Fragment_Type_Enum_Enum.Solo)}
         accessory="1 person"
       />
       <BaseFragmentCard
@@ -112,7 +112,7 @@ const BaseFragment = ({
         description="Have fantabulous discussion with your friend."
         onClick={() => handleNext(Fragment_Type_Enum_Enum.Discussion)}
         accessory="2 person"
-       />
+      />
       <BaseFragmentCard
         label="Outro"
         image={fragmentIcons.outro}

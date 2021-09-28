@@ -1,16 +1,29 @@
-import React, { useEffect, useState } from 'react'
+/* eslint-disable jsx-a11y/no-static-element-interactions */
+/* eslint-disable jsx-a11y/click-events-have-key-events */
+/* eslint-disable no-nested-ternary */ import React, {
+  useEffect,
+  useState,
+} from 'react'
 import { useParams, useHistory } from 'react-router-dom'
 import { FiActivity } from 'react-icons/fi'
+import { FaPlus } from 'react-icons/fa'
 import { useRecoilState, useRecoilValue } from 'recoil'
+import { BiChevronLeft } from 'react-icons/bi'
 import {
   FlickActivity,
+  FlickSideBar,
   FragmentActivity,
   FragmentConfiguration,
   FragmentsSidebar,
-  Participants,
 } from './components'
 import { currentFlickStore } from '../../stores/flick.store'
-import { EmptyState, Heading, ScreenState } from '../../components'
+import {
+  Button,
+  EmptyState,
+  Heading,
+  ScreenState,
+  Text,
+} from '../../components'
 import { useGetFlickByIdQuery } from '../../generated/graphql'
 import { studioStore } from '../Studio/stores'
 import { User, userState } from '../../stores/user.store'
@@ -24,7 +37,6 @@ const Flick = () => {
   const [studio, setStudio] = useRecoilState(studioStore)
   const { sub } = (useRecoilValue(userState) as User) || {}
 
-  const [isParticipants, setParticipants] = useState(true)
   const [isActivityMenu, setIsActivityMenu] = useState(false)
 
   const [activeFragmentId, setActiveFragmentId] = useState<string>()
@@ -74,67 +86,88 @@ const Flick = () => {
     )
 
   return (
-    <section className="flex flex-row relative">
-      <FragmentsSidebar
-        flickId={flick.id}
-        fragments={flick.fragments}
-        activeFragmentId={activeFragmentId}
-        setActiveFragmentId={setActiveFragmentId}
-        handleRefetch={(refresh) => {
-          if (refresh) refetch()
-        }}
-        participants={flick.participants}
-      />
-      <div className="flex-1 p-4">
-        <div className="flex relative mr-4 justify-between">
-          <div />
-          <Heading className=" flex font-black text-2xl capitalize justify-center mb-2">
-            {flick.name}
-          </Heading>
-          <button
-            type="button"
-            className="cursor-pointer"
-            onClick={() => setIsActivityMenu(!isActivityMenu)}
-          >
-            <span className="block bg-red-600 absolute w-1.5 h-1.5 rounded-full">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-600 duration-500 opacity-75" />
-            </span>
-            <FiActivity />
-          </button>
-          <FlickActivity menu={isActivityMenu} setMenu={setIsActivityMenu} />
+    <div>
+      <div className="flex bg-gray-50 p-2 m-1 justify-between pr-8">
+        <div
+          className="cursor-pointer hover:underline flex items-center"
+          onClick={() => history.push('/dashboard')}
+        >
+          <BiChevronLeft />
+          <Text className="text-xs">Back to dashboard</Text>
         </div>
-        {activeFragmentId ? (
-          <div>
-            <FragmentActivity
-              fragment={flick.fragments.find(
-                (fragment) => fragment.id === activeFragmentId
-              )}
-            />
-            <FragmentConfiguration
-              fragment={flick.fragments.find(
-                (fragment) => fragment.id === activeFragmentId
-              )}
-              handleRefetch={(refresh) => {
-                if (refresh) refetch()
-              }}
-            />
-          </div>
-        ) : (
-          <>
-            <EmptyState text="No Fragment is selected" width={400} />
-          </>
-        )}
+        <Heading className=" flex font-black text-2xl capitalize justify-center -ml-20">
+          {flick.name}
+        </Heading>
+        <button
+          type="button"
+          className="cursor-pointer"
+          onClick={() => setIsActivityMenu(!isActivityMenu)}
+        >
+          <FiActivity />
+        </button>
+        <FlickActivity menu={isActivityMenu} setMenu={setIsActivityMenu} />
       </div>
-      <Participants
-        isParticipants={isParticipants}
-        setParticipants={setParticipants}
-        participants={flick.participants}
-        flickId={flick.id}
-        handleRefetch={(refresh) => {
-          if (refresh) refetch()
-        }}
-      />
-    </section>
+      <section className="flex flex-row relative">
+        <FragmentsSidebar
+          flickId={flick.id}
+          fragments={flick.fragments}
+          activeFragmentId={activeFragmentId}
+          setActiveFragmentId={setActiveFragmentId}
+          handleRefetch={(refresh) => {
+            if (refresh) refetch()
+          }}
+          participants={flick.participants}
+        />
+        <div className="flex-1 p-4">
+          {activeFragmentId && (
+            <div>
+              <FragmentActivity
+                fragment={flick.fragments.find(
+                  (fragment) => fragment.id === activeFragmentId
+                )}
+              />
+              <FragmentConfiguration
+                fragment={flick.fragments.find(
+                  (fragment) => fragment.id === activeFragmentId
+                )}
+                handleRefetch={(refresh) => {
+                  if (refresh) refetch()
+                }}
+              />
+            </div>
+          )}
+          {flick.fragments.length === 0 && (
+            <div className="flex h-full w-full items-center justify-center">
+              <Button
+                appearance="primary"
+                className=""
+                type="button"
+                icon={FaPlus}
+                size="large"
+                onClick={() => {
+                  history.push(`/new-fragment/${flick.id}`)
+                }}
+              >
+                Create Fragment
+              </Button>
+            </div>
+          )}
+          {!activeFragmentId && (
+            <>
+              <EmptyState text="No Fragment is selected" width={400} />
+            </>
+          )}
+        </div>
+        <FlickSideBar
+          fragment={flick.fragments.find(
+            (fragment) => fragment.id === activeFragmentId
+          )}
+          handleRefetch={(refresh) => {
+            if (refresh) refetch()
+          }}
+        />
+      </section>
+    </div>
   )
 }
 

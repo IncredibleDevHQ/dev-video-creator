@@ -4,15 +4,17 @@ import { Group, Circle, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import { NextLineIcon, NextTokenIcon } from '../../../components'
 import { API } from '../../../constants'
-import { useGetTokenisedCodeLazyQuery } from '../../../generated/graphql'
+import {
+  Fragment_Status_Enum_Enum,
+  useGetTokenisedCodeLazyQuery,
+} from '../../../generated/graphql'
 import { Concourse } from '../components'
 import { ControlButton } from '../components/MissionControl'
+import RenderTokens from '../components/RenderTokens'
 import useCode, { ComputedToken } from '../hooks/use-code'
 import { StudioProviderProps, studioStore } from '../stores'
 
-import TypingEffect from './TypingEffect'
-
-const codeConfig = {
+export const codeConfig = {
   fontSize: 14,
   width: 960,
   height: 540,
@@ -21,10 +23,6 @@ const codeConfig = {
 interface Position {
   prevIndex: number
   currentIndex: number
-}
-interface TokenRenderState {
-  tokens: ComputedToken[]
-  index: number
 }
 
 const CodeJam = () => {
@@ -44,7 +42,6 @@ const CodeJam = () => {
   })
 
   useEffect(() => {
-    console.log('mnbv', fragment?.configuration.properties)
     if (!fragment?.configuration.properties) return
     const gistURL = fragment.configuration.properties.find(
       (property: any) => property.key === 'gistUrl'
@@ -150,17 +147,19 @@ const CodeJam = () => {
       <Circle key="yellowCircle" x={14} y={0} fill="#FFBD44" radius={5} />
       <Circle key="greenCircle" x={28} y={0} fill="#00CA4E" radius={5} />
     </Group>,
-    <Group y={30} x={20} key="group">
-      {getRenderedTokens(computedTokens.current, position)}
-      {computedTokens.current.length > 0 && (
-        <RenderTokens
-          key={position.prevIndex}
-          tokens={computedTokens.current}
-          startIndex={position.prevIndex}
-          endIndex={position.currentIndex}
-        />
-      )}
-    </Group>,
+    payload?.status === Fragment_Status_Enum_Enum.Live && (
+      <Group x={20} y={30} key="group">
+        {getRenderedTokens(computedTokens.current, position)}
+        {computedTokens.current.length > 0 && (
+          <RenderTokens
+            key={position.prevIndex}
+            tokens={computedTokens.current}
+            startIndex={position.prevIndex}
+            endIndex={position.currentIndex}
+          />
+        )}
+      </Group>
+    ),
   ]
 
   return (
@@ -197,48 +196,4 @@ const getRenderedTokens = (tokens: ComputedToken[], position: Position) => {
     })
 }
 
-const RenderTokens = ({
-  tokens,
-  startIndex,
-  endIndex,
-}: {
-  tokens: ComputedToken[]
-  startIndex: number
-  endIndex: number
-}) => {
-  const tokenSegment = tokens.slice(startIndex, endIndex)
-
-  const [renderState, setRenderState] = useState<TokenRenderState>({
-    index: startIndex,
-    tokens: [tokens[startIndex]],
-  })
-
-  useEffect(() => {
-    if (renderState.index === endIndex - 1) return
-    const newToken = tokenSegment[renderState.index - startIndex + 1]
-    const prevToken = tokenSegment[renderState.index - startIndex]
-    setTimeout(() => {
-      setRenderState((prev) => ({
-        index: prev.index + 1,
-        tokens: [...prev.tokens, newToken],
-      }))
-    }, prevToken.content.length * 100)
-  }, [renderState])
-
-  return (
-    <Group>
-      {renderState.tokens.length > 0 &&
-        renderState.tokens.map((token, index) => {
-          // eslint-disable-next-line
-          return <TypingEffect config={codeConfig} key={index} token={token} />
-        })}
-    </Group>
-  )
-}
-
 export default CodeJam
-
-/**
- * TODO:
- * 1. Remove Hardcoded program text - (It should come from Inventory)
- */

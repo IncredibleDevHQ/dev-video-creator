@@ -76,7 +76,51 @@ const usePoint = () => {
     )
   }
 
-  return { initUsePoint, computedPoints, getGroupCoordinates }
+  const getNoOfLinesOfText = ({
+    text,
+    availableWidth,
+    fontSize,
+    fontFamily,
+    stageWidth,
+  }: {
+    text: string
+    availableWidth: number
+    fontSize: number
+    fontFamily?: string
+    stageWidth: number
+  }) => {
+    const layer = new Konva.Layer({ width: stageWidth })
+
+    let noOfLines = 1
+    let currentWidth = 0
+
+    const titleSplit = text?.split(' ')
+    titleSplit?.forEach((subText) => {
+      const word = new Konva.Text({
+        text: subText,
+        fontSize,
+        fontFamily,
+      })
+      layer.add(word)
+
+      const width = word.textWidth
+      console.log(width)
+      if (width + currentWidth > availableWidth) {
+        noOfLines += 1
+        currentWidth = 0
+      }
+      currentWidth += width
+    })
+    console.log(noOfLines)
+    return noOfLines
+  }
+
+  return {
+    initUsePoint,
+    computedPoints,
+    getGroupCoordinates,
+    getNoOfLinesOfText,
+  }
 }
 
 export default usePoint
