@@ -47,6 +47,21 @@ const SplashFifteen = () => {
   const [comet1] = useImage(`${config.storage.baseUrl}comet-1.svg`, 'anonymous')
   const [comet2] = useImage(`${config.storage.baseUrl}comet-2.svg`, 'anonymous')
 
+  const [logo] = useImage(`${config.storage.baseUrl}idev-logo.svg`, 'anonymous')
+  const [logoText] = useImage(
+    `${config.storage.baseUrl}incredible.svg`,
+    'anonymous'
+  )
+
+  const [imageDimensions, setImageDimensions] = useState({
+    logoWidth: 60,
+    logoHeight: 60,
+    logoTextWidth: 158,
+    logoTextHeight: 26,
+    secondaryLogoWidth: 244,
+    secondaryLogoHeight: 100,
+  })
+
   useEffect(() => {
     if (!data?.Fragment[0].configuration.properties) return
     const title = data?.Fragment[0].configuration.properties.find(
@@ -101,19 +116,8 @@ const SplashFifteen = () => {
     <Rect
       x={0}
       y={0}
-      fillLinearGradientColorStops={[
-        0,
-        '#140D1F',
-        0.41,
-        '#361367',
-        1,
-        '#6E1DDB',
-      ]}
-      fillLinearGradientStartPoint={{ x: 0, y: 0 }}
-      fillLinearGradientEndPoint={{
-        x: CONFIG.width,
-        y: CONFIG.height,
-      }}
+      opacity={1}
+      fill="#ffffff"
       width={CONFIG.width}
       height={CONFIG.height}
     />,
@@ -121,7 +125,134 @@ const SplashFifteen = () => {
 
   const getLayerChildren = () => {
     setLayerChildren((layerChildren) => [
-      ...layerChildren,
+      <Rect
+        x={0}
+        y={0}
+        opacity={1}
+        fill="#ffffff"
+        width={CONFIG.width}
+        height={CONFIG.height}
+        ref={(ref) => {
+          setTimeout(() => {
+            ref?.to({
+              opacity: 0,
+              duration: 0.1,
+            })
+          }, 2200)
+        }}
+      />,
+      <Group x={390} y={247}>
+        <Image
+          image={logoText}
+          x={-imageDimensions.logoTextWidth}
+          y={0}
+          width={imageDimensions.logoTextWidth}
+          height={imageDimensions.logoTextHeight}
+          opacity={0}
+          ref={(ref) =>
+            ref?.to({
+              x: 14,
+              opacity: 1,
+              duration: 0.4,
+              easing: Konva.Easings.BackEaseInOut,
+              onFinish: () => {
+                setTimeout(() => {
+                  ref?.to({
+                    x: -imageDimensions.logoTextWidth,
+                    duration: 0.6,
+                  })
+                }, 600)
+              },
+            })
+          }
+        />
+      </Group>,
+      <Rect
+        x={0}
+        y={0}
+        width={460}
+        height={CONFIG.height}
+        fill="#ffffff"
+        ref={(ref) =>
+          ref?.to({
+            width: 375,
+            duration: 0.4,
+            easing: Konva.Easings.BackEaseInOut,
+            onFinish: () => {
+              setTimeout(() => {
+                ref?.to({
+                  width: 460,
+                  duration: 0.6,
+                  easing: Konva.Easings.BackEaseInOut,
+                })
+              }, 600)
+            },
+          })
+        }
+      />,
+      <Image
+        image={logo}
+        x={CONFIG.width / 2}
+        y={CONFIG.height / 2 - 10}
+        width={imageDimensions.logoWidth}
+        height={imageDimensions.logoHeight}
+        offsetX={imageDimensions.logoWidth / 2}
+        offsetY={imageDimensions.logoHeight / 2}
+        ref={(ref) => {
+          ref?.to({
+            rotation: -90,
+            x: 362,
+            easing: Konva.Easings.BackEaseInOut,
+            duration: 0.4,
+            onFinish: () => {
+              setTimeout(() => {
+                ref?.to({
+                  x: CONFIG.width / 2,
+                  rotation: 90,
+                  easing: Konva.Easings.BackEaseInOut,
+                  duration: 0.6,
+                  onFinish: () => {
+                    ref?.to({
+                      opacity: 0,
+                      scaleX: 24,
+                      scaleY: 24,
+                      duration: 0.6,
+                    })
+                  },
+                })
+              }, 600)
+            },
+          })
+        }}
+      />,
+      <Rect
+        x={0}
+        y={0}
+        fillLinearGradientColorStops={[
+          0,
+          '#140D1F',
+          0.41,
+          '#361367',
+          1,
+          '#6E1DDB',
+        ]}
+        fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+        fillLinearGradientEndPoint={{
+          x: CONFIG.width,
+          y: CONFIG.height,
+        }}
+        width={CONFIG.width}
+        height={CONFIG.height}
+        opacity={0}
+        ref={(ref) => {
+          setTimeout(() => {
+            ref?.to({
+              opacity: 1,
+              duration: 0.1,
+            })
+          }, 2200)
+        }}
+      />,
       <Group
         x={452}
         y={243}
@@ -131,7 +262,7 @@ const SplashFifteen = () => {
               duration: 0.5,
               y: -100,
             })
-          }, 1500)
+          }, 3700)
         }}
       >
         <Image
@@ -140,14 +271,29 @@ const SplashFifteen = () => {
           y={17}
           opacity={0}
           ref={(ref) => {
-            ref?.to({
-              duration: 0.5,
-              opacity: 1,
-              y: 54,
-            })
+            setTimeout(() => {
+              ref?.to({
+                duration: 0.5,
+                opacity: 1,
+                y: 54,
+              })
+            }, 2400)
           }}
         />
-        <Image image={astroA} x={0} y={0} />
+        <Image
+          image={astroA}
+          x={0}
+          y={0}
+          opacity={0}
+          ref={(ref) => {
+            setTimeout(() => {
+              ref?.to({
+                duration: 0.1,
+                opacity: 1,
+              })
+            }, 2200)
+          }}
+        />
       </Group>,
       <Group
         x={396}
@@ -167,7 +313,7 @@ const SplashFifteen = () => {
                 })
               },
             })
-          }, 500)
+          }, 2700)
         }}
       >
         <Line
@@ -217,7 +363,7 @@ const SplashFifteen = () => {
                 })
               },
             })
-          }, 1000)
+          }, 3200)
         }}
       >
         <Line
@@ -260,7 +406,7 @@ const SplashFifteen = () => {
               duration: 0.5,
               opacity: 1,
             })
-          }, 2000)
+          }, 4200)
         }}
       />,
       <Group
@@ -273,7 +419,7 @@ const SplashFifteen = () => {
               duration: 1,
               easing: Konva.Easings.BackEaseOut,
             })
-          }, 2500)
+          }, 4700)
         }}
       >
         <Image image={windowOps} x={256} y={-36} />
@@ -319,7 +465,7 @@ const SplashFifteen = () => {
               x: -120,
               y: 320,
             })
-          }, 3500)
+          }, 5700)
         }}
       />,
       <Image
@@ -333,7 +479,7 @@ const SplashFifteen = () => {
               x: -112,
               y: 617,
             })
-          }, 3500)
+          }, 5700)
         }}
       />,
       <Image
@@ -347,7 +493,7 @@ const SplashFifteen = () => {
               x: 240,
               y: 663,
             })
-          }, 3500)
+          }, 5700)
         }}
       />,
     ])

@@ -123,7 +123,7 @@ export const Video = ({
                 (videoConfig.height * videoElement.videoWidth) /
                 videoElement.videoHeight,
               height: videoConfig.height,
-              radius: videoConfig?.cornerRadius || 8,
+              radius: videoConfig?.cornerRadius || 0,
             })
           })
         }
