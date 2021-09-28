@@ -283,13 +283,12 @@ const CodeJamSeven = () => {
     />,
     <Rect
       x={37}
-      y={58}
+      y={56}
       width={704}
       height={396}
       fill="#202026"
       strokeWidth={2}
       stroke="#111111"
-      cornerRadius={8}
     />,
     <Group x={52} y={73} key="circleGroup">
       <Circle key="redCircle" x={0} y={0} fill="#FF605C" radius={5} />
@@ -309,7 +308,7 @@ const CodeJamSeven = () => {
         )}
       </Group>
     ),
-    <Image image={nextJSLogo} x={30} y={CONFIG.height - 50} />,
+    <Image image={nextJSLogo} x={40} y={CONFIG.height - 65} />,
   ]
 
   return (

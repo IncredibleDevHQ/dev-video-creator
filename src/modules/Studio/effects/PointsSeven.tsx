@@ -64,7 +64,7 @@ const PointsSeven = () => {
     setTitleNumberOfLines(
       getNoOfLinesOfText({
         text: fragment.name,
-        availableWidth: 520,
+        availableWidth: 500,
         fontSize: 40,
         fontFamily: 'Poppins',
         stageWidth: 640,
@@ -112,7 +112,7 @@ const PointsSeven = () => {
         y: 0,
         width: 220,
         height: 390,
-        radius: 8,
+        radius: 0,
       },
     },
   ]
@@ -149,7 +149,6 @@ const PointsSeven = () => {
       width={CONFIG.width - 2}
       height={CONFIG.height - 2}
     />,
-
     <Rect
       x={37}
       y={58}
@@ -158,7 +157,6 @@ const PointsSeven = () => {
       fill="white"
       stroke="#111111"
       strokeWidth={2}
-      cornerRadius={8}
     />,
     <Text
       key="fragmentTitle"
@@ -166,8 +164,8 @@ const PointsSeven = () => {
       y={90}
       align="left"
       fontSize={40}
-      fill="#424242"
-      width={500}
+      fill="##111111"
+      width={520}
       lineHeight={1.15}
       text={fragment?.name as string}
       fontStyle="normal 700"
@@ -181,10 +179,10 @@ const PointsSeven = () => {
             <Rect
               key="points"
               x={-76}
-              y={point.y + 8}
-              stroke="#757575"
-              width={12}
-              height={12}
+              y={point.y}
+              stroke="#111111"
+              width={14}
+              height={14}
               strokeWidth={2}
               ref={(ref) =>
                 ref?.to({
@@ -199,7 +197,7 @@ const PointsSeven = () => {
               y={point.y}
               align="left"
               fontSize={16}
-              fill="#757575"
+              fill="#111111"
               width={460}
               height={64}
               text={point.text}
@@ -216,7 +214,7 @@ const PointsSeven = () => {
           </>
         ))}
     </Group>,
-    <Image image={nextJSLogo} x={30} y={CONFIG.height - 50} />,
+    <Image image={nextJSLogo} x={40} y={CONFIG.height - 65} />,
   ]
 
   return (

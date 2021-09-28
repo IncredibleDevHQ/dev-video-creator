@@ -332,7 +332,7 @@ const CodeJamSix = () => {
         )}
       </Group>
     ),
-    <Image image={tensorflowLogo} x={30} y={CONFIG.height - 72} />,
+    <Image image={tensorflowLogo} x={25} y={CONFIG.height - 80} />,
   ]
 
   return (

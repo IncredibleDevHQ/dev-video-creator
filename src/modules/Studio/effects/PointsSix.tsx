@@ -64,7 +64,7 @@ const PointsSix = () => {
     setTitleNumberOfLines(
       getNoOfLinesOfText({
         text: fragment.name,
-        availableWidth: 520,
+        availableWidth: 500,
         fontSize: 40,
         fontFamily: 'Poppins',
         stageWidth: 640,
@@ -174,7 +174,7 @@ const PointsSix = () => {
       align="left"
       fontSize={40}
       fill="#424242"
-      width={500}
+      width={520}
       lineHeight={1.15}
       text={fragment?.name as string}
       fontStyle="normal 700"

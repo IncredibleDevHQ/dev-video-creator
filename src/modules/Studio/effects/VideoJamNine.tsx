@@ -112,11 +112,10 @@ const videoJamEight = () => {
     y: 58,
     width: 704,
     height: 396,
-    cornerRadius: 8,
+    cornerRadius: 0,
     performClip: true,
-    backgroundRectX: 27,
-    backgroundRectY: 48,
-    backgroundRectColor: '#FF6E00',
+    borderColor: '#111111',
+    borderWidth: 4,
   }
 
   const studioCoordinates: StudioUserConfig[] = (() => {
@@ -129,14 +128,14 @@ const videoJamEight = () => {
             width: 240,
             height: 180,
             clipTheme: 'rect',
-            borderWidth: 6,
+            borderWidth: 4,
             borderColor: '#111111',
             studioUserClipConfig: {
               x: 40,
               y: 0,
               width: 160,
               height: 180,
-              radius: 8,
+              radius: 0,
             },
           },
           {
@@ -145,14 +144,14 @@ const videoJamEight = () => {
             width: 240,
             height: 180,
             clipTheme: 'rect',
-            borderWidth: 6,
+            borderWidth: 4,
             borderColor: '#111111',
             studioUserClipConfig: {
               x: 40,
               y: 0,
               width: 160,
               height: 180,
-              radius: 8,
+              radius: 0,
             },
           },
         ]
@@ -169,9 +168,9 @@ const videoJamEight = () => {
               y: 0,
               width: 160,
               height: 120,
-              radius: 8,
+              radius: 0,
             },
-            borderWidth: 6,
+            borderWidth: 4,
             borderColor: '#111111',
           },
           {
@@ -180,14 +179,14 @@ const videoJamEight = () => {
             width: 160,
             height: 120,
             clipTheme: 'rect',
-            borderWidth: 6,
+            borderWidth: 4,
             borderColor: '#111111',
             studioUserClipConfig: {
               x: 0,
               y: 0,
               width: 160,
               height: 120,
-              radius: 8,
+              radius: 0,
             },
           },
           {
@@ -196,14 +195,14 @@ const videoJamEight = () => {
             width: 160,
             height: 120,
             clipTheme: 'rect',
-            borderWidth: 6,
+            borderWidth: 4,
             borderColor: '#111111',
             studioUserClipConfig: {
               x: 0,
               y: 0,
               width: 160,
               height: 120,
-              radius: 8,
+              radius: 0,
             },
           },
         ]
@@ -215,14 +214,14 @@ const videoJamEight = () => {
             width: 320,
             height: 240,
             clipTheme: 'rect',
-            borderWidth: 6,
+            borderWidth: 4,
             borderColor: '#111111',
             studioUserClipConfig: {
               x: 80,
               y: 0,
               width: 160,
               height: 240,
-              radius: 8,
+              radius: 0,
             },
           },
         ]
@@ -249,7 +248,7 @@ const videoJamEight = () => {
           height={CONFIG.height - 2}
         />,
         <Video videoElement={videoElement} videoConfig={videoConfig} />,
-        <Image image={nextJSLogo} x={30} y={CONFIG.height - 72} />,
+        <Image image={nextJSLogo} x={40} y={CONFIG.height - 65} />,
       ]
     : [<></>]
 
