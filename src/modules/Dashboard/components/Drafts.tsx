@@ -117,7 +117,8 @@ const Drafts = () => {
         <div className="grid grid-cols-4 gap-y-5 gap-x-3 p-0 ml-28 mr-20 justify-center mb-20">
           {data?.Flick.map(
             (flick) =>
-              !flick.producedLink && (
+              !flick.producedLink &&
+              !flick.deletedAt && (
                 <FlickTile
                   key={flick.id}
                   flick={flick}
