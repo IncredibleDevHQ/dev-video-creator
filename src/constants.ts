@@ -12,6 +12,7 @@ import SLACK_LOGO from './assets/grommet-icons_slack.svg'
 import IncredibleLogo from './assets/Incredible-Logo.svg'
 import seriesFolder from './assets/albums-outline.svg'
 import flickIcon from './assets/flickIcon.svg'
+import EmptyState from './assets/EmptyState.svg'
 
 export const ASSETS = {
   ICONS: {
@@ -35,6 +36,7 @@ export const ASSETS = {
 export const Icons = {
   seriesFolder,
   flickIcon,
+  EmptyState,
 }
 
 export const API = {

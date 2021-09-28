@@ -36,7 +36,7 @@ const DashboardSeriesFlicks = () => {
                 className="bg-gray-50 hover:border-green-500 cursor-pointer w-60 h-36 rounded-md border-gray-300 border-2 items-center justify-center"
               >
                 <img src={Icons.seriesFolder} alt="I" className="ml-20 mt-10" />
-                <div className="bg-gray-300 h-5 w-12 p-1 justify-end ml-44 mb-20 mt-2 rounded-sm text-xs items-center">
+                <div className="bg-gray-300 h-5 w-14 p-1 justify-end ml-44 mb-20 mt-2 rounded-sm text-xs items-center">
                   {series.Flick_Series_aggregate.aggregate?.count &&
                   series.Flick_Series_aggregate.aggregate?.count > 1
                     ? `${series.Flick_Series_aggregate.aggregate?.count} Flicks`
