@@ -84,7 +84,11 @@ query GetUserFlicks($sub: String!) {
 
 query GetUserPublicFlicks($userId: String!) {
   Flick(
-    where: { scope: { _eq: Public }, owner: { userSub: { _eq: $userId } } }
+    where: {
+      scope: { _eq: Public }
+      owner: { userSub: { _eq: $userId } }
+      deletedAt: { _is_null: true }
+    }
     order_by: { startAt: asc }
   ) {
     ...Flick
