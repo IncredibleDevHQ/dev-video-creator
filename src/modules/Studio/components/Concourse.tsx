@@ -129,32 +129,6 @@ const Concourse = ({
     stageRef.current.position(newPos)
   }
 
-  // const onLayerClick = () => {
-  //   if (!stageRef.current || !layerRef.current || !canvas?.zoomed) return
-  //   const tZooming = isZooming
-  //   if (tZooming) {
-  //     layerRef.current.x(0)
-  //     layerRef.current.y(0)
-  //     layerRef.current.scale({ x: 1, y: 1 })
-  //   } else {
-  //     const pointer = stageRef.current.getPointerPosition()
-  //     if (pointer) {
-  //       layerRef.current.x(-pointer.x)
-  //       layerRef.current.y(-pointer.y)
-  //     }
-  //     layerRef.current.scale({ x: zoomLevel, y: zoomLevel })
-  //   }
-  //   setZooming(!isZooming)
-  // }
-
-  // const onMouseLeave = () => {
-  //   if (!layerRef.current) return
-  //   layerRef.current.x(0)
-  //   layerRef.current.y(0)
-  //   layerRef.current.scale({ x: 1, y: 1 })
-  //   setZooming(false)
-  // }
-
   const onLayerClick = () => {
     if (!stageRef.current || !groupRef.current || !canvas?.zoomed) return
     const tZooming = isZooming
