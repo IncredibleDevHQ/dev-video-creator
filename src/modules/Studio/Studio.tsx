@@ -2,8 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { FiArrowLeft } from 'react-icons/fi'
 import { useHistory, useParams } from 'react-router-dom'
 import { useRecoilState, useRecoilValue } from 'recoil'
-import 'get-blob-duration'
-
 import getBlobDuration from 'get-blob-duration'
 import {
   emitToast,
@@ -113,10 +111,6 @@ const Studio = () => {
       },
       payload: { enabled: true, path: `rtdb/fragments/${fragmentId}/payload` },
     })
-
-  useEffect(() => {
-    console.log({ payload })
-  }, [payload])
 
   useEffect(() => {
     if (fragment && ready) {
