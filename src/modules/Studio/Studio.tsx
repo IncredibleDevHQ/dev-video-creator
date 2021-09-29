@@ -2,9 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { FiArrowLeft } from 'react-icons/fi'
 import { useHistory, useParams } from 'react-router-dom'
 import { useRecoilState, useRecoilValue } from 'recoil'
-import 'get-blob-duration'
-
 import getBlobDuration from 'get-blob-duration'
+
 import {
   emitToast,
   dismissToast,
@@ -36,7 +35,6 @@ const Studio = () => {
   const [studio, setStudio] = useRecoilState(studioStore)
   const { sub, picture } = (useRecoilValue(userState) as User) || {}
   const [fragment, setFragment] = useState<StudioFragmentFragment>()
-  let consst: MediaStreamConstraints | null = { audio: true, video: true }
   const history = useHistory()
 
   const { data, loading } = useGetFragmentByIdQuery({
@@ -47,18 +45,11 @@ const Studio = () => {
 
   const [uploadFile] = useUploadFile()
 
-  useEffect(() => {
-    consst = studio.constraints
-      ? studio.constraints
-      : { audio: true, video: true }
-  }, [])
-
   const {
     stream,
     join,
     users,
     mute,
-    leave,
     ready,
     userAudios,
     tracks,
@@ -113,10 +104,6 @@ const Studio = () => {
       },
       payload: { enabled: true, path: `rtdb/fragments/${fragmentId}/payload` },
     })
-
-  useEffect(() => {
-    console.log({ payload })
-  }, [payload])
 
   useEffect(() => {
     if (fragment && ready) {
