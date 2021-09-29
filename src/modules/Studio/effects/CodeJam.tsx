@@ -115,10 +115,11 @@ const CodeJam = () => {
             className="my-2"
             appearance="primary"
             onClick={() => {
-              updatePayload?.({
-                currentIndex: position.currentIndex + 1,
-                prevIndex: position.currentIndex,
-              })
+              if (position.currentIndex < computedTokens.current.length)
+                updatePayload?.({
+                  currentIndex: position.currentIndex + 1,
+                  prevIndex: position.currentIndex,
+                })
             }}
           />,
           <ControlButton
