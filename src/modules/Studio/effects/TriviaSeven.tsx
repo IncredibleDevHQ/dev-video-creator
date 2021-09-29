@@ -36,6 +36,10 @@ const TriviaSeven = () => {
     'anonymous'
   )
 
+  const [incredibleLogo] = useImage(
+    `${config.storage.baseUrl}x-incredible-black.svg`,
+    'anonymous'
+  )
   const [nextJSLogo] = useImage(
     `${config.storage.baseUrl}nextJSLogo.svg`,
     'anonymous'
@@ -113,14 +117,14 @@ const TriviaSeven = () => {
       width: 520,
       height: 390,
       clipTheme: 'rect',
-      borderWidth: 6,
+      borderWidth: 4,
       borderColor: '#111111',
       studioUserClipConfig: {
         x: 150,
         y: 0,
         width: 220,
         height: 390,
-        radius: 8,
+        radius: 0,
       },
     },
   ]
@@ -152,7 +156,6 @@ const TriviaSeven = () => {
       fill="white"
       stroke="#111111"
       strokeWidth={2}
-      cornerRadius={8}
     />,
     <Group x={37} y={58} key="group1">
       {questions?.length > 0 && questions[activeQuestionIndex]?.image ? (
@@ -161,7 +164,7 @@ const TriviaSeven = () => {
           y={20}
           align="center"
           fontSize={32}
-          fill="#1F2931"
+          fill="#111111"
           width={620}
           lineHeight={1.2}
           text={questions[activeQuestionIndex]?.text}
@@ -177,7 +180,7 @@ const TriviaSeven = () => {
           x={10}
           verticalAlign="middle"
           fontSize={32}
-          fill="#1F2931"
+          fill="#111111"
           width={620}
           height={390}
           text={questions[activeQuestionIndex]?.text}
@@ -201,7 +204,8 @@ const TriviaSeven = () => {
         </>
       )}
     </Group>,
-    <Image image={nextJSLogo} x={30} y={CONFIG.height - 72} />,
+    <Image image={incredibleLogo} x={30} y={CONFIG.height - 75} />,
+    <Image image={nextJSLogo} x={840} y={CONFIG.height - 68} />,
   ]
 
   return (

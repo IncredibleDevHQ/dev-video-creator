@@ -244,7 +244,6 @@ const Concourse = ({
         {state === 'ready' || state === 'recording' || state === 'countDown' ? (
           <Stage
             ref={stageRef}
-            onWheel={handleZoom}
             height={CONFIG.height}
             width={CONFIG.width}
             onClick={onLayerClick}

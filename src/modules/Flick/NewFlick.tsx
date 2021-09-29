@@ -23,7 +23,7 @@ const initialFlick: CreateNewFlickMutationVariables = {
 }
 
 const NewFlick = () => {
-  const { seriesId } = useParams<{ seriesId?: string }>()
+  const { seriesId } = useParams<{ seriesId: string }>()
 
   const [newFlick, setNewFlick] =
     useState<CreateNewFlickMutationVariables>(initialFlick)
@@ -33,6 +33,8 @@ const NewFlick = () => {
   const query = useQueryVariables()
 
   useEffect(() => {
+    if (!seriesId) return
+
     setNewFlick({ ...newFlick, seriesId })
   }, [seriesId])
 

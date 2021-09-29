@@ -33,8 +33,12 @@ const PointsSix = () => {
 
   const initialX = 32
 
+  const [incredibleLogo] = useImage(
+    `${config.storage.baseUrl}x-incredible-black.svg`,
+    'anonymous'
+  )
   const [tensorflowLogo] = useImage(
-    `${config.storage.baseUrl}tensorflow.svg`,
+    `${config.storage.baseUrl}100DaysOfTF.svg`,
     'anonymous'
   )
   const [tensorflowBg] = useImage(
@@ -64,7 +68,7 @@ const PointsSix = () => {
     setTitleNumberOfLines(
       getNoOfLinesOfText({
         text: fragment.name,
-        availableWidth: 520,
+        availableWidth: 500,
         fontSize: 40,
         fontFamily: 'Poppins',
         stageWidth: 640,
@@ -174,7 +178,7 @@ const PointsSix = () => {
       align="left"
       fontSize={40}
       fill="#424242"
-      width={500}
+      width={520}
       lineHeight={1.15}
       text={fragment?.name as string}
       fontStyle="normal 700"
@@ -222,7 +226,8 @@ const PointsSix = () => {
           </>
         ))}
     </Group>,
-    <Image image={tensorflowLogo} x={30} y={CONFIG.height - 72} />,
+    <Image image={incredibleLogo} x={25} y={CONFIG.height - 72} />,
+    <Image image={tensorflowLogo} x={820} y={CONFIG.height - 60} />,
   ]
 
   return (

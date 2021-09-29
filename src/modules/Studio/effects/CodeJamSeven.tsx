@@ -44,6 +44,10 @@ const CodeJamSeven = () => {
     currentIndex: 0,
   })
 
+  const [incredibleLogo] = useImage(
+    `${config.storage.baseUrl}x-incredible-black.svg`,
+    'anonymous'
+  )
   const [nextJSLogo] = useImage(
     `${config.storage.baseUrl}nextJSLogo.svg`,
     'anonymous'
@@ -127,10 +131,11 @@ const CodeJamSeven = () => {
             className="my-2"
             appearance="primary"
             onClick={() => {
-              updatePayload?.({
-                currentIndex: position.currentIndex + 1,
-                prevIndex: position.currentIndex,
-              })
+              if (position.currentIndex < computedTokens.current.length)
+                updatePayload?.({
+                  currentIndex: position.currentIndex + 1,
+                  prevIndex: position.currentIndex,
+                })
             }}
           />,
           <ControlButton
@@ -283,13 +288,12 @@ const CodeJamSeven = () => {
     />,
     <Rect
       x={37}
-      y={58}
+      y={56}
       width={704}
       height={396}
       fill="#202026"
       strokeWidth={2}
       stroke="#111111"
-      cornerRadius={8}
     />,
     <Group x={52} y={73} key="circleGroup">
       <Circle key="redCircle" x={0} y={0} fill="#FF605C" radius={5} />
@@ -309,7 +313,8 @@ const CodeJamSeven = () => {
         )}
       </Group>
     ),
-    <Image image={nextJSLogo} x={30} y={CONFIG.height - 50} />,
+    <Image image={incredibleLogo} x={30} y={CONFIG.height - 70} />,
+    <Image image={nextJSLogo} x={840} y={CONFIG.height - 68} />,
   ]
 
   return (

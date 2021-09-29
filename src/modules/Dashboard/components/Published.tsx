@@ -1,13 +1,16 @@
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 /* eslint-disable no-nested-ternary */
-import React, { useState } from 'react'
+import { cx } from '@emotion/css'
+import React, { useEffect, useState } from 'react'
+import { FiMoreHorizontal } from 'react-icons/fi'
 import { useHistory } from 'react-router-dom'
 import { useRecoilValue } from 'recoil'
-import { ScreenState, Text } from '../../../components'
+import { emitToast, ScreenState, Text, Tooltip } from '../../../components'
 import { Icons } from '../../../constants'
 import {
   BaseFlickFragment,
+  useDeleteFlickMutation,
   useGetUserFlicksQuery,
   User,
 } from '../../../generated/graphql'
@@ -23,17 +26,75 @@ const InfoTilePublished = ({ flick }: { flick: BaseFlickFragment }) => {
   )
 }
 
-const VideoTile = ({ flick }: { flick: BaseFlickFragment }) => {
+const VideoTile = ({
+  flick,
+  handleRefetch,
+}: {
+  flick: BaseFlickFragment
+  handleRefetch: (refresh?: boolean) => void
+}) => {
   const history = useHistory()
+  const userdata = (useRecoilValue(userState) as User) || {}
+  const [options, setOptions] = useState(false)
+  const [deleteFlick, { data, loading }] = useDeleteFlickMutation()
+
+  const deleteFlickFunction = async () => {
+    await deleteFlick({
+      variables: {
+        flickId: flick.id,
+      },
+    })
+  }
+
+  useEffect(() => {
+    if (!data) return
+    emitToast({
+      title: 'Success',
+      description: 'Successfully deleted the flick',
+      type: 'success',
+    })
+    handleRefetch(true)
+  }, [data])
+
+  if (loading) return <ScreenState title="Just a jiffy" loading />
 
   return (
     <div className="bg-gray-50 hover:border-green-500 cursor-pointer w-60 h-36 rounded-md items-center justify-center mt-9">
       <div
         className="text-gray-300 hover:border-green-500 cursor-pointer w-60 h-36 border-2"
-        onClick={() => {
+        onClick={(e) => {
+          e.stopPropagation()
           history.push(`/view/${flick.joinLink}`)
         }}
       >
+        <Tooltip
+          isOpen={options}
+          setIsOpen={setOptions}
+          content={
+            <div
+              className={cx(
+                'bg-gray-100 w-28 h-10 p-2 rounded-sm',
+                flick.owner?.userSub !== userdata.sub
+                  ? 'cursor-not-allowed'
+                  : 'cursor-pointer'
+              )}
+              onClick={() => {
+                if (flick.owner?.userSub !== userdata.sub) return
+                deleteFlickFunction()
+              }}
+            >
+              Delete Flick
+            </div>
+          }
+          placement="bottom-start"
+          hideOnOutsideClick
+        >
+          <FiMoreHorizontal
+            className="w-6 h-6 text-gray-400 cursor-pointer"
+            size={30}
+            onClick={() => setOptions(!options)}
+          />
+        </Tooltip>
         <img
           src={Icons.flickIcon}
           alt="I"
@@ -48,7 +109,7 @@ const VideoTile = ({ flick }: { flick: BaseFlickFragment }) => {
 
 const Published = () => {
   const { sub } = (useRecoilValue(userState) as User) || {}
-  const { data, loading } = useGetUserFlicksQuery({
+  const { data, loading, refetch } = useGetUserFlicksQuery({
     variables: { sub: sub as string },
   })
   const [view] = useState<'grid' | 'list'>('grid')
@@ -59,7 +120,15 @@ const Published = () => {
         <div className="gap-y-5 p-0 grid grid-cols-4 ml-28 mr-20 justify-center mb-20">
           {data?.Flick.map(
             (flick) =>
-              flick.producedLink && <VideoTile key={flick.id} flick={flick} />
+              flick.producedLink && (
+                <VideoTile
+                  key={flick.id}
+                  flick={flick}
+                  handleRefetch={(refresh) => {
+                    if (refresh) refetch()
+                  }}
+                />
+              )
           )}
         </div>
       )}
