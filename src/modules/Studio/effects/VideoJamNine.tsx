@@ -13,7 +13,7 @@ import { Video, VideoConfig } from '../components/Video'
 import { ClipConfig } from '../hooks/use-edit'
 import config from '../../../config'
 
-const videoJamEight = () => {
+const VideoJamNine = () => {
   const { state, fragment, payload, updatePayload } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [titleSpalshData, settitleSpalshData] = useState<{
@@ -267,4 +267,4 @@ const videoJamEight = () => {
   )
 }
 
-export default videoJamEight
+export default VideoJamNine
