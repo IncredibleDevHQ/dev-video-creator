@@ -76,6 +76,7 @@ const Concourse = ({
 
   const stageRef = createRef<Konva.Stage>()
   const layerRef = createRef<Konva.Layer>()
+  const groupRef = createRef<Konva.Group>()
   const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
 
   const [timer, setTimer] = useState<number>(3)
@@ -129,28 +130,28 @@ const Concourse = ({
   }
 
   const onLayerClick = () => {
-    if (!stageRef.current || !layerRef.current || !canvas?.zoomed) return
+    if (!stageRef.current || !groupRef.current || !canvas?.zoomed) return
     const tZooming = isZooming
     if (tZooming) {
-      layerRef.current.x(0)
-      layerRef.current.y(0)
-      layerRef.current.scale({ x: 1, y: 1 })
+      groupRef.current.x(0)
+      groupRef.current.y(0)
+      groupRef.current.scale({ x: 1, y: 1 })
     } else {
       const pointer = stageRef.current.getPointerPosition()
       if (pointer) {
-        layerRef.current.x(-pointer.x)
-        layerRef.current.y(-pointer.y)
+        groupRef.current.x(-pointer.x)
+        groupRef.current.y(-pointer.y)
       }
-      layerRef.current.scale({ x: zoomLevel, y: zoomLevel })
+      groupRef.current.scale({ x: zoomLevel, y: zoomLevel })
     }
     setZooming(!isZooming)
   }
 
   const onMouseLeave = () => {
-    if (!layerRef.current) return
-    layerRef.current.x(0)
-    layerRef.current.y(0)
-    layerRef.current.scale({ x: 1, y: 1 })
+    if (!groupRef.current) return
+    groupRef.current.x(0)
+    groupRef.current.y(0)
+    groupRef.current.scale({ x: 1, y: 1 })
     setZooming(false)
   }
 
@@ -170,7 +171,6 @@ const Concourse = ({
           draggable
           width={CONFIG.width}
           height={CONFIG.height}
-          zIndex={100}
           ref={(ref) =>
             ref?.to({
               duration: 3,
@@ -246,7 +246,6 @@ const Concourse = ({
             ref={stageRef}
             height={CONFIG.height}
             width={CONFIG.width}
-            onClick={onLayerClick}
             className={cx({
               'cursor-zoom-in': canvas?.zoomed && !isZooming,
               'cursor-zoom-out': canvas?.zoomed && isZooming,
@@ -267,32 +266,32 @@ const Concourse = ({
                   fill="#202026"
                   cornerRadius={8}
                 />
-
-                {(() => {
-                  if (payload?.status === Fragment_Status_Enum_Enum.Live) {
-                    layerRef.current?.destroyChildren()
-                    if (titleSpalshData?.enable && isTitleSplash) {
-                      return (
-                        <>
-                          <TitleSplash />
-                          <CircleCenterShrink color="#000000" />
-                        </>
-                      )
+                <Group ref={groupRef} onClick={onLayerClick}>
+                  {(() => {
+                    if (payload?.status === Fragment_Status_Enum_Enum.Live) {
+                      layerRef.current?.destroyChildren()
+                      if (titleSpalshData?.enable && isTitleSplash) {
+                        return (
+                          <>
+                            <TitleSplash />
+                            <CircleCenterShrink color="#000000" />
+                          </>
+                        )
+                      }
+                      // if (!titleSpalshData?.enable && !isTitleSplash) {
+                      //   setIsTitleSplash(true)
+                      //   return <CircleCenterShrink />
+                      // }
                     }
-                    // if (!titleSpalshData?.enable && !isTitleSplash) {
-                    //   setIsTitleSplash(true)
-                    //   return <CircleCenterShrink />
-                    // }
-                  }
-                  if (payload?.status === Fragment_Status_Enum_Enum.Ended)
-                    return (
-                      <MultiCircleCenterGrow
-                        performFinishAction={performFinishAction}
-                      />
-                    )
-                  return layerChildren
-                })()}
-
+                    if (payload?.status === Fragment_Status_Enum_Enum.Ended)
+                      return (
+                        <MultiCircleCenterGrow
+                          performFinishAction={performFinishAction}
+                        />
+                      )
+                    return layerChildren
+                  })()}
+                </Group>
                 {!disableUserMedia &&
                   !isTitleSplash &&
                   payload?.status !== Fragment_Status_Enum_Enum.Ended && (
@@ -337,7 +336,6 @@ const Concourse = ({
                       key="group1"
                       width={CONFIG.width}
                       height={CONFIG.height}
-                      zIndex={500}
                     >
                       <Circle
                         x={CONFIG.width / 2}
