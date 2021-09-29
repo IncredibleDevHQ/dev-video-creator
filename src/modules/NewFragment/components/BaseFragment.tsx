@@ -76,7 +76,7 @@ const BaseFragment = ({
         image={fragmentIcons.trivia}
         description="A simple quiz to test your knowledge of the topic."
         onClick={() => handleNext(Fragment_Type_Enum_Enum.Trivia)}
-        accessory="1 person"
+        accessory="1-2 person"
       />
       <BaseFragmentCard
         label="Slides"
@@ -104,7 +104,7 @@ const BaseFragment = ({
         image={fragmentIcons.points}
         description="Talk about the Points of your Topic."
         onClick={() => handleNext(Fragment_Type_Enum_Enum.Points)}
-        accessory="1 person"
+        accessory="1-2 person"
       />
       <BaseFragmentCard
         label="Discussion"
