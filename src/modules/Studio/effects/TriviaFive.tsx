@@ -1,5 +1,4 @@
-import Konva from 'konva'
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Group, Text, Image, Rect } from 'react-konva'
 import FontFaceObserver from 'fontfaceobserver'
 import { useRecoilValue } from 'recoil'
@@ -102,24 +101,65 @@ const TriviaFive = () => {
     />,
   ]
 
-  const studioUserConfig: StudioUserConfig[] = [
-    {
-      x: 586,
-      y: 0,
-      width: 528,
-      height: 396,
-      clipTheme: 'rect',
-      borderWidth: 6,
-      borderColor: '#ffffff',
-      studioUserClipConfig: {
-        x: 154,
-        y: 0,
-        width: 220,
-        height: 396,
-        radius: 0,
-      },
-    },
-  ]
+  const studioCoordinates: StudioUserConfig[] = (() => {
+    switch (fragment?.participants.length) {
+      case 2:
+        return [
+          {
+            x: 705,
+            y: 60,
+            width: 240,
+            height: 180,
+            clipTheme: 'rect',
+            borderWidth: 6,
+            borderColor: '#ffffff',
+            studioUserClipConfig: {
+              x: 10,
+              y: 0,
+              width: 220,
+              height: 180,
+              radius: 0,
+            },
+          },
+          {
+            x: 705,
+            y: 265,
+            width: 240,
+            height: 180,
+            clipTheme: 'rect',
+            borderWidth: 6,
+            borderColor: '#ffffff',
+            studioUserClipConfig: {
+              x: 10,
+              y: 0,
+              width: 220,
+              height: 180,
+              radius: 0,
+            },
+          },
+        ]
+
+      default:
+        return [
+          {
+            x: 586,
+            y: 0,
+            width: 528,
+            height: 396,
+            clipTheme: 'rect',
+            borderWidth: 6,
+            borderColor: '#ffffff',
+            studioUserClipConfig: {
+              x: 154,
+              y: 0,
+              width: 220,
+              height: 396,
+              radius: 0,
+            },
+          },
+        ]
+    }
+  })()
 
   const layerChildren = [
     <Rect
@@ -185,7 +225,7 @@ const TriviaFive = () => {
       controls={controls}
       layerChildren={layerChildren}
       titleSpalshData={titleSpalshData}
-      studioUserConfig={studioUserConfig}
+      studioUserConfig={studioCoordinates}
     />
   )
 }

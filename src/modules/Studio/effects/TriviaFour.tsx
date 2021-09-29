@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Group, Text, Image, Rect } from 'react-konva'
 import FontFaceObserver from 'fontfaceobserver'
 import { useRecoilValue } from 'recoil'
@@ -109,29 +109,80 @@ const TriviaFour = () => {
     />,
   ]
 
-  const studioUserConfig: StudioUserConfig[] = [
-    {
-      x: 565,
-      y: 68,
-      width: 520,
-      height: 390,
-      clipTheme: 'rect',
-      borderWidth: 6,
-      borderColor: '#1F2937',
-      studioUserClipConfig: {
-        x: 150,
-        y: 0,
-        width: 220,
-        height: 390,
-        radius: 8,
-      },
-      backgroundRectX: 705,
-      backgroundRectY: 58,
-      backgroundRectColor: '#FF5D01',
-      backgroundRectBorderWidth: 3,
-      backgroundRectBorderColor: '#1F2937',
-    },
-  ]
+  const studioCoordinates: StudioUserConfig[] = (() => {
+    switch (fragment?.participants.length) {
+      case 2:
+        return [
+          {
+            x: 705,
+            y: 60,
+            width: 240,
+            height: 180,
+            clipTheme: 'rect',
+            borderWidth: 6,
+            borderColor: '#1F2937',
+            studioUserClipConfig: {
+              x: 10,
+              y: 0,
+              width: 220,
+              height: 180,
+              radius: 8,
+            },
+            backgroundRectX: 705,
+            backgroundRectY: 70,
+            backgroundRectColor: '#FF5D01',
+            backgroundRectBorderWidth: 3,
+            backgroundRectBorderColor: '#1F2937',
+          },
+          {
+            x: 705,
+            y: 265,
+            width: 240,
+            height: 180,
+            clipTheme: 'rect',
+            borderWidth: 6,
+            borderColor: '#1F2937',
+            studioUserClipConfig: {
+              x: 10,
+              y: 0,
+              width: 220,
+              height: 180,
+              radius: 8,
+            },
+            backgroundRectX: 705,
+            backgroundRectY: 295,
+            backgroundRectColor: '#FF5D01',
+            backgroundRectBorderWidth: 3,
+            backgroundRectBorderColor: '#1F2937',
+          },
+        ]
+
+      default:
+        return [
+          {
+            x: 565,
+            y: 68,
+            width: 520,
+            height: 390,
+            clipTheme: 'rect',
+            borderWidth: 6,
+            borderColor: '#1F2937',
+            studioUserClipConfig: {
+              x: 150,
+              y: 0,
+              width: 220,
+              height: 390,
+              radius: 8,
+            },
+            backgroundRectX: 705,
+            backgroundRectY: 58,
+            backgroundRectColor: '#FF5D01',
+            backgroundRectBorderWidth: 3,
+            backgroundRectBorderColor: '#1F2937',
+          },
+        ]
+    }
+  })()
 
   const windowOpsImages = <Image image={windowOps} x={860} y={25} />
 
@@ -232,7 +283,7 @@ const TriviaFour = () => {
       controls={controls}
       layerChildren={layerChildren}
       titleSpalshData={titleSpalshData}
-      studioUserConfig={studioUserConfig}
+      studioUserConfig={studioCoordinates}
     />
   )
 }

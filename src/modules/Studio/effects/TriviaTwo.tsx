@@ -114,24 +114,24 @@ const TriviaTwo = () => {
       case 2:
         return [
           {
-            x: 735,
-            y: 50,
+            x: 705,
+            y: 60,
             width: 240,
             height: 180,
             clipTheme: 'rect',
             borderColor: '#D1D5DB',
             borderWidth: 8,
             studioUserClipConfig: {
-              x: 40,
+              x: 10,
               y: 0,
-              width: 160,
+              width: 220,
               height: 180,
               radius: 8,
             },
           },
           {
-            x: 735,
-            y: 255,
+            x: 705,
+            y: 265,
             width: 240,
             height: 180,
             clipTheme: 'rect',
