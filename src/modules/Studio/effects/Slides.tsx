@@ -10,11 +10,12 @@ import { CONFIG } from '../components/Concourse'
 import { ControlButton } from '../components/MissionControl'
 import { canvasStore, StudioProviderProps, studioStore } from '../stores'
 import { getDimensions } from './effects'
+// eslint-disable-next-line import/no-unresolved
 import 'gifler'
 import useEdit from '../hooks/use-edit'
 
 const Gif = ({ src }: { src: HTMLImageElement | undefined | string }) => {
-  const imageRef = React.useRef(null)
+  const imageRef = React.useRef<any>(null)
   const canvas = React.useMemo(() => {
     const node = document.createElement('canvas')
     return node
@@ -29,7 +30,7 @@ const Gif = ({ src }: { src: HTMLImageElement | undefined | string }) => {
 
   useEffect(() => {
     let anim: any
-    window.gifler(src).get((a: any) => {
+    ;(window as any).gifler(src).get((a: any) => {
       anim = a
       anim.animateInCanvas(canvas)
       anim.onDrawFrame = (ctx: any, frame: any) => {
