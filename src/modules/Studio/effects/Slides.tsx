@@ -11,67 +11,7 @@ import { ControlButton } from '../components/MissionControl'
 import { canvasStore, StudioProviderProps, studioStore } from '../stores'
 import { getDimensions } from './effects'
 // eslint-disable-next-line import/no-unresolved
-import 'gifler'
-import useEdit from '../hooks/use-edit'
-
-const Gif = ({ src }: { src: HTMLImageElement | undefined | string }) => {
-  const imageRef = React.useRef<any>(null)
-  const canvas = React.useMemo(() => {
-    const node = document.createElement('canvas')
-    return node
-  }, [])
-  const { getImageDimensions } = useEdit()
-  const [imgDim, setImgDim] = useState<{
-    width: number
-    height: number
-    x: number
-    y: number
-  }>({ width: 0, height: 0, x: 0, y: 0 })
-
-  useEffect(() => {
-    let anim: any
-    ;(window as any).gifler(src).get((a: any) => {
-      anim = a
-      anim.animateInCanvas(canvas)
-      anim.onDrawFrame = (ctx: any, frame: any) => {
-        ctx.drawImage(frame.buffer, frame.x, frame.y)
-        imageRef.current.getLayer().draw()
-      }
-    })
-    return () => anim.stop()
-  }, [src, canvas])
-
-  useEffect(() => {
-    setImgDim(
-      getImageDimensions(
-        {
-          w: (canvas && canvas.width) || 0,
-          h: (canvas && canvas.height) || 0,
-        },
-        600,
-        500,
-        640,
-        540,
-        0,
-        0
-      )
-    )
-  }, [canvas])
-
-  return (
-    <Image
-      image={canvas}
-      ref={imageRef}
-      y={imgDim.y}
-      x={imgDim.x}
-      width={imgDim.width}
-      height={imgDim.height}
-      shadowOpacity={0.3}
-      shadowOffset={{ x: 0, y: 1 }}
-      shadowBlur={2}
-    />
-  )
-}
+import Gif from '../components/Gif'
 
 const Slides = () => {
   const [activeSlideIndex, setActiveSlideIndex] = useState<number>(0)
@@ -232,7 +172,17 @@ const Slides = () => {
               />
             )}
           </Group>
-          {isGif && <Gif src={gifUrl} />}
+          {isGif && (
+            <Gif
+              src={gifUrl}
+              maxWidth={600}
+              maxHeight={480}
+              availableWidth={640}
+              availableHeight={540}
+              x={0}
+              y={0}
+            />
+          )}
         </>
       )}
     </Group>,
