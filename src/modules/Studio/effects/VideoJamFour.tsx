@@ -116,6 +116,7 @@ const VideoJamFour = () => {
     y: 58,
     width: 704,
     height: 396,
+    videoFill: '#1F2937',
     cornerRadius: 8,
     performClip: true,
     backgroundRectX: 27,
