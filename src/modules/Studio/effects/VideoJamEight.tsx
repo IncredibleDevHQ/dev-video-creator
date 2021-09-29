@@ -117,6 +117,7 @@ const VideoJamEight = () => {
     width: 704,
     height: 396,
     cornerRadius: 8,
+    videoFill: '#E5E5E5',
     performClip: true,
     backgroundRectX: 27,
     backgroundRectY: 48,
