@@ -86,7 +86,7 @@ const TextArraySchema = ({
           >
             <div className="flex flex-col">
               <span className="font-bold">Point {index + 1}:</span>
-              <span className="capitalize text-justify">{ques}</span>
+              <span className="text-justify">{ques}</span>
             </div>
             <Button
               onClick={() => handleDeleteText(ques)}

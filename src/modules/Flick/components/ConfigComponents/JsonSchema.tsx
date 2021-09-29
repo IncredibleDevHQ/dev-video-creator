@@ -134,7 +134,7 @@ const JsonSchema = ({
             )}
             <div className="flex flex-col">
               <span className="font-bold">Question {index + 1}:</span>
-              <span className="capitalize text-justify">{ques.text}</span>
+              <span className="text-justify">{ques.text}</span>
             </div>
             {ques.text && (
               <Button
