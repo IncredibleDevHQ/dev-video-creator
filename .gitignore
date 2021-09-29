@@ -7,3 +7,5 @@ dist-ssr
 .env
 generated
 graphql.*
+build
+*.cache

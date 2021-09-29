@@ -1,0 +1,17 @@
+fragment FlickParticipants on Participant {
+  id
+  status
+  role
+  userSub
+  owner
+  inviteStatus
+  user {
+    ...FlickParticipant
+  }
+}
+
+query FragmentParticipants($fragmentId: uuid!) {
+  Fragment_Participant(where: { fragmentId: { _eq: $fragmentId } }) {
+    participantId
+  }
+}

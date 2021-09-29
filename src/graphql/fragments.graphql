@@ -1,0 +1,142 @@
+fragment FlickFragment on Fragment {
+  configuration
+  description
+  flickId
+  id
+  name
+  order
+  type
+  producedLink
+  participants {
+    participant {
+      ...FlickParticipants
+    }
+  }
+}
+
+fragment StudioFragment on Fragment {
+  ...FlickFragment
+  flick {
+    ...BaseFlick
+  }
+}
+
+query GetFragmentById($id: uuid!, $sub: String!) {
+  Fragment(
+    where: {
+      _and: {
+        id: { _eq: $id }
+        flick: { participants: { userSub: { _eq: $sub } } }
+      }
+    }
+  ) {
+    ...StudioFragment
+  }
+}
+
+query FragmentRole($fragmentId: uuid!, $sub: String!) {
+  Participant(
+    where: {
+      _and: {
+        fragments: {
+          fragmentId: { _eq: $fragmentId }
+          participant: { userSub: { _eq: $sub } }
+        }
+      }
+    }
+  ) {
+    role
+  }
+}
+
+mutation AddFragmentToFlick(
+  $type: FRAGMENT_TYPE_ENUM_enum!
+  $order: Int!
+  $name: String!
+  $flickId: uuid!
+  $description: String!
+) {
+  insert_Fragment_one(
+    object: {
+      name: $name
+      order: $order
+      type: $type
+      flickId: $flickId
+      description: $description
+    }
+  ) {
+    createdAt
+  }
+}
+
+mutation MarkFragmentCompleted(
+  $id: uuid!
+  $producedLink: String!
+  $duration: float8!
+) {
+  update_Fragment_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+      status: Completed
+      producedLink: $producedLink
+      duration: $duration
+    }
+  ) {
+    updatedAt
+  }
+}
+
+mutation AddConfiguration($configuration: json!, $id: uuid!) {
+  update_Fragment_by_pk(
+    pk_columns: { id: $id }
+    _set: { configuration: $configuration }
+  ) {
+    ...FlickFragment
+  }
+}
+
+mutation InsertParticipantToFragment(
+  $participantId: uuid!
+  $fragmentId: uuid!
+) {
+  InviteParticipantToFragment(
+    fragmentId: $fragmentId
+    participantId: $participantId
+  ) {
+    createdAt
+  }
+}
+
+mutation CreateFragment(
+  $flickId: uuid!
+  $name: String!
+  $type: CreateFragmentTypeEnum!
+  $description: String
+) {
+  CreateFragment(
+    flickId: $flickId
+    name: $name
+    type: $type
+    description: $description
+  ) {
+    id
+  }
+}
+
+mutation UpdateFragmentConfiguration($fragmentId: uuid!, $items: json!) {
+  UpdateFragmentConfiguration(fragmentId: $fragmentId, items: $items) {
+    success
+  }
+}
+
+mutation DeleteFragment($id: uuid!) {
+  DeleteFragmentbyID(id: $id) {
+    id
+  }
+}
+
+mutation ReorderFragment($fragmentIds: [uuid!]!, $flick_id: uuid!) {
+  ReorderFragments(fragmentIds: $fragmentIds, flickId: $flick_id) {
+    success
+  }
+}

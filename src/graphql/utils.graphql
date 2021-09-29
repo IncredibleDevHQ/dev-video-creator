@@ -1,0 +1,47 @@
+query GetTokenisedCode($code: String!, $language: String!, $theme: String) {
+  TokenisedCode(code: $code, language: $language, theme: $theme) {
+    success
+    data
+  }
+}
+
+query GetLatestFlick($sub: String!) {
+  Flick(
+    where: {
+      startAt: { _gte: "now()" }
+      participants: { userSub: { _eq: $sub } }
+    }
+    order_by: { startAt: asc }
+    limit: 1
+  ) {
+    ...Flick
+  }
+}
+query GetFlickByJoinLink($joinLink: String!) {
+  Flick(where: { joinLink: { _eq: $joinLink } }) {
+    ...BaseFlick
+    participants {
+      ...FlickParticipants
+    }
+  }
+}
+
+mutation UploadFile($key: String!) {
+  UploadFile(key: $key) {
+    success
+    url
+  }
+}
+
+mutation ProduceVideo($flickId: uuid!) {
+  ProduceVideo(flickId: $flickId) {
+    id
+  }
+}
+
+mutation GetRTCToken($fragmentId: uuid!) {
+  RTCToken(fragmentId: $fragmentId) {
+    token
+    success
+  }
+}

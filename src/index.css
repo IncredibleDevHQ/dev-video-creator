@@ -1,3 +1,89 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Darker+Grotesque:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  @font-face {
+    font-family: 'Gilroy';
+    font-weight: 400;
+    src: url('fonts/gilroy-400.woff2') format('woff2');
+  }
+  @font-face {
+    font-family: 'Gilroy';
+    font-weight: 600;
+    src: url('fonts/gilroy-600.woff2') format('woff2');
+  }
+}
+
+@layer utilities {
+  @variants responsive {
+    /* Hide scrollbar for Chrome, Safari and Opera */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* Hide scrollbar for IE, Edge and Firefox */
+    .no-scrollbar {
+      -ms-overflow-style: none; /* IE and Edge */
+      scrollbar-width: none; /* Firefox */
+    }
+  }
+}
+
+::-moz-selection {
+  /* Code for Firefox */
+  @apply bg-brand-alt;
+  @apply text-background;
+}
+
+::selection {
+  @apply bg-brand-alt;
+  @apply text-background;
+}
+
+*,
+::after,
+::before {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #ffffff;
+  /* font-family: 'Nunito Sans', sans-serif; */
+  font-family: 'Gilroy', sans-serif;
+  @apply text-black;
+}
+
+.Toastify__toast {
+  @apply bg-gray-100 !important;
+  @apply w-full !important;
+  @apply rounded-md !important;
+  @apply border-gray-100 !important;
+  @apply border-opacity-20 !important;
+  @apply border !important;
+}
+
+.Toastify__toast-body {
+  @apply w-full !important;
+}
+
+.unselectable {
+  -khtml-user-select: none;
+  -o-user-select: none;
+  -moz-user-select: none;
+  -webkit-user-select: none;
+  user-select: none;
+}

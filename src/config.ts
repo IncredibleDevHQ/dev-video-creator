@@ -4,6 +4,12 @@ const firebaseConfig = JSON.parse(
 
 const config = {
   /**
+   * Agora configs...
+   */
+  agora: {
+    appId: import.meta.env.VITE_AGORA_APP_ID,
+  },
+  /**
    * Hasura configs...
    */
   hasura: {
@@ -21,6 +27,16 @@ const config = {
   sentry: {
     dsn: import.meta.env.VITE_SENTRY_DSN,
     enabled: !!(import.meta.env.VITE_SENTRY_ENABLED === 'true'),
+  },
+  /**
+  storage config
+  */
+  storage: {
+    baseUrl: import.meta.env.VITE_STORAGE_BASE_URL,
+  },
+
+  client: {
+    publicUrl: import.meta.env.VITE_PUBLIC_URL,
   },
 }
 

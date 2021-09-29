@@ -8,7 +8,6 @@ import path from 'path'
 export default defineConfig({
   build: {
     outDir: 'build',
-    sourcemap: true,
   },
   plugins: [reactRefresh(), svgr(), vitePluginHtmlEnv()],
   resolve: {
