@@ -114,9 +114,8 @@ const videoJamEight = () => {
     height: 396,
     cornerRadius: 8,
     performClip: true,
-    backgroundRectX: 27,
-    backgroundRectY: 48,
-    backgroundRectColor: '#FF6E00',
+    borderColor: '#111111',
+    borderWidth: 6,
   }
 
   const studioCoordinates: StudioUserConfig[] = (() => {
