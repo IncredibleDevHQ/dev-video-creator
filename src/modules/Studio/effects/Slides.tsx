@@ -67,7 +67,7 @@ const Slides = () => {
         (property: any) => property.type === 'file[]'
       )?.value
     )
-    //setConfig of titleSpalsh
+    // setConfig of titleSpalsh
     settitleSpalshData({
       enable: fragment.configuration.properties.find(
         (property: any) => property.key === 'showTitleSplash'

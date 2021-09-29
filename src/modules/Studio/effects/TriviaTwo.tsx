@@ -1,5 +1,4 @@
-import Konva from 'konva'
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Group, Text, Image, Rect } from 'react-konva'
 import FontFaceObserver from 'fontfaceobserver'
 import { useRecoilValue } from 'recoil'
@@ -110,26 +109,67 @@ const TriviaTwo = () => {
     />,
   ]
 
-  const studioUserConfig: StudioUserConfig[] = [
-    {
-      x: 565,
-      y: 58,
-      width: 520,
-      height: 390,
-      clipTheme: 'rect',
-      borderWidth: 8,
-      studioUserClipConfig: {
-        x: 150,
-        y: 0,
-        width: 220,
-        height: 390,
-        radius: 8,
-      },
-      backgroundRectX: 705,
-      backgroundRectY: 48,
-      backgroundRectColor: '#C084FC',
-    },
-  ]
+  const studioCoordinates: StudioUserConfig[] = (() => {
+    switch (fragment?.participants.length) {
+      case 2:
+        return [
+          {
+            x: 735,
+            y: 50,
+            width: 240,
+            height: 180,
+            clipTheme: 'rect',
+            borderColor: '#D1D5DB',
+            borderWidth: 8,
+            studioUserClipConfig: {
+              x: 40,
+              y: 0,
+              width: 160,
+              height: 180,
+              radius: 8,
+            },
+          },
+          {
+            x: 735,
+            y: 255,
+            width: 240,
+            height: 180,
+            clipTheme: 'rect',
+            borderColor: '#D1D5DB',
+            borderWidth: 8,
+            studioUserClipConfig: {
+              x: 40,
+              y: 0,
+              width: 160,
+              height: 180,
+              radius: 8,
+            },
+          },
+        ]
+
+      default:
+        return [
+          {
+            x: 565,
+            y: 58,
+            width: 520,
+            height: 390,
+            clipTheme: 'rect',
+            borderWidth: 8,
+            studioUserClipConfig: {
+              x: 150,
+              y: 0,
+              width: 220,
+              height: 390,
+              radius: 8,
+            },
+            backgroundRectX: 705,
+            backgroundRectY: 48,
+            backgroundRectColor: '#C084FC',
+          },
+        ]
+    }
+  })()
 
   const layerChildren = [
     <Rect
@@ -212,7 +252,7 @@ const TriviaTwo = () => {
       controls={controls}
       layerChildren={layerChildren}
       titleSpalshData={titleSpalshData}
-      studioUserConfig={studioUserConfig}
+      studioUserConfig={studioCoordinates}
     />
   )
 }
