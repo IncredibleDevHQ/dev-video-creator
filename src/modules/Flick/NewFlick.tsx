@@ -1,6 +1,6 @@
 /* eslint-disable jsx-a11y/label-has-associated-control */
 import React, { useEffect, useState } from 'react'
-import { useHistory } from 'react-router-dom'
+import { useHistory, useParams } from 'react-router-dom'
 import {
   Button,
   emitToast,
@@ -23,12 +23,20 @@ const initialFlick: CreateNewFlickMutationVariables = {
 }
 
 const NewFlick = () => {
+  const { seriesId } = useParams<{ seriesId: string }>()
+
   const [newFlick, setNewFlick] =
     useState<CreateNewFlickMutationVariables>(initialFlick)
   const [createNewFlick, { data, error, loading }] = useCreateNewFlickMutation()
   const history = useHistory()
 
   const query = useQueryVariables()
+
+  useEffect(() => {
+    if (!seriesId) return
+
+    setNewFlick({ ...newFlick, seriesId })
+  }, [seriesId])
 
   useEffect(() => {
     if (!error) return

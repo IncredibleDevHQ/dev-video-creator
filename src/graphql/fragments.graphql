@@ -69,19 +69,20 @@ mutation AddFragmentToFlick(
   }
 }
 
-mutation MarkFragmentCompleted($id: uuid!, $producedLink: String!) {
+mutation MarkFragmentCompleted(
+  $id: uuid!
+  $producedLink: String!
+  $duration: float8!
+) {
   update_Fragment_by_pk(
     pk_columns: { id: $id }
-    _set: { status: Completed, producedLink: $producedLink }
+    _set: {
+      status: Completed
+      producedLink: $producedLink
+      duration: $duration
+    }
   ) {
     updatedAt
-  }
-}
-
-query GetRTCToken($fragmentId: uuid!) {
-  RTCToken(fragmentId: $fragmentId) {
-    token
-    success
   }
 }
 
@@ -106,12 +107,6 @@ mutation InsertParticipantToFragment(
   }
 }
 
-query FragmentParticipants($fragmentId: uuid!) {
-  Fragment_Participant(where: { fragmentId: { _eq: $fragmentId } }) {
-    participantId
-  }
-}
-
 mutation CreateFragment(
   $flickId: uuid!
   $name: String!
@@ -130,6 +125,18 @@ mutation CreateFragment(
 
 mutation UpdateFragmentConfiguration($fragmentId: uuid!, $items: json!) {
   UpdateFragmentConfiguration(fragmentId: $fragmentId, items: $items) {
+    success
+  }
+}
+
+mutation DeleteFragment($id: uuid!) {
+  DeleteFragmentbyID(id: $id) {
+    id
+  }
+}
+
+mutation ReorderFragment($fragmentIds: [uuid!]!, $flick_id: uuid!) {
+  ReorderFragments(fragmentIds: $fragmentIds, flickId: $flick_id) {
     success
   }
 }

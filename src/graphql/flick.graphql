@@ -8,8 +8,30 @@ fragment BaseFlick on Flick {
   scope
   plannedEnd
   startAt
+  ownerId
+  owner {
+    userSub
+  }
+  updatedAt
   status
+  deletedAt
   producedLink
+  participants {
+    user {
+      picture
+      email
+    }
+  }
+}
+
+fragment FlickActivity on FlickActivity {
+  id
+  title
+  description
+  type
+  createdAt
+  flickId
+  fragmentId
 }
 
 fragment Flick on Flick {
@@ -17,8 +39,16 @@ fragment Flick on Flick {
   participants {
     ...FlickParticipants
   }
-  fragments {
+  fragments(order_by: { order: asc }) {
     ...FlickFragment
+  }
+}
+
+query GetMyFlicks($limit: Int, $userId: String) {
+  Flick(limit: $limit) {
+    id
+    name
+    description
   }
 }
 
@@ -42,53 +72,121 @@ query GetUpcomingUserFlicks($sub: String!) {
 
 query GetUserFlicks($sub: String!) {
   Flick(
-    where: { participants: { userSub: { _eq: $sub } } }
-    order_by: { startAt: asc }
+    where: {
+      participants: { userSub: { _eq: $sub } }
+      deletedAt: { _is_null: true }
+    }
+    order_by: { startAt: desc }
   ) {
     ...Flick
   }
 }
 
-query GetUserPublicFlicks($sub: String!) {
-  Flick(
-    where: { participants: { userSub: { _eq: $sub } }, scope: { _eq: Public } }
-    order_by: { startAt: asc }
-  ) {
-    ...Flick
-  }
-}
-
-query GetUpcomingFlick($sub: String!) {
+query GetUserPublicFlicks($userId: String!) {
   Flick(
     where: {
-      startAt: { _gte: "now()" }
-      participants: { userSub: { _eq: $sub } }
+      scope: { _eq: Public }
+      owner: { userSub: { _eq: $userId } }
+      deletedAt: { _is_null: true }
     }
     order_by: { startAt: asc }
-    limit: 1
   ) {
     ...Flick
+  }
+}
+
+query SeriesFlicks($id: uuid!) {
+  Flick_Series(
+    where: { seriesId: { _eq: $id }, flick: { deletedAt: { _is_null: true } } }
+  ) {
+    order
+    seriesFlickCount {
+      count
+    }
+    flick {
+      id
+      producedLink
+      joinLink
+      name
+      previewLink
+      description
+      deletedAt
+      participants {
+        user {
+          picture
+          email
+        }
+      }
+    }
+  }
+}
+
+query SeriesFlickCount($seriesId: uuid) {
+  Flick_Series_aggregate(where: { seriesId: { _eq: $seriesId } }) {
+    aggregate {
+      count(columns: flickId)
+    }
   }
 }
 
 mutation CreateNewFlick(
   $name: String!
-  $description: String!
+  $description: String
   $scope: CreateFlickFlickScopeEnumEnum!
+  $seriesId: uuid
 ) {
-  CreateFlick(name: $name, scope: $scope, description: $description) {
+  CreateFlick(
+    name: $name
+    scope: $scope
+    description: $description
+    seriesId: $seriesId
+  ) {
     id
   }
 }
 
-mutation ProduceVideo($flickId: uuid!, $objectNames: [String!]!) {
-  ProduceVideo(flickId: $flickId, objectNames: $objectNames) {
-    id
+mutation UpdateSeriesFlick($flickIds: [uuid!]!, $seriesId: uuid!) {
+  UpdateSeriesFlicks(flickIds: $flickIds, seriesId: $seriesId) {
+    success
   }
 }
 
 mutation InviteParticipantToFlick($email: String!, $flickId: String!) {
   InviteParticipant(email: $email, flickId: $flickId) {
+    id
+  }
+}
+
+query FlickActivity($flickId: uuid!) {
+  FlickActivity(
+    where: { flickId: { _eq: $flickId } }
+    order_by: { createdAt: desc }
+  ) {
+    ...FlickActivity
+  }
+}
+fragment Note on Note {
+  id
+  note
+  sourceUrl
+  participant {
+    id
+    userSub
+    user {
+      picture
+      displayName
+    }
+  }
+}
+
+query GetFragmentNotes($fragmentId: uuid!) {
+  Note(where: { fragmentId: { _eq: $fragmentId } }) {
+    ...Note
+  }
+}
+
+mutation DeleteFlick($flickId: uuid!) {
+  DeleteFlick(flickId: $flickId) {
     id
   }
 }

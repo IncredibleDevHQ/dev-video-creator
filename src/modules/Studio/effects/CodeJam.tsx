@@ -4,34 +4,38 @@ import { Group, Circle, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import { NextLineIcon, NextTokenIcon } from '../../../components'
 import { API } from '../../../constants'
-import { useGetTokenisedCodeLazyQuery } from '../../../generated/graphql'
+import {
+  Fragment_Status_Enum_Enum,
+  useGetTokenisedCodeLazyQuery,
+} from '../../../generated/graphql'
 import { Concourse } from '../components'
 import { ControlButton } from '../components/MissionControl'
+import RenderTokens from '../components/RenderTokens'
 import useCode, { ComputedToken } from '../hooks/use-code'
 import { StudioProviderProps, studioStore } from '../stores'
-import TypingEffect from './TypingEffect'
 
-const codeConfig = {
+export const codeConfig = {
   fontSize: 14,
-  width: 912,
-  height: 513,
+  width: 960,
+  height: 540,
 }
 
 interface Position {
   prevIndex: number
   currentIndex: number
 }
-interface TokenRenderState {
-  tokens: ComputedToken[]
-  index: number
-}
 
 const CodeJam = () => {
   const { fragment, payload, updatePayload, state, isHost } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
+
+  const [titleSpalshData, settitleSpalshData] = useState<{
+    enable: boolean
+    title?: string
+  }>({ enable: false })
+
   const { initUseCode, computedTokens } = useCode()
-  const [getTokenisedCode, { data, error, loading }] =
-    useGetTokenisedCodeLazyQuery()
+  const [getTokenisedCode, { data }] = useGetTokenisedCodeLazyQuery()
   const [position, setPosition] = useState<Position>({
     prevIndex: -1,
     currentIndex: 0,
@@ -42,6 +46,15 @@ const CodeJam = () => {
     const gistURL = fragment.configuration.properties.find(
       (property: any) => property.key === 'gistUrl'
     )?.value
+
+    // setConfig of titleSpalsh
+    settitleSpalshData({
+      enable: fragment.configuration.properties.find(
+        (property: any) => property.key === 'showTitleSplash'
+      )?.value,
+      title: fragment.name as string,
+    })
+
     if (!gistURL) throw new Error('Missing gist URL')
     ;(async () => {
       try {
@@ -79,6 +92,19 @@ const CodeJam = () => {
       currentIndex: payload?.currentIndex || 1,
     })
   }, [payload])
+
+  useEffect(() => {
+    if (state === 'ready') {
+      setPosition({
+        prevIndex: -1,
+        currentIndex: 0,
+      })
+      updatePayload?.({
+        currentIndex: 1,
+        prevIndex: 0,
+      })
+    }
+  }, [state])
 
   const controls =
     isHost && state === 'recording'
@@ -121,20 +147,28 @@ const CodeJam = () => {
       <Circle key="yellowCircle" x={14} y={0} fill="#FFBD44" radius={5} />
       <Circle key="greenCircle" x={28} y={0} fill="#00CA4E" radius={5} />
     </Group>,
-    <Group y={30} x={20} key="group">
-      {getRenderedTokens(computedTokens.current, position)}
-      {computedTokens.current.length > 0 && (
-        <RenderTokens
-          key={position.prevIndex}
-          tokens={computedTokens.current}
-          startIndex={position.prevIndex}
-          endIndex={position.currentIndex}
-        />
-      )}
-    </Group>,
+    payload?.status === Fragment_Status_Enum_Enum.Live && (
+      <Group x={20} y={30} key="group">
+        {getRenderedTokens(computedTokens.current, position)}
+        {computedTokens.current.length > 0 && (
+          <RenderTokens
+            key={position.prevIndex}
+            tokens={computedTokens.current}
+            startIndex={position.prevIndex}
+            endIndex={position.currentIndex}
+          />
+        )}
+      </Group>
+    ),
   ]
 
-  return <Concourse layerChildren={layerChildren} controls={controls} />
+  return (
+    <Concourse
+      layerChildren={layerChildren}
+      controls={controls}
+      titleSpalshData={titleSpalshData}
+    />
+  )
 }
 
 const getRenderedTokens = (tokens: ComputedToken[], position: Position) => {
@@ -162,48 +196,4 @@ const getRenderedTokens = (tokens: ComputedToken[], position: Position) => {
     })
 }
 
-const RenderTokens = ({
-  tokens,
-  startIndex,
-  endIndex,
-}: {
-  tokens: ComputedToken[]
-  startIndex: number
-  endIndex: number
-}) => {
-  const tokenSegment = tokens.slice(startIndex, endIndex)
-
-  const [renderState, setRenderState] = useState<TokenRenderState>({
-    index: startIndex,
-    tokens: [tokens[startIndex]],
-  })
-
-  useEffect(() => {
-    if (renderState.index === endIndex - 1) return
-    const newToken = tokenSegment[renderState.index - startIndex + 1]
-    const prevToken = tokenSegment[renderState.index - startIndex]
-    setTimeout(() => {
-      setRenderState((prev) => ({
-        index: prev.index + 1,
-        tokens: [...prev.tokens, newToken],
-      }))
-    }, prevToken.content.length * 100)
-  }, [renderState])
-
-  return (
-    <Group>
-      {renderState.tokens.length > 0 &&
-        renderState.tokens.map((token, index) => {
-          // eslint-disable-next-line
-          return <TypingEffect config={codeConfig} key={index} token={token} />
-        })}
-    </Group>
-  )
-}
-
 export default CodeJam
-
-/**
- * TODO:
- * 1. Remove Hardcoded program text - (It should come from Inventory)
- */

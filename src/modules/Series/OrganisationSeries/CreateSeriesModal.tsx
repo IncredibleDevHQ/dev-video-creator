@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import Modal from 'react-responsive-modal'
-import { Button, emitToast, TextField, Photo } from '../../../components'
+import { Button, emitToast, TextField, FileDropzone } from '../../../components'
 import { useCreateOrganisationSeriesMutation } from '../../../generated/graphql'
 import { useUploadFile } from '../../../hooks'
+import { AllowedFileExtensions } from '../../../hooks/use-upload-file'
 
 interface Props {
   seriesModal: boolean
@@ -31,7 +32,7 @@ const seriesModal = ({
     setLoadingPic(true)
     const pic = await uploadFile({
       // @ts-ignore
-      extension: file.name.split('.')[1],
+      extension: file.name.split('.').pop() as AllowedFileExtensions,
       file,
     })
     setLoadingPic(false)
@@ -85,8 +86,9 @@ const seriesModal = ({
               setName(e.target.value)
             }
           />
-          <Photo
+          <FileDropzone
             className="w-full mb-2"
+            typeof="image/*"
             // @ts-ignore
             onChange={(e) => e.target.files && handleClick(e.target.files?.[0])}
           />

@@ -1,8 +1,7 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { BrowserRouter as Router, Switch, Route } from 'react-router-dom'
 import { RecoilRoot } from 'recoil'
 import { ToastContainer } from 'react-toastify'
-import { ErrorBoundary } from './components'
 import AuthorizedApolloProvider from './utils/AuthorizedApolloProvider'
 import AuthProvider from './utils/auth'
 import PrivateRoute from './utils/PrivateRoute'
@@ -25,10 +24,46 @@ import {
   UserSeriesFlicks,
   SingleSeries,
   Circle,
+  Designer,
+  NewFragment,
+  PublicOrganisationPage,
+  InviteScreen,
+  PublicVideo,
+  MagicLinkLogin,
 } from './modules'
+import { ErrorBoundary, ScreenState } from './components'
+
+function detectBrowser() {
+  if (
+    (navigator.userAgent.indexOf('Opera') ||
+      navigator.userAgent.indexOf('OPR')) != -1
+  ) {
+    return 'Opera'
+  } else if (navigator.userAgent.indexOf('Chrome') != -1) {
+    return 'Chrome'
+  } else if (navigator.userAgent.indexOf('Safari') != -1) {
+    return 'Safari'
+  } else if (navigator.userAgent.indexOf('Firefox') != -1) {
+    return 'Firefox'
+  } else if (
+    navigator.userAgent.indexOf('MSIE') != -1 ||
+    // @ts-ignore
+    !!document.documentMode == true
+  ) {
+    return 'IE' //crap
+  } else {
+    return 'Unknown'
+  }
+}
 
 const App = () => {
-  return (
+  const [agentAllowed, setAgentAllowed] = useState(true)
+  useEffect(() => {
+    if (detectBrowser() !== 'Chrome') {
+      setAgentAllowed(false)
+    }
+  }, [])
+  return agentAllowed ? (
     <RecoilRoot>
       <AuthorizedApolloProvider>
         <AuthProvider>
@@ -54,20 +89,37 @@ const App = () => {
                   path="/organisations"
                   component={Organisation}
                 />
-                <PrivateRoute exact path="/profile" component={Profile} />
                 <PrivateRoute exact path="/new-flick" component={NewFlick} />
+                {/* Commenting out Profiles route... */}
+                {/* <PrivateRoute exact path="/profile" component={Profile} /> */}
+                <PrivateRoute
+                  exact
+                  path="/new-flick/:seriesId?"
+                  component={NewFlick}
+                />
                 <PrivateRoute
                   exact
                   path="/new-organisation"
                   component={NewOrganisation}
                 />
-                <PrivateRoute exact path="/flick/:id" component={Flick} />
+                <PrivateRoute exact path="/designer" component={Designer} />
+                <PrivateRoute
+                  exact
+                  path="/flick/:id/:fragmentId?"
+                  component={Flick}
+                />
+                <PrivateRoute
+                  exact
+                  path="/new-fragment/:id"
+                  component={NewFragment}
+                />
                 <PrivateRoute exact path="/flicks" component={Flicks} />
                 <PrivateRoute
                   exact
                   path="/:fragmentId/studio"
                   component={Studio}
                 />
+
                 <PrivateRoute exact path="/profile/series" component={Series} />
                 <PrivateRoute
                   exact
@@ -85,6 +137,9 @@ const App = () => {
                   component={UserSeriesFlicks}
                 />
                 <PrivateRoute exact path="/circle" component={Circle} />
+                <Route exact path="/view/:joinLink">
+                  <PublicVideo />
+                </Route>
                 <Route exact path="/login">
                   <AuthenticateScreen />
                 </Route>
@@ -95,8 +150,28 @@ const App = () => {
             </Router>
           </>
         </AuthProvider>
+
+        <Router forceRefresh>
+          {/* history.push wasn't working in InviteScreen, therefore added forceRefresh */}
+          <Switch>
+            <Route exact path="/organisations/:organisationSlug">
+              <PublicOrganisationPage />
+            </Route>
+            <Route exact path="/invite/:flickId">
+              <InviteScreen />
+            </Route>
+            <Route exact path="/magiclink">
+              <MagicLinkLogin />
+            </Route>
+          </Switch>
+        </Router>
       </AuthorizedApolloProvider>
     </RecoilRoot>
+  ) : (
+    <ScreenState
+      title="Regret the interruption"
+      subtitle="Use Chrome to access this preview of Incredible."
+    />
   )
 }
 

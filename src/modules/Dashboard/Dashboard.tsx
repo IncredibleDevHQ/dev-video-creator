@@ -1,72 +1,115 @@
-import React from 'react'
-import { Link } from 'react-router-dom'
-import { useRecoilValue } from 'recoil'
-import config from '../../config'
-import { Navbar, ScreenState, Text } from '../../components'
-import {
-  BaseFlickFragment,
-  useGetUserFlicksQuery,
-} from '../../generated/graphql'
-import { User, userState } from '../../stores/user.store'
-import { formatDate } from '../../utils/FormatDate'
-import { NewFlickBanner } from './components'
+import React, { useState } from 'react'
+import { cx } from '@emotion/css'
+import { IconType } from 'react-icons'
+import { IoAlbumsOutline } from 'react-icons/io5'
+import { Button, Navbar, Tab, TabBar, Text } from '../../components'
+import { Drafts, NewFlickBanner, Published } from './components/index'
+import CreateSeriesModal from '../DashboardSeries/CreateSeriesModal'
+import DashboardSeriesFlicks from '../DashboardSeries/DashboardSeriesFlicks'
 
-const FlickTile = ({ flick }: { flick: BaseFlickFragment }) => {
+const ViewBarButton = ({
+  icon: I,
+  active,
+  onClick,
+}: {
+  icon: IconType
+  active?: boolean
+  onClick: () => void
+}) => {
   return (
-    <Link to={`/flick/${flick.id}`}>
-      <div className="bg-gray-100 px-4 py-2 rounded-md cursor-pointer">
-        {flick.producedLink && (
-          // eslint-disable-next-line jsx-a11y/media-has-caption
-          <video
-            className="w-full rounded-md p-2"
-            controls
-            preload="auto"
-            src={config.storage.baseUrl + flick.producedLink}
-          />
-        )}
-        <div className="flex items-center justify-between">
-          <h3 className="text-2xl font-bold">{flick.name}</h3>
-          <div>
-            <span className="bg-brand p-1 rounded-md text-xs font-semibold uppercase text-background-alt ">
-              {flick.status}
-            </span>
-          </div>
-        </div>
-        <Text className="h-16 my-1 overflow-hidden overflow-ellipsis">
-          {flick.description}
-        </Text>
-
-        <p className="uppercase text-xs">
-          {formatDate(new Date(flick.startAt))}
-        </p>
-      </div>
-    </Link>
+    <div
+      className={cx('p-1.5 rounded-md transition-colors cursor-pointer', {
+        'bg-brand text-white': active,
+        'text-brand': !active,
+      })}
+      onClick={onClick}
+      onKeyDown={onClick}
+      role="button"
+      tabIndex={0}
+    >
+      <I />
+    </div>
   )
 }
 
 const Dashboard = () => {
-  const { sub } = (useRecoilValue(userState) as User) || {}
-  const { data, loading } = useGetUserFlicksQuery({
-    variables: { sub: sub as string },
-  })
+  const tabs: Tab[] = [
+    {
+      name: 'Drafts',
+      value: 'Drafts',
+    },
+    {
+      name: 'Published',
+      value: 'Published',
+    },
+  ]
 
-  if (loading) return <ScreenState title="Just a jiffy..." loading />
+  const [currentTab, setCurrentTab] = useState<Tab>(tabs[0])
+  const [isOpenNewSeriesCreateModal, setIsOpenNewSeriesCreateModal] =
+    useState(false)
 
   return (
-    <div className="relative h-screen">
+    <div>
       <Navbar />
-      <div className="py-2 px-4">
-        <h2 className="font-black text-3xl mb-4">Your Flicks</h2>
+      <Text className="text-black ml-28 mt-5 font-semibold text-2xl pt-0">
+        {" Let's create a flick"}
+      </Text>
+      <Text className="text-black ml-28 font-light text-sm pt-0 mt-2">
+        {' Choose quick start if you want to just hop on to the '}
+      </Text>
+      <Text className="text-black ml-28 font-light text-sm pt-0">
+        {' studio with a blank fragment, or lets get started with '}
+      </Text>
+      <Text className="text-black ml-28 font-light text-sm pt-0">
+        {' some curated templates. '}
+      </Text>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pb-24">
-          {data?.Flick.map((flick) => (
-            <FlickTile key={flick.id} flick={flick} />
-          ))}
+      <div className="flex flex-row gap-3 ml-28">
+        <NewFlickBanner />
+        <div>
+          <Button
+            type="button"
+            appearance="primary"
+            size="extraSmall"
+            className="my-5 p-2 mx-2 flex justify-end text-white rounded-md"
+            icon={IoAlbumsOutline}
+            onClick={() => setIsOpenNewSeriesCreateModal(true)}
+          >
+            Create series
+          </Button>
         </div>
       </div>
-      <NewFlickBanner className="fixed bottom-0" />
+
+      <div className="flex flex-col m-0 p-0 ml-28">
+        <Text className="font-black text-xl mt-14">Your series</Text>
+        <DashboardSeriesFlicks />
+      </div>
+
+      <div className="px-0">
+        <div className="flex flex-row m-0 p-0 ml-28">
+          <Text className="font-black text-xl mb-4 mt-14">Your flicks</Text>
+          <TabBar
+            tabs={tabs}
+            current={currentTab}
+            onTabChange={setCurrentTab}
+            className="text-black gap-2 mt-14 w-auto ml-10"
+          />
+        </div>
+        {currentTab.value === 'Drafts' && <Drafts />}
+        {currentTab.value === 'Published' && <Published />}
+      </div>
+      <CreateSeriesModal
+        open={isOpenNewSeriesCreateModal}
+        handleClose={() => {
+          setIsOpenNewSeriesCreateModal(false)
+        }}
+      />
     </div>
   )
+}
+
+ViewBarButton.defaultProps = {
+  active: undefined,
 }
 
 export default Dashboard

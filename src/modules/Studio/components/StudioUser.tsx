@@ -1,27 +1,59 @@
 /* eslint-disable consistent-return */
 import React, { useEffect, useRef } from 'react'
 import Konva from 'konva'
-import { Group, Image } from 'react-konva'
-import useImage from 'use-image'
+import { Group, Image, Circle, Rect } from 'react-konva'
+import { useImage } from 'react-konva-utils'
 import { useRecoilValue } from 'recoil'
+import Gravatar from 'react-gravatar'
 import { StudioProviderProps, studioStore } from '../stores'
+import { Fragment_Participant } from '../../../generated/graphql'
+import { StudioUserConfig } from './Concourse'
+import useEdit, { ClipConfig } from '../hooks/use-edit'
+
+type StudioUserType = 'local' | 'remote'
 
 const StudioUser = ({
   stream,
-  x,
-  y,
+  studioUserConfig,
+  type,
+  uid,
 }: {
-  x: number
-  y: number
   stream: MediaStream | null
+  type: StudioUserType
+  studioUserConfig: StudioUserConfig
+  uid: string
 }) => {
-  const imageConfig = { width: 160, height: 120 }
+  const {
+    x,
+    y,
+    width,
+    height,
+    clipTheme,
+    borderColor,
+    borderWidth,
+    studioUserClipConfig,
+    backgroundRectColor,
+    backgroundRectX,
+    backgroundRectY,
+    backgroundRectBorderWidth,
+    backgroundRectBorderColor,
+  } = studioUserConfig
+  const imageConfig = { width: width || 160, height: height || 120 }
   const imageRef = useRef<Konva.Image | null>(null)
 
-  const { picture, constraints } =
+  const { clipCircle, clipRect } = useEdit()
+  const defaultStudioUserClipConfig: ClipConfig = {
+    x: 0,
+    y: 0,
+    width: 160,
+    height: 120,
+    radius: 8,
+  }
+
+  const { picture, participants, constraints } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
-  const [image] = useImage(picture as string)
+  const [image] = useImage(picture as string, 'anonymous')
 
   const videoElement = React.useMemo(() => {
     if (!stream) return
@@ -54,39 +86,88 @@ const StudioUser = ({
     ref.current.srcObject = stream
   }, [ref.current])
 
+  const getClipFunc = ({
+    clipTheme,
+    ctx,
+    clipConfig,
+  }: {
+    clipTheme?: string
+    ctx: any
+    clipConfig: ClipConfig
+  }) => {
+    if (clipTheme === 'circle') return clipCircle(ctx, clipConfig)
+    return clipRect(ctx, clipConfig)
+  }
+
   return (
-    <Group
-      x={x}
-      y={y}
-      clipFunc={(ctx: any) => {
-        ctx.arc(
-          imageConfig.width / 2,
-          imageConfig.height / 2,
-          imageConfig.width > imageConfig.height
-            ? imageConfig.height / 2
-            : imageConfig.width / 2,
-          0,
-          Math.PI * 2,
-          true
-        )
-      }}
-      draggable
-    >
-      {constraints?.video ? (
-        <Image
-          ref={imageRef}
-          image={videoElement}
-          width={imageConfig.width}
-          height={imageConfig.height}
-        />
-      ) : (
-        <Image
-          image={image}
-          width={imageConfig.width}
-          height={imageConfig.height}
-        />
-      )}
-    </Group>
+    <>
+      <Rect
+        x={backgroundRectX || 775}
+        y={backgroundRectY || y}
+        width={studioUserClipConfig?.width || defaultStudioUserClipConfig.width}
+        height={
+          studioUserClipConfig?.height || defaultStudioUserClipConfig.height
+        }
+        fill={backgroundRectColor}
+        stroke={backgroundRectBorderColor}
+        strokeWidth={backgroundRectBorderWidth || 0}
+        cornerRadius={studioUserClipConfig?.radius || 0}
+      />
+      <Rect
+        x={(studioUserClipConfig && studioUserClipConfig.x + x) || 775}
+        y={y}
+        width={studioUserClipConfig?.width || defaultStudioUserClipConfig.width}
+        height={
+          studioUserClipConfig?.height || defaultStudioUserClipConfig.height
+        }
+        stroke={borderColor}
+        strokeWidth={borderWidth || 0}
+        cornerRadius={studioUserClipConfig?.radius || 0}
+      />
+      <Group
+        x={x}
+        y={y}
+        clipFunc={(ctx: any) => {
+          getClipFunc({
+            clipTheme,
+            ctx,
+            clipConfig: studioUserClipConfig || defaultStudioUserClipConfig,
+          })
+        }}
+        draggable
+        offsetX={imageConfig.width}
+        scaleX={-1}
+      >
+        {type === 'local' && constraints?.video ? (
+          <Image
+            ref={imageRef}
+            image={videoElement}
+            width={imageConfig.width}
+            height={imageConfig.height}
+          />
+        ) : (
+          <Image
+            image={image}
+            width={imageConfig.width}
+            height={imageConfig.height}
+          />
+        )}
+        {type === 'remote' &&
+          (stream ? (
+            <Image
+              ref={imageRef}
+              image={videoElement}
+              width={imageConfig.width}
+              height={imageConfig.height}
+            />
+          ) : (
+            <Gravatar
+              className="w-6 h-6 rounded-full bg-gray-100"
+              email={participants[uid]?.email as string}
+            />
+          ))}
+      </Group>
+    </>
   )
 }
 

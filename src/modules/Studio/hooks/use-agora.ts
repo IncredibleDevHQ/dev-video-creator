@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ClientConfig, IAgoraRTCRemoteUser } from 'agora-rtc-sdk-ng'
+import AgoraRTC, { ClientConfig, IAgoraRTCRemoteUser } from 'agora-rtc-sdk-ng'
 import { createClient, createMicrophoneAndCameraTracks } from 'agora-rtc-react'
 import { useRecoilState } from 'recoil'
 import config from '../../../config'
@@ -19,12 +19,22 @@ export interface RTCUser extends IAgoraRTCRemoteUser {
   mediaStream?: MediaStream
 }
 
-export default function useAgora(channel: string) {
+export default function useAgora(
+  channel: string,
+  {
+    onTokenWillExpire,
+    onTokenDidExpire,
+  }: { onTokenWillExpire: () => void; onTokenDidExpire: () => void }
+) {
   const client = useClient()
   const [users, setUsers] = useState<RTCUser[]>([])
   const [stream, setStream] = useState<MediaStream>()
   const [studio, setStudio] = useRecoilState(studioStore)
   const [userAudios, setUserAudios] = useState<MediaStream[]>([])
+  const [cameraDevices, setCameraDevices] = useState<MediaDeviceInfo[]>([])
+  const [microphoneDevices, setMicrophoneDevices] = useState<MediaDeviceInfo[]>(
+    []
+  )
 
   const { ready, tracks } = useMicrophoneAndCameraTracks()
   useEffect(() => {
@@ -44,16 +54,40 @@ export default function useAgora(channel: string) {
     )
   }, [tracks])
 
+  useEffect(() => {
+    AgoraRTC.createCameraVideoTrack({
+      cameraId: studio.selectedCameraDeviceId,
+    })
+    tracks?.[1].setDevice(studio.selectedCameraDeviceId)
+    // enable()
+  }, [studio.selectedCameraDeviceId])
+
+  useEffect(() => {
+    AgoraRTC.createMicrophoneAndCameraTracks({
+      microphoneId: studio.selectedMicrophoneDeviceId,
+    })
+    tracks?.[0].setDevice(studio.selectedMicrophoneDeviceId)
+  }, [studio.selectedMicrophoneDeviceId])
+
+  const getMediaDevices = async () => {
+    const camDevices = await AgoraRTC.getCameras()
+    setCameraDevices(camDevices)
+    const audiDevices = await AgoraRTC.getMicrophones()
+    setMicrophoneDevices(audiDevices)
+  }
+
   const init = async () => {
+    await getMediaDevices()
     try {
       client.on('user-published', async (user, mediaType) => {
         await client.subscribe(user, mediaType)
         const tracks: MediaStreamTrack[] = []
         if (user.audioTrack) tracks.push(user.audioTrack?.getMediaStreamTrack())
         if (user.videoTrack) tracks.push(user.videoTrack?.getMediaStreamTrack())
-
         if (mediaType === 'video') {
           setUsers((prevUsers) => {
+            if (prevUsers.find((element) => element.uid === user.uid))
+              return [...prevUsers]
             return [
               ...prevUsers,
               {
@@ -83,20 +117,27 @@ export default function useAgora(channel: string) {
         })
       })
 
-      client.on('user-unpublished', (user, type) => {
-        if (type === 'audio') {
-          user.audioTrack?.stop()
-        }
-        if (type === 'video') {
-          setUsers((prevUsers) => {
-            return prevUsers.filter((User) => User.uid !== user.uid)
-          })
-        }
+      client.on('token-privilege-will-expire', () => {
+        onTokenWillExpire()
+      })
+
+      client.on('token-privilege-did-expire', () => {
+        onTokenDidExpire()
+      })
+
+      client.on('user-left', (user) => {
+        setUsers((prevUsers) => {
+          return prevUsers.filter((User) => User.uid !== user.uid)
+        })
       })
     } catch (error) {
       console.log(error)
       throw error
     }
+  }
+
+  const renewToken = async (token: string) => {
+    client.renewToken(token)
   }
 
   const join = async (token: string, uid: string) => {
@@ -112,10 +153,8 @@ export default function useAgora(channel: string) {
 
   const mute = async (type: 'audio' | 'video') => {
     const { constraints } = studio
-    console.log({ constraints })
     if (type === 'audio') {
       const newValue = !constraints?.audio
-      console.log('newValue', newValue)
       await tracks?.[0].setEnabled(newValue)
       setStudio((studio) => {
         return {
@@ -160,5 +199,8 @@ export default function useAgora(channel: string) {
     tracks,
     stream,
     userAudios,
+    renewToken,
+    cameraDevices,
+    microphoneDevices,
   }
 }

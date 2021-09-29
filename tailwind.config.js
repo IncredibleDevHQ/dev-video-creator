@@ -10,15 +10,19 @@ module.exports = {
   darkMode: false, // or 'media' or 'class'
   theme: {
     extend: {
+      minHeight: {
+        32: '8rem',
+        48: '12rem',
+      },
       colors: {
         inherit: 'inherit',
         brand: {
-          DEFAULT: '#5156EA',
-          lighter: lighten('#5156EA', 0.05),
-          dark: darken('#5156EA', 0.05),
-          darker: darken('#5156EA', 0.1),
-          75: alpha('#5156EA', 0.75),
-          10: 'rgba(81, 92, 234, 0.1)',
+          DEFAULT: '#16A34A',
+          lighter: lighten('#16A34A', 0.05),
+          dark: darken('#16A34A', 0.05),
+          darker: darken('#16A34A', 0.1),
+          75: alpha('#16A34A', 0.75),
+          10: alpha('#16A34A', 0.1),
         },
         'brand-alt': {
           DEFAULT: '#51A3EA',
@@ -27,7 +31,7 @@ module.exports = {
           75: alpha('#51A3EA', 0.75),
         },
         background: '#FFFFFF',
-        'background-alt': '#FBFCFF',
+        'background-alt': '#FAFAFA',
         grey: {
           DEFAULT: '#1f1f1f',
           lighter: lighten('#1f1f1f', 0.5),
@@ -43,6 +47,10 @@ module.exports = {
       },
       animation: {
         'spin-slow': 'spin 3s linear infinite',
+      },
+      cursor: {
+        'zoom-in': 'zoom-in',
+        'zoom-out': 'zoom-out',
       },
     },
   },

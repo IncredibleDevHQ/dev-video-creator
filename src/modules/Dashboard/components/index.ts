@@ -1,4 +1,6 @@
 import NewFlickBanner from './NewFlickBanner'
-import UpcomingFlickBanner from './UpcomingFlickBanner'
+import TableView from './TableView'
+import Drafts from './Drafts'
+import Published from './Published'
 
-export { NewFlickBanner, UpcomingFlickBanner }
+export { NewFlickBanner, TableView, Drafts, Published }

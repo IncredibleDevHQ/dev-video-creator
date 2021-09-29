@@ -2,6 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { FiArrowLeft } from 'react-icons/fi'
 import { useHistory, useParams } from 'react-router-dom'
 import { useRecoilState, useRecoilValue } from 'recoil'
+import 'get-blob-duration'
+
+import getBlobDuration from 'get-blob-duration'
 import {
   emitToast,
   dismissToast,
@@ -15,7 +18,7 @@ import {
   Fragment_Status_Enum_Enum,
   StudioFragmentFragment,
   useGetFragmentByIdQuery,
-  useGetRtcTokenLazyQuery,
+  useGetRtcTokenMutation,
   useMarkFragmentCompletedMutation,
 } from '../../generated/graphql'
 import { useCanvasRecorder } from '../../hooks'
@@ -23,17 +26,17 @@ import { User, userState } from '../../stores/user.store'
 import { getEffect } from './effects/effects'
 import { useUploadFile } from '../../hooks/use-upload-file'
 import { useAgora } from './hooks'
-import { StudioState, studioStore } from './stores'
+import { StudioProviderProps, StudioState, studioStore } from './stores'
 import { useRTDB } from './hooks/use-rtdb'
 
 const Studio = () => {
   const { fragmentId } = useParams<{ fragmentId: string }>()
+  const { constraints } =
+    (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [studio, setStudio] = useRecoilState(studioStore)
   const { sub, picture } = (useRecoilValue(userState) as User) || {}
   const [fragment, setFragment] = useState<StudioFragmentFragment>()
-
-  const [isHost, setIsHost] = useState(false)
-
+  let consst: MediaStreamConstraints | null = { audio: true, video: true }
   const history = useHistory()
 
   const { data, loading } = useGetFragmentByIdQuery({
@@ -44,18 +47,44 @@ const Studio = () => {
 
   const [uploadFile] = useUploadFile()
 
-  const { stream, join, users, mute, leave, ready, userAudios, tracks } =
-    useAgora(fragmentId)
+  useEffect(() => {
+    consst = studio.constraints
+      ? studio.constraints
+      : { audio: true, video: true }
+  }, [])
 
-  const [getRTCToken, { data: rtcData }] = useGetRtcTokenLazyQuery({
+  const {
+    stream,
+    join,
+    users,
+    mute,
+    leave,
+    ready,
+    userAudios,
+    tracks,
+    renewToken,
+    cameraDevices,
+    microphoneDevices,
+  } = useAgora(fragmentId, {
+    onTokenWillExpire: async () => {
+      const { data } = await getRTCToken({ variables: { fragmentId } })
+      if (data?.RTCToken?.token) {
+        renewToken(data.RTCToken.token)
+      }
+    },
+    onTokenDidExpire: async () => {
+      const { data } = await getRTCToken({ variables: { fragmentId } })
+      if (data?.RTCToken?.token) {
+        join(data?.RTCToken?.token, sub as string)
+      }
+    },
+  })
+
+  const [getRTCToken] = useGetRtcTokenMutation({
     variables: { fragmentId },
   })
 
-  const [didInit, setDidInit] = useState(false)
-
   useEffect(() => {
-    getRTCToken()
-
     return () => {
       stream?.getTracks().forEach((track) => track.stop())
     }
@@ -90,27 +119,32 @@ const Studio = () => {
   }, [payload])
 
   useEffect(() => {
-    if (fragment) {
-      init()
-      setIsHost(
-        fragment?.participants.find(
-          ({ participant }) => participant.userSub === sub
-        )?.participant.owner || false
-      )
+    if (fragment && ready) {
+      ;(async () => {
+        init()
+        const { data } = await getRTCToken({ variables: { fragmentId } })
+        if (data?.RTCToken?.token) {
+          join(data?.RTCToken?.token, sub as string)
+        }
+      })()
     }
-  }, [fragment])
+  }, [fragment, ready])
 
   useEffect(() => {
-    if (!rtcData?.RTCToken?.token || didInit || !ready) return
-
-    setDidInit(true)
-    join(rtcData?.RTCToken?.token, sub as string)
-  }, [rtcData, ready])
-
-  useEffect(() => {
-    if (!data?.Fragment) return
+    if (data?.Fragment[0] === undefined) return
     setFragment(data.Fragment[0])
-  }, [data])
+  }, [data, fragmentId])
+
+  useEffect(() => {
+    return () => {
+      setFragment(undefined)
+      setStudio({
+        ...studio,
+        fragment: undefined,
+        tracks,
+      })
+    }
+  }, [])
 
   const [state, setState] = useState<StudioState>('ready')
 
@@ -149,9 +183,10 @@ const Studio = () => {
     const toast = emitToast(toastProps)
 
     try {
+      const uploadVideoFile = await getBlobs()
       const { uuid } = await uploadFile({
         extension: 'webm',
-        file: await getBlobs(),
+        file: uploadVideoFile,
         handleProgress: ({ percentage }) => {
           updateToast({
             id: toast,
@@ -162,12 +197,20 @@ const Studio = () => {
           })
         },
       })
+
+      const duration = await getBlobDuration(uploadVideoFile)
+
       await markFragmentCompleted({
-        variables: { id: fragmentId, producedLink: uuid },
+        variables: { id: fragmentId, producedLink: uuid, duration },
       })
 
       dismissToast(toast)
-      history.push(`/flick/${fragment?.flickId}`)
+      setFragment(undefined)
+      setStudio({
+        ...studio,
+        fragment: undefined,
+      })
+      history.push(`/flick/${fragment?.flickId}/${fragmentId}`)
     } catch (e) {
       emitToast({
         title: 'Yikes. Something went wrong.',
@@ -192,6 +235,12 @@ const Studio = () => {
     setState('recording')
   }
 
+  const finalTransition = () => {
+    if (!payload) return
+    payload.playing = false
+    updatePayload?.({ status: Fragment_Status_Enum_Enum.Ended })
+  }
+
   const stop = () => {
     stopRecording()
     stream?.getTracks().forEach((track) => track.stop())
@@ -199,7 +248,10 @@ const Studio = () => {
   }
 
   useEffect(() => {
-    if (!isHost && payload?.status === Fragment_Status_Enum_Enum.Completed) {
+    if (
+      !studio.isHost &&
+      payload?.status === Fragment_Status_Enum_Enum.Completed
+    ) {
       stream?.getTracks().forEach((track) => track.stop())
       history.goBack()
       emitToast({
@@ -208,7 +260,7 @@ const Studio = () => {
         autoClose: 3000,
       })
     }
-  }, [payload, isHost])
+  }, [payload, studio.isHost])
 
   useMemo(() => {
     if (!fragment || !stream) return
@@ -219,12 +271,19 @@ const Studio = () => {
       stream: stream as MediaStream,
       startRecording: start,
       stopRecording: stop,
+      showFinalTransition: finalTransition,
       reset: resetRecording,
       upload,
       getBlobs,
       state,
+      tracks,
+      microphoneDevices,
+      cameraDevices,
       picture: picture as string,
-      constraints: { audio: true, video: true },
+      constraints: {
+        audio: constraints ? constraints.audio : true,
+        video: constraints ? constraints.video : true,
+      },
       users,
       payload,
       mute: (type: 'audio' | 'video') => mute(type),
@@ -234,19 +293,12 @@ const Studio = () => {
       participantId: fragment?.participants.find(
         ({ participant }) => participant.userSub === sub
       )?.participant.id,
-      isHost,
+      isHost:
+        fragment?.participants.find(
+          ({ participant }) => participant.userSub === sub
+        )?.participant.owner || false,
     })
-  }, [
-    fragment,
-    stream,
-    users,
-    state,
-    userAudios,
-    payload,
-    participants,
-    payload,
-    isHost,
-  ])
+  }, [fragment, stream, users, state, userAudios, payload, participants])
 
   /**
    * =======================
@@ -256,9 +308,10 @@ const Studio = () => {
 
   if (loading) return <ScreenState title="Just a jiffy..." loading />
 
-  if (!fragment) return <EmptyState text="Fragment not found" width={400} />
+  if (!fragment || fragment.id !== fragmentId)
+    return <EmptyState text="Fragment not found" width={400} />
 
-  const C = getEffect(fragment.type)
+  const C = getEffect(fragment.type, fragment.configuration)
 
   return (
     <div>
@@ -268,11 +321,18 @@ const Studio = () => {
             <FiArrowLeft
               className="cursor-pointer mr-2"
               onClick={() => {
+                setFragment(undefined)
+                setStudio({
+                  ...studio,
+                  fragment: undefined,
+                })
                 stream?.getTracks().forEach((track) => track.stop())
                 history.goBack()
               }}
             />
-            <Heading className="font-semibold">{fragment.name}</Heading>
+            <Heading className="font-semibold">
+              {fragment.flick.name} / {fragment.name}
+            </Heading>
           </div>
           {payload?.status === Fragment_Status_Enum_Enum.Live ? (
             <div className="flex px-2 py-1 rounded-sm bg-error-10 animate-pulse">
@@ -284,7 +344,7 @@ const Studio = () => {
             <></>
           )}
         </div>
-        <C />
+        {fragment && <C />}
       </div>
     </div>
   )

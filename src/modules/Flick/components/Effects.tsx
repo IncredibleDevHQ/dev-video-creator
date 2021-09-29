@@ -1,8 +1,13 @@
-/* eslint-disable no-case-declarations */
+import React, { useEffect } from 'react'
 import { FormikErrors } from 'formik'
-import React, { useState } from 'react'
-import { Checkbox, Photo, Text, TextField } from '../../../components'
-import { useUploadFile } from '../../../hooks'
+import {
+  CheckboxSchema,
+  FileArraySchema,
+  JsonSchema,
+  PicSchema,
+  TextArraySchema,
+  TextSchema,
+} from './ConfigComponents/index'
 
 export interface SchemaElementProps {
   key: string
@@ -15,10 +20,10 @@ export interface SchemaElementProps {
   editable: boolean
 }
 
-interface GetSchemaElementProps {
+export interface GetSchemaElementProps {
   schema: SchemaElementProps
   handleChange: (e: React.ChangeEvent<any>) => void
-  setFieldValue: (
+  setFieldValue?: (
     field: string,
     value: any,
     shouldValidate?: boolean | undefined
@@ -31,6 +36,11 @@ interface GetSchemaElementProps {
       >
   value: any
   setLoadingAssets: React.Dispatch<React.SetStateAction<boolean>>
+
+  selectedVideoLink?: string
+  setVideoInventoryModal?: React.Dispatch<React.SetStateAction<boolean>>
+
+  setConfigured: React.Dispatch<React.SetStateAction<boolean>>
 }
 
 export const GetSchemaElement = ({
@@ -39,103 +49,95 @@ export const GetSchemaElement = ({
   setFieldValue,
   value,
   setLoadingAssets,
+  selectedVideoLink,
+  setVideoInventoryModal,
+  setConfigured,
 }: GetSchemaElementProps) => {
   switch (schema.type) {
     case 'boolean':
       return (
-        <Checkbox
-          name={schema.key}
-          label={schema.name}
-          id={schema.key}
+        <CheckboxSchema
+          schema={schema}
+          handleChange={handleChange}
+          setFieldValue={setFieldValue}
           value={value}
-          key={schema.key}
-          checked={value}
-          onChange={() => setFieldValue(schema.key, !value)}
-          className="flex flex-wrap lg:align-middle gap-3 text-lg text-black ml-4 lg:capitalize p-4"
+          setLoadingAssets={setLoadingAssets}
+          setConfigured={setConfigured}
         />
       )
 
     case 'text':
+      if (!schema.value || (schema.value && schema.value.length <= 0)) {
+        setConfigured(false)
+      }
+
+      useEffect(() => {
+        if (setFieldValue && schema.key === 'source') {
+          setFieldValue(schema.key, selectedVideoLink)
+        }
+      }, [selectedVideoLink])
+
       return (
-        <TextField
-          className="text-lg m-4"
-          name={schema.key}
-          onChange={handleChange}
+        <>
+          <TextSchema
+            schema={schema}
+            handleChange={handleChange}
+            value={value}
+            setLoadingAssets={setLoadingAssets}
+            setConfigured={setConfigured}
+            setVideoInventoryModal={setVideoInventoryModal}
+          />
+        </>
+      )
+
+    case 'json':
+      return (
+        <JsonSchema
+          schema={schema}
+          handleChange={handleChange}
+          setFieldValue={setFieldValue}
           value={value}
-          key={schema.key}
-          defaultValue={value}
-          placeholder={schema.description}
-          label={schema.name}
+          setLoadingAssets={setLoadingAssets}
+          setConfigured={setConfigured}
         />
       )
 
     case 'text[]':
       return (
-        <div className="flex flex-col gap-1 m-4" key={schema.key}>
-          <div className="flex flex-col gap-2 items-end">
-            {Array(value ? value?.length + 1 : 1)
-              .fill('')
-              .map((_, index) => (
-                <TextField
-                  // eslint-disable-next-line react/no-array-index-key
-                  key={`${schema.key}[${index}]`}
-                  className="text-lg"
-                  name={`${schema.key}[${index}]`}
-                  onChange={handleChange}
-                  value={value ? value[index] : ''}
-                  placeholder={schema.description}
-                  label={`Question ${index + 1}`}
-                />
-              ))}
-          </div>
-        </div>
+        <TextArraySchema
+          schema={schema}
+          handleChange={handleChange}
+          setFieldValue={setFieldValue}
+          value={value}
+          setLoadingAssets={setLoadingAssets}
+          setConfigured={setConfigured}
+        />
       )
 
-    case 'pic':
-      const [uploadFile] = useUploadFile()
-      const [picture, setPicture] = useState<string>()
-
-      const handleClick = async (file: File) => {
-        if (!file) return
-        setLoadingAssets(true)
-        const pic = await uploadFile({
-          extension: file.name.split('.')[1] as any,
-          file,
-        })
-        setLoadingAssets(false)
-        setPicture(pic.url)
-
-        const event = new Event('input', { bubbles: true })
-        dispatchEvent(event)
-        // @ts-ignore
-        event.target.name = schema.key
-        // @ts-ignore
-        event.target.value = pic.url
-        handleChange(event as any)
-      }
-
+    case 'file[]':
       return (
-        <>
-          <Text className="ml-4">{schema.description}</Text>
-          <Photo
-            className="text-lg m-4"
-            onChange={(e) =>
-              // @ts-ignore
-              e.target.files?.[0] && handleClick(e.target.files[0])
-            }
-          />
-          {picture ||
-            (value && (
-              <img
-                className="h-32 m-4 object-contain"
-                src={picture || value}
-                alt={value}
-              />
-            ))}
-        </>
+        <FileArraySchema
+          schema={schema}
+          handleChange={handleChange}
+          setFieldValue={setFieldValue}
+          value={value}
+          setLoadingAssets={setLoadingAssets}
+          setConfigured={setConfigured}
+        />
+      )
+    case 'pic':
+      return (
+        <PicSchema
+          schema={schema}
+          handleChange={handleChange}
+          setFieldValue={setFieldValue}
+          value={value}
+          setLoadingAssets={setLoadingAssets}
+          setConfigured={setConfigured}
+        />
       )
 
     default:
-      return <></>
+      return null
   }
 }

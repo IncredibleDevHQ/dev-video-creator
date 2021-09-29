@@ -1,3 +1,4 @@
+
 mutation CreateOrganisation($slug: String!) {
   CreateOrganisation(slug: $slug) {
     createdAt
@@ -37,6 +38,28 @@ fragment Member on Member {
   }
 }
 
+fragment PublicOrganisation on Organisation {
+  slug
+  name
+  description
+  picture
+  members {
+    id
+    role
+    user {
+      displayName
+      picture
+      username
+    }
+  }
+  series {
+    name
+    id
+    description
+    picture
+  }
+}
+
 query GetOrganisationMembers($organisationSlug: String!) {
   Member(where: { organisationSlug: { _eq: $organisationSlug } }) {
     ...Member
@@ -56,31 +79,29 @@ query GetUserOrganisations($sub: String!) {
   }
 }
 
-fragment Series on Series {
-  id
-  name
-  organisationSlug
-  picture
-  description
-  ownerSub
-}
-
-query GetSeries($organisationSlug: String!) {
-  Series(where: { organisationSlug: { _eq: $organisationSlug } }) {
-    ...Series
+mutation CreateOrganisation($slug: String!) {
+  CreateOrganisation(slug: $slug) {
+    createdAt
+    slug
   }
 }
 
-mutation CreateOrganisationSeries(
-  $name: String!
+mutation AddMemberToOrganisation(
+  $email: String!
   $organisationSlug: String!
-  $picture: String!
+  $role: MEMBER_ROLE_ENUM_ACTION_enum = Member
 ) {
-  CreateSeries(
-    name: $name
+  AddMemberToOrganisation(
+    email: $email
     organisationSlug: $organisationSlug
-    picture: $picture
+    role: $role
   ) {
     id
+  }
+}
+
+query PublicOrganisation($organisationSlug: String!) {
+  Organisation_by_pk(slug: $organisationSlug) {
+    ...PublicOrganisation
   }
 }

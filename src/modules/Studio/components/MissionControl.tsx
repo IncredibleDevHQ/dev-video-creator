@@ -13,13 +13,16 @@ import {
   FiClipboard,
   FiMicOff,
   FiVideoOff,
+  FiSettings,
 } from 'react-icons/fi'
 import { BiReset } from 'react-icons/bi'
-import { useRecoilValue } from 'recoil'
 import { IoHandRightOutline } from 'react-icons/io5'
-import { StudioProviderProps, studioStore } from '../stores'
+import { VscSearch, VscSearchStop } from 'react-icons/vsc'
+import { useRecoilState, useRecoilValue } from 'recoil'
+import { canvasStore, StudioProviderProps, studioStore } from '../stores'
 import { Avatar, Heading, Tooltip } from '../../../components'
 import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
+import SwitchMediaDevices from './SwitchMediaDevices'
 
 export const ControlButton = ({
   appearance,
@@ -88,17 +91,12 @@ const RaiseHandsMenu = ({ participants }: { participants: any[] }) => {
   )
 }
 
-const MissionControl = ({
-  controls,
-  resetCanvas,
-}: {
-  controls: JSX.Element[]
-  resetCanvas: () => void
-}) => {
+const MissionControl = ({ controls }: { controls: JSX.Element[] }) => {
   const {
     constraints,
     startRecording,
     stopRecording,
+    showFinalTransition,
     upload,
     reset,
     state,
@@ -106,14 +104,18 @@ const MissionControl = ({
     participants,
     updateParticipant,
     updatePayload,
+    cameraDevices,
+    microphoneDevices,
     participantId,
-    isHost,
     payload,
   } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
-
+  const [canvas, setCanvas] = useRecoilState(canvasStore)
+  const [studio, setStudio] = useRecoilState(studioStore)
   const [isRaiseHandsTooltip, setRaiseHandsTooltip] = useState(false)
   const [participant, setParticipant] = useState<any>()
   const [participantsArray, setParticipantsArray] = useState<any[]>([])
+  const [openSwitchMediaDevicesModal, setOpenSwitchMediaDevicesModal] =
+    useState(false)
 
   useEffect(() => {
     if (!participants) return
@@ -147,12 +149,28 @@ const MissionControl = ({
     <div className="bg-gray-100 py-2 px-4 rounded-md">
       <div className="flex flex-col items-center justify-between h-full">
         <div className="flex items-center flex-col">
+          <ControlButton
+            icon={FiSettings}
+            className="my-2"
+            appearance="primary"
+            onClick={async () => {
+              setOpenSwitchMediaDevicesModal(true)
+            }}
+          />
           <ControlButton icon={FiClipboard} appearance="primary" />
           <ControlButton
             icon={BiReset}
             className="my-2"
             appearance="primary"
-            onClick={resetCanvas}
+            onClick={canvas?.resetCanvas}
+          />
+          <ControlButton
+            icon={canvas?.zoomed ? VscSearchStop : VscSearch}
+            className="my-2"
+            appearance={canvas?.zoomed ? 'danger' : 'primary'}
+            onClick={() => {
+              if (canvas) setCanvas({ ...canvas, zoomed: !canvas.zoomed })
+            }}
           />
           <hr className="bg-grey-darker h-px my-2" />
 
@@ -187,7 +205,6 @@ const MissionControl = ({
             icon={constraints?.audio ? FiMic : FiMicOff}
             className="my-2"
             appearance={constraints?.audio ? 'primary' : 'danger'}
-            disabled
             onClick={async () => {
               updateParticipant?.({ audio: !constraints?.audio })
               await mute('audio')
@@ -197,7 +214,6 @@ const MissionControl = ({
             icon={constraints?.video ? FiVideo : FiVideoOff}
             className="my-2"
             appearance={constraints?.video ? 'primary' : 'danger'}
-            disabled
             onClick={async () => {
               updateParticipant?.({ video: !constraints?.video })
               await mute('video')
@@ -205,63 +221,73 @@ const MissionControl = ({
           />
 
           <hr className="bg-grey-darker h-px my-2" />
-          {isHost && (
-            <>
-              {state === 'recording' && (
+
+          <>
+            {state === 'recording' && (
+              <ControlButton
+                className="my-2"
+                icon={FiStopCircle}
+                appearance="danger"
+                onClick={() => {
+                  showFinalTransition()
+                }}
+              />
+            )}
+
+            {state === 'preview' && (
+              <>
                 <ControlButton
                   className="my-2"
-                  icon={FiStopCircle}
+                  icon={FiXCircle}
                   appearance="danger"
                   onClick={() => {
-                    stopRecording()
-                    payload.playing = false
-                    updatePayload?.({ status: Fragment_Status_Enum_Enum.Ended })
+                    reset()
+                    updatePayload?.({
+                      status: Fragment_Status_Enum_Enum.NotStarted,
+                    })
                   }}
                 />
-              )}
-
-              {state === 'preview' && (
-                <>
-                  <ControlButton
-                    className="my-2"
-                    icon={FiXCircle}
-                    appearance="danger"
-                    onClick={() => {
-                      reset()
-                      updatePayload?.({
-                        status: Fragment_Status_Enum_Enum.NotStarted,
-                      })
-                    }}
-                  />
-                  <ControlButton
-                    className="my-2"
-                    icon={FiCheckCircle}
-                    appearance="success"
-                    onClick={() => {
-                      upload()
-                      updatePayload?.({
-                        status: Fragment_Status_Enum_Enum.Completed,
-                      })
-                    }}
-                  />
-                </>
-              )}
-
-              {state === 'ready' && (
                 <ControlButton
                   className="my-2"
-                  icon={FiCircle}
-                  appearance="primary"
+                  icon={FiCheckCircle}
+                  appearance="success"
                   onClick={() => {
-                    startRecording()
-                    updatePayload?.({ status: Fragment_Status_Enum_Enum.Live })
+                    upload()
+                    updatePayload?.({
+                      status: Fragment_Status_Enum_Enum.Completed,
+                    })
                   }}
                 />
-              )}
-            </>
-          )}
+              </>
+            )}
+
+            {state === 'ready' && (
+              <ControlButton
+                className="my-2"
+                icon={FiCircle}
+                appearance="primary"
+                onClick={() => {
+                  // startRecording()
+                  setStudio({ ...studio, state: 'countDown' })
+                  updatePayload?.({
+                    status: Fragment_Status_Enum_Enum.CountDown,
+                  })
+                }}
+              />
+            )}
+          </>
         </div>
       </div>
+      <SwitchMediaDevices
+        cameraDevices={cameraDevices}
+        open={openSwitchMediaDevicesModal}
+        audioDevices={microphoneDevices}
+        handleClose={async () => {
+          updateParticipant?.({ video: !constraints?.video })
+          await mute('video')
+          setOpenSwitchMediaDevicesModal(false)
+        }}
+      />
     </div>
   )
 }

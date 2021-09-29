@@ -1,3 +1,22 @@
+fragment PublicUser on User {
+  displayName
+  picture
+  username
+}
+
+fragment GuestUser on User {
+  sub
+  username
+  verified
+  email
+}
+
+fragment FlickParticipant on User {
+  ...PublicUser
+  email
+  sub
+}
+
 fragment User on MeOutput {
   createdAt
   displayName
@@ -10,15 +29,31 @@ fragment User on MeOutput {
   updatedAt
 }
 
-fragment FlickParticipant on User {
-  displayName
-  picture
-  email
-}
-
 query GetUser {
   Me {
     ...User
+  }
+}
+
+fragment FilteredUser on User {
+  displayName
+  email
+  picture
+  sub
+  username
+}
+
+query GetFilteredUsers($_ilike: String!) {
+  User(
+    where: {
+      _or: [
+        { displayName: { _ilike: $_ilike } }
+        { email: { _ilike: $_ilike } }
+        { username: { _ilike: $_ilike } }
+      ]
+    }
+  ) {
+    ...FilteredUser
   }
 }
 
@@ -27,6 +62,24 @@ query IsUsernameAvailable($username: String!) {
     message
     suggestion
     valid
+  }
+}
+
+query GetGuestUser($state: String!) {
+  User(where: { state: { _eq: $state } }) {
+    ...GuestUser
+  }
+}
+
+query FetchEmailUsingState($state: String!) {
+  FetchEmailUsingState(state: $state) {
+    email
+  }
+}
+
+query SendMagicSignInLink($email: String!) {
+  SendMagicLink(email: $email) {
+    success
   }
 }
 
@@ -49,16 +102,11 @@ mutation SetOnboarding {
   }
 }
 
-fragment FilteredUser on User {
-  displayName
-  email
-  picture
-  sub
-  username
-}
-
-query GetFilteredUsers($_ilike: String = "") {
-  User(where: { displayName: { _ilike: $_ilike } }) {
-    ...FilteredUser
+mutation UpdateProfile($displayName: String!, $userId: String!) {
+  update_User(
+    _set: { displayName: $displayName }
+    where: { sub: { _eq: $userId } }
+  ) {
+    affected_rows
   }
 }
