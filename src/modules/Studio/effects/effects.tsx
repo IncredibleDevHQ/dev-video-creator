@@ -53,6 +53,9 @@ import TriviaSeven from './TriviaSeven'
 import VideoJamNine from './VideoJamNine'
 import SplashSeventeen from './SplashSeventeen'
 import SplashEighteen from './SplashEighteen'
+import CodeJamEight from './CodeJamEight'
+import PointsEight from './PointsEight'
+import TriviaEight from './TriviaEight'
 
 const themeEnum = 'theme'
 export interface Effect {
@@ -122,6 +125,7 @@ const getCodeJamTheme = (theme: any) => {
   if (theme.value === '4') return CodeJamFive
   if (theme.value === '5') return CodeJamSix
   if (theme.value === '6') return CodeJamSeven
+  if (theme.value === '7') return CodeJamEight
   return CodeJam
 }
 
@@ -132,6 +136,7 @@ const getTriviaTheme = (theme: any) => {
   if (theme.value === '4') return TriviaFive
   if (theme.value === '5') return TriviaSix
   if (theme.value === '6') return TriviaSeven
+  if (theme.value === '7') return TriviaEight
   return Trivia
 }
 
@@ -142,6 +147,7 @@ const getPointsTheme = (theme: any) => {
   if (theme.value === '4') return PointsFive
   if (theme.value === '5') return PointsSix
   if (theme.value === '6') return PointsSeven
+  if (theme.value === '7') return PointsEight
   return Points
 }
 
