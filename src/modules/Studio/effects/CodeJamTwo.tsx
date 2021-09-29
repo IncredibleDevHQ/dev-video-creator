@@ -123,7 +123,7 @@ const CodeJamTwo = () => {
   }, [state])
 
   const controls =
-    isHost && state === 'recording'
+    state === 'recording'
       ? [
           <ControlButton
             key="nextToken"
