@@ -237,7 +237,6 @@ const Studio = () => {
 
   const stop = () => {
     stopRecording()
-    stream?.getTracks().forEach((track) => track.stop())
     setState('preview')
   }
 

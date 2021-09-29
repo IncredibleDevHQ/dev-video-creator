@@ -8,9 +8,10 @@ import { NextTokenIcon } from '../../../components'
 import { Concourse } from '../components'
 import { CONFIG } from '../components/Concourse'
 import { ControlButton } from '../components/MissionControl'
-import { StudioProviderProps, studioStore } from '../stores'
+import { canvasStore, StudioProviderProps, studioStore } from '../stores'
 import { getDimensions } from './effects'
 import 'gifler'
+import useEdit from '../hooks/use-edit'
 
 const Gif = ({ src }: { src: HTMLImageElement | undefined | string }) => {
   const imageRef = React.useRef(null)
@@ -18,6 +19,13 @@ const Gif = ({ src }: { src: HTMLImageElement | undefined | string }) => {
     const node = document.createElement('canvas')
     return node
   }, [])
+  const { getImageDimensions } = useEdit()
+  const [imgDim, setImgDim] = useState<{
+    width: number
+    height: number
+    x: number
+    y: number
+  }>({ width: 0, height: 0, x: 0, y: 0 })
 
   useEffect(() => {
     let anim: any
@@ -32,7 +40,36 @@ const Gif = ({ src }: { src: HTMLImageElement | undefined | string }) => {
     return () => anim.stop()
   }, [src, canvas])
 
-  return <Image image={canvas} ref={imageRef} />
+  useEffect(() => {
+    setImgDim(
+      getImageDimensions(
+        {
+          w: (canvas && canvas.width) || 0,
+          h: (canvas && canvas.height) || 0,
+        },
+        600,
+        500,
+        640,
+        540,
+        0,
+        0
+      )
+    )
+  }, [canvas])
+
+  return (
+    <Image
+      image={canvas}
+      ref={imageRef}
+      y={imgDim.y}
+      x={imgDim.x}
+      width={imgDim.width}
+      height={imgDim.height}
+      shadowOpacity={0.3}
+      shadowOffset={{ x: 0, y: 1 }}
+      shadowBlur={2}
+    />
+  )
 }
 
 const Slides = () => {
@@ -157,11 +194,12 @@ const Slides = () => {
         fill="#E5E5E5"
       />
     </Group>,
-    <Group y={30} height={480} width={600} key="group1">
+    <Group height={480} width={600} key="group1">
       {slides.length > 0 && (
         <>
           <Group
             x={30}
+            y={30}
             fill="#E5E5E5"
             width={600}
             height={480}
@@ -200,6 +238,8 @@ const Slides = () => {
     <Group
       y={30}
       x={650}
+      offsetX={280}
+      scaleX={-1}
       clipFunc={(ctx: any) => {
         const x = 0
         const y = 0
