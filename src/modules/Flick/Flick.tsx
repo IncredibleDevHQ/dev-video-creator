@@ -1,15 +1,20 @@
-import React, { useEffect, useState } from 'react'
+/* eslint-disable jsx-a11y/no-static-element-interactions */
+/* eslint-disable jsx-a11y/click-events-have-key-events */
+/* eslint-disable no-nested-ternary */ import React, {
+  useEffect,
+  useState,
+} from 'react'
 import { useParams, useHistory } from 'react-router-dom'
 import { FiActivity } from 'react-icons/fi'
 import { FaPlus } from 'react-icons/fa'
 import { useRecoilState, useRecoilValue } from 'recoil'
+import { BiChevronLeft } from 'react-icons/bi'
 import {
   FlickActivity,
   FlickSideBar,
   FragmentActivity,
   FragmentConfiguration,
   FragmentsSidebar,
-  // Participants,
 } from './components'
 import { currentFlickStore } from '../../stores/flick.store'
 import {
@@ -22,7 +27,6 @@ import {
 import { useGetFlickByIdQuery } from '../../generated/graphql'
 import { studioStore } from '../Studio/stores'
 import { User, userState } from '../../stores/user.store'
-import { BiChevronLeft } from 'react-icons/bi'
 
 const Flick = () => {
   const { id, fragmentId } = useParams<{ id: string; fragmentId?: string }>()
@@ -33,7 +37,6 @@ const Flick = () => {
   const [studio, setStudio] = useRecoilState(studioStore)
   const { sub } = (useRecoilValue(userState) as User) || {}
 
-  // const [isParticipants, setParticipants] = useState(true)
   const [isActivityMenu, setIsActivityMenu] = useState(false)
 
   const [activeFragmentId, setActiveFragmentId] = useState<string>()

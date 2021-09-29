@@ -35,8 +35,12 @@ const TriviaSix = () => {
       : '',
     'anonymous'
   )
+  const [incredibleLogo] = useImage(
+    `${config.storage.baseUrl}x-incredible-black.svg`,
+    'anonymous'
+  )
   const [tensorflowLogo] = useImage(
-    `${config.storage.baseUrl}tensorflow.svg`,
+    `${config.storage.baseUrl}100DaysOfTF.svg`,
     'anonymous'
   )
   const [tensorflowBg] = useImage(
@@ -144,14 +148,6 @@ const TriviaSix = () => {
       width={CONFIG.width - 2}
       height={CONFIG.height - 2}
     />,
-    <Image
-      image={tensorflowBg}
-      x={0}
-      y={0}
-      fill="#F5F6F7"
-      width={CONFIG.width}
-      height={CONFIG.height}
-    />,
     <Rect
       x={27}
       y={48}
@@ -165,7 +161,7 @@ const TriviaSix = () => {
       y={58}
       width={640}
       height={390}
-      fill="#374151"
+      fill="#ffffff"
       cornerRadius={8}
     />,
     <Group x={37} y={58} key="group1">
@@ -175,7 +171,7 @@ const TriviaSix = () => {
           y={20}
           align="center"
           fontSize={32}
-          fill="#ffffff"
+          fill="#1F2937"
           width={620}
           lineHeight={1.2}
           text={questions[activeQuestionIndex]?.text}
@@ -191,7 +187,7 @@ const TriviaSix = () => {
           x={10}
           verticalAlign="middle"
           fontSize={32}
-          fill="#ffffff"
+          fill="#1F2937"
           width={620}
           height={390}
           text={questions[activeQuestionIndex]?.text}
@@ -215,7 +211,8 @@ const TriviaSix = () => {
         </>
       )}
     </Group>,
-    <Image image={tensorflowLogo} x={30} y={CONFIG.height - 72} />,
+    <Image image={incredibleLogo} x={25} y={CONFIG.height - 72} />,
+    <Image image={tensorflowLogo} x={820} y={CONFIG.height - 60} />,
   ]
 
   return (

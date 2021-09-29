@@ -9,8 +9,12 @@ fragment BaseFlick on Flick {
   plannedEnd
   startAt
   ownerId
+  owner {
+    userSub
+  }
   updatedAt
   status
+  deletedAt
   producedLink
   participants {
     user {
@@ -68,7 +72,10 @@ query GetUpcomingUserFlicks($sub: String!) {
 
 query GetUserFlicks($sub: String!) {
   Flick(
-    where: { participants: { userSub: { _eq: $sub } } }
+    where: {
+      participants: { userSub: { _eq: $sub } }
+      deletedAt: { _is_null: true }
+    }
     order_by: { startAt: desc }
   ) {
     ...Flick
@@ -77,17 +84,25 @@ query GetUserFlicks($sub: String!) {
 
 query GetUserPublicFlicks($userId: String!) {
   Flick(
-    where: { scope: { _eq: Public }, owner: { userSub: { _eq: $userId } } }
+    where: {
+      scope: { _eq: Public }
+      owner: { userSub: { _eq: $userId } }
+      deletedAt: { _is_null: true }
+    }
     order_by: { startAt: asc }
   ) {
     ...Flick
   }
 }
 
-query SeriesFlicks($id: uuid) {
-  Flick_Series(where: { seriesId: { _eq: $id } }) {
-    flickId
+query SeriesFlicks($id: uuid!) {
+  Flick_Series(
+    where: { seriesId: { _eq: $id }, flick: { deletedAt: { _is_null: true } } }
+  ) {
     order
+    seriesFlickCount {
+      count
+    }
     flick {
       id
       producedLink
@@ -95,6 +110,7 @@ query SeriesFlicks($id: uuid) {
       name
       previewLink
       description
+      deletedAt
       participants {
         user {
           picture
@@ -166,5 +182,11 @@ fragment Note on Note {
 query GetFragmentNotes($fragmentId: uuid!) {
   Note(where: { fragmentId: { _eq: $fragmentId } }) {
     ...Note
+  }
+}
+
+mutation DeleteFlick($flickId: uuid!) {
+  DeleteFlick(flickId: $flickId) {
+    id
   }
 }

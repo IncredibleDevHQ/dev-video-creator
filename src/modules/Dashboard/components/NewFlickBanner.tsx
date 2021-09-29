@@ -14,7 +14,9 @@ const NewFlickBanner = ({ seriesId }: { seriesId?: string }) => {
         size="extraSmall"
         appearance="primary"
         className="h-10"
-        onClick={() => history.push(`/new-flick/${seriesId}`)}
+        onClick={() =>
+          history.push(seriesId ? `/new-flick/${seriesId}` : `/new-flick`)
+        }
         icon={AiOutlinePlus}
       >
         Create flick
