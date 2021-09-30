@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useRecoilValue } from 'recoil'
-import Konva from 'konva'
-import { Circle, Group, Image, Rect } from 'react-konva'
+
+import { Image, Rect } from 'react-konva'
 import { FiPlay, FiPause } from 'react-icons/fi'
 import useImage from 'use-image'
 import { Concourse } from '../components'
@@ -10,10 +10,10 @@ import { CONFIG, StudioUserConfig } from '../components/Concourse'
 import { StudioProviderProps, studioStore } from '../stores'
 import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
 import { Video, VideoConfig } from '../components/Video'
-import { ClipConfig } from '../hooks/use-edit'
+
 import config from '../../../config'
 
-const videoJamEight = () => {
+const VideoJamEight = () => {
   const { state, fragment, payload, updatePayload } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [titleSpalshData, settitleSpalshData] = useState<{
@@ -117,6 +117,7 @@ const videoJamEight = () => {
     width: 704,
     height: 396,
     cornerRadius: 8,
+    videoFill: '#E5E5E5',
     performClip: true,
     backgroundRectX: 27,
     backgroundRectY: 48,
@@ -279,5 +280,4 @@ const videoJamEight = () => {
     />
   )
 }
-
-export default videoJamEight
+export default VideoJamEight
