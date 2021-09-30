@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react'
 import { Group, Circle, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import { NextLineIcon, NextTokenIcon } from '../../../components'
+import FocusCodeIcon from '../../../components/FocusCodeIcon'
 import { API } from '../../../constants'
 import {
   Fragment_Status_Enum_Enum,
@@ -81,7 +82,7 @@ const CodeJam = () => {
     if (!data?.TokenisedCode) return
     initUseCode({
       tokens: data.TokenisedCode.data,
-      canvasWidth: 900,
+      canvasWidth: 800,
       canvasHeight: 460,
       gutter: 5,
       fontSize: codeConfig.fontSize,
@@ -147,7 +148,7 @@ const CodeJam = () => {
           <ControlButton
             className="my-2"
             key="focus"
-            icon={NextLineIcon}
+            icon={FocusCodeIcon}
             appearance="primary"
             onClick={() => {
               setFocusCode(true)
@@ -178,11 +179,16 @@ const CodeJam = () => {
     focusCode && (
       <RenderFocus
         tokens={computedTokens.current}
-        lineNumber={computedTokens.current[position.currentIndex]?.lineNumber}
+        lineNumber={computedTokens.current[position.prevIndex]?.lineNumber}
         currentIndex={position.currentIndex}
-        bgColor="#000000"
-        codeCanvasWidth={900}
         groupCoordinates={{ x: 20, y: 30 }}
+        bgRectInfo={{
+          x: 0,
+          y: 0,
+          width: CONFIG.width,
+          height: CONFIG.height,
+          radius: 0,
+        }}
       />
     ),
   ]

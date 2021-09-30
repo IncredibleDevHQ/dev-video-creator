@@ -55,31 +55,34 @@ export default RenderTokens
 export const RenderFocus = ({
   tokens,
   lineNumber,
-  bgColor,
-  codeCanvasWidth,
   groupCoordinates,
   currentIndex,
+  bgRectInfo,
 }: {
   tokens: ComputedToken[]
   lineNumber: number
-  bgColor: string
-  codeCanvasWidth: number
   groupCoordinates: { x: number; y: number }
   currentIndex: number
+  bgRectInfo: {
+    x: number
+    y: number
+    width: number
+    height: number
+    radius: number
+  }
 }) => {
   return (
     <>
       <Rect
-        x={0}
-        y={0}
-        width={CONFIG.width}
-        height={CONFIG.height}
+        x={bgRectInfo.x}
+        y={bgRectInfo.y}
+        width={bgRectInfo.width}
+        height={bgRectInfo.height}
         fill="#000000"
         opacity={0.8}
+        cornerRadius={bgRectInfo.radius}
       />
       <Group
-        // offsetX={groupCoordinates.x}
-        // offsetY={groupCoordinates.y}
         ref={(ref) => {
           ref?.to({
             scaleX: 1.2,
@@ -90,11 +93,8 @@ export const RenderFocus = ({
         }}
       >
         {tokens
-          .filter((_, i) => i <= currentIndex)
-          .filter((token) => {
-            if (lineNumber === 0) return token.lineNumber === lineNumber
-            return token.lineNumber === lineNumber - 1
-          })
+          .filter((_, i) => i < currentIndex)
+          .filter((token) => token.lineNumber === lineNumber)
           .map((token, index) => {
             return (
               <>
@@ -106,8 +106,8 @@ export const RenderFocus = ({
                   text={token.content}
                   x={token.x + groupCoordinates.x}
                   y={token.y + groupCoordinates.y}
+                  offsetY={(token.y + groupCoordinates.y) / 6}
                   align="left"
-                  width={codeCanvasWidth / 2}
                 />
               </>
             )
