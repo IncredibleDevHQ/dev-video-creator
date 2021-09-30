@@ -53,6 +53,7 @@ import TriviaSeven from './TriviaSeven'
 import VideoJamNine from './VideoJamNine'
 import SplashSeventeen from './SplashSeventeen'
 import SplashEighteen from './SplashEighteen'
+import SlidesTwo from './SlidesTwo'
 
 const themeEnum = 'theme'
 export interface Effect {
@@ -145,6 +146,11 @@ const getPointsTheme = (theme: any) => {
   return Points
 }
 
+const getSlideTheme = (theme: any) => {
+  if (theme.value === '7') return SlidesTwo
+  return Slides
+}
+
 export const getDimensions = (
   img: { w: number; h: number },
   maxH: number,
@@ -200,7 +206,7 @@ export const getEffect = (
     case Fragment_Type_Enum_Enum.Solo:
       return StoryBook
     case Fragment_Type_Enum_Enum.Slides:
-      return Slides
+      return getSlideTheme(theme)
     case Fragment_Type_Enum_Enum.Points:
       return getPointsTheme(theme)
     case Fragment_Type_Enum_Enum.Discussion:
