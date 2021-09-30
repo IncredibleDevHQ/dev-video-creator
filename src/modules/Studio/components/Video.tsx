@@ -44,12 +44,13 @@ export const Video = ({
 
   const { clipRect } = useEdit()
   useEffect(() => {
-    console.log('imgdd', videoElement.videoWidth, videoElement.videoHeight)
+    console.log('imgdd', imgDim.width, imgDim.height)
   }, [imgDim])
 
   // when video is loaded, we should read it size
   React.useEffect(() => {
     const onload = () => {
+      console.log('onload')
       setImgDim(
         getImageDimensions(
           {
@@ -75,6 +76,23 @@ export const Video = ({
       videoElement.removeEventListener('loadedmetadata', onload)
     }
   }, [videoElement])
+
+  useEffect(() => {
+    setImgDim(
+      getImageDimensions(
+        {
+          w: (videoElement && videoElement.videoWidth) || 0,
+          h: (videoElement && videoElement.videoHeight) || 0,
+        },
+        videoConfig.width,
+        videoConfig.height,
+        videoConfig.width,
+        videoConfig.height,
+        videoConfig.x ? videoConfig.x : 0,
+        videoConfig.y ? videoConfig.y : 0
+      )
+    )
+  }, [])
 
   useEffect(() => {
     // @ts-ignore

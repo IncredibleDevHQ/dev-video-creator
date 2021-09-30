@@ -27,6 +27,7 @@ import { useUploadFile } from '../../hooks/use-upload-file'
 import { useAgora } from './hooks'
 import { StudioProviderProps, StudioState, studioStore } from './stores'
 import { useRTDB } from './hooks/use-rtdb'
+import { Countdown } from './components'
 
 const Studio = () => {
   const { fragmentId } = useParams<{ fragmentId: string }>()
@@ -301,6 +302,7 @@ const Studio = () => {
 
   return (
     <div>
+      <Countdown />
       <div className="py-2 px-4">
         <div className="flex flex-row justify-between bg-gray-100 p-2 rounded-md">
           <div className="flex-1 flex flex-row items-center">
