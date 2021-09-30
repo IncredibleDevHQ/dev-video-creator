@@ -111,12 +111,12 @@ const getSplash = (theme: any) => {
 const getVideoTheme = (theme: any) => {
   if (theme.value === '1') return VideoJamFour
   if (theme.value === '2') return VideoJamFive
-  if (theme.value === '3') return VideoJamSix
-  if (theme.value === '4') return VideoJamSeven
-  if (theme.value === '5') return VideoJamEight
-  if (theme.value === '6') return VideoJamNine
-  if (theme.value === '7') return VideoJamTwo
-  if (theme.value === '8') return VideoJamThree
+  if (theme.value === '3') return VideoJamSix // Astro
+  if (theme.value === '4') return VideoJamSeven // WTF js
+  if (theme.value === '5') return VideoJamEight // Hasura
+  if (theme.value === '6') return VideoJamNine // Next.js
+  if (theme.value === '7') return VideoJamTwo // Elastic
+  if (theme.value === '8') return VideoJamThree // hasura
   return VideoJam
 }
 
