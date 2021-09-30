@@ -79,8 +79,6 @@ const Concourse = ({
   const groupRef = createRef<Konva.Group>()
   const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
 
-  const [timer, setTimer] = useState<number>(3)
-
   const defaultStudioUserConfig: StudioUserConfig = {
     x: 780,
     y: 400,
@@ -219,7 +217,6 @@ const Concourse = ({
   }, [])
 
   useEffect(() => {
-    if (state === 'ready') setTimer(3)
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     titleSpalshData?.enable &&
       (payload?.status === Fragment_Status_Enum_Enum.Live
@@ -325,53 +322,6 @@ const Concourse = ({
                         />
                       ))}
                     </>
-                  )}
-                {timer >= 0 &&
-                  (state === 'countDown' ||
-                    payload?.status ===
-                      Fragment_Status_Enum_Enum.CountDown) && (
-                    <Group
-                      x={0}
-                      y={0}
-                      key="group1"
-                      width={CONFIG.width}
-                      height={CONFIG.height}
-                    >
-                      <Circle
-                        x={CONFIG.width / 2}
-                        y={CONFIG.height / 2}
-                        radius={CONFIG.width / 6}
-                        fill="#000000"
-                        opacity={0.5}
-                      />
-                      <Text
-                        align="center"
-                        verticalAlign="middle"
-                        fontFamily="Poppins"
-                        fontSize={100}
-                        fill="#ffffff"
-                        width={CONFIG.width / 2}
-                        height={CONFIG.height / 2 + 25}
-                        scaleX={2}
-                        scaleY={2}
-                        text={timer === 0 ? 'Go' : `${timer}`}
-                        ref={(ref) => {
-                          ref?.to({
-                            duration: 1,
-                            opacity: 1,
-                            onFinish: () => {
-                              setTimer(timer - 1)
-                              if (timer === 0) {
-                                startRecording()
-                                updatePayload?.({
-                                  status: Fragment_Status_Enum_Enum.Live,
-                                })
-                              }
-                            },
-                          })
-                        }}
-                      />
-                    </Group>
                   )}
               </Layer>
             </Bridge>
