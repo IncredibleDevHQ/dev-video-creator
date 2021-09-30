@@ -96,10 +96,10 @@ const getSplash = (theme: any) => {
   if (theme.value === '4') return SplashSixteen
   if (theme.value === '5') return SplashSeventeen
   if (theme.value === '6') return SplashEighteen
-  if (theme.value === '7') return SplashSix
+  if (theme.value === '7') return SplashNine
   if (theme.value === '8') return SplashSeven
   if (theme.value === '9') return SplashEight
-  if (theme.value === '10') return SplashNine
+  if (theme.value === '10') return SplashSix
   if (theme.value === '11') return SplashEleven
   if (theme.value === '12') return SplashTwelve
   if (theme.value === '13') return SplashThirteen
