@@ -57,6 +57,7 @@ import SlidesTwo from './SlidesTwo'
 import CodeJamEight from './CodeJamEight'
 import PointsEight from './PointsEight'
 import TriviaEight from './TriviaEight'
+import SlidesThree from './SlidesThree'
 
 const themeEnum = 'theme'
 export interface Effect {
@@ -154,6 +155,7 @@ const getPointsTheme = (theme: any) => {
 
 const getSlideTheme = (theme: any) => {
   if (theme.value === '7') return SlidesTwo
+  if (theme.value === '5') return SlidesThree
   return Slides
 }
 
