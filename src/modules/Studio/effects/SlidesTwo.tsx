@@ -151,21 +151,39 @@ const SlidesTwo = () => {
       fill="#E6EBF2"
       stroke="#D1D5DB"
       cornerRadius={8}
+      shadowOpacity={0.3}
+      shadowOffset={{ x: 0, y: 1 }}
+      shadowBlur={2}
     />,
     <Group x={37} y={58} width={714} height={406} key="group1">
       {slides.length > 0 && (
         <>
-          <Image
-            image={slide}
-            fill="#E5E5E5"
-            width={slideDim.width}
-            y={slideDim.y}
-            x={slideDim.x}
-            height={slideDim.height}
-            shadowOpacity={0.3}
-            shadowOffset={{ x: 0, y: 1 }}
-            shadowBlur={2}
-          />
+          <Group
+            width={714}
+            height={406}
+            clipFunc={(ctx: any) => {
+              const { x, y } = slideDim
+              const w = slideDim.width
+              const h = slideDim.height
+              const r = 8
+              ctx.beginPath()
+              ctx.moveTo(x + r, y)
+              ctx.arcTo(x + w, y, x + w, y + h, r)
+              ctx.arcTo(x + w, y + h, x, y + h, r)
+              ctx.arcTo(x, y + h, x, y, r)
+              ctx.arcTo(x, y, x + w, y, r)
+              ctx.closePath()
+            }}
+          >
+            <Image
+              image={slide}
+              fill="#E5E5E5"
+              width={slideDim.width}
+              y={slideDim.y}
+              x={slideDim.x}
+              height={slideDim.height}
+            />
+          </Group>
         </>
       )}
     </Group>,
