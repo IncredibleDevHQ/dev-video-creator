@@ -9,8 +9,9 @@ import {
   useGetTokenisedCodeLazyQuery,
 } from '../../../generated/graphql'
 import { Concourse } from '../components'
+import { CONFIG } from '../components/Concourse'
 import { ControlButton } from '../components/MissionControl'
-import RenderTokens from '../components/RenderTokens'
+import RenderTokens, { RenderFocus } from '../components/RenderTokens'
 import useCode, { ComputedToken } from '../hooks/use-code'
 import { StudioProviderProps, studioStore } from '../stores'
 
@@ -40,6 +41,7 @@ const CodeJam = () => {
     prevIndex: -1,
     currentIndex: 0,
   })
+  const [focusCode, setFocusCode] = useState<boolean>(false)
 
   useEffect(() => {
     if (!fragment?.configuration.properties) return
@@ -91,6 +93,7 @@ const CodeJam = () => {
       prevIndex: payload?.prevIndex || 0,
       currentIndex: payload?.currentIndex || 1,
     })
+    setFocusCode(false)
   }, [payload])
 
   useEffect(() => {
@@ -115,6 +118,7 @@ const CodeJam = () => {
             className="my-2"
             appearance="primary"
             onClick={() => {
+              setFocusCode(false)
               if (position.currentIndex < computedTokens.current.length)
                 updatePayload?.({
                   currentIndex: position.currentIndex + 1,
@@ -128,6 +132,7 @@ const CodeJam = () => {
             icon={NextLineIcon}
             appearance="primary"
             onClick={() => {
+              setFocusCode(false)
               const current = computedTokens.current[position.currentIndex]
               let next = computedTokens.current.findIndex(
                 (t) => t.lineNumber > current.lineNumber
@@ -137,6 +142,15 @@ const CodeJam = () => {
                 prevIndex: position.currentIndex,
                 currentIndex: next,
               })
+            }}
+          />,
+          <ControlButton
+            className="my-2"
+            key="focus"
+            icon={NextLineIcon}
+            appearance="primary"
+            onClick={() => {
+              setFocusCode(true)
             }}
           />,
         ]
@@ -160,6 +174,16 @@ const CodeJam = () => {
           />
         )}
       </Group>
+    ),
+    focusCode && (
+      <RenderFocus
+        tokens={computedTokens.current}
+        lineNumber={computedTokens.current[position.currentIndex]?.lineNumber}
+        currentIndex={position.currentIndex}
+        bgColor="#000000"
+        codeCanvasWidth={900}
+        groupCoordinates={{ x: 20, y: 30 }}
+      />
     ),
   ]
 
