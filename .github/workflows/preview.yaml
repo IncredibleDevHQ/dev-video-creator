@@ -6,6 +6,7 @@ on:
       - main
       - develop
       - v/**
+      - sprint/**
 
 jobs:
   build:
