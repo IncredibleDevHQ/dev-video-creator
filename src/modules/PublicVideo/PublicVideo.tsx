@@ -74,18 +74,11 @@ const PublicVideo = () => {
             data.Flick[0].participants.map((user) => (
               <div className="flex h-auto mr-4 flex-row">
                 <div className=" flex w-10 h-10 bg-green-500 place-items-center place-content-center rounded-full">
-                  {user.user.picture ? (
-                    <img
-                      src={user.user.picture}
-                      alt="user"
-                      className="w-8 h-8 rounded-full bg-gray-100"
-                    />
-                  ) : (
-                    <Gravatar
-                      className="w-8 h-8 rounded-full bg-gray-100"
-                      email={user.user.email as string}
-                    />
-                  )}
+                  <img
+                    src={user.user.picture ? user.user.picture : ''}
+                    alt="user"
+                    className="w-8 h-8 rounded-full bg-gray-100"
+                  />
                 </div>
                 <Heading className=" flex ml-2 w-auto h-auto mt-2 justify-center font-semibold text-sm capitalize ">
                   {user.user.displayName}

@@ -1,3 +1,24 @@
+fragment PublicFlick on Flick {
+  color
+  description
+  joinLink
+  lobbyPicture
+  id
+  name
+  scope
+  plannedEnd
+  startAt
+  updatedAt
+  status
+  deletedAt
+  producedLink
+  participants {
+    user {
+      picture
+    }
+  }
+}
+
 fragment BaseFlick on Flick {
   color
   description
