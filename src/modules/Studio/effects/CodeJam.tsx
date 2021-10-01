@@ -26,7 +26,7 @@ interface Position {
 }
 
 const CodeJam = () => {
-  const { fragment, payload, updatePayload, state, isHost } =
+  const { fragment, payload, updatePayload, state } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [titleSpalshData, settitleSpalshData] = useState<{

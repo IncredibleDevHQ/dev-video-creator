@@ -292,6 +292,8 @@ const CodeJamEight = () => {
       width={704}
       height={396}
       fill="#202026"
+      stroke="#D1D5DB"
+      strokeWidth={4}
       cornerRadius={8}
     />,
     <Group x={52} y={73} key="circleGroup">

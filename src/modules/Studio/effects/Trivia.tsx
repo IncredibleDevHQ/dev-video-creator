@@ -187,6 +187,7 @@ const Trivia = () => {
           fontFamily="Poppins"
           align="center"
           textTransform="capitalize"
+          lineHeight={1.3}
           ref={(ref) => ref?.to({ x: 0, duration: 0.3 })}
         />
       ) : (
