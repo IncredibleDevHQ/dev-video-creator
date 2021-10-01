@@ -125,7 +125,6 @@ const SlidesTwo = () => {
   ]
 
   const layerChildren = [
-    // To get the white background color
     <Rect
       x={0}
       y={0}
