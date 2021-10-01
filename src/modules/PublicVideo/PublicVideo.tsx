@@ -44,11 +44,7 @@ const PublicVideo = () => {
     <>
       <Header
         flickId={flick.id}
-        owner={
-          !!data?.Flick?.[0].participants.find(
-            (user) => data.Flick[0].ownerId === user.id
-          )
-        }
+        owner={false}
         link={`https://twitter.com/intent/tweet?text=Check this IncredibleDev Flick !%0A${
           data?.Flick?.[0].name
         }%0A${data?.Flick?.[0].description}%0A${

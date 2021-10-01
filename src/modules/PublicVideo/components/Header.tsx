@@ -40,7 +40,7 @@ const AuthenticatedRightCol = ({
         type="button"
         icon={IoLinkOutline}
         onClick={() => navigator.clipboard.writeText(window.location.href)}
-        appearance={owner ? 'primary' : 'link'}
+        appearance="primary"
       >
         Copy Public Link
       </Button>
