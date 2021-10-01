@@ -142,27 +142,21 @@ const SlidesThree = () => {
       width={CONFIG.width - 2}
       height={CONFIG.height - 2}
     />,
-    <Rect
-      x={27}
-      y={48}
-      width={714}
-      height={406}
-      fill="#FF6E00"
-      cornerRadius={8}
-    />,
-    <Rect
-      x={37}
-      y={58}
-      width={714}
-      height={406}
-      fill="#EDEEF0"
-      cornerRadius={8}
-      shadowOpacity={0.3}
-      shadowOffset={{ x: 0, y: 1 }}
-      shadowBlur={2}
-    />,
 
     <Group x={37} y={58} width={714} height={406} key="group1">
+      <Rect
+        width={slideDim.width}
+        y={slideDim.y - 6}
+        x={slideDim.x - 6}
+        height={slideDim.height}
+        fill="#FF6E00"
+        cornerRadius={8}
+        shadowOpacity={0.3}
+        shadowOffset={{ x: 0, y: 1 }}
+        shadowBlur={2}
+        stroke="#FF6E00"
+        strokeWidth={6}
+      />
       {slides.length > 0 && (
         <>
           <Group
@@ -187,7 +181,6 @@ const SlidesThree = () => {
               fill="#E5E5E5"
               width={slideDim.width}
               y={slideDim.y}
-              draggable
               x={slideDim.x}
               height={slideDim.height}
             />
