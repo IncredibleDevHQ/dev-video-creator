@@ -28,7 +28,7 @@ interface Position {
   currentIndex: number
 }
 
-const CodeJamEight = () => {
+const CodeJamNine = () => {
   const { fragment, payload, updatePayload, state, isHost } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
@@ -44,16 +44,8 @@ const CodeJamEight = () => {
     currentIndex: 0,
   })
 
-  const [elasticLogo] = useImage(
-    `${config.storage.baseUrl}elastic-logo.png`,
-    'anonymous'
-  )
-  const [whiteCircle] = useImage(
-    `${config.storage.baseUrl}circle.png`,
-    'anonymous'
-  )
-  const [pinkCircle] = useImage(
-    `${config.storage.baseUrl}pink2.png`,
+  const [hasuraLogo] = useImage(
+    `${config.storage.baseUrl}hasura.png`,
     'anonymous'
   )
 
@@ -168,7 +160,7 @@ const CodeJamEight = () => {
             width: 240,
             height: 180,
             clipTheme: 'rect',
-            borderColor: '#D1D5DB',
+            borderColor: '#1EB4D4',
             borderWidth: 8,
             studioUserClipConfig: {
               x: 40,
@@ -184,7 +176,7 @@ const CodeJamEight = () => {
             width: 240,
             height: 180,
             clipTheme: 'rect',
-            borderColor: '#D1D5DB',
+            borderColor: '#1EB4D4',
             borderWidth: 8,
             studioUserClipConfig: {
               x: 40,
@@ -203,7 +195,7 @@ const CodeJamEight = () => {
             width: 160,
             height: 120,
             clipTheme: 'rect',
-            borderColor: '#D1D5DB',
+            borderColor: '#1EB4D4',
             borderWidth: 8,
             studioUserClipConfig: {
               x: 0,
@@ -219,7 +211,7 @@ const CodeJamEight = () => {
             width: 160,
             height: 120,
             clipTheme: 'rect',
-            borderColor: '#D1D5DB',
+            borderColor: '#1EB4D4',
             borderWidth: 8,
             studioUserClipConfig: {
               x: 0,
@@ -235,7 +227,7 @@ const CodeJamEight = () => {
             width: 160,
             height: 120,
             clipTheme: 'rect',
-            borderColor: '#D1D5DB',
+            borderColor: '#1EB4D4',
             borderWidth: 8,
             studioUserClipConfig: {
               x: 0,
@@ -254,6 +246,7 @@ const CodeJamEight = () => {
             width: 320,
             height: 240,
             clipTheme: 'rect',
+            borderColor: '#1EB4D4',
             borderWidth: 8,
             studioUserClipConfig: {
               x: 80,
@@ -262,7 +255,6 @@ const CodeJamEight = () => {
               height: 240,
               radius: 8,
             },
-            borderColor: '#D1D5DB',
           },
         ]
     }
@@ -274,26 +266,37 @@ const CodeJamEight = () => {
       y={0}
       width={CONFIG.width}
       height={CONFIG.height}
-      fill="#ffffff"
-      // fillLinearGradientColorStops={[0, '#60D0ED', 1, '#536FA8']}
-      // fillLinearGradientStartPoint={{ x: 0, y: 0 }}
-      // fillLinearGradientEndPoint={{ x: CONFIG.width, y: CONFIG.height }}
+      fill="#D6EBFF"
     />,
-    <Circle x={82} y={10} radius={55} fill="#7DE2D1" />,
-    <Circle x={70} y={CONFIG.height - 70} radius={100} fill="#7DE2D1" />,
-    <Circle x={640} y={20} radius={10} fill="#0077CC" />,
-    <Circle x={270} y={CONFIG.height - 70} radius={10} fill="#0077CC" />,
-    <Image image={pinkCircle} x={790} y={400} />,
-    <Image image={whiteCircle} x={615} y={245} />,
-
+    <Rect
+      key="smallRect1"
+      x={490}
+      y={20}
+      width={12}
+      height={12}
+      fill="#F47E7E"
+      rotation={-45}
+      opacity={1}
+    />,
+    <Rect
+      key="smallRect2"
+      x={820}
+      y={505}
+      width={24}
+      height={24}
+      fill="#5C94C8"
+      rotation={-45}
+      opacity={1}
+    />,
+    <Circle x={240} y={460} radius={20} stroke="#F47E7E" strokeWidth={8} />,
     <Rect
       x={37}
       y={58}
       width={704}
       height={396}
-      fill="#202026"
-      stroke="#D1D5DB"
+      stroke="#1EB4D4"
       strokeWidth={4}
+      fill="#202026"
       cornerRadius={8}
     />,
     <Group x={52} y={73} key="circleGroup">
@@ -314,7 +317,7 @@ const CodeJamEight = () => {
         )}
       </Group>
     ),
-    <Image image={elasticLogo} x={30} y={CONFIG.height - 60} />,
+    <Image image={hasuraLogo} x={30} y={CONFIG.height - 60} />,
   ]
 
   return (
@@ -352,4 +355,4 @@ const getRenderedTokens = (tokens: ComputedToken[], position: Position) => {
     })
 }
 
-export default CodeJamEight
+export default CodeJamNine
