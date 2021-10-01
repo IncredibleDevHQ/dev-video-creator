@@ -108,6 +108,7 @@ const VideoJamThree = () => {
     y: 40,
     width: 720,
     height: 405,
+    videoFill: '#4D1797',
     borderColor: '#1EB4D4',
     borderWidth: 8,
     cornerRadius: 8,

@@ -19,8 +19,6 @@ const MagicLinkLogin = () => {
   if (auth.currentUser) history.push('/dashboard')
 
   async function handleSignIn(email: string) {
-    if (!email) return
-
     try {
       if (isSignInWithEmailLink(auth, window.location.href)) {
         const data = await signInWithEmailLink(
@@ -47,24 +45,21 @@ const MagicLinkLogin = () => {
 
   if (loading) return <ScreenState title="Just a jiffy" loading />
 
-  if (data) {
-    if (!data.FetchEmailUsingState?.email)
-      return (
-        <ScreenState
-          title="Invalid State!!"
-          subtitle="Either the state is invalid or already used"
-        />
-      )
-
-    handleSignIn(data?.FetchEmailUsingState?.email as string)
-  }
-
   if (error)
     return (
       <ScreenState title="Something went wrong!!" subtitle={error.message} />
     )
 
-  return <ScreenState title="Just a jiffy" loading />
+  if (!data?.FetchEmailUsingState?.email) {
+    return (
+      <ScreenState
+        title="Invalid State!!"
+        subtitle="Either the state is invalid or already used"
+      />
+    )
+  }
+  handleSignIn(data?.FetchEmailUsingState?.email)
+  return null
 }
 
 export default MagicLinkLogin

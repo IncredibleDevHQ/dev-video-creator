@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useRecoilValue } from 'recoil'
+import Konva from 'konva'
+import { Image } from 'react-konva'
 import { FiPlay, FiPause } from 'react-icons/fi'
 import { Concourse } from '../components'
 import { ControlButton } from '../components/MissionControl'

@@ -95,7 +95,6 @@ const MissionControl = ({ controls }: { controls: JSX.Element[] }) => {
   const {
     constraints,
     startRecording,
-    stopRecording,
     showFinalTransition,
     upload,
     reset,
@@ -107,7 +106,6 @@ const MissionControl = ({ controls }: { controls: JSX.Element[] }) => {
     cameraDevices,
     microphoneDevices,
     participantId,
-    payload,
   } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [canvas, setCanvas] = useRecoilState(canvasStore)
   const [studio, setStudio] = useRecoilState(studioStore)
