@@ -1,4 +1,4 @@
-import React, { HTMLAttributes } from 'react'
+import React, { HTMLAttributes, SetStateAction, useState } from 'react'
 import Dropzone from 'react-dropzone'
 import { FcOpenedFolder } from 'react-icons/fc'
 
