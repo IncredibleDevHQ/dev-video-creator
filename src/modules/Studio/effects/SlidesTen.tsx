@@ -44,10 +44,10 @@ const SlidesTen = () => {
           w: (slide && slide.width) || 0,
           h: (slide && slide.height) || 0,
         },
-        704,
-        396,
-        704,
-        396,
+        714,
+        406,
+        714,
+        406,
         0,
         0
       )
