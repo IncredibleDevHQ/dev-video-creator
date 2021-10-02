@@ -15,7 +15,8 @@ const FileDropzone = ({
   return (
     <Dropzone
       onDrop={onDrop}
-      multiple
+      maxFiles={1}
+      multiple={false}
       onDropAccepted={(image) => {
         const event = new Event('input', { bubbles: true })
         dispatchEvent(event)
