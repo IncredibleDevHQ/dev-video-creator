@@ -7,6 +7,7 @@ import { NextTokenIcon } from '../../../components'
 import config from '../../../config'
 import { Concourse } from '../components'
 import { CONFIG, StudioUserConfig } from '../components/Concourse'
+import Gif from '../components/Gif'
 import { ControlButton } from '../components/MissionControl'
 import useEdit from '../hooks/use-edit'
 import { StudioProviderProps, studioStore } from '../stores'
@@ -21,6 +22,9 @@ const SlidesTwo = () => {
     enable: boolean
     title?: string
   }>({ enable: false })
+
+  const [isGif, setIsGif] = useState(false)
+  const [gifUrl, setGifUrl] = useState('')
 
   const imageConfig = { width: 640, height: 480 }
   const imageRef = useRef<Konva.Image | null>(null)
@@ -48,6 +52,12 @@ const SlidesTwo = () => {
   // width: 704,
   // height: 396,
   useEffect(() => {
+    if (slide?.src.split('.').pop() === 'gif') {
+      setIsGif(true)
+      setGifUrl(slide.src)
+    } else {
+      setIsGif(false)
+    }
     setSlideDim(
       getImageDimensions(
         {
@@ -155,17 +165,29 @@ const SlidesTwo = () => {
     <Group x={37} y={58} width={714} height={406} key="group1">
       {slides.length > 0 && (
         <>
-          <Image
-            image={slide}
-            fill="#E5E5E5"
-            width={slideDim.width}
-            y={slideDim.y}
-            x={slideDim.x}
-            height={slideDim.height}
-            shadowOpacity={0.3}
-            shadowOffset={{ x: 0, y: 1 }}
-            shadowBlur={2}
-          />
+          {!isGif && (
+            <Image
+              image={slide}
+              y={slideDim.y}
+              x={slideDim.x}
+              width={slideDim.width}
+              height={slideDim.height}
+              shadowOpacity={0.3}
+              shadowOffset={{ x: 0, y: 1 }}
+              shadowBlur={2}
+            />
+          )}
+          {isGif && (
+            <Gif
+              src={gifUrl}
+              maxWidth={610}
+              maxHeight={250}
+              availableWidth={640}
+              availableHeight={280}
+              x={37}
+              y={90}
+            />
+          )}
         </>
       )}
     </Group>,

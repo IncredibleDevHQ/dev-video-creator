@@ -12,6 +12,7 @@ import { ControlButton } from '../components/MissionControl'
 import { StudioProviderProps, studioStore } from '../stores'
 import config from '../../../config'
 import useEdit from '../hooks/use-edit'
+import Gif from '../components/Gif'
 
 const TriviaTen = () => {
   const [activeQuestionIndex, setActiveQuestionIndex] = useState<number>(0)
@@ -26,6 +27,9 @@ const TriviaTen = () => {
   const { fragment, state } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const userData = (useRecoilValue(userState) as User) || {}
+
+  const [isGif, setIsGif] = useState(false)
+  const [gifUrl, setGifUrl] = useState('')
 
   const { getImageDimensions } = useEdit()
 
@@ -55,6 +59,12 @@ const TriviaTen = () => {
   }, [])
 
   useEffect(() => {
+    if (qnaImage?.src.split('.').pop() === 'gif') {
+      setIsGif(true)
+      setGifUrl(qnaImage.src)
+    } else {
+      setIsGif(false)
+    }
     setImgDim(
       getImageDimensions(
         {
@@ -175,16 +185,29 @@ const TriviaTen = () => {
         />
       ) : (
         <>
-          <Image
-            image={qnaImage}
-            y={imgDim.y}
-            x={imgDim.x}
-            width={imgDim.width}
-            height={imgDim.height}
-            shadowOpacity={0.3}
-            shadowOffset={{ x: 0, y: 1 }}
-            shadowBlur={2}
-          />
+          {!isGif && (
+            <Image
+              image={qnaImage}
+              y={imgDim.y}
+              x={imgDim.x}
+              width={imgDim.width}
+              height={imgDim.height}
+              shadowOpacity={0.3}
+              shadowOffset={{ x: 0, y: 1 }}
+              shadowBlur={2}
+            />
+          )}
+          {isGif && (
+            <Gif
+              src={gifUrl}
+              maxWidth={610}
+              maxHeight={250}
+              availableWidth={640}
+              availableHeight={280}
+              x={37}
+              y={90}
+            />
+          )}
         </>
       )}
     </Group>,

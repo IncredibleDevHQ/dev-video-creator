@@ -12,6 +12,7 @@ import { ControlButton } from '../components/MissionControl'
 import { StudioProviderProps, studioStore } from '../stores'
 import config from '../../../config'
 import useEdit from '../hooks/use-edit'
+import Gif from '../components/Gif'
 
 const TriviaEight = () => {
   const [activeQuestionIndex, setActiveQuestionIndex] = useState<number>(0)
@@ -28,7 +29,8 @@ const TriviaEight = () => {
   const userData = (useRecoilValue(userState) as User) || {}
 
   const { getImageDimensions } = useEdit()
-
+  const [isGif, setIsGif] = useState(false)
+  const [gifUrl, setGifUrl] = useState('')
   const [qnaImage] = useImage(
     questions && questions[activeQuestionIndex]
       ? questions[activeQuestionIndex].image
@@ -61,6 +63,12 @@ const TriviaEight = () => {
   }, [])
 
   useEffect(() => {
+    if (qnaImage?.src.split('.').pop() === 'gif') {
+      setIsGif(true)
+      setGifUrl(qnaImage.src)
+    } else {
+      setIsGif(false)
+    }
     setImgDim(
       getImageDimensions(
         {
@@ -181,16 +189,29 @@ const TriviaEight = () => {
         />
       ) : (
         <>
-          <Image
-            image={qnaImage}
-            y={imgDim.y}
-            x={imgDim.x}
-            width={imgDim.width}
-            height={imgDim.height}
-            shadowOpacity={0.3}
-            shadowOffset={{ x: 0, y: 1 }}
-            shadowBlur={2}
-          />
+          {!isGif && (
+            <Image
+              image={qnaImage}
+              y={imgDim.y}
+              x={imgDim.x}
+              width={imgDim.width}
+              height={imgDim.height}
+              shadowOpacity={0.3}
+              shadowOffset={{ x: 0, y: 1 }}
+              shadowBlur={2}
+            />
+          )}
+          {isGif && (
+            <Gif
+              src={gifUrl}
+              maxWidth={610}
+              maxHeight={250}
+              availableWidth={640}
+              availableHeight={280}
+              x={37}
+              y={90}
+            />
+          )}
         </>
       )}
     </Group>,
