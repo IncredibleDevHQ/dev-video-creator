@@ -4,6 +4,7 @@ import { Group, Circle, Text, Rect, Image } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
 import { NextLineIcon, NextTokenIcon } from '../../../components'
+import FocusCodeIcon from '../../../components/FocusCodeIcon'
 import config from '../../../config'
 import { API } from '../../../constants'
 import {
@@ -13,7 +14,7 @@ import {
 import { Concourse } from '../components'
 import { CONFIG, StudioUserConfig } from '../components/Concourse'
 import { ControlButton } from '../components/MissionControl'
-import RenderTokens from '../components/RenderTokens'
+import RenderTokens, { RenderFocus } from '../components/RenderTokens'
 import useCode, { ComputedToken } from '../hooks/use-code'
 import { StudioProviderProps, studioStore } from '../stores'
 
@@ -43,6 +44,7 @@ const CodeJamFive = () => {
     prevIndex: -1,
     currentIndex: 0,
   })
+  const [focusCode, setFocusCode] = useState<boolean>(false)
 
   const [wtfjsLogo] = useImage(
     `${config.storage.baseUrl}WTFJS.svg`,
@@ -87,7 +89,7 @@ const CodeJamFive = () => {
     if (!data?.TokenisedCode) return
     initUseCode({
       tokens: data.TokenisedCode.data,
-      canvasWidth: 700,
+      canvasWidth: 585,
       canvasHeight: 360,
       gutter: 5,
       fontSize: codeConfig.fontSize,
@@ -99,6 +101,7 @@ const CodeJamFive = () => {
       prevIndex: payload?.prevIndex || 0,
       currentIndex: payload?.currentIndex || 1,
     })
+    setFocusCode(false)
   }, [payload])
 
   useEffect(() => {
@@ -115,7 +118,7 @@ const CodeJamFive = () => {
   }, [state])
 
   const controls =
-    isHost && state === 'recording'
+    state === 'recording'
       ? [
           <ControlButton
             key="nextToken"
@@ -123,10 +126,12 @@ const CodeJamFive = () => {
             className="my-2"
             appearance="primary"
             onClick={() => {
-              updatePayload?.({
-                currentIndex: position.currentIndex + 1,
-                prevIndex: position.currentIndex,
-              })
+              setFocusCode(false)
+              if (position.currentIndex < computedTokens.current.length)
+                updatePayload?.({
+                  currentIndex: position.currentIndex + 1,
+                  prevIndex: position.currentIndex,
+                })
             }}
           />,
           <ControlButton
@@ -135,6 +140,7 @@ const CodeJamFive = () => {
             icon={NextLineIcon}
             appearance="primary"
             onClick={() => {
+              setFocusCode(false)
               const current = computedTokens.current[position.currentIndex]
               let next = computedTokens.current.findIndex(
                 (t) => t.lineNumber > current.lineNumber
@@ -144,6 +150,15 @@ const CodeJamFive = () => {
                 prevIndex: position.currentIndex,
                 currentIndex: next,
               })
+            }}
+          />,
+          <ControlButton
+            className="my-2"
+            key="focus"
+            icon={FocusCodeIcon}
+            appearance="primary"
+            onClick={() => {
+              setFocusCode(true)
             }}
           />,
         ]
@@ -293,6 +308,21 @@ const CodeJamFive = () => {
           />
         )}
       </Group>
+    ),
+    focusCode && (
+      <RenderFocus
+        tokens={computedTokens.current}
+        lineNumber={computedTokens.current[position.prevIndex]?.lineNumber}
+        currentIndex={position.currentIndex}
+        groupCoordinates={{ x: 20, y: 30 }}
+        bgRectInfo={{
+          x: 0,
+          y: 0,
+          width: 704,
+          height: 396,
+          radius: 0,
+        }}
+      />
     ),
     <Image image={wtfjsLogo} x={60} y={CONFIG.height - 80} />,
   ]
