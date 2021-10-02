@@ -22,8 +22,11 @@ fragment SingleSeries on Series {
 
 fragment PublicSeries on Series {
   ...BaseSeries
-  Flick_Series(where: { flick: { status: { _eq: Completed } } }) {
+  Flick_Series {
     flickId
+    seriesFlickCount {
+      count
+    }
     flick {
       ...BaseFlick
     }
@@ -45,26 +48,12 @@ query GetSingleSeries($id: uuid!) {
 query GetSeriesById($id: uuid!) {
   Series(where: { id: { _eq: $id } }) {
     ...PublicSeries
-    Flick_Series_aggregate {
-      aggregate {
-        count
-      }
-    }
   }
 }
 
-query GetUserSeries($userId: String!, $limit: Int) {
-  Series(
-    where: { ownerSub: { _eq: $userId } }
-    limit: $limit
-    order_by: { createdAt: desc }
-  ) {
+query GetUserSeries($limit: Int) {
+  Series(limit: $limit, order_by: { createdAt: desc }) {
     ...PublicSeries
-    Flick_Series_aggregate {
-      aggregate {
-        count
-      }
-    }
   }
 }
 

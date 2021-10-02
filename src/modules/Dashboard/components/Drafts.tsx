@@ -110,6 +110,7 @@ const Drafts = () => {
     variables: { sub: sub as string },
   })
   const [view] = useState<'grid' | 'list'>('grid')
+
   if (loading) return <ScreenState title="Just a moment..." loading />
   return (
     <div>

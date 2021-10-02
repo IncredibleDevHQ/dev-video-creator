@@ -104,19 +104,7 @@ query SeriesFlicks($id: uuid!) {
       count
     }
     flick {
-      id
-      producedLink
-      joinLink
-      name
-      previewLink
-      description
-      deletedAt
-      participants {
-        user {
-          picture
-          email
-        }
-      }
+      ...BaseFlick
     }
   }
 }
