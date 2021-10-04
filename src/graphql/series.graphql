@@ -3,6 +3,9 @@ fragment BaseSeries on Series {
   name
   description
   picture
+  flickCount {
+    count
+  }
 }
 
 fragment Series on Series {
@@ -24,9 +27,6 @@ fragment PublicSeries on Series {
   ...BaseSeries
   Flick_Series {
     flickId
-    seriesFlickCount {
-      count
-    }
     flick {
       ...BaseFlick
     }
