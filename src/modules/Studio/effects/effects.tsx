@@ -64,7 +64,6 @@ import SlidesTen from './SlidesTen'
 import TriviaTen from './TriviaTen'
 import VideoJamTen from './VideoJamTen'
 import SlidesThree from './SlidesThree'
-
 import SlidesTwo from './SlidesTwo'
 
 const themeEnum = 'theme'
