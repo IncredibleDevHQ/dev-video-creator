@@ -175,7 +175,6 @@ const TriviaFour = () => {
             backgroundRectBorderColor: '#1F2937',
           },
         ]
-
       default:
         return [
           {
@@ -229,8 +228,8 @@ const TriviaFour = () => {
     <Rect
       x={27}
       y={58}
-      width={640}
-      height={390}
+      width={704}
+      height={396}
       fill="#FF5D01"
       cornerRadius={8}
       stroke="#1F2937"
@@ -239,8 +238,8 @@ const TriviaFour = () => {
     <Rect
       x={37}
       y={68}
-      width={640}
-      height={390}
+      width={704}
+      height={396}
       fill="#ffffff"
       cornerRadius={8}
       stroke="#1F2937"

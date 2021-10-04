@@ -32,15 +32,23 @@ const JsonSchema = ({
   const [question, setQuestion] = useState<Question>()
   const [questions, setQuestions] = useState<Question[]>([])
   const [loading, setLoading] = useState(false)
-  if (!schema.value || schema.value.length <= 0) {
-    setConfigured(false)
-  }
+  const [isEdit, setIsEdit] = useState(false)
+
   useEffect(() => {
-    if (!value) {
+    if (isEdit) {
       setConfigured(false)
-      return
+    } else if (!schema.value || schema.value.length <= 0) {
+      setConfigured(false)
+    } else {
+      setConfigured(true)
     }
-    setConfigured(true)
+  }, [schema])
+  useEffect(() => {
+    if (isEdit) {
+      setConfigured(false)
+    } else if (!value) {
+      setConfigured(false)
+    } else setConfigured(true)
 
     setQuestions(value || [])
   }, [value])
@@ -58,6 +66,7 @@ const JsonSchema = ({
   }
 
   const handleOnClick = () => {
+    setIsEdit(true)
     if (!question?.text) return
 
     setQuestions((questions) => [...questions, question])
@@ -83,9 +92,10 @@ const JsonSchema = ({
           <TextArea
             className="text-lg w-1/2"
             name={schema.key}
-            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+              setConfigured(false)
               setQuestion({ ...question, text: e.target.value })
-            }
+            }}
             value={question?.text}
             placeholder={schema.description}
             label="Add a Question"
@@ -96,6 +106,7 @@ const JsonSchema = ({
             key={`${schema.key}`}
             onChange={(e) =>
               // @ts-ignore
+
               e.target.files?.[0] && addQuestion(e.target.files[0])
             }
             typeof="image/*"

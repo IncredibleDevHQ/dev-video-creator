@@ -3,6 +3,8 @@ import React, { useEffect, useState } from 'react'
 import { Group, Circle, Text, Rect, Image } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
+import { NextLineIcon, NextTokenIcon } from '../../../components'
+import FocusCodeIcon from '../../../components/FocusCodeIcon'
 import config from '../../../config'
 import { API } from '../../../constants'
 import {
@@ -11,12 +13,13 @@ import {
 } from '../../../generated/graphql'
 import { Concourse } from '../components'
 import { CONFIG, StudioUserConfig } from '../components/Concourse'
+import { ControlButton } from '../components/MissionControl'
 import RenderTokens, {
   controls,
   getRenderedTokens,
   RenderFocus,
 } from '../components/RenderTokens'
-import useCode from '../hooks/use-code'
+import useCode, { ComputedToken } from '../hooks/use-code'
 import { StudioProviderProps, studioStore } from '../stores'
 
 export const codeConfig = {
@@ -30,7 +33,7 @@ interface Position {
   currentIndex: number
 }
 
-const CodeJamSix = () => {
+const CodeJamTwelve = () => {
   const { fragment, payload, updatePayload, state, isHost } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
@@ -47,16 +50,16 @@ const CodeJamSix = () => {
   })
   const [focusCode, setFocusCode] = useState<boolean>(false)
 
+  const [svelteLogo] = useImage(
+    `${config.storage.baseUrl}Svelte.svg`,
+    'anonymous'
+  )
   const [incredibleLogo] = useImage(
     `${config.storage.baseUrl}x-incredible-black.svg`,
     'anonymous'
   )
-  const [tensorflowLogo] = useImage(
-    `${config.storage.baseUrl}100DaysOfTF.svg`,
-    'anonymous'
-  )
-  const [tensorflowBg] = useImage(
-    `${config.storage.baseUrl}tensorflow_bg.svg`,
+  const [svelteBg] = useImage(
+    `${config.storage.baseUrl}svelte_bg.svg`,
     'anonymous'
   )
 
@@ -136,17 +139,14 @@ const CodeJamSix = () => {
             width: 240,
             height: 180,
             clipTheme: 'rect',
-            borderWidth: 8,
+
             studioUserClipConfig: {
               x: 40,
               y: 0,
               width: 160,
               height: 180,
-              radius: 8,
+              radius: 0,
             },
-            backgroundRectX: 765,
-            backgroundRectY: 50,
-            backgroundRectColor: '#FF6E00',
           },
           {
             x: 735,
@@ -154,17 +154,14 @@ const CodeJamSix = () => {
             width: 240,
             height: 180,
             clipTheme: 'rect',
-            borderWidth: 8,
+
             studioUserClipConfig: {
               x: 40,
               y: 0,
               width: 160,
               height: 180,
-              radius: 8,
+              radius: 0,
             },
-            backgroundRectX: 765,
-            backgroundRectY: 255,
-            backgroundRectColor: '#FF6E00',
           },
         ]
       case 3:
@@ -175,17 +172,14 @@ const CodeJamSix = () => {
             width: 160,
             height: 120,
             clipTheme: 'rect',
-            borderWidth: 8,
+
             studioUserClipConfig: {
               x: 0,
               y: 0,
               width: 160,
               height: 120,
-              radius: 8,
+              radius: 0,
             },
-            backgroundRectX: 765,
-            backgroundRectY: 48.5,
-            backgroundRectColor: '#FF6E00',
           },
           {
             x: 775,
@@ -193,17 +187,14 @@ const CodeJamSix = () => {
             width: 160,
             height: 120,
             clipTheme: 'rect',
-            borderWidth: 8,
+
             studioUserClipConfig: {
               x: 0,
               y: 0,
               width: 160,
               height: 120,
-              radius: 8,
+              radius: 0,
             },
-            backgroundRectX: 765,
-            backgroundRectY: 188.5,
-            backgroundRectColor: '#FF6E00',
           },
           {
             x: 775,
@@ -211,17 +202,14 @@ const CodeJamSix = () => {
             width: 160,
             height: 120,
             clipTheme: 'rect',
-            borderWidth: 8,
+
             studioUserClipConfig: {
               x: 0,
               y: 0,
               width: 160,
               height: 120,
-              radius: 8,
+              radius: 0,
             },
-            backgroundRectX: 765,
-            backgroundRectY: 328.5,
-            backgroundRectColor: '#FF6E00',
           },
         ]
       default:
@@ -232,17 +220,14 @@ const CodeJamSix = () => {
             width: 320,
             height: 240,
             clipTheme: 'rect',
-            borderWidth: 8,
+
             studioUserClipConfig: {
               x: 80,
               y: 0,
               width: 160,
               height: 240,
-              radius: 8,
+              radius: 0,
             },
-            backgroundRectX: 765,
-            backgroundRectY: 110.5,
-            backgroundRectColor: '#FF6E00',
           },
         ]
     }
@@ -250,34 +235,27 @@ const CodeJamSix = () => {
 
   const layerChildren = [
     <Rect
-      strokeWidth={1}
       x={0}
       y={0}
-      fill="#F5F6F7"
       width={CONFIG.width}
       height={CONFIG.height}
-      stroke="#111111"
+      fill="#ffffff"
+      stroke="#000000"
+      strokeWidth={1}
     />,
+
     <Image
-      image={tensorflowBg}
-      x={1}
-      y={1}
-      fill="#F5F6F7"
-      width={CONFIG.width - 2}
-      height={CONFIG.height - 2}
+      image={svelteBg}
+      width={CONFIG.width - 1}
+      height={CONFIG.height - 1}
     />,
     <Rect
       x={27}
       y={48}
       width={704}
       height={396}
-      fillLinearGradientStartPoint={{
-        x: -CONFIG.width / 2,
-        y: -CONFIG.height / 2,
-      }}
-      fillLinearGradientEndPoint={{ x: CONFIG.width / 2, y: CONFIG.height / 2 }}
-      fillLinearGradientColorStops={[0.5, '#FF6E00 ', 1, '#FF9000']}
-      cornerRadius={8}
+      stroke="#FF3E00"
+      strokeWidth={1}
     />,
     <Rect
       x={37}
@@ -285,7 +263,7 @@ const CodeJamSix = () => {
       width={704}
       height={396}
       fill="#202026"
-      cornerRadius={8}
+      strokeWidth={4}
     />,
     <Group x={52} y={73} key="circleGroup">
       <Circle key="redCircle" x={0} y={0} fill="#FF605C" radius={5} />
@@ -320,8 +298,8 @@ const CodeJamSix = () => {
         }}
       />
     ),
-    <Image image={incredibleLogo} x={25} y={CONFIG.height - 70} />,
-    <Image image={tensorflowLogo} x={820} y={CONFIG.height - 60} />,
+    <Image image={incredibleLogo} x={30} y={CONFIG.height - 70} />,
+    <Image image={svelteLogo} x={810} y={CONFIG.height - 60} />,
   ]
 
   return (
@@ -334,4 +312,4 @@ const CodeJamSix = () => {
   )
 }
 
-export default CodeJamSix
+export default CodeJamTwelve

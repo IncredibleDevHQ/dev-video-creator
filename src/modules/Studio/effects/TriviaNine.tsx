@@ -12,7 +12,6 @@ import { ControlButton } from '../components/MissionControl'
 import { StudioProviderProps, studioStore } from '../stores'
 import config from '../../../config'
 import useEdit from '../hooks/use-edit'
-import Gif from '../components/Gif'
 
 const TriviaEight = () => {
   const [activeQuestionIndex, setActiveQuestionIndex] = useState<number>(0)
@@ -24,12 +23,12 @@ const TriviaEight = () => {
     title?: string
   }>({ enable: false })
 
-  const { fragment, state, updatePayload, payload } =
+  const { fragment, state, stream, picture, constraints } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const userData = (useRecoilValue(userState) as User) || {}
 
   const { getImageDimensions } = useEdit()
-  const [isGif, setIsGif] = useState(false)
-  const [gifUrl, setGifUrl] = useState('')
+
   const [qnaImage] = useImage(
     questions && questions[activeQuestionIndex]
       ? questions[activeQuestionIndex].image
@@ -37,16 +36,8 @@ const TriviaEight = () => {
     'anonymous'
   )
 
-  const [elasticLogo] = useImage(
-    `${config.storage.baseUrl}elastic-logo.png`,
-    'anonymous'
-  )
-  const [whiteCircle] = useImage(
-    `${config.storage.baseUrl}circle.png`,
-    'anonymous'
-  )
-  const [pinkCircle] = useImage(
-    `${config.storage.baseUrl}pink2.png`,
+  const [hasuraLogo] = useImage(
+    `${config.storage.baseUrl}hasura.png`,
     'anonymous'
   )
 
@@ -62,12 +53,6 @@ const TriviaEight = () => {
   }, [])
 
   useEffect(() => {
-    if (qnaImage?.src.split('.').pop() === 'gif') {
-      setIsGif(true)
-      setGifUrl(qnaImage.src)
-    } else {
-      setIsGif(false)
-    }
     setImgDim(
       getImageDimensions(
         {
@@ -76,7 +61,7 @@ const TriviaEight = () => {
         },
         640,
         280,
-        610,
+        640,
         250,
         7,
         90
@@ -101,17 +86,10 @@ const TriviaEight = () => {
   }, [fragment?.configuration.properties])
 
   useEffect(() => {
-    if (state === 'ready') {
-      updatePayload?.({ activeQuestion: 0 })
-    }
     if (state === 'recording') {
       setActiveQuestionIndex(0)
     }
   }, [state])
-
-  useEffect(() => {
-    setActiveQuestionIndex(payload?.activeQuestion)
-  }, [payload])
 
   const controls = [
     <ControlButton
@@ -120,10 +98,7 @@ const TriviaEight = () => {
       className="my-2"
       appearance="primary"
       disabled={activeQuestionIndex === questions.length - 1}
-      onClick={() => {
-        setActiveQuestionIndex(activeQuestionIndex + 1)
-        updatePayload?.({ activeQuestion: activeQuestionIndex + 1 })
-      }}
+      onClick={() => setActiveQuestionIndex(activeQuestionIndex + 1)}
     />,
   ]
 
@@ -134,8 +109,8 @@ const TriviaEight = () => {
       width: 520,
       height: 390,
       clipTheme: 'rect',
+      borderColor: '#1EB4D4',
       borderWidth: 8,
-      borderColor: '#D1D5DB',
       studioUserClipConfig: {
         x: 150,
         y: 0,
@@ -152,23 +127,44 @@ const TriviaEight = () => {
       y={0}
       width={CONFIG.width}
       height={CONFIG.height}
-      fill="#ffffff"
-      // fillLinearGradientColorStops={[0, '#60D0ED', 1, '#536FA8']}
-      // fillLinearGradientStartPoint={{ x: 0, y: 0 }}
-      // fillLinearGradientEndPoint={{ x: CONFIG.width, y: CONFIG.height }}
+      fill="#D6EBFF"
     />,
-    <Circle x={82} y={10} radius={55} fill="#7DE2D1" />,
-    <Circle x={70} y={CONFIG.height - 70} radius={100} fill="#7DE2D1" />,
-    <Circle x={640} y={20} radius={10} fill="#0077CC" />,
-    <Circle x={270} y={CONFIG.height - 70} radius={10} fill="#0077CC" />,
-    <Image image={pinkCircle} x={790} y={400} />,
-    <Image image={whiteCircle} x={615} y={245} />,
-
+    <Rect
+      key="smallRect1"
+      x={490}
+      y={20}
+      width={12}
+      height={12}
+      fill="#F47E7E"
+      rotation={-45}
+      opacity={1}
+    />,
+    <Rect
+      key="smallRect2"
+      x={820}
+      y={505}
+      width={24}
+      height={24}
+      fill="#5C94C8"
+      rotation={-45}
+      opacity={1}
+    />,
+    <Circle x={240} y={460} radius={20} stroke="#F47E7E" strokeWidth={8} />,
+    <Rect
+      x={37}
+      y={58}
+      width={640}
+      height={390}
+      fill="#EDEEF0"
+      stroke="#1EB4D4"
+      strokeWidth={4}
+      cornerRadius={8}
+    />,
     <Group x={37} y={58} key="group1">
       {questions?.length > 0 && questions[activeQuestionIndex]?.image ? (
         <Text
-          x={10}
           y={20}
+          x={-37}
           align="center"
           fontSize={32}
           fill="#111111"
@@ -182,7 +178,7 @@ const TriviaEight = () => {
       ) : (
         <></>
       )}
-      {questions.length > 0 && !questions[activeQuestionIndex]?.image ? (
+      {questions.length > 0 && !questions[activeQuestionIndex].image ? (
         <Text
           x={10}
           verticalAlign="middle"
@@ -194,38 +190,24 @@ const TriviaEight = () => {
           fontStyle="bold"
           fontFamily="Poppins"
           align="center"
-          lineHeight={1.3}
           textTransform="capitalize"
         />
       ) : (
         <>
-          {!isGif && (
-            <Image
-              image={qnaImage}
-              y={imgDim.y}
-              x={imgDim.x}
-              width={imgDim.width}
-              height={imgDim.height}
-              shadowOpacity={0.3}
-              shadowOffset={{ x: 0, y: 1 }}
-              shadowBlur={2}
-            />
-          )}
-          {isGif && (
-            <Gif
-              src={gifUrl}
-              maxWidth={610}
-              maxHeight={250}
-              availableWidth={640}
-              availableHeight={280}
-              x={37}
-              y={90}
-            />
-          )}
+          <Image
+            image={qnaImage}
+            y={imgDim.y}
+            x={imgDim.x}
+            width={imgDim.width}
+            height={imgDim.height}
+            shadowOpacity={0.3}
+            shadowOffset={{ x: 0, y: 1 }}
+            shadowBlur={2}
+          />
         </>
       )}
     </Group>,
-    <Image image={elasticLogo} x={30} y={CONFIG.height - 60} />,
+    <Image image={hasuraLogo} x={30} y={CONFIG.height - 60} />,
   ]
 
   return (

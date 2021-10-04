@@ -52,11 +52,33 @@ import TriviaSeven from './TriviaSeven'
 import VideoJamNine from './VideoJamNine'
 import SplashSeventeen from './SplashSeventeen'
 import SplashEighteen from './SplashEighteen'
+import SplashTwenty from './SplashTwenty'
+import CodeJamEleven from './CodeJamEleven'
+import PointsEleven from './PointsEleven'
+import SlidesEleven from './SlidesEleven'
+import TriviaEleven from './TriviaEleven'
+import VideoJamEleven from './VideoJamEleven'
 import SlidesTwo from './SlidesTwo'
 import CodeJamEight from './CodeJamEight'
 import PointsEight from './PointsEight'
 import TriviaEight from './TriviaEight'
+import SplashNinteen from './SplashNinteen'
+import CodeJamTen from './CodeJamTen'
+import PointsTen from './PointsTen'
+import SlidesTen from './SlidesTen'
+import TriviaTen from './TriviaTen'
+import VideoJamTen from './VideoJamTen'
 import SlidesThree from './SlidesThree'
+import CodeJamNine from './CodeJamNine'
+import PointsNine from './PointsNine'
+import TriviaNine from './TriviaNine'
+import SlidesFour from './SlidesFour'
+import SplashTwentyOne from './SplashTwentyOne'
+import CodeJamTwelve from './CodeJamTwelve'
+import PointsTwelve from './PointsTwelve'
+import SlidesTwelve from './SlidesTwelve'
+import TriviaTwelve from './TriviaTwelve'
+import videoJamTwelve from './VideoJamTwelve'
 
 const themeEnum = 'theme'
 export interface Effect {
@@ -97,25 +119,31 @@ const getSplash = (theme: any) => {
   if (theme.value === '6') return SplashEighteen
   if (theme.value === '7') return SplashNine
   if (theme.value === '8') return SplashSeven
-  if (theme.value === '9') return SplashEight
-  if (theme.value === '10') return SplashSix
-  if (theme.value === '11') return SplashEleven
+  if (theme.value === '9') return SplashNinteen
+  if (theme.value === '10') return SplashTwenty
+  if (theme.value === '11') return SplashTwentyOne
   if (theme.value === '12') return SplashTwelve
   if (theme.value === '13') return SplashThirteen
   if (theme.value === '14') return SplashFourteen
   if (theme.value === '15') return SplashFour
+  if (theme.value === '16') return SplashEight
+  if (theme.value === '17') return SplashSix
+  if (theme.value === '18') return SplashEleven
   return CustomSplash
 }
 
 const getVideoTheme = (theme: any) => {
   if (theme.value === '1') return VideoJamFour
   if (theme.value === '2') return VideoJamFive
-  if (theme.value === '3') return VideoJamSix // Astro
-  if (theme.value === '4') return VideoJamSeven // WTF js
-  if (theme.value === '5') return VideoJamEight // Hasura
-  if (theme.value === '6') return VideoJamNine // Next.js
-  if (theme.value === '7') return VideoJamTwo // Elastic
-  if (theme.value === '8') return VideoJamThree // hasura
+  if (theme.value === '3') return VideoJamSix
+  if (theme.value === '4') return VideoJamSeven
+  if (theme.value === '5') return VideoJamEight
+  if (theme.value === '6') return VideoJamNine
+  if (theme.value === '7') return VideoJamTwo
+  if (theme.value === '8') return VideoJamThree
+  if (theme.value === '9') return VideoJamTen
+  if (theme.value === '10') return VideoJamEleven
+  if (theme.value === '11') return videoJamTwelve
   return VideoJam
 }
 
@@ -127,6 +155,10 @@ const getCodeJamTheme = (theme: any) => {
   if (theme.value === '5') return CodeJamSix
   if (theme.value === '6') return CodeJamSeven
   if (theme.value === '7') return CodeJamEight
+  if (theme.value === '8') return CodeJamNine
+  if (theme.value === '9') return CodeJamTen
+  if (theme.value === '10') return CodeJamEleven
+  if (theme.value === '11') return CodeJamTwelve
   return CodeJam
 }
 
@@ -138,6 +170,10 @@ const getTriviaTheme = (theme: any) => {
   if (theme.value === '5') return TriviaSix
   if (theme.value === '6') return TriviaSeven
   if (theme.value === '7') return TriviaEight
+  if (theme.value === '8') return TriviaNine
+  if (theme.value === '9') return TriviaTen
+  if (theme.value === '10') return TriviaEleven
+  if (theme.value === '11') return TriviaTwelve
   return Trivia
 }
 
@@ -149,12 +185,20 @@ const getPointsTheme = (theme: any) => {
   if (theme.value === '5') return PointsSix
   if (theme.value === '6') return PointsSeven
   if (theme.value === '7') return PointsEight
+  if (theme.value === '8') return PointsNine
+  if (theme.value === '9') return PointsTen
+  if (theme.value === '10') return PointsEleven
+  if (theme.value === '11') return PointsTwelve
   return Points
 }
 
 const getSlideTheme = (theme: any) => {
   if (theme.value === '7') return SlidesTwo
+  if (theme.value === '8') return SlidesFour
+  if (theme.value === '9') return SlidesTen
   if (theme.value === '5') return SlidesThree
+  if (theme.value === '10') return SlidesEleven
+  if (theme.value === '11') return SlidesTwelve
   return Slides
 }
 

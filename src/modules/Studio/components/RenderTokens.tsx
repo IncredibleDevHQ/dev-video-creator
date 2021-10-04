@@ -1,14 +1,23 @@
 import Konva from 'konva'
 import React, { useEffect, useState } from 'react'
 import { Group, Text, Rect } from 'react-konva'
+import { useRecoilValue } from 'recoil'
+import { NextLineIcon, NextTokenIcon } from '../../../components'
+import FocusCodeIcon from '../../../components/FocusCodeIcon'
 import { codeConfig } from '../effects/CodeJam'
 import TypingEffect from '../effects/TypingEffect'
 import { ComputedToken } from '../hooks/use-code'
-import { CONFIG } from './Concourse'
+import { StudioProviderProps, studioStore } from '../stores'
+import { ControlButton } from './MissionControl'
 
 export interface TokenRenderState {
   tokens: ComputedToken[]
   index: number
+}
+
+export interface Position {
+  prevIndex: number
+  currentIndex: number
 }
 
 const RenderTokens = ({
@@ -115,4 +124,86 @@ export const RenderFocus = ({
       </Group>
     </>
   )
+}
+
+export const controls = (
+  setFocusCode: React.Dispatch<React.SetStateAction<boolean>>,
+  position: Position,
+  computedTokens: ComputedToken[]
+) => {
+  const { updatePayload, state } =
+    (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  return state === 'recording'
+    ? [
+        <ControlButton
+          key="nextToken"
+          icon={NextTokenIcon}
+          className="my-2"
+          appearance="primary"
+          onClick={() => {
+            setFocusCode(false)
+            if (position.currentIndex < computedTokens.length)
+              updatePayload?.({
+                currentIndex: position.currentIndex + 1,
+                prevIndex: position.currentIndex,
+              })
+          }}
+        />,
+        <ControlButton
+          className="my-2"
+          key="nextLine"
+          icon={NextLineIcon}
+          appearance="primary"
+          onClick={() => {
+            setFocusCode(false)
+            const current = computedTokens[position.currentIndex]
+            let next = computedTokens.findIndex(
+              (t) => t.lineNumber > current.lineNumber
+            )
+            if (next === -1) next = computedTokens.length
+            updatePayload?.({
+              prevIndex: position.currentIndex,
+              currentIndex: next,
+            })
+          }}
+        />,
+        <ControlButton
+          className="my-2"
+          key="focus"
+          icon={FocusCodeIcon}
+          appearance="primary"
+          onClick={() => {
+            setFocusCode(true)
+          }}
+        />,
+      ]
+    : [<></>]
+}
+
+export const getRenderedTokens = (
+  tokens: ComputedToken[],
+  position: Position
+) => {
+  const startFromIndex = Math.max(
+    ...tokens
+      .filter((_, i) => i <= position.prevIndex)
+      .map((token) => token.startFromIndex)
+  )
+
+  return tokens
+    .filter((_, i) => i < position.prevIndex && i >= startFromIndex)
+    .map((token, index) => {
+      return (
+        <Text
+          // eslint-disable-next-line
+          key={index}
+          fontSize={codeConfig.fontSize}
+          fill={token.color}
+          text={token.content}
+          x={token.x}
+          y={token.y}
+          align="left"
+        />
+      )
+    })
 }

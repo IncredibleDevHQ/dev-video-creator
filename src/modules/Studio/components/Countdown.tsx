@@ -13,7 +13,6 @@ const Countdown = () => {
     console.log('timer', timer)
     if (payload?.status === Fragment_Status_Enum_Enum.CountDown) {
       if (timer === 0) {
-        startRecording()
         updatePayload?.({
           status: Fragment_Status_Enum_Enum.Live,
         })
@@ -24,6 +23,7 @@ const Countdown = () => {
       }, 1000)
     }
     if (payload?.status === Fragment_Status_Enum_Enum.NotStarted) setTimer(3)
+    if (payload?.status === Fragment_Status_Enum_Enum.Live) startRecording()
   }, [payload?.status, timer])
 
   return timer > 0 &&
