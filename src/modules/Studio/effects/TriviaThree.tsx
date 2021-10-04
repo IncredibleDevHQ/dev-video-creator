@@ -119,7 +119,7 @@ const TriviaThree = () => {
       disabled={activeQuestionIndex === questions.length - 1}
       onClick={() => {
         setActiveQuestionIndex(activeQuestionIndex + 1)
-        updatePayload?.(activeQuestionIndex + 1)
+        updatePayload?.({ activeQuestion: activeQuestionIndex + 1 })
       }}
     />,
   ]
@@ -238,7 +238,7 @@ const TriviaThree = () => {
       ) : (
         <></>
       )}
-      {questions.length > 0 && !questions[activeQuestionIndex].image ? (
+      {questions?.length > 0 && !questions[activeQuestionIndex]?.image ? (
         <Text
           verticalAlign="middle"
           fontSize={32}
