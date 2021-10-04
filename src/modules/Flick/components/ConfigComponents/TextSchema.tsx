@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react'
 import { TextField } from '../../../../components'
+import { Fragment_Type_Enum_Enum } from '../../../../generated/graphql'
 import { GetSchemaElementProps } from '../Effects'
 
 const TextSchema = ({
@@ -8,9 +9,12 @@ const TextSchema = ({
   value,
   setVideoInventoryModal,
   setConfigured,
+  type,
 }: GetSchemaElementProps) => {
   useEffect(() => {
-    if (!schema.value || schema.value.length <= 0) {
+    if (type === Fragment_Type_Enum_Enum.Splash && schema.key !== 'theme') {
+      setConfigured(true)
+    } else if (!schema.value || schema.value?.length <= 0) {
       setConfigured(false)
     } else {
       setConfigured(true)
