@@ -75,13 +75,13 @@ const JsonSchema = ({
 
   return (
     <div className="flex flex-col gap-1 m-4" key={schema.key}>
-      <div className="flex gap-2 items-end">
+      <div className="">
         <div
           className="flex flex-col md:flex-row items-center"
           key={schema.key}
         >
           <TextArea
-            className="text-lg"
+            className="text-lg w-1/2"
             name={schema.key}
             onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
               setQuestion({ ...question, text: e.target.value })
@@ -102,22 +102,21 @@ const JsonSchema = ({
           />
           {question?.image && (
             <img
-              className="h-32 m-4 object-contain"
+              className="h-40 w-40 m-4 object-contain"
               alt={question?.text}
               src={question?.image}
             />
           )}
-
-          <Button
-            onClick={handleOnClick}
-            appearance="secondary"
-            type="button"
-            className="w-full md:w-28"
-            loading={loading}
-          >
-            Add
-          </Button>
         </div>
+        <Button
+          onClick={handleOnClick}
+          appearance="secondary"
+          type="button"
+          className="flex justify-start"
+          loading={loading}
+        >
+          Add
+        </Button>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2">
         {questions.map((ques, index) => (
@@ -134,7 +133,7 @@ const JsonSchema = ({
             )}
             <div className="flex flex-col">
               <span className="font-bold">Question {index + 1}:</span>
-              <span className="capitalize text-justify">{ques.text}</span>
+              <span className="text-justify">{ques.text}</span>
             </div>
             {ques.text && (
               <Button

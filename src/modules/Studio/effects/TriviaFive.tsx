@@ -4,13 +4,13 @@ import FontFaceObserver from 'fontfaceobserver'
 import { useRecoilValue } from 'recoil'
 import { useImage } from 'react-konva-utils'
 import { NextTokenIcon } from '../../../components'
-import { User, userState } from '../../../stores/user.store'
 import { Concourse } from '../components'
 import { CONFIG, StudioUserConfig } from '../components/Concourse'
 import { ControlButton } from '../components/MissionControl'
 import { StudioProviderProps, studioStore } from '../stores'
 import config from '../../../config'
 import useEdit from '../hooks/use-edit'
+import Gif from '../components/Gif'
 
 const TriviaFive = () => {
   const [activeQuestionIndex, setActiveQuestionIndex] = useState<number>(0)
@@ -22,9 +22,8 @@ const TriviaFive = () => {
     title?: string
   }>({ enable: false })
 
-  const { fragment, state, stream, picture, constraints } =
+  const { fragment, state } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
-  const userData = (useRecoilValue(userState) as User) || {}
 
   const { getImageDimensions } = useEdit()
 
@@ -39,6 +38,8 @@ const TriviaFive = () => {
     `${config.storage.baseUrl}WTFJS.svg`,
     'anonymous'
   )
+  const [isGif, setIsGif] = useState(false)
+  const [gifUrl, setGifUrl] = useState('')
 
   const [imgDim, setImgDim] = useState<{
     width: number
@@ -52,6 +53,12 @@ const TriviaFive = () => {
   }, [])
 
   useEffect(() => {
+    if (qnaImage?.src.split('.').pop() === 'gif') {
+      setIsGif(true)
+      setGifUrl(qnaImage.src)
+    } else {
+      setIsGif(false)
+    }
     setImgDim(
       getImageDimensions(
         {
@@ -200,20 +207,34 @@ const TriviaFive = () => {
           fontStyle="bold"
           fontFamily="Poppins"
           align="center"
+          lineHeight={1.3}
           textTransform="capitalize"
         />
       ) : (
         <>
-          <Image
-            image={qnaImage}
-            y={imgDim.y}
-            x={imgDim.x}
-            width={imgDim.width}
-            height={imgDim.height}
-            shadowOpacity={0.3}
-            shadowOffset={{ x: 0, y: 1 }}
-            shadowBlur={2}
-          />
+          {!isGif && (
+            <Image
+              image={qnaImage}
+              y={imgDim.y}
+              x={imgDim.x}
+              width={imgDim.width}
+              height={imgDim.height}
+              shadowOpacity={0.3}
+              shadowOffset={{ x: 0, y: 1 }}
+              shadowBlur={2}
+            />
+          )}
+          {isGif && (
+            <Gif
+              src={gifUrl}
+              maxWidth={684}
+              maxHeight={250}
+              availableWidth={704}
+              availableHeight={280}
+              x={0}
+              y={75}
+            />
+          )}
         </>
       )}
     </Group>,

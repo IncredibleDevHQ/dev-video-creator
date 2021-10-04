@@ -29,7 +29,7 @@ interface Position {
   currentIndex: number
 }
 
-const CodeJamTwo = () => {
+const CodeJamEight = () => {
   const { fragment, payload, updatePayload, state, isHost } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
@@ -46,16 +46,16 @@ const CodeJamTwo = () => {
   })
   const [focusCode, setFocusCode] = useState<boolean>(false)
 
-  const [incredibleLogo] = useImage(
-    `${config.storage.baseUrl}x-incredible.svg`,
+  const [elasticLogo] = useImage(
+    `${config.storage.baseUrl}elastic-logo.png`,
     'anonymous'
   )
-  const [circleGroup] = useImage(
-    `${config.storage.baseUrl}black-circles.svg`,
+  const [whiteCircle] = useImage(
+    `${config.storage.baseUrl}circle.png`,
     'anonymous'
   )
-  const [graphqlLogo] = useImage(
-    `${config.storage.baseUrl}graphql3.svg`,
+  const [pinkCircle] = useImage(
+    `${config.storage.baseUrl}pink2.png`,
     'anonymous'
   )
 
@@ -182,6 +182,7 @@ const CodeJamTwo = () => {
             width: 240,
             height: 180,
             clipTheme: 'rect',
+            borderColor: '#D1D5DB',
             borderWidth: 8,
             studioUserClipConfig: {
               x: 40,
@@ -190,9 +191,6 @@ const CodeJamTwo = () => {
               height: 180,
               radius: 8,
             },
-            backgroundRectX: 765,
-            backgroundRectY: 50,
-            backgroundRectColor: '#C084FC',
           },
           {
             x: 735,
@@ -200,6 +198,7 @@ const CodeJamTwo = () => {
             width: 240,
             height: 180,
             clipTheme: 'rect',
+            borderColor: '#D1D5DB',
             borderWidth: 8,
             studioUserClipConfig: {
               x: 40,
@@ -208,9 +207,6 @@ const CodeJamTwo = () => {
               height: 180,
               radius: 8,
             },
-            backgroundRectX: 765,
-            backgroundRectY: 255,
-            backgroundRectColor: '#4FD1C5',
           },
         ]
       case 3:
@@ -221,6 +217,7 @@ const CodeJamTwo = () => {
             width: 160,
             height: 120,
             clipTheme: 'rect',
+            borderColor: '#D1D5DB',
             borderWidth: 8,
             studioUserClipConfig: {
               x: 0,
@@ -229,9 +226,6 @@ const CodeJamTwo = () => {
               height: 120,
               radius: 8,
             },
-            backgroundRectX: 765,
-            backgroundRectY: 48.5,
-            backgroundRectColor: '#C084FC',
           },
           {
             x: 775,
@@ -239,6 +233,7 @@ const CodeJamTwo = () => {
             width: 160,
             height: 120,
             clipTheme: 'rect',
+            borderColor: '#D1D5DB',
             borderWidth: 8,
             studioUserClipConfig: {
               x: 0,
@@ -247,9 +242,6 @@ const CodeJamTwo = () => {
               height: 120,
               radius: 8,
             },
-            backgroundRectX: 765,
-            backgroundRectY: 188.5,
-            backgroundRectColor: '#4FD1C5',
           },
           {
             x: 775,
@@ -257,6 +249,7 @@ const CodeJamTwo = () => {
             width: 160,
             height: 120,
             clipTheme: 'rect',
+            borderColor: '#D1D5DB',
             borderWidth: 8,
             studioUserClipConfig: {
               x: 0,
@@ -265,9 +258,6 @@ const CodeJamTwo = () => {
               height: 120,
               radius: 8,
             },
-            backgroundRectX: 765,
-            backgroundRectY: 328.5,
-            backgroundRectColor: '#FCA5A5',
           },
         ]
       default:
@@ -286,9 +276,7 @@ const CodeJamTwo = () => {
               height: 240,
               radius: 8,
             },
-            backgroundRectX: 765,
-            backgroundRectY: 110.5,
-            backgroundRectColor: '#C084FC',
+            borderColor: '#D1D5DB',
           },
         ]
     }
@@ -300,23 +288,26 @@ const CodeJamTwo = () => {
       y={0}
       width={CONFIG.width}
       height={CONFIG.height}
-      fill="#1F2937"
+      fill="#ffffff"
+      // fillLinearGradientColorStops={[0, '#60D0ED', 1, '#536FA8']}
+      // fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+      // fillLinearGradientEndPoint={{ x: CONFIG.width, y: CONFIG.height }}
     />,
-    <Image image={circleGroup} x={400} y={450} />,
-    <Rect
-      x={27}
-      y={48}
-      width={704}
-      height={396}
-      fill="#60A5FA"
-      cornerRadius={8}
-    />,
+    <Circle x={82} y={10} radius={55} fill="#7DE2D1" />,
+    <Circle x={70} y={CONFIG.height - 70} radius={100} fill="#7DE2D1" />,
+    <Circle x={640} y={20} radius={10} fill="#0077CC" />,
+    <Circle x={270} y={CONFIG.height - 70} radius={10} fill="#0077CC" />,
+    <Image image={pinkCircle} x={790} y={400} />,
+    <Image image={whiteCircle} x={615} y={245} />,
+
     <Rect
       x={37}
       y={58}
       width={704}
       height={396}
       fill="#202026"
+      stroke="#D1D5DB"
+      strokeWidth={4}
       cornerRadius={8}
     />,
     <Group x={52} y={73} key="circleGroup">
@@ -352,8 +343,7 @@ const CodeJamTwo = () => {
         }}
       />
     ),
-    <Image image={incredibleLogo} x={30} y={CONFIG.height - 60} />,
-    <Image image={graphqlLogo} x={840} y={CONFIG.height - 58} />,
+    <Image image={elasticLogo} x={30} y={CONFIG.height - 60} />,
   ]
 
   return (
@@ -391,4 +381,4 @@ const getRenderedTokens = (tokens: ComputedToken[], position: Position) => {
     })
 }
 
-export default CodeJamTwo
+export default CodeJamEight

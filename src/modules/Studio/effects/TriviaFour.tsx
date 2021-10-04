@@ -11,6 +11,7 @@ import { ControlButton } from '../components/MissionControl'
 import { StudioProviderProps, studioStore } from '../stores'
 import config from '../../../config'
 import useEdit from '../hooks/use-edit'
+import Gif from '../components/Gif'
 
 const TriviaFour = () => {
   const [activeQuestionIndex, setActiveQuestionIndex] = useState<number>(0)
@@ -22,9 +23,8 @@ const TriviaFour = () => {
     title?: string
   }>({ enable: false })
 
-  const { fragment, state, stream, picture, constraints } =
+  const { fragment, state } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
-  const userData = (useRecoilValue(userState) as User) || {}
 
   const { getImageDimensions } = useEdit()
 
@@ -48,6 +48,9 @@ const TriviaFour = () => {
     'anonymous'
   )
 
+  const [isGif, setIsGif] = useState(false)
+  const [gifUrl, setGifUrl] = useState('')
+
   const [imgDim, setImgDim] = useState<{
     width: number
     height: number
@@ -60,6 +63,12 @@ const TriviaFour = () => {
   }, [])
 
   useEffect(() => {
+    if (qnaImage?.src.split('.').pop() === 'gif') {
+      setIsGif(true)
+      setGifUrl(qnaImage.src)
+    } else {
+      setIsGif(false)
+    }
     setImgDim(
       getImageDimensions(
         {
@@ -257,20 +266,34 @@ const TriviaFour = () => {
           fontStyle="bold"
           fontFamily="Poppins"
           align="center"
+          lineHeight={1.3}
           textTransform="capitalize"
         />
       ) : (
         <>
-          <Image
-            image={qnaImage}
-            y={imgDim.y}
-            x={imgDim.x}
-            width={imgDim.width}
-            height={imgDim.height}
-            shadowOpacity={0.3}
-            shadowOffset={{ x: 0, y: 1 }}
-            shadowBlur={2}
-          />
+          {!isGif && (
+            <Image
+              image={qnaImage}
+              y={imgDim.y}
+              x={imgDim.x}
+              width={imgDim.width}
+              height={imgDim.height}
+              shadowOpacity={0.3}
+              shadowOffset={{ x: 0, y: 1 }}
+              shadowBlur={2}
+            />
+          )}
+          {isGif && (
+            <Gif
+              src={gifUrl}
+              maxWidth={610}
+              maxHeight={250}
+              availableWidth={640}
+              availableHeight={280}
+              x={37}
+              y={90}
+            />
+          )}
         </>
       )}
     </Group>,

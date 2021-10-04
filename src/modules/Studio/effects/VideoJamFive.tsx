@@ -116,6 +116,7 @@ const VideoJamFour = () => {
     performClip: true,
     backgroundRectX: 27,
     backgroundRectY: 48,
+    videoFill: '#FAEACE',
     backgroundRectColor: '#E0A764',
   }
 
@@ -248,7 +249,7 @@ const VideoJamFour = () => {
           y={0}
           width={CONFIG.width}
           height={CONFIG.height}
-          fill="#FAEACE"
+          fill="#FFFFFF"
         />,
         <Image
           image={openSaucedBg}
