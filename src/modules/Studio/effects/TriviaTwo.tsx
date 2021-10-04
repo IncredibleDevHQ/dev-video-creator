@@ -22,7 +22,7 @@ const TriviaTwo = () => {
     title?: string
   }>({ enable: false })
 
-  const { fragment, state, updatePayload } =
+  const { fragment, state, updatePayload, payload } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const { getImageDimensions } = useEdit()
@@ -49,6 +49,7 @@ const TriviaTwo = () => {
 
   const [isGif, setIsGif] = useState(false)
   const [gifUrl, setGifUrl] = useState('')
+  const [currentQuestion, setCurrentQuestion] = useState(1)
 
   const [imgDim, setImgDim] = useState<{
     width: number
@@ -106,6 +107,10 @@ const TriviaTwo = () => {
     }
   }, [state])
 
+  useEffect(() => {
+    setCurrentQuestion(activeQuestionIndex + 1)
+  }, [payload])
+
   const controls = [
     <ControlButton
       key="nextQuestion"
@@ -115,7 +120,7 @@ const TriviaTwo = () => {
       disabled={activeQuestionIndex === questions.length - 1}
       onClick={() => {
         setActiveQuestionIndex(activeQuestionIndex + 1)
-        updatePayload?.(activeQuestionIndex + 1)
+        updatePayload?.(currentQuestion)
       }}
     />,
   ]
