@@ -45,13 +45,6 @@ const Participants = ({
 
   return (
     <div>
-      <TextField
-        label="Search"
-        placeholder="Search..."
-        onChange={(e: ChangeEvent<HTMLInputElement>) =>
-          setQuery(e.target.value)
-        }
-      />
       <div className="mt-8 flex flex-col max-h-80 min-h-48 overflow-scroll">
         {flick.participants
           .filter((p) =>
@@ -186,7 +179,7 @@ const Participants = ({
             onClick={() => handleNext(participants)}
             loading={loading}
           >
-            {participants.length > 0 ? 'Create' : 'Skip & Create'}
+            Create
           </Button>
         </div>
       </div>
