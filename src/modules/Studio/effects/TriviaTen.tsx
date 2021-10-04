@@ -14,7 +14,7 @@ import config from '../../../config'
 import useEdit from '../hooks/use-edit'
 import Gif from '../components/Gif'
 
-const TriviaEight = () => {
+const TriviaTen = () => {
   const [activeQuestionIndex, setActiveQuestionIndex] = useState<number>(0)
   const [questions, setQuestions] = useState<{ text: string; image: string }[]>(
     []
@@ -24,13 +24,15 @@ const TriviaEight = () => {
     title?: string
   }>({ enable: false })
 
-  const { fragment, state, stream, picture, constraints } =
+  const { fragment, state } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const userData = (useRecoilValue(userState) as User) || {}
 
-  const { getImageDimensions } = useEdit()
   const [isGif, setIsGif] = useState(false)
   const [gifUrl, setGifUrl] = useState('')
+
+  const { getImageDimensions } = useEdit()
+
   const [qnaImage] = useImage(
     questions && questions[activeQuestionIndex]
       ? questions[activeQuestionIndex].image
@@ -38,16 +40,10 @@ const TriviaEight = () => {
     'anonymous'
   )
 
-  const [elasticLogo] = useImage(
-    `${config.storage.baseUrl}elastic-logo.png`,
-    'anonymous'
-  )
-  const [whiteCircle] = useImage(
-    `${config.storage.baseUrl}circle.png`,
-    'anonymous'
-  )
-  const [pinkCircle] = useImage(
-    `${config.storage.baseUrl}pink2.png`,
+  const [tsLogo] = useImage(`${config.storage.baseUrl}tslogo.svg`, 'anonymous')
+
+  const [incredibleLogo] = useImage(
+    `${config.storage.baseUrl}x-incredible.svg`,
     'anonymous'
   )
 
@@ -120,18 +116,18 @@ const TriviaEight = () => {
 
   const studioUserConfig: StudioUserConfig[] = [
     {
-      x: 565,
-      y: 58,
-      width: 520,
-      height: 390,
+      x: 695,
+      y: 122.5,
+      width: 320,
+      height: 240,
       clipTheme: 'rect',
+      borderColor: '#235A97',
       borderWidth: 8,
-      borderColor: '#D1D5DB',
       studioUserClipConfig: {
-        x: 150,
+        x: 80,
         y: 0,
-        width: 220,
-        height: 390,
+        width: 160,
+        height: 240,
         radius: 8,
       },
     },
@@ -143,18 +139,18 @@ const TriviaEight = () => {
       y={0}
       width={CONFIG.width}
       height={CONFIG.height}
-      fill="#ffffff"
-      // fillLinearGradientColorStops={[0, '#60D0ED', 1, '#536FA8']}
-      // fillLinearGradientStartPoint={{ x: 0, y: 0 }}
-      // fillLinearGradientEndPoint={{ x: CONFIG.width, y: CONFIG.height }}
+      fill="#3178C6"
     />,
-    <Circle x={82} y={10} radius={55} fill="#7DE2D1" />,
-    <Circle x={70} y={CONFIG.height - 70} radius={100} fill="#7DE2D1" />,
-    <Circle x={640} y={20} radius={10} fill="#0077CC" />,
-    <Circle x={270} y={CONFIG.height - 70} radius={10} fill="#0077CC" />,
-    <Image image={pinkCircle} x={790} y={400} />,
-    <Image image={whiteCircle} x={615} y={245} />,
-
+    <Rect
+      x={32}
+      y={53}
+      width={714}
+      height={406}
+      strokeWidth={4}
+      fill="#00273F"
+      stroke="#235A97"
+      cornerRadius={8}
+    />,
     <Group x={37} y={58} key="group1">
       {questions?.length > 0 && questions[activeQuestionIndex]?.image ? (
         <Text
@@ -162,7 +158,7 @@ const TriviaEight = () => {
           y={20}
           align="center"
           fontSize={32}
-          fill="#111111"
+          fill="#ffffff"
           width={620}
           lineHeight={1.2}
           text={questions[activeQuestionIndex]?.text}
@@ -178,14 +174,13 @@ const TriviaEight = () => {
           x={10}
           verticalAlign="middle"
           fontSize={32}
-          fill="#111111"
+          fill="#ffffff"
           width={620}
           height={390}
           text={questions[activeQuestionIndex]?.text}
           fontStyle="bold"
           fontFamily="Poppins"
           align="center"
-          lineHeight={1.3}
           textTransform="capitalize"
         />
       ) : (
@@ -216,7 +211,8 @@ const TriviaEight = () => {
         </>
       )}
     </Group>,
-    <Image image={elasticLogo} x={30} y={CONFIG.height - 60} />,
+    <Image image={incredibleLogo} x={25} y={CONFIG.height - 60} />,
+    <Image image={tsLogo} x={820} y={CONFIG.height - 60} />,
   ]
 
   return (
@@ -229,4 +225,4 @@ const TriviaEight = () => {
   )
 }
 
-export default TriviaEight
+export default TriviaTen

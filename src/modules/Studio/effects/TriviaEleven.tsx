@@ -1,6 +1,6 @@
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
-import { Group, Text, Image, Rect, Circle } from 'react-konva'
+import { Group, Text, Image, Rect } from 'react-konva'
 import FontFaceObserver from 'fontfaceobserver'
 import { useRecoilValue } from 'recoil'
 import { useImage } from 'react-konva-utils'
@@ -12,9 +12,8 @@ import { ControlButton } from '../components/MissionControl'
 import { StudioProviderProps, studioStore } from '../stores'
 import config from '../../../config'
 import useEdit from '../hooks/use-edit'
-import Gif from '../components/Gif'
 
-const TriviaEight = () => {
+const TriviaEleven = () => {
   const [activeQuestionIndex, setActiveQuestionIndex] = useState<number>(0)
   const [questions, setQuestions] = useState<{ text: string; image: string }[]>(
     []
@@ -29,8 +28,7 @@ const TriviaEight = () => {
   const userData = (useRecoilValue(userState) as User) || {}
 
   const { getImageDimensions } = useEdit()
-  const [isGif, setIsGif] = useState(false)
-  const [gifUrl, setGifUrl] = useState('')
+
   const [qnaImage] = useImage(
     questions && questions[activeQuestionIndex]
       ? questions[activeQuestionIndex].image
@@ -38,16 +36,16 @@ const TriviaEight = () => {
     'anonymous'
   )
 
-  const [elasticLogo] = useImage(
-    `${config.storage.baseUrl}elastic-logo.png`,
+  const [incredibleLogo] = useImage(
+    `${config.storage.baseUrl}x-incredible.svg`,
     'anonymous'
   )
-  const [whiteCircle] = useImage(
-    `${config.storage.baseUrl}circle.png`,
+  const [pytorchLogo] = useImage(
+    `${config.storage.baseUrl}pytorch.svg`,
     'anonymous'
   )
-  const [pinkCircle] = useImage(
-    `${config.storage.baseUrl}pink2.png`,
+  const [pytorchBg] = useImage(
+    `${config.storage.baseUrl}pytorch_bg.svg`,
     'anonymous'
   )
 
@@ -63,23 +61,17 @@ const TriviaEight = () => {
   }, [])
 
   useEffect(() => {
-    if (qnaImage?.src.split('.').pop() === 'gif') {
-      setIsGif(true)
-      setGifUrl(qnaImage.src)
-    } else {
-      setIsGif(false)
-    }
     setImgDim(
       getImageDimensions(
         {
           w: (qnaImage && qnaImage.width) || 0,
           h: (qnaImage && qnaImage.height) || 0,
         },
-        640,
-        280,
         610,
         250,
-        7,
+        640,
+        280,
+        37,
         90
       )
     )
@@ -120,41 +112,50 @@ const TriviaEight = () => {
 
   const studioUserConfig: StudioUserConfig[] = [
     {
-      x: 565,
-      y: 58,
-      width: 520,
-      height: 390,
+      x: 660,
+      y: 140.5,
+      width: 320,
+      height: 240,
       clipTheme: 'rect',
-      borderWidth: 8,
-      borderColor: '#D1D5DB',
+      borderWidth: 16,
+      borderColor: '#8B008B',
       studioUserClipConfig: {
-        x: 150,
+        x: 60,
         y: 0,
-        width: 220,
-        height: 390,
-        radius: 8,
+        width: 200,
+        height: 200,
+        radius: 100,
       },
     },
   ]
 
   const layerChildren = [
     <Rect
+      strokeWidth={1}
       x={0}
       y={0}
+      fill="#F5F6F7"
       width={CONFIG.width}
       height={CONFIG.height}
-      fill="#ffffff"
-      // fillLinearGradientColorStops={[0, '#60D0ED', 1, '#536FA8']}
-      // fillLinearGradientStartPoint={{ x: 0, y: 0 }}
-      // fillLinearGradientEndPoint={{ x: CONFIG.width, y: CONFIG.height }}
+      stroke="#111111"
     />,
-    <Circle x={82} y={10} radius={55} fill="#7DE2D1" />,
-    <Circle x={70} y={CONFIG.height - 70} radius={100} fill="#7DE2D1" />,
-    <Circle x={640} y={20} radius={10} fill="#0077CC" />,
-    <Circle x={270} y={CONFIG.height - 70} radius={10} fill="#0077CC" />,
-    <Image image={pinkCircle} x={790} y={400} />,
-    <Image image={whiteCircle} x={615} y={245} />,
+    <Image
+      image={pytorchBg}
+      x={1}
+      y={1}
+      fill="#F5F6F7"
+      width={CONFIG.width - 2}
+      height={CONFIG.height - 2}
+    />,
 
+    <Rect
+      x={37}
+      y={56}
+      width={704}
+      height={396}
+      fill="white"
+      cornerRadius={8}
+    />,
     <Group x={37} y={58} key="group1">
       {questions?.length > 0 && questions[activeQuestionIndex]?.image ? (
         <Text
@@ -162,7 +163,7 @@ const TriviaEight = () => {
           y={20}
           align="center"
           fontSize={32}
-          fill="#111111"
+          fill="#374151"
           width={620}
           lineHeight={1.2}
           text={questions[activeQuestionIndex]?.text}
@@ -178,45 +179,32 @@ const TriviaEight = () => {
           x={10}
           verticalAlign="middle"
           fontSize={32}
-          fill="#111111"
+          fill="#374151"
           width={620}
           height={390}
           text={questions[activeQuestionIndex]?.text}
           fontStyle="bold"
           fontFamily="Poppins"
           align="center"
-          lineHeight={1.3}
           textTransform="capitalize"
         />
       ) : (
         <>
-          {!isGif && (
-            <Image
-              image={qnaImage}
-              y={imgDim.y}
-              x={imgDim.x}
-              width={imgDim.width}
-              height={imgDim.height}
-              shadowOpacity={0.3}
-              shadowOffset={{ x: 0, y: 1 }}
-              shadowBlur={2}
-            />
-          )}
-          {isGif && (
-            <Gif
-              src={gifUrl}
-              maxWidth={610}
-              maxHeight={250}
-              availableWidth={640}
-              availableHeight={280}
-              x={37}
-              y={90}
-            />
-          )}
+          <Image
+            image={qnaImage}
+            y={imgDim.y}
+            x={imgDim.x}
+            width={imgDim.width}
+            height={imgDim.height}
+            shadowOpacity={0.3}
+            shadowOffset={{ x: 0, y: 1 }}
+            shadowBlur={2}
+          />
         </>
       )}
     </Group>,
-    <Image image={elasticLogo} x={30} y={CONFIG.height - 60} />,
+    <Image image={pytorchLogo} x={30} y={CONFIG.height - 70} />,
+    <Image image={incredibleLogo} x={810} y={CONFIG.height - 70} />,
   ]
 
   return (
@@ -229,4 +217,4 @@ const TriviaEight = () => {
   )
 }
 
-export default TriviaEight
+export default TriviaEleven
