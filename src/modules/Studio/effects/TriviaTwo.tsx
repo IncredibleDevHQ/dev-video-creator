@@ -49,7 +49,6 @@ const TriviaTwo = () => {
 
   const [isGif, setIsGif] = useState(false)
   const [gifUrl, setGifUrl] = useState('')
-  const [currentQuestion, setCurrentQuestion] = useState<number>(0)
 
   const [imgDim, setImgDim] = useState<{
     width: number
@@ -102,17 +101,17 @@ const TriviaTwo = () => {
   }, [fragment?.configuration.properties])
 
   useEffect(() => {
+    if (state === 'ready') {
+      updatePayload?.({ activeQuestion: 0 })
+    }
     if (state === 'recording') {
       setActiveQuestionIndex(0)
     }
   }, [state])
 
   useEffect(() => {
-    console.log('que', currentQuestion)
-    setCurrentQuestion(activeQuestionIndex + 1)
+    setActiveQuestionIndex(payload?.activeQuestion)
   }, [payload])
-
-  console.log('currentQuestion', currentQuestion)
 
   const controls = [
     <ControlButton
@@ -123,7 +122,7 @@ const TriviaTwo = () => {
       disabled={activeQuestionIndex === questions.length - 1}
       onClick={() => {
         setActiveQuestionIndex(activeQuestionIndex + 1)
-        updatePayload?.(currentQuestion)
+        updatePayload?.({ activeQuestion: activeQuestionIndex + 1 })
       }}
     />,
   ]
@@ -233,7 +232,7 @@ const TriviaTwo = () => {
       ) : (
         <></>
       )}
-      {questions.length > 0 && !questions[activeQuestionIndex].image ? (
+      {questions.length > 0 && !questions[activeQuestionIndex]?.image ? (
         <Text
           x={10}
           verticalAlign="middle"
