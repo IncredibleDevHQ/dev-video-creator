@@ -118,7 +118,10 @@ query GetUserPublicFlicks($userId: String!) {
 
 query SeriesFlicks($id: uuid!) {
   Flick_Series(
-    where: { seriesId: { _eq: $id }, flick: { deletedAt: { _is_null: true } } }
+    where: {
+      seriesId: { _eq: $id }
+      flick: { deletedAt: { _is_null: true }, scope: { _eq: Public } }
+    }
   ) {
     order
     flick {
