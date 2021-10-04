@@ -74,7 +74,7 @@ export const GetSchemaElement = ({
       )
 
     case 'text':
-      if (type === Fragment_Type_Enum_Enum.Splash) {
+      if (type === Fragment_Type_Enum_Enum.Splash && schema.key !== 'theme') {
         setConfigured(true)
       } else if (!schema.value || (schema.value && schema.value.length <= 0)) {
         setConfigured(false)
