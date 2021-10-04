@@ -366,7 +366,7 @@ const FlicksView = () => {
           <div className="bg-gray-200 h-0.5 w-full mt-3" />
         </div>
       ))}
-      <AddFlicksToSeriesModal
+      {/* <AddFlicksToSeriesModal
         setFlicksAdded={setFlicksAdded}
         open={open}
         setOpen={setOpen}
@@ -378,7 +378,7 @@ const FlicksView = () => {
             (flick) => flick.flick?.id as string
           ) || []
         }
-      />
+      /> */}
     </div>
   )
 }

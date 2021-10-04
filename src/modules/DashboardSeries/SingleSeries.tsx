@@ -43,21 +43,18 @@ const SingleSeries = () => {
             {data?.Series_by_pk?.name}
           </Heading>
 
-          {data?.Series_by_pk?.Flick_Series &&
-            data?.Series_by_pk?.Flick_Series.length > 0 && (
-              <div className="flex flex-row ml-auto px-2 items-center gap-x-3 justify-center">
-                <NewFlickBanner seriesId={params.id} />
-                <Button
-                  type="button"
-                  appearance="secondary"
-                  size="small"
-                  className="text-white mt-5"
-                  onClick={() => setOpen(true)}
-                >
-                  Add Flick
-                </Button>
-              </div>
-            )}
+          <div className="flex flex-row ml-auto px-2 items-center gap-x-3 justify-center">
+            <NewFlickBanner seriesId={params.id} />
+            <Button
+              type="button"
+              appearance="secondary"
+              size="small"
+              className="text-white mt-5"
+              onClick={() => setOpen(true)}
+            >
+              Add Flick
+            </Button>
+          </div>
         </div>
 
         <Heading className="text-xl mb-10 font-bold">Flicks</Heading>
