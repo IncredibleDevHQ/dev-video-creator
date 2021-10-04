@@ -16,7 +16,7 @@ const SplashTwentyOne = () => {
     'anonymous'
   )
   const [secondaryLogo] = useImage(
-    `${config.storage.baseUrl}svelte_logo.svg`,
+    `${config.storage.baseUrl}Svelte.svg`,
     'anonymous'
   )
   const [secondaryBg] = useImage(

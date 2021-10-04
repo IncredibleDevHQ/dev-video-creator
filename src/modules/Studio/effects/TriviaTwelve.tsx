@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react'
+import Konva from 'konva'
+import React, { useEffect, useRef, useState } from 'react'
 import { Group, Text, Image, Rect } from 'react-konva'
 import FontFaceObserver from 'fontfaceobserver'
 import { useRecoilValue } from 'recoil'
@@ -11,9 +12,8 @@ import { ControlButton } from '../components/MissionControl'
 import { StudioProviderProps, studioStore } from '../stores'
 import config from '../../../config'
 import useEdit from '../hooks/use-edit'
-import Gif from '../components/Gif'
 
-const TriviaFour = () => {
+const TriviaTwelve = () => {
   const [activeQuestionIndex, setActiveQuestionIndex] = useState<number>(0)
   const [questions, setQuestions] = useState<{ text: string; image: string }[]>(
     []
@@ -23,8 +23,9 @@ const TriviaFour = () => {
     title?: string
   }>({ enable: false })
 
-  const { fragment, state } =
+  const { fragment, state, stream, picture, constraints } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const userData = (useRecoilValue(userState) as User) || {}
 
   const { getImageDimensions } = useEdit()
 
@@ -35,21 +36,18 @@ const TriviaFour = () => {
     'anonymous'
   )
 
-  const [astroPlanet] = useImage(
-    `${config.storage.baseUrl}planet.svg`,
+  const [svelteLogo] = useImage(
+    `${config.storage.baseUrl}Svelte.svg`,
     'anonymous'
   )
-  const [astroLogo] = useImage(
-    `${config.storage.baseUrl}astro-logo.svg`,
+  const [incredibleLogo] = useImage(
+    `${config.storage.baseUrl}x-incredible-black.svg`,
     'anonymous'
   )
-  const [windowOps] = useImage(
-    `${config.storage.baseUrl}window-ops.svg`,
+  const [svelteBg] = useImage(
+    `${config.storage.baseUrl}svelte_bg.svg`,
     'anonymous'
   )
-
-  const [isGif, setIsGif] = useState(false)
-  const [gifUrl, setGifUrl] = useState('')
 
   const [imgDim, setImgDim] = useState<{
     width: number
@@ -63,12 +61,6 @@ const TriviaFour = () => {
   }, [])
 
   useEffect(() => {
-    if (qnaImage?.src.split('.').pop() === 'gif') {
-      setIsGif(true)
-      setGifUrl(qnaImage.src)
-    } else {
-      setIsGif(false)
-    }
     setImgDim(
       getImageDimensions(
         {
@@ -79,7 +71,7 @@ const TriviaFour = () => {
         250,
         640,
         280,
-        37,
+        30,
         90
       )
     )
@@ -125,74 +117,52 @@ const TriviaFour = () => {
       width: 320,
       height: 240,
       clipTheme: 'rect',
-      borderWidth: 6,
-      borderColor: '#1F2937',
       studioUserClipConfig: {
         x: 80,
         y: 0,
         width: 160,
         height: 240,
-        radius: 8,
+        radius: 0,
       },
-      backgroundRectX: 765,
-      backgroundRectY: 120.5,
-      backgroundRectColor: '#FF5D01',
-      backgroundRectBorderWidth: 3,
-      backgroundRectBorderColor: '#1F2937',
     },
   ]
 
-  const windowOpsImages = <Image image={windowOps} x={860} y={25} />
-
   const layerChildren = [
     <Rect
+      strokeWidth={1}
       x={0}
       y={0}
+      fill="#F5F6F7"
       width={CONFIG.width}
       height={CONFIG.height}
-      fillLinearGradientColorStops={[
-        0,
-        '#140D1F',
-        0.41,
-        '#361367',
-        1,
-        '#6E1DDB',
-      ]}
-      fillLinearGradientStartPoint={{ x: 0, y: 0 }}
-      fillLinearGradientEndPoint={{
-        x: CONFIG.width,
-        y: CONFIG.height,
-      }}
+      stroke="#111111"
     />,
-    <Image image={astroPlanet} x={-10} y={0} />,
+    <Image
+      image={svelteBg}
+      x={1}
+      y={1}
+      fill="#F5F6F7"
+      width={CONFIG.width - 2}
+      height={CONFIG.height - 2}
+    />,
     <Rect
       x={27}
-      y={58}
+      y={48}
       width={704}
       height={396}
-      fill="#FF5D01"
-      cornerRadius={8}
-      stroke="#1F2937"
-      strokeWidth={3}
+      stroke="#FF3E00"
+      strokeWidth={1}
     />,
-    <Rect
-      x={37}
-      y={68}
-      width={704}
-      height={396}
-      fill="#ffffff"
-      cornerRadius={8}
-      stroke="#1F2937"
-      strokeWidth={3}
-    />,
+    <Rect x={37} y={56} width={704} height={396} fill="#FC7E4E" />,
+
     <Group x={37} y={58} key="group1">
       {questions?.length > 0 && questions[activeQuestionIndex]?.image ? (
         <Text
-          x={10}
+          x={30}
           y={20}
           align="center"
           fontSize={32}
-          fill="#1F2937"
+          fill="#ffffff"
           width={620}
           lineHeight={1.2}
           text={questions[activeQuestionIndex]?.text}
@@ -208,46 +178,32 @@ const TriviaFour = () => {
           x={10}
           verticalAlign="middle"
           fontSize={32}
-          fill="#1F2937"
+          fill="#ffffff"
           width={620}
           height={390}
           text={questions[activeQuestionIndex]?.text}
           fontStyle="bold"
           fontFamily="Poppins"
           align="center"
-          lineHeight={1.3}
           textTransform="capitalize"
         />
       ) : (
         <>
-          {!isGif && (
-            <Image
-              image={qnaImage}
-              y={imgDim.y}
-              x={imgDim.x}
-              width={imgDim.width}
-              height={imgDim.height}
-              shadowOpacity={0.3}
-              shadowOffset={{ x: 0, y: 1 }}
-              shadowBlur={2}
-            />
-          )}
-          {isGif && (
-            <Gif
-              src={gifUrl}
-              maxWidth={610}
-              maxHeight={250}
-              availableWidth={640}
-              availableHeight={280}
-              x={37}
-              y={90}
-            />
-          )}
+          <Image
+            image={qnaImage}
+            y={imgDim.y}
+            x={imgDim.x}
+            width={imgDim.width}
+            height={imgDim.height}
+            shadowOpacity={0.3}
+            shadowOffset={{ x: 0, y: 1 }}
+            shadowBlur={2}
+          />
         </>
       )}
     </Group>,
-    { ...windowOpsImages },
-    <Image image={astroLogo} x={30} y={CONFIG.height - 60} />,
+    <Image image={incredibleLogo} x={30} y={CONFIG.height - 70} />,
+    <Image image={svelteLogo} x={810} y={CONFIG.height - 60} />,
   ]
 
   return (
@@ -260,4 +216,4 @@ const TriviaFour = () => {
   )
 }
 
-export default TriviaFour
+export default TriviaTwelve
