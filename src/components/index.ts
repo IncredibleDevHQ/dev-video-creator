@@ -7,6 +7,7 @@ import ErrorBoundary from './ErrorBoundary'
 import EmptyState from './EmptyState'
 import Heading from './Heading'
 import IDSelect from './IDSelect'
+import Label from './Label'
 import Loader from './Loader'
 import Logo from './Logo'
 import Navbar from './Navbar'
@@ -39,6 +40,7 @@ export {
   EmptyState,
   Heading,
   IDSelect,
+  Label,
   Loader,
   Logo,
   Navbar,

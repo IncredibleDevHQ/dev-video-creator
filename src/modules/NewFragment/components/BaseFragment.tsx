@@ -45,6 +45,72 @@ const BaseFragmentCard = ({
   )
 }
 
+export const fragmentTypes = [
+  {
+    label: 'CodeJam',
+    image: fragmentIcons.codeJam,
+    description: 'Talk about a code snippet with your friends.',
+    value: Fragment_Type_Enum_Enum.CodeJam,
+    accessory: '1-4 people',
+  },
+  {
+    label: 'Splash',
+    image: fragmentIcons.splash,
+    description: 'Create classy intros for your Flicks.',
+    value: Fragment_Type_Enum_Enum.Splash,
+    accessory: '1 person',
+  },
+  {
+    label: 'Trivia',
+    image: fragmentIcons.trivia,
+    description: 'Create classy intros for your Flicks.',
+    value: Fragment_Type_Enum_Enum.Trivia,
+    accessory: '1 person',
+  },
+  {
+    label: 'Slides',
+    image: fragmentIcons.slides,
+    description: 'Talk about your slides.',
+    value: Fragment_Type_Enum_Enum.Slides,
+    accessory: '1 person',
+  },
+  {
+    label: 'VideoJam',
+    image: fragmentIcons.videoJam,
+    description: 'Talk about a video with your friends.',
+    value: Fragment_Type_Enum_Enum.Videoshow,
+    accessory: '1-4 people',
+  },
+  {
+    label: 'Solo',
+    image: fragmentIcons.solo,
+    description: 'Introduce your story.',
+    value: Fragment_Type_Enum_Enum.Solo,
+    accessory: '1 person',
+  },
+  {
+    label: 'Points',
+    image: fragmentIcons.points,
+    description: 'Talk in points about your Topic.',
+    value: Fragment_Type_Enum_Enum.Points,
+    accessory: '1 person',
+  },
+  {
+    label: 'Discussion',
+    image: fragmentIcons.discussion,
+    description: 'Have fantabulous discussion with a friend.',
+    value: Fragment_Type_Enum_Enum.Discussion,
+    accessory: '2 people',
+  },
+  {
+    label: 'Outro',
+    image: fragmentIcons.outro,
+    description: 'End your Flick gracefully!',
+    value: Fragment_Type_Enum_Enum.Outro,
+    accessory: '1 person',
+  },
+]
+
 const BaseFragment = ({
   className,
   handleNext,
@@ -57,69 +123,16 @@ const BaseFragment = ({
       className={cx('grid grid-cols-2 grid-flow-row gap-8', className)}
       {...rest}
     >
-      <BaseFragmentCard
-        label="CodeJam"
-        image={fragmentIcons.codeJam}
-        description="Talk about a code snippet with your friends."
-        onClick={() => handleNext(Fragment_Type_Enum_Enum.CodeJam)}
-        accessory="1-4 people"
-      />
-      <BaseFragmentCard
-        label="Splash"
-        image={fragmentIcons.splash}
-        description="Create classy intros for your Flicks."
-        onClick={() => handleNext(Fragment_Type_Enum_Enum.Splash)}
-        accessory="1 person"
-      />
-      <BaseFragmentCard
-        label="Trivia"
-        image={fragmentIcons.trivia}
-        description="A simple quiz to test your knowledge of the topic."
-        onClick={() => handleNext(Fragment_Type_Enum_Enum.Trivia)}
-        accessory="1 person"
-      />
-      <BaseFragmentCard
-        label="Slides"
-        image={fragmentIcons.slides}
-        description="Talk about your slides just like Ross and Rachel"
-        onClick={() => handleNext(Fragment_Type_Enum_Enum.Slides)}
-        accessory="1 person"
-      />
-      <BaseFragmentCard
-        label="VideoJam"
-        image={fragmentIcons.videoJam}
-        description="Talk about a video with your friends."
-        onClick={() => handleNext(Fragment_Type_Enum_Enum.Videoshow)}
-        accessory="1-4 people"
-      />
-      <BaseFragmentCard
-        label="Solo"
-        image={fragmentIcons.solo}
-        description="Introduce your story."
-        onClick={() => handleNext(Fragment_Type_Enum_Enum.Solo)}
-        accessory="1 person"
-      />
-      <BaseFragmentCard
-        label="Points"
-        image={fragmentIcons.points}
-        description="Talk about the Points of your Topic."
-        onClick={() => handleNext(Fragment_Type_Enum_Enum.Points)}
-        accessory="1 person"
-      />
-      <BaseFragmentCard
-        label="Discussion"
-        image={fragmentIcons.discussion}
-        description="Have fantabulous discussion with your friend."
-        onClick={() => handleNext(Fragment_Type_Enum_Enum.Discussion)}
-        accessory="2 person"
-      />
-      <BaseFragmentCard
-        label="Outro"
-        image={fragmentIcons.outro}
-        description="Lets end the video gracefully"
-        onClick={() => handleNext(Fragment_Type_Enum_Enum.Outro)}
-        accessory="1 person"
-      />
+      {fragmentTypes.map(({ label, image, description, value, accessory }) => (
+        <BaseFragmentCard
+          key={value}
+          label={label}
+          image={image}
+          description={description}
+          onClick={() => handleNext(value)}
+          accessory={accessory}
+        />
+      ))}
     </div>
   )
 }

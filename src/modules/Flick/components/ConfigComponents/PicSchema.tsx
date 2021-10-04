@@ -9,6 +9,7 @@ export const PicSchema = ({
   schema,
   handleChange,
   value,
+  setConfigured,
   setLoadingAssets,
 }: GetSchemaElementProps) => {
   const [uploadPic] = useUploadFile()
@@ -16,6 +17,7 @@ export const PicSchema = ({
   const [picture, setPicture] = useState<string>()
 
   const handleClick = async (file: File) => {
+    setConfigured(false)
     if (!file) return
     setLoadingAssets(true)
     const pic = await uploadPic({

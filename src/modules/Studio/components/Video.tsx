@@ -10,10 +10,10 @@ export interface VideoConfig {
   width: number
   height: number
   borderColor?: string
-  videoFill?: string
   borderWidth?: number
   cornerRadius?: number
   performClip: boolean
+  videoFill?: string
   backgroundRectX?: number
   backgroundRectY?: number
   backgroundRectColor?: string
@@ -43,14 +43,10 @@ export const Video = ({
   }>({ width: 0, height: 0, x: 0, y: 0 })
 
   const { clipRect } = useEdit()
-  useEffect(() => {
-    console.log('imgdd', imgDim.width, imgDim.height)
-  }, [imgDim])
 
   // when video is loaded, we should read it size
   React.useEffect(() => {
     const onload = () => {
-      console.log('onload')
       setImgDim(
         getImageDimensions(
           {
@@ -110,33 +106,34 @@ export const Video = ({
     <>
       <Rect
         x={
-          videoConfig.backgroundRectX ||
-          videoConfig.x ||
-          (videoConfig.width -
-            (videoConfig.height * videoElement.videoWidth) /
-              videoElement.videoHeight) /
-            2
+          imgDim.x -
+          ((videoConfig.x ? videoConfig.x : 0) -
+            (videoConfig?.backgroundRectX ? videoConfig?.backgroundRectX : 0))
         }
-        y={videoConfig.backgroundRectY || imgDim.y || 0}
-        width={videoConfig.width}
+        y={
+          imgDim.y -
+          ((videoConfig.y ? videoConfig.y : 0) -
+            (videoConfig.backgroundRectY ? videoConfig?.backgroundRectY : 0))
+        }
+        //  videoConfig.backgroundRectY || imgDim.y || 0}
+        width={imgDim.width}
         fill={videoConfig.backgroundRectColor}
-        height={videoConfig.height}
+        height={imgDim.height}
         stroke={videoConfig.backgroundRectBorderColor}
         strokeWidth={videoConfig?.backgroundRectBorderWidth || 0}
         cornerRadius={videoConfig?.cornerRadius || 0}
       />
       <Rect
         x={
-          videoConfig.x ||
-          (videoConfig.width -
-            (videoConfig.height * videoElement.videoWidth) /
+          imgDim.x ||
+          (imgDim.width -
+            (imgDim.height * videoElement.videoWidth) /
               videoElement.videoHeight) /
             2
         }
-        fill={videoConfig.videoFill || undefined}
-        y={videoConfig.y || 0}
-        width={videoConfig.width}
-        height={videoConfig.height}
+        y={imgDim.y || 0}
+        width={imgDim.width}
+        height={imgDim.height}
         stroke={videoConfig.borderColor}
         strokeWidth={videoConfig?.borderWidth || 0}
         cornerRadius={videoConfig?.cornerRadius || 0}
@@ -149,9 +146,21 @@ export const Video = ({
               videoElement.videoHeight) /
             2
         }
-        y={imgDim.y}
+        y={imgDim.y || 0}
         width={imgDim.width}
         height={imgDim.height}
+        clipFunc={
+          videoConfig.performClip &&
+          ((ctx: any) => {
+            clipRect(ctx, {
+              x: 0,
+              y: 0,
+              width: imgDim.width,
+              height: imgDim.height,
+              radius: videoConfig?.cornerRadius || 0,
+            })
+          })
+        }
       >
         <Image
           ref={imageRef}
