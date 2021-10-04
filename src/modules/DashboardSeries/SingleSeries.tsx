@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import { BsChevronRight } from 'react-icons/bs'
 import { Link, useParams } from 'react-router-dom'
+import { useRecoilValue } from 'recoil'
 import { Button, Heading, Navbar, ScreenState, Text } from '../../components'
-import { useGetSingleSeriesLazyQuery } from '../../generated/graphql'
+import { useGetSingleSeriesLazyQuery, User } from '../../generated/graphql'
+import { userState } from '../../stores/user.store'
 import NewFlickBanner from '../Dashboard/components/NewFlickBanner'
 import AddFlicksToSeriesModal from './components/AddFlicksToSeriesModal'
 import FlicksView from './components/FlicksView'
@@ -11,6 +13,7 @@ const SingleSeries = () => {
   const [open, setOpen] = useState(false)
   const [flicksAdded, setFlicksAdded] = useState<boolean>(false)
   const params: { id?: string } = useParams()
+  const userdata = (useRecoilValue(userState) as User) || {}
 
   const [GetSingleSeries, { data, loading, error }] =
     useGetSingleSeriesLazyQuery()
@@ -43,18 +46,20 @@ const SingleSeries = () => {
             {data?.Series_by_pk?.name}
           </Heading>
 
-          <div className="flex flex-row ml-auto px-2 items-center gap-x-3 justify-center">
-            <NewFlickBanner seriesId={params.id} />
-            <Button
-              type="button"
-              appearance="secondary"
-              size="small"
-              className="text-white mt-5"
-              onClick={() => setOpen(true)}
-            >
-              Add Flick
-            </Button>
-          </div>
+          {data?.Series_by_pk?.ownerSub === userdata.sub && (
+            <div className="flex flex-row ml-auto px-2 items-center gap-x-3 justify-center">
+              <NewFlickBanner seriesId={params.id} />
+              <Button
+                type="button"
+                appearance="secondary"
+                size="small"
+                className="text-white mt-5"
+                onClick={() => setOpen(true)}
+              >
+                Add Flick
+              </Button>
+            </div>
+          )}
         </div>
 
         <Heading className="text-xl mb-10 font-bold">Flicks</Heading>
