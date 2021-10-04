@@ -52,11 +52,9 @@ import TriviaSeven from './TriviaSeven'
 import VideoJamNine from './VideoJamNine'
 import SplashSeventeen from './SplashSeventeen'
 import SplashEighteen from './SplashEighteen'
-
 import CodeJamEight from './CodeJamEight'
 import PointsEight from './PointsEight'
 import TriviaEight from './TriviaEight'
-
 import SplashNinteen from './SplashNinteen'
 import CodeJamTen from './CodeJamTen'
 import PointsTen from './PointsTen'
@@ -65,6 +63,11 @@ import TriviaTen from './TriviaTen'
 import VideoJamTen from './VideoJamTen'
 import SlidesThree from './SlidesThree'
 import SlidesTwo from './SlidesTwo'
+import CodeJamNine from './CodeJamNine'
+import PointsNine from './PointsNine'
+import TriviaNine from './TriviaNine'
+import SlidesFour from './SlidesFour'
+
 
 const themeEnum = 'theme'
 export interface Effect {
@@ -141,6 +144,7 @@ const getCodeJamTheme = (theme: any) => {
   if (theme.value === '5') return CodeJamSix
   if (theme.value === '6') return CodeJamSeven
   if (theme.value === '7') return CodeJamEight
+  if (theme.value === '8') return CodeJamNine
   if (theme.value === '9') return CodeJamTen
   return CodeJam
 }
@@ -153,6 +157,7 @@ const getTriviaTheme = (theme: any) => {
   if (theme.value === '5') return TriviaSix
   if (theme.value === '6') return TriviaSeven
   if (theme.value === '7') return TriviaEight
+  if (theme.value === '8') return TriviaNine
   if (theme.value === '9') return TriviaTen
   return Trivia
 }
@@ -165,17 +170,16 @@ const getPointsTheme = (theme: any) => {
   if (theme.value === '5') return PointsSix
   if (theme.value === '6') return PointsSeven
   if (theme.value === '7') return PointsEight
+  if (theme.value === '8') return PointsNine
   if (theme.value === '9') return PointsTen
   return Points
 }
 
 const getSlideTheme = (theme: any) => {
   if (theme.value === '7') return SlidesTwo
-
+  if (theme.value === '8') return SlidesFour
   if (theme.value === '9') return SlidesTen
-
   if (theme.value === '5') return SlidesThree
-
   return Slides
 }
 
