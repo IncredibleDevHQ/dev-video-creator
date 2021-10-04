@@ -12,9 +12,9 @@ const TextSchema = ({
   type,
 }: GetSchemaElementProps) => {
   useEffect(() => {
-    if (type === Fragment_Type_Enum_Enum.Splash && schema.key !== 'theme')
-      return
-    if (!schema.value || schema.value?.length <= 0) {
+    if (type === Fragment_Type_Enum_Enum.Splash && schema.key !== 'theme') {
+      setConfigured(true)
+    } else if (!schema.value || schema.value?.length <= 0) {
       setConfigured(false)
     } else {
       setConfigured(true)

@@ -10,6 +10,8 @@ const TextArraySchema = ({
   setConfigured,
   value,
 }: GetSchemaElementProps) => {
+  console.log('welcome to text array')
+  const [isEdit, setIsEdit] = useState(false)
   const addToFormik = (valueArray: any) => {
     const event = new Event('input', { bubbles: true })
     dispatchEvent(event)
@@ -22,19 +24,27 @@ const TextArraySchema = ({
   const [currentPoint, setCurrentPoint] = useState<string>()
   const [points, setPoints] = useState<string[]>([])
   useEffect(() => {
-    if (!schema.value || schema.value.length <= 0) {
+    if (isEdit) {
+      setConfigured(false)
+    } else if (!schema.value || schema.value.length <= 0) {
       setConfigured(false)
     } else {
       setConfigured(true)
     }
   }, [schema])
+
   useEffect(() => {
-    if (!value) return
-    setConfigured(true)
+    console.log('setConfigured(false)')
+    if (isEdit) {
+      setConfigured(false)
+    } else if (!value) {
+      setConfigured(false)
+    } else setConfigured(true)
     setPoints(value)
   }, [value])
 
   const handleOnAdd = () => {
+    setIsEdit(true)
     if (!currentPoint) return
 
     setPoints((points) => [...points, currentPoint])
@@ -82,7 +92,7 @@ const TextArraySchema = ({
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2">
-        {points.map((ques, index) => (
+        {points?.map((ques, index) => (
           <div
             key={ques}
             className="border-blue-200 px-4 py-2 m-1 flex items-center justify-between gap-2"
