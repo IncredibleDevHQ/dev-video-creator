@@ -73,7 +73,8 @@ import CodeJamNine from './CodeJamNine'
 import PointsNine from './PointsNine'
 import TriviaNine from './TriviaNine'
 import SlidesFour from './SlidesFour'
-
+import SplashTwentyOne from './SplashTwentyOne'
+import CodeJamTwelve from './CodeJamTwelve'
 
 const themeEnum = 'theme'
 export interface Effect {
@@ -116,13 +117,14 @@ const getSplash = (theme: any) => {
   if (theme.value === '8') return SplashSeven
   if (theme.value === '9') return SplashEight
   if (theme.value === '10') return SplashTwenty
-  if (theme.value === '11') return SplashEleven
+  if (theme.value === '11') return SplashTwentyOne
   if (theme.value === '12') return SplashTwelve
   if (theme.value === '13') return SplashThirteen
   if (theme.value === '14') return SplashFourteen
   if (theme.value === '15') return SplashFour
   if (theme.value === '16') return SplashEight
   if (theme.value === '17') return SplashSix
+  if (theme.value === '18') return SplashEleven
   return CustomSplash
 }
 
@@ -151,6 +153,7 @@ const getCodeJamTheme = (theme: any) => {
   if (theme.value === '8') return CodeJamNine
   if (theme.value === '9') return CodeJamTen
   if (theme.value === '10') return CodeJamEleven
+  if (theme.value === '11') return CodeJamTwelve
   return CodeJam
 }
 
