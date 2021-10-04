@@ -122,19 +122,7 @@ query SeriesFlicks($id: uuid!) {
   ) {
     order
     flick {
-      id
-      producedLink
-      joinLink
-      name
-      previewLink
-      description
-      deletedAt
-      participants {
-        user {
-          picture
-          email
-        }
-      }
+      ...BaseFlick
     }
   }
 }
