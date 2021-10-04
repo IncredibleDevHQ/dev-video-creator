@@ -100,9 +100,6 @@ query SeriesFlicks($id: uuid!) {
     where: { seriesId: { _eq: $id }, flick: { deletedAt: { _is_null: true } } }
   ) {
     order
-    seriesFlickCount {
-      count
-    }
     flick {
       id
       producedLink
