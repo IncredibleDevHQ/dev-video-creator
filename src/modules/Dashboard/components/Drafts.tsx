@@ -95,8 +95,13 @@ const FlickTile = ({
             onClick={() => setOptions(!options)}
           />
         </Tooltip>
-
-        <img src={Icons.flickIcon} alt="I" className="ml-24 mt-12" />
+        <div
+          onClick={() => {
+            history.push(`/flick/${flick.id}`)
+          }}
+        >
+          <img src={Icons.flickIcon} alt="I" className="ml-24 mt-12" />
+        </div>
       </div>
 
       <InfoTile key={flick.id} flick={flick} />

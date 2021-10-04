@@ -39,7 +39,7 @@ const FlickTileDrafts = ({
   const [options, setOptions] = useState(false)
   const [deleteFlick, { data: deleteData, loading }] = useDeleteFlickMutation()
   const history = useHistory()
-  const extraOptions = ['Delete Flick', 'Edit in studio']
+  const extraOptions = ['Delete Flick']
 
   const deleteFlickFunction = async (flickId: string) => {
     await deleteFlick({
@@ -69,7 +69,7 @@ const FlickTileDrafts = ({
           content={
             <div
               className={cx(
-                'bg-gray-100 w-28 h-16 p-2 rounded-sm',
+                'bg-gray-100 w-28 h-10 p-2 rounded-sm',
                 flick.owner?.userSub !== userdata.sub
                   ? 'cursor-not-allowed'
                   : 'cursor-pointer'
@@ -77,22 +77,11 @@ const FlickTileDrafts = ({
             >
               {extraOptions.map((option) => (
                 <>
-                  <div className="bg-gray-200 h-0.5 w-full" />
                   {option && option === 'Delete Flick' && (
                     <div
                       onClick={() => {
                         if (flick.owner?.userSub !== userdata.sub) return
                         deleteFlickFunction(flick.id)
-                      }}
-                    >
-                      {option}
-                    </div>
-                  )}
-                  {option && option === 'Edit in studio' && (
-                    <div
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        history.push(`/flick/${flick.id}`)
                       }}
                     >
                       {option}
@@ -111,9 +100,15 @@ const FlickTileDrafts = ({
             onClick={() => setOptions(!options)}
           />
         </Tooltip>
-        <div className="w-64 flex items-center justify-center border-2">
+        <div
+          className="w-64 flex items-center justify-center border-2"
+          onClick={() => {
+            history.push(`/flick/${flick.id}`)
+          }}
+        >
           <img src={Icons.flickIcon} alt="I" className="border-2" />
         </div>
+
         <div className="flex flex-col">
           <div
             style={{
@@ -168,7 +163,7 @@ const FlickTilePublished = ({
   const userdata = (useRecoilValue(userState) as User) || {}
   const [options, setOptions] = useState(false)
   const [deleteFlick, { data: deleteData, loading }] = useDeleteFlickMutation()
-  const extraOptions = ['Final video', 'Delete Flick', 'Edit in studio']
+  const extraOptions = ['Delete Flick', 'Edit in studio']
   const history = useHistory()
 
   const deleteFlickFunction = async (flickId: string) => {
@@ -192,14 +187,14 @@ const FlickTilePublished = ({
   if (loading) return <ScreenState title="Just a jiffy" loading />
   return (
     <>
-      <div className="flex flex-row w-full h-36 m-1">
+      <div className="flex flex-row w-full h-32 m-1">
         <Tooltip
           isOpen={options}
           setIsOpen={setOptions}
           content={
             <div
               className={cx(
-                'bg-gray-100 w-40 h-24 rounded-sm mt-4',
+                'bg-gray-100 w-40 h-16 border-gray-200 rounded-sm mt-4',
                 flick.owner?.userSub !== userdata.sub
                   ? 'cursor-not-allowed'
                   : 'cursor-pointer'
@@ -208,16 +203,7 @@ const FlickTilePublished = ({
               {extraOptions.map((option) => (
                 <>
                   <div className="bg-gray-200 h-0.5 w-full mt-1" />
-                  {option && option === 'Final video' && (
-                    <div
-                      onClick={(e) => {
-                        if (e.target !== e.currentTarget) return
-                        history.push(`/view/${flick.joinLink}`)
-                      }}
-                    >
-                      {option}
-                    </div>
-                  )}
+
                   {option && option === 'Delete Flick' && (
                     <div
                       onClick={() => {
@@ -252,7 +238,13 @@ const FlickTilePublished = ({
             onClick={() => setOptions(!options)}
           />
         </Tooltip>
-        <div className="w-64 flex items-center justify-center border-2">
+        <div
+          className="w-64 flex items-center justify-center border-2"
+          onClick={(e) => {
+            if (e.target !== e.currentTarget) return
+            history.push(`/view/${flick.joinLink}`)
+          }}
+        >
           <img src={Icons.flickIcon} alt="I" className="border-2" />
         </div>
         <div className="flex flex-col">
