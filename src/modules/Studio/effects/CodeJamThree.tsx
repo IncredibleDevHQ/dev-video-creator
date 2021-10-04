@@ -14,7 +14,11 @@ import {
 import { Concourse } from '../components'
 import { CONFIG, StudioUserConfig } from '../components/Concourse'
 import { ControlButton } from '../components/MissionControl'
-import RenderTokens, { RenderFocus } from '../components/RenderTokens'
+import RenderTokens, {
+  controls,
+  getRenderedTokens,
+  RenderFocus,
+} from '../components/RenderTokens'
 import useCode, { ComputedToken } from '../hooks/use-code'
 import { StudioProviderProps, studioStore } from '../stores'
 
@@ -120,53 +124,6 @@ const CodeJamTwo = () => {
       })
     }
   }, [state])
-
-  const controls =
-    state === 'recording'
-      ? [
-          <ControlButton
-            key="nextToken"
-            icon={NextTokenIcon}
-            className="my-2"
-            appearance="primary"
-            onClick={() => {
-              setFocusCode(false)
-              if (position.currentIndex < computedTokens.current.length)
-                updatePayload?.({
-                  currentIndex: position.currentIndex + 1,
-                  prevIndex: position.currentIndex,
-                })
-            }}
-          />,
-          <ControlButton
-            className="my-2"
-            key="nextLine"
-            icon={NextLineIcon}
-            appearance="primary"
-            onClick={() => {
-              setFocusCode(false)
-              const current = computedTokens.current[position.currentIndex]
-              let next = computedTokens.current.findIndex(
-                (t) => t.lineNumber > current.lineNumber
-              )
-              if (next === -1) next = computedTokens.current.length
-              updatePayload?.({
-                prevIndex: position.currentIndex,
-                currentIndex: next,
-              })
-            }}
-          />,
-          <ControlButton
-            className="my-2"
-            key="focus"
-            icon={FocusCodeIcon}
-            appearance="primary"
-            onClick={() => {
-              setFocusCode(true)
-            }}
-          />,
-        ]
-      : [<></>]
 
   const studioCoordinates: StudioUserConfig[] = (() => {
     switch (fragment?.participants.length) {
@@ -360,36 +317,11 @@ const CodeJamTwo = () => {
   return (
     <Concourse
       layerChildren={layerChildren}
-      controls={controls}
+      controls={controls(setFocusCode, position, computedTokens.current)}
       titleSpalshData={titleSpalshData}
       studioUserConfig={studioCoordinates}
     />
   )
-}
-
-const getRenderedTokens = (tokens: ComputedToken[], position: Position) => {
-  const startFromIndex = Math.max(
-    ...tokens
-      .filter((_, i) => i <= position.prevIndex)
-      .map((token) => token.startFromIndex)
-  )
-
-  return tokens
-    .filter((_, i) => i < position.prevIndex && i >= startFromIndex)
-    .map((token, index) => {
-      return (
-        <Text
-          // eslint-disable-next-line
-          key={index}
-          fontSize={codeConfig.fontSize}
-          fill={token.color}
-          text={token.content}
-          x={token.x}
-          y={token.y}
-          align="left"
-        />
-      )
-    })
 }
 
 export default CodeJamTwo
