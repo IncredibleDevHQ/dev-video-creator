@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Image } from 'react-konva'
 import useEdit from '../hooks/use-edit'
+import 'gifler'
 
 const Gif = ({
   src,
