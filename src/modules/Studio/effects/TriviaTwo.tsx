@@ -156,9 +156,9 @@ const TriviaTwo = () => {
             borderColor: '#D1D5DB',
             borderWidth: 8,
             studioUserClipConfig: {
-              x: 40,
+              x: 10,
               y: 0,
-              width: 160,
+              width: 220,
               height: 180,
               radius: 8,
             },
