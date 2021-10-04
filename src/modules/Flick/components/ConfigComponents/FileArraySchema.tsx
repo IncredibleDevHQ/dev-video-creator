@@ -26,11 +26,13 @@ const FileArraySchema = ({
     event.target.value = valueArray
     handleChange(event as any)
   }
-  if (!schema.value || schema.value.length <= 0) {
-    setConfigured(false)
-  } else {
-    setConfigured(true)
-  }
+  useEffect(() => {
+    if (!schema.value || schema.value.length <= 0) {
+      setConfigured(false)
+    } else {
+      setConfigured(true)
+    }
+  }, [schema])
 
   useEffect(() => {
     if (!value) {
@@ -68,6 +70,7 @@ const FileArraySchema = ({
             className="text-lg m-4"
             key={`${schema.key}`}
             onChange={async (e) => {
+              setConfigured(false)
               // @ts-ignore
               await handlePhotoClick(e.target.files?.[0])
             }}

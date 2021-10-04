@@ -59,11 +59,11 @@ const VideoTile = ({
   if (loading) return <ScreenState title="Just a jiffy" loading />
 
   return (
-    <div className="bg-gray-50 hover:border-green-500 cursor-pointer w-60 h-36 rounded-md items-center justify-center mt-9">
+    <div className="relative bg-gray-50 hover:border-green-500 cursor-pointer w-60 h-36 rounded-md items-center justify-center mt-9">
       <div
         className="text-gray-300 hover:border-green-500 cursor-pointer w-60 h-36 border-2"
         onClick={(e) => {
-          e.stopPropagation()
+          if (e.target !== e.currentTarget) return
           history.push(`/view/${flick.joinLink}`)
         }}
       >
@@ -90,7 +90,7 @@ const VideoTile = ({
           hideOnOutsideClick
         >
           <FiMoreHorizontal
-            className="w-6 h-6 text-gray-400 cursor-pointer"
+            className="absolute w-6 h-6 text-gray-400 cursor-pointer"
             size={30}
             onClick={() => setOptions(!options)}
           />
@@ -98,7 +98,7 @@ const VideoTile = ({
         <img
           src={Icons.flickIcon}
           alt="I"
-          className="ml-24 mt-14 border-gray-500 border-2 rounded-md"
+          className="ml-24 mt-12 border-gray-500 border-2 rounded-md"
         />
       </div>
 

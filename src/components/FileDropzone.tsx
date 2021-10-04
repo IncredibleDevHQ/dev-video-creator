@@ -1,4 +1,4 @@
-import React, { HTMLAttributes } from 'react'
+import React, { HTMLAttributes, SetStateAction, useState } from 'react'
 import Dropzone from 'react-dropzone'
 import { FcOpenedFolder } from 'react-icons/fc'
 
@@ -15,7 +15,8 @@ const FileDropzone = ({
   return (
     <Dropzone
       onDrop={onDrop}
-      multiple
+      maxFiles={1}
+      multiple={false}
       onDropAccepted={(image) => {
         const event = new Event('input', { bubbles: true })
         dispatchEvent(event)
