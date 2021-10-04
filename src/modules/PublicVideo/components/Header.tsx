@@ -12,7 +12,7 @@ import {
 import { Link, useHistory } from 'react-router-dom'
 import { useRecoilValue } from 'recoil'
 import { MoreOptionsModal, RequestAccessModal, ShareButtonModal } from '.'
-import { Button, Heading } from '../../../components'
+import { Button, Heading, Tooltip } from '../../../components'
 import { ASSETS } from '../../../constants'
 import { Auth, authState } from '../../../stores/auth.store'
 import { User, userState } from '../../../stores/user.store'
@@ -30,7 +30,8 @@ const AuthenticatedRightCol = ({
 }) => {
   const { picture, displayName, email } =
     (useRecoilValue(userState) as User) || {}
-  const history = useHistory()
+  const [isOpen, setIsOpen] = useState(false)
+  const { signOut } = (useRecoilValue(authState) as Auth) || {}
 
   return (
     <div className="flex  flex-row w-full pr-4 justify-end">
@@ -39,7 +40,7 @@ const AuthenticatedRightCol = ({
         type="button"
         icon={IoLinkOutline}
         onClick={() => navigator.clipboard.writeText(window.location.href)}
-        appearance={owner ? 'primary' : 'link'}
+        appearance="primary"
       >
         Copy Public Link
       </Button>
@@ -57,31 +58,59 @@ const AuthenticatedRightCol = ({
       />
 
       <div className="bg-gray-300 flex w-0.5 mr-3" />
-
-      <div
-        role="button"
-        tabIndex={0}
-        className="mr-3"
-        onKeyUp={() => {
-          history.push('/profile')
-        }}
-        onClick={() => {
-          history.push('/profile')
-        }}
+      <Tooltip
+        isOpen={isOpen}
+        setIsOpen={setIsOpen}
+        content={
+          <ul className="bg-gray-100 rounded-md">
+            <li>
+              <Button
+                onClick={() => {
+                  signOut?.()
+                }}
+                type="button"
+                appearance="link"
+              >
+                Sign out
+              </Button>
+            </li>
+          </ul>
+        }
+        placement="bottom-start"
+        triggerOffset={20}
       >
-        {picture ? (
-          <img
-            src={picture}
-            alt={displayName || 'user'}
-            className="w-8 h-8 rounded-full ml-3 bg-gray-100"
-          />
-        ) : (
-          <Gravatar
-            className="w-8 h-8 rounded-full bg-gray-100"
-            email={email as string}
-          />
-        )}
-      </div>
+        <div
+          role="button"
+          tabIndex={0}
+          onKeyUp={() => {
+            setIsOpen(!isOpen)
+          }}
+          onClick={() => {
+            setIsOpen(!isOpen)
+          }}
+        >
+          <div className="w-8 h-8 relative">
+            <span
+              style={{ zIndex: 0 }}
+              className="top-0 left-0 w-10 h-10 rounded-full absolute animate-spin-slow "
+            />
+            <div className="z-10  w-10 h-10 pt-2 absolute top-1/2 transform -translate-x-1/2 -translate-y-1/2 left-1/2">
+              {picture ? (
+                <img
+                  src={picture}
+                  alt={displayName || 'user'}
+                  className="w-10 h-10 rounded-full bg-gray-100"
+                />
+              ) : (
+                <Gravatar
+                  className="w-10 h-10 rounded-full bg-gray-100"
+                  email={email as string}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      </Tooltip>
     </div>
   )
 }

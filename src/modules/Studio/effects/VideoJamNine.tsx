@@ -119,6 +119,7 @@ const VideoJamNine = () => {
     cornerRadius: 0,
     performClip: true,
     borderColor: '#111111',
+    videoFill: '#111111',
     borderWidth: 4,
   }
 

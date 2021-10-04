@@ -1,3 +1,24 @@
+fragment PublicFlick on Flick {
+  color
+  description
+  joinLink
+  lobbyPicture
+  id
+  name
+  scope
+  plannedEnd
+  startAt
+  updatedAt
+  status
+  deletedAt
+  producedLink
+  participants {
+    user {
+      picture
+    }
+  }
+}
+
 fragment BaseFlick on Flick {
   color
   description
@@ -97,26 +118,14 @@ query GetUserPublicFlicks($userId: String!) {
 
 query SeriesFlicks($id: uuid!) {
   Flick_Series(
-    where: { seriesId: { _eq: $id }, flick: { deletedAt: { _is_null: true } } }
+    where: {
+      seriesId: { _eq: $id }
+      flick: { deletedAt: { _is_null: true }, scope: { _eq: Public } }
+    }
   ) {
     order
-    seriesFlickCount {
-      count
-    }
     flick {
-      id
-      producedLink
-      joinLink
-      name
-      previewLink
-      description
-      deletedAt
-      participants {
-        user {
-          picture
-          email
-        }
-      }
+      ...BaseFlick
     }
   }
 }

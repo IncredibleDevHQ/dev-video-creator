@@ -180,7 +180,7 @@ const TriviaSix = () => {
           fontSize={32}
           fill="#1F2937"
           width={620}
-          lineHeight={1.2}
+          lineHeight={1.5}
           text={questions[activeQuestionIndex]?.text}
           fontStyle="bold"
           fontFamily="Poppins"
@@ -201,6 +201,7 @@ const TriviaSix = () => {
           fontStyle="bold"
           fontFamily="Poppins"
           align="center"
+          lineHeight={1.3}
           textTransform="capitalize"
         />
       ) : (
