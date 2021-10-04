@@ -22,7 +22,7 @@ const TriviaSix = () => {
     title?: string
   }>({ enable: false })
 
-  const { fragment, state } =
+  const { fragment, state, updatePayload, payload } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const { getImageDimensions } = useEdit()
@@ -100,10 +100,17 @@ const TriviaSix = () => {
   }, [fragment?.configuration.properties])
 
   useEffect(() => {
+    if (state === 'ready') {
+      updatePayload?.({ activeQuestion: 0 })
+    }
     if (state === 'recording') {
       setActiveQuestionIndex(0)
     }
   }, [state])
+
+  useEffect(() => {
+    setActiveQuestionIndex(payload?.activeQuestion)
+  }, [payload])
 
   const controls = [
     <ControlButton
@@ -112,30 +119,78 @@ const TriviaSix = () => {
       className="my-2"
       appearance="primary"
       disabled={activeQuestionIndex === questions.length - 1}
-      onClick={() => setActiveQuestionIndex(activeQuestionIndex + 1)}
+      onClick={() => {
+        setActiveQuestionIndex(activeQuestionIndex + 1)
+        updatePayload?.({ activeQuestion: activeQuestionIndex + 1 })
+      }}
     />,
   ]
 
-  const studioUserConfig: StudioUserConfig[] = [
-    {
-      x: 565,
-      y: 58,
-      width: 520,
-      height: 390,
-      clipTheme: 'rect',
-      borderWidth: 8,
-      studioUserClipConfig: {
-        x: 150,
-        y: 0,
-        width: 220,
-        height: 390,
-        radius: 8,
-      },
-      backgroundRectX: 705,
-      backgroundRectY: 48,
-      backgroundRectColor: '#FF6E00',
-    },
-  ]
+  const studioCoordinates: StudioUserConfig[] = (() => {
+    switch (fragment?.participants.length) {
+      case 2:
+        return [
+          {
+            x: 705,
+            y: 60,
+            width: 240,
+            height: 180,
+            clipTheme: 'rect',
+            borderWidth: 8,
+            studioUserClipConfig: {
+              x: 10,
+              y: 0,
+              width: 220,
+              height: 180,
+              radius: 8,
+            },
+            backgroundRectX: 705,
+            backgroundRectY: 50,
+            backgroundRectColor: '#FF6E00',
+          },
+          {
+            x: 705,
+            y: 265,
+            width: 240,
+            height: 180,
+            clipTheme: 'rect',
+            borderWidth: 8,
+            studioUserClipConfig: {
+              x: 10,
+              y: 0,
+              width: 220,
+              height: 180,
+              radius: 8,
+            },
+            backgroundRectX: 705,
+            backgroundRectY: 255,
+            backgroundRectColor: '#FF6E00',
+          },
+        ]
+
+      default:
+        return [
+          {
+            x: 565,
+            y: 58,
+            width: 520,
+            height: 390,
+            clipTheme: 'rect',
+            borderWidth: 8,
+            studioUserClipConfig: {
+              x: 150,
+              y: 0,
+              width: 220,
+              height: 390,
+              radius: 8,
+            },
+            backgroundRectX: 705,
+            backgroundRectY: 48,
+            backgroundRectColor: '#FF6E00',
+          },
+        ]
+    }
+  })()
 
   const layerChildren = [
     <Rect
@@ -189,7 +244,7 @@ const TriviaSix = () => {
       ) : (
         <></>
       )}
-      {questions.length > 0 && !questions[activeQuestionIndex].image ? (
+      {questions.length > 0 && !questions[activeQuestionIndex]?.image ? (
         <Text
           x={10}
           verticalAlign="middle"
@@ -241,7 +296,7 @@ const TriviaSix = () => {
       controls={controls}
       layerChildren={layerChildren}
       titleSpalshData={titleSpalshData}
-      studioUserConfig={studioUserConfig}
+      studioUserConfig={studioCoordinates}
     />
   )
 }

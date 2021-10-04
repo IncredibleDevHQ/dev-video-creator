@@ -1,5 +1,4 @@
-import Konva from 'konva'
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Group, Text, Image, Rect, Circle } from 'react-konva'
 import FontFaceObserver from 'fontfaceobserver'
 import { useRecoilValue } from 'recoil'
@@ -15,8 +14,15 @@ import config from '../../../config'
 const PointsTwo = () => {
   const [activePointIndex, setActivePointIndex] = useState<number>(0)
   const [points, setPoints] = useState<string[]>([])
-  const { fragment, state, stream, picture, constraints } =
-    (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const {
+    fragment,
+    state,
+    stream,
+    picture,
+    constraints,
+    updatePayload,
+    payload,
+  } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [titleSpalshData, settitleSpalshData] = useState<{
     enable: boolean
@@ -41,7 +47,6 @@ const PointsTwo = () => {
   ]
 
   const initialX = 32
-  const lineLength = 20
 
   const [incredibleLogo] = useImage(
     `${config.storage.baseUrl}x-incredible.svg`,
@@ -107,31 +112,83 @@ const PointsTwo = () => {
   }, [])
 
   useEffect(() => {
+    if (state === 'ready') {
+      updatePayload?.({
+        activePoint: 0,
+        activeYCoordinate: 0,
+      })
+    }
     if (state === 'recording') {
       setActivePointIndex(0)
     }
   }, [state])
 
-  const studioUserConfig: StudioUserConfig[] = [
-    {
-      x: 565,
-      y: 58,
-      width: 520,
-      height: 390,
-      clipTheme: 'rect',
-      borderWidth: 8,
-      studioUserClipConfig: {
-        x: 150,
-        y: 0,
-        width: 220,
-        height: 390,
-        radius: 8,
-      },
-      backgroundRectX: 705,
-      backgroundRectY: 48,
-      backgroundRectColor: '#C084FC',
-    },
-  ]
+  useEffect(() => {
+    setActivePointIndex(payload?.activePoint)
+    setYCoordinate(payload?.activeYCoordinate)
+  }, [payload])
+
+  const studioCoordinates: StudioUserConfig[] = (() => {
+    switch (fragment?.participants.length) {
+      case 2:
+        return [
+          {
+            x: 705,
+            y: 60,
+            width: 240,
+            height: 180,
+            clipTheme: 'rect',
+            borderColor: '#D1D5DB',
+            borderWidth: 8,
+            studioUserClipConfig: {
+              x: 10,
+              y: 0,
+              width: 220,
+              height: 180,
+              radius: 8,
+            },
+          },
+          {
+            x: 705,
+            y: 265,
+            width: 240,
+            height: 180,
+            clipTheme: 'rect',
+            borderColor: '#D1D5DB',
+            borderWidth: 8,
+            studioUserClipConfig: {
+              x: 40,
+              y: 0,
+              width: 160,
+              height: 180,
+              radius: 8,
+            },
+          },
+        ]
+
+      default:
+        return [
+          {
+            x: 565,
+            y: 58,
+            width: 520,
+            height: 390,
+            clipTheme: 'rect',
+            borderWidth: 8,
+            studioUserClipConfig: {
+              x: 150,
+              y: 0,
+              width: 220,
+              height: 390,
+              radius: 8,
+            },
+            backgroundRectX: 705,
+            backgroundRectY: 48,
+            backgroundRectColor: '#C084FC',
+          },
+        ]
+    }
+  })()
 
   const controls = [
     <ControlButton
@@ -139,10 +196,14 @@ const PointsTwo = () => {
       icon={NextTokenIcon}
       className="my-2"
       appearance="primary"
-      disabled={activePointIndex === points.length}
+      disabled={activePointIndex === points?.length}
       onClick={() => {
         setActivePointIndex(activePointIndex + 1)
         setYCoordinate(yCoordinate + 30)
+        updatePayload?.({
+          activePoint: activePointIndex + 1,
+          activeYCoordinate: yCoordinate + 30,
+        })
       }}
     />,
   ]
@@ -235,7 +296,7 @@ const PointsTwo = () => {
       controls={controls}
       layerChildren={layerChildren}
       titleSpalshData={titleSpalshData}
-      studioUserConfig={studioUserConfig}
+      studioUserConfig={studioCoordinates}
     />
   )
 }

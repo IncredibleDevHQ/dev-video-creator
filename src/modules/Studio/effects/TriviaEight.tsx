@@ -24,9 +24,8 @@ const TriviaEight = () => {
     title?: string
   }>({ enable: false })
 
-  const { fragment, state, stream, picture, constraints } =
+  const { fragment, state, updatePayload, payload } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
-  const userData = (useRecoilValue(userState) as User) || {}
 
   const { getImageDimensions } = useEdit()
   const [isGif, setIsGif] = useState(false)
@@ -102,10 +101,17 @@ const TriviaEight = () => {
   }, [fragment?.configuration.properties])
 
   useEffect(() => {
+    if (state === 'ready') {
+      updatePayload?.({ activeQuestion: 0 })
+    }
     if (state === 'recording') {
       setActiveQuestionIndex(0)
     }
   }, [state])
+
+  useEffect(() => {
+    setActiveQuestionIndex(payload?.activeQuestion)
+  }, [payload])
 
   const controls = [
     <ControlButton
@@ -114,7 +120,10 @@ const TriviaEight = () => {
       className="my-2"
       appearance="primary"
       disabled={activeQuestionIndex === questions.length - 1}
-      onClick={() => setActiveQuestionIndex(activeQuestionIndex + 1)}
+      onClick={() => {
+        setActiveQuestionIndex(activeQuestionIndex + 1)
+        updatePayload?.({ activeQuestion: activeQuestionIndex + 1 })
+      }}
     />,
   ]
 
@@ -173,7 +182,7 @@ const TriviaEight = () => {
       ) : (
         <></>
       )}
-      {questions.length > 0 && !questions[activeQuestionIndex].image ? (
+      {questions.length > 0 && !questions[activeQuestionIndex]?.image ? (
         <Text
           x={10}
           verticalAlign="middle"

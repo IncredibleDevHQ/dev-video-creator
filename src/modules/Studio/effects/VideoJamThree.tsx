@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useRecoilValue } from 'recoil'
-import Konva from 'konva'
-import { Circle, Group, Image, Rect } from 'react-konva'
+import { Circle, Image, Rect } from 'react-konva'
 import { FiPlay, FiPause } from 'react-icons/fi'
 import useImage from 'use-image'
 import { Concourse } from '../components'
@@ -10,7 +9,6 @@ import { CONFIG, StudioUserConfig } from '../components/Concourse'
 import { StudioProviderProps, studioStore } from '../stores'
 import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
 import { Video, VideoConfig } from '../components/Video'
-import { ClipConfig } from '../hooks/use-edit'
 import config from '../../../config'
 
 const VideoJamThree = () => {

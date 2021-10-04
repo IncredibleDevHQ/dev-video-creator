@@ -23,7 +23,7 @@ const TriviaFour = () => {
     title?: string
   }>({ enable: false })
 
-  const { fragment, state } =
+  const { fragment, state, updatePayload, payload } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const { getImageDimensions } = useEdit()
@@ -102,10 +102,17 @@ const TriviaFour = () => {
   }, [fragment?.configuration.properties])
 
   useEffect(() => {
+    if (state === 'ready') {
+      updatePayload?.({ activeQuestion: 0 })
+    }
     if (state === 'recording') {
       setActiveQuestionIndex(0)
     }
   }, [state])
+
+  useEffect(() => {
+    setActiveQuestionIndex(payload?.activeQuestion)
+  }, [payload])
 
   const controls = [
     <ControlButton
@@ -114,33 +121,86 @@ const TriviaFour = () => {
       className="my-2"
       appearance="primary"
       disabled={activeQuestionIndex === questions.length - 1}
-      onClick={() => setActiveQuestionIndex(activeQuestionIndex + 1)}
+      onClick={() => {
+        setActiveQuestionIndex(activeQuestionIndex + 1)
+        updatePayload?.({ activeQuestion: activeQuestionIndex + 1 })
+      }}
     />,
   ]
 
-  const studioUserConfig: StudioUserConfig[] = [
-    {
-      x: 695,
-      y: 120.5,
-      width: 320,
-      height: 240,
-      clipTheme: 'rect',
-      borderWidth: 6,
-      borderColor: '#1F2937',
-      studioUserClipConfig: {
-        x: 80,
-        y: 0,
-        width: 160,
-        height: 240,
-        radius: 8,
-      },
-      backgroundRectX: 765,
-      backgroundRectY: 120.5,
-      backgroundRectColor: '#FF5D01',
-      backgroundRectBorderWidth: 3,
-      backgroundRectBorderColor: '#1F2937',
-    },
-  ]
+  const studioCoordinates: StudioUserConfig[] = (() => {
+    switch (fragment?.participants.length) {
+      case 2:
+        return [
+          {
+            x: 705,
+            y: 60,
+            width: 240,
+            height: 180,
+            clipTheme: 'rect',
+            borderWidth: 6,
+            borderColor: '#1F2937',
+            studioUserClipConfig: {
+              x: 10,
+              y: 0,
+              width: 220,
+              height: 180,
+              radius: 8,
+            },
+            backgroundRectX: 705,
+            backgroundRectY: 70,
+            backgroundRectColor: '#FF5D01',
+            backgroundRectBorderWidth: 3,
+            backgroundRectBorderColor: '#1F2937',
+          },
+          {
+            x: 705,
+            y: 265,
+            width: 240,
+            height: 180,
+            clipTheme: 'rect',
+            borderWidth: 6,
+            borderColor: '#1F2937',
+            studioUserClipConfig: {
+              x: 10,
+              y: 0,
+              width: 220,
+              height: 180,
+              radius: 8,
+            },
+            backgroundRectX: 705,
+            backgroundRectY: 295,
+            backgroundRectColor: '#FF5D01',
+            backgroundRectBorderWidth: 3,
+            backgroundRectBorderColor: '#1F2937',
+          },
+        ]
+      default:
+        return [
+          {
+            x: 565,
+            y: 68,
+            width: 520,
+            height: 390,
+            clipTheme: 'rect',
+            borderWidth: 6,
+            borderColor: '#1F2937',
+            studioUserClipConfig: {
+              x: 150,
+              y: 0,
+              width: 220,
+              height: 390,
+              radius: 8,
+            },
+            backgroundRectX: 705,
+            backgroundRectY: 58,
+            backgroundRectColor: '#FF5D01',
+            backgroundRectBorderWidth: 3,
+            backgroundRectBorderColor: '#1F2937',
+          },
+        ]
+    }
+  })()
 
   const windowOpsImages = <Image image={windowOps} x={860} y={25} />
 
@@ -203,7 +263,7 @@ const TriviaFour = () => {
       ) : (
         <></>
       )}
-      {questions.length > 0 && !questions[activeQuestionIndex].image ? (
+      {questions.length > 0 && !questions[activeQuestionIndex]?.image ? (
         <Text
           x={10}
           verticalAlign="middle"
@@ -255,7 +315,7 @@ const TriviaFour = () => {
       controls={controls}
       layerChildren={layerChildren}
       titleSpalshData={titleSpalshData}
-      studioUserConfig={studioUserConfig}
+      studioUserConfig={studioCoordinates}
     />
   )
 }
