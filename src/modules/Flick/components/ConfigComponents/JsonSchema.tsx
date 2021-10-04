@@ -32,26 +32,28 @@ const JsonSchema = ({
   const [question, setQuestion] = useState<Question>()
   const [questions, setQuestions] = useState<Question[]>([])
   const [loading, setLoading] = useState(false)
+  const [isEdit, setIsEdit] = useState(false)
 
   useEffect(() => {
-    if (!schema.value || schema.value.length <= 0) {
+    if (isEdit) {
+      setConfigured(false)
+    } else if (!schema.value || schema.value.length <= 0) {
       setConfigured(false)
     } else {
       setConfigured(true)
     }
   }, [schema])
   useEffect(() => {
-    if (!value) {
+    if (isEdit) {
       setConfigured(false)
-      return
-    }
-    setConfigured(true)
+    } else if (!value) {
+      setConfigured(false)
+    } else setConfigured(true)
 
     setQuestions(value || [])
   }, [value])
 
   const addQuestion = async (file: File) => {
-    setConfigured(false)
     setLoadingAssets(true)
     setLoading(true)
     const pic = await uploadFile({
@@ -64,6 +66,7 @@ const JsonSchema = ({
   }
 
   const handleOnClick = () => {
+    setIsEdit(true)
     if (!question?.text) return
 
     setQuestions((questions) => [...questions, question])
