@@ -312,7 +312,7 @@ const CodeJamEleven = () => {
       </Group>
     ),
     <Image image={pytorchLogo} x={30} y={CONFIG.height - 70} />,
-    <Image image={incredibleLogo} x={820} y={CONFIG.height - 70} />,
+    <Image image={incredibleLogo} x={810} y={CONFIG.height - 70} />,
   ]
 
   return (

@@ -250,8 +250,8 @@ const videoJamEleven = () => {
           height={CONFIG.height - 2}
         />,
         <Video videoElement={videoElement} videoConfig={videoConfig} />,
-        <Image image={pytorchLogo} x={30} y={CONFIG.height - 70} />,
-        <Image image={incredibleLogo} x={820} y={CONFIG.height - 70} />,
+        <Image image={pytorchLogo} x={30} y={CONFIG.height - 60} />,
+        <Image image={incredibleLogo} x={810} y={CONFIG.height - 60} />,
       ]
     : [<></>]
 
