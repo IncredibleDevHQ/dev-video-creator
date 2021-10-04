@@ -108,6 +108,7 @@ const FragmentConfiguration = ({
             setFieldValue={setFieldValue}
             handleChange={handleChange}
             value={values[attribute.key]}
+            type={fragment.type}
             setConfigured={setConfigured}
             setLoadingAssets={setLoadingAssets}
             selectedVideoLink={selectedVideoLink}
