@@ -53,7 +53,7 @@ const Gif = ({
           w: (canvas && canvas.width) || 0,
           h: (canvas && canvas.height) || 0,
         },
-        maxWidth,window.gifler is not a function
+        maxWidth,
         maxHeight,
         availableWidth,
         availableHeight,
