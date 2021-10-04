@@ -265,6 +265,20 @@ const Concourse = ({
                 />
                 <Group ref={groupRef} onClick={onLayerClick}>
                   {(() => {
+                    if (
+                      payload?.status === Fragment_Status_Enum_Enum.CountDown
+                    ) {
+                      return (
+                        <Rect
+                          x={0}
+                          y={0}
+                          width={CONFIG.width}
+                          height={CONFIG.height}
+                          fill="#202026"
+                          cornerRadius={8}
+                        />
+                      )
+                    }
                     if (payload?.status === Fragment_Status_Enum_Enum.Live) {
                       layerRef.current?.destroyChildren()
                       if (titleSpalshData?.enable && isTitleSplash) {
@@ -291,6 +305,7 @@ const Concourse = ({
                 </Group>
                 {!disableUserMedia &&
                   !isTitleSplash &&
+                  payload?.status !== Fragment_Status_Enum_Enum.CountDown &&
                   payload?.status !== Fragment_Status_Enum_Enum.Ended && (
                     <>
                       <StudioUser
