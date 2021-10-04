@@ -308,7 +308,7 @@ const Studio = () => {
           <div className="flex-1 flex flex-row items-center">
             <FiArrowLeft
               className="cursor-pointer mr-2"
-              onClick={() => {
+              onClick={async () => {
                 setFragment(undefined)
                 setStudio({
                   ...studio,
@@ -318,7 +318,13 @@ const Studio = () => {
                 history.goBack()
               }}
             />
-            <Heading className="font-semibold">
+            <Heading
+              className="font-semibold"
+              onClick={() => {
+                stream?.getTracks().forEach((track) => track.stop())
+                history.goBack()
+              }}
+            >
               {fragment.flick.name} / {fragment.name}
             </Heading>
           </div>

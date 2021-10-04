@@ -57,6 +57,10 @@ import CodeJamEight from './CodeJamEight'
 import PointsEight from './PointsEight'
 import TriviaEight from './TriviaEight'
 import SlidesThree from './SlidesThree'
+import CodeJamNine from './CodeJamNine'
+import PointsNine from './PointsNine'
+import TriviaNine from './TriviaNine'
+import SlidesFour from './SlidesFour'
 
 const themeEnum = 'theme'
 export interface Effect {
@@ -127,6 +131,7 @@ const getCodeJamTheme = (theme: any) => {
   if (theme.value === '5') return CodeJamSix
   if (theme.value === '6') return CodeJamSeven
   if (theme.value === '7') return CodeJamEight
+  if (theme.value === '8') return CodeJamNine
   return CodeJam
 }
 
@@ -138,6 +143,7 @@ const getTriviaTheme = (theme: any) => {
   if (theme.value === '5') return TriviaSix
   if (theme.value === '6') return TriviaSeven
   if (theme.value === '7') return TriviaEight
+  if (theme.value === '8') return TriviaNine
   return Trivia
 }
 
@@ -149,11 +155,13 @@ const getPointsTheme = (theme: any) => {
   if (theme.value === '5') return PointsSix
   if (theme.value === '6') return PointsSeven
   if (theme.value === '7') return PointsEight
+  if (theme.value === '8') return PointsNine
   return Points
 }
 
 const getSlideTheme = (theme: any) => {
   if (theme.value === '7') return SlidesTwo
+  if (theme.value === '8') return SlidesFour
   if (theme.value === '5') return SlidesThree
   return Slides
 }

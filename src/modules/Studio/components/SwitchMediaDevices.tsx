@@ -45,7 +45,10 @@ const SwitchMediaDevices = ({
 
   useEffect(() => {
     if (!cameraDevices) return
-    setcam({ value: cameraDevices[0].deviceId, label: cameraDevices[0].label })
+    setcam({
+      value: cameraDevices[0]?.deviceId,
+      label: cameraDevices[0]?.label,
+    })
     const options = cameraDevices.map((cam) => {
       return { value: cam.deviceId, label: cam.label }
     })
