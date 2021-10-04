@@ -13,7 +13,7 @@ import { Video, VideoConfig } from '../components/Video'
 import { ClipConfig } from '../hooks/use-edit'
 import config from '../../../config'
 
-const videoJamEight = () => {
+const VideoJamNine = () => {
   const { state, fragment, payload, updatePayload } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [titleSpalshData, settitleSpalshData] = useState<{
@@ -119,6 +119,7 @@ const videoJamEight = () => {
     cornerRadius: 0,
     performClip: true,
     borderColor: '#111111',
+    videoFill: '#111111',
     borderWidth: 4,
   }
 
@@ -267,4 +268,4 @@ const videoJamEight = () => {
   )
 }
 
-export default videoJamEight
+export default VideoJamNine

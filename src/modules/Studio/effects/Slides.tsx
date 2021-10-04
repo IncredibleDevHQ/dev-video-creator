@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
 import { Group, Image, Rect } from 'react-konva'
@@ -7,8 +8,10 @@ import { NextTokenIcon } from '../../../components'
 import { Concourse } from '../components'
 import { CONFIG } from '../components/Concourse'
 import { ControlButton } from '../components/MissionControl'
-import { StudioProviderProps, studioStore } from '../stores'
+import { canvasStore, StudioProviderProps, studioStore } from '../stores'
 import { getDimensions } from './effects'
+// eslint-disable-next-line import/no-unresolved
+import Gif from '../components/Gif'
 
 const Slides = () => {
   const [activeSlideIndex, setActiveSlideIndex] = useState<number>(0)
@@ -24,6 +27,8 @@ const Slides = () => {
   const imageRef = useRef<Konva.Image | null>(null)
   const [image] = useImage(picture as string, 'anonymous')
   const [slide] = useImage(slides[activeSlideIndex] || '', 'anonymous')
+  const [isGif, setIsGif] = useState(false)
+  const [gifUrl, setGifUrl] = useState('')
 
   const [slideDim, setSlideDim] = useState<{
     width: number
@@ -33,6 +38,12 @@ const Slides = () => {
   }>({ width: 0, height: 0, x: 0, y: 0 })
 
   useEffect(() => {
+    if (slide?.src.split('.').pop() === 'gif') {
+      setIsGif(true)
+      setGifUrl(slide.src)
+    } else {
+      setIsGif(false)
+    }
     getDimensions(
       {
         w: (slide && slide.width) || 0,
@@ -123,11 +134,12 @@ const Slides = () => {
         fill="#E5E5E5"
       />
     </Group>,
-    <Group y={30} height={480} width={600} key="group1">
+    <Group height={480} width={600} key="group1">
       {slides.length > 0 && (
         <>
           <Group
             x={30}
+            y={30}
             fill="#E5E5E5"
             width={600}
             height={480}
@@ -145,24 +157,39 @@ const Slides = () => {
               ctx.closePath()
             }}
           >
-            <Image
-              image={slide}
-              fill="#E5E5E5"
-              width={slideDim.width}
-              y={slideDim.y}
-              x={slideDim.x}
-              height={slideDim.height}
-              shadowOpacity={0.3}
-              shadowOffset={{ x: 0, y: 1 }}
-              shadowBlur={2}
-            />
+            {!isGif && (
+              <Image
+                image={slide}
+                fill="#E5E5E5"
+                width={slideDim.width}
+                y={slideDim.y}
+                x={slideDim.x}
+                height={slideDim.height}
+                shadowOpacity={0.3}
+                shadowOffset={{ x: 0, y: 1 }}
+                shadowBlur={2}
+              />
+            )}
           </Group>
+          {isGif && (
+            <Gif
+              src={gifUrl}
+              maxWidth={600}
+              maxHeight={480}
+              availableWidth={640}
+              availableHeight={540}
+              x={0}
+              y={0}
+            />
+          )}
         </>
       )}
     </Group>,
     <Group
       y={30}
       x={650}
+      offsetX={280}
+      scaleX={-1}
       clipFunc={(ctx: any) => {
         const x = 0
         const y = 0
