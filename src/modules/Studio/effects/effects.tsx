@@ -11,7 +11,6 @@ import Slides from './Slides'
 import Points from './Points'
 import { CONFIG } from '../components/Concourse'
 import CustomSplash from './CustomSplash'
-import Discussion from './Discussion'
 import SplashSix from './SplashSix'
 import Outro from './Outro'
 import SplashSeven from './SplashSeven'
@@ -217,8 +216,6 @@ export const getEffect = (
       return getSlideTheme(theme)
     case Fragment_Type_Enum_Enum.Points:
       return getPointsTheme(theme)
-    case Fragment_Type_Enum_Enum.Discussion:
-      return Discussion
     case Fragment_Type_Enum_Enum.Outro:
       return Outro
     default:

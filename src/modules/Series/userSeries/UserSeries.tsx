@@ -26,7 +26,6 @@ const UserSeries = ({
 
   const { data, loading, error } = useGetUserSeriesQuery({
     variables: {
-      userId: userData.sub as string,
       limit: 5,
     },
   })
@@ -106,10 +105,7 @@ const UserSeries = ({
                 </Heading>
 
                 <Text className="  text-sm flex justify-end align-bottom object-bottom">
-                  {series.Flick_Series_aggregate.aggregate?.count}
-                  {series.Flick_Series_aggregate.aggregate?.count === 1
-                    ? ' Flick'
-                    : ' Flicks'}
+                  {series.flickCount?.count === 1 ? ' Flick' : ' Flicks'}
                 </Text>
               </div>
             </div>
