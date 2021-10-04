@@ -243,7 +243,7 @@ const FlickTilePublished = ({
               ))}
             </div>
           }
-          placement="bottom-start"
+          placement="top-end"
           hideOnOutsideClick
         >
           <FiMoreHorizontal
@@ -324,7 +324,7 @@ const FlicksView = () => {
             <Text className="text-base mt-5">
               Uh-oh, you don&apos;t have any flicks yet.
             </Text>
-            <div className="flex flex-row">
+            {/* <div className="flex flex-row">
               <NewFlickBanner seriesId={params.id} />
               <Button
                 type="button"
@@ -335,7 +335,7 @@ const FlicksView = () => {
               >
                 Add Flick
               </Button>
-            </div>
+            </div> */}
           </div>
         )}
       </div>
