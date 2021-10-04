@@ -49,7 +49,7 @@ const TriviaTwo = () => {
 
   const [isGif, setIsGif] = useState(false)
   const [gifUrl, setGifUrl] = useState('')
-  const [currentQuestion, setCurrentQuestion] = useState(1)
+  const [currentQuestion, setCurrentQuestion] = useState<number>(0)
 
   const [imgDim, setImgDim] = useState<{
     width: number
@@ -108,8 +108,11 @@ const TriviaTwo = () => {
   }, [state])
 
   useEffect(() => {
+    console.log('que', currentQuestion)
     setCurrentQuestion(activeQuestionIndex + 1)
   }, [payload])
+
+  console.log('currentQuestion', currentQuestion)
 
   const controls = [
     <ControlButton
