@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Image } from 'react-konva'
 import useEdit from '../hooks/use-edit'
+import 'gifler'
 
 const Gif = ({
   src,
@@ -52,7 +53,7 @@ const Gif = ({
           w: (canvas && canvas.width) || 0,
           h: (canvas && canvas.height) || 0,
         },
-        maxWidth,
+        maxWidth,window.gifler is not a function
         maxHeight,
         availableWidth,
         availableHeight,

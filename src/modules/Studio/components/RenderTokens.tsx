@@ -133,7 +133,7 @@ export const controls = (
 ) => {
   const { updatePayload, state } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
-  return state === 'ready' || state === 'recording'
+  return state === 'recording'
     ? [
         <ControlButton
           key="nextToken"
