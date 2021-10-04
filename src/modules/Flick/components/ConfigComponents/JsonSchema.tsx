@@ -32,9 +32,14 @@ const JsonSchema = ({
   const [question, setQuestion] = useState<Question>()
   const [questions, setQuestions] = useState<Question[]>([])
   const [loading, setLoading] = useState(false)
-  if (!schema.value || schema.value.length <= 0) {
-    setConfigured(false)
-  }
+
+  useEffect(() => {
+    if (!schema.value || schema.value.length <= 0) {
+      setConfigured(false)
+    } else {
+      setConfigured(true)
+    }
+  }, [schema])
   useEffect(() => {
     if (!value) {
       setConfigured(false)
@@ -46,6 +51,7 @@ const JsonSchema = ({
   }, [value])
 
   const addQuestion = async (file: File) => {
+    setConfigured(false)
     setLoadingAssets(true)
     setLoading(true)
     const pic = await uploadFile({
@@ -83,9 +89,10 @@ const JsonSchema = ({
           <TextArea
             className="text-lg w-1/2"
             name={schema.key}
-            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+              setConfigured(false)
               setQuestion({ ...question, text: e.target.value })
-            }
+            }}
             value={question?.text}
             placeholder={schema.description}
             label="Add a Question"
@@ -96,6 +103,7 @@ const JsonSchema = ({
             key={`${schema.key}`}
             onChange={(e) =>
               // @ts-ignore
+
               e.target.files?.[0] && addQuestion(e.target.files[0])
             }
             typeof="image/*"

@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react'
 import { Group, Circle, Text, Rect, Image } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
+import { NextLineIcon, NextTokenIcon } from '../../../components'
 import config from '../../../config'
 import { API } from '../../../constants'
 import {
@@ -11,12 +12,13 @@ import {
 } from '../../../generated/graphql'
 import { Concourse } from '../components'
 import { CONFIG, StudioUserConfig } from '../components/Concourse'
+import { ControlButton } from '../components/MissionControl'
 import RenderTokens, {
   controls,
   getRenderedTokens,
   RenderFocus,
 } from '../components/RenderTokens'
-import useCode from '../hooks/use-code'
+import useCode, { ComputedToken } from '../hooks/use-code'
 import { StudioProviderProps, studioStore } from '../stores'
 
 export const codeConfig = {
@@ -30,7 +32,7 @@ interface Position {
   currentIndex: number
 }
 
-const CodeJamSix = () => {
+const CodeJamEleven = () => {
   const { fragment, payload, updatePayload, state, isHost } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
@@ -48,15 +50,15 @@ const CodeJamSix = () => {
   const [focusCode, setFocusCode] = useState<boolean>(false)
 
   const [incredibleLogo] = useImage(
-    `${config.storage.baseUrl}x-incredible-black.svg`,
+    `${config.storage.baseUrl}x-incredible.svg`,
     'anonymous'
   )
-  const [tensorflowLogo] = useImage(
-    `${config.storage.baseUrl}100DaysOfTF.svg`,
+  const [pytorchLogo] = useImage(
+    `${config.storage.baseUrl}pytorch.svg`,
     'anonymous'
   )
-  const [tensorflowBg] = useImage(
-    `${config.storage.baseUrl}tensorflow_bg.svg`,
+  const [pytorchBg] = useImage(
+    `${config.storage.baseUrl}pytorch_bg.svg`,
     'anonymous'
   )
 
@@ -131,118 +133,106 @@ const CodeJamSix = () => {
       case 2:
         return [
           {
-            x: 735,
+            x: 700,
             y: 60,
             width: 240,
             height: 180,
             clipTheme: 'rect',
-            borderWidth: 8,
+            borderWidth: 12,
+            borderColor: '#8B008B',
             studioUserClipConfig: {
-              x: 40,
+              x: 30,
               y: 0,
-              width: 160,
+              width: 180,
               height: 180,
-              radius: 8,
+              radius: 90,
             },
-            backgroundRectX: 765,
-            backgroundRectY: 50,
-            backgroundRectColor: '#FF6E00',
           },
           {
-            x: 735,
+            x: 700,
             y: 265,
             width: 240,
             height: 180,
             clipTheme: 'rect',
-            borderWidth: 8,
+            borderWidth: 12,
+            borderColor: '#8B008B',
             studioUserClipConfig: {
-              x: 40,
+              x: 30,
               y: 0,
-              width: 160,
+              width: 180,
               height: 180,
-              radius: 8,
+              radius: 90,
             },
-            backgroundRectX: 765,
-            backgroundRectY: 255,
-            backgroundRectColor: '#FF6E00',
           },
         ]
       case 3:
         return [
           {
-            x: 775,
+            x: 705,
             y: 58.5,
             width: 160,
             height: 120,
             clipTheme: 'rect',
-            borderWidth: 8,
+            borderWidth: 12,
+            borderColor: '#8B008B',
             studioUserClipConfig: {
-              x: 0,
+              x: 20,
               y: 0,
-              width: 160,
+              width: 120,
               height: 120,
-              radius: 8,
+              radius: 60,
             },
-            backgroundRectX: 765,
-            backgroundRectY: 48.5,
-            backgroundRectColor: '#FF6E00',
           },
           {
-            x: 775,
+            x: 705,
             y: 198.5,
             width: 160,
             height: 120,
             clipTheme: 'rect',
-            borderWidth: 8,
+            borderWidth: 12,
+            borderColor: '#8B008B',
             studioUserClipConfig: {
-              x: 0,
+              x: 20,
               y: 0,
-              width: 160,
+              width: 120,
               height: 120,
-              radius: 8,
+              radius: 60,
             },
-            backgroundRectX: 765,
-            backgroundRectY: 188.5,
-            backgroundRectColor: '#FF6E00',
           },
           {
-            x: 775,
+            x: 705,
             y: 338.5,
             width: 160,
             height: 120,
             clipTheme: 'rect',
-            borderWidth: 8,
+            borderWidth: 12,
+            borderColor: '#8B008B',
             studioUserClipConfig: {
-              x: 0,
+              x: 20,
               y: 0,
-              width: 160,
+              width: 120,
               height: 120,
-              radius: 8,
+              radius: 60,
             },
-            backgroundRectX: 765,
-            backgroundRectY: 328.5,
-            backgroundRectColor: '#FF6E00',
           },
         ]
       default:
         return [
           {
-            x: 695,
-            y: 120.5,
+            x: 660,
+            y: 140.5,
             width: 320,
             height: 240,
             clipTheme: 'rect',
-            borderWidth: 8,
+            borderWidth: 16,
+            borderColor: '#8B008B',
             studioUserClipConfig: {
-              x: 80,
+              x: 60,
               y: 0,
-              width: 160,
-              height: 240,
-              radius: 8,
+              width: 200,
+              height: 200,
+              radius: 100,
             },
-            backgroundRectX: 765,
-            backgroundRectY: 110.5,
-            backgroundRectColor: '#FF6E00',
           },
         ]
     }
@@ -259,7 +249,7 @@ const CodeJamSix = () => {
       stroke="#111111"
     />,
     <Image
-      image={tensorflowBg}
+      image={pytorchBg}
       x={1}
       y={1}
       fill="#F5F6F7"
@@ -267,21 +257,8 @@ const CodeJamSix = () => {
       height={CONFIG.height - 2}
     />,
     <Rect
-      x={27}
-      y={48}
-      width={704}
-      height={396}
-      fillLinearGradientStartPoint={{
-        x: -CONFIG.width / 2,
-        y: -CONFIG.height / 2,
-      }}
-      fillLinearGradientEndPoint={{ x: CONFIG.width / 2, y: CONFIG.height / 2 }}
-      fillLinearGradientColorStops={[0.5, '#FF6E00 ', 1, '#FF9000']}
-      cornerRadius={8}
-    />,
-    <Rect
       x={37}
-      y={58}
+      y={56}
       width={704}
       height={396}
       fill="#202026"
@@ -320,8 +297,8 @@ const CodeJamSix = () => {
         }}
       />
     ),
-    <Image image={incredibleLogo} x={25} y={CONFIG.height - 70} />,
-    <Image image={tensorflowLogo} x={820} y={CONFIG.height - 60} />,
+    <Image image={pytorchLogo} x={30} y={CONFIG.height - 70} />,
+    <Image image={incredibleLogo} x={810} y={CONFIG.height - 70} />,
   ]
 
   return (
@@ -334,4 +311,4 @@ const CodeJamSix = () => {
   )
 }
 
-export default CodeJamSix
+export default CodeJamEleven

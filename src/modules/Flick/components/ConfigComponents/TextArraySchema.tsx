@@ -7,10 +7,8 @@ import { GetSchemaElementProps } from '../Effects'
 const TextArraySchema = ({
   schema,
   handleChange,
-
-  value,
-
   setConfigured,
+  value,
 }: GetSchemaElementProps) => {
   const addToFormik = (valueArray: any) => {
     const event = new Event('input', { bubbles: true })
@@ -23,9 +21,13 @@ const TextArraySchema = ({
   }
   const [currentPoint, setCurrentPoint] = useState<string>()
   const [points, setPoints] = useState<string[]>([])
-  if (!schema.value || schema.value.length <= 0) {
-    setConfigured(false)
-  }
+  useEffect(() => {
+    if (!schema.value || schema.value.length <= 0) {
+      setConfigured(false)
+    } else {
+      setConfigured(true)
+    }
+  }, [schema])
   useEffect(() => {
     if (!value) return
     setConfigured(true)
@@ -59,9 +61,10 @@ const TextArraySchema = ({
             // eslint-disable-next-line react/no-array-index-key
             className="text-lg"
             name={schema.key}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              setConfigured(false)
               setCurrentPoint(e.target.value)
-            }
+            }}
             value={currentPoint}
             placeholder={schema.description}
             label="Add a Point"
