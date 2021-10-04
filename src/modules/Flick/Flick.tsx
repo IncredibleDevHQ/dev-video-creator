@@ -30,7 +30,7 @@ import { User, userState } from '../../stores/user.store'
 
 const Flick = () => {
   const { id, fragmentId } = useParams<{ id: string; fragmentId?: string }>()
-  const { data, error, loading, refetch } = useGetFlickByIdQuery({
+  const { data, error, loading, refetch, called } = useGetFlickByIdQuery({
     variables: { id },
   })
   const [flick, setFlick] = useRecoilState(currentFlickStore)
@@ -70,7 +70,7 @@ const Flick = () => {
     setStudio({ ...studio, isHost })
   }, [flick])
 
-  if (loading) return <ScreenState title="Just a jiffy" loading />
+  if (loading && !called) return <ScreenState title="Just a jiffy" loading />
 
   if (error)
     return (
