@@ -118,6 +118,7 @@ const VideoJamSix = () => {
     cornerRadius: 8,
     performClip: true,
     backgroundRectX: 27,
+    videoFill: '#1F2937',
     backgroundRectY: 48,
     backgroundRectColor: '#FF5D01',
     borderColor: '#1F2937',

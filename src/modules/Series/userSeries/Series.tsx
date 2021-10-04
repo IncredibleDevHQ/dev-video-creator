@@ -1,8 +1,6 @@
 import React from 'react'
-import { useRecoilValue } from 'recoil'
 import { Link } from 'react-router-dom'
 import { useGetUserSeriesQuery } from '../../../generated/graphql'
-import { User, userState } from '../../../stores/user.store'
 import {
   Text,
   Heading,
@@ -12,11 +10,8 @@ import {
 } from '../../../components'
 
 const Series = () => {
-  const userdata = (useRecoilValue(userState) as User) || {}
-
   const { data, loading, error } = useGetUserSeriesQuery({
     variables: {
-      userId: userdata.sub as string,
       limit: 60,
     },
   })
@@ -64,10 +59,7 @@ const Series = () => {
                 </Heading>
 
                 <Text className="  text-sm flex justify-end align-bottom object-bottom">
-                  {series.Flick_Series_aggregate.aggregate?.count}
-                  {series.Flick_Series_aggregate.aggregate?.count === 1
-                    ? ' Flick'
-                    : ' Flicks'}
+                  {series.flickCount?.count === 1 ? ' Flick' : ' Flicks'}
                 </Text>
               </div>
             </div>

@@ -78,7 +78,6 @@ const Slides = () => {
         (property: any) => property.type === 'file[]'
       )?.value
     )
-
     // setConfig of titleSpalsh
     settitleSpalshData({
       enable: fragment.configuration.properties.find(
