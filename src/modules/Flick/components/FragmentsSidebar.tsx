@@ -384,6 +384,7 @@ const FragmentItem = ({
           }}
           fragmentId={fragment.id}
           fragmentName={fragment.name || ''}
+          flickId={flickId}
         />
       </div>
     </div>

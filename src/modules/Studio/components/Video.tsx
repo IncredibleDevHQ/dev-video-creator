@@ -13,6 +13,7 @@ export interface VideoConfig {
   borderWidth?: number
   cornerRadius?: number
   performClip: boolean
+  videoFill?: string
   backgroundRectX?: number
   backgroundRectY?: number
   backgroundRectColor?: string
@@ -33,12 +34,33 @@ export const Video = ({
     width: (CONFIG.height * 16) / 9,
     height: CONFIG.height,
   })
+  const { getImageDimensions } = useEdit()
+  const [imgDim, setImgDim] = useState<{
+    width: number
+    height: number
+    x: number
+    y: number
+  }>({ width: 0, height: 0, x: 0, y: 0 })
 
   const { clipRect } = useEdit()
 
   // when video is loaded, we should read it size
   React.useEffect(() => {
     const onload = () => {
+      setImgDim(
+        getImageDimensions(
+          {
+            w: (videoElement && videoElement.videoWidth) || 0,
+            h: (videoElement && videoElement.videoHeight) || 0,
+          },
+          videoConfig.width,
+          videoConfig.height,
+          videoConfig.width,
+          videoConfig.height,
+          videoConfig.x ? videoConfig.x : 0,
+          videoConfig.y ? videoConfig.y : 0
+        )
+      )
       setSize({
         width:
           (CONFIG.height * videoElement.videoWidth) / videoElement.videoHeight,
@@ -51,7 +73,23 @@ export const Video = ({
     }
   }, [videoElement])
 
-  // use Konva.Animation to redraw a layer
+  useEffect(() => {
+    setImgDim(
+      getImageDimensions(
+        {
+          w: (videoElement && videoElement.videoWidth) || 0,
+          h: (videoElement && videoElement.videoHeight) || 0,
+        },
+        videoConfig.width,
+        videoConfig.height,
+        videoConfig.width,
+        videoConfig.height,
+        videoConfig.x ? videoConfig.x : 0,
+        videoConfig.y ? videoConfig.y : 0
+      )
+    )
+  }, [])
+
   useEffect(() => {
     // @ts-ignore
     const layer = imageRef.current?.getLayer()
@@ -68,61 +106,57 @@ export const Video = ({
     <>
       <Rect
         x={
-          videoConfig.backgroundRectX ||
-          videoConfig.x ||
-          (videoConfig.width -
-            (videoConfig.height * videoElement.videoWidth) /
-              videoElement.videoHeight) /
-            2
+          imgDim.x -
+          ((videoConfig.x ? videoConfig.x : 0) -
+            (videoConfig?.backgroundRectX ? videoConfig?.backgroundRectX : 0))
         }
-        y={videoConfig.backgroundRectY || videoConfig.y || 0}
-        width={
-          (videoConfig.height * videoElement.videoWidth) /
-          videoElement.videoHeight
+        y={
+          imgDim.y -
+          ((videoConfig.y ? videoConfig.y : 0) -
+            (videoConfig.backgroundRectY ? videoConfig?.backgroundRectY : 0))
         }
+        //  videoConfig.backgroundRectY || imgDim.y || 0}
+        width={imgDim.width}
         fill={videoConfig.backgroundRectColor}
-        height={videoConfig.height}
+        height={imgDim.height}
         stroke={videoConfig.backgroundRectBorderColor}
         strokeWidth={videoConfig?.backgroundRectBorderWidth || 0}
         cornerRadius={videoConfig?.cornerRadius || 0}
       />
       <Rect
         x={
-          videoConfig.x ||
-          (videoConfig.width -
-            (videoConfig.height * videoElement.videoWidth) /
+          imgDim.x ||
+          (imgDim.width -
+            (imgDim.height * videoElement.videoWidth) /
               videoElement.videoHeight) /
             2
         }
-        y={videoConfig.y || 0}
-        width={
-          (videoConfig.height * videoElement.videoWidth) /
-          videoElement.videoHeight
-        }
-        height={videoConfig.height}
+        y={imgDim.y || 0}
+        width={imgDim.width}
+        height={imgDim.height}
         stroke={videoConfig.borderColor}
         strokeWidth={videoConfig?.borderWidth || 0}
         cornerRadius={videoConfig?.cornerRadius || 0}
       />
       <Group
         x={
-          videoConfig.x ||
-          (videoConfig.width -
-            (videoConfig.height * videoElement.videoWidth) /
+          imgDim.x ||
+          (imgDim.width -
+            (imgDim.height * videoElement.videoWidth) /
               videoElement.videoHeight) /
             2
         }
-        y={videoConfig.y || 0}
+        y={imgDim.y || 0}
+        width={imgDim.width}
+        height={imgDim.height}
         clipFunc={
           videoConfig.performClip &&
           ((ctx: any) => {
             clipRect(ctx, {
               x: 0,
               y: 0,
-              width:
-                (videoConfig.height * videoElement.videoWidth) /
-                videoElement.videoHeight,
-              height: videoConfig.height,
+              width: imgDim.width,
+              height: imgDim.height,
               radius: videoConfig?.cornerRadius || 0,
             })
           })
@@ -131,11 +165,8 @@ export const Video = ({
         <Image
           ref={imageRef}
           image={videoElement}
-          width={
-            (videoConfig.height * videoElement.videoWidth) /
-            videoElement.videoHeight
-          }
-          height={videoConfig.height}
+          width={imgDim.width}
+          height={imgDim.height}
         />
       </Group>
     </>

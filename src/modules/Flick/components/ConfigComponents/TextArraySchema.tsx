@@ -7,11 +7,11 @@ import { GetSchemaElementProps } from '../Effects'
 const TextArraySchema = ({
   schema,
   handleChange,
-
-  value,
-
   setConfigured,
+  value,
 }: GetSchemaElementProps) => {
+  console.log('welcome to text array')
+  const [isEdit, setIsEdit] = useState(false)
   const addToFormik = (valueArray: any) => {
     const event = new Event('input', { bubbles: true })
     dispatchEvent(event)
@@ -23,16 +23,28 @@ const TextArraySchema = ({
   }
   const [currentPoint, setCurrentPoint] = useState<string>()
   const [points, setPoints] = useState<string[]>([])
-  if (!schema.value || schema.value.length <= 0) {
-    setConfigured(false)
-  }
   useEffect(() => {
-    if (!value) return
-    setConfigured(true)
+    if (isEdit) {
+      setConfigured(false)
+    } else if (!schema.value || schema.value.length <= 0) {
+      setConfigured(false)
+    } else {
+      setConfigured(true)
+    }
+  }, [schema])
+
+  useEffect(() => {
+    console.log('setConfigured(false)')
+    if (isEdit) {
+      setConfigured(false)
+    } else if (!value) {
+      setConfigured(false)
+    } else setConfigured(true)
     setPoints(value)
   }, [value])
 
   const handleOnAdd = () => {
+    setIsEdit(true)
     if (!currentPoint) return
 
     setPoints((points) => [...points, currentPoint])
@@ -59,9 +71,10 @@ const TextArraySchema = ({
             // eslint-disable-next-line react/no-array-index-key
             className="text-lg"
             name={schema.key}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              setConfigured(false)
               setCurrentPoint(e.target.value)
-            }
+            }}
             value={currentPoint}
             placeholder={schema.description}
             label="Add a Point"
@@ -79,14 +92,14 @@ const TextArraySchema = ({
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2">
-        {points.map((ques, index) => (
+        {points?.map((ques, index) => (
           <div
             key={ques}
             className="border-blue-200 px-4 py-2 m-1 flex items-center justify-between gap-2"
           >
             <div className="flex flex-col">
               <span className="font-bold">Point {index + 1}:</span>
-              <span className="capitalize text-justify">{ques}</span>
+              <span className="text-justify">{ques}</span>
             </div>
             <Button
               onClick={() => handleDeleteText(ques)}
