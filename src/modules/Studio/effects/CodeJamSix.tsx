@@ -3,7 +3,6 @@ import React, { useEffect, useState } from 'react'
 import { Group, Circle, Text, Rect, Image } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
-import { NextLineIcon, NextTokenIcon } from '../../../components'
 import config from '../../../config'
 import { API } from '../../../constants'
 import {
@@ -12,9 +11,12 @@ import {
 } from '../../../generated/graphql'
 import { Concourse } from '../components'
 import { CONFIG, StudioUserConfig } from '../components/Concourse'
-import { ControlButton } from '../components/MissionControl'
-import RenderTokens from '../components/RenderTokens'
-import useCode, { ComputedToken } from '../hooks/use-code'
+import RenderTokens, {
+  controls,
+  getRenderedTokens,
+  RenderFocus,
+} from '../components/RenderTokens'
+import useCode from '../hooks/use-code'
 import { StudioProviderProps, studioStore } from '../stores'
 
 export const codeConfig = {
@@ -43,6 +45,7 @@ const CodeJamSix = () => {
     prevIndex: -1,
     currentIndex: 0,
   })
+  const [focusCode, setFocusCode] = useState<boolean>(false)
 
   const [incredibleLogo] = useImage(
     `${config.storage.baseUrl}x-incredible-black.svg`,
@@ -95,7 +98,7 @@ const CodeJamSix = () => {
     if (!data?.TokenisedCode) return
     initUseCode({
       tokens: data.TokenisedCode.data,
-      canvasWidth: 700,
+      canvasWidth: 585,
       canvasHeight: 360,
       gutter: 5,
       fontSize: codeConfig.fontSize,
@@ -107,6 +110,7 @@ const CodeJamSix = () => {
       prevIndex: payload?.prevIndex || 0,
       currentIndex: payload?.currentIndex || 1,
     })
+    setFocusCode(false)
   }, [payload])
 
   useEffect(() => {
@@ -121,41 +125,6 @@ const CodeJamSix = () => {
       })
     }
   }, [state])
-
-  const controls =
-    isHost && state === 'recording'
-      ? [
-          <ControlButton
-            key="nextToken"
-            icon={NextTokenIcon}
-            className="my-2"
-            appearance="primary"
-            onClick={() => {
-              updatePayload?.({
-                currentIndex: position.currentIndex + 1,
-                prevIndex: position.currentIndex,
-              })
-            }}
-          />,
-          <ControlButton
-            className="my-2"
-            key="nextLine"
-            icon={NextLineIcon}
-            appearance="primary"
-            onClick={() => {
-              const current = computedTokens.current[position.currentIndex]
-              let next = computedTokens.current.findIndex(
-                (t) => t.lineNumber > current.lineNumber
-              )
-              if (next === -1) next = computedTokens.current.length
-              updatePayload?.({
-                prevIndex: position.currentIndex,
-                currentIndex: next,
-              })
-            }}
-          />,
-        ]
-      : [<></>]
 
   const studioCoordinates: StudioUserConfig[] = (() => {
     switch (fragment?.participants.length) {
@@ -336,6 +305,21 @@ const CodeJamSix = () => {
         )}
       </Group>
     ),
+    focusCode && (
+      <RenderFocus
+        tokens={computedTokens.current}
+        lineNumber={computedTokens.current[position.prevIndex]?.lineNumber}
+        currentIndex={position.currentIndex}
+        groupCoordinates={{ x: 47, y: 88 }}
+        bgRectInfo={{
+          x: 37,
+          y: 58,
+          width: 704,
+          height: 396,
+          radius: 8,
+        }}
+      />
+    ),
     <Image image={incredibleLogo} x={25} y={CONFIG.height - 70} />,
     <Image image={tensorflowLogo} x={820} y={CONFIG.height - 60} />,
   ]
@@ -343,36 +327,11 @@ const CodeJamSix = () => {
   return (
     <Concourse
       layerChildren={layerChildren}
-      controls={controls}
+      controls={controls(setFocusCode, position, computedTokens.current)}
       titleSpalshData={titleSpalshData}
       studioUserConfig={studioCoordinates}
     />
   )
-}
-
-const getRenderedTokens = (tokens: ComputedToken[], position: Position) => {
-  const startFromIndex = Math.max(
-    ...tokens
-      .filter((_, i) => i <= position.prevIndex)
-      .map((token) => token.startFromIndex)
-  )
-
-  return tokens
-    .filter((_, i) => i < position.prevIndex && i >= startFromIndex)
-    .map((token, index) => {
-      return (
-        <Text
-          // eslint-disable-next-line
-          key={index}
-          fontSize={codeConfig.fontSize}
-          fill={token.color}
-          text={token.content}
-          x={token.x}
-          y={token.y}
-          align="left"
-        />
-      )
-    })
 }
 
 export default CodeJamSix

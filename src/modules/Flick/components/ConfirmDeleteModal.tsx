@@ -3,21 +3,24 @@ import { Modal } from 'react-responsive-modal'
 import { css, cx } from '@emotion/css'
 import { Button, Text } from '../../../components'
 import { useDeleteFragmentMutation } from '../../../generated/graphql'
+import { useHistory } from 'react-router-dom'
 
 const ConfirmDeleteModal = ({
   open,
   handleClose,
   fragmentId,
   fragmentName,
+  flickId,
 }: {
   open: boolean
   handleClose: (refresh?: boolean) => void
   fragmentId: string
   fragmentName: string
+  flickId: string
 }) => {
   const [deleteFragment, { data: deleteFragmentData, loading: deleteLoading }] =
     useDeleteFragmentMutation()
-
+  const history = useHistory()
   const deleteFragmentbyId = (fragmentId: string) => {
     deleteFragment({
       variables: {
@@ -77,6 +80,7 @@ const ConfirmDeleteModal = ({
             className="p-2 text-white rounded-lg mt-20 "
             onClick={(e) => {
               e?.preventDefault()
+              history.push(`/flick/${flickId}`)
               deleteFragmentbyId(fragmentId)
             }}
             loading={deleteLoading}

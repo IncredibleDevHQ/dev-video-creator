@@ -104,12 +104,13 @@ const VideoJamSeven = () => {
   ]
 
   const videoConfig: VideoConfig = {
-    x: 0,
-    y: 0,
+    x: 0.1,
+    y: 0.1,
     width: 704,
     height: 396,
     cornerRadius: 0,
     performClip: true,
+    videoFill: '#F3F4F6',
     borderColor: '#ffffff',
     borderWidth: 6,
   }

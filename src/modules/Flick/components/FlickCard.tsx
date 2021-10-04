@@ -20,7 +20,7 @@ const FlickCard = ({
       onKeyUp={() => {}}
       tabIndex={flick.id}
       onClick={onClick || (() => history.push(`/flick/${flick.id}`))}
-      className={`border-brand border-2 rounded-md cursor-pointer w-48 h-28 hover:border-brand ${
+      className={`border-brand border-2 rounded-md cursor-pointer w-48 h-9 pl-3 pt-1 hover:border-brand ${
         selected && 'border-brand border-l-4'
       }`}
     >

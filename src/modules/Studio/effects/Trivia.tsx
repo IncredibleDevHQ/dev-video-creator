@@ -11,6 +11,7 @@ import { CONFIG } from '../components/Concourse'
 import { ControlButton } from '../components/MissionControl'
 import { StudioProviderProps, studioStore } from '../stores'
 import { getDimensions } from './effects'
+import Gif from '../components/Gif'
 
 const Trivia = () => {
   const [activeQuestionIndex, setActiveQuestionIndex] = useState<number>(0)
@@ -55,7 +56,16 @@ const Trivia = () => {
     return element
   }, [stream])
 
+  const [isGif, setIsGif] = useState(false)
+  const [gifUrl, setGifUrl] = useState('')
+
   useEffect(() => {
+    if (qnaImage?.src.split('.').pop() === 'gif') {
+      setIsGif(true)
+      setGifUrl(qnaImage.src)
+    } else {
+      setIsGif(false)
+    }
     getDimensions(
       {
         w: (qnaImage && qnaImage.width) || 0,
@@ -177,22 +187,36 @@ const Trivia = () => {
           fontFamily="Poppins"
           align="center"
           textTransform="capitalize"
+          lineHeight={1.3}
           ref={(ref) => ref?.to({ x: 0, duration: 0.3 })}
         />
       ) : (
         <>
           <Rect y={94} fill="#F5F5F5" width={472} height={318} />
-          <Image
-            image={qnaImage}
-            y={imgDim.y}
-            x={imgDim.x}
-            fill="#E5E5E5"
-            width={imgDim.width}
-            height={imgDim.height}
-            shadowOpacity={0.3}
-            shadowOffset={{ x: 0, y: 1 }}
-            shadowBlur={2}
-          />
+          {!isGif && (
+            <Image
+              image={qnaImage}
+              y={imgDim.y}
+              x={imgDim.x}
+              fill="#E5E5E5"
+              width={imgDim.width}
+              height={imgDim.height}
+              shadowOpacity={0.3}
+              shadowOffset={{ x: 0, y: 1 }}
+              shadowBlur={2}
+            />
+          )}
+          {isGif && (
+            <Gif
+              src={gifUrl}
+              maxWidth={472}
+              maxHeight={318}
+              availableWidth={472}
+              availableHeight={318}
+              x={0}
+              y={74}
+            />
+          )}
         </>
       )}
     </Group>,

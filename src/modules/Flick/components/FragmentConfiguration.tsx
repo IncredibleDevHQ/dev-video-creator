@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useHistory } from 'react-router-dom'
 import { useFormik } from 'formik'
+import { atom, useRecoilState } from 'recoil'
 import { Button, emitToast, EmptyState, ScreenState } from '../../../components'
 import {
   FlickFragmentFragment,
@@ -18,7 +19,8 @@ const FragmentConfiguration = ({
 }) => {
   const [config, setConfig] = useState<SchemaElementProps[]>()
   const [initial, setInitial] = useState<{ [key: string]: any }>({})
-  const [isConfigured, setConfigured] = useState(false)
+  const [isConfigured, setConfigured] = useState<boolean>(false)
+  // const [count, setCount] = useRecoilState(counter);
   const [updateFragment, { data, error, loading }] =
     useUpdateFragmentConfigurationMutation()
   const [loadingAssets, setLoadingAssets] = useState<boolean>(false)
@@ -106,6 +108,7 @@ const FragmentConfiguration = ({
             setFieldValue={setFieldValue}
             handleChange={handleChange}
             value={values[attribute.key]}
+            type={fragment.type}
             setConfigured={setConfigured}
             setLoadingAssets={setLoadingAssets}
             selectedVideoLink={selectedVideoLink}
@@ -116,16 +119,16 @@ const FragmentConfiguration = ({
         <Button
           type="button"
           size="small"
-          appearance="secondary"
+          appearance={!isConfigured ? 'primary' : 'secondary'}
           className="ml-4"
           onClick={(e) => {
             e?.preventDefault()
             handleSubmit()
           }}
-          disabled={loadingAssets}
+          disabled={isConfigured}
           loading={loadingAssets || loading}
         >
-          Save Configuration
+          {!isConfigured ? 'Save Configuration' : 'Saved'}
         </Button>
       </form>
 
@@ -137,19 +140,18 @@ const FragmentConfiguration = ({
         setSelectedVideoLink={setSelectedVideoLink}
       />
 
-      {isConfigured && (
-        <Button
-          type="button"
-          className="ml-auto -mt-10"
-          size="medium"
-          appearance="primary"
-          onClick={() => {
-            history.push(`/${fragment.id}/studio`)
-          }}
-        >
-          Launch studio
-        </Button>
-      )}
+      <Button
+        type="button"
+        className="ml-auto -mt-10"
+        size="medium"
+        appearance="primary"
+        disabled={!isConfigured}
+        onClick={() => {
+          history.push(`/${fragment.id}/studio`)
+        }}
+      >
+        Launch studio
+      </Button>
     </div>
   )
 }
