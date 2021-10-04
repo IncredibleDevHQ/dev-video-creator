@@ -53,13 +53,13 @@ const useEdit = () => {
       // horizontal img
       calHeight = maxW * (1 / aspectRatio)
       calWidth = maxW
-      calX = (availableW - calWidth) / 2
+      calX = x + (availableW - calWidth) / 2
       calY = y + (availableH - calHeight) / 2
     } else if (aspectRatio <= maxW / maxH) {
       // sqr or vertical image
       calHeight = maxH
       calWidth = maxH * aspectRatio
-      calX = (availableW - calWidth) / 2
+      calX = x + (availableW - calWidth) / 2
       calY = y + (availableH - calHeight) / 2
     }
     return { width: calWidth, height: calHeight, x: calX, y: calY }

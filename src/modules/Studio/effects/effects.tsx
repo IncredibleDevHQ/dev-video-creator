@@ -11,7 +11,6 @@ import Slides from './Slides'
 import Points from './Points'
 import { CONFIG } from '../components/Concourse'
 import CustomSplash from './CustomSplash'
-import Discussion from './Discussion'
 import SplashSix from './SplashSix'
 import Outro from './Outro'
 import SplashSeven from './SplashSeven'
@@ -53,12 +52,19 @@ import TriviaSeven from './TriviaSeven'
 import VideoJamNine from './VideoJamNine'
 import SplashSeventeen from './SplashSeventeen'
 import SplashEighteen from './SplashEighteen'
+
 import SplashTwenty from './SplashTwenty'
 import CodeJamEleven from './CodeJamEleven'
 import PointsEleven from './PointsEleven'
 import SlidesEleven from './SlidesEleven'
 import TriviaEleven from './TriviaEleven'
 import videoJamEleven from './VideoJamEleven'
+
+import SlidesTwo from './SlidesTwo'
+import CodeJamEight from './CodeJamEight'
+import PointsEight from './PointsEight'
+import TriviaEight from './TriviaEight'
+import SlidesThree from './SlidesThree'
 
 const themeEnum = 'theme'
 export interface Effect {
@@ -97,16 +103,18 @@ const getSplash = (theme: any) => {
   if (theme.value === '4') return SplashSixteen
   if (theme.value === '5') return SplashSeventeen
   if (theme.value === '6') return SplashEighteen
-  if (theme.value === '7') return SplashSix
+  if (theme.value === '7') return SplashNine
   if (theme.value === '8') return SplashSeven
   if (theme.value === '9') return SplashEight
+
   if (theme.value === '10') return SplashTwenty
+
   if (theme.value === '11') return SplashEleven
   if (theme.value === '12') return SplashTwelve
   if (theme.value === '13') return SplashThirteen
   if (theme.value === '14') return SplashFourteen
   if (theme.value === '15') return SplashFour
-  if (theme.value === '17') return SplashNine
+  if (theme.value === '17') return SplashSix
 
   return CustomSplash
 }
@@ -114,6 +122,7 @@ const getSplash = (theme: any) => {
 const getVideoTheme = (theme: any) => {
   if (theme.value === '1') return VideoJamFour
   if (theme.value === '2') return VideoJamFive
+
   if (theme.value === '3') return VideoJamSix
   if (theme.value === '4') return VideoJamSeven
   if (theme.value === '5') return VideoJamEight
@@ -121,6 +130,7 @@ const getVideoTheme = (theme: any) => {
   if (theme.value === '7') return VideoJamTwo
   if (theme.value === '8') return VideoJamThree
   if (theme.value === '10') return videoJamEleven
+
   return VideoJam
 }
 
@@ -131,7 +141,11 @@ const getCodeJamTheme = (theme: any) => {
   if (theme.value === '4') return CodeJamFive
   if (theme.value === '5') return CodeJamSix
   if (theme.value === '6') return CodeJamSeven
+
   if (theme.value === '10') return CodeJamEleven
+
+  if (theme.value === '7') return CodeJamEight
+
   return CodeJam
 }
 
@@ -142,7 +156,11 @@ const getTriviaTheme = (theme: any) => {
   if (theme.value === '4') return TriviaFive
   if (theme.value === '5') return TriviaSix
   if (theme.value === '6') return TriviaSeven
+
   if (theme.value === '10') return TriviaEleven
+
+  if (theme.value === '7') return TriviaEight
+
   return Trivia
 }
 
@@ -153,10 +171,17 @@ const getPointsTheme = (theme: any) => {
   if (theme.value === '4') return PointsFive
   if (theme.value === '5') return PointsSix
   if (theme.value === '6') return PointsSeven
+
   if (theme.value === '10') return PointsEleven
+
+  if (theme.value === '7') return PointsEight
+
   return Points
 }
+
 const getSlideTheme = (theme: any) => {
+  if (theme.value === '7') return SlidesTwo
+  if (theme.value === '5') return SlidesThree
   if (theme.value === '10') return SlidesEleven
   return Slides
 }
@@ -219,8 +244,6 @@ export const getEffect = (
       return getSlideTheme(theme)
     case Fragment_Type_Enum_Enum.Points:
       return getPointsTheme(theme)
-    case Fragment_Type_Enum_Enum.Discussion:
-      return Discussion
     case Fragment_Type_Enum_Enum.Outro:
       return Outro
     default:
