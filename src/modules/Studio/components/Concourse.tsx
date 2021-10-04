@@ -249,12 +249,7 @@ const Concourse = ({
             })}
           >
             <Bridge>
-              <Layer
-                ref={layerRef}
-                // onMouseEnter={onMouseEnter}
-                // onMouseMove={onMouseMove}
-                onMouseLeave={onMouseLeave}
-              >
+              <Layer ref={layerRef} onMouseLeave={onMouseLeave}>
                 <Rect
                   x={0}
                   y={0}
@@ -275,10 +270,6 @@ const Concourse = ({
                           </>
                         )
                       }
-                      // if (!titleSpalshData?.enable && !isTitleSplash) {
-                      //   setIsTitleSplash(true)
-                      //   return <CircleCenterShrink />
-                      // }
                     }
                     if (payload?.status === Fragment_Status_Enum_Enum.Ended)
                       return (

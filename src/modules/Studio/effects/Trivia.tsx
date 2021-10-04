@@ -23,7 +23,7 @@ const Trivia = () => {
     title?: string
   }>({ enable: false })
 
-  const { fragment, state, stream, picture, constraints } =
+  const { fragment, state, stream, picture, constraints, updatePayload } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const userData = (useRecoilValue(userState) as User) || {}
   const imageConfig = { width: 702, height: 540 }
@@ -131,7 +131,10 @@ const Trivia = () => {
       className="my-2"
       appearance="primary"
       disabled={activeQuestionIndex === questions.length - 1}
-      onClick={() => setActiveQuestionIndex(activeQuestionIndex + 1)}
+      onClick={() => {
+        setActiveQuestionIndex(activeQuestionIndex + 1)
+        updatePayload?.(activeQuestionIndex + 1)
+      }}
     />,
   ]
 
