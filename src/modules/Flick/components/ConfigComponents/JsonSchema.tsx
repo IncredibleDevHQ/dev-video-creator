@@ -22,6 +22,7 @@ const JsonSchema = ({
     // @ts-ignore
     event.target.value = valueArray
     handleChange(event as any)
+    handleOnDatachange(schema.value, valueArray)
   }
   const [uploadFile] = useUploadFile()
   interface Question {
@@ -32,26 +33,37 @@ const JsonSchema = ({
   const [question, setQuestion] = useState<Question>()
   const [questions, setQuestions] = useState<Question[]>([])
   const [loading, setLoading] = useState(false)
-  const [isEdit, setIsEdit] = useState(false)
 
   useEffect(() => {
-    if (isEdit) {
-      setConfigured(false)
-    } else if (!schema.value || schema.value.length <= 0) {
+    if (!schema.value || schema.value.length <= 0) {
       setConfigured(false)
     } else {
       setConfigured(true)
     }
   }, [schema])
-  useEffect(() => {
-    if (isEdit) {
-      setConfigured(false)
-    } else if (!value) {
-      setConfigured(false)
-    } else setConfigured(true)
 
+  useEffect(() => {
+    if (!value) {
+      setConfigured(false)
+    }
     setQuestions(value || [])
   }, [value])
+
+  const handleOnDatachange = (schemaValue: Question[], value: Question[]) => {
+    if (
+      schemaValue.length === value.length &&
+      schemaValue.every((v, i) => v === value[i])
+    ) {
+      setConfigured(true)
+    } else if (
+      schemaValue.length === value.length &&
+      schemaValue.every((v, i) => v !== value[i])
+    ) {
+      setConfigured(false)
+    } else if (schemaValue.length !== value.length) {
+      setConfigured(false)
+    }
+  }
 
   const addQuestion = async (file: File) => {
     setLoadingAssets(true)
@@ -66,7 +78,6 @@ const JsonSchema = ({
   }
 
   const handleOnClick = () => {
-    setIsEdit(true)
     if (!question?.text) return
 
     setQuestions((questions) => [...questions, question])
@@ -93,7 +104,6 @@ const JsonSchema = ({
             className="text-lg w-1/2"
             name={schema.key}
             onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
-              setConfigured(false)
               setQuestion({ ...question, text: e.target.value })
             }}
             value={question?.text}
