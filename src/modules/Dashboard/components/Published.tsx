@@ -10,6 +10,8 @@ import { emitToast, ScreenState, Text, Tooltip } from '../../../components'
 import { Icons } from '../../../constants'
 import {
   BaseFlickFragment,
+  GetUserFlicksQuery,
+  GetUserSeriesQuery,
   useDeleteFlickMutation,
   useGetUserFlicksQuery,
   User,
@@ -36,7 +38,7 @@ const VideoTile = ({
   const history = useHistory()
   const userdata = (useRecoilValue(userState) as User) || {}
   const [options, setOptions] = useState(false)
-  const [deleteFlick, { data, loading }] = useDeleteFlickMutation()
+  const [deleteFlick, { data }] = useDeleteFlickMutation()
 
   const deleteFlickFunction = async () => {
     await deleteFlick({
@@ -55,8 +57,6 @@ const VideoTile = ({
     })
     handleRefetch(true)
   }, [data])
-
-  if (loading) return <ScreenState title="Just a jiffy" loading />
 
   return (
     <div className="relative bg-gray-50 hover:border-green-500 cursor-pointer w-60 h-36 rounded-md items-center justify-center mt-9">
@@ -107,33 +107,36 @@ const VideoTile = ({
   )
 }
 
-const Published = () => {
-  const { sub } = (useRecoilValue(userState) as User) || {}
-  const { data, loading, refetch } = useGetUserFlicksQuery({
-    variables: { sub: sub as string },
-  })
-  const [view] = useState<'grid' | 'list'>('grid')
-  if (loading) return <ScreenState title="Just a moment..." loading />
-  return (
-    <div>
-      {view === 'grid' && (
-        <div className="gap-y-5 p-0 grid grid-cols-4 ml-28 mr-20 justify-center mb-20">
-          {data?.Flick.map(
-            (flick) =>
-              flick.producedLink && (
-                <VideoTile
-                  key={flick.id}
-                  flick={flick}
-                  handleRefetch={(refresh) => {
-                    if (refresh) refetch()
-                  }}
-                />
-              )
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
+const Published = () =>
+  //   {
+  //   data,
+  //   handleRefetch,
+  // }: {
+  //   data: GetUserFlicksQuery
+  //   handleRefetch: (refresh?: boolean) => void
+  // }
+  {
+    const { sub } = (useRecoilValue(userState) as User) || {}
+    const { data, refetch } = useGetUserFlicksQuery({
+      variables: { sub: sub as string },
+    })
+
+    return (
+      <div className="gap-y-5 p-0 grid grid-cols-4 ml-28 mr-20 justify-center mb-20">
+        {data?.Flick.map(
+          (flick) =>
+            flick.producedLink && (
+              <VideoTile
+                key={flick.id}
+                flick={flick}
+                handleRefetch={(refresh) => {
+                  if (refresh) refetch()
+                }}
+              />
+            )
+        )}
+      </div>
+    )
+  }
 
 export default Published
