@@ -23,6 +23,7 @@ import {
   useGetSingleSeriesQuery,
   User,
   useSeriesFlicksQuery,
+  useUpdateFlickMutation,
 } from '../../../generated/graphql'
 import { userState } from '../../../stores/user.store'
 import { NewFlickBanner } from '../../Dashboard/components'
@@ -166,6 +167,11 @@ const FlickTilePublished = ({
   const extraOptions = ['Delete Flick', 'Edit in studio']
   const history = useHistory()
 
+  const [editFlickName, setEditFlickName] = useState(false)
+
+  const [updateFlickMutation, { data: updateNameData }] =
+    useUpdateFlickMutation()
+
   const deleteFlickFunction = async (flickId: string) => {
     await deleteFlick({
       variables: {
@@ -173,6 +179,22 @@ const FlickTilePublished = ({
       },
     })
   }
+
+  const updateFlickMutationFunction = async (newName: string) => {
+    if (editFlickName) {
+      await updateFlickMutation({
+        variables: {
+          name: newName,
+          flickId: flick?.id,
+        },
+      })
+    }
+  }
+
+  useEffect(() => {
+    if (!updateNameData) return
+    setEditFlickName(false)
+  }, [updateNameData])
 
   useEffect(() => {
     if (!deleteData) return
@@ -252,10 +274,28 @@ const FlickTilePublished = ({
             <IoCheckmarkDone size={15} />
             <Text className="text-green-700 text-sm pl-2">Published</Text>
           </div>
+          {flick.owner?.userSub === userdata.sub ? (
+            <Heading
+              className="text-lg md:capitalize font-bold pl-4 mt-5 w-40 truncate overflow-ellipsis cursor-auto p-1 rounded-lg hover:bg-gray-300"
+              contentEditable={editFlickName}
+              onClick={() => {
+                setEditFlickName(true)
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  updateFlickMutationFunction(e.currentTarget.innerText)
+                }
+              }}
+            >
+              {flick?.name}
+            </Heading>
+          ) : (
+            <Heading className="text-lg md:capitalize font-bold pl-4 mt-5 w-40 truncate overflow-ellipsis">
+              {flick?.name}
+            </Heading>
+          )}
 
-          <Heading className="text-lg md:capitalize font-bold pl-4 mt-5 w-40 truncate overflow-ellipsis">
-            {flick?.name}
-          </Heading>
           <div className="h-8 relative w-40">
             <span
               style={{ zIndex: 0 }}
