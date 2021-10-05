@@ -10,9 +10,7 @@ import { emitToast, ScreenState, Text, Tooltip } from '../../../components'
 import {
   BaseFlickFragment,
   FlickFragment,
-  GetUserFlicksQuery,
   useDeleteFlickMutation,
-  useGetUserFlicksQuery,
   User,
 } from '../../../generated/graphql'
 import { userState } from '../../../stores/user.store'

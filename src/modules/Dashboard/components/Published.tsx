@@ -6,15 +6,12 @@ import React, { useEffect, useState } from 'react'
 import { FiMoreHorizontal } from 'react-icons/fi'
 import { useHistory } from 'react-router-dom'
 import { useRecoilValue } from 'recoil'
-import { emitToast, ScreenState, Text, Tooltip } from '../../../components'
+import { emitToast, Text, Tooltip } from '../../../components'
 import { Icons } from '../../../constants'
 import {
   BaseFlickFragment,
   FlickFragment,
-  GetUserFlicksQuery,
-  GetUserSeriesQuery,
   useDeleteFlickMutation,
-  useGetUserFlicksQuery,
   User,
 } from '../../../generated/graphql'
 import { userState } from '../../../stores/user.store'
