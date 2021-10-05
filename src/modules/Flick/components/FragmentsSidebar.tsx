@@ -355,7 +355,7 @@ const FragmentItem = ({
               useUpdateFragmentFunction(e.currentTarget.innerText)
             }
           }}
-          className="cursor-auto w-min p-1 rounded-lg  hover:bg-gray-300"
+          className="cursor-auto w-auto p-1 rounded-lg  hover:bg-gray-300"
           onClick={() => {
             setEditFragmentName(true)
           }}
