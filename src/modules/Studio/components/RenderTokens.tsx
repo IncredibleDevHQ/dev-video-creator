@@ -146,7 +146,7 @@ export const controls = (
               updatePayload?.({
                 currentIndex: position.currentIndex + 1,
                 prevIndex: position.currentIndex,
-                isFocus: payload?.isFocus,
+                isFocus: false,
               })
           }}
         />,
@@ -165,7 +165,7 @@ export const controls = (
             updatePayload?.({
               prevIndex: position.currentIndex,
               currentIndex: next,
-              isFocus: payload?.isFocus,
+              isFocus: false,
             })
           }}
         />,
