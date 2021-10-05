@@ -215,6 +215,16 @@ const PointsEight = () => {
     <Circle x={270} y={CONFIG.height - 70} radius={10} fill="#0077CC" />,
     <Image image={pinkCircle} x={790} y={400} />,
     <Image image={whiteCircle} x={615} y={245} />,
+    <Rect
+      x={37}
+      y={58}
+      width={640}
+      height={390}
+      fill="white"
+      stroke="#D1D5DB"
+      cornerRadius={8}
+      strokeWidth={4}
+    />,
 
     <Text
       key="fragmentTitle"
@@ -234,13 +244,12 @@ const PointsEight = () => {
         .filter((_, i) => i < activePointIndex)
         .map((point, j) => (
           <>
-            <Rect
+            <Circle
               key="points"
               x={-76}
-              y={point.y}
-              stroke="#111111"
-              width={14}
-              height={14}
+              radius={7}
+              y={point.y + 8}
+              stroke="#9CA3AF"
               strokeWidth={2}
               ref={(ref) =>
                 ref?.to({
@@ -249,6 +258,7 @@ const PointsEight = () => {
                 })
               }
             />
+
             <Text
               key={point.text}
               x={-64}

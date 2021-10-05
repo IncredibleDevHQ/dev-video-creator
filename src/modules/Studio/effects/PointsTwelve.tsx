@@ -120,16 +120,16 @@ const PointsTwelve = () => {
       case 2:
         return [
           {
-            x: 735,
+            x: 705,
             y: 60,
             width: 240,
             height: 180,
             clipTheme: 'rect',
 
             studioUserClipConfig: {
-              x: 40,
+              x: 10,
               y: 0,
-              width: 160,
+              width: 220,
               height: 180,
               radius: 0,
             },
@@ -142,9 +142,9 @@ const PointsTwelve = () => {
             clipTheme: 'rect',
 
             studioUserClipConfig: {
-              x: 40,
+              x: 10,
               y: 0,
-              width: 160,
+              width: 220,
               height: 180,
               radius: 0,
             },
@@ -154,17 +154,16 @@ const PointsTwelve = () => {
       default:
         return [
           {
-            x: 695,
-            y: 120.5,
-            width: 320,
-            height: 240,
+            x: 565,
+            y: 48,
+            width: 520,
+            height: 400,
             clipTheme: 'rect',
-
             studioUserClipConfig: {
-              x: 80,
+              x: 150,
               y: 0,
-              width: 160,
-              height: 240,
+              width: 220,
+              height: 400,
               radius: 0,
             },
           },
@@ -209,12 +208,12 @@ const PointsTwelve = () => {
     <Rect
       x={27}
       y={48}
-      width={704}
-      height={396}
+      width={640}
+      height={390}
       stroke="#FF3E00"
       strokeWidth={1}
     />,
-    <Rect x={37} y={56} width={704} height={396} fill="#FC7E4E" />,
+    <Rect x={37} y={56} width={640} height={390} fill="#FC7E4E" />,
     <Text
       key="fragmentTitle"
       x={67}

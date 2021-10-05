@@ -112,33 +112,33 @@ const PointsTen = () => {
       case 2:
         return [
           {
-            x: 735,
+            x: 705,
             y: 60,
             width: 240,
             height: 180,
             clipTheme: 'rect',
-            borderWidth: 6,
-            borderColor: '#ffffff',
+            borderColor: '#235A97',
+            borderWidth: 8,
             studioUserClipConfig: {
-              x: 40,
+              x: 10,
               y: 0,
-              width: 160,
+              width: 220,
               height: 180,
               radius: 8,
             },
           },
           {
-            x: 735,
+            x: 705,
             y: 265,
             width: 240,
             height: 180,
             clipTheme: 'rect',
+            borderColor: '#235A97',
             borderWidth: 8,
-            borderColor: '#ffffff',
             studioUserClipConfig: {
-              x: 40,
+              x: 10,
               y: 0,
-              width: 160,
+              width: 220,
               height: 180,
               radius: 8,
             },
@@ -148,20 +148,20 @@ const PointsTen = () => {
       default:
         return [
           {
-            x: 695,
-            y: 120.5,
-            width: 320,
-            height: 240,
+            x: 565,
+            y: 58,
+            width: 520,
+            height: 390,
             clipTheme: 'rect',
+            borderColor: '#235A97',
             borderWidth: 8,
             studioUserClipConfig: {
-              x: 80,
+              x: 150,
               y: 0,
-              width: 160,
-              height: 240,
+              width: 220,
+              height: 390,
               radius: 8,
             },
-            borderColor: '#235A97',
           },
         ]
     }
@@ -196,11 +196,11 @@ const PointsTen = () => {
     <Rect
       x={37}
       y={58}
-      width={704}
-      height={396}
+      width={640}
+      height={390}
+      strokeWidth={4}
       fill="#00273F"
       stroke="#235A97"
-      strokeWidth={4}
       cornerRadius={8}
     />,
     <Text

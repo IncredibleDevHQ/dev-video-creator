@@ -178,17 +178,17 @@ const getTriviaTheme = (theme: any) => {
 }
 
 const getPointsTheme = (theme: any) => {
-  if (theme.value === '1') return PointsTwo
+  if (theme.value === '1') return PointsTwo //
   if (theme.value === '2') return PointsThree
   if (theme.value === '3') return PointsFour
   if (theme.value === '4') return PointsFive
   if (theme.value === '5') return PointsSix
   if (theme.value === '6') return PointsSeven
-  if (theme.value === '7') return PointsEight
-  if (theme.value === '8') return PointsNine
-  if (theme.value === '9') return PointsTen
-  if (theme.value === '10') return PointsEleven
-  if (theme.value === '11') return PointsTwelve
+  if (theme.value === '7') return PointsEight // elastic
+  if (theme.value === '8') return PointsNine // hasura
+  if (theme.value === '9') return PointsTen // ts
+  if (theme.value === '10') return PointsEleven // py tourch
+  if (theme.value === '11') return PointsTwelve // svelte
   return Points
 }
 

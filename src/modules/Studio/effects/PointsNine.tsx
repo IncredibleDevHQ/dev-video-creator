@@ -212,6 +212,16 @@ const PointsNine = () => {
       opacity={1}
     />,
     <Circle x={240} y={460} radius={20} stroke="#F47E7E" strokeWidth={8} />,
+    <Rect
+      x={37}
+      y={58}
+      width={640}
+      height={390}
+      fill="#EDEEF0"
+      stroke="#1EB4D4"
+      strokeWidth={4}
+      cornerRadius={8}
+    />,
 
     <Text
       key="fragmentTitle"
