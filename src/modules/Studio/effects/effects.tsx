@@ -163,17 +163,17 @@ const getCodeJamTheme = (theme: any) => {
 }
 
 const getTriviaTheme = (theme: any) => {
-  if (theme.value === '1') return TriviaTwo
-  if (theme.value === '2') return TriviaThree
-  if (theme.value === '3') return TriviaFour
-  if (theme.value === '4') return TriviaFive
-  if (theme.value === '5') return TriviaSix
-  if (theme.value === '6') return TriviaSeven
-  if (theme.value === '7') return TriviaEight
-  if (theme.value === '8') return TriviaNine
-  if (theme.value === '9') return TriviaTen
-  if (theme.value === '10') return TriviaEleven
-  if (theme.value === '11') return TriviaTwelve
+  if (theme.value === '1') return TriviaTwo // default
+  if (theme.value === '2') return TriviaThree // open Sauced
+  if (theme.value === '3') return TriviaFour // astro
+  if (theme.value === '4') return TriviaFive // wtf js
+  if (theme.value === '5') return TriviaSix // tensorflow
+  if (theme.value === '6') return TriviaSeven // next js
+  if (theme.value === '7') return TriviaEight // elastic
+  if (theme.value === '8') return TriviaNine // hasura
+  if (theme.value === '9') return TriviaTen // ts
+  if (theme.value === '10') return TriviaEleven // Py tourch
+  if (theme.value === '11') return TriviaTwelve // svelte
   return Trivia
 }
 

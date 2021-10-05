@@ -79,7 +79,7 @@ const TriviaFour = () => {
         250,
         640,
         280,
-        37,
+        0,
         90
       )
     )
@@ -134,7 +134,7 @@ const TriviaFour = () => {
         return [
           {
             x: 705,
-            y: 60,
+            y: 70,
             width: 240,
             height: 180,
             clipTheme: 'rect',
@@ -148,14 +148,14 @@ const TriviaFour = () => {
               radius: 8,
             },
             backgroundRectX: 705,
-            backgroundRectY: 70,
+            backgroundRectY: 60,
             backgroundRectColor: '#FF5D01',
             backgroundRectBorderWidth: 3,
             backgroundRectBorderColor: '#1F2937',
           },
           {
             x: 705,
-            y: 265,
+            y: 295,
             width: 240,
             height: 180,
             clipTheme: 'rect',
@@ -169,7 +169,7 @@ const TriviaFour = () => {
               radius: 8,
             },
             backgroundRectX: 705,
-            backgroundRectY: 295,
+            backgroundRectY: 265,
             backgroundRectColor: '#FF5D01',
             backgroundRectBorderWidth: 3,
             backgroundRectBorderColor: '#1F2937',
@@ -228,8 +228,8 @@ const TriviaFour = () => {
     <Rect
       x={27}
       y={58}
-      width={704}
-      height={396}
+      width={640}
+      height={390}
       fill="#FF5D01"
       cornerRadius={8}
       stroke="#1F2937"
@@ -238,8 +238,8 @@ const TriviaFour = () => {
     <Rect
       x={37}
       y={68}
-      width={704}
-      height={396}
+      width={640}
+      height={390}
       fill="#ffffff"
       cornerRadius={8}
       stroke="#1F2937"

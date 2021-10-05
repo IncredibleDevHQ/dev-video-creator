@@ -74,11 +74,11 @@ const TriviaEight = () => {
           w: (qnaImage && qnaImage.width) || 0,
           h: (qnaImage && qnaImage.height) || 0,
         },
-        640,
-        280,
         610,
         250,
-        7,
+        640,
+        280,
+        0,
         90
       )
     )
@@ -132,7 +132,7 @@ const TriviaEight = () => {
       case 2:
         return [
           {
-            x: 735,
+            x: 705,
             y: 60,
             width: 240,
             height: 180,
@@ -140,9 +140,9 @@ const TriviaEight = () => {
             borderColor: '#D1D5DB',
             borderWidth: 8,
             studioUserClipConfig: {
-              x: 40,
+              x: 10,
               y: 0,
-              width: 160,
+              width: 220,
               height: 180,
               radius: 0,
             },
@@ -156,11 +156,11 @@ const TriviaEight = () => {
             borderColor: '#D1D5DB',
             borderWidth: 8,
             studioUserClipConfig: {
-              x: 40,
+              x: 10,
               y: 0,
-              width: 160,
+              width: 220,
               height: 180,
-              radius: 8,
+              radius: 0,
             },
           },
         ]
@@ -194,9 +194,6 @@ const TriviaEight = () => {
       width={CONFIG.width}
       height={CONFIG.height}
       fill="#ffffff"
-      // fillLinearGradientColorStops={[0, '#60D0ED', 1, '#536FA8']}
-      // fillLinearGradientStartPoint={{ x: 0, y: 0 }}
-      // fillLinearGradientEndPoint={{ x: CONFIG.width, y: CONFIG.height }}
     />,
     <Circle x={82} y={10} radius={55} fill="#7DE2D1" />,
     <Circle x={70} y={CONFIG.height - 70} radius={100} fill="#7DE2D1" />,
@@ -204,6 +201,16 @@ const TriviaEight = () => {
     <Circle x={270} y={CONFIG.height - 70} radius={10} fill="#0077CC" />,
     <Image image={pinkCircle} x={790} y={400} />,
     <Image image={whiteCircle} x={615} y={245} />,
+    <Rect
+      x={37}
+      y={58}
+      width={640}
+      height={390}
+      fill="white"
+      stroke="#D1D5DB"
+      cornerRadius={8}
+      strokeWidth={4}
+    />,
 
     <Group x={37} y={58} key="group1">
       {questions?.length > 0 && questions[activeQuestionIndex]?.image ? (

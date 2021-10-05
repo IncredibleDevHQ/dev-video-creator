@@ -58,11 +58,11 @@ const TriviaEight = () => {
           w: (qnaImage && qnaImage.width) || 0,
           h: (qnaImage && qnaImage.height) || 0,
         },
+        610,
+        250,
         640,
         280,
-        640,
-        250,
-        7,
+        0,
         90
       )
     )
@@ -213,8 +213,8 @@ const TriviaEight = () => {
     <Group x={37} y={58} key="group1">
       {questions?.length > 0 && questions[activeQuestionIndex]?.image ? (
         <Text
+          x={10}
           y={20}
-          x={-37}
           align="center"
           fontSize={32}
           fill="#111111"
