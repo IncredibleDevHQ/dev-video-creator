@@ -19,7 +19,7 @@ import { useQueryVariables } from '../../hooks'
 const initialFlick: CreateNewFlickMutationVariables = {
   name: '',
   description: '',
-  scope: CreateFlickFlickScopeEnumEnum.Private,
+  scope: CreateFlickFlickScopeEnumEnum.Public,
 }
 
 const NewFlick = () => {

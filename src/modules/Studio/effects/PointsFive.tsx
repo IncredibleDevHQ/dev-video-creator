@@ -109,8 +109,8 @@ const PointsFive = () => {
       case 2:
         return [
           {
-            x: 705,
-            y: 60,
+            x: 728.5,
+            y: 0,
             width: 240,
             height: 180,
             clipTheme: 'rect',
@@ -125,17 +125,17 @@ const PointsFive = () => {
             },
           },
           {
-            x: 705,
-            y: 265,
+            x: 728.5,
+            y: 205,
             width: 240,
             height: 180,
             clipTheme: 'rect',
             borderWidth: 6,
             borderColor: '#ffffff',
             studioUserClipConfig: {
-              x: 10,
+              x: 7.5,
               y: 0,
-              width: 220,
+              width: 225,
               height: 180,
               radius: 0,
             },

@@ -14,15 +14,8 @@ import config from '../../../config'
 const PointsTwo = () => {
   const [activePointIndex, setActivePointIndex] = useState<number>(0)
   const [points, setPoints] = useState<string[]>([])
-  const {
-    fragment,
-    state,
-    stream,
-    picture,
-    constraints,
-    updatePayload,
-    payload,
-  } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const { fragment, state, updatePayload, payload } =
+    (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [titleSpalshData, settitleSpalshData] = useState<{
     enable: boolean

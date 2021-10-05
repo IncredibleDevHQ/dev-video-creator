@@ -25,6 +25,7 @@ const FileArraySchema = ({
     // @ts-ignore
     event.target.value = valueArray
     handleChange(event as any)
+    handleOnDatachange(schema.value, valueArray)
   }
   useEffect(() => {
     if (!schema.value || schema.value.length <= 0) {
@@ -34,6 +35,22 @@ const FileArraySchema = ({
     }
   }, [schema])
 
+  const handleOnDatachange = (schemaValue: string[], value: string[]) => {
+    if (
+      schemaValue.length === value.length &&
+      schemaValue.every((v, i) => v === value[i])
+    ) {
+      setConfigured(true)
+    } else if (
+      schemaValue.length === value.length &&
+      schemaValue.every((v, i) => v !== value[i])
+    ) {
+      setConfigured(false)
+    } else if (schemaValue.length !== value.length) {
+      setConfigured(false)
+    }
+  }
+
   useEffect(() => {
     if (!value) {
       return
@@ -41,8 +58,10 @@ const FileArraySchema = ({
     setSlides(value || [])
   }, [value])
 
-  const handleDeleteSlide = (text: string) => {
-    const slideArray = slides.filter((slide) => slide !== text)
+  const handleDeleteSlide = (index: number) => {
+    const slideArray = slides.filter(
+      (slide, slidesIndex) => slidesIndex !== index
+    )
     setSlides(slideArray)
     addToFormik(slideArray)
   }
@@ -70,7 +89,6 @@ const FileArraySchema = ({
             className="text-lg m-4"
             key={`${schema.key}`}
             onChange={async (e) => {
-              setConfigured(false)
               // @ts-ignore
               await handlePhotoClick(e.target.files?.[0])
             }}
@@ -92,7 +110,7 @@ const FileArraySchema = ({
               <span className="font-bold">Slide {index + 1}:</span>
             </div>
             <Button
-              onClick={() => handleDeleteSlide(slide)}
+              onClick={() => handleDeleteSlide(index)}
               type="button"
               className=""
               appearance="secondary"
