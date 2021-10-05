@@ -48,16 +48,17 @@ const ViewBarButton = ({
 
 const Dashboard = () => {
   const { sub } = (useRecoilValue(userState) as User) || {}
-  const { data: userFlicksData, refetch: userFlicksRefetch } =
-    useGetUserFlicksQuery({
-      variables: { sub: sub as string },
-    })
   const { data: userSeriesData, error: userSeriesError } =
     useGetUserSeriesQuery({
       variables: {
         limit: 60,
       },
     })
+  const { data: userFlicksData, refetch: userFlicksRefetch } =
+    useGetUserFlicksQuery({
+      variables: { sub: sub as string },
+    })
+
   if (userSeriesError)
     return (
       <ScreenState
@@ -171,18 +172,18 @@ const Dashboard = () => {
         <div className="mb-10">
           {currentTab.value === 'Drafts' && (
             <Drafts
-            // data={userFlicksData}
-            // handleRefetch={(refresh) => {
-            //   if (refresh) userFlicksRefetch()
-            // }}
+              flicks={userFlicksData?.Flick || []}
+              handleRefetch={(refresh) => {
+                if (refresh) userFlicksRefetch()
+              }}
             />
           )}
           {currentTab.value === 'Published' && (
             <Published
-            // data={userFlicksData}
-            // handleRefetch={(refresh) => {
-            //   if (refresh) userFlicksRefetch()
-            // }}
+              flicks={userFlicksData?.Flick || []}
+              handleRefetch={(refresh) => {
+                if (refresh) userFlicksRefetch()
+              }}
             />
           )}
         </div>

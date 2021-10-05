@@ -9,6 +9,8 @@ import { cx } from '@emotion/css'
 import { emitToast, ScreenState, Text, Tooltip } from '../../../components'
 import {
   BaseFlickFragment,
+  FlickFragment,
+  GetUserFlicksQuery,
   useDeleteFlickMutation,
   useGetUserFlicksQuery,
   User,
@@ -109,22 +111,23 @@ const FlickTile = ({
   )
 }
 
-const Drafts = () => {
-  const { sub } = (useRecoilValue(userState) as User) || {}
-  const { data, refetch } = useGetUserFlicksQuery({
-    variables: { sub: sub as string },
-  })
-
+const Drafts = ({
+  flicks,
+  handleRefetch,
+}: {
+  flicks: FlickFragment[]
+  handleRefetch: (refresh?: boolean) => void
+}) => {
   return (
     <div className="grid grid-cols-4 gap-y-5 gap-x-3 p-0 ml-28 mr-20 justify-center mb-20">
-      {data?.Flick.map(
+      {flicks.map(
         (flick) =>
           !flick.producedLink && (
             <FlickTile
               key={flick.id}
               flick={flick}
               handleRefetch={(refresh) => {
-                if (refresh) refetch()
+                if (refresh) handleRefetch()
               }}
             />
           )
