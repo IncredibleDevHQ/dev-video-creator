@@ -135,7 +135,7 @@ const PointsTwelve = () => {
             },
           },
           {
-            x: 735,
+            x: 705,
             y: 265,
             width: 240,
             height: 180,
@@ -155,15 +155,15 @@ const PointsTwelve = () => {
         return [
           {
             x: 565,
-            y: 48,
+            y: 58,
             width: 520,
-            height: 400,
+            height: 390,
             clipTheme: 'rect',
             studioUserClipConfig: {
               x: 150,
               y: 0,
               width: 220,
-              height: 400,
+              height: 390,
               radius: 0,
             },
           },

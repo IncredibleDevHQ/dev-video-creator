@@ -118,7 +118,7 @@ const PointsFour = () => {
         return [
           {
             x: 705,
-            y: 60,
+            y: 70,
             width: 240,
             height: 180,
             clipTheme: 'rect',
@@ -132,14 +132,14 @@ const PointsFour = () => {
               radius: 8,
             },
             backgroundRectX: 705,
-            backgroundRectY: 70,
+            backgroundRectY: 60,
             backgroundRectColor: '#FF5D01',
             backgroundRectBorderWidth: 3,
             backgroundRectBorderColor: '#1F2937',
           },
           {
             x: 705,
-            y: 265,
+            y: 295,
             width: 240,
             height: 180,
             clipTheme: 'rect',
@@ -153,13 +153,12 @@ const PointsFour = () => {
               radius: 8,
             },
             backgroundRectX: 705,
-            backgroundRectY: 275,
+            backgroundRectY: 285,
             backgroundRectColor: '#FF5D01',
             backgroundRectBorderWidth: 3,
             backgroundRectBorderColor: '#1F2937',
           },
         ]
-
       default:
         return [
           {

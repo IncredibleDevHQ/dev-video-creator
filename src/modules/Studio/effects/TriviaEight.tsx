@@ -144,11 +144,11 @@ const TriviaEight = () => {
               y: 0,
               width: 220,
               height: 180,
-              radius: 0,
+              radius: 8,
             },
           },
           {
-            x: 735,
+            x: 705,
             y: 265,
             width: 240,
             height: 180,
@@ -160,7 +160,7 @@ const TriviaEight = () => {
               y: 0,
               width: 220,
               height: 180,
-              radius: 0,
+              radius: 8,
             },
           },
         ]

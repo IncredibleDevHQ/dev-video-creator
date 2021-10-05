@@ -139,7 +139,7 @@ const TriviaTwelve = () => {
             },
           },
           {
-            x: 735,
+            x: 705,
             y: 265,
             width: 240,
             height: 180,

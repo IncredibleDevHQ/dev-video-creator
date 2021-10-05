@@ -110,7 +110,7 @@ const PointsNine = () => {
       case 2:
         return [
           {
-            x: 735,
+            x: 705,
             y: 60,
             width: 240,
             height: 180,
@@ -118,15 +118,15 @@ const PointsNine = () => {
             borderColor: '#1EB4D4',
             borderWidth: 8,
             studioUserClipConfig: {
-              x: 40,
+              x: 10,
               y: 0,
-              width: 160,
+              width: 220,
               height: 180,
               radius: 8,
             },
           },
           {
-            x: 735,
+            x: 705,
             y: 265,
             width: 240,
             height: 180,
@@ -134,9 +134,9 @@ const PointsNine = () => {
             borderColor: '#1EB4D4',
             borderWidth: 8,
             studioUserClipConfig: {
-              x: 40,
+              x: 10,
               y: 0,
-              width: 160,
+              width: 220,
               height: 180,
               radius: 8,
             },

@@ -169,7 +169,7 @@ const TriviaFour = () => {
               radius: 8,
             },
             backgroundRectX: 705,
-            backgroundRectY: 265,
+            backgroundRectY: 285,
             backgroundRectColor: '#FF5D01',
             backgroundRectBorderWidth: 3,
             backgroundRectBorderColor: '#1F2937',
