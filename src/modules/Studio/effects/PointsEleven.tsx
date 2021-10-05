@@ -1,5 +1,5 @@
 import Konva from 'konva'
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Group, Text, Image, Rect, Circle } from 'react-konva'
 import FontFaceObserver from 'fontfaceobserver'
 import { useRecoilValue } from 'recoil'
@@ -15,8 +15,15 @@ import config from '../../../config'
 const PointsEleven = () => {
   const [activePointIndex, setActivePointIndex] = useState<number>(0)
   const [points, setPoints] = useState<string[]>([])
-  const { fragment, state, stream, picture, constraints } =
-    (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const {
+    fragment,
+    state,
+    stream,
+    picture,
+    constraints,
+    updatePayload,
+    payload,
+  } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [titleSpalshData, settitleSpalshData] = useState<{
     enable: boolean
@@ -97,29 +104,81 @@ const PointsEleven = () => {
   }, [])
 
   useEffect(() => {
+    if (state === 'ready') {
+      updatePayload?.({
+        activePoint: 0,
+        activeYCoordinate: 0,
+      })
+    }
     if (state === 'recording') {
       setActivePointIndex(0)
     }
   }, [state])
 
-  const studioUserConfig: StudioUserConfig[] = [
-    {
-      x: 660,
-      y: 140.5,
-      width: 320,
-      height: 240,
-      clipTheme: 'rect',
-      borderWidth: 16,
-      borderColor: '#8B008B',
-      studioUserClipConfig: {
-        x: 60,
-        y: 0,
-        width: 200,
-        height: 200,
-        radius: 100,
-      },
-    },
-  ]
+  useEffect(() => {
+    setActivePointIndex(payload?.activePoint)
+    setYCoordinate(payload?.activeYCoordinate)
+  }, [payload])
+
+  const studioCoordinates: StudioUserConfig[] = (() => {
+    switch (fragment?.participants.length) {
+      case 2:
+        return [
+          {
+            x: 700,
+            y: 60,
+            width: 240,
+            height: 180,
+            clipTheme: 'rect',
+            borderWidth: 12,
+            borderColor: '#8B008B',
+            studioUserClipConfig: {
+              x: 30,
+              y: 0,
+              width: 180,
+              height: 180,
+              radius: 90,
+            },
+          },
+          {
+            x: 700,
+            y: 265,
+            width: 240,
+            height: 180,
+            clipTheme: 'rect',
+            borderWidth: 12,
+            borderColor: '#8B008B',
+            studioUserClipConfig: {
+              x: 30,
+              y: 0,
+              width: 180,
+              height: 180,
+              radius: 90,
+            },
+          },
+        ]
+
+      default:
+        return [
+          {
+            x: 660,
+            y: 140.5,
+            width: 320,
+            height: 240,
+            clipTheme: 'rect',
+            borderWidth: 16,
+            borderColor: '#8B008B',
+            studioUserClipConfig: {
+              x: 60,
+              y: 0,
+              width: 200,
+              height: 200,
+              radius: 100,
+            },
+          },
+        ]
+    }
+  })()
 
   const controls = [
     <ControlButton
@@ -127,10 +186,14 @@ const PointsEleven = () => {
       icon={NextTokenIcon}
       className="my-2"
       appearance="primary"
-      disabled={activePointIndex === points.length}
+      disabled={activePointIndex === points?.length}
       onClick={() => {
         setActivePointIndex(activePointIndex + 1)
         setYCoordinate(yCoordinate + 30)
+        updatePayload?.({
+          activePoint: activePointIndex + 1,
+          activeYCoordinate: yCoordinate + 30,
+        })
       }}
     />,
   ]
@@ -226,7 +289,7 @@ const PointsEleven = () => {
       controls={controls}
       layerChildren={layerChildren}
       titleSpalshData={titleSpalshData}
-      studioUserConfig={studioUserConfig}
+      studioUserConfig={studioCoordinates}
     />
   )
 }

@@ -1,18 +1,19 @@
+import Konva from 'konva'
 import React, { useEffect, useState } from 'react'
 import { Group, Text, Image, Rect } from 'react-konva'
 import FontFaceObserver from 'fontfaceobserver'
 import { useRecoilValue } from 'recoil'
 import { useImage } from 'react-konva-utils'
 import { NextTokenIcon } from '../../../components'
+import { User, userState } from '../../../stores/user.store'
 import { Concourse } from '../components'
 import { CONFIG, StudioUserConfig } from '../components/Concourse'
 import { ControlButton } from '../components/MissionControl'
 import { StudioProviderProps, studioStore } from '../stores'
 import config from '../../../config'
 import useEdit from '../hooks/use-edit'
-import Gif from '../components/Gif'
 
-const TriviaTwo = () => {
+const TriviaTwelve = () => {
   const [activeQuestionIndex, setActiveQuestionIndex] = useState<number>(0)
   const [questions, setQuestions] = useState<{ text: string; image: string }[]>(
     []
@@ -34,21 +35,18 @@ const TriviaTwo = () => {
     'anonymous'
   )
 
+  const [svelteLogo] = useImage(
+    `${config.storage.baseUrl}Svelte.svg`,
+    'anonymous'
+  )
   const [incredibleLogo] = useImage(
-    `${config.storage.baseUrl}x-incredible.svg`,
+    `${config.storage.baseUrl}x-incredible-black.svg`,
     'anonymous'
   )
-  const [circleGroup] = useImage(
-    `${config.storage.baseUrl}black-circles.svg`,
+  const [svelteBg] = useImage(
+    `${config.storage.baseUrl}svelte_bg.svg`,
     'anonymous'
   )
-  const [graphqlLogo] = useImage(
-    `${config.storage.baseUrl}graphql3.svg`,
-    'anonymous'
-  )
-
-  const [isGif, setIsGif] = useState(false)
-  const [gifUrl, setGifUrl] = useState('')
 
   const [imgDim, setImgDim] = useState<{
     width: number
@@ -62,12 +60,6 @@ const TriviaTwo = () => {
   }, [])
 
   useEffect(() => {
-    if (qnaImage?.src.split('.').pop() === 'gif') {
-      setIsGif(true)
-      setGifUrl(qnaImage.src)
-    } else {
-      setIsGif(false)
-    }
     setImgDim(
       getImageDimensions(
         {
@@ -137,14 +129,13 @@ const TriviaTwo = () => {
             width: 240,
             height: 180,
             clipTheme: 'rect',
-            borderColor: '#D1D5DB',
-            borderWidth: 8,
+
             studioUserClipConfig: {
               x: 10,
               y: 0,
               width: 220,
               height: 180,
-              radius: 8,
+              radius: 0,
             },
           },
           {
@@ -153,14 +144,13 @@ const TriviaTwo = () => {
             width: 240,
             height: 180,
             clipTheme: 'rect',
-            borderColor: '#D1D5DB',
-            borderWidth: 8,
+
             studioUserClipConfig: {
               x: 10,
               y: 0,
               width: 220,
               height: 180,
-              radius: 8,
+              radius: 0,
             },
           },
         ]
@@ -173,17 +163,13 @@ const TriviaTwo = () => {
             width: 520,
             height: 390,
             clipTheme: 'rect',
-            borderWidth: 8,
             studioUserClipConfig: {
               x: 150,
               y: 0,
               width: 220,
               height: 390,
-              radius: 8,
+              radius: 0,
             },
-            backgroundRectX: 705,
-            backgroundRectY: 48,
-            backgroundRectColor: '#C084FC',
           },
         ]
     }
@@ -191,29 +177,32 @@ const TriviaTwo = () => {
 
   const layerChildren = [
     <Rect
+      strokeWidth={1}
       x={0}
       y={0}
+      fill="#F5F6F7"
       width={CONFIG.width}
       height={CONFIG.height}
-      fill="#1F2937"
+      stroke="#111111"
     />,
-    <Image image={circleGroup} x={380} y={440} />,
+    <Image
+      image={svelteBg}
+      x={1}
+      y={1}
+      fill="#F5F6F7"
+      width={CONFIG.width - 2}
+      height={CONFIG.height - 2}
+    />,
     <Rect
       x={27}
       y={48}
       width={640}
       height={390}
-      fill="#60A5FA"
-      cornerRadius={8}
+      stroke="#FF3E00"
+      strokeWidth={1}
     />,
-    <Rect
-      x={37}
-      y={58}
-      width={640}
-      height={390}
-      fill="#374151"
-      cornerRadius={8}
-    />,
+    <Rect x={37} y={56} width={640} height={390} fill="#FC7E4E" />,
+
     <Group x={37} y={58} key="group1">
       {questions?.length > 0 && questions[activeQuestionIndex]?.image ? (
         <Text
@@ -244,39 +233,25 @@ const TriviaTwo = () => {
           fontStyle="bold"
           fontFamily="Poppins"
           align="center"
-          lineHeight={1.3}
           textTransform="capitalize"
         />
       ) : (
         <>
-          {!isGif && (
-            <Image
-              image={qnaImage}
-              y={imgDim.y}
-              x={imgDim.x}
-              width={imgDim.width}
-              height={imgDim.height}
-              shadowOpacity={0.3}
-              shadowOffset={{ x: 0, y: 1 }}
-              shadowBlur={2}
-            />
-          )}
-          {isGif && (
-            <Gif
-              src={gifUrl}
-              maxWidth={610}
-              maxHeight={250}
-              availableWidth={640}
-              availableHeight={280}
-              x={37}
-              y={90}
-            />
-          )}
+          <Image
+            image={qnaImage}
+            y={imgDim.y}
+            x={imgDim.x}
+            width={imgDim.width}
+            height={imgDim.height}
+            shadowOpacity={0.3}
+            shadowOffset={{ x: 0, y: 1 }}
+            shadowBlur={2}
+          />
         </>
       )}
     </Group>,
-    <Image image={incredibleLogo} x={30} y={CONFIG.height - 60} />,
-    <Image image={graphqlLogo} x={840} y={CONFIG.height - 58} />,
+    <Image image={incredibleLogo} x={30} y={CONFIG.height - 70} />,
+    <Image image={svelteLogo} x={810} y={CONFIG.height - 60} />,
   ]
 
   return (
@@ -289,4 +264,4 @@ const TriviaTwo = () => {
   )
 }
 
-export default TriviaTwo
+export default TriviaTwelve

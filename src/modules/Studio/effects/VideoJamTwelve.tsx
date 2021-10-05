@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useRecoilValue } from 'recoil'
-import { Circle, Image, Rect } from 'react-konva'
+import Konva from 'konva'
+import { Circle, Group, Image, Rect } from 'react-konva'
 import { FiPlay, FiPause } from 'react-icons/fi'
 import useImage from 'use-image'
 import { Concourse } from '../components'
@@ -9,9 +10,10 @@ import { CONFIG, StudioUserConfig } from '../components/Concourse'
 import { StudioProviderProps, studioStore } from '../stores'
 import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
 import { Video, VideoConfig } from '../components/Video'
+import { ClipConfig } from '../hooks/use-edit'
 import config from '../../../config'
 
-const VideoJamThree = () => {
+const videoJamTwelve = () => {
   const { state, fragment, payload, updatePayload } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [titleSpalshData, settitleSpalshData] = useState<{
@@ -19,8 +21,16 @@ const VideoJamThree = () => {
     title?: string
   }>({ enable: false })
 
-  const [hasuraLogo] = useImage(
-    `${config.storage.baseUrl}hasura.png`,
+  const [svelteLogo] = useImage(
+    `${config.storage.baseUrl}Svelte.svg`,
+    'anonymous'
+  )
+  const [incredibleLogo] = useImage(
+    `${config.storage.baseUrl}x-incredible-black.svg`,
+    'anonymous'
+  )
+  const [svelteBg] = useImage(
+    `${config.storage.baseUrl}svelte_bg.svg`,
     'anonymous'
   )
 
@@ -102,15 +112,17 @@ const VideoJamThree = () => {
   ]
 
   const videoConfig: VideoConfig = {
-    x: 30,
-    y: 40,
-    width: 720,
-    height: 405,
-    videoFill: '#99BFE3',
-    borderColor: '#1EB4D4',
-    borderWidth: 4,
-    cornerRadius: 4,
+    x: 37,
+    y: 58,
+    width: 704,
+    height: 396,
     performClip: true,
+    borderWidth: 1,
+    borderColor: '#FF3E00',
+    backgroundRectX: 27,
+    backgroundRectY: 48,
+    backgroundRectBorderColor: '#FF3E00',
+    backgroundRectBorderWidth: 1,
   }
 
   const studioCoordinates: StudioUserConfig[] = (() => {
@@ -119,34 +131,32 @@ const VideoJamThree = () => {
         return [
           {
             x: 735,
-            y: 50,
+            y: 60,
             width: 240,
             height: 180,
             clipTheme: 'rect',
-            borderColor: '#1EB4D4',
-            borderWidth: 8,
+
             studioUserClipConfig: {
               x: 40,
               y: 0,
               width: 160,
               height: 180,
-              radius: 8,
+              radius: 0,
             },
           },
           {
             x: 735,
-            y: 255,
+            y: 265,
             width: 240,
             height: 180,
             clipTheme: 'rect',
-            borderColor: '#1EB4D4',
-            borderWidth: 8,
+
             studioUserClipConfig: {
               x: 40,
               y: 0,
               width: 160,
               height: 180,
-              radius: 8,
+              radius: 0,
             },
           },
         ]
@@ -154,50 +164,47 @@ const VideoJamThree = () => {
         return [
           {
             x: 775,
-            y: 42.5,
+            y: 58.5,
             width: 160,
             height: 120,
             clipTheme: 'rect',
-            borderColor: '#1EB4D4',
-            borderWidth: 8,
+
             studioUserClipConfig: {
               x: 0,
               y: 0,
               width: 160,
               height: 120,
-              radius: 8,
+              radius: 0,
             },
           },
           {
             x: 775,
-            y: 182.5,
+            y: 198.5,
             width: 160,
             height: 120,
             clipTheme: 'rect',
-            borderColor: '#1EB4D4',
-            borderWidth: 8,
+
             studioUserClipConfig: {
               x: 0,
               y: 0,
               width: 160,
               height: 120,
-              radius: 8,
+              radius: 0,
             },
           },
           {
             x: 775,
-            y: 322.5,
+            y: 338.5,
             width: 160,
             height: 120,
             clipTheme: 'rect',
-            borderColor: '#1EB4D4',
-            borderWidth: 8,
+
             studioUserClipConfig: {
               x: 0,
               y: 0,
               width: 160,
               height: 120,
-              radius: 8,
+              radius: 0,
             },
           },
         ]
@@ -205,18 +212,17 @@ const VideoJamThree = () => {
         return [
           {
             x: 695,
-            y: 122.5,
+            y: 120.5,
             width: 320,
             height: 240,
             clipTheme: 'rect',
-            borderColor: '#1EB4D4',
-            borderWidth: 8,
+
             studioUserClipConfig: {
               x: 80,
               y: 0,
               width: 160,
               height: 240,
-              radius: 8,
+              radius: 0,
             },
           },
         ]
@@ -226,35 +232,26 @@ const VideoJamThree = () => {
   const layerChildren = videoElement
     ? [
         <Rect
+          strokeWidth={1}
           x={0}
           y={0}
+          fill="#F5F6F7"
           width={CONFIG.width}
           height={CONFIG.height}
-          fill="#D6EBFF"
+          stroke="#111111"
         />,
-        <Rect
-          key="smallRect1"
-          x={490}
-          y={20}
-          width={12}
-          height={12}
-          fill="#F47E7E"
-          rotation={-45}
-          opacity={1}
+        <Image
+          image={svelteBg}
+          x={1}
+          y={1}
+          fill="#F5F6F7"
+          width={CONFIG.width - 2}
+          height={CONFIG.height - 2}
         />,
-        <Rect
-          key="smallRect2"
-          x={820}
-          y={505}
-          width={24}
-          height={24}
-          fill="#5C94C8"
-          rotation={-45}
-          opacity={1}
-        />,
-        <Circle x={240} y={460} radius={20} stroke="#F47E7E" strokeWidth={8} />,
+
         <Video videoElement={videoElement} videoConfig={videoConfig} />,
-        <Image image={hasuraLogo} x={30} y={CONFIG.height - 60} />,
+        <Image image={incredibleLogo} x={30} y={CONFIG.height - 70} />,
+        <Image image={svelteLogo} x={810} y={CONFIG.height - 60} />,
       ]
     : [<></>]
 
@@ -268,4 +265,4 @@ const VideoJamThree = () => {
   )
 }
 
-export default VideoJamThree
+export default videoJamTwelve

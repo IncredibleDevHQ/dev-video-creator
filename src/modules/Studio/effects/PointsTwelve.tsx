@@ -1,3 +1,4 @@
+import Konva from 'konva'
 import React, { useEffect, useState } from 'react'
 import { Group, Text, Image, Rect, Circle } from 'react-konva'
 import FontFaceObserver from 'fontfaceobserver'
@@ -11,7 +12,7 @@ import { StudioProviderProps, studioStore } from '../stores'
 import usePoint from '../hooks/use-point'
 import config from '../../../config'
 
-const PointsTwo = () => {
+const PointsTwelve = () => {
   const [activePointIndex, setActivePointIndex] = useState<number>(0)
   const [points, setPoints] = useState<string[]>([])
   const { fragment, state, updatePayload, payload } =
@@ -30,27 +31,18 @@ const PointsTwo = () => {
 
   const [titleNumberOfLines, setTitleNumberOfLines] = useState<number>(0)
 
-  const circleColors = [
-    '#000000',
-    '#1F2937',
-    '#4B5563',
-    '#6B7280',
-    '#9CA3AF',
-    '#ffffff',
-  ]
-
   const initialX = 32
 
+  const [svelteLogo] = useImage(
+    `${config.storage.baseUrl}Svelte.svg`,
+    'anonymous'
+  )
   const [incredibleLogo] = useImage(
-    `${config.storage.baseUrl}x-incredible.svg`,
+    `${config.storage.baseUrl}x-incredible-black.svg`,
     'anonymous'
   )
-  const [circleGroup] = useImage(
-    `${config.storage.baseUrl}black-circles.svg`,
-    'anonymous'
-  )
-  const [graphqlLogo] = useImage(
-    `${config.storage.baseUrl}graphql3.svg`,
+  const [svelteBg] = useImage(
+    `${config.storage.baseUrl}svelte_bg.svg`,
     'anonymous'
   )
 
@@ -76,7 +68,7 @@ const PointsTwo = () => {
     setTitleNumberOfLines(
       getNoOfLinesOfText({
         text: fragment.name,
-        availableWidth: 520,
+        availableWidth: 500,
         fontSize: 40,
         fontFamily: 'Poppins',
         stageWidth: 640,
@@ -121,6 +113,8 @@ const PointsTwo = () => {
     setYCoordinate(payload?.activeYCoordinate)
   }, [payload])
 
+  // const studioUserConfig: StudioUserConfig[] =
+
   const studioCoordinates: StudioUserConfig[] = (() => {
     switch (fragment?.participants.length) {
       case 2:
@@ -131,14 +125,13 @@ const PointsTwo = () => {
             width: 240,
             height: 180,
             clipTheme: 'rect',
-            borderColor: '#D1D5DB',
-            borderWidth: 8,
+
             studioUserClipConfig: {
               x: 10,
               y: 0,
               width: 220,
               height: 180,
-              radius: 8,
+              radius: 0,
             },
           },
           {
@@ -147,14 +140,13 @@ const PointsTwo = () => {
             width: 240,
             height: 180,
             clipTheme: 'rect',
-            borderColor: '#D1D5DB',
-            borderWidth: 8,
+
             studioUserClipConfig: {
-              x: 40,
+              x: 10,
               y: 0,
-              width: 160,
+              width: 220,
               height: 180,
-              radius: 8,
+              radius: 0,
             },
           },
         ]
@@ -167,17 +159,13 @@ const PointsTwo = () => {
             width: 520,
             height: 390,
             clipTheme: 'rect',
-            borderWidth: 8,
             studioUserClipConfig: {
               x: 150,
               y: 0,
               width: 220,
               height: 390,
-              radius: 8,
+              radius: 0,
             },
-            backgroundRectX: 705,
-            backgroundRectY: 48,
-            backgroundRectColor: '#C084FC',
           },
         ]
     }
@@ -207,33 +195,33 @@ const PointsTwo = () => {
       y={0}
       width={CONFIG.width}
       height={CONFIG.height}
-      fill="#1F2937"
+      fill="#ffffff"
+      stroke="#000000"
+      strokeWidth={1}
     />,
-    <Image image={circleGroup} x={380} y={440} />,
+
+    <Image
+      image={svelteBg}
+      width={CONFIG.width - 1}
+      height={CONFIG.height - 1}
+    />,
     <Rect
       x={27}
       y={48}
       width={640}
       height={390}
-      fill="#60A5FA"
-      cornerRadius={8}
+      stroke="#FF3E00"
+      strokeWidth={1}
     />,
-    <Rect
-      x={37}
-      y={58}
-      width={640}
-      height={390}
-      fill="#374151"
-      cornerRadius={8}
-    />,
+    <Rect x={37} y={56} width={640} height={390} fill="#FC7E4E" />,
     <Text
       key="fragmentTitle"
       x={67}
       y={90}
       align="left"
       fontSize={40}
-      fill="#F9FAFB"
-      width={500}
+      fill="#ffffff"
+      width={520}
       lineHeight={1.15}
       text={fragment?.name as string}
       fontStyle="normal 700"
@@ -247,9 +235,10 @@ const PointsTwo = () => {
             <Circle
               key="points"
               x={-76}
-              radius={11}
+              radius={9}
               y={point.y + 8}
-              fill={circleColors[j % 6]}
+              stroke="#ffffff"
+              strokeWidth={2}
               ref={(ref) =>
                 ref?.to({
                   x: 0,
@@ -257,18 +246,19 @@ const PointsTwo = () => {
                 })
               }
             />
+
             <Text
               key={point.text}
               x={-64}
               y={point.y}
               align="left"
               fontSize={16}
-              fill="#F9FAFB"
+              fill="#ffffff"
               width={460}
               height={64}
               text={point.text}
               lineHeight={1.1}
-              fontStyle="normal 600"
+              fontStyle="normal"
               fontFamily="Poppins"
               ref={(ref) =>
                 ref?.to({
@@ -280,8 +270,8 @@ const PointsTwo = () => {
           </>
         ))}
     </Group>,
-    <Image image={incredibleLogo} x={30} y={CONFIG.height - 60} />,
-    <Image image={graphqlLogo} x={840} y={CONFIG.height - 58} />,
+    <Image image={incredibleLogo} x={30} y={CONFIG.height - 70} />,
+    <Image image={svelteLogo} x={810} y={CONFIG.height - 60} />,
   ]
 
   return (
@@ -294,4 +284,4 @@ const PointsTwo = () => {
   )
 }
 
-export default PointsTwo
+export default PointsTwelve

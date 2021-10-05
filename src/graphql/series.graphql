@@ -71,6 +71,22 @@ mutation CreateOrganisationSeries(
   }
 }
 
+mutation UpdateSeries(
+  $seriesId: String!
+  $name: String
+  $description: String
+  $picture: String
+) {
+  UpdateSeries(
+    seriesId: $seriesId
+    name: $name
+    description: $description
+    picture: $picture
+  ) {
+    id
+  }
+}
+
 mutation CreateUserSeries(
   $name: String!
   $organisationSlug: String

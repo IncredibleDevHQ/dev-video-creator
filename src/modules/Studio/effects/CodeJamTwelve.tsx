@@ -4,6 +4,7 @@ import { Group, Circle, Text, Rect, Image } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
 import { NextLineIcon, NextTokenIcon } from '../../../components'
+import FocusCodeIcon from '../../../components/FocusCodeIcon'
 import config from '../../../config'
 import { API } from '../../../constants'
 import {
@@ -32,7 +33,7 @@ interface Position {
   currentIndex: number
 }
 
-const CodeJamNine = () => {
+const CodeJamTwelve = () => {
   const { fragment, payload, updatePayload, state, isHost } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
@@ -49,8 +50,16 @@ const CodeJamNine = () => {
   })
   const [focusCode, setFocusCode] = useState<boolean>(false)
 
-  const [hasuraLogo] = useImage(
-    `${config.storage.baseUrl}hasura.png`,
+  const [svelteLogo] = useImage(
+    `${config.storage.baseUrl}Svelte.svg`,
+    'anonymous'
+  )
+  const [incredibleLogo] = useImage(
+    `${config.storage.baseUrl}x-incredible-black.svg`,
+    'anonymous'
+  )
+  const [svelteBg] = useImage(
+    `${config.storage.baseUrl}svelte_bg.svg`,
     'anonymous'
   )
 
@@ -131,14 +140,13 @@ const CodeJamNine = () => {
             width: 240,
             height: 180,
             clipTheme: 'rect',
-            borderColor: '#1EB4D4',
-            borderWidth: 8,
+
             studioUserClipConfig: {
               x: 40,
               y: 0,
               width: 160,
               height: 180,
-              radius: 8,
+              radius: 0,
             },
           },
           {
@@ -147,14 +155,13 @@ const CodeJamNine = () => {
             width: 240,
             height: 180,
             clipTheme: 'rect',
-            borderColor: '#1EB4D4',
-            borderWidth: 8,
+
             studioUserClipConfig: {
               x: 40,
               y: 0,
               width: 160,
               height: 180,
-              radius: 8,
+              radius: 0,
             },
           },
         ]
@@ -166,14 +173,13 @@ const CodeJamNine = () => {
             width: 160,
             height: 120,
             clipTheme: 'rect',
-            borderColor: '#1EB4D4',
-            borderWidth: 8,
+
             studioUserClipConfig: {
               x: 0,
               y: 0,
               width: 160,
               height: 120,
-              radius: 8,
+              radius: 0,
             },
           },
           {
@@ -182,14 +188,13 @@ const CodeJamNine = () => {
             width: 160,
             height: 120,
             clipTheme: 'rect',
-            borderColor: '#1EB4D4',
-            borderWidth: 8,
+
             studioUserClipConfig: {
               x: 0,
               y: 0,
               width: 160,
               height: 120,
-              radius: 8,
+              radius: 0,
             },
           },
           {
@@ -198,14 +203,13 @@ const CodeJamNine = () => {
             width: 160,
             height: 120,
             clipTheme: 'rect',
-            borderColor: '#1EB4D4',
-            borderWidth: 8,
+
             studioUserClipConfig: {
               x: 0,
               y: 0,
               width: 160,
               height: 120,
-              radius: 8,
+              radius: 0,
             },
           },
         ]
@@ -217,14 +221,13 @@ const CodeJamNine = () => {
             width: 320,
             height: 240,
             clipTheme: 'rect',
-            borderColor: '#1EB4D4',
-            borderWidth: 8,
+
             studioUserClipConfig: {
               x: 80,
               y: 0,
               width: 160,
               height: 240,
-              radius: 8,
+              radius: 0,
             },
           },
         ]
@@ -237,38 +240,31 @@ const CodeJamNine = () => {
       y={0}
       width={CONFIG.width}
       height={CONFIG.height}
-      fill="#D6EBFF"
+      fill="#ffffff"
+      stroke="#000000"
+      strokeWidth={1}
+    />,
+
+    <Image
+      image={svelteBg}
+      width={CONFIG.width - 1}
+      height={CONFIG.height - 1}
     />,
     <Rect
-      key="smallRect1"
-      x={490}
-      y={20}
-      width={12}
-      height={12}
-      fill="#F47E7E"
-      rotation={-45}
-      opacity={1}
+      x={27}
+      y={48}
+      width={704}
+      height={396}
+      stroke="#FF3E00"
+      strokeWidth={1}
     />,
-    <Rect
-      key="smallRect2"
-      x={820}
-      y={505}
-      width={24}
-      height={24}
-      fill="#5C94C8"
-      rotation={-45}
-      opacity={1}
-    />,
-    <Circle x={240} y={460} radius={20} stroke="#F47E7E" strokeWidth={8} />,
     <Rect
       x={37}
       y={58}
       width={704}
       height={396}
-      stroke="#1EB4D4"
-      strokeWidth={4}
       fill="#202026"
-      cornerRadius={8}
+      strokeWidth={4}
     />,
     <Group x={52} y={73} key="circleGroup">
       <Circle key="redCircle" x={0} y={0} fill="#FF605C" radius={5} />
@@ -303,7 +299,8 @@ const CodeJamNine = () => {
         }}
       />
     ),
-    <Image image={hasuraLogo} x={30} y={CONFIG.height - 60} />,
+    <Image image={incredibleLogo} x={30} y={CONFIG.height - 70} />,
+    <Image image={svelteLogo} x={810} y={CONFIG.height - 60} />,
   ]
 
   return (
@@ -316,4 +313,4 @@ const CodeJamNine = () => {
   )
 }
 
-export default CodeJamNine
+export default CodeJamTwelve
