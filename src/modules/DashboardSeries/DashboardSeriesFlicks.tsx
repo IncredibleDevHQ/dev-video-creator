@@ -20,13 +20,6 @@ const DashboardSeriesFlicks = () => {
       <ScreenState title="Something went wrong!!" subtitle={error.message} />
     )
 
-  useEffect(() => {
-    console.log(
-      'data',
-      data?.Series.map((p) => p.flickCount?.count)
-    )
-  }, [])
-
   return (
     <div className="">
       {!data && (
