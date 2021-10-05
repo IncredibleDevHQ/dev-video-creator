@@ -22,7 +22,7 @@ const TriviaFive = () => {
     title?: string
   }>({ enable: false })
 
-  const { fragment, state } =
+  const { fragment, state, updatePayload, payload } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const { getImageDimensions } = useEdit()
@@ -92,10 +92,17 @@ const TriviaFive = () => {
   }, [fragment?.configuration.properties])
 
   useEffect(() => {
+    if (state === 'ready') {
+      updatePayload?.({ activeQuestion: 0 })
+    }
     if (state === 'recording') {
       setActiveQuestionIndex(0)
     }
   }, [state])
+
+  useEffect(() => {
+    setActiveQuestionIndex(payload?.activeQuestion)
+  }, [payload])
 
   const controls = [
     <ControlButton
@@ -104,28 +111,72 @@ const TriviaFive = () => {
       className="my-2"
       appearance="primary"
       disabled={activeQuestionIndex === questions.length - 1}
-      onClick={() => setActiveQuestionIndex(activeQuestionIndex + 1)}
+      onClick={() => {
+        setActiveQuestionIndex(activeQuestionIndex + 1)
+        updatePayload?.({ activeQuestion: activeQuestionIndex + 1 })
+      }}
     />,
   ]
 
-  const studioUserConfig: StudioUserConfig[] = [
-    {
-      x: 586,
-      y: 0,
-      width: 528,
-      height: 396,
-      clipTheme: 'rect',
-      borderWidth: 6,
-      borderColor: '#ffffff',
-      studioUserClipConfig: {
-        x: 154,
-        y: 0,
-        width: 220,
-        height: 396,
-        radius: 0,
-      },
-    },
-  ]
+  const studioCoordinates: StudioUserConfig[] = (() => {
+    switch (fragment?.participants.length) {
+      case 2:
+        return [
+          {
+            x: 705,
+            y: 60,
+            width: 240,
+            height: 180,
+            clipTheme: 'rect',
+            borderWidth: 6,
+            borderColor: '#ffffff',
+            studioUserClipConfig: {
+              x: 10,
+              y: 0,
+              width: 220,
+              height: 180,
+              radius: 0,
+            },
+          },
+          {
+            x: 705,
+            y: 265,
+            width: 240,
+            height: 180,
+            clipTheme: 'rect',
+            borderWidth: 6,
+            borderColor: '#ffffff',
+            studioUserClipConfig: {
+              x: 10,
+              y: 0,
+              width: 220,
+              height: 180,
+              radius: 0,
+            },
+          },
+        ]
+
+      default:
+        return [
+          {
+            x: 586,
+            y: 0,
+            width: 528,
+            height: 396,
+            clipTheme: 'rect',
+            borderWidth: 6,
+            borderColor: '#ffffff',
+            studioUserClipConfig: {
+              x: 154,
+              y: 0,
+              width: 220,
+              height: 396,
+              radius: 0,
+            },
+          },
+        ]
+    }
+  })()
 
   const layerChildren = [
     <Rect
@@ -154,7 +205,7 @@ const TriviaFive = () => {
       ) : (
         <></>
       )}
-      {questions.length > 0 && !questions[activeQuestionIndex].image ? (
+      {questions.length > 0 && !questions[activeQuestionIndex]?.image ? (
         <Text
           x={10}
           verticalAlign="middle"
@@ -205,7 +256,7 @@ const TriviaFive = () => {
       controls={controls}
       layerChildren={layerChildren}
       titleSpalshData={titleSpalshData}
-      studioUserConfig={studioUserConfig}
+      studioUserConfig={studioCoordinates}
     />
   )
 }

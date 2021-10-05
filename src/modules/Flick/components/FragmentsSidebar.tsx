@@ -10,7 +10,7 @@ import {
   DraggableProvided,
   DraggableStateSnapshot,
 } from 'react-beautiful-dnd'
-import { FiCheckCircle, FiPlus, FiPlusCircle } from 'react-icons/fi'
+import { FiCheckCircle, FiCopy, FiPlus, FiPlusCircle } from 'react-icons/fi'
 import { MdDelete } from 'react-icons/md'
 import { BiCheckCircle, BiCircle, BiRightArrowAlt } from 'react-icons/bi'
 import {
@@ -35,6 +35,7 @@ import {
 import { User, userState } from '../../../stores/user.store'
 import { StudioProviderProps, studioStore } from '../../Studio/stores'
 import ConfirmDeleteModal from './ConfirmDeleteModal'
+import { DuplicateFragmentModal } from '.'
 
 const style = css`
   .react-select__control {
@@ -272,6 +273,7 @@ const FragmentItem = ({
   activeFragmentId,
   setActiveFragmentId,
   handleRefetch,
+  handleDuplicate,
 }: {
   flickId: string
   fragment: FlickFragmentFragment
@@ -282,6 +284,7 @@ const FragmentItem = ({
   flickParticipants: FlickParticipantsFragment[]
   setActiveFragmentId: (id: string) => void
   handleRefetch: (refresh?: boolean) => void
+  handleDuplicate: () => void
 }) => {
   const userData = (useRecoilValue(userState) as User) || {}
 
@@ -358,15 +361,18 @@ const FragmentItem = ({
             </Tooltip>
           )}
         </div>
-        <div className="m-2">
-          <MdDelete
-            className="cursor-pointer absolute bottom-1 right-1"
-            onClick={(e) => {
-              e?.preventDefault()
-              setConfirmDeleteModal(true)
-            }}
-          />
-        </div>
+        <FiCopy
+          className="cursor-pointer absolute bottom-1 right-7"
+          onClick={(e) => {
+            handleDuplicate()
+          }}
+        />
+        <MdDelete
+          className="cursor-pointer absolute bottom-1 right-1"
+          onClick={(e) => {
+            setConfirmDeleteModal(true)
+          }}
+        />
         <ConfirmDeleteModal
           open={confirmDeleteModal}
           handleClose={(refresh) => {
@@ -419,6 +425,8 @@ const FragmentDND = ({
     })
   }
 
+  const [duplicateModal, setDuplicateModal] = useState<string | undefined>()
+
   useEffect(() => {
     if (!fragments) return
     reorderFragments(fragments, flickId)
@@ -463,6 +471,9 @@ const FragmentDND = ({
                     setActiveFragmentId={setActiveFragmentId}
                     handleRefetch={handleRefetch}
                     key={fragment.id}
+                    handleDuplicate={() => {
+                      setDuplicateModal(fragment.id)
+                    }}
                   />
                 )}
               </Draggable>
@@ -470,6 +481,18 @@ const FragmentDND = ({
           </div>
         )}
       </Droppable>
+      <DuplicateFragmentModal
+        flickId={flickId}
+        fragment={fragments.find((f) => f.id === duplicateModal)}
+        flickParticipants={flickParticipants}
+        open={duplicateModal !== undefined}
+        handleClose={(refresh) => {
+          setDuplicateModal(undefined)
+          if (refresh) {
+            handleRefetch(true)
+          }
+        }}
+      />
     </DragDropContext>
   )
 }
@@ -538,7 +561,7 @@ const FragmentsSidebar = ({
   }
 
   return (
-    <div className="flex flex-col w-1/6 h-screen py-2 px-4 bg-background-alt">
+    <div className="flex flex-col w-1/6 h-screen py-2 px-4 bg-background-alt overflow-auto">
       <div className="flex flex-row justify-between items-center mb-8">
         <Heading className="flex-1">Fragments</Heading>
         {isHost && (

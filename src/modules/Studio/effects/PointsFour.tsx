@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Group, Text, Image, Rect, Circle } from 'react-konva'
 import FontFaceObserver from 'fontfaceobserver'
 import { useRecoilValue } from 'recoil'
@@ -14,7 +14,7 @@ import config from '../../../config'
 const PointsFour = () => {
   const [activePointIndex, setActivePointIndex] = useState<number>(0)
   const [points, setPoints] = useState<string[]>([])
-  const { fragment, state, stream, picture, constraints } =
+  const { fragment, state, updatePayload, payload } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [titleSpalshData, settitleSpalshData] = useState<{
@@ -22,7 +22,7 @@ const PointsFour = () => {
     title?: string
   }>({ enable: false })
 
-  const [groupCoordinate, setGroupCoordinate] = useState<number>(0)
+  const [, setGroupCoordinate] = useState<number>(0)
 
   const { initUsePoint, computedPoints, getNoOfLinesOfText } = usePoint()
 
@@ -31,7 +31,6 @@ const PointsFour = () => {
   const [titleNumberOfLines, setTitleNumberOfLines] = useState<number>(0)
 
   const initialX = 32
-  const lineLength = 20
 
   const [astroPlanet] = useImage(
     `${config.storage.baseUrl}planet.svg`,
@@ -97,34 +96,96 @@ const PointsFour = () => {
   }, [])
 
   useEffect(() => {
+    if (state === 'ready') {
+      updatePayload?.({
+        activePoint: 0,
+        activeYCoordinate: 0,
+      })
+    }
     if (state === 'recording') {
       setActivePointIndex(0)
     }
   }, [state])
 
-  const studioUserConfig: StudioUserConfig[] = [
-    {
-      x: 565,
-      y: 68,
-      width: 520,
-      height: 390,
-      clipTheme: 'rect',
-      borderWidth: 6,
-      borderColor: '#1F2937',
-      studioUserClipConfig: {
-        x: 150,
-        y: 0,
-        width: 220,
-        height: 390,
-        radius: 8,
-      },
-      backgroundRectX: 705,
-      backgroundRectY: 58,
-      backgroundRectColor: '#FF5D01',
-      backgroundRectBorderWidth: 3,
-      backgroundRectBorderColor: '#1F2937',
-    },
-  ]
+  useEffect(() => {
+    setActivePointIndex(payload?.activePoint)
+    setYCoordinate(payload?.activeYCoordinate)
+  }, [payload])
+
+  const studioCoordinates: StudioUserConfig[] = (() => {
+    switch (fragment?.participants.length) {
+      case 2:
+        return [
+          {
+            x: 705,
+            y: 60,
+            width: 240,
+            height: 180,
+            clipTheme: 'rect',
+            borderWidth: 6,
+            borderColor: '#1F2937',
+            studioUserClipConfig: {
+              x: 10,
+              y: 0,
+              width: 220,
+              height: 180,
+              radius: 8,
+            },
+            backgroundRectX: 705,
+            backgroundRectY: 70,
+            backgroundRectColor: '#FF5D01',
+            backgroundRectBorderWidth: 3,
+            backgroundRectBorderColor: '#1F2937',
+          },
+          {
+            x: 705,
+            y: 265,
+            width: 240,
+            height: 180,
+            clipTheme: 'rect',
+            borderWidth: 6,
+            borderColor: '#1F2937',
+            studioUserClipConfig: {
+              x: 10,
+              y: 0,
+              width: 220,
+              height: 180,
+              radius: 8,
+            },
+            backgroundRectX: 705,
+            backgroundRectY: 275,
+            backgroundRectColor: '#FF5D01',
+            backgroundRectBorderWidth: 3,
+            backgroundRectBorderColor: '#1F2937',
+          },
+        ]
+
+      default:
+        return [
+          {
+            x: 565,
+            y: 68,
+            width: 520,
+            height: 390,
+            clipTheme: 'rect',
+            borderWidth: 6,
+            borderColor: '#1F2937',
+            studioUserClipConfig: {
+              x: 150,
+              y: 0,
+              width: 220,
+              height: 390,
+              radius: 8,
+            },
+            backgroundRectX: 705,
+            backgroundRectY: 58,
+            backgroundRectColor: '#FF5D01',
+            backgroundRectBorderWidth: 3,
+            backgroundRectBorderColor: '#1F2937',
+          },
+        ]
+    }
+  })()
 
   const windowOpsImages = <Image image={windowOps} x={860} y={25} />
 
@@ -134,10 +195,14 @@ const PointsFour = () => {
       icon={NextTokenIcon}
       className="my-2"
       appearance="primary"
-      disabled={activePointIndex === points.length}
+      disabled={activePointIndex === points?.length}
       onClick={() => {
         setActivePointIndex(activePointIndex + 1)
         setYCoordinate(yCoordinate + 30)
+        updatePayload?.({
+          activePoint: activePointIndex + 1,
+          activeYCoordinate: yCoordinate + 30,
+        })
       }}
     />,
   ]
@@ -257,7 +322,7 @@ const PointsFour = () => {
       controls={controls}
       layerChildren={layerChildren}
       titleSpalshData={titleSpalshData}
-      studioUserConfig={studioUserConfig}
+      studioUserConfig={studioCoordinates}
     />
   )
 }

@@ -1,6 +1,5 @@
-import Konva from 'konva'
-import React, { useEffect, useRef, useState } from 'react'
-import { Group, Text, Image, Rect, Circle } from 'react-konva'
+import React, { useEffect, useState } from 'react'
+import { Group, Text, Image, Rect } from 'react-konva'
 import FontFaceObserver from 'fontfaceobserver'
 import { useRecoilValue } from 'recoil'
 import { useImage } from 'react-konva-utils'
@@ -15,15 +14,22 @@ import config from '../../../config'
 const PointsSeven = () => {
   const [activePointIndex, setActivePointIndex] = useState<number>(0)
   const [points, setPoints] = useState<string[]>([])
-  const { fragment, state, stream, picture, constraints } =
-    (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const {
+    fragment,
+    state,
+    stream,
+    picture,
+    constraints,
+    updatePayload,
+    payload,
+  } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [titleSpalshData, settitleSpalshData] = useState<{
     enable: boolean
     title?: string
   }>({ enable: false })
 
-  const [groupCoordinate, setGroupCoordinate] = useState<number>(0)
+  const [, setGroupCoordinate] = useState<number>(0)
 
   const { initUsePoint, computedPoints, getNoOfLinesOfText } = usePoint()
 
@@ -97,29 +103,81 @@ const PointsSeven = () => {
   }, [])
 
   useEffect(() => {
+    if (state === 'ready') {
+      updatePayload?.({
+        activePoint: 0,
+        activeYCoordinate: 0,
+      })
+    }
     if (state === 'recording') {
       setActivePointIndex(0)
     }
   }, [state])
 
-  const studioUserConfig: StudioUserConfig[] = [
-    {
-      x: 565,
-      y: 58,
-      width: 520,
-      height: 390,
-      clipTheme: 'rect',
-      borderWidth: 4,
-      borderColor: '#111111',
-      studioUserClipConfig: {
-        x: 150,
-        y: 0,
-        width: 220,
-        height: 390,
-        radius: 0,
-      },
-    },
-  ]
+  useEffect(() => {
+    setActivePointIndex(payload?.activePoint)
+    setYCoordinate(payload?.activeYCoordinate)
+  }, [payload])
+
+  const studioCoordinates: StudioUserConfig[] = (() => {
+    switch (fragment?.participants.length) {
+      case 2:
+        return [
+          {
+            x: 705,
+            y: 60,
+            width: 240,
+            height: 180,
+            clipTheme: 'rect',
+            borderWidth: 8,
+            borderColor: '#111111',
+            studioUserClipConfig: {
+              x: 10,
+              y: 0,
+              width: 220,
+              height: 180,
+              radius: 0,
+            },
+          },
+          {
+            x: 705,
+            y: 265,
+            width: 240,
+            height: 180,
+            clipTheme: 'rect',
+            borderWidth: 8,
+            borderColor: '#111111',
+            studioUserClipConfig: {
+              x: 10,
+              y: 0,
+              width: 220,
+              height: 180,
+              radius: 0,
+            },
+          },
+        ]
+
+      default:
+        return [
+          {
+            x: 565,
+            y: 58,
+            width: 520,
+            height: 390,
+            clipTheme: 'rect',
+            borderWidth: 4,
+            borderColor: '#111111',
+            studioUserClipConfig: {
+              x: 150,
+              y: 0,
+              width: 220,
+              height: 390,
+              radius: 0,
+            },
+          },
+        ]
+    }
+  })()
 
   const controls = [
     <ControlButton
@@ -127,10 +185,14 @@ const PointsSeven = () => {
       icon={NextTokenIcon}
       className="my-2"
       appearance="primary"
-      disabled={activePointIndex === points.length}
+      disabled={activePointIndex === points?.length}
       onClick={() => {
         setActivePointIndex(activePointIndex + 1)
         setYCoordinate(yCoordinate + 30)
+        updatePayload?.({
+          activePoint: activePointIndex + 1,
+          activeYCoordinate: yCoordinate + 30,
+        })
       }}
     />,
   ]
@@ -227,7 +289,7 @@ const PointsSeven = () => {
       controls={controls}
       layerChildren={layerChildren}
       titleSpalshData={titleSpalshData}
-      studioUserConfig={studioUserConfig}
+      studioUserConfig={studioCoordinates}
     />
   )
 }

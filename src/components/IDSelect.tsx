@@ -1,5 +1,6 @@
 import React, { FunctionComponent } from 'react'
 import Select from 'react-select'
+import { Label } from '.'
 
 export interface Option {
   label: string
@@ -19,7 +20,7 @@ const IDSelect: FunctionComponent<IDSelectProps> = ({
 }: IDSelectProps) => {
   return (
     <div>
-      <small>{label}</small>
+      <Label>{label}</Label>
       <Select options={options} />
       {errorMessage && <small>{errorMessage}</small>}
     </div>

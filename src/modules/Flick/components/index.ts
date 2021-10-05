@@ -8,8 +8,10 @@ import VideoInventoryModal from './VideoInventoryModal'
 import FlickActivity from './FlickActivity'
 import FlickSideBar from './FlickSideBar'
 import Notes from './Notes'
+import DuplicateFragmentModal from './DuplicateFragmentModal'
 
 export {
+  DuplicateFragmentModal,
   FlickCard,
   FragmentActivity,
   FragmentsSidebar,
