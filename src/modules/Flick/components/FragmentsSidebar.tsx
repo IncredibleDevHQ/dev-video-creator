@@ -18,6 +18,7 @@ import {
   Button,
   emitToast,
   Heading,
+  ScreenState,
   Text,
   TextField,
   Tooltip,
@@ -31,6 +32,7 @@ import {
   Participant_Role_Enum_Enum,
   useInsertParticipantToFragmentMutation,
   useReorderFragmentMutation,
+  useUpdateFragmentMutation,
 } from '../../../generated/graphql'
 import { User, userState } from '../../../stores/user.store'
 import { StudioProviderProps, studioStore } from '../../Studio/stores'
@@ -299,11 +301,29 @@ const FragmentItem = ({
   })
   const isParticipant = !(data && data.Participant.length === 0) as boolean
 
+  const [editFragmentName, setEditFragmentName] = useState(false)
+
+  const [updateFragmentMutation, { data: updateFargmentData }] =
+    useUpdateFragmentMutation()
+
+  useEffect(() => {
+    if (!updateFargmentData) return
+    setEditFragmentName(false)
+  }, [updateFargmentData])
+
+  const useUpdateFragmentFunction = async (newName: string) => {
+    if (editFragmentName) {
+      await updateFragmentMutation({
+        variables: {
+          fragmentId: fragment.id, // value for 'fragmentId'
+          name: newName,
+        },
+      })
+    }
+  }
+
   return (
     <div
-      role="button"
-      tabIndex={0}
-      onKeyUp={() => {}}
       className={cx(
         'my-1 p-2 border-2 bg-white border-dotted rounded-md text-gray relative',
         {
@@ -318,7 +338,6 @@ const FragmentItem = ({
             snapshot.isDragging && isParticipant,
         }
       )}
-      onClick={() => setActiveFragmentId(fragment.id)}
       ref={provided.innerRef}
       {...provided.draggableProps}
       {...provided.dragHandleProps}
@@ -327,65 +346,89 @@ const FragmentItem = ({
         <FiCheckCircle className="text-success absolute top-1 right-1" />
       )}
       <div className="rounded relative">
-        <Heading fontSize="base">{fragment.name}</Heading>
-        <Text fontSize="normal">{fragment.description}</Text>
-        <Text fontSize="small">{fragment.type}</Text>
-        <div className="flex mt-2">
-          {fragment.participants.map(({ participant }) => (
-            <Avatar
-              className="w-6 h-6 rounded-full mr-1"
-              src={participant.user.picture as string}
-              alt={participant.user.displayName as string}
-            />
-          ))}
-          {isHost && activeFragmentId === fragment.id && (
-            <Tooltip
-              isOpen={isParticipantsTooltip}
-              setIsOpen={setParticipantsTooltip}
-              content={
-                <ParticipantsTooltip
-                  fragment={fragment}
-                  flickParticipants={flickParticipants}
-                  activeFragmentId={activeFragmentId}
-                  handleRefetch={handleRefetch}
-                  setParticipantsTooltip={setParticipantsTooltip}
-                />
-              }
-              placement="bottom-start"
-              triggerOffset={6}
-            >
-              <FiPlusCircle
-                className="w-6 h-6 text-gray-400 cursor-pointer"
-                onClick={() => setParticipantsTooltip(!isParticipantsTooltip)}
-              />
-            </Tooltip>
-          )}
-        </div>
-        <FiCopy
-          className="cursor-pointer absolute bottom-1 right-7"
-          onClick={(e) => {
-            handleDuplicate()
-          }}
-        />
-        <MdDelete
-          className="cursor-pointer absolute bottom-1 right-1"
-          onClick={(e) => {
-            setConfirmDeleteModal(true)
-          }}
-        />
-        <ConfirmDeleteModal
-          open={confirmDeleteModal}
-          handleClose={(refresh) => {
-            if (refresh) {
-              handleRefetch(true)
-              history.push(`/flick/${flickId}`)
+        <Heading
+          fontSize="base"
+          contentEditable={editFragmentName}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              useUpdateFragmentFunction(e.currentTarget.innerText)
             }
-            setConfirmDeleteModal(false)
           }}
-          fragmentId={fragment.id}
-          fragmentName={fragment.name || ''}
-          flickId={flickId}
-        />
+          className="cursor-auto w-auto p-1 rounded-lg  hover:bg-gray-300"
+          onClick={() => {
+            setEditFragmentName(true)
+          }}
+        >
+          {fragment.name}
+        </Heading>
+
+        <div
+          className="flex flex-col"
+          onKeyUp={() => {}}
+          role="button"
+          tabIndex={0}
+          onClick={() => setActiveFragmentId(fragment.id)}
+        >
+          <Text fontSize="normal">{fragment.description}</Text>
+          <Text fontSize="small">{fragment.type}</Text>
+          <div className="flex mt-2">
+            {fragment.participants.map(({ participant }) => (
+              <Avatar
+                className="w-6 h-6 rounded-full mr-1"
+                src={participant.user.picture as string}
+                alt={participant.user.displayName as string}
+              />
+            ))}
+            {isHost && activeFragmentId === fragment.id && (
+              <Tooltip
+                isOpen={isParticipantsTooltip}
+                setIsOpen={setParticipantsTooltip}
+                content={
+                  <ParticipantsTooltip
+                    fragment={fragment}
+                    flickParticipants={flickParticipants}
+                    activeFragmentId={activeFragmentId}
+                    handleRefetch={handleRefetch}
+                    setParticipantsTooltip={setParticipantsTooltip}
+                  />
+                }
+                placement="bottom-start"
+                triggerOffset={6}
+              >
+                <FiPlusCircle
+                  className="w-6 h-6 text-gray-400 cursor-pointer"
+                  onClick={() => setParticipantsTooltip(!isParticipantsTooltip)}
+                />
+              </Tooltip>
+            )}
+          </div>
+          <FiCopy
+            className="cursor-pointer absolute bottom-1 right-7"
+            onClick={(e) => {
+              handleDuplicate()
+            }}
+          />
+          <MdDelete
+            className="cursor-pointer absolute bottom-1 right-1"
+            onClick={(e) => {
+              setConfirmDeleteModal(true)
+            }}
+          />
+          <ConfirmDeleteModal
+            open={confirmDeleteModal}
+            handleClose={(refresh) => {
+              if (refresh) {
+                handleRefetch(true)
+                history.push(`/flick/${flickId}`)
+              }
+              setConfirmDeleteModal(false)
+            }}
+            fragmentId={fragment.id}
+            fragmentName={fragment.name || ''}
+            flickId={flickId}
+          />
+        </div>
       </div>
     </div>
   )

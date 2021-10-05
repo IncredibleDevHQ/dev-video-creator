@@ -106,7 +106,7 @@ const CodeJamTen = () => {
       prevIndex: payload?.prevIndex || 0,
       currentIndex: payload?.currentIndex || 1,
     })
-    setFocusCode(false)
+    setFocusCode(payload?.isFocus)
   }, [payload])
 
   useEffect(() => {
@@ -118,6 +118,7 @@ const CodeJamTen = () => {
       updatePayload?.({
         currentIndex: 1,
         prevIndex: 0,
+        isFocus: false,
       })
     }
   }, [state])

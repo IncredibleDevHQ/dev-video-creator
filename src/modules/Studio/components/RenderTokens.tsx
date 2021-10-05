@@ -131,7 +131,7 @@ export const controls = (
   position: Position,
   computedTokens: ComputedToken[]
 ) => {
-  const { updatePayload, state } =
+  const { payload, updatePayload, state } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   return state === 'recording'
     ? [
@@ -146,6 +146,7 @@ export const controls = (
               updatePayload?.({
                 currentIndex: position.currentIndex + 1,
                 prevIndex: position.currentIndex,
+                isFocus: false,
               })
           }}
         />,
@@ -164,6 +165,7 @@ export const controls = (
             updatePayload?.({
               prevIndex: position.currentIndex,
               currentIndex: next,
+              isFocus: false,
             })
           }}
         />,
@@ -174,6 +176,11 @@ export const controls = (
           appearance="primary"
           onClick={() => {
             setFocusCode(true)
+            updatePayload?.({
+              prevIndex: payload?.prevIndex,
+              currentIndex: payload?.currentIndex,
+              isFocus: true,
+            })
           }}
         />,
       ]

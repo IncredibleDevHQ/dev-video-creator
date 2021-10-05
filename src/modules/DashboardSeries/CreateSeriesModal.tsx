@@ -18,6 +18,14 @@ const CreateSeriesModal = ({
   const [createSeriesMutation, { data, loading, error }] =
     useCreateUserSeriesMutation()
 
+  const handleAddSeries = async () => {
+    await createSeriesMutation({
+      variables: {
+        name: seriesName,
+      },
+    })
+  }
+
   useEffect(() => {
     if (!data) return
 
@@ -31,14 +39,6 @@ const CreateSeriesModal = ({
     )
 
   if (loading) return <ScreenState title="Just a jiffy..." loading />
-
-  const handleAddSeries = async () => {
-    await createSeriesMutation({
-      variables: {
-        name: seriesName,
-      },
-    })
-  }
 
   return (
     <Modal
