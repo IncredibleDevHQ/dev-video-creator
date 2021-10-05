@@ -130,14 +130,6 @@ query SeriesFlicks($id: uuid!) {
   }
 }
 
-query SeriesFlickCount($seriesId: uuid) {
-  Flick_Series_aggregate(where: { seriesId: { _eq: $seriesId } }) {
-    aggregate {
-      count(columns: flickId)
-    }
-  }
-}
-
 mutation CreateNewFlick(
   $name: String!
   $description: String
