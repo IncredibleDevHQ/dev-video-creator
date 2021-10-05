@@ -1,6 +1,6 @@
 import Konva from 'konva'
-import React, { useEffect, useRef, useState } from 'react'
-import { Group, Text, Image, Rect, Circle } from 'react-konva'
+import React, { useEffect, useState } from 'react'
+import { Group, Text, Image, Rect } from 'react-konva'
 import FontFaceObserver from 'fontfaceobserver'
 import { useRecoilValue } from 'recoil'
 import { useImage } from 'react-konva-utils'
@@ -24,9 +24,8 @@ const TriviaTen = () => {
     title?: string
   }>({ enable: false })
 
-  const { fragment, state } =
+  const { fragment, state, updatePayload, payload } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
-  const userData = (useRecoilValue(userState) as User) || {}
 
   const [isGif, setIsGif] = useState(false)
   const [gifUrl, setGifUrl] = useState('')
@@ -98,10 +97,17 @@ const TriviaTen = () => {
   }, [fragment?.configuration.properties])
 
   useEffect(() => {
+    if (state === 'ready') {
+      updatePayload?.({ activeQuestion: 0 })
+    }
     if (state === 'recording') {
       setActiveQuestionIndex(0)
     }
   }, [state])
+
+  useEffect(() => {
+    setActiveQuestionIndex(payload?.activeQuestion)
+  }, [payload])
 
   const controls = [
     <ControlButton
@@ -110,28 +116,72 @@ const TriviaTen = () => {
       className="my-2"
       appearance="primary"
       disabled={activeQuestionIndex === questions.length - 1}
-      onClick={() => setActiveQuestionIndex(activeQuestionIndex + 1)}
+      onClick={() => {
+        setActiveQuestionIndex(activeQuestionIndex + 1)
+        updatePayload?.({ activeQuestion: activeQuestionIndex + 1 })
+      }}
     />,
   ]
 
-  const studioUserConfig: StudioUserConfig[] = [
-    {
-      x: 695,
-      y: 122.5,
-      width: 320,
-      height: 240,
-      clipTheme: 'rect',
-      borderColor: '#235A97',
-      borderWidth: 8,
-      studioUserClipConfig: {
-        x: 80,
-        y: 0,
-        width: 160,
-        height: 240,
-        radius: 8,
-      },
-    },
-  ]
+  const studioCoordinates: StudioUserConfig[] = (() => {
+    switch (fragment?.participants.length) {
+      case 2:
+        return [
+          {
+            x: 735,
+            y: 60,
+            width: 240,
+            height: 180,
+            clipTheme: 'rect',
+            borderColor: '#235A97',
+            borderWidth: 8,
+            studioUserClipConfig: {
+              x: 40,
+              y: 0,
+              width: 160,
+              height: 180,
+              radius: 8,
+            },
+          },
+          {
+            x: 735,
+            y: 265,
+            width: 240,
+            height: 180,
+            clipTheme: 'rect',
+            borderColor: '#235A97',
+            borderWidth: 8,
+            studioUserClipConfig: {
+              x: 40,
+              y: 0,
+              width: 160,
+              height: 180,
+              radius: 8,
+            },
+          },
+        ]
+
+      default:
+        return [
+          {
+            x: 695,
+            y: 120.5,
+            width: 320,
+            height: 240,
+            clipTheme: 'rect',
+            borderColor: '#235A97',
+            borderWidth: 8,
+            studioUserClipConfig: {
+              x: 80,
+              y: 0,
+              width: 160,
+              height: 240,
+              radius: 8,
+            },
+          },
+        ]
+    }
+  })()
 
   const layerChildren = [
     <Rect
@@ -169,7 +219,7 @@ const TriviaTen = () => {
       ) : (
         <></>
       )}
-      {questions.length > 0 && !questions[activeQuestionIndex].image ? (
+      {questions.length > 0 && !questions[activeQuestionIndex]?.image ? (
         <Text
           x={10}
           verticalAlign="middle"
@@ -220,7 +270,7 @@ const TriviaTen = () => {
       controls={controls}
       layerChildren={layerChildren}
       titleSpalshData={titleSpalshData}
-      studioUserConfig={studioUserConfig}
+      studioUserConfig={studioCoordinates}
     />
   )
 }
