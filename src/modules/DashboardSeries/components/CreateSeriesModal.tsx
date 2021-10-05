@@ -2,8 +2,8 @@ import { css, cx } from '@emotion/css'
 import React, { useEffect, useState } from 'react'
 import Modal from 'react-responsive-modal'
 import { useHistory } from 'react-router-dom'
-import { Button, ScreenState, TextField } from '../../components'
-import { useCreateUserSeriesMutation } from '../../generated/graphql'
+import { Button, ScreenState, TextField } from '../../../components'
+import { useCreateUserSeriesMutation } from '../../../generated/graphql'
 
 const CreateSeriesModal = ({
   open,

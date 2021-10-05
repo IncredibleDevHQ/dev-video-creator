@@ -4,8 +4,8 @@ import { IconType } from 'react-icons'
 import { IoAlbumsOutline } from 'react-icons/io5'
 import { Button, Navbar, Tab, TabBar, Text } from '../../components'
 import { Drafts, NewFlickBanner, Published } from './components/index'
-import CreateSeriesModal from '../DashboardSeries/CreateSeriesModal'
 import DashboardSeriesFlicks from '../DashboardSeries/DashboardSeriesFlicks'
+import { CreateSeriesModal } from '../DashboardSeries/components'
 
 const ViewBarButton = ({
   icon: I,
