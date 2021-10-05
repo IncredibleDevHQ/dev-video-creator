@@ -86,8 +86,10 @@ const JsonSchema = ({
     setQuestion({ text: '', image: '' })
   }
 
-  const handleDeleteQuestion = (text?: string) => {
-    const questionArray = questions.filter((ques) => ques.text !== text)
+  const handleDeleteQuestion = (index: number) => {
+    const questionArray = questions.filter(
+      (ques, quesIndex) => quesIndex !== index
+    )
     setQuestions(questionArray)
 
     addToFormik(questionArray)
@@ -158,7 +160,7 @@ const JsonSchema = ({
             </div>
             {ques.text && (
               <Button
-                onClick={() => handleDeleteQuestion(ques.text)}
+                onClick={() => handleDeleteQuestion(index)}
                 type="button"
                 appearance="danger"
                 size="extraSmall"

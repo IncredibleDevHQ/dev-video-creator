@@ -46,7 +46,7 @@ const TextArraySchema = ({
     setCurrentPoint('')
   }
 
-  const handleDeleteText = (text: string, index: number) => {
+  const handleDeleteText = (index: number) => {
     const pointArray = points.filter((ques, quesIndex) => quesIndex !== index)
     setPoints(pointArray)
     addToFormik(pointArray)
@@ -109,7 +109,7 @@ const TextArraySchema = ({
               <span className="text-justify">{ques}</span>
             </div>
             <Button
-              onClick={() => handleDeleteText(ques, index)}
+              onClick={() => handleDeleteText(index)}
               type="button"
               appearance="danger"
               size="extraSmall"
