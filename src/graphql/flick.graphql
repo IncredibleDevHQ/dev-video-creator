@@ -194,6 +194,24 @@ query GetFragmentNotes($fragmentId: uuid!) {
   }
 }
 
+mutation UpdateFlick(
+  $flickId: String!
+  $name: String!
+  $organisationSlug: String
+  $scope: UpdateFlickScopeEnum
+  $difficulty: UpdateFlickDifficultyEnum
+) {
+  UpdateFlick(
+    flickId: $flickId
+    name: $name
+    organisationSlug: $organisationSlug
+    scope: $scope
+    difficulty: $difficulty
+  ) {
+    id
+  }
+}
+
 mutation DeleteFlick($flickId: uuid!) {
   DeleteFlick(flickId: $flickId) {
     id
