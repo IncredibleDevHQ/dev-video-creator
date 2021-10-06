@@ -143,12 +143,14 @@ mutation CreateNewFlick(
   $description: String
   $scope: CreateFlickFlickScopeEnumEnum!
   $seriesId: uuid
+  $configuration: json
 ) {
   CreateFlick(
     name: $name
     scope: $scope
     description: $description
     seriesId: $seriesId
+    configuration: $configuration
   ) {
     id
   }
