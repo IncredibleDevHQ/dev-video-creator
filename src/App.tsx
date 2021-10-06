@@ -30,6 +30,7 @@ import {
   InviteScreen,
   PublicVideo,
   MagicLinkLogin,
+  NewNewFragment,
 } from './modules'
 import { ErrorBoundary, ScreenState } from './components'
 
@@ -111,7 +112,7 @@ const App = () => {
                 <PrivateRoute
                   exact
                   path="/new-fragment/:id"
-                  component={NewFragment}
+                  component={NewNewFragment}
                 />
                 <PrivateRoute exact path="/flicks" component={Flicks} />
                 <PrivateRoute
