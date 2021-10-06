@@ -81,7 +81,12 @@ const Dashboard = () => {
   const [isOpenNewSeriesCreateModal, setIsOpenNewSeriesCreateModal] =
     useState(false)
 
-  if (userSeriesData && userSeriesData?.Series.length < 1)
+  if (
+    userSeriesData &&
+    userSeriesData?.Series.length < 1 &&
+    userFlicksData &&
+    userFlicksData?.Flick.length < 1
+  )
     return (
       <div>
         <Navbar />
