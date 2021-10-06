@@ -1,27 +1,22 @@
 import React, { useEffect, useState } from 'react'
-import { BsCameraVideo } from 'react-icons/bs'
+import { FiPlus } from 'react-icons/fi'
+import Modal from 'react-responsive-modal'
+import { useParams } from 'react-router'
+import { useRecoilState, useRecoilValue } from 'recoil'
 import {
-  FiBell,
-  FiChevronLeft,
-  FiCopy,
-  FiDelete,
-  FiTrash,
-  FiUpload,
-} from 'react-icons/fi'
-import { IoCopyOutline, IoTrashOutline } from 'react-icons/io5'
-import { useHistory, useParams } from 'react-router'
-import { Link } from 'react-router-dom'
-import { useRecoilState } from 'recoil'
-import { Heading, Button, ScreenState, emitToast } from '../../components'
-import { ASSETS } from '../../constants'
+  Avatar,
+  ScreenState,
+  Tab,
+  TabBar,
+  Text,
+  TextField,
+} from '../../components'
+import { useGetFlickByIdQuery } from '../../generated/graphql'
+import { Notes } from '../Flick/components'
 import {
-  useGetFlickByIdQuery,
-  useGetFlickFragmentsLazyQuery,
-} from '../../generated/graphql'
-import { FlickActivity } from '../Flick/components'
-import {
-  DeleteFragmentModal,
-  DuplicateFragmentModal,
+  FlickNavBar,
+  FragmentBar,
+  FragmentContent,
   FragmentSideBar,
 } from './components'
 import { newFlickStore } from './store/flickNew.store'
@@ -72,119 +67,95 @@ const FlickNew = () => {
   )
 }
 
-const FlickNavBar = () => {
-  const [{ flick }, setFlickStore] = useRecoilState(newFlickStore)
-  const [isActivityMenu, setIsActivityMenu] = useState(false)
-
-  return (
-    <div className="flex justify-between items-center pr-6 pl-3 py-3">
-      <div className="flex items-center">
-        <Link to="/dashboard">
-          <div className="flex">
-            <FiChevronLeft size={32} className="text-gray-700 mr-2" />
-            <img src={ASSETS.ICONS.StudioLogo} alt="" className="w-32" />
-          </div>
-        </Link>
-        <Heading className="font-semibold ml-12">{flick?.name}</Heading>
-      </div>
-      <div className="flex items-center">
-        <FiBell
-          className="text-gray-600 mr-8 cursor-pointer"
-          size={24}
-          onClick={() => setIsActivityMenu(!isActivityMenu)}
-        />
-        <Button appearance="primary" size="small" icon={FiUpload} type="button">
-          Publish
-        </Button>
-      </div>
-      <div className="absolute right-0">
-        <FlickActivity menu={isActivityMenu} setMenu={setIsActivityMenu} />
-      </div>
-    </div>
-  )
-}
-
-const FragmentBar = () => {
-  const [confirmDeleteModal, setConfirmDeleteModal] = useState(false)
-  const [duplicateModal, setDuplicateModal] = useState(false)
-  const [{ flick, activeFragmentId }, setFlickStore] =
-    useRecoilState(newFlickStore)
-
-  const [GetFlickFragments, { data, error, refetch }] =
-    useGetFlickFragmentsLazyQuery({
-      variables: {
-        flickId: flick?.id,
-      },
-    })
-
-  useEffect(() => {
-    if (!data || !flick) return
-    setFlickStore((store) => ({
-      ...store,
-      flick: {
-        ...flick,
-        fragments: [...data.Fragment],
-      },
-    }))
-  }, [data])
-
-  useEffect(() => {
-    if (!error || !refetch) return
-    emitToast({
-      title: "We couldn't fetch your new fragment",
-      type: 'error',
-      description: 'Click this toast to give it another try',
-      onClick: () => refetch(),
-    })
-  }, [error])
-
-  return (
-    <div className="flex items-center bg-gray-50 justify-between pr-6 pl-3 py-2 border-t border-b border-gray-300">
-      <div className="flex">
-        <IoTrashOutline
-          size={24}
-          className="mr-8 ml-2 text-gray-600 cursor-pointer"
-          onClick={() => setConfirmDeleteModal(true)}
-        />
-        <IoCopyOutline
-          size={24}
-          className="text-gray-600 cursor-pointer"
-          onClick={() => setDuplicateModal(true)}
-        />
-      </div>
-      <Button
-        appearance="secondary"
-        size="small"
-        icon={BsCameraVideo}
-        type="button"
-      >
-        Record
-      </Button>
-      <DeleteFragmentModal
-        open={confirmDeleteModal}
-        handleClose={() => {
-          setConfirmDeleteModal(false)
-        }}
-      />
-      <DuplicateFragmentModal
-        open={duplicateModal}
-        handleClose={(refresh) => {
-          if (refresh) {
-            GetFlickFragments()
-          }
-          setDuplicateModal(false)
-        }}
-      />
-    </div>
-  )
-}
-
 const FragmentPreview = () => {
-  return <div>preview</div>
+  return <div className="flex-1">preview</div>
 }
 
 const FragmentConfiguration = () => {
-  return <div>configuration</div>
+  const tabs: Tab[] = [
+    {
+      name: 'Content',
+      value: 'Content',
+    },
+    {
+      name: 'Participants',
+      value: 'Participants',
+    },
+    {
+      name: 'Notes',
+      value: 'Notes',
+    },
+  ]
+  const [currentTab, setCurrentTab] = useState<Tab>(tabs[1])
+  const { activeFragmentId } = useRecoilValue(newFlickStore)
+
+  return (
+    <div className="flex flex-col w-3/12 bg-gray-50 h-screen">
+      <TabBar
+        tabs={tabs}
+        current={currentTab}
+        onTabChange={setCurrentTab}
+        className="flex text-black w-full justify-center mt-6 mb-6"
+      />
+      {currentTab.value === 'Content' && <FragmentContent />}
+      {currentTab.value === 'Participants' && <FragmentParticipants />}
+      {currentTab.value === 'Notes' && <Notes fragmentId={activeFragmentId} />}
+    </div>
+  )
+}
+
+const FragmentParticipants = () => {
+  const [{ flick, activeFragmentId }, setFlickStore] =
+    useRecoilState(newFlickStore)
+
+  const [addParticipantModal, setAddParticipantModal] = useState(false)
+
+  const fragment = flick?.fragments.find((f) => f.id === activeFragmentId)
+
+  return (
+    <div className="flex flex-col mx-12">
+      {flick?.fragments
+        .find((f) => f.id === activeFragmentId)
+        ?.participants.map((p) => (
+          <div className="flex items-center mt-4">
+            <Avatar
+              className="w-8 h-8 rounded-full mr-4"
+              src={p.participant.user.picture as string}
+              alt={p.participant.user.displayName as string}
+            />
+            <Text>{p.participant.user.displayName}</Text>
+          </div>
+        ))}
+      <div
+        className="flex items-center mt-4 cursor-pointer"
+        onClick={() => setAddParticipantModal(true)}
+      >
+        <FiPlus size={32} className="mr-4" />
+        <Text className="font-semibold">Invite</Text>
+      </div>
+      <Modal
+        styles={{
+          modal: {
+            maxWidth: '50%',
+            width: '100%',
+          },
+        }}
+        classNames={{ modal: 'rounded-md' }}
+        onClose={() => {
+          setAddParticipantModal(false)
+        }}
+        showCloseIcon={false}
+        open={addParticipantModal}
+        center
+      >
+        <div className="w-full">
+          <Text className="bg-gray-100 text-gray-800 px-4 py-2 rounded-md font-semibold w-max text-sm">
+            Invite to {fragment?.name}
+          </Text>
+        </div>
+      </Modal>
+    </div>
+  )
 }
 
 export default FlickNew

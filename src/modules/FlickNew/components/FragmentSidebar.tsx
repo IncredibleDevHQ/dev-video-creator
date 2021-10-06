@@ -61,13 +61,13 @@ const FragmentSideBar = () => {
     <>
       <div
         className={cx(
-          'w-64 h-screen border-r-2 border-gray-300 overflow-y-scroll',
+          'w-56 h-screen border-r-2 border-gray-300 overflow-y-scroll',
           style
         )}
       >
         <ThumbnailDND />
         <div
-          className="bg-gray-100 py-2 fixed bottom-0 flex items-center justify-between left-0 w-64 cursor-pointer"
+          className="bg-gray-100 py-2 fixed bottom-0 flex items-center justify-center left-0 w-56 cursor-pointer  border-r-2 border-gray-300"
           onClick={() => setIsCreateNewModalOpen(true)}
         >
           <Button
@@ -194,10 +194,10 @@ const Thumbnail = ({
       tabIndex={0}
       onKeyUp={() => {}}
       className={cx(
-        'flex flex-col border-0 my-2 mx-4 rounded-lg h-32 bg-gray-100 justify-end p-4',
+        'flex flex-col border-0 my-2 mx-4 rounded-md h-28 bg-gray-100 justify-end p-4',
         {
           'border-2 border-green-600': active,
-          'mt-4': position === 0,
+          'mt-6': position === 0,
         },
         className
       )}
@@ -214,7 +214,7 @@ const Thumbnail = ({
         <div className="flex">
           {fragment.participants.map(({ participant }) => (
             <Avatar
-              className="w-6 h-6 rounded-full mr-1"
+              className="w-5 h-5 rounded-full mr-1"
               src={participant.user.picture as string}
               alt={participant.user.displayName as string}
             />
