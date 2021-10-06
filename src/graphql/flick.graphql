@@ -138,6 +138,12 @@ query SeriesFlickCount($seriesId: uuid) {
   }
 }
 
+query GetFlickFragments($flickId: uuid!) {
+  Fragment(where: { flickId: { _eq: $flickId } }) {
+    ...FlickFragment
+  }
+}
+
 mutation CreateNewFlick(
   $name: String!
   $description: String
