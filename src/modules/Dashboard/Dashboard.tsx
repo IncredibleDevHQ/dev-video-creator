@@ -85,7 +85,7 @@ const Dashboard = () => {
     userSeriesData?.Series.length < 1 &&
     userFlicksData &&
     userFlicksData?.Flick.length < 1
-  ) {
+  )
     return (
       <div>
         <Navbar />
@@ -127,7 +127,6 @@ const Dashboard = () => {
         />
       </div>
     )
-  }
 
   return (
     <div>
@@ -164,7 +163,7 @@ const Dashboard = () => {
 
       <DashboardSeriesFlicks data={userSeriesData} />
 
-      {userFlicksData && userFlicksData?.Flick.length > 1 && (
+      {userFlicksData && userFlicksData?.Flick.length > 0 && (
         <div className="px-0">
           <div className="flex flex-row m-0 p-0 ml-28 mt-20">
             <Text className="font-black text-xl mb-4">Your flicks</Text>
@@ -178,7 +177,7 @@ const Dashboard = () => {
           <div className="mb-10">
             {currentTab.value === 'Drafts' && (
               <Drafts
-                flicks={userFlicksData?.Flick || []}
+                flicks={userFlicksData?.Flick}
                 handleRefetch={(refresh) => {
                   if (refresh) userFlicksRefetch()
                 }}
@@ -186,7 +185,7 @@ const Dashboard = () => {
             )}
             {currentTab.value === 'Published' && (
               <Published
-                flicks={userFlicksData?.Flick || []}
+                flicks={userFlicksData?.Flick}
                 handleRefetch={(refresh) => {
                   if (refresh) userFlicksRefetch()
                 }}
