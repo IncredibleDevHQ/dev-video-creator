@@ -9,14 +9,12 @@ const DashboardSeriesFlicks = ({
 }: {
   data: GetUserSeriesQuery | undefined
 }) => {
-  if (!data) return <></>
+  if (data && data.Series.length < 1) return <></>
 
   return (
-    <>
-      <div className="flex flex-col m-0 p-0 ml-28">
-        <Text className="font-black text-xl mt-14">Your series</Text>
-      </div>
-      <div className="gap-y-5 p-0 grid grid-cols-4 mr-20 justify-center mt-7 mb-20 rounded-md ml-28">
+    <div className="flex flex-col m-0 p-0 ml-28 mt-20">
+      <Text className="font-black text-xl">Your series</Text>
+      <div className="gap-y-5 p-0 grid grid-cols-4 mr-20 justify-center mt-20 mb-20 rounded-md">
         {data &&
           data.Series.map((series) => (
             <Link to={`/series/${series.id}`} key={series.id}>
@@ -39,7 +37,7 @@ const DashboardSeriesFlicks = ({
             </Link>
           ))}
       </div>
-    </>
+    </div>
   )
 }
 
