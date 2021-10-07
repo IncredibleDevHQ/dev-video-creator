@@ -174,25 +174,6 @@ query FlickActivity($flickId: uuid!) {
     ...FlickActivity
   }
 }
-fragment Note on Note {
-  id
-  note
-  sourceUrl
-  participant {
-    id
-    userSub
-    user {
-      picture
-      displayName
-    }
-  }
-}
-
-query GetFragmentNotes($fragmentId: uuid!) {
-  Note(where: { fragmentId: { _eq: $fragmentId } }) {
-    ...Note
-  }
-}
 
 mutation UpdateFlick(
   $flickId: String!

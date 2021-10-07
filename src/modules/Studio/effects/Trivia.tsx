@@ -23,8 +23,9 @@ const Trivia = () => {
     title?: string
   }>({ enable: false })
 
-  const { fragment, state, stream, picture, constraints, updatePayload } =
+  const { fragment, state, stream, constraints, updatePayload } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const { picture } = (useRecoilValue(userState) as User) || {}
   const userData = (useRecoilValue(userState) as User) || {}
   const imageConfig = { width: 702, height: 540 }
   const imageRef = useRef<Konva.Image | null>(null)
