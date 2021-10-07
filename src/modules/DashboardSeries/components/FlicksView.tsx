@@ -6,10 +6,9 @@ import React, { useEffect, useState } from 'react'
 import Gravatar from 'react-gravatar'
 import { FiEdit, FiMoreHorizontal } from 'react-icons/fi'
 import { IoCheckmarkDone } from 'react-icons/io5'
-import { Link, useHistory, useParams } from 'react-router-dom'
+import { useHistory, useParams } from 'react-router-dom'
 import { useRecoilValue } from 'recoil'
 import {
-  Button,
   emitToast,
   Heading,
   ScreenState,
@@ -26,8 +25,6 @@ import {
 } from '../../../generated/graphql'
 import { Auth, authState } from '../../../stores/auth.store'
 import { userState } from '../../../stores/user.store'
-import { NewFlickBanner } from '../../Dashboard/components'
-import AddFlicksToSeriesModal from './AddFlicksToSeriesModal'
 
 const FlickTileDrafts = ({
   flick,
@@ -175,6 +172,8 @@ const FlickTooltip = ({
     handleRefetch(true)
   }, [deleteData])
 
+  if (loading) return <ScreenState title="Just a jiffy" loading />
+
   return (
     <Tooltip
       isOpen={options}
@@ -232,15 +231,12 @@ const FlickTooltip = ({
 
 const FlicksView = () => {
   const params: { id?: string } = useParams()
-  const [open, setOpen] = useState(false)
   const { data: seriesData } = useSeriesFlicksQuery({
     variables: {
       id: params.id,
     },
   })
-  const history = useHistory()
   const { isAuthenticated } = (useRecoilValue(authState) as Auth) || {}
-  const [flicksAdded, setFlicksAdded] = useState<boolean>(false)
   const { data, error, refetch } = useGetSingleSeriesQuery({
     variables: {
       id: params.id,
@@ -271,7 +267,7 @@ const FlicksView = () => {
               key={flick.flick?.id}
               className="flex flex-col h-40 w-2/5 mb-7 bg-white"
             >
-              {flick.flick && flick.flick?.producedLink ? (
+              {flick.flick?.producedLink ? (
                 <FlickTilePublished
                   key={flick.flick?.id}
                   flick={flick.flick}
@@ -279,7 +275,7 @@ const FlicksView = () => {
                     if (refresh) refetch()
                   }}
                 />
-              ) : (
+              ) : flick.flick && !flick.flick?.producedLink ? (
                 <FlickTileDrafts
                   key={flick.flick?.id}
                   flick={flick.flick}
@@ -287,6 +283,8 @@ const FlicksView = () => {
                     if (refresh) refetch()
                   }}
                 />
+              ) : (
+                'Add flicks to videos !! '
               )}
 
               <div className="bg-gray-200 h-0.5 w-full mt-3" />
@@ -311,7 +309,7 @@ const FlicksView = () => {
                       }}
                     />
                   ) : (
-                    'Yo!! Well this series yet to Publish thier Flicks'
+                    'Yo!! Well this series yet to Publish their Flicks'
                   )}
                   <div className="bg-gray-200 h-0.5 w-full mt-3" />
                 </div>

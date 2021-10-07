@@ -19,7 +19,6 @@ const SubscribeModal = ({
   userPhoto: string
   userSub: string
 }) => {
-  const [state, setState] = useState<boolean>(false)
   const firstName = userName?.split(' ') || ['']
 
   return (
@@ -66,9 +65,9 @@ const SubscribeModal = ({
           notified everytime he publishes one.
         </Text>
         <EmailSubscriber
-          state={state}
           sourceID={userSub}
           target={TargetTypes.UserSubscription}
+          handleClose={handleClose}
         />
       </div>
     </Modal>

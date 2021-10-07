@@ -1,18 +1,18 @@
 import React, { useState } from 'react'
-import { Button, TextField } from '../../../components'
+import { Button, emitToast, TextField } from '../../../components'
 import {
   TargetTypes,
   useSubToVideoEmailsMutation,
 } from '../../../generated/graphql'
 
 const EmailSubscriber = ({
-  state,
   sourceID,
   target,
+  handleClose,
 }: {
-  state: boolean
   sourceID: string
   target: TargetTypes
+  handleClose: (refresh?: boolean) => void
 }) => {
   const [SubscribeToVideos, { data, loading, error }] =
     useSubToVideoEmailsMutation()
@@ -26,6 +26,12 @@ const EmailSubscriber = ({
         targetType: target,
       },
     })
+
+    emitToast({
+      title: 'Success',
+      description: 'Successfully subscribed !!!',
+      type: 'success',
+    })
   }
 
   return (
@@ -36,6 +42,7 @@ const EmailSubscriber = ({
         onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
           setEmailSubscribe(e.target.value)
         }}
+        value={emailSubscribe}
         label=""
       />
       <Button
@@ -46,7 +53,9 @@ const EmailSubscriber = ({
         onClick={(e) => {
           e?.preventDefault()
           handleClick()
-          javascript: eraseText()
+
+          setEmailSubscribe('')
+          handleClose(true)
         }}
         loading={loading}
       >

@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react'
 import { BsChevronRight } from 'react-icons/bs'
 import { Link, useParams } from 'react-router-dom'
 import { useRecoilValue } from 'recoil'
-import { Flick } from '..'
 import {
   Button,
   EmptyState,
@@ -15,12 +14,11 @@ import {
   Flick_Scope_Enum_Enum,
   TargetTypes,
   useGetSingleSeriesLazyQuery,
-  User,
 } from '../../generated/graphql'
 import { Auth, authState } from '../../stores/auth.store'
-import { userState } from '../../stores/user.store'
+import { User, userState } from '../../stores/user.store'
 import NewFlickBanner from '../Dashboard/components/NewFlickBanner'
-import { Collaborators, EmailSubscriber } from './components'
+import { Collaborators, EmailSubscriber, SubscribeModal } from './components'
 import AddFlicksToSeriesModal from './components/AddFlicksToSeriesModal'
 import FlicksView from './components/FlicksView'
 
@@ -31,10 +29,8 @@ const SingleSeries = () => {
   const userdata = (useRecoilValue(userState) as User) || {}
   const { isAuthenticated } = (useRecoilValue(authState) as Auth) || {}
 
-  const [GetSingleSeries, { data, loading, error }] =
+  const [GetSingleSeries, { data, loading, error, refetch }] =
     useGetSingleSeriesLazyQuery()
-
-  const [state, setState] = useState<boolean>(true)
 
   useEffect(() => {
     GetSingleSeries({
@@ -44,6 +40,25 @@ const SingleSeries = () => {
     })
   }, [flicksAdded])
 
+  const publishedFlicks = data?.Series_by_pk?.Flick_Series.filter(
+    (flick) => flick.flick && flick.flick.producedLink
+  )
+  // Filters and collects uniques participants from flicks that are produced for Series Public Page
+  const uniqueNames = Array.from(
+    new Set(
+      publishedFlicks
+        ?.map((flicks) =>
+          flicks.flick?.participants.map((userDetails) => [
+            userDetails.user.displayName as string,
+            userDetails.user.sub as string,
+            userDetails.user.picture as string,
+          ])
+        )
+        .flat()
+        .flat()
+    )
+  )
+
   if (loading) return <ScreenState title="Just a jiffy" loading />
 
   if (error)
@@ -51,27 +66,11 @@ const SingleSeries = () => {
       <ScreenState title="Something went wrong!!" subtitle={error.message} />
     )
 
-  const publishedFlicks = data?.Series_by_pk?.Flick_Series.filter(
-    (flick) => flick.flick && flick.flick.producedLink
-  )
-
-  const part = publishedFlicks
-    ?.map((q) =>
-      q.flick?.participants.map((w) => [
-        w.user.displayName as string,
-        w.user.sub as string,
-        w.user.picture as string,
-      ])
-    )
-    .flat()
-    .flat()
-
-  const uniqueNames = Array.from(new Set(part))
-
   return (
     <>
       <Navbar />
       {isAuthenticated ? (
+        // Check for authentication, on false opens up Series Public Page
         <div>
           <div className="relative flex flex-col gap-2 ml-28 mr-28 mt-10">
             <div className="flex flex-row">
@@ -131,9 +130,11 @@ const SingleSeries = () => {
           </div>
           <div className="flex flex-col ml-auto px-2 gap-y-5 absolute right-10 top-10">
             <EmailSubscriber
-              state={state}
               sourceID={data?.Series_by_pk?.id}
               target={TargetTypes.SeriesSubsciption}
+              handleClose={(refresh) => {
+                if (refresh) refetch()
+              }}
             />
             <div className="flex flex-col">
               <Heading className="text-lg md:capitalize  pl-1 mt-5">
