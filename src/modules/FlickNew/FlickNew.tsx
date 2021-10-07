@@ -1,23 +1,33 @@
 import React, { useEffect, useState } from 'react'
 import { FiPlus } from 'react-icons/fi'
+import { Layer, Rect, Stage } from 'react-konva'
 import Modal from 'react-responsive-modal'
 import { useParams } from 'react-router'
-import { useRecoilState, useRecoilValue } from 'recoil'
+import {
+  useRecoilBridgeAcrossReactRoots_UNSTABLE,
+  useRecoilState,
+  useRecoilValue,
+} from 'recoil'
 import {
   Avatar,
+  emitToast,
   ScreenState,
   Tab,
   TabBar,
   Text,
-  TextField,
 } from '../../components'
-import { useGetFlickByIdQuery } from '../../generated/graphql'
+import {
+  useGetFlickByIdQuery,
+  useGetFragmentParticipantsLazyQuery,
+} from '../../generated/graphql'
 import { Notes } from '../Flick/components'
+import { CONFIG } from '../Studio/components/Concourse'
 import {
   FlickNavBar,
   FragmentBar,
   FragmentContent,
   FragmentSideBar,
+  UpdateFragmentParticipantsModal,
 } from './components'
 import { newFlickStore } from './store/flickNew.store'
 
@@ -58,7 +68,7 @@ const FlickNew = () => {
       <FragmentBar />
       <section className="flex h-full">
         <FragmentSideBar />
-        <FragmentPreview />
+        {/* <FragmentPreview /> */}
         <FragmentConfiguration />
       </section>
     </div>
@@ -68,7 +78,27 @@ const FlickNew = () => {
 }
 
 const FragmentPreview = () => {
-  return <div className="flex-1">preview</div>
+  const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
+
+  return (
+    <div className="flex-1 flex flex-col items-center mt-6">
+      <div className="border-2 w-max">
+        <Stage height={CONFIG.height} width={CONFIG.width}>
+          <Bridge>
+            <Layer>
+              <Rect
+                x={0}
+                y={0}
+                height={CONFIG.height}
+                width={CONFIG.width}
+                fill="#FAFAFA"
+              />
+            </Layer>
+          </Bridge>
+        </Stage>
+      </div>
+    </div>
+  )
 }
 
 const FragmentConfiguration = () => {
@@ -86,11 +116,11 @@ const FragmentConfiguration = () => {
       value: 'Notes',
     },
   ]
-  const [currentTab, setCurrentTab] = useState<Tab>(tabs[1])
+  const [currentTab, setCurrentTab] = useState<Tab>(tabs[0])
   const { activeFragmentId } = useRecoilValue(newFlickStore)
 
   return (
-    <div className="flex flex-col w-3/12 bg-gray-50 h-screen">
+    <div className="flex flex-col flex-1 bg-gray-50 h-screen">
       <TabBar
         tabs={tabs}
         current={currentTab}
@@ -108,9 +138,47 @@ const FragmentParticipants = () => {
   const [{ flick, activeFragmentId }, setFlickStore] =
     useRecoilState(newFlickStore)
 
-  const [addParticipantModal, setAddParticipantModal] = useState(false)
+  const [
+    isAddFragmentParticipantModalOpen,
+    setIsAddFragmentParticipantModalOpen,
+  ] = useState(false)
 
-  const fragment = flick?.fragments.find((f) => f.id === activeFragmentId)
+  const [GetFragmentParticipants, { data, error }] =
+    useGetFragmentParticipantsLazyQuery({
+      variables: {
+        fragmentId: activeFragmentId,
+      },
+    })
+
+  useEffect(() => {
+    if (!data || !flick) return
+    const updatedFragments = flick.fragments.map((fragment) => {
+      if (fragment.id === activeFragmentId) {
+        return {
+          ...fragment,
+          participants: data.Fragment_Participant,
+        }
+      } else return fragment
+    })
+    setFlickStore((store) => ({
+      ...store,
+      flick: {
+        ...flick,
+        fragments: updatedFragments,
+      },
+      activeFragmentId: store.activeFragmentId,
+    }))
+  }, [data])
+
+  useEffect(() => {
+    if (!error) return
+    emitToast({
+      title: 'Could not fetch updated participants',
+      type: 'error',
+      description: `Click this toast to give it another try.`,
+      onClick: () => GetFragmentParticipants(),
+    })
+  }, [error])
 
   return (
     <div className="flex flex-col mx-12">
@@ -128,32 +196,21 @@ const FragmentParticipants = () => {
         ))}
       <div
         className="flex items-center mt-4 cursor-pointer"
-        onClick={() => setAddParticipantModal(true)}
+        onClick={() => setIsAddFragmentParticipantModalOpen(true)}
       >
         <FiPlus size={32} className="mr-4" />
         <Text className="font-semibold">Invite</Text>
       </div>
-      <Modal
-        styles={{
-          modal: {
-            maxWidth: '50%',
-            width: '100%',
-          },
+      <UpdateFragmentParticipantsModal
+        key={`modal-${activeFragmentId}`}
+        open={isAddFragmentParticipantModalOpen}
+        handleClose={(refresh) => {
+          setIsAddFragmentParticipantModalOpen(false)
+          if (refresh) {
+            GetFragmentParticipants()
+          }
         }}
-        classNames={{ modal: 'rounded-md' }}
-        onClose={() => {
-          setAddParticipantModal(false)
-        }}
-        showCloseIcon={false}
-        open={addParticipantModal}
-        center
-      >
-        <div className="w-full">
-          <Text className="bg-gray-100 text-gray-800 px-4 py-2 rounded-md font-semibold w-max text-sm">
-            Invite to {fragment?.name}
-          </Text>
-        </div>
-      </Modal>
+      />
     </div>
   )
 }

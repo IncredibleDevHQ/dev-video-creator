@@ -49,6 +49,14 @@ query FragmentRole($fragmentId: uuid!, $sub: String!) {
   }
 }
 
+query GetFragmentParticipants($fragmentId: uuid!) {
+  Fragment_Participant(where: { fragmentId: { _eq: $fragmentId } }) {
+    participant {
+      ...FlickParticipants
+    }
+  }
+}
+
 mutation AddFragmentToFlick(
   $type: FRAGMENT_TYPE_ENUM_enum!
   $order: Int!
@@ -138,5 +146,31 @@ mutation DeleteFragment($id: uuid!) {
 mutation ReorderFragment($fragmentIds: [uuid!]!, $flick_id: uuid!) {
   ReorderFragments(fragmentIds: $fragmentIds, flickId: $flick_id) {
     success
+  }
+}
+
+mutation UpdateFragment(
+  $fragmentId: String!
+  $name: String
+  $description: String
+  $order: Int
+) {
+  UpdateFragment(
+    fragmentId: $fragmentId
+    name: $name
+    description: $description
+    order: $order
+  ) {
+    id
+  }
+}
+
+mutation UpdateParticipants($fragmentId: String!, $participantIds: [String!]!) {
+  UpdateFragmentParticipants(
+    fragmentId: $fragmentId
+    participantIds: $participantIds
+  ) {
+    added
+    removed
   }
 }

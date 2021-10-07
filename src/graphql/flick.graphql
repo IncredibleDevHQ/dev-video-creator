@@ -168,8 +168,12 @@ mutation UpdateSeriesFlick($flickIds: [uuid!]!, $seriesId: uuid!) {
   }
 }
 
-mutation InviteParticipantToFlick($email: String!, $flickId: String!) {
-  InviteParticipant(email: $email, flickId: $flickId) {
+mutation InviteParticipantToFlick(
+  $email: String!
+  $flickId: String!
+  $role: InviteParticipantRoleEnum!
+) {
+  InviteParticipant(email: $email, flickId: $flickId, role: $role) {
     id
   }
 }
@@ -202,8 +206,49 @@ query GetFragmentNotes($fragmentId: uuid!) {
   }
 }
 
+query GetFlickParticipants($flickId: uuid!) {
+  Participant(
+    where: { flickId: { _eq: $flickId } }
+    order_by: { user: { displayName: asc } }
+  ) {
+    ...FlickParticipants
+  }
+}
+
 mutation DeleteFlick($flickId: uuid!) {
   DeleteFlick(flickId: $flickId) {
+    id
+  }
+}
+
+mutation UpdateFlick(
+  $flickId: String!
+  $name: String!
+  $organisationSlug: String
+  $scope: UpdateFlickScopeEnum
+  $difficulty: UpdateFlickDifficultyEnum
+) {
+  UpdateFlick(
+    flickId: $flickId
+    name: $name
+    organisationSlug: $organisationSlug
+    scope: $scope
+    difficulty: $difficulty
+  ) {
+    id
+  }
+}
+
+mutation UpdateParticipantRole(
+  $participantId: String!
+  $flickId: String!
+  $role: UpdateParticipantRoleEnum!
+) {
+  UpdateParticipantRole(
+    flickId: $flickId
+    participantId: $participantId
+    role: $role
+  ) {
     id
   }
 }

@@ -8,6 +8,7 @@ import {
   FlickFragmentFragment,
   useGetFlickFragmentsLazyQuery,
   useReorderFragmentMutation,
+  useUpdateFragmentMutation,
 } from '../../../generated/graphql'
 import NewFragmentModal from './NewFragmentModal'
 import {
@@ -188,6 +189,27 @@ const Thumbnail = ({
   snapshot,
   ...rest
 }: ThumbnailProps) => {
+  const [editFragmentName, setEditFragmentName] = useState(false)
+
+  const [updateFragmentMutation, { data: updateFargmentData }] =
+    useUpdateFragmentMutation()
+
+  useEffect(() => {
+    if (!updateFargmentData) return
+    setEditFragmentName(false)
+  }, [updateFargmentData])
+
+  const updateFragment = async (newName: string) => {
+    if (editFragmentName) {
+      await updateFragmentMutation({
+        variables: {
+          fragmentId: fragment.id, // value for 'fragmentId'
+          name: newName,
+        },
+      })
+    }
+  }
+
   return (
     <div
       role="button"
@@ -206,10 +228,24 @@ const Thumbnail = ({
       {...provided.draggableProps}
       {...provided.dragHandleProps}
     >
-      <Text className="text-base mb-1 font-bold text-gray-800 truncate overflow-ellipsis">
+      <Text
+        className="text-base mb-1 font-bold text-gray-800 truncate overflow-ellipsis cursor-text rounded-md p-1 hover:bg-gray-300"
+        contentEditable={editFragmentName}
+        onMouseDown={(e) => {
+          e.stopPropagation()
+          setEditFragmentName(true)
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            setEditFragmentName(false)
+            updateFragment(e.currentTarget.innerText)
+          }
+        }}
+      >
         {fragment.name}
       </Text>
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between pl-1">
         <Text className="text-sm text-gray-600">{fragment.type}</Text>
         <div className="flex">
           {fragment.participants.map(({ participant }) => (

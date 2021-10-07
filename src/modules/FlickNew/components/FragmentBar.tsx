@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { BsCameraVideo } from 'react-icons/bs'
 import { IoTrashOutline, IoCopyOutline } from 'react-icons/io5'
+import { useHistory } from 'react-router-dom'
 import { useRecoilState } from 'recoil'
 import { DeleteFragmentModal, DuplicateFragmentModal } from '.'
 import { Button, emitToast } from '../../../components'
@@ -12,6 +13,7 @@ const FragmentBar = () => {
   const [duplicateModal, setDuplicateModal] = useState(false)
   const [{ flick, activeFragmentId }, setFlickStore] =
     useRecoilState(newFlickStore)
+  const history = useHistory()
 
   const [GetFlickFragments, { data, error, refetch }] =
     useGetFlickFragmentsLazyQuery({
@@ -60,6 +62,7 @@ const FragmentBar = () => {
         size="small"
         icon={BsCameraVideo}
         type="button"
+        onClick={() => history.push(`/${activeFragmentId}/studio`)}
       >
         Record
       </Button>

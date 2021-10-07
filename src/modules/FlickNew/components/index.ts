@@ -4,6 +4,7 @@ import DuplicateFragmentModal from './DuplicateFragmentModal'
 import FlickNavBar from './FlickNavBar'
 import FragmentBar from './FragmentBar'
 import FragmentContent from './FragmentContent'
+import UpdateFragmentParticipantsModal from './UpdateFragmentParticipantsModal'
 
 export {
   FragmentSideBar,
@@ -12,4 +13,5 @@ export {
   FlickNavBar,
   FragmentBar,
   FragmentContent,
+  UpdateFragmentParticipantsModal,
 }

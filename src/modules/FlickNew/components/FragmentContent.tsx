@@ -139,19 +139,6 @@ const FragmentContent = () => {
         }}
         setSelectedVideoLink={setSelectedVideoLink}
       />
-
-      <Button
-        type="button"
-        className="ml-auto -mt-10"
-        size="medium"
-        appearance="primary"
-        disabled={!isConfigured}
-        onClick={() => {
-          history.push(`/${fragment.id}/studio`)
-        }}
-      >
-        Launch studio
-      </Button>
     </div>
   )
 }
