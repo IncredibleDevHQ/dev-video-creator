@@ -40,6 +40,7 @@ interface ConcourseProps {
   layerChildren: any[]
   titleSpalshData?: { enable: boolean; title?: string }
   studioUserConfig?: StudioUserConfig[]
+  disableUserMedia?: boolean
 }
 
 export const CONFIG = {
@@ -52,6 +53,7 @@ const Concourse = ({
   layerChildren,
   titleSpalshData,
   studioUserConfig,
+  disableUserMedia,
 }: ConcourseProps) => {
   const {
     state,
@@ -277,7 +279,8 @@ const Concourse = ({
                     return layerChildren
                   })()}
                 </Group>
-                {!isTitleSplash &&
+                {!disableUserMedia &&
+                  !isTitleSplash &&
                   payload?.status !== Fragment_Status_Enum_Enum.CountDown &&
                   payload?.status !== Fragment_Status_Enum_Enum.Ended && (
                     <>

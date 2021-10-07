@@ -12,12 +12,14 @@ import { canvasStore, StudioProviderProps, studioStore } from '../stores'
 import { getDimensions } from './effects'
 // eslint-disable-next-line import/no-unresolved
 import Gif from '../components/Gif'
+import { User, userState } from '../../../stores/user.store'
 
 const Slides = () => {
   const [activeSlideIndex, setActiveSlideIndex] = useState<number>(0)
   const [slides, setSlides] = useState<string[]>([])
-  const { fragment, state, stream, picture, payload, constraints } =
+  const { fragment, state, stream, payload, constraints } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const { picture } = (useRecoilValue(userState) as User) || {}
   const [titleSpalshData, settitleSpalshData] = useState<{
     enable: boolean
     title?: string

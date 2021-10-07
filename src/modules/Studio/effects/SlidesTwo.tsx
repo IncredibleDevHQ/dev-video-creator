@@ -16,7 +16,7 @@ import { getDimensions } from './effects'
 const SlidesTwo = () => {
   const [activeSlideIndex, setActiveSlideIndex] = useState<number>(0)
   const [slides, setSlides] = useState<string[]>([])
-  const { fragment, state, stream, picture, payload, constraints } =
+  const { fragment, state, stream } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [titleSpalshData, settitleSpalshData] = useState<{
     enable: boolean
@@ -26,9 +26,6 @@ const SlidesTwo = () => {
   const [isGif, setIsGif] = useState(false)
   const [gifUrl, setGifUrl] = useState('')
 
-  const imageConfig = { width: 640, height: 480 }
-  const imageRef = useRef<Konva.Image | null>(null)
-  const [image] = useImage(picture as string, 'anonymous')
   const [slide] = useImage(slides[activeSlideIndex] || '', 'anonymous')
   const { getImageDimensions } = useEdit()
   const [elasticLogo] = useImage(
@@ -108,14 +105,6 @@ const SlidesTwo = () => {
       title: fragment.name as string,
     })
   }, [fragment?.configuration.properties])
-
-  const ref = useRef<HTMLVideoElement | null>(null)
-  const isDisableCamera = true
-
-  useEffect(() => {
-    if (!ref.current) return
-    ref.current.srcObject = stream
-  }, [ref.current])
 
   useEffect(() => {
     if (state === 'recording') {

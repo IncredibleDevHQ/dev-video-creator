@@ -10,12 +10,14 @@ import { CONFIG } from '../components/Concourse'
 import { ControlButton } from '../components/MissionControl'
 import { StudioProviderProps, studioStore } from '../stores'
 import usePoint from '../hooks/use-point'
+import { User, userState } from '../../../stores/user.store'
 
 const Points = () => {
   const [activePointIndex, setActivePointIndex] = useState<number>(0)
   const [points, setPoints] = useState<string[]>([])
-  const { fragment, state, stream, picture, constraints } =
+  const { fragment, state, stream, constraints } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const { picture } = (useRecoilValue(userState) as User) || {}
 
   const [titleSpalshData, settitleSpalshData] = useState<{
     enable: boolean
