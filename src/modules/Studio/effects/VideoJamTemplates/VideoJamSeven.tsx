@@ -1,19 +1,17 @@
 import React, { useEffect, useState } from 'react'
-import { useRecoilValue } from 'recoil'
-
+import { FiPause, FiPlay } from 'react-icons/fi'
 import { Image, Rect } from 'react-konva'
-import { FiPlay, FiPause } from 'react-icons/fi'
+import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
-import { Concourse } from '../components'
-import { ControlButton } from '../components/MissionControl'
-import { CONFIG, StudioUserConfig } from '../components/Concourse'
-import { StudioProviderProps, studioStore } from '../stores'
-import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
-import { Video, VideoConfig } from '../components/Video'
+import config from '../../../../config'
+import { Fragment_Status_Enum_Enum } from '../../../../generated/graphql'
+import { Concourse } from '../../components'
+import { CONFIG, StudioUserConfig } from '../../components/Concourse'
+import { ControlButton } from '../../components/MissionControl'
+import { Video, VideoConfig } from '../../components/Video'
+import { StudioProviderProps, studioStore } from '../../stores'
 
-import config from '../../../config'
-
-const VideoJamEight = () => {
+const VideoJamSeven = () => {
   const { state, fragment, payload, updatePayload } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [titleSpalshData, settitleSpalshData] = useState<{
@@ -21,16 +19,8 @@ const VideoJamEight = () => {
     title?: string
   }>({ enable: false })
 
-  const [incredibleLogo] = useImage(
-    `${config.storage.baseUrl}x-incredible-black.svg`,
-    'anonymous'
-  )
-  const [tensorflowLogo] = useImage(
-    `${config.storage.baseUrl}100DaysOfTF.svg`,
-    'anonymous'
-  )
-  const [tensorflowBg] = useImage(
-    `${config.storage.baseUrl}tensorflow_bg.svg`,
+  const [wtfjsLogo] = useImage(
+    `${config.storage.baseUrl}WTFJS.svg`,
     'anonymous'
   )
 
@@ -112,16 +102,15 @@ const VideoJamEight = () => {
   ]
 
   const videoConfig: VideoConfig = {
-    x: 37,
-    y: 58,
+    x: 0.1,
+    y: 0.1,
     width: 704,
     height: 396,
-    cornerRadius: 8,
-    videoFill: '#E5E5E5',
+    cornerRadius: 0,
     performClip: true,
-    backgroundRectX: 27,
-    backgroundRectY: 48,
-    backgroundRectColor: '#FF6E00',
+    videoFill: '#F3F4F6',
+    borderColor: '#ffffff',
+    borderWidth: 6,
   }
 
   const studioCoordinates: StudioUserConfig[] = (() => {
@@ -129,118 +118,106 @@ const VideoJamEight = () => {
       case 2:
         return [
           {
-            x: 735,
-            y: 60,
+            x: 728.5,
+            y: 0,
             width: 240,
             height: 180,
             clipTheme: 'rect',
-            borderWidth: 8,
+            borderWidth: 6,
+            borderColor: '#ffffff',
             studioUserClipConfig: {
-              x: 40,
+              x: 7.5,
               y: 0,
-              width: 160,
+              width: 225,
               height: 180,
-              radius: 8,
+              radius: 0,
             },
-            backgroundRectX: 765,
-            backgroundRectY: 50,
-            backgroundRectColor: '#FF6E00',
           },
           {
-            x: 735,
-            y: 265,
+            x: 728.5,
+            y: 205,
             width: 240,
             height: 180,
             clipTheme: 'rect',
-            borderWidth: 8,
+            borderWidth: 6,
+            borderColor: '#ffffff',
             studioUserClipConfig: {
-              x: 40,
+              x: 7.5,
               y: 0,
-              width: 160,
+              width: 225,
               height: 180,
-              radius: 8,
+              radius: 0,
             },
-            backgroundRectX: 765,
-            backgroundRectY: 255,
-            backgroundRectColor: '#FF6E00',
           },
         ]
       case 3:
         return [
           {
-            x: 775,
-            y: 58.5,
+            x: 752,
+            y: 0,
             width: 160,
             height: 120,
             clipTheme: 'rect',
-            borderWidth: 8,
+            borderWidth: 6,
+            borderColor: '#ffffff',
             studioUserClipConfig: {
               x: 0,
               y: 0,
               width: 160,
               height: 120,
-              radius: 8,
+              radius: 0,
             },
-            backgroundRectX: 765,
-            backgroundRectY: 48.5,
-            backgroundRectColor: '#FF6E00',
           },
           {
-            x: 775,
-            y: 198.5,
+            x: 752,
+            y: 140,
             width: 160,
             height: 120,
             clipTheme: 'rect',
-            borderWidth: 8,
+            borderWidth: 6,
+            borderColor: '#ffffff',
             studioUserClipConfig: {
               x: 0,
               y: 0,
               width: 160,
               height: 120,
-              radius: 8,
+              radius: 0,
             },
-            backgroundRectX: 765,
-            backgroundRectY: 188.5,
-            backgroundRectColor: '#FF6E00',
           },
           {
-            x: 775,
-            y: 338.5,
+            x: 752,
+            y: 280,
             width: 160,
             height: 120,
             clipTheme: 'rect',
-            borderWidth: 8,
+            borderWidth: 6,
+            borderColor: '#ffffff',
             studioUserClipConfig: {
               x: 0,
               y: 0,
               width: 160,
               height: 120,
-              radius: 8,
+              radius: 0,
             },
-            backgroundRectX: 765,
-            backgroundRectY: 328.5,
-            backgroundRectColor: '#FF6E00',
           },
         ]
       default:
         return [
           {
-            x: 695,
-            y: 120.5,
-            width: 320,
-            height: 240,
+            x: 586,
+            y: 0,
+            width: 528,
+            height: 396,
             clipTheme: 'rect',
-            borderWidth: 8,
+            borderWidth: 6,
+            borderColor: '#ffffff',
             studioUserClipConfig: {
-              x: 80,
+              x: 154,
               y: 0,
-              width: 160,
-              height: 240,
-              radius: 8,
+              width: 220,
+              height: 396,
+              radius: 0,
             },
-            backgroundRectX: 765,
-            backgroundRectY: 110.5,
-            backgroundRectColor: '#FF6E00',
           },
         ]
     }
@@ -249,25 +226,14 @@ const VideoJamEight = () => {
   const layerChildren = videoElement
     ? [
         <Rect
-          strokeWidth={1}
           x={0}
           y={0}
-          fill="#F5F6F7"
           width={CONFIG.width}
           height={CONFIG.height}
-          stroke="#111111"
-        />,
-        <Image
-          image={tensorflowBg}
-          x={1}
-          y={1}
-          fill="#F5F6F7"
-          width={CONFIG.width - 2}
-          height={CONFIG.height - 2}
+          fill="#1F2937"
         />,
         <Video videoElement={videoElement} videoConfig={videoConfig} />,
-        <Image image={incredibleLogo} x={25} y={CONFIG.height - 70} />,
-        <Image image={tensorflowLogo} x={820} y={CONFIG.height - 60} />,
+        <Image image={wtfjsLogo} x={60} y={CONFIG.height - 80} />,
       ]
     : [<></>]
 
@@ -280,4 +246,5 @@ const VideoJamEight = () => {
     />
   )
 }
-export default VideoJamEight
+
+export default VideoJamSeven

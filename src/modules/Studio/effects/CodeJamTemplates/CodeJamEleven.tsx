@@ -1,26 +1,23 @@
 import axios from 'axios'
 import React, { useEffect, useState } from 'react'
-import { Group, Circle, Text, Rect, Image } from 'react-konva'
+import { Circle, Group, Image, Rect } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
-import { NextLineIcon, NextTokenIcon } from '../../../components'
-import FocusCodeIcon from '../../../components/FocusCodeIcon'
-import config from '../../../config'
-import { API } from '../../../constants'
+import config from '../../../../config'
+import { API } from '../../../../constants'
 import {
   Fragment_Status_Enum_Enum,
   useGetTokenisedCodeLazyQuery,
-} from '../../../generated/graphql'
-import { Concourse } from '../components'
-import { CONFIG, StudioUserConfig } from '../components/Concourse'
-import { ControlButton } from '../components/MissionControl'
+} from '../../../../generated/graphql'
+import { Concourse } from '../../components'
+import { CONFIG, StudioUserConfig } from '../../components/Concourse'
 import RenderTokens, {
   controls,
   getRenderedTokens,
   RenderFocus,
-} from '../components/RenderTokens'
-import useCode, { ComputedToken } from '../hooks/use-code'
-import { StudioProviderProps, studioStore } from '../stores'
+} from '../../components/RenderTokens'
+import useCode from '../../hooks/use-code'
+import { StudioProviderProps, studioStore } from '../../stores'
 
 export const codeConfig = {
   fontSize: 14,
@@ -33,7 +30,7 @@ interface Position {
   currentIndex: number
 }
 
-const CodeJamTwelve = () => {
+const CodeJamEleven = () => {
   const { fragment, payload, updatePayload, state, isHost } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
@@ -50,16 +47,16 @@ const CodeJamTwelve = () => {
   })
   const [focusCode, setFocusCode] = useState<boolean>(false)
 
-  const [svelteLogo] = useImage(
-    `${config.storage.baseUrl}Svelte.svg`,
-    'anonymous'
-  )
   const [incredibleLogo] = useImage(
-    `${config.storage.baseUrl}x-incredible-black.svg`,
+    `${config.storage.baseUrl}x-incredible.svg`,
     'anonymous'
   )
-  const [svelteBg] = useImage(
-    `${config.storage.baseUrl}svelte_bg.svg`,
+  const [pytorchLogo] = useImage(
+    `${config.storage.baseUrl}pytorch.svg`,
+    'anonymous'
+  )
+  const [pytorchBg] = useImage(
+    `${config.storage.baseUrl}pytorch_bg.svg`,
     'anonymous'
   )
 
@@ -135,99 +132,105 @@ const CodeJamTwelve = () => {
       case 2:
         return [
           {
-            x: 735,
+            x: 700,
             y: 60,
             width: 240,
             height: 180,
             clipTheme: 'rect',
-
+            borderWidth: 12,
+            borderColor: '#8B008B',
             studioUserClipConfig: {
-              x: 40,
+              x: 30,
               y: 0,
-              width: 160,
+              width: 180,
               height: 180,
-              radius: 0,
+              radius: 90,
             },
           },
           {
-            x: 735,
+            x: 700,
             y: 265,
             width: 240,
             height: 180,
             clipTheme: 'rect',
-
+            borderWidth: 12,
+            borderColor: '#8B008B',
             studioUserClipConfig: {
-              x: 40,
+              x: 30,
               y: 0,
-              width: 160,
+              width: 180,
               height: 180,
-              radius: 0,
+              radius: 90,
             },
           },
         ]
       case 3:
         return [
           {
-            x: 775,
+            x: 705,
             y: 58.5,
             width: 160,
             height: 120,
             clipTheme: 'rect',
-
+            borderWidth: 12,
+            borderColor: '#8B008B',
             studioUserClipConfig: {
-              x: 0,
+              x: 20,
               y: 0,
-              width: 160,
+              width: 120,
               height: 120,
-              radius: 0,
+              radius: 60,
             },
           },
           {
-            x: 775,
+            x: 705,
             y: 198.5,
             width: 160,
             height: 120,
             clipTheme: 'rect',
-
+            borderWidth: 12,
+            borderColor: '#8B008B',
             studioUserClipConfig: {
-              x: 0,
+              x: 20,
               y: 0,
-              width: 160,
+              width: 120,
               height: 120,
-              radius: 0,
+              radius: 60,
             },
           },
           {
-            x: 775,
+            x: 705,
             y: 338.5,
             width: 160,
             height: 120,
             clipTheme: 'rect',
-
+            borderWidth: 12,
+            borderColor: '#8B008B',
             studioUserClipConfig: {
-              x: 0,
+              x: 20,
               y: 0,
-              width: 160,
+              width: 120,
               height: 120,
-              radius: 0,
+              radius: 60,
             },
           },
         ]
       default:
         return [
           {
-            x: 695,
-            y: 120.5,
+            x: 660,
+            y: 140.5,
             width: 320,
             height: 240,
             clipTheme: 'rect',
-
+            borderWidth: 16,
+            borderColor: '#8B008B',
             studioUserClipConfig: {
-              x: 80,
+              x: 60,
               y: 0,
-              width: 160,
-              height: 240,
-              radius: 0,
+              width: 200,
+              height: 200,
+              radius: 100,
             },
           },
         ]
@@ -236,35 +239,29 @@ const CodeJamTwelve = () => {
 
   const layerChildren = [
     <Rect
+      strokeWidth={1}
       x={0}
       y={0}
+      fill="#F5F6F7"
       width={CONFIG.width}
       height={CONFIG.height}
-      fill="#ffffff"
-      stroke="#000000"
-      strokeWidth={1}
+      stroke="#111111"
     />,
-
     <Image
-      image={svelteBg}
-      width={CONFIG.width - 1}
-      height={CONFIG.height - 1}
-    />,
-    <Rect
-      x={27}
-      y={48}
-      width={704}
-      height={396}
-      stroke="#FF3E00"
-      strokeWidth={1}
+      image={pytorchBg}
+      x={1}
+      y={1}
+      fill="#F5F6F7"
+      width={CONFIG.width - 2}
+      height={CONFIG.height - 2}
     />,
     <Rect
       x={37}
-      y={58}
+      y={56}
       width={704}
       height={396}
       fill="#202026"
-      strokeWidth={4}
+      cornerRadius={8}
     />,
     <Group x={52} y={73} key="circleGroup">
       <Circle key="redCircle" x={0} y={0} fill="#FF605C" radius={5} />
@@ -299,8 +296,8 @@ const CodeJamTwelve = () => {
         }}
       />
     ),
-    <Image image={incredibleLogo} x={30} y={CONFIG.height - 70} />,
-    <Image image={svelteLogo} x={810} y={CONFIG.height - 60} />,
+    <Image image={pytorchLogo} x={30} y={CONFIG.height - 70} />,
+    <Image image={incredibleLogo} x={810} y={CONFIG.height - 70} />,
   ]
 
   return (
@@ -313,4 +310,4 @@ const CodeJamTwelve = () => {
   )
 }
 
-export default CodeJamTwelve
+export default CodeJamEleven
