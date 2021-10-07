@@ -31,6 +31,7 @@ import {
 } from './components'
 import { newFlickStore } from './store/flickNew.store'
 
+//reworked config page
 const FlickNew = () => {
   const { id, fragmentId } = useParams<{ id: string; fragmentId?: string }>()
   const [{ flick, activeFragmentId }, setFlickStore] =
