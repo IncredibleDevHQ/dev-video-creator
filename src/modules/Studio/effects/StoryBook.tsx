@@ -10,11 +10,10 @@ import { StudioProviderProps, studioStore } from '../stores'
 import header from '../../../assets/storybookHeader.svg'
 
 const StoryBook = () => {
-  const { stream, picture, constraints } =
+  const { stream, constraints } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const imageConfig = { width: 640, height: 480 }
   const imageRef = useRef<Konva.Image | null>(null)
-  const [image] = useImage(picture as string, 'anonymous')
   const [storybookHeader] = useImage(header)
 
   useEffect(() => {
@@ -96,11 +95,7 @@ const StoryBook = () => {
           height={imageConfig.height}
         />
       ) : (
-        <Image
-          image={image}
-          width={imageConfig.width}
-          height={imageConfig.height}
-        />
+        <></>
       )}
     </Group>,
     <Group x={30} y={30} width={304} height={24} key="group2">
