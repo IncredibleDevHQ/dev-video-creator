@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useRecoilValue } from 'recoil'
 import { css, cx } from '@emotion/css'
 import Modal from 'react-responsive-modal'
 import Gravatar from 'react-gravatar'
@@ -19,6 +20,7 @@ import {
   TextArea,
 } from '../../../components'
 import { formatDate } from '../../../utils/FormatDate'
+import { User, userState } from '../../../stores/user.store'
 
 const Note = ({
   note,
@@ -30,7 +32,7 @@ const Note = ({
   editNote: (id: string, text: string) => Promise<void>
 }) => {
   const [activeNote, setActiveNote] = useState<string>(note.note)
-  const [suggestedText, setSuggestedText] = useState<string>()
+  const { sub } = (useRecoilValue(userState) as User) || {}
 
   return (
     <div className="mb-2 bg-gray-50 rounded-md p-2 overflow-x-hidden max-h-80 overflow-y-auto">
@@ -50,7 +52,7 @@ const Note = ({
         <TextField
           label=""
           className="ml-2 w-full"
-          contentEditable
+          contentEditable={note.participant?.userSub === sub}
           value={activeNote}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
             if (note.participant?.id === participantId)
@@ -58,8 +60,8 @@ const Note = ({
           }}
           onFocus={() => setActiveNote(note.note)}
           onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-            e.stopPropagation()
             if (e.ctrlKey && e.key === 'Space') {
+              e.stopPropagation()
               editNote(note.id, activeNote)
             }
           }}
@@ -113,10 +115,8 @@ const PresenterNotes = ({
   })
 
   const [addNotesMutation, { loading: addNoteLoading }] = useAddNoteMutation()
-  const [
-    getSuggestedText,
-    { loading: suggestedTextLoading, data: suggestedTextData },
-  ] = useGetSuggestedTextMutation()
+  const [getSuggestedText, { data: suggestedTextData }] =
+    useGetSuggestedTextMutation()
   const [updateNotesMutation] = useUpdateNoteMutation()
 
   const addNote = async () => {
