@@ -60,10 +60,7 @@ const Concourse = ({
     payload,
     getBlobs,
     users,
-    isHost,
     stopRecording,
-    startRecording,
-    updatePayload,
   } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [canvas, setCanvas] = useRecoilState(canvasStore)
   const [isTitleSplash, setIsTitleSplash] = useState<boolean>(false)
@@ -73,9 +70,8 @@ const Concourse = ({
 
   const stageRef = createRef<Konva.Stage>()
   const layerRef = createRef<Konva.Layer>()
+  const groupRef = createRef<Konva.Group>()
   const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
-
-  const [timer, setTimer] = useState(1)
 
   const defaultStudioUserConfig: StudioUserConfig = {
     x: 780,
@@ -126,28 +122,28 @@ const Concourse = ({
   }
 
   const onLayerClick = () => {
-    if (!stageRef.current || !layerRef.current || !canvas?.zoomed) return
+    if (!stageRef.current || !groupRef.current || !canvas?.zoomed) return
     const tZooming = isZooming
     if (tZooming) {
-      layerRef.current.x(0)
-      layerRef.current.y(0)
-      layerRef.current.scale({ x: 1, y: 1 })
+      groupRef.current.x(0)
+      groupRef.current.y(0)
+      groupRef.current.scale({ x: 1, y: 1 })
     } else {
       const pointer = stageRef.current.getPointerPosition()
       if (pointer) {
-        layerRef.current.x(-pointer.x)
-        layerRef.current.y(-pointer.y)
+        groupRef.current.x(-pointer.x)
+        groupRef.current.y(-pointer.y)
       }
-      layerRef.current.scale({ x: zoomLevel, y: zoomLevel })
+      groupRef.current.scale({ x: zoomLevel, y: zoomLevel })
     }
     setZooming(!isZooming)
   }
 
   const onMouseLeave = () => {
-    if (!layerRef.current) return
-    layerRef.current.x(0)
-    layerRef.current.y(0)
-    layerRef.current.scale({ x: 1, y: 1 })
+    if (!groupRef.current) return
+    groupRef.current.x(0)
+    groupRef.current.y(0)
+    groupRef.current.scale({ x: 1, y: 1 })
     setZooming(false)
   }
 
@@ -167,7 +163,6 @@ const Concourse = ({
           draggable
           width={CONFIG.width}
           height={CONFIG.height}
-          zIndex={100}
           ref={(ref) =>
             ref?.to({
               duration: 3,
@@ -216,7 +211,6 @@ const Concourse = ({
   }, [])
 
   useEffect(() => {
-    if (state === 'ready') setTimer(1)
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     titleSpalshData?.enable &&
       (payload?.status === Fragment_Status_Enum_Enum.Live
@@ -232,19 +226,13 @@ const Concourse = ({
             ref={stageRef}
             height={CONFIG.height}
             width={CONFIG.width}
-            onClick={onLayerClick}
             className={cx({
               'cursor-zoom-in': canvas?.zoomed && !isZooming,
               'cursor-zoom-out': canvas?.zoomed && isZooming,
             })}
           >
             <Bridge>
-              <Layer
-                ref={layerRef}
-                // onMouseEnter={onMouseEnter}
-                // onMouseMove={onMouseMove}
-                onMouseLeave={onMouseLeave}
-              >
+              <Layer ref={layerRef} onMouseLeave={onMouseLeave}>
                 <Rect
                   x={0}
                   y={0}
@@ -253,33 +241,44 @@ const Concourse = ({
                   fill="#202026"
                   cornerRadius={8}
                 />
-
-                {(() => {
-                  if (payload?.status === Fragment_Status_Enum_Enum.Live) {
-                    layerRef.current?.destroyChildren()
-                    if (titleSpalshData?.enable && isTitleSplash) {
+                <Group ref={groupRef} onClick={onLayerClick}>
+                  {(() => {
+                    if (
+                      payload?.status === Fragment_Status_Enum_Enum.CountDown
+                    ) {
                       return (
-                        <>
-                          <TitleSplash />
-                          <CircleCenterShrink color="#000000" />
-                        </>
+                        <Rect
+                          x={0}
+                          y={0}
+                          width={CONFIG.width}
+                          height={CONFIG.height}
+                          fill="#202026"
+                          cornerRadius={8}
+                        />
                       )
                     }
-                    // if (!titleSpalshData?.enable && !isTitleSplash) {
-                    //   setIsTitleSplash(true)
-                    //   return <CircleCenterShrink />
-                    // }
-                  }
-                  if (payload?.status === Fragment_Status_Enum_Enum.Ended)
-                    return (
-                      <MultiCircleCenterGrow
-                        performFinishAction={performFinishAction}
-                      />
-                    )
-                  return layerChildren
-                })()}
-
+                    if (payload?.status === Fragment_Status_Enum_Enum.Live) {
+                      layerRef.current?.destroyChildren()
+                      if (titleSpalshData?.enable && isTitleSplash) {
+                        return (
+                          <>
+                            <TitleSplash />
+                            <CircleCenterShrink color="#000000" />
+                          </>
+                        )
+                      }
+                    }
+                    if (payload?.status === Fragment_Status_Enum_Enum.Ended)
+                      return (
+                        <MultiCircleCenterGrow
+                          performFinishAction={performFinishAction}
+                        />
+                      )
+                    return layerChildren
+                  })()}
+                </Group>
                 {!isTitleSplash &&
+                  payload?.status !== Fragment_Status_Enum_Enum.CountDown &&
                   payload?.status !== Fragment_Status_Enum_Enum.Ended && (
                     <>
                       <StudioUser
@@ -313,47 +312,6 @@ const Concourse = ({
                         />
                       ))}
                     </>
-                  )}
-                {timer <= 4 &&
-                  (state === 'countDown' ||
-                    payload?.status ===
-                      Fragment_Status_Enum_Enum.CountDown) && (
-                    <Group
-                      x={0}
-                      y={0}
-                      key="group1"
-                      width={CONFIG.width}
-                      height={CONFIG.height}
-                      zIndex={500}
-                    >
-                      <Text
-                        align="center"
-                        verticalAlign="middle"
-                        fontFamily="Poppins"
-                        fontSize={100}
-                        fill="#ffffff"
-                        width={960 / 2}
-                        height={540 / 2}
-                        text={timer === 4 ? ' ' : (timer as unknown as string)}
-                        ref={(ref) => {
-                          ref?.to({
-                            duration: 1,
-                            opacity: 1,
-                            scaleX: 2,
-                            scaleY: 2,
-                            onFinish: () => {
-                              setTimer(timer + 1)
-                              if (timer === 4 && isHost) {
-                                startRecording()
-                                updatePayload?.({
-                                  status: Fragment_Status_Enum_Enum.Live,
-                                })
-                              }
-                            },
-                          })
-                        }}
-                      />
-                    </Group>
                   )}
               </Layer>
             </Bridge>

@@ -6,12 +6,12 @@ import React, { useEffect, useState } from 'react'
 import { FiMoreHorizontal } from 'react-icons/fi'
 import { useHistory } from 'react-router-dom'
 import { useRecoilValue } from 'recoil'
-import { emitToast, ScreenState, Text, Tooltip } from '../../../components'
+import { emitToast, Text, Tooltip } from '../../../components'
 import { Icons } from '../../../constants'
 import {
   BaseFlickFragment,
+  FlickFragment,
   useDeleteFlickMutation,
-  useGetUserFlicksQuery,
   User,
 } from '../../../generated/graphql'
 import { userState } from '../../../stores/user.store'
@@ -36,7 +36,7 @@ const VideoTile = ({
   const history = useHistory()
   const userdata = (useRecoilValue(userState) as User) || {}
   const [options, setOptions] = useState(false)
-  const [deleteFlick, { data, loading }] = useDeleteFlickMutation()
+  const [deleteFlick, { data }] = useDeleteFlickMutation()
 
   const deleteFlickFunction = async () => {
     await deleteFlick({
@@ -56,14 +56,12 @@ const VideoTile = ({
     handleRefetch(true)
   }, [data])
 
-  if (loading) return <ScreenState title="Just a jiffy" loading />
-
   return (
-    <div className="bg-gray-50 hover:border-green-500 cursor-pointer w-60 h-36 rounded-md items-center justify-center mt-9">
+    <div className="relative bg-gray-50 hover:border-green-500 cursor-pointer w-60 h-36 rounded-md items-center justify-center mt-8">
       <div
-        className="text-gray-300 hover:border-green-500 cursor-pointer w-60 h-36 border-2"
+        className="rounded-md hover:border-green-500 cursor-pointer w-60 h-36 border-2 mt-10"
         onClick={(e) => {
-          e.stopPropagation()
+          if (e.target !== e.currentTarget) return
           history.push(`/view/${flick.joinLink}`)
         }}
       >
@@ -90,7 +88,7 @@ const VideoTile = ({
           hideOnOutsideClick
         >
           <FiMoreHorizontal
-            className="w-6 h-6 text-gray-400 cursor-pointer"
+            className="absolute w-6 h-6 text-gray-400 cursor-pointer"
             size={30}
             onClick={() => setOptions(!options)}
           />
@@ -98,7 +96,7 @@ const VideoTile = ({
         <img
           src={Icons.flickIcon}
           alt="I"
-          className="ml-24 mt-14 border-gray-500 border-2 rounded-md"
+          className="ml-24 mt-12 border-gray-500 border-2 rounded-md"
         />
       </div>
 
@@ -107,30 +105,26 @@ const VideoTile = ({
   )
 }
 
-const Published = () => {
-  const { sub } = (useRecoilValue(userState) as User) || {}
-  const { data, loading, refetch } = useGetUserFlicksQuery({
-    variables: { sub: sub as string },
-  })
-  const [view] = useState<'grid' | 'list'>('grid')
-  if (loading) return <ScreenState title="Just a moment..." loading />
+const Published = ({
+  flicks,
+  handleRefetch,
+}: {
+  flicks: FlickFragment[]
+  handleRefetch: (refresh?: boolean) => void
+}) => {
   return (
-    <div>
-      {view === 'grid' && (
-        <div className="gap-y-5 p-0 grid grid-cols-4 ml-28 mr-20 justify-center mb-20">
-          {data?.Flick.map(
-            (flick) =>
-              flick.producedLink && (
-                <VideoTile
-                  key={flick.id}
-                  flick={flick}
-                  handleRefetch={(refresh) => {
-                    if (refresh) refetch()
-                  }}
-                />
-              )
-          )}
-        </div>
+    <div className="grid grid-cols-4 gap-y-5 gap-x-3 p-0 ml-28 mr-20 justify-center mb-20">
+      {flicks.map(
+        (flick) =>
+          flick.producedLink && (
+            <VideoTile
+              key={flick.id}
+              flick={flick}
+              handleRefetch={(refresh) => {
+                if (refresh) handleRefetch()
+              }}
+            />
+          )
       )}
     </div>
   )

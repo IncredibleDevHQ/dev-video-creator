@@ -19,9 +19,12 @@ query GetLatestFlick($sub: String!) {
 }
 query GetFlickByJoinLink($joinLink: String!) {
   Flick(where: { joinLink: { _eq: $joinLink } }) {
-    ...BaseFlick
+    ...PublicFlick
     participants {
-      ...FlickParticipants
+      user {
+        displayName
+        picture
+      }
     }
   }
 }

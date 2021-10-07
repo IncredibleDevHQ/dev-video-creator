@@ -179,3 +179,19 @@ mutation ReorderFragment($fragmentIds: [uuid!]!, $flick_id: uuid!) {
     success
   }
 }
+
+mutation UpdateFragment(
+  $fragmentId: String!
+  $name: String
+  $description: String
+  $order: Int
+) {
+  UpdateFragment(
+    fragmentId: $fragmentId
+    name: $name
+    description: $description
+    order: $order
+  ) {
+    id
+  }
+}

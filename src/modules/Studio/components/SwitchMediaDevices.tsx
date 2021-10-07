@@ -93,7 +93,6 @@ const SwitchMediaDevices = ({
               const selectedMicrophoneDevice = microphoneDevices.find(
                 (d) => d.deviceId === device.value
               )
-              console.log('I set microphone', selectedMicrophoneDevice)
               if (selectedMicrophoneDevice)
                 updateMicroPhoneDevices(selectedMicrophoneDevice)
             }}

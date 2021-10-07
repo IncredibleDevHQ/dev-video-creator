@@ -22,6 +22,7 @@ const JsonSchema = ({
     // @ts-ignore
     event.target.value = valueArray
     handleChange(event as any)
+    handleOnDatachange(schema.value, valueArray)
   }
   const [uploadFile] = useUploadFile()
   interface Question {
@@ -32,18 +33,37 @@ const JsonSchema = ({
   const [question, setQuestion] = useState<Question>()
   const [questions, setQuestions] = useState<Question[]>([])
   const [loading, setLoading] = useState(false)
-  if (!schema.value || schema.value.length <= 0) {
-    setConfigured(false)
-  }
+
+  useEffect(() => {
+    if (!schema.value || schema.value.length <= 0) {
+      setConfigured(false)
+    } else {
+      setConfigured(true)
+    }
+  }, [schema])
+
   useEffect(() => {
     if (!value) {
       setConfigured(false)
-      return
     }
-    setConfigured(true)
-
     setQuestions(value || [])
   }, [value])
+
+  const handleOnDatachange = (schemaValue: Question[], value: Question[]) => {
+    if (
+      schemaValue.length === value.length &&
+      schemaValue.every((v, i) => v === value[i])
+    ) {
+      setConfigured(true)
+    } else if (
+      schemaValue.length === value.length &&
+      schemaValue.every((v, i) => v !== value[i])
+    ) {
+      setConfigured(false)
+    } else if (schemaValue.length !== value.length) {
+      setConfigured(false)
+    }
+  }
 
   const addQuestion = async (file: File) => {
     setLoadingAssets(true)
@@ -66,8 +86,10 @@ const JsonSchema = ({
     setQuestion({ text: '', image: '' })
   }
 
-  const handleDeleteQuestion = (text?: string) => {
-    const questionArray = questions.filter((ques) => ques.text !== text)
+  const handleDeleteQuestion = (index: number) => {
+    const questionArray = questions.filter(
+      (ques, quesIndex) => quesIndex !== index
+    )
     setQuestions(questionArray)
 
     addToFormik(questionArray)
@@ -75,17 +97,17 @@ const JsonSchema = ({
 
   return (
     <div className="flex flex-col gap-1 m-4" key={schema.key}>
-      <div className="flex gap-2 items-end">
+      <div className="">
         <div
           className="flex flex-col md:flex-row items-center"
           key={schema.key}
         >
           <TextArea
-            className="text-lg"
+            className="text-lg w-1/2"
             name={schema.key}
-            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
               setQuestion({ ...question, text: e.target.value })
-            }
+            }}
             value={question?.text}
             placeholder={schema.description}
             label="Add a Question"
@@ -96,28 +118,28 @@ const JsonSchema = ({
             key={`${schema.key}`}
             onChange={(e) =>
               // @ts-ignore
+
               e.target.files?.[0] && addQuestion(e.target.files[0])
             }
             typeof="image/*"
           />
           {question?.image && (
             <img
-              className="h-32 m-4 object-contain"
+              className="h-40 w-40 m-4 object-contain"
               alt={question?.text}
               src={question?.image}
             />
           )}
-
-          <Button
-            onClick={handleOnClick}
-            appearance="secondary"
-            type="button"
-            className="w-full md:w-28"
-            loading={loading}
-          >
-            Add
-          </Button>
         </div>
+        <Button
+          onClick={handleOnClick}
+          appearance="secondary"
+          type="button"
+          className="flex justify-start"
+          loading={loading}
+        >
+          Add
+        </Button>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2">
         {questions.map((ques, index) => (
@@ -134,11 +156,11 @@ const JsonSchema = ({
             )}
             <div className="flex flex-col">
               <span className="font-bold">Question {index + 1}:</span>
-              <span className="capitalize text-justify">{ques.text}</span>
+              <span className="text-justify">{ques.text}</span>
             </div>
             {ques.text && (
               <Button
-                onClick={() => handleDeleteQuestion(ques.text)}
+                onClick={() => handleDeleteQuestion(index)}
                 type="button"
                 appearance="danger"
                 size="extraSmall"

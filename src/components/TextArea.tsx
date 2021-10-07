@@ -1,6 +1,7 @@
 import { cx } from '@emotion/css'
 import React, { HTMLProps } from 'react'
 import { nanoid } from 'nanoid'
+import { Label } from '.'
 
 interface TextAreaProps extends HTMLProps<HTMLTextAreaElement> {
   label: string
@@ -17,7 +18,7 @@ const TextArea = ({
 }: TextAreaProps) => {
   return (
     <div className={cx('flex flex-col w-full ', className)}>
-      <small className="text-xs mb-1 uppercase">{label}</small>
+      <Label>{label}</Label>
       <div className="focus-within:border-brand border-2 border-background-alt rounded-md flex justify-between items-center p-2 bg-background">
         <textarea
           className="rounded-sm border-none outline-none flex-1"

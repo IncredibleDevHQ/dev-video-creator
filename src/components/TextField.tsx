@@ -1,6 +1,7 @@
 import { cx } from '@emotion/css'
 import React, { HTMLProps } from 'react'
 import { nanoid } from 'nanoid'
+import { Label } from '.'
 
 interface TextFieldProps extends HTMLProps<HTMLInputElement> {
   label?: string
@@ -17,10 +18,10 @@ const TextField = ({
 }: TextFieldProps) => {
   return (
     <div className={cx('flex flex-col w-full', className)}>
-      <small className="text-xs uppercase mb-1">
+      <Label>
         {label}
         {rest.required && '*'}
-      </small>
+      </Label>
       <div className="flex rounded-md justify-between border-2 border-background-alt transition-all focus-within:border-brand items-center p-2 bg-background">
         <input
           className="rounded-sm border-none outline-none flex-1"

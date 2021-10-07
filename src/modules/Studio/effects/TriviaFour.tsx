@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Group, Text, Image, Rect } from 'react-konva'
 import FontFaceObserver from 'fontfaceobserver'
 import { useRecoilValue } from 'recoil'
@@ -11,6 +11,7 @@ import { ControlButton } from '../components/MissionControl'
 import { StudioProviderProps, studioStore } from '../stores'
 import config from '../../../config'
 import useEdit from '../hooks/use-edit'
+import Gif from '../components/Gif'
 
 const TriviaFour = () => {
   const [activeQuestionIndex, setActiveQuestionIndex] = useState<number>(0)
@@ -22,9 +23,8 @@ const TriviaFour = () => {
     title?: string
   }>({ enable: false })
 
-  const { fragment, state, stream, picture, constraints } =
+  const { fragment, state, updatePayload, payload } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
-  const userData = (useRecoilValue(userState) as User) || {}
 
   const { getImageDimensions } = useEdit()
 
@@ -48,6 +48,9 @@ const TriviaFour = () => {
     'anonymous'
   )
 
+  const [isGif, setIsGif] = useState(false)
+  const [gifUrl, setGifUrl] = useState('')
+
   const [imgDim, setImgDim] = useState<{
     width: number
     height: number
@@ -60,6 +63,12 @@ const TriviaFour = () => {
   }, [])
 
   useEffect(() => {
+    if (qnaImage?.src.split('.').pop() === 'gif') {
+      setIsGif(true)
+      setGifUrl(qnaImage.src)
+    } else {
+      setIsGif(false)
+    }
     setImgDim(
       getImageDimensions(
         {
@@ -70,7 +79,7 @@ const TriviaFour = () => {
         250,
         640,
         280,
-        37,
+        0,
         90
       )
     )
@@ -93,10 +102,17 @@ const TriviaFour = () => {
   }, [fragment?.configuration.properties])
 
   useEffect(() => {
+    if (state === 'ready') {
+      updatePayload?.({ activeQuestion: 0 })
+    }
     if (state === 'recording') {
       setActiveQuestionIndex(0)
     }
   }, [state])
+
+  useEffect(() => {
+    setActiveQuestionIndex(payload?.activeQuestion)
+  }, [payload])
 
   const controls = [
     <ControlButton
@@ -105,33 +121,86 @@ const TriviaFour = () => {
       className="my-2"
       appearance="primary"
       disabled={activeQuestionIndex === questions.length - 1}
-      onClick={() => setActiveQuestionIndex(activeQuestionIndex + 1)}
+      onClick={() => {
+        setActiveQuestionIndex(activeQuestionIndex + 1)
+        updatePayload?.({ activeQuestion: activeQuestionIndex + 1 })
+      }}
     />,
   ]
 
-  const studioUserConfig: StudioUserConfig[] = [
-    {
-      x: 565,
-      y: 68,
-      width: 520,
-      height: 390,
-      clipTheme: 'rect',
-      borderWidth: 6,
-      borderColor: '#1F2937',
-      studioUserClipConfig: {
-        x: 150,
-        y: 0,
-        width: 220,
-        height: 390,
-        radius: 8,
-      },
-      backgroundRectX: 705,
-      backgroundRectY: 58,
-      backgroundRectColor: '#FF5D01',
-      backgroundRectBorderWidth: 3,
-      backgroundRectBorderColor: '#1F2937',
-    },
-  ]
+  const studioCoordinates: StudioUserConfig[] = (() => {
+    switch (fragment?.participants.length) {
+      case 2:
+        return [
+          {
+            x: 705,
+            y: 70,
+            width: 240,
+            height: 180,
+            clipTheme: 'rect',
+            borderWidth: 6,
+            borderColor: '#1F2937',
+            studioUserClipConfig: {
+              x: 10,
+              y: 0,
+              width: 220,
+              height: 180,
+              radius: 8,
+            },
+            backgroundRectX: 705,
+            backgroundRectY: 60,
+            backgroundRectColor: '#FF5D01',
+            backgroundRectBorderWidth: 3,
+            backgroundRectBorderColor: '#1F2937',
+          },
+          {
+            x: 705,
+            y: 295,
+            width: 240,
+            height: 180,
+            clipTheme: 'rect',
+            borderWidth: 6,
+            borderColor: '#1F2937',
+            studioUserClipConfig: {
+              x: 10,
+              y: 0,
+              width: 220,
+              height: 180,
+              radius: 8,
+            },
+            backgroundRectX: 705,
+            backgroundRectY: 285,
+            backgroundRectColor: '#FF5D01',
+            backgroundRectBorderWidth: 3,
+            backgroundRectBorderColor: '#1F2937',
+          },
+        ]
+      default:
+        return [
+          {
+            x: 565,
+            y: 68,
+            width: 520,
+            height: 390,
+            clipTheme: 'rect',
+            borderWidth: 6,
+            borderColor: '#1F2937',
+            studioUserClipConfig: {
+              x: 150,
+              y: 0,
+              width: 220,
+              height: 390,
+              radius: 8,
+            },
+            backgroundRectX: 705,
+            backgroundRectY: 58,
+            backgroundRectColor: '#FF5D01',
+            backgroundRectBorderWidth: 3,
+            backgroundRectBorderColor: '#1F2937',
+          },
+        ]
+    }
+  })()
 
   const windowOpsImages = <Image image={windowOps} x={860} y={25} />
 
@@ -194,7 +263,7 @@ const TriviaFour = () => {
       ) : (
         <></>
       )}
-      {questions.length > 0 && !questions[activeQuestionIndex].image ? (
+      {questions.length > 0 && !questions[activeQuestionIndex]?.image ? (
         <Text
           x={10}
           verticalAlign="middle"
@@ -206,20 +275,34 @@ const TriviaFour = () => {
           fontStyle="bold"
           fontFamily="Poppins"
           align="center"
+          lineHeight={1.3}
           textTransform="capitalize"
         />
       ) : (
         <>
-          <Image
-            image={qnaImage}
-            y={imgDim.y}
-            x={imgDim.x}
-            width={imgDim.width}
-            height={imgDim.height}
-            shadowOpacity={0.3}
-            shadowOffset={{ x: 0, y: 1 }}
-            shadowBlur={2}
-          />
+          {!isGif && (
+            <Image
+              image={qnaImage}
+              y={imgDim.y}
+              x={imgDim.x}
+              width={imgDim.width}
+              height={imgDim.height}
+              shadowOpacity={0.3}
+              shadowOffset={{ x: 0, y: 1 }}
+              shadowBlur={2}
+            />
+          )}
+          {isGif && (
+            <Gif
+              src={gifUrl}
+              maxWidth={610}
+              maxHeight={250}
+              availableWidth={640}
+              availableHeight={280}
+              x={37}
+              y={90}
+            />
+          )}
         </>
       )}
     </Group>,
@@ -232,7 +315,7 @@ const TriviaFour = () => {
       controls={controls}
       layerChildren={layerChildren}
       titleSpalshData={titleSpalshData}
-      studioUserConfig={studioUserConfig}
+      studioUserConfig={studioCoordinates}
     />
   )
 }

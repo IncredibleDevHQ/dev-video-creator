@@ -3,6 +3,9 @@ fragment BaseSeries on Series {
   name
   description
   picture
+  flickCount {
+    count
+  }
 }
 
 fragment Series on Series {
@@ -22,7 +25,7 @@ fragment SingleSeries on Series {
 
 fragment PublicSeries on Series {
   ...BaseSeries
-  Flick_Series(where: { flick: { status: { _eq: Completed } } }) {
+  Flick_Series {
     flickId
     flick {
       ...BaseFlick
@@ -45,26 +48,12 @@ query GetSingleSeries($id: uuid!) {
 query GetSeriesById($id: uuid!) {
   Series(where: { id: { _eq: $id } }) {
     ...PublicSeries
-    Flick_Series_aggregate {
-      aggregate {
-        count
-      }
-    }
   }
 }
 
-query GetUserSeries($userId: String!, $limit: Int) {
-  Series(
-    where: { ownerSub: { _eq: $userId } }
-    limit: $limit
-    order_by: { createdAt: desc }
-  ) {
+query GetUserSeries($limit: Int) {
+  Series(limit: $limit, order_by: { createdAt: desc }) {
     ...PublicSeries
-    Flick_Series_aggregate {
-      aggregate {
-        count
-      }
-    }
   }
 }
 
@@ -76,6 +65,22 @@ mutation CreateOrganisationSeries(
   CreateSeries(
     name: $name
     organisationSlug: $organisationSlug
+    picture: $picture
+  ) {
+    id
+  }
+}
+
+mutation UpdateSeries(
+  $seriesId: String!
+  $name: String
+  $description: String
+  $picture: String
+) {
+  UpdateSeries(
+    seriesId: $seriesId
+    name: $name
+    description: $description
     picture: $picture
   ) {
     id

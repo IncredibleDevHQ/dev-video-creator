@@ -2,10 +2,9 @@ import { cx } from '@emotion/css'
 import React, { useEffect, useState } from 'react'
 import { FiLoader } from 'react-icons/fi'
 import { IoRemoveSharp } from 'react-icons/io5'
-import { Button, Photo } from '../../../../components'
+import { Button, FileDropzone } from '../../../../components'
 import { useUploadFile } from '../../../../hooks'
 import { AllowedFileExtensions } from '../../../../hooks/use-upload-file'
-// eslint-disable-next-line import/namespace
 import { GetSchemaElementProps } from '../Effects'
 
 const FileArraySchema = ({
@@ -13,7 +12,6 @@ const FileArraySchema = ({
   handleChange,
   value,
   setLoadingAssets,
-
   setConfigured,
 }: GetSchemaElementProps) => {
   const [uploadSlides] = useUploadFile()
@@ -27,11 +25,30 @@ const FileArraySchema = ({
     // @ts-ignore
     event.target.value = valueArray
     handleChange(event as any)
+    handleOnDatachange(schema.value, valueArray)
   }
-  if (!schema.value || schema.value.length <= 0) {
-    setConfigured(false)
-  } else {
-    setConfigured(true)
+  useEffect(() => {
+    if (!schema.value || schema.value.length <= 0) {
+      setConfigured(false)
+    } else {
+      setConfigured(true)
+    }
+  }, [schema])
+
+  const handleOnDatachange = (schemaValue: string[], value: string[]) => {
+    if (
+      schemaValue.length === value.length &&
+      schemaValue.every((v, i) => v === value[i])
+    ) {
+      setConfigured(true)
+    } else if (
+      schemaValue.length === value.length &&
+      schemaValue.every((v, i) => v !== value[i])
+    ) {
+      setConfigured(false)
+    } else if (schemaValue.length !== value.length) {
+      setConfigured(false)
+    }
   }
 
   useEffect(() => {
@@ -41,8 +58,10 @@ const FileArraySchema = ({
     setSlides(value || [])
   }, [value])
 
-  const handleDeleteSlide = (text: string) => {
-    const slideArray = slides.filter((slide) => slide !== text)
+  const handleDeleteSlide = (index: number) => {
+    const slideArray = slides.filter(
+      (slide, slidesIndex) => slidesIndex !== index
+    )
     setSlides(slideArray)
     addToFormik(slideArray)
   }
@@ -66,7 +85,7 @@ const FileArraySchema = ({
     <div className="flex flex-col gap-1 m-4" key={schema.key}>
       <div className="flex flex-col gap-2 ">
         <div className="flex flex-row gap-2">
-          <Photo
+          <FileDropzone
             className="text-lg m-4"
             key={`${schema.key}`}
             onChange={async (e) => {
@@ -91,7 +110,7 @@ const FileArraySchema = ({
               <span className="font-bold">Slide {index + 1}:</span>
             </div>
             <Button
-              onClick={() => handleDeleteSlide(slide)}
+              onClick={() => handleDeleteSlide(index)}
               type="button"
               className=""
               appearance="secondary"

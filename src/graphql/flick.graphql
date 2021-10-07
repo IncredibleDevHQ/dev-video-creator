@@ -1,3 +1,24 @@
+fragment PublicFlick on Flick {
+  color
+  description
+  joinLink
+  lobbyPicture
+  id
+  name
+  scope
+  plannedEnd
+  startAt
+  updatedAt
+  status
+  deletedAt
+  producedLink
+  participants {
+    user {
+      picture
+    }
+  }
+}
+
 fragment BaseFlick on Flick {
   color
   description
@@ -97,23 +118,14 @@ query GetUserPublicFlicks($userId: String!) {
 
 query SeriesFlicks($id: uuid!) {
   Flick_Series(
-    where: { seriesId: { _eq: $id }, flick: { deletedAt: { _is_null: true } } }
+    where: {
+      seriesId: { _eq: $id }
+      flick: { deletedAt: { _is_null: true }, scope: { _eq: Public } }
+    }
   ) {
     order
     flick {
-      id
-      producedLink
-      joinLink
-      name
-      previewLink
-      description
-      deletedAt
-      participants {
-        user {
-          picture
-          email
-        }
-      }
+      ...BaseFlick
     }
   }
 }
@@ -160,6 +172,24 @@ query FlickActivity($flickId: uuid!) {
     order_by: { createdAt: desc }
   ) {
     ...FlickActivity
+  }
+}
+
+mutation UpdateFlick(
+  $flickId: String!
+  $name: String!
+  $organisationSlug: String
+  $scope: UpdateFlickScopeEnum
+  $difficulty: UpdateFlickDifficultyEnum
+) {
+  UpdateFlick(
+    flickId: $flickId
+    name: $name
+    organisationSlug: $organisationSlug
+    scope: $scope
+    difficulty: $difficulty
+  ) {
+    id
   }
 }
 

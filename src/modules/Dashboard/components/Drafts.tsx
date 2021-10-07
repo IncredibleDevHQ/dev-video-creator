@@ -9,8 +9,8 @@ import { cx } from '@emotion/css'
 import { emitToast, ScreenState, Text, Tooltip } from '../../../components'
 import {
   BaseFlickFragment,
+  FlickFragment,
   useDeleteFlickMutation,
-  useGetUserFlicksQuery,
   User,
 } from '../../../generated/graphql'
 import { userState } from '../../../stores/user.store'
@@ -95,8 +95,13 @@ const FlickTile = ({
             onClick={() => setOptions(!options)}
           />
         </Tooltip>
-
-        <img src={Icons.flickIcon} alt="I" className="ml-24 mt-12" />
+        <div
+          onClick={() => {
+            history.push(`/flick/${flick.id}`)
+          }}
+        >
+          <img src={Icons.flickIcon} alt="I" className="ml-24 mt-12" />
+        </div>
       </div>
 
       <InfoTile key={flick.id} flick={flick} />
@@ -104,30 +109,26 @@ const FlickTile = ({
   )
 }
 
-const Drafts = () => {
-  const { sub } = (useRecoilValue(userState) as User) || {}
-  const { data, loading, refetch } = useGetUserFlicksQuery({
-    variables: { sub: sub as string },
-  })
-  const [view] = useState<'grid' | 'list'>('grid')
-  if (loading) return <ScreenState title="Just a moment..." loading />
+const Drafts = ({
+  flicks,
+  handleRefetch,
+}: {
+  flicks: FlickFragment[]
+  handleRefetch: (refresh?: boolean) => void
+}) => {
   return (
-    <div>
-      {view === 'grid' && (
-        <div className="grid grid-cols-4 gap-y-5 gap-x-3 p-0 ml-28 mr-20 justify-center mb-20">
-          {data?.Flick.map(
-            (flick) =>
-              !flick.producedLink && (
-                <FlickTile
-                  key={flick.id}
-                  flick={flick}
-                  handleRefetch={(refresh) => {
-                    if (refresh) refetch()
-                  }}
-                />
-              )
-          )}
-        </div>
+    <div className="grid grid-cols-4 gap-y-5 gap-x-3 p-0 ml-28 mr-20 justify-center mb-20">
+      {flicks.map(
+        (flick) =>
+          !flick.producedLink && (
+            <FlickTile
+              key={flick.id}
+              flick={flick}
+              handleRefetch={(refresh) => {
+                if (refresh) handleRefetch()
+              }}
+            />
+          )
       )}
     </div>
   )

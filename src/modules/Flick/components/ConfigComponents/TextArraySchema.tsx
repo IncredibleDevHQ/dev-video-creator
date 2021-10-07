@@ -7,10 +7,8 @@ import { GetSchemaElementProps } from '../Effects'
 const TextArraySchema = ({
   schema,
   handleChange,
-
-  value,
-
   setConfigured,
+  value,
 }: GetSchemaElementProps) => {
   const addToFormik = (valueArray: any) => {
     const event = new Event('input', { bubbles: true })
@@ -20,32 +18,54 @@ const TextArraySchema = ({
     // @ts-ignore
     event.target.value = valueArray
     handleChange(event as any)
+    handleOnDatachange(schema.value, valueArray)
   }
+
   const [currentPoint, setCurrentPoint] = useState<string>()
   const [points, setPoints] = useState<string[]>([])
-  if (!schema.value || schema.value.length <= 0) {
-    setConfigured(false)
-  }
+
   useEffect(() => {
-    if (!value) return
-    setConfigured(true)
+    if (!schema.value || schema.value.length <= 0) {
+      setConfigured(false)
+    } else {
+      setConfigured(true)
+    }
+  }, [schema])
+
+  useEffect(() => {
+    if (!value || value.length <= 0) {
+      setConfigured(false)
+    }
     setPoints(value)
   }, [value])
 
   const handleOnAdd = () => {
     if (!currentPoint) return
-
     setPoints((points) => [...points, currentPoint])
-    const pointArray = [...points, currentPoint]
-    addToFormik(pointArray)
+    addToFormik([...points, currentPoint])
     setCurrentPoint('')
   }
 
-  const handleDeleteText = (text: string) => {
-    const pointArray = points.filter((ques) => ques !== text)
+  const handleDeleteText = (index: number) => {
+    const pointArray = points.filter((ques, quesIndex) => quesIndex !== index)
     setPoints(pointArray)
-
     addToFormik(pointArray)
+  }
+
+  const handleOnDatachange = (schemaValue: string[], value: string[]) => {
+    if (
+      schemaValue.length === value.length &&
+      schemaValue.every((v, i) => v === value[i])
+    ) {
+      setConfigured(true)
+    } else if (
+      schemaValue.length === value.length &&
+      schemaValue.every((v, i) => v !== value[i])
+    ) {
+      setConfigured(false)
+    } else if (schemaValue.length !== value.length) {
+      setConfigured(false)
+    }
   }
 
   return (
@@ -59,9 +79,9 @@ const TextArraySchema = ({
             // eslint-disable-next-line react/no-array-index-key
             className="text-lg"
             name={schema.key}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
               setCurrentPoint(e.target.value)
-            }
+            }}
             value={currentPoint}
             placeholder={schema.description}
             label="Add a Point"
@@ -79,17 +99,17 @@ const TextArraySchema = ({
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2">
-        {points.map((ques, index) => (
+        {points?.map((ques, index) => (
           <div
             key={ques}
             className="border-blue-200 px-4 py-2 m-1 flex items-center justify-between gap-2"
           >
             <div className="flex flex-col">
               <span className="font-bold">Point {index + 1}:</span>
-              <span className="capitalize text-justify">{ques}</span>
+              <span className="text-justify">{ques}</span>
             </div>
             <Button
-              onClick={() => handleDeleteText(ques)}
+              onClick={() => handleDeleteText(index)}
               type="button"
               appearance="danger"
               size="extraSmall"

@@ -1,17 +1,16 @@
-import Konva from 'konva'
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Group, Text, Image, Rect } from 'react-konva'
 import FontFaceObserver from 'fontfaceobserver'
 import { useRecoilValue } from 'recoil'
 import { useImage } from 'react-konva-utils'
 import { NextTokenIcon } from '../../../components'
-import { User, userState } from '../../../stores/user.store'
 import { Concourse } from '../components'
 import { CONFIG, StudioUserConfig } from '../components/Concourse'
 import { ControlButton } from '../components/MissionControl'
 import { StudioProviderProps, studioStore } from '../stores'
 import config from '../../../config'
 import useEdit from '../hooks/use-edit'
+import Gif from '../components/Gif'
 
 const TriviaFive = () => {
   const [activeQuestionIndex, setActiveQuestionIndex] = useState<number>(0)
@@ -23,9 +22,8 @@ const TriviaFive = () => {
     title?: string
   }>({ enable: false })
 
-  const { fragment, state, stream, picture, constraints } =
+  const { fragment, state, updatePayload, payload } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
-  const userData = (useRecoilValue(userState) as User) || {}
 
   const { getImageDimensions } = useEdit()
 
@@ -40,6 +38,8 @@ const TriviaFive = () => {
     `${config.storage.baseUrl}WTFJS.svg`,
     'anonymous'
   )
+  const [isGif, setIsGif] = useState(false)
+  const [gifUrl, setGifUrl] = useState('')
 
   const [imgDim, setImgDim] = useState<{
     width: number
@@ -53,6 +53,12 @@ const TriviaFive = () => {
   }, [])
 
   useEffect(() => {
+    if (qnaImage?.src.split('.').pop() === 'gif') {
+      setIsGif(true)
+      setGifUrl(qnaImage.src)
+    } else {
+      setIsGif(false)
+    }
     setImgDim(
       getImageDimensions(
         {
@@ -86,10 +92,17 @@ const TriviaFive = () => {
   }, [fragment?.configuration.properties])
 
   useEffect(() => {
+    if (state === 'ready') {
+      updatePayload?.({ activeQuestion: 0 })
+    }
     if (state === 'recording') {
       setActiveQuestionIndex(0)
     }
   }, [state])
+
+  useEffect(() => {
+    setActiveQuestionIndex(payload?.activeQuestion)
+  }, [payload])
 
   const controls = [
     <ControlButton
@@ -98,28 +111,72 @@ const TriviaFive = () => {
       className="my-2"
       appearance="primary"
       disabled={activeQuestionIndex === questions.length - 1}
-      onClick={() => setActiveQuestionIndex(activeQuestionIndex + 1)}
+      onClick={() => {
+        setActiveQuestionIndex(activeQuestionIndex + 1)
+        updatePayload?.({ activeQuestion: activeQuestionIndex + 1 })
+      }}
     />,
   ]
 
-  const studioUserConfig: StudioUserConfig[] = [
-    {
-      x: 586,
-      y: 0,
-      width: 528,
-      height: 396,
-      clipTheme: 'rect',
-      borderWidth: 6,
-      borderColor: '#ffffff',
-      studioUserClipConfig: {
-        x: 154,
-        y: 0,
-        width: 220,
-        height: 396,
-        radius: 0,
-      },
-    },
-  ]
+  const studioCoordinates: StudioUserConfig[] = (() => {
+    switch (fragment?.participants.length) {
+      case 2:
+        return [
+          {
+            x: 728.5,
+            y: 0,
+            width: 240,
+            height: 180,
+            clipTheme: 'rect',
+            borderWidth: 6,
+            borderColor: '#ffffff',
+            studioUserClipConfig: {
+              x: 7.5,
+              y: 0,
+              width: 225,
+              height: 180,
+              radius: 0,
+            },
+          },
+          {
+            x: 728.5,
+            y: 205,
+            width: 240,
+            height: 180,
+            clipTheme: 'rect',
+            borderWidth: 6,
+            borderColor: '#ffffff',
+            studioUserClipConfig: {
+              x: 7.5,
+              y: 0,
+              width: 225,
+              height: 180,
+              radius: 0,
+            },
+          },
+        ]
+
+      default:
+        return [
+          {
+            x: 586,
+            y: 0,
+            width: 528,
+            height: 396,
+            clipTheme: 'rect',
+            borderWidth: 6,
+            borderColor: '#ffffff',
+            studioUserClipConfig: {
+              x: 154,
+              y: 0,
+              width: 220,
+              height: 396,
+              radius: 0,
+            },
+          },
+        ]
+    }
+  })()
 
   const layerChildren = [
     <Rect
@@ -148,7 +205,7 @@ const TriviaFive = () => {
       ) : (
         <></>
       )}
-      {questions.length > 0 && !questions[activeQuestionIndex].image ? (
+      {questions.length > 0 && !questions[activeQuestionIndex]?.image ? (
         <Text
           x={10}
           verticalAlign="middle"
@@ -160,20 +217,34 @@ const TriviaFive = () => {
           fontStyle="bold"
           fontFamily="Poppins"
           align="center"
+          lineHeight={1.3}
           textTransform="capitalize"
         />
       ) : (
         <>
-          <Image
-            image={qnaImage}
-            y={imgDim.y}
-            x={imgDim.x}
-            width={imgDim.width}
-            height={imgDim.height}
-            shadowOpacity={0.3}
-            shadowOffset={{ x: 0, y: 1 }}
-            shadowBlur={2}
-          />
+          {!isGif && (
+            <Image
+              image={qnaImage}
+              y={imgDim.y}
+              x={imgDim.x}
+              width={imgDim.width}
+              height={imgDim.height}
+              shadowOpacity={0.3}
+              shadowOffset={{ x: 0, y: 1 }}
+              shadowBlur={2}
+            />
+          )}
+          {isGif && (
+            <Gif
+              src={gifUrl}
+              maxWidth={684}
+              maxHeight={250}
+              availableWidth={704}
+              availableHeight={280}
+              x={0}
+              y={75}
+            />
+          )}
         </>
       )}
     </Group>,
@@ -185,7 +256,7 @@ const TriviaFive = () => {
       controls={controls}
       layerChildren={layerChildren}
       titleSpalshData={titleSpalshData}
-      studioUserConfig={studioUserConfig}
+      studioUserConfig={studioCoordinates}
     />
   )
 }

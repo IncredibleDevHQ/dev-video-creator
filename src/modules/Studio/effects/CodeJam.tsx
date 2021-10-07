@@ -1,17 +1,21 @@
 import axios from 'axios'
 import React, { useEffect, useState } from 'react'
-import { Group, Circle, Text } from 'react-konva'
+import { Group, Circle } from 'react-konva'
 import { useRecoilValue } from 'recoil'
-import { NextLineIcon, NextTokenIcon } from '../../../components'
 import { API } from '../../../constants'
 import {
   Fragment_Status_Enum_Enum,
   useGetTokenisedCodeLazyQuery,
 } from '../../../generated/graphql'
 import { Concourse } from '../components'
-import { ControlButton } from '../components/MissionControl'
-import RenderTokens from '../components/RenderTokens'
-import useCode, { ComputedToken } from '../hooks/use-code'
+import { CONFIG } from '../components/Concourse'
+import RenderTokens, {
+  controls,
+  getRenderedTokens,
+  Position,
+  RenderFocus,
+} from '../components/RenderTokens'
+import useCode from '../hooks/use-code'
 import { StudioProviderProps, studioStore } from '../stores'
 
 export const codeConfig = {
@@ -20,13 +24,8 @@ export const codeConfig = {
   height: 540,
 }
 
-interface Position {
-  prevIndex: number
-  currentIndex: number
-}
-
 const CodeJam = () => {
-  const { fragment, payload, updatePayload, state, isHost } =
+  const { fragment, payload, updatePayload, state } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [titleSpalshData, settitleSpalshData] = useState<{
@@ -40,6 +39,7 @@ const CodeJam = () => {
     prevIndex: -1,
     currentIndex: 0,
   })
+  const [focusCode, setFocusCode] = useState<boolean>(false)
 
   useEffect(() => {
     if (!fragment?.configuration.properties) return
@@ -79,7 +79,7 @@ const CodeJam = () => {
     if (!data?.TokenisedCode) return
     initUseCode({
       tokens: data.TokenisedCode.data,
-      canvasWidth: 900,
+      canvasWidth: 800,
       canvasHeight: 460,
       gutter: 5,
       fontSize: codeConfig.fontSize,
@@ -91,6 +91,7 @@ const CodeJam = () => {
       prevIndex: payload?.prevIndex || 0,
       currentIndex: payload?.currentIndex || 1,
     })
+    setFocusCode(payload?.isFocus)
   }, [payload])
 
   useEffect(() => {
@@ -102,44 +103,10 @@ const CodeJam = () => {
       updatePayload?.({
         currentIndex: 1,
         prevIndex: 0,
+        isFocus: false,
       })
     }
   }, [state])
-
-  const controls =
-    isHost && state === 'recording'
-      ? [
-          <ControlButton
-            key="nextToken"
-            icon={NextTokenIcon}
-            className="my-2"
-            appearance="primary"
-            onClick={() => {
-              updatePayload?.({
-                currentIndex: position.currentIndex + 1,
-                prevIndex: position.currentIndex,
-              })
-            }}
-          />,
-          <ControlButton
-            className="my-2"
-            key="nextLine"
-            icon={NextLineIcon}
-            appearance="primary"
-            onClick={() => {
-              const current = computedTokens.current[position.currentIndex]
-              let next = computedTokens.current.findIndex(
-                (t) => t.lineNumber > current.lineNumber
-              )
-              if (next === -1) next = computedTokens.current.length
-              updatePayload?.({
-                prevIndex: position.currentIndex,
-                currentIndex: next,
-              })
-            }}
-          />,
-        ]
-      : [<></>]
 
   const layerChildren = [
     <Group y={15} x={15} key="circleGroup">
@@ -160,40 +127,30 @@ const CodeJam = () => {
         )}
       </Group>
     ),
+    focusCode && (
+      <RenderFocus
+        tokens={computedTokens.current}
+        lineNumber={computedTokens.current[position.prevIndex]?.lineNumber}
+        currentIndex={position.currentIndex}
+        groupCoordinates={{ x: 20, y: 30 }}
+        bgRectInfo={{
+          x: 0,
+          y: 0,
+          width: CONFIG.width,
+          height: CONFIG.height,
+          radius: 0,
+        }}
+      />
+    ),
   ]
 
   return (
     <Concourse
       layerChildren={layerChildren}
-      controls={controls}
+      controls={controls(setFocusCode, position, computedTokens.current)}
       titleSpalshData={titleSpalshData}
     />
   )
-}
-
-const getRenderedTokens = (tokens: ComputedToken[], position: Position) => {
-  const startFromIndex = Math.max(
-    ...tokens
-      .filter((_, i) => i <= position.prevIndex)
-      .map((token) => token.startFromIndex)
-  )
-
-  return tokens
-    .filter((_, i) => i < position.prevIndex && i >= startFromIndex)
-    .map((token, index) => {
-      return (
-        <Text
-          // eslint-disable-next-line
-          key={index}
-          fontSize={codeConfig.fontSize}
-          fill={token.color}
-          text={token.content}
-          x={token.x}
-          y={token.y}
-          align="left"
-        />
-      )
-    })
 }
 
 export default CodeJam

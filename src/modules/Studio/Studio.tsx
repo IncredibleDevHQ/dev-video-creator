@@ -2,8 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { FiArrowLeft } from 'react-icons/fi'
 import { useHistory, useParams } from 'react-router-dom'
 import { useRecoilState, useRecoilValue } from 'recoil'
-import 'get-blob-duration'
 import getBlobDuration from 'get-blob-duration'
+
 import {
   emitToast,
   dismissToast,
@@ -26,7 +26,7 @@ import { useUploadFile } from '../../hooks/use-upload-file'
 import { useAgora } from './hooks'
 import { StudioProviderProps, StudioState, studioStore } from './stores'
 import { useRTDB } from './hooks/use-rtdb'
-import { Timer } from './components'
+import { Timer, Countdown } from './components'
 
 const Studio = () => {
   const { fragmentId } = useParams<{ fragmentId: string }>()
@@ -50,8 +50,8 @@ const Studio = () => {
     join,
     users,
     mute,
-    leave,
     ready,
+    leave,
     userAudios,
     tracks,
     renewToken,
@@ -366,12 +366,13 @@ const Studio = () => {
 
   return (
     <div>
+      <Countdown />
       <div className="py-2 px-4">
         <div className="flex flex-row justify-between bg-gray-100 p-2 rounded-md">
           <div className="flex-1 flex flex-row items-center">
             <FiArrowLeft
               className="cursor-pointer mr-2"
-              onClick={() => {
+              onClick={async () => {
                 setFragment(undefined)
                 setStudio({
                   ...studio,
@@ -381,7 +382,13 @@ const Studio = () => {
                 history.goBack()
               }}
             />
-            <Heading className="font-semibold">
+            <Heading
+              className="font-semibold"
+              onClick={() => {
+                stream?.getTracks().forEach((track) => track.stop())
+                history.goBack()
+              }}
+            >
               {fragment.flick.name} / {fragment.name}
             </Heading>
           </div>

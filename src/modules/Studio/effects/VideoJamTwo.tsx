@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useRecoilValue } from 'recoil'
-import Konva from 'konva'
-import { Circle, Group, Image, Rect } from 'react-konva'
+import { Circle, Image, Rect } from 'react-konva'
 import { FiPlay, FiPause } from 'react-icons/fi'
 import useImage from 'use-image'
 import { Concourse } from '../components'
@@ -10,7 +9,6 @@ import { CONFIG, StudioUserConfig } from '../components/Concourse'
 import { StudioProviderProps, studioStore } from '../stores'
 import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
 import { Video, VideoConfig } from '../components/Video'
-import { ClipConfig } from '../hooks/use-edit'
 import config from '../../../config'
 
 const VideoJamTwo = () => {
@@ -116,7 +114,8 @@ const VideoJamTwo = () => {
     y: 40,
     width: 720,
     height: 405,
-    borderColor: '#D1D5DB',
+    videoFill: '#EDEEF0',
+    borderColor: '#EDEEF0',
     borderWidth: 8,
     cornerRadius: 8,
     performClip: true,
@@ -240,9 +239,6 @@ const VideoJamTwo = () => {
           width={CONFIG.width}
           height={CONFIG.height}
           fill="#ffffff"
-          // fillLinearGradientColorStops={[0, '#60D0ED', 1, '#536FA8']}
-          // fillLinearGradientStartPoint={{ x: 0, y: 0 }}
-          // fillLinearGradientEndPoint={{ x: CONFIG.width, y: CONFIG.height }}
         />,
         <Circle x={82} y={10} radius={55} fill="#7DE2D1" />,
         <Circle x={70} y={CONFIG.height - 70} radius={100} fill="#7DE2D1" />,
