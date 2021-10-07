@@ -100,9 +100,6 @@ query SeriesFlicks($id: uuid!) {
     where: { seriesId: { _eq: $id }, flick: { deletedAt: { _is_null: true } } }
   ) {
     order
-    seriesFlickCount {
-      count
-    }
     flick {
       id
       producedLink
@@ -163,25 +160,6 @@ query FlickActivity($flickId: uuid!) {
     order_by: { createdAt: desc }
   ) {
     ...FlickActivity
-  }
-}
-fragment Note on Note {
-  id
-  note
-  sourceUrl
-  participant {
-    id
-    userSub
-    user {
-      picture
-      displayName
-    }
-  }
-}
-
-query GetFragmentNotes($fragmentId: uuid!) {
-  Note(where: { fragmentId: { _eq: $fragmentId } }) {
-    ...Note
   }
 }
 

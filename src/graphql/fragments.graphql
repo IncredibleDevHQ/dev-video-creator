@@ -21,6 +21,21 @@ fragment StudioFragment on Fragment {
   }
 }
 
+fragment Note on Note {
+  id
+  note
+  sourceUrl
+  createdAt
+  participant {
+    id
+    userSub
+    user {
+      picture
+      displayName
+    }
+  }
+}
+
 query GetFragmentById($id: uuid!, $sub: String!) {
   Fragment(
     where: {
@@ -46,6 +61,30 @@ query FragmentRole($fragmentId: uuid!, $sub: String!) {
     }
   ) {
     role
+  }
+}
+
+query GetFragmentNotes($fragmentId: uuid!) {
+  Note(where: { fragmentId: { _eq: $fragmentId } }) {
+    ...Note
+  }
+}
+
+mutation AddNote($note: Note_insert_input = {}) {
+  insert_Note_one(object: $note) {
+    id
+  }
+}
+
+mutation UpdateNote($id: uuid!, $note: String!) {
+  update_Note(where: { id: { _eq: $id } }, _set: { note: $note }) {
+    affected_rows
+  }
+}
+
+mutation DeleteNote($id: uuid!) {
+  delete_Note_by_pk(id: $id) {
+    id
   }
 }
 

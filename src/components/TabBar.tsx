@@ -19,14 +19,14 @@ const TabBar = ({
 } & HTMLProps<HTMLUListElement>) => {
   return (
     <ul
-      className={cx('flex border-b-2 border-background-alt', className)}
+      className={cx('flex border-b-2 py-2 border-background-alt', className)}
       {...rest}
     >
       {tabs.map((tab) => (
         <TabBarItem
           tab={tab}
           key={tab.name}
-          current={current === tab}
+          current={current.name === tab.name}
           onClick={() => onTabChange(tab)}
         />
       ))}
@@ -43,7 +43,7 @@ const TabBarItem = ({
   return (
     <li
       className={cx(
-        'cursor-pointer mr-2 text-xs tracking-wide transition-colors p-2',
+        'cursor-pointer mr-2 text-xs tracking-wide transition-colors p-1',
         {
           'border-b-2 border-brand text-brand': current,
         }

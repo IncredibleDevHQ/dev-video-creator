@@ -3,7 +3,7 @@ import React, { HTMLProps } from 'react'
 import { nanoid } from 'nanoid'
 
 interface TextFieldProps extends HTMLProps<HTMLInputElement> {
-  label: string
+  label?: string
   accessories?: JSX.Element[]
   caption?: JSX.Element | string
 }
@@ -42,6 +42,7 @@ const TextField = ({
 }
 
 TextField.defaultProps = {
+  label: '',
   caption: undefined,
   accessories: undefined,
 }
