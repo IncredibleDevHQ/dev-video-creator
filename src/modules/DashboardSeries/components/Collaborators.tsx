@@ -1,56 +1,67 @@
-/* eslint-disable jsx-a11y/click-events-have-key-events */
-/* eslint-disable jsx-a11y/no-static-element-interactions */
 import React, { useState } from 'react'
 import Gravatar from 'react-gravatar'
-import { array } from 'yup/lib/locale'
 import { SubscribeModal } from '.'
 import { Text } from '../../../components'
-import { BaseFlickFragment, Maybe } from '../../../generated/graphql'
 
-const Collaborators = ({ flick }: { flick: BaseFlickFragment }) => {
+const Collaborators = ({
+  uniqueDetails,
+}: {
+  uniqueDetails: (string | undefined)[] | undefined
+}) => {
   interface ModalState {
     isOpen: boolean
     name: string
     picture: string
-    username: string
+    sub: string
   }
   const [modal, setModal] = useState<ModalState>({
     isOpen: false,
     name: '',
     picture: '',
-    username: '',
+    sub: '',
   })
+
+  const individualUserDetails = (uniqueDetails as string[]).reduce(
+    (rows: any, key, index) =>
+      (index % 3 === 0 ? rows.push([key]) : rows[rows.length - 1].push(key)) &&
+      rows,
+    []
+  )
 
   return (
     <div className="flex flex-col">
-      {flick.participants?.find((collaborator) => {
+      {individualUserDetails?.map((collaborator: any) => {
         return (
           <div className="flex flex-row">
-            <div
-              className=""
-              onClick={() =>
-                setModal({
-                  isOpen: true,
-                  name: collaborator.user.displayName || '',
-                  picture: collaborator.user.picture || '',
-                  username: collaborator.user.username,
-                })
-              }
-            >
-              {collaborator.user.picture ? (
-                <img
-                  src={collaborator.user.picture}
-                  alt={collaborator.user.displayName || 'user'}
-                  className="w-12 h-12 mx-3 my-2 rounded-full border-blue-200 border-4 items-center"
-                />
-              ) : (
-                <Gravatar className="w-12 h-12 mx-3 my-2 rounded-full" />
-              )}
-            </div>
-            <div className="mx-3 my-2 ">
-              <Text>{collaborator.user.displayName}</Text>
-              <Text>{collaborator.user.username}</Text>
-            </div>
+            {collaborator && (
+              <>
+                <div
+                  className=""
+                  aria-hidden
+                  onClick={() =>
+                    setModal({
+                      isOpen: true,
+                      name: collaborator[0],
+                      picture: collaborator[2],
+                      sub: collaborator[1],
+                    })
+                  }
+                >
+                  {collaborator[2] ? (
+                    <img
+                      src={collaborator[2]}
+                      alt={collaborator[0] || 'user'}
+                      className="w-12 h-12 mx-3 my-2 rounded-full border-blue-200 border-4 items-center"
+                    />
+                  ) : (
+                    <Gravatar className="w-12 h-12 mx-3 my-2 rounded-full" />
+                  )}
+                </div>
+                <div className="mx-3 my-2 ">
+                  <Text className="mt-3">{collaborator[0]}</Text>
+                </div>
+              </>
+            )}
           </div>
         )
       })}
@@ -65,7 +76,7 @@ const Collaborators = ({ flick }: { flick: BaseFlickFragment }) => {
         }}
         userName={modal.name}
         userPhoto={modal.picture}
-        userUsername={modal.username}
+        userSub={modal.sub}
       />
     </div>
   )

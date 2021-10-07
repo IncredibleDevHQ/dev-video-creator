@@ -46,6 +46,7 @@ const EmailSubscriber = ({
         onClick={(e) => {
           e?.preventDefault()
           handleClick()
+          javascript: eraseText()
         }}
         loading={loading}
       >

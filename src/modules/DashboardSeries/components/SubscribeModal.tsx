@@ -11,13 +11,13 @@ const SubscribeModal = ({
   handleClose,
   userName,
   userPhoto,
-  userUsername,
+  userSub,
 }: {
   open: boolean
   handleClose: (refresh?: boolean) => void
   userName: string
   userPhoto: string
-  userUsername: string
+  userSub: string
 }) => {
   const [state, setState] = useState<boolean>(false)
   const firstName = userName?.split(' ') || ['']
@@ -56,7 +56,6 @@ const SubscribeModal = ({
           <Gravatar className="w-32 h-32 inline-block align-middle max-w-screen-lg mx-auto items-center rounded-xl" />
         )}
         <Text className="text-center">{userName}</Text>
-        <Text className="text-center">{userUsername}</Text>
 
         <Heading className="text-xl mb-10 font-bold">
           We know you’re excited to know more about {firstName[0]} but we are
@@ -68,7 +67,7 @@ const SubscribeModal = ({
         </Text>
         <EmailSubscriber
           state={state}
-          sourceID={userName}
+          sourceID={userSub}
           target={TargetTypes.UserSubscription}
         />
       </div>
