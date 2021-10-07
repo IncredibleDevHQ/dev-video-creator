@@ -20,6 +20,7 @@ import {
   useGetFlickByIdQuery,
   useGetFragmentParticipantsLazyQuery,
 } from '../../generated/graphql'
+import { User, userState } from '../../stores/user.store'
 import { Notes } from '../Flick/components'
 import { CONFIG } from '../Studio/components/Concourse'
 import {
@@ -141,9 +142,12 @@ const FragmentConfiguration = () => {
     },
   ]
   const [currentTab, setCurrentTab] = useState<Tab>(tabs[0])
-  const { activeFragmentId } = useRecoilValue(newFlickStore)
+  const { activeFragmentId, flick } = useRecoilValue(newFlickStore)
 
-  return (
+  const fragment = flick?.fragments.find((frag) => frag.id === activeFragmentId)
+  const { sub } = (useRecoilValue(userState) as User) || {}
+
+  return flick && fragment ? (
     <div className="flex flex-col flex-1 bg-gray-50 h-screen">
       <TabBar
         tabs={tabs}
@@ -153,8 +157,20 @@ const FragmentConfiguration = () => {
       />
       {currentTab.value === 'Content' && <FragmentContent />}
       {currentTab.value === 'Participants' && <FragmentParticipants />}
-      {currentTab.value === 'Notes' && <Notes fragmentId={activeFragmentId} />}
+      {currentTab.value === 'Notes' && (
+        <Notes
+          fragmentId={activeFragmentId}
+          flickId={flick.id}
+          participantId={
+            fragment.participants.find(
+              ({ participant }) => participant.userSub === sub
+            )?.participant.id
+          }
+        />
+      )}
     </div>
+  ) : (
+    <div />
   )
 }
 
