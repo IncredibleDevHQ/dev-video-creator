@@ -256,6 +256,9 @@ const Studio = () => {
   }, [payload])
 
   useEffect(() => {
+    if (payload?.status === Fragment_Status_Enum_Enum.NotStarted) {
+      setState('ready')
+    }
     if (
       !studio.isHost &&
       payload?.status === Fragment_Status_Enum_Enum.Completed
