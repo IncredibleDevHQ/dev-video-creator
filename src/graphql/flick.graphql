@@ -39,8 +39,9 @@ fragment BaseFlick on Flick {
   producedLink
   participants {
     user {
+      sub
+      displayName
       picture
-      email
     }
   }
 }

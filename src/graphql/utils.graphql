@@ -48,3 +48,17 @@ mutation GetRTCToken($fragmentId: uuid!) {
     success
   }
 }
+
+mutation SubToVideoEmails(
+  $email: String!
+  $sourceId: String!
+  $targetType: TargetTypes!
+) {
+  SubscribeToVideos(
+    email: $email
+    sourceId: $sourceId
+    targetType: $targetType
+  ) {
+    success
+  }
+}
