@@ -2,67 +2,43 @@ import { css, cx } from '@emotion/css'
 import React, { useEffect, useState } from 'react'
 import Modal from 'react-responsive-modal'
 import Select from 'react-select'
-import { useRecoilState, useRecoilValue } from 'recoil'
-import { Button, Heading } from '../../../components'
+import { useRecoilValue } from 'recoil'
+import { Text, Loading } from '../../../components'
 import { StudioProviderProps, studioStore } from '../stores'
 
 const SwitchMediaDevices = ({
-  cameraDevices,
-  audioDevices,
   open,
   handleClose,
 }: {
-  cameraDevices: MediaDeviceInfo[]
-  audioDevices: MediaDeviceInfo[]
   open: boolean
   handleClose: () => void
 }) => {
-  const { constraints, mute, updateParticipant } =
-    (useRecoilValue(studioStore) as StudioProviderProps) || {}
-  const [cam, setcam] = useState<{
-    value: string | undefined
-    label: string | undefined
-  } | null>({ value: '', label: '' })
-  const [cameraoptions, setCameraOptions] = useState<
-    {
-      value: string
-      label: string
-    }[]
-  >([{ value: '', label: '' }])
+  const {
+    cameraDevice,
+    microphoneDevice,
+    getCameras,
+    getMicrophones,
+    updateCameraDevices,
+    updateMicroPhoneDevices,
+  } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
-  const [microphone, setMicrophone] = useState<{
-    value: string | undefined
-    label: string | undefined
-  } | null>({ value: '', label: '' })
-  const [microphoneOptions, setMicrophoneOptions] = useState<
-    {
-      value: string
-      label: string
-    }[]
-  >([{ value: '', label: '' }])
-
-  const [studio, setStudio] = useRecoilState(studioStore)
+  const [cameraDevices, setCameraDevices] = useState<MediaDeviceInfo[]>()
+  const [microphoneDevices, setMicrophoneDevices] =
+    useState<MediaDeviceInfo[]>()
 
   useEffect(() => {
-    if (!cameraDevices) return
-    setcam({ value: cameraDevices[0].deviceId, label: cameraDevices[0].label })
-    const options = cameraDevices.map((cam) => {
-      return { value: cam.deviceId, label: cam.label }
-    })
-    setCameraOptions(options)
-  }, [cameraDevices])
-
-  useEffect(() => {
-    if (!audioDevices) return
-    setMicrophone({
-      value: audioDevices[0].deviceId,
-      label: audioDevices[0].label,
-    })
-    const options = audioDevices.map((aduio) => {
-      return { value: aduio.deviceId, label: aduio.label }
-    })
-    setMicrophoneOptions(options)
-  }, [audioDevices])
+    if (!getCameras || !getMicrophones) return
+    ;(async () => {
+      try {
+        const cDevices = await getCameras()
+        const mDevices = await getMicrophones()
+        setCameraDevices(cDevices)
+        setMicrophoneDevices(mDevices)
+      } catch (error) {
+        console.error(error)
+      }
+    })()
+  }, [getCameras, getMicrophones])
 
   return (
     <Modal
@@ -85,50 +61,59 @@ const SwitchMediaDevices = ({
         `,
       }}
     >
-      <Heading>Camera</Heading>
-      <Select
-        onChange={async (value) => {
-          updateParticipant?.({ video: !constraints?.video })
-          await mute('video')
-          setcam(value)
-        }}
-        options={cameraoptions}
-        isMulti={false}
-        value={{
-          value: cam?.value,
-          label: cam?.label,
-        }}
-        placeholder="Camera"
-      />
-      <Heading>Microphone</Heading>
-      <Select
-        onChange={async (value) => {
-          updateParticipant?.({ audio: !constraints?.audio })
-          await mute('audio')
-          setMicrophone(value)
-        }}
-        options={microphoneOptions}
-        isMulti={false}
-        value={{
-          value: microphone?.value,
-          label: microphone?.label,
-        }}
-        placeholder="MicroPhone"
-      />
-      <Button
-        appearance="primary"
-        type="button"
-        onClick={async () => {
-          setStudio({
-            ...studio,
-            selectedCameraDeviceId: cam?.value as string,
-            selectedMicrophoneDeviceId: microphone?.value as string,
-          })
-          handleClose()
-        }}
-      >
-        Select
-      </Button>
+      {cameraDevices && microphoneDevices ? (
+        <div>
+          <Text>Camera</Text>
+          <Select
+            onChange={(device) => {
+              if (!device) return
+              const selectedCameraDevice = cameraDevices.find(
+                (d) => d.deviceId === device.value
+              )
+              if (selectedCameraDevice)
+                updateCameraDevices(selectedCameraDevice)
+            }}
+            options={cameraDevices.map((device) => {
+              return {
+                label: device.label,
+                value: device.deviceId,
+              }
+            })}
+            isMulti={false}
+            value={{
+              label: cameraDevice.label,
+              value: cameraDevice.deviceId,
+            }}
+            placeholder="Camera"
+          />
+          <Text>Microphone</Text>
+          <Select
+            onChange={(device) => {
+              if (!device) return
+              const selectedMicrophoneDevice = microphoneDevices.find(
+                (d) => d.deviceId === device.value
+              )
+              console.log('I set microphone', selectedMicrophoneDevice)
+              if (selectedMicrophoneDevice)
+                updateMicroPhoneDevices(selectedMicrophoneDevice)
+            }}
+            options={microphoneDevices.map((device) => {
+              return {
+                label: device.label,
+                value: device.deviceId,
+              }
+            })}
+            isMulti={false}
+            value={{
+              label: microphoneDevice.label,
+              value: microphoneDevice.deviceId,
+            }}
+            placeholder="MicroPhone"
+          />
+        </div>
+      ) : (
+        <Loading />
+      )}
     </Modal>
   )
 }
