@@ -59,7 +59,7 @@ const VideoTile = ({
   return (
     <div className="relative bg-gray-50 hover:border-green-500 cursor-pointer w-60 h-36 rounded-md items-center justify-center mt-8">
       <div
-        className="rounded-md hover:border-green-500 cursor-pointer w-60 h-36 border-2 mt-10"
+        className="rounded-md hover:border-green-500 cursor-pointer w-60 h-36 border-2"
         onClick={(e) => {
           if (e.target !== e.currentTarget) return
           history.push(`/view/${flick.joinLink}`)
