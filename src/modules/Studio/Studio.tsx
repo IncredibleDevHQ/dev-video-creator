@@ -3,7 +3,6 @@ import { FiArrowLeft } from 'react-icons/fi'
 import { useHistory, useParams } from 'react-router-dom'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import 'get-blob-duration'
-
 import getBlobDuration from 'get-blob-duration'
 import {
   emitToast,
@@ -12,7 +11,6 @@ import {
   Heading,
   ScreenState,
   updateToast,
-  Text,
 } from '../../components'
 import {
   Fragment_Status_Enum_Enum,
@@ -21,22 +19,22 @@ import {
   useGetRtcTokenMutation,
   useMarkFragmentCompletedMutation,
 } from '../../generated/graphql'
-import { useCanvasRecorder } from '../../hooks'
+import { useCanvasRecorder, useTimekeeper } from '../../hooks'
 import { User, userState } from '../../stores/user.store'
 import { getEffect } from './effects/effects'
 import { useUploadFile } from '../../hooks/use-upload-file'
 import { useAgora } from './hooks'
 import { StudioProviderProps, StudioState, studioStore } from './stores'
 import { useRTDB } from './hooks/use-rtdb'
+import { Timer } from './components'
 
 const Studio = () => {
   const { fragmentId } = useParams<{ fragmentId: string }>()
   const { constraints } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [studio, setStudio] = useRecoilState(studioStore)
-  const { sub, picture } = (useRecoilValue(userState) as User) || {}
+  const { sub } = (useRecoilValue(userState) as User) || {}
   const [fragment, setFragment] = useState<StudioFragmentFragment>()
-  let consst: MediaStreamConstraints | null = { audio: true, video: true }
   const history = useHistory()
 
   const { data, loading } = useGetFragmentByIdQuery({
@@ -46,12 +44,6 @@ const Studio = () => {
   const [markFragmentCompleted] = useMarkFragmentCompletedMutation()
 
   const [uploadFile] = useUploadFile()
-
-  useEffect(() => {
-    consst = studio.constraints
-      ? studio.constraints
-      : { audio: true, video: true }
-  }, [])
 
   const {
     stream,
@@ -63,8 +55,12 @@ const Studio = () => {
     userAudios,
     tracks,
     renewToken,
-    cameraDevices,
-    microphoneDevices,
+    cameraDevice,
+    microphoneDevice,
+    getCameras,
+    getMicrophones,
+    updateCameraDevices,
+    updateMicroPhoneDevices,
   } = useAgora(fragmentId, {
     onTokenWillExpire: async () => {
       const { data } = await getRTCToken({ variables: { fragmentId } })
@@ -83,12 +79,6 @@ const Studio = () => {
   const [getRTCToken] = useGetRtcTokenMutation({
     variables: { fragmentId },
   })
-
-  useEffect(() => {
-    return () => {
-      stream?.getTracks().forEach((track) => track.stop())
-    }
-  }, [])
 
   const { participants, init, payload, updatePayload, updateParticipant } =
     useRTDB<any, any>({
@@ -115,10 +105,6 @@ const Studio = () => {
     })
 
   useEffect(() => {
-    console.log({ payload })
-  }, [payload])
-
-  useEffect(() => {
     if (fragment && ready) {
       ;(async () => {
         init()
@@ -137,6 +123,7 @@ const Studio = () => {
 
   useEffect(() => {
     return () => {
+      leave()
       setFragment(undefined)
       setStudio({
         ...studio,
@@ -152,6 +139,8 @@ const Studio = () => {
     options: {},
   })
 
+  const { handleStart, handleReset, timer } = useTimekeeper(0)
+
   /**
    * END STREAM HOOKS...
    */
@@ -162,10 +151,10 @@ const Studio = () => {
    * =====================
    */
 
-  const togglePresenterNotes = () => {}
-
   const resetRecording = () => {
     reset()
+    init()
+    handleReset()
     setState('ready')
   }
 
@@ -205,10 +194,13 @@ const Studio = () => {
       })
 
       dismissToast(toast)
+      leave()
+      stream?.getTracks().forEach((track) => track.stop())
       setFragment(undefined)
       setStudio({
         ...studio,
         fragment: undefined,
+        tracks,
       })
       history.push(`/flick/${fragment?.flickId}/${fragmentId}`)
     } catch (e) {
@@ -243,9 +235,25 @@ const Studio = () => {
 
   const stop = () => {
     stopRecording()
-    stream?.getTracks().forEach((track) => track.stop())
     setState('preview')
   }
+
+  useEffect(() => {
+    if (timer === 0) return
+    if (timer === 90) {
+      updatePayload({ ...payload, status: Fragment_Status_Enum_Enum.Ended })
+    }
+  }, [timer])
+
+  useEffect(() => {
+    if (payload?.status === Fragment_Status_Enum_Enum.Live && timer === 0) {
+      handleStart()
+    }
+    if (payload?.status === Fragment_Status_Enum_Enum.Ended) {
+      handleReset()
+      finalTransition()
+    }
+  }, [payload])
 
   useEffect(() => {
     if (
@@ -263,23 +271,25 @@ const Studio = () => {
   }, [payload, studio.isHost])
 
   useMemo(() => {
-    if (!fragment || !stream) return
+    if (!fragment || !cameraDevice || !microphoneDevice) return
     setStudio({
       ...studio,
       fragment,
-      togglePresenterNotes,
       stream: stream as MediaStream,
       startRecording: start,
       stopRecording: stop,
       showFinalTransition: finalTransition,
       reset: resetRecording,
+      getCameras,
+      getMicrophones,
+      cameraDevice,
+      microphoneDevice,
+      updateCameraDevices,
+      updateMicroPhoneDevices,
       upload,
       getBlobs,
       state,
       tracks,
-      microphoneDevices,
-      cameraDevices,
-      picture: picture as string,
       constraints: {
         audio: constraints ? constraints.audio : true,
         video: constraints ? constraints.video : true,
@@ -298,7 +308,17 @@ const Studio = () => {
           ({ participant }) => participant.userSub === sub
         )?.participant.owner || false,
     })
-  }, [fragment, stream, users, state, userAudios, payload, participants])
+  }, [
+    fragment,
+    stream,
+    users,
+    state,
+    userAudios,
+    payload,
+    participants,
+    cameraDevice,
+    microphoneDevice,
+  ])
 
   /**
    * =======================
@@ -335,11 +355,7 @@ const Studio = () => {
             </Heading>
           </div>
           {payload?.status === Fragment_Status_Enum_Enum.Live ? (
-            <div className="flex px-2 py-1 rounded-sm bg-error-10 animate-pulse">
-              <Text className="text-sm text-error font-semibold">
-                Recording
-              </Text>
-            </div>
+            <Timer target={90} timer={timer} />
           ) : (
             <></>
           )}

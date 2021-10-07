@@ -20,13 +20,13 @@ const Timer = ({ target, timer }: { target: number; timer: number }) => {
       case typeof target === 'undefined':
         setTimerState('noTarget')
         break
-      case target - timer > 60:
+      case target - timer > 30:
         setTimerState('onTime')
         break
       case target - timer < 0:
         setTimerState('overtime')
         break
-      case target - timer <= 60:
+      case target - timer <= 30:
         setTimerState('closeShave')
         break
       default:
