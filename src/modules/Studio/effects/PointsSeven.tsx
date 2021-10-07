@@ -129,7 +129,7 @@ const PointsSeven = () => {
             width: 240,
             height: 180,
             clipTheme: 'rect',
-            borderWidth: 8,
+            borderWidth: 4,
             borderColor: '#111111',
             studioUserClipConfig: {
               x: 10,
@@ -145,7 +145,7 @@ const PointsSeven = () => {
             width: 240,
             height: 180,
             clipTheme: 'rect',
-            borderWidth: 8,
+            borderWidth: 4,
             borderColor: '#111111',
             studioUserClipConfig: {
               x: 10,
