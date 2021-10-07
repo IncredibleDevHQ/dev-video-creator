@@ -1,4 +1,4 @@
-import React, { HTMLProps, useEffect } from 'react'
+import React, { HTMLProps, useEffect, useState } from 'react'
 import { BiUser } from 'react-icons/bi'
 import { IoCloseOutline } from 'react-icons/io5'
 import { useRecoilState } from 'recoil'
@@ -44,7 +44,7 @@ export const fragmentTypes = [
     label: 'Presenter',
     image: fragmentIcons.slides,
     description: 'Present texts and pictures',
-    value: Fragment_Type_Enum_Enum.Slides,
+    value: Fragment_Type_Enum_Enum.Solo,
     accessory: '1 person',
   },
   {
@@ -62,10 +62,13 @@ const NewFragmentModal = ({
   handleClose: (refresh?: boolean) => void
 }) => {
   const [{ flick }, setFlick] = useRecoilState(newFlickStore)
-  const [createFragment, { data, error }] = useCreateFragmentMutation()
+  const [createFragment, { data, error, loading }] = useCreateFragmentMutation()
+  const [selectedFragment, setSelectedFragment] =
+    useState<Fragment_Type_Enum_Enum | null>(null)
 
   useEffect(() => {
     if (!data) return
+    setSelectedFragment(null)
     setFlick((store) => ({
       ...store,
       activeFragmentId: data.CreateFragment?.id,
@@ -100,6 +103,7 @@ const NewFragmentModal = ({
             ({ label, image, description, value, accessory }) => (
               <div
                 onClick={() => {
+                  setSelectedFragment(value)
                   createFragment({
                     variables: {
                       flickId: flick?.id,
@@ -109,8 +113,13 @@ const NewFragmentModal = ({
                     },
                   })
                 }}
-                className="flex cursor-pointer flex-col p-6 rounded-xl bg-white shadow-sm transition-all transform hover:-translate-y-2 hover:shadow-md"
+                className="flex cursor-pointer flex-col p-6 rounded-xl bg-white shadow-sm transition-all transform hover:-translate-y-2 hover:shadow-md relative"
               >
+                {loading && selectedFragment === value && (
+                  <div className="absolute bg-gray-300 w-full h-full top-0 left-0 rounded-xl flex items-center justify-center opacity-90">
+                    Creating...
+                  </div>
+                )}
                 <Heading
                   className="self-end lowercase flex items-center py-1 px-2 rounded-md text-gray-600 bg-gray-50"
                   fontSize="extra-small"

@@ -18,6 +18,7 @@ import {
   DraggableStateSnapshot,
   Droppable,
 } from 'react-beautiful-dnd'
+import { IoCheckmarkCircle } from 'react-icons/io5'
 
 const style = css`
   ::-webkit-scrollbar {
@@ -62,13 +63,13 @@ const FragmentSideBar = () => {
     <>
       <div
         className={cx(
-          'w-56 h-screen border-r-2 border-gray-300 overflow-y-scroll',
+          'w-56 h-5/6 border-r-2 border-gray-300 overflow-y-scroll pb-16',
           style
         )}
       >
         <ThumbnailDND />
         <div
-          className="bg-gray-100 py-2 fixed bottom-0 flex items-center justify-center left-0 w-56 cursor-pointer  border-r-2 border-gray-300"
+          className="bg-gray-100 py-2 fixed bottom-0 flex items-center justify-center left-0 w-56 cursor-pointer h-16 border-r-2 border-gray-300"
           onClick={() => setIsCreateNewModalOpen(true)}
         >
           <Button
@@ -216,7 +217,7 @@ const Thumbnail = ({
       tabIndex={0}
       onKeyUp={() => {}}
       className={cx(
-        'flex flex-col border-0 my-2 mx-4 rounded-md h-28 bg-gray-100 justify-end p-4',
+        'flex flex-col border-0 my-2 mx-4 rounded-md h-28 bg-gray-100 justify-end p-4 relative',
         {
           'border-2 border-green-600': active,
           'mt-6': position === 0,
@@ -228,6 +229,9 @@ const Thumbnail = ({
       {...provided.draggableProps}
       {...provided.dragHandleProps}
     >
+      {fragment.producedLink && (
+        <IoCheckmarkCircle className="absolute top-0 right-0 m-2 text-green-600" />
+      )}
       <Text
         className="text-base mb-1 font-bold text-gray-800 truncate overflow-ellipsis cursor-text rounded-md p-1 hover:bg-gray-300"
         contentEditable={editFragmentName}

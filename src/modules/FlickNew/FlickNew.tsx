@@ -86,7 +86,7 @@ const FlickNew = () => {
     )
 
   return flick ? (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col h-screen overflow-hidden">
       <FlickNavBar />
       <FragmentBar />
       <section className="flex h-full">
