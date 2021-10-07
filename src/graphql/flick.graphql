@@ -37,6 +37,7 @@ fragment BaseFlick on Flick {
   status
   deletedAt
   producedLink
+  configuration
   participants {
     user {
       picture

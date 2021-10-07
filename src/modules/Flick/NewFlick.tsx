@@ -18,7 +18,7 @@ import {
 } from '../../generated/graphql'
 import { useQueryVariables } from '../../hooks'
 
-interface FlickConfiguration {
+export interface FlickConfiguration {
   themeId: number
 }
 

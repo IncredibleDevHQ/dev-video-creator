@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from 'react'
+import { BiPlay, BiPlayCircle } from 'react-icons/bi'
 import { BsCameraVideo } from 'react-icons/bs'
 import { IoTrashOutline, IoCopyOutline } from 'react-icons/io5'
 import { useHistory } from 'react-router-dom'
 import { useRecoilState } from 'recoil'
-import { DeleteFragmentModal, DuplicateFragmentModal } from '.'
+import {
+  DeleteFragmentModal,
+  DuplicateFragmentModal,
+  FragmentVideoModal,
+} from '.'
 import { Button, emitToast } from '../../../components'
 import { useGetFlickFragmentsLazyQuery } from '../../../generated/graphql'
 import { newFlickStore } from '../store/flickNew.store'
@@ -11,9 +16,12 @@ import { newFlickStore } from '../store/flickNew.store'
 const FragmentBar = () => {
   const [confirmDeleteModal, setConfirmDeleteModal] = useState(false)
   const [duplicateModal, setDuplicateModal] = useState(false)
+  const [fragmentVideoModal, setFragmetVideoModal] = useState(false)
   const [{ flick, activeFragmentId }, setFlickStore] =
     useRecoilState(newFlickStore)
   const history = useHistory()
+
+  const fragment = flick?.fragments.find((f) => f.id === activeFragmentId)
 
   const [GetFlickFragments, { data, error, refetch }] =
     useGetFlickFragmentsLazyQuery({
@@ -57,15 +65,33 @@ const FragmentBar = () => {
           onClick={() => setDuplicateModal(true)}
         />
       </div>
-      <Button
-        appearance="secondary"
-        size="small"
-        icon={BsCameraVideo}
-        type="button"
-        onClick={() => history.push(`/${activeFragmentId}/studio`)}
-      >
-        Record
-      </Button>
+      <div className="flex">
+        {fragment?.producedLink && (
+          <div
+            className="flex items-center mr-4 border border-green-600 rounded-md px-2 cursor-pointer"
+            onClick={() => {
+              setFragmetVideoModal(true)
+            }}
+          >
+            <BiPlayCircle size={32} className="text-green-600" />
+          </div>
+        )}
+        <Button
+          appearance="secondary"
+          size="small"
+          icon={BsCameraVideo}
+          type="button"
+          onClick={() => history.push(`/${activeFragmentId}/studio`)}
+        >
+          Launch Studio
+        </Button>
+      </div>
+      <FragmentVideoModal
+        open={fragmentVideoModal}
+        handleClose={() => {
+          setFragmetVideoModal(false)
+        }}
+      />
       <DeleteFragmentModal
         open={confirmDeleteModal}
         handleClose={() => {

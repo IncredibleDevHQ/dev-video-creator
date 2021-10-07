@@ -9,6 +9,7 @@ import {
   SchemaElementProps,
   GetSchemaElement,
 } from '../../Flick/components/Effects'
+import { FlickConfiguration } from '../../Flick/NewFlick'
 import { newFlickStore } from '../store/flickNew.store'
 
 const FragmentContent = () => {
@@ -42,7 +43,7 @@ const FragmentContent = () => {
           })),
         },
       })
-      //handleRefetch(true)
+      setConfigured(true)
     } catch (error: any) {
       emitToast({
         title: 'Something went wrong.',
@@ -77,8 +78,15 @@ const FragmentContent = () => {
     if (!config) return
 
     const object: { [key: string]: any } = {}
+
+    const flickConfig = flick?.configuration as FlickConfiguration
+
     config.forEach((code) => {
-      object[code.key] = code.value
+      if (code.key === 'theme') {
+        object[code.key] = `${flickConfig.themeId}`
+      } else {
+        object[code.key] = code.value
+      }
     })
     setInitial(object)
     setConfigured(true)
@@ -100,21 +108,25 @@ const FragmentContent = () => {
   if (!fragment) return <EmptyState text="No fragment Selected" width={400} />
 
   return (
-    <div>
+    <div className="pr-10">
       <form onSubmit={handleSubmit}>
-        {config?.map((attribute) => (
-          <GetSchemaElement
-            schema={attribute}
-            setFieldValue={setFieldValue}
-            handleChange={handleChange}
-            value={values[attribute.key]}
-            type={fragment.type}
-            setConfigured={setConfigured}
-            setLoadingAssets={setLoadingAssets}
-            selectedVideoLink={selectedVideoLink}
-            setVideoInventoryModal={setVideoInventoryModal}
-          />
-        ))}
+        {config?.map((attribute) => {
+          return (
+            attribute.key !== 'theme' && (
+              <GetSchemaElement
+                schema={attribute}
+                setFieldValue={setFieldValue}
+                handleChange={handleChange}
+                value={values[attribute.key]}
+                type={fragment.type}
+                setConfigured={setConfigured}
+                setLoadingAssets={setLoadingAssets}
+                selectedVideoLink={selectedVideoLink}
+                setVideoInventoryModal={setVideoInventoryModal}
+              />
+            )
+          )
+        })}
 
         <Button
           type="button"

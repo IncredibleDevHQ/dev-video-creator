@@ -231,8 +231,8 @@ const Thumbnail = ({
       <Text
         className="text-base mb-1 font-bold text-gray-800 truncate overflow-ellipsis cursor-text rounded-md p-1 hover:bg-gray-300"
         contentEditable={editFragmentName}
+        onClick={(e) => e.stopPropagation()}
         onMouseDown={(e) => {
-          e.stopPropagation()
           setEditFragmentName(true)
         }}
         onKeyDown={(e) => {

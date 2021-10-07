@@ -83,7 +83,7 @@ const NewFragmentModal = ({
   }, [error])
 
   return (
-    <div className="bg-gray-50 flex flex-col justify-center items-center absolute left-0 top-0 h-full w-full">
+    <div className="bg-gray-50 flex flex-col justify-center items-center absolute left-0 top-0 h-full w-full z-50">
       <IoCloseOutline
         className="absolute right-5 top-5 cursor-pointer"
         size={32}

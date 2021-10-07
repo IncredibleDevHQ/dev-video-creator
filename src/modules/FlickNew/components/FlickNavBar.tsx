@@ -15,8 +15,9 @@ const FlickNavBar = () => {
   const [isShareOpen, setIsShareOpen] = useState(false)
 
   const [editFlickName, setEditFlickName] = useState(false)
+  const [flickName, setFlickName] = useState(flick?.name || '')
 
-  const [updateFlickMutation, { data }] = useUpdateFlickMutation()
+  const [updateFlickMutation, { data, error }] = useUpdateFlickMutation()
 
   const updateFlick = async (newName: string) => {
     if (editFlickName) {
@@ -31,6 +32,12 @@ const FlickNavBar = () => {
 
   useEffect(() => {
     if (!data) return
+    if (flick) {
+      setFlickStore((prev) => ({
+        ...prev,
+        flick: { ...flick, name: flickName },
+      }))
+    }
   }, [data])
 
   return (
@@ -50,6 +57,7 @@ const FlickNavBar = () => {
             if (e.key === 'Enter') {
               e.preventDefault()
               setEditFlickName(false)
+              setFlickName(e.currentTarget.innerText)
               updateFlick(e.currentTarget.innerText)
             }
           }}

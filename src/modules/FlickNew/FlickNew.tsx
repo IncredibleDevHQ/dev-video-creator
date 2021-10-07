@@ -32,21 +32,44 @@ import {
 import { newFlickStore } from './store/flickNew.store'
 
 const FlickNew = () => {
-  const { id } = useParams<{ id: string; fragmentId?: string }>()
-  const [{ flick }, setFlickStore] = useRecoilState(newFlickStore)
+  const { id, fragmentId } = useParams<{ id: string; fragmentId?: string }>()
+  const [{ flick, activeFragmentId }, setFlickStore] =
+    useRecoilState(newFlickStore)
   const { data, error, loading, refetch } = useGetFlickByIdQuery({
     variables: { id },
   })
 
   useEffect(() => {
+    if (!fragmentId) return
+    else
+      setFlickStore((store) => ({
+        ...store,
+        activeFragmentId: fragmentId,
+      }))
+  }, [fragmentId])
+
+  useEffect(() => {
     if (!data) return
     const fragmentsLength = data.Flick_by_pk?.fragments.length || 0
+    let activeId = ''
+    if (fragmentId) activeId = fragmentId
+    else {
+      activeId = fragmentsLength > 0 ? data.Flick_by_pk?.fragments[0].id : ''
+    }
     setFlickStore(() => ({
       flick: data.Flick_by_pk || null,
-      activeFragmentId:
-        fragmentsLength > 0 ? data.Flick_by_pk?.fragments[0].id : '',
+      activeFragmentId: activeId,
     }))
   }, [data])
+
+  useEffect(() => {
+    if (!activeFragmentId || !flick) return
+    window.history.replaceState(
+      null,
+      'Incredible.dev',
+      `/flick/${flick.id}/${activeFragmentId}`
+    )
+  }, [activeFragmentId])
 
   if (loading) return <ScreenState title="Just a jiffy" loading />
 

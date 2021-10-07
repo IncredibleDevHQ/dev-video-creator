@@ -7,7 +7,7 @@ interface NewFlickStore {
 }
 
 export const newFlickStore = atom<NewFlickStore>({
-  key: 'flick',
+  key: 'newFlick',
   default: {
     flick: null,
     activeFragmentId: '',
