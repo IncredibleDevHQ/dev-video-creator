@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react'
 import { FiBell, FiChevronLeft, FiLink2, FiUpload } from 'react-icons/fi'
-import { Link } from 'react-router-dom'
+import { Link, useHistory } from 'react-router-dom'
 import { useRecoilState } from 'recoil'
-import { Heading, Button } from '../../../components'
+import { Heading, Button, updateToast, emitToast } from '../../../components'
 import { ASSETS } from '../../../constants'
-import { useUpdateFlickMutation } from '../../../generated/graphql'
+import {
+  useProduceVideoMutation,
+  useUpdateFlickMutation,
+} from '../../../generated/graphql'
 import { FlickActivity } from '../../Flick/components'
 import { newFlickStore } from '../store/flickNew.store'
 import ShareModal from './ShareModal'
@@ -16,8 +19,11 @@ const FlickNavBar = () => {
 
   const [editFlickName, setEditFlickName] = useState(false)
   const [flickName, setFlickName] = useState(flick?.name || '')
+  const history = useHistory()
 
   const [updateFlickMutation, { data, error }] = useUpdateFlickMutation()
+
+  const [produceVideoMutation] = useProduceVideoMutation()
 
   const updateFlick = async (newName: string) => {
     if (editFlickName) {
@@ -26,6 +32,43 @@ const FlickNavBar = () => {
           name: newName,
           flickId: flick?.id,
         },
+      })
+    }
+  }
+
+  const produceVideo = async () => {
+    const toastProps = {
+      title: 'Pushing pixels...',
+      type: 'info',
+      autoClose: false,
+      description: 'Our hamsters are gift-wrapping your Fragment. Do hold. :)',
+    }
+
+    // @ts-ignore
+    const toast = emitToast(toastProps)
+
+    try {
+      const { errors } = await produceVideoMutation({
+        variables: {
+          flickId: flick?.id,
+        },
+      })
+      if (errors) throw errors[0]
+
+      updateToast({
+        id: toast,
+        ...toastProps,
+        autoClose: false,
+        type: 'info',
+        description: 'Almost done! Click here to see all your Flicks!',
+        onClick: () => history.push('/dashboard'),
+      })
+    } catch (e) {
+      emitToast({
+        title: 'Yikes. Something went wrong.',
+        type: 'error',
+        autoClose: false,
+        description: 'Our servers are a bit cranky today. Try in a while?',
       })
     }
   }
@@ -87,7 +130,14 @@ const FlickNavBar = () => {
             setIsShareOpen(false)
           }}
         />
-        <Button appearance="primary" size="small" icon={FiUpload} type="button">
+        <Button
+          appearance="primary"
+          size="small"
+          icon={FiUpload}
+          type="button"
+          disabled={!flick?.fragments.every((f) => f.producedLink !== null)}
+          onClick={produceVideo}
+        >
           Publish
         </Button>
       </div>
