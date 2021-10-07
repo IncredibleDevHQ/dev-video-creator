@@ -103,6 +103,7 @@ const MissionControl = ({ controls }: { controls: JSX.Element[] }) => {
     mute,
     participants,
     updateParticipant,
+    payload,
     updatePayload,
     participantId,
   } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
@@ -236,11 +237,13 @@ const MissionControl = ({ controls }: { controls: JSX.Element[] }) => {
           <hr className="bg-grey-darker h-px my-2" />
 
           <>
-            {state === 'recording' && (
+            {(state === 'recording' ||
+              payload?.status === Fragment_Status_Enum_Enum.Live) && (
               <ControlButton
                 className="my-2"
                 icon={FiStopCircle}
                 appearance="danger"
+                disabled={!studio.isHost}
                 onClick={() => {
                   showFinalTransition()
                 }}
@@ -279,6 +282,7 @@ const MissionControl = ({ controls }: { controls: JSX.Element[] }) => {
                 className="my-2"
                 icon={FiCircle}
                 appearance="primary"
+                disabled={!studio.isHost}
                 onClick={() => {
                   // startRecording()
                   setStudio({ ...studio, state: 'countDown' })
