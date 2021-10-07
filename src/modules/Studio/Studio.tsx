@@ -71,7 +71,21 @@ const Studio = () => {
     onTokenDidExpire: async () => {
       const { data } = await getRTCToken({ variables: { fragmentId } })
       if (data?.RTCToken?.token) {
-        join(data?.RTCToken?.token, sub as string)
+        const participantId = fragment?.participants.find(
+          ({ participant }) => participant.userSub === sub
+        )?.participant.id
+        if (participantId) {
+          join(data?.RTCToken?.token, participantId as string)
+        } else {
+          leave()
+          emitToast({
+            title: 'Yikes. Something went wrong.',
+            type: 'error',
+            description:
+              'You do not belong to this studio!! Please ask the host to invite you again.',
+          })
+          history.goBack()
+        }
       }
     },
   })
@@ -110,7 +124,21 @@ const Studio = () => {
         init()
         const { data } = await getRTCToken({ variables: { fragmentId } })
         if (data?.RTCToken?.token) {
-          join(data?.RTCToken?.token, sub as string)
+          const participantId = fragment?.participants.find(
+            ({ participant }) => participant.userSub === sub
+          )?.participant.id
+          if (participantId) {
+            join(data?.RTCToken?.token, participantId as string)
+          } else {
+            leave()
+            emitToast({
+              title: 'Yikes. Something went wrong.',
+              type: 'error',
+              description:
+                'You do not belong to this studio!! Please ask the host to invite you again.',
+            })
+            history.goBack()
+          }
         }
       })()
     }

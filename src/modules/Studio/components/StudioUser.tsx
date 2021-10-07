@@ -6,10 +6,8 @@ import { useImage } from 'react-konva-utils'
 import { useRecoilValue } from 'recoil'
 import Gravatar from 'react-gravatar'
 import { StudioProviderProps, studioStore } from '../stores'
-
 import { StudioUserConfig } from './Concourse'
 import useEdit, { ClipConfig } from '../hooks/use-edit'
-import { User, userState } from '../../../stores/user.store'
 
 type StudioUserType = 'local' | 'remote'
 
