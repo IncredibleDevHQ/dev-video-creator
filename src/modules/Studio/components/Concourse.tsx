@@ -298,11 +298,7 @@ const Concourse = ({
                           uid={user.uid as string}
                           type="remote"
                           stream={user.mediaStream as MediaStream}
-                          picture={
-                            participants?.find(
-                              (participant: any) => participant.id === user.uid
-                            ).picture
-                          }
+                          picture={participants?.[user.uid]?.picture || ''}
                           studioUserConfig={
                             (studioUserConfig &&
                               studioUserConfig[index + 1]) || {
