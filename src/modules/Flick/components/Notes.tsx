@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useRecoilValue } from 'recoil'
+import { useRecoilState, useRecoilValue } from 'recoil'
 import Gravatar from 'react-gravatar'
 import { FiTrash2 } from 'react-icons/fi'
 import { Button, Text, TextArea } from '../../../components'
@@ -11,6 +11,7 @@ import {
 } from '../../../generated/graphql'
 import { formatDate } from '../../../utils/FormatDate'
 import { User, userState } from '../../../stores/user.store'
+import { currentFlickStore } from '../../../stores/flick.store'
 
 // This component renders notes for the current selected fragment in the flick dashboard
 const Notes = ({
@@ -23,7 +24,7 @@ const Notes = ({
   participantId: string
 }) => {
   const { sub } = (useRecoilValue(userState) as User) || {}
-
+  const [flick, setFlick] = useRecoilState(currentFlickStore)
   // local state to store the newly created note
   const [note, setNote] = useState<Note_Insert_Input>({
     fragmentId,
@@ -121,11 +122,13 @@ const Notes = ({
           setNote({ ...note, note: e.target.value })
         }
       />
+
       <Button
         type="button"
         appearance="primary"
         size="extraSmall"
         onClick={addNote}
+        disabled={flick?.fragments.length === 0}
       >
         {addNoteLoading ? 'Adding...' : 'Add'}
       </Button>
