@@ -157,7 +157,7 @@ const StudioUser = ({
           />
         )}
         {type === 'remote' &&
-          (stream && stream.active ? (
+          (stream && participants?.[uid]?.video ? (
             <Image
               ref={imageRef}
               image={videoElement}
