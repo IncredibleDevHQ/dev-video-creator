@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react'
+import { useRecoilValue } from 'recoil'
 import Gravatar from 'react-gravatar'
 import { FiTrash2 } from 'react-icons/fi'
-import { Button, Loading, Text, TextArea, TextField } from '../../../components'
+import { Button, Text, TextArea } from '../../../components'
 import {
   Note_Insert_Input,
   useAddNoteMutation,
@@ -9,6 +10,7 @@ import {
   useGetFragmentNotesQuery,
 } from '../../../generated/graphql'
 import { formatDate } from '../../../utils/FormatDate'
+import { User, userState } from '../../../stores/user.store'
 
 // This component renders notes for the current selected fragment in the flick dashboard
 const Notes = ({
@@ -20,6 +22,8 @@ const Notes = ({
   flickId: string
   participantId: string
 }) => {
+  const { sub } = (useRecoilValue(userState) as User) || {}
+
   // local state to store the newly created note
   const [note, setNote] = useState<Note_Insert_Input>({
     fragmentId,
@@ -76,10 +80,12 @@ const Notes = ({
             className="mb-2 bg-white rounded-md p-2 overflow-x-hidden relative"
             key={n.id}
           >
-            <FiTrash2
-              className="absolute right-1 top-1 text-error cursor-pointer bg-white"
-              onClick={() => deleteNote(n.id)}
-            />
+            {n.participant?.userSub === sub && (
+              <FiTrash2
+                className="absolute right-1 top-1 text-error cursor-pointer bg-white"
+                onClick={() => deleteNote(n.id)}
+              />
+            )}
             <div className=" flex flex-row justify-start items-start mb-2">
               {n?.participant?.user.picture ? (
                 <img
