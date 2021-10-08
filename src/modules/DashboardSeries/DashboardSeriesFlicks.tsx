@@ -9,6 +9,7 @@ const DashboardSeriesFlicks = ({
 }: {
   data: GetUserSeriesQuery | undefined
 }) => {
+
   if (data && data.Series.length < 1) return <></>
 
   return (

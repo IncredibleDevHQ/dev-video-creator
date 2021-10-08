@@ -40,8 +40,9 @@ fragment BaseFlick on Flick {
   configuration
   participants {
     user {
+      sub
+      displayName
       picture
-      email
     }
   }
 }
@@ -131,19 +132,12 @@ query SeriesFlicks($id: uuid!) {
   }
 }
 
-query SeriesFlickCount($seriesId: uuid) {
-  Flick_Series_aggregate(where: { seriesId: { _eq: $seriesId } }) {
-    aggregate {
-      count(columns: flickId)
-    }
-  }
-}
-
 query GetFlickFragments($flickId: uuid!) {
   Fragment(where: { flickId: { _eq: $flickId } }) {
     ...FlickFragment
   }
 }
+
 
 mutation CreateNewFlick(
   $name: String!

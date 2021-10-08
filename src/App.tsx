@@ -52,7 +52,7 @@ function detectBrowser() {
     // @ts-ignore
     !!document.documentMode == true
   ) {
-    return 'IE' //crap
+    return 'IE' // crap
   } else {
     return 'Unknown'
   }
@@ -125,11 +125,6 @@ const App = () => {
                 <PrivateRoute exact path="/profile/series" component={Series} />
                 <PrivateRoute
                   exact
-                  path="/series/:id"
-                  component={SingleSeries}
-                />
-                <PrivateRoute
-                  exact
                   path="/profile/flicks"
                   component={AllUserFlicks}
                 />
@@ -141,6 +136,9 @@ const App = () => {
                 <PrivateRoute exact path="/circle" component={Circle} />
                 <Route exact path="/view/:joinLink">
                   <PublicVideo />
+                </Route>
+                <Route exact path="/series/:id">
+                  <SingleSeries />
                 </Route>
                 <Route exact path="/login">
                   <AuthenticateScreen />

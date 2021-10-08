@@ -220,6 +220,7 @@ const getLogo = {
   image: ASSETS.ICONS.WhiteLOGO,
   destination: config.client.publicUrl,
   title: 'Incredible',
+  target: '_blank',
 }
 
 const getOptions = (src: string, type: string) => ({
@@ -307,6 +308,7 @@ const Video = ({ className, src, ...rest }: VideoProps) => {
     linkElement.className = 'vjs-logo'
     linkElement.setAttribute('href', getLogo.destination)
     linkElement.setAttribute('title', getLogo.title)
+    linkElement.setAttribute('target', getLogo.target)
     const imageElement = document.createElement('img')
     imageElement.className = 'vjs-image'
     imageElement.src = getLogo.image

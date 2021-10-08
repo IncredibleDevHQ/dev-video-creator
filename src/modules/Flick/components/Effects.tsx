@@ -83,6 +83,7 @@ export const GetSchemaElement = ({
       useEffect(() => {
         if (setFieldValue && schema.key === 'source') {
           setFieldValue(schema.key, selectedVideoLink)
+          setConfigured(false)
         }
       }, [selectedVideoLink])
 
