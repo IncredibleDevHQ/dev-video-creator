@@ -10,6 +10,13 @@ export const CheckboxSchema = ({
   setConfigured,
   value,
 }: GetSchemaElementProps) => {
+  const handleOnDatachange = (schemaValue: boolean, value: boolean) => {
+    if (schemaValue === value) {
+      setConfigured(true)
+    } else if (schemaValue !== value) {
+      setConfigured(false)
+    }
+  }
   return (
     <Checkbox
       name={schema.key}
@@ -19,7 +26,7 @@ export const CheckboxSchema = ({
       key={schema.key}
       checked={value}
       onChange={() => {
-        setConfigured(false)
+        handleOnDatachange(schema?.value, !value)
         if (setFieldValue) setFieldValue(schema.key, !value)
       }}
       className="flex flex-wrap lg:align-middle gap-3 text-lg text-black ml-4 lg:capitalize p-4"

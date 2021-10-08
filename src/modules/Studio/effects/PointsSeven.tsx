@@ -14,15 +14,8 @@ import config from '../../../config'
 const PointsSeven = () => {
   const [activePointIndex, setActivePointIndex] = useState<number>(0)
   const [points, setPoints] = useState<string[]>([])
-  const {
-    fragment,
-    state,
-    stream,
-    picture,
-    constraints,
-    updatePayload,
-    payload,
-  } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const { fragment, state, updatePayload, payload } =
+    (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [titleSpalshData, settitleSpalshData] = useState<{
     enable: boolean
@@ -129,7 +122,7 @@ const PointsSeven = () => {
             width: 240,
             height: 180,
             clipTheme: 'rect',
-            borderWidth: 8,
+            borderWidth: 4,
             borderColor: '#111111',
             studioUserClipConfig: {
               x: 10,
@@ -145,7 +138,7 @@ const PointsSeven = () => {
             width: 240,
             height: 180,
             clipTheme: 'rect',
-            borderWidth: 8,
+            borderWidth: 4,
             borderColor: '#111111',
             studioUserClipConfig: {
               x: 10,

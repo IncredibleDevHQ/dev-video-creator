@@ -21,15 +21,15 @@ export interface StudioProviderProps<T = any, S = any> {
   stopRecording: () => void
   showFinalTransition: () => void
 
-  togglePresenterNotes?: (to: boolean) => void
+  cameraDevice: MediaDeviceInfo
+  microphoneDevice: MediaDeviceInfo
+
+  getCameras: () => Promise<MediaDeviceInfo[]>
+  getMicrophones: () => Promise<MediaDeviceInfo[]>
+  updateCameraDevices: (device: MediaDeviceInfo) => void
+  updateMicroPhoneDevices: (device: MediaDeviceInfo) => void
 
   fragment?: StudioFragmentFragment
-
-  picture?: string
-  cameraDevices: MediaDeviceInfo[]
-  microphoneDevices: MediaDeviceInfo[]
-  selectedCameraDeviceId: string
-  selectedMicrophoneDeviceId: string
 
   mute: (type: 'audio' | 'video') => Promise<void>
 

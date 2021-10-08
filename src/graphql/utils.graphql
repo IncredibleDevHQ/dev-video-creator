@@ -62,3 +62,9 @@ mutation SubToVideoEmails(
     success
   }
 }
+
+mutation GetSuggestedText($text: String!) {
+  SuggestPhrase(text: $text) {
+    suggestion
+  }
+}

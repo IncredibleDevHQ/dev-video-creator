@@ -21,13 +21,22 @@ const TextSchema = ({
     }
   }, [schema])
 
+  const handleOnDatachange = (schemaValue: string, value: string) => {
+    if (schemaValue === value) {
+      setConfigured(true)
+    } else if (schemaValue !== value) {
+      setConfigured(false)
+    }
+  }
+
   // Remove the trim
   return (
     <TextField
       className="text-lg m-4"
       name={schema.key}
       onChange={(e) => {
-        setConfigured(false)
+        handleOnDatachange(schema?.value, e.currentTarget.value)
+        // setConfigured(false)
         handleChange(e)
       }}
       value={value}

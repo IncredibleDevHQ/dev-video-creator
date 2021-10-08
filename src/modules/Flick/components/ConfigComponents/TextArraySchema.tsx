@@ -10,8 +10,6 @@ const TextArraySchema = ({
   setConfigured,
   value,
 }: GetSchemaElementProps) => {
-  console.log('welcome to text array')
-  const [isEdit, setIsEdit] = useState(false)
   const addToFormik = (valueArray: any) => {
     const event = new Event('input', { bubbles: true })
     dispatchEvent(event)
@@ -20,13 +18,14 @@ const TextArraySchema = ({
     // @ts-ignore
     event.target.value = valueArray
     handleChange(event as any)
+    handleOnDatachange(schema.value, valueArray)
   }
+
   const [currentPoint, setCurrentPoint] = useState<string>()
   const [points, setPoints] = useState<string[]>([])
+
   useEffect(() => {
-    if (isEdit) {
-      setConfigured(false)
-    } else if (!schema.value || schema.value.length <= 0) {
+    if (!schema.value || schema.value.length <= 0) {
       setConfigured(false)
     } else {
       setConfigured(true)
@@ -34,30 +33,39 @@ const TextArraySchema = ({
   }, [schema])
 
   useEffect(() => {
-    console.log('setConfigured(false)')
-    if (isEdit) {
+    if (!value || value.length <= 0) {
       setConfigured(false)
-    } else if (!value) {
-      setConfigured(false)
-    } else setConfigured(true)
+    }
     setPoints(value)
   }, [value])
 
   const handleOnAdd = () => {
-    setIsEdit(true)
     if (!currentPoint) return
-
     setPoints((points) => [...points, currentPoint])
-    const pointArray = [...points, currentPoint]
-    addToFormik(pointArray)
+    addToFormik([...points, currentPoint])
     setCurrentPoint('')
   }
 
-  const handleDeleteText = (text: string) => {
-    const pointArray = points.filter((ques) => ques !== text)
+  const handleDeleteText = (index: number) => {
+    const pointArray = points.filter((ques, quesIndex) => quesIndex !== index)
     setPoints(pointArray)
-
     addToFormik(pointArray)
+  }
+
+  const handleOnDatachange = (schemaValue: string[], value: string[]) => {
+    if (
+      schemaValue.length === value.length &&
+      schemaValue.every((v, i) => v === value[i])
+    ) {
+      setConfigured(true)
+    } else if (
+      schemaValue.length === value.length &&
+      schemaValue.every((v, i) => v !== value[i])
+    ) {
+      setConfigured(false)
+    } else if (schemaValue.length !== value.length) {
+      setConfigured(false)
+    }
   }
 
   return (
@@ -72,7 +80,6 @@ const TextArraySchema = ({
             className="text-lg"
             name={schema.key}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-              setConfigured(false)
               setCurrentPoint(e.target.value)
             }}
             value={currentPoint}
@@ -102,7 +109,7 @@ const TextArraySchema = ({
               <span className="text-justify">{ques}</span>
             </div>
             <Button
-              onClick={() => handleDeleteText(ques)}
+              onClick={() => handleDeleteText(index)}
               type="button"
               appearance="danger"
               size="extraSmall"

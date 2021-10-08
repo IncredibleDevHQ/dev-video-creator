@@ -167,23 +167,22 @@ query FlickActivity($flickId: uuid!) {
     ...FlickActivity
   }
 }
-fragment Note on Note {
-  id
-  note
-  sourceUrl
-  participant {
-    id
-    userSub
-    user {
-      picture
-      displayName
-    }
-  }
-}
 
-query GetFragmentNotes($fragmentId: uuid!) {
-  Note(where: { fragmentId: { _eq: $fragmentId } }) {
-    ...Note
+mutation UpdateFlick(
+  $flickId: String!
+  $name: String!
+  $organisationSlug: String
+  $scope: UpdateFlickScopeEnum
+  $difficulty: UpdateFlickDifficultyEnum
+) {
+  UpdateFlick(
+    flickId: $flickId
+    name: $name
+    organisationSlug: $organisationSlug
+    scope: $scope
+    difficulty: $difficulty
+  ) {
+    id
   }
 }
 

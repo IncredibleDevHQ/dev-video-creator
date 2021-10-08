@@ -22,6 +22,7 @@ import {
   useGetSingleSeriesQuery,
   User,
   useSeriesFlicksQuery,
+  useUpdateFlickMutation,
 } from '../../../generated/graphql'
 import { Auth, authState } from '../../../stores/auth.store'
 import { userState } from '../../../stores/user.store'
@@ -81,6 +82,25 @@ const FlickTilePublished = ({
   handleRefetch: (refresh?: boolean) => void
 }) => {
   const history = useHistory()
+  const userdata = (useRecoilValue(userState) as User) || {}
+  const [editFlickName, setEditFlickName] = useState(false)
+  const [updateFlickMutation, { data: updateNameData }] =
+    useUpdateFlickMutation()
+  const updateFlickMutationFunction = async (newName: string) => {
+    if (editFlickName) {
+      await updateFlickMutation({
+        variables: {
+          name: newName,
+          flickId: flick?.id,
+        },
+      })
+    }
+  }
+
+  useEffect(() => {
+    if (!updateNameData) return
+    setEditFlickName(false)
+  }, [updateNameData])
 
   return (
     <>
@@ -99,15 +119,29 @@ const FlickTilePublished = ({
         >
           <img src={Icons.flickIcon} alt="I" className="border-2" />
         </div>
-        <div className="flex flex-col">
-          <div className="bg-green-300 h-5 w-24 ml-4 flex flex-row-1 items-center justify-center">
-            <IoCheckmarkDone size={15} />
-            <Text className="text-green-700 text-sm pl-2">Published</Text>
-          </div>
 
-          <Heading className="text-lg md:capitalize font-bold pl-4 mt-5 w-40 truncate overflow-ellipsis">
-            {flick?.name}
-          </Heading>
+        <div className="flex flex-col">
+          {flick.owner?.userSub === userdata.sub ? (
+            <Heading
+              className="text-lg md:capitalize font-bold pl-4 mt-5 w-40 truncate overflow-ellipsis cursor-auto p-1 rounded-lg hover:bg-gray-300"
+              contentEditable={editFlickName}
+              onClick={() => {
+                setEditFlickName(true)
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  updateFlickMutationFunction(e.currentTarget.innerText)
+                }
+              }}
+            >
+              {flick?.name}
+            </Heading>
+          ) : (
+            <Heading className="text-lg md:capitalize font-bold pl-4 mt-5 w-40 truncate overflow-ellipsis">
+              {flick?.name}
+            </Heading>
+          )}
           <Participants flick={flick} />
         </div>
       </div>

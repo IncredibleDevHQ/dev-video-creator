@@ -15,15 +15,8 @@ import config from '../../../config'
 const PointsEight = () => {
   const [activePointIndex, setActivePointIndex] = useState<number>(0)
   const [points, setPoints] = useState<string[]>([])
-  const {
-    fragment,
-    state,
-    stream,
-    picture,
-    constraints,
-    updatePayload,
-    payload,
-  } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const { fragment, state, updatePayload, payload } =
+    (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [titleSpalshData, settitleSpalshData] = useState<{
     enable: boolean
@@ -120,24 +113,65 @@ const PointsEight = () => {
     setYCoordinate(payload?.activeYCoordinate)
   }, [payload])
 
-  const studioUserConfig: StudioUserConfig[] = [
-    {
-      x: 565,
-      y: 58,
-      width: 520,
-      height: 390,
-      clipTheme: 'rect',
-      borderWidth: 8,
-      borderColor: '#D1D5DB',
-      studioUserClipConfig: {
-        x: 150,
-        y: 0,
-        width: 220,
-        height: 390,
-        radius: 8,
-      },
-    },
-  ]
+  const studioCoordinates: StudioUserConfig[] = (() => {
+    switch (fragment?.participants.length) {
+      case 2:
+        return [
+          {
+            x: 705,
+            y: 60,
+            width: 240,
+            height: 180,
+            clipTheme: 'rect',
+            borderColor: '#D1D5DB',
+            borderWidth: 8,
+            studioUserClipConfig: {
+              x: 10,
+              y: 0,
+              width: 220,
+              height: 180,
+              radius: 8,
+            },
+          },
+          {
+            x: 705,
+            y: 265,
+            width: 240,
+            height: 180,
+            clipTheme: 'rect',
+            borderColor: '#D1D5DB',
+            borderWidth: 8,
+            studioUserClipConfig: {
+              x: 10,
+              y: 0,
+              width: 220,
+              height: 180,
+              radius: 8,
+            },
+          },
+        ]
+
+      default:
+        return [
+          {
+            x: 565,
+            y: 58,
+            width: 520,
+            height: 390,
+            clipTheme: 'rect',
+            borderWidth: 8,
+            borderColor: '#D1D5DB',
+            studioUserClipConfig: {
+              x: 150,
+              y: 0,
+              width: 220,
+              height: 390,
+              radius: 8,
+            },
+          },
+        ]
+    }
+  })()
 
   const controls = [
     <ControlButton
@@ -174,6 +208,16 @@ const PointsEight = () => {
     <Circle x={270} y={CONFIG.height - 70} radius={10} fill="#0077CC" />,
     <Image image={pinkCircle} x={790} y={400} />,
     <Image image={whiteCircle} x={615} y={245} />,
+    <Rect
+      x={37}
+      y={58}
+      width={640}
+      height={390}
+      fill="white"
+      stroke="#D1D5DB"
+      cornerRadius={8}
+      strokeWidth={4}
+    />,
 
     <Text
       key="fragmentTitle"
@@ -193,13 +237,12 @@ const PointsEight = () => {
         .filter((_, i) => i < activePointIndex)
         .map((point, j) => (
           <>
-            <Rect
+            <Circle
               key="points"
               x={-76}
-              y={point.y}
-              stroke="#111111"
-              width={14}
-              height={14}
+              radius={7}
+              y={point.y + 8}
+              stroke="#9CA3AF"
               strokeWidth={2}
               ref={(ref) =>
                 ref?.to({
@@ -208,6 +251,7 @@ const PointsEight = () => {
                 })
               }
             />
+
             <Text
               key={point.text}
               x={-64}
@@ -239,7 +283,7 @@ const PointsEight = () => {
       controls={controls}
       layerChildren={layerChildren}
       titleSpalshData={titleSpalshData}
-      studioUserConfig={studioUserConfig}
+      studioUserConfig={studioCoordinates}
     />
   )
 }

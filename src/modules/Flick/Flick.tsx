@@ -24,7 +24,10 @@ import {
   ScreenState,
   Text,
 } from '../../components'
-import { useGetFlickByIdQuery } from '../../generated/graphql'
+import {
+  useGetFlickByIdQuery,
+  useUpdateFlickMutation,
+} from '../../generated/graphql'
 import { studioStore } from '../Studio/stores'
 import { User, userState } from '../../stores/user.store'
 
@@ -37,11 +40,32 @@ const Flick = () => {
   const [studio, setStudio] = useRecoilState(studioStore)
   const { sub } = (useRecoilValue(userState) as User) || {}
 
+  const [editFlickName, setEditFlickName] = useState(false)
+
+  const [updateFlickMutation, { data: updateNameData }] =
+    useUpdateFlickMutation()
+
   const [isActivityMenu, setIsActivityMenu] = useState(false)
 
   const [activeFragmentId, setActiveFragmentId] = useState<string>()
 
   const history = useHistory()
+
+  const updateFlickMutationFunction = async (newName: string) => {
+    if (editFlickName) {
+      await updateFlickMutation({
+        variables: {
+          name: newName,
+          flickId: flick?.id,
+        },
+      })
+    }
+  }
+
+  useEffect(() => {
+    if (!updateNameData) return
+    setEditFlickName(false)
+  }, [updateNameData])
 
   useEffect(() => {
     refetch()
@@ -71,11 +95,7 @@ const Flick = () => {
   }, [flick])
 
   if (loading && !called) return <ScreenState title="Just a jiffy" loading />
-
-  if (error)
-    return (
-      <ScreenState title="Something went wrong!!" subtitle={error.message} />
-    )
+  if (error) return <ScreenState title="Something went wrong!!" />
 
   if (!flick)
     return (
@@ -95,9 +115,23 @@ const Flick = () => {
           <BiChevronLeft />
           <Text className="text-xs">Back to dashboard</Text>
         </div>
-        <Heading className=" flex font-black text-2xl capitalize justify-center -ml-20">
+
+        <Heading
+          className=" flex font-black text-2xl capitalize justify-center ml-20 cursor-auto p-1 rounded-lg hover:bg-gray-300"
+          contentEditable={editFlickName}
+          onClick={() => {
+            setEditFlickName(true)
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              updateFlickMutationFunction(e.currentTarget.innerText)
+            }
+          }}
+        >
           {flick.name}
         </Heading>
+
         <button
           type="button"
           className="cursor-pointer"
