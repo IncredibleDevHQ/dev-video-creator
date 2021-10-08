@@ -117,7 +117,7 @@ const StudioUser = ({
       />
       <Rect
         x={(studioUserClipConfig && studioUserClipConfig.x + x) || 775}
-        y={y}
+        y={(studioUserClipConfig && studioUserClipConfig.y + y) || y}
         width={studioUserClipConfig?.width || defaultStudioUserClipConfig.width}
         height={
           studioUserClipConfig?.height || defaultStudioUserClipConfig.height

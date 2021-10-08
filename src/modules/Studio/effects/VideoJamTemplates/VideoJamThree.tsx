@@ -1,19 +1,17 @@
 import React, { useEffect, useState } from 'react'
+import { FiPause, FiPlay } from 'react-icons/fi'
+import { Circle, Image, Rect } from 'react-konva'
 import { useRecoilValue } from 'recoil'
-import Konva from 'konva'
-import { Circle, Group, Image, Rect } from 'react-konva'
-import { FiPlay, FiPause } from 'react-icons/fi'
 import useImage from 'use-image'
-import { Concourse } from '../components'
-import { ControlButton } from '../components/MissionControl'
-import { CONFIG, StudioUserConfig } from '../components/Concourse'
-import { StudioProviderProps, studioStore } from '../stores'
-import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
-import { Video, VideoConfig } from '../components/Video'
-import { ClipConfig } from '../hooks/use-edit'
-import config from '../../../config'
+import config from '../../../../config'
+import { Fragment_Status_Enum_Enum } from '../../../../generated/graphql'
+import { Concourse } from '../../components'
+import { CONFIG, StudioUserConfig } from '../../components/Concourse'
+import { ControlButton } from '../../components/MissionControl'
+import { Video, VideoConfig } from '../../components/Video'
+import { StudioProviderProps, studioStore } from '../../stores'
 
-const VideoJamFour = () => {
+const VideoJamThree = () => {
   const { state, fragment, payload, updatePayload } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [titleSpalshData, settitleSpalshData] = useState<{
@@ -21,16 +19,8 @@ const VideoJamFour = () => {
     title?: string
   }>({ enable: false })
 
-  const [incredibleLogo] = useImage(
-    `${config.storage.baseUrl}x-incredible.svg`,
-    'anonymous'
-  )
-  const [circleGroup] = useImage(
-    `${config.storage.baseUrl}black-circles.svg`,
-    'anonymous'
-  )
-  const [graphqlLogo] = useImage(
-    `${config.storage.baseUrl}graphql3.svg`,
+  const [hasuraLogo] = useImage(
+    `${config.storage.baseUrl}hasura.png`,
     'anonymous'
   )
 
@@ -112,16 +102,15 @@ const VideoJamFour = () => {
   ]
 
   const videoConfig: VideoConfig = {
-    x: 37,
-    y: 58,
-    width: 704,
-    height: 396,
-    videoFill: '#1F2937',
-    cornerRadius: 8,
+    x: 30,
+    y: 40,
+    width: 720,
+    height: 405,
+    videoFill: '#99BFE3',
+    borderColor: '#1EB4D4',
+    borderWidth: 4,
+    cornerRadius: 4,
     performClip: true,
-    backgroundRectX: 27,
-    backgroundRectY: 48,
-    backgroundRectColor: '#60A5FA',
   }
 
   const studioCoordinates: StudioUserConfig[] = (() => {
@@ -130,10 +119,11 @@ const VideoJamFour = () => {
         return [
           {
             x: 735,
-            y: 60,
+            y: 50,
             width: 240,
             height: 180,
             clipTheme: 'rect',
+            borderColor: '#1EB4D4',
             borderWidth: 8,
             studioUserClipConfig: {
               x: 40,
@@ -142,16 +132,14 @@ const VideoJamFour = () => {
               height: 180,
               radius: 8,
             },
-            backgroundRectX: 765,
-            backgroundRectY: 50,
-            backgroundRectColor: '#C084FC',
           },
           {
             x: 735,
-            y: 265,
+            y: 255,
             width: 240,
             height: 180,
             clipTheme: 'rect',
+            borderColor: '#1EB4D4',
             borderWidth: 8,
             studioUserClipConfig: {
               x: 40,
@@ -160,19 +148,17 @@ const VideoJamFour = () => {
               height: 180,
               radius: 8,
             },
-            backgroundRectX: 765,
-            backgroundRectY: 255,
-            backgroundRectColor: '#4FD1C5',
           },
         ]
       case 3:
         return [
           {
             x: 775,
-            y: 58.5,
+            y: 42.5,
             width: 160,
             height: 120,
             clipTheme: 'rect',
+            borderColor: '#1EB4D4',
             borderWidth: 8,
             studioUserClipConfig: {
               x: 0,
@@ -181,16 +167,14 @@ const VideoJamFour = () => {
               height: 120,
               radius: 8,
             },
-            backgroundRectX: 765,
-            backgroundRectY: 48.5,
-            backgroundRectColor: '#C084FC',
           },
           {
             x: 775,
-            y: 198.5,
+            y: 182.5,
             width: 160,
             height: 120,
             clipTheme: 'rect',
+            borderColor: '#1EB4D4',
             borderWidth: 8,
             studioUserClipConfig: {
               x: 0,
@@ -199,16 +183,14 @@ const VideoJamFour = () => {
               height: 120,
               radius: 8,
             },
-            backgroundRectX: 765,
-            backgroundRectY: 188.5,
-            backgroundRectColor: '#4FD1C5',
           },
           {
             x: 775,
-            y: 338.5,
+            y: 322.5,
             width: 160,
             height: 120,
             clipTheme: 'rect',
+            borderColor: '#1EB4D4',
             borderWidth: 8,
             studioUserClipConfig: {
               x: 0,
@@ -217,19 +199,17 @@ const VideoJamFour = () => {
               height: 120,
               radius: 8,
             },
-            backgroundRectX: 765,
-            backgroundRectY: 328.5,
-            backgroundRectColor: '#FCA5A5',
           },
         ]
       default:
         return [
           {
             x: 695,
-            y: 120.5,
+            y: 122.5,
             width: 320,
             height: 240,
             clipTheme: 'rect',
+            borderColor: '#1EB4D4',
             borderWidth: 8,
             studioUserClipConfig: {
               x: 80,
@@ -238,9 +218,6 @@ const VideoJamFour = () => {
               height: 240,
               radius: 8,
             },
-            backgroundRectX: 765,
-            backgroundRectY: 110.5,
-            backgroundRectColor: '#C084FC',
           },
         ]
     }
@@ -253,12 +230,31 @@ const VideoJamFour = () => {
           y={0}
           width={CONFIG.width}
           height={CONFIG.height}
-          fill="#1F2937"
+          fill="#D6EBFF"
         />,
-        <Image image={circleGroup} x={400} y={450} />,
+        <Rect
+          key="smallRect1"
+          x={490}
+          y={20}
+          width={12}
+          height={12}
+          fill="#F47E7E"
+          rotation={-45}
+          opacity={1}
+        />,
+        <Rect
+          key="smallRect2"
+          x={820}
+          y={505}
+          width={24}
+          height={24}
+          fill="#5C94C8"
+          rotation={-45}
+          opacity={1}
+        />,
+        <Circle x={240} y={460} radius={20} stroke="#F47E7E" strokeWidth={8} />,
         <Video videoElement={videoElement} videoConfig={videoConfig} />,
-        <Image image={incredibleLogo} x={30} y={CONFIG.height - 60} />,
-        <Image image={graphqlLogo} x={840} y={CONFIG.height - 58} />,
+        <Image image={hasuraLogo} x={30} y={CONFIG.height - 60} />,
       ]
     : [<></>]
 
@@ -272,4 +268,4 @@ const VideoJamFour = () => {
   )
 }
 
-export default VideoJamFour
+export default VideoJamThree

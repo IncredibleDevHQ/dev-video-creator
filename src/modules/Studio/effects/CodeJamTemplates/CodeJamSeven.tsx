@@ -1,26 +1,23 @@
 import axios from 'axios'
 import React, { useEffect, useState } from 'react'
-import { Group, Circle, Text, Rect, Image } from 'react-konva'
+import { Circle, Group, Image, Rect } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
-import { NextLineIcon, NextTokenIcon } from '../../../components'
-import FocusCodeIcon from '../../../components/FocusCodeIcon'
-import config from '../../../config'
-import { API } from '../../../constants'
+import config from '../../../../config'
+import { API } from '../../../../constants'
 import {
   Fragment_Status_Enum_Enum,
   useGetTokenisedCodeLazyQuery,
-} from '../../../generated/graphql'
-import { Concourse } from '../components'
-import { CONFIG, StudioUserConfig } from '../components/Concourse'
-import { ControlButton } from '../components/MissionControl'
+} from '../../../../generated/graphql'
+import { Concourse } from '../../components'
+import { CONFIG, StudioUserConfig } from '../../components/Concourse'
 import RenderTokens, {
   controls,
   getRenderedTokens,
   RenderFocus,
-} from '../components/RenderTokens'
-import useCode, { ComputedToken } from '../hooks/use-code'
-import { StudioProviderProps, studioStore } from '../stores'
+} from '../../components/RenderTokens'
+import useCode from '../../hooks/use-code'
+import { StudioProviderProps, studioStore } from '../../stores'
 
 export const codeConfig = {
   fontSize: 14,
@@ -33,7 +30,7 @@ interface Position {
   currentIndex: number
 }
 
-const CodeJamTwo = () => {
+const CodeJamSeven = () => {
   const { fragment, payload, updatePayload, state, isHost } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
@@ -50,12 +47,16 @@ const CodeJamTwo = () => {
   })
   const [focusCode, setFocusCode] = useState<boolean>(false)
 
-  const [openSaucedLogo] = useImage(
-    `${config.storage.baseUrl}open-sauce-logo.svg`,
+  const [incredibleLogo] = useImage(
+    `${config.storage.baseUrl}x-incredible-black.svg`,
     'anonymous'
   )
-  const [openSaucedBg] = useImage(
-    `${config.storage.baseUrl}opensauce-bg.svg`,
+  const [nextJSLogo] = useImage(
+    `${config.storage.baseUrl}nextJSLogo.svg`,
+    'anonymous'
+  )
+  const [nextJSBg] = useImage(
+    `${config.storage.baseUrl}nextJS_bg.svg`,
     'anonymous'
   )
 
@@ -137,16 +138,14 @@ const CodeJamTwo = () => {
             height: 180,
             clipTheme: 'rect',
             borderWidth: 8,
+            borderColor: '#111111',
             studioUserClipConfig: {
               x: 40,
               y: 0,
               width: 160,
               height: 180,
-              radius: 8,
+              radius: 0,
             },
-            backgroundRectX: 765,
-            backgroundRectY: 50,
-            backgroundRectColor: '#E0A764',
           },
           {
             x: 735,
@@ -155,16 +154,14 @@ const CodeJamTwo = () => {
             height: 180,
             clipTheme: 'rect',
             borderWidth: 8,
+            borderColor: '#111111',
             studioUserClipConfig: {
               x: 40,
               y: 0,
               width: 160,
               height: 180,
-              radius: 8,
+              radius: 0,
             },
-            backgroundRectX: 765,
-            backgroundRectY: 255,
-            backgroundRectColor: '#E0A764',
           },
         ]
       case 3:
@@ -176,16 +173,14 @@ const CodeJamTwo = () => {
             height: 120,
             clipTheme: 'rect',
             borderWidth: 8,
+            borderColor: '#111111',
             studioUserClipConfig: {
               x: 0,
               y: 0,
               width: 160,
               height: 120,
-              radius: 8,
+              radius: 0,
             },
-            backgroundRectX: 765,
-            backgroundRectY: 48.5,
-            backgroundRectColor: '#E0A764',
           },
           {
             x: 775,
@@ -194,16 +189,14 @@ const CodeJamTwo = () => {
             height: 120,
             clipTheme: 'rect',
             borderWidth: 8,
+            borderColor: '#111111',
             studioUserClipConfig: {
               x: 0,
               y: 0,
               width: 160,
               height: 120,
-              radius: 8,
+              radius: 0,
             },
-            backgroundRectX: 765,
-            backgroundRectY: 188.5,
-            backgroundRectColor: '#E0A764',
           },
           {
             x: 775,
@@ -212,16 +205,14 @@ const CodeJamTwo = () => {
             height: 120,
             clipTheme: 'rect',
             borderWidth: 8,
+            borderColor: '#111111',
             studioUserClipConfig: {
               x: 0,
               y: 0,
               width: 160,
               height: 120,
-              radius: 8,
+              radius: 0,
             },
-            backgroundRectX: 765,
-            backgroundRectY: 328.5,
-            backgroundRectColor: '#E0A764',
           },
         ]
       default:
@@ -233,16 +224,14 @@ const CodeJamTwo = () => {
             height: 240,
             clipTheme: 'rect',
             borderWidth: 8,
+            borderColor: '#111111',
             studioUserClipConfig: {
               x: 80,
               y: 0,
               width: 160,
               height: 240,
-              radius: 8,
+              radius: 0,
             },
-            backgroundRectX: 765,
-            backgroundRectY: 110.5,
-            backgroundRectColor: '#E0A764',
           },
         ]
     }
@@ -250,34 +239,30 @@ const CodeJamTwo = () => {
 
   const layerChildren = [
     <Rect
+      strokeWidth={1}
       x={0}
       y={0}
+      fill="#F5F6F7"
       width={CONFIG.width}
       height={CONFIG.height}
-      fill="#FAEACE"
+      stroke="#111111"
     />,
     <Image
-      image={openSaucedBg}
-      x={0}
-      y={0}
-      width={CONFIG.width}
-      height={CONFIG.height}
-    />,
-    <Rect
-      x={27}
-      y={48}
-      width={704}
-      height={396}
-      fill="#E0A764"
-      cornerRadius={8}
+      image={nextJSBg}
+      x={1}
+      y={1}
+      fill="#F5F6F7"
+      width={CONFIG.width - 2}
+      height={CONFIG.height - 2}
     />,
     <Rect
       x={37}
-      y={58}
+      y={56}
       width={704}
       height={396}
       fill="#202026"
-      cornerRadius={8}
+      strokeWidth={2}
+      stroke="#111111"
     />,
     <Group x={52} y={73} key="circleGroup">
       <Circle key="redCircle" x={0} y={0} fill="#FF605C" radius={5} />
@@ -308,11 +293,12 @@ const CodeJamTwo = () => {
           y: 58,
           width: 704,
           height: 396,
-          radius: 8,
+          radius: 0,
         }}
       />
     ),
-    <Image image={openSaucedLogo} x={30} y={CONFIG.height - 60} />,
+    <Image image={incredibleLogo} x={30} y={CONFIG.height - 70} />,
+    <Image image={nextJSLogo} x={840} y={CONFIG.height - 68} />,
   ]
 
   return (
@@ -325,4 +311,4 @@ const CodeJamTwo = () => {
   )
 }
 
-export default CodeJamTwo
+export default CodeJamSeven

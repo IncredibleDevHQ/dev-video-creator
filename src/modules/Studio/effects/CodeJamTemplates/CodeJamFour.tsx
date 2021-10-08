@@ -1,25 +1,23 @@
 import axios from 'axios'
 import React, { useEffect, useState } from 'react'
-import { Group, Circle, Text, Rect, Image } from 'react-konva'
+import { Circle, Group, Image, Rect } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
-import { NextLineIcon, NextTokenIcon } from '../../../components'
-import config from '../../../config'
-import { API } from '../../../constants'
+import config from '../../../../config'
+import { API } from '../../../../constants'
 import {
   Fragment_Status_Enum_Enum,
   useGetTokenisedCodeLazyQuery,
-} from '../../../generated/graphql'
-import { Concourse } from '../components'
-import { CONFIG, StudioUserConfig } from '../components/Concourse'
-import { ControlButton } from '../components/MissionControl'
+} from '../../../../generated/graphql'
+import { Concourse } from '../../components'
+import { CONFIG, StudioUserConfig } from '../../components/Concourse'
 import RenderTokens, {
   controls,
   getRenderedTokens,
   RenderFocus,
-} from '../components/RenderTokens'
-import useCode, { ComputedToken } from '../hooks/use-code'
-import { StudioProviderProps, studioStore } from '../stores'
+} from '../../components/RenderTokens'
+import useCode from '../../hooks/use-code'
+import { StudioProviderProps, studioStore } from '../../stores'
 
 export const codeConfig = {
   fontSize: 14,
@@ -32,7 +30,7 @@ interface Position {
   currentIndex: number
 }
 
-const CodeJamTen = () => {
+const CodeJamFour = () => {
   const { fragment, payload, updatePayload, state, isHost } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
@@ -49,10 +47,16 @@ const CodeJamTen = () => {
   })
   const [focusCode, setFocusCode] = useState<boolean>(false)
 
-  const [tsLogo] = useImage(`${config.storage.baseUrl}tslogo.svg`, 'anonymous')
-
-  const [incredibleLogo] = useImage(
-    `${config.storage.baseUrl}x-incredible.svg`,
+  const [astroPlanet] = useImage(
+    `${config.storage.baseUrl}planet.svg`,
+    'anonymous'
+  )
+  const [astroLogo] = useImage(
+    `${config.storage.baseUrl}astro-logo.svg`,
+    'anonymous'
+  )
+  const [windowOps] = useImage(
+    `${config.storage.baseUrl}window-ops.svg`,
     'anonymous'
   )
 
@@ -128,36 +132,46 @@ const CodeJamTen = () => {
       case 2:
         return [
           {
-            x: 735,
-            y: 60,
-            width: 240,
-            height: 180,
+            x: 755,
+            y: 80,
+            width: 200,
+            height: 150,
             clipTheme: 'rect',
-            borderColor: '#235A97',
-            borderWidth: 8,
+            borderWidth: 6,
+            borderColor: '#1F2937',
             studioUserClipConfig: {
-              x: 40,
+              x: 20,
               y: 0,
               width: 160,
-              height: 180,
+              height: 150,
               radius: 8,
             },
+            backgroundRectX: 765,
+            backgroundRectY: 70,
+            backgroundRectColor: '#FF5D01',
+            backgroundRectBorderWidth: 3,
+            backgroundRectBorderColor: '#1F2937',
           },
           {
-            x: 735,
-            y: 265,
-            width: 240,
-            height: 180,
+            x: 755,
+            y: 305,
+            width: 200,
+            height: 150,
             clipTheme: 'rect',
-            borderColor: '#235A97',
-            borderWidth: 8,
+            borderWidth: 6,
+            borderColor: '#1F2937',
             studioUserClipConfig: {
-              x: 40,
+              x: 20,
               y: 0,
               width: 160,
-              height: 180,
+              height: 150,
               radius: 8,
             },
+            backgroundRectX: 765,
+            backgroundRectY: 295,
+            backgroundRectColor: '#FF5D01',
+            backgroundRectBorderWidth: 3,
+            backgroundRectBorderColor: '#1F2937',
           },
         ]
       case 3:
@@ -168,8 +182,8 @@ const CodeJamTen = () => {
             width: 160,
             height: 120,
             clipTheme: 'rect',
-            borderColor: '#235A97',
-            borderWidth: 8,
+            borderWidth: 6,
+            borderColor: '#1F2937',
             studioUserClipConfig: {
               x: 0,
               y: 0,
@@ -177,6 +191,11 @@ const CodeJamTen = () => {
               height: 120,
               radius: 8,
             },
+            backgroundRectX: 765,
+            backgroundRectY: 48.5,
+            backgroundRectColor: '#FF5D01',
+            backgroundRectBorderWidth: 3,
+            backgroundRectBorderColor: '#1F2937',
           },
           {
             x: 775,
@@ -184,8 +203,8 @@ const CodeJamTen = () => {
             width: 160,
             height: 120,
             clipTheme: 'rect',
-            borderColor: '#235A97',
-            borderWidth: 8,
+            borderWidth: 6,
+            borderColor: '#1F2937',
             studioUserClipConfig: {
               x: 0,
               y: 0,
@@ -193,6 +212,11 @@ const CodeJamTen = () => {
               height: 120,
               radius: 8,
             },
+            backgroundRectX: 765,
+            backgroundRectY: 188.5,
+            backgroundRectColor: '#FF5D01',
+            backgroundRectBorderWidth: 3,
+            backgroundRectBorderColor: '#1F2937',
           },
           {
             x: 775,
@@ -200,8 +224,8 @@ const CodeJamTen = () => {
             width: 160,
             height: 120,
             clipTheme: 'rect',
-            borderColor: '#235A97',
-            borderWidth: 8,
+            borderWidth: 6,
+            borderColor: '#1F2937',
             studioUserClipConfig: {
               x: 0,
               y: 0,
@@ -209,17 +233,23 @@ const CodeJamTen = () => {
               height: 120,
               radius: 8,
             },
+            backgroundRectX: 765,
+            backgroundRectY: 328.5,
+            backgroundRectColor: '#FF5D01',
+            backgroundRectBorderWidth: 3,
+            backgroundRectBorderColor: '#1F2937',
           },
         ]
       default:
         return [
           {
             x: 695,
-            y: 120.5,
+            y: 140.5,
             width: 320,
             height: 240,
             clipTheme: 'rect',
-            borderWidth: 8,
+            borderWidth: 6,
+            borderColor: '#1F2937',
             studioUserClipConfig: {
               x: 80,
               y: 0,
@@ -227,9 +257,29 @@ const CodeJamTen = () => {
               height: 240,
               radius: 8,
             },
-            borderColor: '#235A97',
+            backgroundRectX: 765,
+            backgroundRectY: 130.5,
+            backgroundRectColor: '#FF5D01',
+            backgroundRectBorderWidth: 3,
+            backgroundRectBorderColor: '#1F2937',
           },
         ]
+    }
+  })()
+
+  const windowOpsImages = (() => {
+    switch (fragment?.participants.length) {
+      case 2:
+        return (
+          <>
+            <Image image={windowOps} x={860} y={35} />
+            <Image image={windowOps} x={860} y={260} />
+          </>
+        )
+      case 3:
+        return <></>
+      default:
+        return <Image image={windowOps} x={860} y={95} />
     }
   })()
 
@@ -239,18 +289,40 @@ const CodeJamTen = () => {
       y={0}
       width={CONFIG.width}
       height={CONFIG.height}
-      fill="#3178C6"
+      fillLinearGradientColorStops={[
+        0,
+        '#140D1F',
+        0.41,
+        '#361367',
+        1,
+        '#6E1DDB',
+      ]}
+      fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+      fillLinearGradientEndPoint={{
+        x: CONFIG.width,
+        y: CONFIG.height,
+      }}
     />,
-
+    <Image image={astroPlanet} x={-10} y={0} />,
+    <Rect
+      x={27}
+      y={48}
+      width={704}
+      height={396}
+      fill="#FF5D01"
+      cornerRadius={8}
+      stroke="#1F2937"
+      strokeWidth={3}
+    />,
     <Rect
       x={37}
       y={58}
       width={704}
       height={396}
       fill="#202026"
-      stroke="#235A97"
-      strokeWidth={4}
       cornerRadius={8}
+      stroke="#1F2937"
+      strokeWidth={3}
     />,
     <Group x={52} y={73} key="circleGroup">
       <Circle key="redCircle" x={0} y={0} fill="#FF605C" radius={5} />
@@ -285,8 +357,8 @@ const CodeJamTen = () => {
         }}
       />
     ),
-    <Image image={incredibleLogo} x={25} y={CONFIG.height - 60} />,
-    <Image image={tsLogo} x={820} y={CONFIG.height - 60} />,
+    { ...windowOpsImages },
+    <Image image={astroLogo} x={30} y={CONFIG.height - 60} />,
   ]
 
   return (
@@ -299,4 +371,4 @@ const CodeJamTen = () => {
   )
 }
 
-export default CodeJamTen
+export default CodeJamFour
