@@ -29,6 +29,7 @@ const AuthenticatedRightCol = () => {
                 }}
                 type="button"
                 appearance="link"
+                className="text-base w-32"
               >
                 Sign out
               </Button>
