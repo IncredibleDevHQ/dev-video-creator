@@ -34,15 +34,50 @@ const FragmentContent = () => {
     try {
       setSubmitting(true)
 
+      const newItems = Object.entries(values).map((entry) => ({
+        key: entry[0],
+        value: entry[1],
+      }))
       await updateFragment({
         variables: {
           fragmentId: fragment?.id,
-          items: Object.entries(values).map((entry) => ({
-            key: entry[0],
-            value: entry[1],
-          })),
+          items: newItems,
         },
       })
+
+      console.log(fragment?.configuration)
+
+      if (fragment && flick) {
+        let temp = { ...fragment }
+        const properties = fragment.configuration.properties
+        temp = {
+          ...fragment,
+          configuration: {
+            ...fragment.configuration,
+            properties: newItems.map((item) => {
+              const property = properties.find((p: any) => p.key === item.key)
+              return {
+                ...property,
+                value: item.value,
+                dirty: true,
+              }
+            }),
+          },
+        }
+        setFlickStore((prev) => ({
+          ...prev,
+          flick: {
+            ...flick,
+            fragments: flick.fragments.map((f) => {
+              if (f.id === fragment.id) {
+                return temp
+              }
+              return f
+            }),
+          },
+        }))
+      }
+
       setConfigured(true)
     } catch (error: any) {
       emitToast({
@@ -93,11 +128,11 @@ const FragmentContent = () => {
   }, [config])
 
   useEffect(() => {
-    if (data)
-      emitToast({
-        title: 'Configuration Added',
-        type: 'success',
-      })
+    if (!data) return
+    emitToast({
+      title: 'Configuration Added',
+      type: 'success',
+    })
   }, [data])
 
   if (error)
