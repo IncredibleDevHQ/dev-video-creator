@@ -84,6 +84,7 @@ const FlickTilePublished = ({
   const history = useHistory()
   const userdata = (useRecoilValue(userState) as User) || {}
   const [editFlickName, setEditFlickName] = useState(false)
+  const { isAuthenticated } = (useRecoilValue(authState) as Auth) || {}
   const [updateFlickMutation, { data: updateNameData }] =
     useUpdateFlickMutation()
   const updateFlickMutationFunction = async (newName: string) => {
@@ -105,11 +106,15 @@ const FlickTilePublished = ({
   return (
     <>
       <div className="flex flex-row w-full h-32 m-1">
-        <FlickTooltip
-          key={flick?.id}
-          flick={flick}
-          handleRefetch={handleRefetch}
-        />
+        {isAuthenticated ? (
+          <FlickTooltip
+            key={flick?.id}
+            flick={flick}
+            handleRefetch={handleRefetch}
+          />
+        ) : (
+          ''
+        )}
         <div
           className="w-64 flex items-center justify-center border-2"
           onClick={(e) => {
@@ -121,6 +126,15 @@ const FlickTilePublished = ({
         </div>
 
         <div className="flex flex-col">
+          {isAuthenticated ? (
+            <div className="bg-green-300 h-5 w-24 ml-4 flex flex-row-1 items-center justify-center">
+              <IoCheckmarkDone size={15} />
+              <Text className="text-green-700 text-sm pl-2">Published</Text>
+            </div>
+          ) : (
+            ''
+          )}
+
           {flick.owner?.userSub === userdata.sub ? (
             <Heading
               className="text-lg md:capitalize font-bold pl-4 mt-5 w-40 truncate overflow-ellipsis cursor-auto p-1 rounded-lg hover:bg-gray-300"
