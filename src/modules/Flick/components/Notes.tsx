@@ -12,31 +12,42 @@ import {
 import { formatDate } from '../../../utils/FormatDate'
 import { User, userState } from '../../../stores/user.store'
 import { currentFlickStore } from '../../../stores/flick.store'
+import { newFlickStore } from '../../FlickNew/store/flickNew.store'
 
 // This component renders notes for the current selected fragment in the flick dashboard
 const Notes = ({
-  fragmentId,
   flickId,
   participantId,
 }: {
-  fragmentId: string
   flickId: string
   participantId: string
 }) => {
   const { sub } = (useRecoilValue(userState) as User) || {}
   const [flick, setFlick] = useRecoilState(currentFlickStore)
+
+  const { activeFragmentId } = useRecoilValue(newFlickStore)
   // local state to store the newly created note
   const [note, setNote] = useState<Note_Insert_Input>({
-    fragmentId,
+    fragmentId: activeFragmentId,
     flickId,
     participantId,
     sourceUrl: 'Web',
     note: '',
   })
 
+  useEffect(() => {
+    setNote({
+      fragmentId: activeFragmentId,
+      flickId,
+      participantId,
+      sourceUrl: 'Web',
+      note: '',
+    })
+  }, [activeFragmentId])
+
   const { data, refetch } = useGetFragmentNotesQuery({
     variables: {
-      fragmentId,
+      fragmentId: activeFragmentId,
     },
   })
 

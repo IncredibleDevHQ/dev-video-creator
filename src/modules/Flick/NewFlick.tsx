@@ -1,6 +1,7 @@
 /* eslint-disable jsx-a11y/label-has-associated-control */
 import React, { useEffect, useState } from 'react'
 import { useHistory, useParams } from 'react-router-dom'
+import Select from 'react-select'
 import {
   Button,
   emitToast,
@@ -8,6 +9,7 @@ import {
   Radio,
   TextArea,
   TextField,
+  Text,
 } from '../../components'
 import {
   CreateFlickFlickScopeEnumEnum,
@@ -16,11 +18,33 @@ import {
 } from '../../generated/graphql'
 import { useQueryVariables } from '../../hooks'
 
+export interface FlickConfiguration {
+  themeId: number
+}
+
 const initialFlick: CreateNewFlickMutationVariables = {
   name: '',
   description: '',
-  scope: CreateFlickFlickScopeEnumEnum.Public,
+  scope: CreateFlickFlickScopeEnumEnum.Private,
+  configuration: {
+    themeId: 0,
+  } as FlickConfiguration,
 }
+
+const options = [
+  { label: 'Default', value: 1 },
+  { label: 'GraphQL', value: 1 },
+  { label: 'Open Sauced', value: 2 },
+  { label: 'Astro', value: 3 },
+  { label: 'WTFJS', value: 4 },
+  { label: 'Tensorflow', value: 5 },
+  { label: 'NextJS', value: 6 },
+  { label: 'Elastic', value: 7 },
+  { label: 'Hasura', value: 8 },
+  { label: 'Typescript', value: 9 },
+  { label: 'Pytorch', value: 10 },
+  { label: 'Svelte', value: 11 },
+]
 
 const NewFlick = () => {
   const { seriesId } = useParams<{ seriesId: string }>()
@@ -55,7 +79,7 @@ const NewFlick = () => {
 
   const updateFlick = (
     field: keyof CreateNewFlickMutationVariables,
-    value: string
+    value: string | FlickConfiguration
   ) => {
     setNewFlick({ ...newFlick, [field]: value })
   }
@@ -66,43 +90,41 @@ const NewFlick = () => {
 
   return (
     <section className="w-full min-h-screen flex flex-col justify-center items-center">
-      <Heading fontSize="large" className="text-5xl mb-12">
+      <Heading fontSize="large" className="text-2xl mb-12">
         {query.get('seriesid')
           ? `Create Flick for "${query.get('seriesname')}"`
-          : 'Create Your New Flick'}
+          : 'Create an incredible flick'}
       </Heading>
-      <form className="shadow-md bg-background-alt w-full md:w-80 p-4 flex flex-col">
+      <form className="w-96 p-4 flex flex-col">
+        <Text className="font-semibold mb-1">Name your flick</Text>
         <TextField
-          label="Title"
-          className="my-2"
+          label=""
+          className="mb-8"
+          placeholder="Name"
           onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
             updateFlick('name', e.target.value)
           }
         />
+        <Text className="font-semibold mb-1">Description</Text>
         <TextArea
-          label="Description"
-          className="my-2"
+          label=""
+          className="mb-8"
+          placeholder="Description"
           onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
             updateFlick('description', e.target.value)
           }
         />
-        <div
-          className="flex items-center gap-2"
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-            updateFlick('scope', e.target.value)
-          }
-        >
-          <Radio
-            label="Public"
-            name="access"
-            value={CreateFlickFlickScopeEnumEnum.Public}
-          />
-          <Radio
-            label="Private"
-            name="access"
-            value={CreateFlickFlickScopeEnumEnum.Private}
-          />
-        </div>
+        <Text className="font-semibold mb-1">Choose a theme</Text>
+        <Select
+          className="mb-8"
+          options={options}
+          classNamePrefix="react-select"
+          onChange={(event) => {
+            updateFlick('configuration', {
+              themeId: event?.value,
+            } as FlickConfiguration)
+          }}
+        />
         <Button
           loading={loading}
           type="submit"
@@ -113,7 +135,7 @@ const NewFlick = () => {
             createFlick()
           }}
         >
-          Create
+          Continue
         </Button>
       </form>
     </section>

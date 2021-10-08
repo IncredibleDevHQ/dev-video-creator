@@ -165,13 +165,13 @@ const Dashboard = () => {
 
       {userFlicksData && userFlicksData?.Flick.length > 0 && (
         <div className="px-0">
-          <div className="flex flex-row m-0 p-0 ml-28 mt-20">
+          <div className="flex flex-row m-0 p-0 ml-28 mt-20 items-center">
             <Text className="font-black text-xl mb-4">Your flicks</Text>
             <TabBar
               tabs={tabs}
               current={currentTab}
               onTabChange={setCurrentTab}
-              className="text-black gap-2 w-auto ml-10"
+              className="text-black gap-2 w-auto ml-10 -mt-2"
             />
           </div>
           <div className="mb-10">

@@ -18,15 +18,12 @@ const TabBar = ({
   onTabChange: (tab: Tab) => void
 } & HTMLProps<HTMLUListElement>) => {
   return (
-    <ul
-      className={cx('flex border-b-2 py-2 border-background-alt', className)}
-      {...rest}
-    >
+    <ul className={cx('flex', className)} {...rest}>
       {tabs.map((tab) => (
         <TabBarItem
           tab={tab}
           key={tab.name}
-          current={current.name === tab.name}
+          current={current.value === tab.value}
           onClick={() => onTabChange(tab)}
         />
       ))}
@@ -43,9 +40,9 @@ const TabBarItem = ({
   return (
     <li
       className={cx(
-        'cursor-pointer mr-2 text-xs tracking-wide transition-colors p-1',
+        'cursor-pointer px-4 py-3 rounded-md tracking-wide transition-colors text-gray-400 font-semibold',
         {
-          'border-b-2 border-brand text-brand': current,
+          'text-gray-800 bg-gray-100': current,
         }
       )}
       {...rest}

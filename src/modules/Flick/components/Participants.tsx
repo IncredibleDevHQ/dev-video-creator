@@ -8,6 +8,7 @@ import {
   FilteredUserFragment,
   FlickParticipantsFragment,
   GetFlickByIdQuery,
+  InviteParticipantRoleEnum,
   useGetFilteredUsersQuery,
   useInviteParticipantToFlickMutation,
 } from '../../../generated/graphql'
@@ -91,6 +92,7 @@ const Participants = ({
         variables: {
           email: selectedMember?.email as string,
           flickId: flickId as string,
+          role: InviteParticipantRoleEnum.Assistant,
         },
       })
       handleRefetch(isNewMember)

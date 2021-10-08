@@ -37,6 +37,7 @@ fragment BaseFlick on Flick {
   status
   deletedAt
   producedLink
+  configuration
   participants {
     user {
       picture
@@ -138,17 +139,25 @@ query SeriesFlickCount($seriesId: uuid) {
   }
 }
 
+query GetFlickFragments($flickId: uuid!) {
+  Fragment(where: { flickId: { _eq: $flickId } }) {
+    ...FlickFragment
+  }
+}
+
 mutation CreateNewFlick(
   $name: String!
   $description: String
   $scope: CreateFlickFlickScopeEnumEnum!
   $seriesId: uuid
+  $configuration: json
 ) {
   CreateFlick(
     name: $name
     scope: $scope
     description: $description
     seriesId: $seriesId
+    configuration: $configuration
   ) {
     id
   }
@@ -160,8 +169,12 @@ mutation UpdateSeriesFlick($flickIds: [uuid!]!, $seriesId: uuid!) {
   }
 }
 
-mutation InviteParticipantToFlick($email: String!, $flickId: String!) {
-  InviteParticipant(email: $email, flickId: $flickId) {
+mutation InviteParticipantToFlick(
+  $email: String!
+  $flickId: String!
+  $role: InviteParticipantRoleEnum!
+) {
+  InviteParticipant(email: $email, flickId: $flickId, role: $role) {
     id
   }
 }
@@ -172,6 +185,15 @@ query FlickActivity($flickId: uuid!) {
     order_by: { createdAt: desc }
   ) {
     ...FlickActivity
+  }
+}
+
+query GetFlickParticipants($flickId: uuid!) {
+  Participant(
+    where: { flickId: { _eq: $flickId } }
+    order_by: { user: { displayName: asc } }
+  ) {
+    ...FlickParticipants
   }
 }
 
@@ -195,6 +217,38 @@ mutation UpdateFlick(
 
 mutation DeleteFlick($flickId: uuid!) {
   DeleteFlick(flickId: $flickId) {
+    id
+  }
+}
+
+mutation UpdateFlick(
+  $flickId: String!
+  $name: String!
+  $organisationSlug: String
+  $scope: UpdateFlickScopeEnum
+  $difficulty: UpdateFlickDifficultyEnum
+) {
+  UpdateFlick(
+    flickId: $flickId
+    name: $name
+    organisationSlug: $organisationSlug
+    scope: $scope
+    difficulty: $difficulty
+  ) {
+    id
+  }
+}
+
+mutation UpdateParticipantRole(
+  $participantId: String!
+  $flickId: String!
+  $role: UpdateParticipantRoleEnum!
+) {
+  UpdateParticipantRole(
+    flickId: $flickId
+    participantId: $participantId
+    role: $role
+  ) {
     id
   }
 }
