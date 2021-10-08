@@ -28,8 +28,9 @@ const style = css`
 
 const FragmentSideBar = () => {
   const [{ flick }, setFlickStore] = useRecoilState(newFlickStore)
-  const [isCreateNewFragmentModalOpen, setIsCreateNewModalOpen] =
-    useState(false)
+  const [isCreateNewFragmentModalOpen, setIsCreateNewModalOpen] = useState(
+    flick?.fragments.length === 0
+  )
 
   const [GetFlickFragments, { data, error, refetch }] =
     useGetFlickFragmentsLazyQuery({
