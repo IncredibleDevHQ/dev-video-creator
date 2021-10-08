@@ -12,7 +12,7 @@ const EmailSubscriber = ({
 }: {
   sourceID: string
   target: TargetTypes
-  handleClose: (refresh?: boolean) => void
+  handleClose?: (refresh?: boolean) => void
 }) => {
   const [SubscribeToVideos, { data, loading, error }] =
     useSubToVideoEmailsMutation()
@@ -53,8 +53,8 @@ const EmailSubscriber = ({
         onClick={(e) => {
           e?.preventDefault()
           handleClick()
-
           setEmailSubscribe('')
+          if (!handleClose) return
           handleClose(true)
         }}
         loading={loading}

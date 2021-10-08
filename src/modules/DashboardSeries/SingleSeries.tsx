@@ -132,9 +132,6 @@ const SingleSeries = () => {
             <EmailSubscriber
               sourceID={data?.Series_by_pk?.id}
               target={TargetTypes.SeriesSubsciption}
-              handleClose={(refresh) => {
-                if (refresh) refetch()
-              }}
             />
             <div className="flex flex-col">
               <Heading className="text-lg md:capitalize  pl-1 mt-5">
