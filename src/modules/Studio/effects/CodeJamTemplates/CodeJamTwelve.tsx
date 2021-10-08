@@ -1,23 +1,23 @@
 import axios from 'axios'
 import React, { useEffect, useState } from 'react'
-import { Group, Circle, Text, Rect, Image } from 'react-konva'
+import { Circle, Group, Image, Rect } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
-import config from '../../../config'
-import { API } from '../../../constants'
+import config from '../../../../config'
+import { API } from '../../../../constants'
 import {
   Fragment_Status_Enum_Enum,
   useGetTokenisedCodeLazyQuery,
-} from '../../../generated/graphql'
-import { Concourse } from '../components'
-import { CONFIG, StudioUserConfig } from '../components/Concourse'
+} from '../../../../generated/graphql'
+import { Concourse } from '../../components'
+import { CONFIG, StudioUserConfig } from '../../components/Concourse'
 import RenderTokens, {
   controls,
   getRenderedTokens,
   RenderFocus,
-} from '../components/RenderTokens'
-import useCode from '../hooks/use-code'
-import { StudioProviderProps, studioStore } from '../stores'
+} from '../../components/RenderTokens'
+import useCode from '../../hooks/use-code'
+import { StudioProviderProps, studioStore } from '../../stores'
 
 export const codeConfig = {
   fontSize: 14,
@@ -30,7 +30,7 @@ interface Position {
   currentIndex: number
 }
 
-const CodeJamFive = () => {
+const CodeJamTwelve = () => {
   const { fragment, payload, updatePayload, state, isHost } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
@@ -47,8 +47,16 @@ const CodeJamFive = () => {
   })
   const [focusCode, setFocusCode] = useState<boolean>(false)
 
-  const [wtfjsLogo] = useImage(
-    `${config.storage.baseUrl}WTFJS.svg`,
+  const [svelteLogo] = useImage(
+    `${config.storage.baseUrl}Svelte.svg`,
+    'anonymous'
+  )
+  const [incredibleLogo] = useImage(
+    `${config.storage.baseUrl}x-incredible-black.svg`,
+    'anonymous'
+  )
+  const [svelteBg] = useImage(
+    `${config.storage.baseUrl}svelte_bg.svg`,
     'anonymous'
   )
 
@@ -124,33 +132,31 @@ const CodeJamFive = () => {
       case 2:
         return [
           {
-            x: 728.5,
-            y: 0,
+            x: 735,
+            y: 60,
             width: 240,
             height: 180,
             clipTheme: 'rect',
-            borderWidth: 6,
-            borderColor: '#ffffff',
+
             studioUserClipConfig: {
-              x: 7.5,
+              x: 40,
               y: 0,
-              width: 225,
+              width: 160,
               height: 180,
               radius: 0,
             },
           },
           {
-            x: 728.5,
-            y: 205,
+            x: 735,
+            y: 265,
             width: 240,
             height: 180,
             clipTheme: 'rect',
-            borderWidth: 6,
-            borderColor: '#ffffff',
+
             studioUserClipConfig: {
-              x: 7.5,
+              x: 40,
               y: 0,
-              width: 225,
+              width: 160,
               height: 180,
               radius: 0,
             },
@@ -159,13 +165,12 @@ const CodeJamFive = () => {
       case 3:
         return [
           {
-            x: 752,
-            y: 0,
+            x: 775,
+            y: 58.5,
             width: 160,
             height: 120,
             clipTheme: 'rect',
-            borderWidth: 6,
-            borderColor: '#ffffff',
+
             studioUserClipConfig: {
               x: 0,
               y: 0,
@@ -175,13 +180,12 @@ const CodeJamFive = () => {
             },
           },
           {
-            x: 752,
-            y: 140,
+            x: 775,
+            y: 198.5,
             width: 160,
             height: 120,
             clipTheme: 'rect',
-            borderWidth: 6,
-            borderColor: '#ffffff',
+
             studioUserClipConfig: {
               x: 0,
               y: 0,
@@ -191,13 +195,12 @@ const CodeJamFive = () => {
             },
           },
           {
-            x: 752,
-            y: 280,
+            x: 775,
+            y: 338.5,
             width: 160,
             height: 120,
             clipTheme: 'rect',
-            borderWidth: 6,
-            borderColor: '#ffffff',
+
             studioUserClipConfig: {
               x: 0,
               y: 0,
@@ -210,18 +213,17 @@ const CodeJamFive = () => {
       default:
         return [
           {
-            x: 586,
-            y: 0,
-            width: 528,
-            height: 396,
+            x: 695,
+            y: 120.5,
+            width: 320,
+            height: 240,
             clipTheme: 'rect',
-            borderWidth: 6,
-            borderColor: '#ffffff',
+
             studioUserClipConfig: {
-              x: 154,
+              x: 80,
               y: 0,
-              width: 220,
-              height: 396,
+              width: 160,
+              height: 240,
               radius: 0,
             },
           },
@@ -235,24 +237,39 @@ const CodeJamFive = () => {
       y={0}
       width={CONFIG.width}
       height={CONFIG.height}
-      fill="#1F2937"
+      fill="#ffffff"
+      stroke="#000000"
+      strokeWidth={1}
+    />,
+
+    <Image
+      image={svelteBg}
+      width={CONFIG.width - 1}
+      height={CONFIG.height - 1}
     />,
     <Rect
-      x={0}
-      y={0}
+      x={27}
+      y={48}
+      width={704}
+      height={396}
+      stroke="#FF3E00"
+      strokeWidth={1}
+    />,
+    <Rect
+      x={37}
+      y={58}
       width={704}
       height={396}
       fill="#202026"
-      stroke="#ffffff"
-      strokeWidth={3}
+      strokeWidth={4}
     />,
-    <Group x={15} y={15} key="circleGroup">
+    <Group x={52} y={73} key="circleGroup">
       <Circle key="redCircle" x={0} y={0} fill="#FF605C" radius={5} />
       <Circle key="yellowCircle" x={14} y={0} fill="#FFBD44" radius={5} />
       <Circle key="greenCircle" x={28} y={0} fill="#00CA4E" radius={5} />
     </Group>,
     payload?.status === Fragment_Status_Enum_Enum.Live && (
-      <Group x={20} y={30} key="group">
+      <Group x={57} y={88} key="group">
         {getRenderedTokens(computedTokens.current, position)}
         {computedTokens.current.length > 0 && (
           <RenderTokens
@@ -269,17 +286,18 @@ const CodeJamFive = () => {
         tokens={computedTokens.current}
         lineNumber={computedTokens.current[position.prevIndex]?.lineNumber}
         currentIndex={position.currentIndex}
-        groupCoordinates={{ x: 20, y: 30 }}
+        groupCoordinates={{ x: 47, y: 88 }}
         bgRectInfo={{
-          x: 0,
-          y: 0,
+          x: 37,
+          y: 58,
           width: 704,
           height: 396,
-          radius: 0,
+          radius: 8,
         }}
       />
     ),
-    <Image image={wtfjsLogo} x={60} y={CONFIG.height - 80} />,
+    <Image image={incredibleLogo} x={30} y={CONFIG.height - 70} />,
+    <Image image={svelteLogo} x={810} y={CONFIG.height - 60} />,
   ]
 
   return (
@@ -292,4 +310,4 @@ const CodeJamFive = () => {
   )
 }
 
-export default CodeJamFive
+export default CodeJamTwelve

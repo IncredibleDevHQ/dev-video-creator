@@ -1,26 +1,23 @@
 import axios from 'axios'
 import React, { useEffect, useState } from 'react'
-import { Group, Circle, Text, Rect, Image } from 'react-konva'
+import { Circle, Group, Image, Rect } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
-import { NextLineIcon, NextTokenIcon } from '../../../components'
-import FocusCodeIcon from '../../../components/FocusCodeIcon'
-import config from '../../../config'
-import { API } from '../../../constants'
+import config from '../../../../config'
+import { API } from '../../../../constants'
 import {
   Fragment_Status_Enum_Enum,
   useGetTokenisedCodeLazyQuery,
-} from '../../../generated/graphql'
-import { Concourse } from '../components'
-import { CONFIG, StudioUserConfig } from '../components/Concourse'
-import { ControlButton } from '../components/MissionControl'
+} from '../../../../generated/graphql'
+import { Concourse } from '../../components'
+import { CONFIG, StudioUserConfig } from '../../components/Concourse'
 import RenderTokens, {
   controls,
   getRenderedTokens,
   RenderFocus,
-} from '../components/RenderTokens'
-import useCode, { ComputedToken } from '../hooks/use-code'
-import { StudioProviderProps, studioStore } from '../stores'
+} from '../../components/RenderTokens'
+import useCode from '../../hooks/use-code'
+import { StudioProviderProps, studioStore } from '../../stores'
 
 export const codeConfig = {
   fontSize: 14,
@@ -33,7 +30,7 @@ interface Position {
   currentIndex: number
 }
 
-const CodeJamEight = () => {
+const CodeJamTwo = () => {
   const { fragment, payload, updatePayload, state, isHost } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
@@ -50,16 +47,12 @@ const CodeJamEight = () => {
   })
   const [focusCode, setFocusCode] = useState<boolean>(false)
 
-  const [elasticLogo] = useImage(
-    `${config.storage.baseUrl}elastic-logo.png`,
+  const [openSaucedLogo] = useImage(
+    `${config.storage.baseUrl}open-sauce-logo.svg`,
     'anonymous'
   )
-  const [whiteCircle] = useImage(
-    `${config.storage.baseUrl}circle.png`,
-    'anonymous'
-  )
-  const [pinkCircle] = useImage(
-    `${config.storage.baseUrl}pink2.png`,
+  const [openSaucedBg] = useImage(
+    `${config.storage.baseUrl}opensauce-bg.svg`,
     'anonymous'
   )
 
@@ -140,7 +133,6 @@ const CodeJamEight = () => {
             width: 240,
             height: 180,
             clipTheme: 'rect',
-            borderColor: '#D1D5DB',
             borderWidth: 8,
             studioUserClipConfig: {
               x: 40,
@@ -149,6 +141,9 @@ const CodeJamEight = () => {
               height: 180,
               radius: 8,
             },
+            backgroundRectX: 765,
+            backgroundRectY: 50,
+            backgroundRectColor: '#E0A764',
           },
           {
             x: 735,
@@ -156,7 +151,6 @@ const CodeJamEight = () => {
             width: 240,
             height: 180,
             clipTheme: 'rect',
-            borderColor: '#D1D5DB',
             borderWidth: 8,
             studioUserClipConfig: {
               x: 40,
@@ -165,6 +159,9 @@ const CodeJamEight = () => {
               height: 180,
               radius: 8,
             },
+            backgroundRectX: 765,
+            backgroundRectY: 255,
+            backgroundRectColor: '#E0A764',
           },
         ]
       case 3:
@@ -175,7 +172,6 @@ const CodeJamEight = () => {
             width: 160,
             height: 120,
             clipTheme: 'rect',
-            borderColor: '#D1D5DB',
             borderWidth: 8,
             studioUserClipConfig: {
               x: 0,
@@ -184,6 +180,9 @@ const CodeJamEight = () => {
               height: 120,
               radius: 8,
             },
+            backgroundRectX: 765,
+            backgroundRectY: 48.5,
+            backgroundRectColor: '#E0A764',
           },
           {
             x: 775,
@@ -191,7 +190,6 @@ const CodeJamEight = () => {
             width: 160,
             height: 120,
             clipTheme: 'rect',
-            borderColor: '#D1D5DB',
             borderWidth: 8,
             studioUserClipConfig: {
               x: 0,
@@ -200,6 +198,9 @@ const CodeJamEight = () => {
               height: 120,
               radius: 8,
             },
+            backgroundRectX: 765,
+            backgroundRectY: 188.5,
+            backgroundRectColor: '#E0A764',
           },
           {
             x: 775,
@@ -207,7 +208,6 @@ const CodeJamEight = () => {
             width: 160,
             height: 120,
             clipTheme: 'rect',
-            borderColor: '#D1D5DB',
             borderWidth: 8,
             studioUserClipConfig: {
               x: 0,
@@ -216,6 +216,9 @@ const CodeJamEight = () => {
               height: 120,
               radius: 8,
             },
+            backgroundRectX: 765,
+            backgroundRectY: 328.5,
+            backgroundRectColor: '#E0A764',
           },
         ]
       default:
@@ -234,7 +237,9 @@ const CodeJamEight = () => {
               height: 240,
               radius: 8,
             },
-            borderColor: '#D1D5DB',
+            backgroundRectX: 765,
+            backgroundRectY: 110.5,
+            backgroundRectColor: '#E0A764',
           },
         ]
     }
@@ -246,26 +251,29 @@ const CodeJamEight = () => {
       y={0}
       width={CONFIG.width}
       height={CONFIG.height}
-      fill="#ffffff"
-      // fillLinearGradientColorStops={[0, '#60D0ED', 1, '#536FA8']}
-      // fillLinearGradientStartPoint={{ x: 0, y: 0 }}
-      // fillLinearGradientEndPoint={{ x: CONFIG.width, y: CONFIG.height }}
+      fill="#FAEACE"
     />,
-    <Circle x={82} y={10} radius={55} fill="#7DE2D1" />,
-    <Circle x={70} y={CONFIG.height - 70} radius={100} fill="#7DE2D1" />,
-    <Circle x={640} y={20} radius={10} fill="#0077CC" />,
-    <Circle x={270} y={CONFIG.height - 70} radius={10} fill="#0077CC" />,
-    <Image image={pinkCircle} x={790} y={400} />,
-    <Image image={whiteCircle} x={615} y={245} />,
-
+    <Image
+      image={openSaucedBg}
+      x={0}
+      y={0}
+      width={CONFIG.width}
+      height={CONFIG.height}
+    />,
+    <Rect
+      x={27}
+      y={48}
+      width={704}
+      height={396}
+      fill="#E0A764"
+      cornerRadius={8}
+    />,
     <Rect
       x={37}
       y={58}
       width={704}
       height={396}
       fill="#202026"
-      stroke="#D1D5DB"
-      strokeWidth={4}
       cornerRadius={8}
     />,
     <Group x={52} y={73} key="circleGroup">
@@ -301,7 +309,7 @@ const CodeJamEight = () => {
         }}
       />
     ),
-    <Image image={elasticLogo} x={30} y={CONFIG.height - 60} />,
+    <Image image={openSaucedLogo} x={30} y={CONFIG.height - 60} />,
   ]
 
   return (
@@ -314,4 +322,4 @@ const CodeJamEight = () => {
   )
 }
 
-export default CodeJamEight
+export default CodeJamTwo
