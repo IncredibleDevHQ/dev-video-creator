@@ -1,23 +1,23 @@
-import React, { createRef, useEffect, useRef, useState } from 'react'
+import { cx } from '@emotion/css'
+import Konva from 'konva'
+import { KonvaEventObject } from 'konva/lib/Node'
+import React, { createRef, useEffect, useState } from 'react'
+import { Group, Layer, Rect, Stage, Text } from 'react-konva'
 import {
   useRecoilBridgeAcrossReactRoots_UNSTABLE,
   useRecoilState,
   useRecoilValue,
 } from 'recoil'
-import { cx } from '@emotion/css'
-import Konva from 'konva'
-import { Stage, Layer, Rect, Group, Text, Circle } from 'react-konva'
-import { KonvaEventObject } from 'konva/lib/Node'
-import MissionControl from './MissionControl'
-import StudioUser from './StudioUser'
-import { canvasStore, StudioProviderProps, studioStore } from '../stores'
 import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
+import { User, userState } from '../../../stores/user.store'
 import {
   CircleCenterShrink,
   MultiCircleCenterGrow,
 } from '../effects/FragmentTransitions'
 import { ClipConfig } from '../hooks/use-edit'
-import { User, userState } from '../../../stores/user.store'
+import { canvasStore, StudioProviderProps, studioStore } from '../stores'
+import MissionControl from './MissionControl'
+import StudioUser from './StudioUser'
 
 export interface StudioUserConfig {
   x: number
@@ -38,9 +38,10 @@ export interface StudioUserConfig {
 interface ConcourseProps {
   controls: JSX.Element[]
   layerChildren: any[]
-  disableUserMedia?: boolean
   titleSpalshData?: { enable: boolean; title?: string }
   studioUserConfig?: StudioUserConfig[]
+  disableUserMedia?: boolean
+  topLayerChildren?: any[]
 }
 
 export const CONFIG = {
@@ -51,28 +52,25 @@ export const CONFIG = {
 const Concourse = ({
   controls,
   layerChildren,
-  disableUserMedia,
   titleSpalshData,
   studioUserConfig,
+  disableUserMedia,
+  topLayerChildren,
 }: ConcourseProps) => {
   const {
     state,
-    tracks,
+    stream,
+    participants,
     payload,
     getBlobs,
     users,
-    isHost,
     stopRecording,
-    startRecording,
-    updatePayload,
-    constraints,
   } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [canvas, setCanvas] = useRecoilState(canvasStore)
   const [isTitleSplash, setIsTitleSplash] = useState<boolean>(false)
-  const [localStream, setLocalStream] = useState<MediaStream | null>(null)
   const [isZooming, setZooming] = useState(false)
 
-  const { sub } = (useRecoilValue(userState) as User) || {}
+  const { sub, picture } = (useRecoilValue(userState) as User) || {}
 
   const stageRef = createRef<Konva.Stage>()
   const layerRef = createRef<Konva.Layer>()
@@ -224,17 +222,6 @@ const Concourse = ({
         : setIsTitleSplash(false))
   }, [titleSpalshData, state, payload?.status])
 
-  useEffect(() => {
-    const local =
-      tracks && tracks?.length > 0
-        ? new MediaStream([
-            tracks?.[0].getMediaStreamTrack?.(),
-            tracks?.[1].getMediaStreamTrack?.(),
-          ])
-        : null
-    setLocalStream(local)
-  }, [constraints?.video, constraints?.audio])
-
   return (
     <div className="flex-1 mt-4 justify-between items-stretch flex">
       <div className="bg-gray-100 flex-1 rounded-md p-4 flex justify-center items-center mr-8">
@@ -300,11 +287,12 @@ const Concourse = ({
                   payload?.status !== Fragment_Status_Enum_Enum.Ended && (
                     <>
                       <StudioUser
-                        stream={localStream}
+                        stream={stream}
                         studioUserConfig={
                           (studioUserConfig && studioUserConfig[0]) ||
                           defaultStudioUserConfig
                         }
+                        picture={picture as string}
                         type="local"
                         uid={sub as string}
                       />
@@ -314,6 +302,7 @@ const Concourse = ({
                           uid={user.uid as string}
                           type="remote"
                           stream={user.mediaStream as MediaStream}
+                          picture={participants?.[user.uid]?.picture || ''}
                           studioUserConfig={
                             (studioUserConfig &&
                               studioUserConfig[index + 1]) || {
@@ -329,6 +318,7 @@ const Concourse = ({
                       ))}
                     </>
                   )}
+                <Group>{topLayerChildren}</Group>
               </Layer>
             </Bridge>
           </Stage>
@@ -351,10 +341,6 @@ const Concourse = ({
       <MissionControl controls={controls} />
     </div>
   )
-}
-
-Concourse.defaultProps = {
-  disableUserMedia: undefined,
 }
 
 export default Concourse

@@ -31,10 +31,8 @@ export default function useAgora(
   const [stream, setStream] = useState<MediaStream>()
   const [studio, setStudio] = useRecoilState(studioStore)
   const [userAudios, setUserAudios] = useState<MediaStream[]>([])
-  const [cameraDevices, setCameraDevices] = useState<MediaDeviceInfo[]>([])
-  const [microphoneDevices, setMicrophoneDevices] = useState<MediaDeviceInfo[]>(
-    []
-  )
+  const [cameraDevice, setCameraDevice] = useState<MediaDeviceInfo>()
+  const [microphoneDevice, setMicrophoneDevice] = useState<MediaDeviceInfo>()
 
   const { ready, tracks } = useMicrophoneAndCameraTracks()
   useEffect(() => {
@@ -44,41 +42,49 @@ export default function useAgora(
   }, [])
 
   useEffect(() => {
+    if (!tracks) return
     setStream(
-      tracks && tracks?.length > 0
-        ? new MediaStream([
-            tracks?.[0].getMediaStreamTrack?.(),
-            tracks?.[1].getMediaStreamTrack?.(),
-          ])
-        : undefined
+      new MediaStream([
+        tracks[0].getMediaStreamTrack(),
+        tracks[1].getMediaStreamTrack(),
+      ])
     )
-  }, [tracks])
+  }, [
+    tracks,
+    tracks?.[0].enabled,
+    tracks?.[1].enabled,
+    studio.constraints?.audio,
+    studio.constraints?.video,
+  ])
 
   useEffect(() => {
-    AgoraRTC.createCameraVideoTrack({
-      cameraId: studio.selectedCameraDeviceId,
-    })
-    tracks?.[1].setDevice(studio.selectedCameraDeviceId)
-    // enable()
-  }, [studio.selectedCameraDeviceId])
+    if (!tracks) return
+    ;(async () => {
+      if (cameraDevice) {
+        await tracks[1].setDevice(cameraDevice.deviceId)
+      }
+    })()
+  }, [cameraDevice])
 
   useEffect(() => {
-    AgoraRTC.createMicrophoneAndCameraTracks({
-      microphoneId: studio.selectedMicrophoneDeviceId,
-    })
-    tracks?.[0].setDevice(studio.selectedMicrophoneDeviceId)
-  }, [studio.selectedMicrophoneDeviceId])
+    if (!tracks) return
+    ;(async () => {
+      if (microphoneDevice) {
+        await tracks[0].setDevice(microphoneDevice.deviceId)
+      }
+    })()
+  }, [microphoneDevice])
 
   const getMediaDevices = async () => {
     const camDevices = await AgoraRTC.getCameras()
-    setCameraDevices(camDevices)
+    setCameraDevice(camDevices[0])
     const audiDevices = await AgoraRTC.getMicrophones()
-    setMicrophoneDevices(audiDevices)
+    setMicrophoneDevice(audiDevices[0])
   }
 
   const init = async () => {
-    await getMediaDevices()
     try {
+      await getMediaDevices()
       client.on('user-published', async (user, mediaType) => {
         await client.subscribe(user, mediaType)
         const tracks: MediaStreamTrack[] = []
@@ -136,6 +142,28 @@ export default function useAgora(
     }
   }
 
+  AgoraRTC.onCameraChanged = async (changedDevice) => {
+    if (changedDevice.state === 'ACTIVE') {
+      setCameraDevice(changedDevice.device)
+      // Switch to an existing device when the current device is unplugged.
+    } else if (changedDevice.device.label === tracks?.[0].getTrackLabel()) {
+      const oldCameras = await AgoraRTC.getCameras()
+      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+      oldCameras[0] && setCameraDevice(oldCameras[0])
+    }
+  }
+
+  AgoraRTC.onMicrophoneChanged = async (changedDevice) => {
+    if (changedDevice.state === 'ACTIVE') {
+      setMicrophoneDevice(changedDevice.device)
+      // Switch to an existing device when the current device is unplugged.
+    } else if (changedDevice.device.label === tracks?.[0].getTrackLabel()) {
+      const oldMicrophones = await AgoraRTC.getMicrophones()
+      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+      oldMicrophones[0] && setMicrophoneDevice(oldMicrophones[0])
+    }
+  }
+
   const renewToken = async (token: string) => {
     client.renewToken(token)
   }
@@ -180,6 +208,22 @@ export default function useAgora(
     }
   }
 
+  const getCameras = async () => {
+    return AgoraRTC.getCameras()
+  }
+
+  const updateCameraDevices = (device: MediaDeviceInfo) => {
+    setCameraDevice(device)
+  }
+
+  const getMicrophones = async () => {
+    return AgoraRTC.getMicrophones()
+  }
+
+  const updateMicroPhoneDevices = (device: MediaDeviceInfo) => {
+    setMicrophoneDevice(device)
+  }
+
   const leave = async () => {
     try {
       tracks?.forEach((track) => track.stop())
@@ -200,7 +244,11 @@ export default function useAgora(
     stream,
     userAudios,
     renewToken,
-    cameraDevices,
-    microphoneDevices,
+    cameraDevice,
+    microphoneDevice,
+    getCameras,
+    getMicrophones,
+    updateCameraDevices,
+    updateMicroPhoneDevices,
   }
 }

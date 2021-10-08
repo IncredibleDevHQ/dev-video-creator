@@ -15,7 +15,7 @@ import { getDimensions } from './effects'
 const SlidesThree = () => {
   const [activeSlideIndex, setActiveSlideIndex] = useState<number>(0)
   const [slides, setSlides] = useState<string[]>([])
-  const { fragment, state, stream, picture, payload, constraints } =
+  const { fragment, state } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [titleSpalshData, settitleSpalshData] = useState<{
     enable: boolean
@@ -98,13 +98,6 @@ const SlidesThree = () => {
       title: fragment.name as string,
     })
   }, [fragment?.configuration.properties])
-
-  const ref = useRef<HTMLVideoElement | null>(null)
-
-  useEffect(() => {
-    if (!ref.current) return
-    ref.current.srcObject = stream
-  }, [ref.current])
 
   useEffect(() => {
     if (state === 'recording') {

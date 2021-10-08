@@ -1,12 +1,11 @@
 /* eslint-disable consistent-return */
 import React, { useEffect, useRef } from 'react'
 import Konva from 'konva'
-import { Group, Image, Circle, Rect } from 'react-konva'
+import { Group, Image, Rect } from 'react-konva'
 import { useImage } from 'react-konva-utils'
 import { useRecoilValue } from 'recoil'
 import Gravatar from 'react-gravatar'
 import { StudioProviderProps, studioStore } from '../stores'
-import { Fragment_Participant } from '../../../generated/graphql'
 import { StudioUserConfig } from './Concourse'
 import useEdit, { ClipConfig } from '../hooks/use-edit'
 
@@ -17,11 +16,13 @@ const StudioUser = ({
   studioUserConfig,
   type,
   uid,
+  picture,
 }: {
   stream: MediaStream | null
   type: StudioUserType
   studioUserConfig: StudioUserConfig
   uid: string
+  picture: string
 }) => {
   const {
     x,
@@ -50,12 +51,13 @@ const StudioUser = ({
     radius: 8,
   }
 
-  const { picture, participants, constraints } =
+  const { participants, constraints } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
-  const [image] = useImage(picture as string, 'anonymous')
+  const [image] = useImage(picture, 'anonymous')
 
   const videoElement = React.useMemo(() => {
+    console.log('stream update', stream)
     if (!stream) return
     const element = document.createElement('video')
     element.srcObject = stream
@@ -115,7 +117,7 @@ const StudioUser = ({
       />
       <Rect
         x={(studioUserClipConfig && studioUserClipConfig.x + x) || 775}
-        y={y}
+        y={(studioUserClipConfig && studioUserClipConfig.y + y) || y}
         width={studioUserClipConfig?.width || defaultStudioUserClipConfig.width}
         height={
           studioUserClipConfig?.height || defaultStudioUserClipConfig.height
@@ -153,7 +155,7 @@ const StudioUser = ({
           />
         )}
         {type === 'remote' &&
-          (stream ? (
+          (stream && participants?.[uid]?.video ? (
             <Image
               ref={imageRef}
               image={videoElement}

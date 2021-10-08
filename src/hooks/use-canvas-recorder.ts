@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { extension } from 'mime-types'
 import { saveAs } from 'file-saver'
 import { getSeekableWebM } from '../utils/helpers'
@@ -102,9 +102,10 @@ const useCanvasRecorder = ({
   }
 
   const stopRecording = (fileName?: string) => {
+    if (mediaRecorder?.state === 'inactive') return
     if (mediaRecorder?.state === 'recording') {
       mediaRecorder?.stop()
-    } else console.log('Cannot stop canvas recorder', mediaRecorder?.state)
+    } else console.error('Cannot stop canvas recorder', mediaRecorder?.state)
   }
 
   const download = async (fileName?: string) => {

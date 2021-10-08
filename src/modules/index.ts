@@ -21,6 +21,8 @@ import PublicOrganisationPage from './Organisation/PublicOrganisationPage'
 import InviteScreen from './Invitation/InviteScreen'
 import PublicVideo from './PublicVideo/PublicVideo'
 import MagicLinkLogin from './Authentication/MagicLinkLogin'
+import NewNewFragment from './NewFragment/NewNewFragment'
+import FlickNew from './FlickNew/FlickNew'
 
 export {
   AuthenticateScreen,
@@ -45,4 +47,6 @@ export {
   InviteScreen,
   PublicVideo,
   MagicLinkLogin,
+  NewNewFragment,
+  FlickNew
 }

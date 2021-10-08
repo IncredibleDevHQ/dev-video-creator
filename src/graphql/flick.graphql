@@ -37,10 +37,12 @@ fragment BaseFlick on Flick {
   status
   deletedAt
   producedLink
+  configuration
   participants {
     user {
+      sub
+      displayName
       picture
-      email
     }
   }
 }
@@ -130,25 +132,26 @@ query SeriesFlicks($id: uuid!) {
   }
 }
 
-query SeriesFlickCount($seriesId: uuid) {
-  Flick_Series_aggregate(where: { seriesId: { _eq: $seriesId } }) {
-    aggregate {
-      count(columns: flickId)
-    }
+query GetFlickFragments($flickId: uuid!) {
+  Fragment(where: { flickId: { _eq: $flickId } }) {
+    ...FlickFragment
   }
 }
+
 
 mutation CreateNewFlick(
   $name: String!
   $description: String
   $scope: CreateFlickFlickScopeEnumEnum!
   $seriesId: uuid
+  $configuration: json
 ) {
   CreateFlick(
     name: $name
     scope: $scope
     description: $description
     seriesId: $seriesId
+    configuration: $configuration
   ) {
     id
   }
@@ -160,8 +163,12 @@ mutation UpdateSeriesFlick($flickIds: [uuid!]!, $seriesId: uuid!) {
   }
 }
 
-mutation InviteParticipantToFlick($email: String!, $flickId: String!) {
-  InviteParticipant(email: $email, flickId: $flickId) {
+mutation InviteParticipantToFlick(
+  $email: String!
+  $flickId: String!
+  $role: InviteParticipantRoleEnum!
+) {
+  InviteParticipant(email: $email, flickId: $flickId, role: $role) {
     id
   }
 }
@@ -174,23 +181,13 @@ query FlickActivity($flickId: uuid!) {
     ...FlickActivity
   }
 }
-fragment Note on Note {
-  id
-  note
-  sourceUrl
-  participant {
-    id
-    userSub
-    user {
-      picture
-      displayName
-    }
-  }
-}
 
-query GetFragmentNotes($fragmentId: uuid!) {
-  Note(where: { fragmentId: { _eq: $fragmentId } }) {
-    ...Note
+query GetFlickParticipants($flickId: uuid!) {
+  Participant(
+    where: { flickId: { _eq: $flickId } }
+    order_by: { user: { displayName: asc } }
+  ) {
+    ...FlickParticipants
   }
 }
 
@@ -214,6 +211,38 @@ mutation UpdateFlick(
 
 mutation DeleteFlick($flickId: uuid!) {
   DeleteFlick(flickId: $flickId) {
+    id
+  }
+}
+
+mutation UpdateFlick(
+  $flickId: String!
+  $name: String!
+  $organisationSlug: String
+  $scope: UpdateFlickScopeEnum
+  $difficulty: UpdateFlickDifficultyEnum
+) {
+  UpdateFlick(
+    flickId: $flickId
+    name: $name
+    organisationSlug: $organisationSlug
+    scope: $scope
+    difficulty: $difficulty
+  ) {
+    id
+  }
+}
+
+mutation UpdateParticipantRole(
+  $participantId: String!
+  $flickId: String!
+  $role: UpdateParticipantRoleEnum!
+) {
+  UpdateParticipantRole(
+    flickId: $flickId
+    participantId: $participantId
+    role: $role
+  ) {
     id
   }
 }

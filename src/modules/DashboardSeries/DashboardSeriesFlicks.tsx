@@ -1,27 +1,21 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { EmptyState, Heading, ScreenState } from '../../components'
+import { Heading, Text } from '../../components'
 import { Icons } from '../../constants'
-import { useGetUserSeriesQuery } from '../../generated/graphql'
+import { GetUserSeriesQuery } from '../../generated/graphql'
 
-const DashboardSeriesFlicks = () => {
-  const { data, error } = useGetUserSeriesQuery({
-    variables: {
-      limit: 60,
-    },
-  })
+const DashboardSeriesFlicks = ({
+  data,
+}: {
+  data: GetUserSeriesQuery | undefined
+}) => {
 
-  if (error)
-    return (
-      <ScreenState title="Something went wrong!!" subtitle={error.message} />
-    )
+  if (data && data.Series.length < 1) return <></>
 
   return (
-    <div className="">
-      {!data && (
-        <EmptyState text=" You dont have any series yet!" width={400} />
-      )}
-      <div className="gap-y-5 p-0 grid grid-cols-4 mr-20 justify-center mt-7 mb-20 rounded-md">
+    <div className="flex flex-col m-0 p-0 ml-28 mt-20">
+      <Text className="font-black text-xl">Your series</Text>
+      <div className="gap-y-5 p-0 grid grid-cols-4 mr-20 justify-center mt-20 mb-20 rounded-md">
         {data &&
           data.Series.map((series) => (
             <Link to={`/series/${series.id}`} key={series.id}>

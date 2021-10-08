@@ -30,6 +30,8 @@ import {
   InviteScreen,
   PublicVideo,
   MagicLinkLogin,
+  NewNewFragment,
+  FlickNew,
 } from './modules'
 import { ErrorBoundary, ScreenState } from './components'
 
@@ -50,7 +52,7 @@ function detectBrowser() {
     // @ts-ignore
     !!document.documentMode == true
   ) {
-    return 'IE' //crap
+    return 'IE' // crap
   } else {
     return 'Unknown'
   }
@@ -106,12 +108,12 @@ const App = () => {
                 <PrivateRoute
                   exact
                   path="/flick/:id/:fragmentId?"
-                  component={Flick}
+                  component={FlickNew}
                 />
                 <PrivateRoute
                   exact
                   path="/new-fragment/:id"
-                  component={NewFragment}
+                  component={NewNewFragment}
                 />
                 <PrivateRoute exact path="/flicks" component={Flicks} />
                 <PrivateRoute
@@ -121,11 +123,6 @@ const App = () => {
                 />
 
                 <PrivateRoute exact path="/profile/series" component={Series} />
-                <PrivateRoute
-                  exact
-                  path="/series/:id"
-                  component={SingleSeries}
-                />
                 <PrivateRoute
                   exact
                   path="/profile/flicks"
@@ -139,6 +136,9 @@ const App = () => {
                 <PrivateRoute exact path="/circle" component={Circle} />
                 <Route exact path="/view/:joinLink">
                   <PublicVideo />
+                </Route>
+                <Route exact path="/series/:id">
+                  <SingleSeries />
                 </Route>
                 <Route exact path="/login">
                   <AuthenticateScreen />

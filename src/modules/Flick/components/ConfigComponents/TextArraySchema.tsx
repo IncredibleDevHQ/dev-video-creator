@@ -101,7 +101,7 @@ const TextArraySchema = ({
       <div className="grid grid-cols-1 md:grid-cols-2">
         {points?.map((ques, index) => (
           <div
-            key={ques}
+            key={index}
             className="border-blue-200 px-4 py-2 m-1 flex items-center justify-between gap-2"
           >
             <div className="flex flex-col">
