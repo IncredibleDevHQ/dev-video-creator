@@ -1,25 +1,23 @@
 import axios from 'axios'
 import React, { useEffect, useState } from 'react'
-import { Group, Circle, Text, Rect, Image } from 'react-konva'
+import { Circle, Group, Image, Rect } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
-import { NextLineIcon, NextTokenIcon } from '../../../components'
-import config from '../../../config'
-import { API } from '../../../constants'
+import config from '../../../../config'
+import { API } from '../../../../constants'
 import {
   Fragment_Status_Enum_Enum,
   useGetTokenisedCodeLazyQuery,
-} from '../../../generated/graphql'
-import { Concourse } from '../components'
-import { CONFIG, StudioUserConfig } from '../components/Concourse'
-import { ControlButton } from '../components/MissionControl'
+} from '../../../../generated/graphql'
+import { Concourse } from '../../components'
+import { CONFIG, StudioUserConfig } from '../../components/Concourse'
 import RenderTokens, {
   controls,
   getRenderedTokens,
   RenderFocus,
-} from '../components/RenderTokens'
-import useCode, { ComputedToken } from '../hooks/use-code'
-import { StudioProviderProps, studioStore } from '../stores'
+} from '../../components/RenderTokens'
+import useCode from '../../hooks/use-code'
+import { StudioProviderProps, studioStore } from '../../stores'
 
 export const codeConfig = {
   fontSize: 14,
@@ -32,7 +30,7 @@ interface Position {
   currentIndex: number
 }
 
-const CodeJamEleven = () => {
+const CodeJamNine = () => {
   const { fragment, payload, updatePayload, state, isHost } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
@@ -49,16 +47,8 @@ const CodeJamEleven = () => {
   })
   const [focusCode, setFocusCode] = useState<boolean>(false)
 
-  const [incredibleLogo] = useImage(
-    `${config.storage.baseUrl}x-incredible.svg`,
-    'anonymous'
-  )
-  const [pytorchLogo] = useImage(
-    `${config.storage.baseUrl}pytorch.svg`,
-    'anonymous'
-  )
-  const [pytorchBg] = useImage(
-    `${config.storage.baseUrl}pytorch_bg.svg`,
+  const [hasuraLogo] = useImage(
+    `${config.storage.baseUrl}hasura.png`,
     'anonymous'
   )
 
@@ -134,105 +124,105 @@ const CodeJamEleven = () => {
       case 2:
         return [
           {
-            x: 700,
+            x: 735,
             y: 60,
             width: 240,
             height: 180,
             clipTheme: 'rect',
-            borderWidth: 12,
-            borderColor: '#8B008B',
+            borderColor: '#1EB4D4',
+            borderWidth: 8,
             studioUserClipConfig: {
-              x: 30,
+              x: 40,
               y: 0,
-              width: 180,
+              width: 160,
               height: 180,
-              radius: 90,
+              radius: 8,
             },
           },
           {
-            x: 700,
+            x: 735,
             y: 265,
             width: 240,
             height: 180,
             clipTheme: 'rect',
-            borderWidth: 12,
-            borderColor: '#8B008B',
+            borderColor: '#1EB4D4',
+            borderWidth: 8,
             studioUserClipConfig: {
-              x: 30,
+              x: 40,
               y: 0,
-              width: 180,
+              width: 160,
               height: 180,
-              radius: 90,
+              radius: 8,
             },
           },
         ]
       case 3:
         return [
           {
-            x: 705,
+            x: 775,
             y: 58.5,
             width: 160,
             height: 120,
             clipTheme: 'rect',
-            borderWidth: 12,
-            borderColor: '#8B008B',
+            borderColor: '#1EB4D4',
+            borderWidth: 8,
             studioUserClipConfig: {
-              x: 20,
+              x: 0,
               y: 0,
-              width: 120,
+              width: 160,
               height: 120,
-              radius: 60,
+              radius: 8,
             },
           },
           {
-            x: 705,
+            x: 775,
             y: 198.5,
             width: 160,
             height: 120,
             clipTheme: 'rect',
-            borderWidth: 12,
-            borderColor: '#8B008B',
+            borderColor: '#1EB4D4',
+            borderWidth: 8,
             studioUserClipConfig: {
-              x: 20,
+              x: 0,
               y: 0,
-              width: 120,
+              width: 160,
               height: 120,
-              radius: 60,
+              radius: 8,
             },
           },
           {
-            x: 705,
+            x: 775,
             y: 338.5,
             width: 160,
             height: 120,
             clipTheme: 'rect',
-            borderWidth: 12,
-            borderColor: '#8B008B',
+            borderColor: '#1EB4D4',
+            borderWidth: 8,
             studioUserClipConfig: {
-              x: 20,
+              x: 0,
               y: 0,
-              width: 120,
+              width: 160,
               height: 120,
-              radius: 60,
+              radius: 8,
             },
           },
         ]
       default:
         return [
           {
-            x: 660,
-            y: 140.5,
+            x: 695,
+            y: 120.5,
             width: 320,
             height: 240,
             clipTheme: 'rect',
-            borderWidth: 16,
-            borderColor: '#8B008B',
+            borderColor: '#1EB4D4',
+            borderWidth: 8,
             studioUserClipConfig: {
-              x: 60,
+              x: 80,
               y: 0,
-              width: 200,
-              height: 200,
-              radius: 100,
+              width: 160,
+              height: 240,
+              radius: 8,
             },
           },
         ]
@@ -241,27 +231,40 @@ const CodeJamEleven = () => {
 
   const layerChildren = [
     <Rect
-      strokeWidth={1}
       x={0}
       y={0}
-      fill="#F5F6F7"
       width={CONFIG.width}
       height={CONFIG.height}
-      stroke="#111111"
-    />,
-    <Image
-      image={pytorchBg}
-      x={1}
-      y={1}
-      fill="#F5F6F7"
-      width={CONFIG.width - 2}
-      height={CONFIG.height - 2}
+      fill="#D6EBFF"
     />,
     <Rect
+      key="smallRect1"
+      x={490}
+      y={20}
+      width={12}
+      height={12}
+      fill="#F47E7E"
+      rotation={-45}
+      opacity={1}
+    />,
+    <Rect
+      key="smallRect2"
+      x={820}
+      y={505}
+      width={24}
+      height={24}
+      fill="#5C94C8"
+      rotation={-45}
+      opacity={1}
+    />,
+    <Circle x={240} y={460} radius={20} stroke="#F47E7E" strokeWidth={8} />,
+    <Rect
       x={37}
-      y={56}
+      y={58}
       width={704}
       height={396}
+      stroke="#1EB4D4"
+      strokeWidth={4}
       fill="#202026"
       cornerRadius={8}
     />,
@@ -298,8 +301,7 @@ const CodeJamEleven = () => {
         }}
       />
     ),
-    <Image image={pytorchLogo} x={30} y={CONFIG.height - 70} />,
-    <Image image={incredibleLogo} x={810} y={CONFIG.height - 70} />,
+    <Image image={hasuraLogo} x={30} y={CONFIG.height - 60} />,
   ]
 
   return (
@@ -312,4 +314,4 @@ const CodeJamEleven = () => {
   )
 }
 
-export default CodeJamEleven
+export default CodeJamNine

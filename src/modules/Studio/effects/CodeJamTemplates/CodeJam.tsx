@@ -2,21 +2,21 @@ import axios from 'axios'
 import React, { useEffect, useState } from 'react'
 import { Group, Circle } from 'react-konva'
 import { useRecoilValue } from 'recoil'
-import { API } from '../../../constants'
+import { API } from '../../../../constants'
 import {
   Fragment_Status_Enum_Enum,
   useGetTokenisedCodeLazyQuery,
-} from '../../../generated/graphql'
-import { Concourse } from '../components'
-import { CONFIG } from '../components/Concourse'
+} from '../../../../generated/graphql'
+import { Concourse } from '../../components'
+import { CONFIG } from '../../components/Concourse'
 import RenderTokens, {
   controls,
   getRenderedTokens,
   Position,
   RenderFocus,
-} from '../components/RenderTokens'
-import useCode from '../hooks/use-code'
-import { StudioProviderProps, studioStore } from '../stores'
+} from '../../components/RenderTokens'
+import useCode from '../../hooks/use-code'
+import { StudioProviderProps, studioStore } from '../../stores'
 
 export const codeConfig = {
   fontSize: 14,

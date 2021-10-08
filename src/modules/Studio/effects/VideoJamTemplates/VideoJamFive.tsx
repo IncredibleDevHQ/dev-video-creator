@@ -1,18 +1,17 @@
 import React, { useEffect, useState } from 'react'
+import { FiPause, FiPlay } from 'react-icons/fi'
+import { Image, Rect } from 'react-konva'
 import { useRecoilValue } from 'recoil'
-import Konva from 'konva'
-import { Circle, Group, Image, Rect } from 'react-konva'
-import { FiPlay, FiPause } from 'react-icons/fi'
 import useImage from 'use-image'
-import { Concourse } from '../components'
-import { ControlButton } from '../components/MissionControl'
-import { CONFIG, StudioUserConfig } from '../components/Concourse'
-import { StudioProviderProps, studioStore } from '../stores'
-import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
-import { Video, VideoConfig } from '../components/Video'
-import config from '../../../config'
+import config from '../../../../config'
+import { Fragment_Status_Enum_Enum } from '../../../../generated/graphql'
+import { Concourse } from '../../components'
+import { CONFIG, StudioUserConfig } from '../../components/Concourse'
+import { ControlButton } from '../../components/MissionControl'
+import { Video, VideoConfig } from '../../components/Video'
+import { StudioProviderProps, studioStore } from '../../stores'
 
-const VideoJamSix = () => {
+const VideoJamFour = () => {
   const { state, fragment, payload, updatePayload } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [titleSpalshData, settitleSpalshData] = useState<{
@@ -20,16 +19,12 @@ const VideoJamSix = () => {
     title?: string
   }>({ enable: false })
 
-  const [astroPlanet] = useImage(
-    `${config.storage.baseUrl}planet.svg`,
+  const [openSaucedLogo] = useImage(
+    `${config.storage.baseUrl}open-sauce-logo.svg`,
     'anonymous'
   )
-  const [astroLogo] = useImage(
-    `${config.storage.baseUrl}astro-logo.svg`,
-    'anonymous'
-  )
-  const [windowOps] = useImage(
-    `${config.storage.baseUrl}window-ops.svg`,
+  const [openSaucedBg] = useImage(
+    `${config.storage.baseUrl}opensauce-bg.svg`,
     'anonymous'
   )
 
@@ -118,13 +113,9 @@ const VideoJamSix = () => {
     cornerRadius: 8,
     performClip: true,
     backgroundRectX: 27,
-    videoFill: '#1F2937',
     backgroundRectY: 48,
-    backgroundRectColor: '#FF5D01',
-    borderColor: '#1F2937',
-    borderWidth: 6,
-    backgroundRectBorderWidth: 3,
-    backgroundRectBorderColor: '#1F2937',
+    videoFill: '#FAEACE',
+    backgroundRectColor: '#E0A764',
   }
 
   const studioCoordinates: StudioUserConfig[] = (() => {
@@ -132,46 +123,40 @@ const VideoJamSix = () => {
       case 2:
         return [
           {
-            x: 755,
-            y: 80,
-            width: 200,
-            height: 150,
+            x: 735,
+            y: 60,
+            width: 240,
+            height: 180,
             clipTheme: 'rect',
-            borderWidth: 6,
-            borderColor: '#1F2937',
+            borderWidth: 8,
             studioUserClipConfig: {
-              x: 20,
+              x: 40,
               y: 0,
               width: 160,
-              height: 150,
+              height: 180,
               radius: 8,
             },
             backgroundRectX: 765,
-            backgroundRectY: 70,
-            backgroundRectColor: '#FF5D01',
-            backgroundRectBorderWidth: 3,
-            backgroundRectBorderColor: '#1F2937',
+            backgroundRectY: 50,
+            backgroundRectColor: '#E0A764',
           },
           {
-            x: 755,
-            y: 305,
-            width: 200,
-            height: 150,
+            x: 735,
+            y: 265,
+            width: 240,
+            height: 180,
             clipTheme: 'rect',
-            borderWidth: 6,
-            borderColor: '#1F2937',
+            borderWidth: 8,
             studioUserClipConfig: {
-              x: 20,
+              x: 40,
               y: 0,
               width: 160,
-              height: 150,
+              height: 180,
               radius: 8,
             },
             backgroundRectX: 765,
-            backgroundRectY: 295,
-            backgroundRectColor: '#FF5D01',
-            backgroundRectBorderWidth: 3,
-            backgroundRectBorderColor: '#1F2937',
+            backgroundRectY: 255,
+            backgroundRectColor: '#E0A764',
           },
         ]
       case 3:
@@ -182,8 +167,7 @@ const VideoJamSix = () => {
             width: 160,
             height: 120,
             clipTheme: 'rect',
-            borderWidth: 6,
-            borderColor: '#1F2937',
+            borderWidth: 8,
             studioUserClipConfig: {
               x: 0,
               y: 0,
@@ -193,9 +177,7 @@ const VideoJamSix = () => {
             },
             backgroundRectX: 765,
             backgroundRectY: 48.5,
-            backgroundRectColor: '#FF5D01',
-            backgroundRectBorderWidth: 3,
-            backgroundRectBorderColor: '#1F2937',
+            backgroundRectColor: '#E0A764',
           },
           {
             x: 775,
@@ -203,8 +185,7 @@ const VideoJamSix = () => {
             width: 160,
             height: 120,
             clipTheme: 'rect',
-            borderWidth: 6,
-            borderColor: '#1F2937',
+            borderWidth: 8,
             studioUserClipConfig: {
               x: 0,
               y: 0,
@@ -214,9 +195,7 @@ const VideoJamSix = () => {
             },
             backgroundRectX: 765,
             backgroundRectY: 188.5,
-            backgroundRectColor: '#FF5D01',
-            backgroundRectBorderWidth: 3,
-            backgroundRectBorderColor: '#1F2937',
+            backgroundRectColor: '#E0A764',
           },
           {
             x: 775,
@@ -224,8 +203,7 @@ const VideoJamSix = () => {
             width: 160,
             height: 120,
             clipTheme: 'rect',
-            borderWidth: 6,
-            borderColor: '#1F2937',
+            borderWidth: 8,
             studioUserClipConfig: {
               x: 0,
               y: 0,
@@ -235,21 +213,18 @@ const VideoJamSix = () => {
             },
             backgroundRectX: 765,
             backgroundRectY: 328.5,
-            backgroundRectColor: '#FF5D01',
-            backgroundRectBorderWidth: 3,
-            backgroundRectBorderColor: '#1F2937',
+            backgroundRectColor: '#E0A764',
           },
         ]
       default:
         return [
           {
             x: 695,
-            y: 140.5,
+            y: 120.5,
             width: 320,
             height: 240,
             clipTheme: 'rect',
-            borderWidth: 6,
-            borderColor: '#1F2937',
+            borderWidth: 8,
             studioUserClipConfig: {
               x: 80,
               y: 0,
@@ -258,28 +233,10 @@ const VideoJamSix = () => {
               radius: 8,
             },
             backgroundRectX: 765,
-            backgroundRectY: 130.5,
-            backgroundRectColor: '#FF5D01',
-            backgroundRectBorderWidth: 3,
-            backgroundRectBorderColor: '#1F2937',
+            backgroundRectY: 110.5,
+            backgroundRectColor: '#E0A764',
           },
         ]
-    }
-  })()
-
-  const windowOpsImages = (() => {
-    switch (fragment?.participants.length) {
-      case 2:
-        return (
-          <>
-            <Image image={windowOps} x={860} y={35} />
-            <Image image={windowOps} x={860} y={260} />
-          </>
-        )
-      case 3:
-        return <></>
-      default:
-        return <Image image={windowOps} x={860} y={95} />
     }
   })()
 
@@ -290,24 +247,17 @@ const VideoJamSix = () => {
           y={0}
           width={CONFIG.width}
           height={CONFIG.height}
-          fillLinearGradientColorStops={[
-            0,
-            '#140D1F',
-            0.41,
-            '#361367',
-            1,
-            '#6E1DDB',
-          ]}
-          fillLinearGradientStartPoint={{ x: 0, y: 0 }}
-          fillLinearGradientEndPoint={{
-            x: CONFIG.width,
-            y: CONFIG.height,
-          }}
+          fill="#FFFFFF"
         />,
-        <Image image={astroPlanet} x={-10} y={0} />,
+        <Image
+          image={openSaucedBg}
+          x={0}
+          y={0}
+          width={CONFIG.width}
+          height={CONFIG.height}
+        />,
         <Video videoElement={videoElement} videoConfig={videoConfig} />,
-        { ...windowOpsImages },
-        <Image image={astroLogo} x={30} y={CONFIG.height - 60} />,
+        <Image image={openSaucedLogo} x={30} y={CONFIG.height - 60} />,
       ]
     : [<></>]
 
@@ -321,4 +271,4 @@ const VideoJamSix = () => {
   )
 }
 
-export default VideoJamSix
+export default VideoJamFour
