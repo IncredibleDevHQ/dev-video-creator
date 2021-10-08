@@ -23,6 +23,7 @@ import { canvasStore, StudioProviderProps, studioStore } from '../stores'
 import { Avatar, Heading, Tooltip } from '../../../components'
 import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
 import SwitchMediaDevices from './SwitchMediaDevices'
+import { PresenterNotes } from '.'
 
 export const ControlButton = ({
   appearance,
@@ -93,8 +94,8 @@ const RaiseHandsMenu = ({ participants }: { participants: any[] }) => {
 
 const MissionControl = ({ controls }: { controls: JSX.Element[] }) => {
   const {
+    fragment,
     constraints,
-    startRecording,
     showFinalTransition,
     upload,
     reset,
@@ -102,9 +103,8 @@ const MissionControl = ({ controls }: { controls: JSX.Element[] }) => {
     mute,
     participants,
     updateParticipant,
+    payload,
     updatePayload,
-    cameraDevices,
-    microphoneDevices,
     participantId,
   } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [canvas, setCanvas] = useRecoilState(canvasStore)
@@ -114,6 +114,18 @@ const MissionControl = ({ controls }: { controls: JSX.Element[] }) => {
   const [participantsArray, setParticipantsArray] = useState<any[]>([])
   const [openSwitchMediaDevicesModal, setOpenSwitchMediaDevicesModal] =
     useState(false)
+  const [showNotes, setShowNotes] = useState(false)
+
+  const togglePresenterNotes = (to: boolean) => {
+    setShowNotes(to)
+  }
+
+  // for shortcut key
+  window.addEventListener('keydown', (event) => {
+    if (event.key === 'n') {
+      setShowNotes(true)
+    }
+  })
 
   useEffect(() => {
     if (!participants) return
@@ -155,7 +167,11 @@ const MissionControl = ({ controls }: { controls: JSX.Element[] }) => {
               setOpenSwitchMediaDevicesModal(true)
             }}
           />
-          <ControlButton icon={FiClipboard} appearance="primary" />
+          <ControlButton
+            icon={FiClipboard}
+            appearance="primary"
+            onClick={() => togglePresenterNotes(true)}
+          />
           <ControlButton
             icon={BiReset}
             className="my-2"
@@ -221,11 +237,13 @@ const MissionControl = ({ controls }: { controls: JSX.Element[] }) => {
           <hr className="bg-grey-darker h-px my-2" />
 
           <>
-            {state === 'recording' && (
+            {(state === 'recording' ||
+              payload?.status === Fragment_Status_Enum_Enum.Live) && (
               <ControlButton
                 className="my-2"
                 icon={FiStopCircle}
                 appearance="danger"
+                disabled={!studio.isHost}
                 onClick={() => {
                   showFinalTransition()
                 }}
@@ -264,6 +282,7 @@ const MissionControl = ({ controls }: { controls: JSX.Element[] }) => {
                 className="my-2"
                 icon={FiCircle}
                 appearance="primary"
+                disabled={!studio.isHost}
                 onClick={() => {
                   // startRecording()
                   setStudio({ ...studio, state: 'countDown' })
@@ -277,15 +296,18 @@ const MissionControl = ({ controls }: { controls: JSX.Element[] }) => {
         </div>
       </div>
       <SwitchMediaDevices
-        cameraDevices={cameraDevices}
         open={openSwitchMediaDevicesModal}
-        audioDevices={microphoneDevices}
-        handleClose={async () => {
-          updateParticipant?.({ video: !constraints?.video })
-          await mute('video')
-          setOpenSwitchMediaDevicesModal(false)
-        }}
+        handleClose={async () => setOpenSwitchMediaDevicesModal(false)}
       />
+      {fragment && participantId && (
+        <PresenterNotes
+          open={showNotes}
+          fragmentId={fragment.id}
+          flickId={fragment.flickId}
+          participantId={participantId}
+          handleClose={() => togglePresenterNotes(false)}
+        />
+      )}
     </div>
   )
 }
