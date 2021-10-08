@@ -25,7 +25,7 @@ export interface FlickConfiguration {
 const initialFlick: CreateNewFlickMutationVariables = {
   name: '',
   description: '',
-  scope: CreateFlickFlickScopeEnumEnum.Private,
+  scope: CreateFlickFlickScopeEnumEnum.Public,
   configuration: {
     themeId: 0,
   } as FlickConfiguration,
