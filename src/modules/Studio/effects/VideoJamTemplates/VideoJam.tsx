@@ -1,14 +1,12 @@
 import React, { useEffect, useState } from 'react'
+import { FiPause, FiPlay } from 'react-icons/fi'
 import { useRecoilValue } from 'recoil'
-import Konva from 'konva'
-import { Image } from 'react-konva'
-import { FiPlay, FiPause } from 'react-icons/fi'
-import { Concourse } from '../components'
-import { ControlButton } from '../components/MissionControl'
-import { CONFIG } from '../components/Concourse'
-import { StudioProviderProps, studioStore } from '../stores'
-import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
-import { Video, VideoConfig } from '../components/Video'
+import { Fragment_Status_Enum_Enum } from '../../../../generated/graphql'
+import { Concourse } from '../../components'
+import { CONFIG } from '../../components/Concourse'
+import { ControlButton } from '../../components/MissionControl'
+import { Video, VideoConfig } from '../../components/Video'
+import { StudioProviderProps, studioStore } from '../../stores'
 
 const VideoJam = () => {
   const { state, fragment, payload, updatePayload } =

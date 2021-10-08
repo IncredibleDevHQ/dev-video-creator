@@ -1,23 +1,23 @@
 import axios from 'axios'
 import React, { useEffect, useState } from 'react'
-import { Group, Circle, Text, Rect, Image } from 'react-konva'
+import { Circle, Group, Image, Rect } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
-import config from '../../../config'
-import { API } from '../../../constants'
+import config from '../../../../config'
+import { API } from '../../../../constants'
 import {
   Fragment_Status_Enum_Enum,
   useGetTokenisedCodeLazyQuery,
-} from '../../../generated/graphql'
-import { Concourse } from '../components'
-import { CONFIG, StudioUserConfig } from '../components/Concourse'
+} from '../../../../generated/graphql'
+import { Concourse } from '../../components'
+import { CONFIG, StudioUserConfig } from '../../components/Concourse'
 import RenderTokens, {
   controls,
   getRenderedTokens,
   RenderFocus,
-} from '../components/RenderTokens'
-import useCode from '../hooks/use-code'
-import { StudioProviderProps, studioStore } from '../stores'
+} from '../../components/RenderTokens'
+import useCode from '../../hooks/use-code'
+import { StudioProviderProps, studioStore } from '../../stores'
 
 export const codeConfig = {
   fontSize: 14,
@@ -30,7 +30,7 @@ interface Position {
   currentIndex: number
 }
 
-const CodeJamSeven = () => {
+const CodeJamTen = () => {
   const { fragment, payload, updatePayload, state, isHost } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
@@ -47,16 +47,10 @@ const CodeJamSeven = () => {
   })
   const [focusCode, setFocusCode] = useState<boolean>(false)
 
+  const [tsLogo] = useImage(`${config.storage.baseUrl}tslogo.svg`, 'anonymous')
+
   const [incredibleLogo] = useImage(
-    `${config.storage.baseUrl}x-incredible-black.svg`,
-    'anonymous'
-  )
-  const [nextJSLogo] = useImage(
-    `${config.storage.baseUrl}nextJSLogo.svg`,
-    'anonymous'
-  )
-  const [nextJSBg] = useImage(
-    `${config.storage.baseUrl}nextJS_bg.svg`,
+    `${config.storage.baseUrl}x-incredible.svg`,
     'anonymous'
   )
 
@@ -137,14 +131,14 @@ const CodeJamSeven = () => {
             width: 240,
             height: 180,
             clipTheme: 'rect',
+            borderColor: '#235A97',
             borderWidth: 8,
-            borderColor: '#111111',
             studioUserClipConfig: {
               x: 40,
               y: 0,
               width: 160,
               height: 180,
-              radius: 0,
+              radius: 8,
             },
           },
           {
@@ -153,14 +147,14 @@ const CodeJamSeven = () => {
             width: 240,
             height: 180,
             clipTheme: 'rect',
+            borderColor: '#235A97',
             borderWidth: 8,
-            borderColor: '#111111',
             studioUserClipConfig: {
               x: 40,
               y: 0,
               width: 160,
               height: 180,
-              radius: 0,
+              radius: 8,
             },
           },
         ]
@@ -172,14 +166,14 @@ const CodeJamSeven = () => {
             width: 160,
             height: 120,
             clipTheme: 'rect',
+            borderColor: '#235A97',
             borderWidth: 8,
-            borderColor: '#111111',
             studioUserClipConfig: {
               x: 0,
               y: 0,
               width: 160,
               height: 120,
-              radius: 0,
+              radius: 8,
             },
           },
           {
@@ -188,14 +182,14 @@ const CodeJamSeven = () => {
             width: 160,
             height: 120,
             clipTheme: 'rect',
+            borderColor: '#235A97',
             borderWidth: 8,
-            borderColor: '#111111',
             studioUserClipConfig: {
               x: 0,
               y: 0,
               width: 160,
               height: 120,
-              radius: 0,
+              radius: 8,
             },
           },
           {
@@ -204,14 +198,14 @@ const CodeJamSeven = () => {
             width: 160,
             height: 120,
             clipTheme: 'rect',
+            borderColor: '#235A97',
             borderWidth: 8,
-            borderColor: '#111111',
             studioUserClipConfig: {
               x: 0,
               y: 0,
               width: 160,
               height: 120,
-              radius: 0,
+              radius: 8,
             },
           },
         ]
@@ -224,14 +218,14 @@ const CodeJamSeven = () => {
             height: 240,
             clipTheme: 'rect',
             borderWidth: 8,
-            borderColor: '#111111',
             studioUserClipConfig: {
               x: 80,
               y: 0,
               width: 160,
               height: 240,
-              radius: 0,
+              radius: 8,
             },
+            borderColor: '#235A97',
           },
         ]
     }
@@ -239,30 +233,22 @@ const CodeJamSeven = () => {
 
   const layerChildren = [
     <Rect
-      strokeWidth={1}
       x={0}
       y={0}
-      fill="#F5F6F7"
       width={CONFIG.width}
       height={CONFIG.height}
-      stroke="#111111"
+      fill="#3178C6"
     />,
-    <Image
-      image={nextJSBg}
-      x={1}
-      y={1}
-      fill="#F5F6F7"
-      width={CONFIG.width - 2}
-      height={CONFIG.height - 2}
-    />,
+
     <Rect
       x={37}
-      y={56}
+      y={58}
       width={704}
       height={396}
       fill="#202026"
-      strokeWidth={2}
-      stroke="#111111"
+      stroke="#235A97"
+      strokeWidth={4}
+      cornerRadius={8}
     />,
     <Group x={52} y={73} key="circleGroup">
       <Circle key="redCircle" x={0} y={0} fill="#FF605C" radius={5} />
@@ -293,12 +279,12 @@ const CodeJamSeven = () => {
           y: 58,
           width: 704,
           height: 396,
-          radius: 0,
+          radius: 8,
         }}
       />
     ),
-    <Image image={incredibleLogo} x={30} y={CONFIG.height - 70} />,
-    <Image image={nextJSLogo} x={840} y={CONFIG.height - 68} />,
+    <Image image={incredibleLogo} x={25} y={CONFIG.height - 60} />,
+    <Image image={tsLogo} x={820} y={CONFIG.height - 60} />,
   ]
 
   return (
@@ -311,4 +297,4 @@ const CodeJamSeven = () => {
   )
 }
 
-export default CodeJamSeven
+export default CodeJamTen
