@@ -268,7 +268,7 @@ const Studio = () => {
 
   useEffect(() => {
     if (timer === 0) return
-    if (timer === 90) {
+    if (timer === 180) {
       updatePayload({ ...payload, status: Fragment_Status_Enum_Enum.Ended })
     }
   }, [timer])
@@ -393,7 +393,7 @@ const Studio = () => {
             </Heading>
           </div>
           {payload?.status === Fragment_Status_Enum_Enum.Live ? (
-            <Timer target={90} timer={timer} />
+            <Timer target={180} timer={timer} />
           ) : (
             <></>
           )}
