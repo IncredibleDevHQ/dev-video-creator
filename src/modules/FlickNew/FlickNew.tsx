@@ -158,15 +158,16 @@ const FragmentConfiguration = () => {
       {currentTab.value === 'Content' && <FragmentContent />}
       {currentTab.value === 'Participants' && <FragmentParticipants />}
       {currentTab.value === 'Notes' && (
-        <Notes
-          fragmentId={activeFragmentId}
-          flickId={flick.id}
-          participantId={
-            fragment.participants.find(
-              ({ participant }) => participant.userSub === sub
-            )?.participant.id
-          }
-        />
+        <div className="p-4">
+          <Notes
+            flickId={flick.id}
+            participantId={
+              fragment.participants.find(
+                ({ participant }) => participant.userSub === sub
+              )?.participant.id
+            }
+          />
+        </div>
       )}
     </div>
   ) : (
@@ -239,7 +240,7 @@ const FragmentParticipants = () => {
         onClick={() => setIsAddFragmentParticipantModalOpen(true)}
       >
         <FiPlus size={32} className="mr-4" />
-        <Text className="font-semibold">Invite</Text>
+        <Text className="font-semibold">Add</Text>
       </div>
       <UpdateFragmentParticipantsModal
         key={`modal-${activeFragmentId}`}

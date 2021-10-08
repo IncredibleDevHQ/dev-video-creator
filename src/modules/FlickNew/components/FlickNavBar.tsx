@@ -122,7 +122,7 @@ const FlickNavBar = () => {
             setIsShareOpen(true)
           }}
         >
-          Share
+          Invite
         </Button>
         <ShareModal
           open={isShareOpen}
