@@ -1,15 +1,17 @@
 import Konva from 'konva'
 import React, { useEffect, useState } from 'react'
-import { Group, Text, Rect } from 'react-konva'
+import { Group, Rect, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import { NextLineIcon, NextTokenIcon } from '../../../components'
 import FocusCodeIcon from '../../../components/FocusCodeIcon'
-import { codeConfig } from '../effects/CodeJam'
+import SwapIcon from '../../../components/SwapIcon'
+import { codeConfig } from '../effects/CodeJamTemplates/CodeJam'
 import TypingEffect from '../effects/TypingEffect'
 import { ComputedToken } from '../hooks/use-code'
 import { StudioProviderProps, studioStore } from '../stores'
 import { ControlButton } from './MissionControl'
 
+export type FragmentState = 'onlyUserMedia' | 'onlyFragment' | 'both'
 export interface TokenRenderState {
   tokens: ComputedToken[]
   index: number
@@ -129,62 +131,123 @@ export const RenderFocus = ({
 export const controls = (
   setFocusCode: React.Dispatch<React.SetStateAction<boolean>>,
   position: Position,
-  computedTokens: ComputedToken[]
+  computedTokens: ComputedToken[],
+  fragmentState?: FragmentState,
+  setFragmentState?: React.Dispatch<React.SetStateAction<FragmentState>>
 ) => {
   const { payload, updatePayload, state } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
-  return state === 'recording'
-    ? [
-        <ControlButton
-          key="nextToken"
-          icon={NextTokenIcon}
-          className="my-2"
-          appearance="primary"
-          onClick={() => {
-            setFocusCode(false)
-            if (position.currentIndex < computedTokens.length)
-              updatePayload?.({
-                currentIndex: position.currentIndex + 1,
-                prevIndex: position.currentIndex,
-                isFocus: false,
-              })
-          }}
-        />,
-        <ControlButton
-          className="my-2"
-          key="nextLine"
-          icon={NextLineIcon}
-          appearance="primary"
-          onClick={() => {
-            setFocusCode(false)
-            const current = computedTokens[position.currentIndex]
-            let next = computedTokens.findIndex(
-              (t) => t.lineNumber > current.lineNumber
-            )
-            if (next === -1) next = computedTokens.length
-            updatePayload?.({
-              prevIndex: position.currentIndex,
-              currentIndex: next,
-              isFocus: false,
-            })
-          }}
-        />,
-        <ControlButton
-          className="my-2"
-          key="focus"
-          icon={FocusCodeIcon}
-          appearance="primary"
-          onClick={() => {
-            setFocusCode(true)
+  if (state === 'recording')
+    return [
+      <ControlButton
+        key="swap"
+        icon={SwapIcon}
+        className="my-2"
+        appearance="primary"
+        onClick={() => {
+          if (!setFragmentState) return
+          if (fragmentState === 'onlyUserMedia') {
+            // setFragmentState('onlyFragment')
+            // updating the fragment state in the payload to onlyFragment state
             updatePayload?.({
               prevIndex: payload?.prevIndex,
               currentIndex: payload?.currentIndex,
-              isFocus: true,
+              isFocus: payload?.isFocus,
+              fragmentState: 'onlyFragment',
             })
-          }}
-        />,
-      ]
-    : [<></>]
+          } else {
+            // setFragmentState('onlyUserMedia')
+            // updating the fragment state in the payload to onlyUserMedia state
+            updatePayload?.({
+              prevIndex: payload?.prevIndex,
+              currentIndex: payload?.currentIndex,
+              isFocus: payload?.isFocus,
+              fragmentState: 'onlyUserMedia',
+            })
+          }
+        }}
+      />,
+      <ControlButton
+        key="nextToken"
+        icon={NextTokenIcon}
+        className="my-2"
+        appearance="primary"
+        onClick={() => {
+          // setFocusCode(false)
+          if (position.currentIndex < computedTokens.length)
+            updatePayload?.({
+              currentIndex: position.currentIndex + 1,
+              prevIndex: position.currentIndex,
+              isFocus: false,
+            })
+        }}
+      />,
+      <ControlButton
+        className="my-2"
+        key="nextLine"
+        icon={NextLineIcon}
+        appearance="primary"
+        onClick={() => {
+          // setFocusCode(false)
+          const current = computedTokens[position.currentIndex]
+          let next = computedTokens.findIndex(
+            (t) => t.lineNumber > current.lineNumber
+          )
+          if (next === -1) next = computedTokens.length
+          updatePayload?.({
+            prevIndex: position.currentIndex,
+            currentIndex: next,
+            isFocus: false,
+          })
+        }}
+      />,
+      <ControlButton
+        className="my-2"
+        key="focus"
+        icon={FocusCodeIcon}
+        appearance="primary"
+        onClick={() => {
+          // setFocusCode(true)
+          updatePayload?.({
+            prevIndex: payload?.prevIndex,
+            currentIndex: payload?.currentIndex,
+            isFocus: true,
+          })
+        }}
+      />,
+    ]
+  if (state === 'ready')
+    return [
+      <ControlButton
+        key="swap"
+        icon={SwapIcon}
+        className="my-2"
+        appearance="primary"
+        onClick={() => {
+          if (!setFragmentState) return
+          if (fragmentState === 'onlyUserMedia') {
+            // setFragmentState('onlyFragment')
+            // updating the fragment state in the payload to onlyFragment state
+            updatePayload?.({
+              prevIndex: payload?.prevIndex,
+              currentIndex: payload?.currentIndex,
+              isFocus: payload?.isFocus,
+              fragmentState: 'onlyFragment',
+            })
+          } else {
+            // setFragmentState('onlyUserMedia')
+            // updating the fragment state in the payload to onlyUserMedia state
+            updatePayload?.({
+              prevIndex: payload?.prevIndex,
+              currentIndex: payload?.currentIndex,
+              isFocus: payload?.isFocus,
+              fragmentState: 'onlyUserMedia',
+            })
+          }
+        }}
+      />,
+    ]
+  return [<></>]
 }
 
 export const getRenderedTokens = (

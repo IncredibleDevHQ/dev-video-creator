@@ -13,6 +13,7 @@ import IncredibleLogo from './assets/Incredible-Logo.svg'
 import seriesFolder from './assets/albums-outline.svg'
 import flickIcon from './assets/flickIcon.svg'
 import EmptyState from './assets/EmptyState.svg'
+import StudioLogo from './assets/Logo-studio.svg'
 
 export const ASSETS = {
   ICONS: {
@@ -24,6 +25,7 @@ export const ASSETS = {
     Incredible_logo,
     TWITTER_LOGO,
     IncredibleLogo,
+    StudioLogo,
   },
   ANIMATION: {
     LOGIN_USER_ANIMATION,

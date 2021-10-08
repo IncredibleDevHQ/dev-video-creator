@@ -1,23 +1,23 @@
+import { cx } from '@emotion/css'
+import Konva from 'konva'
+import { KonvaEventObject } from 'konva/lib/Node'
 import React, { createRef, useEffect, useState } from 'react'
+import { Group, Layer, Rect, Stage, Text } from 'react-konva'
 import {
   useRecoilBridgeAcrossReactRoots_UNSTABLE,
   useRecoilState,
   useRecoilValue,
 } from 'recoil'
-import { cx } from '@emotion/css'
-import Konva from 'konva'
-import { Stage, Layer, Rect, Group, Text } from 'react-konva'
-import { KonvaEventObject } from 'konva/lib/Node'
-import MissionControl from './MissionControl'
-import StudioUser from './StudioUser'
-import { canvasStore, StudioProviderProps, studioStore } from '../stores'
 import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
+import { User, userState } from '../../../stores/user.store'
 import {
   CircleCenterShrink,
   MultiCircleCenterGrow,
 } from '../effects/FragmentTransitions'
 import { ClipConfig } from '../hooks/use-edit'
-import { User, userState } from '../../../stores/user.store'
+import { canvasStore, StudioProviderProps, studioStore } from '../stores'
+import MissionControl from './MissionControl'
+import StudioUser from './StudioUser'
 
 export interface StudioUserConfig {
   x: number
@@ -41,6 +41,7 @@ interface ConcourseProps {
   titleSpalshData?: { enable: boolean; title?: string }
   studioUserConfig?: StudioUserConfig[]
   disableUserMedia?: boolean
+  topLayerChildren?: any[]
 }
 
 export const CONFIG = {
@@ -54,6 +55,7 @@ const Concourse = ({
   titleSpalshData,
   studioUserConfig,
   disableUserMedia,
+  topLayerChildren,
 }: ConcourseProps) => {
   const {
     state,
@@ -316,6 +318,7 @@ const Concourse = ({
                       ))}
                     </>
                   )}
+                <Group>{topLayerChildren}</Group>
               </Layer>
             </Bridge>
           </Stage>

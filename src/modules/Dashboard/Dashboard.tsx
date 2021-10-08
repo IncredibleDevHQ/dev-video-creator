@@ -5,6 +5,7 @@ import { IoAlbumsOutline } from 'react-icons/io5'
 import { useRecoilValue } from 'recoil'
 import {
   Button,
+  Loading,
   Navbar,
   ScreenState,
   Tab,
@@ -48,24 +49,20 @@ const ViewBarButton = ({
 
 const Dashboard = () => {
   const { sub } = (useRecoilValue(userState) as User) || {}
-  const { data: userSeriesData, error: userSeriesError } =
-    useGetUserSeriesQuery({
-      variables: {
-        limit: 60,
-      },
-    })
-  const { data: userFlicksData, refetch: userFlicksRefetch } =
-    useGetUserFlicksQuery({
-      variables: { sub: sub as string },
-    })
+  const { data: userSeriesData } = useGetUserSeriesQuery({
+    variables: {
+      limit: 60,
+    },
+  })
 
-  if (userSeriesError)
-    return (
-      <ScreenState
-        title="Something went wrong!!"
-        subtitle={userSeriesError.message}
-      />
-    )
+  const {
+    data: userFlicksData,
+    refetch: userFlicksRefetch,
+    loading: userFlicksLoading,
+  } = useGetUserFlicksQuery({
+    variables: { sub: sub as string },
+  })
+
   const tabs: Tab[] = [
     {
       name: 'Drafts',
@@ -81,7 +78,14 @@ const Dashboard = () => {
   const [isOpenNewSeriesCreateModal, setIsOpenNewSeriesCreateModal] =
     useState(false)
 
-  if (userSeriesData && userSeriesData?.Series.length < 1)
+  if (userFlicksLoading) return <ScreenState title="Just a jiffy" loading />
+
+  if (
+    userSeriesData &&
+    userSeriesData?.Series.length < 1 &&
+    userFlicksData &&
+    userFlicksData?.Flick.length < 1
+  )
     return (
       <div>
         <Navbar />
@@ -159,35 +163,37 @@ const Dashboard = () => {
 
       <DashboardSeriesFlicks data={userSeriesData} />
 
-      <div className="px-0">
-        <div className="flex flex-row m-0 p-0 ml-28 mt-20">
-          <Text className="font-black text-xl mb-4">Your flicks</Text>
-          <TabBar
-            tabs={tabs}
-            current={currentTab}
-            onTabChange={setCurrentTab}
-            className="text-black gap-2 w-auto ml-10"
-          />
-        </div>
-        <div className="mb-10">
-          {currentTab.value === 'Drafts' && (
-            <Drafts
-              flicks={userFlicksData?.Flick || []}
-              handleRefetch={(refresh) => {
-                if (refresh) userFlicksRefetch()
-              }}
+      {userFlicksData && userFlicksData?.Flick.length > 0 && (
+        <div className="px-0">
+          <div className="flex flex-row m-0 p-0 ml-28 mt-20 items-center">
+            <Text className="font-black text-xl mb-4">Your flicks</Text>
+            <TabBar
+              tabs={tabs}
+              current={currentTab}
+              onTabChange={setCurrentTab}
+              className="text-black gap-2 w-auto ml-10 -mt-2"
             />
-          )}
-          {currentTab.value === 'Published' && (
-            <Published
-              flicks={userFlicksData?.Flick || []}
-              handleRefetch={(refresh) => {
-                if (refresh) userFlicksRefetch()
-              }}
-            />
-          )}
+          </div>
+          <div className="mb-10">
+            {currentTab.value === 'Drafts' && (
+              <Drafts
+                flicks={userFlicksData?.Flick}
+                handleRefetch={(refresh) => {
+                  if (refresh) userFlicksRefetch()
+                }}
+              />
+            )}
+            {currentTab.value === 'Published' && (
+              <Published
+                flicks={userFlicksData?.Flick}
+                handleRefetch={(refresh) => {
+                  if (refresh) userFlicksRefetch()
+                }}
+              />
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       <CreateSeriesModal
         open={isOpenNewSeriesCreateModal}

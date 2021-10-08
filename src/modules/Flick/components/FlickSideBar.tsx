@@ -43,7 +43,6 @@ const FlickSideBar = ({
       )}
       {currentTab.value === 'Notes' && (
         <Notes
-          fragmentId={fragment?.id as string}
           flickId={flick?.id}
           participantId={
             fragment?.participants.find(

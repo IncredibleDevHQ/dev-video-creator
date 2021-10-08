@@ -144,7 +144,7 @@ const JsonSchema = ({
       <div className="grid grid-cols-1 md:grid-cols-2">
         {questions.map((ques, index) => (
           <div
-            key={ques.image}
+            key={index}
             className="border-blue-200 px-4 py-2 m-1 flex items-center justify-between gap-2"
           >
             {ques?.image && (

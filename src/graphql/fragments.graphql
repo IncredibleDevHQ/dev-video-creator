@@ -64,6 +64,14 @@ query FragmentRole($fragmentId: uuid!, $sub: String!) {
   }
 }
 
+query GetFragmentParticipants($fragmentId: uuid!) {
+  Fragment_Participant(where: { fragmentId: { _eq: $fragmentId } }) {
+    participant {
+      ...FlickParticipants
+    }
+  }
+}
+
 query GetFragmentNotes($fragmentId: uuid!) {
   Note(where: { fragmentId: { _eq: $fragmentId } }) {
     ...Note
@@ -193,5 +201,15 @@ mutation UpdateFragment(
     order: $order
   ) {
     id
+  }
+}
+
+mutation UpdateParticipants($fragmentId: String!, $participantIds: [String!]!) {
+  UpdateFragmentParticipants(
+    fragmentId: $fragmentId
+    participantIds: $participantIds
+  ) {
+    added
+    removed
   }
 }

@@ -248,3 +248,299 @@ export const MultiCircleCenterGrow = ({
     </>
   )
 }
+
+export const MutipleRectMoveRight = ({
+  performFinishAction,
+  rectOneColors,
+  rectTwoColors,
+  rectThreeColors,
+}: {
+  performFinishAction?: () => void
+  rectOneColors: string[]
+  rectTwoColors: string[]
+  rectThreeColors: string[]
+}) => {
+  return (
+    <>
+      <Rect
+        x={-CONFIG.width}
+        y={0}
+        fillLinearGradientColorStops={[
+          0,
+          rectOneColors[0] || '#EE676D',
+          1,
+          rectOneColors[1] || '#CB56AF',
+        ]}
+        fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+        fillLinearGradientEndPoint={{
+          x: 0,
+          y: CONFIG.height,
+        }}
+        width={CONFIG.width}
+        height={CONFIG.height}
+        ref={(ref) =>
+          ref?.to({
+            x: CONFIG.width,
+            duration: 1.5,
+            easing: Konva.Easings.EaseOut,
+            onFinish: () => {
+              if (!performFinishAction) return
+              setTimeout(() => {
+                performFinishAction()
+              }, 200)
+            },
+          })
+        }
+      />
+      <Rect
+        x={-CONFIG.width}
+        y={0}
+        fillLinearGradientColorStops={[
+          0,
+          rectTwoColors[0] || '',
+          1,
+          rectTwoColors[1] || '',
+        ]}
+        fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+        fillLinearGradientEndPoint={{
+          x: 0,
+          y: CONFIG.height,
+        }}
+        width={CONFIG.width}
+        height={CONFIG.height}
+        ref={(ref) =>
+          ref?.to({
+            x: CONFIG.width,
+            duration: 1,
+            easing: Konva.Easings.EaseOut,
+          })
+        }
+      />
+      <Rect
+        x={-CONFIG.width}
+        y={0}
+        fillLinearGradientColorStops={[
+          0,
+          rectThreeColors[0] || '',
+          1,
+          rectThreeColors[1] || '',
+        ]}
+        fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+        fillLinearGradientEndPoint={{
+          x: 0,
+          y: CONFIG.height,
+        }}
+        width={CONFIG.width}
+        height={CONFIG.height}
+        ref={(ref) =>
+          ref?.to({
+            x: CONFIG.width,
+            duration: 0.5,
+            easing: Konva.Easings.EaseOut,
+          })
+        }
+      />
+    </>
+  )
+}
+
+export const MutipleRectMoveLeft = ({
+  performFinishAction,
+  rectOneColors,
+  rectTwoColors,
+  rectThreeColors,
+}: {
+  performFinishAction?: () => void
+  rectOneColors: string[]
+  rectTwoColors: string[]
+  rectThreeColors: string[]
+}) => {
+  return (
+    <>
+      <Rect
+        x={CONFIG.width}
+        y={0}
+        fillLinearGradientColorStops={[
+          0,
+          rectOneColors[0] || '',
+          1,
+          rectOneColors[1] || '',
+        ]}
+        fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+        fillLinearGradientEndPoint={{
+          x: 0,
+          y: CONFIG.height,
+        }}
+        width={CONFIG.width}
+        height={CONFIG.height}
+        ref={(ref) =>
+          ref?.to({
+            x: -CONFIG.width,
+            duration: 1.5,
+            easing: Konva.Easings.EaseOut,
+            onFinish: () => {
+              if (!performFinishAction) return
+              setTimeout(() => {
+                performFinishAction()
+              }, 300)
+            },
+          })
+        }
+      />
+      <Rect
+        x={CONFIG.width}
+        y={0}
+        fillLinearGradientColorStops={[
+          0,
+          rectTwoColors[0] || '',
+          1,
+          rectTwoColors[1] || '',
+        ]}
+        fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+        fillLinearGradientEndPoint={{
+          x: 0,
+          y: CONFIG.height,
+        }}
+        width={CONFIG.width}
+        height={CONFIG.height}
+        ref={(ref) =>
+          ref?.to({
+            x: -CONFIG.width,
+            duration: 1,
+            easing: Konva.Easings.EaseOut,
+          })
+        }
+      />
+      <Rect
+        x={CONFIG.width}
+        y={0}
+        fillLinearGradientColorStops={[
+          0,
+          rectThreeColors[0] || '',
+          1,
+          rectThreeColors[1] || '',
+        ]}
+        fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+        fillLinearGradientEndPoint={{
+          x: 0,
+          y: CONFIG.height,
+        }}
+        width={CONFIG.width}
+        height={CONFIG.height}
+        ref={(ref) =>
+          ref?.to({
+            x: -CONFIG.width,
+            duration: 0.5,
+            easing: Konva.Easings.EaseOut,
+          })
+        }
+      />
+    </>
+  )
+}
+
+export const MutipleRectMoveCenter = ({
+  performFinishAction,
+}: {
+  performFinishAction?: () => void
+}) => {
+  return (
+    <>
+      <Rect
+        x={-CONFIG.width / 2}
+        y={0}
+        fillLinearGradientColorStops={[0, '#EE676D', 1, '#CB56AF']}
+        fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+        fillLinearGradientEndPoint={{
+          x: 0,
+          y: CONFIG.height,
+        }}
+        width={CONFIG.width / 2}
+        height={CONFIG.height}
+        ref={(ref) =>
+          ref?.to({
+            x: 0,
+            duration: 0.3,
+            easing: Konva.Easings.EaseOut,
+            onFinish: () => {
+              if (!performFinishAction) return
+              setTimeout(() => {
+                performFinishAction()
+              }, 300)
+            },
+          })
+        }
+      />
+      <Rect
+        x={CONFIG.width}
+        y={0}
+        // fill="#558FF6"
+        fillLinearGradientColorStops={[0, '#0093E9', 1, '#80D0C7']}
+        fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+        fillLinearGradientEndPoint={{
+          x: 0,
+          y: CONFIG.height,
+        }}
+        width={CONFIG.width / 2}
+        height={CONFIG.height}
+        ref={(ref) =>
+          ref?.to({
+            x: CONFIG.width / 2,
+            duration: 0.3,
+            easing: Konva.Easings.EaseOut,
+          })
+        }
+      />
+    </>
+  )
+}
+
+export const MutipleRectMoveAway = ({
+  performFinishAction,
+}: {
+  performFinishAction?: () => void
+}) => {
+  return (
+    <>
+      <Rect
+        x={0}
+        y={0}
+        fillLinearGradientColorStops={[0, '#EE676D', 1, '#CB56AF']}
+        fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+        fillLinearGradientEndPoint={{
+          x: 0,
+          y: CONFIG.height,
+        }}
+        width={CONFIG.width / 2}
+        height={CONFIG.height}
+        ref={(ref) =>
+          ref?.to({
+            x: -CONFIG.width / 2,
+            duration: 0.3,
+            easing: Konva.Easings.EaseOut,
+            onFinish: () => {
+              if (!performFinishAction) return
+              setTimeout(() => {
+                performFinishAction()
+              }, 300)
+            },
+          })
+        }
+      />
+      <Rect
+        x={CONFIG.width / 2}
+        y={0}
+        fill="#558FF6"
+        width={CONFIG.width / 2}
+        height={CONFIG.height}
+        ref={(ref) =>
+          ref?.to({
+            x: CONFIG.width,
+            duration: 0.3,
+            easing: Konva.Easings.EaseOut,
+          })
+        }
+      />
+    </>
+  )
+}
