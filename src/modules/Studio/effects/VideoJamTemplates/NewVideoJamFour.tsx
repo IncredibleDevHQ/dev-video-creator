@@ -1,60 +1,31 @@
-import axios from 'axios'
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
-import { Circle, Group, Image, Rect } from 'react-konva'
+import { Group, Image, Rect } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
 import config from '../../../../config'
-import { API } from '../../../../constants'
-import {
-  Fragment_Status_Enum_Enum,
-  useGetTokenisedCodeLazyQuery,
-} from '../../../../generated/graphql'
+import { Fragment_Status_Enum_Enum } from '../../../../generated/graphql'
 import { Concourse } from '../../components'
 import {
   CONFIG,
   StudioUserConfig,
   TitleSplashProps,
 } from '../../components/Concourse'
-import RenderTokens, {
-  controls,
-  FragmentState,
-  getRenderedTokens,
-  RenderFocus,
-} from '../../components/RenderTokens'
-import useCode from '../../hooks/use-code'
+import { FragmentState } from '../../components/RenderTokens'
+import { controls, Video, VideoConfig } from '../../components/Video'
 import { StudioProviderProps, studioStore } from '../../stores'
 import {
   MutipleRectMoveLeft,
   MutipleRectMoveRight,
 } from '../FragmentTransitions'
 
-export const codeConfig = {
-  fontSize: 14,
-  width: 960,
-  height: 540,
-}
-
-interface Position {
-  prevIndex: number
-  currentIndex: number
-}
-
-const NewCodeJamFour = () => {
+const NewVideoJamFour = () => {
   const { fragment, payload, updatePayload, state } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [titleSpalshData, settitleSpalshData] = useState<TitleSplashProps>({
     enable: false,
   })
-
-  const { initUseCode, computedTokens } = useCode()
-  const [getTokenisedCode, { data }] = useGetTokenisedCodeLazyQuery()
-  const [position, setPosition] = useState<Position>({
-    prevIndex: -1,
-    currentIndex: 0,
-  })
-  const [focusCode, setFocusCode] = useState<boolean>(false)
 
   const [astroPlanet] = useImage(
     `${config.storage.baseUrl}planet.svg`,
@@ -69,23 +40,17 @@ const NewCodeJamFour = () => {
     'anonymous'
   )
 
-  // state of the fragment
-  const [fragmentState, setFragmentState] =
-    useState<FragmentState>('onlyUserMedia')
-
-  // state which stores the layer children which have to be placed over the studio user
-  const [topLayerChildren, setTopLayerChildren] = useState<JSX.Element[]>([])
-
-  const bothGroupRef = useRef<Konva.Group>(null)
-  // const onlyUserMediaGroupRef = useRef<Konva.Group>(null)
-  const onlyFragmentGroupRef = useRef<Konva.Group>(null)
-
-  useEffect(() => {
+  const videoElement = React.useMemo(() => {
     if (!fragment?.configuration.properties) return
-    const gistURL = fragment.configuration.properties.find(
-      (property: any) => property.key === 'gistUrl'
+    const element = document.createElement('video')
+    element.autoplay = false
+    element.crossOrigin = 'anonymous'
+    element.preload = 'auto'
+    element.muted = true
+    element.src = fragment.configuration.properties.find(
+      (property: any) => property.key === 'source'
     )?.value
-
+    // eslint-disable-next-line consistent-return
     // setConfig of titleSpalsh
     settitleSpalshData({
       enable: fragment.configuration.properties.find(
@@ -97,70 +62,67 @@ const NewCodeJamFour = () => {
       textColor: ['#E6E6E6', '#FFFFFF'],
     })
 
-    if (!gistURL) throw new Error('Missing gist URL')
-    ;(async () => {
-      try {
-        const { data } = await axios.get(
-          `${API.GITHUB.BASE_URL}gists/${(gistURL as string).split('/').pop()}`
-        )
-        const file = data.files[Object.keys(data.files)[0]]
-        getTokenisedCode({
-          variables: {
-            code: file.content,
-            language: (file.language as string).toLowerCase(),
-          },
-        })
-      } catch (e) {
-        console.error(e)
-        throw e
-      }
-    })()
+    // eslint-disable-next-line consistent-return
+    return element
   }, [fragment?.configuration.properties])
 
   useEffect(() => {
-    if (!data?.TokenisedCode) return
-    initUseCode({
-      tokens: data.TokenisedCode.data,
-      canvasWidth: 585,
-      canvasHeight: 360,
-      gutter: 5,
-      fontSize: codeConfig.fontSize,
-    })
-  }, [data])
-
-  useEffect(() => {
-    setPosition({
-      prevIndex: payload?.prevIndex || 0,
-      currentIndex: payload?.currentIndex || 1,
-    })
-    setFocusCode(payload?.isFocus)
-    setFragmentState(payload?.fragmentState)
-  }, [payload])
-
-  useEffect(() => {
-    if (state === 'ready') {
-      setPosition({
-        prevIndex: -1,
-        currentIndex: 0,
-      })
-      updatePayload?.({
-        currentIndex: 1,
-        prevIndex: 0,
-        isFocus: false,
-        fragmentState: 'onlyUserMedia',
-      })
-      setFragmentState('onlyUserMedia')
-    }
-    if (state === 'recording') {
-      setFragmentState('onlyUserMedia')
-      updatePayload?.({
-        currentIndex: 1,
-        prevIndex: 0,
-        isFocus: false,
-        fragmentState: 'onlyUserMedia',
-      })
+    if (!videoElement) return
+    switch (state) {
+      case 'ready':
+        videoElement.currentTime = 0
+        updatePayload?.({
+          playing: false,
+          currentTime: 0,
+          fragmentState: 'onlyUserMedia',
+        })
+        break
+      default:
+        videoElement.currentTime = 0
+        updatePayload?.({
+          playing: false,
+          currentTime: 0,
+          fragmentState: 'onlyUserMedia',
+        })
     }
   }, [state])
+
+  const [playing, setPlaying] = useState(false)
+
+  useEffect(() => {
+    // eslint-disable-next-line
+    setPlaying(!!payload?.playing)
+    // eslint-disable-next-line
+    if (!!payload?.playing) {
+      videoElement?.play()
+    } else {
+      // eslint-disable-next-line
+      if (videoElement && payload) {
+        videoElement.currentTime =
+          typeof payload.currentTime === 'number' ? payload.currentTime : 0
+        videoElement?.pause()
+      }
+    }
+  }, [payload?.playing])
+
+  useEffect(() => {
+    if (videoElement && payload?.status === Fragment_Status_Enum_Enum.Live)
+      videoElement.currentTime = 0
+  }, [payload?.status])
+
+  useEffect(() => {
+    setFragmentState(payload?.fragmentState)
+  }, [payload?.fragmentState])
+
+  // state of the fragment
+  const [fragmentState, setFragmentState] =
+    useState<FragmentState>('onlyUserMedia')
+
+  // state which stores the layer children which have to be placed over the studio user
+  const [topLayerChildren, setTopLayerChildren] = useState<JSX.Element[]>([])
+
+  const bothGroupRef = useRef<Konva.Group>(null)
+  const onlyFragmentGroupRef = useRef<Konva.Group>(null)
 
   useEffect(() => {
     if (!onlyFragmentGroupRef.current || !bothGroupRef.current) return
@@ -593,6 +555,7 @@ const NewCodeJamFour = () => {
     }
   })()
 
+  // to get images based on the no of participants
   const windowOpsImages = (() => {
     switch (fragment?.participants.length) {
       case 2:
@@ -608,6 +571,39 @@ const NewCodeJamFour = () => {
         return <Image image={windowOps} x={860} y={95} />
     }
   })()
+
+  const onlyFragmentVideoConfig: VideoConfig = {
+    x: 85,
+    y: 30,
+    width: 800,
+    height: 450,
+    videoFill: '#1F2937',
+    cornerRadius: 8,
+    performClip: true,
+    backgroundRectX: 75,
+    backgroundRectY: 20,
+    backgroundRectColor: '#FF5D01',
+    borderColor: '#1F2937',
+    borderWidth: 6,
+    backgroundRectBorderWidth: 3,
+    backgroundRectBorderColor: '#1F2937',
+  }
+  const bothGroupVideoConfig: VideoConfig = {
+    x: 37,
+    y: 58,
+    width: 704,
+    height: 396,
+    videoFill: '#1F2937',
+    cornerRadius: 8,
+    performClip: true,
+    backgroundRectX: 27,
+    backgroundRectY: 48,
+    backgroundRectColor: '#FF5D01',
+    borderColor: '#1F2937',
+    borderWidth: 6,
+    backgroundRectBorderWidth: 3,
+    backgroundRectBorderColor: '#1F2937',
+  }
 
   const layerChildren = [
     <Group x={0} y={0}>
@@ -633,115 +629,18 @@ const NewCodeJamFour = () => {
       <Image image={astroPlanet} x={-10} y={0} />
       <Image image={astroLogo} x={40} y={CONFIG.height - 55} />
     </Group>,
-    <Group x={0} y={0} opacity={0} ref={bothGroupRef}>
-      <Rect
-        x={27}
-        y={48}
-        width={704}
-        height={396}
-        fill="#FF5D01"
-        cornerRadius={8}
-        stroke="#1F2937"
-        strokeWidth={3}
-      />
-      <Rect
-        x={37}
-        y={58}
-        width={704}
-        height={396}
-        fill="#202026"
-        cornerRadius={8}
-        stroke="#1F2937"
-        strokeWidth={3}
-      />
-      <Group x={52} y={73} key="circleGroup">
-        <Circle key="redCircle" x={0} y={0} fill="#FF605C" radius={5} />
-        <Circle key="yellowCircle" x={14} y={0} fill="#FFBD44" radius={5} />
-        <Circle key="greenCircle" x={28} y={0} fill="#00CA4E" radius={5} />
-      </Group>
-      {payload?.status === Fragment_Status_Enum_Enum.Live && (
-        <Group x={57} y={88} key="group">
-          {getRenderedTokens(computedTokens.current, position)}
-          {computedTokens.current.length > 0 && (
-            <RenderTokens
-              key={position.prevIndex}
-              tokens={computedTokens.current}
-              startIndex={position.prevIndex}
-              endIndex={position.currentIndex}
-            />
-          )}
-        </Group>
-      )}
-      {focusCode && (
-        <RenderFocus
-          tokens={computedTokens.current}
-          lineNumber={computedTokens.current[position.prevIndex]?.lineNumber}
-          currentIndex={position.currentIndex}
-          groupCoordinates={{ x: 47, y: 88 }}
-          bgRectInfo={{
-            x: 37,
-            y: 58,
-            width: 704,
-            height: 396,
-            radius: 8,
-          }}
-        />
-      )}
-      {windowOpsImages}
-    </Group>,
     <Group x={0} y={0} opacity={0} ref={onlyFragmentGroupRef}>
-      <Rect
-        x={70}
-        y={20}
-        width={800}
-        height={440}
-        fill="#FF5D01"
-        cornerRadius={8}
-        stroke="#1F2937"
-        strokeWidth={3}
-      />
-      <Rect
-        x={80}
-        y={30}
-        width={800}
-        height={440}
-        fill="#202026"
-        cornerRadius={8}
-        stroke="#1F2937"
-        strokeWidth={3}
-      />
-      <Group x={100} y={45} key="circleGroup">
-        <Circle key="redCircle" x={0} y={0} fill="#FF605C" radius={5} />
-        <Circle key="yellowCircle" x={14} y={0} fill="#FFBD44" radius={5} />
-        <Circle key="greenCircle" x={28} y={0} fill="#00CA4E" radius={5} />
-      </Group>
-      {payload?.status === Fragment_Status_Enum_Enum.Live && (
-        <Group x={105} y={60} key="group">
-          {getRenderedTokens(computedTokens.current, position)}
-          {computedTokens.current.length > 0 && (
-            <RenderTokens
-              key={position.prevIndex}
-              tokens={computedTokens.current}
-              startIndex={position.prevIndex}
-              endIndex={position.currentIndex}
-            />
-          )}
-        </Group>
-      )}
-      {focusCode && (
-        <RenderFocus
-          tokens={computedTokens.current}
-          lineNumber={computedTokens.current[position.prevIndex]?.lineNumber}
-          currentIndex={position.currentIndex}
-          groupCoordinates={{ x: 90, y: 60 }}
-          bgRectInfo={{
-            x: 80,
-            y: 30,
-            width: 800,
-            height: 440,
-            radius: 8,
-          }}
+      {videoElement && (
+        <Video
+          videoElement={videoElement}
+          videoConfig={onlyFragmentVideoConfig}
         />
+      )}
+    </Group>,
+    <Group x={0} y={0} opacity={0} ref={bothGroupRef}>
+      {windowOpsImages}
+      {videoElement && (
+        <Video videoElement={videoElement} videoConfig={bothGroupVideoConfig} />
       )}
     </Group>,
   ]
@@ -749,13 +648,7 @@ const NewCodeJamFour = () => {
   return (
     <Concourse
       layerChildren={layerChildren}
-      controls={controls(
-        setFocusCode,
-        position,
-        computedTokens.current,
-        fragmentState,
-        setFragmentState
-      )}
+      controls={controls(playing, videoElement, fragmentState)}
       titleSpalshData={titleSpalshData}
       studioUserConfig={studioCoordinates}
       topLayerChildren={topLayerChildren}
@@ -763,4 +656,4 @@ const NewCodeJamFour = () => {
   )
 }
 
-export default NewCodeJamFour
+export default NewVideoJamFour

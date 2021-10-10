@@ -1,8 +1,14 @@
-import React, { useEffect, useState } from 'react'
 import Konva from 'konva'
+import React, { useEffect, useState } from 'react'
+import { FiPause, FiPlay } from 'react-icons/fi'
 import { Group, Image, Rect } from 'react-konva'
-import { CONFIG } from './Concourse'
+import { useRecoilValue } from 'recoil'
+import SwapIcon from '../../../components/SwapIcon'
 import useEdit from '../hooks/use-edit'
+import { StudioProviderProps, studioStore } from '../stores'
+import { CONFIG } from './Concourse'
+import { ControlButton } from './MissionControl'
+import { FragmentState } from './RenderTokens'
 
 export interface VideoConfig {
   x?: number
@@ -171,4 +177,56 @@ export const Video = ({
       </Group>
     </>
   )
+}
+
+export const controls = (
+  playing: boolean,
+  videoElement: HTMLVideoElement | undefined,
+  fragmentState?: FragmentState
+) => {
+  const { payload, updatePayload, state } =
+    (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  if (state === 'recording' || state === 'ready')
+    return [
+      <ControlButton
+        key="swap"
+        icon={SwapIcon}
+        className="my-2"
+        appearance="primary"
+        onClick={() => {
+          // if (!setFragmentState) return
+          if (fragmentState === 'onlyUserMedia') {
+            // setFragmentState('onlyFragment')
+            // updating the fragment state in the payload to onlyFragment state
+            updatePayload?.({
+              playing: payload?.playing,
+              currentTime: payload?.currentTime,
+              fragmentState: 'onlyFragment',
+            })
+          } else {
+            // setFragmentState('onlyUserMedia')
+            // updating the fragment state in the payload to onlyUserMedia state
+            updatePayload?.({
+              playing: payload?.playing,
+              currentTime: payload?.currentTime,
+              fragmentState: 'onlyUserMedia',
+            })
+          }
+        }}
+      />,
+      <ControlButton
+        key="control"
+        icon={playing ? FiPause : FiPlay}
+        className="my-2"
+        appearance={playing ? 'danger' : 'primary'}
+        onClick={() => {
+          const next = !playing
+          updatePayload?.({
+            playing: next,
+            currentTime: videoElement?.currentTime,
+          })
+        }}
+      />,
+    ]
+  return [<></>]
 }

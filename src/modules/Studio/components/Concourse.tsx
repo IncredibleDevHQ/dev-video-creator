@@ -35,10 +35,18 @@ export interface StudioUserConfig {
   backgroundRectBorderWidth?: number
 }
 
+export interface TitleSplashProps {
+  enable: boolean
+  title?: string
+  bgRectColor?: string[]
+  stripRectColor?: string[]
+  textColor?: string[]
+}
+
 interface ConcourseProps {
   controls: JSX.Element[]
   layerChildren: any[]
-  titleSpalshData?: { enable: boolean; title?: string }
+  titleSpalshData?: TitleSplashProps
   studioUserConfig?: StudioUserConfig[]
   disableUserMedia?: boolean
   topLayerChildren?: any[]
@@ -176,9 +184,40 @@ const Concourse = ({
             })
           }
         >
-          <Rect fill="#1F2937" width={CONFIG.width} height={CONFIG.height} />
           <Rect
-            fillLinearGradientColorStops={[0, '#4ADE80', 1, '#16A34A']}
+            fillLinearGradientColorStops={[
+              0,
+              (titleSpalshData &&
+                titleSpalshData?.bgRectColor &&
+                titleSpalshData?.bgRectColor[0]) ||
+                '#1F2937',
+              1,
+              (titleSpalshData &&
+                titleSpalshData?.bgRectColor &&
+                titleSpalshData?.bgRectColor[1]) ||
+                '#1F2937',
+            ]}
+            fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+            fillLinearGradientEndPoint={{
+              x: CONFIG.width,
+              y: CONFIG.height,
+            }}
+            width={CONFIG.width}
+            height={CONFIG.height}
+          />
+          <Rect
+            fillLinearGradientColorStops={[
+              0,
+              (titleSpalshData &&
+                titleSpalshData?.stripRectColor &&
+                titleSpalshData?.stripRectColor[0]) ||
+                '#4ADE80',
+              1,
+              (titleSpalshData &&
+                titleSpalshData?.stripRectColor &&
+                titleSpalshData?.stripRectColor[1]) ||
+                '#16A34A',
+            ]}
             fillLinearGradientStartPoint={{ x: 0, y: CONFIG.height / 2 - 120 }}
             fillLinearGradientEndPoint={{
               x: CONFIG.width,
@@ -192,9 +231,26 @@ const Concourse = ({
             x={0}
             y={540 / 2 - 30}
             width={960}
-            height={80}
+            // height={80}
             text={titleSpalshData && titleSpalshData.title}
-            fill="#ffffff"
+            fillLinearGradientColorStops={[
+              0,
+              (titleSpalshData &&
+                titleSpalshData?.textColor &&
+                titleSpalshData?.textColor[0]) ||
+                '#ffffff',
+              1,
+              (titleSpalshData &&
+                titleSpalshData?.textColor &&
+                titleSpalshData?.textColor[1]) ||
+                '#ffffff',
+            ]}
+            fillLinearGradientStartPoint={{ x: 0, y: CONFIG.height / 2 - 120 }}
+            fillLinearGradientEndPoint={{
+              x: CONFIG.width,
+              y: CONFIG.height / 2 + 120,
+            }}
+            // fill={(titleSpalshData && titleSpalshData?.textColor) || '#ffffff'}
             textTransform="capitalize"
             fontStyle="normal 700"
             fontFamily="Poppins"

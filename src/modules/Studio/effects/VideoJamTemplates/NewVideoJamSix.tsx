@@ -1,46 +1,25 @@
-import axios from 'axios'
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
-import { Circle, Group, Image, Rect } from 'react-konva'
+import { Group, Image, Rect } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
 import config from '../../../../config'
-import { API } from '../../../../constants'
-import {
-  Fragment_Status_Enum_Enum,
-  useGetTokenisedCodeLazyQuery,
-} from '../../../../generated/graphql'
+import { Fragment_Status_Enum_Enum } from '../../../../generated/graphql'
 import { Concourse } from '../../components'
 import {
   CONFIG,
   StudioUserConfig,
   TitleSplashProps,
 } from '../../components/Concourse'
-import RenderTokens, {
-  controls,
-  FragmentState,
-  getRenderedTokens,
-  RenderFocus,
-} from '../../components/RenderTokens'
-import useCode from '../../hooks/use-code'
+import { FragmentState } from '../../components/RenderTokens'
+import { controls, Video, VideoConfig } from '../../components/Video'
 import { StudioProviderProps, studioStore } from '../../stores'
 import {
   MutipleRectMoveLeft,
   MutipleRectMoveRight,
 } from '../FragmentTransitions'
 
-export const codeConfig = {
-  fontSize: 14,
-  width: 960,
-  height: 540,
-}
-
-interface Position {
-  prevIndex: number
-  currentIndex: number
-}
-
-const NewCodeJamFour = () => {
+const NewVideoJamSix = () => {
   const { fragment, payload, updatePayload, state } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
@@ -48,26 +27,92 @@ const NewCodeJamFour = () => {
     enable: false,
   })
 
-  const { initUseCode, computedTokens } = useCode()
-  const [getTokenisedCode, { data }] = useGetTokenisedCodeLazyQuery()
-  const [position, setPosition] = useState<Position>({
-    prevIndex: -1,
-    currentIndex: 0,
-  })
-  const [focusCode, setFocusCode] = useState<boolean>(false)
+  const [incredibleLogo] = useImage(
+    `${config.storage.baseUrl}x-incredible-black.svg`,
+    'anonymous'
+  )
+  const [tensorflowLogo] = useImage(
+    `${config.storage.baseUrl}100DaysOfTF.svg`,
+    'anonymous'
+  )
+  const [tensorflowBg] = useImage(
+    `${config.storage.baseUrl}tensorflow_bg.svg`,
+    'anonymous'
+  )
 
-  const [astroPlanet] = useImage(
-    `${config.storage.baseUrl}planet.svg`,
-    'anonymous'
-  )
-  const [astroLogo] = useImage(
-    `${config.storage.baseUrl}astro-logo.svg`,
-    'anonymous'
-  )
-  const [windowOps] = useImage(
-    `${config.storage.baseUrl}window-ops.svg`,
-    'anonymous'
-  )
+  const videoElement = React.useMemo(() => {
+    if (!fragment?.configuration.properties) return
+    const element = document.createElement('video')
+    element.autoplay = false
+    element.crossOrigin = 'anonymous'
+    element.preload = 'auto'
+    element.muted = true
+    element.src = fragment.configuration.properties.find(
+      (property: any) => property.key === 'source'
+    )?.value
+    // eslint-disable-next-line consistent-return
+    // setConfig of titleSpalsh
+    settitleSpalshData({
+      enable: fragment.configuration.properties.find(
+        (property: any) => property.key === 'showTitleSplash'
+      )?.value,
+      title: fragment.name as string,
+      bgRectColor: ['#FF6F00', '#FFA100'],
+      stripRectColor: ['#E6E6E6', '#FFFFFF'],
+      textColor: ['#425066', '#425066'],
+    })
+
+    // eslint-disable-next-line consistent-return
+    return element
+  }, [fragment?.configuration.properties])
+
+  useEffect(() => {
+    if (!videoElement) return
+    switch (state) {
+      case 'ready':
+        videoElement.currentTime = 0
+        updatePayload?.({
+          playing: false,
+          currentTime: 0,
+          fragmentState: 'onlyUserMedia',
+        })
+        break
+      default:
+        videoElement.currentTime = 0
+        updatePayload?.({
+          playing: false,
+          currentTime: 0,
+          fragmentState: 'onlyUserMedia',
+        })
+    }
+  }, [state])
+
+  const [playing, setPlaying] = useState(false)
+
+  useEffect(() => {
+    // eslint-disable-next-line
+    setPlaying(!!payload?.playing)
+    // eslint-disable-next-line
+    if (!!payload?.playing) {
+      videoElement?.play()
+    } else {
+      // eslint-disable-next-line
+      if (videoElement && payload) {
+        videoElement.currentTime =
+          typeof payload.currentTime === 'number' ? payload.currentTime : 0
+        videoElement?.pause()
+      }
+    }
+  }, [payload?.playing])
+
+  useEffect(() => {
+    if (videoElement && payload?.status === Fragment_Status_Enum_Enum.Live)
+      videoElement.currentTime = 0
+  }, [payload?.status])
+
+  useEffect(() => {
+    setFragmentState(payload?.fragmentState)
+  }, [payload?.fragmentState])
 
   // state of the fragment
   const [fragmentState, setFragmentState] =
@@ -77,90 +122,7 @@ const NewCodeJamFour = () => {
   const [topLayerChildren, setTopLayerChildren] = useState<JSX.Element[]>([])
 
   const bothGroupRef = useRef<Konva.Group>(null)
-  // const onlyUserMediaGroupRef = useRef<Konva.Group>(null)
   const onlyFragmentGroupRef = useRef<Konva.Group>(null)
-
-  useEffect(() => {
-    if (!fragment?.configuration.properties) return
-    const gistURL = fragment.configuration.properties.find(
-      (property: any) => property.key === 'gistUrl'
-    )?.value
-
-    // setConfig of titleSpalsh
-    settitleSpalshData({
-      enable: fragment.configuration.properties.find(
-        (property: any) => property.key === 'showTitleSplash'
-      )?.value,
-      title: fragment.name as string,
-      bgRectColor: ['#140D1F', '#6E1DDB'],
-      stripRectColor: ['#FF5D01', '#B94301'],
-      textColor: ['#E6E6E6', '#FFFFFF'],
-    })
-
-    if (!gistURL) throw new Error('Missing gist URL')
-    ;(async () => {
-      try {
-        const { data } = await axios.get(
-          `${API.GITHUB.BASE_URL}gists/${(gistURL as string).split('/').pop()}`
-        )
-        const file = data.files[Object.keys(data.files)[0]]
-        getTokenisedCode({
-          variables: {
-            code: file.content,
-            language: (file.language as string).toLowerCase(),
-          },
-        })
-      } catch (e) {
-        console.error(e)
-        throw e
-      }
-    })()
-  }, [fragment?.configuration.properties])
-
-  useEffect(() => {
-    if (!data?.TokenisedCode) return
-    initUseCode({
-      tokens: data.TokenisedCode.data,
-      canvasWidth: 585,
-      canvasHeight: 360,
-      gutter: 5,
-      fontSize: codeConfig.fontSize,
-    })
-  }, [data])
-
-  useEffect(() => {
-    setPosition({
-      prevIndex: payload?.prevIndex || 0,
-      currentIndex: payload?.currentIndex || 1,
-    })
-    setFocusCode(payload?.isFocus)
-    setFragmentState(payload?.fragmentState)
-  }, [payload])
-
-  useEffect(() => {
-    if (state === 'ready') {
-      setPosition({
-        prevIndex: -1,
-        currentIndex: 0,
-      })
-      updatePayload?.({
-        currentIndex: 1,
-        prevIndex: 0,
-        isFocus: false,
-        fragmentState: 'onlyUserMedia',
-      })
-      setFragmentState('onlyUserMedia')
-    }
-    if (state === 'recording') {
-      setFragmentState('onlyUserMedia')
-      updatePayload?.({
-        currentIndex: 1,
-        prevIndex: 0,
-        isFocus: false,
-        fragmentState: 'onlyUserMedia',
-      })
-    }
-  }, [state])
 
   useEffect(() => {
     if (!onlyFragmentGroupRef.current || !bothGroupRef.current) return
@@ -168,9 +130,9 @@ const NewCodeJamFour = () => {
     if (fragmentState === 'onlyFragment') {
       setTopLayerChildren([
         <MutipleRectMoveRight
-          rectOneColors={['#651CC8', '#9561DA']}
-          rectTwoColors={['#FF5D01', '#B94301']}
-          rectThreeColors={['#1F2937', '#778496']}
+          rectOneColors={['#FF6F00', '#FFA100']}
+          rectTwoColors={['#425066', '#425066']}
+          rectThreeColors={['#E6E6E6', '#FFFFFF']}
         />,
       ])
       onlyFragmentGroupRef.current.to({
@@ -182,9 +144,9 @@ const NewCodeJamFour = () => {
     if (fragmentState === 'onlyUserMedia') {
       setTopLayerChildren([
         <MutipleRectMoveLeft
-          rectOneColors={['#651CC8', '#9561DA']}
-          rectTwoColors={['#FF5D01', '#B94301']}
-          rectThreeColors={['#1F2937', '#778496']}
+          rectOneColors={['#FF6F00', '#FFA100']}
+          rectTwoColors={['#425066', '#425066']}
+          rectThreeColors={['#E6E6E6', '#FFFFFF']}
         />,
       ])
       onlyFragmentGroupRef.current.to({
@@ -217,8 +179,7 @@ const NewCodeJamFour = () => {
               width: 240,
               height: 180,
               clipTheme: 'rect',
-              borderWidth: 6,
-              borderColor: '#1F2937',
+              borderWidth: 8,
               studioUserClipConfig: {
                 x: 40,
                 y: 0,
@@ -228,9 +189,7 @@ const NewCodeJamFour = () => {
               },
               backgroundRectX: 765,
               backgroundRectY: 50,
-              backgroundRectColor: '#FF5D01',
-              backgroundRectBorderWidth: 3,
-              backgroundRectBorderColor: '#1F2937',
+              backgroundRectColor: '#FF6E00',
             },
             {
               x: 735,
@@ -238,8 +197,7 @@ const NewCodeJamFour = () => {
               width: 240,
               height: 180,
               clipTheme: 'rect',
-              borderWidth: 6,
-              borderColor: '#1F2937',
+              borderWidth: 8,
               studioUserClipConfig: {
                 x: 40,
                 y: 0,
@@ -249,9 +207,7 @@ const NewCodeJamFour = () => {
               },
               backgroundRectX: 765,
               backgroundRectY: 255,
-              backgroundRectColor: '#FF5D01',
-              backgroundRectBorderWidth: 3,
-              backgroundRectBorderColor: '#1F2937',
+              backgroundRectColor: '#FF6E00',
             },
           ]
         if (fragmentState === 'onlyUserMedia')
@@ -262,8 +218,7 @@ const NewCodeJamFour = () => {
               width: 600,
               height: 450,
               clipTheme: 'rect',
-              borderWidth: 6,
-              borderColor: '#1F2937',
+              borderWidth: 8,
               studioUserClipConfig: {
                 x: 100,
                 y: 5,
@@ -273,9 +228,7 @@ const NewCodeJamFour = () => {
               },
               backgroundRectX: 50,
               backgroundRectY: 20,
-              backgroundRectColor: '#FF5D01',
-              backgroundRectBorderWidth: 3,
-              backgroundRectBorderColor: '#1F2937',
+              backgroundRectColor: '#FF6E00',
             },
             {
               x: 420,
@@ -283,8 +236,7 @@ const NewCodeJamFour = () => {
               width: 600,
               height: 450,
               clipTheme: 'rect',
-              borderWidth: 6,
-              borderColor: '#1F2937',
+              borderWidth: 8,
               studioUserClipConfig: {
                 x: 100,
                 y: 5,
@@ -294,9 +246,7 @@ const NewCodeJamFour = () => {
               },
               backgroundRectX: 510,
               backgroundRectY: 20,
-              backgroundRectColor: '#FF5D01',
-              backgroundRectBorderWidth: 3,
-              backgroundRectBorderColor: '#1F2937',
+              backgroundRectColor: '#FF6E00',
             },
           ]
         return [
@@ -344,8 +294,7 @@ const NewCodeJamFour = () => {
               width: 160,
               height: 120,
               clipTheme: 'rect',
-              borderWidth: 6,
-              borderColor: '#1F2937',
+              borderWidth: 8,
               studioUserClipConfig: {
                 x: 0,
                 y: 0,
@@ -355,9 +304,7 @@ const NewCodeJamFour = () => {
               },
               backgroundRectX: 765,
               backgroundRectY: 48.5,
-              backgroundRectColor: '#FF5D01',
-              backgroundRectBorderWidth: 3,
-              backgroundRectBorderColor: '#1F2937',
+              backgroundRectColor: '#FF6E00',
             },
             {
               x: 775,
@@ -365,8 +312,7 @@ const NewCodeJamFour = () => {
               width: 160,
               height: 120,
               clipTheme: 'rect',
-              borderWidth: 6,
-              borderColor: '#1F2937',
+              borderWidth: 8,
               studioUserClipConfig: {
                 x: 0,
                 y: 0,
@@ -376,9 +322,7 @@ const NewCodeJamFour = () => {
               },
               backgroundRectX: 765,
               backgroundRectY: 188.5,
-              backgroundRectColor: '#FF5D01',
-              backgroundRectBorderWidth: 3,
-              backgroundRectBorderColor: '#1F2937',
+              backgroundRectColor: '#FF6E00',
             },
             {
               x: 775,
@@ -386,8 +330,7 @@ const NewCodeJamFour = () => {
               width: 160,
               height: 120,
               clipTheme: 'rect',
-              borderWidth: 6,
-              borderColor: '#1F2937',
+              borderWidth: 8,
               studioUserClipConfig: {
                 x: 0,
                 y: 0,
@@ -397,9 +340,7 @@ const NewCodeJamFour = () => {
               },
               backgroundRectX: 765,
               backgroundRectY: 328.5,
-              backgroundRectColor: '#FF5D01',
-              backgroundRectBorderWidth: 3,
-              backgroundRectBorderColor: '#1F2937',
+              backgroundRectColor: '#FF6E00',
             },
           ]
         if (fragmentState === 'onlyUserMedia')
@@ -410,8 +351,7 @@ const NewCodeJamFour = () => {
               width: 600,
               height: 450,
               clipTheme: 'rect',
-              borderWidth: 6,
-              borderColor: '#1F2937',
+              borderWidth: 8,
               studioUserClipConfig: {
                 x: 160,
                 y: 5,
@@ -421,9 +361,7 @@ const NewCodeJamFour = () => {
               },
               backgroundRectX: 25,
               backgroundRectY: 20,
-              backgroundRectColor: '#FF5D01',
-              backgroundRectBorderWidth: 3,
-              backgroundRectBorderColor: '#1F2937',
+              backgroundRectColor: '#FF6E00',
             },
             {
               x: 185,
@@ -431,8 +369,7 @@ const NewCodeJamFour = () => {
               width: 600,
               height: 450,
               clipTheme: 'rect',
-              borderWidth: 6,
-              borderColor: '#1F2937',
+              borderWidth: 8,
               studioUserClipConfig: {
                 x: 160,
                 y: 5,
@@ -442,9 +379,7 @@ const NewCodeJamFour = () => {
               },
               backgroundRectX: 335,
               backgroundRectY: 20,
-              backgroundRectColor: '#FF5D01',
-              backgroundRectBorderWidth: 3,
-              backgroundRectBorderColor: '#1F2937',
+              backgroundRectColor: '#FF6E00',
             },
             {
               x: 495,
@@ -452,8 +387,7 @@ const NewCodeJamFour = () => {
               width: 600,
               height: 450,
               clipTheme: 'rect',
-              borderWidth: 6,
-              borderColor: '#1F2937',
+              borderWidth: 8,
               studioUserClipConfig: {
                 x: 160,
                 y: 5,
@@ -463,9 +397,7 @@ const NewCodeJamFour = () => {
               },
               backgroundRectX: 645,
               backgroundRectY: 20,
-              backgroundRectColor: '#FF5D01',
-              backgroundRectBorderWidth: 3,
-              backgroundRectBorderColor: '#1F2937',
+              backgroundRectColor: '#FF6E00',
             },
           ]
         return [
@@ -526,12 +458,11 @@ const NewCodeJamFour = () => {
           return [
             {
               x: 695,
-              y: 140.5,
+              y: 120.5,
               width: 320,
               height: 240,
               clipTheme: 'rect',
-              borderWidth: 6,
-              borderColor: '#1F2937',
+              borderWidth: 8,
               studioUserClipConfig: {
                 x: 80,
                 y: 0,
@@ -540,10 +471,8 @@ const NewCodeJamFour = () => {
                 radius: 8,
               },
               backgroundRectX: 765,
-              backgroundRectY: 130.5,
-              backgroundRectColor: '#FF5D01',
-              backgroundRectBorderWidth: 3,
-              backgroundRectBorderColor: '#1F2937',
+              backgroundRectY: 110.5,
+              backgroundRectColor: '#FF6E00',
             },
           ]
         if (fragmentState === 'onlyUserMedia') {
@@ -554,8 +483,7 @@ const NewCodeJamFour = () => {
               width: 800,
               height: 600,
               clipTheme: 'rect',
-              borderWidth: 6,
-              borderColor: '#1F2937',
+              borderWidth: 8,
               studioUserClipConfig: {
                 x: 0,
                 y: 80,
@@ -565,9 +493,7 @@ const NewCodeJamFour = () => {
               },
               backgroundRectX: 75,
               backgroundRectY: 20,
-              backgroundRectColor: '#FF5D01',
-              backgroundRectBorderWidth: 3,
-              backgroundRectBorderColor: '#1F2937',
+              backgroundRectColor: '#FF6E00',
             },
           ]
         }
@@ -593,155 +519,64 @@ const NewCodeJamFour = () => {
     }
   })()
 
-  const windowOpsImages = (() => {
-    switch (fragment?.participants.length) {
-      case 2:
-        return (
-          <>
-            <Image image={windowOps} x={860} y={35} />
-            <Image image={windowOps} x={860} y={260} />
-          </>
-        )
-      case 3:
-        return <></>
-      default:
-        return <Image image={windowOps} x={860} y={95} />
-    }
-  })()
+  const onlyFragmentVideoConfig: VideoConfig = {
+    x: 85,
+    y: 30,
+    width: 800,
+    height: 450,
+    cornerRadius: 8,
+    videoFill: '#E5E5E5',
+    performClip: true,
+    backgroundRectX: 75,
+    backgroundRectY: 20,
+    backgroundRectColor: '#FF6E00',
+  }
+  const bothGroupVideoConfig: VideoConfig = {
+    x: 37,
+    y: 58,
+    width: 704,
+    height: 396,
+    cornerRadius: 8,
+    videoFill: '#E5E5E5',
+    performClip: true,
+    backgroundRectX: 27,
+    backgroundRectY: 48,
+    backgroundRectColor: '#FF6E00',
+  }
 
   const layerChildren = [
     <Group x={0} y={0}>
       <Rect
+        strokeWidth={1}
         x={0}
         y={0}
+        fill="#F5F6F7"
         width={CONFIG.width}
         height={CONFIG.height}
-        fillLinearGradientColorStops={[
-          0,
-          '#140D1F',
-          0.41,
-          '#361367',
-          1,
-          '#6E1DDB',
-        ]}
-        fillLinearGradientStartPoint={{ x: 0, y: 0 }}
-        fillLinearGradientEndPoint={{
-          x: CONFIG.width,
-          y: CONFIG.height,
-        }}
+        stroke="#111111"
       />
-      <Image image={astroPlanet} x={-10} y={0} />
-      <Image image={astroLogo} x={40} y={CONFIG.height - 55} />
-    </Group>,
-    <Group x={0} y={0} opacity={0} ref={bothGroupRef}>
-      <Rect
-        x={27}
-        y={48}
-        width={704}
-        height={396}
-        fill="#FF5D01"
-        cornerRadius={8}
-        stroke="#1F2937"
-        strokeWidth={3}
+      <Image
+        image={tensorflowBg}
+        x={1}
+        y={1}
+        fill="#F5F6F7"
+        width={CONFIG.width - 2}
+        height={CONFIG.height - 2}
       />
-      <Rect
-        x={37}
-        y={58}
-        width={704}
-        height={396}
-        fill="#202026"
-        cornerRadius={8}
-        stroke="#1F2937"
-        strokeWidth={3}
-      />
-      <Group x={52} y={73} key="circleGroup">
-        <Circle key="redCircle" x={0} y={0} fill="#FF605C" radius={5} />
-        <Circle key="yellowCircle" x={14} y={0} fill="#FFBD44" radius={5} />
-        <Circle key="greenCircle" x={28} y={0} fill="#00CA4E" radius={5} />
-      </Group>
-      {payload?.status === Fragment_Status_Enum_Enum.Live && (
-        <Group x={57} y={88} key="group">
-          {getRenderedTokens(computedTokens.current, position)}
-          {computedTokens.current.length > 0 && (
-            <RenderTokens
-              key={position.prevIndex}
-              tokens={computedTokens.current}
-              startIndex={position.prevIndex}
-              endIndex={position.currentIndex}
-            />
-          )}
-        </Group>
-      )}
-      {focusCode && (
-        <RenderFocus
-          tokens={computedTokens.current}
-          lineNumber={computedTokens.current[position.prevIndex]?.lineNumber}
-          currentIndex={position.currentIndex}
-          groupCoordinates={{ x: 47, y: 88 }}
-          bgRectInfo={{
-            x: 37,
-            y: 58,
-            width: 704,
-            height: 396,
-            radius: 8,
-          }}
-        />
-      )}
-      {windowOpsImages}
+      <Image image={incredibleLogo} x={25} y={CONFIG.height - 60} />
+      <Image image={tensorflowLogo} x={820} y={CONFIG.height - 50} />
     </Group>,
     <Group x={0} y={0} opacity={0} ref={onlyFragmentGroupRef}>
-      <Rect
-        x={70}
-        y={20}
-        width={800}
-        height={440}
-        fill="#FF5D01"
-        cornerRadius={8}
-        stroke="#1F2937"
-        strokeWidth={3}
-      />
-      <Rect
-        x={80}
-        y={30}
-        width={800}
-        height={440}
-        fill="#202026"
-        cornerRadius={8}
-        stroke="#1F2937"
-        strokeWidth={3}
-      />
-      <Group x={100} y={45} key="circleGroup">
-        <Circle key="redCircle" x={0} y={0} fill="#FF605C" radius={5} />
-        <Circle key="yellowCircle" x={14} y={0} fill="#FFBD44" radius={5} />
-        <Circle key="greenCircle" x={28} y={0} fill="#00CA4E" radius={5} />
-      </Group>
-      {payload?.status === Fragment_Status_Enum_Enum.Live && (
-        <Group x={105} y={60} key="group">
-          {getRenderedTokens(computedTokens.current, position)}
-          {computedTokens.current.length > 0 && (
-            <RenderTokens
-              key={position.prevIndex}
-              tokens={computedTokens.current}
-              startIndex={position.prevIndex}
-              endIndex={position.currentIndex}
-            />
-          )}
-        </Group>
-      )}
-      {focusCode && (
-        <RenderFocus
-          tokens={computedTokens.current}
-          lineNumber={computedTokens.current[position.prevIndex]?.lineNumber}
-          currentIndex={position.currentIndex}
-          groupCoordinates={{ x: 90, y: 60 }}
-          bgRectInfo={{
-            x: 80,
-            y: 30,
-            width: 800,
-            height: 440,
-            radius: 8,
-          }}
+      {videoElement && (
+        <Video
+          videoElement={videoElement}
+          videoConfig={onlyFragmentVideoConfig}
         />
+      )}
+    </Group>,
+    <Group x={0} y={0} opacity={0} ref={bothGroupRef}>
+      {videoElement && (
+        <Video videoElement={videoElement} videoConfig={bothGroupVideoConfig} />
       )}
     </Group>,
   ]
@@ -749,13 +584,7 @@ const NewCodeJamFour = () => {
   return (
     <Concourse
       layerChildren={layerChildren}
-      controls={controls(
-        setFocusCode,
-        position,
-        computedTokens.current,
-        fragmentState,
-        setFragmentState
-      )}
+      controls={controls(playing, videoElement, fragmentState)}
       titleSpalshData={titleSpalshData}
       studioUserConfig={studioCoordinates}
       topLayerChildren={topLayerChildren}
@@ -763,4 +592,4 @@ const NewCodeJamFour = () => {
   )
 }
 
-export default NewCodeJamFour
+export default NewVideoJamSix

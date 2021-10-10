@@ -11,7 +11,7 @@ import { ControlButton } from '../../components/MissionControl'
 import { Video, VideoConfig } from '../../components/Video'
 import { StudioProviderProps, studioStore } from '../../stores'
 
-const VideoJamFour = () => {
+const VideoJamFive = () => {
   const { state, fragment, payload, updatePayload } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [titleSpalshData, settitleSpalshData] = useState<{
@@ -271,4 +271,4 @@ const VideoJamFour = () => {
   )
 }
 
-export default VideoJamFour
+export default VideoJamFive
