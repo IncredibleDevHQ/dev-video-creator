@@ -145,7 +145,7 @@ const NewVideoJamSix = () => {
       setTopLayerChildren([
         <MutipleRectMoveLeft
           rectOneColors={['#FF6F00', '#FFA100']}
-          rectTwoColors={['#010101', '#010101']}
+          rectTwoColors={['#425066', '#425066']}
           rectThreeColors={['#E6E6E6', '#FFFFFF']}
         />,
       ])
