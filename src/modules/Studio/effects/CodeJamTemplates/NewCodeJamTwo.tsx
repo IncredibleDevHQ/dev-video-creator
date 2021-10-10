@@ -11,7 +11,11 @@ import {
   useGetTokenisedCodeLazyQuery,
 } from '../../../../generated/graphql'
 import { Concourse } from '../../components'
-import { CONFIG, StudioUserConfig } from '../../components/Concourse'
+import {
+  CONFIG,
+  StudioUserConfig,
+  TitleSplashProps,
+} from '../../components/Concourse'
 import RenderTokens, {
   controls,
   FragmentState,
@@ -40,10 +44,9 @@ const NewCodeJamTwo = () => {
   const { fragment, payload, updatePayload, state } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
-  const [titleSpalshData, settitleSpalshData] = useState<{
-    enable: boolean
-    title?: string
-  }>({ enable: false })
+  const [titleSpalshData, settitleSpalshData] = useState<TitleSplashProps>({
+    enable: false,
+  })
 
   const { initUseCode, computedTokens } = useCode()
   const [getTokenisedCode, { data }] = useGetTokenisedCodeLazyQuery()
@@ -89,6 +92,9 @@ const NewCodeJamTwo = () => {
         (property: any) => property.key === 'showTitleSplash'
       )?.value,
       title: fragment.name as string,
+      bgRectColor: ['#1F2937', '#1F2937'],
+      stripRectColor: ['#e535ab', '#e535ab'],
+      textColor: ['#ffffff', '#ffffff'],
     })
 
     if (!gistURL) throw new Error('Missing gist URL')
@@ -147,6 +153,12 @@ const NewCodeJamTwo = () => {
     }
     if (state === 'recording') {
       setFragmentState('onlyUserMedia')
+      updatePayload?.({
+        currentIndex: 1,
+        prevIndex: 0,
+        isFocus: false,
+        fragmentState: 'onlyUserMedia',
+      })
     }
   }, [state])
 
@@ -179,9 +191,21 @@ const NewCodeJamTwo = () => {
         opacity: 0,
         duration: 0.2,
       })
+      bothGroupRef.current.to({
+        opacity: 0,
+        duration: 0.2,
+      })
+    }
+    // Checking if the current state is both and making the opacity of the only both group 1
+    if (fragmentState === 'both') {
+      bothGroupRef.current.to({
+        opacity: 1,
+        duration: 0.2,
+      })
     }
   }, [fragmentState])
 
+  // returns all the information to render the studio user based on the fragment state and the number of fragment participants
   const studioCoordinates: StudioUserConfig[] = (() => {
     switch (fragment?.participants.length) {
       case 2:

@@ -79,9 +79,12 @@ import VideoJamSeven from './VideoJamTemplates/VideoJamSeven'
 import VideoJamSix from './VideoJamTemplates/VideoJamSix'
 import VideoJamTen from './VideoJamTemplates/VideoJamTen'
 import VideoJamThree from './VideoJamTemplates/VideoJamThree'
-import videoJamTwelve from './VideoJamTemplates/VideoJamTwelve'
+import VideoJamTwelve from './VideoJamTemplates/VideoJamTwelve'
 import VideoJamTwo from './VideoJamTemplates/VideoJamTwo'
 import StoryBook from './StoryBook'
+import NewVideoJamTwo from './VideoJamTemplates/NewVideoJamTwo'
+import NewVideoJamFour from './VideoJamTemplates/NewVideoJamFour'
+import NewVideoJamSix from './VideoJamTemplates/NewVideoJamSix'
 
 const themeEnum = 'theme'
 export interface Effect {
@@ -136,17 +139,17 @@ const getSplash = (theme: any) => {
 }
 
 const getVideoTheme = (theme: any) => {
-  if (theme.value === '1') return VideoJamFour
+  if (theme.value === '1') return NewVideoJamTwo
   if (theme.value === '2') return VideoJamFive
-  if (theme.value === '3') return VideoJamSix
+  if (theme.value === '3') return NewVideoJamFour
   if (theme.value === '4') return VideoJamSeven
-  if (theme.value === '5') return VideoJamEight
+  if (theme.value === '5') return NewVideoJamSix
   if (theme.value === '6') return VideoJamNine
   if (theme.value === '7') return VideoJamTwo
   if (theme.value === '8') return VideoJamThree
   if (theme.value === '9') return VideoJamTen
   if (theme.value === '10') return VideoJamEleven
-  if (theme.value === '11') return videoJamTwelve
+  if (theme.value === '11') return VideoJamTwelve
   return VideoJam
 }
 
