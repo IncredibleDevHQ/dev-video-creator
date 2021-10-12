@@ -148,7 +148,7 @@ const FragmentConfiguration = () => {
   const { sub } = (useRecoilValue(userState) as User) || {}
 
   return flick && fragment ? (
-    <div className="flex flex-col flex-1 bg-gray-50 h-screen">
+    <div className="flex flex-col flex-1 bg-gray-50 h-screen relative">
       <TabBar
         tabs={tabs}
         current={currentTab}
