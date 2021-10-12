@@ -159,7 +159,7 @@ mutation CreateFragment(
   $name: String!
   $type: CreateFragmentTypeEnum!
   $description: String
-  $creatorPid: uuid!
+  $creatorPid: uuid
 ) {
   CreateFragment(
     flickId: $flickId
