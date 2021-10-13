@@ -4,6 +4,7 @@ import { createClient, createMicrophoneAndCameraTracks } from 'agora-rtc-react'
 import { useRecoilState } from 'recoil'
 import config from '../../../config'
 import { studioStore } from '../stores'
+import { CurrentDevice } from '../Studio'
 
 const videoConfig: ClientConfig = {
   mode: 'rtc',
@@ -13,7 +14,6 @@ const videoConfig: ClientConfig = {
 const { appId } = config.agora
 
 const useClient = createClient(videoConfig)
-const useMicrophoneAndCameraTracks = createMicrophoneAndCameraTracks()
 
 export interface RTCUser extends IAgoraRTCRemoteUser {
   mediaStream?: MediaStream
@@ -24,7 +24,8 @@ export default function useAgora(
   {
     onTokenWillExpire,
     onTokenDidExpire,
-  }: { onTokenWillExpire: () => void; onTokenDidExpire: () => void }
+  }: { onTokenWillExpire: () => void; onTokenDidExpire: () => void },
+  currentDevice?: CurrentDevice
 ) {
   const client = useClient()
   const [users, setUsers] = useState<RTCUser[]>([])
@@ -33,6 +34,11 @@ export default function useAgora(
   const [userAudios, setUserAudios] = useState<MediaStream[]>([])
   const [cameraDevice, setCameraDevice] = useState<MediaDeviceInfo>()
   const [microphoneDevice, setMicrophoneDevice] = useState<MediaDeviceInfo>()
+
+  const useMicrophoneAndCameraTracks = createMicrophoneAndCameraTracks(
+    { microphoneId: currentDevice?.microphone },
+    { cameraId: currentDevice?.camera }
+  )
 
   const { ready, tracks } = useMicrophoneAndCameraTracks()
   useEffect(() => {
