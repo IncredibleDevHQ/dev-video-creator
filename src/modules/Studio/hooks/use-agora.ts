@@ -62,6 +62,12 @@ export default function useAgora(
     ;(async () => {
       if (cameraDevice) {
         await tracks[1].setDevice(cameraDevice.deviceId)
+        setStream(
+          new MediaStream([
+            tracks[0].getMediaStreamTrack(),
+            tracks[1].getMediaStreamTrack(),
+          ])
+        )
       }
     })()
   }, [cameraDevice])
@@ -71,6 +77,12 @@ export default function useAgora(
     ;(async () => {
       if (microphoneDevice) {
         await tracks[0].setDevice(microphoneDevice.deviceId)
+        setStream(
+          new MediaStream([
+            tracks[0].getMediaStreamTrack(),
+            tracks[1].getMediaStreamTrack(),
+          ])
+        )
       }
     })()
   }, [microphoneDevice])
