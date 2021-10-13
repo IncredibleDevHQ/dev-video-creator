@@ -51,14 +51,10 @@ mutation GetRTCToken($fragmentId: uuid!) {
 
 mutation SubToVideoEmails(
   $email: String!
-  $sourceId: String!
-  $targetType: TargetTypes!
+  $id: String!
+  $targetType: TargetType!
 ) {
-  SubscribeToVideos(
-    email: $email
-    sourceId: $sourceId
-    targetType: $targetType
-  ) {
+  Subscribe(email: $email, id: $id, targetType: $targetType) {
     success
   }
 }
