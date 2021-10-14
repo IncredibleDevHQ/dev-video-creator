@@ -1,206 +1,257 @@
-/* eslint-disable jsx-a11y/no-static-element-interactions */
-/* eslint-disable jsx-a11y/click-events-have-key-events */
-/* eslint-disable no-nested-ternary */ import React, {
-  useEffect,
-  useState,
-} from 'react'
-import { useParams, useHistory } from 'react-router-dom'
-import { FiActivity } from 'react-icons/fi'
-import { FaPlus } from 'react-icons/fa'
-import { useRecoilState, useRecoilValue } from 'recoil'
-import { BiChevronLeft } from 'react-icons/bi'
+import React, { useEffect, useState } from 'react'
+import { FiPlus } from 'react-icons/fi'
+import { Layer, Rect, Stage } from 'react-konva'
+import Modal from 'react-responsive-modal'
+import { useParams } from 'react-router'
 import {
-  FlickActivity,
-  FlickSideBar,
-  FragmentActivity,
-  FragmentConfiguration,
-  FragmentsSidebar,
-} from './components'
-import { currentFlickStore } from '../../stores/flick.store'
+  useRecoilBridgeAcrossReactRoots_UNSTABLE,
+  useRecoilState,
+  useRecoilValue,
+} from 'recoil'
 import {
-  Button,
-  EmptyState,
-  Heading,
+  Avatar,
+  emitToast,
   ScreenState,
+  Tab,
+  TabBar,
   Text,
 } from '../../components'
 import {
   useGetFlickByIdQuery,
-  useUpdateFlickMutation,
+  useGetFragmentParticipantsLazyQuery,
 } from '../../generated/graphql'
-import { studioStore } from '../Studio/stores'
 import { User, userState } from '../../stores/user.store'
+import { Notes } from './components'
+import { CONFIG } from '../Studio/components/Concourse'
+import {
+  FlickNavBar,
+  FragmentBar,
+  FragmentContent,
+  FragmentSideBar,
+  UpdateFragmentParticipantsModal,
+} from './components'
+import { newFlickStore } from './store/flickNew.store'
 
+//reworked config page
 const Flick = () => {
   const { id, fragmentId } = useParams<{ id: string; fragmentId?: string }>()
-  const { data, error, loading, refetch, called } = useGetFlickByIdQuery({
+  const [{ flick, activeFragmentId }, setFlickStore] =
+    useRecoilState(newFlickStore)
+  const { data, error, loading, refetch } = useGetFlickByIdQuery({
     variables: { id },
   })
-  const [flick, setFlick] = useRecoilState(currentFlickStore)
-  const [studio, setStudio] = useRecoilState(studioStore)
-  const { sub } = (useRecoilValue(userState) as User) || {}
 
-  const [editFlickName, setEditFlickName] = useState(false)
+  useEffect(() => {
+    if (!fragmentId) return
+    else
+      setFlickStore((store) => ({
+        ...store,
+        activeFragmentId: fragmentId,
+      }))
+  }, [fragmentId])
 
-  const [updateFlickMutation, { data: updateNameData }] =
-    useUpdateFlickMutation()
-
-  const [isActivityMenu, setIsActivityMenu] = useState(false)
-
-  const [activeFragmentId, setActiveFragmentId] = useState<string>()
-
-  const history = useHistory()
-
-  const updateFlickMutationFunction = async (newName: string) => {
-    if (editFlickName) {
-      await updateFlickMutation({
-        variables: {
-          name: newName,
-          flickId: flick?.id,
-        },
-      })
+  useEffect(() => {
+    if (!data) return
+    const fragmentsLength = data.Flick_by_pk?.fragments.length || 0
+    let activeId = ''
+    if (fragmentId) activeId = fragmentId
+    else {
+      activeId = fragmentsLength > 0 ? data.Flick_by_pk?.fragments[0].id : ''
     }
-  }
-
-  useEffect(() => {
-    if (!updateNameData) return
-    setEditFlickName(false)
-  }, [updateNameData])
-
-  useEffect(() => {
-    refetch()
-    if (!activeFragmentId || !flick) return
-    history.push(`/flick/${flick.id}/${activeFragmentId}`)
-  }, [activeFragmentId, flick])
-
-  useEffect(() => {
-    if (!data?.Flick_by_pk) return
-    setFlick(data.Flick_by_pk)
-    if (fragmentId) {
-      setActiveFragmentId(fragmentId)
-    } else {
-      setActiveFragmentId(
-        data.Flick_by_pk.fragments.length > 0
-          ? data.Flick_by_pk.fragments[0].id
-          : undefined
-      )
-    }
+    setFlickStore(() => ({
+      flick: data.Flick_by_pk || null,
+      activeFragmentId: activeId,
+    }))
   }, [data])
 
   useEffect(() => {
-    if (!flick) return
-    const isHost =
-      flick.participants.find(({ userSub }) => userSub === sub)?.owner || false
-    setStudio({ ...studio, isHost })
-  }, [flick])
+    if (!activeFragmentId || !flick) return
+    window.history.replaceState(
+      null,
+      'Incredible.dev',
+      `/flick/${flick.id}/${activeFragmentId}`
+    )
+  }, [activeFragmentId])
 
-  if (loading && !called) return <ScreenState title="Just a jiffy" loading />
-  if (error) return <ScreenState title="Something went wrong!!" />
+  if (loading) return <ScreenState title="Just a jiffy" loading />
 
-  if (!flick)
+  if (error)
     return (
       <ScreenState
         title="Something went wrong!!"
-        subtitle="We couldn't find the details of this flick"
+        subtitle="Could not load your flick. Please try again"
+        button="Retry"
+        handleClick={() => {
+          refetch()
+        }}
       />
     )
 
-  return (
-    <div>
-      <div className="flex bg-gray-50 p-2 m-1 justify-between pr-8">
-        <div
-          className="cursor-pointer hover:underline flex items-center"
-          onClick={() => history.push('/dashboard')}
-        >
-          <BiChevronLeft />
-          <Text className="text-xs">Back to dashboard</Text>
-        </div>
-
-        <Heading
-          className=" flex font-black text-2xl capitalize justify-center ml-20 cursor-auto p-1 rounded-lg hover:bg-gray-300"
-          contentEditable={editFlickName}
-          onClick={() => {
-            setEditFlickName(true)
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault()
-              updateFlickMutationFunction(e.currentTarget.innerText)
-            }
-          }}
-        >
-          {flick.name}
-        </Heading>
-
-        <button
-          type="button"
-          className="cursor-pointer"
-          onClick={() => setIsActivityMenu(!isActivityMenu)}
-        >
-          <FiActivity />
-        </button>
-        <FlickActivity menu={isActivityMenu} setMenu={setIsActivityMenu} />
-      </div>
-      <section className="flex flex-row relative">
-        <FragmentsSidebar
-          flickId={flick.id}
-          fragments={flick.fragments}
-          activeFragmentId={activeFragmentId}
-          setActiveFragmentId={setActiveFragmentId}
-          handleRefetch={(refresh) => {
-            if (refresh) refetch()
-          }}
-          participants={flick.participants}
-        />
-        <div className="flex-1 p-4">
-          {activeFragmentId && (
-            <div>
-              <FragmentActivity
-                fragment={flick.fragments.find(
-                  (fragment) => fragment.id === activeFragmentId
-                )}
-              />
-              <FragmentConfiguration
-                fragment={flick.fragments.find(
-                  (fragment) => fragment.id === activeFragmentId
-                )}
-                handleRefetch={(refresh) => {
-                  if (refresh) refetch()
-                }}
-              />
-            </div>
-          )}
-          {flick.fragments.length === 0 && (
-            <div className="flex h-full w-full items-center justify-center">
-              <Button
-                appearance="primary"
-                className=""
-                type="button"
-                icon={FaPlus}
-                size="large"
-                onClick={() => {
-                  history.push(`/new-fragment/${flick.id}`)
-                }}
-              >
-                Create Fragment
-              </Button>
-            </div>
-          )}
-          {!activeFragmentId && (
-            <>
-              <EmptyState text="No Fragment is selected" width={400} />
-            </>
-          )}
-        </div>
-        <FlickSideBar
-          fragment={flick.fragments.find(
-            (fragment) => fragment.id === activeFragmentId
-          )}
-          handleRefetch={(refresh) => {
-            if (refresh) refetch()
-          }}
-        />
+  return flick ? (
+    <div className="flex flex-col h-screen overflow-hidden">
+      <FlickNavBar />
+      <FragmentBar />
+      <section className="flex h-full">
+        <FragmentSideBar />
+        {/* <FragmentPreview /> */}
+        <FragmentConfiguration />
       </section>
+    </div>
+  ) : (
+    <div />
+  )
+}
+
+const FragmentPreview = () => {
+  const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
+
+  return (
+    <div className="flex-1 flex flex-col items-center mt-6">
+      <div className="border-2 w-max">
+        <Stage height={CONFIG.height} width={CONFIG.width}>
+          <Bridge>
+            <Layer>
+              <Rect
+                x={0}
+                y={0}
+                height={CONFIG.height}
+                width={CONFIG.width}
+                fill="#FAFAFA"
+              />
+            </Layer>
+          </Bridge>
+        </Stage>
+      </div>
+    </div>
+  )
+}
+
+const FragmentConfiguration = () => {
+  const tabs: Tab[] = [
+    {
+      name: 'Content',
+      value: 'Content',
+    },
+    {
+      name: 'Participants',
+      value: 'Participants',
+    },
+    {
+      name: 'Notes',
+      value: 'Notes',
+    },
+  ]
+  const [currentTab, setCurrentTab] = useState<Tab>(tabs[0])
+  const { activeFragmentId, flick } = useRecoilValue(newFlickStore)
+
+  const fragment = flick?.fragments.find((frag) => frag.id === activeFragmentId)
+  const { sub } = (useRecoilValue(userState) as User) || {}
+
+  return flick && fragment ? (
+    <div className="flex flex-col flex-1 bg-gray-50 h-screen relative">
+      <TabBar
+        tabs={tabs}
+        current={currentTab}
+        onTabChange={setCurrentTab}
+        className="flex text-black w-full justify-center mt-6 mb-6"
+      />
+      {currentTab.value === 'Content' && <FragmentContent />}
+      {currentTab.value === 'Participants' && <FragmentParticipants />}
+      {currentTab.value === 'Notes' && (
+        <div className="p-4">
+          <Notes
+            flickId={flick.id}
+            participantId={
+              fragment.participants.find(
+                ({ participant }) => participant.userSub === sub
+              )?.participant.id
+            }
+          />
+        </div>
+      )}
+    </div>
+  ) : (
+    <div />
+  )
+}
+
+const FragmentParticipants = () => {
+  const [{ flick, activeFragmentId }, setFlickStore] =
+    useRecoilState(newFlickStore)
+
+  const [
+    isAddFragmentParticipantModalOpen,
+    setIsAddFragmentParticipantModalOpen,
+  ] = useState(false)
+
+  const [GetFragmentParticipants, { data, error }] =
+    useGetFragmentParticipantsLazyQuery({
+      variables: {
+        fragmentId: activeFragmentId,
+      },
+    })
+
+  useEffect(() => {
+    if (!data || !flick) return
+    const updatedFragments = flick.fragments.map((fragment) => {
+      if (fragment.id === activeFragmentId) {
+        return {
+          ...fragment,
+          participants: data.Fragment_Participant,
+        }
+      } else return fragment
+    })
+    setFlickStore((store) => ({
+      ...store,
+      flick: {
+        ...flick,
+        fragments: updatedFragments,
+      },
+      activeFragmentId: store.activeFragmentId,
+    }))
+  }, [data])
+
+  useEffect(() => {
+    if (!error) return
+    emitToast({
+      title: 'Could not fetch updated participants',
+      type: 'error',
+      description: `Click this toast to give it another try.`,
+      onClick: () => GetFragmentParticipants(),
+    })
+  }, [error])
+
+  return (
+    <div className="flex flex-col mx-12">
+      {flick?.fragments
+        .find((f) => f.id === activeFragmentId)
+        ?.participants.map((p) => (
+          <div className="flex items-center mt-4">
+            <Avatar
+              className="w-8 h-8 rounded-full mr-4"
+              src={p.participant.user.picture as string}
+              alt={p.participant.user.displayName as string}
+            />
+            <Text>{p.participant.user.displayName}</Text>
+          </div>
+        ))}
+      <div
+        className="flex items-center mt-4 cursor-pointer"
+        onClick={() => setIsAddFragmentParticipantModalOpen(true)}
+      >
+        <FiPlus size={32} className="mr-4" />
+        <Text className="font-semibold">Add</Text>
+      </div>
+      <UpdateFragmentParticipantsModal
+        key={`modal-${activeFragmentId}`}
+        open={isAddFragmentParticipantModalOpen}
+        handleClose={(refresh) => {
+          setIsAddFragmentParticipantModalOpen(false)
+          if (refresh) {
+            GetFragmentParticipants()
+          }
+        }}
+      />
     </div>
   )
 }

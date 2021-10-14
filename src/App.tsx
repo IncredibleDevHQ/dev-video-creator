@@ -31,7 +31,6 @@ import {
   PublicVideo,
   MagicLinkLogin,
   NewNewFragment,
-  FlickNew,
 } from './modules'
 import { ErrorBoundary, ScreenState } from './components'
 
@@ -108,7 +107,7 @@ const App = () => {
                 <PrivateRoute
                   exact
                   path="/flick/:id/:fragmentId?"
-                  component={FlickNew}
+                  component={Flick}
                 />
                 <PrivateRoute
                   exact

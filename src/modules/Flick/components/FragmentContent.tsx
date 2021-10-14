@@ -143,7 +143,7 @@ const FragmentContent = () => {
   if (!fragment) return <EmptyState text="No fragment Selected" width={400} />
 
   return (
-    <div className="pr-10">
+    <div className="pr-10 pb-48 overflow-scroll">
       <form onSubmit={handleSubmit}>
         {config?.map((attribute) => {
           return (
