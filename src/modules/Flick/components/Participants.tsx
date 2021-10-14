@@ -121,7 +121,7 @@ const Participants = ({
     )
 
   return (
-    <div className="flex flex-col h-screen py-2 px-4 bg-background-alt">
+    <div className="flex flex-col h-screen py-2 px-4 bg-background-alt overflow-y-auto">
       <div className="flex flex-row justify-between items-center mb-4">
         <Heading fontSize="medium">Participants</Heading>
         <FiX

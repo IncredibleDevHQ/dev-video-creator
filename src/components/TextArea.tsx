@@ -4,7 +4,7 @@ import { nanoid } from 'nanoid'
 import { Label } from '.'
 
 interface TextAreaProps extends HTMLProps<HTMLTextAreaElement> {
-  label: string
+  label?: string
   accessories?: JSX.Element[]
   caption?: JSX.Element | string
 }

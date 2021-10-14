@@ -8,11 +8,7 @@ import {
   TextArraySchema,
   TextSchema,
 } from './ConfigComponents/index'
-import {
-  Fragment_Type_Enum,
-  Fragment_Type_Enum_Enum,
-  Fragment_Type_Enum_Enum_Comparison_Exp,
-} from '../../../generated/graphql'
+import { Fragment_Type_Enum_Enum } from '../../../generated/graphql'
 
 export interface SchemaElementProps {
   key: string
@@ -60,6 +56,13 @@ export const GetSchemaElement = ({
   setConfigured,
   type,
 }: GetSchemaElementProps) => {
+  useEffect(() => {
+    if (setFieldValue && schema.key === 'source') {
+      setFieldValue(schema.key, selectedVideoLink)
+      setConfigured(false)
+    }
+  }, [selectedVideoLink])
+
   switch (schema.type) {
     case 'boolean':
       return (
@@ -74,31 +77,16 @@ export const GetSchemaElement = ({
       )
 
     case 'text':
-      // if (type === Fragment_Type_Enum_Enum.Splash && schema.key !== 'theme') {
-      //   setConfigured(true)
-      // } else if (!schema.value || (schema.value && schema.value.length <= 0)) {
-      //   setConfigured(false)
-      // }
-
-      useEffect(() => {
-        if (setFieldValue && schema.key === 'source') {
-          setFieldValue(schema.key, selectedVideoLink)
-          setConfigured(false)
-        }
-      }, [selectedVideoLink])
-
       return (
-        <>
-          <TextSchema
-            schema={schema}
-            handleChange={handleChange}
-            value={value}
-            type={type}
-            setLoadingAssets={setLoadingAssets}
-            setConfigured={setConfigured}
-            setVideoInventoryModal={setVideoInventoryModal}
-          />
-        </>
+        <TextSchema
+          schema={schema}
+          handleChange={handleChange}
+          value={value}
+          type={type}
+          setLoadingAssets={setLoadingAssets}
+          setConfigured={setConfigured}
+          setVideoInventoryModal={setVideoInventoryModal}
+        />
       )
 
     case 'json':
