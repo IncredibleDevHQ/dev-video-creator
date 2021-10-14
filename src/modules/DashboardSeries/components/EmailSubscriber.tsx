@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Button, emitToast, TextField } from '../../../components'
 import {
-  TargetTypes,
+  TargetType,
   useSubToVideoEmailsMutation,
 } from '../../../generated/graphql'
 
@@ -11,7 +11,7 @@ const EmailSubscriber = ({
   handleClose,
 }: {
   sourceID: string
-  target: TargetTypes
+  target: TargetType
   handleClose?: (refresh?: boolean) => void
 }) => {
   const [SubscribeToVideos, { data, loading, error }] =
@@ -22,7 +22,7 @@ const EmailSubscriber = ({
     await SubscribeToVideos({
       variables: {
         email: emailSubscribe,
-        sourceId: sourceID,
+        id: sourceID,
         targetType: target,
       },
     })
