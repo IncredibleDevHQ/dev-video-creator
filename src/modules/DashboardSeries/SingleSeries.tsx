@@ -12,7 +12,7 @@ import {
 } from '../../components'
 import {
   Flick_Scope_Enum_Enum,
-  TargetTypes,
+  TargetType,
   useGetSingleSeriesLazyQuery,
   useUpdateSeriesMutation,
 } from '../../generated/graphql'
@@ -168,7 +168,7 @@ const SingleSeries = () => {
           <div className="flex flex-col ml-auto px-2 gap-y-5 absolute right-10 top-10">
             <EmailSubscriber
               sourceID={data?.Series_by_pk?.id}
-              target={TargetTypes.SeriesSubsciption}
+              target={TargetType.Series}
             />
             <div className="flex flex-col">
               <Heading className="text-lg md:capitalize  pl-1 mt-5">
