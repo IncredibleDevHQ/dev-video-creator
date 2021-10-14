@@ -32,7 +32,6 @@ const FragmentConfiguration = ({
     if (!isValid) return
     try {
       setSubmitting(true)
-
       await updateFragment({
         variables: {
           fragmentId: fragment?.id,
@@ -120,7 +119,7 @@ const FragmentConfiguration = ({
           type="button"
           size="small"
           appearance={!isConfigured ? 'primary' : 'secondary'}
-          className="ml-4"
+          className="ml-4 mt-2"
           onClick={(e) => {
             e?.preventDefault()
             handleSubmit()

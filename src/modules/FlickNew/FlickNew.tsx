@@ -88,7 +88,7 @@ const FlickNew = () => {
     )
 
   return flick ? (
-    <div className="flex flex-col h-screen overflow-hidden">
+    <div className="flex flex-col">
       <FlickNavBar />
       <FragmentBar />
       <section className="flex h-full">
@@ -148,7 +148,7 @@ const FragmentConfiguration = () => {
   const { sub } = (useRecoilValue(userState) as User) || {}
 
   return flick && fragment ? (
-    <div className="flex flex-col flex-1 bg-gray-50 h-screen">
+    <div className="flex flex-col flex-1 bg-gray-50">
       <TabBar
         tabs={tabs}
         current={currentTab}
