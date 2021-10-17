@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { ICameraVideoTrack, IMicrophoneAudioTrack } from 'agora-rtc-sdk-ng'
 import AgoraRTC from 'agora-rtc-sdk-ng'
-import { FiArrowLeft, FiMic, FiVideo } from 'react-icons/fi'
+import { FiArrowLeft } from 'react-icons/fi'
 import { useHistory, useParams } from 'react-router-dom'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import getBlobDuration from 'get-blob-duration'
@@ -18,7 +18,6 @@ import {
   Heading,
   ScreenState,
   updateToast,
-  IDSelect,
   Button,
 } from '../../components'
 import {
@@ -37,6 +36,7 @@ import { useAgora } from './hooks'
 import { StudioProviderProps, StudioState, studioStore } from './stores'
 import { useRTDB } from './hooks/use-rtdb'
 import { Timer, Countdown } from './components'
+import { Device } from './hooks/use-agora'
 
 const useMicrophoneAndCameraTracks = createMicrophoneAndCameraTracks()
 
@@ -45,7 +45,7 @@ const StudioHoC = () => {
   const [view, setView] = useState<'preview' | 'studio'>('preview')
   const { ready, tracks } = useMicrophoneAndCameraTracks()
 
-  const [currentDevice, setCurrentDevice] = useState<CurrentDevice>()
+  const [currentDevice, setCurrentDevice] = useState<Device>({} as Device)
 
   const { sub } = (useRecoilValue(userState) as User) || {}
   const { fragmentId } = useParams<{ fragmentId: string }>()
@@ -71,11 +71,6 @@ const StudioHoC = () => {
     return <Studio data={data} currentDevice={currentDevice} />
 }
 
-export type CurrentDevice = {
-  microphone?: string
-  camera?: string
-}
-
 const Preview = ({
   tracks,
   ready,
@@ -88,8 +83,8 @@ const Preview = ({
   ready: boolean
   data?: GetFragmentByIdQuery
   handleJoin: () => void
-  currentDevice?: CurrentDevice
-  setCurrentDevice: (currentDevice: CurrentDevice) => void
+  currentDevice?: Device
+  setCurrentDevice: (currentDevice: Device) => void
 }) => {
   const [devices, setDevices] = useState<{
     cameras: MediaDeviceInfo[]
@@ -153,6 +148,7 @@ const Preview = ({
             className="w-full rounded-md mb-4 p-2 border border-gray-300"
             value={currentDevice?.camera}
             onChange={(e) =>
+              // @ts-ignore
               setCurrentDevice({ ...currentDevice, camera: e.target.value })
             }
           >
@@ -168,6 +164,7 @@ const Preview = ({
             className="w-full rounded-md mb-4 p-2 border border-gray-300"
             value={currentDevice?.microphone}
             onChange={(e) =>
+              // @ts-ignore
               setCurrentDevice({ ...currentDevice, microphone: e.target.value })
             }
           >
@@ -195,7 +192,7 @@ const Studio = ({
   currentDevice,
 }: {
   data?: GetFragmentByIdQuery
-  currentDevice?: CurrentDevice
+  currentDevice: Device
 }) => {
   const { fragmentId } = useParams<{ fragmentId: string }>()
   const { constraints } =
@@ -219,12 +216,6 @@ const Studio = ({
     userAudios,
     tracks,
     renewToken,
-    cameraDevice,
-    microphoneDevice,
-    getCameras,
-    getMicrophones,
-    updateCameraDevices,
-    updateMicroPhoneDevices,
   } = useAgora(
     fragmentId,
     {
@@ -470,7 +461,7 @@ const Studio = ({
   }, [payload, studio.isHost])
 
   useMemo(() => {
-    if (!fragment || !cameraDevice || !microphoneDevice) return
+    if (!fragment) return
     setStudio({
       ...studio,
       fragment,
@@ -479,12 +470,6 @@ const Studio = ({
       stopRecording: stop,
       showFinalTransition: finalTransition,
       reset: resetRecording,
-      getCameras,
-      getMicrophones,
-      cameraDevice,
-      microphoneDevice,
-      updateCameraDevices,
-      updateMicroPhoneDevices,
       upload,
       getBlobs,
       state,
@@ -507,17 +492,7 @@ const Studio = ({
           ({ participant }) => participant.userSub === sub
         )?.participant.owner || false,
     })
-  }, [
-    fragment,
-    stream,
-    users,
-    state,
-    userAudios,
-    payload,
-    participants,
-    cameraDevice,
-    microphoneDevice,
-  ])
+  }, [fragment, stream, users, state, userAudios, payload, participants, state])
 
   /**
    * =======================
