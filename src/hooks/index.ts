@@ -3,7 +3,7 @@ import useUnload from './use-unload'
 import useCanvasRecorder from './use-canvas-recorder'
 import { useLazyDisplayStream, useLazyUserStream } from './use-stream'
 import useTimekeeper from './use-timekeeper'
-import useQueryVariables from './useQuery'
+import useQuery from './use-query'
 import { useUploadFile } from './use-upload-file'
 
 export {
@@ -13,6 +13,6 @@ export {
   useLazyDisplayStream,
   useLazyUserStream,
   useCanvasRecorder,
-  useQueryVariables,
+  useQuery,
   useTimekeeper,
 }
