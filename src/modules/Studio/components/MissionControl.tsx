@@ -13,7 +13,6 @@ import {
   FiClipboard,
   FiMicOff,
   FiVideoOff,
-  FiSettings,
 } from 'react-icons/fi'
 import { BiReset } from 'react-icons/bi'
 import { IoHandRightOutline } from 'react-icons/io5'
@@ -22,7 +21,6 @@ import { useRecoilState, useRecoilValue } from 'recoil'
 import { canvasStore, StudioProviderProps, studioStore } from '../stores'
 import { Avatar, Heading, Tooltip } from '../../../components'
 import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
-import SwitchMediaDevices from './SwitchMediaDevices'
 import { PresenterNotes } from '.'
 
 export const ControlButton = ({
@@ -112,8 +110,6 @@ const MissionControl = ({ controls }: { controls: JSX.Element[] }) => {
   const [isRaiseHandsTooltip, setRaiseHandsTooltip] = useState(false)
   const [participant, setParticipant] = useState<any>()
   const [participantsArray, setParticipantsArray] = useState<any[]>([])
-  const [openSwitchMediaDevicesModal, setOpenSwitchMediaDevicesModal] =
-    useState(false)
   const [showNotes, setShowNotes] = useState(false)
 
   const togglePresenterNotes = (to: boolean) => {
@@ -159,14 +155,6 @@ const MissionControl = ({ controls }: { controls: JSX.Element[] }) => {
     <div className="bg-gray-100 py-2 px-4 rounded-md">
       <div className="flex flex-col items-center justify-between h-full">
         <div className="flex items-center flex-col">
-          <ControlButton
-            icon={FiSettings}
-            className="my-2"
-            appearance="primary"
-            onClick={async () => {
-              setOpenSwitchMediaDevicesModal(true)
-            }}
-          />
           <ControlButton
             icon={FiClipboard}
             appearance="primary"
@@ -295,10 +283,6 @@ const MissionControl = ({ controls }: { controls: JSX.Element[] }) => {
           </>
         </div>
       </div>
-      <SwitchMediaDevices
-        open={openSwitchMediaDevicesModal}
-        handleClose={async () => setOpenSwitchMediaDevicesModal(false)}
-      />
       {fragment && participantId && (
         <PresenterNotes
           open={showNotes}

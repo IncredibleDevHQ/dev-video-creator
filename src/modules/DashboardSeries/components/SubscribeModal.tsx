@@ -1,10 +1,10 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { Modal } from 'react-responsive-modal'
 import Gravatar from 'react-gravatar'
 import { css, cx } from '@emotion/css'
 import { Heading, Text } from '../../../components'
 import EmailSubscriber from './EmailSubscriber'
-import { TargetTypes } from '../../../generated/graphql'
+import { TargetType } from '../../../generated/graphql'
 
 const SubscribeModal = ({
   open,
@@ -66,7 +66,7 @@ const SubscribeModal = ({
         </Text>
         <EmailSubscriber
           sourceID={userSub}
-          target={TargetTypes.UserSubscription}
+          target={TargetType.User}
           handleClose={handleClose}
         />
       </div>

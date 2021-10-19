@@ -1,7 +1,7 @@
 import React, { HTMLProps, useEffect, useState } from 'react'
 import { BiUser } from 'react-icons/bi'
 import { IoCloseOutline } from 'react-icons/io5'
-import { useRecoilState } from 'recoil'
+import { useRecoilState, useRecoilValue } from 'recoil'
 import { emitToast, Heading, Text } from '../../../components'
 import { fragmentIcons } from '../../../constants'
 import {
@@ -9,6 +9,7 @@ import {
   Fragment_Type_Enum_Enum,
   useCreateFragmentMutation,
 } from '../../../generated/graphql'
+import { User, userState } from '../../../stores/user.store'
 import { newFlickStore } from '../store/flickNew.store'
 
 export const fragmentTypes = [
@@ -65,6 +66,7 @@ const NewFragmentModal = ({
   const [createFragment, { data, error, loading }] = useCreateFragmentMutation()
   const [selectedFragment, setSelectedFragment] =
     useState<Fragment_Type_Enum_Enum | null>(null)
+  const { sub } = (useRecoilValue(userState) as User) || {}
 
   useEffect(() => {
     if (!data) return
@@ -110,6 +112,9 @@ const NewFragmentModal = ({
                       name: label,
                       type: CreateFragmentTypeEnum[value],
                       description: description,
+                      creatorPid: flick?.participants.find(
+                        (p) => p.userSub === sub
+                      )?.id,
                     },
                   })
                 }}
