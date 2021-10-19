@@ -2,10 +2,9 @@ import React, { useState } from 'react'
 import { FileDropzone, Text } from '../../../../components'
 import { useUploadFile } from '../../../../hooks'
 import { AllowedFileExtensions } from '../../../../hooks/use-upload-file'
-// eslint-disable-next-line import/namespace
 import { GetSchemaElementProps } from '../Effects'
 
-export const PicSchema = ({
+const PicSchema = ({
   schema,
   handleChange,
   value,

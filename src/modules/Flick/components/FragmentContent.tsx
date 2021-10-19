@@ -1,6 +1,6 @@
 import { useFormik } from 'formik'
 import React, { useEffect, useState } from 'react'
-import { useHistory } from 'react-router'
+import { useHistory } from 'react-router-dom'
 import { useRecoilState } from 'recoil'
 import { emitToast, ScreenState, EmptyState, Button } from '../../../components'
 import { useUpdateFragmentConfigurationMutation } from '../../../generated/graphql'
@@ -49,7 +49,7 @@ const FragmentContent = () => {
 
       if (fragment && flick) {
         let temp = { ...fragment }
-        const properties = fragment.configuration.properties
+        const { properties } = fragment.configuration
         temp = {
           ...fragment,
           configuration: {
@@ -143,7 +143,7 @@ const FragmentContent = () => {
   if (!fragment) return <EmptyState text="No fragment Selected" width={400} />
 
   return (
-    <div className="pr-10">
+    <div className="pr-10 pb-48 overflow-scroll">
       <form onSubmit={handleSubmit}>
         {config?.map((attribute) => {
           return (
@@ -167,7 +167,7 @@ const FragmentContent = () => {
           type="button"
           size="small"
           appearance={!isConfigured ? 'primary' : 'secondary'}
-          className="ml-4"
+          className="ml-4 mt-2"
           onClick={(e) => {
             e?.preventDefault()
             handleSubmit()

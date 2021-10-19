@@ -1,10 +1,8 @@
 import React from 'react'
-import { useRecoilState, useSetRecoilState } from 'recoil'
 import { Checkbox } from '../../../../components'
-// eslint-disable-next-line import/namespace
 import { GetSchemaElementProps } from '../Effects'
 
-export const CheckboxSchema = ({
+const CheckboxSchema = ({
   schema,
   setFieldValue,
   setConfigured,
