@@ -2,6 +2,14 @@ import { css, cx } from '@emotion/css'
 import React, { HTMLProps, useEffect, useState } from 'react'
 import { FiPlus } from 'react-icons/fi'
 import { useRecoilState } from 'recoil'
+import {
+  DragDropContext,
+  Draggable,
+  DraggableProvided,
+  DraggableStateSnapshot,
+  Droppable,
+} from 'react-beautiful-dnd'
+import { IoCheckmarkCircle } from 'react-icons/io5'
 import { emitToast, Button, Text, Avatar } from '../../../components'
 import { newFlickStore } from '../store/flickNew.store'
 import {
@@ -11,14 +19,6 @@ import {
   useUpdateFragmentMutation,
 } from '../../../generated/graphql'
 import NewFragmentModal from './NewFragmentModal'
-import {
-  DragDropContext,
-  Draggable,
-  DraggableProvided,
-  DraggableStateSnapshot,
-  Droppable,
-} from 'react-beautiful-dnd'
-import { IoCheckmarkCircle } from 'react-icons/io5'
 
 const style = css`
   ::-webkit-scrollbar {
@@ -65,6 +65,9 @@ const FragmentSideBar = () => {
       <div
         className={cx(
           'w-56 h-5/6 border-r-2 border-gray-300 overflow-y-scroll pb-16',
+          {
+            'h-full': flick?.fragments.length === 0,
+          },
           style
         )}
       >

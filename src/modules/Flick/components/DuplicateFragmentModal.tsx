@@ -1,3 +1,4 @@
+import { css, cx } from '@emotion/css'
 import React, {
   ChangeEvent,
   HTMLAttributes,
@@ -6,8 +7,7 @@ import React, {
   useState,
 } from 'react'
 import { Modal } from 'react-responsive-modal'
-import { css, cx } from '@emotion/css'
-import { useHistory } from 'react-router-dom'
+import { useRecoilState } from 'recoil'
 import {
   Button,
   emitToast,
@@ -18,13 +18,12 @@ import {
 } from '../../../components'
 import {
   CreateFragmentTypeEnum,
-  FlickFragmentFragment,
-  FlickParticipantsFragment,
   Fragment_Type_Enum_Enum,
   useCreateFragmentMutation,
   useInsertParticipantToFragmentMutation,
 } from '../../../generated/graphql'
-import { fragmentTypes } from '../../NewFragment/components/BaseFragment'
+import { newFlickStore } from '../store/flickNew.store'
+import { fragmentTypes } from './NewFragmentModal'
 
 const Pill = ({
   className,
@@ -48,21 +47,21 @@ const Pill = ({
 const DuplicateFragmentModal = ({
   open,
   handleClose,
-  fragment,
-  flickParticipants,
-  flickId,
 }: {
   open: boolean
   handleClose: (refresh?: boolean) => void
-  fragment?: FlickFragmentFragment
-  flickParticipants: FlickParticipantsFragment[]
-  flickId: string
 }) => {
+  const [{ flick, activeFragmentId }, setFlickStore] =
+    useRecoilState(newFlickStore)
+
   const DEFAULT_VALUES = {
     title: '',
     description: '',
-    participants: fragment?.participants.map((p) => p.participant.id as string),
-    type: fragment?.type,
+    participants:
+      flick?.fragments
+        .find((f) => f.id === activeFragmentId)
+        ?.participants.map((p) => p.participant.id as string) || [],
+    type: flick?.fragments.find((f) => f.id === activeFragmentId)?.type,
   }
 
   const [candidate, setCandidate] = useState<{
@@ -73,9 +72,21 @@ const DuplicateFragmentModal = ({
   }>(DEFAULT_VALUES)
 
   const [loading, setLoading] = useState(false)
-  const { push } = useHistory()
   const [insertParticipantToFragment] = useInsertParticipantToFragmentMutation()
   const [createFragment] = useCreateFragmentMutation()
+
+  useEffect(() => {
+    const defaultFragmentConfig = {
+      title: '',
+      description: '',
+      participants:
+        flick?.fragments
+          .find((f) => f.id === activeFragmentId)
+          ?.participants.map((p) => p.participant.id as string) || [],
+      type: flick?.fragments.find((f) => f.id === activeFragmentId)?.type,
+    }
+    setCandidate(defaultFragmentConfig)
+  }, [activeFragmentId])
 
   const handleDuplicate = async () => {
     setLoading(true)
@@ -88,7 +99,7 @@ const DuplicateFragmentModal = ({
     try {
       const { data, errors } = await createFragment({
         variables: {
-          flickId,
+          flickId: flick?.id,
           description,
           type: candidate?.type as unknown as CreateFragmentTypeEnum,
           name: candidate?.title as string,
@@ -102,8 +113,7 @@ const DuplicateFragmentModal = ({
       if (!data?.CreateFragment?.id) throw Error('Fragment ID not found.')
 
       if (candidate?.participants && candidate?.participants?.length > 0) {
-        const promises: Promise<any>[] = []
-        candidate.participants.forEach((participantId) => {
+        const promises = candidate.participants.map((participantId) => {
           return insertParticipantToFragment({
             variables: {
               fragmentId: data.CreateFragment?.id,
@@ -119,6 +129,11 @@ const DuplicateFragmentModal = ({
           title: "And that's how it is done!",
           description: `${candidate.title} was created. Do configure this ${candidate.type} to make it your own! :)`,
         })
+
+        setFlickStore((prev) => ({
+          ...prev,
+          activeFragmentId: data.CreateFragment?.id,
+        }))
 
         handleClose(true)
       }
@@ -141,10 +156,6 @@ const DuplicateFragmentModal = ({
     if (!candidate.type) return false
     return true
   }, [candidate])
-
-  useEffect(() => {
-    setCandidate(DEFAULT_VALUES)
-  }, [fragment])
 
   return (
     <Modal
@@ -173,9 +184,15 @@ const DuplicateFragmentModal = ({
             <Heading fontSize="medium">Duplicate Fragment</Heading>
           </div>
           <Heading fontSize="small" className="mt-1 mb-4">
-            Your fragment <b>{fragment?.name}</b> will be duplicated with
-            various existing settings. You have the option to tailor them before
-            duplication.
+            Your fragment{' '}
+            <b>
+              {
+                flick?.fragments.find((f) => f.flickId === activeFragmentId)
+                  ?.name
+              }
+            </b>{' '}
+            will be duplicated with various existing settings. You have the
+            option to tailor them before duplication.
           </Heading>
 
           <TextField
@@ -226,7 +243,7 @@ const DuplicateFragmentModal = ({
           <div className="py-2">
             <Label>Participants</Label>
             <ul className="flex flex-wrap gap-4">
-              {flickParticipants?.map((participant) => (
+              {flick?.participants?.map((participant) => (
                 <Pill
                   className="flex items-center"
                   key={participant.id}

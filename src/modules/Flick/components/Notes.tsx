@@ -12,7 +12,7 @@ import {
 import { formatDate } from '../../../utils/FormatDate'
 import { User, userState } from '../../../stores/user.store'
 import { currentFlickStore } from '../../../stores/flick.store'
-import { newFlickStore } from '../../FlickNew/store/flickNew.store'
+import { newFlickStore } from '../store/flickNew.store'
 
 // This component renders notes for the current selected fragment in the flick dashboard
 const Notes = ({

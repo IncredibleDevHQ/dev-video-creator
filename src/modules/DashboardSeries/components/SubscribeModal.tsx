@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { Modal } from 'react-responsive-modal'
 import Gravatar from 'react-gravatar'
 import { css, cx } from '@emotion/css'
