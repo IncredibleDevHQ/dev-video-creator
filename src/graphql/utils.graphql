@@ -54,7 +54,7 @@ mutation SubToVideoEmails(
   $email: String!
   $targetType: TargetType!
 ) {
-  Subscribe(email: $email, targetType: $targetType, id: $id) {
+  Subscribe(email: $email, id: $id, targetType: $targetType) {
     success
   }
 }
