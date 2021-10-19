@@ -10,6 +10,7 @@ import { ASSETS } from '../constants'
 import { Tooltip } from '.'
 
 const AuthenticatedRightCol = () => {
+  const history = useHistory()
   const { picture, displayName, email } =
     (useRecoilValue(userState) as User) || {}
   const [isOpen, setIsOpen] = useState(false)
@@ -32,6 +33,18 @@ const AuthenticatedRightCol = () => {
                 className="text-base w-32"
               >
                 Sign out
+              </Button>
+            </li>
+            <li>
+              <Button
+                onClick={() => {
+                  history.push('integrations')
+                }}
+                type="button"
+                appearance="link"
+                className="text-base w-32"
+              >
+                Integrations
               </Button>
             </li>
           </ul>
@@ -81,10 +94,14 @@ const Navbar = ({ hideNav }: { hideNav?: boolean }) => {
 
   return (
     <nav className="flex flex-row items-center px-4 py-2 justify-between border-b-2">
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */}
       <img
         src={ASSETS.ICONS.IncredibleLogo}
-        alt=""
+        alt="Incredible"
         className="w-28 cursor-pointer"
+        onClick={() => {
+          history.push('dashboard')
+        }}
       />
 
       {isAuthenticated ? (
