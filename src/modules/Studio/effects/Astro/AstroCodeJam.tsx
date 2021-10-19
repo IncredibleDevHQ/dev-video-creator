@@ -224,14 +224,14 @@ const AstroCodeJam = () => {
     }
   })()
 
-  const layerChildren = astroCodeJamLayerChildren(
+  const layerChildren = astroCodeJamLayerChildren({
     bothGroupRef,
     onlyFragmentGroupRef,
-    computedTokens.current,
+    computedTokens: computedTokens.current,
     position,
     focusCode,
-    payload
-  )
+    payload,
+  })
 
   return (
     <Concourse

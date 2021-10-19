@@ -427,14 +427,21 @@ const windowOpsImages = (fragment: StudioFragmentFragment | undefined) => {
   }
 }
 
-export const astroCodeJamLayerChildren = (
-  bothGroupRef: React.RefObject<Konva.Group>,
-  onlyFragmentGroupRef: React.RefObject<Konva.Group>,
-  computedTokens: ComputedToken[],
-  position: Position,
-  focusCode: boolean,
+export const astroCodeJamLayerChildren = ({
+  bothGroupRef,
+  onlyFragmentGroupRef,
+  computedTokens,
+  position,
+  focusCode,
+  payload,
+}: {
+  bothGroupRef: React.RefObject<Konva.Group>
+  onlyFragmentGroupRef: React.RefObject<Konva.Group>
+  computedTokens: ComputedToken[]
+  position: Position
+  focusCode: boolean
   payload: any
-) => {
+}) => {
   const [astroPlanet] = useImage(
     `${config.storage.baseUrl}planet.svg`,
     'anonymous'
@@ -550,7 +557,7 @@ export const astroCodeJamLayerChildren = (
         <Circle key="greenCircle" x={28} y={0} fill="#00CA4E" radius={5} />
       </Group>
       {payload?.status === Fragment_Status_Enum_Enum.Live && (
-        <Group x={105} y={60} key="group">
+        <Group x={105} y={60} key="codeGroup">
           {getRenderedTokens(computedTokens, position)}
           {computedTokens.length > 0 && (
             <RenderTokens
