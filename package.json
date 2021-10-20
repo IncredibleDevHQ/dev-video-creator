@@ -27,6 +27,7 @@
     "@sentry/tracing": "^6.10.0",
     "@types/mime": "^2.0.3",
     "@types/videojs-contrib-quality-levels": "^2.0.1",
+    "@vectorly-io/ai-filters": "^1.6.4",
     "agora-rtc-react": "git://github.com/AgoraIO-Community/agora-rtc-react#v1.0.0",
     "agora-rtc-sdk-ng": "^4.6.3",
     "apollo-cache-persist": "^0.1.1",
