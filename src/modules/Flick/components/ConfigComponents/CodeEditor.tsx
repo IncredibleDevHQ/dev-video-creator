@@ -353,21 +353,27 @@ const CodeEditor = ({
           />
         )}
       </div>
-      <div className="relative flex justify-between items-start">
-        {editorConfig && (
-          <Editor
-            className="h-72 my-2 flex-shrink"
-            options={editorOptions}
-            value={editorConfig.text}
-            theme={editorConfig.theme}
-            language={editorConfig.language.toLowerCase()}
-            onMount={(editor: EditorConfig) => {
-              editorRef.current = editor
-            }}
-          />
-        )}
+      <div className="relative flex justify-between items-start w-full">
+        <div
+          className={cx('w-9/12', {
+            'w-full': !isAutomated,
+          })}
+        >
+          {editorConfig && (
+            <Editor
+              className="h-72 my-2"
+              options={editorOptions}
+              value={editorConfig.text}
+              theme={editorConfig.theme}
+              language={editorConfig.language.toLowerCase()}
+              onMount={(editor: EditorConfig) => {
+                editorRef.current = editor
+              }}
+            />
+          )}
+        </div>
         {isAutomated && (
-          <div className="p-2 flex flex-col justify-start items-center">
+          <div className="pl-2 pt-2 pb-2 flex flex-col justify-start items-center w-full">
             <DragDropContext onDragEnd={onDragEnd}>
               <Droppable droppableId="droppable">
                 {(provided) => (
@@ -438,7 +444,7 @@ const CodeEditor = ({
                     </Text>
                   </>
                 ) : (
-                  <Text fontSize="small">
+                  <Text fontSize="small" className="w-full">
                     Please select a block of code to add...
                   </Text>
                 )}

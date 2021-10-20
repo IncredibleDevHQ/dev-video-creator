@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { FiPlus } from 'react-icons/fi'
+import { FiPlus, FiPlusCircle } from 'react-icons/fi'
 import { Layer, Rect, Stage } from 'react-konva'
 import Modal from 'react-responsive-modal'
 import { useParams } from 'react-router'
@@ -88,41 +88,18 @@ const Flick = () => {
     )
 
   return flick ? (
-    <div className="flex flex-col h-screen overflow-hidden">
+    <div className="h-screen overflow-hidden">
       <FlickNavBar />
-      <FragmentBar />
-      <section className="flex h-full">
+      <div className="flex h-full">
         <FragmentSideBar />
-        {/* <FragmentPreview /> */}
-        <FragmentConfiguration />
-      </section>
+        <div className="w-full">
+          <FragmentBar />
+          <FragmentConfiguration />
+        </div>
+      </div>
     </div>
   ) : (
     <div />
-  )
-}
-
-const FragmentPreview = () => {
-  const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
-
-  return (
-    <div className="flex-1 flex flex-col items-center mt-6">
-      <div className="border-2 w-max">
-        <Stage height={CONFIG.height} width={CONFIG.width}>
-          <Bridge>
-            <Layer>
-              <Rect
-                x={0}
-                y={0}
-                height={CONFIG.height}
-                width={CONFIG.width}
-                fill="#FAFAFA"
-              />
-            </Layer>
-          </Bridge>
-        </Stage>
-      </div>
-    </div>
   )
 }
 
@@ -148,16 +125,18 @@ const FragmentConfiguration = () => {
   const { sub } = (useRecoilValue(userState) as User) || {}
 
   return flick && fragment ? (
-    <div className="flex flex-col flex-1 bg-gray-50 h-screen relative">
-      <TabBar
+    <div className="flex h-screen relative">
+      <FragmentContent />
+      <FragmentParticipants />
+      {/* <TabBar
         tabs={tabs}
         current={currentTab}
         onTabChange={setCurrentTab}
         className="flex text-black w-full justify-center mt-6 mb-6"
-      />
-      {currentTab.value === 'Content' && <FragmentContent />}
-      {currentTab.value === 'Participants' && <FragmentParticipants />}
-      {currentTab.value === 'Notes' && (
+      /> */}
+      {/* {currentTab.value === 'Content' && <FragmentContent />} */}
+      {/* {currentTab.value === 'Participants' && <FragmentParticipants />} */}
+      {/* {currentTab.value === 'Notes' && (
         <div className="p-4">
           <Notes
             flickId={flick.id}
@@ -168,7 +147,7 @@ const FragmentConfiguration = () => {
             }
           />
         </div>
-      )}
+      )} */}
     </div>
   ) : (
     <div />
@@ -222,36 +201,34 @@ const FragmentParticipants = () => {
   }, [error])
 
   return (
-    <div className="flex flex-col mx-12">
-      {flick?.fragments
-        .find((f) => f.id === activeFragmentId)
-        ?.participants.map((p) => (
-          <div className="flex items-center mt-4">
+    <div>
+      <div className="flex flex-col items-center bg-gray-100 border-2 border-gray-300 px-1.5 w-min py-2 rounded-md ml-4 mr-4 mt-4">
+        {flick?.fragments
+          .find((f) => f.id === activeFragmentId)
+          ?.participants.map((p) => (
             <Avatar
-              className="w-8 h-8 rounded-full mr-4"
+              className="w-8 h-8 rounded-full"
               src={p.participant.user.picture as string}
               alt={p.participant.user.displayName as string}
             />
-            <Text>{p.participant.user.displayName}</Text>
-          </div>
-        ))}
-      <div
-        className="flex items-center mt-4 cursor-pointer"
-        onClick={() => setIsAddFragmentParticipantModalOpen(true)}
-      >
-        <FiPlus size={32} className="mr-4" />
-        <Text className="font-semibold">Add</Text>
+          ))}
+        <div
+          className="flex items-center mt-4 cursor-pointer"
+          onClick={() => setIsAddFragmentParticipantModalOpen(true)}
+        >
+          <FiPlusCircle size={32} className="" />
+        </div>
+        <UpdateFragmentParticipantsModal
+          key={`modal-${activeFragmentId}`}
+          open={isAddFragmentParticipantModalOpen}
+          handleClose={(refresh) => {
+            setIsAddFragmentParticipantModalOpen(false)
+            if (refresh) {
+              GetFragmentParticipants()
+            }
+          }}
+        />
       </div>
-      <UpdateFragmentParticipantsModal
-        key={`modal-${activeFragmentId}`}
-        open={isAddFragmentParticipantModalOpen}
-        handleClose={(refresh) => {
-          setIsAddFragmentParticipantModalOpen(false)
-          if (refresh) {
-            GetFragmentParticipants()
-          }
-        }}
-      />
     </div>
   )
 }

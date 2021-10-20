@@ -9,22 +9,25 @@ const DashboardSeriesFlicks = ({
 }: {
   data: GetUserSeriesQuery | undefined
 }) => {
-
   if (data && data.Series.length < 1) return <></>
 
   return (
-    <div className="flex flex-col m-0 p-0 ml-28 mt-20">
+    <div className="flex flex-col m-0 p-0 mx-28 mt-12">
       <Text className="font-black text-xl">Your series</Text>
-      <div className="gap-y-5 p-0 grid grid-cols-4 mr-20 justify-center mt-20 mb-20 rounded-md">
+      <div className="gap-y-2 gap-x-6 p-0 grid grid-cols-4 justify-center mt-10 mb-20 rounded-md">
         {data &&
           data.Series.map((series) => (
             <Link to={`/series/${series.id}`} key={series.id}>
               <div
                 key={series.id}
-                className="bg-gray-50 hover:border-green-500 cursor-pointer w-60 h-36 rounded-md border-gray-300 border-2 items-center justify-center"
+                className="bg-gray-50 hover:border-green-500 cursor-pointer rounded-md border-gray-300 border-2 flex justify-end items-end h-44"
               >
-                <img src={Icons.seriesFolder} alt="I" className="ml-20 mt-10" />
-                <div className="bg-gray-300 h-5 w-14 p-1 justify-end ml-44 mb-20 mt-2 rounded-sm text-xs items-center">
+                <img
+                  src={Icons.seriesFolder}
+                  alt="I"
+                  className="w-full h-full p-14"
+                />
+                <div className="bg-gray-300 h-5 p-1 rounded-sm text-xs flex items-center absolute m-2">
                   {!series.flickCount
                     ? `0 Flicks`
                     : `${series.flickCount?.count} Flicks`}

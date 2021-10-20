@@ -21,6 +21,8 @@ import {
   useGetUserSeriesQuery,
 } from '../../generated/graphql'
 import { Icons } from '../../constants'
+import { useHistory } from 'react-router-dom'
+import { AiOutlinePlus } from 'react-icons/ai'
 
 const ViewBarButton = ({
   icon: I,
@@ -54,6 +56,7 @@ const Dashboard = () => {
       limit: 60,
     },
   })
+  const history = useHistory()
 
   const {
     data: userFlicksData,
@@ -111,7 +114,7 @@ const Dashboard = () => {
               type="button"
               appearance="primary"
               size="extraSmall"
-              className="my-5 p-2 mx-2 flex justify-end text-white rounded-md"
+              className="my-5 py-2 p-2 mx-2 flex justify-end text-white rounded-md"
               icon={IoAlbumsOutline}
               onClick={() => setIsOpenNewSeriesCreateModal(true)}
             >
@@ -131,47 +134,50 @@ const Dashboard = () => {
   return (
     <div>
       <Navbar />
-
-      <Text className="text-black ml-28 mt-5 font-semibold text-2xl pt-0">
+      <Text className="text-black mx-28 mt-5 font-bold text-2xl pt-0">
         {" Let's create a flick"}
       </Text>
-      <Text className="text-black ml-28 font-light text-sm pt-0 mt-2">
-        {' Choose quick start if you want to just hop on to the '}
+      <Text className="text-black mx-28 font-light text-sm pt-0 mt-2">
+        {' Choose flick if you want to just hop on to the studio '}
       </Text>
-      <Text className="text-black ml-28 font-light text-sm pt-0">
-        {' studio with a blank fragment, or lets get started with '}
+      <Text className="text-black mx-28 font-light text-sm pt-0">
+        {' and create one flick. Choose series if you want to '}
       </Text>
-      <Text className="text-black ml-28 font-light text-sm pt-0">
-        {' some curated templates. '}
+      <Text className="text-black mx-28 font-light text-sm pt-0">
+        {' create a series of flicks '}
       </Text>
-
-      <div className="flex flex-row gap-3 ml-28">
-        <NewFlickBanner />
-        <div>
-          <Button
-            type="button"
-            appearance="primary"
-            size="extraSmall"
-            className="my-5 p-2 mx-2 flex justify-end text-white rounded-md"
-            icon={IoAlbumsOutline}
-            onClick={() => setIsOpenNewSeriesCreateModal(true)}
-          >
-            Create series
-          </Button>
-        </div>
+      <div className="flex flex-row gap-3 mt-4 mx-28">
+        <Button
+          type="button"
+          size="small"
+          appearance="primary"
+          className="py-2"
+          onClick={() => history.push(`/new-flick`)}
+          icon={AiOutlinePlus}
+        >
+          Create flick
+        </Button>
+        <Button
+          type="button"
+          appearance="secondary"
+          size="small"
+          className="py-2"
+          icon={IoAlbumsOutline}
+          onClick={() => setIsOpenNewSeriesCreateModal(true)}
+        >
+          Create series
+        </Button>
       </div>
-
       <DashboardSeriesFlicks data={userSeriesData} />
-
       {userFlicksData && userFlicksData?.Flick.length > 0 && (
         <div className="px-0">
-          <div className="flex flex-row m-0 p-0 ml-28 mt-20 items-center">
-            <Text className="font-black text-xl mb-4">Your flicks</Text>
+          <div className="flex flex-row m-0 p-0 ml-28 items-center">
+            <Text className="font-black text-xl">Your flicks</Text>
             <TabBar
               tabs={tabs}
               current={currentTab}
               onTabChange={setCurrentTab}
-              className="text-black gap-2 w-auto ml-10 -mt-2"
+              className="text-black gap-2 w-auto ml-10"
             />
           </div>
           <div className="mb-10">
@@ -194,7 +200,6 @@ const Dashboard = () => {
           </div>
         </div>
       )}
-
       <CreateSeriesModal
         open={isOpenNewSeriesCreateModal}
         handleClose={() => {

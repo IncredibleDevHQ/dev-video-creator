@@ -140,7 +140,7 @@ const FragmentContent = () => {
   if (!fragment) return <EmptyState text="No fragment Selected" width={400} />
 
   return (
-    <div className="w-full">
+    <div className="w-full rounded-md bg-gray-50 overflow-y-scroll pb-32 pt-4">
       <form onSubmit={handleSubmit}>
         {config?.map((attribute) => {
           return (
