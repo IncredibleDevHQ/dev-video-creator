@@ -15,4 +15,5 @@ interface ImportMetaEnv {
   VITE_STORAGE_BASE_URL: string
   VITE_AGORA_APP_ID: string
   VITE_PUBLIC_URL: string
+  VITE_VECTORLY_TOKEN: string
 }
