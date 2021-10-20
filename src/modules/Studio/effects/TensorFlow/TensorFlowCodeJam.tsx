@@ -1,13 +1,16 @@
-import axios from 'axios'
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
 import { useRecoilValue } from 'recoil'
-import { API } from '../../../../constants'
+import useImage from 'use-image'
 import { useGetTokenisedCodeLazyQuery } from '../../../../generated/graphql'
+import { User, userState } from '../../../../stores/user.store'
 import { Concourse } from '../../components'
 import { TitleSplashProps } from '../../components/Concourse'
+import LowerThirds, { FragmentCard } from '../../components/LowerThirds'
 import { controls, FragmentState } from '../../components/RenderTokens'
+import { usePoint } from '../../hooks'
 import useCode from '../../hooks/use-code'
+import useEdit from '../../hooks/use-edit'
 import { StudioProviderProps, studioStore } from '../../stores'
 import {
   MutipleRectMoveLeft,
@@ -30,10 +33,13 @@ interface Position {
 }
 
 const TensorFlowCodeJam = () => {
-  const { fragment, payload, updatePayload, state, isHost } =
+  const { fragment, payload, updatePayload, state, users, participants } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
-  const [titleSpalshData, settitleSpalshData] = useState<TitleSplashProps>({
+  const { getImageDimensions } = useEdit()
+  const { getNoOfLinesOfText } = usePoint()
+
+  const [titleSpalshData, setTitleSpalshData] = useState<TitleSplashProps>({
     enable: false,
   })
 
@@ -56,14 +62,35 @@ const TensorFlowCodeJam = () => {
   // const onlyUserMediaGroupRef = useRef<Konva.Group>(null)
   const onlyFragmentGroupRef = useRef<Konva.Group>(null)
 
+  const { displayName } = (useRecoilValue(userState) as User) || {}
+
+  const [fragmentImages, setFragmentImages] = useState<string[]>([])
+  const [fragmentImage] = useImage(fragmentImages?.[0] || '', 'anonymous')
+  const [fragmentImageDim, setFragmentImageDim] = useState<{
+    width: number
+    height: number
+    x: number
+    y: number
+  }>({ width: 0, height: 0, x: 0, y: 0 })
+
   useEffect(() => {
     if (!fragment?.configuration.properties) return
-    const gistURL = fragment.configuration.properties.find(
-      (property: any) => property.key === 'gistUrl'
-    )?.value
+
+    setFragmentImages(
+      fragment.configuration.properties.find(
+        (property: any) => property.type === 'file[]'
+      )?.value
+    )
+
+    const code = fragment.configuration.properties.find(
+      (property: any) => property.key === 'code'
+    )?.value?.code
+    const language: string = fragment.configuration.properties.find(
+      (property: any) => property.key === 'code'
+    )?.value?.language
 
     // setConfig of titleSpalsh
-    settitleSpalshData({
+    setTitleSpalshData({
       enable: fragment.configuration.properties.find(
         (property: any) => property.key === 'showTitleSplash'
       )?.value,
@@ -72,18 +99,12 @@ const TensorFlowCodeJam = () => {
       stripRectColor: ['#E6E6E6', '#FFFFFF'],
       textColor: ['#425066', '#425066'],
     })
-
-    if (!gistURL) throw new Error('Missing gist URL')
     ;(async () => {
       try {
-        const { data } = await axios.get(
-          `${API.GITHUB.BASE_URL}gists/${(gistURL as string).split('/').pop()}`
-        )
-        const file = data.files[Object.keys(data.files)[0]]
         getTokenisedCode({
           variables: {
-            code: file.content,
-            language: (file.language as string).toLowerCase(),
+            code,
+            language: language?.toLowerCase(),
           },
         })
       } catch (e) {
@@ -114,6 +135,39 @@ const TensorFlowCodeJam = () => {
   }, [payload])
 
   useEffect(() => {
+    setFragmentImageDim(
+      getImageDimensions(
+        {
+          w: (fragmentImage && fragmentImage.width) || 0,
+          h: (fragmentImage && fragmentImage.height) || 0,
+        },
+        380,
+        230,
+        400,
+        getNoOfLinesOfText({
+          text: fragment?.name || '',
+          availableWidth: 350,
+          fontSize: 36,
+          fontFamily: 'Roboto',
+          stageWidth: 400,
+        }) === 1
+          ? 285
+          : 230,
+        0,
+        getNoOfLinesOfText({
+          text: fragment?.name || '',
+          availableWidth: 350,
+          fontSize: 36,
+          fontFamily: 'Roboto',
+          stageWidth: 400,
+        }) === 1
+          ? 60
+          : 110
+      )
+    )
+  }, [fragmentImage])
+
+  useEffect(() => {
     if (state === 'ready') {
       setPosition({
         prevIndex: -1,
@@ -125,6 +179,7 @@ const TensorFlowCodeJam = () => {
         isFocus: false,
         fragmentState: 'onlyUserMedia',
       })
+      setTopLayerChildren([])
       // setFragmentState('onlyUserMedia')
     }
     if (state === 'recording') {
@@ -136,8 +191,78 @@ const TensorFlowCodeJam = () => {
         fragmentState: 'onlyUserMedia',
       })
       setTopLayerChildren([])
+      if (
+        fragment?.participants.length === 1 &&
+        !fragment?.configuration.properties.find(
+          (property: any) => property.key === 'showTitleSplash'
+        )?.value
+      ) {
+        setTimeout(() => {
+          if (!displayName) return
+          if (!fragment) return
+          setTopLayerChildren([
+            <LowerThirds
+              x={lowerThirdCoordinates.x[0] || 0}
+              y={460}
+              userName={displayName}
+              rectOneColors={['#E6E6E6', '#FFFFFF']}
+              rectTwoColors={['#425066', '#425066']}
+              rectThreeColors={['#FF6F00', '#FFA100']}
+            />,
+          ])
+        }, 1000)
+        setTimeout(() => {
+          setTopLayerChildren([
+            <FragmentCard
+              x={25}
+              y={85}
+              fragmentTitle={fragment?.name || ''}
+              rectOneColors={['#FF6F00', '#FFA100']}
+              rectTwoColors={['#E6E6E6', '#FFFFFF']}
+              fragmentImage={fragmentImage}
+              fragmentImageDimensions={fragmentImageDim}
+            />,
+          ])
+        }, 5000)
+      } else {
+        setTimeout(() => {
+          if (!displayName) return
+          if (!fragment) return
+          setTopLayerChildren([
+            <LowerThirds
+              x={lowerThirdCoordinates.x[0] || 0}
+              y={lowerThirdCoordinates.y?.[0] || 400}
+              userName={displayName}
+              rectOneColors={['#E6E6E6', '#FFFFFF']}
+              rectTwoColors={['#425066', '#425066']}
+              rectThreeColors={['#FF6F00', '#FFA100']}
+            />,
+            ...users.map((user, index) => (
+              <LowerThirds
+                x={lowerThirdCoordinates.x[index + 1] || 0}
+                y={400}
+                userName={participants?.[user.uid]?.displayName || ''}
+                rectOneColors={['#E6E6E6', '#FFFFFF']}
+                rectTwoColors={['#425066', '#425066']}
+                rectThreeColors={['#FF6F00', '#FFA100']}
+              />
+            )),
+          ])
+        }, 5000)
+      }
     }
   }, [state])
+
+  const lowerThirdCoordinates = (() => {
+    switch (fragment?.participants.length) {
+      case 2:
+        return { x: [70, 530] }
+      case 3:
+        return { x: [45, 355, 665] }
+      default:
+        return { x: [20], y: [460] }
+    }
+  })()
 
   useEffect(() => {
     if (!onlyFragmentGroupRef.current || !bothGroupRef.current) return

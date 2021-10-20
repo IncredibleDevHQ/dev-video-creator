@@ -1,11 +1,16 @@
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
 import { useRecoilValue } from 'recoil'
+import useImage from 'use-image'
 import { Fragment_Status_Enum_Enum } from '../../../../generated/graphql'
+import { User, userState } from '../../../../stores/user.store'
 import { Concourse } from '../../components'
 import { TitleSplashProps } from '../../components/Concourse'
+import LowerThirds from '../../components/LowerThirds'
 import { FragmentState } from '../../components/RenderTokens'
 import { controls } from '../../components/Video'
+import { usePoint } from '../../hooks'
+import useEdit from '../../hooks/use-edit'
 import { StudioProviderProps, studioStore } from '../../stores'
 import {
   MutipleRectMoveLeft,
@@ -17,8 +22,11 @@ import {
 } from './TensorFlowConfig'
 
 const TensorFlowVideoJam = () => {
-  const { fragment, payload, updatePayload, state } =
+  const { fragment, payload, updatePayload, state, users, participants } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
+
+  const { getImageDimensions } = useEdit()
+  const { getNoOfLinesOfText } = usePoint()
 
   const [titleSpalshData, settitleSpalshData] = useState<TitleSplashProps>({
     enable: false,
@@ -27,6 +35,14 @@ const TensorFlowVideoJam = () => {
   // state of the fragment
   const [fragmentState, setFragmentState] =
     useState<FragmentState>('onlyUserMedia')
+
+  // state which stores the layer children which have to be placed over the studio user
+  const [topLayerChildren, setTopLayerChildren] = useState<JSX.Element[]>([])
+
+  const bothGroupRef = useRef<Konva.Group>(null)
+  const onlyFragmentGroupRef = useRef<Konva.Group>(null)
+
+  const { displayName } = (useRecoilValue(userState) as User) || {}
 
   const videoElement = React.useMemo(() => {
     if (!fragment?.configuration.properties) return
@@ -65,6 +81,30 @@ const TensorFlowVideoJam = () => {
           fragmentState: 'onlyUserMedia',
         })
         setTopLayerChildren([])
+        setTimeout(() => {
+          if (!displayName) return
+          if (!fragment) return
+          setTopLayerChildren([
+            <LowerThirds
+              x={lowerThirdCoordinates.x[0] || 0}
+              y={lowerThirdCoordinates.y?.[0] || 400}
+              userName={displayName}
+              rectOneColors={['#E6E6E6', '#FFFFFF']}
+              rectTwoColors={['#425066', '#425066']}
+              rectThreeColors={['#FF6F00', '#FFA100']}
+            />,
+            ...users.map((user, index) => (
+              <LowerThirds
+                x={lowerThirdCoordinates.x[index + 1] || 0}
+                y={400}
+                userName={participants?.[user.uid]?.displayName || ''}
+                rectOneColors={['#E6E6E6', '#FFFFFF']}
+                rectTwoColors={['#425066', '#425066']}
+                rectThreeColors={['#FF6F00', '#FFA100']}
+              />
+            )),
+          ])
+        }, 5000)
         break
       default:
         videoElement.currentTime = 0
@@ -75,6 +115,17 @@ const TensorFlowVideoJam = () => {
         })
     }
   }, [state])
+
+  const lowerThirdCoordinates = (() => {
+    switch (fragment?.participants.length) {
+      case 2:
+        return { x: [70, 530] }
+      case 3:
+        return { x: [45, 355, 665] }
+      default:
+        return { x: [20], y: [460] }
+    }
+  })()
 
   const [playing, setPlaying] = useState(false)
 
@@ -102,12 +153,6 @@ const TensorFlowVideoJam = () => {
   useEffect(() => {
     setFragmentState(payload?.fragmentState)
   }, [payload?.fragmentState])
-
-  // state which stores the layer children which have to be placed over the studio user
-  const [topLayerChildren, setTopLayerChildren] = useState<JSX.Element[]>([])
-
-  const bothGroupRef = useRef<Konva.Group>(null)
-  const onlyFragmentGroupRef = useRef<Konva.Group>(null)
 
   useEffect(() => {
     if (!onlyFragmentGroupRef.current || !bothGroupRef.current) return
