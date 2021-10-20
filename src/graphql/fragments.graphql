@@ -133,6 +133,15 @@ mutation MarkFragmentCompleted(
   }
 }
 
+mutation UpdateFragmentShort($id: uuid!, $producedShortsLink: String!) {
+  update_Fragment_by_pk(
+    pk_columns: { id: $id }
+    _set: { producedShortsLink: $producedShortsLink }
+  ) {
+    updatedAt
+  }
+}
+
 mutation AddConfiguration($configuration: json!, $id: uuid!) {
   update_Fragment_by_pk(
     pk_columns: { id: $id }
