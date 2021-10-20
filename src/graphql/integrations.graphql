@@ -1,0 +1,17 @@
+mutation IntegrateGitHub($code: String!, $state: String!) {
+  IntegrateGitHub(code: $code, state: $state) {
+    success
+  }
+}
+
+query MyIntegrations {
+  MyIntegrations {
+    integrations
+  }
+}
+
+mutation DeleteIntegration($id: uuid!, $integration: IntegrationEnum!) {
+  DeleteIntegration(id: $id, integration: $integration) {
+    success
+  }
+}

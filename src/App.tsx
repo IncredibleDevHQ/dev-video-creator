@@ -31,6 +31,8 @@ import {
   PublicVideo,
   MagicLinkLogin,
   NewNewFragment,
+  GitHubCallback,
+  Integrations,
 } from './modules'
 import { ErrorBoundary, ScreenState } from './components'
 
@@ -139,6 +141,16 @@ const App = () => {
                 <Route exact path="/series/:id">
                   <SingleSeries />
                 </Route>
+                <PrivateRoute
+                  exact
+                  path="/integrations/github/callback"
+                  component={GitHubCallback}
+                />
+                <PrivateRoute
+                  exact
+                  path="/integrations"
+                  component={Integrations}
+                />
                 <Route exact path="/login">
                   <AuthenticateScreen />
                 </Route>
