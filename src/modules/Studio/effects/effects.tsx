@@ -4,6 +4,7 @@ import { Fragment_Type_Enum_Enum } from '../../../generated/graphql'
 import { CONFIG } from '../components/Concourse'
 import AstroCodeJam from './Astro/AstroCodeJam'
 import AstroVideoJam from './Astro/AstroVideoJam'
+import NewAstroCodeJam from './Astro/NewAstroCodeJam'
 import CodeJam from './CodeJamTemplates/CodeJam'
 import CodeJamEight from './CodeJamTemplates/CodeJamEight'
 import CodeJamEleven from './CodeJamTemplates/CodeJamEleven'
@@ -16,6 +17,7 @@ import CodeJamTwelve from './CodeJamTemplates/CodeJamTwelve'
 import CustomSplash from './CustomSplash'
 import GraphQLCodeJam from './GraphQL/GraphQLCodeJam'
 import GraphQLVideoJam from './GraphQL/GraphQLVideoJam'
+import NewGraphQLCodeJam from './GraphQL/NewGraphQLCodeJam'
 import Outro from './Outro'
 import Points from './Points'
 import PointsEight from './PointsEight'
@@ -36,6 +38,7 @@ import SlidesTen from './SlidesTen'
 import SlidesThree from './SlidesThree'
 import SlidesTwelve from './SlidesTwelve'
 import SlidesTwo from './SlidesTwo'
+import Solo from './Solo'
 import SplashEight from './SplashEight'
 import SplashEighteen from './SplashEighteen'
 import SplashEleven from './SplashEleven'
@@ -55,7 +58,7 @@ import SplashThree from './SplashThree'
 import SplashTwelve from './SplashTwelve'
 import SplashTwenty from './SplashTwenty'
 import SplashTwentyOne from './SplashTwentyOne'
-import StoryBook from './StoryBook'
+import NewTensorFlowCodeJam from './TensorFlow/NewTensorFlowCodeJam'
 import TensorFlowCodeJam from './TensorFlow/TensorFlowCodeJam'
 import TensorFlowVideoJam from './TensorFlow/TensorFlowVideoJam'
 import Trivia from './Trivia'
@@ -162,6 +165,13 @@ const getCodeJamTheme = (theme: any) => {
   return CodeJam
 }
 
+const getAutomatedCodeJamTheme = (theme: any) => {
+  if (theme.value === '1') return NewGraphQLCodeJam
+  if (theme.value === '3') return NewAstroCodeJam
+  if (theme.value === '5') return NewTensorFlowCodeJam
+  return NewAstroCodeJam
+}
+
 const getTriviaTheme = (theme: any) => {
   if (theme.value === '1') return TriviaTwo // default
   if (theme.value === '2') return TriviaThree // open Sauced
@@ -248,14 +258,19 @@ export const getEffect = (
   switch (type) {
     case Fragment_Type_Enum_Enum.Splash:
       return getSplash(theme)
-    case Fragment_Type_Enum_Enum.CodeJam:
+    case Fragment_Type_Enum_Enum.CodeJam: {
+      const isAutomated = config.properties.find(
+        (property: any) => property.key === 'code'
+      )?.value?.isAutomated
+      if (isAutomated) return getAutomatedCodeJamTheme(theme)
       return getCodeJamTheme(theme)
+    }
     case Fragment_Type_Enum_Enum.Videoshow:
       return getVideoTheme(theme)
     case Fragment_Type_Enum_Enum.Trivia:
       return getTriviaTheme(theme)
     case Fragment_Type_Enum_Enum.Solo:
-      return StoryBook
+      return Solo
     case Fragment_Type_Enum_Enum.Slides:
       return getSlideTheme(theme)
     case Fragment_Type_Enum_Enum.Points:

@@ -112,9 +112,9 @@ const NewGraphQLCodeJam = () => {
         (property: any) => property.key === 'showTitleSplash'
       )?.value,
       title: fragment.name as string,
-      bgRectColor: ['#140D1F', '#6E1DDB'],
-      stripRectColor: ['#FF5D01', '#B94301'],
-      textColor: ['#E6E6E6', '#FFFFFF'],
+      bgRectColor: ['#1F2937', '#1F2937'],
+      stripRectColor: ['#e535ab', '#e535ab'],
+      textColor: ['#ffffff', '#ffffff'],
     })
     ;(async () => {
       try {
