@@ -5,33 +5,37 @@ import 'gifler'
 
 const Gif = ({
   src,
-  maxWidth,
-  maxHeight,
-  availableWidth,
-  availableHeight,
+  // maxWidth,
+  // maxHeight,
+  // availableWidth,
+  // availableHeight,
   x,
   y,
+  width,
+  height,
 }: {
   src: HTMLImageElement | undefined | string
-  maxWidth: number
-  maxHeight: number
-  availableWidth: number
-  availableHeight: number
+  // maxWidth: number
+  // maxHeight: number
+  // availableWidth: number
+  // availableHeight: number
   x: number
   y: number
+  width: number
+  height: number
 }) => {
   const imageRef = React.useRef<any>(null)
   const canvas = React.useMemo(() => {
     const node = document.createElement('canvas')
     return node
   }, [])
-  const { getImageDimensions } = useEdit()
-  const [imgDim, setImgDim] = useState<{
-    width: number
-    height: number
-    x: number
-    y: number
-  }>({ width: 0, height: 0, x: 0, y: 0 })
+  // const { getImageDimensions } = useEdit()
+  // const [imgDim, setImgDim] = useState<{
+  //   width: number
+  //   height: number
+  //   x: number
+  //   y: number
+  // }>({ width: 0, height: 0, x: 0, y: 0 })
 
   useEffect(() => {
     let anim: any
@@ -46,31 +50,31 @@ const Gif = ({
     return () => anim.stop()
   }, [src, canvas])
 
-  useEffect(() => {
-    setImgDim(
-      getImageDimensions(
-        {
-          w: (canvas && canvas.width) || 0,
-          h: (canvas && canvas.height) || 0,
-        },
-        maxWidth,
-        maxHeight,
-        availableWidth,
-        availableHeight,
-        x,
-        y
-      )
-    )
-  }, [canvas])
+  // useEffect(() => {
+  //   setImgDim(
+  //     getImageDimensions(
+  //       {
+  //         w: (canvas && canvas.width) || 0,
+  //         h: (canvas && canvas.height) || 0,
+  //       },
+  //       maxWidth,
+  //       maxHeight,
+  //       availableWidth,
+  //       availableHeight,
+  //       x,
+  //       y
+  //     )
+  //   )
+  // }, [canvas])
 
   return (
     <Image
       image={canvas}
       ref={imageRef}
-      y={imgDim.y}
-      x={imgDim.x}
-      width={imgDim.width}
-      height={imgDim.height}
+      x={x}
+      y={y}
+      width={width}
+      height={height}
       shadowOpacity={0.3}
       shadowOffset={{ x: 0, y: 1 }}
       shadowBlur={2}

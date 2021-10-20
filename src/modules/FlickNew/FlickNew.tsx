@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { FiPlus } from 'react-icons/fi'
 import { Layer, Rect, Stage } from 'react-konva'
-import Modal from 'react-responsive-modal'
-import { useParams } from 'react-router'
+import { useParams } from 'react-router-dom'
 import {
   useRecoilBridgeAcrossReactRoots_UNSTABLE,
   useRecoilState,

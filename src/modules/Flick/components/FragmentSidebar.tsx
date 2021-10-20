@@ -65,6 +65,9 @@ const FragmentSideBar = () => {
       <div
         className={cx(
           'w-1/5 border-r-2 border-gray-300 overflow-y-auto pb-16 relative',
+          {
+            'h-full': flick?.fragments.length === 0,
+          },
           style
         )}
       >

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { BiPlay, BiPlayCircle } from 'react-icons/bi'
-import { BsCameraVideo } from 'react-icons/bs'
+import { BsCameraVideo, BsGear } from 'react-icons/bs'
 import { IoTrashOutline, IoCopyOutline } from 'react-icons/io5'
 import { useHistory } from 'react-router-dom'
 import { useRecoilState } from 'recoil'
@@ -12,10 +12,12 @@ import {
 import { Button, emitToast } from '../../../components'
 import { useGetFlickFragmentsLazyQuery } from '../../../generated/graphql'
 import { newFlickStore } from '../store/flickNew.store'
+import SettingsModal from './SettingsModal'
 
 const FragmentBar = () => {
   const [confirmDeleteModal, setConfirmDeleteModal] = useState(false)
   const [duplicateModal, setDuplicateModal] = useState(false)
+  const [settingsModal, setSettingsModal] = useState(false)
   const [fragmentVideoModal, setFragmetVideoModal] = useState(false)
   const [{ flick, activeFragmentId }, setFlickStore] =
     useRecoilState(newFlickStore)
@@ -65,7 +67,12 @@ const FragmentBar = () => {
           onClick={() => setDuplicateModal(true)}
         />
       </div>
-      <div className="flex">
+      <div className="flex items-center">
+        <BsGear
+          size={24}
+          className="mr-8 text-gray-600 cursor-pointer"
+          onClick={() => setSettingsModal(true)}
+        />
         {fragment?.producedLink && (
           <div
             className="flex items-center mr-4 border border-green-600 rounded-md px-2 cursor-pointer"
@@ -105,6 +112,12 @@ const FragmentBar = () => {
             GetFlickFragments()
           }
           setDuplicateModal(false)
+        }}
+      />
+      <SettingsModal
+        open={settingsModal}
+        handleClose={() => {
+          setSettingsModal(false)
         }}
       />
     </div>

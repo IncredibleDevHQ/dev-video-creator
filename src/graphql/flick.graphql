@@ -34,6 +34,7 @@ fragment BaseFlick on Flick {
     userSub
   }
   updatedAt
+  thumbnail
   status
   deletedAt
   producedLink
@@ -138,7 +139,6 @@ query GetFlickFragments($flickId: uuid!) {
   }
 }
 
-
 mutation CreateNewFlick(
   $name: String!
   $description: String
@@ -205,6 +205,12 @@ mutation UpdateFlick(
     scope: $scope
     difficulty: $difficulty
   ) {
+    id
+  }
+}
+
+mutation UpdateFlickThumbnail($thumbnail: String, $id: uuid!) {
+  update_Flick_by_pk(_set: { thumbnail: $thumbnail }, pk_columns: { id: $id }) {
     id
   }
 }
