@@ -1,12 +1,14 @@
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 /* eslint-disable no-nested-ternary */
-import React, { useEffect, useState } from 'react'
-import { useRecoilValue } from 'recoil'
-import { useHistory } from 'react-router-dom'
-import { FiMoreHorizontal } from 'react-icons/fi'
 import { cx } from '@emotion/css'
-import { emitToast, ScreenState, Text, Tooltip } from '../../../components'
+import React, { useEffect, useState } from 'react'
+import { FiMoreHorizontal } from 'react-icons/fi'
+import { IoTrashOutline } from 'react-icons/io5'
+import { useHistory } from 'react-router-dom'
+import { useRecoilValue } from 'recoil'
+import { emitToast, Heading, Text, Tooltip } from '../../../components'
+import { Icons } from '../../../constants'
 import {
   BaseFlickFragment,
   FlickFragment,
@@ -14,29 +16,20 @@ import {
   User,
 } from '../../../generated/graphql'
 import { userState } from '../../../stores/user.store'
-import { Icons } from '../../../constants'
-
-const InfoTile = ({ flick }: { flick: BaseFlickFragment }) => {
-  return (
-    <div>
-      <Text className="text-sm text-gray-900 mt-3 w-44 truncate overflow-ellipsis capitalize">
-        {flick.name}
-      </Text>
-    </div>
-  )
-}
 
 const FlickTile = ({
   flick,
   handleRefetch,
 }: {
   flick: BaseFlickFragment
-  handleRefetch: (refresh?: boolean) => void
+  handleRefetch: (id: string, refresh?: boolean) => void
 }) => {
-  const [options, setOptions] = useState(false)
-  const [deleteFlick, { data, loading }] = useDeleteFlickMutation()
+  const [deleteFlick, { data }] = useDeleteFlickMutation()
   const history = useHistory()
   const userdata = (useRecoilValue(userState) as User) || {}
+
+  const [overflowButtonVisible, setOverflowButtonVisible] = useState(false)
+  const [overflowMenuVisible, setOverflowMenuVisible] = useState(false)
 
   const deleteFlickFunction = async () => {
     await deleteFlick({
@@ -53,58 +46,63 @@ const FlickTile = ({
       description: 'Successfully deleted the flick',
       type: 'success',
     })
-    handleRefetch(true)
+    handleRefetch(flick.id, true)
   }, [data])
 
-  if (loading) return <ScreenState title="Just a jiffy" loading />
-
   return (
-    <div className="relative bg-background transition-all pb-2 cursor-pointer w-0 h-36 mt-8">
-      <div
-        className="transition-all border-2 mt-10 bg-gray-50 hover:border-green-500 cursor-pointer w-60 h-36 rounded-md border-gray-300 items-center justify-center"
-        onClick={(e) => {
-          if (e.target !== e.currentTarget) return
-          history.push(`/flick/${flick.id}`)
-        }}
-      >
-        <Tooltip
-          isOpen={options}
-          setIsOpen={setOptions}
-          content={
-            <div
-              className={cx(
-                'bg-gray-100 w-28 h-10 p-2 rounded-sm',
-                flick.owner?.userSub !== userdata.sub
-                  ? 'cursor-not-allowed'
-                  : 'cursor-pointer'
-              )}
-              onClick={() => {
-                if (flick.owner?.userSub !== userdata.sub) return
-                deleteFlickFunction()
-              }}
-            >
-              Delete Flick
-            </div>
-          }
-          placement="bottom-start"
-          hideOnOutsideClick
-        >
-          <FiMoreHorizontal
-            className="absolute w-6 h-6 text-gray-400 cursor-pointer"
-            size={30}
-            onClick={() => setOptions(!options)}
-          />
-        </Tooltip>
+    <div
+      className="bg-gray-50 rounded-md h-44 border-2 border-gray-300 cursor-pointer relative"
+      onClick={() => {
+        history.push(`/flick/${flick.id}`)
+      }}
+      onMouseEnter={() => setOverflowButtonVisible(true)}
+      onMouseLeave={() => {
+        setOverflowButtonVisible(false)
+        setOverflowMenuVisible(false)
+      }}
+    >
+      <img src={Icons.flickIcon} alt="I" className="w-full h-full p-16" />
+      <Heading className="text-sm md:capitalize pt-2 mt-0 font-semibold text-gray-800 truncate overflow-ellipsis">
+        {flick.name}
+      </Heading>
+      {overflowButtonVisible && (
         <div
-          onClick={() => {
-            history.push(`/flick/${flick.id}`)
+          className="absolute top-0 right-0 m-2 bg-gray-50 w-min p-1 shadow-md rounded-md cursor-pointer"
+          onClick={(e) => {
+            setOverflowMenuVisible(!overflowMenuVisible)
+            e.stopPropagation()
           }}
         >
-          <img src={Icons.flickIcon} alt="I" className="ml-24 mt-12" />
+          <FiMoreHorizontal />
+          {overflowMenuVisible && (
+            <Tooltip
+              isOpen={overflowMenuVisible}
+              setIsOpen={setOverflowMenuVisible}
+              content={
+                <div
+                  className={cx(
+                    'flex px-6 py-2 mt-2 bg-gray-50 rounded-md border border-gray-300 cursor-pointer',
+                    {
+                      'cursor-not-allowed text-gray-400':
+                        flick.owner?.userSub !== userdata.sub,
+                    }
+                  )}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (flick.owner?.userSub !== userdata.sub) return
+                    deleteFlickFunction()
+                  }}
+                >
+                  <IoTrashOutline size={21} className="text-gray-600 mr-4" />
+                  <Text className="font-medium">Delete</Text>
+                </div>
+              }
+              placement="bottom-start"
+              hideOnOutsideClick
+            />
+          )}
         </div>
-      </div>
-
-      <InfoTile key={flick.id} flick={flick} />
+      )}
     </div>
   )
 }
@@ -114,18 +112,18 @@ const Drafts = ({
   handleRefetch,
 }: {
   flicks: FlickFragment[]
-  handleRefetch: (refresh?: boolean) => void
+  handleRefetch: (id: string, refresh?: boolean) => void
 }) => {
   return (
-    <div className="grid grid-cols-4 gap-y-5 gap-x-3 p-0 ml-28 mr-20 justify-center mb-20">
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-y-12 gap-x-6 p-0 mx-28 justify-center mb-20">
       {flicks.map(
         (flick) =>
           !flick.producedLink && (
             <FlickTile
               key={flick.id}
               flick={flick}
-              handleRefetch={(refresh) => {
-                if (refresh) handleRefetch()
+              handleRefetch={(id, refresh) => {
+                if (refresh) handleRefetch(id, refresh)
               }}
             />
           )

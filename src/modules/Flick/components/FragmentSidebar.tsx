@@ -24,6 +24,7 @@ import {
   useUpdateFragmentMutation,
 } from '../../../generated/graphql'
 import NewFragmentModal from './NewFragmentModal'
+import { DeleteFragmentModal, DuplicateFragmentModal } from '.'
 
 const style = css`
   ::-webkit-scrollbar {
@@ -207,6 +208,15 @@ const Thumbnail = ({
   const [overflowButtonVisible, setOverflowButtonVisible] = useState(false)
   const [overflowMenuVisible, setOverflowMenuVisible] = useState(false)
 
+  const [confirmDeleteModal, setConfirmDeleteModal] = useState(false)
+  const [duplicateModal, setDuplicateModal] = useState(false)
+  const [GetFlickFragments, { data, error, refetch }] =
+    useGetFlickFragmentsLazyQuery({
+      variables: {
+        flickId: flick?.id,
+      },
+    })
+
   useEffect(() => {
     if (!updateFargmentData) return
     setEditFragmentName(false)
@@ -275,35 +285,32 @@ const Thumbnail = ({
         isOpen={overflowMenuVisible}
         setIsOpen={setOverflowMenuVisible}
         content={
-          <div className="absolute z-50 flex flex-col bg-gray-50 rounded-md border border-gray-300 w-52">
-            <div className="flex items-center mt-3 mx-6">
-              <IoTrashOutline
-                size={21}
-                className="text-gray-600 cursor-pointer mr-4"
-                onClick={() => setConfirmDeleteModal(true)}
-              />
+          <div className="flex flex-col bg-gray-50 rounded-md border border-gray-300 w-52 z-10">
+            <div
+              className="flex items-center pt-3 pb-1.5 px-6 cursor-pointer hover:bg-gray-100"
+              onClick={() => setConfirmDeleteModal(true)}
+            >
+              <IoTrashOutline size={21} className="text-gray-600 mr-4" />
               <Text className="font-medium">Delete</Text>
             </div>
-            <div className="flex items-center pt-3 mx-6">
-              <IoCopyOutline
-                size={21}
-                className="text-gray-600 cursor-pointer mr-4"
-                onClick={() => setDuplicateModal(true)}
-              />
+            <div
+              className="flex items-center cursor-pointer py-1.5 px-6 hover:bg-gray-100"
+              onClick={() => setDuplicateModal(true)}
+            >
+              <IoCopyOutline size={21} className="text-gray-600 mr-4" />
               <Text>Make a copy</Text>
             </div>
-            <div className="h-px bg-gray-200 mt-2" />
-            <div className="flex items-center py-1 mx-6">
-              <RiStickyNoteLine
-                size={21}
-                className="text-gray-600 cursor-pointer mt-1 mb-2 mr-4"
-                onClick={() => setDuplicateModal(true)}
-              />
+            <div className="h-px bg-gray-200" />
+            <div
+              className="flex items-center py-2 px-6 cursor-pointer hover:bg-gray-100"
+              onClick={() => setDuplicateModal(true)}
+            >
+              <RiStickyNoteLine size={21} className="text-gray-600mt-1 mr-4" />
               <Text>Note</Text>
             </div>
           </div>
         }
-        placement="top-end"
+        placement="bottom-start"
         hideOnOutsideClick
       />
       <Text
@@ -340,6 +347,21 @@ const Thumbnail = ({
           ))}
         </div>
       </div>
+      <DeleteFragmentModal
+        open={confirmDeleteModal}
+        handleClose={() => {
+          setConfirmDeleteModal(false)
+        }}
+      />
+      <DuplicateFragmentModal
+        open={duplicateModal}
+        handleClose={(refresh) => {
+          if (refresh) {
+            GetFlickFragments()
+          }
+          setDuplicateModal(false)
+        }}
+      />
     </div>
   )
 }

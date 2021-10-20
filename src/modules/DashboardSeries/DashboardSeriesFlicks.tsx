@@ -2,21 +2,21 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 import { Heading, Text } from '../../components'
 import { Icons } from '../../constants'
-import { GetUserSeriesQuery } from '../../generated/graphql'
+import { PublicSeriesFragment } from '../../generated/graphql'
 
 const DashboardSeriesFlicks = ({
   data,
 }: {
-  data: GetUserSeriesQuery | undefined
+  data: PublicSeriesFragment[] | undefined
 }) => {
-  if (data && data.Series.length < 1) return <></>
+  if (data && data.length < 1) return <></>
 
   return (
     <div className="flex flex-col m-0 p-0 mx-28 mt-12">
       <Text className="font-black text-xl">Your series</Text>
-      <div className="gap-y-2 gap-x-6 p-0 grid grid-cols-4 justify-center mt-10 mb-20 rounded-md">
+      <div className="gap-y-6 gap-x-6 p-0 grid grid-cols-1 md:grid-cols-4 justify-center mt-10 mb-20 rounded-md">
         {data &&
-          data.Series.map((series) => (
+          data.map((series) => (
             <Link to={`/series/${series.id}`} key={series.id}>
               <div
                 key={series.id}
@@ -34,7 +34,7 @@ const DashboardSeriesFlicks = ({
                 </div>
               </div>
               <div className="w-full">
-                <Heading className="text-sm md:capitalize p-2 mt-0 font-semibold text-gray-800 w-40 truncate overflow-ellipsis">
+                <Heading className="text-sm md:capitalize pt-2 mt-0 font-semibold text-gray-800 truncate overflow-ellipsis">
                   {series.name}
                 </Heading>
               </div>

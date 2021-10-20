@@ -1,28 +1,13 @@
 import React, { useEffect, useState } from 'react'
-import { FiPlus, FiPlusCircle } from 'react-icons/fi'
-import { Layer, Rect, Stage } from 'react-konva'
-import Modal from 'react-responsive-modal'
-import { useParams } from 'react-router'
-import {
-  useRecoilBridgeAcrossReactRoots_UNSTABLE,
-  useRecoilState,
-  useRecoilValue,
-} from 'recoil'
-import {
-  Avatar,
-  emitToast,
-  ScreenState,
-  Tab,
-  TabBar,
-  Text,
-} from '../../components'
+import { FiPlusCircle } from 'react-icons/fi'
+import { useParams } from 'react-router-dom'
+import { useRecoilState, useRecoilValue } from 'recoil'
+import { Avatar, emitToast, ScreenState, Tab } from '../../components'
 import {
   useGetFlickByIdQuery,
   useGetFragmentParticipantsLazyQuery,
 } from '../../generated/graphql'
 import { User, userState } from '../../stores/user.store'
-import { Notes } from './components'
-import { CONFIG } from '../Studio/components/Concourse'
 import {
   FlickNavBar,
   FragmentBar,
@@ -32,7 +17,6 @@ import {
 } from './components'
 import { newFlickStore } from './store/flickNew.store'
 
-//reworked config page
 const Flick = () => {
   const { id, fragmentId } = useParams<{ id: string; fragmentId?: string }>()
   const [{ flick, activeFragmentId }, setFlickStore] =
@@ -43,11 +27,10 @@ const Flick = () => {
 
   useEffect(() => {
     if (!fragmentId) return
-    else
-      setFlickStore((store) => ({
-        ...store,
-        activeFragmentId: fragmentId,
-      }))
+    setFlickStore((store) => ({
+      ...store,
+      activeFragmentId: fragmentId,
+    }))
   }, [fragmentId])
 
   useEffect(() => {
@@ -118,11 +101,9 @@ const FragmentConfiguration = () => {
       value: 'Notes',
     },
   ]
-  const [currentTab, setCurrentTab] = useState<Tab>(tabs[0])
   const { activeFragmentId, flick } = useRecoilValue(newFlickStore)
 
   const fragment = flick?.fragments.find((frag) => frag.id === activeFragmentId)
-  const { sub } = (useRecoilValue(userState) as User) || {}
 
   return flick && fragment ? (
     <div className="flex h-screen relative">
@@ -207,13 +188,13 @@ const FragmentParticipants = () => {
           .find((f) => f.id === activeFragmentId)
           ?.participants.map((p) => (
             <Avatar
-              className="w-8 h-8 rounded-full"
+              className="w-8 h-8 mb-2 rounded-full"
               src={p.participant.user.picture as string}
               alt={p.participant.user.displayName as string}
             />
           ))}
         <div
-          className="flex items-center mt-4 cursor-pointer"
+          className="flex items-center cursor-pointer"
           onClick={() => setIsAddFragmentParticipantModalOpen(true)}
         >
           <FiPlusCircle size={32} className="" />

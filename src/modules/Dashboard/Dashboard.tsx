@@ -1,28 +1,24 @@
-import React, { useState } from 'react'
 import { cx } from '@emotion/css'
+import React, { useEffect, useState } from 'react'
 import { IconType } from 'react-icons'
+import { AiOutlinePlus } from 'react-icons/ai'
 import { IoAlbumsOutline } from 'react-icons/io5'
+import { useHistory } from 'react-router-dom'
 import { useRecoilValue } from 'recoil'
 import {
   Button,
-  Loading,
   Navbar,
   ScreenState,
   Tab,
   TabBar,
   Text,
 } from '../../components'
-import { Drafts, NewFlickBanner, Published } from './components/index'
-import DashboardSeriesFlicks from '../DashboardSeries/DashboardSeriesFlicks'
-import { CreateSeriesModal } from '../DashboardSeries/components'
-import { User, userState } from '../../stores/user.store'
-import {
-  useGetUserFlicksQuery,
-  useGetUserSeriesQuery,
-} from '../../generated/graphql'
 import { Icons } from '../../constants'
-import { useHistory } from 'react-router-dom'
-import { AiOutlinePlus } from 'react-icons/ai'
+import { FlickFragment, useGetDashboardQuery } from '../../generated/graphql'
+import { User, userState } from '../../stores/user.store'
+import { CreateSeriesModal } from '../DashboardSeries/components'
+import DashboardSeriesFlicks from '../DashboardSeries/DashboardSeriesFlicks'
+import { Drafts, NewFlickBanner, Published } from './components/index'
 
 const ViewBarButton = ({
   icon: I,
@@ -51,20 +47,16 @@ const ViewBarButton = ({
 
 const Dashboard = () => {
   const { sub } = (useRecoilValue(userState) as User) || {}
-  const { data: userSeriesData } = useGetUserSeriesQuery({
+  const { data, loading } = useGetDashboardQuery({
     variables: {
+      sub: sub as string,
       limit: 60,
     },
   })
-  const history = useHistory()
 
-  const {
-    data: userFlicksData,
-    refetch: userFlicksRefetch,
-    loading: userFlicksLoading,
-  } = useGetUserFlicksQuery({
-    variables: { sub: sub as string },
-  })
+  const [flicks, setFlicks] = useState<FlickFragment[]>([])
+
+  const history = useHistory()
 
   const tabs: Tab[] = [
     {
@@ -77,18 +69,22 @@ const Dashboard = () => {
     },
   ]
 
+  useEffect(() => {
+    if (!data) return
+    setFlicks([...data.Flick])
+  }, [data])
+
   const [currentTab, setCurrentTab] = useState<Tab>(tabs[0])
   const [isOpenNewSeriesCreateModal, setIsOpenNewSeriesCreateModal] =
     useState(false)
 
-  if (userFlicksLoading) return <ScreenState title="Just a jiffy" loading />
+  const updateFlicks = (id: string) => {
+    setFlicks(flicks.filter((flick) => flick.id !== id))
+  }
 
-  if (
-    userSeriesData &&
-    userSeriesData?.Series.length < 1 &&
-    userFlicksData &&
-    userFlicksData?.Flick.length < 1
-  )
+  if (loading) return <ScreenState title="Just a jiffy" loading />
+
+  if (data && data?.Series.length < 1 && data?.Flick.length < 1)
     return (
       <div>
         <Navbar />
@@ -168,8 +164,8 @@ const Dashboard = () => {
           Create series
         </Button>
       </div>
-      <DashboardSeriesFlicks data={userSeriesData} />
-      {userFlicksData && userFlicksData?.Flick.length > 0 && (
+      <DashboardSeriesFlicks data={data?.Series} />
+      {flicks && flicks.length > 0 && (
         <div className="px-0">
           <div className="flex flex-row m-0 p-0 ml-28 items-center">
             <Text className="font-black text-xl">Your flicks</Text>
@@ -180,20 +176,20 @@ const Dashboard = () => {
               className="text-black gap-2 w-auto ml-10"
             />
           </div>
-          <div className="mb-10">
+          <div className="mt-10 mb-10">
             {currentTab.value === 'Drafts' && (
               <Drafts
-                flicks={userFlicksData?.Flick}
-                handleRefetch={(refresh) => {
-                  if (refresh) userFlicksRefetch()
+                flicks={flicks}
+                handleRefetch={(id, refresh) => {
+                  if (refresh) updateFlicks(id)
                 }}
               />
             )}
             {currentTab.value === 'Published' && (
               <Published
-                flicks={userFlicksData?.Flick}
-                handleRefetch={(refresh) => {
-                  if (refresh) userFlicksRefetch()
+                flicks={flicks}
+                handleRefetch={(id, refresh) => {
+                  if (refresh) updateFlicks(id)
                 }}
               />
             )}
