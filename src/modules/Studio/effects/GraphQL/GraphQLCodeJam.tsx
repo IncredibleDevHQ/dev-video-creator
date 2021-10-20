@@ -1,11 +1,11 @@
-import axios from 'axios'
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
 import { useRecoilValue } from 'recoil'
-import { API } from '../../../../constants'
 import { useGetTokenisedCodeLazyQuery } from '../../../../generated/graphql'
+import { User, userState } from '../../../../stores/user.store'
 import { Concourse } from '../../components'
 import { TitleSplashProps } from '../../components/Concourse'
+import LowerThirds from '../../components/LowerThirds'
 import { controls, FragmentState } from '../../components/RenderTokens'
 import useCode from '../../hooks/use-code'
 import { StudioProviderProps, studioStore } from '../../stores'
@@ -27,7 +27,7 @@ interface Position {
 }
 
 const GraphQLCodeJam = () => {
-  const { fragment, payload, updatePayload, state } =
+  const { fragment, payload, updatePayload, state, users, participants } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [titleSpalshData, settitleSpalshData] = useState<TitleSplashProps>({
@@ -53,11 +53,16 @@ const GraphQLCodeJam = () => {
   // const onlyUserMediaGroupRef = useRef<Konva.Group>(null)
   const onlyFragmentGroupRef = useRef<Konva.Group>(null)
 
+  const { displayName } = (useRecoilValue(userState) as User) || {}
+
   useEffect(() => {
     if (!fragment?.configuration.properties) return
-    const gistURL = fragment.configuration.properties.find(
-      (property: any) => property.key === 'gistUrl'
-    )?.value
+    const code = fragment.configuration.properties.find(
+      (property: any) => property.key === 'code'
+    )?.value?.code
+    const language: string = fragment.configuration.properties.find(
+      (property: any) => property.key === 'code'
+    )?.value?.language
 
     // setConfig of titleSpalsh
     settitleSpalshData({
@@ -69,18 +74,12 @@ const GraphQLCodeJam = () => {
       stripRectColor: ['#e535ab', '#e535ab'],
       textColor: ['#ffffff', '#ffffff'],
     })
-
-    if (!gistURL) throw new Error('Missing gist URL')
     ;(async () => {
       try {
-        const { data } = await axios.get(
-          `${API.GITHUB.BASE_URL}gists/${(gistURL as string).split('/').pop()}`
-        )
-        const file = data.files[Object.keys(data.files)[0]]
         getTokenisedCode({
           variables: {
-            code: file.content,
-            language: (file.language as string).toLowerCase(),
+            code,
+            language: language?.toLowerCase(),
           },
         })
       } catch (e) {
@@ -133,8 +132,43 @@ const GraphQLCodeJam = () => {
         fragmentState: 'onlyUserMedia',
       })
       setTopLayerChildren([])
+      setTimeout(() => {
+        if (!displayName) return
+        if (!fragment) return
+        setTopLayerChildren([
+          <LowerThirds
+            x={lowerThirdCoordinates[0] || 0}
+            y={400}
+            userName={displayName}
+            rectOneColors={['#4FD1C5', '#4FD1C5']}
+            rectTwoColors={['#C084FC', '#C084FC']}
+            rectThreeColors={['#60A5FA', '#60A5FA']}
+          />,
+          ...users.map((user, index) => (
+            <LowerThirds
+              x={lowerThirdCoordinates[index + 1] || 0}
+              y={400}
+              userName={participants?.[user.uid]?.displayName || ''}
+              rectOneColors={['#4FD1C5', '#4FD1C5']}
+              rectTwoColors={['#C084FC', '#C084FC']}
+              rectThreeColors={['#60A5FA', '#60A5FA']}
+            />
+          )),
+        ])
+      }, 5000)
     }
   }, [state])
+
+  const lowerThirdCoordinates = (() => {
+    switch (fragment?.participants.length) {
+      case 2:
+        return [70, 530]
+      case 3:
+        return [45, 355, 665]
+      default:
+        return [95]
+    }
+  })()
 
   useEffect(() => {
     if (!onlyFragmentGroupRef.current || !bothGroupRef.current) return

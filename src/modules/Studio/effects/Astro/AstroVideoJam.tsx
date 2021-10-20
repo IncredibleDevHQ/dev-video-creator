@@ -98,6 +98,7 @@ const AstroVideoJam = () => {
           currentTime: 0,
           fragmentState: 'onlyUserMedia',
         })
+        setTopLayerChildren([])
     }
   }, [state])
 
