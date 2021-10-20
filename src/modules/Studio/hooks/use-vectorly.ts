@@ -13,7 +13,6 @@ export type Device = {
 
 const useVectorly = (token: string) => {
   const [ready, setReady] = useState(false)
-  const [loading, setLoading] = useState(false)
 
   const [tracks, setTracks] = useState<
     [IMicrophoneAudioTrack, ILocalVideoTrack] | null
@@ -100,7 +99,6 @@ const useVectorly = (token: string) => {
 
   useEffect(() => {
     ;(async () => {
-      setLoading(true)
       camera.current = await AgoraRTC.createCameraVideoTrack()
       microphone.current = await AgoraRTC.createMicrophoneAudioTrack()
 
@@ -142,8 +140,6 @@ const useVectorly = (token: string) => {
         token,
         passthrough: true,
       })
-
-      setLoading(() => false)
     })()
   }, [])
 
@@ -162,7 +158,6 @@ const useVectorly = (token: string) => {
     devices,
     currentDevice,
     effect,
-    loading,
   }
 }
 

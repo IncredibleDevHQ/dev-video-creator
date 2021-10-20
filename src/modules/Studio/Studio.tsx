@@ -75,7 +75,6 @@ const StudioHoC = () => {
     updateMicrophone,
     currentDevice,
     effect,
-    loading: vectorlyLoading,
   } = useVectorly(config.vectorly.token)
 
   const { sub } = (useRecoilValue(userState) as User) || {}
@@ -99,7 +98,6 @@ const StudioHoC = () => {
         tracks={tracks}
         currentDevice={currentDevice}
         effect={effect}
-        loading={vectorlyLoading}
       />
     )
   if (view === 'studio') return <Studio data={data} tracks={tracks} />
@@ -115,7 +113,6 @@ const Preview = ({
   tracks,
   currentDevice,
   effect,
-  loading,
 }: {
   data?: GetFragmentByIdQuery
   devices?: MediaDeviceInfo[]
@@ -126,7 +123,6 @@ const Preview = ({
   tracks: [IMicrophoneAudioTrack, ILocalVideoTrack] | null
   currentDevice?: Device
   effect?: string
-  loading?: boolean
 }) => {
   return (
     <div className="min-h-screen p-8 flex items-center justify-center flex-1 flex-col">
@@ -146,87 +142,76 @@ const Preview = ({
           )}
         </div>
         <div className="col-span-2 flex flex-col justify-center flex-1">
-          {loading ? (
-            <Heading fontSize="large" className="text-center">
-              About ready.
-            </Heading>
-          ) : (
-            <>
-              <Heading className="mb-4" fontSize="medium">
-                {data?.Fragment?.[0]?.name}
-              </Heading>
+          <Heading className="mb-4" fontSize="medium">
+            {data?.Fragment?.[0]?.name}
+          </Heading>
 
-              <Heading fontSize="extra-small" className="uppercase">
-                Camera
-              </Heading>
-              <select
-                className="w-full rounded-md mb-4 p-2 border border-gray-300"
-                value={currentDevice?.camera}
-                onChange={(e) =>
-                  // @ts-ignore
-                  updateCamera(e.target.value as string)
-                }
-              >
-                {devices
-                  ?.filter((device) => device.kind === 'videoinput')
-                  .map((camera) => (
-                    <option key={camera.deviceId} value={camera.deviceId}>
-                      {camera.label}
-                    </option>
-                  ))}
-              </select>
+          <Heading fontSize="extra-small" className="uppercase">
+            Camera
+          </Heading>
+          <select
+            className="w-full rounded-md mb-4 p-2 border border-gray-300"
+            value={currentDevice?.camera}
+            onChange={(e) =>
+              // @ts-ignore
+              updateCamera(e.target.value as string)
+            }
+          >
+            {devices
+              ?.filter((device) => device.kind === 'videoinput')
+              .map((camera) => (
+                <option key={camera.deviceId} value={camera.deviceId}>
+                  {camera.label}
+                </option>
+              ))}
+          </select>
 
-              <Heading fontSize="extra-small" className="uppercase">
-                Microphone
-              </Heading>
-              <select
-                className="w-full rounded-md mb-4 p-2 border border-gray-300"
-                value={currentDevice?.microphone}
-                onChange={(e) =>
-                  // @ts-ignore
-                  updateMicrophone(e.target.value as string)
-                }
-              >
-                {devices
-                  ?.filter((device) => device.kind === 'audioinput')
-                  .map((microphone) => (
-                    <option
-                      key={microphone.deviceId}
-                      value={microphone.deviceId}
-                    >
-                      {microphone.label}
-                    </option>
-                  ))}
-              </select>
+          <Heading fontSize="extra-small" className="uppercase">
+            Microphone
+          </Heading>
+          <select
+            className="w-full rounded-md mb-4 p-2 border border-gray-300"
+            value={currentDevice?.microphone}
+            onChange={(e) =>
+              // @ts-ignore
+              updateMicrophone(e.target.value as string)
+            }
+          >
+            {devices
+              ?.filter((device) => device.kind === 'audioinput')
+              .map((microphone) => (
+                <option key={microphone.deviceId} value={microphone.deviceId}>
+                  {microphone.label}
+                </option>
+              ))}
+          </select>
 
-              <Heading fontSize="extra-small" className="uppercase">
-                Effect
-              </Heading>
-              <select
-                className="w-full rounded-md mb-4 p-2 border border-gray-300"
-                value={effect}
-                onChange={(e) =>
-                  // @ts-ignore
-                  updateBackground(e.target.value as string)
-                }
-              >
-                {backgrounds.map((background) => (
-                  <option key={background.value} value={background.value}>
-                    {background.label}
-                  </option>
-                ))}
-              </select>
-              <Button
-                className="self-start"
-                size="extraSmall"
-                appearance="primary"
-                type="button"
-                onClick={() => handleJoin()}
-              >
-                Join now
-              </Button>
-            </>
-          )}
+          <Heading fontSize="extra-small" className="uppercase">
+            Effect
+          </Heading>
+          <select
+            className="w-full rounded-md mb-4 p-2 border border-gray-300"
+            value={effect}
+            onChange={(e) =>
+              // @ts-ignore
+              updateBackground(e.target.value as string)
+            }
+          >
+            {backgrounds.map((background) => (
+              <option key={background.value} value={background.value}>
+                {background.label}
+              </option>
+            ))}
+          </select>
+          <Button
+            className="self-start"
+            size="extraSmall"
+            appearance="primary"
+            type="button"
+            onClick={() => handleJoin()}
+          >
+            Join now
+          </Button>
         </div>
       </div>
     </div>
