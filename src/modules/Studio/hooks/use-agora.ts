@@ -1,5 +1,10 @@
 import { useEffect, useState } from 'react'
-import AgoraRTC, { ClientConfig, IAgoraRTCRemoteUser } from 'agora-rtc-sdk-ng'
+import AgoraRTC, {
+  ClientConfig,
+  IAgoraRTCRemoteUser,
+  ILocalVideoTrack,
+  IMicrophoneAudioTrack,
+} from 'agora-rtc-sdk-ng'
 import { createClient, createMicrophoneAndCameraTracks } from 'agora-rtc-react'
 import { useRecoilState } from 'recoil'
 import config from '../../../config'
@@ -29,7 +34,7 @@ export default function useAgora(
     onTokenWillExpire,
     onTokenDidExpire,
   }: { onTokenWillExpire: () => void; onTokenDidExpire: () => void },
-  device: Device
+  tracks: [IMicrophoneAudioTrack, ILocalVideoTrack] | null
 ) {
   const client = useClient()
   const [users, setUsers] = useState<RTCUser[]>([])
@@ -38,14 +43,6 @@ export default function useAgora(
   const [userAudios, setUserAudios] = useState<MediaStream[]>([])
   // const [cameraDevice, setCameraDevice] = useState<string>()
   // const [microphoneDevice, setMicrophoneDevice] = useState<string>()
-
-  const useMicrophoneAndCameraTracks = createMicrophoneAndCameraTracks(
-    {
-      microphoneId: device.microphone,
-    },
-    { cameraId: device.camera }
-  )
-  const { ready, tracks } = useMicrophoneAndCameraTracks()
 
   useEffect(() => {
     ;(async () => {
@@ -128,15 +125,15 @@ export default function useAgora(
     }
   }
 
-  AgoraRTC.onCameraChanged = async (changedDevice) => {
-    if (changedDevice.state === 'ACTIVE') {
-      await tracks?.[1].setDevice(changedDevice.device.deviceId)
-      // Switch to an existing device when the current device is unplugged.
-    } else if (changedDevice.device.label === tracks?.[0].getTrackLabel()) {
-      const oldCameras = await AgoraRTC.getCameras()
-      await tracks?.[1].setDevice(oldCameras?.[0]?.deviceId)
-    }
-  }
+  // AgoraRTC.onCameraChanged = async (changedDevice) => {
+  //   if (changedDevice.state === 'ACTIVE') {
+  //     await tracks?.[1].setDevice(changedDevice.device.deviceId)
+  //     // Switch to an existing device when the current device is unplugged.
+  //   } else if (changedDevice.device.label === tracks?.[0].getTrackLabel()) {
+  //     const oldCameras = await AgoraRTC.getCameras()
+  //     await tracks?.[1].setDevice(oldCameras?.[0]?.deviceId)
+  //   }
+  // }
 
   AgoraRTC.onMicrophoneChanged = async (changedDevice) => {
     if (changedDevice.state === 'ACTIVE') {
@@ -155,8 +152,6 @@ export default function useAgora(
 
   const join = async (token: string, uid: string) => {
     try {
-      if (!ready) throw new Error('Not ready')
-
       await client.join(appId, channel, token, uid)
       if (tracks) await client.publish(tracks)
     } catch (error) {
@@ -205,7 +200,6 @@ export default function useAgora(
   }
 
   return {
-    ready,
     users,
     join,
     leave,
