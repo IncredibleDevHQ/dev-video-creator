@@ -2,8 +2,10 @@ import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
 import { useRecoilValue } from 'recoil'
 import { Fragment_Status_Enum_Enum } from '../../../../generated/graphql'
+import { User, userState } from '../../../../stores/user.store'
 import { Concourse } from '../../components'
 import { TitleSplashProps } from '../../components/Concourse'
+import LowerThirds from '../../components/LowerThirds'
 import { FragmentState } from '../../components/RenderTokens'
 import { controls } from '../../components/Video'
 import { StudioProviderProps, studioStore } from '../../stores'
@@ -14,7 +16,7 @@ import {
 import { astroVideoJamLayerChildren, studioCoordinates } from './AstroConfig'
 
 const AstroVideoJam = () => {
-  const { fragment, payload, updatePayload, state } =
+  const { fragment, payload, updatePayload, state, users, participants } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [titleSpalshData, settitleSpalshData] = useState<TitleSplashProps>({
@@ -24,6 +26,8 @@ const AstroVideoJam = () => {
   // state of the fragment
   const [fragmentState, setFragmentState] =
     useState<FragmentState>('onlyUserMedia')
+
+  const { displayName } = (useRecoilValue(userState) as User) || {}
 
   const videoElement = React.useMemo(() => {
     if (!fragment?.configuration.properties) return
@@ -62,6 +66,30 @@ const AstroVideoJam = () => {
           fragmentState: 'onlyUserMedia',
         })
         setTopLayerChildren([])
+        setTimeout(() => {
+          if (!displayName) return
+          if (!fragment) return
+          setTopLayerChildren([
+            <LowerThirds
+              x={lowerThirdCoordinates[0] || 0}
+              y={400}
+              userName={displayName}
+              rectOneColors={['#651CC8', '#9561DA']}
+              rectTwoColors={['#FF5D01', '#B94301']}
+              rectThreeColors={['#1F2937', '#778496']}
+            />,
+            ...users.map((user, index) => (
+              <LowerThirds
+                x={lowerThirdCoordinates[index + 1] || 0}
+                y={400}
+                userName={participants?.[user.uid]?.displayName || ''}
+                rectOneColors={['#651CC8', '#9561DA']}
+                rectTwoColors={['#FF5D01', '#B94301']}
+                rectThreeColors={['#1F2937', '#778496']}
+              />
+            )),
+          ])
+        }, 5000)
         break
       default:
         videoElement.currentTime = 0
@@ -72,6 +100,17 @@ const AstroVideoJam = () => {
         })
     }
   }, [state])
+
+  const lowerThirdCoordinates = (() => {
+    switch (fragment?.participants.length) {
+      case 2:
+        return [70, 530]
+      case 3:
+        return [45, 355, 665]
+      default:
+        return [95]
+    }
+  })()
 
   const [playing, setPlaying] = useState(false)
 

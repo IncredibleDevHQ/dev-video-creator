@@ -5,6 +5,7 @@ import { useGetTokenisedCodeLazyQuery } from '../../../../generated/graphql'
 import { User, userState } from '../../../../stores/user.store'
 import { Concourse } from '../../components'
 import { TitleSplashProps } from '../../components/Concourse'
+import LowerThirds from '../../components/LowerThirds'
 import { controls, FragmentState } from '../../components/RenderTokens'
 import useCode from '../../hooks/use-code'
 import { StudioProviderProps, studioStore } from '../../stores'
@@ -134,24 +135,24 @@ const AstroCodeJam = () => {
         if (!displayName) return
         if (!fragment) return
         setTopLayerChildren([
-          // <LowerThirds
-          //   x={lowerThirdCoordinates[0] || 0}
-          //   y={400}
-          //   userName={displayName}
-          //   rectOneColors={['#651CC8', '#9561DA']}
-          //   rectTwoColors={['#FF5D01', '#B94301']}
-          //   rectThreeColors={['#1F2937', '#778496']}
-          // />,
-          // ...users.map((user, index) => (
-          //   <LowerThirds
-          //     x={lowerThirdCoordinates[index + 1] || 0}
-          //     y={400}
-          //     userName={participants?.[user.uid]?.displayName || ''}
-          //     rectOneColors={['#651CC8', '#9561DA']}
-          //     rectTwoColors={['#FF5D01', '#B94301']}
-          //     rectThreeColors={['#1F2937', '#778496']}
-          //   />
-          // )),
+          <LowerThirds
+            x={lowerThirdCoordinates[0] || 0}
+            y={400}
+            userName={displayName}
+            rectOneColors={['#651CC8', '#9561DA']}
+            rectTwoColors={['#FF5D01', '#B94301']}
+            rectThreeColors={['#1F2937', '#778496']}
+          />,
+          ...users.map((user, index) => (
+            <LowerThirds
+              x={lowerThirdCoordinates[index + 1] || 0}
+              y={400}
+              userName={participants?.[user.uid]?.displayName || ''}
+              rectOneColors={['#651CC8', '#9561DA']}
+              rectTwoColors={['#FF5D01', '#B94301']}
+              rectThreeColors={['#1F2937', '#778496']}
+            />
+          )),
         ])
       }, 5000)
     }
