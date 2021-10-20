@@ -2237,6 +2237,11 @@
     "@typescript-eslint/types" "4.29.1"
     eslint-visitor-keys "^2.0.0"
 
+"@vectorly-io/ai-filters@^1.6.4":
+  version "1.6.4"
+  resolved "https://registry.yarnpkg.com/@vectorly-io/ai-filters/-/ai-filters-1.6.4.tgz#a3aab62904d0f13d93a4efa2d2821ae7d2a32592"
+  integrity sha512-pR0zx88jQh0tusZASt/08npo0jOfVMoosk3qywx2OdVsthfdLCIh9L4YQm+G4ic2tat913qZbEieYV+gtGlm8g==
+
 "@videojs/http-streaming@2.9.2":
   version "2.9.2"
   resolved "https://registry.yarnpkg.com/@videojs/http-streaming/-/http-streaming-2.9.2.tgz#47d33bb02bd9c1287200398b1e85d213dee814d0"

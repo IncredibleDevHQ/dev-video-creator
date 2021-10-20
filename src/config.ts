@@ -14,6 +14,12 @@ const config = {
     appId: import.meta.env.VITE_AGORA_APP_ID,
   },
   /**
+   * Vectorly configs...
+   */
+  vectorly: {
+    token: import.meta.env.VITE_VECTORLY_TOKEN,
+  },
+  /**
    * Hasura configs...
    */
   hasura: {
