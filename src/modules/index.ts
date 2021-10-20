@@ -22,29 +22,33 @@ import InviteScreen from './Invitation/InviteScreen'
 import PublicVideo from './PublicVideo/PublicVideo'
 import MagicLinkLogin from './Authentication/MagicLinkLogin'
 import NewNewFragment from './NewFragment/NewNewFragment'
+import Integrations from './Integrations/Integrations'
+import GitHubCallback from './Integrations/GitHubCallback'
 
 export {
+  AllUserFlicks,
   AuthenticateScreen,
+  Circle,
   Dashboard,
   Designer,
   Flick,
   Flicks,
-  Landing,
-  NewFlick,
-  Onboarding,
-  Profile,
-  Studio,
-  Organisation,
-  NewOrganisation,
-  Series,
-  AllUserFlicks,
-  UserSeriesFlicks,
-  SingleSeries,
-  Circle,
-  NewFragment,
-  PublicOrganisationPage,
+  Integrations,
+  GitHubCallback,
   InviteScreen,
-  PublicVideo,
+  Landing,
   MagicLinkLogin,
+  NewFlick,
+  NewFragment,
   NewNewFragment,
+  NewOrganisation,
+  Onboarding,
+  Organisation,
+  Profile,
+  PublicOrganisationPage,
+  PublicVideo,
+  Series,
+  SingleSeries,
+  Studio,
+  UserSeriesFlicks,
 }

@@ -5,12 +5,12 @@ import { useParams, useHistory } from 'react-router-dom'
 import firebaseState from '../../stores/firebase.store'
 import { ScreenState } from '../../components'
 import { useGetGuestUserQuery } from '../../generated/graphql'
-import { useQueryVariables } from '../../hooks'
+import { useQuery } from '../../hooks'
 
 const InviteScreen = () => {
   const { flickId }: { flickId: string } = useParams()
   const history = useHistory()
-  const query = useQueryVariables()
+  const query = useQuery()
 
   const { auth } = useRecoilValue(firebaseState)
 

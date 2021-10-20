@@ -2,6 +2,10 @@ const firebaseConfig = JSON.parse(
   (import.meta.env.VITE_FIREBASE_CONFIG as string) || '{}'
 )
 
+const githubIntegrationConfig = JSON.parse(
+  (import.meta.env.VITE_GITHUB_INTEGRATION_CONFIG as string) || '{}'
+)
+
 const config = {
   /**
    * Agora configs...
@@ -35,14 +39,25 @@ const config = {
     enabled: !!(import.meta.env.VITE_SENTRY_ENABLED === 'true'),
   },
   /**
-  storage config
-  */
+   * Storage configs...
+   */
   storage: {
     baseUrl: import.meta.env.VITE_STORAGE_BASE_URL,
   },
-
+  /**
+   * Client configs...
+   */
   client: {
     publicUrl: import.meta.env.VITE_PUBLIC_URL,
+  },
+  /**
+   * Integrations configs...
+   */
+  integrations: {
+    github: {
+      clientId: githubIntegrationConfig.clientId,
+      scope: githubIntegrationConfig.scope,
+    },
   },
 }
 

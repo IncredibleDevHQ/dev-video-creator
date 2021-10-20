@@ -4,15 +4,12 @@ import { useRecoilValue } from 'recoil'
 import { useHistory } from 'react-router-dom'
 import firebaseState from '../../stores/firebase.store'
 import { ScreenState } from '../../components'
-import {
-  useFetchEmailUsingStateQuery,
-  useGetGuestUserQuery,
-} from '../../generated/graphql'
-import { useQueryVariables } from '../../hooks'
+import { useFetchEmailUsingStateQuery } from '../../generated/graphql'
+import { useQuery } from '../../hooks'
 
 const MagicLinkLogin = () => {
   const history = useHistory()
-  const query = useQueryVariables()
+  const query = useQuery()
 
   const { auth } = useRecoilValue(firebaseState)
 
