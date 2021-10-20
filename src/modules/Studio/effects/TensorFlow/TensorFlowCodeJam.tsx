@@ -231,7 +231,7 @@ const TensorFlowCodeJam = () => {
           setTopLayerChildren([
             <LowerThirds
               x={lowerThirdCoordinates.x[0] || 0}
-              y={lowerThirdCoordinates.y?.[0] || 400}
+              y={lowerThirdCoordinates.y?.[0]}
               userName={displayName}
               rectOneColors={['#E6E6E6', '#FFFFFF']}
               rectTwoColors={['#425066', '#425066']}
@@ -240,7 +240,7 @@ const TensorFlowCodeJam = () => {
             ...users.map((user, index) => (
               <LowerThirds
                 x={lowerThirdCoordinates.x[index + 1] || 0}
-                y={400}
+                y={lowerThirdCoordinates.y[index + 1]}
                 userName={participants?.[user.uid]?.displayName || ''}
                 rectOneColors={['#E6E6E6', '#FFFFFF']}
                 rectTwoColors={['#425066', '#425066']}
@@ -256,9 +256,9 @@ const TensorFlowCodeJam = () => {
   const lowerThirdCoordinates = (() => {
     switch (fragment?.participants.length) {
       case 2:
-        return { x: [70, 530] }
+        return { x: [70, 530], y: [400, 400] }
       case 3:
-        return { x: [45, 355, 665] }
+        return { x: [45, 355, 665], y: [400, 400, 400] }
       default:
         return { x: [20], y: [460] }
     }

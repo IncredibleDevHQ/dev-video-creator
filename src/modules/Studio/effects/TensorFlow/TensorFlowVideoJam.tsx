@@ -119,9 +119,9 @@ const TensorFlowVideoJam = () => {
   const lowerThirdCoordinates = (() => {
     switch (fragment?.participants.length) {
       case 2:
-        return { x: [70, 530] }
+        return { x: [70, 530], y: [400, 400] }
       case 3:
-        return { x: [45, 355, 665] }
+        return { x: [45, 355, 665], y: [400, 400, 400] }
       default:
         return { x: [20], y: [460] }
     }

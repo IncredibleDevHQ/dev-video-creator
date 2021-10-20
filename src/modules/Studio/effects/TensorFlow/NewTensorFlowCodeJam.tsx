@@ -121,9 +121,9 @@ const NewTensorFlowCodeJam = () => {
         (property: any) => property.key === 'showTitleSplash'
       )?.value,
       title: fragment.name as string,
-      bgRectColor: ['#140D1F', '#6E1DDB'],
-      stripRectColor: ['#FF5D01', '#B94301'],
-      textColor: ['#E6E6E6', '#FFFFFF'],
+      bgRectColor: ['#FF6F00', '#FFA100'],
+      stripRectColor: ['#E6E6E6', '#FFFFFF'],
+      textColor: ['#425066', '#425066'],
     })
     ;(async () => {
       try {
@@ -210,23 +210,13 @@ const NewTensorFlowCodeJam = () => {
           if (!fragment) return
           setTopLayerChildren([
             <LowerThirds
-              x={lowerThirdCoordinates[0] || 0}
+              x={lowerThirdCoordinates.x[0] || 0}
               y={460}
               userName={displayName}
               rectOneColors={['#E6E6E6', '#FFFFFF']}
               rectTwoColors={['#425066', '#425066']}
               rectThreeColors={['#FF6F00', '#FFA100']}
             />,
-            ...users.map((user, index) => (
-              <LowerThirds
-                x={lowerThirdCoordinates[index + 1] || 0}
-                y={400}
-                userName={participants?.[user.uid]?.displayName || ''}
-                rectOneColors={['#E6E6E6', '#FFFFFF']}
-                rectTwoColors={['#425066', '#425066']}
-                rectThreeColors={['#FF6F00', '#FFA100']}
-              />
-            )),
           ])
         }, 1000)
         setTimeout(() => {
@@ -248,8 +238,8 @@ const NewTensorFlowCodeJam = () => {
           if (!fragment) return
           setTopLayerChildren([
             <LowerThirds
-              x={lowerThirdCoordinates[0] || 0}
-              y={460}
+              x={lowerThirdCoordinates.x[0] || 0}
+              y={lowerThirdCoordinates.y?.[0]}
               userName={displayName}
               rectOneColors={['#E6E6E6', '#FFFFFF']}
               rectTwoColors={['#425066', '#425066']}
@@ -257,8 +247,8 @@ const NewTensorFlowCodeJam = () => {
             />,
             ...users.map((user, index) => (
               <LowerThirds
-                x={lowerThirdCoordinates[index + 1] || 0}
-                y={400}
+                x={lowerThirdCoordinates.x[index + 1] || 0}
+                y={lowerThirdCoordinates.y[index + 1]}
                 userName={participants?.[user.uid]?.displayName || ''}
                 rectOneColors={['#E6E6E6', '#FFFFFF']}
                 rectTwoColors={['#425066', '#425066']}
@@ -324,11 +314,11 @@ const NewTensorFlowCodeJam = () => {
   const lowerThirdCoordinates = (() => {
     switch (fragment?.participants.length) {
       case 2:
-        return [70, 530]
+        return { x: [70, 530], y: [400, 400] }
       case 3:
-        return [45, 355, 665]
+        return { x: [45, 355, 665], y: [400, 400, 400] }
       default:
-        return [95]
+        return { x: [20], y: [460] }
     }
   })()
 
