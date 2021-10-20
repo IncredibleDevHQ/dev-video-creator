@@ -1,16 +1,13 @@
 /* eslint-disable jsx-a11y/media-has-caption */
 import React, { useEffect, useMemo, useState } from 'react'
-import { ICameraVideoTrack, IMicrophoneAudioTrack } from 'agora-rtc-sdk-ng'
-import AgoraRTC from 'agora-rtc-sdk-ng'
+import { ILocalVideoTrack, IMicrophoneAudioTrack } from 'agora-rtc-sdk-ng'
 import { FiArrowLeft } from 'react-icons/fi'
 import { useHistory, useParams } from 'react-router-dom'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import getBlobDuration from 'get-blob-duration'
-import {
-  AgoraVideoPlayer,
-  createMicrophoneAndCameraTracks,
-} from 'agora-rtc-react'
+import { AgoraVideoPlayer } from 'agora-rtc-react'
 import AspectRatio from 'react-aspect-ratio'
+import config from '../../config'
 import {
   emitToast,
   dismissToast,
@@ -32,20 +29,54 @@ import { useCanvasRecorder, useTimekeeper } from '../../hooks'
 import { User, userState } from '../../stores/user.store'
 import { getEffect } from './effects/effects'
 import { useUploadFile } from '../../hooks/use-upload-file'
-import { useAgora } from './hooks'
+import { useAgora, useVectorly } from './hooks'
 import { StudioProviderProps, StudioState, studioStore } from './stores'
 import { useRTDB } from './hooks/use-rtdb'
 import { Timer, Countdown } from './components'
 import { Device } from './hooks/use-agora'
 
-const useMicrophoneAndCameraTracks = createMicrophoneAndCameraTracks()
+const backgrounds = [
+  { label: 'No effect', value: 'none' },
+  { label: 'Blur', value: 'blur' },
+  { label: 'Transparent', value: 'transparent' },
+  {
+    label: 'Wall',
+    value: 'https://demo.vectorly.io/virtual-backgrounds/7.jpg',
+  },
+  {
+    label: 'City',
+    value: 'https://demo.vectorly.io/virtual-backgrounds/8.jpg',
+  },
+  {
+    label: 'Beach',
+    value: 'https://demo.vectorly.io/virtual-backgrounds/3.jpg',
+  },
+  {
+    label: 'Bridge',
+    value: 'https://demo.vectorly.io/virtual-backgrounds/2.jpg',
+  },
+  {
+    label: 'Bloody Mary (Gradient)',
+    value: 'https://i.ibb.co/rvbdFT9/Bloody-Mary.png',
+  },
+  { label: 'DIMIGO (Gradient)', value: 'https://i.ibb.co/bJSYLhj/DIMIGO.png' },
+]
 
 // eslint-disable-next-line consistent-return
 const StudioHoC = () => {
   const [view, setView] = useState<'preview' | 'studio'>('preview')
-  const { ready, tracks } = useMicrophoneAndCameraTracks()
 
-  const [currentDevice, setCurrentDevice] = useState<Device>({} as Device)
+  const {
+    devices,
+    ready,
+    tracks,
+    updateBackground,
+    updateCamera,
+    updateMicrophone,
+    currentDevice,
+    effect,
+    loading: vectorlyLoading,
+  } = useVectorly(config.vectorly.token)
 
   const { sub } = (useRecoilValue(userState) as User) || {}
   const { fragmentId } = useParams<{ fragmentId: string }>()
@@ -54,133 +85,148 @@ const StudioHoC = () => {
     variables: { id: fragmentId, sub: sub as string },
   })
 
-  if (loading) return <ScreenState title="Just a jiffy..." loading />
+  if (loading || !ready) return <ScreenState title="Just a jiffy..." loading />
 
   if (view === 'preview')
     return (
       <Preview
         data={data}
-        tracks={tracks}
-        ready={ready}
+        devices={devices}
+        updateBackground={updateBackground}
+        updateCamera={updateCamera}
+        updateMicrophone={updateMicrophone}
         handleJoin={() => setView('studio')}
+        tracks={tracks}
         currentDevice={currentDevice}
-        setCurrentDevice={setCurrentDevice}
+        effect={effect}
+        loading={vectorlyLoading}
       />
     )
-  if (view === 'studio')
-    return <Studio data={data} currentDevice={currentDevice} />
+  if (view === 'studio') return <Studio data={data} tracks={tracks} />
 }
 
 const Preview = ({
-  tracks,
-  ready,
   data,
   handleJoin,
+  devices,
+  updateBackground,
+  updateCamera,
+  updateMicrophone,
+  tracks,
   currentDevice,
-  setCurrentDevice,
+  effect,
+  loading,
 }: {
-  tracks: [IMicrophoneAudioTrack, ICameraVideoTrack] | null
-  ready: boolean
   data?: GetFragmentByIdQuery
+  devices?: MediaDeviceInfo[]
   handleJoin: () => void
+  updateBackground: (value: string) => Promise<void>
+  updateMicrophone: (deviceId: string) => Promise<void>
+  updateCamera: (deviceId: string) => Promise<void>
+  tracks: [IMicrophoneAudioTrack, ILocalVideoTrack] | null
   currentDevice?: Device
-  setCurrentDevice: (currentDevice: Device) => void
+  effect?: string
+  loading?: boolean
 }) => {
-  const [devices, setDevices] = useState<{
-    cameras: MediaDeviceInfo[]
-    microphones: MediaDeviceInfo[]
-  }>({
-    cameras: [],
-    microphones: [],
-  })
-
-  useEffect(() => {
-    ;(async () => {
-      const cameras = await AgoraRTC.getCameras()
-      const microphones = await AgoraRTC.getMicrophones()
-
-      setDevices({
-        cameras,
-        microphones,
-      })
-
-      setCurrentDevice({
-        camera: cameras?.[0].deviceId,
-        microphone: microphones?.[0].deviceId,
-      })
-    })()
-  }, [])
-
-  useEffect(() => {
-    if (!ready || !currentDevice?.microphone) return
-    tracks?.[0].setDevice(currentDevice?.microphone)
-  }, [currentDevice?.microphone])
-
-  useEffect(() => {
-    if (!ready || !currentDevice?.camera) return
-    tracks?.[1].setDevice(currentDevice?.camera)
-  }, [currentDevice?.camera])
-
   return (
     <div className="min-h-screen p-8 flex items-center justify-center flex-1 flex-col">
       <div className="grid grid-cols-5 w-full gap-x-8">
         <div className="col-span-3">
-          {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-          {ready && tracks?.[1] && (
+          {tracks?.[1] && (
             <div className="relative">
               <AspectRatio ratio="16/9" className="rounded-lg overflow-hidden">
                 <>
-                  <AgoraVideoPlayer videoTrack={tracks[1]} />
+                  <AgoraVideoPlayer
+                    className="w-full h-full"
+                    videoTrack={tracks[1]}
+                  />
                 </>
               </AspectRatio>
             </div>
           )}
         </div>
         <div className="col-span-2 flex flex-col justify-center flex-1">
-          <Heading className="mb-4" fontSize="medium">
-            {data?.Fragment?.[0]?.name}
-          </Heading>
+          {loading ? (
+            <Heading fontSize="large" className="text-center">
+              About ready.
+            </Heading>
+          ) : (
+            <>
+              <Heading className="mb-4" fontSize="medium">
+                {data?.Fragment?.[0]?.name}
+              </Heading>
 
-          <Heading fontSize="extra-small" className="uppercase">
-            Camera
-          </Heading>
-          <select
-            className="w-full rounded-md mb-4 p-2 border border-gray-300"
-            value={currentDevice?.camera}
-            onChange={(e) =>
-              // @ts-ignore
-              setCurrentDevice({ ...currentDevice, camera: e.target.value })
-            }
-          >
-            {devices.cameras.map((camera) => (
-              <option value={camera.deviceId}>{camera.label}</option>
-            ))}
-          </select>
+              <Heading fontSize="extra-small" className="uppercase">
+                Camera
+              </Heading>
+              <select
+                className="w-full rounded-md mb-4 p-2 border border-gray-300"
+                value={currentDevice?.camera}
+                onChange={(e) =>
+                  // @ts-ignore
+                  updateCamera(e.target.value as string)
+                }
+              >
+                {devices
+                  ?.filter((device) => device.kind === 'videoinput')
+                  .map((camera) => (
+                    <option key={camera.deviceId} value={camera.deviceId}>
+                      {camera.label}
+                    </option>
+                  ))}
+              </select>
 
-          <Heading fontSize="extra-small" className="uppercase">
-            Microphone
-          </Heading>
-          <select
-            className="w-full rounded-md mb-4 p-2 border border-gray-300"
-            value={currentDevice?.microphone}
-            onChange={(e) =>
-              // @ts-ignore
-              setCurrentDevice({ ...currentDevice, microphone: e.target.value })
-            }
-          >
-            {devices.microphones.map((microphone) => (
-              <option value={microphone.deviceId}>{microphone.label}</option>
-            ))}
-          </select>
-          <Button
-            className="self-start"
-            size="extraSmall"
-            appearance="primary"
-            type="button"
-            onClick={() => handleJoin()}
-          >
-            Join now
-          </Button>
+              <Heading fontSize="extra-small" className="uppercase">
+                Microphone
+              </Heading>
+              <select
+                className="w-full rounded-md mb-4 p-2 border border-gray-300"
+                value={currentDevice?.microphone}
+                onChange={(e) =>
+                  // @ts-ignore
+                  updateMicrophone(e.target.value as string)
+                }
+              >
+                {devices
+                  ?.filter((device) => device.kind === 'audioinput')
+                  .map((microphone) => (
+                    <option
+                      key={microphone.deviceId}
+                      value={microphone.deviceId}
+                    >
+                      {microphone.label}
+                    </option>
+                  ))}
+              </select>
+
+              <Heading fontSize="extra-small" className="uppercase">
+                Effect
+              </Heading>
+              <select
+                className="w-full rounded-md mb-4 p-2 border border-gray-300"
+                value={effect}
+                onChange={(e) =>
+                  // @ts-ignore
+                  updateBackground(e.target.value as string)
+                }
+              >
+                {backgrounds.map((background) => (
+                  <option key={background.value} value={background.value}>
+                    {background.label}
+                  </option>
+                ))}
+              </select>
+              <Button
+                className="self-start"
+                size="extraSmall"
+                appearance="primary"
+                type="button"
+                onClick={() => handleJoin()}
+              >
+                Join now
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -189,10 +235,10 @@ const Preview = ({
 
 const Studio = ({
   data,
-  currentDevice,
+  tracks,
 }: {
   data?: GetFragmentByIdQuery
-  currentDevice: Device
+  tracks: [IMicrophoneAudioTrack, ILocalVideoTrack] | null
 }) => {
   const { fragmentId } = useParams<{ fragmentId: string }>()
   const { constraints } =
@@ -206,17 +252,7 @@ const Studio = ({
 
   const [uploadFile] = useUploadFile()
 
-  const {
-    stream,
-    join,
-    users,
-    mute,
-    ready,
-    leave,
-    userAudios,
-    tracks,
-    renewToken,
-  } = useAgora(
+  const { stream, join, users, mute, leave, userAudios, renewToken } = useAgora(
     fragmentId,
     {
       onTokenWillExpire: async () => {
@@ -246,7 +282,7 @@ const Studio = ({
         }
       },
     },
-    currentDevice
+    tracks
   )
 
   const [getRTCToken] = useGetRtcTokenMutation({
@@ -278,7 +314,7 @@ const Studio = ({
     })
 
   useEffect(() => {
-    if (fragment && ready) {
+    if (fragment) {
       ;(async () => {
         init()
         const { data } = await getRTCToken({ variables: { fragmentId } })
@@ -301,7 +337,7 @@ const Studio = ({
         }
       })()
     }
-  }, [fragment, ready])
+  }, [fragment])
 
   useEffect(() => {
     if (data?.Fragment[0] === undefined) return
