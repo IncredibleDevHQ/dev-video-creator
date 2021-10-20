@@ -4,12 +4,9 @@ import { useHistory } from 'react-router-dom'
 import { useRecoilState } from 'recoil'
 import { emitToast, ScreenState, EmptyState, Button } from '../../../components'
 import { useUpdateFragmentConfigurationMutation } from '../../../generated/graphql'
-import { VideoInventoryModal } from '../../Flick/components'
-import {
-  SchemaElementProps,
-  GetSchemaElement,
-} from '../../Flick/components/Effects'
-import { FlickConfiguration } from '../../Flick/NewFlick'
+import { VideoInventoryModal } from '.'
+import { SchemaElementProps, GetSchemaElement } from './Effects'
+import { FlickConfiguration } from '../NewFlick'
 import { newFlickStore } from '../store/flickNew.store'
 
 const FragmentContent = () => {
@@ -143,7 +140,7 @@ const FragmentContent = () => {
   if (!fragment) return <EmptyState text="No fragment Selected" width={400} />
 
   return (
-    <div className="pr-10 pb-48 overflow-scroll">
+    <div className="w-full">
       <form onSubmit={handleSubmit}>
         {config?.map((attribute) => {
           return (

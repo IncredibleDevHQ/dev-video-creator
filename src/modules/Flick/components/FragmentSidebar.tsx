@@ -64,7 +64,7 @@ const FragmentSideBar = () => {
     <>
       <div
         className={cx(
-          'w-56 h-5/6 border-r-2 border-gray-300 overflow-y-scroll pb-16',
+          'w-1/5 border-r-2 border-gray-300 overflow-y-auto pb-16 relative',
           {
             'h-full': flick?.fragments.length === 0,
           },
@@ -73,7 +73,7 @@ const FragmentSideBar = () => {
       >
         <ThumbnailDND />
         <div
-          className="bg-gray-100 py-2 fixed bottom-0 flex items-center justify-center left-0 w-56 cursor-pointer h-16 border-r-2 border-gray-300"
+          className="bg-gray-100 py-2 fixed bottom-0 flex items-center justify-center w-1/5 left-0 cursor-pointer h-16 border-r-2 border-gray-300"
           onClick={() => setIsCreateNewModalOpen(true)}
         >
           <Button
