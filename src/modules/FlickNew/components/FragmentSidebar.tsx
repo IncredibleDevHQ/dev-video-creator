@@ -64,13 +64,13 @@ const FragmentSideBar = () => {
     <>
       <div
         className={cx(
-          'w-56 border-r-2 border-gray-300 overflow-y-auto pb-16',
+          'w-1/5 border-r-2 border-gray-300 overflow-y-auto pb-16 relative',
           style
         )}
       >
         <ThumbnailDND />
         <div
-          className="bg-gray-100 py-2 fixed bottom-0 flex items-center justify-center left-0 w-56 cursor-pointer h-16 border-r-2 border-gray-300"
+          className="bg-gray-100 py-2 fixed bottom-0 flex items-center justify-center w-1/5 left-0 cursor-pointer h-16 border-r-2 border-gray-300"
           onClick={() => setIsCreateNewModalOpen(true)}
         >
           <Button
