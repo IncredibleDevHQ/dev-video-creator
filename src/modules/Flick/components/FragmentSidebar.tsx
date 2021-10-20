@@ -89,7 +89,7 @@ const FragmentSideBar = () => {
             size="small"
             icon={FiPlus}
           >
-            New Fragment
+            <Text className="text-sm">New Fragment</Text>
           </Button>
         </div>
       </div>
@@ -253,10 +253,10 @@ const Thumbnail = ({
       tabIndex={0}
       onKeyUp={() => {}}
       className={cx(
-        'flex flex-col border-0 my-2 mx-4 rounded-md h-28 bg-gray-100 justify-end p-4 relative',
+        'flex flex-col my-2 mx-6 rounded-md h-28 bg-gray-100 justify-end p-4 relative border border-gray-300',
         {
-          'border-2 border-green-600': active,
-          'mt-8': position === 0,
+          'border-green-600': active,
+          'mt-10': position === 0,
         },
         className
       )}
@@ -285,16 +285,16 @@ const Thumbnail = ({
         isOpen={overflowMenuVisible}
         setIsOpen={setOverflowMenuVisible}
         content={
-          <div className="flex flex-col bg-gray-50 rounded-md border border-gray-300 w-52 z-10">
+          <div className="flex flex-col bg-gray-50 rounded-md border border-gray-300 w-44 z-10 shadow-md">
             <div
-              className="flex items-center pt-3 pb-1.5 px-6 cursor-pointer hover:bg-gray-100"
+              className="flex items-center pt-3 pb-1.5 px-4 cursor-pointer hover:bg-gray-100"
               onClick={() => setConfirmDeleteModal(true)}
             >
               <IoTrashOutline size={21} className="text-gray-600 mr-4" />
               <Text className="font-medium">Delete</Text>
             </div>
             <div
-              className="flex items-center cursor-pointer py-1.5 px-6 hover:bg-gray-100"
+              className="flex items-center cursor-pointer py-1.5 px-4 hover:bg-gray-100"
               onClick={() => setDuplicateModal(true)}
             >
               <IoCopyOutline size={21} className="text-gray-600 mr-4" />
@@ -302,7 +302,7 @@ const Thumbnail = ({
             </div>
             <div className="h-px bg-gray-200" />
             <div
-              className="flex items-center py-2 px-6 cursor-pointer hover:bg-gray-100"
+              className="flex items-center py-2 px-4 cursor-pointer hover:bg-gray-100"
               onClick={() => setDuplicateModal(true)}
             >
               <RiStickyNoteLine size={21} className="text-gray-600mt-1 mr-4" />
@@ -315,7 +315,7 @@ const Thumbnail = ({
       />
       <Text
         className={cx(
-          'text-base font-bold text-gray-800 cursor-text rounded-md p-1 hover:bg-gray-200 overflow-scroll',
+          'text-sm font-bold text-gray-800 cursor-text rounded-md p-1 hover:bg-gray-200 overflow-scroll',
           {
             'truncate overflow-ellipsis': !editFragmentName,
           }
@@ -336,7 +336,7 @@ const Thumbnail = ({
         {fragment.name}
       </Text>
       <div className="flex items-center justify-between pl-1">
-        <Text className="text-sm text-gray-600">{fragment.type}</Text>
+        <Text className="text-xs text-gray-600">{fragment.type}</Text>
         <div className="flex">
           {fragment.participants.map(({ participant }) => (
             <Avatar

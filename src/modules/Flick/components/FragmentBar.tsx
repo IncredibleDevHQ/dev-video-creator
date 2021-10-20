@@ -93,7 +93,7 @@ const FragmentBar = () => {
   }
 
   return (
-    <div className="flex items-center bg-gray-50 justify-between -mt-1 pr-6 pl-3 py-3 border-t border-b border-gray-300">
+    <div className="flex items-center bg-gray-50 justify-between -mt-1 pr-6 pl-3 py-2.5 border-t border-b border-gray-300">
       <div className="flex">
         <div className="flex items-center">
           <IoTrashOutline
