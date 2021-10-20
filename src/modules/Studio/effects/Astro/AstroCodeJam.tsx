@@ -1,12 +1,11 @@
-import axios from 'axios'
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
 import { useRecoilValue } from 'recoil'
-import { API } from '../../../../constants'
 import { useGetTokenisedCodeLazyQuery } from '../../../../generated/graphql'
 import { User, userState } from '../../../../stores/user.store'
 import { Concourse } from '../../components'
 import { TitleSplashProps } from '../../components/Concourse'
+import LowerThirds from '../../components/LowerThirds'
 import { controls, FragmentState } from '../../components/RenderTokens'
 import useCode from '../../hooks/use-code'
 import { StudioProviderProps, studioStore } from '../../stores'
@@ -58,9 +57,12 @@ const AstroCodeJam = () => {
 
   useEffect(() => {
     if (!fragment?.configuration.properties) return
-    const gistURL = fragment.configuration.properties.find(
-      (property: any) => property.key === 'gistUrl'
-    )?.value
+    const code = fragment.configuration.properties.find(
+      (property: any) => property.key === 'code'
+    )?.value?.code
+    const language: string = fragment.configuration.properties.find(
+      (property: any) => property.key === 'code'
+    )?.value?.language
     // setConfig of titleSpalsh
     settitleSpalshData({
       enable: fragment.configuration.properties.find(
@@ -71,18 +73,12 @@ const AstroCodeJam = () => {
       stripRectColor: ['#FF5D01', '#B94301'],
       textColor: ['#E6E6E6', '#FFFFFF'],
     })
-
-    if (!gistURL) throw new Error('Missing gist URL')
     ;(async () => {
       try {
-        const { data } = await axios.get(
-          `${API.GITHUB.BASE_URL}gists/${(gistURL as string).split('/').pop()}`
-        )
-        const file = data.files[Object.keys(data.files)[0]]
         getTokenisedCode({
           variables: {
-            code: file.content,
-            language: (file.language as string).toLowerCase(),
+            code,
+            language: language?.toLowerCase(),
           },
         })
       } catch (e) {
@@ -139,24 +135,24 @@ const AstroCodeJam = () => {
         if (!displayName) return
         if (!fragment) return
         setTopLayerChildren([
-          // <LowerThirds
-          //   x={lowerThirdCoordinates[0] || 0}
-          //   y={400}
-          //   userName={displayName}
-          //   rectOneColors={['#651CC8', '#9561DA']}
-          //   rectTwoColors={['#FF5D01', '#B94301']}
-          //   rectThreeColors={['#1F2937', '#778496']}
-          // />,
-          // ...users.map((user, index) => (
-          //   <LowerThirds
-          //     x={lowerThirdCoordinates[index + 1] || 0}
-          //     y={400}
-          //     userName={participants?.[user.uid]?.displayName || ''}
-          //     rectOneColors={['#651CC8', '#9561DA']}
-          //     rectTwoColors={['#FF5D01', '#B94301']}
-          //     rectThreeColors={['#1F2937', '#778496']}
-          //   />
-          // )),
+          <LowerThirds
+            x={lowerThirdCoordinates[0] || 0}
+            y={400}
+            userName={displayName}
+            rectOneColors={['#651CC8', '#9561DA']}
+            rectTwoColors={['#FF5D01', '#B94301']}
+            rectThreeColors={['#1F2937', '#778496']}
+          />,
+          ...users.map((user, index) => (
+            <LowerThirds
+              x={lowerThirdCoordinates[index + 1] || 0}
+              y={400}
+              userName={participants?.[user.uid]?.displayName || ''}
+              rectOneColors={['#651CC8', '#9561DA']}
+              rectTwoColors={['#FF5D01', '#B94301']}
+              rectThreeColors={['#1F2937', '#778496']}
+            />
+          )),
         ])
       }, 5000)
     }

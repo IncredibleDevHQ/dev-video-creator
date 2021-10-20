@@ -330,22 +330,22 @@ export const studioCoordinates = (
       if (fragmentState === 'onlyUserMedia') {
         return [
           {
-            x: 85,
-            y: -50,
-            width: 800,
-            height: 600,
+            x: 0,
+            y: -90,
+            width: 960,
+            height: 720,
             clipTheme: 'rect',
             borderWidth: 8,
             studioUserClipConfig: {
               x: 0,
-              y: 80,
-              width: 800,
-              height: 440,
-              radius: 8,
+              y: 90,
+              width: 960,
+              height: 540,
+              radius: 0,
             },
-            backgroundRectX: 75,
-            backgroundRectY: 20,
-            backgroundRectColor: '#FF6E00',
+            backgroundRectX: 0,
+            backgroundRectY: 0,
+            // backgroundRectColor: '#FF6E00',
           },
         ]
       }
