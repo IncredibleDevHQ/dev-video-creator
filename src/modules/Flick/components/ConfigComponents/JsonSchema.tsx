@@ -261,7 +261,7 @@ const JsonSchema = ({
         onChange={(e: ChangeEvent<HTMLInputElement>) =>
           setOnlyText(e.target.checked)
         }
-        className="flex flex-wrap lg:align-middle gap-3 text-lg text-black ml-4 lg:capitalize p-4"
+        className="flex-wrap text-lg px-4 py-2"
       />
       <div className="px-4">
         <QuestionEditor
