@@ -35,6 +35,8 @@ jobs:
           VITE_SENTRY_DSN: ${{secrets.SENTRY_DSN}}
           VITE_SENTRY_ENABLED: false
           VITE_STORAGE_BASE_URL: ${{ secrets.STORAGE_BASE_URL }}
+          VITE_VECTORLY_TOKEN: ${{ secrets.VECTORLY_TOKEN }}
+          VITE_GITHUB_INTEGRATION_CONFIG: ${{ secrets.VITE_GITHUB_INTEGRATION_CONFIG }}
 
       - name: Install Surge and GitHub Status Updater
         run: |

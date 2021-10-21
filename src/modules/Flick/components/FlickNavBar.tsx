@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { BsGear } from 'react-icons/bs'
 import { FiBell, FiChevronLeft, FiLink2, FiUpload } from 'react-icons/fi'
 import { Link, useHistory } from 'react-router-dom'
 import { useRecoilState } from 'recoil'
@@ -10,13 +11,14 @@ import {
 } from '../../../generated/graphql'
 import { FlickActivity } from '../../Flick/components'
 import { newFlickStore } from '../store/flickNew.store'
+import SettingsModal from './SettingsModal'
 import ShareModal from './ShareModal'
 
 const FlickNavBar = () => {
   const [{ flick }, setFlickStore] = useRecoilState(newFlickStore)
   const [isActivityMenu, setIsActivityMenu] = useState(false)
   const [isShareOpen, setIsShareOpen] = useState(false)
-
+  const [settingsModal, setSettingsModal] = useState(false)
   const [editFlickName, setEditFlickName] = useState(false)
   const [flickName, setFlickName] = useState(flick?.name || '')
   const history = useHistory()
@@ -109,9 +111,14 @@ const FlickNavBar = () => {
         </Heading>
       </div>
       <div className="flex items-center">
-        <FiBell
-          className="text-gray-600 mr-8 cursor-pointer"
+        <BsGear
           size={24}
+          className="mr-8 text-gray-600 cursor-pointer"
+          onClick={() => setSettingsModal(true)}
+        />
+        <FiBell
+          className="text-gray-600 mr-4 cursor-pointer"
+          size={21}
           onClick={() => setIsActivityMenu(!isActivityMenu)}
         />
         <Button
@@ -121,6 +128,7 @@ const FlickNavBar = () => {
           onClick={() => {
             setIsShareOpen(true)
           }}
+          className="mr-2"
         >
           Invite
         </Button>
@@ -130,12 +138,19 @@ const FlickNavBar = () => {
             setIsShareOpen(false)
           }}
         />
+        <SettingsModal
+          open={settingsModal}
+          handleClose={() => {
+            setSettingsModal(false)
+          }}
+        />
         <Button
           appearance="primary"
           size="small"
           icon={FiUpload}
           type="button"
           disabled={!flick?.fragments.every((f) => f.producedLink !== null)}
+          className="px-3 py-1.5"
           onClick={produceVideo}
         >
           Publish

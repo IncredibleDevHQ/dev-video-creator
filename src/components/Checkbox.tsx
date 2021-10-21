@@ -1,5 +1,5 @@
-import { css } from '@emotion/css'
 import React, { HTMLProps } from 'react'
+import { css, cx } from '@emotion/css'
 
 interface CheckBoxProps extends HTMLProps<HTMLInputElement> {
   name: string
@@ -68,7 +68,7 @@ const Checkbox = ({
   `
 
   return (
-    <div className="flex gap-1 items-center p-4" key={key}>
+    <div className={cx('flex items-center', className)} key={key}>
       <span className="text-base mr-2">{label}</span>
       <label className={switchCSS} htmlFor={label}>
         <input
@@ -77,7 +77,6 @@ const Checkbox = ({
           onChange={onChange}
           name={name}
           id={label}
-          className={className}
         />
         <span className={`${slider} round`} />
       </label>

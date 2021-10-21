@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react'
 import { FormikErrors } from 'formik'
 import {
+  CodeEditor,
   CheckboxSchema,
   FileArraySchema,
   JsonSchema,
@@ -86,6 +87,18 @@ export const GetSchemaElement = ({
           setLoadingAssets={setLoadingAssets}
           setConfigured={setConfigured}
           setVideoInventoryModal={setVideoInventoryModal}
+        />
+      )
+
+    case 'code':
+      return (
+        <CodeEditor
+          schema={schema}
+          handleChange={handleChange}
+          setFieldValue={setFieldValue}
+          value={value}
+          setLoadingAssets={setLoadingAssets}
+          setConfigured={setConfigured}
         />
       )
 

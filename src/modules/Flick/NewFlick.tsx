@@ -16,7 +16,7 @@ import {
   CreateNewFlickMutationVariables,
   useCreateNewFlickMutation,
 } from '../../generated/graphql'
-import { useQueryVariables } from '../../hooks'
+import { useQuery } from '../../hooks'
 
 export interface FlickConfiguration {
   themeId: number
@@ -32,7 +32,7 @@ const initialFlick: CreateNewFlickMutationVariables = {
 }
 
 const options = [
-  { label: 'Default', value: 1 },
+  { label: 'Default', value: 0 },
   { label: 'GraphQL', value: 1 },
   { label: 'Open Sauced', value: 2 },
   { label: 'Astro', value: 3 },
@@ -54,7 +54,7 @@ const NewFlick = () => {
   const [createNewFlick, { data, error, loading }] = useCreateNewFlickMutation()
   const history = useHistory()
 
-  const query = useQueryVariables()
+  const query = useQuery()
 
   useEffect(() => {
     if (!seriesId) return

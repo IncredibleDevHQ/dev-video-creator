@@ -1,7 +1,7 @@
 import Konva from 'konva'
 import React from 'react'
 import { Group, Circle, Text, Rect } from 'react-konva'
-import { CONFIG } from '../components/Concourse'
+import { CONFIG, SHORTS_CONFIG } from '../components/Concourse'
 
 export const CircleShrink = ({
   performFinishAction,
@@ -254,16 +254,21 @@ export const MutipleRectMoveRight = ({
   rectOneColors,
   rectTwoColors,
   rectThreeColors,
+  isShorts,
 }: {
   performFinishAction?: () => void
   rectOneColors: string[]
   rectTwoColors: string[]
   rectThreeColors: string[]
+  isShorts?: boolean
 }) => {
+  let stageConfig = { width: CONFIG.width, height: CONFIG.height }
+  if (!isShorts) stageConfig = CONFIG
+  else stageConfig = SHORTS_CONFIG
   return (
     <>
       <Rect
-        x={-CONFIG.width}
+        x={-stageConfig.width}
         y={0}
         fillLinearGradientColorStops={[
           0,
@@ -274,13 +279,13 @@ export const MutipleRectMoveRight = ({
         fillLinearGradientStartPoint={{ x: 0, y: 0 }}
         fillLinearGradientEndPoint={{
           x: 0,
-          y: CONFIG.height,
+          y: stageConfig.height,
         }}
-        width={CONFIG.width}
-        height={CONFIG.height}
+        width={stageConfig.width}
+        height={stageConfig.height}
         ref={(ref) =>
           ref?.to({
-            x: CONFIG.width,
+            x: stageConfig.width,
             duration: 1.5,
             easing: Konva.Easings.EaseOut,
             onFinish: () => {
@@ -293,7 +298,7 @@ export const MutipleRectMoveRight = ({
         }
       />
       <Rect
-        x={-CONFIG.width}
+        x={-stageConfig.width}
         y={0}
         fillLinearGradientColorStops={[
           0,
@@ -304,20 +309,20 @@ export const MutipleRectMoveRight = ({
         fillLinearGradientStartPoint={{ x: 0, y: 0 }}
         fillLinearGradientEndPoint={{
           x: 0,
-          y: CONFIG.height,
+          y: stageConfig.height,
         }}
-        width={CONFIG.width}
-        height={CONFIG.height}
+        width={stageConfig.width}
+        height={stageConfig.height}
         ref={(ref) =>
           ref?.to({
-            x: CONFIG.width,
+            x: stageConfig.width,
             duration: 1,
             easing: Konva.Easings.EaseOut,
           })
         }
       />
       <Rect
-        x={-CONFIG.width}
+        x={-stageConfig.width}
         y={0}
         fillLinearGradientColorStops={[
           0,
@@ -328,13 +333,13 @@ export const MutipleRectMoveRight = ({
         fillLinearGradientStartPoint={{ x: 0, y: 0 }}
         fillLinearGradientEndPoint={{
           x: 0,
-          y: CONFIG.height,
+          y: stageConfig.height,
         }}
-        width={CONFIG.width}
-        height={CONFIG.height}
+        width={stageConfig.width}
+        height={stageConfig.height}
         ref={(ref) =>
           ref?.to({
-            x: CONFIG.width,
+            x: stageConfig.width,
             duration: 0.5,
             easing: Konva.Easings.EaseOut,
           })
@@ -349,16 +354,21 @@ export const MutipleRectMoveLeft = ({
   rectOneColors,
   rectTwoColors,
   rectThreeColors,
+  isShorts,
 }: {
   performFinishAction?: () => void
   rectOneColors: string[]
   rectTwoColors: string[]
   rectThreeColors: string[]
+  isShorts?: boolean
 }) => {
+  let stageConfig = { width: CONFIG.width, height: CONFIG.height }
+  if (!isShorts) stageConfig = CONFIG
+  else stageConfig = SHORTS_CONFIG
   return (
     <>
       <Rect
-        x={CONFIG.width}
+        x={stageConfig.width}
         y={0}
         fillLinearGradientColorStops={[
           0,
@@ -369,13 +379,13 @@ export const MutipleRectMoveLeft = ({
         fillLinearGradientStartPoint={{ x: 0, y: 0 }}
         fillLinearGradientEndPoint={{
           x: 0,
-          y: CONFIG.height,
+          y: stageConfig.height,
         }}
-        width={CONFIG.width}
-        height={CONFIG.height}
+        width={stageConfig.width}
+        height={stageConfig.height}
         ref={(ref) =>
           ref?.to({
-            x: -CONFIG.width,
+            x: -stageConfig.width,
             duration: 1.5,
             easing: Konva.Easings.EaseOut,
             onFinish: () => {
@@ -388,7 +398,7 @@ export const MutipleRectMoveLeft = ({
         }
       />
       <Rect
-        x={CONFIG.width}
+        x={stageConfig.width}
         y={0}
         fillLinearGradientColorStops={[
           0,
@@ -399,20 +409,20 @@ export const MutipleRectMoveLeft = ({
         fillLinearGradientStartPoint={{ x: 0, y: 0 }}
         fillLinearGradientEndPoint={{
           x: 0,
-          y: CONFIG.height,
+          y: stageConfig.height,
         }}
-        width={CONFIG.width}
-        height={CONFIG.height}
+        width={stageConfig.width}
+        height={stageConfig.height}
         ref={(ref) =>
           ref?.to({
-            x: -CONFIG.width,
+            x: -stageConfig.width,
             duration: 1,
             easing: Konva.Easings.EaseOut,
           })
         }
       />
       <Rect
-        x={CONFIG.width}
+        x={stageConfig.width}
         y={0}
         fillLinearGradientColorStops={[
           0,
@@ -423,13 +433,13 @@ export const MutipleRectMoveLeft = ({
         fillLinearGradientStartPoint={{ x: 0, y: 0 }}
         fillLinearGradientEndPoint={{
           x: 0,
-          y: CONFIG.height,
+          y: stageConfig.height,
         }}
-        width={CONFIG.width}
-        height={CONFIG.height}
+        width={stageConfig.width}
+        height={stageConfig.height}
         ref={(ref) =>
           ref?.to({
-            x: -CONFIG.width,
+            x: -stageConfig.width,
             duration: 0.5,
             easing: Konva.Easings.EaseOut,
           })

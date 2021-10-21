@@ -38,6 +38,11 @@ module.exports = {
           darker: darken('#1f1f1f', 0.05),
           75: alpha('#1f1f1f', 0.75),
         },
+        orange: {
+          DEFAULT: '#FFEDD5',
+          lighter: lighten('#FFEDD5', 0.5),
+          darker: '#C2410C',
+        },
         success: { DEFAULT: '#137547', 10: `rgba(19,117,71, 0.1)` },
         warning: '#ED7D3A',
         error: {
@@ -64,5 +69,5 @@ module.exports = {
       margin: ['last'],
     },
   },
-  plugins: [],
+  plugins: [require('@tailwindcss/typography')],
 }

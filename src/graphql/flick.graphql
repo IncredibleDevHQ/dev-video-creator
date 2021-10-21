@@ -6,6 +6,7 @@ fragment PublicFlick on Flick {
   id
   name
   scope
+  md
   plannedEnd
   startAt
   updatedAt
@@ -27,6 +28,7 @@ fragment BaseFlick on Flick {
   id
   name
   scope
+  md
   plannedEnd
   startAt
   ownerId
@@ -79,6 +81,13 @@ query GetMyFlicks($limit: Int, $userId: String) {
 query GetFlickById($id: uuid!) {
   Flick_by_pk(id: $id) {
     ...Flick
+  }
+}
+
+query GetFlickMarkdownById($id: uuid!) {
+  Flick_by_pk(id: $id) {
+    id
+    md
   }
 }
 
@@ -139,40 +148,6 @@ query GetFlickFragments($flickId: uuid!) {
   }
 }
 
-mutation CreateNewFlick(
-  $name: String!
-  $description: String
-  $scope: CreateFlickFlickScopeEnumEnum!
-  $seriesId: uuid
-  $configuration: json
-) {
-  CreateFlick(
-    name: $name
-    scope: $scope
-    description: $description
-    seriesId: $seriesId
-    configuration: $configuration
-  ) {
-    id
-  }
-}
-
-mutation UpdateSeriesFlick($flickIds: [uuid!]!, $seriesId: uuid!) {
-  UpdateSeriesFlicks(flickIds: $flickIds, seriesId: $seriesId) {
-    success
-  }
-}
-
-mutation InviteParticipantToFlick(
-  $email: String!
-  $flickId: String!
-  $role: InviteParticipantRoleEnum!
-) {
-  InviteParticipant(email: $email, flickId: $flickId, role: $role) {
-    id
-  }
-}
-
 query FlickActivity($flickId: uuid!) {
   FlickActivity(
     where: { flickId: { _eq: $flickId } }
@@ -205,6 +180,12 @@ mutation UpdateFlick(
     scope: $scope
     difficulty: $difficulty
   ) {
+    id
+  }
+}
+
+mutation UpdateFlickMarkdown($id: uuid!, $md: String!) {
+  update_Flick_by_pk(pk_columns: { id: $id }, _set: { md: $md }) {
     id
   }
 }
@@ -249,6 +230,48 @@ mutation UpdateParticipantRole(
     participantId: $participantId
     role: $role
   ) {
+    id
+  }
+}
+
+mutation GenMyMarkdown($flickId: String!) {
+  GenerateMarkdown(flickId: $flickId) {
+    customMd
+    rawMd
+    success
+  }
+}
+
+mutation CreateNewFlick(
+  $name: String!
+  $description: String
+  $scope: CreateFlickFlickScopeEnumEnum!
+  $seriesId: uuid
+  $configuration: json
+) {
+  CreateFlick(
+    name: $name
+    scope: $scope
+    description: $description
+    seriesId: $seriesId
+    configuration: $configuration
+  ) {
+    id
+  }
+}
+
+mutation UpdateSeriesFlick($flickIds: [uuid!]!, $seriesId: uuid!) {
+  UpdateSeriesFlicks(flickIds: $flickIds, seriesId: $seriesId) {
+    success
+  }
+}
+
+mutation InviteParticipantToFlick(
+  $email: String!
+  $flickId: String!
+  $role: InviteParticipantRoleEnum!
+) {
+  InviteParticipant(email: $email, flickId: $flickId, role: $role) {
     id
   }
 }
