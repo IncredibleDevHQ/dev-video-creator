@@ -185,7 +185,7 @@ const FlicksView = () => {
     )
 
   return (
-    <div>
+    <div className="overflow-scroll">
       <div className="w-full gap-4">
         {seriesData?.Flick_Series.length === 0 && (
           <div className="flex flex-col justify-center items-center">
