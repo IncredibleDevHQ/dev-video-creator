@@ -3,7 +3,7 @@
 /* eslint-disable no-nested-ternary */
 import { cx } from '@emotion/css'
 import React, { useEffect, useState } from 'react'
-import { FiMoreHorizontal } from 'react-icons/fi'
+import { FiEdit, FiMoreHorizontal } from 'react-icons/fi'
 import { IoTrashOutline } from 'react-icons/io5'
 import { useHistory } from 'react-router-dom'
 import { useRecoilValue } from 'recoil'
@@ -53,7 +53,7 @@ const VideoTile = ({
 
   return (
     <div
-      className="bg-gray-50 rounded-md h-44 border-2 border-gray-300 cursor-pointer relative"
+      className="bg-gray-50 rounded-md h-44 border-2 border-gray-300 cursor-pointer relative hover:border-green-500"
       onClick={() => {
         history.push(`/view/${flick.joinLink}`)
       }}
@@ -81,22 +81,31 @@ const VideoTile = ({
               isOpen={overflowMenuVisible}
               setIsOpen={setOverflowMenuVisible}
               content={
-                <div
-                  className={cx(
-                    'flex px-6 py-2 mt-2 bg-gray-50 rounded-md border border-gray-300 cursor-pointer',
-                    {
+                <div className="flex flex-col px-6 py-2 mt-2 bg-gray-50 rounded-md border border-gray-300 cursor-pointer">
+                  <div
+                    className={cx('flex', {
                       'cursor-not-allowed text-gray-400':
                         flick.owner?.userSub !== userdata.sub,
-                    }
-                  )}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    if (flick.owner?.userSub !== userdata.sub) return
-                    deleteFlickFunction()
-                  }}
-                >
-                  <IoTrashOutline size={21} className="text-gray-600 mr-4" />
-                  <Text className="font-medium">Delete</Text>
+                    })}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      if (flick.owner?.userSub !== userdata.sub) return
+                      deleteFlickFunction()
+                    }}
+                  >
+                    <IoTrashOutline size={21} className="text-gray-600 mr-4" />
+                    <Text className="font-medium">Delete</Text>
+                  </div>
+                  <div
+                    className="flex mt-4"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      history.push(`/flick/${flick.id}`)
+                    }}
+                  >
+                    <FiEdit size={21} className="text-gray-600 mr-4" />
+                    <Text className="font-medium">Edit in studio</Text>
+                  </div>
                 </div>
               }
               placement="bottom-start"
