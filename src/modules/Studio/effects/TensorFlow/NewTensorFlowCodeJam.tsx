@@ -1,31 +1,32 @@
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
-import { Circle, Group, Image, Rect } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
 import config from '../../../../config'
-import {
-  Fragment_Status_Enum_Enum,
-  useGetTokenisedCodeLazyQuery,
-} from '../../../../generated/graphql'
+import { useGetTokenisedCodeLazyQuery } from '../../../../generated/graphql'
 import { User, userState } from '../../../../stores/user.store'
 import { Concourse } from '../../components'
-import { CONFIG, TitleSplashProps } from '../../components/Concourse'
+import { TitleSplashProps } from '../../components/Concourse'
 import LowerThirds, { FragmentCard } from '../../components/LowerThirds'
 import {
   controls,
   FragmentState,
-  getRenderedTokens,
-  getTokens,
-  RenderMultipleLineFocus,
+  shortsCodeConfig,
 } from '../../components/RenderTokens'
+import { usePoint } from '../../hooks'
 import useCode from '../../hooks/use-code'
+import useEdit from '../../hooks/use-edit'
 import { StudioProviderProps, studioStore } from '../../stores'
 import {
   MutipleRectMoveLeft,
   MutipleRectMoveRight,
 } from '../FragmentTransitions'
-import { studioCoordinates } from './TensorFlowConfig'
+import {
+  shortsStudioCoordinates,
+  studioCoordinates,
+  TensorflowCodexLayerChildren,
+  TensorflowShortsCodexLayerChildren,
+} from './TensorFlowConfig'
 
 export const codeConfig = {
   fontSize: 14,
@@ -53,6 +54,9 @@ const NewTensorFlowCodeJam = () => {
   const [titleSpalshData, settitleSpalshData] = useState<TitleSplashProps>({
     enable: false,
   })
+
+  const { getImageDimensions } = useEdit()
+  const { getNoOfLinesOfText } = usePoint()
 
   const { initUseCode, computedTokens } = useCode()
   const [getTokenisedCode, { data }] = useGetTokenisedCodeLazyQuery()
@@ -84,6 +88,8 @@ const NewTensorFlowCodeJam = () => {
 
   const { displayName } = (useRecoilValue(userState) as User) || {}
 
+  const [isShorts, setIsShorts] = useState<boolean>(false)
+
   const [fragmentImages, setFragmentImages] = useState<string[]>([])
   const [fragmentImage] = useImage(fragmentImages?.[0] || '', 'anonymous')
   const [fragmentImageDim, setFragmentImageDim] = useState<{
@@ -95,6 +101,13 @@ const NewTensorFlowCodeJam = () => {
 
   useEffect(() => {
     if (!fragment?.configuration.properties) return
+
+    setFragmentImages(
+      fragment.configuration.properties.find(
+        (property: any) => property.type === 'file[]'
+      )?.value
+    )
+
     const code = fragment.configuration.properties.find(
       (property: any) => property.key === 'code'
     )?.value?.code
@@ -142,14 +155,23 @@ const NewTensorFlowCodeJam = () => {
 
   useEffect(() => {
     if (!data?.TokenisedCode) return
-    initUseCode({
-      tokens: data.TokenisedCode.data,
-      canvasWidth: 585,
-      canvasHeight: 380,
-      gutter: 5,
-      fontSize: codeConfig.fontSize,
-    })
-  }, [data])
+    if (!isShorts)
+      initUseCode({
+        tokens: data.TokenisedCode.data,
+        canvasWidth: 585,
+        canvasHeight: 380,
+        gutter: 5,
+        fontSize: codeConfig.fontSize,
+      })
+    else
+      initUseCode({
+        tokens: data.TokenisedCode.data,
+        canvasWidth: 300,
+        canvasHeight: 550,
+        gutter: 5,
+        fontSize: shortsCodeConfig.fontSize,
+      })
+  }, [data, isShorts])
 
   useEffect(() => {
     setPosition({
@@ -172,6 +194,39 @@ const NewTensorFlowCodeJam = () => {
       }
     }
   }, [payload])
+
+  useEffect(() => {
+    setFragmentImageDim(
+      getImageDimensions(
+        {
+          w: (fragmentImage && fragmentImage.width) || 0,
+          h: (fragmentImage && fragmentImage.height) || 0,
+        },
+        380,
+        230,
+        400,
+        getNoOfLinesOfText({
+          text: fragment?.name || '',
+          availableWidth: 350,
+          fontSize: 36,
+          fontFamily: 'Roboto',
+          stageWidth: 400,
+        }) === 1
+          ? 285
+          : 230,
+        0,
+        getNoOfLinesOfText({
+          text: fragment?.name || '',
+          availableWidth: 350,
+          fontSize: 36,
+          fontFamily: 'Roboto',
+          stageWidth: 400,
+        }) === 1
+          ? 60
+          : 110
+      )
+    )
+  }, [fragmentImage])
 
   useEffect(() => {
     if (state === 'ready') {
@@ -199,15 +254,16 @@ const NewTensorFlowCodeJam = () => {
         activeBlockIndex: 0,
       })
       setTopLayerChildren([])
+      if (!displayName) return
+      if (!fragment) return
       if (
         fragment?.participants.length === 1 &&
         !fragment?.configuration.properties.find(
           (property: any) => property.key === 'showTitleSplash'
-        )?.value
+        )?.value &&
+        !isShorts
       ) {
         setTimeout(() => {
-          if (!displayName) return
-          if (!fragment) return
           setTopLayerChildren([
             <LowerThirds
               x={lowerThirdCoordinates.x[0] || 0}
@@ -232,10 +288,8 @@ const NewTensorFlowCodeJam = () => {
             />,
           ])
         }, 5000)
-      } else {
+      } else if (!isShorts) {
         setTimeout(() => {
-          if (!displayName) return
-          if (!fragment) return
           setTopLayerChildren([
             <LowerThirds
               x={lowerThirdCoordinates.x[0] || 0}
@@ -257,6 +311,19 @@ const NewTensorFlowCodeJam = () => {
             )),
           ])
         }, 5000)
+      } else {
+        setTimeout(() => {
+          setTopLayerChildren([
+            <LowerThirds
+              x={lowerThirdCoordinates.x[0] || 0}
+              y={570}
+              userName={displayName}
+              rectOneColors={['#E6E6E6', '#FFFFFF']}
+              rectTwoColors={['#425066', '#425066']}
+              rectThreeColors={['#FF6F00', '#FFA100']}
+            />,
+          ])
+        }, 5000)
       }
     }
   }, [state])
@@ -267,9 +334,10 @@ const NewTensorFlowCodeJam = () => {
     if (fragmentState === 'onlyFragment') {
       setTopLayerChildren([
         <MutipleRectMoveRight
-          rectOneColors={['#651CC8', '#9561DA']}
-          rectTwoColors={['#FF5D01', '#B94301']}
-          rectThreeColors={['#1F2937', '#778496']}
+          rectOneColors={['#FF6F00', '#FFA100']}
+          rectTwoColors={['#425066', '#425066']}
+          rectThreeColors={['#E6E6E6', '#FFFFFF']}
+          isShorts={isShorts}
         />,
       ])
       onlyFragmentGroupRef.current.to({
@@ -281,9 +349,10 @@ const NewTensorFlowCodeJam = () => {
     if (fragmentState === 'onlyUserMedia') {
       setTopLayerChildren([
         <MutipleRectMoveLeft
-          rectOneColors={['#651CC8', '#9561DA']}
-          rectTwoColors={['#FF5D01', '#B94301']}
-          rectThreeColors={['#1F2937', '#778496']}
+          rectOneColors={['#FF6F00', '#FFA100']}
+          rectTwoColors={['#425066', '#425066']}
+          rectThreeColors={['#E6E6E6', '#FFFFFF']}
+          isShorts={isShorts}
         />,
       ])
       onlyFragmentGroupRef.current.to({
@@ -312,14 +381,16 @@ const NewTensorFlowCodeJam = () => {
   }, [fragmentState])
 
   const lowerThirdCoordinates = (() => {
-    switch (fragment?.participants.length) {
-      case 2:
-        return { x: [70, 530], y: [400, 400] }
-      case 3:
-        return { x: [45, 355, 665], y: [400, 400, 400] }
-      default:
-        return { x: [20], y: [460] }
-    }
+    if (!isShorts)
+      switch (fragment?.participants.length) {
+        case 2:
+          return { x: [70, 530], y: [400, 400] }
+        case 3:
+          return { x: [45, 355, 665], y: [400, 400, 400] }
+        default:
+          return { x: [20], y: [460] }
+      }
+    else return { x: [30], y: [570] }
   })()
 
   const [incredibleLogo] = useImage(
@@ -335,196 +406,30 @@ const NewTensorFlowCodeJam = () => {
     'anonymous'
   )
 
-  const layerChildren = [
-    <Group x={0} y={0}>
-      <Rect
-        strokeWidth={1}
-        x={0}
-        y={0}
-        fill="#F5F6F7"
-        width={CONFIG.width}
-        height={CONFIG.height}
-        stroke="#111111"
-      />
-      <Image
-        image={tensorflowBg}
-        x={1}
-        y={1}
-        fill="#F5F6F7"
-        width={CONFIG.width - 2}
-        height={CONFIG.height - 2}
-      />
-      <Image image={incredibleLogo} x={25} y={CONFIG.height - 60} />
-      <Image image={tensorflowLogo} x={820} y={CONFIG.height - 50} />
-    </Group>,
-    <Group x={0} y={0} opacity={0} ref={bothGroupRef}>
-      <Rect
-        x={27}
-        y={48}
-        width={704}
-        height={396}
-        fillLinearGradientStartPoint={{
-          x: -CONFIG.width / 2,
-          y: -CONFIG.height / 2,
-        }}
-        fillLinearGradientEndPoint={{
-          x: CONFIG.width / 2,
-          y: CONFIG.height / 2,
-        }}
-        fillLinearGradientColorStops={[0.5, '#FF6E00 ', 1, '#FF9000']}
-        cornerRadius={8}
-      />
-      <Rect
-        x={37}
-        y={58}
-        width={704}
-        height={396}
-        fill="#202026"
-        cornerRadius={8}
-      />
-      <Group x={52} y={73} key="circleGroup">
-        <Circle key="redCircle" x={0} y={0} fill="#FF605C" radius={5} />
-        <Circle key="yellowCircle" x={14} y={0} fill="#FFBD44" radius={5} />
-        <Circle key="greenCircle" x={28} y={0} fill="#00CA4E" radius={5} />
-      </Group>
-      {payload?.status === Fragment_Status_Enum_Enum.Live && (
-        <Group x={57} y={88} key="group">
-          {getRenderedTokens(computedTokens.current, position)}
-        </Group>
-      )}
-    </Group>,
-    <Group x={0} y={0} opacity={0} ref={onlyFragmentGroupRef}>
-      <Rect
-        x={70}
-        y={20}
-        width={800}
-        height={440}
-        fillLinearGradientStartPoint={{
-          x: -CONFIG.width / 2,
-          y: -CONFIG.height / 2,
-        }}
-        fillLinearGradientEndPoint={{
-          x: CONFIG.width / 2,
-          y: CONFIG.height / 2,
-        }}
-        fillLinearGradientColorStops={[0.5, '#FF6E00 ', 1, '#FF9000']}
-        cornerRadius={8}
-      />
-      <Rect
-        x={80}
-        y={30}
-        width={800}
-        height={440}
-        fill="#202026"
-        cornerRadius={8}
-      />
-      <Group x={100} y={45} key="circleGroup">
-        <Circle key="redCircle" x={0} y={0} fill="#FF605C" radius={5} />
-        <Circle key="yellowCircle" x={14} y={0} fill="#FFBD44" radius={5} />
-        <Circle key="greenCircle" x={28} y={0} fill="#00CA4E" radius={5} />
-      </Group>
-      {payload?.status === Fragment_Status_Enum_Enum.Live && (
-        <Group x={105} y={60} key="codeGroup">
-          {getTokens(
-            computedTokens.current,
-            computedTokens.current[
-              computedTokens.current.find(
-                (token) =>
-                  token.lineNumber ===
-                    (blockConfig &&
-                      blockConfig[activeBlockIndex] &&
-                      blockConfig[activeBlockIndex].from - 1) || 0
-              )?.startFromIndex || 0
-            ]?.lineNumber
-          )}
-          {highlightBlockCode && (
-            <Rect
-              x={-5}
-              y={
-                (computedTokens.current.find(
-                  (token) =>
-                    token.lineNumber ===
-                    (blockConfig &&
-                      blockConfig[activeBlockIndex] &&
-                      blockConfig[activeBlockIndex].from - 1)
-                )?.y || 0) - 5
-              }
-              width={585}
-              height={
-                (computedTokens.current.find(
-                  (token) =>
-                    token.lineNumber ===
-                    (blockConfig &&
-                      blockConfig[activeBlockIndex] &&
-                      blockConfig[activeBlockIndex].to - 1)
-                )?.y || 0) -
-                  (computedTokens.current.find(
-                    (token) =>
-                      token.lineNumber ===
-                      (blockConfig &&
-                        blockConfig[activeBlockIndex] &&
-                        blockConfig[activeBlockIndex].from - 1)
-                  )?.y || 0) +
-                  codeConfig.fontSize +
-                  5 >
-                0
-                  ? (computedTokens.current.find(
-                      (token) =>
-                        token.lineNumber ===
-                        (blockConfig &&
-                          blockConfig[activeBlockIndex] &&
-                          blockConfig[activeBlockIndex].to - 1)
-                    )?.y || 0) -
-                    (computedTokens.current.find(
-                      (token) =>
-                        token.lineNumber ===
-                        (blockConfig &&
-                          blockConfig[activeBlockIndex] &&
-                          blockConfig[activeBlockIndex].from - 1)
-                    )?.y || 0) +
-                    codeConfig.fontSize +
-                    10
-                  : 0
-              }
-              fill="#0066B8"
-              opacity={0.3}
-              cornerRadius={8}
-            />
-          )}
-        </Group>
-      )}
-      {focusBlockCode && (
-        <RenderMultipleLineFocus
-          tokens={computedTokens.current}
-          startLineNumber={
-            blockConfig &&
-            blockConfig[activeBlockIndex] &&
-            blockConfig[activeBlockIndex].from - 1
-          }
-          endLineNumber={
-            blockConfig &&
-            blockConfig[activeBlockIndex] &&
-            blockConfig[activeBlockIndex].to - 1
-          }
-          explanation={
-            (blockConfig &&
-              blockConfig[activeBlockIndex] &&
-              blockConfig[activeBlockIndex].explanation) ||
-            ''
-          }
-          groupCoordinates={{ x: 90, y: 60 }}
-          bgRectInfo={{
-            x: 80,
-            y: 30,
-            width: 800,
-            height: 440,
-            radius: 8,
-          }}
-          opacity={1}
-        />
-      )}
-    </Group>,
-  ]
+  const layerChildren = !isShorts
+    ? TensorflowCodexLayerChildren({
+        bothGroupRef,
+        onlyFragmentGroupRef,
+        computedTokens: computedTokens.current,
+        position,
+        focusBlockCode,
+        highlightBlockCode,
+        blockConfig,
+        activeBlockIndex,
+        payload,
+      })
+    : TensorflowShortsCodexLayerChildren({
+        bothGroupRef,
+        onlyFragmentGroupRef,
+        computedTokens: computedTokens.current,
+        position,
+        focusBlockCode,
+        highlightBlockCode,
+        blockConfig,
+        activeBlockIndex,
+        payload,
+      })
+
   return (
     <Concourse
       layerChildren={layerChildren}
@@ -535,11 +440,18 @@ const NewTensorFlowCodeJam = () => {
         fragmentState,
         setFragmentState,
         isBlockRender,
-        blockConfig.length
+        blockConfig.length,
+        isShorts,
+        setIsShorts
       )}
       titleSpalshData={titleSpalshData}
-      studioUserConfig={studioCoordinates(fragment, fragmentState)}
+      studioUserConfig={
+        !isShorts
+          ? studioCoordinates(fragment, fragmentState)
+          : shortsStudioCoordinates(fragment, fragmentState)
+      }
       topLayerChildren={topLayerChildren}
+      isShorts={isShorts}
     />
   )
 }
