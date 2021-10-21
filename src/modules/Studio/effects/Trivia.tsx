@@ -213,12 +213,10 @@ const Trivia = () => {
           {isGif && (
             <Gif
               src={gifUrl}
-              maxWidth={472}
-              maxHeight={318}
-              availableWidth={472}
-              availableHeight={318}
-              x={0}
-              y={74}
+              x={imgDim.x}
+              y={imgDim.y}
+              width={imgDim.width}
+              height={imgDim.height}
             />
           )}
         </>

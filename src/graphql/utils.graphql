@@ -64,3 +64,9 @@ mutation GetSuggestedText($text: String!) {
     suggestion
   }
 }
+
+mutation GetCodeExplanation($code: String!) {
+  ExplainCode(code: $code) {
+    description
+  }
+}

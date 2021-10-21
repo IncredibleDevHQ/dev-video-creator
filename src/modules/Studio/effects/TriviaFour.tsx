@@ -295,12 +295,10 @@ const TriviaFour = () => {
           {isGif && (
             <Gif
               src={gifUrl}
-              maxWidth={610}
-              maxHeight={250}
-              availableWidth={640}
-              availableHeight={280}
-              x={37}
-              y={90}
+              x={imgDim.x}
+              y={imgDim.y}
+              width={imgDim.width}
+              height={imgDim.height}
             />
           )}
         </>

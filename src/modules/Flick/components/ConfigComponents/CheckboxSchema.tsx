@@ -27,7 +27,7 @@ const CheckboxSchema = ({
         handleOnDatachange(schema?.value, !value)
         if (setFieldValue) setFieldValue(schema.key, !value)
       }}
-      className="flex flex-wrap lg:align-middle gap-3 text-lg text-black ml-4 lg:capitalize p-4"
+      className="flex-wrap text-lg px-4 py-2"
     />
   )
 }

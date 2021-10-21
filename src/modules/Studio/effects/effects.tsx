@@ -2,22 +2,22 @@ import React from 'react'
 import { Rect, Text } from 'react-konva'
 import { Fragment_Type_Enum_Enum } from '../../../generated/graphql'
 import { CONFIG } from '../components/Concourse'
-import CodeJamNine from './CodeJamTemplates/CodeJamNine'
+import AstroCodeJam from './Astro/AstroCodeJam'
+import AstroVideoJam from './Astro/AstroVideoJam'
+import NewAstroCodeJam from './Astro/NewAstroCodeJam'
 import CodeJam from './CodeJamTemplates/CodeJam'
 import CodeJamEight from './CodeJamTemplates/CodeJamEight'
 import CodeJamEleven from './CodeJamTemplates/CodeJamEleven'
 import CodeJamFive from './CodeJamTemplates/CodeJamFive'
-import CodeJamFour from './CodeJamTemplates/CodeJamFour'
+import CodeJamNine from './CodeJamTemplates/CodeJamNine'
 import CodeJamSeven from './CodeJamTemplates/CodeJamSeven'
-import CodeJamSix from './CodeJamTemplates/CodeJamSix'
-import CodeJamThree from './CodeJamTemplates/CodeJamThree'
-import CodeJamTwo from './CodeJamTemplates/CodeJamTwo'
-import NewCodeJamFour from './CodeJamTemplates/NewCodeJamFour'
 import CodeJamTen from './CodeJamTemplates/CodeJamTen'
+import CodeJamThree from './CodeJamTemplates/CodeJamThree'
 import CodeJamTwelve from './CodeJamTemplates/CodeJamTwelve'
 import CustomSplash from './CustomSplash'
-import NewCodeJamSix from './CodeJamTemplates/NewCodeJamSix'
-import NewCodeJamTwo from './CodeJamTemplates/NewCodeJamTwo'
+import GraphQLCodeJam from './GraphQL/GraphQLCodeJam'
+import GraphQLVideoJam from './GraphQL/GraphQLVideoJam'
+import NewGraphQLCodeJam from './GraphQL/NewGraphQLCodeJam'
 import Outro from './Outro'
 import Points from './Points'
 import PointsEight from './PointsEight'
@@ -38,6 +38,7 @@ import SlidesTen from './SlidesTen'
 import SlidesThree from './SlidesThree'
 import SlidesTwelve from './SlidesTwelve'
 import SlidesTwo from './SlidesTwo'
+import Solo from './Solo'
 import SplashEight from './SplashEight'
 import SplashEighteen from './SplashEighteen'
 import SplashEleven from './SplashEleven'
@@ -57,6 +58,9 @@ import SplashThree from './SplashThree'
 import SplashTwelve from './SplashTwelve'
 import SplashTwenty from './SplashTwenty'
 import SplashTwentyOne from './SplashTwentyOne'
+import NewTensorFlowCodeJam from './TensorFlow/NewTensorFlowCodeJam'
+import TensorFlowCodeJam from './TensorFlow/TensorFlowCodeJam'
+import TensorFlowVideoJam from './TensorFlow/TensorFlowVideoJam'
 import Trivia from './Trivia'
 import TriviaEight from './TriviaEight'
 import TriviaEleven from './TriviaEleven'
@@ -70,21 +74,14 @@ import TriviaThree from './TriviaThree'
 import TriviaTwelve from './TriviaTwelve'
 import TriviaTwo from './TriviaTwo'
 import VideoJam from './VideoJamTemplates/VideoJam'
-import VideoJamEight from './VideoJamTemplates/VideoJamEight'
 import VideoJamEleven from './VideoJamTemplates/VideoJamEleven'
 import VideoJamFive from './VideoJamTemplates/VideoJamFive'
-import VideoJamFour from './VideoJamTemplates/VideoJamFour'
 import VideoJamNine from './VideoJamTemplates/VideoJamNine'
 import VideoJamSeven from './VideoJamTemplates/VideoJamSeven'
-import VideoJamSix from './VideoJamTemplates/VideoJamSix'
 import VideoJamTen from './VideoJamTemplates/VideoJamTen'
 import VideoJamThree from './VideoJamTemplates/VideoJamThree'
 import VideoJamTwelve from './VideoJamTemplates/VideoJamTwelve'
 import VideoJamTwo from './VideoJamTemplates/VideoJamTwo'
-import StoryBook from './StoryBook'
-import NewVideoJamTwo from './VideoJamTemplates/NewVideoJamTwo'
-import NewVideoJamFour from './VideoJamTemplates/NewVideoJamFour'
-import NewVideoJamSix from './VideoJamTemplates/NewVideoJamSix'
 
 const themeEnum = 'theme'
 export interface Effect {
@@ -139,11 +136,11 @@ const getSplash = (theme: any) => {
 }
 
 const getVideoTheme = (theme: any) => {
-  if (theme.value === '1') return NewVideoJamTwo
+  if (theme.value === '1') return GraphQLVideoJam
   if (theme.value === '2') return VideoJamFive
-  if (theme.value === '3') return NewVideoJamFour
+  if (theme.value === '3') return AstroVideoJam
   if (theme.value === '4') return VideoJamSeven
-  if (theme.value === '5') return NewVideoJamSix
+  if (theme.value === '5') return TensorFlowVideoJam
   if (theme.value === '6') return VideoJamNine
   if (theme.value === '7') return VideoJamTwo
   if (theme.value === '8') return VideoJamThree
@@ -154,11 +151,11 @@ const getVideoTheme = (theme: any) => {
 }
 
 const getCodeJamTheme = (theme: any) => {
-  if (theme.value === '1') return NewCodeJamTwo
+  if (theme.value === '1') return GraphQLCodeJam
   if (theme.value === '2') return CodeJamThree
-  if (theme.value === '3') return NewCodeJamFour
+  if (theme.value === '3') return AstroCodeJam
   if (theme.value === '4') return CodeJamFive
-  if (theme.value === '5') return NewCodeJamSix
+  if (theme.value === '5') return TensorFlowCodeJam
   if (theme.value === '6') return CodeJamSeven
   if (theme.value === '7') return CodeJamEight
   if (theme.value === '8') return CodeJamNine
@@ -166,6 +163,13 @@ const getCodeJamTheme = (theme: any) => {
   if (theme.value === '10') return CodeJamEleven
   if (theme.value === '11') return CodeJamTwelve
   return CodeJam
+}
+
+const getAutomatedCodeJamTheme = (theme: any) => {
+  if (theme.value === '1') return NewGraphQLCodeJam
+  if (theme.value === '3') return NewAstroCodeJam
+  if (theme.value === '5') return NewTensorFlowCodeJam
+  return NewAstroCodeJam
 }
 
 const getTriviaTheme = (theme: any) => {
@@ -254,14 +258,19 @@ export const getEffect = (
   switch (type) {
     case Fragment_Type_Enum_Enum.Splash:
       return getSplash(theme)
-    case Fragment_Type_Enum_Enum.CodeJam:
+    case Fragment_Type_Enum_Enum.CodeJam: {
+      const isAutomated = config.properties.find(
+        (property: any) => property.key === 'code'
+      )?.value?.isAutomated
+      if (isAutomated) return getAutomatedCodeJamTheme(theme)
       return getCodeJamTheme(theme)
+    }
     case Fragment_Type_Enum_Enum.Videoshow:
       return getVideoTheme(theme)
     case Fragment_Type_Enum_Enum.Trivia:
       return getTriviaTheme(theme)
     case Fragment_Type_Enum_Enum.Solo:
-      return StoryBook
+      return Solo
     case Fragment_Type_Enum_Enum.Slides:
       return getSlideTheme(theme)
     case Fragment_Type_Enum_Enum.Points:

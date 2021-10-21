@@ -135,12 +135,11 @@ const App = () => {
                   component={UserSeriesFlicks}
                 />
                 <PrivateRoute exact path="/circle" component={Circle} />
-                <Route exact path="/view/:joinLink">
-                  <PublicVideo />
-                </Route>
-                <Route exact path="/series/:id">
-                  <SingleSeries />
-                </Route>
+                <PrivateRoute
+                  exact
+                  path="/series/:id"
+                  component={SingleSeries}
+                />
                 <PrivateRoute
                   exact
                   path="/integrations/github/callback"
@@ -151,6 +150,9 @@ const App = () => {
                   path="/integrations"
                   component={Integrations}
                 />
+                <Route exact path="/view/:joinLink">
+                  <PublicVideo />
+                </Route>
                 <Route exact path="/login">
                   <AuthenticateScreen />
                 </Route>
