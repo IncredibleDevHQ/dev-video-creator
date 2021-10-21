@@ -133,11 +133,13 @@ const App = () => {
                   component={UserSeriesFlicks}
                 />
                 <PrivateRoute exact path="/circle" component={Circle} />
+                <PrivateRoute
+                  exact
+                  path="/series/:id"
+                  component={SingleSeries}
+                />
                 <Route exact path="/view/:joinLink">
                   <PublicVideo />
-                </Route>
-                <Route exact path="/series/:id">
-                  <SingleSeries />
                 </Route>
                 <Route exact path="/login">
                   <AuthenticateScreen />

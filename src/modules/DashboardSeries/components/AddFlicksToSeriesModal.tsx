@@ -56,8 +56,6 @@ const AddFlicksToSeriesModal = ({
       />
     )
 
-  if (loading) return <ScreenState title="Just a jiffy..." loading />
-
   return (
     <Modal
       classNames={{
