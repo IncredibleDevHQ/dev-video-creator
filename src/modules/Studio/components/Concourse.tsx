@@ -50,11 +50,17 @@ interface ConcourseProps {
   studioUserConfig?: StudioUserConfig[]
   disableUserMedia?: boolean
   topLayerChildren?: any[]
+  isShorts?: boolean
 }
 
 export const CONFIG = {
   width: 960,
   height: 540,
+}
+
+export const SHORTS_CONFIG = {
+  width: 396,
+  height: 704,
 }
 
 const Concourse = ({
@@ -64,6 +70,7 @@ const Concourse = ({
   studioUserConfig,
   disableUserMedia,
   topLayerChildren,
+  isShorts,
 }: ConcourseProps) => {
   const {
     state,
@@ -84,6 +91,16 @@ const Concourse = ({
   const layerRef = createRef<Konva.Layer>()
   const groupRef = createRef<Konva.Group>()
   const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
+
+  const [stageConfig, setStageConfig] = useState<{
+    width: number
+    height: number
+  }>({ width: 0, height: 0 })
+
+  useEffect(() => {
+    if (!isShorts) setStageConfig(CONFIG)
+    else setStageConfig(SHORTS_CONFIG)
+  }, [isShorts])
 
   const defaultStudioUserConfig: StudioUserConfig = {
     x: 780,
@@ -173,8 +190,8 @@ const Concourse = ({
           y={0}
           name="titleSplash"
           draggable
-          width={CONFIG.width}
-          height={CONFIG.height}
+          width={stageConfig.width}
+          height={stageConfig.height}
           ref={(ref) =>
             ref?.to({
               duration: 3,
@@ -199,11 +216,11 @@ const Concourse = ({
             ]}
             fillLinearGradientStartPoint={{ x: 0, y: 0 }}
             fillLinearGradientEndPoint={{
-              x: CONFIG.width,
-              y: CONFIG.height,
+              x: stageConfig.width,
+              y: stageConfig.height,
             }}
-            width={CONFIG.width}
-            height={CONFIG.height}
+            width={stageConfig.width}
+            height={stageConfig.height}
           />
           <Rect
             fillLinearGradientColorStops={[
@@ -218,20 +235,27 @@ const Concourse = ({
                 titleSpalshData?.stripRectColor[1]) ||
                 '#16A34A',
             ]}
-            fillLinearGradientStartPoint={{ x: 0, y: CONFIG.height / 2 - 120 }}
-            fillLinearGradientEndPoint={{
-              x: CONFIG.width,
-              y: CONFIG.height / 2 + 120,
+            fillLinearGradientStartPoint={{
+              x: 0,
+              y: stageConfig.height / 2 - 120,
             }}
-            y={CONFIG.height / 2 - 120}
-            width={CONFIG.width}
-            height={240}
+            fillLinearGradientEndPoint={{
+              x: stageConfig.width,
+              y: stageConfig.height / 2 + 120,
+            }}
+            y={
+              !isShorts
+                ? stageConfig.height / 2 - 120
+                : stageConfig.height / 2 - 90
+            }
+            width={stageConfig.width}
+            height={!isShorts ? 240 : 180}
           />
           <Text
             x={0}
-            y={540 / 2 - 30}
-            width={960}
-            // height={80}
+            y={stageConfig.height / 2 - 30}
+            width={stageConfig.width}
+            height={80}
             text={titleSpalshData && titleSpalshData.title}
             fillLinearGradientColorStops={[
               0,
@@ -245,10 +269,13 @@ const Concourse = ({
                 titleSpalshData?.textColor[1]) ||
                 '#ffffff',
             ]}
-            fillLinearGradientStartPoint={{ x: 0, y: CONFIG.height / 2 - 120 }}
+            fillLinearGradientStartPoint={{
+              x: 0,
+              y: stageConfig.height / 2 - 120,
+            }}
             fillLinearGradientEndPoint={{
-              x: CONFIG.width,
-              y: CONFIG.height / 2 + 120,
+              x: stageConfig.width,
+              y: stageConfig.height / 2 + 120,
             }}
             // fill={(titleSpalshData && titleSpalshData?.textColor) || '#ffffff'}
             textTransform="capitalize"
@@ -284,8 +311,8 @@ const Concourse = ({
         {state === 'ready' || state === 'recording' || state === 'countDown' ? (
           <Stage
             ref={stageRef}
-            height={CONFIG.height}
-            width={CONFIG.width}
+            height={stageConfig.height}
+            width={stageConfig.width}
             className={cx({
               'cursor-zoom-in': canvas?.zoomed && !isZooming,
               'cursor-zoom-out': canvas?.zoomed && isZooming,
@@ -296,8 +323,8 @@ const Concourse = ({
                 <Rect
                   x={0}
                   y={0}
-                  width={CONFIG.width}
-                  height={CONFIG.height}
+                  width={stageConfig.width}
+                  height={stageConfig.height}
                   fill="#202026"
                   cornerRadius={8}
                 />
@@ -310,8 +337,8 @@ const Concourse = ({
                         <Rect
                           x={0}
                           y={0}
-                          width={CONFIG.width}
-                          height={CONFIG.height}
+                          width={stageConfig.width}
+                          height={stageConfig.height}
                           fill="#202026"
                           cornerRadius={8}
                         />
@@ -320,10 +347,14 @@ const Concourse = ({
                     if (payload?.status === Fragment_Status_Enum_Enum.Live) {
                       layerRef.current?.destroyChildren()
                       if (titleSpalshData?.enable && isTitleSplash) {
-                        return (
+                        return !isShorts ? (
                           <>
                             <TitleSplash />
                             <CircleCenterShrink color="#000000" />
+                          </>
+                        ) : (
+                          <>
+                            <TitleSplash />
                           </>
                         )
                       }
@@ -381,7 +412,7 @@ const Concourse = ({
         ) : (
           // eslint-disable-next-line jsx-a11y/media-has-caption
           <video
-            className="w-8/12 rounded-md"
+            className={!isShorts ? 'w-8/12 rounded-md' : 'w-1/4 rounded-md'}
             controls
             ref={async (ref) => {
               if (!ref || !getBlobs) return
