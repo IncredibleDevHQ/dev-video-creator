@@ -61,6 +61,12 @@ const useCode = () => {
     fontFamily?: string
   }) => {
     const layer = new Konva.Layer({ width: canvasWidth })
+    computedTokens.current = []
+    computedLineNumber.current = 0
+    lineNumber.current = 0
+    currentWidth.current = 0
+    startFromIndex = 0
+
     tokens.forEach((token, index) => {
       if (lineNumber.current !== token.lineNumber) {
         computedLineNumber.current += token.lineNumber - lineNumber.current
