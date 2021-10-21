@@ -1,23 +1,16 @@
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
-import { Circle, Group, Image, Rect } from 'react-konva'
 import { useRecoilValue } from 'recoil'
-import useImage from 'use-image'
-import config from '../../../../config'
-import {
-  Fragment_Status_Enum_Enum,
-  useGetTokenisedCodeLazyQuery,
-} from '../../../../generated/graphql'
+import { useGetTokenisedCodeLazyQuery } from '../../../../generated/graphql'
 import { User, userState } from '../../../../stores/user.store'
 import { Concourse } from '../../components'
-import { CONFIG, TitleSplashProps } from '../../components/Concourse'
+import { TitleSplashProps } from '../../components/Concourse'
 import LowerThirds from '../../components/LowerThirds'
 import {
+  codeConfig,
   controls,
   FragmentState,
-  getRenderedTokens,
-  getTokens,
-  RenderMultipleLineFocus,
+  shortsCodeConfig,
 } from '../../components/RenderTokens'
 import useCode from '../../hooks/use-code'
 import { StudioProviderProps, studioStore } from '../../stores'
@@ -25,13 +18,12 @@ import {
   MutipleRectMoveLeft,
   MutipleRectMoveRight,
 } from '../FragmentTransitions'
-import { studioCoordinates } from './AstroConfig'
-
-export const codeConfig = {
-  fontSize: 14,
-  width: 960,
-  height: 540,
-}
+import {
+  astroCodexLayerChildren,
+  astroShortsCodexLayerChildren,
+  shortsStudioCoordinates,
+  studioCoordinates,
+} from './AstroConfig'
 
 interface Position {
   prevIndex: number
@@ -84,6 +76,8 @@ const NewAstroCodeJam = () => {
 
   const { displayName } = (useRecoilValue(userState) as User) || {}
 
+  const [isShorts, setIsShorts] = useState<boolean>(false)
+
   useEffect(() => {
     if (!fragment?.configuration.properties) return
     const code = fragment.configuration.properties.find(
@@ -133,14 +127,23 @@ const NewAstroCodeJam = () => {
 
   useEffect(() => {
     if (!data?.TokenisedCode) return
-    initUseCode({
-      tokens: data.TokenisedCode.data,
-      canvasWidth: 585,
-      canvasHeight: 380,
-      gutter: 5,
-      fontSize: codeConfig.fontSize,
-    })
-  }, [data])
+    if (!isShorts)
+      initUseCode({
+        tokens: data.TokenisedCode.data,
+        canvasWidth: 585,
+        canvasHeight: 380,
+        gutter: 5,
+        fontSize: codeConfig.fontSize,
+      })
+    else
+      initUseCode({
+        tokens: data.TokenisedCode.data,
+        canvasWidth: 300,
+        canvasHeight: 550,
+        gutter: 5,
+        fontSize: shortsCodeConfig.fontSize,
+      })
+  }, [data, isShorts])
 
   useEffect(() => {
     setPosition({
@@ -193,26 +196,38 @@ const NewAstroCodeJam = () => {
       setTimeout(() => {
         if (!displayName) return
         if (!fragment) return
-        setTopLayerChildren([
-          <LowerThirds
-            x={lowerThirdCoordinates[0] || 0}
-            y={400}
-            userName={displayName}
-            rectOneColors={['#651CC8', '#9561DA']}
-            rectTwoColors={['#FF5D01', '#B94301']}
-            rectThreeColors={['#1F2937', '#778496']}
-          />,
-          ...users.map((user, index) => (
+        if (!isShorts)
+          setTopLayerChildren([
             <LowerThirds
-              x={lowerThirdCoordinates[index + 1] || 0}
+              x={lowerThirdCoordinates[0] || 0}
               y={400}
-              userName={participants?.[user.uid]?.displayName || ''}
+              userName={displayName}
               rectOneColors={['#651CC8', '#9561DA']}
               rectTwoColors={['#FF5D01', '#B94301']}
               rectThreeColors={['#1F2937', '#778496']}
-            />
-          )),
-        ])
+            />,
+            ...users.map((user, index) => (
+              <LowerThirds
+                x={lowerThirdCoordinates[index + 1] || 0}
+                y={400}
+                userName={participants?.[user.uid]?.displayName || ''}
+                rectOneColors={['#651CC8', '#9561DA']}
+                rectTwoColors={['#FF5D01', '#B94301']}
+                rectThreeColors={['#1F2937', '#778496']}
+              />
+            )),
+          ])
+        else
+          setTopLayerChildren([
+            <LowerThirds
+              x={lowerThirdCoordinates[0] || 0}
+              y={570}
+              userName={displayName}
+              rectOneColors={['#651CC8', '#9561DA']}
+              rectTwoColors={['#FF5D01', '#B94301']}
+              rectThreeColors={['#1F2937', '#778496']}
+            />,
+          ])
       }, 5000)
     }
   }, [state])
@@ -226,6 +241,7 @@ const NewAstroCodeJam = () => {
           rectOneColors={['#651CC8', '#9561DA']}
           rectTwoColors={['#FF5D01', '#B94301']}
           rectThreeColors={['#1F2937', '#778496']}
+          isShorts={isShorts}
         />,
       ])
       onlyFragmentGroupRef.current.to({
@@ -240,6 +256,7 @@ const NewAstroCodeJam = () => {
           rectOneColors={['#651CC8', '#9561DA']}
           rectTwoColors={['#FF5D01', '#B94301']}
           rectThreeColors={['#1F2937', '#778496']}
+          isShorts={isShorts}
         />,
       ])
       onlyFragmentGroupRef.current.to({
@@ -268,209 +285,42 @@ const NewAstroCodeJam = () => {
   }, [fragmentState])
 
   const lowerThirdCoordinates = (() => {
-    switch (fragment?.participants.length) {
-      case 2:
-        return [70, 530]
-      case 3:
-        return [45, 355, 665]
-      default:
-        return [95]
-    }
+    if (!isShorts)
+      switch (fragment?.participants.length) {
+        case 2:
+          return [70, 530]
+        case 3:
+          return [45, 355, 665]
+        default:
+          return [95]
+      }
+    else return [30]
   })()
 
-  const [astroPlanet] = useImage(
-    `${config.storage.baseUrl}planet.svg`,
-    'anonymous'
-  )
-  const [astroLogo] = useImage(
-    `${config.storage.baseUrl}astro-logo.svg`,
-    'anonymous'
-  )
+  const layerChildren = !isShorts
+    ? astroCodexLayerChildren({
+        bothGroupRef,
+        onlyFragmentGroupRef,
+        computedTokens: computedTokens.current,
+        position,
+        focusBlockCode,
+        highlightBlockCode,
+        blockConfig,
+        activeBlockIndex,
+        payload,
+      })
+    : astroShortsCodexLayerChildren({
+        bothGroupRef,
+        onlyFragmentGroupRef,
+        computedTokens: computedTokens.current,
+        position,
+        focusBlockCode,
+        highlightBlockCode,
+        blockConfig,
+        activeBlockIndex,
+        payload,
+      })
 
-  const layerChildren = [
-    <Group x={0} y={0}>
-      <Rect
-        x={0}
-        y={0}
-        width={CONFIG.width}
-        height={CONFIG.height}
-        fillLinearGradientColorStops={[
-          0,
-          '#140D1F',
-          0.41,
-          '#361367',
-          1,
-          '#6E1DDB',
-        ]}
-        fillLinearGradientStartPoint={{ x: 0, y: 0 }}
-        fillLinearGradientEndPoint={{
-          x: CONFIG.width,
-          y: CONFIG.height,
-        }}
-      />
-      <Image image={astroPlanet} x={-10} y={0} />
-      <Image image={astroLogo} x={40} y={CONFIG.height - 55} />
-    </Group>,
-    <Group x={0} y={0} opacity={0} ref={bothGroupRef}>
-      <Rect
-        x={27}
-        y={48}
-        width={704}
-        height={396}
-        fill="#FF5D01"
-        cornerRadius={8}
-        stroke="#1F2937"
-        strokeWidth={3}
-      />
-      <Rect
-        x={37}
-        y={58}
-        width={704}
-        height={396}
-        fill="#202026"
-        cornerRadius={8}
-        stroke="#1F2937"
-        strokeWidth={3}
-      />
-      <Group x={52} y={73} key="circleGroup">
-        <Circle key="redCircle" x={0} y={0} fill="#FF605C" radius={5} />
-        <Circle key="yellowCircle" x={14} y={0} fill="#FFBD44" radius={5} />
-        <Circle key="greenCircle" x={28} y={0} fill="#00CA4E" radius={5} />
-      </Group>
-      {payload?.status === Fragment_Status_Enum_Enum.Live && (
-        <Group x={57} y={88} key="group">
-          {getRenderedTokens(computedTokens.current, position)}
-        </Group>
-      )}
-    </Group>,
-    <Group x={0} y={0} opacity={0} ref={onlyFragmentGroupRef}>
-      <Rect
-        x={70}
-        y={20}
-        width={800}
-        height={440}
-        fill="#FF5D01"
-        cornerRadius={8}
-        stroke="#1F2937"
-        strokeWidth={3}
-      />
-      <Rect
-        x={80}
-        y={30}
-        width={800}
-        height={440}
-        fill="#202026"
-        cornerRadius={8}
-        stroke="#1F2937"
-        strokeWidth={3}
-      />
-      <Group x={100} y={45} key="circleGroup">
-        <Circle key="redCircle" x={0} y={0} fill="#FF605C" radius={5} />
-        <Circle key="yellowCircle" x={14} y={0} fill="#FFBD44" radius={5} />
-        <Circle key="greenCircle" x={28} y={0} fill="#00CA4E" radius={5} />
-      </Group>
-      {payload?.status === Fragment_Status_Enum_Enum.Live && (
-        <Group x={105} y={60} key="codeGroup">
-          {getTokens(
-            computedTokens.current,
-            computedTokens.current[
-              computedTokens.current.find(
-                (token) =>
-                  token.lineNumber ===
-                    (blockConfig &&
-                      blockConfig[activeBlockIndex] &&
-                      blockConfig[activeBlockIndex].from - 1) || 0
-              )?.startFromIndex || 0
-            ]?.lineNumber
-          )}
-          {highlightBlockCode && (
-            <Rect
-              x={-5}
-              y={
-                (computedTokens.current.find(
-                  (token) =>
-                    token.lineNumber ===
-                    (blockConfig &&
-                      blockConfig[activeBlockIndex] &&
-                      blockConfig[activeBlockIndex].from - 1)
-                )?.y || 0) - 5
-              }
-              width={585}
-              height={
-                (computedTokens.current.find(
-                  (token) =>
-                    token.lineNumber ===
-                    (blockConfig &&
-                      blockConfig[activeBlockIndex] &&
-                      blockConfig[activeBlockIndex].to - 1)
-                )?.y || 0) -
-                  (computedTokens.current.find(
-                    (token) =>
-                      token.lineNumber ===
-                      (blockConfig &&
-                        blockConfig[activeBlockIndex] &&
-                        blockConfig[activeBlockIndex].from - 1)
-                  )?.y || 0) +
-                  codeConfig.fontSize +
-                  5 >
-                0
-                  ? (computedTokens.current.find(
-                      (token) =>
-                        token.lineNumber ===
-                        (blockConfig &&
-                          blockConfig[activeBlockIndex] &&
-                          blockConfig[activeBlockIndex].to - 1)
-                    )?.y || 0) -
-                    (computedTokens.current.find(
-                      (token) =>
-                        token.lineNumber ===
-                        (blockConfig &&
-                          blockConfig[activeBlockIndex] &&
-                          blockConfig[activeBlockIndex].from - 1)
-                    )?.y || 0) +
-                    codeConfig.fontSize +
-                    10
-                  : 0
-              }
-              fill="#0066B8"
-              opacity={0.3}
-              cornerRadius={8}
-            />
-          )}
-        </Group>
-      )}
-      {focusBlockCode && (
-        <RenderMultipleLineFocus
-          tokens={computedTokens.current}
-          startLineNumber={
-            blockConfig &&
-            blockConfig[activeBlockIndex] &&
-            blockConfig[activeBlockIndex].from - 1
-          }
-          endLineNumber={
-            blockConfig &&
-            blockConfig[activeBlockIndex] &&
-            blockConfig[activeBlockIndex].to - 1
-          }
-          explanation={
-            (blockConfig &&
-              blockConfig[activeBlockIndex] &&
-              blockConfig[activeBlockIndex].explanation) ||
-            ''
-          }
-          groupCoordinates={{ x: 90, y: 60 }}
-          bgRectInfo={{
-            x: 80,
-            y: 30,
-            width: 800,
-            height: 440,
-            radius: 8,
-          }}
-          opacity={1}
-        />
-      )}
-    </Group>,
-  ]
   return (
     <Concourse
       layerChildren={layerChildren}
@@ -481,11 +331,18 @@ const NewAstroCodeJam = () => {
         fragmentState,
         setFragmentState,
         isBlockRender,
-        blockConfig.length
+        blockConfig.length,
+        isShorts,
+        setIsShorts
       )}
       titleSpalshData={titleSpalshData}
-      studioUserConfig={studioCoordinates(fragment, fragmentState)}
+      studioUserConfig={
+        !isShorts
+          ? studioCoordinates(fragment, fragmentState)
+          : shortsStudioCoordinates(fragment, fragmentState)
+      }
       topLayerChildren={topLayerChildren}
+      isShorts={isShorts}
     />
   )
 }
