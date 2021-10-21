@@ -9,6 +9,7 @@ import {
   DeleteFragmentModal,
   DuplicateFragmentModal,
   FragmentVideoModal,
+  NotesModal,
 } from '.'
 import { Button, emitToast, Text } from '../../../components'
 import {
@@ -23,6 +24,7 @@ const FragmentBar = () => {
   const [confirmDeleteModal, setConfirmDeleteModal] = useState(false)
   const [duplicateModal, setDuplicateModal] = useState(false)
   const [fragmentVideoModal, setFragmetVideoModal] = useState(false)
+  const [notesModal, setNotesModal] = useState(false)
   const [{ flick, activeFragmentId }, setFlickStore] =
     useRecoilState(newFlickStore)
   const history = useHistory()
@@ -112,7 +114,7 @@ const FragmentBar = () => {
           <RiStickyNoteLine
             size={24}
             className="text-gray-600 cursor-pointer mr-10"
-            onClick={() => setDuplicateModal(true)}
+            onClick={() => setNotesModal(true)}
           />
           <Text
             className="text-base font-bold text-gray-800 truncate overflow-ellipsis cursor-text rounded-md p-1 hover:bg-gray-100"
@@ -173,6 +175,12 @@ const FragmentBar = () => {
             GetFlickFragments()
           }
           setDuplicateModal(false)
+        }}
+      />
+      <NotesModal
+        open={notesModal}
+        handleClose={() => {
+          setNotesModal(false)
         }}
       />
     </div>

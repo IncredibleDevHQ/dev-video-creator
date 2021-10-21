@@ -24,7 +24,7 @@ import {
   useUpdateFragmentMutation,
 } from '../../../generated/graphql'
 import NewFragmentModal from './NewFragmentModal'
-import { DeleteFragmentModal, DuplicateFragmentModal } from '.'
+import { DeleteFragmentModal, DuplicateFragmentModal, NotesModal } from '.'
 
 const style = css`
   ::-webkit-scrollbar {
@@ -210,6 +210,7 @@ const Thumbnail = ({
 
   const [confirmDeleteModal, setConfirmDeleteModal] = useState(false)
   const [duplicateModal, setDuplicateModal] = useState(false)
+  const [notesModal, setNotesModal] = useState(false)
   const [GetFlickFragments, { data, error, refetch }] =
     useGetFlickFragmentsLazyQuery({
       variables: {
@@ -303,7 +304,7 @@ const Thumbnail = ({
             <div className="h-px bg-gray-200" />
             <div
               className="flex items-center py-2 px-4 cursor-pointer hover:bg-gray-100"
-              onClick={() => setDuplicateModal(true)}
+              onClick={() => setNotesModal(true)}
             >
               <RiStickyNoteLine size={21} className="text-gray-600mt-1 mr-4" />
               <Text>Note</Text>
@@ -360,6 +361,12 @@ const Thumbnail = ({
             GetFlickFragments()
           }
           setDuplicateModal(false)
+        }}
+      />
+      <NotesModal
+        open={notesModal}
+        handleClose={() => {
+          setNotesModal(false)
         }}
       />
     </div>

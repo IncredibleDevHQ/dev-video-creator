@@ -11,6 +11,7 @@ import FragmentContent from './FragmentContent'
 import UpdateFragmentParticipantsModal from './UpdateFragmentParticipantsModal'
 import FragmentVideoModal from './FragmentVideoModal'
 import FlickCard from './FlickCard'
+import NotesModal from './NotesModal'
 
 export {
   ScreenRecording,
@@ -26,4 +27,5 @@ export {
   UpdateFragmentParticipantsModal,
   FragmentVideoModal,
   FlickCard,
+  NotesModal,
 }
