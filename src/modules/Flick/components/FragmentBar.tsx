@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react'
-import { BiPlay, BiPlayCircle } from 'react-icons/bi'
-import { BsCameraVideo, BsGear } from 'react-icons/bs'
+import { BiPlayCircle } from 'react-icons/bi'
+import { BsCameraVideo } from 'react-icons/bs'
 import { RiStickyNoteLine } from 'react-icons/ri'
-import { IoTrashOutline, IoCopyOutline } from 'react-icons/io5'
+import { IoTrashOutline, IoCopyOutline, IoLogoMarkdown } from 'react-icons/io5'
 import { useHistory } from 'react-router-dom'
 import { useRecoilState } from 'recoil'
 import {
   DeleteFragmentModal,
   DuplicateFragmentModal,
   FragmentVideoModal,
+  MarkdownModal,
   NotesModal,
 } from '.'
 import { Button, emitToast, Text } from '../../../components'
@@ -17,13 +18,12 @@ import {
   useUpdateFragmentMutation,
 } from '../../../generated/graphql'
 import { newFlickStore } from '../store/flickNew.store'
-import SettingsModal from './SettingsModal'
-import { cx } from '@emotion/css'
 
 const FragmentBar = () => {
   const [confirmDeleteModal, setConfirmDeleteModal] = useState(false)
   const [duplicateModal, setDuplicateModal] = useState(false)
   const [fragmentVideoModal, setFragmetVideoModal] = useState(false)
+  const [markdownModal, setMarkdownModal] = useState(false)
   const [notesModal, setNotesModal] = useState(false)
   const [{ flick, activeFragmentId }, setFlickStore] =
     useRecoilState(newFlickStore)
@@ -116,6 +116,11 @@ const FragmentBar = () => {
             className="text-gray-600 cursor-pointer mr-10"
             onClick={() => setNotesModal(true)}
           />
+          <IoLogoMarkdown
+            size={24}
+            className="text-gray-600 cursor-pointer"
+            onClick={() => setMarkdownModal(true)}
+          />
           <Text
             className="text-base font-bold text-gray-800 truncate overflow-ellipsis cursor-text rounded-md p-1 hover:bg-gray-100"
             contentEditable={editFragmentName}
@@ -138,6 +143,9 @@ const FragmentBar = () => {
       <div className="flex items-center">
         {fragment?.producedLink && (
           <div
+            tabIndex={-1}
+            role="button"
+            onKeyDown={() => {}}
             className="flex items-center mr-4 border border-green-600 rounded-md px-2 cursor-pointer"
             onClick={() => {
               setFragmetVideoModal(true)
@@ -183,6 +191,15 @@ const FragmentBar = () => {
           setNotesModal(false)
         }}
       />
+      {flick && (
+        <MarkdownModal
+          open={markdownModal}
+          flickId={flick.id}
+          handleClose={() => {
+            setMarkdownModal(false)
+          }}
+        />
+      )}
     </div>
   )
 }
