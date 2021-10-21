@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react'
-import { BiPlay, BiPlayCircle } from 'react-icons/bi'
+import { BiPlayCircle } from 'react-icons/bi'
 import { BsCameraVideo, BsGear } from 'react-icons/bs'
-import { IoTrashOutline, IoCopyOutline } from 'react-icons/io5'
+import { IoTrashOutline, IoCopyOutline, IoLogoMarkdown } from 'react-icons/io5'
 import { useHistory } from 'react-router-dom'
 import { useRecoilState } from 'recoil'
 import {
   DeleteFragmentModal,
   DuplicateFragmentModal,
   FragmentVideoModal,
+  MarkdownModal,
 } from '.'
 import { Button, emitToast } from '../../../components'
 import { useGetFlickFragmentsLazyQuery } from '../../../generated/graphql'
@@ -19,6 +20,7 @@ const FragmentBar = () => {
   const [duplicateModal, setDuplicateModal] = useState(false)
   const [settingsModal, setSettingsModal] = useState(false)
   const [fragmentVideoModal, setFragmetVideoModal] = useState(false)
+  const [markdownModal, setMarkdownModal] = useState(false)
   const [{ flick, activeFragmentId }, setFlickStore] =
     useRecoilState(newFlickStore)
   const history = useHistory()
@@ -63,8 +65,13 @@ const FragmentBar = () => {
         />
         <IoCopyOutline
           size={24}
-          className="text-gray-600 cursor-pointer"
+          className="text-gray-600 mr-8 cursor-pointer"
           onClick={() => setDuplicateModal(true)}
+        />
+        <IoLogoMarkdown
+          size={24}
+          className="text-gray-600 cursor-pointer"
+          onClick={() => setMarkdownModal(true)}
         />
       </div>
       <div className="flex items-center">
@@ -120,6 +127,15 @@ const FragmentBar = () => {
           setSettingsModal(false)
         }}
       />
+      {flick && (
+        <MarkdownModal
+          open={markdownModal}
+          flickId={flick.id}
+          handleClose={() => {
+            setMarkdownModal(false)
+          }}
+        />
+      )}
     </div>
   )
 }
