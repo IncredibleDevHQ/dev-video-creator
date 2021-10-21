@@ -1,23 +1,15 @@
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
-import { Circle, Group, Image, Rect } from 'react-konva'
 import { useRecoilValue } from 'recoil'
-import useImage from 'use-image'
-import config from '../../../../config'
-import {
-  Fragment_Status_Enum_Enum,
-  useGetTokenisedCodeLazyQuery,
-} from '../../../../generated/graphql'
+import { useGetTokenisedCodeLazyQuery } from '../../../../generated/graphql'
 import { User, userState } from '../../../../stores/user.store'
 import { Concourse } from '../../components'
-import { CONFIG, TitleSplashProps } from '../../components/Concourse'
+import { TitleSplashProps } from '../../components/Concourse'
 import LowerThirds from '../../components/LowerThirds'
 import {
   controls,
   FragmentState,
-  getRenderedTokens,
-  getTokens,
-  RenderMultipleLineFocus,
+  shortsCodeConfig,
 } from '../../components/RenderTokens'
 import useCode from '../../hooks/use-code'
 import { StudioProviderProps, studioStore } from '../../stores'
@@ -25,7 +17,12 @@ import {
   MutipleRectMoveLeft,
   MutipleRectMoveRight,
 } from '../FragmentTransitions'
-import { studioCoordinates } from './GraphQLConfig'
+import {
+  studioCoordinates,
+  graphqlCodexLayerChildren,
+  graphqlShortsCodexLayerChildren,
+  shortsStudioCoordinates,
+} from './GraphQLConfig'
 
 export const codeConfig = {
   fontSize: 14,
@@ -84,6 +81,8 @@ const NewGraphQLCodeJam = () => {
 
   const { displayName } = (useRecoilValue(userState) as User) || {}
 
+  const [isShorts, setIsShorts] = useState<boolean>(false)
+
   useEffect(() => {
     if (!fragment?.configuration.properties) return
     const code = fragment.configuration.properties.find(
@@ -133,14 +132,23 @@ const NewGraphQLCodeJam = () => {
 
   useEffect(() => {
     if (!data?.TokenisedCode) return
-    initUseCode({
-      tokens: data.TokenisedCode.data,
-      canvasWidth: 585,
-      canvasHeight: 380,
-      gutter: 5,
-      fontSize: codeConfig.fontSize,
-    })
-  }, [data])
+    if (!isShorts)
+      initUseCode({
+        tokens: data.TokenisedCode.data,
+        canvasWidth: 585,
+        canvasHeight: 380,
+        gutter: 5,
+        fontSize: codeConfig.fontSize,
+      })
+    else
+      initUseCode({
+        tokens: data.TokenisedCode.data,
+        canvasWidth: 300,
+        canvasHeight: 550,
+        gutter: 5,
+        fontSize: shortsCodeConfig.fontSize,
+      })
+  }, [data, isShorts])
 
   useEffect(() => {
     setPosition({
@@ -193,26 +201,38 @@ const NewGraphQLCodeJam = () => {
       setTimeout(() => {
         if (!displayName) return
         if (!fragment) return
-        setTopLayerChildren([
-          <LowerThirds
-            x={lowerThirdCoordinates[0] || 0}
-            y={400}
-            userName={displayName}
-            rectOneColors={['#60A5FA', '#60A5FA']}
-            rectTwoColors={['#C084FC', '#C084FC']}
-            rectThreeColors={['#4FD1C5', '#4FD1C5']}
-          />,
-          ...users.map((user, index) => (
+        if (!isShorts)
+          setTopLayerChildren([
             <LowerThirds
-              x={lowerThirdCoordinates[index + 1] || 0}
+              x={lowerThirdCoordinates[0] || 0}
               y={400}
-              userName={participants?.[user.uid]?.displayName || ''}
+              userName={displayName}
               rectOneColors={['#60A5FA', '#60A5FA']}
               rectTwoColors={['#C084FC', '#C084FC']}
               rectThreeColors={['#4FD1C5', '#4FD1C5']}
-            />
-          )),
-        ])
+            />,
+            ...users.map((user, index) => (
+              <LowerThirds
+                x={lowerThirdCoordinates[index + 1] || 0}
+                y={400}
+                userName={participants?.[user.uid]?.displayName || ''}
+                rectOneColors={['#60A5FA', '#60A5FA']}
+                rectTwoColors={['#C084FC', '#C084FC']}
+                rectThreeColors={['#4FD1C5', '#4FD1C5']}
+              />
+            )),
+          ])
+        else
+          setTopLayerChildren([
+            <LowerThirds
+              x={lowerThirdCoordinates[0] || 0}
+              y={570}
+              userName={displayName}
+              rectOneColors={['#60A5FA', '#60A5FA']}
+              rectTwoColors={['#C084FC', '#C084FC']}
+              rectThreeColors={['#4FD1C5', '#4FD1C5']}
+            />,
+          ])
       }, 5000)
     }
   }, [state])
@@ -226,6 +246,7 @@ const NewGraphQLCodeJam = () => {
           rectOneColors={['#60A5FA', '#60A5FA']}
           rectTwoColors={['#C084FC', '#C084FC']}
           rectThreeColors={['#4FD1C5', '#4FD1C5']}
+          isShorts={isShorts}
         />,
       ])
       onlyFragmentGroupRef.current.to({
@@ -240,6 +261,7 @@ const NewGraphQLCodeJam = () => {
           rectOneColors={['#60A5FA', '#60A5FA']}
           rectTwoColors={['#C084FC', '#C084FC']}
           rectThreeColors={['#4FD1C5', '#4FD1C5']}
+          isShorts={isShorts}
         />,
       ])
       onlyFragmentGroupRef.current.to({
@@ -268,194 +290,42 @@ const NewGraphQLCodeJam = () => {
   }, [fragmentState])
 
   const lowerThirdCoordinates = (() => {
-    switch (fragment?.participants.length) {
-      case 2:
-        return [70, 530]
-      case 3:
-        return [45, 355, 665]
-      default:
-        return [95]
-    }
+    if (!isShorts)
+      switch (fragment?.participants.length) {
+        case 2:
+          return [70, 530]
+        case 3:
+          return [45, 355, 665]
+        default:
+          return [95]
+      }
+    else return [30]
   })()
 
-  const [incredibleLogo] = useImage(
-    `${config.storage.baseUrl}x-incredible.svg`,
-    'anonymous'
-  )
-  const [circleGroup] = useImage(
-    `${config.storage.baseUrl}black-circles.svg`,
-    'anonymous'
-  )
-  const [graphqlLogo] = useImage(
-    `${config.storage.baseUrl}graphql3.svg`,
-    'anonymous'
-  )
+  const layerChildren = !isShorts
+    ? graphqlCodexLayerChildren({
+        bothGroupRef,
+        onlyFragmentGroupRef,
+        computedTokens: computedTokens.current,
+        position,
+        focusBlockCode,
+        highlightBlockCode,
+        blockConfig,
+        activeBlockIndex,
+        payload,
+      })
+    : graphqlShortsCodexLayerChildren({
+        bothGroupRef,
+        onlyFragmentGroupRef,
+        computedTokens: computedTokens.current,
+        position,
+        focusBlockCode,
+        highlightBlockCode,
+        blockConfig,
+        activeBlockIndex,
+        payload,
+      })
 
-  const layerChildren = [
-    <Group x={0} y={0}>
-      <Rect
-        x={0}
-        y={0}
-        width={CONFIG.width}
-        height={CONFIG.height}
-        fill="#1F2937"
-      />
-      <Image image={circleGroup} x={400} y={450} />
-      <Image image={incredibleLogo} x={30} y={CONFIG.height - 50} />
-      <Image image={graphqlLogo} x={840} y={CONFIG.height - 48} />
-    </Group>,
-    <Group x={0} y={0} opacity={0} ref={bothGroupRef}>
-      <Rect
-        x={27}
-        y={48}
-        width={704}
-        height={396}
-        fill="#60A5FA"
-        cornerRadius={8}
-      />
-      <Rect
-        x={37}
-        y={58}
-        width={704}
-        height={396}
-        fill="#202026"
-        cornerRadius={8}
-      />
-      <Group x={52} y={73} key="circleGroup">
-        <Circle key="redCircle" x={0} y={0} fill="#FF605C" radius={5} />
-        <Circle key="yellowCircle" x={14} y={0} fill="#FFBD44" radius={5} />
-        <Circle key="greenCircle" x={28} y={0} fill="#00CA4E" radius={5} />
-      </Group>
-      {payload?.status === Fragment_Status_Enum_Enum.Live && (
-        <Group x={57} y={88} key="group">
-          {getRenderedTokens(computedTokens.current, position)}
-        </Group>
-      )}
-    </Group>,
-    <Group x={0} y={0} opacity={0} ref={onlyFragmentGroupRef}>
-      <Rect
-        x={70}
-        y={20}
-        width={800}
-        height={440}
-        fill="#60A5FA"
-        cornerRadius={8}
-      />
-      <Rect
-        x={80}
-        y={30}
-        width={800}
-        height={440}
-        fill="#202026"
-        cornerRadius={8}
-      />
-      <Group x={100} y={45} key="circleGroup">
-        <Circle key="redCircle" x={0} y={0} fill="#FF605C" radius={5} />
-        <Circle key="yellowCircle" x={14} y={0} fill="#FFBD44" radius={5} />
-        <Circle key="greenCircle" x={28} y={0} fill="#00CA4E" radius={5} />
-      </Group>
-      {payload?.status === Fragment_Status_Enum_Enum.Live && (
-        <Group x={105} y={60} key="codeGroup">
-          {getTokens(
-            computedTokens.current,
-            computedTokens.current[
-              computedTokens.current.find(
-                (token) =>
-                  token.lineNumber ===
-                    (blockConfig &&
-                      blockConfig[activeBlockIndex] &&
-                      blockConfig[activeBlockIndex].from - 1) || 0
-              )?.startFromIndex || 0
-            ]?.lineNumber
-          )}
-          {highlightBlockCode && (
-            <Rect
-              x={-5}
-              y={
-                (computedTokens.current.find(
-                  (token) =>
-                    token.lineNumber ===
-                    (blockConfig &&
-                      blockConfig[activeBlockIndex] &&
-                      blockConfig[activeBlockIndex].from - 1)
-                )?.y || 0) - 5
-              }
-              width={585}
-              height={
-                (computedTokens.current.find(
-                  (token) =>
-                    token.lineNumber ===
-                    (blockConfig &&
-                      blockConfig[activeBlockIndex] &&
-                      blockConfig[activeBlockIndex].to - 1)
-                )?.y || 0) -
-                  (computedTokens.current.find(
-                    (token) =>
-                      token.lineNumber ===
-                      (blockConfig &&
-                        blockConfig[activeBlockIndex] &&
-                        blockConfig[activeBlockIndex].from - 1)
-                  )?.y || 0) +
-                  codeConfig.fontSize +
-                  5 >
-                0
-                  ? (computedTokens.current.find(
-                      (token) =>
-                        token.lineNumber ===
-                        (blockConfig &&
-                          blockConfig[activeBlockIndex] &&
-                          blockConfig[activeBlockIndex].to - 1)
-                    )?.y || 0) -
-                    (computedTokens.current.find(
-                      (token) =>
-                        token.lineNumber ===
-                        (blockConfig &&
-                          blockConfig[activeBlockIndex] &&
-                          blockConfig[activeBlockIndex].from - 1)
-                    )?.y || 0) +
-                    codeConfig.fontSize +
-                    10
-                  : 0
-              }
-              fill="#0066B8"
-              opacity={0.3}
-              cornerRadius={8}
-            />
-          )}
-        </Group>
-      )}
-      {focusBlockCode && (
-        <RenderMultipleLineFocus
-          tokens={computedTokens.current}
-          startLineNumber={
-            blockConfig &&
-            blockConfig[activeBlockIndex] &&
-            blockConfig[activeBlockIndex].from - 1
-          }
-          endLineNumber={
-            blockConfig &&
-            blockConfig[activeBlockIndex] &&
-            blockConfig[activeBlockIndex].to - 1
-          }
-          explanation={
-            (blockConfig &&
-              blockConfig[activeBlockIndex] &&
-              blockConfig[activeBlockIndex].explanation) ||
-            ''
-          }
-          groupCoordinates={{ x: 90, y: 60 }}
-          bgRectInfo={{
-            x: 80,
-            y: 30,
-            width: 800,
-            height: 440,
-            radius: 8,
-          }}
-          opacity={1}
-        />
-      )}
-    </Group>,
-  ]
   return (
     <Concourse
       layerChildren={layerChildren}
@@ -466,11 +336,18 @@ const NewGraphQLCodeJam = () => {
         fragmentState,
         setFragmentState,
         isBlockRender,
-        blockConfig.length
+        blockConfig.length,
+        isShorts,
+        setIsShorts
       )}
       titleSpalshData={titleSpalshData}
-      studioUserConfig={studioCoordinates(fragment, fragmentState)}
+      studioUserConfig={
+        !isShorts
+          ? studioCoordinates(fragment, fragmentState)
+          : shortsStudioCoordinates(fragment, fragmentState)
+      }
       topLayerChildren={topLayerChildren}
+      isShorts={isShorts}
     />
   )
 }
