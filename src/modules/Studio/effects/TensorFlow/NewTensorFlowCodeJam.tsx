@@ -261,7 +261,8 @@ const NewTensorFlowCodeJam = () => {
         !fragment?.configuration.properties.find(
           (property: any) => property.key === 'showTitleSplash'
         )?.value &&
-        !isShorts
+        !isShorts &&
+        fragmentImage
       ) {
         setTimeout(() => {
           setTopLayerChildren([

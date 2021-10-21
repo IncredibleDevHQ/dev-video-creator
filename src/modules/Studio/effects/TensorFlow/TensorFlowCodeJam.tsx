@@ -195,7 +195,8 @@ const TensorFlowCodeJam = () => {
         fragment?.participants.length === 1 &&
         !fragment?.configuration.properties.find(
           (property: any) => property.key === 'showTitleSplash'
-        )?.value
+        )?.value &&
+        fragmentImage
       ) {
         setTimeout(() => {
           if (!displayName) return
