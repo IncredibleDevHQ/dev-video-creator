@@ -237,12 +237,10 @@ const TriviaFive = () => {
           {isGif && (
             <Gif
               src={gifUrl}
-              maxWidth={684}
-              maxHeight={250}
-              availableWidth={704}
-              availableHeight={280}
-              x={0}
-              y={75}
+              x={imgDim.x}
+              y={imgDim.y}
+              width={imgDim.width}
+              height={imgDim.height}
             />
           )}
         </>

@@ -32,7 +32,7 @@ const initialFlick: CreateNewFlickMutationVariables = {
 }
 
 const options = [
-  { label: 'Default', value: 1 },
+  { label: 'Default', value: 0 },
   { label: 'GraphQL', value: 1 },
   { label: 'Open Sauced', value: 2 },
   { label: 'Astro', value: 3 },

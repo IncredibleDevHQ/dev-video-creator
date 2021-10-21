@@ -5,7 +5,7 @@ import { cx } from '@emotion/css'
 import React, { useEffect, useState } from 'react'
 import Gravatar from 'react-gravatar'
 import { FiEdit, FiMoreHorizontal } from 'react-icons/fi'
-import { IoCheckmarkDone } from 'react-icons/io5'
+import { IoCheckmarkDone, IoTrashOutline } from 'react-icons/io5'
 import { useHistory, useParams } from 'react-router-dom'
 import { useRecoilValue } from 'recoil'
 import {
@@ -27,253 +27,142 @@ import {
 import { Auth, authState } from '../../../stores/auth.store'
 import { userState } from '../../../stores/user.store'
 
-const FlickTileDrafts = ({
-  flick,
-  handleRefetch,
-}: {
-  flick: BaseFlickFragment
-  handleRefetch: (refresh?: boolean) => void
-}) => {
-  const history = useHistory()
-
-  return (
-    <>
-      <div className="flex flex-row w-full h-48">
-        <FlickTooltip
-          key={flick?.id}
-          flick={flick}
-          handleRefetch={handleRefetch}
-        />
-        <div
-          className="w-64 flex items-center justify-center border-2"
-          onClick={() => {
-            history.push(`/flick/${flick.id}`)
-          }}
-        >
-          <img src={Icons.flickIcon} alt="I" className="border-2" />
-        </div>
-
-        <div className="flex flex-col">
-          <div
-            style={{
-              background: '#FFEDD5',
-            }}
-            className="ml-4 flex flex-row max-w-min px-2 py-1 rounded-sm items-center justify-center"
-          >
-            <FiEdit size={12} style={{ color: '#C2410C' }} />
-            <Text className="text-red-700 text-xs pl-2">Draft</Text>
-          </div>
-
-          <Heading className="text-lg md:capitalize font-bold pl-4 mt-5 w-40 truncate overflow-ellipsis">
-            {flick.name}
-          </Heading>
-          <Participants flick={flick} />
-        </div>
-      </div>
-    </>
-  )
-}
-
-const FlickTilePublished = ({
-  flick,
-  handleRefetch,
-}: {
-  flick: BaseFlickFragment
-  handleRefetch: (refresh?: boolean) => void
-}) => {
-  const history = useHistory()
-  const userdata = (useRecoilValue(userState) as User) || {}
-  const [editFlickName, setEditFlickName] = useState(false)
-  const { isAuthenticated } = (useRecoilValue(authState) as Auth) || {}
-  const [updateFlickMutation, { data: updateNameData }] =
-    useUpdateFlickMutation()
-  const updateFlickMutationFunction = async (newName: string) => {
-    if (editFlickName) {
-      await updateFlickMutation({
-        variables: {
-          name: newName,
-          flickId: flick?.id,
-        },
-      })
-    }
-  }
-
-  useEffect(() => {
-    if (!updateNameData) return
-    setEditFlickName(false)
-  }, [updateNameData])
-
-  return (
-    <>
-      <div className="flex flex-row w-full h-32 m-1">
-        {isAuthenticated ? (
-          <FlickTooltip
-            key={flick?.id}
-            flick={flick}
-            handleRefetch={handleRefetch}
-          />
-        ) : (
-          ''
-        )}
-        <div
-          className="w-64 flex items-center justify-center border-2"
-          onClick={(e) => {
-            if (e.target !== e.currentTarget) return
-            history.push(`/view/${flick.joinLink}`)
-          }}
-        >
-          <img src={Icons.flickIcon} alt="I" className="border-2" />
-        </div>
-
-        <div className="flex flex-col">
-          {isAuthenticated ? (
-            <div className="bg-green-300 h-5 w-24 ml-4 flex flex-row-1 items-center justify-center">
-              <IoCheckmarkDone size={15} />
-              <Text className="text-green-700 text-sm pl-2">Published</Text>
-            </div>
-          ) : (
-            ''
-          )}
-
-          {flick.owner?.userSub === userdata.sub ? (
-            <Heading
-              className="text-lg md:capitalize font-bold pl-4 mt-5 w-40 truncate overflow-ellipsis cursor-auto p-1 rounded-lg hover:bg-gray-300"
-              contentEditable={editFlickName}
-              onClick={() => {
-                setEditFlickName(true)
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                  updateFlickMutationFunction(e.currentTarget.innerText)
-                }
-              }}
-            >
-              {flick?.name}
-            </Heading>
-          ) : (
-            <Heading className="text-lg md:capitalize font-bold pl-4 mt-5 w-40 truncate overflow-ellipsis">
-              {flick?.name}
-            </Heading>
-          )}
-          <Participants flick={flick} />
-        </div>
-      </div>
-    </>
-  )
-}
-
 const Participants = ({ flick }: { flick: BaseFlickFragment }) => {
   return (
-    <div className="h-8 relative w-40">
-      <span
-        style={{ zIndex: 0 }}
-        className="top-0 left-0 w-8 h-8 rounded-full absolute animate-spin-slow "
-      />
-      <div className="z-10 mt-5 w-8 h-8 flex flex-row absolute top-1/2 transform -translate-x-1/2 -translate-y-1/2 left-6">
-        {flick?.participants
-          .slice(0, 5)
-          .map((participant) =>
-            participant.user.picture ? (
-              <img
-                src={participant.user.picture as string}
-                alt="I"
-                className="w-8 h-8 rounded-full bg-gray-100"
-              />
-            ) : (
-              <Gravatar className="w-8 h-8 rounded-full bg-gray-100" />
-            )
-          )}
-      </div>
+    <div className="w-8 h-8 flex flex-row">
+      {flick?.participants
+        .slice(0, 5)
+        .map((participant) =>
+          participant.user.picture ? (
+            <img
+              src={participant.user.picture as string}
+              alt="I"
+              className="w-8 h-8 rounded-full bg-gray-100"
+            />
+          ) : (
+            <Gravatar className="w-8 h-8 rounded-full bg-gray-100" />
+          )
+        )}
     </div>
   )
 }
 
-const FlickTooltip = ({
+const FlickTile = ({
   flick,
   handleRefetch,
 }: {
   flick: BaseFlickFragment
   handleRefetch: (refresh?: boolean) => void
 }) => {
-  const userdata = (useRecoilValue(userState) as User) || {}
-  const [options, setOptions] = useState(false)
-  const [deleteFlick, { data: deleteData, loading }] = useDeleteFlickMutation()
-  const extraOptions = ['Delete Flick', 'Edit in studio']
+  const [deleteFlick, { data }] = useDeleteFlickMutation()
   const history = useHistory()
+  const userdata = (useRecoilValue(userState) as User) || {}
 
-  const deleteFlickFunction = async (flickId: string) => {
+  const [overflowButtonVisible, setOverflowButtonVisible] = useState(false)
+  const [overflowMenuVisible, setOverflowMenuVisible] = useState(false)
+
+  const deleteFlickFunction = async () => {
     await deleteFlick({
       variables: {
-        flickId,
+        flickId: flick.id,
       },
     })
   }
 
   useEffect(() => {
-    if (!deleteData) return
+    if (!data) return
     emitToast({
       title: 'Success',
       description: 'Successfully deleted the flick',
       type: 'success',
     })
     handleRefetch(true)
-  }, [deleteData])
-
-  if (loading) return <ScreenState title="Just a jiffy" loading />
+  }, [data])
 
   return (
-    <Tooltip
-      isOpen={options}
-      setIsOpen={setOptions}
-      content={
-        <div
-          className={cx(
-            'bg-gray-100 w-40 border-gray-200 rounded-sm p-1',
-            flick.owner?.userSub !== userdata.sub
-              ? 'cursor-not-allowed'
-              : 'cursor-pointer'
-          )}
-        >
-          {extraOptions.map((option) => (
-            <>
-              {flick.producedLink && option && option === 'Edit in studio' && (
-                <>
-                  <div className="bg-gray-200 h-0.5 w-full" />
-                  <div
-                    className=""
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      history.push(`/flick/${flick.id}`)
-                    }}
-                  >
-                    {option}
+    <div className="flex">
+      <div
+        className="bg-gray-50 rounded-md h-44 w-5/12 border-2 border-gray-300 cursor-pointer relative"
+        onClick={() => {
+          history.push(`/flick/${flick.id}`)
+        }}
+        onMouseEnter={() => setOverflowButtonVisible(true)}
+        onMouseLeave={() => {
+          setOverflowButtonVisible(false)
+          setOverflowMenuVisible(false)
+        }}
+      >
+        <img src={Icons.flickIcon} alt="I" className="w-full h-full p-16" />
+
+        {overflowButtonVisible && (
+          <div
+            className="absolute top-0 right-0 m-2 bg-gray-50 w-min p-1 shadow-md rounded-md cursor-pointer"
+            onClick={(e) => {
+              setOverflowMenuVisible(!overflowMenuVisible)
+              e.stopPropagation()
+            }}
+          >
+            <FiMoreHorizontal />
+            {overflowMenuVisible && (
+              <Tooltip
+                isOpen={overflowMenuVisible}
+                setIsOpen={setOverflowMenuVisible}
+                content={
+                  <div className="flex flex-col px-6 py-2 mt-2 bg-gray-50 rounded-md border border-gray-300 cursor-pointer">
+                    <div
+                      className={cx('flex', {
+                        'cursor-not-allowed text-gray-400':
+                          flick.owner?.userSub !== userdata.sub,
+                      })}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (flick.owner?.userSub !== userdata.sub) return
+                        deleteFlickFunction()
+                      }}
+                    >
+                      <IoTrashOutline
+                        size={21}
+                        className="text-gray-600 mr-4"
+                      />
+                      <Text className="font-medium">Delete</Text>
+                    </div>
+                    <div
+                      className="flex mt-4"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        history.push(`/flick/${flick.id}`)
+                      }}
+                    >
+                      <FiEdit size={21} className="text-gray-600 mr-4" />
+                      <Text className="font-medium">Edit in studio</Text>
+                    </div>
                   </div>
-                </>
-              )}
-              {option && option === 'Delete Flick' && (
-                <div
-                  onClick={() => {
-                    if (flick.owner?.userSub !== userdata.sub) return
-                    deleteFlickFunction(flick.id)
-                  }}
-                >
-                  {option}
-                </div>
-              )}
-            </>
-          ))}
-        </div>
-      }
-      placement="top-end"
-      hideOnOutsideClick
-    >
-      <FiMoreHorizontal
-        className="absolute w-6 h-6 text-gray-400 cursor-pointer"
-        size={30}
-        onClick={() => setOptions(!options)}
-      />
-    </Tooltip>
+                }
+                placement="bottom-start"
+                hideOnOutsideClick
+              />
+            )}
+          </div>
+        )}
+      </div>
+      <div className="flex flex-col ml-4 ">
+        {flick.producedLink ? (
+          <div className="bg-green-100 w-full flex flex-row items-center justify-center py-1 px-2 rounded-sm">
+            <IoCheckmarkDone size={15} />
+            <Text className="text-green-700 text-sm pl-1">Published</Text>
+          </div>
+        ) : (
+          <div className="bg-orange flex flex-row max-w-min rounded-sm items-center py-1 px-2 justify-center">
+            <FiEdit size={12} className="text-orange-darker" />
+            <Text className="text-orange-darker text-sm pl-1">Draft</Text>
+          </div>
+        )}
+        <Heading className="text-lg md:capitalize pt-2 mb-4 mt-2 font-semibold text-gray-800 truncate overflow-ellipsis">
+          {flick.name}
+        </Heading>
+        <Participants flick={flick} />
+      </div>
+    </div>
   )
 }
 
@@ -284,7 +173,6 @@ const FlicksView = () => {
       id: params.id,
     },
   })
-  const { isAuthenticated } = (useRecoilValue(authState) as Auth) || {}
   const { data, error, refetch } = useGetSingleSeriesQuery({
     variables: {
       id: params.id,
@@ -297,75 +185,32 @@ const FlicksView = () => {
     )
 
   return (
-    <>
-      {isAuthenticated ? (
-        <div>
-          <div className=" w-full gap-4">
-            {seriesData?.Flick_Series.length === 0 && (
-              <div className="flex flex-col justify-center items-center">
-                <img src={Icons.EmptyState} alt="I" />
-                <Text className="text-base mt-5">
-                  Uh-oh, you don&apos;t have any flicks yet.
-                </Text>
-              </div>
-            )}
+    <div className="overflow-scroll">
+      <div className="w-full gap-4">
+        {seriesData?.Flick_Series.length === 0 && (
+          <div className="flex flex-col justify-center items-center">
+            <img src={Icons.EmptyState} alt="I" />
+            <Text className="text-base mt-5">
+              Uh-oh, you don&apos;t have any flicks yet.
+            </Text>
           </div>
-          {seriesData?.Flick_Series.map((flick) => (
-            <div
-              key={flick.flick?.id}
-              className="flex flex-col h-40 w-2/5 mb-7 bg-white"
-            >
-              {flick.flick?.producedLink ? (
-                <FlickTilePublished
-                  key={flick.flick?.id}
-                  flick={flick.flick}
-                  handleRefetch={(refresh) => {
-                    if (refresh) refetch()
-                  }}
-                />
-              ) : flick.flick && !flick.flick?.producedLink ? (
-                <FlickTileDrafts
-                  key={flick.flick?.id}
-                  flick={flick.flick}
-                  handleRefetch={(refresh) => {
-                    if (refresh) refetch()
-                  }}
-                />
-              ) : (
-                'Add flicks to videos !! '
-              )}
-
-              <div className="bg-gray-200 h-0.5 w-full mt-3" />
-            </div>
-          ))}
+        )}
+      </div>
+      {seriesData?.Flick_Series.map((flick) => (
+        <div key={flick.flick?.id} className="flex flex-col w-4/5 bg-white">
+          {flick.flick && (
+            <FlickTile
+              key={flick.flick.id}
+              flick={flick.flick}
+              handleRefetch={(refresh) => {
+                if (refresh) refetch()
+              }}
+            />
+          )}
+          <div className="bg-gray-200 h-0.5 w-full my-6" />
         </div>
-      ) : (
-        seriesData?.Flick_Series.map(
-          (flick) =>
-            flick.flick?.producedLink && (
-              <div className="hover:border-green-500 cursor-pointer">
-                <div
-                  key={flick.flick?.id}
-                  className="flex flex-col h-40 w-2/5 mb-7 bg-white"
-                >
-                  {flick.flick && flick.flick?.producedLink ? (
-                    <FlickTilePublished
-                      key={flick.flick?.id}
-                      flick={flick.flick}
-                      handleRefetch={(refresh) => {
-                        if (refresh) refetch()
-                      }}
-                    />
-                  ) : (
-                    'Yo!! Well this series yet to Publish their Flicks'
-                  )}
-                  <div className="bg-gray-200 h-0.5 w-full mt-3" />
-                </div>
-              </div>
-            )
-        )
-      )}
-    </>
+      ))}
+    </div>
   )
 }
 export default FlicksView

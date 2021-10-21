@@ -1,6 +1,5 @@
-import { css } from '@emotion/css'
 import React, { HTMLAttributes, useEffect } from 'react'
-import { useLayer, Arrow } from 'react-laag'
+import { useLayer } from 'react-laag'
 import { PlacementType } from 'react-laag/dist/PlacementType'
 
 export interface TooltipProps extends HTMLAttributes<HTMLElement> {
@@ -25,13 +24,12 @@ const Tooltip = ({
   arrowOffset = 0,
   triggerOffset = 0,
   placement = 'bottom-start',
-  fill = '#ffffff',
   autoDismiss,
   autoPosition = true,
   overflowContainer = false,
   hideOnOutsideClick = true,
 }: TooltipProps) => {
-  const { triggerProps, layerProps, arrowProps, renderLayer } = useLayer({
+  const { triggerProps, layerProps, renderLayer } = useLayer({
     isOpen,
     placement,
     auto: autoPosition,
@@ -65,7 +63,6 @@ const Tooltip = ({
         renderLayer(
           <div className="tooltip" {...layerProps}>
             {content}
-            <Arrow backgroundColor={fill} {...arrowProps} />
           </div>
         )}
     </>

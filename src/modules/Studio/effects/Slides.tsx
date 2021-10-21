@@ -176,12 +176,10 @@ const Slides = () => {
           {isGif && (
             <Gif
               src={gifUrl}
-              maxWidth={600}
-              maxHeight={480}
-              availableWidth={640}
-              availableHeight={540}
-              x={0}
-              y={0}
+              x={slideDim.x}
+              y={slideDim.y}
+              width={slideDim.width}
+              height={slideDim.height}
             />
           )}
         </>
