@@ -4,8 +4,9 @@ import { Group, Rect, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import { NextLineIcon, NextTokenIcon } from '../../../components'
 import FocusCodeIcon from '../../../components/FocusCodeIcon'
+import LandscapeRectangle from '../../../components/LandscapeRectangle'
+import PortraitRectangle from '../../../components/PortraitRectangle'
 import SwapIcon from '../../../components/SwapIcon'
-import { codeConfig } from '../effects/CodeJamTemplates/CodeJam'
 import TypingEffect from '../effects/TypingEffect'
 import { ComputedToken } from '../hooks/use-code'
 import { StudioProviderProps, studioStore } from '../stores'
@@ -20,6 +21,26 @@ export interface TokenRenderState {
 export interface Position {
   prevIndex: number
   currentIndex: number
+}
+
+export interface CodeBlockConfig {
+  from: number
+  to: number
+  explanation: string
+  id: string
+  order: number
+}
+
+export const shortsCodeConfig = {
+  fontSize: 14,
+  width: 396,
+  height: 704,
+}
+
+export const codeConfig = {
+  fontSize: 14,
+  width: 960,
+  height: 540,
 }
 
 const RenderTokens = ({
@@ -307,7 +328,9 @@ export const controls = (
   fragmentState?: FragmentState,
   setFragmentState?: React.Dispatch<React.SetStateAction<FragmentState>>,
   isBlockRender?: boolean,
-  noOfBlocks?: number
+  noOfBlocks?: number,
+  isShorts?: boolean,
+  setIsShorts?: React.Dispatch<React.SetStateAction<boolean>>
 ) => {
   const { payload, updatePayload, state } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
@@ -438,6 +461,17 @@ export const controls = (
       ]
   if (state === 'ready')
     return [
+      <ControlButton
+        className="my-2"
+        key="focus"
+        icon={isShorts ? LandscapeRectangle : PortraitRectangle}
+        appearance="primary"
+        onClick={() => {
+          if (!setIsShorts) return
+          if (isShorts) setIsShorts(false)
+          else setIsShorts(true)
+        }}
+      />,
       <ControlButton
         key="swap"
         icon={SwapIcon}
