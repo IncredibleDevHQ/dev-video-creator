@@ -382,6 +382,44 @@ export const shortsStudioCoordinates = (
 ) => {
   switch (fragment?.participants.length) {
     case 2:
+      if (fragmentState === 'onlyUserMedia')
+        return [
+          {
+            x: -197,
+            y: 28,
+            width: 800,
+            height: 600,
+            clipTheme: 'rect',
+            borderWidth: 8,
+            studioUserClipConfig: {
+              x: 220,
+              y: 0,
+              width: 360,
+              height: 600,
+              radius: 8,
+            },
+            backgroundRectX: 13,
+            backgroundRectY: 18,
+            backgroundRectColor: '#C084FC',
+          },
+          {
+            x: 0,
+            y: 0,
+            width: 0,
+            height: 0,
+            clipTheme: 'rect',
+            borderWidth: 0,
+            studioUserClipConfig: {
+              x: 0,
+              y: 0,
+              width: 0,
+              height: 0,
+              radius: 0,
+            },
+            backgroundRectX: 0,
+            backgroundRectY: 0,
+          },
+        ]
       return [
         {
           x: 0,
@@ -419,6 +457,61 @@ export const shortsStudioCoordinates = (
         },
       ]
     case 3:
+      if (fragmentState === 'onlyUserMedia')
+        return [
+          {
+            x: -197,
+            y: 28,
+            width: 800,
+            height: 600,
+            clipTheme: 'rect',
+            borderWidth: 8,
+            studioUserClipConfig: {
+              x: 220,
+              y: 0,
+              width: 360,
+              height: 600,
+              radius: 8,
+            },
+            backgroundRectX: 13,
+            backgroundRectY: 18,
+            backgroundRectColor: '#C084FC',
+          },
+          {
+            x: 0,
+            y: 0,
+            width: 0,
+            height: 0,
+            clipTheme: 'rect',
+            borderWidth: 0,
+            studioUserClipConfig: {
+              x: 0,
+              y: 0,
+              width: 0,
+              height: 0,
+              radius: 0,
+            },
+            backgroundRectX: 0,
+            backgroundRectY: 0,
+          },
+          {
+            x: 0,
+            y: 0,
+            width: 0,
+            height: 0,
+            clipTheme: 'rect',
+            borderWidth: 0,
+            studioUserClipConfig: {
+              x: 0,
+              y: 0,
+              width: 0,
+              height: 0,
+              radius: 0,
+            },
+            backgroundRectX: 0,
+            backgroundRectY: 0,
+          },
+        ]
       return [
         {
           x: 0,
