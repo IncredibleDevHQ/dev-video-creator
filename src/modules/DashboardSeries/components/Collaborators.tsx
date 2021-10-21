@@ -14,12 +14,6 @@ const Collaborators = ({
     picture: string
     sub: string
   }
-  const [modal, setModal] = useState<ModalState>({
-    isOpen: false,
-    name: '',
-    picture: '',
-    sub: '',
-  })
 
   const individualUserDetails = (uniqueDetails as string[]).reduce(
     (rows: any, key, index) =>
@@ -34,18 +28,7 @@ const Collaborators = ({
         return (
           collaborator && (
             <div className="flex items-center">
-              <div
-                className=""
-                aria-hidden
-                onClick={() =>
-                  setModal({
-                    isOpen: true,
-                    name: collaborator[0],
-                    picture: collaborator[2],
-                    sub: collaborator[1],
-                  })
-                }
-              >
+              <div className="" aria-hidden>
                 {collaborator[2] ? (
                   <img
                     src={collaborator[2]}
@@ -61,19 +44,6 @@ const Collaborators = ({
           )
         )
       })}
-
-      <SubscribeModal
-        open={modal.isOpen}
-        handleClose={() => {
-          setModal((prev) => ({
-            ...prev,
-            isOpen: false,
-          }))
-        }}
-        userName={modal.name}
-        userPhoto={modal.picture}
-        userSub={modal.sub}
-      />
     </div>
   )
 }

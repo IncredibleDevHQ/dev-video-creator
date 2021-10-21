@@ -100,7 +100,7 @@ const Navbar = ({ hideNav }: { hideNav?: boolean }) => {
         alt="Incredible"
         className="w-28 cursor-pointer"
         onClick={() => {
-          history.push('dashboard')
+          history.push('/dashboard')
         }}
       />
 

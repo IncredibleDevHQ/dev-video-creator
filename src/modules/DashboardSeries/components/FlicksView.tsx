@@ -152,9 +152,9 @@ const FlickTile = ({
             <Text className="text-green-700 text-sm pl-1">Published</Text>
           </div>
         ) : (
-          <div className="bg-green-100 flex flex-row max-w-min rounded-sm items-center py-1 px-2 justify-center">
-            <FiEdit size={12} className="text-green-700" />
-            <Text className="text-green-700 text-sm pl-1">Draft</Text>
+          <div className="bg-orange flex flex-row max-w-min rounded-sm items-center py-1 px-2 justify-center">
+            <FiEdit size={12} className="text-orange-darker" />
+            <Text className="text-orange-darker text-sm pl-1">Draft</Text>
           </div>
         )}
         <Heading className="text-lg md:capitalize pt-2 mb-4 mt-2 font-semibold text-gray-800 truncate overflow-ellipsis">
@@ -185,7 +185,7 @@ const FlicksView = () => {
     )
 
   return (
-    <div>
+    <div className="overflow-scroll">
       <div className="w-full gap-4">
         {seriesData?.Flick_Series.length === 0 && (
           <div className="flex flex-col justify-center items-center">
