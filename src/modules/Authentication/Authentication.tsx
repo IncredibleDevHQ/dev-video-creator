@@ -287,8 +287,8 @@ const WaitlistState = ({ isInWailist }: { isInWailist: boolean }) => {
           </Text>
           <Text>
             {isInWailist
-              ? 'We’re working hard to make Incredile available to everyone. We will get back to you as soon as possible. Hang in there!'
-              : 'We’re working hard to make Incredile available to everyone. Join the waitlist and we will get back to you soon.'}
+              ? 'We’re working hard to make Incredible available to everyone. We will get back to you as soon as possible. Hang in there!'
+              : 'We’re working hard to make Incredible available to everyone. Join the waitlist and we will get back to you soon.'}
           </Text>
           {!isInWailist && (
             <Link to="/waitlist">

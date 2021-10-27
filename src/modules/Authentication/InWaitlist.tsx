@@ -27,7 +27,7 @@ const InWaitlist = () => {
             <span> Incredible 🎉 </span>
           </Text>
           <Text>
-            We’re working hard to make Incredile available to everyone. We’ll
+            We’re working hard to make Incredible available to everyone. We’ll
             get back to you as soon as possible.{' '}
           </Text>
         </div>
