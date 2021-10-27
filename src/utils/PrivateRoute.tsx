@@ -2,9 +2,10 @@ import React, { useEffect } from 'react'
 import { Route, Redirect, RouteProps, useHistory } from 'react-router-dom'
 import { useRecoilValue } from 'recoil'
 import { ScreenState } from '../components'
+import { VerificationStatusEnum } from '../generated/graphql'
 import { Onboarding } from '../modules'
 import { authState } from '../stores/auth.store'
-import { userState } from '../stores/user.store'
+import { userState, userVerificationStatus } from '../stores/user.store'
 
 interface PrivateRouteProps extends RouteProps {
   component: any
@@ -20,18 +21,33 @@ const PrivateRoute = ({
 
   const auth = useRecoilValue(authState)
   const user = useRecoilValue(userState)
+  const verificationStatus = useRecoilValue(userVerificationStatus)
 
   useEffect(() => {
     if (auth?.isAuthenticated === false && auth?.loading === false)
       push(redirectTo, { from: rest.location })
   }, [auth])
 
-  if (auth?.loading === true || typeof auth?.loading === 'undefined')
+  useEffect(() => {
+    if (verificationStatus === undefined) return
+    if (verificationStatus?.status !== VerificationStatusEnum.Approved) {
+      push('/login')
+    }
+  }, [verificationStatus])
+
+  if (
+    auth?.loading === true ||
+    typeof auth?.loading === 'undefined' ||
+    verificationStatus === undefined
+  )
     return <ScreenState title="Just a jiffy" loading />
 
   if (!user?.onboarded) return <Onboarding />
 
-  if (auth.isAuthenticated) {
+  if (
+    auth.isAuthenticated &&
+    verificationStatus?.status === VerificationStatusEnum.Approved
+  ) {
     return user?.uid ? (
       <Route {...rest} render={(routeProps) => <Component {...routeProps} />} />
     ) : null

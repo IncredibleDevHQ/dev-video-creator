@@ -1,36 +1,42 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { isSignInWithEmailLink, signInWithEmailLink } from 'firebase/auth'
 import { useRecoilValue } from 'recoil'
 import { useHistory } from 'react-router-dom'
 import firebaseState from '../../stores/firebase.store'
 import { ScreenState } from '../../components'
-import { useFetchEmailUsingStateQuery } from '../../generated/graphql'
+import {
+  useFetchEmailUsingStateQuery,
+  VerificationStatusEnum,
+} from '../../generated/graphql'
 import { useQuery } from '../../hooks'
+import { userVerificationStatus } from '../../stores/user.store'
 
 const MagicLinkLogin = () => {
   const history = useHistory()
   const query = useQuery()
 
   const { auth } = useRecoilValue(firebaseState)
-
-  if (auth.currentUser) history.push('/dashboard')
+  const verificationStatus = useRecoilValue(userVerificationStatus)
 
   async function handleSignIn(email: string) {
     try {
       if (isSignInWithEmailLink(auth, window.location.href)) {
-        const data = await signInWithEmailLink(
-          auth,
-          email,
-          window.location.href
-        )
-
-        history.push(`/dashboard`)
+        await signInWithEmailLink(auth, email, window.location.href)
       }
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error(error)
     }
   }
+
+  useEffect(() => {
+    if (!verificationStatus || verificationStatus.loading) return
+    if (verificationStatus.status === VerificationStatusEnum.Approved) {
+      history.push('/dashboard')
+    } else {
+      history.push('/login')
+    }
+  }, [verificationStatus])
 
   const state = query.get('state') as string
 

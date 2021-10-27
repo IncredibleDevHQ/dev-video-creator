@@ -32,6 +32,7 @@ fragment User on MeOutput {
 query GetUser {
   Me {
     ...User
+    verificationStatus
   }
 }
 
@@ -123,5 +124,11 @@ mutation UpdateProfile($displayName: String!, $userId: String!) {
     where: { sub: { _eq: $userId } }
   ) {
     affected_rows
+  }
+}
+
+mutation AddEmailToWaitlist($email: String!) {
+  AddToWaitlist(email: $email) {
+    success
   }
 }
