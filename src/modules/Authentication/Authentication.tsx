@@ -1,13 +1,26 @@
-import React, { useEffect, useState } from 'react'
-import { FaGithub, FaGoogle } from 'react-icons/fa'
-import { FiArrowRight } from 'react-icons/fi'
-import { useRecoilValue } from 'recoil'
-import { Link, useHistory, useLocation } from 'react-router-dom'
+import { cx } from '@emotion/css'
 import { useFormik } from 'formik'
+import React, { useEffect, useState } from 'react'
+import { FaGithub } from 'react-icons/fa'
+import { FcGoogle } from 'react-icons/fc'
+import { Link, useHistory, useLocation } from 'react-router-dom'
+import { useRecoilValue } from 'recoil'
 import * as yup from 'yup'
+import {
+  Button,
+  emitToast,
+  Heading,
+  ScreenState,
+  Text,
+  TextField,
+} from '../../components'
+import { ASSETS } from '../../constants'
+import {
+  useSendMagicSignInLinkLazyQuery,
+  VerificationStatusEnum,
+} from '../../generated/graphql'
 import { Auth, authState } from '../../stores/auth.store'
-import { Button, emitToast, Logo, TextField } from '../../components'
-import { useSendMagicSignInLinkLazyQuery } from '../../generated/graphql'
+import { userState, userVerificationStatus } from '../../stores/user.store'
 
 const AuthenticateScreen = () => {
   const { signInWithGoogle, signInWithGithub, isAuthenticated } =
@@ -17,18 +30,16 @@ const AuthenticateScreen = () => {
   const history = useHistory()
   const { from } = location.state || { from: { pathname: '/' } }
 
-  const [SendMagicSignIn, { data, loading, error }] =
-    useSendMagicSignInLinkLazyQuery({
-      fetchPolicy: 'network-only',
-    })
+  const verificationStatus = useRecoilValue(userVerificationStatus)
+  const [sentMagicLink, setSentMagicLink] = useState(false)
+
+  const [SendMagicSignIn, { data, loading }] = useSendMagicSignInLinkLazyQuery({
+    fetchPolicy: 'network-only',
+  })
 
   useEffect(() => {
     if (data?.SendMagicLink?.success) {
-      emitToast({
-        title: 'Link Sent Succesfully!',
-        description: 'Please check your Email!',
-        type: 'success',
-      })
+      setSentMagicLink(true)
     }
   }, [data])
 
@@ -74,89 +85,238 @@ const AuthenticateScreen = () => {
   })
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (!verificationStatus || !isAuthenticated) return
+
+    if (verificationStatus.status === VerificationStatusEnum.Approved) {
       history.replace(from)
     }
-  }, [isAuthenticated])
+  }, [isAuthenticated, verificationStatus])
+
+  if (
+    isAuthenticated === undefined ||
+    verificationStatus === undefined ||
+    verificationStatus?.loading
+  )
+    return <ScreenState title="Logging you in" loading />
+
+  if (sentMagicLink) {
+    return <MagicLinkState />
+  }
+
+  if (verificationStatus?.status === VerificationStatusEnum.InWaitlist) {
+    return <WaitlistState isInWailist />
+  }
+
+  if (verificationStatus?.status === VerificationStatusEnum.NotInWaitlist) {
+    return <WaitlistState isInWailist={false} />
+  }
 
   return (
-    <div className="flex justify-center items-center min-h-screen">
-      <div className="w-2/3 sm:w-1/3 lg:w-1/4 bg-gray-100 p-4 rounded-md flex flex-col items-center">
-        <Logo size="large" className="mb-4" />
-        <Button
-          appearance="primary"
-          className="w-full mb-4"
-          type="button"
-          icon={FaGoogle}
-          size="small"
-          onClick={() => {
-            signInWithGoogle?.()
-          }}
-        >
-          Sign in with Google
-        </Button>
-        <Button
-          appearance="primary"
-          className="w-full"
-          type="button"
-          icon={FaGithub}
-          size="small"
-          onClick={() => {
-            signInWithGithub?.()
-          }}
-        >
-          Sign in with GitHub
-        </Button>
+    <div className="grid grid-cols-2 h-screen">
+      <div className="bg-gray-800 relative">
+        <img
+          src={ASSETS.ICONS.IncredibleLogoDark}
+          alt="Incredible"
+          className="m-4"
+        />
+        <div className="h-full w-full grid grid-cols-8 -mt-20">
+          <Heading className="flex flex-col text-5xl col-start-2 col-end-8 text-white font-black self-end">
+            <span>Create developer</span>
+            <span>videos in record time</span>
+          </Heading>
+          <Text className="flex flex-col text-white mt-6 col-start-2 col-end-8 self-start">
+            <span>
+              Video creation made more effortless than eating a sandwich.
+            </span>
+            <span>Record. Share. Eat a sandwich.</span>
+          </Text>
+        </div>
+        <img
+          src={ASSETS.PATTERNS.LoginPattern}
+          alt="Incredible"
+          className="absolute right-0 bottom-0"
+        />
+      </div>
+      <div>
+        <div className="grid grid-cols-9 h-screen items-center">
+          <div className="col-span-4 col-start-3 col-end-8">
+            <Text className="font-bold text-2xl">Continue to Incredible</Text>
+            <form className="w-full mt-8">
+              <Text className="font-bold">Email</Text>
+              <TextField
+                label=""
+                type="email"
+                name="email"
+                placeholder="Email"
+                className="mb-2"
+                onBlur={handleBlur}
+                value={values.email}
+                onChange={(e) => {
+                  handleChange(e)
+                }}
+                caption={
+                  touched.email && errors.email ? errors.email : undefined
+                }
+              />
 
-        <span className="w-full mt-8 mb-4 border-t relative border-gray-700 border-dashed block h-px">
-          <span className="uppercase text-sm absolute left-1/2 top-0 -translate-y-1/2 px-2 bg-gray-100 transform -translate-x-1/2">
-            Or
-          </span>
-        </span>
+              <Button
+                type="button"
+                className="w-full py-2.5 mt-4"
+                appearance="primary"
+                size="small"
+                disabled={!isValid}
+                onClick={(e) => {
+                  e?.preventDefault()
+                  handleSubmit()
+                }}
+                loading={loading}
+              >
+                Continue
+              </Button>
+            </form>
 
-        <form className="w-full">
-          <TextField
-            label="Email"
-            type="email"
-            name="email"
-            className="mb-2"
-            onBlur={handleBlur}
-            value={values.email}
-            onChange={(e) => {
-              handleChange(e)
-            }}
-            caption={touched.email && errors.email ? errors.email : undefined}
-            required
-          />
-
-          <div className="flex items-center flex-col justify-end">
-            <Button
+            <div className="h-px my-8 bg-gray-300" />
+            <button
               type="button"
-              className="my-2"
-              appearance="primary"
-              size="small"
-              icon={FiArrowRight}
-              iconPosition="right"
-              disabled={!isValid}
-              onClick={(e) => {
-                e?.preventDefault()
-                handleSubmit()
+              className={cx(
+                'font-semibold group border transition-all flex justify-center items-center rounded-md cursor-pointer w-full py-3 border-gray-300'
+              )}
+              onClick={() => {
+                signInWithGoogle?.()
               }}
-              loading={loading}
             >
-              Sign in with Email
-            </Button>
+              <FcGoogle className="mr-2" size={21} />
+              Continue with Gmail
+            </button>
+            <button
+              type="button"
+              className={cx(
+                'font-semibold group border transition-all flex justify-center items-center rounded-md cursor-pointer w-full py-3 border-gray-300 mt-4'
+              )}
+              onClick={() => {
+                signInWithGithub?.()
+              }}
+            >
+              <FaGithub className="mr-2" size={21} />
+              Continue with Github
+            </button>
+            <div className="flex mt-12">
+              <Text className="text-sm mr-3">Dont have access yet?</Text>
+              <Link
+                to="/waitlist"
+                className="text-sm font-semibold mt-px hover:underline"
+              >
+                Join the waitlist
+              </Link>
+            </div>
           </div>
-        </form>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const MagicLinkState = () => {
+  return (
+    <div className="w-screen min-h-screen grid grid-cols-12">
+      <img
+        src={ASSETS.ICONS.IncredibleLogo}
+        alt="Incredible"
+        className="absolute left-0 top-0 m-4"
+      />
+      <div
+        className={cx(
+          'w-full col-start-5 col-end-9 flex flex-col items-center justify-end -mt-12',
+          {
+            'justify-center': true,
+          }
+        )}
+      >
+        <div className="flex">
+          <div className="h-24 w-24 bg-white border-8 border-brand rounded-full z-0" />
+          <div className="h-32 w-32 rounded-full backdrop-filter backdrop-blur-xl -ml-10 z-20" />
+          <div className="h-32 w-32 bg-gray-200 rounded-full -ml-32 z-10" />
+        </div>
+        <div className="px-14">
+          <Text className="mt-8 font-black text-3xl flex flex-col mb-4">
+            Check your mail for a magic link
+          </Text>
+          <Text>
+            We’ve sent a magic link to amberjoe@gmail.com. The link will expire
+            shortly, so please use it soon to continue.
+          </Text>
+          <Text className="text-sm mt-8">
+            Can’t find your link? Check your spam folder.
+          </Text>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const WaitlistState = ({ isInWailist }: { isInWailist: boolean }) => {
+  const { signOut } = (useRecoilValue(authState) as Auth) || {}
+  const user = useRecoilValue(userState)
+  return (
+    <div className="w-screen min-h-screen grid grid-cols-12">
+      <img
+        src={ASSETS.ICONS.IncredibleLogo}
+        alt="Incredible"
+        className="absolute left-0 top-0 m-4"
+      />
+      <div
+        className={cx(
+          'w-full col-start-5 col-end-9 flex flex-col items-center justify-end -mt-12',
+          {
+            'justify-center': true,
+          }
+        )}
+      >
+        <div className="flex">
+          <div className="h-24 w-24 bg-white border-8 border-gray-300 rounded-full z-0" />
+          <div className="h-32 w-32 rounded-full backdrop-filter backdrop-blur-xl -ml-10 z-20" />
+          <div className="h-32 w-32 bg-gray-200 rounded-full -ml-32 z-10" />
+        </div>
+        <div className="px-14">
+          <Text className="mt-8 font-black text-3xl flex flex-col mb-4">
+            <span>
+              {isInWailist
+                ? 'You are in the waitlist'
+                : 'Uh-oh, you are not in the waitlist'}
+            </span>
+          </Text>
+          <Text>
+            {isInWailist
+              ? 'We’re working hard to make Incredible available to everyone. We will get back to you as soon as possible. Hang in there!'
+              : 'We’re working hard to make Incredible available to everyone. Join the waitlist and we will get back to you soon.'}
+          </Text>
+          {!isInWailist && (
+            <Link to="/waitlist">
+              <Button
+                type="button"
+                className="w-full py-2.5 mt-10"
+                appearance="primary"
+                size="small"
+              >
+                Join Waitlist
+              </Button>
+            </Link>
+          )}
+          <div className="flex flex-wrap mt-12">
+            <Text className="text-sm mr-3">
+              Signed in with {user?.email}. Not you?
+            </Text>
+            <Text
+              onClick={() => signOut?.()}
+              className="text-sm font-semibold mt-px hover:underline cursor-pointer"
+            >
+              Log out
+            </Text>
+          </div>
+        </div>
       </div>
     </div>
   )
 }
 
 export default AuthenticateScreen
-
-/**
- * TODO:
- * 1. Debounce Input
- * 2. UI update with new branding
- */

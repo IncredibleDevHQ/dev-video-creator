@@ -43,12 +43,12 @@ const AuthorizedApolloProvider = ({
       })
   })
 
-  const authLink = setContext(async () => {
-    const headers = userAuth?.token
-      ? { Authorization: `Bearer ${userAuth.token}` }
-      : { 'X-Hasura-Role': 'anonymous' }
+  const authLink = setContext(async (_, { headers }) => {
+    const newHeaders = userAuth?.token
+      ? { ...headers, Authorization: `Bearer ${userAuth.token}` }
+      : { ...headers, 'X-Hasura-Role': 'anonymous' }
     return {
-      headers,
+      headers: newHeaders,
     }
   })
 
