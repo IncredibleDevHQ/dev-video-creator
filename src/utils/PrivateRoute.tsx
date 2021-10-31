@@ -29,8 +29,8 @@ const PrivateRoute = ({
   }, [auth])
 
   useEffect(() => {
-    if (verificationStatus === undefined) return
-    if (verificationStatus?.status !== VerificationStatusEnum.Approved) {
+    if (!verificationStatus || !verificationStatus.status) return
+    if (verificationStatus.status !== VerificationStatusEnum.Approved) {
       push('/login')
     }
   }, [verificationStatus])

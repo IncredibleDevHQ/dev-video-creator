@@ -12,6 +12,7 @@ import {
   FlickNavBar,
   FragmentBar,
   FragmentContent,
+  FragmentEditor,
   FragmentSideBar,
   UpdateFragmentParticipantsModal,
 } from './components'
@@ -19,7 +20,7 @@ import { newFlickStore } from './store/flickNew.store'
 
 const Flick = () => {
   const { id, fragmentId } = useParams<{ id: string; fragmentId?: string }>()
-  const [{ flick, activeFragmentId }, setFlickStore] =
+  const [{ flick, activeFragmentId, isMarkdown }, setFlickStore] =
     useRecoilState(newFlickStore)
   const { data, error, loading, refetch } = useGetFlickByIdQuery({
     variables: { id },
@@ -71,13 +72,13 @@ const Flick = () => {
     )
 
   return flick ? (
-    <div className="h-screen overflow-hidden">
+    <div className="h-screen overflow-x-hidden overflow-y-auto">
       <FlickNavBar />
       <div className="flex h-full">
         <FragmentSideBar />
         <div className="w-full">
           <FragmentBar />
-          <FragmentConfiguration />
+          {isMarkdown ? <FragmentEditor /> : <FragmentConfiguration />}
         </div>
       </div>
     </div>

@@ -9,7 +9,6 @@ import {
   DeleteFragmentModal,
   DuplicateFragmentModal,
   FragmentVideoModal,
-  MarkdownModal,
   NotesModal,
 } from '.'
 import { Button, emitToast, Text } from '../../../components'
@@ -18,14 +17,14 @@ import {
   useUpdateFragmentMutation,
 } from '../../../generated/graphql'
 import { newFlickStore } from '../store/flickNew.store'
+import { cx } from '@emotion/css'
 
 const FragmentBar = () => {
   const [confirmDeleteModal, setConfirmDeleteModal] = useState(false)
   const [duplicateModal, setDuplicateModal] = useState(false)
   const [fragmentVideoModal, setFragmetVideoModal] = useState(false)
-  const [markdownModal, setMarkdownModal] = useState(false)
   const [notesModal, setNotesModal] = useState(false)
-  const [{ flick, activeFragmentId }, setFlickStore] =
+  const [{ flick, activeFragmentId, isMarkdown }, setFlickStore] =
     useRecoilState(newFlickStore)
   const history = useHistory()
 
@@ -113,16 +112,24 @@ const FragmentBar = () => {
         <div className="flex items-center">
           <RiStickyNoteLine
             size={24}
-            className="text-gray-600 cursor-pointer mr-10"
+            className="text-gray-600 cursor-pointer mr-6"
             onClick={() => setNotesModal(true)}
           />
           <IoLogoMarkdown
             size={24}
-            className="text-gray-600 cursor-pointer"
-            onClick={() => setMarkdownModal(true)}
+            className={cx('cursor-pointer mr-6', {
+              'text-brand': isMarkdown,
+              'text-gray-600': !isMarkdown,
+            })}
+            onClick={() => {
+              setFlickStore((store) => ({
+                ...store,
+                isMarkdown: !store.isMarkdown,
+              }))
+            }}
           />
           <Text
-            className="text-base font-bold text-gray-800 truncate overflow-ellipsis cursor-text rounded-md p-1 hover:bg-gray-100"
+            className="text-lg font-bold text-gray-800 truncate overflow-ellipsis cursor-text rounded-md p-1 hover:bg-gray-100"
             contentEditable={editFragmentName}
             onClick={(e) => e.stopPropagation()}
             onMouseDown={(e) => {
@@ -191,15 +198,6 @@ const FragmentBar = () => {
           setNotesModal(false)
         }}
       />
-      {flick && (
-        <MarkdownModal
-          open={markdownModal}
-          flickId={flick.id}
-          handleClose={() => {
-            setMarkdownModal(false)
-          }}
-        />
-      )}
     </div>
   )
 }

@@ -79,7 +79,7 @@ const FragmentSideBar = () => {
       >
         <ThumbnailDND />
         <div
-          className="bg-gray-50 fixed top-14 flex items-center justify-center w-56 left-0 cursor-pointer py-3 border border-gray-300"
+          className="bg-gray-50 absolute top-0 flex items-center justify-center w-56 left-0 cursor-pointer py-3 border border-gray-300"
           onClick={() => setIsCreateNewModalOpen(true)}
         >
           <Button
