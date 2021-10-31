@@ -1,6 +1,6 @@
 import { atom, selector } from 'recoil'
 import { User as FBUser } from 'firebase/auth'
-import { UserFragment } from '../generated/graphql'
+import { UserFragment, VerificationStatusEnum } from '../generated/graphql'
 
 export type FirebaseUser = FBUser
 
@@ -13,6 +13,15 @@ export const firebaseUserState = atom<Partial<FirebaseUser> | null>({
 export const databaseUserState = atom<Partial<UserFragment> | null>({
   key: 'databaseUser',
   default: null,
+})
+
+interface VerificationStatus {
+  status: VerificationStatusEnum | null
+  loading: boolean
+}
+export const userVerificationStatus = atom<VerificationStatus | null>({
+  default: null,
+  key: 'userVerificationStatus',
 })
 
 export type User = (Partial<FirebaseUser> & Partial<UserFragment>) | null

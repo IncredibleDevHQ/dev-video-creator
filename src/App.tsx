@@ -17,7 +17,6 @@ import {
   NewFlick,
   NewOrganisation,
   Organisation,
-  Profile,
   Series,
   AllUserFlicks,
   Studio,
@@ -25,7 +24,6 @@ import {
   SingleSeries,
   Circle,
   Designer,
-  NewFragment,
   PublicOrganisationPage,
   InviteScreen,
   PublicVideo,
@@ -33,30 +31,27 @@ import {
   NewNewFragment,
   GitHubCallback,
   Integrations,
+  JoinWaitlist,
+  InWaitlist,
 } from './modules'
-import { ErrorBoundary, ScreenState } from './components'
+import { ScreenState } from './components'
 
 function detectBrowser() {
   if (
     (navigator.userAgent.indexOf('Opera') ||
-      navigator.userAgent.indexOf('OPR')) != -1
-  ) {
+      navigator.userAgent.indexOf('OPR')) !== -1
+  )
     return 'Opera'
-  } else if (navigator.userAgent.indexOf('Chrome') != -1) {
-    return 'Chrome'
-  } else if (navigator.userAgent.indexOf('Safari') != -1) {
-    return 'Safari'
-  } else if (navigator.userAgent.indexOf('Firefox') != -1) {
-    return 'Firefox'
-  } else if (
-    navigator.userAgent.indexOf('MSIE') != -1 ||
+  if (navigator.userAgent.indexOf('Chrome') !== -1) return 'Chrome'
+  if (navigator.userAgent.indexOf('Safari') !== -1) return 'Safari'
+  if (navigator.userAgent.indexOf('Firefox') !== -1) return 'Firefox'
+  if (
+    navigator.userAgent.indexOf('MSIE') !== -1 ||
     // @ts-ignore
-    !!document.documentMode == true
-  ) {
-    return 'IE' // crap
-  } else {
-    return 'Unknown'
-  }
+    !!document.documentMode === true
+  )
+    return 'IE'
+  return 'Unknown'
 }
 
 const App = () => {
@@ -158,6 +153,12 @@ const App = () => {
                 </Route>
                 <Route exact path="/signup">
                   <AuthenticateScreen />
+                </Route>
+                <Route exact path="/waitlist">
+                  <JoinWaitlist />
+                </Route>
+                <Route exact path="/in-waitlist">
+                  <InWaitlist />
                 </Route>
               </Switch>
             </Router>

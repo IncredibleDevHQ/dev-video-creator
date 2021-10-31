@@ -1632,13 +1632,6 @@
   dependencies:
     state-local "^1.0.6"
 
-"@monaco-editor/loader@^1.2.0":
-  version "1.2.0"
-  resolved "https://registry.yarnpkg.com/@monaco-editor/loader/-/loader-1.2.0.tgz#373fad69973384624e3d9b60eefd786461a76acd"
-  integrity sha512-cJVCG/T/KxXgzYnjKqyAgsKDbH9mGLjcXxN6AmwumBwa2rVFkwvGcUj1RJtD0ko4XqLqJxwqsN/Z/KURB5f1OQ==
-  dependencies:
-    state-local "^1.0.6"
-
 "@monaco-editor/react@^4.2.1":
   version "4.3.1"
   resolved "https://registry.yarnpkg.com/@monaco-editor/react/-/react-4.3.1.tgz#d65bcbf174c39b6d4e7fec43d0cddda82b70a12a"
@@ -2441,9 +2434,10 @@ aggregate-error@^3.0.0:
     clean-stack "^2.0.0"
     indent-string "^4.0.0"
 
-"agora-rtc-react@git://github.com/AgoraIO-Community/agora-rtc-react#v1.0.0":
-  version "1.0.0"
-  resolved "git://github.com/AgoraIO-Community/agora-rtc-react#89b689e77fa01cac7187e5d6106f4fc2e6e8f2e6"
+agora-rtc-react@^1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/agora-rtc-react/-/agora-rtc-react-1.1.0.tgz#be8adbdd9f8716921cf434205fd0dcc8c321295f"
+  integrity sha512-+cvK3gXcUC2FzXkrN9L/nE5B6FqgP2w7fWid5wpsdtzmBMf/gehzN1cDhMSDz2oI3Jq/9zo9R4iVswPx+QtAGA==
   dependencies:
     agora-rtc-sdk-ng "^4.3.0"
 

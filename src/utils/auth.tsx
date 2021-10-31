@@ -12,7 +12,11 @@ import {
 import { ref, onValue } from 'firebase/database'
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
 import { authState } from '../stores/auth.store'
-import { databaseUserState, firebaseUserState } from '../stores/user.store'
+import {
+  databaseUserState,
+  firebaseUserState,
+  userVerificationStatus,
+} from '../stores/user.store'
 import firebaseState from '../stores/firebase.store'
 import { useGetUserLazyQuery } from '../generated/graphql'
 
@@ -21,8 +25,11 @@ const AuthProvider = ({ children }: { children: JSX.Element }): JSX.Element => {
   const [auth, setAuth] = useRecoilState(authState)
   const setFirebaseUser = useSetRecoilState(firebaseUserState)
   const setDatabaseUser = useSetRecoilState(databaseUserState)
+  const setUserVerification = useSetRecoilState(userVerificationStatus)
 
-  const [getUserQuery, { data: me }] = useGetUserLazyQuery()
+  const [getUserQuery, { data: me }] = useGetUserLazyQuery({
+    fetchPolicy: 'cache-first',
+  })
 
   const signInWithEmail = async (email: string, password: string) => {
     return signInWithEmailAndPassword(firebaseAuth, email, password)
@@ -76,11 +83,19 @@ const AuthProvider = ({ children }: { children: JSX.Element }): JSX.Element => {
   useEffect(() => {
     if (!me?.Me) return
     setDatabaseUser(me.Me)
+    setUserVerification({
+      status: me.Me.verificationStatus || null,
+      loading: false,
+    })
   }, [me])
 
   useEffect(() => {
     onAuthStateChanged(firebaseAuth, async (user) => {
       setAuth((auth) => ({ ...auth, loading: true }))
+      setUserVerification(() => ({
+        status: null,
+        loading: true,
+      }))
       if (user) {
         const token = await user.getIdToken(true)
         const idTokenResult = await user.getIdTokenResult(true)
@@ -117,6 +132,7 @@ const AuthProvider = ({ children }: { children: JSX.Element }): JSX.Element => {
           token: undefined,
         }))
         setFirebaseUser(null)
+        setUserVerification(null)
       }
     })
   }, [])

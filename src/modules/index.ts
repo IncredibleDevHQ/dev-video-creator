@@ -24,6 +24,8 @@ import MagicLinkLogin from './Authentication/MagicLinkLogin'
 import NewNewFragment from './NewFragment/NewNewFragment'
 import Integrations from './Integrations/Integrations'
 import GitHubCallback from './Integrations/GitHubCallback'
+import JoinWaitlist from './Authentication/JoinWaitlist'
+import InWaitlist from './Authentication/InWaitlist'
 
 export {
   AllUserFlicks,
@@ -51,4 +53,6 @@ export {
   SingleSeries,
   Studio,
   UserSeriesFlicks,
+  JoinWaitlist,
+  InWaitlist,
 }

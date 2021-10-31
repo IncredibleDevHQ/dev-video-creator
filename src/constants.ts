@@ -10,10 +10,12 @@ import Incredible_logo from './assets/incredible_logo.svg'
 import TWITTER_LOGO from './assets/logos_twitter.svg'
 import SLACK_LOGO from './assets/grommet-icons_slack.svg'
 import IncredibleLogo from './assets/Incredible-Logo.svg'
+import IncredibleLogoDark from './assets/Incredible-Logo-Dark.svg'
 import seriesFolder from './assets/albums-outline.svg'
 import flickIcon from './assets/flickIcon.svg'
 import EmptyState from './assets/EmptyState.svg'
 import StudioLogo from './assets/Logo-studio.svg'
+import LoginPattern from './assets/LoginPattern.svg'
 
 export const ASSETS = {
   ICONS: {
@@ -25,6 +27,7 @@ export const ASSETS = {
     Incredible_logo,
     TWITTER_LOGO,
     IncredibleLogo,
+    IncredibleLogoDark,
     StudioLogo,
   },
   ANIMATION: {
@@ -32,6 +35,9 @@ export const ASSETS = {
     LANDING_DEVELOPER,
     COMMUNITY,
     EMPTY_ACTIVITY,
+  },
+  PATTERNS: {
+    LoginPattern,
   },
 }
 
