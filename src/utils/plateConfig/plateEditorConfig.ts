@@ -154,6 +154,6 @@ export const CONFIG: {
   },
   mentionItems: {},
   forceLayout: {
-    rules: [{ path: [0], strictType: ELEMENT_H1 }],
+    rules: [], // [{ path: [0], strictType: ELEMENT_H1 }],
   },
 }

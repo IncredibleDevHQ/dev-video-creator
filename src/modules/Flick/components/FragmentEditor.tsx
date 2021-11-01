@@ -54,11 +54,11 @@ import {
   useFindReplacePlugin,
   useStoreEditorState,
 } from '@udecode/plate'
-import { serialize } from 'remark-slate'
 import { MdSearch } from 'react-icons/md'
 import { ReactEditor } from 'slate-react'
 import { HistoryEditor } from 'slate-history'
-import { BlockType, LeafType } from 'remark-slate/dist/serialize'
+import serialize from '../../../utils/plateConfig/serializer/serialize'
+
 import {
   BallonToolbarMarks,
   ToolbarButtons,
@@ -147,20 +147,8 @@ const FragmentEditor = () => {
         initialValue={VALUES.playground}
         onChange={(value) => {
           console.log(value)
-          console.log(
-            value
-              .map((v) => {
-                switch (v.type) {
-                  case 'p':
-                    return serialize({ ...v, type: 'paragraph' })
-                  case 'h1':
-                    return serialize({ ...v, type: 'heading_one' })
-                  default:
-                    return serialize(v as BlockType | LeafType)
-                }
-              })
-              .join('\n')
-          )
+          // This can be stored in database or can be called to generate on demand
+          console.log(value.map((block) => serialize(block)).join('\n'))
         }}
       >
         <ToolbarSearchHighlight icon={MdSearch} setSearch={setSearch} />
