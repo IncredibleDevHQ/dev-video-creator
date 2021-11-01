@@ -21,6 +21,8 @@ import {
 } from '../../generated/graphql'
 import { Auth, authState } from '../../stores/auth.store'
 import { userState, userVerificationStatus } from '../../stores/user.store'
+import gmail from '../../assets/gmail.svg'
+import outlook from '../../assets/outlook.svg'
 
 const AuthenticateScreen = () => {
   const { signInWithGoogle, signInWithGithub, isAuthenticated } =
@@ -100,7 +102,7 @@ const AuthenticateScreen = () => {
     return <ScreenState title="Logging you in" loading />
 
   if (sentMagicLink) {
-    return <MagicLinkState />
+    return <MagicLinkState email={values.email} />
   }
 
   if (verificationStatus?.status === VerificationStatusEnum.InWaitlist) {
@@ -198,13 +200,13 @@ const AuthenticateScreen = () => {
               }}
             >
               <FaGithub className="mr-2" size={21} />
-              Continue with Github
+              Continue with GitHub
             </button>
             <div className="flex mt-12">
-              <Text className="text-sm mr-3">Dont have access yet?</Text>
+              <Text className="text-sm mr-1">Dont have access yet?</Text>
               <Link
                 to="/waitlist"
-                className="text-sm font-semibold mt-px hover:underline"
+                className="text-sm font-semibold hover:underline"
               >
                 Join the waitlist
               </Link>
@@ -216,7 +218,7 @@ const AuthenticateScreen = () => {
   )
 }
 
-const MagicLinkState = () => {
+const MagicLinkState = ({ email }: { email: string }) => {
   return (
     <div className="w-screen min-h-screen grid grid-cols-12">
       <img
@@ -238,16 +240,41 @@ const MagicLinkState = () => {
           <div className="h-32 w-32 bg-gray-200 rounded-full -ml-32 z-10" />
         </div>
         <div className="px-14">
-          <Text className="mt-8 font-black text-3xl flex flex-col mb-4">
+          <Text className="mt-8 font-black text-3xl mb-4">
             Check your mail for a magic link
           </Text>
           <Text>
-            We’ve sent a magic link to amberjoe@gmail.com. The link will expire
+            We’ve sent a magic link to{' '}
+            <span className="font-semibold">{email}</span>. The link will expire
             shortly, so please use it soon to continue.
           </Text>
           <Text className="text-sm mt-8">
             Can’t find your link? Check your spam folder.
           </Text>
+          <div className="grid grid-cols-2 gap-x-4 mt-8">
+            <button
+              type="button"
+              className={cx(
+                'font-semibold group border transition-all flex justify-center items-center rounded-md cursor-pointer w-full py-3 border-gray-300 mt-4'
+              )}
+              onClick={() => window.open('https://mail.google.com/', '_blank')}
+            >
+              <img src={gmail} alt="gmail-logo" className="mr-2" />
+              Open Gmail
+            </button>
+            <button
+              type="button"
+              className={cx(
+                'font-semibold group border transition-all flex justify-center items-center rounded-md cursor-pointer w-full py-3 border-gray-300 mt-4'
+              )}
+              onClick={() =>
+                window.open('https://outlook.office.com/mail/', '_blank')
+              }
+            >
+              <img src={outlook} alt="gmail-logo" className="mr-2" />
+              Open Outlook
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -308,7 +335,7 @@ const WaitlistState = ({ isInWailist }: { isInWailist: boolean }) => {
             </Text>
             <Text
               onClick={() => signOut?.()}
-              className="text-sm font-semibold mt-px hover:underline cursor-pointer"
+              className="text-sm font-semibold hover:underline cursor-pointer"
             >
               Log out
             </Text>
