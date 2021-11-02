@@ -14,6 +14,7 @@ import FragmentEditor from './FragmentEditor'
 import FlickCard from './FlickCard'
 import MarkdownModal from './MarkdownModal'
 import NotesModal from './NotesModal'
+import FragmentView from './FragmentView'
 
 export {
   ScreenRecording,
@@ -32,4 +33,5 @@ export {
   FlickCard,
   MarkdownModal,
   NotesModal,
+  FragmentView,
 }

@@ -138,7 +138,7 @@ const FragmentEditor = () => {
   }, [searchHighlightPlugin, editorRef])
 
   return (
-    <div>
+    <div className="h-full overflow-scroll pb-32 pl-6 pr-6 pt-6">
       <Plate
         id={id}
         components={components}
