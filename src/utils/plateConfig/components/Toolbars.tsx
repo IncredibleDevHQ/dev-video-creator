@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   addColumn,
   addRow,
@@ -19,6 +19,8 @@ import {
   getPlatePluginType,
   getPreventDefaultHandler,
   indent,
+  insertEmptyElement,
+  insertNodes,
   insertTable,
   MARK_BG_COLOR,
   MARK_BOLD,
@@ -32,6 +34,7 @@ import {
   MARK_SUPERSCRIPT,
   MARK_UNDERLINE,
   outdent,
+  SPEditor,
   ToolbarAlign,
   ToolbarButton,
   ToolbarCodeBlock,
@@ -46,6 +49,7 @@ import {
   useEventEditorId,
   useStoreEditorRef,
 } from '@udecode/plate'
+import { css, cx } from '@emotion/css'
 import {
   MdBorderAll,
   MdBorderBottom,
@@ -86,7 +90,11 @@ import {
   MdSubscript,
   MdSuperscript,
 } from 'react-icons/md'
-import { BiCodeAlt } from 'react-icons/bi'
+import { BiCodeAlt, BiHeading } from 'react-icons/bi'
+import { ReactEditor } from 'slate-react'
+import { HistoryEditor } from 'slate-history'
+import { FiCheckCircle, FiXCircle } from 'react-icons/fi'
+import { Button } from '../../../components'
 
 export const ToolbarButtonsBasicElements = () => {
   const editor = useStoreEditorRef(useEventEditorId('focus'))
@@ -95,9 +103,14 @@ export const ToolbarButtonsBasicElements = () => {
     <>
       <ToolbarElement
         type={getPlatePluginType(editor, ELEMENT_H1)}
-        icon={<MdOutlineLooksOne />}
+        icon={<BiHeading />}
+        classNames={{
+          active: css`
+            color: #16a34a !important;
+          `,
+        }}
       />
-      <ToolbarElement
+      {/* <ToolbarElement
         type={getPlatePluginType(editor, ELEMENT_H2)}
         icon={<MdOutlineLooksTwo />}
       />
@@ -116,11 +129,11 @@ export const ToolbarButtonsBasicElements = () => {
       <ToolbarElement
         type={getPlatePluginType(editor, ELEMENT_H6)}
         icon={<MdOutlineLooks6 />}
-      />
+      /> 
       <ToolbarElement
         type={getPlatePluginType(editor, ELEMENT_BLOCKQUOTE)}
         icon={<MdOutlineFormatQuote />}
-      />
+      /> */}
       <ToolbarCodeBlock
         type={getPlatePluginType(editor, ELEMENT_CODE_BLOCK)}
         icon={<MdOutlineCode />}
@@ -155,10 +168,10 @@ export const ToolbarButtonsList = () => {
         type={getPlatePluginType(editor, ELEMENT_UL)}
         icon={<MdFormatListBulleted />}
       />
-      <ToolbarList
+      {/* <ToolbarList
         type={getPlatePluginType(editor, ELEMENT_OL)}
         icon={<MdFormatListNumbered />}
-      />
+      /> */}
     </>
   )
 }
@@ -169,7 +182,7 @@ export const ToolbarButtonsAlign = () => {
       <ToolbarAlign align="left" icon={<MdOutlineFormatAlignLeft />} />
       <ToolbarAlign align="center" icon={<MdOutlineFormatAlignCenter />} />
       <ToolbarAlign align="right" icon={<MdOutlineFormatAlignRight />} />
-      <ToolbarAlign align="justify" icon={<MdOutlineFormatAlignJustify />} />
+      {/* <ToolbarAlign align="justify" icon={<MdOutlineFormatAlignJustify />} /> */}
     </>
   )
 }
@@ -191,15 +204,15 @@ export const ToolbarButtonsBasicMarks = () => {
         type={getPlatePluginType(editor, MARK_UNDERLINE)}
         icon={<MdOutlineFormatUnderlined />}
       />
-      <ToolbarMark
+      {/* <ToolbarMark
         type={getPlatePluginType(editor, MARK_STRIKETHROUGH)}
         icon={<MdOutlineFormatStrikethrough />}
-      />
+      /> 
       <ToolbarMark
         type={getPlatePluginType(editor, MARK_CODE)}
         icon={<BiCodeAlt />}
       />
-      <ToolbarMark
+       <ToolbarMark
         type={getPlatePluginType(editor, MARK_SUPERSCRIPT)}
         clear={getPlatePluginType(editor, MARK_SUBSCRIPT)}
         icon={<MdSuperscript />}
@@ -208,7 +221,7 @@ export const ToolbarButtonsBasicMarks = () => {
         type={getPlatePluginType(editor, MARK_SUBSCRIPT)}
         clear={getPlatePluginType(editor, MARK_SUPERSCRIPT)}
         icon={<MdSubscript />}
-      />
+      /> */}
     </>
   )
 }
@@ -287,18 +300,97 @@ export const BallonToolbarMarks = () => {
   )
 }
 
-export const ToolbarButtons = () => (
-  <>
-    <ToolbarButtonsBasicElements />
-    <ToolbarButtonsList />
-    <ToolbarButtonsIndent />
-    <ToolbarButtonsBasicMarks />
-    <ToolbarColorPicker pluginKey={MARK_COLOR} icon={<MdFormatColorText />} />
-    <ToolbarColorPicker pluginKey={MARK_BG_COLOR} icon={<MdFontDownload />} />
-    <ToolbarButtonsAlign />
-    <ToolbarLink icon={<MdLink />} />
-    <ToolbarImage icon={<MdImage />} />
-    <ToolbarMediaEmbed icon={<MdOndemandVideo />} />
-    <ToolbarButtonsTable />
-  </>
-)
+export const GenerateExplanationButton = ({
+  insertText,
+  deleteText,
+  editor,
+}: {
+  insertText: (text: string) => void
+  deleteText: (characters: number) => void
+  editor: SPEditor & ReactEditor & HistoryEditor
+}) => {
+  const [isExplanation, setExplanation] = useState(false)
+  const tempString = 'gpt-3 explanation'
+
+  return (
+    <div className="mx-2 flex justify-end items-center">
+      {isExplanation && (
+        <>
+          <FiCheckCircle
+            size={20}
+            className="text-success mx-1"
+            onClick={() => {
+              setExplanation(false)
+            }}
+          />
+          <FiXCircle
+            size={20}
+            className="text-error mx-1"
+            onClick={() => {
+              deleteText(tempString.length + 2)
+              setExplanation(false)
+            }}
+          />
+        </>
+      )}
+      <Button
+        type="button"
+        size="extraSmall"
+        appearance="secondary"
+        disabled={isExplanation}
+        onClick={() => {
+          insertText(tempString)
+          setExplanation(true)
+        }}
+      >
+        Generate Explanation
+      </Button>
+    </div>
+  )
+}
+
+export const ToolbarButtons = ({
+  editor,
+}: {
+  editor: SPEditor & ReactEditor & HistoryEditor
+}) => {
+  const insertTextToEditor = (text: string) => {
+    editor.insertBreak()
+    insertNodes(editor, { text, type: 'text' }, { block: true, select: true })
+  }
+
+  const deleteTextFromEditor = () => {
+    editor.undo()
+  }
+
+  return (
+    <div
+      className={cx(
+        'flex w-full justify-between items-center',
+        css`
+          padding-left: 1rem;
+          padding-right: 1rem;
+        `
+      )}
+    >
+      <div className="flex">
+        <ToolbarButtonsBasicElements />
+        <ToolbarButtonsList />
+        {/* <ToolbarButtonsIndent /> */}
+        <ToolbarButtonsBasicMarks />
+        {/* <ToolbarColorPicker pluginKey={MARK_COLOR} icon={<MdFormatColorText />} />
+    <ToolbarColorPicker pluginKey={MARK_BG_COLOR} icon={<MdFontDownload />} /> */}
+        <ToolbarButtonsAlign />
+        {/* <ToolbarLink icon={<MdLink />} /> */}
+        <ToolbarImage icon={<MdImage />} />
+        <ToolbarMediaEmbed icon={<MdOndemandVideo />} />
+        {/* <ToolbarButtonsTable /> */}
+      </div>
+      <GenerateExplanationButton
+        editor={editor}
+        insertText={insertTextToEditor}
+        deleteText={deleteTextFromEditor}
+      />
+    </div>
+  )
+}

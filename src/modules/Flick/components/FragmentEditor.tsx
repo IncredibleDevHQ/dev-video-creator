@@ -50,15 +50,14 @@ import {
   Plate,
   PlatePlugin,
   SPEditor,
-  ToolbarSearchHighlight,
   useFindReplacePlugin,
   useStoreEditorState,
 } from '@udecode/plate'
 import { serialize } from 'remark-slate'
-import { MdSearch } from 'react-icons/md'
 import { ReactEditor } from 'slate-react'
 import { HistoryEditor } from 'slate-history'
 import { BlockType, LeafType } from 'remark-slate/dist/serialize'
+import { css } from '@emotion/css'
 import {
   BallonToolbarMarks,
   ToolbarButtons,
@@ -77,8 +76,6 @@ const FragmentEditor = () => {
 
   const editorRef = useStoreEditorState(id)
 
-  const { setSearch, plugin: searchHighlightPlugin } = useFindReplacePlugin()
-
   const pluginsMemo: PlatePlugin<TEditor>[] = useMemo(() => {
     const plugins = [
       createReactPlugin(),
@@ -91,10 +88,10 @@ const FragmentEditor = () => {
       createHorizontalRulePlugin(),
       createLinkPlugin(),
       createListPlugin(),
-      createTablePlugin(),
-      createFontFamilyPlugin(),
+      // createTablePlugin(),
+      // createFontFamilyPlugin(),
       createLineHeightPlugin(),
-      createFontWeightPlugin(),
+      // createFontWeightPlugin(),
       createMediaEmbedPlugin(),
       createCodeBlockPlugin(),
       createAlignPlugin(CONFIG.align),
@@ -103,15 +100,15 @@ const FragmentEditor = () => {
       createItalicPlugin(),
       createHighlightPlugin(),
       createUnderlinePlugin(),
-      createStrikethroughPlugin(),
-      createSubscriptPlugin(),
-      createSuperscriptPlugin(),
-      createFontColorPlugin(),
-      createFontBackgroundColorPlugin(),
-      createFontSizePlugin(),
+      // createStrikethroughPlugin(),
+      // createSubscriptPlugin(),
+      // createSuperscriptPlugin(),
+      // createFontColorPlugin(),
+      // createFontBackgroundColorPlugin(),
+      // createFontSizePlugin(),
       createKbdPlugin(),
       createNodeIdPlugin(),
-      createIndentPlugin(CONFIG.indent),
+      // createIndentPlugin(CONFIG.indent),
       createAutoformatPlugin(CONFIG.autoformat),
       createResetNodePlugin(CONFIG.resetBlockType),
       createSoftBreakPlugin(CONFIG.softBreak),
@@ -119,9 +116,8 @@ const FragmentEditor = () => {
       createNormalizeTypesPlugin(CONFIG.forceLayout),
       createTrailingBlockPlugin(CONFIG.trailingBlock),
       createSelectOnBackspacePlugin(CONFIG.selectOnBackspace),
-      createComboboxPlugin(),
+      // createComboboxPlugin(),
       createMentionPlugin(),
-      searchHighlightPlugin,
     ]
 
     plugins.push(
@@ -134,17 +130,16 @@ const FragmentEditor = () => {
     )
 
     return plugins
-  }, [searchHighlightPlugin, editorRef])
+  }, [editorRef])
 
   return (
-    <div>
+    <div className="overflow-x-hidden relative">
       <Plate
         id={id}
         components={components}
         options={options}
         plugins={pluginsMemo}
         editableProps={CONFIG.editableProps}
-        initialValue={VALUES.playground}
         onChange={(value) => {
           console.log(value)
           console.log(
@@ -163,10 +158,18 @@ const FragmentEditor = () => {
           )
         }}
       >
-        <ToolbarSearchHighlight icon={MdSearch} setSearch={setSearch} />
-        <HeadingToolbar>
-          <ToolbarButtons />
-        </HeadingToolbar>
+        {editorRef && (
+          <HeadingToolbar
+            className={css`
+              padding: 0.5rem 1rem !important;
+              top: 0;
+              left: 0;
+              right: 0;
+            `}
+          >
+            <ToolbarButtons editor={editorRef} />
+          </HeadingToolbar>
+        )}
         <BallonToolbarMarks />
       </Plate>
     </div>
