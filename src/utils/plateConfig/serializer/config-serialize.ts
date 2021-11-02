@@ -86,13 +86,23 @@ export const serializeDataConfig = (nodeArray: TNode[]): FragmentConfig[] => {
         context = null
       }
       // extract necessary data from plate's node array
-      context = {
-        id: nanoid(),
-        type: ConfigType.TRIVIA,
-        title: heading || '',
-        value: node.children[0].text.split('\n'),
-        notes: [],
-      } as TriviaConfig
+      if (node.type === defaultNodeTypes.block_quote) {
+        context = {
+          id: nanoid(),
+          type: ConfigType.TRIVIA,
+          title: heading || '',
+          value: node.children[0].text,
+          notes: [],
+        } as TriviaConfig
+      } else if (node.type === defaultNodeTypes.image) {
+        context = {
+          id: nanoid(),
+          type: ConfigType.TRIVIA,
+          title: heading || '',
+          value: { text: node.caption?.[0].text, image: node.url },
+          notes: [],
+        } as TriviaConfig
+      }
     } else if (node.type === defaultNodeTypes.ul_list) {
       if (context !== null) {
         // add to config and clean-up

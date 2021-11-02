@@ -45,6 +45,6 @@ export const defaultNodeTypes: NodeTypes = {
   delete_mark: 'strikeThrough', // this is currently set as a property on p type as {strikethrough: true}
   inline_code_mark: 'code_block',
   thematic_break: 'thematic_break',
-  image: 'image',
+  image: 'img',
   media_embed: 'media_embed',
 }

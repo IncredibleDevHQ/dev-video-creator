@@ -43,7 +43,7 @@ export interface TriviaConfig {
   value: {
     text: string
     image?: string
-  }[]
+  }
   notes?: string[]
 }
 
