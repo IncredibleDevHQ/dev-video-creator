@@ -6,23 +6,16 @@ import {
   createBoldPlugin,
   createCodeBlockPlugin,
   createCodePlugin,
-  createComboboxPlugin,
   createDeserializeAstPlugin,
   createDeserializeCSVPlugin,
   createDeserializeHTMLPlugin,
   createDeserializeMDPlugin,
   createExitBreakPlugin,
-  createFontBackgroundColorPlugin,
-  createFontColorPlugin,
-  createFontFamilyPlugin,
-  createFontSizePlugin,
-  createFontWeightPlugin,
   createHeadingPlugin,
   createHighlightPlugin,
   createHistoryPlugin,
   createHorizontalRulePlugin,
   createImagePlugin,
-  createIndentPlugin,
   createItalicPlugin,
   createKbdPlugin,
   createLineHeightPlugin,
@@ -39,10 +32,6 @@ import {
   createResetNodePlugin,
   createSelectOnBackspacePlugin,
   createSoftBreakPlugin,
-  createStrikethroughPlugin,
-  createSubscriptPlugin,
-  createSuperscriptPlugin,
-  createTablePlugin,
   createTodoListPlugin,
   createTrailingBlockPlugin,
   createUnderlinePlugin,
@@ -50,23 +39,19 @@ import {
   Plate,
   PlatePlugin,
   SPEditor,
-  ToolbarSearchHighlight,
-  useFindReplacePlugin,
   useStoreEditorState,
 } from '@udecode/plate'
-import { MdSearch } from 'react-icons/md'
 import { ReactEditor } from 'slate-react'
 import { HistoryEditor } from 'slate-history'
-import mdSerialize from '../../../utils/plateConfig/serializer/md-serialize'
-
+import { css } from '@emotion/css'
 import {
   BallonToolbarMarks,
   ToolbarButtons,
 } from '../../../utils/plateConfig/components/Toolbars'
-import { VALUES } from '../../../utils/plateConfig/values/values'
 import { CONFIG } from '../../../utils/plateConfig/plateEditorConfig'
 import { withStyledPlaceHolders } from '../../../utils/plateConfig/components/withStyledPlaceholders'
-import { serializeDataConfig } from '../../../utils/plateConfig/serializer/config-serialize'
+// import { serializeDataConfig } from '../../../utils/plateConfig/serializer/config-serialize'
+// import mdSerialize from '../../../utils/plateConfig/serializer/md-serialize'
 
 type TEditor = SPEditor & ReactEditor & HistoryEditor
 
@@ -77,8 +62,6 @@ const FragmentEditor = () => {
   const options = createPlateOptions()
 
   const editorRef = useStoreEditorState(id)
-
-  const { setSearch, plugin: searchHighlightPlugin } = useFindReplacePlugin()
 
   const pluginsMemo: PlatePlugin<TEditor>[] = useMemo(() => {
     const plugins = [
@@ -92,10 +75,10 @@ const FragmentEditor = () => {
       createHorizontalRulePlugin(),
       createLinkPlugin(),
       createListPlugin(),
-      createTablePlugin(),
-      createFontFamilyPlugin(),
+      // createTablePlugin(),
+      // createFontFamilyPlugin(),
       createLineHeightPlugin(),
-      createFontWeightPlugin(),
+      // createFontWeightPlugin(),
       createMediaEmbedPlugin(),
       createCodeBlockPlugin(),
       createAlignPlugin(CONFIG.align),
@@ -104,15 +87,15 @@ const FragmentEditor = () => {
       createItalicPlugin(),
       createHighlightPlugin(),
       createUnderlinePlugin(),
-      createStrikethroughPlugin(),
-      createSubscriptPlugin(),
-      createSuperscriptPlugin(),
-      createFontColorPlugin(),
-      createFontBackgroundColorPlugin(),
-      createFontSizePlugin(),
+      // createStrikethroughPlugin(),
+      // createSubscriptPlugin(),
+      // createSuperscriptPlugin(),
+      // createFontColorPlugin(),
+      // createFontBackgroundColorPlugin(),
+      // createFontSizePlugin(),
       createKbdPlugin(),
       createNodeIdPlugin(),
-      createIndentPlugin(CONFIG.indent),
+      // createIndentPlugin(CONFIG.indent),
       createAutoformatPlugin(CONFIG.autoformat),
       createResetNodePlugin(CONFIG.resetBlockType),
       createSoftBreakPlugin(CONFIG.softBreak),
@@ -120,9 +103,8 @@ const FragmentEditor = () => {
       createNormalizeTypesPlugin(CONFIG.forceLayout),
       createTrailingBlockPlugin(CONFIG.trailingBlock),
       createSelectOnBackspacePlugin(CONFIG.selectOnBackspace),
-      createComboboxPlugin(),
+      // createComboboxPlugin(),
       createMentionPlugin(),
-      searchHighlightPlugin,
     ]
 
     plugins.push(
@@ -135,32 +117,41 @@ const FragmentEditor = () => {
     )
 
     return plugins
-  }, [searchHighlightPlugin, editorRef])
+  }, [editorRef])
 
   return (
-    <div className="h-full overflow-scroll pb-32 pl-6 pr-6 pt-6">
+    <div className="overflow-x-hidden relative">
       <Plate
         id={id}
         components={components}
         options={options}
         plugins={pluginsMemo}
         editableProps={CONFIG.editableProps}
-        initialValue={VALUES.playground}
-        onChange={(value) => {
-          console.log(value)
-          // This can be stored in database or can be called to generate on demand
-          console.log(value.map((block) => mdSerialize(block)).join('\n'))
-          // get the data config
-          console.log(
-            'data config: ',
-            JSON.stringify(serializeDataConfig(value))
-          )
-        }}
+        // onChange={
+        //   // (value) => {
+        //   // console.log(value)
+        //   // This can be stored in database or can be called to generate on demand
+        //   // console.log(value.map((block) => mdSerialize(block)).join('\n'))
+        //   // get the data config
+        //   // console.log(
+        //   //   'data config: ',
+        //   //   JSON.stringify(serializeDataConfig(value))
+        //   // )
+        //   // }
+        // }
       >
-        <ToolbarSearchHighlight icon={MdSearch} setSearch={setSearch} />
-        <HeadingToolbar>
-          <ToolbarButtons />
-        </HeadingToolbar>
+        {editorRef && (
+          <HeadingToolbar
+            className={css`
+              padding: 0.5rem 1rem !important;
+              top: 0;
+              left: 0;
+              right: 0;
+            `}
+          >
+            <ToolbarButtons editor={editorRef} />
+          </HeadingToolbar>
+        )}
         <BallonToolbarMarks />
       </Plate>
     </div>
