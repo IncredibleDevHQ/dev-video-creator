@@ -79,6 +79,9 @@ const FragmentSideBar = () => {
       >
         <ThumbnailDND />
         <div
+          role="button"
+          onKeyUp={() => {}}
+          tabIndex={-1}
           className="bg-gray-50 absolute top-0 flex items-center justify-center w-56 left-0 cursor-pointer py-3 border border-gray-300"
           onClick={() => setIsCreateNewModalOpen(true)}
         >
@@ -201,8 +204,7 @@ const Thumbnail = ({
   ...rest
 }: ThumbnailProps) => {
   const [editFragmentName, setEditFragmentName] = useState(false)
-  const [{ flick, activeFragmentId }, setFlickStore] =
-    useRecoilState(newFlickStore)
+  const [{ flick }, setFlickStore] = useRecoilState(newFlickStore)
   const [updateFragmentMutation, { data: updateFargmentData }] =
     useUpdateFragmentMutation()
   const [overflowButtonVisible, setOverflowButtonVisible] = useState(false)
@@ -217,6 +219,27 @@ const Thumbnail = ({
         flickId: flick?.id,
       },
     })
+
+  useEffect(() => {
+    if (!data || !flick) return
+    setFlickStore((store) => ({
+      ...store,
+      flick: {
+        ...flick,
+        fragments: [...data.Fragment],
+      },
+    }))
+  }, [data])
+
+  useEffect(() => {
+    if (!error || !refetch) return
+    emitToast({
+      title: "We couldn't fetch your new fragment",
+      type: 'error',
+      description: 'Click this toast to give it another try',
+      onClick: () => refetch(),
+    })
+  }, [error])
 
   useEffect(() => {
     if (!updateFargmentData) return
@@ -239,7 +262,7 @@ const Thumbnail = ({
           },
         }))
       }
-      const result = await updateFragmentMutation({
+      await updateFragmentMutation({
         variables: {
           fragmentId: fragment?.id, // value for 'fragmentId'
           name: newName,
@@ -251,7 +274,7 @@ const Thumbnail = ({
   return (
     <div
       role="button"
-      tabIndex={0}
+      tabIndex={-1}
       onKeyUp={() => {}}
       className={cx(
         'flex flex-col my-2 mx-6 rounded-md h-28 bg-gray-100 justify-end p-4 relative border border-gray-300',
@@ -273,6 +296,9 @@ const Thumbnail = ({
       )}
       {overflowButtonVisible && (
         <div
+          role="button"
+          onKeyUp={() => {}}
+          tabIndex={-1}
           className="absolute top-0 right-0 m-2 bg-gray-50 w-min p-1 shadow-md rounded-md cursor-pointer"
           onClick={(e) => {
             e.stopPropagation()
@@ -288,6 +314,9 @@ const Thumbnail = ({
         content={
           <div className="flex flex-col bg-gray-50 rounded-md border border-gray-300 w-44 z-10 shadow-md">
             <div
+              role="button"
+              onKeyUp={() => {}}
+              tabIndex={-1}
               className="flex items-center pt-3 pb-1.5 px-4 cursor-pointer hover:bg-gray-100"
               onClick={() => setConfirmDeleteModal(true)}
             >
@@ -295,6 +324,9 @@ const Thumbnail = ({
               <Text className="font-medium">Delete</Text>
             </div>
             <div
+              role="button"
+              onKeyUp={() => {}}
+              tabIndex={-1}
               className="flex items-center cursor-pointer py-1.5 px-4 hover:bg-gray-100"
               onClick={() => setDuplicateModal(true)}
             >
@@ -303,6 +335,9 @@ const Thumbnail = ({
             </div>
             <div className="h-px bg-gray-200" />
             <div
+              role="button"
+              onKeyUp={() => {}}
+              tabIndex={-1}
               className="flex items-center py-2 px-4 cursor-pointer hover:bg-gray-100"
               onClick={() => setNotesModal(true)}
             >
@@ -323,7 +358,7 @@ const Thumbnail = ({
         )}
         contentEditable={editFragmentName}
         onClick={(e) => e.stopPropagation()}
-        onMouseDown={(e) => {
+        onMouseDown={() => {
           setEditFragmentName(true)
         }}
         onKeyDown={(e) => {
@@ -336,17 +371,14 @@ const Thumbnail = ({
       >
         {fragment.name}
       </Text>
-      <div className="flex items-center justify-between pl-1">
-        <Text className="text-xs text-gray-600">{fragment.type}</Text>
-        <div className="flex">
-          {fragment.participants.map(({ participant }) => (
-            <Avatar
-              className="w-5 h-5 rounded-full mr-1"
-              src={participant.user.picture as string}
-              alt={participant.user.displayName as string}
-            />
-          ))}
-        </div>
+      <div className="flex pl-1 pt-1">
+        {fragment.participants.map(({ participant }) => (
+          <Avatar
+            className="w-5 h-5 rounded-full mr-1"
+            src={participant.user.picture as string}
+            alt={participant.user.displayName as string}
+          />
+        ))}
       </div>
       <DeleteFragmentModal
         open={confirmDeleteModal}
