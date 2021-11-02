@@ -33,14 +33,14 @@ export const serializeDataConfig = (nodeArray: TNode[]): FragmentConfig[] => {
       /* 
         ADD HEADING if used, since heading comes b4 object we cant directly add to context 
         */
-      heading = node.children[0].text ? node.children[0].text : 'Untitled'
+      heading = node.children?.[0]?.text ? node.children?.[0]?.text : 'Untitled'
     } else if (
       context &&
       node.type === defaultNodeTypes.paragraph &&
-      node.children[0].text
+      node.children?.[0]?.text
     ) {
       /* ADD NOTES only if a context is present */
-      context.notes.push(node.children[0].text)
+      context?.notes?.push(node.children?.[0]?.text)
     }
 
     // check for different objects
@@ -55,7 +55,7 @@ export const serializeDataConfig = (nodeArray: TNode[]): FragmentConfig[] => {
       // extract necessary data from plate's node array
       const codeRaw = node.children
         .map((child: TNode) => {
-          return child.children[0].text
+          return child.children?.[0]?.text
         })
         .join('\n')
       context = {
@@ -91,7 +91,7 @@ export const serializeDataConfig = (nodeArray: TNode[]): FragmentConfig[] => {
           id: nanoid(),
           type: ConfigType.TRIVIA,
           title: heading || '',
-          value: node.children[0].text,
+          value: node.children?.[0]?.text,
           notes: [],
         } as TriviaConfig
       } else if (node.type === defaultNodeTypes.image) {
@@ -99,7 +99,7 @@ export const serializeDataConfig = (nodeArray: TNode[]): FragmentConfig[] => {
           id: nanoid(),
           type: ConfigType.TRIVIA,
           title: heading || '',
-          value: { text: node.caption?.[0].text, image: node.url },
+          value: { text: node.caption?.[0]?.text, image: node.url },
           notes: [],
         } as TriviaConfig
       }
@@ -116,7 +116,7 @@ export const serializeDataConfig = (nodeArray: TNode[]): FragmentConfig[] => {
         pointsList.push({
           level: 0,
           text: li.children.map((lic: any) => {
-            return lic.children[0].text
+            return lic.children?.[0]?.text
           })?.[0],
         })
       )
