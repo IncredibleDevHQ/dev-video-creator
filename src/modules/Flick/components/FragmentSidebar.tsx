@@ -1,8 +1,10 @@
+/* eslint-disable jsx-a11y/no-static-element-interactions */
+/* eslint-disable jsx-a11y/click-events-have-key-events */
 import { css, cx } from '@emotion/css'
 import React, { HTMLProps, useEffect, useState } from 'react'
 import { FiMoreHorizontal, FiPlus } from 'react-icons/fi'
 import { RiStickyNoteLine } from 'react-icons/ri'
-import { useRecoilState } from 'recoil'
+import { useRecoilState, useRecoilValue } from 'recoil'
 import {
   DragDropContext,
   Draggable,
@@ -15,16 +17,25 @@ import {
   IoCopyOutline,
   IoTrashOutline,
 } from 'react-icons/io5'
-import { emitToast, Button, Text, Avatar, Tooltip } from '../../../components'
+import {
+  emitToast,
+  Button,
+  Text,
+  Avatar,
+  Tooltip,
+  updateToast,
+  dismissToast,
+} from '../../../components'
 import { newFlickStore } from '../store/flickNew.store'
 import {
   FlickFragmentFragment,
+  useCreateFragmentMutation,
   useGetFlickFragmentsLazyQuery,
   useReorderFragmentMutation,
   useUpdateFragmentMutation,
 } from '../../../generated/graphql'
-import NewFragmentModal from './NewFragmentModal'
-import { DeleteFragmentModal, DuplicateFragmentModal, NotesModal } from '.'
+import { DeleteFragmentModal, NotesModal } from '.'
+import { User, userState } from '../../../stores/user.store'
 
 const style = css`
   ::-webkit-scrollbar {
@@ -34,10 +45,9 @@ const style = css`
 
 const FragmentSideBar = () => {
   const [{ flick }, setFlickStore] = useRecoilState(newFlickStore)
-  const [isCreateNewFragmentModalOpen, setIsCreateNewModalOpen] = useState(
-    flick?.fragments.length === 0
-  )
 
+  const [createFragment] = useCreateFragmentMutation()
+  const { sub } = (useRecoilValue(userState) as User) || {}
   const [GetFlickFragments, { data, error, refetch }] =
     useGetFlickFragmentsLazyQuery({
       variables: {
@@ -45,7 +55,40 @@ const FragmentSideBar = () => {
       },
     })
 
+  const handleCreateFragment = async () => {
+    let toast
+    try {
+      toast = emitToast({
+        type: 'info',
+        title: 'Creating...',
+        autoClose: false,
+      })
+
+      await createFragment({
+        variables: {
+          flickId: flick?.id,
+          name: 'Untitled',
+          creatorPid: flick?.participants.find((p) => p.userSub === sub)?.id,
+        },
+      })
+
+      GetFlickFragments?.()
+
+      dismissToast(toast)
+    } catch (e) {
+      if (toast) {
+        updateToast({
+          id: toast,
+          type: 'error',
+          title: 'There was an error creating a fragment.',
+          autoClose: 5000,
+        })
+      }
+    }
+  }
+
   useEffect(() => {
+    console.log({ data })
     if (!data || !flick) return
     setFlickStore((store) => ({
       ...store,
@@ -80,7 +123,7 @@ const FragmentSideBar = () => {
         <ThumbnailDND />
         <div
           className="bg-gray-50 fixed top-14 flex items-center justify-center w-56 left-0 cursor-pointer py-3 border border-gray-300"
-          onClick={() => setIsCreateNewModalOpen(true)}
+          onClick={handleCreateFragment}
         >
           <Button
             type="button"
@@ -93,16 +136,6 @@ const FragmentSideBar = () => {
           </Button>
         </div>
       </div>
-      {isCreateNewFragmentModalOpen && (
-        <NewFragmentModal
-          handleClose={(refresh) => {
-            setIsCreateNewModalOpen(false)
-            if (refresh) {
-              GetFlickFragments()
-            }
-          }}
-        />
-      )}
     </div>
   )
 }
@@ -209,7 +242,6 @@ const Thumbnail = ({
   const [overflowMenuVisible, setOverflowMenuVisible] = useState(false)
 
   const [confirmDeleteModal, setConfirmDeleteModal] = useState(false)
-  const [duplicateModal, setDuplicateModal] = useState(false)
   const [notesModal, setNotesModal] = useState(false)
   const [GetFlickFragments, { data, error, refetch }] =
     useGetFlickFragmentsLazyQuery({
@@ -294,13 +326,6 @@ const Thumbnail = ({
               <IoTrashOutline size={21} className="text-gray-600 mr-4" />
               <Text className="font-medium">Delete</Text>
             </div>
-            <div
-              className="flex items-center cursor-pointer py-1.5 px-4 hover:bg-gray-100"
-              onClick={() => setDuplicateModal(true)}
-            >
-              <IoCopyOutline size={21} className="text-gray-600 mr-4" />
-              <Text>Make a copy</Text>
-            </div>
             <div className="h-px bg-gray-200" />
             <div
               className="flex items-center py-2 px-4 cursor-pointer hover:bg-gray-100"
@@ -354,15 +379,7 @@ const Thumbnail = ({
           setConfirmDeleteModal(false)
         }}
       />
-      <DuplicateFragmentModal
-        open={duplicateModal}
-        handleClose={(refresh) => {
-          if (refresh) {
-            GetFlickFragments()
-          }
-          setDuplicateModal(false)
-        }}
-      />
+
       <NotesModal
         open={notesModal}
         handleClose={() => {

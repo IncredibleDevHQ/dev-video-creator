@@ -7,21 +7,16 @@ import { useHistory } from 'react-router-dom'
 import { useRecoilState } from 'recoil'
 import {
   DeleteFragmentModal,
-  DuplicateFragmentModal,
   FragmentVideoModal,
   MarkdownModal,
   NotesModal,
 } from '.'
-import { Button, emitToast, Text } from '../../../components'
-import {
-  useGetFlickFragmentsLazyQuery,
-  useUpdateFragmentMutation,
-} from '../../../generated/graphql'
+import { Button, Text } from '../../../components'
+import { useUpdateFragmentMutation } from '../../../generated/graphql'
 import { newFlickStore } from '../store/flickNew.store'
 
 const FragmentBar = () => {
   const [confirmDeleteModal, setConfirmDeleteModal] = useState(false)
-  const [duplicateModal, setDuplicateModal] = useState(false)
   const [fragmentVideoModal, setFragmetVideoModal] = useState(false)
   const [markdownModal, setMarkdownModal] = useState(false)
   const [notesModal, setNotesModal] = useState(false)
@@ -30,34 +25,6 @@ const FragmentBar = () => {
   const history = useHistory()
 
   const fragment = flick?.fragments.find((f) => f.id === activeFragmentId)
-
-  const [GetFlickFragments, { data, error, refetch }] =
-    useGetFlickFragmentsLazyQuery({
-      variables: {
-        flickId: flick?.id,
-      },
-    })
-
-  useEffect(() => {
-    if (!data || !flick) return
-    setFlickStore((store) => ({
-      ...store,
-      flick: {
-        ...flick,
-        fragments: [...data.Fragment],
-      },
-    }))
-  }, [data])
-
-  useEffect(() => {
-    if (!error || !refetch) return
-    emitToast({
-      title: "We couldn't fetch your new fragment",
-      type: 'error',
-      description: 'Click this toast to give it another try',
-      onClick: () => refetch(),
-    })
-  }, [error])
 
   const [editFragmentName, setEditFragmentName] = useState(false)
 
@@ -102,11 +69,6 @@ const FragmentBar = () => {
             size={24}
             className="mr-6 ml-2 text-gray-600 cursor-pointer"
             onClick={() => setConfirmDeleteModal(true)}
-          />
-          <IoCopyOutline
-            size={24}
-            className="text-gray-600 cursor-pointer mr-6"
-            onClick={() => setDuplicateModal(true)}
           />
         </div>
         <div className="w-px mr-4 bg-gray-200" />
@@ -174,15 +136,6 @@ const FragmentBar = () => {
         open={confirmDeleteModal}
         handleClose={() => {
           setConfirmDeleteModal(false)
-        }}
-      />
-      <DuplicateFragmentModal
-        open={duplicateModal}
-        handleClose={(refresh) => {
-          if (refresh) {
-            GetFlickFragments()
-          }
-          setDuplicateModal(false)
         }}
       />
       <NotesModal
