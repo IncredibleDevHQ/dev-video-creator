@@ -2,18 +2,17 @@ import React, { useEffect, useState } from 'react'
 import { FiPlusCircle } from 'react-icons/fi'
 import { useParams } from 'react-router-dom'
 import { useRecoilState, useRecoilValue } from 'recoil'
-import { Avatar, emitToast, ScreenState, Tab } from '../../components'
+import { Avatar, emitToast, ScreenState } from '../../components'
 import {
   useGetFlickByIdQuery,
   useGetFragmentParticipantsLazyQuery,
 } from '../../generated/graphql'
-import { User, userState } from '../../stores/user.store'
 import {
   FlickNavBar,
   FragmentBar,
-  FragmentContent,
   FragmentEditor,
   FragmentSideBar,
+  FragmentView,
   UpdateFragmentParticipantsModal,
 } from './components'
 import { newFlickStore } from './store/flickNew.store'
@@ -42,7 +41,8 @@ const Flick = () => {
     else {
       activeId = fragmentsLength > 0 ? data.Flick_by_pk?.fragments[0].id : ''
     }
-    setFlickStore(() => ({
+    setFlickStore((store) => ({
+      ...store,
       flick: data.Flick_by_pk || null,
       activeFragmentId: activeId,
     }))
@@ -71,65 +71,18 @@ const Flick = () => {
       />
     )
 
+  const fragment = flick?.fragments.find((frag) => frag.id === activeFragmentId)
+
   return flick ? (
-    <div className="h-screen overflow-x-hidden overflow-y-auto">
+    <div className="h-screen overflow-x-hidden overflow-y-hidden">
       <FlickNavBar />
       <div className="flex h-full">
         <FragmentSideBar />
         <div className="w-full">
           <FragmentBar />
-          {isMarkdown ? <FragmentEditor /> : <FragmentConfiguration />}
+          {isMarkdown ? <FragmentEditor /> : <FragmentView />}
         </div>
       </div>
-    </div>
-  ) : (
-    <div />
-  )
-}
-
-const FragmentConfiguration = () => {
-  const tabs: Tab[] = [
-    {
-      name: 'Content',
-      value: 'Content',
-    },
-    {
-      name: 'Participants',
-      value: 'Participants',
-    },
-    {
-      name: 'Notes',
-      value: 'Notes',
-    },
-  ]
-  const { activeFragmentId, flick } = useRecoilValue(newFlickStore)
-
-  const fragment = flick?.fragments.find((frag) => frag.id === activeFragmentId)
-
-  return flick && fragment ? (
-    <div className="flex h-screen relative">
-      <FragmentContent />
-      <FragmentParticipants />
-      {/* <TabBar
-        tabs={tabs}
-        current={currentTab}
-        onTabChange={setCurrentTab}
-        className="flex text-black w-full justify-center mt-6 mb-6"
-      /> */}
-      {/* {currentTab.value === 'Content' && <FragmentContent />} */}
-      {/* {currentTab.value === 'Participants' && <FragmentParticipants />} */}
-      {/* {currentTab.value === 'Notes' && (
-        <div className="p-4">
-          <Notes
-            flickId={flick.id}
-            participantId={
-              fragment.participants.find(
-                ({ participant }) => participant.userSub === sub
-              )?.participant.id
-            }
-          />
-        </div>
-      )} */}
     </div>
   ) : (
     <div />
@@ -160,7 +113,8 @@ const FragmentParticipants = () => {
           ...fragment,
           participants: data.Fragment_Participant,
         }
-      } else return fragment
+      }
+      return fragment
     })
     setFlickStore((store) => ({
       ...store,
@@ -195,6 +149,9 @@ const FragmentParticipants = () => {
             />
           ))}
         <div
+          role="button"
+          tabIndex={0}
+          onKeyUp={() => {}}
           className="flex items-center cursor-pointer"
           onClick={() => setIsAddFragmentParticipantModalOpen(true)}
         >
