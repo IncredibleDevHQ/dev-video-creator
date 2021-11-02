@@ -57,7 +57,7 @@ import {
 import { MdSearch } from 'react-icons/md'
 import { ReactEditor } from 'slate-react'
 import { HistoryEditor } from 'slate-history'
-import serialize from '../../../utils/plateConfig/serializer/serialize'
+import mdSerialize from '../../../utils/plateConfig/serializer/md-serialize'
 
 import {
   BallonToolbarMarks,
@@ -66,6 +66,7 @@ import {
 import { VALUES } from '../../../utils/plateConfig/values/values'
 import { CONFIG } from '../../../utils/plateConfig/plateEditorConfig'
 import { withStyledPlaceHolders } from '../../../utils/plateConfig/components/withStyledPlaceholders'
+import { serializeDataConfig } from '../../../utils/plateConfig/serializer/config-serialize'
 
 type TEditor = SPEditor & ReactEditor & HistoryEditor
 
@@ -148,7 +149,12 @@ const FragmentEditor = () => {
         onChange={(value) => {
           console.log(value)
           // This can be stored in database or can be called to generate on demand
-          console.log(value.map((block) => serialize(block)).join('\n'))
+          console.log(value.map((block) => mdSerialize(block)).join('\n'))
+          // get the data config
+          console.log(
+            'data config: ',
+            JSON.stringify(serializeDataConfig(value))
+          )
         }}
       >
         <ToolbarSearchHighlight icon={MdSearch} setSearch={setSearch} />

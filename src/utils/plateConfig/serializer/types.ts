@@ -20,6 +20,7 @@ export interface NodeTypes {
   delete_mark: string
   inline_code_mark: string
   thematic_break: string
+  media_embed: string
 }
 
 // Convert these to plate node types
@@ -45,57 +46,5 @@ export const defaultNodeTypes: NodeTypes = {
   inline_code_mark: 'code_block',
   thematic_break: 'thematic_break',
   image: 'image',
-}
-
-export interface CodejamConfig {
-  type: string
-  value: {
-    gistURL: string
-    explanations?: {
-      explanation: string
-      from: number
-      to: number
-      id: string
-    }[]
-    isAutomated: boolean
-    language: string
-    code: string
-  }
-  notes?: string[]
-}
-
-export interface VideojamConfig {
-  type: string
-  value: {
-    videoURL: string
-    // time in seconds
-    from: number
-    // time in seconds
-    to: number
-    // crop details
-    x?: number
-    y?: number
-    width?: number
-    height?: number
-  }
-  notes?: string[]
-}
-
-export interface TriviaConfig {
-  type: string
-  value: {
-    id: string
-    text: string
-    image?: string
-  }[]
-  notes?: string[]
-}
-
-export interface PointsConfig {
-  type: string
-  value: {
-    level?: number
-    text: string
-  }[]
-  notes?: string[]
+  media_embed: 'media_embed',
 }

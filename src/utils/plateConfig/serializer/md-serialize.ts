@@ -27,7 +27,7 @@ interface Options {
   ignoreParagraphNewline?: boolean
 }
 
-const isLeafNode = (node: BlockType | LeafType): node is LeafType => {
+const isLeafNode = (node: BlockType | LeafType | TNode): node is LeafType => {
   return typeof (node as LeafType).text === 'string'
 }
 
@@ -35,7 +35,7 @@ const VOID_ELEMENTS: Array<keyof NodeTypes> = ['thematic_break']
 
 const BREAK_TAG = '<br>'
 
-export default function serialize(
+export default function mdSerialize(
   chunk: TNode,
   opts: Options = { nodeTypes: defaultNodeTypes }
 ): string {
@@ -89,7 +89,7 @@ export default function serialize(
           )
         }
 
-        return serialize(
+        return mdSerialize(
           { ...c, parentType: type },
           {
             nodeTypes,
