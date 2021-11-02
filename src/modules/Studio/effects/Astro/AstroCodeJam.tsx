@@ -161,7 +161,7 @@ const AstroCodeJam = () => {
   useEffect(() => {
     if (!onlyFragmentGroupRef.current || !bothGroupRef.current) return
     // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
-    if (fragmentState === 'onlyFragment') {
+    if (fragmentState === 'customLayout') {
       setTopLayerChildren([
         <MutipleRectMoveRight
           rectOneColors={['#651CC8', '#9561DA']}
