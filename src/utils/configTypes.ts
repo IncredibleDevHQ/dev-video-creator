@@ -1,5 +1,7 @@
 export interface CodejamConfig {
-  type: string
+  id: string
+  type: ConfigType
+  title: string
   value: {
     gistURL: string
     explanations?: {
@@ -16,13 +18,15 @@ export interface CodejamConfig {
 }
 
 export interface VideojamConfig {
-  type: string
+  id: string
+  title: string
+  type: ConfigType
   value: {
     videoURL: string
     // time in seconds
-    from: number
+    from?: number
     // time in seconds
-    to: number
+    to?: number
     // crop details
     x?: number
     y?: number
@@ -33,17 +37,20 @@ export interface VideojamConfig {
 }
 
 export interface TriviaConfig {
-  type: string
+  id: string
+  type: ConfigType
+  title: string
   value: {
-    id: string
     text: string
     image?: string
-  }[]
+  }
   notes?: string[]
 }
 
 export interface PointsConfig {
-  type: string
+  id: string
+  type: ConfigType
+  title: string
   value: {
     level?: number
     text: string
@@ -51,24 +58,34 @@ export interface PointsConfig {
   notes?: string[]
 }
 
-export interface ViewConfig {
-  hasTitleSplash: boolean
+export interface LayoutConfig {
+  id: string
+  type: ConfigType
   layoutNumber: number
   background: {
     type: 'color' | 'image'
-    gradient: {
+    gradient?: {
       type: 'linear' | 'radial'
       direction: 'horizontal' | 'vertical' | 'diagonal'
-      values: {
-        percentage: number
-        color: string
-      }[]
+      values: (string | number)[]
     }
-    image: string
+    image?: string
   }
+}
+
+export interface ViewConfig {
+  hasTitleSplash: boolean
+  configs: LayoutConfig[]
 }
 
 export interface Config {
   dataConfig: (CodejamConfig | VideojamConfig | TriviaConfig | PointsConfig)[]
-  viewConfig: ViewConfig[]
+  viewConfig: ViewConfig
+}
+
+export enum ConfigType {
+  CODEJAM = 'codejam',
+  VIDEOJAM = 'videojam',
+  TRIVIA = 'trivia',
+  POINTS = 'points',
 }

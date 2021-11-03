@@ -6,23 +6,16 @@ import {
   createBoldPlugin,
   createCodeBlockPlugin,
   createCodePlugin,
-  createComboboxPlugin,
   createDeserializeAstPlugin,
   createDeserializeCSVPlugin,
   createDeserializeHTMLPlugin,
   createDeserializeMDPlugin,
   createExitBreakPlugin,
-  createFontBackgroundColorPlugin,
-  createFontColorPlugin,
-  createFontFamilyPlugin,
-  createFontSizePlugin,
-  createFontWeightPlugin,
   createHeadingPlugin,
   createHighlightPlugin,
   createHistoryPlugin,
   createHorizontalRulePlugin,
   createImagePlugin,
-  createIndentPlugin,
   createItalicPlugin,
   createKbdPlugin,
   createLineHeightPlugin,
@@ -39,10 +32,6 @@ import {
   createResetNodePlugin,
   createSelectOnBackspacePlugin,
   createSoftBreakPlugin,
-  createStrikethroughPlugin,
-  createSubscriptPlugin,
-  createSuperscriptPlugin,
-  createTablePlugin,
   createTodoListPlugin,
   createTrailingBlockPlugin,
   createUnderlinePlugin,
@@ -50,21 +39,19 @@ import {
   Plate,
   PlatePlugin,
   SPEditor,
-  useFindReplacePlugin,
   useStoreEditorState,
 } from '@udecode/plate'
-import { serialize } from 'remark-slate'
 import { ReactEditor } from 'slate-react'
 import { HistoryEditor } from 'slate-history'
-import { BlockType, LeafType } from 'remark-slate/dist/serialize'
 import { css } from '@emotion/css'
 import {
   BallonToolbarMarks,
   ToolbarButtons,
 } from '../../../utils/plateConfig/components/Toolbars'
-import { VALUES } from '../../../utils/plateConfig/values/values'
 import { CONFIG } from '../../../utils/plateConfig/plateEditorConfig'
 import { withStyledPlaceHolders } from '../../../utils/plateConfig/components/withStyledPlaceholders'
+// import { serializeDataConfig } from '../../../utils/plateConfig/serializer/config-serialize'
+// import mdSerialize from '../../../utils/plateConfig/serializer/md-serialize'
 
 type TEditor = SPEditor & ReactEditor & HistoryEditor
 
@@ -140,23 +127,18 @@ const FragmentEditor = () => {
         options={options}
         plugins={pluginsMemo}
         editableProps={CONFIG.editableProps}
-        onChange={(value) => {
-          console.log(value)
-          console.log(
-            value
-              .map((v) => {
-                switch (v.type) {
-                  case 'p':
-                    return serialize({ ...v, type: 'paragraph' })
-                  case 'h1':
-                    return serialize({ ...v, type: 'heading_one' })
-                  default:
-                    return serialize(v as BlockType | LeafType)
-                }
-              })
-              .join('\n')
-          )
-        }}
+        // onChange={
+        //   // (value) => {
+        //   // console.log(value)
+        //   // This can be stored in database or can be called to generate on demand
+        //   // console.log(value.map((block) => mdSerialize(block)).join('\n'))
+        //   // get the data config
+        //   // console.log(
+        //   //   'data config: ',
+        //   //   JSON.stringify(serializeDataConfig(value))
+        //   // )
+        //   // }
+        // }
       >
         {editorRef && (
           <HeadingToolbar
