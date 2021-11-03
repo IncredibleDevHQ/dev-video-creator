@@ -20,6 +20,7 @@ import {
   getPreventDefaultHandler,
   indent,
   insertEmptyElement,
+  insertMediaEmbed,
   insertNodes,
   insertTable,
   MARK_BG_COLOR,
@@ -89,12 +90,16 @@ import {
   MdOutlineLooksTwo,
   MdSubscript,
   MdSuperscript,
+  MdVideoLibrary,
 } from 'react-icons/md'
 import { BiCodeAlt, BiHeading } from 'react-icons/bi'
 import { ReactEditor } from 'slate-react'
 import { HistoryEditor } from 'slate-history'
 import { FiCheckCircle, FiXCircle } from 'react-icons/fi'
 import { Button } from '../../../components'
+import UploadVideoModal from '../../../modules/Flick/components/UploadVideoModal'
+import { VideoInventoryModal } from '../../../modules/Flick/components'
+import { useGetSuggestedTextMutation } from '../../../generated/graphql'
 
 export const ToolbarButtonsBasicElements = () => {
   const editor = useStoreEditorRef(useEventEditorId('focus'))
@@ -310,7 +315,7 @@ export const GenerateExplanationButton = ({
   editor: SPEditor & ReactEditor & HistoryEditor
 }) => {
   const [isExplanation, setExplanation] = useState(false)
-  const tempString = 'gpt-3 explanation'
+  const [getSuggestedText] = useGetSuggestedTextMutation()
 
   return (
     <div className="mx-2 flex justify-end items-center">
@@ -338,8 +343,11 @@ export const GenerateExplanationButton = ({
         size="extraSmall"
         appearance="secondary"
         disabled={isExplanation}
-        onClick={() => {
-          insertText(tempString)
+        onClick={async () => {
+          const explanation = await getSuggestedText({
+            variables: { text: editor.value },
+          })
+          insertText(explanation.data?.SuggestPhrase?.suggestion || '')
           setExplanation(true)
         }}
       >
@@ -354,6 +362,15 @@ export const ToolbarButtons = ({
 }: {
   editor: SPEditor & ReactEditor & HistoryEditor
 }) => {
+  const [isVideoModal, setVideoModal] = useState(false)
+  const [selectedVideo, setSelectedVideo] = useState<string>('')
+
+  useEffect(() => {
+    console.log('ToolbarButtons useEffect', selectedVideo)
+    if (!selectedVideo || selectedVideo.length < 1) return
+    insertMediaEmbed(editor, { url: selectedVideo })
+  }, [selectedVideo])
+
   const insertTextToEditor = (text: string) => {
     editor.insertBreak()
     insertNodes(editor, { text, type: 'text' }, { block: true, select: true })
@@ -373,7 +390,7 @@ export const ToolbarButtons = ({
         `
       )}
     >
-      <div className="flex">
+      <div className="flex items-center">
         <ToolbarButtonsBasicElements />
         <ToolbarButtonsList />
         {/* <ToolbarButtonsIndent /> */}
@@ -385,11 +402,19 @@ export const ToolbarButtons = ({
         <ToolbarImage icon={<MdImage />} />
         <ToolbarMediaEmbed icon={<MdOndemandVideo />} />
         {/* <ToolbarButtonsTable /> */}
+        <MdVideoLibrary onClick={() => setVideoModal(true)} />
       </div>
       <GenerateExplanationButton
         editor={editor}
         insertText={insertTextToEditor}
         deleteText={deleteTextFromEditor}
+      />
+      <VideoInventoryModal
+        open={isVideoModal}
+        setSelectedVideoLink={setSelectedVideo}
+        handleClose={() => {
+          setVideoModal(false)
+        }}
       />
     </div>
   )

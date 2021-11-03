@@ -120,7 +120,7 @@ const FragmentEditor = () => {
   }, [editorRef])
 
   return (
-    <div className="overflow-x-hidden relative">
+    <div className="h-full overflow-y-auto overflow-x-hidden pb-32">
       <Plate
         id={id}
         components={components}
