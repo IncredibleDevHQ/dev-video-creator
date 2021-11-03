@@ -1,5 +1,8 @@
 import { TNode } from '@udecode/plate'
+import axios from 'axios'
+
 import { nanoid } from 'nanoid'
+import * as gConfig from '../../../config'
 
 import {
   CodejamConfig,
@@ -7,6 +10,7 @@ import {
   VideojamConfig,
   PointsConfig,
   ConfigType,
+  ColorCode,
 } from '../../configTypes'
 
 import { defaultNodeTypes } from './types'
@@ -17,13 +21,67 @@ type FragmentConfig =
   | VideojamConfig
   | PointsConfig
 
-export const serializeDataConfig = (nodeArray: TNode[]): FragmentConfig[] => {
+export const getColorCodes = async (
+  codeRaw: string,
+  lang: string,
+  userToken: string
+): Promise<ColorCode[]> => {
+  let result: ColorCode[] = []
+  console.log('Processing color codes')
+  // eslint-disable-next-line consistent-return
+  try {
+    const res = await axios.post(
+      gConfig.default.hasura.server,
+      {
+        query: `
+          query GetTokenisedCode(
+            $code: String!
+            $language: String!
+            $theme: String
+          ) {
+            TokenisedCode(code: $code, language: $language, theme: $theme) {
+              success
+              data
+            }
+          }
+        `,
+        variables: {
+          code: codeRaw,
+          language: lang || 'javascript',
+        },
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          authorization: `Bearer ${userToken}`,
+        },
+      }
+    )
+
+    if (res?.data?.data?.TokenisedCode?.success) {
+      result = res?.data?.data?.TokenisedCode?.data
+      console.log({ result })
+    }
+  } catch (e) {
+    console.error(e)
+    throw e
+  }
+
+  return result
+}
+
+export const serializeDataConfig = async (
+  nodeArray: TNode[],
+  userToken: string
+): Promise<FragmentConfig[]> => {
   const config: FragmentConfig[] = []
 
   let heading = ''
   let context: any = null
 
-  nodeArray.forEach((node) => {
+  // nodeArray.forEach(async (node) => {
+  for (let i = 0; i < nodeArray.length; i += 1) {
+    const node = nodeArray[i]
     // console.log('-----------------------------------------')
     // console.log('Current context = ', JSON.stringify(context))
     // console.log('Current type = ', node.type)
@@ -58,6 +116,15 @@ export const serializeDataConfig = (nodeArray: TNode[]): FragmentConfig[] => {
           return child.children?.[0]?.text
         })
         .join('\n')
+
+      // get color codes
+      // eslint-disable-next-line no-await-in-loop
+      const colorCodes: ColorCode[] = await getColorCodes(
+        codeRaw,
+        node.lang,
+        userToken
+      )
+
       context = {
         id: nanoid(),
         type: ConfigType.CODEJAM,
@@ -66,13 +133,14 @@ export const serializeDataConfig = (nodeArray: TNode[]): FragmentConfig[] => {
           code: codeRaw,
           gistURL: '',
           isAutomated: false,
-          language: node.lang || 'js',
+          language: node.lang || 'javascript',
           explanations: [],
+          colorCodes,
         },
         /* notes will be populated by the above check for `p`.
-           This follows the assumption that note added only after
-           the object are considered.
-        */
+                 This follows the assumption that note added only after
+                 the object are considered.
+              */
         notes: [],
       } as CodejamConfig
     } else if (
@@ -142,7 +210,7 @@ export const serializeDataConfig = (nodeArray: TNode[]): FragmentConfig[] => {
         value: { videoURL: node.url },
       } as VideojamConfig
     }
-  })
+  }
 
   // if last element then add all the details from context to config
   if (context) {

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import {
   createAlignPlugin,
   createAutoformatPlugin,
@@ -39,17 +39,23 @@ import {
   Plate,
   PlatePlugin,
   SPEditor,
+  TNode,
   useStoreEditorState,
 } from '@udecode/plate'
 import { ReactEditor } from 'slate-react'
 import { HistoryEditor } from 'slate-history'
 import { css } from '@emotion/css'
+import { useRecoilState } from 'recoil'
 import {
   BallonToolbarMarks,
   ToolbarButtons,
 } from '../../../utils/plateConfig/components/Toolbars'
 import { CONFIG } from '../../../utils/plateConfig/plateEditorConfig'
 import { withStyledPlaceHolders } from '../../../utils/plateConfig/components/withStyledPlaceholders'
+import mdSerialize from '../../../utils/plateConfig/serializer/md-serialize'
+import { serializeDataConfig } from '../../../utils/plateConfig/serializer/config-serialize'
+import { useGetTokenisedCodeLazyQuery } from '../../../generated/graphql'
+import { authState } from '../../../stores/auth.store'
 // import { serializeDataConfig } from '../../../utils/plateConfig/serializer/config-serialize'
 // import mdSerialize from '../../../utils/plateConfig/serializer/md-serialize'
 
@@ -119,6 +125,24 @@ const FragmentEditor = () => {
     return plugins
   }, [editorRef])
 
+  // user token is need to make the api call to get the color-codes
+  // const [auth] = useRecoilState(authState)
+  // const [val, setVal] = useState<TNode<any>[]>()
+
+  // useEffect(() => {
+  //   if (val) {
+  //     ;(async () => {
+  //       try {
+  //         const c = await serializeDataConfig(val, auth?.token || '')
+  //         console.log('data config: ', JSON.stringify(c))
+  //       } catch (e) {
+  //         console.error(e)
+  //         throw e
+  //       }
+  //     })()
+  //   }
+  // }, [val])
+
   return (
     <div className="overflow-x-hidden relative">
       <Plate
@@ -127,18 +151,13 @@ const FragmentEditor = () => {
         options={options}
         plugins={pluginsMemo}
         editableProps={CONFIG.editableProps}
-        // onChange={
-        //   // (value) => {
-        //   // console.log(value)
-        //   // This can be stored in database or can be called to generate on demand
-        //   // console.log(value.map((block) => mdSerialize(block)).join('\n'))
-        //   // get the data config
-        //   // console.log(
-        //   //   'data config: ',
-        //   //   JSON.stringify(serializeDataConfig(value))
-        //   // )
-        //   // }
-        // }
+        onChange={(value) => {
+          console.log(value)
+          // setVal(value)
+          // This can be stored in database or can be called to generate on demand
+          // console.log(value.map((block) => mdSerialize(block)).join('\n'))
+          // get the data config
+        }}
       >
         {editorRef && (
           <HeadingToolbar
