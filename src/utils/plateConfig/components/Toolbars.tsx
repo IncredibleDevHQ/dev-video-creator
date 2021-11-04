@@ -36,6 +36,7 @@ import {
   MARK_UNDERLINE,
   outdent,
   SPEditor,
+  TNode,
   ToolbarAlign,
   ToolbarButton,
   ToolbarCodeBlock,
@@ -92,6 +93,7 @@ import {
   MdSuperscript,
   MdVideoLibrary,
 } from 'react-icons/md'
+import { serialize } from 'remark-slate'
 import { BiCodeAlt, BiHeading } from 'react-icons/bi'
 import { ReactEditor } from 'slate-react'
 import { HistoryEditor } from 'slate-history'
@@ -306,12 +308,14 @@ export const BallonToolbarMarks = () => {
 }
 
 export const GenerateExplanationButton = ({
+  value,
+  editor,
   insertText,
   deleteText,
-  editor,
 }: {
+  value?: TNode<any>[]
+  deleteText: () => void
   insertText: (text: string) => void
-  deleteText: (characters: number) => void
   editor: SPEditor & ReactEditor & HistoryEditor
 }) => {
   const [isExplanation, setExplanation] = useState(false)
@@ -332,7 +336,7 @@ export const GenerateExplanationButton = ({
             size={20}
             className="text-error mx-1"
             onClick={() => {
-              deleteText(tempString.length + 2)
+              deleteText()
               setExplanation(false)
             }}
           />
@@ -344,8 +348,11 @@ export const GenerateExplanationButton = ({
         appearance="secondary"
         disabled={isExplanation}
         onClick={async () => {
+          if (!value || value.length < 1) return
           const explanation = await getSuggestedText({
-            variables: { text: editor.value },
+            variables: {
+              text: value.map((block) => serialize(block)).join('\n'),
+            },
           })
           insertText(explanation.data?.SuggestPhrase?.suggestion || '')
           setExplanation(true)
@@ -358,15 +365,16 @@ export const GenerateExplanationButton = ({
 }
 
 export const ToolbarButtons = ({
+  value,
   editor,
 }: {
+  value?: TNode<any>[]
   editor: SPEditor & ReactEditor & HistoryEditor
 }) => {
   const [isVideoModal, setVideoModal] = useState(false)
   const [selectedVideo, setSelectedVideo] = useState<string>('')
 
   useEffect(() => {
-    console.log('ToolbarButtons useEffect', selectedVideo)
     if (!selectedVideo || selectedVideo.length < 1) return
     insertMediaEmbed(editor, { url: selectedVideo })
   }, [selectedVideo])
@@ -405,6 +413,7 @@ export const ToolbarButtons = ({
         <MdVideoLibrary onClick={() => setVideoModal(true)} />
       </div>
       <GenerateExplanationButton
+        value={value}
         editor={editor}
         insertText={insertTextToEditor}
         deleteText={deleteTextFromEditor}

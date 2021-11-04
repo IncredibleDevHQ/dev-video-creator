@@ -67,6 +67,7 @@ const FragmentEditor = () => {
   const components = withStyledPlaceHolders(createPlateComponents())
   const options = createPlateOptions()
 
+  const [value, setValue] = useState<TNode<any>[]>()
   const editorRef = useStoreEditorState(id)
 
   const pluginsMemo: PlatePlugin<TEditor>[] = useMemo(() => {
@@ -127,7 +128,6 @@ const FragmentEditor = () => {
 
   // user token is need to make the api call to get the color-codes
   // const [auth] = useRecoilState(authState)
-  // const [val, setVal] = useState<TNode<any>[]>()
 
   // useEffect(() => {
   //   if (val) {
@@ -151,7 +151,9 @@ const FragmentEditor = () => {
         options={options}
         plugins={pluginsMemo}
         editableProps={CONFIG.editableProps}
+        value={value}
         onChange={(value) => {
+          setValue(value)
           console.log(value)
           // setVal(value)
           // This can be stored in database or can be called to generate on demand
@@ -168,7 +170,7 @@ const FragmentEditor = () => {
               right: 0;
             `}
           >
-            <ToolbarButtons editor={editorRef} />
+            <ToolbarButtons editor={editorRef} value={value} />
           </HeadingToolbar>
         )}
         <BallonToolbarMarks />
