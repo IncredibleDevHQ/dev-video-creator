@@ -1,3 +1,9 @@
+export interface ColorCode {
+  color: string
+  lineNumber: number
+  content: string
+}
+
 export interface CodejamConfig {
   id: string
   type: ConfigType
@@ -13,6 +19,7 @@ export interface CodejamConfig {
     isAutomated: boolean
     language: string
     code: string
+    colorCodes: ColorCode[]
   }
   notes?: string[]
 }
