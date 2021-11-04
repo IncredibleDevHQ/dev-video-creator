@@ -205,7 +205,7 @@ const Thumbnail = ({
 }: ThumbnailProps) => {
   const [editFragmentName, setEditFragmentName] = useState(false)
   const [{ flick }, setFlickStore] = useRecoilState(newFlickStore)
-  const [updateFragmentMutation, { data: updateFargmentData }] =
+  const [updateFragmentMutation, { data: updateFragmentData }] =
     useUpdateFragmentMutation()
   const [overflowButtonVisible, setOverflowButtonVisible] = useState(false)
   const [overflowMenuVisible, setOverflowMenuVisible] = useState(false)
@@ -242,9 +242,9 @@ const Thumbnail = ({
   }, [error])
 
   useEffect(() => {
-    if (!updateFargmentData) return
+    if (!updateFragmentData) return
     setEditFragmentName(false)
-  }, [updateFargmentData])
+  }, [updateFragmentData])
 
   const updateFragment = async (newName: string) => {
     if (editFragmentName) {
@@ -341,7 +341,7 @@ const Thumbnail = ({
               className="flex items-center py-2 px-4 cursor-pointer hover:bg-gray-100"
               onClick={() => setNotesModal(true)}
             >
-              <RiStickyNoteLine size={21} className="text-gray-600mt-1 mr-4" />
+              <RiStickyNoteLine size={21} className="text-gray-600 mt-1 mr-4" />
               <Text>Note</Text>
             </div>
           </div>

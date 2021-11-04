@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react'
 import { FiPlusCircle } from 'react-icons/fi'
 import { useParams } from 'react-router-dom'
-import { useRecoilState, useRecoilValue } from 'recoil'
+import { useRecoilState } from 'recoil'
 import { Avatar, emitToast, ScreenState } from '../../components'
 import {
   useGetFlickByIdQuery,
   useGetFragmentParticipantsLazyQuery,
 } from '../../generated/graphql'
+import { Config, ConfigType, VideojamConfig } from '../../utils/configTypes'
 import {
   FlickNavBar,
   FragmentBar,
@@ -24,6 +25,55 @@ const Flick = () => {
   const { data, error, loading, refetch } = useGetFlickByIdQuery({
     variables: { id },
   })
+
+  const [config, setConfig] = useState<Config>({
+    dataConfig: [
+      {
+        id: '12345',
+        type: ConfigType.VIDEOJAM,
+        value: {
+          videoURL: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        },
+      } as VideojamConfig,
+      {
+        id: '123456',
+        type: ConfigType.VIDEOJAM,
+        value: {
+          videoURL: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        },
+      } as VideojamConfig,
+    ],
+    viewConfig: {
+      hasTitleSplash: true,
+      configs: [
+        {
+          id: '12345',
+          type: ConfigType.VIDEOJAM,
+          layoutNumber: 1,
+          background: {
+            type: 'color',
+            image: '',
+          },
+        },
+        {
+          id: '123456',
+          type: ConfigType.VIDEOJAM,
+          layoutNumber: 1,
+          background: {
+            type: 'color',
+            image: '',
+          },
+        },
+      ],
+    },
+  })
+
+  const [selectedLayoutId, setSelectedLayoutId] = useState('')
+
+  useEffect(() => {
+    if (!config || selectedLayoutId !== '') return
+    setSelectedLayoutId(config.dataConfig[0].id)
+  }, [config])
 
   useEffect(() => {
     if (!fragmentId) return
@@ -71,7 +121,7 @@ const Flick = () => {
       />
     )
 
-  const fragment = flick?.fragments.find((frag) => frag.id === activeFragmentId)
+  // const fragment = flick?.fragments.find((frag) => frag.id === activeFragmentId)
 
   return flick ? (
     <div className="h-screen overflow-x-hidden overflow-y-hidden">
@@ -80,7 +130,16 @@ const Flick = () => {
         <FragmentSideBar />
         <div className="w-full">
           <FragmentBar />
-          {isMarkdown ? <FragmentEditor /> : <FragmentView />}
+          {isMarkdown ? (
+            <FragmentEditor />
+          ) : (
+            <FragmentView
+              config={config}
+              setConfig={setConfig}
+              selectedLayoutId={selectedLayoutId}
+              setSelectedLayoutId={setSelectedLayoutId}
+            />
+          )}
         </div>
       </div>
     </div>

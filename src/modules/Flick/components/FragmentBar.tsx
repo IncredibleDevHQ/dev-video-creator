@@ -20,13 +20,13 @@ const FragmentBar = () => {
 
   const [editFragmentName, setEditFragmentName] = useState(false)
 
-  const [updateFragmentMutation, { data: updateFargmentData }] =
+  const [updateFragmentMutation, { data: updateFragmentData }] =
     useUpdateFragmentMutation()
 
   useEffect(() => {
-    if (!updateFargmentData) return
+    if (!updateFragmentData) return
     setEditFragmentName(false)
-  }, [updateFargmentData])
+  }, [updateFragmentData])
 
   const updateFragment = async (newName: string) => {
     if (editFragmentName) {
