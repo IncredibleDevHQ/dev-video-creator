@@ -78,6 +78,15 @@ const PointsFragment = ({
       FragmentLayoutConfig({ layoutNumber: viewConfig.layoutNumber })
     )
     setPoints(dataConfig.value)
+    setStudio({
+      ...studio,
+      controlsConfig: {
+        fragmentState,
+        noOfPoints: points.length,
+        type: ConfigType.POINTS,
+        dataConfigLength,
+      },
+    })
   }, [dataConfig])
 
   useEffect(() => {
@@ -109,7 +118,7 @@ const PointsFragment = ({
         dataConfigLength,
       },
     })
-  }, [dataConfig, fragmentState])
+  }, [fragmentState])
 
   useEffect(() => {
     return () => {

@@ -92,6 +92,14 @@ const TriviaFragment = ({
       FragmentLayoutConfig({ layoutNumber: viewConfig.layoutNumber })
     )
     setTriviaData(dataConfig.value)
+    setStudio({
+      ...studio,
+      controlsConfig: {
+        fragmentState,
+        type: ConfigType.TRIVIA,
+        dataConfigLength,
+      },
+    })
   }, [dataConfig])
 
   useEffect(() => {
@@ -103,7 +111,7 @@ const TriviaFragment = ({
         dataConfigLength,
       },
     })
-  }, [state, dataConfig, fragmentState])
+  }, [fragmentState])
 
   useEffect(() => {
     if (qnaImage?.src.split('.').pop() === 'gif') {
