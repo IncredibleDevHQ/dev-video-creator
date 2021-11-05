@@ -42,7 +42,7 @@ import {
 import { useRTDB } from './hooks/use-rtdb'
 import { Timer, Countdown, MissionControl } from './components'
 import { Device } from './hooks/use-agora'
-import UnifiedFragment from './components/UnifiedFragment'
+import UnifiedFragment from './effects/fragments/UnifiedFragment'
 import { CONFIG } from './components/Concourse'
 
 const backgrounds = [
