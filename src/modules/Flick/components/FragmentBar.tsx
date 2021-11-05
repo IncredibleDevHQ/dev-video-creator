@@ -1,73 +1,144 @@
-import React, { useState, useEffect } from 'react'
+import { cx } from '@emotion/css'
+import { TNode } from '@udecode/plate'
+import React, { useEffect, useState } from 'react'
 import { BiPlayCircle } from 'react-icons/bi'
 import { BsCameraVideo } from 'react-icons/bs'
-import { RiStickyNoteLine } from 'react-icons/ri'
-import { IoTrashOutline, IoCopyOutline, IoLogoMarkdown } from 'react-icons/io5'
+import { FiPlus } from 'react-icons/fi'
+import { HiOutlinePencilAlt, HiOutlineTemplate } from 'react-icons/hi'
 import { useHistory } from 'react-router-dom'
 import { useRecoilState } from 'recoil'
+import { FragmentVideoModal, UpdateFragmentParticipantsModal } from '.'
+import { Avatar, Button, emitToast, Text } from '../../../components'
 import {
-  DeleteFragmentModal,
-  DuplicateFragmentModal,
-  FragmentVideoModal,
-  MarkdownModal,
-  NotesModal,
-} from '.'
-import { Button, emitToast, Text } from '../../../components'
-import {
-  useGetFlickFragmentsLazyQuery,
+  useAddConfigurationMutation,
+  useGetFragmentParticipantsLazyQuery,
+  useUpdateFragmentStateMutation,
   useUpdateFragmentMutation,
 } from '../../../generated/graphql'
+import { authState } from '../../../stores/auth.store'
+import { Config } from '../../../utils/configTypes'
+import { serializeDataConfig } from '../../../utils/plateConfig/serializer/config-serialize'
+import { generateViewConfig } from '../../../utils/plateConfig/serializer/generateViewConfig'
 import { newFlickStore } from '../store/flickNew.store'
 
-const FragmentBar = () => {
-  const [confirmDeleteModal, setConfirmDeleteModal] = useState(false)
-  const [duplicateModal, setDuplicateModal] = useState(false)
+const FragmentBar = ({
+  initialPlateValue,
+  plateValue,
+  config,
+  setSerializing,
+  setConfig,
+  setSelectedLayoutId,
+  setInitialPlateValue,
+}: {
+  initialPlateValue: TNode<any>[] | undefined
+  plateValue: TNode<any>[] | undefined
+  config: Config
+  setSerializing: React.Dispatch<React.SetStateAction<boolean>>
+  setConfig: React.Dispatch<React.SetStateAction<Config>>
+  setSelectedLayoutId: React.Dispatch<React.SetStateAction<string>>
+  setInitialPlateValue: React.Dispatch<
+    React.SetStateAction<TNode<any>[] | undefined>
+  >
+}) => {
   const [fragmentVideoModal, setFragmetVideoModal] = useState(false)
-  const [markdownModal, setMarkdownModal] = useState(false)
-  const [notesModal, setNotesModal] = useState(false)
-  const [{ flick, activeFragmentId }, setFlickStore] =
+  const [auth] = useRecoilState(authState)
+  const [{ flick, activeFragmentId, isMarkdown }, setFlickStore] =
     useRecoilState(newFlickStore)
   const history = useHistory()
 
   const fragment = flick?.fragments.find((f) => f.id === activeFragmentId)
 
-  const [GetFlickFragments, { data, error, refetch }] =
-    useGetFlickFragmentsLazyQuery({
-      variables: {
-        flickId: flick?.id,
-      },
-    })
+  const [editFragmentName, setEditFragmentName] = useState(false)
+
+  const [updateFragmentMutation, { data: updateFragmentData }] =
+    useUpdateFragmentMutation()
+
+  const [updateConfiguration, { data, error, loading }] =
+    useAddConfigurationMutation()
+
+  const [updateFragmentState] = useUpdateFragmentStateMutation()
 
   useEffect(() => {
-    if (!data || !flick) return
-    setFlickStore((store) => ({
-      ...store,
-      flick: {
-        ...flick,
-        fragments: [...data.Fragment],
-      },
-    }))
+    if (!updateFragmentData) return
+    setEditFragmentName(false)
+  }, [updateFragmentData])
+
+  useEffect(() => {
+    if (!data) return
+    emitToast({
+      type: 'success',
+      title: 'Configuration saved',
+    })
   }, [data])
 
   useEffect(() => {
-    if (!error || !refetch) return
+    if (!error) return
     emitToast({
-      title: "We couldn't fetch your new fragment",
       type: 'error',
-      description: 'Click this toast to give it another try',
-      onClick: () => refetch(),
+      title: 'Error saving configuration',
     })
   }, [error])
 
-  const [editFragmentName, setEditFragmentName] = useState(false)
+  const generateConfig = async () => {
+    try {
+      if (JSON.stringify(plateValue) !== JSON.stringify(initialPlateValue)) {
+        setSerializing(true)
 
-  const [updateFragmentMutation, { data: updateFargmentData }] =
-    useUpdateFragmentMutation()
+        const dataConfig = await serializeDataConfig(
+          plateValue || [],
+          auth?.token || ''
+        )
+        const viewConfig = generateViewConfig({
+          dataConfig,
+          viewConfig: config.viewConfig,
+        })
+        setConfig({ dataConfig, viewConfig })
+        if (dataConfig.length > 0) {
+          setSelectedLayoutId(dataConfig[0].id)
+        }
 
-  useEffect(() => {
-    if (!updateFargmentData) return
-    setEditFragmentName(false)
-  }, [updateFargmentData])
+        const result = await updateFragmentState({
+          variables: {
+            editorState: plateValue,
+            id: activeFragmentId,
+            configuration: { dataConfig, viewConfig },
+          },
+        })
+
+        if (result.errors) {
+          throw Error(result.errors[0].message)
+        }
+
+        if (flick)
+          setFlickStore((store) => ({
+            ...store,
+            flick: {
+              ...flick,
+              fragments: flick.fragments.map((f) =>
+                f.id === activeFragmentId
+                  ? {
+                      ...f,
+                      configuration: {
+                        dataConfig,
+                        viewConfig,
+                      },
+                      editorState: plateValue,
+                    }
+                  : f
+              ),
+            },
+          }))
+        setInitialPlateValue(plateValue)
+      }
+    } catch (error) {
+      emitToast({
+        type: 'error',
+        title: 'Error updating fragment',
+      })
+    } finally {
+      setSerializing(false)
+    }
+  }
 
   const updateFragment = async (newName: string) => {
     if (editFragmentName) {
@@ -95,52 +166,86 @@ const FragmentBar = () => {
   }
 
   return (
-    <div className="flex items-center bg-gray-50 justify-between -mt-1 pr-6 pl-3 py-2.5 border-t border-b border-gray-300">
-      <div className="flex">
-        <div className="flex items-center">
-          <IoTrashOutline
-            size={24}
-            className="mr-6 ml-2 text-gray-600 cursor-pointer"
-            onClick={() => setConfirmDeleteModal(true)}
-          />
-          <IoCopyOutline
-            size={24}
-            className="text-gray-600 cursor-pointer mr-6"
-            onClick={() => setDuplicateModal(true)}
-          />
-        </div>
-        <div className="w-px mr-4 bg-gray-200" />
-        <div className="flex items-center">
-          <RiStickyNoteLine
-            size={24}
-            className="text-gray-600 cursor-pointer mr-10"
-            onClick={() => setNotesModal(true)}
-          />
-          <IoLogoMarkdown
-            size={24}
-            className="text-gray-600 cursor-pointer"
-            onClick={() => setMarkdownModal(true)}
-          />
-          <Text
-            className="text-base font-bold text-gray-800 truncate overflow-ellipsis cursor-text rounded-md p-1 hover:bg-gray-100"
-            contentEditable={editFragmentName}
-            onClick={(e) => e.stopPropagation()}
-            onMouseDown={(e) => {
-              setEditFragmentName(true)
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault()
-                setEditFragmentName(false)
-                updateFragment(e.currentTarget.innerText)
+    <div className="flex items-center bg-gray-50 justify-between pr-6 pl-6 py-2.5 border-t border-b border-gray-300">
+      <div className="flex items-center">
+        <div className="flex bg-gray-100 items-center rounded-md mr-6 -mb-1">
+          <div
+            role="button"
+            onKeyUp={() => {}}
+            tabIndex={0}
+            onClick={() =>
+              setFlickStore((store) => ({
+                ...store,
+                isMarkdown: true,
+              }))
+            }
+            className={cx(
+              'bg-gray-100 p-2 rounded-tl-md rounded-bl-md text-gray-600',
+              {
+                'bg-gray-200': isMarkdown,
               }
-            }}
+            )}
           >
-            {fragment?.name}
-          </Text>
+            <HiOutlinePencilAlt size={21} />
+          </div>
+          <div
+            role="button"
+            onKeyUp={() => {}}
+            tabIndex={0}
+            onClick={() => {
+              setFlickStore((store) => ({
+                ...store,
+                isMarkdown: false,
+              }))
+              generateConfig()
+            }}
+            className={cx(
+              'bg-gray-100 p-2 rounded-tr-md rounded-br-md text-gray-600',
+              {
+                'bg-gray-200': !isMarkdown,
+              }
+            )}
+          >
+            <HiOutlineTemplate size={21} />
+          </div>
         </div>
+        <Text
+          className="text-lg font-bold text-gray-800 truncate overflow-ellipsis cursor-text rounded-md p-1 hover:bg-gray-100 -mb-1"
+          contentEditable={editFragmentName}
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={() => {
+            setEditFragmentName(true)
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              setEditFragmentName(false)
+              updateFragment(e.currentTarget.innerText)
+            }
+          }}
+        >
+          {fragment?.name}
+        </Text>
       </div>
       <div className="flex items-center">
+        <FragmentParticipants />
+        <Button
+          appearance="primary"
+          size="small"
+          type="button"
+          className="mr-2"
+          loading={loading}
+          onClick={() =>
+            updateConfiguration({
+              variables: {
+                id: activeFragmentId,
+                configuration: config,
+              },
+            })
+          }
+        >
+          Save
+        </Button>
         {fragment?.producedLink && (
           <div
             tabIndex={-1}
@@ -170,36 +275,91 @@ const FragmentBar = () => {
           setFragmetVideoModal(false)
         }}
       />
-      <DeleteFragmentModal
-        open={confirmDeleteModal}
-        handleClose={() => {
-          setConfirmDeleteModal(false)
-        }}
-      />
-      <DuplicateFragmentModal
-        open={duplicateModal}
+    </div>
+  )
+}
+
+const FragmentParticipants = () => {
+  const [{ flick, activeFragmentId }, setFlickStore] =
+    useRecoilState(newFlickStore)
+
+  const [
+    isAddFragmentParticipantModalOpen,
+    setIsAddFragmentParticipantModalOpen,
+  ] = useState(false)
+
+  const [GetFragmentParticipants, { data, error }] =
+    useGetFragmentParticipantsLazyQuery({
+      variables: {
+        fragmentId: activeFragmentId,
+      },
+    })
+
+  useEffect(() => {
+    if (!data || !flick) return
+    const updatedFragments = flick.fragments.map((fragment) => {
+      if (fragment.id === activeFragmentId) {
+        return {
+          ...fragment,
+          participants: data.Fragment_Participant,
+        }
+      }
+      return fragment
+    })
+    setFlickStore((store) => ({
+      ...store,
+      flick: {
+        ...flick,
+        fragments: updatedFragments,
+      },
+      activeFragmentId: store.activeFragmentId,
+    }))
+  }, [data])
+
+  useEffect(() => {
+    if (!error) return
+    emitToast({
+      title: 'Could not fetch updated participants',
+      type: 'error',
+      description: `Click this toast to give it another try.`,
+      onClick: () => GetFragmentParticipants(),
+    })
+  }, [error])
+
+  return (
+    <div className="flex items-center rounded-md mr-4">
+      {flick?.fragments
+        .find((f) => f.id === activeFragmentId)
+        ?.participants.map((p, index) => {
+          return (
+            <Avatar
+              className={cx('w-8 h-8 rounded-full border border-gray-300', {
+                '-ml-2.5': index !== 0,
+              })}
+              src={p.participant.user.picture as string}
+              alt={p.participant.user.displayName as string}
+            />
+          )
+        })}
+      <div
+        role="button"
+        tabIndex={0}
+        onKeyUp={() => {}}
+        className="flex items-center cursor-pointer rounded-full border border-gray-300 -ml-2.5 bg-white"
+        onClick={() => setIsAddFragmentParticipantModalOpen(true)}
+      >
+        <FiPlus size={32} className="p-2" />
+      </div>
+      <UpdateFragmentParticipantsModal
+        key={`modal-${activeFragmentId}`}
+        open={isAddFragmentParticipantModalOpen}
         handleClose={(refresh) => {
+          setIsAddFragmentParticipantModalOpen(false)
           if (refresh) {
-            GetFlickFragments()
+            GetFragmentParticipants()
           }
-          setDuplicateModal(false)
         }}
       />
-      <NotesModal
-        open={notesModal}
-        handleClose={() => {
-          setNotesModal(false)
-        }}
-      />
-      {flick && (
-        <MarkdownModal
-          open={markdownModal}
-          flickId={flick.id}
-          handleClose={() => {
-            setMarkdownModal(false)
-          }}
-        />
-      )}
     </div>
   )
 }

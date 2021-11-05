@@ -10,9 +10,11 @@ import FragmentBar from './FragmentBar'
 import FragmentContent from './FragmentContent'
 import UpdateFragmentParticipantsModal from './UpdateFragmentParticipantsModal'
 import FragmentVideoModal from './FragmentVideoModal'
+import FragmentEditor from './FragmentEditor'
 import FlickCard from './FlickCard'
 import MarkdownModal from './MarkdownModal'
 import NotesModal from './NotesModal'
+import FragmentView from './FragmentView'
 
 export {
   ScreenRecording,
@@ -20,6 +22,7 @@ export {
   FlickActivity,
   Notes,
   FragmentSideBar,
+  FragmentEditor,
   DeleteFragmentModal,
   DuplicateFragmentModal,
   FlickNavBar,
@@ -30,4 +33,5 @@ export {
   FlickCard,
   MarkdownModal,
   NotesModal,
+  FragmentView,
 }

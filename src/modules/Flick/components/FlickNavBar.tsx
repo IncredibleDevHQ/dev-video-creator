@@ -9,7 +9,7 @@ import {
   useProduceVideoMutation,
   useUpdateFlickMutation,
 } from '../../../generated/graphql'
-import { FlickActivity } from '../../Flick/components'
+import { FlickActivity } from '.'
 import { newFlickStore } from '../store/flickNew.store'
 import SettingsModal from './SettingsModal'
 import ShareModal from './ShareModal'
@@ -23,7 +23,7 @@ const FlickNavBar = () => {
   const [flickName, setFlickName] = useState(flick?.name || '')
   const history = useHistory()
 
-  const [updateFlickMutation, { data, error }] = useUpdateFlickMutation()
+  const [updateFlickMutation, { data }] = useUpdateFlickMutation()
 
   const [produceVideoMutation] = useProduceVideoMutation()
 

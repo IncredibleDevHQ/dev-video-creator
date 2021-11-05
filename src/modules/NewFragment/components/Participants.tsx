@@ -45,7 +45,7 @@ const Participants = ({
 
   return (
     <div>
-      <div className="mt-8 flex flex-col max-h-80 min-h-48 overflow-scroll">
+      <div className="mt-8 flex flex-col max-h-80 min-h-48 overflow-auto">
         {flick.participants
           .filter((p) =>
             query.trim().length > 0
