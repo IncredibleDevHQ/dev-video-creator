@@ -1,9 +1,14 @@
 import { css, cx } from '@emotion/css'
 import Konva from 'konva'
-import React, { createRef, useState } from 'react'
+import React, { createRef, useEffect, useState } from 'react'
 import { FiLayout, FiRefreshCcw } from 'react-icons/fi'
 import { HiOutlineUser } from 'react-icons/hi'
-import { IoReloadOutline, IoSearchOutline } from 'react-icons/io5'
+import {
+  IoEyeOffOutline,
+  IoEyeOutline,
+  IoReloadOutline,
+  IoSearchOutline,
+} from 'react-icons/io5'
 import { Image, Layer, Rect, Stage } from 'react-konva'
 import { useRecoilBridgeAcrossReactRoots_UNSTABLE } from 'recoil'
 import useImage from 'use-image'
@@ -20,6 +25,7 @@ import {
   Asset_Source_Enum_Enum,
   Asset_Type_Enum_Enum,
   useAddAssetMutation,
+  useGetImagesFromUnsplashLazyQuery,
   useGetUserImageAssetsQuery,
 } from '../../../generated/graphql'
 import { useUploadFile } from '../../../hooks'
@@ -55,6 +61,7 @@ function FragmentView({
         <Preview config={config} selectedLayoutId={selectedLayoutId} />
         <Layouts
           config={config}
+          setConfig={setConfig}
           selectedLayoutId={selectedLayoutId}
           setSelectedLayoutId={setSelectedLayoutId}
         />
@@ -122,27 +129,65 @@ const Preview = ({
 }
 
 const KongvaImage = ({ src }: { src: string }) => {
-  const [image] = useImage(`${config.storage.baseUrl}${src}`, 'anonymous')
+  const [image] = useImage(src, 'anonymous')
   return <Image image={image} x={-10} y={0} />
 }
 
 const Layouts = ({
   config,
+  setConfig,
   selectedLayoutId,
   setSelectedLayoutId,
 }: {
   config: Config
+  setConfig: React.Dispatch<React.SetStateAction<Config>>
   selectedLayoutId: string
   setSelectedLayoutId: React.Dispatch<React.SetStateAction<string>>
 }) => {
+  const [showSplashSetting, setShowSplashSetting] = useState(false)
+
   return (
     <div className="grid grid-cols-1">
       <div className="flex flex-row items-center bg-gray-50 h-20 mt-8 border-t border-b border-gray-100">
         {/* Title Splash */}
-        <div className="h-full px-4 py-2 bg-gray-50">
-          <div className="bg-white h-full w-24 border-2 border-gray-200 text-gray-500 rounded-lg flex items-center justify-center">
+        <div
+          className="h-full flex px-4 py-2 bg-gray-50 relative items-start justify-end"
+          onMouseEnter={() => setShowSplashSetting(true)}
+          onMouseLeave={() => setShowSplashSetting(false)}
+        >
+          {showSplashSetting && (
+            <div
+              role="button"
+              tabIndex={-1}
+              onKeyUp={() => {}}
+              className="absolute bg-white p-1.5 rounded-md shadow-md -mx-2 -my-1"
+              onClick={() =>
+                setConfig({
+                  ...config,
+                  viewConfig: {
+                    ...config.viewConfig,
+                    hasTitleSplash: !config.viewConfig.hasTitleSplash,
+                  },
+                })
+              }
+            >
+              {config.viewConfig.hasTitleSplash ? (
+                <IoEyeOutline size={16} className="text-gray-600" />
+              ) : (
+                <IoEyeOffOutline size={16} className="text-gray-300" />
+              )}
+            </div>
+          )}
+          <Text
+            className={cx(
+              'bg-white h-full w-24 border-2 border-gray-200 text-gray-200 rounded-lg flex items-center justify-center text-sm font-bold',
+              {
+                'text-gray-500': config.viewConfig.hasTitleSplash,
+              }
+            )}
+          >
             Title
-          </div>
+          </Text>
         </div>
         {/* User Media */}
         <div className="h-full px-4 py-2 bg-gray-100">
@@ -208,7 +253,7 @@ const Configurations = ({
   }
 
   const [currentConfiguration, setCurrentConfiguration] =
-    useState<Configuration>(Configuration.Background)
+    useState<Configuration>(Configuration.Layouts)
 
   return (
     <div className="flex ml-6 h-full">
@@ -341,7 +386,7 @@ const BackgroundConfiguration = ({
     },
   ]
 
-  const [currentTab, setCurrentTab] = useState<Tab>(tabs[1])
+  const [currentTab, setCurrentTab] = useState<Tab>(tabs[0])
 
   return (
     <div className="border ml-6 rounded-lg shadow-md border-gray-300 w-60 h-4/6 overflow-hidden">
@@ -565,6 +610,7 @@ const ImagePicker = ({
   ]
 
   const [currentTab, setCurrentTab] = useState<Tab>(tabs[0])
+  const [search, setSearch] = useState('')
 
   return (
     <div className="p-4 h-full">
@@ -573,7 +619,7 @@ const ImagePicker = ({
         <input
           className="w-full py-2 pr-4 placeholder-gray-400 focus:outline-none"
           onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-            console.log(e.target.value)
+            setSearch(e.target.value)
           }
           placeholder="Search"
         />
@@ -591,7 +637,14 @@ const ImagePicker = ({
           selectedLayoutId={selectedLayoutId}
         />
       )}
-      {currentTab.value === 'Wallpapers' && <WallpapersTab />}
+      {currentTab.value === 'Wallpapers' && (
+        <WallpapersTab
+          config={config}
+          setConfig={setConfig}
+          selectedLayoutId={selectedLayoutId}
+          search={search}
+        />
+      )}
     </div>
   )
 }
@@ -697,7 +750,8 @@ const AssetsTab = ({
                   'border-gray-600':
                     config.viewConfig.configs.find(
                       (c) => c.id === selectedLayoutId
-                    )?.background.image === asset.objectLink,
+                    )?.background.image ===
+                    appConfig.storage.baseUrl + asset.objectLink,
                 }
               )}
               onClick={() =>
@@ -711,7 +765,7 @@ const AssetsTab = ({
                           ...c,
                           background: {
                             type: 'image',
-                            image: asset.objectLink,
+                            image: appConfig.storage.baseUrl + asset.objectLink,
                           },
                         }
                       }
@@ -733,8 +787,92 @@ const AssetsTab = ({
   )
 }
 
-const WallpapersTab = () => {
-  return <div>wallpapers</div>
+const WallpapersTab = ({
+  config,
+  selectedLayoutId,
+  setConfig,
+  search,
+}: {
+  config: Config
+  setConfig: React.Dispatch<React.SetStateAction<Config>>
+  selectedLayoutId: string
+  search: string
+}) => {
+  const [getImages, { data, error, refetch }] =
+    useGetImagesFromUnsplashLazyQuery()
+
+  useEffect(() => {
+    getImages({
+      variables: {
+        query: search === '' ? 'wallpapers' : search,
+      },
+    })
+  }, [search])
+
+  return error ? (
+    <div className="flex flex-col items-center justify-center w-full mt-8">
+      <IoReloadOutline className="text-gray-400" />
+      <Text
+        className="cursor-pointer text-sm text-blue-700 hover:underline"
+        onClick={() => refetch?.()}
+      >
+        Retry
+      </Text>
+    </div>
+  ) : (
+    <div
+      className={cx(
+        'grid grid-cols-2 mt-4 gap-4 w-full h-full pb-40 overflow-scroll',
+        scrollStyle
+      )}
+    >
+      {data &&
+        data.SearchUnsplash?.results.map((r: any) => {
+          return (
+            <div
+              role="button"
+              tabIndex={-1}
+              onKeyUp={() => {}}
+              className={cx(
+                'h-16 w-full p-1 rounded-md border border-gray-200 cursor-pointer',
+                {
+                  'border-gray-600':
+                    config.viewConfig.configs.find(
+                      (c) => c.id === selectedLayoutId
+                    )?.background.image === r.urls.regular,
+                }
+              )}
+              onClick={() =>
+                setConfig({
+                  ...config,
+                  viewConfig: {
+                    ...config.viewConfig,
+                    configs: config.viewConfig.configs.map((c) => {
+                      if (c.id === selectedLayoutId) {
+                        return {
+                          ...c,
+                          background: {
+                            type: 'image',
+                            image: r.urls.regular,
+                          },
+                        }
+                      }
+                      return c
+                    }),
+                  },
+                })
+              }
+            >
+              <img
+                src={r.urls.thumb}
+                alt={r.alt_description || ''}
+                className="w-full h-full object-cover rounded-md"
+              />
+            </div>
+          )
+        })}
+    </div>
+  )
 }
 
 export default FragmentView

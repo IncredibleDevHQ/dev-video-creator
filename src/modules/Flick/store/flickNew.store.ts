@@ -12,6 +12,6 @@ export const newFlickStore = atom<NewFlickStore>({
   default: {
     flick: null,
     activeFragmentId: '',
-    isMarkdown: false,
+    isMarkdown: true,
   } as NewFlickStore,
 })

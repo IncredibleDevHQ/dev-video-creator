@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import { css } from '@emotion/css'
 import {
   createAlignPlugin,
   createAutoformatPlugin,
@@ -42,20 +42,17 @@ import {
   TNode,
   useStoreEditorState,
 } from '@udecode/plate'
-import { ReactEditor } from 'slate-react'
+import React, { useMemo } from 'react'
+import { useRecoilValue } from 'recoil'
 import { HistoryEditor } from 'slate-history'
-import { css } from '@emotion/css'
-import { useRecoilState } from 'recoil'
+import { ReactEditor } from 'slate-react'
 import {
   BallonToolbarMarks,
   ToolbarButtons,
 } from '../../../utils/plateConfig/components/Toolbars'
-import { CONFIG } from '../../../utils/plateConfig/plateEditorConfig'
 import { withStyledPlaceHolders } from '../../../utils/plateConfig/components/withStyledPlaceholders'
-import mdSerialize from '../../../utils/plateConfig/serializer/md-serialize'
-import { serializeDataConfig } from '../../../utils/plateConfig/serializer/config-serialize'
-import { useGetTokenisedCodeLazyQuery } from '../../../generated/graphql'
-import { authState } from '../../../stores/auth.store'
+import { CONFIG } from '../../../utils/plateConfig/plateEditorConfig'
+import { newFlickStore } from '../store/flickNew.store'
 // import { serializeDataConfig } from '../../../utils/plateConfig/serializer/config-serialize'
 // import mdSerialize from '../../../utils/plateConfig/serializer/md-serialize'
 
@@ -63,12 +60,18 @@ type TEditor = SPEditor & ReactEditor & HistoryEditor
 
 const id = 'Examples/Playground'
 
-const FragmentEditor = () => {
+const FragmentEditor = ({
+  value,
+  setValue,
+}: {
+  value: TNode<any>[] | undefined
+  setValue: React.Dispatch<React.SetStateAction<TNode<any>[] | undefined>>
+}) => {
   const components = withStyledPlaceHolders(createPlateComponents())
   const options = createPlateOptions()
 
-  const [value, setValue] = useState<TNode<any>[]>()
   const editorRef = useStoreEditorState(id)
+  const { activeFragmentId } = useRecoilValue(newFlickStore)
 
   const pluginsMemo: PlatePlugin<TEditor>[] = useMemo(() => {
     const plugins = [
@@ -144,9 +147,9 @@ const FragmentEditor = () => {
   // }, [val])
 
   return (
-    <div className="h-full overflow-y-auto overflow-x-hidden pb-32">
+    <div className="h-full pb-32 overflow-y-scroll overflow-x-hidden">
       <Plate
-        id={id}
+        id={activeFragmentId}
         components={components}
         options={options}
         plugins={pluginsMemo}
@@ -154,7 +157,6 @@ const FragmentEditor = () => {
         value={value}
         onChange={(value) => {
           setValue(value)
-          console.log(value)
           // setVal(value)
           // This can be stored in database or can be called to generate on demand
           // console.log(value.map((block) => mdSerialize(block)).join('\n'))

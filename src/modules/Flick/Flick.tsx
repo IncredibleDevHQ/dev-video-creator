@@ -1,20 +1,16 @@
+import { TNode } from '@udecode/plate'
 import React, { useEffect, useState } from 'react'
-import { FiPlusCircle } from 'react-icons/fi'
 import { useParams } from 'react-router-dom'
 import { useRecoilState } from 'recoil'
-import { Avatar, emitToast, ScreenState } from '../../components'
-import {
-  useGetFlickByIdQuery,
-  useGetFragmentParticipantsLazyQuery,
-} from '../../generated/graphql'
-import { Config, ConfigType, VideojamConfig } from '../../utils/configTypes'
+import { ScreenState, Text } from '../../components'
+import { useGetFlickByIdQuery } from '../../generated/graphql'
+import { Config } from '../../utils/configTypes'
 import {
   FlickNavBar,
   FragmentBar,
   FragmentEditor,
   FragmentSideBar,
   FragmentView,
-  UpdateFragmentParticipantsModal,
 } from './components'
 import { newFlickStore } from './store/flickNew.store'
 
@@ -26,62 +22,19 @@ const Flick = () => {
     variables: { id },
   })
 
+  const [initialPlateValue, setInitialPlateValue] = useState<TNode<any>[]>()
+  const [plateValue, setPlateValue] = useState<TNode<any>[]>()
+  const [serializing, setSerializing] = useState(false)
+
   const [config, setConfig] = useState<Config>({
-    dataConfig: [
-      {
-        id: '12345',
-        type: ConfigType.VIDEOJAM,
-        value: {
-          videoURL: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-        },
-      } as VideojamConfig,
-      {
-        id: '123456',
-        type: ConfigType.VIDEOJAM,
-        value: {
-          videoURL: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-        },
-      } as VideojamConfig,
-    ],
+    dataConfig: [],
     viewConfig: {
-      hasTitleSplash: true,
-      configs: [
-        {
-          id: '12345',
-          type: ConfigType.VIDEOJAM,
-          layoutNumber: 1,
-          background: {
-            type: 'color',
-            image: '',
-          },
-        },
-        {
-          id: '123456',
-          type: ConfigType.VIDEOJAM,
-          layoutNumber: 1,
-          background: {
-            type: 'color',
-            image: '',
-          },
-        },
-      ],
+      configs: [],
+      hasTitleSplash: false,
     },
   })
 
   const [selectedLayoutId, setSelectedLayoutId] = useState('')
-
-  useEffect(() => {
-    if (!config || selectedLayoutId !== '') return
-    setSelectedLayoutId(config.dataConfig[0].id)
-  }, [config])
-
-  useEffect(() => {
-    if (!fragmentId) return
-    setFlickStore((store) => ({
-      ...store,
-      activeFragmentId: fragmentId,
-    }))
-  }, [fragmentId])
 
   useEffect(() => {
     if (!data) return
@@ -105,6 +58,18 @@ const Flick = () => {
       'Incredible.dev',
       `/flick/${flick.id}/${activeFragmentId}`
     )
+    const fragment = flick?.fragments.find(
+      (frag) => frag.id === activeFragmentId
+    )
+    if (fragment?.configuration) {
+      const fragmentConfig = fragment.configuration as Config
+      setConfig(fragmentConfig)
+      if (fragmentConfig.dataConfig.length > 0) {
+        setSelectedLayoutId(fragmentConfig.dataConfig[0].id)
+      }
+    }
+    setInitialPlateValue(fragment?.editorState)
+    setPlateValue(fragment?.editorState)
   }, [activeFragmentId])
 
   if (loading) return <ScreenState title="Just a jiffy" loading />
@@ -121,113 +86,40 @@ const Flick = () => {
       />
     )
 
-  // const fragment = flick?.fragments.find((frag) => frag.id === activeFragmentId)
-
   return flick ? (
-    <div className="h-screen overflow-x-hidden overflow-y-hidden">
+    <div className="h-screen overflow-hidden">
       <FlickNavBar />
       <div className="flex h-full">
         <FragmentSideBar />
-        <div className="w-full">
-          <FragmentBar />
-          {isMarkdown ? (
-            <FragmentEditor />
-          ) : (
-            <FragmentView
+        {!serializing ? (
+          <div className="w-full">
+            <FragmentBar
+              initialPlateValue={initialPlateValue}
+              setInitialPlateValue={setInitialPlateValue}
+              plateValue={plateValue}
+              setSerializing={setSerializing}
               config={config}
               setConfig={setConfig}
-              selectedLayoutId={selectedLayoutId}
               setSelectedLayoutId={setSelectedLayoutId}
             />
-          )}
-        </div>
+            {isMarkdown ? (
+              <FragmentEditor value={plateValue} setValue={setPlateValue} />
+            ) : (
+              <FragmentView
+                config={config}
+                setConfig={setConfig}
+                selectedLayoutId={selectedLayoutId}
+                setSelectedLayoutId={setSelectedLayoutId}
+              />
+            )}
+          </div>
+        ) : (
+          <Text>Serializing...</Text>
+        )}
       </div>
     </div>
   ) : (
     <div />
-  )
-}
-
-const FragmentParticipants = () => {
-  const [{ flick, activeFragmentId }, setFlickStore] =
-    useRecoilState(newFlickStore)
-
-  const [
-    isAddFragmentParticipantModalOpen,
-    setIsAddFragmentParticipantModalOpen,
-  ] = useState(false)
-
-  const [GetFragmentParticipants, { data, error }] =
-    useGetFragmentParticipantsLazyQuery({
-      variables: {
-        fragmentId: activeFragmentId,
-      },
-    })
-
-  useEffect(() => {
-    if (!data || !flick) return
-    const updatedFragments = flick.fragments.map((fragment) => {
-      if (fragment.id === activeFragmentId) {
-        return {
-          ...fragment,
-          participants: data.Fragment_Participant,
-        }
-      }
-      return fragment
-    })
-    setFlickStore((store) => ({
-      ...store,
-      flick: {
-        ...flick,
-        fragments: updatedFragments,
-      },
-      activeFragmentId: store.activeFragmentId,
-    }))
-  }, [data])
-
-  useEffect(() => {
-    if (!error) return
-    emitToast({
-      title: 'Could not fetch updated participants',
-      type: 'error',
-      description: `Click this toast to give it another try.`,
-      onClick: () => GetFragmentParticipants(),
-    })
-  }, [error])
-
-  return (
-    <div>
-      <div className="flex flex-col items-center bg-gray-100 border-2 border-gray-300 px-1.5 w-min py-2 rounded-md ml-4 mr-4 mt-4">
-        {flick?.fragments
-          .find((f) => f.id === activeFragmentId)
-          ?.participants.map((p) => (
-            <Avatar
-              className="w-8 h-8 mb-2 rounded-full"
-              src={p.participant.user.picture as string}
-              alt={p.participant.user.displayName as string}
-            />
-          ))}
-        <div
-          role="button"
-          tabIndex={0}
-          onKeyUp={() => {}}
-          className="flex items-center cursor-pointer"
-          onClick={() => setIsAddFragmentParticipantModalOpen(true)}
-        >
-          <FiPlusCircle size={32} className="" />
-        </div>
-        <UpdateFragmentParticipantsModal
-          key={`modal-${activeFragmentId}`}
-          open={isAddFragmentParticipantModalOpen}
-          handleClose={(refresh) => {
-            setIsAddFragmentParticipantModalOpen(false)
-            if (refresh) {
-              GetFragmentParticipants()
-            }
-          }}
-        />
-      </div>
-    </div>
   )
 }
 
