@@ -12,7 +12,7 @@ import { ComputedToken } from '../hooks/use-code'
 import { StudioProviderProps, studioStore } from '../stores'
 import { ControlButton } from './MissionControl'
 
-export type FragmentState = 'onlyUserMedia' | 'onlyFragment' | 'both'
+export type FragmentState = 'onlyUserMedia' | 'customLayout' | 'both'
 export interface TokenRenderState {
   tokens: ComputedToken[]
   index: number

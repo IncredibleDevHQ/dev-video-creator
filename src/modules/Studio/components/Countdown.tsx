@@ -10,7 +10,6 @@ const Countdown = () => {
   const [timer, setTimer] = useState<number>(3)
 
   useEffect(() => {
-    console.log('timer', timer)
     if (payload?.status === Fragment_Status_Enum_Enum.CountDown) {
       if (timer === 0) {
         updatePayload?.({
@@ -23,7 +22,9 @@ const Countdown = () => {
       }, 1000)
     }
     if (payload?.status === Fragment_Status_Enum_Enum.NotStarted) setTimer(3)
-    if (payload?.status === Fragment_Status_Enum_Enum.Live) startRecording()
+    if (payload?.status === Fragment_Status_Enum_Enum.Live) {
+      startRecording()
+    }
   }, [payload?.status, timer])
 
   return timer > 0 &&

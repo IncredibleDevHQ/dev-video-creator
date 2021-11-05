@@ -32,7 +32,7 @@
     "@udecode/plate": "^6.4.0",
     "@udecode/plate-test-utils": "^3.2.0",
     "@vectorly-io/ai-filters": "^1.6.4",
-    "agora-rtc-react": "git://github.com/AgoraIO-Community/agora-rtc-react#v1.0.0",
+    "agora-rtc-react": "^1.1.0",
     "agora-rtc-sdk-ng": "^4.6.3",
     "apollo-cache-persist": "^0.1.1",
     "axios": "^0.21.1",
