@@ -4,18 +4,20 @@ export interface ColorCode {
   content: string
 }
 
+export interface CommentExplanations {
+  explanation: string | undefined
+  from: number | undefined
+  to: number | undefined
+  // code: ColorCode[] | undefined
+}
+
 export interface CodejamConfig {
   id: string
   type: ConfigType
   title: string
   value: {
     gistURL: string
-    explanations?: {
-      explanation: string
-      from: number
-      to: number
-      id: string
-    }[]
+    explanations?: CommentExplanations[]
     isAutomated: boolean
     language: string
     code: string
