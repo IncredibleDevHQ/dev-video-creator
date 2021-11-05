@@ -15,6 +15,74 @@ import {
 
 import { defaultNodeTypes } from './types'
 
+// Helper function to extract comments from color-codes array
+
+const isComment = (line: ColorCode) => {
+  // TODO: Pick comment color based on the selected theme
+  const commentColor = '#608B4E'
+  if (line?.color === commentColor) {
+    return true
+  }
+  return false
+}
+
+/*
+  This function will remove the comments from the code and output 2 values:
+  - A color codes array without the comments
+  - A comment explanations array
+*/
+const commentExtractor = (tokens: ColorCode[]) => {
+  const blockBuffer = []
+  let tokenNumber = 0 // represents the token number of the original code
+  let codeLineNumber = 0 // represents the line number of the code without comments
+  let prevTokenLineNumber = 0 // represents the line number of the previously processed token
+  const code: ColorCode[] = []
+
+  while (tokenNumber < tokens.length) {
+    let explanation: string | undefined
+    let from: number | undefined
+    let to: number | undefined
+
+    // if the token is a comment
+    if (isComment(tokens[tokenNumber])) {
+      // extract the explanation and increment the token number
+      explanation = tokens[tokenNumber].content
+      tokenNumber += 1
+
+      from = codeLineNumber
+
+      // find the end of the comment block
+      while (!isComment(tokens[tokenNumber]) && tokenNumber < tokens.length) {
+        const codeToken = tokens[tokenNumber]
+        // if line number has changed , increment code line number
+        if (codeToken.lineNumber !== prevTokenLineNumber) {
+          prevTokenLineNumber = codeToken.lineNumber
+          codeLineNumber += 1
+        }
+        codeToken.lineNumber = codeLineNumber - 1
+        code.push(codeToken)
+        tokenNumber += 1
+      }
+      to = codeLineNumber
+    } else {
+      // If its a code token
+      const codeToken = tokens[tokenNumber]
+      // if line number has changed , increment code line number
+      if (codeToken.lineNumber !== prevTokenLineNumber) {
+        prevTokenLineNumber = codeToken.lineNumber
+        codeLineNumber += 1
+      }
+      codeToken.lineNumber = codeLineNumber - 1
+      code.push(codeToken)
+      tokenNumber += 1
+    }
+    if (explanation && from && to) {
+      blockBuffer.push({ explanation, from, to })
+    }
+  }
+  return { blockBuffer, code }
+}
+
 type FragmentConfig =
   | CodejamConfig
   | TriviaConfig
@@ -27,7 +95,7 @@ export const getColorCodes = async (
   userToken: string
 ): Promise<ColorCode[]> => {
   let result: ColorCode[] = []
-  console.log('Processing color codes')
+
   // eslint-disable-next-line consistent-return
   try {
     const res = await axios.post(
@@ -60,7 +128,6 @@ export const getColorCodes = async (
 
     if (res?.data?.data?.TokenisedCode?.success) {
       result = res?.data?.data?.TokenisedCode?.data
-      console.log({ result })
     }
   } catch (e) {
     console.error(e)
@@ -125,6 +192,8 @@ export const serializeDataConfig = async (
         userToken
       )
 
+      // Separate comments and code
+      const { blockBuffer, code } = commentExtractor(colorCodes)
       context = {
         id: nanoid(),
         type: ConfigType.CODEJAM,
@@ -134,13 +203,13 @@ export const serializeDataConfig = async (
           gistURL: '',
           isAutomated: false,
           language: node.lang || 'javascript',
-          explanations: [],
-          colorCodes,
+          explanations: blockBuffer,
+          colorCodes: code,
         },
         /* notes will be populated by the above check for `p`.
-                 This follows the assumption that note added only after
-                 the object are considered.
-              */
+           This follows the assumption that note added only after
+           the object are considered.
+        */
         notes: [],
       } as CodejamConfig
     } else if (
@@ -159,7 +228,7 @@ export const serializeDataConfig = async (
           id: nanoid(),
           type: ConfigType.TRIVIA,
           title: heading || '',
-          value: node.children?.[0]?.text,
+          value: { text: node.children?.[0]?.text },
           notes: [],
         } as TriviaConfig
       } else if (node.type === defaultNodeTypes.image) {
