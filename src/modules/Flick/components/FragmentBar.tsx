@@ -10,10 +10,9 @@ import { useRecoilState } from 'recoil'
 import { FragmentVideoModal, UpdateFragmentParticipantsModal } from '.'
 import { Avatar, Button, emitToast, Text } from '../../../components'
 import {
-  useAddConfigurationMutation,
   useGetFragmentParticipantsLazyQuery,
-  useUpdateFragmentStateMutation,
   useUpdateFragmentMutation,
+  useUpdateFragmentStateMutation,
 } from '../../../generated/graphql'
 import { authState } from '../../../stores/auth.store'
 import { Config } from '../../../utils/configTypes'
@@ -53,10 +52,9 @@ const FragmentBar = ({
   const [updateFragmentMutation, { data: updateFragmentData }] =
     useUpdateFragmentMutation()
 
-  const [updateConfiguration, { data, error, loading }] =
-    useAddConfigurationMutation()
-
-  const [updateFragmentState] = useUpdateFragmentStateMutation()
+  const [updateFragmentState, { data, error }] =
+    useUpdateFragmentStateMutation()
+  const [savingConfig, setSavingConfig] = useState(false)
 
   useEffect(() => {
     if (!updateFragmentData) return
@@ -137,6 +135,60 @@ const FragmentBar = ({
       })
     } finally {
       setSerializing(false)
+    }
+  }
+
+  const updateConfig = async () => {
+    setSavingConfig(true)
+    try {
+      let dc = config.dataConfig
+      let vc = config.viewConfig
+      if (JSON.stringify(plateValue) !== JSON.stringify(initialPlateValue)) {
+        dc = await serializeDataConfig(plateValue || [], auth?.token || '')
+        vc = generateViewConfig({
+          dataConfig: dc,
+          viewConfig: vc,
+        })
+        setConfig({ dataConfig: dc, viewConfig: vc })
+        if (dc.length > 0) {
+          setSelectedLayoutId(dc[0].id)
+        }
+        if (flick)
+          setFlickStore((store) => ({
+            ...store,
+            flick: {
+              ...flick,
+              fragments: flick.fragments.map((f) =>
+                f.id === activeFragmentId
+                  ? {
+                      ...f,
+                      configuration: {
+                        dc,
+                        vc,
+                      },
+                      editorState: plateValue,
+                    }
+                  : f
+              ),
+            },
+          }))
+        setInitialPlateValue(plateValue)
+      }
+
+      await updateFragmentState({
+        variables: {
+          editorState: plateValue,
+          id: activeFragmentId,
+          configuration: { dataConfig: dc, viewConfig: vc } as Config,
+        },
+      })
+    } catch (error) {
+      emitToast({
+        type: 'error',
+        title: 'Error updating fragment',
+      })
+    } finally {
+      setSavingConfig(false)
     }
   }
 
@@ -234,15 +286,8 @@ const FragmentBar = ({
           size="small"
           type="button"
           className="mr-2"
-          loading={loading}
-          onClick={() =>
-            updateConfiguration({
-              variables: {
-                id: activeFragmentId,
-                configuration: config,
-              },
-            })
-          }
+          loading={savingConfig}
+          onClick={() => updateConfig()}
         >
           Save
         </Button>

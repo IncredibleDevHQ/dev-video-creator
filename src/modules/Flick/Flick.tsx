@@ -65,9 +65,9 @@ const Flick = () => {
     if (fragment?.configuration) {
       const fragmentConfig = fragment.configuration as Config
       setConfig(fragmentConfig)
-      if (fragmentConfig.dataConfig.length > 0) {
-        setSelectedLayoutId(fragmentConfig.dataConfig[0].id)
-      }
+      // if (fragmentConfig.dataConfig.length > 0) {
+      //   setSelectedLayoutId(fragmentConfig.dataConfig[0].id)
+      // }
     }
     setInitialPlateValue(fragment?.editorState)
     setPlateValue(fragment?.editorState)
@@ -121,7 +121,6 @@ const Flick = () => {
             )
           )}
         </div>
-        )
       </div>
     </div>
   ) : (
