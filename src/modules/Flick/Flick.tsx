@@ -1,5 +1,6 @@
 import { TNode } from '@udecode/plate'
 import React, { useEffect, useState } from 'react'
+import { FiLoader } from 'react-icons/fi'
 import { useParams } from 'react-router-dom'
 import { useRecoilState } from 'recoil'
 import { ScreenState, Text } from '../../components'
@@ -91,31 +92,36 @@ const Flick = () => {
       <FlickNavBar />
       <div className="flex h-full">
         <FragmentSideBar />
-        {!serializing ? (
-          <div className="w-full">
-            <FragmentBar
-              initialPlateValue={initialPlateValue}
-              setInitialPlateValue={setInitialPlateValue}
-              plateValue={plateValue}
-              setSerializing={setSerializing}
-              config={config}
-              setConfig={setConfig}
-              setSelectedLayoutId={setSelectedLayoutId}
-            />
-            {isMarkdown ? (
-              <FragmentEditor value={plateValue} setValue={setPlateValue} />
-            ) : (
+        <div className="w-full">
+          <FragmentBar
+            initialPlateValue={initialPlateValue}
+            setInitialPlateValue={setInitialPlateValue}
+            plateValue={plateValue}
+            setSerializing={setSerializing}
+            config={config}
+            setConfig={setConfig}
+            setSelectedLayoutId={setSelectedLayoutId}
+          />
+          {!serializing && (
+            <div className="flex flex-col gap-y-2 h-full w-full items-center justify-center pb-32">
+              <FiLoader size={21} className="animate-spin" />
+              <Text className="text-lg">Generating view</Text>
+            </div>
+          )}
+          {serializing && isMarkdown ? (
+            <FragmentEditor value={plateValue} setValue={setPlateValue} />
+          ) : (
+            serializing && (
               <FragmentView
                 config={config}
                 setConfig={setConfig}
                 selectedLayoutId={selectedLayoutId}
                 setSelectedLayoutId={setSelectedLayoutId}
               />
-            )}
-          </div>
-        ) : (
-          <Text>Serializing...</Text>
-        )}
+            )
+          )}
+        </div>
+        )
       </div>
     </div>
   ) : (
