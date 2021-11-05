@@ -58,8 +58,6 @@ import { newFlickStore } from '../store/flickNew.store'
 
 type TEditor = SPEditor & ReactEditor & HistoryEditor
 
-const id = 'Examples/Playground'
-
 const FragmentEditor = ({
   value,
   setValue,
@@ -70,8 +68,8 @@ const FragmentEditor = ({
   const components = withStyledPlaceHolders(createPlateComponents())
   const options = createPlateOptions()
 
-  const editorRef = useStoreEditorState(id)
   const { activeFragmentId } = useRecoilValue(newFlickStore)
+  const editorRef = useStoreEditorState(activeFragmentId)
 
   const pluginsMemo: PlatePlugin<TEditor>[] = useMemo(() => {
     const plugins = [
