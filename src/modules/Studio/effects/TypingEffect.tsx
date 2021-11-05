@@ -12,6 +12,7 @@ const TypingEffect = ({
 }) => {
   const [text, setText] = useState('')
   useEffect(() => {
+    if (!token) return
     const chars = [...token.content]
     chars.forEach((char, index) => {
       setTimeout(() => {
@@ -23,10 +24,10 @@ const TypingEffect = ({
     <Text
       key={`(${token?.x || nanoid()},${token?.y || nanoid()})`}
       fontSize={config.fontSize}
-      fill={token.color}
+      fill={token?.color}
       text={text}
-      x={token.x}
-      y={token.y}
+      x={token?.x}
+      y={token?.y}
       align="left"
     />
   )

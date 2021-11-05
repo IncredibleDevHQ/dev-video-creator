@@ -1,6 +1,6 @@
 overwrite: true
 schema:
-  - https://incredibledev-next-staging.hasura.app/v1/graphql:
+  - ${VITE_HASURA_SERVER}:
       headers:
         'x-hasura-admin-secret': ${HASURA_ADMIN_SECRET}
 documents: 'src/**/*.graphql'
