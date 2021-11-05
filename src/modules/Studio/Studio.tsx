@@ -1,5 +1,5 @@
 /* eslint-disable jsx-a11y/media-has-caption */
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { createRef, useEffect, useMemo, useState } from 'react'
 import { ILocalVideoTrack, IMicrophoneAudioTrack } from 'agora-rtc-sdk-ng'
 import { FiArrowLeft } from 'react-icons/fi'
 import { useHistory, useParams } from 'react-router-dom'
@@ -7,6 +7,9 @@ import { useRecoilState, useRecoilValue } from 'recoil'
 import getBlobDuration from 'get-blob-duration'
 import { AgoraVideoPlayer } from 'agora-rtc-react'
 import AspectRatio from 'react-aspect-ratio'
+import { Layer, Stage } from 'react-konva'
+import { useRecoilBridgeAcrossReactRoots_UNSTABLE } from 'recoil'
+import Konva from 'konva'
 import config from '../../config'
 import {
   emitToast,
@@ -30,10 +33,17 @@ import { User, userState } from '../../stores/user.store'
 import { getEffect } from './effects/effects'
 import { useUploadFile } from '../../hooks/use-upload-file'
 import { useAgora, useVectorly } from './hooks'
-import { StudioProviderProps, StudioState, studioStore } from './stores'
+import {
+  canvasStore,
+  StudioProviderProps,
+  StudioState,
+  studioStore,
+} from './stores'
 import { useRTDB } from './hooks/use-rtdb'
-import { Timer, Countdown } from './components'
+import { Timer, Countdown, MissionControl } from './components'
 import { Device } from './hooks/use-agora'
+import UnifiedFragment from './components/UnifiedFragment'
+import { CONFIG } from './components/Concourse'
 
 const backgrounds = [
   { label: 'No effect', value: 'none' },
@@ -236,6 +246,13 @@ const Studio = ({
   const [markFragmentCompleted] = useMarkFragmentCompletedMutation()
 
   const [uploadFile] = useUploadFile()
+
+  const stageRef = createRef<Konva.Stage>()
+  const layerRef = createRef<Konva.Layer>()
+  const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
+  Konva.pixelRatio = 2
+
+  const [canvas, setCanvas] = useRecoilState(canvasStore)
 
   const { stream, join, users, mute, leave, userAudios, renewToken } = useAgora(
     fragmentId,
@@ -524,7 +541,7 @@ const Studio = ({
   if (!fragment || fragment.id !== fragmentId)
     return <EmptyState text="Fragment not found" width={400} />
 
-  const C = getEffect(fragment.type, fragment.configuration)
+  // const C = getEffect(fragment.type, fragment.configuration)
 
   return (
     <div>
@@ -560,7 +577,49 @@ const Studio = ({
             <></>
           )}
         </div>
-        {fragment && <C />}
+        <div className="flex-1 mt-4 justify-between items-stretch flex">
+          <div className="bg-gray-100 flex-1 rounded-md p-4 flex justify-center items-center mr-8">
+            {state === 'ready' ||
+            state === 'recording' ||
+            state === 'countDown' ? (
+              <Stage
+                ref={stageRef}
+                height={CONFIG.height}
+                width={CONFIG.width}
+                // className={cx({
+                //   'cursor-zoom-in': canvas?.zoomed && !isZooming,
+                //   'cursor-zoom-out': canvas?.zoomed && isZooming,
+                // })}
+              >
+                <Bridge>
+                  <Layer ref={layerRef}>
+                    {fragment && (
+                      <UnifiedFragment
+                        stageRef={stageRef}
+                        layerRef={layerRef}
+                      />
+                    )}
+                  </Layer>
+                </Bridge>
+              </Stage>
+            ) : (
+              // eslint-disable-next-line jsx-a11y/media-has-caption
+              // !isShorts ? 'w-8/12 rounded-md' :
+              <video
+                className="w-3/4 rounded-md"
+                controls
+                ref={async (ref) => {
+                  if (!ref || !getBlobs) return
+                  const blob = await getBlobs()
+                  const url = window.URL.createObjectURL(blob)
+                  // eslint-disable-next-line no-param-reassign
+                  ref.src = url
+                }}
+              />
+            )}
+          </div>
+          <MissionControl />
+        </div>
       </div>
     </div>
   )
