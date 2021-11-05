@@ -102,16 +102,16 @@ const Flick = () => {
             setConfig={setConfig}
             setSelectedLayoutId={setSelectedLayoutId}
           />
-          {!serializing && (
+          {serializing && (
             <div className="flex flex-col gap-y-2 h-full w-full items-center justify-center pb-32">
               <FiLoader size={21} className="animate-spin" />
               <Text className="text-lg">Generating view</Text>
             </div>
           )}
-          {serializing && isMarkdown ? (
+          {!serializing && isMarkdown ? (
             <FragmentEditor value={plateValue} setValue={setPlateValue} />
           ) : (
-            serializing && (
+            !serializing && (
               <FragmentView
                 config={config}
                 setConfig={setConfig}
