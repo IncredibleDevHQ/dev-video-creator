@@ -19,9 +19,16 @@ import { IoHandRightOutline } from 'react-icons/io5'
 import { VscSearch, VscSearchStop } from 'react-icons/vsc'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import { canvasStore, StudioProviderProps, studioStore } from '../stores'
-import { Avatar, Heading, Tooltip } from '../../../components'
+import { Avatar, Heading, NextTokenIcon, Tooltip } from '../../../components'
 import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
 import { PresenterNotes } from '.'
+import { ConfigType } from '../../../utils/configTypes'
+import {
+  CodeJamControls,
+  PointsControls,
+  TriviaControls,
+  VideoJamControls,
+} from './Controls'
 
 export const ControlButton = ({
   appearance,
@@ -90,7 +97,7 @@ const RaiseHandsMenu = ({ participants }: { participants: any[] }) => {
   )
 }
 
-const MissionControl = ({ controls }: { controls: JSX.Element[] }) => {
+const MissionControl = () => {
   const {
     fragment,
     constraints,
@@ -104,6 +111,7 @@ const MissionControl = ({ controls }: { controls: JSX.Element[] }) => {
     payload,
     updatePayload,
     participantId,
+    controlsConfig,
   } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [canvas, setCanvas] = useRecoilState(canvasStore)
   const [studio, setStudio] = useRecoilState(studioStore)
@@ -111,6 +119,8 @@ const MissionControl = ({ controls }: { controls: JSX.Element[] }) => {
   const [participant, setParticipant] = useState<any>()
   const [participantsArray, setParticipantsArray] = useState<any[]>([])
   const [showNotes, setShowNotes] = useState(false)
+
+  const [fragmentType, setFragmentType] = useState<ConfigType>()
 
   const togglePresenterNotes = (to: boolean) => {
     setShowNotes(to)
@@ -151,6 +161,11 @@ const MissionControl = ({ controls }: { controls: JSX.Element[] }) => {
     setRaiseHandsTooltip(participantsArray.some((p) => p.raiseHands))
   }, [participantsArray])
 
+  useEffect(() => {
+    if (!controlsConfig) return
+    setFragmentType(controlsConfig.type)
+  }, [controlsConfig])
+
   return (
     <div className="bg-gray-100 py-2 px-4 rounded-md">
       <div className="flex flex-col items-center justify-between h-full">
@@ -175,8 +190,51 @@ const MissionControl = ({ controls }: { controls: JSX.Element[] }) => {
             }}
           />
           <hr className="bg-grey-darker h-px my-2" />
-
-          {controls}
+          <ControlButton
+            key="nextObject"
+            icon={NextTokenIcon}
+            disabled={
+              payload?.activeObjectIndex ===
+              controlsConfig?.dataConfigLength - 1
+            }
+            className="my-2"
+            appearance="primary"
+            onClick={() => {
+              updatePayload?.({
+                activeObjectIndex: payload?.activeObjectIndex + 1,
+              })
+            }}
+          />
+          {(() => {
+            switch (fragmentType) {
+              case ConfigType.CODEJAM:
+                return CodeJamControls({
+                  position: controlsConfig.position,
+                  computedTokens: controlsConfig.computedTokens,
+                  fragmentState: controlsConfig.fragmentState,
+                })
+              case ConfigType.VIDEOJAM:
+                return VideoJamControls({
+                  playing: controlsConfig.playing,
+                  videoElement: controlsConfig.videoElement,
+                  fragmentState: controlsConfig.fragmentState,
+                })
+              case ConfigType.TRIVIA:
+                return TriviaControls({
+                  fragmentState: controlsConfig.fragmentState,
+                })
+              case ConfigType.POINTS:
+                return PointsControls({
+                  fragmentState: controlsConfig.fragmentState,
+                  noOfPoints: controlsConfig.noOfPoints,
+                })
+              default: {
+                const { payload, updatePayload } =
+                  (useRecoilValue(studioStore) as StudioProviderProps) || {}
+                return <></>
+              }
+            }
+          })()}
         </div>
         <div>
           <Tooltip

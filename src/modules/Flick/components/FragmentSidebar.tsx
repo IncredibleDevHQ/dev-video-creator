@@ -64,13 +64,22 @@ const FragmentSideBar = () => {
         autoClose: false,
       })
 
-      await createFragment({
+      const res = await createFragment({
         variables: {
           flickId: flick?.id,
           name: 'Untitled',
           creatorPid: flick?.participants.find((p) => p.userSub === sub)?.id,
         },
       })
+
+      if (res.errors) {
+        throw Error(res.errors[0].message)
+      }
+
+      setFlickStore((prev) => ({
+        ...prev,
+        activeFragmentId: res.data?.CreateFragment?.id,
+      }))
 
       GetFlickFragments?.()
 
@@ -113,16 +122,16 @@ const FragmentSideBar = () => {
     <div>
       <div
         className={cx(
-          'w-56 h-full border-r border-gray-300 overflow-y-auto pt-10 pb-20 relative',
-          {
-            'h-full': flick?.fragments.length === 0,
-          },
+          'w-48 h-full border-r border-gray-300 overflow-y-auto pt-8 pb-20 relative',
           style
         )}
       >
         <ThumbnailDND />
         <div
-          className="bg-gray-50 fixed top-14 flex items-center justify-center w-56 left-0 cursor-pointer py-3 border border-gray-300"
+          role="button"
+          onKeyUp={() => {}}
+          tabIndex={-1}
+          className="bg-gray-50 absolute top-0 flex items-center justify-center w-48 left-0 cursor-pointer py-2 border-b border-l border-r border-gray-300"
           onClick={handleCreateFragment}
         >
           <Button
@@ -234,9 +243,8 @@ const Thumbnail = ({
   ...rest
 }: ThumbnailProps) => {
   const [editFragmentName, setEditFragmentName] = useState(false)
-  const [{ flick, activeFragmentId }, setFlickStore] =
-    useRecoilState(newFlickStore)
-  const [updateFragmentMutation, { data: updateFargmentData }] =
+  const [{ flick }, setFlickStore] = useRecoilState(newFlickStore)
+  const [updateFragmentMutation, { data: updateFragmentData }] =
     useUpdateFragmentMutation()
   const [overflowButtonVisible, setOverflowButtonVisible] = useState(false)
   const [overflowMenuVisible, setOverflowMenuVisible] = useState(false)
@@ -251,9 +259,30 @@ const Thumbnail = ({
     })
 
   useEffect(() => {
-    if (!updateFargmentData) return
+    if (!data || !flick) return
+    setFlickStore((store) => ({
+      ...store,
+      flick: {
+        ...flick,
+        fragments: [...data.Fragment],
+      },
+    }))
+  }, [data])
+
+  useEffect(() => {
+    if (!error || !refetch) return
+    emitToast({
+      title: "We couldn't fetch your new fragment",
+      type: 'error',
+      description: 'Click this toast to give it another try',
+      onClick: () => refetch(),
+    })
+  }, [error])
+
+  useEffect(() => {
+    if (!updateFragmentData) return
     setEditFragmentName(false)
-  }, [updateFargmentData])
+  }, [updateFragmentData])
 
   const updateFragment = async (newName: string) => {
     if (editFragmentName) {
@@ -271,7 +300,7 @@ const Thumbnail = ({
           },
         }))
       }
-      const result = await updateFragmentMutation({
+      await updateFragmentMutation({
         variables: {
           fragmentId: fragment?.id, // value for 'fragmentId'
           name: newName,
@@ -283,10 +312,10 @@ const Thumbnail = ({
   return (
     <div
       role="button"
-      tabIndex={0}
+      tabIndex={-1}
       onKeyUp={() => {}}
       className={cx(
-        'flex flex-col my-2 mx-6 rounded-md h-28 bg-gray-100 justify-end p-4 relative border border-gray-300',
+        'flex flex-col my-2 mx-4 rounded-md h-24 bg-gray-100 justify-end p-2 relative border border-gray-300',
         {
           'border-green-600': active,
           'mt-10': position === 0,
@@ -305,6 +334,9 @@ const Thumbnail = ({
       )}
       {overflowButtonVisible && (
         <div
+          role="button"
+          onKeyUp={() => {}}
+          tabIndex={-1}
           className="absolute top-0 right-0 m-2 bg-gray-50 w-min p-1 shadow-md rounded-md cursor-pointer"
           onClick={(e) => {
             e.stopPropagation()
@@ -320,6 +352,9 @@ const Thumbnail = ({
         content={
           <div className="flex flex-col bg-gray-50 rounded-md border border-gray-300 w-44 z-10 shadow-md">
             <div
+              role="button"
+              onKeyUp={() => {}}
+              tabIndex={-1}
               className="flex items-center pt-3 pb-1.5 px-4 cursor-pointer hover:bg-gray-100"
               onClick={() => setConfirmDeleteModal(true)}
             >
@@ -328,10 +363,13 @@ const Thumbnail = ({
             </div>
             <div className="h-px bg-gray-200" />
             <div
+              role="button"
+              onKeyUp={() => {}}
+              tabIndex={-1}
               className="flex items-center py-2 px-4 cursor-pointer hover:bg-gray-100"
               onClick={() => setNotesModal(true)}
             >
-              <RiStickyNoteLine size={21} className="text-gray-600mt-1 mr-4" />
+              <RiStickyNoteLine size={21} className="text-gray-600 mt-1 mr-4" />
               <Text>Note</Text>
             </div>
           </div>
@@ -341,14 +379,14 @@ const Thumbnail = ({
       />
       <Text
         className={cx(
-          'text-sm font-bold text-gray-800 cursor-text rounded-md p-1 hover:bg-gray-200 overflow-scroll',
+          'text-xs font-bold text-gray-800 cursor-text rounded-md p-1 hover:bg-gray-200 overflow-scroll',
           {
             'truncate overflow-ellipsis': !editFragmentName,
           }
         )}
         contentEditable={editFragmentName}
         onClick={(e) => e.stopPropagation()}
-        onMouseDown={(e) => {
+        onMouseDown={() => {
           setEditFragmentName(true)
         }}
         onKeyDown={(e) => {
@@ -357,21 +395,23 @@ const Thumbnail = ({
             setEditFragmentName(false)
             updateFragment(e.currentTarget.innerText)
           }
+          if (e.key === 'Escape') {
+            e.preventDefault()
+            e.currentTarget.innerText = fragment.name || ''
+            setEditFragmentName(false)
+          }
         }}
       >
         {fragment.name}
       </Text>
-      <div className="flex items-center justify-between pl-1">
-        <Text className="text-xs text-gray-600">{fragment.type}</Text>
-        <div className="flex">
-          {fragment.participants.map(({ participant }) => (
-            <Avatar
-              className="w-5 h-5 rounded-full mr-1"
-              src={participant.user.picture as string}
-              alt={participant.user.displayName as string}
-            />
-          ))}
-        </div>
+      <div className="flex pl-1 pt-1">
+        {fragment.participants.map(({ participant }) => (
+          <Avatar
+            className="w-5 h-5 rounded-full mr-1"
+            src={participant.user.picture as string}
+            alt={participant.user.displayName as string}
+          />
+        ))}
       </div>
       <DeleteFragmentModal
         open={confirmDeleteModal}

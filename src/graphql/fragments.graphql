@@ -7,6 +7,7 @@ fragment FlickFragment on Fragment {
   order
   type
   producedLink
+  editorState
   participants {
     participant {
       ...FlickParticipants
@@ -148,6 +149,19 @@ mutation AddConfiguration($configuration: json!, $id: uuid!) {
     _set: { configuration: $configuration }
   ) {
     ...FlickFragment
+  }
+}
+
+mutation UpdateFragmentState(
+  $editorState: json!
+  $id: uuid!
+  $configuration: json!
+) {
+  update_Fragment_by_pk(
+    pk_columns: { id: $id }
+    _set: { editorState: $editorState, configuration: $configuration }
+  ) {
+    id
   }
 }
 

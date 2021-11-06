@@ -9,7 +9,7 @@ import {
   useProduceVideoMutation,
   useUpdateFlickMutation,
 } from '../../../generated/graphql'
-import { FlickActivity } from '../../Flick/components'
+import { FlickActivity } from '.'
 import { newFlickStore } from '../store/flickNew.store'
 import SettingsModal from './SettingsModal'
 import ShareModal from './ShareModal'
@@ -23,7 +23,7 @@ const FlickNavBar = () => {
   const [flickName, setFlickName] = useState(flick?.name || '')
   const history = useHistory()
 
-  const [updateFlickMutation, { data, error }] = useUpdateFlickMutation()
+  const [updateFlickMutation, { data }] = useUpdateFlickMutation()
 
   const [produceVideoMutation] = useProduceVideoMutation()
 
@@ -86,16 +86,16 @@ const FlickNavBar = () => {
   }, [data])
 
   return (
-    <div className="flex justify-between items-center pr-6 pl-3 py-2">
+    <div className="flex justify-between items-center pr-4 pl-3 py-1 border-b border-gray-300">
       <div className="flex items-center">
         <Link to="/dashboard">
           <div className="flex">
-            <FiChevronLeft size={32} className="text-gray-700 mr-2" />
-            <img src={ASSETS.ICONS.StudioLogo} alt="" className="w-32" />
+            <FiChevronLeft size={28} className="text-gray-700 mr-2" />
+            <img src={ASSETS.ICONS.StudioLogo} alt="" className="w-28" />
           </div>
         </Link>
         <Heading
-          className="font-semibold ml-12 p-2 rounded-md hover:bg-gray-100"
+          className="text-md font-semibold ml-12 p-2 rounded-md hover:bg-gray-100"
           contentEditable={editFlickName}
           onMouseDown={() => setEditFlickName(true)}
           onKeyDown={(e) => {
@@ -112,7 +112,7 @@ const FlickNavBar = () => {
       </div>
       <div className="flex items-center">
         <BsGear
-          size={24}
+          size={21}
           className="mr-8 text-gray-600 cursor-pointer"
           onClick={() => setSettingsModal(true)}
         />
@@ -150,7 +150,7 @@ const FlickNavBar = () => {
           icon={FiUpload}
           type="button"
           disabled={!flick?.fragments.every((f) => f.producedLink !== null)}
-          className="px-3 py-1.5"
+          className="px-3 py-1"
           onClick={produceVideo}
         >
           Publish
