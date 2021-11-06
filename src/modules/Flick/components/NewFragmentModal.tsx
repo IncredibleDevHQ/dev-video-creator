@@ -1,4 +1,4 @@
-import React, { HTMLProps, useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { BiUser } from 'react-icons/bi'
 import { IoCloseOutline } from 'react-icons/io5'
 import { useRecoilState, useRecoilValue } from 'recoil'
@@ -104,6 +104,9 @@ const NewFragmentModal = ({
           {fragmentTypes.map(
             ({ label, image, description, value, accessory }) => (
               <div
+                role="button"
+                tabIndex={-1}
+                onKeyUp={() => {}}
                 onClick={() => {
                   setSelectedFragment(value)
                   createFragment({
@@ -111,7 +114,7 @@ const NewFragmentModal = ({
                       flickId: flick?.id,
                       name: label,
                       type: CreateFragmentTypeEnum[value],
-                      description: description,
+                      description,
                       creatorPid: flick?.participants.find(
                         (p) => p.userSub === sub
                       )?.id,

@@ -34,9 +34,8 @@ const style = css`
 
 const FragmentSideBar = () => {
   const [{ flick }, setFlickStore] = useRecoilState(newFlickStore)
-  const [isCreateNewFragmentModalOpen, setIsCreateNewModalOpen] = useState(
-    flick?.fragments.length === 0
-  )
+  const [isCreateNewFragmentModalOpen, setIsCreateNewModalOpen] =
+    useState(false)
 
   const [GetFlickFragments, { data, error, refetch }] =
     useGetFlickFragmentsLazyQuery({
@@ -79,7 +78,7 @@ const FragmentSideBar = () => {
           role="button"
           onKeyUp={() => {}}
           tabIndex={-1}
-          className="bg-gray-50 absolute top-0 flex items-center justify-center w-48 left-0 cursor-pointer py-2 border border-gray-300"
+          className="bg-gray-50 absolute top-0 flex items-center justify-center w-48 left-0 cursor-pointer py-2 border-b border-l border-r border-gray-300"
           onClick={() => setIsCreateNewModalOpen(true)}
         >
           <Button

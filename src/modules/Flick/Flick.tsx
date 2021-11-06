@@ -150,35 +150,37 @@ const Flick = () => {
       <FlickNavBar />
       <div className="flex h-full">
         <FragmentSideBar />
-        <div className="w-full">
-          <FragmentBar
-            initialPlateValue={initialPlateValue}
-            setInitialPlateValue={setInitialPlateValue}
-            plateValue={plateValue}
-            setSerializing={setSerializing}
-            config={config}
-            setConfig={setConfig}
-            setSelectedLayoutId={setSelectedLayoutId}
-          />
-          {serializing && (
-            <div className="flex flex-col gap-y-2 h-full w-full items-center justify-center pb-32">
-              <FiLoader size={21} className="animate-spin" />
-              <Text className="text-lg">Generating view</Text>
-            </div>
-          )}
-          {!serializing && isMarkdown ? (
-            <FragmentEditor value={plateValue} setValue={setPlateValue} />
-          ) : (
-            !serializing && (
-              <FragmentView
-                config={config}
-                setConfig={setConfig}
-                selectedLayoutId={selectedLayoutId}
-                setSelectedLayoutId={setSelectedLayoutId}
-              />
-            )
-          )}
-        </div>
+        {flick.fragments.length > 0 && (
+          <div className="w-full">
+            <FragmentBar
+              initialPlateValue={initialPlateValue}
+              setInitialPlateValue={setInitialPlateValue}
+              plateValue={plateValue}
+              setSerializing={setSerializing}
+              config={config}
+              setConfig={setConfig}
+              setSelectedLayoutId={setSelectedLayoutId}
+            />
+            {serializing && (
+              <div className="flex flex-col gap-y-2 h-full w-full items-center justify-center pb-32">
+                <FiLoader size={21} className="animate-spin" />
+                <Text className="text-lg">Generating view</Text>
+              </div>
+            )}
+            {!serializing && isMarkdown ? (
+              <FragmentEditor value={plateValue} setValue={setPlateValue} />
+            ) : (
+              !serializing && (
+                <FragmentView
+                  config={config}
+                  setConfig={setConfig}
+                  selectedLayoutId={selectedLayoutId}
+                  setSelectedLayoutId={setSelectedLayoutId}
+                />
+              )
+            )}
+          </div>
+        )}
       </div>
     </div>
   ) : (

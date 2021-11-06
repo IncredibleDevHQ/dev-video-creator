@@ -217,7 +217,7 @@ const FragmentBar = ({
   }
 
   return (
-    <div className="flex items-center bg-gray-50 justify-between pr-4 pl-6 py-1.5 border-t border-b border-gray-300">
+    <div className="flex items-center bg-gray-50 justify-between pr-4 pl-6 py-1.5  border-b border-gray-300">
       <div className="flex items-center">
         <div className="flex bg-gray-100 items-center rounded-md mr-6 ">
           <div
