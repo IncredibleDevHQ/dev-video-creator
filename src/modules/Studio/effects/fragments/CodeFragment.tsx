@@ -99,7 +99,7 @@ const CodeFragment = ({
     setObjectConfig(
       FragmentLayoutConfig({ layoutNumber: viewConfig.layoutNumber })
     )
-  }, [dataConfig])
+  }, [dataConfig, viewConfig])
 
   useEffect(() => {
     initUseCode({

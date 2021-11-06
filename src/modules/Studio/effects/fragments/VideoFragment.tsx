@@ -80,7 +80,7 @@ const VideoFragment = ({
     )
     // eslint-disable-next-line consistent-return
     return element
-  }, [dataConfig])
+  }, [dataConfig, viewConfig])
 
   useEffect(() => {
     setStudio({

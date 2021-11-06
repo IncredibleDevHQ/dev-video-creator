@@ -78,7 +78,7 @@ const PointsFragment = ({
       FragmentLayoutConfig({ layoutNumber: viewConfig.layoutNumber })
     )
     setPoints(dataConfig.value)
-  }, [dataConfig])
+  }, [dataConfig, viewConfig])
 
   useEffect(() => {
     setTitleNumberOfLines(

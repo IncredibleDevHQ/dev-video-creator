@@ -1,9 +1,8 @@
 /* eslint-disable consistent-return */
 import React from 'react'
-import { Group, Image, Rect } from 'react-konva'
-import { useImage } from 'react-konva-utils'
-import { StudioUserConfig } from './Concourse'
+import { Group, Rect } from 'react-konva'
 import useEdit, { ClipConfig } from '../hooks/use-edit'
+import { StudioUserConfig } from './Concourse'
 
 const PreviewUser = ({
   studioUserConfig,
@@ -36,8 +35,6 @@ const PreviewUser = ({
     radius: 8,
   }
 
-  const [image] = useImage('https://i.imgur.com/O90PONZ.jpeg')
-
   const getClipFunc = ({
     clipTheme,
     ctx,
@@ -67,15 +64,14 @@ const PreviewUser = ({
       />
       <Rect
         x={(studioUserClipConfig && studioUserClipConfig.x + x) || 775}
-        y={y}
-        width={studioUserClipConfig?.width || defaultStudioUserClipConfig.width}
-        height={
-          studioUserClipConfig?.height || defaultStudioUserClipConfig.height
-        }
-        stroke={borderColor}
-        strokeWidth={borderWidth || 0}
+        y={(studioUserClipConfig && studioUserClipConfig.y + y) || y}
+        width={studioUserClipConfig?.width || 0}
+        height={studioUserClipConfig?.height || 0}
+        stroke="#000000"
+        strokeWidth={3}
         cornerRadius={studioUserClipConfig?.radius || 0}
       />
+
       <Group
         x={x}
         y={y}
@@ -89,10 +85,10 @@ const PreviewUser = ({
         offsetX={imageConfig.width}
         scaleX={-1}
       >
-        <Image
-          image={image}
+        <Rect
           width={imageConfig.width}
           height={imageConfig.height}
+          fill="#FFFFFF"
         />
       </Group>
     </>

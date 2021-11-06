@@ -88,7 +88,12 @@ const Preview = ({ config }: { config: Config }) => {
 
   return (
     <div>
-      <Stage ref={stageRef} height={CONFIG.height} width={CONFIG.width}>
+      <Stage
+        ref={stageRef}
+        height={CONFIG.height}
+        width={CONFIG.width}
+        className="border"
+      >
         <Bridge>
           <Layer ref={layerRef}>
             <UnifiedFragment

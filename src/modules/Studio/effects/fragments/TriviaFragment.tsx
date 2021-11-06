@@ -100,7 +100,7 @@ const TriviaFragment = ({
         dataConfigLength,
       },
     })
-  }, [dataConfig])
+  }, [dataConfig, viewConfig])
 
   useEffect(() => {
     setStudio({
