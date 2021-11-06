@@ -120,9 +120,17 @@ const Flick = () => {
     const fragment = flick?.fragments.find(
       (frag) => frag.id === activeFragmentId
     )
+    setConfig(
+      fragment?.configuration || {
+        dataConfig: [],
+        viewConfig: {
+          configs: [],
+          hasTitleSplash: false,
+        },
+      }
+    )
     if (fragment?.configuration) {
       const fragmentConfig = fragment.configuration as Config
-      setConfig(fragmentConfig)
       if (fragmentConfig.dataConfig.length > 0) {
         setSelectedLayoutId(fragmentConfig.dataConfig[0].id)
       }
@@ -167,17 +175,16 @@ const Flick = () => {
                 <Text className="text-lg">Generating view</Text>
               </div>
             )}
-            {!serializing && isMarkdown ? (
+            {!serializing && isMarkdown === true && (
               <FragmentEditor value={plateValue} setValue={setPlateValue} />
-            ) : (
-              !serializing && (
-                <FragmentView
-                  config={config}
-                  setConfig={setConfig}
-                  selectedLayoutId={selectedLayoutId}
-                  setSelectedLayoutId={setSelectedLayoutId}
-                />
-              )
+            )}
+            {!serializing && isMarkdown === false && (
+              <FragmentView
+                config={config}
+                setConfig={setConfig}
+                selectedLayoutId={selectedLayoutId}
+                setSelectedLayoutId={setSelectedLayoutId}
+              />
             )}
           </div>
         )}
