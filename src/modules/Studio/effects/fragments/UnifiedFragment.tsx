@@ -76,6 +76,9 @@ const UnifiedFragment = ({
     // bgRectColor: ['#140D1F', '#6E1DDB'],
     //   stripRectColor: ['#FF5D01', '#B94301'],
     //   textColor: ['#E6E6E6', '#FFFFFF'],
+    updatePayload?.({
+      activeObjectIndex: 0,
+    })
   }, [fragment])
 
   useEffect(() => {
