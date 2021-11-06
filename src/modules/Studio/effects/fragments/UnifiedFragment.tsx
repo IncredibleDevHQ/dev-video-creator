@@ -70,7 +70,7 @@ const UnifiedFragment = ({
       setViewConfig(config.viewConfig)
     }
     settitleSplashData({
-      enable: fragment?.configuration.viewConfig.hasTitleSplash,
+      enable: fragment?.configuration?.viewConfig.hasTitleSplash || true,
       title: fragment.name as string,
     })
     // bgRectColor: ['#140D1F', '#6E1DDB'],
@@ -136,7 +136,7 @@ const UnifiedFragment = ({
     if (activeObjectIndex !== 0) settitleSplashData({ enable: false })
     else
       settitleSplashData({
-        enable: fragment?.configuration.viewConfig.hasTitleSplash,
+        enable: fragment?.configuration?.viewConfig.hasTitleSplash || true,
         title: fragment?.name as string,
       })
   }, [activeObjectIndex])
