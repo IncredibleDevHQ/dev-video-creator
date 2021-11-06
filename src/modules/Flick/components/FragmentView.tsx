@@ -9,9 +9,11 @@ import {
   IoReloadOutline,
   IoSearchOutline,
 } from 'react-icons/io5'
-import { Image, Layer, Rect, Stage } from 'react-konva'
-import { useRecoilBridgeAcrossReactRoots_UNSTABLE } from 'recoil'
-import useImage from 'use-image'
+import { Layer, Stage } from 'react-konva'
+import {
+  useRecoilBridgeAcrossReactRoots_UNSTABLE,
+  useRecoilValue,
+} from 'recoil'
 import {
   dismissToast,
   emitToast,
@@ -31,6 +33,8 @@ import {
 import { useUploadFile } from '../../../hooks'
 import { AllowedFileExtensions } from '../../../hooks/use-upload-file'
 import { Config, GradientConfig } from '../../../utils/configTypes'
+import UnifiedFragment from '../../Studio/effects/fragments/UnifiedFragment'
+import { StudioProviderProps, studioStore } from '../../Studio/stores'
 import LayoutGeneric from './LayoutGeneric'
 
 export const CONFIG = {
@@ -56,9 +60,9 @@ function FragmentView({
   setSelectedLayoutId: React.Dispatch<React.SetStateAction<string>>
 }) {
   return (
-    <div className="p-6 flex w-full h-full pb-32">
+    <div className="p-4 flex w-full h-full pb-32">
       <div className="w-min">
-        <Preview config={config} selectedLayoutId={selectedLayoutId} />
+        <Preview config={config} />
         <Layouts
           config={config}
           setConfig={setConfig}
@@ -75,13 +79,7 @@ function FragmentView({
   )
 }
 
-const Preview = ({
-  config,
-  selectedLayoutId,
-}: {
-  config: Config
-  selectedLayoutId: string
-}) => {
+const Preview = ({ config }: { config: Config }) => {
   const stageRef = createRef<Konva.Stage>()
   const layerRef = createRef<Konva.Layer>()
   const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
@@ -93,44 +91,16 @@ const Preview = ({
       <Stage ref={stageRef} height={CONFIG.height} width={CONFIG.width}>
         <Bridge>
           <Layer ref={layerRef}>
-            <Rect
-              x={0}
-              y={0}
-              width={CONFIG.width}
-              height={CONFIG.height}
-              fillLinearGradientColorStops={
-                config.viewConfig.configs.find((c) => c.id === selectedLayoutId)
-                  ?.background.gradient?.values || []
-              }
-              fillLinearGradientStartPoint={
-                config.viewConfig.configs.find((c) => c.id === selectedLayoutId)
-                  ?.background.gradient?.startIndex
-              }
-              fillLinearGradientEndPoint={
-                config.viewConfig.configs.find((c) => c.id === selectedLayoutId)
-                  ?.background.gradient?.endIndex
-              }
+            <UnifiedFragment
+              stageRef={stageRef}
+              layerRef={layerRef}
+              config={config}
             />
-            {config.viewConfig.configs.find((c) => c.id === selectedLayoutId)
-              ?.background.type === 'image' && (
-              <KongvaImage
-                src={
-                  config.viewConfig.configs.find(
-                    (c) => c.id === selectedLayoutId
-                  )?.background.image || ''
-                }
-              />
-            )}
           </Layer>
         </Bridge>
       </Stage>
     </div>
   )
-}
-
-const KongvaImage = ({ src }: { src: string }) => {
-  const [image] = useImage(src, 'anonymous')
-  return <Image image={image} x={-10} y={0} />
 }
 
 const Layouts = ({
@@ -146,9 +116,12 @@ const Layouts = ({
 }) => {
   const [showSplashSetting, setShowSplashSetting] = useState(false)
 
+  const { payload, updatePayload } =
+    (useRecoilValue(studioStore) as StudioProviderProps) || {}
+
   return (
     <div className="grid grid-cols-1">
-      <div className="flex flex-row items-center bg-gray-50 h-20 mt-8 border-t border-b border-gray-100">
+      <div className="flex flex-row items-center bg-gray-50 h-20 mt-2 border-t border-b border-gray-100">
         {/* Title Splash */}
         <div
           className="h-full flex px-4 py-2 bg-gray-50 relative items-start justify-end"
@@ -190,8 +163,26 @@ const Layouts = ({
           </Text>
         </div>
         {/* User Media */}
-        <div className="h-full px-4 py-2 bg-gray-100">
-          <div className="bg-white h-full w-24 p-1.5 border-2 border-gray-200 text-gray-500 rounded-lg flex items-center justify-center">
+        <div
+          role="button"
+          tabIndex={-1}
+          onKeyUp={() => {}}
+          className="h-full px-4 py-2 bg-gray-100"
+          onClick={() =>
+            updatePayload?.({
+              fragmentState: 'onlyUserMedia',
+            })
+          }
+        >
+          <div
+            className={cx(
+              'bg-white h-full w-24 p-1.5 border-2 border-gray-200 text-gray-500 rounded-lg flex items-center justify-center',
+              {
+                'border border-brand':
+                  payload.fragmentState === 'onlyUserMedia',
+              }
+            )}
+          >
             <div className="flex items-center justify-center bg-gray-500 w-full h-full rounded-md">
               <HiOutlineUser className="text-gray-300" size={24} />
             </div>
@@ -222,12 +213,21 @@ const Layouts = ({
                 className={cx('p-3 bg-gray-100', {
                   'pr-6': index === config.viewConfig.configs.length - 1,
                 })}
-                onClick={() => setSelectedLayoutId(c.id)}
+                onClick={() => {
+                  updatePayload?.({
+                    activeObjectIndex: index,
+                    fragmentState: 'customLayout',
+                  })
+                  setSelectedLayoutId(c.id)
+                }}
               >
                 <LayoutGeneric
                   layoutId={c.layoutNumber}
                   type={c.type}
-                  isSelected={selectedLayoutId === c.id}
+                  isSelected={
+                    selectedLayoutId === c.id &&
+                    payload.fragmentState === 'customLayout'
+                  }
                 />
               </div>
             )
@@ -256,22 +256,22 @@ const Configurations = ({
     useState<Configuration>(Configuration.Layouts)
 
   return (
-    <div className="flex ml-6 h-full">
+    <div className="flex flex-col ml-4 h-full">
       {/* Configs */}
-      <div className="flex flex-col gap-y-4">
+      <div className="flex gap-x-3">
         <div
           role="button"
           tabIndex={-1}
           onKeyUp={() => {}}
           onClick={() => setCurrentConfiguration(Configuration.Layouts)}
           className={cx(
-            'border border-gray-300 bg-gray-100 p-2 rounded-lg h-11 w-11 flex items-center justify-center',
+            'border border-gray-300 bg-gray-100 p-2 rounded-lg h-9 w-9 flex items-center justify-center',
             {
               'border-brand': currentConfiguration === Configuration.Layouts,
             }
           )}
         >
-          <FiLayout className="text-gray-600" size={24} />
+          <FiLayout className="text-gray-600" size={21} />
         </div>
         <div
           role="button"
@@ -279,7 +279,7 @@ const Configurations = ({
           onKeyUp={() => {}}
           onClick={() => setCurrentConfiguration(Configuration.Background)}
           className={cx(
-            'border border-gray-300 bg-gray-100 p-2.5 rounded-lg h-11 w-11 flex items-center justify-center',
+            'border border-gray-300 bg-gray-100 p-2 rounded-lg h-9 w-9 flex items-center justify-center',
             {
               'border-brand': currentConfiguration === Configuration.Background,
             }
@@ -330,7 +330,7 @@ const LayoutsConfguration = ({
   const [currentTab, setCurrentTab] = useState<Tab>(tabs[0])
 
   return (
-    <div className="border ml-6 rounded-lg shadow-md h-4/6 border-gray-300 w-60">
+    <div className="border mt-4 rounded-lg shadow-md h-4/6 border-gray-300 w-60">
       <TabBar
         tabs={tabs}
         current={currentTab}
@@ -338,7 +338,7 @@ const LayoutsConfguration = ({
         className="text-black gap-2 w-auto ml-4 mt-4"
       />
       <div className="grid grid-cols-2 p-4 gap-4">
-        {Array.from({ length: 2 }, (_, i) => i + 1).map((n) => (
+        {Array.from({ length: 8 }, (_, i) => i + 1).map((n) => (
           <LayoutGeneric
             layoutId={n}
             isSelected={selectedLayoutNumber === n}
@@ -389,7 +389,7 @@ const BackgroundConfiguration = ({
   const [currentTab, setCurrentTab] = useState<Tab>(tabs[0])
 
   return (
-    <div className="border ml-6 rounded-lg shadow-md border-gray-300 w-60 h-4/6 overflow-hidden">
+    <div className="border mt-4 rounded-lg shadow-md border-gray-300 w-60 h-4/6 overflow-hidden">
       <TabBar
         tabs={tabs}
         current={currentTab}

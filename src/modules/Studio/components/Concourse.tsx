@@ -1,4 +1,3 @@
-import { cx } from '@emotion/css'
 import Konva from 'konva'
 import React, { createRef, useEffect, useState } from 'react'
 import { Group, Rect } from 'react-konva'
@@ -11,6 +10,7 @@ import {
 } from '../effects/FragmentTransitions'
 import { ClipConfig } from '../hooks/use-edit'
 import { canvasStore, StudioProviderProps, studioStore } from '../stores'
+import PreviewUser from './PreviewUser'
 import StudioUser from './StudioUser'
 import TitleSplash from './TitleSplash'
 
@@ -69,8 +69,15 @@ const Concourse = ({
   topLayerChildren,
   isShorts,
 }: ConcourseProps) => {
-  const { state, stream, participants, payload, users, stopRecording } =
-    (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const {
+    fragment,
+    state,
+    stream,
+    participants,
+    payload,
+    users,
+    stopRecording,
+  } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [canvas, setCanvas] = useRecoilState(canvasStore)
   const [isTitleSplash, setIsTitleSplash] = useState<boolean>(false)
   const [isZooming, setZooming] = useState(false)
@@ -197,7 +204,7 @@ const Concourse = ({
         y={0}
         width={stageConfig.width}
         height={stageConfig.height}
-        fill="#202026"
+        fill="#000000"
         cornerRadius={8}
       />
       <Group ref={groupRef} onClick={onLayerClick} onMouseLeave={onMouseLeave}>
@@ -209,7 +216,7 @@ const Concourse = ({
                 y={0}
                 width={stageConfig.width}
                 height={stageConfig.height}
-                fill="#202026"
+                fill="#000000"
                 cornerRadius={8}
               />
             )
@@ -249,41 +256,60 @@ const Concourse = ({
         })()}
       </Group>
       {!disableUserMedia &&
+      !isTitleSplash &&
+      payload?.status !== Fragment_Status_Enum_Enum.CountDown &&
+      payload?.status !== Fragment_Status_Enum_Enum.Ended &&
+      users ? (
+        <>
+          <StudioUser
+            stream={stream}
+            studioUserConfig={
+              (studioUserConfig && studioUserConfig[0]) ||
+              defaultStudioUserConfig
+            }
+            picture={picture as string}
+            type="local"
+            uid={sub as string}
+          />
+          {users.map((user, index) => (
+            <StudioUser
+              key={user.uid as string}
+              uid={user.uid as string}
+              type="remote"
+              stream={user.mediaStream as MediaStream}
+              picture={participants?.[user.uid]?.picture || ''}
+              studioUserConfig={
+                (studioUserConfig && studioUserConfig[index + 1]) || {
+                  x:
+                    defaultStudioUserConfig.x -
+                    (index + 1) * userStudioImageGap,
+                  y: defaultStudioUserConfig.y,
+                  width: defaultStudioUserConfig.width,
+                  height: defaultStudioUserConfig.height,
+                }
+              }
+            />
+          ))}
+        </>
+      ) : (
+        !disableUserMedia &&
         !isTitleSplash &&
         payload?.status !== Fragment_Status_Enum_Enum.CountDown &&
-        payload?.status !== Fragment_Status_Enum_Enum.Ended && (
-          <>
-            <StudioUser
-              stream={stream}
-              studioUserConfig={
-                (studioUserConfig && studioUserConfig[0]) ||
-                defaultStudioUserConfig
+        payload?.status !== Fragment_Status_Enum_Enum.Ended &&
+        fragment &&
+        fragment.participants.map((_, index: number) => (
+          <PreviewUser
+            studioUserConfig={
+              (studioUserConfig && studioUserConfig[index]) || {
+                x: defaultStudioUserConfig.x - (index + 1) * userStudioImageGap,
+                y: defaultStudioUserConfig.y,
+                width: defaultStudioUserConfig.width,
+                height: defaultStudioUserConfig.height,
               }
-              picture={picture as string}
-              type="local"
-              uid={sub as string}
-            />
-            {users.map((user, index) => (
-              <StudioUser
-                key={user.uid as string}
-                uid={user.uid as string}
-                type="remote"
-                stream={user.mediaStream as MediaStream}
-                picture={participants?.[user.uid]?.picture || ''}
-                studioUserConfig={
-                  (studioUserConfig && studioUserConfig[index + 1]) || {
-                    x:
-                      defaultStudioUserConfig.x -
-                      (index + 1) * userStudioImageGap,
-                    y: defaultStudioUserConfig.y,
-                    width: defaultStudioUserConfig.width,
-                    height: defaultStudioUserConfig.height,
-                  }
-                }
-              />
-            ))}
-          </>
-        )}
+            }
+          />
+        ))
+      )}
       <Group>{topLayerChildren}</Group>
     </>
   )

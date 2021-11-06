@@ -1,11 +1,16 @@
 import { TNode } from '@udecode/plate'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { FiLoader } from 'react-icons/fi'
 import { useParams } from 'react-router-dom'
-import { useRecoilState } from 'recoil'
+import { useRecoilState, useSetRecoilState } from 'recoil'
 import { ScreenState, Text } from '../../components'
-import { useGetFlickByIdQuery } from '../../generated/graphql'
+import {
+  Fragment_Status_Enum_Enum,
+  StudioFragmentFragment,
+  useGetFlickByIdQuery,
+} from '../../generated/graphql'
 import { Config } from '../../utils/configTypes'
+import studioStore from '../Studio/stores/studio.store'
 import {
   FlickNavBar,
   FragmentBar,
@@ -15,6 +20,39 @@ import {
 } from './components'
 import { newFlickStore } from './store/flickNew.store'
 
+const useLocalPayload = () => {
+  const initialPayload = {
+    activeObjectIndex: 0,
+    activePointIndex: 0,
+    currentIndex: 0,
+    currentTime: 3.2065,
+    fragmentState: 'customLayout',
+    isFocus: false,
+    playing: false,
+    prevIndex: -1,
+    status: Fragment_Status_Enum_Enum.NotStarted,
+  }
+
+  const [payload, setPayload] = useState<any>(initialPayload)
+
+  // useEffect(() => {
+  //   console.log('payload', payload)
+  // }, [payload])
+
+  const updatePayload = (newPayload: any) => {
+    setPayload({
+      ...payload,
+      ...newPayload,
+    })
+  }
+
+  const resetPayload = () => {
+    setPayload(initialPayload)
+  }
+
+  return { updatePayload, payload, resetPayload }
+}
+
 const Flick = () => {
   const { id, fragmentId } = useParams<{ id: string; fragmentId?: string }>()
   const [{ flick, activeFragmentId, isMarkdown }, setFlickStore] =
@@ -22,6 +60,7 @@ const Flick = () => {
   const { data, error, loading, refetch } = useGetFlickByIdQuery({
     variables: { id },
   })
+  const setStudio = useSetRecoilState(studioStore)
 
   const [initialPlateValue, setInitialPlateValue] = useState<TNode<any>[]>()
   const [plateValue, setPlateValue] = useState<TNode<any>[]>()
@@ -36,6 +75,25 @@ const Flick = () => {
   })
 
   const [selectedLayoutId, setSelectedLayoutId] = useState('')
+
+  const { updatePayload, payload, resetPayload } = useLocalPayload()
+
+  useMemo(() => {
+    const fragment = flick?.fragments.find(
+      (f) => f.id === activeFragmentId
+    ) as StudioFragmentFragment
+    if (!fragment) return
+    setStudio((store) => ({
+      ...store,
+      payload,
+      updatePayload,
+      fragment,
+    }))
+  }, [activeFragmentId, payload])
+
+  useEffect(() => {
+    resetPayload()
+  }, [activeFragmentId])
 
   useEffect(() => {
     if (!data) return
@@ -65,9 +123,9 @@ const Flick = () => {
     if (fragment?.configuration) {
       const fragmentConfig = fragment.configuration as Config
       setConfig(fragmentConfig)
-      // if (fragmentConfig.dataConfig.length > 0) {
-      //   setSelectedLayoutId(fragmentConfig.dataConfig[0].id)
-      // }
+      if (fragmentConfig.dataConfig.length > 0) {
+        setSelectedLayoutId(fragmentConfig.dataConfig[0].id)
+      }
     }
     setInitialPlateValue(fragment?.editorState)
     setPlateValue(fragment?.editorState)
@@ -88,7 +146,7 @@ const Flick = () => {
     )
 
   return flick ? (
-    <div className="h-screen overflow-hidden">
+    <div className="h-screen overflow-y-scroll overflow-x-hidden">
       <FlickNavBar />
       <div className="flex h-full">
         <FragmentSideBar />

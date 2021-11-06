@@ -62,6 +62,125 @@ const LayoutGeneric = ({
                 </div>
               </div>
             )
+          case 2:
+            return (
+              <div
+                className={cx(
+                  'w-24 p-2 border border-gray-200 h-14 rounded-md cursor-pointer flex gap-x-2',
+                  {
+                    'border-brand': isSelected,
+                  }
+                )}
+                {...rest}
+              >
+                <div className="h-full w-5/6 bg-gray-200 rounded-sm p-2.5">
+                  {type && <FragmentTypeIcon type={type} />}
+                </div>
+                <div className="h-full w-1/6 bg-gray-500 rounded-sm p-2" />
+              </div>
+            )
+          case 3:
+            return (
+              <div
+                className={cx(
+                  'w-24 p-2 border border-gray-200 h-14 rounded-md cursor-pointer flex gap-x-2',
+                  {
+                    'border-brand': isSelected,
+                  }
+                )}
+                {...rest}
+              >
+                <div className="h-full w-1/6 bg-gray-500 rounded-sm p-2" />
+                <div className="h-full w-5/6 bg-gray-200 rounded-sm p-2.5">
+                  {type && <FragmentTypeIcon type={type} />}
+                </div>
+              </div>
+            )
+          case 4:
+            return (
+              <div
+                className={cx(
+                  'w-24 p-2 border border-gray-200 h-14 rounded-md cursor-pointer flex justify-end items-center relative',
+                  {
+                    'border-brand': isSelected,
+                  }
+                )}
+                {...rest}
+              >
+                <div className="h-full w-full bg-gray-200 rounded-sm p-2 mr-2">
+                  {type && <FragmentTypeIcon type={type} />}
+                </div>
+                <div className="h-7 w-1/6 bg-gray-500 rounded-sm p-2 absolute" />
+              </div>
+            )
+          case 5:
+            return (
+              <div
+                className={cx(
+                  'w-24 p-2 border border-gray-200 h-14 rounded-md cursor-pointer flex justify-end items-end relative',
+                  {
+                    'border-brand': isSelected,
+                  }
+                )}
+                {...rest}
+              >
+                <div className="h-full w-full bg-gray-200 rounded-sm p-2">
+                  {type && <FragmentTypeIcon type={type} />}
+                </div>
+                <div className="w-4 h-4 -m-1 bg-gray-500 rounded-sm p-2 absolute" />
+              </div>
+            )
+          case 6:
+            return (
+              <div
+                className={cx(
+                  'w-24 p-2 border border-gray-200 h-14 rounded-md cursor-pointer flex justify-end items-end relative',
+                  {
+                    'border-brand': isSelected,
+                  }
+                )}
+                {...rest}
+              >
+                <div className="h-full w-full bg-gray-200 rounded-sm p-2">
+                  {type && <FragmentTypeIcon type={type} />}
+                </div>
+                <div className="w-4 h-4 -m-1 bg-gray-500 rounded-full p-2 absolute" />
+              </div>
+            )
+          case 7:
+            return (
+              <div
+                className={cx(
+                  'w-24 border border-gray-200 h-14 rounded-md cursor-pointer flex justify-end items-end relative',
+                  {
+                    'border-brand': isSelected,
+                  }
+                )}
+                {...rest}
+              >
+                <div className="h-full w-full bg-gray-200 rounded-md p-3.5">
+                  {type && <FragmentTypeIcon type={type} />}
+                </div>
+                <div className="w-4 h-4 m-1 bg-gray-500 rounded-sm p-2 absolute" />
+              </div>
+            )
+          case 8:
+            return (
+              <div
+                className={cx(
+                  'w-24 border border-gray-200 h-14 rounded-md cursor-pointer flex justify-end items-end relative',
+                  {
+                    'border-brand': isSelected,
+                  }
+                )}
+                {...rest}
+              >
+                <div className="h-full w-full bg-gray-200 rounded-md p-3.5">
+                  {type && <FragmentTypeIcon type={type} />}
+                </div>
+                <div className="w-4 h-4 m-1 bg-gray-500 rounded-full p-2 absolute" />
+              </div>
+            )
           default:
             return <></>
         }

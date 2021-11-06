@@ -70,10 +70,7 @@ const FragmentSideBar = () => {
     <div>
       <div
         className={cx(
-          'w-56 h-full border-r border-gray-300 overflow-y-auto pt-10 pb-20 relative',
-          {
-            'h-full': flick?.fragments.length === 0,
-          },
+          'w-48 h-full border-r border-gray-300 overflow-y-auto pt-8 pb-20 relative',
           style
         )}
       >
@@ -82,7 +79,7 @@ const FragmentSideBar = () => {
           role="button"
           onKeyUp={() => {}}
           tabIndex={-1}
-          className="bg-gray-50 absolute top-0 flex items-center justify-center w-56 left-0 cursor-pointer py-3 border border-gray-300"
+          className="bg-gray-50 absolute top-0 flex items-center justify-center w-48 left-0 cursor-pointer py-2 border border-gray-300"
           onClick={() => setIsCreateNewModalOpen(true)}
         >
           <Button
@@ -277,7 +274,7 @@ const Thumbnail = ({
       tabIndex={-1}
       onKeyUp={() => {}}
       className={cx(
-        'flex flex-col my-2 mx-6 rounded-md h-28 bg-gray-100 justify-end p-4 relative border border-gray-300',
+        'flex flex-col my-2 mx-4 rounded-md h-24 bg-gray-100 justify-end p-2 relative border border-gray-300',
         {
           'border-green-600': active,
           'mt-10': position === 0,
@@ -351,7 +348,7 @@ const Thumbnail = ({
       />
       <Text
         className={cx(
-          'text-sm font-bold text-gray-800 cursor-text rounded-md p-1 hover:bg-gray-200 overflow-scroll',
+          'text-xs font-bold text-gray-800 cursor-text rounded-md p-1 hover:bg-gray-200 overflow-scroll',
           {
             'truncate overflow-ellipsis': !editFragmentName,
           }
@@ -366,6 +363,11 @@ const Thumbnail = ({
             e.preventDefault()
             setEditFragmentName(false)
             updateFragment(e.currentTarget.innerText)
+          }
+          if (e.key === 'Escape') {
+            e.preventDefault()
+            e.currentTarget.innerText = fragment.name || ''
+            setEditFragmentName(false)
           }
         }}
       >

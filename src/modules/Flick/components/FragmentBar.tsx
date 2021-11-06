@@ -153,28 +153,27 @@ const FragmentBar = ({
         if (dc.length > 0) {
           setSelectedLayoutId(dc[0].id)
         }
-        if (flick)
-          setFlickStore((store) => ({
-            ...store,
-            flick: {
-              ...flick,
-              fragments: flick.fragments.map((f) =>
-                f.id === activeFragmentId
-                  ? {
-                      ...f,
-                      configuration: {
-                        dc,
-                        vc,
-                      },
-                      editorState: plateValue,
-                    }
-                  : f
-              ),
-            },
-          }))
         setInitialPlateValue(plateValue)
       }
-
+      if (flick)
+        setFlickStore((store) => ({
+          ...store,
+          flick: {
+            ...flick,
+            fragments: flick.fragments.map((f) =>
+              f.id === activeFragmentId
+                ? {
+                    ...f,
+                    configuration: {
+                      dataConfig: dc,
+                      viewConfig: vc,
+                    } as Config,
+                    editorState: plateValue,
+                  }
+                : f
+            ),
+          },
+        }))
       await updateFragmentState({
         variables: {
           editorState: plateValue,
@@ -218,9 +217,9 @@ const FragmentBar = ({
   }
 
   return (
-    <div className="flex items-center bg-gray-50 justify-between pr-6 pl-6 py-2.5 border-t border-b border-gray-300">
+    <div className="flex items-center bg-gray-50 justify-between pr-4 pl-6 py-1.5 border-t border-b border-gray-300">
       <div className="flex items-center">
-        <div className="flex bg-gray-100 items-center rounded-md mr-6 -mb-1">
+        <div className="flex bg-gray-100 items-center rounded-md mr-6 ">
           <div
             role="button"
             onKeyUp={() => {}}
@@ -232,13 +231,13 @@ const FragmentBar = ({
               }))
             }
             className={cx(
-              'bg-gray-100 p-2 rounded-tl-md rounded-bl-md text-gray-600',
+              'bg-gray-100 p-1.5 rounded-tl-md rounded-bl-md text-gray-600',
               {
                 'bg-gray-200': isMarkdown,
               }
             )}
           >
-            <HiOutlinePencilAlt size={21} />
+            <HiOutlinePencilAlt size={18} />
           </div>
           <div
             role="button"
@@ -252,17 +251,17 @@ const FragmentBar = ({
               generateConfig()
             }}
             className={cx(
-              'bg-gray-100 p-2 rounded-tr-md rounded-br-md text-gray-600',
+              'bg-gray-100 p-1.5 rounded-tr-md rounded-br-md text-gray-600',
               {
                 'bg-gray-200': !isMarkdown,
               }
             )}
           >
-            <HiOutlineTemplate size={21} />
+            <HiOutlineTemplate size={18} />
           </div>
         </div>
         <Text
-          className="text-lg font-bold text-gray-800 truncate overflow-ellipsis cursor-text rounded-md p-1 hover:bg-gray-100 -mb-1"
+          className="text-sm font-bold text-gray-800 truncate overflow-ellipsis cursor-text rounded-md p-1 hover:bg-gray-100"
           contentEditable={editFragmentName}
           onClick={(e) => e.stopPropagation()}
           onMouseDown={() => {
@@ -273,6 +272,11 @@ const FragmentBar = ({
               e.preventDefault()
               setEditFragmentName(false)
               updateFragment(e.currentTarget.innerText)
+            }
+            if (e.key === 'Escape') {
+              e.preventDefault()
+              e.currentTarget.innerText = fragment?.name || ''
+              setEditFragmentName(false)
             }
           }}
         >
@@ -285,7 +289,7 @@ const FragmentBar = ({
           appearance="primary"
           size="small"
           type="button"
-          className="mr-2"
+          className="mr-2 py-1"
           loading={savingConfig}
           onClick={() => updateConfig()}
         >
@@ -378,7 +382,7 @@ const FragmentParticipants = () => {
         ?.participants.map((p, index) => {
           return (
             <Avatar
-              className={cx('w-8 h-8 rounded-full border border-gray-300', {
+              className={cx('w-7 h-7 rounded-full border border-gray-300', {
                 '-ml-2.5': index !== 0,
               })}
               src={p.participant.user.picture as string}
@@ -393,7 +397,7 @@ const FragmentParticipants = () => {
         className="flex items-center cursor-pointer rounded-full border border-gray-300 -ml-2.5 bg-white"
         onClick={() => setIsAddFragmentParticipantModalOpen(true)}
       >
-        <FiPlus size={32} className="p-2" />
+        <FiPlus size={26} className="p-2" />
       </div>
       <UpdateFragmentParticipantsModal
         key={`modal-${activeFragmentId}`}
