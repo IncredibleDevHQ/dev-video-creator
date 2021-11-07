@@ -208,29 +208,35 @@ const MissionControl = () => {
           {(() => {
             switch (fragmentType) {
               case ConfigType.CODEJAM:
-                return CodeJamControls({
-                  position: controlsConfig.position,
-                  computedTokens: controlsConfig.computedTokens,
-                  fragmentState: controlsConfig.fragmentState,
-                })
+                return (
+                  <CodeJamControls
+                    position={controlsConfig.position}
+                    computedTokens={controlsConfig.computedTokens}
+                    fragmentState={controlsConfig.fragmentState}
+                  />
+                )
               case ConfigType.VIDEOJAM:
-                return VideoJamControls({
-                  playing: controlsConfig.playing,
-                  videoElement: controlsConfig.videoElement,
-                  fragmentState: controlsConfig.fragmentState,
-                })
+                return (
+                  <VideoJamControls
+                    playing={controlsConfig.playing}
+                    videoElement={controlsConfig.videoElement}
+                    fragmentState={controlsConfig.fragmentState}
+                  />
+                )
               case ConfigType.TRIVIA:
-                return TriviaControls({
-                  fragmentState: controlsConfig.fragmentState,
-                })
+                return (
+                  <TriviaControls
+                    fragmentState={controlsConfig.fragmentState}
+                  />
+                )
               case ConfigType.POINTS:
-                return PointsControls({
-                  fragmentState: controlsConfig.fragmentState,
-                  noOfPoints: controlsConfig.noOfPoints,
-                })
+                return (
+                  <PointsControls
+                    fragmentState={controlsConfig.fragmentState}
+                    noOfPoints={controlsConfig.noOfPoints}
+                  />
+                )
               default: {
-                const { payload, updatePayload } =
-                  (useRecoilValue(studioStore) as StudioProviderProps) || {}
                 return <></>
               }
             }
