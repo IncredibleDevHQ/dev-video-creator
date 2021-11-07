@@ -59,7 +59,7 @@ const commentExtractor = (tokens: ColorCode[]) => {
           prevTokenLineNumber = codeToken.lineNumber
           codeLineNumber += 1
         }
-        codeToken.lineNumber = codeLineNumber - 1
+        codeToken.lineNumber = codeLineNumber > 0 ? codeLineNumber - 1 : 0
         code.push(codeToken)
         tokenNumber += 1
       }
@@ -72,7 +72,7 @@ const commentExtractor = (tokens: ColorCode[]) => {
         prevTokenLineNumber = codeToken.lineNumber
         codeLineNumber += 1
       }
-      codeToken.lineNumber = codeLineNumber - 1
+      codeToken.lineNumber = codeLineNumber > 0 ? codeLineNumber - 1 : 0
       code.push(codeToken)
       tokenNumber += 1
     }
