@@ -205,7 +205,7 @@ const Concourse = ({
         width={stageConfig.width}
         height={stageConfig.height}
         fill="#000000"
-        cornerRadius={8}
+        // cornerRadius={8}
       />
       <Group ref={groupRef} onClick={onLayerClick} onMouseLeave={onMouseLeave}>
         {(() => {
