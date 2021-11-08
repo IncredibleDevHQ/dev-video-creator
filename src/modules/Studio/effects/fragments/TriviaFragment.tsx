@@ -120,20 +120,36 @@ const TriviaFragment = ({
     } else {
       setIsGif(false)
     }
-    setImgDim(
-      getImageDimensions(
-        {
-          w: (qnaImage && qnaImage.width) || 0,
-          h: (qnaImage && qnaImage.height) || 0,
-        },
-        objectConfig.width - 30,
-        objectConfig.height - 140,
-        objectConfig.width,
-        objectConfig.height - 110,
-        0,
-        100
+    if (triviaData?.text)
+      setImgDim(
+        getImageDimensions(
+          {
+            w: (qnaImage && qnaImage.width) || 0,
+            h: (qnaImage && qnaImage.height) || 0,
+          },
+          objectConfig.width - 30,
+          objectConfig.height - 140,
+          objectConfig.width - 40,
+          objectConfig.height - 110,
+          20,
+          100
+        )
       )
-    )
+    else
+      setImgDim(
+        getImageDimensions(
+          {
+            w: (qnaImage && qnaImage.width) || 0,
+            h: (qnaImage && qnaImage.height) || 0,
+          },
+          objectConfig.width - 30,
+          objectConfig.height - 30,
+          objectConfig.width - 40,
+          objectConfig.height - 40,
+          20,
+          20
+        )
+      )
   }, [qnaImage, objectConfig])
 
   useEffect(() => {
