@@ -112,6 +112,16 @@ const Flick = () => {
   }, [data])
 
   useEffect(() => {
+    return () => {
+      setFlickStore({
+        flick: null,
+        activeFragmentId: '',
+        isMarkdown: true,
+      })
+    }
+  }, [])
+
+  useEffect(() => {
     if (!activeFragmentId || !flick) return
     history.replace(`/flick/${flick.id}/${activeFragmentId}`)
     const fragment = flick?.fragments.find(
