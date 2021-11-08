@@ -131,7 +131,7 @@ const Flick = () => {
     )
     if (fragment?.configuration) {
       const fragmentConfig = fragment.configuration as Config
-      if (fragmentConfig.dataConfig.length > 0) {
+      if (fragmentConfig.dataConfig?.length > 0) {
         setSelectedLayoutId(fragmentConfig.dataConfig[0].id)
       }
     }
