@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { FiLoader } from 'react-icons/fi'
 import { useHistory, useParams } from 'react-router-dom'
 import { useRecoilState, useSetRecoilState } from 'recoil'
-import { EmptyState, ScreenState, Text } from '../../components'
+import { ScreenState, Text } from '../../components'
 import {
   Fragment_Status_Enum_Enum,
   StudioFragmentFragment,
@@ -67,6 +67,19 @@ const Flick = () => {
     dataConfig: [],
     viewConfig: {
       configs: [],
+      titleSplashConfig: {
+        cssString:
+          'linear-gradient(90deg, #D397FA 0%, #D397FA 0.01%, #8364E8 100%)',
+        values: [0, '#D397FA', 0.0001, '#D397FA', 1, '#8364E8'],
+        startIndex: {
+          x: 0,
+          y: 269.99999999999994,
+        },
+        endIndex: {
+          x: 960,
+          y: 270.00000000000006,
+        },
+      },
       hasTitleSplash: false,
     },
   })
