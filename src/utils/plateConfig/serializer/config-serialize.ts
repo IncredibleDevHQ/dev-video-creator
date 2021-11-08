@@ -69,8 +69,9 @@ const commentExtractor = (tokens: ColorCode[]) => {
       const codeToken = tokens[tokenNumber]
       // if line number has changed , increment code line number
       if (codeToken.lineNumber !== prevTokenLineNumber) {
+        const diff = codeToken.lineNumber - prevTokenLineNumber
         prevTokenLineNumber = codeToken.lineNumber
-        codeLineNumber += 1
+        codeLineNumber += diff
       }
       codeToken.lineNumber = codeLineNumber > 0 ? codeLineNumber - 1 : 0
       code.push(codeToken)
@@ -191,7 +192,6 @@ export const serializeDataConfig = async (
         node.lang,
         userToken
       )
-
       // Separate comments and code
       const { blockBuffer, code } = commentExtractor(colorCodes)
       context = {
