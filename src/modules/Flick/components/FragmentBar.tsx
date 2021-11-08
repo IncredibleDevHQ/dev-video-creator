@@ -314,6 +314,7 @@ const FragmentBar = ({
           icon={BsCameraVideo}
           type="button"
           onClick={() => history.push(`/${activeFragmentId}/studio`)}
+          disabled={!fragment?.configuration}
         >
           {fragment?.producedLink ? 'Retake' : 'Record'}
         </Button>

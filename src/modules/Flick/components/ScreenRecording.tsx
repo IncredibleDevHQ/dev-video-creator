@@ -35,7 +35,7 @@ const ScreenRecording = ({
   }>()
   const [uploadVideo] = useUploadFile()
 
-  const [addAssetMutation, { data, loading, error }] = useAddAssetMutation()
+  const [addAssetMutation, { data, loading }] = useAddAssetMutation()
 
   const handleClick = async (file: string) => {
     const blob: Blob = await fetch(file).then((r) => r.blob())

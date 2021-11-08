@@ -2,9 +2,6 @@
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 import { css, cx } from '@emotion/css'
 import React, { HTMLProps, useEffect, useState } from 'react'
-import { FiMoreHorizontal, FiPlus } from 'react-icons/fi'
-import { RiStickyNoteLine } from 'react-icons/ri'
-import { useRecoilState, useRecoilValue } from 'recoil'
 import {
   DragDropContext,
   Draggable,
@@ -12,21 +9,19 @@ import {
   DraggableStateSnapshot,
   Droppable,
 } from 'react-beautiful-dnd'
+import { FiMoreHorizontal, FiPlus } from 'react-icons/fi'
+import { IoCheckmarkCircle, IoTrashOutline } from 'react-icons/io5'
+import { useRecoilState, useRecoilValue } from 'recoil'
+import { DeleteFragmentModal } from '.'
 import {
-  IoCheckmarkCircle,
-  IoCopyOutline,
-  IoTrashOutline,
-} from 'react-icons/io5'
-import {
-  emitToast,
-  Button,
-  Text,
   Avatar,
+  Button,
+  dismissToast,
+  emitToast,
+  Text,
   Tooltip,
   updateToast,
-  dismissToast,
 } from '../../../components'
-import { newFlickStore } from '../store/flickNew.store'
 import {
   FlickFragmentFragment,
   useCreateFragmentMutation,
@@ -34,8 +29,8 @@ import {
   useReorderFragmentMutation,
   useUpdateFragmentMutation,
 } from '../../../generated/graphql'
-import { DeleteFragmentModal, NotesModal } from '.'
 import { User, userState } from '../../../stores/user.store'
+import { newFlickStore } from '../store/flickNew.store'
 
 const style = css`
   ::-webkit-scrollbar {
@@ -56,6 +51,7 @@ const FragmentSideBar = () => {
     })
 
   const handleCreateFragment = async () => {
+    if (flick?.owner?.userSub !== sub) return
     let toast
     try {
       toast = emitToast({
@@ -97,7 +93,6 @@ const FragmentSideBar = () => {
   }
 
   useEffect(() => {
-    console.log({ data })
     if (!data || !flick) return
     setFlickStore((store) => ({
       ...store,
@@ -131,12 +126,18 @@ const FragmentSideBar = () => {
           role="button"
           onKeyUp={() => {}}
           tabIndex={-1}
-          className="bg-gray-50 absolute top-0 flex items-center justify-center w-48 left-0 cursor-pointer py-2 border-b border-l border-r border-gray-300"
+          className={cx(
+            'bg-gray-50 absolute top-0 flex items-center justify-center w-48 left-0 cursor-pointer py-2 border-b border-l border-r border-gray-300',
+            {
+              'cursor-not-allowed': flick?.owner?.userSub !== sub,
+            }
+          )}
           onClick={handleCreateFragment}
         >
           <Button
             type="button"
-            className="text-green-600 -ml-4"
+            className={cx('text-green-600 -ml-4')}
+            disabled={flick?.owner?.userSub !== sub}
             appearance="link"
             size="small"
             icon={FiPlus}
@@ -250,34 +251,6 @@ const Thumbnail = ({
   const [overflowMenuVisible, setOverflowMenuVisible] = useState(false)
 
   const [confirmDeleteModal, setConfirmDeleteModal] = useState(false)
-  const [notesModal, setNotesModal] = useState(false)
-  const [GetFlickFragments, { data, error, refetch }] =
-    useGetFlickFragmentsLazyQuery({
-      variables: {
-        flickId: flick?.id,
-      },
-    })
-
-  useEffect(() => {
-    if (!data || !flick) return
-    setFlickStore((store) => ({
-      ...store,
-      flick: {
-        ...flick,
-        fragments: [...data.Fragment],
-      },
-    }))
-  }, [data])
-
-  useEffect(() => {
-    if (!error || !refetch) return
-    emitToast({
-      title: "We couldn't fetch your new fragment",
-      type: 'error',
-      description: 'Click this toast to give it another try',
-      onClick: () => refetch(),
-    })
-  }, [error])
 
   useEffect(() => {
     if (!updateFragmentData) return
@@ -355,22 +328,11 @@ const Thumbnail = ({
               role="button"
               onKeyUp={() => {}}
               tabIndex={-1}
-              className="flex items-center pt-3 pb-1.5 px-4 cursor-pointer hover:bg-gray-100"
+              className="flex items-center py-3 px-4 cursor-pointer hover:bg-gray-100"
               onClick={() => setConfirmDeleteModal(true)}
             >
               <IoTrashOutline size={21} className="text-gray-600 mr-4" />
               <Text className="font-medium">Delete</Text>
-            </div>
-            <div className="h-px bg-gray-200" />
-            <div
-              role="button"
-              onKeyUp={() => {}}
-              tabIndex={-1}
-              className="flex items-center py-2 px-4 cursor-pointer hover:bg-gray-100"
-              onClick={() => setNotesModal(true)}
-            >
-              <RiStickyNoteLine size={21} className="text-gray-600 mt-1 mr-4" />
-              <Text>Note</Text>
             </div>
           </div>
         }
@@ -417,13 +379,6 @@ const Thumbnail = ({
         open={confirmDeleteModal}
         handleClose={() => {
           setConfirmDeleteModal(false)
-        }}
-      />
-
-      <NotesModal
-        open={notesModal}
-        handleClose={() => {
-          setNotesModal(false)
         }}
       />
     </div>

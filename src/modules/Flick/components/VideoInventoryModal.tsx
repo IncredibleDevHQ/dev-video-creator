@@ -3,10 +3,8 @@ import React, { useState } from 'react'
 import { FiMonitor, FiUploadCloud } from 'react-icons/fi'
 import Modal from 'react-responsive-modal'
 import { Button, Heading, ScreenState } from '../../../components'
-import Video from '../../../components/UploadVideo'
 import config from '../../../config'
 import { useUserAssetQuery } from '../../../generated/graphql'
-
 import { ScreenRecording } from './index'
 import UploadVideoModal from './UploadVideoModal'
 
