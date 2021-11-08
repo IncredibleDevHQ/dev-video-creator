@@ -10,6 +10,7 @@ import {
   IoSearchOutline,
 } from 'react-icons/io5'
 import { Layer, Stage } from 'react-konva'
+import { Html } from 'react-konva-utils'
 import {
   useRecoilBridgeAcrossReactRoots_UNSTABLE,
   useRecoilValue,
@@ -33,8 +34,10 @@ import {
 import { useUploadFile } from '../../../hooks'
 import { AllowedFileExtensions } from '../../../hooks/use-upload-file'
 import { Config, GradientConfig } from '../../../utils/configTypes'
+import TitleSplash from '../../Studio/components/TitleSplash'
 import UnifiedFragment from '../../Studio/effects/fragments/UnifiedFragment'
 import { StudioProviderProps, studioStore } from '../../Studio/stores'
+import { newFlickStore } from '../store/flickNew.store'
 import LayoutGeneric from './LayoutGeneric'
 
 export const CONFIG = {
@@ -84,6 +87,9 @@ const Preview = ({ config }: { config: Config }) => {
   const layerRef = createRef<Konva.Layer>()
   const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
 
+  const { payload } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const { flick, activeFragmentId } = useRecoilValue(newFlickStore)
+
   Konva.pixelRatio = 2
 
   return (
@@ -96,11 +102,44 @@ const Preview = ({ config }: { config: Config }) => {
       >
         <Bridge>
           <Layer ref={layerRef}>
-            <UnifiedFragment
-              stageRef={stageRef}
-              layerRef={layerRef}
-              config={config}
-            />
+            {payload?.fragmentState === 'titleSplash' &&
+              !config.viewConfig.hasTitleSplash && (
+                <Html>
+                  <div
+                    style={{
+                      height: CONFIG.height,
+                      width: CONFIG.width,
+                    }}
+                    className="w-full h-full flex items-center justify-center bg-gray-200"
+                  >
+                    <IoEyeOffOutline size={54} className="text-gray-400" />
+                  </div>
+                </Html>
+              )}
+            {payload?.fragmentState === 'titleSplash' &&
+              config.viewConfig.hasTitleSplash && (
+                <TitleSplash
+                  isShorts={false}
+                  stageConfig={{
+                    height: CONFIG.height,
+                    width: CONFIG.width,
+                  }}
+                  titleSplashData={{
+                    enable: true,
+                    title:
+                      flick?.fragments?.find((f) => f.id === activeFragmentId)
+                        ?.name || '',
+                    titleSplashConfig: config.viewConfig.titleSplashConfig,
+                  }}
+                />
+              )}
+            {payload?.fragmentState !== 'titleSplash' && (
+              <UnifiedFragment
+                stageRef={stageRef}
+                layerRef={layerRef}
+                config={config}
+              />
+            )}
           </Layer>
         </Bridge>
       </Stage>
@@ -158,11 +197,17 @@ const Layouts = ({
           )}
           <Text
             className={cx(
-              'bg-white h-full w-24 border-2 border-gray-200 text-gray-200 rounded-lg flex items-center justify-center text-sm font-bold',
+              'bg-white h-full w-24 border-2 border-gray-200 text-gray-200 rounded-lg flex items-center justify-center text-sm font-bold cursor-pointer',
               {
                 'text-gray-500': config.viewConfig.hasTitleSplash,
+                'border border-brand': payload?.fragmentState === 'titleSplash',
               }
             )}
+            onClick={() =>
+              updatePayload?.({
+                fragmentState: 'titleSplash',
+              })
+            }
           >
             Title
           </Text>
@@ -260,24 +305,34 @@ const Configurations = ({
   const [currentConfiguration, setCurrentConfiguration] =
     useState<Configuration>(Configuration.Layouts)
 
+  const { payload } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
+
+  useEffect(() => {
+    if (payload?.fragmentState === 'titleSplash') {
+      setCurrentConfiguration(Configuration.Background)
+    }
+  }, [payload?.fragmentState])
+
   return (
     <div className="flex flex-col ml-4 h-full">
       {/* Configs */}
       <div className="flex gap-x-3">
-        <div
-          role="button"
-          tabIndex={-1}
-          onKeyUp={() => {}}
-          onClick={() => setCurrentConfiguration(Configuration.Layouts)}
-          className={cx(
-            'border border-gray-300 bg-gray-100 p-2 rounded-lg h-9 w-9 flex items-center justify-center',
-            {
-              'border-brand': currentConfiguration === Configuration.Layouts,
-            }
-          )}
-        >
-          <FiLayout className="text-gray-600" size={21} />
-        </div>
+        {payload?.fragmentState !== 'titleSplash' && (
+          <div
+            role="button"
+            tabIndex={-1}
+            onKeyUp={() => {}}
+            onClick={() => setCurrentConfiguration(Configuration.Layouts)}
+            className={cx(
+              'border border-gray-300 bg-gray-100 p-2 rounded-lg h-9 w-9 flex items-center justify-center',
+              {
+                'border-brand': currentConfiguration === Configuration.Layouts,
+              }
+            )}
+          >
+            <FiLayout className="text-gray-600" size={21} />
+          </div>
+        )}
         <div
           role="button"
           tabIndex={-1}
@@ -434,6 +489,8 @@ const GradientPicker = ({
     cssString: string
   }
 
+  const { payload } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
+
   const gradients: Gradient[] = [
     {
       angle: 90,
@@ -561,26 +618,35 @@ const GradientPicker = ({
                 gradients[n - 1].cssString,
             }
           )}
-          onClick={() =>
-            setConfig({
-              ...config,
-              viewConfig: {
-                ...config.viewConfig,
-                configs: config.viewConfig.configs.map((c) => {
-                  if (c.id === selectedLayoutId) {
-                    return {
-                      ...c,
-                      background: {
-                        type: 'color',
-                        gradient: getGradientConfig(gradients[n - 1]),
-                      },
+          onClick={() => {
+            if (payload?.fragmentState === 'titleSplash')
+              setConfig({
+                ...config,
+                viewConfig: {
+                  ...config.viewConfig,
+                  titleSplashConfig: getGradientConfig(gradients[n - 1]),
+                },
+              })
+            else
+              setConfig({
+                ...config,
+                viewConfig: {
+                  ...config.viewConfig,
+                  configs: config.viewConfig.configs.map((c) => {
+                    if (c.id === selectedLayoutId) {
+                      return {
+                        ...c,
+                        background: {
+                          type: 'color',
+                          gradient: getGradientConfig(gradients[n - 1]),
+                        },
+                      }
                     }
-                  }
-                  return c
-                }),
-              },
-            })
-          }
+                    return c
+                  }),
+                },
+              })
+          }}
         >
           <div
             style={{

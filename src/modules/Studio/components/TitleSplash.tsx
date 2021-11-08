@@ -9,7 +9,7 @@ const TitleSplash = ({
   isShorts,
 }: {
   titleSplashData: TitleSplashProps
-  setIsTitleSplash: React.Dispatch<SetStateAction<boolean>>
+  setIsTitleSplash?: React.Dispatch<SetStateAction<boolean>>
   stageConfig: {
     width: number
     height: number
@@ -32,7 +32,7 @@ const TitleSplash = ({
           ref?.to({
             duration: 3,
             onFinish: () => {
-              setIsTitleSplash(false)
+              setIsTitleSplash?.(false)
             },
           })
         }
