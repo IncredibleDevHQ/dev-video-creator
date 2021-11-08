@@ -1,7 +1,7 @@
 import { TNode } from '@udecode/plate'
 import React, { useEffect, useMemo, useState } from 'react'
 import { FiLoader } from 'react-icons/fi'
-import { useParams } from 'react-router-dom'
+import { useHistory, useParams } from 'react-router-dom'
 import { useRecoilState, useSetRecoilState } from 'recoil'
 import { ScreenState, Text } from '../../components'
 import {
@@ -57,6 +57,7 @@ const Flick = () => {
     variables: { id },
   })
   const setStudio = useSetRecoilState(studioStore)
+  const history = useHistory()
 
   const [initialPlateValue, setInitialPlateValue] = useState<TNode<any>[]>()
   const [plateValue, setPlateValue] = useState<TNode<any>[]>()
@@ -107,12 +108,18 @@ const Flick = () => {
   }, [data])
 
   useEffect(() => {
+    return () => {
+      setFlickStore({
+        flick: null,
+        activeFragmentId: '',
+        isMarkdown: true,
+      })
+    }
+  }, [])
+
+  useEffect(() => {
     if (!activeFragmentId || !flick) return
-    window.history.replaceState(
-      null,
-      'Incredible.dev',
-      `/flick/${flick.id}/${activeFragmentId}`
-    )
+    history.replace(`/flick/${flick.id}/${activeFragmentId}`)
     const fragment = flick?.fragments.find(
       (frag) => frag.id === activeFragmentId
     )
@@ -149,7 +156,9 @@ const Flick = () => {
       />
     )
 
-  return flick ? (
+  if (!flick) return null
+
+  return (
     <div className="h-screen overflow-y-scroll overflow-x-hidden">
       <FlickNavBar />
       <div className="flex h-full">
@@ -186,8 +195,6 @@ const Flick = () => {
         )}
       </div>
     </div>
-  ) : (
-    <div />
   )
 }
 
