@@ -86,6 +86,7 @@ export interface LayoutConfig {
 
 export interface ViewConfig {
   hasTitleSplash: boolean
+  titleSplashConfig: GradientConfig
   configs: LayoutConfig[]
 }
 
