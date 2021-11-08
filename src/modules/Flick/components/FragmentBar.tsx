@@ -182,6 +182,7 @@ const FragmentBar = ({
         },
       })
     } catch (error) {
+      console.error(error)
       emitToast({
         type: 'error',
         title: 'Error updating fragment',

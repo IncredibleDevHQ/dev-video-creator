@@ -1,9 +1,9 @@
 import { TNode } from '@udecode/plate'
 import React, { useEffect, useMemo, useState } from 'react'
 import { FiLoader } from 'react-icons/fi'
-import { useParams } from 'react-router-dom'
+import { useHistory, useParams } from 'react-router-dom'
 import { useRecoilState, useSetRecoilState } from 'recoil'
-import { ScreenState, Text } from '../../components'
+import { EmptyState, ScreenState, Text } from '../../components'
 import {
   Fragment_Status_Enum_Enum,
   StudioFragmentFragment,
@@ -61,6 +61,7 @@ const Flick = () => {
     variables: { id },
   })
   const setStudio = useSetRecoilState(studioStore)
+  const history = useHistory()
 
   const [initialPlateValue, setInitialPlateValue] = useState<TNode<any>[]>()
   const [plateValue, setPlateValue] = useState<TNode<any>[]>()
@@ -112,11 +113,7 @@ const Flick = () => {
 
   useEffect(() => {
     if (!activeFragmentId || !flick) return
-    window.history.replaceState(
-      null,
-      'Incredible.dev',
-      `/flick/${flick.id}/${activeFragmentId}`
-    )
+    history.replace(`/flick/${flick.id}/${activeFragmentId}`)
     const fragment = flick?.fragments.find(
       (frag) => frag.id === activeFragmentId
     )
@@ -131,7 +128,7 @@ const Flick = () => {
     )
     if (fragment?.configuration) {
       const fragmentConfig = fragment.configuration as Config
-      if (fragmentConfig.dataConfig.length > 0) {
+      if (fragmentConfig.dataConfig?.length > 0) {
         setSelectedLayoutId(fragmentConfig.dataConfig[0].id)
       }
     }
@@ -153,7 +150,9 @@ const Flick = () => {
       />
     )
 
-  return flick ? (
+  if (!flick) return null
+
+  return (
     <div className="h-screen overflow-y-scroll overflow-x-hidden">
       <FlickNavBar />
       <div className="flex h-full">
@@ -190,8 +189,6 @@ const Flick = () => {
         )}
       </div>
     </div>
-  ) : (
-    <div />
   )
 }
 

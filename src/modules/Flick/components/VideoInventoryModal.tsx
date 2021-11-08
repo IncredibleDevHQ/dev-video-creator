@@ -76,8 +76,10 @@ const VideoInventoryModal = ({
       <div className="grid grid-cols-3 m-4 gap-4 ">
         {data &&
           data.Asset.length > 0 &&
-          data.Asset.map((asset) => (
-            <div className="max-w-2xl content-center">
+          data.Asset.map((asset, index) => (
+            // eslint-disable-next-line react/no-array-index-key
+            <div className="max-w-2xl content-center" key={index}>
+              {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
               <video width={400} height={225} controls>
                 <source src={baseUrl + asset.objectLink} type="video/mp4" />
               </video>
@@ -85,6 +87,7 @@ const VideoInventoryModal = ({
                 type="button"
                 appearance="primary"
                 onClick={() => {
+                  console.log(asset.objectLink)
                   setSelectedVideoLink(baseUrl + asset.objectLink)
                   handleClose()
                 }}
