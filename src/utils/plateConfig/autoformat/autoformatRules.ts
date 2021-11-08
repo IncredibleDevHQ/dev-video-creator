@@ -19,5 +19,5 @@ export const autoformatRules = [
   ...autoformatLegal,
   ...autoformatLegalHtml,
   ...autoformatArrow,
-  ...autoformatMath,
+  // ...autoformatMath,
 ]
