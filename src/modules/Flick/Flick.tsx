@@ -25,7 +25,7 @@ const useLocalPayload = () => {
     activeObjectIndex: 0,
     activePointIndex: 0,
     currentIndex: 0,
-    currentTime: 3.2065,
+    currentTime: 0,
     fragmentState: 'customLayout',
     isFocus: false,
     playing: false,
@@ -33,11 +33,7 @@ const useLocalPayload = () => {
     status: Fragment_Status_Enum_Enum.NotStarted,
   }
 
-  const [payload, setPayload] = useState<any>(initialPayload)
-
-  // useEffect(() => {
-  //   console.log('payload', payload)
-  // }, [payload])
+  const [payload, setPayload] = useState<any>()
 
   const updatePayload = (newPayload: any) => {
     setPayload({
@@ -110,6 +106,16 @@ const Flick = () => {
       activeFragmentId: activeId,
     }))
   }, [data])
+
+  useEffect(() => {
+    return () => {
+      setFlickStore({
+        flick: null,
+        activeFragmentId: '',
+        isMarkdown: true,
+      })
+    }
+  }, [])
 
   useEffect(() => {
     if (!activeFragmentId || !flick) return

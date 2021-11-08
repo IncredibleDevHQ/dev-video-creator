@@ -184,7 +184,7 @@ const Layouts = ({
               'bg-white h-full w-24 p-1.5 border-2 border-gray-200 text-gray-500 rounded-lg flex items-center justify-center',
               {
                 'border border-brand':
-                  payload.fragmentState === 'onlyUserMedia',
+                  payload?.fragmentState === 'onlyUserMedia',
               }
             )}
           >
@@ -231,7 +231,7 @@ const Layouts = ({
                   type={c.type}
                   isSelected={
                     selectedLayoutId === c.id &&
-                    payload.fragmentState === 'customLayout'
+                    payload?.fragmentState === 'customLayout'
                   }
                 />
               </div>
