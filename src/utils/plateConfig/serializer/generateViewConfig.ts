@@ -71,7 +71,7 @@ export const generateViewConfig = ({
   }
 
   return {
+    ...viewConfig,
     configs,
-    hasTitleSplash: true,
   } as ViewConfig
 }

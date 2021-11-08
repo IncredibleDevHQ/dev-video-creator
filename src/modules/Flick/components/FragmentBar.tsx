@@ -18,6 +18,7 @@ import { authState } from '../../../stores/auth.store'
 import { Config } from '../../../utils/configTypes'
 import { serializeDataConfig } from '../../../utils/plateConfig/serializer/config-serialize'
 import { generateViewConfig } from '../../../utils/plateConfig/serializer/generateViewConfig'
+import { studioStore } from '../../Studio/stores'
 import { newFlickStore } from '../store/flickNew.store'
 
 const FragmentBar = ({
@@ -182,7 +183,6 @@ const FragmentBar = ({
         },
       })
     } catch (error) {
-      console.error(error)
       emitToast({
         type: 'error',
         title: 'Error updating fragment',
@@ -333,6 +333,7 @@ const FragmentBar = ({
 const FragmentParticipants = () => {
   const [{ flick, activeFragmentId }, setFlickStore] =
     useRecoilState(newFlickStore)
+  const [{ fragment }, setStudio] = useRecoilState(studioStore)
 
   const [
     isAddFragmentParticipantModalOpen,
@@ -365,6 +366,15 @@ const FragmentParticipants = () => {
       },
       activeFragmentId: store.activeFragmentId,
     }))
+    if (fragment) {
+      setStudio((store) => ({
+        ...store,
+        fragment: {
+          ...fragment,
+          participants: data.Fragment_Participant,
+        },
+      }))
+    }
   }, [data])
 
   useEffect(() => {

@@ -26,7 +26,7 @@ const useLocalPayload = () => {
     activePointIndex: 0,
     currentIndex: 0,
     currentTime: 0,
-    fragmentState: 'customLayout',
+    fragmentState: 'titleSplash',
     isFocus: false,
     playing: false,
     prevIndex: -1,
@@ -50,20 +50,7 @@ const useLocalPayload = () => {
 }
 
 const Flick = () => {
-  const { id, fragmentId } = useParams<{ id: string; fragmentId?: string }>()
-  const [{ flick, activeFragmentId, isMarkdown }, setFlickStore] =
-    useRecoilState(newFlickStore)
-  const { data, error, loading, refetch } = useGetFlickByIdQuery({
-    variables: { id },
-  })
-  const setStudio = useSetRecoilState(studioStore)
-  const history = useHistory()
-
-  const [initialPlateValue, setInitialPlateValue] = useState<TNode<any>[]>()
-  const [plateValue, setPlateValue] = useState<TNode<any>[]>()
-  const [serializing, setSerializing] = useState(false)
-
-  const [config, setConfig] = useState<Config>({
+  const initialConfig: Config = {
     dataConfig: [],
     viewConfig: {
       configs: [],
@@ -80,9 +67,24 @@ const Flick = () => {
           y: 270.00000000000006,
         },
       },
-      hasTitleSplash: false,
+      hasTitleSplash: true,
     },
+  }
+
+  const { id, fragmentId } = useParams<{ id: string; fragmentId?: string }>()
+  const [{ flick, activeFragmentId, isMarkdown }, setFlickStore] =
+    useRecoilState(newFlickStore)
+  const { data, error, loading, refetch } = useGetFlickByIdQuery({
+    variables: { id },
   })
+  const setStudio = useSetRecoilState(studioStore)
+  const history = useHistory()
+
+  const [initialPlateValue, setInitialPlateValue] = useState<TNode<any>[]>()
+  const [plateValue, setPlateValue] = useState<TNode<any>[]>()
+  const [serializing, setSerializing] = useState(false)
+
+  const [config, setConfig] = useState<Config>(initialConfig)
 
   const [selectedLayoutId, setSelectedLayoutId] = useState('')
 
@@ -136,21 +138,7 @@ const Flick = () => {
     const fragment = flick?.fragments.find(
       (frag) => frag.id === activeFragmentId
     )
-    setConfig(
-      fragment?.configuration || {
-        dataConfig: [],
-        viewConfig: {
-          configs: [],
-          hasTitleSplash: false,
-        },
-      }
-    )
-    if (fragment?.configuration) {
-      const fragmentConfig = fragment.configuration as Config
-      if (fragmentConfig.dataConfig?.length > 0) {
-        setSelectedLayoutId(fragmentConfig.dataConfig[0].id)
-      }
-    }
+    setConfig(fragment?.configuration || initialConfig)
     setInitialPlateValue(fragment?.editorState)
     setPlateValue(fragment?.editorState)
   }, [activeFragmentId])
