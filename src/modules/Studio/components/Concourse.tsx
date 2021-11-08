@@ -292,10 +292,6 @@ const Concourse = ({
           ))}
         </>
       ) : (
-        !disableUserMedia &&
-        !isTitleSplash &&
-        payload?.status !== Fragment_Status_Enum_Enum.CountDown &&
-        payload?.status !== Fragment_Status_Enum_Enum.Ended &&
         fragment &&
         fragment.participants.map((_, index: number) => (
           <PreviewUser
