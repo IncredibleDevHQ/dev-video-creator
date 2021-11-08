@@ -14,6 +14,7 @@ import {
   ELEMENT_H6,
   ELEMENT_HR,
   ELEMENT_IMAGE,
+  ELEMENT_MEDIA_EMBED,
   ELEMENT_PARAGRAPH,
   ELEMENT_TD,
   ELEMENT_TODO_LI,
@@ -148,7 +149,9 @@ export const CONFIG: {
       },
     ],
   },
-  selectOnBackspace: { allow: [ELEMENT_IMAGE, ELEMENT_HR] },
+  selectOnBackspace: {
+    allow: [ELEMENT_IMAGE, ELEMENT_HR, ELEMENT_MEDIA_EMBED],
+  },
   autoformat: {
     rules: autoformatRules,
   },
