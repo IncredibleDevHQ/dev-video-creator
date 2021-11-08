@@ -181,7 +181,7 @@ export const serializeDataConfig = async (
       // extract necessary data from plate's node array
       const codeRaw = node.children
         .map((child: TNode) => {
-          return child.children?.[0]?.text
+          return child.children?.[0]?.text || child?.text
         })
         .join('\n')
 
