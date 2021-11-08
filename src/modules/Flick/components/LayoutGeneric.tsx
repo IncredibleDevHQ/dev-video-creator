@@ -181,6 +181,42 @@ const LayoutGeneric = ({
                 <div className="w-4 h-4 m-1 bg-gray-500 rounded-full p-2 absolute" />
               </div>
             )
+          case 9:
+            return (
+              <div
+                className={cx(
+                  'w-24 border border-gray-200 h-14 rounded-md cursor-pointer flex items-center gap-x-2',
+                  {
+                    'border-brand': isSelected,
+                  }
+                )}
+                {...rest}
+              >
+                <div className="h-7 w-5/6 bg-gray-200 rounded-sm p-1.5 ml-2">
+                  {type && <FragmentTypeIcon type={type} />}
+                </div>
+                <div className="h-full w-3/6 bg-gray-500 rounded-tr-sm rounded-br-sm p-2" />
+              </div>
+            )
+          case 10:
+            return (
+              <div
+                className={cx(
+                  'w-24 border border-gray-200 h-14 rounded-md cursor-pointer flex items-center gap-x-2 relative',
+                  {
+                    'border-brand': isSelected,
+                  }
+                )}
+                {...rest}
+              >
+                <div className="h-8 w-7/12 bg-gray-200 rounded-sm p-2 ml-2 absolute">
+                  {type && <FragmentTypeIcon type={type} />}
+                </div>
+                <div className="h-full w-full flex justify-end">
+                  <div className="h-full w-3/6 bg-gray-500 rounded-tr-sm rounded-br-sm p-2 items-self-end" />
+                </div>
+              </div>
+            )
           default:
             return <></>
         }

@@ -390,15 +390,20 @@ const LayoutsConfguration = ({
   const [currentTab, setCurrentTab] = useState<Tab>(tabs[0])
 
   return (
-    <div className="border mt-4 rounded-lg shadow-md h-4/6 border-gray-300 w-60">
+    <div className="border mt-4 rounded-lg shadow-md h-4/6 border-gray-300 w-60 overflow-hidden">
       <TabBar
         tabs={tabs}
         current={currentTab}
         onTabChange={setCurrentTab}
         className="text-black gap-2 w-auto ml-4 mt-4"
       />
-      <div className="grid grid-cols-2 p-4 gap-4">
-        {Array.from({ length: 8 }, (_, i) => i + 1).map((n) => (
+      <div
+        className={cx(
+          'grid grid-cols-2 p-4 gap-4 overflow-scroll w-full h-full pb-16',
+          scrollStyle
+        )}
+      >
+        {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
           <LayoutGeneric
             layoutId={n}
             isSelected={selectedLayoutNumber === n}
