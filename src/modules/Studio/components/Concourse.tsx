@@ -4,6 +4,7 @@ import { Group, Rect } from 'react-konva'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
 import { User, userState } from '../../../stores/user.store'
+import { GradientConfig } from '../../../utils/configTypes'
 import {
   CircleCenterShrink,
   MultiCircleCenterGrow,
@@ -33,9 +34,7 @@ export interface StudioUserConfig {
 export interface TitleSplashProps {
   enable: boolean
   title?: string
-  bgRectColor?: string[]
-  stripRectColor?: string[]
-  textColor?: string[]
+  titleSplashConfig?: GradientConfig
 }
 
 interface ConcourseProps {

@@ -32,7 +32,7 @@ const UnifiedFragment = ({
   const { fragment, payload, updatePayload, state, participants, users } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
-  const [titleSplashData, settitleSplashData] = useState<TitleSplashProps>({
+  const [titleSplashData, setTitleSplashData] = useState<TitleSplashProps>({
     enable: false,
   })
 
@@ -69,13 +69,12 @@ const UnifiedFragment = ({
       setDataConfig(config.dataConfig)
       setViewConfig(config.viewConfig)
     }
-    settitleSplashData({
+    setTitleSplashData({
       enable: fragment?.configuration?.viewConfig.hasTitleSplash || true,
       title: fragment.name as string,
+      titleSplashConfig:
+        fragment?.configuration?.viewConfig?.titleSplashConfig || {},
     })
-    // bgRectColor: ['#140D1F', '#6E1DDB'],
-    //   stripRectColor: ['#FF5D01', '#B94301'],
-    //   textColor: ['#E6E6E6', '#FFFFFF'],
     updatePayload?.({
       activeObjectIndex: 0,
     })
@@ -136,11 +135,13 @@ const UnifiedFragment = ({
   })()
 
   useEffect(() => {
-    if (activeObjectIndex !== 0) settitleSplashData({ enable: false })
+    if (activeObjectIndex !== 0) setTitleSplashData({ enable: false })
     else
-      settitleSplashData({
+      setTitleSplashData({
         enable: fragment?.configuration?.viewConfig.hasTitleSplash || true,
         title: fragment?.name as string,
+        titleSplashConfig:
+          fragment?.configuration?.viewConfig?.titleSplashConfig || {},
       })
   }, [activeObjectIndex])
 

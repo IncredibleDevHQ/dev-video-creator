@@ -16,6 +16,9 @@ const TitleSplash = ({
   }
   isShorts: boolean | undefined
 }) => {
+  const colorStops = [0, '#1F2937', 1, '#1F2937']
+  const startPoint = { x: 0, y: 0 }
+  const endPoint = { x: stageConfig.width, y: stageConfig.height }
   return (
     <>
       <Group
@@ -35,39 +38,20 @@ const TitleSplash = ({
         }
       >
         <Rect
-          fillLinearGradientColorStops={[
-            0,
-            (titleSplashData &&
-              titleSplashData?.bgRectColor &&
-              titleSplashData?.bgRectColor[0]) ||
-              '#1F2937',
-            1,
-            (titleSplashData &&
-              titleSplashData?.bgRectColor &&
-              titleSplashData?.bgRectColor[1]) ||
-              '#1F2937',
-          ]}
-          fillLinearGradientStartPoint={{ x: 0, y: 0 }}
-          fillLinearGradientEndPoint={{
-            x: stageConfig.width,
-            y: stageConfig.height,
-          }}
+          fillLinearGradientColorStops={
+            titleSplashData.titleSplashConfig?.values || colorStops
+          }
+          fillLinearGradientStartPoint={
+            titleSplashData.titleSplashConfig?.startIndex || startPoint
+          }
+          fillLinearGradientEndPoint={
+            titleSplashData.titleSplashConfig?.endIndex || endPoint
+          }
           width={stageConfig.width}
           height={stageConfig.height}
         />
         <Rect
-          fillLinearGradientColorStops={[
-            0,
-            (titleSplashData &&
-              titleSplashData?.stripRectColor &&
-              titleSplashData?.stripRectColor[0]) ||
-              '#4ADE80',
-            1,
-            (titleSplashData &&
-              titleSplashData?.stripRectColor &&
-              titleSplashData?.stripRectColor[1]) ||
-              '#16A34A',
-          ]}
+          fillLinearGradientColorStops={[0, '#ffffff4c', 1, '#ffffff56']}
           fillLinearGradientStartPoint={{
             x: 0,
             y: stageConfig.height / 2 - 120,
@@ -90,18 +74,7 @@ const TitleSplash = ({
           width={stageConfig.width}
           height={80}
           text={titleSplashData && titleSplashData.title}
-          fillLinearGradientColorStops={[
-            0,
-            (titleSplashData &&
-              titleSplashData?.textColor &&
-              titleSplashData?.textColor[0]) ||
-              '#ffffff',
-            1,
-            (titleSplashData &&
-              titleSplashData?.textColor &&
-              titleSplashData?.textColor[1]) ||
-              '#ffffff',
-          ]}
+          fillLinearGradientColorStops={[0, '#ffffff', 1, '#ffffff']}
           fillLinearGradientStartPoint={{
             x: 0,
             y: stageConfig.height / 2 - 120,
