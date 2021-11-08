@@ -188,7 +188,7 @@ export const serializeDataConfig = async (
       // get color codes
       // eslint-disable-next-line no-await-in-loop
       const colorCodes: ColorCode[] = await getColorCodes(
-        codeRaw,
+        `\n${codeRaw}`,
         node.lang,
         userToken
       )
