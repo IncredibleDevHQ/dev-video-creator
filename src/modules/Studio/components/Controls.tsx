@@ -236,52 +236,10 @@ export const TriviaControls = ({
 }: {
   fragmentState: FragmentState
 }) => {
-  const { updatePayload } =
+  const { state, updatePayload } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
-  return (
-    <ControlButton
-      key="swap"
-      icon={SwapIcon}
-      className="my-2"
-      appearance="primary"
-      onClick={() => {
-        if (fragmentState === 'onlyUserMedia') {
-          // updating the fragment state in the payload to customLayout state
-          updatePayload?.({
-            fragmentState: 'customLayout',
-          })
-        } else {
-          // updating the fragment state in the payload to onlyUserMedia state
-          updatePayload?.({
-            fragmentState: 'onlyUserMedia',
-          })
-        }
-      }}
-    />
-    // <ControlButton
-    //   key="nextQuestion"
-    //   icon={NextTokenIcon}
-    //   className="my-2"
-    //   appearance="primary"
-    //   disabled={activeQuestionIndex === questions.length - 1}
-    //   onClick={() => {
-    //     updatePayload?.({ activeQuestion: activeQuestionIndex + 1 })
-    //   }}
-    // />,
-  )
-}
-
-export const PointsControls = ({
-  fragmentState,
-  noOfPoints,
-}: {
-  fragmentState: FragmentState
-  noOfPoints: number
-}) => {
-  const { payload, updatePayload } =
-    (useRecoilValue(studioStore) as StudioProviderProps) || {}
-  return (
-    <>
+  if (state === 'recording' || state === 'ready')
+    return (
       <ControlButton
         key="swap"
         icon={SwapIcon}
@@ -301,18 +259,64 @@ export const PointsControls = ({
           }
         }}
       />
-      <ControlButton
-        key="nextPoint"
-        icon={NextTokenIcon}
-        className="my-2"
-        appearance="primary"
-        disabled={payload?.activePointIndex === noOfPoints}
-        onClick={() => {
-          updatePayload?.({
-            activePointIndex: payload?.activePointIndex + 1,
-          })
-        }}
-      />
-    </>
-  )
+      // <ControlButton
+      //   key="nextQuestion"
+      //   icon={NextTokenIcon}
+      //   className="my-2"
+      //   appearance="primary"
+      //   disabled={activeQuestionIndex === questions.length - 1}
+      //   onClick={() => {
+      //     updatePayload?.({ activeQuestion: activeQuestionIndex + 1 })
+      //   }}
+      // />,
+    )
+  return <></>
+}
+
+export const PointsControls = ({
+  fragmentState,
+  noOfPoints,
+}: {
+  fragmentState: FragmentState
+  noOfPoints: number
+}) => {
+  const { state, payload, updatePayload } =
+    (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  if (state === 'recording' || state === 'ready')
+    return (
+      <>
+        <ControlButton
+          key="swap"
+          icon={SwapIcon}
+          className="my-2"
+          appearance="primary"
+          onClick={() => {
+            if (fragmentState === 'onlyUserMedia') {
+              // updating the fragment state in the payload to customLayout state
+              updatePayload?.({
+                fragmentState: 'customLayout',
+              })
+            } else {
+              // updating the fragment state in the payload to onlyUserMedia state
+              updatePayload?.({
+                fragmentState: 'onlyUserMedia',
+              })
+            }
+          }}
+        />
+        <ControlButton
+          key="nextPoint"
+          icon={NextTokenIcon}
+          className="my-2"
+          appearance="primary"
+          disabled={payload?.activePointIndex === noOfPoints}
+          onClick={() => {
+            updatePayload?.({
+              activePointIndex: payload?.activePointIndex + 1,
+            })
+          }}
+        />
+      </>
+    )
+  return <></>
 }

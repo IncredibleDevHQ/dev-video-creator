@@ -111,7 +111,7 @@ const TriviaFragment = ({
         dataConfigLength,
       },
     })
-  }, [fragmentState])
+  }, [state, fragmentState])
 
   useEffect(() => {
     if (qnaImage?.src.split('.').pop() === 'gif') {

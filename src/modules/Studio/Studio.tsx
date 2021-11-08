@@ -608,6 +608,7 @@ const Studio = ({
               <video
                 className="w-3/4 rounded-md"
                 controls
+                controlsList="nodownload"
                 ref={async (ref) => {
                   if (!ref || !getBlobs) return
                   const blob = await getBlobs()

@@ -109,7 +109,7 @@ const PointsFragment = ({
         dataConfigLength,
       },
     })
-  }, [points, fragmentState])
+  }, [state, points, fragmentState])
 
   useEffect(() => {
     return () => {
