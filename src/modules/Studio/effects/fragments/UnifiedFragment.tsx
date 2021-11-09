@@ -124,7 +124,7 @@ const UnifiedFragment = ({
         setTopLayerChildren([
           <LowerThirds
             x={lowerThirdCoordinates[0] || 0}
-            y={450}
+            y={!shortsMode ? 450 : 630}
             userName={displayName}
             rectOneColors={['#651CC8', '#9561DA']}
             rectTwoColors={['#FF5D01', '#B94301']}
@@ -146,14 +146,16 @@ const UnifiedFragment = ({
   }, [state])
 
   const lowerThirdCoordinates = (() => {
-    switch (fragment?.participants.length) {
-      case 2:
-        return [70, 530]
-      case 3:
-        return [45, 355, 665]
-      default:
-        return [70]
-    }
+    if (!shortsMode)
+      switch (fragment?.participants.length) {
+        case 2:
+          return [70, 530]
+        case 3:
+          return [45, 355, 665]
+        default:
+          return [95]
+      }
+    else return [30]
   })()
 
   useEffect(() => {
