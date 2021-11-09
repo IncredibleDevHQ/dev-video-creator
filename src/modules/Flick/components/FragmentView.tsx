@@ -241,7 +241,7 @@ const Layouts = ({
         {/* Divider */}
         <div
           className={cx(
-            'h-full flex flex-col items-center justify-center pl-2 pr-3 bg-gray-100',
+            'h-full flex flex-col items-center justify-center pl-2 pr-3 bg-gray-100 relative',
             {
               'pr-0': config.dataConfig.length === 0,
             }
