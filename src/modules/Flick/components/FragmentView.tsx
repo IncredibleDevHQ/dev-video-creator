@@ -359,7 +359,8 @@ const Configurations = ({
   const [currentConfiguration, setCurrentConfiguration] =
     useState<Configuration>(Configuration.Layouts)
 
-  const { payload } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const { payload, shortsMode } =
+    (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   useEffect(() => {
     if (
@@ -374,7 +375,7 @@ const Configurations = ({
     <div className="flex flex-col ml-4 h-full">
       {/* Configs */}
       <div className="flex gap-x-3">
-        {payload?.fragmentState === 'customLayout' && (
+        {payload?.fragmentState === 'customLayout' && !shortsMode && (
           <div
             role="button"
             tabIndex={-1}
