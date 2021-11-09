@@ -122,6 +122,7 @@ const CodeFragment = ({
     const blocks = Object.assign([], dataConfig.value.explanations || [])
     blocks.unshift({ from: 0, to: 0, explanation: '' })
     setBlockConfig(blocks)
+    setTopLayerChildren([])
   }, [dataConfig, viewConfig, shortsMode])
 
   useEffect(() => {
@@ -132,7 +133,6 @@ const CodeFragment = ({
       gutter: 5,
       fontSize: codeConfig.fontSize,
     })
-    console.log(objectConfig)
   }, [objectConfig])
 
   useEffect(() => {
