@@ -1,6 +1,14 @@
 export interface IIntegrations {
   github?: GitHubResponse
   hashnode?: HashnodeResponse
+  dev?: DEVResponse
+}
+
+export interface DEVResponse {
+  exists?: boolean
+  accessToken?: string
+  integrationId?: string
+  updatedAt?: Date
 }
 
 export interface GitHubResponse {

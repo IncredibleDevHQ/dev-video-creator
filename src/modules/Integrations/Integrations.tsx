@@ -9,6 +9,7 @@ import config from '../../config'
 import { Navbar, Text } from '../../components'
 import HashnodeModal from './HashnodeModal'
 import GitHubModal from './GitHubModal'
+import DEVModal from './DEVModal'
 import {
   IntegrationEnum,
   useDeleteIntegrationMutation,
@@ -41,6 +42,10 @@ const INTEGRATIONS = [
   {
     title: IntegrationEnum.Hashnode,
     logo: 'https://i.ibb.co/ZxDgSjy/brand-icon.png',
+  },
+  {
+    title: IntegrationEnum.Dev,
+    logo: 'https://d2fltix0v2e0sb.cloudfront.net/dev-black.png',
   },
 ]
 
@@ -178,6 +183,26 @@ const Integrations = () => {
               },
             } as IntegrationCardProps
 
+          case IntegrationEnum.Dev:
+            return {
+              ...integration,
+              ..._data.dev,
+              handleClick: () => {
+                if (!_data.dev?.exists) {
+                  setModal(IntegrationEnum.Dev)
+                }
+              },
+              handleDelete: async () => {
+                await deleteIntegration({
+                  variables: {
+                    id: _data.dev?.integrationId,
+                    integration: IntegrationEnum.Dev,
+                  },
+                })
+                refetch()
+              },
+            } as IntegrationCardProps
+
           default:
             return undefined
         }
@@ -216,6 +241,16 @@ const Integrations = () => {
               ))}
               <HashnodeModal
                 open={modal === IntegrationEnum.Hashnode}
+                handleClose={(shouldRefetch?: boolean) => {
+                  if (shouldRefetch) {
+                    refetch()
+                  }
+                  setModal(null)
+                }}
+              />
+
+              <DEVModal
+                open={modal === IntegrationEnum.Dev}
                 handleClose={(shouldRefetch?: boolean) => {
                   if (shouldRefetch) {
                     refetch()

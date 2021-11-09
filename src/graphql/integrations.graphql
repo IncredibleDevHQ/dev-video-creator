@@ -10,6 +10,12 @@ mutation IntegrateHashnode($accessToken: String!, $username: String!) {
   }
 }
 
+mutation IntegrateDEV($accessToken: String!) {
+  IntegrateDEV(accessToken: $accessToken) {
+    success
+  }
+}
+
 query MyIntegrations {
   MyIntegrations {
     integrations
