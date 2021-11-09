@@ -268,9 +268,9 @@ const TriviaFragment = ({
                 x={imgDim.x}
                 width={imgDim.width}
                 height={imgDim.height}
-                shadowOpacity={0.3}
-                shadowOffset={{ x: 0, y: 1 }}
-                shadowBlur={2}
+                // shadowOpacity={0.3}
+                // shadowOffset={{ x: 0, y: 1 }}
+                // shadowBlur={2}
               />
             </>
           )

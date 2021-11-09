@@ -312,7 +312,7 @@ export const PointsControls = ({
           disabled={payload?.activePointIndex === noOfPoints}
           onClick={() => {
             updatePayload?.({
-              activePointIndex: payload?.activePointIndex + 1,
+              activePointIndex: payload?.activePointIndex + 1 || 1,
             })
           }}
         />
