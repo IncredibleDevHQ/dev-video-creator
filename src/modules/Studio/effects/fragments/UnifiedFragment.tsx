@@ -29,8 +29,15 @@ const UnifiedFragment = ({
   layerRef: React.RefObject<Konva.Layer>
   config?: Config
 }) => {
-  const { fragment, payload, updatePayload, state, participants, users } =
-    (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const {
+    fragment,
+    payload,
+    updatePayload,
+    state,
+    participants,
+    users,
+    shortsMode,
+  } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [titleSplashData, setTitleSplashData] = useState<TitleSplashProps>({
     enable: false,
@@ -63,8 +70,23 @@ const UnifiedFragment = ({
   useEffect(() => {
     if (!fragment) return
     if (!config) {
-      setDataConfig(fragment?.configuration.dataConfig)
-      setViewConfig(fragment?.configuration.viewConfig)
+      if (fragment.configuration) {
+        if (shortsMode) {
+          const conf = fragment.configuration as Config
+          setDataConfig(
+            conf.dataConfig.filter((c) => c.type === ConfigType.CODEJAM)
+          )
+          setViewConfig({
+            ...conf.viewConfig,
+            configs: conf.viewConfig.configs.filter(
+              (c) => c.type === ConfigType.CODEJAM
+            ),
+          })
+        } else {
+          setDataConfig(fragment.configuration.dataConfig)
+          setViewConfig(fragment.configuration.viewConfig)
+        }
+      }
     } else {
       setDataConfig(config.dataConfig)
       setViewConfig(config.viewConfig)
