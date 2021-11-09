@@ -327,106 +327,112 @@ const FragmentBar = ({
             <Text className="text-sm">New Fragment</Text>
           </Button>
         </div>
-        <div className="flex bg-gray-100 items-center rounded-md mr-6 ">
-          <div
-            role="button"
-            onKeyUp={() => {}}
-            tabIndex={0}
-            onClick={() =>
-              setFlickStore((store) => ({
-                ...store,
-                isMarkdown: true,
-              }))
-            }
-            className={cx(
-              'bg-gray-100 p-1.5 rounded-tl-md rounded-bl-md text-gray-600',
-              {
-                'bg-gray-200': isMarkdown,
-              }
-            )}
-          >
-            <HiOutlinePencilAlt size={18} />
-          </div>
-          <div
-            role="button"
-            onKeyUp={() => {}}
-            tabIndex={0}
-            onClick={() => {
-              setFlickStore((store) => ({
-                ...store,
-                isMarkdown: false,
-              }))
-              generateConfig()
-            }}
-            className={cx(
-              'bg-gray-100 p-1.5 rounded-tr-md rounded-br-md text-gray-600',
-              {
-                'bg-gray-200': !isMarkdown,
-              }
-            )}
-          >
-            <HiOutlineTemplate size={18} />
-          </div>
-        </div>
-        <Text
-          className="text-sm font-bold text-gray-800 truncate overflow-ellipsis cursor-text rounded-md p-1 hover:bg-gray-100"
-          contentEditable={editFragmentName}
-          onClick={(e) => e.stopPropagation()}
-          onMouseDown={() => {
-            setEditFragmentName(true)
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault()
-              setEditFragmentName(false)
-              updateFragment(e.currentTarget.innerText)
-            }
-            if (e.key === 'Escape') {
-              e.preventDefault()
-              e.currentTarget.innerText = fragment?.name || ''
-              setEditFragmentName(false)
-            }
-          }}
-        >
-          {fragment?.name}
-        </Text>
-      </div>
-      <div className="flex items-center">
-        <FragmentParticipants />
-        <Button
-          appearance="primary"
-          size="small"
-          type="button"
-          className="mr-2 py-1"
-          loading={savingConfig}
-          onClick={() => updateConfig()}
-        >
-          Save
-        </Button>
-        {fragment?.producedLink && (
-          <div
-            tabIndex={-1}
-            role="button"
-            onKeyDown={() => {}}
-            className="flex items-center mr-4 border border-green-600 rounded-md px-2 cursor-pointer"
-            onClick={() => {
-              setFragmetVideoModal(true)
-            }}
-          >
-            <BiPlayCircle size={32} className="text-green-600 py-1" />
-          </div>
+        {flick && flick?.fragments?.length > 0 && (
+          <>
+            <div className="flex bg-gray-100 items-center rounded-md mr-6 ">
+              <div
+                role="button"
+                onKeyUp={() => {}}
+                tabIndex={0}
+                onClick={() =>
+                  setFlickStore((store) => ({
+                    ...store,
+                    isMarkdown: true,
+                  }))
+                }
+                className={cx(
+                  'bg-gray-100 p-1.5 rounded-tl-md rounded-bl-md text-gray-600',
+                  {
+                    'bg-gray-200': isMarkdown,
+                  }
+                )}
+              >
+                <HiOutlinePencilAlt size={18} />
+              </div>
+              <div
+                role="button"
+                onKeyUp={() => {}}
+                tabIndex={0}
+                onClick={() => {
+                  setFlickStore((store) => ({
+                    ...store,
+                    isMarkdown: false,
+                  }))
+                  generateConfig()
+                }}
+                className={cx(
+                  'bg-gray-100 p-1.5 rounded-tr-md rounded-br-md text-gray-600',
+                  {
+                    'bg-gray-200': !isMarkdown,
+                  }
+                )}
+              >
+                <HiOutlineTemplate size={18} />
+              </div>
+            </div>
+            <Text
+              className="text-sm font-bold text-gray-800 truncate overflow-ellipsis cursor-text rounded-md p-1 hover:bg-gray-100"
+              contentEditable={editFragmentName}
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={() => {
+                setEditFragmentName(true)
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  setEditFragmentName(false)
+                  updateFragment(e.currentTarget.innerText)
+                }
+                if (e.key === 'Escape') {
+                  e.preventDefault()
+                  e.currentTarget.innerText = fragment?.name || ''
+                  setEditFragmentName(false)
+                }
+              }}
+            >
+              {fragment?.name}
+            </Text>
+          </>
         )}
-        <Button
-          appearance="secondary"
-          size="small"
-          icon={BsCameraVideo}
-          type="button"
-          onClick={() => history.push(`/${activeFragmentId}/studio`)}
-          disabled={!fragment?.configuration}
-        >
-          {fragment?.producedLink ? 'Retake' : 'Record'}
-        </Button>
       </div>
+      {flick && flick?.fragments?.length > 0 && (
+        <div className="flex items-center">
+          <FragmentParticipants />
+          <Button
+            appearance="primary"
+            size="small"
+            type="button"
+            className="mr-2 py-1"
+            loading={savingConfig}
+            onClick={() => updateConfig()}
+          >
+            Save
+          </Button>
+          {fragment?.producedLink && (
+            <div
+              tabIndex={-1}
+              role="button"
+              onKeyDown={() => {}}
+              className="flex items-center mr-4 border border-green-600 rounded-md px-2 cursor-pointer"
+              onClick={() => {
+                setFragmetVideoModal(true)
+              }}
+            >
+              <BiPlayCircle size={32} className="text-green-600 py-1" />
+            </div>
+          )}
+          <Button
+            appearance="secondary"
+            size="small"
+            icon={BsCameraVideo}
+            type="button"
+            onClick={() => history.push(`/${activeFragmentId}/studio`)}
+            disabled={!fragment?.configuration}
+          >
+            {fragment?.producedLink ? 'Retake' : 'Record'}
+          </Button>
+        </div>
+      )}
       <FragmentVideoModal
         open={fragmentVideoModal}
         handleClose={() => {
