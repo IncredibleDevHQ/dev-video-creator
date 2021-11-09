@@ -63,7 +63,7 @@ function FragmentView({
   setSelectedLayoutId: React.Dispatch<React.SetStateAction<string>>
 }) {
   return (
-    <div className="p-4 flex w-full h-full pb-32">
+    <div className="p-4 flex flex-1 overflow-scroll">
       <div className="w-min">
         <Preview config={config} />
         <Layouts
@@ -241,7 +241,7 @@ const Layouts = ({
         {/* Divider */}
         <div
           className={cx(
-            'h-full flex flex-col items-center justify-center pl-2 pr-3 bg-gray-100',
+            'h-full flex flex-col items-center justify-center pl-2 pr-3 bg-gray-100 relative',
             {
               'pr-0': config.dataConfig.length === 0,
             }
@@ -308,7 +308,10 @@ const Configurations = ({
   const { payload } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   useEffect(() => {
-    if (payload?.fragmentState === 'titleSplash') {
+    if (
+      payload?.fragmentState === 'titleSplash' ||
+      payload?.fragmentState === 'onlyUserMedia'
+    ) {
       setCurrentConfiguration(Configuration.Background)
     }
   }, [payload?.fragmentState])
@@ -317,7 +320,7 @@ const Configurations = ({
     <div className="flex flex-col ml-4 h-full">
       {/* Configs */}
       <div className="flex gap-x-3">
-        {payload?.fragmentState !== 'titleSplash' && (
+        {payload?.fragmentState === 'customLayout' && (
           <div
             role="button"
             tabIndex={-1}

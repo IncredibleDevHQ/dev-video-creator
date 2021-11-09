@@ -74,10 +74,10 @@ export const FragmentLayoutConfig = ({
       }
     case 10:
       return {
-        x: 24,
-        y: 112.5,
-        width: 560,
-        height: 315,
+        x: 0,
+        y: 130,
+        width: 480,
+        height: 280,
         borderRadius: 0,
       }
     default:

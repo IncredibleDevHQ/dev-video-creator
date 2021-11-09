@@ -86,7 +86,7 @@ const FlickNavBar = () => {
   }, [data])
 
   return (
-    <div className="flex justify-between items-center pr-4 pl-3 py-1 border-b border-gray-300">
+    <div className="flex justify-between items-center pr-4 pl-3 py-1 border-b border-gray-300 bg-white">
       <div className="flex items-center">
         <Link to="/dashboard">
           <div className="flex">
