@@ -160,23 +160,25 @@ const Flick = () => {
   if (!flick) return null
 
   return (
-    <div className="h-screen overflow-y-scroll overflow-x-hidden">
-      <FlickNavBar />
-      <div className="flex h-full">
+    <div className="flex flex-col h-screen">
+      <div>
+        <FlickNavBar />
+        <FragmentBar
+          initialPlateValue={initialPlateValue}
+          setInitialPlateValue={setInitialPlateValue}
+          plateValue={plateValue}
+          setSerializing={setSerializing}
+          config={config}
+          setConfig={setConfig}
+          setSelectedLayoutId={setSelectedLayoutId}
+        />
+      </div>
+      <div className="flex flex-1 overflow-y-auto">
         <FragmentSideBar />
         {flick.fragments.length > 0 && (
-          <div className="w-full">
-            <FragmentBar
-              initialPlateValue={initialPlateValue}
-              setInitialPlateValue={setInitialPlateValue}
-              plateValue={plateValue}
-              setSerializing={setSerializing}
-              config={config}
-              setConfig={setConfig}
-              setSelectedLayoutId={setSelectedLayoutId}
-            />
+          <>
             {serializing && (
-              <div className="flex flex-col gap-y-2 h-full w-full items-center justify-center pb-32">
+              <div className="flex flex-col gap-y-2 h-full flex-1 items-center justify-center pb-32">
                 <FiLoader size={21} className="animate-spin" />
                 <Text className="text-lg">Generating view</Text>
               </div>
@@ -192,9 +194,10 @@ const Flick = () => {
                 setSelectedLayoutId={setSelectedLayoutId}
               />
             )}
-          </div>
+          </>
         )}
       </div>
+      <div />
     </div>
   )
 }

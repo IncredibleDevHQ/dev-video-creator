@@ -63,7 +63,7 @@ function FragmentView({
   setSelectedLayoutId: React.Dispatch<React.SetStateAction<string>>
 }) {
   return (
-    <div className="p-4 flex w-full h-full pb-32">
+    <div className="p-4 flex w-full flex-1 pb-32">
       <div className="w-min">
         <Preview config={config} />
         <Layouts
