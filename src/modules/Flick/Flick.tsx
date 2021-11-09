@@ -19,6 +19,7 @@ import {
   FragmentView,
 } from './components'
 import { newFlickStore } from './store/flickNew.store'
+import { initEditor } from '../../utils/plateConfig/serializer/VALUES'
 
 const useLocalPayload = () => {
   const initialPayload = {
@@ -140,7 +141,7 @@ const Flick = () => {
     )
     setConfig(fragment?.configuration || initialConfig)
     setInitialPlateValue(fragment?.editorState)
-    setPlateValue(fragment?.editorState)
+    setPlateValue(fragment?.editorState || initEditor)
   }, [activeFragmentId])
 
   if (loading) return <ScreenState title="Just a jiffy" loading />
