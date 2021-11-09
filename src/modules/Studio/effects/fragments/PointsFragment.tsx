@@ -72,6 +72,8 @@ const PointsFragment = ({
     borderRadius: 0,
   })
 
+  const colorStops = [0, '#1F2937', 1, '#1F2937']
+
   useEffect(() => {
     if (!dataConfig) return
     setObjectConfig(
@@ -229,7 +231,7 @@ const PointsFragment = ({
                 radius={11}
                 y={point.y + 8}
                 fillLinearGradientColorStops={
-                  viewConfig.background.gradient?.values
+                  viewConfig.background.gradient?.values || colorStops
                 }
                 fillLinearGradientStartPoint={{ x: -11, y: -11 }}
                 fillLinearGradientEndPoint={{
