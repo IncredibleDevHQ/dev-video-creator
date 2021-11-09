@@ -13,6 +13,7 @@ import { Layer, Stage } from 'react-konva'
 import { Html } from 'react-konva-utils'
 import {
   useRecoilBridgeAcrossReactRoots_UNSTABLE,
+  useRecoilState,
   useRecoilValue,
 } from 'recoil'
 import {
@@ -33,7 +34,7 @@ import {
 } from '../../../generated/graphql'
 import { useUploadFile } from '../../../hooks'
 import { AllowedFileExtensions } from '../../../hooks/use-upload-file'
-import { Config, GradientConfig } from '../../../utils/configTypes'
+import { Config, ConfigType, GradientConfig } from '../../../utils/configTypes'
 import TitleSplash from '../../Studio/components/TitleSplash'
 import UnifiedFragment from '../../Studio/effects/fragments/UnifiedFragment'
 import { StudioProviderProps, studioStore } from '../../Studio/stores'
@@ -160,12 +161,41 @@ const Layouts = ({
 }) => {
   const [showSplashSetting, setShowSplashSetting] = useState(false)
 
-  const { payload, updatePayload } =
-    (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const [{ payload, updatePayload, shortsMode }, setStudio] =
+    useRecoilState(studioStore)
 
   return (
     <div className="grid grid-cols-1">
       <div className="flex flex-row items-center bg-gray-50 h-20 mt-2 border-t border-b border-gray-100">
+        {/* Shorts toggle */}
+        <div className="flex flex-row items-center justify-center h-full p-2 gap-x-2 bg-white">
+          <Text
+            className={cx(
+              'cursor-pointer bg-gray-200 text-gray-50 px-2.5 py-1 rounded-sm text-sm',
+              {
+                'bg-gray-800 text-gray-100': !shortsMode,
+              }
+            )}
+            onClick={() =>
+              setStudio((store) => ({ ...store, shortsMode: false }))
+            }
+          >
+            16:9
+          </Text>
+          <Text
+            className={cx(
+              'cursor-pointer bg-gray-200 text-gray-50 h-full rounded-sm text-sm flex px-px items-center',
+              {
+                'bg-gray-800 text-gray-100': shortsMode,
+              }
+            )}
+            onClick={() =>
+              setStudio((store) => ({ ...store, shortsMode: true }))
+            }
+          >
+            9:16
+          </Text>
+        </div>
         {/* Title Splash */}
         <div
           className="h-full flex px-4 py-2 bg-gray-50 relative items-start justify-end"
@@ -254,34 +284,41 @@ const Layouts = ({
         </div>
         {/* Layouts */}
         <div className={cx('flex h-full overflow-x-scroll', scrollStyle)}>
-          {config.viewConfig.configs.map((c, index) => {
-            return (
-              <div
-                role="button"
-                tabIndex={-1}
-                onKeyUp={() => {}}
-                className={cx('p-3 bg-gray-100', {
-                  'pr-6': index === config.viewConfig.configs.length - 1,
-                })}
-                onClick={() => {
-                  updatePayload?.({
-                    activeObjectIndex: index,
-                    fragmentState: 'customLayout',
-                  })
-                  setSelectedLayoutId(c.id)
-                }}
-              >
-                <LayoutGeneric
-                  layoutId={c.layoutNumber}
-                  type={c.type}
-                  isSelected={
-                    selectedLayoutId === c.id &&
-                    payload?.fragmentState === 'customLayout'
-                  }
-                />
-              </div>
-            )
-          })}
+          {config.viewConfig.configs
+            .filter((c) => {
+              if (shortsMode) {
+                return c.type === ConfigType.CODEJAM
+              }
+              return true
+            })
+            .map((c, index) => {
+              return (
+                <div
+                  role="button"
+                  tabIndex={-1}
+                  onKeyUp={() => {}}
+                  className={cx('p-3 bg-gray-100', {
+                    'pr-6': index === config.viewConfig.configs.length - 1,
+                  })}
+                  onClick={() => {
+                    updatePayload?.({
+                      activeObjectIndex: index,
+                      fragmentState: 'customLayout',
+                    })
+                    setSelectedLayoutId(c.id)
+                  }}
+                >
+                  <LayoutGeneric
+                    layoutId={c.layoutNumber}
+                    type={c.type}
+                    isSelected={
+                      selectedLayoutId === c.id &&
+                      payload?.fragmentState === 'customLayout'
+                    }
+                  />
+                </div>
+              )
+            })}
         </div>
       </div>
     </div>

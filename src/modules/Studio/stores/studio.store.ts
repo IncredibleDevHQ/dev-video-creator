@@ -39,6 +39,7 @@ export interface StudioProviderProps<T = any, S = any> {
   participantId?: string
   // config to render controls
   controlsConfig?: any
+  shortsMode?: boolean
 }
 
 const studioStore = atom<StudioProviderProps>({

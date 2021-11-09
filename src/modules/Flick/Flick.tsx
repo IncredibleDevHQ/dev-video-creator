@@ -101,6 +101,7 @@ const Flick = () => {
       payload,
       updatePayload,
       fragment,
+      shortsMode: false,
     }))
   }, [activeFragmentId, payload])
 
