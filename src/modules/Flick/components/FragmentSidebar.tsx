@@ -9,27 +9,16 @@ import {
   DraggableStateSnapshot,
   Droppable,
 } from 'react-beautiful-dnd'
-import { FiMoreHorizontal, FiPlus } from 'react-icons/fi'
+import { FiMoreHorizontal } from 'react-icons/fi'
 import { IoCheckmarkCircle, IoTrashOutline } from 'react-icons/io5'
-import { useRecoilState, useRecoilValue } from 'recoil'
+import { useRecoilState } from 'recoil'
 import { DeleteFragmentModal } from '.'
-import {
-  Avatar,
-  Button,
-  dismissToast,
-  emitToast,
-  Text,
-  Tooltip,
-  updateToast,
-} from '../../../components'
+import { Avatar, Text, Tooltip } from '../../../components'
 import {
   FlickFragmentFragment,
-  useCreateFragmentMutation,
-  useGetFlickFragmentsLazyQuery,
   useReorderFragmentMutation,
   useUpdateFragmentMutation,
 } from '../../../generated/graphql'
-import { User, userState } from '../../../stores/user.store'
 import { newFlickStore } from '../store/flickNew.store'
 
 const style = css`
@@ -39,113 +28,14 @@ const style = css`
 `
 
 const FragmentSideBar = () => {
-  const [{ flick }, setFlickStore] = useRecoilState(newFlickStore)
-
-  const [createFragment] = useCreateFragmentMutation()
-  const { sub } = (useRecoilValue(userState) as User) || {}
-  const [GetFlickFragments, { data, error, refetch }] =
-    useGetFlickFragmentsLazyQuery({
-      variables: {
-        flickId: flick?.id,
-      },
-    })
-
-  const handleCreateFragment = async () => {
-    if (flick?.owner?.userSub !== sub) return
-    let toast
-    try {
-      toast = emitToast({
-        type: 'info',
-        title: 'Creating...',
-        autoClose: false,
-      })
-
-      const res = await createFragment({
-        variables: {
-          flickId: flick?.id,
-          name: 'Untitled',
-          creatorPid: flick?.participants.find((p) => p.userSub === sub)?.id,
-        },
-      })
-
-      if (res.errors) {
-        throw Error(res.errors[0].message)
-      }
-
-      setFlickStore((prev) => ({
-        ...prev,
-        activeFragmentId: res.data?.CreateFragment?.id,
-      }))
-
-      GetFlickFragments?.()
-
-      dismissToast(toast)
-    } catch (e) {
-      if (toast) {
-        updateToast({
-          id: toast,
-          type: 'error',
-          title: 'There was an error creating a fragment.',
-          autoClose: 5000,
-        })
-      }
-    }
-  }
-
-  useEffect(() => {
-    if (!data || !flick) return
-    setFlickStore((store) => ({
-      ...store,
-      flick: {
-        ...flick,
-        fragments: [...data.Fragment],
-      },
-    }))
-  }, [data])
-
-  useEffect(() => {
-    if (!error || !refetch) return
-    emitToast({
-      title: "We couldn't fetch your new fragment",
-      type: 'error',
-      description: 'Click this toast to give it another try',
-      onClick: () => refetch(),
-    })
-  }, [error])
-
   return (
-    <div>
-      <div
-        className={cx(
-          'w-48 h-full border-r border-gray-300 overflow-y-auto pt-8 pb-20 relative',
-          style
-        )}
-      >
-        <ThumbnailDND />
-        <div
-          role="button"
-          onKeyUp={() => {}}
-          tabIndex={-1}
-          className={cx(
-            'bg-gray-50 absolute top-0 flex items-center justify-center w-48 left-0 cursor-pointer py-2 border-b border-l border-r border-gray-300',
-            {
-              'cursor-not-allowed': flick?.owner?.userSub !== sub,
-            }
-          )}
-          onClick={handleCreateFragment}
-        >
-          <Button
-            type="button"
-            className={cx('text-green-600 -ml-4')}
-            disabled={flick?.owner?.userSub !== sub}
-            appearance="link"
-            size="small"
-            icon={FiPlus}
-          >
-            <Text className="text-sm">New Fragment</Text>
-          </Button>
-        </div>
-      </div>
+    <div
+      className={cx(
+        'w-48 border-r border-gray-300 h-full overflow-y-scroll relative',
+        style
+      )}
+    >
+      <ThumbnailDND />
     </div>
   )
 }
@@ -291,7 +181,7 @@ const Thumbnail = ({
         'flex flex-col my-2 mx-4 rounded-md h-24 bg-gray-100 justify-end p-2 relative border border-gray-300',
         {
           'border-green-600': active,
-          'mt-10': position === 0,
+          'mt-5': position === 0,
         },
         className
       )}
