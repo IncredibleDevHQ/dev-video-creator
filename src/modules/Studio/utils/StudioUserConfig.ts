@@ -750,7 +750,7 @@ export const StudioUserConfiguration = ({
               },
               {
                 x: 600,
-                y: 0,
+                y: 270,
                 width: 360,
                 height: 270,
                 clipTheme: 'rect',
