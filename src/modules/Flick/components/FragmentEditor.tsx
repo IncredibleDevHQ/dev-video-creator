@@ -52,7 +52,6 @@ import {
 } from '../../../utils/plateConfig/components/Toolbars'
 import { withStyledPlaceHolders } from '../../../utils/plateConfig/components/withStyledPlaceholders'
 import { CONFIG } from '../../../utils/plateConfig/plateEditorConfig'
-import { initEditor } from '../../../utils/plateConfig/serializer/VALUES'
 import { newFlickStore } from '../store/flickNew.store'
 // import { serializeDataConfig } from '../../../utils/plateConfig/serializer/config-serialize'
 // import mdSerialize from '../../../utils/plateConfig/serializer/md-serialize'
@@ -154,7 +153,6 @@ const FragmentEditor = ({
         plugins={pluginsMemo}
         editableProps={CONFIG.editableProps}
         value={value}
-        initialValue={initEditor}
         onChange={(value) => {
           setValue(value)
           // setVal(value)
