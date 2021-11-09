@@ -734,14 +734,14 @@ export const StudioUserConfiguration = ({
           case 2:
             return [
               {
-                x: 600,
+                x: 620,
                 y: 0,
                 width: 360,
                 height: 270,
                 clipTheme: 'rect',
                 borderWidth: 0,
                 studioUserClipConfig: {
-                  x: 40,
+                  x: 20,
                   y: 0,
                   width: 320,
                   height: 270,
@@ -749,14 +749,14 @@ export const StudioUserConfiguration = ({
                 },
               },
               {
-                x: 600,
+                x: 620,
                 y: 270,
                 width: 360,
                 height: 270,
                 clipTheme: 'rect',
                 borderWidth: 0,
                 studioUserClipConfig: {
-                  x: 40,
+                  x: 20,
                   y: 0,
                   width: 320,
                   height: 270,
