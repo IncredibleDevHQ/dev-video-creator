@@ -16,7 +16,7 @@ export const StudioUserConfiguration = ({
       case 2:
         return [
           {
-            x: -40,
+            x: 420,
             y: 25,
             width: 600,
             height: 450,
@@ -31,7 +31,7 @@ export const StudioUserConfiguration = ({
             },
           },
           {
-            x: 420,
+            x: -40,
             y: 25,
             width: 600,
             height: 450,
@@ -49,7 +49,7 @@ export const StudioUserConfiguration = ({
       case 3:
         return [
           {
-            x: -125,
+            x: 495,
             y: 25,
             width: 600,
             height: 450,
@@ -79,7 +79,7 @@ export const StudioUserConfiguration = ({
             },
           },
           {
-            x: 495,
+            x: -125,
             y: 25,
             width: 600,
             height: 450,
