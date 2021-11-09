@@ -209,7 +209,7 @@ const LayoutGeneric = ({
                 )}
                 {...rest}
               >
-                <div className="h-8 w-3/6 bg-gray-200">
+                <div className="h-8 w-3/6 bg-gray-200 p-1.5">
                   {type && <FragmentTypeIcon type={type} />}
                 </div>
                 <div className="h-full w-3/6 bg-gray-500 rounded-tr-sm rounded-br-sm items-self-end" />

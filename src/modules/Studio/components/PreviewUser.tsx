@@ -63,14 +63,24 @@ const PreviewUser = ({
   }
 
   useEffect(() => {
+    let maxWidth = studioUserClipConfig?.width
+      ? studioUserClipConfig.width / 1.5
+      : 0
+    let maxHeight = studioUserClipConfig?.height
+      ? studioUserClipConfig.height / 1.5
+      : 0
+    if (maxWidth >= 320) {
+      maxWidth /= 1.5
+      maxHeight /= 1.5
+    }
     setImgDim(
       getImageDimensions(
         {
           w: (image && image.width) || 0,
           h: (image && image.height) || 0,
         },
-        studioUserClipConfig?.width ? studioUserClipConfig.width / 1.5 : 0,
-        studioUserClipConfig?.height ? studioUserClipConfig.height / 1.5 : 0,
+        maxWidth,
+        maxHeight,
         studioUserClipConfig?.width || 0,
         studioUserClipConfig?.height || 0,
         (studioUserClipConfig && studioUserClipConfig.x + x) || 775,

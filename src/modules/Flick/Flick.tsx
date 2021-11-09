@@ -198,6 +198,7 @@ const Flick = () => {
           </>
         )}
       </div>
+      {/* Below div is necessary to allow scroll in the above div */}
       <div />
     </div>
   )
