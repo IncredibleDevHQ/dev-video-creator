@@ -112,11 +112,10 @@ const CodeFragment = ({
 
   useEffect(() => {
     if (!dataConfig) return
-    if (!shortsMode) return
     setObjectConfig(
       FragmentLayoutConfig({
         layoutNumber: viewConfig.layoutNumber,
-        isShorts: shortsMode,
+        isShorts: shortsMode || false,
       })
     )
     setIsCodexFormat(dataConfig.value.isAutomated)
@@ -133,6 +132,7 @@ const CodeFragment = ({
       gutter: 5,
       fontSize: codeConfig.fontSize,
     })
+    console.log(objectConfig)
   }, [objectConfig])
 
   useEffect(() => {
