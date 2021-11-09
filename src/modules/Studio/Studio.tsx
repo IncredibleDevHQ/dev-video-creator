@@ -27,6 +27,7 @@ import {
   useGetFragmentByIdQuery,
   useGetRtcTokenMutation,
   useMarkFragmentCompletedMutation,
+  useUpdateFragmentShortMutation,
 } from '../../generated/graphql'
 import { useCanvasRecorder, useTimekeeper } from '../../hooks'
 import { User, userState } from '../../stores/user.store'
@@ -236,7 +237,7 @@ const Studio = ({
   tracks: [IMicrophoneAudioTrack, ILocalVideoTrack] | null
 }) => {
   const { fragmentId } = useParams<{ fragmentId: string }>()
-  const { constraints } =
+  const { constraints, shortsMode } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [studio, setStudio] = useRecoilState(studioStore)
   const { sub } = (useRecoilValue(userState) as User) || {}
@@ -244,6 +245,7 @@ const Studio = ({
   const history = useHistory()
 
   const [markFragmentCompleted] = useMarkFragmentCompletedMutation()
+  const [updateFragmentShort] = useUpdateFragmentShortMutation()
 
   const [uploadFile] = useUploadFile()
 
@@ -414,9 +416,18 @@ const Studio = ({
 
       const duration = await getBlobDuration(uploadVideoFile)
 
-      await markFragmentCompleted({
-        variables: { id: fragmentId, producedLink: uuid, duration },
-      })
+      if (shortsMode)
+        updateFragmentShort({
+          variables: {
+            id: fragmentId,
+            producedShortsLink: uuid,
+            duration,
+          },
+        })
+      else
+        await markFragmentCompleted({
+          variables: { id: fragmentId, producedLink: uuid, duration },
+        })
 
       dismissToast(toast)
       leave()
