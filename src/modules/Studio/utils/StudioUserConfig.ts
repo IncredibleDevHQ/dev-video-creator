@@ -11,7 +11,7 @@ export const StudioUserConfiguration = ({
   layoutNumber: number
   fragment: StudioFragmentFragment | undefined
   fragmentState: FragmentState
-  isShorts: boolean
+  isShorts?: boolean
 }): StudioUserConfig[] => {
   if (fragmentState === 'onlyUserMedia') {
     if (isShorts) {

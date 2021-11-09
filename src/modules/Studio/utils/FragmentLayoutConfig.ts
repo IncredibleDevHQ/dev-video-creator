@@ -12,7 +12,7 @@ export const FragmentLayoutConfig = ({
   isShorts,
 }: {
   layoutNumber: number
-  isShorts: boolean
+  isShorts?: boolean
 }): ObjectConfig => {
   if (isShorts) {
     return {
