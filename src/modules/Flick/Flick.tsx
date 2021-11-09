@@ -101,12 +101,15 @@ const Flick = () => {
       payload,
       updatePayload,
       fragment,
-      shortsMode: false,
     }))
   }, [activeFragmentId, payload])
 
   useEffect(() => {
     resetPayload()
+    setStudio((store) => ({
+      ...store,
+      shortsMode: false,
+    }))
   }, [activeFragmentId])
 
   useEffect(() => {

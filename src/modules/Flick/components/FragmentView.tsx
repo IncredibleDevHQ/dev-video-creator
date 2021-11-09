@@ -189,9 +189,25 @@ const Layouts = ({
                 'bg-gray-800 text-gray-100': shortsMode,
               }
             )}
-            onClick={() =>
+            onClick={() => {
               setStudio((store) => ({ ...store, shortsMode: true }))
-            }
+              // Only default to first codejam if the selected layout isnt a codejam
+              if (
+                config.dataConfig.find((c) => c.id === selectedLayoutId)
+                  ?.type !== ConfigType.CODEJAM
+              ) {
+                const firstCodeJamIndex = config.dataConfig.findIndex(
+                  (conf) => conf.type === ConfigType.CODEJAM
+                )
+                if (firstCodeJamIndex !== -1) {
+                  updatePayload?.({
+                    activeObjectIndex: firstCodeJamIndex,
+                    fragmentState: 'customLayout',
+                  })
+                  setSelectedLayoutId(config.dataConfig[firstCodeJamIndex].id)
+                }
+              }
+            }}
           >
             9:16
           </Text>
