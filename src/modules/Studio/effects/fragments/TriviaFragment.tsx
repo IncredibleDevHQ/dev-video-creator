@@ -219,7 +219,7 @@ const TriviaFragment = ({
         y={objectConfig.y}
         width={objectConfig.width}
         height={objectConfig.height}
-        fill="#ffffff"
+        fill="#1F2937"
         cornerRadius={objectConfig.borderRadius}
       />
       <Group x={objectConfig.x} y={objectConfig.y} key="group1">
@@ -231,7 +231,7 @@ const TriviaFragment = ({
                 y={20}
                 align="center"
                 fontSize={32}
-                fill="#1F2937"
+                fill="#E5E7EB"
                 width={objectConfig.width - 20}
                 lineHeight={1.2}
                 text={triviaData?.text}
@@ -254,7 +254,7 @@ const TriviaFragment = ({
                 y={20}
                 align="center"
                 fontSize={32}
-                fill="#1F2937"
+                fill="#E5E7EB"
                 width={objectConfig.width - 20}
                 lineHeight={1.2}
                 text={triviaData?.text}
@@ -276,9 +276,8 @@ const TriviaFragment = ({
           )
         ) : (
           <Text
-            x={10}
             fontSize={32}
-            fill="#1F2937"
+            fill="#E5E7EB"
             width={objectConfig.width - 20}
             height={objectConfig.height}
             text={triviaData?.text}
