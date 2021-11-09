@@ -75,9 +75,9 @@ const Gif = ({
       y={y}
       width={width}
       height={height}
-      shadowOpacity={0.3}
-      shadowOffset={{ x: 0, y: 1 }}
-      shadowBlur={2}
+      // shadowOpacity={0.3}
+      // shadowOffset={{ x: 0, y: 1 }}
+      // shadowBlur={2}
     />
   )
 }
