@@ -23,14 +23,6 @@ export interface Position {
   currentIndex: number
 }
 
-export interface CodeBlockConfig {
-  from: number
-  to: number
-  explanation: string
-  id: string
-  order: number
-}
-
 export const shortsCodeConfig = {
   fontSize: 14,
   width: 396,
