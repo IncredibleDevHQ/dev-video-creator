@@ -7,11 +7,14 @@ import React, { useEffect, useState } from 'react'
 import { BiCheck } from 'react-icons/bi'
 import config from '../../config'
 import { Navbar, Text } from '../../components'
+import HashnodeModal from './HashnodeModal'
+import GitHubModal from './GitHubModal'
 import {
   IntegrationEnum,
   useDeleteIntegrationMutation,
   useMyIntegrationsQuery,
 } from '../../generated/graphql'
+import { IIntegrations } from './types'
 
 function popupWindow(
   url: string,
@@ -32,23 +35,14 @@ function popupWindow(
 
 const INTEGRATIONS = [
   {
-    title: 'GitHub',
+    title: IntegrationEnum.GitHub,
     logo: 'https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png',
   },
+  {
+    title: IntegrationEnum.Hashnode,
+    logo: 'https://i.ibb.co/ZxDgSjy/brand-icon.png',
+  },
 ]
-
-export interface IIntegrations {
-  github?: GitHubResponse
-}
-
-export interface GitHubResponse {
-  exists?: boolean
-  integrationId?: string
-  updatedAt?: Date
-  id?: number
-  avatarUrl?: string
-  login?: string
-}
 
 interface IntegrationCardProps {
   title?: string
@@ -116,6 +110,7 @@ const Integrations = () => {
   const { data, loading, refetch } = useMyIntegrationsQuery()
   const [deleteIntegration] = useDeleteIntegrationMutation()
   const [integrations, setIntegrations] = useState<IntegrationCardProps[]>()
+  const [modal, setModal] = useState<IntegrationEnum | null>(null)
 
   useEffect(() => {
     if (!data) return
@@ -126,7 +121,7 @@ const Integrations = () => {
     const integrations: IntegrationCardProps[] = INTEGRATIONS.map(
       (integration) => {
         switch (integration.title) {
-          case 'GitHub':
+          case IntegrationEnum.GitHub:
             return {
               ...integration,
               ..._data.github,
@@ -148,6 +143,8 @@ const Integrations = () => {
                   )
 
                   localStorage.setItem('github-oauth-state', state)
+                } else {
+                  setModal(IntegrationEnum.GitHub)
                 }
               },
               handleDelete: async () => {
@@ -155,6 +152,26 @@ const Integrations = () => {
                   variables: {
                     id: _data.github?.integrationId,
                     integration: IntegrationEnum.GitHub,
+                  },
+                })
+                refetch()
+              },
+            } as IntegrationCardProps
+
+          case IntegrationEnum.Hashnode:
+            return {
+              ...integration,
+              ..._data.hashnode,
+              handleClick: () => {
+                if (!_data.hashnode?.exists) {
+                  setModal(IntegrationEnum.Hashnode)
+                }
+              },
+              handleDelete: async () => {
+                await deleteIntegration({
+                  variables: {
+                    id: _data.hashnode?.integrationId,
+                    integration: IntegrationEnum.Hashnode,
                   },
                 })
                 refetch()
@@ -193,9 +210,39 @@ const Integrations = () => {
         <Text className="font-semibold text-2xl mb-8">Integrations</Text>
         <div className="grid grid-cols-1 md:gap-8 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {!loading ? (
-            integrations?.map((integration) => (
-              <IntegrationCard {...integration} key={integration.title} />
-            ))
+            <>
+              {integrations?.map((integration) => (
+                <IntegrationCard {...integration} key={integration.title} />
+              ))}
+              <HashnodeModal
+                open={modal === IntegrationEnum.Hashnode}
+                handleClose={(shouldRefetch?: boolean) => {
+                  if (shouldRefetch) {
+                    refetch()
+                  }
+                  setModal(null)
+                }}
+              />
+
+              {integrations?.find(
+                (integration) => integration.title === IntegrationEnum.GitHub
+              ) &&
+                modal === IntegrationEnum.GitHub && (
+                  <GitHubModal
+                    open={modal === IntegrationEnum.GitHub}
+                    githubResponse={integrations?.find(
+                      (integration) =>
+                        integration.title === IntegrationEnum.GitHub
+                    )}
+                    handleClose={(shouldRefetch?: boolean) => {
+                      if (shouldRefetch) {
+                        refetch()
+                      }
+                      setModal(null)
+                    }}
+                  />
+                )}
+            </>
           ) : (
             <>
               <Skeleton height={100} />
