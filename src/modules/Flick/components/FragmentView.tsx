@@ -99,8 +99,9 @@ const Preview = ({ config }: { config: Config }) => {
     >
       <Stage
         ref={stageRef}
-        height={shortsMode ? SHORTS_CONFIG.height : CONFIG.height}
-        width={shortsMode ? SHORTS_CONFIG.width : CONFIG.width}
+        height={shortsMode ? SHORTS_CONFIG.height / 1.305 : CONFIG.height}
+        width={shortsMode ? SHORTS_CONFIG.width / 1.305 : CONFIG.width}
+        scale={shortsMode ? { x: 0.77, y: 0.77 } : { x: 1, y: 1 }}
       >
         <Bridge>
           <Layer ref={layerRef}>
@@ -109,8 +110,8 @@ const Preview = ({ config }: { config: Config }) => {
                 <Html>
                   <div
                     style={{
-                      height: CONFIG.height,
-                      width: CONFIG.width,
+                      height: shortsMode ? SHORTS_CONFIG.height : CONFIG.height,
+                      width: shortsMode ? SHORTS_CONFIG.width : CONFIG.width,
                     }}
                     className="w-full h-full flex items-center justify-center bg-gray-200"
                   >
@@ -123,8 +124,8 @@ const Preview = ({ config }: { config: Config }) => {
                 <TitleSplash
                   isShorts={false}
                   stageConfig={{
-                    height: CONFIG.height,
-                    width: CONFIG.width,
+                    height: shortsMode ? SHORTS_CONFIG.height : CONFIG.height,
+                    width: shortsMode ? SHORTS_CONFIG.width : CONFIG.width,
                   }}
                   titleSplashData={{
                     enable: true,
@@ -166,13 +167,13 @@ const Layouts = ({
     useRecoilState(studioStore)
 
   return (
-    <div className="grid grid-cols-1">
-      <div className="flex flex-row items-center bg-gray-50 h-20 mt-2 border-t border-b border-gray-100">
-        {/* Shorts toggle */}
-        <div className="flex flex-row items-center justify-center h-full p-2 gap-x-2 bg-white">
+    <div className="flex mt-2">
+      {/* Shorts toggle */}
+      <div className="h-20 ">
+        <div className="flex items-center justify-center h-full w-28 p-2 gap-x-2 bg-white">
           <Text
             className={cx(
-              'cursor-pointer bg-gray-200 text-gray-50 px-2.5 py-1 rounded-sm text-sm',
+              'cursor-pointer bg-gray-200 text-gray-50 px-2.5 py-1 rounded-sm text-sm ',
               {
                 'bg-gray-800 text-gray-100': !shortsMode,
               }
@@ -185,7 +186,7 @@ const Layouts = ({
           </Text>
           <Text
             className={cx(
-              'cursor-pointer bg-gray-200 text-gray-50 h-full rounded-sm text-sm flex px-px items-center',
+              'cursor-pointer bg-gray-200 text-gray-50 h-full rounded-sm text-sm flex px-1 items-center',
               {
                 'bg-gray-800 text-gray-100': shortsMode,
               }
@@ -213,19 +214,30 @@ const Layouts = ({
             9:16
           </Text>
         </div>
-        {/* Title Splash */}
-        <div
-          className="h-full flex px-4 py-2 bg-gray-50 relative items-start justify-end"
-          onMouseEnter={() => setShowSplashSetting(true)}
-          onMouseLeave={() => setShowSplashSetting(false)}
-        >
+      </div>
+      {/* TitleSplash */}
+      <div
+        className="h-20 cursor-pointer"
+        onMouseEnter={() => setShowSplashSetting(true)}
+        onMouseLeave={() => setShowSplashSetting(false)}
+        role="button"
+        tabIndex={-1}
+        onKeyUp={() => {}}
+        onClick={() =>
+          updatePayload?.({
+            fragmentState: 'titleSplash',
+          })
+        }
+      >
+        <div className="w-28 h-full p-2.5 bg-gray-50 flex justify-end">
           {showSplashSetting && (
             <div
               role="button"
               tabIndex={-1}
               onKeyUp={() => {}}
-              className="absolute bg-white p-1.5 rounded-md shadow-md -mx-2 -my-1"
-              onClick={() =>
+              className="absolute bg-white p-1.5 rounded-md shadow-md -mr-1 -mt-1.5"
+              onClick={(e) => {
+                e.stopPropagation()
                 setConfig({
                   ...config,
                   viewConfig: {
@@ -233,7 +245,7 @@ const Layouts = ({
                     hasTitleSplash: !config.viewConfig.hasTitleSplash,
                   },
                 })
-              }
+              }}
             >
               {config.viewConfig.hasTitleSplash ? (
                 <IoEyeOutline size={16} className="text-gray-600" />
@@ -242,38 +254,35 @@ const Layouts = ({
               )}
             </div>
           )}
-          <Text
+          <div
             className={cx(
-              'bg-white h-full w-24 border-2 border-gray-200 text-gray-200 rounded-lg flex items-center justify-center text-sm font-bold cursor-pointer',
+              'h-full w-full bg-white flex items-center justify-center border border-gray-200 text-gray-200 rounded-md',
               {
                 'text-gray-500': config.viewConfig.hasTitleSplash,
                 'border border-brand': payload?.fragmentState === 'titleSplash',
               }
             )}
-            onClick={() =>
-              updatePayload?.({
-                fragmentState: 'titleSplash',
-              })
-            }
           >
-            Title
-          </Text>
+            <Text className="text-sm">Title</Text>
+          </div>
         </div>
-        {/* User Media */}
-        <div
-          role="button"
-          tabIndex={-1}
-          onKeyUp={() => {}}
-          className="h-full px-4 py-2 bg-gray-100"
-          onClick={() =>
-            updatePayload?.({
-              fragmentState: 'onlyUserMedia',
-            })
-          }
-        >
+      </div>
+      {/* UserMedia */}
+      <div
+        className="h-20 bg-gray-100"
+        role="button"
+        tabIndex={-1}
+        onKeyUp={() => {}}
+        onClick={() =>
+          updatePayload?.({
+            fragmentState: 'onlyUserMedia',
+          })
+        }
+      >
+        <div className="h-full flex items-center justify-center w-28 p-2.5">
           <div
             className={cx(
-              'bg-white h-full w-24 p-1.5 border-2 border-gray-200 text-gray-500 rounded-lg flex items-center justify-center',
+              'h-full w-full p-2 border border-gray-200 rounded-md cursor-pointer bg-white',
               {
                 'border border-brand':
                   payload?.fragmentState === 'onlyUserMedia',
@@ -285,10 +294,12 @@ const Layouts = ({
             </div>
           </div>
         </div>
-        {/* Divider */}
+      </div>
+      {/* Divider */}
+      <div>
         <div
           className={cx(
-            'h-full flex flex-col items-center justify-center pl-2 pr-3 bg-gray-100 relative',
+            'h-full flex flex-col items-center justify-center px-3 bg-gray-100 relative',
             {
               'pr-0': config.dataConfig.length === 0,
             }
@@ -299,7 +310,9 @@ const Layouts = ({
             <FiRefreshCcw size={16} className="text-gray-600" />
           </div>
         </div>
-        {/* Layouts */}
+      </div>
+      {/* Layouts */}
+      <div className="grid grid-cols-1 w-full border-t border-b border-gray-100 h-20">
         <div className={cx('flex h-full overflow-x-scroll', scrollStyle)}>
           {config.viewConfig.configs
             .filter((c) => {
@@ -314,9 +327,6 @@ const Layouts = ({
                   role="button"
                   tabIndex={-1}
                   onKeyUp={() => {}}
-                  className={cx('p-3 bg-gray-100', {
-                    'pr-6': index === config.viewConfig.configs.length - 1,
-                  })}
                   onClick={() => {
                     updatePayload?.({
                       activeObjectIndex: index,
@@ -325,14 +335,16 @@ const Layouts = ({
                     setSelectedLayoutId(c.id)
                   }}
                 >
-                  <LayoutGeneric
-                    layoutId={c.layoutNumber}
-                    type={c.type}
-                    isSelected={
-                      selectedLayoutId === c.id &&
-                      payload?.fragmentState === 'customLayout'
-                    }
-                  />
+                  <div className="h-full flex items-center justify-center w-28 p-2.5 bg-gray-100">
+                    <LayoutGeneric
+                      layoutId={c.layoutNumber}
+                      type={c.type}
+                      isSelected={
+                        selectedLayoutId === c.id &&
+                        payload?.fragmentState === 'customLayout'
+                      }
+                    />
+                  </div>
                 </div>
               )
             })}
@@ -455,35 +467,34 @@ const LayoutsConfguration = ({
         onTabChange={setCurrentTab}
         className="text-black gap-2 w-auto ml-4 mt-4"
       />
-      <div
-        className={cx(
-          'grid grid-cols-2 p-4 gap-4 overflow-scroll w-full h-full pb-16',
-          scrollStyle
-        )}
-      >
-        {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-          <LayoutGeneric
-            layoutId={n}
-            isSelected={selectedLayoutNumber === n}
-            onClick={() => {
-              setConfig({
-                ...config,
-                viewConfig: {
-                  ...config.viewConfig,
-                  configs: config.viewConfig.configs.map((c) => {
-                    if (c.id === selectedLayoutId) {
-                      return {
-                        ...c,
-                        layoutNumber: n,
-                      }
-                    }
-                    return c
-                  }),
-                },
-              })
-            }}
-          />
-        ))}
+      <div className={cx('h-full w-full overflow-y-scroll pb-16', scrollStyle)}>
+        <div className="grid grid-cols-2 p-4 gap-4">
+          {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+            <div className="w-full h-16">
+              <LayoutGeneric
+                layoutId={n}
+                isSelected={selectedLayoutNumber === n}
+                onClick={() => {
+                  setConfig({
+                    ...config,
+                    viewConfig: {
+                      ...config.viewConfig,
+                      configs: config.viewConfig.configs.map((c) => {
+                        if (c.id === selectedLayoutId) {
+                          return {
+                            ...c,
+                            layoutNumber: n,
+                          }
+                        }
+                        return c
+                      }),
+                    },
+                  })
+                }}
+              />
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )

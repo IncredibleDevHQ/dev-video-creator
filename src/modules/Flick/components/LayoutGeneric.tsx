@@ -50,7 +50,7 @@ const LayoutGeneric = ({
             return (
               <div
                 className={cx(
-                  'w-24 p-2 border border-gray-200 h-14 rounded-md cursor-pointer',
+                  'w-full p-2 border border-gray-200 h-full rounded-md cursor-pointer bg-white',
                   {
                     'border-brand': isSelected,
                   }
@@ -66,7 +66,7 @@ const LayoutGeneric = ({
             return (
               <div
                 className={cx(
-                  'w-24 p-2 border border-gray-200 h-14 rounded-md cursor-pointer flex gap-x-2',
+                  'w-full p-2 border border-gray-200 h-full rounded-md cursor-pointer flex gap-x-2',
                   {
                     'border-brand': isSelected,
                   }
@@ -83,7 +83,7 @@ const LayoutGeneric = ({
             return (
               <div
                 className={cx(
-                  'w-24 p-2 border border-gray-200 h-14 rounded-md cursor-pointer flex gap-x-2',
+                  'w-full p-2 border border-gray-200 h-full rounded-md cursor-pointer flex gap-x-2',
                   {
                     'border-brand': isSelected,
                   }
@@ -100,7 +100,7 @@ const LayoutGeneric = ({
             return (
               <div
                 className={cx(
-                  'w-24 p-2 border border-gray-200 h-14 rounded-md cursor-pointer flex justify-end items-center relative',
+                  'w-full p-2 border border-gray-200 h-full rounded-md cursor-pointer flex justify-end items-center relative',
                   {
                     'border-brand': isSelected,
                   }
@@ -117,7 +117,7 @@ const LayoutGeneric = ({
             return (
               <div
                 className={cx(
-                  'w-24 p-2 border border-gray-200 h-14 rounded-md cursor-pointer flex justify-end items-end relative',
+                  'w-full p-2 border border-gray-200 h-full rounded-md cursor-pointer flex justify-end items-end relative',
                   {
                     'border-brand': isSelected,
                   }
@@ -134,7 +134,7 @@ const LayoutGeneric = ({
             return (
               <div
                 className={cx(
-                  'w-24 p-2 border border-gray-200 h-14 rounded-md cursor-pointer flex justify-end items-end relative',
+                  'w-full p-2 border border-gray-200 h-full rounded-md cursor-pointer flex justify-end items-end relative',
                   {
                     'border-brand': isSelected,
                   }
@@ -151,7 +151,7 @@ const LayoutGeneric = ({
             return (
               <div
                 className={cx(
-                  'w-24 border border-gray-200 h-14 rounded-md cursor-pointer flex justify-end items-end relative',
+                  'w-full border border-gray-200 h-full rounded-md cursor-pointer flex justify-end items-end relative',
                   {
                     'border-brand': isSelected,
                   }
@@ -168,7 +168,7 @@ const LayoutGeneric = ({
             return (
               <div
                 className={cx(
-                  'w-24 border border-gray-200 h-14 rounded-md cursor-pointer flex justify-end items-end relative',
+                  'w-full border border-gray-200 h-full rounded-md cursor-pointer flex justify-end items-end relative',
                   {
                     'border-brand': isSelected,
                   }
@@ -185,7 +185,7 @@ const LayoutGeneric = ({
             return (
               <div
                 className={cx(
-                  'w-24 border border-gray-200 h-14 rounded-md cursor-pointer flex items-center gap-x-2',
+                  'w-full border border-gray-200 h-full rounded-md cursor-pointer flex items-center gap-x-2',
                   {
                     'border-brand': isSelected,
                   }
@@ -202,7 +202,7 @@ const LayoutGeneric = ({
             return (
               <div
                 className={cx(
-                  'w-24 border border-gray-200 h-14 rounded-md cursor-pointer flex items-center',
+                  'w-full border border-gray-200 h-full rounded-md cursor-pointer flex items-center',
                   {
                     'border-brand': isSelected,
                   }
