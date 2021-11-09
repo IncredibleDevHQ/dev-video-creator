@@ -214,6 +214,8 @@ const MissionControl = () => {
                     position={controlsConfig.position}
                     computedTokens={controlsConfig.computedTokens}
                     fragmentState={controlsConfig.fragmentState}
+                    isCodexFormat={controlsConfig.isCodexFormat}
+                    noOfBlocks={controlsConfig.noOfBlocks}
                   />
                 )
               case ConfigType.VIDEOJAM:

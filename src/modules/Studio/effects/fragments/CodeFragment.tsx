@@ -6,6 +6,7 @@ import useImage from 'use-image'
 import { Fragment_Status_Enum_Enum } from '../../../../generated/graphql'
 import {
   CodejamConfig,
+  CommentExplanations,
   ConfigType,
   LayoutConfig,
 } from '../../../../utils/configTypes'
@@ -22,12 +23,13 @@ import {
 import { StudioUserConfiguration } from '../../utils/StudioUserConfig'
 import Concourse, { CONFIG, TitleSplashProps } from '../../components/Concourse'
 import RenderTokens, {
-  CodeBlockConfig,
   codeConfig,
   FragmentState,
   getRenderedTokens,
+  getTokens,
   Position,
   RenderFocus,
+  RenderMultipleLineFocus,
 } from '../../components/RenderTokens'
 
 const CodeFragment = ({
@@ -79,10 +81,10 @@ const CodeFragment = ({
   const [highlightBlockCode, setHiglightBlockCode] = useState<boolean>(false)
 
   // config for focusing the lines of code in codex format
-  const [blockConfig, setBlockConfig] = useState<CodeBlockConfig[]>([])
+  const [blockConfig, setBlockConfig] = useState<CommentExplanations[]>([])
 
-  // state which stores if its a short or not
-  const [isShorts, setIsShorts] = useState<boolean>(false)
+  // // state which stores if its a short or not
+  // const [isShorts, setIsShorts] = useState<boolean>(false)
 
   const [bgImage] = useImage(viewConfig?.background?.image || '', 'anonymous')
 
@@ -99,6 +101,10 @@ const CodeFragment = ({
     setObjectConfig(
       FragmentLayoutConfig({ layoutNumber: viewConfig.layoutNumber })
     )
+    setIsCodexFormat(dataConfig.value.isAutomated)
+    const blocks = Object.assign([], dataConfig.value.explanations || [])
+    blocks.unshift({ from: 0, to: 0, explanation: '' })
+    setBlockConfig(blocks)
   }, [dataConfig, viewConfig])
 
   useEffect(() => {
@@ -118,11 +124,20 @@ const CodeFragment = ({
         position,
         computedTokens: computedTokens.current,
         fragmentState,
+        isCodexFormat,
+        noOfBlocks: blockConfig.length,
         type: ConfigType.CODEJAM,
         dataConfigLength,
       },
     })
-  }, [state, position, computedTokens, fragmentState])
+  }, [
+    state,
+    position,
+    computedTokens,
+    fragmentState,
+    isCodexFormat,
+    blockConfig,
+  ])
 
   useEffect(() => {
     setPosition({
@@ -131,6 +146,20 @@ const CodeFragment = ({
     })
     setFocusCode(payload?.isFocus)
     setFragmentState(payload?.fragmentState)
+    if (isCodexFormat) {
+      setActiveBlockIndex(payload?.activeBlockIndex)
+      if (payload?.focusBlockCode) {
+        setHiglightBlockCode(payload?.focusBlockCode)
+        setTimeout(() => {
+          setFocusBlockCode(payload?.focusBlockCode)
+        }, 1000)
+      } else {
+        setFocusBlockCode(payload?.focusBlockCode)
+        setTimeout(() => {
+          setHiglightBlockCode(payload?.focusBlockCode)
+        }, 1000)
+      }
+    }
   }, [payload])
 
   useEffect(() => {
@@ -139,20 +168,38 @@ const CodeFragment = ({
         prevIndex: -1,
         currentIndex: 0,
       })
-      updatePayload?.({
-        currentIndex: 1,
-        prevIndex: 0,
-        isFocus: false,
-      })
+      if (!isCodexFormat)
+        updatePayload?.({
+          currentIndex: 1,
+          prevIndex: 0,
+          isFocus: false,
+        })
+      else
+        updatePayload?.({
+          currentIndex: 1,
+          prevIndex: 0,
+          isFocus: false,
+          focusBlockCode: false,
+          activeBlockIndex: 0,
+        })
     }
     if (state === 'recording') {
-      updatePayload?.({
-        currentIndex: 1,
-        prevIndex: 0,
-        isFocus: false,
-      })
+      if (!isCodexFormat)
+        updatePayload?.({
+          currentIndex: 1,
+          prevIndex: 0,
+          isFocus: false,
+        })
+      else
+        updatePayload?.({
+          currentIndex: 1,
+          prevIndex: 0,
+          isFocus: false,
+          focusBlockCode: false,
+          activeBlockIndex: 0,
+        })
     }
-  }, [state])
+  }, [state, isCodexFormat])
 
   useEffect(() => {
     if (!customLayoutRef.current) return
@@ -225,15 +272,89 @@ const CodeFragment = ({
         <Circle key="greenCircle" x={28} y={0} fill="#00CA4E" radius={5} />
       </Group>
       {payload?.status === Fragment_Status_Enum_Enum.Live && (
-        <Group x={objectConfig.x + 25} y={objectConfig.y + 40} key="group">
-          {getRenderedTokens(computedTokens.current, position)}
-          {computedTokens.current.length > 0 && (
-            <RenderTokens
-              key={position.prevIndex}
-              tokens={computedTokens.current}
-              startIndex={position.prevIndex}
-              endIndex={position.currentIndex}
-            />
+        <Group x={objectConfig.x + 25} y={objectConfig.y + 35} key="group">
+          {!isCodexFormat ? (
+            <>
+              {getRenderedTokens(computedTokens.current, position)}
+              {computedTokens.current.length > 0 && (
+                <RenderTokens
+                  key={position.prevIndex}
+                  tokens={computedTokens.current}
+                  startIndex={position.prevIndex}
+                  endIndex={position.currentIndex}
+                />
+              )}
+            </>
+          ) : (
+            <>
+              {getTokens(
+                computedTokens.current,
+                computedTokens.current[
+                  computedTokens.current.find(
+                    (token) =>
+                      token.lineNumber ===
+                        (blockConfig &&
+                          blockConfig[activeBlockIndex] &&
+                          blockConfig[activeBlockIndex].from) || 0
+                  )?.startFromIndex || 0
+                ]?.lineNumber,
+                objectConfig.height - 40
+              )}
+              {highlightBlockCode && (
+                <Rect
+                  x={-5}
+                  y={
+                    (computedTokens.current.find(
+                      (token) =>
+                        token.lineNumber ===
+                        (blockConfig &&
+                          blockConfig[activeBlockIndex] &&
+                          blockConfig[activeBlockIndex].from)
+                    )?.y || 0) - 5
+                  }
+                  width={objectConfig.width - 40}
+                  height={
+                    (computedTokens.current.find(
+                      (token) =>
+                        token.lineNumber ===
+                        (blockConfig &&
+                          blockConfig[activeBlockIndex] &&
+                          blockConfig[activeBlockIndex].to)
+                    )?.y || 0) -
+                      (computedTokens.current.find(
+                        (token) =>
+                          token.lineNumber ===
+                          (blockConfig &&
+                            blockConfig[activeBlockIndex] &&
+                            blockConfig[activeBlockIndex].from)
+                      )?.y || 0) +
+                      codeConfig.fontSize +
+                      5 >
+                    0
+                      ? (computedTokens.current.find(
+                          (token) =>
+                            token.lineNumber ===
+                            (blockConfig &&
+                              blockConfig[activeBlockIndex] &&
+                              blockConfig[activeBlockIndex].to)
+                        )?.y || 0) -
+                        (computedTokens.current.find(
+                          (token) =>
+                            token.lineNumber ===
+                            (blockConfig &&
+                              blockConfig[activeBlockIndex] &&
+                              blockConfig[activeBlockIndex].from)
+                        )?.y || 0) +
+                        codeConfig.fontSize +
+                        10
+                      : 0
+                  }
+                  fill="#0066B8"
+                  opacity={0.3}
+                  cornerRadius={8}
+                />
+              )}
+            </>
           )}
         </Group>
       )}
@@ -250,6 +371,38 @@ const CodeFragment = ({
             height: objectConfig.height,
             radius: objectConfig.borderRadius,
           }}
+        />
+      )}
+      {focusBlockCode && (
+        <RenderMultipleLineFocus
+          tokens={computedTokens.current}
+          startLineNumber={
+            (blockConfig &&
+              blockConfig[activeBlockIndex] &&
+              blockConfig[activeBlockIndex].from) ||
+            0
+          }
+          endLineNumber={
+            (blockConfig &&
+              blockConfig[activeBlockIndex] &&
+              blockConfig[activeBlockIndex].to) ||
+            0
+          }
+          explanation={
+            (blockConfig &&
+              blockConfig[activeBlockIndex] &&
+              blockConfig[activeBlockIndex].explanation) ||
+            ''
+          }
+          groupCoordinates={{ x: objectConfig.x + 10, y: objectConfig.y + 10 }}
+          bgRectInfo={{
+            x: objectConfig.x,
+            y: objectConfig.y,
+            width: objectConfig.width,
+            height: objectConfig.height,
+            radius: objectConfig.borderRadius,
+          }}
+          opacity={1}
         />
       )}
     </Group>,
