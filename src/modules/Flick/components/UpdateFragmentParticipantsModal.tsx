@@ -44,6 +44,7 @@ const UpdateFragmentParticipantsModal = ({
   }, [error])
 
   useEffect(() => {
+    if (!data) return
     handleClose(true)
   }, [data])
 
