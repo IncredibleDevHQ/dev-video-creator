@@ -1,3 +1,5 @@
+import config from '../../../config'
+
 export const initEditor = [
   {
     children: [{ text: 'Welcome to your new fragment!! ' }],
@@ -139,7 +141,7 @@ export const initEditor = [
   },
   {
     type: 'img',
-    url: 'https://cdn.incredible.dev/idev-logo.svg',
+    url: `${config.storage.baseUrl}idev-logo.svg`,
     children: [{ text: '' }],
     id: 1636379944898,
     width: 280,
@@ -152,7 +154,7 @@ export const initEditor = [
   },
   {
     type: 'media_embed',
-    url: 'https://incredible-uploads-staging.s3.amazonaws.com/2UYob8_s0YFNrDSwz4cHI.mp4',
+    url: `${config.storage.baseUrl}2UYob8_s0YFNrDSwz4cHI.mp4`,
     children: [{ text: '' }],
     id: 1636438386684,
   },
