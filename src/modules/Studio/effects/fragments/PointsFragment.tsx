@@ -72,6 +72,8 @@ const PointsFragment = ({
     borderRadius: 0,
   })
 
+  const colorStops = [0, '#D1D5DB', 1, '#D1D5DB']
+
   useEffect(() => {
     if (!dataConfig) return
     setObjectConfig(
@@ -198,7 +200,7 @@ const PointsFragment = ({
         y={objectConfig.y}
         width={objectConfig.width}
         height={objectConfig.height}
-        fill="#ffffff"
+        fill="#1F2937"
         cornerRadius={objectConfig.borderRadius}
       />
       <Text
@@ -207,7 +209,7 @@ const PointsFragment = ({
         y={objectConfig.y + 32}
         align="left"
         fontSize={40}
-        fill="#1F2937"
+        fill="#E5E7EB"
         width={objectConfig.width - 140}
         lineHeight={1.15}
         text={dataConfig.title}
@@ -229,7 +231,7 @@ const PointsFragment = ({
                 radius={11}
                 y={point.y + 8}
                 fillLinearGradientColorStops={
-                  viewConfig.background.gradient?.values
+                  viewConfig.background.gradient?.values || colorStops
                 }
                 fillLinearGradientStartPoint={{ x: -11, y: -11 }}
                 fillLinearGradientEndPoint={{
@@ -249,7 +251,7 @@ const PointsFragment = ({
                 y={point.y}
                 align="left"
                 fontSize={16}
-                fill="#1F2937"
+                fill="#F3F4F6"
                 width={objectConfig.width - 180}
                 text={point.text}
                 lineHeight={1.1}

@@ -10,7 +10,7 @@ export const initEditor = [
   {
     type: 'h1',
     id: 1636438471826,
-    children: [{ text: '💻 Explain some code ? ' }],
+    children: [{ text: '💻  Explain some code ? ' }],
   },
   {
     type: 'code_block',
@@ -54,7 +54,7 @@ export const initEditor = [
   {
     type: 'h1',
     id: 1636379834110,
-    children: [{ text: '✴️Talk over important points' }],
+    children: [{ text: '✴️ Talk over important points' }],
   },
   {
     type: 'p',
@@ -137,7 +137,7 @@ export const initEditor = [
   {
     type: 'h1',
     id: 1636437630339,
-    children: [{ text: '🖼️ Talk Over Images' }],
+    children: [{ text: '🖼️  Talk Over Images' }],
   },
   {
     type: 'img',
@@ -149,7 +149,7 @@ export const initEditor = [
   },
   {
     type: 'h1',
-    children: [{ text: '⏯️ Walkthrough Videos ' }],
+    children: [{ text: '⏯️  Walkthrough Videos ' }],
     id: 1636379944900,
   },
   {

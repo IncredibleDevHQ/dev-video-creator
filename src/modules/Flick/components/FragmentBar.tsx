@@ -319,7 +319,7 @@ const FragmentBar = ({
           <Button
             type="button"
             className={cx('text-green-600 -ml-4')}
-            // disabled={flick?.owner?.userSub !== sub}
+            disabled={flick?.owner?.userSub !== sub}
             appearance="link"
             size="small"
             icon={FiPlus}
