@@ -308,7 +308,10 @@ const Configurations = ({
   const { payload } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   useEffect(() => {
-    if (payload?.fragmentState === 'titleSplash') {
+    if (
+      payload?.fragmentState === 'titleSplash' ||
+      payload?.fragmentState === 'onlyUserMedia'
+    ) {
       setCurrentConfiguration(Configuration.Background)
     }
   }, [payload?.fragmentState])
@@ -317,7 +320,7 @@ const Configurations = ({
     <div className="flex flex-col ml-4 h-full">
       {/* Configs */}
       <div className="flex gap-x-3">
-        {payload?.fragmentState !== 'titleSplash' && (
+        {payload?.fragmentState === 'customLayout' && (
           <div
             role="button"
             tabIndex={-1}
