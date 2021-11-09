@@ -97,6 +97,7 @@ export const CodeJamControls = ({
             icon={NextTokenIcon}
             className="my-2"
             appearance="primary"
+            disabled={payload?.prevIndex === computedTokens?.length - 1}
             onClick={() => {
               if (position.currentIndex < computedTokens.length)
                 updatePayload?.({
@@ -111,6 +112,7 @@ export const CodeJamControls = ({
             key="nextLine"
             icon={NextLineIcon}
             appearance="primary"
+            disabled={payload?.prevIndex === computedTokens?.length - 1}
             onClick={() => {
               const current = computedTokens[position.currentIndex]
               let next = computedTokens.findIndex(
