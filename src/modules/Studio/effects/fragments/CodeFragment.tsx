@@ -21,7 +21,11 @@ import {
   ObjectConfig,
 } from '../../utils/FragmentLayoutConfig'
 import { StudioUserConfiguration } from '../../utils/StudioUserConfig'
-import Concourse, { CONFIG, TitleSplashProps } from '../../components/Concourse'
+import Concourse, {
+  CONFIG,
+  SHORTS_CONFIG,
+  TitleSplashProps,
+} from '../../components/Concourse'
 import RenderTokens, {
   codeConfig,
   FragmentState,
@@ -55,7 +59,7 @@ const CodeFragment = ({
   stageRef: React.RefObject<Konva.Stage>
   layerRef: React.RefObject<Konva.Layer>
 }) => {
-  const { fragment, payload, updatePayload, state } =
+  const { fragment, payload, updatePayload, state, shortsMode } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const { initUseCode, computedTokens } = useCode()
@@ -96,16 +100,30 @@ const CodeFragment = ({
     borderRadius: 0,
   })
 
+  const [stageConfig, setStageConfig] = useState<{
+    width: number
+    height: number
+  }>({ width: 0, height: 0 })
+
+  useEffect(() => {
+    if (!shortsMode) setStageConfig(CONFIG)
+    else setStageConfig(SHORTS_CONFIG)
+  }, [shortsMode])
+
   useEffect(() => {
     if (!dataConfig) return
+    if (!shortsMode) return
     setObjectConfig(
-      FragmentLayoutConfig({ layoutNumber: viewConfig.layoutNumber })
+      FragmentLayoutConfig({
+        layoutNumber: viewConfig.layoutNumber,
+        isShorts: shortsMode,
+      })
     )
     setIsCodexFormat(dataConfig.value.isAutomated)
     const blocks = Object.assign([], dataConfig.value.explanations || [])
     blocks.unshift({ from: 0, to: 0, explanation: '' })
     setBlockConfig(blocks)
-  }, [dataConfig, viewConfig])
+  }, [dataConfig, viewConfig, shortsMode])
 
   useEffect(() => {
     initUseCode({
@@ -210,6 +228,7 @@ const CodeFragment = ({
           rectOneColors={['#651CC8', '#9561DA']}
           rectTwoColors={['#FF5D01', '#B94301']}
           rectThreeColors={['#1F2937', '#778496']}
+          isShorts={shortsMode}
         />,
       ])
       customLayoutRef.current.to({
@@ -224,6 +243,7 @@ const CodeFragment = ({
           rectOneColors={['#651CC8', '#9561DA']}
           rectTwoColors={['#FF5D01', '#B94301']}
           rectThreeColors={['#1F2937', '#778496']}
+          isShorts={shortsMode}
         />,
       ])
       customLayoutRef.current.to({
@@ -239,8 +259,8 @@ const CodeFragment = ({
         <Rect
           x={0}
           y={0}
-          width={CONFIG.width}
-          height={CONFIG.height}
+          width={stageConfig.width}
+          height={stageConfig.height}
           fillLinearGradientColorStops={viewConfig.background.gradient?.values}
           fillLinearGradientStartPoint={
             viewConfig.background.gradient?.startIndex
@@ -251,8 +271,8 @@ const CodeFragment = ({
         <Image
           x={0}
           y={0}
-          width={CONFIG.width}
-          height={CONFIG.height}
+          width={stageConfig.width}
+          height={stageConfig.height}
           image={bgImage}
         />
       )}
@@ -412,6 +432,7 @@ const CodeFragment = ({
     layoutNumber: viewConfig.layoutNumber,
     fragment,
     fragmentState,
+    isShorts: shortsMode || false,
   })
 
   return (

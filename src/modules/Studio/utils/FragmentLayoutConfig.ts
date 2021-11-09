@@ -9,9 +9,20 @@ export interface ObjectConfig {
 
 export const FragmentLayoutConfig = ({
   layoutNumber,
+  isShorts,
 }: {
   layoutNumber: number
+  isShorts: boolean
 }): ObjectConfig => {
+  if (isShorts) {
+    return {
+      x: 16,
+      y: 16,
+      width: 364,
+      height: 672,
+      borderRadius: 8,
+    }
+  }
   switch (layoutNumber) {
     case 1:
       return {

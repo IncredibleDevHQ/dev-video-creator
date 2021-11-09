@@ -6,12 +6,117 @@ export const StudioUserConfiguration = ({
   layoutNumber,
   fragment,
   fragmentState,
+  isShorts,
 }: {
   layoutNumber: number
   fragment: StudioFragmentFragment | undefined
   fragmentState: FragmentState
+  isShorts: boolean
 }): StudioUserConfig[] => {
   if (fragmentState === 'onlyUserMedia') {
+    if (isShorts) {
+      switch (fragment?.participants.length) {
+        case 2:
+          return [
+            {
+              x: 0,
+              y: 0,
+              width: 0,
+              height: 0,
+              clipTheme: 'rect',
+              borderWidth: 0,
+              studioUserClipConfig: {
+                x: 0,
+                y: 0,
+                width: 0,
+                height: 0,
+                radius: 0,
+              },
+            },
+            {
+              x: 0,
+              y: 0,
+              width: 0,
+              height: 0,
+              clipTheme: 'rect',
+              borderWidth: 0,
+              studioUserClipConfig: {
+                x: 0,
+                y: 0,
+                width: 0,
+                height: 0,
+                radius: 0,
+              },
+            },
+          ]
+        case 3:
+          return [
+            {
+              x: 0,
+              y: 0,
+              width: 0,
+              height: 0,
+              clipTheme: 'rect',
+              borderWidth: 0,
+              studioUserClipConfig: {
+                x: 0,
+                y: 0,
+                width: 0,
+                height: 0,
+                radius: 0,
+              },
+            },
+            {
+              x: 0,
+              y: 0,
+              width: 0,
+              height: 0,
+              clipTheme: 'rect',
+              borderWidth: 0,
+              studioUserClipConfig: {
+                x: 0,
+                y: 0,
+                width: 0,
+                height: 0,
+                radius: 0,
+              },
+            },
+            {
+              x: 0,
+              y: 0,
+              width: 0,
+              height: 0,
+              clipTheme: 'rect',
+              borderWidth: 0,
+              studioUserClipConfig: {
+                x: 0,
+                y: 0,
+                width: 0,
+                height: 0,
+                radius: 0,
+              },
+            },
+          ]
+        default:
+          return [
+            {
+              x: -250,
+              y: 16,
+              width: 896,
+              height: 672,
+              clipTheme: 'rect',
+              borderWidth: 0,
+              studioUserClipConfig: {
+                x: 266,
+                y: 0,
+                width: 364,
+                height: 672,
+                radius: 8,
+              },
+            },
+          ]
+      }
+    }
     switch (fragment?.participants.length) {
       case 2:
         return [
