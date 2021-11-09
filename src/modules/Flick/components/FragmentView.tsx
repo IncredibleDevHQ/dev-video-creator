@@ -35,16 +35,12 @@ import {
 import { useUploadFile } from '../../../hooks'
 import { AllowedFileExtensions } from '../../../hooks/use-upload-file'
 import { Config, ConfigType, GradientConfig } from '../../../utils/configTypes'
+import { CONFIG, SHORTS_CONFIG } from '../../Studio/components/Concourse'
 import TitleSplash from '../../Studio/components/TitleSplash'
 import UnifiedFragment from '../../Studio/effects/fragments/UnifiedFragment'
 import { StudioProviderProps, studioStore } from '../../Studio/stores'
 import { newFlickStore } from '../store/flickNew.store'
 import LayoutGeneric from './LayoutGeneric'
-
-export const CONFIG = {
-  width: 960,
-  height: 540,
-}
 
 const scrollStyle = css`
   ::-webkit-scrollbar {
@@ -88,18 +84,23 @@ const Preview = ({ config }: { config: Config }) => {
   const layerRef = createRef<Konva.Layer>()
   const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
 
-  const { payload } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const { payload, shortsMode } =
+    (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const { flick, activeFragmentId } = useRecoilValue(newFlickStore)
 
   Konva.pixelRatio = 2
 
   return (
-    <div>
+    <div
+      style={{
+        width: CONFIG.width,
+      }}
+      className="flex justify-center border"
+    >
       <Stage
         ref={stageRef}
-        height={CONFIG.height}
-        width={CONFIG.width}
-        className="border"
+        height={shortsMode ? SHORTS_CONFIG.height : CONFIG.height}
+        width={shortsMode ? SHORTS_CONFIG.width : CONFIG.width}
       >
         <Bridge>
           <Layer ref={layerRef}>
