@@ -202,19 +202,17 @@ const LayoutGeneric = ({
             return (
               <div
                 className={cx(
-                  'w-24 border border-gray-200 h-14 rounded-md cursor-pointer flex items-center gap-x-2 relative',
+                  'w-24 border border-gray-200 h-14 rounded-md cursor-pointer flex items-center',
                   {
                     'border-brand': isSelected,
                   }
                 )}
                 {...rest}
               >
-                <div className="h-8 w-7/12 bg-gray-200 rounded-sm p-2 ml-2 absolute">
+                <div className="h-8 w-3/6 bg-gray-200">
                   {type && <FragmentTypeIcon type={type} />}
                 </div>
-                <div className="h-full w-full flex justify-end">
-                  <div className="h-full w-3/6 bg-gray-500 rounded-tr-sm rounded-br-sm p-2 items-self-end" />
-                </div>
+                <div className="h-full w-3/6 bg-gray-500 rounded-tr-sm rounded-br-sm items-self-end" />
               </div>
             )
           default:
