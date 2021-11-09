@@ -13,23 +13,19 @@ export const CodeJamControls = ({
   position,
   computedTokens,
   fragmentState,
-  isBlockRender,
+  isCodexFormat,
   noOfBlocks,
-  isShorts,
-  setIsShorts,
 }: {
   position: Position
   computedTokens: ComputedToken[]
   fragmentState?: FragmentState
-  isBlockRender?: boolean
+  isCodexFormat?: boolean
   noOfBlocks?: number
-  isShorts?: boolean
-  setIsShorts?: React.Dispatch<React.SetStateAction<boolean>>
 }) => {
   const { payload, updatePayload, state } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   if (state === 'recording')
-    if (isBlockRender && noOfBlocks) {
+    if (isCodexFormat && noOfBlocks) {
       return (
         <>
           <ControlButton
@@ -56,6 +52,10 @@ export const CodeJamControls = ({
             icon={NextTokenIcon}
             className="my-2"
             appearance="primary"
+            disabled={
+              payload?.activeBlockIndex === noOfBlocks - 1 &&
+              !payload?.focusBlockCode
+            }
             onClick={() => {
               if (payload?.focusBlockCode) {
                 updatePayload?.({
