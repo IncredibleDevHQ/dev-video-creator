@@ -29,13 +29,15 @@ const style = css`
 
 const FragmentSideBar = () => {
   return (
-    <div
-      className={cx(
-        'w-48 border-r border-gray-300 h-full overflow-y-scroll relative',
-        style
-      )}
-    >
-      <ThumbnailDND />
+    <div>
+      <div
+        className={cx(
+          'w-48 border-r border-gray-300 h-full overflow-y-scroll relative',
+          style
+        )}
+      >
+        <ThumbnailDND />
+      </div>
     </div>
   )
 }
