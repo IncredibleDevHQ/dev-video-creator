@@ -16,13 +16,13 @@ import {
   createHistoryPlugin,
   createHorizontalRulePlugin,
   createImagePlugin,
+  createIndentPlugin,
   createItalicPlugin,
   createKbdPlugin,
   createLineHeightPlugin,
   createLinkPlugin,
   createListPlugin,
   createMediaEmbedPlugin,
-  createMentionPlugin,
   createNodeIdPlugin,
   createNormalizeTypesPlugin,
   createParagraphPlugin,
@@ -35,12 +35,14 @@ import {
   createTodoListPlugin,
   createTrailingBlockPlugin,
   createUnderlinePlugin,
+  ELEMENT_MEDIA_EMBED,
   HeadingToolbar,
+  insertMediaEmbed,
   Plate,
   PlatePlugin,
-  SPEditor,
+  PEditor,
   TNode,
-  useStoreEditorState,
+  usePlateEditorRef,
 } from '@udecode/plate'
 import React, { useMemo } from 'react'
 import { useRecoilValue } from 'recoil'
@@ -53,10 +55,8 @@ import {
 import { withStyledPlaceHolders } from '../../../utils/plateConfig/components/withStyledPlaceholders'
 import { CONFIG } from '../../../utils/plateConfig/plateEditorConfig'
 import { newFlickStore } from '../store/flickNew.store'
-// import { serializeDataConfig } from '../../../utils/plateConfig/serializer/config-serialize'
-// import mdSerialize from '../../../utils/plateConfig/serializer/md-serialize'
 
-type TEditor = SPEditor & ReactEditor & HistoryEditor
+type TEditor = PEditor & ReactEditor & HistoryEditor
 
 const FragmentEditor = ({
   value,
@@ -69,8 +69,9 @@ const FragmentEditor = ({
   const options = createPlateOptions()
 
   const { activeFragmentId } = useRecoilValue(newFlickStore)
-  const editorRef = useStoreEditorState(activeFragmentId)
+  const editor = usePlateEditorRef()
 
+  // @ts-ignore
   const pluginsMemo: PlatePlugin<TEditor>[] = useMemo(() => {
     const plugins = [
       createReactPlugin(),
@@ -83,10 +84,7 @@ const FragmentEditor = ({
       createHorizontalRulePlugin(),
       createLinkPlugin(),
       createListPlugin(),
-      // createTablePlugin(),
-      // createFontFamilyPlugin(),
       createLineHeightPlugin(),
-      // createFontWeightPlugin(),
       createMediaEmbedPlugin(),
       createCodeBlockPlugin(),
       createAlignPlugin(CONFIG.align),
@@ -95,15 +93,9 @@ const FragmentEditor = ({
       createItalicPlugin(),
       createHighlightPlugin(),
       createUnderlinePlugin(),
-      // createStrikethroughPlugin(),
-      // createSubscriptPlugin(),
-      // createSuperscriptPlugin(),
-      // createFontColorPlugin(),
-      // createFontBackgroundColorPlugin(),
-      // createFontSizePlugin(),
       createKbdPlugin(),
       createNodeIdPlugin(),
-      // createIndentPlugin(CONFIG.indent),
+      createIndentPlugin(CONFIG.indent),
       createAutoformatPlugin(CONFIG.autoformat),
       createResetNodePlugin(CONFIG.resetBlockType),
       createSoftBreakPlugin(CONFIG.softBreak),
@@ -111,8 +103,6 @@ const FragmentEditor = ({
       createNormalizeTypesPlugin(CONFIG.forceLayout),
       createTrailingBlockPlugin(CONFIG.trailingBlock),
       createSelectOnBackspacePlugin(CONFIG.selectOnBackspace),
-      // createComboboxPlugin(),
-      createMentionPlugin(),
     ]
 
     plugins.push(
@@ -125,24 +115,15 @@ const FragmentEditor = ({
     )
 
     return plugins
-  }, [editorRef])
+  }, [editor, activeFragmentId])
 
-  // user token is need to make the api call to get the color-codes
-  // const [auth] = useRecoilState(authState)
-
-  // useEffect(() => {
-  //   if (val) {
-  //     ;(async () => {
-  //       try {
-  //         const c = await serializeDataConfig(val, auth?.token || '')
-  //         console.log('data config: ', JSON.stringify(c))
-  //       } catch (e) {
-  //         console.error(e)
-  //         throw e
-  //       }
-  //     })()
-  //   }
-  // }, [val])
+  const insertMedia = (url: string) => {
+    if (!editor) return
+    insertMediaEmbed(editor, {
+      url,
+      pluginKey: ELEMENT_MEDIA_EMBED,
+    })
+  }
 
   return (
     <div className="flex flex-col flex-1 h-full overflow-y-scroll overflow-x-hidden">
@@ -155,13 +136,9 @@ const FragmentEditor = ({
         value={value}
         onChange={(value) => {
           setValue(value)
-          // setVal(value)
-          // This can be stored in database or can be called to generate on demand
-          // console.log(value.map((block) => mdSerialize(block)).join('\n'))
-          // get the data config
         }}
       >
-        {editorRef && (
+        {editor && (
           <HeadingToolbar
             className={css`
               padding: 0.5rem 1rem !important;
@@ -170,7 +147,12 @@ const FragmentEditor = ({
               right: 0;
             `}
           >
-            <ToolbarButtons editor={editorRef} value={value} />
+            <ToolbarButtons
+              editor={editor}
+              value={value}
+              activeFragmentId={activeFragmentId}
+              insertMedia={insertMedia}
+            />
           </HeadingToolbar>
         )}
         <BallonToolbarMarks />
