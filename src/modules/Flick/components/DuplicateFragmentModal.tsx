@@ -68,7 +68,7 @@ const DuplicateFragmentModal = ({
     title?: string
     description?: string
     participants?: string[]
-    type?: Fragment_Type_Enum_Enum
+    type?: Fragment_Type_Enum_Enum | null
   }>(DEFAULT_VALUES)
 
   const [loading, setLoading] = useState(false)
