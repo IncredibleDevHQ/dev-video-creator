@@ -4,6 +4,18 @@ mutation IntegrateGitHub($code: String!, $state: String!) {
   }
 }
 
+mutation IntegrateHashnode($accessToken: String!, $username: String!) {
+  IntegrateHashnode(accessToken: $accessToken, username: $username) {
+    success
+  }
+}
+
+mutation IntegrateDEV($accessToken: String!) {
+  IntegrateDEV(accessToken: $accessToken) {
+    success
+  }
+}
+
 query MyIntegrations {
   MyIntegrations {
     integrations
@@ -13,5 +25,19 @@ query MyIntegrations {
 mutation DeleteIntegration($id: uuid!, $integration: IntegrationEnum!) {
   DeleteIntegration(id: $id, integration: $integration) {
     success
+  }
+}
+
+mutation UpdateGitHubIntegration(
+  $branch: String!
+  $repository: String!
+  $id: uuid!
+) {
+  update_GitHubIntegration_by_pk(
+    _set: { branch: $branch, repository: $repository }
+    pk_columns: { id: $id }
+  ) {
+    branch
+    repository
   }
 }
