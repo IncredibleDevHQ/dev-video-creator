@@ -93,7 +93,7 @@ const VideoFragment = ({
         dataConfigLength,
       },
     })
-  }, [dataConfig, videoElement, fragmentState, playing])
+  }, [state, dataConfig, videoElement, fragmentState, playing])
 
   useEffect(() => {
     if (!videoElement) return

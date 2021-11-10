@@ -126,7 +126,7 @@ const FragmentEditor = ({
   }
 
   return (
-    <div className="h-full overflow-y-scroll overflow-x-hidden">
+    <div className="flex flex-col flex-1 h-full overflow-y-scroll overflow-x-hidden">
       <Plate
         id={activeFragmentId}
         components={components}

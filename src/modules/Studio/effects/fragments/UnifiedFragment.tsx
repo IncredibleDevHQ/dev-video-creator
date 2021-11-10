@@ -29,10 +29,17 @@ const UnifiedFragment = ({
   layerRef: React.RefObject<Konva.Layer>
   config?: Config
 }) => {
-  const { fragment, payload, updatePayload, state, participants, users } =
-    (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const {
+    fragment,
+    payload,
+    updatePayload,
+    state,
+    participants,
+    users,
+    shortsMode,
+  } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
-  const [titleSplashData, settitleSplashData] = useState<TitleSplashProps>({
+  const [titleSplashData, setTitleSplashData] = useState<TitleSplashProps>({
     enable: false,
   })
 
@@ -63,19 +70,33 @@ const UnifiedFragment = ({
   useEffect(() => {
     if (!fragment) return
     if (!config) {
-      setDataConfig(fragment?.configuration.dataConfig)
-      setViewConfig(fragment?.configuration.viewConfig)
+      if (fragment.configuration) {
+        if (shortsMode) {
+          const conf = fragment.configuration as Config
+          setDataConfig(
+            conf.dataConfig.filter((c) => c.type === ConfigType.CODEJAM)
+          )
+          setViewConfig({
+            ...conf.viewConfig,
+            configs: conf.viewConfig.configs.filter(
+              (c) => c.type === ConfigType.CODEJAM
+            ),
+          })
+        } else {
+          setDataConfig(fragment.configuration.dataConfig)
+          setViewConfig(fragment.configuration.viewConfig)
+        }
+      }
     } else {
       setDataConfig(config.dataConfig)
       setViewConfig(config.viewConfig)
     }
-    settitleSplashData({
+    setTitleSplashData({
       enable: fragment?.configuration?.viewConfig.hasTitleSplash || true,
       title: fragment.name as string,
+      titleSplashConfig:
+        fragment?.configuration?.viewConfig?.titleSplashConfig || {},
     })
-    // bgRectColor: ['#140D1F', '#6E1DDB'],
-    //   stripRectColor: ['#FF5D01', '#B94301'],
-    //   textColor: ['#E6E6E6', '#FFFFFF'],
     updatePayload?.({
       activeObjectIndex: 0,
     })
@@ -103,7 +124,7 @@ const UnifiedFragment = ({
         setTopLayerChildren([
           <LowerThirds
             x={lowerThirdCoordinates[0] || 0}
-            y={450}
+            y={!shortsMode ? 450 : 630}
             userName={displayName}
             rectOneColors={['#651CC8', '#9561DA']}
             rectTwoColors={['#FF5D01', '#B94301']}
@@ -125,22 +146,26 @@ const UnifiedFragment = ({
   }, [state])
 
   const lowerThirdCoordinates = (() => {
-    switch (fragment?.participants.length) {
-      case 2:
-        return [70, 530]
-      case 3:
-        return [45, 355, 665]
-      default:
-        return [70]
-    }
+    if (!shortsMode)
+      switch (fragment?.participants.length) {
+        case 2:
+          return [70, 530]
+        case 3:
+          return [45, 355, 665]
+        default:
+          return [95]
+      }
+    else return [30]
   })()
 
   useEffect(() => {
-    if (activeObjectIndex !== 0) settitleSplashData({ enable: false })
+    if (activeObjectIndex !== 0) setTitleSplashData({ enable: false })
     else
-      settitleSplashData({
+      setTitleSplashData({
         enable: fragment?.configuration?.viewConfig.hasTitleSplash || true,
         title: fragment?.name as string,
+        titleSplashConfig:
+          fragment?.configuration?.viewConfig?.titleSplashConfig || {},
       })
   }, [activeObjectIndex])
 

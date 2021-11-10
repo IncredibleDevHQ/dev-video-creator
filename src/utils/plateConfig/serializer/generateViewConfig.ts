@@ -51,15 +51,27 @@ export const generateViewConfig = ({
         type: config.type,
         layoutNumber: 1,
         background: {
-          type: 'image',
-          image: '',
+          type: 'color',
+          gradient: {
+            cssString:
+              'linear-gradient(90deg, #D397FA 0%, #D397FA 0.01%, #8364E8 100%)',
+            values: [0, '#D397FA', 0.0001, '#D397FA', 1, '#8364E8'],
+            startIndex: {
+              x: 0,
+              y: 269.99999999999994,
+            },
+            endIndex: {
+              x: 960,
+              y: 270.00000000000006,
+            },
+          },
         },
       })
     })
   }
 
   return {
+    ...viewConfig,
     configs,
-    hasTitleSplash: true,
   } as ViewConfig
 }

@@ -51,6 +51,7 @@ export const ControlButton = ({
           'bg-brand-10 text-brand': appearance === 'primary',
           'bg-error-10 text-error': appearance === 'danger',
           'bg-success-10 text-success': appearance === 'success',
+          'opacity-70 cursor-not-allowed': disabled,
         },
         className
       )}
@@ -213,6 +214,8 @@ const MissionControl = () => {
                     position={controlsConfig.position}
                     computedTokens={controlsConfig.computedTokens}
                     fragmentState={controlsConfig.fragmentState}
+                    isCodexFormat={controlsConfig.isCodexFormat}
+                    noOfBlocks={controlsConfig.noOfBlocks}
                   />
                 )
               case ConfigType.VIDEOJAM:

@@ -6,6 +6,7 @@ import useImage from 'use-image'
 import { Fragment_Status_Enum_Enum } from '../../../../generated/graphql'
 import {
   CodejamConfig,
+  CommentExplanations,
   ConfigType,
   LayoutConfig,
 } from '../../../../utils/configTypes'
@@ -20,14 +21,19 @@ import {
   ObjectConfig,
 } from '../../utils/FragmentLayoutConfig'
 import { StudioUserConfiguration } from '../../utils/StudioUserConfig'
-import Concourse, { CONFIG, TitleSplashProps } from '../../components/Concourse'
+import Concourse, {
+  CONFIG,
+  SHORTS_CONFIG,
+  TitleSplashProps,
+} from '../../components/Concourse'
 import RenderTokens, {
-  CodeBlockConfig,
   codeConfig,
   FragmentState,
   getRenderedTokens,
+  getTokens,
   Position,
   RenderFocus,
+  RenderMultipleLineFocus,
 } from '../../components/RenderTokens'
 
 const CodeFragment = ({
@@ -53,7 +59,7 @@ const CodeFragment = ({
   stageRef: React.RefObject<Konva.Stage>
   layerRef: React.RefObject<Konva.Layer>
 }) => {
-  const { fragment, payload, updatePayload, state } =
+  const { fragment, payload, updatePayload, state, shortsMode } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const { initUseCode, computedTokens } = useCode()
@@ -79,10 +85,10 @@ const CodeFragment = ({
   const [highlightBlockCode, setHiglightBlockCode] = useState<boolean>(false)
 
   // config for focusing the lines of code in codex format
-  const [blockConfig, setBlockConfig] = useState<CodeBlockConfig[]>([])
+  const [blockConfig, setBlockConfig] = useState<CommentExplanations[]>([])
 
-  // state which stores if its a short or not
-  const [isShorts, setIsShorts] = useState<boolean>(false)
+  // // state which stores if its a short or not
+  // const [isShorts, setIsShorts] = useState<boolean>(false)
 
   const [bgImage] = useImage(viewConfig?.background?.image || '', 'anonymous')
 
@@ -94,12 +100,30 @@ const CodeFragment = ({
     borderRadius: 0,
   })
 
+  const [stageConfig, setStageConfig] = useState<{
+    width: number
+    height: number
+  }>({ width: 0, height: 0 })
+
+  useEffect(() => {
+    if (!shortsMode) setStageConfig(CONFIG)
+    else setStageConfig(SHORTS_CONFIG)
+  }, [shortsMode])
+
   useEffect(() => {
     if (!dataConfig) return
     setObjectConfig(
-      FragmentLayoutConfig({ layoutNumber: viewConfig.layoutNumber })
+      FragmentLayoutConfig({
+        layoutNumber: viewConfig.layoutNumber,
+        isShorts: shortsMode || false,
+      })
     )
-  }, [dataConfig, viewConfig])
+    setIsCodexFormat(dataConfig.value.isAutomated)
+    const blocks = Object.assign([], dataConfig.value.explanations || [])
+    blocks.unshift({ from: 0, to: 0, explanation: '' })
+    setBlockConfig(blocks)
+    setTopLayerChildren([])
+  }, [dataConfig, viewConfig, shortsMode])
 
   useEffect(() => {
     initUseCode({
@@ -118,11 +142,20 @@ const CodeFragment = ({
         position,
         computedTokens: computedTokens.current,
         fragmentState,
+        isCodexFormat,
+        noOfBlocks: blockConfig.length,
         type: ConfigType.CODEJAM,
         dataConfigLength,
       },
     })
-  }, [state, position, computedTokens, fragmentState])
+  }, [
+    state,
+    position,
+    computedTokens,
+    fragmentState,
+    isCodexFormat,
+    blockConfig,
+  ])
 
   useEffect(() => {
     setPosition({
@@ -131,6 +164,20 @@ const CodeFragment = ({
     })
     setFocusCode(payload?.isFocus)
     setFragmentState(payload?.fragmentState)
+    if (isCodexFormat) {
+      setActiveBlockIndex(payload?.activeBlockIndex)
+      if (payload?.focusBlockCode) {
+        setHiglightBlockCode(payload?.focusBlockCode)
+        setTimeout(() => {
+          setFocusBlockCode(payload?.focusBlockCode)
+        }, 1000)
+      } else {
+        setFocusBlockCode(payload?.focusBlockCode)
+        setTimeout(() => {
+          setHiglightBlockCode(payload?.focusBlockCode)
+        }, 1000)
+      }
+    }
   }, [payload])
 
   useEffect(() => {
@@ -139,20 +186,38 @@ const CodeFragment = ({
         prevIndex: -1,
         currentIndex: 0,
       })
-      updatePayload?.({
-        currentIndex: 1,
-        prevIndex: 0,
-        isFocus: false,
-      })
+      if (!isCodexFormat)
+        updatePayload?.({
+          currentIndex: 1,
+          prevIndex: 0,
+          isFocus: false,
+        })
+      else
+        updatePayload?.({
+          currentIndex: 1,
+          prevIndex: 0,
+          isFocus: false,
+          focusBlockCode: false,
+          activeBlockIndex: 0,
+        })
     }
     if (state === 'recording') {
-      updatePayload?.({
-        currentIndex: 1,
-        prevIndex: 0,
-        isFocus: false,
-      })
+      if (!isCodexFormat)
+        updatePayload?.({
+          currentIndex: 1,
+          prevIndex: 0,
+          isFocus: false,
+        })
+      else
+        updatePayload?.({
+          currentIndex: 1,
+          prevIndex: 0,
+          isFocus: false,
+          focusBlockCode: false,
+          activeBlockIndex: 0,
+        })
     }
-  }, [state])
+  }, [state, isCodexFormat])
 
   useEffect(() => {
     if (!customLayoutRef.current) return
@@ -163,6 +228,7 @@ const CodeFragment = ({
           rectOneColors={['#651CC8', '#9561DA']}
           rectTwoColors={['#FF5D01', '#B94301']}
           rectThreeColors={['#1F2937', '#778496']}
+          isShorts={shortsMode}
         />,
       ])
       customLayoutRef.current.to({
@@ -177,6 +243,7 @@ const CodeFragment = ({
           rectOneColors={['#651CC8', '#9561DA']}
           rectTwoColors={['#FF5D01', '#B94301']}
           rectThreeColors={['#1F2937', '#778496']}
+          isShorts={shortsMode}
         />,
       ])
       customLayoutRef.current.to({
@@ -192,8 +259,8 @@ const CodeFragment = ({
         <Rect
           x={0}
           y={0}
-          width={CONFIG.width}
-          height={CONFIG.height}
+          width={stageConfig.width}
+          height={stageConfig.height}
           fillLinearGradientColorStops={viewConfig.background.gradient?.values}
           fillLinearGradientStartPoint={
             viewConfig.background.gradient?.startIndex
@@ -204,8 +271,8 @@ const CodeFragment = ({
         <Image
           x={0}
           y={0}
-          width={CONFIG.width}
-          height={CONFIG.height}
+          width={stageConfig.width}
+          height={stageConfig.height}
           image={bgImage}
         />
       )}
@@ -225,15 +292,89 @@ const CodeFragment = ({
         <Circle key="greenCircle" x={28} y={0} fill="#00CA4E" radius={5} />
       </Group>
       {payload?.status === Fragment_Status_Enum_Enum.Live && (
-        <Group x={objectConfig.x + 25} y={objectConfig.y + 40} key="group">
-          {getRenderedTokens(computedTokens.current, position)}
-          {computedTokens.current.length > 0 && (
-            <RenderTokens
-              key={position.prevIndex}
-              tokens={computedTokens.current}
-              startIndex={position.prevIndex}
-              endIndex={position.currentIndex}
-            />
+        <Group x={objectConfig.x + 25} y={objectConfig.y + 35} key="group">
+          {!isCodexFormat ? (
+            <>
+              {getRenderedTokens(computedTokens.current, position)}
+              {computedTokens.current.length > 0 && (
+                <RenderTokens
+                  key={position.prevIndex}
+                  tokens={computedTokens.current}
+                  startIndex={position.prevIndex}
+                  endIndex={position.currentIndex}
+                />
+              )}
+            </>
+          ) : (
+            <>
+              {getTokens(
+                computedTokens.current,
+                computedTokens.current[
+                  computedTokens.current.find(
+                    (token) =>
+                      token.lineNumber ===
+                        (blockConfig &&
+                          blockConfig[activeBlockIndex] &&
+                          blockConfig[activeBlockIndex].from) || 0
+                  )?.startFromIndex || 0
+                ]?.lineNumber,
+                objectConfig.height - 40
+              )}
+              {highlightBlockCode && (
+                <Rect
+                  x={-5}
+                  y={
+                    (computedTokens.current.find(
+                      (token) =>
+                        token.lineNumber ===
+                        (blockConfig &&
+                          blockConfig[activeBlockIndex] &&
+                          blockConfig[activeBlockIndex].from)
+                    )?.y || 0) - 5
+                  }
+                  width={objectConfig.width - 40}
+                  height={
+                    (computedTokens.current.find(
+                      (token) =>
+                        token.lineNumber ===
+                        (blockConfig &&
+                          blockConfig[activeBlockIndex] &&
+                          blockConfig[activeBlockIndex].to)
+                    )?.y || 0) -
+                      (computedTokens.current.find(
+                        (token) =>
+                          token.lineNumber ===
+                          (blockConfig &&
+                            blockConfig[activeBlockIndex] &&
+                            blockConfig[activeBlockIndex].from)
+                      )?.y || 0) +
+                      codeConfig.fontSize +
+                      5 >
+                    0
+                      ? (computedTokens.current.find(
+                          (token) =>
+                            token.lineNumber ===
+                            (blockConfig &&
+                              blockConfig[activeBlockIndex] &&
+                              blockConfig[activeBlockIndex].to)
+                        )?.y || 0) -
+                        (computedTokens.current.find(
+                          (token) =>
+                            token.lineNumber ===
+                            (blockConfig &&
+                              blockConfig[activeBlockIndex] &&
+                              blockConfig[activeBlockIndex].from)
+                        )?.y || 0) +
+                        codeConfig.fontSize +
+                        10
+                      : 0
+                  }
+                  fill="#0066B8"
+                  opacity={0.3}
+                  cornerRadius={8}
+                />
+              )}
+            </>
           )}
         </Group>
       )}
@@ -252,6 +393,38 @@ const CodeFragment = ({
           }}
         />
       )}
+      {focusBlockCode && (
+        <RenderMultipleLineFocus
+          tokens={computedTokens.current}
+          startLineNumber={
+            (blockConfig &&
+              blockConfig[activeBlockIndex] &&
+              blockConfig[activeBlockIndex].from) ||
+            0
+          }
+          endLineNumber={
+            (blockConfig &&
+              blockConfig[activeBlockIndex] &&
+              blockConfig[activeBlockIndex].to) ||
+            0
+          }
+          explanation={
+            (blockConfig &&
+              blockConfig[activeBlockIndex] &&
+              blockConfig[activeBlockIndex].explanation) ||
+            ''
+          }
+          groupCoordinates={{ x: objectConfig.x + 10, y: objectConfig.y + 10 }}
+          bgRectInfo={{
+            x: objectConfig.x,
+            y: objectConfig.y,
+            width: objectConfig.width,
+            height: objectConfig.height,
+            radius: objectConfig.borderRadius,
+          }}
+          opacity={1}
+        />
+      )}
     </Group>,
   ]
 
@@ -259,6 +432,7 @@ const CodeFragment = ({
     layoutNumber: viewConfig.layoutNumber,
     fragment,
     fragmentState,
+    isShorts: shortsMode || false,
   })
 
   return (

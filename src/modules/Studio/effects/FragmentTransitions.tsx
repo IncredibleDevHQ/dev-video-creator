@@ -1,6 +1,6 @@
 import Konva from 'konva'
 import React from 'react'
-import { Group, Circle, Text, Rect } from 'react-konva'
+import { Circle, Rect } from 'react-konva'
 import { CONFIG, SHORTS_CONFIG } from '../components/Concourse'
 
 export const CircleShrink = ({

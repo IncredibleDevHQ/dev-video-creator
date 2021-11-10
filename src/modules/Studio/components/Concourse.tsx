@@ -4,6 +4,7 @@ import { Group, Rect } from 'react-konva'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
 import { User, userState } from '../../../stores/user.store'
+import { GradientConfig } from '../../../utils/configTypes'
 import {
   CircleCenterShrink,
   MultiCircleCenterGrow,
@@ -33,9 +34,7 @@ export interface StudioUserConfig {
 export interface TitleSplashProps {
   enable: boolean
   title?: string
-  bgRectColor?: string[]
-  stripRectColor?: string[]
-  textColor?: string[]
+  titleSplashConfig?: GradientConfig
 }
 
 interface ConcourseProps {
@@ -46,7 +45,6 @@ interface ConcourseProps {
   studioUserConfig?: StudioUserConfig[]
   disableUserMedia?: boolean
   topLayerChildren?: any[]
-  isShorts?: boolean
 }
 
 export const CONFIG = {
@@ -67,7 +65,6 @@ const Concourse = ({
   studioUserConfig,
   disableUserMedia,
   topLayerChildren,
-  isShorts,
 }: ConcourseProps) => {
   const {
     fragment,
@@ -77,6 +74,7 @@ const Concourse = ({
     payload,
     users,
     stopRecording,
+    shortsMode,
   } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [canvas, setCanvas] = useRecoilState(canvasStore)
   const [isTitleSplash, setIsTitleSplash] = useState<boolean>(false)
@@ -92,9 +90,9 @@ const Concourse = ({
   }>({ width: 0, height: 0 })
 
   useEffect(() => {
-    if (!isShorts) setStageConfig(CONFIG)
+    if (!shortsMode) setStageConfig(CONFIG)
     else setStageConfig(SHORTS_CONFIG)
-  }, [isShorts])
+  }, [shortsMode])
 
   const defaultStudioUserConfig: StudioUserConfig = {
     x: 780,
@@ -224,13 +222,13 @@ const Concourse = ({
           if (payload?.status === Fragment_Status_Enum_Enum.Live) {
             // layerRef?.current?.destroyChildren()
             if (titleSplashData?.enable && isTitleSplash) {
-              return !isShorts ? (
+              return !shortsMode ? (
                 <>
                   <TitleSplash
                     titleSplashData={titleSplashData}
                     setIsTitleSplash={setIsTitleSplash}
                     stageConfig={stageConfig}
-                    isShorts={isShorts}
+                    isShorts={shortsMode}
                   />
                   <CircleCenterShrink color="#000000" />
                 </>
@@ -240,7 +238,7 @@ const Concourse = ({
                     titleSplashData={titleSplashData}
                     setIsTitleSplash={setIsTitleSplash}
                     stageConfig={stageConfig}
-                    isShorts={isShorts}
+                    isShorts={shortsMode}
                   />
                 </>
               )
@@ -292,6 +290,10 @@ const Concourse = ({
           ))}
         </>
       ) : (
+        !disableUserMedia &&
+        !isTitleSplash &&
+        payload?.status !== Fragment_Status_Enum_Enum.CountDown &&
+        payload?.status !== Fragment_Status_Enum_Enum.Ended &&
         fragment &&
         fragment.participants.map((_, index: number) => (
           <PreviewUser

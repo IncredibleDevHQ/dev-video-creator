@@ -46,11 +46,13 @@ const commentExtractor = (tokens: ColorCode[]) => {
     // if the token is a comment
     if (isComment(tokens[tokenNumber])) {
       // extract the explanation and increment the token number
-      explanation = tokens[tokenNumber].content
+      // if (exp !== '' && !exp.match(/end$/g)) {
+      explanation = tokens[tokenNumber].content.trim()
+      // }
+
       tokenNumber += 1
 
       from = codeLineNumber
-
       // find the end of the comment block
       while (!isComment(tokens[tokenNumber]) && tokenNumber < tokens.length) {
         const codeToken = tokens[tokenNumber]
@@ -63,7 +65,9 @@ const commentExtractor = (tokens: ColorCode[]) => {
         code.push(codeToken)
         tokenNumber += 1
       }
-      to = codeLineNumber
+      to = codeLineNumber - 1
+      // ignore the 2nd comment as it is only an indicator for end of block
+      tokenNumber += 1
     } else {
       // If its a code token
       const codeToken = tokens[tokenNumber]
@@ -77,7 +81,7 @@ const commentExtractor = (tokens: ColorCode[]) => {
       code.push(codeToken)
       tokenNumber += 1
     }
-    if (explanation && from && to) {
+    if (explanation && from !== undefined && to !== undefined) {
       blockBuffer.push({ explanation, from, to })
     }
   }
@@ -194,6 +198,13 @@ export const serializeDataConfig = async (
       )
       // Separate comments and code
       const { blockBuffer, code } = commentExtractor(colorCodes)
+
+      // if explanations are detected set isAutomated to true
+      let isAutomated = false
+      if (blockBuffer?.length > 0) {
+        isAutomated = true
+      }
+
       context = {
         id: nanoid(),
         type: ConfigType.CODEJAM,
@@ -201,7 +212,7 @@ export const serializeDataConfig = async (
         value: {
           code: codeRaw,
           gistURL: '',
-          isAutomated: false,
+          isAutomated,
           language: node.lang || 'javascript',
           explanations: blockBuffer,
           colorCodes: code,

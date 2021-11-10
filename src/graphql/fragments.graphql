@@ -134,10 +134,14 @@ mutation MarkFragmentCompleted(
   }
 }
 
-mutation UpdateFragmentShort($id: uuid!, $producedShortsLink: String!) {
+mutation UpdateFragmentShort(
+  $id: uuid!
+  $producedShortsLink: String!
+  $duration: float8!
+) {
   update_Fragment_by_pk(
     pk_columns: { id: $id }
-    _set: { producedShortsLink: $producedShortsLink }
+    _set: { producedShortsLink: $producedShortsLink, shortsDuration: $duration }
   ) {
     updatedAt
   }

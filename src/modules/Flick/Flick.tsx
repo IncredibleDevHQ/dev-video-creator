@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { FiLoader } from 'react-icons/fi'
 import { useHistory, useParams } from 'react-router-dom'
 import { useRecoilState, useSetRecoilState } from 'recoil'
-import { EmptyState, ScreenState, Text } from '../../components'
+import { ScreenState, Text } from '../../components'
 import {
   Fragment_Status_Enum_Enum,
   StudioFragmentFragment,
@@ -19,6 +19,7 @@ import {
   FragmentView,
 } from './components'
 import { newFlickStore } from './store/flickNew.store'
+import { initEditor } from '../../utils/plateConfig/serializer/VALUES'
 
 const useLocalPayload = () => {
   const initialPayload = {
@@ -26,7 +27,7 @@ const useLocalPayload = () => {
     activePointIndex: 0,
     currentIndex: 0,
     currentTime: 0,
-    fragmentState: 'customLayout',
+    fragmentState: 'titleSplash',
     isFocus: false,
     playing: false,
     prevIndex: -1,
@@ -50,6 +51,27 @@ const useLocalPayload = () => {
 }
 
 const Flick = () => {
+  const initialConfig: Config = {
+    dataConfig: [],
+    viewConfig: {
+      configs: [],
+      titleSplashConfig: {
+        cssString:
+          'linear-gradient(90deg, #D397FA 0%, #D397FA 0.01%, #8364E8 100%)',
+        values: [0, '#D397FA', 0.0001, '#D397FA', 1, '#8364E8'],
+        startIndex: {
+          x: 0,
+          y: 269.99999999999994,
+        },
+        endIndex: {
+          x: 960,
+          y: 270.00000000000006,
+        },
+      },
+      hasTitleSplash: true,
+    },
+  }
+
   const { id, fragmentId } = useParams<{ id: string; fragmentId?: string }>()
   const [{ flick, activeFragmentId, isMarkdown }, setFlickStore] =
     useRecoilState(newFlickStore)
@@ -63,13 +85,7 @@ const Flick = () => {
   const [plateValue, setPlateValue] = useState<TNode<any>[]>()
   const [serializing, setSerializing] = useState(false)
 
-  const [config, setConfig] = useState<Config>({
-    dataConfig: [],
-    viewConfig: {
-      configs: [],
-      hasTitleSplash: false,
-    },
-  })
+  const [config, setConfig] = useState<Config>(initialConfig)
 
   const [selectedLayoutId, setSelectedLayoutId] = useState('')
 
@@ -90,6 +106,10 @@ const Flick = () => {
 
   useEffect(() => {
     resetPayload()
+    setStudio((store) => ({
+      ...store,
+      shortsMode: false,
+    }))
   }, [activeFragmentId])
 
   useEffect(() => {
@@ -123,23 +143,9 @@ const Flick = () => {
     const fragment = flick?.fragments.find(
       (frag) => frag.id === activeFragmentId
     )
-    setConfig(
-      fragment?.configuration || {
-        dataConfig: [],
-        viewConfig: {
-          configs: [],
-          hasTitleSplash: false,
-        },
-      }
-    )
-    if (fragment?.configuration) {
-      const fragmentConfig = fragment.configuration as Config
-      if (fragmentConfig.dataConfig?.length > 0) {
-        setSelectedLayoutId(fragmentConfig.dataConfig[0].id)
-      }
-    }
+    setConfig(fragment?.configuration || initialConfig)
     setInitialPlateValue(fragment?.editorState)
-    setPlateValue(fragment?.editorState)
+    setPlateValue(fragment?.editorState || initEditor)
   }, [activeFragmentId])
 
   if (loading) return <ScreenState title="Just a jiffy" loading />
@@ -159,23 +165,25 @@ const Flick = () => {
   if (!flick) return null
 
   return (
-    <div className="h-screen overflow-y-scroll overflow-x-hidden">
-      <FlickNavBar />
-      <div className="flex h-full">
+    <div className="flex flex-col h-screen">
+      <div>
+        <FlickNavBar />
+        <FragmentBar
+          initialPlateValue={initialPlateValue}
+          setInitialPlateValue={setInitialPlateValue}
+          plateValue={plateValue}
+          setSerializing={setSerializing}
+          config={config}
+          setConfig={setConfig}
+          setSelectedLayoutId={setSelectedLayoutId}
+        />
+      </div>
+      <div className="flex flex-1 overflow-y-auto">
         <FragmentSideBar />
         {flick.fragments.length > 0 && (
-          <div className="w-full">
-            <FragmentBar
-              initialPlateValue={initialPlateValue}
-              setInitialPlateValue={setInitialPlateValue}
-              plateValue={plateValue}
-              setSerializing={setSerializing}
-              config={config}
-              setConfig={setConfig}
-              setSelectedLayoutId={setSelectedLayoutId}
-            />
+          <>
             {serializing && (
-              <div className="flex flex-col gap-y-2 h-full w-full items-center justify-center pb-32">
+              <div className="flex flex-col gap-y-2 h-full flex-1 items-center justify-center pb-32">
                 <FiLoader size={21} className="animate-spin" />
                 <Text className="text-lg">Generating view</Text>
               </div>
@@ -191,9 +199,11 @@ const Flick = () => {
                 setSelectedLayoutId={setSelectedLayoutId}
               />
             )}
-          </div>
+          </>
         )}
       </div>
+      {/* Below div is necessary to allow scroll in the above div */}
+      <div />
     </div>
   )
 }

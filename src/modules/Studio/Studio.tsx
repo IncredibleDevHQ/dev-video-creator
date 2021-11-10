@@ -1,25 +1,28 @@
 /* eslint-disable jsx-a11y/media-has-caption */
-import React, { createRef, useEffect, useMemo, useState } from 'react'
-import { ILocalVideoTrack, IMicrophoneAudioTrack } from 'agora-rtc-sdk-ng'
-import { FiArrowLeft } from 'react-icons/fi'
-import { useHistory, useParams } from 'react-router-dom'
-import { useRecoilState, useRecoilValue } from 'recoil'
-import getBlobDuration from 'get-blob-duration'
 import { AgoraVideoPlayer } from 'agora-rtc-react'
-import AspectRatio from 'react-aspect-ratio'
-import { Layer, Stage } from 'react-konva'
-import { useRecoilBridgeAcrossReactRoots_UNSTABLE } from 'recoil'
+import { ILocalVideoTrack, IMicrophoneAudioTrack } from 'agora-rtc-sdk-ng'
+import getBlobDuration from 'get-blob-duration'
 import Konva from 'konva'
-import config from '../../config'
+import React, { createRef, useEffect, useMemo, useState } from 'react'
+import AspectRatio from 'react-aspect-ratio'
+import { FiArrowLeft } from 'react-icons/fi'
+import { Layer, Stage } from 'react-konva'
+import { useHistory, useParams } from 'react-router-dom'
 import {
-  emitToast,
+  useRecoilBridgeAcrossReactRoots_UNSTABLE,
+  useRecoilState,
+  useRecoilValue,
+} from 'recoil'
+import {
+  Button,
   dismissToast,
+  emitToast,
   EmptyState,
   Heading,
   ScreenState,
   updateToast,
-  Button,
 } from '../../components'
+import config from '../../config'
 import {
   Fragment_Status_Enum_Enum,
   GetFragmentByIdQuery,
@@ -27,23 +30,18 @@ import {
   useGetFragmentByIdQuery,
   useGetRtcTokenMutation,
   useMarkFragmentCompletedMutation,
+  useUpdateFragmentShortMutation,
 } from '../../generated/graphql'
 import { useCanvasRecorder, useTimekeeper } from '../../hooks'
-import { User, userState } from '../../stores/user.store'
-import { getEffect } from './effects/effects'
 import { useUploadFile } from '../../hooks/use-upload-file'
-import { useAgora, useVectorly } from './hooks'
-import {
-  canvasStore,
-  StudioProviderProps,
-  StudioState,
-  studioStore,
-} from './stores'
-import { useRTDB } from './hooks/use-rtdb'
-import { Timer, Countdown, MissionControl } from './components'
-import { Device } from './hooks/use-agora'
+import { User, userState } from '../../stores/user.store'
+import { Countdown, MissionControl, Timer } from './components'
+import { CONFIG, SHORTS_CONFIG } from './components/Concourse'
 import UnifiedFragment from './effects/fragments/UnifiedFragment'
-import { CONFIG } from './components/Concourse'
+import { useAgora, useVectorly } from './hooks'
+import { Device } from './hooks/use-agora'
+import { useRTDB } from './hooks/use-rtdb'
+import { StudioProviderProps, StudioState, studioStore } from './stores'
 
 const backgrounds = [
   { label: 'No effect', value: 'none' },
@@ -243,7 +241,7 @@ const Studio = ({
   tracks: [IMicrophoneAudioTrack, ILocalVideoTrack] | null
 }) => {
   const { fragmentId } = useParams<{ fragmentId: string }>()
-  const { constraints } =
+  const { constraints, shortsMode } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [studio, setStudio] = useRecoilState(studioStore)
   const { sub } = (useRecoilValue(userState) as User) || {}
@@ -251,6 +249,7 @@ const Studio = ({
   const history = useHistory()
 
   const [markFragmentCompleted] = useMarkFragmentCompletedMutation()
+  const [updateFragmentShort] = useUpdateFragmentShortMutation()
 
   const [uploadFile] = useUploadFile()
 
@@ -259,7 +258,17 @@ const Studio = ({
   const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
   Konva.pixelRatio = 2
 
-  const [canvas, setCanvas] = useRecoilState(canvasStore)
+  const [stageConfig, setStageConfig] = useState<{
+    width: number
+    height: number
+  }>({ width: 0, height: 0 })
+
+  useEffect(() => {
+    if (!shortsMode) setStageConfig(CONFIG)
+    else setStageConfig(SHORTS_CONFIG)
+  }, [shortsMode])
+
+  // const [canvas, setCanvas] = useRecoilState(canvasStore)
 
   const { stream, join, users, mute, leave, userAudios, renewToken } = useAgora(
     fragmentId,
@@ -421,9 +430,18 @@ const Studio = ({
 
       const duration = await getBlobDuration(uploadVideoFile)
 
-      await markFragmentCompleted({
-        variables: { id: fragmentId, producedLink: uuid, duration },
-      })
+      if (shortsMode)
+        updateFragmentShort({
+          variables: {
+            id: fragmentId,
+            producedShortsLink: uuid,
+            duration,
+          },
+        })
+      else
+        await markFragmentCompleted({
+          variables: { id: fragmentId, producedLink: uuid, duration },
+        })
 
       dismissToast(toast)
       leave()
@@ -591,8 +609,8 @@ const Studio = ({
             state === 'countDown' ? (
               <Stage
                 ref={stageRef}
-                height={CONFIG.height}
-                width={CONFIG.width}
+                height={stageConfig.height}
+                width={stageConfig.width}
                 // className={cx({
                 //   'cursor-zoom-in': canvas?.zoomed && !isZooming,
                 //   'cursor-zoom-out': canvas?.zoomed && isZooming,
@@ -611,10 +629,12 @@ const Studio = ({
               </Stage>
             ) : (
               // eslint-disable-next-line jsx-a11y/media-has-caption
-              // !isShorts ? 'w-8/12 rounded-md' :
               <video
-                className="w-3/4 rounded-md"
+                className={
+                  !shortsMode ? 'w-8/12 rounded-md' : 'w-1/4 rounded-md'
+                }
                 controls
+                controlsList="nodownload"
                 ref={async (ref) => {
                   if (!ref || !getBlobs) return
                   const blob = await getBlobs()
