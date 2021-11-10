@@ -1,15 +1,13 @@
 /* eslint-disable jsx-a11y/label-has-associated-control */
 import React, { useEffect, useState } from 'react'
 import { useHistory, useParams } from 'react-router-dom'
-import Select from 'react-select'
 import {
   Button,
   emitToast,
   Heading,
-  Radio,
+  Text,
   TextArea,
   TextField,
-  Text,
 } from '../../components'
 import {
   CreateFlickFlickScopeEnumEnum,
@@ -30,21 +28,6 @@ const initialFlick: CreateNewFlickMutationVariables = {
     themeId: 0,
   } as FlickConfiguration,
 }
-
-const options = [
-  { label: 'Default', value: 0 },
-  { label: 'GraphQL', value: 1 },
-  { label: 'Open Sauced', value: 2 },
-  { label: 'Astro', value: 3 },
-  { label: 'WTFJS', value: 4 },
-  { label: 'Tensorflow', value: 5 },
-  { label: 'NextJS', value: 6 },
-  { label: 'Elastic', value: 7 },
-  { label: 'Hasura', value: 8 },
-  { label: 'Typescript', value: 9 },
-  { label: 'Pytorch', value: 10 },
-  { label: 'Svelte', value: 11 },
-]
 
 const NewFlick = () => {
   const { seriesId } = useParams<{ seriesId: string }>()
@@ -113,17 +96,6 @@ const NewFlick = () => {
           onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
             updateFlick('description', e.target.value)
           }
-        />
-        <Text className="font-semibold mb-1">Choose a theme</Text>
-        <Select
-          className="mb-8"
-          options={options}
-          classNamePrefix="react-select"
-          onChange={(event) => {
-            updateFlick('configuration', {
-              themeId: event?.value,
-            } as FlickConfiguration)
-          }}
         />
         <Button
           loading={loading}

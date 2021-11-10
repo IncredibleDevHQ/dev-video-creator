@@ -164,14 +164,7 @@ const SplashTwo = () => {
     ])
   }
 
-  return (
-    <Concourse
-      disableUserMedia
-      layerChildren={layerChildren}
-      controls={controls}
-      // json={BasicTemplate}
-    />
-  )
+  return <Concourse disableUserMedia layerChildren={layerChildren} />
 }
 
 export default SplashTwo

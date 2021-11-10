@@ -20,7 +20,7 @@ const usePoint = () => {
     fontSize,
     fontFamily,
   }: {
-    points: string[]
+    points: { level?: number; text: string }[]
     availableWidth: number
     availableHeight: number
     gutter: number
@@ -29,14 +29,14 @@ const usePoint = () => {
   }) => {
     const layer = new Konva.Layer({ width: availableWidth })
     points.forEach((point, index) => {
-      const text = new Konva.Text({ text: point, fontSize, fontFamily })
+      const text = new Konva.Text({ text: point.text, fontSize, fontFamily })
       layer.add(text)
 
       const width = text.textWidth
 
       const computedPoint: ComputedPoint = {
         y: (fontSize + gutter) * computedPointNumber.current,
-        text: point,
+        text: point.text,
         width,
       }
 

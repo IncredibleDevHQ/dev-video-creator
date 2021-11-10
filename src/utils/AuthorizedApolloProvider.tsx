@@ -13,14 +13,16 @@ import config from '../config'
 import { useCrash } from '../hooks'
 import { authState } from '../stores/auth.store'
 import { emitToast } from '../components'
+import firebaseState from '../stores/firebase.store'
 
 const AuthorizedApolloProvider = ({
   children,
 }: {
   children: React.ReactElement[] | React.ReactElement
 }) => {
-  const userAuth = useRecoilValue(authState)
   const crash = useCrash()
+
+  const { auth } = useRecoilValue(firebaseState)
 
   const httpLink = new BatchHttpLink({
     uri: config.hasura.server as string,
@@ -44,8 +46,11 @@ const AuthorizedApolloProvider = ({
   })
 
   const authLink = setContext(async (_, { headers }) => {
-    const newHeaders = userAuth?.token
-      ? { ...headers, Authorization: `Bearer ${userAuth.token}` }
+    const newHeaders = auth.currentUser
+      ? {
+          ...headers,
+          Authorization: `Bearer ${await auth.currentUser?.getIdToken()}`,
+        }
       : { ...headers, 'X-Hasura-Role': 'anonymous' }
     return {
       headers: newHeaders,

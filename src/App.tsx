@@ -28,7 +28,6 @@ import {
   InviteScreen,
   PublicVideo,
   MagicLinkLogin,
-  NewNewFragment,
   GitHubCallback,
   Integrations,
   JoinWaitlist,
@@ -105,11 +104,6 @@ const App = () => {
                   exact
                   path="/flick/:id/:fragmentId?"
                   component={Flick}
-                />
-                <PrivateRoute
-                  exact
-                  path="/new-fragment/:id"
-                  component={NewNewFragment}
                 />
                 <PrivateRoute exact path="/flicks" component={Flicks} />
                 <PrivateRoute

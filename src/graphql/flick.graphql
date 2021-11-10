@@ -6,7 +6,6 @@ fragment PublicFlick on Flick {
   id
   name
   scope
-  md
   plannedEnd
   startAt
   updatedAt
