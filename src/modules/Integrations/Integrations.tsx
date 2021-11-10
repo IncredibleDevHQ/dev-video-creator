@@ -132,7 +132,7 @@ const Integrations = () => {
               exists: !!_data.github?.accessToken,
               username: _data.github?.login,
               handleClick: () => {
-                if (!_data.github?.exists) {
+                if (!_data.github?.accessToken) {
                   const state = nanoid()
 
                   popupWindow(
