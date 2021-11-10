@@ -55,8 +55,8 @@ interface IntegrationCardProps {
   updatedAt?: Date
   exists?: boolean
   username?: string
-  handleClick?: () => void
-  handleDelete?: () => void
+  handleClick?: (ev?: React.MouseEvent<HTMLDivElement, MouseEvent>) => void
+  handleDelete?: (ev?: React.MouseEvent<HTMLButtonElement, MouseEvent>) => void
 }
 
 const IntegrationCard = ({
@@ -122,7 +122,6 @@ const Integrations = () => {
 
     // eslint-disable-next-line @typescript-eslint/naming-convention, no-underscore-dangle
     const _data = data.MyIntegrations?.integrations as IIntegrations
-
     const integrations: IntegrationCardProps[] = INTEGRATIONS.map(
       (integration) => {
         switch (integration.title) {
@@ -130,6 +129,7 @@ const Integrations = () => {
             return {
               ...integration,
               ..._data.github,
+              exists: !!_data.github?.accessToken,
               username: _data.github?.login,
               handleClick: () => {
                 if (!_data.github?.exists) {
@@ -152,7 +152,8 @@ const Integrations = () => {
                   setModal(IntegrationEnum.GitHub)
                 }
               },
-              handleDelete: async () => {
+              handleDelete: async (e) => {
+                e?.stopPropagation()
                 await deleteIntegration({
                   variables: {
                     id: _data.github?.integrationId,
