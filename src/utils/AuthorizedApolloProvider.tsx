@@ -37,12 +37,14 @@ const AuthorizedApolloProvider = ({
         type: 'error',
         description: error.message,
       })
-    } else if (networkError)
+    } else if (networkError) {
+      console.log(networkError)
       emitToast({
         title: 'We lost connection.',
         type: 'error',
         description: networkError.message,
       })
+    }
   })
 
   const authLink = setContext(async (_, { headers }) => {
