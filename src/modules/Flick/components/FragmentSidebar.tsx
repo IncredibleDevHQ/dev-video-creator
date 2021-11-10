@@ -1,8 +1,7 @@
+/* eslint-disable jsx-a11y/no-static-element-interactions */
+/* eslint-disable jsx-a11y/click-events-have-key-events */
 import { css, cx } from '@emotion/css'
 import React, { HTMLProps, useEffect, useState } from 'react'
-import { FiMoreHorizontal, FiPlus } from 'react-icons/fi'
-import { RiStickyNoteLine } from 'react-icons/ri'
-import { useRecoilState } from 'recoil'
 import {
   DragDropContext,
   Draggable,
@@ -10,21 +9,17 @@ import {
   DraggableStateSnapshot,
   Droppable,
 } from 'react-beautiful-dnd'
-import {
-  IoCheckmarkCircle,
-  IoCopyOutline,
-  IoTrashOutline,
-} from 'react-icons/io5'
-import { emitToast, Button, Text, Avatar, Tooltip } from '../../../components'
-import { newFlickStore } from '../store/flickNew.store'
+import { FiMoreHorizontal } from 'react-icons/fi'
+import { IoCheckmarkCircle, IoTrashOutline } from 'react-icons/io5'
+import { useRecoilState } from 'recoil'
+import { DeleteFragmentModal } from '.'
+import { Avatar, Text, Tooltip } from '../../../components'
 import {
   FlickFragmentFragment,
-  useGetFlickFragmentsLazyQuery,
   useReorderFragmentMutation,
   useUpdateFragmentMutation,
 } from '../../../generated/graphql'
-import NewFragmentModal from './NewFragmentModal'
-import { DeleteFragmentModal, DuplicateFragmentModal, NotesModal } from '.'
+import { newFlickStore } from '../store/flickNew.store'
 
 const style = css`
   ::-webkit-scrollbar {
@@ -33,76 +28,16 @@ const style = css`
 `
 
 const FragmentSideBar = () => {
-  const [{ flick }, setFlickStore] = useRecoilState(newFlickStore)
-  const [isCreateNewFragmentModalOpen, setIsCreateNewModalOpen] = useState(
-    flick?.fragments.length === 0
-  )
-
-  const [GetFlickFragments, { data, error, refetch }] =
-    useGetFlickFragmentsLazyQuery({
-      variables: {
-        flickId: flick?.id,
-      },
-    })
-
-  useEffect(() => {
-    if (!data || !flick) return
-    setFlickStore((store) => ({
-      ...store,
-      flick: {
-        ...flick,
-        fragments: [...data.Fragment],
-      },
-    }))
-  }, [data])
-
-  useEffect(() => {
-    if (!error || !refetch) return
-    emitToast({
-      title: "We couldn't fetch your new fragment",
-      type: 'error',
-      description: 'Click this toast to give it another try',
-      onClick: () => refetch(),
-    })
-  }, [error])
-
   return (
     <div>
       <div
         className={cx(
-          'w-56 h-full border-r border-gray-300 overflow-y-auto pt-10 pb-20 relative',
-          {
-            'h-full': flick?.fragments.length === 0,
-          },
+          'w-48 border-r border-gray-300 h-full overflow-y-scroll relative',
           style
         )}
       >
         <ThumbnailDND />
-        <div
-          className="bg-gray-50 fixed top-14 flex items-center justify-center w-56 left-0 cursor-pointer py-3 border border-gray-300"
-          onClick={() => setIsCreateNewModalOpen(true)}
-        >
-          <Button
-            type="button"
-            className="text-green-600 -ml-4"
-            appearance="link"
-            size="small"
-            icon={FiPlus}
-          >
-            <Text className="text-sm">New Fragment</Text>
-          </Button>
-        </div>
       </div>
-      {isCreateNewFragmentModalOpen && (
-        <NewFragmentModal
-          handleClose={(refresh) => {
-            setIsCreateNewModalOpen(false)
-            if (refresh) {
-              GetFlickFragments()
-            }
-          }}
-        />
-      )}
     </div>
   )
 }
@@ -201,27 +136,18 @@ const Thumbnail = ({
   ...rest
 }: ThumbnailProps) => {
   const [editFragmentName, setEditFragmentName] = useState(false)
-  const [{ flick, activeFragmentId }, setFlickStore] =
-    useRecoilState(newFlickStore)
-  const [updateFragmentMutation, { data: updateFargmentData }] =
+  const [{ flick }, setFlickStore] = useRecoilState(newFlickStore)
+  const [updateFragmentMutation, { data: updateFragmentData }] =
     useUpdateFragmentMutation()
   const [overflowButtonVisible, setOverflowButtonVisible] = useState(false)
   const [overflowMenuVisible, setOverflowMenuVisible] = useState(false)
 
   const [confirmDeleteModal, setConfirmDeleteModal] = useState(false)
-  const [duplicateModal, setDuplicateModal] = useState(false)
-  const [notesModal, setNotesModal] = useState(false)
-  const [GetFlickFragments, { data, error, refetch }] =
-    useGetFlickFragmentsLazyQuery({
-      variables: {
-        flickId: flick?.id,
-      },
-    })
 
   useEffect(() => {
-    if (!updateFargmentData) return
+    if (!updateFragmentData) return
     setEditFragmentName(false)
-  }, [updateFargmentData])
+  }, [updateFragmentData])
 
   const updateFragment = async (newName: string) => {
     if (editFragmentName) {
@@ -239,7 +165,7 @@ const Thumbnail = ({
           },
         }))
       }
-      const result = await updateFragmentMutation({
+      await updateFragmentMutation({
         variables: {
           fragmentId: fragment?.id, // value for 'fragmentId'
           name: newName,
@@ -251,13 +177,13 @@ const Thumbnail = ({
   return (
     <div
       role="button"
-      tabIndex={0}
+      tabIndex={-1}
       onKeyUp={() => {}}
       className={cx(
-        'flex flex-col my-2 mx-6 rounded-md h-28 bg-gray-100 justify-end p-4 relative border border-gray-300',
+        'flex flex-col my-2 mx-4 rounded-md h-24 bg-gray-100 justify-end p-2 relative border border-gray-300',
         {
           'border-green-600': active,
-          'mt-10': position === 0,
+          'mt-5': position === 0,
         },
         className
       )}
@@ -273,6 +199,9 @@ const Thumbnail = ({
       )}
       {overflowButtonVisible && (
         <div
+          role="button"
+          onKeyUp={() => {}}
+          tabIndex={-1}
           className="absolute top-0 right-0 m-2 bg-gray-50 w-min p-1 shadow-md rounded-md cursor-pointer"
           onClick={(e) => {
             e.stopPropagation()
@@ -288,26 +217,14 @@ const Thumbnail = ({
         content={
           <div className="flex flex-col bg-gray-50 rounded-md border border-gray-300 w-44 z-10 shadow-md">
             <div
-              className="flex items-center pt-3 pb-1.5 px-4 cursor-pointer hover:bg-gray-100"
+              role="button"
+              onKeyUp={() => {}}
+              tabIndex={-1}
+              className="flex items-center py-3 px-4 cursor-pointer hover:bg-gray-100"
               onClick={() => setConfirmDeleteModal(true)}
             >
               <IoTrashOutline size={21} className="text-gray-600 mr-4" />
               <Text className="font-medium">Delete</Text>
-            </div>
-            <div
-              className="flex items-center cursor-pointer py-1.5 px-4 hover:bg-gray-100"
-              onClick={() => setDuplicateModal(true)}
-            >
-              <IoCopyOutline size={21} className="text-gray-600 mr-4" />
-              <Text>Make a copy</Text>
-            </div>
-            <div className="h-px bg-gray-200" />
-            <div
-              className="flex items-center py-2 px-4 cursor-pointer hover:bg-gray-100"
-              onClick={() => setNotesModal(true)}
-            >
-              <RiStickyNoteLine size={21} className="text-gray-600mt-1 mr-4" />
-              <Text>Note</Text>
             </div>
           </div>
         }
@@ -316,14 +233,14 @@ const Thumbnail = ({
       />
       <Text
         className={cx(
-          'text-sm font-bold text-gray-800 cursor-text rounded-md p-1 hover:bg-gray-200 overflow-scroll',
+          'text-xs font-bold text-gray-800 cursor-text rounded-md p-1 hover:bg-gray-200 overflow-scroll',
           {
             'truncate overflow-ellipsis': !editFragmentName,
           }
         )}
         contentEditable={editFragmentName}
         onClick={(e) => e.stopPropagation()}
-        onMouseDown={(e) => {
+        onMouseDown={() => {
           setEditFragmentName(true)
         }}
         onKeyDown={(e) => {
@@ -332,41 +249,28 @@ const Thumbnail = ({
             setEditFragmentName(false)
             updateFragment(e.currentTarget.innerText)
           }
+          if (e.key === 'Escape') {
+            e.preventDefault()
+            e.currentTarget.innerText = fragment.name || ''
+            setEditFragmentName(false)
+          }
         }}
       >
         {fragment.name}
       </Text>
-      <div className="flex items-center justify-between pl-1">
-        <Text className="text-xs text-gray-600">{fragment.type}</Text>
-        <div className="flex">
-          {fragment.participants.map(({ participant }) => (
-            <Avatar
-              className="w-5 h-5 rounded-full mr-1"
-              src={participant.user.picture as string}
-              alt={participant.user.displayName as string}
-            />
-          ))}
-        </div>
+      <div className="flex pl-1 pt-1">
+        {fragment.participants.map(({ participant }) => (
+          <Avatar
+            className="w-5 h-5 rounded-full mr-1"
+            src={participant.user.picture as string}
+            alt={participant.user.displayName as string}
+          />
+        ))}
       </div>
       <DeleteFragmentModal
         open={confirmDeleteModal}
         handleClose={() => {
           setConfirmDeleteModal(false)
-        }}
-      />
-      <DuplicateFragmentModal
-        open={duplicateModal}
-        handleClose={(refresh) => {
-          if (refresh) {
-            GetFlickFragments()
-          }
-          setDuplicateModal(false)
-        }}
-      />
-      <NotesModal
-        open={notesModal}
-        handleClose={() => {
-          setNotesModal(false)
         }}
       />
     </div>

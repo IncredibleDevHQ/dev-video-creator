@@ -2,43 +2,7 @@ import React from 'react'
 import { Rect, Text } from 'react-konva'
 import { Fragment_Type_Enum_Enum } from '../../../generated/graphql'
 import { CONFIG } from '../components/Concourse'
-import AstroCodeJam from './Astro/AstroCodeJam'
-import AstroVideoJam from './Astro/AstroVideoJam'
-import NewAstroCodeJam from './Astro/NewAstroCodeJam'
-import CodeJam from './CodeJamTemplates/CodeJam'
-import CodeJamEight from './CodeJamTemplates/CodeJamEight'
-import CodeJamEleven from './CodeJamTemplates/CodeJamEleven'
-import CodeJamFive from './CodeJamTemplates/CodeJamFive'
-import CodeJamNine from './CodeJamTemplates/CodeJamNine'
-import CodeJamSeven from './CodeJamTemplates/CodeJamSeven'
-import CodeJamTen from './CodeJamTemplates/CodeJamTen'
-import CodeJamThree from './CodeJamTemplates/CodeJamThree'
-import CodeJamTwelve from './CodeJamTemplates/CodeJamTwelve'
 import CustomSplash from './CustomSplash'
-import GraphQLCodeJam from './GraphQL/GraphQLCodeJam'
-import GraphQLVideoJam from './GraphQL/GraphQLVideoJam'
-import NewGraphQLCodeJam from './GraphQL/NewGraphQLCodeJam'
-import Outro from './Outro'
-import Points from './Points'
-import PointsEight from './PointsEight'
-import PointsEleven from './PointsEleven'
-import PointsFive from './PointsFive'
-import PointsFour from './PointsFour'
-import PointsNine from './PointsNine'
-import PointsSeven from './PointsSeven'
-import PointsSix from './PointsSix'
-import PointsTen from './PointsTen'
-import PointsThree from './PointsThree'
-import PointsTwelve from './PointsTwelve'
-import PointsTwo from './PointsTwo'
-import Slides from './Slides'
-import SlidesEleven from './SlidesEleven'
-import SlidesFour from './SlidesFour'
-import SlidesTen from './SlidesTen'
-import SlidesThree from './SlidesThree'
-import SlidesTwelve from './SlidesTwelve'
-import SlidesTwo from './SlidesTwo'
-import Solo from './Solo'
 import SplashEight from './SplashEight'
 import SplashEighteen from './SplashEighteen'
 import SplashEleven from './SplashEleven'
@@ -58,30 +22,6 @@ import SplashThree from './SplashThree'
 import SplashTwelve from './SplashTwelve'
 import SplashTwenty from './SplashTwenty'
 import SplashTwentyOne from './SplashTwentyOne'
-import NewTensorFlowCodeJam from './TensorFlow/NewTensorFlowCodeJam'
-import TensorFlowCodeJam from './TensorFlow/TensorFlowCodeJam'
-import TensorFlowVideoJam from './TensorFlow/TensorFlowVideoJam'
-import Trivia from './Trivia'
-import TriviaEight from './TriviaEight'
-import TriviaEleven from './TriviaEleven'
-import TriviaFive from './TriviaFive'
-import TriviaFour from './TriviaFour'
-import TriviaNine from './TriviaNine'
-import TriviaSeven from './TriviaSeven'
-import TriviaSix from './TriviaSix'
-import TriviaTen from './TriviaTen'
-import TriviaThree from './TriviaThree'
-import TriviaTwelve from './TriviaTwelve'
-import TriviaTwo from './TriviaTwo'
-import VideoJam from './VideoJamTemplates/VideoJam'
-import VideoJamEleven from './VideoJamTemplates/VideoJamEleven'
-import VideoJamFive from './VideoJamTemplates/VideoJamFive'
-import VideoJamNine from './VideoJamTemplates/VideoJamNine'
-import VideoJamSeven from './VideoJamTemplates/VideoJamSeven'
-import VideoJamTen from './VideoJamTemplates/VideoJamTen'
-import VideoJamThree from './VideoJamTemplates/VideoJamThree'
-import VideoJamTwelve from './VideoJamTemplates/VideoJamTwelve'
-import VideoJamTwo from './VideoJamTemplates/VideoJamTwo'
 
 const themeEnum = 'theme'
 export interface Effect {
@@ -135,83 +75,6 @@ const getSplash = (theme: any) => {
   return CustomSplash
 }
 
-const getVideoTheme = (theme: any) => {
-  if (theme.value === '1') return GraphQLVideoJam
-  if (theme.value === '2') return VideoJamFive
-  if (theme.value === '3') return AstroVideoJam
-  if (theme.value === '4') return VideoJamSeven
-  if (theme.value === '5') return TensorFlowVideoJam
-  if (theme.value === '6') return VideoJamNine
-  if (theme.value === '7') return VideoJamTwo
-  if (theme.value === '8') return VideoJamThree
-  if (theme.value === '9') return VideoJamTen
-  if (theme.value === '10') return VideoJamEleven
-  if (theme.value === '11') return VideoJamTwelve
-  return VideoJam
-}
-
-const getCodeJamTheme = (theme: any) => {
-  if (theme.value === '1') return GraphQLCodeJam
-  if (theme.value === '2') return CodeJamThree
-  if (theme.value === '3') return AstroCodeJam
-  if (theme.value === '4') return CodeJamFive
-  if (theme.value === '5') return TensorFlowCodeJam
-  if (theme.value === '6') return CodeJamSeven
-  if (theme.value === '7') return CodeJamEight
-  if (theme.value === '8') return CodeJamNine
-  if (theme.value === '9') return CodeJamTen
-  if (theme.value === '10') return CodeJamEleven
-  if (theme.value === '11') return CodeJamTwelve
-  return CodeJam
-}
-
-const getAutomatedCodeJamTheme = (theme: any) => {
-  if (theme.value === '1') return NewGraphQLCodeJam
-  if (theme.value === '3') return NewAstroCodeJam
-  if (theme.value === '5') return NewTensorFlowCodeJam
-  return NewAstroCodeJam
-}
-
-const getTriviaTheme = (theme: any) => {
-  if (theme.value === '1') return TriviaTwo // default
-  if (theme.value === '2') return TriviaThree // open Sauced
-  if (theme.value === '3') return TriviaFour // astro
-  if (theme.value === '4') return TriviaFive // wtf js
-  if (theme.value === '5') return TriviaSix // tensorflow
-  if (theme.value === '6') return TriviaSeven // next js
-  if (theme.value === '7') return TriviaEight // elastic
-  if (theme.value === '8') return TriviaNine // hasura
-  if (theme.value === '9') return TriviaTen // ts
-  if (theme.value === '10') return TriviaEleven // Py tourch
-  if (theme.value === '11') return TriviaTwelve // svelte
-  return Trivia
-}
-
-const getPointsTheme = (theme: any) => {
-  if (theme.value === '1') return PointsTwo //
-  if (theme.value === '2') return PointsThree
-  if (theme.value === '3') return PointsFour
-  if (theme.value === '4') return PointsFive
-  if (theme.value === '5') return PointsSix
-  if (theme.value === '6') return PointsSeven
-  if (theme.value === '7') return PointsEight // elastic
-  if (theme.value === '8') return PointsNine // hasura
-  if (theme.value === '9') return PointsTen // ts
-  if (theme.value === '10') return PointsEleven // py tourch
-  if (theme.value === '11') return PointsTwelve // svelte
-  return Points
-}
-
-const getSlideTheme = (theme: any) => {
-  if (theme.value === '7') return SlidesTwo
-  if (theme.value === '8') return SlidesFour
-  if (theme.value === '9') return SlidesTen
-  if (theme.value === '5') return SlidesThree
-  if (theme.value === '10') return SlidesEleven
-  if (theme.value === '11') return SlidesTwelve
-  return Slides
-}
-
 export const getDimensions = (
   img: { w: number; h: number },
   maxH: number,
@@ -258,25 +121,8 @@ export const getEffect = (
   switch (type) {
     case Fragment_Type_Enum_Enum.Splash:
       return getSplash(theme)
-    case Fragment_Type_Enum_Enum.CodeJam: {
-      const isAutomated = config.properties.find(
-        (property: any) => property.key === 'code'
-      )?.value?.isAutomated
-      if (isAutomated) return getAutomatedCodeJamTheme(theme)
-      return getCodeJamTheme(theme)
-    }
-    case Fragment_Type_Enum_Enum.Videoshow:
-      return getVideoTheme(theme)
-    case Fragment_Type_Enum_Enum.Trivia:
-      return getTriviaTheme(theme)
-    case Fragment_Type_Enum_Enum.Solo:
-      return Solo
-    case Fragment_Type_Enum_Enum.Slides:
-      return getSlideTheme(theme)
-    case Fragment_Type_Enum_Enum.Points:
-      return getPointsTheme(theme)
     case Fragment_Type_Enum_Enum.Outro:
-      return Outro
+      return getSplash(theme)
     default:
       throw Error('No effect found')
   }

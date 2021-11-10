@@ -10,6 +10,14 @@ query UserAsset {
   }
 }
 
+query GetUserImageAssets {
+  Asset(where: { type: { _eq: Image } }) {
+    id
+    displayName
+    objectLink
+  }
+}
+
 mutation AddAsset(
   $displayName: String!
   $objectLink: String!
