@@ -58,7 +58,7 @@ export const useUploadFile = () => {
         data: file,
         headers: {
           'Content-Type': mime.getType(extension),
-          'content-disposition': 'attachment',
+          'content-disposition': 'inline',
         },
         onUploadProgress: (e) => {
           const work = e.loaded / e.total

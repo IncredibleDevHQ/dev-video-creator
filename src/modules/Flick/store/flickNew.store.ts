@@ -4,6 +4,7 @@ import { FlickFragment } from '../../../generated/graphql'
 interface NewFlickStore {
   flick: FlickFragment | null
   activeFragmentId: string
+  isMarkdown: boolean
 }
 
 export const newFlickStore = atom<NewFlickStore>({
@@ -11,5 +12,6 @@ export const newFlickStore = atom<NewFlickStore>({
   default: {
     flick: null,
     activeFragmentId: '',
+    isMarkdown: true,
   } as NewFlickStore,
 })

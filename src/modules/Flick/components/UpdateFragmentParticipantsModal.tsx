@@ -1,10 +1,9 @@
 import { cx } from '@emotion/css'
-import React, { useEffect } from 'react'
-import { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { BiCheckCircle, BiCircle } from 'react-icons/bi'
 import Modal from 'react-responsive-modal'
-import { useRecoilState, useRecoilValue } from 'recoil'
-import { Heading, Text, Button, emitToast } from '../../../components'
+import { useRecoilValue } from 'recoil'
+import { Button, emitToast, Text } from '../../../components'
 import { useUpdateParticipantsMutation } from '../../../generated/graphql'
 import { newFlickStore } from '../store/flickNew.store'
 
@@ -15,8 +14,7 @@ const UpdateFragmentParticipantsModal = ({
   open: boolean
   handleClose: (refresh?: boolean) => void
 }) => {
-  const [{ flick, activeFragmentId }, setFlickStore] =
-    useRecoilState(newFlickStore)
+  const { flick, activeFragmentId } = useRecoilValue(newFlickStore)
 
   const fragment = flick?.fragments.find((f) => f.id === activeFragmentId)
 
@@ -46,6 +44,7 @@ const UpdateFragmentParticipantsModal = ({
   }, [error])
 
   useEffect(() => {
+    if (!data) return
     handleClose(true)
   }, [data])
 
@@ -71,6 +70,7 @@ const UpdateFragmentParticipantsModal = ({
               <img
                 className="w-8 h-8 rounded-full border-2 mr-2"
                 src={participant.user.picture || ''}
+                alt={participant.user.displayName || ''}
               />
               <Text>{participant.user.displayName}</Text>
             </div>

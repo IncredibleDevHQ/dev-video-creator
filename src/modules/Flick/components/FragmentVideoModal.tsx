@@ -1,7 +1,7 @@
 import { css, cx } from '@emotion/css'
 import React from 'react'
 import { Modal } from 'react-responsive-modal'
-import { useRecoilState } from 'recoil'
+import { useRecoilValue } from 'recoil'
 import { Video } from '../../../components'
 import config from '../../../config'
 import { newFlickStore } from '../store/flickNew.store'
@@ -13,8 +13,7 @@ const FragmentVideoModal = ({
   open: boolean
   handleClose: () => void
 }) => {
-  const [{ flick, activeFragmentId }, setFlickStore] =
-    useRecoilState(newFlickStore)
+  const { flick, activeFragmentId } = useRecoilValue(newFlickStore)
 
   const fragment = flick?.fragments.find((f) => f.id === activeFragmentId)
 
@@ -28,7 +27,7 @@ const FragmentVideoModal = ({
       styles={{
         modal: {
           maxWidth: '80%',
-        }
+        },
       }}
       classNames={{
         modal: cx(

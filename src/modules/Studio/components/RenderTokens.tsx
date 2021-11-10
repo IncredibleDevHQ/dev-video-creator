@@ -12,7 +12,7 @@ import { ComputedToken } from '../hooks/use-code'
 import { StudioProviderProps, studioStore } from '../stores'
 import { ControlButton } from './MissionControl'
 
-export type FragmentState = 'onlyUserMedia' | 'onlyFragment' | 'both'
+export type FragmentState = 'onlyUserMedia' | 'customLayout' | 'both'
 export interface TokenRenderState {
   tokens: ComputedToken[]
   index: number
@@ -21,14 +21,6 @@ export interface TokenRenderState {
 export interface Position {
   prevIndex: number
   currentIndex: number
-}
-
-export interface CodeBlockConfig {
-  from: number
-  to: number
-  explanation: string
-  id: string
-  order: number
 }
 
 export const shortsCodeConfig = {
@@ -280,10 +272,10 @@ export const RenderMultipleLineFocus = ({
         </Group>
       ) : (
         <Group
-          x={130}
-          y={300}
-          width={700}
-          height={150}
+          x={bgRectInfo.x + 50}
+          y={bgRectInfo.y + bgRectInfo.height - bgRectInfo.height / 3 - 30}
+          width={bgRectInfo.width - 100}
+          height={bgRectInfo.height / 3}
           ref={(ref) => {
             if (explanation !== '')
               ref?.to({
@@ -296,8 +288,8 @@ export const RenderMultipleLineFocus = ({
           <Rect
             x={0}
             y={0}
-            width={700}
-            height={150}
+            width={bgRectInfo.width - 100}
+            height={bgRectInfo.height / 3}
             fill="#ffffff"
             cornerRadius={8}
             opacity={0.2}
@@ -310,8 +302,8 @@ export const RenderMultipleLineFocus = ({
             fill="#F3F4F6"
             text={explanation}
             lineHeight={1.2}
-            width={668}
-            height={118}
+            width={bgRectInfo.width - 100 - 32}
+            height={bgRectInfo.height / 3 - 32}
             align="center"
             verticalAlign="middle"
           />
@@ -535,6 +527,7 @@ export const getRenderedTokens = (
 export const getTokens = (
   tokens: ComputedToken[],
   startLineNumber: number | undefined,
+  availableHeight: number,
   isShorts?: boolean
 ) => {
   let computedLineNumber = 0
@@ -546,7 +539,7 @@ export const getTokens = (
 
   return tokens
     .filter(
-      (token, i) =>
+      (token) =>
         token.lineNumber >= (startLineNumber || 0) &&
         token.lineNumber < (startLineNumber || 0) + noOfLines
     )
@@ -557,7 +550,10 @@ export const getTokens = (
       } else if (token.x === 0 && index !== 0) {
         computedLineNumber += 1
       }
-      if (computedLineNumber < noOfLines)
+      if (
+        (codeConfig.fontSize + 5) * computedLineNumber <
+        availableHeight - codeConfig.fontSize
+      )
         return (
           <Text
             // eslint-disable-next-line

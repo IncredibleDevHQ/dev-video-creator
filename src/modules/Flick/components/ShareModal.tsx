@@ -1,7 +1,9 @@
 import { cx } from '@emotion/css'
 import React, { useEffect, useState } from 'react'
 import Modal from 'react-responsive-modal'
+import Select from 'react-select'
 import { useRecoilState, useRecoilValue } from 'recoil'
+import { Button, emitToast, Text } from '../../../components'
 import {
   FilteredUserFragment,
   InviteParticipantRoleEnum,
@@ -12,8 +14,6 @@ import {
   useInviteParticipantToFlickMutation,
   useUpdateParticipantRoleMutation,
 } from '../../../generated/graphql'
-import { Button, emitToast, Text, TextField } from '../../../components'
-import Select from 'react-select'
 import { User, userState } from '../../../stores/user.store'
 import { newFlickStore } from '../store/flickNew.store'
 
@@ -78,17 +78,12 @@ const ShareModal = ({
   ] = useGetFilteredUsersLazyQuery()
   useEffect(() => {
     if (search === '') return
-    console.log('searching for', search)
     GetFilteredUsers({
       variables: {
         _ilike: `%${search}%`,
       },
     })
   }, [search])
-
-  useEffect(() => {
-    console.log(filteredUsersError)
-  }, [filteredUsersError])
 
   const [
     AddMemberToFlickMutation,
@@ -154,7 +149,7 @@ const ShareModal = ({
             p.id === participantId
               ? {
                   ...p,
-                  role: role,
+                  role,
                 }
               : p
           ),
@@ -162,7 +157,7 @@ const ShareModal = ({
       }))
     UpdateParticipantRole({
       variables: {
-        participantId: participantId,
+        participantId,
         role: getUpdateRole(role),
         flickId: flick?.id,
       },
@@ -254,6 +249,7 @@ const ShareModal = ({
               <img
                 className="w-8 h-8 rounded-full border-2"
                 src={participant.user.picture || ''}
+                alt={participant.user.displayName || ''}
               />
               <Text className="ml-4 text-xs">
                 {participant.user.displayName}

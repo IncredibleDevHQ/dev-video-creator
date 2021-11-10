@@ -7,6 +7,7 @@ fragment FlickFragment on Fragment {
   order
   type
   producedLink
+  editorState
   participants {
     participant {
       ...FlickParticipants
@@ -133,10 +134,14 @@ mutation MarkFragmentCompleted(
   }
 }
 
-mutation UpdateFragmentShort($id: uuid!, $producedShortsLink: String!) {
+mutation UpdateFragmentShort(
+  $id: uuid!
+  $producedShortsLink: String!
+  $duration: float8!
+) {
   update_Fragment_by_pk(
     pk_columns: { id: $id }
-    _set: { producedShortsLink: $producedShortsLink }
+    _set: { producedShortsLink: $producedShortsLink, shortsDuration: $duration }
   ) {
     updatedAt
   }
@@ -148,6 +153,19 @@ mutation AddConfiguration($configuration: json!, $id: uuid!) {
     _set: { configuration: $configuration }
   ) {
     ...FlickFragment
+  }
+}
+
+mutation UpdateFragmentState(
+  $editorState: json!
+  $id: uuid!
+  $configuration: json!
+) {
+  update_Fragment_by_pk(
+    pk_columns: { id: $id }
+    _set: { editorState: $editorState, configuration: $configuration }
+  ) {
+    id
   }
 }
 
@@ -166,14 +184,12 @@ mutation InsertParticipantToFragment(
 mutation CreateFragment(
   $flickId: uuid!
   $name: String!
-  $type: CreateFragmentTypeEnum!
   $description: String
   $creatorPid: uuid
 ) {
   CreateFragment(
     flickId: $flickId
     name: $name
-    type: $type
     description: $description
     creatorParticipantId: $creatorPid
   ) {

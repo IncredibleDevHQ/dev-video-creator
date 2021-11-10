@@ -118,13 +118,7 @@ const Splash = () => {
     ])
   }
 
-  return (
-    <Concourse
-      disableUserMedia
-      layerChildren={layerChildren}
-      controls={controls}
-    />
-  )
+  return <Concourse disableUserMedia layerChildren={layerChildren} />
 }
 
 export default Splash

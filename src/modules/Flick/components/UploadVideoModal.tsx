@@ -24,7 +24,7 @@ const UploadVideoModal = ({
     fileName: string
   }>()
   const [uploadVideo] = useUploadFile()
-  const [addAssetMutation, { data, loading, error }] = useAddAssetMutation()
+  const [addAssetMutation, { data, loading }] = useAddAssetMutation()
 
   const handleClick = async (file: File) => {
     if (!file) return
