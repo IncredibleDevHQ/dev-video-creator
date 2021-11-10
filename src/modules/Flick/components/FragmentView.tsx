@@ -11,6 +11,7 @@ import {
 } from 'react-icons/io5'
 import { Layer, Stage } from 'react-konva'
 import { Html } from 'react-konva-utils'
+import useMeasure, { RectReadOnly } from 'react-use-measure'
 import {
   useRecoilBridgeAcrossReactRoots_UNSTABLE,
   useRecoilState,
@@ -48,6 +49,27 @@ const scrollStyle = css`
   }
 `
 
+const useGetHW = ({
+  maxH,
+  maxW,
+  aspectRatio,
+}: {
+  maxH: number
+  maxW: number
+  aspectRatio: number
+}) => {
+  let calWidth = 0
+  let calHeight = 0
+  if (aspectRatio > maxW / maxH) {
+    calHeight = maxW * (1 / aspectRatio)
+    calWidth = maxW
+  } else if (aspectRatio <= maxW / maxH) {
+    calHeight = maxH
+    calWidth = maxH * aspectRatio
+  }
+  return { width: calWidth, height: calHeight }
+}
+
 function FragmentView({
   config,
   selectedLayoutId,
@@ -59,10 +81,12 @@ function FragmentView({
   selectedLayoutId: string
   setSelectedLayoutId: React.Dispatch<React.SetStateAction<string>>
 }) {
+  const [ref, bounds] = useMeasure()
+
   return (
-    <div className="p-4 flex flex-1 overflow-scroll">
+    <div className="p-4 flex flex-1 overflow-scroll" ref={ref}>
       <div className="w-min">
-        <Preview config={config} />
+        <Preview config={config} bounds={bounds} />
         <Layouts
           config={config}
           setConfig={setConfig}
@@ -79,7 +103,13 @@ function FragmentView({
   )
 }
 
-const Preview = ({ config }: { config: Config }) => {
+const Preview = ({
+  config,
+  bounds,
+}: {
+  config: Config
+  bounds: RectReadOnly
+}) => {
   const stageRef = createRef<Konva.Stage>()
   const layerRef = createRef<Konva.Layer>()
   const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
@@ -90,18 +120,34 @@ const Preview = ({ config }: { config: Config }) => {
 
   Konva.pixelRatio = 2
 
+  const { height: divHeight, width: divWidth } = useGetHW({
+    maxH: bounds.height / 1.25,
+    maxW: bounds.width / 1.25,
+    aspectRatio: 16 / 9,
+  })
+
+  const { height, width } = useGetHW({
+    maxH: bounds.height / 1.25,
+    maxW: bounds.width / 1.25,
+    aspectRatio: shortsMode ? 9 / 16 : 16 / 9,
+  })
+
   return (
     <div
       style={{
-        width: CONFIG.width,
+        height: divHeight,
+        width: divWidth,
       }}
       className="flex justify-center border"
     >
       <Stage
         ref={stageRef}
-        height={shortsMode ? SHORTS_CONFIG.height / 1.305 : CONFIG.height}
-        width={shortsMode ? SHORTS_CONFIG.width / 1.305 : CONFIG.width}
-        scale={shortsMode ? { x: 0.77, y: 0.77 } : { x: 1, y: 1 }}
+        height={height}
+        width={width}
+        scale={{
+          x: height / (shortsMode ? SHORTS_CONFIG.height : CONFIG.height),
+          y: width / (shortsMode ? SHORTS_CONFIG.width : CONFIG.width),
+        }}
       >
         <Bridge>
           <Layer ref={layerRef}>
@@ -122,7 +168,7 @@ const Preview = ({ config }: { config: Config }) => {
             {payload?.fragmentState === 'titleSplash' &&
               config.viewConfig.hasTitleSplash && (
                 <TitleSplash
-                  isShorts={false}
+                  isShorts={shortsMode}
                   stageConfig={{
                     height: shortsMode ? SHORTS_CONFIG.height : CONFIG.height,
                     width: shortsMode ? SHORTS_CONFIG.width : CONFIG.width,
