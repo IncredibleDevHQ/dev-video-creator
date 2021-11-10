@@ -19,7 +19,7 @@ import {
   FragmentView,
 } from './components'
 import { newFlickStore } from './store/flickNew.store'
-import { initEditor } from '../../utils/plateConfig/serializer/VALUES'
+import { initEditor } from '../../utils/plateConfig/serializer/values'
 
 const useLocalPayload = () => {
   const initialPayload = {
