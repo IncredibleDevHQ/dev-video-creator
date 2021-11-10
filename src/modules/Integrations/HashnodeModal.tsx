@@ -65,6 +65,8 @@ const HashnodeModal = ({
             <a
               className="underline-link"
               href="https://hashnode.com/settings/developer"
+              target="_blank"
+              rel="noopener noreferrer"
             >
               Hashnode account
             </a>

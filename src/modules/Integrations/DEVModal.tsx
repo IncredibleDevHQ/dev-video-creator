@@ -63,6 +63,8 @@ const DEVModal = ({
             <a
               className="underline-link"
               href="https://dev.to/settings/account"
+              target="_blank"
+              rel="noopener noreferrer"
             >
               DEV account
             </a>
