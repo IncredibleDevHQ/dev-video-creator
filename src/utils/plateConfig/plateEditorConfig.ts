@@ -23,6 +23,7 @@ import {
   isBlockAboveEmpty,
   isSelectionAtBlockStart,
   KEYS_HEADING,
+  LineHeightPluginOptions,
   NormalizeTypesPluginOptions,
   PlatePluginOptions,
   ResetBlockTypePluginOptions,
@@ -50,6 +51,7 @@ export const CONFIG: {
   exitBreak: ExitBreakPluginOptions
   forceLayout: NormalizeTypesPluginOptions
   indent: IndentPluginOptions
+  lineHeight: LineHeightPluginOptions
   mentionItems: any
   resetBlockType: ResetBlockTypePluginOptions
   selectOnBackspace: SelectOnBackspacePluginOptions
@@ -57,31 +59,33 @@ export const CONFIG: {
   trailingBlock: TrailingBlockPluginOptions
 } = {
   editableProps: {
+    autoFocus: process.env.NODE_ENV !== 'production',
     spellCheck: false,
-    autoFocus: false,
     placeholder: 'Type…',
     style: {
       padding: '15px',
     },
   },
   options: createPlateOptions(),
-  components: createPlateComponents({
-    [ELEMENT_CODE_BLOCK]: withProps(CodeBlockElement, {
-      styles: {
-        root: [
-          css`
-            background-color: #111827;
-            code {
-              color: white;
-            }
-          `,
-        ],
-      },
+  components: [
+    createPlateComponents({
+      [ELEMENT_CODE_BLOCK]: withProps(CodeBlockElement, {
+        styles: {
+          root: [
+            css`
+              background-color: #111827;
+              code {
+                color: white;
+              }
+            `,
+          ],
+        },
+      }),
     }),
-  }),
+  ],
 
   align: {
-    types: [
+    validTypes: [
       ELEMENT_PARAGRAPH,
       ELEMENT_H1,
       ELEMENT_H2,
@@ -92,7 +96,7 @@ export const CONFIG: {
     ],
   },
   indent: {
-    types: [
+    validTypes: [
       ELEMENT_PARAGRAPH,
       ELEMENT_H1,
       ELEMENT_H2,
@@ -102,6 +106,19 @@ export const CONFIG: {
       ELEMENT_H6,
       ELEMENT_BLOCKQUOTE,
       ELEMENT_CODE_BLOCK,
+    ],
+  },
+  lineHeight: {
+    defaultNodeValue: 1.2,
+    validNodeValues: [1, 1.2, 1.5, 2, 3],
+    validTypes: [
+      ELEMENT_PARAGRAPH,
+      ELEMENT_H1,
+      ELEMENT_H2,
+      ELEMENT_H3,
+      ELEMENT_H4,
+      ELEMENT_H5,
+      ELEMENT_H6,
     ],
   },
   resetBlockType: {
@@ -155,7 +172,7 @@ export const CONFIG: {
   autoformat: {
     rules: autoformatRules,
   },
-  mentionItems: {},
+  mentionItems: undefined,
   forceLayout: {
     rules: [],
   },

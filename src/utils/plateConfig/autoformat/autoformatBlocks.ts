@@ -11,7 +11,6 @@ import {
   ELEMENT_H6,
   getPlatePluginType,
   insertEmptyCodeBlock,
-  SPEditor,
 } from '@udecode/plate'
 import { preFormat } from './autoformatUtils'
 
@@ -101,8 +100,8 @@ export const autoformatBlocks: AutoformatRule[] = [
     triggerAtBlockStart: false,
     preFormat,
     format: (editor) => {
-      insertEmptyCodeBlock(editor as SPEditor, {
-        defaultType: getPlatePluginType(editor as SPEditor, ELEMENT_DEFAULT),
+      insertEmptyCodeBlock(editor as any, {
+        defaultType: getPlatePluginType(editor as any, ELEMENT_DEFAULT),
         insertNodesOptions: { select: true },
       })
     },
@@ -114,8 +113,8 @@ export const autoformatBlocks: AutoformatRule[] = [
     triggerAtBlockStart: true,
     preFormat,
     format: (editor) => {
-      insertEmptyCodeBlock(editor as SPEditor, {
-        defaultType: getPlatePluginType(editor as SPEditor, ELEMENT_DEFAULT),
+      insertEmptyCodeBlock(editor as any, {
+        defaultType: getPlatePluginType(editor as any, ELEMENT_DEFAULT),
         insertNodesOptions: { select: true },
       })
     },

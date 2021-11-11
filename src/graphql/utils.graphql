@@ -76,3 +76,10 @@ mutation GetCodeExplanation($code: String!) {
     description
   }
 }
+
+mutation PublishFlickBlog($flickId: String!) {
+  GenerateBlog(flickId: $flickId) {
+    rawMd
+    success
+  }
+}
