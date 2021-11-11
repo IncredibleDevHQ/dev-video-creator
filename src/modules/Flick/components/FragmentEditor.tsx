@@ -53,12 +53,15 @@ import {
   useGetCodeExplanationMutation,
   useGetSuggestedTextMutation,
 } from '../../../generated/graphql'
+import { Auth, authState } from '../../../stores/auth.store'
+import { CodejamConfig, ConfigType } from '../../../utils/configTypes'
 import {
   BallonToolbarMarks,
   ToolbarButtons,
 } from '../../../utils/plateConfig/components/Toolbars'
 import { withStyledPlaceHolders } from '../../../utils/plateConfig/components/withStyledPlaceholders'
 import { CONFIG } from '../../../utils/plateConfig/plateEditorConfig'
+import { serializeDataConfig } from '../../../utils/plateConfig/serializer/config-serialize'
 import { newFlickStore } from '../store/flickNew.store'
 
 type TEditor = PEditor & ReactEditor & HistoryEditor
@@ -78,6 +81,8 @@ const FragmentEditor = ({
 
   const [getSuggestedText] = useGetSuggestedTextMutation()
   const [getCodeExplanation] = useGetCodeExplanationMutation()
+
+  const { token } = (useRecoilValue(authState) as Auth) || {}
 
   // @ts-ignore
   const pluginsMemo: PlatePlugin<TEditor>[] = useMemo(() => {
@@ -126,16 +131,23 @@ const FragmentEditor = ({
   }, [editor, activeFragmentId])
 
   const onKeysHandler = async (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (!value) return
+    if (!value || value.length < 1) return
     if (e.ctrlKey && e.key === ' ') {
       e.preventDefault()
       e.stopPropagation()
+      const codeText: TNode = value
+        .filter((block) => block.type === 'code_block')
+        .pop()
+      const config = await serializeDataConfig(
+        [codeText as TNode],
+        token as string
+      )
+      const codeConfig = config.find(
+        (c) => c.type === ConfigType.CODEJAM
+      ) as CodejamConfig
       const explanation = await getCodeExplanation({
         variables: {
-          code: value
-            .filter((block) => block.type === 'code_block')
-            .map((block) => serialize(block))
-            .join('\n'),
+          code: codeConfig.value.code,
         },
       })
       editor?.insertBreak()

@@ -34,7 +34,6 @@ import {
   usePlateEditorRef,
   usePlateEditorState,
 } from '@udecode/plate'
-import { nanoid } from 'nanoid'
 import { css, cx } from '@emotion/css'
 import {
   MdBorderAll,
@@ -67,12 +66,16 @@ import { BiHeading } from 'react-icons/bi'
 import { ReactEditor } from 'slate-react'
 import { HistoryEditor } from 'slate-history'
 import { FiCheckCircle, FiXCircle } from 'react-icons/fi'
+import { useRecoilValue } from 'recoil'
 import { Button } from '../../../components'
 import { VideoInventoryModal } from '../../../modules/Flick/components'
 import {
   useGetCodeExplanationMutation,
   useGetSuggestedTextMutation,
 } from '../../../generated/graphql'
+import { serializeDataConfig } from '../serializer/config-serialize'
+import { Auth, authState } from '../../../stores/auth.store'
+import { CodejamConfig, ConfigType } from '../../configTypes'
 
 export const ToolbarButtonsBasicElements = () => {
   const editor = usePlateEditorRef()
@@ -307,6 +310,7 @@ export const GenerateExplanationButton = ({
     useGetSuggestedTextMutation()
   const [getCodeExplanation, { loading: codeLoading }] =
     useGetCodeExplanationMutation()
+  const { token } = (useRecoilValue(authState) as Auth) || {}
 
   return (
     <div className="mx-2 flex justify-end items-center">
@@ -355,29 +359,26 @@ export const GenerateExplanationButton = ({
         disabled={isExplanation || codeLoading}
         onClick={async () => {
           if (!value || value.length < 1 || !editorState) return
+
+          const codeText: TNode = value
+            .filter((block) => block.type === 'code_block')
+            .pop()
+          const config = await serializeDataConfig(
+            [codeText as TNode],
+            token as string
+          )
+          const codeConfig = config.find(
+            (c) => c.type === ConfigType.CODEJAM
+          ) as CodejamConfig
           const explanation = await getCodeExplanation({
             variables: {
-              code: value
-                .filter((block) => block.type === 'code_block')
-                .map((block) => serialize(block))
-                .join('\n'),
+              code: codeConfig.value.code,
             },
           })
           editorState.insertBreak()
           editorState.insertText(
             explanation.data?.ExplainCode?.description || ''
           )
-          // editorState.children.push({
-          //   id: nanoid(),
-          //   type: 'p',
-          //   children: [
-          //     {
-          //       id: nanoid(),
-          //       type: 'text',
-          //       text: explanation.data?.ExplainCode?.description || '',
-          //     },
-          //   ],
-          // })
           setExplanation(true)
         }}
       >
