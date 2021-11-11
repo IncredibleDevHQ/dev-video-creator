@@ -150,7 +150,7 @@ const PublishModal = ({
       center
       classNames={{
         modal: cx(
-          'rounded-lg w-auto md:w-2/3',
+          'rounded-lg w-auto md:w-2/3 overflow-x-hidden',
           css`
             background-color: #fffffff !important;
           `
