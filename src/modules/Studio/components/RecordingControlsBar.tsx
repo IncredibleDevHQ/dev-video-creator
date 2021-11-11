@@ -92,7 +92,6 @@ const RaiseHandsMenu = ({ participants }: { participants: any[] }) => {
 const RecordingControlsBar = () => {
   const {
     constraints,
-    showFinalTransition,
     upload,
     reset,
     state,
@@ -186,34 +185,34 @@ const RecordingControlsBar = () => {
         </div>
       )}
 
-      {(state === 'ready' ||
-        state === 'recording' ||
+      {(state === 'recording' ||
         payload?.status === Fragment_Status_Enum_Enum.Live) && (
         <button
           type="button"
           onClick={() => {
-            if (
-              state === 'recording' ||
-              payload?.status === Fragment_Status_Enum_Enum.Live
-            ) {
-              showFinalTransition()
-            } else {
-              setStudio({ ...studio, state: 'countDown' })
-              updatePayload?.({
-                status: Fragment_Status_Enum_Enum.CountDown,
-              })
-            }
+            updatePayload?.({
+              ...payload,
+              status: Fragment_Status_Enum_Enum.Ended,
+            })
           }}
           className="flex gap-x-2 bg-gray-700 items-center justify-center p-2 rounded-md"
         >
-          {state === 'ready' && <img src={startRecordIcon} alt="start" />}
-          {(state === 'recording' ||
-            payload?.status === Fragment_Status_Enum_Enum.Live) && (
-            <>
-              <img src={stopRecordIcon} alt="stop" />
-              <Timer target={180} timer={timer} />
-            </>
-          )}
+          <img src={stopRecordIcon} alt="stop" />
+          <Timer target={180} timer={timer} />
+        </button>
+      )}
+      {state === 'ready' && (
+        <button
+          type="button"
+          onClick={() => {
+            setStudio({ ...studio, state: 'countDown' })
+            updatePayload?.({
+              status: Fragment_Status_Enum_Enum.CountDown,
+            })
+          }}
+          className="flex bg-gray-700 items-center justify-center p-2 rounded-md"
+        >
+          <img src={startRecordIcon} alt="start" />
         </button>
       )}
       <button

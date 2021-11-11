@@ -21,8 +21,8 @@ import {
   EmptyState,
   Heading,
   ScreenState,
-  updateToast,
   Text,
+  updateToast,
 } from '../../components'
 import config from '../../config'
 import {
@@ -37,7 +37,7 @@ import {
 import { useCanvasRecorder } from '../../hooks'
 import { useUploadFile } from '../../hooks/use-upload-file'
 import { User, userState } from '../../stores/user.store'
-import { ConfigType } from '../../utils/configTypes'
+import { Config, ConfigType } from '../../utils/configTypes'
 import { Countdown } from './components'
 import { CONFIG, SHORTS_CONFIG } from './components/Concourse'
 import {
@@ -103,8 +103,6 @@ const StudioHoC = () => {
   })
 
   if (loading || !ready) return <ScreenState title="Just a jiffy..." loading />
-
-  return <Studio data={data} tracks={tracks} />
 
   if (view === 'preview')
     return (
@@ -246,7 +244,7 @@ const Studio = ({
   tracks: [IMicrophoneAudioTrack, ILocalVideoTrack] | null
 }) => {
   const { fragmentId } = useParams<{ fragmentId: string }>()
-  const { constraints, shortsMode } =
+  const { constraints, shortsMode, controlsConfig } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [studio, setStudio] = useRecoilState(studioStore)
   const { sub } = (useRecoilValue(userState) as User) || {}
@@ -516,11 +514,6 @@ const Studio = ({
 
   const [fragmentType, setFragmentType] = useState<ConfigType>()
 
-  useEffect(() => {
-    if (!studio.controlsConfig) return
-    setFragmentType(studio.controlsConfig?.type)
-  }, [studio.controlsConfig])
-
   useMemo(() => {
     if (!fragment) return
     setStudio({
@@ -555,6 +548,22 @@ const Studio = ({
     })
   }, [fragment, stream, users, state, userAudios, payload, participants, state])
 
+  useEffect(() => {
+    if (!studio.controlsConfig || !fragment?.configuration) return
+    const conf = fragment.configuration as Config
+    setFragmentType(conf.dataConfig[payload?.activeObjectIndex]?.type)
+  }, [payload?.activeObjectIndex, studio.controlsConfig])
+
+  useEffect(() => {
+    if (payload?.status === Fragment_Status_Enum_Enum.Live) {
+      setStudio({
+        ...studio,
+        state: 'recording',
+      })
+      start()
+    }
+  }, [payload?.status])
+
   /**
    * =======================
    * END EVENT HANDLERS...
@@ -568,11 +577,9 @@ const Studio = ({
 
   return (
     <div className="h-screen">
-      <Countdown />
-      <div />
       {/* Studio or Video , Notes and layout controls */}
-
       <div className="flex h-full px-10 items-center pb-16 ">
+        <Countdown />
         {state === 'ready' || state === 'recording' || state === 'countDown' ? (
           <div className="flex w-full gap-x-8">
             <Stage
@@ -594,7 +601,7 @@ const Studio = ({
             </Stage>
             <div
               className={cx('grid grid-rows-2 flex-1 gap-y-4', {
-                'my-12': studio.controlsConfig?.isCodexFormat,
+                'my-12': shortsMode,
               })}
             >
               <div className="h-full" />
@@ -604,32 +611,32 @@ const Studio = ({
                     case ConfigType.CODEJAM:
                       return (
                         <CodeJamControls
-                          position={studio.controlsConfig?.position}
-                          computedTokens={studio.controlsConfig?.computedTokens}
-                          fragmentState={studio.controlsConfig?.fragmentState}
-                          isCodexFormat={studio.controlsConfig?.isCodexFormat}
-                          noOfBlocks={studio.controlsConfig?.noOfBlocks}
+                          position={controlsConfig?.position}
+                          computedTokens={controlsConfig?.computedTokens}
+                          fragmentState={controlsConfig?.fragmentState}
+                          isCodexFormat={controlsConfig?.isCodexFormat}
+                          noOfBlocks={controlsConfig?.noOfBlocks}
                         />
                       )
                     case ConfigType.VIDEOJAM:
                       return (
                         <VideoJamControls
-                          playing={studio.controlsConfig?.playing}
-                          videoElement={studio.controlsConfig?.videoElement}
-                          fragmentState={studio.controlsConfig?.fragmentState}
+                          playing={controlsConfig?.playing}
+                          videoElement={controlsConfig?.videoElement}
+                          fragmentState={controlsConfig?.fragmentState}
                         />
                       )
                     case ConfigType.TRIVIA:
                       return (
                         <TriviaControls
-                          fragmentState={studio.controlsConfig?.fragmentState}
+                          fragmentState={controlsConfig?.fragmentState}
                         />
                       )
                     case ConfigType.POINTS:
                       return (
                         <PointsControls
-                          fragmentState={studio.controlsConfig?.fragmentState}
-                          noOfPoints={studio.controlsConfig?.noOfPoints}
+                          fragmentState={controlsConfig?.fragmentState}
+                          noOfPoints={controlsConfig?.noOfPoints}
                         />
                       )
                     default: {
@@ -637,27 +644,41 @@ const Studio = ({
                     }
                   }
                 })()}
-                {payload?.activeObjectIndex !==
-                  studio.controlsConfig?.dataConfigLength - 1 && (
-                  <button
-                    type="button"
-                    disabled={
-                      payload?.activeObjectIndex ===
-                      studio.controlsConfig?.dataConfigLength - 1
-                    }
-                    onClick={() => {
-                      updatePayload?.({
-                        activeObjectIndex: payload?.activeObjectIndex + 1,
-                      })
-                    }}
-                    className="mt-4"
+                <button
+                  type="button"
+                  disabled={
+                    payload?.activeObjectIndex ===
+                    studio.controlsConfig?.dataConfigLength - 1
+                  }
+                  onClick={() => {
+                    updatePayload?.({
+                      activeObjectIndex: payload?.activeObjectIndex + 1,
+                    })
+                  }}
+                  className="mt-4"
+                >
+                  <div
+                    className={cx(
+                      'flex py-10 px-16 bg-blue-400 items-center justify-center gap-x-2 rounded-md',
+                      {
+                        'opacity-50 cursor-not-allowed':
+                          payload?.activeObjectIndex ===
+                          studio.controlsConfig?.dataConfigLength - 1,
+                      }
+                    )}
                   >
-                    <div className="flex py-10 px-16 bg-blue-600 items-center justify-center gap-x-2">
-                      <Text className=" text-white">Next Item</Text>
+                    <Text className=" text-white">
+                      {payload?.activeObjectIndex !==
+                      studio.controlsConfig?.dataConfigLength - 1
+                        ? 'Next Item'
+                        : 'Reached end of items'}
+                    </Text>
+                    {payload?.activeObjectIndex !==
+                      studio.controlsConfig?.dataConfigLength - 1 && (
                       <FiArrowRight className=" text-white" size={21} />
-                    </div>
-                  </button>
-                )}
+                    )}
+                  </div>
+                </button>
               </div>
             </div>
           </div>

@@ -54,7 +54,7 @@ export const CodeJamControls = ({
 }) => {
   const { payload, updatePayload, state } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
-  if (state !== 'recording')
+  if (state === 'recording')
     if (isCodexFormat && noOfBlocks) {
       return (
         <>
