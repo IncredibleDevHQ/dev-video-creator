@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import { BsGear } from 'react-icons/bs'
 import { FiBell, FiChevronLeft, FiLink2, FiUpload } from 'react-icons/fi'
-import { Link, useHistory } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useRecoilState } from 'recoil'
-import { Heading, Button, updateToast, emitToast } from '../../../components'
+import { Heading, Button, emitToast } from '../../../components'
 import { ASSETS } from '../../../constants'
 import {
   useProduceVideoMutation,
@@ -14,18 +14,17 @@ import { newFlickStore } from '../store/flickNew.store'
 import SettingsModal from './SettingsModal'
 import ShareModal from './ShareModal'
 
-const FlickNavBar = () => {
+const FlickNavBar = ({ toggleModal }: { toggleModal: (val: true) => void }) => {
   const [{ flick }, setFlickStore] = useRecoilState(newFlickStore)
   const [isActivityMenu, setIsActivityMenu] = useState(false)
   const [isShareOpen, setIsShareOpen] = useState(false)
   const [settingsModal, setSettingsModal] = useState(false)
   const [editFlickName, setEditFlickName] = useState(false)
   const [flickName, setFlickName] = useState(flick?.name || '')
-  const history = useHistory()
 
   const [updateFlickMutation, { data }] = useUpdateFlickMutation()
 
-  const [produceVideoMutation] = useProduceVideoMutation()
+  const [produceVideoMutation, { loading }] = useProduceVideoMutation()
 
   const updateFlick = async (newName: string) => {
     if (editFlickName) {
@@ -38,33 +37,16 @@ const FlickNavBar = () => {
     }
   }
 
-  const produceVideo = async () => {
-    const toastProps = {
-      title: 'Pushing pixels...',
-      type: 'info',
-      autoClose: false,
-      description: 'Our hamsters are gift-wrapping your Fragment. Do hold. :)',
-    }
-
-    // @ts-ignore
-    const toast = emitToast(toastProps)
-
+  const produceVideo = async (): Promise<string | undefined> => {
     try {
-      const { errors } = await produceVideoMutation({
+      const { errors, data } = await produceVideoMutation({
         variables: {
           flickId: flick?.id,
         },
       })
       if (errors) throw errors[0]
 
-      updateToast({
-        id: toast,
-        ...toastProps,
-        autoClose: false,
-        type: 'info',
-        description: 'Almost done! Click here to see all your Flicks!',
-        onClick: () => history.push('/dashboard'),
-      })
+      return data?.ProduceVideo?.id
     } catch (e) {
       emitToast({
         title: 'Yikes. Something went wrong.',
@@ -72,6 +54,7 @@ const FlickNavBar = () => {
         autoClose: false,
         description: 'Our servers are a bit cranky today. Try in a while?',
       })
+      return undefined
     }
   }
 
@@ -149,11 +132,16 @@ const FlickNavBar = () => {
           size="small"
           icon={FiUpload}
           type="button"
-          disabled={!flick?.fragments.every((f) => f.producedLink !== null)}
+          disabled={
+            !flick?.fragments.every((f) => f.producedLink !== null) || loading
+          }
           className="px-3 py-1"
-          onClick={produceVideo}
+          onClick={async () => {
+            const success = await produceVideo()
+            if (success && success.length > 0) toggleModal(true)
+          }}
         >
-          Publish
+          {loading ? 'Producing Video...' : 'Publish'}
         </Button>
       </div>
       <div className="absolute right-0">
