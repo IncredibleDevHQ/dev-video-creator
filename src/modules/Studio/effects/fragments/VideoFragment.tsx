@@ -72,7 +72,7 @@ const VideoFragment = ({
     element.autoplay = false
     element.crossOrigin = 'anonymous'
     element.preload = 'auto'
-    element.muted = true
+    element.muted = false
     element.src = dataConfig.value.videoURL
 
     setObjectConfig(

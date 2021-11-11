@@ -233,7 +233,6 @@ mutation UpdateParticipantRole(
   }
 }
 
-
 mutation CreateNewFlick(
   $name: String!
   $description: String

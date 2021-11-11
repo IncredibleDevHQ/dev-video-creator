@@ -17,9 +17,10 @@ import {
   FragmentEditor,
   FragmentSideBar,
   FragmentView,
+  PublishModal,
 } from './components'
 import { newFlickStore } from './store/flickNew.store'
-import { initEditor } from '../../utils/plateConfig/serializer/VALUES'
+import { initEditor } from '../../utils/plateConfig/serializer/values'
 
 const useLocalPayload = () => {
   const initialPayload = {
@@ -84,6 +85,7 @@ const Flick = () => {
   const [initialPlateValue, setInitialPlateValue] = useState<TNode<any>[]>()
   const [plateValue, setPlateValue] = useState<TNode<any>[]>()
   const [serializing, setSerializing] = useState(false)
+  const [integrationModal, setIntegrationModal] = useState(false)
 
   const [config, setConfig] = useState<Config>(initialConfig)
 
@@ -167,7 +169,7 @@ const Flick = () => {
   return (
     <div className="flex flex-col h-screen">
       <div>
-        <FlickNavBar />
+        <FlickNavBar toggleModal={setIntegrationModal} />
         <FragmentBar
           initialPlateValue={initialPlateValue}
           setInitialPlateValue={setInitialPlateValue}
@@ -202,6 +204,11 @@ const Flick = () => {
           </>
         )}
       </div>
+      <PublishModal
+        flickId={flick.id}
+        open={integrationModal}
+        handleClose={() => setIntegrationModal(false)}
+      />
       {/* Below div is necessary to allow scroll in the above div */}
       <div />
     </div>

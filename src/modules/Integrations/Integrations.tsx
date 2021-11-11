@@ -34,7 +34,7 @@ function popupWindow(
   )
 }
 
-const INTEGRATIONS = [
+export const INTEGRATIONS = [
   {
     title: IntegrationEnum.GitHub,
     logo: 'https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png',

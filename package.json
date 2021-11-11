@@ -29,7 +29,7 @@
     "@tailwindcss/typography": "^0.4.1",
     "@types/mime": "^2.0.3",
     "@types/videojs-contrib-quality-levels": "^2.0.1",
-    "@udecode/plate": "^6.4.0",
+    "@udecode/plate": "^7.0.2",
     "@udecode/plate-test-utils": "^3.2.0",
     "@vectorly-io/ai-filters": "^1.6.4",
     "agora-rtc-react": "^1.1.0",

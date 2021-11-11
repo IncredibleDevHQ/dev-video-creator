@@ -6,50 +6,33 @@ import {
   deleteColumn,
   deleteRow,
   deleteTable,
-  ELEMENT_BLOCKQUOTE,
   ELEMENT_CODE_BLOCK,
   ELEMENT_H1,
-  ELEMENT_H2,
-  ELEMENT_H3,
-  ELEMENT_H4,
-  ELEMENT_H5,
-  ELEMENT_H6,
-  ELEMENT_OL,
   ELEMENT_UL,
   getPlatePluginType,
   getPreventDefaultHandler,
   indent,
-  insertEmptyElement,
-  insertMediaEmbed,
   insertNodes,
   insertTable,
-  MARK_BG_COLOR,
   MARK_BOLD,
-  MARK_CODE,
-  MARK_COLOR,
   MARK_HIGHLIGHT,
   MARK_ITALIC,
   MARK_KBD,
-  MARK_STRIKETHROUGH,
-  MARK_SUBSCRIPT,
-  MARK_SUPERSCRIPT,
   MARK_UNDERLINE,
   outdent,
-  SPEditor,
+  PEditor,
   TNode,
-  ToolbarAlign,
+  AlignToolbarButton,
   ToolbarButton,
-  ToolbarCodeBlock,
-  ToolbarColorPicker,
-  ToolbarElement,
-  ToolbarImage,
-  ToolbarLink,
-  ToolbarList,
-  ToolbarMark,
-  ToolbarMediaEmbed,
-  ToolbarTable,
-  useEventEditorId,
-  useStoreEditorRef,
+  CodeBlockToolbarButton,
+  BlockToolbarButton,
+  ImageToolbarButton,
+  ListToolbarButton,
+  MarkToolbarButton,
+  MediaEmbedToolbarButton,
+  TableToolbarButton,
+  usePlateEditorRef,
+  usePlateEditorState,
 } from '@udecode/plate'
 import { css, cx } from '@emotion/css'
 import {
@@ -59,56 +42,47 @@ import {
   MdBorderLeft,
   MdBorderRight,
   MdBorderTop,
-  MdFontDownload,
   MdFormatBold,
-  MdFormatColorText,
   MdFormatItalic,
   MdFormatListBulleted,
-  MdFormatListNumbered,
   MdFormatUnderlined,
   MdHighlight,
   MdImage,
   MdKeyboard,
-  MdLink,
   MdOndemandVideo,
   MdOutlineCode,
   MdOutlineFormatAlignCenter,
-  MdOutlineFormatAlignJustify,
   MdOutlineFormatAlignLeft,
   MdOutlineFormatAlignRight,
   MdOutlineFormatBold,
   MdOutlineFormatIndentDecrease,
   MdOutlineFormatIndentIncrease,
   MdOutlineFormatItalic,
-  MdOutlineFormatQuote,
-  MdOutlineFormatStrikethrough,
   MdOutlineFormatUnderlined,
-  MdOutlineLooks3,
-  MdOutlineLooks4,
-  MdOutlineLooks5,
-  MdOutlineLooks6,
-  MdOutlineLooksOne,
-  MdOutlineLooksTwo,
-  MdSubscript,
-  MdSuperscript,
   MdVideoLibrary,
 } from 'react-icons/md'
 import { serialize } from 'remark-slate'
-import { BiCodeAlt, BiHeading } from 'react-icons/bi'
+import { BiHeading } from 'react-icons/bi'
 import { ReactEditor } from 'slate-react'
 import { HistoryEditor } from 'slate-history'
 import { FiCheckCircle, FiXCircle } from 'react-icons/fi'
+import { useRecoilValue } from 'recoil'
 import { Button } from '../../../components'
-import UploadVideoModal from '../../../modules/Flick/components/UploadVideoModal'
 import { VideoInventoryModal } from '../../../modules/Flick/components'
-import { useGetSuggestedTextMutation } from '../../../generated/graphql'
+import {
+  useGetCodeExplanationMutation,
+  useGetSuggestedTextMutation,
+} from '../../../generated/graphql'
+import { serializeDataConfig } from '../serializer/config-serialize'
+import { Auth, authState } from '../../../stores/auth.store'
+import { CodejamConfig, ConfigType } from '../../configTypes'
 
 export const ToolbarButtonsBasicElements = () => {
-  const editor = useStoreEditorRef(useEventEditorId('focus'))
+  const editor = usePlateEditorRef()
 
   return (
     <>
-      <ToolbarElement
+      <BlockToolbarButton
         type={getPlatePluginType(editor, ELEMENT_H1)}
         icon={<BiHeading />}
         classNames={{
@@ -141,7 +115,7 @@ export const ToolbarButtonsBasicElements = () => {
         type={getPlatePluginType(editor, ELEMENT_BLOCKQUOTE)}
         icon={<MdOutlineFormatQuote />}
       /> */}
-      <ToolbarCodeBlock
+      <CodeBlockToolbarButton
         type={getPlatePluginType(editor, ELEMENT_CODE_BLOCK)}
         icon={<MdOutlineCode />}
       />
@@ -150,7 +124,7 @@ export const ToolbarButtonsBasicElements = () => {
 }
 
 export const ToolbarButtonsIndent = () => {
-  const editor = useStoreEditorRef(useEventEditorId('focus'))
+  const editor = usePlateEditorRef()
 
   return (
     <>
@@ -167,11 +141,11 @@ export const ToolbarButtonsIndent = () => {
 }
 
 export const ToolbarButtonsList = () => {
-  const editor = useStoreEditorRef(useEventEditorId('focus'))
+  const editor = usePlateEditorRef()
 
   return (
     <>
-      <ToolbarList
+      <ListToolbarButton
         type={getPlatePluginType(editor, ELEMENT_UL)}
         icon={<MdFormatListBulleted />}
       />
@@ -186,28 +160,40 @@ export const ToolbarButtonsList = () => {
 export const ToolbarButtonsAlign = () => {
   return (
     <>
-      <ToolbarAlign align="left" icon={<MdOutlineFormatAlignLeft />} />
-      <ToolbarAlign align="center" icon={<MdOutlineFormatAlignCenter />} />
-      <ToolbarAlign align="right" icon={<MdOutlineFormatAlignRight />} />
+      <AlignToolbarButton
+        value="left"
+        align="left"
+        icon={<MdOutlineFormatAlignLeft />}
+      />
+      <AlignToolbarButton
+        value="center"
+        align="center"
+        icon={<MdOutlineFormatAlignCenter />}
+      />
+      <AlignToolbarButton
+        value="right"
+        align="right"
+        icon={<MdOutlineFormatAlignRight />}
+      />
       {/* <ToolbarAlign align="justify" icon={<MdOutlineFormatAlignJustify />} /> */}
     </>
   )
 }
 
 export const ToolbarButtonsBasicMarks = () => {
-  const editor = useStoreEditorRef(useEventEditorId('focus'))
+  const editor = usePlateEditorRef()
 
   return (
     <>
-      <ToolbarMark
+      <MarkToolbarButton
         type={getPlatePluginType(editor, MARK_BOLD)}
         icon={<MdOutlineFormatBold />}
       />
-      <ToolbarMark
+      <MarkToolbarButton
         type={getPlatePluginType(editor, MARK_ITALIC)}
         icon={<MdOutlineFormatItalic />}
       />
-      <ToolbarMark
+      <MarkToolbarButton
         type={getPlatePluginType(editor, MARK_UNDERLINE)}
         icon={<MdOutlineFormatUnderlined />}
       />
@@ -234,10 +220,10 @@ export const ToolbarButtonsBasicMarks = () => {
 }
 
 export const ToolbarKbd = () => {
-  const editor = useStoreEditorRef(useEventEditorId('focus'))
+  const editor = usePlateEditorRef()
 
   return (
-    <ToolbarMark
+    <MarkToolbarButton
       type={getPlatePluginType(editor, MARK_KBD)}
       icon={<MdKeyboard />}
     />
@@ -245,10 +231,10 @@ export const ToolbarKbd = () => {
 }
 
 export const ToolbarHighlight = () => {
-  const editor = useStoreEditorRef(useEventEditorId('focus'))
+  const editor = usePlateEditorRef()
 
   return (
-    <ToolbarMark
+    <MarkToolbarButton
       type={getPlatePluginType(editor, MARK_HIGHLIGHT)}
       icon={<MdHighlight />}
     />
@@ -257,17 +243,17 @@ export const ToolbarHighlight = () => {
 
 export const ToolbarButtonsTable = () => (
   <>
-    <ToolbarTable icon={<MdBorderAll />} transform={insertTable} />
-    <ToolbarTable icon={<MdBorderClear />} transform={deleteTable} />
-    <ToolbarTable icon={<MdBorderBottom />} transform={addRow} />
-    <ToolbarTable icon={<MdBorderTop />} transform={deleteRow} />
-    <ToolbarTable icon={<MdBorderLeft />} transform={addColumn} />
-    <ToolbarTable icon={<MdBorderRight />} transform={deleteColumn} />
+    <TableToolbarButton icon={<MdBorderAll />} transform={insertTable} />
+    <TableToolbarButton icon={<MdBorderClear />} transform={deleteTable} />
+    <TableToolbarButton icon={<MdBorderBottom />} transform={addRow} />
+    <TableToolbarButton icon={<MdBorderTop />} transform={deleteRow} />
+    <TableToolbarButton icon={<MdBorderLeft />} transform={addColumn} />
+    <TableToolbarButton icon={<MdBorderRight />} transform={deleteColumn} />
   </>
 )
 
 export const BallonToolbarMarks = () => {
-  const editor = useStoreEditorRef(useEventEditorId('focus'))
+  const editor = usePlateEditorRef()
 
   const arrow = false
   const theme = 'dark'
@@ -288,17 +274,17 @@ export const BallonToolbarMarks = () => {
       theme={theme}
       arrow={arrow}
     >
-      <ToolbarMark
+      <MarkToolbarButton
         type={getPlatePluginType(editor, MARK_BOLD)}
         icon={<MdFormatBold />}
         tooltip={{ content: 'Bold (⌘B)', ...(tooltip as any) }}
       />
-      <ToolbarMark
+      <MarkToolbarButton
         type={getPlatePluginType(editor, MARK_ITALIC)}
         icon={<MdFormatItalic />}
         tooltip={{ content: 'Italic (⌘I)', ...(tooltip as any) }}
       />
-      <ToolbarMark
+      <MarkToolbarButton
         type={getPlatePluginType(editor, MARK_UNDERLINE)}
         icon={<MdFormatUnderlined />}
         tooltip={{ content: 'Underline (⌘U)', ...(tooltip as any) }}
@@ -309,17 +295,22 @@ export const BallonToolbarMarks = () => {
 
 export const GenerateExplanationButton = ({
   value,
-  editor,
   insertText,
   deleteText,
+  activeFragmentId,
 }: {
   value?: TNode<any>[]
+  activeFragmentId: string
   deleteText: () => void
   insertText: (text: string) => void
-  editor: SPEditor & ReactEditor & HistoryEditor
 }) => {
+  const editorState = usePlateEditorState(activeFragmentId)
   const [isExplanation, setExplanation] = useState(false)
-  const [getSuggestedText] = useGetSuggestedTextMutation()
+  const [getSuggestedText, { loading: explanationLoading }] =
+    useGetSuggestedTextMutation()
+  const [getCodeExplanation, { loading: codeLoading }] =
+    useGetCodeExplanationMutation()
+  const { token } = (useRecoilValue(authState) as Auth) || {}
 
   return (
     <div className="mx-2 flex justify-end items-center">
@@ -346,7 +337,7 @@ export const GenerateExplanationButton = ({
         type="button"
         size="extraSmall"
         appearance="secondary"
-        disabled={isExplanation}
+        disabled={isExplanation || explanationLoading}
         onClick={async () => {
           if (!value || value.length < 1) return
           const explanation = await getSuggestedText({
@@ -358,7 +349,40 @@ export const GenerateExplanationButton = ({
           setExplanation(true)
         }}
       >
-        Generate Explanation
+        {explanationLoading ? 'Loading...' : 'Generate Explanation'}
+      </Button>
+      <Button
+        type="button"
+        className="ml-2"
+        size="extraSmall"
+        appearance="secondary"
+        disabled={isExplanation || codeLoading}
+        onClick={async () => {
+          if (!value || value.length < 1 || !editorState) return
+
+          const codeText: TNode = value
+            .filter((block) => block.type === 'code_block')
+            .pop()
+          const config = await serializeDataConfig(
+            [codeText as TNode],
+            token as string
+          )
+          const codeConfig = config.find(
+            (c) => c.type === ConfigType.CODEJAM
+          ) as CodejamConfig
+          const explanation = await getCodeExplanation({
+            variables: {
+              code: codeConfig.value.code,
+            },
+          })
+          editorState.insertBreak()
+          editorState.insertText(
+            explanation.data?.ExplainCode?.description || ''
+          )
+          setExplanation(true)
+        }}
+      >
+        {codeLoading ? 'Loading...' : 'Get Code Explanation'}
       </Button>
     </div>
   )
@@ -367,16 +391,20 @@ export const GenerateExplanationButton = ({
 export const ToolbarButtons = ({
   value,
   editor,
+  activeFragmentId,
+  insertMedia,
 }: {
   value?: TNode<any>[]
-  editor: SPEditor & ReactEditor & HistoryEditor
+  activeFragmentId: string
+  insertMedia: (url: string) => void
+  editor: PEditor & ReactEditor & HistoryEditor
 }) => {
   const [isVideoModal, setVideoModal] = useState(false)
   const [selectedVideo, setSelectedVideo] = useState<string>('')
 
   useEffect(() => {
     if (!selectedVideo || selectedVideo.length < 1) return
-    insertMediaEmbed(editor, { url: selectedVideo })
+    insertMedia(selectedVideo)
   }, [selectedVideo])
 
   const insertTextToEditor = (text: string) => {
@@ -407,14 +435,14 @@ export const ToolbarButtons = ({
     <ToolbarColorPicker pluginKey={MARK_BG_COLOR} icon={<MdFontDownload />} /> */}
         <ToolbarButtonsAlign />
         {/* <ToolbarLink icon={<MdLink />} /> */}
-        <ToolbarImage icon={<MdImage />} />
-        <ToolbarMediaEmbed icon={<MdOndemandVideo />} />
+        <ImageToolbarButton icon={<MdImage />} />
+        <MediaEmbedToolbarButton icon={<MdOndemandVideo />} />
         {/* <ToolbarButtonsTable /> */}
         <MdVideoLibrary onClick={() => setVideoModal(true)} />
       </div>
       <GenerateExplanationButton
         value={value}
-        editor={editor}
+        activeFragmentId={activeFragmentId}
         insertText={insertTextToEditor}
         deleteText={deleteTextFromEditor}
       />
