@@ -46,8 +46,13 @@ import {
 } from '@udecode/plate'
 import React, { useMemo } from 'react'
 import { useRecoilValue } from 'recoil'
+import { serialize } from 'remark-slate'
 import { HistoryEditor } from 'slate-history'
 import { ReactEditor } from 'slate-react'
+import {
+  useGetCodeExplanationMutation,
+  useGetSuggestedTextMutation,
+} from '../../../generated/graphql'
 import {
   BallonToolbarMarks,
   ToolbarButtons,
@@ -70,6 +75,9 @@ const FragmentEditor = ({
 
   const { activeFragmentId } = useRecoilValue(newFlickStore)
   const editor = usePlateEditorRef()
+
+  const [getSuggestedText] = useGetSuggestedTextMutation()
+  const [getCodeExplanation] = useGetCodeExplanationMutation()
 
   // @ts-ignore
   const pluginsMemo: PlatePlugin<TEditor>[] = useMemo(() => {
@@ -117,6 +125,34 @@ const FragmentEditor = ({
     return plugins
   }, [editor, activeFragmentId])
 
+  const onKeysHandler = async (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!value) return
+    if (e.ctrlKey && e.key === ' ') {
+      e.preventDefault()
+      e.stopPropagation()
+      const explanation = await getCodeExplanation({
+        variables: {
+          code: value
+            .filter((block) => block.type === 'code_block')
+            .map((block) => serialize(block))
+            .join('\n'),
+        },
+      })
+      editor?.insertBreak()
+      editor?.insertText(explanation.data?.ExplainCode?.description || '')
+    }
+    if (e.ctrlKey && e.key === '/') {
+      e.preventDefault()
+      e.stopPropagation()
+      const explanation = await getSuggestedText({
+        variables: {
+          text: value.map((block) => serialize(block)).join('\n'),
+        },
+      })
+      editor?.insertText(explanation.data?.SuggestPhrase?.suggestion || '')
+    }
+  }
+
   const insertMedia = (url: string) => {
     if (!editor) return
     insertMediaEmbed(editor, {
@@ -126,7 +162,12 @@ const FragmentEditor = ({
   }
 
   return (
-    <div className="flex flex-col flex-1 h-full overflow-y-scroll overflow-x-hidden">
+    <div
+      role="button"
+      tabIndex={0}
+      className="flex flex-col flex-1 h-full overflow-y-scroll overflow-x-hidden cursor-text"
+      onKeyDown={onKeysHandler}
+    >
       <Plate
         id={activeFragmentId}
         components={components}
