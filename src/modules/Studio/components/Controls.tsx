@@ -1,13 +1,43 @@
-import React from 'react'
-import { FiPause, FiPlay } from 'react-icons/fi'
+import { cx } from '@emotion/css'
+import React, { HTMLAttributes } from 'react'
+import { IconType } from 'react-icons'
+import { FiPause, FiPlay, FiTarget } from 'react-icons/fi'
+import { IoChevronForwardOutline, IoListOutline } from 'react-icons/io5'
 import { useRecoilValue } from 'recoil'
-import { NextLineIcon, NextTokenIcon } from '../../../components'
-import FocusCodeIcon from '../../../components/FocusCodeIcon'
-import SwapIcon from '../../../components/SwapIcon'
+import { Text } from '../../../components'
 import { ComputedToken } from '../hooks/use-code'
 import { StudioProviderProps, studioStore } from '../stores'
-import { ControlButton } from './MissionControl'
 import { FragmentState, Position } from './RenderTokens'
+
+export const ControlButton = ({
+  className,
+  icon: I,
+  disabled,
+  text,
+  ...rest
+}: {
+  icon: IconType
+  disabled?: boolean
+  text: string
+} & HTMLAttributes<HTMLButtonElement>) => {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      className={cx(
+        'w-1/2 p-1.5 flex items-center justify-start gap-x-2 border border-gray-300 rounded-md',
+        {
+          'opacity-70 cursor-not-allowed': disabled,
+        },
+        className
+      )}
+      {...rest}
+    >
+      <I className="text-gray-400" size={16} />
+      <Text className="text-gray-600 font-semibold text-sm">{text}</Text>
+    </button>
+  )
+}
 
 export const CodeJamControls = ({
   position,
@@ -24,34 +54,15 @@ export const CodeJamControls = ({
 }) => {
   const { payload, updatePayload, state } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
-  if (state === 'recording')
+  if (state !== 'recording')
     if (isCodexFormat && noOfBlocks) {
       return (
         <>
           <ControlButton
-            key="swap"
-            icon={SwapIcon}
-            className="my-2"
-            appearance="primary"
-            onClick={() => {
-              if (fragmentState === 'onlyUserMedia') {
-                // updating the fragment state in the payload to customLayout state
-                updatePayload?.({
-                  fragmentState: 'customLayout',
-                })
-              } else {
-                // updating the fragment state in the payload to onlyUserMedia state
-                updatePayload?.({
-                  fragmentState: 'onlyUserMedia',
-                })
-              }
-            }}
-          />
-          <ControlButton
             key="nextBlock"
-            icon={NextTokenIcon}
+            icon={IoChevronForwardOutline}
+            text="Next Block"
             className="my-2"
-            appearance="primary"
             disabled={
               payload?.activeBlockIndex === noOfBlocks - 1 &&
               !payload?.focusBlockCode
@@ -74,29 +85,10 @@ export const CodeJamControls = ({
       return (
         <>
           <ControlButton
-            key="swap"
-            icon={SwapIcon}
-            className="my-2"
-            appearance="primary"
-            onClick={() => {
-              if (fragmentState === 'onlyUserMedia') {
-                // updating the fragment state in the payload to customLayout state
-                updatePayload?.({
-                  fragmentState: 'customLayout',
-                })
-              } else {
-                // updating the fragment state in the payload to onlyUserMedia state
-                updatePayload?.({
-                  fragmentState: 'onlyUserMedia',
-                })
-              }
-            }}
-          />
-          <ControlButton
             key="nextToken"
-            icon={NextTokenIcon}
-            className="my-2"
-            appearance="primary"
+            icon={IoChevronForwardOutline}
+            text="Next Token"
+            className="my-1"
             disabled={payload?.prevIndex === computedTokens?.length - 1}
             onClick={() => {
               if (position.currentIndex < computedTokens.length)
@@ -108,10 +100,10 @@ export const CodeJamControls = ({
             }}
           />
           <ControlButton
-            className="my-2"
+            className="my-1"
             key="nextLine"
-            icon={NextLineIcon}
-            appearance="primary"
+            icon={IoChevronForwardOutline}
+            text="Next Line"
             disabled={payload?.prevIndex === computedTokens?.length - 1}
             onClick={() => {
               const current = computedTokens[position.currentIndex]
@@ -129,8 +121,8 @@ export const CodeJamControls = ({
           <ControlButton
             className="my-2"
             key="focus"
-            icon={FocusCodeIcon}
-            appearance="primary"
+            icon={FiTarget}
+            text="Focus line"
             onClick={() => {
               updatePayload?.({
                 prevIndex: payload?.prevIndex,
@@ -141,43 +133,6 @@ export const CodeJamControls = ({
           />
         </>
       )
-  if (state === 'ready')
-    return (
-      <>
-        {/* // <ControlButton
-      //   className="my-2"
-      //   key="focus"
-      //   icon={isShorts ? LandscapeRectangle : PortraitRectangle}
-      //   appearance="primary"
-      //   onClick={() => {
-      //     if (!setIsShorts) return
-      //     if (isShorts) setIsShorts(false)
-      //     else setIsShorts(true)
-      //   }}
-      // />, */}
-        <ControlButton
-          key="swap"
-          icon={SwapIcon}
-          className="my-2"
-          appearance="primary"
-          onClick={() => {
-            if (fragmentState === 'onlyUserMedia') {
-              // setFragmentState('customLayout')
-              // updating the fragment state in the payload to customLayout state
-              updatePayload?.({
-                fragmentState: 'customLayout',
-              })
-            } else {
-              // setFragmentState('onlyUserMedia')
-              // updating the fragment state in the payload to onlyUserMedia state
-              updatePayload?.({
-                fragmentState: 'onlyUserMedia',
-              })
-            }
-          }}
-        />
-      </>
-    )
   return <></>
 }
 
@@ -196,29 +151,10 @@ export const VideoJamControls = ({
     return (
       <>
         <ControlButton
-          key="swap"
-          icon={SwapIcon}
-          className="my-2"
-          appearance="primary"
-          onClick={() => {
-            if (fragmentState === 'onlyUserMedia') {
-              // updating the fragment state in the payload to customLayout state
-              updatePayload?.({
-                fragmentState: 'customLayout',
-              })
-            } else {
-              // updating the fragment state in the payload to onlyUserMedia state
-              updatePayload?.({
-                fragmentState: 'onlyUserMedia',
-              })
-            }
-          }}
-        />
-        <ControlButton
           key="control"
           icon={playing ? FiPause : FiPlay}
-          className="my-2"
-          appearance={playing ? 'danger' : 'primary'}
+          text={playing ? 'Pause' : 'Play'}
+          className="my-1"
           onClick={() => {
             const next = !playing
             updatePayload?.({
@@ -242,25 +178,7 @@ export const TriviaControls = ({
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   if (state === 'recording' || state === 'ready')
     return (
-      <ControlButton
-        key="swap"
-        icon={SwapIcon}
-        className="my-2"
-        appearance="primary"
-        onClick={() => {
-          if (fragmentState === 'onlyUserMedia') {
-            // updating the fragment state in the payload to customLayout state
-            updatePayload?.({
-              fragmentState: 'customLayout',
-            })
-          } else {
-            // updating the fragment state in the payload to onlyUserMedia state
-            updatePayload?.({
-              fragmentState: 'onlyUserMedia',
-            })
-          }
-        }}
-      />
+      <> </>
       // <ControlButton
       //   key="nextQuestion"
       //   icon={NextTokenIcon}
@@ -288,29 +206,10 @@ export const PointsControls = ({
     return (
       <>
         <ControlButton
-          key="swap"
-          icon={SwapIcon}
-          className="my-2"
-          appearance="primary"
-          onClick={() => {
-            if (fragmentState === 'onlyUserMedia') {
-              // updating the fragment state in the payload to customLayout state
-              updatePayload?.({
-                fragmentState: 'customLayout',
-              })
-            } else {
-              // updating the fragment state in the payload to onlyUserMedia state
-              updatePayload?.({
-                fragmentState: 'onlyUserMedia',
-              })
-            }
-          }}
-        />
-        <ControlButton
           key="nextPoint"
-          icon={NextTokenIcon}
-          className="my-2"
-          appearance="primary"
+          icon={IoListOutline}
+          className="my-1"
+          text="Next Point"
           disabled={payload?.activePointIndex === noOfPoints}
           onClick={() => {
             updatePayload?.({
