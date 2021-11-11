@@ -92,13 +92,6 @@ const StudioHoC = () => {
     variables: { id: fragmentId, sub: sub as string },
   })
 
-  useEffect(() => {
-    return () => {
-      console.log(tracks)
-      tracks?.forEach((track) => track.stop())
-    }
-  }, [tracks])
-
   if (loading || !ready) return <ScreenState title="Just a jiffy..." loading />
 
   if (view === 'preview')
