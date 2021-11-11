@@ -154,7 +154,7 @@ export const initEditor = [
   },
   {
     type: 'media_embed',
-    url: `${config.storage.baseUrl}2UYob8_s0YFNrDSwz4cHI.mp4`,
+    url: `${config.storage.baseUrl}video-jam-template.mp4`,
     children: [{ text: '' }],
     id: 1636438386684,
   },
