@@ -69,6 +69,7 @@
     "react-select": "^4.3.1",
     "react-table": "^7.7.0",
     "react-toastify": "^7.0.4",
+    "react-use-measure": "^2.0.4",
     "recoil": "^0.3.1",
     "rehype-raw": "^6.1.0",
     "remark-gfm": "^3.0.0",

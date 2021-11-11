@@ -25,7 +25,6 @@ const TitleSplash = ({
         x={0}
         y={0}
         name="titleSplash"
-        draggable
         width={stageConfig.width}
         height={stageConfig.height}
         ref={(ref) =>

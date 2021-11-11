@@ -1,11 +1,12 @@
 /* eslint-disable jsx-a11y/media-has-caption */
+import { cx } from '@emotion/css'
 import { AgoraVideoPlayer } from 'agora-rtc-react'
 import { ILocalVideoTrack, IMicrophoneAudioTrack } from 'agora-rtc-sdk-ng'
 import getBlobDuration from 'get-blob-duration'
 import Konva from 'konva'
 import React, { createRef, useEffect, useMemo, useState } from 'react'
 import AspectRatio from 'react-aspect-ratio'
-import { FiArrowLeft } from 'react-icons/fi'
+import { FiArrowRight } from 'react-icons/fi'
 import { Layer, Stage } from 'react-konva'
 import { useHistory, useParams } from 'react-router-dom'
 import {
@@ -20,6 +21,7 @@ import {
   EmptyState,
   Heading,
   ScreenState,
+  Text,
   updateToast,
 } from '../../components'
 import config from '../../config'
@@ -32,11 +34,19 @@ import {
   useMarkFragmentCompletedMutation,
   useUpdateFragmentShortMutation,
 } from '../../generated/graphql'
-import { useCanvasRecorder, useTimekeeper } from '../../hooks'
+import { useCanvasRecorder } from '../../hooks'
 import { useUploadFile } from '../../hooks/use-upload-file'
 import { User, userState } from '../../stores/user.store'
-import { Countdown, MissionControl, Timer } from './components'
+import { Config, ConfigType } from '../../utils/configTypes'
+import { Countdown } from './components'
 import { CONFIG, SHORTS_CONFIG } from './components/Concourse'
+import {
+  CodeJamControls,
+  PointsControls,
+  TriviaControls,
+  VideoJamControls,
+} from './components/Controls'
+import RecordingControlsBar from './components/RecordingControlsBar'
 import UnifiedFragment from './effects/fragments/UnifiedFragment'
 import { useAgora, useVectorly } from './hooks'
 import { Device } from './hooks/use-agora'
@@ -234,7 +244,7 @@ const Studio = ({
   tracks: [IMicrophoneAudioTrack, ILocalVideoTrack] | null
 }) => {
   const { fragmentId } = useParams<{ fragmentId: string }>()
-  const { constraints, shortsMode } =
+  const { constraints, shortsMode, controlsConfig } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [studio, setStudio] = useRecoilState(studioStore)
   const { sub } = (useRecoilValue(userState) as User) || {}
@@ -373,8 +383,6 @@ const Studio = ({
     options: {},
   })
 
-  const { handleStart, handleReset, timer } = useTimekeeper(0)
-
   /**
    * END STREAM HOOKS...
    */
@@ -388,7 +396,6 @@ const Studio = ({
   const resetRecording = () => {
     reset()
     init()
-    handleReset()
     setState('ready')
   }
 
@@ -482,18 +489,7 @@ const Studio = ({
   }
 
   useEffect(() => {
-    if (timer === 0) return
-    if (timer === 180) {
-      updatePayload({ ...payload, status: Fragment_Status_Enum_Enum.Ended })
-    }
-  }, [timer])
-
-  useEffect(() => {
-    if (payload?.status === Fragment_Status_Enum_Enum.Live && timer === 0) {
-      handleStart()
-    }
     if (payload?.status === Fragment_Status_Enum_Enum.Ended) {
-      handleReset()
       finalTransition()
     }
   }, [payload])
@@ -515,6 +511,8 @@ const Studio = ({
       })
     }
   }, [payload, studio.isHost])
+
+  const [fragmentType, setFragmentType] = useState<ConfigType>()
 
   useMemo(() => {
     if (!fragment) return
@@ -550,6 +548,22 @@ const Studio = ({
     })
   }, [fragment, stream, users, state, userAudios, payload, participants, state])
 
+  useEffect(() => {
+    if (!studio.controlsConfig || !fragment?.configuration) return
+    const conf = fragment.configuration as Config
+    setFragmentType(conf.dataConfig[payload?.activeObjectIndex]?.type)
+  }, [payload?.activeObjectIndex, studio.controlsConfig])
+
+  useEffect(() => {
+    if (payload?.status === Fragment_Status_Enum_Enum.Live) {
+      setStudio({
+        ...studio,
+        state: 'recording',
+      })
+      start()
+    }
+  }, [payload?.status])
+
   /**
    * =======================
    * END EVENT HANDLERS...
@@ -562,84 +576,137 @@ const Studio = ({
   // const C = getEffect(fragment.type, fragment.configuration)
 
   return (
-    <div>
-      <Countdown />
-      <div className="py-2 px-4">
-        <div className="flex flex-row justify-between bg-gray-100 p-2 rounded-md">
-          <div className="flex-1 flex flex-row items-center">
-            <FiArrowLeft
-              className="cursor-pointer mr-2"
-              onClick={async () => {
-                setFragment(undefined)
-                setStudio({
-                  ...studio,
-                  fragment: undefined,
-                })
-                stream?.getTracks().forEach((track) => track.stop())
-                history.goBack()
-              }}
-            />
-            <Heading
-              className="font-semibold"
-              onClick={() => {
-                stream?.getTracks().forEach((track) => track.stop())
-                history.goBack()
-              }}
+    <div className="h-screen">
+      {/* Studio or Video , Notes and layout controls */}
+      <div className="flex h-full px-10 items-center pb-16 ">
+        <Countdown />
+        {state === 'ready' || state === 'recording' || state === 'countDown' ? (
+          <div className="flex w-full gap-x-8">
+            <Stage
+              ref={stageRef}
+              height={stageConfig.height}
+              width={stageConfig.width}
+              // className={cx({
+              //   'cursor-zoom-in': canvas?.zoomed && !isZooming,
+              //   'cursor-zoom-out': canvas?.zoomed && isZooming,
+              // })}
             >
-              {fragment.flick.name} / {fragment.name}
-            </Heading>
-          </div>
-          {payload?.status === Fragment_Status_Enum_Enum.Live ? (
-            <Timer target={180} timer={timer} />
-          ) : (
-            <></>
-          )}
-        </div>
-        <div className="flex-1 mt-4 justify-between items-stretch flex">
-          <div className="bg-gray-100 flex-1 rounded-md p-4 flex justify-center items-center mr-8">
-            {state === 'ready' ||
-            state === 'recording' ||
-            state === 'countDown' ? (
-              <Stage
-                ref={stageRef}
-                height={stageConfig.height}
-                width={stageConfig.width}
-                // className={cx({
-                //   'cursor-zoom-in': canvas?.zoomed && !isZooming,
-                //   'cursor-zoom-out': canvas?.zoomed && isZooming,
-                // })}
-              >
-                <Bridge>
-                  <Layer ref={layerRef}>
-                    {fragment && (
-                      <UnifiedFragment
-                        stageRef={stageRef}
-                        layerRef={layerRef}
-                      />
+              <Bridge>
+                <Layer ref={layerRef}>
+                  {fragment && (
+                    <UnifiedFragment stageRef={stageRef} layerRef={layerRef} />
+                  )}
+                </Layer>
+              </Bridge>
+            </Stage>
+            <div
+              className={cx('grid grid-rows-2 flex-1 gap-y-4', {
+                'my-12': shortsMode,
+              })}
+            >
+              <div className="h-full" />
+              <div className="h-full flex flex-col justify-end items-start">
+                {(() => {
+                  switch (fragmentType) {
+                    case ConfigType.CODEJAM:
+                      return (
+                        <CodeJamControls
+                          position={controlsConfig?.position}
+                          computedTokens={controlsConfig?.computedTokens}
+                          fragmentState={controlsConfig?.fragmentState}
+                          isCodexFormat={controlsConfig?.isCodexFormat}
+                          noOfBlocks={controlsConfig?.noOfBlocks}
+                        />
+                      )
+                    case ConfigType.VIDEOJAM:
+                      return (
+                        <VideoJamControls
+                          playing={controlsConfig?.playing}
+                          videoElement={controlsConfig?.videoElement}
+                          fragmentState={controlsConfig?.fragmentState}
+                        />
+                      )
+                    case ConfigType.TRIVIA:
+                      return (
+                        <TriviaControls
+                          fragmentState={controlsConfig?.fragmentState}
+                        />
+                      )
+                    case ConfigType.POINTS:
+                      return (
+                        <PointsControls
+                          fragmentState={controlsConfig?.fragmentState}
+                          noOfPoints={controlsConfig?.noOfPoints}
+                        />
+                      )
+                    default: {
+                      return <></>
+                    }
+                  }
+                })()}
+                <button
+                  type="button"
+                  disabled={
+                    payload?.activeObjectIndex ===
+                    studio.controlsConfig?.dataConfigLength - 1
+                  }
+                  onClick={() => {
+                    updatePayload?.({
+                      activeObjectIndex: payload?.activeObjectIndex + 1,
+                    })
+                  }}
+                  className="mt-4"
+                >
+                  <div
+                    className={cx(
+                      'flex py-10 px-16 bg-blue-400 items-center justify-center gap-x-2 rounded-md',
+                      {
+                        'opacity-50 cursor-not-allowed':
+                          payload?.activeObjectIndex ===
+                          studio.controlsConfig?.dataConfigLength - 1,
+                      }
                     )}
-                  </Layer>
-                </Bridge>
-              </Stage>
-            ) : (
-              // eslint-disable-next-line jsx-a11y/media-has-caption
-              <video
-                className={
-                  !shortsMode ? 'w-8/12 rounded-md' : 'w-1/4 rounded-md'
-                }
-                controls
-                controlsList="nodownload"
-                ref={async (ref) => {
-                  if (!ref || !getBlobs) return
-                  const blob = await getBlobs()
-                  const url = window.URL.createObjectURL(blob)
-                  // eslint-disable-next-line no-param-reassign
-                  ref.src = url
-                }}
-              />
-            )}
+                  >
+                    <Text className=" text-white">
+                      {payload?.activeObjectIndex !==
+                      studio.controlsConfig?.dataConfigLength - 1
+                        ? 'Next Item'
+                        : 'Reached end of items'}
+                    </Text>
+                    {payload?.activeObjectIndex !==
+                      studio.controlsConfig?.dataConfigLength - 1 && (
+                      <FiArrowRight className=" text-white" size={21} />
+                    )}
+                  </div>
+                </button>
+              </div>
+            </div>
           </div>
-          <MissionControl />
+        ) : (
+          // eslint-disable-next-line jsx-a11y/media-has-caption
+          <video
+            className={!shortsMode ? 'w-8/12 rounded-md' : 'w-1/4 rounded-md'}
+            controls
+            controlsList="nodownload"
+            ref={async (ref) => {
+              if (!ref || !getBlobs) return
+              const blob = await getBlobs()
+              const url = window.URL.createObjectURL(blob)
+              // eslint-disable-next-line no-param-reassign
+              ref.src = url
+            }}
+          />
+        )}
+      </div>
+      {/* Bottom bar with details and global controls */}
+      <div className="flex py-4 px-10 bg-gray-50 fixed bottom-0 w-full justify-center">
+        <div className="absolute left-8 bottom-3">
+          <Heading className="text-md font-semibold text-gray-800">
+            {fragment.flick.name}
+          </Heading>
+          <Text className="text-md text-gray-500">{fragment.name}</Text>
         </div>
+        <RecordingControlsBar />
       </div>
     </div>
   )
