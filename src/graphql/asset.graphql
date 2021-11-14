@@ -2,6 +2,7 @@ fragment AssetDetails on Asset {
   id
   displayName
   objectLink
+  transformations
 }
 
 query UserAsset {
@@ -15,6 +16,7 @@ query GetUserImageAssets {
     id
     displayName
     objectLink
+    transformations
   }
 }
 
@@ -33,5 +35,14 @@ mutation AddAsset(
     }
   ) {
     id
+  }
+}
+
+mutation UpdateAssetTransformations($transformations: json, $id: uuid!) {
+  update_Asset_by_pk(
+    pk_columns: { id: $id }
+    _set: { transformations: $transformations }
+  ) {
+    transformations
   }
 }

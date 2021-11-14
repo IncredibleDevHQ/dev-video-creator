@@ -11,6 +11,8 @@ import FragmentEditor from './FragmentEditor'
 import FlickCard from './FlickCard'
 import FragmentView from './FragmentView'
 import PublishModal from './PublishModal'
+import VideoEditor from './VideoEditor'
+import VideoEditorModal from './VideoEditorModal'
 
 export {
   ScreenRecording,
@@ -26,4 +28,6 @@ export {
   FlickCard,
   FragmentView,
   PublishModal,
+  VideoEditor,
+  VideoEditorModal,
 }
