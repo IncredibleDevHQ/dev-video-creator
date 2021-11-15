@@ -1,7 +1,6 @@
 import React from 'react'
-import logo from '../assets/logo.svg'
+import loadingImg from '../assets/loading.svg'
 import Button from './Button'
-import Loader from './Loader'
 
 const ScreenState = ({
   title,
@@ -10,7 +9,7 @@ const ScreenState = ({
   handleClick,
   loading,
 }: {
-  title: string
+  title?: string
   subtitle?: string
   button?: string
   handleClick?: () => void
@@ -18,14 +17,18 @@ const ScreenState = ({
 }) => {
   return (
     <div className="z-10 p-4 flex flex-col items-center justify-center fixed w-screen left-0 top-0 min-h-screen">
-      <img src={logo} className="w-24 mb-6 animate-bounce" alt="Logo" />
+      <img src={loadingImg} className="w-14" alt="Logo" />
 
-      <h2 className="text-center text-4xl font-extrabold">{title}</h2>
-      {subtitle && (
-        <h4 color="gray-400" className="mt-3 text-xl text-center">
-          {subtitle}
-        </h4>
-      )}
+      <div style={{ maxWidth: 256 }}>
+        {title && (
+          <h2 className="text-gray-800 text-center text-xl font-bold mt-8 mb-2">
+            {title}
+          </h2>
+        )}
+        {subtitle && (
+          <h4 className="text-gray-600 text-xs text-center">{subtitle}</h4>
+        )}
+      </div>
 
       {button && (
         <Button
