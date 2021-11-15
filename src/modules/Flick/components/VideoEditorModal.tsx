@@ -2,17 +2,20 @@ import { css, cx } from '@emotion/css'
 import React from 'react'
 import Modal from 'react-responsive-modal'
 import { Heading } from '../../../components'
-import {
-  AssetDetailsFragment,
-  useUpdateAssetTransformationsMutation,
-} from '../../../generated/graphql'
-import { EditorProps } from './VideoEditor'
+import { AssetDetailsFragment } from '../../../generated/graphql'
+import { EditorProps, Transformations } from './VideoEditor'
 import { VideoEditor } from '.'
 
 interface VideoEditorModalProps extends Pick<EditorProps, 'url'> {
   open: boolean
   handleClose: () => void
+  handleAction: (
+    asset: AssetDetailsFragment,
+    transformations: Transformations
+  ) => Promise<void>
   asset: AssetDetailsFragment
+  action: string
+  editorWidth?: number
 }
 
 const VideoEditorModal = ({
@@ -20,9 +23,10 @@ const VideoEditorModal = ({
   handleClose,
   asset,
   url,
+  handleAction,
+  action,
+  editorWidth = 600,
 }: VideoEditorModalProps) => {
-  const [updateAssetTransformation] = useUpdateAssetTransformationsMutation()
-
   return (
     <Modal
       open={open}
@@ -47,15 +51,11 @@ const VideoEditorModal = ({
       <div className="mt-8 rounded-md overflow-hidden">
         <VideoEditor
           url={url}
-          action="Save"
+          action={action}
           handleAction={async (transformations) => {
-            await updateAssetTransformation({
-              variables: { transformations, id: asset.id },
-            })
-
-            handleClose()
+            handleAction(asset, transformations)
           }}
-          width={600}
+          width={editorWidth}
           transformations={asset.transformations || undefined}
         />
       </div>

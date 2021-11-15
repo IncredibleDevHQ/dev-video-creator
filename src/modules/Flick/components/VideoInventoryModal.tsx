@@ -6,6 +6,7 @@ import { Button, Heading, ScreenState } from '../../../components'
 import config from '../../../config'
 import {
   AssetDetailsFragment,
+  useUpdateAssetTransformationsMutation,
   useUserAssetQuery,
 } from '../../../generated/graphql'
 import { ScreenRecording, VideoEditorModal } from './index'
@@ -25,6 +26,8 @@ const VideoInventoryModal = ({
   const [uploadFileModal, setUploadFileModal] = useState(false)
 
   const [editAsset, setEditAsset] = useState<AssetDetailsFragment | null>(null)
+
+  const [updateAssetTransformation] = useUpdateAssetTransformationsMutation()
 
   const { data, error, refetch } = useUserAssetQuery()
 
@@ -125,7 +128,14 @@ const VideoInventoryModal = ({
           open={editAsset !== null}
           handleClose={() => {
             setEditAsset(null)
+          }}
+          action="Save"
+          handleAction={async (asset, transformations) => {
+            await updateAssetTransformation({
+              variables: { transformations, id: asset.id },
+            })
 
+            setEditAsset(null)
             refetch()
           }}
           asset={editAsset}

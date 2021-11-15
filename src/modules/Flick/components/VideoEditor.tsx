@@ -270,7 +270,7 @@ const Progress = ({
   )
 }
 
-interface Transformations {
+export interface Transformations {
   crop?: Coordinates
   clip?: Clip
 }
