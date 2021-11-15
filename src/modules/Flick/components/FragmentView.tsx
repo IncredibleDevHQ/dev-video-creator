@@ -239,7 +239,7 @@ const Layouts = ({
             )}
             onClick={() => {
               setStudio((store) => ({ ...store, shortsMode: true }))
-              // Only default to first codejam if the selected layout isnt a codejam
+              // Default to the first object of any type other than videojam, if the selected object is videojam while changing to shorts mode
               if (
                 config.dataConfig.find((c) => c.id === selectedLayoutId)
                   ?.type === ConfigType.VIDEOJAM
