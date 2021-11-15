@@ -242,17 +242,17 @@ const Layouts = ({
               // Only default to first codejam if the selected layout isnt a codejam
               if (
                 config.dataConfig.find((c) => c.id === selectedLayoutId)
-                  ?.type !== ConfigType.CODEJAM
+                  ?.type === ConfigType.VIDEOJAM
               ) {
-                const firstCodeJamIndex = config.dataConfig.findIndex(
-                  (conf) => conf.type === ConfigType.CODEJAM
+                const firstObjectIndex = config.dataConfig.findIndex(
+                  (conf) => conf.type !== ConfigType.VIDEOJAM
                 )
-                if (firstCodeJamIndex !== -1) {
+                if (firstObjectIndex !== -1) {
                   updatePayload?.({
-                    activeObjectIndex: firstCodeJamIndex,
+                    activeObjectIndex: firstObjectIndex,
                     fragmentState: 'customLayout',
                   })
-                  setSelectedLayoutId(config.dataConfig[firstCodeJamIndex].id)
+                  setSelectedLayoutId(config.dataConfig[firstObjectIndex].id)
                 }
               }
             }}
@@ -363,7 +363,7 @@ const Layouts = ({
           {config.viewConfig.configs
             .filter((c) => {
               if (shortsMode) {
-                return c.type === ConfigType.CODEJAM
+                return c.type !== ConfigType.VIDEOJAM
               }
               return true
             })

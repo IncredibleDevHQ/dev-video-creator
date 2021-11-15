@@ -19,7 +19,11 @@ import {
   ObjectConfig,
 } from '../../utils/FragmentLayoutConfig'
 import { StudioUserConfiguration } from '../../utils/StudioUserConfig'
-import Concourse, { CONFIG, TitleSplashProps } from '../../components/Concourse'
+import Concourse, {
+  CONFIG,
+  SHORTS_CONFIG,
+  TitleSplashProps,
+} from '../../components/Concourse'
 import { FragmentState } from '../../components/RenderTokens'
 
 const PointsFragment = ({
@@ -45,7 +49,7 @@ const PointsFragment = ({
   stageRef: React.RefObject<Konva.Stage>
   layerRef: React.RefObject<Konva.Layer>
 }) => {
-  const { fragment, state, updatePayload, payload } =
+  const { fragment, state, updatePayload, payload, shortsMode } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [studio, setStudio] = useRecoilState(studioStore)
@@ -74,19 +78,33 @@ const PointsFragment = ({
 
   const colorStops = [0, '#D1D5DB', 1, '#D1D5DB']
 
+  const [stageConfig, setStageConfig] = useState<{
+    width: number
+    height: number
+  }>({ width: 0, height: 0 })
+
+  useEffect(() => {
+    if (!shortsMode) setStageConfig(CONFIG)
+    else setStageConfig(SHORTS_CONFIG)
+  }, [shortsMode])
+
   useEffect(() => {
     if (!dataConfig) return
     setObjectConfig(
-      FragmentLayoutConfig({ layoutNumber: viewConfig.layoutNumber })
+      FragmentLayoutConfig({
+        layoutNumber: viewConfig.layoutNumber,
+        isShorts: shortsMode || false,
+      })
     )
     setPoints(dataConfig.value)
-  }, [dataConfig, viewConfig])
+    setTopLayerChildren([])
+  }, [dataConfig, viewConfig, shortsMode])
 
   useEffect(() => {
     setTitleNumberOfLines(
       getNoOfLinesOfText({
         text: dataConfig.title,
-        availableWidth: objectConfig.width - 120,
+        availableWidth: objectConfig.width - 60,
         fontSize: 40,
         fontFamily: 'Poppins',
         stageWidth: objectConfig.width,
@@ -147,6 +165,7 @@ const PointsFragment = ({
           rectOneColors={['#651CC8', '#9561DA']}
           rectTwoColors={['#FF5D01', '#B94301']}
           rectThreeColors={['#1F2937', '#778496']}
+          isShorts={shortsMode}
         />,
       ])
       customLayoutRef.current.to({
@@ -161,6 +180,7 @@ const PointsFragment = ({
           rectOneColors={['#651CC8', '#9561DA']}
           rectTwoColors={['#FF5D01', '#B94301']}
           rectThreeColors={['#1F2937', '#778496']}
+          isShorts={shortsMode}
         />,
       ])
       customLayoutRef.current.to({
@@ -176,8 +196,8 @@ const PointsFragment = ({
         <Rect
           x={0}
           y={0}
-          width={CONFIG.width}
-          height={CONFIG.height}
+          width={stageConfig.width}
+          height={stageConfig.height}
           fillLinearGradientColorStops={viewConfig.background.gradient?.values}
           fillLinearGradientStartPoint={
             viewConfig.background.gradient?.startIndex
@@ -188,8 +208,8 @@ const PointsFragment = ({
         <Image
           x={0}
           y={0}
-          width={CONFIG.width}
-          height={CONFIG.height}
+          width={stageConfig.width}
+          height={stageConfig.height}
           image={bgImage}
         />
       )}
@@ -210,7 +230,7 @@ const PointsFragment = ({
         align="left"
         fontSize={40}
         fill="#E5E7EB"
-        width={objectConfig.width - 140}
+        width={objectConfig.width - 80}
         lineHeight={1.15}
         text={dataConfig.title}
         fontStyle="normal 700"
@@ -273,6 +293,7 @@ const PointsFragment = ({
     layoutNumber: viewConfig.layoutNumber,
     fragment,
     fragmentState,
+    isShorts: shortsMode || false,
   })
 
   return (
