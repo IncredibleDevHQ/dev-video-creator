@@ -67,11 +67,14 @@ import { ReactEditor } from 'slate-react'
 import { HistoryEditor } from 'slate-history'
 import { FiCheckCircle, FiXCircle } from 'react-icons/fi'
 import { useRecoilValue } from 'recoil'
+import { ApolloQueryResult } from '@apollo/client'
 import { Button } from '../../../components'
 import { VideoInventoryModal } from '../../../modules/Flick/components'
 import {
+  Exact,
   useGetCodeExplanationMutation,
   useGetSuggestedTextMutation,
+  UserAssetQuery,
 } from '../../../generated/graphql'
 import { serializeDataConfig } from '../serializer/config-serialize'
 import { Auth, authState } from '../../../stores/auth.store'
@@ -365,7 +368,8 @@ export const GenerateExplanationButton = ({
             .pop()
           const config = await serializeDataConfig(
             [codeText as TNode],
-            token as string
+            token as string,
+            undefined // because video assets config would not have changed on gpt3 generation
           )
           const codeConfig = config.find(
             (c) => c.type === ConfigType.CODEJAM
@@ -393,11 +397,23 @@ export const ToolbarButtons = ({
   editor,
   activeFragmentId,
   insertMedia,
+  assetsData,
+  refetchAssetsData,
 }: {
   value?: TNode<any>[]
   activeFragmentId: string
   insertMedia: (url: string) => void
   editor: PEditor & ReactEditor & HistoryEditor
+  assetsData: UserAssetQuery | undefined
+  refetchAssetsData: (
+    variables?:
+      | Partial<
+          Exact<{
+            [key: string]: never
+          }>
+        >
+      | undefined
+  ) => Promise<ApolloQueryResult<UserAssetQuery>>
 }) => {
   const [isVideoModal, setVideoModal] = useState(false)
   const [selectedVideo, setSelectedVideo] = useState<string>('')
@@ -452,6 +468,8 @@ export const ToolbarButtons = ({
         handleClose={() => {
           setVideoModal(false)
         }}
+        assetsData={assetsData}
+        refetchAssetsData={refetchAssetsData}
       />
     </div>
   )

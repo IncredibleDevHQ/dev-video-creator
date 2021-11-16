@@ -1,3 +1,4 @@
+import { ApolloQueryResult } from '@apollo/client'
 import { css } from '@emotion/css'
 import {
   createAlignPlugin,
@@ -50,8 +51,10 @@ import { serialize } from 'remark-slate'
 import { HistoryEditor } from 'slate-history'
 import { ReactEditor } from 'slate-react'
 import {
+  Exact,
   useGetCodeExplanationMutation,
   useGetSuggestedTextMutation,
+  UserAssetQuery,
 } from '../../../generated/graphql'
 import { Auth, authState } from '../../../stores/auth.store'
 import { CodejamConfig, ConfigType } from '../../../utils/configTypes'
@@ -69,9 +72,21 @@ type TEditor = PEditor & ReactEditor & HistoryEditor
 const FragmentEditor = ({
   value,
   setValue,
+  assetsData,
+  assetsRefetch,
 }: {
   value: TNode<any>[] | undefined
   setValue: React.Dispatch<React.SetStateAction<TNode<any>[] | undefined>>
+  assetsData: UserAssetQuery | undefined
+  assetsRefetch: (
+    variables?:
+      | Partial<
+          Exact<{
+            [key: string]: never
+          }>
+        >
+      | undefined
+  ) => Promise<ApolloQueryResult<UserAssetQuery>>
 }) => {
   const components = withStyledPlaceHolders(createPlateComponents())
   const options = createPlateOptions()
@@ -140,7 +155,8 @@ const FragmentEditor = ({
         .pop()
       const config = await serializeDataConfig(
         [codeText as TNode],
-        token as string
+        token as string,
+        assetsData
       )
       const codeConfig = config.find(
         (c) => c.type === ConfigType.CODEJAM
@@ -205,6 +221,8 @@ const FragmentEditor = ({
               value={value}
               activeFragmentId={activeFragmentId}
               insertMedia={insertMedia}
+              assetsData={assetsData}
+              refetchAssetsData={assetsRefetch}
             />
           </HeadingToolbar>
         )}

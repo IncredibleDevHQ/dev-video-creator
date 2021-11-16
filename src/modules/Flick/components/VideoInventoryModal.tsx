@@ -1,13 +1,15 @@
+import { ApolloQueryResult } from '@apollo/client'
 import { css, cx } from '@emotion/css'
 import React, { useState } from 'react'
 import { FiEdit2, FiMonitor, FiUploadCloud } from 'react-icons/fi'
 import Modal from 'react-responsive-modal'
-import { Button, Heading, ScreenState } from '../../../components'
+import { Button, Heading } from '../../../components'
 import config from '../../../config'
 import {
   AssetDetailsFragment,
+  Exact,
+  UserAssetQuery,
   useUpdateAssetTransformationsMutation,
-  useUserAssetQuery,
 } from '../../../generated/graphql'
 import { ScreenRecording, VideoEditorModal } from './index'
 import UploadVideoModal from './UploadVideoModal'
@@ -16,10 +18,22 @@ const VideoInventoryModal = ({
   open,
   handleClose,
   setSelectedVideoLink,
+  assetsData,
+  refetchAssetsData,
 }: {
   open: boolean
   handleClose: () => void
   setSelectedVideoLink: React.Dispatch<React.SetStateAction<string>>
+  assetsData: UserAssetQuery | undefined
+  refetchAssetsData: (
+    variables?:
+      | Partial<
+          Exact<{
+            [key: string]: never
+          }>
+        >
+      | undefined
+  ) => Promise<ApolloQueryResult<UserAssetQuery>>
 }) => {
   const { baseUrl } = config.storage
   const [screenRecordModal, setScreenRecordModal] = useState(false)
@@ -28,13 +42,6 @@ const VideoInventoryModal = ({
   const [editAsset, setEditAsset] = useState<AssetDetailsFragment | null>(null)
 
   const [updateAssetTransformation] = useUpdateAssetTransformationsMutation()
-
-  const { data, error, refetch } = useUserAssetQuery()
-
-  if (error)
-    return (
-      <ScreenState title="Something went wrong!" subtitle={error.message} />
-    )
 
   return (
     <Modal
@@ -80,7 +87,7 @@ const VideoInventoryModal = ({
         </Button>
       </div>
       <div className="grid grid-cols-3 m-4 gap-4">
-        {data?.Asset.map((asset) => (
+        {assetsData?.Asset.map((asset) => (
           // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
           <div
             className="shadow-md relative transition-all cursor-pointer hover:shadow-2xl bg-white p-2 rounded-md"
@@ -112,14 +119,14 @@ const VideoInventoryModal = ({
         open={screenRecordModal}
         handleClose={() => {
           setScreenRecordModal(false)
-          refetch()
+          refetchAssetsData()
         }}
       />
       <UploadVideoModal
         open={uploadFileModal}
         handleClose={() => {
           setUploadFileModal(false)
-          refetch()
+          refetchAssetsData()
         }}
       />
 
@@ -136,7 +143,7 @@ const VideoInventoryModal = ({
             })
 
             setEditAsset(null)
-            refetch()
+            refetchAssetsData()
           }}
           asset={editAsset}
           url={baseUrl + editAsset.objectLink}
