@@ -20,7 +20,11 @@ import {
   ObjectConfig,
 } from '../../utils/FragmentLayoutConfig'
 import { StudioUserConfiguration } from '../../utils/StudioUserConfig'
-import Concourse, { CONFIG, TitleSplashProps } from '../../components/Concourse'
+import Concourse, {
+  CONFIG,
+  SHORTS_CONFIG,
+  TitleSplashProps,
+} from '../../components/Concourse'
 import Gif from '../../components/Gif'
 import { FragmentState } from '../../components/RenderTokens'
 
@@ -47,7 +51,7 @@ const TriviaFragment = ({
   stageRef: React.RefObject<Konva.Stage>
   layerRef: React.RefObject<Konva.Layer>
 }) => {
-  const { fragment, payload, state } =
+  const { fragment, payload, state, shortsMode } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [studio, setStudio] = useRecoilState(studioStore)
@@ -86,10 +90,23 @@ const TriviaFragment = ({
     borderRadius: 0,
   })
 
+  const [stageConfig, setStageConfig] = useState<{
+    width: number
+    height: number
+  }>({ width: 0, height: 0 })
+
+  useEffect(() => {
+    if (!shortsMode) setStageConfig(CONFIG)
+    else setStageConfig(SHORTS_CONFIG)
+  }, [shortsMode])
+
   useEffect(() => {
     if (!dataConfig) return
     setObjectConfig(
-      FragmentLayoutConfig({ layoutNumber: viewConfig.layoutNumber })
+      FragmentLayoutConfig({
+        layoutNumber: viewConfig.layoutNumber,
+        isShorts: shortsMode || false,
+      })
     )
     setTriviaData(dataConfig.value)
     setStudio({
@@ -100,7 +117,8 @@ const TriviaFragment = ({
         dataConfigLength,
       },
     })
-  }, [dataConfig, viewConfig])
+    setTopLayerChildren([])
+  }, [dataConfig, viewConfig, shortsMode])
 
   useEffect(() => {
     setStudio({
@@ -166,6 +184,7 @@ const TriviaFragment = ({
           rectOneColors={['#651CC8', '#9561DA']}
           rectTwoColors={['#FF5D01', '#B94301']}
           rectThreeColors={['#1F2937', '#778496']}
+          isShorts={shortsMode}
         />,
       ])
       customLayoutRef.current.to({
@@ -180,6 +199,7 @@ const TriviaFragment = ({
           rectOneColors={['#651CC8', '#9561DA']}
           rectTwoColors={['#FF5D01', '#B94301']}
           rectThreeColors={['#1F2937', '#778496']}
+          isShorts={shortsMode}
         />,
       ])
       customLayoutRef.current.to({
@@ -195,8 +215,8 @@ const TriviaFragment = ({
         <Rect
           x={0}
           y={0}
-          width={CONFIG.width}
-          height={CONFIG.height}
+          width={stageConfig.width}
+          height={stageConfig.height}
           fillLinearGradientColorStops={viewConfig.background.gradient?.values}
           fillLinearGradientStartPoint={
             viewConfig.background.gradient?.startIndex
@@ -207,8 +227,8 @@ const TriviaFragment = ({
         <Image
           x={0}
           y={0}
-          width={CONFIG.width}
-          height={CONFIG.height}
+          width={stageConfig.width}
+          height={stageConfig.height}
           image={bgImage}
         />
       )}
@@ -276,6 +296,7 @@ const TriviaFragment = ({
           )
         ) : (
           <Text
+            x={10}
             fontSize={32}
             fill="#E5E7EB"
             width={objectConfig.width - 20}
@@ -297,6 +318,7 @@ const TriviaFragment = ({
     layoutNumber: viewConfig.layoutNumber,
     fragment,
     fragmentState,
+    isShorts: shortsMode || false,
   })
 
   return (
