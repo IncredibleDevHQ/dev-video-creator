@@ -1,7 +1,7 @@
 /* eslint-disable no-nested-ternary */
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
-import { Group, Text, Image, Rect } from 'react-konva'
+import { Group, Image, Rect, Text } from 'react-konva'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import useImage from 'use-image'
 import {
@@ -9,17 +9,6 @@ import {
   LayoutConfig,
   TriviaConfig,
 } from '../../../../utils/configTypes'
-import {
-  MutipleRectMoveLeft,
-  MutipleRectMoveRight,
-} from '../FragmentTransitions'
-import useEdit from '../../hooks/use-edit'
-import { StudioProviderProps, studioStore } from '../../stores'
-import {
-  FragmentLayoutConfig,
-  ObjectConfig,
-} from '../../utils/FragmentLayoutConfig'
-import { StudioUserConfiguration } from '../../utils/StudioUserConfig'
 import Concourse, {
   CONFIG,
   SHORTS_CONFIG,
@@ -27,6 +16,14 @@ import Concourse, {
 } from '../../components/Concourse'
 import Gif from '../../components/Gif'
 import { FragmentState } from '../../components/RenderTokens'
+import useEdit from '../../hooks/use-edit'
+import { StudioProviderProps, studioStore } from '../../stores'
+import {
+  FragmentLayoutConfig,
+  ObjectConfig,
+} from '../../utils/FragmentLayoutConfig'
+import { StudioUserConfiguration } from '../../utils/StudioUserConfig'
+import { TrianglePathTransition } from '../FragmentTransitions'
 
 const TriviaFragment = ({
   viewConfig,
@@ -180,31 +177,21 @@ const TriviaFragment = ({
     // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
     if (fragmentState === 'customLayout') {
       setTopLayerChildren([
-        <MutipleRectMoveRight
-          rectOneColors={['#651CC8', '#9561DA']}
-          rectTwoColors={['#FF5D01', '#B94301']}
-          rectThreeColors={['#1F2937', '#778496']}
-          isShorts={shortsMode}
-        />,
+        <TrianglePathTransition isShorts={shortsMode} direction="right" />,
       ])
       customLayoutRef.current.to({
         opacity: 1,
-        duration: 0.2,
+        duration: 1,
       })
     }
     // Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
     if (fragmentState === 'onlyUserMedia') {
       setTopLayerChildren([
-        <MutipleRectMoveLeft
-          rectOneColors={['#651CC8', '#9561DA']}
-          rectTwoColors={['#FF5D01', '#B94301']}
-          rectThreeColors={['#1F2937', '#778496']}
-          isShorts={shortsMode}
-        />,
+        <TrianglePathTransition isShorts={shortsMode} direction="left" />,
       ])
       customLayoutRef.current.to({
         opacity: 0,
-        duration: 0.2,
+        duration: 1,
       })
     }
   }, [fragmentState])
