@@ -135,8 +135,8 @@ const Thumbnail = ({
   snapshot,
   ...rest
 }: ThumbnailProps) => {
-  const [editFragmentName, setEditFragmentName] = useState(false)
   const [{ flick }, setFlickStore] = useRecoilState(newFlickStore)
+  const [fragmentName, setFragmentName] = useState(fragment.name)
   const [updateFragmentMutation, { data: updateFragmentData }] =
     useUpdateFragmentMutation()
   const [overflowButtonVisible, setOverflowButtonVisible] = useState(false)
@@ -145,33 +145,31 @@ const Thumbnail = ({
   const [confirmDeleteModal, setConfirmDeleteModal] = useState(false)
 
   useEffect(() => {
-    if (!updateFragmentData) return
-    setEditFragmentName(false)
-  }, [updateFragmentData])
+    if (!fragment) return
+    setFragmentName(fragment.name)
+  }, [fragment])
 
   const updateFragment = async (newName: string) => {
-    if (editFragmentName) {
-      if (flick) {
-        setFlickStore((store) => ({
-          ...store,
-          flick: {
-            ...flick,
-            fragments: flick.fragments.map((f) => {
-              if (f.id === fragment?.id) {
-                return { ...f, name: newName }
-              }
-              return f
-            }),
-          },
-        }))
-      }
-      await updateFragmentMutation({
-        variables: {
-          fragmentId: fragment?.id, // value for 'fragmentId'
-          name: newName,
+    if (flick) {
+      setFlickStore((store) => ({
+        ...store,
+        flick: {
+          ...flick,
+          fragments: flick.fragments.map((f) => {
+            if (f.id === fragment?.id) {
+              return { ...f, name: newName }
+            }
+            return f
+          }),
         },
-      })
+      }))
     }
+    await updateFragmentMutation({
+      variables: {
+        fragmentId: fragment?.id, // value for 'fragmentId'
+        name: newName,
+      },
+    })
   }
 
   return (
@@ -231,33 +229,19 @@ const Thumbnail = ({
         placement="bottom-start"
         hideOnOutsideClick
       />
-      <Text
-        className={cx(
-          'text-xs font-bold text-gray-800 cursor-text rounded-md p-1 hover:bg-gray-200 overflow-scroll',
-          {
-            'truncate overflow-ellipsis': !editFragmentName,
-          }
-        )}
-        contentEditable={editFragmentName}
-        onClick={(e) => e.stopPropagation()}
-        onMouseDown={() => {
-          setEditFragmentName(true)
-        }}
+      <input
+        type="text"
+        value={fragmentName || ''}
+        className="text-xs font-bold text-gray-800 cursor-text rounded-md p-1 hover:bg-gray-200 bg-transparent focus:outline-none"
+        onChange={(e) => setFragmentName(e.target.value)}
+        onBlur={() => fragmentName && updateFragment(fragmentName)}
         onKeyDown={(e) => {
+          if (!fragment?.name) return
           if (e.key === 'Enter') {
-            e.preventDefault()
-            setEditFragmentName(false)
-            updateFragment(e.currentTarget.innerText)
-          }
-          if (e.key === 'Escape') {
-            e.preventDefault()
-            e.currentTarget.innerText = fragment.name || ''
-            setEditFragmentName(false)
+            updateFragment(fragment.name)
           }
         }}
-      >
-        {fragment.name}
-      </Text>
+      />
       <div className="flex pl-1 pt-1">
         {fragment.participants.map(({ participant }) => (
           <Avatar

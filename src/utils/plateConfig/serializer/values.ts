@@ -46,7 +46,6 @@ export const initEditor = [
         ],
       },
       { type: 'code_line', id: 1636437471855, children: [{ text: '}' }] },
-      { type: 'p', children: [{ text: '' }], id: 1636379823753 },
     ],
     id: 1636379826808,
     lang: 'javascript',
