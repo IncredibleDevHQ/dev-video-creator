@@ -150,9 +150,9 @@ const UnifiedFragment = ({
     if (!shortsMode)
       switch (fragment?.participants.length) {
         case 2:
-          return [70, 530]
+          return [530, 70]
         case 3:
-          return [45, 355, 665]
+          return [665, 355, 45]
         default:
           return [95]
       }
