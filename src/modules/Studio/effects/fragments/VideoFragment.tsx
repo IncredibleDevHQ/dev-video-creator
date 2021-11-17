@@ -99,22 +99,31 @@ const VideoFragment = ({
     if (!videoElement) return
     switch (state) {
       case 'recording':
-        videoElement.currentTime = 0
         updatePayload?.({
           playing: false,
-          currentTime: 0,
+          currentTime: dataConfig?.value?.from || 0,
         })
         setTopLayerChildren([])
         break
       default:
-        videoElement.currentTime = 0
         updatePayload?.({
           playing: false,
-          currentTime: 0,
+          currentTime: dataConfig?.value?.from || 0,
         })
         setTopLayerChildren([])
     }
-  }, [state])
+  }, [state, dataConfig])
+
+  // performing trim operation
+  // on end time, reinitialize the video element's current time to start time
+  videoElement?.addEventListener('timeupdate', () => {
+    if (!dataConfig.value.to) return
+    if (videoElement.currentTime >= dataConfig?.value?.to) {
+      videoElement.pause()
+      videoElement.currentTime = dataConfig?.value?.from || 0
+      videoElement.play()
+    }
+  })
 
   useEffect(() => {
     // eslint-disable-next-line
@@ -181,6 +190,12 @@ const VideoFragment = ({
     videoFill: objectConfig.color || '#1F2937',
     cornerRadius: objectConfig.borderRadius,
     performClip: true,
+    clipVideoConfig: {
+      x: dataConfig?.value?.x || 0,
+      y: dataConfig?.value?.y || 0,
+      width: dataConfig?.value?.width || 1,
+      height: dataConfig?.value?.height || 1,
+    },
   }
 
   const layerChildren: any[] = [
@@ -219,8 +234,6 @@ const VideoFragment = ({
     fragment,
     fragmentState,
   })
-
-  // console.log('studioUserConfig', studioUserConfig)
 
   return (
     <Concourse
