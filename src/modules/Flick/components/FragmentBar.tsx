@@ -17,6 +17,7 @@ import {
   updateToast,
 } from '../../../components'
 import {
+  FlickFragmentFragment,
   useCreateFragmentMutation,
   useGetFlickFragmentsLazyQuery,
   useGetFragmentParticipantsLazyQuery,
@@ -60,9 +61,9 @@ const FragmentBar = ({
     useRecoilState(newFlickStore)
   const history = useHistory()
 
-  const fragment = flick?.fragments.find((f) => f.id === activeFragmentId)
-
-  const [editFragmentName, setEditFragmentName] = useState(false)
+  const [fragment, setFragment] = useState<FlickFragmentFragment | undefined>(
+    flick?.fragments.find((f) => f.id === activeFragmentId)
+  )
   const [createFragment] = useCreateFragmentMutation()
   const { sub } = (useRecoilValue(userState) as User) || {}
   const [
@@ -82,9 +83,9 @@ const FragmentBar = ({
   const [savingConfig, setSavingConfig] = useState(false)
 
   useEffect(() => {
-    if (!updateFragmentData) return
-    setEditFragmentName(false)
-  }, [updateFragmentData])
+    const f = flick?.fragments.find((f) => f.id === activeFragmentId)
+    setFragment(f)
+  }, [activeFragmentId, flick])
 
   useEffect(() => {
     if (!data) return
@@ -243,28 +244,26 @@ const FragmentBar = ({
   }
 
   const updateFragment = async (newName: string) => {
-    if (editFragmentName) {
-      if (flick) {
-        setFlickStore((store) => ({
-          ...store,
-          flick: {
-            ...flick,
-            fragments: flick.fragments.map((f) => {
-              if (f.id === fragment?.id) {
-                return { ...f, name: newName }
-              }
-              return f
-            }),
-          },
-        }))
-      }
-      await updateFragmentMutation({
-        variables: {
-          fragmentId: fragment?.id, // value for 'fragmentId'
-          name: newName,
+    if (flick) {
+      setFlickStore((store) => ({
+        ...store,
+        flick: {
+          ...flick,
+          fragments: flick.fragments.map((f) => {
+            if (f.id === fragment?.id) {
+              return { ...f, name: newName }
+            }
+            return f
+          }),
         },
-      })
+      }))
     }
+    await updateFragmentMutation({
+      variables: {
+        fragmentId: fragment?.id, // value for 'fragmentId'
+        name: newName,
+      },
+    })
   }
 
   const handleCreateFragment = async () => {
@@ -378,28 +377,21 @@ const FragmentBar = ({
                 <HiOutlineTemplate size={18} />
               </div>
             </div>
-            <Text
-              className="text-sm font-bold text-gray-800 truncate overflow-ellipsis cursor-text rounded-md p-1 hover:bg-gray-100"
-              contentEditable={editFragmentName}
-              onClick={(e) => e.stopPropagation()}
-              onMouseDown={() => {
-                setEditFragmentName(true)
-              }}
+            <input
+              type="text"
+              value={fragment?.name || ''}
+              className="text-xs font-bold text-gray-800 cursor-text rounded-md p-1 hover:bg-gray-200 bg-transparent focus:outline-none"
+              onChange={(e) =>
+                fragment && setFragment({ ...fragment, name: e.target.value })
+              }
+              onBlur={() => fragment?.name && updateFragment(fragment.name)}
               onKeyDown={(e) => {
+                if (!fragment?.name) return
                 if (e.key === 'Enter') {
-                  e.preventDefault()
-                  setEditFragmentName(false)
-                  updateFragment(e.currentTarget.innerText)
-                }
-                if (e.key === 'Escape') {
-                  e.preventDefault()
-                  e.currentTarget.innerText = fragment?.name || ''
-                  setEditFragmentName(false)
+                  updateFragment(fragment.name)
                 }
               }}
-            >
-              {fragment?.name}
-            </Text>
+            />
           </>
         )}
       </div>
