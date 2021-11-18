@@ -101,14 +101,6 @@ const Flick = () => {
     refetch: assetsRefetch,
   } = useUserAssetQuery()
 
-  if (assetsError) {
-    return (
-      <ScreenState
-        title="Something went wrong!"
-        subtitle={assetsError.message}
-      />
-    )
-  }
   useEffect(() => {
     if (!assetsData) return
     setMyMediaAssets(assetsData)
@@ -186,6 +178,14 @@ const Flick = () => {
     )
 
   if (!flick) return null
+  if (assetsError) {
+    return (
+      <ScreenState
+        title="Something went wrong!"
+        subtitle={assetsError.message}
+      />
+    )
+  }
 
   return (
     <div className="flex flex-col h-screen">

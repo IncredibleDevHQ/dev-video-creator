@@ -45,7 +45,7 @@ const FragmentBar = ({
   assetsData,
 }: {
   initialPlateValue: TNode<any>[] | undefined
-  plateValue: TNode<any>[] | undefined
+  plateValue?: TNode<any>[]
   config: Config
   setSerializing: React.Dispatch<React.SetStateAction<boolean>>
   setConfig: React.Dispatch<React.SetStateAction<Config>>
@@ -126,11 +126,12 @@ const FragmentBar = ({
 
   const generateConfig = async () => {
     try {
+      if (!plateValue || plateValue?.length === 0) return
       if (JSON.stringify(plateValue) !== JSON.stringify(initialPlateValue)) {
         setSerializing(true)
 
         const dataConfig = await serializeDataConfig(
-          plateValue || [],
+          plateValue,
           auth?.token || '',
           assetsData
         )

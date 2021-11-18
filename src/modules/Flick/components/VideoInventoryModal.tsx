@@ -7,8 +7,8 @@ import { Button, Heading } from '../../../components'
 import config from '../../../config'
 import {
   AssetDetailsFragment,
-  Exact,
   UserAssetQuery,
+  UserAssetQueryVariables,
   useUpdateAssetTransformationsMutation,
 } from '../../../generated/graphql'
 import { ScreenRecording, VideoEditorModal } from './index'
@@ -24,13 +24,9 @@ const VideoInventoryModal = ({
   open: boolean
   handleClose: () => void
   setSelectedVideoLink: React.Dispatch<React.SetStateAction<string>>
-  assetsData: UserAssetQuery | undefined
+  assetsData?: UserAssetQuery
   refetchAssetsData: (
-    variables?: Partial<
-      Exact<{
-        [key: string]: never
-      }>
-    >
+    variables?: UserAssetQueryVariables
   ) => Promise<ApolloQueryResult<UserAssetQuery>>
 }) => {
   const { baseUrl } = config.storage
