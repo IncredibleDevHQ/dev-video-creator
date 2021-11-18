@@ -94,23 +94,13 @@ const Flick = () => {
   const [selectedLayoutId, setSelectedLayoutId] = useState('')
 
   const { updatePayload, payload, resetPayload } = useLocalPayload()
-  const [myMediaAssets, setMyMediaAssets] = useState<
-    UserAssetQuery | undefined
-  >()
+  const [myMediaAssets, setMyMediaAssets] = useState<UserAssetQuery>()
   const {
     data: assetsData,
     error: assetsError,
     refetch: assetsRefetch,
   } = useUserAssetQuery()
 
-  if (assetsError) {
-    return (
-      <ScreenState
-        title="Something went wrong!"
-        subtitle={assetsError.message}
-      />
-    )
-  }
   useEffect(() => {
     if (!assetsData) return
     setMyMediaAssets(assetsData)
@@ -188,6 +178,14 @@ const Flick = () => {
     )
 
   if (!flick) return null
+  if (assetsError) {
+    return (
+      <ScreenState
+        title="Something went wrong!"
+        subtitle={assetsError.message}
+      />
+    )
+  }
 
   return (
     <div className="flex flex-col h-screen">

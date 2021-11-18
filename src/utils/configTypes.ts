@@ -115,6 +115,6 @@ export interface Clip {
 }
 
 export interface AssetTransformType {
-  crop: Crop | undefined
-  clip: Clip | undefined
+  crop?: Crop
+  clip?: Clip
 }
