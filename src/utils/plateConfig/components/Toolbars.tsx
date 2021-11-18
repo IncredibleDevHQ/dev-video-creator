@@ -71,10 +71,10 @@ import { ApolloQueryResult } from '@apollo/client'
 import { Button } from '../../../components'
 import { VideoInventoryModal } from '../../../modules/Flick/components'
 import {
-  Exact,
   useGetCodeExplanationMutation,
   useGetSuggestedTextMutation,
   UserAssetQuery,
+  UserAssetQueryVariables,
 } from '../../../generated/graphql'
 import { serializeDataConfig } from '../serializer/config-serialize'
 import { Auth, authState } from '../../../stores/auth.store'
@@ -404,15 +404,9 @@ export const ToolbarButtons = ({
   activeFragmentId: string
   insertMedia: (url: string) => void
   editor: PEditor & ReactEditor & HistoryEditor
-  assetsData: UserAssetQuery | undefined
+  assetsData?: UserAssetQuery
   refetchAssetsData: (
-    variables?:
-      | Partial<
-          Exact<{
-            [key: string]: never
-          }>
-        >
-      | undefined
+    variables?: UserAssetQueryVariables
   ) => Promise<ApolloQueryResult<UserAssetQuery>>
 }) => {
   const [isVideoModal, setVideoModal] = useState(false)
