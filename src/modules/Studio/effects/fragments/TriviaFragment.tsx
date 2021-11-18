@@ -1,7 +1,7 @@
 /* eslint-disable no-nested-ternary */
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
-import { Group, Text, Image, Rect } from 'react-konva'
+import { Group, Image, Rect, Text } from 'react-konva'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import useImage from 'use-image'
 import {
@@ -9,17 +9,6 @@ import {
   LayoutConfig,
   TriviaConfig,
 } from '../../../../utils/configTypes'
-import {
-  MutipleRectMoveLeft,
-  MutipleRectMoveRight,
-} from '../FragmentTransitions'
-import useEdit from '../../hooks/use-edit'
-import { StudioProviderProps, studioStore } from '../../stores'
-import {
-  FragmentLayoutConfig,
-  ObjectConfig,
-} from '../../utils/FragmentLayoutConfig'
-import { StudioUserConfiguration } from '../../utils/StudioUserConfig'
 import Concourse, {
   CONFIG,
   SHORTS_CONFIG,
@@ -27,6 +16,14 @@ import Concourse, {
 } from '../../components/Concourse'
 import Gif from '../../components/Gif'
 import { FragmentState } from '../../components/RenderTokens'
+import useEdit from '../../hooks/use-edit'
+import { StudioProviderProps, studioStore } from '../../stores'
+import {
+  FragmentLayoutConfig,
+  ObjectConfig,
+} from '../../utils/FragmentLayoutConfig'
+import { StudioUserConfiguration } from '../../utils/StudioUserConfig'
+import { TrianglePathTransition } from '../FragmentTransitions'
 
 const TriviaFragment = ({
   viewConfig,
@@ -170,44 +167,41 @@ const TriviaFragment = ({
       )
   }, [qnaImage, objectConfig])
 
-  useEffect(() => {
-    // setActiveQuestionIndex(payload?.activeQuestion)
-    setFragmentState(payload?.fragmentState)
-  }, [payload])
+  // useEffect(() => {
+  //   // setActiveQuestionIndex(payload?.activeQuestion)
+  //   setFragmentState(payload?.fragmentState)
+  // }, [payload])
 
   useEffect(() => {
     if (!customLayoutRef.current) return
     // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
-    if (fragmentState === 'customLayout') {
+    if (payload?.fragmentState === 'customLayout') {
       setTopLayerChildren([
-        <MutipleRectMoveRight
-          rectOneColors={['#651CC8', '#9561DA']}
-          rectTwoColors={['#FF5D01', '#B94301']}
-          rectThreeColors={['#1F2937', '#778496']}
-          isShorts={shortsMode}
-        />,
+        <TrianglePathTransition isShorts={shortsMode} direction="left" />,
       ])
-      customLayoutRef.current.to({
-        opacity: 1,
-        duration: 0.2,
-      })
+      setTimeout(() => {
+        setFragmentState(payload?.fragmentState)
+        // customLayoutRef.current?.opacity(1)
+        customLayoutRef.current?.to({
+          opacity: 1,
+          duration: 0.2,
+        })
+      }, 1000)
     }
     // Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
-    if (fragmentState === 'onlyUserMedia') {
+    if (payload?.fragmentState === 'onlyUserMedia') {
       setTopLayerChildren([
-        <MutipleRectMoveLeft
-          rectOneColors={['#651CC8', '#9561DA']}
-          rectTwoColors={['#FF5D01', '#B94301']}
-          rectThreeColors={['#1F2937', '#778496']}
-          isShorts={shortsMode}
-        />,
+        <TrianglePathTransition isShorts={shortsMode} direction="right" />,
       ])
-      customLayoutRef.current.to({
+      customLayoutRef.current?.to({
         opacity: 0,
-        duration: 0.2,
+        duration: 0.8,
       })
+      setTimeout(() => {
+        setFragmentState(payload?.fragmentState)
+      }, 800)
     }
-  }, [fragmentState])
+  }, [payload?.fragmentState])
 
   const layerChildren: any[] = [
     <Group x={0} y={0}>

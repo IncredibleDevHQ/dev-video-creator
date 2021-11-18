@@ -9,19 +9,16 @@ import {
   LayoutConfig,
   VideojamConfig,
 } from '../../../../utils/configTypes'
-import {
-  MutipleRectMoveLeft,
-  MutipleRectMoveRight,
-} from '../FragmentTransitions'
+import Concourse, { CONFIG, TitleSplashProps } from '../../components/Concourse'
+import { FragmentState } from '../../components/RenderTokens'
+import { Video, VideoConfig } from '../../components/Video'
 import { StudioProviderProps, studioStore } from '../../stores'
 import {
   FragmentLayoutConfig,
   ObjectConfig,
 } from '../../utils/FragmentLayoutConfig'
 import { StudioUserConfiguration } from '../../utils/StudioUserConfig'
-import Concourse, { CONFIG, TitleSplashProps } from '../../components/Concourse'
-import { FragmentState } from '../../components/RenderTokens'
-import { Video, VideoConfig } from '../../components/Video'
+import { TrianglePathTransition } from '../FragmentTransitions'
 
 const VideoFragment = ({
   viewConfig,
@@ -147,40 +144,31 @@ const VideoFragment = ({
   }, [payload?.status])
 
   useEffect(() => {
-    setFragmentState(payload?.fragmentState)
-  }, [payload?.fragmentState])
-
-  useEffect(() => {
     if (!customLayoutRef.current) return
     // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
-    if (fragmentState === 'customLayout') {
-      setTopLayerChildren([
-        <MutipleRectMoveRight
-          rectOneColors={['#651CC8', '#9561DA']}
-          rectTwoColors={['#FF5D01', '#B94301']}
-          rectThreeColors={['#1F2937', '#778496']}
-        />,
-      ])
-      customLayoutRef.current.to({
-        opacity: 1,
-        duration: 0.2,
-      })
+    if (payload?.fragmentState === 'customLayout') {
+      setTopLayerChildren([<TrianglePathTransition direction="left" />])
+      setTimeout(() => {
+        setFragmentState(payload?.fragmentState)
+        // customLayoutRef.current?.opacity(1)
+        customLayoutRef.current?.to({
+          opacity: 1,
+          duration: 0.2,
+        })
+      }, 1000)
     }
     // Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
-    if (fragmentState === 'onlyUserMedia') {
-      setTopLayerChildren([
-        <MutipleRectMoveLeft
-          rectOneColors={['#651CC8', '#9561DA']}
-          rectTwoColors={['#FF5D01', '#B94301']}
-          rectThreeColors={['#1F2937', '#778496']}
-        />,
-      ])
-      customLayoutRef.current.to({
+    if (payload?.fragmentState === 'onlyUserMedia') {
+      setTopLayerChildren([<TrianglePathTransition direction="right" />])
+      customLayoutRef.current?.to({
         opacity: 0,
-        duration: 0.2,
+        duration: 0.8,
       })
+      setTimeout(() => {
+        setFragmentState(payload?.fragmentState)
+      }, 800)
     }
-  }, [fragmentState])
+  }, [payload?.fragmentState])
 
   const videoConfig: VideoConfig = {
     x: objectConfig.x,
