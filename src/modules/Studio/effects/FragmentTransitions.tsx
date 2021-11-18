@@ -574,12 +574,12 @@ export const TrianglePathTransition = ({
     case 'left':
       groupStartX = stageConfig.width + stageConfig.width / 4 + 110
       groupEndX = -(stageConfig.width + stageConfig.width / 4 + 110)
-      duration = 1
+      duration = 1.5
       break
     case 'right':
       groupStartX = -(stageConfig.width + stageConfig.width / 4 + 110)
       groupEndX = stageConfig.width + stageConfig.width / 4 + 110
-      duration = 1
+      duration = 1.5
       break
     case 'moveIn':
       groupStartX = -(stageConfig.width + stageConfig.width / 4 + 110)
@@ -597,13 +597,13 @@ export const TrianglePathTransition = ({
   if (!isShorts)
     return (
       <Group
-        x={groupStartX}
+        x={groupStartX + 350}
         y={0}
         ref={(ref) =>
           ref?.to({
             x: groupEndX,
             duration,
-            // easing: Konva.Easings.EaseIn,
+            // easing: Konva.Easings.EaseOut,
             onFinish: () => {
               if (!performFinishAction) return
               setTimeout(() => {
@@ -616,8 +616,8 @@ export const TrianglePathTransition = ({
         <Shape
           sceneFunc={(context, shape) => {
             context.beginPath()
-            context.moveTo(0, -100)
-            context.lineTo(stageConfig.width, -100)
+            context.moveTo(0, -110)
+            context.lineTo(stageConfig.width, -110)
             context.lineTo(
               stageConfig.width + stageConfig.width / 4 + 80,
               stageConfig.height / 2 - 50
@@ -628,8 +628,8 @@ export const TrianglePathTransition = ({
               stageConfig.width + stageConfig.width / 4 + 80,
               stageConfig.height / 2 + 50
             )
-            context.lineTo(stageConfig.width, stageConfig.height + 100)
-            context.lineTo(0, stageConfig.height + 100)
+            context.lineTo(stageConfig.width, stageConfig.height + 110)
+            context.lineTo(0, stageConfig.height + 110)
             context.lineTo(
               -stageConfig.width / 4 - 80,
               stageConfig.height / 2 + 50
@@ -681,8 +681,8 @@ export const TrianglePathTransition = ({
         <Shape
           sceneFunc={(context, shape) => {
             context.beginPath()
-            context.moveTo(0, 0)
-            context.lineTo(stageConfig.width, 0)
+            context.moveTo(0, 30)
+            context.lineTo(stageConfig.width, 30)
             context.lineTo(
               stageConfig.width + stageConfig.width / 4 - 80,
               stageConfig.height / 2 - 50
@@ -693,8 +693,8 @@ export const TrianglePathTransition = ({
               stageConfig.width + stageConfig.width / 4 - 80,
               stageConfig.height / 2 + 50
             )
-            context.lineTo(stageConfig.width, stageConfig.height)
-            context.lineTo(0, stageConfig.height)
+            context.lineTo(stageConfig.width, stageConfig.height - 30)
+            context.lineTo(0, stageConfig.height - 30)
             context.lineTo(
               -stageConfig.width / 4 + 80,
               stageConfig.height / 2 + 50
