@@ -94,9 +94,7 @@ const Flick = () => {
   const [selectedLayoutId, setSelectedLayoutId] = useState('')
 
   const { updatePayload, payload, resetPayload } = useLocalPayload()
-  const [myMediaAssets, setMyMediaAssets] = useState<
-    UserAssetQuery | undefined
-  >()
+  const [myMediaAssets, setMyMediaAssets] = useState<UserAssetQuery>()
   const {
     data: assetsData,
     error: assetsError,

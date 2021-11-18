@@ -26,13 +26,11 @@ const VideoInventoryModal = ({
   setSelectedVideoLink: React.Dispatch<React.SetStateAction<string>>
   assetsData: UserAssetQuery | undefined
   refetchAssetsData: (
-    variables?:
-      | Partial<
-          Exact<{
-            [key: string]: never
-          }>
-        >
-      | undefined
+    variables?: Partial<
+      Exact<{
+        [key: string]: never
+      }>
+    >
   ) => Promise<ApolloQueryResult<UserAssetQuery>>
 }) => {
   const { baseUrl } = config.storage

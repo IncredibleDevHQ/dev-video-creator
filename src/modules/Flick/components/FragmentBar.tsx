@@ -191,9 +191,10 @@ const FragmentBar = ({
     try {
       let dc = config.dataConfig
       let vc = config.viewConfig
+      if (!plateValue || plateValue?.length === 0) return
       if (JSON.stringify(plateValue) !== JSON.stringify(initialPlateValue)) {
         dc = await serializeDataConfig(
-          plateValue || [],
+          plateValue,
           auth?.token || '',
           assetsData
         )
