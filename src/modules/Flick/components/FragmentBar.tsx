@@ -22,6 +22,7 @@ import {
   useGetFlickFragmentsLazyQuery,
   useGetFragmentParticipantsLazyQuery,
   User,
+  UserAssetQuery,
   useUpdateFragmentMutation,
   useUpdateFragmentStateMutation,
 } from '../../../generated/graphql'
@@ -41,9 +42,10 @@ const FragmentBar = ({
   setConfig,
   setSelectedLayoutId,
   setInitialPlateValue,
+  assetsData,
 }: {
   initialPlateValue: TNode<any>[] | undefined
-  plateValue: TNode<any>[] | undefined
+  plateValue?: TNode<any>[]
   config: Config
   setSerializing: React.Dispatch<React.SetStateAction<boolean>>
   setConfig: React.Dispatch<React.SetStateAction<Config>>
@@ -51,6 +53,7 @@ const FragmentBar = ({
   setInitialPlateValue: React.Dispatch<
     React.SetStateAction<TNode<any>[] | undefined>
   >
+  assetsData: UserAssetQuery | undefined
 }) => {
   const [fragmentVideoModal, setFragmetVideoModal] = useState(false)
   const [auth] = useRecoilState(authState)
@@ -123,12 +126,14 @@ const FragmentBar = ({
 
   const generateConfig = async () => {
     try {
+      if (!plateValue || plateValue?.length === 0) return
       if (JSON.stringify(plateValue) !== JSON.stringify(initialPlateValue)) {
         setSerializing(true)
 
         const dataConfig = await serializeDataConfig(
-          plateValue || [],
-          auth?.token || ''
+          plateValue,
+          auth?.token || '',
+          assetsData
         )
         const viewConfig = generateViewConfig({
           dataConfig,
@@ -187,8 +192,13 @@ const FragmentBar = ({
     try {
       let dc = config.dataConfig
       let vc = config.viewConfig
+      if (!plateValue || plateValue?.length === 0) return
       if (JSON.stringify(plateValue) !== JSON.stringify(initialPlateValue)) {
-        dc = await serializeDataConfig(plateValue || [], auth?.token || '')
+        dc = await serializeDataConfig(
+          plateValue,
+          auth?.token || '',
+          assetsData
+        )
         vc = generateViewConfig({
           dataConfig: dc,
           viewConfig: vc,

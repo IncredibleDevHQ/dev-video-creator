@@ -1,8 +1,10 @@
+import { QueryLazyOptions } from '@apollo/client'
 import { TNode } from '@udecode/plate'
 import axios from 'axios'
 
 import { nanoid } from 'nanoid'
 import * as gConfig from '../../../config'
+import { UserAssetQuery } from '../../../generated/graphql'
 
 import {
   CodejamConfig,
@@ -11,6 +13,7 @@ import {
   PointsConfig,
   ConfigType,
   ColorCode,
+  AssetTransformType,
 } from '../../configTypes'
 
 import { defaultNodeTypes } from './types'
@@ -144,10 +147,11 @@ export const getColorCodes = async (
 
 export const serializeDataConfig = async (
   nodeArray: TNode[],
-  userToken: string
+  userToken: string,
+  assetsData: UserAssetQuery | undefined
 ): Promise<FragmentConfig[]> => {
   const config: FragmentConfig[] = []
-
+  console.log('Inside serialize : ', { assetsData })
   let heading = ''
   let context: any = null
 
@@ -282,12 +286,28 @@ export const serializeDataConfig = async (
         context = null
       }
       /* VIDEO JAM */
+      // get asset transforms
+      const currentAsset: AssetTransformType = assetsData?.Asset.find(
+        (asset) => {
+          if (asset) return asset.objectLink === node.url.split('/').pop()
+          return false
+        }
+      )?.transformations
+
       // extract necessary data from plate's node array
       context = {
         id: nanoid(),
         type: ConfigType.VIDEOJAM,
         title: heading || '',
-        value: { videoURL: node.url },
+        value: {
+          videoURL: node.url,
+          from: currentAsset?.clip?.start,
+          to: currentAsset?.clip?.end,
+          height: currentAsset?.crop?.height,
+          width: currentAsset?.crop?.width,
+          x: currentAsset?.crop?.x,
+          y: currentAsset?.crop?.y,
+        },
       } as VideojamConfig
     }
   }
@@ -297,6 +317,6 @@ export const serializeDataConfig = async (
     context.title = heading
     config.push(context)
   }
-
+  console.log('data config :', config)
   return config
 }
