@@ -144,28 +144,31 @@ const VideoFragment = ({
   }, [payload?.status])
 
   useEffect(() => {
-    setFragmentState(payload?.fragmentState)
-  }, [payload?.fragmentState])
-
-  useEffect(() => {
     if (!customLayoutRef.current) return
     // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
-    if (fragmentState === 'customLayout') {
-      setTopLayerChildren([<TrianglePathTransition direction="right" />])
-      customLayoutRef.current.to({
-        opacity: 1,
-        duration: 1,
-      })
+    if (payload?.fragmentState === 'customLayout') {
+      setTopLayerChildren([<TrianglePathTransition direction="left" />])
+      setTimeout(() => {
+        setFragmentState(payload?.fragmentState)
+        // customLayoutRef.current?.opacity(1)
+        customLayoutRef.current?.to({
+          opacity: 1,
+          duration: 0.2,
+        })
+      }, 1000)
     }
     // Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
-    if (fragmentState === 'onlyUserMedia') {
-      setTopLayerChildren([<TrianglePathTransition direction="left" />])
-      customLayoutRef.current.to({
+    if (payload?.fragmentState === 'onlyUserMedia') {
+      setTopLayerChildren([<TrianglePathTransition direction="right" />])
+      customLayoutRef.current?.to({
         opacity: 0,
-        duration: 1,
+        duration: 0.8,
       })
+      setTimeout(() => {
+        setFragmentState(payload?.fragmentState)
+      }, 800)
     }
-  }, [fragmentState])
+  }, [payload?.fragmentState])
 
   const videoConfig: VideoConfig = {
     x: objectConfig.x,
