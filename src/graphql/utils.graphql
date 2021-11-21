@@ -29,6 +29,12 @@ query GetFlickByJoinLink($joinLink: String!) {
   }
 }
 
+query GetImagesFromUnsplash($query: String!) {
+  SearchUnsplash(query: $query) {
+    results
+  }
+}
+
 mutation UploadFile($key: String!) {
   UploadFile(key: $key) {
     success
@@ -68,5 +74,12 @@ mutation GetSuggestedText($text: String!) {
 mutation GetCodeExplanation($code: String!) {
   ExplainCode(code: $code) {
     description
+  }
+}
+
+mutation PublishFlickBlog($flickId: String!) {
+  GenerateBlog(flickId: $flickId) {
+    rawMd
+    success
   }
 }

@@ -224,13 +224,14 @@ const getLogo = {
 }
 
 const getOptions = (src: string, type: string) => ({
-  autoplay: false,
+  autoplay: true,
   playbackRates: [0.5, 1, 1.25, 1.5],
   aspectratio: '16:9',
   controls: true,
   height: 720,
   width: 1280,
   fluid: true,
+  muted: false,
   plugins: {
     qualityLevels: {},
     hlsQualitySelector: {},
@@ -322,15 +323,16 @@ const Video = ({ className, src, ...rest }: VideoProps) => {
   return (
     <div className={cx(videoJs, className)}>
       <div data-vjs-player>
+        {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
         <video
           id="flick_video"
+          autoPlay
           ref={videoRef}
           className="video-js"
           controls
           width="100%"
           height="100%"
           preload="auto"
-          muted
           data-setup="{}"
           {...rest}
         />

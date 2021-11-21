@@ -6,7 +6,6 @@ fragment PublicFlick on Flick {
   id
   name
   scope
-  md
   plannedEnd
   startAt
   updatedAt
@@ -231,14 +230,6 @@ mutation UpdateParticipantRole(
     role: $role
   ) {
     id
-  }
-}
-
-mutation GenMyMarkdown($flickId: String!) {
-  GenerateMarkdown(flickId: $flickId) {
-    customMd
-    rawMd
-    success
   }
 }
 

@@ -56,6 +56,7 @@ const Button = ({
         className
       )}
       type={type}
+      disabled={disabled || loading}
       onClick={(e) => !(disabled || loading) && onClick?.(e)}
       {...rest}
     >

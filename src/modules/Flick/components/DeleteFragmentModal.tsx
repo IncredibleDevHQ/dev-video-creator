@@ -1,10 +1,9 @@
+import { css, cx } from '@emotion/css'
 import React, { useEffect } from 'react'
 import { Modal } from 'react-responsive-modal'
-import { css, cx } from '@emotion/css'
+import { useRecoilState } from 'recoil'
 import { Button, Text } from '../../../components'
 import { useDeleteFragmentMutation } from '../../../generated/graphql'
-import { useHistory } from 'react-router-dom'
-import { useRecoilState } from 'recoil'
 import { newFlickStore } from '../store/flickNew.store'
 
 const DeleteFragmentModal = ({
@@ -38,6 +37,7 @@ const DeleteFragmentModal = ({
         newFragmentsLength > 0 ? newFragments[0].id : ''
 
       setFlickStore((store) => ({
+        ...store,
         activeFragmentId: newActiveFragmentId,
         flick: {
           ...flick,
@@ -91,7 +91,7 @@ const DeleteFragmentModal = ({
             appearance="danger"
             type="button"
             className="p-2 text-white rounded-lg mr-4"
-            onClick={(e) => {
+            onClick={() => {
               deleteFragmentbyId()
             }}
             loading={loading}

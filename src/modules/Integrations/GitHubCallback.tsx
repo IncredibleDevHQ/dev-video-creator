@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { FiAlertCircle, FiLoader, FiX } from 'react-icons/fi'
-import { useRecoilValue } from 'recoil'
+import { FiAlertCircle, FiLoader } from 'react-icons/fi'
 import { useIntegrateGitHubMutation } from '../../generated/graphql'
 import { useQuery } from '../../hooks'
 

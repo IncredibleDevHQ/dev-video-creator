@@ -23,8 +23,7 @@ const SettingsModal = ({
   open: boolean
   handleClose: (refresh?: boolean) => void
 }) => {
-  const [{ flick, activeFragmentId }, setFlickStore] =
-    useRecoilState(newFlickStore)
+  const [{ flick }, setFlickStore] = useRecoilState(newFlickStore)
 
   const [loading, setLoading] = useState(false)
   const [updateFlickThumbnail] = useUpdateFlickThumbnailMutation()

@@ -1,8 +1,9 @@
+/* eslint-disable jsx-a11y/media-has-caption */
 import { css, cx } from '@emotion/css'
 import React, { useEffect, useState } from 'react'
 import { Modal } from 'react-responsive-modal'
 import useScreenRecorder from 'use-screen-recorder'
-import { Button, Video } from '../../../components'
+import { Button } from '../../../components'
 import {
   Asset_Source_Enum_Enum,
   Asset_Type_Enum_Enum,
@@ -35,7 +36,7 @@ const ScreenRecording = ({
   }>()
   const [uploadVideo] = useUploadFile()
 
-  const [addAssetMutation, { data, loading, error }] = useAddAssetMutation()
+  const [addAssetMutation, { data, loading }] = useAddAssetMutation()
 
   const handleClick = async (file: string) => {
     const blob: Blob = await fetch(file).then((r) => r.blob())
@@ -135,7 +136,13 @@ const ScreenRecording = ({
 
         {status === 'stopped' && (
           <div className="flex flex-col gap-3 m-2 mt-8">
-            <Video src={blobUrl || ''} />
+            {blobUrl && (
+              <video
+                className="rounded-md overflow-hidden"
+                src={blobUrl}
+                controls
+              />
+            )}
             <div className="flex flex-row gap-3">
               <Button
                 type="button"

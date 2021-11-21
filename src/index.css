@@ -88,3 +88,8 @@ body {
   -webkit-user-select: none;
   user-select: none;
 }
+
+.underline-link {
+  padding-bottom: 1px;
+  border-bottom: 1px dashed #000;
+}

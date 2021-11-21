@@ -1,31 +1,29 @@
+import '@fontsource/fira-mono'
 import AuthenticateScreen from './Authentication/Authentication'
+import InWaitlist from './Authentication/InWaitlist'
+import JoinWaitlist from './Authentication/JoinWaitlist'
+import MagicLinkLogin from './Authentication/MagicLinkLogin'
+import Circle from './Circle/Circle'
 import Dashboard from './Dashboard/Dashboard'
-import Organisation from './Organisation/Organisation'
+import SingleSeries from './DashboardSeries/SingleSeries'
+import Designer from './Designer/Designer'
 import Flick from './Flick/Flick'
 import Flicks from './Flick/Flicks'
-import Landing from './Landing/Landing'
 import NewFlick from './Flick/NewFlick'
-import Onboarding from './Onboarding/Onboarding'
-import Profile from './Profile/Profile'
-import Studio from './Studio/Studio'
-import Designer from './Designer/Designer'
-import '@fontsource/fira-mono'
-import NewOrganisation from './Organisation/NewOrganisation'
-import Series from './Series/userSeries/Series'
 import AllUserFlicks from './Flicks/AllUserFlicks'
-import UserSeriesFlicks from './UserSeriesFlicks/UserSeriesFlicks'
-import SingleSeries from './DashboardSeries/SingleSeries'
-import Circle from './Circle/Circle'
-import NewFragment from './NewFragment/NewFragment'
-import PublicOrganisationPage from './Organisation/PublicOrganisationPage'
-import InviteScreen from './Invitation/InviteScreen'
-import PublicVideo from './PublicVideo/PublicVideo'
-import MagicLinkLogin from './Authentication/MagicLinkLogin'
-import NewNewFragment from './NewFragment/NewNewFragment'
-import Integrations from './Integrations/Integrations'
 import GitHubCallback from './Integrations/GitHubCallback'
-import JoinWaitlist from './Authentication/JoinWaitlist'
-import InWaitlist from './Authentication/InWaitlist'
+import Integrations from './Integrations/Integrations'
+import InviteScreen from './Invitation/InviteScreen'
+import Landing from './Landing/Landing'
+import Onboarding from './Onboarding/Onboarding'
+import NewOrganisation from './Organisation/NewOrganisation'
+import Organisation from './Organisation/Organisation'
+import PublicOrganisationPage from './Organisation/PublicOrganisationPage'
+import Profile from './Profile/Profile'
+import PublicVideo from './PublicVideo/PublicVideo'
+import Series from './Series/userSeries/Series'
+import Studio from './Studio/Studio'
+import UserSeriesFlicks from './UserSeriesFlicks/UserSeriesFlicks'
 
 export {
   AllUserFlicks,
@@ -41,8 +39,6 @@ export {
   Landing,
   MagicLinkLogin,
   NewFlick,
-  NewFragment,
-  NewNewFragment,
   NewOrganisation,
   Onboarding,
   Organisation,
