@@ -1,7 +1,9 @@
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 /* eslint-disable no-nested-ternary */
+import axios from 'axios'
 import React, { useState } from 'react'
+import { useAuthState } from 'react-firebase-hooks/auth'
 import Gravatar from 'react-gravatar'
 import { FiDownload } from 'react-icons/fi'
 import {
@@ -12,9 +14,10 @@ import {
 import { Link, useHistory } from 'react-router-dom'
 import { useRecoilValue } from 'recoil'
 import { MoreOptionsModal, RequestAccessModal, ShareButtonModal } from '.'
-import { Button, Heading, Tooltip } from '../../../components'
+import { Button, emitToast, Heading, Tooltip } from '../../../components'
+import config from '../../../config'
 import { ASSETS } from '../../../constants'
-import { Auth, authState } from '../../../stores/auth.store'
+import firebaseState from '../../../stores/firebase.store'
 import { User, userState } from '../../../stores/user.store'
 
 const AuthenticatedRightCol = ({
@@ -31,7 +34,21 @@ const AuthenticatedRightCol = ({
   const { picture, displayName, email } =
     (useRecoilValue(userState) as User) || {}
   const [isOpen, setIsOpen] = useState(false)
-  const { signOut } = (useRecoilValue(authState) as Auth) || {}
+
+  const fbState = useRecoilValue(firebaseState)
+
+  const handleSignOut = async () => {
+    try {
+      await fbState.auth.signOut()
+      await axios.post(`${config.auth.endpoint}/logout`)
+      window.location.href = config.auth.endpoint
+    } catch (error) {
+      emitToast({
+        type: 'error',
+        title: 'Error signing out',
+      })
+    }
+  }
 
   return (
     <div className="flex  flex-row w-full pr-4 justify-end">
@@ -66,7 +83,7 @@ const AuthenticatedRightCol = ({
             <li>
               <Button
                 onClick={() => {
-                  signOut?.()
+                  handleSignOut()
                 }}
                 type="button"
                 appearance="link"
@@ -129,7 +146,8 @@ const Header = ({
   const [requestAccessModal, setRequestAccessModal] = useState(false)
   const [moreOptionsModal, setMoreOptionsModal] = useState(false)
   const [openShareModal, setOpenShareModal] = useState(false)
-  const { isAuthenticated } = (useRecoilValue(authState) as Auth) || {}
+  const fbState = useRecoilValue(firebaseState)
+  const [user] = useAuthState(fbState.auth)
   const history = useHistory()
 
   return (
@@ -145,7 +163,7 @@ const Header = ({
           }}
         />
 
-        {isAuthenticated ? (
+        {user ? (
           <AuthenticatedRightCol
             producedLink={producedLink}
             setMoreOptionsModal={setMoreOptionsModal}

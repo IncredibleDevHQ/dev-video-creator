@@ -16,11 +16,12 @@ interface FirebaseStore {
   app: FirebaseApp
   auth: Auth
   database: FirebaseDatabase
+  loading: boolean
 }
 
 const firebaseState = atom<FirebaseStore>({
   key: 'firebaseState',
-  default: { app, database, auth: firebaseAuth },
+  default: { app, database, auth: firebaseAuth, loading: true },
   dangerouslyAllowMutability: true,
 })
 

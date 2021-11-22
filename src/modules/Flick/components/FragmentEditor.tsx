@@ -46,6 +46,7 @@ import {
   usePlateEditorRef,
 } from '@udecode/plate'
 import React, { useMemo } from 'react'
+import { useAuthState } from 'react-firebase-hooks/auth'
 import { useRecoilValue } from 'recoil'
 import { serialize } from 'remark-slate'
 import { HistoryEditor } from 'slate-history'
@@ -56,7 +57,7 @@ import {
   useGetSuggestedTextMutation,
   UserAssetQuery,
 } from '../../../generated/graphql'
-import { Auth, authState } from '../../../stores/auth.store'
+import firebaseState from '../../../stores/firebase.store'
 import { CodejamConfig, ConfigType } from '../../../utils/configTypes'
 import {
   BallonToolbarMarks,
@@ -97,7 +98,8 @@ const FragmentEditor = ({
   const [getSuggestedText] = useGetSuggestedTextMutation()
   const [getCodeExplanation] = useGetCodeExplanationMutation()
 
-  const { token } = (useRecoilValue(authState) as Auth) || {}
+  const fbState = useRecoilValue(firebaseState)
+  const [user] = useAuthState(fbState.auth)
 
   // @ts-ignore
   const pluginsMemo: PlatePlugin<TEditor>[] = useMemo(() => {
@@ -153,6 +155,7 @@ const FragmentEditor = ({
       const codeText: TNode = value
         .filter((block) => block.type === 'code_block')
         .pop()
+      const token = await user?.getIdToken()
       const config = await serializeDataConfig(
         [codeText as TNode],
         token as string,

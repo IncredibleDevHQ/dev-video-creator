@@ -1,20 +1,34 @@
+import axios from 'axios'
 import React, { useState } from 'react'
-import { Link, useHistory } from 'react-router-dom'
-import { useRecoilValue } from 'recoil'
-import { FiArrowRight, FiSearch } from 'react-icons/fi'
+import { useAuthState } from 'react-firebase-hooks/auth'
 import Gravatar from 'react-gravatar'
-import { User, userState } from '../stores/user.store'
-import { Auth, authState } from '../stores/auth.store'
-import Button from './Button'
+import { useHistory } from 'react-router-dom'
+import { useRecoilValue } from 'recoil'
+import { emitToast, Tooltip } from '.'
+import config from '../config'
 import { ASSETS } from '../constants'
-import { Tooltip } from '.'
+import firebaseState from '../stores/firebase.store'
+import { userState } from '../stores/user.store'
+import Button from './Button'
 
 const AuthenticatedRightCol = () => {
   const history = useHistory()
-  const { picture, displayName, email } =
-    (useRecoilValue(userState) as User) || {}
+  const { picture, displayName, email } = useRecoilValue(userState) || {}
   const [isOpen, setIsOpen] = useState(false)
-  const { signOut } = (useRecoilValue(authState) as Auth) || {}
+  const fbState = useRecoilValue(firebaseState)
+
+  const handleSignOut = async () => {
+    try {
+      await fbState.auth.signOut()
+      await axios.post(`${config.auth.endpoint}/logout`)
+      window.location.href = config.auth.endpoint
+    } catch (error) {
+      emitToast({
+        type: 'error',
+        title: 'Error signing out',
+      })
+    }
+  }
 
   return (
     <div className="flex items-center">
@@ -26,7 +40,7 @@ const AuthenticatedRightCol = () => {
             <li>
               <Button
                 onClick={() => {
-                  signOut?.()
+                  handleSignOut()
                 }}
                 type="button"
                 appearance="link"
@@ -88,9 +102,10 @@ const AuthenticatedRightCol = () => {
   )
 }
 
-const Navbar = ({ hideNav }: { hideNav?: boolean }) => {
+const Navbar = () => {
   const history = useHistory()
-  const { isAuthenticated } = (useRecoilValue(authState) as Auth) || {}
+  const fbState = useRecoilValue(firebaseState)
+  const [user] = useAuthState(fbState.auth)
 
   return (
     <nav className="flex flex-row items-center px-4 py-2 justify-between border-b-2">
@@ -104,34 +119,7 @@ const Navbar = ({ hideNav }: { hideNav?: boolean }) => {
         }}
       />
 
-      {isAuthenticated ? (
-        <AuthenticatedRightCol />
-      ) : (
-        <div className="flex gap-2 flex-row">
-          <Link to="login">
-            <Button
-              type="button"
-              appearance="primary"
-              size="small"
-              iconPosition="right"
-              icon={FiArrowRight}
-            >
-              Login
-            </Button>
-          </Link>
-
-          <Button
-            type="button"
-            appearance="link"
-            size="large"
-            iconPosition="right"
-            icon={FiSearch}
-            onClick={() => history.push('/')}
-          >
-            Explore Incredible
-          </Button>
-        </div>
-      )}
+      {user && <AuthenticatedRightCol />}
     </nav>
   )
 }

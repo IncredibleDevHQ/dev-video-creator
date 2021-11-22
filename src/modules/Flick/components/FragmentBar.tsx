@@ -1,6 +1,7 @@
 import { cx } from '@emotion/css'
 import { TNode } from '@udecode/plate'
 import React, { useEffect, useState } from 'react'
+import { useAuthState } from 'react-firebase-hooks/auth'
 import { BiPlayCircle } from 'react-icons/bi'
 import { BsCameraVideo } from 'react-icons/bs'
 import { FiPlus } from 'react-icons/fi'
@@ -21,13 +22,12 @@ import {
   useCreateFragmentMutation,
   useGetFlickFragmentsLazyQuery,
   useGetFragmentParticipantsLazyQuery,
-  User,
   UserAssetQuery,
   useUpdateFragmentMutation,
   useUpdateFragmentStateMutation,
 } from '../../../generated/graphql'
-import { authState } from '../../../stores/auth.store'
-import { userState } from '../../../stores/user.store'
+import firebaseState from '../../../stores/firebase.store'
+import { User, userState } from '../../../stores/user.store'
 import { Config } from '../../../utils/configTypes'
 import { serializeDataConfig } from '../../../utils/plateConfig/serializer/config-serialize'
 import { generateViewConfig } from '../../../utils/plateConfig/serializer/generateViewConfig'
@@ -56,7 +56,8 @@ const FragmentBar = ({
   assetsData: UserAssetQuery | undefined
 }) => {
   const [fragmentVideoModal, setFragmetVideoModal] = useState(false)
-  const [auth] = useRecoilState(authState)
+  const fbState = useRecoilValue(firebaseState)
+  const [user] = useAuthState(fbState.auth)
   const [{ flick, activeFragmentId, isMarkdown }, setFlickStore] =
     useRecoilState(newFlickStore)
   const history = useHistory()
@@ -130,9 +131,10 @@ const FragmentBar = ({
       if (JSON.stringify(plateValue) !== JSON.stringify(initialPlateValue)) {
         setSerializing(true)
 
+        const token = await user?.getIdToken()
         const dataConfig = await serializeDataConfig(
           plateValue,
-          auth?.token || '',
+          token || '',
           assetsData
         )
         const viewConfig = generateViewConfig({
@@ -194,11 +196,9 @@ const FragmentBar = ({
       let vc = config.viewConfig
       if (!plateValue || plateValue?.length === 0) return
       if (JSON.stringify(plateValue) !== JSON.stringify(initialPlateValue)) {
-        dc = await serializeDataConfig(
-          plateValue,
-          auth?.token || '',
-          assetsData
-        )
+        const token = await user?.getIdToken()
+
+        dc = await serializeDataConfig(plateValue, token || '', assetsData)
         vc = generateViewConfig({
           dataConfig: dc,
           viewConfig: vc,

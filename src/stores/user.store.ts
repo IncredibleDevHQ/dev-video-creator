@@ -15,11 +15,7 @@ export const databaseUserState = atom<Partial<UserFragment> | null>({
   default: null,
 })
 
-interface VerificationStatus {
-  status: VerificationStatusEnum | null
-  loading: boolean
-}
-export const userVerificationStatus = atom<VerificationStatus | null>({
+export const userVerificationStatus = atom<VerificationStatusEnum | null>({
   default: null,
   key: 'userVerificationStatus',
 })

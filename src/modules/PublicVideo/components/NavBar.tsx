@@ -1,14 +1,13 @@
-import React from 'react'
-import { Link, NavLink, useHistory } from 'react-router-dom'
-import { useRecoilValue } from 'recoil'
-import { FiArrowRight, FiBell, FiSearch } from 'react-icons/fi'
-import Gravatar from 'react-gravatar'
 import { cx } from '@emotion/css'
-import { User, userState } from '../../../stores/user.store'
-import logo from '../../../assets/logo.svg'
-import { Auth, authState } from '../../../stores/auth.store'
-import { Button } from '../../../components'
+import React from 'react'
+import { useAuthState } from 'react-firebase-hooks/auth'
+import Gravatar from 'react-gravatar'
+import { FiBell } from 'react-icons/fi'
+import { NavLink, useHistory } from 'react-router-dom'
+import { useRecoilValue } from 'recoil'
 import { ASSETS } from '../../../constants'
+import firebaseState from '../../../stores/firebase.store'
+import { User, userState } from '../../../stores/user.store'
 
 const LinkItem = ({ children, to }: { children: string; to: string }) => (
   <NavLink activeClassName="text-brand" className={cx('font-semibold')} to={to}>
@@ -69,8 +68,8 @@ const AuthenticatedRightCol = () => {
 }
 
 const Navbar = ({ hideNav }: { hideNav?: boolean }) => {
-  const history = useHistory()
-  const { isAuthenticated } = (useRecoilValue(authState) as Auth) || {}
+  const fbState = useRecoilValue(firebaseState)
+  const [user] = useAuthState(fbState.auth)
 
   return (
     <nav className="flex flex-row items-center m-4 px-4 py-2 bg-gray-100 rounded-lg justify-between">
@@ -86,34 +85,7 @@ const Navbar = ({ hideNav }: { hideNav?: boolean }) => {
         </ul>
       )}
 
-      {isAuthenticated ? (
-        <AuthenticatedRightCol />
-      ) : (
-        <div className="flex gap-2 flex-row">
-          <Link to="login">
-            <Button
-              type="button"
-              appearance="primary"
-              size="small"
-              iconPosition="right"
-              icon={FiArrowRight}
-            >
-              Sign In
-            </Button>
-          </Link>
-
-          <Button
-            type="button"
-            appearance="link"
-            size="large"
-            iconPosition="right"
-            icon={FiSearch}
-            onClick={() => history.push('/')}
-          >
-            Explore Incredible
-          </Button>
-        </div>
-      )}
+      {user && <AuthenticatedRightCol />}
     </nav>
   )
 }

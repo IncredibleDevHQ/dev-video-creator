@@ -1,8 +1,12 @@
-import React, { useEffect, useState } from 'react'
+import { ApolloQueryResult } from '@apollo/client'
+import { css, cx } from '@emotion/css'
 import {
   addColumn,
   addRow,
+  AlignToolbarButton,
   BalloonToolbar,
+  BlockToolbarButton,
+  CodeBlockToolbarButton,
   deleteColumn,
   deleteRow,
   deleteTable,
@@ -11,30 +15,30 @@ import {
   ELEMENT_UL,
   getPlatePluginType,
   getPreventDefaultHandler,
+  ImageToolbarButton,
   indent,
   insertNodes,
   insertTable,
+  ListToolbarButton,
+  MarkToolbarButton,
   MARK_BOLD,
   MARK_HIGHLIGHT,
   MARK_ITALIC,
   MARK_KBD,
   MARK_UNDERLINE,
+  MediaEmbedToolbarButton,
   outdent,
   PEditor,
-  TNode,
-  AlignToolbarButton,
-  ToolbarButton,
-  CodeBlockToolbarButton,
-  BlockToolbarButton,
-  ImageToolbarButton,
-  ListToolbarButton,
-  MarkToolbarButton,
-  MediaEmbedToolbarButton,
   TableToolbarButton,
+  TNode,
+  ToolbarButton,
   usePlateEditorRef,
   usePlateEditorState,
 } from '@udecode/plate'
-import { css, cx } from '@emotion/css'
+import React, { useEffect, useState } from 'react'
+import { useAuthState } from 'react-firebase-hooks/auth'
+import { BiHeading } from 'react-icons/bi'
+import { FiCheckCircle, FiXCircle } from 'react-icons/fi'
 import {
   MdBorderAll,
   MdBorderBottom,
@@ -61,24 +65,21 @@ import {
   MdOutlineFormatUnderlined,
   MdVideoLibrary,
 } from 'react-icons/md'
-import { serialize } from 'remark-slate'
-import { BiHeading } from 'react-icons/bi'
-import { ReactEditor } from 'slate-react'
-import { HistoryEditor } from 'slate-history'
-import { FiCheckCircle, FiXCircle } from 'react-icons/fi'
 import { useRecoilValue } from 'recoil'
-import { ApolloQueryResult } from '@apollo/client'
+import { serialize } from 'remark-slate'
+import { HistoryEditor } from 'slate-history'
+import { ReactEditor } from 'slate-react'
 import { Button } from '../../../components'
-import { VideoInventoryModal } from '../../../modules/Flick/components'
 import {
   useGetCodeExplanationMutation,
   useGetSuggestedTextMutation,
   UserAssetQuery,
   UserAssetQueryVariables,
 } from '../../../generated/graphql'
-import { serializeDataConfig } from '../serializer/config-serialize'
-import { Auth, authState } from '../../../stores/auth.store'
+import { VideoInventoryModal } from '../../../modules/Flick/components'
+import firebaseState from '../../../stores/firebase.store'
 import { CodejamConfig, ConfigType } from '../../configTypes'
+import { serializeDataConfig } from '../serializer/config-serialize'
 
 export const ToolbarButtonsBasicElements = () => {
   const editor = usePlateEditorRef()
@@ -313,7 +314,9 @@ export const GenerateExplanationButton = ({
     useGetSuggestedTextMutation()
   const [getCodeExplanation, { loading: codeLoading }] =
     useGetCodeExplanationMutation()
-  const { token } = (useRecoilValue(authState) as Auth) || {}
+
+  const fbState = useRecoilValue(firebaseState)
+  const [user] = useAuthState(fbState.auth)
 
   return (
     <div className="mx-2 flex justify-end items-center">
@@ -366,6 +369,8 @@ export const GenerateExplanationButton = ({
           const codeText: TNode = value
             .filter((block) => block.type === 'code_block')
             .pop()
+
+          const token = await user?.getIdToken()
           const config = await serializeDataConfig(
             [codeText as TNode],
             token as string,
