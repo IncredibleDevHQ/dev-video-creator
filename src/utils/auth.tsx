@@ -33,7 +33,8 @@ const AuthProvider = ({ children }: { children: JSX.Element }): JSX.Element => {
       setFbUser(signedInUser.user)
       getUserQuery()
     } catch (e) {
-      window.location.href = config.auth.endpoint
+      console.error(e)
+      // window.location.href = config.auth.endpoint
       setAuth({ ...auth, loading: false })
     }
   }

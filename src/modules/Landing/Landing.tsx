@@ -23,7 +23,9 @@ const Landing = () => {
   useEffect(() => {
     if (!verificationStatus) return
     if (verificationStatus === VerificationStatusEnum.Approved) {
-      history.replace(from)
+      console.log('from', from)
+      // history.replace(from)
+      history.push('/dashboard')
     }
   }, [verificationStatus])
 
