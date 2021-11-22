@@ -2,6 +2,7 @@
 import axios from 'axios'
 import { signInWithCustomToken } from 'firebase/auth'
 import { useEffect } from 'react'
+import { useAuthState } from 'react-firebase-hooks/auth'
 import { useRecoilState, useSetRecoilState } from 'recoil'
 import config from '../config'
 import { useGetUserLazyQuery } from '../generated/graphql'
@@ -31,13 +32,12 @@ const AuthProvider = ({ children }: { children: JSX.Element }): JSX.Element => {
       )
       const signedInUser = await signInWithCustomToken(
         auth.auth,
-        statusResponse.data
+        statusResponse.data as string
       )
       setFbUser(signedInUser.user)
       getUserQuery()
     } catch (e) {
-      console.error(e)
-      // window.location.href = config.auth.endpoint
+      window.location.href = config.auth.endpoint
       setAuth({ ...auth, loading: false })
     }
   }

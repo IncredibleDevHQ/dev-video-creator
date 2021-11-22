@@ -24,10 +24,6 @@ const PrivateRoute = ({
   const verificationStatus = useRecoilValue(userVerificationStatus)
 
   useEffect(() => {
-    if (auth?.loading === false) push(redirectTo, { from: rest.location })
-  }, [auth])
-
-  useEffect(() => {
     if (!verificationStatus) return
     if (verificationStatus !== VerificationStatusEnum.Approved) push('/')
   }, [verificationStatus])

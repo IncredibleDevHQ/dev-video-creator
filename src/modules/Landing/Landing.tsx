@@ -2,7 +2,7 @@ import { cx } from '@emotion/css'
 import axios from 'axios'
 import React, { useEffect } from 'react'
 import { useAuthState } from 'react-firebase-hooks/auth'
-import { Link, useHistory, useLocation } from 'react-router-dom'
+import { Link, useHistory } from 'react-router-dom'
 import { useRecoilValue } from 'recoil'
 import { ScreenState, Text, Button, emitToast } from '../../components'
 import config from '../../config'
@@ -15,16 +15,12 @@ const Landing = () => {
   const verificationStatus = useRecoilValue(userVerificationStatus)
   const fbState = useRecoilValue(firebaseState)
   const [, loading] = useAuthState(fbState.auth)
-  const location = useLocation<{ from: string }>()
-  const { from } = location.state || { from: { pathname: '/' } }
 
   const history = useHistory()
 
   useEffect(() => {
     if (!verificationStatus) return
     if (verificationStatus === VerificationStatusEnum.Approved) {
-      console.log('from', from)
-      // history.replace(from)
       history.push('/dashboard')
     }
   }, [verificationStatus])
