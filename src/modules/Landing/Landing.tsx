@@ -50,7 +50,7 @@ const WaitlistState = ({ isInWailist }: { isInWailist: boolean }) => {
   const handleSignOut = async () => {
     try {
       await fbState.auth.signOut()
-      await axios.post(`${config.auth.endpoint}/logout`)
+      await axios.post(`${config.auth.endpoint}/api/logout`)
       window.location.href = config.auth.endpoint
     } catch (error) {
       emitToast({

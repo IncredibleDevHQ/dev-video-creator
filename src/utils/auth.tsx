@@ -23,9 +23,12 @@ const AuthProvider = ({ children }: { children: JSX.Element }): JSX.Element => {
   const login = async () => {
     try {
       setAuth({ ...auth, loading: true })
-      const statusResponse = await axios.get(`${config.auth.endpoint}/status`, {
-        withCredentials: true,
-      })
+      const statusResponse = await axios.get(
+        `${config.auth.endpoint}/api/status`,
+        {
+          withCredentials: true,
+        }
+      )
       const signedInUser = await signInWithCustomToken(
         auth.auth,
         statusResponse.data
