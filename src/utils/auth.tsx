@@ -1,6 +1,6 @@
 // eslint-disable-next-line
 import axios from 'axios'
-import { signInWithCustomToken } from 'firebase/auth'
+import { onAuthStateChanged, signInWithCustomToken } from 'firebase/auth'
 import { useEffect } from 'react'
 import { useAuthState } from 'react-firebase-hooks/auth'
 import { useRecoilState, useSetRecoilState } from 'recoil'
@@ -48,6 +48,31 @@ const AuthProvider = ({ children }: { children: JSX.Element }): JSX.Element => {
     setVerificationStatus(me.Me.verificationStatus || null)
     setAuth({ ...auth, loading: false })
   }, [me])
+
+  useEffect(() => {
+    onAuthStateChanged(auth.auth, async (user) => {
+      if (user) {
+        const token = await user.getIdToken(true)
+        const idTokenResult = await user.getIdTokenResult(true)
+        const hasuraClaim = idTokenResult.claims['https://hasura.io/jwt/claims']
+
+        if (hasuraClaim) {
+          setAuth((auth) => ({
+            ...auth,
+            token,
+            loading: false,
+          }))
+          setFbUser((firebaseUser) => ({ ...firebaseUser, ...user }))
+        }
+      } else {
+        setAuth((auth) => ({
+          ...auth,
+          loading: false,
+          token: null,
+        }))
+      }
+    })
+  }, [])
 
   useEffect(() => {
     login()

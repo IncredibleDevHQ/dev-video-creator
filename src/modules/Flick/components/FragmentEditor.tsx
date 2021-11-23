@@ -99,7 +99,6 @@ const FragmentEditor = ({
   const [getCodeExplanation] = useGetCodeExplanationMutation()
 
   const fbState = useRecoilValue(firebaseState)
-  const [user] = useAuthState(fbState.auth)
 
   // @ts-ignore
   const pluginsMemo: PlatePlugin<TEditor>[] = useMemo(() => {
@@ -155,7 +154,7 @@ const FragmentEditor = ({
       const codeText: TNode = value
         .filter((block) => block.type === 'code_block')
         .pop()
-      const token = await user?.getIdToken()
+      const { token } = fbState
       const config = await serializeDataConfig(
         [codeText as TNode],
         token as string,

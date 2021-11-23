@@ -1,7 +1,6 @@
 import { cx } from '@emotion/css'
 import { TNode } from '@udecode/plate'
 import React, { useEffect, useState } from 'react'
-import { useAuthState } from 'react-firebase-hooks/auth'
 import { BiPlayCircle } from 'react-icons/bi'
 import { BsCameraVideo } from 'react-icons/bs'
 import { FiPlus } from 'react-icons/fi'
@@ -57,7 +56,6 @@ const FragmentBar = ({
 }) => {
   const [fragmentVideoModal, setFragmetVideoModal] = useState(false)
   const fbState = useRecoilValue(firebaseState)
-  const [user] = useAuthState(fbState.auth)
   const [{ flick, activeFragmentId, isMarkdown }, setFlickStore] =
     useRecoilState(newFlickStore)
   const history = useHistory()
@@ -131,7 +129,7 @@ const FragmentBar = ({
       if (JSON.stringify(plateValue) !== JSON.stringify(initialPlateValue)) {
         setSerializing(true)
 
-        const token = await user?.getIdToken()
+        const { token } = fbState
         const dataConfig = await serializeDataConfig(
           plateValue,
           token || '',
@@ -196,7 +194,7 @@ const FragmentBar = ({
       let vc = config.viewConfig
       if (!plateValue || plateValue?.length === 0) return
       if (JSON.stringify(plateValue) !== JSON.stringify(initialPlateValue)) {
-        const token = await user?.getIdToken()
+        const { token } = fbState
 
         dc = await serializeDataConfig(plateValue, token || '', assetsData)
         vc = generateViewConfig({

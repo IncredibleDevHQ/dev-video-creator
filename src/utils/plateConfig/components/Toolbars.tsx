@@ -36,7 +36,6 @@ import {
   usePlateEditorState,
 } from '@udecode/plate'
 import React, { useEffect, useState } from 'react'
-import { useAuthState } from 'react-firebase-hooks/auth'
 import { BiHeading } from 'react-icons/bi'
 import { FiCheckCircle, FiXCircle } from 'react-icons/fi'
 import {
@@ -316,7 +315,6 @@ export const GenerateExplanationButton = ({
     useGetCodeExplanationMutation()
 
   const fbState = useRecoilValue(firebaseState)
-  const [user] = useAuthState(fbState.auth)
 
   return (
     <div className="mx-2 flex justify-end items-center">
@@ -370,7 +368,7 @@ export const GenerateExplanationButton = ({
             .filter((block) => block.type === 'code_block')
             .pop()
 
-          const token = await user?.getIdToken()
+          const { token } = fbState
           const config = await serializeDataConfig(
             [codeText as TNode],
             token as string,
