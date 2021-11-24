@@ -165,7 +165,7 @@ const FragmentEditor = ({
       ) as CodejamConfig
       const explanation = await getCodeExplanation({
         variables: {
-          code: codeConfig.value.code,
+          code: codeConfig.code,
         },
       })
       editor?.insertBreak()

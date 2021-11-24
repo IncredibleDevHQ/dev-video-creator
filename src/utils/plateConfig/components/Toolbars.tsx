@@ -379,7 +379,7 @@ export const GenerateExplanationButton = ({
           ) as CodejamConfig
           const explanation = await getCodeExplanation({
             variables: {
-              code: codeConfig.value.code,
+              code: codeConfig.code,
             },
           })
           editorState.insertBreak()
