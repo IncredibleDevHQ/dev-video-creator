@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { useEffect, useRef, useState } from 'react'
-import { extension } from 'mime-types'
 import { saveAs } from 'file-saver'
+import { extension } from 'mime-types'
+import { useRef, useState } from 'react'
+import transitionMusic from '../assets/TransitionMusic.wav'
 import { getSeekableWebM } from '../utils/helpers'
-import transitionMusic from '../assets/transitionMusic.mp3'
 
 const types = [
   'video/webm',
