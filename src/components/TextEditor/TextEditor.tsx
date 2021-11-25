@@ -9,8 +9,8 @@ import {
   SuggestExtension,
   getCursor,
   ComponentsTheme,
+  uniqueId,
 } from 'remirror'
-import { uniqueId } from 'remirror'
 import {
   BoldExtension,
   BulletListExtension,
