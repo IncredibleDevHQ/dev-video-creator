@@ -3,7 +3,10 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Circle, Group, Image, Rect } from 'react-konva'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import useImage from 'use-image'
-import { Fragment_Status_Enum_Enum } from '../../../../generated/graphql'
+import {
+  Fragment_Status_Enum_Enum,
+  useGetTokenisedCodeLazyQuery,
+} from '../../../../generated/graphql'
 import {
   CodejamConfig,
   CommentExplanations,
@@ -58,6 +61,8 @@ const CodeFragment = ({
 }) => {
   const { fragment, payload, updatePayload, state, shortsMode } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
+
+  const [getTokenisedCode, { data }] = useGetTokenisedCodeLazyQuery()
 
   const { initUseCode, computedTokens } = useCode()
   // const [getTokenisedCode, { data }] = useGetTokenisedCodeLazyQuery()
@@ -115,22 +120,36 @@ const CodeFragment = ({
         isShorts: shortsMode || false,
       })
     )
-    setIsCodexFormat(dataConfig.value.isAutomated)
-    const blocks = Object.assign([], dataConfig.value.explanations || [])
+    setIsCodexFormat(dataConfig.isAutomated || false)
+    const blocks = Object.assign([], dataConfig.explanations || [])
     blocks.unshift({ from: 0, to: 0, explanation: '' })
     setBlockConfig(blocks)
     setTopLayerChildren([])
+    // ;(async () => {
+    try {
+      getTokenisedCode({
+        variables: {
+          code: dataConfig.code,
+          language: dataConfig.language,
+        },
+      })
+    } catch (e) {
+      console.error(e)
+      throw e
+    }
+    // })()
   }, [dataConfig, viewConfig, shortsMode])
 
   useEffect(() => {
+    if (!data?.TokenisedCode) return
     initUseCode({
-      tokens: dataConfig.value.colorCodes,
+      tokens: data.TokenisedCode.data,
       canvasWidth: objectConfig.width - 120,
       canvasHeight: objectConfig.height - 36,
       gutter: 5,
       fontSize: codeConfig.fontSize,
     })
-  }, [objectConfig])
+  }, [data, objectConfig])
 
   useEffect(() => {
     setStudio({
