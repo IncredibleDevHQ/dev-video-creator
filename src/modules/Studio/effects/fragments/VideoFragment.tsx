@@ -43,7 +43,7 @@ const VideoFragment = ({
   stageRef: React.RefObject<Konva.Stage>
   layerRef: React.RefObject<Konva.Layer>
 }) => {
-  const { fragment, payload, updatePayload, state } =
+  const { fragment, payload, updatePayload, state, addTransitionAudio } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [studio, setStudio] = useRecoilState(studioStore)
@@ -148,6 +148,7 @@ const VideoFragment = ({
     // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
     if (payload?.fragmentState === 'customLayout') {
       setTopLayerChildren([<TrianglePathTransition direction="left" />])
+      addTransitionAudio()
       setTimeout(() => {
         setFragmentState(payload?.fragmentState)
         // customLayoutRef.current?.opacity(1)
@@ -160,6 +161,7 @@ const VideoFragment = ({
     // Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
     if (payload?.fragmentState === 'onlyUserMedia') {
       setTopLayerChildren([<TrianglePathTransition direction="right" />])
+      addTransitionAudio()
       customLayoutRef.current?.to({
         opacity: 0,
         duration: 0.8,

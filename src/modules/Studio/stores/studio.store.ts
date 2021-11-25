@@ -20,6 +20,7 @@ export interface StudioProviderProps<T = any, S = any> {
   startRecording: () => void
   stopRecording: () => void
   showFinalTransition: () => void
+  addTransitionAudio: () => void
 
   fragment?: StudioFragmentFragment
 
