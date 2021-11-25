@@ -62,7 +62,7 @@ export class VideoExtension extends NodeExtension<VideoAttributes> {
 
   ReactComponent = (props: any) => {
     console.log({ props })
-    return <div>{'' + props}</div>
+    return <div>asd</div>
   }
 
   createNodeSpec(
