@@ -49,7 +49,7 @@ import { cx } from '@emotion/css'
 import { CodeBlockProps, SimpleAST, useUtils } from './utils'
 import { VideoExtension } from './plugins/VideoExtension'
 import { BlockExtension } from './plugins/BlockExtension'
-import { Heading, Text } from '../components'
+import { Heading, Text } from '..'
 
 /// REMOVE WHEN DONE
 const TextEditorPage = () => {
