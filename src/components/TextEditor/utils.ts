@@ -1,4 +1,4 @@
-import { EditorState, ProsemirrorNode } from '@remirror/core'
+import { EditorState, ProsemirrorNode, RemirrorJSON } from '@remirror/core'
 import { Schema } from '@remirror/pm/model'
 
 export type Layout =
@@ -52,71 +52,43 @@ export interface SimpleAST {
 
 // TODO: Refactor this...
 
-const getSimpleAST = (state: EditorState<Schema>): SimpleAST => {
-  const nodes = state.doc.content
-
-  const filteredNodes: {
-    pos: number
-    node: ProsemirrorNode<Schema<any, any>>
-  }[] = []
-
-  nodes.descendants((node, pos) => {
-    if (node.type.name === 'slab') {
-      filteredNodes.push({ node, pos })
-    }
-  })
+const getSimpleAST = (state: RemirrorJSON): SimpleAST => {
+  const slabs = state.content?.filter((node) => node.type === 'slab')
 
   const blocks: Block[] = []
 
-  filteredNodes.forEach(({ node, pos }) => {
-    const descendants: string[] = []
+  // eslint-disable-next-line consistent-return
+  slabs?.forEach((slab) => {
+    const slabItems = slab.content?.map((node) => node.type)
 
-    node.content.descendants((descendant) => {
-      descendants.push(descendant.type.name)
-    })
+    if (slabItems?.includes('codeBlock')) {
+      console.log('Code Block!')
+      let codeBlock: CodeBlock = {}
 
-    if (descendants.includes('codeBlock')) {
-      const codeBlock: CodeBlock = {}
+      const code = slab.content?.find((node) => node.type === 'codeBlock')
+      const codeValue = code?.content?.[0].text
+      const note = slab.content?.find(
+        (node) => node.type === 'callout' && node.attrs?.type === 'info'
+      )?.content?.[0].content?.[0].text
+      const description = slab.content?.find(
+        (node) => node.type === 'callout' && node.attrs?.type === 'success'
+      )?.content?.[0].content?.[0].text
+      const title = slab.content?.find((node) => node.type === 'heading')
+        ?.content?.[0].text
 
-      node.content.forEach((descendant) => {
-        if (descendant.type.name === 'codeBlock') {
-          codeBlock.code = descendant.textContent
-          codeBlock.language = descendant.attrs.language
-        }
-
-        if (descendant.type.name === 'heading') {
-          codeBlock.title = descendant.textContent
-        }
-
-        if (descendant.type.name === 'callout') {
-          if (descendant.attrs.type === 'success') {
-            codeBlock.description = descendant.textContent
-          } else if (descendant.attrs.type === 'info') {
-            codeBlock.note = descendant.textContent
-          }
-        }
-      })
+      codeBlock = { code: codeValue, note, description, title }
 
       blocks.push({
         type: 'codeBlock',
-        id: node.attrs.id,
-        pos,
-        codeBlock: {
-          ...codeBlock,
-          layout: node.attrs.layout,
-        },
+        codeBlock,
+        id: slab.attrs?.id as string,
+        pos: 0,
       })
-    } else if (descendants.includes('videoBlock')) {
-      blocks.push({
-        type: 'videoBlock',
-        id: node.attrs.id,
-        pos,
-        videoBlock: {
-          key: node.attrs.key,
-        },
-      })
+    } else if (slabItems?.includes('videoBlock')) {
+      return undefined
     }
   })
+
   return { blocks }
 }
 
