@@ -77,12 +77,12 @@ const ThumbnailCard = ({
               {loading ? (
                 <Text fontSize="small">Uploading...</Text>
               ) : (
-                <>
+                <div className="text-center">
                   <Text fontSize="small">Drag and drop or</Text>
                   <Text fontSize="small" className="font-semibold">
                     browse
                   </Text>
-                </>
+                </div>
               )}
             </div>
           )}

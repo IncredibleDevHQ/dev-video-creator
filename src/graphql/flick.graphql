@@ -276,3 +276,27 @@ mutation InviteParticipantToFlick(
     id
   }
 }
+
+mutation PublishFlick(
+  $flickId: String!
+  $interaction: [Interaction]
+  $publishToBlogPlatforms: [BlogPlatforms]!
+  $publishToFormats: [publishFormats]!
+  $tags: _text
+  $updatedDescription: String
+  $updatedThumbnail: String!
+  $updatedTitle: String
+) {
+  Publish(
+    flickId: $flickId
+    interactions: $interaction
+    publishToBlogPlatforms: $publishToBlogPlatforms
+    publishToFormats: $publishToFormats
+    tags: $tags
+    updatedDescription: $updatedDescription
+    updatedThumbnail: $updatedThumbnail
+    updatedTitle: $updatedTitle
+  ) {
+    success
+  }
+}

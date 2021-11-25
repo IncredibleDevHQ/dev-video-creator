@@ -48,7 +48,7 @@ const FormatCard = ({
     if (index === -1) {
       setSelectedFormats([...selectedFormats, format])
     } else {
-      setSelectedFormats(selectedFormats.filter((f) => f.name !== format.name))
+      setSelectedFormats(selectedFormats?.filter((f) => f.name !== format.name))
     }
   }
 

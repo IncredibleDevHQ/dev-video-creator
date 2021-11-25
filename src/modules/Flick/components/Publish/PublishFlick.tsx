@@ -13,7 +13,15 @@ import {
   Permissions,
   EditorConfig,
   Integration,
+  FormatEnum,
 } from '.'
+import {
+  BlogPlatforms,
+  PublishablePlatformEnum,
+  PublishFlickMutationVariables,
+  PublishFormats,
+  usePublishFlickMutation,
+} from '../../../../generated/graphql'
 
 enum ViewEnum {
   format = 'Format',
@@ -95,6 +103,7 @@ const PublishFlick = ({
   flickThumbnail,
   isAllFlicksCompleted,
   setProcessingFlick,
+  setPublished,
   isShortsPresentAndCompleted,
   handleClose,
 }: {
@@ -107,6 +116,7 @@ const PublishFlick = ({
   isAllFlicksCompleted: boolean
   isShortsPresentAndCompleted: boolean
   setProcessingFlick: (isProcessing: boolean) => void
+  setPublished: (published: boolean) => void
   handleClose: () => void
 }) => {
   const [flickDetails, setFlickDetails] = useState<FlickDetails>({
@@ -125,6 +135,8 @@ const PublishFlick = ({
     integrations: [],
     editorConfig: initialEditorConfig,
   })
+
+  const [publishFlick] = usePublishFlickMutation()
 
   return (
     <PublishContext.Provider
@@ -230,15 +242,37 @@ const PublishFlick = ({
             type="button"
             appearance="primary"
             className="ml-auto my-2"
-            onClick={() => {
-              console.log('publish', {
-                tags,
+            onClick={async () => {
+              const publishedData: PublishFlickMutationVariables = {
                 flickId,
-                currentView,
-                selectedFormats,
-                isOpenForCollaboration,
-              })
+                tags: `{${tags.join(',')}}`,
+                interaction: interactions,
+                publishToFormats: selectedFormats.map((format) => {
+                  if (format.name === FormatEnum.blog)
+                    return PublishFormats.Blog
+                  if (format.name === FormatEnum.flick)
+                    return PublishFormats.Video
+                  return PublishFormats.VerticalVideo
+                }),
+                publishToBlogPlatforms: markdownConfig.integrations.map(
+                  (integration) => {
+                    if (integration.id === PublishablePlatformEnum.GitHub)
+                      return BlogPlatforms.Github
+                    if (integration.id === PublishablePlatformEnum.Dev)
+                      return BlogPlatforms.Dev
+                    return BlogPlatforms.Hashnode
+                  }
+                ),
+                updatedThumbnail: flickDetails.thumbnail,
+                updatedTitle: flickDetails.title,
+                updatedDescription: flickDetails.description,
+              }
+              handleClose()
               setProcessingFlick(true)
+              await publishFlick({
+                variables: publishedData,
+              })
+              setPublished(true)
             }}
             disabled={selectedFormats.length < 1}
           >

@@ -92,6 +92,7 @@ const Flick = () => {
 
   const [config, setConfig] = useState<Config>(initialConfig)
   const [processingFlick, setProcessingFlick] = useState(false)
+  const [published, setPublished] = useState(false)
 
   const [selectedLayoutId, setSelectedLayoutId] = useState('')
 
@@ -189,7 +190,14 @@ const Flick = () => {
     )
   }
 
-  if (processingFlick) return <ProcessingFlick joinLink={flick.joinLink} />
+  if (processingFlick)
+    return (
+      <ProcessingFlick
+        joinLink={flick.joinLink}
+        publish={published}
+        setProcessing={setProcessingFlick}
+      />
+    )
 
   return (
     <div className="flex flex-col h-screen">
@@ -241,6 +249,7 @@ const Flick = () => {
         flickDescription={flick.description as string}
         flickThumbnail={flick.thumbnail as string}
         setProcessingFlick={setProcessingFlick}
+        setPublished={setPublished}
         fragments={flick.fragments.map((f) => {
           return {
             id: f.id as string,

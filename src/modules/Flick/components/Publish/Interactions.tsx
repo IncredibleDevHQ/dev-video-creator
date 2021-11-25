@@ -15,24 +15,24 @@ export interface Fragment {
 }
 
 export interface Interaction {
-  type: InteractionEnum
+  interactionType: InteractionEnum
   url: string
   fragments: Fragment[]
 }
 
 const defaultInteractions: Interaction[] = [
   {
-    type: InteractionEnum.stackblitz,
+    interactionType: InteractionEnum.stackblitz,
     url: '',
     fragments: [],
   },
   {
-    type: InteractionEnum.codeSandbox,
+    interactionType: InteractionEnum.codeSandbox,
     url: '',
     fragments: [],
   },
   {
-    type: InteractionEnum.externalLink,
+    interactionType: InteractionEnum.externalLink,
     url: '',
     fragments: [],
   },
@@ -54,14 +54,14 @@ const InteractionCard = ({
   return (
     <div className="border border-gray-200 rounded-md my-3 p-2">
       <span className="text-xs bg-gray-100 py-0.5 px-1 rounded-sm">
-        {interaction.type}
+        {interaction.interactionType}
       </span>
       <Heading fontSize="small" className="font-bold mt-2">
         Add URL
       </Heading>
       <Text fontSize="small">
         {(() => {
-          switch (interaction.type) {
+          switch (interaction.interactionType) {
             case InteractionEnum.stackblitz:
               return 'Add Github or Stackblitz URL that you want to show as a Stackblitz interaction on your video'
             case InteractionEnum.codeSandbox:
@@ -143,7 +143,9 @@ const Interactions = ({ fragments }: { fragments: Fragment[] }) => {
   }, [])
 
   const updateInteraction = (interaction: Interaction) => {
-    const index = interactions.findIndex((i) => i.type === interaction.type)
+    const index = interactions.findIndex(
+      (i) => i.interactionType === interaction.interactionType
+    )
     if (index === -1) return
     const tempInteractions = [...interactions]
     tempInteractions.splice(index, 1, interaction)
@@ -158,7 +160,7 @@ const Interactions = ({ fragments }: { fragments: Fragment[] }) => {
       </Text>
       {interactions.map((interaction) => (
         <InteractionCard
-          key={interaction.type}
+          key={interaction.interactionType}
           fragments={fragments}
           interaction={interaction}
           updateInteraction={updateInteraction}
