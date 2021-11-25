@@ -8,6 +8,8 @@ import {
   Fragment_Status_Enum_Enum,
   StudioFragmentFragment,
   useGetFlickByIdQuery,
+  UserAssetQuery,
+  useUserAssetQuery,
 } from '../../generated/graphql'
 import { Config } from '../../utils/configTypes'
 import studioStore from '../Studio/stores/studio.store'
@@ -94,6 +96,17 @@ const Flick = () => {
   const [selectedLayoutId, setSelectedLayoutId] = useState('')
 
   const { updatePayload, payload, resetPayload } = useLocalPayload()
+  const [myMediaAssets, setMyMediaAssets] = useState<UserAssetQuery>()
+  const {
+    data: assetsData,
+    error: assetsError,
+    refetch: assetsRefetch,
+  } = useUserAssetQuery()
+
+  useEffect(() => {
+    if (!assetsData) return
+    setMyMediaAssets(assetsData)
+  }, [assetsData])
 
   useMemo(() => {
     const fragment = flick?.fragments.find(
@@ -167,6 +180,14 @@ const Flick = () => {
     )
 
   if (!flick) return null
+  if (assetsError) {
+    return (
+      <ScreenState
+        title="Something went wrong!"
+        subtitle={assetsError.message}
+      />
+    )
+  }
 
   if (processingFlick) return <ProcessingFlick joinLink={flick.joinLink} />
 
@@ -182,6 +203,7 @@ const Flick = () => {
           config={config}
           setConfig={setConfig}
           setSelectedLayoutId={setSelectedLayoutId}
+          assetsData={myMediaAssets}
         />
       </div>
       <div className="flex flex-1 overflow-y-auto">
@@ -195,7 +217,12 @@ const Flick = () => {
               </div>
             )}
             {!serializing && isMarkdown === true && (
-              <FragmentEditor value={plateValue} setValue={setPlateValue} />
+              <FragmentEditor
+                value={plateValue}
+                setValue={setPlateValue}
+                assetsData={myMediaAssets}
+                assetsRefetch={assetsRefetch}
+              />
             )}
             {!serializing && isMarkdown === false && (
               <FragmentView

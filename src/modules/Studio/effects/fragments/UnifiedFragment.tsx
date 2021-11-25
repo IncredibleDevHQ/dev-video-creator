@@ -74,12 +74,12 @@ const UnifiedFragment = ({
         if (shortsMode) {
           const conf = fragment.configuration as Config
           setDataConfig(
-            conf.dataConfig.filter((c) => c.type === ConfigType.CODEJAM)
+            conf.dataConfig.filter((c) => c.type !== ConfigType.VIDEOJAM)
           )
           setViewConfig({
             ...conf.viewConfig,
             configs: conf.viewConfig.configs.filter(
-              (c) => c.type === ConfigType.CODEJAM
+              (c) => c.type !== ConfigType.VIDEOJAM
             ),
           })
         } else {
@@ -92,7 +92,7 @@ const UnifiedFragment = ({
       setViewConfig(config.viewConfig)
     }
     setTitleSplashData({
-      enable: fragment?.configuration?.viewConfig.hasTitleSplash || true,
+      enable: fragment?.configuration?.viewConfig.hasTitleSplash || false,
       title: fragment.name as string,
       titleSplashConfig:
         fragment?.configuration?.viewConfig?.titleSplashConfig || {},
@@ -111,6 +111,7 @@ const UnifiedFragment = ({
       updatePayload?.({
         fragmentState: 'onlyUserMedia',
       })
+      setTopLayerChildren([])
     }
     if (state === 'recording') {
       updatePayload?.({
@@ -149,9 +150,9 @@ const UnifiedFragment = ({
     if (!shortsMode)
       switch (fragment?.participants.length) {
         case 2:
-          return [70, 530]
+          return [530, 70]
         case 3:
-          return [45, 355, 665]
+          return [665, 355, 45]
         default:
           return [95]
       }
@@ -162,7 +163,7 @@ const UnifiedFragment = ({
     if (activeObjectIndex !== 0) setTitleSplashData({ enable: false })
     else
       setTitleSplashData({
-        enable: fragment?.configuration?.viewConfig.hasTitleSplash || true,
+        enable: fragment?.configuration?.viewConfig.hasTitleSplash || false,
         title: fragment?.name as string,
         titleSplashConfig:
           fragment?.configuration?.viewConfig?.titleSplashConfig || {},

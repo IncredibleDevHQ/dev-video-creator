@@ -1,3 +1,4 @@
+import { ApolloQueryResult } from '@apollo/client'
 import { css } from '@emotion/css'
 import {
   createAlignPlugin,
@@ -45,15 +46,18 @@ import {
   usePlateEditorRef,
 } from '@udecode/plate'
 import React, { useMemo } from 'react'
+import { useAuthState } from 'react-firebase-hooks/auth'
 import { useRecoilValue } from 'recoil'
 import { serialize } from 'remark-slate'
 import { HistoryEditor } from 'slate-history'
 import { ReactEditor } from 'slate-react'
 import {
+  Exact,
   useGetCodeExplanationMutation,
   useGetSuggestedTextMutation,
+  UserAssetQuery,
 } from '../../../generated/graphql'
-import { Auth, authState } from '../../../stores/auth.store'
+import firebaseState from '../../../stores/firebase.store'
 import { CodejamConfig, ConfigType } from '../../../utils/configTypes'
 import {
   BallonToolbarMarks,
@@ -69,9 +73,21 @@ type TEditor = PEditor & ReactEditor & HistoryEditor
 const FragmentEditor = ({
   value,
   setValue,
+  assetsData,
+  assetsRefetch,
 }: {
   value: TNode<any>[] | undefined
   setValue: React.Dispatch<React.SetStateAction<TNode<any>[] | undefined>>
+  assetsData: UserAssetQuery | undefined
+  assetsRefetch: (
+    variables?:
+      | Partial<
+          Exact<{
+            [key: string]: never
+          }>
+        >
+      | undefined
+  ) => Promise<ApolloQueryResult<UserAssetQuery>>
 }) => {
   const components = withStyledPlaceHolders(createPlateComponents())
   const options = createPlateOptions()
@@ -82,7 +98,7 @@ const FragmentEditor = ({
   const [getSuggestedText] = useGetSuggestedTextMutation()
   const [getCodeExplanation] = useGetCodeExplanationMutation()
 
-  const { token } = (useRecoilValue(authState) as Auth) || {}
+  const fbState = useRecoilValue(firebaseState)
 
   // @ts-ignore
   const pluginsMemo: PlatePlugin<TEditor>[] = useMemo(() => {
@@ -138,9 +154,11 @@ const FragmentEditor = ({
       const codeText: TNode = value
         .filter((block) => block.type === 'code_block')
         .pop()
+      const { token } = fbState
       const config = await serializeDataConfig(
         [codeText as TNode],
-        token as string
+        token as string,
+        assetsData
       )
       const codeConfig = config.find(
         (c) => c.type === ConfigType.CODEJAM
@@ -205,6 +223,8 @@ const FragmentEditor = ({
               value={value}
               activeFragmentId={activeFragmentId}
               insertMedia={insertMedia}
+              assetsData={assetsData}
+              refetchAssetsData={assetsRefetch}
             />
           </HeadingToolbar>
         )}

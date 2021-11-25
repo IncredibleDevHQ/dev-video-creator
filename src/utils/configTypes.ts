@@ -101,3 +101,20 @@ export enum ConfigType {
   TRIVIA = 'trivia',
   POINTS = 'points',
 }
+
+export interface Crop {
+  height: number
+  width: number
+  x: number
+  y: number
+}
+
+export interface Clip {
+  start: number
+  end: number
+}
+
+export interface AssetTransformType {
+  crop?: Crop
+  clip?: Clip
+}

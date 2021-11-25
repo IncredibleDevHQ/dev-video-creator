@@ -1,6 +1,6 @@
 import Konva from 'konva'
 import React from 'react'
-import { Circle, Rect } from 'react-konva'
+import { Circle, Rect, Group, Shape } from 'react-konva'
 import { CONFIG, SHORTS_CONFIG } from '../components/Concourse'
 
 export const CircleShrink = ({
@@ -552,5 +552,284 @@ export const MutipleRectMoveAway = ({
         }
       />
     </>
+  )
+}
+
+export const TrianglePathTransition = ({
+  direction,
+  performFinishAction,
+  isShorts,
+}: {
+  direction: string
+  performFinishAction?: () => void
+  isShorts?: boolean
+}) => {
+  let stageConfig = { width: CONFIG.width, height: CONFIG.height }
+  if (!isShorts) stageConfig = CONFIG
+  else stageConfig = SHORTS_CONFIG
+  let groupStartX = 0
+  let groupEndX = 0
+  let duration = 0
+  switch (direction) {
+    case 'left':
+      groupStartX = stageConfig.width + stageConfig.width / 4 + 110
+      groupEndX = -(stageConfig.width + stageConfig.width / 4 + 110)
+      duration = 1.5
+      break
+    case 'right':
+      groupStartX = -(stageConfig.width + stageConfig.width / 4 + 110)
+      groupEndX = stageConfig.width + stageConfig.width / 4 + 110
+      duration = 1.5
+      break
+    case 'moveIn':
+      groupStartX = -(stageConfig.width + stageConfig.width / 4 + 110)
+      groupEndX = -stageConfig.width / 10 + 100
+      duration = 0.5
+      break
+    case 'moveAway':
+      groupStartX = -stageConfig.width / 10 + 100
+      groupEndX = stageConfig.width + stageConfig.width / 4 + 110
+      duration = 0.5
+      break
+    default:
+      break
+  }
+  if (!isShorts)
+    return (
+      <Group
+        x={groupStartX + 350}
+        y={0}
+        ref={(ref) =>
+          ref?.to({
+            x: groupEndX,
+            duration,
+            // easing: Konva.Easings.EaseOut,
+            onFinish: () => {
+              if (!performFinishAction) return
+              setTimeout(() => {
+                performFinishAction()
+              }, 300)
+            },
+          })
+        }
+      >
+        <Shape
+          sceneFunc={(context, shape) => {
+            context.beginPath()
+            context.moveTo(0, -110)
+            context.lineTo(stageConfig.width, -110)
+            context.lineTo(
+              stageConfig.width + stageConfig.width / 4 + 80,
+              stageConfig.height / 2 - 50
+            )
+            context.quadraticCurveTo(
+              stageConfig.width + stageConfig.width / 4 + 130,
+              stageConfig.height / 2,
+              stageConfig.width + stageConfig.width / 4 + 80,
+              stageConfig.height / 2 + 50
+            )
+            context.lineTo(stageConfig.width, stageConfig.height + 110)
+            context.lineTo(0, stageConfig.height + 110)
+            context.lineTo(
+              -stageConfig.width / 4 - 80,
+              stageConfig.height / 2 + 50
+            )
+            context.quadraticCurveTo(
+              -stageConfig.width / 4 - 130,
+              stageConfig.height / 2,
+              -stageConfig.width / 4 - 80,
+              stageConfig.height / 2 - 50
+            )
+            // context.quadraticCurveTo(150, 100, 260, 170)
+            context.closePath()
+            context.fillStrokeShape(shape)
+          }}
+          fill="#ffffff"
+          opacity={0.6}
+        />
+        <Shape
+          sceneFunc={(context, shape) => {
+            context.beginPath()
+            context.moveTo(0, -50)
+            context.lineTo(stageConfig.width, -50)
+            context.lineTo(
+              stageConfig.width + stageConfig.width / 4,
+              stageConfig.height / 2 - 50
+            )
+            context.quadraticCurveTo(
+              stageConfig.width + stageConfig.width / 4 + 50,
+              stageConfig.height / 2,
+              stageConfig.width + stageConfig.width / 4,
+              stageConfig.height / 2 + 50
+            )
+            context.lineTo(stageConfig.width, stageConfig.height + 50)
+            context.lineTo(0, stageConfig.height + 50)
+            context.lineTo(-stageConfig.width / 4, stageConfig.height / 2 + 50)
+            context.quadraticCurveTo(
+              -stageConfig.width / 4 - 50,
+              stageConfig.height / 2,
+              -stageConfig.width / 4,
+              stageConfig.height / 2 - 50
+            )
+            // context.quadraticCurveTo(150, 100, 260, 170)
+            context.closePath()
+            context.fillStrokeShape(shape)
+          }}
+          fill="#ffffff"
+          opacity={0.8}
+        />
+        <Shape
+          sceneFunc={(context, shape) => {
+            context.beginPath()
+            context.moveTo(0, 30)
+            context.lineTo(stageConfig.width, 30)
+            context.lineTo(
+              stageConfig.width + stageConfig.width / 4 - 80,
+              stageConfig.height / 2 - 50
+            )
+            context.quadraticCurveTo(
+              stageConfig.width + stageConfig.width / 4 - 40,
+              stageConfig.height / 2,
+              stageConfig.width + stageConfig.width / 4 - 80,
+              stageConfig.height / 2 + 50
+            )
+            context.lineTo(stageConfig.width, stageConfig.height - 30)
+            context.lineTo(0, stageConfig.height - 30)
+            context.lineTo(
+              -stageConfig.width / 4 + 80,
+              stageConfig.height / 2 + 50
+            )
+            context.quadraticCurveTo(
+              -stageConfig.width / 4 + 40,
+              stageConfig.height / 2,
+              -stageConfig.width / 4 + 80,
+              stageConfig.height / 2 - 50
+            )
+            // context.quadraticCurveTo(150, 100, 260, 170)
+            context.closePath()
+            context.fillStrokeShape(shape)
+          }}
+          fill="#ffffff"
+          opacity={1}
+        />
+      </Group>
+    )
+  return (
+    <Group
+      x={groupStartX}
+      ref={(ref) =>
+        ref?.to({
+          x: groupEndX,
+          duration,
+          // easing: Konva.Easings.EaseIn,
+          onFinish: () => {
+            if (!performFinishAction) return
+            setTimeout(() => {
+              performFinishAction()
+            }, 300)
+          },
+        })
+      }
+    >
+      <Shape
+        sceneFunc={(context, shape) => {
+          context.beginPath()
+          context.moveTo(0, -100)
+          context.lineTo(stageConfig.width, -100)
+          context.lineTo(
+            stageConfig.width + stageConfig.width / 4 + 80,
+            stageConfig.height / 2 - 50
+          )
+          context.quadraticCurveTo(
+            stageConfig.width + stageConfig.width / 4 + 100,
+            stageConfig.height / 2,
+            stageConfig.width + stageConfig.width / 4 + 80,
+            stageConfig.height / 2 + 50
+          )
+          context.lineTo(stageConfig.width, stageConfig.height + 100)
+          context.lineTo(0, stageConfig.height + 100)
+          context.lineTo(
+            -stageConfig.width / 4 - 80,
+            stageConfig.height / 2 + 50
+          )
+          context.quadraticCurveTo(
+            -stageConfig.width / 4 - 100,
+            stageConfig.height / 2,
+            -stageConfig.width / 4 - 80,
+            stageConfig.height / 2 - 50
+          )
+          // context.quadraticCurveTo(150, 100, 260, 170)
+          context.closePath()
+          context.fillStrokeShape(shape)
+        }}
+        fill="#ffffff"
+        opacity={0.6}
+      />
+      <Shape
+        sceneFunc={(context, shape) => {
+          context.beginPath()
+          context.moveTo(0, -50)
+          context.lineTo(stageConfig.width, -50)
+          context.lineTo(
+            stageConfig.width + stageConfig.width / 4,
+            stageConfig.height / 2 - 50
+          )
+          context.quadraticCurveTo(
+            stageConfig.width + stageConfig.width / 4 + 16,
+            stageConfig.height / 2,
+            stageConfig.width + stageConfig.width / 4,
+            stageConfig.height / 2 + 50
+          )
+          context.lineTo(stageConfig.width, stageConfig.height + 50)
+          context.lineTo(0, stageConfig.height + 50)
+          context.lineTo(-stageConfig.width / 4, stageConfig.height / 2 + 50)
+          context.quadraticCurveTo(
+            -stageConfig.width / 4 - 16,
+            stageConfig.height / 2,
+            -stageConfig.width / 4,
+            stageConfig.height / 2 - 50
+          )
+          // context.quadraticCurveTo(150, 100, 260, 170)
+          context.closePath()
+          context.fillStrokeShape(shape)
+        }}
+        fill="#ffffff"
+        opacity={0.8}
+      />
+      <Shape
+        sceneFunc={(context, shape) => {
+          context.beginPath()
+          context.moveTo(0, 0)
+          context.lineTo(stageConfig.width, 0)
+          context.lineTo(
+            stageConfig.width + stageConfig.width / 4 - 80,
+            stageConfig.height / 2 - 50
+          )
+          context.quadraticCurveTo(
+            stageConfig.width + stageConfig.width / 4 - 75,
+            stageConfig.height / 2,
+            stageConfig.width + stageConfig.width / 4 - 80,
+            stageConfig.height / 2 + 50
+          )
+          context.lineTo(stageConfig.width, stageConfig.height)
+          context.lineTo(0, stageConfig.height)
+          context.lineTo(
+            -stageConfig.width / 4 + 80,
+            stageConfig.height / 2 + 50
+          )
+          context.quadraticCurveTo(
+            -stageConfig.width / 4 + 75,
+            stageConfig.height / 2,
+            -stageConfig.width / 4 + 80,
+            stageConfig.height / 2 - 50
+          )
+          // context.quadraticCurveTo(150, 100, 260, 170)
+          context.closePath()
+          context.fillStrokeShape(shape)
+        }}
+        fill="#ffffff"
+        opacity={1}
+      />
+    </Group>
   )
 }

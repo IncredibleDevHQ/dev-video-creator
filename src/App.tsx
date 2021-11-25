@@ -9,7 +9,6 @@ import 'react-toastify/dist/ReactToastify.css'
 import 'react-responsive-modal/styles.css'
 
 import {
-  AuthenticateScreen,
   Dashboard,
   Flick,
   Flicks,
@@ -141,12 +140,6 @@ const App = () => {
                 />
                 <Route exact path="/view/:joinLink">
                   <PublicVideo />
-                </Route>
-                <Route exact path="/login">
-                  <AuthenticateScreen />
-                </Route>
-                <Route exact path="/signup">
-                  <AuthenticateScreen />
                 </Route>
                 <Route exact path="/waitlist">
                   <JoinWaitlist />

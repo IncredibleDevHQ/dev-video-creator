@@ -1,7 +1,7 @@
 /* eslint-disable no-nested-ternary */
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
-import { Group, Text, Image, Rect } from 'react-konva'
+import { Group, Image, Rect, Text } from 'react-konva'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import useImage from 'use-image'
 import {
@@ -9,10 +9,13 @@ import {
   LayoutConfig,
   TriviaConfig,
 } from '../../../../utils/configTypes'
-import {
-  MutipleRectMoveLeft,
-  MutipleRectMoveRight,
-} from '../FragmentTransitions'
+import Concourse, {
+  CONFIG,
+  SHORTS_CONFIG,
+  TitleSplashProps,
+} from '../../components/Concourse'
+import Gif from '../../components/Gif'
+import { FragmentState } from '../../components/RenderTokens'
 import useEdit from '../../hooks/use-edit'
 import { StudioProviderProps, studioStore } from '../../stores'
 import {
@@ -20,9 +23,7 @@ import {
   ObjectConfig,
 } from '../../utils/FragmentLayoutConfig'
 import { StudioUserConfiguration } from '../../utils/StudioUserConfig'
-import Concourse, { CONFIG, TitleSplashProps } from '../../components/Concourse'
-import Gif from '../../components/Gif'
-import { FragmentState } from '../../components/RenderTokens'
+import { TrianglePathTransition } from '../FragmentTransitions'
 
 const TriviaFragment = ({
   viewConfig,
@@ -47,7 +48,7 @@ const TriviaFragment = ({
   stageRef: React.RefObject<Konva.Stage>
   layerRef: React.RefObject<Konva.Layer>
 }) => {
-  const { fragment, payload, state } =
+  const { fragment, payload, state, shortsMode } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [studio, setStudio] = useRecoilState(studioStore)
@@ -86,10 +87,23 @@ const TriviaFragment = ({
     borderRadius: 0,
   })
 
+  const [stageConfig, setStageConfig] = useState<{
+    width: number
+    height: number
+  }>({ width: 0, height: 0 })
+
+  useEffect(() => {
+    if (!shortsMode) setStageConfig(CONFIG)
+    else setStageConfig(SHORTS_CONFIG)
+  }, [shortsMode])
+
   useEffect(() => {
     if (!dataConfig) return
     setObjectConfig(
-      FragmentLayoutConfig({ layoutNumber: viewConfig.layoutNumber })
+      FragmentLayoutConfig({
+        layoutNumber: viewConfig.layoutNumber,
+        isShorts: shortsMode || false,
+      })
     )
     setTriviaData(dataConfig.value)
     setStudio({
@@ -100,7 +114,8 @@ const TriviaFragment = ({
         dataConfigLength,
       },
     })
-  }, [dataConfig, viewConfig])
+    setTopLayerChildren([])
+  }, [dataConfig, viewConfig, shortsMode])
 
   useEffect(() => {
     setStudio({
@@ -152,42 +167,41 @@ const TriviaFragment = ({
       )
   }, [qnaImage, objectConfig])
 
-  useEffect(() => {
-    // setActiveQuestionIndex(payload?.activeQuestion)
-    setFragmentState(payload?.fragmentState)
-  }, [payload])
+  // useEffect(() => {
+  //   // setActiveQuestionIndex(payload?.activeQuestion)
+  //   setFragmentState(payload?.fragmentState)
+  // }, [payload])
 
   useEffect(() => {
     if (!customLayoutRef.current) return
     // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
-    if (fragmentState === 'customLayout') {
+    if (payload?.fragmentState === 'customLayout') {
       setTopLayerChildren([
-        <MutipleRectMoveRight
-          rectOneColors={['#651CC8', '#9561DA']}
-          rectTwoColors={['#FF5D01', '#B94301']}
-          rectThreeColors={['#1F2937', '#778496']}
-        />,
+        <TrianglePathTransition isShorts={shortsMode} direction="left" />,
       ])
-      customLayoutRef.current.to({
-        opacity: 1,
-        duration: 0.2,
-      })
+      setTimeout(() => {
+        setFragmentState(payload?.fragmentState)
+        // customLayoutRef.current?.opacity(1)
+        customLayoutRef.current?.to({
+          opacity: 1,
+          duration: 0.2,
+        })
+      }, 1000)
     }
     // Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
-    if (fragmentState === 'onlyUserMedia') {
+    if (payload?.fragmentState === 'onlyUserMedia') {
       setTopLayerChildren([
-        <MutipleRectMoveLeft
-          rectOneColors={['#651CC8', '#9561DA']}
-          rectTwoColors={['#FF5D01', '#B94301']}
-          rectThreeColors={['#1F2937', '#778496']}
-        />,
+        <TrianglePathTransition isShorts={shortsMode} direction="right" />,
       ])
-      customLayoutRef.current.to({
+      customLayoutRef.current?.to({
         opacity: 0,
-        duration: 0.2,
+        duration: 0.8,
       })
+      setTimeout(() => {
+        setFragmentState(payload?.fragmentState)
+      }, 800)
     }
-  }, [fragmentState])
+  }, [payload?.fragmentState])
 
   const layerChildren: any[] = [
     <Group x={0} y={0}>
@@ -195,8 +209,8 @@ const TriviaFragment = ({
         <Rect
           x={0}
           y={0}
-          width={CONFIG.width}
-          height={CONFIG.height}
+          width={stageConfig.width}
+          height={stageConfig.height}
           fillLinearGradientColorStops={viewConfig.background.gradient?.values}
           fillLinearGradientStartPoint={
             viewConfig.background.gradient?.startIndex
@@ -207,8 +221,8 @@ const TriviaFragment = ({
         <Image
           x={0}
           y={0}
-          width={CONFIG.width}
-          height={CONFIG.height}
+          width={stageConfig.width}
+          height={stageConfig.height}
           image={bgImage}
         />
       )}
@@ -276,6 +290,7 @@ const TriviaFragment = ({
           )
         ) : (
           <Text
+            x={10}
             fontSize={32}
             fill="#E5E7EB"
             width={objectConfig.width - 20}
@@ -297,6 +312,7 @@ const TriviaFragment = ({
     layoutNumber: viewConfig.layoutNumber,
     fragment,
     fragmentState,
+    isShorts: shortsMode || false,
   })
 
   return (

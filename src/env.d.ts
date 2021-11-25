@@ -17,4 +17,5 @@ interface ImportMetaEnv {
   VITE_PUBLIC_URL: string
   VITE_VECTORLY_TOKEN: string
   VITE_GITHUB_INTEGRATION_CONFIG: string
+  VITE_AUTH_ENDPOINT: string
 }

@@ -10,17 +10,6 @@ import {
   ConfigType,
   LayoutConfig,
 } from '../../../../utils/configTypes'
-import {
-  MutipleRectMoveLeft,
-  MutipleRectMoveRight,
-} from '../FragmentTransitions'
-import useCode from '../../hooks/use-code'
-import { StudioProviderProps, studioStore } from '../../stores'
-import {
-  FragmentLayoutConfig,
-  ObjectConfig,
-} from '../../utils/FragmentLayoutConfig'
-import { StudioUserConfiguration } from '../../utils/StudioUserConfig'
 import Concourse, {
   CONFIG,
   SHORTS_CONFIG,
@@ -35,6 +24,14 @@ import RenderTokens, {
   RenderFocus,
   RenderMultipleLineFocus,
 } from '../../components/RenderTokens'
+import useCode from '../../hooks/use-code'
+import { StudioProviderProps, studioStore } from '../../stores'
+import {
+  FragmentLayoutConfig,
+  ObjectConfig,
+} from '../../utils/FragmentLayoutConfig'
+import { StudioUserConfiguration } from '../../utils/StudioUserConfig'
+import { TrianglePathTransition } from '../FragmentTransitions'
 
 const CodeFragment = ({
   viewConfig,
@@ -163,7 +160,6 @@ const CodeFragment = ({
       currentIndex: payload?.currentIndex || 1,
     })
     setFocusCode(payload?.isFocus)
-    setFragmentState(payload?.fragmentState)
     if (isCodexFormat) {
       setActiveBlockIndex(payload?.activeBlockIndex)
       if (payload?.focusBlockCode) {
@@ -222,36 +218,33 @@ const CodeFragment = ({
   useEffect(() => {
     if (!customLayoutRef.current) return
     // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
-    if (fragmentState === 'customLayout') {
+    if (payload?.fragmentState === 'customLayout') {
       setTopLayerChildren([
-        <MutipleRectMoveRight
-          rectOneColors={['#651CC8', '#9561DA']}
-          rectTwoColors={['#FF5D01', '#B94301']}
-          rectThreeColors={['#1F2937', '#778496']}
-          isShorts={shortsMode}
-        />,
+        <TrianglePathTransition isShorts={shortsMode} direction="left" />,
       ])
-      customLayoutRef.current.to({
-        opacity: 1,
-        duration: 0.2,
-      })
+      setTimeout(() => {
+        setFragmentState(payload?.fragmentState)
+        // customLayoutRef.current?.opacity(1)
+        customLayoutRef.current?.to({
+          opacity: 1,
+          duration: 0.2,
+        })
+      }, 1000)
     }
     // Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
-    if (fragmentState === 'onlyUserMedia') {
+    if (payload?.fragmentState === 'onlyUserMedia') {
       setTopLayerChildren([
-        <MutipleRectMoveLeft
-          rectOneColors={['#651CC8', '#9561DA']}
-          rectTwoColors={['#FF5D01', '#B94301']}
-          rectThreeColors={['#1F2937', '#778496']}
-          isShorts={shortsMode}
-        />,
+        <TrianglePathTransition isShorts={shortsMode} direction="right" />,
       ])
-      customLayoutRef.current.to({
+      customLayoutRef.current?.to({
         opacity: 0,
-        duration: 0.2,
+        duration: 0.8,
       })
+      setTimeout(() => {
+        setFragmentState(payload?.fragmentState)
+      }, 800)
     }
-  }, [fragmentState])
+  }, [payload?.fragmentState])
 
   const layerChildren: any[] = [
     <Group x={0} y={0}>

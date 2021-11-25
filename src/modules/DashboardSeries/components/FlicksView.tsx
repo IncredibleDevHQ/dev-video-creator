@@ -22,9 +22,7 @@ import {
   useGetSingleSeriesQuery,
   User,
   useSeriesFlicksQuery,
-  useUpdateFlickMutation,
 } from '../../../generated/graphql'
-import { Auth, authState } from '../../../stores/auth.store'
 import { userState } from '../../../stores/user.store'
 
 const Participants = ({ flick }: { flick: BaseFlickFragment }) => {

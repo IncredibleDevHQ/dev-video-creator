@@ -1,5 +1,4 @@
 import '@fontsource/fira-mono'
-import AuthenticateScreen from './Authentication/Authentication'
 import InWaitlist from './Authentication/InWaitlist'
 import JoinWaitlist from './Authentication/JoinWaitlist'
 import MagicLinkLogin from './Authentication/MagicLinkLogin'
@@ -27,7 +26,6 @@ import UserSeriesFlicks from './UserSeriesFlicks/UserSeriesFlicks'
 
 export {
   AllUserFlicks,
-  AuthenticateScreen,
   Circle,
   Dashboard,
   Designer,
