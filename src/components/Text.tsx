@@ -15,9 +15,9 @@ const Text = ({ fontSize, className, children, ...rest }: TextProps) => {
       )
     case 'small':
       return (
-        <small className={cx('text-xs', className)} {...rest}>
+        <p className={cx('text-xs', className)} {...rest}>
           {children}
-        </small>
+        </p>
       )
     default:
       return (
