@@ -11,38 +11,67 @@ export interface CommentExplanations {
   // code: ColorCode[] | undefined
 }
 
+// export interface CodejamConfig {
+//   id: string
+//   type: ConfigType
+//   title: string
+//   value: {
+//     gistURL: string
+//     explanations?: CommentExplanations[]
+//     isAutomated: boolean
+//     language: string
+//     code: string
+//     colorCodes: ColorCode[]
+//   }
+//   notes?: string[]
+// }
+
 export interface CodejamConfig {
   id: string
   type: ConfigType
   title: string
-  value: {
-    gistURL: string
-    explanations?: CommentExplanations[]
-    isAutomated: boolean
-    language: string
-    code: string
-    colorCodes: ColorCode[]
-  }
-  notes?: string[]
+  description: string
+  code: string
+  language: string
+  note?: string
+  explanations?: CommentExplanations[]
+  isAutomated?: boolean
 }
 
+// export interface VideojamConfig {
+//   id: string
+//   title: string
+//   type: ConfigType
+//   value: {
+//     videoURL: string
+//     // time in seconds
+//     from?: number
+//     // time in seconds
+//     to?: number
+//     // crop details
+//     x?: number
+//     y?: number
+//     width?: number
+//     height?: number
+//   }
+//   notes?: string[]
+// }
 export interface VideojamConfig {
   id: string
-  title: string
   type: ConfigType
-  value: {
-    videoURL: string
-    // time in seconds
-    from?: number
-    // time in seconds
-    to?: number
-    // crop details
-    x?: number
-    y?: number
-    width?: number
-    height?: number
-  }
-  notes?: string[]
+  title: string
+  description: string
+  videoURL: string
+  // time in seconds
+  from?: number
+  // time in seconds
+  to?: number
+  // crop details
+  x?: number
+  y?: number
+  width?: number
+  height?: number
+  note?: string
 }
 
 export interface TriviaConfig {
