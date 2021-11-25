@@ -21,7 +21,7 @@ import BLOG from './assets/blog.png'
 import SHORTS from './assets/shorts.png'
 import PENCIL_ALT from './assets/pencil-alt.svg'
 import EYE_OUTLINE from './assets/eye-outline.svg'
-import PROCESSING from './assets/processing.svg'
+import PROCESSING from './assets/processing.gif'
 
 export const ASSETS = {
   ICONS: {
