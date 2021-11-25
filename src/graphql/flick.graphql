@@ -219,6 +219,16 @@ mutation UpdateFlick(
   }
 }
 
+mutation UpdateFlickDetails(
+  $flickId: String!
+  $name: String!
+  $description: String
+) {
+  UpdateFlick(flickId: $flickId, name: $name, description: $description) {
+    id
+  }
+}
+
 mutation UpdateParticipantRole(
   $participantId: String!
   $flickId: String!
