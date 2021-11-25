@@ -17,7 +17,8 @@ import {
   FragmentEditor,
   FragmentSideBar,
   FragmentView,
-  PublishModal,
+  ProcessingFlick,
+  PublishFlick,
 } from './components'
 import { newFlickStore } from './store/flickNew.store'
 import { initEditor } from '../../utils/plateConfig/serializer/values'
@@ -88,6 +89,7 @@ const Flick = () => {
   const [integrationModal, setIntegrationModal] = useState(false)
 
   const [config, setConfig] = useState<Config>(initialConfig)
+  const [processingFlick, setProcessingFlick] = useState(false)
 
   const [selectedLayoutId, setSelectedLayoutId] = useState('')
 
@@ -166,6 +168,8 @@ const Flick = () => {
 
   if (!flick) return null
 
+  if (processingFlick) return <ProcessingFlick joinLink={flick.joinLink} />
+
   return (
     <div className="flex flex-col h-screen">
       <div>
@@ -204,8 +208,24 @@ const Flick = () => {
           </>
         )}
       </div>
-      <PublishModal
+      <PublishFlick
         flickId={flick.id}
+        flickName={flick.name}
+        flickDescription={flick.description as string}
+        flickThumbnail={flick.thumbnail as string}
+        setProcessingFlick={setProcessingFlick}
+        fragments={flick.fragments.map((f) => {
+          return {
+            id: f.id as string,
+            name: f.name as string,
+          }
+        })}
+        isShortsPresentAndCompleted={flick?.fragments.some(
+          (f) => f.producedShortsLink !== null
+        )}
+        isAllFlicksCompleted={flick?.fragments.every(
+          (f) => f.producedLink !== null
+        )}
         open={integrationModal}
         handleClose={() => setIntegrationModal(false)}
       />
