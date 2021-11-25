@@ -73,6 +73,7 @@ export interface TextEditorProps {
     handleChange?: (newTitle: string) => void
   }
   handleUpdateSimpleAST?: (simpleAST: SimpleAST) => void
+  handleUpdateJSON?: (json: string) => void
 }
 
 const hooks = [
@@ -144,7 +145,19 @@ const hooks = [
     // @ts-ignore
     useKeymap('Tab', onSuggest)
   },
+  () => {
+    const { getJSON } = useHelpers()
+    const { getSimpleAST } = useUtils()
+    const { state, simpleASTCallback } = React.useContext(TextEditorProvider)
+
+    useMemo(() => {
+      const json = getJSON(state)
+      simpleASTCallback(getSimpleAST(json))
+    }, [state])
+  },
 ]
+
+const TextEditorProvider = React.createContext<any>({})
 
 /**
  * The editor which is used to create the annotation. Supports formatting.
@@ -154,7 +167,7 @@ const TextEditor: FC<TextEditorProps> = ({
   initialContent,
   children,
   titleProps,
-  handleUpdateSimpleAST,
+  handleUpdateJSON,
 }) => {
   const extensions = useCallback(
     () => [
@@ -191,11 +204,10 @@ const TextEditor: FC<TextEditorProps> = ({
       new VideoExtension(),
       new CalloutExtension(),
     ],
-    []
+    [placeholder]
   )
 
   const [title] = useState(titleProps?.title)
-  const { getSimpleAST } = useUtils()
 
   const { manager, state, setState } = useRemirror({
     extensions,
@@ -203,6 +215,7 @@ const TextEditor: FC<TextEditorProps> = ({
     extraAttributes: [
       { identifiers: 'nodes', attributes: { id: () => uniqueId() } },
     ],
+    content: initialContent,
   })
 
   const handleChange = (
@@ -211,54 +224,59 @@ const TextEditor: FC<TextEditorProps> = ({
     setState(props.state)
   }
 
-  const simpleAST = useMemo(() => {
-    const simpleAST = getSimpleAST(state)
-    handleUpdateSimpleAST?.(simpleAST)
-    return simpleAST
-  }, [state])
+  const [simpleAST, setSimpleAST] = useState<SimpleAST>()
+
+  const simpleASTCallback = useCallback((simpleAST: SimpleAST) => {
+    setSimpleAST(simpleAST)
+  }, [])
 
   return (
-    <ThemeProvider>
-      <Remirror
-        classNames={['focus:outline-none', 'border-none', 'font-mono']}
-        manager={manager}
-        autoFocus
-        state={state}
-        onChange={handleChange}
-        initialContent={initialContent}
-        hooks={hooks}
-      >
-        {/* <Toolbar items={toolbarItems} refocusEditor label="Top Toolbar" /> */}
-        {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-to-interactive-role */}
-        <h1
-          className="text-4xl font-bold mb-8 focus:outline-none"
-          // contentEditable
-          // role="textbox"
+    <TextEditorProvider.Provider value={{ state, simpleASTCallback }}>
+      <ThemeProvider>
+        <Remirror
+          classNames={['focus:outline-none', 'border-none', 'font-mono']}
+          manager={manager}
+          autoFocus
+          state={state}
+          onChange={handleChange}
+          hooks={hooks}
         >
-          {title}
-        </h1>
-        <div className="relative grid gap-x-4 grid-cols-4">
-          <div className="col-span-3">
-            <EditorComponent />
+          {/* <Toolbar items={toolbarItems} refocusEditor label="Top Toolbar" /> */}
+          {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-to-interactive-role */}
+          <h1
+            className="text-4xl font-bold mb-8 focus:outline-none"
+            // contentEditable
+            // role="textbox"
+          >
+            {title}
+          </h1>
+          <div className="relative grid gap-x-4 grid-cols-4">
+            <div className="col-span-3">
+              <EditorComponent />
+            </div>
+            <Suggestor />
+            <ContentUpdater content={initialContent} />
+            <Exporter state={state} handleUpdateJSON={handleUpdateJSON} />
+            <FloatingToolbar
+              placement="auto"
+              enabled
+              animated
+              positioner="selection"
+            />
+            <div className="col-span-1">
+              {simpleAST && <PreviewBar simpleAST={simpleAST} />}
+            </div>
           </div>
-          <Suggestor />
-          <FloatingToolbar
-            placement="auto"
-            enabled
-            animated
-            positioner="selection"
-          />
-          <div className="col-span-1">
-            <PreviewBar simpleAST={simpleAST} />
-          </div>
-        </div>
-        {children}
-      </Remirror>
-    </ThemeProvider>
+          {children}
+        </Remirror>
+      </ThemeProvider>
+    </TextEditorProvider.Provider>
   )
 }
 
 const PreviewBar = ({ simpleAST }: { simpleAST: SimpleAST }) => {
+  if (!simpleAST) return null
+
   const block = simpleAST.blocks.find((block) => block.type === 'codeBlock') as
     | CodeBlockProps
     | undefined
@@ -292,6 +310,16 @@ const BlockTab = ({
       <span className="mt-2">{label}</span>
     </div>
   )
+}
+
+function ContentUpdater({ content }: { content: any }) {
+  const { setContent } = useRemirrorContext()
+
+  useEffect(() => {
+    setContent(content)
+  }, [content])
+
+  return null
 }
 
 function Suggestor() {
@@ -437,6 +465,22 @@ const FloatingToolbarItem = ({
       <I />
     </div>
   )
+}
+
+const Exporter = ({
+  state,
+  handleUpdateJSON,
+}: {
+  state: any
+  handleUpdateJSON: any
+}) => {
+  const { getJSON } = useHelpers()
+
+  useMemo(() => {
+    handleUpdateJSON(getJSON(state))
+  }, [state])
+
+  return null
 }
 
 export const FloatingToolbar = (props: any): JSX.Element => {
