@@ -30,11 +30,10 @@ const MagicLinkLogin = () => {
   }
 
   useEffect(() => {
-    if (!verificationStatus || verificationStatus.loading) return
-    if (verificationStatus.status === VerificationStatusEnum.Approved) {
+    if (verificationStatus === VerificationStatusEnum.Approved) {
       history.push('/dashboard')
     } else {
-      history.push('/login')
+      history.push('/')
     }
   }, [verificationStatus])
 

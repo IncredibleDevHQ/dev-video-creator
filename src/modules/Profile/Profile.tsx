@@ -1,8 +1,7 @@
 import React, { useState } from 'react'
 import { useRecoilValue } from 'recoil'
-import { Auth, authState } from '../../stores/auth.store'
 import { User, userState } from '../../stores/user.store'
-import { Navbar, Text } from '../../components'
+import { Navbar } from '../../components'
 import {
   ProfileDetails,
   UserFlicks,
@@ -11,7 +10,6 @@ import {
 import { UserSeries } from '../Series'
 
 const Profile = () => {
-  const { signOut } = (useRecoilValue(authState) as Auth) || {}
   const userData = (useRecoilValue(userState) as User) || {}
   const [editProfileModal, setEditProfileModal] = useState<boolean>(false)
 
@@ -27,15 +25,6 @@ const Profile = () => {
           }}
         >
           Edit Profile
-        </button>
-        <button
-          className="p-2 mr-2 flex justify-end text-white bg-blue-300 rounded-md"
-          type="button"
-          onClick={async () => {
-            await signOut?.()
-          }}
-        >
-          Sign Out
         </button>
       </div>
 

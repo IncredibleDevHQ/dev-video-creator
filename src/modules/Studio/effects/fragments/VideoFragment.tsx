@@ -43,7 +43,7 @@ const VideoFragment = ({
   stageRef: React.RefObject<Konva.Stage>
   layerRef: React.RefObject<Konva.Layer>
 }) => {
-  const { fragment, payload, updatePayload, state } =
+  const { fragment, payload, updatePayload, state, addTransitionAudio } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [studio, setStudio] = useRecoilState(studioStore)
@@ -70,7 +70,7 @@ const VideoFragment = ({
     element.crossOrigin = 'anonymous'
     element.preload = 'auto'
     element.muted = false
-    element.src = dataConfig.value.videoURL
+    element.src = dataConfig.videoURL
 
     setObjectConfig(
       FragmentLayoutConfig({ layoutNumber: viewConfig.layoutNumber })
@@ -98,14 +98,14 @@ const VideoFragment = ({
       case 'recording':
         updatePayload?.({
           playing: false,
-          currentTime: dataConfig?.value?.from || 0,
+          currentTime: dataConfig?.from || 0,
         })
         setTopLayerChildren([])
         break
       default:
         updatePayload?.({
           playing: false,
-          currentTime: dataConfig?.value?.from || 0,
+          currentTime: dataConfig?.from || 0,
         })
         setTopLayerChildren([])
     }
@@ -114,10 +114,10 @@ const VideoFragment = ({
   // performing trim operation
   // on end time, reinitialize the video element's current time to start time
   videoElement?.addEventListener('timeupdate', () => {
-    if (!dataConfig.value.to) return
-    if (videoElement.currentTime >= dataConfig?.value?.to) {
+    if (!dataConfig.to) return
+    if (videoElement.currentTime >= dataConfig?.to) {
       videoElement.pause()
-      videoElement.currentTime = dataConfig?.value?.from || 0
+      videoElement.currentTime = dataConfig?.from || 0
       videoElement.play()
     }
   })
@@ -148,6 +148,7 @@ const VideoFragment = ({
     // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
     if (payload?.fragmentState === 'customLayout') {
       setTopLayerChildren([<TrianglePathTransition direction="left" />])
+      addTransitionAudio()
       setTimeout(() => {
         setFragmentState(payload?.fragmentState)
         // customLayoutRef.current?.opacity(1)
@@ -160,6 +161,7 @@ const VideoFragment = ({
     // Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
     if (payload?.fragmentState === 'onlyUserMedia') {
       setTopLayerChildren([<TrianglePathTransition direction="right" />])
+      addTransitionAudio()
       customLayoutRef.current?.to({
         opacity: 0,
         duration: 0.8,
@@ -179,10 +181,10 @@ const VideoFragment = ({
     cornerRadius: objectConfig.borderRadius,
     performClip: true,
     clipVideoConfig: {
-      x: dataConfig?.value?.x || 0,
-      y: dataConfig?.value?.y || 0,
-      width: dataConfig?.value?.width || 1,
-      height: dataConfig?.value?.height || 1,
+      x: dataConfig?.x || 0,
+      y: dataConfig?.y || 0,
+      width: dataConfig?.width || 1,
+      height: dataConfig?.height || 1,
     },
   }
 

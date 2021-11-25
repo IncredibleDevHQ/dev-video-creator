@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { useEffect, useState } from 'react'
-import { extension } from 'mime-types'
 import { saveAs } from 'file-saver'
+import { extension } from 'mime-types'
+import { useRef, useState } from 'react'
+import transitionMusic from '../assets/TransitionMusic.wav'
 import { getSeekableWebM } from '../utils/helpers'
 
 const types = [
@@ -42,6 +43,9 @@ const useCanvasRecorder = ({
     }
   }
 
+  const ctx = useRef<AudioContext | null>(null)
+  const dest = useRef<MediaStreamAudioDestinationNode | null>(null)
+
   /**
    * Starts recording...
    */
@@ -68,24 +72,33 @@ const useCanvasRecorder = ({
     setType(type)
 
     try {
-      const ctx = new AudioContext({})
+      ctx.current = new AudioContext({})
 
       const streams = remoteStreams.map((r) => {
         const tracks = r.getTracks().filter((t) => t.kind === 'audio')
         const stream = new MediaStream(tracks)
-        return ctx.createMediaStreamSource(stream)
+        return ctx.current?.createMediaStreamSource(stream)
       })
 
-      const dest = ctx.createMediaStreamDestination()
+      dest.current = ctx.current.createMediaStreamDestination()
 
       streams.forEach((stream) => {
-        stream.connect(dest)
+        if (!dest.current || !stream) return
+        stream.connect(dest.current)
       })
 
-      ctx.createMediaStreamSource(localStream).connect(dest)
+      ctx.current.createMediaStreamSource(localStream).connect(dest.current)
+
+      // const music = new Audio(bgMusic)
+      // music.loop = true
+      // music.volume = 0.03
+      // ctx.createMediaElementSource(music).connect(dest)
 
       const mediaRecorder = new MediaRecorder(
-        new MediaStream([...stream.getTracks(), ...dest.stream.getTracks()]),
+        new MediaStream([
+          ...stream.getTracks(),
+          ...dest.current.stream.getTracks(),
+        ]),
         {
           videoBitsPerSecond,
           mimeType: type,
@@ -94,11 +107,19 @@ const useCanvasRecorder = ({
 
       mediaRecorder.ondataavailable = handleDataAvailable
       mediaRecorder.start(100) // collect 100ms of data blobs
+      // music.play()
 
       setMediaRecorder(mediaRecorder)
     } catch (e) {
       console.error(e)
     }
+  }
+
+  const addTransitionAudio = () => {
+    if (!ctx || !dest || !ctx.current || !dest.current) return
+    const transitionAudio = new Audio(transitionMusic)
+    ctx.current?.createMediaElementSource(transitionAudio).connect(dest.current)
+    transitionAudio.play()
   }
 
   const stopRecording = (fileName?: string) => {
@@ -128,7 +149,14 @@ const useCanvasRecorder = ({
     setRecordedBlobs([])
   }
 
-  return { startRecording, stopRecording, download, getBlobs, reset }
+  return {
+    startRecording,
+    stopRecording,
+    download,
+    getBlobs,
+    reset,
+    addTransitionAudio,
+  }
 }
 
 export default useCanvasRecorder

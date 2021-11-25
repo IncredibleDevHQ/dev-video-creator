@@ -213,19 +213,18 @@ export const serializeDataConfig = async (
         id: nanoid(),
         type: ConfigType.CODEJAM,
         title: heading || '',
-        value: {
-          code: codeRaw,
-          gistURL: '',
-          isAutomated,
-          language: node.lang || 'javascript',
-          explanations: blockBuffer,
-          colorCodes: code,
-        },
+        description: '',
+        code: codeRaw,
+        gistURL: '',
+        isAutomated,
+        language: node.lang || 'javascript',
+        explanations: blockBuffer,
+        colorCodes: code,
         /* notes will be populated by the above check for `p`.
            This follows the assumption that note added only after
            the object are considered.
         */
-        notes: [],
+        notes: '',
       } as CodejamConfig
     } else if (
       node.type === defaultNodeTypes.block_quote ||
@@ -299,15 +298,14 @@ export const serializeDataConfig = async (
         id: nanoid(),
         type: ConfigType.VIDEOJAM,
         title: heading || '',
-        value: {
-          videoURL: node.url,
-          from: currentAsset?.clip?.start,
-          to: currentAsset?.clip?.end,
-          height: currentAsset?.crop?.height,
-          width: currentAsset?.crop?.width,
-          x: currentAsset?.crop?.x,
-          y: currentAsset?.crop?.y,
-        },
+        description: '',
+        videoURL: node.url,
+        from: currentAsset?.clip?.start,
+        to: currentAsset?.clip?.end,
+        height: currentAsset?.crop?.height,
+        width: currentAsset?.crop?.width,
+        x: currentAsset?.crop?.x,
+        y: currentAsset?.crop?.y,
       } as VideojamConfig
     }
   }

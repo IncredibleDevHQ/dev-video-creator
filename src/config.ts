@@ -59,6 +59,12 @@ const config = {
       scope: githubIntegrationConfig.scope,
     },
   },
+  /**
+   * Auth endpoint
+   */
+  auth: {
+    endpoint: import.meta.env.VITE_AUTH_ENDPOINT,
+  },
 }
 
 export default config

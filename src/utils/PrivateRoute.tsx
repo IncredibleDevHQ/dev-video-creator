@@ -4,7 +4,7 @@ import { useRecoilValue } from 'recoil'
 import { ScreenState } from '../components'
 import { VerificationStatusEnum } from '../generated/graphql'
 import { Onboarding } from '../modules'
-import { authState } from '../stores/auth.store'
+import firebaseState from '../stores/firebase.store'
 import { userState, userVerificationStatus } from '../stores/user.store'
 
 interface PrivateRouteProps extends RouteProps {
@@ -14,25 +14,18 @@ interface PrivateRouteProps extends RouteProps {
 
 const PrivateRoute = ({
   component: Component,
-  redirectTo = '/login',
+  redirectTo = '/',
   ...rest
 }: PrivateRouteProps): JSX.Element | null => {
   const { push } = useHistory()
 
-  const auth = useRecoilValue(authState)
   const user = useRecoilValue(userState)
+  const auth = useRecoilValue(firebaseState)
   const verificationStatus = useRecoilValue(userVerificationStatus)
 
   useEffect(() => {
-    if (auth?.isAuthenticated === false && auth?.loading === false)
-      push(redirectTo, { from: rest.location })
-  }, [auth])
-
-  useEffect(() => {
-    if (!verificationStatus || !verificationStatus.status) return
-    if (verificationStatus.status !== VerificationStatusEnum.Approved) {
-      push('/login')
-    }
+    if (!verificationStatus) return
+    if (verificationStatus !== VerificationStatusEnum.Approved) push('/')
   }, [verificationStatus])
 
   if (
@@ -44,10 +37,7 @@ const PrivateRoute = ({
 
   if (!user?.onboarded) return <Onboarding />
 
-  if (
-    auth.isAuthenticated &&
-    verificationStatus?.status === VerificationStatusEnum.Approved
-  ) {
+  if (user && verificationStatus === VerificationStatusEnum.Approved) {
     return user?.uid ? (
       <Route {...rest} render={(routeProps) => <Component {...routeProps} />} />
     ) : null
@@ -69,7 +59,7 @@ const PrivateRoute = ({
 }
 
 PrivateRoute.defaultProps = {
-  redirectTo: '/login',
+  redirectTo: '/',
 }
 
 export default PrivateRoute
