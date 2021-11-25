@@ -93,3 +93,7 @@ body {
   padding-bottom: 1px;
   border-bottom: 1px dashed #000;
 }
+
+.remirror-theme {
+  width: 100% !important;
+}
