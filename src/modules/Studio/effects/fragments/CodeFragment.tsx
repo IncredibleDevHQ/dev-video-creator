@@ -102,6 +102,9 @@ const CodeFragment = ({
     height: number
   }>({ width: 0, height: 0 })
 
+  const [localFragmentState, setLocalFragmentState] =
+    useState<FragmentState>(fragmentState)
+
   useEffect(() => {
     if (!shortsMode) setStageConfig(CONFIG)
     else setStageConfig(SHORTS_CONFIG)
@@ -160,6 +163,7 @@ const CodeFragment = ({
       currentIndex: payload?.currentIndex || 1,
     })
     setFocusCode(payload?.isFocus)
+    setLocalFragmentState(payload?.fragmentState)
     if (isCodexFormat) {
       setActiveBlockIndex(payload?.activeBlockIndex)
       if (payload?.focusBlockCode) {
@@ -220,28 +224,27 @@ const CodeFragment = ({
     // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
     if (payload?.fragmentState === 'customLayout') {
       setTopLayerChildren([
-        <TrianglePathTransition isShorts={shortsMode} direction="left" />,
+        <TrianglePathTransition isShorts={shortsMode} direction="right" />,
       ])
       setTimeout(() => {
         setFragmentState(payload?.fragmentState)
-        // customLayoutRef.current?.opacity(1)
         customLayoutRef.current?.to({
           opacity: 1,
           duration: 0.2,
         })
-      }, 1000)
+      }, 800)
     }
     // Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
     if (payload?.fragmentState === 'onlyUserMedia') {
       setTopLayerChildren([
-        <TrianglePathTransition isShorts={shortsMode} direction="right" />,
+        <TrianglePathTransition isShorts={shortsMode} direction="left" />,
       ])
-      customLayoutRef.current?.to({
-        opacity: 0,
-        duration: 0.8,
-      })
       setTimeout(() => {
         setFragmentState(payload?.fragmentState)
+        customLayoutRef.current?.to({
+          opacity: 0,
+          duration: 0.2,
+        })
       }, 800)
     }
   }, [payload?.fragmentState])

@@ -204,14 +204,14 @@ export const StudioUserConfiguration = ({
           {
             x: 56,
             y: -45,
-            width: 840,
-            height: 630,
+            width: 848,
+            height: 636,
             clipTheme: 'rect',
             borderWidth: 0,
             studioUserClipConfig: {
               x: 0,
               y: 75,
-              width: 840,
+              width: 848,
               height: 480,
               radius: 8,
             },
