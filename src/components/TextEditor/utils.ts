@@ -15,6 +15,12 @@ export type Layout =
   | 'right-bar-floating'
   | 'left-bar-floating'
 
+export interface CommentExplanations {
+  explanation: string | undefined
+  from: number | undefined
+  to: number | undefined
+  // code: ColorCode[] | undefined
+}
 export interface CodeBlock {
   code?: string
   language?: string
@@ -22,6 +28,8 @@ export interface CodeBlock {
   note?: string
   description?: string
   layout?: Layout
+  isAutomated?: boolean
+  explanations?: CommentExplanations[]
 }
 
 // TODO: Improve VideoBlock interface...
