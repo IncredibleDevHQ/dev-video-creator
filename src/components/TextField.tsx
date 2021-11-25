@@ -22,11 +22,8 @@ const TextField = ({
         {label}
         {rest.required && '*'}
       </Label>
-      <div className="flex rounded-md justify-between border border-gray-300 transition-all focus-within:border-brand items-center p-3 pl-3 bg-background">
-        <input
-          className="rounded-sm border-none outline-none flex-1"
-          {...rest}
-        />
+      <div className="flex rounded-md justify-between border border-gray-300 transition-all focus-within:border-brand items-center p-2 bg-background">
+        <input className="border-none outline-none flex-1" {...rest} />
         <div className="flex justify-between items-center">
           {accessories?.map((accessory) => {
             return <span key={nanoid()}>{accessory}</span>
