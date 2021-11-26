@@ -379,9 +379,10 @@ const Studio = ({
 
   const [state, setState] = useState<StudioState>('ready')
 
-  const { startRecording, stopRecording, reset, getBlobs } = useCanvasRecorder({
-    options: {},
-  })
+  const { startRecording, stopRecording, reset, getBlobs, addTransitionAudio } =
+    useCanvasRecorder({
+      options: {},
+    })
 
   /**
    * END STREAM HOOKS...
@@ -523,6 +524,7 @@ const Studio = ({
       startRecording: start,
       stopRecording: stop,
       showFinalTransition: finalTransition,
+      addTransitionAudio,
       reset: resetRecording,
       upload,
       getBlobs,
@@ -549,9 +551,9 @@ const Studio = ({
   }, [fragment, stream, users, state, userAudios, payload, participants, state])
 
   useEffect(() => {
-    if (!studio.controlsConfig || !fragment?.configuration) return
-    const conf = fragment.configuration as Config
-    setFragmentType(conf.dataConfig[payload?.activeObjectIndex]?.type)
+    if (!studio.controlsConfig) return
+    // const conf = fragment.configuration as Config
+    setFragmentType(studio.controlsConfig.type)
   }, [payload?.activeObjectIndex, studio.controlsConfig])
 
   useEffect(() => {
