@@ -205,16 +205,21 @@ const Flick = () => {
       <div className="flex flex-1 overflow-y-auto">
         <FragmentSideBar />
         {flick.fragments.length > 0 && (
-          <TextEditor
-            placeholder="Start writing..."
-            // handleUpdateSimpleAST={(simpleAST) => {
-            //   console.log(simpleAST)
-            // }}
-            handleUpdateJSON={(json) => {
-              setPlateValue(json)
-            }}
-            initialContent={initialPlateValue}
-          />
+          <div className="px-8 w-full overflow-y-scroll pb-8">
+            <TextEditor
+              placeholder="Start writing..."
+              // handleUpdateSimpleAST={(simpleAST) => {
+              //   console.log(simpleAST)
+              // }}
+              handleUpdateJSON={(json) => {
+                setPlateValue(json)
+              }}
+              initialContent={initialPlateValue}
+              handleActiveBlock={(block) => {
+                console.log('active block!', block)
+              }}
+            />
+          </div>
         )}
       </div>
       <PublishModal

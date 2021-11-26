@@ -1,5 +1,5 @@
 import 'remirror/styles/all.css'
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useContext, useEffect, useMemo, useState } from 'react'
 import { FC, useCallback } from 'react'
 import jsx from 'refractor/lang/jsx'
 import typescript from 'refractor/lang/typescript'
@@ -10,6 +10,7 @@ import {
   getCursor,
   ComponentsTheme,
   uniqueId,
+  EditorState,
 } from 'remirror'
 import {
   BoldExtension,
@@ -40,13 +41,14 @@ import {
   useRemirrorContext,
   useSuggest,
   FloatingWrapper,
+  useActive,
 } from '@remirror/react'
 import { IconType } from 'react-icons'
 import { IoCode, IoImage, IoPlay, IoText } from 'react-icons/io5'
 import { BiBrain, BiNote } from 'react-icons/bi'
 import { Node } from '@remirror/pm/model'
 import { cx } from '@emotion/css'
-import { CodeBlockProps, SimpleAST, useUtils } from './utils'
+import { Block, SimpleAST, useUtils } from './utils'
 import { VideoExtension } from './plugins/VideoExtension'
 import { BlockExtension } from './plugins/BlockExtension'
 import { Heading, Text } from '..'
@@ -74,6 +76,7 @@ export interface TextEditorProps {
   }
   handleUpdateSimpleAST?: (simpleAST: SimpleAST) => void
   handleUpdateJSON?: (json: string) => void
+  handleActiveBlock?: (block?: Block) => void
 }
 
 const hooks = [
@@ -152,12 +155,38 @@ const hooks = [
 
     useMemo(() => {
       const json = getJSON(state)
-      simpleASTCallback(getSimpleAST(json))
+      simpleASTCallback?.(getSimpleAST(json))
     }, [state])
+  },
+  () => {
+    const { state, simpleAST, handleActiveBlock } =
+      React.useContext(TextEditorProvider)
+
+    const { slab } = useActive(true)
+
+    // eslint-disable-next-line consistent-return
+    useMemo(() => {
+      if (!slab) return undefined
+
+      // @ts-ignore
+      const block: Node = state.selection.$anchor.path.find(
+        (n: any) => n?.type?.name === 'slab'
+      )
+      const simpleBlock = simpleAST?.blocks.find(
+        (b) => b.id === block?.attrs.id
+      )
+
+      handleActiveBlock?.(simpleBlock)
+    }, [state, simpleAST])
   },
 ]
 
-const TextEditorProvider = React.createContext<any>({})
+const TextEditorProvider = React.createContext<{
+  state?: EditorState
+  simpleASTCallback?: (simpleAST: SimpleAST) => void
+  simpleAST?: SimpleAST
+  handleActiveBlock?: (block: Block | undefined) => void
+}>({} as any)
 
 /**
  * The editor which is used to create the annotation. Supports formatting.
@@ -168,6 +197,7 @@ const TextEditor: FC<TextEditorProps> = ({
   children,
   titleProps,
   handleUpdateJSON,
+  handleActiveBlock,
 }) => {
   const extensions = useCallback(
     () => [
@@ -231,7 +261,9 @@ const TextEditor: FC<TextEditorProps> = ({
   }, [])
 
   return (
-    <TextEditorProvider.Provider value={{ state, simpleASTCallback }}>
+    <TextEditorProvider.Provider
+      value={{ state, simpleASTCallback, simpleAST, handleActiveBlock }}
+    >
       <ThemeProvider>
         <Remirror
           classNames={['focus:outline-none', 'border-none', 'font-mono']}
@@ -263,7 +295,7 @@ const TextEditor: FC<TextEditorProps> = ({
               animated
               positioner="selection"
             />
-            <div className="col-span-1">
+            <div className="col-span-1 sticky top-6 overflow-hidden">
               {simpleAST && <PreviewBar simpleAST={simpleAST} />}
             </div>
           </div>
@@ -275,20 +307,51 @@ const TextEditor: FC<TextEditorProps> = ({
 }
 
 const PreviewBar = ({ simpleAST }: { simpleAST: SimpleAST }) => {
-  if (!simpleAST) return null
+  const { slab } = useActive(true)
+  const { state } = useContext(TextEditorProvider)
 
-  const block = simpleAST.blocks.find((block) => block.type === 'codeBlock') as
-    | CodeBlockProps
-    | undefined
+  const block: Block | undefined = useMemo(() => {
+    if (!slab) return undefined
 
-  return block ? (
-    <div className="w-60 h-32 relative bg-gray-300">
-      {block.codeBlock.code && (
-        <div className="w-3/5 absolute left-2 top-2 h-28 bg-brand rounded-sm" />
-      )}
-      <div className="w-1/5 left-3/4 absolute h-28 top-2 bg-brand-alt rounded-sm" />
-    </div>
-  ) : null
+    // @ts-ignore
+    const block: Node = state.selection.$anchor.path.find(
+      (n: any) => n?.type?.name === 'slab'
+    )
+
+    // eslint-disable-next-line consistent-return
+    const simpleBlock = simpleAST.blocks.find((b) => b.id === block?.attrs.id)
+
+    return simpleBlock
+  }, [state, simpleAST])
+
+  // NOTE: Usable function...
+  const getBlock = useCallback((block: Block) => {
+    // NOTE: Handle Layout here...
+    switch (block.type) {
+      case 'codeBlock':
+        return (
+          <div className="w-60 h-32 relative bg-gray-300">
+            {block.codeBlock.code && (
+              <div className="w-3/5 absolute left-2 top-2 h-28 bg-brand rounded-sm" />
+            )}
+            <div className="w-1/5 left-3/4 absolute h-28 top-2 bg-brand-alt rounded-sm" />
+          </div>
+        )
+
+      case 'videoBlock': {
+        return (
+          <div className="w-60 h-32 relative bg-gray-300">
+            <div className="w-1/5 left-3/4 absolute h-28 top-2 bg-yellow-500 rounded-sm" />
+          </div>
+        )
+      }
+
+      default:
+        return null
+    }
+  }, [])
+
+  return block ? getBlock(block) : null
 }
 
 const BlockTab = ({

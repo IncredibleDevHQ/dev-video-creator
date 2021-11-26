@@ -84,8 +84,13 @@ const getSimpleAST = (state: RemirrorJSON): SimpleAST => {
         id: slab.attrs?.id as string,
         pos: 0,
       })
-    } else if (slabItems?.includes('videoBlock')) {
-      return undefined
+    } else if (slabItems?.includes('video')) {
+      blocks.push({
+        type: 'videoBlock',
+        id: slab.attrs?.id as string,
+        pos: 0,
+        videoBlock: { key: '123' },
+      })
     }
   })
 
