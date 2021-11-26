@@ -101,3 +101,11 @@ body {
 .remirror-theme .ProseMirror {
   box-shadow: none !important;
 }
+
+.remirror-theme .ProseMirror ul > li {
+  margin-left: 1.2em;
+}
+
+.remirror-theme .remirror-collapsible-list-item-button {
+  background-color: #000 !important;
+}

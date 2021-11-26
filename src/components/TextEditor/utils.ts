@@ -1,5 +1,4 @@
-import { EditorState, ProsemirrorNode, RemirrorJSON } from '@remirror/core'
-import { Schema } from '@remirror/pm/model'
+import { RemirrorJSON } from '@remirror/core'
 
 export type Layout =
   | 'top-right-circle'
@@ -32,9 +31,31 @@ export interface CodeBlock {
   explanations?: CommentExplanations[]
 }
 
+export interface ListBlock {
+  list?: ListItem[]
+  title?: string
+  note?: string
+  description?: string
+}
+
 // TODO: Improve VideoBlock interface...
 export interface VideoBlock {
-  key?: string
+  url?: string
+  title?: string
+  note?: string
+  description?: string
+}
+
+export interface ImageBlock {
+  url?: string
+  title?: string
+  note?: string
+  description?: string
+}
+
+export interface ListItem {
+  content?: string
+  items?: ListItem[]
 }
 
 export interface CommonBlockProps {
@@ -52,7 +73,21 @@ export interface VideoBlockProps extends CommonBlockProps {
   videoBlock: VideoBlock
 }
 
-export type Block = CodeBlockProps | VideoBlockProps
+export interface ListBlockProps extends CommonBlockProps {
+  type: 'listBlock'
+  listBlock: ListBlock
+}
+
+export interface ImageBlockProps extends CommonBlockProps {
+  type: 'imageBlock'
+  imageBlock: ImageBlock
+}
+
+export type Block =
+  | CodeBlockProps
+  | VideoBlockProps
+  | ListBlockProps
+  | ImageBlockProps
 
 export interface SimpleAST {
   blocks: Block[]
@@ -65,24 +100,30 @@ const getSimpleAST = (state: RemirrorJSON): SimpleAST => {
 
   const blocks: Block[] = []
 
+  const getCommonProps = (slab: RemirrorJSON) => {
+    const note = slab.content?.find(
+      (node) => node.type === 'callout' && node.attrs?.type === 'info'
+    )?.content?.[0].content?.[0].text
+    const description = slab.content?.find(
+      (node) => node.type === 'callout' && node.attrs?.type === 'success'
+    )?.content?.[0].content?.[0].text
+    const title = slab.content?.find((node) => node.type === 'heading')
+      ?.content?.[0].text
+
+    return { note, description, title }
+  }
+
   // eslint-disable-next-line consistent-return
   slabs?.forEach((slab) => {
     const slabItems = slab.content?.map((node) => node.type)
 
     if (slabItems?.includes('codeBlock')) {
-      console.log('Code Block!')
       let codeBlock: CodeBlock = {}
 
       const code = slab.content?.find((node) => node.type === 'codeBlock')
       const codeValue = code?.content?.[0].text
-      const note = slab.content?.find(
-        (node) => node.type === 'callout' && node.attrs?.type === 'info'
-      )?.content?.[0].content?.[0].text
-      const description = slab.content?.find(
-        (node) => node.type === 'callout' && node.attrs?.type === 'success'
-      )?.content?.[0].content?.[0].text
-      const title = slab.content?.find((node) => node.type === 'heading')
-        ?.content?.[0].text
+
+      const { description, note, title } = getCommonProps(slab)
 
       codeBlock = { code: codeValue, note, description, title }
 
@@ -92,12 +133,80 @@ const getSimpleAST = (state: RemirrorJSON): SimpleAST => {
         id: slab.attrs?.id as string,
         pos: 0,
       })
-    } else if (slabItems?.includes('video')) {
+    } else if (slabItems?.includes('iframe')) {
+      const { description, note, title } = getCommonProps(slab)
+
+      const url = slab.content?.find((node) => node.type === 'iframe')?.attrs
+        ?.src
+
       blocks.push({
         type: 'videoBlock',
         id: slab.attrs?.id as string,
         pos: 0,
-        videoBlock: { key: '123' },
+        videoBlock: {
+          url: url as string,
+          description,
+          title,
+          note,
+        },
+      })
+    } else if (slabItems?.includes('paragraph')) {
+      // Image is inline, we need to find it in the paragraph.
+      const image = slab.content
+        ?.find((c) => c.type === 'paragraph')
+        ?.content?.find((node) => node.type === 'image')
+      if (!image) return
+
+      const url = image.attrs?.src
+
+      const { description, note, title } = getCommonProps(slab)
+      blocks.push({
+        type: 'imageBlock',
+        id: slab.attrs?.id as string,
+        pos: 0,
+        imageBlock: {
+          url: url as string,
+          description,
+          title,
+          note,
+        },
+      })
+    } else if (slabItems?.includes('bulletList')) {
+      const { description, note, title } = getCommonProps(slab)
+
+      const listItems = slab.content
+        ?.find((node) => node.type === 'bulletList')
+        ?.content?.filter((child) => child.type === 'listItem')
+
+      const simplifyListItem = (listItem: RemirrorJSON): ListItem => {
+        const item: ListItem = {}
+
+        listItem.content?.forEach((node) => {
+          if (node.type === 'paragraph') {
+            item.content = node.content?.[0].text
+          }
+          if (node.type === 'bulletList') {
+            item.items = node.content?.map((child) => simplifyListItem(child))
+          }
+        })
+
+        return item
+      }
+
+      const simpleListItems = listItems?.map((listItem) => {
+        return simplifyListItem(listItem)
+      })
+
+      blocks.push({
+        type: 'listBlock',
+        id: slab.attrs?.id as string,
+        pos: 0,
+        listBlock: {
+          description,
+          title,
+          note,
+          list: simpleListItems,
+        },
       })
     }
   })

@@ -22,13 +22,14 @@ import {
   LinkExtension,
   ListItemExtension,
   MarkdownExtension,
-  OrderedListExtension,
   StrikeExtension,
   TableExtension,
   TrailingNodeExtension,
   CalloutExtension,
   ItalicExtension,
   PlaceholderExtension,
+  IframeExtension,
+  ImageExtension,
 } from 'remirror/extensions'
 import {
   EditorComponent,
@@ -44,7 +45,7 @@ import {
   useActive,
 } from '@remirror/react'
 import { IconType } from 'react-icons'
-import { IoCode, IoImage, IoPlay, IoText } from 'react-icons/io5'
+import { IoCode, IoImage, IoList, IoPlay, IoText } from 'react-icons/io5'
 import { BiBrain, BiNote } from 'react-icons/bi'
 import { Node } from '@remirror/pm/model'
 import { cx } from '@emotion/css'
@@ -52,6 +53,8 @@ import { Block, SimpleAST, useUtils } from './utils'
 import { VideoExtension } from './plugins/VideoExtension'
 import { BlockExtension } from './plugins/BlockExtension'
 import { Heading, Text } from '..'
+import VideoModal from './VideoModal'
+import ImageModal from './ImageModal'
 
 /// REMOVE WHEN DONE
 const TextEditorPage = () => {
@@ -213,7 +216,10 @@ const TextEditor: FC<TextEditorProps> = ({
       // new BlockquoteExtension(),
       new BlockExtension({}),
       new BulletListExtension(),
-      new OrderedListExtension(),
+      new ImageExtension({
+        enableResizing: true,
+      }),
+      new IframeExtension({ enableResizing: true }),
       new ListItemExtension({
         priority: ExtensionPriority.High,
         enableCollapsible: true,
@@ -394,7 +400,13 @@ function Suggestor() {
   })
 
   const [location, setLocation] = useState<'doc' | 'slab' | 'dirty-slab'>('doc')
-  const { createCodeBlock, toggleCallout } = useCommands()
+  const {
+    createCodeBlock,
+    toggleCallout,
+    addIframe,
+    toggleBulletList,
+    insertImage,
+  } = useCommands()
 
   // TODO: Scope for improvement...
   const tabs = useCallback(() => {
@@ -427,8 +439,33 @@ function Suggestor() {
           })
         },
       },
-      { label: 'Video', icon: IoPlay, main: true, disabled: true },
-      { label: 'Image', icon: IoImage, main: true, disabled: true },
+      {
+        label: 'Video',
+        icon: IoPlay,
+        main: true,
+        name: 'iframe',
+        handleClick: () => {
+          setModal('video')
+        },
+      },
+      {
+        label: 'List',
+        icon: IoList,
+        main: true,
+        name: 'bulletList',
+        handleClick: () => {
+          toggleBulletList()
+        },
+      },
+      {
+        label: 'Image',
+        icon: IoImage,
+        main: true,
+        name: 'image',
+        handleClick: () => {
+          setModal('image')
+        },
+      },
     ]
   }, [])
 
@@ -456,6 +493,8 @@ function Suggestor() {
       )
     }
   }, [view.state.tr.selection])
+
+  const [modal, setModal] = useState<'video' | 'image' | undefined>()
 
   return (
     <FloatingWrapper
@@ -506,6 +545,22 @@ function Suggestor() {
             })}
         </div>
       </div>
+      <VideoModal
+        handleClose={() => setModal('video')}
+        open={modal === 'video'}
+        handleUrl={(url) => {
+          addIframe({ src: url })
+          setModal(undefined)
+        }}
+      />
+      <ImageModal
+        handleClose={() => setModal('image')}
+        open={modal === 'image'}
+        handleUrl={(url) => {
+          insertImage({ src: url })
+          setModal(undefined)
+        }}
+      />
     </FloatingWrapper>
   )
 }
