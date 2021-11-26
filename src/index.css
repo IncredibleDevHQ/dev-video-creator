@@ -97,3 +97,7 @@ body {
 .remirror-theme {
   width: 100% !important;
 }
+
+.remirror-theme .ProseMirror {
+  box-shadow: none !important;
+}
