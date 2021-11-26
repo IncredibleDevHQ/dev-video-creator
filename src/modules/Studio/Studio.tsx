@@ -379,9 +379,10 @@ const Studio = ({
 
   const [state, setState] = useState<StudioState>('ready')
 
-  const { startRecording, stopRecording, reset, getBlobs } = useCanvasRecorder({
-    options: {},
-  })
+  const { startRecording, stopRecording, reset, getBlobs, addTransitionAudio } =
+    useCanvasRecorder({
+      options: {},
+    })
 
   /**
    * END STREAM HOOKS...
@@ -523,6 +524,7 @@ const Studio = ({
       startRecording: start,
       stopRecording: stop,
       showFinalTransition: finalTransition,
+      addTransitionAudio,
       reset: resetRecording,
       upload,
       getBlobs,

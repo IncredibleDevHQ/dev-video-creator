@@ -56,8 +56,14 @@ const CodeFragment = ({
   stageRef: React.RefObject<Konva.Stage>
   layerRef: React.RefObject<Konva.Layer>
 }) => {
-  const { fragment, payload, updatePayload, state, shortsMode } =
-    (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const {
+    fragment,
+    payload,
+    updatePayload,
+    state,
+    shortsMode,
+    addTransitionAudio,
+  } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const { initUseCode, computedTokens } = useCode()
   // const [getTokenisedCode, { data }] = useGetTokenisedCodeLazyQuery()
@@ -226,6 +232,7 @@ const CodeFragment = ({
       setTopLayerChildren([
         <TrianglePathTransition isShorts={shortsMode} direction="right" />,
       ])
+      addTransitionAudio()
       setTimeout(() => {
         setFragmentState(payload?.fragmentState)
         customLayoutRef.current?.to({
@@ -239,6 +246,7 @@ const CodeFragment = ({
       setTopLayerChildren([
         <TrianglePathTransition isShorts={shortsMode} direction="left" />,
       ])
+      addTransitionAudio()
       setTimeout(() => {
         setFragmentState(payload?.fragmentState)
         customLayoutRef.current?.to({

@@ -46,8 +46,14 @@ const PointsFragment = ({
   stageRef: React.RefObject<Konva.Stage>
   layerRef: React.RefObject<Konva.Layer>
 }) => {
-  const { fragment, state, updatePayload, payload, shortsMode } =
-    (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const {
+    fragment,
+    state,
+    updatePayload,
+    payload,
+    shortsMode,
+    addTransitionAudio,
+  } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [studio, setStudio] = useRecoilState(studioStore)
 
@@ -159,6 +165,7 @@ const PointsFragment = ({
       setTopLayerChildren([
         <TrianglePathTransition isShorts={shortsMode} direction="right" />,
       ])
+      addTransitionAudio()
       setTimeout(() => {
         setFragmentState(payload?.fragmentState)
         customLayoutRef.current?.to({
@@ -172,6 +179,7 @@ const PointsFragment = ({
       setTopLayerChildren([
         <TrianglePathTransition isShorts={shortsMode} direction="left" />,
       ])
+      addTransitionAudio()
       setTimeout(() => {
         setFragmentState(payload?.fragmentState)
         customLayoutRef.current?.to({
