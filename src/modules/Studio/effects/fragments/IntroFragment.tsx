@@ -17,8 +17,8 @@ const IntroFragment = ({
   viewConfig,
   themeNumber,
 }: {
-  viewConfig: LayoutConfig
-  themeNumber: string
+  viewConfig?: LayoutConfig
+  themeNumber?: string
 }) => {
   const { fragment, state, shortsMode } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
@@ -42,12 +42,12 @@ const IntroFragment = ({
     if (themeNumber === '3') return SplashFifteen
     if (themeNumber === '4') return SplashSixteen
     if (themeNumber === '5') return SplashFour
-    return CustomSplash
+    return SplashFive
   })()
 
   const layerChildren = [
     <Group x={0} y={0}>
-      {viewConfig.background.type === 'color' ? (
+      {viewConfig?.background?.type === 'color' ? (
         <Rect
           x={0}
           y={0}

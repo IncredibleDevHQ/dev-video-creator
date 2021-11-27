@@ -27,6 +27,7 @@ import {
 import config from '../../config'
 import {
   Fragment_Status_Enum_Enum,
+  Fragment_Type_Enum_Enum,
   GetFragmentByIdQuery,
   StudioFragmentFragment,
   useGetFragmentByIdQuery,
@@ -47,6 +48,7 @@ import {
   VideoJamControls,
 } from './components/Controls'
 import RecordingControlsBar from './components/RecordingControlsBar'
+import IntroFragment from './effects/fragments/IntroFragment'
 import UnifiedFragment from './effects/fragments/UnifiedFragment'
 import { useAgora, useVectorly } from './hooks'
 import { Device } from './hooks/use-agora'
@@ -595,9 +597,18 @@ const Studio = ({
             >
               <Bridge>
                 <Layer ref={layerRef}>
-                  {fragment && (
-                    <UnifiedFragment stageRef={stageRef} layerRef={layerRef} />
-                  )}
+                  {fragment &&
+                    (fragment.type === Fragment_Type_Enum_Enum.Intro ||
+                    fragment.type === Fragment_Type_Enum_Enum.Outro ? (
+                      <IntroFragment
+                        themeNumber={`${fragment.configuration?.theme}` || '0'}
+                      />
+                    ) : (
+                      <UnifiedFragment
+                        stageRef={stageRef}
+                        layerRef={layerRef}
+                      />
+                    ))}
                 </Layer>
               </Bridge>
             </Stage>
