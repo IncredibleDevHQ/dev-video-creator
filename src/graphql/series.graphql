@@ -61,11 +61,13 @@ mutation CreateOrganisationSeries(
   $name: String!
   $organisationSlug: String!
   $picture: String!
+  $description: String! = ""
 ) {
   CreateSeries(
     name: $name
     organisationSlug: $organisationSlug
     picture: $picture
+    description: $description
   ) {
     id
   }
@@ -91,11 +93,13 @@ mutation CreateUserSeries(
   $name: String!
   $organisationSlug: String
   $picture: String
+  $description: String! = ""
 ) {
   CreateSeries(
     name: $name
     organisationSlug: $organisationSlug
     picture: $picture
+    description: $description
   ) {
     id
   }
