@@ -108,9 +108,6 @@ const CodeFragment = ({
     height: number
   }>({ width: 0, height: 0 })
 
-  const [localFragmentState, setLocalFragmentState] =
-    useState<FragmentState>(fragmentState)
-
   useEffect(() => {
     if (!shortsMode) setStageConfig(CONFIG)
     else setStageConfig(SHORTS_CONFIG)
@@ -169,7 +166,6 @@ const CodeFragment = ({
       currentIndex: payload?.currentIndex || 1,
     })
     setFocusCode(payload?.isFocus)
-    setLocalFragmentState(payload?.fragmentState)
     if (isCodexFormat) {
       setActiveBlockIndex(payload?.activeBlockIndex)
       if (payload?.focusBlockCode) {
