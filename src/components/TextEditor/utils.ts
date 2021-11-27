@@ -44,6 +44,15 @@ export interface VideoBlock {
   title?: string
   note?: string
   description?: string
+  // time in seconds
+  from?: number
+  // time in seconds
+  to?: number
+  // crop details
+  x?: number
+  y?: number
+  width?: number
+  height?: number
 }
 
 export interface ImageBlock {
@@ -54,8 +63,10 @@ export interface ImageBlock {
 }
 
 export interface ListItem {
-  content?: string
-  items?: ListItem[]
+  // content?: string
+  // items?: ListItem[]
+  level?: number
+  text: string
 }
 
 export interface CommonBlockProps {

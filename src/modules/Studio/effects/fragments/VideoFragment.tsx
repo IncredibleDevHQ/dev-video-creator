@@ -1,14 +1,11 @@
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
-import { Group, Image, Rect } from 'react-konva'
+import { Group, Rect } from 'react-konva'
 import { useRecoilState, useRecoilValue } from 'recoil'
-import useImage from 'use-image'
+import { VideoBlockProps } from '../../../../components/TextEditor/utils'
 import { Fragment_Status_Enum_Enum } from '../../../../generated/graphql'
-import {
-  ConfigType,
-  LayoutConfig,
-  VideojamConfig,
-} from '../../../../utils/configTypes'
+import { ConfigType } from '../../../../utils/configTypes'
+import { BlockProperties } from '../../../../utils/configTypes2'
 import Concourse, { CONFIG, TitleSplashProps } from '../../components/Concourse'
 import { FragmentState } from '../../components/RenderTokens'
 import { Video, VideoConfig } from '../../components/Video'
@@ -21,7 +18,7 @@ import { StudioUserConfiguration } from '../../utils/StudioUserConfig'
 import { TrianglePathTransition } from '../FragmentTransitions'
 
 const VideoFragment = ({
-  viewConfig,
+  // viewConfig,
   dataConfig,
   dataConfigLength,
   topLayerChildren,
@@ -32,8 +29,8 @@ const VideoFragment = ({
   stageRef,
   layerRef,
 }: {
-  viewConfig: LayoutConfig
-  dataConfig: VideojamConfig
+  // viewConfig: LayoutConfig
+  dataConfig: VideoBlockProps & BlockProperties
   dataConfigLength: number
   topLayerChildren: JSX.Element[]
   setTopLayerChildren: React.Dispatch<React.SetStateAction<JSX.Element[]>>
@@ -53,7 +50,7 @@ const VideoFragment = ({
   // ref to the object grp
   const customLayoutRef = useRef<Konva.Group>(null)
 
-  const [bgImage] = useImage(viewConfig?.background?.image || '', 'anonymous')
+  // const [bgImage] = useImage(viewConfig?.background?.image || '', 'anonymous')
 
   const [objectConfig, setObjectConfig] = useState<ObjectConfig>({
     x: 0,
@@ -70,14 +67,14 @@ const VideoFragment = ({
     element.crossOrigin = 'anonymous'
     element.preload = 'auto'
     element.muted = false
-    element.src = dataConfig.videoURL
+    element.src = dataConfig.videoBlock.url || ''
 
     setObjectConfig(
-      FragmentLayoutConfig({ layoutNumber: viewConfig.layoutNumber })
+      FragmentLayoutConfig({ layout: dataConfig.layout || 'classic' })
     )
     // eslint-disable-next-line consistent-return
     return element
-  }, [dataConfig, viewConfig])
+  }, [dataConfig])
 
   useEffect(() => {
     setStudio({
@@ -98,14 +95,14 @@ const VideoFragment = ({
       case 'recording':
         updatePayload?.({
           playing: false,
-          currentTime: dataConfig?.from || 0,
+          currentTime: dataConfig.videoBlock.from || 0,
         })
         setTopLayerChildren([])
         break
       default:
         updatePayload?.({
           playing: false,
-          currentTime: dataConfig?.from || 0,
+          currentTime: dataConfig.videoBlock.from || 0,
         })
         setTopLayerChildren([])
     }
@@ -114,10 +111,10 @@ const VideoFragment = ({
   // performing trim operation
   // on end time, reinitialize the video element's current time to start time
   videoElement?.addEventListener('timeupdate', () => {
-    if (!dataConfig.to) return
-    if (videoElement.currentTime >= dataConfig?.to) {
+    if (!dataConfig.videoBlock.to) return
+    if (videoElement.currentTime >= dataConfig.videoBlock?.to) {
       videoElement.pause()
-      videoElement.currentTime = dataConfig?.from || 0
+      videoElement.currentTime = dataConfig.videoBlock.from || 0
       videoElement.play()
     }
   })
@@ -181,28 +178,26 @@ const VideoFragment = ({
     cornerRadius: objectConfig.borderRadius,
     performClip: true,
     clipVideoConfig: {
-      x: dataConfig?.x || 0,
-      y: dataConfig?.y || 0,
-      width: dataConfig?.width || 1,
-      height: dataConfig?.height || 1,
+      x: dataConfig?.videoBlock?.x || 0,
+      y: dataConfig?.videoBlock?.y || 0,
+      width: dataConfig?.videoBlock?.width || 1,
+      height: dataConfig?.videoBlock?.height || 1,
     },
   }
 
   const layerChildren: any[] = [
     <Group x={0} y={0}>
-      {viewConfig.background.type === 'color' ? (
-        <Rect
-          x={0}
-          y={0}
-          width={CONFIG.width}
-          height={CONFIG.height}
-          fillLinearGradientColorStops={viewConfig.background.gradient?.values}
-          fillLinearGradientStartPoint={
-            viewConfig.background.gradient?.startIndex
-          }
-          fillLinearGradientEndPoint={viewConfig.background.gradient?.endIndex}
-        />
-      ) : (
+      {/* {dataConfig..type === 'color' ? ( */}
+      <Rect
+        x={0}
+        y={0}
+        width={CONFIG.width}
+        height={CONFIG.height}
+        fillLinearGradientColorStops={dataConfig.gradient?.values}
+        fillLinearGradientStartPoint={dataConfig.gradient?.startIndex}
+        fillLinearGradientEndPoint={dataConfig.gradient?.endIndex}
+      />
+      {/* ) : (
         <Image
           x={0}
           y={0}
@@ -210,7 +205,7 @@ const VideoFragment = ({
           height={CONFIG.height}
           image={bgImage}
         />
-      )}
+      )} */}
     </Group>,
     <Group x={0} y={0} opacity={0} ref={customLayoutRef}>
       {videoElement && (
@@ -220,7 +215,7 @@ const VideoFragment = ({
   ]
 
   const studioUserConfig = StudioUserConfiguration({
-    layoutNumber: viewConfig.layoutNumber,
+    layout: dataConfig.layout || 'classic',
     fragment,
     fragmentState,
   })
