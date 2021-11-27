@@ -15,7 +15,8 @@ import {
   FlickNavBar,
   FragmentBar,
   FragmentSideBar,
-  PublishModal,
+  ProcessingFlick,
+  PublishFlick,
 } from './components'
 import { newFlickStore } from './store/flickNew.store'
 import { initEditor } from '../../utils/plateConfig/serializer/values'
@@ -85,6 +86,9 @@ const Flick = () => {
     variables: { id },
   })
   const setStudio = useSetRecoilState(studioStore)
+  const { addTransitionAudio } = useCanvasRecorder({
+    options: {},
+  })
   const history = useHistory()
 
   const [currentBlock, setCurrentBlock] = useState<Block>()
@@ -99,6 +103,8 @@ const Flick = () => {
   const [integrationModal, setIntegrationModal] = useState(false)
 
   const [config, setConfig] = useState<Config>(initialConfig)
+  const [processingFlick, setProcessingFlick] = useState(false)
+  const [published, setPublished] = useState(false)
 
   const [selectedLayoutId, setSelectedLayoutId] = useState('')
 
@@ -109,8 +115,6 @@ const Flick = () => {
     error: assetsError,
     refetch: assetsRefetch,
   } = useUserAssetQuery()
-
-  const { addTransitionAudio } = useCanvasRecorder({ options: {} })
 
   const updateBlockProperties = (id: string, properties: BlockProperties) => {
     const newBlocks = { ...viewConfig.blocks, [id]: properties }
@@ -216,6 +220,15 @@ const Flick = () => {
     )
   }
 
+  if (processingFlick)
+    return (
+      <ProcessingFlick
+        joinLink={flick.joinLink}
+        publish={published}
+        setProcessing={setProcessingFlick}
+      />
+    )
+
   return (
     <div className="flex flex-col h-screen">
       <div>
@@ -258,8 +271,25 @@ const Flick = () => {
           </div>
         )}
       </div>
-      <PublishModal
+      <PublishFlick
         flickId={flick.id}
+        flickName={flick.name}
+        flickDescription={flick.description as string}
+        flickThumbnail={flick.thumbnail as string}
+        setProcessingFlick={setProcessingFlick}
+        setPublished={setPublished}
+        fragments={flick.fragments.map((f) => {
+          return {
+            id: f.id as string,
+            name: f.name as string,
+          }
+        })}
+        isShortsPresentAndCompleted={flick?.fragments.some(
+          (f) => f.producedShortsLink !== null
+        )}
+        isAllFlicksCompleted={flick?.fragments.every(
+          (f) => f.producedLink !== null
+        )}
         open={integrationModal}
         handleClose={() => setIntegrationModal(false)}
       />
