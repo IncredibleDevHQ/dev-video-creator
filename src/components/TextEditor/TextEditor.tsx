@@ -1,6 +1,12 @@
 import 'remirror/styles/all.css'
-import React, { useContext, useEffect, useMemo, useState } from 'react'
-import { FC, useCallback } from 'react'
+import React, {
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  FC,
+  useCallback,
+} from 'react'
 import jsx from 'refractor/lang/jsx'
 import typescript from 'refractor/lang/typescript'
 import {
@@ -43,9 +49,17 @@ import {
   useSuggest,
   FloatingWrapper,
   useActive,
+  useChainedCommands,
 } from '@remirror/react'
 import { IconType } from 'react-icons'
-import { IoCode, IoImage, IoList, IoPlay, IoText } from 'react-icons/io5'
+import {
+  IoBrowsers,
+  IoCode,
+  IoImage,
+  IoList,
+  IoPlay,
+  IoText,
+} from 'react-icons/io5'
 import { BiBrain, BiNote } from 'react-icons/bi'
 import { Node } from '@remirror/pm/model'
 import { cx } from '@emotion/css'
@@ -55,18 +69,6 @@ import { BlockExtension } from './plugins/BlockExtension'
 import { Heading, Text } from '..'
 import VideoModal from './VideoModal'
 import ImageModal from './ImageModal'
-
-/// REMOVE WHEN DONE
-const TextEditorPage = () => {
-  return (
-    <div className="w-full px-8 d:px-80 font-mono min-h-screen p-4">
-      <TextEditor titleProps={{ title: 'hello' }} placeholder="Heyy" />
-    </div>
-  )
-}
-
-export { TextEditorPage }
-/// END REMOVE
 
 export interface TextEditorProps {
   placeholder?: string
@@ -290,8 +292,18 @@ const TextEditor: FC<TextEditorProps> = ({
           </h1>
           <div className="relative grid gap-x-4 grid-cols-4">
             <div className="col-span-3">
-              <EditorComponent />
+              {state.doc.nodeSize <= 4 ? (
+                <div className="flex justify-center flex-1 items-center">
+                  <EmptyState />
+                </div>
+              ) : null}
+              <div
+                className={cx({ hidden: state.doc.nodeSize <= 4 }, 'w-full')}
+              >
+                <EditorComponent />
+              </div>
             </div>
+
             <Suggestor />
             <ContentUpdater content={initialContent} />
             <Exporter state={state} handleUpdateJSON={handleUpdateJSON} />
@@ -406,6 +418,7 @@ function Suggestor() {
     addIframe,
     toggleBulletList,
     insertImage,
+    toggleSlab,
   } = useCommands()
 
   // TODO: Scope for improvement...
@@ -417,6 +430,7 @@ function Suggestor() {
         handleClick: () => {
           toggleCallout({ type: 'success', emoji: '💬' })
         },
+        location: ['dirty-slab'],
       },
       {
         label: 'Notes',
@@ -424,8 +438,16 @@ function Suggestor() {
         handleClick: () => {
           toggleCallout({ type: 'info', emoji: '📝' })
         },
+        location: ['dirty-slab'],
       },
-      // { label: 'Block', icon: IoBrowsers },
+      {
+        label: 'Block',
+        icon: IoBrowsers,
+        location: ['doc'],
+        handleClick: () => {
+          toggleSlab()
+        },
+      },
       {
         label: 'Code',
         icon: IoCode,
@@ -438,6 +460,7 @@ function Suggestor() {
             language: 'jsx',
           })
         },
+        location: ['slab'],
       },
       {
         label: 'Video',
@@ -447,6 +470,7 @@ function Suggestor() {
         handleClick: () => {
           setModal('video')
         },
+        location: ['slab'],
       },
       {
         label: 'List',
@@ -456,6 +480,7 @@ function Suggestor() {
         handleClick: () => {
           toggleBulletList()
         },
+        location: ['slab'],
       },
       {
         label: 'Image',
@@ -465,6 +490,7 @@ function Suggestor() {
         handleClick: () => {
           setModal('image')
         },
+        location: ['slab'],
       },
     ]
   }, [])
@@ -515,8 +541,19 @@ function Suggestor() {
           Blocks
         </Heading>
         <Text fontSize="small" className="text-gray-600 mt-2">
-          Only one type of content per block is allowed now. So you can add
-          plain texts, notes to this block or add a new block.
+          {/* eslint-disable-next-line consistent-return */}
+          {(() => {
+            switch (location) {
+              case 'doc':
+                return 'Blocks are parts of your timeline.'
+              case 'slab':
+                return 'Add code, image, video or list to get started on this block.'
+              case 'dirty-slab':
+                return 'Only one type of content per block is allowed now. So you can add plain texts, notes to this block or add a new block.'
+              default:
+                return null
+            }
+          })()}
         </Text>
         <div className="grid grid-cols-3 gap-3 mt-4">
           {tabs()
@@ -528,10 +565,7 @@ function Suggestor() {
                 .includes(change?.query.full.toLowerCase())
             })
             .filter((tab) => {
-              if (location === 'dirty-slab' && tab.main === true) {
-                return false
-              }
-              return true
+              return tab.location.includes(location)
             })
             .map((tab) => {
               return (
@@ -638,4 +672,101 @@ export const FloatingToolbar = (props: any): JSX.Element => {
   )
 }
 
+function EmptyState() {
+  const chain = useChainedCommands()
+
+  // TODO: Scope for improvement...
+  const tabs = useCallback(() => {
+    return [
+      {
+        label: 'Code',
+        icon: IoCode,
+        main: true,
+        name: 'codeBlock',
+        handleClick: () => {
+          chain
+            .toggleSlab()
+            .createCodeBlock({ code: '', layout: 'code', language: 'jsx' })
+            .run()
+        },
+      },
+      {
+        label: 'Video',
+        icon: IoPlay,
+        main: true,
+        name: 'iframe',
+        handleClick: () => {
+          setModal('video')
+        },
+      },
+      {
+        label: 'List',
+        icon: IoList,
+        main: true,
+        name: 'bulletList',
+        handleClick: () => {
+          chain.toggleSlab().toggleBulletList().run()
+        },
+      },
+      {
+        label: 'Image',
+        icon: IoImage,
+        main: true,
+        name: 'image',
+        handleClick: () => {
+          setModal('image')
+        },
+      },
+    ]
+  }, [])
+
+  const [modal, setModal] = useState<'video' | 'image' | undefined>()
+
+  return (
+    <>
+      <div
+        style={{
+          maxWidth: 300,
+        }}
+        className="rounded-md p-3 font-sans bg-white shadow-lg whitespace-pre-wrap"
+      >
+        <Heading className="text-gray-800" fontSize="extra-small">
+          What would you like to add
+        </Heading>
+        <Text fontSize="small" className="text-gray-600 mt-2">
+          Each block will be part of your timeline. You can edit and rearrange
+          them.
+        </Text>
+        <div className="grid grid-cols-3 gap-3 mt-4">
+          {tabs().map((tab) => {
+            return (
+              <BlockTab
+                handleClick={tab.handleClick}
+                key={tab.label}
+                label={tab.label}
+                icon={tab.icon}
+              />
+            )
+          })}
+        </div>
+      </div>
+      <VideoModal
+        handleClose={() => setModal('video')}
+        open={modal === 'video'}
+        handleUrl={(url) => {
+          chain.toggleSlab().addIframe({ src: url }).run()
+          setModal(undefined)
+        }}
+      />
+      <ImageModal
+        handleClose={() => setModal('image')}
+        open={modal === 'image'}
+        handleUrl={(url) => {
+          chain.toggleSlab().insertImage({ src: url }).run()
+          setModal(undefined)
+        }}
+      />
+    </>
+  )
+}
 export default TextEditor
