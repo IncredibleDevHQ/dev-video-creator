@@ -24,7 +24,7 @@ import { StudioUserConfiguration } from '../../utils/StudioUserConfig'
 import { TrianglePathTransition } from '../FragmentTransitions'
 
 const PointsFragment = ({
-  // viewConfig,
+  viewConfig,
   dataConfig,
   dataConfigLength,
   topLayerChildren,
@@ -35,8 +35,8 @@ const PointsFragment = ({
   stageRef,
   layerRef,
 }: {
-  // viewConfig: LayoutConfig
-  dataConfig: ListBlockProps & BlockProperties
+  viewConfig: BlockProperties
+  dataConfig: ListBlockProps
   dataConfigLength: number
   topLayerChildren: JSX.Element[]
   setTopLayerChildren: React.Dispatch<React.SetStateAction<JSX.Element[]>>
@@ -95,7 +95,7 @@ const PointsFragment = ({
     if (!dataConfig) return
     setObjectConfig(
       FragmentLayoutConfig({
-        layout: dataConfig.layout || 'classic',
+        layout: viewConfig.layout || 'classic',
         isShorts: shortsMode || false,
       })
     )
@@ -199,9 +199,9 @@ const PointsFragment = ({
         y={0}
         width={stageConfig.width}
         height={stageConfig.height}
-        fillLinearGradientColorStops={dataConfig.gradient?.values}
-        fillLinearGradientStartPoint={dataConfig.gradient?.startIndex}
-        fillLinearGradientEndPoint={dataConfig.gradient?.endIndex}
+        fillLinearGradientColorStops={viewConfig.gradient?.values}
+        fillLinearGradientStartPoint={viewConfig.gradient?.startIndex}
+        fillLinearGradientEndPoint={viewConfig.gradient?.endIndex}
       />
       {/* ) : (
         <Image
@@ -250,7 +250,7 @@ const PointsFragment = ({
                 radius={11}
                 y={point.y + 8}
                 fillLinearGradientColorStops={
-                  dataConfig.gradient?.values || colorStops
+                  viewConfig.gradient?.values || colorStops
                 }
                 fillLinearGradientStartPoint={{ x: -11, y: -11 }}
                 fillLinearGradientEndPoint={{
@@ -289,7 +289,7 @@ const PointsFragment = ({
   ]
 
   const studioUserConfig = StudioUserConfiguration({
-    layout: dataConfig.layout || 'classic',
+    layout: viewConfig.layout || 'classic',
     fragment,
     fragmentState,
     isShorts: shortsMode || false,

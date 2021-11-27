@@ -18,7 +18,7 @@ import { StudioUserConfiguration } from '../../utils/StudioUserConfig'
 import { TrianglePathTransition } from '../FragmentTransitions'
 
 const VideoFragment = ({
-  // viewConfig,
+  viewConfig,
   dataConfig,
   dataConfigLength,
   topLayerChildren,
@@ -29,8 +29,8 @@ const VideoFragment = ({
   stageRef,
   layerRef,
 }: {
-  // viewConfig: LayoutConfig
-  dataConfig: VideoBlockProps & BlockProperties
+  viewConfig: BlockProperties
+  dataConfig: VideoBlockProps
   dataConfigLength: number
   topLayerChildren: JSX.Element[]
   setTopLayerChildren: React.Dispatch<React.SetStateAction<JSX.Element[]>>
@@ -70,7 +70,7 @@ const VideoFragment = ({
     element.src = dataConfig.videoBlock.url || ''
 
     setObjectConfig(
-      FragmentLayoutConfig({ layout: dataConfig.layout || 'classic' })
+      FragmentLayoutConfig({ layout: viewConfig.layout || 'classic' })
     )
     // eslint-disable-next-line consistent-return
     return element
@@ -193,9 +193,9 @@ const VideoFragment = ({
         y={0}
         width={CONFIG.width}
         height={CONFIG.height}
-        fillLinearGradientColorStops={dataConfig.gradient?.values}
-        fillLinearGradientStartPoint={dataConfig.gradient?.startIndex}
-        fillLinearGradientEndPoint={dataConfig.gradient?.endIndex}
+        fillLinearGradientColorStops={viewConfig.gradient?.values}
+        fillLinearGradientStartPoint={viewConfig.gradient?.startIndex}
+        fillLinearGradientEndPoint={viewConfig.gradient?.endIndex}
       />
       {/* ) : (
         <Image
@@ -215,7 +215,7 @@ const VideoFragment = ({
   ]
 
   const studioUserConfig = StudioUserConfiguration({
-    layout: dataConfig.layout || 'classic',
+    layout: viewConfig.layout || 'classic',
     fragment,
     fragmentState,
   })

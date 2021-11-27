@@ -67,7 +67,7 @@ const getColorCodes = async (
 }
 
 const CodeFragment = ({
-  // viewConfig,
+  viewConfig,
   dataConfig,
   dataConfigLength,
   topLayerChildren,
@@ -78,8 +78,8 @@ const CodeFragment = ({
   stageRef,
   layerRef,
 }: {
-  // viewConfig: LayoutConfig
-  dataConfig: CodeBlockProps & BlockProperties
+  viewConfig: BlockProperties
+  dataConfig: CodeBlockProps
   dataConfigLength: number
   topLayerChildren: JSX.Element[]
   setTopLayerChildren: React.Dispatch<React.SetStateAction<JSX.Element[]>>
@@ -156,7 +156,7 @@ const CodeFragment = ({
     if (!dataConfig) return
     setObjectConfig(
       FragmentLayoutConfig({
-        layout: dataConfig.layout || 'classic',
+        layout: viewConfig.layout || 'classic',
         isShorts: shortsMode || false,
       })
     )
@@ -315,9 +315,9 @@ const CodeFragment = ({
         y={0}
         width={stageConfig.width}
         height={stageConfig.height}
-        fillLinearGradientColorStops={dataConfig.gradient?.values}
-        fillLinearGradientStartPoint={dataConfig.gradient?.startIndex}
-        fillLinearGradientEndPoint={dataConfig.gradient?.endIndex}
+        fillLinearGradientColorStops={viewConfig.gradient?.values}
+        fillLinearGradientStartPoint={viewConfig.gradient?.startIndex}
+        fillLinearGradientEndPoint={viewConfig.gradient?.endIndex}
       />
       {/* ) : (
         <Image
@@ -481,7 +481,7 @@ const CodeFragment = ({
   ]
 
   const studioUserConfig = StudioUserConfiguration({
-    layout: dataConfig.layout || 'classic',
+    layout: viewConfig.layout || 'classic',
     fragment,
     fragmentState,
     isShorts: shortsMode || false,

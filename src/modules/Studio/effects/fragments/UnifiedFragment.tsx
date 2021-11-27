@@ -10,8 +10,8 @@ import {
   VideoBlockProps,
 } from '../../../../components/TextEditor/utils'
 import { User, userState } from '../../../../stores/user.store'
-import { BlockProperties } from '../../../../utils/configTypes2'
-import { TitleSplashProps } from '../../components/Concourse'
+import { BlockProperties, ViewConfig } from '../../../../utils/configTypes2'
+import { SHORTS_CONFIG, TitleSplashProps } from '../../components/Concourse'
 import LowerThirds from '../../components/LowerThirds'
 import { FragmentState } from '../../components/RenderTokens'
 import { StudioProviderProps, studioStore } from '../../stores'
@@ -24,20 +24,15 @@ const UnifiedFragment = ({
   stageRef,
   layerRef,
   config,
+  layoutConfig,
 }: {
   stageRef: React.RefObject<Konva.Stage>
   layerRef: React.RefObject<Konva.Layer>
   config?: (Block & BlockProperties)[]
+  layoutConfig?: ViewConfig
 }) => {
-  const {
-    fragment,
-    payload,
-    updatePayload,
-    state,
-    participants,
-    users,
-    shortsMode,
-  } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const { fragment, payload, updatePayload, state, participants, users } =
+    (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [titleSplashData, setTitleSplashData] = useState<TitleSplashProps>({
     enable: false,
@@ -48,9 +43,9 @@ const UnifiedFragment = ({
   // data config holds all the info abt the object
   // const [dataConfig, setDataConfig] =
   //   useState<(CodejamConfig | VideojamConfig | TriviaConfig | PointsConfig)[]>()
-  const [dataConfig, setDataConfig] = useState<(Block & BlockProperties)[]>()
-  // // view config holds all the info abt the view of the canvas
-  // const [viewConfig, setViewConfig] = useState<ViewConfig>()
+  const [dataConfig, setDataConfig] = useState<Block[]>()
+  // view config holds all the info abt the view of the canvas
+  const [viewConfig, setViewConfig] = useState<ViewConfig>()
   // holds the index of the present object
   const [activeObjectIndex, setActiveObjectIndex] = useState(0)
 
@@ -67,30 +62,19 @@ const UnifiedFragment = ({
   useEffect(() => {
     if (!config) return
     setDataConfig(config)
-    // setViewConfig(config.viewConfig)
+    setViewConfig(layoutConfig)
   }, [config])
 
   useEffect(() => {
     if (!fragment) return
     if (!config) {
-      const simplifiedConfig = getSimpleAST(fragment.editorState).blocks
-      if (fragment.configuration) {
-        if (shortsMode) {
-          setDataConfig(simplifiedConfig.filter((c) => c.type !== 'videoBlock'))
-          // setViewConfig({
-          //   ...conf.viewConfig,
-          //   configs: conf.viewConfig.configs.filter(
-          //     (c) => c.type !== ConfigType.VIDEOJAM
-          //   ),
-          // })
-        } else {
-          setDataConfig(getSimpleAST(fragment.editorState).blocks)
-          //     // setViewConfig(fragment.configuration.viewConfig)
-        }
+      if (fragment.configuration && fragment.editorState) {
+        setDataConfig(getSimpleAST(fragment.editorState).blocks)
+        setViewConfig(fragment.configuration)
       }
     } else {
       setDataConfig(config)
-      // setViewConfig(config.viewConfig)
+      setViewConfig(layoutConfig)
     }
     setTitleSplashData({
       enable: fragment?.configuration?.viewConfig.hasTitleSplash || false,
@@ -102,6 +86,13 @@ const UnifiedFragment = ({
       activeObjectIndex: 0,
     })
   }, [fragment])
+
+  useEffect(() => {
+    if (!viewConfig || !dataConfig) return
+    if (viewConfig?.mode === 'Portrait') {
+      setDataConfig(dataConfig.filter((c) => c.type !== 'videoBlock'))
+    }
+  }, [viewConfig, dataConfig])
 
   useEffect(() => {
     setActiveObjectIndex(payload?.activeObjectIndex)
@@ -125,8 +116,12 @@ const UnifiedFragment = ({
         if (!fragment) return
         setTopLayerChildren([
           <LowerThirds
-            x={lowerThirdCoordinates[0] || 0}
-            y={!shortsMode ? 450 : 630}
+            x={
+              viewConfig?.mode === 'Landscape'
+                ? lowerThirdCoordinates[0]
+                : SHORTS_CONFIG.width - 50
+            }
+            y={viewConfig?.mode === 'Landscape' ? 450 : 630}
             userName={displayName}
             rectOneColors={['#651CC8', '#9561DA']}
             rectTwoColors={['#FF5D01', '#B94301']}
@@ -148,16 +143,14 @@ const UnifiedFragment = ({
   }, [state])
 
   const lowerThirdCoordinates = (() => {
-    if (!shortsMode)
-      switch (fragment?.participants.length) {
-        case 2:
-          return [530, 70]
-        case 3:
-          return [665, 355, 45]
-        default:
-          return [95]
-      }
-    else return [30]
+    switch (fragment?.participants.length) {
+      case 2:
+        return [530, 70]
+      case 3:
+        return [665, 355, 45]
+      default:
+        return [95]
+    }
   })()
 
   useEffect(() => {
@@ -171,7 +164,7 @@ const UnifiedFragment = ({
       })
   }, [activeObjectIndex])
 
-  if (!dataConfig || dataConfig.length === 0) return <></>
+  if (!dataConfig || !viewConfig || dataConfig.length === 0) return <></>
   return (
     <>
       {(() => {
@@ -179,11 +172,12 @@ const UnifiedFragment = ({
           case 'codeBlock': {
             return (
               <CodeFragment
-                dataConfig={
-                  dataConfig[activeObjectIndex] as CodeBlockProps &
-                    BlockProperties
+                dataConfig={dataConfig[activeObjectIndex] as CodeBlockProps}
+                viewConfig={
+                  viewConfig.blocks[
+                    dataConfig[activeObjectIndex].id
+                  ] as BlockProperties
                 }
-                // viewConfig={viewConfig.configs[activeObjectIndex]}
                 dataConfigLength={dataConfig.length}
                 topLayerChildren={topLayerChildren}
                 setTopLayerChildren={setTopLayerChildren}
@@ -198,11 +192,12 @@ const UnifiedFragment = ({
           case 'videoBlock': {
             return (
               <VideoFragment
-                dataConfig={
-                  dataConfig[activeObjectIndex] as VideoBlockProps &
-                    BlockProperties
+                dataConfig={dataConfig[activeObjectIndex] as VideoBlockProps}
+                viewConfig={
+                  viewConfig.blocks[
+                    dataConfig[activeObjectIndex].id
+                  ] as BlockProperties
                 }
-                // viewConfig={viewConfig.configs[activeObjectIndex]}
                 dataConfigLength={dataConfig.length}
                 topLayerChildren={topLayerChildren}
                 setTopLayerChildren={setTopLayerChildren}
@@ -217,11 +212,12 @@ const UnifiedFragment = ({
           case 'imageBlock': {
             return (
               <TriviaFragment
-                dataConfig={
-                  dataConfig[activeObjectIndex] as ImageBlockProps &
-                    BlockProperties
+                dataConfig={dataConfig[activeObjectIndex] as ImageBlockProps}
+                viewConfig={
+                  viewConfig.blocks[
+                    dataConfig[activeObjectIndex].id
+                  ] as BlockProperties
                 }
-                // viewConfig={viewConfig.configs[activeObjectIndex]}
                 dataConfigLength={dataConfig.length}
                 topLayerChildren={topLayerChildren}
                 setTopLayerChildren={setTopLayerChildren}
@@ -236,11 +232,12 @@ const UnifiedFragment = ({
           case 'listBlock': {
             return (
               <PointsFragment
-                dataConfig={
-                  dataConfig[activeObjectIndex] as ListBlockProps &
-                    BlockProperties
+                dataConfig={dataConfig[activeObjectIndex] as ListBlockProps}
+                viewConfig={
+                  viewConfig.blocks[
+                    dataConfig[activeObjectIndex].id
+                  ] as BlockProperties
                 }
-                // viewConfig={viewConfig.configs[activeObjectIndex]}
                 dataConfigLength={dataConfig.length}
                 topLayerChildren={topLayerChildren}
                 setTopLayerChildren={setTopLayerChildren}
