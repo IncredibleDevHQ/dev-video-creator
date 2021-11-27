@@ -164,13 +164,14 @@ const FragmentBar = ({
         fragment?.type === Fragment_Type_Enum_Enum.Intro ||
         fragment?.type === Fragment_Type_Enum_Enum.Outro
       ) {
-        await updateFragmentState({
-          variables: {
-            editorState: {},
-            id: activeFragmentId,
-            configuration: fragment.configuration,
-          },
-        })
+        if (fragment.configuration)
+          await updateFragmentState({
+            variables: {
+              editorState: {},
+              id: activeFragmentId,
+              configuration: fragment.configuration,
+            },
+          })
       } else {
         let dc = config.dataConfig
         let vc = config.viewConfig
