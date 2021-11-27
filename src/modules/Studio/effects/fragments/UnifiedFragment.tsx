@@ -11,12 +11,19 @@ import {
   VideojamConfig,
   ViewConfig,
 } from '../../../../utils/configTypes'
+import {
+  CONFIG,
+  SHORTS_CONFIG,
+  TitleSplashProps,
+} from '../../components/Concourse'
+import CommonLowerThirds, {
+  IncredibleLowerThirds,
+} from '../../components/LowerThirds'
+import { FragmentState } from '../../components/RenderTokens'
+import useEdit from '../../hooks/use-edit'
 import { StudioProviderProps, studioStore } from '../../stores'
 import CodeFragment from './CodeFragment'
-import { TitleSplashProps } from '../../components/Concourse'
-import LowerThirds from '../../components/LowerThirds'
 import PointsFragment from './PointsFragment'
-import { FragmentState } from '../../components/RenderTokens'
 import TriviaFragment from './TriviaFragment'
 import VideoFragment from './VideoFragment'
 
@@ -59,7 +66,9 @@ const UnifiedFragment = ({
   const [topLayerChildren, setTopLayerChildren] = useState<JSX.Element[]>([])
 
   // holds the user's display name
-  const { displayName } = (useRecoilValue(userState) as User) || {}
+  const { displayName, username } = (useRecoilValue(userState) as User) || {}
+
+  const { getTextWidth } = useEdit()
 
   useEffect(() => {
     if (!config) return
@@ -111,7 +120,6 @@ const UnifiedFragment = ({
       updatePayload?.({
         fragmentState: 'onlyUserMedia',
       })
-      setTopLayerChildren([])
     }
     if (state === 'recording') {
       updatePayload?.({
@@ -123,22 +131,53 @@ const UnifiedFragment = ({
         if (!displayName) return
         if (!fragment) return
         setTopLayerChildren([
-          <LowerThirds
-            x={lowerThirdCoordinates[0] || 0}
+          <IncredibleLowerThirds
+            x={lowerThirdCoordinates[0]}
             y={!shortsMode ? 450 : 630}
-            userName={displayName}
-            rectOneColors={['#651CC8', '#9561DA']}
-            rectTwoColors={['#FF5D01', '#B94301']}
-            rectThreeColors={['#1F2937', '#778496']}
+            displayName={displayName}
+            username={`/${username}` || `/${displayName}`}
+            width={
+              getTextWidth(displayName, 'Inter', 20, 'normal 500') >
+              getTextWidth(`/${username}`, 'Inter', 20, 'normal 500')
+                ? getTextWidth(displayName, 'Inter', 20, 'normal 500') + 20
+                : getTextWidth(`/${username}`, 'Inter', 20, 'normal 500') + 20
+            }
           />,
           ...users.map((user, index) => (
-            <LowerThirds
-              x={lowerThirdCoordinates[index + 1] || 0}
-              y={450}
-              userName={participants?.[user.uid]?.displayName || ''}
-              rectOneColors={['#651CC8', '#9561DA']}
-              rectTwoColors={['#FF5D01', '#B94301']}
-              rectThreeColors={['#1F2937', '#778496']}
+            <IncredibleLowerThirds
+              x={CONFIG.width - 170}
+              y={!shortsMode ? 450 : 630}
+              displayName={participants?.[user.uid]?.displayName}
+              username={
+                `/${participants?.[user.uid]?.userName}` ||
+                `/${participants?.[user.uid]?.displayName}`
+              }
+              width={
+                getTextWidth(
+                  participants?.[user.uid]?.displayName,
+                  'Inter',
+                  20,
+                  'normal 500'
+                ) >
+                getTextWidth(
+                  `/${participants?.[user.uid]?.userName}`,
+                  'Inter',
+                  20,
+                  'normal 500'
+                )
+                  ? getTextWidth(
+                      participants?.[user.uid]?.displayName,
+                      'Inter',
+                      20,
+                      'normal 500'
+                    ) + 20
+                  : getTextWidth(
+                      `/${participants?.[user.uid]?.userName}`,
+                      'Inter',
+                      20,
+                      'normal 500'
+                    ) + 20
+              }
             />
           )),
         ])
@@ -150,13 +189,14 @@ const UnifiedFragment = ({
     if (!shortsMode)
       switch (fragment?.participants.length) {
         case 2:
-          return [530, 70]
+          return [CONFIG.width - 140, CONFIG.width / 2 - 130]
         case 3:
+          // TODO: calculate the coordinates for 3 people
           return [665, 355, 45]
         default:
-          return [95]
+          return [CONFIG.width - 170]
       }
-    else return [30]
+    else return [SHORTS_CONFIG.width - 30]
   })()
 
   useEffect(() => {

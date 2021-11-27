@@ -1,8 +1,10 @@
 import Konva from 'konva'
 import React from 'react'
 import { Text, Rect, Group, Image } from 'react-konva'
+import useImage from 'use-image'
+import IncredibleLogo from '../../../assets/incredible-x-logo.svg'
 
-const LowerThirds = ({
+const CommonLowerThirds = ({
   x,
   y,
   userName,
@@ -156,6 +158,199 @@ const LowerThirds = ({
   )
 }
 
+export const IncredibleLowerThirds = ({
+  x,
+  y,
+  displayName,
+  username,
+  width,
+}: {
+  x: number
+  y: number
+  displayName: string
+  username: string
+  width: number
+}) => {
+  const [incredibleLogo] = useImage(IncredibleLogo)
+
+  return (
+    <>
+      <Rect
+        x={x - width}
+        y={y - 24}
+        fill="#16A34A"
+        cornerRadius={8}
+        width={0}
+        height={50}
+        key="firstRect"
+        ref={(ref) =>
+          setTimeout(() => {
+            ref?.to({
+              x: x - width + 25,
+              width: width + 45,
+              duration: 0.6,
+              easing: Konva.Easings.EaseOut,
+              onFinish: () => {
+                setTimeout(() => {
+                  ref?.to({
+                    width: 0,
+                    duration: 0.3,
+                    easing: Konva.Easings.EaseOut,
+                  })
+                }, 3100)
+              },
+            })
+          }, 1500)
+        }
+      />
+      <Rect
+        x={x - width + 10}
+        y={y - 24}
+        fill="#ffffff"
+        cornerRadius={8}
+        width={0}
+        height={50}
+        key="secondRect"
+        ref={(ref) =>
+          setTimeout(() => {
+            ref?.to({
+              x: x - width + 15,
+              width: width + 35,
+              duration: 0.6,
+              easing: Konva.Easings.EaseOut,
+              onFinish: () => {
+                setTimeout(() => {
+                  ref?.to({
+                    width: 0,
+                    duration: 0.2,
+                    easing: Konva.Easings.EaseOut,
+                  })
+                }, 2900)
+              },
+            })
+          }, 1700)
+        }
+      />
+      <Text
+        x={x - width + 30}
+        y={y - 9}
+        fill="#1F2937"
+        text={displayName}
+        fontSize={20}
+        fontFamily="'Inter'"
+        fontStyle="normal 500"
+        opacity={0}
+        key="username"
+        ref={(ref) =>
+          setTimeout(() => {
+            ref?.to({
+              opacity: 1,
+              duration: 0.3,
+              onFinish: () => {
+                setTimeout(() => {
+                  ref?.to({
+                    opacity: 0,
+                    duration: 0.3,
+                  })
+                }, 1000)
+              },
+            })
+          }, 2000)
+        }
+      />
+      <Text
+        x={x - width + 30}
+        y={y - 9}
+        fill="#1F2937"
+        text={username}
+        fontSize={20}
+        fontFamily="'Inter'"
+        fontStyle="normal 500"
+        opacity={0}
+        key="username"
+        ref={(ref) =>
+          setTimeout(() => {
+            ref?.to({
+              opacity: 1,
+              duration: 0.3,
+              onFinish: () => {
+                setTimeout(() => {
+                  ref?.to({
+                    opacity: 0,
+                    duration: 0.3,
+                  })
+                }, 1200)
+              },
+            })
+          }, 3300)
+        }
+      />
+      <Image
+        image={incredibleLogo}
+        x={x}
+        y={y}
+        width={1}
+        height={1}
+        offsetX={1 / 2}
+        offsetY={1 / 2}
+        ref={(ref) => {
+          ref?.to({
+            scaleX: 100,
+            scaleY: 100,
+            duration: 0.4,
+            easing: Konva.Easings.EaseIn,
+            onFinish: () => {
+              ref?.to({
+                scaleX: 48,
+                scaleY: 48,
+                duration: 0.4,
+                easing: Konva.Easings.EaseOut,
+              })
+              setTimeout(() => {
+                ref?.to({
+                  x: x - width - 10,
+                  duration: 1,
+                  easing: Konva.Easings.StrongEaseInOut,
+                })
+                setTimeout(() => {
+                  ref?.to({
+                    x: x - width - 20,
+                    duration: 0.6,
+                    onFinish: () => {
+                      setTimeout(() => {
+                        ref?.to({
+                          x,
+                          duration: 0.3,
+                          onFinish: () => {
+                            ref?.to({
+                              scaleX: 100,
+                              scaleY: 100,
+                              duration: 0.2,
+                              easing: Konva.Easings.EaseOut,
+                              onFinish: () => {
+                                ref?.to({
+                                  scaleX: 0,
+                                  scaleY: 0,
+                                  duration: 0.2,
+                                  easing: Konva.Easings.EaseIn,
+                                })
+                              },
+                            })
+                          },
+                        })
+                      }, 3500)
+                    },
+                  })
+                }, 800)
+              }, 200)
+            },
+          })
+        }}
+      />
+    </>
+  )
+}
+
 export const FragmentCard = ({
   x,
   y,
@@ -271,4 +466,4 @@ export const FragmentCard = ({
   )
 }
 
-export default LowerThirds
+export default CommonLowerThirds
