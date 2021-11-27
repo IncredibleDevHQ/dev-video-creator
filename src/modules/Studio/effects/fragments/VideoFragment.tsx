@@ -147,27 +147,26 @@ const VideoFragment = ({
     if (!customLayoutRef.current) return
     // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
     if (payload?.fragmentState === 'customLayout') {
-      setTopLayerChildren([<TrianglePathTransition direction="left" />])
+      setTopLayerChildren([<TrianglePathTransition direction="right" />])
       addTransitionAudio()
       setTimeout(() => {
         setFragmentState(payload?.fragmentState)
-        // customLayoutRef.current?.opacity(1)
         customLayoutRef.current?.to({
           opacity: 1,
           duration: 0.2,
         })
-      }, 1000)
+      }, 800)
     }
     // Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
     if (payload?.fragmentState === 'onlyUserMedia') {
-      setTopLayerChildren([<TrianglePathTransition direction="right" />])
+      setTopLayerChildren([<TrianglePathTransition direction="left" />])
       addTransitionAudio()
-      customLayoutRef.current?.to({
-        opacity: 0,
-        duration: 0.8,
-      })
       setTimeout(() => {
         setFragmentState(payload?.fragmentState)
+        customLayoutRef.current?.to({
+          opacity: 0,
+          duration: 0.2,
+        })
       }, 800)
     }
   }, [payload?.fragmentState])

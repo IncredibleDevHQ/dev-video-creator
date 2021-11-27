@@ -226,30 +226,29 @@ const CodeFragment = ({
     // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
     if (payload?.fragmentState === 'customLayout') {
       setTopLayerChildren([
+        <TrianglePathTransition isShorts={shortsMode} direction="right" />,
+      ])
+      addTransitionAudio()
+      setTimeout(() => {
+        setFragmentState(payload?.fragmentState)
+        customLayoutRef.current?.to({
+          opacity: 1,
+          duration: 0.2,
+        })
+      }, 800)
+    }
+    // Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
+    if (payload?.fragmentState === 'onlyUserMedia') {
+      setTopLayerChildren([
         <TrianglePathTransition isShorts={shortsMode} direction="left" />,
       ])
       addTransitionAudio()
       setTimeout(() => {
         setFragmentState(payload?.fragmentState)
-        // customLayoutRef.current?.opacity(1)
         customLayoutRef.current?.to({
-          opacity: 1,
+          opacity: 0,
           duration: 0.2,
         })
-      }, 1000)
-    }
-    // Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
-    if (payload?.fragmentState === 'onlyUserMedia') {
-      setTopLayerChildren([
-        <TrianglePathTransition isShorts={shortsMode} direction="right" />,
-      ])
-      addTransitionAudio()
-      customLayoutRef.current?.to({
-        opacity: 0,
-        duration: 0.8,
-      })
-      setTimeout(() => {
-        setFragmentState(payload?.fragmentState)
       }, 800)
     }
   }, [payload?.fragmentState])

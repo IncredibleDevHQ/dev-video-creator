@@ -23,6 +23,7 @@ import {
 } from './components'
 import { newFlickStore } from './store/flickNew.store'
 import { initEditor } from '../../utils/plateConfig/serializer/values'
+import { useCanvasRecorder } from '../../hooks'
 
 const useLocalPayload = () => {
   const initialPayload = {
@@ -82,6 +83,9 @@ const Flick = () => {
     variables: { id },
   })
   const setStudio = useSetRecoilState(studioStore)
+  const { addTransitionAudio } = useCanvasRecorder({
+    options: {},
+  })
   const history = useHistory()
 
   const [initialPlateValue, setInitialPlateValue] = useState<TNode<any>[]>()
@@ -116,6 +120,7 @@ const Flick = () => {
       payload,
       updatePayload,
       fragment,
+      addTransitionAudio,
     }))
   }, [activeFragmentId, payload])
 
