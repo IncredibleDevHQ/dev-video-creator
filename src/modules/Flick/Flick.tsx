@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { FiLoader } from 'react-icons/fi'
 import { useHistory, useParams } from 'react-router-dom'
 import { useRecoilState, useSetRecoilState } from 'recoil'
-import { ScreenState, Text } from '../../components'
+import { ScreenState, Text, TextEditor } from '../../components'
 import {
   Fragment_Status_Enum_Enum,
   StudioFragmentFragment,
@@ -19,7 +19,8 @@ import {
   FragmentEditor,
   FragmentSideBar,
   FragmentView,
-  PublishModal,
+  ProcessingFlick,
+  PublishFlick,
 } from './components'
 import { newFlickStore } from './store/flickNew.store'
 import { initEditor } from '../../utils/plateConfig/serializer/values'
@@ -88,12 +89,14 @@ const Flick = () => {
   })
   const history = useHistory()
 
-  const [initialPlateValue, setInitialPlateValue] = useState<TNode<any>[]>()
-  const [plateValue, setPlateValue] = useState<TNode<any>[]>()
+  const [initialPlateValue, setInitialPlateValue] = useState<any>()
+  const [plateValue, setPlateValue] = useState<any>()
   const [serializing, setSerializing] = useState(false)
   const [integrationModal, setIntegrationModal] = useState(false)
 
   const [config, setConfig] = useState<Config>(initialConfig)
+  const [processingFlick, setProcessingFlick] = useState(false)
+  const [published, setPublished] = useState(false)
 
   const [selectedLayoutId, setSelectedLayoutId] = useState('')
 
@@ -192,6 +195,15 @@ const Flick = () => {
     )
   }
 
+  if (processingFlick)
+    return (
+      <ProcessingFlick
+        joinLink={flick.joinLink}
+        publish={published}
+        setProcessing={setProcessingFlick}
+      />
+    )
+
   return (
     <div className="flex flex-col h-screen">
       <div>
@@ -210,34 +222,37 @@ const Flick = () => {
       <div className="flex flex-1 overflow-y-auto">
         <FragmentSideBar />
         {flick.fragments.length > 0 && (
-          <>
-            {serializing && (
-              <div className="flex flex-col gap-y-2 h-full flex-1 items-center justify-center pb-32">
-                <FiLoader size={21} className="animate-spin" />
-                <Text className="text-lg">Generating view</Text>
-              </div>
-            )}
-            {!serializing && isMarkdown === true && (
-              <FragmentEditor
-                value={plateValue}
-                setValue={setPlateValue}
-                assetsData={myMediaAssets}
-                assetsRefetch={assetsRefetch}
-              />
-            )}
-            {!serializing && isMarkdown === false && (
-              <FragmentView
-                config={config}
-                setConfig={setConfig}
-                selectedLayoutId={selectedLayoutId}
-                setSelectedLayoutId={setSelectedLayoutId}
-              />
-            )}
-          </>
+          <TextEditor
+            placeholder="Start writing..."
+            // handleUpdateSimpleAST={(simpleAST) => {
+            //   console.log(simpleAST)
+            // }}
+            handleUpdateJSON={(json) => {
+              setPlateValue(json)
+            }}
+            initialContent={initialPlateValue}
+          />
         )}
       </div>
-      <PublishModal
+      <PublishFlick
         flickId={flick.id}
+        flickName={flick.name}
+        flickDescription={flick.description as string}
+        flickThumbnail={flick.thumbnail as string}
+        setProcessingFlick={setProcessingFlick}
+        setPublished={setPublished}
+        fragments={flick.fragments.map((f) => {
+          return {
+            id: f.id as string,
+            name: f.name as string,
+          }
+        })}
+        isShortsPresentAndCompleted={flick?.fragments.some(
+          (f) => f.producedShortsLink !== null
+        )}
+        isAllFlicksCompleted={flick?.fragments.every(
+          (f) => f.producedLink !== null
+        )}
         open={integrationModal}
         handleClose={() => setIntegrationModal(false)}
       />

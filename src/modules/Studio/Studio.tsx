@@ -551,9 +551,9 @@ const Studio = ({
   }, [fragment, stream, users, state, userAudios, payload, participants, state])
 
   useEffect(() => {
-    if (!studio.controlsConfig || !fragment?.configuration) return
-    const conf = fragment.configuration as Config
-    setFragmentType(conf.dataConfig[payload?.activeObjectIndex]?.type)
+    if (!studio.controlsConfig) return
+    // const conf = fragment.configuration as Config
+    setFragmentType(studio.controlsConfig.type)
   }, [payload?.activeObjectIndex, studio.controlsConfig])
 
   useEffect(() => {

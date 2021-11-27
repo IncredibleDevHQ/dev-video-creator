@@ -1,9 +1,14 @@
+import axios from 'axios'
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
 import { Circle, Group, Image, Rect } from 'react-konva'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import useImage from 'use-image'
-import { Fragment_Status_Enum_Enum } from '../../../../generated/graphql'
+import { CodeBlock } from '../../../../components/TextEditor/utils'
+import {
+  Fragment_Status_Enum_Enum,
+  useGetTokenisedCodeLazyQuery,
+} from '../../../../generated/graphql'
 import {
   CodejamConfig,
   CommentExplanations,
@@ -32,9 +37,46 @@ import {
 } from '../../utils/FragmentLayoutConfig'
 import { StudioUserConfiguration } from '../../utils/StudioUserConfig'
 import { TrianglePathTransition } from '../FragmentTransitions'
+import * as gConfig from '../../../../config'
+import { userState } from '../../../../stores/user.store'
+import firebaseState from '../../../../stores/firebase.store'
+
+const getColorCodes = async (
+  code: string,
+  language: string,
+  userToken: string
+) => {
+  return axios.post(
+    gConfig.default.hasura.server,
+    {
+      query: `
+          query GetTokenisedCode(
+            $code: String!
+            $language: String!
+            $theme: String
+          ) {
+            TokenisedCode(code: $code, language: $language, theme: $theme) {
+              success
+              data
+            }
+          }
+        `,
+      variables: {
+        code,
+        language: language || 'javascript',
+      },
+    },
+    {
+      headers: {
+        'Content-Type': 'application/json',
+        authorization: `Bearer ${userToken}`,
+      },
+    }
+  )
+}
 
 const CodeFragment = ({
-  viewConfig,
+  // viewConfig,
   dataConfig,
   dataConfigLength,
   topLayerChildren,
@@ -45,8 +87,8 @@ const CodeFragment = ({
   stageRef,
   layerRef,
 }: {
-  viewConfig: LayoutConfig
-  dataConfig: CodejamConfig
+  // viewConfig: LayoutConfig
+  dataConfig: CodeBlock
   dataConfigLength: number
   topLayerChildren: JSX.Element[]
   setTopLayerChildren: React.Dispatch<React.SetStateAction<JSX.Element[]>>
@@ -64,6 +106,8 @@ const CodeFragment = ({
     shortsMode,
     addTransitionAudio,
   } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
+
+  // const [getTokenisedCode, { data }] = useGetTokenisedCodeLazyQuery()
 
   const { initUseCode, computedTokens } = useCode()
   // const [getTokenisedCode, { data }] = useGetTokenisedCodeLazyQuery()
@@ -93,7 +137,7 @@ const CodeFragment = ({
   // // state which stores if its a short or not
   // const [isShorts, setIsShorts] = useState<boolean>(false)
 
-  const [bgImage] = useImage(viewConfig?.background?.image || '', 'anonymous')
+  // const [bgImage] = useImage(viewConfig?.background?.image || '', 'anonymous')
 
   const [objectConfig, setObjectConfig] = useState<ObjectConfig>({
     x: 0,
@@ -102,6 +146,10 @@ const CodeFragment = ({
     height: 0,
     borderRadius: 0,
   })
+
+  const [colorCodes, setColorCodes] = useState<any>([])
+
+  const user = useRecoilValue(firebaseState)
 
   const [stageConfig, setStageConfig] = useState<{
     width: number
@@ -117,28 +165,44 @@ const CodeFragment = ({
     if (!dataConfig) return
     setObjectConfig(
       FragmentLayoutConfig({
-        layoutNumber: viewConfig.layoutNumber,
+        // layoutNumber: viewConfig.layoutNumber,
+        layoutNumber: 1,
         isShorts: shortsMode || false,
       })
     )
-    setIsCodexFormat(dataConfig.value.isAutomated)
-    const blocks = Object.assign([], dataConfig.value.explanations || [])
+    setIsCodexFormat(dataConfig.isAutomated || false)
+    const blocks = Object.assign([], dataConfig.explanations || [])
     blocks.unshift({ from: 0, to: 0, explanation: '' })
     setBlockConfig(blocks)
     setTopLayerChildren([])
-  }, [dataConfig, viewConfig, shortsMode])
+    ;(async () => {
+      try {
+        const { data } = await getColorCodes(
+          dataConfig.code || '',
+          dataConfig.language || '',
+          user.token || ''
+        )
+        setColorCodes(data.data.TokenisedCode.data)
+      } catch (e) {
+        console.error(e)
+        throw e
+      }
+    })()
+  }, [dataConfig, shortsMode])
 
   useEffect(() => {
+    if (!colorCodes) return
     initUseCode({
-      tokens: dataConfig.value.colorCodes,
+      tokens: colorCodes,
       canvasWidth: objectConfig.width - 120,
       canvasHeight: objectConfig.height - 36,
       gutter: 5,
       fontSize: codeConfig.fontSize,
     })
-  }, [objectConfig])
+  }, [colorCodes, objectConfig])
 
   useEffect(() => {
+    console.log('studio')
     setStudio({
       ...studio,
       controlsConfig: {
@@ -255,19 +319,30 @@ const CodeFragment = ({
 
   const layerChildren: any[] = [
     <Group x={0} y={0}>
-      {viewConfig.background.type === 'color' ? (
-        <Rect
-          x={0}
-          y={0}
-          width={stageConfig.width}
-          height={stageConfig.height}
-          fillLinearGradientColorStops={viewConfig.background.gradient?.values}
-          fillLinearGradientStartPoint={
-            viewConfig.background.gradient?.startIndex
-          }
-          fillLinearGradientEndPoint={viewConfig.background.gradient?.endIndex}
-        />
-      ) : (
+      {/* {viewConfig.background.type === 'color' ? ( */}
+      <Rect
+        x={0}
+        y={0}
+        width={stageConfig.width}
+        height={stageConfig.height}
+        fillLinearGradientColorStops={[
+          0,
+          '#D397FA',
+          0.0001,
+          '#D397FA',
+          1,
+          '#8364E8',
+        ]}
+        fillLinearGradientStartPoint={{
+          x: 0,
+          y: 269.99999999999994,
+        }}
+        fillLinearGradientEndPoint={{
+          x: 960,
+          y: 270.00000000000006,
+        }}
+      />
+      {/* ) : (
         <Image
           x={0}
           y={0}
@@ -275,7 +350,7 @@ const CodeFragment = ({
           height={stageConfig.height}
           image={bgImage}
         />
-      )}
+      )} */}
     </Group>,
     <Group x={0} y={0} opacity={0} ref={customLayoutRef}>
       <Rect
@@ -429,7 +504,7 @@ const CodeFragment = ({
   ]
 
   const studioUserConfig = StudioUserConfiguration({
-    layoutNumber: viewConfig.layoutNumber,
+    layoutNumber: 1,
     fragment,
     fragmentState,
     isShorts: shortsMode || false,

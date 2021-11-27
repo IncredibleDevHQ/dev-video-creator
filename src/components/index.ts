@@ -3,6 +3,7 @@ import Avatar from './Avatar'
 import Button from './Button'
 import ClipBoardIcon from './ClipBoardIcon'
 import ContainerWithSidebar from './ContainerWithSidebar'
+import Confetti from './Confetti'
 import ErrorBoundary from './ErrorBoundary'
 import EmptyState from './EmptyState'
 import Heading from './Heading'
@@ -28,10 +29,12 @@ import Photo from './Photo'
 import FileDropzone from './FileDropzone'
 import UploadVideo from './UploadVideo'
 import Video from './Video'
+import TextEditor from './TextEditor/TextEditor'
 
 export {
   Avatar,
   Button,
+  Confetti,
   ClipBoardIcon,
   ContainerWithSidebar,
   dismissToast,
@@ -55,6 +58,7 @@ export {
   Loading,
   TabBar,
   Tooltip,
+  TextEditor,
   updateToast,
   Radio,
   Checkbox,
