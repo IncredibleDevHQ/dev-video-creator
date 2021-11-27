@@ -6,6 +6,7 @@ import { useRecoilState, useSetRecoilState } from 'recoil'
 import { ScreenState, Text, TextEditor } from '../../components'
 import {
   Fragment_Status_Enum_Enum,
+  Fragment_Type_Enum_Enum,
   StudioFragmentFragment,
   useGetFlickByIdQuery,
   UserAssetQuery,
@@ -19,6 +20,7 @@ import {
   FragmentEditor,
   FragmentSideBar,
   FragmentView,
+  IntroConfig,
   ProcessingFlick,
   PublishFlick,
 } from './components'
@@ -206,32 +208,39 @@ const Flick = () => {
 
   return (
     <div className="flex flex-col h-screen">
-      <div>
-        <FlickNavBar toggleModal={setIntegrationModal} />
-        <FragmentBar
-          initialPlateValue={initialPlateValue}
-          setInitialPlateValue={setInitialPlateValue}
-          plateValue={plateValue}
-          setSerializing={setSerializing}
-          config={config}
-          setConfig={setConfig}
-          setSelectedLayoutId={setSelectedLayoutId}
-          assetsData={myMediaAssets}
-        />
-      </div>
-      <div className="flex flex-1 overflow-y-auto">
+      <FlickNavBar toggleModal={setIntegrationModal} />
+      <div className="flex flex-1 overflow-hidden">
         <FragmentSideBar />
         {flick.fragments.length > 0 && (
-          <TextEditor
-            placeholder="Start writing..."
-            // handleUpdateSimpleAST={(simpleAST) => {
-            //   console.log(simpleAST)
-            // }}
-            handleUpdateJSON={(json) => {
-              setPlateValue(json)
-            }}
-            initialContent={initialPlateValue}
-          />
+          <div className="flex-1 pb-12">
+            <FragmentBar
+              initialPlateValue={initialPlateValue}
+              setInitialPlateValue={setInitialPlateValue}
+              plateValue={plateValue}
+              setSerializing={setSerializing}
+              config={config}
+              setConfig={setConfig}
+              setSelectedLayoutId={setSelectedLayoutId}
+              assetsData={myMediaAssets}
+            />
+            {flick.fragments.find((f) => f.id === activeFragmentId)?.type ===
+              Fragment_Type_Enum_Enum.Intro ||
+            flick.fragments.find((f) => f.id === activeFragmentId)?.type ===
+              Fragment_Type_Enum_Enum.Outro ? (
+              <IntroConfig />
+            ) : (
+              <TextEditor
+                placeholder="Start writing..."
+                // handleUpdateSimpleAST={(simpleAST) => {
+                //   console.log(simpleAST)
+                // }}
+                handleUpdateJSON={(json) => {
+                  setPlateValue(json)
+                }}
+                initialContent={initialPlateValue}
+              />
+            )}
+          </div>
         )}
       </div>
       <PublishFlick
