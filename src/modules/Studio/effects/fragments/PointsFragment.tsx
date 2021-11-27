@@ -1,13 +1,13 @@
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
-import { Circle, Group, Image, Rect, Text } from 'react-konva'
+import { Circle, Group, Rect, Text } from 'react-konva'
 import { useRecoilState, useRecoilValue } from 'recoil'
-import useImage from 'use-image'
 import {
-  ConfigType,
-  LayoutConfig,
-  PointsConfig,
-} from '../../../../utils/configTypes'
+  ListBlockProps,
+  ListItem,
+} from '../../../../components/TextEditor/utils'
+import { ConfigType } from '../../../../utils/configTypes'
+import { BlockProperties } from '../../../../utils/configTypes2'
 import Concourse, {
   CONFIG,
   SHORTS_CONFIG,
@@ -24,7 +24,7 @@ import { StudioUserConfiguration } from '../../utils/StudioUserConfig'
 import { TrianglePathTransition } from '../FragmentTransitions'
 
 const PointsFragment = ({
-  viewConfig,
+  // viewConfig,
   dataConfig,
   dataConfigLength,
   topLayerChildren,
@@ -35,8 +35,8 @@ const PointsFragment = ({
   stageRef,
   layerRef,
 }: {
-  viewConfig: LayoutConfig
-  dataConfig: PointsConfig
+  // viewConfig: LayoutConfig
+  dataConfig: ListBlockProps & BlockProperties
   dataConfigLength: number
   topLayerChildren: JSX.Element[]
   setTopLayerChildren: React.Dispatch<React.SetStateAction<JSX.Element[]>>
@@ -58,7 +58,7 @@ const PointsFragment = ({
   const [studio, setStudio] = useRecoilState(studioStore)
 
   const [activePointIndex, setActivePointIndex] = useState<number>(0)
-  const [points, setPoints] = useState<{ level?: number; text: string }[]>([])
+  const [points, setPoints] = useState<ListItem[]>([])
 
   const { initUsePoint, computedPoints, getNoOfLinesOfText } = usePoint()
 
@@ -69,7 +69,7 @@ const PointsFragment = ({
 
   const customLayoutRef = useRef<Konva.Group>(null)
 
-  const [bgImage] = useImage(viewConfig?.background?.image || '', 'anonymous')
+  // const [bgImage] = useImage(viewConfig?.background?.image || '', 'anonymous')
 
   const [objectConfig, setObjectConfig] = useState<ObjectConfig>({
     x: 0,
@@ -95,18 +95,18 @@ const PointsFragment = ({
     if (!dataConfig) return
     setObjectConfig(
       FragmentLayoutConfig({
-        layoutNumber: viewConfig.layoutNumber,
+        layout: dataConfig.layout || 'classic',
         isShorts: shortsMode || false,
       })
     )
-    setPoints(dataConfig.value)
+    setPoints(dataConfig.listBlock.list || [])
     setTopLayerChildren([])
-  }, [dataConfig, viewConfig, shortsMode])
+  }, [dataConfig, shortsMode])
 
   useEffect(() => {
     setTitleNumberOfLines(
       getNoOfLinesOfText({
-        text: dataConfig.title,
+        text: dataConfig.listBlock.title || fragment?.name || '',
         availableWidth: objectConfig.width - 60,
         fontSize: 40,
         fontFamily: 'Poppins',
@@ -193,19 +193,17 @@ const PointsFragment = ({
 
   const layerChildren: any[] = [
     <Group x={0} y={0}>
-      {viewConfig.background.type === 'color' ? (
-        <Rect
-          x={0}
-          y={0}
-          width={stageConfig.width}
-          height={stageConfig.height}
-          fillLinearGradientColorStops={viewConfig.background.gradient?.values}
-          fillLinearGradientStartPoint={
-            viewConfig.background.gradient?.startIndex
-          }
-          fillLinearGradientEndPoint={viewConfig.background.gradient?.endIndex}
-        />
-      ) : (
+      {/* {viewConfig.background.type === 'color' ? ( */}
+      <Rect
+        x={0}
+        y={0}
+        width={stageConfig.width}
+        height={stageConfig.height}
+        fillLinearGradientColorStops={dataConfig.gradient?.values}
+        fillLinearGradientStartPoint={dataConfig.gradient?.startIndex}
+        fillLinearGradientEndPoint={dataConfig.gradient?.endIndex}
+      />
+      {/* ) : (
         <Image
           x={0}
           y={0}
@@ -213,7 +211,7 @@ const PointsFragment = ({
           height={stageConfig.height}
           image={bgImage}
         />
-      )}
+      )} */}
     </Group>,
     <Group x={0} y={0} opacity={0} ref={customLayoutRef}>
       <Rect
@@ -233,7 +231,7 @@ const PointsFragment = ({
         fill="#E5E7EB"
         width={objectConfig.width - 80}
         lineHeight={1.15}
-        text={dataConfig.title}
+        text={dataConfig.listBlock.title || fragment?.name || ''}
         fontStyle="normal 700"
         fontFamily="Poppins"
       />
@@ -252,7 +250,7 @@ const PointsFragment = ({
                 radius={11}
                 y={point.y + 8}
                 fillLinearGradientColorStops={
-                  viewConfig.background.gradient?.values || colorStops
+                  dataConfig.gradient?.values || colorStops
                 }
                 fillLinearGradientStartPoint={{ x: -11, y: -11 }}
                 fillLinearGradientEndPoint={{
@@ -291,7 +289,7 @@ const PointsFragment = ({
   ]
 
   const studioUserConfig = StudioUserConfiguration({
-    layoutNumber: viewConfig.layoutNumber,
+    layout: dataConfig.layout || 'classic',
     fragment,
     fragmentState,
     isShorts: shortsMode || false,

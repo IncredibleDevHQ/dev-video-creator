@@ -1,20 +1,14 @@
 import axios from 'axios'
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
-import { Circle, Group, Image, Rect } from 'react-konva'
+import { Circle, Group, Rect } from 'react-konva'
 import { useRecoilState, useRecoilValue } from 'recoil'
-import useImage from 'use-image'
-import { CodeBlock } from '../../../../components/TextEditor/utils'
-import {
-  Fragment_Status_Enum_Enum,
-  useGetTokenisedCodeLazyQuery,
-} from '../../../../generated/graphql'
-import {
-  CodejamConfig,
-  CommentExplanations,
-  ConfigType,
-  LayoutConfig,
-} from '../../../../utils/configTypes'
+import { CodeBlockProps } from '../../../../components/TextEditor/utils'
+import * as gConfig from '../../../../config'
+import { Fragment_Status_Enum_Enum } from '../../../../generated/graphql'
+import firebaseState from '../../../../stores/firebase.store'
+import { CommentExplanations, ConfigType } from '../../../../utils/configTypes'
+import { BlockProperties } from '../../../../utils/configTypes2'
 import Concourse, {
   CONFIG,
   SHORTS_CONFIG,
@@ -37,9 +31,6 @@ import {
 } from '../../utils/FragmentLayoutConfig'
 import { StudioUserConfiguration } from '../../utils/StudioUserConfig'
 import { TrianglePathTransition } from '../FragmentTransitions'
-import * as gConfig from '../../../../config'
-import { userState } from '../../../../stores/user.store'
-import firebaseState from '../../../../stores/firebase.store'
 
 const getColorCodes = async (
   code: string,
@@ -88,7 +79,7 @@ const CodeFragment = ({
   layerRef,
 }: {
   // viewConfig: LayoutConfig
-  dataConfig: CodeBlock
+  dataConfig: CodeBlockProps & BlockProperties
   dataConfigLength: number
   topLayerChildren: JSX.Element[]
   setTopLayerChildren: React.Dispatch<React.SetStateAction<JSX.Element[]>>
@@ -165,21 +156,20 @@ const CodeFragment = ({
     if (!dataConfig) return
     setObjectConfig(
       FragmentLayoutConfig({
-        // layoutNumber: viewConfig.layoutNumber,
-        layoutNumber: 1,
+        layout: dataConfig.layout || 'classic',
         isShorts: shortsMode || false,
       })
     )
-    setIsCodexFormat(dataConfig.isAutomated || false)
-    const blocks = Object.assign([], dataConfig.explanations || [])
+    setIsCodexFormat(dataConfig.codeBlock.isAutomated || false)
+    const blocks = Object.assign([], dataConfig.codeBlock.explanations || [])
     blocks.unshift({ from: 0, to: 0, explanation: '' })
     setBlockConfig(blocks)
     setTopLayerChildren([])
     ;(async () => {
       try {
         const { data } = await getColorCodes(
-          dataConfig.code || '',
-          dataConfig.language || '',
+          dataConfig.codeBlock.code || '',
+          dataConfig.codeBlock.language || '',
           user.token || ''
         )
         setColorCodes(data.data.TokenisedCode.data)
@@ -202,7 +192,6 @@ const CodeFragment = ({
   }, [colorCodes, objectConfig])
 
   useEffect(() => {
-    console.log('studio')
     setStudio({
       ...studio,
       controlsConfig: {
@@ -326,22 +315,9 @@ const CodeFragment = ({
         y={0}
         width={stageConfig.width}
         height={stageConfig.height}
-        fillLinearGradientColorStops={[
-          0,
-          '#D397FA',
-          0.0001,
-          '#D397FA',
-          1,
-          '#8364E8',
-        ]}
-        fillLinearGradientStartPoint={{
-          x: 0,
-          y: 269.99999999999994,
-        }}
-        fillLinearGradientEndPoint={{
-          x: 960,
-          y: 270.00000000000006,
-        }}
+        fillLinearGradientColorStops={dataConfig.gradient?.values}
+        fillLinearGradientStartPoint={dataConfig.gradient?.startIndex}
+        fillLinearGradientEndPoint={dataConfig.gradient?.endIndex}
       />
       {/* ) : (
         <Image
@@ -505,7 +481,7 @@ const CodeFragment = ({
   ]
 
   const studioUserConfig = StudioUserConfiguration({
-    layoutNumber: 1,
+    layout: dataConfig.layout || 'classic',
     fragment,
     fragmentState,
     isShorts: shortsMode || false,

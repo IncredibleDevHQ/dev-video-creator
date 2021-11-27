@@ -1,32 +1,24 @@
 import Konva from 'konva'
 import React, { useEffect, useState } from 'react'
 import { useRecoilValue } from 'recoil'
-import { User, userState } from '../../../../stores/user.store'
-import {
-  CodejamConfig,
-  Config,
-  ConfigType,
-  PointsConfig,
-  TriviaConfig,
-  VideojamConfig,
-  ViewConfig,
-} from '../../../../utils/configTypes'
-import { StudioProviderProps, studioStore } from '../../stores'
-import CodeFragment from './CodeFragment'
-import { TitleSplashProps } from '../../components/Concourse'
-import LowerThirds from '../../components/LowerThirds'
-import PointsFragment from './PointsFragment'
-import { FragmentState } from '../../components/RenderTokens'
-import TriviaFragment from './TriviaFragment'
-import VideoFragment from './VideoFragment'
 import {
   Block,
-  CodeBlock,
   CodeBlockProps,
-  SimpleAST,
+  ImageBlockProps,
+  ListBlockProps,
   useUtils,
+  VideoBlockProps,
 } from '../../../../components/TextEditor/utils'
+import { User, userState } from '../../../../stores/user.store'
 import { BlockProperties } from '../../../../utils/configTypes2'
+import { TitleSplashProps } from '../../components/Concourse'
+import LowerThirds from '../../components/LowerThirds'
+import { FragmentState } from '../../components/RenderTokens'
+import { StudioProviderProps, studioStore } from '../../stores'
+import CodeFragment from './CodeFragment'
+import PointsFragment from './PointsFragment'
+import TriviaFragment from './TriviaFragment'
+import VideoFragment from './VideoFragment'
 
 const UnifiedFragment = ({
   stageRef,
@@ -35,7 +27,7 @@ const UnifiedFragment = ({
 }: {
   stageRef: React.RefObject<Konva.Stage>
   layerRef: React.RefObject<Konva.Layer>
-  config?: Block & BlockProperties
+  config?: (Block & BlockProperties)[]
 }) => {
   const {
     fragment,
@@ -56,7 +48,7 @@ const UnifiedFragment = ({
   // data config holds all the info abt the object
   // const [dataConfig, setDataConfig] =
   //   useState<(CodejamConfig | VideojamConfig | TriviaConfig | PointsConfig)[]>()
-  const [dataConfig, setDataConfig] = useState<Block[]>()
+  const [dataConfig, setDataConfig] = useState<(Block & BlockProperties)[]>()
   // // view config holds all the info abt the view of the canvas
   // const [viewConfig, setViewConfig] = useState<ViewConfig>()
   // holds the index of the present object
@@ -72,36 +64,34 @@ const UnifiedFragment = ({
   // holds the user's display name
   const { displayName } = (useRecoilValue(userState) as User) || {}
 
-  // useEffect(() => {
-  //   if (!config) return
-  //   setDataConfig(config.dataConfig)
-  //   // setViewConfig(config.viewConfig)
-  // }, [config])
+  useEffect(() => {
+    if (!config) return
+    setDataConfig(config)
+    // setViewConfig(config.viewConfig)
+  }, [config])
 
   useEffect(() => {
     if (!fragment) return
-    // if (!config) {
-    // if (fragment.configuration) {
-    //   if (shortsMode) {
-    //     const conf = fragment.configuration as Config
-    //     setDataConfig(
-    //       conf.dataConfig.filter((c) => c.type !== ConfigType.VIDEOJAM)
-    //     )
-    //     // setViewConfig({
-    //     //   ...conf.viewConfig,
-    //     //   configs: conf.viewConfig.configs.filter(
-    //     //     (c) => c.type !== ConfigType.VIDEOJAM
-    //     //   ),
-    //     // })
-    //   } else {
-    setDataConfig(getSimpleAST(fragment.editorState).blocks)
-    //     // setViewConfig(fragment.configuration.viewConfig)
-    //   }
-    // }
-    // } else {
-    // setDataConfig(config.dataConfig)
-    // setViewConfig(config.viewConfig)
-    // }
+    if (!config) {
+      const simplifiedConfig = getSimpleAST(fragment.editorState).blocks
+      if (fragment.configuration) {
+        if (shortsMode) {
+          setDataConfig(simplifiedConfig.filter((c) => c.type !== 'videoBlock'))
+          // setViewConfig({
+          //   ...conf.viewConfig,
+          //   configs: conf.viewConfig.configs.filter(
+          //     (c) => c.type !== ConfigType.VIDEOJAM
+          //   ),
+          // })
+        } else {
+          setDataConfig(getSimpleAST(fragment.editorState).blocks)
+          //     // setViewConfig(fragment.configuration.viewConfig)
+        }
+      }
+    } else {
+      setDataConfig(config)
+      // setViewConfig(config.viewConfig)
+    }
     setTitleSplashData({
       enable: fragment?.configuration?.viewConfig.hasTitleSplash || false,
       title: fragment.name as string,
@@ -190,7 +180,8 @@ const UnifiedFragment = ({
             return (
               <CodeFragment
                 dataConfig={
-                  (dataConfig[activeObjectIndex] as CodeBlockProps).codeBlock
+                  dataConfig[activeObjectIndex] as CodeBlockProps &
+                    BlockProperties
                 }
                 // viewConfig={viewConfig.configs[activeObjectIndex]}
                 dataConfigLength={dataConfig.length}
@@ -204,54 +195,63 @@ const UnifiedFragment = ({
               />
             )
           }
-          // case ConfigType.VIDEOJAM: {
-          //   return (
-          //     <VideoFragment
-          //       dataConfig={dataConfig[activeObjectIndex] as VideojamConfig}
-          //       // viewConfig={viewConfig.configs[activeObjectIndex]}
-          //       dataConfigLength={dataConfig.length}
-          //       topLayerChildren={topLayerChildren}
-          //       setTopLayerChildren={setTopLayerChildren}
-          //       titleSplashData={titleSplashData}
-          //       fragmentState={fragmentState}
-          //       setFragmentState={setFragmentState}
-          //       stageRef={stageRef}
-          //       layerRef={layerRef}
-          //     />
-          //   )
-          // }
-          // case ConfigType.TRIVIA: {
-          //   return (
-          //     <TriviaFragment
-          //       dataConfig={dataConfig[activeObjectIndex] as TriviaConfig}
-          //       // viewConfig={viewConfig.configs[activeObjectIndex]}
-          //       dataConfigLength={dataConfig.length}
-          //       topLayerChildren={topLayerChildren}
-          //       setTopLayerChildren={setTopLayerChildren}
-          //       titleSplashData={titleSplashData}
-          //       fragmentState={fragmentState}
-          //       setFragmentState={setFragmentState}
-          //       stageRef={stageRef}
-          //       layerRef={layerRef}
-          //     />
-          //   )
-          // }
-          // case ConfigType.POINTS: {
-          //   return (
-          //     <PointsFragment
-          //       dataConfig={dataConfig[activeObjectIndex] as PointsConfig}
-          //       viewConfig={viewConfig.configs[activeObjectIndex]}
-          //       dataConfigLength={dataConfig.length}
-          //       topLayerChildren={topLayerChildren}
-          //       setTopLayerChildren={setTopLayerChildren}
-          //       titleSplashData={titleSplashData}
-          //       fragmentState={fragmentState}
-          //       setFragmentState={setFragmentState}
-          //       stageRef={stageRef}
-          //       layerRef={layerRef}
-          //     />
-          //   )
-          // }
+          case 'videoBlock': {
+            return (
+              <VideoFragment
+                dataConfig={
+                  dataConfig[activeObjectIndex] as VideoBlockProps &
+                    BlockProperties
+                }
+                // viewConfig={viewConfig.configs[activeObjectIndex]}
+                dataConfigLength={dataConfig.length}
+                topLayerChildren={topLayerChildren}
+                setTopLayerChildren={setTopLayerChildren}
+                titleSplashData={titleSplashData}
+                fragmentState={fragmentState}
+                setFragmentState={setFragmentState}
+                stageRef={stageRef}
+                layerRef={layerRef}
+              />
+            )
+          }
+          case 'imageBlock': {
+            return (
+              <TriviaFragment
+                dataConfig={
+                  dataConfig[activeObjectIndex] as ImageBlockProps &
+                    BlockProperties
+                }
+                // viewConfig={viewConfig.configs[activeObjectIndex]}
+                dataConfigLength={dataConfig.length}
+                topLayerChildren={topLayerChildren}
+                setTopLayerChildren={setTopLayerChildren}
+                titleSplashData={titleSplashData}
+                fragmentState={fragmentState}
+                setFragmentState={setFragmentState}
+                stageRef={stageRef}
+                layerRef={layerRef}
+              />
+            )
+          }
+          case 'listBlock': {
+            return (
+              <PointsFragment
+                dataConfig={
+                  dataConfig[activeObjectIndex] as ListBlockProps &
+                    BlockProperties
+                }
+                // viewConfig={viewConfig.configs[activeObjectIndex]}
+                dataConfigLength={dataConfig.length}
+                topLayerChildren={topLayerChildren}
+                setTopLayerChildren={setTopLayerChildren}
+                titleSplashData={titleSplashData}
+                fragmentState={fragmentState}
+                setFragmentState={setFragmentState}
+                stageRef={stageRef}
+                layerRef={layerRef}
+              />
+            )
+          }
           default:
             return <></>
         }

@@ -1,3 +1,5 @@
+import { Layout } from '../../../utils/configTypes2'
+
 export interface ObjectConfig {
   x: number
   y: number
@@ -8,10 +10,10 @@ export interface ObjectConfig {
 }
 
 export const FragmentLayoutConfig = ({
-  layoutNumber,
+  layout,
   isShorts,
 }: {
-  layoutNumber: number
+  layout: Layout
   isShorts?: boolean
 }): ObjectConfig => {
   if (isShorts) {
@@ -23,8 +25,8 @@ export const FragmentLayoutConfig = ({
       borderRadius: 8,
     }
   }
-  switch (layoutNumber) {
-    case 1:
+  switch (layout) {
+    case 'classic':
       return {
         x: 56,
         y: 32,
@@ -33,7 +35,7 @@ export const FragmentLayoutConfig = ({
         borderRadius: 8,
         color: '#182E42',
       }
-    case 2:
+    case 'float-full-right':
       return {
         x: 32,
         y: 90,
@@ -41,7 +43,7 @@ export const FragmentLayoutConfig = ({
         height: 360,
         borderRadius: 8,
       }
-    case 3:
+    case 'float-full-left':
       return {
         x: 288,
         y: 90,
@@ -49,7 +51,7 @@ export const FragmentLayoutConfig = ({
         height: 360,
         borderRadius: 8,
       }
-    case 4:
+    case 'float-half-right':
       return {
         x: 32,
         y: 45,
@@ -57,8 +59,8 @@ export const FragmentLayoutConfig = ({
         height: 450,
         borderRadius: 8,
       }
-    case 5:
-    case 6:
+    case 'padded-bottom-right-tile':
+    case 'padded-bottom-right-circle':
       return {
         x: 72,
         y: 41,
@@ -66,8 +68,8 @@ export const FragmentLayoutConfig = ({
         height: 459,
         borderRadius: 8,
       }
-    case 7:
-    case 8:
+    case 'bottom-right-tile':
+    case 'bottom-right-circle':
       return {
         x: 0,
         y: 0,
@@ -75,7 +77,7 @@ export const FragmentLayoutConfig = ({
         height: 540,
         borderRadius: 0,
       }
-    case 9:
+    case 'padded-split':
       return {
         x: 40,
         y: 112.5,
@@ -83,7 +85,7 @@ export const FragmentLayoutConfig = ({
         height: 315,
         borderRadius: 8,
       }
-    case 10:
+    case 'split':
       return {
         x: 0,
         y: 130,
