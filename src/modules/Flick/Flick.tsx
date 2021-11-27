@@ -1,9 +1,7 @@
-import { TNode } from '@udecode/plate'
 import React, { useEffect, useMemo, useState } from 'react'
-import { FiLoader } from 'react-icons/fi'
 import { useHistory, useParams } from 'react-router-dom'
 import { useRecoilState, useSetRecoilState } from 'recoil'
-import { ScreenState, Text, TextEditor } from '../../components'
+import { ScreenState, TextEditor } from '../../components'
 import {
   Fragment_Status_Enum_Enum,
   StudioFragmentFragment,
@@ -16,13 +14,18 @@ import studioStore from '../Studio/stores/studio.store'
 import {
   FlickNavBar,
   FragmentBar,
-  FragmentEditor,
   FragmentSideBar,
-  FragmentView,
   PublishModal,
 } from './components'
 import { newFlickStore } from './store/flickNew.store'
 import { initEditor } from '../../utils/plateConfig/serializer/values'
+import BlockPreview, {
+  getGradientConfig,
+  gradients,
+} from './components/BlockPreview'
+import { Block } from '../../components/TextEditor/utils'
+import { BlockProperties, ViewConfig } from '../../utils/configTypes2'
+import { useCanvasRecorder } from '../../hooks'
 
 const useLocalPayload = () => {
   const initialPayload = {
@@ -30,7 +33,7 @@ const useLocalPayload = () => {
     activePointIndex: 0,
     currentIndex: 0,
     currentTime: 0,
-    fragmentState: 'titleSplash',
+    fragmentState: 'customLayout',
     isFocus: false,
     playing: false,
     prevIndex: -1,
@@ -84,6 +87,12 @@ const Flick = () => {
   const setStudio = useSetRecoilState(studioStore)
   const history = useHistory()
 
+  const [currentBlock, setCurrentBlock] = useState<Block>()
+  const [viewConfig, setViewConfig] = useState<ViewConfig>({
+    mode: 'Landscape',
+    blocks: {},
+  })
+
   const [initialPlateValue, setInitialPlateValue] = useState<any>()
   const [plateValue, setPlateValue] = useState<any>()
   const [serializing, setSerializing] = useState(false)
@@ -101,6 +110,25 @@ const Flick = () => {
     refetch: assetsRefetch,
   } = useUserAssetQuery()
 
+  const { addTransitionAudio } = useCanvasRecorder({ options: {} })
+
+  const updateBlockProperties = (id: string, properties: BlockProperties) => {
+    const newBlocks = { ...viewConfig.blocks, [id]: properties }
+    setViewConfig({ ...viewConfig, blocks: newBlocks })
+  }
+
+  useEffect(() => {
+    if (!currentBlock) return
+    if (!viewConfig.blocks[currentBlock.id]) {
+      const newBlocks = { ...viewConfig.blocks }
+      newBlocks[currentBlock.id] = {
+        layout: 'classic',
+        gradient: getGradientConfig(gradients[0]),
+      }
+      setViewConfig({ ...viewConfig, blocks: newBlocks })
+    }
+  }, [currentBlock])
+
   useEffect(() => {
     if (!assetsData) return
     setMyMediaAssets(assetsData)
@@ -116,6 +144,7 @@ const Flick = () => {
       payload,
       updatePayload,
       fragment,
+      addTransitionAudio,
     }))
   }, [activeFragmentId, payload])
 
@@ -205,20 +234,27 @@ const Flick = () => {
       <div className="flex flex-1 overflow-y-auto">
         <FragmentSideBar />
         {flick.fragments.length > 0 && (
-          <div className="px-8 w-full overflow-y-scroll pb-8">
+          <div className="px-8 w-full overflow-y-scroll pb-8 flex justify-between items-start">
             <TextEditor
               placeholder="Start writing..."
-              // handleUpdateSimpleAST={(simpleAST) => {
-              //   console.log(simpleAST)
-              // }}
               handleUpdateJSON={(json) => {
                 setPlateValue(json)
               }}
               initialContent={initialPlateValue}
               handleActiveBlock={(block) => {
                 console.log('active block!', block)
+                setCurrentBlock(block)
               }}
             />
+            <div className="w-48 pt-20">
+              {currentBlock && (
+                <BlockPreview
+                  config={viewConfig}
+                  block={currentBlock}
+                  updateConfig={updateBlockProperties}
+                />
+              )}
+            </div>
           </div>
         )}
       </div>
