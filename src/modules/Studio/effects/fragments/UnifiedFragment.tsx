@@ -28,7 +28,7 @@ const UnifiedFragment = ({
 }: {
   stageRef: React.RefObject<Konva.Stage>
   layerRef: React.RefObject<Konva.Layer>
-  config?: (Block & BlockProperties)[]
+  config?: Block[]
   layoutConfig?: ViewConfig
 }) => {
   const { fragment, payload, updatePayload, state, participants, users } =
