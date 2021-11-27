@@ -26,6 +26,7 @@ import {
   SimpleAST,
   useUtils,
 } from '../../../../components/TextEditor/utils'
+import { BlockProperties } from '../../../../utils/configTypes2'
 
 const UnifiedFragment = ({
   stageRef,
@@ -34,7 +35,7 @@ const UnifiedFragment = ({
 }: {
   stageRef: React.RefObject<Konva.Stage>
   layerRef: React.RefObject<Konva.Layer>
-  config?: Config
+  config?: Block & BlockProperties
 }) => {
   const {
     fragment,

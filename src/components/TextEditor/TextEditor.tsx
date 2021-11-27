@@ -1,5 +1,5 @@
 import 'remirror/styles/all.css'
-import React, { useContext, useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { FC, useCallback } from 'react'
 import jsx from 'refractor/lang/jsx'
 import typescript from 'refractor/lang/typescript'
@@ -289,7 +289,7 @@ const TextEditor: FC<TextEditorProps> = ({
             {title}
           </h1>
           <div className="relative grid gap-x-4 grid-cols-4">
-            <div className="col-span-3">
+            <div className="col-span-4">
               <EditorComponent />
             </div>
             <Suggestor />
@@ -301,63 +301,12 @@ const TextEditor: FC<TextEditorProps> = ({
               animated
               positioner="selection"
             />
-            <div className="col-span-1 sticky top-6 overflow-hidden">
-              {simpleAST && <PreviewBar simpleAST={simpleAST} />}
-            </div>
           </div>
           {children}
         </Remirror>
       </ThemeProvider>
     </TextEditorProvider.Provider>
   )
-}
-
-const PreviewBar = ({ simpleAST }: { simpleAST: SimpleAST }) => {
-  const { slab } = useActive(true)
-  const { state } = useContext(TextEditorProvider)
-
-  const block: Block | undefined = useMemo(() => {
-    if (!slab) return undefined
-
-    // @ts-ignore
-    const block: Node = state.selection.$anchor.path.find(
-      (n: any) => n?.type?.name === 'slab'
-    )
-
-    // eslint-disable-next-line consistent-return
-    const simpleBlock = simpleAST.blocks.find((b) => b.id === block?.attrs.id)
-
-    return simpleBlock
-  }, [state, simpleAST])
-
-  // NOTE: Usable function...
-  const getBlock = useCallback((block: Block) => {
-    // NOTE: Handle Layout here...
-    switch (block.type) {
-      case 'codeBlock':
-        return (
-          <div className="w-60 h-32 relative bg-gray-300">
-            {block.codeBlock.code && (
-              <div className="w-3/5 absolute left-2 top-2 h-28 bg-brand rounded-sm" />
-            )}
-            <div className="w-1/5 left-3/4 absolute h-28 top-2 bg-brand-alt rounded-sm" />
-          </div>
-        )
-
-      case 'videoBlock': {
-        return (
-          <div className="w-60 h-32 relative bg-gray-300">
-            <div className="w-1/5 left-3/4 absolute h-28 top-2 bg-yellow-500 rounded-sm" />
-          </div>
-        )
-      }
-
-      default:
-        return null
-    }
-  }, [])
-
-  return block ? getBlock(block) : null
 }
 
 const BlockTab = ({
