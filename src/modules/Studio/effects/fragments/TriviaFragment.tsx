@@ -34,6 +34,7 @@ const TriviaFragment = ({
   setFragmentState,
   stageRef,
   layerRef,
+  shortsMode,
 }: {
   viewConfig: BlockProperties
   dataConfig: ImageBlockProps
@@ -45,8 +46,9 @@ const TriviaFragment = ({
   setFragmentState: React.Dispatch<React.SetStateAction<FragmentState>>
   stageRef: React.RefObject<Konva.Stage>
   layerRef: React.RefObject<Konva.Layer>
+  shortsMode: boolean
 }) => {
-  const { fragment, payload, state, shortsMode, addTransitionAudio } =
+  const { fragment, payload, state, addTransitionAudio } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [studio, setStudio] = useRecoilState(studioStore)

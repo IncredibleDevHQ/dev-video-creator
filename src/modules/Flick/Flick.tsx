@@ -300,10 +300,10 @@ const Flick = () => {
         <FragmentSideBar />
         {flick.fragments.length > 0 && activeFragment && (
           <div className="w-full my-4 mx-8">
-            <div className="flex items-center justify-start">
+            <div className="flex items-center justify-start mx-12">
               {viewConfig.speakers?.map((s) => (
                 <div
-                  className="flex items-center mr-2 rounded-md bg-gray-200"
+                  className="flex items-center mr-2 rounded-md bg-gray-200 px-2 py-1"
                   key={s.participant.user.sub}
                 >
                   <img

@@ -200,7 +200,7 @@ const LayoutSelector = ({
   type: Block['type']
 }) => {
   return (
-    <div className="grid grid-cols-2 gap-2 w-full">
+    <div className="grid grid-cols-2 gap-2 w-72 overflow-x-scroll">
       {allLayoutTypes?.map((layoutType) => (
         <LayoutGeneric
           type={type}

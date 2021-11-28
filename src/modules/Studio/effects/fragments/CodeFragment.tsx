@@ -77,6 +77,7 @@ const CodeFragment = ({
   setFragmentState,
   stageRef,
   layerRef,
+  shortsMode,
 }: {
   viewConfig: BlockProperties
   dataConfig: CodeBlockProps
@@ -88,15 +89,10 @@ const CodeFragment = ({
   setFragmentState: React.Dispatch<React.SetStateAction<FragmentState>>
   stageRef: React.RefObject<Konva.Stage>
   layerRef: React.RefObject<Konva.Layer>
+  shortsMode: boolean
 }) => {
-  const {
-    fragment,
-    payload,
-    updatePayload,
-    state,
-    shortsMode,
-    addTransitionAudio,
-  } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const { fragment, payload, updatePayload, state, addTransitionAudio } =
+    (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   // const [getTokenisedCode, { data }] = useGetTokenisedCodeLazyQuery()
 

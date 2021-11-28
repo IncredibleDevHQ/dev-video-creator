@@ -73,7 +73,7 @@ const UnifiedFragment = ({
   const { getTextWidth } = useEdit()
 
   useEffect(() => {
-    if (!config) return
+    if (!config || !layoutConfig) return
     setDataConfig(config)
     setViewConfig(layoutConfig)
   }, [config, layoutConfig])
@@ -92,7 +92,7 @@ const UnifiedFragment = ({
     setTitleSplashData({
       enable: fragment?.configuration?.titleSplash?.enable || false,
       title:
-        fragment.configuration.titleSplash.title || (fragment.name as string),
+        fragment.configuration?.titleSplash?.title || (fragment.name as string),
       titleSplashConfig:
         fragment?.configuration?.titleSplash?.titleSplashConfig ||
         getGradientConfig(gradients[0]),
@@ -236,6 +236,7 @@ const UnifiedFragment = ({
                 setFragmentState={setFragmentState}
                 stageRef={stageRef}
                 layerRef={layerRef}
+                shortsMode={viewConfig.mode === 'Portrait'}
               />
             )
           }
@@ -276,6 +277,7 @@ const UnifiedFragment = ({
                 setFragmentState={setFragmentState}
                 stageRef={stageRef}
                 layerRef={layerRef}
+                shortsMode={viewConfig.mode === 'Portrait'}
               />
             )
           }
@@ -296,6 +298,7 @@ const UnifiedFragment = ({
                 setFragmentState={setFragmentState}
                 stageRef={stageRef}
                 layerRef={layerRef}
+                shortsMode={viewConfig.mode === 'Portrait'}
               />
             )
           }
