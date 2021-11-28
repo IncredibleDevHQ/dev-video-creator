@@ -15,7 +15,6 @@ import {
   useUserAssetQuery,
 } from '../../generated/graphql'
 import { useCanvasRecorder } from '../../hooks'
-import { Config } from '../../utils/configTypes'
 import { BlockProperties, ViewConfig } from '../../utils/configTypes2'
 import { initEditor } from '../../utils/plateConfig/serializer/values'
 import studioStore from '../Studio/stores/studio.store'
@@ -23,7 +22,8 @@ import {
   FlickNavBar,
   FragmentBar,
   FragmentSideBar,
-  PublishModal,
+  ProcessingFlick,
+  PublishFlick,
 } from './components'
 import BlockPreview, {
   getGradientConfig,
@@ -116,6 +116,9 @@ const Flick = () => {
     variables: { id },
   })
   const setStudio = useSetRecoilState(studioStore)
+  const { addTransitionAudio } = useCanvasRecorder({
+    options: {},
+  })
   const history = useHistory()
 
   const [currentBlock, setCurrentBlock] = useState<Block>()
@@ -127,12 +130,13 @@ const Flick = () => {
 
   const [activeFragment, setActiveFragment] = useState<FlickFragmentFragment>()
   const [isSpeakersTooltip, setSpeakersTooltip] = useState(false)
+  const [processingFlick, setProcessingFlick] = useState(false)
+  const [published, setPublished] = useState(false)
 
   const { updatePayload, payload, resetPayload } = useLocalPayload()
   const [myMediaAssets, setMyMediaAssets] = useState<UserAssetQuery>()
   const { data: assetsData, error: assetsError } = useUserAssetQuery()
 
-  const { addTransitionAudio } = useCanvasRecorder({ options: {} })
   const { getSimpleAST } = useUtils()
 
   const updateBlockProperties = (id: string, properties: BlockProperties) => {
@@ -255,6 +259,15 @@ const Flick = () => {
       />
     )
   }
+
+  if (processingFlick)
+    return (
+      <ProcessingFlick
+        joinLink={flick.joinLink}
+        publish={published}
+        setProcessing={setProcessingFlick}
+      />
+    )
 
   return (
     <div className="flex flex-col h-screen relative">
@@ -401,8 +414,25 @@ const Flick = () => {
           </div>
         )}
       </div>
-      <PublishModal
+      <PublishFlick
         flickId={flick.id}
+        flickName={flick.name}
+        flickDescription={flick.description as string}
+        flickThumbnail={flick.thumbnail as string}
+        setProcessingFlick={setProcessingFlick}
+        setPublished={setPublished}
+        fragments={flick.fragments.map((f) => {
+          return {
+            id: f.id as string,
+            name: f.name as string,
+          }
+        })}
+        isShortsPresentAndCompleted={flick?.fragments.some(
+          (f) => f.producedShortsLink !== null
+        )}
+        isAllFlicksCompleted={flick?.fragments.every(
+          (f) => f.producedLink !== null
+        )}
         open={integrationModal}
         handleClose={() => setIntegrationModal(false)}
       />

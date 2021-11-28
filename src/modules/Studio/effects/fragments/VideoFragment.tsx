@@ -18,7 +18,7 @@ import { StudioUserConfiguration } from '../../utils/StudioUserConfig'
 import { TrianglePathTransition } from '../FragmentTransitions'
 
 const VideoFragment = ({
-  // viewConfig,
+  viewConfig,
   dataConfig,
   dataConfigLength,
   topLayerChildren,
@@ -29,8 +29,8 @@ const VideoFragment = ({
   stageRef,
   layerRef,
 }: {
-  // viewConfig: LayoutConfig
-  dataConfig: VideoBlockProps & BlockProperties
+  viewConfig: BlockProperties
+  dataConfig: VideoBlockProps
   dataConfigLength: number
   topLayerChildren: JSX.Element[]
   setTopLayerChildren: React.Dispatch<React.SetStateAction<JSX.Element[]>>
@@ -70,7 +70,7 @@ const VideoFragment = ({
     element.src = dataConfig.videoBlock.url || ''
 
     setObjectConfig(
-      FragmentLayoutConfig({ layout: dataConfig.layout || 'classic' })
+      FragmentLayoutConfig({ layout: viewConfig.layout || 'classic' })
     )
     // eslint-disable-next-line consistent-return
     return element
@@ -144,27 +144,26 @@ const VideoFragment = ({
     if (!customLayoutRef.current) return
     // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
     if (payload?.fragmentState === 'customLayout') {
-      setTopLayerChildren([<TrianglePathTransition direction="left" />])
+      setTopLayerChildren([<TrianglePathTransition direction="right" />])
       addTransitionAudio()
       setTimeout(() => {
         setFragmentState(payload?.fragmentState)
-        // customLayoutRef.current?.opacity(1)
         customLayoutRef.current?.to({
           opacity: 1,
           duration: 0.2,
         })
-      }, 1000)
+      }, 800)
     }
     // Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
     if (payload?.fragmentState === 'onlyUserMedia') {
-      setTopLayerChildren([<TrianglePathTransition direction="right" />])
+      setTopLayerChildren([<TrianglePathTransition direction="left" />])
       addTransitionAudio()
-      customLayoutRef.current?.to({
-        opacity: 0,
-        duration: 0.8,
-      })
       setTimeout(() => {
         setFragmentState(payload?.fragmentState)
+        customLayoutRef.current?.to({
+          opacity: 0,
+          duration: 0.2,
+        })
       }, 800)
     }
   }, [payload?.fragmentState])
@@ -193,9 +192,9 @@ const VideoFragment = ({
         y={0}
         width={CONFIG.width}
         height={CONFIG.height}
-        fillLinearGradientColorStops={dataConfig.gradient?.values}
-        fillLinearGradientStartPoint={dataConfig.gradient?.startIndex}
-        fillLinearGradientEndPoint={dataConfig.gradient?.endIndex}
+        fillLinearGradientColorStops={viewConfig.gradient?.values}
+        fillLinearGradientStartPoint={viewConfig.gradient?.startIndex}
+        fillLinearGradientEndPoint={viewConfig.gradient?.endIndex}
       />
       {/* ) : (
         <Image
@@ -215,7 +214,7 @@ const VideoFragment = ({
   ]
 
   const studioUserConfig = StudioUserConfiguration({
-    layout: dataConfig.layout || 'classic',
+    layout: viewConfig.layout || 'classic',
     fragment,
     fragmentState,
   })

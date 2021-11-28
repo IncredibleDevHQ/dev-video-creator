@@ -1,3 +1,5 @@
+import Konva from 'konva'
+
 export interface ClipConfig {
   x: number
   y: number
@@ -65,7 +67,19 @@ const useEdit = () => {
     return { width: calWidth, height: calHeight, x: calX, y: calY }
   }
 
-  return { clipRect, clipCircle, getImageDimensions }
+  const getTextWidth = (
+    text: string,
+    fontFamily: string,
+    fontSize: number,
+    fontStyle: string
+  ) => {
+    const layer = new Konva.Layer({ width: 250 })
+    const konvaText = new Konva.Text({ text, fontSize, fontFamily, fontStyle })
+    layer.add(konvaText)
+    return konvaText.textWidth
+  }
+
+  return { clipRect, clipCircle, getImageDimensions, getTextWidth }
 }
 
 export default useEdit

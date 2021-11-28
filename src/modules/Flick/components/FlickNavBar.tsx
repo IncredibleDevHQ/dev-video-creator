@@ -132,13 +132,12 @@ const FlickNavBar = ({ toggleModal }: { toggleModal: (val: true) => void }) => {
           size="small"
           icon={FiUpload}
           type="button"
-          disabled={
-            !flick?.fragments.every((f) => f.producedLink !== null) || loading
-          }
+          disabled={loading}
           className="px-3 py-1"
           onClick={async () => {
-            const success = await produceVideo()
-            if (success && success.length > 0) toggleModal(true)
+            // const success = await produceVideo()
+            // if (success && success.length > 0)
+            toggleModal(true)
           }}
         >
           {loading ? 'Producing Video...' : 'Publish'}

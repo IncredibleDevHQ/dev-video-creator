@@ -3,6 +3,7 @@ import Avatar from './Avatar'
 import Button from './Button'
 import ClipBoardIcon from './ClipBoardIcon'
 import ContainerWithSidebar from './ContainerWithSidebar'
+import Confetti from './Confetti'
 import ErrorBoundary from './ErrorBoundary'
 import EmptyState from './EmptyState'
 import Heading from './Heading'
@@ -33,6 +34,7 @@ import TextEditor from './TextEditor/TextEditor'
 export {
   Avatar,
   Button,
+  Confetti,
   ClipBoardIcon,
   ContainerWithSidebar,
   dismissToast,
