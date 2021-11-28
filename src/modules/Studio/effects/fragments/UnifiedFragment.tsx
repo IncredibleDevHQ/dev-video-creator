@@ -15,6 +15,10 @@ import {
   ViewConfig,
   TitleSplashConfig,
 } from '../../../../utils/configTypes2'
+import {
+  getGradientConfig,
+  gradients,
+} from '../../../Flick/components/BlockPreview'
 import { CONFIG, SHORTS_CONFIG } from '../../components/Concourse'
 import { IncredibleLowerThirds } from '../../components/LowerThirds'
 import { FragmentState } from '../../components/RenderTokens'
@@ -42,6 +46,7 @@ const UnifiedFragment = ({
   const [titleSplashData, setTitleSplashData] = useState<TitleSplashConfig>({
     enable: false,
     title: '',
+    titleSplashConfig: getGradientConfig(gradients[0]),
   })
 
   const { getSimpleAST } = useUtils()
@@ -89,7 +94,8 @@ const UnifiedFragment = ({
       title:
         fragment.configuration.titleSplash.title || (fragment.name as string),
       titleSplashConfig:
-        fragment?.configuration?.titleSplash.titleSplashConfig || {},
+        fragment?.configuration?.titleSplash?.titleSplashConfig ||
+        getGradientConfig(gradients[0]),
     })
     updatePayload?.({
       activeObjectIndex: 0,
@@ -141,6 +147,8 @@ const UnifiedFragment = ({
           />,
           ...users.map((user, index) => (
             <IncredibleLowerThirds
+              // eslint-disable-next-line react/no-array-index-key
+              key={index}
               x={lowerThirdCoordinates[index + 1]}
               y={viewConfig?.mode === 'Landscape' ? 450 : 630}
               displayName={participants?.[user.uid]?.displayName}
