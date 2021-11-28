@@ -15,6 +15,10 @@ import {
   ViewConfig,
   TitleSplashConfig,
 } from '../../../../utils/configTypes2'
+import {
+  getGradientConfig,
+  gradients,
+} from '../../../Flick/components/BlockPreview'
 import { CONFIG, SHORTS_CONFIG } from '../../components/Concourse'
 import { IncredibleLowerThirds } from '../../components/LowerThirds'
 import { FragmentState } from '../../components/RenderTokens'
@@ -42,6 +46,7 @@ const UnifiedFragment = ({
   const [titleSplashData, setTitleSplashData] = useState<TitleSplashConfig>({
     enable: false,
     title: '',
+    titleSplashConfig: getGradientConfig(gradients[0]),
   })
 
   const { getSimpleAST } = useUtils()
@@ -68,10 +73,10 @@ const UnifiedFragment = ({
   const { getTextWidth } = useEdit()
 
   useEffect(() => {
-    if (!config) return
+    if (!config || !layoutConfig) return
     setDataConfig(config)
     setViewConfig(layoutConfig)
-  }, [config])
+  }, [config, layoutConfig])
 
   useEffect(() => {
     if (!fragment) return
@@ -87,9 +92,10 @@ const UnifiedFragment = ({
     setTitleSplashData({
       enable: fragment?.configuration?.titleSplash?.enable || false,
       title:
-        fragment.configuration.titleSplash.title || (fragment.name as string),
+        fragment.configuration?.titleSplash?.title || (fragment.name as string),
       titleSplashConfig:
-        fragment?.configuration?.titleSplash.titleSplashConfig || {},
+        fragment?.configuration?.titleSplash?.titleSplashConfig ||
+        getGradientConfig(gradients[0]),
     })
     updatePayload?.({
       activeObjectIndex: 0,
@@ -101,7 +107,7 @@ const UnifiedFragment = ({
     if (viewConfig?.mode === 'Portrait') {
       setDataConfig(dataConfig.filter((c) => c.type !== 'videoBlock'))
     }
-  }, [viewConfig, dataConfig])
+  }, [viewConfig])
 
   useEffect(() => {
     setActiveObjectIndex(payload?.activeObjectIndex)
@@ -141,6 +147,8 @@ const UnifiedFragment = ({
           />,
           ...users.map((user, index) => (
             <IncredibleLowerThirds
+              // eslint-disable-next-line react/no-array-index-key
+              key={index}
               x={lowerThirdCoordinates[index + 1]}
               y={viewConfig?.mode === 'Landscape' ? 450 : 630}
               displayName={participants?.[user.uid]?.displayName}
@@ -228,6 +236,7 @@ const UnifiedFragment = ({
                 setFragmentState={setFragmentState}
                 stageRef={stageRef}
                 layerRef={layerRef}
+                shortsMode={viewConfig.mode === 'Portrait'}
               />
             )
           }
@@ -268,6 +277,7 @@ const UnifiedFragment = ({
                 setFragmentState={setFragmentState}
                 stageRef={stageRef}
                 layerRef={layerRef}
+                shortsMode={viewConfig.mode === 'Portrait'}
               />
             )
           }
@@ -288,6 +298,7 @@ const UnifiedFragment = ({
                 setFragmentState={setFragmentState}
                 stageRef={stageRef}
                 layerRef={layerRef}
+                shortsMode={viewConfig.mode === 'Portrait'}
               />
             )
           }
