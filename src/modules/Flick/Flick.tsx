@@ -17,6 +17,7 @@ import {
   TextField,
   Tooltip,
 } from '../../components'
+import { Position } from '../../components/TextEditor/components'
 import { Block, useUtils } from '../../components/TextEditor/utils'
 import {
   FlickFragmentFragment,
@@ -146,6 +147,7 @@ const Flick = () => {
   const [plateValue, setPlateValue] = useState<any>()
   const [integrationModal, setIntegrationModal] = useState(false)
 
+  const [previewPosition, setPreviewPosition] = useState<Position>()
   const [activeFragment, setActiveFragment] = useState<FlickFragmentFragment>()
   const [isSpeakersTooltip, setSpeakersTooltip] = useState(false)
   const [isTitleGradientTooltip, setTitleGradientTooltip] = useState(false)
@@ -339,7 +341,7 @@ const Flick = () => {
                 </Tooltip>
               )}
             </div>
-            <div className="px-8 w-full overflow-y-scroll pb-8 flex justify-between items-start">
+            <div className="px-8 w-full overflow-y-scroll pb-8 flex justify-between items-stretch">
               <TextEditor
                 placeholder="Start writing..."
                 handleUpdateJSON={(json) => {
@@ -351,15 +353,21 @@ const Flick = () => {
                 }}
                 handleUpdatePosition={(position) => {
                   // Relative position of the cursor.
-                  // console.log(position?.top)
+                  setPreviewPosition(position)
                 }}
               />
-              <div className="w-48 pt-20">
+              <div className="w-48 relative">
                 {currentBlock && (
                   <BlockPreview
                     block={currentBlock}
                     config={viewConfig}
                     updateConfig={updateBlockProperties}
+                    className={cx(
+                      'absolute',
+                      css`
+                        top: ${previewPosition?.top}px;
+                      `
+                    )}
                   />
                 )}
               </div>

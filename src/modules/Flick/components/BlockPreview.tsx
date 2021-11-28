@@ -1,6 +1,6 @@
 import { css, cx } from '@emotion/css'
 import Konva from 'konva'
-import React, { createRef, useEffect, useState } from 'react'
+import React, { createRef, HTMLAttributes, useEffect, useState } from 'react'
 import useMeasure, { RectReadOnly } from 'react-use-measure'
 import { Stage, Layer, Rect } from 'react-konva'
 import Modal from 'react-responsive-modal'
@@ -387,18 +387,20 @@ const BlockPreview = ({
   config,
   block,
   updateConfig,
+  className,
+  ...rest
 }: {
   block: Block
   config: ViewConfig
   updateConfig: (id: string, properties: BlockProperties) => void
-}) => {
+} & HTMLAttributes<HTMLDivElement>) => {
   const [previewModal, setPreviewModal] = useState(false)
   const [ref, bounds] = useMeasure()
 
   if (!block || !config.blocks[block.id]) return null
 
   return (
-    <>
+    <div className={className} {...rest}>
       <div
         role="button"
         tabIndex={0}
@@ -426,7 +428,7 @@ const BlockPreview = ({
           setPreviewModal(() => false)
         }}
       />
-    </>
+    </div>
   )
 }
 
