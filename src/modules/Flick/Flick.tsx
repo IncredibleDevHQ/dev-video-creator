@@ -1,9 +1,22 @@
-import { cx } from '@emotion/css'
+import { css, cx } from '@emotion/css'
 import React, { useEffect, useMemo, useState } from 'react'
-import { FiEye, FiEyeOff, FiRefreshCcw, FiUser, FiX } from 'react-icons/fi'
+import {
+  FiEye,
+  FiEyeOff,
+  FiRefreshCcw,
+  FiSliders,
+  FiUser,
+  FiX,
+} from 'react-icons/fi'
 import { useHistory, useParams } from 'react-router-dom'
 import { useRecoilState, useSetRecoilState } from 'recoil'
-import { ScreenState, Text, TextEditor, Tooltip } from '../../components'
+import {
+  ScreenState,
+  Text,
+  TextEditor,
+  TextField,
+  Tooltip,
+} from '../../components'
 import { Block, useUtils } from '../../components/TextEditor/utils'
 import {
   FlickFragmentFragment,
@@ -28,12 +41,17 @@ import {
 import BlockPreview, {
   getGradientConfig,
   gradients,
+  GradientSelector,
 } from './components/BlockPreview'
 import { FragmentTypeIcon } from './components/LayoutGeneric'
 import { newFlickStore } from './store/flickNew.store'
 
 const initialConfig: ViewConfig = {
-  showTitleSplash: true,
+  titleSplash: {
+    enable: true,
+    title: '',
+    titleSplashConfig: getGradientConfig(gradients[0]),
+  },
   speakers: [],
   mode: 'Landscape',
   blocks: {},
@@ -130,6 +148,7 @@ const Flick = () => {
 
   const [activeFragment, setActiveFragment] = useState<FlickFragmentFragment>()
   const [isSpeakersTooltip, setSpeakersTooltip] = useState(false)
+  const [isTitleGradientTooltip, setTitleGradientTooltip] = useState(false)
   const [processingFlick, setProcessingFlick] = useState(false)
   const [published, setPublished] = useState(false)
 
@@ -372,27 +391,89 @@ const Flick = () => {
                   9:16
                 </Text>
               </div>
-              <div className="px-4 py-2 w-32 h-16 relative">
-                {viewConfig.showTitleSplash ? (
-                  <FiEye
-                    size={24}
-                    className="absolute top-1 right-2 bg-white border rounded-sm p-1"
-                    onClick={() =>
-                      setViewConfig({ ...viewConfig, showTitleSplash: false })
-                    }
-                  />
-                ) : (
-                  <FiEyeOff
-                    size={24}
-                    className="absolute top-1 right-2 bg-white border rounded-sm p-1"
-                    onClick={() =>
-                      setViewConfig({ ...viewConfig, showTitleSplash: true })
-                    }
-                  />
+              <div
+                className={cx(
+                  'px-4 py-2 h-16 relative',
+                  css`
+                    background: ${viewConfig.titleSplash.titleSplashConfig
+                      ?.cssString};
+                  `
                 )}
-                <div className="border rounded-md w-full h-full flex justify-center items-center">
-                  Title
+              >
+                <div className="absolute top-1 right-2 flex">
+                  <Tooltip
+                    isOpen={isTitleGradientTooltip}
+                    setIsOpen={setTitleGradientTooltip}
+                    placement="top-start"
+                    content={
+                      <GradientSelector
+                        currentGradient={
+                          viewConfig.titleSplash.titleSplashConfig ||
+                          getGradientConfig(gradients[0])
+                        }
+                        updateGradient={(gradient) => {
+                          setViewConfig({
+                            ...viewConfig,
+                            titleSplash: {
+                              ...viewConfig.titleSplash,
+                              titleSplashConfig: gradient,
+                            },
+                          })
+                        }}
+                      />
+                    }
+                  >
+                    <FiSliders
+                      size={24}
+                      className="bg-white border rounded-sm p-1 mr-1"
+                      onClick={() => setTitleGradientTooltip(true)}
+                    />
+                  </Tooltip>
+                  {viewConfig.titleSplash.enable ? (
+                    <FiEye
+                      size={24}
+                      className="bg-white border rounded-sm p-1"
+                      onClick={() =>
+                        setViewConfig({
+                          ...viewConfig,
+                          titleSplash: {
+                            ...viewConfig.titleSplash,
+                            enable: false,
+                          },
+                        })
+                      }
+                    />
+                  ) : (
+                    <FiEyeOff
+                      size={24}
+                      className=" bg-white border rounded-sm p-1"
+                      onClick={() =>
+                        setViewConfig({
+                          ...viewConfig,
+                          titleSplash: {
+                            ...viewConfig.titleSplash,
+                            enable: true,
+                          },
+                        })
+                      }
+                    />
+                  )}
                 </div>
+                <TextField
+                  className="overflow-hidden"
+                  value={viewConfig.titleSplash.title}
+                  placeholder="Add Title..."
+                  disabled={!viewConfig.titleSplash.enable}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setViewConfig({
+                      ...viewConfig,
+                      titleSplash: {
+                        ...viewConfig.titleSplash,
+                        title: e.target.value,
+                      },
+                    })
+                  }
+                />
               </div>
               <div className="px-4 py-2 w-32 h-16 bg-gray-100 relative border border-r-2">
                 <FiRefreshCcw

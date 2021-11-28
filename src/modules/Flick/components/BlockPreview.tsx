@@ -157,7 +157,7 @@ const useGetHW = ({
   return { width: calWidth, height: calHeight }
 }
 
-const GradientSelector = ({
+export const GradientSelector = ({
   currentGradient,
   updateGradient,
 }: {
@@ -165,7 +165,7 @@ const GradientSelector = ({
   updateGradient: (gradient: GradientConfig) => void
 }) => {
   return (
-    <div className="grid grid-cols-2 gap-2 w-full">
+    <div className="grid grid-cols-2 gap-2 w-full bg-white p-4">
       {gradients.map((gradient, index) => (
         // eslint-disable-next-line jsx-a11y/control-has-associated-label
         <div
@@ -217,12 +217,14 @@ const LayoutSelector = ({
 const CanvasPreview = ({
   block,
   bounds,
+  config,
   shortsMode,
   blockProperties,
 }: {
   block: Block
   bounds: RectReadOnly
   shortsMode: boolean
+  config: ViewConfig
   blockProperties: BlockProperties
 }) => {
   const stageRef = createRef<Konva.Stage>()
@@ -279,12 +281,8 @@ const CanvasPreview = ({
             <UnifiedFragment
               stageRef={stageRef}
               layerRef={layerRef}
-              config={[
-                {
-                  ...block,
-                  ...blockProperties,
-                },
-              ]}
+              layoutConfig={config}
+              config={[block]}
             />
           </Layer>
         </Bridge>
@@ -296,6 +294,7 @@ const CanvasPreview = ({
 const PreviewModal = ({
   open,
   block,
+  config,
   blockProperties,
   shortsMode,
   updateBlockProperties,
@@ -303,6 +302,7 @@ const PreviewModal = ({
 }: {
   block: Block
   open: boolean
+  config: ViewConfig
   blockProperties: BlockProperties
   shortsMode: boolean
   updateBlockProperties: (id: string, properties: BlockProperties) => void
@@ -351,6 +351,7 @@ const PreviewModal = ({
         <CanvasPreview
           bounds={bounds}
           block={block}
+          config={config}
           shortsMode={shortsMode}
           blockProperties={blockProperties}
         />
@@ -410,6 +411,7 @@ const BlockPreview = ({
           block={block}
           bounds={bounds}
           shortsMode={config.mode === 'Portrait'}
+          config={config}
           blockProperties={config.blocks[block.id]}
         />
       </div>
@@ -417,10 +419,10 @@ const BlockPreview = ({
         block={block}
         blockProperties={config.blocks[block.id]}
         updateBlockProperties={updateConfig}
+        config={config}
         open={previewModal}
         shortsMode={config.mode === 'Portrait'}
         handleClose={() => {
-          console.log('ishan')
           setPreviewModal(() => false)
         }}
       />

@@ -106,9 +106,15 @@ export type BlockProperties = {
   layout?: Layout
 }
 
+export interface TitleSplashConfig {
+  enable: boolean
+  title?: string
+  titleSplashConfig?: GradientConfig
+}
+
 export interface ViewConfig {
   mode: 'Portrait' | 'Landscape'
-  showTitleSplash: boolean
+  titleSplash: TitleSplashConfig
   speakers: FragmentParticipantFragment[]
   blocks: {
     [key: string]: BlockProperties

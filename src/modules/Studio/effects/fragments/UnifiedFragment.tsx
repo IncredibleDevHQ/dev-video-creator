@@ -10,12 +10,12 @@ import {
   VideoBlockProps,
 } from '../../../../components/TextEditor/utils'
 import { User, userState } from '../../../../stores/user.store'
-import { BlockProperties, ViewConfig } from '../../../../utils/configTypes2'
 import {
-  CONFIG,
-  SHORTS_CONFIG,
-  TitleSplashProps,
-} from '../../components/Concourse'
+  BlockProperties,
+  ViewConfig,
+  TitleSplashConfig,
+} from '../../../../utils/configTypes2'
+import { CONFIG, SHORTS_CONFIG } from '../../components/Concourse'
 import { IncredibleLowerThirds } from '../../components/LowerThirds'
 import { FragmentState } from '../../components/RenderTokens'
 import useEdit from '../../hooks/use-edit'
@@ -39,8 +39,9 @@ const UnifiedFragment = ({
   const { fragment, payload, updatePayload, state, participants, users } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
-  const [titleSplashData, setTitleSplashData] = useState<TitleSplashProps>({
+  const [titleSplashData, setTitleSplashData] = useState<TitleSplashConfig>({
     enable: false,
+    title: '',
   })
 
   const { getSimpleAST } = useUtils()
@@ -84,10 +85,11 @@ const UnifiedFragment = ({
       setViewConfig(layoutConfig)
     }
     setTitleSplashData({
-      enable: fragment?.configuration?.viewConfig.hasTitleSplash || false,
-      title: fragment.name as string,
+      enable: fragment?.configuration?.titleSplash?.enable || false,
+      title:
+        fragment.configuration.titleSplash.title || (fragment.name as string),
       titleSplashConfig:
-        fragment?.configuration?.viewConfig?.titleSplashConfig || {},
+        fragment?.configuration?.titleSplash.titleSplashConfig || {},
     })
     updatePayload?.({
       activeObjectIndex: 0,
@@ -195,10 +197,12 @@ const UnifiedFragment = ({
     if (activeObjectIndex !== 0) setTitleSplashData({ enable: false })
     else
       setTitleSplashData({
-        enable: fragment?.configuration?.viewConfig.hasTitleSplash || false,
-        title: fragment?.name as string,
+        enable: fragment?.configuration?.titleSplash?.enable || false,
+        title:
+          fragment?.configuration?.titleSplash?.title ||
+          (fragment?.name as string),
         titleSplashConfig:
-          fragment?.configuration?.viewConfig?.titleSplashConfig || {},
+          fragment?.configuration?.titleSplash?.titleSplashConfig || {},
       })
   }, [activeObjectIndex])
 
