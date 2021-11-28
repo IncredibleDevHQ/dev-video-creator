@@ -349,6 +349,10 @@ const Flick = () => {
                 handleActiveBlock={(block) => {
                   setCurrentBlock(block)
                 }}
+                handleUpdatePosition={(position) => {
+                  // Relative position of the cursor.
+                  // console.log(position?.top)
+                }}
               />
               <div className="w-48 pt-20">
                 {currentBlock && (
