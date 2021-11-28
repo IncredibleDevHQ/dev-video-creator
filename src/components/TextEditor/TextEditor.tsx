@@ -339,7 +339,7 @@ function ContentUpdater({ content }: { content: any }) {
   const { setContent } = useRemirrorContext()
 
   useEffect(() => {
-    setContent(content)
+    setContent(content || '')
   }, [content])
 
   return null

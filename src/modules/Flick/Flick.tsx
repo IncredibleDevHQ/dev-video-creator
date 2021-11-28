@@ -360,138 +360,140 @@ const Flick = () => {
                 )}
               </div>
             </div>
-            <div className="flex items-center justify-start border rounded-md bg-gray-50 mb-4 fixed p-2 mx-8 bottom-4 z-20">
-              <div className="flex items-center justify-center px-4 py-2 w-32 h-16 gap-x-2 bg-white">
-                <Text
-                  className={cx(
-                    'cursor-pointer bg-gray-200 text-gray-50 px-2.5 py-1 rounded-sm text-sm ',
-                    {
-                      'bg-gray-800 text-gray-100':
-                        viewConfig.mode === 'Landscape',
+            {getSimpleAST(plateValue).blocks.length > 0 && (
+              <div className="flex items-center justify-start border rounded-md bg-gray-50 mb-4 fixed p-2 mx-8 bottom-4 z-20">
+                <div className="flex items-center justify-center px-4 py-2 w-32 h-16 gap-x-2 bg-white">
+                  <Text
+                    className={cx(
+                      'cursor-pointer bg-gray-200 text-gray-50 px-2.5 py-1 rounded-sm text-sm ',
+                      {
+                        'bg-gray-800 text-gray-100':
+                          viewConfig.mode === 'Landscape',
+                      }
+                    )}
+                    onClick={() =>
+                      setViewConfig({ ...viewConfig, mode: 'Landscape' })
                     }
-                  )}
-                  onClick={() =>
-                    setViewConfig({ ...viewConfig, mode: 'Landscape' })
-                  }
-                >
-                  16:9
-                </Text>
-                <Text
-                  className={cx(
-                    'cursor-pointer bg-gray-200 text-gray-50 h-full rounded-sm text-sm flex px-1 items-center',
-                    {
-                      'bg-gray-800 text-gray-100':
-                        viewConfig.mode === 'Portrait',
+                  >
+                    16:9
+                  </Text>
+                  <Text
+                    className={cx(
+                      'cursor-pointer bg-gray-200 text-gray-50 h-full rounded-sm text-sm flex px-1 items-center',
+                      {
+                        'bg-gray-800 text-gray-100':
+                          viewConfig.mode === 'Portrait',
+                      }
+                    )}
+                    onClick={() =>
+                      setViewConfig({ ...viewConfig, mode: 'Portrait' })
                     }
+                  >
+                    9:16
+                  </Text>
+                </div>
+                <div
+                  className={cx(
+                    'px-4 py-2 h-16 relative',
+                    css`
+                      background: ${viewConfig.titleSplash.titleSplashConfig
+                        ?.cssString};
+                    `
                   )}
-                  onClick={() =>
-                    setViewConfig({ ...viewConfig, mode: 'Portrait' })
-                  }
                 >
-                  9:16
-                </Text>
-              </div>
-              <div
-                className={cx(
-                  'px-4 py-2 h-16 relative',
-                  css`
-                    background: ${viewConfig.titleSplash.titleSplashConfig
-                      ?.cssString};
-                  `
-                )}
-              >
-                <div className="absolute top-1 right-2 flex">
-                  <Tooltip
-                    isOpen={isTitleGradientTooltip}
-                    setIsOpen={setTitleGradientTooltip}
-                    placement="top-start"
-                    content={
-                      <GradientSelector
-                        currentGradient={
-                          viewConfig.titleSplash.titleSplashConfig ||
-                          getGradientConfig(gradients[0])
-                        }
-                        updateGradient={(gradient) => {
+                  <div className="absolute top-1 right-2 flex">
+                    <Tooltip
+                      isOpen={isTitleGradientTooltip}
+                      setIsOpen={setTitleGradientTooltip}
+                      placement="top-start"
+                      content={
+                        <GradientSelector
+                          currentGradient={
+                            viewConfig.titleSplash.titleSplashConfig ||
+                            getGradientConfig(gradients[0])
+                          }
+                          updateGradient={(gradient) => {
+                            setViewConfig({
+                              ...viewConfig,
+                              titleSplash: {
+                                ...viewConfig.titleSplash,
+                                titleSplashConfig: gradient,
+                              },
+                            })
+                          }}
+                        />
+                      }
+                    >
+                      <FiSliders
+                        size={24}
+                        className="bg-white border rounded-sm p-1 mr-1"
+                        onClick={() => setTitleGradientTooltip(true)}
+                      />
+                    </Tooltip>
+                    {viewConfig.titleSplash.enable ? (
+                      <FiEye
+                        size={24}
+                        className="bg-white border rounded-sm p-1"
+                        onClick={() =>
                           setViewConfig({
                             ...viewConfig,
                             titleSplash: {
                               ...viewConfig.titleSplash,
-                              titleSplashConfig: gradient,
+                              enable: false,
                             },
                           })
-                        }}
+                        }
                       />
+                    ) : (
+                      <FiEyeOff
+                        size={24}
+                        className=" bg-white border rounded-sm p-1"
+                        onClick={() =>
+                          setViewConfig({
+                            ...viewConfig,
+                            titleSplash: {
+                              ...viewConfig.titleSplash,
+                              enable: true,
+                            },
+                          })
+                        }
+                      />
+                    )}
+                  </div>
+                  <TextField
+                    className="overflow-hidden"
+                    value={viewConfig.titleSplash.title}
+                    placeholder="Add Title..."
+                    disabled={!viewConfig.titleSplash.enable}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setViewConfig({
+                        ...viewConfig,
+                        titleSplash: {
+                          ...viewConfig.titleSplash,
+                          title: e.target.value,
+                        },
+                      })
                     }
-                  >
-                    <FiSliders
-                      size={24}
-                      className="bg-white border rounded-sm p-1 mr-1"
-                      onClick={() => setTitleGradientTooltip(true)}
-                    />
-                  </Tooltip>
-                  {viewConfig.titleSplash.enable ? (
-                    <FiEye
-                      size={24}
-                      className="bg-white border rounded-sm p-1"
-                      onClick={() =>
-                        setViewConfig({
-                          ...viewConfig,
-                          titleSplash: {
-                            ...viewConfig.titleSplash,
-                            enable: false,
-                          },
-                        })
-                      }
-                    />
-                  ) : (
-                    <FiEyeOff
-                      size={24}
-                      className=" bg-white border rounded-sm p-1"
-                      onClick={() =>
-                        setViewConfig({
-                          ...viewConfig,
-                          titleSplash: {
-                            ...viewConfig.titleSplash,
-                            enable: true,
-                          },
-                        })
-                      }
-                    />
-                  )}
+                  />
                 </div>
-                <TextField
-                  className="overflow-hidden"
-                  value={viewConfig.titleSplash.title}
-                  placeholder="Add Title..."
-                  disabled={!viewConfig.titleSplash.enable}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    setViewConfig({
-                      ...viewConfig,
-                      titleSplash: {
-                        ...viewConfig.titleSplash,
-                        title: e.target.value,
-                      },
-                    })
-                  }
-                />
-              </div>
-              <div className="px-4 py-2 w-32 h-16 bg-gray-100 relative border border-r-2">
-                <FiRefreshCcw
-                  size={20}
-                  className="absolute -right-3 bg-white p-1 rounded-sm top-1/2 transform -translate-y-1/2 z-10"
-                />
-                <div className="border rounded-md flex justify-center items-center w-full h-full bg-gray-500">
-                  <FiUser size={20} />
-                </div>
-              </div>
-              {getSimpleAST(plateValue).blocks.map((block) => (
                 <div className="px-4 py-2 w-32 h-16 bg-gray-100 relative border border-r-2">
-                  <div className="border rounded-md flex justify-center items-center w-full h-full p-2">
-                    <FragmentTypeIcon type={block.type} />
+                  <FiRefreshCcw
+                    size={20}
+                    className="absolute -right-3 bg-white p-1 rounded-sm top-1/2 transform -translate-y-1/2 z-10"
+                  />
+                  <div className="border rounded-md flex justify-center items-center w-full h-full bg-gray-500">
+                    <FiUser size={20} />
                   </div>
                 </div>
-              ))}
-            </div>
+                {getSimpleAST(plateValue).blocks.map((block) => (
+                  <div className="px-4 py-2 w-32 h-16 bg-gray-100 relative border border-r-2">
+                    <div className="border rounded-md flex justify-center items-center w-full h-full p-2">
+                      <FragmentTypeIcon type={block.type} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
