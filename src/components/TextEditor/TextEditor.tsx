@@ -1,7 +1,5 @@
 import 'remirror/styles/all.css'
 import React, { useEffect, useState, FC, useCallback, useRef } from 'react'
-import jsx from 'refractor/lang/jsx'
-import typescript from 'refractor/lang/typescript'
 import {
   ExtensionPriority,
   RemirrorEventListenerProps,
@@ -49,6 +47,7 @@ import {
   ContentUpdater,
   hooks,
 } from './components'
+import supportedLanguages from './languages'
 
 export interface TextEditorProps {
   placeholder?: string
@@ -94,7 +93,7 @@ const TextEditor: FC<TextEditorProps> = ({
         enableCollapsible: true,
       }),
       new CodeExtension(),
-      new CodeBlockExtension({ supportedLanguages: [jsx, typescript] }),
+      new CodeBlockExtension({ supportedLanguages }),
       new TrailingNodeExtension(),
       new TableExtension(),
       new MarkdownExtension({ copyAsMarkdown: false }),
