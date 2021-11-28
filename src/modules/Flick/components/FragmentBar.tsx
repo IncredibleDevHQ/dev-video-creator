@@ -1,61 +1,31 @@
 import { cx } from '@emotion/css'
-import { TNode } from '@udecode/plate'
 import React, { useEffect, useState } from 'react'
 import { BiPlayCircle } from 'react-icons/bi'
 import { BsCameraVideo } from 'react-icons/bs'
 import { FiPlus } from 'react-icons/fi'
-import { HiOutlinePencilAlt, HiOutlineTemplate } from 'react-icons/hi'
 import { useHistory } from 'react-router-dom'
-import { useRecoilState, useRecoilValue } from 'recoil'
+import { useRecoilState } from 'recoil'
 import { FragmentVideoModal, UpdateFragmentParticipantsModal } from '.'
-import {
-  Avatar,
-  Button,
-  dismissToast,
-  emitToast,
-  Text,
-  updateToast,
-} from '../../../components'
+import { Avatar, Button, emitToast } from '../../../components'
 import {
   FlickFragmentFragment,
-  useCreateFragmentMutation,
-  useGetFlickFragmentsLazyQuery,
+  Fragment_Type_Enum_Enum,
   useGetFragmentParticipantsLazyQuery,
-  UserAssetQuery,
   useUpdateFragmentMutation,
   useUpdateFragmentStateMutation,
 } from '../../../generated/graphql'
-import firebaseState from '../../../stores/firebase.store'
-import { User, userState } from '../../../stores/user.store'
-import { Config } from '../../../utils/configTypes'
-import { serializeDataConfig } from '../../../utils/plateConfig/serializer/config-serialize'
-import { generateViewConfig } from '../../../utils/plateConfig/serializer/generateViewConfig'
+import { ViewConfig } from '../../../utils/configTypes2'
 import { studioStore } from '../../Studio/stores'
 import { newFlickStore } from '../store/flickNew.store'
 
 const FragmentBar = ({
-  initialPlateValue,
   plateValue,
   config,
-  setSerializing,
-  setConfig,
-  setSelectedLayoutId,
-  setInitialPlateValue,
-  assetsData,
 }: {
-  initialPlateValue: TNode<any>[] | undefined
-  plateValue?: TNode<any>[]
-  config: Config
-  setSerializing: React.Dispatch<React.SetStateAction<boolean>>
-  setConfig: React.Dispatch<React.SetStateAction<Config>>
-  setSelectedLayoutId: React.Dispatch<React.SetStateAction<string>>
-  setInitialPlateValue: React.Dispatch<
-    React.SetStateAction<TNode<any>[] | undefined>
-  >
-  assetsData: UserAssetQuery | undefined
+  plateValue?: any
+  config: ViewConfig
 }) => {
   const [fragmentVideoModal, setFragmetVideoModal] = useState(false)
-  const fbState = useRecoilValue(firebaseState)
   const [{ flick, activeFragmentId, isMarkdown }, setFlickStore] =
     useRecoilState(newFlickStore)
   const history = useHistory()
@@ -63,19 +33,8 @@ const FragmentBar = ({
   const [fragment, setFragment] = useState<FlickFragmentFragment | undefined>(
     flick?.fragments.find((f) => f.id === activeFragmentId)
   )
-  const [createFragment] = useCreateFragmentMutation()
-  const { sub } = (useRecoilValue(userState) as User) || {}
-  const [
-    GetFlickFragments,
-    { data: fragmentData, error: fragmentError, refetch },
-  ] = useGetFlickFragmentsLazyQuery({
-    variables: {
-      flickId: flick?.id,
-    },
-  })
 
-  const [updateFragmentMutation, { data: updateFragmentData }] =
-    useUpdateFragmentMutation()
+  const [updateFragmentMutation] = useUpdateFragmentMutation()
 
   const [updateFragmentState, { data, error }] =
     useUpdateFragmentStateMutation()
@@ -102,60 +61,23 @@ const FragmentBar = ({
     })
   }, [error])
 
-  useEffect(() => {
-    if (!fragmentData || !flick) return
-    setFlickStore((store) => ({
-      ...store,
-      flick: {
-        ...flick,
-        fragments: [...fragmentData.Fragment],
-      },
-    }))
-  }, [fragmentData])
-
-  useEffect(() => {
-    if (!fragmentError || !refetch) return
-    emitToast({
-      title: "We couldn't fetch your new fragment",
-      type: 'error',
-      description: 'Click this toast to give it another try',
-      onClick: () => refetch(),
-    })
-  }, [fragmentError])
-
-  const generateConfig = async () => {
+  const updateConfig = async () => {
+    setSavingConfig(true)
     try {
-      if (!plateValue || plateValue?.length === 0) return
-      if (JSON.stringify(plateValue) !== JSON.stringify(initialPlateValue)) {
-        setSerializing(true)
-
-        const { token } = fbState
-        const dataConfig = await serializeDataConfig(
-          plateValue,
-          token || '',
-          assetsData
-        )
-        const viewConfig = generateViewConfig({
-          dataConfig,
-          viewConfig: config.viewConfig,
-        })
-        setConfig({ dataConfig, viewConfig })
-        if (dataConfig.length > 0) {
-          setSelectedLayoutId(dataConfig[0].id)
-        }
-
-        const result = await updateFragmentState({
+      if (
+        fragment &&
+        (fragment?.type === Fragment_Type_Enum_Enum.Intro ||
+          fragment?.type === Fragment_Type_Enum_Enum.Outro)
+      ) {
+        await updateFragmentState({
           variables: {
-            editorState: plateValue,
+            editorState: {},
             id: activeFragmentId,
-            configuration: { dataConfig, viewConfig },
+            configuration: fragment.configuration,
           },
         })
-
-        if (result.errors) {
-          throw Error(result.errors[0].message)
-        }
-
+      } else {
+        if (!plateValue || plateValue?.length === 0) return
         if (flick)
           setFlickStore((store) => ({
             ...store,
@@ -165,74 +87,21 @@ const FragmentBar = ({
                 f.id === activeFragmentId
                   ? {
                       ...f,
-                      configuration: {
-                        dataConfig,
-                        viewConfig,
-                      },
+                      configuration: config,
                       editorState: plateValue,
                     }
                   : f
               ),
             },
           }))
-        setInitialPlateValue(plateValue)
-      }
-    } catch (error) {
-      emitToast({
-        type: 'error',
-        title: 'Error updating fragment',
-      })
-    } finally {
-      setSerializing(false)
-    }
-  }
-
-  const updateConfig = async () => {
-    setSavingConfig(true)
-    try {
-      let dc = config.dataConfig
-      let vc = config.viewConfig
-      if (!plateValue || plateValue?.length === 0) return
-      if (JSON.stringify(plateValue) !== JSON.stringify(initialPlateValue)) {
-        const { token } = fbState
-
-        dc = await serializeDataConfig(plateValue, token || '', assetsData)
-        vc = generateViewConfig({
-          dataConfig: dc,
-          viewConfig: vc,
-        })
-        setConfig({ dataConfig: dc, viewConfig: vc })
-        if (dc.length > 0) {
-          setSelectedLayoutId(dc[0].id)
-        }
-        setInitialPlateValue(plateValue)
-      }
-      if (flick)
-        setFlickStore((store) => ({
-          ...store,
-          flick: {
-            ...flick,
-            fragments: flick.fragments.map((f) =>
-              f.id === activeFragmentId
-                ? {
-                    ...f,
-                    configuration: {
-                      dataConfig: dc,
-                      viewConfig: vc,
-                    } as Config,
-                    editorState: plateValue,
-                  }
-                : f
-            ),
+        await updateFragmentState({
+          variables: {
+            editorState: plateValue,
+            id: activeFragmentId,
+            configuration: config,
           },
-        }))
-      await updateFragmentState({
-        variables: {
-          editorState: plateValue,
-          id: activeFragmentId,
-          configuration: { dataConfig: dc, viewConfig: vc } as Config,
-        },
-      })
+        })
+      }
     } catch (error) {
       emitToast({
         type: 'error',
@@ -266,133 +135,25 @@ const FragmentBar = ({
     })
   }
 
-  const handleCreateFragment = async () => {
-    if (flick?.owner?.userSub !== sub) return
-    let toast
-    try {
-      toast = emitToast({
-        type: 'info',
-        title: 'Creating...',
-        autoClose: false,
-      })
-
-      const res = await createFragment({
-        variables: {
-          flickId: flick?.id,
-          name: 'Untitled',
-          creatorPid: flick?.participants.find((p) => p.userSub === sub)?.id,
-        },
-      })
-
-      if (res.errors) {
-        throw Error(res.errors[0].message)
-      }
-
-      setFlickStore((prev) => ({
-        ...prev,
-        activeFragmentId: res.data?.CreateFragment?.id,
-      }))
-
-      GetFlickFragments?.()
-
-      dismissToast(toast)
-    } catch (e) {
-      if (toast) {
-        updateToast({
-          id: toast,
-          type: 'error',
-          title: 'There was an error creating a fragment.',
-          autoClose: 5000,
-        })
-      }
-    }
-  }
-
   return (
-    <div className="flex items-center bg-gray-50 justify-between pr-4 border-b border-gray-300">
+    <div className="flex items-center bg-gray-50 justify-between pr-4 border-b border-gray-300 p-2.5">
       <div className="flex items-center">
-        <div
-          role="button"
-          onKeyUp={() => {}}
-          tabIndex={-1}
-          className={cx(
-            'w-48 bg-gray-50 flex items-center justify-center cursor-pointer border-r border-gray-300 mr-4 py-2',
-            {
-              'cursor-not-allowed': flick?.owner?.userSub !== sub,
-            }
-          )}
-          onClick={handleCreateFragment}
-        >
-          <Button
-            type="button"
-            className={cx('text-green-600 -ml-4')}
-            disabled={flick?.owner?.userSub !== sub}
-            appearance="link"
-            size="small"
-            icon={FiPlus}
-          >
-            <Text className="text-sm">New Fragment</Text>
-          </Button>
-        </div>
         {flick && flick?.fragments?.length > 0 && (
-          <>
-            <div className="flex bg-gray-100 items-center rounded-md mr-6 ">
-              <div
-                role="button"
-                onKeyUp={() => {}}
-                tabIndex={0}
-                onClick={() =>
-                  setFlickStore((store) => ({
-                    ...store,
-                    isMarkdown: true,
-                  }))
-                }
-                className={cx(
-                  'bg-gray-100 p-1.5 rounded-tl-md rounded-bl-md text-gray-600',
-                  {
-                    'bg-gray-200': isMarkdown,
-                  }
-                )}
-              >
-                <HiOutlinePencilAlt size={18} />
-              </div>
-              <div
-                role="button"
-                onKeyUp={() => {}}
-                tabIndex={0}
-                onClick={() => {
-                  setFlickStore((store) => ({
-                    ...store,
-                    isMarkdown: false,
-                  }))
-                  generateConfig()
-                }}
-                className={cx(
-                  'bg-gray-100 p-1.5 rounded-tr-md rounded-br-md text-gray-600',
-                  {
-                    'bg-gray-200': !isMarkdown,
-                  }
-                )}
-              >
-                <HiOutlineTemplate size={18} />
-              </div>
-            </div>
-            <input
-              type="text"
-              value={fragment?.name || ''}
-              className="text-xs font-bold text-gray-800 cursor-text rounded-md p-1 hover:bg-gray-200 bg-transparent focus:outline-none"
-              onChange={(e) =>
-                fragment && setFragment({ ...fragment, name: e.target.value })
+          <input
+            type="text"
+            value={fragment?.name || ''}
+            className="text-sm font-bold text-gray-800 cursor-text rounded-md p-1 hover:bg-gray-200 bg-transparent focus:outline-none"
+            onChange={(e) =>
+              fragment && setFragment({ ...fragment, name: e.target.value })
+            }
+            onBlur={() => fragment?.name && updateFragment(fragment.name)}
+            onKeyDown={(e) => {
+              if (!fragment?.name) return
+              if (e.key === 'Enter') {
+                updateFragment(fragment.name)
               }
-              onBlur={() => fragment?.name && updateFragment(fragment.name)}
-              onKeyDown={(e) => {
-                if (!fragment?.name) return
-                if (e.key === 'Enter') {
-                  updateFragment(fragment.name)
-                }
-              }}
-            />
-          </>
+            }}
+          />
         )}
       </div>
       {flick && flick?.fragments?.length > 0 && (

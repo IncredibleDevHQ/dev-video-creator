@@ -68,6 +68,7 @@ const AddNewSeriesModal = ({
       variables: {
         name: details.name,
         picture: details.pic,
+        description: '',
       },
     })
   }

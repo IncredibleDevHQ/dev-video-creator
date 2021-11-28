@@ -6,6 +6,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700;800&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700;800&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -96,4 +97,17 @@ body {
 
 .remirror-theme {
   width: 100% !important;
+  height: 100%;
+}
+
+.remirror-theme .ProseMirror {
+  box-shadow: none !important;
+}
+
+.remirror-theme .ProseMirror ul > li {
+  margin-left: 1.2em;
+}
+
+.remirror-theme .remirror-collapsible-list-item-button {
+  background-color: #000 !important;
 }

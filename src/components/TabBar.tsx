@@ -11,10 +11,12 @@ const TabBar = ({
   current,
   onTabChange,
   className,
+  itemsClassName,
   ...rest
 }: {
   tabs: Tab[]
   current: Tab
+  itemsClassName?: string
   onTabChange: (tab: Tab) => void
 } & HTMLProps<HTMLUListElement>) => {
   return (
@@ -23,6 +25,7 @@ const TabBar = ({
         <TabBarItem
           tab={tab}
           key={tab.name}
+          className={itemsClassName}
           current={current.value === tab.value}
           onClick={() => onTabChange(tab)}
         />
@@ -43,7 +46,8 @@ const TabBarItem = ({
         'cursor-pointer px-3 py-2 rounded-md tracking-wide transition-colors text-gray-400 font-semibold',
         {
           'text-gray-800 bg-gray-100': current,
-        }
+        },
+        className
       )}
       {...rest}
     >

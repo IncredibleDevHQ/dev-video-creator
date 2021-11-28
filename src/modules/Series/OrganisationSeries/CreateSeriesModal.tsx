@@ -48,6 +48,7 @@ const seriesModal = ({
         name: name as string,
         organisationSlug,
         picture: pic as string,
+        description: '',
       },
     })
 

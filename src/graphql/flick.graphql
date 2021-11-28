@@ -219,6 +219,16 @@ mutation UpdateFlick(
   }
 }
 
+mutation UpdateFlickDetails(
+  $flickId: String!
+  $name: String!
+  $description: String
+) {
+  UpdateFlick(flickId: $flickId, name: $name, description: $description) {
+    id
+  }
+}
+
 mutation UpdateParticipantRole(
   $participantId: String!
   $flickId: String!
@@ -264,5 +274,29 @@ mutation InviteParticipantToFlick(
 ) {
   InviteParticipant(email: $email, flickId: $flickId, role: $role) {
     id
+  }
+}
+
+mutation PublishFlick(
+  $flickId: String!
+  $interaction: [Interaction]
+  $publishToBlogPlatforms: [BlogPlatforms]!
+  $publishToFormats: [publishFormats]!
+  $tags: _text
+  $updatedDescription: String
+  $updatedThumbnail: String!
+  $updatedTitle: String
+) {
+  Publish(
+    flickId: $flickId
+    interactions: $interaction
+    publishToBlogPlatforms: $publishToBlogPlatforms
+    publishToFormats: $publishToFormats
+    tags: $tags
+    updatedDescription: $updatedDescription
+    updatedThumbnail: $updatedThumbnail
+    updatedTitle: $updatedTitle
+  ) {
+    success
   }
 }
