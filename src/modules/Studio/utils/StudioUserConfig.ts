@@ -1,14 +1,15 @@
 import { StudioFragmentFragment } from '../../../generated/graphql'
+import { Layout } from '../../../utils/configTypes2'
 import { StudioUserConfig } from '../components/Concourse'
 import { FragmentState } from '../components/RenderTokens'
 
 export const StudioUserConfiguration = ({
-  layoutNumber,
+  layout,
   fragment,
   fragmentState,
   isShorts,
 }: {
-  layoutNumber: number
+  layout: Layout
   fragment: StudioFragmentFragment | undefined
   fragmentState: FragmentState
   isShorts?: boolean
@@ -219,8 +220,8 @@ export const StudioUserConfiguration = ({
         ]
     }
   } else
-    switch (layoutNumber) {
-      case 1:
+    switch (layout) {
+      case 'classic':
         switch (fragment?.participants.length) {
           case 2:
             return [
@@ -322,7 +323,7 @@ export const StudioUserConfiguration = ({
               },
             ]
         }
-      case 2:
+      case 'float-full-right':
         switch (fragment?.participants.length) {
           case 2:
             return [
@@ -424,7 +425,7 @@ export const StudioUserConfiguration = ({
               },
             ]
         }
-      case 3:
+      case 'float-full-left':
         switch (fragment?.participants.length) {
           case 2:
             return [
@@ -526,7 +527,7 @@ export const StudioUserConfiguration = ({
               },
             ]
         }
-      case 4:
+      case 'float-half-right':
         switch (fragment?.participants.length) {
           case 2:
             return [
@@ -628,8 +629,8 @@ export const StudioUserConfiguration = ({
               },
             ]
         }
-      case 5:
-      case 7:
+      case 'padded-bottom-right-tile':
+      case 'bottom-right-tile':
         switch (fragment?.participants.length) {
           case 2:
             return [
@@ -731,8 +732,8 @@ export const StudioUserConfiguration = ({
               },
             ]
         }
-      case 6:
-      case 8:
+      case 'padded-bottom-right-circle':
+      case 'bottom-right-circle':
         switch (fragment?.participants.length) {
           case 2:
             return [
@@ -834,7 +835,7 @@ export const StudioUserConfiguration = ({
               },
             ]
         }
-      case 9:
+      case 'padded-split':
         switch (fragment?.participants.length) {
           case 2:
             return [
@@ -936,7 +937,7 @@ export const StudioUserConfiguration = ({
               },
             ]
         }
-      case 10:
+      case 'split':
         switch (fragment?.participants.length) {
           case 2:
             return [

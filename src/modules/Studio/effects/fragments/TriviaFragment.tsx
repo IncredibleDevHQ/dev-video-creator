@@ -4,11 +4,9 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Group, Image, Rect, Text } from 'react-konva'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import useImage from 'use-image'
-import {
-  ConfigType,
-  LayoutConfig,
-  TriviaConfig,
-} from '../../../../utils/configTypes'
+import { ImageBlockProps } from '../../../../components/TextEditor/utils'
+import { ConfigType } from '../../../../utils/configTypes'
+import { BlockProperties } from '../../../../utils/configTypes2'
 import Concourse, {
   CONFIG,
   SHORTS_CONFIG,
@@ -36,9 +34,10 @@ const TriviaFragment = ({
   setFragmentState,
   stageRef,
   layerRef,
+  shortsMode,
 }: {
-  viewConfig: LayoutConfig
-  dataConfig: TriviaConfig
+  viewConfig: BlockProperties
+  dataConfig: ImageBlockProps
   dataConfigLength: number
   topLayerChildren: JSX.Element[]
   setTopLayerChildren: React.Dispatch<React.SetStateAction<JSX.Element[]>>
@@ -47,8 +46,9 @@ const TriviaFragment = ({
   setFragmentState: React.Dispatch<React.SetStateAction<FragmentState>>
   stageRef: React.RefObject<Konva.Stage>
   layerRef: React.RefObject<Konva.Layer>
+  shortsMode: boolean
 }) => {
-  const { fragment, payload, state, shortsMode, addTransitionAudio } =
+  const { fragment, payload, state, addTransitionAudio } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [studio, setStudio] = useRecoilState(studioStore)
@@ -64,7 +64,7 @@ const TriviaFragment = ({
     'anonymous'
   )
 
-  const [bgImage] = useImage(viewConfig?.background?.image || '', 'anonymous')
+  // const [bgImage] = useImage(viewConfig?.background?.image || '', 'anonymous')
 
   const [isGif, setIsGif] = useState(false)
   const [gifUrl, setGifUrl] = useState('')
@@ -101,11 +101,14 @@ const TriviaFragment = ({
     if (!dataConfig) return
     setObjectConfig(
       FragmentLayoutConfig({
-        layoutNumber: viewConfig.layoutNumber,
+        layout: viewConfig.layout || 'classic',
         isShorts: shortsMode || false,
       })
     )
-    setTriviaData(dataConfig.value)
+    setTriviaData({
+      image: dataConfig?.imageBlock.url || '',
+      text: dataConfig?.imageBlock.title || '',
+    })
     setStudio({
       ...studio,
       controlsConfig: {
@@ -115,7 +118,7 @@ const TriviaFragment = ({
       },
     })
     setTopLayerChildren([])
-  }, [dataConfig, viewConfig, shortsMode])
+  }, [dataConfig, shortsMode])
 
   useEffect(() => {
     setStudio({
@@ -206,19 +209,17 @@ const TriviaFragment = ({
 
   const layerChildren: any[] = [
     <Group x={0} y={0}>
-      {viewConfig.background.type === 'color' ? (
-        <Rect
-          x={0}
-          y={0}
-          width={stageConfig.width}
-          height={stageConfig.height}
-          fillLinearGradientColorStops={viewConfig.background.gradient?.values}
-          fillLinearGradientStartPoint={
-            viewConfig.background.gradient?.startIndex
-          }
-          fillLinearGradientEndPoint={viewConfig.background.gradient?.endIndex}
-        />
-      ) : (
+      {/* {viewConfig.background.type === 'color' ? ( */}
+      <Rect
+        x={0}
+        y={0}
+        width={stageConfig.width}
+        height={stageConfig.height}
+        fillLinearGradientColorStops={viewConfig.gradient?.values}
+        fillLinearGradientStartPoint={viewConfig.gradient?.startIndex}
+        fillLinearGradientEndPoint={viewConfig.gradient?.endIndex}
+      />
+      {/* ) : (
         <Image
           x={0}
           y={0}
@@ -226,7 +227,7 @@ const TriviaFragment = ({
           height={stageConfig.height}
           image={bgImage}
         />
-      )}
+      )} */}
     </Group>,
     <Group x={0} y={0} opacity={0} ref={customLayoutRef}>
       <Rect
@@ -310,7 +311,7 @@ const TriviaFragment = ({
   ]
 
   const studioUserConfig = StudioUserConfiguration({
-    layoutNumber: viewConfig.layoutNumber,
+    layout: viewConfig.layout || 'classic',
     fragment,
     fragmentState,
     isShorts: shortsMode || false,

@@ -61,7 +61,7 @@ mutation CreateOrganisationSeries(
   $name: String!
   $organisationSlug: String!
   $picture: String!
-  $description: String! = ""
+  $description: String!
 ) {
   CreateSeries(
     name: $name
@@ -92,8 +92,8 @@ mutation UpdateSeries(
 mutation CreateUserSeries(
   $name: String!
   $organisationSlug: String
+  $description: String!
   $picture: String
-  $description: String! = ""
 ) {
   CreateSeries(
     name: $name

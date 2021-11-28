@@ -403,7 +403,7 @@ const Thumbnail = ({
         onKeyDown={(e) => {
           if (!fragment?.name) return
           if (e.key === 'Enter') {
-            updateFragment(fragment.name)
+            updateFragment(fragmentName || fragment.name)
           }
         }}
       />

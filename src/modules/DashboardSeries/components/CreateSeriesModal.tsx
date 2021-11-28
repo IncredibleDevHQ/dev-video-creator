@@ -22,6 +22,7 @@ const CreateSeriesModal = ({
     await createSeriesMutation({
       variables: {
         name: seriesName,
+        description: '',
       },
     })
   }

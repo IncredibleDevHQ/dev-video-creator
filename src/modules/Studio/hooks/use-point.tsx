@@ -1,5 +1,6 @@
 import { useRef } from 'react'
 import Konva from 'konva'
+import { ListItem } from '../../../components/TextEditor/utils'
 
 export interface ComputedPoint {
   y: number
@@ -20,7 +21,7 @@ const usePoint = () => {
     fontSize,
     fontFamily,
   }: {
-    points: { level?: number; text: string }[]
+    points: ListItem[]
     availableWidth: number
     availableHeight: number
     gutter: number
@@ -36,7 +37,7 @@ const usePoint = () => {
 
       const computedPoint: ComputedPoint = {
         y: (fontSize + gutter) * computedPointNumber.current,
-        text: point.text,
+        text: point.text || '',
         width,
       }
 
