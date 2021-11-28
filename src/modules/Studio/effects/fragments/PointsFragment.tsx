@@ -34,6 +34,7 @@ const PointsFragment = ({
   setFragmentState,
   stageRef,
   layerRef,
+  shortsMode,
 }: {
   viewConfig: BlockProperties
   dataConfig: ListBlockProps
@@ -45,15 +46,10 @@ const PointsFragment = ({
   setFragmentState: React.Dispatch<React.SetStateAction<FragmentState>>
   stageRef: React.RefObject<Konva.Stage>
   layerRef: React.RefObject<Konva.Layer>
+  shortsMode: boolean
 }) => {
-  const {
-    fragment,
-    state,
-    updatePayload,
-    payload,
-    shortsMode,
-    addTransitionAudio,
-  } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const { fragment, state, updatePayload, payload, addTransitionAudio } =
+    (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [studio, setStudio] = useRecoilState(studioStore)
 
