@@ -1,10 +1,13 @@
-import React from 'react'
+import React, { useCallback, useState } from 'react'
 import { useFormik } from 'formik'
 import * as Yup from 'yup'
 import { cx, css } from '@emotion/css'
 import { Modal } from 'react-responsive-modal'
+import { FiUploadCloud } from 'react-icons/fi'
+import Dropzone from 'react-dropzone'
 import { BiSave } from 'react-icons/bi'
-import { Button, Heading, Label, TextField } from '..'
+import { Button, Heading, Label, TextField, Text } from '..'
+import { useUploadFile } from '../../hooks'
 
 const ImageModalSchema = Yup.object().shape({
   url: Yup.string().url().required('Required'),
@@ -30,10 +33,25 @@ const ImageModal = ({
     validateOnMount: true,
   })
 
+  const [uploadImage] = useUploadFile()
+
+  const [loading, setLoading] = useState(false)
+
+  const handleDrop = useCallback(async ([file]: File[]) => {
+    setLoading(true)
+    const { url } = await uploadImage({
+      // @ts-ignore
+      extension: file.name.split('.')[1],
+      file,
+    }).finally(() => setLoading(false))
+
+    handleUrl(url)
+  }, [])
+
   return (
     <Modal
       open={open}
-      onClose={() => handleClose()}
+      onClose={handleClose}
       center
       classNames={{
         modal: cx(
@@ -54,14 +72,36 @@ const ImageModal = ({
           <div className="flex items-center justify-between">
             <Heading fontSize="medium">Add your image link</Heading>
           </div>
+
           <div className="flex flex-col mt-4">
+            <Dropzone onDrop={handleDrop} accept="image/*" maxFiles={1}>
+              {({ getRootProps, getInputProps }) => (
+                <div
+                  className="border border-dashed border-gray-200 flex flex-col items-center p-2 rounded-md cursor-pointer"
+                  {...getRootProps()}
+                >
+                  <input {...getInputProps()} />
+                  <FiUploadCloud size={24} className="my-2" />
+
+                  <div className="text-center">
+                    <Text fontSize="small">Drag and drop or</Text>
+                    <Text fontSize="small" className="font-semibold">
+                      browse
+                    </Text>
+                  </div>
+                </div>
+              )}
+            </Dropzone>
+            <div className="flex w-full justify-center">
+              <Label className="mt-1">OR</Label>
+            </div>
             <div>
-              <Label>Link</Label>
               <TextField
                 onChange={handleChange}
                 name="url"
                 value={values.url}
                 type="text"
+                placeholder="Link"
               />
             </div>
 
@@ -73,8 +113,9 @@ const ImageModal = ({
                 size="small"
                 disabled={!isValid}
                 onClick={() => handleSubmit()}
+                loading={loading}
               >
-                Save
+                {loading ? 'Uploading...' : 'Save'}
               </Button>
             </div>
           </div>
