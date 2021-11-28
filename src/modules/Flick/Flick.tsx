@@ -234,7 +234,7 @@ const Flick = () => {
       <div className="flex flex-1 overflow-y-auto">
         <FragmentSideBar />
         {flick.fragments.length > 0 && (
-          <div className="px-8 w-full overflow-y-scroll pb-8 flex justify-between items-start">
+          <div className="px-8 w-full pb-8 flex justify-between items-start">
             <TextEditor
               placeholder="Start writing..."
               handleUpdateJSON={(json) => {
@@ -242,8 +242,11 @@ const Flick = () => {
               }}
               initialContent={initialPlateValue}
               handleActiveBlock={(block) => {
-                console.log('active block!', block)
-                setCurrentBlock(block)
+                // console.log('active block!', block)
+                // setCurrentBlock(block)
+              }}
+              handleUpdatePosition={(position) => {
+                // console.log(position?.top)
               }}
             />
             <div className="w-48 pt-20">
