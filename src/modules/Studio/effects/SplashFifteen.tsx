@@ -1,31 +1,18 @@
-import React, { useEffect, useState } from 'react'
-import { Circle, Rect, Text, Image, Group, Line } from 'react-konva'
-import { useRecoilValue } from 'recoil'
 import FontFaceObserver from 'fontfaceobserver'
-import { useParams } from 'react-router-dom'
-import useImage from 'use-image'
 import Konva from 'konva'
-import Concourse, { CONFIG } from '../components/Concourse'
-import { StudioProviderProps, studioStore } from '../stores'
-import useSplash, { Coordinates } from '../hooks/use-splash'
-import { User, userState } from '../../../stores/user.store'
-import { useGetFragmentByIdQuery } from '../../../generated/graphql'
-import { EmptyState } from '../../../components'
+import React, { useEffect, useState } from 'react'
+import { Group, Image, Line, Rect, Text } from 'react-konva'
+import { useRecoilValue } from 'recoil'
+import useImage from 'use-image'
 import config from '../../../config'
-
-const titleEnum = 'title'
-const subTitleEnum = 'subtitle'
+import { CONFIG } from '../components/Concourse'
+import { StudioProviderProps, studioStore } from '../stores'
 
 const SplashFifteen = () => {
-  const { state } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
-  const { sub } = (useRecoilValue(userState) as User) || {}
+  const { state, fragment } =
+    (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [configuration, setConfiguration] =
     useState<{ title: any; subTitle: any }>()
-  const params: { fragmentId: string } = useParams()
-
-  const { data } = useGetFragmentByIdQuery({
-    variables: { id: params.fragmentId, sub: sub as string },
-  })
 
   const [astroPlanet] = useImage(
     `${config.storage.baseUrl}planet.svg`,
@@ -63,15 +50,12 @@ const SplashFifteen = () => {
   })
 
   useEffect(() => {
-    if (!data?.Fragment[0].configuration.properties) return
-    const title = data?.Fragment[0].configuration.properties.find(
-      (property: any) => property.key === titleEnum
-    )
-    const subTitle = data?.Fragment[0].configuration.properties.find(
-      (property: any) => property.key === subTitleEnum
-    )
-    setConfiguration({ title, subTitle })
-  }, [data])
+    if (!fragment) return
+    setConfiguration({
+      title: { value: fragment?.flick?.name },
+      subTitle: { value: fragment?.flick?.description },
+    })
+  }, [fragment])
 
   // const { getInitCoordinates } = useSplash()
 
@@ -498,9 +482,7 @@ const SplashFifteen = () => {
       />,
     ])
   }
-  if (!configuration)
-    return <EmptyState text="Missing cofiguration, Please Reload" width={400} />
-  return <Concourse disableUserMedia layerChildren={layerChildren} />
+  return <>{layerChildren}</>
 }
 
 export default SplashFifteen

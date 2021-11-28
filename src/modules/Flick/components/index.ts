@@ -14,6 +14,7 @@ import PublishFlick from './Publish/PublishFlick'
 import VideoEditor from './VideoEditor'
 import VideoEditorModal from './VideoEditorModal'
 import ProcessingFlick from './ProcessingFlick'
+import IntroConfig from './IntroConfig'
 
 export {
   ScreenRecording,
@@ -32,4 +33,5 @@ export {
   VideoEditor,
   VideoEditorModal,
   ProcessingFlick,
+  IntroConfig,
 }
