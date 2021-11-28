@@ -1,5 +1,4 @@
 import { cx } from '@emotion/css'
-import { TNode } from '@udecode/plate'
 import React, { useEffect, useState } from 'react'
 import { BiPlayCircle } from 'react-icons/bi'
 import { BsCameraVideo } from 'react-icons/bs'
@@ -21,41 +20,22 @@ import {
   useCreateFragmentMutation,
   useGetFlickFragmentsLazyQuery,
   useGetFragmentParticipantsLazyQuery,
-  UserAssetQuery,
   useUpdateFragmentMutation,
   useUpdateFragmentStateMutation,
 } from '../../../generated/graphql'
-import firebaseState from '../../../stores/firebase.store'
 import { User, userState } from '../../../stores/user.store'
-import { Config } from '../../../utils/configTypes'
-import { serializeDataConfig } from '../../../utils/plateConfig/serializer/config-serialize'
-import { generateViewConfig } from '../../../utils/plateConfig/serializer/generateViewConfig'
+import { ViewConfig } from '../../../utils/configTypes2'
 import { studioStore } from '../../Studio/stores'
 import { newFlickStore } from '../store/flickNew.store'
 
 const FragmentBar = ({
-  initialPlateValue,
   plateValue,
   config,
-  setSerializing,
-  setConfig,
-  setSelectedLayoutId,
-  setInitialPlateValue,
-  assetsData,
 }: {
-  initialPlateValue: TNode<any>[] | undefined
-  plateValue?: TNode<any>[]
-  config: Config
-  setSerializing: React.Dispatch<React.SetStateAction<boolean>>
-  setConfig: React.Dispatch<React.SetStateAction<Config>>
-  setSelectedLayoutId: React.Dispatch<React.SetStateAction<string>>
-  setInitialPlateValue: React.Dispatch<
-    React.SetStateAction<TNode<any>[] | undefined>
-  >
-  assetsData: UserAssetQuery | undefined
+  plateValue?: any
+  config: ViewConfig
 }) => {
   const [fragmentVideoModal, setFragmetVideoModal] = useState(false)
-  const fbState = useRecoilValue(firebaseState)
   const [{ flick, activeFragmentId, isMarkdown }, setFlickStore] =
     useRecoilState(newFlickStore)
   const history = useHistory()
@@ -74,8 +54,7 @@ const FragmentBar = ({
     },
   })
 
-  const [updateFragmentMutation, { data: updateFragmentData }] =
-    useUpdateFragmentMutation()
+  const [updateFragmentMutation] = useUpdateFragmentMutation()
 
   const [updateFragmentState, { data, error }] =
     useUpdateFragmentStateMutation()
@@ -123,90 +102,10 @@ const FragmentBar = ({
     })
   }, [fragmentError])
 
-  const generateConfig = async () => {
-    try {
-      if (!plateValue || plateValue?.length === 0) return
-      if (JSON.stringify(plateValue) !== JSON.stringify(initialPlateValue)) {
-        setSerializing(true)
-
-        const { token } = fbState
-        const dataConfig = await serializeDataConfig(
-          plateValue,
-          token || '',
-          assetsData
-        )
-        const viewConfig = generateViewConfig({
-          dataConfig,
-          viewConfig: config.viewConfig,
-        })
-        setConfig({ dataConfig, viewConfig })
-        if (dataConfig.length > 0) {
-          setSelectedLayoutId(dataConfig[0].id)
-        }
-
-        const result = await updateFragmentState({
-          variables: {
-            editorState: plateValue,
-            id: activeFragmentId,
-            configuration: { dataConfig, viewConfig },
-          },
-        })
-
-        if (result.errors) {
-          throw Error(result.errors[0].message)
-        }
-
-        if (flick)
-          setFlickStore((store) => ({
-            ...store,
-            flick: {
-              ...flick,
-              fragments: flick.fragments.map((f) =>
-                f.id === activeFragmentId
-                  ? {
-                      ...f,
-                      configuration: {
-                        dataConfig,
-                        viewConfig,
-                      },
-                      editorState: plateValue,
-                    }
-                  : f
-              ),
-            },
-          }))
-        setInitialPlateValue(plateValue)
-      }
-    } catch (error) {
-      emitToast({
-        type: 'error',
-        title: 'Error updating fragment',
-      })
-    } finally {
-      setSerializing(false)
-    }
-  }
-
   const updateConfig = async () => {
     setSavingConfig(true)
     try {
-      let dc = config.dataConfig
-      let vc = config.viewConfig
       if (!plateValue || plateValue?.length === 0) return
-      if (JSON.stringify(plateValue) !== JSON.stringify(initialPlateValue)) {
-        const { token } = fbState
-
-        dc = await serializeDataConfig(plateValue, token || '', assetsData)
-        vc = generateViewConfig({
-          dataConfig: dc,
-          viewConfig: vc,
-        })
-        setConfig({ dataConfig: dc, viewConfig: vc })
-        if (dc.length > 0) {
-          setSelectedLayoutId(dc[0].id)
-        }
-        setInitialPlateValue(plateValue)
-      }
       if (flick)
         setFlickStore((store) => ({
           ...store,
@@ -216,10 +115,7 @@ const FragmentBar = ({
               f.id === activeFragmentId
                 ? {
                     ...f,
-                    configuration: {
-                      dataConfig: dc,
-                      viewConfig: vc,
-                    } as Config,
+                    configuration: config,
                     editorState: plateValue,
                   }
                 : f
@@ -230,7 +126,7 @@ const FragmentBar = ({
         variables: {
           editorState: plateValue,
           id: activeFragmentId,
-          configuration: { dataConfig: dc, viewConfig: vc } as Config,
+          configuration: config,
         },
       })
     } catch (error) {
@@ -365,7 +261,6 @@ const FragmentBar = ({
                     ...store,
                     isMarkdown: false,
                   }))
-                  generateConfig()
                 }}
                 className={cx(
                   'bg-gray-100 p-1.5 rounded-tr-md rounded-br-md text-gray-600',

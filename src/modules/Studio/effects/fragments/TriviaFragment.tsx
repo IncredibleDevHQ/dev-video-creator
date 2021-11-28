@@ -24,7 +24,7 @@ import { StudioUserConfiguration } from '../../utils/StudioUserConfig'
 import { TrianglePathTransition } from '../FragmentTransitions'
 
 const TriviaFragment = ({
-  // viewConfig,
+  viewConfig,
   dataConfig,
   dataConfigLength,
   topLayerChildren,
@@ -35,8 +35,8 @@ const TriviaFragment = ({
   stageRef,
   layerRef,
 }: {
-  // viewConfig: LayoutConfig
-  dataConfig: ImageBlockProps & BlockProperties
+  viewConfig: BlockProperties
+  dataConfig: ImageBlockProps
   dataConfigLength: number
   topLayerChildren: JSX.Element[]
   setTopLayerChildren: React.Dispatch<React.SetStateAction<JSX.Element[]>>
@@ -99,7 +99,7 @@ const TriviaFragment = ({
     if (!dataConfig) return
     setObjectConfig(
       FragmentLayoutConfig({
-        layout: dataConfig.layout || 'classic',
+        layout: viewConfig.layout || 'classic',
         isShorts: shortsMode || false,
       })
     )
@@ -178,30 +178,29 @@ const TriviaFragment = ({
     // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
     if (payload?.fragmentState === 'customLayout') {
       setTopLayerChildren([
+        <TrianglePathTransition isShorts={shortsMode} direction="right" />,
+      ])
+      addTransitionAudio()
+      setTimeout(() => {
+        setFragmentState(payload?.fragmentState)
+        customLayoutRef.current?.to({
+          opacity: 1,
+          duration: 0.2,
+        })
+      }, 800)
+    }
+    // Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
+    if (payload?.fragmentState === 'onlyUserMedia') {
+      setTopLayerChildren([
         <TrianglePathTransition isShorts={shortsMode} direction="left" />,
       ])
       addTransitionAudio()
       setTimeout(() => {
         setFragmentState(payload?.fragmentState)
-        // customLayoutRef.current?.opacity(1)
         customLayoutRef.current?.to({
-          opacity: 1,
+          opacity: 0,
           duration: 0.2,
         })
-      }, 1000)
-    }
-    // Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
-    if (payload?.fragmentState === 'onlyUserMedia') {
-      setTopLayerChildren([
-        <TrianglePathTransition isShorts={shortsMode} direction="right" />,
-      ])
-      addTransitionAudio()
-      customLayoutRef.current?.to({
-        opacity: 0,
-        duration: 0.8,
-      })
-      setTimeout(() => {
-        setFragmentState(payload?.fragmentState)
       }, 800)
     }
   }, [payload?.fragmentState])
@@ -214,9 +213,9 @@ const TriviaFragment = ({
         y={0}
         width={stageConfig.width}
         height={stageConfig.height}
-        fillLinearGradientColorStops={dataConfig.gradient?.values}
-        fillLinearGradientStartPoint={dataConfig.gradient?.startIndex}
-        fillLinearGradientEndPoint={dataConfig.gradient?.endIndex}
+        fillLinearGradientColorStops={viewConfig.gradient?.values}
+        fillLinearGradientStartPoint={viewConfig.gradient?.startIndex}
+        fillLinearGradientEndPoint={viewConfig.gradient?.endIndex}
       />
       {/* ) : (
         <Image
@@ -310,7 +309,7 @@ const TriviaFragment = ({
   ]
 
   const studioUserConfig = StudioUserConfiguration({
-    layout: dataConfig.layout || 'classic',
+    layout: viewConfig.layout || 'classic',
     fragment,
     fragmentState,
     isShorts: shortsMode || false,
