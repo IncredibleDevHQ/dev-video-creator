@@ -71,7 +71,7 @@ const UnifiedFragment = ({
     if (!config) return
     setDataConfig(config)
     setViewConfig(layoutConfig)
-  }, [config])
+  }, [config, layoutConfig])
 
   useEffect(() => {
     if (!fragment) return
@@ -101,7 +101,7 @@ const UnifiedFragment = ({
     if (viewConfig?.mode === 'Portrait') {
       setDataConfig(dataConfig.filter((c) => c.type !== 'videoBlock'))
     }
-  }, [viewConfig, dataConfig])
+  }, [viewConfig])
 
   useEffect(() => {
     setActiveObjectIndex(payload?.activeObjectIndex)
