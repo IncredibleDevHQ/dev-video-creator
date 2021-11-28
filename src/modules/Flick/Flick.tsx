@@ -341,7 +341,7 @@ const Flick = () => {
                 </Tooltip>
               )}
             </div>
-            <div className="px-8 w-full overflow-y-scroll pb-8 flex justify-between items-stretch">
+            <div className="px-8 w-full overflow-y-scroll pb-28 flex justify-between items-stretch">
               <TextEditor
                 placeholder="Start writing..."
                 handleUpdateJSON={(json) => {
