@@ -63,10 +63,10 @@ export interface ImageBlock {
 }
 
 export interface ListItem {
-  // content?: string
-  // items?: ListItem[]
+  content?: string
+  items?: ListItem[]
   level?: number
-  text: string
+  text?: string
 }
 
 export interface CommonBlockProps {
@@ -195,6 +195,7 @@ const getSimpleAST = (state: RemirrorJSON): SimpleAST => {
         listItem.content?.forEach((node) => {
           if (node.type === 'paragraph') {
             item.content = node.content?.[0].text
+            item.text = node.content?.[0].text
           }
           if (node.type === 'bulletList') {
             item.items = node.content?.map((child) => simplifyListItem(child))
