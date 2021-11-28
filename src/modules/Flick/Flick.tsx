@@ -1,15 +1,23 @@
+import { cx } from '@emotion/css'
 import React, { useEffect, useMemo, useState } from 'react'
+import { FiEye, FiEyeOff, FiRefreshCcw, FiUser, FiX } from 'react-icons/fi'
 import { useHistory, useParams } from 'react-router-dom'
 import { useRecoilState, useSetRecoilState } from 'recoil'
-import { ScreenState, TextEditor } from '../../components'
+import { ScreenState, Text, TextEditor, Tooltip } from '../../components'
+import { Block, useUtils } from '../../components/TextEditor/utils'
 import {
+  FlickFragmentFragment,
+  FragmentParticipantFragment,
   Fragment_Status_Enum_Enum,
   StudioFragmentFragment,
   useGetFlickByIdQuery,
   UserAssetQuery,
   useUserAssetQuery,
 } from '../../generated/graphql'
+import { useCanvasRecorder } from '../../hooks'
 import { Config } from '../../utils/configTypes'
+import { BlockProperties, ViewConfig } from '../../utils/configTypes2'
+import { initEditor } from '../../utils/plateConfig/serializer/values'
 import studioStore from '../Studio/stores/studio.store'
 import {
   FlickNavBar,
@@ -17,15 +25,19 @@ import {
   FragmentSideBar,
   PublishModal,
 } from './components'
-import { newFlickStore } from './store/flickNew.store'
-import { initEditor } from '../../utils/plateConfig/serializer/values'
 import BlockPreview, {
   getGradientConfig,
   gradients,
 } from './components/BlockPreview'
-import { Block } from '../../components/TextEditor/utils'
-import { BlockProperties, ViewConfig } from '../../utils/configTypes2'
-import { useCanvasRecorder } from '../../hooks'
+import { FragmentTypeIcon } from './components/LayoutGeneric'
+import { newFlickStore } from './store/flickNew.store'
+
+const initialConfig: ViewConfig = {
+  showTitleSplash: true,
+  speakers: [],
+  mode: 'Landscape',
+  blocks: {},
+}
 
 const useLocalPayload = () => {
   const initialPayload = {
@@ -56,30 +68,49 @@ const useLocalPayload = () => {
   return { updatePayload, payload, resetPayload }
 }
 
-const Flick = () => {
-  const initialConfig: Config = {
-    dataConfig: [],
-    viewConfig: {
-      configs: [],
-      titleSplashConfig: {
-        cssString:
-          'linear-gradient(90deg, #D397FA 0%, #D397FA 0.01%, #8364E8 100%)',
-        values: [0, '#D397FA', 0.0001, '#D397FA', 1, '#8364E8'],
-        startIndex: {
-          x: 0,
-          y: 269.99999999999994,
-        },
-        endIndex: {
-          x: 960,
-          y: 270.00000000000006,
-        },
-      },
-      hasTitleSplash: true,
-    },
-  }
+const SpeakersTooltip = ({
+  fragment,
+  speakers,
+  addSpeaker,
+}: {
+  fragment: FlickFragmentFragment
+  speakers: FragmentParticipantFragment[]
+  addSpeaker: (speaker: FragmentParticipantFragment) => void
+}) => {
+  return (
+    <div className="bg-gray-50 p-2 rounded-md">
+      {fragment.participants
+        .filter(
+          (p) => !speakers.some((s) => s.participant.id === p.participant.id)
+        )
+        .map((participant) => (
+          <div
+            role="button"
+            tabIndex={0}
+            onKeyDown={() => null}
+            className="flex items-center"
+            key={participant.participant.id}
+            onClick={() => {
+              if (participant) addSpeaker(participant)
+            }}
+          >
+            <img
+              src={participant.participant.user.picture as string}
+              alt={participant.participant.user.displayName as string}
+              className="w-6 h-6 rounded-full"
+            />
+            <Text fontSize="normal" className="ml-2">
+              {participant.participant.user.displayName}
+            </Text>
+          </div>
+        ))}
+    </div>
+  )
+}
 
+const Flick = () => {
   const { id, fragmentId } = useParams<{ id: string; fragmentId?: string }>()
-  const [{ flick, activeFragmentId, isMarkdown }, setFlickStore] =
+  const [{ flick, activeFragmentId }, setFlickStore] =
     useRecoilState(newFlickStore)
   const { data, error, loading, refetch } = useGetFlickByIdQuery({
     variables: { id },
@@ -88,29 +119,21 @@ const Flick = () => {
   const history = useHistory()
 
   const [currentBlock, setCurrentBlock] = useState<Block>()
-  const [viewConfig, setViewConfig] = useState<ViewConfig>({
-    mode: 'Landscape',
-    blocks: {},
-  })
+  const [viewConfig, setViewConfig] = useState<ViewConfig>(initialConfig)
 
   const [initialPlateValue, setInitialPlateValue] = useState<any>()
   const [plateValue, setPlateValue] = useState<any>()
-  const [serializing, setSerializing] = useState(false)
   const [integrationModal, setIntegrationModal] = useState(false)
 
-  const [config, setConfig] = useState<Config>(initialConfig)
-
-  const [selectedLayoutId, setSelectedLayoutId] = useState('')
+  const [activeFragment, setActiveFragment] = useState<FlickFragmentFragment>()
+  const [isSpeakersTooltip, setSpeakersTooltip] = useState(false)
 
   const { updatePayload, payload, resetPayload } = useLocalPayload()
   const [myMediaAssets, setMyMediaAssets] = useState<UserAssetQuery>()
-  const {
-    data: assetsData,
-    error: assetsError,
-    refetch: assetsRefetch,
-  } = useUserAssetQuery()
+  const { data: assetsData, error: assetsError } = useUserAssetQuery()
 
   const { addTransitionAudio } = useCanvasRecorder({ options: {} })
+  const { getSimpleAST } = useUtils()
 
   const updateBlockProperties = (id: string, properties: BlockProperties) => {
     const newBlocks = { ...viewConfig.blocks, [id]: properties }
@@ -187,10 +210,27 @@ const Flick = () => {
     const fragment = flick?.fragments.find(
       (frag) => frag.id === activeFragmentId
     )
-    setConfig(fragment?.configuration || initialConfig)
+    if (fragment) setActiveFragment(fragment)
+    setViewConfig(fragment?.configuration || initialConfig)
     setInitialPlateValue(fragment?.editorState)
     setPlateValue(fragment?.editorState || initEditor)
   }, [activeFragmentId])
+
+  const addSpeaker = (speaker: FragmentParticipantFragment) => {
+    setViewConfig({
+      ...viewConfig,
+      speakers: [...viewConfig.speakers, speaker],
+    })
+  }
+
+  const deleteSpeaker = (speaker: FragmentParticipantFragment) => {
+    setViewConfig({
+      ...viewConfig,
+      speakers: viewConfig.speakers.filter(
+        (s) => s.participant.user.sub !== speaker.participant.user.sub
+      ),
+    })
+  }
 
   if (loading) return <ScreenState title="Just a jiffy" loading />
 
@@ -217,43 +257,146 @@ const Flick = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col h-screen relative">
       <div>
         <FlickNavBar toggleModal={setIntegrationModal} />
-        <FragmentBar
-          initialPlateValue={initialPlateValue}
-          setInitialPlateValue={setInitialPlateValue}
-          plateValue={plateValue}
-          setSerializing={setSerializing}
-          config={config}
-          setConfig={setConfig}
-          setSelectedLayoutId={setSelectedLayoutId}
-          assetsData={myMediaAssets}
-        />
+        <FragmentBar plateValue={plateValue} config={viewConfig} />
       </div>
       <div className="flex flex-1 overflow-y-auto">
         <FragmentSideBar />
-        {flick.fragments.length > 0 && (
-          <div className="px-8 w-full overflow-y-scroll pb-8 flex justify-between items-start">
-            <TextEditor
-              placeholder="Start writing..."
-              handleUpdateJSON={(json) => {
-                setPlateValue(json)
-              }}
-              initialContent={initialPlateValue}
-              handleActiveBlock={(block) => {
-                console.log('active block!', block)
-                setCurrentBlock(block)
-              }}
-            />
-            <div className="w-48 pt-20">
-              {currentBlock && (
-                <BlockPreview
-                  config={viewConfig}
-                  block={currentBlock}
-                  updateConfig={updateBlockProperties}
-                />
+        {flick.fragments.length > 0 && activeFragment && (
+          <div className="w-full my-4 mx-8">
+            <div className="flex items-center justify-start">
+              {viewConfig.speakers?.map((s) => (
+                <div
+                  className="flex items-center mr-2 rounded-md bg-gray-200"
+                  key={s.participant.user.sub}
+                >
+                  <img
+                    src={s.participant.user.picture as string}
+                    alt={s.participant.user.displayName as string}
+                    className="w-6 h-6 rounded-full"
+                  />
+                  <Text fontSize="normal" className="ml-2">
+                    {s.participant.user.displayName}
+                  </Text>
+                  <FiX onClick={() => deleteSpeaker(s)} />
+                </div>
+              ))}
+              {viewConfig.speakers.length <
+                activeFragment.participants.length && (
+                <Tooltip
+                  isOpen={isSpeakersTooltip}
+                  setIsOpen={() => setSpeakersTooltip(false)}
+                  placement="bottom-start"
+                  content={
+                    <SpeakersTooltip
+                      fragment={activeFragment}
+                      speakers={viewConfig.speakers}
+                      addSpeaker={addSpeaker}
+                    />
+                  }
+                >
+                  <button
+                    type="button"
+                    onClick={() => setSpeakersTooltip(true)}
+                  >
+                    {' '}
+                    + Add speakers
+                  </button>
+                </Tooltip>
               )}
+            </div>
+            <div className="px-8 w-full overflow-y-scroll pb-8 flex justify-between items-start">
+              <TextEditor
+                placeholder="Start writing..."
+                handleUpdateJSON={(json) => {
+                  setPlateValue(json)
+                }}
+                initialContent={initialPlateValue}
+                handleActiveBlock={(block) => {
+                  setCurrentBlock(block)
+                }}
+              />
+              <div className="w-48 pt-20">
+                {currentBlock && (
+                  <BlockPreview
+                    block={currentBlock}
+                    config={viewConfig}
+                    updateConfig={updateBlockProperties}
+                  />
+                )}
+              </div>
+            </div>
+            <div className="flex items-center justify-start border rounded-md bg-gray-50 mb-4 fixed p-2 mx-8 bottom-4 z-20">
+              <div className="flex items-center justify-center px-4 py-2 w-32 h-16 gap-x-2 bg-white">
+                <Text
+                  className={cx(
+                    'cursor-pointer bg-gray-200 text-gray-50 px-2.5 py-1 rounded-sm text-sm ',
+                    {
+                      'bg-gray-800 text-gray-100':
+                        viewConfig.mode === 'Landscape',
+                    }
+                  )}
+                  onClick={() =>
+                    setViewConfig({ ...viewConfig, mode: 'Landscape' })
+                  }
+                >
+                  16:9
+                </Text>
+                <Text
+                  className={cx(
+                    'cursor-pointer bg-gray-200 text-gray-50 h-full rounded-sm text-sm flex px-1 items-center',
+                    {
+                      'bg-gray-800 text-gray-100':
+                        viewConfig.mode === 'Portrait',
+                    }
+                  )}
+                  onClick={() =>
+                    setViewConfig({ ...viewConfig, mode: 'Portrait' })
+                  }
+                >
+                  9:16
+                </Text>
+              </div>
+              <div className="px-4 py-2 w-32 h-16 relative">
+                {viewConfig.showTitleSplash ? (
+                  <FiEye
+                    size={24}
+                    className="absolute top-1 right-2 bg-white border rounded-sm p-1"
+                    onClick={() =>
+                      setViewConfig({ ...viewConfig, showTitleSplash: false })
+                    }
+                  />
+                ) : (
+                  <FiEyeOff
+                    size={24}
+                    className="absolute top-1 right-2 bg-white border rounded-sm p-1"
+                    onClick={() =>
+                      setViewConfig({ ...viewConfig, showTitleSplash: true })
+                    }
+                  />
+                )}
+                <div className="border rounded-md w-full h-full flex justify-center items-center">
+                  Title
+                </div>
+              </div>
+              <div className="px-4 py-2 w-32 h-16 bg-gray-100 relative border border-r-2">
+                <FiRefreshCcw
+                  size={20}
+                  className="absolute -right-3 bg-white p-1 rounded-sm top-1/2 transform -translate-y-1/2 z-10"
+                />
+                <div className="border rounded-md flex justify-center items-center w-full h-full bg-gray-500">
+                  <FiUser size={20} />
+                </div>
+              </div>
+              {getSimpleAST(plateValue).blocks.map((block) => (
+                <div className="px-4 py-2 w-32 h-16 bg-gray-100 relative border border-r-2">
+                  <div className="border rounded-md flex justify-center items-center w-full h-full p-2">
+                    <FragmentTypeIcon type={block.type} />
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}

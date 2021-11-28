@@ -1,3 +1,9 @@
+fragment FragmentParticipant on Fragment_Participant {
+  participant {
+    ...FlickParticipants
+  }
+}
+
 fragment FlickFragment on Fragment {
   configuration
   description
@@ -9,9 +15,7 @@ fragment FlickFragment on Fragment {
   producedLink
   editorState
   participants {
-    participant {
-      ...FlickParticipants
-    }
+    ...FragmentParticipant
   }
 }
 

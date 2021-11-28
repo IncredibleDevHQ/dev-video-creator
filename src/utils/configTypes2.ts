@@ -1,14 +1,19 @@
-export type Layout =
-  | 'classic'
-  | 'float-full-right'
-  | 'float-full-left'
-  | 'float-half-right'
-  | 'padded-bottom-right-tile'
-  | 'padded-bottom-right-circle'
-  | 'bottom-right-tile'
-  | 'bottom-right-circle'
-  | 'padded-split'
-  | 'split'
+import { FragmentParticipantFragment } from '../generated/graphql'
+
+export const allLayoutTypes = [
+  'classic',
+  'float-full-right',
+  'float-full-left',
+  'float-half-right',
+  'padded-bottom-right-tile',
+  'padded-bottom-right-circle',
+  'bottom-right-tile',
+  'bottom-right-circle',
+  'padded-split',
+  'split',
+] as const
+
+export type Layout = typeof allLayoutTypes[number]
 
 export interface Gradient {
   angle: number
@@ -103,6 +108,8 @@ export type BlockProperties = {
 
 export interface ViewConfig {
   mode: 'Portrait' | 'Landscape'
+  showTitleSplash: boolean
+  speakers: FragmentParticipantFragment[]
   blocks: {
     [key: string]: BlockProperties
   }
