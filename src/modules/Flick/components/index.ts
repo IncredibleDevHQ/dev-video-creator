@@ -9,11 +9,11 @@ import UpdateFragmentParticipantsModal from './UpdateFragmentParticipantsModal'
 import FragmentVideoModal from './FragmentVideoModal'
 import FragmentEditor from './FragmentEditor'
 import FlickCard from './FlickCard'
-import FragmentView from './FragmentView'
 import PublishFlick from './Publish/PublishFlick'
 import VideoEditor from './VideoEditor'
 import VideoEditorModal from './VideoEditorModal'
 import ProcessingFlick from './ProcessingFlick'
+import IntroConfig from './IntroConfig'
 
 export {
   ScreenRecording,
@@ -27,9 +27,9 @@ export {
   UpdateFragmentParticipantsModal,
   FragmentVideoModal,
   FlickCard,
-  FragmentView,
   PublishFlick,
   VideoEditor,
   VideoEditorModal,
   ProcessingFlick,
+  IntroConfig,
 }
