@@ -15,7 +15,7 @@ import {
   IoImage,
   IoList,
 } from 'react-icons/io5'
-import { BiNote } from 'react-icons/bi'
+import { BiHeading, BiNote } from 'react-icons/bi'
 import { Heading, Text } from '../..'
 import { BlockTab } from '.'
 import VideoModal from '../VideoModal'
@@ -37,13 +37,22 @@ const Suggestor = () => {
     toggleBulletList,
     insertImage,
     toggleSlab,
+    toggleHeading,
   } = useCommands()
 
   // TODO: Scope for improvement...
   const tabs = useCallback(() => {
     return [
       {
-        label: 'Text',
+        label: 'Heading',
+        icon: BiHeading,
+        handleClick: () => {
+          toggleHeading()
+        },
+        location: ['dirty-slab'],
+      },
+      {
+        label: 'Description',
         icon: IoText,
         handleClick: () => {
           toggleCallout({ type: 'success', emoji: '💬' })
