@@ -146,7 +146,7 @@ const Suggestor = () => {
     <FloatingWrapper
       enabled={!!change}
       positioner="always"
-      placement="top-start"
+      placement="auto-start"
       animated
       blurOnInactive
       renderOutsideEditor
