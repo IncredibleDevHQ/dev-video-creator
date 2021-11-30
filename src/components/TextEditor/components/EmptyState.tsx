@@ -1,9 +1,10 @@
 import { IconType, useChainedCommands } from '@remirror/react'
 import React, { useCallback, useState } from 'react'
-import { IoCode, IoImage, IoList, IoPlay } from 'react-icons/io5'
+import { IoBrowsers, IoCode, IoImage, IoList, IoPlay } from 'react-icons/io5'
 import { Heading, Text } from '../..'
 import ImageModal from '../ImageModal'
 import VideoModal from '../VideoModal'
+import LanguageModal from '../LanguageModal'
 
 export const BlockTab = ({
   label,
@@ -38,10 +39,7 @@ const EmptyState = () => {
         main: true,
         name: 'codeBlock',
         handleClick: () => {
-          chain
-            .toggleSlab()
-            .createCodeBlock({ code: '', layout: 'code', language: 'jsx' })
-            .run()
+          setModal('code')
         },
       },
       {
@@ -59,7 +57,14 @@ const EmptyState = () => {
         main: true,
         name: 'bulletList',
         handleClick: () => {
-          chain.toggleSlab().toggleBulletList().run()
+          chain
+            .toggleSlab()
+            .toggleHeading({ level: 2 })
+            .insertText('Heading')
+            .insertNewLine()
+            .toggleBulletList()
+            .insertNewLine()
+            .run()
         },
       },
       {
@@ -71,10 +76,19 @@ const EmptyState = () => {
           setModal('image')
         },
       },
+      {
+        label: 'Block',
+        icon: IoBrowsers,
+        main: true,
+        name: 'block',
+        handleClick: () => {
+          chain.toggleSlab().run()
+        },
+      },
     ]
   }, [])
 
-  const [modal, setModal] = useState<'video' | 'image' | undefined>()
+  const [modal, setModal] = useState<'video' | 'image' | 'code' | undefined>()
 
   return (
     <>
@@ -87,10 +101,23 @@ const EmptyState = () => {
         <Heading className="text-gray-800" fontSize="extra-small">
           What would you like to add
         </Heading>
-        <Text fontSize="small" className="text-gray-600 mt-2">
+        <Text fontSize="small" className="text-gray-600 mt-2 leading-normal">
           Each block will be part of your timeline. You can edit and rearrange
-          them.
+          them later. You can also{' '}
+          <span
+            role="button"
+            tabIndex={0}
+            onKeyDown={undefined}
+            onClick={() => {
+              chain.insertNewLine().focus('start').run()
+            }}
+            className="cursor-pointer inline-block border-dotted pb-px border-b border-gray-700"
+          >
+            start blank
+          </span>
+          .
         </Text>
+
         <div className="grid grid-cols-3 gap-3 mt-4">
           {tabs().map((tab) => {
             return (
@@ -108,7 +135,14 @@ const EmptyState = () => {
         handleClose={() => setModal(undefined)}
         open={modal === 'video'}
         handleUrl={(url) => {
-          chain.toggleSlab().addIframe({ src: url }).run()
+          chain
+            .toggleSlab()
+            .toggleHeading({ level: 2 })
+            .insertText('Heading')
+            .insertNewLine()
+            .addIframe({ src: url })
+            .insertNewLine()
+            .run()
           setModal(undefined)
         }}
       />
@@ -116,7 +150,30 @@ const EmptyState = () => {
         handleClose={() => setModal(undefined)}
         open={modal === 'image'}
         handleUrl={(url) => {
-          chain.toggleSlab().insertImage({ src: url }).run()
+          chain
+            .toggleSlab()
+            .toggleHeading({ level: 2 })
+            .insertText('Heading')
+            .insertNewLine()
+            .insertImage({ src: url })
+            .insertNewLine()
+            .run()
+          setModal(undefined)
+        }}
+      />
+
+      <LanguageModal
+        handleClose={() => setModal(undefined)}
+        open={modal === 'code'}
+        handleLanguage={(language) => {
+          chain
+            .toggleSlab()
+            .toggleHeading({ level: 2 })
+            .insertText('Heading')
+            .insertNewLine()
+            .createCodeBlock({ code: '', layout: 'code', language })
+            .insertNewLine()
+            .run()
           setModal(undefined)
         }}
       />

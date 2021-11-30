@@ -1,5 +1,6 @@
 import {
   FloatingWrapper,
+  useChainedCommands,
   useCommands,
   useRemirrorContext,
   useSuggest,
@@ -20,6 +21,7 @@ import { Heading, Text } from '../..'
 import { BlockTab } from '.'
 import VideoModal from '../VideoModal'
 import ImageModal from '../ImageModal'
+import LanguageModal from '../LanguageModal'
 
 const Suggestor = () => {
   const { view } = useRemirrorContext()
@@ -49,7 +51,7 @@ const Suggestor = () => {
         handleClick: () => {
           toggleHeading()
         },
-        location: ['dirty-slab'],
+        location: ['dirty-slab', 'slab'],
       },
       {
         label: 'Description',
@@ -57,7 +59,7 @@ const Suggestor = () => {
         handleClick: () => {
           toggleCallout({ type: 'success', emoji: '💬' })
         },
-        location: ['dirty-slab'],
+        location: ['dirty-slab', 'slab'],
       },
       {
         label: 'Notes',
@@ -65,7 +67,7 @@ const Suggestor = () => {
         handleClick: () => {
           toggleCallout({ type: 'info', emoji: '📝' })
         },
-        location: ['dirty-slab'],
+        location: ['dirty-slab', 'slab'],
       },
       {
         label: 'Block',
@@ -149,7 +151,8 @@ const Suggestor = () => {
     }
   }, [view.state.tr.selection])
 
-  const [modal, setModal] = useState<'video' | 'image' | undefined>()
+  const [modal, setModal] = useState<'video' | 'image' | 'code' | undefined>()
+  const chain = useChainedCommands()
 
   return (
     <FloatingWrapper
@@ -221,6 +224,22 @@ const Suggestor = () => {
         open={modal === 'image'}
         handleUrl={(url) => {
           insertImage({ src: url })
+          setModal(undefined)
+        }}
+      />
+      <LanguageModal
+        handleClose={() => setModal(undefined)}
+        open={modal === 'code'}
+        handleLanguage={(language) => {
+          chain
+            .toggleSlab()
+            .toggleHeading({ level: 2 })
+            .insertText('Heading')
+            .insertNewLine()
+            .insertHardBreak()
+            .createCodeBlock({ code: '', layout: 'code', language })
+            .insertNewLine()
+            .run()
           setModal(undefined)
         }}
       />
