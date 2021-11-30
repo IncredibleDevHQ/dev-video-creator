@@ -53,7 +53,7 @@ const getColorCodes = async (
           }
         `,
       variables: {
-        code,
+        code: code || '',
         language: language || 'javascript',
       },
     },
@@ -93,8 +93,6 @@ const CodeFragment = ({
 }) => {
   const { fragment, payload, updatePayload, state, addTransitionAudio } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
-
-  // const [getTokenisedCode, { data }] = useGetTokenisedCodeLazyQuery()
 
   const { initUseCode, computedTokens } = useCode()
   // const [getTokenisedCode, { data }] = useGetTokenisedCodeLazyQuery()
@@ -168,7 +166,7 @@ const CodeFragment = ({
           dataConfig.codeBlock.language || '',
           user.token || ''
         )
-        setColorCodes(data.data.TokenisedCode.data)
+        if (!data?.errors) setColorCodes(data.data.TokenisedCode.data)
       } catch (e) {
         console.error(e)
         throw e
@@ -271,7 +269,6 @@ const CodeFragment = ({
   }, [state, isCodexFormat])
 
   useEffect(() => {
-    if (!customLayoutRef.current) return
     // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
     if (payload?.fragmentState === 'customLayout') {
       setTopLayerChildren([
@@ -280,7 +277,7 @@ const CodeFragment = ({
       addTransitionAudio()
       setTimeout(() => {
         setFragmentState(payload?.fragmentState)
-        customLayoutRef.current?.to({
+        customLayoutRef?.current?.to({
           opacity: 1,
           duration: 0.2,
         })
@@ -294,7 +291,7 @@ const CodeFragment = ({
       addTransitionAudio()
       setTimeout(() => {
         setFragmentState(payload?.fragmentState)
-        customLayoutRef.current?.to({
+        customLayoutRef?.current?.to({
           opacity: 0,
           duration: 0.2,
         })
@@ -490,6 +487,7 @@ const CodeFragment = ({
       titleSplashData={titleSplashData}
       studioUserConfig={studioUserConfig}
       topLayerChildren={topLayerChildren}
+      isShorts={shortsMode}
     />
   )
 }

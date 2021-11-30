@@ -38,7 +38,7 @@ import {
 import { useCanvasRecorder } from '../../hooks'
 import { useUploadFile } from '../../hooks/use-upload-file'
 import { User, userState } from '../../stores/user.store'
-import { Config, ConfigType } from '../../utils/configTypes'
+import { ConfigType } from '../../utils/configTypes'
 import { Countdown } from './components'
 import { CONFIG, SHORTS_CONFIG } from './components/Concourse'
 import {
@@ -102,6 +102,7 @@ const StudioHoC = () => {
 
   const { data, loading } = useGetFragmentByIdQuery({
     variables: { id: fragmentId, sub: sub as string },
+    fetchPolicy: 'network-only',
   })
 
   if (loading || !ready) return <ScreenState title="Just a jiffy..." loading />
