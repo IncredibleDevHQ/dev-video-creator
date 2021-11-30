@@ -132,7 +132,7 @@ const FragmentSideBar = () => {
           }
           type="button"
           className={cx(
-            'flex bg-gray-100 items-center justify-start m-4 p-3 rounded-md border border-gray-300',
+            'flex bg-gray-100 items-center justify-start m-4 p-3 rounded-md border border-gray-300 relative',
             {
               'border-green-600':
                 activeFragmentId ===
@@ -142,6 +142,11 @@ const FragmentSideBar = () => {
             }
           )}
         >
+          {flick?.fragments.find(
+            (f) => f.type === Fragment_Type_Enum_Enum.Intro
+          )?.producedLink && (
+            <IoCheckmarkCircle className="absolute top-0 right-0 m-2 text-green-600" />
+          )}
           <Text className="text-sm font-bold">Intro</Text>
         </button>
         <div className="border-b-2" />
@@ -181,7 +186,7 @@ const FragmentSideBar = () => {
           }
           type="button"
           className={cx(
-            'flex bg-gray-100 items-center justify-start m-4 p-3 rounded-md border border-gray-300',
+            'flex bg-gray-100 items-center justify-start m-4 p-3 rounded-md border border-gray-300 relative',
             {
               'border-green-600':
                 activeFragmentId ===
@@ -191,6 +196,11 @@ const FragmentSideBar = () => {
             }
           )}
         >
+          {flick?.fragments.find(
+            (f) => f.type === Fragment_Type_Enum_Enum.Intro
+          )?.producedLink && (
+            <IoCheckmarkCircle className="absolute top-0 right-0 m-2 text-green-600" />
+          )}
           <Text className="text-sm font-bold">Outro</Text>
         </button>
       </div>
