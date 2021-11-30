@@ -107,7 +107,7 @@ export interface SimpleAST {
 // TODO: Refactor this...
 
 const getSimpleAST = (state: RemirrorJSON): SimpleAST => {
-  const slabs = state.content?.filter((node) => node.type === 'slab')
+  const slabs = state?.content?.filter((node) => node.type === 'slab')
 
   const blocks: Block[] = []
 

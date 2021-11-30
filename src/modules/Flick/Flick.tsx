@@ -231,9 +231,14 @@ const Flick = () => {
       (frag) => frag.id === activeFragmentId
     )
     if (fragment) setActiveFragment(fragment)
-    setViewConfig(fragment?.configuration || initialConfig)
-    setInitialPlateValue(fragment?.editorState)
-    setPlateValue(fragment?.editorState || initEditor)
+    if (
+      fragment?.type !== Fragment_Type_Enum_Enum.Intro &&
+      fragment?.type !== Fragment_Type_Enum_Enum.Outro
+    ) {
+      setViewConfig(fragment?.configuration || initialConfig)
+      setInitialPlateValue(fragment?.editorState)
+      setPlateValue(fragment?.editorState || initEditor)
+    }
   }, [activeFragmentId])
 
   const addSpeaker = (speaker: FragmentParticipantFragment) => {
@@ -323,7 +328,7 @@ const Flick = () => {
                       <FiX onClick={() => deleteSpeaker(s)} />
                     </div>
                   ))}
-                  {viewConfig.speakers.length <
+                  {viewConfig?.speakers?.length <
                     activeFragment.participants.length && (
                     <Tooltip
                       isOpen={isSpeakersTooltip}
