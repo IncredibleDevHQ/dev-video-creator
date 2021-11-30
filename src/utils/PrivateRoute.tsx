@@ -1,9 +1,9 @@
 import React from 'react'
-import { Route, RouteProps } from 'react-router-dom'
+import { Redirect, Route, RouteProps } from 'react-router-dom'
 import { useRecoilValue } from 'recoil'
 import { ScreenState } from '../components'
 import firebaseState from '../stores/firebase.store'
-import { userVerificationStatus } from '../stores/user.store'
+import { userState } from '../stores/user.store'
 
 interface PrivateRouteProps extends RouteProps {
   component: any
@@ -12,20 +12,33 @@ interface PrivateRouteProps extends RouteProps {
 
 const PrivateRoute = ({
   component: Component,
+  redirectTo = '/',
   ...rest
 }: PrivateRouteProps): JSX.Element | null => {
-  const auth = useRecoilValue(firebaseState)
-  const verificationStatus = useRecoilValue(userVerificationStatus)
+  const user = useRecoilValue(userState)
+  const { loading } = useRecoilValue(firebaseState)
 
-  if (
-    auth?.loading === true ||
-    typeof auth?.loading === 'undefined' ||
-    verificationStatus === undefined
-  )
+  if (loading === true || typeof loading === 'undefined')
     return <ScreenState title="Just a jiffy" loading />
 
+  if (user) {
+    return user?.uid ? (
+      <Route {...rest} render={(routeProps) => <Component {...routeProps} />} />
+    ) : null
+  }
+
   return (
-    <Route {...rest} render={(routeProps) => <Component {...routeProps} />} />
+    <Route
+      {...rest}
+      render={(routeProps) => (
+        <Redirect
+          to={{
+            pathname: redirectTo,
+            state: { from: routeProps.location },
+          }}
+        />
+      )}
+    />
   )
 }
 

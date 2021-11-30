@@ -37,8 +37,6 @@ const AuthProvider = ({ children }: { children: JSX.Element }): JSX.Element => {
       setFbUser(signedInUser.user)
       getUserQuery()
     } catch (e) {
-      Sentry.captureException(e)
-      window.location.href = config.auth.endpoint
       setAuth({ ...auth, loading: false })
     }
   }

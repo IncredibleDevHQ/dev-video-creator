@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react'
 import 'react-responsive-modal/styles.css'
-import { BrowserRouter as Router, Switch } from 'react-router-dom'
+import { BrowserRouter as Router, Route, Switch } from 'react-router-dom'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import { RecoilRoot } from 'recoil'
 import { ScreenState } from './components'
-import { Flick, GitHubCallback, Integrations, Studio } from './modules'
+import { Flick, GitHubCallback, Integrations, Landing, Studio } from './modules'
 import AuthProvider from './utils/auth'
 import AuthorizedApolloProvider from './utils/AuthorizedApolloProvider'
 import PrivateRoute from './utils/PrivateRoute'
@@ -52,6 +52,9 @@ const App = () => {
             />
             <Router>
               <Switch>
+                <Route exact path="/">
+                  <Landing />
+                </Route>
                 <PrivateRoute
                   exact
                   path="/flick/:id/:fragmentId?"
