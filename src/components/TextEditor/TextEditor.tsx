@@ -54,6 +54,7 @@ export interface TextEditorProps {
   initialContent?: string
   handleUpdateSimpleAST?: (simpleAST: SimpleAST) => void
   handleUpdateJSON?: (json: string) => void
+  handleUpdateMarkdown?: (markdown: string) => void
   handleActiveBlock?: (block?: Block) => void
   handleUpdatePosition?: (position?: Position) => void
 }
@@ -65,6 +66,7 @@ const TextEditor: FC<TextEditorProps> = ({
   placeholder,
   initialContent,
   children,
+  handleUpdateMarkdown,
   handleUpdateJSON,
   handleActiveBlock,
   handleUpdatePosition,
@@ -189,7 +191,11 @@ const TextEditor: FC<TextEditorProps> = ({
 
             <Suggestor />
             <ContentUpdater content={initialContent} />
-            <Exporter state={state} handleUpdateJSON={handleUpdateJSON} />
+            <Exporter
+              state={state}
+              handleUpdateJSON={handleUpdateJSON}
+              handleUpdateMarkdown={handleUpdateMarkdown}
+            />
             <FloatingToolbar
               placement="auto"
               enabled

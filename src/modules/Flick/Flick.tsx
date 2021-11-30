@@ -361,6 +361,9 @@ const Flick = () => {
                       // Relative position of the cursor.
                       setPreviewPosition(position)
                     }}
+                    handleUpdateMarkdown={(markdown) => {
+                      // console.log(markdown)
+                    }}
                   />
                   <div className="w-48 relative">
                     {currentBlock && (

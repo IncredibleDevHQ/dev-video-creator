@@ -4,14 +4,17 @@ import { useMemo } from 'react'
 const Exporter = ({
   state,
   handleUpdateJSON,
+  handleUpdateMarkdown,
 }: {
   state: any
   handleUpdateJSON: any
+  handleUpdateMarkdown: any
 }) => {
-  const { getJSON } = useHelpers()
+  const { getJSON, getMarkdown } = useHelpers()
 
   useMemo(() => {
     handleUpdateJSON(getJSON(state))
+    handleUpdateMarkdown(getMarkdown(state))
   }, [state])
 
   return null
