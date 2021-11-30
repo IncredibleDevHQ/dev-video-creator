@@ -174,7 +174,7 @@ const CodeFragment = ({
         throw e
       }
     })()
-  }, [dataConfig, shortsMode])
+  }, [dataConfig, shortsMode, viewConfig])
 
   useEffect(() => {
     if (!colorCodes) return

@@ -118,7 +118,7 @@ const TriviaFragment = ({
       },
     })
     setTopLayerChildren([])
-  }, [dataConfig, shortsMode])
+  }, [dataConfig, shortsMode, viewConfig])
 
   useEffect(() => {
     setStudio({
