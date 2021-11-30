@@ -11,6 +11,7 @@ import {
 import { useHistory, useParams } from 'react-router-dom'
 import { useRecoilState, useSetRecoilState } from 'recoil'
 import {
+  Heading,
   ScreenState,
   Text,
   TextEditor,
@@ -97,7 +98,7 @@ const SpeakersTooltip = ({
   addSpeaker: (speaker: FragmentParticipantFragment) => void
 }) => {
   return (
-    <div className="bg-gray-50 p-2 rounded-md">
+    <div className="bg-gray-50 p-1 rounded-md">
       {fragment.participants
         .filter(
           (p) => !speakers.some((s) => s.participant.id === p.participant.id)
@@ -107,7 +108,7 @@ const SpeakersTooltip = ({
             role="button"
             tabIndex={0}
             onKeyDown={() => null}
-            className="flex items-center"
+            className="flex items-center my-2 hover:bg-gray-400 transition-colors p-2 rounded-md"
             key={participant.participant.id}
             onClick={() => {
               if (participant) addSpeaker(participant)
@@ -306,7 +307,11 @@ const Flick = () => {
         <FragmentSideBar />
         {flick.fragments.length > 0 && activeFragment && (
           <div className="w-full my-4 mx-8">
-            <div className="flex items-center justify-start mx-12">
+            <Heading className="mx-12" fontSize="large">
+              {activeFragment.name}
+            </Heading>
+
+            <div className="flex items-center justify-start mx-12 my-4">
               {viewConfig.speakers?.map((s) => (
                 <div
                   className="flex items-center mr-2 rounded-md bg-gray-200 px-2 py-1"
@@ -317,7 +322,7 @@ const Flick = () => {
                     alt={s.participant.user.displayName as string}
                     className="w-6 h-6 rounded-full"
                   />
-                  <Text fontSize="normal" className="ml-2">
+                  <Text fontSize="normal" className="ml-2 mr-1">
                     {s.participant.user.displayName}
                   </Text>
                   <FiX onClick={() => deleteSpeaker(s)} />
@@ -340,12 +345,17 @@ const Flick = () => {
                   <button
                     type="button"
                     onClick={() => setSpeakersTooltip(true)}
+                    className="ml-2"
                   >
                     {' '}
                     + Add speakers
                   </button>
                 </Tooltip>
               )}
+            </div>
+            <div className="mx-12 flex items-center">
+              <hr className="w-full" />
+              <span className="w-48" />
             </div>
             <div className="px-8 w-full overflow-y-scroll pb-28 flex justify-between items-stretch">
               <TextEditor
