@@ -197,7 +197,7 @@ const FragmentSideBar = () => {
           )}
         >
           {flick?.fragments.find(
-            (f) => f.type === Fragment_Type_Enum_Enum.Intro
+            (f) => f.type === Fragment_Type_Enum_Enum.Outro
           )?.producedLink && (
             <IoCheckmarkCircle className="absolute top-0 right-0 m-2 text-green-600" />
           )}
