@@ -3,10 +3,13 @@ import {
   ApolloProvider,
   from,
   InMemoryCache,
+  split,
 } from '@apollo/client'
 import { BatchHttpLink } from '@apollo/client/link/batch-http'
+import { WebSocketLink } from '@apollo/client/link/ws'
 import { setContext } from '@apollo/client/link/context'
 import { onError } from '@apollo/client/link/error'
+import { getMainDefinition } from '@apollo/client/utilities'
 import React from 'react'
 import { useAuthState } from 'react-firebase-hooks/auth'
 import { useRecoilValue } from 'recoil'
@@ -25,6 +28,13 @@ const AuthorizedApolloProvider = ({
   const httpLink = new BatchHttpLink({
     uri: config.hasura.server as string,
     batchInterval: 20,
+  })
+
+  const wsLink = new WebSocketLink({
+    uri: config.hasura.wsServer as string,
+    options: {
+      reconnect: true,
+    },
   })
 
   const errorLink = onError(({ graphQLErrors, networkError }) => {
@@ -56,8 +66,20 @@ const AuthorizedApolloProvider = ({
     }
   })
 
+  const splitLink = split(
+    ({ query }) => {
+      const definition = getMainDefinition(query)
+      return (
+        definition.kind === 'OperationDefinition' &&
+        definition.operation === 'subscription'
+      )
+    },
+    wsLink,
+    httpLink
+  )
+
   const apolloClient = new ApolloClient({
-    link: from([authLink, errorLink, httpLink]),
+    link: from([authLink, errorLink, splitLink]),
     cache: new InMemoryCache(),
     connectToDevTools: true,
     defaultOptions: {

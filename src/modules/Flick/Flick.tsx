@@ -95,7 +95,7 @@ const SpeakersTooltip = ({
     <div className="bg-gray-50 p-2 rounded-md">
       {fragment.participants
         .filter(
-          (p) => !speakers.some((s) => s.participant.id === p.participant.id)
+          (p) => !speakers?.some((s) => s.participant.id === p.participant.id)
         )
         .map((participant) => (
           <div
@@ -244,14 +244,14 @@ const Flick = () => {
   const addSpeaker = (speaker: FragmentParticipantFragment) => {
     setViewConfig({
       ...viewConfig,
-      speakers: [...viewConfig.speakers, speaker],
+      speakers: [...viewConfig?.speakers, speaker],
     })
   }
 
   const deleteSpeaker = (speaker: FragmentParticipantFragment) => {
     setViewConfig({
       ...viewConfig,
-      speakers: viewConfig.speakers.filter(
+      speakers: viewConfig?.speakers?.filter(
         (s) => s.participant.user.sub !== speaker.participant.user.sub
       ),
     })
@@ -284,8 +284,8 @@ const Flick = () => {
   if (processingFlick)
     return (
       <ProcessingFlick
+        flickId={flick.id}
         joinLink={flick.joinLink}
-        publish={published}
         setProcessing={setProcessingFlick}
       />
     )
@@ -328,7 +328,7 @@ const Flick = () => {
                       <FiX onClick={() => deleteSpeaker(s)} />
                     </div>
                   ))}
-                  {viewConfig?.speakers?.length <
+                  {viewConfig.speakers?.length <
                     activeFragment.participants.length && (
                     <Tooltip
                       isOpen={isSpeakersTooltip}
