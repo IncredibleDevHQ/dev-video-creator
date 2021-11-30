@@ -22,6 +22,7 @@ import SHORTS from './assets/shorts.png'
 import PENCIL_ALT from './assets/pencil-alt.svg'
 import EYE_OUTLINE from './assets/eye-outline.svg'
 import PROCESSING from './assets/processing.gif'
+import SUCCESS from './assets/Success.gif'
 
 export const ASSETS = {
   ICONS: {
@@ -41,6 +42,7 @@ export const ASSETS = {
     EYE_OUTLINE,
     PENCIL_ALT,
     PROCESSING,
+    SUCCESS,
   },
   ANIMATION: {
     LOGIN_USER_ANIMATION,
@@ -51,10 +53,6 @@ export const ASSETS = {
   PATTERNS: {
     LoginPattern,
   },
-}
-
-export const LINKS = {
-  WATCH: 'https://incredible.dev/watch/',
 }
 
 export const Icons = {
