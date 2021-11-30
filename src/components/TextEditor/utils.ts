@@ -136,7 +136,13 @@ const getSimpleAST = (state: RemirrorJSON): SimpleAST => {
 
       const { description, note, title } = getCommonProps(slab)
 
-      codeBlock = { code: codeValue, note, description, title }
+      codeBlock = {
+        code: codeValue,
+        language: code?.attrs?.language as string,
+        note,
+        description,
+        title,
+      }
 
       blocks.push({
         type: 'codeBlock',
