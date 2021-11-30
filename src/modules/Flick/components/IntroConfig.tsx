@@ -5,7 +5,7 @@ import { Text } from '../../../components'
 import { newFlickStore } from '../store/flickNew.store'
 
 enum Splashes {
-  Deafult = '0',
+  Default = '0',
   GraphQL = '1',
   OpenSauced = '2',
   Astro = '3',
