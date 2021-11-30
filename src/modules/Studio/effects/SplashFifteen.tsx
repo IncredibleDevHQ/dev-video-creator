@@ -5,7 +5,7 @@ import { Group, Image, Line, Rect, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
 import config from '../../../config'
-import { CONFIG } from '../components/Concourse'
+import Concourse, { CONFIG } from '../components/Concourse'
 import { StudioProviderProps, studioStore } from '../stores'
 
 const SplashFifteen = () => {
@@ -482,7 +482,7 @@ const SplashFifteen = () => {
       />,
     ])
   }
-  return <>{layerChildren}</>
+  return <Concourse disableUserMedia layerChildren={layerChildren} />
 }
 
 export default SplashFifteen
