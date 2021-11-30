@@ -45,36 +45,35 @@ const IntroFragment = ({
     return SplashFive
   })()
 
-  const layerChildren = [
-    <Group x={0} y={0}>
-      {viewConfig?.background?.type === 'color' ? (
-        <Rect
-          x={0}
-          y={0}
-          width={stageConfig.width}
-          height={stageConfig.height}
-          fillLinearGradientColorStops={viewConfig.background.gradient?.values}
-          fillLinearGradientStartPoint={
-            viewConfig.background.gradient?.startIndex
-          }
-          fillLinearGradientEndPoint={viewConfig.background.gradient?.endIndex}
-        />
-      ) : (
-        <Image
-          x={0}
-          y={0}
-          width={stageConfig.width}
-          height={stageConfig.height}
-          image={bgImage}
-        />
-      )}
-    </Group>,
-    <Group>
-      <Splash />
-    </Group>,
-  ]
+  // const layerChildren = [
+  //   <Group x={0} y={0}>
+  //     {viewConfig?.background?.type === 'color' ? (
+  //       <Rect
+  //         x={0}
+  //         y={0}
+  //         width={stageConfig.width}
+  //         height={stageConfig.height}
+  //         fillLinearGradientColorStops={viewConfig.background.gradient?.values}
+  //         fillLinearGradientStartPoint={
+  //           viewConfig.background.gradient?.startIndex
+  //         }
+  //         fillLinearGradientEndPoint={viewConfig.background.gradient?.endIndex}
+  //       />
+  //     ) : (
+  //       <Image
+  //         x={0}
+  //         y={0}
+  //         width={stageConfig.width}
+  //         height={stageConfig.height}
+  //         image={bgImage}
+  //       />
+  //     )}
+  //   </Group>,
+  //   <Group>
+  //   </Group>,
+  // ]
 
-  return <Concourse disableUserMedia layerChildren={layerChildren} />
+  return <Splash />
 }
 
 export default IntroFragment
