@@ -108,7 +108,6 @@ export type BlockProperties = {
 
 export interface TitleSplashConfig {
   enable: boolean
-  title?: string
   titleSplashConfig?: GradientConfig
 }
 

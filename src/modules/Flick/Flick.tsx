@@ -10,13 +10,7 @@ import {
 } from 'react-icons/fi'
 import { useHistory, useParams } from 'react-router-dom'
 import { useRecoilState, useSetRecoilState } from 'recoil'
-import {
-  ScreenState,
-  Text,
-  TextEditor,
-  TextField,
-  Tooltip,
-} from '../../components'
+import { ScreenState, Text, TextEditor, Tooltip } from '../../components'
 import { Position } from '../../components/TextEditor/components'
 import { Block, useUtils } from '../../components/TextEditor/utils'
 import {
@@ -52,7 +46,6 @@ import { newFlickStore } from './store/flickNew.store'
 const initialConfig: ViewConfig = {
   titleSplash: {
     enable: true,
-    title: '',
     titleSplashConfig: getGradientConfig(gradients[0]),
   },
   speakers: [],
@@ -419,7 +412,7 @@ const Flick = () => {
                     </div>
                     <div
                       className={cx(
-                        'px-4 py-2 h-16 relative',
+                        'px-4 py-2 w-32 h-16 border border-r-2 group relative',
                         css`
                           background: ${viewConfig.titleSplash.titleSplashConfig
                             ?.cssString};
@@ -451,14 +444,14 @@ const Flick = () => {
                         >
                           <FiSliders
                             size={24}
-                            className="bg-white border rounded-sm p-1 mr-1"
+                            className="bg-white border rounded-sm p-1 mr-1 hidden group-hover:block"
                             onClick={() => setTitleGradientTooltip(true)}
                           />
                         </Tooltip>
                         {viewConfig.titleSplash.enable ? (
                           <FiEye
                             size={24}
-                            className="bg-white border rounded-sm p-1"
+                            className="bg-white border rounded-sm p-1 hidden group-hover:block"
                             onClick={() =>
                               setViewConfig({
                                 ...viewConfig,
@@ -485,21 +478,9 @@ const Flick = () => {
                           />
                         )}
                       </div>
-                      <TextField
-                        className="overflow-hidden"
-                        value={viewConfig.titleSplash.title}
-                        placeholder="Add Title..."
-                        disabled={!viewConfig.titleSplash.enable}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                          setViewConfig({
-                            ...viewConfig,
-                            titleSplash: {
-                              ...viewConfig.titleSplash,
-                              title: e.target.value,
-                            },
-                          })
-                        }
-                      />
+                      <div className="border rounded-md flex justify-center items-center w-full h-full bg-white">
+                        Title
+                      </div>
                     </div>
                     <div className="px-4 py-2 w-32 h-16 bg-gray-100 relative border border-r-2">
                       <FiRefreshCcw

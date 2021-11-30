@@ -1,6 +1,6 @@
 import { css, cx } from '@emotion/css'
 import Konva from 'konva'
-import React, { createRef, HTMLAttributes, useEffect, useState } from 'react'
+import React, { createRef, HTMLAttributes, useState } from 'react'
 import useMeasure, { RectReadOnly } from 'react-use-measure'
 import { Stage, Layer, Rect } from 'react-konva'
 import Modal from 'react-responsive-modal'
@@ -230,10 +230,6 @@ const CanvasPreview = ({
   const stageRef = createRef<Konva.Stage>()
   const layerRef = createRef<Konva.Layer>()
   const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
-
-  useEffect(() => {
-    console.log(blockProperties)
-  }, [blockProperties])
 
   const { height, width } = useGetHW({
     maxH: bounds.height / 1.25,
