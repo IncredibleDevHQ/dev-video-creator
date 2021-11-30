@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import {
   FiEye,
   FiEyeOff,
+  FiPlus,
   FiRefreshCcw,
   FiSliders,
   FiUser,
@@ -10,7 +11,13 @@ import {
 } from 'react-icons/fi'
 import { useHistory, useParams } from 'react-router-dom'
 import { useRecoilState, useSetRecoilState } from 'recoil'
-import { ScreenState, Text, TextEditor, Tooltip } from '../../components'
+import {
+  Heading,
+  ScreenState,
+  Text,
+  TextEditor,
+  Tooltip,
+} from '../../components'
 import { Position } from '../../components/TextEditor/components'
 import { Block, useUtils } from '../../components/TextEditor/utils'
 import {
@@ -86,10 +93,12 @@ const SpeakersTooltip = ({
   fragment,
   speakers,
   addSpeaker,
+  close,
 }: {
   fragment: FlickFragmentFragment
   speakers: FragmentParticipantFragment[]
   addSpeaker: (speaker: FragmentParticipantFragment) => void
+  close?: () => void
 }) => {
   return (
     <div className="bg-gray-50 p-2 rounded-md">
@@ -102,10 +111,13 @@ const SpeakersTooltip = ({
             role="button"
             tabIndex={0}
             onKeyDown={() => null}
-            className="flex items-center"
+            className="flex items-center px-2 py-1 hover:bg-gray-300 transition-colors rounded-md"
             key={participant.participant.id}
             onClick={() => {
-              if (participant) addSpeaker(participant)
+              if (participant) {
+                addSpeaker(participant)
+                close?.()
+              }
             }}
           >
             <img
@@ -306,6 +318,9 @@ const Flick = () => {
             flick.fragments.find((f) => f.id === activeFragmentId)?.type !==
               Fragment_Type_Enum_Enum.Outro && (
               <div className="h-full w-full my-4 mx-8 overflow-y-auto">
+                <div className="mx-12 mb-4">
+                  <Heading fontSize="large">{activeFragment.name}</Heading>
+                </div>
                 <div className="flex items-center justify-start mx-12">
                   {viewConfig.speakers?.map((s) => (
                     <div
@@ -317,15 +332,19 @@ const Flick = () => {
                         alt={s.participant.user.displayName as string}
                         className="w-6 h-6 rounded-full"
                       />
-                      <Text fontSize="normal" className="ml-2">
+                      <Text fontSize="normal" className="mx-2">
                         {s.participant.user.displayName}
                       </Text>
-                      <FiX onClick={() => deleteSpeaker(s)} />
+                      <FiX
+                        className="cursor-pointer"
+                        onClick={() => deleteSpeaker(s)}
+                      />
                     </div>
                   ))}
                   {viewConfig.speakers.length <
                     activeFragment.participants.length && (
                     <Tooltip
+                      containerOffset={8}
                       isOpen={isSpeakersTooltip}
                       setIsOpen={() => setSpeakersTooltip(false)}
                       placement="bottom-start"
@@ -334,20 +353,25 @@ const Flick = () => {
                           fragment={activeFragment}
                           speakers={viewConfig.speakers}
                           addSpeaker={addSpeaker}
+                          close={() => setSpeakersTooltip(false)}
                         />
                       }
                     >
                       <button
                         type="button"
                         onClick={() => setSpeakersTooltip(true)}
+                        className="px-2 py-1 flex items-center bg-gray-200 rounded-md"
                       >
-                        {' '}
-                        + Add speakers
+                        <FiPlus className="mr-1.5" /> Add speakers
                       </button>
                     </Tooltip>
                   )}
                 </div>
-                <div className="px-8 w-full overflow-y-scroll pb-28 flex justify-between items-stretch">
+                <div className="flex mx-12 mt-8 shadow-lg items-center">
+                  <hr className="w-full" />
+                  <span className="w-48" />
+                </div>
+                <div className="px-8 w-full overflow-y-scroll pb-28 flex h-full justify-between items-stretch">
                   <TextEditor
                     placeholder="Start writing..."
                     handleUpdateJSON={(json) => {
