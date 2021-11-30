@@ -43,7 +43,9 @@ const UnifiedFragment = ({
   const { fragment, payload, updatePayload, state, participants, users } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
-  const [titleSplashData, setTitleSplashData] = useState<TitleSplashConfig>({
+  const [titleSplashData, setTitleSplashData] = useState<
+    TitleSplashConfig & { title: string }
+  >({
     enable: false,
     title: '',
     titleSplashConfig: getGradientConfig(gradients[0]),
@@ -92,8 +94,7 @@ const UnifiedFragment = ({
     }
     setTitleSplashData({
       enable: fragment?.configuration?.titleSplash?.enable || false,
-      title:
-        fragment.configuration?.titleSplash?.title || (fragment.name as string),
+      title: fragment.name as string,
       titleSplashConfig:
         fragment?.configuration?.titleSplash?.titleSplashConfig ||
         getGradientConfig(gradients[0]),
@@ -203,13 +204,12 @@ const UnifiedFragment = ({
   })()
 
   useEffect(() => {
-    if (activeObjectIndex !== 0) setTitleSplashData({ enable: false })
+    if (activeObjectIndex !== 0)
+      setTitleSplashData({ ...titleSplashData, enable: false })
     else
       setTitleSplashData({
         enable: fragment?.configuration?.titleSplash?.enable || false,
-        title:
-          fragment?.configuration?.titleSplash?.title ||
-          (fragment?.name as string),
+        title: fragment?.name as string,
         titleSplashConfig:
           fragment?.configuration?.titleSplash?.titleSplashConfig || {},
       })

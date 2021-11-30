@@ -51,7 +51,6 @@ import { newFlickStore } from './store/flickNew.store'
 const initialConfig: ViewConfig = {
   titleSplash: {
     enable: true,
-    title: '',
     titleSplashConfig: getGradientConfig(gradients[0]),
   },
   speakers: [],
