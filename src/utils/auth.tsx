@@ -1,8 +1,8 @@
 // eslint-disable-next-line
+import * as Sentry from '@sentry/react'
 import axios from 'axios'
 import { onAuthStateChanged, signInWithCustomToken } from 'firebase/auth'
 import { useEffect } from 'react'
-import { useAuthState } from 'react-firebase-hooks/auth'
 import { useRecoilState, useSetRecoilState } from 'recoil'
 import config from '../config'
 import { useGetUserLazyQuery } from '../generated/graphql'
@@ -37,6 +37,7 @@ const AuthProvider = ({ children }: { children: JSX.Element }): JSX.Element => {
       setFbUser(signedInUser.user)
       getUserQuery()
     } catch (e) {
+      Sentry.captureException(e)
       window.location.href = config.auth.endpoint
       setAuth({ ...auth, loading: false })
     }

@@ -84,21 +84,6 @@ query SendMagicSignInLink($email: String!) {
   }
 }
 
-query GetDashboard($sub: String!, $limit: Int) {
-  Flick(
-    where: {
-      participants: { userSub: { _eq: $sub } }
-      deletedAt: { _is_null: true }
-    }
-    order_by: { startAt: desc }
-  ) {
-    ...Flick
-  }
-  Series(limit: $limit, order_by: { createdAt: desc }) {
-    ...PublicSeries
-  }
-}
-
 mutation UpdateOnboardingUser(
   $sub: String!
   $displayName: String!
