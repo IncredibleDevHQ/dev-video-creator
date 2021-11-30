@@ -9,6 +9,7 @@ import { FragmentVideoModal, UpdateFragmentParticipantsModal } from '.'
 import { Avatar, Button, emitToast } from '../../../components'
 import {
   FlickFragmentFragment,
+  Fragment_Type_Enum_Enum,
   useGetFragmentParticipantsLazyQuery,
   useUpdateFragmentMutation,
   useUpdateFragmentStateMutation,
@@ -63,30 +64,44 @@ const FragmentBar = ({
   const updateConfig = async () => {
     setSavingConfig(true)
     try {
-      if (!plateValue || plateValue?.length === 0) return
-      if (flick)
-        setFlickStore((store) => ({
-          ...store,
-          flick: {
-            ...flick,
-            fragments: flick.fragments.map((f) =>
-              f.id === activeFragmentId
-                ? {
-                    ...f,
-                    configuration: config,
-                    editorState: plateValue,
-                  }
-                : f
-            ),
+      if (
+        fragment &&
+        (fragment?.type === Fragment_Type_Enum_Enum.Intro ||
+          fragment?.type === Fragment_Type_Enum_Enum.Outro)
+      ) {
+        await updateFragmentState({
+          variables: {
+            editorState: {},
+            id: activeFragmentId,
+            configuration: fragment.configuration,
           },
-        }))
-      await updateFragmentState({
-        variables: {
-          editorState: plateValue,
-          id: activeFragmentId,
-          configuration: config,
-        },
-      })
+        })
+      } else {
+        if (!plateValue || plateValue?.length === 0) return
+        if (flick)
+          setFlickStore((store) => ({
+            ...store,
+            flick: {
+              ...flick,
+              fragments: flick.fragments.map((f) =>
+                f.id === activeFragmentId
+                  ? {
+                      ...f,
+                      configuration: config,
+                      editorState: plateValue,
+                    }
+                  : f
+              ),
+            },
+          }))
+        await updateFragmentState({
+          variables: {
+            editorState: plateValue,
+            id: activeFragmentId,
+            configuration: config,
+          },
+        })
+      }
     } catch (error) {
       emitToast({
         type: 'error',

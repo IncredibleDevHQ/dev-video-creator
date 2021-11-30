@@ -97,7 +97,7 @@ const PointsFragment = ({
     )
     setPoints(dataConfig.listBlock.list || [])
     setTopLayerChildren([])
-  }, [dataConfig, shortsMode])
+  }, [dataConfig, shortsMode, viewConfig])
 
   useEffect(() => {
     setTitleNumberOfLines(
