@@ -175,6 +175,12 @@ const Flick = () => {
       }
       setViewConfig({ ...viewConfig, blocks: newBlocks })
     }
+    if (currentBlock.type === 'listBlock' && currentBlock.listBlock.list) {
+      updatePayload({
+        ...payload,
+        activePointIndex: currentBlock.listBlock.list.length,
+      })
+    }
   }, [currentBlock])
 
   useEffect(() => {
@@ -404,7 +410,7 @@ const Flick = () => {
                     9:16
                   </Text>
                 </div>
-                <div
+                {/* <div
                   className={cx(
                     'px-4 py-2 h-16 relative',
                     css`
@@ -487,6 +493,42 @@ const Flick = () => {
                       })
                     }
                   />
+                </div> */}
+                <div className="px-4 py-2 w-32 h-16 bg-gray-50 relative border border-r-2 group">
+                  <div className="absolute top-1 right-1 hidden group-hover:block group-hover:bg-gray-200">
+                    {viewConfig.titleSplash.enable ? (
+                      <FiEye
+                        size={24}
+                        className="bg-white border rounded-sm p-1"
+                        onClick={() =>
+                          setViewConfig({
+                            ...viewConfig,
+                            titleSplash: {
+                              ...viewConfig.titleSplash,
+                              enable: false,
+                            },
+                          })
+                        }
+                      />
+                    ) : (
+                      <FiEyeOff
+                        size={24}
+                        className=" bg-white border rounded-sm p-1"
+                        onClick={() =>
+                          setViewConfig({
+                            ...viewConfig,
+                            titleSplash: {
+                              ...viewConfig.titleSplash,
+                              enable: true,
+                            },
+                          })
+                        }
+                      />
+                    )}
+                  </div>
+                  <div className="border rounded-md flex justify-center items-center w-full h-full bg-gray-200">
+                    <Text>Title</Text>
+                  </div>
                 </div>
                 <div className="px-4 py-2 w-32 h-16 bg-gray-100 relative border border-r-2">
                   <FiRefreshCcw

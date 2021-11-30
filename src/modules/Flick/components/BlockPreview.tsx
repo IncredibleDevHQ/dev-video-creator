@@ -231,10 +231,6 @@ const CanvasPreview = ({
   const layerRef = createRef<Konva.Layer>()
   const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
 
-  useEffect(() => {
-    console.log(blockProperties)
-  }, [blockProperties])
-
   const { height, width } = useGetHW({
     maxH: bounds.height / 1.25,
     maxW: bounds.width / 1.25,

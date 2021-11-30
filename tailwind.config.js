@@ -67,6 +67,7 @@ module.exports = {
       transform: ['group-hover'],
       translate: ['group-hover'],
       margin: ['last'],
+      display: ['hover', 'group-hover'],
     },
   },
   plugins: [require('@tailwindcss/typography')],

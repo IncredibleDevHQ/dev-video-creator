@@ -73,8 +73,9 @@ const UnifiedFragment = ({
   const { getTextWidth } = useEdit()
 
   useEffect(() => {
-    if (!config || !layoutConfig) return
+    if (!config) return
     setDataConfig(config)
+    if (!layoutConfig) return
     setViewConfig(layoutConfig)
   }, [config, layoutConfig])
 
