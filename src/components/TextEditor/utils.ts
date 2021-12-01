@@ -1,4 +1,5 @@
 import { RemirrorJSON } from '@remirror/core'
+import { Transformations } from '../../modules/Flick/components/VideoEditor'
 
 export type Layout =
   | 'top-right-circle'
@@ -53,6 +54,7 @@ export interface VideoBlock {
   y?: number
   width?: number
   height?: number
+  transformations?: Transformations
 }
 
 export interface ImageBlock {
@@ -153,18 +155,20 @@ const getSimpleAST = (state: RemirrorJSON): SimpleAST => {
     } else if (slabItems?.includes('iframe')) {
       const { description, note, title } = getCommonProps(slab)
 
-      const url = slab.content?.find((node) => node.type === 'iframe')?.attrs
-        ?.src
+      const iframe = slab.content?.find((node) => node.type === 'iframe')
 
       blocks.push({
         type: 'videoBlock',
         id: slab.attrs?.id as string,
         pos: 0,
         videoBlock: {
-          url: url as string,
+          url: iframe?.attrs?.src as string,
           description,
           title,
           note,
+          transformations: iframe?.attrs?.['data-transformations'] as
+            | Transformations
+            | undefined,
         },
       })
     } else if (slabItems?.includes('paragraph')) {
