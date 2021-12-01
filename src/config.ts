@@ -24,6 +24,7 @@ const config = {
    */
   hasura: {
     server: import.meta.env.VITE_HASURA_SERVER,
+    wsServer: import.meta.env.VITE_HASURA_WEBSOCKET_SERVER,
   },
   /**
    * Firebase configs...

@@ -6,8 +6,8 @@ import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
 import { User, userState } from '../../../stores/user.store'
 import { GradientConfig } from '../../../utils/configTypes'
 import {
-  CircleCenterShrink,
   MultiCircleCenterGrow,
+  MultiCircleMoveDown,
 } from '../effects/FragmentTransitions'
 import { ClipConfig } from '../hooks/use-edit'
 import { canvasStore, StudioProviderProps, studioStore } from '../stores'
@@ -45,6 +45,7 @@ interface ConcourseProps {
   studioUserConfig?: StudioUserConfig[]
   disableUserMedia?: boolean
   topLayerChildren?: any[]
+  isShorts?: boolean
 }
 
 export const CONFIG = {
@@ -65,6 +66,7 @@ const Concourse = ({
   studioUserConfig,
   disableUserMedia,
   topLayerChildren,
+  isShorts,
 }: ConcourseProps) => {
   const {
     fragment,
@@ -74,7 +76,6 @@ const Concourse = ({
     payload,
     users,
     stopRecording,
-    shortsMode,
   } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [canvas, setCanvas] = useRecoilState(canvasStore)
   const [isTitleSplash, setIsTitleSplash] = useState<boolean>(false)
@@ -90,9 +91,9 @@ const Concourse = ({
   }>({ width: 0, height: 0 })
 
   useEffect(() => {
-    if (!shortsMode) setStageConfig(CONFIG)
+    if (!isShorts) setStageConfig(CONFIG)
     else setStageConfig(SHORTS_CONFIG)
-  }, [shortsMode])
+  }, [isShorts])
 
   const defaultStudioUserConfig: StudioUserConfig = {
     x: 780,
@@ -222,15 +223,15 @@ const Concourse = ({
           if (payload?.status === Fragment_Status_Enum_Enum.Live) {
             // layerRef?.current?.destroyChildren()
             if (titleSplashData?.enable && isTitleSplash) {
-              return !shortsMode ? (
+              return !isShorts ? (
                 <>
                   <TitleSplash
                     titleSplashData={titleSplashData}
                     setIsTitleSplash={setIsTitleSplash}
                     stageConfig={stageConfig}
-                    isShorts={shortsMode}
+                    isShorts={isShorts}
                   />
-                  <CircleCenterShrink color="#000000" />
+                  <MultiCircleMoveDown />
                 </>
               ) : (
                 <>
@@ -238,7 +239,7 @@ const Concourse = ({
                     titleSplashData={titleSplashData}
                     setIsTitleSplash={setIsTitleSplash}
                     stageConfig={stageConfig}
-                    isShorts={shortsMode}
+                    isShorts={isShorts}
                   />
                 </>
               )

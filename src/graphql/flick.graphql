@@ -306,3 +306,9 @@ mutation PublishFlick(
     success
   }
 }
+
+subscription FlickStatus($flickId: uuid!) {
+  Flick_by_pk(id: $flickId) {
+    status
+  }
+}

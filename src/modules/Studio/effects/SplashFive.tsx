@@ -3,7 +3,7 @@ import Konva from 'konva'
 import React, { useEffect, useState } from 'react'
 import { Rect, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
-import { CONFIG } from '../components/Concourse'
+import Concourse, { CONFIG } from '../components/Concourse'
 import useSplash, { Coordinates } from '../hooks/use-splash'
 import { StudioProviderProps, studioStore } from '../stores'
 
@@ -199,8 +199,7 @@ const SplashFive = () => {
       />,
     ])
   }
-
-  return <>{layerChildren}</>
+  return <Concourse disableUserMedia layerChildren={layerChildren} />
 }
 
 export default SplashFive
