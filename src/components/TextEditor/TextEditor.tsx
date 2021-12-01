@@ -89,7 +89,12 @@ const TextEditor: FC<TextEditorProps> = ({
         enableResizing: true,
       }),
       new PositionerExtension(),
-      new IframeExtension({ enableResizing: true }),
+      new IframeExtension({
+        enableResizing: true,
+        extraAttributes: {
+          'data-transformations': { default: null },
+        },
+      }),
       new ListItemExtension({
         priority: ExtensionPriority.High,
         enableCollapsible: true,

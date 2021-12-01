@@ -214,8 +214,8 @@ const Suggestor = () => {
       <VideoModal
         handleClose={() => setModal(undefined)}
         open={modal === 'video'}
-        handleUrl={(url) => {
-          addIframe({ src: url })
+        handleAddVideo={(url, transformations) => {
+          addIframe({ src: url, 'data-transformations': transformations })
           setModal(undefined)
         }}
       />
