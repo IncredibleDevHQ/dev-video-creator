@@ -277,6 +277,12 @@ mutation InviteParticipantToFlick(
   }
 }
 
+mutation GetFlickMarkdown($flickId: String!) {
+  ProduceFlickMd(flickId: $flickId) {
+    markdown
+  }
+}
+
 mutation PublishFlick(
   $flickId: String!
   $interaction: [Interaction]

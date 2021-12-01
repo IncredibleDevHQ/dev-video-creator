@@ -11,6 +11,7 @@ import {
   FlickFragmentFragment,
   Fragment_Type_Enum_Enum,
   useGetFragmentParticipantsLazyQuery,
+  useUpdateFragmentMarkdownMutation,
   useUpdateFragmentMutation,
   useUpdateFragmentStateMutation,
 } from '../../../generated/graphql'
@@ -19,14 +20,16 @@ import { studioStore } from '../../Studio/stores'
 import { newFlickStore } from '../store/flickNew.store'
 
 const FragmentBar = ({
-  plateValue,
   config,
+  markdown,
+  plateValue,
 }: {
   plateValue?: any
+  markdown?: string
   config: ViewConfig
 }) => {
   const [fragmentVideoModal, setFragmetVideoModal] = useState(false)
-  const [{ flick, activeFragmentId, isMarkdown }, setFlickStore] =
+  const [{ flick, activeFragmentId }, setFlickStore] =
     useRecoilState(newFlickStore)
   const history = useHistory()
 
@@ -35,9 +38,11 @@ const FragmentBar = ({
   )
 
   const [updateFragmentMutation] = useUpdateFragmentMutation()
+  const [updateFragmentMarkdown] = useUpdateFragmentMarkdownMutation()
 
   const [updateFragmentState, { data, error }] =
     useUpdateFragmentStateMutation()
+
   const [savingConfig, setSavingConfig] = useState(false)
 
   useEffect(() => {
@@ -94,6 +99,12 @@ const FragmentBar = ({
               ),
             },
           }))
+        await updateFragmentMarkdown({
+          variables: {
+            fragmentId: activeFragmentId,
+            md: markdown,
+          },
+        })
         await updateFragmentState({
           variables: {
             editorState: plateValue,

@@ -158,14 +158,21 @@ const useGetHW = ({
 }
 
 export const GradientSelector = ({
+  mode,
   currentGradient,
   updateGradient,
 }: {
+  mode: ViewConfig['mode']
   currentGradient: GradientConfig
   updateGradient: (gradient: GradientConfig) => void
 }) => {
   return (
-    <div className="grid grid-cols-2 gap-2 w-full bg-white p-4">
+    <div
+      className={cx('grid grid-cols-2 overflow-x-scroll bg-white p-2', {
+        'w-44 gap-1': mode === 'Portrait',
+        'w-72 gap-2': mode === 'Landscape',
+      })}
+    >
       {gradients.map((gradient, index) => (
         // eslint-disable-next-line jsx-a11y/control-has-associated-label
         <div
@@ -176,9 +183,11 @@ export const GradientSelector = ({
           onKeyDown={() => null}
           onClick={() => updateGradient(getGradientConfig(gradient))}
           className={cx(
-            'w-32 h-16 p-2 border border-gray-200 rounded-md cursor-pointer bg-white',
+            'p-2 border border-gray-200 rounded-md cursor-pointer bg-white',
             {
               'border-brand': gradient.cssString === currentGradient.cssString,
+              'w-20 h-32': mode === 'Portrait',
+              'w-32 h-16': mode === 'Landscape',
             },
             css`
               background: ${gradient.cssString};
@@ -192,19 +201,27 @@ export const GradientSelector = ({
 
 const LayoutSelector = ({
   type,
+  mode,
   layout,
   updateLayout,
 }: {
   layout: Layout
+  mode: ViewConfig['mode']
   updateLayout: (layout: Layout) => void
   type: Block['type']
 }) => {
   return (
-    <div className="grid grid-cols-2 gap-2 w-72 overflow-x-scroll">
+    <div
+      className={cx('grid grid-cols-2 overflow-x-scroll', {
+        'w-44 gap-1': mode === 'Portrait',
+        'w-72 gap-2': mode === 'Landscape',
+      })}
+    >
       {allLayoutTypes?.map((layoutType) => (
         <LayoutGeneric
           type={type}
           key={layoutType}
+          mode={mode}
           layout={layoutType}
           isSelected={layout === layoutType}
           onClick={() => updateLayout(layoutType)}
@@ -322,7 +339,7 @@ const PreviewModal = ({
       center
       styles={{
         modal: {
-          maxWidth: '80%',
+          maxWidth: config.mode === 'Portrait' ? '50%' : '80%',
           width: '100%',
           maxHeight: '80vh',
           height: '100%',
@@ -360,6 +377,7 @@ const PreviewModal = ({
           />
           {tab.value === previewTabs[0].value && (
             <LayoutSelector
+              mode={config.mode}
               layout={blockProperties.layout || allLayoutTypes[0]}
               updateLayout={updateLayout}
               type={block.type}
@@ -370,6 +388,7 @@ const PreviewModal = ({
               currentGradient={
                 blockProperties.gradient || getGradientConfig(gradients[0])
               }
+              mode={config.mode}
               updateGradient={updateGradient}
             />
           )}
@@ -393,7 +412,8 @@ const BlockPreview = ({
   const [previewModal, setPreviewModal] = useState(false)
   const [ref, bounds] = useMeasure()
 
-  if (!block || !config.blocks[block.id]) return null
+  if (!block || !config || !config.blocks || !config?.blocks[block?.id])
+    return null
 
   return (
     <div className={className} {...rest}>
@@ -402,7 +422,7 @@ const BlockPreview = ({
         tabIndex={0}
         onKeyDown={() => null}
         onClick={() => setPreviewModal(true)}
-        className="h-48 w-44"
+        className="h-48 w-44 border-none outline-none"
         ref={ref}
       >
         <CanvasPreview
