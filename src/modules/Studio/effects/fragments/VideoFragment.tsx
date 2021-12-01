@@ -6,6 +6,7 @@ import { VideoBlockProps } from '../../../../components/TextEditor/utils'
 import { Fragment_Status_Enum_Enum } from '../../../../generated/graphql'
 import { ConfigType } from '../../../../utils/configTypes'
 import { BlockProperties } from '../../../../utils/configTypes2'
+import { Transformations } from '../../../Flick/components/VideoEditor'
 import Concourse, { CONFIG, TitleSplashProps } from '../../components/Concourse'
 import { FragmentState } from '../../components/RenderTokens'
 import { Video, VideoConfig } from '../../components/Video'
@@ -51,6 +52,7 @@ const VideoFragment = ({
   const customLayoutRef = useRef<Konva.Group>(null)
 
   // const [bgImage] = useImage(viewConfig?.background?.image || '', 'anonymous')
+  const [transformations, setTransformations] = useState<Transformations>()
 
   const [objectConfig, setObjectConfig] = useState<ObjectConfig>({
     x: 0,
@@ -72,6 +74,8 @@ const VideoFragment = ({
     setObjectConfig(
       FragmentLayoutConfig({ layout: viewConfig.layout || 'classic' })
     )
+    if (dataConfig.videoBlock.transformations)
+      setTransformations(dataConfig.videoBlock.transformations)
     // eslint-disable-next-line consistent-return
     return element
   }, [dataConfig, viewConfig])
@@ -95,26 +99,27 @@ const VideoFragment = ({
       case 'recording':
         updatePayload?.({
           playing: false,
-          currentTime: dataConfig.videoBlock.from || 0,
+          currentTime: transformations?.clip?.start || 0,
         })
         setTopLayerChildren([])
         break
       default:
         updatePayload?.({
           playing: false,
-          currentTime: dataConfig.videoBlock.from || 0,
+          currentTime: transformations?.clip?.start || 0,
         })
         setTopLayerChildren([])
     }
-  }, [state, dataConfig])
+  }, [state, transformations])
 
   // performing trim operation
   // on end time, reinitialize the video element's current time to start time
   videoElement?.addEventListener('timeupdate', () => {
-    if (!dataConfig.videoBlock.to) return
-    if (videoElement.currentTime >= dataConfig.videoBlock?.to) {
+    const { transformations } = dataConfig.videoBlock
+    if (!transformations?.clip?.end) return
+    if (videoElement.currentTime >= transformations.clip.end) {
       videoElement.pause()
-      videoElement.currentTime = dataConfig.videoBlock.from || 0
+      videoElement.currentTime = transformations?.clip?.start || 0
       videoElement.play()
     }
   })
@@ -176,10 +181,10 @@ const VideoFragment = ({
     cornerRadius: objectConfig.borderRadius,
     performClip: true,
     clipVideoConfig: {
-      x: dataConfig?.videoBlock?.x || 0,
-      y: dataConfig?.videoBlock?.y || 0,
-      width: dataConfig?.videoBlock?.width || 1,
-      height: dataConfig?.videoBlock?.height || 1,
+      x: transformations?.crop?.x || 0,
+      y: transformations?.crop?.y || 0,
+      width: transformations?.crop?.width || 1,
+      height: transformations?.crop?.height || 1,
     },
   }
 
