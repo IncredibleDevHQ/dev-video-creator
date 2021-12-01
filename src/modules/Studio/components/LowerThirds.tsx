@@ -200,7 +200,7 @@ export const IncredibleLowerThirds = ({
                 }, 3100)
               },
             })
-          }, 1500)
+          }, 1400)
         }
       />
       <Rect
@@ -228,7 +228,7 @@ export const IncredibleLowerThirds = ({
                 }, 2900)
               },
             })
-          }, 1700)
+          }, 1550)
         }
       />
       <Text
@@ -240,7 +240,7 @@ export const IncredibleLowerThirds = ({
         fontFamily="'Inter'"
         fontStyle="normal 500"
         opacity={0}
-        key="username"
+        key="displayname"
         ref={(ref) =>
           setTimeout(() => {
             ref?.to({
@@ -338,7 +338,7 @@ export const IncredibleLowerThirds = ({
                             })
                           },
                         })
-                      }, 3500)
+                      }, 3250)
                     },
                   })
                 }, 800)

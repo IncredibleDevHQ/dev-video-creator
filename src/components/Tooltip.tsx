@@ -14,6 +14,7 @@ export interface TooltipProps extends HTMLAttributes<HTMLElement> {
   autoPosition?: boolean
   overflowContainer?: boolean
   hideOnOutsideClick?: boolean
+  containerOffset?: number
 }
 
 const Tooltip = ({
@@ -25,6 +26,7 @@ const Tooltip = ({
   triggerOffset = 0,
   placement = 'bottom-start',
   autoDismiss,
+  containerOffset = 0,
   autoPosition = true,
   overflowContainer = false,
   hideOnOutsideClick = true,
@@ -32,6 +34,7 @@ const Tooltip = ({
   const { triggerProps, layerProps, renderLayer } = useLayer({
     isOpen,
     placement,
+    containerOffset,
     auto: autoPosition,
     overflowContainer,
     arrowOffset,

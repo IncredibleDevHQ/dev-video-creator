@@ -277,6 +277,12 @@ mutation InviteParticipantToFlick(
   }
 }
 
+mutation GetFlickMarkdown($flickId: String!) {
+  ProduceFlickMd(flickId: $flickId) {
+    markdown
+  }
+}
+
 mutation PublishFlick(
   $flickId: String!
   $interaction: [Interaction]
@@ -298,5 +304,11 @@ mutation PublishFlick(
     updatedTitle: $updatedTitle
   ) {
     success
+  }
+}
+
+subscription FlickStatus($flickId: uuid!) {
+  Flick_by_pk(id: $flickId) {
+    status
   }
 }

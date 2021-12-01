@@ -1,5 +1,5 @@
 /* eslint-disable jsx-a11y/media-has-caption */
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import mime from 'mime'
 import { useFormik } from 'formik'
 import * as Yup from 'yup'
@@ -12,6 +12,8 @@ import { FiUploadCloud } from 'react-icons/fi'
 import Dropzone from 'react-dropzone'
 import { Button, Heading, Label, TextField, Text, emitToast } from '..'
 import { useUploadFile } from '../../hooks'
+import { VideoEditor } from '../../modules/Flick/components'
+import { Transformations } from '../../modules/Flick/components/VideoEditor'
 
 const VideoModalSchema = Yup.object().shape({
   url: Yup.string().url().required('Required'),
@@ -20,11 +22,11 @@ const VideoModalSchema = Yup.object().shape({
 const VideoModal = ({
   handleClose,
   open,
-  handleUrl,
+  handleAddVideo,
 }: {
   handleClose: (shouldRefetch?: boolean) => void
   open: boolean
-  handleUrl: (url: string) => void
+  handleAddVideo?: (url: string, transformations?: Transformations) => void
 }) => {
   const { handleChange, handleSubmit, values, isValid } = useFormik({
     initialValues: {
@@ -68,7 +70,10 @@ const VideoModal = ({
     blobUrl,
   } = useScreenRecorder({ audio: true })
 
+  const [view, setView] = useState<'fileSource' | 'transform'>('fileSource')
   const [loading, setLoading] = useState(false)
+
+  const [url, setUrl] = useState<string>()
 
   const handleDrop = useCallback(async ([file]: File[]) => {
     setLoading(true)
@@ -78,7 +83,8 @@ const VideoModal = ({
       file,
     }).finally(() => setLoading(false))
 
-    handleUrl(url)
+    setUrl(url)
+    setView('transform')
   }, [])
 
   const handleFileSubmit = useCallback(
@@ -94,7 +100,8 @@ const VideoModal = ({
         file: blob,
       }).finally(() => setLoading(false))
 
-      handleUrl(url)
+      setUrl(url)
+      setView('transform')
     },
     []
   )
@@ -118,7 +125,7 @@ const VideoModal = ({
         `,
       }}
     >
-      <div>
+      {view === 'fileSource' ? (
         <div className="mx-4 my-2">
           <div className="flex items-center justify-between">
             <Heading fontSize="medium">Add your video link</Heading>
@@ -212,12 +219,31 @@ const VideoModal = ({
                 }}
                 loading={loading}
               >
-                {loading ? 'Uploading...' : 'Save'}
+                {loading ? 'Uploading...' : 'Next'}
               </Button>
             </div>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="mx-4 my-2">
+          <div className="flex items-center justify-between">
+            <Heading fontSize="medium">Clip and crop your video</Heading>
+          </div>
+          <div className="flex flex-col mt-4">
+            {url && (
+              <VideoEditor
+                handleAction={(transformations) => {
+                  handleAddVideo?.(url, transformations)
+                  setView('fileSource')
+                }}
+                url={url}
+                width={480}
+                action="Save"
+              />
+            )}
+          </div>
+        </div>
+      )}
     </Modal>
   )
 }

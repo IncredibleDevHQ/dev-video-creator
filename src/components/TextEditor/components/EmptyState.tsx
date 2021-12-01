@@ -134,13 +134,13 @@ const EmptyState = () => {
       <VideoModal
         handleClose={() => setModal(undefined)}
         open={modal === 'video'}
-        handleUrl={(url) => {
+        handleAddVideo={(url, transformations) => {
           chain
             .toggleSlab()
             .toggleHeading({ level: 2 })
             .insertText('Heading')
             .insertNewLine()
-            .addIframe({ src: url })
+            .addIframe({ src: url, 'data-transformations': transformations })
             .insertNewLine()
             .run()
           setModal(undefined)
