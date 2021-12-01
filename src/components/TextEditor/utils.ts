@@ -45,15 +45,6 @@ export interface VideoBlock {
   title?: string
   note?: string
   description?: string
-  // time in seconds
-  from?: number
-  // time in seconds
-  to?: number
-  // crop details
-  x?: number
-  y?: number
-  width?: number
-  height?: number
   transformations?: Transformations
 }
 
