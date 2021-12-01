@@ -1,119 +1,77 @@
-import { cx } from '@emotion/css'
-import axios from 'axios'
-import React, { useEffect } from 'react'
+import React from 'react'
 import { useAuthState } from 'react-firebase-hooks/auth'
-import { Link, useHistory } from 'react-router-dom'
 import { useRecoilValue } from 'recoil'
-import { ScreenState, Text, Button, emitToast } from '../../components'
+import { Button, ScreenState, Text } from '../../components'
 import config from '../../config'
 import { ASSETS } from '../../constants'
-import { VerificationStatusEnum } from '../../generated/graphql'
 import firebaseState from '../../stores/firebase.store'
-import { userVerificationStatus } from '../../stores/user.store'
+import { userState } from '../../stores/user.store'
 
 const Landing = () => {
-  const verificationStatus = useRecoilValue(userVerificationStatus)
-  const fbState = useRecoilValue(firebaseState)
-  const [, loading] = useAuthState(fbState.auth)
+  const { auth, loading } = useRecoilValue(firebaseState)
+  const [user] = useAuthState(auth)
 
-  const history = useHistory()
-
-  useEffect(() => {
-    if (!verificationStatus) return
-    if (verificationStatus === VerificationStatusEnum.Approved) {
-      history.push('/dashboard')
-    }
-  }, [verificationStatus])
-
-  if (fbState.loading || loading)
-    return <ScreenState title="Just a jiffy" loading />
-
-  if (verificationStatus === VerificationStatusEnum.InWaitlist) {
-    return <WaitlistState isInWailist />
-  }
-
-  if (verificationStatus === VerificationStatusEnum.NotInWaitlist) {
-    return <WaitlistState isInWailist={false} />
-  }
-
-  return null
+  return loading ? (
+    <ScreenState />
+  ) : (
+    <div className="h-screen flex flex-col items-center justify-center">
+      <img
+        className="absolute top-0 left-0 m-4 h-10"
+        src={ASSETS.ICONS.IncredibleLogo}
+        alt="Incredible.dev"
+      />
+      {user ? <LoggedInState /> : <Login />}
+    </div>
+  )
 }
 
-const WaitlistState = ({ isInWailist }: { isInWailist: boolean }) => {
-  const fbState = useRecoilValue(firebaseState)
-  const [user] = useAuthState(fbState.auth)
-
-  const handleSignOut = async () => {
-    try {
-      await fbState.auth.signOut()
-      await axios.post(`${config.auth.endpoint}/api/logout`)
-      window.location.href = config.auth.endpoint
-    } catch (error) {
-      emitToast({
-        type: 'error',
-        title: 'Error signing out',
-      })
-    }
-  }
-
+const LoggedInState = () => {
+  const user = useRecoilValue(userState)
   return (
-    <div className="w-screen min-h-screen grid grid-cols-12">
-      <img
-        src={ASSETS.ICONS.IncredibleLogo}
-        alt="Incredible"
-        className="absolute left-0 top-0 m-4"
-      />
-      <div
-        className={cx(
-          'w-full col-start-5 col-end-9 flex flex-col items-center justify-end -mt-12',
-          {
-            'justify-center': true,
-          }
-        )}
-      >
-        <div className="flex">
-          <div className="h-24 w-24 bg-white border-8 border-gray-300 rounded-full z-0" />
-          <div className="h-32 w-32 rounded-full backdrop-filter backdrop-blur-xl -ml-10 z-20" />
-          <div className="h-32 w-32 bg-gray-200 rounded-full -ml-32 z-10" />
-        </div>
-        <div className="px-14">
-          <Text className="mt-8 font-black text-3xl flex flex-col mb-4">
-            <span>
-              {isInWailist
-                ? 'You are in the waitlist'
-                : 'Uh-oh, you are not in the waitlist'}
-            </span>
-          </Text>
-          <Text>
-            {isInWailist
-              ? 'We’re working hard to make Incredible available to everyone. We will get back to you as soon as possible. Hang in there!'
-              : 'We’re working hard to make Incredible available to everyone. Join the waitlist and we will get back to you soon.'}
-          </Text>
-          {!isInWailist && (
-            <Link to="/waitlist">
-              <Button
-                type="button"
-                className="w-full py-2.5 mt-10"
-                appearance="primary"
-                size="small"
-              >
-                Join Waitlist
-              </Button>
-            </Link>
-          )}
-          <div className="flex flex-wrap mt-12">
-            <Text className="text-sm mr-3">
-              Signed in with {user?.email}. Not you?
-            </Text>
-            <Text
-              onClick={() => handleSignOut()}
-              className="text-sm font-semibold hover:underline cursor-pointer"
-            >
-              Log out
-            </Text>
-          </div>
-        </div>
+    <div className="w-full col-start-5 col-end-9 flex flex-col items-center justify-center -mt-12">
+      <div className="flex">
+        <div className="h-32 w-32 bg-gray-200 rounded-full z-0" />
+        <div className="h-32 w-32 rounded-full backdrop-filter backdrop-blur-xl -ml-32 z-20" />
+        <div className="h-24 w-24 bg-brand rounded-full -ml-10 z-10" />
       </div>
+      <Text className="text-gray-800 font-bold text-3xl mt-12">
+        Hey {user?.displayName} !
+      </Text>
+      <Button
+        appearance="primary"
+        type="button"
+        className="w-1/5 mt-4"
+        onClick={() => {
+          window.location.href = `${config.auth.endpoint}/dashboard`
+        }}
+      >
+        Continue to dashboard
+      </Button>
+    </div>
+  )
+}
+
+const Login = () => {
+  return (
+    <div className="w-full col-start-5 col-end-9 flex flex-col items-center justify-center -mt-12">
+      <div className="flex">
+        <div className="h-24 w-24 bg-white border-8 border-gray-300 rounded-full z-0" />
+        <div className="h-32 w-32 rounded-full backdrop-filter backdrop-blur-xl -ml-10 z-20" />
+        <div className="h-32 w-32 bg-gray-200 rounded-full -ml-32 z-10" />
+      </div>
+      <Text className="text-gray-800 font-bold text-2xl mt-12">
+        Please login to continue
+      </Text>
+      <Button
+        appearance="primary"
+        type="button"
+        className="w-1/5 py-2 mt-4"
+        onClick={() => {
+          window.location.href = `${config.auth.endpoint}/login?redirect=${window.location.href}`
+        }}
+      >
+        Login
+      </Button>
     </div>
   )
 }

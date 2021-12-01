@@ -244,17 +244,22 @@ const Flick = () => {
       (frag) => frag.id === activeFragmentId
     )
     if (fragment) setActiveFragment(fragment)
-    if (fragment?.configuration)
-      setViewConfig(fragment?.configuration || initialConfig)
-    if (fragment?.editorState) {
-      if (
-        typeof fragment?.editorState === 'object' &&
-        Object.keys(fragment?.editorState).length < 1
-      )
-        setInitialPlateValue('')
-      else setInitialPlateValue(fragment?.editorState || '')
+    if (
+      fragment?.type !== Fragment_Type_Enum_Enum.Intro &&
+      fragment?.type !== Fragment_Type_Enum_Enum.Outro
+    ) {
+      if (fragment?.configuration)
+        setViewConfig(fragment?.configuration || initialConfig)
+      if (fragment?.editorState) {
+        if (
+          typeof fragment?.editorState === 'object' &&
+          Object.keys(fragment?.editorState).length < 1
+        )
+          setInitialPlateValue('')
+        else setInitialPlateValue(fragment?.editorState || '')
+      }
+      setPlateValue(fragment?.editorState || initEditor)
     }
-    setPlateValue(fragment?.editorState || initEditor)
   }, [activeFragmentId])
 
   const addSpeaker = (speaker: FragmentParticipantFragment) => {
