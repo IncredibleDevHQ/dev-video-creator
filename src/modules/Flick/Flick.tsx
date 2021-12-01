@@ -150,7 +150,7 @@ const Flick = () => {
   const [currentBlock, setCurrentBlock] = useState<Block>()
   const [viewConfig, setViewConfig] = useState<ViewConfig>(initialConfig)
 
-  const [initialPlateValue, setInitialPlateValue] = useState<any>()
+  const [initialPlateValue, setInitialPlateValue] = useState<any>('')
   const [plateValue, setPlateValue] = useState<any>()
   const [integrationModal, setIntegrationModal] = useState(false)
 
@@ -160,6 +160,7 @@ const Flick = () => {
   const [isTitleGradientTooltip, setTitleGradientTooltip] = useState(false)
   const [processingFlick, setProcessingFlick] = useState(false)
   const [published, setPublished] = useState(false)
+  const [fragmentMarkdown, setFragmentMarkdown] = useState<string>()
 
   const { updatePayload, payload, resetPayload } = useLocalPayload()
   const [myMediaAssets, setMyMediaAssets] = useState<UserAssetQuery>()
@@ -243,8 +244,16 @@ const Flick = () => {
       (frag) => frag.id === activeFragmentId
     )
     if (fragment) setActiveFragment(fragment)
-    setViewConfig(fragment?.configuration || initialConfig)
-    setInitialPlateValue(fragment?.editorState)
+    if (fragment?.configuration)
+      setViewConfig(fragment?.configuration || initialConfig)
+    if (fragment?.editorState) {
+      if (
+        typeof fragment?.editorState === 'object' &&
+        Object.keys(fragment?.editorState).length < 1
+      )
+        setInitialPlateValue('')
+      else setInitialPlateValue(fragment?.editorState || '')
+    }
     setPlateValue(fragment?.editorState || initEditor)
   }, [activeFragmentId])
 
@@ -303,7 +312,11 @@ const Flick = () => {
       <div className="flex flex-1 overflow-y-auto">
         <FragmentSideBar />
         <div className="flex-1 pb-12">
-          <FragmentBar plateValue={plateValue} config={viewConfig} />
+          <FragmentBar
+            markdown={fragmentMarkdown}
+            plateValue={plateValue}
+            config={viewConfig}
+          />
           {flick.fragments.length > 0 &&
             activeFragment &&
             (flick.fragments.find((f) => f.id === activeFragmentId)?.type ===
@@ -341,7 +354,7 @@ const Flick = () => {
                       />
                     </div>
                   ))}
-                  {viewConfig.speakers.length <
+                  {viewConfig.speakers?.length <
                     activeFragment.participants.length && (
                     <Tooltip
                       containerOffset={8}
@@ -386,11 +399,12 @@ const Flick = () => {
                       setPreviewPosition(position)
                     }}
                     handleUpdateMarkdown={(markdown) => {
-                      // console.log(markdown)
+                      // Returns the markdown of current editor state.
+                      setFragmentMarkdown(markdown)
                     }}
                   />
-                  <div className="w-48 relative">
-                    {currentBlock && (
+                  <div className="w-48 relative border-none outline-none">
+                    {currentBlock && viewConfig && (
                       <BlockPreview
                         block={currentBlock}
                         config={viewConfig}
@@ -441,8 +455,8 @@ const Flick = () => {
                       className={cx(
                         'px-4 py-2 w-32 h-16 border border-r-2 group relative',
                         css`
-                          background: ${viewConfig.titleSplash.titleSplashConfig
-                            ?.cssString};
+                          background: ${viewConfig.titleSplash
+                            ?.titleSplashConfig?.cssString};
                         `
                       )}
                     >
@@ -453,8 +467,9 @@ const Flick = () => {
                           placement="top-start"
                           content={
                             <GradientSelector
+                              mode={viewConfig.mode}
                               currentGradient={
-                                viewConfig.titleSplash.titleSplashConfig ||
+                                viewConfig.titleSplash?.titleSplashConfig ||
                                 getGradientConfig(gradients[0])
                               }
                               updateGradient={(gradient) => {
@@ -475,7 +490,7 @@ const Flick = () => {
                             onClick={() => setTitleGradientTooltip(true)}
                           />
                         </Tooltip>
-                        {viewConfig.titleSplash.enable ? (
+                        {viewConfig.titleSplash?.enable ? (
                           <FiEye
                             size={24}
                             className="bg-white border rounded-sm p-1 hidden group-hover:block"
@@ -520,7 +535,14 @@ const Flick = () => {
                     </div>
                     {getSimpleAST(plateValue).blocks.map((block) => (
                       <div className="px-4 py-2 w-32 h-16 bg-gray-100 relative border border-r-2">
-                        <div className="border rounded-md flex justify-center items-center w-full h-full p-2">
+                        <div
+                          className={cx(
+                            'border rounded-md flex justify-center items-center w-full h-full p-2',
+                            {
+                              'border-brand': block.id === currentBlock?.id,
+                            }
+                          )}
+                        >
                           <FragmentTypeIcon type={block.type} />
                         </div>
                       </div>

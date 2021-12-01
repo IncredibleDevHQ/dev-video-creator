@@ -47,7 +47,7 @@ const ProcessingFlick = ({
           rel="noreferrer noopener"
           className="flex my-4 border p-2 rounded-md items-center justify-between"
         >
-          {LINKS.WATCH + joinLink}
+          {`${LINKS.WATCH}/watch/${joinLink}`}
           <FiExternalLink size={24} className="mx-2" />
         </a>
       </div>
