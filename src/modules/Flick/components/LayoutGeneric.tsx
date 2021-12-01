@@ -8,7 +8,7 @@ import {
   IoPlayOutline,
 } from 'react-icons/io5'
 import { Block } from '../../../components/TextEditor/utils'
-import { Layout } from '../../../utils/configTypes2'
+import { Layout, ViewConfig } from '../../../utils/configTypes2'
 
 export const FragmentTypeIcon = ({ type }: { type: Block['type'] }) => {
   return (
@@ -36,10 +36,12 @@ export const FragmentTypeIcon = ({ type }: { type: Block['type'] }) => {
 const LayoutGeneric = ({
   type,
   layout,
+  mode = 'Landscape',
   isSelected,
   ...rest
 }: {
   isSelected?: boolean
+  mode?: ViewConfig['mode']
   layout: Layout
   type: Block['type']
 } & HTMLAttributes<HTMLDivElement>) => {
@@ -51,9 +53,11 @@ const LayoutGeneric = ({
             return (
               <div
                 className={cx(
-                  'w-32 h-16 p-2 border border-gray-200 rounded-md cursor-pointer bg-white',
+                  'border border-gray-200 rounded-md cursor-pointer bg-white',
                   {
                     'border-brand': isSelected,
+                    'p-1 w-20 h-32': mode === 'Portrait',
+                    'p-2 w-32 h-16': mode === 'Landscape',
                   }
                 )}
                 {...rest}
@@ -67,9 +71,11 @@ const LayoutGeneric = ({
             return (
               <div
                 className={cx(
-                  'w-32 h-16 p-2 border border-gray-200 rounded-md cursor-pointer flex gap-x-2',
+                  'border border-gray-200 rounded-md cursor-pointer flex gap-x-2',
                   {
                     'border-brand': isSelected,
+                    'p-1 w-20 h-32': mode === 'Portrait',
+                    'p-2 w-32 h-16': mode === 'Landscape',
                   }
                 )}
                 {...rest}
@@ -84,9 +90,11 @@ const LayoutGeneric = ({
             return (
               <div
                 className={cx(
-                  'w-32 h-16 p-2 border border-gray-200 rounded-md cursor-pointer flex gap-x-2',
+                  'p-2 border border-gray-200 rounded-md cursor-pointer flex gap-x-2',
                   {
                     'border-brand': isSelected,
+                    'w-20 h-32': mode === 'Portrait',
+                    'w-32 h-16': mode === 'Landscape',
                   }
                 )}
                 {...rest}
@@ -101,9 +109,11 @@ const LayoutGeneric = ({
             return (
               <div
                 className={cx(
-                  'w-32 h-16 p-2 border border-gray-200 rounded-md cursor-pointer flex justify-end items-center relative',
+                  'p-2 border border-gray-200 rounded-md cursor-pointer flex justify-end items-center relative',
                   {
                     'border-brand': isSelected,
+                    'w-20 h-32': mode === 'Portrait',
+                    'w-32 h-16': mode === 'Landscape',
                   }
                 )}
                 {...rest}
@@ -118,9 +128,11 @@ const LayoutGeneric = ({
             return (
               <div
                 className={cx(
-                  'w-32 h-16 p-2 border border-gray-200 rounded-md cursor-pointer flex justify-end items-end relative',
+                  'p-2 border border-gray-200 rounded-md cursor-pointer flex justify-end items-end relative',
                   {
                     'border-brand': isSelected,
+                    'w-20 h-32': mode === 'Portrait',
+                    'w-32 h-16': mode === 'Landscape',
                   }
                 )}
                 {...rest}
@@ -135,9 +147,11 @@ const LayoutGeneric = ({
             return (
               <div
                 className={cx(
-                  'w-32 h-16 p-2 border border-gray-200 rounded-md cursor-pointer flex justify-end items-end relative',
+                  'p-2 border border-gray-200 rounded-md cursor-pointer flex justify-end items-end relative',
                   {
                     'border-brand': isSelected,
+                    'w-20 h-32': mode === 'Portrait',
+                    'w-32 h-16': mode === 'Landscape',
                   }
                 )}
                 {...rest}
@@ -152,9 +166,11 @@ const LayoutGeneric = ({
             return (
               <div
                 className={cx(
-                  'w-32 h-16 border border-gray-200 rounded-md cursor-pointer flex justify-end items-end relative',
+                  'border border-gray-200 rounded-md cursor-pointer flex justify-end items-end relative',
                   {
                     'border-brand': isSelected,
+                    'w-20 h-32': mode === 'Portrait',
+                    'w-32 h-16': mode === 'Landscape',
                   }
                 )}
                 {...rest}
@@ -169,9 +185,11 @@ const LayoutGeneric = ({
             return (
               <div
                 className={cx(
-                  'w-32 h-16 border border-gray-200 rounded-md cursor-pointer flex justify-end items-end relative',
+                  'border border-gray-200 rounded-md cursor-pointer flex justify-end items-end relative',
                   {
                     'border-brand': isSelected,
+                    'w-20 h-32': mode === 'Portrait',
+                    'w-32 h-16': mode === 'Landscape',
                   }
                 )}
                 {...rest}
@@ -186,9 +204,11 @@ const LayoutGeneric = ({
             return (
               <div
                 className={cx(
-                  'w-32 h-16 border border-gray-200 rounded-md cursor-pointer flex items-center gap-x-2',
+                  'border border-gray-200 rounded-md cursor-pointer flex items-center gap-x-2',
                   {
                     'border-brand': isSelected,
+                    'w-20 h-32': mode === 'Portrait',
+                    'w-32 h-16': mode === 'Landscape',
                   }
                 )}
                 {...rest}
@@ -203,9 +223,11 @@ const LayoutGeneric = ({
             return (
               <div
                 className={cx(
-                  'w-32 h-16 border border-gray-200 rounded-md cursor-pointer flex items-center',
+                  'border border-gray-200 rounded-md cursor-pointer flex items-center',
                   {
                     'border-brand': isSelected,
+                    'w-20 h-32': mode === 'Portrait',
+                    'w-32 h-16': mode === 'Landscape',
                   }
                 )}
                 {...rest}

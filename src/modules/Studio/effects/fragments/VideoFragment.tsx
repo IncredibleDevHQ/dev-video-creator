@@ -141,14 +141,13 @@ const VideoFragment = ({
   }, [payload?.status])
 
   useEffect(() => {
-    if (!customLayoutRef.current) return
     // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
     if (payload?.fragmentState === 'customLayout') {
       setTopLayerChildren([<TrianglePathTransition direction="right" />])
       addTransitionAudio()
       setTimeout(() => {
         setFragmentState(payload?.fragmentState)
-        customLayoutRef.current?.to({
+        customLayoutRef?.current?.to({
           opacity: 1,
           duration: 0.2,
         })
@@ -160,7 +159,7 @@ const VideoFragment = ({
       addTransitionAudio()
       setTimeout(() => {
         setFragmentState(payload?.fragmentState)
-        customLayoutRef.current?.to({
+        customLayoutRef?.current?.to({
           opacity: 0,
           duration: 0.2,
         })

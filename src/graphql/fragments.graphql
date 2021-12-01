@@ -245,3 +245,9 @@ mutation UpdateParticipants($fragmentId: String!, $participantIds: [String!]!) {
     removed
   }
 }
+
+mutation UpdateFragmentMarkdown($fragmentId: uuid!, $md: String = "") {
+  update_Fragment_by_pk(pk_columns: { id: $fragmentId }, _set: { md: $md }) {
+    md
+  }
+}

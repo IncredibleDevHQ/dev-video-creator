@@ -6,13 +6,12 @@ import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
 import { FaDev, FaGithub } from 'react-icons/fa'
 import { SiHashnode } from 'react-icons/si'
-import { Loading, Button, Text, emitToast } from '../../../../components'
+import { Loading, Button, Text } from '../../../../components'
 import {
   useGetFlickMarkdownByIdQuery,
   useUpdateFlickMarkdownMutation,
-  usePublishFlickBlogMutation,
+  useGetFlickMarkdownMutation,
   useMyIntegrationsQuery,
-  usePublishBlogsMutation,
   PublishablePlatformEnum,
 } from '../../../../generated/graphql'
 import { PublishContext } from './PublishFlick'
@@ -56,9 +55,7 @@ const Markdown = () => {
   const [updateMarkdownMutation, { loading: updateMarkdownLoading }] =
     useUpdateFlickMarkdownMutation()
   const [generateMarkdownMutation, { loading: generateMarkdownLoading }] =
-    usePublishFlickBlogMutation()
-  const [publishBlog, { loading: publishBlogLoading }] =
-    usePublishBlogsMutation()
+    useGetFlickMarkdownMutation()
 
   useEffect(() => {
     if (!data?.Flick_by_pk) return
@@ -73,10 +70,10 @@ const Markdown = () => {
     const { data } = await generateMarkdownMutation({
       variables: { flickId },
     })
-    if (data?.GenerateBlog)
+    if (data?.ProduceFlickMd?.markdown)
       setMarkdownConfig({
         ...markdownConfig,
-        markdown: data.GenerateBlog.rawMd,
+        markdown: data.ProduceFlickMd.markdown,
       })
   }
 
@@ -104,31 +101,6 @@ const Markdown = () => {
           ...markdownConfig,
           integrations: [...markdownConfig.integrations, integration],
         })
-    }
-  }
-
-  const publish = async () => {
-    try {
-      await publishBlog({
-        variables: {
-          flickId,
-          platforms: markdownConfig.integrations.map(
-            (i) => i.id
-          ) as PublishablePlatformEnum[],
-        },
-      })
-      emitToast({
-        type: 'success',
-        title: 'Wohoo!',
-        description: 'Blog published successfully',
-      })
-    } catch (error: any) {
-      console.error(error)
-      emitToast({
-        title: 'Something went wrong!',
-        description: error?.message || '',
-        type: 'error',
-      })
     }
   }
 

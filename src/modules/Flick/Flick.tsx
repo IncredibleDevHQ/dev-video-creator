@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import {
   FiEye,
   FiEyeOff,
+  FiPlus,
   FiRefreshCcw,
   FiSliders,
   FiUser,
@@ -10,7 +11,13 @@ import {
 } from 'react-icons/fi'
 import { useHistory, useParams } from 'react-router-dom'
 import { useRecoilState, useSetRecoilState } from 'recoil'
-import { ScreenState, Text, TextEditor, Tooltip } from '../../components'
+import {
+  Heading,
+  ScreenState,
+  Text,
+  TextEditor,
+  Tooltip,
+} from '../../components'
 import { Position } from '../../components/TextEditor/components'
 import { Block, useUtils } from '../../components/TextEditor/utils'
 import {
@@ -86,10 +93,12 @@ const SpeakersTooltip = ({
   fragment,
   speakers,
   addSpeaker,
+  close,
 }: {
   fragment: FlickFragmentFragment
   speakers: FragmentParticipantFragment[]
   addSpeaker: (speaker: FragmentParticipantFragment) => void
+  close?: () => void
 }) => {
   return (
     <div className="bg-gray-50 p-2 rounded-md">
@@ -102,10 +111,13 @@ const SpeakersTooltip = ({
             role="button"
             tabIndex={0}
             onKeyDown={() => null}
-            className="flex items-center"
+            className="flex items-center px-2 py-1 hover:bg-gray-300 transition-colors rounded-md"
             key={participant.participant.id}
             onClick={() => {
-              if (participant) addSpeaker(participant)
+              if (participant) {
+                addSpeaker(participant)
+                close?.()
+              }
             }}
           >
             <img
@@ -138,7 +150,7 @@ const Flick = () => {
   const [currentBlock, setCurrentBlock] = useState<Block>()
   const [viewConfig, setViewConfig] = useState<ViewConfig>(initialConfig)
 
-  const [initialPlateValue, setInitialPlateValue] = useState<any>()
+  const [initialPlateValue, setInitialPlateValue] = useState<any>('')
   const [plateValue, setPlateValue] = useState<any>()
   const [integrationModal, setIntegrationModal] = useState(false)
 
@@ -148,6 +160,7 @@ const Flick = () => {
   const [isTitleGradientTooltip, setTitleGradientTooltip] = useState(false)
   const [processingFlick, setProcessingFlick] = useState(false)
   const [published, setPublished] = useState(false)
+  const [fragmentMarkdown, setFragmentMarkdown] = useState<string>()
 
   const { updatePayload, payload, resetPayload } = useLocalPayload()
   const [myMediaAssets, setMyMediaAssets] = useState<UserAssetQuery>()
@@ -235,8 +248,16 @@ const Flick = () => {
       fragment?.type !== Fragment_Type_Enum_Enum.Intro &&
       fragment?.type !== Fragment_Type_Enum_Enum.Outro
     ) {
-      setViewConfig(fragment?.configuration || initialConfig)
-      setInitialPlateValue(fragment?.editorState)
+      if (fragment?.configuration)
+        setViewConfig(fragment?.configuration || initialConfig)
+      if (fragment?.editorState) {
+        if (
+          typeof fragment?.editorState === 'object' &&
+          Object.keys(fragment?.editorState).length < 1
+        )
+          setInitialPlateValue('')
+        else setInitialPlateValue(fragment?.editorState || '')
+      }
       setPlateValue(fragment?.editorState || initEditor)
     }
   }, [activeFragmentId])
@@ -296,7 +317,11 @@ const Flick = () => {
       <div className="flex flex-1 overflow-y-auto">
         <FragmentSideBar />
         <div className="flex-1 pb-12">
-          <FragmentBar plateValue={plateValue} config={viewConfig} />
+          <FragmentBar
+            markdown={fragmentMarkdown}
+            plateValue={plateValue}
+            config={viewConfig}
+          />
           {flick.fragments.length > 0 &&
             activeFragment &&
             (flick.fragments.find((f) => f.id === activeFragmentId)?.type ===
@@ -311,6 +336,9 @@ const Flick = () => {
             flick.fragments.find((f) => f.id === activeFragmentId)?.type !==
               Fragment_Type_Enum_Enum.Outro && (
               <div className="h-full w-full my-4 mx-8 overflow-y-auto">
+                <div className="mx-12 mb-4">
+                  <Heading fontSize="large">{activeFragment.name}</Heading>
+                </div>
                 <div className="flex items-center justify-start mx-12">
                   {viewConfig.speakers?.map((s) => (
                     <div
@@ -322,15 +350,19 @@ const Flick = () => {
                         alt={s.participant.user.displayName as string}
                         className="w-6 h-6 rounded-full"
                       />
-                      <Text fontSize="normal" className="ml-2">
+                      <Text fontSize="normal" className="mx-2">
                         {s.participant.user.displayName}
                       </Text>
-                      <FiX onClick={() => deleteSpeaker(s)} />
+                      <FiX
+                        className="cursor-pointer"
+                        onClick={() => deleteSpeaker(s)}
+                      />
                     </div>
                   ))}
                   {viewConfig.speakers?.length <
                     activeFragment.participants.length && (
                     <Tooltip
+                      containerOffset={8}
                       isOpen={isSpeakersTooltip}
                       setIsOpen={() => setSpeakersTooltip(false)}
                       placement="bottom-start"
@@ -339,20 +371,25 @@ const Flick = () => {
                           fragment={activeFragment}
                           speakers={viewConfig.speakers}
                           addSpeaker={addSpeaker}
+                          close={() => setSpeakersTooltip(false)}
                         />
                       }
                     >
                       <button
                         type="button"
                         onClick={() => setSpeakersTooltip(true)}
+                        className="px-2 py-1 flex items-center bg-gray-200 rounded-md"
                       >
-                        {' '}
-                        + Add speakers
+                        <FiPlus className="mr-1.5" /> Add speakers
                       </button>
                     </Tooltip>
                   )}
                 </div>
-                <div className="px-8 w-full overflow-y-scroll pb-28 flex justify-between items-stretch">
+                <div className="flex mx-12 mt-8 shadow-lg items-center">
+                  <hr className="w-full" />
+                  <span className="w-48" />
+                </div>
+                <div className="px-8 w-full overflow-y-scroll pb-28 flex h-full justify-between items-stretch">
                   <TextEditor
                     placeholder="Start writing..."
                     handleUpdateJSON={(json) => {
@@ -366,9 +403,13 @@ const Flick = () => {
                       // Relative position of the cursor.
                       setPreviewPosition(position)
                     }}
+                    handleUpdateMarkdown={(markdown) => {
+                      // Returns the markdown of current editor state.
+                      setFragmentMarkdown(markdown)
+                    }}
                   />
-                  <div className="w-48 relative">
-                    {currentBlock && (
+                  <div className="w-48 relative border-none outline-none">
+                    {currentBlock && viewConfig && (
                       <BlockPreview
                         block={currentBlock}
                         config={viewConfig}
@@ -419,8 +460,8 @@ const Flick = () => {
                       className={cx(
                         'px-4 py-2 w-32 h-16 border border-r-2 group relative',
                         css`
-                          background: ${viewConfig.titleSplash.titleSplashConfig
-                            ?.cssString};
+                          background: ${viewConfig.titleSplash
+                            ?.titleSplashConfig?.cssString};
                         `
                       )}
                     >
@@ -431,8 +472,9 @@ const Flick = () => {
                           placement="top-start"
                           content={
                             <GradientSelector
+                              mode={viewConfig.mode}
                               currentGradient={
-                                viewConfig.titleSplash.titleSplashConfig ||
+                                viewConfig.titleSplash?.titleSplashConfig ||
                                 getGradientConfig(gradients[0])
                               }
                               updateGradient={(gradient) => {
@@ -453,7 +495,7 @@ const Flick = () => {
                             onClick={() => setTitleGradientTooltip(true)}
                           />
                         </Tooltip>
-                        {viewConfig.titleSplash.enable ? (
+                        {viewConfig.titleSplash?.enable ? (
                           <FiEye
                             size={24}
                             className="bg-white border rounded-sm p-1 hidden group-hover:block"
@@ -498,7 +540,14 @@ const Flick = () => {
                     </div>
                     {getSimpleAST(plateValue).blocks.map((block) => (
                       <div className="px-4 py-2 w-32 h-16 bg-gray-100 relative border border-r-2">
-                        <div className="border rounded-md flex justify-center items-center w-full h-full p-2">
+                        <div
+                          className={cx(
+                            'border rounded-md flex justify-center items-center w-full h-full p-2',
+                            {
+                              'border-brand': block.id === currentBlock?.id,
+                            }
+                          )}
+                        >
                           <FragmentTypeIcon type={block.type} />
                         </div>
                       </div>
