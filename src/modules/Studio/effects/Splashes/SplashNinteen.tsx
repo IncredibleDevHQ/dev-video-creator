@@ -3,11 +3,11 @@ import { Group, Image, Rect } from 'react-konva'
 import Konva from 'konva'
 import { useRecoilValue } from 'recoil'
 import { useImage } from 'react-konva-utils'
-import Concourse, { CONFIG } from '../components/Concourse'
-import { StudioProviderProps, studioStore } from '../stores'
-import config from '../../../config'
+import Concourse, { CONFIG } from '../../components/Concourse'
+import { StudioProviderProps, studioStore } from '../../stores'
+import config from '../../../../config'
 
-const SplashSeventeen = () => {
+const SplashNinteen = () => {
   const { state } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [logo] = useImage(`${config.storage.baseUrl}idev-logo.svg`, 'anonymous')
@@ -16,7 +16,7 @@ const SplashSeventeen = () => {
     'anonymous'
   )
   const [secondaryLogo] = useImage(
-    `${config.storage.baseUrl}100DaysOfTF.svg`,
+    `${config.storage.baseUrl}tslogo.svg`,
     'anonymous'
   )
 
@@ -25,13 +25,14 @@ const SplashSeventeen = () => {
     logoHeight: 60,
     logoTextWidth: 158,
     logoTextHeight: 26,
-    secondaryLogoWidth: 279,
-    secondaryLogoHeight: 99,
+    secondaryLogoWidth: 244,
+    secondaryLogoHeight: 100,
   })
 
   const controls: any = []
 
   const secondaryLogoRef = useRef<Konva.Image | null>(null)
+  const secondaryRectRef = useRef<Konva.Rect | null>(null)
 
   useEffect(() => {
     if (state === 'recording') {
@@ -131,6 +132,10 @@ const SplashSeventeen = () => {
                           opacity: 1,
                           duration: 0.3,
                         })
+                        secondaryRectRef.current?.to({
+                          opacity: 1,
+                          duration: 0.3,
+                        })
                       },
                     })
                     ref?.to({
@@ -145,6 +150,15 @@ const SplashSeventeen = () => {
             },
           })
         }}
+      />,
+      <Rect
+        x={0}
+        y={0}
+        fill="#3178C6"
+        width={CONFIG.width}
+        height={CONFIG.height}
+        ref={secondaryRectRef}
+        opacity={0}
       />,
       <Image
         image={secondaryLogo}
@@ -161,4 +175,4 @@ const SplashSeventeen = () => {
   return <Concourse disableUserMedia layerChildren={layerChildren} />
 }
 
-export default SplashSeventeen
+export default SplashNinteen

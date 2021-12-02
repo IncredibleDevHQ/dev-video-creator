@@ -3,11 +3,11 @@ import { Group, Image, Rect } from 'react-konva'
 import Konva from 'konva'
 import { useRecoilValue } from 'recoil'
 import { useImage } from 'react-konva-utils'
-import Concourse, { CONFIG } from '../components/Concourse'
-import { StudioProviderProps, studioStore } from '../stores'
-import config from '../../../config'
+import Concourse, { CONFIG } from '../../components/Concourse'
+import { StudioProviderProps, studioStore } from '../../stores'
+import config from '../../../../config'
 
-const SplashThree = () => {
+const SplashTwentyOne = () => {
   const { state } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [logo] = useImage(`${config.storage.baseUrl}idev-logo.svg`, 'anonymous')
@@ -16,11 +16,15 @@ const SplashThree = () => {
     'anonymous'
   )
   const [secondaryLogo] = useImage(
-    `${config.storage.baseUrl}graphql-100days.svg`,
+    `${config.storage.baseUrl}Svelte.svg`,
+    'anonymous'
+  )
+  const [secondaryBg] = useImage(
+    `${config.storage.baseUrl}svelte_bg.svg`,
     'anonymous'
   )
 
-  const [imageDimensions, setImageDimensions] = useState({
+  const [imageDimensions] = useState({
     logoWidth: 60,
     logoHeight: 60,
     logoTextWidth: 158,
@@ -32,6 +36,7 @@ const SplashThree = () => {
   const controls: any = []
 
   const secondaryLogoRef = useRef<Konva.Image | null>(null)
+  const secondaryBgRef = useRef<Konva.Image | null>(null)
 
   useEffect(() => {
     if (state === 'recording') {
@@ -131,6 +136,10 @@ const SplashThree = () => {
                           opacity: 1,
                           duration: 0.3,
                         })
+                        secondaryBgRef.current?.to({
+                          opacity: 1,
+                          duration: 0.3,
+                        })
                       },
                     })
                     ref?.to({
@@ -147,11 +156,28 @@ const SplashThree = () => {
         }}
       />,
       <Image
+        image={secondaryBg}
+        x={0}
+        y={0}
+        width={CONFIG.width}
+        height={CONFIG.height}
+        ref={secondaryBgRef}
+        opacity={0}
+      />,
+      <Image
         image={secondaryLogo}
-        x={(CONFIG.width - imageDimensions.secondaryLogoWidth) / 2}
-        y={(CONFIG.height - imageDimensions.secondaryLogoHeight) / 2}
-        width={imageDimensions.secondaryLogoWidth}
-        height={imageDimensions.secondaryLogoHeight}
+        x={
+          (CONFIG.width -
+            (secondaryLogo?.width ? secondaryLogo?.width * 3 : 0)) /
+          2
+        }
+        y={
+          (CONFIG.height -
+            (secondaryLogo?.width ? secondaryLogo?.height * 3 : 0)) /
+          2
+        }
+        width={secondaryLogo?.width ? secondaryLogo?.width * 3 : 0}
+        height={secondaryLogo?.height ? secondaryLogo?.height * 3 : 0}
         ref={secondaryLogoRef}
         opacity={0}
       />,
@@ -161,4 +187,4 @@ const SplashThree = () => {
   return <Concourse disableUserMedia layerChildren={layerChildren} />
 }
 
-export default SplashThree
+export default SplashTwentyOne

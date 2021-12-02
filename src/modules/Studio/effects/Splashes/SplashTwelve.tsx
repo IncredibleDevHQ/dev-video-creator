@@ -1,27 +1,29 @@
 import React, { useEffect, useState } from 'react'
-import { Rect, Text, Group, Image } from 'react-konva'
+import { Circle, Rect, Text, Line, Group, Image } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
 import { useParams } from 'react-router-dom'
-import Concourse, { CONFIG } from '../components/Concourse'
-import { StudioProviderProps, studioStore } from '../stores'
-import useSplash, { Coordinates } from '../hooks/use-splash'
-import { User, userState } from '../../../stores/user.store'
-import { useGetFragmentByIdQuery } from '../../../generated/graphql'
-import { EmptyState } from '../../../components'
-import config from '../../../config'
+import Concourse, { CONFIG } from '../../components/Concourse'
+import { StudioProviderProps, studioStore } from '../../stores'
+import useSplash, { Coordinates } from '../../hooks/use-splash'
+import { User, userState } from '../../../../stores/user.store'
+import { useGetFragmentByIdQuery } from '../../../../generated/graphql'
+import { EmptyState } from '../../../../components'
+import config from '../../../../config'
 
 const titleEnum = 'title'
 const subTitleEnum = 'subtitle'
 
-const SplashThirteen = () => {
+const SplashTwelve = () => {
   const { state } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const { sub } = (useRecoilValue(userState) as User) || {}
   const [configuration, setConfiguration] =
     useState<{ title: any; subTitle: any }>()
   const params: { fragmentId: string } = useParams()
-  const [ghLogo] = useImage(`${config.storage.baseUrl}gh-logo.png`, 'anonymous')
-  const [ghUser] = useImage(`${config.storage.baseUrl}gh-user.png`, 'anonymous')
+  const [cockroachLogo] = useImage(
+    `${config.storage.baseUrl}cockroachLogoSVG.svg`,
+    'anonymous'
+  )
 
   const { data } = useGetFragmentByIdQuery({
     variables: { id: params.fragmentId, sub: sub as string },
@@ -98,7 +100,7 @@ const SplashThirteen = () => {
     <Rect
       x={0}
       y={0}
-      fill="#040D21"
+      fill="#6031E2"
       width={CONFIG.width}
       height={CONFIG.height}
     />,
@@ -107,123 +109,89 @@ const SplashThirteen = () => {
   const getLayerChildren = () => {
     setLayerChildren((layerChildren) => [
       ...layerChildren,
-      <Group x={82} y={78} width={429} height={192} key="group1">
+      <Circle
+        key="FirstCircle"
+        x={200}
+        y={175}
+        radius={78}
+        stroke={gradientStrokeOne()}
+        strokeWidth={39}
+        scaleX={3}
+        scaleY={3}
+        opacity={0}
+        ref={(ref) => {
+          ref?.to({
+            duration: 2,
+            opacity: 1,
+          })
+        }}
+      />,
+      <Circle
+        key="SecondCircle"
+        x={670}
+        y={250}
+        radius={78}
+        stroke={gradientStrokeTwo()}
+        strokeWidth={39}
+        scaleX={3}
+        scaleY={3}
+        opacity={0}
+        ref={(ref) => {
+          ref?.to({
+            duration: 2,
+            opacity: 1,
+          })
+        }}
+      />,
+      <Group x={114} y={161} width={732} height={184} key="group1">
         <Text
-          fontSize={96}
-          fill="#9DF4D1"
-          fontFamily="Poppins"
-          fontStyle="normal 900"
-          text="Github"
-          align="center"
-          opacity={1}
-          ref={(ref) => {
-            ref?.to({
-              duration: 1,
-              opacity: 1,
-            })
-          }}
-        />
-        <Text
-          fontSize={36}
+          fontSize={104}
           fill="#FFFFFF"
           fontFamily="Poppins"
-          text="Where the world builds"
-          fontStyle="normal"
+          fontStyle="normal 700"
+          text="CockroachDB"
           align="center"
-          y={108}
-          opacity={1}
-          ref={(ref) => {
-            ref?.to({
-              duration: 1,
-              opacity: 1,
-            })
-          }}
-        />
-        <Text
-          fontSize={36}
-          fill="#FFFFFF"
-          fontFamily="Poppins"
-          text="software"
-          fontStyle="normal"
-          align="center"
-          y={150}
           opacity={0}
           ref={(ref) => {
-            ref?.to({
-              duration: 0.5,
-              opacity: 1,
-            })
+            setTimeout(() => {
+              ref?.to({
+                duration: 0.5,
+                opacity: 1,
+              })
+            }, 2000)
+          }}
+        />
+        <Text
+          fontSize={24}
+          fill="#FFFFFF"
+          fontFamily="Poppins"
+          text="The most highly evolved database on planet"
+          fontStyle="normal 400"
+          align="center"
+          y={126}
+          x={65}
+          opacity={0}
+          ref={(ref) => {
+            setTimeout(() => {
+              ref?.to({
+                duration: 0.5,
+                opacity: 1,
+              })
+            }, 2000)
           }}
         />
       </Group>,
-      <Group x={826} y={406} width={54} height={54} key="group2">
+      <Group x={697} y={476} width={220} height={32} key="group2">
         <Image
-          image={ghLogo}
+          image={cockroachLogo}
           opacity={0}
           ref={(ref) => {
-            ref?.to({
-              duration: 1,
-              opacity: 1,
-            })
-          }}
-        />
-      </Group>,
-      <Group>
-        <Rect
-          fill="#0C162D"
-          x={80}
-          y={340}
-          cornerRadius={12}
-          width={381}
-          height={120}
-        />
-        <Image
-          x={90}
-          y={360}
-          width={80}
-          height={80}
-          cornerRadius={12}
-          image={ghUser}
-          opacity={1}
-          ref={(ref) => {
-            ref?.to({
-              duration: 1,
-              opacity: 1,
-            })
-          }}
-        />
-        <Text
-          fontSize={20}
-          fill="#FFFFFF"
-          fontFamily="Poppins"
-          text="Brian Douglas"
-          fontStyle="normal 600"
-          align="center"
-          x={190}
-          y={400}
-          opacity={0}
-          ref={(ref) => {
-            ref?.to({
-              duration: 1,
-              opacity: 1,
-            })
-          }}
-        />
-        <Text
-          fontSize={16}
-          fill="#FFFFFF"
-          fontFamily="Poppins"
-          text="Developer Advocate @ Github"
-          fontStyle="normal"
-          align="center"
-          x={190}
-          y={425}
-          opacity={0}
-          ref={(ref) => {
-            ref?.to({
-              duration: 1,
-              opacity: 1,
-            })
+            setTimeout(() => {
+              ref?.to({
+                duration: 0.5,
+                opacity: 1,
+              })
+            }, 3000)
           }}
         />
       </Group>,
@@ -234,4 +202,4 @@ const SplashThirteen = () => {
   return <Concourse disableUserMedia layerChildren={layerChildren} />
 }
 
-export default SplashThirteen
+export default SplashTwelve
