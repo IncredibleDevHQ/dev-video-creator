@@ -1,11 +1,9 @@
-import React, { useEffect } from 'react'
-import { Route, Redirect, RouteProps, useHistory } from 'react-router-dom'
+import React from 'react'
+import { Redirect, Route, RouteProps } from 'react-router-dom'
 import { useRecoilValue } from 'recoil'
 import { ScreenState } from '../components'
-import { VerificationStatusEnum } from '../generated/graphql'
-import { Onboarding } from '../modules'
-import { authState } from '../stores/auth.store'
-import { userState, userVerificationStatus } from '../stores/user.store'
+import firebaseState from '../stores/firebase.store'
+import { userState } from '../stores/user.store'
 
 interface PrivateRouteProps extends RouteProps {
   component: any
@@ -14,40 +12,16 @@ interface PrivateRouteProps extends RouteProps {
 
 const PrivateRoute = ({
   component: Component,
-  redirectTo = '/login',
+  redirectTo = '/',
   ...rest
 }: PrivateRouteProps): JSX.Element | null => {
-  const { push } = useHistory()
-
-  const auth = useRecoilValue(authState)
   const user = useRecoilValue(userState)
-  const verificationStatus = useRecoilValue(userVerificationStatus)
+  const { loading } = useRecoilValue(firebaseState)
 
-  useEffect(() => {
-    if (auth?.isAuthenticated === false && auth?.loading === false)
-      push(redirectTo, { from: rest.location })
-  }, [auth])
-
-  useEffect(() => {
-    if (!verificationStatus || !verificationStatus.status) return
-    if (verificationStatus.status !== VerificationStatusEnum.Approved) {
-      push('/login')
-    }
-  }, [verificationStatus])
-
-  if (
-    auth?.loading === true ||
-    typeof auth?.loading === 'undefined' ||
-    verificationStatus === undefined
-  )
+  if (loading === true || typeof loading === 'undefined')
     return <ScreenState title="Just a jiffy" loading />
 
-  if (!user?.onboarded) return <Onboarding />
-
-  if (
-    auth.isAuthenticated &&
-    verificationStatus?.status === VerificationStatusEnum.Approved
-  ) {
+  if (user) {
     return user?.uid ? (
       <Route {...rest} render={(routeProps) => <Component {...routeProps} />} />
     ) : null
@@ -66,10 +40,6 @@ const PrivateRoute = ({
       )}
     />
   )
-}
-
-PrivateRoute.defaultProps = {
-  redirectTo: '/login',
 }
 
 export default PrivateRoute

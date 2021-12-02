@@ -1,3 +1,9 @@
+fragment FragmentParticipant on Fragment_Participant {
+  participant {
+    ...FlickParticipants
+  }
+}
+
 fragment FlickFragment on Fragment {
   configuration
   description
@@ -7,11 +13,10 @@ fragment FlickFragment on Fragment {
   order
   type
   producedLink
+  producedShortsLink
   editorState
   participants {
-    participant {
-      ...FlickParticipants
-    }
+    ...FragmentParticipant
   }
 }
 
@@ -238,5 +243,11 @@ mutation UpdateParticipants($fragmentId: String!, $participantIds: [String!]!) {
   ) {
     added
     removed
+  }
+}
+
+mutation UpdateFragmentMarkdown($fragmentId: uuid!, $md: String = "") {
+  update_Fragment_by_pk(pk_columns: { id: $fragmentId }, _set: { md: $md }) {
+    md
   }
 }

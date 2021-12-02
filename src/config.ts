@@ -24,6 +24,7 @@ const config = {
    */
   hasura: {
     server: import.meta.env.VITE_HASURA_SERVER,
+    wsServer: import.meta.env.VITE_HASURA_WEBSOCKET_SERVER,
   },
   /**
    * Firebase configs...
@@ -58,6 +59,12 @@ const config = {
       clientId: githubIntegrationConfig.clientId,
       scope: githubIntegrationConfig.scope,
     },
+  },
+  /**
+   * Auth endpoint
+   */
+  auth: {
+    endpoint: import.meta.env.VITE_AUTH_ENDPOINT,
   },
 }
 

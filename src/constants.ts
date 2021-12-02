@@ -16,6 +16,13 @@ import flickIcon from './assets/flickIcon.svg'
 import EmptyState from './assets/EmptyState.svg'
 import StudioLogo from './assets/Logo-studio.svg'
 import LoginPattern from './assets/LoginPattern.svg'
+import FLICK from './assets/flick.png'
+import BLOG from './assets/blog.png'
+import SHORTS from './assets/shorts.png'
+import PENCIL_ALT from './assets/pencil-alt.svg'
+import EYE_OUTLINE from './assets/eye-outline.svg'
+import PROCESSING from './assets/processing.gif'
+import SUCCESS from './assets/Success.gif'
 
 export const ASSETS = {
   ICONS: {
@@ -29,6 +36,13 @@ export const ASSETS = {
     IncredibleLogo,
     IncredibleLogoDark,
     StudioLogo,
+    FLICK,
+    BLOG,
+    SHORTS,
+    EYE_OUTLINE,
+    PENCIL_ALT,
+    PROCESSING,
+    SUCCESS,
   },
   ANIMATION: {
     LOGIN_USER_ANIMATION,
@@ -50,6 +64,10 @@ export const Icons = {
 export const API = {
   GITHUB: {
     BASE_URL: 'https://api.github.com/',
+  },
+  STACK_EXCHANGE: {
+    BASE_URL: 'https://api.stackexchange.com/2.3',
+    TAGS: '/tags?order=desc&sort=popular&site=stackoverflow',
   },
 }
 

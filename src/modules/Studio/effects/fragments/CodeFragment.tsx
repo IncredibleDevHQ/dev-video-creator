@@ -1,15 +1,14 @@
+import axios from 'axios'
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
-import { Circle, Group, Image, Rect } from 'react-konva'
+import { Circle, Group, Rect } from 'react-konva'
 import { useRecoilState, useRecoilValue } from 'recoil'
-import useImage from 'use-image'
+import { CodeBlockProps } from '../../../../components/TextEditor/utils'
+import * as gConfig from '../../../../config'
 import { Fragment_Status_Enum_Enum } from '../../../../generated/graphql'
-import {
-  CodejamConfig,
-  CommentExplanations,
-  ConfigType,
-  LayoutConfig,
-} from '../../../../utils/configTypes'
+import firebaseState from '../../../../stores/firebase.store'
+import { CommentExplanations, ConfigType } from '../../../../utils/configTypes'
+import { BlockProperties } from '../../../../utils/configTypes2'
 import Concourse, {
   CONFIG,
   SHORTS_CONFIG,
@@ -33,6 +32,40 @@ import {
 import { StudioUserConfiguration } from '../../utils/StudioUserConfig'
 import { TrianglePathTransition } from '../FragmentTransitions'
 
+const getColorCodes = async (
+  code: string,
+  language: string,
+  userToken: string
+) => {
+  return axios.post(
+    gConfig.default.hasura.server,
+    {
+      query: `
+          query GetTokenisedCode(
+            $code: String!
+            $language: String!
+            $theme: String
+          ) {
+            TokenisedCode(code: $code, language: $language, theme: $theme) {
+              success
+              data
+            }
+          }
+        `,
+      variables: {
+        code: code || '',
+        language: language || 'javascript',
+      },
+    },
+    {
+      headers: {
+        'Content-Type': 'application/json',
+        authorization: `Bearer ${userToken}`,
+      },
+    }
+  )
+}
+
 const CodeFragment = ({
   viewConfig,
   dataConfig,
@@ -44,9 +77,10 @@ const CodeFragment = ({
   setFragmentState,
   stageRef,
   layerRef,
+  shortsMode,
 }: {
-  viewConfig: LayoutConfig
-  dataConfig: CodejamConfig
+  viewConfig: BlockProperties
+  dataConfig: CodeBlockProps
   dataConfigLength: number
   topLayerChildren: JSX.Element[]
   setTopLayerChildren: React.Dispatch<React.SetStateAction<JSX.Element[]>>
@@ -55,8 +89,9 @@ const CodeFragment = ({
   setFragmentState: React.Dispatch<React.SetStateAction<FragmentState>>
   stageRef: React.RefObject<Konva.Stage>
   layerRef: React.RefObject<Konva.Layer>
+  shortsMode: boolean
 }) => {
-  const { fragment, payload, updatePayload, state, shortsMode } =
+  const { fragment, payload, updatePayload, state, addTransitionAudio } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const { initUseCode, computedTokens } = useCode()
@@ -87,7 +122,7 @@ const CodeFragment = ({
   // // state which stores if its a short or not
   // const [isShorts, setIsShorts] = useState<boolean>(false)
 
-  const [bgImage] = useImage(viewConfig?.background?.image || '', 'anonymous')
+  // const [bgImage] = useImage(viewConfig?.background?.image || '', 'anonymous')
 
   const [objectConfig, setObjectConfig] = useState<ObjectConfig>({
     x: 0,
@@ -96,6 +131,10 @@ const CodeFragment = ({
     height: 0,
     borderRadius: 0,
   })
+
+  const [colorCodes, setColorCodes] = useState<any>([])
+
+  const user = useRecoilValue(firebaseState)
 
   const [stageConfig, setStageConfig] = useState<{
     width: number
@@ -111,26 +150,40 @@ const CodeFragment = ({
     if (!dataConfig) return
     setObjectConfig(
       FragmentLayoutConfig({
-        layoutNumber: viewConfig.layoutNumber,
+        layout: viewConfig.layout || 'classic',
         isShorts: shortsMode || false,
       })
     )
-    setIsCodexFormat(dataConfig.value.isAutomated)
-    const blocks = Object.assign([], dataConfig.value.explanations || [])
+    setIsCodexFormat(dataConfig.codeBlock.isAutomated || false)
+    const blocks = Object.assign([], dataConfig.codeBlock.explanations || [])
     blocks.unshift({ from: 0, to: 0, explanation: '' })
     setBlockConfig(blocks)
     setTopLayerChildren([])
-  }, [dataConfig, viewConfig, shortsMode])
+    ;(async () => {
+      try {
+        const { data } = await getColorCodes(
+          dataConfig.codeBlock.code || '',
+          dataConfig.codeBlock.language || '',
+          user.token || ''
+        )
+        if (!data?.errors) setColorCodes(data.data.TokenisedCode.data)
+      } catch (e) {
+        console.error(e)
+        throw e
+      }
+    })()
+  }, [dataConfig, shortsMode, viewConfig])
 
   useEffect(() => {
+    if (!colorCodes) return
     initUseCode({
-      tokens: dataConfig.value.colorCodes,
+      tokens: colorCodes,
       canvasWidth: objectConfig.width - 120,
       canvasHeight: objectConfig.height - 36,
       gutter: 5,
       fontSize: codeConfig.fontSize,
     })
-  }, [objectConfig])
+  }, [colorCodes, objectConfig])
 
   useEffect(() => {
     setStudio({
@@ -216,51 +269,49 @@ const CodeFragment = ({
   }, [state, isCodexFormat])
 
   useEffect(() => {
-    if (!customLayoutRef.current) return
     // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
     if (payload?.fragmentState === 'customLayout') {
       setTopLayerChildren([
-        <TrianglePathTransition isShorts={shortsMode} direction="left" />,
+        <TrianglePathTransition isShorts={shortsMode} direction="right" />,
       ])
+      addTransitionAudio()
       setTimeout(() => {
         setFragmentState(payload?.fragmentState)
-        // customLayoutRef.current?.opacity(1)
-        customLayoutRef.current?.to({
+        customLayoutRef?.current?.to({
           opacity: 1,
           duration: 0.2,
         })
-      }, 1000)
+      }, 800)
     }
     // Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
     if (payload?.fragmentState === 'onlyUserMedia') {
       setTopLayerChildren([
-        <TrianglePathTransition isShorts={shortsMode} direction="right" />,
+        <TrianglePathTransition isShorts={shortsMode} direction="left" />,
       ])
-      customLayoutRef.current?.to({
-        opacity: 0,
-        duration: 0.8,
-      })
+      addTransitionAudio()
       setTimeout(() => {
         setFragmentState(payload?.fragmentState)
+        customLayoutRef?.current?.to({
+          opacity: 0,
+          duration: 0.2,
+        })
       }, 800)
     }
   }, [payload?.fragmentState])
 
   const layerChildren: any[] = [
     <Group x={0} y={0}>
-      {viewConfig.background.type === 'color' ? (
-        <Rect
-          x={0}
-          y={0}
-          width={stageConfig.width}
-          height={stageConfig.height}
-          fillLinearGradientColorStops={viewConfig.background.gradient?.values}
-          fillLinearGradientStartPoint={
-            viewConfig.background.gradient?.startIndex
-          }
-          fillLinearGradientEndPoint={viewConfig.background.gradient?.endIndex}
-        />
-      ) : (
+      {/* {viewConfig.background.type === 'color' ? ( */}
+      <Rect
+        x={0}
+        y={0}
+        width={stageConfig.width}
+        height={stageConfig.height}
+        fillLinearGradientColorStops={viewConfig.gradient?.values}
+        fillLinearGradientStartPoint={viewConfig.gradient?.startIndex}
+        fillLinearGradientEndPoint={viewConfig.gradient?.endIndex}
+      />
+      {/* ) : (
         <Image
           x={0}
           y={0}
@@ -268,7 +319,7 @@ const CodeFragment = ({
           height={stageConfig.height}
           image={bgImage}
         />
-      )}
+      )} */}
     </Group>,
     <Group x={0} y={0} opacity={0} ref={customLayoutRef}>
       <Rect
@@ -422,7 +473,7 @@ const CodeFragment = ({
   ]
 
   const studioUserConfig = StudioUserConfiguration({
-    layoutNumber: viewConfig.layoutNumber,
+    layout: viewConfig.layout || 'classic',
     fragment,
     fragmentState,
     isShorts: shortsMode || false,
@@ -436,6 +487,7 @@ const CodeFragment = ({
       titleSplashData={titleSplashData}
       studioUserConfig={studioUserConfig}
       topLayerChildren={topLayerChildren}
+      isShorts={shortsMode}
     />
   )
 }

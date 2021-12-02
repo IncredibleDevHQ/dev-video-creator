@@ -9,16 +9,29 @@ import {
   DraggableStateSnapshot,
   Droppable,
 } from 'react-beautiful-dnd'
-import { FiMoreHorizontal } from 'react-icons/fi'
+import { FiMoreHorizontal, FiPlus } from 'react-icons/fi'
 import { IoCheckmarkCircle, IoTrashOutline } from 'react-icons/io5'
-import { useRecoilState } from 'recoil'
+import { useRecoilState, useRecoilValue } from 'recoil'
 import { DeleteFragmentModal } from '.'
-import { Avatar, Text, Tooltip } from '../../../components'
+import {
+  Avatar,
+  Button,
+  dismissToast,
+  emitToast,
+  Text,
+  Tooltip,
+  updateToast,
+} from '../../../components'
 import {
   FlickFragmentFragment,
+  Fragment_Type_Enum_Enum,
+  useCreateFragmentMutation,
+  useGetFlickFragmentsLazyQuery,
+  User,
   useReorderFragmentMutation,
   useUpdateFragmentMutation,
 } from '../../../generated/graphql'
+import { userState } from '../../../stores/user.store'
 import { newFlickStore } from '../store/flickNew.store'
 
 const style = css`
@@ -28,15 +41,168 @@ const style = css`
 `
 
 const FragmentSideBar = () => {
+  const [{ flick, activeFragmentId, isMarkdown }, setFlickStore] =
+    useRecoilState(newFlickStore)
+
+  const [createFragment] = useCreateFragmentMutation()
+  const { sub } = (useRecoilValue(userState) as User) || {}
+  const [
+    GetFlickFragments,
+    { data: fragmentData, error: fragmentError, refetch },
+  ] = useGetFlickFragmentsLazyQuery({
+    variables: {
+      flickId: flick?.id,
+    },
+  })
+
+  useEffect(() => {
+    if (!fragmentData || !flick) return
+    setFlickStore((store) => ({
+      ...store,
+      flick: {
+        ...flick,
+        fragments: [...fragmentData.Fragment],
+      },
+    }))
+  }, [fragmentData])
+
+  useEffect(() => {
+    if (!fragmentError || !refetch) return
+    emitToast({
+      title: "We couldn't fetch your new fragment",
+      type: 'error',
+      description: 'Click this toast to give it another try',
+      onClick: () => refetch(),
+    })
+  }, [fragmentError])
+
+  const handleCreateFragment = async () => {
+    if (flick?.owner?.userSub !== sub) return
+    let toast
+    try {
+      toast = emitToast({
+        type: 'info',
+        title: 'Creating...',
+        autoClose: false,
+      })
+
+      const res = await createFragment({
+        variables: {
+          flickId: flick?.id,
+          name: 'Untitled',
+          creatorPid: flick?.participants.find((p) => p.userSub === sub)?.id,
+        },
+      })
+
+      if (res.errors) {
+        throw Error(res.errors[0].message)
+      }
+
+      setFlickStore((prev) => ({
+        ...prev,
+        activeFragmentId: res.data?.CreateFragment?.id,
+      }))
+
+      GetFlickFragments?.()
+
+      dismissToast(toast)
+    } catch (e) {
+      if (toast) {
+        updateToast({
+          id: toast,
+          type: 'error',
+          title: 'There was an error creating a fragment.',
+          autoClose: 5000,
+        })
+      }
+    }
+  }
+
   return (
-    <div>
-      <div
-        className={cx(
-          'w-48 border-r border-gray-300 h-full overflow-y-scroll relative',
-          style
-        )}
-      >
+    <div className="h-full">
+      <div className="flex flex-col w-48 border-r border-gray-300 h-full relative bg-gray-50">
+        <button
+          onClick={() =>
+            setFlickStore((prev) => ({
+              ...prev,
+              activeFragmentId: flick?.fragments.find(
+                (f) => f.type === Fragment_Type_Enum_Enum.Intro
+              )?.id,
+            }))
+          }
+          type="button"
+          className={cx(
+            'flex bg-gray-100 items-center justify-start m-4 p-3 rounded-md border border-gray-300 relative',
+            {
+              'border-green-600':
+                activeFragmentId ===
+                flick?.fragments.find(
+                  (f) => f.type === Fragment_Type_Enum_Enum.Intro
+                )?.id,
+            }
+          )}
+        >
+          {flick?.fragments.find(
+            (f) => f.type === Fragment_Type_Enum_Enum.Intro
+          )?.producedLink && (
+            <IoCheckmarkCircle className="absolute top-0 right-0 m-2 text-green-600" />
+          )}
+          <Text className="text-sm font-bold">Intro</Text>
+        </button>
+        <div className="border-b-2" />
+        <div
+          role="button"
+          onKeyUp={() => {}}
+          tabIndex={-1}
+          className={cx(
+            'w-48 bg-gray-50 flex items-center justify-center cursor-pointer border-r border-gray-300 mr-4 py-2',
+            {
+              'cursor-not-allowed': flick?.owner?.userSub !== sub,
+            }
+          )}
+          onClick={handleCreateFragment}
+        >
+          <Button
+            type="button"
+            className={cx('text-green-600 -ml-4')}
+            disabled={flick?.owner?.userSub !== sub}
+            appearance="link"
+            size="small"
+            icon={FiPlus}
+          >
+            <Text className="text-sm">New Fragment</Text>
+          </Button>
+        </div>
         <ThumbnailDND />
+        <div className="border-t-2 mt-auto" />
+        <button
+          onClick={() =>
+            setFlickStore((prev) => ({
+              ...prev,
+              activeFragmentId: flick?.fragments.find(
+                (f) => f.type === Fragment_Type_Enum_Enum.Outro
+              )?.id,
+            }))
+          }
+          type="button"
+          className={cx(
+            'flex bg-gray-100 items-center justify-start m-4 p-3 rounded-md border border-gray-300 relative',
+            {
+              'border-green-600':
+                activeFragmentId ===
+                flick?.fragments.find(
+                  (f) => f.type === Fragment_Type_Enum_Enum.Outro
+                )?.id,
+            }
+          )}
+        >
+          {flick?.fragments.find(
+            (f) => f.type === Fragment_Type_Enum_Enum.Outro
+          )?.producedLink && (
+            <IoCheckmarkCircle className="absolute top-0 right-0 m-2 text-green-600" />
+          )}
+          <Text className="text-sm font-bold">Outro</Text>
+        </button>
       </div>
     </div>
   )
@@ -90,35 +256,41 @@ const ThumbnailDND = () => {
       <Droppable droppableId="droppable">
         {(provided) => (
           <div
-            className="flex flex-col"
+            className={cx('flex flex-col h-full overflow-y-scroll', style)}
             {...provided.droppableProps}
             ref={provided.innerRef}
           >
-            {flick?.fragments.map((fragment, index) => (
-              <Draggable
-                draggableId={fragment.id}
-                key={fragment.id}
-                index={index}
-              >
-                {(provided, snapshot) => (
-                  <Thumbnail
-                    id={fragment.id}
-                    className="cursor-pointer"
-                    active={activeFragmentId === fragment.id}
-                    onClick={() =>
-                      setFlick((store) => ({
-                        ...store,
-                        activeFragmentId: fragment.id,
-                      }))
-                    }
-                    fragment={fragment}
-                    position={index}
-                    provided={provided}
-                    snapshot={snapshot}
-                  />
-                )}
-              </Draggable>
-            ))}
+            {flick?.fragments
+              .filter(
+                (f) =>
+                  f.type !== Fragment_Type_Enum_Enum.Intro &&
+                  f.type !== Fragment_Type_Enum_Enum.Outro
+              )
+              .map((fragment, index) => (
+                <Draggable
+                  draggableId={fragment.id}
+                  key={fragment.id}
+                  index={index}
+                >
+                  {(provided, snapshot) => (
+                    <Thumbnail
+                      id={fragment.id}
+                      className="cursor-pointer"
+                      active={activeFragmentId === fragment.id}
+                      onClick={() =>
+                        setFlick((store) => ({
+                          ...store,
+                          activeFragmentId: fragment.id,
+                        }))
+                      }
+                      fragment={fragment}
+                      position={index}
+                      provided={provided}
+                      snapshot={snapshot}
+                    />
+                  )}
+                </Draggable>
+              ))}
           </div>
         )}
       </Droppable>
@@ -178,7 +350,7 @@ const Thumbnail = ({
       tabIndex={-1}
       onKeyUp={() => {}}
       className={cx(
-        'flex flex-col my-2 mx-4 rounded-md h-24 bg-gray-100 justify-end p-2 relative border border-gray-300',
+        'flex flex-col my-2 mx-4 rounded-md h-24 flex-shrink-0 bg-gray-100 justify-end p-2 relative border border-gray-300',
         {
           'border-green-600': active,
           'mt-5': position === 0,
@@ -232,13 +404,16 @@ const Thumbnail = ({
       <input
         type="text"
         value={fragmentName || ''}
+        onClick={(e) => {
+          e.stopPropagation()
+        }}
         className="text-xs font-bold text-gray-800 cursor-text rounded-md p-1 hover:bg-gray-200 bg-transparent focus:outline-none"
         onChange={(e) => setFragmentName(e.target.value)}
         onBlur={() => fragmentName && updateFragment(fragmentName)}
         onKeyDown={(e) => {
           if (!fragment?.name) return
           if (e.key === 'Enter') {
-            updateFragment(fragment.name)
+            updateFragment(fragmentName || fragment.name)
           }
         }}
       />

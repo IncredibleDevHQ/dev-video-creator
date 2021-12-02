@@ -7,20 +7,21 @@ import {
   IoListOutline,
   IoPlayOutline,
 } from 'react-icons/io5'
-import { ConfigType } from '../../../utils/configTypes'
+import { Block } from '../../../components/TextEditor/utils'
+import { Layout, ViewConfig } from '../../../utils/configTypes2'
 
-const FragmentTypeIcon = ({ type }: { type: ConfigType }) => {
+export const FragmentTypeIcon = ({ type }: { type: Block['type'] }) => {
   return (
     <>
       {(() => {
         switch (type) {
-          case ConfigType.TRIVIA:
+          case 'imageBlock':
             return <IoImageOutline className="text-gray-400 h-full w-full" />
-          case ConfigType.VIDEOJAM:
+          case 'videoBlock':
             return <IoPlayOutline className="text-gray-400 h-full w-full" />
-          case ConfigType.POINTS:
+          case 'listBlock':
             return <IoListOutline className="text-gray-400 h-full w-full" />
-          case ConfigType.CODEJAM:
+          case 'codeBlock':
             return (
               <IoCodeSlashOutline className="text-gray-400 h-full w-full" />
             )
@@ -34,25 +35,29 @@ const FragmentTypeIcon = ({ type }: { type: ConfigType }) => {
 
 const LayoutGeneric = ({
   type,
-  layoutId,
+  layout,
+  mode = 'Landscape',
   isSelected,
   ...rest
 }: {
-  type?: ConfigType
   isSelected?: boolean
-  layoutId: number
+  mode?: ViewConfig['mode']
+  layout: Layout
+  type: Block['type']
 } & HTMLAttributes<HTMLDivElement>) => {
   return (
     <>
       {(() => {
-        switch (layoutId) {
-          case 1:
+        switch (layout) {
+          case 'classic':
             return (
               <div
                 className={cx(
-                  'w-full p-2 border border-gray-200 h-full rounded-md cursor-pointer bg-white',
+                  'border border-gray-200 rounded-md cursor-pointer bg-white',
                   {
                     'border-brand': isSelected,
+                    'p-1 w-20 h-32': mode === 'Portrait',
+                    'p-2 w-32 h-16': mode === 'Landscape',
                   }
                 )}
                 {...rest}
@@ -62,13 +67,15 @@ const LayoutGeneric = ({
                 </div>
               </div>
             )
-          case 2:
+          case 'float-full-right':
             return (
               <div
                 className={cx(
-                  'w-full p-2 border border-gray-200 h-full rounded-md cursor-pointer flex gap-x-2',
+                  'border border-gray-200 rounded-md cursor-pointer flex gap-x-2',
                   {
                     'border-brand': isSelected,
+                    'p-1 w-20 h-32': mode === 'Portrait',
+                    'p-2 w-32 h-16': mode === 'Landscape',
                   }
                 )}
                 {...rest}
@@ -79,13 +86,15 @@ const LayoutGeneric = ({
                 <div className="h-full w-1/6 bg-gray-500 rounded-sm p-2" />
               </div>
             )
-          case 3:
+          case 'float-full-left':
             return (
               <div
                 className={cx(
-                  'w-full p-2 border border-gray-200 h-full rounded-md cursor-pointer flex gap-x-2',
+                  'p-2 border border-gray-200 rounded-md cursor-pointer flex gap-x-2',
                   {
                     'border-brand': isSelected,
+                    'w-20 h-32': mode === 'Portrait',
+                    'w-32 h-16': mode === 'Landscape',
                   }
                 )}
                 {...rest}
@@ -96,13 +105,15 @@ const LayoutGeneric = ({
                 </div>
               </div>
             )
-          case 4:
+          case 'float-half-right':
             return (
               <div
                 className={cx(
-                  'w-full p-2 border border-gray-200 h-full rounded-md cursor-pointer flex justify-end items-center relative',
+                  'p-2 border border-gray-200 rounded-md cursor-pointer flex justify-end items-center relative',
                   {
                     'border-brand': isSelected,
+                    'w-20 h-32': mode === 'Portrait',
+                    'w-32 h-16': mode === 'Landscape',
                   }
                 )}
                 {...rest}
@@ -113,13 +124,15 @@ const LayoutGeneric = ({
                 <div className="h-7 w-1/6 bg-gray-500 rounded-sm p-2 absolute" />
               </div>
             )
-          case 5:
+          case 'padded-bottom-right-tile':
             return (
               <div
                 className={cx(
-                  'w-full p-2 border border-gray-200 h-full rounded-md cursor-pointer flex justify-end items-end relative',
+                  'p-2 border border-gray-200 rounded-md cursor-pointer flex justify-end items-end relative',
                   {
                     'border-brand': isSelected,
+                    'w-20 h-32': mode === 'Portrait',
+                    'w-32 h-16': mode === 'Landscape',
                   }
                 )}
                 {...rest}
@@ -130,13 +143,15 @@ const LayoutGeneric = ({
                 <div className="w-4 h-4 -m-1 bg-gray-500 rounded-sm p-2 absolute" />
               </div>
             )
-          case 6:
+          case 'padded-bottom-right-circle':
             return (
               <div
                 className={cx(
-                  'w-full p-2 border border-gray-200 h-full rounded-md cursor-pointer flex justify-end items-end relative',
+                  'p-2 border border-gray-200 rounded-md cursor-pointer flex justify-end items-end relative',
                   {
                     'border-brand': isSelected,
+                    'w-20 h-32': mode === 'Portrait',
+                    'w-32 h-16': mode === 'Landscape',
                   }
                 )}
                 {...rest}
@@ -147,13 +162,15 @@ const LayoutGeneric = ({
                 <div className="w-4 h-4 -m-1 bg-gray-500 rounded-full p-2 absolute" />
               </div>
             )
-          case 7:
+          case 'bottom-right-tile':
             return (
               <div
                 className={cx(
-                  'w-full border border-gray-200 h-full rounded-md cursor-pointer flex justify-end items-end relative',
+                  'border border-gray-200 rounded-md cursor-pointer flex justify-end items-end relative',
                   {
                     'border-brand': isSelected,
+                    'w-20 h-32': mode === 'Portrait',
+                    'w-32 h-16': mode === 'Landscape',
                   }
                 )}
                 {...rest}
@@ -164,13 +181,15 @@ const LayoutGeneric = ({
                 <div className="w-4 h-4 m-1 bg-gray-500 rounded-sm p-2 absolute" />
               </div>
             )
-          case 8:
+          case 'bottom-right-circle':
             return (
               <div
                 className={cx(
-                  'w-full border border-gray-200 h-full rounded-md cursor-pointer flex justify-end items-end relative',
+                  'border border-gray-200 rounded-md cursor-pointer flex justify-end items-end relative',
                   {
                     'border-brand': isSelected,
+                    'w-20 h-32': mode === 'Portrait',
+                    'w-32 h-16': mode === 'Landscape',
                   }
                 )}
                 {...rest}
@@ -181,13 +200,15 @@ const LayoutGeneric = ({
                 <div className="w-4 h-4 m-1 bg-gray-500 rounded-full p-2 absolute" />
               </div>
             )
-          case 9:
+          case 'padded-split':
             return (
               <div
                 className={cx(
-                  'w-full border border-gray-200 h-full rounded-md cursor-pointer flex items-center gap-x-2',
+                  'border border-gray-200 rounded-md cursor-pointer flex items-center gap-x-2',
                   {
                     'border-brand': isSelected,
+                    'w-20 h-32': mode === 'Portrait',
+                    'w-32 h-16': mode === 'Landscape',
                   }
                 )}
                 {...rest}
@@ -198,13 +219,15 @@ const LayoutGeneric = ({
                 <div className="h-full w-3/6 bg-gray-500 rounded-tr-sm rounded-br-sm p-2" />
               </div>
             )
-          case 10:
+          case 'split':
             return (
               <div
                 className={cx(
-                  'w-full border border-gray-200 h-full rounded-md cursor-pointer flex items-center',
+                  'border border-gray-200 rounded-md cursor-pointer flex items-center',
                   {
                     'border-brand': isSelected,
+                    'w-20 h-32': mode === 'Portrait',
+                    'w-32 h-16': mode === 'Landscape',
                   }
                 )}
                 {...rest}

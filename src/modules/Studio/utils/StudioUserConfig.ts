@@ -1,14 +1,15 @@
 import { StudioFragmentFragment } from '../../../generated/graphql'
+import { Layout } from '../../../utils/configTypes2'
 import { StudioUserConfig } from '../components/Concourse'
 import { FragmentState } from '../components/RenderTokens'
 
 export const StudioUserConfiguration = ({
-  layoutNumber,
+  layout,
   fragment,
   fragmentState,
   isShorts,
 }: {
-  layoutNumber: number
+  layout: Layout
   fragment: StudioFragmentFragment | undefined
   fragmentState: FragmentState
   isShorts?: boolean
@@ -121,32 +122,32 @@ export const StudioUserConfiguration = ({
       case 2:
         return [
           {
-            x: 420,
+            x: 400,
             y: 25,
-            width: 600,
-            height: 450,
+            width: 640,
+            height: 480,
             clipTheme: 'rect',
             borderWidth: 0,
             studioUserClipConfig: {
-              x: 100,
+              x: 120,
               y: 5,
               width: 400,
-              height: 440,
+              height: 480,
               radius: 8,
             },
           },
           {
-            x: -40,
+            x: -60,
             y: 25,
-            width: 600,
-            height: 450,
+            width: 640,
+            height: 480,
             clipTheme: 'rect',
             borderWidth: 0,
             studioUserClipConfig: {
-              x: 100,
+              x: 120,
               y: 5,
               width: 400,
-              height: 440,
+              height: 480,
               radius: 8,
             },
           },
@@ -204,14 +205,14 @@ export const StudioUserConfiguration = ({
           {
             x: 56,
             y: -45,
-            width: 840,
-            height: 630,
+            width: 848,
+            height: 636,
             clipTheme: 'rect',
             borderWidth: 0,
             studioUserClipConfig: {
               x: 0,
               y: 75,
-              width: 840,
+              width: 848,
               height: 480,
               radius: 8,
             },
@@ -219,8 +220,8 @@ export const StudioUserConfiguration = ({
         ]
     }
   } else
-    switch (layoutNumber) {
-      case 1:
+    switch (layout) {
+      case 'classic':
         switch (fragment?.participants.length) {
           case 2:
             return [
@@ -322,7 +323,7 @@ export const StudioUserConfiguration = ({
               },
             ]
         }
-      case 2:
+      case 'float-full-right':
         switch (fragment?.participants.length) {
           case 2:
             return [
@@ -424,7 +425,7 @@ export const StudioUserConfiguration = ({
               },
             ]
         }
-      case 3:
+      case 'float-full-left':
         switch (fragment?.participants.length) {
           case 2:
             return [
@@ -526,7 +527,7 @@ export const StudioUserConfiguration = ({
               },
             ]
         }
-      case 4:
+      case 'float-half-right':
         switch (fragment?.participants.length) {
           case 2:
             return [
@@ -628,8 +629,8 @@ export const StudioUserConfiguration = ({
               },
             ]
         }
-      case 5:
-      case 7:
+      case 'padded-bottom-right-tile':
+      case 'bottom-right-tile':
         switch (fragment?.participants.length) {
           case 2:
             return [
@@ -731,8 +732,8 @@ export const StudioUserConfiguration = ({
               },
             ]
         }
-      case 6:
-      case 8:
+      case 'padded-bottom-right-circle':
+      case 'bottom-right-circle':
         switch (fragment?.participants.length) {
           case 2:
             return [
@@ -834,7 +835,7 @@ export const StudioUserConfiguration = ({
               },
             ]
         }
-      case 9:
+      case 'padded-split':
         switch (fragment?.participants.length) {
           case 2:
             return [
@@ -936,7 +937,7 @@ export const StudioUserConfiguration = ({
               },
             ]
         }
-      case 10:
+      case 'split':
         switch (fragment?.participants.length) {
           case 2:
             return [

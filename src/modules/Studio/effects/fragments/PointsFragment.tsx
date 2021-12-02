@@ -1,13 +1,13 @@
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
-import { Circle, Group, Image, Rect, Text } from 'react-konva'
+import { Circle, Group, Rect, Text } from 'react-konva'
 import { useRecoilState, useRecoilValue } from 'recoil'
-import useImage from 'use-image'
 import {
-  ConfigType,
-  LayoutConfig,
-  PointsConfig,
-} from '../../../../utils/configTypes'
+  ListBlockProps,
+  ListItem,
+} from '../../../../components/TextEditor/utils'
+import { ConfigType } from '../../../../utils/configTypes'
+import { BlockProperties } from '../../../../utils/configTypes2'
 import Concourse, {
   CONFIG,
   SHORTS_CONFIG,
@@ -34,9 +34,10 @@ const PointsFragment = ({
   setFragmentState,
   stageRef,
   layerRef,
+  shortsMode,
 }: {
-  viewConfig: LayoutConfig
-  dataConfig: PointsConfig
+  viewConfig: BlockProperties
+  dataConfig: ListBlockProps
   dataConfigLength: number
   topLayerChildren: JSX.Element[]
   setTopLayerChildren: React.Dispatch<React.SetStateAction<JSX.Element[]>>
@@ -45,14 +46,15 @@ const PointsFragment = ({
   setFragmentState: React.Dispatch<React.SetStateAction<FragmentState>>
   stageRef: React.RefObject<Konva.Stage>
   layerRef: React.RefObject<Konva.Layer>
+  shortsMode: boolean
 }) => {
-  const { fragment, state, updatePayload, payload, shortsMode } =
+  const { fragment, state, updatePayload, payload, addTransitionAudio } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [studio, setStudio] = useRecoilState(studioStore)
 
   const [activePointIndex, setActivePointIndex] = useState<number>(0)
-  const [points, setPoints] = useState<{ level?: number; text: string }[]>([])
+  const [points, setPoints] = useState<ListItem[]>([])
 
   const { initUsePoint, computedPoints, getNoOfLinesOfText } = usePoint()
 
@@ -63,7 +65,7 @@ const PointsFragment = ({
 
   const customLayoutRef = useRef<Konva.Group>(null)
 
-  const [bgImage] = useImage(viewConfig?.background?.image || '', 'anonymous')
+  // const [bgImage] = useImage(viewConfig?.background?.image || '', 'anonymous')
 
   const [objectConfig, setObjectConfig] = useState<ObjectConfig>({
     x: 0,
@@ -89,18 +91,18 @@ const PointsFragment = ({
     if (!dataConfig) return
     setObjectConfig(
       FragmentLayoutConfig({
-        layoutNumber: viewConfig.layoutNumber,
+        layout: viewConfig.layout || 'classic',
         isShorts: shortsMode || false,
       })
     )
-    setPoints(dataConfig.value)
+    setPoints(dataConfig.listBlock.list || [])
     setTopLayerChildren([])
-  }, [dataConfig, viewConfig, shortsMode])
+  }, [dataConfig, shortsMode, viewConfig])
 
   useEffect(() => {
     setTitleNumberOfLines(
       getNoOfLinesOfText({
-        text: dataConfig.title,
+        text: dataConfig.listBlock.title || fragment?.name || '',
         availableWidth: objectConfig.width - 60,
         fontSize: 40,
         fontFamily: 'Poppins',
@@ -153,51 +155,49 @@ const PointsFragment = ({
   }, [payload])
 
   useEffect(() => {
-    if (!customLayoutRef.current) return
     // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
     if (payload?.fragmentState === 'customLayout') {
       setTopLayerChildren([
-        <TrianglePathTransition isShorts={shortsMode} direction="left" />,
+        <TrianglePathTransition isShorts={shortsMode} direction="right" />,
       ])
+      addTransitionAudio()
       setTimeout(() => {
         setFragmentState(payload?.fragmentState)
-        // customLayoutRef.current?.opacity(1)
-        customLayoutRef.current?.to({
+        customLayoutRef?.current?.to({
           opacity: 1,
           duration: 0.2,
         })
-      }, 1000)
+      }, 800)
     }
     // Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
     if (payload?.fragmentState === 'onlyUserMedia') {
       setTopLayerChildren([
-        <TrianglePathTransition isShorts={shortsMode} direction="right" />,
+        <TrianglePathTransition isShorts={shortsMode} direction="left" />,
       ])
-      customLayoutRef.current?.to({
-        opacity: 0,
-        duration: 0.8,
-      })
+      addTransitionAudio()
       setTimeout(() => {
         setFragmentState(payload?.fragmentState)
+        customLayoutRef?.current?.to({
+          opacity: 0,
+          duration: 0.2,
+        })
       }, 800)
     }
   }, [payload?.fragmentState])
 
   const layerChildren: any[] = [
     <Group x={0} y={0}>
-      {viewConfig.background.type === 'color' ? (
-        <Rect
-          x={0}
-          y={0}
-          width={stageConfig.width}
-          height={stageConfig.height}
-          fillLinearGradientColorStops={viewConfig.background.gradient?.values}
-          fillLinearGradientStartPoint={
-            viewConfig.background.gradient?.startIndex
-          }
-          fillLinearGradientEndPoint={viewConfig.background.gradient?.endIndex}
-        />
-      ) : (
+      {/* {viewConfig.background.type === 'color' ? ( */}
+      <Rect
+        x={0}
+        y={0}
+        width={stageConfig.width}
+        height={stageConfig.height}
+        fillLinearGradientColorStops={viewConfig.gradient?.values}
+        fillLinearGradientStartPoint={viewConfig.gradient?.startIndex}
+        fillLinearGradientEndPoint={viewConfig.gradient?.endIndex}
+      />
+      {/* ) : (
         <Image
           x={0}
           y={0}
@@ -205,7 +205,7 @@ const PointsFragment = ({
           height={stageConfig.height}
           image={bgImage}
         />
-      )}
+      )} */}
     </Group>,
     <Group x={0} y={0} opacity={0} ref={customLayoutRef}>
       <Rect
@@ -225,7 +225,7 @@ const PointsFragment = ({
         fill="#E5E7EB"
         width={objectConfig.width - 80}
         lineHeight={1.15}
-        text={dataConfig.title}
+        text={dataConfig.listBlock.title || fragment?.name || ''}
         fontStyle="normal 700"
         fontFamily="Poppins"
       />
@@ -244,7 +244,7 @@ const PointsFragment = ({
                 radius={11}
                 y={point.y + 8}
                 fillLinearGradientColorStops={
-                  viewConfig.background.gradient?.values || colorStops
+                  viewConfig.gradient?.values || colorStops
                 }
                 fillLinearGradientStartPoint={{ x: -11, y: -11 }}
                 fillLinearGradientEndPoint={{
@@ -283,7 +283,7 @@ const PointsFragment = ({
   ]
 
   const studioUserConfig = StudioUserConfiguration({
-    layoutNumber: viewConfig.layoutNumber,
+    layout: viewConfig.layout || 'classic',
     fragment,
     fragmentState,
     isShorts: shortsMode || false,
@@ -297,6 +297,7 @@ const PointsFragment = ({
       titleSplashData={titleSplashData}
       studioUserConfig={studioUserConfig}
       topLayerChildren={topLayerChildren}
+      isShorts={shortsMode}
     />
   )
 }

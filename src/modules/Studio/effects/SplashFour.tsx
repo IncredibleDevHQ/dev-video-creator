@@ -1,42 +1,25 @@
-import React, { useEffect, useRef, useState } from 'react'
-import { Circle, Group, Image, Line, Rect, Text } from 'react-konva'
-import Konva from 'konva'
-import { useRecoilValue } from 'recoil'
-import { useImage } from 'react-konva-utils'
 import FontFaceObserver from 'fontfaceobserver'
-import { useParams } from 'react-router-dom'
+import Konva from 'konva'
+import React, { useEffect, useState } from 'react'
+import { Circle, Group, Line, Rect, Text } from 'react-konva'
+import { useRecoilValue } from 'recoil'
 import Concourse, { CONFIG } from '../components/Concourse'
-import { StudioProviderProps, studioStore } from '../stores'
-import { User, userState } from '../../../stores/user.store'
-import { useGetFragmentByIdQuery } from '../../../generated/graphql'
 import useSplash, { Coordinates } from '../hooks/use-splash'
-import { EmptyState } from '../../../components'
-
-const titleEnum = 'title'
-const subTitleEnum = 'subtitle'
+import { StudioProviderProps, studioStore } from '../stores'
 
 const SplashFour = () => {
-  const { state } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const { state, fragment } =
+    (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [configuration, setConfiguration] =
     useState<{ title: any; subTitle: any }>()
-  const { sub } = (useRecoilValue(userState) as User) || {}
-
-  const params: { fragmentId: string } = useParams()
-
-  const { data, error } = useGetFragmentByIdQuery({
-    variables: { id: params.fragmentId, sub: sub as string },
-  })
 
   useEffect(() => {
-    if (!data?.Fragment[0].configuration.properties) return
-    const title = data?.Fragment[0].configuration.properties.find(
-      (property: any) => property.key === titleEnum
-    )
-    const subTitle = data?.Fragment[0].configuration.properties.find(
-      (property: any) => property.key === subTitleEnum
-    )
-    setConfiguration({ title, subTitle })
-  }, [data])
+    if (!fragment) return
+    setConfiguration({
+      title: { value: fragment?.flick?.name },
+      subTitle: { value: fragment?.flick?.description },
+    })
+  }, [fragment])
 
   const { getInitCoordinates } = useSplash()
 
@@ -351,8 +334,6 @@ const SplashFour = () => {
       />,
     ])
   }
-  if (!configuration)
-    return <EmptyState text="Missing cofiguration, Please Reload" width={400} />
   return <Concourse disableUserMedia layerChildren={layerChildren} />
 }
 

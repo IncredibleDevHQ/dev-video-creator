@@ -5,7 +5,14 @@ import { IconType } from 'react-icons'
 import { FiLoader } from 'react-icons/fi'
 
 interface ButtonProps extends HTMLAttributes<HTMLButtonElement> {
-  appearance: 'primary' | 'secondary' | 'link' | 'danger' | 'link-danger'
+  appearance:
+    | 'primary'
+    | 'secondary'
+    | 'link'
+    | 'danger'
+    | 'link-danger'
+    | 'gray'
+    | 'none'
   type: 'button' | 'reset' | 'submit'
   icon?: IconType
   iconPosition?: 'left' | 'right'
@@ -44,6 +51,8 @@ const Button = ({
             appearance === 'link-danger',
           'border-red-600 bg-red-600 text-white hover:shadow-lg hover:bg-red-700 hover:border-red-700 active:bg-red-800 active:border-red-800':
             appearance === 'danger',
+          'bg-gray-400 text-gray-800': appearance === 'gray',
+          'text-gray-800 border-none': appearance === 'none',
           'w-full': stretch,
           'opacity-70 cursor-not-allowed': disabled,
         },

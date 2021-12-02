@@ -27,6 +27,7 @@ import {
 import config from '../../config'
 import {
   Fragment_Status_Enum_Enum,
+  Fragment_Type_Enum_Enum,
   GetFragmentByIdQuery,
   StudioFragmentFragment,
   useGetFragmentByIdQuery,
@@ -37,7 +38,7 @@ import {
 import { useCanvasRecorder } from '../../hooks'
 import { useUploadFile } from '../../hooks/use-upload-file'
 import { User, userState } from '../../stores/user.store'
-import { Config, ConfigType } from '../../utils/configTypes'
+import { ConfigType } from '../../utils/configTypes'
 import { Countdown } from './components'
 import { CONFIG, SHORTS_CONFIG } from './components/Concourse'
 import {
@@ -47,6 +48,7 @@ import {
   VideoJamControls,
 } from './components/Controls'
 import RecordingControlsBar from './components/RecordingControlsBar'
+import IntroFragment from './effects/fragments/IntroFragment'
 import UnifiedFragment from './effects/fragments/UnifiedFragment'
 import { useAgora, useVectorly } from './hooks'
 import { Device } from './hooks/use-agora'
@@ -100,6 +102,7 @@ const StudioHoC = () => {
 
   const { data, loading } = useGetFragmentByIdQuery({
     variables: { id: fragmentId, sub: sub as string },
+    fetchPolicy: 'network-only',
   })
 
   if (loading || !ready) return <ScreenState title="Just a jiffy..." loading />
@@ -379,9 +382,10 @@ const Studio = ({
 
   const [state, setState] = useState<StudioState>('ready')
 
-  const { startRecording, stopRecording, reset, getBlobs } = useCanvasRecorder({
-    options: {},
-  })
+  const { startRecording, stopRecording, reset, getBlobs, addTransitionAudio } =
+    useCanvasRecorder({
+      options: {},
+    })
 
   /**
    * END STREAM HOOKS...
@@ -523,6 +527,7 @@ const Studio = ({
       startRecording: start,
       stopRecording: stop,
       showFinalTransition: finalTransition,
+      addTransitionAudio,
       reset: resetRecording,
       upload,
       getBlobs,
@@ -549,9 +554,9 @@ const Studio = ({
   }, [fragment, stream, users, state, userAudios, payload, participants, state])
 
   useEffect(() => {
-    if (!studio.controlsConfig || !fragment?.configuration) return
-    const conf = fragment.configuration as Config
-    setFragmentType(conf.dataConfig[payload?.activeObjectIndex]?.type)
+    if (!studio.controlsConfig) return
+    // const conf = fragment.configuration as Config
+    setFragmentType(studio.controlsConfig.type)
   }, [payload?.activeObjectIndex, studio.controlsConfig])
 
   useEffect(() => {
@@ -593,9 +598,18 @@ const Studio = ({
             >
               <Bridge>
                 <Layer ref={layerRef}>
-                  {fragment && (
-                    <UnifiedFragment stageRef={stageRef} layerRef={layerRef} />
-                  )}
+                  {fragment &&
+                    (fragment.type === Fragment_Type_Enum_Enum.Intro ||
+                    fragment.type === Fragment_Type_Enum_Enum.Outro ? (
+                      <IntroFragment
+                        themeNumber={`${fragment.configuration?.theme}` || '0'}
+                      />
+                    ) : (
+                      <UnifiedFragment
+                        stageRef={stageRef}
+                        layerRef={layerRef}
+                      />
+                    ))}
                 </Layer>
               </Bridge>
             </Stage>
