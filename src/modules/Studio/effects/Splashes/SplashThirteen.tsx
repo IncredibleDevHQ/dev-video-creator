@@ -3,25 +3,25 @@ import { Rect, Text, Group, Image } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
 import { useParams } from 'react-router-dom'
-import Concourse, { CONFIG } from '../components/Concourse'
-import { StudioProviderProps, studioStore } from '../stores'
-import useSplash, { Coordinates } from '../hooks/use-splash'
-import { User, userState } from '../../../stores/user.store'
-import { useGetFragmentByIdQuery } from '../../../generated/graphql'
-import { EmptyState } from '../../../components'
-import config from '../../../config'
+import Concourse, { CONFIG } from '../../components/Concourse'
+import { StudioProviderProps, studioStore } from '../../stores'
+import useSplash, { Coordinates } from '../../hooks/use-splash'
+import { User, userState } from '../../../../stores/user.store'
+import { useGetFragmentByIdQuery } from '../../../../generated/graphql'
+import { EmptyState } from '../../../../components'
+import config from '../../../../config'
 
 const titleEnum = 'title'
 const subTitleEnum = 'subtitle'
 
-const SplashFourteen = () => {
+const SplashThirteen = () => {
   const { state } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const { sub } = (useRecoilValue(userState) as User) || {}
   const [configuration, setConfiguration] =
     useState<{ title: any; subTitle: any }>()
   const params: { fragmentId: string } = useParams()
-  const [msLogo] = useImage(`${config.storage.baseUrl}ms-logo.png`, 'anonymous')
-  const [msUser] = useImage(`${config.storage.baseUrl}ms-user.png`, 'anonymous')
+  const [ghLogo] = useImage(`${config.storage.baseUrl}gh-logo.png`, 'anonymous')
+  const [ghUser] = useImage(`${config.storage.baseUrl}gh-user.png`, 'anonymous')
 
   const { data } = useGetFragmentByIdQuery({
     variables: { id: params.fragmentId, sub: sub as string },
@@ -98,7 +98,7 @@ const SplashFourteen = () => {
     <Rect
       x={0}
       y={0}
-      fill="#FFFFFF"
+      fill="#040D21"
       width={CONFIG.width}
       height={CONFIG.height}
     />,
@@ -107,15 +107,15 @@ const SplashFourteen = () => {
   const getLayerChildren = () => {
     setLayerChildren((layerChildren) => [
       ...layerChildren,
-      <Group x={61} y={183} width={419} height={174} key="group1">
+      <Group x={82} y={78} width={429} height={192} key="group1">
         <Text
-          fontSize={64}
-          fill="#1F2937"
+          fontSize={96}
+          fill="#9DF4D1"
           fontFamily="Poppins"
-          fontStyle="normal"
-          text="Microsoft"
+          fontStyle="normal 900"
+          text="Github"
           align="center"
-          opacity={0}
+          opacity={1}
           ref={(ref) => {
             ref?.to({
               duration: 1,
@@ -124,14 +124,14 @@ const SplashFourteen = () => {
           }}
         />
         <Text
-          fontSize={64}
-          y={67}
-          fill="#1F2937"
+          fontSize={36}
+          fill="#FFFFFF"
           fontFamily="Poppins"
+          text="Where the world builds"
           fontStyle="normal"
-          text="Dynamics 365"
           align="center"
-          opacity={0}
+          y={108}
+          opacity={1}
           ref={(ref) => {
             ref?.to({
               duration: 1,
@@ -140,13 +140,25 @@ const SplashFourteen = () => {
           }}
         />
         <Text
-          fontSize={24}
-          fill="#6B7280"
+          fontSize={36}
+          fill="#FFFFFF"
           fontFamily="Poppins"
-          text="Agility without limits"
-          fontStyle="normal 400"
+          text="software"
+          fontStyle="normal"
           align="center"
           y={150}
+          opacity={0}
+          ref={(ref) => {
+            ref?.to({
+              duration: 0.5,
+              opacity: 1,
+            })
+          }}
+        />
+      </Group>,
+      <Group x={826} y={406} width={54} height={54} key="group2">
+        <Image
+          image={ghLogo}
           opacity={0}
           ref={(ref) => {
             ref?.to({
@@ -156,16 +168,23 @@ const SplashFourteen = () => {
           }}
         />
       </Group>,
-
       <Group>
-        <Image
-          x={61}
-          y={412}
-          width={72}
-          height={72}
+        <Rect
+          fill="#0C162D"
+          x={80}
+          y={340}
           cornerRadius={12}
-          image={msUser}
-          opacity={0}
+          width={381}
+          height={120}
+        />
+        <Image
+          x={90}
+          y={360}
+          width={80}
+          height={80}
+          cornerRadius={12}
+          image={ghUser}
+          opacity={1}
           ref={(ref) => {
             ref?.to({
               duration: 1,
@@ -175,13 +194,13 @@ const SplashFourteen = () => {
         />
         <Text
           fontSize={20}
-          fill="#1F2937"
+          fill="#FFFFFF"
           fontFamily="Poppins"
-          text="Heather Newman"
+          text="Brian Douglas"
           fontStyle="normal 600"
           align="center"
-          x={150}
-          y={445}
+          x={190}
+          y={400}
           opacity={0}
           ref={(ref) => {
             ref?.to({
@@ -191,31 +210,14 @@ const SplashFourteen = () => {
           }}
         />
         <Text
-          fontSize={14}
-          fill="#6B7280"
+          fontSize={16}
+          fill="#FFFFFF"
           fontFamily="Poppins"
-          text="Principal PM Manager @ Microsoft Dynamics 365"
-          fontStyle="normal 400"
+          text="Developer Advocate @ Github"
+          fontStyle="normal"
           align="center"
-          x={150}
-          y={470}
-          opacity={0}
-          ref={(ref) => {
-            ref?.to({
-              duration: 1,
-              opacity: 1,
-            })
-          }}
-        />
-      </Group>,
-      <Group>
-        <Rect x={553} y={0} fill="#1F2937" width={407} height={540} />
-        <Image
-          x={657}
-          y={170}
-          width={200}
-          height={200}
-          image={msLogo}
+          x={190}
+          y={425}
           opacity={0}
           ref={(ref) => {
             ref?.to({
@@ -232,4 +234,4 @@ const SplashFourteen = () => {
   return <Concourse disableUserMedia layerChildren={layerChildren} />
 }
 
-export default SplashFourteen
+export default SplashThirteen

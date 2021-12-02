@@ -4,9 +4,9 @@ import React, { useEffect, useState } from 'react'
 import { Group, Image, Line, Rect, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
-import config from '../../../config'
-import Concourse, { CONFIG } from '../components/Concourse'
-import { StudioProviderProps, studioStore } from '../stores'
+import config from '../../../../config'
+import Concourse, { CONFIG } from '../../components/Concourse'
+import { StudioProviderProps, studioStore } from '../../stores'
 
 const SplashFifteen = () => {
   const { state, fragment } =

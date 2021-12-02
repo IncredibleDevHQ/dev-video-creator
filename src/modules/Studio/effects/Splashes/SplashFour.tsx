@@ -3,9 +3,9 @@ import Konva from 'konva'
 import React, { useEffect, useState } from 'react'
 import { Circle, Group, Line, Rect, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
-import Concourse, { CONFIG } from '../components/Concourse'
-import useSplash, { Coordinates } from '../hooks/use-splash'
-import { StudioProviderProps, studioStore } from '../stores'
+import Concourse, { CONFIG } from '../../components/Concourse'
+import useSplash, { Coordinates } from '../../hooks/use-splash'
+import { StudioProviderProps, studioStore } from '../../stores'
 
 const SplashFour = () => {
   const { state, fragment } =

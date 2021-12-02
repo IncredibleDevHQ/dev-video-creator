@@ -7,10 +7,10 @@ import { newFlickStore } from '../store/flickNew.store'
 enum Splashes {
   Default = '0',
   GraphQL = '1',
-  OpenSauced = '2',
-  Astro = '3',
-  WTFJS = '4',
-  Default2 = '5',
+  // OpenSauced = '2',
+  // Astro = '3',
+  // WTFJS = '4',
+  // Default2 = '5',
 }
 
 const IntroConfig = () => {
