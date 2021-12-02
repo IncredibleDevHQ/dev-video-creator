@@ -83,11 +83,7 @@ const Suggestor = () => {
         main: true,
         name: 'codeBlock',
         handleClick: () => {
-          createCodeBlock({
-            code: '',
-            layout: 'code',
-            language: 'jsx',
-          })
+          setModal('code')
         },
         location: ['slab'],
       },
@@ -232,11 +228,10 @@ const Suggestor = () => {
         open={modal === 'code'}
         handleLanguage={(language) => {
           chain
-            .toggleSlab()
-            .toggleHeading({ level: 2 })
+            .toggleHeading({ level: 3 })
             .insertText('Heading')
-            .insertNewLine()
             .insertHardBreak()
+            .insertNewLine()
             .createCodeBlock({ code: '', layout: 'code', language })
             .insertNewLine()
             .run()
