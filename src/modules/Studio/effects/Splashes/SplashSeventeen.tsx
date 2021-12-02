@@ -1,13 +1,13 @@
+import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
 import { Group, Image, Rect } from 'react-konva'
-import Konva from 'konva'
-import { useRecoilValue } from 'recoil'
 import { useImage } from 'react-konva-utils'
-import Concourse, { CONFIG } from '../components/Concourse'
-import { StudioProviderProps, studioStore } from '../stores'
-import config from '../../../config'
+import { useRecoilValue } from 'recoil'
+import config from '../../../../config'
+import Concourse, { CONFIG } from '../../components/Concourse'
+import { StudioProviderProps, studioStore } from '../../stores'
 
-const SplashEighteen = () => {
+const SplashSeventeen = () => {
   const { state } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [logo] = useImage(`${config.storage.baseUrl}idev-logo.svg`, 'anonymous')
@@ -16,7 +16,7 @@ const SplashEighteen = () => {
     'anonymous'
   )
   const [secondaryLogo] = useImage(
-    `${config.storage.baseUrl}nextJSLogo.svg`,
+    `${config.storage.baseUrl}100DaysOfTF.svg`,
     'anonymous'
   )
 
@@ -25,8 +25,8 @@ const SplashEighteen = () => {
     logoHeight: 60,
     logoTextWidth: 158,
     logoTextHeight: 26,
-    secondaryLogoWidth: 144,
-    secondaryLogoHeight: 100,
+    secondaryLogoWidth: 279,
+    secondaryLogoHeight: 99,
   })
 
   const controls: any = []
@@ -161,4 +161,4 @@ const SplashEighteen = () => {
   return <Concourse disableUserMedia layerChildren={layerChildren} />
 }
 
-export default SplashEighteen
+export default SplashSeventeen
