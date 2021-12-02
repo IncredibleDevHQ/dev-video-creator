@@ -170,7 +170,12 @@ const TextEditor: FC<TextEditorProps> = ({
     >
       <ThemeProvider>
         <Remirror
-          classNames={['focus:outline-none', 'border-none', 'font-mono']}
+          classNames={[
+            'focus:outline-none',
+            'border-none',
+            'font-mono',
+            'relative',
+          ]}
           manager={manager}
           autoFocus
           state={state}

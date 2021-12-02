@@ -156,14 +156,15 @@ const Suggestor = () => {
       positioner="always"
       placement="auto-start"
       animated
+      containerClass="z-40"
       blurOnInactive
       renderOutsideEditor
     >
       <div
         style={{
-          maxWidth: 300,
+          maxWidth: 360,
         }}
-        className="rounded-md p-3 font-sans bg-white shadow-lg whitespace-pre-wrap"
+        className="rounded-md z-40 p-3 font-sans bg-white shadow-lg whitespace-pre-wrap"
       >
         <Heading className="text-gray-800" fontSize="extra-small">
           Blocks
