@@ -3,11 +3,16 @@ import Konva from 'konva'
 import React, { useEffect, useState } from 'react'
 import { Circle, Group, Line, Rect, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
-import Concourse, { CONFIG } from '../components/Concourse'
-import useSplash, { Coordinates } from '../hooks/use-splash'
-import { StudioProviderProps, studioStore } from '../stores'
+import { CONFIG } from '../../components/Concourse'
+import useSplash, { Coordinates } from '../../hooks/use-splash'
+import { StudioProviderProps, studioStore } from '../../stores'
+import { IntroState } from '../fragments/IntroFragment'
 
-const SplashFour = () => {
+const SplashFour = ({
+  setFragmentState,
+}: {
+  setFragmentState: React.Dispatch<React.SetStateAction<IntroState>>
+}) => {
   const { state, fragment } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [configuration, setConfiguration] =
@@ -23,15 +28,13 @@ const SplashFour = () => {
 
   const { getInitCoordinates } = useSplash()
 
-  const controls: any = []
-
-  let coordinate: Coordinates = {
+  const [coordinate, setCoordinate] = useState<Coordinates>({
     titleX: 0,
     titleY: 0,
     subTitleX: 0,
     subTitleY: 0,
     titleHeight: 0,
-  }
+  })
 
   const gutter = 10
   const titleWidth = 960
@@ -39,18 +42,19 @@ const SplashFour = () => {
   const subTitleFontSize = 20
 
   useEffect(() => {
-    if (state === 'recording') {
-      coordinate = getInitCoordinates({
-        title: configuration?.title.value as string,
-        subTitle: configuration?.subTitle.value as string,
-        gutter,
-        availableWidth: titleWidth - 100,
-        titleFontSize,
-        subTitleFontSize,
-        stageWidth: 960,
-        stageHeight: 540,
-      })
-      getLayerChildren()
+    if (state === 'recording' || state === 'ready') {
+      setCoordinate(
+        getInitCoordinates({
+          title: configuration?.title.value as string,
+          subTitle: configuration?.subTitle.value as string,
+          gutter,
+          availableWidth: titleWidth - 100,
+          titleFontSize,
+          subTitleFontSize,
+          stageWidth: 960,
+          stageHeight: 540,
+        })
+      )
     }
   }, [state, configuration])
 
@@ -58,16 +62,6 @@ const SplashFour = () => {
     const font = new FontFaceObserver('Poppins')
     font.load()
   }, [])
-
-  const [layerChildren, setLayerChildren] = useState([
-    <Rect
-      x={0}
-      y={0}
-      fill="#ffffff"
-      width={CONFIG.width}
-      height={CONFIG.height}
-    />,
-  ])
 
   const getLines = () => {
     let lineX1 = 0
@@ -87,9 +81,16 @@ const SplashFour = () => {
     return lines
   }
 
-  const getLayerChildren = () => {
-    setLayerChildren((layerChildren) => [
-      ...layerChildren,
+  return (
+    <Group>
+      <Rect
+        key="backgroundRect"
+        x={0}
+        y={0}
+        fill="#ffffff"
+        width={CONFIG.width}
+        height={CONFIG.height}
+      />
       <Rect
         key="firstRect"
         x={CONFIG.width / 2 + 180}
@@ -106,7 +107,7 @@ const SplashFour = () => {
             easing: Konva.Easings.BackEaseInOut,
           })
         }}
-      />,
+      />
       <Rect
         key="secondRect"
         x={CONFIG.width / 2 + 240}
@@ -125,7 +126,7 @@ const SplashFour = () => {
             })
           }, 1000)
         }}
-      />,
+      />
       <Rect
         key="thirdRect"
         x={CONFIG.width}
@@ -149,7 +150,7 @@ const SplashFour = () => {
             },
           })
         }}
-      />,
+      />
       <Rect
         key="fourthRect"
         x={CONFIG.width}
@@ -164,7 +165,7 @@ const SplashFour = () => {
             easing: Konva.Easings.BackEaseInOut,
           })
         }}
-      />,
+      />
       <Rect
         key="fifthRect"
         x={CONFIG.width - 75}
@@ -186,7 +187,7 @@ const SplashFour = () => {
             },
           })
         }}
-      />,
+      />
       <Group
         key="lineGroup"
         x={-280}
@@ -208,7 +209,7 @@ const SplashFour = () => {
         }}
       >
         {getLines()}
-      </Group>,
+      </Group>
       <Line
         key="dashedLine1"
         points={[-120, CONFIG.height - 105, 0, CONFIG.height - 105]}
@@ -225,7 +226,7 @@ const SplashFour = () => {
             })
           }, 1000)
         }}
-      />,
+      />
       <Line
         key="dashedLine2"
         points={[120, CONFIG.height + 105, 120, CONFIG.height]}
@@ -242,7 +243,7 @@ const SplashFour = () => {
             })
           }, 1000)
         }}
-      />,
+      />
       <Line
         key="titleDashedLine"
         points={[200, CONFIG.height / 2, CONFIG.width - 200, CONFIG.height / 2]}
@@ -251,7 +252,7 @@ const SplashFour = () => {
         lineJoin="round"
         dash={[10, 4]}
         // ref={() => {}}
-      />,
+      />
       <Text
         key="title"
         x={coordinate.titleX}
@@ -268,7 +269,7 @@ const SplashFour = () => {
             opacity: 1,
           })
         }}
-      />,
+      />
       <Text
         key="subTitle"
         x={coordinate.subTitleX}
@@ -286,7 +287,7 @@ const SplashFour = () => {
             opacity: 1,
           })
         }}
-      />,
+      />
       <Circle
         key="secondCircle"
         x={CONFIG.width + 70}
@@ -300,10 +301,15 @@ const SplashFour = () => {
               duration: 3,
               x: CONFIG.width - 75,
               easing: Konva.Easings.BackEaseOut,
+              onFinish: () => {
+                setTimeout(() => {
+                  setFragmentState('discord')
+                }, 2000)
+              },
             })
           }, 1000)
         }}
-      />,
+      />
       <Circle
         key="firstCircle"
         x={150}
@@ -331,10 +337,9 @@ const SplashFour = () => {
             // },
           })
         }}
-      />,
-    ])
-  }
-  return <Concourse disableUserMedia layerChildren={layerChildren} />
+      />
+    </Group>
+  )
 }
 
 export default SplashFour

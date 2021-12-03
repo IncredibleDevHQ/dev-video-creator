@@ -135,11 +135,11 @@ const UnifiedFragment = ({
             x={
               viewConfig?.mode === 'Landscape'
                 ? lowerThirdCoordinates[0]
-                : SHORTS_CONFIG.width - 30
+                : SHORTS_CONFIG.width - 90
             }
             y={viewConfig?.mode === 'Landscape' ? 450 : 630}
             displayName={displayName}
-            username={`/${username}` || `/${displayName}`}
+            username={username ? `/${username}` : `/${displayName}`}
             width={
               getTextWidth(displayName, 'Inter', 20, 'normal 500') >
               getTextWidth(`/${username}`, 'Inter', 20, 'normal 500')

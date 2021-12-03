@@ -3,12 +3,12 @@ import { Group, Image, Rect, Text } from 'react-konva'
 import { useImage } from 'react-konva-utils'
 import { useRecoilValue } from 'recoil'
 import { useParams } from 'react-router-dom'
-import { Concourse } from '../components'
-import { User, userState } from '../../../stores/user.store'
-import { CONFIG } from '../components/Concourse'
-import { StudioProviderProps, studioStore } from '../stores'
-import { useGetFragmentByIdQuery } from '../../../generated/graphql'
-import { ScreenState } from '../../../components'
+import { Concourse } from '../../components'
+import { User, userState } from '../../../../stores/user.store'
+import { CONFIG } from '../../components/Concourse'
+import { StudioProviderProps, studioStore } from '../../stores'
+import { useGetFragmentByIdQuery } from '../../../../generated/graphql'
+import { ScreenState } from '../../../../components'
 
 const Splash = () => {
   const { sub } = (useRecoilValue(userState) as User) || {}

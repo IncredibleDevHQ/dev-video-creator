@@ -3,9 +3,9 @@ import { Group, Image, Rect, Text } from 'react-konva'
 import Konva from 'konva'
 import { useRecoilValue } from 'recoil'
 import { useImage } from 'react-konva-utils'
-import Concourse, { CONFIG } from '../components/Concourse'
-import { StudioProviderProps, studioStore } from '../stores'
-import config from '../../../config'
+import Concourse, { CONFIG } from '../../components/Concourse'
+import { StudioProviderProps, studioStore } from '../../stores'
+import config from '../../../../config'
 
 const SplashSix = () => {
   const { state } = (useRecoilValue(studioStore) as StudioProviderProps) || {}

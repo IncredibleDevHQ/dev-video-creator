@@ -16,6 +16,7 @@ import { API } from '../../../../constants'
 import { useUploadFile } from '../../../../hooks'
 import { AllowedFileExtensions } from '../../../../hooks/use-upload-file'
 import { PublishContext } from './PublishFlick'
+import config from '../../../../config'
 
 const ThumbnailCard = ({
   thumbnail,
@@ -33,11 +34,11 @@ const ThumbnailCard = ({
       // NOTE - Considering only first file, since only one thumbnail per format is allowed
       const file = files?.[0]
       if (!file) throw new Error('No file selected')
-      const { url } = await uploadImage({
+      const { uuid } = await uploadImage({
         file,
         extension: file.name.split('.').pop() as AllowedFileExtensions,
       })
-      updateThumbnail(url)
+      updateThumbnail(uuid)
       setLoading(false)
     } catch (error: any) {
       setLoading(false)
@@ -63,7 +64,7 @@ const ThumbnailCard = ({
             className="absolute top-1 right-1 cursor-pointer z-10"
             onClick={clearThumbnail}
           />
-          <img src={thumbnail} alt={thumbnail} />
+          <img src={config.storage.baseUrl + thumbnail} alt={thumbnail} />
         </div>
       ) : (
         <Dropzone onDrop={uploadThumbnail} accept="image/*" maxFiles={1}>

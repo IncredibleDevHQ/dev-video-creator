@@ -47,6 +47,7 @@ import BlockPreview, {
   gradients,
   GradientSelector,
 } from './components/BlockPreview'
+import { OutroConfig } from './components/IntroConfig'
 import { FragmentTypeIcon } from './components/LayoutGeneric'
 import { newFlickStore } from './store/flickNew.store'
 
@@ -324,10 +325,12 @@ const Flick = () => {
           />
           {flick.fragments.length > 0 &&
             activeFragment &&
-            (flick.fragments.find((f) => f.id === activeFragmentId)?.type ===
-              Fragment_Type_Enum_Enum.Intro ||
-              flick.fragments.find((f) => f.id === activeFragmentId)?.type ===
-                Fragment_Type_Enum_Enum.Outro) && <IntroConfig />}
+            flick.fragments.find((f) => f.id === activeFragmentId)?.type ===
+              Fragment_Type_Enum_Enum.Intro && <IntroConfig />}
+          {flick.fragments.length > 0 &&
+            activeFragment &&
+            flick.fragments.find((f) => f.id === activeFragmentId)?.type ===
+              Fragment_Type_Enum_Enum.Outro && <OutroConfig />}
 
           {flick.fragments.length > 0 &&
             activeFragment &&

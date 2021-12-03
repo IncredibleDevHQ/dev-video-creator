@@ -1,29 +1,27 @@
 import React, { useEffect, useState } from 'react'
-import { Circle, Rect, Text, Line, Group, Image } from 'react-konva'
+import { Rect, Text, Group, Image } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
 import { useParams } from 'react-router-dom'
-import Concourse, { CONFIG } from '../components/Concourse'
-import { StudioProviderProps, studioStore } from '../stores'
-import useSplash, { Coordinates } from '../hooks/use-splash'
-import { User, userState } from '../../../stores/user.store'
-import { useGetFragmentByIdQuery } from '../../../generated/graphql'
-import { EmptyState } from '../../../components'
-import config from '../../../config'
+import Concourse, { CONFIG } from '../../components/Concourse'
+import { StudioProviderProps, studioStore } from '../../stores'
+import useSplash, { Coordinates } from '../../hooks/use-splash'
+import { User, userState } from '../../../../stores/user.store'
+import { useGetFragmentByIdQuery } from '../../../../generated/graphql'
+import { EmptyState } from '../../../../components'
+import config from '../../../../config'
 
 const titleEnum = 'title'
 const subTitleEnum = 'subtitle'
 
-const SplashTwelve = () => {
+const SplashFourteen = () => {
   const { state } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const { sub } = (useRecoilValue(userState) as User) || {}
   const [configuration, setConfiguration] =
     useState<{ title: any; subTitle: any }>()
   const params: { fragmentId: string } = useParams()
-  const [cockroachLogo] = useImage(
-    `${config.storage.baseUrl}cockroachLogoSVG.svg`,
-    'anonymous'
-  )
+  const [msLogo] = useImage(`${config.storage.baseUrl}ms-logo.png`, 'anonymous')
+  const [msUser] = useImage(`${config.storage.baseUrl}ms-user.png`, 'anonymous')
 
   const { data } = useGetFragmentByIdQuery({
     variables: { id: params.fragmentId, sub: sub as string },
@@ -100,7 +98,7 @@ const SplashTwelve = () => {
     <Rect
       x={0}
       y={0}
-      fill="#6031E2"
+      fill="#FFFFFF"
       width={CONFIG.width}
       height={CONFIG.height}
     />,
@@ -109,89 +107,121 @@ const SplashTwelve = () => {
   const getLayerChildren = () => {
     setLayerChildren((layerChildren) => [
       ...layerChildren,
-      <Circle
-        key="FirstCircle"
-        x={200}
-        y={175}
-        radius={78}
-        stroke={gradientStrokeOne()}
-        strokeWidth={39}
-        scaleX={3}
-        scaleY={3}
-        opacity={0}
-        ref={(ref) => {
-          ref?.to({
-            duration: 2,
-            opacity: 1,
-          })
-        }}
-      />,
-      <Circle
-        key="SecondCircle"
-        x={670}
-        y={250}
-        radius={78}
-        stroke={gradientStrokeTwo()}
-        strokeWidth={39}
-        scaleX={3}
-        scaleY={3}
-        opacity={0}
-        ref={(ref) => {
-          ref?.to({
-            duration: 2,
-            opacity: 1,
-          })
-        }}
-      />,
-      <Group x={114} y={161} width={732} height={184} key="group1">
+      <Group x={61} y={183} width={419} height={174} key="group1">
         <Text
-          fontSize={104}
-          fill="#FFFFFF"
+          fontSize={64}
+          fill="#1F2937"
           fontFamily="Poppins"
-          fontStyle="normal 700"
-          text="CockroachDB"
+          fontStyle="normal"
+          text="Microsoft"
           align="center"
           opacity={0}
           ref={(ref) => {
-            setTimeout(() => {
-              ref?.to({
-                duration: 0.5,
-                opacity: 1,
-              })
-            }, 2000)
+            ref?.to({
+              duration: 1,
+              opacity: 1,
+            })
+          }}
+        />
+        <Text
+          fontSize={64}
+          y={67}
+          fill="#1F2937"
+          fontFamily="Poppins"
+          fontStyle="normal"
+          text="Dynamics 365"
+          align="center"
+          opacity={0}
+          ref={(ref) => {
+            ref?.to({
+              duration: 1,
+              opacity: 1,
+            })
           }}
         />
         <Text
           fontSize={24}
-          fill="#FFFFFF"
+          fill="#6B7280"
           fontFamily="Poppins"
-          text="The most highly evolved database on planet"
+          text="Agility without limits"
           fontStyle="normal 400"
           align="center"
-          y={126}
-          x={65}
+          y={150}
           opacity={0}
           ref={(ref) => {
-            setTimeout(() => {
-              ref?.to({
-                duration: 0.5,
-                opacity: 1,
-              })
-            }, 2000)
+            ref?.to({
+              duration: 1,
+              opacity: 1,
+            })
           }}
         />
       </Group>,
-      <Group x={697} y={476} width={220} height={32} key="group2">
+
+      <Group>
         <Image
-          image={cockroachLogo}
+          x={61}
+          y={412}
+          width={72}
+          height={72}
+          cornerRadius={12}
+          image={msUser}
           opacity={0}
           ref={(ref) => {
-            setTimeout(() => {
-              ref?.to({
-                duration: 0.5,
-                opacity: 1,
-              })
-            }, 3000)
+            ref?.to({
+              duration: 1,
+              opacity: 1,
+            })
+          }}
+        />
+        <Text
+          fontSize={20}
+          fill="#1F2937"
+          fontFamily="Poppins"
+          text="Heather Newman"
+          fontStyle="normal 600"
+          align="center"
+          x={150}
+          y={445}
+          opacity={0}
+          ref={(ref) => {
+            ref?.to({
+              duration: 1,
+              opacity: 1,
+            })
+          }}
+        />
+        <Text
+          fontSize={14}
+          fill="#6B7280"
+          fontFamily="Poppins"
+          text="Principal PM Manager @ Microsoft Dynamics 365"
+          fontStyle="normal 400"
+          align="center"
+          x={150}
+          y={470}
+          opacity={0}
+          ref={(ref) => {
+            ref?.to({
+              duration: 1,
+              opacity: 1,
+            })
+          }}
+        />
+      </Group>,
+      <Group>
+        <Rect x={553} y={0} fill="#1F2937" width={407} height={540} />
+        <Image
+          x={657}
+          y={170}
+          width={200}
+          height={200}
+          image={msLogo}
+          opacity={0}
+          ref={(ref) => {
+            ref?.to({
+              duration: 1,
+              opacity: 1,
+            })
           }}
         />
       </Group>,
@@ -202,4 +232,4 @@ const SplashTwelve = () => {
   return <Concourse disableUserMedia layerChildren={layerChildren} />
 }
 
-export default SplashTwelve
+export default SplashFourteen
