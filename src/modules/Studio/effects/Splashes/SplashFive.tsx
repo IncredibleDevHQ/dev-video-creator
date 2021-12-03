@@ -4,14 +4,14 @@ import React, { useEffect, useState } from 'react'
 import { Group, Rect, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import { CONFIG } from '../../components/Concourse'
-import { FragmentState } from '../../components/RenderTokens'
 import useSplash, { Coordinates } from '../../hooks/use-splash'
 import { StudioProviderProps, studioStore } from '../../stores'
+import { IntroState } from '../fragments/IntroFragment'
 
 const SplashFive = ({
   setFragmentState,
 }: {
-  setFragmentState: React.Dispatch<React.SetStateAction<FragmentState>>
+  setFragmentState: React.Dispatch<React.SetStateAction<IntroState>>
 }) => {
   const { state, fragment } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
@@ -42,7 +42,7 @@ const SplashFive = ({
   const subTitleFontSize = 30
 
   useEffect(() => {
-    if (state === 'recording') {
+    if (state === 'recording' || state === 'ready') {
       setCoordinate(
         getInitCoordinates({
           title: configuration?.title.value as string,
@@ -190,7 +190,7 @@ const SplashFive = ({
               easing: Konva.Easings.EaseInOut,
               onFinish: () => {
                 setTimeout(() => {
-                  setFragmentState('onlyUserMedia')
+                  setFragmentState('discord')
                 }, 2000)
               },
             })

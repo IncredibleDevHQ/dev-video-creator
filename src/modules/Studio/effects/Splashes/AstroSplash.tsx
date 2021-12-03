@@ -5,12 +5,12 @@ import { Group, Image, Line, Rect, Text } from 'react-konva'
 import useImage from 'use-image'
 import config from '../../../../config'
 import { CONFIG } from '../../components/Concourse'
-import { FragmentState } from '../../components/RenderTokens'
+import { IntroState } from '../fragments/IntroFragment'
 
 const SplashFifteen = ({
   setFragmentState,
 }: {
-  setFragmentState: React.Dispatch<React.SetStateAction<FragmentState>>
+  setFragmentState: React.Dispatch<React.SetStateAction<IntroState>>
 }) => {
   // const { fragment } =
   //   (useRecoilValue(studioStore) as StudioProviderProps) || {}
@@ -436,7 +436,7 @@ const SplashFifteen = ({
               y: 663,
               onFinish: () => {
                 setTimeout(() => {
-                  setFragmentState('onlyUserMedia')
+                  setFragmentState('discord')
                 }, 1200)
               },
             })

@@ -4,12 +4,12 @@ import { Group, Image, Rect } from 'react-konva'
 import { useImage } from 'react-konva-utils'
 import config from '../../../../config'
 import { CONFIG } from '../../components/Concourse'
-import { FragmentState } from '../../components/RenderTokens'
+import { IntroState } from '../fragments/IntroFragment'
 
 const SplashThree = ({
   setFragmentState,
 }: {
-  setFragmentState: React.Dispatch<React.SetStateAction<FragmentState>>
+  setFragmentState: React.Dispatch<React.SetStateAction<IntroState>>
 }) => {
   const [logo] = useImage(`${config.storage.baseUrl}idev-logo.svg`, 'anonymous')
   const [logoText] = useImage(
@@ -121,7 +121,7 @@ const SplashThree = ({
                           duration: 0.3,
                           onFinish: () => {
                             setTimeout(() => {
-                              setFragmentState('onlyUserMedia')
+                              setFragmentState('discord')
                             }, 2000)
                           },
                         })

@@ -3,15 +3,17 @@ import { Group, Rect } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import { GradientConfig } from '../../../../utils/configTypes2'
 import Concourse, { CONFIG } from '../../components/Concourse'
-import { FragmentState } from '../../components/RenderTokens'
 import { StudioProviderProps, studioStore } from '../../stores'
 import { StudioUserConfiguration } from '../../utils/StudioUserConfig'
+import DiscordSplash from '../DiscordSplash'
 import AstroSplash from '../Splashes/AstroSplash'
 import GraphQLSplash from '../Splashes/GraphQLSplash'
 import SplashEleven from '../Splashes/SplashEleven'
 import SplashFive from '../Splashes/SplashFive'
 import SplashFour from '../Splashes/SplashFour'
 import TensorFlowSplash from '../Splashes/TensorFlowSplash'
+
+export type IntroState = 'onlyUserMedia' | 'customLayout' | 'discord'
 
 const IntroFragment = ({
   gradientConfig,
@@ -29,8 +31,7 @@ const IntroFragment = ({
   const startPoint = { x: 0, y: 0 }
   const endPoint = { x: CONFIG.width, y: CONFIG.height }
 
-  const [fragmentState, setFragmentState] =
-    useState<FragmentState>('customLayout')
+  const [fragmentState, setFragmentState] = useState<IntroState>('customLayout')
 
   const Splash = (() => {
     if (themeNumber === '0') return GraphQLSplash
@@ -52,6 +53,13 @@ const IntroFragment = ({
         setLayerChildren([
           <Group x={0} y={0}>
             <Splash setFragmentState={setFragmentState} />
+          </Group>,
+        ])
+      }
+      if (fragmentState === 'discord') {
+        setLayerChildren([
+          <Group x={0} y={0}>
+            <DiscordSplash setFragmentState={setFragmentState} />
           </Group>,
         ])
       }
@@ -94,7 +102,8 @@ const IntroFragment = ({
   const studioUserConfig = StudioUserConfiguration({
     layout: 'classic',
     fragment,
-    fragmentState,
+    fragmentState:
+      fragmentState === 'onlyUserMedia' ? 'onlyUserMedia' : 'customLayout',
     isShorts: false,
   })
 
