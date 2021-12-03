@@ -43,7 +43,11 @@ const IntroFragment = ({
   })()
 
   useEffect(() => {
-    if (state === 'recording') {
+    if (state === 'recording') setFragmentState('customLayout')
+  }, [state])
+
+  useEffect(() => {
+    if (state === 'recording' || state === 'ready') {
       if (fragmentState === 'customLayout') {
         setLayerChildren([
           <Group x={0} y={0}>
