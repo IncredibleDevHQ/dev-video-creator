@@ -392,7 +392,7 @@ const Flick = () => {
                   <hr className="w-full" />
                   <span className="w-48" />
                 </div>
-                <div className="px-8 w-full overflow-y-scroll pb-28 flex h-full justify-between items-stretch">
+                <div className="px-8 w-full relative overflow-y-scroll pb-28 flex h-full justify-between items-stretch">
                   <TextEditor
                     placeholder="Start writing..."
                     handleUpdateJSON={(json) => {
@@ -428,7 +428,7 @@ const Flick = () => {
                   </div>
                 </div>
                 {getSimpleAST(plateValue).blocks.length > 0 && (
-                  <div className="flex items-center justify-start border rounded-md bg-gray-50 mb-4 fixed p-2 mx-8 bottom-4 z-20">
+                  <div className="flex items-center justify-start border rounded-md bg-gray-50 mb-4 fixed p-2 mx-8 bottom-4 z-10">
                     <div className="flex items-center justify-center px-4 py-2 w-32 h-16 gap-x-2 bg-white">
                       <Text
                         className={cx(
