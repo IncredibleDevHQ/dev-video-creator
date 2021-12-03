@@ -2,7 +2,10 @@ import Konva from 'konva'
 import React, { createRef, useEffect, useState } from 'react'
 import { Group, Rect } from 'react-konva'
 import { useRecoilState, useRecoilValue } from 'recoil'
-import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
+import {
+  Fragment_Status_Enum_Enum,
+  Fragment_Type_Enum_Enum,
+} from '../../../generated/graphql'
 import { User, userState } from '../../../stores/user.store'
 import { GradientConfig } from '../../../utils/configTypes'
 import {
@@ -177,7 +180,9 @@ const Concourse = ({
   }
 
   const performFinishAction = () => {
-    stopRecording()
+    if (state === 'recording') {
+      stopRecording()
+    }
   }
 
   useEffect(() => {
@@ -245,12 +250,16 @@ const Concourse = ({
               )
             }
           }
-          if (payload?.status === Fragment_Status_Enum_Enum.Ended)
-            return (
-              <MultiCircleCenterGrow
-                performFinishAction={performFinishAction}
-              />
-            )
+          if (payload?.status === Fragment_Status_Enum_Enum.Ended) {
+            if (fragment?.type === Fragment_Type_Enum_Enum.Outro) {
+              performFinishAction()
+            } else
+              return (
+                <MultiCircleCenterGrow
+                  performFinishAction={performFinishAction}
+                />
+              )
+          }
           return layerChildren
         })()}
       </Group>
