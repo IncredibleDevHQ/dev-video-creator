@@ -123,7 +123,6 @@ const useSplash = () => {
       layer.add(word)
 
       const width = word.textWidth
-      console.log(width)
       if (width + currentWidth > availableWidth) {
         noOfLines += 1
         currentWidth = 0
