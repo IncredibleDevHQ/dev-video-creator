@@ -4,14 +4,14 @@ import React, { useEffect, useState } from 'react'
 import { Group, Rect, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import { CONFIG } from '../../components/Concourse'
-import { FragmentState } from '../../components/RenderTokens'
 import useSplash, { Coordinates } from '../../hooks/use-splash'
 import { StudioProviderProps, studioStore } from '../../stores'
+import { IntroState } from '../fragments/IntroFragment'
 
 const SplashFive = ({
   setFragmentState,
 }: {
-  setFragmentState: React.Dispatch<React.SetStateAction<FragmentState>>
+  setFragmentState: React.Dispatch<React.SetStateAction<IntroState>>
 }) => {
   const { state, fragment } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
@@ -28,13 +28,13 @@ const SplashFive = ({
 
   const { getInitCoordinates } = useSplash()
 
-  let coordinate: Coordinates = {
+  const [coordinate, setCoordinate] = useState<Coordinates>({
     titleX: 0,
     titleY: 0,
     subTitleX: 0,
     subTitleY: 0,
     titleHeight: 0,
-  }
+  })
 
   const gutter = 10
   const titleWidth = 600
@@ -42,17 +42,19 @@ const SplashFive = ({
   const subTitleFontSize = 30
 
   useEffect(() => {
-    if (state === 'recording') {
-      coordinate = getInitCoordinates({
-        title: configuration?.title.value as string,
-        subTitle: configuration?.subTitle.value as string,
-        gutter,
-        availableWidth: titleWidth - 100,
-        titleFontSize,
-        subTitleFontSize,
-        stageWidth: 960,
-        stageHeight: 540,
-      })
+    if (state === 'recording' || state === 'ready') {
+      setCoordinate(
+        getInitCoordinates({
+          title: configuration?.title.value as string,
+          subTitle: configuration?.subTitle.value as string,
+          gutter,
+          availableWidth: titleWidth - 100,
+          titleFontSize,
+          subTitleFontSize,
+          stageWidth: 960,
+          stageHeight: 540,
+        })
+      )
       // getLayerChildren()
     }
   }, [state, configuration])
@@ -173,7 +175,7 @@ const SplashFive = ({
         <Text
           key="title"
           x={-600}
-          y={220}
+          y={coordinate.titleY}
           text={configuration?.title.value as string}
           fontSize={60}
           fontFamily="Poppins"
@@ -188,7 +190,7 @@ const SplashFive = ({
               easing: Konva.Easings.EaseInOut,
               onFinish: () => {
                 setTimeout(() => {
-                  setFragmentState('onlyUserMedia')
+                  setFragmentState('discord')
                 }, 2000)
               },
             })
@@ -197,7 +199,7 @@ const SplashFive = ({
         <Text
           key="subTitle"
           x={-600}
-          y={290}
+          y={coordinate.subTitleY}
           text={configuration?.subTitle.value as string}
           fontSize={30}
           fontFamily="Poppins"
