@@ -32,15 +32,6 @@ const SplashThree = ({
 
   const secondaryLogoRef = useRef<Konva.Image | null>(null)
 
-  // useEffect(() => {
-  //   if (state === 'recording') {
-  //     handleRecord()
-  //   }
-  // }, [state])
-
-  // const [layerChildren, setLayerChildren] = useState([])
-
-  //
   return (
     <Group>
       <Rect
@@ -160,8 +151,6 @@ const SplashThree = ({
       />
     </Group>
   )
-
-  // return <Concourse disableUserMedia layerChildren={layerChildren} />
 }
 
 export default SplashThree

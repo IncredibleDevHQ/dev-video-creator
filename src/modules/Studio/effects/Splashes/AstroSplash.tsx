@@ -2,17 +2,20 @@ import FontFaceObserver from 'fontfaceobserver'
 import Konva from 'konva'
 import React, { useEffect, useState } from 'react'
 import { Group, Image, Line, Rect, Text } from 'react-konva'
-import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
 import config from '../../../../config'
-import Concourse, { CONFIG } from '../../components/Concourse'
-import { StudioProviderProps, studioStore } from '../../stores'
+import { CONFIG } from '../../components/Concourse'
+import { FragmentState } from '../../components/RenderTokens'
 
-const SplashFifteen = () => {
-  const { state, fragment } =
-    (useRecoilValue(studioStore) as StudioProviderProps) || {}
-  const [configuration, setConfiguration] =
-    useState<{ title: any; subTitle: any }>()
+const SplashFifteen = ({
+  setFragmentState,
+}: {
+  setFragmentState: React.Dispatch<React.SetStateAction<FragmentState>>
+}) => {
+  // const { fragment } =
+  //   (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  // const [configuration, setConfiguration] =
+  //   useState<{ title: any; subTitle: any }>()
 
   const [astroPlanet] = useImage(
     `${config.storage.baseUrl}planet.svg`,
@@ -50,65 +53,20 @@ const SplashFifteen = () => {
   })
 
   useEffect(() => {
-    if (!fragment) return
-    setConfiguration({
-      title: { value: fragment?.flick?.name },
-      subTitle: { value: fragment?.flick?.description },
-    })
-  }, [fragment])
-
-  // const { getInitCoordinates } = useSplash()
-
-  const controls: any = []
-
-  // let coordinate: Coordinates = {
-  //   titleX: 0,
-  //   titleY: 0,
-  //   subTitleX: 0,
-  //   subTitleY: 0,
-  //   titleHeight: 0,
-  // }
-
-  // const gutter = 10
-  // const titleWidth = 600
-  // const titleFontSize = 60
-  // const subTitleFontSize = 30
-
-  useEffect(() => {
-    if (state === 'recording') {
-      // coordinate = getInitCoordinates({
-      //   title: configuration?.title.value as string,
-      //   subTitle: configuration?.subTitle.value as string,
-      //   gutter,
-      //   availableWidth: titleWidth - 100,
-      //   titleFontSize,
-      //   subTitleFontSize,
-      //   stageWidth: 960,
-      //   stageHeight: 540,
-      // })
-
-      getLayerChildren()
-    }
-  }, [state, configuration])
-
-  useEffect(() => {
     const font = new FontFaceObserver('Poppins')
     font.load()
   }, [])
 
-  const [layerChildren, setLayerChildren] = useState([
-    <Rect
-      x={0}
-      y={0}
-      opacity={1}
-      fill="#ffffff"
-      width={CONFIG.width}
-      height={CONFIG.height}
-    />,
-  ])
-
-  const getLayerChildren = () => {
-    setLayerChildren((layerChildren) => [
+  return (
+    <Group>
+      <Rect
+        x={0}
+        y={0}
+        opacity={1}
+        fill="#ffffff"
+        width={CONFIG.width}
+        height={CONFIG.height}
+      />
       <Rect
         x={0}
         y={0}
@@ -124,7 +82,7 @@ const SplashFifteen = () => {
             })
           }, 2200)
         }}
-      />,
+      />
       <Group x={390} y={247}>
         <Image
           image={logoText}
@@ -150,7 +108,7 @@ const SplashFifteen = () => {
             })
           }
         />
-      </Group>,
+      </Group>
       <Rect
         x={0}
         y={0}
@@ -173,7 +131,7 @@ const SplashFifteen = () => {
             },
           })
         }
-      />,
+      />
       <Image
         image={logo}
         x={CONFIG.width / 2}
@@ -208,7 +166,7 @@ const SplashFifteen = () => {
             },
           })
         }}
-      />,
+      />
       <Rect
         x={0}
         y={0}
@@ -236,7 +194,7 @@ const SplashFifteen = () => {
             })
           }, 2200)
         }}
-      />,
+      />
       <Group
         x={452}
         y={243}
@@ -278,7 +236,7 @@ const SplashFifteen = () => {
             }, 2200)
           }}
         />
-      </Group>,
+      </Group>
       <Group
         x={396}
         y={170}
@@ -328,7 +286,7 @@ const SplashFifteen = () => {
           strokeWidth={4}
           lineJoin="round"
         />
-      </Group>,
+      </Group>
       <Group
         x={396}
         y={170}
@@ -378,7 +336,7 @@ const SplashFifteen = () => {
           strokeWidth={4}
           lineJoin="round"
         />
-      </Group>,
+      </Group>
       <Image
         image={astroPlanet}
         x={-10}
@@ -392,7 +350,7 @@ const SplashFifteen = () => {
             })
           }, 4200)
         }}
-      />,
+      />
       <Group
         x={567}
         y={-278}
@@ -437,7 +395,7 @@ const SplashFifteen = () => {
           width={250}
         />
         <Image image={astroLogo} x={233} y={222} />
-      </Group>,
+      </Group>
       <Image
         image={comet1}
         x={393}
@@ -451,7 +409,7 @@ const SplashFifteen = () => {
             })
           }, 5700)
         }}
-      />,
+      />
       <Image
         image={comet2}
         x={623}
@@ -465,7 +423,7 @@ const SplashFifteen = () => {
             })
           }, 5700)
         }}
-      />,
+      />
       <Image
         image={comet1}
         x={965}
@@ -476,13 +434,17 @@ const SplashFifteen = () => {
               duration: 2.5,
               x: 240,
               y: 663,
+              onFinish: () => {
+                setTimeout(() => {
+                  setFragmentState('onlyUserMedia')
+                }, 1200)
+              },
             })
           }, 5700)
         }}
-      />,
-    ])
-  }
-  return <Concourse disableUserMedia layerChildren={layerChildren} />
+      />
+    </Group>
+  )
 }
 
 export default SplashFifteen

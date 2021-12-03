@@ -28,13 +28,13 @@ const SplashFive = ({
 
   const { getInitCoordinates } = useSplash()
 
-  let coordinate: Coordinates = {
+  const [coordinate, setCoordinate] = useState<Coordinates>({
     titleX: 0,
     titleY: 0,
     subTitleX: 0,
     subTitleY: 0,
     titleHeight: 0,
-  }
+  })
 
   const gutter = 10
   const titleWidth = 600
@@ -43,16 +43,18 @@ const SplashFive = ({
 
   useEffect(() => {
     if (state === 'recording') {
-      coordinate = getInitCoordinates({
-        title: configuration?.title.value as string,
-        subTitle: configuration?.subTitle.value as string,
-        gutter,
-        availableWidth: titleWidth - 100,
-        titleFontSize,
-        subTitleFontSize,
-        stageWidth: 960,
-        stageHeight: 540,
-      })
+      setCoordinate(
+        getInitCoordinates({
+          title: configuration?.title.value as string,
+          subTitle: configuration?.subTitle.value as string,
+          gutter,
+          availableWidth: titleWidth - 100,
+          titleFontSize,
+          subTitleFontSize,
+          stageWidth: 960,
+          stageHeight: 540,
+        })
+      )
       // getLayerChildren()
     }
   }, [state, configuration])
@@ -173,7 +175,7 @@ const SplashFive = ({
         <Text
           key="title"
           x={-600}
-          y={220}
+          y={coordinate.titleY}
           text={configuration?.title.value as string}
           fontSize={60}
           fontFamily="Poppins"
@@ -197,7 +199,7 @@ const SplashFive = ({
         <Text
           key="subTitle"
           x={-600}
-          y={290}
+          y={coordinate.subTitleY}
           text={configuration?.subTitle.value as string}
           fontSize={30}
           fontFamily="Poppins"

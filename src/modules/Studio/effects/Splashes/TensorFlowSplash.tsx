@@ -1,15 +1,16 @@
 import Konva from 'konva'
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { Group, Image, Rect } from 'react-konva'
 import { useImage } from 'react-konva-utils'
-import { useRecoilValue } from 'recoil'
 import config from '../../../../config'
-import Concourse, { CONFIG } from '../../components/Concourse'
-import { StudioProviderProps, studioStore } from '../../stores'
+import { CONFIG } from '../../components/Concourse'
+import { FragmentState } from '../../components/RenderTokens'
 
-const SplashSeventeen = () => {
-  const { state } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
-
+const SplashSeventeen = ({
+  setFragmentState,
+}: {
+  setFragmentState: React.Dispatch<React.SetStateAction<FragmentState>>
+}) => {
   const [logo] = useImage(`${config.storage.baseUrl}idev-logo.svg`, 'anonymous')
   const [logoText] = useImage(
     `${config.storage.baseUrl}incredible.svg`,
@@ -29,29 +30,17 @@ const SplashSeventeen = () => {
     secondaryLogoHeight: 99,
   })
 
-  const controls: any = []
-
   const secondaryLogoRef = useRef<Konva.Image | null>(null)
 
-  useEffect(() => {
-    if (state === 'recording') {
-      handleRecord()
-    }
-  }, [state])
-
-  const [layerChildren, setLayerChildren] = useState([
-    <Rect
-      x={0}
-      y={0}
-      fill="#ffffff"
-      width={CONFIG.width}
-      height={CONFIG.height}
-    />,
-  ])
-
-  const handleRecord = () => {
-    setLayerChildren((layerChildren) => [
-      ...layerChildren,
+  return (
+    <Group>
+      <Rect
+        x={0}
+        y={0}
+        fill="#ffffff"
+        width={CONFIG.width}
+        height={CONFIG.height}
+      />
       <Group x={390} y={247}>
         <Image
           image={logoText}
@@ -77,7 +66,7 @@ const SplashSeventeen = () => {
             })
           }
         />
-      </Group>,
+      </Group>
       <Rect
         x={0}
         y={0}
@@ -100,7 +89,7 @@ const SplashSeventeen = () => {
             },
           })
         }
-      />,
+      />
       <Image
         image={logo}
         x={CONFIG.width / 2}
@@ -130,6 +119,11 @@ const SplashSeventeen = () => {
                         secondaryLogoRef.current?.to({
                           opacity: 1,
                           duration: 0.3,
+                          onFinish: () => {
+                            setTimeout(() => {
+                              setFragmentState('onlyUserMedia')
+                            }, 2000)
+                          },
                         })
                       },
                     })
@@ -145,7 +139,7 @@ const SplashSeventeen = () => {
             },
           })
         }}
-      />,
+      />
       <Image
         image={secondaryLogo}
         x={(CONFIG.width - imageDimensions.secondaryLogoWidth) / 2}
@@ -154,11 +148,9 @@ const SplashSeventeen = () => {
         height={imageDimensions.secondaryLogoHeight}
         ref={secondaryLogoRef}
         opacity={0}
-      />,
-    ])
-  }
-
-  return <Concourse disableUserMedia layerChildren={layerChildren} />
+      />
+    </Group>
+  )
 }
 
 export default SplashSeventeen

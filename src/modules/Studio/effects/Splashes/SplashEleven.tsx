@@ -1,50 +1,38 @@
 import React, { useEffect, useState } from 'react'
-import { Circle, Rect, Text, Line } from 'react-konva'
+import { Circle, Group, Line, Rect, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
-import { useParams } from 'react-router-dom'
-import Concourse, { CONFIG } from '../../components/Concourse'
-import { StudioProviderProps, studioStore } from '../../stores'
+import { CONFIG } from '../../components/Concourse'
+import { FragmentState } from '../../components/RenderTokens'
 import useSplash, { Coordinates } from '../../hooks/use-splash'
-import { User, userState } from '../../../../stores/user.store'
-import { useGetFragmentByIdQuery } from '../../../../generated/graphql'
-import { EmptyState } from '../../../../components'
+import { StudioProviderProps, studioStore } from '../../stores'
 
-const titleEnum = 'title'
-const subTitleEnum = 'subtitle'
-
-const SplashEleven = () => {
-  const { state } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
-  const { sub } = (useRecoilValue(userState) as User) || {}
+const SplashEleven = ({
+  setFragmentState,
+}: {
+  setFragmentState: React.Dispatch<React.SetStateAction<FragmentState>>
+}) => {
+  const { state, fragment } =
+    (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [configuration, setConfiguration] =
     useState<{ title: any; subTitle: any }>()
-  const params: { fragmentId: string } = useParams()
-
-  const { data } = useGetFragmentByIdQuery({
-    variables: { id: params.fragmentId, sub: sub as string },
-  })
 
   useEffect(() => {
-    if (!data?.Fragment[0].configuration.properties) return
-    const title = data?.Fragment[0].configuration.properties.find(
-      (property: any) => property.key === titleEnum
-    )
-    const subTitle = data?.Fragment[0].configuration.properties.find(
-      (property: any) => property.key === subTitleEnum
-    )
-    setConfiguration({ title, subTitle })
-  }, [data])
+    if (!fragment) return
+    setConfiguration({
+      title: { value: fragment?.flick?.name },
+      subTitle: { value: fragment?.flick?.description },
+    })
+  }, [fragment])
 
   const { getInitCoordinates } = useSplash()
 
-  const controls: any = []
-
-  let coordinate: Coordinates = {
+  const [coordinate, setCoordinate] = useState<Coordinates>({
     titleX: 0,
     titleY: 0,
     subTitleX: 0,
     subTitleY: 0,
     titleHeight: 0,
-  }
+  })
 
   const gutter = 10
   const titleFontSize = 50
@@ -52,35 +40,31 @@ const SplashEleven = () => {
 
   useEffect(() => {
     if (state === 'recording') {
-      coordinate = getInitCoordinates({
-        title: configuration?.title.value as string,
-        subTitle: configuration?.subTitle.value as string,
-        gutter,
-        availableWidth: 450,
-        titleFontSize,
-        subTitleFontSize,
-        stageWidth: 960,
-        stageHeight: 540,
-        fontFamily: 'Poppins',
-      })
-
-      getLayerChildren()
+      setCoordinate(
+        getInitCoordinates({
+          title: configuration?.title.value as string,
+          subTitle: configuration?.subTitle.value as string,
+          gutter,
+          availableWidth: 450,
+          titleFontSize,
+          subTitleFontSize,
+          stageWidth: 960,
+          stageHeight: 540,
+          fontFamily: 'Poppins',
+        })
+      )
     }
   }, [state, configuration])
 
-  const [layerChildren, setLayerChildren] = useState([
-    <Rect
-      x={0}
-      y={0}
-      fill="#ffffff"
-      width={CONFIG.width}
-      height={CONFIG.height}
-    />,
-  ])
-
-  const getLayerChildren = () => {
-    setLayerChildren((layerChildren) => [
-      ...layerChildren,
+  return (
+    <Group>
+      <Rect
+        x={0}
+        y={0}
+        fill="#ffffff"
+        width={CONFIG.width}
+        height={CONFIG.height}
+      />
       <Line
         key="firstBlob"
         points={[
@@ -96,7 +80,7 @@ const SplashEleven = () => {
             opacity: 1,
           })
         }}
-      />,
+      />
       <Line
         key="secondBlob"
         points={[360, 0, 610, 0, 550, 100, 480, 30, 430, 80]}
@@ -109,7 +93,7 @@ const SplashEleven = () => {
             opacity: 1,
           })
         }}
-      />,
+      />
       <Line
         key="thirdBlob"
         points={[
@@ -142,7 +126,7 @@ const SplashEleven = () => {
             opacity: 1,
           })
         }}
-      />,
+      />
       <Line
         key="fourthBlob"
         points={[
@@ -165,7 +149,7 @@ const SplashEleven = () => {
             opacity: 1,
           })
         }}
-      />,
+      />
       <Circle
         key="firstCircle"
         x={CONFIG.width - 140}
@@ -179,7 +163,7 @@ const SplashEleven = () => {
             opacity: 1,
           })
         }}
-      />,
+      />
       <Circle
         key="secondCircle"
         x={CONFIG.width - 90}
@@ -193,7 +177,7 @@ const SplashEleven = () => {
             opacity: 1,
           })
         }}
-      />,
+      />
       <Circle
         key="thirdCircle"
         x={CONFIG.width - 35}
@@ -207,7 +191,7 @@ const SplashEleven = () => {
             opacity: 1,
           })
         }}
-      />,
+      />
       <Line
         key="fifthBlob"
         points={[
@@ -230,7 +214,7 @@ const SplashEleven = () => {
             opacity: 1,
           })
         }}
-      />,
+      />
       <Line
         key="sixthBlob"
         points={[
@@ -272,7 +256,7 @@ const SplashEleven = () => {
             opacity: 1,
           })
         }}
-      />,
+      />
       <Line
         key="seventhBlob"
         points={[
@@ -295,7 +279,7 @@ const SplashEleven = () => {
             opacity: 1,
           })
         }}
-      />,
+      />
       <Text
         key="title"
         x={coordinate.titleX}
@@ -312,7 +296,7 @@ const SplashEleven = () => {
             opacity: 1,
           })
         }}
-      />,
+      />
       <Text
         key="subTitle"
         x={coordinate.subTitleX}
@@ -328,14 +312,16 @@ const SplashEleven = () => {
           ref?.to({
             duration: 1,
             opacity: 1,
+            onFinish: () => {
+              setTimeout(() => {
+                setFragmentState('onlyUserMedia')
+              }, 2500)
+            },
           })
         }}
-      />,
-    ])
-  }
-  if (!configuration)
-    return <EmptyState text="Missing cofiguration, Please Reload" width={400} />
-  return <Concourse disableUserMedia layerChildren={layerChildren} />
+      />
+    </Group>
+  )
 }
 
 export default SplashEleven
