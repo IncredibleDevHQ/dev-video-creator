@@ -539,6 +539,12 @@ const Studio = ({
 
   const [isButtonClicked, setIsButtonClicked] = useState(false)
 
+  useEffect(() => {
+    if (state === 'recording') {
+      setIsButtonClicked(false)
+    }
+  }, [state])
+
   useMemo(() => {
     if (!fragment) return
     setStudio({

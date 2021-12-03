@@ -8,6 +8,7 @@ import { FragmentState } from '../../components/RenderTokens'
 import { StudioProviderProps, studioStore } from '../../stores'
 import { StudioUserConfiguration } from '../../utils/StudioUserConfig'
 import incredibleLogo from '../../../../assets/incredible_logo.svg'
+import outroPattern from '../../../../assets/outroPattern.svg'
 
 const OutroFragment = ({
   gradientConfig,
@@ -34,15 +35,17 @@ const OutroFragment = ({
   const [studio, setStudio] = useRecoilState(studioStore)
 
   const [incredibleLogoImage] = useImage(incredibleLogo)
+  const [outroPatternImage] = useImage(outroPattern)
 
   useEffect(() => {
-    setStudio({
-      ...studio,
-      controlsConfig: {
-        setFragmentState,
-      },
-    })
-  }, [])
+    if (state === 'recording')
+      setStudio({
+        ...studio,
+        controlsConfig: {
+          setFragmentState,
+        },
+      })
+  }, [state])
 
   useEffect(() => {
     if (state === 'recording') {
@@ -67,13 +70,7 @@ const OutroFragment = ({
               y={0}
               width={CONFIG.width}
               height={CONFIG.height}
-              fillLinearGradientColorStops={
-                gradientConfig?.values || [0, '#4ADE80', 1, '#16A34A']
-              }
-              fillLinearGradientStartPoint={
-                gradientConfig?.startIndex || startPoint
-              }
-              fillLinearGradientEndPoint={gradientConfig?.endIndex || endPoint}
+              fill="#1F2937"
               ref={(ref) =>
                 setTimeout(() => {
                   ref?.to({
@@ -83,14 +80,31 @@ const OutroFragment = ({
                 }, 200)
               }
             />
+            <Image
+              image={outroPatternImage}
+              x={(CONFIG.width * 2) / 3 - 360}
+              y={CONFIG.height - 140}
+              width={360}
+              height={140}
+              opacity={0}
+              ref={(ref) =>
+                setTimeout(() => {
+                  ref?.to({
+                    opacity: 1,
+                    duration: 0.2,
+                  })
+                }, 700)
+              }
+            />
             <Text
-              x={36}
-              y={130}
-              text="Thank you"
+              x={140}
+              y={205}
+              text="Thanks for watching"
               fill="#ffffff"
-              fontSize={70}
+              fontSize={32}
               width={(CONFIG.width * 2) / 3}
               lineHeight={1.2}
+              fontFamily="Inter"
               fontStyle="bold"
               opacity={0}
               ref={(ref) =>
@@ -103,33 +117,14 @@ const OutroFragment = ({
               }
             />
             <Text
-              x={40}
-              y={210}
-              text="for watching"
-              fill="#ffffff"
-              fontSize={70}
-              width={(CONFIG.width * 2) / 3}
-              lineHeight={1.2}
-              fontStyle="bold"
-              opacity={0}
-              ref={(ref) =>
-                setTimeout(() => {
-                  ref?.to({
-                    opacity: 1,
-                    duration: 0.2,
-                  })
-                }, 700)
-              }
-            />
-            <Text
-              x={40}
-              y={300}
+              x={140}
+              y={250}
               text="To create incredible videos like these"
               fill="#ffffff"
-              fontSize={20}
+              fontSize={16}
+              fontFamily="Inter"
               width={(CONFIG.width * 2) / 3}
               lineHeight={1.2}
-              fontStyle="bold"
               opacity={0}
               ref={(ref) =>
                 setTimeout(() => {
@@ -141,14 +136,14 @@ const OutroFragment = ({
               }
             />
             <Text
-              x={40}
-              y={330}
-              text="Sign up on "
+              x={140}
+              y={270}
+              text="Sign up on"
               fill="#ffffff"
-              fontSize={20}
+              fontSize={16}
+              fontFamily="Inter"
               width={(CONFIG.width * 2) / 3}
               lineHeight={1.2}
-              fontStyle="bold"
               opacity={0}
               ref={(ref) =>
                 setTimeout(() => {
@@ -160,15 +155,17 @@ const OutroFragment = ({
               }
             />
             <Text
-              x={150}
-              y={330}
+              x={225}
+              y={270}
               text="incredible.dev"
-              fill="#000000"
-              fontSize={20}
+              fill="#16A34A"
+              fontSize={16}
+              fontFamily="Inter"
               width={(CONFIG.width * 2) / 3}
               lineHeight={1.2}
-              fontStyle="bold"
               opacity={0}
+              fontStyle="bold"
+              textDecoration="underline"
               ref={(ref) =>
                 setTimeout(() => {
                   ref?.to({
