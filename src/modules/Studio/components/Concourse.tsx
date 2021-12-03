@@ -8,6 +8,7 @@ import {
 } from '../../../generated/graphql'
 import { User, userState } from '../../../stores/user.store'
 import { GradientConfig } from '../../../utils/configTypes'
+import { ShortsOutro } from '../effects/fragments/OutroFragment'
 import {
   MultiCircleCenterGrow,
   MultiCircleMoveDown,
@@ -253,12 +254,14 @@ const Concourse = ({
           if (payload?.status === Fragment_Status_Enum_Enum.Ended) {
             if (fragment?.type === Fragment_Type_Enum_Enum.Outro) {
               performFinishAction()
-            } else
-              return (
-                <MultiCircleCenterGrow
-                  performFinishAction={performFinishAction}
-                />
-              )
+            } else if (fragment?.configuration?.mode === 'Portrait') {
+              return <ShortsOutro performFinishAction={performFinishAction} />
+            }
+            return (
+              <MultiCircleCenterGrow
+                performFinishAction={performFinishAction}
+              />
+            )
           }
           return layerChildren
         })()}
