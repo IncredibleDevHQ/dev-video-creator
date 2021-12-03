@@ -49,6 +49,7 @@ import {
 } from './components/Controls'
 import RecordingControlsBar from './components/RecordingControlsBar'
 import IntroFragment from './effects/fragments/IntroFragment'
+import OutroFragment from './effects/fragments/OutroFragment'
 import UnifiedFragment from './effects/fragments/UnifiedFragment'
 import { useAgora, useVectorly } from './hooks'
 import { Device } from './hooks/use-agora'
@@ -536,6 +537,8 @@ const Studio = ({
 
   const [fragmentType, setFragmentType] = useState<ConfigType>()
 
+  const [isButtonClicked, setIsButtonClicked] = useState(false)
+
   useMemo(() => {
     if (!fragment) return
     setStudio({
@@ -616,18 +619,27 @@ const Studio = ({
             >
               <Bridge>
                 <Layer ref={layerRef}>
-                  {fragment &&
-                    (fragment.type === Fragment_Type_Enum_Enum.Intro ||
-                    fragment.type === Fragment_Type_Enum_Enum.Outro ? (
-                      <IntroFragment
-                        themeNumber={`${fragment.configuration?.theme}` || '0'}
-                      />
-                    ) : (
-                      <UnifiedFragment
-                        stageRef={stageRef}
-                        layerRef={layerRef}
-                      />
-                    ))}
+                  {(() => {
+                    if (fragment) {
+                      if (fragment.type === Fragment_Type_Enum_Enum.Intro)
+                        return (
+                          <IntroFragment
+                            themeNumber={
+                              `${fragment.configuration?.theme}` || '0'
+                            }
+                          />
+                        )
+                      if (fragment.type === Fragment_Type_Enum_Enum.Outro)
+                        return <OutroFragment />
+                      return (
+                        <UnifiedFragment
+                          stageRef={stageRef}
+                          layerRef={layerRef}
+                        />
+                      )
+                    }
+                    return <></>
+                  })()}
                 </Layer>
               </Bridge>
             </Stage>
@@ -716,6 +728,30 @@ const Studio = ({
                           studio.controlsConfig?.dataConfigLength - 1 && (
                           <FiArrowRight className=" text-white" size={21} />
                         )}
+                      </div>
+                    </button>
+                  )}
+                {fragment.type === Fragment_Type_Enum_Enum.Outro &&
+                  state === 'recording' && (
+                    <button
+                      type="button"
+                      disabled={isButtonClicked}
+                      onClick={() => {
+                        setIsButtonClicked(true)
+                        controlsConfig?.setFragmentState?.('customLayout')
+                      }}
+                      className="mt-4"
+                    >
+                      <div
+                        className={cx(
+                          'flex py-10 px-16 bg-blue-400 items-center justify-center gap-x-2 rounded-md',
+                          {
+                            'opacity-50 cursor-not-allowed': isButtonClicked,
+                          }
+                        )}
+                      >
+                        <Text className=" text-white">Next</Text>
+                        <FiArrowRight className=" text-white" size={21} />
                       </div>
                     </button>
                   )}
