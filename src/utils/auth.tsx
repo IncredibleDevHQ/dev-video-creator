@@ -59,22 +59,18 @@ const AuthProvider = ({ children }: { children: JSX.Element }): JSX.Element => {
           setAuth((auth) => ({
             ...auth,
             token,
-            loading: false,
           }))
           setFbUser((firebaseUser) => ({ ...firebaseUser, ...user }))
+
+          login()
         }
       } else {
         setAuth((auth) => ({
           ...auth,
-          loading: false,
           token: null,
         }))
       }
     })
-  }, [])
-
-  useEffect(() => {
-    login()
   }, [])
 
   return children
