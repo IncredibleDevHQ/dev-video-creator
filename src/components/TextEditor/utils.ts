@@ -97,6 +97,20 @@ export interface SimpleAST {
   blocks: Block[]
 }
 
+const textContent = (contentArray?: RemirrorJSON[]) => {
+  if (!contentArray) {
+    return undefined
+  }
+  return contentArray
+    .map((node) => {
+      if (node.type === 'text') {
+        return node.text
+      }
+      return ''
+    })
+    .join('')
+}
+
 // TODO: Refactor this...
 
 const getSimpleAST = (state: RemirrorJSON): SimpleAST => {
@@ -105,14 +119,21 @@ const getSimpleAST = (state: RemirrorJSON): SimpleAST => {
   const blocks: Block[] = []
 
   const getCommonProps = (slab: RemirrorJSON) => {
-    const note = slab.content?.find(
+    const noteNode = slab.content?.find(
       (node) => node.type === 'callout' && node.attrs?.type === 'info'
-    )?.content?.[0].content?.[0].text
-    const description = slab.content?.find(
+    )?.content?.[0].content
+    const note = textContent(noteNode)
+
+    const descriptionNode = slab.content?.find(
       (node) => node.type === 'callout' && node.attrs?.type === 'success'
-    )?.content?.[0].content?.[0].text
-    const title = slab.content?.find((node) => node.type === 'heading')
-      ?.content?.[0].text
+    )?.content?.[0].content
+    const description = textContent(descriptionNode)
+
+    const titleNode = slab.content?.find(
+      (node) => node.type === 'heading'
+    )?.content
+
+    const title = textContent(titleNode)
 
     return { note, description, title }
   }
@@ -125,7 +146,7 @@ const getSimpleAST = (state: RemirrorJSON): SimpleAST => {
       let codeBlock: CodeBlock = {}
 
       const code = slab.content?.find((node) => node.type === 'codeBlock')
-      const codeValue = code?.content?.[0].text
+      const codeValue = textContent(code?.content)
 
       const { description, note, title } = getCommonProps(slab)
 
@@ -195,8 +216,8 @@ const getSimpleAST = (state: RemirrorJSON): SimpleAST => {
 
         listItem.content?.forEach((node) => {
           if (node.type === 'paragraph') {
-            item.content = node.content?.[0].text
-            item.text = node.content?.[0].text
+            item.content = textContent(node.content)
+            item.text = textContent(node.content)
           }
           if (node.type === 'bulletList') {
             item.items = node.content?.map((child) => simplifyListItem(child))
