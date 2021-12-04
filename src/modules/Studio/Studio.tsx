@@ -23,6 +23,13 @@ import {
   Text,
   updateToast,
 } from '../../components'
+import {
+  CodeBlockProps,
+  ImageBlockProps,
+  ListBlockProps,
+  useUtils,
+  VideoBlockProps,
+} from '../../components/TextEditor/utils'
 import config from '../../config'
 import {
   Fragment_Status_Enum_Enum,
@@ -146,12 +153,12 @@ const Preview = ({
   effect?: string
 }) => {
   return (
-    <div className="min-h-screen p-8 flex items-center justify-center flex-1 flex-col">
-      <div className="grid grid-cols-5 w-full gap-x-8">
+    <div className="flex flex-col items-center justify-center flex-1 min-h-screen p-8">
+      <div className="grid w-full grid-cols-5 gap-x-8">
         <div className="col-span-3">
           {tracks?.[1] && (
             <div className="relative">
-              <AspectRatio ratio="16/9" className="rounded-lg overflow-hidden">
+              <AspectRatio ratio="16/9" className="overflow-hidden rounded-lg">
                 {/* using video tag because agora player failed due to updates */}
                 <video
                   className="w-full"
@@ -172,7 +179,7 @@ const Preview = ({
             </div>
           )}
         </div>
-        <div className="col-span-2 flex flex-col justify-center flex-1">
+        <div className="flex flex-col justify-center flex-1 col-span-2">
           <Heading className="mb-4" fontSize="medium">
             {data?.Fragment?.[0]?.name}
           </Heading>
@@ -181,7 +188,7 @@ const Preview = ({
             Camera
           </Heading>
           <select
-            className="w-full rounded-md mb-4 p-2 border border-gray-300"
+            className="w-full p-2 mb-4 border border-gray-300 rounded-md"
             value={currentDevice?.camera}
             onChange={(e) =>
               // @ts-ignore
@@ -201,7 +208,7 @@ const Preview = ({
             Microphone
           </Heading>
           <select
-            className="w-full rounded-md mb-4 p-2 border border-gray-300"
+            className="w-full p-2 mb-4 border border-gray-300 rounded-md"
             value={currentDevice?.microphone}
             onChange={(e) =>
               // @ts-ignore
@@ -221,7 +228,7 @@ const Preview = ({
             Effect
           </Heading>
           <select
-            className="w-full rounded-md mb-4 p-2 border border-gray-300"
+            className="w-full p-2 mb-4 border border-gray-300 rounded-md"
             value={effect}
             onChange={(e) =>
               // @ts-ignore
@@ -263,6 +270,7 @@ const Studio = ({
   const { sub } = (useRecoilValue(userState) as User) || {}
   const [fragment, setFragment] = useState<StudioFragmentFragment>()
   const history = useHistory()
+  const { getSimpleAST } = useUtils()
 
   const [markFragmentCompleted] = useMarkFragmentCompletedMutation()
   const [updateFragmentShort] = useUpdateFragmentShortMutation()
@@ -596,6 +604,26 @@ const Studio = ({
     }
   }, [payload?.status])
 
+  const getNote = (activeObjectIndex: number | undefined) => {
+    if (!fragment || activeObjectIndex === undefined) return ''
+    const blocks = getSimpleAST(fragment.editorState)?.blocks
+
+    switch (blocks[activeObjectIndex].type) {
+      case 'codeBlock':
+        return (blocks[activeObjectIndex] as CodeBlockProps).codeBlock.note
+      case 'videoBlock':
+        return (blocks[activeObjectIndex] as VideoBlockProps).videoBlock.note
+
+      case 'listBlock':
+        return (blocks[activeObjectIndex] as ListBlockProps).listBlock.note
+
+      case 'imageBlock':
+        return (blocks[activeObjectIndex] as ImageBlockProps).imageBlock.note
+      default:
+        return ''
+    }
+  }
+
   /**
    * =======================
    * END EVENT HANDLERS...
@@ -610,7 +638,7 @@ const Studio = ({
   return (
     <div className="h-screen">
       {/* Studio or Video , Notes and layout controls */}
-      <div className="flex h-full px-10 items-center pb-16 ">
+      <div className="flex items-center h-full px-10 pb-16 ">
         <Countdown />
         {state === 'ready' || state === 'recording' || state === 'countDown' ? (
           <div className="flex w-full gap-x-8">
@@ -654,8 +682,13 @@ const Studio = ({
                 'my-12': shortsMode,
               })}
             >
-              <div className="h-full" />
-              <div className="h-full flex flex-col justify-end items-start">
+              {/* Notes */}
+              <div className="h-full">
+                <Text className="text-gray-800 truncate whitespace-pre-wrap">
+                  {getNote(payload?.activeObjectIndex)}
+                </Text>
+              </div>
+              <div className="flex flex-col items-start justify-end h-full">
                 {(() => {
                   if (
                     fragment.type === Fragment_Type_Enum_Enum.Intro ||
@@ -724,7 +757,7 @@ const Studio = ({
                           }
                         )}
                       >
-                        <Text className=" text-white">
+                        <Text className="text-white ">
                           {payload?.activeObjectIndex !==
                           studio.controlsConfig?.dataConfigLength - 1
                             ? 'Next Item'
@@ -732,7 +765,7 @@ const Studio = ({
                         </Text>
                         {payload?.activeObjectIndex !==
                           studio.controlsConfig?.dataConfigLength - 1 && (
-                          <FiArrowRight className=" text-white" size={21} />
+                          <FiArrowRight className="text-white " size={21} />
                         )}
                       </div>
                     </button>
@@ -756,8 +789,8 @@ const Studio = ({
                           }
                         )}
                       >
-                        <Text className=" text-white">Next</Text>
-                        <FiArrowRight className=" text-white" size={21} />
+                        <Text className="text-white ">Next</Text>
+                        <FiArrowRight className="text-white " size={21} />
                       </div>
                     </button>
                   )}
@@ -781,12 +814,18 @@ const Studio = ({
         )}
       </div>
       {/* Bottom bar with details and global controls */}
-      <div className="flex py-4 px-10 bg-gray-50 fixed bottom-0 w-full justify-center">
+      <div className="fixed bottom-0 flex justify-center w-full px-10 py-4 bg-gray-50">
         <div className="absolute left-8 bottom-3">
-          <Heading className="text-md font-semibold text-gray-800">
-            {fragment.flick.name}
+          <Heading className="font-semibold text-gray-800 text-md">
+            {fragment.flick.name.length > 20
+              ? `${fragment.flick.name.substring(0, 20)}...`
+              : fragment.flick.name}
           </Heading>
-          <Text className="text-md text-gray-500">{fragment.name}</Text>
+          <Text className="text-gray-500 text-md">
+            {fragment.name && fragment.name.length > 20
+              ? `${fragment.name.substring(0, 20)}...`
+              : fragment.name}
+          </Text>
         </div>
         <RecordingControlsBar />
       </div>
