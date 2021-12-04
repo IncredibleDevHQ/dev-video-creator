@@ -48,9 +48,10 @@ const DiscordSplash = ({
         />
       </Group>
       <Text
-        x={140}
+        x={240}
         y={248}
-        text="https://discord.gg/49gkp63r"
+        // text="https://discord.gg/49gkp63r"
+        text="Link in description"
         fontSize={40}
         opacity={0}
         fill="#ffffff"
@@ -110,7 +111,7 @@ const DiscordSplash = ({
             onFinish: () => {
               setTimeout(() => {
                 ref?.to({
-                  x: CONFIG.width - 260,
+                  x: CONFIG.width - 310,
                   duration: 0.3,
                   onFinish: () => {
                     setTimeout(() => {
