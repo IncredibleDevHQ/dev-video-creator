@@ -4,12 +4,12 @@ import { Group, Image, Rect } from 'react-konva'
 import { useImage } from 'react-konva-utils'
 import config from '../../../../config'
 import { CONFIG } from '../../components/Concourse'
-import { FragmentState } from '../../components/RenderTokens'
+import { IntroState } from '../fragments/IntroFragment'
 
-const SplashThree = ({
+const SplashSeventeen = ({
   setFragmentState,
 }: {
-  setFragmentState: React.Dispatch<React.SetStateAction<FragmentState>>
+  setFragmentState: React.Dispatch<React.SetStateAction<IntroState>>
 }) => {
   const [logo] = useImage(`${config.storage.baseUrl}idev-logo.svg`, 'anonymous')
   const [logoText] = useImage(
@@ -17,7 +17,7 @@ const SplashThree = ({
     'anonymous'
   )
   const [secondaryLogo] = useImage(
-    `${config.storage.baseUrl}graphql-100days.svg`,
+    `${config.storage.baseUrl}100DaysOfTF.svg`,
     'anonymous'
   )
 
@@ -26,21 +26,12 @@ const SplashThree = ({
     logoHeight: 60,
     logoTextWidth: 158,
     logoTextHeight: 26,
-    secondaryLogoWidth: 244,
-    secondaryLogoHeight: 100,
+    secondaryLogoWidth: 279,
+    secondaryLogoHeight: 99,
   })
 
   const secondaryLogoRef = useRef<Konva.Image | null>(null)
 
-  // useEffect(() => {
-  //   if (state === 'recording') {
-  //     handleRecord()
-  //   }
-  // }, [state])
-
-  // const [layerChildren, setLayerChildren] = useState([])
-
-  //
   return (
     <Group>
       <Rect
@@ -130,7 +121,7 @@ const SplashThree = ({
                           duration: 0.3,
                           onFinish: () => {
                             setTimeout(() => {
-                              setFragmentState('onlyUserMedia')
+                              setFragmentState('discord')
                             }, 2000)
                           },
                         })
@@ -160,8 +151,6 @@ const SplashThree = ({
       />
     </Group>
   )
-
-  // return <Concourse disableUserMedia layerChildren={layerChildren} />
 }
 
-export default SplashThree
+export default SplashSeventeen

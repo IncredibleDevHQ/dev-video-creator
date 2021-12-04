@@ -59,7 +59,7 @@ const EmptyState = () => {
         handleClick: () => {
           chain
             .toggleSlab()
-            .toggleHeading({ level: 2 })
+            .toggleHeading({ level: 3 })
             .insertText('Heading')
             .insertNewLine()
             .toggleBulletList()
@@ -137,7 +137,7 @@ const EmptyState = () => {
         handleAddVideo={(url, transformations) => {
           chain
             .toggleSlab()
-            .toggleHeading({ level: 2 })
+            .toggleHeading({ level: 3 })
             .insertText('Heading')
             .insertNewLine()
             .addIframe({ src: url, 'data-transformations': transformations })
@@ -152,7 +152,7 @@ const EmptyState = () => {
         handleUrl={(url) => {
           chain
             .toggleSlab()
-            .toggleHeading({ level: 2 })
+            .toggleHeading({ level: 3 })
             .insertText('Heading')
             .insertNewLine()
             .insertImage({ src: url })
@@ -168,7 +168,7 @@ const EmptyState = () => {
         handleLanguage={(language) => {
           chain
             .toggleSlab()
-            .toggleHeading({ level: 2 })
+            .toggleHeading({ level: 3 })
             .insertText('Heading')
             .insertNewLine()
             .createCodeBlock({ code: '', layout: 'code', language })
