@@ -91,7 +91,7 @@ const CodeFragment = ({
   layerRef: React.RefObject<Konva.Layer>
   shortsMode: boolean
 }) => {
-  const { fragment, payload, updatePayload, state, addTransitionAudio } =
+  const { fragment, payload, updatePayload, state, addMusic } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const { initUseCode, computedTokens } = useCode()
@@ -274,7 +274,7 @@ const CodeFragment = ({
       setTopLayerChildren([
         <TrianglePathTransition isShorts={shortsMode} direction="right" />,
       ])
-      addTransitionAudio()
+      addMusic()
       setTimeout(() => {
         setFragmentState(payload?.fragmentState)
         customLayoutRef?.current?.to({
@@ -288,7 +288,7 @@ const CodeFragment = ({
       setTopLayerChildren([
         <TrianglePathTransition isShorts={shortsMode} direction="left" />,
       ])
-      addTransitionAudio()
+      addMusic()
       setTimeout(() => {
         setFragmentState(payload?.fragmentState)
         customLayoutRef?.current?.to({
