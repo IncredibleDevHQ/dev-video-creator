@@ -1,19 +1,19 @@
 import React, { useEffect, useState } from 'react'
-import { Group, Rect, Image } from 'react-konva'
+import { Group, Rect } from 'react-konva'
 import { useRecoilValue } from 'recoil'
-import useImage from 'use-image'
-import { LayoutConfig, ViewConfig } from '../../../../utils/configTypes'
-import { BlockProperties, GradientConfig } from '../../../../utils/configTypes2'
-import Concourse, { CONFIG, SHORTS_CONFIG } from '../../components/Concourse'
+import { GradientConfig } from '../../../../utils/configTypes2'
+import Concourse, { CONFIG } from '../../components/Concourse'
 import { StudioProviderProps, studioStore } from '../../stores'
 import { StudioUserConfiguration } from '../../utils/StudioUserConfig'
-import SplashFifteen from '../Splashes/SplashFifteen'
+import DiscordSplash from '../DiscordSplash'
+import AstroSplash from '../Splashes/AstroSplash'
+import GraphQLSplash from '../Splashes/GraphQLSplash'
+import SplashEleven from '../Splashes/SplashEleven'
 import SplashFive from '../Splashes/SplashFive'
 import SplashFour from '../Splashes/SplashFour'
-import SplashSixteen from '../Splashes/SplashSixteen'
-import SplashTen from '../Splashes/SplashTen'
-import SplashThree from '../Splashes/SplashThree'
-import { FragmentState } from '../../components/RenderTokens'
+import TensorFlowSplash from '../Splashes/TensorFlowSplash'
+
+export type IntroState = 'onlyUserMedia' | 'customLayout' | 'discord'
 
 const IntroFragment = ({
   gradientConfig,
@@ -31,26 +31,36 @@ const IntroFragment = ({
   const startPoint = { x: 0, y: 0 }
   const endPoint = { x: CONFIG.width, y: CONFIG.height }
 
-  const [fragmentState, setFragmentState] =
-    useState<FragmentState>('customLayout')
+  const [fragmentState, setFragmentState] = useState<IntroState>('customLayout')
 
   const Splash = (() => {
-    if (themeNumber === '0') return SplashFive
-    if (themeNumber === '1') return SplashThree
-    // if (themeNumber === '2') return SplashTen
-    // if (themeNumber === '3') return SplashFifteen
-    // if (themeNumber === '4') return SplashSixteen
-    // if (themeNumber === '5') return SplashFour
+    if (themeNumber === '0') return GraphQLSplash
+    if (themeNumber === '1') return AstroSplash
+    if (themeNumber === '2') return TensorFlowSplash
+    if (themeNumber === '3') return SplashFive
+    if (themeNumber === '4') return SplashFour
+    if (themeNumber === '5') return SplashEleven
     return SplashFive
   })()
 
   useEffect(() => {
-    if (state === 'recording') {
+    if (state === 'recording') setFragmentState('customLayout')
+  }, [state])
+
+  useEffect(() => {
+    if (state === 'recording' || state === 'ready') {
       if (fragmentState === 'customLayout') {
         setLayerChildren([
-          // <Group x={0} y={0}>
-          <Splash setFragmentState={setFragmentState} />,
-          // </Group>,
+          <Group x={0} y={0}>
+            <Splash setFragmentState={setFragmentState} />
+          </Group>,
+        ])
+      }
+      if (fragmentState === 'discord') {
+        setLayerChildren([
+          <Group x={0} y={0}>
+            <DiscordSplash setFragmentState={setFragmentState} />
+          </Group>,
         ])
       }
       if (fragmentState === 'onlyUserMedia') {
@@ -92,17 +102,16 @@ const IntroFragment = ({
   const studioUserConfig = StudioUserConfiguration({
     layout: 'classic',
     fragment,
-    fragmentState,
+    fragmentState:
+      fragmentState === 'onlyUserMedia' ? 'onlyUserMedia' : 'customLayout',
     isShorts: false,
   })
 
   return (
-    // state === 'recording' && (
     <Concourse
       studioUserConfig={studioUserConfig}
       layerChildren={layerChildren}
     />
-    // )
   )
 }
 

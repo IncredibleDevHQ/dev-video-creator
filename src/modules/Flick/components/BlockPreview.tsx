@@ -360,7 +360,7 @@ const PreviewModal = ({
       }}
       ref={ref}
     >
-      <div className="py-8 px-4 flex justify-between items-start">
+      <div className="flex items-start justify-between px-4 py-8">
         <CanvasPreview
           bounds={bounds}
           block={block}
@@ -422,7 +422,7 @@ const BlockPreview = ({
         tabIndex={0}
         onKeyDown={() => null}
         onClick={() => setPreviewModal(true)}
-        className="h-48 w-44 border-none outline-none"
+        className="h-48 border-none outline-none w-44"
         ref={ref}
       >
         <CanvasPreview
