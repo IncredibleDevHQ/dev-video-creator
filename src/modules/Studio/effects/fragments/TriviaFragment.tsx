@@ -48,7 +48,7 @@ const TriviaFragment = ({
   layerRef: React.RefObject<Konva.Layer>
   shortsMode: boolean
 }) => {
-  const { fragment, payload, state, addTransitionAudio } =
+  const { fragment, payload, state, addMusic } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [studio, setStudio] = useRecoilState(studioStore)
@@ -181,7 +181,7 @@ const TriviaFragment = ({
       setTopLayerChildren([
         <TrianglePathTransition isShorts={shortsMode} direction="right" />,
       ])
-      addTransitionAudio()
+      addMusic()
       setTimeout(() => {
         setFragmentState(payload?.fragmentState)
         customLayoutRef?.current?.to({
@@ -195,7 +195,7 @@ const TriviaFragment = ({
       setTopLayerChildren([
         <TrianglePathTransition isShorts={shortsMode} direction="left" />,
       ])
-      addTransitionAudio()
+      addMusic()
       setTimeout(() => {
         setFragmentState(payload?.fragmentState)
         customLayoutRef?.current?.to({
