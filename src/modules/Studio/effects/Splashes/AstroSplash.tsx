@@ -9,8 +9,10 @@ import { IntroState } from '../fragments/IntroFragment'
 
 const SplashFifteen = ({
   setFragmentState,
+  viewMode,
 }: {
   setFragmentState: React.Dispatch<React.SetStateAction<IntroState>>
+  viewMode: boolean
 }) => {
   // const { fragment } =
   //   (useRecoilValue(studioStore) as StudioProviderProps) || {}
@@ -436,7 +438,7 @@ const SplashFifteen = ({
               y: 663,
               onFinish: () => {
                 setTimeout(() => {
-                  setFragmentState('discord')
+                  if (!viewMode) setFragmentState('discord')
                 }, 1200)
               },
             })

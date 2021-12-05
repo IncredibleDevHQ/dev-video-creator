@@ -13,15 +13,40 @@
 @tailwind utilities;
 
 @layer base {
+  /* Gilroy ExtraBold - Subsetting : Latin */
   @font-face {
     font-family: 'Gilroy';
-    font-weight: 400;
-    src: url('fonts/gilroy-400.woff2') format('woff2');
+    font-style: normal;
+    font-weight: 800;
+    font-display: optional;
+    src: url('/fonts/Gilroy/gilroy-extrabold-latin.woff2') format('woff2');
   }
+
+  /* Gilroy Bold - Subsetting : Latin */
   @font-face {
     font-family: 'Gilroy';
+    font-style: normal;
+    font-weight: 700;
+    font-display: optional;
+    src: url('/fonts/Gilroy/gilroy-bold-latin.woff2') format('woff2');
+  }
+
+  /* Gilroy SemiBold - Subsetting : Latin */
+  @font-face {
+    font-family: 'Gilroy';
+    font-style: normal;
     font-weight: 600;
-    src: url('fonts/gilroy-600.woff2') format('woff2');
+    font-display: optional;
+    src: url('/fonts/Gilroy/gilroy-semibold-latin.woff2') format('woff2');
+  }
+
+  /* Inter Variable - Subsetting : Latin */
+  @font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: optional;
+    src: url('/fonts/Inter/inter-var-latin.woff2') format('woff2');
   }
 }
 

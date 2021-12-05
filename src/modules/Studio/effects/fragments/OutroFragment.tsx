@@ -13,12 +13,18 @@ import outroPattern from '../../../../assets/outroPattern.svg'
 const OutroFragment = ({
   gradientConfig,
   themeNumber,
+  viewMode = false,
 }: {
   gradientConfig?: GradientConfig
   themeNumber?: string
+  viewMode?: boolean
 }) => {
-  const { fragment, state, addMusic } =
+  const { fragment, state, addMusic, payload } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
+
+  useEffect(() => {
+    if (viewMode) setFragmentState(payload?.fragmentState || 'customLayout')
+  }, [payload?.fragmentState])
 
   // const [bgImage] = useImage(viewConfig?.background?.image || '', 'anonymous')
 
@@ -48,7 +54,7 @@ const OutroFragment = ({
   }, [state])
 
   useEffect(() => {
-    if (state === 'recording') {
+    if (state === 'recording' || viewMode) {
       if (fragmentState === 'customLayout') {
         addMusic('splash')
         setTopLayerChildren([
@@ -194,6 +200,7 @@ const OutroFragment = ({
         ])
       }
       if (fragmentState === 'onlyUserMedia') {
+        setTopLayerChildren([])
         setLayerChildren([
           <Group x={0} y={0}>
             <Rect
@@ -213,7 +220,7 @@ const OutroFragment = ({
         ])
       }
     }
-  }, [state, fragmentState])
+  }, [state, fragmentState, gradientConfig, themeNumber])
 
   const [layerChildren, setLayerChildren] = useState<JSX.Element[]>([
     <Group x={0} y={0}>
