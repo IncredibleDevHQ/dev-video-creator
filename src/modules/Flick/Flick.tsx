@@ -449,13 +449,12 @@ const Flick = () => {
                     }}
                   /> */}
 
-                  {flick &&
-                    console.log(new TextEditorParser().getFlickMarkdown(flick))}
                   <TempTextEditor
                     handleUpdatePosition={(position) => {
                       setPreviewPosition(position)
                     }}
                     handleUpdateAst={(ast) => {
+                      console.log('blocks', ast)
                       setPlateValue(ast)
                     }}
                     initialAst={plateValue}
@@ -585,28 +584,30 @@ const Flick = () => {
         </div>
       </div>
       <div />
-      <PublishFlick
-        flickId={flick.id}
-        flickName={flick.name}
-        flickDescription={flick.description as string}
-        flickThumbnail={flick.thumbnail as string}
-        setProcessingFlick={setProcessingFlick}
-        setPublished={setPublished}
-        fragments={flick.fragments.map((f) => {
-          return {
-            id: f.id as string,
-            name: f.name as string,
-          }
-        })}
-        isShortsPresentAndCompleted={flick?.fragments.some(
-          (f) => f.producedShortsLink !== null
-        )}
-        isAllFlicksCompleted={flick?.fragments.every(
-          (f) => f.producedLink !== null
-        )}
-        open={integrationModal}
-        handleClose={() => setIntegrationModal(false)}
-      />
+      {integrationModal && (
+        <PublishFlick
+          flickId={flick.id}
+          flickName={flick.name}
+          flickDescription={flick.description as string}
+          flickThumbnail={flick.thumbnail as string}
+          setProcessingFlick={setProcessingFlick}
+          setPublished={setPublished}
+          fragments={flick.fragments.map((f) => {
+            return {
+              id: f.id as string,
+              name: f.name as string,
+            }
+          })}
+          isShortsPresentAndCompleted={flick?.fragments.some(
+            (f) => f.producedShortsLink !== null
+          )}
+          isAllFlicksCompleted={flick?.fragments.every(
+            (f) => f.producedLink !== null
+          )}
+          open={integrationModal}
+          handleClose={() => setIntegrationModal(false)}
+        />
+      )}
     </div>
   )
 }

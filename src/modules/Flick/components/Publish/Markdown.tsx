@@ -1,21 +1,25 @@
-import React, { useContext, useEffect, useState } from 'react'
-import { cx, css } from '@emotion/css'
+import { css, cx } from '@emotion/css'
 import Editor from '@monaco-editor/react'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
-import rehypeRaw from 'rehype-raw'
+import React, { useContext, useEffect, useState } from 'react'
 import { FaDev, FaGithub } from 'react-icons/fa'
 import { SiHashnode } from 'react-icons/si'
-import { Loading, Button, Text } from '../../../../components'
-import {
-  useGetFlickMarkdownByIdQuery,
-  useUpdateFlickMarkdownMutation,
-  useGetFlickMarkdownMutation,
-  useMyIntegrationsQuery,
-  PublishablePlatformEnum,
-} from '../../../../generated/graphql'
-import { PublishContext } from './PublishFlick'
+import ReactMarkdown from 'react-markdown'
+import { useRecoilValue } from 'recoil'
+import rehypeRaw from 'rehype-raw'
+import remarkGfm from 'remark-gfm'
+import { Button, Loading, Text } from '../../../../components'
+import { TextEditorParser } from '../../../../components/TempTextEditor/utils'
 import { ASSETS } from '../../../../constants'
+import {
+  FlickFragment,
+  Fragment_Type_Enum_Enum,
+  PublishablePlatformEnum,
+  useGetFlickMarkdownByIdQuery,
+  useMyIntegrationsQuery,
+  useUpdateFlickMarkdownMutation,
+} from '../../../../generated/graphql'
+import { newFlickStore } from '../../store/flickNew.store'
+import { PublishContext } from './PublishFlick'
 
 export interface EditorConfig {
   theme: string
@@ -47,6 +51,8 @@ const Markdown = () => {
     useContext(PublishContext)
   const [preview, setPreview] = useState(false)
 
+  const { flick } = useRecoilValue(newFlickStore)
+
   const { data, loading: getMarkdownLoading } = useGetFlickMarkdownByIdQuery({
     variables: { id: flickId },
   })
@@ -54,8 +60,6 @@ const Markdown = () => {
     useMyIntegrationsQuery()
   const [updateMarkdownMutation, { loading: updateMarkdownLoading }] =
     useUpdateFlickMarkdownMutation()
-  const [generateMarkdownMutation, { loading: generateMarkdownLoading }] =
-    useGetFlickMarkdownMutation()
 
   useEffect(() => {
     if (!data?.Flick_by_pk) return
@@ -66,15 +70,21 @@ const Markdown = () => {
   }, [data])
 
   const generateMarkdown = async () => {
-    if (!flickId) return
-    const { data } = await generateMarkdownMutation({
-      variables: { flickId },
+    if (!flickId || !flick) return
+    const parser = new TextEditorParser()
+    const filteredFlick: FlickFragment = {
+      ...flick,
+      fragments: flick.fragments.filter(
+        (f) =>
+          f.type !== Fragment_Type_Enum_Enum.Intro &&
+          f.type !== Fragment_Type_Enum_Enum.Outro
+      ),
+    }
+    const md = parser.getFlickMarkdown(filteredFlick)
+    setMarkdownConfig({
+      ...markdownConfig,
+      markdown: md,
     })
-    if (data?.ProduceFlickMd?.markdown)
-      setMarkdownConfig({
-        ...markdownConfig,
-        markdown: data.ProduceFlickMd.markdown,
-      })
   }
 
   const updateMarkdown = async () => {
@@ -109,7 +119,7 @@ const Markdown = () => {
       {(() => {
         if (getMarkdownLoading || integrationsLoading)
           return <Loading className="mx-auto" />
-        if (!getMarkdownLoading && !markdownConfig.markdown)
+        if (!getMarkdownLoading && !markdownConfig?.markdown)
           return (
             <div className="p-4 flex flex-col justify-center items-center">
               <Text>
@@ -119,10 +129,9 @@ const Markdown = () => {
               <Button
                 type="button"
                 appearance="primary"
-                disabled={generateMarkdownLoading}
                 onClick={generateMarkdown}
               >
-                {generateMarkdownLoading ? 'Loading...' : 'Generate'}
+                Generate
               </Button>
             </div>
           )
@@ -260,12 +269,9 @@ const Markdown = () => {
                           appearance="secondary"
                           size="extraSmall"
                           className="my-1"
-                          disabled={generateMarkdownLoading}
                           onClick={generateMarkdown}
                         >
-                          {generateMarkdownLoading
-                            ? 'Loading...'
-                            : 'Regenerate'}
+                          Regenerate
                         </Button>
                         <Button
                           type="button"
