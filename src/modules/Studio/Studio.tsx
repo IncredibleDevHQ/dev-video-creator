@@ -27,7 +27,6 @@ import {
   CodeBlockProps,
   ImageBlockProps,
   ListBlockProps,
-  useUtils,
   VideoBlockProps,
 } from '../../components/TextEditor/utils'
 import config from '../../config'
@@ -271,7 +270,6 @@ const Studio = ({
   const { sub } = (useRecoilValue(userState) as User) || {}
   const [fragment, setFragment] = useState<StudioFragmentFragment>()
   const history = useHistory()
-  const { getSimpleAST } = useUtils()
 
   const [markFragmentCompleted] = useMarkFragmentCompletedMutation()
   const [updateFragmentShort] = useUpdateFragmentShortMutation()
@@ -614,7 +612,7 @@ const Studio = ({
 
   const getNote = (activeObjectIndex: number | undefined) => {
     if (!fragment || activeObjectIndex === undefined) return ''
-    const blocks = getSimpleAST(fragment.editorState)?.blocks
+    const blocks = fragment.editorState?.blocks
 
     switch (blocks[activeObjectIndex].type) {
       case 'codeBlock':

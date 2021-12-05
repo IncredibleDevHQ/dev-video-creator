@@ -14,12 +14,14 @@ import { useRecoilState, useSetRecoilState } from 'recoil'
 import {
   Heading,
   ScreenState,
+  TempTextEditor,
   Text,
   TextEditor,
   Tooltip,
 } from '../../components'
-import { Position } from '../../components/TextEditor/components'
-import { Block, useUtils } from '../../components/TextEditor/utils'
+import { Position } from '../../components/TempTextEditor/types'
+import { TextEditorParser } from '../../components/TempTextEditor/utils'
+import { Block } from '../../components/TempTextEditor/types'
 import {
   FlickFragmentFragment,
   FragmentParticipantFragment,
@@ -167,6 +169,7 @@ const Flick = () => {
   const { addMusic, stopMusic } = useCanvasRecorder({
     options: {},
   })
+
   const history = useHistory()
 
   const [currentBlock, setCurrentBlock] = useState<Block>()
@@ -188,8 +191,6 @@ const Flick = () => {
   const { updatePayload, payload, resetPayload } = useLocalPayload()
   const [myMediaAssets, setMyMediaAssets] = useState<UserAssetQuery>()
   const { data: assetsData, error: assetsError } = useUserAssetQuery()
-
-  const { getSimpleAST } = useUtils()
 
   const updateBlockProperties = (id: string, properties: BlockProperties) => {
     const newBlocks = { ...viewConfig.blocks, [id]: properties }
@@ -282,7 +283,7 @@ const Flick = () => {
           setInitialPlateValue('')
         else setInitialPlateValue(fragment?.editorState || '')
       }
-      setPlateValue(fragment?.editorState || initEditor)
+      setPlateValue(fragment?.editorState)
     } else {
       setIntroOutroConfiguration(
         fragment?.configuration || defaultIntroOutroConfiguration
@@ -370,8 +371,11 @@ const Flick = () => {
               Fragment_Type_Enum_Enum.Outro && (
               <div className="w-full h-full mx-8 my-4 overflow-y-auto">
                 <div className="mx-12 mb-4">
-                  <Heading className="font-bold text-4xl" fontSize="large">
-                    {activeFragment.name}
+                  <Heading fontSize="large">
+                    {
+                      flick.fragments.find((f) => f.id === activeFragmentId)
+                        ?.name
+                    }
                   </Heading>
                 </div>
                 <div className="flex items-center justify-start mx-12">
@@ -424,8 +428,8 @@ const Flick = () => {
                   <hr className="w-full" />
                   <span className="w-48" />
                 </div>
-                <div className="relative flex items-stretch justify-between w-full h-full px-8 overflow-y-scroll pb-28">
-                  <TextEditor
+                <div className="px-8 w-full relative overflow-y-scroll flex h-full justify-between items-stretch">
+                  {/* <TextEditor
                     placeholder="Start writing..."
                     handleUpdateJSON={(json) => {
                       setPlateValue(json)
@@ -434,6 +438,7 @@ const Flick = () => {
                     handleActiveBlock={(block) => {
                       setCurrentBlock(block)
                     }}
+                    handleUpdateSimpleAST={(s) => console.log(s)}
                     handleUpdatePosition={(position) => {
                       // Relative position of the cursor.
                       setPreviewPosition(position)
@@ -441,6 +446,20 @@ const Flick = () => {
                     handleUpdateMarkdown={(markdown) => {
                       // Returns the markdown of current editor state.
                       setFragmentMarkdown(markdown)
+                    }}
+                  /> */}
+
+                  <TempTextEditor
+                    handleUpdatePosition={(position) => {
+                      setPreviewPosition(position)
+                    }}
+                    handleUpdateAst={(ast) => {
+                      console.log('blocks', ast)
+                      setPlateValue(ast)
+                    }}
+                    initialAst={plateValue}
+                    handleActiveBlock={(block) => {
+                      setCurrentBlock(block)
                     }}
                   />
                   <div className="relative w-64 border-none outline-none">
@@ -452,14 +471,14 @@ const Flick = () => {
                         className={cx(
                           'absolute',
                           css`
-                            top: ${previewPosition?.top}px;
+                            top: ${previewPosition?.y}px;
                           `
                         )}
                       />
                     )}
                   </div>
                 </div>
-                {getSimpleAST(plateValue).blocks.length > 0 && (
+                {plateValue?.blocks?.length > 0 && (
                   <div className="fixed z-10 flex items-center justify-start p-2 mx-8 mb-4 border rounded-md bg-gray-50 bottom-4">
                     <div
                       className={cx(
@@ -543,7 +562,7 @@ const Flick = () => {
                         <FiUser size={20} />
                       </div>
                     </div>
-                    {getSimpleAST(plateValue).blocks.map((block) => (
+                    {plateValue?.blocks?.map((block: Block) => (
                       <div className="relative w-32 h-16 px-4 py-2 bg-gray-100 border border-r-2">
                         <div
                           className={cx(
@@ -565,28 +584,30 @@ const Flick = () => {
         </div>
       </div>
       <div />
-      <PublishFlick
-        flickId={flick.id}
-        flickName={flick.name}
-        flickDescription={flick.description as string}
-        flickThumbnail={flick.thumbnail as string}
-        setProcessingFlick={setProcessingFlick}
-        setPublished={setPublished}
-        fragments={flick.fragments.map((f) => {
-          return {
-            id: f.id as string,
-            name: f.name as string,
-          }
-        })}
-        isShortsPresentAndCompleted={flick?.fragments.some(
-          (f) => f.producedShortsLink !== null
-        )}
-        isAllFlicksCompleted={flick?.fragments.every(
-          (f) => f.producedLink !== null
-        )}
-        open={integrationModal}
-        handleClose={() => setIntegrationModal(false)}
-      />
+      {integrationModal && (
+        <PublishFlick
+          flickId={flick.id}
+          flickName={flick.name}
+          flickDescription={flick.description as string}
+          flickThumbnail={flick.thumbnail as string}
+          setProcessingFlick={setProcessingFlick}
+          setPublished={setPublished}
+          fragments={flick.fragments.map((f) => {
+            return {
+              id: f.id as string,
+              name: f.name as string,
+            }
+          })}
+          isShortsPresentAndCompleted={flick?.fragments.some(
+            (f) => f.producedShortsLink !== null
+          )}
+          isAllFlicksCompleted={flick?.fragments.every(
+            (f) => f.producedLink !== null
+          )}
+          open={integrationModal}
+          handleClose={() => setIntegrationModal(false)}
+        />
+      )}
     </div>
   )
 }

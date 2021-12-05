@@ -58,10 +58,8 @@ const FragmentSideBar = ({ plateValue }: { plateValue: any }) => {
   const [blockLength, setBlockLength] = useState(0)
 
   useEffect(() => {
-    if (!plateValue) return
-    setBlockLength(
-      plateValue.content.filter((c: any) => c.type === 'slab').length
-    )
+    if (!plateValue?.blocks) return
+    setBlockLength(plateValue.blocks.length)
   }, [plateValue])
 
   useEffect(() => {
