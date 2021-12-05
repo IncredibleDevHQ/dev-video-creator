@@ -95,7 +95,7 @@ const Video = () => {
           <TabItem
             icon={BiVideo}
             appearance="icon"
-            label="Image"
+            label="Video"
             handleClick={() => setView('tooltip')}
           />
         </Tooltip>
