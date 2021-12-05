@@ -39,7 +39,10 @@ const List = () => {
               newList.push({ id: nanoid(), text: '' })
 
               const candidateBlock = { ...block } as ListBlockProps
-              candidateBlock.listBlock.list = newList
+              candidateBlock.listBlock = {
+                ...candidateBlock.listBlock,
+                list: newList,
+              }
 
               handleUpdateBlock?.(candidateBlock)
             }}
