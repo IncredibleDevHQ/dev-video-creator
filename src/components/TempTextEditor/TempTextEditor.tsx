@@ -66,8 +66,8 @@ const TempTextEditor = (props: TempTextEditorProps) => {
   }, [divRef.current])
 
   return (
-    <div className="overflow-hidden">
-      <div className="overflow-y-scroll" ref={divRef}>
+    <div className="w-full">
+      <div className="overflow-y-auto" ref={divRef}>
         {(props.controlled ? props.ast : ast)?.blocks?.map((block, index) => (
           <BlockComponent
             key={block.id}
