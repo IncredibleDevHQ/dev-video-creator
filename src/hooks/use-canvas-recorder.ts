@@ -4,6 +4,7 @@ import { extension } from 'mime-types'
 import { useRef, useState } from 'react'
 import transitionMusic from '../assets/TransitionMusic.wav'
 import splashMusic from '../assets/IntroOutroBgm.mp3'
+import pointsMusic from '../assets/bubblePopMusic.mp3'
 import { getSeekableWebM } from '../utils/helpers'
 
 const types = [
@@ -26,7 +27,7 @@ interface CanvasElement extends HTMLCanvasElement {
   captureStream(frameRate?: number): MediaStream
 }
 
-export type AudioType = 'transition' | 'splash'
+export type AudioType = 'transition' | 'splash' | 'points'
 
 const useCanvasRecorder = ({
   options: { videoBitsPerSecond = 2500000 },
@@ -50,6 +51,7 @@ const useCanvasRecorder = ({
   const dest = useRef<MediaStreamAudioDestinationNode | null>(null)
   const transitionAudio = new Audio(transitionMusic)
   const splashAudio = new Audio(splashMusic)
+  const pointsAudio = new Audio(pointsMusic)
   const splashAudioSourceNode = useRef<MediaElementAudioSourceNode | null>(null)
 
   /**
@@ -130,6 +132,9 @@ const useCanvasRecorder = ({
       splashAudio.loop = true
       splashAudio.volume = 0.08
       splashAudio.play()
+    } else if (type === 'points') {
+      ctx.current.createMediaElementSource(pointsAudio).connect(dest.current)
+      pointsAudio.play()
     } else {
       ctx.current
         .createMediaElementSource(transitionAudio)
