@@ -83,8 +83,5 @@ module.exports = {
       display: ['hover', 'group-hover'],
     },
   },
-  plugins: [
-    require('@tailwindcss/typography'),
-    require('tailwindcss-important')(),
-  ],
+  plugins: [require('@tailwindcss/typography')],
 }
