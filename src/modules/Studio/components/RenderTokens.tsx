@@ -60,7 +60,7 @@ const RenderTokens = ({
         index: prev.index + 1,
         tokens: [...prev.tokens, newToken],
       }))
-    }, prevToken.content.length * 100)
+    }, prevToken?.content?.length * 100)
   }, [renderState])
 
   return (

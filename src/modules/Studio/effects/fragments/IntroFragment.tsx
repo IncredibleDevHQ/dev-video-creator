@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Group, Rect } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import { GradientConfig } from '../../../../utils/configTypes2'
+import { DiscordConfig } from '../../../Flick/components/IntroOutroView'
 import Concourse, { CONFIG } from '../../components/Concourse'
 import { StudioProviderProps, studioStore } from '../../stores'
 import { StudioUserConfiguration } from '../../utils/StudioUserConfig'
@@ -18,11 +19,15 @@ export type IntroState = 'onlyUserMedia' | 'customLayout' | 'discord'
 const IntroFragment = ({
   gradientConfig,
   themeNumber,
+  discordConfig,
+  viewMode = false,
 }: {
-  gradientConfig?: GradientConfig
-  themeNumber?: string
+  gradientConfig: GradientConfig
+  discordConfig: DiscordConfig
+  themeNumber: string
+  viewMode?: boolean
 }) => {
-  const { fragment, state, addMusic, stopMusic } =
+  const { fragment, state, addMusic, stopMusic, payload } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   // const [bgImage] = useImage(viewConfig?.background?.image || '', 'anonymous')
@@ -48,24 +53,32 @@ const IntroFragment = ({
   }, [state])
 
   useEffect(() => {
-    if (state === 'recording' || state === 'ready') {
+    if (viewMode) setFragmentState(payload?.fragmentState || 'customLayout')
+  }, [payload?.fragmentState])
+
+  useEffect(() => {
+    if (state === 'recording' || state === 'ready' || viewMode) {
       if (fragmentState === 'customLayout') {
-        addMusic('splash')
+        if (!viewMode) addMusic('splash')
         setLayerChildren([
           <Group x={0} y={0}>
-            <Splash setFragmentState={setFragmentState} />
+            <Splash setFragmentState={setFragmentState} viewMode={viewMode} />
           </Group>,
         ])
       }
       if (fragmentState === 'discord') {
         setLayerChildren([
           <Group x={0} y={0}>
-            <DiscordSplash setFragmentState={setFragmentState} />
+            <DiscordSplash
+              setFragmentState={setFragmentState}
+              viewMode={viewMode}
+              discordConfig={discordConfig}
+            />
           </Group>,
         ])
       }
       if (fragmentState === 'onlyUserMedia') {
-        stopMusic()
+        if (!viewMode) stopMusic()
         setLayerChildren([
           <Group x={0} y={0}>
             <Rect
@@ -85,7 +98,7 @@ const IntroFragment = ({
         ])
       }
     }
-  }, [state, fragmentState])
+  }, [state, fragmentState, themeNumber, discordConfig, gradientConfig])
 
   const [layerChildren, setLayerChildren] = useState<JSX.Element[]>([
     <Group x={0} y={0}>
