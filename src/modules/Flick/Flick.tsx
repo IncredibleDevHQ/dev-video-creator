@@ -20,10 +20,6 @@ import {
   Tooltip,
 } from '../../components'
 import { Position } from '../../components/TempTextEditor/types'
-import {
-  TextEditorParser,
-  tokenise,
-} from '../../components/TempTextEditor/utils'
 import { Block, useUtils } from '../../components/TextEditor/utils'
 import {
   FlickFragmentFragment,
@@ -402,7 +398,6 @@ const Flick = () => {
                   <hr className="w-full" />
                   <span className="w-48" />
                 </div>
-                {console.log(new TextEditorParser(plateValue).getMarkdown())}
                 <div className="px-8 w-full relative overflow-y-scroll flex h-full justify-between items-stretch">
                   {/* <TextEditor
                     placeholder="Start writing..."
@@ -424,7 +419,6 @@ const Flick = () => {
                     }}
                   /> */}
 
-                  {console.log(plateValue)}
                   <TempTextEditor
                     handleUpdatePosition={(position) => {
                       setPreviewPosition(position)
