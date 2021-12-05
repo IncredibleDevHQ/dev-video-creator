@@ -5,7 +5,7 @@ import useMeasure, { RectReadOnly } from 'react-use-measure'
 import { Stage, Layer, Rect } from 'react-konva'
 import Modal from 'react-responsive-modal'
 import { useRecoilBridgeAcrossReactRoots_UNSTABLE } from 'recoil'
-import { Block } from '../../../components/TextEditor/utils'
+import { Block } from '../../../components/TempTextEditor/types'
 import UnifiedFragment from '../../Studio/effects/fragments/UnifiedFragment'
 import {
   ViewConfig,
