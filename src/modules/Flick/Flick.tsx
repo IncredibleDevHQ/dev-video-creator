@@ -14,11 +14,16 @@ import { useRecoilState, useSetRecoilState } from 'recoil'
 import {
   Heading,
   ScreenState,
+  TempTextEditor,
   Text,
   TextEditor,
   Tooltip,
 } from '../../components'
-import { Position } from '../../components/TextEditor/components'
+import { Position } from '../../components/TempTextEditor/types'
+import {
+  TextEditorParser,
+  tokenise,
+} from '../../components/TempTextEditor/utils'
 import { Block, useUtils } from '../../components/TextEditor/utils'
 import {
   FlickFragmentFragment,
@@ -32,7 +37,6 @@ import {
 } from '../../generated/graphql'
 import { useCanvasRecorder } from '../../hooks'
 import { BlockProperties, ViewConfig } from '../../utils/configTypes2'
-import { initEditor } from '../../utils/plateConfig/serializer/values'
 import studioStore from '../Studio/stores/studio.store'
 import {
   FlickNavBar,
@@ -146,6 +150,7 @@ const Flick = () => {
   const { addMusic } = useCanvasRecorder({
     options: {},
   })
+
   const history = useHistory()
 
   const [currentBlock, setCurrentBlock] = useState<Block>()
@@ -259,7 +264,7 @@ const Flick = () => {
           setInitialPlateValue('')
         else setInitialPlateValue(fragment?.editorState || '')
       }
-      setPlateValue(fragment?.editorState || initEditor)
+      setPlateValue(fragment?.editorState)
     }
   }, [activeFragmentId])
 
@@ -340,7 +345,12 @@ const Flick = () => {
               Fragment_Type_Enum_Enum.Outro && (
               <div className="h-full w-full my-4 mx-8 overflow-y-auto">
                 <div className="mx-12 mb-4">
-                  <Heading fontSize="large">{activeFragment.name}</Heading>
+                  <Heading fontSize="large">
+                    {
+                      flick.fragments.find((f) => f.id === activeFragmentId)
+                        ?.name
+                    }
+                  </Heading>
                 </div>
                 <div className="flex items-center justify-start mx-12">
                   {viewConfig.speakers?.map((s) => (
@@ -392,8 +402,9 @@ const Flick = () => {
                   <hr className="w-full" />
                   <span className="w-48" />
                 </div>
-                <div className="px-8 w-full relative overflow-y-scroll pb-28 flex h-full justify-between items-stretch">
-                  <TextEditor
+                {console.log(new TextEditorParser(plateValue).getMarkdown())}
+                <div className="px-8 w-full relative overflow-y-scroll flex h-full justify-between items-stretch">
+                  {/* <TextEditor
                     placeholder="Start writing..."
                     handleUpdateJSON={(json) => {
                       setPlateValue(json)
@@ -402,6 +413,7 @@ const Flick = () => {
                     handleActiveBlock={(block) => {
                       setCurrentBlock(block)
                     }}
+                    handleUpdateSimpleAST={(s) => console.log(s)}
                     handleUpdatePosition={(position) => {
                       // Relative position of the cursor.
                       setPreviewPosition(position)
@@ -409,6 +421,20 @@ const Flick = () => {
                     handleUpdateMarkdown={(markdown) => {
                       // Returns the markdown of current editor state.
                       setFragmentMarkdown(markdown)
+                    }}
+                  /> */}
+
+                  {console.log(plateValue)}
+                  <TempTextEditor
+                    handleUpdatePosition={(position) => {
+                      setPreviewPosition(position)
+                    }}
+                    handleUpdateAst={(ast) => {
+                      setPlateValue(ast)
+                    }}
+                    initialAst={plateValue}
+                    handleActiveBlock={(block) => {
+                      setCurrentBlock(block)
                     }}
                   />
                   <div className="w-48 relative border-none outline-none">
@@ -420,7 +446,7 @@ const Flick = () => {
                         className={cx(
                           'absolute',
                           css`
-                            top: ${previewPosition?.top}px;
+                            top: ${previewPosition?.y}px;
                           `
                         )}
                       />
