@@ -20,7 +20,8 @@ import {
   Tooltip,
 } from '../../components'
 import { Position } from '../../components/TempTextEditor/types'
-import { Block, useUtils } from '../../components/TextEditor/utils'
+import { TextEditorParser } from '../../components/TempTextEditor/utils'
+import { Block } from '../../components/TempTextEditor/types'
 import {
   FlickFragmentFragment,
   FragmentParticipantFragment,
@@ -190,8 +191,6 @@ const Flick = () => {
   const { updatePayload, payload, resetPayload } = useLocalPayload()
   const [myMediaAssets, setMyMediaAssets] = useState<UserAssetQuery>()
   const { data: assetsData, error: assetsError } = useUserAssetQuery()
-
-  const { getSimpleAST } = useUtils()
 
   const updateBlockProperties = (id: string, properties: BlockProperties) => {
     const newBlocks = { ...viewConfig.blocks, [id]: properties }
@@ -450,6 +449,8 @@ const Flick = () => {
                     }}
                   /> */}
 
+                  {flick &&
+                    console.log(new TextEditorParser().getFlickMarkdown(flick))}
                   <TempTextEditor
                     handleUpdatePosition={(position) => {
                       setPreviewPosition(position)
@@ -478,7 +479,7 @@ const Flick = () => {
                     )}
                   </div>
                 </div>
-                {getSimpleAST(plateValue).blocks.length > 0 && (
+                {plateValue?.blocks?.length > 0 && (
                   <div className="fixed z-10 flex items-center justify-start p-2 mx-8 mb-4 border rounded-md bg-gray-50 bottom-4">
                     <div
                       className={cx(
@@ -562,7 +563,7 @@ const Flick = () => {
                         <FiUser size={20} />
                       </div>
                     </div>
-                    {getSimpleAST(plateValue).blocks.map((block) => (
+                    {plateValue?.blocks?.map((block: Block) => (
                       <div className="relative w-32 h-16 px-4 py-2 bg-gray-100 border border-r-2">
                         <div
                           className={cx(
