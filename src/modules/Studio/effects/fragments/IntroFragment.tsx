@@ -22,7 +22,7 @@ const IntroFragment = ({
   gradientConfig?: GradientConfig
   themeNumber?: string
 }) => {
-  const { fragment, state } =
+  const { fragment, state, addMusic, stopMusic } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   // const [bgImage] = useImage(viewConfig?.background?.image || '', 'anonymous')
@@ -50,6 +50,7 @@ const IntroFragment = ({
   useEffect(() => {
     if (state === 'recording' || state === 'ready') {
       if (fragmentState === 'customLayout') {
+        addMusic('splash')
         setLayerChildren([
           <Group x={0} y={0}>
             <Splash setFragmentState={setFragmentState} />
@@ -64,6 +65,7 @@ const IntroFragment = ({
         ])
       }
       if (fragmentState === 'onlyUserMedia') {
+        stopMusic()
         setLayerChildren([
           <Group x={0} y={0}>
             <Rect

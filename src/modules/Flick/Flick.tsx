@@ -143,7 +143,7 @@ const Flick = () => {
     variables: { id },
   })
   const setStudio = useSetRecoilState(studioStore)
-  const { addTransitionAudio } = useCanvasRecorder({
+  const { addMusic } = useCanvasRecorder({
     options: {},
   })
   const history = useHistory()
@@ -201,7 +201,7 @@ const Flick = () => {
       payload,
       updatePayload,
       fragment,
-      addTransitionAudio,
+      addMusic,
     }))
   }, [activeFragmentId, payload])
 

@@ -1,6 +1,7 @@
 import { ILocalVideoTrack, IMicrophoneAudioTrack } from 'agora-rtc-sdk-ng'
 import { atom } from 'recoil'
 import { StudioFragmentFragment } from '../../../generated/graphql'
+import { AudioType } from '../../../hooks/use-canvas-recorder'
 import { RTCUser } from '../hooks/use-agora'
 
 export type StudioState =
@@ -20,7 +21,8 @@ export interface StudioProviderProps<T = any, S = any> {
   startRecording: () => void
   stopRecording: () => void
   showFinalTransition: () => void
-  addTransitionAudio: () => void
+  addMusic: (type?: AudioType) => void
+  stopMusic: () => void
 
   fragment?: StudioFragmentFragment
 
