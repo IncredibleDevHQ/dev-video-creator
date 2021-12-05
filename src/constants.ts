@@ -23,6 +23,7 @@ import PENCIL_ALT from './assets/pencil-alt.svg'
 import EYE_OUTLINE from './assets/eye-outline.svg'
 import PROCESSING from './assets/processing.gif'
 import SUCCESS from './assets/Success.gif'
+import EDITOR from './assets/editor.png'
 
 export const ASSETS = {
   ICONS: {
@@ -49,6 +50,7 @@ export const ASSETS = {
     LANDING_DEVELOPER,
     COMMUNITY,
     EMPTY_ACTIVITY,
+    EDITOR,
   },
   PATTERNS: {
     LoginPattern,

@@ -30,6 +30,7 @@ import FileDropzone from './FileDropzone'
 import UploadVideo from './UploadVideo'
 import Video from './Video'
 import TextEditor from './TextEditor/TextEditor'
+import TempTextEditor from './TempTextEditor/TempTextEditor'
 
 export {
   Avatar,
@@ -64,6 +65,7 @@ export {
   Checkbox,
   Photo,
   FileDropzone,
+  TempTextEditor,
   UploadVideo,
   Video,
 }
