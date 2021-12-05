@@ -8,43 +8,40 @@ const Note = () => {
 
   const clearable = useRef(false)
 
-  const handleKeyUp = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (!clearable.current) {
-        if (
-          e.key === 'Backspace' &&
+  const handleKeyUp = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!clearable.current) {
+      if (
+        e.key === 'Backspace' &&
+        // @ts-ignore
+        textBoxRef.current?.innerHTML?.length === 0
+      )
+        clearable.current = true
+      // else clearable.current = false
+
+      return
+    }
+
+    // @ts-ignore
+    if (textBoxRef.current?.innerHTML?.length !== 0) {
+      clearable.current = false
+      return
+    }
+
+    if (clearable.current) {
+      e.stopPropagation()
+      e.preventDefault()
+      handleUpdateBlock?.({
+        ...block,
+        [block.type]: {
           // @ts-ignore
-          textBoxRef.current?.innerHTML?.length === 0
-        )
-          clearable.current = true
-        // else clearable.current = false
+          ...block[block.type],
+          note: undefined,
+        },
+      })
 
-        return
-      }
-
-      // @ts-ignore
-      if (textBoxRef.current?.innerHTML?.length !== 0) {
-        clearable.current = false
-        return
-      }
-
-      if (clearable.current) {
-        e.stopPropagation()
-        e.preventDefault()
-        handleUpdateBlock?.({
-          ...block,
-          [block.type]: {
-            // @ts-ignore
-            ...block[block.type],
-            note: undefined,
-          },
-        })
-
-        clearable.current = false
-      }
-    },
-    [block]
-  )
+      clearable.current = false
+    }
+  }
 
   return (
     <div className="p-2 rounded-md overflow-hidden items-start bg-gray-50 flex text-gray-600">

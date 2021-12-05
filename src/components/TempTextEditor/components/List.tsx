@@ -89,35 +89,32 @@ const ListItem = ({
     }
   }, [])
 
-  const handleKeyUp = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (!clearable.current) {
-        if (
-          e.key === 'Backspace' &&
-          // @ts-ignore
-          textBoxRef.current?.innerHTML?.length === 0
-        )
-          clearable.current = true
+  const handleKeyUp = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!clearable.current) {
+      if (
+        e.key === 'Backspace' &&
+        // @ts-ignore
+        textBoxRef.current?.innerHTML?.length === 0
+      )
+        clearable.current = true
 
-        return
-      }
+      return
+    }
 
-      // @ts-ignore
-      if (textBoxRef.current?.innerHTML?.length !== 0) {
-        clearable.current = false
-        return
-      }
+    // @ts-ignore
+    if (textBoxRef.current?.innerHTML?.length !== 0) {
+      clearable.current = false
+      return
+    }
 
-      if (clearable.current) {
-        e.stopPropagation()
-        e.preventDefault()
-        handleDelete?.()
+    if (clearable.current) {
+      e.stopPropagation()
+      e.preventDefault()
+      handleDelete?.()
 
-        clearable.current = false
-      }
-    },
-    []
-  )
+      clearable.current = false
+    }
+  }
 
   return (
     <li className="flex items-center text-gray-800 mb-2 last:mb-0">

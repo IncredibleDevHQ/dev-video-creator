@@ -14,42 +14,39 @@ const Title = () => {
     }
   }, [])
 
-  const handleKeyUp = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (!clearable.current) {
-        if (
-          e.key === 'Backspace' &&
+  const handleKeyUp = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!clearable.current) {
+      if (
+        e.key === 'Backspace' &&
+        // @ts-ignore
+        textBoxRef.current?.innerHTML?.length === 0
+      )
+        clearable.current = true
+
+      return
+    }
+
+    // @ts-ignore
+    if (textBoxRef.current?.innerHTML?.length !== 0) {
+      clearable.current = false
+      return
+    }
+
+    if (clearable.current) {
+      e.stopPropagation()
+      e.preventDefault()
+      handleUpdateBlock?.({
+        ...block,
+        [block.type]: {
           // @ts-ignore
-          textBoxRef.current?.innerHTML?.length === 0
-        )
-          clearable.current = true
+          ...block[block.type],
+          title: undefined,
+        },
+      })
 
-        return
-      }
-
-      // @ts-ignore
-      if (textBoxRef.current?.innerHTML?.length !== 0) {
-        clearable.current = false
-        return
-      }
-
-      if (clearable.current) {
-        e.stopPropagation()
-        e.preventDefault()
-        handleUpdateBlock?.({
-          ...block,
-          [block.type]: {
-            // @ts-ignore
-            ...block[block.type],
-            title: undefined,
-          },
-        })
-
-        clearable.current = false
-      }
-    },
-    [block]
-  )
+      clearable.current = false
+    }
+  }
 
   return (
     <div className="overflow-hidden text-gray-600">
