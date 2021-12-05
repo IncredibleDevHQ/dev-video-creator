@@ -2,10 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Group, Rect } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import { GradientConfig } from '../../../../utils/configTypes2'
-import {
-  DiscordConfig,
-  DiscordThemes,
-} from '../../../Flick/components/IntroView'
+import { DiscordConfig } from '../../../Flick/components/IntroOutroView'
 import Concourse, { CONFIG } from '../../components/Concourse'
 import { StudioProviderProps, studioStore } from '../../stores'
 import { StudioUserConfiguration } from '../../utils/StudioUserConfig'
@@ -22,16 +19,12 @@ export type IntroState = 'onlyUserMedia' | 'customLayout' | 'discord'
 const IntroFragment = ({
   gradientConfig,
   themeNumber,
-  discordConfig = {
-    backgroundColor: '#1F2937',
-    textColor: '#ffffff',
-    theme: DiscordThemes.WhiteOnMidnight,
-  },
+  discordConfig,
   viewMode = false,
 }: {
-  gradientConfig?: GradientConfig
-  discordConfig?: DiscordConfig
-  themeNumber?: string
+  gradientConfig: GradientConfig
+  discordConfig: DiscordConfig
+  themeNumber: string
   viewMode?: boolean
 }) => {
   const { fragment, state, addMusic, stopMusic, payload } =
@@ -66,7 +59,7 @@ const IntroFragment = ({
   useEffect(() => {
     if (state === 'recording' || state === 'ready' || viewMode) {
       if (fragmentState === 'customLayout') {
-        addMusic('splash')
+        if (!viewMode) addMusic('splash')
         setLayerChildren([
           <Group x={0} y={0}>
             <Splash setFragmentState={setFragmentState} viewMode={viewMode} />
@@ -85,7 +78,7 @@ const IntroFragment = ({
         ])
       }
       if (fragmentState === 'onlyUserMedia') {
-        stopMusic()
+        if (!viewMode) stopMusic()
         setLayerChildren([
           <Group x={0} y={0}>
             <Rect

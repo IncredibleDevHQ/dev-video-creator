@@ -47,12 +47,11 @@ import BlockPreview, {
   gradients,
   GradientSelector,
 } from './components/BlockPreview'
-import { OutroConfig } from './components/IntroConfig'
-import IntroView, {
+import IntroOutroView, {
   DiscordThemes,
-  IntroConfiguration,
+  IntroOutroConfiguration,
   SplashThemes,
-} from './components/IntroView'
+} from './components/IntroOutroView'
 import { FragmentTypeIcon } from './components/LayoutGeneric'
 import { newFlickStore } from './store/flickNew.store'
 
@@ -66,7 +65,7 @@ const initialConfig: ViewConfig = {
   blocks: {},
 }
 
-const defaultIntroConfiguration: IntroConfiguration = {
+const defaultIntroOutroConfiguration: IntroOutroConfiguration = {
   discord: {
     backgroundColor: '#1F2937',
     textColor: '#ffffff',
@@ -172,8 +171,8 @@ const Flick = () => {
 
   const [currentBlock, setCurrentBlock] = useState<Block>()
   const [viewConfig, setViewConfig] = useState<ViewConfig>(initialConfig)
-  const [introConfiguration, setIntroConfiguration] =
-    useState<IntroConfiguration>(defaultIntroConfiguration)
+  const [introOutroConfiguration, setIntroOutroConfiguration] =
+    useState<IntroOutroConfiguration>(defaultIntroOutroConfiguration)
   const [initialPlateValue, setInitialPlateValue] = useState<any>('')
   const [plateValue, setPlateValue] = useState<any>()
   const [integrationModal, setIntegrationModal] = useState(false)
@@ -285,8 +284,8 @@ const Flick = () => {
       }
       setPlateValue(fragment?.editorState || initEditor)
     } else {
-      setIntroConfiguration(
-        fragment?.configuration || defaultIntroConfiguration
+      setIntroOutroConfiguration(
+        fragment?.configuration || defaultIntroOutroConfiguration
       )
     }
   }, [activeFragmentId])
@@ -351,21 +350,17 @@ const Flick = () => {
             plateValue={plateValue}
             config={viewConfig}
             setViewConfig={setViewConfig}
-            introConfig={introConfiguration}
+            introConfig={introOutroConfiguration}
           />
           {flick.fragments.length > 0 &&
             activeFragment &&
-            flick.fragments.find((f) => f.id === activeFragmentId)?.type ===
-              Fragment_Type_Enum_Enum.Intro && (
-              <IntroView
-                config={introConfiguration}
-                setConfig={setIntroConfiguration}
+            (activeFragment.type === Fragment_Type_Enum_Enum.Intro ||
+              activeFragment.type === Fragment_Type_Enum_Enum.Outro) && (
+              <IntroOutroView
+                config={introOutroConfiguration}
+                setConfig={setIntroOutroConfiguration}
               />
             )}
-          {flick.fragments.length > 0 &&
-            activeFragment &&
-            flick.fragments.find((f) => f.id === activeFragmentId)?.type ===
-              Fragment_Type_Enum_Enum.Outro && <OutroConfig />}
 
           {flick.fragments.length > 0 &&
             activeFragment &&
@@ -466,36 +461,6 @@ const Flick = () => {
                 </div>
                 {getSimpleAST(plateValue).blocks.length > 0 && (
                   <div className="fixed z-10 flex items-center justify-start p-2 mx-8 mb-4 border rounded-md bg-gray-50 bottom-4">
-                    <div className="flex items-center justify-center w-32 h-16 px-4 py-2 bg-white gap-x-2">
-                      <Text
-                        className={cx(
-                          'cursor-pointer bg-gray-200 text-gray-50 px-2.5 py-1 rounded-sm text-sm ',
-                          {
-                            'bg-gray-800 text-gray-100':
-                              viewConfig.mode === 'Landscape',
-                          }
-                        )}
-                        onClick={() =>
-                          setViewConfig({ ...viewConfig, mode: 'Landscape' })
-                        }
-                      >
-                        16:9
-                      </Text>
-                      <Text
-                        className={cx(
-                          'cursor-pointer bg-gray-200 text-gray-50 h-full rounded-sm text-sm flex px-1 items-center',
-                          {
-                            'bg-gray-800 text-gray-100':
-                              viewConfig.mode === 'Portrait',
-                          }
-                        )}
-                        onClick={() =>
-                          setViewConfig({ ...viewConfig, mode: 'Portrait' })
-                        }
-                      >
-                        9:16
-                      </Text>
-                    </div>
                     <div
                       className={cx(
                         'px-4 py-2 w-32 h-16 border border-r-2 group relative',

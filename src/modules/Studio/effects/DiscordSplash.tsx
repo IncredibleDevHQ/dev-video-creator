@@ -3,7 +3,7 @@ import React from 'react'
 import { Group, Image, Rect, Text } from 'react-konva'
 import useImage from 'use-image'
 import DiscordLogo from '../../../assets/DiscordLogo.svg'
-import { DiscordConfig } from '../../Flick/components/IntroView'
+import { DiscordConfig } from '../../Flick/components/IntroOutroView'
 import { CONFIG } from '../components/Concourse'
 import { IntroState } from './fragments/IntroFragment'
 

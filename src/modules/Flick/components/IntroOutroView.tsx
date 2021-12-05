@@ -12,10 +12,13 @@ import {
 } from 'recoil'
 import layoutLink from '../../../assets/linkpreview.svg'
 import { Tab, TabBar, Text } from '../../../components'
+import { Fragment_Type_Enum_Enum } from '../../../generated/graphql'
 import { GradientConfig } from '../../../utils/configTypes'
 import { CONFIG, SHORTS_CONFIG } from '../../Studio/components/Concourse'
 import IntroFragment from '../../Studio/effects/fragments/IntroFragment'
+import OutroFragment from '../../Studio/effects/fragments/OutroFragment'
 import { StudioProviderProps, studioStore } from '../../Studio/stores'
+import { newFlickStore } from '../store/flickNew.store'
 
 const scrollStyle = css`
   ::-webkit-scrollbar {
@@ -45,7 +48,7 @@ export interface DiscordConfig {
   textColor: string
 }
 
-export interface IntroConfiguration {
+export interface IntroOutroConfiguration {
   theme: SplashThemes
   discord: DiscordConfig
   mode: 'Portrait' | 'Landscape'
@@ -73,12 +76,12 @@ const useGetHW = ({
   return { width: calWidth, height: calHeight }
 }
 
-function IntroView({
+function IntroOutroView({
   config,
   setConfig,
 }: {
-  config: IntroConfiguration
-  setConfig: React.Dispatch<React.SetStateAction<IntroConfiguration>>
+  config: IntroOutroConfiguration
+  setConfig: React.Dispatch<React.SetStateAction<IntroOutroConfiguration>>
 }) {
   const [ref, bounds] = useMeasure()
 
@@ -99,12 +102,13 @@ const Preview = ({
   config,
   bounds,
 }: {
-  config: IntroConfiguration
+  config: IntroOutroConfiguration
   bounds: RectReadOnly
 }) => {
   const stageRef = createRef<Konva.Stage>()
   const layerRef = createRef<Konva.Layer>()
   const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
+  const { flick, activeFragmentId } = useRecoilValue(newFlickStore)
 
   const [splash, setSplash] = useState(config.theme)
 
@@ -150,12 +154,21 @@ const Preview = ({
       >
         <Bridge>
           <Layer ref={layerRef}>
-            <IntroFragment
-              themeNumber={splash}
-              discordConfig={config.discord}
-              gradientConfig={config.gradient}
-              viewMode
-            />
+            {flick?.fragments.find((f) => f.id === activeFragmentId)?.type ===
+            Fragment_Type_Enum_Enum.Intro ? (
+              <IntroFragment
+                themeNumber={splash}
+                discordConfig={config.discord}
+                gradientConfig={config.gradient}
+                viewMode
+              />
+            ) : (
+              <OutroFragment
+                themeNumber={splash}
+                gradientConfig={config.gradient}
+                viewMode
+              />
+            )}
           </Layer>
         </Bridge>
       </Stage>
@@ -165,9 +178,19 @@ const Preview = ({
 
 const Layouts = () => {
   const { payload, updatePayload } = useRecoilValue(studioStore)
+  const { flick, activeFragmentId } = useRecoilValue(newFlickStore)
 
   return (
-    <div className="flex mt-2 border border-gray-200 rounded-md bg-white shadow-md">
+    <div
+      className={cx(
+        'flex flex-row mt-2 border border-gray-200 rounded-md bg-white shadow-md',
+        {
+          'flex-row-reverse justify-end':
+            flick?.fragments.find((f) => f.id === activeFragmentId)?.type ===
+            Fragment_Type_Enum_Enum.Outro,
+        }
+      )}
+    >
       {/* Splash */}
       <div
         className="h-20 cursor-pointer bg-gray-50"
@@ -197,32 +220,35 @@ const Layouts = () => {
         </div>
       </div>
       {/* Discord */}
-      <div
-        className="h-20 cursor-pointer bg-gray-50"
-        role="button"
-        tabIndex={-1}
-        onKeyUp={() => {}}
-        onClick={() =>
-          updatePayload?.({
-            fragmentState: 'discord',
-          })
-        }
-      >
-        <div className="h-full flex items-center justify-center w-28 p-2.5">
-          <div
-            className={cx(
-              'h-full w-full p-2 border border-gray-200 rounded-md cursor-pointer bg-white',
-              {
-                'border border-brand': payload?.fragmentState === 'discord',
-              }
-            )}
-          >
-            <div className="flex items-center justify-center bg-gray-200 w-full h-full rounded-md">
-              <img src={layoutLink} alt="link" className="w-8" />
+      {flick?.fragments.find((f) => f.id === activeFragmentId)?.type ===
+        Fragment_Type_Enum_Enum.Intro && (
+        <div
+          className="h-20 cursor-pointer bg-gray-50"
+          role="button"
+          tabIndex={-1}
+          onKeyUp={() => {}}
+          onClick={() =>
+            updatePayload?.({
+              fragmentState: 'discord',
+            })
+          }
+        >
+          <div className="h-full flex items-center justify-center w-28 p-2.5">
+            <div
+              className={cx(
+                'h-full w-full p-2 border border-gray-200 rounded-md cursor-pointer bg-white',
+                {
+                  'border border-brand': payload?.fragmentState === 'discord',
+                }
+              )}
+            >
+              <div className="flex items-center justify-center bg-gray-200 w-full h-full rounded-md">
+                <img src={layoutLink} alt="link" className="w-8" />
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
       {/* UserMedia */}
       <div
         className="h-20 bg-gray-50"
@@ -259,8 +285,8 @@ const Configurations = ({
   config,
   setConfig,
 }: {
-  config: IntroConfiguration
-  setConfig: React.Dispatch<React.SetStateAction<IntroConfiguration>>
+  config: IntroOutroConfiguration
+  setConfig: React.Dispatch<React.SetStateAction<IntroOutroConfiguration>>
 }) => {
   enum Configuration {
     Splash = 'splash',
@@ -272,6 +298,7 @@ const Configurations = ({
     useState<Configuration>(Configuration.Splash)
 
   const { payload } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const { flick, activeFragmentId } = useRecoilValue(newFlickStore)
 
   useEffect(() => {
     if (payload?.fragmentState === 'customLayout')
@@ -286,22 +313,24 @@ const Configurations = ({
     <div className="flex flex-col ml-4 h-full">
       {/* Configs */}
       <div className="flex gap-x-3">
-        {payload?.fragmentState === 'customLayout' && (
-          <div
-            role="button"
-            tabIndex={-1}
-            onKeyUp={() => {}}
-            onClick={() => setCurrentConfiguration(Configuration.Splash)}
-            className={cx(
-              'border border-gray-300 bg-gray-100 p-2 rounded-md h-9 w-9 flex items-center justify-center',
-              {
-                'border-brand': currentConfiguration === Configuration.Splash,
-              }
-            )}
-          >
-            <IoPlayOutline className="text-gray-600" size={21} />
-          </div>
-        )}
+        {payload?.fragmentState === 'customLayout' &&
+          flick?.fragments.find((f) => f.id === activeFragmentId)?.type ===
+            Fragment_Type_Enum_Enum.Intro && (
+            <div
+              role="button"
+              tabIndex={-1}
+              onKeyUp={() => {}}
+              onClick={() => setCurrentConfiguration(Configuration.Splash)}
+              className={cx(
+                'border border-gray-300 bg-gray-100 p-2 rounded-md h-9 w-9 flex items-center justify-center',
+                {
+                  'border-brand': currentConfiguration === Configuration.Splash,
+                }
+              )}
+            >
+              <IoPlayOutline className="text-gray-600" size={21} />
+            </div>
+          )}
         {payload?.fragmentState === 'discord' && (
           <div
             role="button"
@@ -339,9 +368,11 @@ const Configurations = ({
         )}
       </div>
       {/* Selected Config */}
-      {currentConfiguration === Configuration.Splash && (
-        <SplashConfiguration config={config} setConfig={setConfig} />
-      )}
+      {currentConfiguration === Configuration.Splash &&
+        flick?.fragments.find((f) => f.id === activeFragmentId)?.type ===
+          Fragment_Type_Enum_Enum.Intro && (
+          <SplashConfiguration config={config} setConfig={setConfig} />
+        )}
       {currentConfiguration === Configuration.Discord && (
         <DiscordConfiguration config={config} setConfig={setConfig} />
       )}
@@ -356,8 +387,8 @@ const SplashConfiguration = ({
   config,
   setConfig,
 }: {
-  config: IntroConfiguration
-  setConfig: React.Dispatch<React.SetStateAction<IntroConfiguration>>
+  config: IntroOutroConfiguration
+  setConfig: React.Dispatch<React.SetStateAction<IntroOutroConfiguration>>
 }) => {
   const tabs: Tab[] = [
     {
@@ -415,8 +446,8 @@ const DiscordConfiguration = ({
   config,
   setConfig,
 }: {
-  config: IntroConfiguration
-  setConfig: React.Dispatch<React.SetStateAction<IntroConfiguration>>
+  config: IntroOutroConfiguration
+  setConfig: React.Dispatch<React.SetStateAction<IntroOutroConfiguration>>
 }) => {
   const tabs: Tab[] = [
     {
@@ -497,8 +528,8 @@ const GradientPicker = ({
   config,
   setConfig,
 }: {
-  config: IntroConfiguration
-  setConfig: React.Dispatch<React.SetStateAction<IntroConfiguration>>
+  config: IntroOutroConfiguration
+  setConfig: React.Dispatch<React.SetStateAction<IntroOutroConfiguration>>
 }) => {
   interface Gradient {
     angle: number
@@ -956,4 +987,4 @@ const GradientPicker = ({
 //   )
 // }
 
-export default IntroView
+export default IntroOutroView

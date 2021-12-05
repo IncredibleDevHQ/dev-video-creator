@@ -18,7 +18,7 @@ import {
 } from '../../../generated/graphql'
 import { ViewConfig } from '../../../utils/configTypes2'
 import { newFlickStore } from '../store/flickNew.store'
-import { IntroConfiguration } from './IntroView'
+import { IntroOutroConfiguration } from './IntroOutroView'
 
 const dashArray = 10 * Math.PI * 2
 
@@ -33,7 +33,7 @@ const FragmentBar = ({
   markdown?: string
   config: ViewConfig
   setViewConfig: React.Dispatch<React.SetStateAction<ViewConfig>>
-  introConfig: IntroConfiguration
+  introConfig: IntroOutroConfiguration
 }) => {
   const [fragmentVideoModal, setFragmentVideoModal] = useState(false)
   const [{ flick, activeFragmentId }, setFlickStore] =
@@ -179,8 +179,8 @@ const FragmentBar = ({
           {(() => {
             if (blockLength >= 4) return 'Large'
             if (blockLength === 3) return 'Big'
-            if (blockLength === 2) return 'Good'
-            if (blockLength === 1) return 'Great'
+            if (blockLength === 2) return 'Great'
+            if (blockLength === 1) return 'Small'
             if (blockLength === 0) return 'Empty'
             return 'Great'
           })()}
