@@ -39,7 +39,6 @@ import {
   FlickNavBar,
   FragmentBar,
   FragmentSideBar,
-  IntroConfig,
   ProcessingFlick,
   PublishFlick,
 } from './components'
