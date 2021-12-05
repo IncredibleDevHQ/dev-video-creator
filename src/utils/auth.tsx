@@ -45,7 +45,7 @@ const AuthProvider = ({ children }: { children: JSX.Element }): JSX.Element => {
     } catch (e) {
       setAuth({ ...auth, loading: false })
     } finally {
-      setAuth({ ...auth, loading: false })
+      setAuth((auth) => ({ ...auth, loading: false }))
     }
   }
 
