@@ -53,14 +53,10 @@ const AuthProvider = ({ children }: { children: JSX.Element }): JSX.Element => {
     onAuthStateChanged(auth.auth, async (user) => {
       if (user) {
         const token = await user.getIdToken(true)
-        const idTokenResult = await user.getIdTokenResult(true)
-        const hasuraClaim = idTokenResult.claims['https://hasura.io/jwt/claims']
-        if (hasuraClaim) {
-          setAuth((auth) => ({
-            ...auth,
-            token,
-          }))
-        }
+        setAuth({
+          ...auth,
+          token,
+        })
       } else {
         setAuth((auth) => ({
           ...auth,
