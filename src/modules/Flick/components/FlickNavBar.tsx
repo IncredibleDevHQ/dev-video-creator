@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { useRecoilState } from 'recoil'
 import { FlickActivity } from '.'
 import { Button, Heading } from '../../../components'
+import config from '../../../config'
 import { ASSETS } from '../../../constants'
 import { useUpdateFlickMutation } from '../../../generated/graphql'
 import { newFlickStore } from '../store/flickNew.store'
@@ -42,12 +43,12 @@ const FlickNavBar = ({ toggleModal }: { toggleModal: (val: true) => void }) => {
   return (
     <div className="flex items-center justify-between py-2 pl-3 pr-4 bg-gray-50 border-b border-gray-300">
       <div className="flex items-center">
-        <Link to="/dashboard">
+        <a href={`${config.client.publicUrl}/dashboard`}>
           <div className="flex">
             <FiChevronLeft size={32} className="mr-2 text-gray-700" />
             <img src={ASSETS.ICONS.StudioLogo} alt="" className="w-32" />
           </div>
-        </Link>
+        </a>
         <Heading
           className="p-2 ml-12 font-semibold rounded-md text-md hover:bg-gray-100"
           contentEditable={editFlickName}
