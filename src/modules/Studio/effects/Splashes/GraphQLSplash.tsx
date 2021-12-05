@@ -8,8 +8,10 @@ import { IntroState } from '../fragments/IntroFragment'
 
 const SplashThree = ({
   setFragmentState,
+  viewMode,
 }: {
   setFragmentState: React.Dispatch<React.SetStateAction<IntroState>>
+  viewMode: boolean
 }) => {
   const [logo] = useImage(`${config.storage.baseUrl}idev-logo.svg`, 'anonymous')
   const [logoText] = useImage(
@@ -121,7 +123,7 @@ const SplashThree = ({
                           duration: 0.3,
                           onFinish: () => {
                             setTimeout(() => {
-                              setFragmentState('discord')
+                              if (!viewMode) setFragmentState('discord')
                             }, 2000)
                           },
                         })

@@ -122,6 +122,7 @@ const UnifiedFragment = ({
       })
     }
     if (state === 'recording') {
+      console.log('recording')
       updatePayload?.({
         activeObjectIndex: 0,
         fragmentState: 'onlyUserMedia',
