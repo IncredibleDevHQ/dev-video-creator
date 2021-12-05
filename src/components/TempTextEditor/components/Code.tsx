@@ -30,16 +30,20 @@ const Code = () => {
   }
 
   return (
-    <div className="border-2 rounded relative">
+    <div className="border-2 rounded relative w-full">
       <Editor
         onChange={(value) => {
           const candidateBlock = { ...block } as CodeBlockProps
-          candidateBlock.codeBlock.code = value
+          candidateBlock.codeBlock = {
+            ...candidateBlock.codeBlock,
+            code: value,
+          }
 
           handleUpdateBlock?.(candidateBlock)
         }}
         onMount={handleEditorDidMount}
         height="200px"
+        width="90%"
         language={
           (block as CodeBlockProps)?.codeBlock?.language || 'typescript'
         }
