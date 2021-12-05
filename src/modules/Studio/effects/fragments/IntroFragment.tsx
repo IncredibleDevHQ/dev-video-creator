@@ -34,7 +34,7 @@ const IntroFragment = ({
   themeNumber?: string
   viewMode?: boolean
 }) => {
-  const { fragment, state, payload } =
+  const { fragment, state, addMusic, stopMusic, payload } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   // const [bgImage] = useImage(viewConfig?.background?.image || '', 'anonymous')
@@ -66,6 +66,7 @@ const IntroFragment = ({
   useEffect(() => {
     if (state === 'recording' || state === 'ready' || viewMode) {
       if (fragmentState === 'customLayout') {
+        addMusic('splash')
         setLayerChildren([
           <Group x={0} y={0}>
             <Splash setFragmentState={setFragmentState} viewMode={viewMode} />
@@ -84,6 +85,7 @@ const IntroFragment = ({
         ])
       }
       if (fragmentState === 'onlyUserMedia') {
+        stopMusic()
         setLayerChildren([
           <Group x={0} y={0}>
             <Rect

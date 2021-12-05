@@ -17,7 +17,7 @@ const OutroFragment = ({
   gradientConfig?: GradientConfig
   themeNumber?: string
 }) => {
-  const { fragment, state } =
+  const { fragment, state, addMusic } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   // const [bgImage] = useImage(viewConfig?.background?.image || '', 'anonymous')
@@ -50,6 +50,7 @@ const OutroFragment = ({
   useEffect(() => {
     if (state === 'recording') {
       if (fragmentState === 'customLayout') {
+        addMusic('splash')
         setTopLayerChildren([
           <Group x={0} y={0}>
             <Rect
