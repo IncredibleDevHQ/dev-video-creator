@@ -2,22 +2,39 @@ import Konva from 'konva'
 import React from 'react'
 import { Group, Image, Rect, Text } from 'react-konva'
 import useImage from 'use-image'
-import { CONFIG } from '../components/Concourse'
 import DiscordLogo from '../../../assets/DiscordLogo.svg'
+import { DiscordConfig } from '../../Flick/components/IntroView'
+import { CONFIG } from '../components/Concourse'
 import { IntroState } from './fragments/IntroFragment'
+
+function hexToRgb(hex: string) {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+  return result
+    ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16),
+      }
+    : null
+}
 
 const DiscordSplash = ({
   setFragmentState,
+  viewMode,
+  discordConfig,
 }: {
   setFragmentState: React.Dispatch<React.SetStateAction<IntroState>>
+  viewMode: boolean
+  discordConfig: DiscordConfig
 }) => {
   const [discordLogo] = useImage(DiscordLogo)
+
   return (
     <Group>
       <Rect
         x={0}
         y={0}
-        fill="#1F2937"
+        fill={discordConfig.backgroundColor}
         width={CONFIG.width}
         height={CONFIG.height}
       />
@@ -28,7 +45,7 @@ const DiscordSplash = ({
           text="Join Discord Community"
           fontSize={40}
           opacity={0}
-          fill="#ffffff"
+          fill={discordConfig.textColor}
           ref={(ref) =>
             ref?.to({
               x: 0,
@@ -54,22 +71,23 @@ const DiscordSplash = ({
         text="Link in description"
         fontSize={40}
         opacity={0}
-        fill="#ffffff"
-        ref={(ref) =>
+        fill={discordConfig.textColor}
+        ref={(ref) => {
+          ref?.opacity(0)
           setTimeout(() => {
             ref?.to({
               opacity: 1,
               duration: 0.4,
             })
           }, 1100)
-        }
+        }}
       />
       <Rect
         x={-CONFIG.width + 460}
         y={0}
         width={CONFIG.width}
         height={CONFIG.height}
-        fill="#1F2937"
+        fill={discordConfig.backgroundColor}
         ref={(ref) =>
           ref?.to({
             x: -CONFIG.width + 340,
@@ -103,7 +121,15 @@ const DiscordSplash = ({
         height={96}
         offsetX={62}
         offsetY={48}
+        filters={[Konva.Filters.RGB]}
         ref={(ref) => {
+          const rgb = hexToRgb(discordConfig.textColor)
+          if (rgb) {
+            ref?.cache()
+            ref?.red(rgb.r)
+            ref?.green(rgb.g)
+            ref?.blue(rgb.b)
+          }
           ref?.to({
             x: 250,
             duration: 0.4,
@@ -120,7 +146,7 @@ const DiscordSplash = ({
                         duration: 0.3,
                         onFinish: () => {
                           setTimeout(() => {
-                            setFragmentState('onlyUserMedia')
+                            if (!viewMode) setFragmentState('onlyUserMedia')
                           }, 200)
                         },
                       })

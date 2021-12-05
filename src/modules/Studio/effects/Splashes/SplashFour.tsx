@@ -10,8 +10,10 @@ import { IntroState } from '../fragments/IntroFragment'
 
 const SplashFour = ({
   setFragmentState,
+  viewMode,
 }: {
   setFragmentState: React.Dispatch<React.SetStateAction<IntroState>>
+  viewMode: boolean
 }) => {
   const { state, fragment } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
@@ -42,7 +44,7 @@ const SplashFour = ({
   const subTitleFontSize = 20
 
   useEffect(() => {
-    if (state === 'recording' || state === 'ready') {
+    if (state === 'recording' || state === 'ready' || viewMode) {
       setCoordinate(
         getInitCoordinates({
           title: configuration?.title.value as string,
@@ -303,7 +305,7 @@ const SplashFour = ({
               easing: Konva.Easings.BackEaseOut,
               onFinish: () => {
                 setTimeout(() => {
-                  setFragmentState('discord')
+                  if (!viewMode) setFragmentState('discord')
                 }, 2000)
               },
             })
