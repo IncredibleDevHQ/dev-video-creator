@@ -42,10 +42,27 @@ const AuthProvider = ({ children }: { children: JSX.Element }): JSX.Element => {
         setDbUser(res.data.Me)
         setVerificationStatus(res.data.Me.verificationStatus || null)
       }
+
+      // repeat call to /login endpoint to update auth token in session cookie
+      const idToken = await signedInUser.user.getIdToken()
+
+      await axios.post(
+        `${config.auth.endpoint}/api/login`,
+        {
+          idToken,
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json', // 'text/plain',
+            'Access-Control-Allow-Origin': `${config.client.studioUrl}`,
+          },
+          withCredentials: true,
+        }
+      )
     } catch (e) {
       setAuth({ ...auth, loading: false })
     } finally {
-      setAuth({ ...auth, loading: false })
+      setAuth((auth) => ({ ...auth, loading: false }))
     }
   }
 
@@ -53,14 +70,10 @@ const AuthProvider = ({ children }: { children: JSX.Element }): JSX.Element => {
     onAuthStateChanged(auth.auth, async (user) => {
       if (user) {
         const token = await user.getIdToken(true)
-        const idTokenResult = await user.getIdTokenResult(true)
-        const hasuraClaim = idTokenResult.claims['https://hasura.io/jwt/claims']
-        if (hasuraClaim) {
-          setAuth((auth) => ({
-            ...auth,
-            token,
-          }))
-        }
+        setAuth({
+          ...auth,
+          token,
+        })
       } else {
         setAuth((auth) => ({
           ...auth,
