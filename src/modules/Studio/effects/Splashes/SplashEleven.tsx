@@ -8,8 +8,10 @@ import { IntroState } from '../fragments/IntroFragment'
 
 const SplashEleven = ({
   setFragmentState,
+  viewMode,
 }: {
   setFragmentState: React.Dispatch<React.SetStateAction<IntroState>>
+  viewMode: boolean
 }) => {
   const { state, fragment } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
@@ -39,7 +41,7 @@ const SplashEleven = ({
   const subTitleFontSize = 25
 
   useEffect(() => {
-    if (state === 'recording' || state === 'ready') {
+    if (state === 'recording' || state === 'ready' || viewMode) {
       setCoordinate(
         getInitCoordinates({
           title: configuration?.title.value as string,
@@ -314,7 +316,7 @@ const SplashEleven = ({
             opacity: 1,
             onFinish: () => {
               setTimeout(() => {
-                setFragmentState('discord')
+                if (!viewMode) setFragmentState('discord')
               }, 2500)
             },
           })

@@ -46,6 +46,7 @@ import { useUploadFile } from '../../hooks/use-upload-file'
 import { User, userState } from '../../stores/user.store'
 import { ConfigType } from '../../utils/configTypes'
 import { ViewConfig } from '../../utils/configTypes2'
+import { DiscordThemes } from '../Flick/components/IntroOutroView'
 import { Countdown } from './components'
 import { CONFIG, SHORTS_CONFIG } from './components/Concourse'
 import {
@@ -668,10 +669,43 @@ const Studio = ({
                             themeNumber={
                               `${fragment.configuration?.theme}` || '0'
                             }
+                            gradientConfig={
+                              fragment.configuration?.gradient || {
+                                backgroundColor: '#1F2937',
+                                textColor: '#ffffff',
+                                theme: DiscordThemes.WhiteOnMidnight,
+                              }
+                            }
+                            discordConfig={
+                              fragment.configuration?.discord || {
+                                cssString:
+                                  'linear-gradient(90deg, #D397FA 0%, #D397FA 0.01%, #8364E8 100%)',
+                                endIndex: { x: CONFIG.width, y: CONFIG.height },
+                                startIndex: { x: 0, y: 0 },
+                                values: [
+                                  0,
+                                  '#D397FA',
+                                  0.0001,
+                                  '#D397FA',
+                                  1,
+                                  '#8364E8',
+                                ],
+                              }
+                            }
                           />
                         )
                       if (fragment.type === Fragment_Type_Enum_Enum.Outro)
-                        return <OutroFragment />
+                        return (
+                          <OutroFragment
+                            gradientConfig={
+                              fragment.configuration?.gradient || {
+                                backgroundColor: '#1F2937',
+                                textColor: '#ffffff',
+                                theme: DiscordThemes.WhiteOnMidnight,
+                              }
+                            }
+                          />
+                        )
                       return (
                         <UnifiedFragment
                           stageRef={stageRef}
