@@ -42,6 +42,23 @@ const AuthProvider = ({ children }: { children: JSX.Element }): JSX.Element => {
         setDbUser(res.data.Me)
         setVerificationStatus(res.data.Me.verificationStatus || null)
       }
+
+      // repeat call to /login endpoint to update auth token in session cookie
+      const idToken = await signedInUser.user.getIdToken()
+
+      await axios.post(
+        `${config.auth.endpoint}/api/login`,
+        {
+          idToken,
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json', // 'text/plain',
+            'Access-Control-Allow-Origin': `${config.client.studioUrl}`,
+          },
+          withCredentials: true,
+        }
+      )
     } catch (e) {
       setAuth({ ...auth, loading: false })
     } finally {
