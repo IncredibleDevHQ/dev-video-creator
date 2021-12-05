@@ -111,6 +111,7 @@ const useCode = () => {
 
       text.destroy()
     })
+    return computedTokens.current
   }
 
   return { initUseCode, computedTokens }
