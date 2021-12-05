@@ -53,7 +53,7 @@ const List = () => {
                 candidateBlock?.listBlock?.list?.map((item) => {
                   if (item.id === listItem.id) {
                     // eslint-disable-next-line no-param-reassign
-                    item.text = text
+                    item = { ...item, text }
                   }
                   return item
                 })
