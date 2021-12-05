@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/dot-notation */
 /* eslint-disable no-param-reassign */
 /* eslint-disable class-methods-use-this */
+import { FlickFragment } from '../../generated/graphql'
 import { SimpleAST } from './types'
 
 export function getCursorCoordinates(
@@ -14,9 +15,9 @@ export function getCursorCoordinates(
 }
 
 export class TextEditorParser {
-  ast: SimpleAST
+  ast?: SimpleAST
 
-  constructor(ast: SimpleAST) {
+  constructor(ast?: SimpleAST) {
     this.ast = ast
   }
 
@@ -24,18 +25,23 @@ export class TextEditorParser {
     if (title) {
       title = `### ${title}`
     }
-    return [title, description]
-      .filter((item) => typeof item !== 'undefined')
-      .join('\n\n ')
+    return (
+      [title, description || ''].filter((item) => !!item).join('\n\n ') || ''
+    )
   }
 
   getMarkdown() {
-    const blocks = this.ast.blocks.filter(
+    return this.parseMarkdown(this.ast)
+  }
+
+  private parseMarkdown(ast?: SimpleAST) {
+    if (!ast) return undefined
+    const blocks = ast?.blocks?.filter(
       (block) => typeof block.type !== 'undefined'
     )
 
     return blocks
-      .map((block) => {
+      ?.map((block) => {
         let md = ''
 
         md += this.getCommonMd(
@@ -48,19 +54,23 @@ export class TextEditorParser {
         switch (block.type) {
           case 'codeBlock':
             md += `\n\n\`\`\`${block.codeBlock.language || ''}\n${
-              block.codeBlock.code
+              block.codeBlock.code || ''
             }\n\`\`\``
             break
           case 'imageBlock':
-            md += `\n\n![${block.imageBlock.title}](${block.imageBlock.url})`
+            md += `\n\n![${block.imageBlock.title || ''}](${
+              block.imageBlock.url || ''
+            })`
             break
           case 'listBlock':
             md += `\n\n${block.listBlock?.list
-              ?.map((item) => `- ${item.text}`)
+              ?.map((item) => `- ${item.text || ''}`)
               .join('\n')}`
             break
           case 'videoBlock':
-            md += `\n\n![${block.videoBlock.title}](${block.videoBlock.url})`
+            md += `\n\n![${block.videoBlock.title || ''}](${
+              block.videoBlock.url || ''
+            })`
             break
           default:
             break
@@ -69,5 +79,22 @@ export class TextEditorParser {
         return md
       })
       .join('\n\n')
+  }
+
+  getFlickMarkdown(flick: FlickFragment) {
+    let md = `# ${flick.name || ''}\n\n ${
+      flick.description || ''
+    }\n\n Created on Incredible \n\n ---\n\n`
+    md += flick.fragments
+      .map((fragment) => {
+        return `--- \n\n ## ${fragment.name || ''} \n\n ${
+          fragment.description || ''
+        } \n\n ${this.parseMarkdown(fragment.editorState) || ''} \n\n ---`
+      })
+      .join('\n\n')
+
+    md += '\n\n---\n\n'
+
+    return md
   }
 }
