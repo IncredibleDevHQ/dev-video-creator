@@ -31,6 +31,7 @@ import {
 } from '../../components/TextEditor/utils'
 import config from '../../config'
 import {
+  FlickParticipantsFragment,
   Fragment_Status_Enum_Enum,
   Fragment_Type_Enum_Enum,
   GetFragmentByIdQuery,
@@ -314,8 +315,9 @@ const Studio = ({
       onTokenDidExpire: async () => {
         const { data } = await getRTCToken({ variables: { fragmentId } })
         if (data?.RTCToken?.token) {
-          const participantId = fragment?.participants.find(
-            ({ participant }) => participant.userSub === sub
+          const participantId = fragment?.configuration?.speakers?.find(
+            ({ participant }: { participant: FlickParticipantsFragment }) =>
+              participant.userSub === sub
           )?.participant.id
           if (participantId) {
             join(data?.RTCToken?.token, participantId as string)

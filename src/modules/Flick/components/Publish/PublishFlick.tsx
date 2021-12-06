@@ -1,20 +1,19 @@
-import React, { useState } from 'react'
 import { css, cx } from '@emotion/css'
+import React, { useState } from 'react'
 import Modal from 'react-responsive-modal'
-import { Button, Tab, TabBar } from '../../../../components'
 import {
   Details,
+  EditorConfig,
   Format,
+  FormatEnum,
   Formats,
   Fragment,
+  Integration,
   Interaction,
   Interactions,
   Markdown,
-  Permissions,
-  EditorConfig,
-  Integration,
-  FormatEnum,
 } from '.'
+import { Button, Tab, TabBar } from '../../../../components'
 import {
   BlogPlatforms,
   PublishablePlatformEnum,
@@ -22,6 +21,7 @@ import {
   PublishFormats,
   usePublishFlickMutation,
 } from '../../../../generated/graphql'
+import { verticalCustomScrollBar } from '../../../../utils/globalStyles'
 
 enum ViewEnum {
   format = 'Format',
@@ -164,12 +164,21 @@ const PublishFlick = ({
         open={open}
         onClose={handleClose}
         center
+        styles={{
+          modal: {
+            maxHeight: '90vh',
+            height: '100%',
+            maxWidth: '40%',
+            width: '100%',
+          },
+        }}
         classNames={{
           modal: cx(
             'rounded-lg overflow-x-hidden',
-            {
-              'w-2/5': currentView.value !== ViewEnum.markdown,
-            },
+            verticalCustomScrollBar,
+            // {
+            //   'w-2/5': currentView.value !== ViewEnum.markdown,
+            // },
             css`
               background-color: #fffffff !important;
             `
@@ -184,7 +193,7 @@ const PublishFlick = ({
         <TabBar
           tabs={views}
           current={currentView}
-          itemsClassName="text-sm px-1 py-0.5 rounded-sm"
+          // itemsClassName="text-sm px-1 py-0.5 rounded-sm"
           onTabChange={(tab) => setCurrentView(tab)}
           className="mt-6 mb-4"
         />
