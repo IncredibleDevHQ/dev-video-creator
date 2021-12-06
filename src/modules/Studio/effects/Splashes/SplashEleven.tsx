@@ -21,8 +21,19 @@ const SplashEleven = ({
   useEffect(() => {
     if (!fragment) return
     setConfiguration({
-      title: { value: fragment?.flick?.name },
-      subTitle: { value: fragment?.flick?.description },
+      title: {
+        value:
+          fragment?.flick?.name?.length > 15
+            ? `${fragment?.flick?.name.substring(0, 15)}...`
+            : fragment?.flick.name,
+      },
+      subTitle: {
+        value:
+          fragment?.flick?.description &&
+          fragment?.flick?.description?.length > 35
+            ? `${fragment?.flick?.description?.substring(0, 35)}...`
+            : fragment?.flick.description,
+      },
     })
   }, [fragment])
 
@@ -284,10 +295,12 @@ const SplashEleven = ({
       />
       <Text
         key="title"
-        x={coordinate.titleX}
+        x={0}
         y={coordinate.titleY}
         text={configuration?.title.value as string}
-        fontSize={50}
+        fontSize={40}
+        width={CONFIG.width}
+        height={50}
         fontFamily="Poppins"
         fill="#000000"
         align="center"
@@ -301,13 +314,15 @@ const SplashEleven = ({
       />
       <Text
         key="subTitle"
-        x={coordinate.subTitleX}
+        x={0}
         y={coordinate.subTitleY}
         text={configuration?.subTitle.value as string}
-        fontSize={25}
+        fontSize={20}
         fontFamily="Poppins"
         lineHeight={1.25}
         fill="#5C595A"
+        width={CONFIG.width}
+        height={25}
         align="center"
         opacity={0}
         ref={(ref) => {

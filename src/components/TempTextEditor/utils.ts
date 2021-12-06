@@ -34,6 +34,19 @@ export class TextEditorParser {
     return this.parseMarkdown(this.ast)
   }
 
+  /**
+   * Check the validity of the AST
+   *
+   * @param ast Optional AST to use instead of the one stored in this class.
+   * @returns A boolean indicating if the AST is valid.
+   */
+  isValid(ast?: SimpleAST) {
+    const blocks = ast?.blocks || this.ast?.blocks
+    if (!blocks || blocks.length === 0) return false
+
+    return blocks.every((block) => typeof block.type !== 'undefined')
+  }
+
   private parseMarkdown(ast?: SimpleAST) {
     if (!ast) return undefined
     const blocks = ast?.blocks?.filter(

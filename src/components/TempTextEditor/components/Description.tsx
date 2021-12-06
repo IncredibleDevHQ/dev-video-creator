@@ -1,4 +1,4 @@
-import React, { useRef, useCallback } from 'react'
+import React, { useRef } from 'react'
 import { BlockComponentContext, Textbox } from '.'
 
 const Description = () => {
@@ -59,6 +59,7 @@ const Description = () => {
         // @ts-ignore
         text={block?.[block?.type]?.description}
         placeholder="Write a description..."
+        className="font-body"
       />
     </div>
   )
