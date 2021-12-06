@@ -4,7 +4,6 @@ import React, { useEffect, useState } from 'react'
 import { Circle, Group, Line, Rect, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import { CONFIG } from '../../components/Concourse'
-import useSplash, { Coordinates } from '../../hooks/use-splash'
 import { StudioProviderProps, studioStore } from '../../stores'
 import { IntroState } from '../fragments/IntroFragment'
 
@@ -15,7 +14,7 @@ const SplashFour = ({
   setFragmentState: React.Dispatch<React.SetStateAction<IntroState>>
   viewMode: boolean
 }) => {
-  const { state, fragment } =
+  const { fragment } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [configuration, setConfiguration] =
     useState<{ title: any; subTitle: any }>()
@@ -23,42 +22,21 @@ const SplashFour = ({
   useEffect(() => {
     if (!fragment) return
     setConfiguration({
-      title: { value: fragment?.flick?.name },
-      subTitle: { value: fragment?.flick?.description },
+      title: {
+        value:
+          fragment?.flick?.name?.length > 20
+            ? `${fragment?.flick?.name.substring(0, 20)}...`
+            : fragment?.flick.name,
+      },
+      subTitle: {
+        value:
+          fragment?.flick?.description &&
+          fragment?.flick?.description?.length > 30
+            ? `${fragment?.flick?.description?.substring(0, 30)}...`
+            : fragment?.flick.description,
+      },
     })
   }, [fragment])
-
-  const { getInitCoordinates } = useSplash()
-
-  const [coordinate, setCoordinate] = useState<Coordinates>({
-    titleX: 0,
-    titleY: 0,
-    subTitleX: 0,
-    subTitleY: 0,
-    titleHeight: 0,
-  })
-
-  const gutter = 10
-  const titleWidth = 960
-  const titleFontSize = 40
-  const subTitleFontSize = 20
-
-  useEffect(() => {
-    if (state === 'recording' || state === 'ready' || viewMode) {
-      setCoordinate(
-        getInitCoordinates({
-          title: configuration?.title.value as string,
-          subTitle: configuration?.subTitle.value as string,
-          gutter,
-          availableWidth: titleWidth - 100,
-          titleFontSize,
-          subTitleFontSize,
-          stageWidth: 960,
-          stageHeight: 540,
-        })
-      )
-    }
-  }, [state, configuration])
 
   useEffect(() => {
     const font = new FontFaceObserver('Poppins')
@@ -257,12 +235,14 @@ const SplashFour = ({
       />
       <Text
         key="title"
-        x={coordinate.titleX}
+        x={0}
         y={CONFIG.height / 2 - 40}
         text={configuration?.title.value as string}
         fontSize={40}
         fontFamily="Poppins"
         fill="#21C5FA"
+        height={40}
+        width={CONFIG.width}
         align="center"
         opacity={0}
         ref={(ref) => {
@@ -274,12 +254,14 @@ const SplashFour = ({
       />
       <Text
         key="subTitle"
-        x={coordinate.subTitleX}
+        x={0}
         y={CONFIG.height / 2 + 20}
         text={configuration?.subTitle.value as string}
         fontSize={20}
         fontFamily="Poppins"
         lineHeight={1.25}
+        width={CONFIG.width}
+        height={20}
         fill="#5C595A"
         align="center"
         opacity={0}
