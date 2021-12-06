@@ -15,7 +15,7 @@ const Heading = ({ fontSize, children, className, ...rest }: HeadingProps) => {
   switch (fontSize) {
     case 'extra-large':
       return (
-        <h1 className={cx('text-6xl font-bold', className)} {...rest}>
+        <h1 className={cx('text-6xl font-bold font-main', className)} {...rest}>
           {children}
         </h1>
       )
