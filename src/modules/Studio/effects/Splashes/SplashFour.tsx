@@ -31,8 +31,8 @@ const SplashFour = ({
       subTitle: {
         value:
           fragment?.flick?.description &&
-          fragment?.flick?.description?.length > 30
-            ? `${fragment?.flick?.description?.substring(0, 30)}...`
+          fragment?.flick?.description?.length > 45
+            ? `${fragment?.flick?.description?.substring(0, 45)}...`
             : fragment?.flick.description,
       },
     })
