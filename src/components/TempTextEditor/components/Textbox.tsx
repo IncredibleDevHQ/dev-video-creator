@@ -1,13 +1,14 @@
 import { cx } from '@emotion/css'
+import { nanoid } from 'nanoid'
 import React from 'react'
-import ContentEditable from 'react-contenteditable'
+import { ContentEditable } from './ContentEditable'
 
 interface TextboxProps {
   text: string
   handleUpdateText?: (text?: string) => void
   placeholder?: string
-  handleKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void
-  handleKeyUp?: (e: React.KeyboardEvent<HTMLInputElement>) => void
+  handleKeyDown?: (e: React.KeyboardEvent<HTMLDivElement>) => void
+  handleKeyUp?: (e: React.KeyboardEvent<HTMLDivElement>) => void
   className?: string
   tagName?: string
 }

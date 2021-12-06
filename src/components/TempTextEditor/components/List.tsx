@@ -1,5 +1,5 @@
 import { nanoid } from 'nanoid'
-import React, { useCallback, useRef } from 'react'
+import React, { useRef } from 'react'
 import { BlockComponentContext, Textbox } from '.'
 import { ListBlockProps } from '../types'
 
@@ -84,15 +84,15 @@ const ListItem = ({
 
   const clearable = useRef(false)
 
-  const handleKeyDown = useCallback((e) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     // Single line...
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       handleAdd?.()
     }
-  }, [])
+  }
 
-  const handleKeyUp = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyUp = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (!clearable.current) {
       if (
         e.key === 'Backspace' &&
