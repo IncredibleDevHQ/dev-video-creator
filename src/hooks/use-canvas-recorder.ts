@@ -49,9 +49,7 @@ const useCanvasRecorder = ({
 
   const ctx = useRef<AudioContext | null>(null)
   const dest = useRef<MediaStreamAudioDestinationNode | null>(null)
-  const transitionAudio = new Audio(transitionMusic)
   const splashAudio = new Audio(splashMusic)
-  const pointsAudio = new Audio(pointsMusic)
   const splashAudioSourceNode = useRef<MediaElementAudioSourceNode | null>(null)
 
   /**
@@ -133,9 +131,11 @@ const useCanvasRecorder = ({
       splashAudio.volume = 0.08
       splashAudio.play()
     } else if (type === 'points') {
+      const pointsAudio = new Audio(pointsMusic)
       ctx.current.createMediaElementSource(pointsAudio).connect(dest.current)
       pointsAudio.play()
     } else {
+      const transitionAudio = new Audio(transitionMusic)
       ctx.current
         .createMediaElementSource(transitionAudio)
         .connect(dest.current)
