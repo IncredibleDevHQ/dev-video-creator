@@ -27,6 +27,7 @@ import {
 } from '../../generated/graphql'
 import { useCanvasRecorder } from '../../hooks'
 import { BlockProperties, ViewConfig } from '../../utils/configTypes2'
+import { verticalCustomScrollBar } from '../../utils/globalStyles'
 import { CONFIG } from '../Studio/components/Concourse'
 import studioStore from '../Studio/stores/studio.store'
 import {
@@ -406,9 +407,9 @@ const Flick = () => {
   return (
     <div className="relative flex flex-col h-screen overflow-hidden">
       <FlickNavBar toggleModal={setIntegrationModal} />
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden ">
         <FragmentSideBar plateValue={plateValue} />
-        <div className="flex-1 pb-12">
+        <div className="flex-1 pb-20 h-full">
           <FragmentBar
             markdown={fragmentMarkdown}
             plateValue={plateValue}
@@ -432,8 +433,13 @@ const Flick = () => {
               Fragment_Type_Enum_Enum.Intro &&
             flick.fragments.find((f) => f.id === activeFragmentId)?.type !==
               Fragment_Type_Enum_Enum.Outro && (
-              <div className="w-full h-full mx-8 my-4 overflow-y-auto">
-                <div className="mx-12 mb-4">
+              <div
+                className={cx(
+                  'h-full px-8 pt-4 overflow-y-auto pb-96',
+                  verticalCustomScrollBar
+                )}
+              >
+                <div className="mx-10 mb-4">
                   <input
                     onChange={(e) => {
                       updateFragment(e.target.value)
@@ -445,7 +451,7 @@ const Flick = () => {
                     }
                   />
                 </div>
-                <div className="flex items-center justify-start mx-12">
+                <div className="flex items-center justify-start mx-10">
                   {viewConfig.speakers?.map((s) => (
                     <div
                       className="flex items-center px-2 py-1 mr-2 rounded-md border border-gray-300 font-body"
@@ -454,9 +460,9 @@ const Flick = () => {
                       <img
                         src={s.user.picture as string}
                         alt={s.user.displayName as string}
-                        className="w-6 h-6 rounded-full"
+                        className="w-5 h-5 rounded-full"
                       />
-                      <Text className="ml-1.5 mr-2 text-sm text-gray-600 font-medium">
+                      <Text className="ml-1.5 mr-2 text-xs text-gray-600 font-medium">
                         {s.user.displayName}
                       </Text>
                       <FiX
@@ -490,11 +496,11 @@ const Flick = () => {
                     </Tooltip>
                   )}
                 </div>
-                <div className="flex items-center mx-12 mt-4 shadow-lg">
+                <div className="flex items-center mx-7 mr-36 mt-6 shadow-lg">
                   <hr className="w-full" />
                   <span className="w-48" />
                 </div>
-                <div className="px-8 w-full relative overflow-y-scroll flex h-full justify-between items-stretch">
+                <div className="px-8 -mt-6 w-full relative flex h-full justify-between">
                   {/* <TextEditor
                     placeholder="Start writing..."
                     handleUpdateJSON={(json) => {
@@ -516,7 +522,7 @@ const Flick = () => {
                   /> */}
 
                   <TempTextEditor
-                    key={activeFragmentId}
+                    key={activeFragment.id}
                     handleUpdatePosition={(position) => {
                       setPreviewPosition(position)
                     }}
@@ -528,14 +534,14 @@ const Flick = () => {
                       setCurrentBlock(block)
                     }}
                   />
-                  <div className="relative w-64 border-none outline-none">
+                  <div className="relative w-1/4 ml-10 border-none outline-none">
                     {currentBlock && viewConfig && (
                       <BlockPreview
                         block={currentBlock}
                         config={viewConfig}
                         updateConfig={updateBlockProperties}
                         className={cx(
-                          'absolute',
+                          'absolute w-full h-full',
                           css`
                             top: ${previewPosition?.y}px;
                           `
