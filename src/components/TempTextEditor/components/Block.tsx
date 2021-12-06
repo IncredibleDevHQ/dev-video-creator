@@ -74,20 +74,30 @@ const BlockComponent = ({
           ;(candidateBlock as CodeBlockProps).codeBlock = {
             code: '',
             language: 'typescript',
+            title: '',
+            description: '',
           }
           break
         case 'video':
           candidateBlock.type = 'videoBlock'
-          ;(candidateBlock as VideoBlockProps).videoBlock = {}
+          ;(candidateBlock as VideoBlockProps).videoBlock = {
+            title: '',
+            description: '',
+          }
           break
         case 'image':
           candidateBlock.type = 'imageBlock'
-          ;(candidateBlock as ImageBlockProps).imageBlock = {}
+          ;(candidateBlock as ImageBlockProps).imageBlock = {
+            title: '',
+            description: '',
+          }
           break
         case 'list':
           candidateBlock.type = 'listBlock'
           ;(candidateBlock as ListBlockProps).listBlock = {
             list: [{ id: nanoid(), text: '' }],
+            title: '',
+            description: '',
           }
           break
         case 'note':
