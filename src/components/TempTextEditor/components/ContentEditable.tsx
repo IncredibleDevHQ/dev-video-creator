@@ -9,6 +9,7 @@ interface ContentEditableProps {
   onInput?: (event: React.FormEvent<HTMLDivElement>) => void
   onKeyPress?: (event: React.KeyboardEvent<HTMLDivElement>) => void
   onKeyDown?: (event: React.KeyboardEvent<HTMLDivElement>) => void
+  onFocus?: (event: React.FormEvent<HTMLDivElement>) => void
   html: string
 }
 
@@ -18,6 +19,7 @@ export const ContentEditable: React.FC<ContentEditableProps> = ({
   onBlur,
   onKeyPress,
   onKeyDown,
+  onFocus,
   ...props
 }) => {
   const onChangeRef = useRef(onChange)
@@ -25,6 +27,7 @@ export const ContentEditable: React.FC<ContentEditableProps> = ({
   const onBlurRef = useRef(onBlur)
   const onKeyPressRef = useRef(onKeyPress)
   const onKeyDownRef = useRef(onKeyDown)
+  const onFocusRef = useRef(onFocus)
 
   useEffect(() => {
     onChangeRef.current = onChange
@@ -41,6 +44,9 @@ export const ContentEditable: React.FC<ContentEditableProps> = ({
   useEffect(() => {
     onKeyDownRef.current = onKeyDown
   }, [onKeyDown])
+  useEffect(() => {
+    onFocusRef.current = onFocus
+  }, [onFocus])
 
   return (
     <ReactContentEditable
@@ -86,6 +92,15 @@ export const ContentEditable: React.FC<ContentEditableProps> = ({
           ? (...args) => {
               if (onKeyDownRef.current) {
                 onKeyDownRef.current(...args)
+              }
+            }
+          : undefined
+      }
+      onFocus={
+        onFocus
+          ? (...args) => {
+              if (onFocusRef.current) {
+                onFocusRef.current(...args)
               }
             }
           : undefined

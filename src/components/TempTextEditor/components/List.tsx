@@ -1,10 +1,20 @@
 import { nanoid } from 'nanoid'
-import React, { useRef } from 'react'
+import React, { useEffect, useRef } from 'react'
+import { mergeRefs } from '../utils'
 import { BlockComponentContext, Textbox } from '.'
 import { ListBlockProps } from '../types'
 
 const List = () => {
   const { block, handleUpdateBlock } = React.useContext(BlockComponentContext)
+
+  const itemsRef = useRef<HTMLSpanElement[]>([])
+  // you can access the elements with itemsRef.current[n]
+
+  useEffect(() => {
+    const list = (block as ListBlockProps)?.listBlock?.list
+    if (!list) return
+    itemsRef.current = itemsRef.current.slice(0, list.length)
+  }, [(block as ListBlockProps)?.listBlock?.list])
 
   return (
     <ul>
@@ -13,6 +23,9 @@ const List = () => {
           <ListItem
             text={listItem.text}
             index={index}
+            ref={(el) => {
+              itemsRef.current[index] = el
+            }}
             key={listItem.id}
             handleDelete={() => {
               const candidateBlock = { ...block } as ListBlockProps
@@ -27,6 +40,21 @@ const List = () => {
                 candidateBlock.listBlock = undefined
                 // @ts-ignore
                 candidateBlock.type = undefined
+              } else if (index > 0) {
+                setTimeout(() => {
+                  const el = itemsRef.current[index - 1]
+
+                  const selection = window.getSelection()
+                  const range = document.createRange()
+                  if (!selection) return
+
+                  selection.removeAllRanges()
+                  range.selectNodeContents(el)
+                  range.collapse(false)
+                  selection.addRange(range)
+
+                  el.focus()
+                }, 0)
               }
 
               handleUpdateBlock?.(candidateBlock)
@@ -45,6 +73,10 @@ const List = () => {
               }
 
               handleUpdateBlock?.(candidateBlock)
+
+              setTimeout(() => {
+                itemsRef.current[index + 1].focus()
+              }, 0)
             }}
             handleUpdateText={(text) => {
               const candidateBlock = { ...block } as ListBlockProps
@@ -67,74 +99,72 @@ const List = () => {
   )
 }
 
-const ListItem = ({
-  text,
-  index,
-  handleAdd,
-  handleDelete,
-  handleUpdateText,
-}: {
+interface ListItemProps {
   text?: string
   index: number
   handleAdd?: () => void
   handleDelete?: () => void
   handleUpdateText?: (text?: string) => void
-}) => {
-  const textBoxRef = useRef()
-
-  const clearable = useRef(false)
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    // Single line...
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleAdd?.()
-    }
-  }
-
-  const handleKeyUp = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (!clearable.current) {
-      if (
-        e.key === 'Backspace' &&
-        // @ts-ignore
-        textBoxRef.current?.innerHTML?.length === 0
-      )
-        clearable.current = true
-
-      return
-    }
-
-    // @ts-ignore
-    if (textBoxRef.current?.innerHTML?.length !== 0) {
-      clearable.current = false
-      return
-    }
-
-    if (clearable.current) {
-      e.stopPropagation()
-      e.preventDefault()
-      handleDelete?.()
-
-      clearable.current = false
-    }
-  }
-
-  return (
-    <li className="flex items-center text-gray-800 mb-2 last:mb-0">
-      <span className="w-6 h-6 flex items-center mr-2 justify-center rounded bg-gray-100 text-gray-600">
-        {index + 1}
-      </span>
-      <Textbox
-        ref={textBoxRef}
-        handleUpdateText={handleUpdateText}
-        handleKeyDown={handleKeyDown}
-        handleKeyUp={handleKeyUp}
-        text={text || ''}
-        placeholder="Write an item..."
-        tagName="span"
-      />
-    </li>
-  )
 }
+
+const ListItem = React.forwardRef<any, ListItemProps>(
+  ({ text, index, handleAdd, handleDelete, handleUpdateText }, ref) => {
+    const textBoxRef = useRef()
+
+    const clearable = useRef(false)
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+      // Single line...
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault()
+        handleAdd?.()
+      }
+    }
+
+    const handleKeyUp = (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (!clearable.current) {
+        if (
+          e.key === 'Backspace' &&
+          // @ts-ignore
+          textBoxRef.current?.innerHTML?.length === 0
+        )
+          clearable.current = true
+
+        return
+      }
+
+      // @ts-ignore
+      if (textBoxRef.current?.innerHTML?.length !== 0) {
+        clearable.current = false
+        return
+      }
+
+      if (clearable.current) {
+        e.stopPropagation()
+        e.preventDefault()
+        handleDelete?.()
+
+        clearable.current = false
+      }
+    }
+
+    return (
+      <li className="flex items-center text-gray-800 mb-2 last:mb-0">
+        <span className="w-6 h-6 flex items-center mr-2 justify-center rounded bg-gray-100 text-gray-600">
+          {index + 1}
+        </span>
+        <Textbox
+          ref={mergeRefs(textBoxRef, ref)}
+          handleUpdateText={handleUpdateText}
+          handleKeyDown={handleKeyDown}
+          handleKeyUp={handleKeyUp}
+          text={text || ''}
+          placeholder="Write an item..."
+          tagName="span"
+        />
+      </li>
+    )
+  }
+)
 
 export default List

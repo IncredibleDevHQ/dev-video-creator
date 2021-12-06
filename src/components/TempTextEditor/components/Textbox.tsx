@@ -1,5 +1,4 @@
 import { cx } from '@emotion/css'
-import { nanoid } from 'nanoid'
 import React from 'react'
 import { ContentEditable } from './ContentEditable'
 
@@ -9,6 +8,7 @@ interface TextboxProps {
   placeholder?: string
   handleKeyDown?: (e: React.KeyboardEvent<HTMLDivElement>) => void
   handleKeyUp?: (e: React.KeyboardEvent<HTMLDivElement>) => void
+  handleFocus?: (e: React.FormEvent<HTMLDivElement>) => void
   className?: string
   tagName?: string
 }
@@ -21,6 +21,7 @@ const Textbox = React.forwardRef<any, TextboxProps>(
       text,
       handleUpdateText,
       handleKeyUp,
+      handleFocus,
       className,
       tagName,
     },
@@ -33,6 +34,7 @@ const Textbox = React.forwardRef<any, TextboxProps>(
           innerRef={ref}
           onKeyDown={handleKeyDown}
           onKeyUp={handleKeyUp}
+          onFocus={handleFocus}
           html={text}
           tagName={tagName}
           onChange={(e) => handleUpdateText?.(e.target.value)}
