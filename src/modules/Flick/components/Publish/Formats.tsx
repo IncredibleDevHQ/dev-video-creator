@@ -7,7 +7,7 @@ import { ASSETS } from '../../../../constants'
 export enum FormatEnum {
   flick = 'Flick',
   blog = 'Blog',
-  devShorts = 'Dev Shorts',
+  devShorts = 'Highlights',
 }
 
 export interface Format {
@@ -58,7 +58,7 @@ const FormatCard = ({
       tabIndex={0}
       onKeyDown={() => null}
       className={cx(
-        'p-2 my-4 flex justify-start items-center border rounded-md',
+        'py-5 px-4 my-4 flex justify-start items-center border rounded-md',
         {
           'border-gray-200': index === -1,
           'border-brand': index !== -1,
@@ -70,18 +70,21 @@ const FormatCard = ({
       <img
         src={format.icon}
         alt={format.name}
-        className={cx({ 'filter grayscale': disabled })}
+        className={cx('w-9', { 'filter grayscale': disabled })}
       />
       <div className="ml-2">
         <Heading
           fontSize="small"
-          className={cx('font-semibold leading-none', {
+          className={cx('font-bold leading-none font-main text-gray-800', {
             'text-gray-600': disabled,
           })}
         >
           {format.name}
         </Heading>
-        <Text fontSize="small" className="leading-none">
+        <Text
+          fontSize="small"
+          className="leading-none font-body mt-2 text-gray-600"
+        >
           {format.description}
         </Text>
       </div>
@@ -98,7 +101,7 @@ const Formats = ({
 }) => {
   return (
     <div className="mt-4">
-      <Text className="text-sm">
+      <Text className="text-sm font-body text-gray-600">
         Select the formats you’d like to publish. You can always come back later
         and publish the rest.
       </Text>

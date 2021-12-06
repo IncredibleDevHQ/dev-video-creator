@@ -52,14 +52,14 @@ const InteractionCard = ({
   updateInteraction: (interaction: Interaction) => void
 }) => {
   return (
-    <div className="border border-gray-200 rounded-md my-3 p-2">
-      <span className="text-xs bg-gray-100 py-0.5 px-1 rounded-sm">
+    <div className="border border-gray-200 rounded-md my-3 p-4">
+      <span className="text-xs bg-gray-100 text-gray-800 py-1 px-1.5 rounded-sm -ml-px">
         {interaction.interactionType}
       </span>
       <Heading fontSize="small" className="font-bold mt-2">
         Add URL
       </Heading>
-      <Text fontSize="small">
+      <Text fontSize="small" className="font-body text-gray-600 mt-1">
         {(() => {
           switch (interaction.interactionType) {
             case InteractionEnum.stackblitz:
@@ -81,6 +81,7 @@ const InteractionCard = ({
         }
       />
       <Select
+        className="text-sm font-normal"
         options={fragments
           .filter((f) => !activeFragments.includes(f, 0))
           .map((f) => {
@@ -154,11 +155,11 @@ const Interactions = ({ fragments }: { fragments: Fragment[] }) => {
 
   return (
     <div>
-      <Text className="text-gray-600 text-sm">
+      <Text className="text-gray-600 text-sm font-body my-4">
         Add interactions like Stackblitz, CodeSandbox and forms in your post.
         Select the type of interactions and the fragments for it.
       </Text>
-      {interactions.map((interaction) => (
+      {interactions?.map((interaction) => (
         <InteractionCard
           key={interaction.interactionType}
           fragments={fragments}

@@ -34,11 +34,11 @@ export interface Integration {
 const integrations: Integration[] = [
   {
     id: PublishablePlatformEnum.GitHub,
-    label: 'Github',
+    label: 'GitHub',
   },
   {
     id: PublishablePlatformEnum.Hashnode,
-    label: 'HashNode',
+    label: 'Hashnode',
   },
   {
     id: PublishablePlatformEnum.Dev,
@@ -138,10 +138,17 @@ const Markdown = () => {
 
         return (
           <div className="min-h-48">
-            <Text className="mt-2">
+            <Text className="font-body">
+              Take a final look at your blog before you publish
+            </Text>
+            <Text className="mt-4 text-sm font-main">
               Select platform(s) to publish this blog
             </Text>
-            <div className="grid grid-flow-col grid-cols-4 gap-x-2">
+            <Text className="text-xs font-body">
+              You can also publish your blog on your other platforms as well.
+              Select the platforms you like.
+            </Text>
+            <div className="grid grid-flow-col grid-cols-4 gap-x-2 mt-3">
               {integrations.map((integration) => {
                 const isSelected = !!markdownConfig.integrations.find(
                   (i) => i.id === integration.id
@@ -156,7 +163,7 @@ const Markdown = () => {
                     role="button"
                     tabIndex={0}
                     className={cx(
-                      'flex justify-start items-center border p-1 rounded-md my-1',
+                      'flex gap-x-2 justify-start items-center border p-2 rounded-sm my-1',
                       {
                         'border-brand': isSelected,
                         'cursor-pointer': exists,
@@ -193,7 +200,9 @@ const Markdown = () => {
                           return null
                       }
                     })()}
-                    <Text fontSize="small">{integration.label}</Text>
+                    <Text className="font-base text-sm">
+                      {integration.label}
+                    </Text>
                   </div>
                 )
               })}

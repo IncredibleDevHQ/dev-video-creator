@@ -10,21 +10,18 @@ import {
   FiX,
 } from 'react-icons/fi'
 import { useHistory, useParams } from 'react-router-dom'
-import { useRecoilState, useSetRecoilState } from 'recoil'
+import { useRecoilState, useRecoilValue } from 'recoil'
 import {
   Heading,
   ScreenState,
   TempTextEditor,
   Text,
-  TextEditor,
   Tooltip,
 } from '../../components'
-import { Position } from '../../components/TempTextEditor/types'
-import { TextEditorParser } from '../../components/TempTextEditor/utils'
-import { Block } from '../../components/TempTextEditor/types'
+import { Block, Position } from '../../components/TempTextEditor/types'
 import {
   FlickFragmentFragment,
-  FragmentParticipantFragment,
+  FlickParticipantsFragment,
   Fragment_Status_Enum_Enum,
   Fragment_Type_Enum_Enum,
   StudioFragmentFragment,
@@ -34,7 +31,6 @@ import {
 } from '../../generated/graphql'
 import { useCanvasRecorder } from '../../hooks'
 import { BlockProperties, ViewConfig } from '../../utils/configTypes2'
-import { initEditor } from '../../utils/plateConfig/serializer/values'
 import { CONFIG } from '../Studio/components/Concourse'
 import studioStore from '../Studio/stores/studio.store'
 import {
@@ -120,23 +116,23 @@ const SpeakersTooltip = ({
   close,
 }: {
   fragment: FlickFragmentFragment
-  speakers: FragmentParticipantFragment[]
-  addSpeaker: (speaker: FragmentParticipantFragment) => void
+  speakers: FlickParticipantsFragment[]
+  addSpeaker: (speaker: FlickParticipantsFragment) => void
   close?: () => void
 }) => {
+  const { flick } = useRecoilValue(newFlickStore)
+
   return (
     <div className="p-2 rounded-md bg-gray-50">
-      {fragment.participants
-        .filter(
-          (p) => !speakers?.some((s) => s.participant.id === p.participant.id)
-        )
+      {flick?.participants
+        .filter((p) => !speakers?.some((s) => s.id === p.id))
         .map((participant) => (
           <div
             role="button"
             tabIndex={0}
             onKeyDown={() => null}
             className="flex items-center px-2 py-1 transition-colors rounded-md hover:bg-gray-300"
-            key={participant.participant.id}
+            key={participant.id}
             onClick={() => {
               if (participant) {
                 addSpeaker(participant)
@@ -145,12 +141,12 @@ const SpeakersTooltip = ({
             }}
           >
             <img
-              src={participant.participant.user.picture as string}
-              alt={participant.participant.user.displayName as string}
+              src={participant.user.picture as string}
+              alt={participant.user.displayName as string}
               className="w-6 h-6 rounded-full"
             />
             <Text fontSize="normal" className="ml-2">
-              {participant.participant.user.displayName}
+              {participant.user.displayName}
             </Text>
           </div>
         ))}
@@ -165,7 +161,7 @@ const Flick = () => {
   const { data, error, loading, refetch } = useGetFlickByIdQuery({
     variables: { id },
   })
-  const setStudio = useSetRecoilState(studioStore)
+  const [{ fragment }, setStudio] = useRecoilState(studioStore)
   const { addMusic, stopMusic } = useCanvasRecorder({
     options: {},
   })
@@ -291,18 +287,46 @@ const Flick = () => {
     }
   }, [activeFragmentId])
 
-  const addSpeaker = (speaker: FragmentParticipantFragment) => {
+  useEffect(() => {
+    if (!fragment || !flick) return
+    setFlickStore((store) => ({
+      ...store,
+      flick: {
+        ...flick,
+        fragments: flick.fragments.map((frag) => {
+          if (frag.id === fragment.id) {
+            return {
+              ...frag,
+              configuration: viewConfig,
+              editorState: plateValue,
+            }
+          }
+          return frag
+        }),
+      },
+    }))
+    setStudio((store) => ({
+      ...store,
+      fragment: {
+        ...fragment,
+        editorState: plateValue,
+        configuration: viewConfig,
+      },
+    }))
+  }, [viewConfig, plateValue])
+
+  const addSpeaker = (speaker: FlickParticipantsFragment) => {
     setViewConfig({
       ...viewConfig,
       speakers: [...viewConfig?.speakers, speaker],
     })
   }
 
-  const deleteSpeaker = (speaker: FragmentParticipantFragment) => {
+  const deleteSpeaker = (speaker: FlickParticipantsFragment) => {
     setViewConfig({
       ...viewConfig,
       speakers: viewConfig?.speakers?.filter(
-        (s) => s.participant.user.sub !== speaker.participant.user.sub
+        (s) => s.user.sub !== speaker.user.sub
       ),
     })
   }
@@ -382,15 +406,15 @@ const Flick = () => {
                   {viewConfig.speakers?.map((s) => (
                     <div
                       className="flex items-center px-2 py-1 mr-2 bg-gray-200 rounded-md"
-                      key={s.participant.user.sub}
+                      key={s.user.sub}
                     >
                       <img
-                        src={s.participant.user.picture as string}
-                        alt={s.participant.user.displayName as string}
+                        src={s.user.picture as string}
+                        alt={s.user.displayName as string}
                         className="w-6 h-6 rounded-full"
                       />
                       <Text fontSize="normal" className="mx-2">
-                        {s.participant.user.displayName}
+                        {s.user.displayName}
                       </Text>
                       <FiX
                         className="cursor-pointer"
@@ -398,8 +422,7 @@ const Flick = () => {
                       />
                     </div>
                   ))}
-                  {viewConfig.speakers?.length <
-                    activeFragment.participants.length && (
+                  {viewConfig.speakers?.length < flick.participants.length && (
                     <Tooltip
                       containerOffset={8}
                       isOpen={isSpeakersTooltip}
@@ -454,7 +477,6 @@ const Flick = () => {
                       setPreviewPosition(position)
                     }}
                     handleUpdateAst={(ast) => {
-                      console.log('blocks', ast)
                       setPlateValue(ast)
                     }}
                     initialAst={plateValue}

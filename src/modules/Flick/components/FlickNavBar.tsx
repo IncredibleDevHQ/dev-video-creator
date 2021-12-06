@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react'
 import { FiBell, FiChevronLeft, FiLink2, FiUpload } from 'react-icons/fi'
-import { Link } from 'react-router-dom'
 import { useRecoilState } from 'recoil'
 import { FlickActivity } from '.'
 import { Button, Heading } from '../../../components'
