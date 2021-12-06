@@ -9,8 +9,12 @@ import { MdRadioButtonUnchecked } from 'react-icons/md'
 import { useHistory } from 'react-router-dom'
 import { useRecoilState } from 'recoil'
 import { FragmentVideoModal } from '.'
+import { ReactComponent as RecordIcon } from '../../../assets/StartRecord.svg'
+import { ReactComponent as ReRecordIcon } from '../../../assets/ReRecord.svg'
 import { Button, emitToast, Text, Tooltip } from '../../../components'
 import {
+  Content_Type_Enum_Enum,
+  FlickFragment,
   FlickFragmentFragment,
   Fragment_Type_Enum_Enum,
   useUpdateFragmentMarkdownMutation,
@@ -138,6 +142,18 @@ const FragmentBar = ({
 
   const [isOpen, setIsOpen] = useState(false)
 
+  const [mode, setMode] = useState<Content_Type_Enum_Enum>(
+    Content_Type_Enum_Enum.Video
+  )
+
+  useEffect(() => {
+    if (config.mode === 'Portrait') {
+      setMode(Content_Type_Enum_Enum.VerticalVideo)
+    } else {
+      setMode(Content_Type_Enum_Enum.Video)
+    }
+  }, [config.mode])
+
   return (
     <div className="flex items-center justify-between pr-4 pl-5 p-2">
       {fragment &&
@@ -191,21 +207,22 @@ const FragmentBar = ({
           isOpen={isOpen}
           setIsOpen={setIsOpen}
           content={
-            <div className="bg-white rounded-md shadow-lg flex flex-col mt-2 gap-y-2 border border-gray-100">
+            <div className="bg-white rounded-md shadow-lg flex flex-col mt-2 gap-y-1 border border-gray-100">
               <button
                 type="button"
                 onClick={() => {
                   setViewConfig({ ...config, mode: 'Landscape' })
+                  setIsOpen(false)
                 }}
-                className="flex gap-x-4 px-4 py-3 hover:bg-gray-100 cursor-pointer"
+                className="flex items-center gap-x-4 px-4 py-3 hover:bg-gray-100 cursor-pointer"
               >
                 <div className="bg-brand bg-opacity-10 p-2.5 rounded-sm">
-                  <IoPlayOutline size={24} className="text-brand " />
+                  <IoPlayOutline size={18} className="text-brand " />
                 </div>
                 <div>
                   <Text className="font-bold font-main flex items-center gap-x-3">
                     Flick
-                    {config.mode === 'Landscape' ? (
+                    {fragment?.producedLink ? (
                       <IoIosCheckmarkCircle className="text-brand" size={18} />
                     ) : (
                       <MdRadioButtonUnchecked className="text-gray-300" />
@@ -225,16 +242,17 @@ const FragmentBar = ({
                 type="button"
                 onClick={() => {
                   setViewConfig({ ...config, mode: 'Portrait' })
+                  setIsOpen(false)
                 }}
-                className="flex gap-x-4 px-4 py-3 hover:bg-gray-100 cursor-pointer"
+                className="flex items-center gap-x-4 px-4 py-3 hover:bg-gray-100 cursor-pointer"
               >
                 <div className="bg-cyan-600 bg-opacity-10 p-2.5 rounded-sm">
-                  <HiOutlineSparkles size={24} className="text-cyan-600" />
+                  <HiOutlineSparkles size={18} className="text-cyan-600" />
                 </div>
                 <div>
                   <Text className="font-bold font-main flex items-center gap-x-3">
                     Highlight
-                    {config.mode === 'Portrait' ? (
+                    {fragment?.producedShortsLink ? (
                       <IoIosCheckmarkCircle className="text-brand" size={18} />
                     ) : (
                       <MdRadioButtonUnchecked className="text-gray-300" />
@@ -266,62 +284,108 @@ const FragmentBar = ({
                 >
                   {config.mode === 'Landscape' ? (
                     <div className="bg-brand bg-opacity-10 p-2.5 rounded-sm">
-                      <IoPlayOutline size={24} className="text-brand " />
+                      <IoPlayOutline size={18} className="text-brand " />
                     </div>
                   ) : (
                     <div className="bg-cyan-600 bg-opacity-10 p-2.5 rounded-sm">
-                      <HiOutlineSparkles size={24} className="text-cyan-600" />
+                      <HiOutlineSparkles size={18} className="text-cyan-600" />
                     </div>
                   )}
                   <Text className="font-bold font-main">
                     {config.mode === 'Landscape' ? 'Flick' : 'Highlight'}
                   </Text>
-                  {isOpen ? <IoChevronUp /> : <IoChevronDown />}
+                  {checkHasContent(fragment, mode) ? (
+                    <IoIosCheckmarkCircle className="text-brand" size={18} />
+                  ) : (
+                    <MdRadioButtonUnchecked className="text-gray-300" />
+                  )}
                 </button>
               )}
             <Button
               appearance="primary"
               size="small"
               type="button"
-              className="py-1 my-1.5"
               loading={savingConfig}
               onClick={() => updateConfig()}
             >
-              Save
+              <Text className="text-sm">Save</Text>
             </Button>
-            {fragment?.producedLink && (
+            {fragment?.producedLink && mode === Content_Type_Enum_Enum.Video && (
               <div
                 tabIndex={-1}
                 role="button"
                 onKeyDown={() => {}}
-                className="flex items-center mr-4 border border-green-600 rounded-sm px-2 cursor-pointer"
+                className="flex items-center border bg-gray-600 rounded-sm px-2 cursor-pointer"
                 onClick={() => {
                   setFragmentVideoModal(true)
                 }}
               >
-                <BiPlayCircle size={32} className="text-green-600 py-1" />
+                <BiPlayCircle size={36} className="text-gray-200 py-1" />
               </div>
             )}
+            {fragment?.producedShortsLink &&
+              mode === Content_Type_Enum_Enum.VerticalVideo && (
+                <div
+                  tabIndex={-1}
+                  role="button"
+                  onKeyDown={() => {}}
+                  className="flex items-center border bg-gray-600 rounded-sm cursor-pointer h-9"
+                  onClick={() => {
+                    setFragmentVideoModal(true)
+                  }}
+                >
+                  <BiPlayCircle
+                    size={21}
+                    className="text-gray-200 mx-px p-px"
+                  />
+                </div>
+              )}
             <button
-              className="border-red-600 text-red-600 border rounded-sm py-2 px-2.5 flex items-center gap-x-2 font-bold hover:shadow-md"
+              className="border-red-600 text-red-600 border rounded-sm py-1.5 px-2.5 flex items-center gap-x-2 font-bold hover:shadow-md text-sm"
               type="button"
               onClick={() => history.push(`/${activeFragmentId}/studio`)}
               disabled={!fragment?.configuration}
             >
-              <img src="/src/assets/StartRecord.svg" alt="start" />
-              {fragment?.producedLink ? 'Retake' : 'Record'}
+              {checkHasContent(fragment, mode) ? (
+                <ReRecordIcon className="h-6 w-6 " />
+              ) : (
+                <RecordIcon className="h-6 w-6" />
+              )}
+              {!checkHasContent(fragment, mode) && 'Record'}
             </button>
           </div>
         </Tooltip>
       )}
-      <FragmentVideoModal
-        open={fragmentVideoModal}
-        handleClose={() => {
-          setFragmentVideoModal(false)
-        }}
-      />
+      {fragmentVideoModal && (
+        <FragmentVideoModal
+          open={fragmentVideoModal}
+          handleClose={() => {
+            setFragmentVideoModal(false)
+          }}
+          contentType={mode}
+        />
+      )}
     </div>
   )
+}
+
+const checkHasContent = (
+  fragment: FlickFragmentFragment | undefined,
+  mode: Content_Type_Enum_Enum
+) => {
+  switch (mode) {
+    case Content_Type_Enum_Enum.Video:
+      if (fragment?.producedLink) return true
+      break
+
+    case Content_Type_Enum_Enum.VerticalVideo:
+      if (fragment?.producedShortsLink) return true
+      break
+
+    default:
+      return false
+  }
+  return false
 }
 
 export default FragmentBar

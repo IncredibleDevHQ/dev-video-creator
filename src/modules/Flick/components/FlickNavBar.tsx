@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { FiBell, FiChevronLeft, FiLink2, FiUpload } from 'react-icons/fi'
-import { Link } from 'react-router-dom'
 import { useRecoilState } from 'recoil'
 import { FlickActivity } from '.'
-import { Button, Heading } from '../../../components'
+import { Button, Heading, Text } from '../../../components'
 import config from '../../../config'
 import { ASSETS } from '../../../constants'
 import { useUpdateFlickMutation } from '../../../generated/graphql'
@@ -45,8 +44,8 @@ const FlickNavBar = ({ toggleModal }: { toggleModal: (val: true) => void }) => {
       <div className="flex items-center">
         <a href={`${config.client.publicUrl}/dashboard`}>
           <div className="flex">
-            <FiChevronLeft size={32} className="mr-2 text-gray-700" />
-            <img src={ASSETS.ICONS.StudioLogo} alt="" className="w-32" />
+            <FiChevronLeft size={28} className="mr-2 text-gray-700" />
+            <img src={ASSETS.ICONS.StudioLogo} alt="" className="w-28" />
           </div>
         </a>
         <Heading
@@ -73,6 +72,7 @@ const FlickNavBar = ({ toggleModal }: { toggleModal: (val: true) => void }) => {
           onClick={() => {
             setIsShareOpen(true)
           }}
+          size="small"
           className="-mr-3"
         >
           Invite
@@ -87,12 +87,11 @@ const FlickNavBar = ({ toggleModal }: { toggleModal: (val: true) => void }) => {
           size="small"
           icon={FiUpload}
           type="button"
-          className="py-1.5 px-2.5"
           onClick={async () => {
             toggleModal(true)
           }}
         >
-          Publish
+          <Text className="text-sm">Publish</Text>
         </Button>
       </div>
       <div className="absolute right-0">

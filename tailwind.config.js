@@ -20,7 +20,7 @@ module.exports = {
       },
       fontFamily: {
         main: ['Gilroy', ...fontFamily.sans],
-        body: ['Inter', ...fontFamily.sans],
+        body: ['InterBody', ...fontFamily.sans],
       },
       minHeight: {
         32: '8rem',

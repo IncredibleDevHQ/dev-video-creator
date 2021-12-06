@@ -16,7 +16,7 @@ export const StudioUserConfiguration = ({
 }): StudioUserConfig[] => {
   if (fragmentState === 'onlyUserMedia') {
     if (isShorts) {
-      switch (fragment?.participants.length) {
+      switch (fragment?.configuration?.speakers?.length) {
         case 2:
           return [
             {
@@ -118,7 +118,7 @@ export const StudioUserConfiguration = ({
           ]
       }
     }
-    switch (fragment?.participants.length) {
+    switch (fragment?.configuration?.speakers?.length) {
       case 2:
         return [
           {
@@ -222,7 +222,7 @@ export const StudioUserConfiguration = ({
   } else
     switch (layout) {
       case 'classic':
-        switch (fragment?.participants.length) {
+        switch (fragment?.configuration?.speakers?.length) {
           case 2:
             return [
               {
@@ -324,7 +324,7 @@ export const StudioUserConfiguration = ({
             ]
         }
       case 'float-full-right':
-        switch (fragment?.participants.length) {
+        switch (fragment?.configuration?.speakers?.length) {
           case 2:
             return [
               {
@@ -426,7 +426,7 @@ export const StudioUserConfiguration = ({
             ]
         }
       case 'float-full-left':
-        switch (fragment?.participants.length) {
+        switch (fragment?.configuration?.speakers?.length) {
           case 2:
             return [
               {
@@ -528,7 +528,7 @@ export const StudioUserConfiguration = ({
             ]
         }
       case 'float-half-right':
-        switch (fragment?.participants.length) {
+        switch (fragment?.configuration?.speakers?.length) {
           case 2:
             return [
               {
@@ -631,7 +631,7 @@ export const StudioUserConfiguration = ({
         }
       case 'padded-bottom-right-tile':
       case 'bottom-right-tile':
-        switch (fragment?.participants.length) {
+        switch (fragment?.configuration?.speakers?.length) {
           case 2:
             return [
               {
@@ -734,7 +734,7 @@ export const StudioUserConfiguration = ({
         }
       case 'padded-bottom-right-circle':
       case 'bottom-right-circle':
-        switch (fragment?.participants.length) {
+        switch (fragment?.configuration?.speakers?.length) {
           case 2:
             return [
               {
@@ -836,7 +836,7 @@ export const StudioUserConfiguration = ({
             ]
         }
       case 'padded-split':
-        switch (fragment?.participants.length) {
+        switch (fragment?.configuration?.speakers?.length) {
           case 2:
             return [
               {
@@ -938,7 +938,7 @@ export const StudioUserConfiguration = ({
             ]
         }
       case 'split':
-        switch (fragment?.participants.length) {
+        switch (fragment?.configuration?.speakers?.length) {
           case 2:
             return [
               {

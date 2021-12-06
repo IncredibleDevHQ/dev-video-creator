@@ -22,7 +22,7 @@ const TextField = ({
         {label}
         {rest.required && '*'}
       </Label>
-      <div className="flex rounded-md justify-between border border-gray-300 transition-all focus-within:border-brand items-center p-2 bg-background">
+      <div className="flex rounded-sm justify-between border border-gray-300 transition-all focus-within:border-brand items-center p-2 bg-background">
         <input className="border-none outline-none flex-1" {...rest} />
         <div className="flex justify-between items-center">
           {accessories?.map((accessory) => {

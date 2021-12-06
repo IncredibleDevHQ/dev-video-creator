@@ -162,12 +162,14 @@ const CodeFragment = ({
     setTopLayerChildren([])
     ;(async () => {
       try {
-        const { data } = await getColorCodes(
-          dataConfig.codeBlock.code || '',
-          dataConfig.codeBlock.language || '',
-          user.token || ''
-        )
-        if (!data?.errors) setColorCodes(data.data.TokenisedCode.data)
+        if (dataConfig.codeBlock.code !== '') {
+          const { data } = await getColorCodes(
+            dataConfig.codeBlock.code || '',
+            dataConfig.codeBlock.language || '',
+            user.token || ''
+          )
+          if (!data?.errors) setColorCodes(data.data.TokenisedCode.data)
+        }
       } catch (e) {
         console.error(e)
         throw e

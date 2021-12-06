@@ -23,6 +23,7 @@ import {
   Text,
   updateToast,
 } from '../../components'
+import { TextEditorParser } from '../../components/TempTextEditor/utils'
 import {
   CodeBlockProps,
   ImageBlockProps,
@@ -31,6 +32,7 @@ import {
 } from '../../components/TextEditor/utils'
 import config from '../../config'
 import {
+  FlickParticipantsFragment,
   Fragment_Status_Enum_Enum,
   Fragment_Type_Enum_Enum,
   GetFragmentByIdQuery,
@@ -112,7 +114,24 @@ const StudioHoC = () => {
     fetchPolicy: 'network-only',
   })
 
+  const [error, setError] = useState<'INVALID_AST' | undefined>()
+
+  useEffect(() => {
+    if (!data) return
+    if (!new TextEditorParser(data.Fragment[0].editorState).isValid()) {
+      setError('INVALID_AST')
+    }
+  }, [data])
+
   if (loading || !ready) return <ScreenState title="Just a jiffy..." loading />
+
+  if (error === 'INVALID_AST')
+    return (
+      <ScreenState
+        title="Invalid Configuration"
+        subtitle="The fragment contains an invalid data reference. Please correct it and try again."
+      />
+    )
 
   if (view === 'preview')
     return (
@@ -314,8 +333,9 @@ const Studio = ({
       onTokenDidExpire: async () => {
         const { data } = await getRTCToken({ variables: { fragmentId } })
         if (data?.RTCToken?.token) {
-          const participantId = fragment?.participants.find(
-            ({ participant }) => participant.userSub === sub
+          const participantId = fragment?.configuration?.speakers?.find(
+            ({ participant }: { participant: FlickParticipantsFragment }) =>
+              participant.userSub === sub
           )?.participant.id
           if (participantId) {
             join(data?.RTCToken?.token, participantId as string)

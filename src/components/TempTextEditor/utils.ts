@@ -1,3 +1,4 @@
+/* eslint-disable no-restricted-syntax */
 /* eslint-disable @typescript-eslint/dot-notation */
 /* eslint-disable no-param-reassign */
 /* eslint-disable class-methods-use-this */
@@ -12,6 +13,21 @@ export function getCursorCoordinates(
   const { left, top } = elem.getBoundingClientRect()
 
   return { x: x - left, y: y - top }
+}
+
+export const mergeRefs = (...refs: any) => {
+  const filteredRefs = refs.filter(Boolean)
+  if (!filteredRefs.length) return null
+  if (filteredRefs.length === 0) return filteredRefs[0]
+  return (inst: any) => {
+    for (const ref of filteredRefs) {
+      if (typeof ref === 'function') {
+        ref(inst)
+      } else if (ref) {
+        ref.current = inst
+      }
+    }
+  }
 }
 
 export class TextEditorParser {
@@ -32,6 +48,19 @@ export class TextEditorParser {
 
   getMarkdown() {
     return this.parseMarkdown(this.ast)
+  }
+
+  /**
+   * Check the validity of the AST
+   *
+   * @param ast Optional AST to use instead of the one stored in this class.
+   * @returns A boolean indicating if the AST is valid.
+   */
+  isValid(ast?: SimpleAST) {
+    const blocks = ast?.blocks || this.ast?.blocks
+    if (!blocks || blocks.length === 0) return false
+
+    return blocks.every((block) => typeof block.type !== 'undefined')
   }
 
   private parseMarkdown(ast?: SimpleAST) {

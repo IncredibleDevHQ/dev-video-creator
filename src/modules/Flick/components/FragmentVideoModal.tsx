@@ -4,13 +4,16 @@ import { Modal } from 'react-responsive-modal'
 import { useRecoilValue } from 'recoil'
 import { Video } from '../../../components'
 import config from '../../../config'
+import { Content_Type_Enum_Enum } from '../../../generated/graphql'
 import { newFlickStore } from '../store/flickNew.store'
 
 const FragmentVideoModal = ({
   open,
+  contentType,
   handleClose,
 }: {
   open: boolean
+  contentType: Content_Type_Enum_Enum
   handleClose: () => void
 }) => {
   const { flick, activeFragmentId } = useRecoilValue(newFlickStore)
@@ -26,7 +29,10 @@ const FragmentVideoModal = ({
       center
       styles={{
         modal: {
-          maxWidth: '80%',
+          maxHeight: '90vh',
+          maxWidth: `${
+            contentType === Content_Type_Enum_Enum.Video ? '80%' : '25%'
+          }`,
         },
       }}
       classNames={{
@@ -45,11 +51,15 @@ const FragmentVideoModal = ({
       showCloseIcon={false}
     >
       <div>
-        {fragment?.producedLink && (
+        {(fragment?.producedLink || fragment?.producedShortsLink) && (
           // eslint-disable-next-line jsx-a11y/media-has-caption
           <Video
-            className="w-full"
-            src={config.storage.baseUrl + fragment.producedLink}
+            src={
+              config.storage.baseUrl +
+              (contentType === Content_Type_Enum_Enum.VerticalVideo
+                ? fragment.producedShortsLink
+                : fragment.producedLink)
+            }
           />
         )}
       </div>

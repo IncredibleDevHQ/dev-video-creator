@@ -7,7 +7,7 @@ const ScreenState = ({
   subtitle,
   button,
   handleClick,
-  loading,
+  loading = true,
 }: {
   title?: string
   subtitle?: string
@@ -17,7 +17,7 @@ const ScreenState = ({
 }) => {
   return (
     <div className="z-10 p-4 flex flex-col items-center justify-center fixed w-screen left-0 top-0 min-h-screen">
-      <img src={loadingImg} className="w-14" alt="Logo" />
+      {loading && <img src={loadingImg} className="w-14" alt="Logo" />}
 
       <div style={{ maxWidth: 256 }}>
         {title && (

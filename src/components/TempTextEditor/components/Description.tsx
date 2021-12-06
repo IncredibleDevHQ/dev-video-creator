@@ -1,4 +1,4 @@
-import React, { useRef, useCallback } from 'react'
+import React, { useRef } from 'react'
 import { BlockComponentContext, Textbox } from '.'
 
 const Description = () => {
@@ -7,7 +7,7 @@ const Description = () => {
 
   const clearable = useRef(false)
 
-  const handleKeyUp = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyUp = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (!clearable.current) {
       if (
         e.key === 'Backspace' &&
@@ -59,6 +59,7 @@ const Description = () => {
         // @ts-ignore
         text={block?.[block?.type]?.description}
         placeholder="Write a description..."
+        className="font-body"
       />
     </div>
   )

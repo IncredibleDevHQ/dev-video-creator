@@ -1,4 +1,4 @@
-import React, { useCallback, useRef } from 'react'
+import React, { useRef } from 'react'
 import { BiNotepad } from 'react-icons/bi'
 import { BlockComponentContext, Textbox } from '.'
 
@@ -8,7 +8,7 @@ const Note = () => {
 
   const clearable = useRef(false)
 
-  const handleKeyUp = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyUp = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (!clearable.current) {
       if (
         e.key === 'Backspace' &&
@@ -64,6 +64,7 @@ const Note = () => {
         // @ts-ignore
         text={block?.[block?.type]?.note}
         placeholder="You can add notes to this block to help you present. They'll only be visible to you and won't appear in the final presentation."
+        className="font-body"
       />
     </div>
   )
