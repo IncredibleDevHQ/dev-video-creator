@@ -191,16 +191,16 @@ const FragmentBar = ({
           isOpen={isOpen}
           setIsOpen={setIsOpen}
           content={
-            <div className="bg-white rounded-md shadow-lg flex flex-col mt-2 gap-y-2 border border-gray-100">
+            <div className="bg-white rounded-md shadow-lg flex flex-col mt-2 gap-y-1 border border-gray-100">
               <button
                 type="button"
                 onClick={() => {
                   setViewConfig({ ...config, mode: 'Landscape' })
                 }}
-                className="flex gap-x-4 px-4 py-3 hover:bg-gray-100 cursor-pointer"
+                className="flex items-center gap-x-4 px-4 py-3 hover:bg-gray-100 cursor-pointer"
               >
                 <div className="bg-brand bg-opacity-10 p-2.5 rounded-sm">
-                  <IoPlayOutline size={24} className="text-brand " />
+                  <IoPlayOutline size={18} className="text-brand " />
                 </div>
                 <div>
                   <Text className="font-bold font-main flex items-center gap-x-3">
@@ -226,10 +226,10 @@ const FragmentBar = ({
                 onClick={() => {
                   setViewConfig({ ...config, mode: 'Portrait' })
                 }}
-                className="flex gap-x-4 px-4 py-3 hover:bg-gray-100 cursor-pointer"
+                className="flex items-center gap-x-4 px-4 py-3 hover:bg-gray-100 cursor-pointer"
               >
                 <div className="bg-cyan-600 bg-opacity-10 p-2.5 rounded-sm">
-                  <HiOutlineSparkles size={24} className="text-cyan-600" />
+                  <HiOutlineSparkles size={18} className="text-cyan-600" />
                 </div>
                 <div>
                   <Text className="font-bold font-main flex items-center gap-x-3">
@@ -266,11 +266,11 @@ const FragmentBar = ({
                 >
                   {config.mode === 'Landscape' ? (
                     <div className="bg-brand bg-opacity-10 p-2.5 rounded-sm">
-                      <IoPlayOutline size={24} className="text-brand " />
+                      <IoPlayOutline size={18} className="text-brand " />
                     </div>
                   ) : (
                     <div className="bg-cyan-600 bg-opacity-10 p-2.5 rounded-sm">
-                      <HiOutlineSparkles size={24} className="text-cyan-600" />
+                      <HiOutlineSparkles size={18} className="text-cyan-600" />
                     </div>
                   )}
                   <Text className="font-bold font-main">
@@ -283,11 +283,10 @@ const FragmentBar = ({
               appearance="primary"
               size="small"
               type="button"
-              className="py-1 my-1.5"
               loading={savingConfig}
               onClick={() => updateConfig()}
             >
-              Save
+              <Text className="text-sm">Save</Text>
             </Button>
             {fragment?.producedLink && (
               <div
@@ -303,12 +302,16 @@ const FragmentBar = ({
               </div>
             )}
             <button
-              className="border-red-600 text-red-600 border rounded-sm py-2 px-2.5 flex items-center gap-x-2 font-bold hover:shadow-md"
+              className="border-red-600 text-red-600 border rounded-sm py-2 px-2.5 flex items-center gap-x-2 font-bold hover:shadow-md text-sm"
               type="button"
               onClick={() => history.push(`/${activeFragmentId}/studio`)}
               disabled={!fragment?.configuration}
             >
-              <img src="/src/assets/StartRecord.svg" alt="start" />
+              <img
+                src="/src/assets/StartRecord.svg"
+                alt="start"
+                className="w-5"
+              />
               {fragment?.producedLink ? 'Retake' : 'Record'}
             </button>
           </div>

@@ -3,21 +3,16 @@ import React, { useEffect, useMemo, useState } from 'react'
 import {
   FiEye,
   FiEyeOff,
-  FiPlus,
   FiRefreshCcw,
   FiSliders,
   FiUser,
   FiX,
 } from 'react-icons/fi'
+import { IoPersonOutline } from 'react-icons/io5'
 import { useHistory, useParams } from 'react-router-dom'
 import { useRecoilState, useRecoilValue } from 'recoil'
-import {
-  Heading,
-  ScreenState,
-  TempTextEditor,
-  Text,
-  Tooltip,
-} from '../../components'
+import { useDebouncedCallback } from 'use-debounce'
+import { ScreenState, TempTextEditor, Text, Tooltip } from '../../components'
 import { Block, Position } from '../../components/TempTextEditor/types'
 import {
   FlickFragmentFragment,
@@ -27,10 +22,12 @@ import {
   StudioFragmentFragment,
   useGetFlickByIdQuery,
   UserAssetQuery,
+  useUpdateFragmentMutation,
   useUserAssetQuery,
 } from '../../generated/graphql'
 import { useCanvasRecorder } from '../../hooks'
 import { BlockProperties, ViewConfig } from '../../utils/configTypes2'
+import { verticalCustomScrollBar } from '../../utils/globalStyles'
 import { CONFIG } from '../Studio/components/Concourse'
 import studioStore from '../Studio/stores/studio.store'
 import {
@@ -123,15 +120,21 @@ const SpeakersTooltip = ({
   const { flick } = useRecoilValue(newFlickStore)
 
   return (
-    <div className="p-2 rounded-md bg-gray-50">
+    <div className="rounded-lg bg-white shadow-2xl font-body flex flex-col">
       {flick?.participants
         .filter((p) => !speakers?.some((s) => s.id === p.id))
-        .map((participant) => (
+        .map((participant, index) => (
           <div
             role="button"
             tabIndex={0}
             onKeyDown={() => null}
-            className="flex items-center px-2 py-1 transition-colors rounded-md hover:bg-gray-300"
+            className={cx(
+              'flex items-center px-4 transition-colors hover:bg-gray-100 gap-x-2 py-2',
+              {
+                'rounded-t-lg': index === 0,
+                'rounded-b-lg': index === flick.participants.length - 1,
+              }
+            )}
             key={participant.id}
             onClick={() => {
               if (participant) {
@@ -145,9 +148,7 @@ const SpeakersTooltip = ({
               alt={participant.user.displayName as string}
               className="w-6 h-6 rounded-full"
             />
-            <Text fontSize="normal" className="ml-2">
-              {participant.user.displayName}
-            </Text>
+            <Text className="text-sm">{participant.user.displayName}</Text>
           </div>
         ))}
     </div>
@@ -161,6 +162,8 @@ const Flick = () => {
   const { data, error, loading, refetch } = useGetFlickByIdQuery({
     variables: { id },
   })
+  const [updateFragmentMutation] = useUpdateFragmentMutation()
+
   const [{ fragment }, setStudio] = useRecoilState(studioStore)
   const { addMusic, stopMusic } = useCanvasRecorder({
     options: {},
@@ -287,7 +290,7 @@ const Flick = () => {
     }
   }, [activeFragmentId])
 
-  useEffect(() => {
+  const updateStoreViewConfig = (vc: ViewConfig) => {
     if (!fragment || !flick) return
     setFlickStore((store) => ({
       ...store,
@@ -297,8 +300,7 @@ const Flick = () => {
           if (frag.id === fragment.id) {
             return {
               ...frag,
-              configuration: viewConfig,
-              editorState: plateValue,
+              configuration: vc,
             }
           }
           return frag
@@ -309,14 +311,17 @@ const Flick = () => {
       ...store,
       fragment: {
         ...fragment,
-        editorState: plateValue,
-        configuration: viewConfig,
+        configuration: vc,
       },
     }))
-  }, [viewConfig, plateValue])
+  }
 
   const addSpeaker = (speaker: FlickParticipantsFragment) => {
     setViewConfig({
+      ...viewConfig,
+      speakers: [...viewConfig?.speakers, speaker],
+    })
+    updateStoreViewConfig({
       ...viewConfig,
       speakers: [...viewConfig?.speakers, speaker],
     })
@@ -329,6 +334,41 @@ const Flick = () => {
         (s) => s.user.sub !== speaker.user.sub
       ),
     })
+    updateStoreViewConfig({
+      ...viewConfig,
+      speakers: viewConfig?.speakers?.filter(
+        (s) => s.user.sub !== speaker.user.sub
+      ),
+    })
+  }
+
+  const debounceUpdateFragmentName = useDebouncedCallback((value) => {
+    if (value !== activeFragment?.name) {
+      updateFragmentMutation({
+        variables: {
+          fragmentId: fragment?.id,
+          name: value,
+        },
+      })
+    }
+  }, 1000)
+
+  const updateFragment = async (newName: string) => {
+    if (flick) {
+      setFlickStore((store) => ({
+        ...store,
+        flick: {
+          ...flick,
+          fragments: flick.fragments.map((f) => {
+            if (f.id === fragment?.id) {
+              return { ...f, name: newName }
+            }
+            return f
+          }),
+        },
+      }))
+    }
+    debounceUpdateFragmentName(newName)
   }
 
   if (loading) return <ScreenState title="Just a jiffy" loading />
@@ -367,9 +407,9 @@ const Flick = () => {
   return (
     <div className="relative flex flex-col h-screen overflow-hidden">
       <FlickNavBar toggleModal={setIntegrationModal} />
-      <div className="flex flex-1 overflow-y-auto">
+      <div className="flex flex-1 overflow-hidden ">
         <FragmentSideBar plateValue={plateValue} />
-        <div className="flex-1 pb-12">
+        <div className="flex-1 pb-20 h-full">
           <FragmentBar
             markdown={fragmentMarkdown}
             plateValue={plateValue}
@@ -393,27 +433,36 @@ const Flick = () => {
               Fragment_Type_Enum_Enum.Intro &&
             flick.fragments.find((f) => f.id === activeFragmentId)?.type !==
               Fragment_Type_Enum_Enum.Outro && (
-              <div className="w-full h-full mx-8 my-4 overflow-y-auto">
-                <div className="mx-12 mb-4">
-                  <Heading fontSize="large">
-                    {
+              <div
+                className={cx(
+                  'h-full px-8 pt-4 overflow-y-auto pb-96',
+                  verticalCustomScrollBar
+                )}
+              >
+                <div className="mx-10 mb-4">
+                  <input
+                    onChange={(e) => {
+                      updateFragment(e.target.value)
+                    }}
+                    className="font-main text-4xl text-gray-800 focus:outline-none font-bold"
+                    value={
                       flick.fragments.find((f) => f.id === activeFragmentId)
-                        ?.name
+                        ?.name || ''
                     }
-                  </Heading>
+                  />
                 </div>
-                <div className="flex items-center justify-start mx-12">
+                <div className="flex items-center justify-start mx-10">
                   {viewConfig.speakers?.map((s) => (
                     <div
-                      className="flex items-center px-2 py-1 mr-2 bg-gray-200 rounded-md"
+                      className="flex items-center px-2 py-1 mr-2 rounded-md border border-gray-300 font-body"
                       key={s.user.sub}
                     >
                       <img
                         src={s.user.picture as string}
                         alt={s.user.displayName as string}
-                        className="w-6 h-6 rounded-full"
+                        className="w-5 h-5 rounded-full"
                       />
-                      <Text fontSize="normal" className="mx-2">
+                      <Text className="ml-1.5 mr-2 text-xs text-gray-600 font-medium">
                         {s.user.displayName}
                       </Text>
                       <FiX
@@ -427,7 +476,7 @@ const Flick = () => {
                       containerOffset={8}
                       isOpen={isSpeakersTooltip}
                       setIsOpen={() => setSpeakersTooltip(false)}
-                      placement="bottom-start"
+                      placement="right-end"
                       content={
                         <SpeakersTooltip
                           fragment={activeFragment}
@@ -440,18 +489,18 @@ const Flick = () => {
                       <button
                         type="button"
                         onClick={() => setSpeakersTooltip(true)}
-                        className="flex items-center px-2 py-1 bg-gray-200 rounded-md"
+                        className="flex items-center px-2 py-1 hover:bg-gray-100 rounded-sm gap-x-2 text-gray-400 font-body"
                       >
-                        <FiPlus className="mr-1.5" /> Add speakers
+                        <IoPersonOutline /> Add speakers
                       </button>
                     </Tooltip>
                   )}
                 </div>
-                <div className="flex items-center mx-12 mt-8 shadow-lg">
+                <div className="flex items-center mx-7 mr-36 mt-6 shadow-lg">
                   <hr className="w-full" />
                   <span className="w-48" />
                 </div>
-                <div className="px-8 w-full relative overflow-y-scroll flex h-full justify-between items-stretch">
+                <div className="px-8 -mt-6 w-full relative flex h-full justify-between">
                   {/* <TextEditor
                     placeholder="Start writing..."
                     handleUpdateJSON={(json) => {
@@ -473,6 +522,7 @@ const Flick = () => {
                   /> */}
 
                   <TempTextEditor
+                    key={activeFragment.id}
                     handleUpdatePosition={(position) => {
                       setPreviewPosition(position)
                     }}
@@ -484,14 +534,14 @@ const Flick = () => {
                       setCurrentBlock(block)
                     }}
                   />
-                  <div className="relative w-64 border-none outline-none">
+                  <div className="relative w-1/4 ml-10 border-none outline-none">
                     {currentBlock && viewConfig && (
                       <BlockPreview
                         block={currentBlock}
                         config={viewConfig}
                         updateConfig={updateBlockProperties}
                         className={cx(
-                          'absolute',
+                          'absolute w-full h-full',
                           css`
                             top: ${previewPosition?.y}px;
                           `
