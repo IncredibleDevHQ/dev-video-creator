@@ -40,6 +40,13 @@ fragment BaseFlick on Flick {
   deletedAt
   producedLink
   configuration
+  contents {
+    id
+    isPublic
+    seriesId
+    thumbnail
+    type
+  }
   participants {
     user {
       sub
