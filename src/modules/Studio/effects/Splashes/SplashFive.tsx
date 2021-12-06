@@ -23,8 +23,19 @@ const SplashFive = ({
   useEffect(() => {
     if (!fragment) return
     setConfiguration({
-      title: { value: fragment?.flick?.name },
-      subTitle: { value: fragment?.flick?.description },
+      title: {
+        value:
+          fragment?.flick?.name?.length > 12
+            ? `${fragment?.flick?.name.substring(0, 12)}...`
+            : fragment?.flick.name,
+      },
+      subTitle: {
+        value:
+          fragment?.flick?.description &&
+          fragment?.flick?.description?.length > 25
+            ? `${fragment?.flick?.description?.substring(0, 25)}...`
+            : fragment?.flick.description,
+      },
     })
   }, [fragment])
 
@@ -66,19 +77,6 @@ const SplashFive = ({
     font.load()
   }, [])
 
-  // const [layerChildren, setLayerChildren] = useState([
-  //   <Rect
-  //     x={0}
-  //     y={0}
-  //     fill="#ffffff"
-  //     width={CONFIG.width}
-  //     height={CONFIG.height}
-  //   />,
-  // ])
-
-  // const getLayerChildren = () => {
-  //   setLayerChildren((layerChildren) => [
-  //     ...layerChildren,
   return (
     <>
       <Group x={0} y={0}>
@@ -182,9 +180,10 @@ const SplashFive = ({
           fontSize={60}
           fontFamily="Poppins"
           fill="#000000"
+          height={60}
           align="left"
           opacity={1}
-          width={titleWidth}
+          // width={titleWidth}
           ref={(ref) => {
             ref?.to({
               duration: 1,
@@ -208,6 +207,7 @@ const SplashFive = ({
           lineHeight={1.25}
           fill="#5C595A"
           align="left"
+          height={30}
           width={titleWidth}
           opacity={1}
           ref={(ref) => {
