@@ -273,7 +273,14 @@ const Flick = () => {
       fragment?.type !== Fragment_Type_Enum_Enum.Outro
     ) {
       if (fragment?.configuration)
-        setViewConfig(fragment?.configuration || initialConfig)
+        setViewConfig(
+          fragment?.configuration || {
+            ...initialConfig,
+            speakers: [
+              flick.participants.find((f) => f.id === fragment.participants[0]),
+            ],
+          }
+        )
       if (fragment?.editorState) {
         if (
           typeof fragment?.editorState === 'object' &&
