@@ -10,14 +10,6 @@ import { getCursorCoordinates } from './utils'
 import { ASSETS } from '../../constants'
 import { Heading, Text } from '..'
 
-export const TempTextEditorPage = () => {
-  return (
-    <div className="p-4 container mx-auto">
-      <TempTextEditor />
-    </div>
-  )
-}
-
 const DEFAULT: SimpleAST = {
   blocks: [],
 }
@@ -28,7 +20,7 @@ export interface TempTextEditorProps {
   controlled?: boolean
   ast?: SimpleAST
   handleUpdatePosition?: (position: Position) => void
-  handleActiveBlock?: (block: Block) => void
+  handleActiveBlock?: (block?: Block) => void
 }
 
 const TempTextEditor = (props: TempTextEditorProps) => {
@@ -81,6 +73,7 @@ const TempTextEditor = (props: TempTextEditorProps) => {
                 ...ast,
                 blocks: ast.blocks.filter((b) => b.id !== block.id),
               })
+              props.handleActiveBlock?.(undefined)
             }}
             handleUpdateBlock={(block) => {
               updateAst({

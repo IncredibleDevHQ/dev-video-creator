@@ -228,11 +228,21 @@ const ThumbnailDND = () => {
     startIndex: number,
     endIndex: number
   ) => {
-    const results = Array.from(list)
+    const results = Array.from(
+      list.filter(
+        (l) =>
+          l.type !== Fragment_Type_Enum_Enum.Intro &&
+          l.type !== Fragment_Type_Enum_Enum.Outro
+      )
+    )
     const [removed] = results.splice(startIndex, 1)
     results.splice(endIndex, 0, removed)
 
-    return results.map((result, index) => ({ ...result, order: index }))
+    return [
+      list[0],
+      ...results.map((result, index) => ({ ...result, order: index })),
+      list[list.length - 1],
+    ]
   }
 
   const onDragEnd = (result: any) => {
