@@ -14,7 +14,7 @@ const Title = () => {
     }
   }, [])
 
-  const handleKeyUp = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyUp = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (!clearable.current) {
       if (
         e.key === 'Backspace' &&
