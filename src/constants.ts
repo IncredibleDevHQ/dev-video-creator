@@ -16,13 +16,14 @@ import flickIcon from './assets/flickIcon.svg'
 import EmptyState from './assets/EmptyState.svg'
 import StudioLogo from './assets/Logo-studio.svg'
 import LoginPattern from './assets/LoginPattern.svg'
-import FLICK from './assets/flick.png'
-import BLOG from './assets/blog.png'
-import SHORTS from './assets/shorts.png'
+import FLICK from './assets/flick.svg'
+import BLOG from './assets/blog.svg'
+import SHORTS from './assets/shorts.svg'
 import PENCIL_ALT from './assets/pencil-alt.svg'
 import EYE_OUTLINE from './assets/eye-outline.svg'
 import PROCESSING from './assets/processing.gif'
 import SUCCESS from './assets/Success.gif'
+import EDITOR from './assets/editor.png'
 
 export const ASSETS = {
   ICONS: {
@@ -49,6 +50,7 @@ export const ASSETS = {
     LANDING_DEVELOPER,
     COMMUNITY,
     EMPTY_ACTIVITY,
+    EDITOR,
   },
   PATTERNS: {
     LoginPattern,

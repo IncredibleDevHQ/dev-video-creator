@@ -58,12 +58,12 @@ export const getRandomGradient = (): Gradient =>
 
 export const verticalCustomScrollBar = css`
   ::-webkit-scrollbar {
-    width: 0.25rem;
+    width: 0.35rem;
     padding: 0.5rem 0;
   }
   ::-webkit-scrollbar-thumb {
-    width: 0.25rem;
-    background-color: #4d4d4d;
+    width: 0.35rem;
+    background-color: #9ca3af;
     border-radius: 1rem;
   }
 `

@@ -1,4 +1,6 @@
 const Color = require('color')
+const { fontFamily } = require('tailwindcss/defaultTheme')
+const colors = require('tailwindcss/colors')
 
 const alpha = (clr, val) => Color(clr).alpha(val).rgb().string()
 const lighten = (clr, val) => Color(clr).lighten(val).rgb().string()
@@ -10,12 +12,23 @@ module.exports = {
   darkMode: false, // or 'media' or 'class'
   theme: {
     extend: {
+      borderWidth: {
+        1.5: '1.5px',
+      },
+      borderRadius: {
+        sm: '0.25rem',
+      },
+      fontFamily: {
+        main: ['Gilroy', ...fontFamily.sans],
+        body: ['InterBody', ...fontFamily.sans],
+      },
       minHeight: {
         32: '8rem',
         48: '12rem',
       },
       colors: {
         inherit: 'inherit',
+        cyan: colors.cyan,
         brand: {
           DEFAULT: '#16A34A',
           lighter: lighten('#16A34A', 0.05),

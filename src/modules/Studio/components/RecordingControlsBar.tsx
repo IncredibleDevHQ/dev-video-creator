@@ -17,7 +17,10 @@ import startRecordIcon from '../../../assets/StartRecord.svg'
 import stopRecordIcon from '../../../assets/StopRecord.svg'
 import swapIcon from '../../../assets/Swap.svg'
 import { Avatar, Heading, Tooltip } from '../../../components'
-import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
+import {
+  Fragment_Status_Enum_Enum,
+  Fragment_Type_Enum_Enum,
+} from '../../../generated/graphql'
 import { useTimekeeper } from '../../../hooks'
 import { canvasStore, StudioProviderProps, studioStore } from '../stores'
 
@@ -95,6 +98,7 @@ const RecordingControlsBar = () => {
     upload,
     reset,
     state,
+    fragment,
     mute,
     participants,
     updateParticipant,
@@ -242,56 +246,63 @@ const RecordingControlsBar = () => {
         )}
       </button>
       <div className="w-px bg-gray-200 h-full mx-1" />
-      <button
-        type="button"
-        onClick={() => {
-          if (canvas) setCanvas({ ...canvas, zoomed: !canvas.zoomed })
-        }}
-      >
-        {canvas?.zoomed ? (
-          <FiZoomIn className="text-gray-600" size={24} />
-        ) : (
-          <FiZoomOut className="text-gray-600" size={24} />
+      {fragment?.type !== Fragment_Type_Enum_Enum.Intro &&
+        fragment?.type !== Fragment_Type_Enum_Enum.Outro && (
+          <>
+            <button
+              type="button"
+              onClick={() => {
+                if (canvas) setCanvas({ ...canvas, zoomed: !canvas.zoomed })
+              }}
+            >
+              {canvas?.zoomed ? (
+                <FiZoomIn className="text-gray-600" size={24} />
+              ) : (
+                <FiZoomOut className="text-gray-600" size={24} />
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (payload?.fragmentState === 'onlyUserMedia') {
+                  // updating the fragment state in the payload to customLayout state
+                  updatePayload?.({
+                    fragmentState: 'customLayout',
+                  })
+                } else {
+                  // updating the fragment state in the payload to onlyUserMedia state
+                  updatePayload?.({
+                    fragmentState: 'onlyUserMedia',
+                  })
+                }
+              }}
+            >
+              <img src={swapIcon} alt="swap" />
+            </button>
+          </>
         )}
-      </button>
-      <button
-        type="button"
-        onClick={() => {
-          if (payload?.fragmentState === 'onlyUserMedia') {
-            // updating the fragment state in the payload to customLayout state
-            updatePayload?.({
-              fragmentState: 'customLayout',
-            })
-          } else {
-            // updating the fragment state in the payload to onlyUserMedia state
-            updatePayload?.({
-              fragmentState: 'onlyUserMedia',
-            })
+      {fragment?.participants.length !== 1 && (
+        <Tooltip
+          isOpen={isRaiseHandsTooltip}
+          setIsOpen={setRaiseHandsTooltip}
+          content={
+            <RaiseHandsMenu
+              participants={participantsArray.filter((p) => p.raiseHands)}
+            />
           }
-        }}
-      >
-        <img src={swapIcon} alt="swap" />
-      </button>
-      <Tooltip
-        isOpen={isRaiseHandsTooltip}
-        setIsOpen={setRaiseHandsTooltip}
-        content={
-          <RaiseHandsMenu
-            participants={participantsArray.filter((p) => p.raiseHands)}
-          />
-        }
-        placement="left-end"
-        hideOnOutsideClick={false}
-      >
-        <button
-          type="button"
-          onClick={() => {
-            updateParticipant?.({ raiseHands: !participant?.raiseHands })
-          }}
+          placement="left-end"
+          hideOnOutsideClick={false}
         >
-          <IoHandRightOutline className="text-gray-600 -mb-1.5" size={24} />
-        </button>
-      </Tooltip>
+          <button
+            type="button"
+            onClick={() => {
+              updateParticipant?.({ raiseHands: !participant?.raiseHands })
+            }}
+          >
+            <IoHandRightOutline className="text-gray-600 -mb-1.5" size={24} />
+          </button>
+        </Tooltip>
+      )}
     </div>
   )
 }

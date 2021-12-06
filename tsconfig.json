@@ -14,7 +14,8 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react",
-    "experimentalDecorators": true
+    "experimentalDecorators": true,
+    "types": ["vite-plugin-svgr/client"]
   },
   "include": ["./src", "index.d.ts"]
 }

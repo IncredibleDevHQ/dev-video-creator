@@ -35,38 +35,48 @@ const AuthProvider = ({ children }: { children: JSX.Element }): JSX.Element => {
         statusResponse.data as string
       )
       setFbUser(signedInUser.user)
-      getUserQuery()
+      if (!dbUser) {
+        const res = await getUserQuery()
+        if (res.error) throw res.error
+        if (!res.data?.Me) throw new Error('Response returned null')
+        setDbUser(res.data.Me)
+        setVerificationStatus(res.data.Me.verificationStatus || null)
+      }
+
+      // repeat call to /login endpoint to update auth token in session cookie
+      const idToken = await signedInUser.user.getIdToken()
+
+      await axios.post(
+        `${config.auth.endpoint}/api/login`,
+        {
+          idToken,
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json', // 'text/plain',
+            'Access-Control-Allow-Origin': `${config.client.studioUrl}`,
+          },
+          withCredentials: true,
+        }
+      )
     } catch (e) {
       setAuth({ ...auth, loading: false })
+    } finally {
+      setAuth((auth) => ({ ...auth, loading: false }))
     }
   }
-
-  useEffect(() => {
-    if (!me?.Me || dbUser) return
-    setDbUser(me.Me)
-    setVerificationStatus(me.Me.verificationStatus || null)
-    setAuth({ ...auth, loading: false })
-  }, [me])
 
   useEffect(() => {
     onAuthStateChanged(auth.auth, async (user) => {
       if (user) {
         const token = await user.getIdToken(true)
-        const idTokenResult = await user.getIdTokenResult(true)
-        const hasuraClaim = idTokenResult.claims['https://hasura.io/jwt/claims']
-
-        if (hasuraClaim) {
-          setAuth((auth) => ({
-            ...auth,
-            token,
-            loading: false,
-          }))
-          setFbUser((firebaseUser) => ({ ...firebaseUser, ...user }))
-        }
+        setAuth({
+          ...auth,
+          token,
+        })
       } else {
         setAuth((auth) => ({
           ...auth,
-          loading: false,
           token: null,
         }))
       }

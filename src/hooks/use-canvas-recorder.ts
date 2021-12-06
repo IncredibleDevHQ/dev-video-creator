@@ -3,6 +3,8 @@ import { saveAs } from 'file-saver'
 import { extension } from 'mime-types'
 import { useRef, useState } from 'react'
 import transitionMusic from '../assets/TransitionMusic.wav'
+import splashMusic from '../assets/IntroOutroBgm.mp3'
+import pointsMusic from '../assets/bubblePopMusic.mp3'
 import { getSeekableWebM } from '../utils/helpers'
 
 const types = [
@@ -25,6 +27,8 @@ interface CanvasElement extends HTMLCanvasElement {
   captureStream(frameRate?: number): MediaStream
 }
 
+export type AudioType = 'transition' | 'splash' | 'points'
+
 const useCanvasRecorder = ({
   options: { videoBitsPerSecond = 2500000 },
 }: {
@@ -45,6 +49,8 @@ const useCanvasRecorder = ({
 
   const ctx = useRef<AudioContext | null>(null)
   const dest = useRef<MediaStreamAudioDestinationNode | null>(null)
+  const splashAudio = new Audio(splashMusic)
+  const splashAudioSourceNode = useRef<MediaElementAudioSourceNode | null>(null)
 
   /**
    * Starts recording...
@@ -115,11 +121,31 @@ const useCanvasRecorder = ({
     }
   }
 
-  const addTransitionAudio = () => {
+  const addMusic = (type?: AudioType) => {
     if (!ctx || !dest || !ctx.current || !dest.current) return
-    const transitionAudio = new Audio(transitionMusic)
-    ctx.current?.createMediaElementSource(transitionAudio).connect(dest.current)
-    transitionAudio.play()
+    if (type === 'splash') {
+      splashAudioSourceNode.current =
+        ctx.current.createMediaElementSource(splashAudio)
+      splashAudioSourceNode.current.connect(dest.current)
+      splashAudio.loop = true
+      splashAudio.volume = 0.08
+      splashAudio.play()
+    } else if (type === 'points') {
+      const pointsAudio = new Audio(pointsMusic)
+      ctx.current.createMediaElementSource(pointsAudio).connect(dest.current)
+      pointsAudio.play()
+    } else {
+      const transitionAudio = new Audio(transitionMusic)
+      ctx.current
+        .createMediaElementSource(transitionAudio)
+        .connect(dest.current)
+      transitionAudio.play()
+    }
+  }
+
+  const stopMusic = () => {
+    if (!splashAudioSourceNode || !splashAudioSourceNode.current) return
+    splashAudioSourceNode.current.disconnect()
   }
 
   const stopRecording = (fileName?: string) => {
@@ -155,7 +181,8 @@ const useCanvasRecorder = ({
     download,
     getBlobs,
     reset,
-    addTransitionAudio,
+    addMusic,
+    stopMusic,
   }
 }
 

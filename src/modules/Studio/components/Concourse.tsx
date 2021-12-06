@@ -2,9 +2,13 @@ import Konva from 'konva'
 import React, { createRef, useEffect, useState } from 'react'
 import { Group, Rect } from 'react-konva'
 import { useRecoilState, useRecoilValue } from 'recoil'
-import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
+import {
+  Fragment_Status_Enum_Enum,
+  Fragment_Type_Enum_Enum,
+} from '../../../generated/graphql'
 import { User, userState } from '../../../stores/user.store'
 import { GradientConfig } from '../../../utils/configTypes'
+import { ShortsOutro } from '../effects/fragments/OutroFragment'
 import {
   MultiCircleCenterGrow,
   MultiCircleMoveDown,
@@ -177,7 +181,9 @@ const Concourse = ({
   }
 
   const performFinishAction = () => {
-    stopRecording()
+    if (state === 'recording') {
+      stopRecording()
+    }
   }
 
   useEffect(() => {
@@ -245,12 +251,18 @@ const Concourse = ({
               )
             }
           }
-          if (payload?.status === Fragment_Status_Enum_Enum.Ended)
+          if (payload?.status === Fragment_Status_Enum_Enum.Ended) {
+            if (fragment?.type === Fragment_Type_Enum_Enum.Outro) {
+              performFinishAction()
+            } else if (fragment?.configuration?.mode === 'Portrait') {
+              return <ShortsOutro performFinishAction={performFinishAction} />
+            }
             return (
               <MultiCircleCenterGrow
                 performFinishAction={performFinishAction}
               />
             )
+          }
           return layerChildren
         })()}
       </Group>
@@ -296,18 +308,22 @@ const Concourse = ({
         payload?.status !== Fragment_Status_Enum_Enum.CountDown &&
         payload?.status !== Fragment_Status_Enum_Enum.Ended &&
         fragment &&
-        fragment.participants.map((_, index: number) => (
-          <PreviewUser
-            studioUserConfig={
-              (studioUserConfig && studioUserConfig[index]) || {
-                x: defaultStudioUserConfig.x - (index + 1) * userStudioImageGap,
-                y: defaultStudioUserConfig.y,
-                width: defaultStudioUserConfig.width,
-                height: defaultStudioUserConfig.height,
+        fragment.configuration?.speakers?.map((_: any, index: number) => {
+          return (
+            <PreviewUser
+              studioUserConfig={
+                (studioUserConfig && studioUserConfig[index]) || {
+                  x:
+                    defaultStudioUserConfig.x -
+                    (index + 1) * userStudioImageGap,
+                  y: defaultStudioUserConfig.y,
+                  width: defaultStudioUserConfig.width,
+                  height: defaultStudioUserConfig.height,
+                }
               }
-            }
-          />
-        ))
+            />
+          )
+        })
       )}
       <Group>{topLayerChildren}</Group>
     </>

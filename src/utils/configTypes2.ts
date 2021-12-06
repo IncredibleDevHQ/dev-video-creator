@@ -1,4 +1,4 @@
-import { FragmentParticipantFragment } from '../generated/graphql'
+import { FlickParticipantsFragment } from '../generated/graphql'
 
 export const allLayoutTypes = [
   'classic',
@@ -41,7 +41,7 @@ export interface TitleSplashConfig {
 export interface ViewConfig {
   mode: 'Portrait' | 'Landscape'
   titleSplash: TitleSplashConfig
-  speakers: FragmentParticipantFragment[]
+  speakers: FlickParticipantsFragment[]
   blocks: {
     [key: string]: BlockProperties
   }

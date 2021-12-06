@@ -9,7 +9,15 @@ export default defineConfig({
   build: {
     outDir: 'build',
   },
-  plugins: [reactRefresh(), svgr(), vitePluginHtmlEnv()],
+  plugins: [
+    reactRefresh(),
+    svgr({
+      svgrOptions: {
+        icon: true,
+      },
+    }),
+    vitePluginHtmlEnv(),
+  ],
   resolve: {
     alias: {
       'tailwind.config.js': path.resolve(__dirname, 'tailwind.config.js'),

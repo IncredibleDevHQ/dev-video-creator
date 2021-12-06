@@ -1,79 +1,133 @@
-import React, { useEffect, useRef, useState } from 'react'
-import { Group, Rect, Image } from 'react-konva'
+import React, { useEffect, useState } from 'react'
+import { Group, Rect } from 'react-konva'
 import { useRecoilValue } from 'recoil'
-import useImage from 'use-image'
-import { LayoutConfig, ViewConfig } from '../../../../utils/configTypes'
-import Concourse, { CONFIG, SHORTS_CONFIG } from '../../components/Concourse'
+import { GradientConfig } from '../../../../utils/configTypes2'
+import { DiscordConfig } from '../../../Flick/components/IntroOutroView'
+import Concourse, { CONFIG } from '../../components/Concourse'
 import { StudioProviderProps, studioStore } from '../../stores'
-import CustomSplash from '../CustomSplash'
-import SplashFifteen from '../SplashFifteen'
-import SplashFive from '../SplashFive'
-import SplashFour from '../SplashFour'
-import SplashSixteen from '../SplashSixteen'
-import SplashTen from '../SplashTen'
-import SplashThree from '../SplashThree'
+import { StudioUserConfiguration } from '../../utils/StudioUserConfig'
+import DiscordSplash from '../DiscordSplash'
+import AstroSplash from '../Splashes/AstroSplash'
+import GraphQLSplash from '../Splashes/GraphQLSplash'
+import SplashEleven from '../Splashes/SplashEleven'
+import SplashFive from '../Splashes/SplashFive'
+import SplashFour from '../Splashes/SplashFour'
+import TensorFlowSplash from '../Splashes/TensorFlowSplash'
+
+export type IntroState = 'onlyUserMedia' | 'customLayout' | 'discord'
 
 const IntroFragment = ({
-  viewConfig,
+  gradientConfig,
   themeNumber,
+  discordConfig,
+  viewMode = false,
 }: {
-  viewConfig?: LayoutConfig
-  themeNumber?: string
+  gradientConfig: GradientConfig
+  discordConfig: DiscordConfig
+  themeNumber: string
+  viewMode?: boolean
 }) => {
-  const { fragment, state, shortsMode } =
+  const { fragment, state, addMusic, stopMusic, payload } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
-  const [bgImage] = useImage(viewConfig?.background?.image || '', 'anonymous')
+  // const [bgImage] = useImage(viewConfig?.background?.image || '', 'anonymous')
 
-  const [stageConfig, setStageConfig] = useState<{
-    width: number
-    height: number
-  }>({ width: 0, height: 0 })
+  const colorStops = [0, '#D397FA', 0.0001, '#D397FA', 1, '#8364E8']
+  const startPoint = { x: 0, y: 0 }
+  const endPoint = { x: CONFIG.width, y: CONFIG.height }
 
-  useEffect(() => {
-    if (!shortsMode) setStageConfig(CONFIG)
-    else setStageConfig(SHORTS_CONFIG)
-  }, [shortsMode])
+  const [fragmentState, setFragmentState] = useState<IntroState>('customLayout')
 
   const Splash = (() => {
-    if (themeNumber === '0') return SplashFive
-    if (themeNumber === '1') return SplashThree
-    if (themeNumber === '2') return SplashTen
-    if (themeNumber === '3') return SplashFifteen
-    if (themeNumber === '4') return SplashSixteen
-    if (themeNumber === '5') return SplashFour
+    if (themeNumber === '0') return GraphQLSplash
+    if (themeNumber === '1') return AstroSplash
+    if (themeNumber === '2') return TensorFlowSplash
+    if (themeNumber === '3') return SplashFive
+    if (themeNumber === '4') return SplashFour
+    if (themeNumber === '5') return SplashEleven
     return SplashFive
   })()
 
-  // const layerChildren = [
-  //   <Group x={0} y={0}>
-  //     {viewConfig?.background?.type === 'color' ? (
-  //       <Rect
-  //         x={0}
-  //         y={0}
-  //         width={stageConfig.width}
-  //         height={stageConfig.height}
-  //         fillLinearGradientColorStops={viewConfig.background.gradient?.values}
-  //         fillLinearGradientStartPoint={
-  //           viewConfig.background.gradient?.startIndex
-  //         }
-  //         fillLinearGradientEndPoint={viewConfig.background.gradient?.endIndex}
-  //       />
-  //     ) : (
-  //       <Image
-  //         x={0}
-  //         y={0}
-  //         width={stageConfig.width}
-  //         height={stageConfig.height}
-  //         image={bgImage}
-  //       />
-  //     )}
-  //   </Group>,
-  //   <Group>
-  //   </Group>,
-  // ]
+  useEffect(() => {
+    if (state === 'recording') setFragmentState('customLayout')
+  }, [state])
 
-  return <Splash />
+  useEffect(() => {
+    if (viewMode) setFragmentState(payload?.fragmentState || 'customLayout')
+  }, [payload?.fragmentState])
+
+  useEffect(() => {
+    if (state === 'recording' || state === 'ready' || viewMode) {
+      if (fragmentState === 'customLayout') {
+        if (!viewMode) addMusic('splash')
+        setLayerChildren([
+          <Group x={0} y={0}>
+            <Splash setFragmentState={setFragmentState} viewMode={viewMode} />
+          </Group>,
+        ])
+      }
+      if (fragmentState === 'discord') {
+        setLayerChildren([
+          <Group x={0} y={0}>
+            <DiscordSplash
+              setFragmentState={setFragmentState}
+              viewMode={viewMode}
+              discordConfig={discordConfig}
+            />
+          </Group>,
+        ])
+      }
+      if (fragmentState === 'onlyUserMedia') {
+        if (!viewMode) stopMusic()
+        setLayerChildren([
+          <Group x={0} y={0}>
+            <Rect
+              x={0}
+              y={0}
+              width={CONFIG.width}
+              height={CONFIG.height}
+              fillLinearGradientColorStops={
+                gradientConfig?.values || colorStops
+              }
+              fillLinearGradientStartPoint={
+                gradientConfig?.startIndex || startPoint
+              }
+              fillLinearGradientEndPoint={gradientConfig?.endIndex || endPoint}
+            />
+          </Group>,
+        ])
+      }
+    }
+  }, [state, fragmentState, themeNumber, discordConfig, gradientConfig])
+
+  const [layerChildren, setLayerChildren] = useState<JSX.Element[]>([
+    <Group x={0} y={0}>
+      <Rect
+        x={0}
+        y={0}
+        width={CONFIG.width}
+        height={CONFIG.height}
+        fillLinearGradientColorStops={gradientConfig?.values || colorStops}
+        fillLinearGradientStartPoint={gradientConfig?.startIndex || startPoint}
+        fillLinearGradientEndPoint={gradientConfig?.endIndex || endPoint}
+      />
+    </Group>,
+  ])
+
+  const studioUserConfig = StudioUserConfiguration({
+    layout: 'classic',
+    fragment,
+    fragmentState:
+      fragmentState === 'onlyUserMedia' ? 'onlyUserMedia' : 'customLayout',
+    isShorts: false,
+  })
+
+  return (
+    <Concourse
+      studioUserConfig={studioUserConfig}
+      layerChildren={layerChildren}
+    />
+  )
 }
 
 export default IntroFragment

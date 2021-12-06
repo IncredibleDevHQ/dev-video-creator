@@ -6,9 +6,8 @@ import {
   CodeBlockProps,
   ImageBlockProps,
   ListBlockProps,
-  useUtils,
   VideoBlockProps,
-} from '../../../../components/TextEditor/utils'
+} from '../../../../components/TempTextEditor/types'
 import { User, userState } from '../../../../stores/user.store'
 import {
   BlockProperties,
@@ -51,8 +50,6 @@ const UnifiedFragment = ({
     titleSplashConfig: getGradientConfig(gradients[0]),
   })
 
-  const { getSimpleAST } = useUtils()
-
   // data config holds all the info abt the object
   // const [dataConfig, setDataConfig] =
   //   useState<(CodejamConfig | VideojamConfig | TriviaConfig | PointsConfig)[]>()
@@ -85,7 +82,7 @@ const UnifiedFragment = ({
     if (!fragment) return
     if (!config) {
       if (fragment.configuration && fragment.editorState) {
-        setDataConfig(getSimpleAST(fragment.editorState).blocks)
+        setDataConfig(fragment.editorState?.blocks)
         setViewConfig(fragment.configuration)
       }
     } else {
@@ -122,6 +119,7 @@ const UnifiedFragment = ({
       })
     }
     if (state === 'recording') {
+      console.log('recording')
       updatePayload?.({
         activeObjectIndex: 0,
         fragmentState: 'onlyUserMedia',
@@ -135,11 +133,11 @@ const UnifiedFragment = ({
             x={
               viewConfig?.mode === 'Landscape'
                 ? lowerThirdCoordinates[0]
-                : SHORTS_CONFIG.width - 30
+                : SHORTS_CONFIG.width - 90
             }
             y={viewConfig?.mode === 'Landscape' ? 450 : 630}
             displayName={displayName}
-            username={`/${username}` || `/${displayName}`}
+            username={username ? `/${username}` : `/${displayName}`}
             width={
               getTextWidth(displayName, 'Inter', 20, 'normal 500') >
               getTextWidth(`/${username}`, 'Inter', 20, 'normal 500')

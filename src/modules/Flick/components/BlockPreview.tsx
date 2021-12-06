@@ -5,7 +5,7 @@ import useMeasure, { RectReadOnly } from 'react-use-measure'
 import { Stage, Layer, Rect } from 'react-konva'
 import Modal from 'react-responsive-modal'
 import { useRecoilBridgeAcrossReactRoots_UNSTABLE } from 'recoil'
-import { Block } from '../../../components/TextEditor/utils'
+import { Block } from '../../../components/TempTextEditor/types'
 import UnifiedFragment from '../../Studio/effects/fragments/UnifiedFragment'
 import {
   ViewConfig,
@@ -249,14 +249,14 @@ const CanvasPreview = ({
   const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
 
   const { height, width } = useGetHW({
-    maxH: bounds.height / 1.25,
-    maxW: bounds.width / 1.25,
+    maxH: bounds.height / 1,
+    maxW: bounds.width / 1,
     aspectRatio: shortsMode ? 9 / 16 : 16 / 9,
   })
 
   const { height: divHeight, width: divWidth } = useGetHW({
-    maxH: bounds.height / 1.25,
-    maxW: bounds.width / 1.25,
+    maxH: bounds.height / 1,
+    maxW: bounds.width / 1,
     aspectRatio: 16 / 9,
   })
 
@@ -360,7 +360,7 @@ const PreviewModal = ({
       }}
       ref={ref}
     >
-      <div className="py-8 px-4 flex justify-between items-start">
+      <div className="flex items-start justify-between px-4 py-8">
         <CanvasPreview
           bounds={bounds}
           block={block}
@@ -422,7 +422,7 @@ const BlockPreview = ({
         tabIndex={0}
         onKeyDown={() => null}
         onClick={() => setPreviewModal(true)}
-        className="h-48 w-44 border-none outline-none"
+        className="flex flex-1 w-full h-full border-none outline-none"
         ref={ref}
       >
         <CanvasPreview

@@ -18,6 +18,10 @@ fragment FlickFragment on Fragment {
   participants {
     ...FragmentParticipant
   }
+  flick {
+    name
+    description
+  }
 }
 
 fragment StudioFragment on Fragment {

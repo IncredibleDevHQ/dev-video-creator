@@ -50,6 +50,7 @@ const config = {
    */
   client: {
     publicUrl: import.meta.env.VITE_PUBLIC_URL,
+    studioUrl: import.meta.env.VITE_STUDIO_URL,
   },
   /**
    * Integrations configs...

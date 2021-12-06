@@ -1,6 +1,5 @@
 /* eslint-disable jsx-a11y/media-has-caption */
 import { cx } from '@emotion/css'
-import { AgoraVideoPlayer } from 'agora-rtc-react'
 import { ILocalVideoTrack, IMicrophoneAudioTrack } from 'agora-rtc-sdk-ng'
 import getBlobDuration from 'get-blob-duration'
 import Konva from 'konva'
@@ -24,8 +23,16 @@ import {
   Text,
   updateToast,
 } from '../../components'
+import { TextEditorParser } from '../../components/TempTextEditor/utils'
+import {
+  CodeBlockProps,
+  ImageBlockProps,
+  ListBlockProps,
+  VideoBlockProps,
+} from '../../components/TextEditor/utils'
 import config from '../../config'
 import {
+  FlickParticipantsFragment,
   Fragment_Status_Enum_Enum,
   Fragment_Type_Enum_Enum,
   GetFragmentByIdQuery,
@@ -39,6 +46,8 @@ import { useCanvasRecorder } from '../../hooks'
 import { useUploadFile } from '../../hooks/use-upload-file'
 import { User, userState } from '../../stores/user.store'
 import { ConfigType } from '../../utils/configTypes'
+import { ViewConfig } from '../../utils/configTypes2'
+import { DiscordThemes } from '../Flick/components/IntroOutroView'
 import { Countdown } from './components'
 import { CONFIG, SHORTS_CONFIG } from './components/Concourse'
 import {
@@ -49,6 +58,7 @@ import {
 } from './components/Controls'
 import RecordingControlsBar from './components/RecordingControlsBar'
 import IntroFragment from './effects/fragments/IntroFragment'
+import OutroFragment from './effects/fragments/OutroFragment'
 import UnifiedFragment from './effects/fragments/UnifiedFragment'
 import { useAgora, useVectorly } from './hooks'
 import { Device } from './hooks/use-agora'
@@ -99,13 +109,29 @@ const StudioHoC = () => {
 
   const { sub } = (useRecoilValue(userState) as User) || {}
   const { fragmentId } = useParams<{ fragmentId: string }>()
-
   const { data, loading } = useGetFragmentByIdQuery({
     variables: { id: fragmentId, sub: sub as string },
     fetchPolicy: 'network-only',
   })
 
+  const [error, setError] = useState<'INVALID_AST' | undefined>()
+
+  useEffect(() => {
+    if (!data) return
+    if (!new TextEditorParser(data.Fragment[0].editorState).isValid()) {
+      setError('INVALID_AST')
+    }
+  }, [data])
+
   if (loading || !ready) return <ScreenState title="Just a jiffy..." loading />
+
+  if (error === 'INVALID_AST')
+    return (
+      <ScreenState
+        title="Invalid Configuration"
+        subtitle="The fragment contains an invalid data reference. Please correct it and try again."
+      />
+    )
 
   if (view === 'preview')
     return (
@@ -146,23 +172,33 @@ const Preview = ({
   effect?: string
 }) => {
   return (
-    <div className="min-h-screen p-8 flex items-center justify-center flex-1 flex-col">
-      <div className="grid grid-cols-5 w-full gap-x-8">
+    <div className="flex flex-col items-center justify-center flex-1 min-h-screen p-8">
+      <div className="grid w-full grid-cols-5 gap-x-8">
         <div className="col-span-3">
           {tracks?.[1] && (
             <div className="relative">
-              <AspectRatio ratio="16/9" className="rounded-lg overflow-hidden">
-                <>
-                  <AgoraVideoPlayer
-                    className="w-full h-full"
-                    videoTrack={tracks[1]}
-                  />
-                </>
+              <AspectRatio ratio="16/9" className="overflow-hidden rounded-lg">
+                {/* using video tag because agora player failed due to updates */}
+                <video
+                  className="w-full"
+                  ref={(ref) => {
+                    if (!ref) return
+                    const stream = new MediaStream([
+                      tracks?.[1].getMediaStreamTrack(),
+                    ])
+                    // @ts-ignore
+                    // eslint-disable-next-line no-param-reassign
+                    ref.srcObject = stream
+                    ref.addEventListener('loadeddata', () => {
+                      ref.play()
+                    })
+                  }}
+                />
               </AspectRatio>
             </div>
           )}
         </div>
-        <div className="col-span-2 flex flex-col justify-center flex-1">
+        <div className="flex flex-col justify-center flex-1 col-span-2">
           <Heading className="mb-4" fontSize="medium">
             {data?.Fragment?.[0]?.name}
           </Heading>
@@ -171,7 +207,7 @@ const Preview = ({
             Camera
           </Heading>
           <select
-            className="w-full rounded-md mb-4 p-2 border border-gray-300"
+            className="w-full p-2 mb-4 border border-gray-300 rounded-md"
             value={currentDevice?.camera}
             onChange={(e) =>
               // @ts-ignore
@@ -191,7 +227,7 @@ const Preview = ({
             Microphone
           </Heading>
           <select
-            className="w-full rounded-md mb-4 p-2 border border-gray-300"
+            className="w-full p-2 mb-4 border border-gray-300 rounded-md"
             value={currentDevice?.microphone}
             onChange={(e) =>
               // @ts-ignore
@@ -211,7 +247,7 @@ const Preview = ({
             Effect
           </Heading>
           <select
-            className="w-full rounded-md mb-4 p-2 border border-gray-300"
+            className="w-full p-2 mb-4 border border-gray-300 rounded-md"
             value={effect}
             onChange={(e) =>
               // @ts-ignore
@@ -247,7 +283,7 @@ const Studio = ({
   tracks: [IMicrophoneAudioTrack, ILocalVideoTrack] | null
 }) => {
   const { fragmentId } = useParams<{ fragmentId: string }>()
-  const { constraints, shortsMode, controlsConfig } =
+  const { constraints, controlsConfig } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [studio, setStudio] = useRecoilState(studioStore)
   const { sub } = (useRecoilValue(userState) as User) || {}
@@ -269,10 +305,19 @@ const Studio = ({
     height: number
   }>({ width: 0, height: 0 })
 
+  const [shortsMode, setShortsMode] = useState(false)
+
   useEffect(() => {
-    if (!shortsMode) setStageConfig(CONFIG)
-    else setStageConfig(SHORTS_CONFIG)
-  }, [shortsMode])
+    if (!fragment) return
+    const viewConfig: ViewConfig = fragment.configuration
+    if (viewConfig?.mode === 'Portrait') {
+      setStageConfig(SHORTS_CONFIG)
+      setShortsMode(true)
+    } else {
+      setStageConfig(CONFIG)
+      setShortsMode(false)
+    }
+  }, [fragment])
 
   // const [canvas, setCanvas] = useRecoilState(canvasStore)
 
@@ -288,8 +333,9 @@ const Studio = ({
       onTokenDidExpire: async () => {
         const { data } = await getRTCToken({ variables: { fragmentId } })
         if (data?.RTCToken?.token) {
-          const participantId = fragment?.participants.find(
-            ({ participant }) => participant.userSub === sub
+          const participantId = fragment?.configuration?.speakers?.find(
+            ({ participant }: { participant: FlickParticipantsFragment }) =>
+              participant.userSub === sub
           )?.participant.id
           if (participantId) {
             join(data?.RTCToken?.token, participantId as string)
@@ -382,10 +428,16 @@ const Studio = ({
 
   const [state, setState] = useState<StudioState>('ready')
 
-  const { startRecording, stopRecording, reset, getBlobs, addTransitionAudio } =
-    useCanvasRecorder({
-      options: {},
-    })
+  const {
+    startRecording,
+    stopRecording,
+    reset,
+    getBlobs,
+    addMusic,
+    stopMusic,
+  } = useCanvasRecorder({
+    options: {},
+  })
 
   /**
    * END STREAM HOOKS...
@@ -518,6 +570,14 @@ const Studio = ({
 
   const [fragmentType, setFragmentType] = useState<ConfigType>()
 
+  const [isButtonClicked, setIsButtonClicked] = useState(false)
+
+  useEffect(() => {
+    if (state === 'recording') {
+      setIsButtonClicked(false)
+    }
+  }, [state])
+
   useMemo(() => {
     if (!fragment) return
     setStudio({
@@ -527,7 +587,8 @@ const Studio = ({
       startRecording: start,
       stopRecording: stop,
       showFinalTransition: finalTransition,
-      addTransitionAudio,
+      addMusic,
+      stopMusic,
       reset: resetRecording,
       upload,
       getBlobs,
@@ -569,6 +630,26 @@ const Studio = ({
     }
   }, [payload?.status])
 
+  const getNote = (activeObjectIndex: number | undefined) => {
+    if (!fragment || activeObjectIndex === undefined) return ''
+    const blocks = fragment.editorState?.blocks
+
+    switch (blocks[activeObjectIndex].type) {
+      case 'codeBlock':
+        return (blocks[activeObjectIndex] as CodeBlockProps).codeBlock.note
+      case 'videoBlock':
+        return (blocks[activeObjectIndex] as VideoBlockProps).videoBlock.note
+
+      case 'listBlock':
+        return (blocks[activeObjectIndex] as ListBlockProps).listBlock.note
+
+      case 'imageBlock':
+        return (blocks[activeObjectIndex] as ImageBlockProps).imageBlock.note
+      default:
+        return ''
+    }
+  }
+
   /**
    * =======================
    * END EVENT HANDLERS...
@@ -583,7 +664,7 @@ const Studio = ({
   return (
     <div className="h-screen">
       {/* Studio or Video , Notes and layout controls */}
-      <div className="flex h-full px-10 items-center pb-16 ">
+      <div className="flex items-center h-full px-10 pb-16 ">
         <Countdown />
         {state === 'ready' || state === 'recording' || state === 'countDown' ? (
           <div className="flex w-full gap-x-8">
@@ -598,18 +679,60 @@ const Studio = ({
             >
               <Bridge>
                 <Layer ref={layerRef}>
-                  {fragment &&
-                    (fragment.type === Fragment_Type_Enum_Enum.Intro ||
-                    fragment.type === Fragment_Type_Enum_Enum.Outro ? (
-                      <IntroFragment
-                        themeNumber={`${fragment.configuration?.theme}` || '0'}
-                      />
-                    ) : (
-                      <UnifiedFragment
-                        stageRef={stageRef}
-                        layerRef={layerRef}
-                      />
-                    ))}
+                  {(() => {
+                    if (fragment) {
+                      if (fragment.type === Fragment_Type_Enum_Enum.Intro)
+                        return (
+                          <IntroFragment
+                            themeNumber={
+                              `${fragment.configuration?.theme}` || '0'
+                            }
+                            gradientConfig={
+                              fragment.configuration?.gradient || {
+                                backgroundColor: '#1F2937',
+                                textColor: '#ffffff',
+                                theme: DiscordThemes.WhiteOnMidnight,
+                              }
+                            }
+                            discordConfig={
+                              fragment.configuration?.discord || {
+                                cssString:
+                                  'linear-gradient(90deg, #D397FA 0%, #D397FA 0.01%, #8364E8 100%)',
+                                endIndex: { x: CONFIG.width, y: CONFIG.height },
+                                startIndex: { x: 0, y: 0 },
+                                values: [
+                                  0,
+                                  '#D397FA',
+                                  0.0001,
+                                  '#D397FA',
+                                  1,
+                                  '#8364E8',
+                                ],
+                              }
+                            }
+                          />
+                        )
+                      if (fragment.type === Fragment_Type_Enum_Enum.Outro)
+                        return (
+                          <OutroFragment
+                            gradientConfig={
+                              fragment.configuration?.gradient || {
+                                backgroundColor: '#1F2937',
+                                textColor: '#ffffff',
+                                theme: DiscordThemes.WhiteOnMidnight,
+                              }
+                            }
+                          />
+                        )
+                      return (
+                        <UnifiedFragment
+                          stageRef={stageRef}
+                          layerRef={layerRef}
+                        />
+                      )
+                    }
+                    return <></>
+                  })()}
                 </Layer>
               </Bridge>
             </Stage>
@@ -618,9 +741,19 @@ const Studio = ({
                 'my-12': shortsMode,
               })}
             >
-              <div className="h-full" />
-              <div className="h-full flex flex-col justify-end items-start">
+              {/* Notes */}
+              <div className="h-full">
+                <Text className="text-gray-800 truncate whitespace-pre-wrap">
+                  {getNote(payload?.activeObjectIndex)}
+                </Text>
+              </div>
+              <div className="flex flex-col items-start justify-end h-full">
                 {(() => {
+                  if (
+                    fragment.type === Fragment_Type_Enum_Enum.Intro ||
+                    fragment.type === Fragment_Type_Enum_Enum.Outro
+                  )
+                    return <></>
                   switch (fragmentType) {
                     case ConfigType.CODEJAM:
                       return (
@@ -658,41 +791,68 @@ const Studio = ({
                     }
                   }
                 })()}
-                <button
-                  type="button"
-                  disabled={
-                    payload?.activeObjectIndex ===
-                    studio.controlsConfig?.dataConfigLength - 1
-                  }
-                  onClick={() => {
-                    updatePayload?.({
-                      activeObjectIndex: payload?.activeObjectIndex + 1,
-                    })
-                  }}
-                  className="mt-4"
-                >
-                  <div
-                    className={cx(
-                      'flex py-10 px-16 bg-blue-400 items-center justify-center gap-x-2 rounded-md',
-                      {
-                        'opacity-50 cursor-not-allowed':
-                          payload?.activeObjectIndex ===
-                          studio.controlsConfig?.dataConfigLength - 1,
+                {fragment.type !== Fragment_Type_Enum_Enum.Intro &&
+                  fragment.type !== Fragment_Type_Enum_Enum.Outro && (
+                    <button
+                      type="button"
+                      disabled={
+                        payload?.activeObjectIndex ===
+                        studio.controlsConfig?.dataConfigLength - 1
                       }
-                    )}
-                  >
-                    <Text className=" text-white">
-                      {payload?.activeObjectIndex !==
-                      studio.controlsConfig?.dataConfigLength - 1
-                        ? 'Next Item'
-                        : 'Reached end of items'}
-                    </Text>
-                    {payload?.activeObjectIndex !==
-                      studio.controlsConfig?.dataConfigLength - 1 && (
-                      <FiArrowRight className=" text-white" size={21} />
-                    )}
-                  </div>
-                </button>
+                      onClick={() => {
+                        updatePayload?.({
+                          activeObjectIndex: payload?.activeObjectIndex + 1,
+                        })
+                      }}
+                      className="mt-4"
+                    >
+                      <div
+                        className={cx(
+                          'flex py-10 px-16 bg-blue-400 items-center justify-center gap-x-2 rounded-md',
+                          {
+                            'opacity-50 cursor-not-allowed':
+                              payload?.activeObjectIndex ===
+                              studio.controlsConfig?.dataConfigLength - 1,
+                          }
+                        )}
+                      >
+                        <Text className="text-white ">
+                          {payload?.activeObjectIndex !==
+                          studio.controlsConfig?.dataConfigLength - 1
+                            ? 'Next Item'
+                            : 'Reached end of items'}
+                        </Text>
+                        {payload?.activeObjectIndex !==
+                          studio.controlsConfig?.dataConfigLength - 1 && (
+                          <FiArrowRight className="text-white " size={21} />
+                        )}
+                      </div>
+                    </button>
+                  )}
+                {fragment.type === Fragment_Type_Enum_Enum.Outro &&
+                  state === 'recording' && (
+                    <button
+                      type="button"
+                      disabled={isButtonClicked}
+                      onClick={() => {
+                        setIsButtonClicked(true)
+                        controlsConfig?.setFragmentState?.('customLayout')
+                      }}
+                      className="mt-4"
+                    >
+                      <div
+                        className={cx(
+                          'flex py-10 px-16 bg-blue-400 items-center justify-center gap-x-2 rounded-md',
+                          {
+                            'opacity-50 cursor-not-allowed': isButtonClicked,
+                          }
+                        )}
+                      >
+                        <Text className="text-white ">Next</Text>
+                        <FiArrowRight className="text-white " size={21} />
+                      </div>
+                    </button>
+                  )}
               </div>
             </div>
           </div>
@@ -713,12 +873,18 @@ const Studio = ({
         )}
       </div>
       {/* Bottom bar with details and global controls */}
-      <div className="flex py-4 px-10 bg-gray-50 fixed bottom-0 w-full justify-center">
+      <div className="fixed bottom-0 flex justify-center w-full px-10 py-4 bg-gray-50">
         <div className="absolute left-8 bottom-3">
-          <Heading className="text-md font-semibold text-gray-800">
-            {fragment.flick.name}
+          <Heading className="font-semibold text-gray-800 text-md">
+            {fragment.flick.name.length > 20
+              ? `${fragment.flick.name.substring(0, 20)}...`
+              : fragment.flick.name}
           </Heading>
-          <Text className="text-md text-gray-500">{fragment.name}</Text>
+          <Text className="text-gray-500 text-md">
+            {fragment.name && fragment.name.length > 20
+              ? `${fragment.name.substring(0, 20)}...`
+              : fragment.name}
+          </Text>
         </div>
         <RecordingControlsBar />
       </div>

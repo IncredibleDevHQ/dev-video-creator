@@ -40,8 +40,8 @@ const style = css`
   }
 `
 
-const FragmentSideBar = () => {
-  const [{ flick, activeFragmentId, isMarkdown }, setFlickStore] =
+const FragmentSideBar = ({ plateValue }: { plateValue: any }) => {
+  const [{ flick, activeFragmentId }, setFlickStore] =
     useRecoilState(newFlickStore)
 
   const [createFragment] = useCreateFragmentMutation()
@@ -54,6 +54,13 @@ const FragmentSideBar = () => {
       flickId: flick?.id,
     },
   })
+
+  const [blockLength, setBlockLength] = useState(0)
+
+  useEffect(() => {
+    if (!plateValue?.blocks) return
+    setBlockLength(plateValue.blocks.length)
+  }, [plateValue])
 
   useEffect(() => {
     if (!fragmentData || !flick) return
@@ -132,7 +139,7 @@ const FragmentSideBar = () => {
           }
           type="button"
           className={cx(
-            'flex bg-gray-100 items-center justify-start m-4 p-3 rounded-md border border-gray-300 relative',
+            'flex bg-gray-100 items-center justify-start m-4 p-4 rounded-md border border-gray-300 relative',
             {
               'border-green-600':
                 activeFragmentId ===
@@ -164,7 +171,10 @@ const FragmentSideBar = () => {
         >
           <Button
             type="button"
-            className={cx('text-green-600 -ml-4')}
+            className={cx('text-green-600 transition-all duration-200', {
+              'border py-3 border-green-500 ring ring-green-500 ring-opacity-10':
+                blockLength > 3,
+            })}
             disabled={flick?.owner?.userSub !== sub}
             appearance="link"
             size="small"
@@ -186,7 +196,7 @@ const FragmentSideBar = () => {
           }
           type="button"
           className={cx(
-            'flex bg-gray-100 items-center justify-start m-4 p-3 rounded-md border border-gray-300 relative',
+            'flex bg-gray-100 items-center justify-start m-4 p-4 rounded-md border border-gray-300 relative',
             {
               'border-green-600':
                 activeFragmentId ===
@@ -218,11 +228,21 @@ const ThumbnailDND = () => {
     startIndex: number,
     endIndex: number
   ) => {
-    const results = Array.from(list)
+    const results = Array.from(
+      list.filter(
+        (l) =>
+          l.type !== Fragment_Type_Enum_Enum.Intro &&
+          l.type !== Fragment_Type_Enum_Enum.Outro
+      )
+    )
     const [removed] = results.splice(startIndex, 1)
     results.splice(endIndex, 0, removed)
 
-    return results.map((result, index) => ({ ...result, order: index }))
+    return [
+      list[0],
+      ...results.map((result, index) => ({ ...result, order: index })),
+      list[list.length - 1],
+    ]
   }
 
   const onDragEnd = (result: any) => {
@@ -309,8 +329,7 @@ const Thumbnail = ({
 }: ThumbnailProps) => {
   const [{ flick }, setFlickStore] = useRecoilState(newFlickStore)
   const [fragmentName, setFragmentName] = useState(fragment.name)
-  const [updateFragmentMutation, { data: updateFragmentData }] =
-    useUpdateFragmentMutation()
+  const [updateFragmentMutation] = useUpdateFragmentMutation()
   const [overflowButtonVisible, setOverflowButtonVisible] = useState(false)
   const [overflowMenuVisible, setOverflowMenuVisible] = useState(false)
 

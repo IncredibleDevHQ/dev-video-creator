@@ -48,7 +48,7 @@ const PointsFragment = ({
   layerRef: React.RefObject<Konva.Layer>
   shortsMode: boolean
 }) => {
-  const { fragment, state, updatePayload, payload, addTransitionAudio } =
+  const { fragment, state, updatePayload, payload, addMusic } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [studio, setStudio] = useRecoilState(studioStore)
@@ -155,12 +155,16 @@ const PointsFragment = ({
   }, [payload])
 
   useEffect(() => {
+    addMusic('points')
+  }, [activePointIndex])
+
+  useEffect(() => {
     // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
     if (payload?.fragmentState === 'customLayout') {
       setTopLayerChildren([
         <TrianglePathTransition isShorts={shortsMode} direction="right" />,
       ])
-      addTransitionAudio()
+      addMusic()
       setTimeout(() => {
         setFragmentState(payload?.fragmentState)
         customLayoutRef?.current?.to({
@@ -174,7 +178,7 @@ const PointsFragment = ({
       setTopLayerChildren([
         <TrianglePathTransition isShorts={shortsMode} direction="left" />,
       ])
-      addTransitionAudio()
+      addMusic()
       setTimeout(() => {
         setFragmentState(payload?.fragmentState)
         customLayoutRef?.current?.to({
