@@ -315,12 +315,12 @@ const FragmentBar = ({
                 tabIndex={-1}
                 role="button"
                 onKeyDown={() => {}}
-                className="flex items-center border border-green-600 rounded-sm px-2 cursor-pointer"
+                className="flex items-center border bg-gray-600 rounded-sm px-2 cursor-pointer"
                 onClick={() => {
                   setFragmentVideoModal(true)
                 }}
               >
-                <BiPlayCircle size={36} className="text-green-600 py-1" />
+                <BiPlayCircle size={36} className="text-gray-200 py-1" />
               </div>
             )}
             {fragment?.producedShortsLink &&
@@ -329,14 +329,14 @@ const FragmentBar = ({
                   tabIndex={-1}
                   role="button"
                   onKeyDown={() => {}}
-                  className="flex items-center border border-green-600 rounded-sm cursor-pointer h-9"
+                  className="flex items-center border bg-gray-600 rounded-sm cursor-pointer h-9"
                   onClick={() => {
                     setFragmentVideoModal(true)
                   }}
                 >
                   <BiPlayCircle
                     size={21}
-                    className="text-green-600 mx-px p-px"
+                    className="text-gray-200 mx-px p-px"
                   />
                 </div>
               )}
@@ -356,12 +356,15 @@ const FragmentBar = ({
           </div>
         </Tooltip>
       )}
-      <FragmentVideoModal
-        open={fragmentVideoModal}
-        handleClose={() => {
-          setFragmentVideoModal(false)
-        }}
-      />
+      {fragmentVideoModal && (
+        <FragmentVideoModal
+          open={fragmentVideoModal}
+          handleClose={() => {
+            setFragmentVideoModal(false)
+          }}
+          contentType={mode}
+        />
+      )}
     </div>
   )
 }
