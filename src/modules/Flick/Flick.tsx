@@ -289,7 +289,7 @@ const Flick = () => {
     }
   }, [activeFragmentId])
 
-  useEffect(() => {
+  const updateStoreViewConfig = (vc: ViewConfig) => {
     if (!fragment || !flick) return
     setFlickStore((store) => ({
       ...store,
@@ -299,8 +299,7 @@ const Flick = () => {
           if (frag.id === fragment.id) {
             return {
               ...frag,
-              configuration: viewConfig,
-              editorState: plateValue,
+              configuration: vc,
             }
           }
           return frag
@@ -311,14 +310,17 @@ const Flick = () => {
       ...store,
       fragment: {
         ...fragment,
-        editorState: plateValue,
-        configuration: viewConfig,
+        configuration: vc,
       },
     }))
-  }, [viewConfig, plateValue])
+  }
 
   const addSpeaker = (speaker: FlickParticipantsFragment) => {
     setViewConfig({
+      ...viewConfig,
+      speakers: [...viewConfig?.speakers, speaker],
+    })
+    updateStoreViewConfig({
       ...viewConfig,
       speakers: [...viewConfig?.speakers, speaker],
     })
@@ -326,6 +328,12 @@ const Flick = () => {
 
   const deleteSpeaker = (speaker: FlickParticipantsFragment) => {
     setViewConfig({
+      ...viewConfig,
+      speakers: viewConfig?.speakers?.filter(
+        (s) => s.user.sub !== speaker.user.sub
+      ),
+    })
+    updateStoreViewConfig({
       ...viewConfig,
       speakers: viewConfig?.speakers?.filter(
         (s) => s.user.sub !== speaker.user.sub
@@ -398,7 +406,7 @@ const Flick = () => {
   return (
     <div className="relative flex flex-col h-screen overflow-hidden">
       <FlickNavBar toggleModal={setIntegrationModal} />
-      <div className="flex flex-1 overflow-y-auto">
+      <div className="flex flex-1 overflow-hidden">
         <FragmentSideBar plateValue={plateValue} />
         <div className="flex-1 pb-12">
           <FragmentBar
@@ -508,6 +516,7 @@ const Flick = () => {
                   /> */}
 
                   <TempTextEditor
+                    key={activeFragmentId}
                     handleUpdatePosition={(position) => {
                       setPreviewPosition(position)
                     }}
