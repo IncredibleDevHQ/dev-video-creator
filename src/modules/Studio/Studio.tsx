@@ -23,6 +23,7 @@ import {
   Text,
   updateToast,
 } from '../../components'
+import { TextEditorParser } from '../../components/TempTextEditor/utils'
 import {
   CodeBlockProps,
   ImageBlockProps,
@@ -113,7 +114,24 @@ const StudioHoC = () => {
     fetchPolicy: 'network-only',
   })
 
+  const [error, setError] = useState<'INVALID_AST' | undefined>()
+
+  useEffect(() => {
+    if (!data) return
+    if (!new TextEditorParser(data.Fragment[0].editorState).isValid()) {
+      setError('INVALID_AST')
+    }
+  }, [data])
+
   if (loading || !ready) return <ScreenState title="Just a jiffy..." loading />
+
+  if (error === 'INVALID_AST')
+    return (
+      <ScreenState
+        title="Invalid Configuration"
+        subtitle="The fragment contains an invalid data reference. Please correct it and try again."
+      />
+    )
 
   if (view === 'preview')
     return (
