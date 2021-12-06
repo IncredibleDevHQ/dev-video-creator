@@ -10,8 +10,11 @@ import { useHistory } from 'react-router-dom'
 import { useRecoilState } from 'recoil'
 import { FragmentVideoModal } from '.'
 import { ReactComponent as RecordIcon } from '../../../assets/StartRecord.svg'
+import { ReactComponent as ReRecordIcon } from '../../../assets/ReRecord.svg'
 import { Button, emitToast, Text, Tooltip } from '../../../components'
 import {
+  Content_Type_Enum_Enum,
+  FlickFragment,
   FlickFragmentFragment,
   Fragment_Type_Enum_Enum,
   useUpdateFragmentMarkdownMutation,
@@ -139,6 +142,18 @@ const FragmentBar = ({
 
   const [isOpen, setIsOpen] = useState(false)
 
+  const [mode, setMode] = useState<Content_Type_Enum_Enum>(
+    Content_Type_Enum_Enum.Video
+  )
+
+  useEffect(() => {
+    if (config.mode === 'Portrait') {
+      setMode(Content_Type_Enum_Enum.VerticalVideo)
+    } else {
+      setMode(Content_Type_Enum_Enum.Video)
+    }
+  }, [config.mode])
+
   return (
     <div className="flex items-center justify-between pr-4 pl-5 p-2">
       {fragment &&
@@ -197,6 +212,7 @@ const FragmentBar = ({
                 type="button"
                 onClick={() => {
                   setViewConfig({ ...config, mode: 'Landscape' })
+                  setIsOpen(false)
                 }}
                 className="flex items-center gap-x-4 px-4 py-3 hover:bg-gray-100 cursor-pointer"
               >
@@ -206,7 +222,7 @@ const FragmentBar = ({
                 <div>
                   <Text className="font-bold font-main flex items-center gap-x-3">
                     Flick
-                    {config.mode === 'Landscape' ? (
+                    {fragment?.producedLink ? (
                       <IoIosCheckmarkCircle className="text-brand" size={18} />
                     ) : (
                       <MdRadioButtonUnchecked className="text-gray-300" />
@@ -226,6 +242,7 @@ const FragmentBar = ({
                 type="button"
                 onClick={() => {
                   setViewConfig({ ...config, mode: 'Portrait' })
+                  setIsOpen(false)
                 }}
                 className="flex items-center gap-x-4 px-4 py-3 hover:bg-gray-100 cursor-pointer"
               >
@@ -235,7 +252,7 @@ const FragmentBar = ({
                 <div>
                   <Text className="font-bold font-main flex items-center gap-x-3">
                     Highlight
-                    {config.mode === 'Portrait' ? (
+                    {fragment?.producedShortsLink ? (
                       <IoIosCheckmarkCircle className="text-brand" size={18} />
                     ) : (
                       <MdRadioButtonUnchecked className="text-gray-300" />
@@ -277,7 +294,11 @@ const FragmentBar = ({
                   <Text className="font-bold font-main">
                     {config.mode === 'Landscape' ? 'Flick' : 'Highlight'}
                   </Text>
-                  {isOpen ? <IoChevronUp /> : <IoChevronDown />}
+                  {checkHasContent(fragment, mode) ? (
+                    <IoIosCheckmarkCircle className="text-brand" size={18} />
+                  ) : (
+                    <MdRadioButtonUnchecked className="text-gray-300" />
+                  )}
                 </button>
               )}
             <Button
@@ -289,27 +310,48 @@ const FragmentBar = ({
             >
               <Text className="text-sm">Save</Text>
             </Button>
-            {fragment?.producedLink && (
+            {fragment?.producedLink && mode === Content_Type_Enum_Enum.Video && (
               <div
                 tabIndex={-1}
                 role="button"
                 onKeyDown={() => {}}
-                className="flex items-center mr-4 border border-green-600 rounded-sm px-2 cursor-pointer"
+                className="flex items-center border border-green-600 rounded-sm px-2 cursor-pointer"
                 onClick={() => {
                   setFragmentVideoModal(true)
                 }}
               >
-                <BiPlayCircle size={32} className="text-green-600 py-1" />
+                <BiPlayCircle size={36} className="text-green-600 py-1" />
               </div>
             )}
+            {fragment?.producedShortsLink &&
+              mode === Content_Type_Enum_Enum.VerticalVideo && (
+                <div
+                  tabIndex={-1}
+                  role="button"
+                  onKeyDown={() => {}}
+                  className="flex items-center border border-green-600 rounded-sm cursor-pointer h-9"
+                  onClick={() => {
+                    setFragmentVideoModal(true)
+                  }}
+                >
+                  <BiPlayCircle
+                    size={21}
+                    className="text-green-600 mx-px p-px"
+                  />
+                </div>
+              )}
             <button
-              className="border-red-600 text-red-600 border rounded-sm py-2 px-2.5 flex items-center gap-x-2 font-bold hover:shadow-md text-sm"
+              className="border-red-600 text-red-600 border rounded-sm py-1.5 px-2.5 flex items-center gap-x-2 font-bold hover:shadow-md text-sm"
               type="button"
               onClick={() => history.push(`/${activeFragmentId}/studio`)}
               disabled={!fragment?.configuration}
             >
-              <RecordIcon className="h-4 w-4" />
-              {fragment?.producedLink ? 'Retake' : 'Record'}
+              {checkHasContent(fragment, mode) ? (
+                <ReRecordIcon className="h-6 w-6 " />
+              ) : (
+                <RecordIcon className="h-6 w-6" />
+              )}
+              {!checkHasContent(fragment, mode) && 'Record'}
             </button>
           </div>
         </Tooltip>
@@ -322,6 +364,25 @@ const FragmentBar = ({
       />
     </div>
   )
+}
+
+const checkHasContent = (
+  fragment: FlickFragmentFragment | undefined,
+  mode: Content_Type_Enum_Enum
+) => {
+  switch (mode) {
+    case Content_Type_Enum_Enum.Video:
+      if (fragment?.producedLink) return true
+      break
+
+    case Content_Type_Enum_Enum.VerticalVideo:
+      if (fragment?.producedShortsLink) return true
+      break
+
+    default:
+      return false
+  }
+  return false
 }
 
 export default FragmentBar
