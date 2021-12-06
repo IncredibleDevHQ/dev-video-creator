@@ -557,7 +557,7 @@ const Flick = () => {
                     )}
                   </div>
                 </div>
-                {plateValue?.blocks?.length > 0 && (
+                {/* {plateValue?.blocks?.length > 0 && (
                   <div className="fixed z-10 flex items-center justify-start p-2 mx-8 mb-4 border rounded-md bg-gray-50 bottom-4">
                     <div
                       className={cx(
@@ -656,7 +656,7 @@ const Flick = () => {
                       </div>
                     ))}
                   </div>
-                )}
+                )} */}
               </div>
             )}
           <div />

@@ -9,6 +9,7 @@ import { MdRadioButtonUnchecked } from 'react-icons/md'
 import { useHistory } from 'react-router-dom'
 import { useRecoilState } from 'recoil'
 import { FragmentVideoModal } from '.'
+import { ReactComponent as RecordIcon } from '../../../assets/StartRecord.svg'
 import { Button, emitToast, Text, Tooltip } from '../../../components'
 import {
   FlickFragmentFragment,
@@ -307,11 +308,7 @@ const FragmentBar = ({
               onClick={() => history.push(`/${activeFragmentId}/studio`)}
               disabled={!fragment?.configuration}
             >
-              <img
-                src="/src/assets/StartRecord.svg"
-                alt="start"
-                className="w-5"
-              />
+              <RecordIcon className="h-4 w-4" />
               {fragment?.producedLink ? 'Retake' : 'Record'}
             </button>
           </div>
