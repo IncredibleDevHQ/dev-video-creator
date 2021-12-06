@@ -3,21 +3,16 @@ import React, { useEffect, useMemo, useState } from 'react'
 import {
   FiEye,
   FiEyeOff,
-  FiPlus,
   FiRefreshCcw,
   FiSliders,
   FiUser,
   FiX,
 } from 'react-icons/fi'
+import { IoPersonOutline } from 'react-icons/io5'
 import { useHistory, useParams } from 'react-router-dom'
 import { useRecoilState, useRecoilValue } from 'recoil'
-import {
-  Heading,
-  ScreenState,
-  TempTextEditor,
-  Text,
-  Tooltip,
-} from '../../components'
+import { useDebouncedCallback } from 'use-debounce'
+import { ScreenState, TempTextEditor, Text, Tooltip } from '../../components'
 import { Block, Position } from '../../components/TempTextEditor/types'
 import {
   FlickFragmentFragment,
@@ -27,6 +22,7 @@ import {
   StudioFragmentFragment,
   useGetFlickByIdQuery,
   UserAssetQuery,
+  useUpdateFragmentMutation,
   useUserAssetQuery,
 } from '../../generated/graphql'
 import { useCanvasRecorder } from '../../hooks'
@@ -123,15 +119,21 @@ const SpeakersTooltip = ({
   const { flick } = useRecoilValue(newFlickStore)
 
   return (
-    <div className="p-2 rounded-md bg-gray-50">
+    <div className="rounded-lg bg-white shadow-2xl font-body flex flex-col">
       {flick?.participants
         .filter((p) => !speakers?.some((s) => s.id === p.id))
-        .map((participant) => (
+        .map((participant, index) => (
           <div
             role="button"
             tabIndex={0}
             onKeyDown={() => null}
-            className="flex items-center px-2 py-1 transition-colors rounded-md hover:bg-gray-300"
+            className={cx(
+              'flex items-center px-4 transition-colors hover:bg-gray-100 gap-x-2 py-2',
+              {
+                'rounded-t-lg': index === 0,
+                'rounded-b-lg': index === flick.participants.length - 1,
+              }
+            )}
             key={participant.id}
             onClick={() => {
               if (participant) {
@@ -145,9 +147,7 @@ const SpeakersTooltip = ({
               alt={participant.user.displayName as string}
               className="w-6 h-6 rounded-full"
             />
-            <Text fontSize="normal" className="ml-2">
-              {participant.user.displayName}
-            </Text>
+            <Text className="text-sm">{participant.user.displayName}</Text>
           </div>
         ))}
     </div>
@@ -161,6 +161,8 @@ const Flick = () => {
   const { data, error, loading, refetch } = useGetFlickByIdQuery({
     variables: { id },
   })
+  const [updateFragmentMutation] = useUpdateFragmentMutation()
+
   const [{ fragment }, setStudio] = useRecoilState(studioStore)
   const { addMusic, stopMusic } = useCanvasRecorder({
     options: {},
@@ -331,6 +333,35 @@ const Flick = () => {
     })
   }
 
+  const debounceUpdateFragmentName = useDebouncedCallback((value) => {
+    if (value !== activeFragment?.name) {
+      updateFragmentMutation({
+        variables: {
+          fragmentId: fragment?.id,
+          name: value,
+        },
+      })
+    }
+  }, 1000)
+
+  const updateFragment = async (newName: string) => {
+    if (flick) {
+      setFlickStore((store) => ({
+        ...store,
+        flick: {
+          ...flick,
+          fragments: flick.fragments.map((f) => {
+            if (f.id === fragment?.id) {
+              return { ...f, name: newName }
+            }
+            return f
+          }),
+        },
+      }))
+    }
+    debounceUpdateFragmentName(newName)
+  }
+
   if (loading) return <ScreenState title="Just a jiffy" loading />
 
   if (error)
@@ -395,17 +426,21 @@ const Flick = () => {
               Fragment_Type_Enum_Enum.Outro && (
               <div className="w-full h-full mx-8 my-4 overflow-y-auto">
                 <div className="mx-12 mb-4">
-                  <Heading fontSize="large">
-                    {
+                  <input
+                    onChange={(e) => {
+                      updateFragment(e.target.value)
+                    }}
+                    className="font-main text-4xl text-gray-800 focus:outline-none font-bold"
+                    value={
                       flick.fragments.find((f) => f.id === activeFragmentId)
-                        ?.name
+                        ?.name || ''
                     }
-                  </Heading>
+                  />
                 </div>
                 <div className="flex items-center justify-start mx-12">
                   {viewConfig.speakers?.map((s) => (
                     <div
-                      className="flex items-center px-2 py-1 mr-2 bg-gray-200 rounded-md"
+                      className="flex items-center px-2 py-1 mr-2 rounded-md border border-gray-300 font-body"
                       key={s.user.sub}
                     >
                       <img
@@ -413,7 +448,7 @@ const Flick = () => {
                         alt={s.user.displayName as string}
                         className="w-6 h-6 rounded-full"
                       />
-                      <Text fontSize="normal" className="mx-2">
+                      <Text className="ml-1.5 mr-2 text-sm text-gray-600 font-medium">
                         {s.user.displayName}
                       </Text>
                       <FiX
@@ -427,7 +462,7 @@ const Flick = () => {
                       containerOffset={8}
                       isOpen={isSpeakersTooltip}
                       setIsOpen={() => setSpeakersTooltip(false)}
-                      placement="bottom-start"
+                      placement="right-end"
                       content={
                         <SpeakersTooltip
                           fragment={activeFragment}
@@ -440,14 +475,14 @@ const Flick = () => {
                       <button
                         type="button"
                         onClick={() => setSpeakersTooltip(true)}
-                        className="flex items-center px-2 py-1 bg-gray-200 rounded-md"
+                        className="flex items-center px-2 py-1 hover:bg-gray-100 rounded-sm gap-x-2 text-gray-400 font-body"
                       >
-                        <FiPlus className="mr-1.5" /> Add speakers
+                        <IoPersonOutline /> Add speakers
                       </button>
                     </Tooltip>
                   )}
                 </div>
-                <div className="flex items-center mx-12 mt-8 shadow-lg">
+                <div className="flex items-center mx-12 mt-4 shadow-lg">
                   <hr className="w-full" />
                   <span className="w-48" />
                 </div>
