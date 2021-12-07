@@ -439,6 +439,7 @@ const Studio = ({
     reset,
     getBlobs,
     addMusic,
+    reduceSplashAudioVolume,
     stopMusic,
   } = useCanvasRecorder({
     options: {},
@@ -593,6 +594,7 @@ const Studio = ({
       stopRecording: stop,
       showFinalTransition: finalTransition,
       addMusic,
+      reduceSplashAudioVolume,
       stopMusic,
       reset: resetRecording,
       upload,
