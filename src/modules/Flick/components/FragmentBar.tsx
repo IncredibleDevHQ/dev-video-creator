@@ -84,6 +84,21 @@ const FragmentBar = ({
         (fragment?.type === Fragment_Type_Enum_Enum.Intro ||
           fragment?.type === Fragment_Type_Enum_Enum.Outro)
       ) {
+        if (flick)
+          setFlickStore((store) => ({
+            ...store,
+            flick: {
+              ...flick,
+              fragments: flick.fragments.map((f) =>
+                f.id === activeFragmentId
+                  ? {
+                      ...f,
+                      configuration: config,
+                    }
+                  : f
+              ),
+            },
+          }))
         await updateFragmentState({
           variables: {
             editorState: {},
@@ -341,9 +356,11 @@ const FragmentBar = ({
                 </div>
               )}
             <button
-              className="border-red-600 text-red-600 border rounded-sm py-1.5 px-2.5 flex items-center gap-x-2 font-bold hover:shadow-md text-sm"
+              className="border-red-600 text-red-600 border rounded-sm py-1.5 px-2.5 flex items-center gap-x-2 font-bold hover:shadow-md text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               type="button"
-              onClick={() => history.push(`/${activeFragmentId}/studio`)}
+              onClick={() => {
+                history.push(`/${activeFragmentId}/studio`)
+              }}
               disabled={!fragment?.configuration}
             >
               {checkHasContent(fragment, mode) ? (
