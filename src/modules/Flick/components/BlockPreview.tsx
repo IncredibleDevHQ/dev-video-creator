@@ -167,37 +167,50 @@ export const GradientSelector = ({
   updateGradient: (gradient: GradientConfig) => void
 }) => {
   return (
-    <div
-      className={cx('grid grid-cols-2 overflow-x-scroll bg-white p-2', {
-        'w-44 gap-1': mode === 'Portrait',
-        'w-72 gap-2': mode === 'Landscape',
-      })}
-    >
-      {gradients.map((gradient, index) => (
-        // eslint-disable-next-line jsx-a11y/control-has-associated-label
-        <div
-          // eslint-disable-next-line react/no-array-index-key
-          key={index}
-          tabIndex={0}
-          role="button"
-          onKeyDown={() => null}
-          onClick={() => updateGradient(getGradientConfig(gradient))}
-          className={cx(
-            'p-2 border border-gray-200 rounded-md cursor-pointer bg-white',
-            {
-              'border-brand': gradient.cssString === currentGradient.cssString,
-              'w-20 h-32': mode === 'Portrait',
-              'w-32 h-16': mode === 'Landscape',
-            },
-            css`
-              background: ${gradient.cssString};
-            `
-          )}
-        />
-      ))}
+    <div className={cx('h-full w-full overflow-y-scroll', scrollStyle)}>
+      <div
+        className={cx(
+          'grid grid-cols-2 p-4 gap-4 overflow-scroll h-full',
+          scrollStyle,
+          {
+            'w-full gap-1 grid-cols-3': mode === 'Portrait',
+            'w-full gap-2': mode === 'Landscape',
+          }
+        )}
+      >
+        {gradients.map((gradient, index) => (
+          // eslint-disable-next-line jsx-a11y/control-has-associated-label
+          <div
+            // eslint-disable-next-line react/no-array-index-key
+            key={index}
+            tabIndex={0}
+            role="button"
+            onKeyDown={() => null}
+            onClick={() => updateGradient(getGradientConfig(gradient))}
+            className={cx(
+              'p-2 border border-gray-200 rounded-md cursor-pointer bg-white',
+              {
+                'border-brand':
+                  gradient.cssString === currentGradient.cssString,
+                'w-20 h-32': mode === 'Portrait',
+                'w-32 h-16': mode === 'Landscape',
+              },
+              css`
+                background: ${gradient.cssString};
+              `
+            )}
+          />
+        ))}
+      </div>
     </div>
   )
 }
+
+const scrollStyle = css`
+  ::-webkit-scrollbar {
+    display: none;
+  }
+`
 
 const LayoutSelector = ({
   type,
@@ -211,22 +224,28 @@ const LayoutSelector = ({
   type: Block['type']
 }) => {
   return (
-    <div
-      className={cx('grid grid-cols-2 overflow-x-scroll', {
-        'w-44 gap-1': mode === 'Portrait',
-        'w-72 gap-2': mode === 'Landscape',
-      })}
-    >
-      {allLayoutTypes?.map((layoutType) => (
-        <LayoutGeneric
-          type={type}
-          key={layoutType}
-          mode={mode}
-          layout={layoutType}
-          isSelected={layout === layoutType}
-          onClick={() => updateLayout(layoutType)}
-        />
-      ))}
+    <div className={cx('h-full w-full overflow-y-scroll', scrollStyle)}>
+      <div
+        className={cx(
+          'grid grid-cols-2 p-4 gap-4 overflow-scroll h-full',
+          scrollStyle,
+          {
+            'w-full gap-1 grid-cols-3': mode === 'Portrait',
+            'w-full gap-2': mode === 'Landscape',
+          }
+        )}
+      >
+        {allLayoutTypes?.map((layoutType) => (
+          <LayoutGeneric
+            type={type}
+            key={layoutType}
+            mode={mode}
+            layout={layoutType}
+            isSelected={layout === layoutType}
+            onClick={() => updateLayout(layoutType)}
+          />
+        ))}
+      </div>
     </div>
   )
 }
@@ -237,26 +256,28 @@ const CanvasPreview = ({
   config,
   shortsMode,
   blockProperties,
+  scaleDown = false,
 }: {
   block: Block
   bounds: RectReadOnly
   shortsMode: boolean
   config: ViewConfig
   blockProperties: BlockProperties
+  scaleDown?: boolean
 }) => {
   const stageRef = createRef<Konva.Stage>()
   const layerRef = createRef<Konva.Layer>()
   const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
 
   const { height, width } = useGetHW({
-    maxH: bounds.height / 1,
-    maxW: bounds.width / 1,
+    maxH: bounds.height / (scaleDown && !shortsMode ? 1.25 : 1),
+    maxW: bounds.width / (scaleDown && !shortsMode ? 1.25 : 1),
     aspectRatio: shortsMode ? 9 / 16 : 16 / 9,
   })
 
   const { height: divHeight, width: divWidth } = useGetHW({
-    maxH: bounds.height / 1,
-    maxW: bounds.width / 1,
+    maxH: bounds.height / (scaleDown && !shortsMode ? 1.25 : 1),
+    maxW: bounds.width / (scaleDown && !shortsMode ? 1.25 : 1),
     aspectRatio: 16 / 9,
   })
 
@@ -268,6 +289,7 @@ const CanvasPreview = ({
         height: divHeight,
         width: divWidth,
       }}
+      className="flex justify-center"
     >
       <Stage
         ref={stageRef}
@@ -339,7 +361,7 @@ const PreviewModal = ({
       center
       styles={{
         modal: {
-          maxWidth: config.mode === 'Portrait' ? '50%' : '80%',
+          maxWidth: '80%',
           width: '100%',
           maxHeight: '80vh',
           height: '100%',
@@ -358,40 +380,59 @@ const PreviewModal = ({
           }
         `,
       }}
-      ref={ref}
     >
-      <div className="flex items-start justify-between px-4 py-8">
-        <CanvasPreview
-          bounds={bounds}
-          block={block}
-          config={config}
-          shortsMode={shortsMode}
-          blockProperties={blockProperties}
-        />
-        <div className="px-4">
-          <TabBar
-            tabs={previewTabs}
-            current={tab}
-            onTabChange={(tab) => setTab(tab)}
-            className="mb-4"
-          />
-          {tab.value === previewTabs[0].value && (
-            <LayoutSelector
-              mode={config.mode}
-              layout={blockProperties.layout || allLayoutTypes[0]}
-              updateLayout={updateLayout}
-              type={block.type}
+      <div className="flex items-center w-full h-full justify-center p-4">
+        <div
+          className="w-full h-full flex flex-1 items-center justify-center"
+          ref={ref}
+        >
+          <div className="w-min">
+            <CanvasPreview
+              bounds={bounds}
+              block={block}
+              config={config}
+              shortsMode={shortsMode}
+              blockProperties={blockProperties}
+              scaleDown
             />
-          )}
-          {tab.value === previewTabs[1].value && (
-            <GradientSelector
-              currentGradient={
-                blockProperties.gradient || getGradientConfig(gradients[0])
-              }
-              mode={config.mode}
-              updateGradient={updateGradient}
+          </div>
+          <div className="flex flex-col ml-4 h-full">
+            <TabBar
+              tabs={previewTabs}
+              current={tab}
+              onTabChange={(tab) => setTab(tab)}
+              className={cx('mb-4', {
+                '-ml-48': shortsMode,
+              })}
             />
-          )}
+            <div
+              className={cx(
+                'border rounded-lg shadow-md border-gray-300 w-80 h-full overflow-hidden',
+                {
+                  'w-80': !shortsMode,
+                  '-ml-48': shortsMode,
+                }
+              )}
+            >
+              {tab.value === previewTabs[0].value && (
+                <LayoutSelector
+                  mode={config.mode}
+                  layout={blockProperties.layout || allLayoutTypes[0]}
+                  updateLayout={updateLayout}
+                  type={block.type}
+                />
+              )}
+              {tab.value === previewTabs[1].value && (
+                <GradientSelector
+                  currentGradient={
+                    blockProperties.gradient || getGradientConfig(gradients[0])
+                  }
+                  mode={config.mode}
+                  updateGradient={updateGradient}
+                />
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </Modal>
