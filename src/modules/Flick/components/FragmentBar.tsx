@@ -84,6 +84,13 @@ const FragmentBar = ({
         (fragment?.type === Fragment_Type_Enum_Enum.Intro ||
           fragment?.type === Fragment_Type_Enum_Enum.Outro)
       ) {
+        await updateFragmentState({
+          variables: {
+            editorState: {},
+            id: activeFragmentId,
+            configuration: introConfig,
+          },
+        })
         if (flick)
           setFlickStore((store) => ({
             ...store,
@@ -99,13 +106,6 @@ const FragmentBar = ({
               ),
             },
           }))
-        await updateFragmentState({
-          variables: {
-            editorState: {},
-            id: activeFragmentId,
-            configuration: introConfig,
-          },
-        })
       } else {
         if (!plateValue || plateValue?.length === 0) return
         if (flick)
