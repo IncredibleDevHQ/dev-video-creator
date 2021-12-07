@@ -183,8 +183,6 @@ const Concourse = ({
 
   const performFinishAction = () => {
     if (state === 'recording') {
-      if (fragment?.type === Fragment_Type_Enum_Enum.Intro)
-        reduceSplashAudioVolume(0.01)
       stopRecording()
     }
   }
@@ -259,6 +257,9 @@ const Concourse = ({
               performFinishAction()
             } else if (fragment?.configuration?.mode === 'Portrait') {
               return <ShortsOutro performFinishAction={performFinishAction} />
+            }
+            if (fragment?.type === Fragment_Type_Enum_Enum.Intro) {
+              reduceSplashAudioVolume(0.03)
             }
             return (
               <MultiCircleCenterGrow
