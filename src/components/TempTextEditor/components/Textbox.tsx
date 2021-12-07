@@ -37,7 +37,11 @@ const Textbox = React.forwardRef<any, TextboxProps>(
           onFocus={handleFocus}
           html={text}
           tagName={tagName}
-          onChange={(e) => handleUpdateText?.(e.target.value)}
+          onChange={() => {
+            // Fix to send sanitized html...
+            // @ts-ignore
+            handleUpdateText?.(ref?.current?.innerText)
+          }}
           className="bg-transparent w-full whitespace-pre-wrap inline-block focus:outline-none"
         />
         {text?.length === 0 && placeholder && (

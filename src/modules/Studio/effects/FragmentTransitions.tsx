@@ -302,7 +302,7 @@ export const MultiCircleCenterGrow = ({
         scaleY={0}
         fill={colors ? colors[0] : '#ffffff'}
         ref={(ref) => {
-          reduceSplashAudioVolume(0.02)
+          reduceSplashAudioVolume(0.01)
           ref?.to({
             scaleX: 5,
             scaleY: 5,
@@ -345,9 +345,13 @@ export const MultiCircleCenterGrow = ({
               // easing: Konva.Easings.EaseIn,
               onFinish: () => {
                 if (!performFinishAction) return
+                reduceSplashAudioVolume(0.0)
+                // setTimeout(() => {
+                //   reduceSplashAudioVolume(0.0)
+                // }, 200)
                 setTimeout(() => {
                   performFinishAction()
-                }, 200)
+                }, 400)
               },
             })
           }, 300)
