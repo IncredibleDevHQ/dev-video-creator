@@ -1,7 +1,9 @@
 import Konva from 'konva'
 import React from 'react'
 import { Circle, Rect, Group, Shape } from 'react-konva'
+import { useRecoilValue } from 'recoil'
 import { CONFIG, SHORTS_CONFIG } from '../components/Concourse'
+import { studioStore } from '../stores'
 
 export const TrianglePathTransition = ({
   direction,
@@ -289,6 +291,7 @@ export const MultiCircleCenterGrow = ({
   performFinishAction?: () => void
   colors?: string[]
 }) => {
+  const { reduceSplashAudioVolume } = useRecoilValue(studioStore)
   return (
     <>
       <Circle
@@ -298,14 +301,15 @@ export const MultiCircleCenterGrow = ({
         scaleX={0}
         scaleY={0}
         fill={colors ? colors[0] : '#ffffff'}
-        ref={(ref) =>
+        ref={(ref) => {
+          reduceSplashAudioVolume(0.02)
           ref?.to({
             scaleX: 5,
             scaleY: 5,
             duration: 0.5,
             // easing: Konva.Easings.EaseOut,
           })
-        }
+        }}
       />
       <Circle
         x={CONFIG.width / 2}

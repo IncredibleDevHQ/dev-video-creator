@@ -3,7 +3,7 @@ import { saveAs } from 'file-saver'
 import { extension } from 'mime-types'
 import { useRef, useState } from 'react'
 import transitionMusic from '../assets/TransitionMusic.wav'
-import splashMusic from '../assets/IntroOutroBgm.mp3'
+import splashMusic from '../assets/IntroOutroBGM.mp3'
 import pointsMusic from '../assets/bubblePopMusic.mp3'
 import { getSeekableWebM } from '../utils/helpers'
 
@@ -30,7 +30,7 @@ interface CanvasElement extends HTMLCanvasElement {
 export type AudioType = 'transition' | 'splash' | 'points'
 
 const useCanvasRecorder = ({
-  options: { videoBitsPerSecond = 2500000 },
+  options: { videoBitsPerSecond = 8000000 },
 }: {
   options: {
     videoBitsPerSecond?: number
@@ -128,7 +128,7 @@ const useCanvasRecorder = ({
         ctx.current.createMediaElementSource(splashAudio)
       splashAudioSourceNode.current.connect(dest.current)
       splashAudio.loop = true
-      splashAudio.volume = 0.08
+      splashAudio.volume = 0.25
       splashAudio.play()
     } else if (type === 'points') {
       const pointsAudio = new Audio(pointsMusic)
@@ -141,6 +141,10 @@ const useCanvasRecorder = ({
         .connect(dest.current)
       transitionAudio.play()
     }
+  }
+
+  const reduceSplashAudioVolume = (volume: number) => {
+    splashAudio.volume = volume
   }
 
   const stopMusic = () => {
@@ -182,6 +186,7 @@ const useCanvasRecorder = ({
     getBlobs,
     reset,
     addMusic,
+    reduceSplashAudioVolume,
     stopMusic,
   }
 }

@@ -80,6 +80,7 @@ const Concourse = ({
     payload,
     users,
     stopRecording,
+    reduceSplashAudioVolume,
   } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [canvas, setCanvas] = useRecoilState(canvasStore)
   const [isTitleSplash, setIsTitleSplash] = useState<boolean>(false)
@@ -182,6 +183,8 @@ const Concourse = ({
 
   const performFinishAction = () => {
     if (state === 'recording') {
+      if (fragment?.type === Fragment_Type_Enum_Enum.Intro)
+        reduceSplashAudioVolume(0.01)
       stopRecording()
     }
   }
