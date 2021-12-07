@@ -118,6 +118,11 @@ const StudioHoC = () => {
 
   useEffect(() => {
     if (!data) return
+    if (
+      data.Fragment[0].type === Fragment_Type_Enum_Enum.Intro ||
+      data.Fragment[0].type === Fragment_Type_Enum_Enum.Outro
+    )
+      return
     if (!new TextEditorParser(data.Fragment[0].editorState).isValid()) {
       setError('INVALID_AST')
     }
