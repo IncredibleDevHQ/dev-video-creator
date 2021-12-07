@@ -22,6 +22,7 @@ export interface StudioProviderProps<T = any, S = any> {
   stopRecording: () => void
   showFinalTransition: () => void
   addMusic: (type?: AudioType) => void
+  reduceSplashAudioVolume: (volume: number) => void
   stopMusic: () => void
 
   fragment?: StudioFragmentFragment
