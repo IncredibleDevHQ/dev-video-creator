@@ -27,7 +27,7 @@ const IntroFragment = ({
   themeNumber: string
   viewMode?: boolean
 }) => {
-  const { fragment, state, addMusic, stopMusic, payload } =
+  const { fragment, state, addMusic, reduceSplashAudioVolume, payload } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   // const [bgImage] = useImage(viewConfig?.background?.image || '', 'anonymous')
@@ -78,7 +78,7 @@ const IntroFragment = ({
         ])
       }
       if (fragmentState === 'onlyUserMedia') {
-        if (!viewMode) stopMusic()
+        if (!viewMode) reduceSplashAudioVolume(0.06)
         setLayerChildren([
           <Group x={0} y={0}>
             <Rect
