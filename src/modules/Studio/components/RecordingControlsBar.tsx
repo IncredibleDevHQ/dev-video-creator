@@ -153,6 +153,7 @@ const RecordingControlsBar = () => {
   useEffect(() => {
     if (timer === 0) return
     if (timer === 180) {
+      handleReset()
       updatePayload?.({ ...payload, status: Fragment_Status_Enum_Enum.Ended })
     }
   }, [timer])
