@@ -228,21 +228,11 @@ const ThumbnailDND = () => {
     startIndex: number,
     endIndex: number
   ) => {
-    const results = Array.from(
-      list.filter(
-        (l) =>
-          l.type !== Fragment_Type_Enum_Enum.Intro &&
-          l.type !== Fragment_Type_Enum_Enum.Outro
-      )
-    )
+    const results = Array.from(list)
     const [removed] = results.splice(startIndex, 1)
     results.splice(endIndex, 0, removed)
 
-    return [
-      list[0],
-      ...results.map((result, index) => ({ ...result, order: index })),
-      list[list.length - 1],
-    ]
+    return results
   }
 
   const onDragEnd = (result: any) => {
@@ -250,7 +240,11 @@ const ThumbnailDND = () => {
       return
     }
     const items = clientReorder(
-      flick.fragments,
+      flick.fragments.filter(
+        (l) =>
+          l.type !== Fragment_Type_Enum_Enum.Intro &&
+          l.type !== Fragment_Type_Enum_Enum.Outro
+      ),
       result.source.index,
       result.destination.index
     )
@@ -266,7 +260,15 @@ const ThumbnailDND = () => {
       ...store,
       flick: {
         ...flick,
-        fragments: [...items],
+        fragments: [
+          flick.fragments.filter(
+            (f) => f.type === Fragment_Type_Enum_Enum.Intro
+          )[0],
+          ...items,
+          flick.fragments.filter(
+            (f) => f.type === Fragment_Type_Enum_Enum.Outro
+          )[0],
+        ],
       },
     }))
   }
