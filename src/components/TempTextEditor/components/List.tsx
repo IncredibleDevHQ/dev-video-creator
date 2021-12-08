@@ -154,6 +154,8 @@ const ListItem = React.forwardRef<any, ListItemProps>(
           {index + 1}
         </span>
         <Textbox
+          // FIXME: Due to mergeRefs, the ref passed inside is not what is expected. Disabling sanitization here so that the value returns.
+          // composing refs did not work either. As a bug, content in list item won't be sanitized.
           ref={mergeRefs(textBoxRef, ref)}
           handleUpdateText={handleUpdateText}
           handleKeyDown={handleKeyDown}
@@ -161,6 +163,7 @@ const ListItem = React.forwardRef<any, ListItemProps>(
           text={text || ''}
           placeholder="Write an item..."
           tagName="span"
+          sanitize={false}
         />
       </li>
     )
