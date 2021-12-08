@@ -11,6 +11,7 @@ interface TextboxProps {
   handleFocus?: (e: React.FormEvent<HTMLDivElement>) => void
   className?: string
   tagName?: string
+  sanitize?: boolean
 }
 
 const Textbox = React.forwardRef<any, TextboxProps>(
@@ -24,6 +25,7 @@ const Textbox = React.forwardRef<any, TextboxProps>(
       handleFocus,
       className,
       tagName,
+      sanitize = true,
     },
     ref
   ) => {
@@ -37,10 +39,12 @@ const Textbox = React.forwardRef<any, TextboxProps>(
           onFocus={handleFocus}
           html={text}
           tagName={tagName}
-          onChange={() => {
+          onChange={(e) => {
             // Fix to send sanitized html...
-            // @ts-ignore
-            handleUpdateText?.(ref?.current?.innerText)
+            handleUpdateText?.(
+              // @ts-ignore
+              sanitize ? ref?.current?.innerText : e.target.value
+            )
           }}
           className="bg-transparent w-full whitespace-pre-wrap inline-block focus:outline-none"
         />
