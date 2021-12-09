@@ -1,5 +1,5 @@
 import Konva from 'konva'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useRecoilValue } from 'recoil'
 import {
   Block,
@@ -71,6 +71,15 @@ const UnifiedFragment = ({
 
   const { getTextWidth } = useEdit()
 
+  const timer = useRef<any>(null)
+
+  useEffect(() => {
+    clearTimeout(timer.current)
+    return () => {
+      clearTimeout(timer.current)
+    }
+  }, [])
+
   useEffect(() => {
     if (!config) return
     setDataConfig(config)
@@ -119,15 +128,15 @@ const UnifiedFragment = ({
       })
     }
     if (state === 'recording') {
-      console.log('recording')
       updatePayload?.({
         activeObjectIndex: 0,
         fragmentState: 'onlyUserMedia',
       })
       setTopLayerChildren([])
-      setTimeout(() => {
+      timer.current = setTimeout(() => {
         if (!displayName) return
         if (!fragment) return
+        console.log('lower third')
         setTopLayerChildren([
           <IncredibleLowerThirds
             x={

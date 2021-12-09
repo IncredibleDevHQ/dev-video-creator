@@ -1,10 +1,8 @@
-import FontFaceObserver from 'fontfaceobserver'
 import Konva from 'konva'
 import React, { useEffect, useState } from 'react'
 import { Group, Rect, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import { CONFIG } from '../../components/Concourse'
-import useSplash, { Coordinates } from '../../hooks/use-splash'
 import { StudioProviderProps, studioStore } from '../../stores'
 import { IntroState } from '../fragments/IntroFragment'
 
@@ -15,67 +13,21 @@ const SplashFive = ({
   setFragmentState: React.Dispatch<React.SetStateAction<IntroState>>
   viewMode: boolean
 }) => {
-  const { state, fragment } =
+  const { fragment } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
-  const [configuration, setConfiguration] =
-    useState<{ title: any; subTitle: any }>()
+  const [configuration, setConfiguration] = useState<{ title: any }>()
 
   useEffect(() => {
     if (!fragment) return
     setConfiguration({
       title: {
-        value:
-          fragment?.flick?.name?.length > 12
-            ? `${fragment?.flick?.name.substring(0, 12)}...`
-            : fragment?.flick.name,
-      },
-      subTitle: {
-        value:
-          fragment?.flick?.description &&
-          fragment?.flick?.description?.length > 25
-            ? `${fragment?.flick?.description?.substring(0, 25)}...`
-            : fragment?.flick.description,
+        value: fragment?.flick.name,
+        // fragment?.flick?.name?.length > 12
+        //   ? `${fragment?.flick?.name.substring(0, 12)}...`
+        //   : fragment?.flick.name,
       },
     })
   }, [fragment])
-
-  const { getInitCoordinates } = useSplash()
-
-  const [coordinate, setCoordinate] = useState<Coordinates>({
-    titleX: 0,
-    titleY: 0,
-    subTitleX: 0,
-    subTitleY: 0,
-    titleHeight: 0,
-  })
-
-  const gutter = 10
-  const titleWidth = 600
-  const titleFontSize = 60
-  const subTitleFontSize = 30
-
-  useEffect(() => {
-    if (state === 'recording' || state === 'ready' || viewMode) {
-      setCoordinate(
-        getInitCoordinates({
-          title: configuration?.title.value as string,
-          subTitle: configuration?.subTitle.value as string,
-          gutter,
-          availableWidth: titleWidth - 100,
-          titleFontSize,
-          subTitleFontSize,
-          stageWidth: 960,
-          stageHeight: 540,
-        })
-      )
-      // getLayerChildren()
-    }
-  }, [state, configuration])
-
-  useEffect(() => {
-    const font = new FontFaceObserver('Poppins')
-    font.load()
-  }, [])
 
   return (
     <>
@@ -175,15 +127,16 @@ const SplashFive = ({
         <Text
           key="title"
           x={-600}
-          y={coordinate.titleY}
+          y={0}
           text={configuration?.title.value as string}
-          fontSize={60}
-          fontFamily="Poppins"
+          fontSize={54}
+          fontFamily="Gilroy"
           fill="#000000"
-          height={60}
+          height={CONFIG.height}
+          width={600}
           align="left"
           opacity={1}
-          // width={titleWidth}
+          verticalAlign="middle"
           ref={(ref) => {
             ref?.to({
               duration: 1,
@@ -197,32 +150,9 @@ const SplashFive = ({
             })
           }}
         />
-        <Text
-          key="subTitle"
-          x={-600}
-          y={coordinate.subTitleY}
-          text={configuration?.subTitle.value as string}
-          fontSize={30}
-          fontFamily="Poppins"
-          lineHeight={1.25}
-          fill="#5C595A"
-          align="left"
-          height={30}
-          width={titleWidth}
-          opacity={1}
-          ref={(ref) => {
-            ref?.to({
-              duration: 1,
-              x: 75,
-              easing: Konva.Easings.EaseInOut,
-            })
-          }}
-        />
       </Group>
     </>
   )
-
-  // return <Concourse disableUserMedia layerChildren={layerChildren} />
 }
 
 export default SplashFive
