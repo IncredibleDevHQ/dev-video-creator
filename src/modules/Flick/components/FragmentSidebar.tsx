@@ -13,26 +13,17 @@ import { FiMoreHorizontal, FiPlus } from 'react-icons/fi'
 import { IoCheckmarkCircle, IoTrashOutline } from 'react-icons/io5'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import { DeleteFragmentModal } from '.'
-import {
-  Avatar,
-  Button,
-  dismissToast,
-  emitToast,
-  Text,
-  Tooltip,
-  updateToast,
-} from '../../../components'
+import { Avatar, Button, Text, Tooltip } from '../../../components'
 import {
   FlickFragmentFragment,
   Fragment_Type_Enum_Enum,
-  useCreateFragmentMutation,
-  useGetFlickFragmentsLazyQuery,
   User,
   useReorderFragmentMutation,
   useUpdateFragmentMutation,
 } from '../../../generated/graphql'
 import { userState } from '../../../stores/user.store'
 import { newFlickStore } from '../store/flickNew.store'
+import NewFragmentModal from './NewFragmentModal'
 
 const style = css`
   ::-webkit-scrollbar {
@@ -43,16 +34,9 @@ const style = css`
 const FragmentSideBar = ({ plateValue }: { plateValue: any }) => {
   const [{ flick, activeFragmentId }, setFlickStore] =
     useRecoilState(newFlickStore)
-
-  const [createFragment] = useCreateFragmentMutation()
   const { sub } = (useRecoilValue(userState) as User) || {}
-  const [getFragments, { data: fragmentData, error: fragmentError, refetch }] =
-    useGetFlickFragmentsLazyQuery({
-      fetchPolicy: 'network-only',
-      variables: {
-        flickId: flick?.id,
-      },
-    })
+
+  const [openNewFragmentModal, setOpenNewFragmentModal] = useState(false)
 
   const [blockLength, setBlockLength] = useState(0)
 
@@ -61,75 +45,9 @@ const FragmentSideBar = ({ plateValue }: { plateValue: any }) => {
     setBlockLength(plateValue.blocks.length)
   }, [plateValue])
 
-  useEffect(() => {
-    if (!fragmentError || !refetch) return
-    emitToast({
-      title: "We couldn't fetch your new fragment",
-      type: 'error',
-      description: 'Click this toast to give it another try',
-      onClick: () => refetch(),
-    })
-  }, [fragmentError])
-
-  useEffect(() => {
-    if (!fragmentData?.Fragment || fragmentData.Fragment.length < 1 || !flick)
-      return
-    const newFragments = [...fragmentData.Fragment]
-    setFlickStore((store) => ({
-      ...store,
-      flick: {
-        ...flick,
-        fragments: newFragments,
-      },
-    }))
-  }, [fragmentData])
-
-  const handleCreateFragment = async () => {
-    if (flick?.owner?.userSub !== sub) return
-    let toast
-    try {
-      toast = emitToast({
-        type: 'info',
-        title: 'Creating...',
-        autoClose: false,
-      })
-
-      const { data, errors } = await createFragment({
-        variables: {
-          flickId: flick?.id,
-          name: 'Untitled',
-          creatorPid: flick?.participants.find((p) => p.userSub === sub)?.id,
-        },
-      })
-
-      if (errors) {
-        throw Error(errors[0].message)
-      }
-
-      if (data?.CreateFragment?.id) {
-        setFlickStore((store) => ({
-          ...store,
-          activeFragmentId: data.CreateFragment?.id,
-        }))
-        await refetch({ flickId: flick?.id })
-      }
-
-      dismissToast(toast)
-    } catch (e) {
-      if (toast) {
-        updateToast({
-          id: toast,
-          type: 'error',
-          title: 'There was an error creating a fragment.',
-          autoClose: 5000,
-        })
-      }
-    }
-  }
-
   return (
     <div className="h-full">
-      <div className="flex flex-col w-48 border-r border-gray-300 h-full relative bg-gray-50">
+      <div className="relative flex flex-col w-48 h-full border-r border-gray-300 bg-gray-50">
         <button
           onClick={() =>
             setFlickStore((prev) => ({
@@ -169,7 +87,7 @@ const FragmentSideBar = ({ plateValue }: { plateValue: any }) => {
               'cursor-not-allowed': flick?.owner?.userSub !== sub,
             }
           )}
-          onClick={handleCreateFragment}
+          onClick={() => setOpenNewFragmentModal(true)}
         >
           <Button
             type="button"
@@ -186,7 +104,7 @@ const FragmentSideBar = ({ plateValue }: { plateValue: any }) => {
           </Button>
         </div>
         <ThumbnailDND />
-        <div className="border-t-2 mt-auto" />
+        <div className="mt-auto border-t-2" />
         <button
           onClick={() =>
             setFlickStore((prev) => ({
@@ -216,6 +134,12 @@ const FragmentSideBar = ({ plateValue }: { plateValue: any }) => {
           <Text className="text-sm font-bold">Outro</Text>
         </button>
       </div>
+      {openNewFragmentModal && (
+        <NewFragmentModal
+          open={openNewFragmentModal}
+          handleClose={() => setOpenNewFragmentModal(false)}
+        />
+      )}
     </div>
   )
 }
@@ -395,7 +319,7 @@ const Thumbnail = ({
           role="button"
           onKeyUp={() => {}}
           tabIndex={-1}
-          className="absolute top-0 right-0 m-2 bg-gray-50 w-min p-1 shadow-md rounded-md cursor-pointer"
+          className="absolute top-0 right-0 p-1 m-2 rounded-md shadow-md cursor-pointer bg-gray-50 w-min"
           onClick={(e) => {
             e.stopPropagation()
             setOverflowMenuVisible(true)
@@ -408,15 +332,15 @@ const Thumbnail = ({
         isOpen={overflowMenuVisible}
         setIsOpen={setOverflowMenuVisible}
         content={
-          <div className="flex flex-col bg-gray-50 rounded-md border border-gray-300 w-44 z-10 shadow-md">
+          <div className="z-10 flex flex-col border border-gray-300 rounded-md shadow-md bg-gray-50 w-44">
             <div
               role="button"
               onKeyUp={() => {}}
               tabIndex={-1}
-              className="flex items-center py-3 px-4 cursor-pointer hover:bg-gray-100"
+              className="flex items-center px-4 py-3 cursor-pointer hover:bg-gray-100"
               onClick={() => setConfirmDeleteModal(true)}
             >
-              <IoTrashOutline size={21} className="text-gray-600 mr-4" />
+              <IoTrashOutline size={21} className="mr-4 text-gray-600" />
               <Text className="font-medium">Delete</Text>
             </div>
           </div>
@@ -430,7 +354,7 @@ const Thumbnail = ({
         onClick={(e) => {
           e.stopPropagation()
         }}
-        className="text-xs font-bold text-gray-800 cursor-text rounded-md p-1 hover:bg-gray-200 bg-transparent focus:outline-none"
+        className="p-1 text-xs font-bold text-gray-800 bg-transparent rounded-md cursor-text hover:bg-gray-200 focus:outline-none"
         onChange={(e) => setFragmentName(e.target.value)}
         onBlur={() => fragmentName && updateFragment(fragmentName)}
         onKeyDown={(e) => {
@@ -440,10 +364,10 @@ const Thumbnail = ({
           }
         }}
       />
-      <div className="flex pl-1 pt-1">
+      <div className="flex pt-1 pl-1">
         {fragment.participants.map(({ participant }) => (
           <Avatar
-            className="w-5 h-5 rounded-full mr-1"
+            className="w-5 h-5 mr-1 rounded-full"
             src={participant.user.picture as string}
             alt={participant.user.displayName as string}
           />
