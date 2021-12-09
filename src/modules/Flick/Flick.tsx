@@ -222,17 +222,11 @@ const Flick = () => {
       ...store,
       payload,
       updatePayload,
-      fragment: {
-        ...fragment,
-        flick: {
-          ...fragment.flick,
-          name: flick?.name || '',
-        },
-      },
+      fragment,
       addMusic,
       stopMusic,
     }))
-  }, [activeFragmentId, payload, flick?.name])
+  }, [activeFragmentId, payload, flick?.fragments])
 
   useEffect(() => {
     resetPayload()
