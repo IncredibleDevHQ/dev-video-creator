@@ -677,7 +677,7 @@ const Studio = ({
           role="button"
           tabIndex={0}
           onKeyUp={() => {}}
-          className="flex items-center absolute left-4 bottom-3 hover:bg-gray-100 cursor-pointer rounded-md"
+          className="flex items-center absolute left-4 bottom-3 hover:bg-gray-100 cursor-pointer rounded-md md-1"
           onClick={() => history.goBack()}
         >
           <IoChevronBack size={24} className="mr-4" />

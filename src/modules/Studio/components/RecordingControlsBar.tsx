@@ -225,7 +225,7 @@ const RecordingControlsBar = () => {
           <img src={startRecordIcon} alt="start" />
         </button>
       )}
-      {state !== 'preview' && (
+      {state !== 'preview' && state !== 'upload' && (
         <>
           <button
             type="button"
@@ -256,6 +256,7 @@ const RecordingControlsBar = () => {
         </>
       )}
       {state !== 'preview' &&
+        state !== 'upload' &&
         fragment?.type !== Fragment_Type_Enum_Enum.Intro &&
         fragment?.type !== Fragment_Type_Enum_Enum.Outro && (
           <>
