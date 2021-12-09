@@ -119,7 +119,6 @@ const UnifiedFragment = ({
       })
     }
     if (state === 'recording') {
-      console.log('recording')
       updatePayload?.({
         activeObjectIndex: 0,
         fragmentState: 'onlyUserMedia',
@@ -128,6 +127,7 @@ const UnifiedFragment = ({
       setTimeout(() => {
         if (!displayName) return
         if (!fragment) return
+        console.log('lower third')
         setTopLayerChildren([
           <IncredibleLowerThirds
             x={
