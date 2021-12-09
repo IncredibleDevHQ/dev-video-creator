@@ -293,6 +293,7 @@ const RecordingControlsBar = () => {
             </button>
           </>
         )}
+      {state === 'upload' && <div className="py-5" />}
       {fragment?.participants.length !== 1 && (
         <Tooltip
           isOpen={isRaiseHandsTooltip}
