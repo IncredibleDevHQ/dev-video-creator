@@ -46,14 +46,13 @@ const FragmentSideBar = ({ plateValue }: { plateValue: any }) => {
 
   const [createFragment] = useCreateFragmentMutation()
   const { sub } = (useRecoilValue(userState) as User) || {}
-  const [
-    GetFlickFragments,
-    { data: fragmentData, error: fragmentError, refetch },
-  ] = useGetFlickFragmentsLazyQuery({
-    variables: {
-      flickId: flick?.id,
-    },
-  })
+  const [getFragments, { data: fragmentData, error: fragmentError, refetch }] =
+    useGetFlickFragmentsLazyQuery({
+      fetchPolicy: 'network-only',
+      variables: {
+        flickId: flick?.id,
+      },
+    })
 
   const [blockLength, setBlockLength] = useState(0)
 
@@ -61,17 +60,6 @@ const FragmentSideBar = ({ plateValue }: { plateValue: any }) => {
     if (!plateValue?.blocks) return
     setBlockLength(plateValue.blocks.length)
   }, [plateValue])
-
-  useEffect(() => {
-    if (!fragmentData || !flick) return
-    setFlickStore((store) => ({
-      ...store,
-      flick: {
-        ...flick,
-        fragments: [...fragmentData.Fragment],
-      },
-    }))
-  }, [fragmentData])
 
   useEffect(() => {
     if (!fragmentError || !refetch) return
@@ -83,6 +71,19 @@ const FragmentSideBar = ({ plateValue }: { plateValue: any }) => {
     })
   }, [fragmentError])
 
+  useEffect(() => {
+    if (!fragmentData?.Fragment || fragmentData.Fragment.length < 1 || !flick)
+      return
+    const newFragments = [...fragmentData.Fragment]
+    setFlickStore((store) => ({
+      ...store,
+      flick: {
+        ...flick,
+        fragments: newFragments,
+      },
+    }))
+  }, [fragmentData])
+
   const handleCreateFragment = async () => {
     if (flick?.owner?.userSub !== sub) return
     let toast
@@ -93,7 +94,7 @@ const FragmentSideBar = ({ plateValue }: { plateValue: any }) => {
         autoClose: false,
       })
 
-      const res = await createFragment({
+      const { data, errors } = await createFragment({
         variables: {
           flickId: flick?.id,
           name: 'Untitled',
@@ -101,16 +102,17 @@ const FragmentSideBar = ({ plateValue }: { plateValue: any }) => {
         },
       })
 
-      if (res.errors) {
-        throw Error(res.errors[0].message)
+      if (errors) {
+        throw Error(errors[0].message)
       }
 
-      setFlickStore((prev) => ({
-        ...prev,
-        activeFragmentId: res.data?.CreateFragment?.id,
-      }))
-
-      GetFlickFragments?.()
+      if (data?.CreateFragment?.id) {
+        setFlickStore((store) => ({
+          ...store,
+          activeFragmentId: data.CreateFragment?.id,
+        }))
+        await refetch({ flickId: flick?.id })
+      }
 
       dismissToast(toast)
     } catch (e) {
@@ -228,21 +230,11 @@ const ThumbnailDND = () => {
     startIndex: number,
     endIndex: number
   ) => {
-    const results = Array.from(
-      list.filter(
-        (l) =>
-          l.type !== Fragment_Type_Enum_Enum.Intro &&
-          l.type !== Fragment_Type_Enum_Enum.Outro
-      )
-    )
+    const results = Array.from(list)
     const [removed] = results.splice(startIndex, 1)
     results.splice(endIndex, 0, removed)
 
-    return [
-      list[0],
-      ...results.map((result, index) => ({ ...result, order: index })),
-      list[list.length - 1],
-    ]
+    return results
   }
 
   const onDragEnd = (result: any) => {
@@ -250,7 +242,11 @@ const ThumbnailDND = () => {
       return
     }
     const items = clientReorder(
-      flick.fragments,
+      flick.fragments.filter(
+        (l) =>
+          l.type !== Fragment_Type_Enum_Enum.Intro &&
+          l.type !== Fragment_Type_Enum_Enum.Outro
+      ),
       result.source.index,
       result.destination.index
     )
@@ -266,7 +262,15 @@ const ThumbnailDND = () => {
       ...store,
       flick: {
         ...flick,
-        fragments: [...items],
+        fragments: [
+          flick.fragments.filter(
+            (f) => f.type === Fragment_Type_Enum_Enum.Intro
+          )[0],
+          ...items,
+          flick.fragments.filter(
+            (f) => f.type === Fragment_Type_Enum_Enum.Outro
+          )[0],
+        ],
       },
     }))
   }

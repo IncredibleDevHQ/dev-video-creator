@@ -312,22 +312,24 @@ const Concourse = ({
         payload?.status !== Fragment_Status_Enum_Enum.CountDown &&
         payload?.status !== Fragment_Status_Enum_Enum.Ended &&
         fragment &&
-        fragment.configuration?.speakers?.map((_: any, index: number) => {
-          return (
-            <PreviewUser
-              studioUserConfig={
-                (studioUserConfig && studioUserConfig[index]) || {
-                  x:
-                    defaultStudioUserConfig.x -
-                    (index + 1) * userStudioImageGap,
-                  y: defaultStudioUserConfig.y,
-                  width: defaultStudioUserConfig.width,
-                  height: defaultStudioUserConfig.height,
+        [...(fragment.configuration?.speakers || fragment.participants)]?.map(
+          (_: any, index: number) => {
+            return (
+              <PreviewUser
+                studioUserConfig={
+                  (studioUserConfig && studioUserConfig[index]) || {
+                    x:
+                      defaultStudioUserConfig.x -
+                      (index + 1) * userStudioImageGap,
+                    y: defaultStudioUserConfig.y,
+                    width: defaultStudioUserConfig.width,
+                    height: defaultStudioUserConfig.height,
+                  }
                 }
-              }
-            />
-          )
-        })
+              />
+            )
+          }
+        )
       )}
       <Group>{topLayerChildren}</Group>
     </>
