@@ -13,6 +13,7 @@ import {
   useRecoilState,
   useRecoilValue,
 } from 'recoil'
+import { IoChevronBack } from 'react-icons/io5'
 import {
   Button,
   dismissToast,
@@ -670,11 +671,36 @@ const Studio = ({
 
   return (
     <div className="h-screen">
+      {/* Bottom bar with details and global controls */}
+      <div className="fixed top-0 flex justify-center w-full px-10 py-4 bg-gray-50">
+        <div
+          role="button"
+          tabIndex={0}
+          onKeyUp={() => {}}
+          className="flex items-center absolute left-4 bottom-3 hover:bg-gray-100 cursor-pointer rounded-md"
+          onClick={() => history.goBack()}
+        >
+          <IoChevronBack size={24} className="mr-4" />
+          <div>
+            <Heading className="font-semibold text-gray-800 text-md">
+              {fragment.flick.name.length > 40
+                ? `${fragment.flick.name.substring(0, 40)}...`
+                : fragment.flick.name}
+            </Heading>
+            <Text className="text-gray-500 text-md">
+              {fragment.name && fragment.name.length > 20
+                ? `${fragment.name.substring(0, 20)}...`
+                : fragment.name}
+            </Text>
+          </div>
+        </div>
+        <RecordingControlsBar />
+      </div>
       {/* Studio or Video , Notes and layout controls */}
-      <div className="flex items-center h-full px-10 pb-16 ">
+      <div className="flex items-center h-full px-10 pt-16 ">
         <Countdown />
         {state === 'ready' || state === 'recording' || state === 'countDown' ? (
-          <div className="flex w-full gap-x-8">
+          <div className="flex w-full gap-x-8 mt-3">
             <Stage
               ref={stageRef}
               height={stageConfig.height}
@@ -878,22 +904,6 @@ const Studio = ({
             }}
           />
         )}
-      </div>
-      {/* Bottom bar with details and global controls */}
-      <div className="fixed bottom-0 flex justify-center w-full px-10 py-4 bg-gray-50">
-        <div className="absolute left-8 bottom-3">
-          <Heading className="font-semibold text-gray-800 text-md">
-            {fragment.flick.name.length > 20
-              ? `${fragment.flick.name.substring(0, 20)}...`
-              : fragment.flick.name}
-          </Heading>
-          <Text className="text-gray-500 text-md">
-            {fragment.name && fragment.name.length > 20
-              ? `${fragment.name.substring(0, 20)}...`
-              : fragment.name}
-          </Text>
-        </div>
-        <RecordingControlsBar />
       </div>
     </div>
   )
