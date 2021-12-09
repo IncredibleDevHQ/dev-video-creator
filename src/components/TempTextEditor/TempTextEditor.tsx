@@ -58,7 +58,7 @@ const TempTextEditor = (props: TempTextEditorProps) => {
   }, [divRef.current])
 
   return (
-    <div className="w-full">
+    <div className="w-full pb-32">
       <div className="overflow-y-auto" ref={divRef}>
         {(props.controlled ? props.ast : ast)?.blocks?.map((block, index) => (
           <BlockComponent
@@ -119,22 +119,22 @@ const TempTextEditor = (props: TempTextEditorProps) => {
 
 const Placeholder = ({ handleCreate }: { handleCreate: () => void }) => {
   return (
-    <div className="flex flex-col mt-16 items-center justify-center">
+    <div className="flex flex-col items-center justify-center mt-16">
       <img
-        className="w-40 animate-pulse duration-1000"
+        className="w-40 duration-1000 animate-pulse"
         src={ASSETS.ANIMATION.EDITOR}
         alt="Editor"
       />
-      <Heading className="mb-4 mt-12" fontSize="medium">
+      <Heading className="mt-12 mb-4" fontSize="medium">
         Start by creating a block
       </Heading>
-      <Text className="text-center mb-4" style={{ maxWidth: 320 }}>
+      <Text className="mb-4 text-center" style={{ maxWidth: 320 }}>
         Blocks are the elementary units of a fragment that let you introduce a
         multitude of content into your fragment.
       </Text>
       <button
         type="button"
-        className="p-2 flex items-center border-gray-300 hover:bg-gray-100 transition-colors border rounded text-sm"
+        className="flex items-center p-2 text-sm transition-colors border border-gray-300 rounded hover:bg-gray-100"
         onClick={() => handleCreate()}
       >
         <BiPlus className="mr-2" />

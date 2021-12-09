@@ -416,13 +416,7 @@ const Flick = () => {
       <FlickNavBar toggleModal={setIntegrationModal} />
       <div className="flex flex-1 overflow-hidden ">
         <FragmentSideBar plateValue={plateValue} />
-        <div
-          className={cx('flex-1 h-full pb-12', {
-            'pb-48':
-              activeFragment?.type !== Fragment_Type_Enum_Enum.Intro &&
-              activeFragment?.type !== Fragment_Type_Enum_Enum.Outro,
-          })}
-        >
+        <div className={cx('flex-1 h-full pb-12')}>
           <FragmentBar
             markdown={fragmentMarkdown}
             plateValue={plateValue}
@@ -533,21 +527,22 @@ const Flick = () => {
                       setFragmentMarkdown(markdown)
                     }}
                   /> */}
-
-                  <TempTextEditor
-                    key={activeFragment.id}
-                    handleUpdatePosition={(position) => {
-                      setPreviewPosition(position)
-                    }}
-                    handleUpdateAst={(ast) => {
-                      setPlateValue(ast)
-                    }}
-                    initialAst={plateValue}
-                    handleActiveBlock={(block) => {
-                      setCurrentBlock(block)
-                    }}
-                  />
-                  <div className="relative w-1/4 ml-10 border-none outline-none">
+                  <div className="flex-1">
+                    <TempTextEditor
+                      key={activeFragment.id}
+                      handleUpdatePosition={(position) => {
+                        setPreviewPosition(position)
+                      }}
+                      handleUpdateAst={(ast) => {
+                        setPlateValue(ast)
+                      }}
+                      initialAst={plateValue}
+                      handleActiveBlock={(block) => {
+                        setCurrentBlock(block)
+                      }}
+                    />
+                  </div>
+                  <div className="relative w-1/4 h-full border-none outline-none l-10">
                     {currentBlock && viewConfig && (
                       <BlockPreview
                         block={currentBlock}
