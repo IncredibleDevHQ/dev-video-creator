@@ -29,38 +29,6 @@ const SplashEleven = ({
     })
   }, [fragment])
 
-  const { getInitCoordinates } = useSplash()
-
-  const [coordinate, setCoordinate] = useState<Coordinates>({
-    titleX: 0,
-    titleY: 0,
-    subTitleX: 0,
-    subTitleY: 0,
-    titleHeight: 0,
-  })
-
-  const gutter = 10
-  const titleFontSize = 50
-  const subTitleFontSize = 25
-
-  // useEffect(() => {
-  //   if (state === 'recording' || state === 'ready' || viewMode) {
-  //     setCoordinate(
-  //       getInitCoordinates({
-  //         title: configuration?.title.value as string,
-  //         subTitle: configuration?.subTitle.value as string,
-  //         gutter,
-  //         availableWidth: 450,
-  //         titleFontSize,
-  //         subTitleFontSize,
-  //         stageWidth: 960,
-  //         stageHeight: 540,
-  //         fontFamily: 'Poppins',
-  //       })
-  //     )
-  //   }
-  // }, [state, configuration])
-
   return (
     <Group>
       <Rect
