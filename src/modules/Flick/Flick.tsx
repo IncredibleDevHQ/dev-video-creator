@@ -416,7 +416,7 @@ const Flick = () => {
       <FlickNavBar toggleModal={setIntegrationModal} />
       <div className="flex flex-1 overflow-hidden ">
         <FragmentSideBar plateValue={plateValue} />
-        <div className="flex-1 h-full pb-20">
+        <div className="flex-1 h-full pb-48">
           <FragmentBar
             markdown={fragmentMarkdown}
             plateValue={plateValue}
