@@ -16,24 +16,16 @@ const SplashFour = ({
 }) => {
   const { fragment } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
-  const [configuration, setConfiguration] =
-    useState<{ title: any; subTitle: any }>()
+  const [configuration, setConfiguration] = useState<{ title: any }>()
 
   useEffect(() => {
     if (!fragment) return
     setConfiguration({
       title: {
-        value:
-          fragment?.flick?.name?.length > 20
-            ? `${fragment?.flick?.name.substring(0, 20)}...`
-            : fragment?.flick.name,
-      },
-      subTitle: {
-        value:
-          fragment?.flick?.description &&
-          fragment?.flick?.description?.length > 45
-            ? `${fragment?.flick?.description?.substring(0, 45)}...`
-            : fragment?.flick.description,
+        value: fragment.flick.name,
+        // fragment?.flick?.name?.length > 90
+        //   ? `${fragment?.flick?.name.substring(0, 50)}...`
+        //   : fragment?.flick.name,
       },
     })
   }, [fragment])
@@ -224,45 +216,27 @@ const SplashFour = ({
           }, 1000)
         }}
       />
-      <Line
+      {/* <Line
         key="titleDashedLine"
-        points={[200, CONFIG.height / 2, CONFIG.width - 200, CONFIG.height / 2]}
+        points={[150, CONFIG.height / 2, CONFIG.width - 150, CONFIG.height / 2]}
         stroke="#85D4F6"
         strokeWidth={2}
         lineJoin="round"
         dash={[10, 4]}
         // ref={() => {}}
-      />
+      /> */}
       <Text
         key="title"
-        x={0}
+        x={150}
         y={CONFIG.height / 2 - 40}
         text={configuration?.title.value as string}
         fontSize={40}
-        fontFamily="Poppins"
+        fontFamily="Gilroy"
         fill="#21C5FA"
-        height={40}
-        width={CONFIG.width}
-        align="center"
-        opacity={0}
-        ref={(ref) => {
-          ref?.to({
-            duration: 1,
-            opacity: 1,
-          })
-        }}
-      />
-      <Text
-        key="subTitle"
-        x={0}
-        y={CONFIG.height / 2 + 20}
-        text={configuration?.subTitle.value as string}
-        fontSize={20}
-        fontFamily="Poppins"
-        lineHeight={1.25}
-        width={CONFIG.width}
-        height={20}
-        fill="#5C595A"
+        lineHeight={1.2}
+        width={660}
+        height={100}
+        // width={CONFIG.width}
         align="center"
         opacity={0}
         ref={(ref) => {
