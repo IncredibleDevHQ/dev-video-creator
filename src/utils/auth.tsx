@@ -26,14 +26,15 @@ const AuthProvider = ({ children }: { children: JSX.Element }): JSX.Element => {
       setAuth({ ...auth, loading: true })
       // console.log('logging in....')
       const { data, status } = await axios.post(
-        `${config.auth.endpoint}/api/status`
-        // {
-        //   withCredentials: true,
-        // }
+        `${config.auth.endpoint}/api/status`,
+        {
+          withCredentials: true,
+        }
       )
       // console.log('auth data', data)
       if (status !== 200) {
         throw new Error('Failed to get user status')
+        window.location.href = `${config.auth.endpoint}/login`
       }
       const { user } = await signInWithCustomToken(auth.auth, data as string)
       // console.log('FB user', user)
@@ -67,7 +68,6 @@ const AuthProvider = ({ children }: { children: JSX.Element }): JSX.Element => {
     } catch (e) {
       // console.log(JSON.stringify(e))
       setAuth({ ...auth, loading: false })
-      window.location.href = `${config.auth.endpoint}/login`
     } finally {
       setAuth((auth) => ({ ...auth, loading: false }))
     }
