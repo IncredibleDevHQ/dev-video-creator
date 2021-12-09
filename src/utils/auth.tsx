@@ -27,6 +27,7 @@ const AuthProvider = ({ children }: { children: JSX.Element }): JSX.Element => {
       // console.log('logging in....')
       const { data, status } = await axios.post(
         `${config.auth.endpoint}/api/status`,
+        {},
         {
           withCredentials: true,
         }
