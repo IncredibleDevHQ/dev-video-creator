@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react'
 import { Circle, Group, Line, Rect, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import { CONFIG } from '../../components/Concourse'
-import useSplash, { Coordinates } from '../../hooks/use-splash'
 import { StudioProviderProps, studioStore } from '../../stores'
 import { IntroState } from '../fragments/IntroFragment'
 
