@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react'
 import { Circle, Group, Line, Rect, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import { CONFIG } from '../../components/Concourse'
-import useSplash, { Coordinates } from '../../hooks/use-splash'
 import { StudioProviderProps, studioStore } from '../../stores'
 import { IntroState } from '../fragments/IntroFragment'
 
@@ -13,61 +12,21 @@ const SplashEleven = ({
   setFragmentState: React.Dispatch<React.SetStateAction<IntroState>>
   viewMode: boolean
 }) => {
-  const { state, fragment } =
+  const { fragment } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
-  const [configuration, setConfiguration] =
-    useState<{ title: any; subTitle: any }>()
+  const [configuration, setConfiguration] = useState<{ title: any }>()
 
   useEffect(() => {
     if (!fragment) return
     setConfiguration({
       title: {
-        value:
-          fragment?.flick?.name?.length > 15
-            ? `${fragment?.flick?.name.substring(0, 15)}...`
-            : fragment?.flick.name,
-      },
-      subTitle: {
-        value:
-          fragment?.flick?.description &&
-          fragment?.flick?.description?.length > 35
-            ? `${fragment?.flick?.description?.substring(0, 35)}...`
-            : fragment?.flick.description,
+        value: fragment.flick.name,
+        // fragment?.flick?.name?.length > 15
+        //   ? `${fragment?.flick?.name.substring(0, 15)}...`
+        //   : fragment?.flick.name,
       },
     })
   }, [fragment])
-
-  const { getInitCoordinates } = useSplash()
-
-  const [coordinate, setCoordinate] = useState<Coordinates>({
-    titleX: 0,
-    titleY: 0,
-    subTitleX: 0,
-    subTitleY: 0,
-    titleHeight: 0,
-  })
-
-  const gutter = 10
-  const titleFontSize = 50
-  const subTitleFontSize = 25
-
-  useEffect(() => {
-    if (state === 'recording' || state === 'ready' || viewMode) {
-      setCoordinate(
-        getInitCoordinates({
-          title: configuration?.title.value as string,
-          subTitle: configuration?.subTitle.value as string,
-          gutter,
-          availableWidth: 450,
-          titleFontSize,
-          subTitleFontSize,
-          stageWidth: 960,
-          stageHeight: 540,
-          fontFamily: 'Poppins',
-        })
-      )
-    }
-  }, [state, configuration])
 
   return (
     <Group>
@@ -295,34 +254,14 @@ const SplashEleven = ({
       />
       <Text
         key="title"
-        x={0}
-        y={coordinate.titleY}
+        x={195}
+        y={CONFIG.height / 2 - 40}
         text={configuration?.title.value as string}
         fontSize={40}
-        width={CONFIG.width}
-        height={50}
-        fontFamily="Poppins"
+        width={570}
+        height={100}
+        fontFamily="Gilroy"
         fill="#000000"
-        align="center"
-        opacity={0}
-        ref={(ref) => {
-          ref?.to({
-            duration: 1,
-            opacity: 1,
-          })
-        }}
-      />
-      <Text
-        key="subTitle"
-        x={0}
-        y={coordinate.subTitleY}
-        text={configuration?.subTitle.value as string}
-        fontSize={20}
-        fontFamily="Poppins"
-        lineHeight={1.25}
-        fill="#5C595A"
-        width={CONFIG.width}
-        height={25}
         align="center"
         opacity={0}
         ref={(ref) => {

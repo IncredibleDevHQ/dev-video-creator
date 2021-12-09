@@ -2,9 +2,11 @@ import FontFaceObserver from 'fontfaceobserver'
 import Konva from 'konva'
 import React, { useEffect, useState } from 'react'
 import { Group, Image, Line, Rect, Text } from 'react-konva'
+import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
 import config from '../../../../config'
 import { CONFIG } from '../../components/Concourse'
+import { StudioProviderProps, studioStore } from '../../stores'
 import { IntroState } from '../fragments/IntroFragment'
 
 const SplashFifteen = ({
@@ -14,10 +16,21 @@ const SplashFifteen = ({
   setFragmentState: React.Dispatch<React.SetStateAction<IntroState>>
   viewMode: boolean
 }) => {
-  // const { fragment } =
-  //   (useRecoilValue(studioStore) as StudioProviderProps) || {}
-  // const [configuration, setConfiguration] =
-  //   useState<{ title: any; subTitle: any }>()
+  const { fragment } =
+    (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const [configuration, setConfiguration] = useState<{ title: any }>()
+
+  useEffect(() => {
+    if (!fragment) return
+    setConfiguration({
+      title: {
+        value: fragment.flick.name,
+        // fragment?.flick?.name?.length > 90
+        //   ? `${fragment?.flick?.name.substring(0, 50)}...`
+        //   : fragment?.flick.name,
+      },
+    })
+  }, [fragment])
 
   const [astroPlanet] = useImage(
     `${config.storage.baseUrl}planet.svg`,
@@ -386,15 +399,17 @@ const SplashFifteen = ({
         <Text
           key="text1"
           x={32}
-          y={32}
-          text="Build faster websites with less client-side Javascript"
-          fontSize={30}
-          fontFamily="Open Sans"
+          y={24}
+          text={configuration?.title.value as string}
+          fontSize={32}
+          fontFamily="Gilroy"
           fontStyle="bold"
           lineHeight={1.2}
           fill="#ffffff"
           align="left"
-          width={250}
+          width={265}
+          height={172}
+          verticalAlign="middle"
         />
         <Image image={astroLogo} x={233} y={222} />
       </Group>
