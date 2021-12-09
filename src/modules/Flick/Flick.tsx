@@ -416,7 +416,13 @@ const Flick = () => {
       <FlickNavBar toggleModal={setIntegrationModal} />
       <div className="flex flex-1 overflow-hidden ">
         <FragmentSideBar plateValue={plateValue} />
-        <div className="flex-1 h-full pb-48">
+        <div
+          className={cx('flex-1 h-full pb-12', {
+            'pb-48':
+              activeFragment?.type !== Fragment_Type_Enum_Enum.Intro &&
+              activeFragment?.type !== Fragment_Type_Enum_Enum.Outro,
+          })}
+        >
           <FragmentBar
             markdown={fragmentMarkdown}
             plateValue={plateValue}
