@@ -120,7 +120,7 @@ const SpeakersTooltip = ({
   const { flick } = useRecoilValue(newFlickStore)
 
   return (
-    <div className="rounded-lg bg-white shadow-2xl font-body flex flex-col">
+    <div className="flex flex-col bg-white rounded-lg shadow-2xl font-body">
       {flick?.participants
         .filter((p) => !speakers?.some((s) => s.id === p.id))
         .map((participant, index) => (
@@ -222,11 +222,17 @@ const Flick = () => {
       ...store,
       payload,
       updatePayload,
-      fragment,
+      fragment: {
+        ...fragment,
+        flick: {
+          ...fragment.flick,
+          name: flick?.name || '',
+        },
+      },
       addMusic,
       stopMusic,
     }))
-  }, [activeFragmentId, payload])
+  }, [activeFragmentId, payload, flick?.name])
 
   useEffect(() => {
     resetPayload()
@@ -416,7 +422,7 @@ const Flick = () => {
       <FlickNavBar toggleModal={setIntegrationModal} />
       <div className="flex flex-1 overflow-hidden ">
         <FragmentSideBar plateValue={plateValue} />
-        <div className="flex-1 pb-20 h-full">
+        <div className="flex-1 h-full pb-20">
           <FragmentBar
             markdown={fragmentMarkdown}
             plateValue={plateValue}
@@ -451,7 +457,7 @@ const Flick = () => {
                     onChange={(e) => {
                       updateFragment(e.target.value)
                     }}
-                    className="font-main text-4xl text-gray-800 focus:outline-none font-bold"
+                    className="text-4xl font-bold text-gray-800 font-main focus:outline-none"
                     value={
                       flick.fragments.find((f) => f.id === activeFragmentId)
                         ?.name || ''
@@ -461,7 +467,7 @@ const Flick = () => {
                 <div className="flex items-center justify-start mx-10">
                   {viewConfig.speakers?.map((s) => (
                     <div
-                      className="flex items-center px-2 py-1 mr-2 rounded-md border border-gray-300 font-body"
+                      className="flex items-center px-2 py-1 mr-2 border border-gray-300 rounded-md font-body"
                       key={s.user.sub}
                     >
                       <img
@@ -496,18 +502,18 @@ const Flick = () => {
                       <button
                         type="button"
                         onClick={() => setSpeakersTooltip(true)}
-                        className="flex items-center px-2 py-1 hover:bg-gray-100 rounded-sm gap-x-2 text-gray-400 font-body"
+                        className="flex items-center px-2 py-1 text-gray-400 rounded-sm hover:bg-gray-100 gap-x-2 font-body"
                       >
                         <IoPersonOutline /> Add speakers
                       </button>
                     </Tooltip>
                   )}
                 </div>
-                <div className="flex items-center mx-7 mr-36 mt-6 shadow-lg">
+                <div className="flex items-center mt-6 shadow-lg mx-7 mr-36">
                   <hr className="w-full" />
                   <span className="w-48" />
                 </div>
-                <div className="px-8 -mt-6 w-full relative flex h-full justify-between">
+                <div className="relative flex justify-between w-full h-full px-8 -mt-6">
                   {/* <TextEditor
                     placeholder="Start writing..."
                     handleUpdateJSON={(json) => {
