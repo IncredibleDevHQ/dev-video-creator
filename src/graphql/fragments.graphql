@@ -195,16 +195,19 @@ mutation CreateFragment(
   $name: String!
   $description: String
   $creatorPid: uuid
+  $speakerIds: [String] = []
 ) {
   CreateFragment(
     flickId: $flickId
     name: $name
     description: $description
     creatorParticipantId: $creatorPid
+    speakerIds: $speakerIds
   ) {
     id
   }
 }
+
 
 mutation UpdateFragmentConfiguration($fragmentId: uuid!, $items: json!) {
   UpdateFragmentConfiguration(fragmentId: $fragmentId, items: $items) {

@@ -23,6 +23,8 @@ import {
 } from '../../../generated/graphql'
 import { useTimekeeper } from '../../../hooks'
 import { canvasStore, StudioProviderProps, studioStore } from '../stores'
+import { ReactComponent as ReRecordIcon } from '../../../assets/ReRecord.svg'
+import { ReactComponent as UploadIcon } from '../../../assets/Upload.svg'
 
 export const ControlButton = ({
   appearance,
@@ -161,10 +163,24 @@ const RecordingControlsBar = () => {
   return (
     <div className="flex gap-x-4 items-center justify-center">
       {state === 'preview' && (
-        <div className="flex items-center rounded-md">
+        <div className="flex items-center rounded-md gap-x-4">
           <button
+            className="bg-green-600 border-green-600 text-white border rounded-sm py-1.5 px-2.5 flex items-center gap-x-2 font-bold hover:shadow-lg text-sm"
             type="button"
-            className="p-3 bg-red-600 rounded-tl-md rounded-bl-md"
+            onClick={() => {
+              upload()
+              updatePayload?.({
+                status: Fragment_Status_Enum_Enum.Completed,
+              })
+            }}
+          >
+            <UploadIcon className="h-6 w-6 " />
+            Save recording
+          </button>
+
+          <button
+            className="border-red-600 text-red-600 border rounded-sm py-1.5 px-2.5 flex items-center gap-x-2 font-bold hover:shadow-md text-sm"
+            type="button"
             onClick={() => {
               reset()
               handleReset()
@@ -173,19 +189,8 @@ const RecordingControlsBar = () => {
               })
             }}
           >
-            <FiX className="text-white" />
-          </button>
-          <button
-            type="button"
-            className="p-3 bg-gray-800 rounded-tr-md rounded-br-md"
-            onClick={() => {
-              upload()
-              updatePayload?.({
-                status: Fragment_Status_Enum_Enum.Completed,
-              })
-            }}
-          >
-            <FiCheck className="text-white" />
+            <ReRecordIcon className="h-6 w-6 " />
+            Retake
           </button>
         </div>
       )}
@@ -220,36 +225,42 @@ const RecordingControlsBar = () => {
           <img src={startRecordIcon} alt="start" />
         </button>
       )}
-      <button
-        type="button"
-        onClick={async () => {
-          updateParticipant?.({ audio: !constraints?.audio })
-          await mute('audio')
-        }}
-      >
-        {constraints?.audio ? (
-          <IoMicOutline className="text-gray-600" size={24} />
-        ) : (
-          <IoMicOffOutline className="text-gray-600" size={24} />
-        )}
-      </button>
-      <button
-        type="button"
-        onClick={async () => {
-          updateParticipant?.({ video: !constraints?.video })
-          await mute('video')
-        }}
-      >
-        {constraints?.video ? (
-          <IoVideocamOutline className="text-gray-600" size={24} />
-        ) : (
-          <IoVideocamOffOutline className="text-gray-600" size={24} />
-        )}
-      </button>
-      <div className="w-px bg-gray-200 h-full mx-1" />
-      {fragment?.type !== Fragment_Type_Enum_Enum.Intro &&
+      {state !== 'preview' && state !== 'upload' && (
+        <>
+          <button
+            type="button"
+            onClick={async () => {
+              updateParticipant?.({ audio: !constraints?.audio })
+              await mute('audio')
+            }}
+          >
+            {constraints?.audio ? (
+              <IoMicOutline className="text-gray-600" size={24} />
+            ) : (
+              <IoMicOffOutline className="text-gray-600" size={24} />
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={async () => {
+              updateParticipant?.({ video: !constraints?.video })
+              await mute('video')
+            }}
+          >
+            {constraints?.video ? (
+              <IoVideocamOutline className="text-gray-600" size={24} />
+            ) : (
+              <IoVideocamOffOutline className="text-gray-600" size={24} />
+            )}
+          </button>
+        </>
+      )}
+      {state !== 'preview' &&
+        state !== 'upload' &&
+        fragment?.type !== Fragment_Type_Enum_Enum.Intro &&
         fragment?.type !== Fragment_Type_Enum_Enum.Outro && (
           <>
+            <div className="w-px bg-gray-200 h-full mx-1" />
             <button
               type="button"
               onClick={() => {
@@ -282,6 +293,7 @@ const RecordingControlsBar = () => {
             </button>
           </>
         )}
+      {state === 'upload' && <div className="py-5" />}
       {fragment?.participants.length !== 1 && (
         <Tooltip
           isOpen={isRaiseHandsTooltip}
