@@ -543,19 +543,22 @@ const Flick = () => {
                     />
                   </div>
                   <div className="relative w-1/4 h-full border-none outline-none l-10">
-                    {currentBlock && viewConfig && (
-                      <BlockPreview
-                        block={currentBlock}
-                        config={viewConfig}
-                        updateConfig={updateBlockProperties}
-                        className={cx(
-                          'absolute w-full h-full',
-                          css`
-                            top: ${previewPosition?.y}px;
-                          `
-                        )}
-                      />
-                    )}
+                    {currentBlock &&
+                      currentBlock.type &&
+                      viewConfig &&
+                      plateValue?.blocks?.length > 0 && (
+                        <BlockPreview
+                          block={currentBlock}
+                          config={viewConfig}
+                          updateConfig={updateBlockProperties}
+                          className={cx(
+                            'absolute w-full h-full',
+                            css`
+                              top: ${previewPosition?.y}px;
+                            `
+                          )}
+                        />
+                      )}
                   </div>
                 </div>
                 {plateValue?.blocks?.length > 0 && (
