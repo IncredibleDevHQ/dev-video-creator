@@ -446,12 +446,13 @@ const Flick = () => {
                   verticalCustomScrollBar
                 )}
               >
-                <div className="mx-10 mb-4">
+                <div className="mx-10 mb-4 ">
                   <input
+                    maxLength={50}
                     onChange={(e) => {
                       updateFragment(e.target.value)
                     }}
-                    className="text-4xl font-bold text-gray-800 font-main focus:outline-none"
+                    className="w-full text-4xl font-bold text-gray-800 resize-none font-main focus:outline-none"
                     value={
                       flick.fragments.find((f) => f.id === activeFragmentId)
                         ?.name || ''
