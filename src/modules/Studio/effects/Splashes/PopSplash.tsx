@@ -6,7 +6,7 @@ import { CONFIG } from '../../components/Concourse'
 import { StudioProviderProps, studioStore } from '../../stores'
 import { IntroState } from '../fragments/IntroFragment'
 
-const SplashFifteen = ({
+const PopSplash = ({
   setFragmentState,
   viewMode,
 }: {
@@ -185,4 +185,4 @@ const SplashFifteen = ({
   )
 }
 
-export default SplashFifteen
+export default PopSplash
