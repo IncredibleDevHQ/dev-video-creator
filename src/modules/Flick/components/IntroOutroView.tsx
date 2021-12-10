@@ -86,8 +86,8 @@ function IntroOutroView({
   const [ref, bounds] = useMeasure()
 
   return (
-    <div className="py-2 ml-6 w-full h-full">
-      <div className="flex flex-1 h-full w-full overflow-hidden" ref={ref}>
+    <div className="w-full h-full py-2 ml-6">
+      <div className="flex flex-1 w-full h-full overflow-hidden" ref={ref}>
         <div className="w-min">
           {config && <Preview config={config} bounds={bounds} />}
           <Layouts />
@@ -213,7 +213,7 @@ const Layouts = () => {
               }
             )}
           >
-            <div className="flex items-center justify-center bg-gray-200 w-full h-full rounded-md">
+            <div className="flex items-center justify-center w-full h-full bg-gray-200 rounded-md">
               <IoPlayOutline className="text-gray-400" size={24} />
             </div>
           </div>
@@ -242,7 +242,7 @@ const Layouts = () => {
                 }
               )}
             >
-              <div className="flex items-center justify-center bg-gray-200 w-full h-full rounded-md">
+              <div className="flex items-center justify-center w-full h-full bg-gray-200 rounded-md">
                 <img src={layoutLink} alt="link" className="w-8" />
               </div>
             </div>
@@ -271,7 +271,7 @@ const Layouts = () => {
               }
             )}
           >
-            <div className="flex items-center justify-center bg-gray-500 w-full h-full rounded-md">
+            <div className="flex items-center justify-center w-full h-full bg-gray-500 rounded-md">
               <HiOutlineUser className="text-gray-300" size={24} />
             </div>
           </div>
@@ -310,9 +310,10 @@ const Configurations = ({
   }, [payload?.fragmentState])
 
   return (
-    <div className="flex flex-col ml-4 h-full">
+    <div className="flex flex-col h-full ml-4 -mt-4">
+      {/* NOTE: To be put back later */}
       {/* Configs */}
-      <div className="flex gap-x-3">
+      {/* <div className="flex gap-x-3">
         {payload?.fragmentState === 'customLayout' &&
           flick?.fragments.find((f) => f.id === activeFragmentId)?.type ===
             Fragment_Type_Enum_Enum.Intro && (
@@ -352,21 +353,21 @@ const Configurations = ({
             role="button"
             tabIndex={-1}
             onKeyUp={() => {}}
-            onClick={() => setCurrentConfiguration(Configuration.Discord)}
+            onClick={() => setCurrentConfiguration(Configuration.UserMedia)}
             style={{
               background: config.gradient.cssString,
             }}
             className={cx(
               'border border-gray-300 p-2 rounded-md h-9 w-9 flex items-center justify-center',
               {
-                'border-brand': currentConfiguration === Configuration.Discord,
+                'border-brand': currentConfiguration === Configuration.UserMedia,
               }
             )}
           >
             <IoPerson className="text-gray-700" />
           </div>
         )}
-      </div>
+      </div> */}
       {/* Selected Config */}
       {currentConfiguration === Configuration.Splash &&
         flick?.fragments.find((f) => f.id === activeFragmentId)?.type ===
@@ -399,15 +400,15 @@ const SplashConfiguration = ({
   const [currentTab, setCurrentTab] = useState<Tab>(tabs[0])
 
   return (
-    <div className="border mt-4 rounded-lg shadow-md h-4/6 border-gray-300 w-60 overflow-hidden">
+    <div className="mt-4 overflow-hidden border border-gray-300 rounded-lg shadow-md h-4/6 w-60">
       <TabBar
         tabs={tabs}
         current={currentTab}
         onTabChange={setCurrentTab}
-        className="text-black gap-2 w-auto ml-4 mt-4"
+        className="w-auto gap-2 mt-4 ml-4 text-black"
       />
       <div className={cx('h-full w-full overflow-y-scroll pb-16', scrollStyle)}>
-        <div className="grid grid-cols-2 p-4 gap-4">
+        <div className="grid grid-cols-2 gap-4 p-4">
           {Object.values(SplashThemes).map((key, index) => {
             return (
               <button
@@ -426,7 +427,7 @@ const SplashConfiguration = ({
                 )}
                 type="button"
               >
-                <Text className="font-base text-xs text-gray-800">
+                <Text className="text-xs text-gray-800 font-base">
                   {
                     Object.keys(SplashThemes)[
                       Object.values(SplashThemes).indexOf(key)
@@ -483,15 +484,15 @@ const DiscordConfiguration = ({
   const [currentTab, setCurrentTab] = useState<Tab>(tabs[0])
 
   return (
-    <div className="border mt-4 rounded-lg shadow-md border-gray-300 w-60 h-4/6 overflow-hidden">
+    <div className="mt-4 overflow-hidden border border-gray-300 rounded-lg shadow-md w-60 h-4/6">
       <TabBar
         tabs={tabs}
         current={currentTab}
         onTabChange={setCurrentTab}
-        className="text-black gap-2 w-auto ml-4 mt-4"
+        className="w-auto gap-2 mt-4 ml-4 text-black"
       />
       <div className={cx('h-full w-full overflow-y-scroll pb-16', scrollStyle)}>
-        <div className="grid grid-cols-2 p-4 gap-4">
+        <div className="grid grid-cols-2 gap-4 p-4">
           {discordConfigs.map((discordConfig) => {
             return (
               <button
@@ -652,12 +653,12 @@ const GradientPicker = ({
   }
 
   return (
-    <div className="border mt-4 rounded-lg shadow-md border-gray-300 w-60 h-4/6 overflow-hidden">
+    <div className="mt-4 overflow-hidden border border-gray-300 rounded-lg shadow-md w-60 h-4/6">
       <TabBar
         tabs={tabs}
         current={currentTab}
         onTabChange={setCurrentTab}
-        className="text-black gap-2 w-auto ml-4 mt-4"
+        className="w-auto gap-2 mt-4 ml-4 text-black"
       />
       <div className={cx('h-full w-full overflow-y-scroll pb-16', scrollStyle)}>
         <div
@@ -690,7 +691,7 @@ const GradientPicker = ({
                   style={{
                     background: gradients[n - 1].cssString,
                   }}
-                  className="h-full w-full bg-gray-100 rounded-md"
+                  className="w-full h-full bg-gray-100 rounded-md"
                 />
               </div>
             )
@@ -725,8 +726,8 @@ const GradientPicker = ({
 //   const [search, setSearch] = useState('')
 
 //   return (
-//     <div className="p-4 h-full">
-//       <div className="flex items-center w-full gap-x-2 border border-gray-300 rounded-md">
+//     <div className="h-full p-4">
+//       <div className="flex items-center w-full border border-gray-300 rounded-md gap-x-2">
 //         <IoSearchOutline size={24} className="ml-4" />
 //         <input
 //           className="w-full py-2 pr-4 placeholder-gray-400 focus:outline-none"
@@ -740,7 +741,7 @@ const GradientPicker = ({
 //         tabs={tabs}
 //         current={currentTab}
 //         onTabChange={setCurrentTab}
-//         className="text-black gap-2 w-auto mt-4"
+//         className="w-auto gap-2 mt-4 text-black"
 //       />
 //       {currentTab.value === 'Assets' && (
 //         <AssetsTab
@@ -826,7 +827,7 @@ const GradientPicker = ({
 //     <div className="flex flex-col items-center justify-center w-full mt-8">
 //       <IoReloadOutline className="text-gray-400" />
 //       <Text
-//         className="cursor-pointer text-sm text-blue-700 hover:underline"
+//         className="text-sm text-blue-700 cursor-pointer hover:underline"
 //         onClick={() => refetch()}
 //       >
 //         Retry
@@ -840,7 +841,7 @@ const GradientPicker = ({
 //       )}
 //     >
 //       <FileDropzone
-//         className="col-span-2 cursor-pointer w-full border border-dashed border-gray-300 bg-gray-50 py-4 flex flex-col items-center justify-center rounded-sm gap-y-2"
+//         className="flex flex-col items-center justify-center w-full col-span-2 py-4 border border-gray-300 border-dashed rounded-sm cursor-pointer bg-gray-50 gap-y-2"
 //         text="Drag and drop or Browse"
 //         overrideClassNames
 //         onChange={(e) =>
@@ -890,7 +891,7 @@ const GradientPicker = ({
 //               <img
 //                 src={appConfig.storage.baseUrl + asset.objectLink}
 //                 alt={asset.displayName || ''}
-//                 className="w-full h-full object-cover rounded-md"
+//                 className="object-cover w-full h-full rounded-md"
 //               />
 //             </div>
 //           )
@@ -925,7 +926,7 @@ const GradientPicker = ({
 //     <div className="flex flex-col items-center justify-center w-full mt-8">
 //       <IoReloadOutline className="text-gray-400" />
 //       <Text
-//         className="cursor-pointer text-sm text-blue-700 hover:underline"
+//         className="text-sm text-blue-700 cursor-pointer hover:underline"
 //         onClick={() => refetch?.()}
 //       >
 //         Retry
@@ -978,7 +979,7 @@ const GradientPicker = ({
 //               <img
 //                 src={r.urls.thumb}
 //                 alt={r.alt_description || ''}
-//                 className="w-full h-full object-cover rounded-md"
+//                 className="object-cover w-full h-full rounded-md"
 //               />
 //             </div>
 //           )
