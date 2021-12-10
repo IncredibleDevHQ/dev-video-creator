@@ -33,6 +33,7 @@ export enum SplashThemes {
   Lines = '3',
   Shapes = '4',
   Abstract = '5',
+  Pop = '6',
 }
 
 export enum DiscordThemes {
