@@ -171,7 +171,7 @@ const FragmentBar = ({
   }, [config.mode])
 
   return (
-    <div className="flex items-center justify-between p-2 pl-5 pr-4">
+    <div className="sticky flex items-center justify-between p-2 pl-5 pr-4">
       {fragment &&
       fragment?.type !== Fragment_Type_Enum_Enum.Intro &&
       fragment?.type !== Fragment_Type_Enum_Enum.Outro ? (
