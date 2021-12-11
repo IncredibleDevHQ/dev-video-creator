@@ -7,7 +7,11 @@ import { Fragment_Status_Enum_Enum } from '../../../../generated/graphql'
 import { ConfigType } from '../../../../utils/configTypes'
 import { BlockProperties } from '../../../../utils/configTypes2'
 import { Transformations } from '../../../Flick/components/VideoEditor'
-import Concourse, { CONFIG, TitleSplashProps } from '../../components/Concourse'
+import Concourse, {
+  CONFIG,
+  SHORTS_CONFIG,
+  TitleSplashProps,
+} from '../../components/Concourse'
 import { FragmentState } from '../../components/RenderTokens'
 import { Video, VideoConfig } from '../../components/Video'
 import { StudioProviderProps, studioStore } from '../../stores'
@@ -29,6 +33,7 @@ const VideoFragment = ({
   setFragmentState,
   stageRef,
   layerRef,
+  shortsMode,
 }: {
   viewConfig: BlockProperties
   dataConfig: VideoBlockProps
@@ -40,6 +45,7 @@ const VideoFragment = ({
   setFragmentState: React.Dispatch<React.SetStateAction<FragmentState>>
   stageRef: React.RefObject<Konva.Stage>
   layerRef: React.RefObject<Konva.Layer>
+  shortsMode: boolean
 }) => {
   const { fragment, payload, updatePayload, state, addMusic } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
@@ -62,6 +68,16 @@ const VideoFragment = ({
     borderRadius: 0,
   })
 
+  const [stageConfig, setStageConfig] = useState<{
+    width: number
+    height: number
+  }>({ width: 0, height: 0 })
+
+  useEffect(() => {
+    if (!shortsMode) setStageConfig(CONFIG)
+    else setStageConfig(SHORTS_CONFIG)
+  }, [shortsMode])
+
   const videoElement = React.useMemo(() => {
     if (!dataConfig) return
     const element = document.createElement('video')
@@ -72,13 +88,16 @@ const VideoFragment = ({
     element.src = dataConfig.videoBlock.url || ''
 
     setObjectConfig(
-      FragmentLayoutConfig({ layout: viewConfig.layout || 'classic' })
+      FragmentLayoutConfig({
+        layout: viewConfig.layout || 'classic',
+        isShorts: shortsMode || false,
+      })
     )
     if (dataConfig.videoBlock.transformations)
       setTransformations(dataConfig.videoBlock.transformations)
     // eslint-disable-next-line consistent-return
     return element
-  }, [dataConfig, viewConfig])
+  }, [dataConfig, viewConfig, shortsMode])
 
   useEffect(() => {
     setStudio({
@@ -148,7 +167,9 @@ const VideoFragment = ({
   useEffect(() => {
     // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
     if (payload?.fragmentState === 'customLayout') {
-      setTopLayerChildren([<TrianglePathTransition direction="right" />])
+      setTopLayerChildren([
+        <TrianglePathTransition direction="right" isShorts={shortsMode} />,
+      ])
       addMusic()
       setTimeout(() => {
         setFragmentState(payload?.fragmentState)
@@ -160,7 +181,9 @@ const VideoFragment = ({
     }
     // Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
     if (payload?.fragmentState === 'onlyUserMedia') {
-      setTopLayerChildren([<TrianglePathTransition direction="left" />])
+      setTopLayerChildren([
+        <TrianglePathTransition direction="left" isShorts={shortsMode} />,
+      ])
       addMusic()
       setTimeout(() => {
         setFragmentState(payload?.fragmentState)
@@ -194,8 +217,8 @@ const VideoFragment = ({
       <Rect
         x={0}
         y={0}
-        width={CONFIG.width}
-        height={CONFIG.height}
+        width={stageConfig.width}
+        height={stageConfig.height}
         fillLinearGradientColorStops={viewConfig.gradient?.values}
         fillLinearGradientStartPoint={viewConfig.gradient?.startIndex}
         fillLinearGradientEndPoint={viewConfig.gradient?.endIndex}
@@ -204,8 +227,8 @@ const VideoFragment = ({
         <Image
           x={0}
           y={0}
-          width={CONFIG.width}
-          height={CONFIG.height}
+          width={stageConfig.width}
+          height={stageConfig.height}
           image={bgImage}
         />
       )} */}
@@ -221,6 +244,7 @@ const VideoFragment = ({
     layout: viewConfig.layout || 'classic',
     fragment,
     fragmentState,
+    isShorts: shortsMode || false,
   })
 
   return (
@@ -231,6 +255,7 @@ const VideoFragment = ({
       titleSplashData={titleSplashData}
       studioUserConfig={studioUserConfig}
       topLayerChildren={topLayerChildren}
+      isShorts={shortsMode}
     />
   )
 }
