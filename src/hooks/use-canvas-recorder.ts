@@ -2,7 +2,7 @@
 import { saveAs } from 'file-saver'
 import { extension } from 'mime-types'
 import { useRef, useState } from 'react'
-import transitionMusic from '../assets/TransitionMusic.wav'
+import transitionMusic from '../assets/TransitionMusic.mp3'
 import splashMusic from '../assets/IntroOutroBgm.mp3'
 import pointsMusic from '../assets/bubblePopMusic.mp3'
 import { getSeekableWebM } from '../utils/helpers'

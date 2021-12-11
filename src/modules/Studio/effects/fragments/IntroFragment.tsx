@@ -9,6 +9,7 @@ import { StudioUserConfiguration } from '../../utils/StudioUserConfig'
 import DiscordSplash from '../DiscordSplash'
 import AstroSplash from '../Splashes/AstroSplash'
 import GraphQLSplash from '../Splashes/GraphQLSplash'
+import PopSplash from '../Splashes/PopSplash'
 import SplashEleven from '../Splashes/SplashEleven'
 import SplashFive from '../Splashes/SplashFive'
 import SplashFour from '../Splashes/SplashFour'
@@ -45,6 +46,7 @@ const IntroFragment = ({
     if (themeNumber === '3') return SplashFive
     if (themeNumber === '4') return SplashFour
     if (themeNumber === '5') return SplashEleven
+    if (themeNumber === '6') return PopSplash
     return SplashFive
   })()
 

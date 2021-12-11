@@ -414,9 +414,9 @@ const Flick = () => {
   return (
     <div className="relative flex flex-col h-screen overflow-hidden">
       <FlickNavBar toggleModal={setIntegrationModal} />
-      <div className="flex flex-1 overflow-hidden ">
+      <div className="flex flex-1 overflow-hidden">
         <FragmentSideBar plateValue={plateValue} />
-        <div className={cx('flex-1 h-full pb-12')}>
+        <div className={cx('flex-1 h-full pb-12 sticky top-0')}>
           <FragmentBar
             markdown={fragmentMarkdown}
             plateValue={plateValue}
@@ -446,12 +446,13 @@ const Flick = () => {
                   verticalCustomScrollBar
                 )}
               >
-                <div className="mx-10 mb-4">
+                <div className="mx-10 mb-4 ">
                   <input
+                    maxLength={50}
                     onChange={(e) => {
                       updateFragment(e.target.value)
                     }}
-                    className="text-4xl font-bold text-gray-800 font-main focus:outline-none"
+                    className="w-full text-4xl font-bold text-gray-800 resize-none font-main focus:outline-none"
                     value={
                       flick.fragments.find((f) => f.id === activeFragmentId)
                         ?.name || ''
@@ -543,19 +544,22 @@ const Flick = () => {
                     />
                   </div>
                   <div className="relative w-1/4 h-full border-none outline-none l-10">
-                    {currentBlock && viewConfig && (
-                      <BlockPreview
-                        block={currentBlock}
-                        config={viewConfig}
-                        updateConfig={updateBlockProperties}
-                        className={cx(
-                          'absolute w-full h-full',
-                          css`
-                            top: ${previewPosition?.y}px;
-                          `
-                        )}
-                      />
-                    )}
+                    {currentBlock &&
+                      currentBlock.type &&
+                      viewConfig &&
+                      plateValue?.blocks?.length > 0 && (
+                        <BlockPreview
+                          block={currentBlock}
+                          config={viewConfig}
+                          updateConfig={updateBlockProperties}
+                          className={cx(
+                            'absolute w-full h-full',
+                            css`
+                              top: ${previewPosition?.y}px;
+                            `
+                          )}
+                        />
+                      )}
                   </div>
                 </div>
                 {plateValue?.blocks?.length > 0 && (

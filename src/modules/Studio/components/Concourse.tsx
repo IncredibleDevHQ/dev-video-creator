@@ -332,6 +332,10 @@ const Concourse = ({
         )
       )}
       <Group>{topLayerChildren}</Group>
+      {(payload?.status === Fragment_Status_Enum_Enum.Live &&
+        fragment?.type) === Fragment_Type_Enum_Enum.Outro && (
+        <MultiCircleMoveDown />
+      )}
     </>
   )
 }

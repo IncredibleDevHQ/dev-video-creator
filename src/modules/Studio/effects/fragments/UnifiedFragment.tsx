@@ -111,13 +111,6 @@ const UnifiedFragment = ({
   }, [fragment])
 
   useEffect(() => {
-    if (!viewConfig || !dataConfig) return
-    if (viewConfig?.mode === 'Portrait') {
-      setDataConfig(dataConfig.filter((c) => c.type !== 'videoBlock'))
-    }
-  }, [viewConfig])
-
-  useEffect(() => {
     setActiveObjectIndex(payload?.activeObjectIndex)
   }, [payload])
 
@@ -265,6 +258,7 @@ const UnifiedFragment = ({
                 setFragmentState={setFragmentState}
                 stageRef={stageRef}
                 layerRef={layerRef}
+                shortsMode={viewConfig.mode === 'Portrait'}
               />
             )
           }
