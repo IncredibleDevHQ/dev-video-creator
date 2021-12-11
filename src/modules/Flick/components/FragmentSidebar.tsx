@@ -46,7 +46,7 @@ const FragmentSideBar = ({ plateValue }: { plateValue: any }) => {
   }, [plateValue])
 
   return (
-    <div className="h-full">
+    <div className="sticky top-0 h-full">
       <div className="relative flex flex-col w-48 h-full border-r border-gray-300 bg-gray-50">
         <button
           onClick={() =>
