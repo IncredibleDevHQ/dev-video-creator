@@ -93,7 +93,6 @@ const backgrounds = [
   { label: 'DIMIGO (Gradient)', value: 'https://i.ibb.co/bJSYLhj/DIMIGO.png' },
 ]
 
-// eslint-disable-next-line consistent-return
 const StudioHoC = () => {
   const [view, setView] = useState<'preview' | 'studio'>('preview')
 
@@ -164,6 +163,8 @@ const StudioHoC = () => {
       />
     )
   if (view === 'studio') return <Studio data={data} tracks={tracks} />
+
+  return null
 }
 
 const Preview = ({
