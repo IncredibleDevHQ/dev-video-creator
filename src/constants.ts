@@ -15,7 +15,6 @@ import seriesFolder from './assets/albums-outline.svg'
 import flickIcon from './assets/flickIcon.svg'
 import EmptyState from './assets/EmptyState.svg'
 import StudioLogo from './assets/Logo-studio.svg'
-import LoginPattern from './assets/LoginPattern.svg'
 import FLICK from './assets/flick.svg'
 import BLOG from './assets/blog.svg'
 import SHORTS from './assets/shorts.svg'
@@ -51,9 +50,6 @@ export const ASSETS = {
     COMMUNITY,
     EMPTY_ACTIVITY,
     EDITOR,
-  },
-  PATTERNS: {
-    LoginPattern,
   },
 }
 

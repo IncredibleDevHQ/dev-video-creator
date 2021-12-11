@@ -38,7 +38,7 @@ import {
   Fragment_Type_Enum_Enum,
   GetFragmentByIdQuery,
   StudioFragmentFragment,
-  useGetFragmentByIdQuery,
+  useGetFragmentByIdLazyQuery,
   useGetRtcTokenMutation,
   useMarkFragmentCompletedMutation,
   useUpdateFragmentShortMutation,
@@ -110,15 +110,25 @@ const StudioHoC = () => {
 
   const { sub } = (useRecoilValue(userState) as User) || {}
   const { fragmentId } = useParams<{ fragmentId: string }>()
-  const { data, loading } = useGetFragmentByIdQuery({
-    variables: { id: fragmentId, sub: sub as string },
-    fetchPolicy: 'network-only',
-  })
+  const [fragment, setFragment] = useState<StudioFragmentFragment>()
+
+  const [getFragmentByIdLazy, { data, loading }] = useGetFragmentByIdLazyQuery()
 
   const [error, setError] = useState<'INVALID_AST' | undefined>()
 
   useEffect(() => {
+    if (!sub) return
+    ;(async () => {
+      await getFragmentByIdLazy({
+        variables: { id: fragmentId, sub: sub as string },
+      })
+    })()
+  }, [sub])
+
+  useEffect(() => {
     if (!data) return
+    setFragment(data.Fragment?.[0])
+
     if (
       data.Fragment[0].type === Fragment_Type_Enum_Enum.Intro ||
       data.Fragment[0].type === Fragment_Type_Enum_Enum.Outro
@@ -139,10 +149,10 @@ const StudioHoC = () => {
       />
     )
 
-  if (view === 'preview')
+  if (view === 'preview' && fragment)
     return (
       <Preview
-        data={data}
+        data={fragment}
         devices={devices}
         updateBackground={updateBackground}
         updateCamera={updateCamera}
@@ -167,7 +177,7 @@ const Preview = ({
   currentDevice,
   effect,
 }: {
-  data?: GetFragmentByIdQuery
+  data?: StudioFragmentFragment
   devices?: MediaDeviceInfo[]
   handleJoin: () => void
   updateBackground: (value: string) => Promise<void>
@@ -206,7 +216,7 @@ const Preview = ({
         </div>
         <div className="flex flex-col justify-center flex-1 col-span-2">
           <Heading className="mb-4" fontSize="medium">
-            {data?.Fragment?.[0]?.name}
+            {data?.name}
           </Heading>
 
           <Heading fontSize="extra-small" className="uppercase">
@@ -677,7 +687,7 @@ const Studio = ({
           role="button"
           tabIndex={0}
           onKeyUp={() => {}}
-          className="flex items-center absolute left-4 bottom-3 hover:bg-gray-100 cursor-pointer rounded-md"
+          className="absolute flex items-center rounded-md cursor-pointer left-4 bottom-3 hover:bg-gray-100"
           onClick={() => history.goBack()}
         >
           <IoChevronBack size={24} className="mr-4" />
@@ -700,7 +710,7 @@ const Studio = ({
       <div className="flex items-center h-full px-10 pt-16 ">
         <Countdown />
         {state === 'ready' || state === 'recording' || state === 'countDown' ? (
-          <div className="flex w-full gap-x-8 mt-3">
+          <div className="flex w-full mt-3 gap-x-8">
             <Stage
               ref={stageRef}
               height={stageConfig.height}

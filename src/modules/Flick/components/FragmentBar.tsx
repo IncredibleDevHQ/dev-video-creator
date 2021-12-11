@@ -23,6 +23,7 @@ import {
 import { ViewConfig } from '../../../utils/configTypes2'
 import { newFlickStore } from '../store/flickNew.store'
 import { IntroOutroConfiguration } from './IntroOutroView'
+import { TextEditorParser } from '../../../components/TempTextEditor/utils'
 
 const dashArray = 10 * Math.PI * 2
 
@@ -108,6 +109,19 @@ const FragmentBar = ({
           }))
       } else {
         if (!plateValue || plateValue?.length === 0) return
+        await updateFragmentMarkdown({
+          variables: {
+            fragmentId: activeFragmentId,
+            md: markdown,
+          },
+        })
+        await updateFragmentState({
+          variables: {
+            editorState: plateValue,
+            id: activeFragmentId,
+            configuration: config,
+          },
+        })
         if (flick)
           setFlickStore((store) => ({
             ...store,
@@ -124,19 +138,6 @@ const FragmentBar = ({
               ),
             },
           }))
-        await updateFragmentMarkdown({
-          variables: {
-            fragmentId: activeFragmentId,
-            md: markdown,
-          },
-        })
-        await updateFragmentState({
-          variables: {
-            editorState: plateValue,
-            id: activeFragmentId,
-            configuration: config,
-          },
-        })
       }
     } catch (error) {
       emitToast({
@@ -170,11 +171,11 @@ const FragmentBar = ({
   }, [config.mode])
 
   return (
-    <div className="flex items-center justify-between pr-4 pl-5 p-2">
+    <div className="sticky flex items-center justify-between p-2 pl-5 pr-4">
       {fragment &&
       fragment?.type !== Fragment_Type_Enum_Enum.Intro &&
       fragment?.type !== Fragment_Type_Enum_Enum.Outro ? (
-        <Text className="font-body text-gray-600 text-sm flex items-center transition-all ease-in-out duration-1000">
+        <Text className="flex items-center text-sm text-gray-600 transition-all duration-1000 ease-in-out font-body">
           <svg className="w-10 h-10">
             <circle
               className="text-gray-300"
@@ -222,20 +223,20 @@ const FragmentBar = ({
           isOpen={isOpen}
           setIsOpen={setIsOpen}
           content={
-            <div className="bg-white rounded-md shadow-lg flex flex-col mt-2 gap-y-1 border border-gray-100">
+            <div className="flex flex-col mt-2 bg-white border border-gray-100 rounded-md shadow-lg gap-y-1">
               <button
                 type="button"
                 onClick={() => {
                   setViewConfig({ ...config, mode: 'Landscape' })
                   setIsOpen(false)
                 }}
-                className="flex items-center gap-x-4 px-4 py-3 hover:bg-gray-100 cursor-pointer"
+                className="flex items-center px-4 py-3 cursor-pointer gap-x-4 hover:bg-gray-100"
               >
                 <div className="bg-brand bg-opacity-10 p-2.5 rounded-sm">
                   <IoPlayOutline size={18} className="text-brand " />
                 </div>
                 <div>
-                  <Text className="font-bold font-main flex items-center gap-x-3">
+                  <Text className="flex items-center font-bold font-main gap-x-3">
                     Flick
                     {fragment?.producedLink ? (
                       <IoIosCheckmarkCircle className="text-brand" size={18} />
@@ -243,7 +244,7 @@ const FragmentBar = ({
                       <MdRadioButtonUnchecked className="text-gray-300" />
                     )}
                   </Text>
-                  <div className="text-sm font-body flex items-center gap-x-1 text-gray-600">
+                  <div className="flex items-center text-sm text-gray-600 font-body gap-x-1">
                     <Text className="text-sm">16:9</Text>
                     <BsDot className="text-gray-400" size={21} />
                     <Text className="text-sm">Max 3m</Text>
@@ -259,13 +260,13 @@ const FragmentBar = ({
                   setViewConfig({ ...config, mode: 'Portrait' })
                   setIsOpen(false)
                 }}
-                className="flex items-center gap-x-4 px-4 py-3 hover:bg-gray-100 cursor-pointer"
+                className="flex items-center px-4 py-3 cursor-pointer gap-x-4 hover:bg-gray-100"
               >
                 <div className="bg-cyan-600 bg-opacity-10 p-2.5 rounded-sm">
                   <HiOutlineSparkles size={18} className="text-cyan-600" />
                 </div>
                 <div>
-                  <Text className="font-bold font-main flex items-center gap-x-3">
+                  <Text className="flex items-center font-bold font-main gap-x-3">
                     Highlight
                     {fragment?.producedShortsLink ? (
                       <IoIosCheckmarkCircle className="text-brand" size={18} />
@@ -273,7 +274,7 @@ const FragmentBar = ({
                       <MdRadioButtonUnchecked className="text-gray-300" />
                     )}
                   </Text>
-                  <div className="text-sm font-body flex items-center gap-x-1 text-gray-600">
+                  <div className="flex items-center text-sm text-gray-600 font-body gap-x-1">
                     <Text className="text-sm">9:16</Text>
                     <BsDot className="text-gray-400" size={21} />
                     <Text className="text-sm">Max 1m</Text>
@@ -288,14 +289,14 @@ const FragmentBar = ({
           }
           placement="bottom-end"
         >
-          <div className="flex rounded-sm items-center bg-gray-50 border border-gray-100 py-1 px-4 gap-x-4">
+          <div className="flex items-center px-4 py-1 border border-gray-100 rounded-sm bg-gray-50 gap-x-4">
             {fragment &&
               fragment?.type !== Fragment_Type_Enum_Enum.Intro &&
               fragment?.type !== Fragment_Type_Enum_Enum.Outro && (
                 <button
                   onClick={() => setIsOpen(!isOpen)}
                   type="button"
-                  className="flex items-center gap-x-2 hover:bg-gray-100 rounded-sm p-1 cursor-pointer"
+                  className="flex items-center p-1 rounded-sm cursor-pointer gap-x-2 hover:bg-gray-100"
                 >
                   {config.mode === 'Landscape' ? (
                     <div className="bg-brand bg-opacity-10 p-2.5 rounded-sm">
@@ -330,12 +331,12 @@ const FragmentBar = ({
                 tabIndex={-1}
                 role="button"
                 onKeyDown={() => {}}
-                className="flex items-center border bg-gray-600 rounded-sm px-2 cursor-pointer"
+                className="flex items-center px-2 bg-gray-600 border rounded-sm cursor-pointer"
                 onClick={() => {
                   setFragmentVideoModal(true)
                 }}
               >
-                <BiPlayCircle size={36} className="text-gray-200 py-1" />
+                <BiPlayCircle size={36} className="py-1 text-gray-200" />
               </div>
             )}
             {fragment?.producedShortsLink &&
@@ -344,14 +345,14 @@ const FragmentBar = ({
                   tabIndex={-1}
                   role="button"
                   onKeyDown={() => {}}
-                  className="flex items-center border bg-gray-600 rounded-sm cursor-pointer h-9"
+                  className="flex items-center bg-gray-600 border rounded-sm cursor-pointer h-9"
                   onClick={() => {
                     setFragmentVideoModal(true)
                   }}
                 >
                   <BiPlayCircle
                     size={21}
-                    className="text-gray-200 mx-px p-px"
+                    className="p-px mx-px text-gray-200"
                   />
                 </div>
               )}
@@ -361,12 +362,12 @@ const FragmentBar = ({
               onClick={() => {
                 history.push(`/${activeFragmentId}/studio`)
               }}
-              disabled={!fragment?.configuration}
+              disabled={checkDisabledState(fragment)}
             >
               {checkHasContent(fragment, mode) ? (
-                <ReRecordIcon className="h-6 w-6 " />
+                <ReRecordIcon className="w-6 h-6 " />
               ) : (
-                <RecordIcon className="h-6 w-6" />
+                <RecordIcon className="w-6 h-6" />
               )}
               {!checkHasContent(fragment, mode) && 'Record'}
             </button>
@@ -384,6 +385,26 @@ const FragmentBar = ({
       )}
     </div>
   )
+}
+
+const checkDisabledState = (fragment: FlickFragmentFragment | undefined) => {
+  if (!fragment) return true
+  if (
+    fragment.type === Fragment_Type_Enum_Enum.Intro ||
+    fragment.type === Fragment_Type_Enum_Enum.Outro
+  ) {
+    if (fragment.configuration) return false
+    return true
+  }
+
+  if (
+    fragment.editorState &&
+    new TextEditorParser(fragment.editorState).isValid() &&
+    fragment.editorState.blocks.length > 0
+  )
+    return false
+
+  return true
 }
 
 const checkHasContent = (

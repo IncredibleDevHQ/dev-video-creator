@@ -52,7 +52,7 @@ const FlickNavBar = ({ toggleModal }: { toggleModal: (val: true) => void }) => {
   }, [data])
 
   return (
-    <div className="flex items-center justify-between py-2 pl-3 pr-4 border-b border-gray-300 bg-gray-50">
+    <div className="sticky top-0 flex items-center justify-between py-2 pl-3 pr-4 border-b border-gray-300 bg-gray-50">
       <div className="flex items-center">
         <a href={`${config.client.publicUrl}/dashboard`}>
           <div className="flex">

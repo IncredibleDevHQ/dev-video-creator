@@ -1,6 +1,6 @@
 import { css, cx } from '@emotion/css'
 import Konva from 'konva'
-import React, { createRef, HTMLAttributes, useState } from 'react'
+import React, { createRef, HTMLAttributes, useEffect, useState } from 'react'
 import useMeasure, { RectReadOnly } from 'react-use-measure'
 import { Stage, Layer, Rect } from 'react-konva'
 import Modal from 'react-responsive-modal'
@@ -344,6 +344,7 @@ const PreviewModal = ({
   handleClose: () => void
 }) => {
   const [ref, bounds] = useMeasure()
+  const [tabs, setTabs] = useState<Tab[]>(previewTabs)
   const [tab, setTab] = useState<Tab>(previewTabs[0])
 
   const updateLayout = (layout: Layout) => {
@@ -353,6 +354,13 @@ const PreviewModal = ({
   const updateGradient = (gradient: GradientConfig) => {
     updateBlockProperties(block.id, { ...blockProperties, gradient })
   }
+
+  useEffect(() => {
+    if (config.mode === 'Portrait') {
+      setTabs([previewTabs[1]])
+      setTab(previewTabs[1])
+    }
+  }, [config.mode])
 
   return (
     <Modal
@@ -381,9 +389,9 @@ const PreviewModal = ({
         `,
       }}
     >
-      <div className="flex items-center w-full h-full justify-center p-4">
+      <div className="flex items-center justify-center w-full h-full p-4">
         <div
-          className="w-full h-full flex flex-1 items-center justify-center"
+          className="flex items-center justify-center flex-1 w-full h-full"
           ref={ref}
         >
           <div className="w-min">
@@ -396,9 +404,9 @@ const PreviewModal = ({
               scaleDown
             />
           </div>
-          <div className="flex flex-col ml-4 h-full">
+          <div className="flex flex-col h-full ml-4">
             <TabBar
-              tabs={previewTabs}
+              tabs={tabs}
               current={tab}
               onTabChange={(tab) => setTab(tab)}
               className={cx('mb-4', {
@@ -414,7 +422,7 @@ const PreviewModal = ({
                 }
               )}
             >
-              {tab.value === previewTabs[0].value && (
+              {tab.value === 'layout' && (
                 <LayoutSelector
                   mode={config.mode}
                   layout={blockProperties.layout || allLayoutTypes[0]}
@@ -422,7 +430,7 @@ const PreviewModal = ({
                   type={block.type}
                 />
               )}
-              {tab.value === previewTabs[1].value && (
+              {tab.value === 'background' && (
                 <GradientSelector
                   currentGradient={
                     blockProperties.gradient || getGradientConfig(gradients[0])
@@ -474,17 +482,19 @@ const BlockPreview = ({
           blockProperties={config.blocks[block.id]}
         />
       </div>
-      <PreviewModal
-        block={block}
-        blockProperties={config.blocks[block.id]}
-        updateBlockProperties={updateConfig}
-        config={config}
-        open={previewModal}
-        shortsMode={config.mode === 'Portrait'}
-        handleClose={() => {
-          setPreviewModal(() => false)
-        }}
-      />
+      {previewModal && (
+        <PreviewModal
+          block={block}
+          blockProperties={config.blocks[block.id]}
+          updateBlockProperties={updateConfig}
+          config={config}
+          open={previewModal}
+          shortsMode={config.mode === 'Portrait'}
+          handleClose={() => {
+            setPreviewModal(() => false)
+          }}
+        />
+      )}
     </div>
   )
 }
