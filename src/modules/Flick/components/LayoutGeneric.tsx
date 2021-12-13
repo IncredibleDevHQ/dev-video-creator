@@ -238,6 +238,25 @@ const LayoutGeneric = ({
                 <div className="h-full w-3/6 bg-gray-500 rounded-tr-sm rounded-br-sm items-self-end" />
               </div>
             )
+          case 'full':
+            return (
+              <div
+                className={cx(
+                  'border border-gray-200 rounded-md cursor-pointer flex items-center relative',
+                  {
+                    'border-brand': isSelected,
+                    'w-20 h-32': mode === 'Portrait',
+                    'w-32 h-16': mode === 'Landscape',
+                  }
+                )}
+                {...rest}
+              >
+                <div className="h-full w-full bg-gray-500 rounded-sm items-self-end" />
+                <div className="h-8 w-2/5 bg-gray-200 p-1.5 absolute left-2 rounded-sm">
+                  {type && <FragmentTypeIcon type={type} />}
+                </div>
+              </div>
+            )
           default:
             return <></>
         }

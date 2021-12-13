@@ -1039,6 +1039,108 @@ export const StudioUserConfiguration = ({
               },
             ]
         }
+      case 'full':
+        switch (fragment?.configuration?.speakers?.length) {
+          case 2:
+            return [
+              {
+                x: 0,
+                y: 0,
+                width: 0,
+                height: 0,
+                clipTheme: 'rect',
+                borderWidth: 0,
+                studioUserClipConfig: {
+                  x: 0,
+                  y: 0,
+                  width: 0,
+                  height: 0,
+                  radius: 0,
+                },
+              },
+              {
+                x: 0,
+                y: 0,
+                width: 0,
+                height: 0,
+                clipTheme: 'rect',
+                borderWidth: 0,
+                studioUserClipConfig: {
+                  x: 0,
+                  y: 0,
+                  width: 0,
+                  height: 0,
+                  radius: 0,
+                },
+              },
+            ]
+          case 3:
+            return [
+              {
+                x: 0,
+                y: 0,
+                width: 0,
+                height: 0,
+                clipTheme: 'rect',
+                borderWidth: 0,
+                studioUserClipConfig: {
+                  x: 0,
+                  y: 0,
+                  width: 0,
+                  height: 0,
+                  radius: 0,
+                },
+              },
+              {
+                x: 0,
+                y: 0,
+                width: 0,
+                height: 0,
+                clipTheme: 'rect',
+                borderWidth: 0,
+                studioUserClipConfig: {
+                  x: 0,
+                  y: 0,
+                  width: 0,
+                  height: 0,
+                  radius: 0,
+                },
+              },
+              {
+                x: 0,
+                y: 0,
+                width: 0,
+                height: 0,
+                clipTheme: 'rect',
+                borderWidth: 0,
+                studioUserClipConfig: {
+                  x: 0,
+                  y: 0,
+                  width: 0,
+                  height: 0,
+                  radius: 0,
+                },
+              },
+            ]
+          default:
+            return [
+              {
+                x: 0,
+                y: -90,
+                width: 960,
+                height: 720,
+                clipTheme: 'rect',
+                borderWidth: 0,
+                studioUserClipConfig: {
+                  x: 0,
+                  y: 90,
+                  width: 960,
+                  height: 540,
+                  radius: 0,
+                },
+              },
+            ]
+        }
       default:
         return [
           {

@@ -86,6 +86,7 @@ export const FragmentLayoutConfig = ({
         borderRadius: 8,
       }
     case 'split':
+    case 'full':
       return {
         x: 0,
         y: 130,

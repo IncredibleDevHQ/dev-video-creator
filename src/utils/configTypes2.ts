@@ -11,6 +11,7 @@ export const allLayoutTypes = [
   'bottom-right-circle',
   'padded-split',
   'split',
+  'full',
 ] as const
 
 export type Layout = typeof allLayoutTypes[number]
