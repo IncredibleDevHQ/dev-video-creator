@@ -184,23 +184,29 @@ export const IncredibleLowerThirds = ({
         height={50}
         key="firstRect"
         ref={(ref) =>
-          setTimeout(() => {
-            ref?.to({
-              x: x - width + 25,
-              width: width + 45,
-              duration: 0.6,
-              easing: Konva.Easings.EaseOut,
-              onFinish: () => {
-                setTimeout(() => {
+          ref?.to({
+            duration: 1.4,
+            onFinish: () => {
+              ref?.to({
+                x: x - width + 25,
+                width: width + 45,
+                duration: 0.6,
+                easing: Konva.Easings.EaseOut,
+                onFinish: () => {
                   ref?.to({
-                    width: 0,
-                    duration: 0.3,
-                    easing: Konva.Easings.EaseOut,
+                    duration: 3.1,
+                    onFinish: () => {
+                      ref?.to({
+                        width: 0,
+                        duration: 0.3,
+                        easing: Konva.Easings.EaseOut,
+                      })
+                    },
                   })
-                }, 3100)
-              },
-            })
-          }, 1400)
+                },
+              })
+            },
+          })
         }
       />
       <Rect
@@ -212,23 +218,29 @@ export const IncredibleLowerThirds = ({
         height={50}
         key="secondRect"
         ref={(ref) =>
-          setTimeout(() => {
-            ref?.to({
-              x: x - width + 15,
-              width: width + 35,
-              duration: 0.6,
-              easing: Konva.Easings.EaseOut,
-              onFinish: () => {
-                setTimeout(() => {
+          ref?.to({
+            duration: 1.55,
+            onFinish: () => {
+              ref?.to({
+                x: x - width + 15,
+                width: width + 35,
+                duration: 0.6,
+                easing: Konva.Easings.EaseOut,
+                onFinish: () => {
                   ref?.to({
-                    width: 0,
-                    duration: 0.2,
-                    easing: Konva.Easings.EaseOut,
+                    duration: 2.9,
+                    onFinish: () => {
+                      ref?.to({
+                        width: 0,
+                        duration: 0.2,
+                        easing: Konva.Easings.EaseOut,
+                      })
+                    },
                   })
-                }, 2900)
-              },
-            })
-          }, 1550)
+                },
+              })
+            },
+          })
         }
       />
       <Text
@@ -242,20 +254,26 @@ export const IncredibleLowerThirds = ({
         opacity={0}
         key="displayname"
         ref={(ref) =>
-          setTimeout(() => {
-            ref?.to({
-              opacity: 1,
-              duration: 0.3,
-              onFinish: () => {
-                setTimeout(() => {
+          ref?.to({
+            duration: 2,
+            onFinish: () => {
+              ref?.to({
+                opacity: 1,
+                duration: 0.3,
+                onFinish: () => {
                   ref?.to({
-                    opacity: 0,
-                    duration: 0.3,
+                    duration: 1,
+                    onFinish: () => {
+                      ref?.to({
+                        opacity: 0,
+                        duration: 0.3,
+                      })
+                    },
                   })
-                }, 1000)
-              },
-            })
-          }, 2000)
+                },
+              })
+            },
+          })
         }
       />
       <Text
@@ -269,20 +287,26 @@ export const IncredibleLowerThirds = ({
         opacity={0}
         key="username"
         ref={(ref) =>
-          setTimeout(() => {
-            ref?.to({
-              opacity: 1,
-              duration: 0.3,
-              onFinish: () => {
-                setTimeout(() => {
+          ref?.to({
+            duration: 3.3,
+            onFinish: () => {
+              ref?.to({
+                opacity: 1,
+                duration: 0.3,
+                onFinish: () => {
                   ref?.to({
-                    opacity: 0,
-                    duration: 0.3,
+                    duration: 1.2,
+                    onFinish: () => {
+                      ref?.to({
+                        opacity: 0,
+                        duration: 0.3,
+                      })
+                    },
                   })
-                }, 1200)
-              },
-            })
-          }, 3300)
+                },
+              })
+            },
+          })
         }
       />
       <Image
@@ -306,43 +330,52 @@ export const IncredibleLowerThirds = ({
                 duration: 0.4,
                 easing: Konva.Easings.EaseOut,
               })
-              setTimeout(() => {
-                ref?.to({
-                  x: x - width - 10,
-                  duration: 1,
-                  easing: Konva.Easings.StrongEaseInOut,
-                })
-                setTimeout(() => {
+              ref?.to({
+                duration: 0.2,
+                onFinish: () => {
                   ref?.to({
-                    x: x - width - 20,
-                    duration: 0.6,
+                    x: x - width - 10,
+                    duration: 1,
+                    easing: Konva.Easings.StrongEaseInOut,
+                  })
+                  ref?.to({
+                    duration: 0.8,
                     onFinish: () => {
-                      setTimeout(() => {
-                        ref?.to({
-                          x,
-                          duration: 0.3,
-                          onFinish: () => {
-                            ref?.to({
-                              scaleX: 100,
-                              scaleY: 100,
-                              duration: 0.2,
-                              easing: Konva.Easings.EaseOut,
-                              onFinish: () => {
-                                ref?.to({
-                                  scaleX: 0,
-                                  scaleY: 0,
-                                  duration: 0.2,
-                                  easing: Konva.Easings.EaseIn,
-                                })
-                              },
-                            })
-                          },
-                        })
-                      }, 3250)
+                      ref?.to({
+                        x: x - width - 20,
+                        duration: 0.6,
+                        onFinish: () => {
+                          ref?.to({
+                            duration: 3.25,
+                            onFinish: () => {
+                              ref?.to({
+                                x,
+                                duration: 0.3,
+                                onFinish: () => {
+                                  ref?.to({
+                                    scaleX: 100,
+                                    scaleY: 100,
+                                    duration: 0.2,
+                                    easing: Konva.Easings.EaseOut,
+                                    onFinish: () => {
+                                      ref?.to({
+                                        scaleX: 0,
+                                        scaleY: 0,
+                                        duration: 0.2,
+                                        easing: Konva.Easings.EaseIn,
+                                      })
+                                    },
+                                  })
+                                },
+                              })
+                            },
+                          })
+                        },
+                      })
                     },
                   })
-                }, 800)
-              }, 200)
+                },
+              })
             },
           })
         }}

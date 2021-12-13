@@ -43,7 +43,7 @@ import {
   useMarkFragmentCompletedMutation,
   useUpdateFragmentShortMutation,
 } from '../../generated/graphql'
-import { useCanvasRecorder } from '../../hooks'
+import { useCanvasRecorder, useTimekeeper } from '../../hooks'
 import { useUploadFile } from '../../hooks/use-upload-file'
 import { User, userState } from '../../stores/user.store'
 import { ConfigType } from '../../utils/configTypes'
@@ -323,6 +323,8 @@ const Studio = ({
   }>({ width: 0, height: 0 })
 
   const [shortsMode, setShortsMode] = useState(false)
+
+  const { handleStart, handleReset, timer } = useTimekeeper(0)
 
   useEffect(() => {
     if (!fragment) return
@@ -705,7 +707,11 @@ const Studio = ({
             </Text>
           </div>
         </div>
-        <RecordingControlsBar />
+        <RecordingControlsBar
+          handleStart={handleStart}
+          handleReset={handleReset}
+          timer={timer}
+        />
       </div>
       {/* Studio or Video , Notes and layout controls */}
       <div className="flex items-center h-full px-10 pt-16 ">
