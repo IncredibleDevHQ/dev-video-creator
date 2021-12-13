@@ -8,6 +8,7 @@ import AspectRatio from 'react-aspect-ratio'
 import { FiArrowRight } from 'react-icons/fi'
 import { Layer, Stage } from 'react-konva'
 import { useHistory, useParams } from 'react-router-dom'
+import _ from 'lodash/fp'
 import {
   useRecoilBridgeAcrossReactRoots_UNSTABLE,
   useRecoilState,
@@ -123,6 +124,16 @@ const StudioHoC = () => {
       })
     })()
   }, [sub])
+
+  useEffect(() => {
+    return () => {
+      if (_.isEmpty(tracks)) return
+      tracks?.forEach((track) => {
+        track.close()
+        track.stop()
+      })
+    }
+  }, [tracks])
 
   useEffect(() => {
     if (!data) return
