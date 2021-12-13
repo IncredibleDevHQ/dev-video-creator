@@ -3,7 +3,7 @@
 import { cx } from '@emotion/css'
 import React, { HTMLAttributes, useEffect, useState } from 'react'
 import { IconType } from 'react-icons'
-import { FiCheck, FiX, FiZoomIn, FiZoomOut } from 'react-icons/fi'
+import { FiZoomIn, FiZoomOut } from 'react-icons/fi'
 import {
   IoHandRightOutline,
   IoMicOffOutline,
@@ -13,18 +13,17 @@ import {
 } from 'react-icons/io5'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import { Timer } from '.'
+import { ReactComponent as ReRecordIcon } from '../../../assets/ReRecord.svg'
 import startRecordIcon from '../../../assets/StartRecord.svg'
 import stopRecordIcon from '../../../assets/StopRecord.svg'
 import swapIcon from '../../../assets/Swap.svg'
+import { ReactComponent as UploadIcon } from '../../../assets/Upload.svg'
 import { Avatar, Heading, Tooltip } from '../../../components'
 import {
   Fragment_Status_Enum_Enum,
   Fragment_Type_Enum_Enum,
 } from '../../../generated/graphql'
-import { useTimekeeper } from '../../../hooks'
 import { canvasStore, StudioProviderProps, studioStore } from '../stores'
-import { ReactComponent as ReRecordIcon } from '../../../assets/ReRecord.svg'
-import { ReactComponent as UploadIcon } from '../../../assets/Upload.svg'
 
 export const ControlButton = ({
   appearance,
