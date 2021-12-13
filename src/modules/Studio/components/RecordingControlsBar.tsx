@@ -94,7 +94,15 @@ const RaiseHandsMenu = ({ participants }: { participants: any[] }) => {
   )
 }
 
-const RecordingControlsBar = () => {
+const RecordingControlsBar = ({
+  timer,
+  handleStart,
+  handleReset,
+}: {
+  timer: number
+  handleStart: () => void
+  handleReset: () => void
+}) => {
   const {
     constraints,
     upload,
@@ -113,7 +121,6 @@ const RecordingControlsBar = () => {
   const [isRaiseHandsTooltip, setRaiseHandsTooltip] = useState(false)
   const [participant, setParticipant] = useState<any>()
   const [participantsArray, setParticipantsArray] = useState<any[]>([])
-  const { handleStart, handleReset, timer } = useTimekeeper(0)
 
   useEffect(() => {
     if (!participants) return
