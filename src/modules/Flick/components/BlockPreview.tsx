@@ -25,6 +25,10 @@ const previewTabs: Tab[] = [
     value: 'layout',
   },
   {
+    name: 'Theme',
+    value: 'theme',
+  },
+  {
     name: 'Background',
     value: 'background',
   },
@@ -104,6 +108,8 @@ export const gradients: Gradient[] = [
       'linear-gradient(226.32deg, #FFCC70 -25.84%, #F6B97C -15.62%, #CE74C8 47.51%, #2B86C5 100%)',
   },
 ]
+
+export const backgroundColors = ['#1F2937', '#ffffff']
 
 export const getGradientConfig = (gradient: Gradient) => {
   const [width, height] = [960, 540]
@@ -197,6 +203,54 @@ export const GradientSelector = ({
               },
               css`
                 background: ${gradient.cssString};
+              `
+            )}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+export const BackgroundSelector = ({
+  mode,
+  currentBgColor,
+  updateBgColor,
+}: {
+  mode: ViewConfig['mode']
+  currentBgColor: string
+  updateBgColor: (bgColor: string) => void
+}) => {
+  return (
+    <div className={cx('h-full w-full overflow-y-scroll', scrollStyle)}>
+      <div
+        className={cx(
+          'grid grid-cols-2 p-4 gap-4 overflow-scroll h-full',
+          scrollStyle,
+          {
+            'w-full gap-1 grid-cols-3': mode === 'Portrait',
+            'w-full gap-2': mode === 'Landscape',
+          }
+        )}
+      >
+        {backgroundColors.map((color, index) => (
+          // eslint-disable-next-line jsx-a11y/control-has-associated-label
+          <div
+            // eslint-disable-next-line react/no-array-index-key
+            key={index}
+            tabIndex={0}
+            role="button"
+            onKeyDown={() => null}
+            onClick={() => updateBgColor(color)}
+            className={cx(
+              'p-2 ring-0 border ring-offset-2 border-gray-200 rounded-md cursor-pointer bg-white',
+              {
+                'ring-1 ring-brand': color === currentBgColor,
+                'w-20 h-32': mode === 'Portrait',
+                'w-32 h-16': mode === 'Landscape',
+              },
+              css`
+                background: ${color};
               `
             )}
           />
@@ -355,10 +409,22 @@ const PreviewModal = ({
     updateBlockProperties(block.id, { ...blockProperties, gradient })
   }
 
+  const updateBgColor = (bgColor: string) => {
+    updateBlockProperties(block.id, { ...blockProperties, bgColor })
+  }
+
   useEffect(() => {
     if (config.mode === 'Portrait') {
-      setTabs([previewTabs[1]])
+      if (block.type === 'imageBlock' || block.type === 'listBlock')
+        setTabs([previewTabs[1], previewTabs[2]])
+      else setTabs([previewTabs[0]])
       setTab(previewTabs[1])
+    } else if (config.mode === 'Landscape') {
+      if (block.type !== 'imageBlock' && block.type !== 'listBlock') {
+        setTabs([previewTabs[0], previewTabs[1]])
+      } else {
+        setTabs(previewTabs)
+      }
     }
   }, [config.mode])
 
@@ -430,13 +496,22 @@ const PreviewModal = ({
                   type={block.type}
                 />
               )}
-              {tab.value === 'background' && (
+              {tab.value === 'theme' && (
                 <GradientSelector
                   currentGradient={
                     blockProperties.gradient || getGradientConfig(gradients[0])
                   }
                   mode={config.mode}
                   updateGradient={updateGradient}
+                />
+              )}
+              {tab.value === 'background' && (
+                <BackgroundSelector
+                  currentBgColor={
+                    blockProperties.bgColor || backgroundColors[0]
+                  }
+                  mode={config.mode}
+                  updateBgColor={updateBgColor}
                 />
               )}
             </div>
