@@ -217,7 +217,7 @@ const PointsFragment = ({
         y={objectConfig.y}
         width={objectConfig.width}
         height={objectConfig.height}
-        fill="#1F2937"
+        fill="#ffffff"
         cornerRadius={objectConfig.borderRadius}
       />
       <Text
@@ -226,7 +226,7 @@ const PointsFragment = ({
         y={objectConfig.y + 32}
         align="left"
         fontSize={40}
-        fill="#E5E7EB"
+        fill="#1F2937"
         width={objectConfig.width - 80}
         lineHeight={1.15}
         text={dataConfig.listBlock.title || fragment?.name || ''}
@@ -268,7 +268,7 @@ const PointsFragment = ({
                 y={point.y}
                 align="left"
                 fontSize={16}
-                fill="#F3F4F6"
+                fill="#4B5563"
                 width={objectConfig.width - 180}
                 text={point.text}
                 lineHeight={1.1}
