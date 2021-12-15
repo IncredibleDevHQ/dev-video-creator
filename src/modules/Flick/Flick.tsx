@@ -67,6 +67,7 @@ const defaultIntroOutroConfiguration: IntroOutroConfiguration = {
     theme: DiscordThemes.WhiteOnMidnight,
   },
   gradient: {
+    id: 1,
     cssString:
       'linear-gradient(90deg, #D397FA 0%, #D397FA 0.01%, #8364E8 100%)',
     endIndex: { x: CONFIG.width, y: CONFIG.height },
