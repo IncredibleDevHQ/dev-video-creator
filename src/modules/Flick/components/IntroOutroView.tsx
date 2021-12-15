@@ -3,7 +3,7 @@ import Konva from 'konva'
 import React, { createRef, useEffect, useState } from 'react'
 import { FaDiscord } from 'react-icons/fa'
 import { HiOutlineUser } from 'react-icons/hi'
-import { IoPerson, IoPlayOutline } from 'react-icons/io5'
+import { IoPlayOutline } from 'react-icons/io5'
 import { Layer, Stage } from 'react-konva'
 import useMeasure, { RectReadOnly } from 'react-use-measure'
 import {
@@ -13,12 +13,13 @@ import {
 import layoutLink from '../../../assets/linkpreview.svg'
 import { Tab, TabBar, Text } from '../../../components'
 import { Fragment_Type_Enum_Enum } from '../../../generated/graphql'
-import { GradientConfig } from '../../../utils/configTypes'
+import { Gradient, GradientConfig } from '../../../utils/configTypes2'
 import { CONFIG, SHORTS_CONFIG } from '../../Studio/components/Concourse'
 import IntroFragment from '../../Studio/effects/fragments/IntroFragment'
 import OutroFragment from '../../Studio/effects/fragments/OutroFragment'
 import { StudioProviderProps, studioStore } from '../../Studio/stores'
 import { newFlickStore } from '../store/flickNew.store'
+import { gradients } from './BlockPreview'
 
 const scrollStyle = css`
   ::-webkit-scrollbar {
@@ -533,12 +534,6 @@ const GradientPicker = ({
   config: IntroOutroConfiguration
   setConfig: React.Dispatch<React.SetStateAction<IntroOutroConfiguration>>
 }) => {
-  interface Gradient {
-    angle: number
-    values: (number | string)[]
-    cssString: string
-  }
-
   const tabs: Tab[] = [
     {
       name: 'Background',
@@ -546,81 +541,6 @@ const GradientPicker = ({
     },
   ]
   const [currentTab, setCurrentTab] = useState<Tab>(tabs[0])
-
-  const gradients: Gradient[] = [
-    {
-      angle: 90,
-      values: [0, '#D397FA', 0.0001, '#D397FA', 1, '#8364E8'],
-      cssString:
-        'linear-gradient(90deg, #D397FA 0%, #D397FA 0.01%, #8364E8 100%)',
-    },
-    {
-      angle: 90,
-      values: [0.0001, '#FFAFBD', 1, '#FFC3A0'],
-      cssString: 'linear-gradient(90deg, #FFAFBD 0.01%, #FFC3A0 100%)',
-    },
-    {
-      angle: 90,
-      values: [0.0001, '#8879B2', 1, '#EAAFC8'],
-      cssString: 'linear-gradient(90deg, #8879B2 0.01%, #EAAFC8 100%)',
-    },
-    {
-      angle: 90,
-      values: [0.0001, '#8BC6EC', 1, '#9599E2'],
-      cssString: 'linear-gradient(90deg, #8BC6EC 0.01%, #9599E2 100%)',
-    },
-    {
-      angle: 43.58,
-      values: [0.424, '#FBDA61', 0.9792, '#FF5ACD'],
-      cssString: 'linear-gradient(43.58deg, #FBDA61 4.24%, #FF5ACD 97.92%)',
-    },
-    {
-      angle: 180,
-      values: [0.0001, '#A9C9FF', 1, '#FFBBEC'],
-      cssString: 'linear-gradient(180deg, #A9C9FF 0.01%, #FFBBEC 100%)',
-    },
-    {
-      angle: 226.32,
-      values: [0.0001, '#FF3CAC', 0.524, '#784BA0', 1, '#2B86C5'],
-      cssString:
-        'linear-gradient(226.32deg, #FF3CAC -25.84%, #784BA0 40.09%, #2B86C5 100%)',
-    },
-    {
-      angle: 47.5,
-      values: [0, '#74EBD5', 0.96, '#9FACE6'],
-      cssString: 'linear-gradient(47.5deg, #74EBD5 0%, #9FACE6 96%)',
-    },
-    {
-      angle: 46.2,
-      values: [0, '#85FFBD', 0.9802, '#FFFED3'],
-      cssString: 'linear-gradient(46.2deg, #85FFBD 0%, #FFFED3 98.02%)',
-    },
-    {
-      angle: 42.22,
-      values: [0.278, '#FBAB7E', 0.9837, '#F7CE68'],
-      cssString: 'linear-gradient(42.22deg, #FBAB7E 2.78%, #F7CE68 98.37%)',
-    },
-    {
-      angle: 90,
-      values: [0.0001, '#43CEA2', 1, '#548AC0'],
-      cssString: 'linear-gradient(90deg, #43CEA2 0.01%, #548AC0 100%)',
-    },
-    {
-      angle: 226.32,
-      values: [
-        0.0001,
-        '#FFCC70',
-        0.0812,
-        '#F6B97C',
-        0.5829,
-        '#CE74C8',
-        1,
-        '#2B86C5',
-      ],
-      cssString:
-        'linear-gradient(226.32deg, #FFCC70 -25.84%, #F6B97C -15.62%, #CE74C8 47.51%, #2B86C5 100%)',
-    },
-  ]
 
   const getGradientConfig = (gradient: Gradient) => {
     const { width, height } = CONFIG
@@ -646,6 +566,7 @@ const GradientPicker = ({
     const y2 = cy + halfy
 
     return {
+      id: gradient.id,
       cssString: gradient.cssString,
       values: gradient.values,
       startIndex: { x: x1, y: y1 },
