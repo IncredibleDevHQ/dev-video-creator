@@ -1,6 +1,7 @@
 import axios from 'axios'
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
+import { useAuthState } from 'react-firebase-hooks/auth'
 import { Circle, Group, Rect } from 'react-konva'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import { CodeBlockProps } from '../../../../components/TextEditor/utils'
@@ -135,7 +136,8 @@ const CodeFragment = ({
 
   const [colorCodes, setColorCodes] = useState<any>([])
 
-  const user = useRecoilValue(firebaseState)
+  const { auth } = useRecoilValue(firebaseState)
+  const [user] = useAuthState(auth)
 
   const [stageConfig, setStageConfig] = useState<{
     width: number
@@ -163,10 +165,11 @@ const CodeFragment = ({
     ;(async () => {
       try {
         if (dataConfig.codeBlock.code !== '') {
+          const token = await user?.getIdToken()
           const { data } = await getColorCodes(
             dataConfig.codeBlock.code || '',
             dataConfig.codeBlock.language || '',
-            user.token || ''
+            token || ''
           )
           if (!data?.errors) setColorCodes(data.data.TokenisedCode.data)
         }

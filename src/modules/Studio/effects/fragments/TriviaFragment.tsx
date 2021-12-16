@@ -138,22 +138,39 @@ const TriviaFragment = ({
     } else {
       setIsGif(false)
     }
-    if (triviaData?.text)
-      setImgDim(
-        getImageDimensions(
-          {
-            w: (qnaImage && qnaImage.width) || 0,
-            h: (qnaImage && qnaImage.height) || 0,
-          },
-          objectConfig.width - 30,
-          objectConfig.height - 140,
-          objectConfig.width - 40,
-          objectConfig.height - 110,
-          20,
-          100
+    if (triviaData?.text) {
+      if (shortsMode) {
+        setImgDim(
+          getImageDimensions(
+            {
+              w: (qnaImage && qnaImage.width) || 0,
+              h: (qnaImage && qnaImage.height) || 0,
+            },
+            objectConfig.width - 30,
+            objectConfig.height - 140,
+            objectConfig.width - 40,
+            objectConfig.height,
+            20,
+            0
+          )
         )
-      )
-    else
+      } else {
+        setImgDim(
+          getImageDimensions(
+            {
+              w: (qnaImage && qnaImage.width) || 0,
+              h: (qnaImage && qnaImage.height) || 0,
+            },
+            objectConfig.width - 30,
+            objectConfig.height - 140,
+            objectConfig.width - 40,
+            objectConfig.height - 110,
+            20,
+            80
+          )
+        )
+      }
+    } else
       setImgDim(
         getImageDimensions(
           {
@@ -163,9 +180,9 @@ const TriviaFragment = ({
           objectConfig.width - 30,
           objectConfig.height - 30,
           objectConfig.width - 40,
-          objectConfig.height - 40,
+          objectConfig.height,
           20,
-          20
+          0
         )
       )
   }, [qnaImage, objectConfig])
