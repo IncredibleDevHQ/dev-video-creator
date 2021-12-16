@@ -148,9 +148,9 @@ const TriviaFragment = ({
           objectConfig.width - 30,
           objectConfig.height - 140,
           objectConfig.width - 40,
-          objectConfig.height - 110,
+          objectConfig.height,
           20,
-          100
+          0
         )
       )
     else
@@ -163,9 +163,9 @@ const TriviaFragment = ({
           objectConfig.width - 30,
           objectConfig.height - 30,
           objectConfig.width - 40,
-          objectConfig.height - 40,
+          objectConfig.height,
           20,
-          20
+          0
         )
       )
   }, [qnaImage, objectConfig])
