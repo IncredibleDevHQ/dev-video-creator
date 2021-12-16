@@ -13,7 +13,7 @@ import {
   MultiCircleCenterGrow,
   MultiCircleMoveDown,
 } from '../effects/FragmentTransitions'
-import PopSplash from '../effects/Splashes/PopSplash'
+import ShapesSplash from '../effects/Splashes/ShapesSplash'
 import ShortsPopSplash from '../effects/Splashes/ShortsPopSplash'
 import { ClipConfig } from '../hooks/use-edit'
 import { canvasStore, StudioProviderProps, studioStore } from '../stores'
@@ -233,7 +233,7 @@ const Concourse = ({
             if (titleSplashData?.enable && isTitleSplash) {
               return !isShorts ? (
                 <>
-                  <PopSplash
+                  <ShapesSplash
                     setIsTitleSplash={setIsTitleSplash}
                     renderMode="static"
                   />
