@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from 'react'
-import 'react-responsive-modal/styles.css'
-import { BrowserRouter as Router, Route, Switch } from 'react-router-dom'
-import { ToastContainer } from 'react-toastify'
-import 'react-toastify/dist/ReactToastify.css'
 import { RecoilRoot } from 'recoil'
+import Cohere from 'cohere-js'
+import { ToastContainer } from 'react-toastify'
+import { BrowserRouter as Router, Route, Switch } from 'react-router-dom'
 import { ScreenState } from './components'
 import { Flick, GitHubCallback, Integrations, Landing, Studio } from './modules'
 import AuthProvider from './utils/auth'
-import AuthorizedApolloProvider from './utils/AuthorizedApolloProvider'
 import PrivateRoute from './utils/PrivateRoute'
+import AuthorizedApolloProvider from './utils/AuthorizedApolloProvider'
+import 'react-toastify/dist/ReactToastify.css'
+import 'react-responsive-modal/styles.css'
+import config from './config'
+import { VideoEditor } from './modules/Flick/components'
 
 function detectBrowser() {
   if (
@@ -29,12 +32,16 @@ function detectBrowser() {
 }
 
 const App = () => {
+  const { apiKey } = config.cohere
+
   const [agentAllowed, setAgentAllowed] = useState(true)
   useEffect(() => {
+    if (apiKey) Cohere.init(apiKey)
     if (detectBrowser() !== 'Chrome') {
       setAgentAllowed(false)
     }
   }, [])
+
   return agentAllowed ? (
     <RecoilRoot>
       <AuthorizedApolloProvider>
@@ -50,7 +57,17 @@ const App = () => {
               toastClassName="rounded-2xl shadow-lg"
               closeButton={false}
             />
-            <Router>
+            <VideoEditor
+              handleAction={(transformations) => {}}
+              url="https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_1MB.mp4"
+              width={640}
+              action="Save"
+              transformations={{
+                clip: {},
+                crop: undefined,
+              }}
+            />
+            {/* <Router>
               <Switch>
                 <Route exact path="/">
                   <Landing />
@@ -76,7 +93,7 @@ const App = () => {
                   component={Integrations}
                 />
               </Switch>
-            </Router>
+            </Router> */}
           </>
         </AuthProvider>
       </AuthorizedApolloProvider>
