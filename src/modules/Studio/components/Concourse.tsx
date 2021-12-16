@@ -13,11 +13,12 @@ import {
   MultiCircleCenterGrow,
   MultiCircleMoveDown,
 } from '../effects/FragmentTransitions'
+import ShapesSplash from '../effects/Splashes/ShapesSplash'
+import ShortsPopSplash from '../effects/Splashes/ShortsPopSplash'
 import { ClipConfig } from '../hooks/use-edit'
 import { canvasStore, StudioProviderProps, studioStore } from '../stores'
 import PreviewUser from './PreviewUser'
 import StudioUser from './StudioUser'
-import TitleSplash from './TitleSplash'
 
 export interface StudioUserConfig {
   x: number
@@ -232,21 +233,18 @@ const Concourse = ({
             if (titleSplashData?.enable && isTitleSplash) {
               return !isShorts ? (
                 <>
-                  <TitleSplash
-                    titleSplashData={titleSplashData}
+                  <ShapesSplash
                     setIsTitleSplash={setIsTitleSplash}
-                    stageConfig={stageConfig}
-                    isShorts={isShorts}
+                    renderMode="static"
                   />
                   <MultiCircleMoveDown />
                 </>
               ) : (
                 <>
-                  <TitleSplash
-                    titleSplashData={titleSplashData}
+                  <ShortsPopSplash
                     setIsTitleSplash={setIsTitleSplash}
                     stageConfig={stageConfig}
-                    isShorts={isShorts}
+                    renderMode="static"
                   />
                 </>
               )
