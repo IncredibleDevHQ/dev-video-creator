@@ -14,6 +14,7 @@ import {
   allLayoutTypes,
   Layout,
   Gradient,
+  shortsLayoutTypes,
 } from '../../../utils/configTypes2'
 import { CONFIG, SHORTS_CONFIG } from '../../Studio/components/Concourse'
 import { Tab, TabBar } from '../../../components'
@@ -25,6 +26,10 @@ const previewTabs: Tab[] = [
     value: 'layout',
   },
   {
+    name: 'Theme',
+    value: 'theme',
+  },
+  {
     name: 'Background',
     value: 'background',
   },
@@ -32,63 +37,75 @@ const previewTabs: Tab[] = [
 
 export const gradients: Gradient[] = [
   {
+    id: 1,
     angle: 90,
     values: [0, '#D397FA', 0.0001, '#D397FA', 1, '#8364E8'],
     cssString:
       'linear-gradient(90deg, #D397FA 0%, #D397FA 0.01%, #8364E8 100%)',
   },
   {
+    id: 2,
     angle: 90,
     values: [0.0001, '#FFAFBD', 1, '#FFC3A0'],
     cssString: 'linear-gradient(90deg, #FFAFBD 0.01%, #FFC3A0 100%)',
   },
   {
+    id: 3,
     angle: 90,
     values: [0.0001, '#8879B2', 1, '#EAAFC8'],
     cssString: 'linear-gradient(90deg, #8879B2 0.01%, #EAAFC8 100%)',
   },
   {
+    id: 4,
     angle: 90,
     values: [0.0001, '#8BC6EC', 1, '#9599E2'],
     cssString: 'linear-gradient(90deg, #8BC6EC 0.01%, #9599E2 100%)',
   },
   {
+    id: 5,
     angle: 43.58,
     values: [0.424, '#FBDA61', 0.9792, '#FF5ACD'],
     cssString: 'linear-gradient(43.58deg, #FBDA61 4.24%, #FF5ACD 97.92%)',
   },
   {
+    id: 6,
     angle: 180,
     values: [0.0001, '#A9C9FF', 1, '#FFBBEC'],
     cssString: 'linear-gradient(180deg, #A9C9FF 0.01%, #FFBBEC 100%)',
   },
   {
+    id: 7,
     angle: 226.32,
     values: [0.0001, '#FF3CAC', 0.524, '#784BA0', 1, '#2B86C5'],
     cssString:
       'linear-gradient(226.32deg, #FF3CAC -25.84%, #784BA0 40.09%, #2B86C5 100%)',
   },
   {
+    id: 8,
     angle: 47.5,
     values: [0, '#74EBD5', 0.96, '#9FACE6'],
     cssString: 'linear-gradient(47.5deg, #74EBD5 0%, #9FACE6 96%)',
   },
   {
+    id: 9,
     angle: 46.2,
     values: [0, '#85FFBD', 0.9802, '#FFFED3'],
     cssString: 'linear-gradient(46.2deg, #85FFBD 0%, #FFFED3 98.02%)',
   },
   {
+    id: 10,
     angle: 42.22,
     values: [0.278, '#FBAB7E', 0.9837, '#F7CE68'],
     cssString: 'linear-gradient(42.22deg, #FBAB7E 2.78%, #F7CE68 98.37%)',
   },
   {
+    id: 11,
     angle: 90,
     values: [0.0001, '#43CEA2', 1, '#548AC0'],
     cssString: 'linear-gradient(90deg, #43CEA2 0.01%, #548AC0 100%)',
   },
   {
+    id: 12,
     angle: 226.32,
     values: [
       0.0001,
@@ -104,6 +121,8 @@ export const gradients: Gradient[] = [
       'linear-gradient(226.32deg, #FFCC70 -25.84%, #F6B97C -15.62%, #CE74C8 47.51%, #2B86C5 100%)',
   },
 ]
+
+export const backgroundColors = ['#1F2937', '#ffffff']
 
 export const getGradientConfig = (gradient: Gradient) => {
   const [width, height] = [960, 540]
@@ -129,6 +148,7 @@ export const getGradientConfig = (gradient: Gradient) => {
   const y2 = cy + halfy
 
   return {
+    id: gradient.id,
     cssString: gradient.cssString,
     values: gradient.values,
     startIndex: { x: x1, y: y1 },
@@ -206,6 +226,54 @@ export const GradientSelector = ({
   )
 }
 
+export const BackgroundSelector = ({
+  mode,
+  currentBgColor,
+  updateBgColor,
+}: {
+  mode: ViewConfig['mode']
+  currentBgColor: string
+  updateBgColor: (bgColor: string) => void
+}) => {
+  return (
+    <div className={cx('h-full w-full overflow-y-scroll', scrollStyle)}>
+      <div
+        className={cx(
+          'grid grid-cols-2 p-4 gap-4 overflow-scroll h-full',
+          scrollStyle,
+          {
+            'w-full gap-1 grid-cols-3': mode === 'Portrait',
+            'w-full gap-2': mode === 'Landscape',
+          }
+        )}
+      >
+        {backgroundColors.map((color, index) => (
+          // eslint-disable-next-line jsx-a11y/control-has-associated-label
+          <div
+            // eslint-disable-next-line react/no-array-index-key
+            key={index}
+            tabIndex={0}
+            role="button"
+            onKeyDown={() => null}
+            onClick={() => updateBgColor(color)}
+            className={cx(
+              'p-2 ring-0 border ring-offset-2 border-gray-200 rounded-md cursor-pointer bg-white',
+              {
+                'ring-1 ring-brand': color === currentBgColor,
+                'w-20 h-32': mode === 'Portrait',
+                'w-32 h-16': mode === 'Landscape',
+              },
+              css`
+                background: ${color};
+              `
+            )}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 const scrollStyle = css`
   ::-webkit-scrollbar {
     display: none;
@@ -235,16 +303,27 @@ const LayoutSelector = ({
           }
         )}
       >
-        {allLayoutTypes?.map((layoutType) => (
-          <LayoutGeneric
-            type={type}
-            key={layoutType}
-            mode={mode}
-            layout={layoutType}
-            isSelected={layout === layoutType}
-            onClick={() => updateLayout(layoutType)}
-          />
-        ))}
+        {mode === 'Landscape'
+          ? allLayoutTypes?.map((layoutType) => (
+              <LayoutGeneric
+                type={type}
+                key={layoutType}
+                mode={mode}
+                layout={layoutType}
+                isSelected={layout === layoutType}
+                onClick={() => updateLayout(layoutType)}
+              />
+            ))
+          : shortsLayoutTypes?.map((layoutType) => (
+              <LayoutGeneric
+                type={type}
+                key={layoutType}
+                mode={mode}
+                layout={layoutType}
+                isSelected={layout === layoutType}
+                onClick={() => updateLayout(layoutType)}
+              />
+            ))}
       </div>
     </div>
   )
@@ -355,11 +434,15 @@ const PreviewModal = ({
     updateBlockProperties(block.id, { ...blockProperties, gradient })
   }
 
+  const updateBgColor = (bgColor: string) => {
+    updateBlockProperties(block.id, { ...blockProperties, bgColor })
+  }
+
   useEffect(() => {
-    if (config.mode === 'Portrait') {
-      setTabs([previewTabs[1]])
-      setTab(previewTabs[1])
-    }
+    if (block.type === 'imageBlock' || block.type === 'listBlock')
+      setTabs(previewTabs)
+    else setTabs([previewTabs[0], previewTabs[1]])
+    setTab(previewTabs[1])
   }, [config.mode])
 
   return (
@@ -430,13 +513,22 @@ const PreviewModal = ({
                   type={block.type}
                 />
               )}
-              {tab.value === 'background' && (
+              {tab.value === 'theme' && (
                 <GradientSelector
                   currentGradient={
                     blockProperties.gradient || getGradientConfig(gradients[0])
                   }
                   mode={config.mode}
                   updateGradient={updateGradient}
+                />
+              )}
+              {tab.value === 'background' && (
+                <BackgroundSelector
+                  currentBgColor={
+                    blockProperties.bgColor || backgroundColors[0]
+                  }
+                  mode={config.mode}
+                  updateBgColor={updateBgColor}
                 />
               )}
             </div>

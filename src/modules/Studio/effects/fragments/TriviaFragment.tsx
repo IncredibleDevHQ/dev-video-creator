@@ -148,9 +148,9 @@ const TriviaFragment = ({
           objectConfig.width - 30,
           objectConfig.height - 140,
           objectConfig.width - 40,
-          objectConfig.height - 110,
+          objectConfig.height,
           20,
-          100
+          0
         )
       )
     else
@@ -163,9 +163,9 @@ const TriviaFragment = ({
           objectConfig.width - 30,
           objectConfig.height - 30,
           objectConfig.width - 40,
-          objectConfig.height - 40,
+          objectConfig.height,
           20,
-          20
+          0
         )
       )
   }, [qnaImage, objectConfig])
@@ -234,7 +234,7 @@ const TriviaFragment = ({
         y={objectConfig.y}
         width={objectConfig.width}
         height={objectConfig.height}
-        fill="#1F2937"
+        fill={viewConfig.bgColor || '#1F2937'}
         cornerRadius={objectConfig.borderRadius}
       />
       <Group x={objectConfig.x} y={objectConfig.y} key="group1">
@@ -246,7 +246,7 @@ const TriviaFragment = ({
                 y={20}
                 align="center"
                 fontSize={32}
-                fill="#E5E7EB"
+                fill={viewConfig.bgColor === '#ffffff' ? '#1F2937' : '#E5E7EB'}
                 width={objectConfig.width - 20}
                 lineHeight={1.2}
                 text={triviaData?.text}
@@ -269,7 +269,7 @@ const TriviaFragment = ({
                 y={20}
                 align="center"
                 fontSize={32}
-                fill="#E5E7EB"
+                fill={viewConfig.bgColor === '#ffffff' ? '#1F2937' : '#E5E7EB'}
                 width={objectConfig.width - 20}
                 lineHeight={1.2}
                 text={triviaData?.text}
@@ -293,7 +293,7 @@ const TriviaFragment = ({
           <Text
             x={10}
             fontSize={32}
-            fill="#E5E7EB"
+            fill={viewConfig.bgColor === '#ffffff' ? '#1F2937' : '#E5E7EB'}
             width={objectConfig.width - 20}
             height={objectConfig.height}
             text={triviaData?.text}
@@ -314,6 +314,7 @@ const TriviaFragment = ({
     fragment,
     fragmentState,
     isShorts: shortsMode || false,
+    bgGradientId: viewConfig.gradient?.id || 1,
   })
 
   return (

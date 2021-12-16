@@ -129,7 +129,6 @@ const UnifiedFragment = ({
       timer.current = setTimeout(() => {
         if (!displayName) return
         if (!fragment) return
-        console.log('lower third')
         setTopLayerChildren([
           <IncredibleLowerThirds
             x={

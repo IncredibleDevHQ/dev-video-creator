@@ -108,8 +108,11 @@ const PreviewUser = ({
         y={(studioUserClipConfig && studioUserClipConfig.y + y) || y}
         width={studioUserClipConfig?.width || 0}
         height={studioUserClipConfig?.height || 0}
-        stroke="#000000"
-        strokeWidth={0}
+        // stroke="#000000"
+        // strokeWidth={0}
+        // cornerRadius={studioUserClipConfig?.radius || 0}
+        stroke={borderColor}
+        strokeWidth={borderWidth || 0}
         cornerRadius={studioUserClipConfig?.radius || 0}
       />
 
