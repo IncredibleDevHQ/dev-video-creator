@@ -7,11 +7,7 @@ import useImage from 'use-image'
 import { ImageBlockProps } from '../../../../components/TextEditor/utils'
 import { ConfigType } from '../../../../utils/configTypes'
 import { BlockProperties } from '../../../../utils/configTypes2'
-import Concourse, {
-  CONFIG,
-  SHORTS_CONFIG,
-  TitleSplashProps,
-} from '../../components/Concourse'
+import Concourse, { TitleSplashProps } from '../../components/Concourse'
 import Gif from '../../components/Gif'
 import { FragmentState } from '../../components/RenderTokens'
 import useEdit from '../../hooks/use-edit'
@@ -86,16 +82,6 @@ const TriviaFragment = ({
     height: 0,
     borderRadius: 0,
   })
-
-  const [stageConfig, setStageConfig] = useState<{
-    width: number
-    height: number
-  }>({ width: 0, height: 0 })
-
-  useEffect(() => {
-    if (!shortsMode) setStageConfig(CONFIG)
-    else setStageConfig(SHORTS_CONFIG)
-  }, [shortsMode])
 
   useEffect(() => {
     if (!dataConfig) return
@@ -224,27 +210,6 @@ const TriviaFragment = ({
   }, [payload?.fragmentState])
 
   const layerChildren: any[] = [
-    <Group x={0} y={0}>
-      {/* {viewConfig.background.type === 'color' ? ( */}
-      <Rect
-        x={0}
-        y={0}
-        width={stageConfig.width}
-        height={stageConfig.height}
-        fillLinearGradientColorStops={viewConfig.gradient?.values}
-        fillLinearGradientStartPoint={viewConfig.gradient?.startIndex}
-        fillLinearGradientEndPoint={viewConfig.gradient?.endIndex}
-      />
-      {/* ) : (
-        <Image
-          x={0}
-          y={0}
-          width={stageConfig.width}
-          height={stageConfig.height}
-          image={bgImage}
-        />
-      )} */}
-    </Group>,
     <Group x={0} y={0} opacity={0} ref={customLayoutRef}>
       <Rect
         x={objectConfig.x}
@@ -253,6 +218,7 @@ const TriviaFragment = ({
         height={objectConfig.height}
         fill={viewConfig.bgColor || '#1F2937'}
         cornerRadius={objectConfig.borderRadius}
+        opacity={viewConfig.bgOpacity}
       />
       <Group x={objectConfig.x} y={objectConfig.y} key="group1">
         {triviaData?.image ? (
@@ -337,6 +303,7 @@ const TriviaFragment = ({
   return (
     <Concourse
       layerChildren={layerChildren}
+      viewConfig={viewConfig}
       stageRef={stageRef}
       layerRef={layerRef}
       titleSplashData={titleSplashData}
