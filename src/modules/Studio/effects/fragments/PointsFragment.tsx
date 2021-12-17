@@ -8,11 +8,7 @@ import {
 } from '../../../../components/TextEditor/utils'
 import { ConfigType } from '../../../../utils/configTypes'
 import { BlockProperties } from '../../../../utils/configTypes2'
-import Concourse, {
-  CONFIG,
-  SHORTS_CONFIG,
-  TitleSplashProps,
-} from '../../components/Concourse'
+import Concourse, { TitleSplashProps } from '../../components/Concourse'
 import { FragmentState } from '../../components/RenderTokens'
 import { usePoint } from '../../hooks'
 import { StudioProviderProps, studioStore } from '../../stores'
@@ -76,16 +72,6 @@ const PointsFragment = ({
   })
 
   const colorStops = [0, '#D1D5DB', 1, '#D1D5DB']
-
-  const [stageConfig, setStageConfig] = useState<{
-    width: number
-    height: number
-  }>({ width: 0, height: 0 })
-
-  useEffect(() => {
-    if (!shortsMode) setStageConfig(CONFIG)
-    else setStageConfig(SHORTS_CONFIG)
-  }, [shortsMode])
 
   useEffect(() => {
     if (!dataConfig) return
@@ -190,27 +176,6 @@ const PointsFragment = ({
   }, [payload?.fragmentState])
 
   const layerChildren: any[] = [
-    <Group x={0} y={0}>
-      {/* {viewConfig.background.type === 'color' ? ( */}
-      <Rect
-        x={0}
-        y={0}
-        width={stageConfig.width}
-        height={stageConfig.height}
-        fillLinearGradientColorStops={viewConfig.gradient?.values}
-        fillLinearGradientStartPoint={viewConfig.gradient?.startIndex}
-        fillLinearGradientEndPoint={viewConfig.gradient?.endIndex}
-      />
-      {/* ) : (
-        <Image
-          x={0}
-          y={0}
-          width={stageConfig.width}
-          height={stageConfig.height}
-          image={bgImage}
-        />
-      )} */}
-    </Group>,
     <Group x={0} y={0} opacity={0} ref={customLayoutRef}>
       <Rect
         x={objectConfig.x}
@@ -219,6 +184,7 @@ const PointsFragment = ({
         height={objectConfig.height}
         fill={viewConfig.bgColor || '#1F2937'}
         cornerRadius={objectConfig.borderRadius}
+        opacity={viewConfig.bgOpacity}
       />
       <Text
         key="fragmentTitle"
@@ -297,6 +263,7 @@ const PointsFragment = ({
   return (
     <Concourse
       layerChildren={layerChildren}
+      viewConfig={viewConfig}
       stageRef={stageRef}
       layerRef={layerRef}
       titleSplashData={titleSplashData}

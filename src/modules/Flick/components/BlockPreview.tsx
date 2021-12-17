@@ -17,7 +17,7 @@ import {
   shortsLayoutTypes,
 } from '../../../utils/configTypes2'
 import { CONFIG, SHORTS_CONFIG } from '../../Studio/components/Concourse'
-import { Tab, TabBar } from '../../../components'
+import { Tab, TabBar, Tooltip } from '../../../components'
 import LayoutGeneric from './LayoutGeneric'
 
 const previewTabs: Tab[] = [
@@ -123,6 +123,7 @@ export const gradients: Gradient[] = [
 ]
 
 export const backgroundColors = ['#1F2937', '#ffffff']
+export const opacityOptions = [0.5, 1]
 
 export const getGradientConfig = (gradient: Gradient) => {
   const [width, height] = [960, 540]
@@ -230,11 +231,17 @@ export const BackgroundSelector = ({
   mode,
   currentBgColor,
   updateBgColor,
+  currentBgOpacity,
+  updateBgOpacity,
 }: {
   mode: ViewConfig['mode']
   currentBgColor: string
   updateBgColor: (bgColor: string) => void
+  currentBgOpacity: number
+  updateBgOpacity: (opacity: number) => void
 }) => {
+  const [tooltip, setTooltip] = useState(false)
+
   return (
     <div className={cx('h-full w-full overflow-y-scroll', scrollStyle)}>
       <div
@@ -248,26 +255,67 @@ export const BackgroundSelector = ({
         )}
       >
         {backgroundColors.map((color, index) => (
-          // eslint-disable-next-line jsx-a11y/control-has-associated-label
-          <div
+          <Tooltip
             // eslint-disable-next-line react/no-array-index-key
             key={index}
-            tabIndex={0}
-            role="button"
-            onKeyDown={() => null}
-            onClick={() => updateBgColor(color)}
-            className={cx(
-              'p-2 ring-0 border ring-offset-2 border-gray-200 rounded-md cursor-pointer bg-white',
-              {
-                'ring-1 ring-brand': color === currentBgColor,
-                'w-20 h-32': mode === 'Portrait',
-                'w-32 h-16': mode === 'Landscape',
-              },
-              css`
-                background: ${color};
-              `
-            )}
-          />
+            isOpen={tooltip && color === currentBgColor}
+            setIsOpen={setTooltip}
+            content={
+              <div className="bg-white -mt-40 flex flex-col gap-y-3">
+                {opacityOptions.map((opacityValue, index) => (
+                  // eslint-disable-next-line jsx-a11y/control-has-associated-label
+                  <div
+                    // eslint-disable-next-line react/no-array-index-key
+                    key={index}
+                    tabIndex={0}
+                    role="button"
+                    onKeyDown={() => null}
+                    onClick={() => {
+                      setTooltip(true)
+                      updateBgOpacity(opacityValue)
+                    }}
+                    className={cx(
+                      'p-2 ring-0 border ring-offset-2 border-gray-200 rounded-md cursor-pointer bg-white text-black flex items-center justify-center',
+                      {
+                        'ring-1 ring-brand': opacityValue === currentBgOpacity,
+                        'w-20 h-32': mode === 'Portrait',
+                        'w-32 h-16': mode === 'Landscape',
+                      },
+                      css`
+                        background: ${color};
+                        opacity: ${opacityValue};
+                      `
+                    )}
+                  >
+                    opacity - {opacityValue}
+                  </div>
+                ))}
+              </div>
+            }
+            placement="center"
+          >
+            {/* eslint-disable-next-line jsx-a11y/control-has-associated-label */}
+            <div
+              tabIndex={0}
+              role="button"
+              onKeyDown={() => null}
+              onClick={() => {
+                setTooltip(true)
+                updateBgColor(color)
+              }}
+              className={cx(
+                'p-2 ring-0 border ring-offset-2 border-gray-200 rounded-md cursor-pointer bg-white',
+                {
+                  'ring-1 ring-brand': color === currentBgColor,
+                  'w-20 h-32': mode === 'Portrait',
+                  'w-32 h-16': mode === 'Landscape',
+                },
+                css`
+                  background: ${color};
+                `
+              )}
+            />
+          </Tooltip>
         ))}
       </div>
     </div>
@@ -438,6 +486,10 @@ const PreviewModal = ({
     updateBlockProperties(block.id, { ...blockProperties, bgColor })
   }
 
+  const updateBgOpacity = (bgOpacity: number) => {
+    updateBlockProperties(block.id, { ...blockProperties, bgOpacity })
+  }
+
   useEffect(() => {
     if (block.type === 'imageBlock' || block.type === 'listBlock')
       setTabs(previewTabs)
@@ -527,8 +579,10 @@ const PreviewModal = ({
                   currentBgColor={
                     blockProperties.bgColor || backgroundColors[0]
                   }
+                  currentBgOpacity={blockProperties.bgOpacity || 1}
                   mode={config.mode}
                   updateBgColor={updateBgColor}
+                  updateBgOpacity={updateBgOpacity}
                 />
               )}
             </div>
