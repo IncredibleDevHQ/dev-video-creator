@@ -40,6 +40,7 @@ export type BlockProperties = {
   gradient?: GradientConfig
   layout?: Layout
   bgColor?: string
+  bgOpacity?: number
 }
 
 export interface TitleSplashConfig {
