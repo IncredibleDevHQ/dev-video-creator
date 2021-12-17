@@ -98,14 +98,14 @@ const StudioHoC = () => {
   const [view, setView] = useState<'preview' | 'studio'>('preview')
 
   const {
-    devices,
     ready,
     tracks,
-    updateBackground,
-    updateCamera,
-    updateMicrophone,
-    currentDevice,
     effect,
+    devices,
+    updateCamera,
+    currentDevice,
+    updateMicrophone,
+    updateBackground,
   } = useVectorly(config.vectorly.token)
 
   const { sub } = (useRecoilValue(userState) as User) || {}
@@ -124,16 +124,6 @@ const StudioHoC = () => {
       })
     })()
   }, [sub])
-
-  // useEffect(() => {
-  //   return () => {
-  //     if (_.isEmpty(tracks)) return
-  //     tracks?.forEach((track) => {
-  //       track.close()
-  //       track.stop()
-  //     })
-  //   }
-  // }, [tracks])
 
   useEffect(() => {
     if (!data) return

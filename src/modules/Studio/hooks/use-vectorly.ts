@@ -4,6 +4,7 @@ import AgoraRTC, {
   IMicrophoneAudioTrack,
 } from 'agora-rtc-sdk-ng'
 import { useEffect, useRef, useState } from 'react'
+import _ from 'lodash/fp'
 import { BackgroundFilter } from '@vectorly-io/ai-filters'
 
 export type Device = {
@@ -148,6 +149,15 @@ const useVectorly = (token: string) => {
       setReady(true)
     }
   }, [currentDevice?.camera, currentDevice?.microphone])
+
+  useEffect(() => {
+    return () => {
+      if (_.isEmpty(tracks)) return
+      tracks?.forEach((track) => {
+        track.close()
+      })
+    }
+  }, [tracks])
 
   return {
     updateBackground,
