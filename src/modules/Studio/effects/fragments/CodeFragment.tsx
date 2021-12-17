@@ -10,11 +10,7 @@ import { Fragment_Status_Enum_Enum } from '../../../../generated/graphql'
 import firebaseState from '../../../../stores/firebase.store'
 import { CommentExplanations, ConfigType } from '../../../../utils/configTypes'
 import { BlockProperties } from '../../../../utils/configTypes2'
-import Concourse, {
-  CONFIG,
-  SHORTS_CONFIG,
-  TitleSplashProps,
-} from '../../components/Concourse'
+import Concourse, { TitleSplashProps } from '../../components/Concourse'
 import RenderTokens, {
   codeConfig,
   FragmentState,
@@ -138,16 +134,6 @@ const CodeFragment = ({
 
   const { auth } = useRecoilValue(firebaseState)
   const [user] = useAuthState(auth)
-
-  const [stageConfig, setStageConfig] = useState<{
-    width: number
-    height: number
-  }>({ width: 0, height: 0 })
-
-  useEffect(() => {
-    if (!shortsMode) setStageConfig(CONFIG)
-    else setStageConfig(SHORTS_CONFIG)
-  }, [shortsMode])
 
   useEffect(() => {
     if (!dataConfig) return
@@ -308,27 +294,6 @@ const CodeFragment = ({
   }, [payload?.fragmentState])
 
   const layerChildren: any[] = [
-    <Group x={0} y={0}>
-      {/* {viewConfig.background.type === 'color' ? ( */}
-      <Rect
-        x={0}
-        y={0}
-        width={stageConfig.width}
-        height={stageConfig.height}
-        fillLinearGradientColorStops={viewConfig.gradient?.values}
-        fillLinearGradientStartPoint={viewConfig.gradient?.startIndex}
-        fillLinearGradientEndPoint={viewConfig.gradient?.endIndex}
-      />
-      {/* ) : (
-        <Image
-          x={0}
-          y={0}
-          width={stageConfig.width}
-          height={stageConfig.height}
-          image={bgImage}
-        />
-      )} */}
-    </Group>,
     <Group x={0} y={0} opacity={0} ref={customLayoutRef}>
       <Rect
         x={objectConfig.x}
@@ -491,6 +456,7 @@ const CodeFragment = ({
   return (
     <Concourse
       layerChildren={layerChildren}
+      viewConfig={viewConfig}
       stageRef={stageRef}
       layerRef={layerRef}
       titleSplashData={titleSplashData}

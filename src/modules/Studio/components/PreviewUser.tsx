@@ -83,7 +83,7 @@ const PreviewUser = ({
         maxHeight,
         studioUserClipConfig?.width || 0,
         studioUserClipConfig?.height || 0,
-        (studioUserClipConfig && studioUserClipConfig.x + x) || 775,
+        (studioUserClipConfig && studioUserClipConfig.x + x) || 0,
         (studioUserClipConfig && studioUserClipConfig.y + y + 3) || y
       )
     )
