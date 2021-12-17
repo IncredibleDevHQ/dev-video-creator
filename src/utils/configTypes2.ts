@@ -11,6 +11,7 @@ export const allLayoutTypes = [
   'bottom-right-circle',
   'padded-split',
   'split',
+  'full',
 ] as const
 
 export const shortsLayoutTypes = [
@@ -39,6 +40,7 @@ export type BlockProperties = {
   gradient?: GradientConfig
   layout?: Layout
   bgColor?: string
+  bgOpacity?: number
 }
 
 export interface TitleSplashConfig {
