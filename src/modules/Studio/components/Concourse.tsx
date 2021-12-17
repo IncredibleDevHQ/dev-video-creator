@@ -44,7 +44,7 @@ export interface TitleSplashProps {
 
 interface ConcourseProps {
   layerChildren: any[]
-  viewConfig: BlockProperties
+  viewConfig?: BlockProperties
   stageRef?: React.RefObject<Konva.Stage>
   layerRef?: React.RefObject<Konva.Layer>
   titleSplashData?: TitleSplashProps
@@ -213,9 +213,9 @@ const Concourse = ({
         y={0}
         width={stageConfig.width}
         height={stageConfig.height}
-        fillLinearGradientColorStops={viewConfig.gradient?.values}
-        fillLinearGradientStartPoint={viewConfig.gradient?.startIndex}
-        fillLinearGradientEndPoint={viewConfig.gradient?.endIndex}
+        fillLinearGradientColorStops={viewConfig?.gradient?.values}
+        fillLinearGradientStartPoint={viewConfig?.gradient?.startIndex}
+        fillLinearGradientEndPoint={viewConfig?.gradient?.endIndex}
       />
       {/* ) : (
         <Image
@@ -226,7 +226,7 @@ const Concourse = ({
           image={bgImage}
         />
       )} */}
-      {viewConfig.layout === 'full' &&
+      {viewConfig?.layout === 'full' &&
       !disableUserMedia &&
       !isTitleSplash &&
       payload?.status !== Fragment_Status_Enum_Enum.CountDown &&
@@ -264,7 +264,7 @@ const Concourse = ({
           ))}
         </>
       ) : (
-        viewConfig.layout === 'full' &&
+        viewConfig?.layout === 'full' &&
         !disableUserMedia &&
         !isTitleSplash &&
         payload?.status !== Fragment_Status_Enum_Enum.CountDown &&
@@ -343,7 +343,7 @@ const Concourse = ({
           return layerChildren
         })()}
       </Group>
-      {viewConfig.layout !== 'full' &&
+      {viewConfig?.layout !== 'full' &&
       !disableUserMedia &&
       !isTitleSplash &&
       payload?.status !== Fragment_Status_Enum_Enum.CountDown &&
@@ -381,7 +381,7 @@ const Concourse = ({
           ))}
         </>
       ) : (
-        viewConfig.layout !== 'full' &&
+        viewConfig?.layout !== 'full' &&
         !disableUserMedia &&
         !isTitleSplash &&
         payload?.status !== Fragment_Status_Enum_Enum.CountDown &&
