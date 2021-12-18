@@ -11,7 +11,6 @@ import AuthorizedApolloProvider from './utils/AuthorizedApolloProvider'
 import 'react-toastify/dist/ReactToastify.css'
 import 'react-responsive-modal/styles.css'
 import config from './config'
-import { VideoEditor } from './modules/Flick/components'
 
 function detectBrowser() {
   if (
@@ -57,17 +56,7 @@ const App = () => {
               toastClassName="rounded-2xl shadow-lg"
               closeButton={false}
             />
-            <VideoEditor
-              handleAction={(transformations) => {}}
-              url="https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/1080/Big_Buck_Bunny_1080_10s_1MB.mp4"
-              width={640}
-              action="Save"
-              transformations={{
-                clip: {},
-                crop: undefined,
-              }}
-            />
-            {/* <Router>
+            <Router>
               <Switch>
                 <Route exact path="/">
                   <Landing />
@@ -93,7 +82,7 @@ const App = () => {
                   component={Integrations}
                 />
               </Switch>
-            </Router> */}
+            </Router>
           </>
         </AuthProvider>
       </AuthorizedApolloProvider>

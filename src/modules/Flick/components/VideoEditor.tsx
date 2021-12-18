@@ -10,9 +10,6 @@ import React, { HTMLAttributes, useEffect, useRef, useState } from 'react'
 import { BiPause, BiPlay } from 'react-icons/bi'
 import { Group, Image, Layer, Rect, Stage, Transformer } from 'react-konva'
 import useImage from 'use-image'
-import { addSeconds, format } from 'date-fns'
-import { zonedTimeToUtc } from 'date-fns-tz'
-import enGB from 'date-fns/locale/en-GB'
 import cropIcon from '../../../assets/crop-outline.svg'
 import trim from '../../../assets/trim.svg'
 import { ASSETS } from '../../../constants'
@@ -27,15 +24,6 @@ type Coordinates = {
   y: number
   width: number
   height: number
-}
-
-interface ProgressProps extends HTMLAttributes<HTMLDivElement> {
-  time: number
-  handleTimeChange?: (time: number) => void
-  duration: number
-  trimmer?: boolean
-  clip?: Clip
-  setClip?: (clip: Clip) => void
 }
 
 interface Clip {
@@ -76,7 +64,7 @@ const convertPxToTime = ({
   width: number
   duration: number
 }) => {
-  return +((x / width) * duration).toFixed(2)
+  return +((x / width) * duration)
 }
 
 const getAspectDimension = (
@@ -201,7 +189,7 @@ const Scrubber = ({
   const scrubAreaRectRef = useRef<Konva.Rect | null>()
   const markerRef = useRef<Konva.Image | null>()
 
-  const [pin, status] = useImage(ASSETS.ICONS.PIN)
+  const [pin] = useImage(ASSETS.ICONS.PIN)
 
   const [trim] = useState<{ start: number; end: number }>({
     end: end || duration,
@@ -218,10 +206,16 @@ const Scrubber = ({
     const scrubAreaRect = scrubAreaRectRef.current!.getClientRect()
 
     // Should be more than left bounds...
-    let newX = Math.max(scrubAreaRect.x, markerRef.current!.getClientRect().x)
+    let newX = Math.max(
+      scrubAreaRect.x - markerRef.current!.width() / 2,
+      markerRef.current!.getClientRect().x
+    )
 
     // Should be less than right bounds...
-    newX = Math.min(newX, scrubAreaRect.width + scrubAreaRect.x)
+    newX = Math.min(
+      newX,
+      scrubAreaRect.width + scrubAreaRect.x - markerRef.current!.width() / 2
+    )
 
     markerRef.current!.setPosition({
       x: newX - mainRectRef.current!.getClientRect().x,
@@ -247,16 +241,18 @@ const Scrubber = ({
 
     computeMarker()
 
+    // -1 because of stroke width of 2px
     const start = convertPxToTime({
       width: scrubberSize.width as number,
       duration,
-      x: rect.x - main.x,
+      x: rect.x - main.x + 1,
     })
     const end = convertPxToTime({
       width: scrubberSize.width as number,
       duration,
-      x: rect.width + rect.x - main.x,
+      x: rect.width + rect.x - main.x - 1,
     })
+
     handleChange?.({
       start,
       end,
@@ -302,19 +298,21 @@ const Scrubber = ({
         }}
         dragBoundFunc={function (pos) {
           const scrubAreaRect = scrubAreaRectRef.current!.getClientRect()
+
           if (!this)
             return {
               x: pos.x,
               y: pos.y,
             }
+
           // Should be less than right bounds...
           let newX = Math.min(
-            pos.x,
+            pos.x + this.width() / 2,
             scrubAreaRect.width + scrubAreaRect.x - this.width() / 2
           )
 
           // Should be more than left bounds...
-          newX = Math.max(newX, scrubAreaRect.x)
+          newX = Math.max(newX, scrubAreaRect.x - this.width() / 2)
 
           handleUpdateMarker?.(
             convertPxToTime({
@@ -323,6 +321,7 @@ const Scrubber = ({
               width: scrubberSize.width as number,
             })
           )
+
           return {
             x: newX,
             y: this.absolutePosition().y,
@@ -404,167 +403,6 @@ const Scrubber = ({
   )
 }
 
-const Progress = ({
-  time,
-  handleTimeChange,
-  duration,
-  className,
-  clip,
-  setClip,
-  trimmer,
-  ...rest
-}: ProgressProps) => {
-  const progressRef = useRef<HTMLDivElement | null>(null)
-
-  const cb = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
-    // @ts-ignore
-    const rect = progressRef.current.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    // @ts-ignore
-    const width = progressRef.current?.clientWidth
-    // @ts-ignore
-    const time = (x / width) * duration
-    // @ts-ignore
-    handleTimeChange(time)
-  }
-
-  const handleClip = (
-    handle: 'left' | 'right',
-    e: React.MouseEvent<HTMLDivElement, MouseEvent>
-  ) => {
-    // @ts-ignore
-    const rect = progressRef.current.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    // @ts-ignore
-    const width = progressRef.current?.clientWidth
-    // @ts-ignore
-    let time = (x / width) * duration
-
-    if (handle === 'left' && time > (clip?.end || duration)) {
-      return
-    }
-
-    if (handle === 'right' && time < (clip?.start || 0)) {
-      return
-    }
-
-    if (handle === 'left' && time < 0) {
-      time = 0
-    }
-
-    if (handle === 'right' && time > duration) {
-      time = duration
-    }
-
-    if (clip) {
-      setClip?.(
-        handle === 'left' ? { ...clip, start: time } : { ...clip, end: time }
-      )
-    }
-  }
-
-  if (trimmer) {
-    return (
-      // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
-      <div
-        ref={progressRef}
-        // onClick={cb}
-        className={cx('relative overflow-hidden', className)}
-        {...rest}
-      >
-        <div
-          className="bg-brand absolute inset-0"
-          // style={{ maxWidth: `${(time * 100) / duration}%` }}
-        >
-          <span
-            draggable
-            onDragStart={(e) => {
-              const img = new Image()
-              img.src =
-                'data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs='
-              e.dataTransfer.setDragImage(img, 0, 0)
-            }}
-            onDrag={(e) => {
-              // @ts-ignore
-              handleClip('left', e)
-            }}
-            onDragOver={(e) => {
-              e.preventDefault()
-            }}
-            style={{
-              left: clip?.start ? `${(clip?.start * 100) / duration}%` : 0,
-            }}
-            className="h-full w-1 bg-white absolute rounded-l-md cursor-pointer"
-          />
-          <span
-            draggable
-            onDragStart={(e) => {
-              const img = new Image()
-              img.src =
-                'data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs='
-              e.dataTransfer.setDragImage(img, 0, 0)
-            }}
-            onDrag={(e) => {
-              // @ts-ignore
-              handleClip('right', e)
-            }}
-            onDragOver={(e) => {
-              e.preventDefault()
-            }}
-            style={{
-              // eslint-disable-next-line no-nested-ternary
-              left: clip?.end
-                ? clip?.end === duration
-                  ? // @ts-ignore
-                    progressRef.current?.clientWidth - 4
-                  : `${(clip?.end * 100) / duration}%`
-                : // @ts-ignore
-                  progressRef.current?.clientWidth - 4,
-            }}
-            className="h-full w-1 bg-white absolute right-0 rounded-r-md cursor-pointer"
-          />
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
-    <div
-      ref={progressRef}
-      onClick={cb}
-      className={cx('relative overflow-hidden cursor-pointer', className)}
-      {...rest}
-    >
-      {clip?.start && clip?.end && (
-        <span
-          className="bg-white rounded-md opacity-60 absolute inset-0"
-          style={{
-            left: `${(clip.start * 100) / duration}%`,
-            maxWidth: `${((clip.end - clip.start) * 100) / duration}%`,
-          }}
-        />
-      )}
-      {clip?.start && clip.end ? (
-        <span
-          className="bg-brand absolute rounded-md inset-0"
-          style={{
-            maxWidth: `${((time - clip.start) * 100) / duration}%`,
-            left: `${((clip?.start || 0) * 100) / duration}%`,
-          }}
-        />
-      ) : (
-        <span
-          className="bg-brand absolute rounded-md inset-0"
-          style={{
-            maxWidth: `${(time * 100) / duration}%`,
-          }}
-        />
-      )}
-    </div>
-  )
-}
-
 const VideoEditor = ({
   url,
   width,
@@ -583,6 +421,7 @@ const VideoEditor = ({
       height: 0,
     }
   )
+
   const [clip, setClip] = React.useState<Clip>(transformations?.clip || {})
   const [time, setTime] = useState(transformations?.clip?.start || 0)
   const [playing, setPlaying] = useState(false)
@@ -637,8 +476,6 @@ const VideoEditor = ({
     video.addEventListener('loadedmetadata', cb)
     video.addEventListener('timeupdate', (e) => {
       // @ts-ignore
-      console.log(e.target.currentTime)
-      // @ts-ignore
       setTime(e.target.currentTime)
     })
 
@@ -661,90 +498,90 @@ const VideoEditor = ({
     }
   }, [time])
 
+  if (!videoRef.current) return null
+
   return (
     <div className="flex items-center justify-center flex-col rounded-md">
       <div>
         <Stage {...size}>
           <Layer ref={layerRef}>
-            {videoRef.current && (
+            <VideoCanvas underlay size={size} videoElement={videoRef.current} />
+            <Group clip={crop}>
+              <VideoCanvas
+                crop={crop}
+                size={size}
+                videoElement={videoRef.current}
+              />
+            </Group>
+
+            {mode === 'crop' && (
               <>
-                <VideoCanvas
-                  underlay
-                  size={size}
-                  videoElement={videoRef.current}
+                <Rect
+                  x={crop.x || 0}
+                  y={crop.y || 0}
+                  width={crop.width || size.width}
+                  height={crop.height || size.height}
+                  ref={transformerRectRef}
+                  onTransform={() => {
+                    const node = transformerRectRef.current
+                    if (!node) return
+                    const scaleX = node.scaleX()
+                    const scaleY = node.scaleY()
+
+                    node.scaleX(1)
+                    node.scaleY(1)
+
+                    setCrop({
+                      x: node.x(),
+                      y: node.y(),
+                      // set minimal value
+                      width: Math.max(40, node.width() * scaleX),
+                      height: Math.max(40, node.height() * scaleY),
+                    })
+                  }}
                 />
-                <Group clip={crop}>
-                  <VideoCanvas
-                    crop={crop}
-                    size={size}
-                    videoElement={videoRef.current}
-                  />
-                </Group>
+                <Transformer
+                  ref={transformerRef}
+                  anchorFill="#16A34A"
+                  anchorSize={12}
+                  borderStroke="#16A34A"
+                  borderStrokeWidth={4}
+                  rotateEnabled={false}
+                  boundBoxFunc={(oldBox, newBox) => {
+                    const box = newBox
+
+                    // minimum dimensions = 40...
+                    box.width = Math.max(40, box.width)
+                    box.height = Math.max(40, box.height)
+
+                    // check if the new box is out of bounds
+                    if (box.x < 0) {
+                      // if it is, set the width to the current width + the difference
+                      box.width += box.x
+                      // and set the x to 0
+                      box.x = 0
+                    }
+
+                    if (box.y < 0) {
+                      box.height += box.y
+                      box.y = 0
+                    }
+
+                    if (box.x + box.width > size.width) {
+                      box.width = size.width - box.x
+                    }
+
+                    if (box.y + box.height > size.height) {
+                      box.height = size.height - box.y
+                    }
+
+                    return box
+                  }}
+                />
               </>
             )}
-            <Rect
-              x={crop.x || 0}
-              y={crop.y || 0}
-              width={crop.width || size.width}
-              height={crop.height || size.height}
-              ref={transformerRectRef}
-              onTransform={() => {
-                const node = transformerRectRef.current
-                if (!node) return
-                const scaleX = node.scaleX()
-                const scaleY = node.scaleY()
 
-                node.scaleX(1)
-                node.scaleY(1)
-
-                setCrop({
-                  x: node.x(),
-                  y: node.y(),
-                  // set minimal value
-                  width: Math.max(40, node.width() * scaleX),
-                  height: Math.max(40, node.height() * scaleY),
-                })
-              }}
-            />
-            <Transformer
-              ref={transformerRef}
-              anchorFill="white"
-              anchorSize={10}
-              borderStroke="white"
-              borderStrokeWidth={3}
-              rotateEnabled={false}
-              boundBoxFunc={(oldBox, newBox) => {
-                const box = newBox
-
-                // minimum dimensions = 40...
-                box.width = Math.max(40, box.width)
-                box.height = Math.max(40, box.height)
-
-                // check if the new box is out of bounds
-                if (box.x < 0) {
-                  // if it is, set the width to the current width + the difference
-                  box.width += box.x
-                  // and set the x to 0
-                  box.x = 0
-                }
-
-                if (box.y < 0) {
-                  box.height += box.y
-                  box.y = 0
-                }
-
-                if (box.x + box.width > size.width) {
-                  box.width = size.width - box.x
-                }
-
-                if (box.y + box.height > size.height) {
-                  box.height = size.height - box.y
-                }
-
-                return box
-              }}
-            />
-            {size.width > 0 && (
+            {size.width > 0 && mode === 'trim' && (
               <Group y={size.height - 40 - 20} x={25}>
                 <Scrubber
                   scrubberSize={{
@@ -755,9 +592,10 @@ const VideoEditor = ({
                     setClip(() => trim)
                   }}
                   handleUpdateMarker={(time) => {
+                    videoRef.current!.currentTime = time
                     setTime(time)
                   }}
-                  duration={videoRef.current?.duration || 0}
+                  duration={videoRef.current.duration || 0}
                   marker={time}
                   {...clip}
                 />
@@ -766,30 +604,6 @@ const VideoEditor = ({
           </Layer>
         </Stage>
       </div>
-
-      {/* <Progress
-          trimmer={mode === 'trim'}
-          time={time}
-          handleTimeChange={(time) => {
-            if (
-              clip?.end &&
-              clip.start &&
-              (time > clip?.end || time < clip?.start)
-            ) {
-              return
-            }
-            setTime(time)
-            if (!videoRef.current) return
-            videoRef.current.currentTime = time
-          }}
-          duration={videoRef.current?.duration || 0}
-          className={cx('flex-grow rounded-md bg-gray-500', {
-            'h-8': mode === 'trim',
-            'h-2': mode !== 'trim',
-          })}
-          clip={clip || {}}
-          setClip={setClip}
-        /> */}
 
       <div
         className="bg-gray-600 px-4 py-3 flex items-center justify-between"

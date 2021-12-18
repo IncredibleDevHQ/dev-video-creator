@@ -32,7 +32,7 @@ const formatTime = (timer: number) => {
 
 const Video = () => {
   const { block, handleUpdateBlock } = React.useContext(BlockComponentContext)
-  const [view, setView] = useState<'view' | 'add'>('view')
+  const [view, setView] = useState<'view' | 'add'>('add')
 
   const handleUploadURL = ({ url, key }: { url: string; key: string }) => {
     const candidateBlock = { ...block } as VideoBlockProps
@@ -508,11 +508,7 @@ const AddVideo = ({
             const url = URL.createObjectURL(video)
 
             return (
-              <>
-                <div className="flex items-center mb-2 justify-between">
-                  <Heading fontSize="medium">Clip and crop your video</Heading>
-                </div>
-
+              <div className="w-full h-full flex items-center justify-center">
                 {url && (
                   <VideoEditor
                     handleAction={(transformations) => {
@@ -520,7 +516,7 @@ const AddVideo = ({
                       handleClose(true)
                     }}
                     url={url}
-                    width={640}
+                    width={720}
                     action="Save"
                     transformations={{
                       clip: block?.videoBlock?.transformations?.clip || {},
@@ -528,7 +524,7 @@ const AddVideo = ({
                     }}
                   />
                 )}
-              </>
+              </div>
             )
           default:
             return null
