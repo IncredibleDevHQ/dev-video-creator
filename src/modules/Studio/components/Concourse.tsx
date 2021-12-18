@@ -7,17 +7,18 @@ import {
   Fragment_Type_Enum_Enum,
 } from '../../../generated/graphql'
 import { User, userState } from '../../../stores/user.store'
-import { GradientConfig } from '../../../utils/configTypes'
+import { BlockProperties, GradientConfig } from '../../../utils/configTypes2'
 import { ShortsOutro } from '../effects/fragments/OutroFragment'
 import {
   MultiCircleCenterGrow,
   MultiCircleMoveDown,
 } from '../effects/FragmentTransitions'
+import ShapesSplash from '../effects/Splashes/ShapesSplash'
+import ShortsPopSplash from '../effects/Splashes/ShortsPopSplash'
 import { ClipConfig } from '../hooks/use-edit'
 import { canvasStore, StudioProviderProps, studioStore } from '../stores'
 import PreviewUser from './PreviewUser'
 import StudioUser from './StudioUser'
-import TitleSplash from './TitleSplash'
 
 export interface StudioUserConfig {
   x: number
@@ -43,6 +44,7 @@ export interface TitleSplashProps {
 
 interface ConcourseProps {
   layerChildren: any[]
+  viewConfig?: BlockProperties
   stageRef?: React.RefObject<Konva.Stage>
   layerRef?: React.RefObject<Konva.Layer>
   titleSplashData?: TitleSplashProps
@@ -64,6 +66,7 @@ export const SHORTS_CONFIG = {
 
 const Concourse = ({
   layerChildren,
+  viewConfig,
   stageRef,
   layerRef,
   titleSplashData,
@@ -107,7 +110,6 @@ const Concourse = ({
     height: 120,
   }
 
-  const initialPos = { x: 780, y: 400 }
   const userStudioImageGap = 170
   const zoomLevel = 2
   Konva.pixelRatio = 2
@@ -205,72 +207,27 @@ const Concourse = ({
 
   return (
     <>
+      {/* {viewConfig.background.type === 'color' ? ( */}
       <Rect
         x={0}
         y={0}
         width={stageConfig.width}
         height={stageConfig.height}
-        fill="#000000"
-        // cornerRadius={8}
+        fillLinearGradientColorStops={viewConfig?.gradient?.values}
+        fillLinearGradientStartPoint={viewConfig?.gradient?.startIndex}
+        fillLinearGradientEndPoint={viewConfig?.gradient?.endIndex}
       />
-      <Group ref={groupRef} onClick={onLayerClick} onMouseLeave={onMouseLeave}>
-        {(() => {
-          if (payload?.status === Fragment_Status_Enum_Enum.CountDown) {
-            return (
-              <Rect
-                x={0}
-                y={0}
-                width={stageConfig.width}
-                height={stageConfig.height}
-                fill="#000000"
-                cornerRadius={8}
-              />
-            )
-          }
-          if (payload?.status === Fragment_Status_Enum_Enum.Live) {
-            // layerRef?.current?.destroyChildren()
-            if (titleSplashData?.enable && isTitleSplash) {
-              return !isShorts ? (
-                <>
-                  <TitleSplash
-                    titleSplashData={titleSplashData}
-                    setIsTitleSplash={setIsTitleSplash}
-                    stageConfig={stageConfig}
-                    isShorts={isShorts}
-                  />
-                  <MultiCircleMoveDown />
-                </>
-              ) : (
-                <>
-                  <TitleSplash
-                    titleSplashData={titleSplashData}
-                    setIsTitleSplash={setIsTitleSplash}
-                    stageConfig={stageConfig}
-                    isShorts={isShorts}
-                  />
-                </>
-              )
-            }
-          }
-          if (payload?.status === Fragment_Status_Enum_Enum.Ended) {
-            if (fragment?.type === Fragment_Type_Enum_Enum.Outro) {
-              performFinishAction()
-            } else if (fragment?.configuration?.mode === 'Portrait') {
-              return <ShortsOutro performFinishAction={performFinishAction} />
-            }
-            if (fragment?.type === Fragment_Type_Enum_Enum.Intro) {
-              reduceSplashAudioVolume(0.03)
-            }
-            return (
-              <MultiCircleCenterGrow
-                performFinishAction={performFinishAction}
-              />
-            )
-          }
-          return layerChildren
-        })()}
-      </Group>
-      {!disableUserMedia &&
+      {/* ) : (
+        <Image
+          x={0}
+          y={0}
+          width={stageConfig.width}
+          height={stageConfig.height}
+          image={bgImage}
+        />
+      )} */}
+      {viewConfig?.layout === 'full' &&
+      !disableUserMedia &&
       !isTitleSplash &&
       payload?.status !== Fragment_Status_Enum_Enum.CountDown &&
       payload?.status !== Fragment_Status_Enum_Enum.Ended &&
@@ -307,6 +264,124 @@ const Concourse = ({
           ))}
         </>
       ) : (
+        viewConfig?.layout === 'full' &&
+        !disableUserMedia &&
+        !isTitleSplash &&
+        payload?.status !== Fragment_Status_Enum_Enum.CountDown &&
+        payload?.status !== Fragment_Status_Enum_Enum.Ended &&
+        fragment &&
+        [...(fragment.configuration?.speakers || fragment.participants)]?.map(
+          (_: any, index: number) => {
+            return (
+              <PreviewUser
+                studioUserConfig={
+                  (studioUserConfig && studioUserConfig[index]) || {
+                    x:
+                      defaultStudioUserConfig.x -
+                      (index + 1) * userStudioImageGap,
+                    y: defaultStudioUserConfig.y,
+                    width: defaultStudioUserConfig.width,
+                    height: defaultStudioUserConfig.height,
+                  }
+                }
+              />
+            )
+          }
+        )
+      )}
+      <Group ref={groupRef} onClick={onLayerClick} onMouseLeave={onMouseLeave}>
+        {(() => {
+          if (payload?.status === Fragment_Status_Enum_Enum.CountDown) {
+            return (
+              <Rect
+                x={0}
+                y={0}
+                width={stageConfig.width}
+                height={stageConfig.height}
+                fill="#000000"
+                cornerRadius={8}
+              />
+            )
+          }
+          if (payload?.status === Fragment_Status_Enum_Enum.Live) {
+            // layerRef?.current?.destroyChildren()
+            if (titleSplashData?.enable && isTitleSplash) {
+              return !isShorts ? (
+                <>
+                  <ShapesSplash
+                    setIsTitleSplash={setIsTitleSplash}
+                    renderMode="static"
+                  />
+                  <MultiCircleMoveDown />
+                </>
+              ) : (
+                <>
+                  <ShortsPopSplash
+                    setIsTitleSplash={setIsTitleSplash}
+                    stageConfig={stageConfig}
+                    renderMode="static"
+                  />
+                </>
+              )
+            }
+          }
+          if (payload?.status === Fragment_Status_Enum_Enum.Ended) {
+            if (fragment?.type === Fragment_Type_Enum_Enum.Outro) {
+              performFinishAction()
+            } else if (fragment?.configuration?.mode === 'Portrait') {
+              return <ShortsOutro performFinishAction={performFinishAction} />
+            }
+            if (fragment?.type === Fragment_Type_Enum_Enum.Intro) {
+              reduceSplashAudioVolume(0.03)
+            }
+            return (
+              <MultiCircleCenterGrow
+                performFinishAction={performFinishAction}
+              />
+            )
+          }
+          return layerChildren
+        })()}
+      </Group>
+      {viewConfig?.layout !== 'full' &&
+      !disableUserMedia &&
+      !isTitleSplash &&
+      payload?.status !== Fragment_Status_Enum_Enum.CountDown &&
+      payload?.status !== Fragment_Status_Enum_Enum.Ended &&
+      users ? (
+        <>
+          <StudioUser
+            stream={stream}
+            studioUserConfig={
+              (studioUserConfig && studioUserConfig[0]) ||
+              defaultStudioUserConfig
+            }
+            picture={picture as string}
+            type="local"
+            uid={sub as string}
+          />
+          {users.map((user, index) => (
+            <StudioUser
+              key={user.uid as string}
+              uid={user.uid as string}
+              type="remote"
+              stream={user.mediaStream as MediaStream}
+              picture={participants?.[user.uid]?.picture || ''}
+              studioUserConfig={
+                (studioUserConfig && studioUserConfig[index + 1]) || {
+                  x:
+                    defaultStudioUserConfig.x -
+                    (index + 1) * userStudioImageGap,
+                  y: defaultStudioUserConfig.y,
+                  width: defaultStudioUserConfig.width,
+                  height: defaultStudioUserConfig.height,
+                }
+              }
+            />
+          ))}
+        </>
+      ) : (
+        viewConfig?.layout !== 'full' &&
         !disableUserMedia &&
         !isTitleSplash &&
         payload?.status !== Fragment_Status_Enum_Enum.CountDown &&

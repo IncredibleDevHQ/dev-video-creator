@@ -57,7 +57,6 @@ const StudioUser = ({
   const [image] = useImage(picture, 'anonymous')
 
   const videoElement = React.useMemo(() => {
-    console.log('stream update', stream)
     if (!stream) return
     const element = document.createElement('video')
     element.srcObject = stream

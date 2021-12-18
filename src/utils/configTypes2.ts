@@ -11,17 +11,25 @@ export const allLayoutTypes = [
   'bottom-right-circle',
   'padded-split',
   'split',
+  'full',
+] as const
+
+export const shortsLayoutTypes = [
+  'classic',
+  'padded-bottom-right-circle',
 ] as const
 
 export type Layout = typeof allLayoutTypes[number]
 
 export interface Gradient {
+  id: number
   angle: number
   values: (number | string)[]
   cssString: string
 }
 
 export interface GradientConfig {
+  id: number
   cssString: string
   values: (string | number)[]
   startIndex: { x: number; y: number }
@@ -31,6 +39,8 @@ export interface GradientConfig {
 export type BlockProperties = {
   gradient?: GradientConfig
   layout?: Layout
+  bgColor?: string
+  bgOpacity?: number
 }
 
 export interface TitleSplashConfig {

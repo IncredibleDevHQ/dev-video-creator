@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from 'react'
-import { Image } from 'react-konva'
-import useEdit from '../hooks/use-edit'
 import 'gifler'
+import React, { useEffect } from 'react'
+import { Image } from 'react-konva'
 
 const Gif = ({
   src,
@@ -44,10 +43,10 @@ const Gif = ({
       anim.animateInCanvas(canvas)
       anim.onDrawFrame = (ctx: any, frame: any) => {
         ctx.drawImage(frame.buffer, frame.x, frame.y)
-        imageRef.current.getLayer().draw()
+        imageRef.current?.getLayer().draw()
       }
     })
-    return () => anim.stop()
+    return () => anim?.stop()
   }, [src, canvas])
 
   // useEffect(() => {

@@ -125,15 +125,15 @@ const StudioHoC = () => {
     })()
   }, [sub])
 
-  useEffect(() => {
-    return () => {
-      if (_.isEmpty(tracks)) return
-      tracks?.forEach((track) => {
-        track.close()
-        track.stop()
-      })
-    }
-  }, [tracks])
+  // useEffect(() => {
+  //   return () => {
+  //     if (_.isEmpty(tracks)) return
+  //     tracks?.forEach((track) => {
+  //       track.close()
+  //       track.stop()
+  //     })
+  //   }
+  // }, [tracks])
 
   useEffect(() => {
     if (!data) return

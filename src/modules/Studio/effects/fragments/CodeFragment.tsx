@@ -1,6 +1,7 @@
 import axios from 'axios'
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
+import { useAuthState } from 'react-firebase-hooks/auth'
 import { Circle, Group, Rect } from 'react-konva'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import { CodeBlockProps } from '../../../../components/TextEditor/utils'
@@ -9,11 +10,7 @@ import { Fragment_Status_Enum_Enum } from '../../../../generated/graphql'
 import firebaseState from '../../../../stores/firebase.store'
 import { CommentExplanations, ConfigType } from '../../../../utils/configTypes'
 import { BlockProperties } from '../../../../utils/configTypes2'
-import Concourse, {
-  CONFIG,
-  SHORTS_CONFIG,
-  TitleSplashProps,
-} from '../../components/Concourse'
+import Concourse, { TitleSplashProps } from '../../components/Concourse'
 import RenderTokens, {
   codeConfig,
   FragmentState,
@@ -135,17 +132,8 @@ const CodeFragment = ({
 
   const [colorCodes, setColorCodes] = useState<any>([])
 
-  const user = useRecoilValue(firebaseState)
-
-  const [stageConfig, setStageConfig] = useState<{
-    width: number
-    height: number
-  }>({ width: 0, height: 0 })
-
-  useEffect(() => {
-    if (!shortsMode) setStageConfig(CONFIG)
-    else setStageConfig(SHORTS_CONFIG)
-  }, [shortsMode])
+  const { auth } = useRecoilValue(firebaseState)
+  const [user] = useAuthState(auth)
 
   useEffect(() => {
     if (!dataConfig) return
@@ -163,10 +151,11 @@ const CodeFragment = ({
     ;(async () => {
       try {
         if (dataConfig.codeBlock.code !== '') {
+          const token = await user?.getIdToken()
           const { data } = await getColorCodes(
             dataConfig.codeBlock.code || '',
             dataConfig.codeBlock.language || '',
-            user.token || ''
+            token || ''
           )
           if (!data?.errors) setColorCodes(data.data.TokenisedCode.data)
         }
@@ -305,27 +294,6 @@ const CodeFragment = ({
   }, [payload?.fragmentState])
 
   const layerChildren: any[] = [
-    <Group x={0} y={0}>
-      {/* {viewConfig.background.type === 'color' ? ( */}
-      <Rect
-        x={0}
-        y={0}
-        width={stageConfig.width}
-        height={stageConfig.height}
-        fillLinearGradientColorStops={viewConfig.gradient?.values}
-        fillLinearGradientStartPoint={viewConfig.gradient?.startIndex}
-        fillLinearGradientEndPoint={viewConfig.gradient?.endIndex}
-      />
-      {/* ) : (
-        <Image
-          x={0}
-          y={0}
-          width={stageConfig.width}
-          height={stageConfig.height}
-          image={bgImage}
-        />
-      )} */}
-    </Group>,
     <Group x={0} y={0} opacity={0} ref={customLayoutRef}>
       <Rect
         x={objectConfig.x}
@@ -482,11 +450,13 @@ const CodeFragment = ({
     fragment,
     fragmentState,
     isShorts: shortsMode || false,
+    bgGradientId: viewConfig.gradient?.id || 1,
   })
 
   return (
     <Concourse
       layerChildren={layerChildren}
+      viewConfig={viewConfig}
       stageRef={stageRef}
       layerRef={layerRef}
       titleSplashData={titleSplashData}
