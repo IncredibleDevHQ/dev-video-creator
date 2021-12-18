@@ -17,12 +17,50 @@ export const FragmentLayoutConfig = ({
   isShorts?: boolean
 }): ObjectConfig => {
   if (isShorts) {
-    return {
-      x: 16,
-      y: 16,
-      width: 364,
-      height: 672,
-      borderRadius: 8,
+    switch (layout) {
+      case 'classic':
+      case 'padded-bottom-right-circle':
+      case 'padded-bottom-right-tile':
+        return {
+          x: 16,
+          y: 16,
+          width: 364,
+          height: 672,
+          borderRadius: 8,
+        }
+      case 'bottom-right-tile':
+      case 'bottom-right-circle':
+        return {
+          x: 0,
+          y: 0,
+          width: 396,
+          height: 704,
+          borderRadius: 8,
+        }
+      case 'split':
+        return {
+          x: 16,
+          y: 12,
+          width: 364,
+          height: 336,
+          borderRadius: 8,
+        }
+      case 'full':
+        return {
+          x: 16,
+          y: 24,
+          width: 364,
+          height: 280,
+          borderRadius: 8,
+        }
+      default:
+        return {
+          x: 16,
+          y: 16,
+          width: 364,
+          height: 672,
+          borderRadius: 8,
+        }
     }
   }
   switch (layout) {
