@@ -40,6 +40,12 @@ const config = {
     enabled: !!(import.meta.env.VITE_SENTRY_ENABLED === 'true'),
   },
   /**
+   * Cohere configs...
+   */
+  cohere: {
+    apiKey: import.meta.env.VITE_COHERE_API_KEY,
+  },
+  /**
    * Storage configs...
    */
   storage: {

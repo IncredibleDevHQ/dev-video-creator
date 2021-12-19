@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from 'react'
-import 'react-responsive-modal/styles.css'
-import { BrowserRouter as Router, Route, Switch } from 'react-router-dom'
-import { ToastContainer } from 'react-toastify'
-import 'react-toastify/dist/ReactToastify.css'
 import { RecoilRoot } from 'recoil'
+import Cohere from 'cohere-js'
+import { ToastContainer } from 'react-toastify'
+import { BrowserRouter as Router, Route, Switch } from 'react-router-dom'
 import { ScreenState } from './components'
 import { Flick, GitHubCallback, Integrations, Landing, Studio } from './modules'
 import AuthProvider from './utils/auth'
-import AuthorizedApolloProvider from './utils/AuthorizedApolloProvider'
 import PrivateRoute from './utils/PrivateRoute'
+import AuthorizedApolloProvider from './utils/AuthorizedApolloProvider'
+import 'react-toastify/dist/ReactToastify.css'
+import 'react-responsive-modal/styles.css'
+import config from './config'
 
 function detectBrowser() {
   if (
@@ -29,12 +31,16 @@ function detectBrowser() {
 }
 
 const App = () => {
+  const { apiKey } = config.cohere
+
   const [agentAllowed, setAgentAllowed] = useState(true)
   useEffect(() => {
+    if (apiKey) Cohere.init(apiKey)
     if (detectBrowser() !== 'Chrome') {
       setAgentAllowed(false)
     }
   }, [])
+
   return agentAllowed ? (
     <RecoilRoot>
       <AuthorizedApolloProvider>
