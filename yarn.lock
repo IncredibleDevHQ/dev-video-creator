@@ -5023,6 +5023,11 @@ codemirror@^5.62.0:
   resolved "https://registry.yarnpkg.com/codemirror/-/codemirror-5.64.0.tgz#182eec65b62178e3cd1de8f9d88ab819cfe5f625"
   integrity sha512-fqr6CtDQdJ6iNMbD8NX2gH2G876nNDk+TO1rrYkgWnqQdO3O1Xa9tK6q+psqhJJgE5SpbaDcgdfLmukoUVE8pg==
 
+cohere-js@^1.0.19:
+  version "1.0.19"
+  resolved "https://registry.yarnpkg.com/cohere-js/-/cohere-js-1.0.19.tgz#c9951e51b6fdf48d3b2457838983109d651a9d16"
+  integrity sha512-2XVX2LUKHjbJ4GCsnizXnAVHZfq9RM1RmHl8zE4G2ORdXmDpzSx5i0UIj/0GZ3AwjKIlYsrGA4kdCGT+WapjPQ==
+
 color-convert@^1.9.0, color-convert@^1.9.1:
   version "1.9.3"
   resolved "https://registry.yarnpkg.com/color-convert/-/color-convert-1.9.3.tgz#bb71850690e1f136567de629d2d5471deda4c1e8"
@@ -5366,6 +5371,11 @@ dataloader@2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/dataloader/-/dataloader-2.0.0.tgz#41eaf123db115987e21ca93c005cd7753c55fe6f"
   integrity sha512-YzhyDAwA4TaQIhM5go+vCLmU0UikghC/t9DTQYZR2M/UvZ1MdOhPezSDZcjj9uqQJOMqjLcpWtyW2iNINdlatQ==
+
+date-fns-tz@^1.1.6:
+  version "1.1.6"
+  resolved "https://registry.yarnpkg.com/date-fns-tz/-/date-fns-tz-1.1.6.tgz#93cbf354e2aeb2cd312ffa32e462c1943cf20a8e"
+  integrity sha512-nyy+URfFI3KUY7udEJozcoftju+KduaqkVfwyTIE0traBiVye09QnyWKLZK7drRr5h9B7sPJITmQnS3U6YOdQg==
 
 date-fns@^1.27.2:
   version "1.30.1"
@@ -11847,10 +11857,10 @@ use-previous@^1.1.0:
   dependencies:
     use-isomorphic-layout-effect "^1.1.0"
 
-use-screen-recorder@^1.0.1:
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/use-screen-recorder/-/use-screen-recorder-1.0.1.tgz#2698f87de18f425ecfe7de91f2d753253670e047"
-  integrity sha512-k54XmIuLFwDJfEDh9hvxytfuhiii07GAvvLDd6LklKqCjGwubdUamT9Nd8meyIzAY0EaQtVRHaM8BMkWkBfq+A==
+use-screen-recorder@^1.0.2:
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/use-screen-recorder/-/use-screen-recorder-1.0.2.tgz#e2606920c3530d4a2f313aac9d3c6e9d2b5ad1c7"
+  integrity sha512-QpTtEdYhbGDPzw6p1m5Wrmc20qmEaJEDsFhaH82PkwkFN/4F05hNAtUBRkFSnWOsfqEhI30Wsjt9+HTOkUMVGw==
 
 util-deprecate@^1.0.2, util-deprecate@~1.0.1:
   version "1.0.2"

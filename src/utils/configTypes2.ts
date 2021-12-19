@@ -17,6 +17,11 @@ export const allLayoutTypes = [
 export const shortsLayoutTypes = [
   'classic',
   'padded-bottom-right-circle',
+  'padded-bottom-right-tile',
+  'bottom-right-tile',
+  'bottom-right-circle',
+  'split',
+  'full',
 ] as const
 
 export type Layout = typeof allLayoutTypes[number]
