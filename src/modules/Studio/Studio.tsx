@@ -116,6 +116,8 @@ const StudioHoC = () => {
 
   const [error, setError] = useState<'INVALID_AST' | undefined>()
 
+  const { handleStart, handleReset, timer } = useTimekeeper(0)
+
   useEffect(() => {
     if (!sub) return
     ;(async () => {
@@ -173,7 +175,16 @@ const StudioHoC = () => {
         effect={effect}
       />
     )
-  if (view === 'studio') return <Studio data={data} tracks={tracks} />
+  if (view === 'studio')
+    return (
+      <Studio
+        data={data}
+        tracks={tracks}
+        handleStart={handleStart}
+        handleReset={handleReset}
+        timer={timer}
+      />
+    )
 
   return null
 }
@@ -306,9 +317,15 @@ const Preview = ({
 const Studio = ({
   data,
   tracks,
+  handleStart,
+  handleReset,
+  timer,
 }: {
   data?: GetFragmentByIdQuery
   tracks: [IMicrophoneAudioTrack, ILocalVideoTrack] | null
+  handleStart: () => void
+  handleReset: () => void
+  timer: number
 }) => {
   const { fragmentId } = useParams<{ fragmentId: string }>()
   const { constraints, controlsConfig } =
@@ -334,8 +351,6 @@ const Studio = ({
   }>({ width: 0, height: 0 })
 
   const [shortsMode, setShortsMode] = useState(false)
-
-  const { handleStart, handleReset, timer } = useTimekeeper(0)
 
   useEffect(() => {
     if (!fragment) return
