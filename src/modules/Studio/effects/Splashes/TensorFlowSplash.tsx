@@ -123,7 +123,7 @@ const SplashSeventeen = ({
                           duration: 0.3,
                           onFinish: () => {
                             setTimeout(() => {
-                              if (!viewMode) setFragmentState('discord')
+                              if (!viewMode) setFragmentState('onlyUserMedia')
                             }, 2000)
                           },
                         })

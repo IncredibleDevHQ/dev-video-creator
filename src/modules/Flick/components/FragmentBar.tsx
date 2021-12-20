@@ -20,7 +20,7 @@ import {
   useUpdateFragmentMarkdownMutation,
   useUpdateFragmentStateMutation,
 } from '../../../generated/graphql'
-import { ViewConfig } from '../../../utils/configTypes2'
+import { ViewConfig } from '../../../utils/configTypes'
 import { newFlickStore } from '../store/flickNew.store'
 import { IntroOutroConfiguration } from './IntroOutroView'
 import { TextEditorParser } from '../../../components/TempTextEditor/utils'

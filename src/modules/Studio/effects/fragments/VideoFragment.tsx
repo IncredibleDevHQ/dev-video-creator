@@ -4,8 +4,7 @@ import { Group } from 'react-konva'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import { VideoBlockProps } from '../../../../components/TextEditor/utils'
 import { Fragment_Status_Enum_Enum } from '../../../../generated/graphql'
-import { ConfigType } from '../../../../utils/configTypes'
-import { BlockProperties } from '../../../../utils/configTypes2'
+import { BlockProperties, ConfigType } from '../../../../utils/configTypes'
 import { Transformations } from '../../../Flick/components/VideoEditor'
 import Concourse, { TitleSplashProps } from '../../components/Concourse'
 import { FragmentState } from '../../components/RenderTokens'
@@ -70,7 +69,7 @@ const VideoFragment = ({
     element.autoplay = false
     element.crossOrigin = 'anonymous'
     element.preload = 'auto'
-    element.muted = false
+    element.muted = true
     element.src = dataConfig.videoBlock.url || ''
 
     setObjectConfig(

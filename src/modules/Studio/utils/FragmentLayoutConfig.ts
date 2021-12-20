@@ -1,4 +1,4 @@
-import { Layout } from '../../../utils/configTypes2'
+import { Layout } from '../../../utils/configTypes'
 
 export interface ObjectConfig {
   x: number

@@ -32,7 +32,7 @@ const formatTime = (timer: number) => {
 
 const Video = () => {
   const { block, handleUpdateBlock } = React.useContext(BlockComponentContext)
-  const [view, setView] = useState<'view' | 'add'>('add')
+  const [view, setView] = useState<'view' | 'add'>('view')
 
   const handleUploadURL = ({ url, key }: { url: string; key: string }) => {
     const candidateBlock = { ...block } as VideoBlockProps
@@ -416,8 +416,8 @@ const AddVideo = ({
                     type="button"
                     className="flex px-1.5 py-1 text-sm rounded-sm items-center bg-gray-700 mx-1"
                     onClick={() => {
-                      setCurrentView('upload-s3')
                       handleUpload()
+                      setCurrentView('upload-s3')
                     }}
                   >
                     <FiCheck size={20} className="mr-1" />

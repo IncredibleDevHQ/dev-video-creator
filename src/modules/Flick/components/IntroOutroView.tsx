@@ -1,7 +1,6 @@
 import { css, cx } from '@emotion/css'
 import Konva from 'konva'
 import React, { createRef, useEffect, useState } from 'react'
-import { FaDiscord } from 'react-icons/fa'
 import { HiOutlineUser } from 'react-icons/hi'
 import { IoPlayOutline } from 'react-icons/io5'
 import { Layer, Stage } from 'react-konva'
@@ -10,10 +9,9 @@ import {
   useRecoilBridgeAcrossReactRoots_UNSTABLE,
   useRecoilValue,
 } from 'recoil'
-import layoutLink from '../../../assets/linkpreview.svg'
 import { Tab, TabBar, Text } from '../../../components'
 import { Fragment_Type_Enum_Enum } from '../../../generated/graphql'
-import { Gradient, GradientConfig } from '../../../utils/configTypes2'
+import { Gradient, GradientConfig } from '../../../utils/configTypes'
 import { CONFIG, SHORTS_CONFIG } from '../../Studio/components/Concourse'
 import IntroFragment from '../../Studio/effects/fragments/IntroFragment'
 import OutroFragment from '../../Studio/effects/fragments/OutroFragment'
@@ -221,36 +219,6 @@ const Layouts = () => {
           </div>
         </div>
       </div>
-      {/* Discord */}
-      {flick?.fragments.find((f) => f.id === activeFragmentId)?.type ===
-        Fragment_Type_Enum_Enum.Intro && (
-        <div
-          className="h-20 cursor-pointer bg-gray-50"
-          role="button"
-          tabIndex={-1}
-          onKeyUp={() => {}}
-          onClick={() =>
-            updatePayload?.({
-              fragmentState: 'discord',
-            })
-          }
-        >
-          <div className="h-full flex items-center justify-center w-28 p-2.5">
-            <div
-              className={cx(
-                'h-full w-full p-2 border border-gray-200 rounded-md cursor-pointer bg-white',
-                {
-                  'border border-brand': payload?.fragmentState === 'discord',
-                }
-              )}
-            >
-              <div className="flex items-center justify-center w-full h-full bg-gray-200 rounded-md">
-                <img src={layoutLink} alt="link" className="w-8" />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
       {/* UserMedia */}
       <div
         className="h-20 bg-gray-50"
@@ -376,9 +344,6 @@ const Configurations = ({
           Fragment_Type_Enum_Enum.Intro && (
           <SplashConfiguration config={config} setConfig={setConfig} />
         )}
-      {currentConfiguration === Configuration.Discord && (
-        <DiscordConfiguration config={config} setConfig={setConfig} />
-      )}
       {currentConfiguration === Configuration.UserMedia && (
         <GradientPicker config={config} setConfig={setConfig} />
       )}
@@ -436,88 +401,6 @@ const SplashConfiguration = ({
                     ]
                   }
                 </Text>
-              </button>
-            )
-          })}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-const DiscordConfiguration = ({
-  config,
-  setConfig,
-}: {
-  config: IntroOutroConfiguration
-  setConfig: React.Dispatch<React.SetStateAction<IntroOutroConfiguration>>
-}) => {
-  const tabs: Tab[] = [
-    {
-      name: 'Join Community',
-      value: 'Join Community',
-    },
-  ]
-
-  const discordConfigs: DiscordConfig[] = [
-    {
-      backgroundColor: '#1F2937',
-      textColor: '#ffffff',
-      theme: DiscordThemes.WhiteOnMidnight,
-    },
-    {
-      backgroundColor: '#ffffff',
-      textColor: '#1F2937',
-      theme: DiscordThemes.MidnightOnWhite,
-    },
-    {
-      backgroundColor: '#ffffff',
-      textColor: '#404FED',
-      theme: DiscordThemes.BlueOnWhite,
-    },
-
-    {
-      backgroundColor: '#404FED',
-      textColor: '#ffffff',
-      theme: DiscordThemes.WhiteOnBlue,
-    },
-  ]
-
-  const [currentTab, setCurrentTab] = useState<Tab>(tabs[0])
-
-  return (
-    <div className="mt-4 overflow-hidden border border-gray-300 rounded-lg shadow-md w-60 h-4/6">
-      <TabBar
-        tabs={tabs}
-        current={currentTab}
-        onTabChange={setCurrentTab}
-        className="w-auto gap-2 mt-4 ml-4 text-black"
-      />
-      <div className={cx('h-full w-full overflow-y-scroll pb-16', scrollStyle)}>
-        <div className="grid grid-cols-2 gap-4 p-4">
-          {discordConfigs.map((discordConfig) => {
-            return (
-              <button
-                type="button"
-                key={discordConfig.theme}
-                style={{
-                  backgroundColor: discordConfig.backgroundColor,
-                  color: discordConfig.textColor,
-                }}
-                className={cx(
-                  'h-16 flex cursor-pointer items-center p-6 justify-center ring-1 ring-offset-2 ring-gray-200 rounded-sm',
-                  {
-                    'ring-brand': config.discord.theme === discordConfig.theme,
-                  }
-                )}
-                onClick={() => {
-                  setConfig({
-                    ...config,
-                    discord: discordConfig,
-                  })
-                }}
-              >
-                <FaDiscord className="w-full h-full" />
               </button>
             )
           })}
