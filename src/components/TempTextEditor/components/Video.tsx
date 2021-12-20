@@ -229,6 +229,8 @@ const AddVideo = ({
       center
       open={open}
       onClose={() => {
+        stopRecording()
+        handleReset()
         setCurrentView('select')
         handleClose()
       }}
