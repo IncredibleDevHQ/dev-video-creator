@@ -1,5 +1,5 @@
 import { StudioFragmentFragment } from '../../../generated/graphql'
-import { Layout } from '../../../utils/configTypes2'
+import { Layout } from '../../../utils/configTypes'
 import { StudioUserConfig } from '../components/Concourse'
 import { FragmentState } from '../components/RenderTokens'
 
