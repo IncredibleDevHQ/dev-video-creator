@@ -7,7 +7,7 @@ import {
   Fragment_Type_Enum_Enum,
 } from '../../../generated/graphql'
 import { User, userState } from '../../../stores/user.store'
-import { BlockProperties, GradientConfig } from '../../../utils/configTypes2'
+import { BlockProperties, GradientConfig } from '../../../utils/configTypes'
 import { ShortsOutro } from '../effects/fragments/OutroFragment'
 import {
   MultiCircleCenterGrow,

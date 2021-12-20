@@ -26,7 +26,7 @@ import {
   useUserAssetQuery,
 } from '../../generated/graphql'
 import { useCanvasRecorder } from '../../hooks'
-import { BlockProperties, ViewConfig } from '../../utils/configTypes2'
+import { BlockProperties, ViewConfig } from '../../utils/configTypes'
 import { verticalCustomScrollBar } from '../../utils/globalStyles'
 import { CONFIG } from '../Studio/components/Concourse'
 import studioStore from '../Studio/stores/studio.store'

@@ -4139,11 +4139,6 @@
   dependencies:
     immer "9.0.6"
 
-"@vectorly-io/ai-filters@^1.6.4":
-  version "1.6.8"
-  resolved "https://registry.yarnpkg.com/@vectorly-io/ai-filters/-/ai-filters-1.6.8.tgz#ec7510f0d6d88e5a72113fcc6c24cd30ef4b49c2"
-  integrity sha512-h+dhlHjupIwsHrZ47m7VvqZ64r4ypHaseAjjy+gpcW7MN7wJlCbXzHqjyUuqwClCTqOmlM4iQbVgU/2K+Oxd7w==
-
 "@videojs/http-streaming@2.12.0":
   version "2.12.0"
   resolved "https://registry.yarnpkg.com/@videojs/http-streaming/-/http-streaming-2.12.0.tgz#850069e063e26cf2fa5ed9bb3addfc92fa899f78"

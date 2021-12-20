@@ -275,7 +275,7 @@ const AbstractSplash = ({
               opacity: 1,
               onFinish: () => {
                 setTimeout(() => {
-                  if (!viewMode) setFragmentState?.('discord')
+                  if (!viewMode) setFragmentState?.('onlyUserMedia')
                 }, 2500)
               },
             })
