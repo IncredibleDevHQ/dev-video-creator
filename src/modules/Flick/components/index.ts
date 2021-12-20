@@ -7,7 +7,6 @@ import FlickNavBar from './FlickNavBar'
 import FragmentBar from './FragmentBar'
 import UpdateFragmentParticipantsModal from './UpdateFragmentParticipantsModal'
 import FragmentVideoModal from './FragmentVideoModal'
-import FragmentEditor from './FragmentEditor'
 import FlickCard from './FlickCard'
 import PublishFlick from './Publish/PublishFlick'
 import VideoEditor from './VideoEditor'
@@ -19,7 +18,6 @@ export {
   VideoInventoryModal,
   FlickActivity,
   FragmentSideBar,
-  FragmentEditor,
   DeleteFragmentModal,
   FlickNavBar,
   FragmentBar,

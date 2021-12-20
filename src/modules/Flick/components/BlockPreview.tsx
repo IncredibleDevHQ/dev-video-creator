@@ -15,7 +15,7 @@ import {
   Layout,
   Gradient,
   shortsLayoutTypes,
-} from '../../../utils/configTypes2'
+} from '../../../utils/configTypes'
 import { CONFIG, SHORTS_CONFIG } from '../../Studio/components/Concourse'
 import { Tab, TabBar, Tooltip } from '../../../components'
 import LayoutGeneric from './LayoutGeneric'

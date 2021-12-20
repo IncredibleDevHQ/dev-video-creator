@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Group, Rect } from 'react-konva'
 import { useRecoilValue } from 'recoil'
-import { GradientConfig } from '../../../../utils/configTypes2'
+import { GradientConfig } from '../../../../utils/configTypes'
 import { DiscordConfig } from '../../../Flick/components/IntroOutroView'
 import Concourse, { CONFIG } from '../../components/Concourse'
 import { StudioProviderProps, studioStore } from '../../stores'

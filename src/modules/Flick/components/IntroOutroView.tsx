@@ -11,7 +11,7 @@ import {
 } from 'recoil'
 import { Tab, TabBar, Text } from '../../../components'
 import { Fragment_Type_Enum_Enum } from '../../../generated/graphql'
-import { Gradient, GradientConfig } from '../../../utils/configTypes2'
+import { Gradient, GradientConfig } from '../../../utils/configTypes'
 import { CONFIG, SHORTS_CONFIG } from '../../Studio/components/Concourse'
 import IntroFragment from '../../Studio/effects/fragments/IntroFragment'
 import OutroFragment from '../../Studio/effects/fragments/OutroFragment'
