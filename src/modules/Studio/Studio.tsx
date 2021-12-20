@@ -656,9 +656,9 @@ const Studio = ({
   // const C = getEffect(fragment.type, fragment.configuration)
 
   return (
-    <div className="h-screen">
+    <div className="h-screen w-full">
       {/* Bottom bar with details and global controls */}
-      <div className="fixed top-0 flex justify-center w-full px-10 py-4 bg-gray-50">
+      <div className="fixed top-0 flex justify-center w-full px-10 py-4 bg-gray-50 z-20">
         <div
           role="button"
           tabIndex={0}
@@ -687,10 +687,10 @@ const Studio = ({
         />
       </div>
       {/* Studio or Video , Notes and layout controls */}
-      <div className="flex items-center h-full px-10 pt-16 ">
+      <div className="h-screen px-10 pt-16">
         <Countdown />
         {state === 'ready' || state === 'recording' || state === 'countDown' ? (
-          <div className="flex w-full mt-3 gap-x-8">
+          <div className="flex w-full h-full mt-3 gap-x-8">
             <Stage
               ref={stageRef}
               height={stageConfig.height}
@@ -760,17 +760,20 @@ const Studio = ({
               </Bridge>
             </Stage>
             <div
-              className={cx('grid grid-rows-2 flex-1 gap-y-4', {
-                'my-12': shortsMode,
-              })}
+              className={cx(
+                'flex-1 flex flex-col justify-end overflow-y-auto',
+                {
+                  'my-12': shortsMode,
+                }
+              )}
             >
               {/* Notes */}
-              <div className="h-full">
+              <div className="overflow-y-auto">
                 <Text className="text-gray-800 truncate whitespace-pre-wrap">
                   {getNote(payload?.activeObjectIndex)}
                 </Text>
               </div>
-              <div className="flex flex-col items-start justify-end h-full">
+              <div className="flex-1 flex flex-col items-start justify-end">
                 {(() => {
                   if (
                     fragment.type === Fragment_Type_Enum_Enum.Intro ||
