@@ -34,10 +34,8 @@ const AuthorizedApolloProvider = ({
     uri: config.hasura.wsServer as string,
     options: {
       reconnect: true,
-      reconnectionAttempts: 5,
       lazy: true,
       timeout: 5000,
-      lazy: true,
       reconnectionAttempts: 3,
     },
   })

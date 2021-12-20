@@ -32,7 +32,6 @@ import {
   ListBlockProps,
   VideoBlockProps,
 } from '../../components/TextEditor/utils'
-import config from '../../config'
 import {
   FlickParticipantsFragment,
   Fragment_Status_Enum_Enum,
@@ -62,37 +61,10 @@ import RecordingControlsBar from './components/RecordingControlsBar'
 import IntroFragment from './effects/fragments/IntroFragment'
 import OutroFragment from './effects/fragments/OutroFragment'
 import UnifiedFragment from './effects/fragments/UnifiedFragment'
-import { useAgora, useVectorly } from './hooks'
-import { Device } from './hooks/use-agora'
+import { useAgora, useAgoraOld } from './hooks'
+import { Device } from './hooks/use-agora-old'
 import { useRTDB } from './hooks/use-rtdb'
 import { StudioProviderProps, StudioState, studioStore } from './stores'
-
-const backgrounds = [
-  { label: 'No effect', value: 'none' },
-  { label: 'Blur', value: 'blur' },
-  { label: 'Transparent', value: 'transparent' },
-  {
-    label: 'Wall',
-    value: 'https://demo.vectorly.io/virtual-backgrounds/7.jpg',
-  },
-  {
-    label: 'City',
-    value: 'https://demo.vectorly.io/virtual-backgrounds/8.jpg',
-  },
-  {
-    label: 'Beach',
-    value: 'https://demo.vectorly.io/virtual-backgrounds/3.jpg',
-  },
-  {
-    label: 'Bridge',
-    value: 'https://demo.vectorly.io/virtual-backgrounds/2.jpg',
-  },
-  {
-    label: 'Bloody Mary (Gradient)',
-    value: 'https://i.ibb.co/rvbdFT9/Bloody-Mary.png',
-  },
-  { label: 'DIMIGO (Gradient)', value: 'https://i.ibb.co/bJSYLhj/DIMIGO.png' },
-]
 
 const StudioHoC = () => {
   const [view, setView] = useState<'preview' | 'studio'>('preview')
@@ -100,13 +72,11 @@ const StudioHoC = () => {
   const {
     ready,
     tracks,
-    effect,
     devices,
     updateCamera,
     currentDevice,
     updateMicrophone,
-    updateBackground,
-  } = useVectorly(config.vectorly.token)
+  } = useAgora()
 
   const { sub } = (useRecoilValue(userState) as User) || {}
   const { fragmentId } = useParams<{ fragmentId: string }>()
@@ -156,13 +126,11 @@ const StudioHoC = () => {
       <Preview
         data={fragment}
         devices={devices}
-        updateBackground={updateBackground}
         updateCamera={updateCamera}
         updateMicrophone={updateMicrophone}
         handleJoin={() => setView('studio')}
         tracks={tracks}
         currentDevice={currentDevice}
-        effect={effect}
       />
     )
   if (view === 'studio')
@@ -183,37 +151,37 @@ const Preview = ({
   data,
   handleJoin,
   devices,
-  updateBackground,
   updateCamera,
   updateMicrophone,
   tracks,
   currentDevice,
-  effect,
 }: {
   data?: StudioFragmentFragment
   devices?: MediaDeviceInfo[]
   handleJoin: () => void
-  updateBackground: (value: string) => Promise<void>
   updateMicrophone: (deviceId: string) => Promise<void>
   updateCamera: (deviceId: string) => Promise<void>
   tracks: [IMicrophoneAudioTrack, ILocalVideoTrack] | null
   currentDevice?: Device
-  effect?: string
 }) => {
   return (
     <div className="flex flex-col items-center justify-center flex-1 min-h-screen p-8">
       <div className="grid w-full grid-cols-5 gap-x-8">
         <div className="col-span-3">
-          {tracks?.[1] && (
+          {tracks?.[1] ? (
             <div className="relative">
-              <AspectRatio ratio="16/9" className="overflow-hidden rounded-lg">
+              <AspectRatio
+                ratio="16/9"
+                className="overflow-hidden rounded-lg bg-gray-800"
+              >
                 {/* using video tag because agora player failed due to updates */}
                 <video
                   className="w-full"
                   ref={(ref) => {
                     if (!ref) return
+                    console.log('tracks', tracks)
                     const stream = new MediaStream([
-                      tracks?.[1].getMediaStreamTrack(),
+                      tracks?.[1]?.getMediaStreamTrack(),
                     ])
                     // @ts-ignore
                     // eslint-disable-next-line no-param-reassign
@@ -224,6 +192,13 @@ const Preview = ({
                   }}
                 />
               </AspectRatio>
+            </div>
+          ) : (
+            <div className="bg-gray-800 w-64 h-36 rounded-md flex items-center justify-center">
+              <Text>
+                Preview not available. Please check if your camera device is
+                working fine.
+              </Text>
             </div>
           )}
         </div>
@@ -270,24 +245,6 @@ const Preview = ({
                   {microphone.label}
                 </option>
               ))}
-          </select>
-
-          <Heading fontSize="extra-small" className="uppercase">
-            Effect
-          </Heading>
-          <select
-            className="w-full p-2 mb-4 border border-gray-300 rounded-md"
-            value={effect}
-            onChange={(e) =>
-              // @ts-ignore
-              updateBackground(e.target.value as string)
-            }
-          >
-            {backgrounds.map((background) => (
-              <option key={background.value} value={background.value}>
-                {background.label}
-              </option>
-            ))}
           </select>
           <Button
             className="self-start"
@@ -356,39 +313,40 @@ const Studio = ({
 
   // const [canvas, setCanvas] = useRecoilState(canvasStore)
 
-  const { stream, join, users, mute, leave, userAudios, renewToken } = useAgora(
-    fragmentId,
-    {
-      onTokenWillExpire: async () => {
-        const { data } = await getRTCToken({ variables: { fragmentId } })
-        if (data?.RTCToken?.token) {
-          renewToken(data.RTCToken.token)
-        }
-      },
-      onTokenDidExpire: async () => {
-        const { data } = await getRTCToken({ variables: { fragmentId } })
-        if (data?.RTCToken?.token) {
-          const participantId = fragment?.configuration?.speakers?.find(
-            ({ participant }: { participant: FlickParticipantsFragment }) =>
-              participant.userSub === sub
-          )?.participant.id
-          if (participantId) {
-            join(data?.RTCToken?.token, participantId as string)
-          } else {
-            leave()
-            emitToast({
-              title: 'Yikes. Something went wrong.',
-              type: 'error',
-              description:
-                'You do not belong to this studio!! Please ask the host to invite you again.',
-            })
-            history.goBack()
+  const { stream, join, users, mute, leave, userAudios, renewToken } =
+    useAgoraOld(
+      fragmentId,
+      {
+        onTokenWillExpire: async () => {
+          const { data } = await getRTCToken({ variables: { fragmentId } })
+          if (data?.RTCToken?.token) {
+            renewToken(data.RTCToken.token)
           }
-        }
+        },
+        onTokenDidExpire: async () => {
+          const { data } = await getRTCToken({ variables: { fragmentId } })
+          if (data?.RTCToken?.token) {
+            const participantId = fragment?.configuration?.speakers?.find(
+              ({ participant }: { participant: FlickParticipantsFragment }) =>
+                participant.userSub === sub
+            )?.participant.id
+            if (participantId) {
+              join(data?.RTCToken?.token, participantId as string)
+            } else {
+              leave()
+              emitToast({
+                title: 'Yikes. Something went wrong.',
+                type: 'error',
+                description:
+                  'You do not belong to this studio!! Please ask the host to invite you again.',
+              })
+              history.goBack()
+            }
+          }
+        },
       },
-    },
-    tracks
-  )
+      tracks
+    )
 
   const [getRTCToken] = useGetRtcTokenMutation({
     variables: { fragmentId },
