@@ -6,11 +6,10 @@ import { DiscordConfig } from '../../../Flick/components/IntroOutroView'
 import Concourse, { CONFIG } from '../../components/Concourse'
 import { StudioProviderProps, studioStore } from '../../stores'
 import { StudioUserConfiguration } from '../../utils/StudioUserConfig'
-import DiscordSplash from '../DiscordSplash'
+import AbstractSplash from '../Splashes/AbstractSplash'
 import AstroSplash from '../Splashes/AstroSplash'
 import GraphQLSplash from '../Splashes/GraphQLSplash'
 import PopSplash from '../Splashes/PopSplash'
-import AbstractSplash from '../Splashes/AbstractSplash'
 import RectangleSplash from '../Splashes/RectangleSplash'
 import ShapesSplash from '../Splashes/ShapesSplash'
 import TensorFlowSplash from '../Splashes/TensorFlowSplash'
@@ -67,17 +66,6 @@ const IntroFragment = ({
         setLayerChildren([
           <Group x={0} y={0}>
             <Splash setFragmentState={setFragmentState} viewMode={viewMode} />
-          </Group>,
-        ])
-      }
-      if (fragmentState === 'discord') {
-        setLayerChildren([
-          <Group x={0} y={0}>
-            <DiscordSplash
-              setFragmentState={setFragmentState}
-              viewMode={viewMode}
-              discordConfig={discordConfig}
-            />
           </Group>,
         ])
       }

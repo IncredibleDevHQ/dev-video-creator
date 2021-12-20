@@ -178,7 +178,7 @@ const PopSplash = ({
                 scaleY: 1,
                 onFinish: () => {
                   setTimeout(() => {
-                    if (!viewMode) setFragmentState?.('discord')
+                    if (!viewMode) setFragmentState?.('onlyUserMedia')
                   }, 2000)
                 },
               })

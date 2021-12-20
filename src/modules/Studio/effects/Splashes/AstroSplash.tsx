@@ -453,7 +453,7 @@ const SplashFifteen = ({
               y: 663,
               onFinish: () => {
                 setTimeout(() => {
-                  if (!viewMode) setFragmentState('discord')
+                  if (!viewMode) setFragmentState('onlyUserMedia')
                 }, 1200)
               },
             })
