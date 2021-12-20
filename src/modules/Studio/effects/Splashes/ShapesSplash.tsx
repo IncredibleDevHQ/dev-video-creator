@@ -265,7 +265,7 @@ const ShapesSplash = ({
                 easing: Konva.Easings.BackEaseOut,
                 onFinish: () => {
                   setTimeout(() => {
-                    if (!viewMode) setFragmentState?.('discord')
+                    if (!viewMode) setFragmentState?.('onlyUserMedia')
                   }, 2000)
                 },
               })

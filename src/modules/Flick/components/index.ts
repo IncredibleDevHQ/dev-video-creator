@@ -7,20 +7,17 @@ import FlickNavBar from './FlickNavBar'
 import FragmentBar from './FragmentBar'
 import UpdateFragmentParticipantsModal from './UpdateFragmentParticipantsModal'
 import FragmentVideoModal from './FragmentVideoModal'
-import FragmentEditor from './FragmentEditor'
 import FlickCard from './FlickCard'
 import PublishFlick from './Publish/PublishFlick'
 import VideoEditor from './VideoEditor'
 import VideoEditorModal from './VideoEditorModal'
 import ProcessingFlick from './ProcessingFlick'
-import IntroConfig from './IntroConfig'
 
 export {
   ScreenRecording,
   VideoInventoryModal,
   FlickActivity,
   FragmentSideBar,
-  FragmentEditor,
   DeleteFragmentModal,
   FlickNavBar,
   FragmentBar,
@@ -31,5 +28,4 @@ export {
   VideoEditor,
   VideoEditorModal,
   ProcessingFlick,
-  IntroConfig,
 }

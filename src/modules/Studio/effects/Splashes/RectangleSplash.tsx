@@ -149,7 +149,7 @@ const RectangleSplash = ({
                 easing: Konva.Easings.EaseInOut,
                 onFinish: () => {
                   setTimeout(() => {
-                    if (!viewMode) setFragmentState?.('discord')
+                    if (!viewMode) setFragmentState?.('onlyUserMedia')
                   }, 2000)
                 },
               })

@@ -4,12 +4,14 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useAuthState } from 'react-firebase-hooks/auth'
 import { Circle, Group, Rect } from 'react-konva'
 import { useRecoilState, useRecoilValue } from 'recoil'
-import { CodeBlockProps } from '../../../../components/TextEditor/utils'
+import {
+  CodeBlockProps,
+  CommentExplanations,
+} from '../../../../components/TextEditor/utils'
 import * as gConfig from '../../../../config'
 import { Fragment_Status_Enum_Enum } from '../../../../generated/graphql'
 import firebaseState from '../../../../stores/firebase.store'
-import { CommentExplanations, ConfigType } from '../../../../utils/configTypes'
-import { BlockProperties } from '../../../../utils/configTypes2'
+import { BlockProperties, ConfigType } from '../../../../utils/configTypes'
 import Concourse, { TitleSplashProps } from '../../components/Concourse'
 import RenderTokens, {
   codeConfig,

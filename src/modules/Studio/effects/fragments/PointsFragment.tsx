@@ -6,8 +6,7 @@ import {
   ListBlockProps,
   ListItem,
 } from '../../../../components/TextEditor/utils'
-import { ConfigType } from '../../../../utils/configTypes'
-import { BlockProperties } from '../../../../utils/configTypes2'
+import { BlockProperties, ConfigType } from '../../../../utils/configTypes'
 import Concourse, { TitleSplashProps } from '../../components/Concourse'
 import { FragmentState } from '../../components/RenderTokens'
 import { usePoint } from '../../hooks'

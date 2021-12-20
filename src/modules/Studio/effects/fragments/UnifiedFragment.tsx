@@ -13,7 +13,7 @@ import {
   BlockProperties,
   ViewConfig,
   TitleSplashConfig,
-} from '../../../../utils/configTypes2'
+} from '../../../../utils/configTypes'
 import {
   getGradientConfig,
   gradients,
