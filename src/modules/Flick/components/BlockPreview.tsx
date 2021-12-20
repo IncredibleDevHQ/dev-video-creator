@@ -261,7 +261,12 @@ export const BackgroundSelector = ({
             isOpen={tooltip && color === currentBgColor}
             setIsOpen={setTooltip}
             content={
-              <div className="bg-white -mt-40 flex flex-col gap-y-3">
+              <div
+                className={cx('bg-white flex flex-col gap-y-3', {
+                  'mt-20': mode === 'Portrait',
+                  '-mt-40': mode === 'Landscape',
+                })}
+              >
                 {opacityOptions.map((opacityValue, index) => (
                   // eslint-disable-next-line jsx-a11y/control-has-associated-label
                   <div
