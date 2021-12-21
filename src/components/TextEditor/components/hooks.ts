@@ -81,7 +81,7 @@ const hooks = [
 
     useMemo(() => {
       const json = getJSON(state)
-      simpleASTCallback?.(getSimpleAST(json))
+      // simpleASTCallback?.(getSimpleAST(json))
     }, [state])
   },
   () => {
