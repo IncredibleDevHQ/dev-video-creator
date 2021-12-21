@@ -2,17 +2,12 @@ import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
 import { Circle, Group, Rect, Text } from 'react-konva'
 import { useRecoilState, useRecoilValue } from 'recoil'
-import {
-  ListBlockProps,
-  ListItem,
-} from '../../../Flick/editor/utils/utils'
-import { ConfigType } from '../../../../utils/configTypes'
-import { BlockProperties } from '../../../../utils/configTypes2'
-import Concourse, {
-  CONFIG,
-  SHORTS_CONFIG,
-  TitleSplashProps,
-} from '../../components/Concourse'
+import { ListBlockProps, ListItem } from '../../../Flick/editor/utils/utils'
+
+import Concourse, { TitleSplashProps } from '../../components/Concourse'
+
+import { BlockProperties, ConfigType } from '../../../../utils/configTypes'
+
 import { FragmentState } from '../../components/RenderTokens'
 import { usePoint } from '../../hooks'
 import { StudioProviderProps, studioStore } from '../../stores'
@@ -76,16 +71,6 @@ const PointsFragment = ({
   })
 
   const colorStops = [0, '#D1D5DB', 1, '#D1D5DB']
-
-  const [stageConfig, setStageConfig] = useState<{
-    width: number
-    height: number
-  }>({ width: 0, height: 0 })
-
-  useEffect(() => {
-    if (!shortsMode) setStageConfig(CONFIG)
-    else setStageConfig(SHORTS_CONFIG)
-  }, [shortsMode])
 
   useEffect(() => {
     if (!dataConfig) return
@@ -190,35 +175,15 @@ const PointsFragment = ({
   }, [payload?.fragmentState])
 
   const layerChildren: any[] = [
-    <Group x={0} y={0}>
-      {/* {viewConfig.background.type === 'color' ? ( */}
-      <Rect
-        x={0}
-        y={0}
-        width={stageConfig.width}
-        height={stageConfig.height}
-        fillLinearGradientColorStops={viewConfig.gradient?.values}
-        fillLinearGradientStartPoint={viewConfig.gradient?.startIndex}
-        fillLinearGradientEndPoint={viewConfig.gradient?.endIndex}
-      />
-      {/* ) : (
-        <Image
-          x={0}
-          y={0}
-          width={stageConfig.width}
-          height={stageConfig.height}
-          image={bgImage}
-        />
-      )} */}
-    </Group>,
     <Group x={0} y={0} opacity={0} ref={customLayoutRef}>
       <Rect
         x={objectConfig.x}
         y={objectConfig.y}
         width={objectConfig.width}
         height={objectConfig.height}
-        fill="#1F2937"
+        fill={viewConfig.bgColor || '#1F2937'}
         cornerRadius={objectConfig.borderRadius}
+        opacity={viewConfig.bgOpacity}
       />
       <Text
         key="fragmentTitle"
@@ -226,7 +191,7 @@ const PointsFragment = ({
         y={objectConfig.y + 32}
         align="left"
         fontSize={40}
-        fill="#E5E7EB"
+        fill={viewConfig.bgColor === '#ffffff' ? '#1F2937' : '#E5E7EB'}
         width={objectConfig.width - 80}
         lineHeight={1.15}
         text={dataConfig.listBlock.title || fragment?.name || ''}
@@ -268,7 +233,7 @@ const PointsFragment = ({
                 y={point.y}
                 align="left"
                 fontSize={16}
-                fill="#F3F4F6"
+                fill={viewConfig.bgColor === '#ffffff' ? '#4B5563' : '#F3F4F6'}
                 width={objectConfig.width - 180}
                 text={point.text}
                 lineHeight={1.1}
@@ -291,11 +256,13 @@ const PointsFragment = ({
     fragment,
     fragmentState,
     isShorts: shortsMode || false,
+    bgGradientId: viewConfig.gradient?.id || 1,
   })
 
   return (
     <Concourse
       layerChildren={layerChildren}
+      viewConfig={viewConfig}
       stageRef={stageRef}
       layerRef={layerRef}
       titleSplashData={titleSplashData}

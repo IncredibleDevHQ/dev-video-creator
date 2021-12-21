@@ -1,21 +1,22 @@
 import React, { useEffect, useState } from 'react'
 import { Group, Rect } from 'react-konva'
 import { useRecoilValue } from 'recoil'
-import { GradientConfig } from '../../../../utils/configTypes2'
+import { GradientConfig } from '../../../../utils/configTypes'
 import { DiscordConfig } from '../../../Flick/components/IntroOutroView'
 import Concourse, { CONFIG } from '../../components/Concourse'
 import { StudioProviderProps, studioStore } from '../../stores'
 import { StudioUserConfiguration } from '../../utils/StudioUserConfig'
-import DiscordSplash from '../DiscordSplash'
+import AbstractSplash from '../Splashes/AbstractSplash'
 import AstroSplash from '../Splashes/AstroSplash'
 import GraphQLSplash from '../Splashes/GraphQLSplash'
 import PopSplash from '../Splashes/PopSplash'
-import SplashEleven from '../Splashes/SplashEleven'
-import SplashFive from '../Splashes/SplashFive'
-import SplashFour from '../Splashes/SplashFour'
+import RectangleSplash from '../Splashes/RectangleSplash'
+import ShapesSplash from '../Splashes/ShapesSplash'
 import TensorFlowSplash from '../Splashes/TensorFlowSplash'
 
 export type IntroState = 'onlyUserMedia' | 'customLayout' | 'discord'
+
+export type SplashRenderState = 'static' | 'animate'
 
 const IntroFragment = ({
   gradientConfig,
@@ -43,11 +44,11 @@ const IntroFragment = ({
     if (themeNumber === '0') return GraphQLSplash
     if (themeNumber === '1') return AstroSplash
     if (themeNumber === '2') return TensorFlowSplash
-    if (themeNumber === '3') return SplashFive
-    if (themeNumber === '4') return SplashFour
-    if (themeNumber === '5') return SplashEleven
+    if (themeNumber === '3') return RectangleSplash
+    if (themeNumber === '4') return ShapesSplash
+    if (themeNumber === '5') return AbstractSplash
     if (themeNumber === '6') return PopSplash
-    return SplashFive
+    return RectangleSplash
   })()
 
   useEffect(() => {
@@ -65,17 +66,6 @@ const IntroFragment = ({
         setLayerChildren([
           <Group x={0} y={0}>
             <Splash setFragmentState={setFragmentState} viewMode={viewMode} />
-          </Group>,
-        ])
-      }
-      if (fragmentState === 'discord') {
-        setLayerChildren([
-          <Group x={0} y={0}>
-            <DiscordSplash
-              setFragmentState={setFragmentState}
-              viewMode={viewMode}
-              discordConfig={discordConfig}
-            />
           </Group>,
         ])
       }

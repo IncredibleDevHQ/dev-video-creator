@@ -13,7 +13,7 @@ import {
   BlockProperties,
   ViewConfig,
   TitleSplashConfig,
-} from '../../../../utils/configTypes2'
+} from '../../../../utils/configTypes'
 import {
   getGradientConfig,
   gradients,
@@ -129,7 +129,6 @@ const UnifiedFragment = ({
       timer.current = setTimeout(() => {
         if (!displayName) return
         if (!fragment) return
-        console.log('lower third')
         setTopLayerChildren([
           <IncredibleLowerThirds
             x={

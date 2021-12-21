@@ -5,13 +5,8 @@ import { Group, Image, Rect, Text } from 'react-konva'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import useImage from 'use-image'
 import { ImageBlockProps } from '../../../Flick/editor/utils/utils'
-import { ConfigType } from '../../../../utils/configTypes'
-import { BlockProperties } from '../../../../utils/configTypes2'
-import Concourse, {
-  CONFIG,
-  SHORTS_CONFIG,
-  TitleSplashProps,
-} from '../../components/Concourse'
+import { BlockProperties, ConfigType } from '../../../../utils/configTypes'
+import Concourse, { TitleSplashProps } from '../../components/Concourse'
 import Gif from '../../components/Gif'
 import { FragmentState } from '../../components/RenderTokens'
 import useEdit from '../../hooks/use-edit'
@@ -87,16 +82,6 @@ const TriviaFragment = ({
     borderRadius: 0,
   })
 
-  const [stageConfig, setStageConfig] = useState<{
-    width: number
-    height: number
-  }>({ width: 0, height: 0 })
-
-  useEffect(() => {
-    if (!shortsMode) setStageConfig(CONFIG)
-    else setStageConfig(SHORTS_CONFIG)
-  }, [shortsMode])
-
   useEffect(() => {
     if (!dataConfig) return
     setObjectConfig(
@@ -138,22 +123,39 @@ const TriviaFragment = ({
     } else {
       setIsGif(false)
     }
-    if (triviaData?.text)
-      setImgDim(
-        getImageDimensions(
-          {
-            w: (qnaImage && qnaImage.width) || 0,
-            h: (qnaImage && qnaImage.height) || 0,
-          },
-          objectConfig.width - 30,
-          objectConfig.height - 140,
-          objectConfig.width - 40,
-          objectConfig.height - 110,
-          20,
-          100
+    if (triviaData?.text) {
+      if (shortsMode) {
+        setImgDim(
+          getImageDimensions(
+            {
+              w: (qnaImage && qnaImage.width) || 0,
+              h: (qnaImage && qnaImage.height) || 0,
+            },
+            objectConfig.width - 30,
+            objectConfig.height - 140,
+            objectConfig.width - 40,
+            objectConfig.height,
+            20,
+            0
+          )
         )
-      )
-    else
+      } else {
+        setImgDim(
+          getImageDimensions(
+            {
+              w: (qnaImage && qnaImage.width) || 0,
+              h: (qnaImage && qnaImage.height) || 0,
+            },
+            objectConfig.width - 30,
+            objectConfig.height - 140,
+            objectConfig.width - 40,
+            objectConfig.height - 110,
+            20,
+            80
+          )
+        )
+      }
+    } else
       setImgDim(
         getImageDimensions(
           {
@@ -163,9 +165,9 @@ const TriviaFragment = ({
           objectConfig.width - 30,
           objectConfig.height - 30,
           objectConfig.width - 40,
-          objectConfig.height - 40,
+          objectConfig.height,
           20,
-          20
+          0
         )
       )
   }, [qnaImage, objectConfig])
@@ -207,35 +209,15 @@ const TriviaFragment = ({
   }, [payload?.fragmentState])
 
   const layerChildren: any[] = [
-    <Group x={0} y={0}>
-      {/* {viewConfig.background.type === 'color' ? ( */}
-      <Rect
-        x={0}
-        y={0}
-        width={stageConfig.width}
-        height={stageConfig.height}
-        fillLinearGradientColorStops={viewConfig.gradient?.values}
-        fillLinearGradientStartPoint={viewConfig.gradient?.startIndex}
-        fillLinearGradientEndPoint={viewConfig.gradient?.endIndex}
-      />
-      {/* ) : (
-        <Image
-          x={0}
-          y={0}
-          width={stageConfig.width}
-          height={stageConfig.height}
-          image={bgImage}
-        />
-      )} */}
-    </Group>,
     <Group x={0} y={0} opacity={0} ref={customLayoutRef}>
       <Rect
         x={objectConfig.x}
         y={objectConfig.y}
         width={objectConfig.width}
         height={objectConfig.height}
-        fill="#1F2937"
+        fill={viewConfig.bgColor || '#1F2937'}
         cornerRadius={objectConfig.borderRadius}
+        opacity={viewConfig.bgOpacity}
       />
       <Group x={objectConfig.x} y={objectConfig.y} key="group1">
         {triviaData?.image ? (
@@ -246,7 +228,7 @@ const TriviaFragment = ({
                 y={20}
                 align="center"
                 fontSize={32}
-                fill="#E5E7EB"
+                fill={viewConfig.bgColor === '#ffffff' ? '#1F2937' : '#E5E7EB'}
                 width={objectConfig.width - 20}
                 lineHeight={1.2}
                 text={triviaData?.text}
@@ -269,7 +251,7 @@ const TriviaFragment = ({
                 y={20}
                 align="center"
                 fontSize={32}
-                fill="#E5E7EB"
+                fill={viewConfig.bgColor === '#ffffff' ? '#1F2937' : '#E5E7EB'}
                 width={objectConfig.width - 20}
                 lineHeight={1.2}
                 text={triviaData?.text}
@@ -293,7 +275,7 @@ const TriviaFragment = ({
           <Text
             x={10}
             fontSize={32}
-            fill="#E5E7EB"
+            fill={viewConfig.bgColor === '#ffffff' ? '#1F2937' : '#E5E7EB'}
             width={objectConfig.width - 20}
             height={objectConfig.height}
             text={triviaData?.text}
@@ -314,11 +296,13 @@ const TriviaFragment = ({
     fragment,
     fragmentState,
     isShorts: shortsMode || false,
+    bgGradientId: viewConfig.gradient?.id || 1,
   })
 
   return (
     <Concourse
       layerChildren={layerChildren}
+      viewConfig={viewConfig}
       stageRef={stageRef}
       layerRef={layerRef}
       titleSplashData={titleSplashData}

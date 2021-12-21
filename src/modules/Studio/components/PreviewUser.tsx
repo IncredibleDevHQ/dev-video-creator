@@ -83,7 +83,7 @@ const PreviewUser = ({
         maxHeight,
         studioUserClipConfig?.width || 0,
         studioUserClipConfig?.height || 0,
-        (studioUserClipConfig && studioUserClipConfig.x + x) || 775,
+        (studioUserClipConfig && studioUserClipConfig.x + x) || 0,
         (studioUserClipConfig && studioUserClipConfig.y + y + 3) || y
       )
     )
@@ -108,8 +108,11 @@ const PreviewUser = ({
         y={(studioUserClipConfig && studioUserClipConfig.y + y) || y}
         width={studioUserClipConfig?.width || 0}
         height={studioUserClipConfig?.height || 0}
-        stroke="#000000"
-        strokeWidth={0}
+        // stroke="#000000"
+        // strokeWidth={0}
+        // cornerRadius={studioUserClipConfig?.radius || 0}
+        stroke={borderColor}
+        strokeWidth={borderWidth || 0}
         cornerRadius={studioUserClipConfig?.radius || 0}
       />
 

@@ -1,17 +1,12 @@
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
-import { Group, Rect } from 'react-konva'
+import { Group } from 'react-konva'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import { VideoBlockProps } from '../../../Flick/editor/utils/utils'
 import { Fragment_Status_Enum_Enum } from '../../../../generated/graphql'
-import { ConfigType } from '../../../../utils/configTypes'
-import { BlockProperties } from '../../../../utils/configTypes2'
+import { BlockProperties, ConfigType } from '../../../../utils/configTypes'
 import { Transformations } from '../../../Flick/components/VideoEditor'
-import Concourse, {
-  CONFIG,
-  SHORTS_CONFIG,
-  TitleSplashProps,
-} from '../../components/Concourse'
+import Concourse, { TitleSplashProps } from '../../components/Concourse'
 import { FragmentState } from '../../components/RenderTokens'
 import { Video, VideoConfig } from '../../components/Video'
 import { StudioProviderProps, studioStore } from '../../stores'
@@ -68,23 +63,13 @@ const VideoFragment = ({
     borderRadius: 0,
   })
 
-  const [stageConfig, setStageConfig] = useState<{
-    width: number
-    height: number
-  }>({ width: 0, height: 0 })
-
-  useEffect(() => {
-    if (!shortsMode) setStageConfig(CONFIG)
-    else setStageConfig(SHORTS_CONFIG)
-  }, [shortsMode])
-
   const videoElement = React.useMemo(() => {
     if (!dataConfig) return
     const element = document.createElement('video')
     element.autoplay = false
     element.crossOrigin = 'anonymous'
     element.preload = 'auto'
-    element.muted = false
+    element.muted = true
     element.src = dataConfig.videoBlock.url || ''
 
     setObjectConfig(
@@ -212,27 +197,6 @@ const VideoFragment = ({
   }
 
   const layerChildren: any[] = [
-    <Group x={0} y={0}>
-      {/* {dataConfig..type === 'color' ? ( */}
-      <Rect
-        x={0}
-        y={0}
-        width={stageConfig.width}
-        height={stageConfig.height}
-        fillLinearGradientColorStops={viewConfig.gradient?.values}
-        fillLinearGradientStartPoint={viewConfig.gradient?.startIndex}
-        fillLinearGradientEndPoint={viewConfig.gradient?.endIndex}
-      />
-      {/* ) : (
-        <Image
-          x={0}
-          y={0}
-          width={stageConfig.width}
-          height={stageConfig.height}
-          image={bgImage}
-        />
-      )} */}
-    </Group>,
     <Group x={0} y={0} opacity={0} ref={customLayoutRef}>
       {videoElement && (
         <Video videoElement={videoElement} videoConfig={videoConfig} />
@@ -245,11 +209,13 @@ const VideoFragment = ({
     fragment,
     fragmentState,
     isShorts: shortsMode || false,
+    bgGradientId: viewConfig.gradient?.id || 1,
   })
 
   return (
     <Concourse
       layerChildren={layerChildren}
+      viewConfig={viewConfig}
       stageRef={stageRef}
       layerRef={layerRef}
       titleSplashData={titleSplashData}

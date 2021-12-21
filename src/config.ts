@@ -14,12 +14,6 @@ const config = {
     appId: import.meta.env.VITE_AGORA_APP_ID,
   },
   /**
-   * Vectorly configs...
-   */
-  vectorly: {
-    token: import.meta.env.VITE_VECTORLY_TOKEN,
-  },
-  /**
    * Hasura configs...
    */
   hasura: {
@@ -38,6 +32,12 @@ const config = {
   sentry: {
     dsn: import.meta.env.VITE_SENTRY_DSN,
     enabled: !!(import.meta.env.VITE_SENTRY_ENABLED === 'true'),
+  },
+  /**
+   * Cohere configs...
+   */
+  cohere: {
+    apiKey: import.meta.env.VITE_COHERE_API_KEY,
   },
   /**
    * Storage configs...

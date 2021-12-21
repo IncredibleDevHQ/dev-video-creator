@@ -1,8 +1,8 @@
 import useVideo from './use-video'
-import useAgora from './use-agora'
 import useCode from './use-code'
 import usePoint from './use-point'
 import useSplash from './use-splash'
-import useVectorly from './use-vectorly'
+import useAgora from './use-agora'
+import useAgoraOld from './use-agora-old'
 
-export { useVideo, useAgora, useCode, usePoint, useSplash, useVectorly }
+export { useVideo, useAgora, useCode, usePoint, useSplash, useAgoraOld }

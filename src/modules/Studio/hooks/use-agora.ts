@@ -1,212 +1,131 @@
-import { useEffect, useState } from 'react'
 import AgoraRTC, {
-  ClientConfig,
   IAgoraRTCRemoteUser,
+  ICameraVideoTrack,
   ILocalVideoTrack,
   IMicrophoneAudioTrack,
 } from 'agora-rtc-sdk-ng'
-import { createClient, createMicrophoneAndCameraTracks } from 'agora-rtc-react'
-import { useRecoilState } from 'recoil'
-import config from '../../../config'
-import { studioStore } from '../stores'
+import { useEffect, useRef, useState } from 'react'
+import _ from 'lodash/fp'
 
 export type Device = {
   microphone: string
   camera: string
 }
-
-const videoConfig: ClientConfig = {
-  mode: 'rtc',
-  codec: 'vp8',
-}
-
-const { appId } = config.agora
-
-const useClient = createClient(videoConfig)
-
 export interface RTCUser extends IAgoraRTCRemoteUser {
   mediaStream?: MediaStream
 }
 
-export default function useAgora(
-  channel: string,
-  {
-    onTokenWillExpire,
-    onTokenDidExpire,
-  }: { onTokenWillExpire: () => void; onTokenDidExpire: () => void },
-  tracks: [IMicrophoneAudioTrack, ILocalVideoTrack] | null
-) {
-  const client = useClient()
-  const [users, setUsers] = useState<RTCUser[]>([])
-  const [stream, setStream] = useState<MediaStream>()
-  const [studio, setStudio] = useRecoilState(studioStore)
-  const [userAudios, setUserAudios] = useState<MediaStream[]>([])
-  // const [cameraDevice, setCameraDevice] = useState<string>()
-  // const [microphoneDevice, setMicrophoneDevice] = useState<string>()
+const useAgora = () => {
+  const [ready, setReady] = useState(false)
 
-  useEffect(() => {
-    ;(async () => {
-      init()
-    })()
-  }, [])
+  const [tracks, setTracks] = useState<
+    [IMicrophoneAudioTrack, ILocalVideoTrack] | null
+  >({} as any)
+
+  const tracksRef = useRef<[IMicrophoneAudioTrack, ILocalVideoTrack]>({} as any)
+
+  const camera = useRef<ICameraVideoTrack>()
+  const microphone = useRef<IMicrophoneAudioTrack>()
+  const [devices, setDevices] = useState<MediaDeviceInfo[]>()
+  const [currentDevice, setCurrentDevice] = useState<Device>()
 
   useEffect(() => {
     if (!tracks) return
-    setStream(
-      new MediaStream([
-        tracks[0].getMediaStreamTrack(),
-        tracks[1].getMediaStreamTrack(),
+    tracksRef.current = tracks
+  }, [tracks])
+
+  const updateMicrophone = async (deviceId: string) => {
+    await tracks?.[0]?.setDevice(deviceId)
+    if (currentDevice) {
+      setCurrentDevice({ ...currentDevice, microphone: deviceId })
+    }
+  }
+
+  const updateCamera = async (deviceId: string) => {
+    if (!camera.current) {
+      console.warn('No camera.')
+      return
+    }
+
+    await camera.current?.setDevice(deviceId)
+    if (tracks) {
+      setTracks((tracks) => [
+        tracks?.[0] as IMicrophoneAudioTrack,
+        camera.current as ICameraVideoTrack,
       ])
-    )
-  }, [
-    tracks,
-    tracks?.[0].enabled,
-    tracks?.[1].enabled,
-    studio.constraints?.audio,
-    studio.constraints?.video,
-  ])
-
-  const init = async () => {
-    try {
-      client.on('user-published', async (user, mediaType) => {
-        await client.subscribe(user, mediaType)
-        const tracks: MediaStreamTrack[] = []
-        if (user.audioTrack) tracks.push(user.audioTrack?.getMediaStreamTrack())
-        if (user.videoTrack) tracks.push(user.videoTrack?.getMediaStreamTrack())
-        if (mediaType === 'video') {
-          setUsers((prevUsers) => {
-            if (prevUsers.find((element) => element.uid === user.uid))
-              return [...prevUsers]
-            return [
-              ...prevUsers,
-              {
-                ...user,
-                mediaStream:
-                  tracks && tracks.length > 0
-                    ? // @ts-ignore
-                      new MediaStream(tracks.filter((track) => !!track))
-                    : undefined,
-              },
-            ]
-          })
-        }
-        if (mediaType === 'audio') {
-          user.audioTrack?.play()
-          setUserAudios((prev) => [
-            ...prev,
-            new MediaStream([
-              user.audioTrack?.getMediaStreamTrack() as MediaStreamTrack,
-            ]),
-          ])
-        }
-      })
-      client.on('user-left', (user) => {
-        setUsers((prevUsers) => {
-          return prevUsers.filter((User) => User.uid !== user.uid)
-        })
-      })
-
-      client.on('token-privilege-will-expire', () => {
-        onTokenWillExpire()
-      })
-
-      client.on('token-privilege-did-expire', () => {
-        onTokenDidExpire()
-      })
-
-      client.on('user-left', (user) => {
-        setUsers((prevUsers) => {
-          return prevUsers.filter((User) => User.uid !== user.uid)
-        })
-      })
-    } catch (error) {
-      console.log(error)
-      throw error
+    }
+    if (currentDevice && deviceId) {
+      setCurrentDevice({ ...currentDevice, camera: deviceId })
     }
   }
 
-  // AgoraRTC.onCameraChanged = async (changedDevice) => {
-  //   if (changedDevice.state === 'ACTIVE') {
-  //     await tracks?.[1].setDevice(changedDevice.device.deviceId)
-  //     // Switch to an existing device when the current device is unplugged.
-  //   } else if (changedDevice.device.label === tracks?.[0].getTrackLabel()) {
-  //     const oldCameras = await AgoraRTC.getCameras()
-  //     await tracks?.[1].setDevice(oldCameras?.[0]?.deviceId)
-  //   }
-  // }
-
-  AgoraRTC.onMicrophoneChanged = async (changedDevice) => {
-    if (changedDevice.state === 'ACTIVE') {
-      await tracks?.[0].setDevice(changedDevice.device.deviceId)
-      // Switch to an existing device when the current device is unplugged.
-    } else if (changedDevice.device.label === tracks?.[0].getTrackLabel()) {
-      const oldMicrophones = await AgoraRTC.getMicrophones()
-      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-      await tracks?.[0].setDevice(oldMicrophones?.[0]?.deviceId)
-    }
+  const updateDevices = async () => {
+    const devices = await AgoraRTC.getDevices()
+    setDevices(_.reverse(devices))
+    return _.reverse(devices)
   }
 
-  const renewToken = async (token: string) => {
-    client.renewToken(token)
-  }
+  useEffect(() => {
+    ;(async () => {
+      camera.current = await AgoraRTC.createCameraVideoTrack()
+      microphone.current = await AgoraRTC.createMicrophoneAudioTrack()
 
-  const join = async (token: string, uid: string) => {
-    try {
-      await client.join(appId, channel, token, uid)
-      if (tracks) await client.publish(tracks)
-    } catch (error) {
-      console.error(error)
-      throw error
-    }
-  }
+      // @ts-ignore
+      setTracks((tracks) => [microphone.current, camera.current])
+      // tracksRef.current = [microphone.current, camera.current]
 
-  const mute = async (type: 'audio' | 'video') => {
-    const { constraints } = studio
-    if (type === 'audio') {
-      const newValue = !constraints?.audio
-      await tracks?.[0].setEnabled(newValue)
-      setStudio((studio) => {
-        return {
-          ...studio,
-          constraints: {
-            ...studio.constraints,
-            audio: newValue,
-          },
-        }
+      // @ts-ignore
+      MediaDevices.ondevicechange = async () => {
+        await updateDevices()
+      }
+
+      const devices = await updateDevices()
+
+      const microphoneDevice = devices.find(
+        (device: MediaDeviceInfo) => device.kind === 'audioinput'
+      )
+      const cameraDevice = devices.find(
+        (device: MediaDeviceInfo) => device.kind === 'videoinput'
+      )
+
+      if (!microphoneDevice || !cameraDevice) {
+        throw Error('Search for inputs went sour.')
+      }
+
+      setCurrentDevice({
+        camera: cameraDevice?.deviceId,
+        microphone: microphoneDevice?.deviceId,
       })
-    } else if (type === 'video') {
-      const newValue = !constraints?.video
-      await tracks?.[1].setEnabled(newValue)
-      setStudio((studio) => {
-        return {
-          ...studio,
-          constraints: {
-            ...studio.constraints,
-            video: newValue,
-          },
-        }
-      })
-    }
-  }
 
-  const leave = async () => {
-    try {
-      tracks?.forEach((track) => track.stop())
-      await client.leave()
-    } catch (error) {
-      console.error(error)
-      throw error
+      await updateCamera(cameraDevice.deviceId)
+      await updateMicrophone(microphoneDevice.deviceId)
+    })()
+
+    return () => {
+      if (!tracksRef.current || _.isEmpty(tracksRef.current)) return
+      tracksRef.current?.forEach((track) => {
+        track.close()
+      })
+      if (!camera.current || !microphone.current) return
+      camera.current.close()
+      microphone.current.close()
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    if (currentDevice?.microphone && currentDevice?.camera) {
+      setReady(true)
+    }
+  }, [currentDevice?.camera, currentDevice?.microphone])
 
   return {
-    users,
-    join,
-    leave,
-    mute,
+    ready,
     tracks,
-    stream,
-    userAudios,
-    renewToken,
+    devices,
+    updateCamera,
+    currentDevice,
+    updateMicrophone,
   }
 }
+
+export default useAgora

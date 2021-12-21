@@ -1,24 +1,23 @@
 import { css, cx } from '@emotion/css'
 import Konva from 'konva'
 import React, { createRef, useEffect, useState } from 'react'
-import { FaDiscord } from 'react-icons/fa'
 import { HiOutlineUser } from 'react-icons/hi'
-import { IoPerson, IoPlayOutline } from 'react-icons/io5'
+import { IoPlayOutline } from 'react-icons/io5'
 import { Layer, Stage } from 'react-konva'
 import useMeasure, { RectReadOnly } from 'react-use-measure'
 import {
   useRecoilBridgeAcrossReactRoots_UNSTABLE,
   useRecoilValue,
 } from 'recoil'
-import layoutLink from '../../../assets/linkpreview.svg'
 import { Tab, TabBar, Text } from '../../../components'
 import { Fragment_Type_Enum_Enum } from '../../../generated/graphql'
-import { GradientConfig } from '../../../utils/configTypes'
+import { Gradient, GradientConfig } from '../../../utils/configTypes'
 import { CONFIG, SHORTS_CONFIG } from '../../Studio/components/Concourse'
 import IntroFragment from '../../Studio/effects/fragments/IntroFragment'
 import OutroFragment from '../../Studio/effects/fragments/OutroFragment'
 import { StudioProviderProps, studioStore } from '../../Studio/stores'
 import { newFlickStore } from '../store/flickNew.store'
+import { gradients } from './BlockPreview'
 
 const scrollStyle = css`
   ::-webkit-scrollbar {
@@ -220,36 +219,6 @@ const Layouts = () => {
           </div>
         </div>
       </div>
-      {/* Discord */}
-      {flick?.fragments.find((f) => f.id === activeFragmentId)?.type ===
-        Fragment_Type_Enum_Enum.Intro && (
-        <div
-          className="h-20 cursor-pointer bg-gray-50"
-          role="button"
-          tabIndex={-1}
-          onKeyUp={() => {}}
-          onClick={() =>
-            updatePayload?.({
-              fragmentState: 'discord',
-            })
-          }
-        >
-          <div className="h-full flex items-center justify-center w-28 p-2.5">
-            <div
-              className={cx(
-                'h-full w-full p-2 border border-gray-200 rounded-md cursor-pointer bg-white',
-                {
-                  'border border-brand': payload?.fragmentState === 'discord',
-                }
-              )}
-            >
-              <div className="flex items-center justify-center w-full h-full bg-gray-200 rounded-md">
-                <img src={layoutLink} alt="link" className="w-8" />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
       {/* UserMedia */}
       <div
         className="h-20 bg-gray-50"
@@ -375,9 +344,6 @@ const Configurations = ({
           Fragment_Type_Enum_Enum.Intro && (
           <SplashConfiguration config={config} setConfig={setConfig} />
         )}
-      {currentConfiguration === Configuration.Discord && (
-        <DiscordConfiguration config={config} setConfig={setConfig} />
-      )}
       {currentConfiguration === Configuration.UserMedia && (
         <GradientPicker config={config} setConfig={setConfig} />
       )}
@@ -444,88 +410,6 @@ const SplashConfiguration = ({
   )
 }
 
-const DiscordConfiguration = ({
-  config,
-  setConfig,
-}: {
-  config: IntroOutroConfiguration
-  setConfig: React.Dispatch<React.SetStateAction<IntroOutroConfiguration>>
-}) => {
-  const tabs: Tab[] = [
-    {
-      name: 'Join Community',
-      value: 'Join Community',
-    },
-  ]
-
-  const discordConfigs: DiscordConfig[] = [
-    {
-      backgroundColor: '#1F2937',
-      textColor: '#ffffff',
-      theme: DiscordThemes.WhiteOnMidnight,
-    },
-    {
-      backgroundColor: '#ffffff',
-      textColor: '#1F2937',
-      theme: DiscordThemes.MidnightOnWhite,
-    },
-    {
-      backgroundColor: '#ffffff',
-      textColor: '#404FED',
-      theme: DiscordThemes.BlueOnWhite,
-    },
-
-    {
-      backgroundColor: '#404FED',
-      textColor: '#ffffff',
-      theme: DiscordThemes.WhiteOnBlue,
-    },
-  ]
-
-  const [currentTab, setCurrentTab] = useState<Tab>(tabs[0])
-
-  return (
-    <div className="mt-4 overflow-hidden border border-gray-300 rounded-lg shadow-md w-60 h-4/6">
-      <TabBar
-        tabs={tabs}
-        current={currentTab}
-        onTabChange={setCurrentTab}
-        className="w-auto gap-2 mt-4 ml-4 text-black"
-      />
-      <div className={cx('h-full w-full overflow-y-scroll pb-16', scrollStyle)}>
-        <div className="grid grid-cols-2 gap-4 p-4">
-          {discordConfigs.map((discordConfig) => {
-            return (
-              <button
-                type="button"
-                key={discordConfig.theme}
-                style={{
-                  backgroundColor: discordConfig.backgroundColor,
-                  color: discordConfig.textColor,
-                }}
-                className={cx(
-                  'h-16 flex cursor-pointer items-center p-6 justify-center ring-1 ring-offset-2 ring-gray-200 rounded-sm',
-                  {
-                    'ring-brand': config.discord.theme === discordConfig.theme,
-                  }
-                )}
-                onClick={() => {
-                  setConfig({
-                    ...config,
-                    discord: discordConfig,
-                  })
-                }}
-              >
-                <FaDiscord className="w-full h-full" />
-              </button>
-            )
-          })}
-        </div>
-      </div>
-    </div>
-  )
-}
-
 const GradientPicker = ({
   config,
   setConfig,
@@ -533,12 +417,6 @@ const GradientPicker = ({
   config: IntroOutroConfiguration
   setConfig: React.Dispatch<React.SetStateAction<IntroOutroConfiguration>>
 }) => {
-  interface Gradient {
-    angle: number
-    values: (number | string)[]
-    cssString: string
-  }
-
   const tabs: Tab[] = [
     {
       name: 'Background',
@@ -546,81 +424,6 @@ const GradientPicker = ({
     },
   ]
   const [currentTab, setCurrentTab] = useState<Tab>(tabs[0])
-
-  const gradients: Gradient[] = [
-    {
-      angle: 90,
-      values: [0, '#D397FA', 0.0001, '#D397FA', 1, '#8364E8'],
-      cssString:
-        'linear-gradient(90deg, #D397FA 0%, #D397FA 0.01%, #8364E8 100%)',
-    },
-    {
-      angle: 90,
-      values: [0.0001, '#FFAFBD', 1, '#FFC3A0'],
-      cssString: 'linear-gradient(90deg, #FFAFBD 0.01%, #FFC3A0 100%)',
-    },
-    {
-      angle: 90,
-      values: [0.0001, '#8879B2', 1, '#EAAFC8'],
-      cssString: 'linear-gradient(90deg, #8879B2 0.01%, #EAAFC8 100%)',
-    },
-    {
-      angle: 90,
-      values: [0.0001, '#8BC6EC', 1, '#9599E2'],
-      cssString: 'linear-gradient(90deg, #8BC6EC 0.01%, #9599E2 100%)',
-    },
-    {
-      angle: 43.58,
-      values: [0.424, '#FBDA61', 0.9792, '#FF5ACD'],
-      cssString: 'linear-gradient(43.58deg, #FBDA61 4.24%, #FF5ACD 97.92%)',
-    },
-    {
-      angle: 180,
-      values: [0.0001, '#A9C9FF', 1, '#FFBBEC'],
-      cssString: 'linear-gradient(180deg, #A9C9FF 0.01%, #FFBBEC 100%)',
-    },
-    {
-      angle: 226.32,
-      values: [0.0001, '#FF3CAC', 0.524, '#784BA0', 1, '#2B86C5'],
-      cssString:
-        'linear-gradient(226.32deg, #FF3CAC -25.84%, #784BA0 40.09%, #2B86C5 100%)',
-    },
-    {
-      angle: 47.5,
-      values: [0, '#74EBD5', 0.96, '#9FACE6'],
-      cssString: 'linear-gradient(47.5deg, #74EBD5 0%, #9FACE6 96%)',
-    },
-    {
-      angle: 46.2,
-      values: [0, '#85FFBD', 0.9802, '#FFFED3'],
-      cssString: 'linear-gradient(46.2deg, #85FFBD 0%, #FFFED3 98.02%)',
-    },
-    {
-      angle: 42.22,
-      values: [0.278, '#FBAB7E', 0.9837, '#F7CE68'],
-      cssString: 'linear-gradient(42.22deg, #FBAB7E 2.78%, #F7CE68 98.37%)',
-    },
-    {
-      angle: 90,
-      values: [0.0001, '#43CEA2', 1, '#548AC0'],
-      cssString: 'linear-gradient(90deg, #43CEA2 0.01%, #548AC0 100%)',
-    },
-    {
-      angle: 226.32,
-      values: [
-        0.0001,
-        '#FFCC70',
-        0.0812,
-        '#F6B97C',
-        0.5829,
-        '#CE74C8',
-        1,
-        '#2B86C5',
-      ],
-      cssString:
-        'linear-gradient(226.32deg, #FFCC70 -25.84%, #F6B97C -15.62%, #CE74C8 47.51%, #2B86C5 100%)',
-    },
-  ]
 
   const getGradientConfig = (gradient: Gradient) => {
     const { width, height } = CONFIG
@@ -646,6 +449,7 @@ const GradientPicker = ({
     const y2 = cy + halfy
 
     return {
+      id: gradient.id,
       cssString: gradient.cssString,
       values: gradient.values,
       startIndex: { x: x1, y: y1 },
