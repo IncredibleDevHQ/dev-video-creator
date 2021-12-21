@@ -1,5 +1,5 @@
 import { JSONContent } from '@tiptap/core'
-import { Transformations } from '../../components/VideoEditor'
+import { Transformations } from '../blocks/VideoEditor'
 
 export type Layout =
   | 'top-right-circle'
@@ -176,10 +176,9 @@ const getSimpleAST = (state: JSONContent): SimpleAST => {
           description,
           title,
           note,
-          transformations: undefined,
-          // iframe?.attrs?.['data-transformations'] as
-          //   | Transformations
-          //   | undefined,
+          transformations: video?.attrs?.['data-transformations']
+            ? JSON.parse(video?.attrs?.['data-transformations'])
+            : undefined,
         },
       })
     } else if (slab.attrs?.type === 'image') {

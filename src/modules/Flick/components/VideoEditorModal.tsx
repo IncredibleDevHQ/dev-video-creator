@@ -3,7 +3,7 @@ import React from 'react'
 import Modal from 'react-responsive-modal'
 import { Heading } from '../../../components'
 import { AssetDetailsFragment } from '../../../generated/graphql'
-import { EditorProps, Transformations } from './VideoEditor'
+import { EditorProps, Transformations } from '../editor/blocks/VideoEditor'
 import { VideoEditor } from '.'
 
 interface VideoEditorModalProps extends Pick<EditorProps, 'url'> {

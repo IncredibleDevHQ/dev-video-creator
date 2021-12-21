@@ -13,12 +13,21 @@ import { emitToast, Text } from '../../../../components'
 import config from '../../../../config'
 import { useUploadFile } from '../../../../hooks'
 import { AllowedFileExtensions } from '../../../../hooks/use-upload-file'
+import AddVideo from './AddVideo'
+import { Transformations } from './VideoEditor'
 
 const UploadBlock = (props: any) => {
   const [upload] = useUploadFile()
   const [loading, setLoading] = useState(false)
   const [progress, setProgress] = useState(0)
   const [path, setPath] = useState<string>()
+  const [showAddVideo, setShowAddVideo] = useState(false)
+
+  useEffect(() => {
+    if (props.node.attrs.type) {
+      setShowAddVideo(true)
+    }
+  }, [])
 
   useEffect(() => {
     if (!props.node.attrs.uri) return
@@ -69,7 +78,6 @@ const UploadBlock = (props: any) => {
     if (loading || !path) return
     if (path.startsWith('data:image')) return
     if (props.node.attrs.type === 'image') insertImage()
-    if (props.node.attrs.type === 'video') insertVideo()
   }, [path, loading])
 
   const insertImage = () => {
@@ -84,14 +92,22 @@ const UploadBlock = (props: any) => {
       .run()
   }
 
-  const insertVideo = () => {
+  const insertVideo = (
+    url: string,
+    transformations: Transformations | undefined
+  ) => {
     const editor = props.editor as Editor
+    console.log(JSON.stringify(transformations))
     props.deleteNode()
     editor
       .chain()
       .insertContentAt(
         editor.state.selection.$anchor.start(),
-        `<video src="${path}"><p/></video>`
+        transformations
+          ? `<video src="${url}" data-transformations='${JSON.stringify(
+              transformations
+            )}'><p/></video>`
+          : `<video src="${url}"><p/></video>`
       )
       .run()
   }
@@ -137,14 +153,20 @@ const UploadBlock = (props: any) => {
         </div>
       ) : (
         <Dropzone
-          onDrop={uploadMedia}
+          onDrop={props.node.attrs.type === 'image' ? uploadMedia : undefined}
           accept={`${props.node.attrs.type}/*`}
           maxFiles={1}
         >
           {({ getRootProps, getInputProps }) => (
             <div
+              tabIndex={-1}
+              onKeyUp={() => {}}
+              role="button"
               className="flex flex-col items-center p-12 my-3 border border-gray-200 border-dashed rounded-md cursor-pointer"
               {...getRootProps()}
+              onClick={() => {
+                setShowAddVideo(true)
+              }}
             >
               <input {...getInputProps()} />
               <FiUploadCloud size={24} className="my-2" />
@@ -167,6 +189,16 @@ const UploadBlock = (props: any) => {
             </div>
           )}
         </Dropzone>
+      )}
+      {showAddVideo && (
+        <AddVideo
+          open={showAddVideo}
+          handleClose={() => setShowAddVideo(false)}
+          handleUploadURL={() => {}}
+          handleUpdateVideo={(url, transformations) => {
+            insertVideo(url, transformations)
+          }}
+        />
       )}
     </NodeViewWrapper>
   )

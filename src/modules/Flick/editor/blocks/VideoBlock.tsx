@@ -48,6 +48,9 @@ export default Node.create({
       src: {
         default: null,
       },
+      'data-transformations': {
+        default: null,
+      },
     }
   },
 
