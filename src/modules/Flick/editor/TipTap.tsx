@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-import { css, cx } from '@emotion/css'
+import { cx } from '@emotion/css'
 import UniqueID from '@tiptap-pro/extension-unique-id'
 import Placeholder from '@tiptap/extension-placeholder'
 import { EditorContent, useEditor } from '@tiptap/react'
@@ -14,7 +14,6 @@ import VideoBlock from './blocks/VideoBlock'
 import { getSuggestionItems } from './slashCommand/items'
 import renderItems from './slashCommand/renderItems'
 import { SlashCommands } from './slashCommand/SlashCommands'
-import styles from './tiptap.css'
 import { Block, Position, SimpleAST, useUtils } from './utils/utils'
 
 const TipTap = ({
@@ -39,10 +38,7 @@ const TipTap = ({
     },
     editorProps: {
       attributes: {
-        class: cx(
-          'w-full h-full border-none focus:outline-none p-2',
-          css(styles)
-        ),
+        class: cx('w-full h-full border-none focus:outline-none p-2'),
       },
     },
     autofocus: true,
@@ -106,7 +102,6 @@ const TipTap = ({
   }, [editor])
 
   useEffect(() => {
-    console.log('editorRef', editorRef)
     if (!editor || !editorRef.current) return
     const nodeAttrs = (editor.state.selection.$from as any).path[3].attrs
     const blockTypes = ['code', 'image', 'video', 'list']
