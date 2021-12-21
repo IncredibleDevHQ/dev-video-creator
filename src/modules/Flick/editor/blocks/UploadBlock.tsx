@@ -24,7 +24,7 @@ const UploadBlock = (props: any) => {
   const [showAddVideo, setShowAddVideo] = useState(false)
 
   useEffect(() => {
-    if (props.node.attrs.type) {
+    if (props.node.attrs.type === 'video') {
       setShowAddVideo(true)
     }
   }, [])
@@ -97,7 +97,6 @@ const UploadBlock = (props: any) => {
     transformations: Transformations | undefined
   ) => {
     const editor = props.editor as Editor
-    console.log(JSON.stringify(transformations))
     props.deleteNode()
     editor
       .chain()
@@ -164,8 +163,9 @@ const UploadBlock = (props: any) => {
               role="button"
               className="flex flex-col items-center p-12 my-3 border border-gray-200 border-dashed rounded-md cursor-pointer"
               {...getRootProps()}
-              onClick={() => {
-                setShowAddVideo(true)
+              onClick={(e) => {
+                if (props.node.attrs.type === 'video') setShowAddVideo(true)
+                else getRootProps().onClick?.(e)
               }}
             >
               <input {...getInputProps()} />
