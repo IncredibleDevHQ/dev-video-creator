@@ -1,5 +1,5 @@
-import { RemirrorJSON } from '@remirror/core'
-import { Transformations } from '../../modules/Flick/components/VideoEditor'
+import { JSONContent } from '@tiptap/core'
+import { Transformations } from '../blocks/VideoEditor'
 
 export type Layout =
   | 'top-right-circle'
@@ -97,7 +97,12 @@ export interface SimpleAST {
   blocks: Block[]
 }
 
-const textContent = (contentArray?: RemirrorJSON[]) => {
+export type Position = {
+  x: number
+  y: number
+}
+
+const textContent = (contentArray?: JSONContent[]) => {
   if (!contentArray) {
     return undefined
   }
@@ -111,38 +116,31 @@ const textContent = (contentArray?: RemirrorJSON[]) => {
     .join('')
 }
 
-// TODO: Refactor this...
-
-const getSimpleAST = (state: RemirrorJSON): SimpleAST => {
+const getSimpleAST = (state: JSONContent): SimpleAST => {
   const slabs = state?.content?.filter((node) => node.type === 'slab')
 
   const blocks: Block[] = []
 
-  const getCommonProps = (slab: RemirrorJSON) => {
-    const noteNode = slab.content?.find(
-      (node) => node.type === 'callout' && node.attrs?.type === 'info'
-    )?.content?.[0].content
+  const getCommonProps = (slab: JSONContent) => {
+    const noteNode = slab.content?.find((node) => node.type === 'note')
+      ?.content?.[0].content
     const note = textContent(noteNode)
 
     const descriptionNode = slab.content?.find(
-      (node) => node.type === 'callout' && node.attrs?.type === 'success'
-    )?.content?.[0].content
+      (node) => node.type === 'paragraph'
+    )?.content
     const description = textContent(descriptionNode)
 
     const titleNode = slab.content?.find(
       (node) => node.type === 'heading'
     )?.content
-
     const title = textContent(titleNode)
 
     return { note, description, title }
   }
 
-  // eslint-disable-next-line consistent-return
   slabs?.forEach((slab) => {
-    const slabItems = slab.content?.map((node) => node.type)
-
-    if (slabItems?.includes('codeBlock')) {
+    if (slab.attrs?.type === 'code') {
       let codeBlock: CodeBlock = {}
 
       const code = slab.content?.find((node) => node.type === 'codeBlock')
@@ -164,33 +162,29 @@ const getSimpleAST = (state: RemirrorJSON): SimpleAST => {
         id: slab.attrs?.id as string,
         pos: 0,
       })
-    } else if (slabItems?.includes('iframe')) {
+    } else if (slab.attrs?.type === 'video') {
       const { description, note, title } = getCommonProps(slab)
 
-      const iframe = slab.content?.find((node) => node.type === 'iframe')
+      const video = slab.content?.find((node) => node.type === 'video')
 
       blocks.push({
         type: 'videoBlock',
         id: slab.attrs?.id as string,
         pos: 0,
         videoBlock: {
-          url: iframe?.attrs?.src as string,
+          url: video?.attrs?.src as string,
           description,
           title,
           note,
-          transformations: iframe?.attrs?.['data-transformations'] as
-            | Transformations
-            | undefined,
+          transformations: video?.attrs?.['data-transformations']
+            ? JSON.parse(video?.attrs?.['data-transformations'])
+            : undefined,
         },
       })
-    } else if (slabItems?.includes('paragraph')) {
-      // Image is inline, we need to find it in the paragraph.
-      const image = slab.content
-        ?.find((c) => c.type === 'paragraph')
-        ?.content?.find((node) => node.type === 'image')
-      if (!image) return
+    } else if (slab.attrs?.type === 'image') {
+      const image = slab.content?.find((node) => node.type === 'image')
 
-      const url = image.attrs?.src
+      const url = image?.attrs?.src
 
       const { description, note, title } = getCommonProps(slab)
       blocks.push({
@@ -204,23 +198,20 @@ const getSimpleAST = (state: RemirrorJSON): SimpleAST => {
           note,
         },
       })
-    } else if (slabItems?.includes('bulletList')) {
+    } else if (slab.attrs?.type === 'list') {
       const { description, note, title } = getCommonProps(slab)
 
       const listItems = slab.content
         ?.find((node) => node.type === 'bulletList')
         ?.content?.filter((child) => child.type === 'listItem')
 
-      const simplifyListItem = (listItem: RemirrorJSON): ListItem => {
+      const simplifyListItem = (listItem: JSONContent): ListItem => {
         const item: ListItem = {}
 
         listItem.content?.forEach((node) => {
           if (node.type === 'paragraph') {
             item.content = textContent(node.content)
             item.text = textContent(node.content)
-          }
-          if (node.type === 'bulletList') {
-            item.items = node.content?.map((child) => simplifyListItem(child))
           }
         })
 
@@ -248,8 +239,72 @@ const getSimpleAST = (state: RemirrorJSON): SimpleAST => {
   return { blocks }
 }
 
+const getEditorState = (ast: SimpleAST): string => {
+  let state = ''
+
+  ast.blocks.forEach((block) => {
+    switch (block.type) {
+      case 'codeBlock': {
+        state = state.concat(`
+          <slab type="code" data-id="${block.id}">
+            <h2>${block.codeBlock.title || ''}</h2>
+            <p>${block.codeBlock.description || ''}</p>
+            <pre><code class="language-${block.codeBlock.language}">${
+          block.codeBlock.code
+        }</code></pre>
+            <note><p>${block.codeBlock.note || ''}</p></note>
+          </slab>
+        `)
+        break
+      }
+      case 'videoBlock': {
+        state = state.concat(`
+          <slab type="video" data-id="${block.id}">
+            <h2>${block.videoBlock.title || ''}</h2>
+            <p>${block.videoBlock.description || ''}</p>
+            <video src="${block.videoBlock.url}"></video>
+            <note><p>${block.videoBlock.note || ''}</p></note>
+          </slab>
+        `)
+        break
+      }
+      case 'listBlock': {
+        state = state.concat(`
+          <slab type="list" data-id="${block.id}">
+            <h2>${block.listBlock.title || ''}</h2>
+            <p>${block.listBlock.description || ''}</p>
+            <ul>
+            ${block.listBlock.list
+              ?.map((item) => `<li>${item.content}</li>`)
+              .join('')}
+            </ul>
+            <note><p>${block.listBlock.note || ''}</p></note>
+          </slab>
+        `)
+        break
+      }
+      case 'imageBlock': {
+        state = state.concat(`
+          <slab type="image" data-id="${block.id}">
+            <h2>${block.imageBlock.title || ''}</h2>
+            <p>${block.imageBlock.description || ''}</p>
+            <img src="${block.imageBlock.url}"/>
+            <note><p>${block.imageBlock.note || ''}</p></note>
+          </slab>
+        `)
+        break
+      }
+      default:
+        break
+    }
+  })
+
+  return state
+}
+
 const useUtils = () => ({
   getSimpleAST,
+  getEditorState,
 })
 
 export { useUtils }

@@ -1,26 +1,21 @@
+/* eslint-disable jsx-a11y/media-has-caption */
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 /* eslint-disable jsx-a11y/click-events-have-key-events */
-/* eslint-disable no-nested-ternary */
-/* eslint-disable jsx-a11y/media-has-caption */
 import { css, cx } from '@emotion/css'
 import React, { useCallback, useEffect, useState } from 'react'
 import Dropzone from 'react-dropzone'
-import { BiTrashAlt, BiVideo, BiX } from 'react-icons/bi'
 import { BsRecordCircleFill } from 'react-icons/bs'
-import { FiCheck, FiMonitor, FiUploadCloud, FiX } from 'react-icons/fi'
+import { FiUploadCloud, FiMonitor, FiCheck, FiX } from 'react-icons/fi'
 import { IoChevronBack } from 'react-icons/io5'
 import Modal from 'react-responsive-modal'
 import useScreenRecorder from 'use-screen-recorder'
-import { BlockComponentContext, TabItem } from '.'
-import { emitToast, Heading, Text } from '../..'
-import loadingImg from '../../../assets/loading.svg'
-import { useTimekeeper, useUploadFile } from '../../../hooks'
-import { AllowedFileExtensions } from '../../../hooks/use-upload-file'
-import VideoEditor, {
-  Transformations,
-} from '../../../modules/Flick/editor/blocks/VideoEditor'
-import { getSeekableWebM } from '../../../utils/helpers'
-import { VideoBlockProps } from '../types'
+import { emitToast, Heading, Text } from '../../../../components'
+import { useUploadFile, useTimekeeper } from '../../../../hooks'
+import { AllowedFileExtensions } from '../../../../hooks/use-upload-file'
+import { getSeekableWebM } from '../../../../utils/helpers'
+import { VideoBlockProps } from '../utils/utils'
+import VideoEditor, { Transformations } from './VideoEditor'
+import loadingImg from '../../../../assets/loading.svg'
 
 const formatTime = (timer: number) => {
   const getSeconds = `0${timer % 60}`.slice(-2)
@@ -28,101 +23,6 @@ const formatTime = (timer: number) => {
   const getMinutes = `0${+minutes % 60}`.slice(-2)
 
   return `${getMinutes}:${getSeconds}`
-}
-
-const Video = () => {
-  const { block, handleUpdateBlock } = React.useContext(BlockComponentContext)
-  const [view, setView] = useState<'view' | 'add'>('view')
-
-  const handleUploadURL = ({ url, key }: { url: string; key: string }) => {
-    const candidateBlock = { ...block } as VideoBlockProps
-    candidateBlock.videoBlock = { ...candidateBlock.videoBlock, url, key }
-
-    handleUpdateBlock?.(candidateBlock)
-  }
-
-  const handleRemoveVideo = () => {
-    const candidateBlock = { ...block } as VideoBlockProps
-
-    candidateBlock.videoBlock.url = undefined
-    candidateBlock.videoBlock.key = undefined
-
-    handleUpdateBlock?.(candidateBlock)
-  }
-
-  const handleDelete = () => {
-    const candidateBlock = { ...block } as VideoBlockProps
-
-    if (!candidateBlock) return
-
-    if (candidateBlock?.videoBlock) {
-      // @ts-ignore
-      candidateBlock.videoBlock = undefined
-    }
-    // @ts-ignore
-    candidateBlock.type = undefined
-
-    handleUpdateBlock?.(candidateBlock)
-  }
-
-  const handleUpdateVideo = (
-    url: string,
-    transformations?: Transformations
-  ) => {
-    const candidateBlock = { ...block } as VideoBlockProps
-
-    candidateBlock.videoBlock.url = url
-    candidateBlock.videoBlock.transformations = transformations
-
-    handleUpdateBlock?.(candidateBlock)
-  }
-
-  return (
-    <div>
-      {(block as VideoBlockProps)?.videoBlock?.url ? (
-        <div className="relative">
-          <video
-            className="w-auto max-h-40 rounded"
-            src={(block as VideoBlockProps)?.videoBlock?.url}
-            controls
-          />
-          <ul className="absolute grid-flow-col gap-x-1 left-4 bg-white shadow-md p-1 rounded text-sm grid bottom-4">
-            <TabItem
-              icon={BiTrashAlt}
-              appearance="icon"
-              label="Delete"
-              handleClick={handleRemoveVideo}
-            />
-          </ul>
-        </div>
-      ) : (
-        <div className="bg-gray-50 flex items-center justify-between rounded-md py-2 pl-2 pr-12">
-          <div className="grid grid-flow-col gap-x-2 items-center">
-            <button
-              onClick={() => {
-                setView('add')
-              }}
-              type="button"
-              className="text-sm flex items-center p-1 hover:bg-gray-200 rounded transition-colors"
-            >
-              <BiVideo className="mr-2" />
-              Add video
-            </button>
-          </div>
-          <button onClick={handleDelete} type="button">
-            <BiX />
-          </button>
-        </div>
-      )}
-      <AddVideo
-        open={view === 'add'}
-        handleUploadURL={handleUploadURL}
-        block={block as VideoBlockProps}
-        handleClose={() => setView('view')}
-        handleUpdateVideo={handleUpdateVideo}
-      />
-    </div>
-  )
 }
 
 const AddVideo = ({
@@ -144,6 +44,7 @@ const AddVideo = ({
   const [video, setVideo] = useState<Blob | File>()
   const [videoType, setVideoType] = useState<'blob' | 'file'>()
   const [progress, setProgress] = useState(0)
+  const [videoURL, setVideoURL] = useState<string>('')
 
   const { startRecording, stopRecording, status, resetRecording, blob, error } =
     useScreenRecorder({ audio: true })
@@ -210,6 +111,9 @@ const AddVideo = ({
           setProgress(percentage)
         },
       })
+
+      setVideoURL(url)
+
       if (url) {
         setCurrentView('transform')
         handleUploadURL({ url, key: uuid })
@@ -229,7 +133,7 @@ const AddVideo = ({
       center
       open={open}
       onClose={() => {
-        stopRecording()
+        if (status === 'recording') stopRecording()
         handleReset()
         setCurrentView('select')
         handleClose()
@@ -267,7 +171,7 @@ const AddVideo = ({
                 <Heading fontSize="medium" className="mb-16">
                   Select a file{' '}
                   <span
-                    className="text-brand-75 hover:text-brand cursor-pointer border-dotted border-b-2 border-brand-75 hover:border-brand mx-1"
+                    className="mx-1 border-b-2 border-dotted cursor-pointer text-brand-75 hover:text-brand border-brand-75 hover:border-brand"
                     onClick={() => {
                       setVideoType('file')
                       setCurrentView('record-or-upload')
@@ -277,7 +181,7 @@ const AddVideo = ({
                   </span>{' '}
                   or{' '}
                   <span
-                    className="text-brand-75 hover:text-brand cursor-pointer border-dotted border-b-2 border-brand-75 hover:border-brand mx-1"
+                    className="mx-1 border-b-2 border-dotted cursor-pointer text-brand-75 hover:text-brand border-brand-75 hover:border-brand"
                     onClick={() => {
                       setVideoType('blob')
                       setCurrentView('record-or-upload')
@@ -289,7 +193,7 @@ const AddVideo = ({
                 </Heading>
                 <div className="flex items-center justify-center">
                   <div
-                    className="p-2 border-2 hover:border-gray-50 border-gray-400 text-gray-400 hover:text-gray-50 rounded-md flex flex-col justify-center items-center mx-4 w-40 h-32 cursor-pointer"
+                    className="flex flex-col items-center justify-center w-40 h-32 p-2 mx-4 text-gray-400 border-2 border-gray-400 rounded-md cursor-pointer hover:border-gray-50 hover:text-gray-50"
                     onClick={() => {
                       setVideoType('file')
                       setCurrentView('record-or-upload')
@@ -301,7 +205,7 @@ const AddVideo = ({
                     </Text>
                   </div>
                   <div
-                    className="p-2 border-2 hover:border-gray-50 border-gray-400 text-gray-400 hover:text-gray-50 rounded-md flex flex-col justify-center items-center mx-4 w-40 h-32 cursor-pointer"
+                    className="flex flex-col items-center justify-center w-40 h-32 p-2 mx-4 text-gray-400 border-2 border-gray-400 rounded-md cursor-pointer hover:border-gray-50 hover:text-gray-50"
                     onClick={() => {
                       setVideoType('blob')
                       setCurrentView('record-or-upload')
@@ -321,7 +225,7 @@ const AddVideo = ({
                 <Dropzone onDrop={handleDrop} accept="video/*" maxFiles={1}>
                   {({ getRootProps, getInputProps }) => (
                     <div
-                      className="border border-dashed border-gray-200 flex flex-col items-center px-2 py-8 h-1/3 rounded-md cursor-pointer my-auto mx-8"
+                      className="flex flex-col items-center px-2 py-8 mx-8 my-auto border border-gray-200 border-dashed rounded-md cursor-pointer h-1/3"
                       {...getRootProps()}
                     >
                       <input {...getInputProps()} />
@@ -334,7 +238,7 @@ const AddVideo = ({
                   )}
                 </Dropzone>
                 <div
-                  className="flex justify-start items-center absolute top-4 left-4 cursor-pointer"
+                  className="absolute flex items-center justify-start cursor-pointer top-4 left-4"
                   onClick={() => setCurrentView('select')}
                 >
                   <IoChevronBack />
@@ -343,7 +247,7 @@ const AddVideo = ({
               </>
             ) : (
               <>
-                <div className="rounded-md text-gray-100 w-full h-full flex items-center justify-center relative">
+                <div className="relative flex items-center justify-center w-full h-full text-gray-100 rounded-md">
                   {(() => {
                     switch (status) {
                       case 'permission-requested':
@@ -361,14 +265,14 @@ const AddVideo = ({
                     }
                   })()}
                   <div
-                    className="flex justify-start items-center absolute top-4 left-4 cursor-pointer"
+                    className="absolute flex items-center justify-start cursor-pointer top-4 left-4"
                     onClick={() => setCurrentView('select')}
                   >
                     <IoChevronBack />
                     <Text>Back</Text>
                   </div>
                 </div>
-                <div className="bg-gray-600 text-gray-50 flex justify-center items-center w-full p-4">
+                <div className="flex items-center justify-center w-full p-4 bg-gray-600 text-gray-50">
                   <button
                     type="button"
                     onClick={() => {
@@ -411,9 +315,9 @@ const AddVideo = ({
                 <video
                   controls
                   src={URL.createObjectURL(video as File)}
-                  className="rounded-md w-full h-full"
+                  className="w-full h-full rounded-md"
                 />
-                <div className="bg-gray-600 text-gray-50 flex justify-center items-center w-full p-4">
+                <div className="flex items-center justify-center w-full p-4 bg-gray-600 text-gray-50">
                   <button
                     type="button"
                     className="flex px-1.5 py-1 text-sm rounded-sm items-center bg-gray-700 mx-1"
@@ -443,9 +347,9 @@ const AddVideo = ({
                 <video
                   controls
                   src={URL.createObjectURL(video as Blob)}
-                  className="rounded-md w-full h-full"
+                  className="w-full h-full rounded-md"
                 />
-                <div className="bg-gray-600 text-gray-50 flex justify-center items-center w-full p-4">
+                <div className="flex items-center justify-center w-full p-4 bg-gray-600 text-gray-50">
                   <button
                     type="button"
                     className="flex px-1.5 py-1 text-sm rounded-sm items-center bg-gray-700 mx-1"
@@ -474,7 +378,7 @@ const AddVideo = ({
             )
           case 'upload-s3':
             return (
-              <div className="flex flex-col justify-center items-center h-full w-full py-40 text-gray-50">
+              <div className="flex flex-col items-center justify-center w-full h-full py-40 text-gray-50">
                 <img
                   src={loadingImg}
                   className={cx(
@@ -485,7 +389,7 @@ const AddVideo = ({
                   )}
                   alt="Logo"
                 />
-                <div className="w-1/2 h-2 relative rounded-md bg-gray-700 my-2 overflow-hidden">
+                <div className="relative w-1/2 h-2 my-2 overflow-hidden bg-gray-700 rounded-md">
                   <div
                     className={cx(
                       'bg-gray-50 absolute top-0 left-0 bottom-0',
@@ -510,11 +414,11 @@ const AddVideo = ({
             const url = URL.createObjectURL(video)
 
             return (
-              <div className="w-full h-full flex items-center justify-center">
+              <div className="flex items-center justify-center w-full h-full">
                 {url && (
                   <VideoEditor
                     handleAction={(transformations) => {
-                      handleUpdateVideo?.(url, transformations)
+                      handleUpdateVideo?.(videoURL, transformations)
                       handleClose(true)
                     }}
                     url={url}
@@ -536,4 +440,4 @@ const AddVideo = ({
   )
 }
 
-export default Video
+export default AddVideo

@@ -9,7 +9,7 @@ import UpdateFragmentParticipantsModal from './UpdateFragmentParticipantsModal'
 import FragmentVideoModal from './FragmentVideoModal'
 import FlickCard from './FlickCard'
 import PublishFlick from './Publish/PublishFlick'
-import VideoEditor from './VideoEditor'
+import VideoEditor from '../editor/blocks/VideoEditor'
 import VideoEditorModal from './VideoEditorModal'
 import ProcessingFlick from './ProcessingFlick'
 

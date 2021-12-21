@@ -1,6 +1,6 @@
 import React from 'react'
 import { EditorState } from 'remirror'
-import type { SimpleAST, Block } from '../utils'
+import type { SimpleAST, Block } from '../../../modules/Flick/editor/utils/utils'
 
 export interface TextEditorProviderProps {
   state?: EditorState

@@ -7,7 +7,7 @@ import {
   ImageBlockProps,
   ListBlockProps,
   VideoBlockProps,
-} from '../../../../components/TempTextEditor/types'
+} from '../../../Flick/editor/utils/utils'
 import { User, userState } from '../../../../stores/user.store'
 import {
   BlockProperties,
