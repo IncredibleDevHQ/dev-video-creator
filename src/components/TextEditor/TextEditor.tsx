@@ -33,7 +33,7 @@ import {
   useRemirror,
 } from '@remirror/react'
 import { cx } from '@emotion/css'
-import { Block, SimpleAST } from './utils'
+import { Block, SimpleAST } from '../../modules/Flick/editor/utils/utils'
 import { VideoExtension } from './plugins/VideoExtension'
 import { BlockExtension } from './plugins/BlockExtension'
 import {

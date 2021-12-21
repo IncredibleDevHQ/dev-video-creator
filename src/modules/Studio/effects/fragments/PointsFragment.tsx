@@ -5,7 +5,7 @@ import { useRecoilState, useRecoilValue } from 'recoil'
 import {
   ListBlockProps,
   ListItem,
-} from '../../../../components/TextEditor/utils'
+} from '../../../Flick/editor/utils/utils'
 import { ConfigType } from '../../../../utils/configTypes'
 import { BlockProperties } from '../../../../utils/configTypes2'
 import Concourse, {

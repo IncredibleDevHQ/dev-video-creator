@@ -35,6 +35,7 @@ const AuthorizedApolloProvider = ({
     options: {
       reconnect: true,
       timeout: 5000,
+      lazy: true,
     },
   })
 

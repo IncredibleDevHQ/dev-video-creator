@@ -3,7 +3,7 @@ import React, { useCallback, useMemo } from 'react'
 import { Node } from '@remirror/pm/model'
 import { RemirrorEventListenerProps } from 'remirror'
 import { TextEditorProvider } from '.'
-import { useUtils } from '../utils'
+import { useUtils } from '../../../modules/Flick/editor/utils/utils'
 
 const hooks = [
   () => {

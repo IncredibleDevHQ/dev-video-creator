@@ -13,7 +13,7 @@ import { useHistory, useParams } from 'react-router-dom'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import { useDebouncedCallback } from 'use-debounce'
 import { ScreenState, TempTextEditor, Text, Tooltip } from '../../components'
-import { Block, Position } from '../../components/TempTextEditor/types'
+import { Block, Position } from './editor/utils/utils'
 import {
   FlickFragmentFragment,
   FlickParticipantsFragment,
@@ -48,6 +48,7 @@ import IntroOutroView, {
   SplashThemes,
 } from './components/IntroOutroView'
 import { FragmentTypeIcon } from './components/LayoutGeneric'
+import TipTap from './editor/TipTap'
 import { newFlickStore } from './store/flickNew.store'
 
 const initialConfig: ViewConfig = {
@@ -378,7 +379,8 @@ const Flick = () => {
     debounceUpdateFragmentName(newName)
   }
 
-  if (loading) return <ScreenState title="Just a jiffy" loading />
+  if (!data && loading)
+    return <ScreenState title="Loading your flick..." loading />
 
   if (error)
     return (
@@ -504,32 +506,13 @@ const Flick = () => {
                     </Tooltip>
                   )}
                 </div>
-                <div className="flex items-center mt-6 shadow-lg mx-7 mr-36">
+                <div className="flex items-center mt-6 shadow-lg">
                   <hr className="w-full" />
                   <span className="w-48" />
                 </div>
-                <div className="relative flex justify-between w-full h-full px-8 -mt-6">
-                  {/* <TextEditor
-                    placeholder="Start writing..."
-                    handleUpdateJSON={(json) => {
-                      setPlateValue(json)
-                    }}
-                    initialContent={initialPlateValue}
-                    handleActiveBlock={(block) => {
-                      setCurrentBlock(block)
-                    }}
-                    handleUpdateSimpleAST={(s) => console.log(s)}
-                    handleUpdatePosition={(position) => {
-                      // Relative position of the cursor.
-                      setPreviewPosition(position)
-                    }}
-                    handleUpdateMarkdown={(markdown) => {
-                      // Returns the markdown of current editor state.
-                      setFragmentMarkdown(markdown)
-                    }}
-                  /> */}
+                <div className="relative flex justify-between w-full h-full px-8 mt-4">
                   <div className="flex-1">
-                    <TempTextEditor
+                    <TipTap
                       key={activeFragment.id}
                       handleUpdatePosition={(position) => {
                         setPreviewPosition(position)
@@ -537,7 +520,7 @@ const Flick = () => {
                       handleUpdateAst={(ast) => {
                         setPlateValue(ast)
                       }}
-                      initialAst={plateValue}
+                      initialContent={activeFragment.editorState}
                       handleActiveBlock={(block) => {
                         setCurrentBlock(block)
                       }}

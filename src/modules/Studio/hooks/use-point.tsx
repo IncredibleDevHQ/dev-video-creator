@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import Konva from 'konva'
-import { ListItem } from '../../../components/TextEditor/utils'
+import { ListItem } from '../../Flick/editor/utils/utils'
 
 export interface ComputedPoint {
   y: number

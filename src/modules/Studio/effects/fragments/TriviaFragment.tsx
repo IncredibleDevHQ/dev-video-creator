@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Group, Image, Rect, Text } from 'react-konva'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import useImage from 'use-image'
-import { ImageBlockProps } from '../../../../components/TextEditor/utils'
+import { ImageBlockProps } from '../../../Flick/editor/utils/utils'
 import { ConfigType } from '../../../../utils/configTypes'
 import { BlockProperties } from '../../../../utils/configTypes2'
 import Concourse, {

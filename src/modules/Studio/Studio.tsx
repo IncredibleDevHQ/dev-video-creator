@@ -31,7 +31,7 @@ import {
   ImageBlockProps,
   ListBlockProps,
   VideoBlockProps,
-} from '../../components/TextEditor/utils'
+} from '../Flick/editor/utils/utils'
 import config from '../../config'
 import {
   FlickParticipantsFragment,

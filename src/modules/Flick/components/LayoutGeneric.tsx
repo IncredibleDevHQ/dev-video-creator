@@ -7,7 +7,7 @@ import {
   IoListOutline,
   IoPlayOutline,
 } from 'react-icons/io5'
-import { Block } from '../../../components/TextEditor/utils'
+import { Block } from '../editor/utils/utils'
 import { Layout, ViewConfig } from '../../../utils/configTypes2'
 
 export const FragmentTypeIcon = ({ type }: { type: Block['type'] }) => {
