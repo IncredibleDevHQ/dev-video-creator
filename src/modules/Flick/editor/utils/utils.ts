@@ -247,10 +247,12 @@ const getEditorState = (ast: SimpleAST): string => {
       case 'codeBlock': {
         state = state.concat(`
           <slab type="code" data-id="${block.id}">
-            <h2>${block.codeBlock.title}</h2>
-            <p>${block.codeBlock.description}</p>
-            <pre><code class="language-${block.codeBlock.language}">${block.codeBlock.code}</code></pre>
-            <note><p>${block.codeBlock.note}</p></note>
+            <h2>${block.codeBlock.title || ''}</h2>
+            <p>${block.codeBlock.description || ''}</p>
+            <pre><code class="language-${block.codeBlock.language}">${
+          block.codeBlock.code
+        }</code></pre>
+            <note><p>${block.codeBlock.note || ''}</p></note>
           </slab>
         `)
         break
@@ -258,10 +260,10 @@ const getEditorState = (ast: SimpleAST): string => {
       case 'videoBlock': {
         state = state.concat(`
           <slab type="video" data-id="${block.id}">
-            <h2>${block.videoBlock.title}</h2>
-            <p>${block.videoBlock.description}</p>
+            <h2>${block.videoBlock.title || ''}</h2>
+            <p>${block.videoBlock.description || ''}</p>
             <video src="${block.videoBlock.url}"></video>
-            <note><p>${block.videoBlock.note}</p></note>
+            <note><p>${block.videoBlock.note || ''}</p></note>
           </slab>
         `)
         break
@@ -269,14 +271,14 @@ const getEditorState = (ast: SimpleAST): string => {
       case 'listBlock': {
         state = state.concat(`
           <slab type="list" data-id="${block.id}">
-            <h2>${block.listBlock.title}</h2>
-            <p>${block.listBlock.description}</p>
+            <h2>${block.listBlock.title || ''}</h2>
+            <p>${block.listBlock.description || ''}</p>
             <ul>
             ${block.listBlock.list
               ?.map((item) => `<li>${item.content}</li>`)
               .join('')}
             </ul>
-            <note><p>${block.listBlock.note}</p></note>
+            <note><p>${block.listBlock.note || ''}</p></note>
           </slab>
         `)
         break
@@ -284,10 +286,10 @@ const getEditorState = (ast: SimpleAST): string => {
       case 'imageBlock': {
         state = state.concat(`
           <slab type="image" data-id="${block.id}">
-            <h2>${block.imageBlock.title}</h2>
-            <p>${block.imageBlock.description}</p>
+            <h2>${block.imageBlock.title || ''}</h2>
+            <p>${block.imageBlock.description || ''}</p>
             <img src="${block.imageBlock.url}"/>
-            <note><p>${block.imageBlock.note}</p></note>
+            <note><p>${block.imageBlock.note || ''}</p></note>
           </slab>
         `)
         break
