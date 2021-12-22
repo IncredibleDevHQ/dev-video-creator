@@ -116,7 +116,6 @@ const usePoint = () => {
         currentWidth = 0
       }
       currentWidth += Math.floor(width)
-      console.log('points', width, currentWidth, subText)
     })
     return noOfLines
   }
