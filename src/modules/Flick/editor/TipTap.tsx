@@ -167,28 +167,15 @@ const styles = css`
     }
   }
 
-  h1 {
-    color: rgba(31, 41, 55);
-    font-weight: bold;
-    font-family: 'Gilroy';
-    font-size: 1.875rem;
-    line-height: 2.25rem;
-  }
-
   h2 {
     color: rgba(31, 41, 55);
     font-weight: bold;
-    font-family: 'Gilroy';
+    font-family: Gilroy, ui-sans-serif, system-ui, -apple-system,
+      BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+      'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+      'Segoe UI Symbol', 'Noto Color Emoji';
     font-size: 1.5rem;
     line-height: 2rem;
-  }
-
-  h3 {
-    color: rgba(31, 41, 55);
-    font-weight: bold;
-    font-family: 'Gilroy';
-    font-size: 1.25rem;
-    line-height: 1.75rem;
   }
 
   p {
@@ -220,23 +207,7 @@ const styles = css`
     border-radius: 0.5rem;
   }
 
-  h1.is-empty::before {
-    color: rgba(209, 213, 219);
-    content: attr(data-placeholder);
-    float: left;
-    height: 0;
-    pointer-events: none;
-  }
-
   h2.is-empty::before {
-    color: rgba(209, 213, 219);
-    content: attr(data-placeholder);
-    float: left;
-    height: 0;
-    pointer-events: none;
-  }
-
-  h3.is-empty::before {
     color: rgba(209, 213, 219);
     content: attr(data-placeholder);
     float: left;
