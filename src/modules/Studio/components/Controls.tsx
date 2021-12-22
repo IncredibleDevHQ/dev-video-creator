@@ -54,7 +54,7 @@ export const CodeJamControls = ({
 }) => {
   const { payload, updatePayload, state } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
-  if (state === 'recording')
+  if (state === 'recording' && fragmentState === 'customLayout')
     if (isCodexFormat && noOfBlocks) {
       return (
         <>
@@ -147,7 +147,10 @@ export const VideoJamControls = ({
 }) => {
   const { updatePayload, state } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
-  if (state === 'recording' || state === 'ready')
+  if (
+    (state === 'recording' || state === 'ready') &&
+    fragmentState === 'customLayout'
+  )
     return (
       <>
         <ControlButton
@@ -174,9 +177,11 @@ export const TriviaControls = ({
 }: {
   fragmentState: FragmentState
 }) => {
-  const { state, updatePayload } =
-    (useRecoilValue(studioStore) as StudioProviderProps) || {}
-  if (state === 'recording' || state === 'ready')
+  const { state } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  if (
+    (state === 'recording' || state === 'ready') &&
+    fragmentState === 'customLayout'
+  )
     return (
       <> </>
       // <ControlButton
@@ -202,7 +207,10 @@ export const PointsControls = ({
 }) => {
   const { state, payload, updatePayload } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
-  if (state === 'recording' || state === 'ready')
+  if (
+    (state === 'recording' || state === 'ready') &&
+    fragmentState === 'customLayout'
+  )
     return (
       <>
         <ControlButton
