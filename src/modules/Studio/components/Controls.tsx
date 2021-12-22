@@ -89,7 +89,7 @@ export const CodeJamControls = ({
             icon={IoChevronForwardOutline}
             text="Next Token"
             className="my-1"
-            disabled={payload?.prevIndex === computedTokens?.length - 1}
+            disabled={payload?.currentIndex === computedTokens?.length}
             onClick={() => {
               if (position.currentIndex < computedTokens.length)
                 updatePayload?.({
@@ -104,7 +104,7 @@ export const CodeJamControls = ({
             key="nextLine"
             icon={IoChevronForwardOutline}
             text="Next Line"
-            disabled={payload?.prevIndex === computedTokens?.length - 1}
+            disabled={payload?.currentIndex === computedTokens?.length}
             onClick={() => {
               const current = computedTokens[position.currentIndex]
               let next = computedTokens.findIndex(
@@ -123,6 +123,7 @@ export const CodeJamControls = ({
             key="focus"
             icon={FiTarget}
             text="Focus line"
+            disabled={payload?.currentIndex === computedTokens?.length}
             onClick={() => {
               updatePayload?.({
                 prevIndex: payload?.prevIndex,
