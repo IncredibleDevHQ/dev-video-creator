@@ -275,7 +275,7 @@ const getEditorState = (ast: SimpleAST): string => {
             <p>${block.listBlock.description || ''}</p>
             <ul>
             ${block.listBlock.list
-              ?.map((item) => `<li>${item.content}</li>`)
+              ?.map((item) => `<li>${item.content || ''}</li>`)
               .join('')}
             </ul>
             <note><p>${block.listBlock.note || ''}</p></note>

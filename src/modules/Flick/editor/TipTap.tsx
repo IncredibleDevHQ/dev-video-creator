@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-import { cx } from '@emotion/css'
+import { css, cx } from '@emotion/css'
 import UniqueID from '@tiptap-pro/extension-unique-id'
 import Placeholder from '@tiptap/extension-placeholder'
 import { EditorContent, useEditor } from '@tiptap/react'
@@ -38,7 +38,7 @@ const TipTap = ({
     },
     editorProps: {
       attributes: {
-        class: cx('w-full h-full border-none focus:outline-none p-2'),
+        class: cx('w-full h-full border-none focus:outline-none p-2', styles),
       },
     },
     autofocus: true,
@@ -159,5 +159,121 @@ const TipTap = ({
     // </div>
   )
 }
+
+const styles = css`
+  .ProseMirror {
+    > * + * {
+      margin-top: 0.75em;
+    }
+  }
+
+  h2 {
+    color: rgba(31, 41, 55);
+    font-weight: bold;
+    font-family: Gilroy, ui-sans-serif, system-ui, -apple-system,
+      BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+      'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+      'Segoe UI Symbol', 'Noto Color Emoji';
+    font-size: 1.5rem;
+    line-height: 2rem;
+  }
+
+  p {
+    color: rgba(75, 85, 99);
+    font-family: 'Inter';
+  }
+
+  ul,
+  ol {
+    display: list-item;
+    padding: 0 1rem;
+  }
+  li {
+    display: list-item;
+    list-style-type: disc;
+  }
+
+  img {
+    @apply py-3;
+  }
+
+  pre {
+    margin-top: 0.75rem;
+    margin-bottom: 0.75rem;
+    background: #0d0d0d;
+    color: #fff;
+    font-family: 'JetBrainsMono', monospace;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+  }
+
+  h2.is-empty::before {
+    color: rgba(209, 213, 219);
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    pointer-events: none;
+  }
+
+  .is-editor-empty:first-child::before {
+    color: rgba(209, 213, 219);
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    pointer-events: none;
+  }
+
+  .hljs-comment,
+  .hljs-quote {
+    color: #616161;
+  }
+
+  .hljs-variable,
+  .hljs-template-variable,
+  .hljs-attribute,
+  .hljs-tag,
+  .hljs-name,
+  .hljs-regexp,
+  .hljs-link,
+  .hljs-name,
+  .hljs-selector-id,
+  .hljs-selector-class {
+    color: #f98181;
+  }
+
+  .hljs-number,
+  .hljs-meta,
+  .hljs-built_in,
+  .hljs-builtin-name,
+  .hljs-literal,
+  .hljs-type,
+  .hljs-params {
+    color: #fbbc88;
+  }
+
+  .hljs-string,
+  .hljs-symbol,
+  .hljs-bullet {
+    color: #b9f18d;
+  }
+
+  .hljs-title,
+  .hljs-section {
+    color: #faf594;
+  }
+
+  .hljs-keyword,
+  .hljs-selector-tag {
+    color: #70cff8;
+  }
+
+  .hljs-emphasis {
+    font-style: italic;
+  }
+
+  .hljs-strong {
+    font-weight: 700;
+  }
+`
 
 export default TipTap
