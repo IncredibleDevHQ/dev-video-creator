@@ -1,13 +1,14 @@
 /* eslint-disable jsx-a11y/media-has-caption */
 import { cx } from '@emotion/css'
-import { ILocalVideoTrack, IMicrophoneAudioTrack } from 'agora-rtc-sdk-ng'
+import { createMicrophoneAndCameraTracks } from 'agora-rtc-react'
 import getBlobDuration from 'get-blob-duration'
 import Konva from 'konva'
-import React, { createRef, useEffect, useMemo, useState } from 'react'
+import React, { createRef, useEffect, useMemo, useRef, useState } from 'react'
 import AspectRatio from 'react-aspect-ratio'
 import { FiArrowRight } from 'react-icons/fi'
 import { Layer, Stage } from 'react-konva'
 import { useHistory, useParams } from 'react-router-dom'
+import { BiVideo, BiMicrophone, BiErrorCircle } from 'react-icons/bi'
 import _ from 'lodash/fp'
 import {
   useRecoilBridgeAcrossReactRoots_UNSTABLE,
@@ -32,7 +33,6 @@ import {
   ListBlockProps,
   VideoBlockProps,
 } from '../Flick/editor/utils/utils'
-import config from '../../config'
 import {
   FlickParticipantsFragment,
   Fragment_Status_Enum_Enum,
@@ -61,26 +61,30 @@ import RecordingControlsBar from './components/RecordingControlsBar'
 import IntroFragment from './effects/fragments/IntroFragment'
 import OutroFragment from './effects/fragments/OutroFragment'
 import UnifiedFragment from './effects/fragments/UnifiedFragment'
-import { useAgora, useAgoraOld } from './hooks'
-import { Device } from './hooks/use-agora-old'
+import { useAgora, useMediaStream } from './hooks'
+import {
+  Device,
+  MediaStreamError,
+  UseMediaStream,
+} from './hooks/use-media-stream'
 import { useRTDB } from './hooks/use-rtdb'
 import { StudioProviderProps, StudioState, studioStore } from './stores'
+import PermissionError from './components/PermissionError'
+import { Images } from '../../constants'
+
+const StudioContext = React.createContext({} as UseMediaStream)
 
 const StudioHoC = () => {
   const [view, setView] = useState<'preview' | 'studio'>('preview')
 
-  const {
-    ready,
-    tracks,
-    devices,
-    updateCamera,
-    currentDevice,
-    updateMicrophone,
-  } = useAgora()
-
   const { sub } = (useRecoilValue(userState) as User) || {}
   const { fragmentId } = useParams<{ fragmentId: string }>()
   const [fragment, setFragment] = useState<StudioFragmentFragment>()
+
+  const devices = useRef<{ microphone: Device | null; camera: Device | null }>({
+    camera: null,
+    microphone: null,
+  })
 
   const [getFragmentByIdLazy, { data, loading }] = useGetFragmentByIdLazyQuery()
 
@@ -111,7 +115,7 @@ const StudioHoC = () => {
     }
   }, [data])
 
-  if (loading || !ready) return <ScreenState title="Just a jiffy..." loading />
+  if (loading) return <ScreenState title="Just a jiffy..." loading />
 
   if (error === 'INVALID_AST')
     return (
@@ -125,19 +129,17 @@ const StudioHoC = () => {
     return (
       <Preview
         data={fragment}
-        devices={devices}
-        updateCamera={updateCamera}
-        updateMicrophone={updateMicrophone}
-        handleJoin={() => setView('studio')}
-        tracks={tracks}
-        currentDevice={currentDevice}
+        handleJoin={({ microphone, camera }) => {
+          devices.current = { microphone, camera }
+          setView('studio')
+        }}
       />
     )
   if (view === 'studio')
     return (
       <Studio
         data={data}
-        tracks={tracks}
+        devices={devices.current}
         handleStart={handleStart}
         handleReset={handleReset}
         timer={timer}
@@ -150,57 +152,207 @@ const StudioHoC = () => {
 const Preview = ({
   data,
   handleJoin,
-  devices,
-  updateCamera,
-  updateMicrophone,
-  tracks,
-  currentDevice,
 }: {
   data?: StudioFragmentFragment
-  devices?: MediaDeviceInfo[]
-  handleJoin: () => void
-  updateMicrophone: (deviceId: string) => Promise<void>
-  updateCamera: (deviceId: string) => Promise<void>
-  tracks: [IMicrophoneAudioTrack, ILocalVideoTrack] | null
-  currentDevice?: Device
+  handleJoin: (devices: {
+    microphone: Device | null
+    camera: Device | null
+  }) => void
 }) => {
+  const {
+    camera,
+    permissions,
+    devices,
+    error,
+    microphone,
+    ready,
+    setDevice,
+    setError,
+  } = useMediaStream()
+
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null)
+  const [microphoneStream, setMicrophoneStream] = useState<MediaStream | null>(
+    null
+  )
+
+  const videoRef = useRef<HTMLVideoElement>(null)
+
+  useEffect(() => {
+    const setter = async () => {
+      try {
+        if (camera?.id) {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: { deviceId: camera.id, aspectRatio: { ideal: 16 / 9 } },
+          })
+
+          setCameraStream(stream)
+          setError((err) => ({ ...err, camera: null }))
+        }
+      } catch (e) {
+        const error = e as unknown as MediaStreamError
+        setError((err) => ({ ...err, camera: error }))
+      }
+    }
+
+    setter()
+  }, [camera])
+
+  useEffect(() => {
+    setDevice('camera', devices.videoDevices?.[0] || null)
+    setDevice('microphone', devices.audioDevices?.[0] || null)
+  }, [ready])
+
+  useEffect(() => {
+    const setter = async () => {
+      try {
+        if (microphone?.id) {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            audio: { deviceId: microphone.id },
+          })
+
+          setMicrophoneStream(stream)
+          setError((err) => ({ ...err, microphone: null }))
+        }
+      } catch (e) {
+        const error = e as unknown as MediaStreamError
+
+        setError((err) => ({ ...err, microphone: error }))
+      }
+    }
+
+    setter()
+  }, [microphone])
+
+  useEffect(() => {
+    if (cameraStream && videoRef.current) {
+      videoRef.current.srcObject = cameraStream
+
+      videoRef.current.play()
+    }
+
+    return () => {
+      cameraStream?.getTracks().forEach((track) => track.stop())
+    }
+  }, [cameraStream])
+
+  useEffect(() => {
+    return () => {
+      microphoneStream?.getTracks().forEach((track) => track.stop())
+    }
+  }, [microphoneStream])
+
+  if (permissions.camera === 'prompt') {
+    return (
+      <PermissionError
+        heading={<>Camera permission is required</>}
+        description={
+          <>
+            Chrome needs permission to get access to your 📷 camera. Please
+            click <b>Allow</b> to continue.
+          </>
+        }
+        icon={BiVideo}
+        image={Images.askCameraPermission}
+      />
+    )
+  }
+
+  if (permissions.microphone === 'prompt') {
+    return (
+      <PermissionError
+        heading={<>Microphone permission is required</>}
+        description={
+          <>
+            Chrome needs permission to get access to your 🎙microphone. Please
+            click <b>Allow</b> to continue.
+          </>
+        }
+        icon={BiMicrophone}
+        image={Images.askMicrophonePermission}
+      />
+    )
+  }
+
+  if (permissions.camera === 'denied') {
+    return (
+      <PermissionError
+        heading={<>Looks like you&apos;ve denied access to camera 😲</>}
+        description={
+          <>
+            To start recording, click 🔒 lock icon next to incredible.dev on the
+            URL bar and <b>turn on</b> the toggle to allow camera.
+          </>
+        }
+        icon={BiVideo}
+        button={<>Reload</>}
+        handleClick={() => window.location.reload()}
+        byline={
+          <>
+            Once you grant permission, <b>Reload</b>.
+          </>
+        }
+        image={Images.allowCameraPermission}
+      />
+    )
+  }
+
+  if (permissions.microphone === 'denied') {
+    return (
+      <PermissionError
+        heading={<>Looks like you&apos;ve denied access to microphone 😲</>}
+        description={
+          <>
+            To start recording, click 🔒 lock icon next to incredible.dev on the
+            URL bar and <b>turn on</b> the toggle to allow microphone.
+          </>
+        }
+        icon={BiMicrophone}
+        button={<>Reload</>}
+        handleClick={() => window.location.reload()}
+        byline={
+          <>
+            Once you grant permission, <b>Reload</b>.
+          </>
+        }
+        image={Images.allowMicrophonePermission}
+      />
+    )
+  }
+
+  if (error.camera || error.microphone) {
+    return (
+      <PermissionError
+        heading={<>Oops</>}
+        description={
+          <>
+            Something went wrong while trying to get access to your{' '}
+            {error.camera ? 'camera' : 'microphone'} device.
+          </>
+        }
+        icon={BiErrorCircle}
+        byline={
+          <>
+            Error code:{' '}
+            <b> {error.camera ? error.camera.name : error.microphone?.name}</b>.
+          </>
+        }
+      />
+    )
+  }
+
   return (
     <div className="flex flex-col items-center justify-center flex-1 min-h-screen p-8">
       <div className="grid w-full grid-cols-5 gap-x-8">
         <div className="col-span-3">
-          {tracks?.[1] ? (
-            <div className="relative">
-              <AspectRatio
-                ratio="16/9"
-                className="overflow-hidden bg-gray-800 rounded-lg"
-              >
-                {/* using video tag because agora player failed due to updates */}
-                <video
-                  className="w-full"
-                  ref={(ref) => {
-                    if (!ref) return
-                    console.log('tracks', tracks)
-                    const stream = new MediaStream([
-                      tracks?.[1]?.getMediaStreamTrack(),
-                    ])
-                    // @ts-ignore
-                    // eslint-disable-next-line no-param-reassign
-                    ref.srcObject = stream
-                    ref.addEventListener('loadeddata', () => {
-                      ref.play()
-                    })
-                  }}
-                />
-              </AspectRatio>
-            </div>
-          ) : (
-            <div className="flex items-center justify-center w-64 bg-gray-800 rounded-md h-36">
-              <Text>
-                Preview not available. Please check if your camera device is
-                working fine.
-              </Text>
-            </div>
-          )}
+          <div className="relative">
+            <AspectRatio
+              ratio="16/9"
+              className="overflow-hidden bg-gray-800 rounded-lg"
+            >
+              {/* using video tag because agora player failed due to updates */}
+              <video className="w-full h-auto" ref={videoRef} />
+            </AspectRatio>
+          </div>
         </div>
         <div className="flex flex-col justify-center flex-1 col-span-2">
           <Heading className="mb-4" fontSize="medium">
@@ -212,19 +364,19 @@ const Preview = ({
           </Heading>
           <select
             className="w-full p-2 mb-4 border border-gray-300 rounded-md"
-            value={currentDevice?.camera}
-            onChange={(e) =>
-              // @ts-ignore
-              updateCamera(e.target.value as string)
-            }
+            value={camera?.id}
+            onChange={(e) => {
+              const camera = devices.videoDevices.find(
+                (device) => device.id === e.target.value
+              )
+              if (camera) setDevice('camera', camera)
+            }}
           >
-            {devices
-              ?.filter((device) => device.kind === 'videoinput')
-              .map((camera) => (
-                <option key={camera.deviceId} value={camera.deviceId}>
-                  {camera.label}
-                </option>
-              ))}
+            {devices.videoDevices.map((camera) => (
+              <option key={camera.id} value={camera.id}>
+                {camera.label}
+              </option>
+            ))}
           </select>
 
           <Heading fontSize="extra-small" className="uppercase">
@@ -232,26 +384,26 @@ const Preview = ({
           </Heading>
           <select
             className="w-full p-2 mb-4 border border-gray-300 rounded-md"
-            value={currentDevice?.microphone}
-            onChange={(e) =>
-              // @ts-ignore
-              updateMicrophone(e.target.value as string)
-            }
+            value={microphone?.id}
+            onChange={(e) => {
+              const microphone = devices.audioDevices.find(
+                (device) => device.id === e.target.value
+              )
+              if (microphone) setDevice('microphone', microphone)
+            }}
           >
-            {devices
-              ?.filter((device) => device.kind === 'audioinput')
-              .map((microphone) => (
-                <option key={microphone.deviceId} value={microphone.deviceId}>
-                  {microphone.label}
-                </option>
-              ))}
+            {devices.audioDevices.map((microphone) => (
+              <option key={microphone.id} value={microphone.id}>
+                {microphone.label}
+              </option>
+            ))}
           </select>
           <Button
             className="self-start"
             size="extraSmall"
             appearance="primary"
             type="button"
-            onClick={() => handleJoin()}
+            onClick={() => handleJoin({ microphone, camera })}
           >
             Join now
           </Button>
@@ -263,13 +415,13 @@ const Preview = ({
 
 const Studio = ({
   data,
-  tracks,
+  devices,
   handleStart,
   handleReset,
   timer,
 }: {
   data?: GetFragmentByIdQuery
-  tracks: [IMicrophoneAudioTrack, ILocalVideoTrack] | null
+  devices: { microphone: Device | null; camera: Device | null }
   handleStart: () => void
   handleReset: () => void
   timer: number
@@ -311,42 +463,48 @@ const Studio = ({
     }
   }, [fragment])
 
+  const { ready, tracks, error } = createMicrophoneAndCameraTracks(
+    {
+      microphoneId: devices.microphone?.id,
+    },
+    { cameraId: devices.camera?.id }
+  )()
+
   // const [canvas, setCanvas] = useRecoilState(canvasStore)
 
-  const { stream, join, users, mute, leave, userAudios, renewToken } =
-    useAgoraOld(
-      fragmentId,
-      {
-        onTokenWillExpire: async () => {
-          const { data } = await getRTCToken({ variables: { fragmentId } })
-          if (data?.RTCToken?.token) {
-            renewToken(data.RTCToken.token)
-          }
-        },
-        onTokenDidExpire: async () => {
-          const { data } = await getRTCToken({ variables: { fragmentId } })
-          if (data?.RTCToken?.token) {
-            const participantId = fragment?.configuration?.speakers?.find(
-              ({ participant }: { participant: FlickParticipantsFragment }) =>
-                participant.userSub === sub
-            )?.participant.id
-            if (participantId) {
-              join(data?.RTCToken?.token, participantId as string)
-            } else {
-              leave()
-              emitToast({
-                title: 'Yikes. Something went wrong.',
-                type: 'error',
-                description:
-                  'You do not belong to this studio!! Please ask the host to invite you again.',
-              })
-              history.goBack()
-            }
-          }
-        },
+  const { stream, join, users, mute, leave, userAudios, renewToken } = useAgora(
+    fragmentId,
+    {
+      onTokenWillExpire: async () => {
+        const { data } = await getRTCToken({ variables: { fragmentId } })
+        if (data?.RTCToken?.token) {
+          renewToken(data.RTCToken.token)
+        }
       },
-      tracks
-    )
+      onTokenDidExpire: async () => {
+        const { data } = await getRTCToken({ variables: { fragmentId } })
+        if (data?.RTCToken?.token) {
+          const participantId = fragment?.configuration?.speakers?.find(
+            ({ participant }: { participant: FlickParticipantsFragment }) =>
+              participant.userSub === sub
+          )?.participant.id
+          if (participantId) {
+            join(data?.RTCToken?.token, participantId as string)
+          } else {
+            leave()
+            emitToast({
+              title: 'Yikes. Something went wrong.',
+              type: 'error',
+              description:
+                'You do not belong to this studio!! Please ask the host to invite you again.',
+            })
+            history.goBack()
+          }
+        }
+      },
+    },
+    tracks
+  )
 
   const [getRTCToken] = useGetRtcTokenMutation({
     variables: { fragmentId },
@@ -653,6 +811,13 @@ const Studio = ({
 
   if (!fragment || fragment.id !== fragmentId)
     return <EmptyState text="Fragment not found" width={400} />
+
+  if (error)
+    return (
+      <ScreenState title="Something went wrong." subtitle={error.message} />
+    )
+
+  if (!ready) return <ScreenState loading />
 
   // const C = getEffect(fragment.type, fragment.configuration)
 
