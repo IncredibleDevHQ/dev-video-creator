@@ -31,7 +31,8 @@ import {
   ImageBlockProps,
   ListBlockProps,
   VideoBlockProps,
-} from '../../components/TextEditor/utils'
+} from '../Flick/editor/utils/utils'
+import config from '../../config'
 import {
   FlickParticipantsFragment,
   Fragment_Status_Enum_Enum,
@@ -171,7 +172,7 @@ const Preview = ({
             <div className="relative">
               <AspectRatio
                 ratio="16/9"
-                className="overflow-hidden rounded-lg bg-gray-800"
+                className="overflow-hidden bg-gray-800 rounded-lg"
               >
                 {/* using video tag because agora player failed due to updates */}
                 <video
@@ -193,7 +194,7 @@ const Preview = ({
               </AspectRatio>
             </div>
           ) : (
-            <div className="bg-gray-800 w-64 h-36 rounded-md flex items-center justify-center">
+            <div className="flex items-center justify-center w-64 bg-gray-800 rounded-md h-36">
               <Text>
                 Preview not available. Please check if your camera device is
                 working fine.
@@ -656,9 +657,9 @@ const Studio = ({
   // const C = getEffect(fragment.type, fragment.configuration)
 
   return (
-    <div className="h-screen w-full">
+    <div className="w-full h-screen">
       {/* Bottom bar with details and global controls */}
-      <div className="fixed top-0 flex justify-center w-full px-10 py-4 bg-gray-50 z-20">
+      <div className="fixed top-0 z-20 flex justify-center w-full px-10 py-4 bg-gray-50">
         <div
           role="button"
           tabIndex={0}
@@ -773,7 +774,7 @@ const Studio = ({
                   {getNote(payload?.activeObjectIndex)}
                 </Text>
               </div>
-              <div className="flex-1 flex flex-col items-start justify-end">
+              <div className="flex flex-col items-start justify-end flex-1">
                 {(() => {
                   if (
                     fragment.type === Fragment_Type_Enum_Enum.Intro ||

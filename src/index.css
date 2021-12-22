@@ -63,6 +63,13 @@
       scrollbar-width: none; /* Firefox */
     }
   }
+
+  .filter-none {
+    filter: none;
+  }
+  .brightness-50 {
+    filter: brightness(50%);
+  }
 }
 
 ::-moz-selection {

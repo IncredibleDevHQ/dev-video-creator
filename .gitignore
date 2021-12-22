@@ -9,3 +9,4 @@ generated
 graphql.*
 build
 *.cache
+.npmrc

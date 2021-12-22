@@ -1,4 +1,4 @@
-import { Transformations } from '../../modules/Flick/components/VideoEditor'
+import { Transformations } from '../../modules/Flick/editor/blocks/VideoEditor'
 
 export interface CommentExplanations {
   explanation: string | undefined

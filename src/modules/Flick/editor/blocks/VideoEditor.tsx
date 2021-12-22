@@ -10,8 +10,8 @@ import React, { HTMLAttributes, useEffect, useRef, useState } from 'react'
 import { BiPause, BiPlay } from 'react-icons/bi'
 import { Group, Image, Layer, Rect, Stage, Transformer } from 'react-konva'
 // import useImage from 'use-image'
-import cropIcon from '../../../assets/crop-outline.svg'
-import trim from '../../../assets/trim.svg'
+import cropIcon from '../../../../assets/crop-outline.svg'
+import trim from '../../../../assets/trim.svg'
 // import { ASSETS } from '../../../constants'
 
 type Size = {
@@ -513,7 +513,7 @@ const VideoEditor = ({
   if (!videoRef.current) return null
 
   return (
-    <div className="flex items-center justify-center flex-col rounded-md">
+    <div className="flex flex-col items-center justify-center rounded-md">
       <div>
         <Stage {...size}>
           <Layer ref={layerRef}>
@@ -623,7 +623,7 @@ const VideoEditor = ({
       </div>
 
       <div
-        className="bg-gray-600 px-4 py-3 flex items-center justify-between"
+        className="flex items-center justify-between px-4 py-3 bg-gray-600"
         style={{ width: size.width }}
       >
         <div className="grid grid-cols-2 gap-x-3">
@@ -649,11 +649,13 @@ const VideoEditor = ({
         <DarkButton
           className="flex"
           onClick={() => {
+            if (!videoRef.current) return
             if (playing) {
-              videoRef.current?.pause()
+              videoRef.current.pause()
               setPlaying(false)
             } else {
-              videoRef.current?.play()
+              videoRef.current.currentTime = clip.start || 0
+              videoRef.current.play()
               setPlaying(true)
             }
           }}

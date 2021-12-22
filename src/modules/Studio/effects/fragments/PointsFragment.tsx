@@ -2,12 +2,12 @@ import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
 import { Circle, Group, Rect, Text } from 'react-konva'
 import { useRecoilState, useRecoilValue } from 'recoil'
-import {
-  ListBlockProps,
-  ListItem,
-} from '../../../../components/TextEditor/utils'
-import { BlockProperties, ConfigType } from '../../../../utils/configTypes'
+import { ListBlockProps, ListItem } from '../../../Flick/editor/utils/utils'
+
 import Concourse, { TitleSplashProps } from '../../components/Concourse'
+
+import { BlockProperties, ConfigType } from '../../../../utils/configTypes'
+
 import { FragmentState } from '../../components/RenderTokens'
 import { usePoint } from '../../hooks'
 import { StudioProviderProps, studioStore } from '../../stores'

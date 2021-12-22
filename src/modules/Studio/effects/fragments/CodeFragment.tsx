@@ -7,7 +7,8 @@ import { useRecoilState, useRecoilValue } from 'recoil'
 import {
   CodeBlockProps,
   CommentExplanations,
-} from '../../../../components/TextEditor/utils'
+} from '../../../Flick/editor/utils/utils'
+
 import * as gConfig from '../../../../config'
 import { Fragment_Status_Enum_Enum } from '../../../../generated/graphql'
 import firebaseState from '../../../../stores/firebase.store'
