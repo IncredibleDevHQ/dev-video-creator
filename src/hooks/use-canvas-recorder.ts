@@ -121,14 +121,14 @@ const useCanvasRecorder = ({
     }
   }
 
-  const addMusic = (type?: AudioType) => {
+  const addMusic = (type?: AudioType, volume?: number) => {
     if (!ctx || !dest || !ctx.current || !dest.current) return
     if (type === 'splash') {
       splashAudioSourceNode.current =
         ctx.current.createMediaElementSource(splashAudio)
       splashAudioSourceNode.current.connect(dest.current)
       splashAudio.loop = true
-      splashAudio.volume = 0.25
+      splashAudio.volume = volume || 0.25
       splashAudio.play()
     } else if (type === 'points') {
       const pointsAudio = new Audio(pointsMusic)
