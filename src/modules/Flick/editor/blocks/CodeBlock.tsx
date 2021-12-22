@@ -29,7 +29,7 @@ const CodeBlockComponent = ({
     >
       <option value="null">auto</option>
       <option disabled>—</option>
-      {extension.options.lowlight.listLanguages().map((lang: string) => (
+      {lowlight.lowlight.listLanguages().map((lang: string) => (
         <option key={lang} value={lang}>
           {lang}
         </option>
