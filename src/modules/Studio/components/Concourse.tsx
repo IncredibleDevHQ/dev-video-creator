@@ -154,16 +154,24 @@ const Concourse = ({
     if (!groupRef.current || !canvas?.zoomed) return
     const tZooming = isZooming
     if (tZooming) {
-      groupRef.current.x(0)
-      groupRef.current.y(0)
-      groupRef.current.scale({ x: 1, y: 1 })
+      groupRef.current.to({
+        x: 0,
+        y: 0,
+        scaleX: 1,
+        scaleY: 1,
+        duration: 0.5,
+      })
     } else {
       const pointer = stageRef?.current?.getPointerPosition()
       if (pointer) {
-        groupRef.current.x(-pointer.x)
-        groupRef.current.y(-pointer.y)
+        groupRef.current.to({
+          x: -pointer.x,
+          y: -pointer.y,
+          scaleX: 1.5,
+          scaleY: 1.5,
+          duration: 0.5,
+        })
       }
-      groupRef.current.scale({ x: zoomLevel, y: zoomLevel })
     }
     setZooming(!isZooming)
   }
