@@ -12,7 +12,7 @@ import {
 import * as gConfig from '../../../../config'
 import { Fragment_Status_Enum_Enum } from '../../../../generated/graphql'
 import firebaseState from '../../../../stores/firebase.store'
-import { BlockProperties, ConfigType } from '../../../../utils/configTypes'
+import { BlockProperties } from '../../../../utils/configTypes'
 import Concourse, { TitleSplashProps } from '../../components/Concourse'
 import RenderTokens, {
   codeConfig,
@@ -69,7 +69,6 @@ const getColorCodes = async (
 const CodeFragment = ({
   viewConfig,
   dataConfig,
-  dataConfigLength,
   topLayerChildren,
   setTopLayerChildren,
   titleSplashData,
@@ -81,7 +80,6 @@ const CodeFragment = ({
 }: {
   viewConfig: BlockProperties
   dataConfig: CodeBlockProps
-  dataConfigLength: number
   topLayerChildren: JSX.Element[]
   setTopLayerChildren: React.Dispatch<React.SetStateAction<JSX.Element[]>>
   titleSplashData?: TitleSplashProps | undefined
@@ -140,6 +138,15 @@ const CodeFragment = ({
 
   useEffect(() => {
     if (!dataConfig) return
+    setColorCodes([])
+    setComputedTokens([])
+    updatePayload?.({
+      currentIndex: 1,
+      prevIndex: 0,
+      isFocus: false,
+      focusBlockCode: false,
+      activeBlockIndex: 0,
+    })
     setObjectConfig(
       FragmentLayoutConfig({
         layout: viewConfig.layout || 'classic',
@@ -170,7 +177,7 @@ const CodeFragment = ({
   }, [dataConfig, shortsMode, viewConfig])
 
   useEffect(() => {
-    if (!colorCodes) return
+    if (colorCodes.length === 0) return
     setComputedTokens(
       initUseCode({
         tokens: colorCodes,
@@ -188,21 +195,9 @@ const CodeFragment = ({
       controlsConfig: {
         position,
         computedTokens,
-        fragmentState,
-        isCodexFormat,
-        noOfBlocks: blockConfig.length,
-        type: ConfigType.CODEJAM,
-        dataConfigLength,
       },
     })
-  }, [
-    state,
-    position,
-    computedTokens,
-    fragmentState,
-    isCodexFormat,
-    blockConfig,
-  ])
+  }, [state, position, computedTokens])
 
   useEffect(() => {
     setPosition({

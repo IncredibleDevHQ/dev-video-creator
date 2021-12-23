@@ -11,8 +11,8 @@ import {
 import { User, userState } from '../../../../stores/user.store'
 import {
   BlockProperties,
-  ViewConfig,
   TitleSplashConfig,
+  ViewConfig,
 } from '../../../../utils/configTypes'
 import {
   getGradientConfig,
@@ -39,8 +39,16 @@ const UnifiedFragment = ({
   config?: Block[]
   layoutConfig?: ViewConfig
 }) => {
-  const { fragment, payload, updatePayload, state, participants, users } =
-    (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const {
+    fragment,
+    payload,
+    updatePayload,
+    state,
+    participants,
+    users,
+    addMusic,
+    reduceSplashAudioVolume,
+  } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [titleSplashData, setTitleSplashData] = useState<
     TitleSplashConfig & { title: string }
@@ -125,6 +133,15 @@ const UnifiedFragment = ({
         activeObjectIndex: 0,
         fragmentState: 'onlyUserMedia',
       })
+      if (viewConfig?.mode === 'Portrait') {
+        addMusic('splash', 0.2)
+        setTimeout(() => {
+          reduceSplashAudioVolume(0.12)
+        }, 2000)
+        setTimeout(() => {
+          reduceSplashAudioVolume(0.06)
+        }, 2200)
+      }
       setTopLayerChildren([])
       timer.current = setTimeout(() => {
         if (!displayName) return
@@ -228,7 +245,6 @@ const UnifiedFragment = ({
                     dataConfig[activeObjectIndex].id
                   ] as BlockProperties
                 }
-                dataConfigLength={dataConfig.length}
                 topLayerChildren={topLayerChildren}
                 setTopLayerChildren={setTopLayerChildren}
                 titleSplashData={titleSplashData}
@@ -249,7 +265,6 @@ const UnifiedFragment = ({
                     dataConfig[activeObjectIndex].id
                   ] as BlockProperties
                 }
-                dataConfigLength={dataConfig.length}
                 topLayerChildren={topLayerChildren}
                 setTopLayerChildren={setTopLayerChildren}
                 titleSplashData={titleSplashData}
@@ -270,7 +285,6 @@ const UnifiedFragment = ({
                     dataConfig[activeObjectIndex].id
                   ] as BlockProperties
                 }
-                dataConfigLength={dataConfig.length}
                 topLayerChildren={topLayerChildren}
                 setTopLayerChildren={setTopLayerChildren}
                 titleSplashData={titleSplashData}
@@ -285,13 +299,13 @@ const UnifiedFragment = ({
           case 'listBlock': {
             return (
               <PointsFragment
+                key={activeObjectIndex}
                 dataConfig={dataConfig[activeObjectIndex] as ListBlockProps}
                 viewConfig={
                   viewConfig.blocks[
                     dataConfig[activeObjectIndex].id
                   ] as BlockProperties
                 }
-                dataConfigLength={dataConfig.length}
                 topLayerChildren={topLayerChildren}
                 setTopLayerChildren={setTopLayerChildren}
                 titleSplashData={titleSplashData}
