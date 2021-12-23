@@ -28,8 +28,10 @@ import {
 } from '../../components'
 import { TextEditorParser } from '../../components/TempTextEditor/utils'
 import {
+  CodeBlock,
   CodeBlockProps,
   ImageBlockProps,
+  ListBlock,
   ListBlockProps,
   VideoBlockProps,
 } from '../Flick/editor/utils/utils'
@@ -47,7 +49,7 @@ import {
 import { useCanvasRecorder, useTimekeeper } from '../../hooks'
 import { useUploadFile } from '../../hooks/use-upload-file'
 import { User, userState } from '../../stores/user.store'
-import { ConfigType, ViewConfig } from '../../utils/configTypes'
+import { ViewConfig } from '../../utils/configTypes'
 import { DiscordThemes } from '../Flick/components/IntroOutroView'
 import { Countdown } from './components'
 import { CONFIG, SHORTS_CONFIG } from './components/Concourse'
@@ -720,8 +722,6 @@ const Studio = ({
     }
   }, [payload, studio.isHost])
 
-  const [fragmentType, setFragmentType] = useState<ConfigType>()
-
   const [isButtonClicked, setIsButtonClicked] = useState(false)
 
   useEffect(() => {
@@ -766,12 +766,6 @@ const Studio = ({
         )?.participant.owner || false,
     })
   }, [fragment, stream, users, state, userAudios, payload, participants, state])
-
-  useEffect(() => {
-    if (!studio.controlsConfig) return
-    // const conf = fragment.configuration as Config
-    setFragmentType(studio.controlsConfig.type)
-  }, [payload?.activeObjectIndex, studio.controlsConfig])
 
   useEffect(() => {
     if (payload?.status === Fragment_Status_Enum_Enum.Live) {
@@ -856,7 +850,7 @@ const Studio = ({
       <div className="h-screen px-10 pt-16">
         <Countdown />
         {state === 'ready' || state === 'recording' || state === 'countDown' ? (
-          <div className="flex w-full h-full mt-3 gap-x-8">
+          <div className="flex w-full h-full mt-3 gap-x-8 items-center">
             <Stage
               ref={stageRef}
               height={stageConfig.height}
@@ -927,7 +921,7 @@ const Studio = ({
             </Stage>
             <div
               className={cx(
-                'flex-1 flex flex-col justify-end overflow-y-auto',
+                'flex-1 flex flex-col justify-end h-full mb-24 overflow-y-auto',
                 {
                   'my-12': shortsMode,
                 }
@@ -946,38 +940,52 @@ const Studio = ({
                     fragment.type === Fragment_Type_Enum_Enum.Outro
                   )
                     return <></>
-                  switch (fragmentType) {
-                    case ConfigType.CODEJAM:
+                  switch (
+                    fragment?.editorState?.blocks[
+                      payload?.activeObjectIndex || 0
+                    ]?.type
+                  ) {
+                    case 'codeBlock': {
+                      const codeBlockProps = fragment?.editorState?.blocks[
+                        payload?.activeObjectIndex || 0
+                      ]?.codeBlock as CodeBlock
                       return (
                         <CodeJamControls
                           position={controlsConfig?.position}
                           computedTokens={controlsConfig?.computedTokens}
-                          fragmentState={controlsConfig?.fragmentState}
-                          isCodexFormat={controlsConfig?.isCodexFormat}
-                          noOfBlocks={controlsConfig?.noOfBlocks}
+                          fragmentState={payload?.fragmentState}
+                          isCodexFormat={codeBlockProps.isAutomated || false}
+                          noOfBlocks={
+                            (codeBlockProps.explanations?.length || 0) + 1
+                          }
                         />
                       )
-                    case ConfigType.VIDEOJAM:
+                    }
+                    case 'videoBlock':
                       return (
                         <VideoJamControls
-                          playing={controlsConfig?.playing}
+                          playing={payload?.playing}
                           videoElement={controlsConfig?.videoElement}
-                          fragmentState={controlsConfig?.fragmentState}
+                          fragmentState={payload?.fragmentState}
                         />
                       )
-                    case ConfigType.TRIVIA:
+                    case 'imageBlock':
                       return (
                         <TriviaControls
-                          fragmentState={controlsConfig?.fragmentState}
+                          fragmentState={payload?.fragmentState}
                         />
                       )
-                    case ConfigType.POINTS:
+                    case 'listBlock': {
+                      const listBlockProps = fragment?.editorState?.blocks[
+                        payload?.activeObjectIndex || 0
+                      ]?.listBlock as ListBlock
                       return (
                         <PointsControls
-                          fragmentState={controlsConfig?.fragmentState}
-                          noOfPoints={controlsConfig?.noOfPoints}
+                          fragmentState={payload?.fragmentState}
+                          noOfPoints={listBlockProps?.list?.length || 0}
                         />
                       )
+                    }
                     default: {
                       return <></>
                     }
@@ -985,11 +993,12 @@ const Studio = ({
                 })()}
                 {fragment.type !== Fragment_Type_Enum_Enum.Intro &&
                   fragment.type !== Fragment_Type_Enum_Enum.Outro && (
+                    // next item button
                     <button
                       type="button"
                       disabled={
                         payload?.activeObjectIndex ===
-                        studio.controlsConfig?.dataConfigLength - 1
+                        fragment.editorState?.blocks.length - 1
                       }
                       onClick={() => {
                         updatePayload?.({
@@ -1004,18 +1013,18 @@ const Studio = ({
                           {
                             'opacity-50 cursor-not-allowed':
                               payload?.activeObjectIndex ===
-                              studio.controlsConfig?.dataConfigLength - 1,
+                              fragment.editorState?.blocks.length - 1,
                           }
                         )}
                       >
                         <Text className="text-white ">
                           {payload?.activeObjectIndex !==
-                          studio.controlsConfig?.dataConfigLength - 1
+                          fragment.editorState?.blocks.length - 1
                             ? 'Next Item'
                             : 'Reached end of items'}
                         </Text>
                         {payload?.activeObjectIndex !==
-                          studio.controlsConfig?.dataConfigLength - 1 && (
+                          fragment.editorState?.blocks.length - 1 && (
                           <FiArrowRight className="text-white " size={21} />
                         )}
                       </div>
@@ -1023,6 +1032,7 @@ const Studio = ({
                   )}
                 {fragment.type === Fragment_Type_Enum_Enum.Outro &&
                   state === 'recording' && (
+                    // next button for outro to move to the outro from usermedia
                     <button
                       type="button"
                       disabled={isButtonClicked}
@@ -1051,7 +1061,9 @@ const Studio = ({
         ) : (
           // eslint-disable-next-line jsx-a11y/media-has-caption
           <video
-            className={!shortsMode ? 'w-8/12 rounded-md' : 'w-1/4 rounded-md'}
+            className={
+              !shortsMode ? 'w-8/12 mt-24 rounded-md' : 'w-1/4 mt-16 rounded-md'
+            }
             controls
             controlsList="nodownload"
             ref={async (ref) => {

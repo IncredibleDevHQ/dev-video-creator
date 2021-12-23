@@ -2,10 +2,10 @@
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
 import { Group, Image, Rect, Text } from 'react-konva'
-import { useRecoilState, useRecoilValue } from 'recoil'
+import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
 import { ImageBlockProps } from '../../../Flick/editor/utils/utils'
-import { BlockProperties, ConfigType } from '../../../../utils/configTypes'
+import { BlockProperties } from '../../../../utils/configTypes'
 import Concourse, { TitleSplashProps } from '../../components/Concourse'
 import Gif from '../../components/Gif'
 import { FragmentState } from '../../components/RenderTokens'
@@ -21,7 +21,6 @@ import { TrianglePathTransition } from '../FragmentTransitions'
 const TriviaFragment = ({
   viewConfig,
   dataConfig,
-  dataConfigLength,
   topLayerChildren,
   setTopLayerChildren,
   titleSplashData,
@@ -33,7 +32,6 @@ const TriviaFragment = ({
 }: {
   viewConfig: BlockProperties
   dataConfig: ImageBlockProps
-  dataConfigLength: number
   topLayerChildren: JSX.Element[]
   setTopLayerChildren: React.Dispatch<React.SetStateAction<JSX.Element[]>>
   titleSplashData?: TitleSplashProps | undefined
@@ -43,10 +41,8 @@ const TriviaFragment = ({
   layerRef: React.RefObject<Konva.Layer>
   shortsMode: boolean
 }) => {
-  const { fragment, payload, state, addMusic } =
+  const { fragment, payload, addMusic } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
-
-  const [studio, setStudio] = useRecoilState(studioStore)
 
   // const [activeQuestionIndex, setActiveQuestionIndex] = useState<number>(0)
   const [triviaData, setTriviaData] =
@@ -94,27 +90,8 @@ const TriviaFragment = ({
       image: dataConfig?.imageBlock.url || '',
       text: dataConfig?.imageBlock.title || '',
     })
-    setStudio({
-      ...studio,
-      controlsConfig: {
-        fragmentState,
-        type: ConfigType.TRIVIA,
-        dataConfigLength,
-      },
-    })
     setTopLayerChildren([])
   }, [dataConfig, shortsMode, viewConfig])
-
-  useEffect(() => {
-    setStudio({
-      ...studio,
-      controlsConfig: {
-        fragmentState,
-        type: ConfigType.TRIVIA,
-        dataConfigLength,
-      },
-    })
-  }, [state, fragmentState])
 
   useEffect(() => {
     if (qnaImage?.src.split('.').pop() === 'gif') {
