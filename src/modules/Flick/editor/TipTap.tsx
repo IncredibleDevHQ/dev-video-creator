@@ -181,6 +181,7 @@ const styles = css`
   p {
     color: rgba(75, 85, 99);
     font-family: 'Inter';
+    word-wrap: break-word;
   }
 
   ul,
