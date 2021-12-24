@@ -193,8 +193,8 @@ const UploadBlock = (props: any) => {
       {showAddVideo && (
         <AddVideo
           open={showAddVideo}
+          shouldResetWhenOpened
           handleClose={() => setShowAddVideo(false)}
-          handleUploadURL={() => {}}
           handleUpdateVideo={(url, transformations) => {
             insertVideo(url, transformations)
           }}
