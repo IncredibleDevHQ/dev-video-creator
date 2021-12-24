@@ -25,6 +25,11 @@ import SUCCESS from './assets/Success.gif'
 import EDITOR from './assets/editor.png'
 import PIN from './assets/incredible_pin.png'
 
+import askCameraPermission from './assets/ask-camera-permission.png'
+import askMicrophonePermission from './assets/ask-microphone-permission.png'
+import allowMicrophonePermission from './assets/allow-microphone-permission.png'
+import allowCameraPermission from './assets/allow-camera-permission.png'
+
 export const ASSETS = {
   ICONS: {
     LOGO,
@@ -74,6 +79,13 @@ export const API = {
 export const flickFinalVideoImage = {
   thumbnailImage:
     'https://i.giphy.com/media/l0uJcwRwF5tO7LgB5t/giphy-downsized.gif',
+}
+
+export const Images = {
+  askCameraPermission,
+  askMicrophonePermission,
+  allowMicrophonePermission,
+  allowCameraPermission,
 }
 
 export const fragmentIcons = {
