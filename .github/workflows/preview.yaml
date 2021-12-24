@@ -22,6 +22,8 @@ jobs:
 
       - name: Build Incredible-Next React App
         run: |
+          npm config set "@tiptap-pro:registry" https://registry.tiptap.dev/
+          npm config set "//registry.tiptap.dev/:_authToken" ${{secrets.TIPTAP_PRO_TOKEN}}
           yarn install --cache-folder .yarncache # Install Dependencies
           yarn codegen # Run GraphQL codegen
           CI=false yarn build # CI=false to ignore warnings
