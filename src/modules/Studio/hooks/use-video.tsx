@@ -1,4 +1,9 @@
+import { IAgoraRTCRemoteUser } from 'agora-rtc-sdk-ng'
 import React, { useEffect } from 'react'
+
+export interface RTCUser extends IAgoraRTCRemoteUser {
+  mediaStream?: MediaStream
+}
 
 const useVideo = (stream: MediaStream) => {
   const video = React.useMemo(() => {

@@ -8,7 +8,7 @@ import { createClient } from 'agora-rtc-react'
 import { useRecoilState } from 'recoil'
 import config from '../../../config'
 import { studioStore } from '../stores'
-import { RTCUser } from './use-agora'
+import { RTCUser } from './use-video'
 
 export type Device = {
   microphone: string
