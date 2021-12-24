@@ -1,21 +1,24 @@
 /* eslint-disable jsx-a11y/media-has-caption */
 import { cx } from '@emotion/css'
-import { createMicrophoneAndCameraTracks } from 'agora-rtc-react'
+import {
+  createMicrophoneAndCameraTracks,
+  ICameraVideoTrack,
+  IMicrophoneAudioTrack,
+} from 'agora-rtc-react'
 import getBlobDuration from 'get-blob-duration'
 import Konva from 'konva'
 import React, { createRef, useEffect, useMemo, useRef, useState } from 'react'
 import AspectRatio from 'react-aspect-ratio'
+import { BiErrorCircle, BiMicrophone, BiVideo } from 'react-icons/bi'
 import { FiArrowRight } from 'react-icons/fi'
+import { IoChevronBack } from 'react-icons/io5'
 import { Layer, Stage } from 'react-konva'
 import { useHistory, useParams } from 'react-router-dom'
-import { BiVideo, BiMicrophone, BiErrorCircle } from 'react-icons/bi'
-import _ from 'lodash/fp'
 import {
   useRecoilBridgeAcrossReactRoots_UNSTABLE,
   useRecoilState,
   useRecoilValue,
 } from 'recoil'
-import { IoChevronBack } from 'react-icons/io5'
 import {
   Button,
   dismissToast,
@@ -27,14 +30,7 @@ import {
   updateToast,
 } from '../../components'
 import { TextEditorParser } from '../../components/TempTextEditor/utils'
-import {
-  CodeBlock,
-  CodeBlockProps,
-  ImageBlockProps,
-  ListBlock,
-  ListBlockProps,
-  VideoBlockProps,
-} from '../Flick/editor/utils/utils'
+import { Images } from '../../constants'
 import {
   FlickParticipantsFragment,
   Fragment_Status_Enum_Enum,
@@ -51,6 +47,14 @@ import { useUploadFile } from '../../hooks/use-upload-file'
 import { User, userState } from '../../stores/user.store'
 import { ViewConfig } from '../../utils/configTypes'
 import { DiscordThemes } from '../Flick/components/IntroOutroView'
+import {
+  CodeBlock,
+  CodeBlockProps,
+  ImageBlockProps,
+  ListBlock,
+  ListBlockProps,
+  VideoBlockProps,
+} from '../Flick/editor/utils/utils'
 import { Countdown } from './components'
 import { CONFIG, SHORTS_CONFIG } from './components/Concourse'
 import {
@@ -59,22 +63,15 @@ import {
   TriviaControls,
   VideoJamControls,
 } from './components/Controls'
+import PermissionError from './components/PermissionError'
 import RecordingControlsBar from './components/RecordingControlsBar'
 import IntroFragment from './effects/fragments/IntroFragment'
 import OutroFragment from './effects/fragments/OutroFragment'
 import UnifiedFragment from './effects/fragments/UnifiedFragment'
 import { useAgora, useMediaStream } from './hooks'
-import {
-  Device,
-  MediaStreamError,
-  UseMediaStream,
-} from './hooks/use-media-stream'
+import { Device, MediaStreamError } from './hooks/use-media-stream'
 import { useRTDB } from './hooks/use-rtdb'
 import { StudioProviderProps, StudioState, studioStore } from './stores'
-import PermissionError from './components/PermissionError'
-import { Images } from '../../constants'
-
-const StudioContext = React.createContext({} as UseMediaStream)
 
 const StudioHoC = () => {
   const [view, setView] = useState<'preview' | 'studio'>('preview')
@@ -453,6 +450,10 @@ const Studio = ({
 
   const [shortsMode, setShortsMode] = useState(false)
 
+  const tracksRef = useRef<[IMicrophoneAudioTrack, ICameraVideoTrack] | null>(
+    null
+  )
+
   useEffect(() => {
     if (!fragment) return
     const viewConfig: ViewConfig = fragment.configuration
@@ -568,9 +569,13 @@ const Studio = ({
   }, [data, fragmentId])
 
   useEffect(() => {
+    tracksRef.current = tracks
+  }, [tracks])
+
+  useEffect(() => {
     return () => {
       leave()
-      tracks?.forEach((track) => track.stop())
+      tracksRef.current?.forEach((track) => track.close())
       setFragment(undefined)
       setStudio({
         ...studio,
