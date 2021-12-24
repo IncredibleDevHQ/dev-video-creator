@@ -34,7 +34,7 @@ export default Node.create({
 
   group: 'block',
 
-  content: 'paragraph+',
+  content: 'block+',
 
   parseHTML() {
     return [

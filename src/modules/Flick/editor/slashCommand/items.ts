@@ -79,7 +79,7 @@ export const getSuggestionItems = (props: {
           .focus()
           .deleteRange(range)
           .insertContent(
-            `<slab type="code"><h2></h2><p></p><pre><code></code></pre><note><p/></note></slab>`
+            `<slab type="code"><h2></h2><p></p><pre><code></code></pre><note><p></p></note></slab><p></p>`
           )
           .run()
       },
@@ -95,7 +95,7 @@ export const getSuggestionItems = (props: {
           .focus()
           .deleteRange(range)
           .insertContent(
-            '<slab type="image"><h2></h2><p></p><upload type="image"></p></upload><note><p/></note></slab>'
+            '<slab type="image"><h2></h2><p></p><upload type="image"></p></upload><note><p></p></note></slab><p></p>'
           )
           .run()
       },
@@ -111,7 +111,7 @@ export const getSuggestionItems = (props: {
           .focus()
           .deleteRange(range)
           .insertContent(
-            '<slab type="video"><h2></h2><p></p><upload type="video"></p></upload><note><p/></note></slab>'
+            '<slab type="video"><h2></h2><p></p><upload type="video"></p></upload><note><p></p></note></slab><p></p>'
           )
           .run()
       },
@@ -127,7 +127,7 @@ export const getSuggestionItems = (props: {
           .focus()
           .deleteRange(range)
           .insertContent(
-            '<slab type="list"><h2></h2><p></p><ul><li><p></p></li></ul><note><p/></note></slab>'
+            '<slab type="list"><h2></h2><p></p><ul><li><p></p></li></ul><note><p></p></note></slab><p></p>'
           )
           .run()
         // editor.chain().focus().deleteRange(range).toggleBulletList().run()
