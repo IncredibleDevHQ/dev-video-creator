@@ -78,6 +78,16 @@ const VideoBlock = (props: any) => {
     videoRef.current = video
 
     const transformations = JSON.parse(props.node.attrs['data-transformations'])
+
+    video?.addEventListener('timeupdate', () => {
+      if (!transformations?.clip?.end) return
+      if (video.currentTime >= transformations.clip.end) {
+        video.pause()
+        video.currentTime = transformations?.clip?.start || 0
+        video.play()
+      }
+    })
+
     const videoConfig: VideoConfig = {
       x: 0,
       y: 0,
