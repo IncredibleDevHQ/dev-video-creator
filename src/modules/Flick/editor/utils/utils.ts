@@ -106,6 +106,7 @@ const textContent = (contentArray?: JSONContent[]) => {
   if (!contentArray) {
     return undefined
   }
+
   return contentArray
     .map((node) => {
       if (node.type === 'text') {
@@ -113,7 +114,7 @@ const textContent = (contentArray?: JSONContent[]) => {
       }
       return ''
     })
-    .join('')
+    .join('&nbsp;')
 }
 
 const getSimpleAST = (state: JSONContent): SimpleAST => {
@@ -122,9 +123,13 @@ const getSimpleAST = (state: JSONContent): SimpleAST => {
   const blocks: Block[] = []
 
   const getCommonProps = (slab: JSONContent) => {
-    const noteNode = slab.content?.find((node) => node.type === 'note')
-      ?.content?.[0].content
-    const note = textContent(noteNode)
+    const noteNode = slab.content
+      ?.filter((node) => node.type === 'note')
+      .map((node) => node.content?.[0]?.content)
+
+    const note = noteNode
+      ? textContent(noteNode?.[0] as JSONContent[])
+      : undefined
 
     const descriptionNode = slab.content?.find(
       (node) => node.type === 'paragraph'
@@ -262,7 +267,11 @@ const getEditorState = (ast: SimpleAST): string => {
           <slab type="video" data-id="${block.id}">
             <h2>${block.videoBlock.title || ''}</h2>
             <p>${block.videoBlock.description || ''}</p>
-            <video src="${block.videoBlock.url}"></video>
+            <video src="${
+              block.videoBlock.url
+            } "data-transformations"="${JSON.stringify(
+          block.videoBlock.transformations
+        )}"></video>
             <note><p>${block.videoBlock.note || ''}</p></note>
           </slab>
         `)

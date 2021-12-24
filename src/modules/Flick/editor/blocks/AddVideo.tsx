@@ -29,13 +29,18 @@ const AddVideo = ({
   open,
   block,
   handleClose,
-  handleUploadURL,
+  initialValue,
   handleUpdateVideo,
+  shouldResetWhenOpened = false,
 }: {
   open: boolean
   block?: VideoBlockProps
+  shouldResetWhenOpened?: boolean
+  initialValue?: {
+    url: string
+    transformations?: Transformations
+  }
   handleClose: (shouldRefetch?: boolean) => void
-  handleUploadURL: (props: { url: string; key: string }) => void
   handleUpdateVideo?: (url: string, transformations?: Transformations) => void
 }) => {
   const [currentView, setCurrentView] = useState<
@@ -52,6 +57,22 @@ const AddVideo = ({
   const [uploadVideo] = useUploadFile()
 
   const { timer, handleStart, handleReset } = useTimekeeper(0)
+
+  useEffect(() => {
+    if (shouldResetWhenOpened) {
+      setCurrentView('select')
+      setVideo(undefined)
+      setVideoType(undefined)
+      setProgress(0)
+      setVideoURL('')
+    }
+  }, [shouldResetWhenOpened])
+
+  useEffect(() => {
+    if (!initialValue || shouldResetWhenOpened) return
+    setVideoURL(initialValue.url)
+    setCurrentView('transform')
+  }, [initialValue, shouldResetWhenOpened])
 
   useEffect(() => {
     if (status === 'recording') {
@@ -103,7 +124,7 @@ const AddVideo = ({
 
       if (!extension) throw Error('Failed to get extension')
 
-      const { url, uuid } = await uploadVideo({
+      const { url } = await uploadVideo({
         // @ts-ignore
         extension,
         file: video,
@@ -112,11 +133,9 @@ const AddVideo = ({
         },
       })
 
-      setVideoURL(url)
-
       if (url) {
+        setVideoURL(url)
         setCurrentView('transform')
-        handleUploadURL({ url, key: uuid })
       }
     } catch (error: any) {
       setCurrentView('select')
@@ -135,7 +154,6 @@ const AddVideo = ({
       onClose={() => {
         if (status === 'recording') stopRecording()
         handleReset()
-        setCurrentView('select')
         handleClose()
       }}
       classNames={{
@@ -406,30 +424,26 @@ const AddVideo = ({
               </div>
             )
           case 'transform':
-            if (!video || !videoType) {
+            if (!videoURL) {
               setCurrentView('record-or-upload')
               return null
             }
-            // eslint-disable-next-line no-case-declarations
-            const url = URL.createObjectURL(video)
 
             return (
               <div className="flex items-center justify-center w-full h-full">
-                {url && (
-                  <VideoEditor
-                    handleAction={(transformations) => {
-                      handleUpdateVideo?.(videoURL, transformations)
-                      handleClose(true)
-                    }}
-                    url={url}
-                    width={720}
-                    action="Save"
-                    transformations={{
-                      clip: block?.videoBlock?.transformations?.clip || {},
-                      crop: block?.videoBlock?.transformations?.crop,
-                    }}
-                  />
-                )}
+                <VideoEditor
+                  handleAction={(transformations) => {
+                    handleUpdateVideo?.(videoURL, transformations)
+                    handleClose(true)
+                  }}
+                  url={videoURL}
+                  width={720}
+                  action="Save"
+                  transformations={{
+                    clip: block?.videoBlock?.transformations?.clip || {},
+                    crop: block?.videoBlock?.transformations?.crop,
+                  }}
+                />
               </div>
             )
           default:
