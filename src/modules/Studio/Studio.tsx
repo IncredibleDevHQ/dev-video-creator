@@ -542,9 +542,9 @@ const Studio = ({
         init()
         const { data } = await getRTCToken({ variables: { fragmentId } })
         if (data?.RTCToken?.token) {
-          const participantId = fragment?.participants.find(
-            ({ participant }) => participant.userSub === sub
-          )?.participant.id
+          const participantId = (
+            fragment?.configuration?.speakers as FlickParticipantsFragment[]
+          ).find(({ userSub }) => userSub === sub)?.id
           if (participantId) {
             join(data?.RTCToken?.token, participantId as string)
           } else {
@@ -570,6 +570,7 @@ const Studio = ({
   useEffect(() => {
     return () => {
       leave()
+      tracks?.forEach((track) => track.stop())
       setFragment(undefined)
       setStudio({
         ...studio,
