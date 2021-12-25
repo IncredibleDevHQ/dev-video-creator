@@ -131,7 +131,6 @@ const UnifiedFragment = ({
         activePointIndex: 0,
         currentIndex: 0,
         currentTime: 1,
-        fragmentState: 'onlyUserMedia',
         isFocus: false,
         playing: false,
         prevIndex: 0,
