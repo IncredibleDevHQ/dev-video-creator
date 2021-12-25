@@ -7,7 +7,7 @@ import {
 } from 'agora-rtc-react'
 import getBlobDuration from 'get-blob-duration'
 import Konva from 'konva'
-import React, { createRef, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import AspectRatio from 'react-aspect-ratio'
 import { BiErrorCircle, BiMicrophone, BiVideo } from 'react-icons/bi'
 import { FiArrowRight } from 'react-icons/fi'
@@ -42,7 +42,7 @@ import {
   useMarkFragmentCompletedMutation,
   useUpdateFragmentShortMutation,
 } from '../../generated/graphql'
-import { useCanvasRecorder, useTimekeeper } from '../../hooks'
+import { useCanvasRecorder } from '../../hooks'
 import { useUploadFile } from '../../hooks/use-upload-file'
 import { User, userState } from '../../stores/user.store'
 import { ViewConfig } from '../../utils/configTypes'
@@ -89,8 +89,6 @@ const StudioHoC = () => {
 
   const [error, setError] = useState<'INVALID_AST' | undefined>()
 
-  const { handleStart, handleReset, timer } = useTimekeeper(0)
-
   useEffect(() => {
     if (!sub) return
     ;(async () => {
@@ -134,16 +132,7 @@ const StudioHoC = () => {
         }}
       />
     )
-  if (view === 'studio')
-    return (
-      <Studio
-        data={data}
-        devices={devices.current}
-        handleStart={handleStart}
-        handleReset={handleReset}
-        timer={timer}
-      />
-    )
+  if (view === 'studio') return <Studio data={data} devices={devices.current} />
 
   return null
 }
@@ -415,15 +404,9 @@ const Preview = ({
 const Studio = ({
   data,
   devices,
-  handleStart,
-  handleReset,
-  timer,
 }: {
   data?: GetFragmentByIdQuery
   devices: { microphone: Device | null; camera: Device | null }
-  handleStart: () => void
-  handleReset: () => void
-  timer: number
 }) => {
   const { fragmentId } = useParams<{ fragmentId: string }>()
   const { constraints, controlsConfig } =
@@ -438,8 +421,8 @@ const Studio = ({
 
   const [uploadFile] = useUploadFile()
 
-  const stageRef = createRef<Konva.Stage>()
-  const layerRef = createRef<Konva.Layer>()
+  const stageRef = useRef<Konva.Stage>(null)
+  const layerRef = useRef<Konva.Layer>(null)
   const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
   Konva.pixelRatio = 2
 
@@ -846,11 +829,7 @@ const Studio = ({
             </Text>
           </div>
         </div>
-        <RecordingControlsBar
-          handleStart={handleStart}
-          handleReset={handleReset}
-          timer={timer}
-        />
+        <RecordingControlsBar />
       </div>
       {/* Studio or Video , Notes and layout controls */}
       <div className="h-screen px-10 pt-16">
