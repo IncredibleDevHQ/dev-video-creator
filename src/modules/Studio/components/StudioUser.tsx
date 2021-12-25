@@ -135,7 +135,6 @@ const StudioUser = ({
             clipConfig: studioUserClipConfig || defaultStudioUserClipConfig,
           })
         }}
-        draggable
         offsetX={imageConfig.width}
         scaleX={-1}
       >
