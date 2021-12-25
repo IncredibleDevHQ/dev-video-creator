@@ -7,12 +7,12 @@ import {
   ImageBlockProps,
   ListBlockProps,
   VideoBlockProps,
-} from '../../../../components/TempTextEditor/types'
+} from '../../../Flick/editor/utils/utils'
 import { User, userState } from '../../../../stores/user.store'
 import {
   BlockProperties,
-  ViewConfig,
   TitleSplashConfig,
+  ViewConfig,
 } from '../../../../utils/configTypes'
 import {
   getGradientConfig,
@@ -27,6 +27,7 @@ import CodeFragment from './CodeFragment'
 import PointsFragment from './PointsFragment'
 import TriviaFragment from './TriviaFragment'
 import VideoFragment from './VideoFragment'
+import { Fragment_Status_Enum_Enum } from '../../../../generated/graphql'
 
 const UnifiedFragment = ({
   stageRef,
@@ -39,8 +40,16 @@ const UnifiedFragment = ({
   config?: Block[]
   layoutConfig?: ViewConfig
 }) => {
-  const { fragment, payload, updatePayload, state, participants, users } =
-    (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const {
+    fragment,
+    payload,
+    updatePayload,
+    state,
+    participants,
+    users,
+    addMusic,
+    reduceSplashAudioVolume,
+  } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [titleSplashData, setTitleSplashData] = useState<
     TitleSplashConfig & { title: string }
@@ -51,8 +60,6 @@ const UnifiedFragment = ({
   })
 
   // data config holds all the info abt the object
-  // const [dataConfig, setDataConfig] =
-  //   useState<(CodejamConfig | VideojamConfig | TriviaConfig | PointsConfig)[]>()
   const [dataConfig, setDataConfig] = useState<Block[]>()
   // view config holds all the info abt the view of the canvas
   const [viewConfig, setViewConfig] = useState<ViewConfig>()
@@ -62,6 +69,8 @@ const UnifiedFragment = ({
   // state of the fragment
   const [fragmentState, setFragmentState] =
     useState<FragmentState>('onlyUserMedia')
+
+  const [isPreview, setIsPreview] = useState(false)
 
   // state which stores the layer children which have to be placed over the studio user
   const [topLayerChildren, setTopLayerChildren] = useState<JSX.Element[]>([])
@@ -90,11 +99,13 @@ const UnifiedFragment = ({
   useEffect(() => {
     if (!fragment) return
     if (!config) {
+      setIsPreview(false)
       if (fragment.configuration && fragment.editorState) {
         setDataConfig(fragment.editorState?.blocks)
         setViewConfig(fragment.configuration)
       }
     } else {
+      setIsPreview(true)
       setDataConfig(config)
       setViewConfig(layoutConfig)
     }
@@ -115,6 +126,20 @@ const UnifiedFragment = ({
   }, [payload])
 
   useEffect(() => {
+    return () => {
+      updatePayload?.({
+        activePointIndex: 0,
+        currentIndex: 0,
+        currentTime: 1,
+        isFocus: false,
+        playing: false,
+        prevIndex: 0,
+        status: Fragment_Status_Enum_Enum.NotStarted,
+      })
+    }
+  }, [])
+
+  useEffect(() => {
     if (state === 'ready') {
       updatePayload?.({
         fragmentState: 'onlyUserMedia',
@@ -125,6 +150,15 @@ const UnifiedFragment = ({
         activeObjectIndex: 0,
         fragmentState: 'onlyUserMedia',
       })
+      if (viewConfig?.mode === 'Portrait') {
+        addMusic('splash', 0.2)
+        setTimeout(() => {
+          reduceSplashAudioVolume(0.12)
+        }, 2000)
+        setTimeout(() => {
+          reduceSplashAudioVolume(0.06)
+        }, 2200)
+      }
       setTopLayerChildren([])
       timer.current = setTimeout(() => {
         if (!displayName) return
@@ -201,7 +235,6 @@ const UnifiedFragment = ({
         return [CONFIG.width - 170]
     }
   })()
-
   useEffect(() => {
     if (activeObjectIndex !== 0)
       setTitleSplashData({ ...titleSplashData, enable: false })
@@ -228,7 +261,6 @@ const UnifiedFragment = ({
                     dataConfig[activeObjectIndex].id
                   ] as BlockProperties
                 }
-                dataConfigLength={dataConfig.length}
                 topLayerChildren={topLayerChildren}
                 setTopLayerChildren={setTopLayerChildren}
                 titleSplashData={titleSplashData}
@@ -237,6 +269,7 @@ const UnifiedFragment = ({
                 stageRef={stageRef}
                 layerRef={layerRef}
                 shortsMode={viewConfig.mode === 'Portrait'}
+                isPreview={isPreview}
               />
             )
           }
@@ -249,7 +282,6 @@ const UnifiedFragment = ({
                     dataConfig[activeObjectIndex].id
                   ] as BlockProperties
                 }
-                dataConfigLength={dataConfig.length}
                 topLayerChildren={topLayerChildren}
                 setTopLayerChildren={setTopLayerChildren}
                 titleSplashData={titleSplashData}
@@ -270,7 +302,6 @@ const UnifiedFragment = ({
                     dataConfig[activeObjectIndex].id
                   ] as BlockProperties
                 }
-                dataConfigLength={dataConfig.length}
                 topLayerChildren={topLayerChildren}
                 setTopLayerChildren={setTopLayerChildren}
                 titleSplashData={titleSplashData}
@@ -285,13 +316,13 @@ const UnifiedFragment = ({
           case 'listBlock': {
             return (
               <PointsFragment
+                key={activeObjectIndex}
                 dataConfig={dataConfig[activeObjectIndex] as ListBlockProps}
                 viewConfig={
                   viewConfig.blocks[
                     dataConfig[activeObjectIndex].id
                   ] as BlockProperties
                 }
-                dataConfigLength={dataConfig.length}
                 topLayerChildren={topLayerChildren}
                 setTopLayerChildren={setTopLayerChildren}
                 titleSplashData={titleSplashData}
@@ -300,6 +331,7 @@ const UnifiedFragment = ({
                 stageRef={stageRef}
                 layerRef={layerRef}
                 shortsMode={viewConfig.mode === 'Portrait'}
+                isPreview={isPreview}
               />
             )
           }

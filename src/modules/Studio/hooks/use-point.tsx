@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import Konva from 'konva'
-import { ListItem } from '../../../components/TextEditor/utils'
+import { ListItem } from '../../Flick/editor/utils/utils'
 
 export interface ComputedPoint {
   y: number
@@ -9,8 +9,8 @@ export interface ComputedPoint {
 }
 
 const usePoint = () => {
-  const computedPointNumber = useRef(0)
-  const lineNumber = useRef(0)
+  const presentY = useRef(0)
+  const noOfLines = useRef(0)
   const computedPoints = useRef<ComputedPoint[]>([])
 
   const initUsePoint = ({
@@ -20,6 +20,7 @@ const usePoint = () => {
     gutter,
     fontSize,
     fontFamily,
+    fontStyle,
   }: {
     points: ListItem[]
     availableWidth: number
@@ -27,38 +28,48 @@ const usePoint = () => {
     gutter: number
     fontSize: number
     fontFamily?: string
+    fontStyle?: string
   }) => {
     const layer = new Konva.Layer({ width: availableWidth })
+    computedPoints.current = []
+    presentY.current = 0
+    noOfLines.current = 0
     points.forEach((point, index) => {
-      const text = new Konva.Text({ text: point.text, fontSize, fontFamily })
+      const text = new Konva.Text({
+        text: point.text,
+        fontSize,
+        fontFamily,
+        width: availableWidth,
+      })
       layer.add(text)
 
       const width = text.textWidth
 
       const computedPoint: ComputedPoint = {
-        y: (fontSize + gutter) * computedPointNumber.current,
+        y:
+          noOfLines.current * (fontSize + fontSize * 0.3) +
+          gutter +
+          presentY.current,
         text: point.text || '',
         width,
       }
 
-      // Check for wrapping...
-      if (width > availableWidth) {
-        // wrap
-        computedPointNumber.current += 1
-      }
+      presentY.current +=
+        noOfLines.current * (fontSize + fontSize * 0.3) + gutter
 
-      computedPointNumber.current += 1
+      noOfLines.current = getNoOfLinesOfText({
+        text: point.text || '',
+        availableWidth,
+        fontSize,
+        fontFamily,
+        fontStyle,
+      })
 
       computedPoints.current.push(computedPoint)
 
       text.destroy()
     })
-    const groupY = getGroupCoordinates({
-      canvasHeight: availableHeight,
-      fontSize,
-      gutter,
-    })
-    return groupY
+    return computedPoints.current
   }
 
   const getGroupCoordinates = ({
@@ -70,11 +81,7 @@ const usePoint = () => {
     fontSize: number
     gutter: number
   }) => {
-    return (
-      (canvasHeight -
-        (52 + (fontSize + gutter) * computedPointNumber.current)) /
-      2
-    )
+    return (canvasHeight - (52 + (fontSize + gutter) * presentY.current)) / 2
   }
 
   const getNoOfLinesOfText = ({
@@ -82,34 +89,33 @@ const usePoint = () => {
     availableWidth,
     fontSize,
     fontFamily,
-    stageWidth,
+    fontStyle,
   }: {
     text: string
     availableWidth: number
     fontSize: number
     fontFamily?: string
-    stageWidth: number
+    fontStyle?: string
   }) => {
-    const layer = new Konva.Layer({ width: stageWidth })
-
+    const layer = new Konva.Layer({ width: availableWidth })
     let noOfLines = 1
     let currentWidth = 0
 
     const titleSplit = text?.split(' ')
     titleSplit?.forEach((subText) => {
       const word = new Konva.Text({
-        text: subText,
+        text: `${subText} `,
         fontSize,
         fontFamily,
+        fontStyle,
       })
       layer.add(word)
-
-      const width = word.textWidth
-      if (width + currentWidth > availableWidth) {
+      const width = word.width()
+      if (Math.floor(width) + Math.floor(currentWidth) > availableWidth) {
         noOfLines += 1
         currentWidth = 0
       }
-      currentWidth += width
+      currentWidth += Math.floor(width)
     })
     return noOfLines
   }

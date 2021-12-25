@@ -9,10 +9,10 @@ import Konva from 'konva'
 import React, { HTMLAttributes, useEffect, useRef, useState } from 'react'
 import { BiPause, BiPlay } from 'react-icons/bi'
 import { Group, Image, Layer, Rect, Stage, Transformer } from 'react-konva'
-import useImage from 'use-image'
-import cropIcon from '../../../assets/crop-outline.svg'
-import trim from '../../../assets/trim.svg'
-import { ASSETS } from '../../../constants'
+// import useImage from 'use-image'
+import cropIcon from '../../../../assets/crop-outline.svg'
+import trim from '../../../../assets/trim.svg'
+// import { ASSETS } from '../../../constants'
 
 type Size = {
   width: number
@@ -29,6 +29,7 @@ type Coordinates = {
 interface Clip {
   start?: number
   end?: number
+  change?: 'start' | 'end'
 }
 
 export interface Transformations {
@@ -173,23 +174,27 @@ const Scrubber = ({
   marker,
   handleChange,
   scrubberSize = { width: 320, height: 40 },
-  handleUpdateMarker,
-}: {
+}: // handleUpdateMarker,
+{
   scrubberSize: { width?: number; height?: number }
   duration: number
   start?: number
   end?: number
   marker: number
-  handleChange?: (props: { start: number; end: number }) => void
-  handleUpdateMarker?: (currentTime: number) => void
+  handleChange?: (props: {
+    start: number
+    end: number
+    change: 'start' | 'end'
+  }) => void
+  // handleUpdateMarker?: (currentTime: number) => void
 }) => {
   const mainRectRef = useRef<Konva.Rect | null>()
   const leftHandleRef = useRef<Konva.Rect | null>()
   const rightHandleRef = useRef<Konva.Rect | null>()
   const scrubAreaRectRef = useRef<Konva.Rect | null>()
-  const markerRef = useRef<Konva.Image | null>()
+  // const markerRef = useRef<Konva.Image | null>()
 
-  const [pin] = useImage(ASSETS.ICONS.PIN)
+  // const [pin] = useImage(ASSETS.ICONS.PIN)
 
   const [trim] = useState<{ start: number; end: number }>({
     end: end || duration,
@@ -197,33 +202,39 @@ const Scrubber = ({
   })
 
   useEffect(() => {
-    if (!leftHandleRef.current || !rightHandleRef.current) return
+    if (!leftHandleRef.current) return
 
-    handleMove()
-  }, [leftHandleRef, rightHandleRef])
+    handleMove('start')
+  }, [leftHandleRef])
 
-  const computeMarker = () => {
-    const scrubAreaRect = scrubAreaRectRef.current!.getClientRect()
+  useEffect(() => {
+    if (!rightHandleRef.current) return
 
-    // Should be more than left bounds...
-    let newX = Math.max(
-      scrubAreaRect.x - markerRef.current!.width() / 2,
-      markerRef.current!.getClientRect().x
-    )
+    handleMove('end')
+  }, [rightHandleRef])
 
-    // Should be less than right bounds...
-    newX = Math.min(
-      newX,
-      scrubAreaRect.width + scrubAreaRect.x - markerRef.current!.width() / 2
-    )
+  // const computeMarker = () => {
+  //   const scrubAreaRect = scrubAreaRectRef.current!.getClientRect()
 
-    markerRef.current!.setPosition({
-      x: newX - mainRectRef.current!.getClientRect().x,
-      y: -20,
-    })
-  }
+  //   // Should be more than left bounds...
+  //   let newX = Math.max(
+  //     scrubAreaRect.x - markerRef.current!.width() / 2,
+  //     markerRef.current!.getClientRect().x
+  //   )
 
-  const handleMove = () => {
+  //   // Should be less than right bounds...
+  //   newX = Math.min(
+  //     newX,
+  //     scrubAreaRect.width + scrubAreaRect.x - markerRef.current!.width() / 2
+  //   )
+
+  //   markerRef.current!.setPosition({
+  //     x: newX - mainRectRef.current!.getClientRect().x,
+  //     y: -20,
+  //   })
+  // }
+
+  const handleMove = (type: 'start' | 'end') => {
     const left = leftHandleRef.current!.getClientRect()
     const right = rightHandleRef.current!.getClientRect()
     const main = mainRectRef.current!.getClientRect()
@@ -239,7 +250,7 @@ const Scrubber = ({
 
     const rect = scrubAreaRectRef.current!.getClientRect()
 
-    computeMarker()
+    // computeMarker()
 
     // -1 because of stroke width of 2px
     const start = convertPxToTime({
@@ -256,6 +267,7 @@ const Scrubber = ({
     handleChange?.({
       start,
       end,
+      change: type,
     })
   }
 
@@ -283,7 +295,7 @@ const Scrubber = ({
         }}
       />
 
-      <Image
+      {/* <Image
         image={pin}
         height={scrubberSize.height ? scrubberSize.height + 30 : 6}
         width={16}
@@ -327,7 +339,7 @@ const Scrubber = ({
             y: this.absolutePosition().y,
           }
         }}
-      />
+      /> */}
 
       <Rect
         id="left-handle"
@@ -361,7 +373,7 @@ const Scrubber = ({
         width={20}
         height={20}
         y={10}
-        onDragMove={handleMove}
+        onDragMove={() => handleMove('start')}
       />
       <Rect
         x={convertTimeToPx({
@@ -397,7 +409,7 @@ const Scrubber = ({
         width={20}
         height={20}
         y={10}
-        onDragMove={handleMove}
+        onDragMove={() => handleMove('end')}
       />
     </Group>
   )
@@ -501,7 +513,7 @@ const VideoEditor = ({
   if (!videoRef.current) return null
 
   return (
-    <div className="flex items-center justify-center flex-col rounded-md">
+    <div className="flex flex-col items-center justify-center rounded-md">
       <div>
         <Stage {...size}>
           <Layer ref={layerRef}>
@@ -589,12 +601,17 @@ const VideoEditor = ({
                     height: 40,
                   }}
                   handleChange={(trim) => {
+                    if (trim.change === 'start')
+                      videoRef.current!.currentTime = trim.start
+                    else if (trim.change === 'end') {
+                      videoRef.current!.currentTime = trim.end
+                    }
                     setClip(() => trim)
                   }}
-                  handleUpdateMarker={(time) => {
-                    videoRef.current!.currentTime = time
-                    setTime(time)
-                  }}
+                  // handleUpdateMarker={(time) => {
+                  //   videoRef.current!.currentTime = time
+                  //   setTime(time)
+                  // }}
                   duration={videoRef.current.duration || 0}
                   marker={time}
                   {...clip}
@@ -606,7 +623,7 @@ const VideoEditor = ({
       </div>
 
       <div
-        className="bg-gray-600 px-4 py-3 flex items-center justify-between"
+        className="flex items-center justify-between px-4 py-3 bg-gray-600"
         style={{ width: size.width }}
       >
         <div className="grid grid-cols-2 gap-x-3">
@@ -632,11 +649,13 @@ const VideoEditor = ({
         <DarkButton
           className="flex"
           onClick={() => {
+            if (!videoRef.current) return
             if (playing) {
-              videoRef.current?.pause()
+              videoRef.current.pause()
               setPlaying(false)
             } else {
-              videoRef.current?.play()
+              videoRef.current.currentTime = clip.start || 0
+              videoRef.current.play()
               setPlaying(true)
             }
           }}

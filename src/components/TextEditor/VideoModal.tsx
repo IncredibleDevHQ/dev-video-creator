@@ -13,7 +13,7 @@ import Dropzone from 'react-dropzone'
 import { Button, Heading, Label, TextField, Text, emitToast } from '..'
 import { useUploadFile } from '../../hooks'
 import { VideoEditor } from '../../modules/Flick/components'
-import { Transformations } from '../../modules/Flick/components/VideoEditor'
+import { Transformations } from '../../modules/Flick/editor/blocks/VideoEditor'
 
 const VideoModalSchema = Yup.object().shape({
   url: Yup.string().url().required('Required'),

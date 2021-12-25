@@ -23,6 +23,7 @@ import {
   Fragment_Status_Enum_Enum,
   Fragment_Type_Enum_Enum,
 } from '../../../generated/graphql'
+import { useTimekeeper } from '../../../hooks'
 import { canvasStore, StudioProviderProps, studioStore } from '../stores'
 
 export const ControlButton = ({
@@ -93,15 +94,7 @@ const RaiseHandsMenu = ({ participants }: { participants: any[] }) => {
   )
 }
 
-const RecordingControlsBar = ({
-  timer,
-  handleStart,
-  handleReset,
-}: {
-  timer: number
-  handleStart: () => void
-  handleReset: () => void
-}) => {
+const RecordingControlsBar = () => {
   const {
     constraints,
     upload,
@@ -120,6 +113,7 @@ const RecordingControlsBar = ({
   const [isRaiseHandsTooltip, setRaiseHandsTooltip] = useState(false)
   const [participant, setParticipant] = useState<any>()
   const [participantsArray, setParticipantsArray] = useState<any[]>([])
+  const { handleStart, handleReset, timer } = useTimekeeper(0)
 
   useEffect(() => {
     if (!participants) return

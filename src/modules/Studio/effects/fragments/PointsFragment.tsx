@@ -1,15 +1,13 @@
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
 import { Circle, Group, Rect, Text } from 'react-konva'
-import { useRecoilState, useRecoilValue } from 'recoil'
-import {
-  ListBlockProps,
-  ListItem,
-} from '../../../../components/TextEditor/utils'
-import { BlockProperties, ConfigType } from '../../../../utils/configTypes'
+import { useRecoilValue } from 'recoil'
+import { ListBlockProps, ListItem } from '../../../Flick/editor/utils/utils'
+import { BlockProperties } from '../../../../utils/configTypes'
 import Concourse, { TitleSplashProps } from '../../components/Concourse'
 import { FragmentState } from '../../components/RenderTokens'
 import { usePoint } from '../../hooks'
+import { ComputedPoint } from '../../hooks/use-point'
 import { StudioProviderProps, studioStore } from '../../stores'
 import {
   FragmentLayoutConfig,
@@ -21,7 +19,6 @@ import { TrianglePathTransition } from '../FragmentTransitions'
 const PointsFragment = ({
   viewConfig,
   dataConfig,
-  dataConfigLength,
   topLayerChildren,
   setTopLayerChildren,
   titleSplashData,
@@ -30,10 +27,10 @@ const PointsFragment = ({
   stageRef,
   layerRef,
   shortsMode,
+  isPreview,
 }: {
   viewConfig: BlockProperties
   dataConfig: ListBlockProps
-  dataConfigLength: number
   topLayerChildren: JSX.Element[]
   setTopLayerChildren: React.Dispatch<React.SetStateAction<JSX.Element[]>>
   titleSplashData?: TitleSplashProps | undefined
@@ -42,16 +39,15 @@ const PointsFragment = ({
   stageRef: React.RefObject<Konva.Stage>
   layerRef: React.RefObject<Konva.Layer>
   shortsMode: boolean
+  isPreview: boolean
 }) => {
   const { fragment, state, updatePayload, payload, addMusic } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
-  const [studio, setStudio] = useRecoilState(studioStore)
-
   const [activePointIndex, setActivePointIndex] = useState<number>(0)
   const [points, setPoints] = useState<ListItem[]>([])
 
-  const { initUsePoint, computedPoints, getNoOfLinesOfText } = usePoint()
+  const { initUsePoint, getNoOfLinesOfText } = usePoint()
 
   // const [yCoordinate, setYCoordinate] = useState<number>(0)
 
@@ -61,6 +57,8 @@ const PointsFragment = ({
   const customLayoutRef = useRef<Konva.Group>(null)
 
   // const [bgImage] = useImage(viewConfig?.background?.image || '', 'anonymous')
+
+  const [computedPoints, setComputedPoints] = useState<ComputedPoint[]>([])
 
   const [objectConfig, setObjectConfig] = useState<ObjectConfig>({
     x: 0,
@@ -74,6 +72,12 @@ const PointsFragment = ({
 
   useEffect(() => {
     if (!dataConfig) return
+    updatePayload?.({
+      activePointIndex: 0,
+    })
+    setActivePointIndex(0)
+    setPoints([])
+    setComputedPoints([])
     setObjectConfig(
       FragmentLayoutConfig({
         layout: viewConfig.layout || 'classic',
@@ -85,41 +89,27 @@ const PointsFragment = ({
   }, [dataConfig, shortsMode, viewConfig])
 
   useEffect(() => {
+    if (points.length === 0) return
     setTitleNumberOfLines(
       getNoOfLinesOfText({
         text: dataConfig.listBlock.title || fragment?.name || '',
-        availableWidth: objectConfig.width - 60,
+        availableWidth: objectConfig.width - 80,
         fontSize: 40,
-        fontFamily: 'Poppins',
-        stageWidth: objectConfig.width,
+        fontFamily: 'Gilroy',
+        fontStyle: 'normal 800',
       })
     )
-    initUsePoint({
-      points,
-      availableWidth: objectConfig.width - 150,
-      availableHeight: 220,
-      gutter: 20,
-      fontSize: 16,
-    })
+    setComputedPoints(
+      initUsePoint({
+        points,
+        availableWidth: objectConfig.width - 110,
+        availableHeight: 220,
+        gutter: 25,
+        fontSize: 16,
+        fontFamily: 'Gilroy',
+      })
+    )
   }, [objectConfig, points])
-
-  useEffect(() => {
-    setStudio({
-      ...studio,
-      controlsConfig: {
-        fragmentState,
-        noOfPoints: points.length,
-        type: ConfigType.POINTS,
-        dataConfigLength,
-      },
-    })
-  }, [state, points, fragmentState])
-
-  useEffect(() => {
-    return () => {
-      setPoints([])
-    }
-  }, [])
 
   useEffect(() => {
     if (state === 'ready') {
@@ -137,7 +127,7 @@ const PointsFragment = ({
 
   useEffect(() => {
     setActivePointIndex(payload?.activePointIndex)
-  }, [payload])
+  }, [payload?.activePointIndex])
 
   useEffect(() => {
     addMusic('points')
@@ -195,58 +185,99 @@ const PointsFragment = ({
         width={objectConfig.width - 80}
         lineHeight={1.15}
         text={dataConfig.listBlock.title || fragment?.name || ''}
-        fontStyle="normal 700"
-        fontFamily="Poppins"
+        fontStyle="normal 800"
+        fontFamily="Gilroy"
       />
       <Group
         x={objectConfig.x + 50}
-        y={objectConfig.y + 50 + 50 * titleNumberOfLines}
+        y={objectConfig.y + 25 + 50 * titleNumberOfLines}
         key="group4"
       >
-        {computedPoints.current
-          .filter((_, i) => i < activePointIndex)
-          .map((point) => (
-            <>
-              <Circle
-                key="points"
-                x={-76}
-                radius={11}
-                y={point.y + 8}
-                fillLinearGradientColorStops={
-                  viewConfig.gradient?.values || colorStops
-                }
-                fillLinearGradientStartPoint={{ x: -11, y: -11 }}
-                fillLinearGradientEndPoint={{
-                  x: 11,
-                  y: 11,
-                }}
-                ref={(ref) =>
-                  ref?.to({
-                    x: 0,
-                    duration: 0.3,
-                  })
-                }
-              />
-              <Text
-                key={point.text}
-                x={-64}
-                y={point.y}
-                align="left"
-                fontSize={16}
-                fill={viewConfig.bgColor === '#ffffff' ? '#4B5563' : '#F3F4F6'}
-                width={objectConfig.width - 180}
-                text={point.text}
-                lineHeight={1.1}
-                fontFamily="Poppins"
-                ref={(ref) =>
-                  ref?.to({
-                    x: 30,
-                    duration: 0.3,
-                  })
-                }
-              />
-            </>
-          ))}
+        {!isPreview
+          ? computedPoints
+              .filter((_, i) => i < activePointIndex)
+              .map((point) => (
+                <>
+                  <Circle
+                    key="points"
+                    x={-76}
+                    radius={11}
+                    y={point.y + 8}
+                    fillLinearGradientColorStops={
+                      viewConfig.gradient?.values || colorStops
+                    }
+                    fillLinearGradientStartPoint={{ x: -11, y: -11 }}
+                    fillLinearGradientEndPoint={{
+                      x: 11,
+                      y: 11,
+                    }}
+                    ref={(ref) =>
+                      ref?.to({
+                        x: 0,
+                        duration: 0.3,
+                      })
+                    }
+                  />
+                  <Text
+                    key={point.text}
+                    x={-64}
+                    y={point.y}
+                    align="left"
+                    fontSize={16}
+                    fill={
+                      viewConfig.bgColor === '#ffffff' ? '#4B5563' : '#F3F4F6'
+                    }
+                    // why subtracting 110 is that this group starts at x: 50 and this text starts at x: 30,
+                    // so we need to subtract 110 to get the correct x, to give 30 padding in the end too
+                    width={objectConfig.width - 110}
+                    text={point.text}
+                    // text="Run and test using one command and so on a thats all hd huusd j idhc dsi"
+                    lineHeight={1.3}
+                    fontFamily="Inter"
+                    ref={(ref) =>
+                      ref?.to({
+                        x: 30,
+                        duration: 0.3,
+                      })
+                    }
+                  />
+                </>
+              ))
+          : computedPoints.map((point) => (
+              <>
+                <Circle
+                  key="points"
+                  x={0}
+                  radius={11}
+                  y={point.y + 8}
+                  fillLinearGradientColorStops={
+                    viewConfig.gradient?.values || colorStops
+                  }
+                  fillLinearGradientStartPoint={{ x: -11, y: -11 }}
+                  fillLinearGradientEndPoint={{
+                    x: 11,
+                    y: 11,
+                  }}
+                />
+                <Text
+                  key={point.text}
+                  x={30}
+                  y={point.y}
+                  align="left"
+                  fontSize={16}
+                  fill={
+                    viewConfig.bgColor === '#ffffff' ? '#4B5563' : '#F3F4F6'
+                  }
+                  // why subtracting 110 is that this group starts at x: 50 and this text starts at x: 30,
+                  // so we need to subtract 110 to get the correct x, to give 30 padding in the end too
+                  width={objectConfig.width - 110}
+                  text={point.text}
+                  // text="Run and test using one command and so on a thats all hd huusd j idhc dsi"
+                  lineHeight={1.3}
+                  fontFamily="Inter"
+                />
+              </>
+            ))}
       </Group>
     </Group>,
   ]

@@ -1,4 +1,4 @@
-import { CommentExplanations } from '../components/TextEditor/utils'
+import { CommentExplanations } from '../modules/Flick/editor/utils/utils'
 import { FlickParticipantsFragment } from '../generated/graphql'
 
 export const allLayoutTypes = [

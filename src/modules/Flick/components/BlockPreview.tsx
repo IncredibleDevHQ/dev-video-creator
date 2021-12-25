@@ -5,7 +5,7 @@ import useMeasure, { RectReadOnly } from 'react-use-measure'
 import { Stage, Layer, Rect } from 'react-konva'
 import Modal from 'react-responsive-modal'
 import { useRecoilBridgeAcrossReactRoots_UNSTABLE } from 'recoil'
-import { Block } from '../../../components/TempTextEditor/types'
+import { Block } from '../editor/utils/utils'
 import UnifiedFragment from '../../Studio/effects/fragments/UnifiedFragment'
 import {
   ViewConfig,
@@ -519,7 +519,7 @@ const PreviewModal = ({
         modal: cx(
           'rounded-lg',
           css`
-            background-color: #fffffff !important;
+            background-color: #ffffff !important;
           `
         ),
         closeButton: css`

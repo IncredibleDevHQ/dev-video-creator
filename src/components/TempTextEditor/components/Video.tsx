@@ -18,7 +18,7 @@ import { useTimekeeper, useUploadFile } from '../../../hooks'
 import { AllowedFileExtensions } from '../../../hooks/use-upload-file'
 import VideoEditor, {
   Transformations,
-} from '../../../modules/Flick/components/VideoEditor'
+} from '../../../modules/Flick/editor/blocks/VideoEditor'
 import { getSeekableWebM } from '../../../utils/helpers'
 import { VideoBlockProps } from '../types'
 
@@ -229,6 +229,8 @@ const AddVideo = ({
       center
       open={open}
       onClose={() => {
+        stopRecording()
+        handleReset()
         setCurrentView('select')
         handleClose()
       }}

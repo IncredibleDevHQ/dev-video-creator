@@ -2,10 +2,9 @@ import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
 import { Group } from 'react-konva'
 import { useRecoilState, useRecoilValue } from 'recoil'
-import { VideoBlockProps } from '../../../../components/TextEditor/utils'
+import { VideoBlockProps } from '../../../Flick/editor/utils/utils'
 import { Fragment_Status_Enum_Enum } from '../../../../generated/graphql'
-import { BlockProperties, ConfigType } from '../../../../utils/configTypes'
-import { Transformations } from '../../../Flick/components/VideoEditor'
+import { BlockProperties } from '../../../../utils/configTypes'
 import Concourse, { TitleSplashProps } from '../../components/Concourse'
 import { FragmentState } from '../../components/RenderTokens'
 import { Video, VideoConfig } from '../../components/Video'
@@ -16,11 +15,11 @@ import {
 } from '../../utils/FragmentLayoutConfig'
 import { StudioUserConfiguration } from '../../utils/StudioUserConfig'
 import { TrianglePathTransition } from '../FragmentTransitions'
+import { Transformations } from '../../../Flick/editor/blocks/VideoEditor'
 
 const VideoFragment = ({
   viewConfig,
   dataConfig,
-  dataConfigLength,
   topLayerChildren,
   setTopLayerChildren,
   titleSplashData,
@@ -32,7 +31,6 @@ const VideoFragment = ({
 }: {
   viewConfig: BlockProperties
   dataConfig: VideoBlockProps
-  dataConfigLength: number
   topLayerChildren: JSX.Element[]
   setTopLayerChildren: React.Dispatch<React.SetStateAction<JSX.Element[]>>
   titleSplashData?: TitleSplashProps | undefined
@@ -88,14 +86,10 @@ const VideoFragment = ({
     setStudio({
       ...studio,
       controlsConfig: {
-        playing,
         videoElement,
-        fragmentState,
-        type: ConfigType.VIDEOJAM,
-        dataConfigLength,
       },
     })
-  }, [state, dataConfig, videoElement, fragmentState, playing])
+  }, [state, dataConfig, videoElement])
 
   useEffect(() => {
     if (!videoElement) return
