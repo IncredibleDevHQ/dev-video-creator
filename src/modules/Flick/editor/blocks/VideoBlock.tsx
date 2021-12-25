@@ -8,11 +8,20 @@ import {
 } from '@tiptap/react'
 import Konva from 'konva'
 import React, { useEffect, useState } from 'react'
-import { FiPause, FiPlay, FiRepeat, FiEdit, FiTrash } from 'react-icons/fi'
+import Dropzone from 'react-dropzone'
+import {
+  FiEdit,
+  FiPause,
+  FiPlay,
+  FiRepeat,
+  FiTrash,
+  FiUploadCloud,
+} from 'react-icons/fi'
 import { Group, Layer, Stage } from 'react-konva'
-import AddVideo from './AddVideo'
 import Tooltip from '../../../../components/Tooltip'
 import { Video, VideoConfig } from '../../../Studio/components/Video'
+import AddVideo from './AddVideo'
+import { Text } from '../../../../components'
 
 const size = {
   width: 960,
@@ -33,7 +42,7 @@ const VideoTooltip = ({
   retakeVideo: (val: boolean) => void
 }) => {
   return (
-    <div className="bg-gray-800 flex items-center p-2 text-gray-200 rounded-md">
+    <div className="flex items-center p-2 text-gray-200 bg-gray-800 rounded-md">
       <FiEdit
         size={20}
         className="mx-1 cursor-pointer hover:text-gray-50"
@@ -114,6 +123,74 @@ const VideoBlock = (props: any) => {
       videoRef.current?.pause()
     }
   }, [playing])
+
+  if (!props.node.attrs.src)
+    return (
+      <NodeViewWrapper>
+        <Dropzone
+          onDrop={undefined}
+          accept={`${props.node.attrs.type}/*`}
+          maxFiles={1}
+        >
+          {({ getRootProps, getInputProps }) => (
+            <div
+              tabIndex={-1}
+              onKeyUp={() => {}}
+              role="button"
+              className="flex flex-col items-center p-12 my-3 border border-gray-200 border-dashed rounded-md cursor-pointer"
+              {...getRootProps()}
+              onClick={() => {
+                setRetakeVideo(true)
+              }}
+            >
+              <input {...getInputProps()} />
+              <FiUploadCloud size={24} className="my-2" />
+
+              <div className="z-50 text-center text-black">
+                <Text contentEditable={false} fontSize="small">
+                  Drag and drop {props.node.attrs.type} or
+                </Text>
+                <Text
+                  contentEditable={false}
+                  fontSize="small"
+                  className="font-semibold"
+                >
+                  browse
+                </Text>
+                <div className="hidden">
+                  <NodeViewContent />
+                </div>
+              </div>
+            </div>
+          )}
+        </Dropzone>
+        {(editVideo || retakeVideo) && (
+          <AddVideo
+            open={editVideo || retakeVideo}
+            initialValue={{
+              url: props.node.attrs.src as string,
+              transformations: JSON.parse(
+                props.node.attrs['data-transformations']
+              ),
+            }}
+            shouldResetWhenOpened={retakeVideo}
+            handleClose={() => {
+              setEditVideo(false)
+              setRetakeVideo(false)
+            }}
+            handleUpdateVideo={(url, transformations) => {
+              props.updateAttributes({
+                src: url,
+                'data-transformations': JSON.stringify(transformations),
+              })
+            }}
+          />
+        )}
+        <div className="hidden">
+          <NodeViewContent />
+        </div>
+      </NodeViewWrapper>
+    )
 
   return (
     <NodeViewWrapper>

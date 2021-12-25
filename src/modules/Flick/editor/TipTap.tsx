@@ -97,7 +97,7 @@ const TipTap = ({
 
   useEffect(() => {
     if (!initialContent || !editor) return
-    editor.commands.setContent(utils.getEditorState(initialContent))
+    editor.commands.setContent(utils.getEditorJSON(initialContent))
     setAST(initialContent)
   }, [editor])
 

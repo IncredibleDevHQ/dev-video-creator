@@ -186,8 +186,20 @@ const Preview = ({
   }, [camera])
 
   useEffect(() => {
-    setDevice('camera', devices.videoDevices?.[0] || null)
-    setDevice('microphone', devices.audioDevices?.[0] || null)
+    const lsCamera = localStorage.getItem('preferred-camera')
+    const preferredCamera = lsCamera
+      ? devices.videoDevices.find(({ id }) => lsCamera === id)
+      : null
+    setDevice('camera', preferredCamera || devices.videoDevices?.[0] || null)
+
+    const lsMicrophone = localStorage.getItem('preferred-microphone')
+    const preferredMicrophone = lsMicrophone
+      ? devices.audioDevices.find(({ id }) => lsMicrophone === id)
+      : null
+    setDevice(
+      'microphone',
+      preferredMicrophone || devices.audioDevices?.[0] || null
+    )
   }, [ready])
 
   useEffect(() => {
@@ -228,6 +240,14 @@ const Preview = ({
       microphoneStream?.getTracks().forEach((track) => track.stop())
     }
   }, [microphoneStream])
+
+  const join = () => {
+    if (camera?.id) localStorage.setItem('preferred-camera', camera.id)
+    if (microphone?.id)
+      localStorage.setItem('preferred-microphone', microphone.id)
+
+    handleJoin({ microphone, camera })
+  }
 
   if (permissions.camera === 'prompt') {
     return (
@@ -391,7 +411,7 @@ const Preview = ({
             size="extraSmall"
             appearance="primary"
             type="button"
-            onClick={() => handleJoin({ microphone, camera })}
+            onClick={join}
           >
             Join now
           </Button>
