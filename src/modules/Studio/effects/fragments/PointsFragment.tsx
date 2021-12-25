@@ -27,6 +27,7 @@ const PointsFragment = ({
   stageRef,
   layerRef,
   shortsMode,
+  isPreview,
 }: {
   viewConfig: BlockProperties
   dataConfig: ListBlockProps
@@ -38,6 +39,7 @@ const PointsFragment = ({
   stageRef: React.RefObject<Konva.Stage>
   layerRef: React.RefObject<Konva.Layer>
   shortsMode: boolean
+  isPreview: boolean
 }) => {
   const { fragment, state, updatePayload, payload, addMusic } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
@@ -73,6 +75,7 @@ const PointsFragment = ({
     updatePayload?.({
       activePointIndex: 0,
     })
+    setActivePointIndex(0)
     setPoints([])
     setComputedPoints([])
     setObjectConfig(
@@ -124,7 +127,7 @@ const PointsFragment = ({
 
   useEffect(() => {
     setActivePointIndex(payload?.activePointIndex)
-  }, [payload])
+  }, [payload?.activePointIndex])
 
   useEffect(() => {
     addMusic('points')
@@ -190,53 +193,91 @@ const PointsFragment = ({
         y={objectConfig.y + 25 + 50 * titleNumberOfLines}
         key="group4"
       >
-        {computedPoints
-          .filter((_, i) => i < activePointIndex)
-          .map((point) => (
-            <>
-              <Circle
-                key="points"
-                x={-76}
-                radius={11}
-                y={point.y + 8}
-                fillLinearGradientColorStops={
-                  viewConfig.gradient?.values || colorStops
-                }
-                fillLinearGradientStartPoint={{ x: -11, y: -11 }}
-                fillLinearGradientEndPoint={{
-                  x: 11,
-                  y: 11,
-                }}
-                ref={(ref) =>
-                  ref?.to({
-                    x: 0,
-                    duration: 0.3,
-                  })
-                }
-              />
-              <Text
-                key={point.text}
-                x={-64}
-                y={point.y}
-                align="left"
-                fontSize={16}
-                fill={viewConfig.bgColor === '#ffffff' ? '#4B5563' : '#F3F4F6'}
-                // why subtracting 110 is that this group starts at x: 50 and this text starts at x: 30,
-                // so we need to subtract 110 to get the correct x, to give 30 padding in the end too
-                width={objectConfig.width - 110}
-                text={point.text}
-                // text="Run and test using one command and so on a thats all hd huusd j idhc dsi"
-                lineHeight={1.3}
-                fontFamily="Inter"
-                ref={(ref) =>
-                  ref?.to({
-                    x: 30,
-                    duration: 0.3,
-                  })
-                }
-              />
-            </>
-          ))}
+        {!isPreview
+          ? computedPoints
+              .filter((_, i) => i < activePointIndex)
+              .map((point) => (
+                <>
+                  <Circle
+                    key="points"
+                    x={-76}
+                    radius={11}
+                    y={point.y + 8}
+                    fillLinearGradientColorStops={
+                      viewConfig.gradient?.values || colorStops
+                    }
+                    fillLinearGradientStartPoint={{ x: -11, y: -11 }}
+                    fillLinearGradientEndPoint={{
+                      x: 11,
+                      y: 11,
+                    }}
+                    ref={(ref) =>
+                      ref?.to({
+                        x: 0,
+                        duration: 0.3,
+                      })
+                    }
+                  />
+                  <Text
+                    key={point.text}
+                    x={-64}
+                    y={point.y}
+                    align="left"
+                    fontSize={16}
+                    fill={
+                      viewConfig.bgColor === '#ffffff' ? '#4B5563' : '#F3F4F6'
+                    }
+                    // why subtracting 110 is that this group starts at x: 50 and this text starts at x: 30,
+                    // so we need to subtract 110 to get the correct x, to give 30 padding in the end too
+                    width={objectConfig.width - 110}
+                    text={point.text}
+                    // text="Run and test using one command and so on a thats all hd huusd j idhc dsi"
+                    lineHeight={1.3}
+                    fontFamily="Inter"
+                    ref={(ref) =>
+                      ref?.to({
+                        x: 30,
+                        duration: 0.3,
+                      })
+                    }
+                  />
+                </>
+              ))
+          : computedPoints.map((point) => (
+              <>
+                <Circle
+                  key="points"
+                  x={0}
+                  radius={11}
+                  y={point.y + 8}
+                  fillLinearGradientColorStops={
+                    viewConfig.gradient?.values || colorStops
+                  }
+                  fillLinearGradientStartPoint={{ x: -11, y: -11 }}
+                  fillLinearGradientEndPoint={{
+                    x: 11,
+                    y: 11,
+                  }}
+                />
+                <Text
+                  key={point.text}
+                  x={30}
+                  y={point.y}
+                  align="left"
+                  fontSize={16}
+                  fill={
+                    viewConfig.bgColor === '#ffffff' ? '#4B5563' : '#F3F4F6'
+                  }
+                  // why subtracting 110 is that this group starts at x: 50 and this text starts at x: 30,
+                  // so we need to subtract 110 to get the correct x, to give 30 padding in the end too
+                  width={objectConfig.width - 110}
+                  text={point.text}
+                  // text="Run and test using one command and so on a thats all hd huusd j idhc dsi"
+                  lineHeight={1.3}
+                  fontFamily="Inter"
+                />
+              </>
+            ))}
       </Group>
     </Group>,
   ]
