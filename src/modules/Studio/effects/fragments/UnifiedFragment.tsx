@@ -27,6 +27,7 @@ import CodeFragment from './CodeFragment'
 import PointsFragment from './PointsFragment'
 import TriviaFragment from './TriviaFragment'
 import VideoFragment from './VideoFragment'
+import { Fragment_Status_Enum_Enum } from '../../../../generated/graphql'
 
 const UnifiedFragment = ({
   stageRef,
@@ -59,8 +60,6 @@ const UnifiedFragment = ({
   })
 
   // data config holds all the info abt the object
-  // const [dataConfig, setDataConfig] =
-  //   useState<(CodejamConfig | VideojamConfig | TriviaConfig | PointsConfig)[]>()
   const [dataConfig, setDataConfig] = useState<Block[]>()
   // view config holds all the info abt the view of the canvas
   const [viewConfig, setViewConfig] = useState<ViewConfig>()
@@ -70,6 +69,8 @@ const UnifiedFragment = ({
   // state of the fragment
   const [fragmentState, setFragmentState] =
     useState<FragmentState>('onlyUserMedia')
+
+  const [isPreview, setIsPreview] = useState(false)
 
   // state which stores the layer children which have to be placed over the studio user
   const [topLayerChildren, setTopLayerChildren] = useState<JSX.Element[]>([])
@@ -98,11 +99,13 @@ const UnifiedFragment = ({
   useEffect(() => {
     if (!fragment) return
     if (!config) {
+      setIsPreview(false)
       if (fragment.configuration && fragment.editorState) {
         setDataConfig(fragment.editorState?.blocks)
         setViewConfig(fragment.configuration)
       }
     } else {
+      setIsPreview(true)
       setDataConfig(config)
       setViewConfig(layoutConfig)
     }
@@ -121,6 +124,20 @@ const UnifiedFragment = ({
   useEffect(() => {
     setActiveObjectIndex(payload?.activeObjectIndex)
   }, [payload])
+
+  useEffect(() => {
+    return () => {
+      updatePayload?.({
+        activePointIndex: 0,
+        currentIndex: 0,
+        currentTime: 1,
+        isFocus: false,
+        playing: false,
+        prevIndex: 0,
+        status: Fragment_Status_Enum_Enum.NotStarted,
+      })
+    }
+  }, [])
 
   useEffect(() => {
     if (state === 'ready') {
@@ -218,7 +235,6 @@ const UnifiedFragment = ({
         return [CONFIG.width - 170]
     }
   })()
-
   useEffect(() => {
     if (activeObjectIndex !== 0)
       setTitleSplashData({ ...titleSplashData, enable: false })
@@ -253,6 +269,7 @@ const UnifiedFragment = ({
                 stageRef={stageRef}
                 layerRef={layerRef}
                 shortsMode={viewConfig.mode === 'Portrait'}
+                isPreview={isPreview}
               />
             )
           }
@@ -314,6 +331,7 @@ const UnifiedFragment = ({
                 stageRef={stageRef}
                 layerRef={layerRef}
                 shortsMode={viewConfig.mode === 'Portrait'}
+                isPreview={isPreview}
               />
             )
           }
