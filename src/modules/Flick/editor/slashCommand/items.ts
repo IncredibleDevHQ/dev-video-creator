@@ -111,7 +111,7 @@ export const getSuggestionItems = (props: {
           .focus()
           .deleteRange(range)
           .insertContent(
-            '<slab type="video"><h2></h2><p></p><upload type="video"></p></upload><note><p></p></note></slab><p></p>'
+            '<slab type="video"><h2></h2><p></p><video><p></p></video><note><p></p></note></slab><p></p>'
           )
           .run()
       },
