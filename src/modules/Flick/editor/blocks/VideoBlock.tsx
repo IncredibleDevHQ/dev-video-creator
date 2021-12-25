@@ -73,7 +73,9 @@ const VideoBlock = (props: any) => {
   const [videoConfig, setVideoConfig] = useState<VideoConfig>()
 
   const deleteVideo = () => {
-    props.deleteNode()
+    props.updateAttributes({
+      src: null,
+    })
   }
 
   useEffect(() => {
@@ -186,9 +188,6 @@ const VideoBlock = (props: any) => {
             }}
           />
         )}
-        <div className="hidden">
-          <NodeViewContent />
-        </div>
       </NodeViewWrapper>
     )
 
@@ -290,7 +289,7 @@ export default Node.create({
 
   group: 'block',
 
-  content: 'block',
+  content: 'block*',
 
   // atom: true,
 
