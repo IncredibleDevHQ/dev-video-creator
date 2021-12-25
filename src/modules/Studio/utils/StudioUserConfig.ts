@@ -132,7 +132,7 @@ export const StudioUserConfiguration = ({
             borderWidth: 0,
             studioUserClipConfig: {
               x: 120,
-              y: 5,
+              y: 0,
               width: 400,
               height: 480,
               radius: 8,
@@ -147,7 +147,7 @@ export const StudioUserConfiguration = ({
             borderWidth: 0,
             studioUserClipConfig: {
               x: 120,
-              y: 5,
+              y: 0,
               width: 400,
               height: 480,
               radius: 8,
