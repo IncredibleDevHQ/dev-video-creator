@@ -61,6 +61,20 @@ const VideoFragment = ({
     borderRadius: 0,
   })
 
+  useEffect(() => {
+    updatePayload?.({
+      playing: false,
+      currentTime: transformations?.clip?.start || 0,
+    })
+    return () => {
+      videoElement?.pause()
+      updatePayload?.({
+        playing: false,
+        currentTime: transformations?.clip?.start || 0,
+      })
+    }
+  }, [])
+
   const videoElement = React.useMemo(() => {
     if (!dataConfig) return
     const element = document.createElement('video')
@@ -86,10 +100,11 @@ const VideoFragment = ({
     setStudio({
       ...studio,
       controlsConfig: {
+        playing,
         videoElement,
       },
     })
-  }, [state, dataConfig, videoElement])
+  }, [state, dataConfig, videoElement, playing])
 
   useEffect(() => {
     if (!videoElement) return
