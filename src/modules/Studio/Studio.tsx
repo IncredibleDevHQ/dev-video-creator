@@ -969,7 +969,7 @@ const Studio = ({
                     case 'videoBlock':
                       return (
                         <VideoJamControls
-                          playing={payload?.playing || false}
+                          playing={controlsConfig?.playing}
                           videoElement={controlsConfig?.videoElement}
                           fragmentState={payload?.fragmentState}
                         />
