@@ -112,6 +112,7 @@
     "ts-ebml": "^2.0.2",
     "use-debounce": "^7.0.0",
     "use-image": "^1.0.8",
+    "use-interval": "^1.4.0",
     "use-screen-recorder": "^1.0.2",
     "video.js": "^7.14.3",
     "videojs-brand": "^0.0.4",

@@ -163,7 +163,7 @@ export const VideoJamControls = ({
             const next = !playing
             updatePayload?.({
               playing: next,
-              currentTime: videoElement?.currentTime,
+              currentTime: videoElement?.currentTime || 0,
             })
           }}
         />
