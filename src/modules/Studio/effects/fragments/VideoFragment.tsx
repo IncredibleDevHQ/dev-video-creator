@@ -3,7 +3,6 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Group } from 'react-konva'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import { VideoBlockProps } from '../../../Flick/editor/utils/utils'
-import { Fragment_Status_Enum_Enum } from '../../../../generated/graphql'
 import { BlockProperties } from '../../../../utils/configTypes'
 import Concourse, { TitleSplashProps } from '../../components/Concourse'
 import { FragmentState } from '../../components/RenderTokens'
@@ -114,6 +113,7 @@ const VideoFragment = ({
           playing: false,
           currentTime: transformations?.clip?.start || 0,
         })
+        videoElement.currentTime = transformations?.clip?.start || 0
         setTopLayerChildren([])
         break
       default:
@@ -121,9 +121,10 @@ const VideoFragment = ({
           playing: false,
           currentTime: transformations?.clip?.start || 0,
         })
+        videoElement.currentTime = transformations?.clip?.start || 0
         setTopLayerChildren([])
     }
-  }, [state, transformations])
+  }, [state, transformations, videoElement])
 
   // performing trim operation
   // on end time, reinitialize the video element's current time to start time
@@ -152,11 +153,6 @@ const VideoFragment = ({
       }
     }
   }, [payload?.playing])
-
-  useEffect(() => {
-    if (videoElement && payload?.status === Fragment_Status_Enum_Enum.Live)
-      videoElement.currentTime = 0
-  }, [payload?.status])
 
   useEffect(() => {
     // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
