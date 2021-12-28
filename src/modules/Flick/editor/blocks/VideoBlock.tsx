@@ -291,7 +291,7 @@ export default Node.create({
 
   content: 'block*',
 
-  // atom: true,
+  atom: true,
 
   parseHTML() {
     return [

@@ -77,7 +77,7 @@ const FragmentSideBar = ({ plateValue }: { plateValue: any }) => {
           <Text className="text-sm font-bold">Intro</Text>
         </button>
         <div className="border-b-2" />
-        <div
+        {/* <div
           role="button"
           onKeyUp={() => {}}
           tabIndex={-1}
@@ -102,7 +102,7 @@ const FragmentSideBar = ({ plateValue }: { plateValue: any }) => {
           >
             <Text className="text-sm">New Fragment</Text>
           </Button>
-        </div>
+        </div> */}
         <ThumbnailDND />
         <div className="mt-auto border-t-2" />
         <button
@@ -314,7 +314,7 @@ const Thumbnail = ({
       {fragment.producedLink && (
         <IoCheckmarkCircle className="absolute top-0 right-0 m-2 text-green-600" />
       )}
-      {overflowButtonVisible && (
+      {/* {overflowButtonVisible && (
         <div
           role="button"
           onKeyUp={() => {}}
@@ -327,7 +327,7 @@ const Thumbnail = ({
         >
           <FiMoreHorizontal />
         </div>
-      )}
+      )} */}
       <Tooltip
         isOpen={overflowMenuVisible}
         setIsOpen={setOverflowMenuVisible}

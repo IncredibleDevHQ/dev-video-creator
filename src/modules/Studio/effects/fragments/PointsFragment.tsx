@@ -80,7 +80,7 @@ const PointsFragment = ({
     setComputedPoints([])
     setObjectConfig(
       FragmentLayoutConfig({
-        layout: viewConfig.layout || 'classic',
+        layout: viewConfig?.layout || 'classic',
         isShorts: shortsMode || false,
       })
     )
@@ -171,9 +171,9 @@ const PointsFragment = ({
         y={objectConfig.y}
         width={objectConfig.width}
         height={objectConfig.height}
-        fill={viewConfig.bgColor || '#1F2937'}
+        fill={viewConfig?.bgColor || '#1F2937'}
         cornerRadius={objectConfig.borderRadius}
-        opacity={viewConfig.bgOpacity}
+        opacity={viewConfig?.bgOpacity || 1}
       />
       <Text
         key="fragmentTitle"
@@ -181,7 +181,7 @@ const PointsFragment = ({
         y={objectConfig.y + 32}
         align="left"
         fontSize={40}
-        fill={viewConfig.bgColor === '#ffffff' ? '#1F2937' : '#E5E7EB'}
+        fill={viewConfig?.bgColor === '#ffffff' ? '#1F2937' : '#E5E7EB'}
         width={objectConfig.width - 80}
         lineHeight={1.15}
         text={dataConfig.listBlock.title || fragment?.name || ''}
@@ -204,7 +204,7 @@ const PointsFragment = ({
                     radius={11}
                     y={point.y + 8}
                     fillLinearGradientColorStops={
-                      viewConfig.gradient?.values || colorStops
+                      viewConfig?.gradient?.values || colorStops
                     }
                     fillLinearGradientStartPoint={{ x: -11, y: -11 }}
                     fillLinearGradientEndPoint={{
@@ -225,7 +225,7 @@ const PointsFragment = ({
                     align="left"
                     fontSize={16}
                     fill={
-                      viewConfig.bgColor === '#ffffff' ? '#4B5563' : '#F3F4F6'
+                      viewConfig?.bgColor === '#ffffff' ? '#4B5563' : '#F3F4F6'
                     }
                     // why subtracting 110 is that this group starts at x: 50 and this text starts at x: 30,
                     // so we need to subtract 110 to get the correct x, to give 30 padding in the end too
@@ -251,7 +251,7 @@ const PointsFragment = ({
                   radius={11}
                   y={point.y + 8}
                   fillLinearGradientColorStops={
-                    viewConfig.gradient?.values || colorStops
+                    viewConfig?.gradient?.values || colorStops
                   }
                   fillLinearGradientStartPoint={{ x: -11, y: -11 }}
                   fillLinearGradientEndPoint={{
@@ -266,7 +266,7 @@ const PointsFragment = ({
                   align="left"
                   fontSize={16}
                   fill={
-                    viewConfig.bgColor === '#ffffff' ? '#4B5563' : '#F3F4F6'
+                    viewConfig?.bgColor === '#ffffff' ? '#4B5563' : '#F3F4F6'
                   }
                   // why subtracting 110 is that this group starts at x: 50 and this text starts at x: 30,
                   // so we need to subtract 110 to get the correct x, to give 30 padding in the end too
@@ -283,11 +283,11 @@ const PointsFragment = ({
   ]
 
   const studioUserConfig = StudioUserConfiguration({
-    layout: viewConfig.layout || 'classic',
+    layout: viewConfig?.layout || 'classic',
     fragment,
     fragmentState,
     isShorts: shortsMode || false,
-    bgGradientId: viewConfig.gradient?.id || 1,
+    bgGradientId: viewConfig?.gradient?.id || 1,
   })
 
   return (

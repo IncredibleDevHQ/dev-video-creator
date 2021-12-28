@@ -12,8 +12,7 @@ import { IoPersonOutline } from 'react-icons/io5'
 import { useHistory, useParams } from 'react-router-dom'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import { useDebouncedCallback } from 'use-debounce'
-import { ScreenState, TempTextEditor, Text, Tooltip } from '../../components'
-import { Block, Position } from './editor/utils/utils'
+import { ScreenState, Text, Tooltip } from '../../components'
 import {
   FlickFragmentFragment,
   FlickParticipantsFragment,
@@ -49,6 +48,7 @@ import IntroOutroView, {
 } from './components/IntroOutroView'
 import { FragmentTypeIcon } from './components/LayoutGeneric'
 import TipTap from './editor/TipTap'
+import { Block, Position, useUtils } from './editor/utils/utils'
 import { newFlickStore } from './store/flickNew.store'
 
 const initialConfig: ViewConfig = {
@@ -172,6 +172,7 @@ const Flick = () => {
   })
 
   const history = useHistory()
+  const utils = useUtils()
 
   const [currentBlock, setCurrentBlock] = useState<Block>()
   const [viewConfig, setViewConfig] = useState<ViewConfig>(initialConfig)
@@ -179,6 +180,7 @@ const Flick = () => {
     useState<IntroOutroConfiguration>(defaultIntroOutroConfiguration)
   const [initialPlateValue, setInitialPlateValue] = useState<any>('')
   const [plateValue, setPlateValue] = useState<any>()
+  const [editorValue, setEditorValue] = useState<string>()
   const [integrationModal, setIntegrationModal] = useState(false)
 
   const [previewPosition, setPreviewPosition] = useState<Position>()
@@ -291,7 +293,10 @@ const Flick = () => {
           setInitialPlateValue('')
         else setInitialPlateValue(fragment?.editorState || '')
       }
-      setPlateValue(fragment?.editorState)
+      // setPlateValue(
+      //   fragment?.editorState ? utils.getSimpleAST(fragment?.editorState) : ''
+      // )
+      setEditorValue(flick.md || '')
     } else {
       setIntroOutroConfiguration(
         fragment?.configuration || defaultIntroOutroConfiguration
@@ -415,14 +420,15 @@ const Flick = () => {
     )
 
   return (
-    <div className="relative flex flex-col h-screen overflow-hidden">
+    <div className="relative flex flex-col w-screen h-screen overflow-hidden">
       <FlickNavBar toggleModal={setIntegrationModal} />
       <div className="flex flex-1 overflow-hidden">
         <FragmentSideBar plateValue={plateValue} />
         <div className={cx('flex-1 h-full pb-12 sticky top-0')}>
           <FragmentBar
-            markdown={fragmentMarkdown}
             plateValue={plateValue}
+            markdown={fragmentMarkdown}
+            editorValue={editorValue}
             config={viewConfig}
             setViewConfig={setViewConfig}
             introConfig={introOutroConfiguration}
@@ -518,10 +524,11 @@ const Flick = () => {
                       handleUpdatePosition={(position) => {
                         setPreviewPosition(position)
                       }}
-                      handleUpdateAst={(ast) => {
+                      handleUpdateAst={(ast, editorState) => {
                         setPlateValue(ast)
+                        setEditorValue(editorState)
                       }}
-                      initialContent={activeFragment.editorState}
+                      initialContent={flick.md || ''}
                       handleActiveBlock={(block) => {
                         setCurrentBlock(block)
                       }}
@@ -547,10 +554,19 @@ const Flick = () => {
                   </div>
                 </div>
                 {plateValue?.blocks?.length > 0 && (
-                  <div className="fixed z-10 flex items-center justify-start p-2 mx-8 mb-4 border rounded-md bg-gray-50 bottom-4">
+                  <div
+                    className={cx(
+                      'fixed w-9/12 z-10 flex items-center justify-start p-2 mx-8 mb-4 overflow-x-scroll border rounded-md bg-gray-50 bottom-4',
+                      css`
+                        ::-webkit-scrollbar {
+                          display: none;
+                        }
+                      `
+                    )}
+                  >
                     <div
                       className={cx(
-                        'px-4 py-2 w-32 h-16 border border-r-2 group relative',
+                        'px-4 py-2 w-32 h-16 border border-r-2 group relative flex-shrink-0',
                         css`
                           background: ${viewConfig.titleSplash
                             ?.titleSplashConfig?.cssString};
@@ -621,7 +637,7 @@ const Flick = () => {
                         Title
                       </div>
                     </div>
-                    <div className="relative w-32 h-16 px-4 py-2 bg-gray-100 border border-r-2">
+                    <div className="relative w-32 h-16 px-4 py-2 bg-gray-100 border border-r-2 flex-shrink-0">
                       <FiRefreshCcw
                         size={20}
                         className="absolute z-10 p-1 transform -translate-y-1/2 bg-white rounded-sm -right-3 top-1/2"
@@ -631,18 +647,20 @@ const Flick = () => {
                       </div>
                     </div>
                     {plateValue?.blocks?.map((block: Block) => (
-                      <div className="relative w-32 h-16 px-4 py-2 bg-gray-100 border border-r-2">
-                        <div
-                          className={cx(
-                            'border rounded-md flex justify-center items-center w-full h-full p-2',
-                            {
-                              'border-brand': block.id === currentBlock?.id,
-                            }
-                          )}
-                        >
-                          <FragmentTypeIcon type={block.type} />
+                      <a href={`#${block.id}`}>
+                        <div className="relative w-32 h-16 px-4 py-2 bg-gray-100 border border-r-2 flex-shrink-0 ">
+                          <div
+                            className={cx(
+                              'border rounded-md flex justify-center items-center w-full h-full p-2',
+                              {
+                                'border-brand': block.id === currentBlock?.id,
+                              }
+                            )}
+                          >
+                            <FragmentTypeIcon type={block.type} />
+                          </div>
                         </div>
-                      </div>
+                      </a>
                     ))}
                   </div>
                 )}

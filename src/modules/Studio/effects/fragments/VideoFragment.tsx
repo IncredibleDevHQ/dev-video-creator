@@ -72,7 +72,7 @@ const VideoFragment = ({
 
     setObjectConfig(
       FragmentLayoutConfig({
-        layout: viewConfig.layout || 'classic',
+        layout: viewConfig?.layout || 'classic',
         isShorts: shortsMode || false,
       })
     )
@@ -199,11 +199,11 @@ const VideoFragment = ({
   ]
 
   const studioUserConfig = StudioUserConfiguration({
-    layout: viewConfig.layout || 'classic',
+    layout: viewConfig?.layout || 'classic',
     fragment,
     fragmentState,
     isShorts: shortsMode || false,
-    bgGradientId: viewConfig.gradient?.id || 1,
+    bgGradientId: viewConfig?.gradient?.id || 1,
   })
 
   return (
