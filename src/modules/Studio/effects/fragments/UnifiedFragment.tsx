@@ -276,6 +276,7 @@ const UnifiedFragment = ({
           case 'videoBlock': {
             return (
               <VideoFragment
+                key={activeObjectIndex}
                 dataConfig={dataConfig[activeObjectIndex] as VideoBlockProps}
                 viewConfig={
                   viewConfig.blocks[
