@@ -1,10 +1,9 @@
-/* eslint-disable no-console */
 import { css, cx } from '@emotion/css'
 import UniqueID from '@tiptap-pro/extension-unique-id'
 import Placeholder from '@tiptap/extension-placeholder'
 import { EditorContent, useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import CodeBlock from './blocks/CodeBlock'
 import ImageBlock from './blocks/ImageBlock'
 import NoteBlock from './blocks/NoteBlock'
@@ -14,6 +13,7 @@ import VideoBlock from './blocks/VideoBlock'
 import { getSuggestionItems } from './slashCommand/items'
 import renderItems from './slashCommand/renderItems'
 import { SlashCommands } from './slashCommand/SlashCommands'
+import CustomTypography from './utils/typography'
 import { Block, Position, SimpleAST, useUtils } from './utils/utils'
 
 const TipTap = ({
@@ -23,8 +23,8 @@ const TipTap = ({
   initialContent,
 }: {
   handleUpdatePosition?: (position: Position) => void
-  handleUpdateAst?: (ast: SimpleAST) => void
-  initialContent?: SimpleAST
+  handleUpdateAst?: (ast: SimpleAST, content: string) => void
+  initialContent?: string
   handleActiveBlock?: (block?: Block) => void
 }) => {
   const utils = useUtils()
@@ -34,22 +34,35 @@ const TipTap = ({
     onUpdate: ({ editor }) => {
       const simpleAST = utils.getSimpleAST(editor.getJSON())
       setAST(simpleAST)
-      handleUpdateAst?.(simpleAST)
+      handleUpdate()
+      handleUpdateAst?.(simpleAST, editor.getHTML())
     },
     editorProps: {
       attributes: {
-        class: cx('w-full h-full border-none focus:outline-none p-2', styles),
+        class: cx(
+          'prose max-w-none w-full h-full border-none focus:outline-none p-2',
+          styles2
+        ),
       },
     },
     autofocus: true,
     extensions: [
       UniqueID.configure({
-        types: ['slab'],
+        attributeName: 'id',
+        types: [
+          'paragraph',
+          'blockquote',
+          'heading',
+          'bulletList',
+          'codeBlock',
+          'video',
+        ],
       }),
+      CustomTypography,
       StarterKit.configure({
         codeBlock: false,
         heading: {
-          levels: [2],
+          levels: [1, 2, 3],
         },
         bulletList: {
           itemTypeName: 'listItem',
@@ -66,13 +79,13 @@ const TipTap = ({
         includeChildren: true,
         showOnlyCurrent: false,
         emptyEditorClass: 'is-editor-empty',
-        placeholder: ({ node }) => {
+        placeholder: ({ node, editor }) => {
           const headingPlaceholders: {
             [key: number]: string
           } = {
-            1: 'Heading',
-            2: 'Heading',
-            3: 'Heading',
+            1: 'Heading 1',
+            2: 'Heading 2',
+            3: 'Heading 3',
           }
 
           if (node.type.name === 'heading') {
@@ -80,11 +93,20 @@ const TipTap = ({
             return headingPlaceholders[level]
           }
 
-          return 'Type "/" to get started'
+          if (
+            node.type.name === 'paragraph' &&
+            editor.getJSON().content?.length === 1
+          ) {
+            return 'Type / to get started'
+          }
+
+          return ''
         },
       }),
       CodeBlock,
-      ImageBlock,
+      ImageBlock.configure({
+        inline: true,
+      }),
       VideoBlock,
       UploadBlock,
       Slab,
@@ -97,16 +119,44 @@ const TipTap = ({
 
   useEffect(() => {
     if (!initialContent || !editor) return
-    editor.commands.setContent(utils.getEditorJSON(initialContent))
-    setAST(initialContent)
+
+    editor.commands.setContent(initialContent)
+    const simpleAST = utils.getSimpleAST(editor.getJSON())
+    handleUpdate()
+    handleUpdateAst?.(simpleAST, editor.getHTML())
+    setAST(simpleAST)
+  }, [editor])
+
+  const handleUpdate = useCallback(() => {
+    if (!editor) return
+
+    const transaction = editor.state.tr
+
+    editor.state.doc.descendants((node, pos) => {
+      const { id } = node.attrs
+
+      if (node.attrs.id !== id) {
+        transaction.setNodeMarkup(pos, undefined, {
+          ...node.attrs,
+          id,
+        })
+      }
+    })
+
+    transaction.setMeta('preventUpdate', true)
+
+    editor.view.dispatch(transaction)
   }, [editor])
 
   useEffect(() => {
     if (!editor || !editorRef.current) return
-    const nodeAttrs = (editor.state.selection.$from as any).path[3].attrs
-    const blockTypes = ['code', 'image', 'video', 'list']
-    if (ast && nodeAttrs.id && blockTypes.includes(nodeAttrs.type)) {
-      handleActiveBlock?.(ast.blocks.find((block) => block.id === nodeAttrs.id))
+    const nodeAttrs = (editor.state.selection.$from as any).path[3]?.attrs
+
+    if (nodeAttrs && ast && nodeAttrs.id) {
+      const block = ast.blocks.find(
+        (b) => b.id === nodeAttrs.id || b.nodeIds?.includes(nodeAttrs.id)
+      )
+      handleActiveBlock?.(block)
     } else {
       handleActiveBlock?.()
     }
@@ -160,22 +210,15 @@ const TipTap = ({
   )
 }
 
-const styles = css`
-  .ProseMirror {
-    > * + * {
-      margin-top: 0.75em;
-    }
-  }
-
-  h2 {
+const styles2 = css`
+  h1,
+  h2,
+  h3 {
     color: rgba(31, 41, 55);
-    font-weight: bold;
     font-family: Gilroy, ui-sans-serif, system-ui, -apple-system,
       BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
       'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
       'Segoe UI Symbol', 'Noto Color Emoji';
-    font-size: 1.5rem;
-    line-height: 2rem;
   }
 
   p {
@@ -184,31 +227,10 @@ const styles = css`
     word-wrap: break-word;
   }
 
-  ul,
-  ol {
-    display: list-item;
-    padding: 0 1rem;
-  }
-  li {
-    display: list-item;
-    list-style-type: disc;
-  }
-
-  img {
-    @apply py-3;
-  }
-
-  pre {
-    margin-top: 0.75rem;
-    margin-bottom: 0.75rem;
-    background: #0d0d0d;
-    color: #fff;
-    font-family: 'JetBrainsMono', monospace;
-    padding: 0.75rem 1rem;
-    border-radius: 0.5rem;
-  }
-
-  h2.is-empty::before {
+  p.is-empty::before,
+  h1.is-empty::before,
+  h2.is-empty::before,
+  h3.is-empty::before {
     color: rgba(209, 213, 219);
     content: attr(data-placeholder);
     float: left;

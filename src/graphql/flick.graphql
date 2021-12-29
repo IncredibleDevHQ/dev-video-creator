@@ -314,6 +314,13 @@ mutation PublishFlick(
   }
 }
 
+mutation UpdateFlickMd($id: uuid!, $md: String!) {
+  update_Flick_by_pk(pk_columns: { id: $id }, _set: { md: $md }) {
+    id
+  }
+}
+
+
 subscription FlickStatus($flickId: uuid!) {
   Flick_by_pk(id: $flickId) {
     status

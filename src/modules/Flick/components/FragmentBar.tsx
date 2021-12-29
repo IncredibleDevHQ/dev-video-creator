@@ -1,42 +1,43 @@
-import { cx } from '@emotion/css'
 import React, { useEffect, useState } from 'react'
 import { BiPlayCircle } from 'react-icons/bi'
 import { BsDot } from 'react-icons/bs'
 import { HiOutlineSparkles } from 'react-icons/hi'
 import { IoIosCheckmarkCircle } from 'react-icons/io'
-import { IoChevronDown, IoChevronUp, IoPlayOutline } from 'react-icons/io5'
+import { IoPlayOutline } from 'react-icons/io5'
 import { MdRadioButtonUnchecked } from 'react-icons/md'
 import { useHistory } from 'react-router-dom'
 import { useRecoilState } from 'recoil'
 import { FragmentVideoModal } from '.'
-import { ReactComponent as RecordIcon } from '../../../assets/StartRecord.svg'
 import { ReactComponent as ReRecordIcon } from '../../../assets/ReRecord.svg'
+import { ReactComponent as RecordIcon } from '../../../assets/StartRecord.svg'
 import { Button, emitToast, Text, Tooltip } from '../../../components'
+import { TextEditorParser } from '../../../components/TempTextEditor/utils'
 import {
   Content_Type_Enum_Enum,
-  FlickFragment,
   FlickFragmentFragment,
   Fragment_Type_Enum_Enum,
+  useUpdateFlickMarkdownMutation,
   useUpdateFragmentMarkdownMutation,
   useUpdateFragmentStateMutation,
 } from '../../../generated/graphql'
 import { ViewConfig } from '../../../utils/configTypes'
 import { newFlickStore } from '../store/flickNew.store'
 import { IntroOutroConfiguration } from './IntroOutroView'
-import { TextEditorParser } from '../../../components/TempTextEditor/utils'
 
-const dashArray = 10 * Math.PI * 2
+// const dashArray = 10 * Math.PI * 2
 
 const FragmentBar = ({
   config,
   markdown,
-  plateValue,
+  editorValue,
   setViewConfig,
+  plateValue,
   introConfig,
 }: {
-  plateValue?: any
+  editorValue?: string
   markdown?: string
   config: ViewConfig
+  plateValue?: any
   setViewConfig: React.Dispatch<React.SetStateAction<ViewConfig>>
   introConfig: IntroOutroConfiguration
 }) => {
@@ -50,6 +51,7 @@ const FragmentBar = ({
   )
 
   const [updateFragmentMarkdown] = useUpdateFragmentMarkdownMutation()
+  const [updateFlickMarkdown] = useUpdateFlickMarkdownMutation()
 
   const [updateFragmentState, { data, error }] =
     useUpdateFragmentStateMutation()
@@ -108,11 +110,17 @@ const FragmentBar = ({
             },
           }))
       } else {
-        if (!plateValue || plateValue?.length === 0) return
+        if (!editorValue || editorValue?.length === 0) return
         await updateFragmentMarkdown({
           variables: {
             fragmentId: activeFragmentId,
             md: markdown,
+          },
+        })
+        await updateFlickMarkdown({
+          variables: {
+            id: flick?.id,
+            md: editorValue,
           },
         })
         await updateFragmentState({
@@ -132,7 +140,7 @@ const FragmentBar = ({
                   ? {
                       ...f,
                       configuration: config,
-                      editorState: plateValue,
+                      editorState: editorValue,
                     }
                   : f
               ),
@@ -149,12 +157,14 @@ const FragmentBar = ({
     }
   }
 
-  const [blockLength, setBlockLength] = useState(0)
+  // const [blockLength, setBlockLength] = useState(0)
+  // const utils = useUtils()
 
-  useEffect(() => {
-    if (!plateValue?.blocks) return
-    setBlockLength(plateValue.blocks.length)
-  }, [plateValue])
+  // useEffect(() => {
+  //   if (!editorValue) return
+  //   const { blocks } = utils.getSimpleAST(editorValue)
+  //   setBlockLength(blocks.length)
+  // }, [editorValue])
 
   const [isOpen, setIsOpen] = useState(false)
 
@@ -172,7 +182,7 @@ const FragmentBar = ({
 
   return (
     <div className="sticky flex items-center justify-between p-2 pl-5 pr-4">
-      {fragment &&
+      {/* {fragment &&
       fragment?.type !== Fragment_Type_Enum_Enum.Intro &&
       fragment?.type !== Fragment_Type_Enum_Enum.Outro ? (
         <Text className="flex items-center text-sm text-gray-600 transition-all duration-1000 ease-in-out font-body">
@@ -217,7 +227,8 @@ const FragmentBar = ({
         </Text>
       ) : (
         <div />
-      )}
+      )} */}
+      <div />
       {flick && flick?.fragments?.length > 0 && (
         <Tooltip
           isOpen={isOpen}
@@ -362,7 +373,7 @@ const FragmentBar = ({
               onClick={() => {
                 history.push(`/${activeFragmentId}/studio`)
               }}
-              disabled={checkDisabledState(fragment)}
+              disabled={checkDisabledState(fragment, plateValue)}
             >
               {checkHasContent(fragment, mode) ? (
                 <ReRecordIcon className="w-6 h-6 " />
@@ -387,7 +398,10 @@ const FragmentBar = ({
   )
 }
 
-const checkDisabledState = (fragment: FlickFragmentFragment | undefined) => {
+const checkDisabledState = (
+  fragment: FlickFragmentFragment | undefined,
+  editorValue: any
+) => {
   if (!fragment) return true
   if (
     fragment.type === Fragment_Type_Enum_Enum.Intro ||
@@ -398,9 +412,9 @@ const checkDisabledState = (fragment: FlickFragmentFragment | undefined) => {
   }
 
   if (
-    fragment.editorState &&
-    new TextEditorParser(fragment.editorState).isValid() &&
-    fragment.editorState.blocks.length > 0
+    editorValue &&
+    new TextEditorParser(editorValue).isValid() &&
+    editorValue.blocks.length > 0
   )
     return false
 
