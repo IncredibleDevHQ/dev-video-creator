@@ -1,16 +1,18 @@
 import React, { useEffect, useState } from 'react'
 import { BiPlayCircle } from 'react-icons/bi'
-import { BsDot } from 'react-icons/bs'
+import { BsCloudCheck, BsCloudUpload, BsDot } from 'react-icons/bs'
 import { HiOutlineSparkles } from 'react-icons/hi'
 import { IoIosCheckmarkCircle } from 'react-icons/io'
 import { IoPlayOutline } from 'react-icons/io5'
 import { MdRadioButtonUnchecked } from 'react-icons/md'
 import { useHistory } from 'react-router-dom'
+import { useDebouncedCallback } from 'use-debounce'
 import { useRecoilState } from 'recoil'
+import useDidUpdateEffect from '../../../hooks/use-did-update-effect'
 import { FragmentVideoModal } from '.'
 import { ReactComponent as ReRecordIcon } from '../../../assets/ReRecord.svg'
 import { ReactComponent as RecordIcon } from '../../../assets/StartRecord.svg'
-import { Button, emitToast, Text, Tooltip } from '../../../components'
+import { emitToast, Text, Tooltip } from '../../../components'
 import { TextEditorParser } from '../../../components/TempTextEditor/utils'
 import {
   Content_Type_Enum_Enum,
@@ -58,18 +60,22 @@ const FragmentBar = ({
 
   const [savingConfig, setSavingConfig] = useState(false)
 
+  const debounced = useDebouncedCallback(
+    // function
+    () => {
+      updateConfig()
+    },
+    400
+  )
+
+  useDidUpdateEffect(() => {
+    debounced()
+  }, [editorValue, config, introConfig, markdown])
+
   useEffect(() => {
     const f = flick?.fragments.find((f) => f.id === activeFragmentId)
     setFragment(f)
   }, [activeFragmentId, flick])
-
-  useEffect(() => {
-    if (!data) return
-    emitToast({
-      type: 'success',
-      title: 'Configuration saved',
-    })
-  }, [data])
 
   useEffect(() => {
     if (!error) return
@@ -230,160 +236,172 @@ const FragmentBar = ({
       )} */}
       <div />
       {flick && flick?.fragments?.length > 0 && (
-        <Tooltip
-          isOpen={isOpen}
-          setIsOpen={setIsOpen}
-          content={
-            <div className="flex flex-col mt-2 bg-white border border-gray-100 rounded-md shadow-lg gap-y-1">
-              <button
-                type="button"
-                onClick={() => {
-                  setViewConfig({ ...config, mode: 'Landscape' })
-                  setIsOpen(false)
-                }}
-                className="flex items-center px-4 py-3 cursor-pointer gap-x-4 hover:bg-gray-100"
-              >
-                <div className="bg-brand bg-opacity-10 p-2.5 rounded-sm">
-                  <IoPlayOutline size={18} className="text-brand " />
-                </div>
-                <div>
-                  <Text className="flex items-center font-bold font-main gap-x-3">
-                    Flick
-                    {fragment?.producedLink ? (
-                      <IoIosCheckmarkCircle className="text-brand" size={18} />
-                    ) : (
-                      <MdRadioButtonUnchecked className="text-gray-300" />
-                    )}
-                  </Text>
-                  <div className="flex items-center text-sm text-gray-600 font-body gap-x-1">
-                    <Text className="text-sm">16:9</Text>
-                    <BsDot className="text-gray-400" size={21} />
-                    <Text className="text-sm">Max 3m</Text>
-                    <BsDot className="text-gray-400" size={21} />
-                    <Text className="text-sm">Good for youtube</Text>
-                  </div>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setViewConfig({ ...config, mode: 'Portrait' })
-                  setIsOpen(false)
-                }}
-                className="flex items-center px-4 py-3 cursor-pointer gap-x-4 hover:bg-gray-100"
-              >
-                <div className="bg-cyan-600 bg-opacity-10 p-2.5 rounded-sm">
-                  <HiOutlineSparkles size={18} className="text-cyan-600" />
-                </div>
-                <div>
-                  <Text className="flex items-center font-bold font-main gap-x-3">
-                    Highlight
-                    {fragment?.producedShortsLink ? (
-                      <IoIosCheckmarkCircle className="text-brand" size={18} />
-                    ) : (
-                      <MdRadioButtonUnchecked className="text-gray-300" />
-                    )}
-                  </Text>
-                  <div className="flex items-center text-sm text-gray-600 font-body gap-x-1">
-                    <Text className="text-sm">9:16</Text>
-                    <BsDot className="text-gray-400" size={21} />
-                    <Text className="text-sm">Max 1m</Text>
-                    <BsDot className="text-gray-400" size={21} />
-                    <Text className="text-sm">
-                      Good for stories, shorts and Tiktok
-                    </Text>
-                  </div>
-                </div>
-              </button>
+        <div className="flex items-center">
+          {savingConfig ? (
+            <div className="flex text-gray-400 items-center mr-4">
+              <BsCloudUpload className="mr-1" />
+              <Text fontSize="small">Saving...</Text>
             </div>
-          }
-          placement="bottom-end"
-        >
-          <div className="flex items-center px-4 py-1 border border-gray-100 rounded-sm bg-gray-50 gap-x-4">
-            {fragment &&
-              fragment?.type !== Fragment_Type_Enum_Enum.Intro &&
-              fragment?.type !== Fragment_Type_Enum_Enum.Outro && (
+          ) : (
+            <div className="flex text-gray-400 items-center mr-4">
+              <BsCloudCheck className="mr-1" />
+              <Text fontSize="small">Saved</Text>
+            </div>
+          )}
+          <Tooltip
+            isOpen={isOpen}
+            setIsOpen={setIsOpen}
+            content={
+              <div className="flex flex-col mt-2 bg-white border border-gray-100 rounded-md shadow-lg gap-y-1">
                 <button
-                  onClick={() => setIsOpen(!isOpen)}
                   type="button"
-                  className="flex items-center p-1 rounded-sm cursor-pointer gap-x-2 hover:bg-gray-100"
+                  onClick={() => {
+                    setViewConfig({ ...config, mode: 'Landscape' })
+                    setIsOpen(false)
+                  }}
+                  className="flex items-center px-4 py-3 cursor-pointer gap-x-4 hover:bg-gray-100"
                 >
-                  {config.mode === 'Landscape' ? (
-                    <div className="bg-brand bg-opacity-10 p-2.5 rounded-sm">
-                      <IoPlayOutline size={18} className="text-brand " />
+                  <div className="bg-brand bg-opacity-10 p-2.5 rounded-sm">
+                    <IoPlayOutline size={18} className="text-brand " />
+                  </div>
+                  <div>
+                    <Text className="flex items-center font-bold font-main gap-x-3">
+                      Flick
+                      {fragment?.producedLink ? (
+                        <IoIosCheckmarkCircle
+                          className="text-brand"
+                          size={18}
+                        />
+                      ) : (
+                        <MdRadioButtonUnchecked className="text-gray-300" />
+                      )}
+                    </Text>
+                    <div className="flex items-center text-sm text-gray-600 font-body gap-x-1">
+                      <Text className="text-sm">16:9</Text>
+                      <BsDot className="text-gray-400" size={21} />
+                      <Text className="text-sm">Max 3m</Text>
+                      <BsDot className="text-gray-400" size={21} />
+                      <Text className="text-sm">Good for youtube</Text>
                     </div>
-                  ) : (
-                    <div className="bg-cyan-600 bg-opacity-10 p-2.5 rounded-sm">
-                      <HiOutlineSparkles size={18} className="text-cyan-600" />
-                    </div>
-                  )}
-                  <Text className="font-bold font-main">
-                    {config.mode === 'Landscape' ? 'Flick' : 'Highlight'}
-                  </Text>
-                  {checkHasContent(fragment, mode) ? (
-                    <IoIosCheckmarkCircle className="text-brand" size={18} />
-                  ) : (
-                    <MdRadioButtonUnchecked className="text-gray-300" />
-                  )}
+                  </div>
                 </button>
-              )}
-            <Button
-              appearance="primary"
-              size="small"
-              type="button"
-              loading={savingConfig}
-              onClick={() => updateConfig()}
-            >
-              <Text className="text-sm">Save</Text>
-            </Button>
-            {fragment?.producedLink && mode === Content_Type_Enum_Enum.Video && (
-              <div
-                tabIndex={-1}
-                role="button"
-                onKeyDown={() => {}}
-                className="flex items-center px-2 bg-gray-600 border rounded-sm cursor-pointer"
-                onClick={() => {
-                  setFragmentVideoModal(true)
-                }}
-              >
-                <BiPlayCircle size={36} className="py-1 text-gray-200" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setViewConfig({ ...config, mode: 'Portrait' })
+                    setIsOpen(false)
+                  }}
+                  className="flex items-center px-4 py-3 cursor-pointer gap-x-4 hover:bg-gray-100"
+                >
+                  <div className="bg-cyan-600 bg-opacity-10 p-2.5 rounded-sm">
+                    <HiOutlineSparkles size={18} className="text-cyan-600" />
+                  </div>
+                  <div>
+                    <Text className="flex items-center font-bold font-main gap-x-3">
+                      Highlight
+                      {fragment?.producedShortsLink ? (
+                        <IoIosCheckmarkCircle
+                          className="text-brand"
+                          size={18}
+                        />
+                      ) : (
+                        <MdRadioButtonUnchecked className="text-gray-300" />
+                      )}
+                    </Text>
+                    <div className="flex items-center text-sm text-gray-600 font-body gap-x-1">
+                      <Text className="text-sm">9:16</Text>
+                      <BsDot className="text-gray-400" size={21} />
+                      <Text className="text-sm">Max 1m</Text>
+                      <BsDot className="text-gray-400" size={21} />
+                      <Text className="text-sm">
+                        Good for stories, shorts and Tiktok
+                      </Text>
+                    </div>
+                  </div>
+                </button>
               </div>
-            )}
-            {fragment?.producedShortsLink &&
-              mode === Content_Type_Enum_Enum.VerticalVideo && (
+            }
+            placement="bottom-end"
+          >
+            <div className="flex items-center px-4 py-1 border border-gray-100 rounded-sm bg-gray-50 gap-x-4">
+              {fragment &&
+                fragment?.type !== Fragment_Type_Enum_Enum.Intro &&
+                fragment?.type !== Fragment_Type_Enum_Enum.Outro && (
+                  <button
+                    onClick={() => setIsOpen(!isOpen)}
+                    type="button"
+                    className="flex items-center p-1 rounded-sm cursor-pointer gap-x-2 hover:bg-gray-100"
+                  >
+                    {config.mode === 'Landscape' ? (
+                      <div className="bg-brand bg-opacity-10 p-2.5 rounded-sm">
+                        <IoPlayOutline size={18} className="text-brand " />
+                      </div>
+                    ) : (
+                      <div className="bg-cyan-600 bg-opacity-10 p-2.5 rounded-sm">
+                        <HiOutlineSparkles
+                          size={18}
+                          className="text-cyan-600"
+                        />
+                      </div>
+                    )}
+                    <Text className="font-bold font-main">
+                      {config.mode === 'Landscape' ? 'Flick' : 'Highlight'}
+                    </Text>
+                    {checkHasContent(fragment, mode) ? (
+                      <IoIosCheckmarkCircle className="text-brand" size={18} />
+                    ) : (
+                      <MdRadioButtonUnchecked className="text-gray-300" />
+                    )}
+                  </button>
+                )}
+              {fragment?.producedLink && mode === Content_Type_Enum_Enum.Video && (
                 <div
                   tabIndex={-1}
                   role="button"
                   onKeyDown={() => {}}
-                  className="flex items-center bg-gray-600 border rounded-sm cursor-pointer h-9"
+                  className="flex items-center px-2 bg-gray-600 border rounded-sm cursor-pointer"
                   onClick={() => {
                     setFragmentVideoModal(true)
                   }}
                 >
-                  <BiPlayCircle
-                    size={21}
-                    className="p-px mx-px text-gray-200"
-                  />
+                  <BiPlayCircle size={36} className="py-1 text-gray-200" />
                 </div>
               )}
-            <button
-              className="border-red-600 text-red-600 border rounded-sm py-1.5 px-2.5 flex items-center gap-x-2 font-bold hover:shadow-md text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              type="button"
-              onClick={() => {
-                history.push(`/${activeFragmentId}/studio`)
-              }}
-              disabled={checkDisabledState(fragment, plateValue)}
-            >
-              {checkHasContent(fragment, mode) ? (
-                <ReRecordIcon className="w-6 h-6 " />
-              ) : (
-                <RecordIcon className="w-6 h-6" />
-              )}
-              {!checkHasContent(fragment, mode) && 'Record'}
-            </button>
-          </div>
-        </Tooltip>
+              {fragment?.producedShortsLink &&
+                mode === Content_Type_Enum_Enum.VerticalVideo && (
+                  <div
+                    tabIndex={-1}
+                    role="button"
+                    onKeyDown={() => {}}
+                    className="flex items-center bg-gray-600 border rounded-sm cursor-pointer h-9"
+                    onClick={() => {
+                      setFragmentVideoModal(true)
+                    }}
+                  >
+                    <BiPlayCircle
+                      size={21}
+                      className="p-px mx-px text-gray-200"
+                    />
+                  </div>
+                )}
+              <button
+                className="border-red-600 text-red-600 border rounded-sm py-1.5 px-2.5 flex items-center gap-x-2 font-bold hover:shadow-md text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                type="button"
+                onClick={() => {
+                  history.push(`/${activeFragmentId}/studio`)
+                }}
+                disabled={checkDisabledState(fragment, plateValue)}
+              >
+                {checkHasContent(fragment, mode) ? (
+                  <ReRecordIcon className="w-6 h-6 " />
+                ) : (
+                  <RecordIcon className="w-6 h-6" />
+                )}
+                {!checkHasContent(fragment, mode) && 'Record'}
+              </button>
+            </div>
+          </Tooltip>
+        </div>
       )}
       {fragmentVideoModal && (
         <FragmentVideoModal
