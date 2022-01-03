@@ -1,6 +1,7 @@
 import { css, cx } from '@emotion/css'
 import React from 'react'
 import { ReactComponent as CommandCode } from '../../../../assets/Command_Code.svg'
+import { ReactComponent as CommandHeading1 } from '../../../../assets/Command_Heading1.svg'
 import { ReactComponent as CommandHeading2 } from '../../../../assets/Command_Heading2.svg'
 import { ReactComponent as CommandHeading3 } from '../../../../assets/Command_Heading3.svg'
 import { ReactComponent as CommandImage } from '../../../../assets/Command_Image.svg'
@@ -42,6 +43,7 @@ export class CommandsList extends React.Component<any, CommandsListState> {
   }
 
   getIcon = (item: SuggestionItem) => {
+    if (item.title === 'H1') return <CommandHeading1 className="p-px" />
     if (item.title === 'H2') return <CommandHeading2 />
     if (item.title === 'H3') return <CommandHeading3 />
     if (item.title === 'Text') return <CommandText />

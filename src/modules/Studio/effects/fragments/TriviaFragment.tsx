@@ -82,7 +82,7 @@ const TriviaFragment = ({
     if (!dataConfig) return
     setObjectConfig(
       FragmentLayoutConfig({
-        layout: viewConfig.layout || 'classic',
+        layout: viewConfig?.layout || 'classic',
         isShorts: shortsMode || false,
       })
     )
@@ -192,9 +192,9 @@ const TriviaFragment = ({
         y={objectConfig.y}
         width={objectConfig.width}
         height={objectConfig.height}
-        fill={viewConfig.bgColor || '#1F2937'}
+        fill={viewConfig?.bgColor || '#1F2937'}
         cornerRadius={objectConfig.borderRadius}
-        opacity={viewConfig.bgOpacity}
+        opacity={viewConfig?.bgOpacity || 1}
       />
       <Group x={objectConfig.x} y={objectConfig.y} key="group1">
         {triviaData?.image ? (
@@ -205,7 +205,7 @@ const TriviaFragment = ({
                 y={20}
                 align="center"
                 fontSize={32}
-                fill={viewConfig.bgColor === '#ffffff' ? '#1F2937' : '#E5E7EB'}
+                fill={viewConfig?.bgColor === '#ffffff' ? '#1F2937' : '#E5E7EB'}
                 width={objectConfig.width - 20}
                 lineHeight={1.2}
                 text={triviaData?.text}
@@ -228,7 +228,7 @@ const TriviaFragment = ({
                 y={20}
                 align="center"
                 fontSize={32}
-                fill={viewConfig.bgColor === '#ffffff' ? '#1F2937' : '#E5E7EB'}
+                fill={viewConfig?.bgColor === '#ffffff' ? '#1F2937' : '#E5E7EB'}
                 width={objectConfig.width - 20}
                 lineHeight={1.2}
                 text={triviaData?.text}
@@ -252,7 +252,7 @@ const TriviaFragment = ({
           <Text
             x={10}
             fontSize={32}
-            fill={viewConfig.bgColor === '#ffffff' ? '#1F2937' : '#E5E7EB'}
+            fill={viewConfig?.bgColor === '#ffffff' ? '#1F2937' : '#E5E7EB'}
             width={objectConfig.width - 20}
             height={objectConfig.height}
             text={triviaData?.text}
@@ -269,11 +269,11 @@ const TriviaFragment = ({
   ]
 
   const studioUserConfig = StudioUserConfiguration({
-    layout: viewConfig.layout || 'classic',
+    layout: viewConfig?.layout || 'classic',
     fragment,
     fragmentState,
     isShorts: shortsMode || false,
-    bgGradientId: viewConfig.gradient?.id || 1,
+    bgGradientId: viewConfig?.gradient?.id || 1,
   })
 
   return (

@@ -65,6 +65,7 @@ export interface ListItem {
 export interface CommonBlockProps {
   id: string
   pos: number
+  nodeIds?: string[]
 }
 
 export interface CodeBlockProps extends CommonBlockProps {
@@ -118,44 +119,76 @@ const textContent = (contentArray?: JSONContent[]) => {
 }
 
 const getSimpleAST = (state: JSONContent): SimpleAST => {
-  const slabs = state?.content?.filter((node) => node.type === 'slab')
-
   const blocks: Block[] = []
 
-  const getCommonProps = (slab: JSONContent) => {
-    const noteNode = slab.content
-      ?.filter((node) => node.type === 'note')
-      .map((node) => node.content?.[0]?.content)
+  const getCommonProps = (index: number) => {
+    const nodeIds: string[] = []
 
-    const note = noteNode
-      ? textContent(noteNode?.[0] as JSONContent[])
-      : undefined
+    const slice = [
+      ...(state.content?.slice(prevCoreBlockPos, index) || []),
+    ].reverse()
 
-    const descriptionNode = slab.content?.find(
-      (node) => node.type === 'paragraph'
-    )?.content
-    const description = textContent(descriptionNode)
+    const description = slice
+      .filter((node) => node.type === 'paragraph')
+      .reverse()
+      .map((p) => {
+        const node = p.content?.[0]
+        if (node && node.type === 'text') {
+          nodeIds.push(p.attrs?.id)
+          return node.text
+        }
+        return ''
+      })
+      .join('&nbsp;')
 
-    const titleNode = slab.content?.find(
-      (node) => node.type === 'heading'
-    )?.content
-    const title = textContent(titleNode)
+    const titleNode = slice.find((node) => node.type === 'heading')
+    const title = titleNode?.content?.[0]?.text
+    nodeIds.push(titleNode?.attrs?.id)
 
-    return { note, description, title }
+    const noteNode = slice.find((node) => node.type === 'blockquote')
+    const note = noteNode?.content
+      ?.map((node) => {
+        return node.content?.[0]?.text
+      })
+      .join('\n')
+    nodeIds.push(noteNode?.attrs?.id)
+
+    return { note, description, title, nodeIds }
   }
 
-  slabs?.forEach((slab) => {
-    if (slab.attrs?.type === 'code') {
+  let prevCoreBlockPos = 0
+
+  state?.content?.forEach((slab, index) => {
+    if (slab.type === 'paragraph') {
+      slab.content?.forEach((node) => {
+        if (node.type === 'image') {
+          const url = node?.attrs?.src
+
+          const { description, note, title, nodeIds } = getCommonProps(index)
+          blocks.push({
+            type: 'imageBlock',
+            id: slab.attrs?.id as string,
+            pos: 0,
+            nodeIds,
+            imageBlock: {
+              url: url as string,
+              description,
+              title,
+              note,
+            },
+          })
+          prevCoreBlockPos = index
+        }
+      })
+    } else if (slab.type === 'codeBlock') {
       let codeBlock: CodeBlock = {}
+      const codeValue = textContent(slab?.content)
 
-      const code = slab.content?.find((node) => node.type === 'codeBlock')
-      const codeValue = textContent(code?.content)
-
-      const { description, note, title } = getCommonProps(slab)
+      const { description, note, title, nodeIds } = getCommonProps(index)
 
       codeBlock = {
         code: codeValue,
-        language: code?.attrs?.language as string,
+        language: slab?.attrs?.language as string,
         note,
         description,
         title,
@@ -166,36 +199,38 @@ const getSimpleAST = (state: JSONContent): SimpleAST => {
         codeBlock,
         id: slab.attrs?.id as string,
         pos: 0,
+        nodeIds,
       })
-    } else if (slab.attrs?.type === 'video') {
-      const { description, note, title } = getCommonProps(slab)
 
-      const video = slab.content?.find((node) => node.type === 'video')
+      prevCoreBlockPos = index
+    } else if (slab.type === 'video') {
+      const { description, note, title, nodeIds } = getCommonProps(index)
 
       blocks.push({
         type: 'videoBlock',
         id: slab.attrs?.id as string,
         pos: 0,
+        nodeIds,
         videoBlock: {
-          url: video?.attrs?.src as string,
+          url: slab?.attrs?.src as string,
           description,
           title,
           note,
-          transformations: video?.attrs?.['data-transformations']
-            ? JSON.parse(video?.attrs?.['data-transformations'])
+          transformations: slab?.attrs?.['data-transformations']
+            ? JSON.parse(slab?.attrs?.['data-transformations'])
             : undefined,
         },
       })
-    } else if (slab.attrs?.type === 'image') {
-      const image = slab.content?.find((node) => node.type === 'image')
+      prevCoreBlockPos = index
+    } else if (slab.type === 'image') {
+      const url = slab?.attrs?.src
 
-      const url = image?.attrs?.src
-
-      const { description, note, title } = getCommonProps(slab)
+      const { description, note, title, nodeIds } = getCommonProps(index)
       blocks.push({
         type: 'imageBlock',
         id: slab.attrs?.id as string,
         pos: 0,
+        nodeIds,
         imageBlock: {
           url: url as string,
           description,
@@ -203,12 +238,13 @@ const getSimpleAST = (state: JSONContent): SimpleAST => {
           note,
         },
       })
-    } else if (slab.attrs?.type === 'list') {
-      const { description, note, title } = getCommonProps(slab)
+      prevCoreBlockPos = index
+    } else if (slab.type === 'bulletList') {
+      const { description, note, title, nodeIds } = getCommonProps(index)
 
-      const listItems = slab.content
-        ?.find((node) => node.type === 'bulletList')
-        ?.content?.filter((child) => child.type === 'listItem')
+      const listItems = slab.content?.filter(
+        (child) => child.type === 'listItem'
+      )
 
       const simplifyListItem = (listItem: JSONContent): ListItem => {
         const item: ListItem = {}
@@ -231,6 +267,7 @@ const getSimpleAST = (state: JSONContent): SimpleAST => {
         type: 'listBlock',
         id: slab.attrs?.id as string,
         pos: 0,
+        nodeIds,
         listBlock: {
           description,
           title,
@@ -238,8 +275,12 @@ const getSimpleAST = (state: JSONContent): SimpleAST => {
           list: simpleListItems,
         },
       })
+
+      prevCoreBlockPos = index
     }
   })
+
+  // console.log('blocks', blocks)
 
   return { blocks }
 }
