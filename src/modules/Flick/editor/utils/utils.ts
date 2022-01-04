@@ -251,16 +251,18 @@ const getSimpleAST = (state: JSONContent): SimpleAST => {
       const simplifyListItem = (listItem: JSONContent, lvl: number) => {
         const item: ListItem = {}
 
+        item.text = listItem.content
+          ?.filter((child) => child.type === 'paragraph')
+          .map((p) => {
+            return textContent(p.content)
+          })
+          .join('')
+          .replace(/&nbsp;/g, '')
+        item.level = lvl
+        simpleListItems.push(item)
+
         listItem.content?.forEach((node) => {
-          if (node.type === 'paragraph') {
-            item.content = textContent(node.content)
-            item.text = textContent(node.content)
-            item.level = lvl
-            simpleListItems.push(item)
-          } else if (
-            node.type === 'bulletList' ||
-            node.type === 'orderedList'
-          ) {
+          if (node.type === 'bulletList' || node.type === 'orderedList') {
             node.content?.map((li) => simplifyListItem(li, lvl + 1))
           }
         })
