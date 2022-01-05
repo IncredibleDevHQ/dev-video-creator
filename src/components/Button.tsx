@@ -15,6 +15,7 @@ interface ButtonProps extends HTMLAttributes<HTMLButtonElement> {
     | 'none'
   type: 'button' | 'reset' | 'submit'
   icon?: IconType
+  iconSize?: number
   iconPosition?: 'left' | 'right'
   onClick?: (e?: React.MouseEvent<HTMLElement>) => void
   stretch?: boolean
@@ -33,6 +34,7 @@ const Button = ({
   disabled,
   size = 'medium',
   icon: I,
+  iconSize,
   iconPosition = 'left',
   stretch,
   ...rest
@@ -51,8 +53,9 @@ const Button = ({
             appearance === 'link-danger',
           'border-red-600 bg-red-600 text-white hover:shadow-lg hover:bg-red-700 hover:border-red-700 active:bg-red-800 active:border-red-800':
             appearance === 'danger',
-          'bg-gray-400 text-gray-800': appearance === 'gray',
-          'text-gray-800 border-none': appearance === 'none',
+          'bg-brand-grey text-white opacity-90 hover:opacity-100 border-none':
+            appearance === 'gray',
+          'text-white border-none': appearance === 'none',
           'w-full': stretch,
           'opacity-70 cursor-not-allowed': disabled,
         },
@@ -93,11 +96,15 @@ const Button = ({
       >
         {iconPosition === 'left' && I && (
           <I
-            className={cx('mr-2 transition-all transform', {
-              'text-xl group-hover:-translate-x-1': size === 'large',
-              'text-lg group-hover:-translate-x-1': size === 'medium',
-              'text-base group-hover:-translate-x-0.5': size === 'small',
+            className={cx('transition-all transform', {
+              'mr-2 group-hover:-translate-x-1': !!children && size !== 'small',
+              'mr-2 group-hover:-translate-x-0.5':
+                !!children && size === 'small',
+              'text-xl': size === 'large',
+              'text-lg': size === 'medium',
+              'text-base': size === 'small',
             })}
+            size={iconSize}
           />
         )}
 
@@ -105,7 +112,8 @@ const Button = ({
 
         {iconPosition === 'right' && I && (
           <I
-            className={cx('ml-2 transition-all transform', {
+            className={cx('transition-all transform', {
+              'ml-2': !!children,
               'text-xl group-hover:translate-x-1': size === 'large',
               'text-lg group-hover:translate-x-1': size === 'medium',
               'text-base group-hover:translate-x-0.5': size === 'small',
