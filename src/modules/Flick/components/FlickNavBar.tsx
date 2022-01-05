@@ -1,8 +1,9 @@
+import { sentenceCase } from 'change-case'
 import React, { useEffect, useState } from 'react'
-import { FiBell, FiChevronLeft, FiLink2, FiUpload } from 'react-icons/fi'
+import { FiChevronLeft } from 'react-icons/fi'
 import { useRecoilState } from 'recoil'
 import { FlickActivity } from '.'
-import { Button, Heading, Text } from '../../../components'
+import { Button, Heading } from '../../../components'
 import config from '../../../config'
 import { ASSETS } from '../../../constants'
 import { useUpdateFlickMutation } from '../../../generated/graphql'
@@ -52,34 +53,33 @@ const FlickNavBar = ({ toggleModal }: { toggleModal: (val: true) => void }) => {
   }, [data])
 
   return (
-    <div className="sticky top-0 flex items-center justify-between py-2 pl-3 pr-4 border-b border-gray-300 bg-gray-50">
+    <div className="sticky top-0 flex items-center justify-between py-2 pl-3 pr-4 bg-dark-500">
       <div className="flex items-center">
         <a href={`${config.client.publicUrl}/dashboard`}>
           <div className="flex">
-            <FiChevronLeft size={28} className="mr-2 text-gray-700" />
+            <FiChevronLeft size={28} className="mr-2 text-grey-lighter" />
             <img src={ASSETS.ICONS.StudioLogo} alt="" className="w-28" />
           </div>
         </a>
-        <Heading
-          className="p-2 ml-12 font-semibold rounded-md text-md hover:bg-gray-100"
-          contentEditable={editFlickName}
-          onMouseDown={() => setEditFlickName(true)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault()
-              setEditFlickName(false)
-              setFlickName(e.currentTarget.innerText)
-              updateFlick(e.currentTarget.innerText)
-            }
-          }}
-        >
-          {flick?.name}
-        </Heading>
       </div>
+      <Heading
+        className="p-2 ml-12 font-bold text-base text-white"
+        contentEditable={editFlickName}
+        onMouseDown={() => setEditFlickName(true)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            setEditFlickName(false)
+            setFlickName(e.currentTarget.innerText)
+            updateFlick(e.currentTarget.innerText)
+          }
+        }}
+      >
+        {sentenceCase(flick?.name || '')}
+      </Heading>
       <div className="flex items-center gap-x-6">
         <Button
-          appearance="link"
-          icon={FiLink2}
+          appearance="gray"
           type="button"
           onClick={() => {
             setIsShareOpen(true)
@@ -89,21 +89,20 @@ const FlickNavBar = ({ toggleModal }: { toggleModal: (val: true) => void }) => {
         >
           Invite
         </Button>
-        <FiBell
+        {/* <FiBell
           className="text-gray-600 cursor-pointer"
           size={21}
           onClick={() => setIsActivityMenu(!isActivityMenu)}
-        />
+        /> */}
         <Button
-          appearance="primary"
+          appearance="gray"
           size="small"
-          icon={FiUpload}
           type="button"
           onClick={async () => {
             toggleModal(true)
           }}
         >
-          <Text className="text-sm">Publish</Text>
+          Download
         </Button>
       </div>
       <div className="absolute right-0">

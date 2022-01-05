@@ -239,29 +239,36 @@ const getSimpleAST = (state: JSONContent): SimpleAST => {
         },
       })
       prevCoreBlockPos = index
-    } else if (slab.type === 'bulletList') {
+    } else if (slab.type === 'bulletList' || slab.type === 'orderedList') {
       const { description, note, title, nodeIds } = getCommonProps(index)
 
       const listItems = slab.content?.filter(
         (child) => child.type === 'listItem'
       )
 
-      const simplifyListItem = (listItem: JSONContent): ListItem => {
+      const simpleListItems: ListItem[] = []
+
+      const simplifyListItem = (listItem: JSONContent, lvl: number) => {
         const item: ListItem = {}
 
+        item.text = listItem.content
+          ?.filter((child) => child.type === 'paragraph')
+          .map((p) => {
+            return textContent(p.content)
+          })
+          .join('')
+          .replace(/&nbsp;/g, '')
+        item.level = lvl
+        simpleListItems.push(item)
+
         listItem.content?.forEach((node) => {
-          if (node.type === 'paragraph') {
-            item.content = textContent(node.content)
-            item.text = textContent(node.content)
+          if (node.type === 'bulletList' || node.type === 'orderedList') {
+            node.content?.map((li) => simplifyListItem(li, lvl + 1))
           }
         })
-
-        return item
       }
 
-      const simpleListItems = listItems?.map((listItem) => {
-        return simplifyListItem(listItem)
-      })
+      if (listItems) listItems?.map((listItem) => simplifyListItem(listItem, 1))
 
       blocks.push({
         type: 'listBlock',
