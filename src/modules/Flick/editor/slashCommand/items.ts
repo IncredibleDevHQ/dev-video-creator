@@ -91,7 +91,9 @@ export const getSuggestionItems = (props: {
             .chain()
             .focus()
             .deleteRange(range)
-            .insertContent('<upload type="image"></p></upload>')
+            .setImage({
+              src: '',
+            })
             .run()
         },
       },

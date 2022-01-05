@@ -212,6 +212,28 @@ const TipTap = ({
 }
 
 const styles2 = css`
+  img {
+    margin-top: 1em;
+    margin-bottom: 1em;
+  }
+
+  code {
+    color: #16a349;
+    font-weight: 600;
+    font-size: 0.875em;
+    background-color: #f3f4f6;
+    padding: 0.25em 0.5em;
+    border-radius: 3px;
+  }
+
+  code::before {
+    content: '';
+  }
+
+  code::after {
+    content: '';
+  }
+
   h1,
   h2,
   h3 {
