@@ -141,6 +141,7 @@ const FragmentBar = ({
             ...store,
             flick: {
               ...flick,
+              md: editorValue,
               fragments: flick.fragments.map((f) =>
                 f.id === activeFragmentId
                   ? {
