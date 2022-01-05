@@ -54,6 +54,7 @@ const TipTap = ({
           'blockquote',
           'heading',
           'bulletList',
+          'orderedList',
           'codeBlock',
           'video',
         ],

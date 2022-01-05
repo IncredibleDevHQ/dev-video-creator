@@ -36,14 +36,16 @@ const useCanvasRecorder = ({
     videoBitsPerSecond?: number
   }
 }) => {
-  const [recordedBlobs, setRecordedBlobs] = useState<Blob[]>([])
+  // const [recordedBlobs, setRecordedBlobs] = useState<Blob[]>([])
+  const recordedBlobs = useRef<Blob[]>([])
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
 
   const [type, setType] = useState<ElementType<typeof types>>()
 
   const handleDataAvailable = (event: BlobEvent): any => {
     if (event.data && event.data.size > 0) {
-      setRecordedBlobs((recordedBlobs) => [...recordedBlobs, event.data])
+      recordedBlobs.current.push(event.data)
+      // setRecordedBlobs((recordedBlobs) => [...recordedBlobs, event.data])
     }
   }
 
@@ -167,7 +169,7 @@ const useCanvasRecorder = ({
   }
 
   const getBlobs = async () => {
-    const superblob = new Blob(recordedBlobs, { type })
+    const superblob = new Blob(recordedBlobs.current, { type })
     const arrayBuffer = await superblob.arrayBuffer()
     if (arrayBuffer) {
       return getSeekableWebM(arrayBuffer)
@@ -176,7 +178,8 @@ const useCanvasRecorder = ({
   }
 
   const reset = () => {
-    setRecordedBlobs([])
+    recordedBlobs.current = []
+    // setRecordedBlobs([])
   }
 
   return {
