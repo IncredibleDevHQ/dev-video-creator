@@ -38,7 +38,8 @@ const useCanvasRecorder = ({
     liveStream: boolean
   }
 }) => {
-  const [recordedBlobs, setRecordedBlobs] = useState<Blob[]>([])
+  // const [recordedBlobs, setRecordedBlobs] = useState<Blob[]>([])
+  const recordedBlobs = useRef<Blob[]>([])
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
 
   const [type, setType] = useState<ElementType<typeof types>>()
@@ -48,7 +49,7 @@ const useCanvasRecorder = ({
       if (liveStream) {
         ws.send(event.data)
       } else {
-        setRecordedBlobs((recordedBlobs) => [...recordedBlobs, event.data])
+        recordedBlobs.current.push(event.data)
       }
     }
   }
@@ -185,7 +186,7 @@ const useCanvasRecorder = ({
   }
 
   const getBlobs = async () => {
-    const superblob = new Blob(recordedBlobs, { type })
+    const superblob = new Blob(recordedBlobs.current, { type })
     const arrayBuffer = await superblob.arrayBuffer()
     if (arrayBuffer) {
       return getSeekableWebM(arrayBuffer)
@@ -194,7 +195,8 @@ const useCanvasRecorder = ({
   }
 
   const reset = () => {
-    setRecordedBlobs([])
+    recordedBlobs.current = []
+    // setRecordedBlobs([])
   }
 
   return {

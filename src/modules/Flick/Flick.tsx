@@ -49,7 +49,7 @@ import IntroOutroView, {
 import { FragmentTypeIcon } from './components/LayoutGeneric'
 import TipTap from './editor/TipTap'
 import { Block, Position, useUtils } from './editor/utils/utils'
-import { newFlickStore } from './store/flickNew.store'
+import { newFlickStore, View } from './store/flickNew.store'
 
 const initialConfig: ViewConfig = {
   titleSplash: {
@@ -164,6 +164,7 @@ const Flick = () => {
   const { data, error, loading, refetch } = useGetFlickByIdQuery({
     variables: { id },
   })
+
   const [updateFragmentMutation] = useUpdateFragmentMutation()
 
   const [{ fragment }, setStudio] = useRecoilState(studioStore)
@@ -261,6 +262,7 @@ const Flick = () => {
         flick: null,
         activeFragmentId: '',
         isMarkdown: true,
+        view: View.Notebook,
       })
     }
   }, [])
@@ -422,17 +424,17 @@ const Flick = () => {
   return (
     <div className="relative flex flex-col w-screen h-screen overflow-hidden">
       <FlickNavBar toggleModal={setIntegrationModal} />
+      <FragmentBar
+        plateValue={plateValue}
+        markdown={fragmentMarkdown}
+        editorValue={editorValue}
+        config={viewConfig}
+        setViewConfig={setViewConfig}
+        introConfig={introOutroConfiguration}
+      />
       <div className="flex flex-1 overflow-hidden">
         <FragmentSideBar plateValue={plateValue} />
         <div className={cx('flex-1 h-full pb-12 sticky top-0')}>
-          <FragmentBar
-            plateValue={plateValue}
-            markdown={fragmentMarkdown}
-            editorValue={editorValue}
-            config={viewConfig}
-            setViewConfig={setViewConfig}
-            introConfig={introOutroConfiguration}
-          />
           {flick.fragments.length > 0 &&
             activeFragment &&
             (activeFragment.type === Fragment_Type_Enum_Enum.Intro ||
