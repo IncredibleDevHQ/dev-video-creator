@@ -21,12 +21,14 @@ import {
 } from 'recoil'
 import {
   Button,
+  Checkbox,
   dismissToast,
   emitToast,
   EmptyState,
   Heading,
   ScreenState,
   Text,
+  TextField,
   updateToast,
 } from '../../components'
 import { TextEditorParser } from '../../components/TempTextEditor/utils'
@@ -85,6 +87,14 @@ const StudioHoC = () => {
     microphone: null,
   })
 
+  const liveStream = useRef<
+    | {
+        enabled: boolean
+        url: string
+      }
+    | undefined
+  >()
+
   const [getFragmentByIdLazy, { data, loading }] = useGetFragmentByIdLazyQuery()
 
   const [error, setError] = useState<'INVALID_AST' | undefined>()
@@ -126,13 +136,21 @@ const StudioHoC = () => {
     return (
       <Preview
         data={fragment}
-        handleJoin={({ microphone, camera }) => {
+        handleJoin={({ microphone, camera, liveStream: ls }) => {
           devices.current = { microphone, camera }
+          liveStream.current = ls
           setView('studio')
         }}
       />
     )
-  if (view === 'studio') return <Studio data={data} devices={devices.current} />
+  if (view === 'studio')
+    return (
+      <Studio
+        data={data}
+        devices={devices.current}
+        liveStream={liveStream.current}
+      />
+    )
 
   return null
 }
@@ -142,9 +160,13 @@ const Preview = ({
   handleJoin,
 }: {
   data?: StudioFragmentFragment
-  handleJoin: (devices: {
+  handleJoin: (props: {
     microphone: Device | null
     camera: Device | null
+    liveStream: {
+      enabled: boolean
+      url: string
+    }
   }) => void
 }) => {
   const {
@@ -162,6 +184,11 @@ const Preview = ({
   const [microphoneStream, setMicrophoneStream] = useState<MediaStream | null>(
     null
   )
+
+  const [liveStream, setLiveStream] = useState({
+    enabled: false,
+    url: '',
+  })
 
   const videoRef = useRef<HTMLVideoElement>(null)
 
@@ -246,7 +273,7 @@ const Preview = ({
     if (microphone?.id)
       localStorage.setItem('preferred-microphone', microphone.id)
 
-    handleJoin({ microphone, camera })
+    handleJoin({ microphone, camera, liveStream })
   }
 
   if (permissions.camera === 'prompt') {
@@ -406,9 +433,40 @@ const Preview = ({
               </option>
             ))}
           </select>
+
+          <div className="mb-4">
+            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
+            <label className="inline-flex items-center mb-2">
+              <input
+                type="checkbox"
+                className="form-checkbox cursor-pointer h-5 w-5 text-green-600"
+                checked={liveStream.enabled}
+                onChange={() => {
+                  setLiveStream((ls) => ({
+                    ...ls,
+                    enabled: !ls.enabled,
+                  }))
+                }}
+              />
+              <span className="ml-2 text-gray-700">This is a live stream</span>
+            </label>
+            {liveStream.enabled && (
+              <TextField
+                onChange={(e: any) => {
+                  setLiveStream((ls) => ({
+                    ...ls,
+                    url: e.target.value,
+                  }))
+                }}
+                value={liveStream.url}
+                placeholder="rtmp://rtmpin.livestreamingest.com/rtmpin"
+              />
+            )}
+          </div>
+
           <Button
             className="self-start"
-            size="extraSmall"
+            size="small"
             appearance="primary"
             type="button"
             onClick={join}
@@ -424,9 +482,14 @@ const Preview = ({
 const Studio = ({
   data,
   devices,
+  liveStream,
 }: {
   data?: GetFragmentByIdQuery
   devices: { microphone: Device | null; camera: Device | null }
+  liveStream?: {
+    enabled: boolean
+    url: string
+  }
 }) => {
   const { fragmentId } = useParams<{ fragmentId: string }>()
   const { constraints, controlsConfig } =
@@ -599,7 +662,8 @@ const Studio = ({
     reduceSplashAudioVolume,
     stopMusic,
   } = useCanvasRecorder({
-    options: {},
+    liveStreamEnabled: liveStream?.enabled,
+    liveStreamUrl: liveStream?.url,
   })
 
   /**

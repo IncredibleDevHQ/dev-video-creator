@@ -6,6 +6,7 @@ import transitionMusic from '../assets/TransitionMusic.mp3'
 import splashMusic from '../assets/IntroOutroBgm.mp3'
 import pointsMusic from '../assets/bubblePopMusic.mp3'
 import { getSeekableWebM } from '../utils/helpers'
+import config from '../config'
 
 const types = [
   'video/x-matroska;codecs=avc1',
@@ -31,23 +32,32 @@ interface CanvasElement extends HTMLCanvasElement {
 export type AudioType = 'transition' | 'splash' | 'points'
 
 const useCanvasRecorder = ({
-  options: { videoBitsPerSecond = 8000000, liveStream = false },
+  videoBitsPerSecond = 8000000,
+  liveStreamEnabled = false,
+  liveStreamUrl,
 }: {
-  options: {
-    videoBitsPerSecond?: number
-    liveStream: boolean
-  }
+  videoBitsPerSecond?: number
+  liveStreamEnabled?: boolean
+  liveStreamUrl?: string
 }) => {
-  // const [recordedBlobs, setRecordedBlobs] = useState<Blob[]>([])
   const recordedBlobs = useRef<Blob[]>([])
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
+
+  // TODO: Replace localhost with the actual URL
+  const ws = useRef(
+    liveStreamEnabled && liveStreamUrl
+      ? new WebSocket(
+          config.liveStream.endpoint + encodeURIComponent(liveStreamUrl)
+        )
+      : null
+  )
 
   const [type, setType] = useState<ElementType<typeof types>>()
 
   const handleDataAvailable = (event: BlobEvent): any => {
     if (event.data && event.data.size > 0) {
-      if (liveStream) {
-        ws.send(event.data)
+      if (liveStreamEnabled) {
+        ws.current?.send(event.data)
       } else {
         recordedBlobs.current.push(event.data)
       }
@@ -58,13 +68,6 @@ const useCanvasRecorder = ({
   const dest = useRef<MediaStreamAudioDestinationNode | null>(null)
   const splashAudio = new Audio(splashMusic)
   const splashAudioSourceNode = useRef<MediaElementAudioSourceNode | null>(null)
-
-  // TODO: get the rtmp streaming url from user input
-  const ws = new WebSocket(
-    `${'ws://localhost:6249/rtmp/'}${encodeURIComponent(
-      'rtmp://blr01.contribute.live-video.net/app/live_758848806_k52jBZbT3KviGqorIMg2XlY4U6U0td'
-    )}`
-  )
 
   /**
    * Starts recording...
@@ -128,7 +131,7 @@ const useCanvasRecorder = ({
       mediaRecorder.ondataavailable = handleDataAvailable
       mediaRecorder.start(100) // collect 100ms of data blobs
       mediaRecorder.onstop = () => {
-        ws.addEventListener('close', (e) => {
+        ws.current?.addEventListener('close', (e) => {
           console.log('WebSocket Close', e)
         })
       }
