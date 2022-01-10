@@ -8,12 +8,13 @@ import pointsMusic from '../assets/bubblePopMusic.mp3'
 import { getSeekableWebM } from '../utils/helpers'
 
 const types = [
+  'video/x-matroska;codecs=avc1',
+  'video/webm;codecs=h264',
   'video/webm',
   'video/webm,codecs=vp9',
   'video/vp8',
   'video/webm;codecs=vp8',
   'video/webm;codecs=daala',
-  'video/webm;codecs=h264',
   'video/mpeg',
 ]
 
@@ -30,10 +31,11 @@ interface CanvasElement extends HTMLCanvasElement {
 export type AudioType = 'transition' | 'splash' | 'points'
 
 const useCanvasRecorder = ({
-  options: { videoBitsPerSecond = 8000000 },
+  options: { videoBitsPerSecond = 8000000, liveStream = false },
 }: {
   options: {
     videoBitsPerSecond?: number
+    liveStream: boolean
   }
 }) => {
   const [recordedBlobs, setRecordedBlobs] = useState<Blob[]>([])
@@ -43,7 +45,11 @@ const useCanvasRecorder = ({
 
   const handleDataAvailable = (event: BlobEvent): any => {
     if (event.data && event.data.size > 0) {
-      setRecordedBlobs((recordedBlobs) => [...recordedBlobs, event.data])
+      if (liveStream) {
+        ws.send(event.data)
+      } else {
+        setRecordedBlobs((recordedBlobs) => [...recordedBlobs, event.data])
+      }
     }
   }
 
@@ -51,6 +57,12 @@ const useCanvasRecorder = ({
   const dest = useRef<MediaStreamAudioDestinationNode | null>(null)
   const splashAudio = new Audio(splashMusic)
   const splashAudioSourceNode = useRef<MediaElementAudioSourceNode | null>(null)
+
+  const ws = new WebSocket(
+    `${'ws://localhost:6249/rtmp/'}${encodeURIComponent(
+      'rtmp://blr01.contribute.live-video.net/app/live_758848806_k52jBZbT3KviGqorIMg2XlY4U6U0td'
+    )}`
+  )
 
   /**
    * Starts recording...
@@ -113,6 +125,12 @@ const useCanvasRecorder = ({
 
       mediaRecorder.ondataavailable = handleDataAvailable
       mediaRecorder.start(100) // collect 100ms of data blobs
+      mediaRecorder.onstop = () => {
+        ws.addEventListener('close', (e) => {
+          console.log('WebSocket Close', e)
+        })
+      }
+
       // music.play()
 
       setMediaRecorder(mediaRecorder)
