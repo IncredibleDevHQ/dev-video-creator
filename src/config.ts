@@ -67,6 +67,10 @@ const config = {
   auth: {
     endpoint: import.meta.env.VITE_AUTH_ENDPOINT,
   },
+
+  liveStream: {
+    endpoint: import.meta.env.VITE_LIVE_STREAM_ENDPOINT,
+  },
 }
 
 export default config
