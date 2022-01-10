@@ -33,6 +33,7 @@
     "@remirror/react": "^1.0.15",
     "@sentry/react": "^6.10.0",
     "@sentry/tracing": "^6.10.0",
+    "@tailwindcss/forms": "^0.4.0",
     "@tailwindcss/typography": "^0.4.1",
     "@tippy.js/react": "^3.1.1",
     "@tiptap-pro/extension-unique-id": "^2.0.0-beta.10",
