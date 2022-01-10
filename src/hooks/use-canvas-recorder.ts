@@ -59,6 +59,7 @@ const useCanvasRecorder = ({
   const splashAudio = new Audio(splashMusic)
   const splashAudioSourceNode = useRef<MediaElementAudioSourceNode | null>(null)
 
+  // TODO: get the rtmp streaming url from user input
   const ws = new WebSocket(
     `${'ws://localhost:6249/rtmp/'}${encodeURIComponent(
       'rtmp://blr01.contribute.live-video.net/app/live_758848806_k52jBZbT3KviGqorIMg2XlY4U6U0td'
