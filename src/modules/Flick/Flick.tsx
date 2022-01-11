@@ -168,9 +168,7 @@ const Flick = () => {
   const [updateFragmentMutation] = useUpdateFragmentMutation()
 
   const [{ fragment }, setStudio] = useRecoilState(studioStore)
-  const { addMusic, stopMusic } = useCanvasRecorder({
-    options: {},
-  })
+  const { addMusic, stopMusic } = useCanvasRecorder({})
 
   const history = useHistory()
   const utils = useUtils()
@@ -639,7 +637,7 @@ const Flick = () => {
                         Title
                       </div>
                     </div>
-                    <div className="relative w-32 h-16 px-4 py-2 bg-gray-100 border border-r-2 flex-shrink-0">
+                    <div className="relative flex-shrink-0 w-32 h-16 px-4 py-2 bg-gray-100 border border-r-2">
                       <FiRefreshCcw
                         size={20}
                         className="absolute z-10 p-1 transform -translate-y-1/2 bg-white rounded-sm -right-3 top-1/2"
@@ -650,7 +648,7 @@ const Flick = () => {
                     </div>
                     {plateValue?.blocks?.map((block: Block) => (
                       <a href={`#${block.id}`}>
-                        <div className="relative w-32 h-16 px-4 py-2 bg-gray-100 border border-r-2 flex-shrink-0 ">
+                        <div className="relative flex-shrink-0 w-32 h-16 px-4 py-2 bg-gray-100 border border-r-2 ">
                           <div
                             className={cx(
                               'border rounded-md flex justify-center items-center w-full h-full p-2',

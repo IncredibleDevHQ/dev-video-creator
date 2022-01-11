@@ -131,9 +131,7 @@ const useCanvasRecorder = ({
       mediaRecorder.ondataavailable = handleDataAvailable
       mediaRecorder.start(100) // collect 100ms of data blobs
       mediaRecorder.onstop = () => {
-        ws.current?.addEventListener('close', (e) => {
-          console.log('WebSocket Close', e)
-        })
+        ws.current?.close()
       }
 
       // music.play()
