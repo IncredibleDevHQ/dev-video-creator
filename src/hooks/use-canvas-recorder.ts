@@ -6,14 +6,16 @@ import transitionMusic from '../assets/TransitionMusic.mp3'
 import splashMusic from '../assets/IntroOutroBgm.mp3'
 import pointsMusic from '../assets/bubblePopMusic.mp3'
 import { getSeekableWebM } from '../utils/helpers'
+import config from '../config'
 
 const types = [
+  'video/x-matroska;codecs=avc1',
+  'video/webm;codecs=h264',
   'video/webm',
   'video/webm,codecs=vp9',
   'video/vp8',
   'video/webm;codecs=vp8',
   'video/webm;codecs=daala',
-  'video/webm;codecs=h264',
   'video/mpeg',
 ]
 
@@ -30,22 +32,35 @@ interface CanvasElement extends HTMLCanvasElement {
 export type AudioType = 'transition' | 'splash' | 'points'
 
 const useCanvasRecorder = ({
-  options: { videoBitsPerSecond = 8000000 },
+  videoBitsPerSecond = 8000000,
+  liveStreamEnabled = false,
+  liveStreamUrl,
 }: {
-  options: {
-    videoBitsPerSecond?: number
-  }
+  videoBitsPerSecond?: number
+  liveStreamEnabled?: boolean
+  liveStreamUrl?: string
 }) => {
-  // const [recordedBlobs, setRecordedBlobs] = useState<Blob[]>([])
   const recordedBlobs = useRef<Blob[]>([])
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
+
+  // TODO: Replace localhost with the actual URL
+  const ws = useRef(
+    liveStreamEnabled && liveStreamUrl
+      ? new WebSocket(
+          config.liveStream.endpoint + encodeURIComponent(liveStreamUrl)
+        )
+      : null
+  )
 
   const [type, setType] = useState<ElementType<typeof types>>()
 
   const handleDataAvailable = (event: BlobEvent): any => {
     if (event.data && event.data.size > 0) {
-      recordedBlobs.current.push(event.data)
-      // setRecordedBlobs((recordedBlobs) => [...recordedBlobs, event.data])
+      if (liveStreamEnabled) {
+        ws.current?.send(event.data)
+      } else {
+        recordedBlobs.current.push(event.data)
+      }
     }
   }
 
@@ -115,6 +130,12 @@ const useCanvasRecorder = ({
 
       mediaRecorder.ondataavailable = handleDataAvailable
       mediaRecorder.start(100) // collect 100ms of data blobs
+      mediaRecorder.onstop = () => {
+        ws.current?.addEventListener('close', (e) => {
+          console.log('WebSocket Close', e)
+        })
+      }
+
       // music.play()
 
       setMediaRecorder(mediaRecorder)
