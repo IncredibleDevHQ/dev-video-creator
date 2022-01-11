@@ -20,4 +20,5 @@ interface ImportMetaEnv {
   VITE_GITHUB_INTEGRATION_CONFIG: string
   VITE_AUTH_ENDPOINT: string
   VITE_COHERE_API_KEY: string
+  VITE_LIVE_STREAM_ENDPOINT: string
 }
