@@ -34,6 +34,7 @@ module.exports = {
           lighter: lighten('#16A34A', 0.05),
           dark: darken('#16A34A', 0.05),
           darker: darken('#16A34A', 0.1),
+          grey: `rgba(56, 59, 64, 0.9)`,
           75: alpha('#16A34A', 0.75),
           10: alpha('#16A34A', 0.1),
         },
@@ -50,6 +51,15 @@ module.exports = {
           lighter: lighten('#1f1f1f', 0.5),
           darker: darken('#1f1f1f', 0.05),
           75: alpha('#1f1f1f', 0.75),
+        },
+        light: {
+          DEFAULT: '#fafafa',
+        },
+        dark: {
+          DEFAULT: '#000000',
+          title: '#929397',
+          300: '#28292D',
+          500: '#121212',
         },
         orange: {
           DEFAULT: '#FFEDD5',
@@ -85,5 +95,5 @@ module.exports = {
       display: ['hover', 'group-hover'],
     },
   },
-  plugins: [require('@tailwindcss/typography')],
+  plugins: [require('@tailwindcss/typography'), require('@tailwindcss/forms')],
 }

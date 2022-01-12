@@ -49,7 +49,7 @@ import IntroOutroView, {
 import { FragmentTypeIcon } from './components/LayoutGeneric'
 import TipTap from './editor/TipTap'
 import { Block, Position, useUtils } from './editor/utils/utils'
-import { newFlickStore } from './store/flickNew.store'
+import { newFlickStore, View } from './store/flickNew.store'
 
 const initialConfig: ViewConfig = {
   titleSplash: {
@@ -164,12 +164,11 @@ const Flick = () => {
   const { data, error, loading, refetch } = useGetFlickByIdQuery({
     variables: { id },
   })
+
   const [updateFragmentMutation] = useUpdateFragmentMutation()
 
   const [{ fragment }, setStudio] = useRecoilState(studioStore)
-  const { addMusic, stopMusic } = useCanvasRecorder({
-    options: {},
-  })
+  const { addMusic, stopMusic } = useCanvasRecorder({})
 
   const history = useHistory()
   const utils = useUtils()
@@ -261,6 +260,7 @@ const Flick = () => {
         flick: null,
         activeFragmentId: '',
         isMarkdown: true,
+        view: View.Notebook,
       })
     }
   }, [])
@@ -422,17 +422,17 @@ const Flick = () => {
   return (
     <div className="relative flex flex-col w-screen h-screen overflow-hidden">
       <FlickNavBar toggleModal={setIntegrationModal} />
+      <FragmentBar
+        plateValue={plateValue}
+        markdown={fragmentMarkdown}
+        editorValue={editorValue}
+        config={viewConfig}
+        setViewConfig={setViewConfig}
+        introConfig={introOutroConfiguration}
+      />
       <div className="flex flex-1 overflow-hidden">
         <FragmentSideBar plateValue={plateValue} />
         <div className={cx('flex-1 h-full pb-12 sticky top-0')}>
-          <FragmentBar
-            plateValue={plateValue}
-            markdown={fragmentMarkdown}
-            editorValue={editorValue}
-            config={viewConfig}
-            setViewConfig={setViewConfig}
-            introConfig={introOutroConfiguration}
-          />
           {flick.fragments.length > 0 &&
             activeFragment &&
             (activeFragment.type === Fragment_Type_Enum_Enum.Intro ||
@@ -637,7 +637,7 @@ const Flick = () => {
                         Title
                       </div>
                     </div>
-                    <div className="relative w-32 h-16 px-4 py-2 bg-gray-100 border border-r-2 flex-shrink-0">
+                    <div className="relative flex-shrink-0 w-32 h-16 px-4 py-2 bg-gray-100 border border-r-2">
                       <FiRefreshCcw
                         size={20}
                         className="absolute z-10 p-1 transform -translate-y-1/2 bg-white rounded-sm -right-3 top-1/2"
@@ -648,7 +648,7 @@ const Flick = () => {
                     </div>
                     {plateValue?.blocks?.map((block: Block) => (
                       <a href={`#${block.id}`}>
-                        <div className="relative w-32 h-16 px-4 py-2 bg-gray-100 border border-r-2 flex-shrink-0 ">
+                        <div className="relative flex-shrink-0 w-32 h-16 px-4 py-2 bg-gray-100 border border-r-2 ">
                           <div
                             className={cx(
                               'border rounded-md flex justify-center items-center w-full h-full p-2',
