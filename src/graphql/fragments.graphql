@@ -56,6 +56,14 @@ query GetFragmentById($id: uuid!, $sub: String!) {
     }
   ) {
     ...StudioFragment
+    flick {
+      useBranding
+      branding {
+        id
+        name
+        branding
+      }
+    }
   }
 }
 
@@ -207,7 +215,6 @@ mutation CreateFragment(
     id
   }
 }
-
 
 mutation UpdateFragmentConfiguration($fragmentId: uuid!, $items: json!) {
   UpdateFragmentConfiguration(fragmentId: $fragmentId, items: $items) {

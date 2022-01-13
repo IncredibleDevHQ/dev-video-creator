@@ -1,18 +1,29 @@
+/* eslint-disable jsx-a11y/no-noninteractive-element-interactions */
+/* eslint-disable jsx-a11y/click-events-have-key-events */
 import { cx } from '@emotion/css'
 import React, { useEffect, useState } from 'react'
-import { BiPlayCircle } from 'react-icons/bi'
-import { BsCloudCheck, BsCloudUpload } from 'react-icons/bs'
+import { BiCheck, BiPlayCircle } from 'react-icons/bi'
+import { BsCloudCheck, BsCloudUpload, BsPalette } from 'react-icons/bs'
 import { IoDesktopOutline, IoPhonePortraitOutline } from 'react-icons/io5'
 import { useHistory } from 'react-router-dom'
 import { useRecoilState } from 'recoil'
 import { useDebouncedCallback } from 'use-debounce'
 import { FragmentVideoModal } from '.'
-import { Button, emitToast, Heading, Text } from '../../../components'
+import {
+  Button,
+  Checkbox,
+  emitToast,
+  Heading,
+  Text,
+  Tooltip,
+} from '../../../components'
 import { TextEditorParser } from '../../../components/TempTextEditor/utils'
 import {
   Content_Type_Enum_Enum,
   FlickFragmentFragment,
   Fragment_Type_Enum_Enum,
+  useGetBrandingQuery,
+  useUpdateFlickBrandingMutation,
   useUpdateFlickMarkdownMutation,
   useUpdateFragmentMarkdownMutation,
   useUpdateFragmentStateMutation,
@@ -50,10 +61,22 @@ const FragmentBar = ({
 
   const [updateFragmentMarkdown] = useUpdateFragmentMarkdownMutation()
   const [updateFlickMarkdown] = useUpdateFlickMarkdownMutation()
+  const [updateFlickBranding] = useUpdateFlickBrandingMutation()
+
+  const { data: brandingData } = useGetBrandingQuery()
 
   const [updateFragmentState, { error }] = useUpdateFragmentStateMutation()
 
   const [savingConfig, setSavingConfig] = useState(false)
+
+  const [useBranding, setUseBranding] = useState(false)
+  const [brandingId, setBrandingId] = useState<string>()
+
+  useEffect(() => {
+    if (!flick) return
+    setUseBranding(flick.useBranding)
+    setBrandingId(flick.brandingId)
+  }, [flick?.branding])
 
   const debounced = useDebouncedCallback(
     // function
@@ -65,7 +88,7 @@ const FragmentBar = ({
 
   useDidUpdateEffect(() => {
     debounced()
-  }, [editorValue, config, introConfig, markdown])
+  }, [editorValue, config, introConfig, markdown, useBranding, brandingId])
 
   useEffect(() => {
     const f = flick?.fragments.find((f) => f.id === activeFragmentId)
@@ -82,6 +105,11 @@ const FragmentBar = ({
 
   const updateConfig = async () => {
     setSavingConfig(true)
+
+    await updateFlickBranding({
+      variables: { id: flick?.id, branding: useBranding, brandingId },
+    })
+
     try {
       if (
         fragment &&
@@ -100,6 +128,8 @@ const FragmentBar = ({
             ...store,
             flick: {
               ...flick,
+              useBranding,
+
               fragments: flick.fragments.map((f) =>
                 f.id === activeFragmentId
                   ? {
@@ -136,6 +166,8 @@ const FragmentBar = ({
             ...store,
             flick: {
               ...flick,
+              useBranding,
+              brandingId,
               md: editorValue,
               fragments: flick.fragments.map((f) =>
                 f.id === activeFragmentId
@@ -158,6 +190,8 @@ const FragmentBar = ({
       setSavingConfig(false)
     }
   }
+
+  const [isOpen, setIsOpen] = useState(false)
 
   const [mode, setMode] = useState<Content_Type_Enum_Enum>(
     Content_Type_Enum_Enum.Video
@@ -208,6 +242,59 @@ const FragmentBar = ({
           </div>
         )}
         <div className="flex justify-end items-stretch border-l-2 py-2 pl-4 border-brand-grey">
+          <div className="flex items-center mx-4">
+            <Checkbox
+              name="branding"
+              label=""
+              onChange={() => {
+                setUseBranding((branding) => !branding)
+              }}
+              checked={useBranding}
+            />
+            <span className="text-white ml-2 mr-4">Use my branding</span>
+            <div className="flex items-center self-stretch bg-brand-grey rounded px-1.5">
+              <Tooltip
+                isOpen={isOpen}
+                setIsOpen={setIsOpen}
+                content={
+                  <ul className="bg-brand-grey rounded-md">
+                    {brandingData?.Branding.map((branding) => {
+                      return (
+                        <li
+                          key={branding.id}
+                          className="hover:bg-gray-700 cursor-pointer text-white flex items-center transition-colors rounded p-3 m-1"
+                          onClick={() => {
+                            setBrandingId(branding.id)
+                          }}
+                        >
+                          {branding.id === brandingId && (
+                            <BiCheck className="mr-2" size={20} />
+                          )}
+                          {branding.name}
+                        </li>
+                      )
+                    })}
+                  </ul>
+                }
+                placement="bottom-start"
+                triggerOffset={20}
+              >
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onKeyUp={() => {
+                    setIsOpen(!isOpen)
+                  }}
+                  onClick={() => {
+                    setIsOpen(!isOpen)
+                  }}
+                  className="h-full rounded p-1"
+                >
+                  <BsPalette className="text-white" />
+                </div>
+              </Tooltip>
+            </div>
+          </div>
           <Button
             appearance="gray"
             size="small"

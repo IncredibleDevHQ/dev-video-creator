@@ -21,7 +21,6 @@ import {
 } from 'recoil'
 import {
   Button,
-  Checkbox,
   dismissToast,
   emitToast,
   EmptyState,
@@ -48,6 +47,7 @@ import { useCanvasRecorder } from '../../hooks'
 import { useUploadFile } from '../../hooks/use-upload-file'
 import { User, userState } from '../../stores/user.store'
 import { ViewConfig } from '../../utils/configTypes'
+import { BrandingJSON } from '../Branding/BrandingPage'
 import { DiscordThemes } from '../Flick/components/IntroOutroView'
 import {
   CodeBlock,
@@ -143,10 +143,15 @@ const StudioHoC = () => {
         }}
       />
     )
-  if (view === 'studio')
+  if (view === 'studio' && fragment)
     return (
       <Studio
         data={data}
+        branding={
+          data?.Fragment?.[0].flick.useBranding
+            ? data?.Fragment?.[0]?.flick.branding?.branding
+            : null
+        }
         devices={devices.current}
         liveStream={liveStream.current}
       />
@@ -483,6 +488,7 @@ const Studio = ({
   data,
   devices,
   liveStream,
+  branding,
 }: {
   data?: GetFragmentByIdQuery
   devices: { microphone: Device | null; camera: Device | null }
@@ -490,6 +496,7 @@ const Studio = ({
     enabled: boolean
     url: string
   }
+  branding?: BrandingJSON | null
 }) => {
   const { fragmentId } = useParams<{ fragmentId: string }>()
   const { constraints, controlsConfig } =
@@ -830,6 +837,7 @@ const Studio = ({
       participants,
       updateParticipant,
       updatePayload,
+      branding: fragment.flick.branding ? branding : null,
       participantId: fragment?.participants.find(
         ({ participant }) => participant.userSub === sub
       )?.participant.id,
@@ -838,7 +846,17 @@ const Studio = ({
           ({ participant }) => participant.userSub === sub
         )?.participant.owner || false,
     })
-  }, [fragment, stream, users, state, userAudios, payload, participants, state])
+  }, [
+    fragment,
+    stream,
+    users,
+    state,
+    userAudios,
+    payload,
+    participants,
+    state,
+    branding,
+  ])
 
   useEffect(() => {
     if (payload?.status === Fragment_Status_Enum_Enum.Live) {
