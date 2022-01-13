@@ -43,7 +43,6 @@ const useCanvasRecorder = ({
   const recordedBlobs = useRef<Blob[]>([])
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
 
-  // TODO: Replace localhost with the actual URL
   const ws = useRef(
     liveStreamEnabled && liveStreamUrl
       ? new WebSocket(
@@ -130,9 +129,6 @@ const useCanvasRecorder = ({
 
       mediaRecorder.ondataavailable = handleDataAvailable
       mediaRecorder.start(100) // collect 100ms of data blobs
-      mediaRecorder.onstop = () => {
-        ws.current?.close()
-      }
 
       // music.play()
 
@@ -177,6 +173,7 @@ const useCanvasRecorder = ({
     if (mediaRecorder?.state === 'inactive') return
     if (mediaRecorder?.state === 'recording') {
       mediaRecorder?.stop()
+      if (ws.current?.readyState === ws.current?.OPEN) ws.current?.close()
     } else console.error('Cannot stop canvas recorder', mediaRecorder?.state)
   }
 
