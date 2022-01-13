@@ -439,7 +439,7 @@ const Preview = ({
             <label className="inline-flex items-center mb-2">
               <input
                 type="checkbox"
-                className="form-checkbox cursor-pointer h-5 w-5 text-green-600"
+                className="w-5 h-5 text-green-600 cursor-pointer form-checkbox"
                 checked={liveStream.enabled}
                 onChange={() => {
                   setLiveStream((ls) => ({
@@ -648,10 +648,12 @@ const Studio = ({
         fragment: undefined,
         tracks,
       })
+      updatePayload?.({ status: Fragment_Status_Enum_Enum.NotStarted })
     }
   }, [])
 
   const [state, setState] = useState<StudioState>('ready')
+  console.log(`state : ${state}`)
 
   const {
     startRecording,
@@ -919,7 +921,7 @@ const Studio = ({
       <div className="h-screen px-10 pt-16">
         <Countdown />
         {state === 'ready' || state === 'recording' || state === 'countDown' ? (
-          <div className="flex w-full h-full mt-3 gap-x-8 items-center">
+          <div className="flex items-center w-full h-full mt-3 gap-x-8">
             <Stage
               ref={stageRef}
               height={stageConfig.height}
