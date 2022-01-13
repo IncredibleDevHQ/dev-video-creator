@@ -43,13 +43,7 @@ const useCanvasRecorder = ({
   const recordedBlobs = useRef<Blob[]>([])
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
 
-  const ws = useRef(
-    liveStreamEnabled && liveStreamUrl
-      ? new WebSocket(
-          config.liveStream.endpoint + encodeURIComponent(liveStreamUrl)
-        )
-      : null
-  )
+  const ws = useRef<WebSocket>()
 
   const [type, setType] = useState<ElementType<typeof types>>()
 
@@ -79,6 +73,13 @@ const useCanvasRecorder = ({
     }: { localStream: MediaStream; remoteStreams: MediaStream[] }
   ) => {
     if (!canvas) return
+
+    ws.current =
+      liveStreamEnabled && liveStreamUrl
+        ? new WebSocket(
+            config.liveStream.endpoint + encodeURIComponent(liveStreamUrl)
+          )
+        : undefined
 
     const stream = (canvas as CanvasElement).captureStream(30)
 
