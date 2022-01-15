@@ -134,7 +134,7 @@ const UnifiedFragment = ({
         isFocus: false,
         playing: false,
         prevIndex: 0,
-        status: Fragment_Status_Enum_Enum.NotStarted,
+        // status: Fragment_Status_Enum_Enum.NotStarted,
       })
     }
   }, [])
