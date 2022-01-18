@@ -107,7 +107,7 @@ const BrandingPage = () => {
     setBrandings(data?.Branding || [])
 
     if (!brandingId || !data?.Branding.find((b) => b.id === brandingId)) {
-      setBrandingId(data?.Branding?.[0].id)
+      setBrandingId(data?.Branding?.[0]?.id)
     }
   }, [data])
 
