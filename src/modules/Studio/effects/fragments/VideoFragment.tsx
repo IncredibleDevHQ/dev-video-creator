@@ -155,6 +155,12 @@ const VideoFragment = ({
   }, [payload?.playing])
 
   useEffect(() => {
+    if (videoElement) {
+      videoElement.currentTime = payload?.currentTime || 0
+    }
+  }, [payload?.currentTime, videoElement])
+
+  useEffect(() => {
     // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
     if (payload?.fragmentState === 'customLayout') {
       setTopLayerChildren([
