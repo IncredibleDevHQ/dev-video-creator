@@ -649,6 +649,7 @@ const Studio = ({
         tracks,
       })
       updatePayload?.({ status: Fragment_Status_Enum_Enum.NotStarted })
+      stopStreaming()
     }
   }, [])
 
@@ -663,6 +664,7 @@ const Studio = ({
     addMusic,
     reduceSplashAudioVolume,
     stopMusic,
+    stopStreaming,
   } = useCanvasRecorder({
     liveStreamEnabled: liveStream?.enabled,
     liveStreamUrl: liveStream?.url,
