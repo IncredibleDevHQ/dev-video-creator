@@ -2,8 +2,10 @@
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 
 import React, { ChangeEvent, useCallback, useRef, useState } from 'react'
+import FontPicker from 'font-picker-react'
 import { HexColorInput, HexColorPicker } from 'react-colorful'
 import { Button, Label, Text, TextField } from '../../components'
+import config from '../../config'
 import {
   useDeleteBrandingMutation,
   useUpdateBrandingMutation,
@@ -229,25 +231,19 @@ const Branding = ({
       <div className="mb-6">
         <div className="md:w-80 mb-4 w-full">
           <Label>Font</Label>
-          <select
-            className="w-full p-2 mb-4 border border-gray-300 rounded-md"
-            value={branding.branding?.font}
-            onChange={(e) => {
+          <FontPicker
+            activeFontFamily={branding.branding?.font}
+            onChange={(font) => {
               setBranding({
                 ...branding,
                 branding: {
                   ...branding.branding,
-                  font: e.target.value,
+                  font: font.family,
                 },
               })
             }}
-          >
-            {['Inter', 'Rubik'].map((font) => (
-              <option key={font} value={font}>
-                {font}
-              </option>
-            ))}
-          </select>
+            apiKey={config.googleFonts.apiKey}
+          />
         </div>
       </div>
       <div className="flex items-center gap-x-4">
