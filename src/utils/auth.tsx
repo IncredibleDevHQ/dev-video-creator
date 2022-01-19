@@ -2,7 +2,7 @@
 import * as Sentry from '@sentry/react'
 import axios from 'axios'
 import { onAuthStateChanged, signInWithCustomToken } from 'firebase/auth'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useRecoilState, useSetRecoilState } from 'recoil'
 import config from '../config'
 import { useGetUserLazyQuery } from '../generated/graphql'
@@ -18,7 +18,6 @@ const AuthProvider = ({ children }: { children: JSX.Element }): JSX.Element => {
   const setFbUser = useSetRecoilState(firebaseUserState)
   const [dbUser, setDbUser] = useRecoilState(databaseUserState)
   const setVerificationStatus = useSetRecoilState(userVerificationStatus)
-  const [localAuth, setLocalAuth] = useState(auth)
 
   const [getUserQuery] = useGetUserLazyQuery()
 
@@ -50,7 +49,6 @@ const AuthProvider = ({ children }: { children: JSX.Element }): JSX.Element => {
 
       // repeat call to /login endpoint to update auth token in session cookie
       const idToken = await user.getIdToken()
-      setLocalAuth({ ...auth, token: idToken, loading: false })
       // console.log('idToken', idToken)
       await axios.post(
         `${config.auth.endpoint}/api/login`,
@@ -69,10 +67,6 @@ const AuthProvider = ({ children }: { children: JSX.Element }): JSX.Element => {
       setAuth({ ...auth, loading: false })
     }
   }
-
-  useEffect(() => {
-    setAuth(localAuth)
-  }, [localAuth])
 
   useEffect(() => {
     onAuthStateChanged(auth.auth, async (user) => {
