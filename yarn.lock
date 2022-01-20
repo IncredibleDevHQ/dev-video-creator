@@ -6749,7 +6749,7 @@ font-picker-react@^3.5.2:
   dependencies:
     "@samuelmeuli/font-manager" "^1.4.0"
 
-fontfaceobserver@^2.1.0:
+fontfaceobserver@2.1.0, fontfaceobserver@^2.1.0:
   version "2.1.0"
   resolved "https://registry.yarnpkg.com/fontfaceobserver/-/fontfaceobserver-2.1.0.tgz#e2705d293e2c585a6531c2a722905657317a2991"
   integrity sha512-ReOsO2F66jUa0jmv2nlM/s1MiutJx/srhAe2+TE8dJCMi02ZZOcCTxTCQFr3Yet+uODUtnr4Mewg+tNQ+4V1Ng==
@@ -10511,7 +10511,7 @@ react-use@^17.1.1, react-use@^17.2.3:
     ts-easing "^0.2.0"
     tslib "^2.1.0"
 
-react@^17.0.0:
+react@17.0.2, react@^17.0.0:
   version "17.0.2"
   resolved "https://registry.yarnpkg.com/react/-/react-17.0.2.tgz#d0b5cc516d29eb3eee383f75b62864cfb6800037"
   integrity sha512-gnhPt75i/dq/z3/6q/0asP78D0u592D5L1pd7M8P+dck6Fu/jJeL6iVVK23fptSUZj8Vjf++7wXA8UNclGQcbA==
@@ -12189,6 +12189,14 @@ use-debounce@^7.0.0:
   version "7.0.1"
   resolved "https://registry.yarnpkg.com/use-debounce/-/use-debounce-7.0.1.tgz#380e6191cc13ad29f8e2149a12b5c37cc2891190"
   integrity sha512-fOrzIw2wstbAJuv8PC9Vg4XgwyTLEOdq4y/Z3IhVl8DAE4svRcgyEUvrEXu+BMNgMoc3YND6qLT61kkgEKXh7Q==
+
+use-font-face-observer@^1.1.77:
+  version "1.1.77"
+  resolved "https://registry.yarnpkg.com/use-font-face-observer/-/use-font-face-observer-1.1.77.tgz#47e6ac2e5a502d3107496602520a47e08e0d6c96"
+  integrity sha512-kW4sicywk9aeAdQJ0Nwkny3fGgizHJQ6pNkfdNNNrVyUwTj1bS4tQmyVA+xfxAq4eQTZjcUI+gDwd/lFSZsXVg==
+  dependencies:
+    fontfaceobserver "2.1.0"
+    react "17.0.2"
 
 use-image@^1.0.7, use-image@^1.0.8:
   version "1.0.8"

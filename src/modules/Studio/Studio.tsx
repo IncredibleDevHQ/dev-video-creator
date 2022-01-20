@@ -70,7 +70,7 @@ import RecordingControlsBar from './components/RecordingControlsBar'
 import IntroFragment from './effects/fragments/IntroFragment'
 import OutroFragment from './effects/fragments/OutroFragment'
 import UnifiedFragment from './effects/fragments/UnifiedFragment'
-import { useAgora, useMediaStream } from './hooks'
+import { useAgora, useLoadFont, useMediaStream } from './hooks'
 import { Device, MediaStreamError } from './hooks/use-media-stream'
 import { useRTDB } from './hooks/use-rtdb'
 import { StudioProviderProps, StudioState, studioStore } from './stores'
@@ -516,6 +516,12 @@ const Studio = ({
   const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
   Konva.pixelRatio = 2
 
+  const { isFontLoaded } = useLoadFont(
+    branding?.font
+      ? [{ family: branding?.font, weights: ['400', '700', '500'] }]
+      : []
+  )
+
   const [stageConfig, setStageConfig] = useState<{
     width: number
     height: number
@@ -902,7 +908,7 @@ const Studio = ({
       <ScreenState title="Something went wrong." subtitle={error.message} />
     )
 
-  if (!ready) return <ScreenState loading />
+  if (!ready || !isFontLoaded) return <ScreenState loading />
 
   // const C = getEffect(fragment.type, fragment.configuration)
 
