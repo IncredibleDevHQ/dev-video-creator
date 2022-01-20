@@ -4,14 +4,7 @@ import Cohere from 'cohere-js'
 import { ToastContainer } from 'react-toastify'
 import { BrowserRouter as Router, Route, Switch } from 'react-router-dom'
 import { ScreenState } from './components'
-import {
-  Branding,
-  Flick,
-  GitHubCallback,
-  Integrations,
-  Landing,
-  Studio,
-} from './modules'
+import { Flick, GitHubCallback, Integrations, Landing, Studio } from './modules'
 import AuthProvider from './utils/auth'
 import PrivateRoute from './utils/PrivateRoute'
 import AuthorizedApolloProvider from './utils/AuthorizedApolloProvider'
@@ -88,7 +81,6 @@ const App = () => {
                   path="/integrations"
                   component={Integrations}
                 />
-                <PrivateRoute exact path="/branding" component={Branding} />
               </Switch>
             </Router>
           </>

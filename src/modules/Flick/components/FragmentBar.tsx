@@ -3,20 +3,15 @@
 import { cx } from '@emotion/css'
 import React, { useEffect, useState } from 'react'
 import { BiCheck, BiPlayCircle } from 'react-icons/bi'
-import { BsCloudCheck, BsCloudUpload, BsPalette } from 'react-icons/bs'
+import { BsCloudCheck, BsCloudUpload } from 'react-icons/bs'
 import { IoDesktopOutline, IoPhonePortraitOutline } from 'react-icons/io5'
 import { useHistory } from 'react-router-dom'
 import { useRecoilState } from 'recoil'
 import { useDebouncedCallback } from 'use-debounce'
 import { FragmentVideoModal } from '.'
-import {
-  Button,
-  Checkbox,
-  emitToast,
-  Heading,
-  Text,
-  Tooltip,
-} from '../../../components'
+import { Branding } from '../..'
+import { ReactComponent as BrandIcon } from '../../../assets/BrandIcon.svg'
+import { Button, emitToast, Heading, Text, Tooltip } from '../../../components'
 import { TextEditorParser } from '../../../components/TempTextEditor/utils'
 import {
   Content_Type_Enum_Enum,
@@ -51,6 +46,7 @@ const FragmentBar = ({
   introConfig: IntroOutroConfiguration
 }) => {
   const [fragmentVideoModal, setFragmentVideoModal] = useState(false)
+  const [brandingModal, setBrandingModal] = useState(true)
   const [{ flick, activeFragmentId, view }, setFlickStore] =
     useRecoilState(newFlickStore)
   const history = useHistory()
@@ -229,7 +225,7 @@ const FragmentBar = ({
           Preview
         </Heading>
       </div>
-      <div className="flex items-center">
+      <div className="flex items-center h-full">
         {savingConfig ? (
           <div className="flex text-gray-400 items-center mr-4">
             <BsCloudUpload className="mr-1" />
@@ -241,73 +237,103 @@ const FragmentBar = ({
             <Text fontSize="small">Saved</Text>
           </div>
         )}
-        <div className="flex justify-end items-stretch border-l-2 py-2 pl-4 border-brand-grey">
-          <div className="flex items-center mx-4">
-            <Checkbox
-              name="branding"
-              label=""
-              onChange={() => {
-                setUseBranding((branding) => !branding)
-              }}
-              checked={useBranding}
-            />
-            <span className="text-white ml-2 mr-4">Use my branding</span>
-            <div className="flex items-center self-stretch bg-brand-grey rounded px-1.5">
-              <Tooltip
-                isOpen={isOpen}
-                setIsOpen={setIsOpen}
-                content={
-                  <ul className="bg-brand-grey rounded-md">
-                    {brandingData?.Branding.map((branding) => {
-                      return (
-                        <li
-                          key={branding.id}
-                          className="hover:bg-gray-700 cursor-pointer text-white flex items-center transition-colors rounded p-3 m-1"
-                          onClick={() => {
-                            setBrandingId(branding.id)
-                          }}
-                        >
-                          {branding.id === brandingId && (
-                            <BiCheck className="mr-2" size={20} />
-                          )}
-                          {branding.name}
-                        </li>
-                      )
-                    })}
-                  </ul>
-                }
-                placement="bottom-start"
-                triggerOffset={20}
+        <div className="flex border-l-2 h-full items-center justify-center border-brand-grey">
+          <Tooltip
+            className="p-0 m-0"
+            isOpen={isOpen}
+            setIsOpen={setIsOpen}
+            content={
+              <ul
+                style={{
+                  minWidth: '200px',
+                }}
+                className="bg-dark-300 rounded-md -mt-1 flex flex-col justify-center"
               >
-                <div
-                  role="button"
-                  tabIndex={0}
-                  onKeyUp={() => {
-                    setIsOpen(!isOpen)
-                  }}
+                {brandingData?.Branding.map((branding, index) => {
+                  return (
+                    <li
+                      key={branding.id}
+                      className={cx(
+                        'hover:bg-dark-100 cursor-pointer text-white flex items-center transition-colors p-3',
+                        {
+                          'rounded-t-md': index === 0,
+                        }
+                      )}
+                      onClick={() => {
+                        setBrandingId(branding.id)
+                        setUseBranding(true)
+                        setIsOpen(false)
+                      }}
+                    >
+                      <BrandIcon className="mr-2" />
+                      <Text className="font-body text-sm mr-4">
+                        {branding.name}
+                      </Text>
+                      {branding.id === brandingId && useBranding && (
+                        <BiCheck className="ml-auto" size={20} />
+                      )}
+                    </li>
+                  )
+                })}
+                <li
+                  className={cx(
+                    'hover:bg-dark-100 cursor-pointer text-white flex items-center transition-colors p-3'
+                  )}
                   onClick={() => {
-                    setIsOpen(!isOpen)
+                    setUseBranding(false)
+                    setIsOpen(false)
                   }}
-                  className="h-full rounded p-1"
                 >
-                  <BsPalette className="text-white" />
-                </div>
-              </Tooltip>
-            </div>
-          </div>
+                  <BrandIcon className="mr-2" />
+                  <Text className="font-body text-sm mr-4">None</Text>
+                  {!useBranding && <BiCheck className="ml-auto" size={20} />}
+                </li>
+                {brandingData && brandingData.Branding.length > 0 && (
+                  <div className="border-t border-gray-600 mx-3 mt-1.5" />
+                )}
+                <Button
+                  appearance="gray"
+                  type="button"
+                  className="m-3"
+                  onClick={() => {
+                    setBrandingModal(true)
+                    setIsOpen(false)
+                  }}
+                >
+                  <Text className="text-sm">Add new</Text>
+                </Button>
+              </ul>
+            }
+            placement="bottom-start"
+            triggerOffset={20}
+          >
+            <Button
+              appearance="none"
+              type="button"
+              className="flex items-center"
+              onClick={() => {
+                setIsOpen(!isOpen)
+              }}
+            >
+              <BrandIcon className="mr-2" />
+              <Text className=" text-sm font-main text-gray-100">Brand</Text>
+            </Button>
+          </Tooltip>
+        </div>
+        <div className="flex justify-end items-stretch border-l-2 py-2 pl-4 border-brand-grey">
           <Button
-            appearance="gray"
+            appearance={config.mode === 'Landscape' ? 'gray' : 'none'}
             size="small"
             type="button"
-            className="mr-4"
             icon={IoDesktopOutline}
+            className="mr-2 transition-colors"
             onClick={() => setViewConfig({ ...config, mode: 'Landscape' })}
           />
           <Button
-            appearance="none"
+            appearance={config.mode === 'Portrait' ? 'gray' : 'none'}
             size="small"
             type="button"
-            className="mr-4"
+            className="mr-4 transition-colors"
             icon={IoPhonePortraitOutline}
             onClick={() => setViewConfig({ ...config, mode: 'Portrait' })}
           />
@@ -347,6 +373,14 @@ const FragmentBar = ({
             setFragmentVideoModal(false)
           }}
           contentType={mode}
+        />
+      )}
+      {brandingModal && (
+        <Branding
+          open={brandingModal}
+          handleClose={() => {
+            setBrandingModal(false)
+          }}
         />
       )}
     </div>

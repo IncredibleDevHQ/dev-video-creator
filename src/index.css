@@ -145,7 +145,7 @@ body {
 }
 
 #font-picker {
-  @apply block shadow-none w-full border border-gray-300 rounded-md;
+  @apply block shadow-none w-full border border-gray-300 rounded-sm text-sm;
 }
 
 #font-picker .dropdown-button {

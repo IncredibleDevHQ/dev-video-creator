@@ -1,85 +1,70 @@
+/* eslint-disable jsx-a11y/media-has-caption */
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 
-import React, { useEffect, useMemo, useState } from 'react'
-import Skeleton from 'react-loading-skeleton'
-import { cx } from '@emotion/css'
+import { css, cx } from '@emotion/css'
+import { Listbox } from '@headlessui/react'
+import FontPicker from 'font-picker-react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { HexColorInput, HexColorPicker } from 'react-colorful'
+import Dropzone from 'react-dropzone'
+import { IconType } from 'react-icons'
+import { BiCheck } from 'react-icons/bi'
+import { BsCloudCheck, BsCloudUpload } from 'react-icons/bs'
+import { FiLoader, FiUploadCloud } from 'react-icons/fi'
+import {
+  IoAddOutline,
+  IoChevronDownOutline,
+  IoChevronUpOutline,
+  IoCloseCircle,
+  IoCloseOutline,
+  IoColorPaletteOutline,
+  IoPlayOutline,
+  IoShapesOutline,
+  IoTabletLandscapeOutline,
+  IoTextOutline,
+} from 'react-icons/io5'
+import Modal from 'react-responsive-modal'
 import { useRecoilValue } from 'recoil'
-import { Navbar, Text } from '../../components'
+import { useDebouncedCallback } from 'use-debounce'
+import { ReactComponent as BrandIcon } from '../../assets/BrandIcon.svg'
+import { Button, Heading, Text, Tooltip } from '../../components'
+import config from '../../config'
 import {
   GetBrandingQuery,
   useCreateBrandingMutation,
+  useDeleteBrandingMutation,
   useGetBrandingLazyQuery,
+  useUpdateBrandingMutation,
 } from '../../generated/graphql'
+import { useUploadFile } from '../../hooks'
+import useDidUpdateEffect from '../../hooks/use-did-update-effect'
 import { userState } from '../../stores/user.store'
-import Branding2 from './Branding'
-
-const BrandTile = (props: {
-  branding: BrandingInterface
-  active?: boolean
-  handleClick?: () => void
-}) => {
-  return (
-    <div
-      className={cx(
-        'shadow-xl cursor-pointer bg-white px-2 py-4 rounded border-1.5',
-        {
-          'border-brand': props.active,
-        }
-      )}
-      onClick={props.handleClick}
-    >
-      <h3>{props.branding.name}</h3>
-      <div className="flex gap-x-4 mt-2">
-        <div className="flex -space-x-2">
-          {props.branding.branding?.colors?.primary && (
-            <span
-              style={{ background: props.branding.branding.colors.primary }}
-              className="w-6 h-6 rounded-full"
-            />
-          )}
-          {props.branding.branding?.colors?.secondary && (
-            <span
-              style={{ background: props.branding.branding.colors.secondary }}
-              className="w-6 h-6 rounded-full"
-            />
-          )}
-          {props.branding.branding?.colors?.tertiary && (
-            <span
-              style={{ background: props.branding.branding.colors.tertiary }}
-              className="w-6 h-6 rounded-full"
-            />
-          )}
-        </div>
-        {props.branding.branding?.logo && (
-          <img
-            className="w-6 h-6 rounded"
-            src={props.branding.branding.logo}
-            alt="Logo"
-          />
-        )}
-      </div>
-    </div>
-  )
-}
 
 export interface BrandingJSON {
   colors?: {
     primary?: string
     secondary?: string
     tertiary?: string
+    transition?: string
+    text?: string
+  }
+  background?: {
+    type?: 'image' | 'video' | 'color'
+    url?: string
+    color?: {
+      primary?: string
+      secondary?: string
+      tertiary?: string
+    }
   }
   logo?: string
   companyName?: string
   font?: string
+  introVideoUrl?: string
 }
 
-const initialValue: BrandingJSON = {
-  colors: { primary: '#000', secondary: '#ccc', tertiary: '#eee' },
-  logo: '',
-  companyName: '',
-  font: '',
-}
+const initialValue: BrandingJSON = {}
 
 type B = GetBrandingQuery['Branding'][0]
 
@@ -87,8 +72,73 @@ export interface BrandingInterface extends B {
   branding?: BrandingJSON | null
 }
 
-const BrandingPage = () => {
+interface Tab {
+  name: string
+  id: string
+  Icon: IconType
+}
+
+const tabs: Tab[] = [
+  {
+    id: 'Logo',
+    name: 'Logo',
+    Icon: IoShapesOutline,
+  },
+  {
+    id: 'Background',
+    name: 'Background',
+    Icon: IoTabletLandscapeOutline,
+  },
+  {
+    id: 'Color',
+    name: 'Color',
+    Icon: IoColorPaletteOutline,
+  },
+  {
+    id: 'Font',
+    name: 'Font',
+    Icon: IoTextOutline,
+  },
+  {
+    id: 'IntroVideo',
+    name: 'Intro Video',
+    Icon: IoPlayOutline,
+  },
+]
+
+const colorPickerStyle = css`
+  .react-colorful__saturation {
+    border-radius: 4px;
+    width: 268px;
+  }
+
+  .react-colorful__hue {
+    margin-top: 10px;
+    height: 16px;
+    border-radius: 4px;
+    width: 268px;
+  }
+
+  .react-colorful__saturation-pointer {
+    width: 16px;
+    height: 16px;
+  }
+
+  .react-colorful__hue-pointer {
+    width: 16px;
+    height: 16px;
+  }
+`
+
+const BrandingPage = ({
+  open,
+  handleClose,
+}: {
+  open: boolean
+  handleClose: () => void
+}) => {
   const [brandingId, setBrandingId] = useState<string>()
+  const [activeTab, setActiveTab] = useState<Tab>(tabs[0])
 
   const [brandings, setBrandings] = useState<BrandingInterface[]>([])
 
@@ -98,6 +148,34 @@ const BrandingPage = () => {
     useGetBrandingLazyQuery()
 
   const [createBranding, { loading }] = useCreateBrandingMutation()
+  const [deleteBrandingMutation, { loading: deletingBrand }] =
+    useDeleteBrandingMutation()
+
+  const deleteBranding = async () => {
+    if (!branding) return
+    await deleteBrandingMutation({
+      variables: {
+        id: branding.id,
+      },
+    })
+
+    refetch()
+  }
+
+  const debounced = useDebouncedCallback(
+    // function
+    () => {
+      handleSave()
+    },
+    400
+  )
+
+  useDidUpdateEffect(() => {
+    debounced()
+  }, [brandings])
+
+  const [updateBranding, { loading: updatingBrand }] =
+    useUpdateBrandingMutation()
 
   const branding = useMemo(() => {
     return brandings.find((branding) => branding.id === brandingId)
@@ -125,65 +203,885 @@ const BrandingPage = () => {
     setBrandingId(data?.insert_Branding_one?.id)
   }
 
+  const handleSave = async () => {
+    if (!branding) return
+    await updateBranding({
+      variables: {
+        branding: branding.branding,
+        name: branding.name,
+        id: branding.id,
+      },
+    })
+  }
+
   return (
-    <div className="min-h-screen">
-      <Navbar />
-      <div className="my-4 mx-6">
-        <Text className="font-semibold text-2xl mb-8">Branding</Text>
-
-        {fetching || !user?.sub ? (
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-            <Skeleton width={220} height={80} />
-            <Skeleton width={220} height={80} />
-            <Skeleton width={220} height={80} />
+    <Modal
+      open={open}
+      onClose={() => {
+        handleClose()
+      }}
+      styles={{
+        modal: {
+          maxWidth: '90%',
+          width: '100%',
+          maxHeight: '85vh',
+          height: '100%',
+          padding: '0',
+        },
+      }}
+      classNames={{
+        modal: cx('rounded-md m-0 p-0'),
+      }}
+      center
+      showCloseIcon={false}
+    >
+      <div className="flex flex-col h-full w-full">
+        {fetching && (
+          <div className="h-full w-full flex items-center justify-center">
+            <FiLoader className={cx('animate-spin my-6')} size={16} />
           </div>
-        ) : (
-          <div>
-            {brandings.length === 0 && (
-              <div className="my-3 bg-brand text-xs text-center rounded-md text-gray-100 p-2">
-                You haven&apos;t setup any Branding yet. Branding helps you make
-                your videos truly yours!
+        )}
+        {!fetching && (
+          <>
+            <div className="flex justify-between items-center w-full border-b border-gray-300 py-2 px-4">
+              <div className="flex items-center gap-x-4">
+                <Text className="font-bold font-main">Brand assets</Text>
+                {updatingBrand ? (
+                  <div className="flex text-gray-400 items-center mr-4 mt-px">
+                    <BsCloudUpload className="mr-1" />
+                    <Text fontSize="small">Saving...</Text>
+                  </div>
+                ) : (
+                  <div className="flex text-gray-400 items-center mr-4 mt-px">
+                    <BsCloudCheck className="mr-1" />
+                    <Text fontSize="small">Saved</Text>
+                  </div>
+                )}
               </div>
-            )}
-
-            <div className="my-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 md:grid-cols-3 lg:grid-cols-4 mb-8">
-                {brandings.map((branding) => (
-                  <BrandTile
-                    active={brandingId === branding.id}
-                    handleClick={() => {
-                      setBrandingId(branding.id)
-                    }}
-                    branding={branding}
-                    key={branding.id}
-                  />
-                ))}
-                <div
-                  onClick={handleCreateBranding}
-                  className="h-full cursor-pointer border flex items-center justify-center rounded bg-white shadow-xl border-brand border-dashed p-2"
-                >
-                  {loading ? 'Creating...' : 'Create Branding'}
+              <Button
+                icon={loading ? undefined : IoAddOutline}
+                appearance="none"
+                type="button"
+                className="text-gray-800"
+                onClick={handleCreateBranding}
+                disabled={loading}
+              >
+                {loading ? (
+                  <FiLoader className={cx('animate-spin')} size={20} />
+                ) : (
+                  <Text className="text-sm">Add new</Text>
+                )}
+              </Button>
+            </div>
+            <div className="flex flex-1 w-full justify-between">
+              <div className="relative w-full bg-gray-100">
+                {brandings && (
+                  <div className="absolute top-0 right-0 m-4 w-60">
+                    <Listbox
+                      value={branding}
+                      onChange={(value) => setBrandingId(value?.id)}
+                    >
+                      {({ open }) => (
+                        <div className="relative mt-1">
+                          <Listbox.Button className="w-full flex gap-x-4 text-left items-center justify-between border rounded-sm bg-white shadow-sm py-2 px-3 pr-8 relative">
+                            <div className="flex items-center gap-x-2 w-full">
+                              <BrandIcon className="flex-shrink-0" />
+                              <Text className="text-sm block truncate">
+                                {branding?.name}
+                              </Text>
+                            </div>
+                            <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none ">
+                              {open ? (
+                                <IoChevronUpOutline />
+                              ) : (
+                                <IoChevronDownOutline />
+                              )}
+                            </span>
+                          </Listbox.Button>
+                          <Listbox.Options className="bg-dark-300 mt-2 rounded-md">
+                            {brandings.map((brand, index) => (
+                              <Listbox.Option
+                                className={({ active }) =>
+                                  cx(
+                                    'flex items-center gap-x-4 py-2 px-3 pr-8 relative text-left font-body text-gray-100 cursor-pointer',
+                                    {
+                                      'bg-dark-100': active,
+                                      'rounded-t-md pt-3': index === 0,
+                                      'rounded-b-md pb-3':
+                                        index === brandings.length - 1,
+                                    }
+                                  )
+                                }
+                                key={brand.id}
+                                value={brand}
+                              >
+                                {({ selected }) => (
+                                  <>
+                                    <BrandIcon className="flex-shrink-0" />
+                                    <Text className="text-sm block truncate ">
+                                      {brand.name}
+                                    </Text>
+                                    {selected && (
+                                      <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                                        <BiCheck size={20} />
+                                      </span>
+                                    )}
+                                  </>
+                                )}
+                              </Listbox.Option>
+                            ))}
+                          </Listbox.Options>
+                        </div>
+                      )}
+                    </Listbox>
+                  </div>
+                )}
+              </div>
+              <div className="flex">
+                {branding && (
+                  <div className="bg-white w-64 pt-6 px-4">
+                    {activeTab === tabs[0] && (
+                      <LogoSetting
+                        branding={branding}
+                        setBranding={(branding) => {
+                          setBrandings((brandings) => {
+                            return brandings.map((b) =>
+                              b.id === branding.id ? branding : b
+                            )
+                          })
+                        }}
+                      />
+                    )}
+                    {activeTab === tabs[1] && (
+                      <BackgroundSetting
+                        branding={branding}
+                        setBranding={(branding) => {
+                          setBrandings((brandings) => {
+                            return brandings.map((b) =>
+                              b.id === branding.id ? branding : b
+                            )
+                          })
+                        }}
+                      />
+                    )}
+                    {activeTab === tabs[2] && (
+                      <ColorSetting
+                        branding={branding}
+                        setBranding={(branding) => {
+                          setBrandings((brandings) => {
+                            return brandings.map((b) =>
+                              b.id === branding.id ? branding : b
+                            )
+                          })
+                        }}
+                      />
+                    )}
+                    {activeTab === tabs[3] && (
+                      <FontSetting
+                        branding={branding}
+                        setBranding={(branding) => {
+                          setBrandings((brandings) => {
+                            return brandings.map((b) =>
+                              b.id === branding.id ? branding : b
+                            )
+                          })
+                        }}
+                      />
+                    )}
+                    {activeTab === tabs[4] && (
+                      <IntroVideoSetting
+                        branding={branding}
+                        setBranding={(branding) => {
+                          setBrandings((brandings) => {
+                            return brandings.map((b) =>
+                              b.id === branding.id ? branding : b
+                            )
+                          })
+                        }}
+                      />
+                    )}
+                  </div>
+                )}
+                <div className="flex flex-col bg-gray-50 px-2 py-4 gap-y-2">
+                  {tabs.map((tab) => (
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab(tab)}
+                      className={cx(
+                        'flex flex-col items-center bg-transparent py-4 px-1 rounded-md text-gray-500 gap-y-2 transition-all',
+                        {
+                          'bg-gray-200 text-gray-800': activeTab.id === tab.id,
+                          'hover:bg-gray-100': activeTab.id !== tab.id,
+                        }
+                      )}
+                      key={tab.id}
+                    >
+                      <tab.Icon size={21} />
+                      <Text className="font-body font-normal text-xs">
+                        {tab.name}
+                      </Text>
+                    </button>
+                  ))}
+                  <Button
+                    onClick={deleteBranding}
+                    appearance="danger"
+                    type="button"
+                    size="extraSmall"
+                    disabled={deletingBrand}
+                    loading={deletingBrand}
+                    className="mt-auto"
+                  >
+                    <Text className="text-xs">Delete Brand</Text>
+                  </Button>
                 </div>
               </div>
-              <hr />
             </div>
+          </>
+        )}
+      </div>
+    </Modal>
+  )
+}
 
-            {branding && (
-              <Branding2
-                branding={branding}
-                setBranding={(branding) => {
-                  setBrandings((brandings) => {
-                    return brandings.map((b) =>
-                      b.id === branding.id ? branding : b
-                    )
-                  })
-                }}
-                refetch={refetch}
+const BackgroundSetting = ({
+  branding,
+  setBranding,
+}: {
+  branding: BrandingInterface
+  setBranding: (branding: BrandingInterface) => void
+}) => {
+  const [colorPicker, setColorPicker] = useState(false)
+  const [uploadFile] = useUploadFile()
+  const [hover, setHover] = useState(false)
+  const [fileUploading, setFileUploading] = useState(false)
+
+  const videoRef = useRef<HTMLVideoElement>(null)
+
+  useEffect(() => {
+    if (!videoRef.current) return
+    if (hover) {
+      videoRef.current.play()
+    } else {
+      videoRef.current.pause()
+      videoRef.current.currentTime = 0
+    }
+  }, [hover])
+
+  const handleColorChange = (color: string) => {
+    setBranding({
+      ...branding,
+      branding: {
+        ...branding.branding,
+        background: {
+          ...branding?.branding?.background,
+          type:
+            branding?.branding?.background?.type === 'video' ||
+            branding?.branding?.background?.type === 'image'
+              ? branding?.branding?.background?.type
+              : 'color',
+          color: {
+            ...branding?.branding?.background?.color,
+            primary: color,
+          },
+        },
+      },
+    })
+  }
+
+  const handleUploadFile = async (files: File[]) => {
+    const file = files?.[0]
+    if (!file) return
+
+    let fileType: 'image' | 'video' = 'image'
+    if (file.type.startsWith('image')) fileType = 'image'
+    else fileType = 'video'
+
+    setFileUploading(true)
+    const { url } = await uploadFile({
+      extension: file.name.split('.').pop() as any,
+      file,
+    })
+
+    setFileUploading(false)
+    setBranding({
+      ...branding,
+      branding: {
+        ...branding.branding,
+        background: {
+          ...branding?.branding?.background,
+          type: fileType,
+          url,
+        },
+      },
+    })
+  }
+
+  return (
+    <div className="flex flex-col">
+      <Heading fontSize="small" className="font-bold">
+        Background
+      </Heading>
+      <Tooltip
+        content={
+          <div
+            style={{
+              width: '300px',
+            }}
+            className="border border-gray-200 shadow-sm bg-white mr-6 mt-1 p-4 rounded-sm"
+          >
+            <IoCloseOutline
+              className="ml-auto cursor-pointer"
+              size={16}
+              onClick={() => setColorPicker(false)}
+            />
+            <Text className="text-sm font-bold">Custom color</Text>
+            <HexColorPicker
+              className={cx('mt-2', colorPickerStyle)}
+              color={branding.branding?.background?.color?.primary || '#000'}
+              onChange={handleColorChange}
+            />
+            <HexColorInput
+              color={branding.branding?.background?.color?.primary || '#000'}
+              className="font-body text-xs w-full text-center bg-gray-100 focus:border-brand transition-colors focus:outline-none rounded p-2 mt-3"
+              onChange={handleColorChange}
+            />
+            <div className="border-t my-4 border-gray-200" />
+            {branding.branding?.background?.url ? (
+              <div
+                className="relative ring-1 ring-offset-1 ring-gray-100 rounded-sm"
+                style={{ height: '150px', width: '268px' }}
+              >
+                <IoCloseCircle
+                  className="absolute top-0 right-0 text-red-500 -m-1.5 cursor-pointer block z-10 bg-white rounded-full"
+                  size={16}
+                  onClick={() => {
+                    setBranding({
+                      ...branding,
+                      branding: {
+                        ...branding.branding,
+                        background: {
+                          ...branding?.branding?.background,
+                          url: undefined,
+                          type: 'color',
+                        },
+                      },
+                    })
+                  }}
+                />
+                {branding.branding?.background?.type === 'image' ? (
+                  <img
+                    src={branding.branding?.background?.url || ''}
+                    alt="backgroundImage"
+                    className="w-full h-full object-contain rounded-md"
+                  />
+                ) : (
+                  <video
+                    className="rounded-sm"
+                    src={branding.branding?.background?.url || ''}
+                    controls
+                  />
+                )}
+              </div>
+            ) : (
+              <>
+                <Text className="text-sm font-bold">Upload image/video</Text>
+                <Dropzone
+                  onDrop={handleUploadFile}
+                  accept={['image/*', 'video/*']}
+                  maxFiles={1}
+                >
+                  {({ getRootProps, getInputProps }) => (
+                    <div
+                      tabIndex={-1}
+                      onKeyUp={() => {}}
+                      role="button"
+                      className="flex flex-col items-center p-3 mt-2 border border-gray-200 border-dashed rounded-md cursor-pointer"
+                      {...getRootProps()}
+                    >
+                      <input {...getInputProps()} />
+                      {fileUploading ? (
+                        <FiLoader
+                          className={cx('animate-spin my-6')}
+                          size={16}
+                        />
+                      ) : (
+                        <>
+                          <FiUploadCloud
+                            size={21}
+                            className="my-2 text-gray-600"
+                          />
+
+                          <div className="z-50 text-center ">
+                            <Text className="font-body text-xs text-gray-600">
+                              Drag and drop or
+                            </Text>
+                            <Text className="font-semibold text-xs text-gray-800">
+                              browse
+                            </Text>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </Dropzone>
+              </>
+            )}
+          </div>
+        }
+        isOpen={colorPicker}
+        setIsOpen={setColorPicker}
+        placement="left-start"
+      >
+        <div
+          onClick={() => setColorPicker(!colorPicker)}
+          style={{
+            backgroundColor:
+              branding.branding?.background?.type === 'color'
+                ? branding.branding?.background?.color?.primary
+                : '#fff',
+          }}
+          onMouseEnter={() => setHover(true)}
+          onMouseLeave={() => setHover(false)}
+          className="flex items-center justify-center h-16 w-1/2 mt-3 cursor-pointer ring-1 ring-offset-1 ring-gray-100 rounded-sm relative"
+        >
+          {branding.branding?.background && (
+            <IoCloseCircle
+              className="absolute top-0 right-0 text-red-500 -m-1.5 cursor-pointer block z-10 bg-white rounded-full"
+              size={16}
+              onClick={(e) => {
+                e.stopPropagation()
+                setBranding({
+                  ...branding,
+                  branding: {
+                    ...branding.branding,
+                    background: undefined,
+                  },
+                })
+              }}
+            />
+          )}
+          {!branding.branding?.background && (
+            <IoAddOutline size={21} className="text-gray-500" />
+          )}
+          {branding.branding?.background?.type === 'image' && (
+            <img
+              src={branding.branding?.background?.url || ''}
+              alt="backgroundImage"
+              className="w-full h-full object-contain rounded-md"
+            />
+          )}
+          {branding.branding?.background?.type === 'video' && (
+            <video
+              ref={videoRef}
+              className="rounded-sm object-cover "
+              src={branding.branding?.background?.url || ''}
+              muted
+            />
+          )}
+        </div>
+      </Tooltip>
+    </div>
+  )
+}
+
+const ColorPicker = ({
+  color,
+  onChange,
+  setColorPicker,
+}: {
+  color: string
+  onChange: (newColor: string) => void
+  setColorPicker: React.Dispatch<React.SetStateAction<boolean>>
+}) => {
+  return (
+    <div
+      style={{
+        width: '300px',
+      }}
+      className="border border-gray-200 shadow-sm bg-white mr-6 mt-1 p-4 rounded-sm"
+    >
+      <IoCloseOutline
+        className="ml-auto cursor-pointer"
+        size={16}
+        onClick={() => setColorPicker(false)}
+      />
+      <Text className="text-sm font-bold">Custom color</Text>
+      <HexColorPicker
+        className={cx('mt-2', colorPickerStyle)}
+        color={color}
+        onChange={onChange}
+      />
+      <HexColorInput
+        color={color}
+        className="font-body text-xs w-full text-center bg-gray-100 focus:border-brand transition-colors focus:outline-none rounded p-2 mt-3"
+        onChange={onChange}
+      />
+    </div>
+  )
+}
+
+const ColorSetting = ({
+  branding,
+  setBranding,
+}: {
+  branding: BrandingInterface
+  setBranding: (branding: BrandingInterface) => void
+}) => {
+  const [textColorPicker, setTextColorPicker] = useState(false)
+  const [transitionColorPicker, setTransitionColorPicker] = useState(false)
+
+  return (
+    <div className="flex flex-col">
+      <Heading fontSize="small" className="font-bold">
+        Text Color
+      </Heading>
+      <Tooltip
+        isOpen={textColorPicker}
+        setIsOpen={setTextColorPicker}
+        placement="left-start"
+        content={
+          <ColorPicker
+            color={branding.branding?.colors?.text || '#000'}
+            onChange={(newColor: string) => {
+              setBranding({
+                ...branding,
+                branding: {
+                  ...branding.branding,
+                  colors: {
+                    ...branding.branding?.colors,
+                    text: newColor,
+                  },
+                },
+              })
+            }}
+            setColorPicker={setTextColorPicker}
+          />
+        }
+      >
+        <div
+          onClick={() => setTextColorPicker(!textColorPicker)}
+          style={{
+            backgroundColor: branding.branding?.colors?.text || '',
+          }}
+          className="relative flex items-center justify-center h-16 w-1/2 mt-3 cursor-pointer ring-1 ring-offset-1 ring-gray-100 rounded-sm"
+        >
+          {branding.branding?.colors?.text && (
+            <IoCloseCircle
+              className="absolute top-0 right-0 text-red-500 -m-1.5 cursor-pointer block z-10 bg-white rounded-full"
+              size={16}
+              onClick={(e) => {
+                e.stopPropagation()
+                setBranding({
+                  ...branding,
+                  branding: {
+                    ...branding.branding,
+                    colors: {
+                      ...branding.branding?.colors,
+                      text: undefined,
+                    },
+                  },
+                })
+              }}
+            />
+          )}
+          {!branding.branding?.colors?.text && (
+            <IoAddOutline size={21} className="text-gray-500" />
+          )}
+        </div>
+      </Tooltip>
+      <Heading fontSize="small" className="font-bold mt-6">
+        Transition Color
+      </Heading>
+      <Tooltip
+        isOpen={transitionColorPicker}
+        setIsOpen={setTransitionColorPicker}
+        placement="left-start"
+        content={
+          <ColorPicker
+            color={branding.branding?.colors?.transition || '#000'}
+            onChange={(newColor: string) => {
+              setBranding({
+                ...branding,
+                branding: {
+                  ...branding.branding,
+                  colors: {
+                    ...branding.branding?.colors,
+                    transition: newColor,
+                  },
+                },
+              })
+            }}
+            setColorPicker={setTransitionColorPicker}
+          />
+        }
+      >
+        <div
+          onClick={() => setTransitionColorPicker(!transitionColorPicker)}
+          style={{
+            backgroundColor: branding.branding?.colors?.transition || '',
+          }}
+          className="relative flex items-center justify-center h-16 w-1/2 mt-3 cursor-pointer ring-1 ring-offset-1 ring-gray-100 rounded-sm"
+        >
+          {branding.branding?.colors?.transition && (
+            <IoCloseCircle
+              className="absolute top-0 right-0 text-red-500 -m-1.5 cursor-pointer block z-10 bg-white rounded-full"
+              size={16}
+              onClick={(e) => {
+                e.stopPropagation()
+                setBranding({
+                  ...branding,
+                  branding: {
+                    ...branding.branding,
+                    colors: {
+                      ...branding.branding?.colors,
+                      transition: undefined,
+                    },
+                  },
+                })
+              }}
+            />
+          )}
+          {!branding.branding?.colors?.transition && (
+            <IoAddOutline size={21} className="text-gray-500" />
+          )}
+        </div>
+      </Tooltip>
+    </div>
+  )
+}
+
+const LogoSetting = ({
+  branding,
+  setBranding,
+}: {
+  branding: BrandingInterface
+  setBranding: (branding: BrandingInterface) => void
+}) => {
+  const inputRef = useRef<HTMLInputElement | null>(null)
+  const [uploadFile] = useUploadFile()
+
+  const [fileUploading, setFileUploading] = useState(false)
+
+  const handleUploadFile = async (files: File[]) => {
+    const file = files?.[0]
+    if (!file) return
+
+    setFileUploading(true)
+    const { url } = await uploadFile({
+      extension: file.name.split('.').pop() as any,
+      file,
+    })
+
+    setFileUploading(false)
+    setBranding({ ...branding, branding: { ...branding.branding, logo: url } })
+  }
+
+  return (
+    <div className="flex flex-col">
+      <Heading fontSize="small" className="font-bold">
+        Logo
+      </Heading>
+      {!branding.branding?.logo ? (
+        <>
+          <Dropzone onDrop={handleUploadFile} accept="image/*" maxFiles={1}>
+            {({ getRootProps, getInputProps }) => (
+              <div
+                tabIndex={-1}
+                onKeyUp={() => {}}
+                role="button"
+                className="flex flex-col items-center p-4 my-3 border border-gray-200 border-dashed rounded-md cursor-pointer"
+                {...getRootProps()}
+              >
+                <input {...getInputProps()} />
+                {fileUploading ? (
+                  <FiLoader className={cx('animate-spin my-6')} size={16} />
+                ) : (
+                  <>
+                    <FiUploadCloud size={21} className="my-2 text-gray-600" />
+
+                    <div className="z-50 text-center ">
+                      <Text className="font-body text-xs text-gray-600">
+                        Drag and drop or
+                      </Text>
+                      <Text className="font-semibold text-xs text-gray-800">
+                        browse
+                      </Text>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </Dropzone>
+        </>
+      ) : (
+        <>
+          <div
+            onClick={() => inputRef.current?.click()}
+            style={{ background: branding.branding?.logo }}
+            className="w-1/2 h-16 rounded-md border border-gray-200 p-4 mt-3 relative"
+          >
+            <IoCloseCircle
+              className="absolute top-0 right-0 text-red-500 -m-1.5 cursor-pointer block z-10 bg-white rounded-full"
+              size={16}
+              onClick={() => {
+                setBranding({
+                  ...branding,
+                  branding: {
+                    ...branding.branding,
+                    logo: undefined,
+                  },
+                })
+              }}
+            />
+            {branding.branding?.logo && (
+              <img
+                className="h-full w-full object-contain"
+                src={branding.branding.logo}
+                alt="Logo"
               />
             )}
           </div>
-        )}
-      </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+const IntroVideoSetting = ({
+  branding,
+  setBranding,
+}: {
+  branding: BrandingInterface
+  setBranding: (branding: BrandingInterface) => void
+}) => {
+  const [uploadFile] = useUploadFile()
+
+  const [fileUploading, setFileUploading] = useState(false)
+
+  const [hover, setHover] = useState(false)
+  const videoRef = useRef<HTMLVideoElement>(null)
+
+  useEffect(() => {
+    if (!videoRef.current) return
+    if (hover) {
+      videoRef.current.play()
+    } else {
+      videoRef.current.pause()
+      videoRef.current.currentTime = 0
+    }
+  }, [hover])
+
+  const handleUploadFile = async (files: File[]) => {
+    const file = files?.[0]
+    if (!file) return
+
+    setFileUploading(true)
+    const { url } = await uploadFile({
+      extension: file.name.split('.').pop() as any,
+      file,
+    })
+
+    setFileUploading(false)
+    setBranding({
+      ...branding,
+      branding: { ...branding.branding, introVideoUrl: url },
+    })
+  }
+  return (
+    <div className="flex flex-col">
+      <Heading fontSize="small" className="font-bold">
+        Logo animation
+      </Heading>
+      {!branding.branding?.introVideoUrl ? (
+        <>
+          <Dropzone onDrop={handleUploadFile} accept="video/*" maxFiles={1}>
+            {({ getRootProps, getInputProps }) => (
+              <div
+                tabIndex={-1}
+                onKeyUp={() => {}}
+                role="button"
+                className="flex flex-col items-center p-4 my-3 border border-gray-200 border-dashed rounded-md cursor-pointer"
+                {...getRootProps()}
+              >
+                <input {...getInputProps()} />
+                {fileUploading ? (
+                  <FiLoader className={cx('animate-spin my-6')} size={16} />
+                ) : (
+                  <>
+                    <FiUploadCloud size={21} className="my-2 text-gray-600" />
+
+                    <div className="z-50 text-center ">
+                      <Text className="font-body text-xs text-gray-600">
+                        Drag and drop or
+                      </Text>
+                      <Text className="font-semibold text-xs text-gray-800">
+                        browse
+                      </Text>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </Dropzone>
+        </>
+      ) : (
+        <>
+          <div
+            className="flex items-center justify-center w-1/2 h-16 rounded-md border border-gray-200 mt-3 cursor-pointer relative"
+            onMouseEnter={() => setHover(true)}
+            onMouseLeave={() => setHover(false)}
+          >
+            <IoCloseCircle
+              className="absolute top-0 right-0 text-red-500 -m-1.5 cursor-pointer block z-10 bg-white rounded-full"
+              size={16}
+              onClick={() => {
+                setBranding({
+                  ...branding,
+                  branding: {
+                    ...branding.branding,
+                    introVideoUrl: undefined,
+                  },
+                })
+              }}
+            />
+            <video
+              ref={videoRef}
+              className="rounded-sm object-cover "
+              src={branding.branding?.introVideoUrl || ''}
+              muted
+            />
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+const FontSetting = ({
+  branding,
+  setBranding,
+}: {
+  branding: BrandingInterface
+  setBranding: (branding: BrandingInterface) => void
+}) => {
+  return (
+    <div className="flex flex-col">
+      <Heading fontSize="small" className="font-bold mb-3">
+        Font
+      </Heading>
+      <FontPicker
+        activeFontFamily={branding.branding?.font}
+        onChange={(font) => {
+          setBranding({
+            ...branding,
+            branding: {
+              ...branding.branding,
+              font: font.family,
+            },
+          })
+        }}
+        apiKey={config.googleFonts.apiKey}
+      />
     </div>
   )
 }
