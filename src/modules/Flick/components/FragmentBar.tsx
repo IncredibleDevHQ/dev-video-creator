@@ -46,7 +46,7 @@ const FragmentBar = ({
   introConfig: IntroOutroConfiguration
 }) => {
   const [fragmentVideoModal, setFragmentVideoModal] = useState(false)
-  const [brandingModal, setBrandingModal] = useState(true)
+  const [brandingModal, setBrandingModal] = useState(false)
   const [{ flick, activeFragmentId, view }, setFlickStore] =
     useRecoilState(newFlickStore)
   const history = useHistory()
