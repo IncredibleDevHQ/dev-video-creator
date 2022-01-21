@@ -10,7 +10,6 @@ import { HexColorInput, HexColorPicker } from 'react-colorful'
 import Dropzone from 'react-dropzone'
 import { IconType } from 'react-icons'
 import { BiCheck } from 'react-icons/bi'
-import { BsCloudCheck, BsCloudUpload } from 'react-icons/bs'
 import { FiLoader, FiUploadCloud } from 'react-icons/fi'
 import {
   IoAddOutline,
@@ -23,10 +22,10 @@ import {
   IoShapesOutline,
   IoTabletLandscapeOutline,
   IoTextOutline,
+  IoTrashOutline,
 } from 'react-icons/io5'
 import Modal from 'react-responsive-modal'
-import { useRecoilValue } from 'recoil'
-import { useDebouncedCallback } from 'use-debounce'
+import useMeasure from 'react-use-measure'
 import { ReactComponent as BrandIcon } from '../../assets/BrandIcon.svg'
 import { Button, Heading, Text, Tooltip } from '../../components'
 import config from '../../config'
@@ -34,12 +33,11 @@ import {
   GetBrandingQuery,
   useCreateBrandingMutation,
   useDeleteBrandingMutation,
-  useGetBrandingLazyQuery,
+  useGetBrandingQuery,
   useUpdateBrandingMutation,
 } from '../../generated/graphql'
 import { useUploadFile } from '../../hooks'
-import useDidUpdateEffect from '../../hooks/use-did-update-effect'
-import { userState } from '../../stores/user.store'
+import BrandPreview from './BrandPreview'
 
 export interface BrandingJSON {
   colors?: {
@@ -60,7 +58,16 @@ export interface BrandingJSON {
   }
   logo?: string
   companyName?: string
-  font?: string
+  font?: {
+    heading?: {
+      family: string
+      type: 'google' | 'custom'
+    }
+    body?: {
+      family: string
+      type: 'google' | 'custom'
+    }
+  }
   introVideoUrl?: string
 }
 
@@ -94,11 +101,11 @@ const tabs: Tab[] = [
     name: 'Color',
     Icon: IoColorPaletteOutline,
   },
-  {
-    id: 'Font',
-    name: 'Font',
-    Icon: IoTextOutline,
-  },
+  // {
+  //   id: 'Font',
+  //   name: 'Font',
+  //   Icon: IoTextOutline,
+  // },
   {
     id: 'IntroVideo',
     name: 'Intro Video',
@@ -137,20 +144,19 @@ const BrandingPage = ({
   open: boolean
   handleClose: () => void
 }) => {
+  const [ref, bounds] = useMeasure()
+
   const [brandingId, setBrandingId] = useState<string>()
   const [activeTab, setActiveTab] = useState<Tab>(tabs[0])
 
   const [brandings, setBrandings] = useState<BrandingInterface[]>([])
 
-  const user = useRecoilValue(userState)
-
-  const [getBranding, { data, loading: fetching, refetch }] =
-    useGetBrandingLazyQuery()
+  const { data, loading: fetching, refetch } = useGetBrandingQuery()
 
   const [createBranding, { loading }] = useCreateBrandingMutation()
+
   const [deleteBrandingMutation, { loading: deletingBrand }] =
     useDeleteBrandingMutation()
-
   const deleteBranding = async () => {
     if (!branding) return
     await deleteBrandingMutation({
@@ -158,21 +164,20 @@ const BrandingPage = ({
         id: branding.id,
       },
     })
-
     refetch()
   }
 
-  const debounced = useDebouncedCallback(
-    // function
-    () => {
-      handleSave()
-    },
-    400
-  )
+  // const debounced = useDebouncedCallback(
+  //   // function
+  //   () => {
+  //     handleSave()
+  //   },
+  //   1000
+  // )
 
-  useDidUpdateEffect(() => {
-    debounced()
-  }, [brandings])
+  // useDidUpdateEffect(() => {
+  //   debounced()
+  // }, [brandings])
 
   const [updateBranding, { loading: updatingBrand }] =
     useUpdateBrandingMutation()
@@ -188,12 +193,6 @@ const BrandingPage = ({
       setBrandingId(data?.Branding?.[0]?.id)
     }
   }, [data])
-
-  useEffect(() => {
-    if (!user?.sub) return
-
-    getBranding()
-  }, [user?.sub])
 
   const handleCreateBranding = async () => {
     const { data } = await createBranding({
@@ -212,13 +211,14 @@ const BrandingPage = ({
         id: branding.id,
       },
     })
+    handleClose()
   }
 
   return (
     <Modal
       open={open}
       onClose={() => {
-        handleClose()
+        handleSave()
       }}
       styles={{
         modal: {
@@ -244,9 +244,8 @@ const BrandingPage = ({
         {!fetching && (
           <>
             <div className="flex justify-between items-center w-full border-b border-gray-300 py-2 px-4">
-              <div className="flex items-center gap-x-4">
-                <Text className="font-bold font-main">Brand assets</Text>
-                {updatingBrand ? (
+              <Text className="font-bold font-main">Brand assets</Text>
+              {/* {updatingBrand ? (
                   <div className="flex text-gray-400 items-center mr-4 mt-px">
                     <BsCloudUpload className="mr-1" />
                     <Text fontSize="small">Saving...</Text>
@@ -256,25 +255,43 @@ const BrandingPage = ({
                     <BsCloudCheck className="mr-1" />
                     <Text fontSize="small">Saved</Text>
                   </div>
-                )}
+                )} */}
+              <div className="flex items-center gap-x-2">
+                <Button
+                  icon={loading ? undefined : IoAddOutline}
+                  appearance="none"
+                  type="button"
+                  className="text-gray-800"
+                  onClick={handleCreateBranding}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <FiLoader className={cx('animate-spin')} size={20} />
+                  ) : (
+                    <Text className="text-sm">Add new</Text>
+                  )}
+                </Button>
+                <Button
+                  onClick={handleSave}
+                  appearance="primary"
+                  type="button"
+                  size="small"
+                  disabled={updatingBrand}
+                  loading={updatingBrand}
+                  className=""
+                >
+                  <Text className="text-sm">Done</Text>
+                </Button>
               </div>
-              <Button
-                icon={loading ? undefined : IoAddOutline}
-                appearance="none"
-                type="button"
-                className="text-gray-800"
-                onClick={handleCreateBranding}
-                disabled={loading}
-              >
-                {loading ? (
-                  <FiLoader className={cx('animate-spin')} size={20} />
-                ) : (
-                  <Text className="text-sm">Add new</Text>
-                )}
-              </Button>
             </div>
             <div className="flex flex-1 w-full justify-between">
-              <div className="relative w-full bg-gray-100">
+              <div
+                className=" flex items-center justify-start pl-12 relative w-full bg-gray-100"
+                ref={ref}
+              >
+                {branding && (
+                  <BrandPreview bounds={bounds} branding={branding} />
+                )}
                 {brandings && (
                   <div className="absolute top-0 right-0 m-4 w-60">
                     <Listbox
@@ -376,7 +393,7 @@ const BrandingPage = ({
                         }}
                       />
                     )}
-                    {activeTab === tabs[3] && (
+                    {/* {activeTab === tabs[3] && (
                       <FontSetting
                         branding={branding}
                         setBranding={(branding) => {
@@ -387,8 +404,8 @@ const BrandingPage = ({
                           })
                         }}
                       />
-                    )}
-                    {activeTab === tabs[4] && (
+                    )} */}
+                    {activeTab === tabs[3] && (
                       <IntroVideoSetting
                         branding={branding}
                         setBranding={(branding) => {
@@ -402,7 +419,7 @@ const BrandingPage = ({
                     )}
                   </div>
                 )}
-                <div className="flex flex-col bg-gray-50 px-2 py-4 gap-y-2">
+                <div className="flex flex-col bg-gray-50 px-2 pt-4 gap-y-2 relative">
                   {tabs.map((tab) => (
                     <button
                       type="button"
@@ -422,17 +439,20 @@ const BrandingPage = ({
                       </Text>
                     </button>
                   ))}
-                  <Button
+                  <div
                     onClick={deleteBranding}
-                    appearance="danger"
-                    type="button"
-                    size="extraSmall"
-                    disabled={deletingBrand}
-                    loading={deletingBrand}
-                    className="mt-auto"
+                    className="-ml-2 py-2 w-full bg-red-500 bottom-0 flex items-center justify-center absolute cursor-pointer"
                   >
-                    <Text className="text-xs">Delete Brand</Text>
-                  </Button>
+                    <Button
+                      appearance="none"
+                      icon={IoTrashOutline}
+                      type="button"
+                      size="extraSmall"
+                      disabled={deletingBrand}
+                      loading={deletingBrand}
+                      className="text-white"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -576,7 +596,7 @@ const BackgroundSetting = ({
                   />
                 ) : (
                   <video
-                    className="rounded-sm"
+                    className="rounded-sm object-cover h-full w-full"
                     src={branding.branding?.background?.url || ''}
                     controls
                   />
@@ -642,7 +662,7 @@ const BackgroundSetting = ({
           }}
           onMouseEnter={() => setHover(true)}
           onMouseLeave={() => setHover(false)}
-          className="flex items-center justify-center h-16 w-1/2 mt-3 cursor-pointer ring-1 ring-offset-1 ring-gray-100 rounded-sm relative"
+          className="flex items-center justify-center h-16 w-1/2 mt-2 cursor-pointer ring-1 ring-offset-1 ring-gray-100 rounded-sm relative"
         >
           {branding.branding?.background && (
             <IoCloseCircle
@@ -673,7 +693,7 @@ const BackgroundSetting = ({
           {branding.branding?.background?.type === 'video' && (
             <video
               ref={videoRef}
-              className="rounded-sm object-cover "
+              className="rounded-sm object-cover h-full w-full"
               src={branding.branding?.background?.url || ''}
               muted
             />
@@ -720,6 +740,26 @@ const ColorPicker = ({
   )
 }
 
+const settings: Setting[] = [
+  {
+    category: 'Surface Color',
+    types: ['primary'],
+  },
+  {
+    category: 'Text Color',
+    types: ['text'],
+  },
+  {
+    category: 'Transition Color',
+    types: ['transition'],
+  },
+]
+
+interface Setting {
+  category: string
+  types: ('primary' | 'secondary' | 'text' | 'transition')[]
+}
+
 const ColorSetting = ({
   branding,
   setBranding,
@@ -727,125 +767,89 @@ const ColorSetting = ({
   branding: BrandingInterface
   setBranding: (branding: BrandingInterface) => void
 }) => {
-  const [textColorPicker, setTextColorPicker] = useState(false)
-  const [transitionColorPicker, setTransitionColorPicker] = useState(false)
+  const [colorPicker, setColorPicker] = useState(false)
+  const [colorType, setColorType] = useState<string>()
 
   return (
     <div className="flex flex-col">
-      <Heading fontSize="small" className="font-bold">
-        Text Color
-      </Heading>
-      <Tooltip
-        isOpen={textColorPicker}
-        setIsOpen={setTextColorPicker}
-        placement="left-start"
-        content={
-          <ColorPicker
-            color={branding.branding?.colors?.text || '#000'}
-            onChange={(newColor: string) => {
-              setBranding({
-                ...branding,
-                branding: {
-                  ...branding.branding,
-                  colors: {
-                    ...branding.branding?.colors,
-                    text: newColor,
-                  },
-                },
-              })
-            }}
-            setColorPicker={setTextColorPicker}
-          />
-        }
-      >
-        <div
-          onClick={() => setTextColorPicker(!textColorPicker)}
-          style={{
-            backgroundColor: branding.branding?.colors?.text || '',
-          }}
-          className="relative flex items-center justify-center h-16 w-1/2 mt-3 cursor-pointer ring-1 ring-offset-1 ring-gray-100 rounded-sm"
-        >
-          {branding.branding?.colors?.text && (
-            <IoCloseCircle
-              className="absolute top-0 right-0 text-red-500 -m-1.5 cursor-pointer block z-10 bg-white rounded-full"
-              size={16}
-              onClick={(e) => {
-                e.stopPropagation()
-                setBranding({
-                  ...branding,
-                  branding: {
-                    ...branding.branding,
-                    colors: {
-                      ...branding.branding?.colors,
-                      text: undefined,
-                    },
-                  },
-                })
-              }}
-            />
-          )}
-          {!branding.branding?.colors?.text && (
-            <IoAddOutline size={21} className="text-gray-500" />
-          )}
-        </div>
-      </Tooltip>
-      <Heading fontSize="small" className="font-bold mt-6">
-        Transition Color
-      </Heading>
-      <Tooltip
-        isOpen={transitionColorPicker}
-        setIsOpen={setTransitionColorPicker}
-        placement="left-start"
-        content={
-          <ColorPicker
-            color={branding.branding?.colors?.transition || '#000'}
-            onChange={(newColor: string) => {
-              setBranding({
-                ...branding,
-                branding: {
-                  ...branding.branding,
-                  colors: {
-                    ...branding.branding?.colors,
-                    transition: newColor,
-                  },
-                },
-              })
-            }}
-            setColorPicker={setTransitionColorPicker}
-          />
-        }
-      >
-        <div
-          onClick={() => setTransitionColorPicker(!transitionColorPicker)}
-          style={{
-            backgroundColor: branding.branding?.colors?.transition || '',
-          }}
-          className="relative flex items-center justify-center h-16 w-1/2 mt-3 cursor-pointer ring-1 ring-offset-1 ring-gray-100 rounded-sm"
-        >
-          {branding.branding?.colors?.transition && (
-            <IoCloseCircle
-              className="absolute top-0 right-0 text-red-500 -m-1.5 cursor-pointer block z-10 bg-white rounded-full"
-              size={16}
-              onClick={(e) => {
-                e.stopPropagation()
-                setBranding({
-                  ...branding,
-                  branding: {
-                    ...branding.branding,
-                    colors: {
-                      ...branding.branding?.colors,
-                      transition: undefined,
-                    },
-                  },
-                })
-              }}
-            />
-          )}
-          {!branding.branding?.colors?.transition && (
-            <IoAddOutline size={21} className="text-gray-500" />
-          )}
-        </div>
-      </Tooltip>
+      {settings.map((setting, index) => {
+        return (
+          <div
+            key={setting.category}
+            className={cx('flex flex-col', {
+              'mt-10': index !== 0,
+            })}
+          >
+            <Heading fontSize="small" className="font-bold">
+              {setting.category}
+            </Heading>
+            <div className="">
+              {setting.types.map((type) => {
+                return (
+                  <Tooltip
+                    isOpen={colorPicker && type === colorType}
+                    setIsOpen={setColorPicker}
+                    placement="left-start"
+                    content={
+                      <ColorPicker
+                        color={branding.branding?.colors?.[type] || '#000'}
+                        onChange={(newColor: string) => {
+                          setBranding({
+                            ...branding,
+                            branding: {
+                              ...branding.branding,
+                              colors: {
+                                ...branding.branding?.colors,
+                                [type]: newColor,
+                              },
+                            },
+                          })
+                        }}
+                        setColorPicker={setColorPicker}
+                      />
+                    }
+                  >
+                    <div
+                      onClick={() => {
+                        setColorType(type)
+                        setColorPicker(!colorPicker)
+                      }}
+                      style={{
+                        backgroundColor:
+                          branding.branding?.colors?.[type] || '',
+                      }}
+                      className="relative flex items-center justify-center h-16 w-1/2 mt-2 cursor-pointer ring-1 ring-offset-1 ring-gray-100 rounded-sm"
+                    >
+                      {branding.branding?.colors?.[type] && (
+                        <IoCloseCircle
+                          className="absolute top-0 right-0 text-red-500 -m-1.5 cursor-pointer block z-10 bg-white rounded-full"
+                          size={16}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setBranding({
+                              ...branding,
+                              branding: {
+                                ...branding.branding,
+                                colors: {
+                                  ...branding.branding?.colors,
+                                  [type]: undefined,
+                                },
+                              },
+                            })
+                          }}
+                        />
+                      )}
+                      {!branding.branding?.colors?.[type] && (
+                        <IoAddOutline size={21} className="text-gray-500" />
+                      )}
+                    </div>
+                  </Tooltip>
+                )
+              })}
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -918,7 +922,7 @@ const LogoSetting = ({
           <div
             onClick={() => inputRef.current?.click()}
             style={{ background: branding.branding?.logo }}
-            className="w-1/2 h-16 rounded-md border border-gray-200 p-4 mt-3 relative"
+            className="w-1/2 h-16 rounded-md border border-gray-200 p-4 mt-2 relative"
           >
             <IoCloseCircle
               className="absolute top-0 right-0 text-red-500 -m-1.5 cursor-pointer block z-10 bg-white rounded-full"
@@ -1000,7 +1004,7 @@ const IntroVideoSetting = ({
                 tabIndex={-1}
                 onKeyUp={() => {}}
                 role="button"
-                className="flex flex-col items-center p-4 my-3 border border-gray-200 border-dashed rounded-md cursor-pointer"
+                className="flex flex-col items-center p-4 my-2 border border-gray-200 border-dashed rounded-md cursor-pointer"
                 {...getRootProps()}
               >
                 <input {...getInputProps()} />
@@ -1027,7 +1031,7 @@ const IntroVideoSetting = ({
       ) : (
         <>
           <div
-            className="flex items-center justify-center w-1/2 h-16 rounded-md border border-gray-200 mt-3 cursor-pointer relative"
+            className="flex items-center justify-center w-1/2 h-16 rounded-md border border-gray-200 mt-2 cursor-pointer relative"
             onMouseEnter={() => setHover(true)}
             onMouseLeave={() => setHover(false)}
           >
@@ -1066,17 +1070,45 @@ const FontSetting = ({
 }) => {
   return (
     <div className="flex flex-col">
-      <Heading fontSize="small" className="font-bold mb-3">
-        Font
+      <Heading fontSize="small" className="font-bold mb-2">
+        Heading
       </Heading>
       <FontPicker
-        activeFontFamily={branding.branding?.font}
+        activeFontFamily={branding.branding?.font?.heading?.family}
         onChange={(font) => {
           setBranding({
             ...branding,
             branding: {
               ...branding.branding,
-              font: font.family,
+              font: {
+                ...branding?.branding?.font,
+                heading: {
+                  type: 'google',
+                  family: font.family,
+                },
+              },
+            },
+          })
+        }}
+        apiKey={config.googleFonts.apiKey}
+      />
+      <Heading fontSize="small" className="font-bold mb-2 mt-10">
+        Body
+      </Heading>
+      <FontPicker
+        activeFontFamily={branding.branding?.font?.body?.family}
+        onChange={(font) => {
+          setBranding({
+            ...branding,
+            branding: {
+              ...branding.branding,
+              font: {
+                ...branding?.branding?.font,
+                body: {
+                  type: 'google',
+                  family: font.family,
+                },
+              },
             },
           })
         }}

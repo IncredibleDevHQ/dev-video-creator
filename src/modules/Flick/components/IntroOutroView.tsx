@@ -55,7 +55,7 @@ export interface IntroOutroConfiguration {
   gradient: GradientConfig
 }
 
-const useGetHW = ({
+export const useGetHW = ({
   maxH,
   maxW,
   aspectRatio,
