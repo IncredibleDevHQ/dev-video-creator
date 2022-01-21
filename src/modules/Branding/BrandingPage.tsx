@@ -10,6 +10,7 @@ import { HexColorInput, HexColorPicker } from 'react-colorful'
 import Dropzone from 'react-dropzone'
 import { IconType } from 'react-icons'
 import { BiCheck } from 'react-icons/bi'
+import { BsCloudUpload, BsCloudCheck } from 'react-icons/bs'
 import { FiLoader, FiUploadCloud } from 'react-icons/fi'
 import {
   IoAddOutline,
@@ -21,11 +22,11 @@ import {
   IoPlayOutline,
   IoShapesOutline,
   IoTabletLandscapeOutline,
-  IoTextOutline,
   IoTrashOutline,
 } from 'react-icons/io5'
 import Modal from 'react-responsive-modal'
 import useMeasure from 'react-use-measure'
+import { useDebouncedCallback } from 'use-debounce'
 import { ReactComponent as BrandIcon } from '../../assets/BrandIcon.svg'
 import { Button, Heading, Text, Tooltip } from '../../components'
 import config from '../../config'
@@ -37,6 +38,7 @@ import {
   useUpdateBrandingMutation,
 } from '../../generated/graphql'
 import { useUploadFile } from '../../hooks'
+import useDidUpdateEffect from '../../hooks/use-did-update-effect'
 import BrandPreview from './BrandPreview'
 
 export interface BrandingJSON {
@@ -167,17 +169,17 @@ const BrandingPage = ({
     refetch()
   }
 
-  // const debounced = useDebouncedCallback(
-  //   // function
-  //   () => {
-  //     handleSave()
-  //   },
-  //   1000
-  // )
+  const debounced = useDebouncedCallback(
+    // function
+    () => {
+      handleSave()
+    },
+    1000
+  )
 
-  // useDidUpdateEffect(() => {
-  //   debounced()
-  // }, [brandings])
+  useDidUpdateEffect(() => {
+    debounced()
+  }, [brandings])
 
   const [updateBranding, { loading: updatingBrand }] =
     useUpdateBrandingMutation()
@@ -202,23 +204,24 @@ const BrandingPage = ({
     setBrandingId(data?.insert_Branding_one?.id)
   }
 
-  const handleSave = async () => {
+  const handleSave = async (cache?: boolean) => {
     if (!branding) return
     await updateBranding({
+      fetchPolicy: cache ? 'network-only' : 'no-cache',
       variables: {
         branding: branding.branding,
         name: branding.name,
         id: branding.id,
       },
     })
-    handleClose()
   }
 
   return (
     <Modal
       open={open}
       onClose={() => {
-        handleSave()
+        handleSave(true)
+        handleClose()
       }}
       styles={{
         modal: {
@@ -244,8 +247,9 @@ const BrandingPage = ({
         {!fetching && (
           <>
             <div className="flex justify-between items-center w-full border-b border-gray-300 py-2 px-4">
-              <Text className="font-bold font-main">Brand assets</Text>
-              {/* {updatingBrand ? (
+              <div className="flex items-center gap-x-4">
+                <Text className="font-bold font-main">Brand assets</Text>
+                {updatingBrand ? (
                   <div className="flex text-gray-400 items-center mr-4 mt-px">
                     <BsCloudUpload className="mr-1" />
                     <Text fontSize="small">Saving...</Text>
@@ -255,7 +259,8 @@ const BrandingPage = ({
                     <BsCloudCheck className="mr-1" />
                     <Text fontSize="small">Saved</Text>
                   </div>
-                )} */}
+                )}
+              </div>
               <div className="flex items-center gap-x-2">
                 <Button
                   icon={loading ? undefined : IoAddOutline}
@@ -271,7 +276,7 @@ const BrandingPage = ({
                     <Text className="text-sm">Add new</Text>
                   )}
                 </Button>
-                <Button
+                {/* <Button
                   onClick={handleSave}
                   appearance="primary"
                   type="button"
@@ -281,7 +286,7 @@ const BrandingPage = ({
                   className=""
                 >
                   <Text className="text-sm">Done</Text>
-                </Button>
+                </Button> */}
               </div>
             </div>
             <div className="flex flex-1 w-full justify-between">
@@ -300,12 +305,28 @@ const BrandingPage = ({
                     >
                       {({ open }) => (
                         <div className="relative mt-1">
-                          <Listbox.Button className="w-full flex gap-x-4 text-left items-center justify-between border rounded-sm bg-white shadow-sm py-2 px-3 pr-8 relative">
+                          <Listbox.Button className="w-full flex gap-x-4 text-left items-center justify-between border rounded-sm bg-white shadow-sm py-1.5 px-3 pr-8 relative">
                             <div className="flex items-center gap-x-2 w-full">
                               <BrandIcon className="flex-shrink-0" />
-                              <Text className="text-sm block truncate">
-                                {branding?.name}
-                              </Text>
+                              <input
+                                value={branding?.name}
+                                className="text-sm block truncate border border-transparent hover:border-gray-300 focus:outline-none"
+                                onClick={(e) => e.stopPropagation()}
+                                onKeyDown={(e) => e.stopPropagation()}
+                                onChange={(e) => {
+                                  if (branding)
+                                    setBrandings((brandings) => {
+                                      return brandings.map((b) =>
+                                        b.id === branding.id
+                                          ? {
+                                              ...branding,
+                                              name: e.target.value,
+                                            }
+                                          : b
+                                      )
+                                    })
+                                }}
+                              />
                             </div>
                             <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none ">
                               {open ? (
