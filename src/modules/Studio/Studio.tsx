@@ -518,7 +518,16 @@ const Studio = ({
 
   const { isFontLoaded } = useLoadFont(
     branding?.font
-      ? [{ family: branding?.font, weights: ['400', '700', '500'] }]
+      ? [
+          {
+            family: branding?.font.heading?.family as string,
+            weights: ['400', '700', '500'],
+          },
+          {
+            family: branding?.font.body?.family as string,
+            weights: ['400', '700', '500'],
+          },
+        ]
       : []
   )
 
