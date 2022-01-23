@@ -30,7 +30,7 @@ import {
   TextField,
   updateToast,
 } from '../../components'
-import { TextEditorParser } from '../../components/TempTextEditor/utils'
+import { TextEditorParser } from '../Flick/editor/utils/helpers'
 import { Images } from '../../constants'
 import {
   FlickParticipantsFragment,

@@ -231,7 +231,7 @@ const Branding = ({
       <div className="mb-6">
         <div className="md:w-80 mb-4 w-full">
           <Label>Font</Label>
-          <FontPicker
+          {/* <FontPicker
             activeFontFamily={branding.branding?.font}
             onChange={(font) => {
               setBranding({
@@ -243,7 +243,7 @@ const Branding = ({
               })
             }}
             apiKey={config.googleFonts.apiKey}
-          />
+          /> */}
         </div>
       </div>
       <div className="flex items-center gap-x-4">

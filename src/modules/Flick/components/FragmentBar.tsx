@@ -12,7 +12,7 @@ import { FragmentVideoModal } from '.'
 import { Branding } from '../..'
 import { ReactComponent as BrandIcon } from '../../../assets/BrandIcon.svg'
 import { Button, emitToast, Heading, Text, Tooltip } from '../../../components'
-import { TextEditorParser } from '../../../components/TempTextEditor/utils'
+import { TextEditorParser } from '../editor/utils/helpers'
 import {
   Content_Type_Enum_Enum,
   FlickFragmentFragment,
