@@ -145,7 +145,7 @@ const BrandPreview = ({
                   y: 0,
                   width: 165,
                   height: 176,
-                  radius: 4,
+                  borderRadius: 4,
                 })
               }}
             >
@@ -178,7 +178,7 @@ const BrandPreview = ({
                   y: 20,
                   width: 302,
                   height: 156,
-                  radius: 4,
+                  borderRadius: 4,
                 })
               }}
             >
@@ -228,7 +228,7 @@ const BrandPreview = ({
                   y: 0,
                   width: 70,
                   height: 109.2,
-                  radius: 4,
+                  borderRadius: 4,
                 })
               }}
             >
@@ -261,7 +261,7 @@ const BrandPreview = ({
                   y: 0,
                   width: 155.4,
                   height: 155.4,
-                  radius: 4,
+                  borderRadius: 4,
                 })
               }}
             >
@@ -422,7 +422,7 @@ const Background = ({
                         y: 0,
                         width,
                         height,
-                        radius: 8,
+                        borderRadius: 8,
                       })
                     }}
                   >
@@ -481,7 +481,7 @@ const Background = ({
                     y: 0,
                     width,
                     height,
-                    radius: 8,
+                    borderRadius: 8,
                   })
                 }}
               >
