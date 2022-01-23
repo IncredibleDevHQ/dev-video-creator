@@ -25,6 +25,10 @@ export const shortsLayoutTypes = [
   'full',
 ] as const
 
+export const themes = ['glassy'] as const
+
+export type VideoTheme = typeof themes[number]
+
 export type Layout = typeof allLayoutTypes[number]
 
 export interface Gradient {
