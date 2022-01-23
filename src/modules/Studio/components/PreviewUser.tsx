@@ -34,7 +34,7 @@ const PreviewUser = ({
     y: 0,
     width: 160,
     height: 120,
-    radius: 8,
+    borderRadius: 8,
   }
 
   const [image] = useImage(
@@ -101,7 +101,7 @@ const PreviewUser = ({
         fill={backgroundRectColor}
         stroke={backgroundRectBorderColor}
         strokeWidth={backgroundRectBorderWidth || 0}
-        cornerRadius={studioUserClipConfig?.radius || 0}
+        cornerRadius={studioUserClipConfig?.borderRadius || 0}
       />
       <Rect
         x={(studioUserClipConfig && studioUserClipConfig.x + x) || 775}
@@ -113,7 +113,7 @@ const PreviewUser = ({
         // cornerRadius={studioUserClipConfig?.radius || 0}
         stroke={borderColor}
         strokeWidth={borderWidth || 0}
-        cornerRadius={studioUserClipConfig?.radius || 0}
+        cornerRadius={studioUserClipConfig?.borderRadius || 0}
       />
 
       <Group

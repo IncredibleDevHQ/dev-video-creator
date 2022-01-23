@@ -33,7 +33,7 @@ export const StudioUserConfiguration = ({
                 y: 0,
                 width: 364,
                 height: 336,
-                radius: 8,
+                borderRadius: 8,
               },
             },
             {
@@ -48,7 +48,7 @@ export const StudioUserConfiguration = ({
                 y: 0,
                 width: 364,
                 height: 336,
-                radius: 8,
+                borderRadius: 8,
               },
             },
           ]
@@ -66,7 +66,7 @@ export const StudioUserConfiguration = ({
                 y: 0,
                 width: 364,
                 height: 336,
-                radius: 8,
+                borderRadius: 8,
               },
             },
             {
@@ -81,7 +81,7 @@ export const StudioUserConfiguration = ({
                 y: 0,
                 width: 364,
                 height: 336,
-                radius: 8,
+                borderRadius: 8,
               },
             },
             {
@@ -96,7 +96,7 @@ export const StudioUserConfiguration = ({
                 y: 0,
                 width: 0,
                 height: 0,
-                radius: 0,
+                borderRadius: 0,
               },
             },
           ]
@@ -114,7 +114,7 @@ export const StudioUserConfiguration = ({
                 y: 0,
                 width: 364,
                 height: 672,
-                radius: 8,
+                borderRadius: 8,
               },
             },
           ]
@@ -135,7 +135,7 @@ export const StudioUserConfiguration = ({
               y: 0,
               width: 400,
               height: 480,
-              radius: 8,
+              borderRadius: 8,
             },
           },
           {
@@ -150,7 +150,7 @@ export const StudioUserConfiguration = ({
               y: 0,
               width: 400,
               height: 480,
-              radius: 8,
+              borderRadius: 8,
             },
           },
         ]
@@ -168,7 +168,7 @@ export const StudioUserConfiguration = ({
               y: 5,
               width: 280,
               height: 440,
-              radius: 8,
+              borderRadius: 8,
             },
           },
           {
@@ -183,7 +183,7 @@ export const StudioUserConfiguration = ({
               y: 5,
               width: 280,
               height: 440,
-              radius: 8,
+              borderRadius: 8,
             },
           },
           {
@@ -198,7 +198,7 @@ export const StudioUserConfiguration = ({
               y: 5,
               width: 280,
               height: 440,
-              radius: 8,
+              borderRadius: 8,
             },
           },
         ]
@@ -216,7 +216,7 @@ export const StudioUserConfiguration = ({
               y: 75,
               width: 848,
               height: 480,
-              radius: 8,
+              borderRadius: 8,
             },
           },
         ]
@@ -240,7 +240,7 @@ export const StudioUserConfiguration = ({
                     y: 0,
                     width: 0,
                     height: 0,
-                    radius: 0,
+                    borderRadius: 0,
                   },
                 },
                 {
@@ -255,7 +255,7 @@ export const StudioUserConfiguration = ({
                     y: 0,
                     width: 0,
                     height: 0,
-                    radius: 0,
+                    borderRadius: 0,
                   },
                 },
               ]
@@ -273,7 +273,7 @@ export const StudioUserConfiguration = ({
                     y: 0,
                     width: 0,
                     height: 0,
-                    radius: 0,
+                    borderRadius: 0,
                   },
                 },
                 {
@@ -288,7 +288,7 @@ export const StudioUserConfiguration = ({
                     y: 0,
                     width: 0,
                     height: 0,
-                    radius: 0,
+                    borderRadius: 0,
                   },
                 },
                 {
@@ -303,7 +303,7 @@ export const StudioUserConfiguration = ({
                     y: 0,
                     width: 0,
                     height: 0,
-                    radius: 0,
+                    borderRadius: 0,
                   },
                 },
               ]
@@ -321,7 +321,7 @@ export const StudioUserConfiguration = ({
                     y: 0,
                     width: 0,
                     height: 0,
-                    radius: 0,
+                    borderRadius: 0,
                   },
                 },
               ]
@@ -343,7 +343,7 @@ export const StudioUserConfiguration = ({
                     y: 0,
                     width: 0,
                     height: 0,
-                    radius: 0,
+                    borderRadius: 0,
                   },
                 },
                 {
@@ -358,7 +358,7 @@ export const StudioUserConfiguration = ({
                     y: 0,
                     width: 0,
                     height: 0,
-                    radius: 0,
+                    borderRadius: 0,
                   },
                 },
               ]
@@ -376,7 +376,7 @@ export const StudioUserConfiguration = ({
                     y: 0,
                     width: 0,
                     height: 0,
-                    radius: 0,
+                    borderRadius: 0,
                   },
                 },
                 {
@@ -391,7 +391,7 @@ export const StudioUserConfiguration = ({
                     y: 0,
                     width: 0,
                     height: 0,
-                    radius: 0,
+                    borderRadius: 0,
                   },
                 },
                 {
@@ -406,7 +406,7 @@ export const StudioUserConfiguration = ({
                     y: 0,
                     width: 0,
                     height: 0,
-                    radius: 0,
+                    borderRadius: 0,
                   },
                 },
               ]
@@ -425,7 +425,7 @@ export const StudioUserConfiguration = ({
                     y: 1,
                     width: 160,
                     height: 160,
-                    radius: 80,
+                    borderRadius: 80,
                   },
                 },
               ]
@@ -447,7 +447,7 @@ export const StudioUserConfiguration = ({
                     y: 0,
                     width: 0,
                     height: 0,
-                    radius: 0,
+                    borderRadius: 0,
                   },
                 },
                 {
@@ -462,7 +462,7 @@ export const StudioUserConfiguration = ({
                     y: 0,
                     width: 0,
                     height: 0,
-                    radius: 0,
+                    borderRadius: 0,
                   },
                 },
               ]
@@ -480,7 +480,7 @@ export const StudioUserConfiguration = ({
                     y: 0,
                     width: 0,
                     height: 0,
-                    radius: 0,
+                    borderRadius: 0,
                   },
                 },
                 {
@@ -495,7 +495,7 @@ export const StudioUserConfiguration = ({
                     y: 0,
                     width: 0,
                     height: 0,
-                    radius: 0,
+                    borderRadius: 0,
                   },
                 },
                 {
@@ -510,7 +510,7 @@ export const StudioUserConfiguration = ({
                     y: 0,
                     width: 0,
                     height: 0,
-                    radius: 0,
+                    borderRadius: 0,
                   },
                 },
               ]
@@ -530,7 +530,7 @@ export const StudioUserConfiguration = ({
                     y: 1,
                     width: 160,
                     height: 160,
-                    radius: 8,
+                    borderRadius: 8,
                   },
                 },
               ]
@@ -551,7 +551,7 @@ export const StudioUserConfiguration = ({
                     y: 0,
                     width: 0,
                     height: 0,
-                    radius: 0,
+                    borderRadius: 0,
                   },
                 },
                 {
@@ -566,7 +566,7 @@ export const StudioUserConfiguration = ({
                     y: 0,
                     width: 0,
                     height: 0,
-                    radius: 0,
+                    borderRadius: 0,
                   },
                 },
               ]
@@ -584,7 +584,7 @@ export const StudioUserConfiguration = ({
                     y: 0,
                     width: 0,
                     height: 0,
-                    radius: 0,
+                    borderRadius: 0,
                   },
                 },
                 {
@@ -599,7 +599,7 @@ export const StudioUserConfiguration = ({
                     y: 0,
                     width: 0,
                     height: 0,
-                    radius: 0,
+                    borderRadius: 0,
                   },
                 },
                 {
@@ -614,7 +614,7 @@ export const StudioUserConfiguration = ({
                     y: 0,
                     width: 0,
                     height: 0,
-                    radius: 0,
+                    borderRadius: 0,
                   },
                 },
               ]
@@ -632,7 +632,7 @@ export const StudioUserConfiguration = ({
                     y: 0,
                     width: 364,
                     height: 336,
-                    radius: 8,
+                    borderRadius: 8,
                   },
                 },
               ]
@@ -653,7 +653,7 @@ export const StudioUserConfiguration = ({
                     y: 0,
                     width: 0,
                     height: 0,
-                    radius: 0,
+                    borderRadius: 0,
                   },
                 },
                 {
@@ -668,7 +668,7 @@ export const StudioUserConfiguration = ({
                     y: 0,
                     width: 0,
                     height: 0,
-                    radius: 0,
+                    borderRadius: 0,
                   },
                 },
               ]
@@ -686,7 +686,7 @@ export const StudioUserConfiguration = ({
                     y: 0,
                     width: 0,
                     height: 0,
-                    radius: 0,
+                    borderRadius: 0,
                   },
                 },
                 {
@@ -701,7 +701,7 @@ export const StudioUserConfiguration = ({
                     y: 0,
                     width: 0,
                     height: 0,
-                    radius: 0,
+                    borderRadius: 0,
                   },
                 },
                 {
@@ -716,7 +716,7 @@ export const StudioUserConfiguration = ({
                     y: 0,
                     width: 0,
                     height: 0,
-                    radius: 0,
+                    borderRadius: 0,
                   },
                 },
               ]
@@ -734,7 +734,7 @@ export const StudioUserConfiguration = ({
                     y: 0.5,
                     width: 396,
                     height: 704,
-                    radius: 0,
+                    borderRadius: 0,
                   },
                 },
               ]
@@ -753,7 +753,7 @@ export const StudioUserConfiguration = ({
                 y: 0,
                 width: 0,
                 height: 0,
-                radius: 0,
+                borderRadius: 0,
               },
             },
           ]
@@ -776,7 +776,7 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 0,
                   height: 0,
-                  radius: 0,
+                  borderRadius: 0,
                 },
               },
               {
@@ -791,7 +791,7 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 0,
                   height: 0,
-                  radius: 0,
+                  borderRadius: 0,
                 },
               },
             ]
@@ -809,7 +809,7 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 0,
                   height: 0,
-                  radius: 0,
+                  borderRadius: 0,
                 },
               },
               {
@@ -824,7 +824,7 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 0,
                   height: 0,
-                  radius: 0,
+                  borderRadius: 0,
                 },
               },
               {
@@ -839,7 +839,7 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 0,
                   height: 0,
-                  radius: 0,
+                  borderRadius: 0,
                 },
               },
             ]
@@ -857,7 +857,7 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 0,
                   height: 0,
-                  radius: 0,
+                  borderRadius: 0,
                 },
               },
             ]
@@ -878,7 +878,7 @@ export const StudioUserConfiguration = ({
                   y: 2,
                   width: 224,
                   height: 164,
-                  radius: 8,
+                  borderRadius: 8,
                 },
               },
               {
@@ -893,7 +893,7 @@ export const StudioUserConfiguration = ({
                   y: 2,
                   width: 224,
                   height: 164,
-                  radius: 8,
+                  borderRadius: 8,
                 },
               },
             ]
@@ -911,7 +911,7 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 0,
                   height: 0,
-                  radius: 0,
+                  borderRadius: 0,
                 },
               },
               {
@@ -926,7 +926,7 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 0,
                   height: 0,
-                  radius: 0,
+                  borderRadius: 0,
                 },
               },
               {
@@ -941,7 +941,7 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 0,
                   height: 0,
-                  radius: 0,
+                  borderRadius: 0,
                 },
               },
             ]
@@ -959,7 +959,7 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 224,
                   height: 360,
-                  radius: 8,
+                  borderRadius: 8,
                 },
               },
             ]
@@ -980,7 +980,7 @@ export const StudioUserConfiguration = ({
                   y: 2,
                   width: 224,
                   height: 164,
-                  radius: 8,
+                  borderRadius: 8,
                 },
               },
               {
@@ -995,7 +995,7 @@ export const StudioUserConfiguration = ({
                   y: 2,
                   width: 224,
                   height: 164,
-                  radius: 8,
+                  borderRadius: 8,
                 },
               },
             ]
@@ -1013,7 +1013,7 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 0,
                   height: 0,
-                  radius: 0,
+                  borderRadius: 0,
                 },
               },
               {
@@ -1028,7 +1028,7 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 0,
                   height: 0,
-                  radius: 0,
+                  borderRadius: 0,
                 },
               },
               {
@@ -1043,7 +1043,7 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 0,
                   height: 0,
-                  radius: 0,
+                  borderRadius: 0,
                 },
               },
             ]
@@ -1061,7 +1061,7 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 224,
                   height: 360,
-                  radius: 8,
+                  borderRadius: 8,
                 },
               },
             ]
@@ -1082,7 +1082,7 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 200,
                   height: 156,
-                  radius: 8,
+                  borderRadius: 8,
                 },
               },
               {
@@ -1097,7 +1097,7 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 200,
                   height: 156,
-                  radius: 8,
+                  borderRadius: 8,
                 },
               },
             ]
@@ -1115,7 +1115,7 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 0,
                   height: 0,
-                  radius: 0,
+                  borderRadius: 0,
                 },
               },
               {
@@ -1130,7 +1130,7 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 0,
                   height: 0,
-                  radius: 0,
+                  borderRadius: 0,
                 },
               },
               {
@@ -1145,7 +1145,7 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 0,
                   height: 0,
-                  radius: 0,
+                  borderRadius: 0,
                 },
               },
             ]
@@ -1163,7 +1163,7 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 200,
                   height: 312,
-                  radius: 8,
+                  borderRadius: 8,
                 },
               },
             ]
@@ -1185,7 +1185,7 @@ export const StudioUserConfiguration = ({
                   y: 1,
                   width: 160,
                   height: 160,
-                  radius: 8,
+                  borderRadius: 8,
                 },
               },
               {
@@ -1200,7 +1200,7 @@ export const StudioUserConfiguration = ({
                   y: 1,
                   width: 160,
                   height: 160,
-                  radius: 8,
+                  borderRadius: 8,
                 },
               },
             ]
@@ -1218,7 +1218,7 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 0,
                   height: 0,
-                  radius: 0,
+                  borderRadius: 0,
                 },
               },
               {
@@ -1233,7 +1233,7 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 0,
                   height: 0,
-                  radius: 0,
+                  borderRadius: 0,
                 },
               },
               {
@@ -1248,7 +1248,7 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 0,
                   height: 0,
-                  radius: 0,
+                  borderRadius: 0,
                 },
               },
             ]
@@ -1266,7 +1266,7 @@ export const StudioUserConfiguration = ({
                   y: 1,
                   width: 160,
                   height: 160,
-                  radius: 8,
+                  borderRadius: 8,
                 },
               },
             ]
@@ -1289,7 +1289,7 @@ export const StudioUserConfiguration = ({
                   y: 1,
                   width: 160,
                   height: 160,
-                  radius: 80,
+                  borderRadius: 80,
                 },
               },
               {
@@ -1305,7 +1305,7 @@ export const StudioUserConfiguration = ({
                   y: 1,
                   width: 160,
                   height: 160,
-                  radius: 80,
+                  borderRadius: 80,
                 },
               },
             ]
@@ -1324,7 +1324,7 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 0,
                   height: 0,
-                  radius: 0,
+                  borderRadius: 0,
                 },
               },
               {
@@ -1340,7 +1340,7 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 0,
                   height: 0,
-                  radius: 0,
+                  borderRadius: 0,
                 },
               },
               {
@@ -1356,7 +1356,7 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 0,
                   height: 0,
-                  radius: 0,
+                  borderRadius: 0,
                 },
               },
             ]
@@ -1375,7 +1375,7 @@ export const StudioUserConfiguration = ({
                   y: 1,
                   width: 160,
                   height: 160,
-                  radius: 80,
+                  borderRadius: 80,
                 },
               },
             ]
@@ -1396,7 +1396,7 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 320,
                   height: 270,
-                  radius: 0,
+                  borderRadius: 0,
                 },
               },
               {
@@ -1411,7 +1411,7 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 320,
                   height: 270,
-                  radius: 0,
+                  borderRadius: 0,
                 },
               },
             ]
@@ -1429,7 +1429,7 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 0,
                   height: 0,
-                  radius: 0,
+                  borderRadius: 0,
                 },
               },
               {
@@ -1444,7 +1444,7 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 0,
                   height: 0,
-                  radius: 0,
+                  borderRadius: 0,
                 },
               },
               {
@@ -1459,7 +1459,7 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 0,
                   height: 0,
-                  radius: 0,
+                  borderRadius: 0,
                 },
               },
             ]
@@ -1477,7 +1477,7 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 320,
                   height: 540,
-                  radius: 0,
+                  borderRadius: 0,
                 },
               },
             ]
@@ -1498,7 +1498,7 @@ export const StudioUserConfiguration = ({
                   y: 45,
                   width: 480,
                   height: 270,
-                  radius: 0,
+                  borderRadius: 0,
                 },
               },
               {
@@ -1513,7 +1513,7 @@ export const StudioUserConfiguration = ({
                   y: 45,
                   width: 480,
                   height: 270,
-                  radius: 0,
+                  borderRadius: 0,
                 },
               },
             ]
@@ -1531,7 +1531,7 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 0,
                   height: 0,
-                  radius: 0,
+                  borderRadius: 0,
                 },
               },
               {
@@ -1546,7 +1546,7 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 0,
                   height: 0,
-                  radius: 0,
+                  borderRadius: 0,
                 },
               },
               {
@@ -1561,7 +1561,7 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 0,
                   height: 0,
-                  radius: 0,
+                  borderRadius: 0,
                 },
               },
             ]
@@ -1579,7 +1579,7 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 480,
                   height: 540,
-                  radius: 0,
+                  borderRadius: 0,
                 },
               },
             ]
@@ -1600,7 +1600,7 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 0,
                   height: 0,
-                  radius: 0,
+                  borderRadius: 0,
                 },
               },
               {
@@ -1615,7 +1615,7 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 0,
                   height: 0,
-                  radius: 0,
+                  borderRadius: 0,
                 },
               },
             ]
@@ -1633,7 +1633,7 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 0,
                   height: 0,
-                  radius: 0,
+                  borderRadius: 0,
                 },
               },
               {
@@ -1648,7 +1648,7 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 0,
                   height: 0,
-                  radius: 0,
+                  borderRadius: 0,
                 },
               },
               {
@@ -1663,7 +1663,7 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 0,
                   height: 0,
-                  radius: 0,
+                  borderRadius: 0,
                 },
               },
             ]
@@ -1681,7 +1681,7 @@ export const StudioUserConfiguration = ({
                   y: 90,
                   width: 960,
                   height: 540,
-                  radius: 0,
+                  borderRadius: 0,
                 },
               },
             ]
@@ -1700,7 +1700,7 @@ export const StudioUserConfiguration = ({
               y: 0,
               width: 0,
               height: 0,
-              radius: 0,
+              borderRadius: 0,
             },
           },
         ]
