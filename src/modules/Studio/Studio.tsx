@@ -21,7 +21,6 @@ import {
 } from 'recoil'
 import {
   Button,
-  Checkbox,
   dismissToast,
   emitToast,
   EmptyState,
@@ -31,7 +30,7 @@ import {
   TextField,
   updateToast,
 } from '../../components'
-import { TextEditorParser } from '../../components/TempTextEditor/utils'
+import { TextEditorParser } from '../Flick/editor/utils/helpers'
 import { Images } from '../../constants'
 import {
   FlickParticipantsFragment,
@@ -48,6 +47,7 @@ import { useCanvasRecorder } from '../../hooks'
 import { useUploadFile } from '../../hooks/use-upload-file'
 import { User, userState } from '../../stores/user.store'
 import { ViewConfig } from '../../utils/configTypes'
+import { BrandingJSON } from '../Branding/BrandingPage'
 import { DiscordThemes } from '../Flick/components/IntroOutroView'
 import {
   CodeBlock,
@@ -70,7 +70,7 @@ import RecordingControlsBar from './components/RecordingControlsBar'
 import IntroFragment from './effects/fragments/IntroFragment'
 import OutroFragment from './effects/fragments/OutroFragment'
 import UnifiedFragment from './effects/fragments/UnifiedFragment'
-import { useAgora, useMediaStream } from './hooks'
+import { useAgora, useLoadFont, useMediaStream } from './hooks'
 import { Device, MediaStreamError } from './hooks/use-media-stream'
 import { useRTDB } from './hooks/use-rtdb'
 import { StudioProviderProps, StudioState, studioStore } from './stores'
@@ -143,10 +143,15 @@ const StudioHoC = () => {
         }}
       />
     )
-  if (view === 'studio')
+  if (view === 'studio' && fragment)
     return (
       <Studio
         data={data}
+        branding={
+          data?.Fragment?.[0].flick.useBranding
+            ? data?.Fragment?.[0]?.flick.branding?.branding
+            : null
+        }
         devices={devices.current}
         liveStream={liveStream.current}
       />
@@ -483,6 +488,7 @@ const Studio = ({
   data,
   devices,
   liveStream,
+  branding,
 }: {
   data?: GetFragmentByIdQuery
   devices: { microphone: Device | null; camera: Device | null }
@@ -490,6 +496,7 @@ const Studio = ({
     enabled: boolean
     url: string
   }
+  branding?: BrandingJSON | null
 }) => {
   const { fragmentId } = useParams<{ fragmentId: string }>()
   const { constraints, controlsConfig } =
@@ -508,6 +515,21 @@ const Studio = ({
   const layerRef = useRef<Konva.Layer>(null)
   const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
   Konva.pixelRatio = 2
+
+  const { isFontLoaded } = useLoadFont(
+    branding?.font
+      ? [
+          {
+            family: branding?.font.heading?.family as string,
+            weights: ['400', '700', '500'],
+          },
+          {
+            family: branding?.font.body?.family as string,
+            weights: ['400', '700', '500'],
+          },
+        ]
+      : []
+  )
 
   const [stageConfig, setStageConfig] = useState<{
     width: number
@@ -834,6 +856,7 @@ const Studio = ({
       participants,
       updateParticipant,
       updatePayload,
+      branding: fragment.flick.branding ? branding : null,
       participantId: fragment?.participants.find(
         ({ participant }) => participant.userSub === sub
       )?.participant.id,
@@ -842,7 +865,17 @@ const Studio = ({
           ({ participant }) => participant.userSub === sub
         )?.participant.owner || false,
     })
-  }, [fragment, stream, users, state, userAudios, payload, participants, state])
+  }, [
+    fragment,
+    stream,
+    users,
+    state,
+    userAudios,
+    payload,
+    participants,
+    state,
+    branding,
+  ])
 
   useEffect(() => {
     if (payload?.status === Fragment_Status_Enum_Enum.Live) {
@@ -888,7 +921,7 @@ const Studio = ({
       <ScreenState title="Something went wrong." subtitle={error.message} />
     )
 
-  if (!ready) return <ScreenState loading />
+  if (!ready || !isFontLoaded) return <ScreenState loading />
 
   // const C = getEffect(fragment.type, fragment.configuration)
 

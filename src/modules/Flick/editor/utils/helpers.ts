@@ -2,8 +2,8 @@
 /* eslint-disable @typescript-eslint/dot-notation */
 /* eslint-disable no-param-reassign */
 /* eslint-disable class-methods-use-this */
-import { FlickFragment } from '../../generated/graphql'
-import { SimpleAST } from './types'
+import { FlickFragment } from '../../../../generated/graphql'
+import { SimpleAST } from './utils'
 
 export function getCursorCoordinates(
   elem: HTMLDivElement,

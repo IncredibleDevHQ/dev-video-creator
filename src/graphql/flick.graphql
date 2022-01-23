@@ -39,6 +39,13 @@ fragment BaseFlick on Flick {
   status
   deletedAt
   producedLink
+  useBranding
+  brandingId
+  branding {
+    id
+    name
+    branding
+  }
   configuration
   contents {
     id
@@ -196,6 +203,19 @@ mutation UpdateFlickMarkdown($id: uuid!, $md: String!) {
   }
 }
 
+mutation UpdateFlickBranding(
+  $id: uuid!
+  $branding: Boolean!
+  $brandingId: uuid
+) {
+  update_Flick_by_pk(
+    pk_columns: { id: $id }
+    _set: { useBranding: $branding, brandingId: $brandingId }
+  ) {
+    id
+  }
+}
+
 mutation UpdateFlickThumbnail($thumbnail: String, $id: uuid!) {
   update_Flick_by_pk(_set: { thumbnail: $thumbnail }, pk_columns: { id: $id }) {
     id
@@ -319,7 +339,6 @@ mutation UpdateFlickMd($id: uuid!, $md: String!) {
     id
   }
 }
-
 
 subscription FlickStatus($flickId: uuid!) {
   Flick_by_pk(id: $flickId) {

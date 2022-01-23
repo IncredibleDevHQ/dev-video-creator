@@ -29,8 +29,6 @@ import Photo from './Photo'
 import FileDropzone from './FileDropzone'
 import UploadVideo from './UploadVideo'
 import Video from './Video'
-import TextEditor from './TextEditor/TextEditor'
-import TempTextEditor from './TempTextEditor/TempTextEditor'
 
 export {
   Avatar,
@@ -59,13 +57,11 @@ export {
   Loading,
   TabBar,
   Tooltip,
-  TextEditor,
   updateToast,
   Radio,
   Checkbox,
   Photo,
   FileDropzone,
-  TempTextEditor,
   UploadVideo,
   Video,
 }

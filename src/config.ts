@@ -71,6 +71,10 @@ const config = {
   liveStream: {
     endpoint: import.meta.env.VITE_LIVE_STREAM_ENDPOINT,
   },
+
+  googleFonts: {
+    apiKey: import.meta.env.VITE_GOOGLE_FONTS_API_KEY,
+  },
 }
 
 export default config
