@@ -2,9 +2,12 @@ import { css, cx } from '@emotion/css'
 import Konva from 'konva'
 import React, { createRef, HTMLAttributes, useEffect, useState } from 'react'
 import useMeasure, { RectReadOnly } from 'react-use-measure'
-import { Stage, Layer, Rect } from 'react-konva'
+import { Stage, Layer } from 'react-konva'
 import Modal from 'react-responsive-modal'
-import { useRecoilBridgeAcrossReactRoots_UNSTABLE } from 'recoil'
+import {
+  useRecoilBridgeAcrossReactRoots_UNSTABLE,
+  useRecoilValue,
+} from 'recoil'
 import { Block } from '../editor/utils/utils'
 import UnifiedFragment from '../../Studio/effects/fragments/UnifiedFragment'
 import {
@@ -19,6 +22,7 @@ import {
 import { CONFIG, SHORTS_CONFIG } from '../../Studio/components/Concourse'
 import { Tab, TabBar, Tooltip } from '../../../components'
 import LayoutGeneric from './LayoutGeneric'
+import { newFlickStore } from '../store/flickNew.store'
 
 const previewTabs: Tab[] = [
   {
@@ -387,19 +391,18 @@ const CanvasPreview = ({
   bounds,
   config,
   shortsMode,
-  blockProperties,
   scaleDown = false,
 }: {
   block: Block
   bounds: RectReadOnly
   shortsMode: boolean
   config: ViewConfig
-  blockProperties: BlockProperties
   scaleDown?: boolean
 }) => {
   const stageRef = createRef<Konva.Stage>()
   const layerRef = createRef<Konva.Layer>()
   const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
+  const { flick } = useRecoilValue(newFlickStore)
 
   const { height, width } = useGetHW({
     maxH: bounds.height / (scaleDown && !shortsMode ? 1.25 : 1),
@@ -434,22 +437,12 @@ const CanvasPreview = ({
       >
         <Bridge>
           <Layer ref={layerRef}>
-            <Rect
-              x={0}
-              y={0}
-              width={width}
-              height={height}
-              fillLinearGradientStartPoint={
-                blockProperties.gradient?.startIndex
-              }
-              fillLinearGradientEndPoint={blockProperties.gradient?.endIndex}
-              fillLinearGradientColorStops={blockProperties.gradient?.values}
-            />
             <UnifiedFragment
               stageRef={stageRef}
               layerRef={layerRef}
               layoutConfig={config}
               config={[block]}
+              branding={flick?.branding?.branding}
             />
           </Layer>
         </Bridge>
@@ -540,7 +533,6 @@ const PreviewModal = ({
               block={block}
               config={config}
               shortsMode={shortsMode}
-              blockProperties={blockProperties}
               scaleDown
             />
           </div>
@@ -630,7 +622,6 @@ const BlockPreview = ({
           bounds={bounds}
           shortsMode={config.mode === 'Portrait'}
           config={config}
-          blockProperties={config.blocks[block.id]}
         />
       </div>
       {previewModal && (
