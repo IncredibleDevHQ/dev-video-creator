@@ -1,5 +1,5 @@
 /* eslint-disable jsx-a11y/media-has-caption */
-import { cx } from '@emotion/css'
+import { css, cx } from '@emotion/css'
 import {
   createMicrophoneAndCameraTracks,
   ICameraVideoTrack,
@@ -197,6 +197,12 @@ const Preview = ({
 
   const videoRef = useRef<HTMLVideoElement>(null)
 
+  const videoCSS = css`
+    transform: rotateY(180deg);
+    width: 100%;
+    height: auto;
+  `
+
   useEffect(() => {
     const setter = async () => {
       try {
@@ -390,7 +396,7 @@ const Preview = ({
               className="overflow-hidden bg-gray-800 rounded-lg"
             >
               {/* using video tag because agora player failed due to updates */}
-              <video className="w-full h-auto" ref={videoRef} />
+              <video className={videoCSS} ref={videoRef} />
             </AspectRatio>
           </div>
         </div>
@@ -516,20 +522,20 @@ const Studio = ({
   const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
   Konva.pixelRatio = 2
 
-  const { isFontLoaded } = useLoadFont(
-    branding?.font
-      ? [
-          {
-            family: branding?.font.heading?.family as string,
-            weights: ['400', '700', '500'],
-          },
-          {
-            family: branding?.font.body?.family as string,
-            weights: ['400', '700', '500'],
-          },
-        ]
-      : []
-  )
+  // const { isFontLoaded } = useLoadFont(
+  //   branding?.font
+  //     ? [
+  //         {
+  //           family: branding?.font.heading?.family as string,
+  //           weights: ['400', '700', '500'],
+  //         },
+  //         {
+  //           family: branding?.font.body?.family as string,
+  //           weights: ['400', '700', '500'],
+  //         },
+  //       ]
+  //     : []
+  // )
 
   const [stageConfig, setStageConfig] = useState<{
     width: number
@@ -676,7 +682,6 @@ const Studio = ({
   }, [])
 
   const [state, setState] = useState<StudioState>('ready')
-  console.log(`state : ${state}`)
 
   const {
     startRecording,
@@ -921,9 +926,7 @@ const Studio = ({
       <ScreenState title="Something went wrong." subtitle={error.message} />
     )
 
-  if (!ready || !isFontLoaded) return <ScreenState loading />
-
-  // const C = getEffect(fragment.type, fragment.configuration)
+  if (!ready) return <ScreenState loading />
 
   return (
     <div className="w-full h-screen">
