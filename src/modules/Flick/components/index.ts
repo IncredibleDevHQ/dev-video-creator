@@ -8,6 +8,7 @@ import VideoEditorModal from './VideoEditorModal'
 import ProcessingFlick from './ProcessingFlick'
 import Timeline from './Timeline'
 import EditorHeader from './EditorHeader'
+import Preview from './Preview'
 
 export {
   ScreenRecording,
@@ -20,4 +21,5 @@ export {
   ProcessingFlick,
   Timeline,
   EditorHeader,
+  Preview,
 }

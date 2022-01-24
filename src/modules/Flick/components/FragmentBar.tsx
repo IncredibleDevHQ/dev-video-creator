@@ -28,20 +28,17 @@ import { ViewConfig } from '../../../utils/configTypes'
 import { TextEditorParser } from '../editor/utils/helpers'
 import { SimpleAST } from '../editor/utils/utils'
 import { newFlickStore, View } from '../store/flickNew.store'
-import { IntroOutroConfiguration } from './IntroOutroView'
 
 const FragmentBar = ({
   config,
   editorValue,
   setViewConfig,
   simpleAST,
-  introConfig,
 }: {
   editorValue?: string
   config: ViewConfig
   simpleAST?: SimpleAST
   setViewConfig: React.Dispatch<React.SetStateAction<ViewConfig>>
-  introConfig: IntroOutroConfiguration
 }) => {
   const [fragmentVideoModal, setFragmentVideoModal] = useState(false)
   const [brandingModal, setBrandingModal] = useState(false)
@@ -78,7 +75,7 @@ const FragmentBar = ({
 
   useDidUpdateEffect(() => {
     debounced()
-  }, [editorValue, config, introConfig, useBranding, brandingId])
+  }, [editorValue, config, useBranding, brandingId])
 
   useEffect(() => {
     const f = flick?.fragments.find((f) => f.id === activeFragmentId)

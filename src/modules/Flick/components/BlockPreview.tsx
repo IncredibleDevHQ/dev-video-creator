@@ -1,43 +1,28 @@
 import { css, cx } from '@emotion/css'
 import Konva from 'konva'
-import React, { createRef, HTMLAttributes, useEffect, useState } from 'react'
-import useMeasure, { RectReadOnly } from 'react-use-measure'
-import { Stage, Layer } from 'react-konva'
+import React, { createRef, HTMLAttributes, useState } from 'react'
+import { Layer, Stage } from 'react-konva'
 import Modal from 'react-responsive-modal'
+import useMeasure, { RectReadOnly } from 'react-use-measure'
 import {
   useRecoilBridgeAcrossReactRoots_UNSTABLE,
   useRecoilValue,
 } from 'recoil'
-import { Block } from '../editor/utils/utils'
-import UnifiedFragment from '../../Studio/effects/fragments/UnifiedFragment'
+import { Preview, Timeline } from '.'
 import {
-  ViewConfig,
-  GradientConfig,
-  BlockProperties,
   allLayoutTypes,
-  Layout,
+  BlockProperties,
   Gradient,
+  GradientConfig,
+  Layout,
   shortsLayoutTypes,
+  ViewConfig,
 } from '../../../utils/configTypes'
 import { CONFIG, SHORTS_CONFIG } from '../../Studio/components/Concourse'
-import { Tab, TabBar, Tooltip } from '../../../components'
-import LayoutGeneric from './LayoutGeneric'
+import UnifiedFragment from '../../Studio/effects/fragments/UnifiedFragment'
+import { Block } from '../editor/utils/utils'
 import { newFlickStore } from '../store/flickNew.store'
-
-const previewTabs: Tab[] = [
-  {
-    name: 'Layout',
-    value: 'layout',
-  },
-  {
-    name: 'Theme',
-    value: 'theme',
-  },
-  {
-    name: 'Background',
-    value: 'background',
-  },
-]
+import LayoutGeneric from './LayoutGeneric'
 
 export const gradients: Gradient[] = [
   {
@@ -182,162 +167,13 @@ const useGetHW = ({
   return { width: calWidth, height: calHeight }
 }
 
-export const GradientSelector = ({
-  mode,
-  currentGradient,
-  updateGradient,
-}: {
-  mode: ViewConfig['mode']
-  currentGradient: GradientConfig
-  updateGradient: (gradient: GradientConfig) => void
-}) => {
-  return (
-    <div className={cx('h-full w-full overflow-y-scroll', scrollStyle)}>
-      <div
-        className={cx(
-          'grid grid-cols-2 p-4 gap-4 overflow-scroll h-full',
-          scrollStyle,
-          {
-            'w-full gap-1 grid-cols-3': mode === 'Portrait',
-            'w-full gap-2': mode === 'Landscape',
-          }
-        )}
-      >
-        {gradients.map((gradient, index) => (
-          // eslint-disable-next-line jsx-a11y/control-has-associated-label
-          <div
-            // eslint-disable-next-line react/no-array-index-key
-            key={index}
-            tabIndex={0}
-            role="button"
-            onKeyDown={() => null}
-            onClick={() => updateGradient(getGradientConfig(gradient))}
-            className={cx(
-              'p-2 border border-gray-200 rounded-md cursor-pointer bg-white',
-              {
-                'border-brand':
-                  gradient.cssString === currentGradient.cssString,
-                'w-20 h-32': mode === 'Portrait',
-                'w-32 h-16': mode === 'Landscape',
-              },
-              css`
-                background: ${gradient.cssString};
-              `
-            )}
-          />
-        ))}
-      </div>
-    </div>
-  )
-}
-
-export const BackgroundSelector = ({
-  mode,
-  currentBgColor,
-  updateBgColor,
-  currentBgOpacity,
-  updateBgOpacity,
-}: {
-  mode: ViewConfig['mode']
-  currentBgColor: string
-  updateBgColor: (bgColor: string) => void
-  currentBgOpacity: number
-  updateBgOpacity: (opacity: number) => void
-}) => {
-  const [tooltip, setTooltip] = useState(false)
-
-  return (
-    <div className={cx('h-full w-full overflow-y-scroll', scrollStyle)}>
-      <div
-        className={cx(
-          'grid grid-cols-2 p-4 gap-4 overflow-scroll h-full',
-          scrollStyle,
-          {
-            'w-full gap-1 grid-cols-3': mode === 'Portrait',
-            'w-full gap-2': mode === 'Landscape',
-          }
-        )}
-      >
-        {backgroundColors.map((color, index) => (
-          <Tooltip
-            // eslint-disable-next-line react/no-array-index-key
-            key={index}
-            isOpen={tooltip && color === currentBgColor}
-            setIsOpen={setTooltip}
-            content={
-              <div
-                className={cx('bg-white flex flex-col gap-y-3', {
-                  'mt-20': mode === 'Portrait',
-                  '-mt-40': mode === 'Landscape',
-                })}
-              >
-                {opacityOptions.map((opacityValue, index) => (
-                  // eslint-disable-next-line jsx-a11y/control-has-associated-label
-                  <div
-                    // eslint-disable-next-line react/no-array-index-key
-                    key={index}
-                    tabIndex={0}
-                    role="button"
-                    onKeyDown={() => null}
-                    onClick={() => {
-                      setTooltip(true)
-                      updateBgOpacity(opacityValue)
-                    }}
-                    className={cx(
-                      'p-2 ring-0 border ring-offset-2 border-gray-200 rounded-md cursor-pointer bg-white text-black flex items-center justify-center',
-                      {
-                        'ring-1 ring-brand': opacityValue === currentBgOpacity,
-                        'w-20 h-32': mode === 'Portrait',
-                        'w-32 h-16': mode === 'Landscape',
-                      },
-                      css`
-                        background: ${color};
-                        opacity: ${opacityValue};
-                      `
-                    )}
-                  >
-                    opacity - {opacityValue}
-                  </div>
-                ))}
-              </div>
-            }
-            placement="center"
-          >
-            {/* eslint-disable-next-line jsx-a11y/control-has-associated-label */}
-            <div
-              tabIndex={0}
-              role="button"
-              onKeyDown={() => null}
-              onClick={() => {
-                setTooltip(true)
-                updateBgColor(color)
-              }}
-              className={cx(
-                'p-2 ring-0 border ring-offset-2 border-gray-200 rounded-md cursor-pointer bg-white',
-                {
-                  'ring-1 ring-brand': color === currentBgColor,
-                  'w-20 h-32': mode === 'Portrait',
-                  'w-32 h-16': mode === 'Landscape',
-                },
-                css`
-                  background: ${color};
-                `
-              )}
-            />
-          </Tooltip>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 const scrollStyle = css`
   ::-webkit-scrollbar {
     display: none;
   }
 `
 
-const LayoutSelector = ({
+export const LayoutSelector = ({
   type,
   mode,
   layout,
@@ -352,24 +188,26 @@ const LayoutSelector = ({
     <div className={cx('h-full w-full overflow-y-scroll', scrollStyle)}>
       <div
         className={cx(
-          'grid grid-cols-2 p-4 gap-4 overflow-scroll h-full',
+          'grid grid-cols-2 p-4 gap-4 overflow-scroll ',
           scrollStyle,
           {
-            'w-full gap-1 grid-cols-3': mode === 'Portrait',
-            'w-full gap-2': mode === 'Landscape',
+            'w-full gap-2 grid-cols-3': mode === 'Portrait',
+            'w-full gap-4': mode === 'Landscape',
           }
         )}
       >
         {mode === 'Landscape'
           ? allLayoutTypes?.map((layoutType) => (
-              <LayoutGeneric
-                type={type}
-                key={layoutType}
-                mode={mode}
-                layout={layoutType}
-                isSelected={layout === layoutType}
-                onClick={() => updateLayout(layoutType)}
-              />
+              <div className="flex justify-center items-center">
+                <LayoutGeneric
+                  type={type}
+                  key={layoutType}
+                  mode={mode}
+                  layout={layoutType}
+                  isSelected={layout === layoutType}
+                  onClick={() => updateLayout(layoutType)}
+                />
+              </div>
             ))
           : shortsLayoutTypes?.map((layoutType) => (
               <LayoutGeneric
@@ -386,18 +224,18 @@ const LayoutSelector = ({
   )
 }
 
-const CanvasPreview = ({
+export const CanvasPreview = ({
   block,
   bounds,
   config,
   shortsMode,
-  scaleDown = false,
+  scale = 1,
 }: {
   block: Block
   bounds: RectReadOnly
   shortsMode: boolean
   config: ViewConfig
-  scaleDown?: boolean
+  scale?: number
 }) => {
   const stageRef = createRef<Konva.Stage>()
   const layerRef = createRef<Konva.Layer>()
@@ -405,15 +243,15 @@ const CanvasPreview = ({
   const { flick } = useRecoilValue(newFlickStore)
 
   const { height, width } = useGetHW({
-    maxH: bounds.height / (scaleDown && !shortsMode ? 1.25 : 1),
-    maxW: bounds.width / (scaleDown && !shortsMode ? 1.25 : 1),
+    maxH: bounds.height / scale,
+    maxW: bounds.width / scale,
     aspectRatio: shortsMode ? 9 / 16 : 16 / 9,
   })
 
   const { height: divHeight, width: divWidth } = useGetHW({
-    maxH: bounds.height / (scaleDown && !shortsMode ? 1.25 : 1),
-    maxW: bounds.width / (scaleDown && !shortsMode ? 1.25 : 1),
-    aspectRatio: 16 / 9,
+    maxH: bounds.height / scale,
+    maxW: bounds.width / scale,
+    aspectRatio: shortsMode ? 9 / 16 : 16 / 9,
   })
 
   Konva.pixelRatio = 2
@@ -430,6 +268,7 @@ const CanvasPreview = ({
         ref={stageRef}
         height={height}
         width={width}
+        className="border border-gray-300"
         scale={{
           x: height / (shortsMode ? SHORTS_CONFIG.height : CONFIG.height),
           y: width / (shortsMode ? SHORTS_CONFIG.width : CONFIG.width),
@@ -454,138 +293,55 @@ const CanvasPreview = ({
 const PreviewModal = ({
   open,
   block,
+  blocks,
   config,
-  blockProperties,
-  shortsMode,
   updateBlockProperties,
   handleClose,
+  setCurrentBlock,
 }: {
   block: Block
   open: boolean
   config: ViewConfig
-  blockProperties: BlockProperties
-  shortsMode: boolean
+  blocks: Block[]
   updateBlockProperties: (id: string, properties: BlockProperties) => void
+  setCurrentBlock: React.Dispatch<React.SetStateAction<Block | undefined>>
   handleClose: () => void
 }) => {
-  const [ref, bounds] = useMeasure()
-  const [tabs, setTabs] = useState<Tab[]>(previewTabs)
-  const [tab, setTab] = useState<Tab>(previewTabs[0])
-
-  const updateLayout = (layout: Layout) => {
-    updateBlockProperties(block.id, { ...blockProperties, layout })
-  }
-
-  const updateGradient = (gradient: GradientConfig) => {
-    updateBlockProperties(block.id, { ...blockProperties, gradient })
-  }
-
-  const updateBgColor = (bgColor: string) => {
-    updateBlockProperties(block.id, { ...blockProperties, bgColor })
-  }
-
-  const updateBgOpacity = (bgOpacity: number) => {
-    updateBlockProperties(block.id, { ...blockProperties, bgOpacity })
-  }
-
-  useEffect(() => {
-    if (block.type === 'imageBlock' || block.type === 'listBlock')
-      setTabs(previewTabs)
-    else setTabs([previewTabs[0], previewTabs[1]])
-    setTab(previewTabs[1])
-  }, [config.mode])
-
   return (
     <Modal
       open={open}
       onClose={handleClose}
       center
+      showCloseIcon={false}
       styles={{
         modal: {
-          maxWidth: '80%',
+          maxWidth: '90%',
           width: '100%',
-          maxHeight: '80vh',
+          maxHeight: '85vh',
           height: '100%',
+          padding: '0',
+          position: 'relative',
         },
       }}
       classNames={{
-        modal: cx(
-          'rounded-lg',
-          css`
-            background-color: #ffffff !important;
-          `
-        ),
-        closeButton: css`
-          svg {
-            fill: #000000;
-          }
-        `,
+        modal: cx('rounded-md m-0 p-0'),
       }}
     >
-      <div className="flex items-center justify-center w-full h-full p-4">
-        <div
-          className="flex items-center justify-center flex-1 w-full h-full"
-          ref={ref}
-        >
-          <div className="w-min">
-            <CanvasPreview
-              bounds={bounds}
-              block={block}
-              config={config}
-              shortsMode={shortsMode}
-              scaleDown
-            />
-          </div>
-          <div className="flex flex-col h-full ml-4">
-            <TabBar
-              tabs={tabs}
-              current={tab}
-              onTabChange={(tab) => setTab(tab)}
-              className={cx('mb-4', {
-                '-ml-48': shortsMode,
-              })}
-            />
-            <div
-              className={cx(
-                'border rounded-lg shadow-md border-gray-300 w-80 h-full overflow-hidden',
-                {
-                  'w-80': !shortsMode,
-                  '-ml-48': shortsMode,
-                }
-              )}
-            >
-              {tab.value === 'layout' && (
-                <LayoutSelector
-                  mode={config.mode}
-                  layout={blockProperties.layout || allLayoutTypes[0]}
-                  updateLayout={updateLayout}
-                  type={block.type}
-                />
-              )}
-              {tab.value === 'theme' && (
-                <GradientSelector
-                  currentGradient={
-                    blockProperties.gradient || getGradientConfig(gradients[0])
-                  }
-                  mode={config.mode}
-                  updateGradient={updateGradient}
-                />
-              )}
-              {tab.value === 'background' && (
-                <BackgroundSelector
-                  currentBgColor={
-                    blockProperties.bgColor || backgroundColors[0]
-                  }
-                  currentBgOpacity={blockProperties.bgOpacity || 1}
-                  mode={config.mode}
-                  updateBgColor={updateBgColor}
-                  updateBgOpacity={updateBgOpacity}
-                />
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+      <Preview
+        block={block}
+        blocks={blocks}
+        config={config}
+        updateConfig={updateBlockProperties}
+        setCurrentBlock={setCurrentBlock}
+        centeredCanvas
+      />
+      <Timeline
+        blocks={blocks}
+        currentBlock={block}
+        setCurrentBlock={setCurrentBlock}
+        persistentTimeline
+        shouldScrollToCurrentBlock={false}
+      />
     </Modal>
   )
 }
@@ -593,12 +349,16 @@ const PreviewModal = ({
 const BlockPreview = ({
   config,
   block,
+  blocks,
+  setCurrentBlock,
   updateConfig,
   className,
   ...rest
 }: {
   block: Block
   config: ViewConfig
+  blocks: Block[]
+  setCurrentBlock: React.Dispatch<React.SetStateAction<Block | undefined>>
   updateConfig: (id: string, properties: BlockProperties) => void
 } & HTMLAttributes<HTMLDivElement>) => {
   const [previewModal, setPreviewModal] = useState(false)
@@ -606,8 +366,6 @@ const BlockPreview = ({
 
   if (!block || !config || !config.blocks || !config?.blocks[block?.id])
     return null
-
-  if (block.type === 'introBlock' || block.type === 'outroBlock') return null
 
   return (
     <div className={className} {...rest}>
@@ -629,11 +387,11 @@ const BlockPreview = ({
       {previewModal && (
         <PreviewModal
           block={block}
-          blockProperties={config.blocks[block.id]}
+          blocks={blocks}
+          setCurrentBlock={setCurrentBlock}
           updateBlockProperties={updateConfig}
           config={config}
           open={previewModal}
-          shortsMode={config.mode === 'Portrait'}
           handleClose={() => {
             setPreviewModal(() => false)
           }}

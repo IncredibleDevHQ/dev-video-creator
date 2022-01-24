@@ -12,12 +12,12 @@ import {
 } from '../../generated/graphql'
 import { useCanvasRecorder } from '../../hooks'
 import { BlockProperties, ViewConfig } from '../../utils/configTypes'
-import { CONFIG } from '../Studio/components/Concourse'
 import studioStore from '../Studio/stores/studio.store'
 import {
   EditorHeader,
   FlickNavBar,
   FragmentBar,
+  Preview,
   ProcessingFlick,
   PublishFlick,
   Timeline,
@@ -26,11 +26,6 @@ import BlockPreview, {
   getGradientConfig,
   gradients,
 } from './components/BlockPreview'
-import {
-  DiscordThemes,
-  IntroOutroConfiguration,
-  SplashThemes,
-} from './components/IntroOutroView'
 import TipTap from './editor/TipTap'
 import { Block, Position, SimpleAST } from './editor/utils/utils'
 import { newFlickStore, View } from './store/flickNew.store'
@@ -43,24 +38,6 @@ const initialConfig: ViewConfig = {
   speakers: [],
   mode: 'Landscape',
   blocks: {},
-}
-
-const defaultIntroOutroConfiguration: IntroOutroConfiguration = {
-  discord: {
-    backgroundColor: '#1F2937',
-    textColor: '#ffffff',
-    theme: DiscordThemes.WhiteOnMidnight,
-  },
-  gradient: {
-    id: 1,
-    cssString:
-      'linear-gradient(90deg, #D397FA 0%, #D397FA 0.01%, #8364E8 100%)',
-    endIndex: { x: CONFIG.width, y: CONFIG.height },
-    startIndex: { x: 0, y: 0 },
-    values: [0, '#D397FA', 0.0001, '#D397FA', 1, '#8364E8'],
-  },
-  theme: SplashThemes.Lines,
-  mode: 'Landscape',
 }
 
 const useLocalPayload = () => {
@@ -94,7 +71,7 @@ const useLocalPayload = () => {
 
 const Flick = () => {
   const { id } = useParams<{ id: string; fragmentId?: string }>()
-  const [{ flick, activeFragmentId }, setFlickStore] =
+  const [{ flick, activeFragmentId, view }, setFlickStore] =
     useRecoilState(newFlickStore)
   const { data, error, loading, refetch } = useGetFlickByIdQuery({
     variables: { id },
@@ -105,8 +82,6 @@ const Flick = () => {
 
   const [currentBlock, setCurrentBlock] = useState<Block>()
   const [viewConfig, setViewConfig] = useState<ViewConfig>(initialConfig)
-  const [introOutroConfiguration, setIntroOutroConfiguration] =
-    useState<IntroOutroConfiguration>(defaultIntroOutroConfiguration)
 
   const [simpleAST, setSimpleAST] = useState<SimpleAST>()
   const [editorValue, setEditorValue] = useState<string>()
@@ -206,6 +181,7 @@ const Flick = () => {
             {
               id: uuidv4(),
               type: 'introBlock',
+              pos: 0,
               introBlock: {
                 order: ['userMedia', 'intro', 'splash'],
               },
@@ -213,6 +189,7 @@ const Flick = () => {
             {
               id: uuidv4(),
               type: 'outroBlock',
+              pos: 1,
             },
           ],
         } as SimpleAST)
@@ -254,9 +231,24 @@ const Flick = () => {
         editorValue={editorValue}
         config={viewConfig}
         setViewConfig={setViewConfig}
-        introConfig={introOutroConfiguration}
       />
-      {activeFragment && (
+      {activeFragment &&
+        view === View.Preview &&
+        currentBlock &&
+        currentBlock.type &&
+        viewConfig &&
+        simpleAST &&
+        simpleAST?.blocks?.length > 0 && (
+          <Preview
+            block={currentBlock}
+            config={viewConfig}
+            updateConfig={updateBlockProperties}
+            blocks={simpleAST?.blocks || []}
+            setCurrentBlock={setCurrentBlock}
+            centeredCanvas={false}
+          />
+        )}
+      {activeFragment && view === View.Notebook && (
         <div className="grid grid-cols-12 flex-1 h-full pb-12 sticky top-0 overflow-y-auto">
           <div className="h-full pt-12 pb-96 col-start-4 col-span-6 ">
             <EditorHeader
@@ -278,7 +270,12 @@ const Flick = () => {
                       ...(prev?.blocks ? [prev.blocks[0]] : []),
                       ...ast.blocks,
                       ...(prev?.blocks
-                        ? [prev.blocks[prev.blocks.length - 1]]
+                        ? [
+                            {
+                              ...prev.blocks[prev.blocks.length - 1],
+                              pos: ast.blocks.length + 1,
+                            } as Block,
+                          ]
                         : []),
                     ],
                   }))
@@ -306,8 +303,10 @@ const Flick = () => {
               simpleAST?.blocks?.length > 0 && (
                 <BlockPreview
                   block={currentBlock}
+                  blocks={simpleAST?.blocks || []}
                   config={viewConfig}
                   updateConfig={updateBlockProperties}
+                  setCurrentBlock={setCurrentBlock}
                   className={cx(
                     'absolute w-full h-full',
                     css`
@@ -348,6 +347,8 @@ const Flick = () => {
         blocks={simpleAST?.blocks || []}
         currentBlock={currentBlock}
         setCurrentBlock={setCurrentBlock}
+        persistentTimeline={false}
+        shouldScrollToCurrentBlock
       />
     </div>
   )
