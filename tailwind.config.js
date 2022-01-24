@@ -34,7 +34,7 @@ module.exports = {
           lighter: lighten('#16A34A', 0.05),
           dark: darken('#16A34A', 0.05),
           darker: darken('#16A34A', 0.1),
-          grey: `rgba(56, 59, 64, 0.9)`,
+          grey: '#3F3F46',
           75: alpha('#16A34A', 0.75),
           10: alpha('#16A34A', 0.1),
         },

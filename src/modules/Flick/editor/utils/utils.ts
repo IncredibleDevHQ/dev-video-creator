@@ -88,6 +88,14 @@ export interface ImageBlockProps extends CommonBlockProps {
   imageBlock: ImageBlock
 }
 
+export interface IntroBlockProps extends CommonBlockProps {
+  type: 'introBlock'
+}
+
+export interface OutroBlockProps extends CommonBlockProps {
+  type: 'outroBlock'
+}
+
 export type Block =
   | CodeBlockProps
   | VideoBlockProps

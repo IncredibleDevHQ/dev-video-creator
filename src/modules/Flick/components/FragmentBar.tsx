@@ -12,7 +12,6 @@ import { FragmentVideoModal } from '.'
 import { Branding } from '../..'
 import { ReactComponent as BrandIcon } from '../../../assets/BrandIcon.svg'
 import { Button, emitToast, Heading, Text, Tooltip } from '../../../components'
-import { TextEditorParser } from '../editor/utils/helpers'
 import {
   Content_Type_Enum_Enum,
   FlickFragmentFragment,
@@ -20,28 +19,25 @@ import {
   useGetBrandingQuery,
   useUpdateFlickBrandingMutation,
   useUpdateFlickMarkdownMutation,
-  useUpdateFragmentMarkdownMutation,
   useUpdateFragmentStateMutation,
 } from '../../../generated/graphql'
 import useDidUpdateEffect from '../../../hooks/use-did-update-effect'
 import { ViewConfig } from '../../../utils/configTypes'
+import { TextEditorParser } from '../editor/utils/helpers'
+import { SimpleAST } from '../editor/utils/utils'
 import { newFlickStore, View } from '../store/flickNew.store'
 import { IntroOutroConfiguration } from './IntroOutroView'
 
-// const dashArray = 10 * Math.PI * 2
-
 const FragmentBar = ({
   config,
-  markdown,
   editorValue,
   setViewConfig,
-  plateValue,
+  simpleAST,
   introConfig,
 }: {
   editorValue?: string
-  markdown?: string
   config: ViewConfig
-  plateValue?: any
+  simpleAST?: SimpleAST
   setViewConfig: React.Dispatch<React.SetStateAction<ViewConfig>>
   introConfig: IntroOutroConfiguration
 }) => {
@@ -55,7 +51,6 @@ const FragmentBar = ({
     flick?.fragments.find((f) => f.id === activeFragmentId)
   )
 
-  const [updateFragmentMarkdown] = useUpdateFragmentMarkdownMutation()
   const [updateFlickMarkdown] = useUpdateFlickMarkdownMutation()
   const [updateFlickBranding] = useUpdateFlickBrandingMutation()
 
@@ -84,7 +79,7 @@ const FragmentBar = ({
 
   useDidUpdateEffect(() => {
     debounced()
-  }, [editorValue, config, introConfig, markdown, useBranding, brandingId])
+  }, [editorValue, config, introConfig, useBranding, brandingId])
 
   useEffect(() => {
     const f = flick?.fragments.find((f) => f.id === activeFragmentId)
@@ -138,12 +133,6 @@ const FragmentBar = ({
           }))
       } else {
         if (!editorValue || editorValue?.length === 0) return
-        await updateFragmentMarkdown({
-          variables: {
-            fragmentId: activeFragmentId,
-            md: markdown,
-          },
-        })
         await updateFlickMarkdown({
           variables: {
             id: flick?.id,
@@ -152,7 +141,7 @@ const FragmentBar = ({
         })
         await updateFragmentState({
           variables: {
-            editorState: plateValue,
+            editorState: simpleAST,
             id: activeFragmentId,
             configuration: config,
           },
@@ -356,7 +345,7 @@ const FragmentBar = ({
             appearance="primary"
             size="small"
             type="button"
-            disabled={checkDisabledState(fragment, plateValue)}
+            disabled={checkDisabledState(fragment, simpleAST)}
             onClick={async () => {
               await updateConfig()
               history.push(`/${activeFragmentId}/studio`)
@@ -389,7 +378,7 @@ const FragmentBar = ({
 
 const checkDisabledState = (
   fragment: FlickFragmentFragment | undefined,
-  editorValue: any
+  editorValue: SimpleAST | undefined
 ) => {
   if (!fragment) return true
   if (
