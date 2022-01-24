@@ -110,7 +110,9 @@ const FragmentBar = ({
               ...flick,
               useBranding,
               brandingId,
-              branding: brandingData?.Branding.find((b) => b.id === brandingId),
+              branding: useBranding
+                ? brandingData?.Branding.find((b) => b.id === brandingId)
+                : null,
               md: editorValue,
               fragments: flick.fragments.map((f) =>
                 f.id === activeFragmentId
