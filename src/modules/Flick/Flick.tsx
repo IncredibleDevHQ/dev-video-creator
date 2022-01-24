@@ -2,11 +2,11 @@ import { css, cx } from '@emotion/css'
 import React, { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useRecoilState, useSetRecoilState } from 'recoil'
+import { v4 as uuidv4 } from 'uuid'
 import { ScreenState } from '../../components'
 import {
   FlickFragmentFragment,
   Fragment_Status_Enum_Enum,
-  Fragment_Type_Enum_Enum,
   StudioFragmentFragment,
   useGetFlickByIdQuery,
 } from '../../generated/graphql'
@@ -187,27 +187,37 @@ const Flick = () => {
     const fragment = flick?.fragments.find(
       (frag) => frag.id === activeFragmentId
     )
-    if (fragment) setActiveFragment(fragment)
-    if (
-      fragment?.type !== Fragment_Type_Enum_Enum.Intro &&
-      fragment?.type !== Fragment_Type_Enum_Enum.Outro
-    ) {
-      if (fragment?.configuration)
-        setViewConfig(
-          fragment?.configuration || {
-            ...initialConfig,
-            speakers: [
-              flick.participants.find((f) => f.id === fragment.participants[0]),
-            ],
-          }
-        )
+    if (!fragment) return
+    setActiveFragment(fragment)
 
-      setEditorValue(flick.md || '')
-    } else {
-      setIntroOutroConfiguration(
-        fragment?.configuration || defaultIntroOutroConfiguration
+    if (fragment?.configuration)
+      setViewConfig(
+        fragment?.configuration || {
+          ...initialConfig,
+          speakers: [
+            flick.participants.find((f) => f.id === fragment.participants[0]),
+          ],
+        }
       )
-    }
+    setSimpleAST(
+      fragment?.editorState ||
+        ({
+          blocks: [
+            {
+              id: uuidv4(),
+              type: 'introBlock',
+              introBlock: {
+                order: ['userMedia', 'intro', 'splash'],
+              },
+            },
+            {
+              id: uuidv4(),
+              type: 'outroBlock',
+            },
+          ],
+        } as SimpleAST)
+    )
+    setEditorValue(flick.md || '')
   }, [activeFragmentId])
 
   if (!data && loading)
@@ -261,7 +271,17 @@ const Flick = () => {
                 setPreviewPosition(position)
               }}
               handleUpdateAst={(ast, editorState) => {
-                setSimpleAST(ast)
+                if (simpleAST)
+                  setSimpleAST((prev) => ({
+                    ...ast,
+                    blocks: [
+                      ...(prev?.blocks ? [prev.blocks[0]] : []),
+                      ...ast.blocks,
+                      ...(prev?.blocks
+                        ? [prev.blocks[prev.blocks.length - 1]]
+                        : []),
+                    ],
+                  }))
                 setEditorValue(editorState)
               }}
               initialContent={flick.md || ''}
@@ -324,7 +344,11 @@ const Flick = () => {
           handleClose={() => setIntegrationModal(false)}
         />
       )}
-      <Timeline blocks={simpleAST?.blocks || []} currentBlock={currentBlock} />
+      <Timeline
+        blocks={simpleAST?.blocks || []}
+        currentBlock={currentBlock}
+        setCurrentBlock={setCurrentBlock}
+      />
     </div>
   )
 }

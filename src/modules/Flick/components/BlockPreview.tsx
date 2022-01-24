@@ -615,6 +615,8 @@ const BlockPreview = ({
   if (!block || !config || !config.blocks || !config?.blocks[block?.id])
     return null
 
+  if (block.type === 'introBlock' || block.type === 'outroBlock') return null
+
   return (
     <div className={className} {...rest}>
       <div

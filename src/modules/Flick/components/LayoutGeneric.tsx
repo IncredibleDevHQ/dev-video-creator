@@ -6,6 +6,9 @@ import {
   IoImageOutline,
   IoListOutline,
   IoPlayOutline,
+  IoSparkles,
+  IoSparklesOutline,
+  IoWalkOutline,
 } from 'react-icons/io5'
 import { Block } from '../editor/utils/utils'
 import { Layout, ViewConfig } from '../../../utils/configTypes'
@@ -24,6 +27,10 @@ export const FragmentTypeIcon = ({ type }: { type: Block['type'] }) => {
           case 'codeBlock':
             return (
               <IoCodeSlashOutline className="w-full h-full text-gray-400" />
+            )
+          case 'introBlock':
+            return (
+              <IoSparklesOutline className="w-full h-full text-gray-400 p-1.5" />
             )
           default:
             return <></>

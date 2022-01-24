@@ -55,6 +55,10 @@ export interface ImageBlock {
   description?: string
 }
 
+export interface IntroBlock {
+  order: ('intro' | 'userMedia' | 'splash')[]
+}
+
 export interface ListItem {
   content?: string
   items?: ListItem[]
@@ -90,6 +94,7 @@ export interface ImageBlockProps extends CommonBlockProps {
 
 export interface IntroBlockProps extends CommonBlockProps {
   type: 'introBlock'
+  introBlock: IntroBlock
 }
 
 export interface OutroBlockProps extends CommonBlockProps {
@@ -101,6 +106,8 @@ export type Block =
   | VideoBlockProps
   | ListBlockProps
   | ImageBlockProps
+  | IntroBlockProps
+  | OutroBlockProps
 
 export interface SimpleAST {
   blocks: Block[]
