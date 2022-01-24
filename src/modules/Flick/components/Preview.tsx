@@ -47,14 +47,13 @@ const Preview = ({
   const [ref, bounds] = useMeasure()
 
   return (
-    <div className="flex-1 flex justify-between h-full">
+    <div className="flex-1 flex justify-between">
       <div
         className={cx(
-          'flex justify-center items-start bg-gray-100 flex-1 pt-8 pl-0',
+          'flex justify-center items-start bg-gray-100 flex-1 pl-0',
           {
-            'pl-24': !centeredCanvas,
-            'pt-10': centeredCanvas && config.mode === 'Portrait',
-            'pt-20': centeredCanvas && config.mode === 'Landscape',
+            'pt-4': !centeredCanvas,
+            'items-center': centeredCanvas,
           }
         )}
         ref={ref}
@@ -78,7 +77,7 @@ const Preview = ({
             bounds={bounds}
             shortsMode={config.mode === 'Portrait'}
             config={config}
-            scale={1.3}
+            scale={config.mode === 'Portrait' && centeredCanvas ? 1 : 1.3}
           />
           <button
             onClick={() => {
@@ -100,11 +99,11 @@ const Preview = ({
         style={{
           width: '350px',
         }}
-        className="flex h-full"
+        className="flex"
       >
         {block.type !== 'introBlock' && block.type !== 'outroBlock' && (
           <>
-            <div className="bg-white w-64 h-full">
+            <div className="bg-white w-64">
               <LayoutSelector
                 mode={config.mode}
                 layout={config.blocks[block.id]?.layout || allLayoutTypes[0]}

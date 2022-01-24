@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react'
 import { IoPlayOutline } from 'react-icons/io5'
 import { useRecoilValue } from 'recoil'
 import { ReactComponent as UserPlaceholder } from '../../../assets/StudioUser.svg'
+import { ReactComponent as TimelineIcon } from '../../../assets/Timeline.svg'
 import { Button, Text } from '../../../components'
 import { BrandingInterface } from '../../Branding/BrandingPage'
 import { Block } from '../editor/utils/utils'
@@ -30,14 +31,18 @@ const Timeline = ({
   }, [])
 
   return (
-    <div className="absolute bottom-0 left-0 w-full">
+    <div
+      className={cx('absolute bottom-0 left-0 w-full', {
+        relative: persistentTimeline,
+      })}
+    >
       {!persistentTimeline && (
         <Button
           appearance="gray"
           type="button"
           size="small"
           className={cx(
-            'm-4 hover:bg-gray-700',
+            'flex items-center mx-4 my-2 hover:bg-gray-700',
             css(`
             --tw-bg-opacity: 1;
             background-color: rgba(17, 24, 39, var(--tw-bg-opacity));
@@ -45,6 +50,7 @@ const Timeline = ({
           )}
           onClick={() => setShowTimeline(!showTimeline)}
         >
+          <TimelineIcon className="h-6 w-6 mr-1" />
           <Text className="text-sm">
             {showTimeline ? 'Close timeline' : 'Open timeline'}
           </Text>

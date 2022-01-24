@@ -327,21 +327,23 @@ const PreviewModal = ({
         modal: cx('rounded-md m-0 p-0'),
       }}
     >
-      <Preview
-        block={block}
-        blocks={blocks}
-        config={config}
-        updateConfig={updateBlockProperties}
-        setCurrentBlock={setCurrentBlock}
-        centeredCanvas
-      />
-      <Timeline
-        blocks={blocks}
-        currentBlock={block}
-        setCurrentBlock={setCurrentBlock}
-        persistentTimeline
-        shouldScrollToCurrentBlock={false}
-      />
+      <div className="flex flex-col h-full ">
+        <Preview
+          block={block}
+          blocks={blocks}
+          config={config}
+          updateConfig={updateBlockProperties}
+          setCurrentBlock={setCurrentBlock}
+          centeredCanvas
+        />
+        <Timeline
+          blocks={blocks}
+          currentBlock={block}
+          setCurrentBlock={setCurrentBlock}
+          persistentTimeline
+          shouldScrollToCurrentBlock={false}
+        />
+      </div>
     </Modal>
   )
 }
