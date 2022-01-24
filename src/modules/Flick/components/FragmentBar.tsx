@@ -4,7 +4,11 @@ import { cx } from '@emotion/css'
 import React, { useEffect, useState } from 'react'
 import { BiCheck, BiPlayCircle } from 'react-icons/bi'
 import { BsCloudCheck, BsCloudUpload } from 'react-icons/bs'
-import { IoDesktopOutline, IoPhonePortraitOutline } from 'react-icons/io5'
+import {
+  IoDesktopOutline,
+  IoPhonePortraitOutline,
+  IoWarningOutline,
+} from 'react-icons/io5'
 import { useHistory } from 'react-router-dom'
 import { useRecoilState } from 'recoil'
 import { useDebouncedCallback } from 'use-debounce'
@@ -12,36 +16,30 @@ import { FragmentVideoModal } from '.'
 import { Branding } from '../..'
 import { ReactComponent as BrandIcon } from '../../../assets/BrandIcon.svg'
 import { Button, emitToast, Heading, Text, Tooltip } from '../../../components'
-import { TextEditorParser } from '../editor/utils/helpers'
 import {
   Content_Type_Enum_Enum,
   FlickFragmentFragment,
   Fragment_Type_Enum_Enum,
   useGetBrandingQuery,
-  useUpdateFlickBrandingMutation,
-  useUpdateFlickMarkdownMutation,
-  useUpdateFragmentMarkdownMutation,
-  useUpdateFragmentStateMutation,
+  useSaveFlickMutation,
 } from '../../../generated/graphql'
 import useDidUpdateEffect from '../../../hooks/use-did-update-effect'
 import { ViewConfig } from '../../../utils/configTypes'
+import { TextEditorParser } from '../editor/utils/helpers'
+import { SimpleAST } from '../editor/utils/utils'
 import { newFlickStore, View } from '../store/flickNew.store'
 import { IntroOutroConfiguration } from './IntroOutroView'
 
-// const dashArray = 10 * Math.PI * 2
-
 const FragmentBar = ({
   config,
-  markdown,
   editorValue,
   setViewConfig,
-  plateValue,
+  simpleAST,
   introConfig,
 }: {
   editorValue?: string
-  markdown?: string
   config: ViewConfig
-  plateValue?: any
+  simpleAST?: SimpleAST
   setViewConfig: React.Dispatch<React.SetStateAction<ViewConfig>>
   introConfig: IntroOutroConfiguration
 }) => {
@@ -55,13 +53,9 @@ const FragmentBar = ({
     flick?.fragments.find((f) => f.id === activeFragmentId)
   )
 
-  const [updateFragmentMarkdown] = useUpdateFragmentMarkdownMutation()
-  const [updateFlickMarkdown] = useUpdateFlickMarkdownMutation()
-  const [updateFlickBranding] = useUpdateFlickBrandingMutation()
+  const [saveFlick, { error }] = useSaveFlickMutation()
 
   const { data: brandingData } = useGetBrandingQuery()
-
-  const [updateFragmentState, { error }] = useUpdateFragmentStateMutation()
 
   const [savingConfig, setSavingConfig] = useState(false)
 
@@ -84,77 +78,32 @@ const FragmentBar = ({
 
   useDidUpdateEffect(() => {
     debounced()
-  }, [editorValue, config, introConfig, markdown, useBranding, brandingId])
+  }, [editorValue, config, introConfig, useBranding, brandingId])
 
   useEffect(() => {
     const f = flick?.fragments.find((f) => f.id === activeFragmentId)
     setFragment(f)
   }, [activeFragmentId, flick])
 
-  useEffect(() => {
-    if (!error) return
-    emitToast({
-      type: 'error',
-      title: 'Error saving configuration',
-    })
-  }, [error])
-
   const updateConfig = async () => {
     setSavingConfig(true)
-
-    await updateFlickBranding({
-      variables: { id: flick?.id, branding: useBranding, brandingId },
-    })
 
     try {
       if (
         fragment &&
-        (fragment?.type === Fragment_Type_Enum_Enum.Intro ||
-          fragment?.type === Fragment_Type_Enum_Enum.Outro)
+        fragment?.type !== Fragment_Type_Enum_Enum.Intro &&
+        fragment?.type !== Fragment_Type_Enum_Enum.Outro
       ) {
-        await updateFragmentState({
-          variables: {
-            editorState: {},
-            id: activeFragmentId,
-            configuration: introConfig,
-          },
-        })
-        if (flick)
-          setFlickStore((store) => ({
-            ...store,
-            flick: {
-              ...flick,
-              useBranding,
-
-              fragments: flick.fragments.map((f) =>
-                f.id === activeFragmentId
-                  ? {
-                      ...f,
-                      configuration: introConfig,
-                    }
-                  : f
-              ),
-            },
-          }))
-      } else {
         if (!editorValue || editorValue?.length === 0) return
-        await updateFragmentMarkdown({
-          variables: {
-            fragmentId: activeFragmentId,
-            md: markdown,
-          },
-        })
-        await updateFlickMarkdown({
+        await saveFlick({
           variables: {
             id: flick?.id,
             md: editorValue,
-          },
-        })
-        await updateFragmentState({
-          variables: {
-            editorState: plateValue,
-            id: activeFragmentId,
+            editorState: simpleAST,
+            fragmentId: activeFragmentId,
             configuration: config,
+            branding: useBranding,
+            brandingId,
           },
         })
         if (flick)
@@ -164,13 +113,14 @@ const FragmentBar = ({
               ...flick,
               useBranding,
               brandingId,
+              branding: brandingData?.Branding.find((b) => b.id === brandingId),
               md: editorValue,
               fragments: flick.fragments.map((f) =>
                 f.id === activeFragmentId
                   ? {
                       ...f,
                       configuration: config,
-                      editorState: editorValue,
+                      editorState: simpleAST,
                     }
                   : f
               ),
@@ -180,7 +130,7 @@ const FragmentBar = ({
     } catch (error) {
       emitToast({
         type: 'error',
-        title: 'Error updating fragment',
+        title: 'Error saving flick',
       })
     } finally {
       setSavingConfig(false)
@@ -226,15 +176,22 @@ const FragmentBar = ({
         </Heading>
       </div>
       <div className="flex items-center h-full">
-        {savingConfig ? (
+        {savingConfig && (
           <div className="flex text-gray-400 items-center mr-4">
             <BsCloudUpload className="mr-1" />
             <Text fontSize="small">Saving...</Text>
           </div>
-        ) : (
+        )}
+        {!savingConfig && !error && (
           <div className="flex text-gray-400 items-center mr-4">
             <BsCloudCheck className="mr-1" />
             <Text fontSize="small">Saved</Text>
+          </div>
+        )}
+        {error && (
+          <div className="flex text-red-400 items-center mr-4">
+            <IoWarningOutline className="mr-1" />
+            <Text fontSize="small">Error saving</Text>
           </div>
         )}
         <div className="flex border-l-2 h-full items-center justify-center border-brand-grey">
@@ -356,7 +313,7 @@ const FragmentBar = ({
             appearance="primary"
             size="small"
             type="button"
-            disabled={checkDisabledState(fragment, plateValue)}
+            disabled={checkDisabledState(fragment, simpleAST)}
             onClick={async () => {
               await updateConfig()
               history.push(`/${activeFragmentId}/studio`)
@@ -389,7 +346,7 @@ const FragmentBar = ({
 
 const checkDisabledState = (
   fragment: FlickFragmentFragment | undefined,
-  editorValue: any
+  editorValue: SimpleAST | undefined
 ) => {
   if (!fragment) return true
   if (

@@ -118,7 +118,7 @@ const BrandPreview = ({
                 <>
                   <Circle
                     x={27}
-                    radius={3}
+                    borderRadius={3}
                     y={80 + index * 20}
                     fill={branding.branding?.colors?.text || '#F9FAFB'}
                   />

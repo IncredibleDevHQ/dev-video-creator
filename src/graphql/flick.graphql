@@ -340,6 +340,30 @@ mutation UpdateFlickMd($id: uuid!, $md: String!) {
   }
 }
 
+mutation SaveFlick(
+  $id: uuid!
+  $md: String!
+  $editorState: json!
+  $fragmentId: uuid!
+  $configuration: json!
+  $branding: Boolean!
+  $brandingId: uuid
+) {
+  update_Flick_by_pk(
+    pk_columns: { id: $id }
+    _set: { md: $md, useBranding: $branding, brandingId: $brandingId }
+  ) {
+    id
+  }
+  update_Fragment_by_pk(
+    pk_columns: { id: $fragmentId }
+    _set: { editorState: $editorState, configuration: $configuration }
+  ) {
+    id
+  }
+}
+
+
 subscription FlickStatus($flickId: uuid!) {
   Flick_by_pk(id: $flickId) {
     status

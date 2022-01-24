@@ -2,7 +2,6 @@ import { sentenceCase } from 'change-case'
 import React, { useEffect, useState } from 'react'
 import { FiChevronLeft } from 'react-icons/fi'
 import { useRecoilState } from 'recoil'
-import { FlickActivity } from '.'
 import { Button, Heading } from '../../../components'
 import config from '../../../config'
 import { ASSETS } from '../../../constants'
@@ -12,7 +11,6 @@ import ShareModal from './ShareModal'
 
 const FlickNavBar = ({ toggleModal }: { toggleModal: (val: true) => void }) => {
   const [{ flick }, setFlickStore] = useRecoilState(newFlickStore)
-  const [isActivityMenu, setIsActivityMenu] = useState(false)
   const [isShareOpen, setIsShareOpen] = useState(false)
   const [editFlickName, setEditFlickName] = useState(false)
   const [flickName, setFlickName] = useState(flick?.name || '')
@@ -89,11 +87,6 @@ const FlickNavBar = ({ toggleModal }: { toggleModal: (val: true) => void }) => {
         >
           Invite
         </Button>
-        {/* <FiBell
-          className="text-gray-600 cursor-pointer"
-          size={21}
-          onClick={() => setIsActivityMenu(!isActivityMenu)}
-        /> */}
         <Button
           appearance="gray"
           size="small"
@@ -104,9 +97,6 @@ const FlickNavBar = ({ toggleModal }: { toggleModal: (val: true) => void }) => {
         >
           Download
         </Button>
-      </div>
-      <div className="absolute right-0">
-        <FlickActivity menu={isActivityMenu} setMenu={setIsActivityMenu} />
       </div>
       <ShareModal
         open={isShareOpen}
