@@ -5,11 +5,14 @@ import useImage from 'use-image'
 import useEdit, { ClipConfig } from '../hooks/use-edit'
 import { StudioUserConfig } from './Concourse'
 import configs from '../../../config'
+import { StudioUserThemeConfig } from '../utils/ThemeConfig'
 
 const PreviewUser = ({
   studioUserConfig,
+  studioUserThemeConfig,
 }: {
   studioUserConfig: StudioUserConfig
+  studioUserThemeConfig: StudioUserThemeConfig
 }) => {
   const {
     x,
@@ -20,12 +23,18 @@ const PreviewUser = ({
     borderColor,
     borderWidth,
     studioUserClipConfig,
-    backgroundRectColor,
+  } = studioUserConfig
+  const {
     backgroundRectX,
     backgroundRectY,
-    backgroundRectBorderWidth,
+    backgroundRectWidth,
+    backgroundRectHeight,
+    backgroundRectOpacity,
+    backgroundRectBorderRadius,
+    backgroundRectColor,
     backgroundRectBorderColor,
-  } = studioUserConfig
+    backgroundRectBorderWidth,
+  } = studioUserThemeConfig
   const imageConfig = { width: width || 160, height: height || 120 }
 
   const { clipCircle, clipRect, getImageDimensions } = useEdit()
@@ -94,14 +103,13 @@ const PreviewUser = ({
       <Rect
         x={backgroundRectX || 775}
         y={backgroundRectY || y}
-        width={studioUserClipConfig?.width || defaultStudioUserClipConfig.width}
-        height={
-          studioUserClipConfig?.height || defaultStudioUserClipConfig.height
-        }
+        width={backgroundRectWidth}
+        height={backgroundRectHeight}
         fill={backgroundRectColor}
         stroke={backgroundRectBorderColor}
         strokeWidth={backgroundRectBorderWidth || 0}
-        cornerRadius={studioUserClipConfig?.borderRadius || 0}
+        cornerRadius={backgroundRectBorderRadius || 0}
+        opacity={backgroundRectOpacity || 0}
       />
       <Rect
         x={(studioUserClipConfig && studioUserClipConfig.x + x) || 775}

@@ -1,12 +1,16 @@
 /* eslint-disable no-nested-ternary */
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
-import { Group, Image, Rect, Text } from 'react-konva'
+import { Group, Image, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
+import {
+  BlockProperties,
+  TopLayerChildren,
+} from '../../../../utils/configTypes'
 import { ImageBlockProps } from '../../../Flick/editor/utils/utils'
-import { BlockProperties } from '../../../../utils/configTypes'
 import Concourse, { TitleSplashProps } from '../../components/Concourse'
+import FragmentBackground from '../../components/FragmentBackground'
 import Gif from '../../components/Gif'
 import { FragmentState } from '../../components/RenderTokens'
 import useEdit from '../../hooks/use-edit'
@@ -16,7 +20,7 @@ import {
   ObjectConfig,
 } from '../../utils/FragmentLayoutConfig'
 import { StudioUserConfiguration } from '../../utils/StudioUserConfig'
-import { TrianglePathTransition } from '../FragmentTransitions'
+import { ObjectRenderConfig, ThemeLayoutConfig } from '../../utils/ThemeConfig'
 
 const TriviaFragment = ({
   viewConfig,
@@ -32,8 +36,8 @@ const TriviaFragment = ({
 }: {
   viewConfig: BlockProperties
   dataConfig: ImageBlockProps
-  topLayerChildren: JSX.Element[]
-  setTopLayerChildren: React.Dispatch<React.SetStateAction<JSX.Element[]>>
+  topLayerChildren: TopLayerChildren
+  setTopLayerChildren: React.Dispatch<React.SetStateAction<TopLayerChildren>>
   titleSplashData?: TitleSplashProps | undefined
   fragmentState: FragmentState
   setFragmentState: React.Dispatch<React.SetStateAction<FragmentState>>
@@ -41,7 +45,7 @@ const TriviaFragment = ({
   layerRef: React.RefObject<Konva.Layer>
   shortsMode: boolean
 }) => {
-  const { fragment, payload, addMusic } =
+  const { fragment, payload, branding, addMusic } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   // const [activeQuestionIndex, setActiveQuestionIndex] = useState<number>(0)
@@ -78,6 +82,15 @@ const TriviaFragment = ({
     borderRadius: 0,
   })
 
+  const [objectRenderConfig, setObjectRenderConfig] =
+    useState<ObjectRenderConfig>({
+      startX: 0,
+      startY: 0,
+      availableWidth: 0,
+      availableHeight: 0,
+      textColor: '',
+    })
+
   useEffect(() => {
     if (!dataConfig) return
     setObjectConfig(
@@ -90,8 +103,14 @@ const TriviaFragment = ({
       image: dataConfig?.imageBlock.url || '',
       text: dataConfig?.imageBlock.title || '',
     })
-    setTopLayerChildren([])
+    setTopLayerChildren('')
   }, [dataConfig, shortsMode, viewConfig])
+
+  useEffect(() => {
+    setObjectRenderConfig(
+      ThemeLayoutConfig({ theme: 'glassy', layoutConfig: objectConfig })
+    )
+  }, [objectConfig])
 
   useEffect(() => {
     if (qnaImage?.src.split('.').pop() === 'gif') {
@@ -108,10 +127,10 @@ const TriviaFragment = ({
               w: (qnaImage && qnaImage.width) || 0,
               h: (qnaImage && qnaImage.height) || 0,
             },
-            objectConfig.width - 30,
-            objectConfig.height - 140,
-            objectConfig.width - 40,
-            objectConfig.height,
+            objectRenderConfig.availableWidth - 30,
+            objectRenderConfig.availableHeight - 140,
+            objectRenderConfig.availableWidth - 40,
+            objectRenderConfig.availableHeight,
             20,
             0
           )
@@ -123,10 +142,10 @@ const TriviaFragment = ({
               w: (qnaImage && qnaImage.width) || 0,
               h: (qnaImage && qnaImage.height) || 0,
             },
-            objectConfig.width - 30,
-            objectConfig.height - 140,
-            objectConfig.width - 40,
-            objectConfig.height - 110,
+            objectRenderConfig.availableWidth - 30,
+            objectRenderConfig.availableHeight - 140,
+            objectRenderConfig.availableWidth - 40,
+            objectRenderConfig.availableHeight - 110,
             20,
             80
           )
@@ -139,15 +158,15 @@ const TriviaFragment = ({
             w: (qnaImage && qnaImage.width) || 0,
             h: (qnaImage && qnaImage.height) || 0,
           },
-          objectConfig.width - 30,
-          objectConfig.height - 30,
-          objectConfig.width - 40,
-          objectConfig.height,
+          objectRenderConfig.availableWidth - 30,
+          objectRenderConfig.availableHeight - 30,
+          objectRenderConfig.availableWidth - 40,
+          objectRenderConfig.availableHeight,
           20,
           0
         )
       )
-  }, [qnaImage, objectConfig])
+  }, [qnaImage, objectRenderConfig])
 
   // useEffect(() => {
   //   // setActiveQuestionIndex(payload?.activeQuestion)
@@ -157,9 +176,7 @@ const TriviaFragment = ({
   useEffect(() => {
     // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
     if (payload?.fragmentState === 'customLayout') {
-      setTopLayerChildren([
-        <TrianglePathTransition isShorts={shortsMode} direction="right" />,
-      ])
+      setTopLayerChildren('transition right')
       addMusic()
       setTimeout(() => {
         setFragmentState(payload?.fragmentState)
@@ -171,9 +188,7 @@ const TriviaFragment = ({
     }
     // Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
     if (payload?.fragmentState === 'onlyUserMedia') {
-      setTopLayerChildren([
-        <TrianglePathTransition isShorts={shortsMode} direction="left" />,
-      ])
+      setTopLayerChildren('transition left')
       addMusic()
       setTimeout(() => {
         setFragmentState(payload?.fragmentState)
@@ -187,16 +202,18 @@ const TriviaFragment = ({
 
   const layerChildren: any[] = [
     <Group x={0} y={0} opacity={0} ref={customLayoutRef}>
-      <Rect
-        x={objectConfig.x}
-        y={objectConfig.y}
-        width={objectConfig.width}
-        height={objectConfig.height}
-        fill={viewConfig?.bgColor || '#1F2937'}
-        cornerRadius={objectConfig.borderRadius}
-        opacity={viewConfig?.bgOpacity || 1}
+      <FragmentBackground
+        theme="glassy"
+        objectConfig={objectConfig}
+        backgroundRectColor={
+          branding?.colors?.primary ? branding?.colors?.primary : '#151D2C'
+        }
       />
-      <Group x={objectConfig.x} y={objectConfig.y} key="group1">
+      <Group
+        x={objectRenderConfig.startX}
+        y={objectRenderConfig.startY}
+        key="group1"
+      >
         {triviaData?.image ? (
           isGif ? (
             <>
@@ -205,8 +222,12 @@ const TriviaFragment = ({
                 y={20}
                 align="center"
                 fontSize={32}
-                fill={viewConfig?.bgColor === '#ffffff' ? '#1F2937' : '#E5E7EB'}
-                width={objectConfig.width - 20}
+                fill={
+                  branding?.colors?.text
+                    ? branding?.colors?.text
+                    : objectRenderConfig.textColor
+                }
+                width={objectRenderConfig.availableWidth - 20}
                 lineHeight={1.2}
                 text={triviaData?.text}
                 fontStyle="bold"
@@ -228,8 +249,12 @@ const TriviaFragment = ({
                 y={20}
                 align="center"
                 fontSize={32}
-                fill={viewConfig?.bgColor === '#ffffff' ? '#1F2937' : '#E5E7EB'}
-                width={objectConfig.width - 20}
+                fill={
+                  branding?.colors?.text
+                    ? branding?.colors?.text
+                    : objectRenderConfig.textColor
+                }
+                width={objectRenderConfig.availableWidth - 20}
                 lineHeight={1.2}
                 text={triviaData?.text}
                 fontStyle="bold"
@@ -252,9 +277,13 @@ const TriviaFragment = ({
           <Text
             x={10}
             fontSize={32}
-            fill={viewConfig?.bgColor === '#ffffff' ? '#1F2937' : '#E5E7EB'}
-            width={objectConfig.width - 20}
-            height={objectConfig.height}
+            fill={
+              branding?.colors?.text
+                ? branding?.colors?.text
+                : objectRenderConfig.textColor
+            }
+            width={objectRenderConfig.availableWidth - 20}
+            height={objectRenderConfig.availableHeight}
             text={triviaData?.text}
             fontStyle="bold"
             fontFamily="Poppins"
@@ -285,6 +314,7 @@ const TriviaFragment = ({
       titleSplashData={titleSplashData}
       studioUserConfig={studioUserConfig}
       topLayerChildren={topLayerChildren}
+      setTopLayerChildren={setTopLayerChildren}
       isShorts={shortsMode}
     />
   )

@@ -1,10 +1,14 @@
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
-import { Circle, Group, Rect, Text } from 'react-konva'
+import { Circle, Group, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
+import {
+  BlockProperties,
+  TopLayerChildren,
+} from '../../../../utils/configTypes'
 import { ListBlockProps, ListItem } from '../../../Flick/editor/utils/utils'
-import { BlockProperties } from '../../../../utils/configTypes'
 import Concourse, { TitleSplashProps } from '../../components/Concourse'
+import FragmentBackground from '../../components/FragmentBackground'
 import { FragmentState } from '../../components/RenderTokens'
 import { usePoint } from '../../hooks'
 import { ComputedPoint } from '../../hooks/use-point'
@@ -14,7 +18,7 @@ import {
   ObjectConfig,
 } from '../../utils/FragmentLayoutConfig'
 import { StudioUserConfiguration } from '../../utils/StudioUserConfig'
-import { TrianglePathTransition } from '../FragmentTransitions'
+import { ObjectRenderConfig, ThemeLayoutConfig } from '../../utils/ThemeConfig'
 
 const PointsFragment = ({
   viewConfig,
@@ -31,8 +35,8 @@ const PointsFragment = ({
 }: {
   viewConfig: BlockProperties
   dataConfig: ListBlockProps
-  topLayerChildren: JSX.Element[]
-  setTopLayerChildren: React.Dispatch<React.SetStateAction<JSX.Element[]>>
+  topLayerChildren: TopLayerChildren
+  setTopLayerChildren: React.Dispatch<React.SetStateAction<TopLayerChildren>>
   titleSplashData?: TitleSplashProps | undefined
   fragmentState: FragmentState
   setFragmentState: React.Dispatch<React.SetStateAction<FragmentState>>
@@ -41,7 +45,7 @@ const PointsFragment = ({
   shortsMode: boolean
   isPreview: boolean
 }) => {
-  const { fragment, state, updatePayload, payload, addMusic } =
+  const { fragment, state, updatePayload, payload, addMusic, branding } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [activePointIndex, setActivePointIndex] = useState<number>(0)
@@ -68,7 +72,14 @@ const PointsFragment = ({
     borderRadius: 0,
   })
 
-  const colorStops = [0, '#D1D5DB', 1, '#D1D5DB']
+  const [objectRenderConfig, setObjectRenderConfig] =
+    useState<ObjectRenderConfig>({
+      startX: 0,
+      startY: 0,
+      availableWidth: 0,
+      availableHeight: 0,
+      textColor: '',
+    })
 
   useEffect(() => {
     if (!dataConfig) return
@@ -85,15 +96,21 @@ const PointsFragment = ({
       })
     )
     setPoints(dataConfig.listBlock.list || [])
-    setTopLayerChildren([])
+    setTopLayerChildren('')
   }, [dataConfig, shortsMode, viewConfig])
+
+  useEffect(() => {
+    setObjectRenderConfig(
+      ThemeLayoutConfig({ theme: 'glassy', layoutConfig: objectConfig })
+    )
+  }, [objectConfig])
 
   useEffect(() => {
     if (points.length === 0) return
     setTitleNumberOfLines(
       getNoOfLinesOfText({
         text: dataConfig.listBlock.title || fragment?.name || '',
-        availableWidth: objectConfig.width - 80,
+        availableWidth: objectRenderConfig.availableWidth - 80,
         fontSize: 40,
         fontFamily: 'Gilroy',
         fontStyle: 'normal 800',
@@ -102,14 +119,14 @@ const PointsFragment = ({
     setComputedPoints(
       initUsePoint({
         points,
-        availableWidth: objectConfig.width - 110,
+        availableWidth: objectRenderConfig.availableWidth - 110,
         availableHeight: 220,
         gutter: 25,
         fontSize: 16,
         fontFamily: 'Gilroy',
       })
     )
-  }, [objectConfig, points])
+  }, [points, objectRenderConfig])
 
   useEffect(() => {
     if (state === 'ready') {
@@ -121,7 +138,7 @@ const PointsFragment = ({
       updatePayload?.({
         activePointIndex: 0,
       })
-      setTopLayerChildren([])
+      setTopLayerChildren('')
     }
   }, [state])
 
@@ -136,9 +153,7 @@ const PointsFragment = ({
   useEffect(() => {
     // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
     if (payload?.fragmentState === 'customLayout') {
-      setTopLayerChildren([
-        <TrianglePathTransition isShorts={shortsMode} direction="right" />,
-      ])
+      setTopLayerChildren('transition right')
       addMusic()
       setTimeout(() => {
         setFragmentState(payload?.fragmentState)
@@ -150,9 +165,7 @@ const PointsFragment = ({
     }
     // Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
     if (payload?.fragmentState === 'onlyUserMedia') {
-      setTopLayerChildren([
-        <TrianglePathTransition isShorts={shortsMode} direction="left" />,
-      ])
+      setTopLayerChildren('transition left')
       addMusic()
       setTimeout(() => {
         setFragmentState(payload?.fragmentState)
@@ -166,31 +179,33 @@ const PointsFragment = ({
 
   const layerChildren: any[] = [
     <Group x={0} y={0} opacity={0} ref={customLayoutRef}>
-      <Rect
-        x={objectConfig.x}
-        y={objectConfig.y}
-        width={objectConfig.width}
-        height={objectConfig.height}
-        fill={viewConfig?.bgColor || '#1F2937'}
-        cornerRadius={objectConfig.borderRadius}
-        opacity={viewConfig?.bgOpacity || 1}
+      <FragmentBackground
+        theme="glassy"
+        objectConfig={objectConfig}
+        backgroundRectColor={
+          branding?.colors?.primary ? branding?.colors?.primary : '#151D2C'
+        }
       />
       <Text
         key="fragmentTitle"
-        x={objectConfig.x + 30}
-        y={objectConfig.y + 32}
+        x={objectRenderConfig.startX + 30}
+        y={objectRenderConfig.startY + 32}
         align="left"
         fontSize={40}
-        fill={viewConfig?.bgColor === '#ffffff' ? '#1F2937' : '#E5E7EB'}
-        width={objectConfig.width - 80}
+        fill={
+          branding?.colors?.text
+            ? branding?.colors?.text
+            : objectRenderConfig.textColor
+        }
+        width={objectRenderConfig.availableWidth - 80}
         lineHeight={1.15}
         text={dataConfig.listBlock.title || fragment?.name || ''}
         fontStyle="normal 800"
         fontFamily="Gilroy"
       />
       <Group
-        x={objectConfig.x + 50}
-        y={objectConfig.y + 25 + 50 * titleNumberOfLines}
+        x={objectRenderConfig.startX + 50}
+        y={objectRenderConfig.startY + 25 + 50 * titleNumberOfLines}
         key="group4"
       >
         {!isPreview
@@ -203,14 +218,11 @@ const PointsFragment = ({
                     x={-76}
                     radius={11}
                     y={point.y + 8}
-                    fillLinearGradientColorStops={
-                      viewConfig?.gradient?.values || colorStops
+                    fill={
+                      branding?.colors?.text
+                        ? branding?.colors?.text
+                        : objectRenderConfig.pointsBulletColor
                     }
-                    fillLinearGradientStartPoint={{ x: -11, y: -11 }}
-                    fillLinearGradientEndPoint={{
-                      x: 11,
-                      y: 11,
-                    }}
                     ref={(ref) =>
                       ref?.to({
                         x: 0,
@@ -225,11 +237,13 @@ const PointsFragment = ({
                     align="left"
                     fontSize={16}
                     fill={
-                      viewConfig?.bgColor === '#ffffff' ? '#4B5563' : '#F3F4F6'
+                      branding?.colors?.text
+                        ? branding?.colors?.text
+                        : objectRenderConfig.textColor
                     }
                     // why subtracting 110 is that this group starts at x: 50 and this text starts at x: 30,
                     // so we need to subtract 110 to get the correct x, to give 30 padding in the end too
-                    width={objectConfig.width - 110}
+                    width={objectRenderConfig.availableWidth - 110}
                     text={point.text}
                     // text="Run and test using one command and so on a thats all hd huusd j idhc dsi"
                     lineHeight={1.3}
@@ -250,14 +264,11 @@ const PointsFragment = ({
                   x={0}
                   radius={11}
                   y={point.y + 8}
-                  fillLinearGradientColorStops={
-                    viewConfig?.gradient?.values || colorStops
+                  fill={
+                    branding?.colors?.text
+                      ? branding?.colors?.text
+                      : objectRenderConfig.pointsBulletColor
                   }
-                  fillLinearGradientStartPoint={{ x: -11, y: -11 }}
-                  fillLinearGradientEndPoint={{
-                    x: 11,
-                    y: 11,
-                  }}
                 />
                 <Text
                   key={point.text}
@@ -266,11 +277,13 @@ const PointsFragment = ({
                   align="left"
                   fontSize={16}
                   fill={
-                    viewConfig?.bgColor === '#ffffff' ? '#4B5563' : '#F3F4F6'
+                    branding?.colors?.text
+                      ? branding?.colors?.text
+                      : objectRenderConfig.textColor
                   }
                   // why subtracting 110 is that this group starts at x: 50 and this text starts at x: 30,
                   // so we need to subtract 110 to get the correct x, to give 30 padding in the end too
-                  width={objectConfig.width - 110}
+                  width={objectRenderConfig.availableWidth - 110}
                   text={point.text}
                   // text="Run and test using one command and so on a thats all hd huusd j idhc dsi"
                   lineHeight={1.3}
@@ -299,6 +312,7 @@ const PointsFragment = ({
       titleSplashData={titleSplashData}
       studioUserConfig={studioUserConfig}
       topLayerChildren={topLayerChildren}
+      setTopLayerChildren={setTopLayerChildren}
       isShorts={shortsMode}
     />
   )

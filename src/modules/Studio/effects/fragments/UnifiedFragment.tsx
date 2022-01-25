@@ -1,6 +1,17 @@
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
-import { useRecoilValue } from 'recoil'
+import { useRecoilState, useRecoilValue } from 'recoil'
+import {
+  BlockProperties,
+  TitleSplashConfig,
+  TopLayerChildren,
+  ViewConfig,
+} from '../../../../utils/configTypes'
+import { BrandingJSON } from '../../../Branding/BrandingPage'
+import {
+  getGradientConfig,
+  gradients,
+} from '../../../Flick/components/BlockPreview'
 import {
   Block,
   CodeBlockProps,
@@ -8,48 +19,36 @@ import {
   ListBlockProps,
   VideoBlockProps,
 } from '../../../Flick/editor/utils/utils'
-import { User, userState } from '../../../../stores/user.store'
-import {
-  BlockProperties,
-  TitleSplashConfig,
-  ViewConfig,
-} from '../../../../utils/configTypes'
-import {
-  getGradientConfig,
-  gradients,
-} from '../../../Flick/components/BlockPreview'
-import { CONFIG, SHORTS_CONFIG } from '../../components/Concourse'
-import { IncredibleLowerThirds } from '../../components/LowerThirds'
 import { FragmentState } from '../../components/RenderTokens'
-import useEdit from '../../hooks/use-edit'
 import { StudioProviderProps, studioStore } from '../../stores'
 import CodeFragment from './CodeFragment'
 import PointsFragment from './PointsFragment'
 import TriviaFragment from './TriviaFragment'
 import VideoFragment from './VideoFragment'
-import { Fragment_Status_Enum_Enum } from '../../../../generated/graphql'
 
 const UnifiedFragment = ({
   stageRef,
   layerRef,
   config,
   layoutConfig,
+  branding,
 }: {
   stageRef: React.RefObject<Konva.Stage>
   layerRef: React.RefObject<Konva.Layer>
   config?: Block[]
   layoutConfig?: ViewConfig
+  branding?: BrandingJSON
 }) => {
   const {
     fragment,
     payload,
     updatePayload,
     state,
-    participants,
-    users,
     addMusic,
     reduceSplashAudioVolume,
   } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
+
+  const [studio, setStudio] = useRecoilState(studioStore)
 
   const [titleSplashData, setTitleSplashData] = useState<
     TitleSplashConfig & { title: string }
@@ -72,13 +71,8 @@ const UnifiedFragment = ({
 
   const [isPreview, setIsPreview] = useState(false)
 
-  // state which stores the layer children which have to be placed over the studio user
-  const [topLayerChildren, setTopLayerChildren] = useState<JSX.Element[]>([])
-
-  // holds the user's display name
-  const { displayName, username } = (useRecoilValue(userState) as User) || {}
-
-  const { getTextWidth } = useEdit()
+  // state which stores the type of layer children which have to be placed over the studio user
+  const [topLayerChildren, setTopLayerChildren] = useState<TopLayerChildren>('')
 
   const timer = useRef<any>(null)
 
@@ -95,6 +89,13 @@ const UnifiedFragment = ({
     if (!layoutConfig) return
     setViewConfig(layoutConfig)
   }, [config, layoutConfig])
+
+  useEffect(() => {
+    setStudio({
+      ...studio,
+      branding,
+    })
+  }, [branding])
 
   useEffect(() => {
     if (!fragment) return
@@ -130,7 +131,7 @@ const UnifiedFragment = ({
       updatePayload?.({
         activePointIndex: 0,
         currentIndex: 0,
-        currentTime: 1,
+        currentTime: 0,
         isFocus: false,
         playing: false,
         prevIndex: 0,
@@ -159,82 +160,13 @@ const UnifiedFragment = ({
           reduceSplashAudioVolume(0.06)
         }, 2200)
       }
-      setTopLayerChildren([])
+      setTopLayerChildren('')
       timer.current = setTimeout(() => {
-        if (!displayName) return
-        if (!fragment) return
-        setTopLayerChildren([
-          <IncredibleLowerThirds
-            x={
-              viewConfig?.mode === 'Landscape'
-                ? lowerThirdCoordinates[0]
-                : SHORTS_CONFIG.width - 90
-            }
-            y={viewConfig?.mode === 'Landscape' ? 450 : 630}
-            displayName={displayName}
-            username={username ? `/${username}` : `/${displayName}`}
-            width={
-              getTextWidth(displayName, 'Inter', 20, 'normal 500') >
-              getTextWidth(`/${username}`, 'Inter', 20, 'normal 500')
-                ? getTextWidth(displayName, 'Inter', 20, 'normal 500') + 20
-                : getTextWidth(`/${username}`, 'Inter', 20, 'normal 500') + 20
-            }
-          />,
-          ...users.map((user, index) => (
-            <IncredibleLowerThirds
-              // eslint-disable-next-line react/no-array-index-key
-              key={index}
-              x={lowerThirdCoordinates[index + 1]}
-              y={viewConfig?.mode === 'Landscape' ? 450 : 630}
-              displayName={participants?.[user.uid]?.displayName}
-              username={
-                `/${participants?.[user.uid]?.userName}` ||
-                `/${participants?.[user.uid]?.displayName}`
-              }
-              width={
-                getTextWidth(
-                  participants?.[user.uid]?.displayName,
-                  'Inter',
-                  20,
-                  'normal 500'
-                ) >
-                getTextWidth(
-                  `/${participants?.[user.uid]?.userName}`,
-                  'Inter',
-                  20,
-                  'normal 500'
-                )
-                  ? getTextWidth(
-                      participants?.[user.uid]?.displayName,
-                      'Inter',
-                      20,
-                      'normal 500'
-                    ) + 20
-                  : getTextWidth(
-                      `/${participants?.[user.uid]?.userName}`,
-                      'Inter',
-                      20,
-                      'normal 500'
-                    ) + 20
-              }
-            />
-          )),
-        ])
+        setTopLayerChildren('lowerThird')
       }, 5000)
     }
   }, [state])
 
-  const lowerThirdCoordinates = (() => {
-    switch (fragment?.participants.length) {
-      case 2:
-        return [CONFIG.width - 140, CONFIG.width / 2 - 130]
-      case 3:
-        // TODO: calculate the coordinates for 3 people
-        return [665, 355, 45]
-      default:
-        return [CONFIG.width - 170]
-    }
-  })()
   useEffect(() => {
     if (activeObjectIndex !== 0)
       setTitleSplashData({ ...titleSplashData, enable: false })

@@ -8,12 +8,14 @@ import Gravatar from 'react-gravatar'
 import { StudioProviderProps, studioStore } from '../stores'
 import { StudioUserConfig } from './Concourse'
 import useEdit, { ClipConfig } from '../hooks/use-edit'
+import { StudioUserThemeConfig } from '../utils/ThemeConfig'
 
 type StudioUserType = 'local' | 'remote'
 
 const StudioUser = ({
   stream,
   studioUserConfig,
+  studioUserThemeConfig,
   type,
   uid,
   picture,
@@ -21,6 +23,7 @@ const StudioUser = ({
   stream: MediaStream | null
   type: StudioUserType
   studioUserConfig: StudioUserConfig
+  studioUserThemeConfig: StudioUserThemeConfig
   uid: string
   picture: string
 }) => {
@@ -30,15 +33,21 @@ const StudioUser = ({
     width,
     height,
     clipTheme,
+    studioUserClipConfig,
     borderColor,
     borderWidth,
-    studioUserClipConfig,
-    backgroundRectColor,
+  } = studioUserConfig
+  const {
     backgroundRectX,
     backgroundRectY,
-    backgroundRectBorderWidth,
+    backgroundRectWidth,
+    backgroundRectHeight,
+    backgroundRectOpacity,
+    backgroundRectBorderRadius,
+    backgroundRectColor,
     backgroundRectBorderColor,
-  } = studioUserConfig
+    backgroundRectBorderWidth,
+  } = studioUserThemeConfig
   const imageConfig = { width: width || 160, height: height || 120 }
   const imageRef = useRef<Konva.Image | null>(null)
 
@@ -105,14 +114,13 @@ const StudioUser = ({
       <Rect
         x={backgroundRectX || 775}
         y={backgroundRectY || y}
-        width={studioUserClipConfig?.width || defaultStudioUserClipConfig.width}
-        height={
-          studioUserClipConfig?.height || defaultStudioUserClipConfig.height
-        }
+        width={backgroundRectWidth}
+        height={backgroundRectHeight}
         fill={backgroundRectColor}
         stroke={backgroundRectBorderColor}
         strokeWidth={backgroundRectBorderWidth || 0}
-        cornerRadius={studioUserClipConfig?.borderRadius || 0}
+        cornerRadius={backgroundRectBorderRadius || 0}
+        opacity={backgroundRectOpacity || 0}
       />
       <Rect
         x={(studioUserClipConfig && studioUserClipConfig.x + x) || 775}
