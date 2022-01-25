@@ -22,10 +22,7 @@ import {
   PublishFlick,
   Timeline,
 } from './components'
-import BlockPreview, {
-  getGradientConfig,
-  gradients,
-} from './components/BlockPreview'
+import BlockPreview from './components/BlockPreview'
 import TipTap from './editor/TipTap'
 import { Block, Position, SimpleAST } from './editor/utils/utils'
 import { newFlickStore, View } from './store/flickNew.store'
@@ -33,7 +30,6 @@ import { newFlickStore, View } from './store/flickNew.store'
 const initialConfig: ViewConfig = {
   titleSplash: {
     enable: true,
-    titleSplashConfig: getGradientConfig(gradients[0]),
   },
   speakers: [],
   mode: 'Landscape',
@@ -91,6 +87,7 @@ const Flick = () => {
   const [activeFragment, setActiveFragment] = useState<FlickFragmentFragment>()
 
   const [processingFlick, setProcessingFlick] = useState(false)
+  const [showTimeline, setShowTimeline] = useState(false)
 
   const { updatePayload, payload, resetPayload } = useLocalPayload()
 
@@ -105,7 +102,6 @@ const Flick = () => {
       const newBlocks = { ...viewConfig.blocks }
       newBlocks[currentBlock.id] = {
         layout: 'classic',
-        gradient: getGradientConfig(gradients[0]),
       }
       setViewConfig({ ...viewConfig, blocks: newBlocks })
     }
@@ -245,7 +241,7 @@ const Flick = () => {
             updateConfig={updateBlockProperties}
             blocks={simpleAST?.blocks || []}
             setCurrentBlock={setCurrentBlock}
-            centeredCanvas={false}
+            centered={!showTimeline}
           />
         )}
       {activeFragment && view === View.Notebook && (
@@ -345,6 +341,8 @@ const Flick = () => {
       )}
       <Timeline
         blocks={simpleAST?.blocks || []}
+        showTimeline={showTimeline}
+        setShowTimeline={setShowTimeline}
         currentBlock={currentBlock}
         setCurrentBlock={setCurrentBlock}
         persistentTimeline={false}

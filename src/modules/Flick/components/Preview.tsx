@@ -32,14 +32,14 @@ const Preview = ({
   block,
   blocks,
   config,
-  centeredCanvas = false,
+  centered,
   updateConfig,
   setCurrentBlock,
 }: {
   block: Block
   blocks: Block[]
   config: ViewConfig
-  centeredCanvas: boolean
+  centered: boolean
   updateConfig: (id: string, properties: BlockProperties) => void
   setCurrentBlock: React.Dispatch<React.SetStateAction<Block | undefined>>
 }) => {
@@ -52,8 +52,8 @@ const Preview = ({
         className={cx(
           'flex justify-center items-start bg-gray-100 flex-1 pl-0',
           {
-            'pt-4': !centeredCanvas,
-            'items-center': centeredCanvas,
+            'items-center': centered,
+            'pt-8': !centered,
           }
         )}
         ref={ref}
@@ -77,7 +77,7 @@ const Preview = ({
             bounds={bounds}
             shortsMode={config.mode === 'Portrait'}
             config={config}
-            scale={config.mode === 'Portrait' && centeredCanvas ? 1 : 1.3}
+            scale={centered ? 1.2 : 1.3}
           />
           <button
             onClick={() => {

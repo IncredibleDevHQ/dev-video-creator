@@ -1,5 +1,5 @@
 import { css, cx } from '@emotion/css'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect } from 'react'
 import { IoPlayOutline } from 'react-icons/io5'
 import { useRecoilValue } from 'recoil'
 import { ReactComponent as UserPlaceholder } from '../../../assets/StudioUser.svg'
@@ -16,14 +16,17 @@ const Timeline = ({
   setCurrentBlock,
   persistentTimeline = false,
   shouldScrollToCurrentBlock = true,
+  showTimeline,
+  setShowTimeline,
 }: {
   blocks: Block[]
   currentBlock: Block | undefined
   setCurrentBlock: React.Dispatch<React.SetStateAction<Block | undefined>>
   persistentTimeline: boolean
   shouldScrollToCurrentBlock: boolean
+  showTimeline: boolean
+  setShowTimeline: React.Dispatch<React.SetStateAction<boolean>>
 }) => {
-  const [showTimeline, setShowTimeline] = useState(false)
   const { flick } = useRecoilValue(newFlickStore)
 
   useEffect(() => {
@@ -60,7 +63,16 @@ const Timeline = ({
       {showTimeline && (
         <div className="flex">
           <div className="h-24" />
-          <div className="flex items-center w-full bg-dark-500 py-4 px-5 gap-x-4">
+          <div
+            className={cx(
+              'flex items-center w-full bg-dark-500 py-4 px-5 gap-x-4 overflow-x-scroll',
+              css`
+                ::-webkit-scrollbar {
+                  display: none;
+                }
+              `
+            )}
+          >
             {blocks.map((block: Block) => (
               <a
                 className={cx(

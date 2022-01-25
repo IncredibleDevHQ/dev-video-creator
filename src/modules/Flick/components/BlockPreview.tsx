@@ -334,7 +334,7 @@ const PreviewModal = ({
           config={config}
           updateConfig={updateBlockProperties}
           setCurrentBlock={setCurrentBlock}
-          centeredCanvas
+          centered
         />
         <Timeline
           blocks={blocks}
@@ -342,6 +342,8 @@ const PreviewModal = ({
           setCurrentBlock={setCurrentBlock}
           persistentTimeline
           shouldScrollToCurrentBlock={false}
+          showTimeline
+          setShowTimeline={() => {}}
         />
       </div>
     </Modal>
