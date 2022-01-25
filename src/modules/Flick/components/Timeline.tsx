@@ -1,6 +1,10 @@
 import { css, cx } from '@emotion/css'
-import React, { useEffect } from 'react'
-import { IoPlayOutline } from 'react-icons/io5'
+import React, { useEffect, useRef } from 'react'
+import {
+  IoChevronBackCircle,
+  IoChevronForwardCircle,
+  IoPlayOutline,
+} from 'react-icons/io5'
 import { useRecoilValue } from 'recoil'
 import { ReactComponent as UserPlaceholder } from '../../../assets/StudioUser.svg'
 import { ReactComponent as TimelineIcon } from '../../../assets/Timeline.svg'
@@ -28,14 +32,31 @@ const Timeline = ({
   setShowTimeline: React.Dispatch<React.SetStateAction<boolean>>
 }) => {
   const { flick } = useRecoilValue(newFlickStore)
+  const timeline = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     setShowTimeline(persistentTimeline)
   }, [])
 
+  const slide = (direction: 'left' | 'right') => {
+    let scrollCompleted = 0
+    const slideVar = setInterval(() => {
+      if (!timeline.current) return
+      if (direction === 'left') {
+        timeline.current.scrollLeft -= 75
+      } else {
+        timeline.current.scrollLeft += 75
+      }
+      scrollCompleted += 75
+      if (scrollCompleted >= 750) {
+        window.clearInterval(slideVar)
+      }
+    }, 25)
+  }
+
   return (
     <div
-      className={cx('absolute bottom-0 left-0 w-full', {
+      className={cx('absolute flex flex-col bottom-0 left-0 w-full', {
         relative: persistentTimeline,
       })}
     >
@@ -45,7 +66,7 @@ const Timeline = ({
           type="button"
           size="small"
           className={cx(
-            'flex items-center mx-4 my-2 hover:bg-gray-700',
+            'flex items-center mx-4 my-2 hover:bg-gray-700 max-w-max',
             css(`
             --tw-bg-opacity: 1;
             background-color: rgba(17, 24, 39, var(--tw-bg-opacity));
@@ -61,9 +82,39 @@ const Timeline = ({
       )}
 
       {showTimeline && (
+        <>
+          <div className="absolute right-0 h-full flex items-center">
+            <IoChevronForwardCircle
+              className={cx(
+                'text-white hover:text-white opacity-40 hover:opacity-60 mr-1 cursor-pointer',
+                {
+                  'mt-12': !persistentTimeline,
+                }
+              )}
+              onClick={() => slide('right')}
+              size={32}
+            />
+          </div>
+          <div className="absolute left-0 h-full flex items-center">
+            <IoChevronBackCircle
+              className={cx(
+                'text-white hover:text-white opacity-40 hover:opacity-60 ml-1 cursor-pointer',
+                {
+                  'mt-12': !persistentTimeline,
+                }
+              )}
+              onClick={() => slide('left')}
+              size={32}
+            />
+          </div>
+        </>
+      )}
+
+      {showTimeline && (
         <div className="flex">
           <div className="h-24" />
           <div
+            ref={timeline}
             className={cx(
               'flex items-center w-full bg-dark-500 py-4 px-5 gap-x-4 overflow-x-scroll',
               css`
@@ -73,7 +124,7 @@ const Timeline = ({
               `
             )}
           >
-            {blocks.map((block: Block) => (
+            {blocks.map((block: Block, index) => (
               <a
                 className={cx(
                   'flex items-center gap-x-3 border border-transparent cursor-pointer',
@@ -83,6 +134,8 @@ const Timeline = ({
                     'border border-brand':
                       block.type === 'introBlock' &&
                       block.id === currentBlock?.id,
+                    'ml-5': index === 0,
+                    'mr-5': index === blocks.length - 1,
                   }
                 )}
                 href={shouldScrollToCurrentBlock ? `#${block.id}` : undefined}

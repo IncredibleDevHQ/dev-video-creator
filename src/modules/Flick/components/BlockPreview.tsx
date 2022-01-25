@@ -268,7 +268,12 @@ export const CanvasPreview = ({
         ref={stageRef}
         height={height}
         width={width}
-        className="border border-gray-300"
+        className={cx(
+          'border border-gray-300',
+          css`
+            margin-top: -0.125rem;
+          `
+        )}
         scale={{
           x: height / (shortsMode ? SHORTS_CONFIG.height : CONFIG.height),
           y: width / (shortsMode ? SHORTS_CONFIG.width : CONFIG.width),
