@@ -179,7 +179,7 @@ const Flick = () => {
               type: 'introBlock',
               pos: 0,
               introBlock: {
-                order: ['userMedia', 'intro', 'splash'],
+                order: ['userMedia', 'introVideo', 'titleSplash'],
               },
             },
             {
