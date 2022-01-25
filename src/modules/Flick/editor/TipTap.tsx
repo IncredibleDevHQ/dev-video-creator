@@ -36,7 +36,7 @@ const TipTap = ({
       const simpleAST = utils.getSimpleAST(editor.getJSON())
       setAST(simpleAST)
       handleUpdate()
-      handleUpdateAst?.(simpleAST, editor.getHTML())
+      handleUpdateAst?.(simpleAST, JSON.stringify(editor.getJSON()))
     },
     editorProps: {
       attributes: {
@@ -122,10 +122,16 @@ const TipTap = ({
   useEffect(() => {
     if (!initialContent || !editor || editor.isDestroyed) return
 
-    editor.commands.setContent(initialContent)
+    try {
+      // Attempt to parse the initial content.
+      editor.commands.setContent(JSON.parse(initialContent))
+    } catch (e) {
+      // Set the content to existing content string if it fails.
+      editor.commands.setContent(initialContent)
+    }
     const simpleAST = utils.getSimpleAST(editor.getJSON())
     handleUpdate()
-    handleUpdateAst?.(simpleAST, editor.getHTML())
+    handleUpdateAst?.(simpleAST, JSON.stringify(editor.getJSON()))
     setAST(simpleAST)
   }, [editor])
 
