@@ -91,12 +91,16 @@ module.exports = {
     extend: {
       border: ['hover'],
       backgroundColor: ['active'],
-      borderColor: ['active'],
+      borderColor: ['active', 'important'],
       transform: ['group-hover'],
       translate: ['group-hover'],
       margin: ['last'],
       display: ['hover', 'group-hover'],
     },
   },
-  plugins: [require('@tailwindcss/typography'), require('@tailwindcss/forms')],
+  plugins: [
+    require('@tailwindcss/typography'),
+    require('@tailwindcss/forms'),
+    require('tailwindcss-important')(),
+  ],
 }
