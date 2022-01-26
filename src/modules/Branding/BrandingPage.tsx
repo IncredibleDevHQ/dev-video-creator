@@ -600,11 +600,7 @@ const BackgroundSetting = ({
                       ...branding,
                       branding: {
                         ...branding.branding,
-                        background: {
-                          ...branding?.branding?.background,
-                          url: undefined,
-                          type: 'color',
-                        },
+                        background: undefined,
                       },
                     })
                   }}
@@ -625,10 +621,10 @@ const BackgroundSetting = ({
               </div>
             ) : (
               <>
-                <Text className="text-sm font-bold">Upload image/video</Text>
+                <Text className="text-sm font-bold">Upload image</Text>
                 <Dropzone
                   onDrop={handleUploadFile}
-                  accept={['image/*', 'video/*']}
+                  accept={['image/*']}
                   maxFiles={1}
                 >
                   {({ getRootProps, getInputProps }) => (
