@@ -1,11 +1,13 @@
 /* eslint-disable consistent-return */
 import React, { useEffect, useState } from 'react'
-import { Group, Rect, Image } from 'react-konva'
+import { Group, Image, Rect } from 'react-konva'
+import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
-import useEdit, { ClipConfig } from '../hooks/use-edit'
-import { StudioUserConfig } from './Concourse'
 import configs from '../../../config'
+import useEdit, { ClipConfig } from '../hooks/use-edit'
+import { studioStore } from '../stores'
 import { StudioUserThemeConfig } from '../utils/ThemeConfig'
+import { StudioUserConfig } from './Concourse'
 
 const PreviewUser = ({
   studioUserConfig,
@@ -98,6 +100,8 @@ const PreviewUser = ({
     )
   }, [image, studioUserConfig])
 
+  const { branding } = useRecoilValue(studioStore)
+
   return (
     <>
       <Rect
@@ -138,7 +142,7 @@ const PreviewUser = ({
         <Rect
           width={imageConfig.width}
           height={imageConfig.height}
-          fill="#374151"
+          fill={branding?.colors?.transition || '#374151'}
         />
       </Group>
       <Image
