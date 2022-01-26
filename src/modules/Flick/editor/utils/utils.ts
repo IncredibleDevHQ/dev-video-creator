@@ -1,4 +1,5 @@
 import { JSONContent } from '@tiptap/core'
+import { IntroState } from '../../../Studio/effects/fragments/IntroFragment'
 import { Transformations } from '../blocks/VideoEditor'
 
 export type Layout =
@@ -56,7 +57,7 @@ export interface ImageBlock {
 }
 
 export interface IntroBlock {
-  order: ('intro' | 'userMedia' | 'splash')[]
+  order: IntroState[]
 }
 
 export interface ListItem {

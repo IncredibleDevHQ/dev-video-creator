@@ -22,7 +22,7 @@ import useMeasure from 'react-use-measure'
 import { Text } from '../../../../components'
 import Tooltip from '../../../../components/Tooltip'
 import { Video, VideoConfig } from '../../../Studio/components/Video'
-import { useGetHW } from '../../components/IntroOutroView'
+import { useGetHW } from '../../components/BlockPreview'
 import AddVideo from './AddVideo'
 
 const size = {

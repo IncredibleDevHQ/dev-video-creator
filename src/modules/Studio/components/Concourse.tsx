@@ -2,21 +2,16 @@ import Konva from 'konva'
 import React, { createRef, useEffect, useState } from 'react'
 import { Group, Rect } from 'react-konva'
 import { useRecoilState, useRecoilValue } from 'recoil'
-import {
-  Fragment_Status_Enum_Enum,
-  Fragment_Type_Enum_Enum,
-} from '../../../generated/graphql'
+import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
 import { User, userState } from '../../../stores/user.store'
 import {
   BlockProperties,
   GradientConfig,
   TopLayerChildren,
 } from '../../../utils/configTypes'
+import { Block } from '../../Flick/editor/utils/utils'
 import { ShortsOutro } from '../effects/fragments/OutroFragment'
-import {
-  MultiCircleCenterGrow,
-  MultiCircleMoveDown,
-} from '../effects/FragmentTransitions'
+import { MultiCircleCenterGrow } from '../effects/FragmentTransitions'
 import GlassySplash from '../effects/Splashes/GlassySplash'
 import ShortsPopSplash from '../effects/Splashes/ShortsPopSplash'
 import useEdit, { ClipConfig } from '../hooks/use-edit'
@@ -50,13 +45,15 @@ interface ConcourseProps {
   layerChildren: any[]
   viewConfig?: BlockProperties
   stageRef?: React.RefObject<Konva.Stage>
-  layerRef?: React.RefObject<Konva.Layer>
   titleSplashData?: TitleSplashProps
   studioUserConfig?: StudioUserConfig[]
   disableUserMedia?: boolean
-  topLayerChildren?: TopLayerChildren
-  setTopLayerChildren?: React.Dispatch<React.SetStateAction<TopLayerChildren>>
+  topLayerChildren?: {
+    id: string
+    state: TopLayerChildren
+  }
   isShorts?: boolean
+  blockType: Block['type']
 }
 
 export const CONFIG = {
@@ -70,21 +67,16 @@ export const SHORTS_CONFIG = {
 }
 
 const GetTopLayerChildren = ({
-  topLayerChildren,
-  setTopLayerChildren,
+  topLayerChildrenState,
   isShorts,
   status,
 }: {
-  topLayerChildren: TopLayerChildren
-  setTopLayerChildren:
-    | React.Dispatch<React.SetStateAction<TopLayerChildren>>
-    | undefined
+  topLayerChildrenState: TopLayerChildren
   isShorts: boolean
   status: Fragment_Status_Enum_Enum
 }) => {
-  if (!setTopLayerChildren) return <></>
   if (status === Fragment_Status_Enum_Enum.Ended) return <></>
-  switch (topLayerChildren) {
+  switch (topLayerChildrenState) {
     case 'lowerThird': {
       return <LowerThridProvider theme="glassy" isShorts={isShorts || false} />
     }
@@ -94,9 +86,6 @@ const GetTopLayerChildren = ({
           theme="glassy"
           isShorts={isShorts || false}
           direction="left"
-          // performFinishAction={() => {
-          //   setTopLayerChildren('')
-          // }}
         />
       )
     }
@@ -106,9 +95,6 @@ const GetTopLayerChildren = ({
           theme="glassy"
           isShorts={isShorts || false}
           direction="right"
-          // performFinishAction={() => {
-          //   setTopLayerChildren('')
-          // }}
         />
       )
     }
@@ -123,13 +109,12 @@ const Concourse = ({
   layerChildren,
   viewConfig,
   stageRef,
-  layerRef,
   titleSplashData,
   studioUserConfig,
   disableUserMedia,
   topLayerChildren,
-  setTopLayerChildren,
   isShorts,
+  blockType,
 }: ConcourseProps) => {
   const {
     fragment,
@@ -139,7 +124,6 @@ const Concourse = ({
     payload,
     users,
     stopRecording,
-    reduceSplashAudioVolume,
   } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [canvas, setCanvas] = useRecoilState(canvasStore)
   const [isTitleSplash, setIsTitleSplash] = useState<boolean>(false)
@@ -405,7 +389,6 @@ const Concourse = ({
                     setIsTitleSplash={setIsTitleSplash}
                     stageConfig={stageConfig}
                   />
-                  <MultiCircleMoveDown />
                 </>
               ) : (
                 <>
@@ -419,25 +402,15 @@ const Concourse = ({
             }
           }
           if (payload?.status === Fragment_Status_Enum_Enum.Ended) {
-            if (fragment?.type === Fragment_Type_Enum_Enum.Outro) {
-              performFinishAction()
-            } else if (fragment?.configuration?.mode === 'Portrait') {
+            if (fragment?.configuration?.mode === 'Portrait') {
               return <ShortsOutro performFinishAction={performFinishAction} />
             }
-            if (fragment?.type === Fragment_Type_Enum_Enum.Intro) {
-              reduceSplashAudioVolume(0.03)
-            }
-            return (
-              <MultiCircleCenterGrow
-                performFinishAction={performFinishAction}
-              />
-            )
+            performFinishAction()
           }
           return (
             <Group
               clipFunc={
-                fragment?.type === Fragment_Type_Enum_Enum.Intro ||
-                fragment?.type === Fragment_Type_Enum_Enum.Outro
+                blockType === 'introBlock' || blockType === 'outroBlock'
                   ? undefined
                   : (ctx: any) => {
                       clipRect(
@@ -557,16 +530,12 @@ const Concourse = ({
       )}
       <Group>
         <GetTopLayerChildren
-          topLayerChildren={topLayerChildren || ''}
-          setTopLayerChildren={setTopLayerChildren}
+          key={topLayerChildren?.id}
+          topLayerChildrenState={topLayerChildren?.state || ''}
           isShorts={isShorts || false}
           status={payload?.status}
         />
       </Group>
-      {(payload?.status === Fragment_Status_Enum_Enum.Live &&
-        fragment?.type) === Fragment_Type_Enum_Enum.Outro && (
-        <MultiCircleMoveDown />
-      )}
     </>
   )
 }

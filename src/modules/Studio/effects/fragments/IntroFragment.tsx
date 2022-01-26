@@ -1,123 +1,141 @@
 import React, { useEffect, useState } from 'react'
-import { Group, Rect } from 'react-konva'
+import { Group } from 'react-konva'
 import { useRecoilValue } from 'recoil'
-import { GradientConfig } from '../../../../utils/configTypes'
-import { DiscordConfig } from '../../../Flick/components/IntroOutroView'
-import Concourse, { CONFIG } from '../../components/Concourse'
+import { TopLayerChildren, VideoTheme } from '../../../../utils/configTypes'
+import Concourse, { CONFIG, SHORTS_CONFIG } from '../../components/Concourse'
+import { Video } from '../../components/Video'
 import { StudioProviderProps, studioStore } from '../../stores'
 import { StudioUserConfiguration } from '../../utils/StudioUserConfig'
-import AbstractSplash from '../Splashes/AbstractSplash'
-import AstroSplash from '../Splashes/AstroSplash'
-import GraphQLSplash from '../Splashes/GraphQLSplash'
-import PopSplash from '../Splashes/PopSplash'
-import RectangleSplash from '../Splashes/RectangleSplash'
-import ShapesSplash from '../Splashes/ShapesSplash'
-import TensorFlowSplash from '../Splashes/TensorFlowSplash'
+import GlassySplash from '../Splashes/GlassySplash'
 
-export type IntroState = 'onlyUserMedia' | 'customLayout' | 'discord'
+export type IntroState = 'userMedia' | 'titleSplash' | 'introVideo'
 
 export type SplashRenderState = 'static' | 'animate'
 
-const IntroFragment = ({
-  gradientConfig,
-  themeNumber,
-  discordConfig,
-  viewMode = false,
+const Splash = ({
+  theme,
+  stageConfig,
 }: {
-  gradientConfig: GradientConfig
-  discordConfig: DiscordConfig
-  themeNumber: string
-  viewMode?: boolean
+  theme: VideoTheme
+  stageConfig: {
+    width: number
+    height: number
+  }
 }) => {
-  const { fragment, state, addMusic, reduceSplashAudioVolume, payload } =
+  switch (theme) {
+    case 'glassy':
+      return <GlassySplash stageConfig={stageConfig} />
+    default:
+      return <></>
+  }
+}
+
+const IntroFragment = ({
+  shortsMode,
+  isPreview,
+  topLayerChildren,
+  setTopLayerChildren,
+  introSequence,
+}: {
+  shortsMode: boolean
+  isPreview: boolean
+  topLayerChildren: {
+    id: string
+    state: TopLayerChildren
+  }
+  setTopLayerChildren: React.Dispatch<
+    React.SetStateAction<{
+      id: string
+      state: TopLayerChildren
+    }>
+  >
+  introSequence: IntroState[]
+}) => {
+  const { fragment, state, payload, branding } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
-  // const [bgImage] = useImage(viewConfig?.background?.image || '', 'anonymous')
-
-  const colorStops = [0, '#D397FA', 0.0001, '#D397FA', 1, '#8364E8']
-  const startPoint = { x: 0, y: 0 }
-  const endPoint = { x: CONFIG.width, y: CONFIG.height }
-
-  const [fragmentState, setFragmentState] = useState<IntroState>('customLayout')
-
-  const Splash = (() => {
-    if (themeNumber === '0') return GraphQLSplash
-    if (themeNumber === '1') return AstroSplash
-    if (themeNumber === '2') return TensorFlowSplash
-    if (themeNumber === '3') return RectangleSplash
-    if (themeNumber === '4') return ShapesSplash
-    if (themeNumber === '5') return AbstractSplash
-    if (themeNumber === '6') return PopSplash
-    return RectangleSplash
-  })()
+  const [stageConfig, setStageConfig] = useState<{
+    width: number
+    height: number
+  }>({ width: 0, height: 0 })
 
   useEffect(() => {
-    if (state === 'recording') setFragmentState('customLayout')
-  }, [state])
+    if (!shortsMode) setStageConfig(CONFIG)
+    else setStageConfig(SHORTS_CONFIG)
+  }, [shortsMode])
+
+  const [layerChildren, setLayerChildren] = useState<JSX.Element[]>([])
+
+  const videoElement = React.useMemo(() => {
+    if (!branding?.introVideoUrl) return
+    const element = document.createElement('video')
+    element.autoplay = false
+    element.crossOrigin = 'anonymous'
+    element.preload = 'auto'
+    element.muted = true
+    element.src = branding.introVideoUrl || ''
+    // eslint-disable-next-line consistent-return
+    return element
+  }, [])
 
   useEffect(() => {
-    if (viewMode) setFragmentState(payload?.fragmentState || 'customLayout')
-  }, [payload?.fragmentState])
-
-  useEffect(() => {
-    if (state === 'recording' || state === 'ready' || viewMode) {
-      if (fragmentState === 'customLayout') {
-        if (!viewMode) addMusic('splash')
+    if (state === 'recording' || state === 'ready' || isPreview) {
+      if (introSequence[payload.activeIntroIndex] === 'titleSplash') {
+        // if (!isPreview) addMusic('splash')
+        setTopLayerChildren({ id: '', state: '' })
+        videoElement?.pause()
         setLayerChildren([
           <Group x={0} y={0}>
-            <Splash setFragmentState={setFragmentState} viewMode={viewMode} />
+            <Splash theme="glassy" stageConfig={stageConfig} />
           </Group>,
         ])
       }
-      if (fragmentState === 'onlyUserMedia') {
-        if (!viewMode) reduceSplashAudioVolume(0.06)
+      if (introSequence[payload.activeIntroIndex] === 'introVideo') {
+        setTopLayerChildren({ id: '', state: '' })
+        if (!videoElement) return
+        videoElement?.play()
         setLayerChildren([
           <Group x={0} y={0}>
-            <Rect
-              x={0}
-              y={0}
-              width={CONFIG.width}
-              height={CONFIG.height}
-              fillLinearGradientColorStops={
-                gradientConfig?.values || colorStops
-              }
-              fillLinearGradientStartPoint={
-                gradientConfig?.startIndex || startPoint
-              }
-              fillLinearGradientEndPoint={gradientConfig?.endIndex || endPoint}
+            <Video
+              videoElement={videoElement}
+              videoConfig={{
+                x: 0,
+                y: 0,
+                width: stageConfig.width,
+                height: stageConfig.height,
+                videoFill: branding?.background?.color?.primary,
+                cornerRadius: 0,
+                performClip: true,
+                clipVideoConfig: {
+                  x: 0,
+                  y: 0,
+                  width: 1,
+                  height: 1,
+                },
+              }}
             />
           </Group>,
         ])
       }
     }
-  }, [state, fragmentState, themeNumber, discordConfig, gradientConfig])
-
-  const [layerChildren, setLayerChildren] = useState<JSX.Element[]>([
-    <Group x={0} y={0}>
-      <Rect
-        x={0}
-        y={0}
-        width={CONFIG.width}
-        height={CONFIG.height}
-        fillLinearGradientColorStops={gradientConfig?.values || colorStops}
-        fillLinearGradientStartPoint={gradientConfig?.startIndex || startPoint}
-        fillLinearGradientEndPoint={gradientConfig?.endIndex || endPoint}
-      />
-    </Group>,
-  ])
+  }, [state, payload.activeIntroIndex, videoElement])
 
   const studioUserConfig = StudioUserConfiguration({
     layout: 'classic',
     fragment,
     fragmentState:
-      fragmentState === 'onlyUserMedia' ? 'onlyUserMedia' : 'customLayout',
-    isShorts: false,
+      introSequence[payload.activeIntroIndex] === 'userMedia'
+        ? 'onlyUserMedia'
+        : 'customLayout',
+    isShorts: shortsMode,
   })
 
   return (
     <Concourse
       studioUserConfig={studioUserConfig}
       layerChildren={layerChildren}
+      topLayerChildren={topLayerChildren}
+      blockType="introBlock"
     />
   )
 }

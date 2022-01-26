@@ -178,7 +178,7 @@ const PopSplash = ({
                 scaleY: 1,
                 onFinish: () => {
                   setTimeout(() => {
-                    if (!viewMode) setFragmentState?.('onlyUserMedia')
+                    if (!viewMode) setFragmentState?.('userMedia')
                   }, 2000)
                 },
               })
