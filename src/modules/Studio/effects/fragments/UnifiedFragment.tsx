@@ -90,6 +90,7 @@ const UnifiedFragment = ({
   }, [config, layoutConfig])
 
   useEffect(() => {
+    if (!config) return
     if (branding !== studio.branding) {
       setStudio((prev) => ({
         ...prev,
