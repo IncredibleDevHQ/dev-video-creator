@@ -121,8 +121,8 @@ const TipTap = ({
 
   useEffect(() => {
     if (!initialContent || !editor || editor.isDestroyed) return
-
     editor.commands.setContent(initialContent)
+
     const simpleAST = utils.getSimpleAST(editor.getJSON())
     handleUpdate()
     handleUpdateAst?.(simpleAST, editor.getHTML())

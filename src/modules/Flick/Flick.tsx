@@ -92,18 +92,49 @@ const Flick = () => {
   const { updatePayload, payload, resetPayload } = useLocalPayload()
 
   const updateBlockProperties = (id: string, properties: BlockProperties) => {
-    const newBlocks = { ...viewConfig.blocks, [id]: properties }
+    const filteredBlocks: {
+      [x: string]: BlockProperties
+    } = {}
+
+    Object.entries(viewConfig.blocks)
+      .filter((x) => simpleAST?.blocks.map((b) => b.id).includes(x[0]))
+      .forEach((a) => {
+        filteredBlocks[a[0]] = {
+          ...a[1],
+        }
+      })
+
+    const newBlocks = { ...filteredBlocks, [id]: properties }
     setViewConfig({ ...viewConfig, blocks: newBlocks })
   }
 
   useEffect(() => {
+    console.log('useEffect', viewConfig)
+  }, [viewConfig])
+
+  useEffect(() => {
     if (!currentBlock) return
     if (!viewConfig.blocks[currentBlock.id]) {
+      let filteredBlocks: {
+        [x: string]: BlockProperties
+      } = {}
       const newBlocks = { ...viewConfig.blocks }
-      newBlocks[currentBlock.id] = {
+      if (Object.keys(newBlocks).length > 0) {
+        Object.entries(newBlocks)
+          .filter((x) => simpleAST?.blocks.map((b) => b.id).includes(x[0]))
+          .forEach((a) => {
+            filteredBlocks[a[0]] = {
+              ...a[1],
+            }
+          })
+      } else {
+        filteredBlocks = { ...newBlocks }
+      }
+
+      filteredBlocks[currentBlock.id] = {
         layout: 'classic',
       }
-      setViewConfig({ ...viewConfig, blocks: newBlocks })
+      setViewConfig({ ...viewConfig, blocks: filteredBlocks })
     }
   }, [currentBlock])
 

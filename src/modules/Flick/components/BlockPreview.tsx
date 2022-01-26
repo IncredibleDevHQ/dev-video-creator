@@ -243,14 +243,14 @@ export const CanvasPreview = ({
   const { flick } = useRecoilValue(newFlickStore)
 
   const { height, width } = useGetHW({
-    maxH: bounds.height / scale,
-    maxW: bounds.width / scale,
+    maxH: bounds.height * scale,
+    maxW: bounds.width * scale,
     aspectRatio: shortsMode ? 9 / 16 : 16 / 9,
   })
 
   const { height: divHeight, width: divWidth } = useGetHW({
-    maxH: bounds.height / scale,
-    maxW: bounds.width / scale,
+    maxH: bounds.height * scale,
+    maxW: bounds.width * scale,
     aspectRatio: shortsMode ? 9 / 16 : 16 / 9,
   })
 
@@ -372,9 +372,6 @@ const BlockPreview = ({
 } & HTMLAttributes<HTMLDivElement>) => {
   const [previewModal, setPreviewModal] = useState(false)
   const [ref, bounds] = useMeasure()
-
-  if (!block || !config || !config.blocks || !config?.blocks[block?.id])
-    return null
 
   return (
     <div className={className} {...rest}>

@@ -77,7 +77,7 @@ const Preview = ({
             bounds={bounds}
             shortsMode={config.mode === 'Portrait'}
             config={config}
-            scale={centered ? 1.2 : 1.3}
+            scale={centered ? 0.83 : 0.77}
           />
           <button
             onClick={() => {

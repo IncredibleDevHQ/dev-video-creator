@@ -91,11 +91,13 @@ const UnifiedFragment = ({
   }, [config, layoutConfig])
 
   useEffect(() => {
-    setStudio({
-      ...studio,
-      branding,
-    })
-  }, [branding])
+    if (branding !== studio.branding) {
+      setStudio((prev) => ({
+        ...prev,
+        branding,
+      }))
+    }
+  }, [branding, studio])
 
   useEffect(() => {
     if (!fragment) return
