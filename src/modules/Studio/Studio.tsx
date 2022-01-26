@@ -30,12 +30,10 @@ import {
   TextField,
   updateToast,
 } from '../../components'
-import { TextEditorParser } from '../Flick/editor/utils/helpers'
 import { Images } from '../../constants'
 import {
   FlickParticipantsFragment,
   Fragment_Status_Enum_Enum,
-  Fragment_Type_Enum_Enum,
   GetFragmentByIdQuery,
   StudioFragmentFragment,
   useGetFragmentByIdLazyQuery,
@@ -48,7 +46,7 @@ import { useUploadFile } from '../../hooks/use-upload-file'
 import { User, userState } from '../../stores/user.store'
 import { ViewConfig } from '../../utils/configTypes'
 import { BrandingJSON } from '../Branding/BrandingPage'
-import { DiscordThemes } from '../Flick/components/IntroOutroView'
+import { TextEditorParser } from '../Flick/editor/utils/helpers'
 import {
   CodeBlock,
   CodeBlockProps,
@@ -67,10 +65,8 @@ import {
 } from './components/Controls'
 import PermissionError from './components/PermissionError'
 import RecordingControlsBar from './components/RecordingControlsBar'
-import IntroFragment from './effects/fragments/IntroFragment'
-import OutroFragment from './effects/fragments/OutroFragment'
 import UnifiedFragment from './effects/fragments/UnifiedFragment'
-import { useAgora, useLoadFont, useMediaStream } from './hooks'
+import { useAgora, useMediaStream } from './hooks'
 import { Device, MediaStreamError } from './hooks/use-media-stream'
 import { useRTDB } from './hooks/use-rtdb'
 import { StudioProviderProps, StudioState, studioStore } from './stores'
@@ -112,11 +108,6 @@ const StudioHoC = () => {
     if (!data) return
     setFragment(data.Fragment?.[0])
 
-    if (
-      data.Fragment[0].type === Fragment_Type_Enum_Enum.Intro ||
-      data.Fragment[0].type === Fragment_Type_Enum_Enum.Outro
-    )
-      return
     if (!new TextEditorParser(data.Fragment[0].editorState).isValid()) {
       setError('INVALID_AST')
     }
@@ -794,7 +785,7 @@ const Studio = ({
   const finalTransition = () => {
     if (!payload) return
     payload.playing = false
-    updatePayload?.({ status: Fragment_Status_Enum_Enum.Ended })
+    // updatePayload?.({ status: Fragment_Status_Enum_Enum.Ended })
   }
 
   const stop = () => {
@@ -825,14 +816,6 @@ const Studio = ({
       })
     }
   }, [payload, studio.isHost])
-
-  const [isButtonClicked, setIsButtonClicked] = useState(false)
-
-  useEffect(() => {
-    if (state === 'recording') {
-      setIsButtonClicked(false)
-    }
-  }, [state])
 
   useMemo(() => {
     if (!fragment) return
@@ -901,10 +884,8 @@ const Studio = ({
         return (blocks[activeObjectIndex] as CodeBlockProps).codeBlock.note
       case 'videoBlock':
         return (blocks[activeObjectIndex] as VideoBlockProps).videoBlock.note
-
       case 'listBlock':
         return (blocks[activeObjectIndex] as ListBlockProps).listBlock.note
-
       case 'imageBlock':
         return (blocks[activeObjectIndex] as ImageBlockProps).imageBlock.note
       default:
@@ -973,53 +954,10 @@ const Studio = ({
                 <Layer ref={layerRef}>
                   {(() => {
                     if (fragment) {
-                      if (fragment.type === Fragment_Type_Enum_Enum.Intro)
-                        return (
-                          <IntroFragment
-                            themeNumber={
-                              `${fragment.configuration?.theme}` || '0'
-                            }
-                            gradientConfig={
-                              fragment.configuration?.gradient || {
-                                backgroundColor: '#1F2937',
-                                textColor: '#ffffff',
-                                theme: DiscordThemes.WhiteOnMidnight,
-                              }
-                            }
-                            discordConfig={
-                              fragment.configuration?.discord || {
-                                cssString:
-                                  'linear-gradient(90deg, #D397FA 0%, #D397FA 0.01%, #8364E8 100%)',
-                                endIndex: { x: CONFIG.width, y: CONFIG.height },
-                                startIndex: { x: 0, y: 0 },
-                                values: [
-                                  0,
-                                  '#D397FA',
-                                  0.0001,
-                                  '#D397FA',
-                                  1,
-                                  '#8364E8',
-                                ],
-                              }
-                            }
-                          />
-                        )
-                      if (fragment.type === Fragment_Type_Enum_Enum.Outro)
-                        return (
-                          <OutroFragment
-                            gradientConfig={
-                              fragment.configuration?.gradient || {
-                                backgroundColor: '#1F2937',
-                                textColor: '#ffffff',
-                                theme: DiscordThemes.WhiteOnMidnight,
-                              }
-                            }
-                          />
-                        )
                       return (
                         <UnifiedFragment
                           stageRef={stageRef}
-                          layerRef={layerRef}
+                          // layerRef={layerRef}
                         />
                       )
                     }
@@ -1044,11 +982,6 @@ const Studio = ({
               </div>
               <div className="flex flex-col items-start justify-end flex-1">
                 {(() => {
-                  if (
-                    fragment.type === Fragment_Type_Enum_Enum.Intro ||
-                    fragment.type === Fragment_Type_Enum_Enum.Outro
-                  )
-                    return <></>
                   switch (
                     fragment?.editorState?.blocks[
                       payload?.activeObjectIndex || 0
@@ -1100,70 +1033,61 @@ const Studio = ({
                     }
                   }
                 })()}
-                {fragment.type !== Fragment_Type_Enum_Enum.Intro &&
-                  fragment.type !== Fragment_Type_Enum_Enum.Outro && (
-                    // next item button
-                    <button
-                      type="button"
-                      disabled={
-                        payload?.activeObjectIndex ===
-                        fragment.editorState?.blocks.length - 1
-                      }
-                      onClick={() => {
+                {/* next item button */}
+                <button
+                  type="button"
+                  disabled={
+                    payload?.activeObjectIndex ===
+                    fragment.editorState?.blocks.length - 1
+                  }
+                  onClick={() => {
+                    if (
+                      fragment?.editorState?.blocks[
+                        payload?.activeObjectIndex || 0
+                      ]?.type === 'introBlock'
+                    ) {
+                      if (
+                        payload?.activeIntroIndex ===
+                        (branding && branding?.introVideoUrl ? 2 : 1)
+                      ) {
                         updatePayload?.({
                           activeObjectIndex: payload?.activeObjectIndex + 1,
                         })
-                      }}
-                      className="mt-4"
-                    >
-                      <div
-                        className={cx(
-                          'flex py-10 px-16 bg-blue-400 items-center justify-center gap-x-2 rounded-md',
-                          {
-                            'opacity-50 cursor-not-allowed':
-                              payload?.activeObjectIndex ===
-                              fragment.editorState?.blocks.length - 1,
-                          }
-                        )}
-                      >
-                        <Text className="text-white ">
-                          {payload?.activeObjectIndex !==
-                          fragment.editorState?.blocks.length - 1
-                            ? 'Next Item'
-                            : 'Reached end of items'}
-                        </Text>
-                        {payload?.activeObjectIndex !==
-                          fragment.editorState?.blocks.length - 1 && (
-                          <FiArrowRight className="text-white " size={21} />
-                        )}
-                      </div>
-                    </button>
-                  )}
-                {fragment.type === Fragment_Type_Enum_Enum.Outro &&
-                  state === 'recording' && (
-                    // next button for outro to move to the outro from usermedia
-                    <button
-                      type="button"
-                      disabled={isButtonClicked}
-                      onClick={() => {
-                        setIsButtonClicked(true)
-                        controlsConfig?.setFragmentState?.('customLayout')
-                      }}
-                      className="mt-4"
-                    >
-                      <div
-                        className={cx(
-                          'flex py-10 px-16 bg-blue-400 items-center justify-center gap-x-2 rounded-md',
-                          {
-                            'opacity-50 cursor-not-allowed': isButtonClicked,
-                          }
-                        )}
-                      >
-                        <Text className="text-white ">Next</Text>
-                        <FiArrowRight className="text-white " size={21} />
-                      </div>
-                    </button>
-                  )}
+                      } else {
+                        updatePayload?.({
+                          activeIntroIndex: payload?.activeIntroIndex + 1,
+                        })
+                      }
+                    } else {
+                      updatePayload?.({
+                        activeObjectIndex: payload?.activeObjectIndex + 1,
+                      })
+                    }
+                  }}
+                  className="mt-4"
+                >
+                  <div
+                    className={cx(
+                      'flex py-10 px-16 bg-blue-400 items-center justify-center gap-x-2 rounded-md',
+                      {
+                        'opacity-50 cursor-not-allowed':
+                          payload?.activeObjectIndex ===
+                          fragment.editorState?.blocks.length - 1,
+                      }
+                    )}
+                  >
+                    <Text className="text-white ">
+                      {payload?.activeObjectIndex !==
+                      fragment.editorState?.blocks.length - 1
+                        ? 'Next Item'
+                        : 'Reached end of items'}
+                    </Text>
+                    {payload?.activeObjectIndex !==
+                      fragment.editorState?.blocks.length - 1 && (
+                      <FiArrowRight className="text-white " size={21} />
+                    )}
+                  </div>
+                </button>
               </div>
             </div>
           </div>
