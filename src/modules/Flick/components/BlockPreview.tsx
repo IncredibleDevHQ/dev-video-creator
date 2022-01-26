@@ -146,7 +146,7 @@ export const getGradientConfig = (gradient: Gradient) => {
   } as GradientConfig
 }
 
-const useGetHW = ({
+export const useGetHW = ({
   maxH,
   maxW,
   aspectRatio,
@@ -283,7 +283,6 @@ export const CanvasPreview = ({
           <Layer ref={layerRef}>
             <UnifiedFragment
               stageRef={stageRef}
-              layerRef={layerRef}
               layoutConfig={config}
               config={[block]}
               branding={flick?.branding?.branding}
