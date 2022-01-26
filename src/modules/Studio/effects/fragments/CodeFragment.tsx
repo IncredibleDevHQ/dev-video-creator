@@ -482,8 +482,7 @@ const CodeFragment = ({
     layout: viewConfig?.layout || 'classic',
     fragment,
     fragmentState,
-    isShorts: shortsMode || false,
-    bgGradientId: viewConfig?.gradient?.id || 1,
+    theme: 'glassy',
   })
 
   return (

@@ -138,7 +138,7 @@ const IntroFragment = ({
       introSequence[payload.activeIntroIndex] === 'userMedia'
         ? 'onlyUserMedia'
         : 'customLayout',
-    isShorts: shortsMode,
+    theme: 'glassy',
   })
 
   return (
