@@ -10,6 +10,7 @@ import { ReactComponent as UserPlaceholder } from '../../../assets/StudioUser.sv
 import { ReactComponent as TimelineIcon } from '../../../assets/Timeline.svg'
 import { Button, Text } from '../../../components'
 import { BrandingInterface } from '../../Branding/BrandingPage'
+import { studioStore } from '../../Studio/stores'
 import { Block } from '../editor/utils/utils'
 import { newFlickStore } from '../store/flickNew.store'
 import { FragmentTypeIcon } from './LayoutGeneric'
@@ -32,6 +33,7 @@ const Timeline = ({
   setShowTimeline: React.Dispatch<React.SetStateAction<boolean>>
 }) => {
   const { flick } = useRecoilValue(newFlickStore)
+  const { payload, updatePayload } = useRecoilValue(studioStore)
   const timeline = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -131,9 +133,6 @@ const Timeline = ({
                   {
                     'bg-dark-300 py-1.5 px-2 rounded-md':
                       block.type === 'introBlock',
-                    'border border-brand':
-                      block.type === 'introBlock' &&
-                      block.id === currentBlock?.id,
                     'ml-5': index === 0,
                     'mr-5': index === blocks.length - 1,
                   }
@@ -145,41 +144,79 @@ const Timeline = ({
               >
                 {block.type === 'introBlock' && (
                   <>
-                    <div
+                    <button
+                      type="button"
+                      onClick={() => {
+                        updatePayload?.({
+                          activeIntroIndex: 0,
+                        })
+                      }}
                       className={cx(
-                        'border border-dark-100 rounded-md flex justify-center items-center w-24 h-12 p-3 bg-dark-100'
+                        'border border-transparent rounded-md flex justify-center items-center w-24 h-12 p-3 bg-dark-100',
+                        {
+                          '!border-brand':
+                            currentBlock?.type === 'introBlock' &&
+                            payload.activeIntroIndex === 0,
+                          'border-dark-100':
+                            currentBlock?.type !== 'introBlock',
+                        }
                       )}
                     >
                       <UserPlaceholder className="w-full h-full" />
-                    </div>
+                    </button>
                     {flick?.branding &&
                       flick?.useBranding &&
                       (flick?.branding as BrandingInterface).branding
                         ?.introVideoUrl && (
-                        <div
+                        <button
+                          type="button"
+                          onClick={() => {
+                            updatePayload?.({
+                              activeIntroIndex: 1,
+                            })
+                          }}
                           className={cx(
-                            'border border-dark-100 rounded-md flex justify-center items-center w-24 h-12 p-3 bg-dark-100'
+                            'border border-dark-100 rounded-md flex justify-center items-center w-24 h-12 p-3 bg-dark-100',
+                            {
+                              '!border-brand':
+                                currentBlock?.type === 'introBlock' &&
+                                payload.activeIntroIndex === 1,
+                            }
                           )}
                         >
                           <IoPlayOutline className="w-full h-full text-gray-400" />
-                        </div>
+                        </button>
                       )}
                   </>
                 )}
-                <div
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (block.type === 'introBlock') {
+                      updatePayload?.({
+                        activeIntroIndex: flick?.branding?.branding
+                          .introVideoUrl
+                          ? 2
+                          : 1,
+                      })
+                    }
+                  }}
                   className={cx(
-                    'border border-brand rounded-md flex justify-center items-center w-24 h-12 p-2 ',
+                    'border border-dark-100 rounded-md flex justify-center items-center w-24 h-12 p-2 ',
                     {
-                      'bg-dark-100 border-dark-100':
-                        block.type === 'introBlock',
-                      'border-dark-100 ':
-                        block.id !== currentBlock?.id &&
-                        block.type !== 'introBlock',
+                      'bg-dark-100': block.type === 'introBlock',
+                      '!border-brand':
+                        (currentBlock?.type === 'introBlock' &&
+                          payload.activeIntroIndex ===
+                            currentBlock?.introBlock.order.length - 1 &&
+                          block.id === currentBlock?.id) ||
+                        (currentBlock?.type !== 'introBlock' &&
+                          block.id === currentBlock?.id),
                     }
                   )}
                 >
                   <FragmentTypeIcon type={block.type} />
-                </div>
+                </button>
               </a>
             ))}
           </div>

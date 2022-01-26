@@ -65,6 +65,7 @@ const useLocalPayload = () => {
     playing: false,
     prevIndex: -1,
     status: Fragment_Status_Enum_Enum.NotStarted,
+    activeIntroIndex: 0,
   }
 
   const [payload, setPayload] = useState<any>()

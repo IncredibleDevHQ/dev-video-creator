@@ -4,6 +4,7 @@ import { IconType } from 'react-icons'
 import { FiLayout } from 'react-icons/fi'
 import { IoChevronBack, IoChevronForward } from 'react-icons/io5'
 import useMeasure from 'react-use-measure'
+import { useRecoilValue } from 'recoil'
 import { Text } from '../../../components'
 import {
   allLayoutTypes,
@@ -11,7 +12,8 @@ import {
   Layout,
   ViewConfig,
 } from '../../../utils/configTypes'
-import { Block } from '../editor/utils/utils'
+import { studioStore } from '../../Studio/stores'
+import { Block, IntroBlockProps } from '../editor/utils/utils'
 import { CanvasPreview, LayoutSelector } from './BlockPreview'
 
 interface Tab {
@@ -45,6 +47,7 @@ const Preview = ({
 }) => {
   const [activeTab, setActiveTab] = useState<Tab>(tabs[0])
   const [ref, bounds] = useMeasure()
+  const { payload, updatePayload } = useRecoilValue(studioStore)
 
   if (!block) return null
 
@@ -63,12 +66,29 @@ const Preview = ({
         <div className="flex items-center">
           <button
             onClick={() => {
-              setCurrentBlock(blocks[block.pos - 1])
+              if (block.type === 'introBlock') {
+                if (payload.activeIntroIndex === 0)
+                  setCurrentBlock(blocks[block.pos - 1])
+                else
+                  updatePayload?.({
+                    activeIntroIndex: payload.activeIntroIndex - 1,
+                  })
+              } else {
+                if (blocks[block.pos - 1].type === 'introBlock') {
+                  updatePayload?.({
+                    activeIntroIndex:
+                      (blocks[block.pos - 1] as IntroBlockProps).introBlock
+                        .order.length - 1,
+                  })
+                }
+                setCurrentBlock(blocks[block.pos - 1])
+              }
             }}
             type="button"
-            disabled={block.pos === 0}
+            disabled={block.pos === 0 && payload.activeIntroIndex === 0}
             className={cx('bg-dark-100 text-white p-2 rounded-sm mr-4', {
-              'opacity-50 cursor-not-allowed': block.pos === 0,
+              'opacity-50 cursor-not-allowed':
+                block.pos === 0 && payload.activeIntroIndex === 0,
               'opacity-90 hover:bg-dark-100 hover:opacity-100': block.pos > 0,
             })}
           >
@@ -83,7 +103,17 @@ const Preview = ({
           />
           <button
             onClick={() => {
-              setCurrentBlock(blocks[block.pos + 1])
+              if (block.type === 'introBlock') {
+                if (
+                  payload.activeIntroIndex ===
+                  block.introBlock.order.length - 1
+                )
+                  setCurrentBlock(blocks[block.pos + 1])
+                else
+                  updatePayload?.({
+                    activeIntroIndex: payload.activeIntroIndex + 1,
+                  })
+              } else setCurrentBlock(blocks[block.pos + 1])
             }}
             type="button"
             disabled={block.pos === blocks.length - 1}
