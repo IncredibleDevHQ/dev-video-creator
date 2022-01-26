@@ -1,4 +1,5 @@
 import Konva from 'konva'
+import { nanoid } from 'nanoid'
 import React, { useEffect, useRef, useState } from 'react'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import {
@@ -16,37 +17,32 @@ import {
   Block,
   CodeBlockProps,
   ImageBlockProps,
+  IntroBlockProps,
   ListBlockProps,
   VideoBlockProps,
 } from '../../../Flick/editor/utils/utils'
 import { FragmentState } from '../../components/RenderTokens'
 import { StudioProviderProps, studioStore } from '../../stores'
 import CodeFragment from './CodeFragment'
+import IntroFragment from './IntroFragment'
+import OutroFragment from './OutroFragment'
 import PointsFragment from './PointsFragment'
 import TriviaFragment from './TriviaFragment'
 import VideoFragment from './VideoFragment'
 
 const UnifiedFragment = ({
   stageRef,
-  layerRef,
   config,
   layoutConfig,
   branding,
 }: {
   stageRef: React.RefObject<Konva.Stage>
-  layerRef: React.RefObject<Konva.Layer>
   config?: Block[]
   layoutConfig?: ViewConfig
   branding?: BrandingJSON
 }) => {
-  const {
-    fragment,
-    payload,
-    updatePayload,
-    state,
-    addMusic,
-    reduceSplashAudioVolume,
-  } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const { fragment, payload, updatePayload, state, addMusic } =
+    (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [studio, setStudio] = useRecoilState(studioStore)
 
@@ -72,7 +68,10 @@ const UnifiedFragment = ({
   const [isPreview, setIsPreview] = useState(false)
 
   // state which stores the type of layer children which have to be placed over the studio user
-  const [topLayerChildren, setTopLayerChildren] = useState<TopLayerChildren>('')
+  const [topLayerChildren, setTopLayerChildren] = useState<{
+    id: string
+    state: TopLayerChildren
+  }>({ id: '', state: '' })
 
   const timer = useRef<any>(null)
 
@@ -121,6 +120,7 @@ const UnifiedFragment = ({
     })
     updatePayload?.({
       activeObjectIndex: 0,
+      activeIntroIndex: 0,
     })
   }, [fragment])
 
@@ -131,6 +131,7 @@ const UnifiedFragment = ({
   useEffect(() => {
     return () => {
       updatePayload?.({
+        activeIntroIndex: 0,
         activePointIndex: 0,
         currentIndex: 0,
         currentTime: 0,
@@ -151,23 +152,42 @@ const UnifiedFragment = ({
     if (state === 'recording') {
       updatePayload?.({
         activeObjectIndex: 0,
+        activeIntroIndex: 0,
         fragmentState: 'onlyUserMedia',
       })
-      if (viewConfig?.mode === 'Portrait') {
-        addMusic('splash', 0.2)
-        setTimeout(() => {
-          reduceSplashAudioVolume(0.12)
-        }, 2000)
-        setTimeout(() => {
-          reduceSplashAudioVolume(0.06)
-        }, 2200)
-      }
-      setTopLayerChildren('')
+      // if (viewConfig?.mode === 'Portrait') {
+      //   addMusic('splash', 0.2)
+      //   setTimeout(() => {
+      //     reduceSplashAudioVolume(0.12)
+      //   }, 2000)
+      //   setTimeout(() => {
+      //     reduceSplashAudioVolume(0.06)
+      //   }, 2200)
+      // }
+      setTopLayerChildren({ id: '', state: '' })
       timer.current = setTimeout(() => {
-        setTopLayerChildren('lowerThird')
-      }, 5000)
+        setTopLayerChildren({ id: nanoid(), state: 'lowerThird' })
+      }, 2000)
     }
   }, [state])
+
+  useEffect(() => {
+    // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
+    if (payload?.fragmentState === 'customLayout') {
+      setTopLayerChildren({ id: nanoid(), state: 'transition right' })
+      addMusic()
+    }
+    // Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
+    if (payload?.fragmentState === 'onlyUserMedia') {
+      setTopLayerChildren({ id: nanoid(), state: 'transition left' })
+      addMusic()
+    }
+  }, [payload?.fragmentState])
+
+  useEffect(() => {
+    if (activeObjectIndex === 0) return
+    setTopLayerChildren({ id: nanoid(), state: 'transition right' })
+  }, [activeObjectIndex])
 
   useEffect(() => {
     if (activeObjectIndex !== 0)
@@ -196,12 +216,10 @@ const UnifiedFragment = ({
                   ] as BlockProperties
                 }
                 topLayerChildren={topLayerChildren}
-                setTopLayerChildren={setTopLayerChildren}
                 titleSplashData={titleSplashData}
                 fragmentState={fragmentState}
                 setFragmentState={setFragmentState}
                 stageRef={stageRef}
-                layerRef={layerRef}
                 shortsMode={viewConfig.mode === 'Portrait'}
                 isPreview={isPreview}
               />
@@ -218,12 +236,10 @@ const UnifiedFragment = ({
                   ] as BlockProperties
                 }
                 topLayerChildren={topLayerChildren}
-                setTopLayerChildren={setTopLayerChildren}
                 titleSplashData={titleSplashData}
                 fragmentState={fragmentState}
                 setFragmentState={setFragmentState}
                 stageRef={stageRef}
-                layerRef={layerRef}
                 shortsMode={viewConfig.mode === 'Portrait'}
               />
             )
@@ -238,12 +254,10 @@ const UnifiedFragment = ({
                   ] as BlockProperties
                 }
                 topLayerChildren={topLayerChildren}
-                setTopLayerChildren={setTopLayerChildren}
                 titleSplashData={titleSplashData}
                 fragmentState={fragmentState}
                 setFragmentState={setFragmentState}
                 stageRef={stageRef}
-                layerRef={layerRef}
                 shortsMode={viewConfig.mode === 'Portrait'}
               />
             )
@@ -259,16 +273,35 @@ const UnifiedFragment = ({
                   ] as BlockProperties
                 }
                 topLayerChildren={topLayerChildren}
-                setTopLayerChildren={setTopLayerChildren}
                 titleSplashData={titleSplashData}
                 fragmentState={fragmentState}
                 setFragmentState={setFragmentState}
                 stageRef={stageRef}
-                layerRef={layerRef}
                 shortsMode={viewConfig.mode === 'Portrait'}
                 isPreview={isPreview}
               />
             )
+          }
+          case 'introBlock': {
+            const introBlockProps = dataConfig[
+              activeObjectIndex
+            ] as IntroBlockProps
+            return (
+              <IntroFragment
+                shortsMode={viewConfig.mode === 'Portrait'}
+                isPreview={isPreview}
+                topLayerChildren={topLayerChildren}
+                setTopLayerChildren={setTopLayerChildren}
+                introSequence={
+                  studio.branding && studio.branding.introVideoUrl
+                    ? introBlockProps.introBlock.order
+                    : ['userMedia', 'titleSplash']
+                }
+              />
+            )
+          }
+          case 'outroBlock': {
+            return <OutroFragment isShorts={viewConfig.mode === 'Portrait'} />
           }
           default:
             return <></>
