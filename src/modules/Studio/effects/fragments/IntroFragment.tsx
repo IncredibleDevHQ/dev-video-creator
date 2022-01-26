@@ -78,7 +78,7 @@ const IntroFragment = ({
     element.src = branding.introVideoUrl || ''
     // eslint-disable-next-line consistent-return
     return element
-  }, [])
+  }, [branding, stageConfig])
 
   useEffect(() => {
     if (state === 'recording' || state === 'ready' || isPreview) {
@@ -129,7 +129,7 @@ const IntroFragment = ({
         setLayerChildren([])
       }
     }
-  }, [state, payload.activeIntroIndex, videoElement])
+  }, [state, payload.activeIntroIndex, videoElement, stageConfig])
 
   const studioUserConfig = StudioUserConfiguration({
     layout: 'classic',
