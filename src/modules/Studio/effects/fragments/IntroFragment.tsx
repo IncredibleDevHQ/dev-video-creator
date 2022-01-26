@@ -117,6 +117,11 @@ const IntroFragment = ({
           </Group>,
         ])
       }
+      if (introSequence[payload.activeIntroIndex] === 'userMedia') {
+        setTopLayerChildren({ id: '', state: '' })
+        videoElement?.pause()
+        setLayerChildren([])
+      }
     }
   }, [state, payload.activeIntroIndex, videoElement])
 
