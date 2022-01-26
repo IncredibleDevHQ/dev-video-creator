@@ -159,7 +159,7 @@ const CommonLowerThirds = ({
   )
 }
 
-export const LogoLowerThirds = ({
+export const GlassyLowerThirds = ({
   x,
   y,
   userName,

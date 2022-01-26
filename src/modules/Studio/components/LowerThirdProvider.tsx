@@ -4,7 +4,7 @@ import { User, userState } from '../../../stores/user.store'
 import { VideoTheme } from '../../../utils/configTypes'
 import { studioStore } from '../stores'
 import { CONFIG, SHORTS_CONFIG } from './Concourse'
-import { LogoLowerThirds } from './LowerThirds'
+import { GlassyLowerThirds } from './LowerThirds'
 
 const LowerThridProvider = ({
   theme,
@@ -32,7 +32,7 @@ const LowerThridProvider = ({
     case 'glassy':
       return (
         <>
-          <LogoLowerThirds
+          <GlassyLowerThirds
             x={
               !isShorts ? lowerThirdCoordinates()[0] : SHORTS_CONFIG.width - 90
             }
@@ -43,7 +43,7 @@ const LowerThridProvider = ({
             textColor={branding?.colors?.text || ''}
           />
           {users.map((user, index) => (
-            <LogoLowerThirds
+            <GlassyLowerThirds
               // eslint-disable-next-line react/no-array-index-key
               key={index}
               x={lowerThirdCoordinates()[index + 1]}
