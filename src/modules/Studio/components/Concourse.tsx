@@ -11,7 +11,6 @@ import {
 } from '../../../utils/configTypes'
 import { Block } from '../../Flick/editor/utils/utils'
 import { ShortsOutro } from '../effects/fragments/OutroFragment'
-import { MultiCircleCenterGrow } from '../effects/FragmentTransitions'
 import GlassySplash from '../effects/Splashes/GlassySplash'
 import ShortsPopSplash from '../effects/Splashes/ShortsPopSplash'
 import useEdit, { ClipConfig } from '../hooks/use-edit'
@@ -386,6 +385,7 @@ const Concourse = ({
               return !isShorts ? (
                 <>
                   <GlassySplash
+                    isShorts={isShorts || false}
                     setIsTitleSplash={setIsTitleSplash}
                     stageConfig={stageConfig}
                   />

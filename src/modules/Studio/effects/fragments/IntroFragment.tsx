@@ -15,16 +15,18 @@ export type SplashRenderState = 'static' | 'animate'
 const Splash = ({
   theme,
   stageConfig,
+  isShorts,
 }: {
   theme: VideoTheme
   stageConfig: {
     width: number
     height: number
   }
+  isShorts: boolean
 }) => {
   switch (theme) {
     case 'glassy':
-      return <GlassySplash stageConfig={stageConfig} />
+      return <GlassySplash stageConfig={stageConfig} isShorts={isShorts} />
     default:
       return <></>
   }
@@ -86,7 +88,11 @@ const IntroFragment = ({
         videoElement?.pause()
         setLayerChildren([
           <Group x={0} y={0}>
-            <Splash theme="glassy" stageConfig={stageConfig} />
+            <Splash
+              theme="glassy"
+              stageConfig={stageConfig}
+              isShorts={shortsMode}
+            />
           </Group>,
         ])
       }
@@ -141,6 +147,7 @@ const IntroFragment = ({
       layerChildren={layerChildren}
       topLayerChildren={topLayerChildren}
       blockType="introBlock"
+      isShorts={shortsMode}
     />
   )
 }

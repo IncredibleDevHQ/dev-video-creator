@@ -64,7 +64,7 @@ const OutroFragment = ({ isShorts }: { isShorts: boolean }) => {
       />
       <Image
         x={40}
-        y={450}
+        y={stageConfig.height - 90}
         width={imgDim.width}
         height={imgDim.height}
         image={logo}
@@ -84,6 +84,7 @@ const OutroFragment = ({ isShorts }: { isShorts: boolean }) => {
       layerChildren={layerChildren}
       blockType="outroBlock"
       studioUserConfig={studioUserConfig}
+      isShorts={isShorts}
     />
   )
 }

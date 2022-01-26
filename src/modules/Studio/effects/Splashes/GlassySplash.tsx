@@ -7,9 +7,11 @@ import useEdit from '../../hooks/use-edit'
 import { studioStore } from '../../stores'
 
 const GlassySplash = ({
+  isShorts,
   stageConfig,
   setIsTitleSplash,
 }: {
+  isShorts: boolean
   stageConfig: {
     width: number
     height: number
@@ -49,8 +51,10 @@ const GlassySplash = ({
       <VideoBackground theme="glassy" stageConfig={stageConfig} />
       <Text
         x={40}
-        y={180}
-        width={400}
+        y={0}
+        width={!isShorts ? 400 : 350}
+        height={stageConfig.height}
+        verticalAlign="middle"
         text={fragment?.flick.name || 'Hello Intro'}
         fill={branding?.colors?.text || '#ffffff'}
         fontSize={64}
@@ -68,7 +72,7 @@ const GlassySplash = ({
       />
       <Image
         x={40}
-        y={444}
+        y={stageConfig.height - 90}
         width={imgDim.width}
         height={imgDim.height}
         image={logo}
