@@ -18,10 +18,12 @@ import {
   FiUploadCloud,
 } from 'react-icons/fi'
 import { Group, Layer, Stage } from 'react-konva'
+import useMeasure from 'react-use-measure'
+import { Text } from '../../../../components'
 import Tooltip from '../../../../components/Tooltip'
 import { Video, VideoConfig } from '../../../Studio/components/Video'
+import { useGetHW } from '../../components/IntroOutroView'
 import AddVideo from './AddVideo'
-import { Text } from '../../../../components'
 
 const size = {
   width: 960,
@@ -71,6 +73,20 @@ const VideoBlock = (props: any) => {
   const [editVideo, setEditVideo] = useState(false)
   const [retakeVideo, setRetakeVideo] = useState(false)
   const [videoConfig, setVideoConfig] = useState<VideoConfig>()
+
+  const [ref, bounds] = useMeasure()
+
+  const { height, width } = useGetHW({
+    maxH: bounds.height * 1,
+    maxW: bounds.width * 1,
+    aspectRatio: 16 / 9,
+  })
+
+  const { height: divHeight, width: divWidth } = useGetHW({
+    maxH: bounds.height * 1,
+    maxW: bounds.width * 1,
+    aspectRatio: 16 / 9,
+  })
 
   const deleteVideo = () => {
     props.updateAttributes({
@@ -192,11 +208,12 @@ const VideoBlock = (props: any) => {
     )
 
   return (
-    <NodeViewWrapper>
+    <NodeViewWrapper as="p">
       <div
         className="w-full py-8"
         onMouseEnter={() => setOpen(true)}
         onMouseLeave={() => setOpen(false)}
+        ref={ref}
       >
         <Tooltip
           isOpen={isOpen}
@@ -214,11 +231,18 @@ const VideoBlock = (props: any) => {
           <div
             className="relative"
             style={{
-              width: size.width,
-              height: size.height,
+              width: divWidth,
+              height: divHeight,
             }}
           >
-            <Stage {...size} ref={stageRef}>
+            <Stage
+              {...size}
+              ref={stageRef}
+              scale={{
+                x: height / size.height,
+                y: width / size.width,
+              }}
+            >
               <Layer>
                 <Group zIndex={-1}>
                   {videoRef.current && videoConfig && (
@@ -276,9 +300,9 @@ const VideoBlock = (props: any) => {
             }}
           />
         )}
-        <div className="hidden">
+        {/* <div className="hidden">
           <NodeViewContent />
-        </div>
+        </div> */}
       </div>
     </NodeViewWrapper>
   )
