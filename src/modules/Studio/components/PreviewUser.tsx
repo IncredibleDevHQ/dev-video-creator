@@ -6,15 +6,12 @@ import useImage from 'use-image'
 import configs from '../../../config'
 import useEdit, { ClipConfig } from '../hooks/use-edit'
 import { studioStore } from '../stores'
-import { StudioUserThemeConfig } from '../utils/ThemeConfig'
 import { StudioUserConfig } from './Concourse'
 
 const PreviewUser = ({
   studioUserConfig,
-  studioUserThemeConfig,
 }: {
   studioUserConfig: StudioUserConfig
-  studioUserThemeConfig: StudioUserThemeConfig
 }) => {
   const {
     x,
@@ -25,8 +22,6 @@ const PreviewUser = ({
     borderColor,
     borderWidth,
     studioUserClipConfig,
-  } = studioUserConfig
-  const {
     backgroundRectX,
     backgroundRectY,
     backgroundRectWidth,
@@ -36,7 +31,8 @@ const PreviewUser = ({
     backgroundRectColor,
     backgroundRectBorderColor,
     backgroundRectBorderWidth,
-  } = studioUserThemeConfig
+  } = studioUserConfig
+
   const imageConfig = { width: width || 160, height: height || 120 }
 
   const { clipCircle, clipRect, getImageDimensions } = useEdit()

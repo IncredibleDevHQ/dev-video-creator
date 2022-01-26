@@ -8,14 +8,12 @@ import Gravatar from 'react-gravatar'
 import { StudioProviderProps, studioStore } from '../stores'
 import { StudioUserConfig } from './Concourse'
 import useEdit, { ClipConfig } from '../hooks/use-edit'
-import { StudioUserThemeConfig } from '../utils/ThemeConfig'
 
 type StudioUserType = 'local' | 'remote'
 
 const StudioUser = ({
   stream,
   studioUserConfig,
-  studioUserThemeConfig,
   type,
   uid,
   picture,
@@ -23,7 +21,6 @@ const StudioUser = ({
   stream: MediaStream | null
   type: StudioUserType
   studioUserConfig: StudioUserConfig
-  studioUserThemeConfig: StudioUserThemeConfig
   uid: string
   picture: string
 }) => {
@@ -36,8 +33,6 @@ const StudioUser = ({
     studioUserClipConfig,
     borderColor,
     borderWidth,
-  } = studioUserConfig
-  const {
     backgroundRectX,
     backgroundRectY,
     backgroundRectWidth,
@@ -47,7 +42,8 @@ const StudioUser = ({
     backgroundRectColor,
     backgroundRectBorderColor,
     backgroundRectBorderWidth,
-  } = studioUserThemeConfig
+  } = studioUserConfig
+
   const imageConfig = { width: width || 160, height: height || 120 }
   const imageRef = useRef<Konva.Image | null>(null)
 

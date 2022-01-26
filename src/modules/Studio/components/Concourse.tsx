@@ -16,7 +16,6 @@ import ShortsPopSplash from '../effects/Splashes/ShortsPopSplash'
 import useEdit, { ClipConfig } from '../hooks/use-edit'
 import { canvasStore, StudioProviderProps, studioStore } from '../stores'
 import { FragmentLayoutConfig } from '../utils/FragmentLayoutConfig'
-import { ThemeUserMediaConfig } from '../utils/ThemeConfig'
 import LowerThridProvider from './LowerThirdProvider'
 import PreviewUser from './PreviewUser'
 import StudioUser from './StudioUser'
@@ -29,9 +28,18 @@ export interface StudioUserConfig {
   width: number
   height: number
   clipTheme?: string
+  studioUserClipConfig?: ClipConfig
   borderColor?: string
   borderWidth?: number
-  studioUserClipConfig?: ClipConfig
+  backgroundRectX?: number
+  backgroundRectY?: number
+  backgroundRectWidth?: number
+  backgroundRectHeight?: number
+  backgroundRectColor?: string
+  backgroundRectOpacity?: number
+  backgroundRectBorderRadius?: number
+  backgroundRectBorderColor?: string
+  backgroundRectBorderWidth?: number
 }
 
 export interface TitleSplashProps {
@@ -285,12 +293,6 @@ const Concourse = ({
               (studioUserConfig && studioUserConfig[0]) ||
               defaultStudioUserConfig
             }
-            studioUserThemeConfig={ThemeUserMediaConfig({
-              theme: 'glassy',
-              studioUserConfig:
-                (studioUserConfig && studioUserConfig[0]) ||
-                defaultStudioUserConfig,
-            })}
             picture={picture as string}
             type="local"
             uid={sub as string}
@@ -312,18 +314,6 @@ const Concourse = ({
                   height: defaultStudioUserConfig.height,
                 }
               }
-              studioUserThemeConfig={ThemeUserMediaConfig({
-                theme: 'glassy',
-                studioUserConfig: (studioUserConfig &&
-                  studioUserConfig[index + 1]) || {
-                  x:
-                    defaultStudioUserConfig.x -
-                    (index + 1) * userStudioImageGap,
-                  y: defaultStudioUserConfig.y,
-                  width: defaultStudioUserConfig.width,
-                  height: defaultStudioUserConfig.height,
-                },
-              })}
             />
           ))}
         </>
@@ -348,18 +338,6 @@ const Concourse = ({
                     height: defaultStudioUserConfig.height,
                   }
                 }
-                studioUserThemeConfig={ThemeUserMediaConfig({
-                  theme: 'glassy',
-                  studioUserConfig: (studioUserConfig &&
-                    studioUserConfig[index]) || {
-                    x:
-                      defaultStudioUserConfig.x -
-                      (index + 1) * userStudioImageGap,
-                    y: defaultStudioUserConfig.y,
-                    width: defaultStudioUserConfig.width,
-                    height: defaultStudioUserConfig.height,
-                  },
-                })}
               />
             )
           }
@@ -448,12 +426,6 @@ const Concourse = ({
               (studioUserConfig && studioUserConfig[0]) ||
               defaultStudioUserConfig
             }
-            studioUserThemeConfig={ThemeUserMediaConfig({
-              theme: 'glassy',
-              studioUserConfig:
-                (studioUserConfig && studioUserConfig[0]) ||
-                defaultStudioUserConfig,
-            })}
             picture={picture as string}
             type="local"
             uid={sub as string}
@@ -475,18 +447,6 @@ const Concourse = ({
                   height: defaultStudioUserConfig.height,
                 }
               }
-              studioUserThemeConfig={ThemeUserMediaConfig({
-                theme: 'glassy',
-                studioUserConfig: (studioUserConfig &&
-                  studioUserConfig[index + 1]) || {
-                  x:
-                    defaultStudioUserConfig.x -
-                    (index + 1) * userStudioImageGap,
-                  y: defaultStudioUserConfig.y,
-                  width: defaultStudioUserConfig.width,
-                  height: defaultStudioUserConfig.height,
-                },
-              })}
             />
           ))}
         </>
@@ -511,18 +471,6 @@ const Concourse = ({
                     height: defaultStudioUserConfig.height,
                   }
                 }
-                studioUserThemeConfig={ThemeUserMediaConfig({
-                  theme: 'glassy',
-                  studioUserConfig: (studioUserConfig &&
-                    studioUserConfig[index]) || {
-                    x:
-                      defaultStudioUserConfig.x -
-                      (index + 1) * userStudioImageGap,
-                    y: defaultStudioUserConfig.y,
-                    width: defaultStudioUserConfig.width,
-                    height: defaultStudioUserConfig.height,
-                  },
-                })}
               />
             )
           }

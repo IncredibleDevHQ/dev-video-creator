@@ -76,7 +76,7 @@ const OutroFragment = ({ isShorts }: { isShorts: boolean }) => {
     layout: 'classic',
     fragment,
     fragmentState: 'customLayout',
-    isShorts,
+    theme: 'glassy',
   })
 
   return (
