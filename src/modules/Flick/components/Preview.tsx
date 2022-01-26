@@ -36,7 +36,7 @@ const Preview = ({
   updateConfig,
   setCurrentBlock,
 }: {
-  block: Block
+  block: Block | undefined
   blocks: Block[]
   config: ViewConfig
   centered: boolean
@@ -45,6 +45,8 @@ const Preview = ({
 }) => {
   const [activeTab, setActiveTab] = useState<Tab>(tabs[0])
   const [ref, bounds] = useMeasure()
+
+  if (!block) return null
 
   return (
     <div className="flex-1 flex justify-between">

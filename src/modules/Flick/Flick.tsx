@@ -36,6 +36,24 @@ const initialConfig: ViewConfig = {
   blocks: {},
 }
 
+const initialAST: SimpleAST = {
+  blocks: [
+    {
+      id: uuidv4(),
+      type: 'introBlock',
+      pos: 0,
+      introBlock: {
+        order: ['userMedia', 'intro', 'splash'],
+      },
+    },
+    {
+      id: uuidv4(),
+      type: 'outroBlock',
+      pos: 1,
+    },
+  ],
+}
+
 const useLocalPayload = () => {
   const initialPayload = {
     activeObjectIndex: 0,
@@ -107,10 +125,6 @@ const Flick = () => {
     const newBlocks = { ...filteredBlocks, [id]: properties }
     setViewConfig({ ...viewConfig, blocks: newBlocks })
   }
-
-  useEffect(() => {
-    console.log('useEffect', viewConfig)
-  }, [viewConfig])
 
   useEffect(() => {
     if (!currentBlock) return
@@ -201,26 +215,8 @@ const Flick = () => {
           ],
         }
       )
-    setSimpleAST(
-      fragment?.editorState ||
-        ({
-          blocks: [
-            {
-              id: uuidv4(),
-              type: 'introBlock',
-              pos: 0,
-              introBlock: {
-                order: ['userMedia', 'intro', 'splash'],
-              },
-            },
-            {
-              id: uuidv4(),
-              type: 'outroBlock',
-              pos: 1,
-            },
-          ],
-        } as SimpleAST)
-    )
+    setSimpleAST(fragment?.editorState || initialAST)
+    setCurrentBlock(fragment?.editorState?.blocks[0] || initialAST.blocks[0])
     setEditorValue(flick.md || '')
   }, [activeFragmentId])
 
@@ -259,22 +255,16 @@ const Flick = () => {
         config={viewConfig}
         setViewConfig={setViewConfig}
       />
-      {activeFragment &&
-        view === View.Preview &&
-        currentBlock &&
-        currentBlock.type &&
-        viewConfig &&
-        simpleAST &&
-        simpleAST?.blocks?.length > 0 && (
-          <Preview
-            block={currentBlock}
-            config={viewConfig}
-            updateConfig={updateBlockProperties}
-            blocks={simpleAST?.blocks || []}
-            setCurrentBlock={setCurrentBlock}
-            centered={!showTimeline}
-          />
-        )}
+      {activeFragment && view === View.Preview && (
+        <Preview
+          block={currentBlock}
+          config={viewConfig}
+          updateConfig={updateBlockProperties}
+          blocks={simpleAST?.blocks || []}
+          setCurrentBlock={setCurrentBlock}
+          centered={!showTimeline}
+        />
+      )}
       {activeFragment && view === View.Notebook && (
         <div className="grid grid-cols-12 flex-1 h-full pb-12 sticky top-0 overflow-y-auto">
           <div className="h-full pt-12 pb-96 col-start-4 col-span-6 ">
@@ -310,7 +300,7 @@ const Flick = () => {
               }}
               initialContent={flick.md || ''}
               handleActiveBlock={(block) => {
-                setCurrentBlock(block)
+                if (block && block !== currentBlock) setCurrentBlock(block)
               }}
             />
           </div>
@@ -327,7 +317,7 @@ const Flick = () => {
               currentBlock.type &&
               viewConfig &&
               simpleAST &&
-              simpleAST?.blocks?.length > 0 && (
+              simpleAST?.blocks?.length > 2 && (
                 <BlockPreview
                   block={currentBlock}
                   blocks={simpleAST?.blocks || []}
