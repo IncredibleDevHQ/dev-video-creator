@@ -373,9 +373,6 @@ const BlockPreview = ({
   const [previewModal, setPreviewModal] = useState(false)
   const [ref, bounds] = useMeasure()
 
-  if (!block || !config || !config.blocks || !config?.blocks[block?.id])
-    return null
-
   return (
     <div className={className} {...rest}>
       <div
