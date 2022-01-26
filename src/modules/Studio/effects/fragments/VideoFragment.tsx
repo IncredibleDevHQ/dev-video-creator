@@ -23,26 +23,25 @@ const VideoFragment = ({
   viewConfig,
   dataConfig,
   topLayerChildren,
-  setTopLayerChildren,
   titleSplashData,
   fragmentState,
   setFragmentState,
   stageRef,
-  layerRef,
   shortsMode,
 }: {
   viewConfig: BlockProperties
   dataConfig: VideoBlockProps
-  topLayerChildren: TopLayerChildren
-  setTopLayerChildren: React.Dispatch<React.SetStateAction<TopLayerChildren>>
+  topLayerChildren: {
+    id: string
+    state: TopLayerChildren
+  }
   titleSplashData?: TitleSplashProps | undefined
   fragmentState: FragmentState
   setFragmentState: React.Dispatch<React.SetStateAction<FragmentState>>
   stageRef: React.RefObject<Konva.Stage>
-  layerRef: React.RefObject<Konva.Layer>
   shortsMode: boolean
 }) => {
-  const { fragment, payload, updatePayload, state, addMusic } =
+  const { fragment, payload, updatePayload, state } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [studio, setStudio] = useRecoilState(studioStore)
@@ -132,7 +131,6 @@ const VideoFragment = ({
           currentTime: transformations?.clip?.start || 0,
         })
         videoElement.currentTime = transformations?.clip?.start || 0
-        setTopLayerChildren('')
         break
       default:
         updatePayload?.({
@@ -140,7 +138,6 @@ const VideoFragment = ({
           currentTime: transformations?.clip?.start || 0,
         })
         videoElement.currentTime = transformations?.clip?.start || 0
-        setTopLayerChildren('')
     }
   }, [state, transformations, videoElement])
 
@@ -181,8 +178,6 @@ const VideoFragment = ({
   useEffect(() => {
     // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
     if (payload?.fragmentState === 'customLayout') {
-      setTopLayerChildren('transition right')
-      addMusic()
       setTimeout(() => {
         setFragmentState(payload?.fragmentState)
         customLayoutRef?.current?.to({
@@ -193,8 +188,6 @@ const VideoFragment = ({
     }
     // Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
     if (payload?.fragmentState === 'onlyUserMedia') {
-      setTopLayerChildren('transition left')
-      addMusic()
       setTimeout(() => {
         setFragmentState(payload?.fragmentState)
         customLayoutRef?.current?.to({
@@ -251,12 +244,11 @@ const VideoFragment = ({
       layerChildren={layerChildren}
       viewConfig={viewConfig}
       stageRef={stageRef}
-      layerRef={layerRef}
       titleSplashData={titleSplashData}
       studioUserConfig={studioUserConfig}
       topLayerChildren={topLayerChildren}
-      setTopLayerChildren={setTopLayerChildren}
       isShorts={shortsMode}
+      blockType={dataConfig.type}
     />
   )
 }

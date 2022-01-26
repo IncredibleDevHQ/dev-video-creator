@@ -24,24 +24,23 @@ const PointsFragment = ({
   viewConfig,
   dataConfig,
   topLayerChildren,
-  setTopLayerChildren,
   titleSplashData,
   fragmentState,
   setFragmentState,
   stageRef,
-  layerRef,
   shortsMode,
   isPreview,
 }: {
   viewConfig: BlockProperties
   dataConfig: ListBlockProps
-  topLayerChildren: TopLayerChildren
-  setTopLayerChildren: React.Dispatch<React.SetStateAction<TopLayerChildren>>
+  topLayerChildren: {
+    id: string
+    state: TopLayerChildren
+  }
   titleSplashData?: TitleSplashProps | undefined
   fragmentState: FragmentState
   setFragmentState: React.Dispatch<React.SetStateAction<FragmentState>>
   stageRef: React.RefObject<Konva.Stage>
-  layerRef: React.RefObject<Konva.Layer>
   shortsMode: boolean
   isPreview: boolean
 }) => {
@@ -96,7 +95,6 @@ const PointsFragment = ({
       })
     )
     setPoints(dataConfig.listBlock.list || [])
-    setTopLayerChildren('')
   }, [dataConfig, shortsMode, viewConfig])
 
   useEffect(() => {
@@ -138,7 +136,6 @@ const PointsFragment = ({
       updatePayload?.({
         activePointIndex: 0,
       })
-      setTopLayerChildren('')
     }
   }, [state])
 
@@ -153,8 +150,6 @@ const PointsFragment = ({
   useEffect(() => {
     // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
     if (payload?.fragmentState === 'customLayout') {
-      setTopLayerChildren('transition right')
-      addMusic()
       setTimeout(() => {
         setFragmentState(payload?.fragmentState)
         customLayoutRef?.current?.to({
@@ -165,8 +160,6 @@ const PointsFragment = ({
     }
     // Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
     if (payload?.fragmentState === 'onlyUserMedia') {
-      setTopLayerChildren('transition left')
-      addMusic()
       setTimeout(() => {
         setFragmentState(payload?.fragmentState)
         customLayoutRef?.current?.to({
@@ -308,12 +301,11 @@ const PointsFragment = ({
       layerChildren={layerChildren}
       viewConfig={viewConfig}
       stageRef={stageRef}
-      layerRef={layerRef}
       titleSplashData={titleSplashData}
       studioUserConfig={studioUserConfig}
       topLayerChildren={topLayerChildren}
-      setTopLayerChildren={setTopLayerChildren}
       isShorts={shortsMode}
+      blockType={dataConfig.type}
     />
   )
 }
