@@ -1,4 +1,4 @@
-import { VideoTheme } from '../../../utils/configTypes'
+import { Layout, VideoTheme } from '../../../utils/configTypes'
 import { StudioUserConfig } from '../components/Concourse'
 import { ObjectConfig } from './FragmentLayoutConfig'
 
@@ -76,5 +76,24 @@ export const ThemeUserMediaConfig = ({
       }
     default:
       return {}
+  }
+}
+
+export const GetThemeSupportedUserMediaLayouts = (
+  theme: VideoTheme
+): Layout[] => {
+  switch (theme) {
+    case 'glassy':
+      return [
+        'classic',
+        'float-full-right',
+        'float-full-left',
+        'float-half-right',
+        'padded-bottom-right-tile',
+        'bottom-right-tile',
+        'padded-split',
+      ]
+    default:
+      return []
   }
 }
