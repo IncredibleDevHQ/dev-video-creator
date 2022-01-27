@@ -10,7 +10,6 @@ import {
   TopLayerChildren,
 } from '../../../utils/configTypes'
 import { Block } from '../../Flick/editor/utils/utils'
-import { ShortsOutro } from '../effects/fragments/OutroFragment'
 import GlassySplash from '../effects/Splashes/GlassySplash'
 import ShortsPopSplash from '../effects/Splashes/ShortsPopSplash'
 import useEdit, { ClipConfig } from '../hooks/use-edit'
@@ -380,9 +379,6 @@ const Concourse = ({
             }
           }
           if (payload?.status === Fragment_Status_Enum_Enum.Ended) {
-            if (fragment?.configuration?.mode === 'Portrait') {
-              return <ShortsOutro performFinishAction={performFinishAction} />
-            }
             performFinishAction()
           }
           return (
