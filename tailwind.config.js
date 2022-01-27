@@ -60,6 +60,7 @@ module.exports = {
           title: '#929397',
           300: '#28292D',
           500: '#121212',
+          200: '#D4D4D8',
         },
         orange: {
           DEFAULT: '#FFEDD5',
