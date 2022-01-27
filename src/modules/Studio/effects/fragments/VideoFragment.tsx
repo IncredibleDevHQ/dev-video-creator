@@ -16,7 +16,10 @@ import {
   FragmentLayoutConfig,
   ObjectConfig,
 } from '../../utils/FragmentLayoutConfig'
-import { StudioUserConfiguration } from '../../utils/StudioUserConfig'
+import {
+  ShortsStudioUserConfiguration,
+  StudioUserConfiguration,
+} from '../../utils/StudioUserConfig'
 import { ObjectRenderConfig, ThemeLayoutConfig } from '../../utils/ThemeConfig'
 
 const VideoFragment = ({
@@ -231,12 +234,19 @@ const VideoFragment = ({
     </Group>,
   ]
 
-  const studioUserConfig = StudioUserConfiguration({
-    layout: viewConfig?.layout || 'classic',
-    fragment,
-    fragmentState,
-    theme: 'glassy',
-  })
+  const studioUserConfig = !shortsMode
+    ? StudioUserConfiguration({
+        layout: viewConfig?.layout || 'classic',
+        fragment,
+        fragmentState,
+        theme: 'glassy',
+      })
+    : ShortsStudioUserConfiguration({
+        layout: viewConfig?.layout || 'classic',
+        fragment,
+        fragmentState,
+        theme: 'glassy',
+      })
 
   return (
     <Concourse

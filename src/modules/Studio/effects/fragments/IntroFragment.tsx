@@ -5,7 +5,10 @@ import { TopLayerChildren, VideoTheme } from '../../../../utils/configTypes'
 import Concourse, { CONFIG, SHORTS_CONFIG } from '../../components/Concourse'
 import { Video } from '../../components/Video'
 import { StudioProviderProps, studioStore } from '../../stores'
-import { StudioUserConfiguration } from '../../utils/StudioUserConfig'
+import {
+  ShortsStudioUserConfiguration,
+  StudioUserConfiguration,
+} from '../../utils/StudioUserConfig'
 import GlassySplash from '../Splashes/GlassySplash'
 
 export type IntroState = 'userMedia' | 'titleSplash' | 'introVideo'
@@ -131,15 +134,25 @@ const IntroFragment = ({
     }
   }, [state, payload.activeIntroIndex, videoElement, stageConfig])
 
-  const studioUserConfig = StudioUserConfiguration({
-    layout: 'classic',
-    fragment,
-    fragmentState:
-      introSequence[payload.activeIntroIndex] === 'userMedia'
-        ? 'onlyUserMedia'
-        : 'customLayout',
-    theme: 'glassy',
-  })
+  const studioUserConfig = !shortsMode
+    ? StudioUserConfiguration({
+        layout: 'classic',
+        fragment,
+        fragmentState:
+          introSequence[payload.activeIntroIndex] === 'userMedia'
+            ? 'onlyUserMedia'
+            : 'customLayout',
+        theme: 'glassy',
+      })
+    : ShortsStudioUserConfiguration({
+        layout: 'classic',
+        fragment,
+        fragmentState:
+          introSequence[payload.activeIntroIndex] === 'userMedia'
+            ? 'onlyUserMedia'
+            : 'customLayout',
+        theme: 'glassy',
+      })
 
   return (
     <Concourse
