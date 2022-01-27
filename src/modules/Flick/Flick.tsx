@@ -9,6 +9,10 @@ import {
   Fragment_Status_Enum_Enum,
   StudioFragmentFragment,
   useGetFlickByIdQuery,
+  useGetThemesQuery,
+  UserAssetQuery,
+  useUpdateFragmentMutation,
+  useUserAssetQuery,
 } from '../../generated/graphql'
 import { useCanvasRecorder } from '../../hooks'
 import { BlockProperties, ViewConfig } from '../../utils/configTypes'
@@ -109,6 +113,9 @@ const Flick = () => {
   const [showTimeline, setShowTimeline] = useState(false)
 
   const { updatePayload, payload, resetPayload } = useLocalPayload()
+  const [myMediaAssets, setMyMediaAssets] = useState<UserAssetQuery>()
+  const { data: assetsData, error: assetsError } = useUserAssetQuery()
+  const { data: themesData } = useGetThemesQuery()
 
   const updateBlockProperties = (id: string, properties: BlockProperties) => {
     const filteredBlocks: {
@@ -184,9 +191,11 @@ const Flick = () => {
     setFlickStore((store) => ({
       ...store,
       flick: data.Flick_by_pk || null,
+      activeTheme: themesData?.Theme ? themesData.Theme[0] : null,
+      themes: themesData?.Theme ? themesData?.Theme : [],
       activeFragmentId: fragmentsLength > 0 ? editorFragment?.id : '',
     }))
-  }, [data])
+  }, [data, themesData])
 
   useEffect(() => {
     return () => {
@@ -195,6 +204,8 @@ const Flick = () => {
         activeFragmentId: '',
         isMarkdown: true,
         view: View.Notebook,
+        activeTheme: null,
+        themes: [],
       })
     }
   }, [])
@@ -249,7 +260,7 @@ const Flick = () => {
 
   return (
     <div className="relative flex flex-col w-screen h-screen overflow-hidden">
-      <FlickNavBar toggleModal={setIntegrationModal} />
+      <FlickNavBar />
       <FragmentBar
         simpleAST={simpleAST}
         editorValue={editorValue}

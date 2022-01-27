@@ -1,21 +1,23 @@
-import ScreenRecording from './ScreenRecording'
+import VideoEditor from '../editor/blocks/VideoEditor'
+import Download from './Download'
 import FlickNavBar from './FlickNavBar'
 import FragmentBar from './FragmentBar'
 import FragmentVideoModal from './FragmentVideoModal'
-import PublishFlick from './Publish/PublishFlick'
-import VideoEditor from '../editor/blocks/VideoEditor'
-import VideoEditorModal from './VideoEditorModal'
 import ProcessingFlick from './ProcessingFlick'
+import ScreenRecording from './ScreenRecording'
+import PublishFlick from './Publish/PublishFlick'
+import VideoEditorModal from './VideoEditorModal'
 import Timeline from './Timeline'
 import EditorHeader from './EditorHeader'
 import Preview from './Preview'
 
 export {
-  ScreenRecording,
+  Download,
   FlickNavBar,
   FragmentBar,
   FragmentVideoModal,
   PublishFlick,
+  ScreenRecording,
   VideoEditor,
   VideoEditorModal,
   ProcessingFlick,

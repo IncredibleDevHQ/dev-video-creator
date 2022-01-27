@@ -19,6 +19,15 @@ fragment PublicFlick on Flick {
   }
 }
 
+fragment Content on Content {
+  id
+  isPublic
+  seriesId
+  resource
+  thumbnail
+  type
+}
+
 fragment BaseFlick on Flick {
   color
   description
@@ -48,11 +57,7 @@ fragment BaseFlick on Flick {
   }
   configuration
   contents {
-    id
-    isPublic
-    seriesId
-    thumbnail
-    type
+    ...Content
   }
   participants {
     user {
@@ -176,6 +181,12 @@ query GetFlickParticipants($flickId: uuid!) {
     order_by: { user: { displayName: asc } }
   ) {
     ...FlickParticipants
+  }
+}
+
+query ZipStatus($flickId: uuid!) {
+  Flick(where: { id: { _eq: $flickId } }) {
+    downloadTasks
   }
 }
 
@@ -340,6 +351,12 @@ mutation UpdateFlickMd($id: uuid!, $md: String!) {
   }
 }
 
+mutation UpdateFlickTheme($id: uuid!, $theme: String!) {
+  update_Flick_by_pk(pk_columns: { id: $id }, _set: { theme: $theme }) {
+    id
+    theme
+  }
+}
 mutation SaveFlick(
   $id: uuid!
   $md: String!
@@ -362,7 +379,6 @@ mutation SaveFlick(
     id
   }
 }
-
 
 subscription FlickStatus($flickId: uuid!) {
   Flick_by_pk(id: $flickId) {

@@ -2,6 +2,7 @@ import { sentenceCase } from 'change-case'
 import React, { useEffect, useState } from 'react'
 import { FiChevronLeft } from 'react-icons/fi'
 import { useRecoilState } from 'recoil'
+import { Download } from '.'
 import { Button, Heading } from '../../../components'
 import config from '../../../config'
 import { ASSETS } from '../../../constants'
@@ -9,9 +10,10 @@ import { useUpdateFlickMutation } from '../../../generated/graphql'
 import { newFlickStore } from '../store/flickNew.store'
 import ShareModal from './ShareModal'
 
-const FlickNavBar = ({ toggleModal }: { toggleModal: (val: true) => void }) => {
+const FlickNavBar = () => {
   const [{ flick }, setFlickStore] = useRecoilState(newFlickStore)
   const [isShareOpen, setIsShareOpen] = useState(false)
+  const [isDownloadOpen, setIsDownloadOpen] = useState(false)
   const [editFlickName, setEditFlickName] = useState(false)
   const [flickName, setFlickName] = useState(flick?.name || '')
 
@@ -91,19 +93,25 @@ const FlickNavBar = ({ toggleModal }: { toggleModal: (val: true) => void }) => {
           appearance="gray"
           size="small"
           type="button"
-          onClick={async () => {
-            toggleModal(true)
-          }}
+          onClick={() => setIsDownloadOpen(true)}
         >
           Download
         </Button>
       </div>
-      <ShareModal
-        open={isShareOpen}
-        handleClose={() => {
-          setIsShareOpen(false)
-        }}
-      />
+      {isShareOpen && (
+        <ShareModal
+          open={isShareOpen}
+          handleClose={() => {
+            setIsShareOpen(false)
+          }}
+        />
+      )}
+      {isDownloadOpen && (
+        <Download
+          open={isDownloadOpen}
+          handleClose={(refresh?: boolean) => setIsDownloadOpen(false)}
+        />
+      )}
     </div>
   )
 }
