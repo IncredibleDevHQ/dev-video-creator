@@ -5,7 +5,7 @@ export interface ClipConfig {
   y: number
   width: number
   height: number
-  radius: number
+  borderRadius: number
 }
 
 const useEdit = () => {
@@ -14,7 +14,7 @@ const useEdit = () => {
     const { y } = clipConfig
     const w = clipConfig.width
     const h = clipConfig.height
-    const r = clipConfig.radius
+    const r = clipConfig.borderRadius
     ctx.beginPath()
     ctx.moveTo(x + r, y)
     ctx.arcTo(x + w, y, x + w, y + h, r)

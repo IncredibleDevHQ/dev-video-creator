@@ -18,10 +18,12 @@ import {
   FiUploadCloud,
 } from 'react-icons/fi'
 import { Group, Layer, Stage } from 'react-konva'
+import useMeasure from 'react-use-measure'
+import { Text } from '../../../../components'
 import Tooltip from '../../../../components/Tooltip'
 import { Video, VideoConfig } from '../../../Studio/components/Video'
+import { useGetHW } from '../../components/BlockPreview'
 import AddVideo from './AddVideo'
-import { Text } from '../../../../components'
 
 const size = {
   width: 960,
@@ -72,6 +74,20 @@ const VideoBlock = (props: any) => {
   const [retakeVideo, setRetakeVideo] = useState(false)
   const [videoConfig, setVideoConfig] = useState<VideoConfig>()
 
+  const [ref, bounds] = useMeasure()
+
+  const { height, width } = useGetHW({
+    maxH: bounds.height * 1,
+    maxW: bounds.width * 1,
+    aspectRatio: 16 / 9,
+  })
+
+  const { height: divHeight, width: divWidth } = useGetHW({
+    maxH: bounds.height * 1,
+    maxW: bounds.width * 1,
+    aspectRatio: 16 / 9,
+  })
+
   const deleteVideo = () => {
     props.updateAttributes({
       src: null,
@@ -79,23 +95,28 @@ const VideoBlock = (props: any) => {
   }
 
   useEffect(() => {
-    const video = document.createElement('video')
-    video.src = props.node.attrs.src as string
-    video.width = size.width
-    video.height = size.height
-    video.addEventListener('loadedmetadata', () => {
-      video.currentTime = 0.1
-    })
-    videoRef.current = video
+    if (!videoRef.current) {
+      const video = document.createElement('video')
+      video.width = size.width
+      video.height = size.height
+      video.addEventListener('loadedmetadata', () => {
+        video.currentTime = 0.1
+      })
+      videoRef.current = video
+    }
+
+    if (videoRef.current.src !== props.node.attrs.src) {
+      videoRef.current.src = props.node.attrs.src as string
+    }
 
     const transformations = JSON.parse(props.node.attrs['data-transformations'])
 
-    video?.addEventListener('timeupdate', () => {
-      if (!transformations?.clip?.end) return
-      if (video.currentTime >= transformations.clip.end) {
-        video.pause()
-        video.currentTime = transformations?.clip?.start || 0
-        video.play()
+    videoRef.current.addEventListener('timeupdate', () => {
+      if (!transformations?.clip?.end || !videoRef.current) return
+      if (videoRef.current.currentTime >= transformations.clip.end) {
+        videoRef.current.pause()
+        videoRef.current.currentTime = transformations?.clip?.start || 0
+        videoRef.current.play()
       }
     })
 
@@ -106,7 +127,7 @@ const VideoBlock = (props: any) => {
       height: size.height,
       videoFill: '#1F2937',
       performClip: true,
-      cornerRadius: 8,
+      cornerRadius: 0,
       clipVideoConfig: {
         x: transformations?.crop?.x || 0,
         y: transformations?.crop?.y || 0,
@@ -197,6 +218,7 @@ const VideoBlock = (props: any) => {
         className="w-full py-8"
         onMouseEnter={() => setOpen(true)}
         onMouseLeave={() => setOpen(false)}
+        ref={ref}
       >
         <Tooltip
           isOpen={isOpen}
@@ -212,13 +234,20 @@ const VideoBlock = (props: any) => {
           triggerOffset={10}
         >
           <div
-            className="relative"
+            className="relative border"
             style={{
-              width: size.width,
-              height: size.height,
+              width: divWidth,
+              height: divHeight,
             }}
           >
-            <Stage {...size} ref={stageRef}>
+            <Stage
+              {...size}
+              ref={stageRef}
+              scale={{
+                x: height / size.height,
+                y: width / size.width,
+              }}
+            >
               <Layer>
                 <Group zIndex={-1}>
                   {videoRef.current && videoConfig && (
@@ -276,9 +305,9 @@ const VideoBlock = (props: any) => {
             }}
           />
         )}
-        <div className="hidden">
+        {/* <div className="hidden">
           <NodeViewContent />
-        </div>
+        </div> */}
       </div>
     </NodeViewWrapper>
   )

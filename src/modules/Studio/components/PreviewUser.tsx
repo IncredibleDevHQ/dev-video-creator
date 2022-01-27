@@ -1,10 +1,12 @@
 /* eslint-disable consistent-return */
 import React, { useEffect, useState } from 'react'
-import { Group, Rect, Image } from 'react-konva'
+import { Group, Image, Rect } from 'react-konva'
+import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
-import useEdit, { ClipConfig } from '../hooks/use-edit'
-import { StudioUserConfig } from './Concourse'
 import configs from '../../../config'
+import useEdit, { ClipConfig } from '../hooks/use-edit'
+import { studioStore } from '../stores'
+import { StudioUserConfig } from './Concourse'
 
 const PreviewUser = ({
   studioUserConfig,
@@ -20,12 +22,17 @@ const PreviewUser = ({
     borderColor,
     borderWidth,
     studioUserClipConfig,
-    backgroundRectColor,
     backgroundRectX,
     backgroundRectY,
-    backgroundRectBorderWidth,
+    backgroundRectWidth,
+    backgroundRectHeight,
+    backgroundRectOpacity,
+    backgroundRectBorderRadius,
+    backgroundRectColor,
     backgroundRectBorderColor,
+    backgroundRectBorderWidth,
   } = studioUserConfig
+
   const imageConfig = { width: width || 160, height: height || 120 }
 
   const { clipCircle, clipRect, getImageDimensions } = useEdit()
@@ -34,7 +41,7 @@ const PreviewUser = ({
     y: 0,
     width: 160,
     height: 120,
-    radius: 8,
+    borderRadius: 8,
   }
 
   const [image] = useImage(
@@ -89,19 +96,20 @@ const PreviewUser = ({
     )
   }, [image, studioUserConfig])
 
+  const { branding } = useRecoilValue(studioStore)
+
   return (
     <>
       <Rect
         x={backgroundRectX || 775}
         y={backgroundRectY || y}
-        width={studioUserClipConfig?.width || defaultStudioUserClipConfig.width}
-        height={
-          studioUserClipConfig?.height || defaultStudioUserClipConfig.height
-        }
+        width={backgroundRectWidth}
+        height={backgroundRectHeight}
         fill={backgroundRectColor}
         stroke={backgroundRectBorderColor}
         strokeWidth={backgroundRectBorderWidth || 0}
-        cornerRadius={studioUserClipConfig?.radius || 0}
+        cornerRadius={backgroundRectBorderRadius || 0}
+        opacity={backgroundRectOpacity || 0}
       />
       <Rect
         x={(studioUserClipConfig && studioUserClipConfig.x + x) || 775}
@@ -113,7 +121,7 @@ const PreviewUser = ({
         // cornerRadius={studioUserClipConfig?.radius || 0}
         stroke={borderColor}
         strokeWidth={borderWidth || 0}
-        cornerRadius={studioUserClipConfig?.radius || 0}
+        cornerRadius={studioUserClipConfig?.borderRadius || 0}
       />
 
       <Group
@@ -130,7 +138,7 @@ const PreviewUser = ({
         <Rect
           width={imageConfig.width}
           height={imageConfig.height}
-          fill="#374151"
+          fill={branding?.colors?.transition || '#374151'}
         />
       </Group>
       <Image

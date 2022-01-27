@@ -170,11 +170,14 @@ const useCanvasRecorder = ({
     splashAudioSourceNode.current.disconnect()
   }
 
+  const stopStreaming = () => {
+    if (ws.current?.readyState === ws.current?.OPEN) ws.current?.close()
+  }
+
   const stopRecording = (fileName?: string) => {
     if (mediaRecorder?.state === 'inactive') return
     if (mediaRecorder?.state === 'recording') {
       mediaRecorder?.stop()
-      if (ws.current?.readyState === ws.current?.OPEN) ws.current?.close()
     } else console.error('Cannot stop canvas recorder', mediaRecorder?.state)
   }
 
@@ -208,6 +211,7 @@ const useCanvasRecorder = ({
     addMusic,
     reduceSplashAudioVolume,
     stopMusic,
+    stopStreaming,
   }
 }
 

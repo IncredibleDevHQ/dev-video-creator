@@ -19,6 +19,15 @@ fragment PublicFlick on Flick {
   }
 }
 
+fragment Content on Content {
+  id
+  isPublic
+  seriesId
+  resource
+  thumbnail
+  type
+}
+
 fragment BaseFlick on Flick {
   color
   description
@@ -39,13 +48,16 @@ fragment BaseFlick on Flick {
   status
   deletedAt
   producedLink
+  useBranding
+  brandingId
+  branding {
+    id
+    name
+    branding
+  }
   configuration
   contents {
-    id
-    isPublic
-    seriesId
-    thumbnail
-    type
+    ...Content
   }
   participants {
     user {
@@ -172,6 +184,12 @@ query GetFlickParticipants($flickId: uuid!) {
   }
 }
 
+query ZipStatus($flickId: uuid!) {
+  Flick(where: { id: { _eq: $flickId } }) {
+    downloadTasks
+  }
+}
+
 mutation UpdateFlick(
   $flickId: String!
   $name: String!
@@ -192,6 +210,19 @@ mutation UpdateFlick(
 
 mutation UpdateFlickMarkdown($id: uuid!, $md: String!) {
   update_Flick_by_pk(pk_columns: { id: $id }, _set: { md: $md }) {
+    id
+  }
+}
+
+mutation UpdateFlickBranding(
+  $id: uuid!
+  $branding: Boolean!
+  $brandingId: uuid
+) {
+  update_Flick_by_pk(
+    pk_columns: { id: $id }
+    _set: { useBranding: $branding, brandingId: $brandingId }
+  ) {
     id
   }
 }
@@ -320,6 +351,34 @@ mutation UpdateFlickMd($id: uuid!, $md: String!) {
   }
 }
 
+mutation UpdateFlickTheme($id: uuid!, $theme: String!) {
+  update_Flick_by_pk(pk_columns: { id: $id }, _set: { theme: $theme }) {
+    id
+    theme
+  }
+}
+mutation SaveFlick(
+  $id: uuid!
+  $md: String!
+  $editorState: json!
+  $fragmentId: uuid!
+  $configuration: json!
+  $branding: Boolean!
+  $brandingId: uuid
+) {
+  update_Flick_by_pk(
+    pk_columns: { id: $id }
+    _set: { md: $md, useBranding: $branding, brandingId: $brandingId }
+  ) {
+    id
+  }
+  update_Fragment_by_pk(
+    pk_columns: { id: $fragmentId }
+    _set: { editorState: $editorState, configuration: $configuration }
+  ) {
+    id
+  }
+}
 
 subscription FlickStatus($flickId: uuid!) {
   Flick_by_pk(id: $flickId) {

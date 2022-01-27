@@ -176,9 +176,10 @@ const ShareModal = ({
       center
       showCloseIcon={false}
     >
-      <Text className="bg-gray-100 text-gray-800 mb-8 px-4 py-2 rounded-md font-semibold w-max text-sm">
-        Invite to {flick?.name}
+      <Text className="text-gray-800 px-4 py-1 font-semibold text-sm">
+        Invite
       </Text>
+      <hr />
       <div className="grid grid-cols-6 items-center mt-4 mb-12">
         <div className="grid grid-cols-6 col-span-5 items-center">
           <Select
@@ -206,7 +207,7 @@ const ShareModal = ({
             }
             isLoading={filteredUsersLoading}
             onInputChange={(value: string) => setSearch(value)}
-            placeholder="Search a user"
+            placeholder="Invite Collaborators"
           />
           <Select
             className="pl-2 col-span-2 text-xs"
@@ -222,6 +223,7 @@ const ShareModal = ({
               label: invitee.role,
             }}
             placeholder="Select role"
+            isSearchable={false}
           />
         </div>
         <Button
@@ -274,6 +276,7 @@ const ShareModal = ({
                   label: participant.role,
                 }}
                 placeholder="Select role"
+                isSearchable={false}
               />
             )}
           </div>
