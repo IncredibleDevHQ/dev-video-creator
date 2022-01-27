@@ -1,6 +1,6 @@
 import Details from './Details'
 import Formats, { Format, FormatEnum } from './Formats'
-import Interactions, { Interaction, Fragment } from './Interactions'
+import Interactions, { Fragment, Interaction } from './Interactions'
 import Markdown, { EditorConfig, Integration } from './Markdown'
 import Permissions from './Permissions'
 

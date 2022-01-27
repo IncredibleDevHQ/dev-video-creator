@@ -1,0 +1,10 @@
+fragment Theme on Theme {
+  name
+  config
+}
+
+query GetThemes {
+  Theme {
+    ...Theme
+  }
+}
