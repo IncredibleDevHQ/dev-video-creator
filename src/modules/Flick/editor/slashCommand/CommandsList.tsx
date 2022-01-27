@@ -82,10 +82,10 @@ export class CommandsList extends React.Component<any, CommandsListState> {
 
   render() {
     const items = this.props.items as SuggestionItem[]
-    return (
+    return items.length > 0 ? (
       <div
         className={cx(
-          'flex flex-col overflow-y-scroll bg-white border border-gray-200 rounded-sm shadow-md',
+          'flex flex-col overflow-y-scroll bg-white border border-gray-200 rounded-sm shadow-md h-80',
           css`
             ::-webkit-scrollbar {
               display: none;
@@ -113,7 +113,7 @@ export class CommandsList extends React.Component<any, CommandsListState> {
                 key={item.title}
                 onClick={() => this.selectItem(index)}
               >
-                <div className="flex items-center mr-28 gap-x-3">
+                <div className="flex items-center mr-20 gap-x-3">
                   <div className="p-2 bg-gray-800 rounded-sm">
                     {this.getIcon(item)}
                   </div>
@@ -136,7 +136,7 @@ export class CommandsList extends React.Component<any, CommandsListState> {
           )
         })}
       </div>
-    )
+    ) : null
   }
 }
 

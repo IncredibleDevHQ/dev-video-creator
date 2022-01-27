@@ -53,16 +53,15 @@ const Button = ({
             appearance === 'link-danger',
           'border-red-600 bg-red-600 text-white hover:shadow-lg hover:bg-red-700 hover:border-red-700 active:bg-red-800 active:border-red-800':
             appearance === 'danger',
-          'bg-brand-grey text-white opacity-90 hover:opacity-100 border-none':
-            appearance === 'gray',
-          'text-white border-none': appearance === 'none',
+          'bg-brand-grey text-white border-brand-grey': appearance === 'gray',
+          'text-white border-transparent': appearance === 'none',
           'w-full': stretch,
           'opacity-70 cursor-not-allowed': disabled,
         },
         {
           'text-2xl py-2 px-6': size === 'large',
           'text-lg py-1.5 px-4': size === 'medium',
-          'text-base py-1.5 px-2.5': size === 'small',
+          'text-base py-1 px-2.5': size === 'small',
           'text-small py-0.5 px-1': size === 'extraSmall',
         },
         className

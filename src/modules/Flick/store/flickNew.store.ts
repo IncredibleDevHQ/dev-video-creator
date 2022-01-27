@@ -1,5 +1,5 @@
 import { atom } from 'recoil'
-import { FlickFragment } from '../../../generated/graphql'
+import { FlickFragment, ThemeFragment } from '../../../generated/graphql'
 
 export enum View {
   Notebook = 'notebook',
@@ -11,6 +11,8 @@ interface NewFlickStore {
   activeFragmentId: string
   isMarkdown: boolean
   view: View
+  activeTheme: ThemeFragment | null
+  themes: ThemeFragment[]
 }
 
 export const newFlickStore = atom<NewFlickStore>({
@@ -20,5 +22,7 @@ export const newFlickStore = atom<NewFlickStore>({
     activeFragmentId: '',
     isMarkdown: true,
     view: View.Notebook,
+    themes: [],
+    activeTheme: null,
   } as NewFlickStore,
 })

@@ -7,8 +7,9 @@ import {
   IoListOutline,
   IoPlayOutline,
 } from 'react-icons/io5'
-import { Block } from '../editor/utils/utils'
+import { Text } from '../../../components'
 import { Layout, ViewConfig } from '../../../utils/configTypes'
+import { Block } from '../editor/utils/utils'
 
 export const FragmentTypeIcon = ({ type }: { type: Block['type'] }) => {
   return (
@@ -24,6 +25,18 @@ export const FragmentTypeIcon = ({ type }: { type: Block['type'] }) => {
           case 'codeBlock':
             return (
               <IoCodeSlashOutline className="w-full h-full text-gray-400" />
+            )
+          case 'introBlock':
+            return (
+              <Text className="w-full h-full text-center justify-center items-center flex text-gray-400 font-main text-xs">
+                Title
+              </Text>
+            )
+          case 'outroBlock':
+            return (
+              <Text className="w-full h-full text-gray-400 font-main text-xs justify-center items-center flex ">
+                Outro
+              </Text>
             )
           default:
             return <></>
@@ -56,8 +69,8 @@ const LayoutGeneric = ({
                   'border border-gray-200 rounded-md cursor-pointer bg-white',
                   {
                     'border-brand': isSelected,
-                    'p-1 w-20 h-32': mode === 'Portrait',
-                    'p-2 w-32 h-16': mode === 'Landscape',
+                    'p-1 w-16 h-28': mode === 'Portrait',
+                    'p-2 w-28 h-16': mode === 'Landscape',
                   }
                 )}
                 {...rest}
@@ -74,8 +87,8 @@ const LayoutGeneric = ({
                   'border border-gray-200 rounded-md cursor-pointer flex gap-x-2',
                   {
                     'border-brand': isSelected,
-                    'p-1 w-20 h-32': mode === 'Portrait',
-                    'p-2 w-32 h-16': mode === 'Landscape',
+                    'p-1 w-16 h-28': mode === 'Portrait',
+                    'p-2 w-28 h-16': mode === 'Landscape',
                   }
                 )}
                 {...rest}
@@ -93,8 +106,8 @@ const LayoutGeneric = ({
                   'p-2 border border-gray-200 rounded-md cursor-pointer flex gap-x-2',
                   {
                     'border-brand': isSelected,
-                    'w-20 h-32': mode === 'Portrait',
-                    'w-32 h-16': mode === 'Landscape',
+                    'w-16 h-28': mode === 'Portrait',
+                    'w-28 h-16': mode === 'Landscape',
                   }
                 )}
                 {...rest}
@@ -112,8 +125,8 @@ const LayoutGeneric = ({
                   'p-2 border border-gray-200 rounded-md cursor-pointer flex justify-end items-center relative',
                   {
                     'border-brand': isSelected,
-                    'w-20 h-32': mode === 'Portrait',
-                    'w-32 h-16': mode === 'Landscape',
+                    'w-16 h-28': mode === 'Portrait',
+                    'w-28 h-16': mode === 'Landscape',
                   }
                 )}
                 {...rest}
@@ -131,8 +144,8 @@ const LayoutGeneric = ({
                   'p-2 border border-gray-200 rounded-md cursor-pointer flex justify-end items-end relative',
                   {
                     'border-brand': isSelected,
-                    'w-20 h-32': mode === 'Portrait',
-                    'w-32 h-16': mode === 'Landscape',
+                    'w-16 h-28': mode === 'Portrait',
+                    'w-28 h-16': mode === 'Landscape',
                   }
                 )}
                 {...rest}
@@ -150,8 +163,8 @@ const LayoutGeneric = ({
                   'p-2 border border-gray-200 rounded-md cursor-pointer flex justify-end items-end relative',
                   {
                     'border-brand': isSelected,
-                    'w-20 h-32': mode === 'Portrait',
-                    'w-32 h-16': mode === 'Landscape',
+                    'w-16 h-28': mode === 'Portrait',
+                    'w-28 h-16': mode === 'Landscape',
                   }
                 )}
                 {...rest}
@@ -169,8 +182,8 @@ const LayoutGeneric = ({
                   'border border-gray-200 rounded-md cursor-pointer flex justify-end items-end relative',
                   {
                     'border-brand': isSelected,
-                    'w-20 h-32': mode === 'Portrait',
-                    'w-32 h-16': mode === 'Landscape',
+                    'w-16 h-28': mode === 'Portrait',
+                    'w-28 h-16': mode === 'Landscape',
                   }
                 )}
                 {...rest}
@@ -188,8 +201,8 @@ const LayoutGeneric = ({
                   'border border-gray-200 rounded-md cursor-pointer flex justify-end items-end relative',
                   {
                     'border-brand': isSelected,
-                    'w-20 h-32': mode === 'Portrait',
-                    'w-32 h-16': mode === 'Landscape',
+                    'w-16 h-28': mode === 'Portrait',
+                    'w-28 h-16': mode === 'Landscape',
                   }
                 )}
                 {...rest}
@@ -207,8 +220,8 @@ const LayoutGeneric = ({
                   'border border-gray-200 rounded-md cursor-pointer flex items-center gap-x-2',
                   {
                     'border-brand': isSelected,
-                    'w-20 h-32': mode === 'Portrait',
-                    'w-32 h-16': mode === 'Landscape',
+                    'w-16 h-28': mode === 'Portrait',
+                    'w-28 h-16': mode === 'Landscape',
                   }
                 )}
                 {...rest}
@@ -226,8 +239,8 @@ const LayoutGeneric = ({
                   'border border-gray-200 rounded-md cursor-pointer flex items-center',
                   {
                     'border-brand': isSelected,
-                    'flex-col w-20 h-32 p-1.5 gap-y-1': mode === 'Portrait',
-                    'w-32 h-16': mode === 'Landscape',
+                    'flex-col w-16 h-28 p-1.5 gap-y-1': mode === 'Portrait',
+                    'w-28 h-16': mode === 'Landscape',
                   }
                 )}
                 {...rest}
@@ -256,21 +269,18 @@ const LayoutGeneric = ({
                   'border border-gray-200 rounded-md cursor-pointer flex items-center relative',
                   {
                     'border-brand': isSelected,
-                    'w-20 h-32': mode === 'Portrait',
-                    'w-32 h-16': mode === 'Landscape',
+                    'w-16 h-28 justify-center': mode === 'Portrait',
+                    'w-28 h-16': mode === 'Landscape',
                   }
                 )}
                 {...rest}
               >
                 <div className="w-full h-full bg-gray-500 rounded-sm items-self-end" />
                 <div
-                  className={cx(
-                    'bg-gray-200 p-1.5 left-2 absolute rounded-sm',
-                    {
-                      'w-4/5 h-2/5 bottom-16': mode === 'Portrait',
-                      'h-8 w-2/5': mode === 'Landscape',
-                    }
-                  )}
+                  className={cx('bg-gray-200 p-1.5 absolute rounded-sm', {
+                    'w-4/5 h-2/5 top-2': mode === 'Portrait',
+                    'h-8 w-2/5 left-1': mode === 'Landscape',
+                  })}
                 >
                   {type && <FragmentTypeIcon type={type} />}
                 </div>

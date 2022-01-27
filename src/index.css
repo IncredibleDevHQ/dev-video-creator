@@ -143,3 +143,15 @@ body {
 .remirror-theme .remirror-collapsible-list-item-button {
   background-color: #000 !important;
 }
+
+#font-picker {
+  @apply block shadow-none w-full border border-gray-300 rounded-sm text-sm;
+}
+
+#font-picker .dropdown-button {
+  @apply bg-transparent;
+}
+
+#font-picker .font-list {
+  @apply bg-white mt-4;
+}

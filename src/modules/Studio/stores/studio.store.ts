@@ -2,6 +2,7 @@ import { ILocalVideoTrack, IMicrophoneAudioTrack } from 'agora-rtc-sdk-ng'
 import { atom } from 'recoil'
 import { StudioFragmentFragment } from '../../../generated/graphql'
 import { AudioType } from '../../../hooks/use-canvas-recorder'
+import { BrandingJSON } from '../../Branding/BrandingPage'
 import { RTCUser } from '../hooks/use-video'
 
 export type StudioState =
@@ -39,6 +40,8 @@ export interface StudioProviderProps<T = any, S = any> {
   isHost: boolean
   updatePayload?: (value: S) => void
   updateParticipant?: (value: T) => void
+
+  branding?: BrandingJSON | null
 
   participantId?: string
   // config to render controls

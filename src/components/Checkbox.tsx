@@ -33,7 +33,7 @@ const Checkbox = ({
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: #ccc;
+    background-color: #202020;
     -webkit-transition: 0.4s;
     transition: 0.4s;
 
@@ -44,18 +44,18 @@ const Checkbox = ({
       width: 1.25rem;
       left: 4px;
       bottom: 4px;
-      background-color: white;
+      background-color: #404040;
       -webkit-transition: 0.4s;
       transition: 0.4s;
       border-radius: 50%;
     }
 
     input:checked + & {
-      background-color: #5156ea;
+      background-color: #16a34a;
     }
 
     input:focus + & {
-      box-shadow: 0 0 1px #5156ea;
+      box-shadow: 0 0 1px #16a34a;
     }
 
     input:checked + &:before {
@@ -69,7 +69,6 @@ const Checkbox = ({
 
   return (
     <div className={cx('flex items-center', className)} key={key}>
-      <span className="text-base mr-2">{label}</span>
       <label className={switchCSS} htmlFor={label}>
         <input
           type="checkbox"
@@ -80,6 +79,7 @@ const Checkbox = ({
         />
         <span className={`${slider} round`} />
       </label>
+      <span className="text-base ml-2">{label}</span>
     </div>
   )
 }

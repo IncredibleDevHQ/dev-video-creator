@@ -9,10 +9,12 @@ export const TrianglePathTransition = ({
   direction,
   performFinishAction,
   isShorts,
+  color,
 }: {
   direction: string
   performFinishAction?: () => void
   isShorts?: boolean
+  color?: string
 }) => {
   let stageConfig = { width: CONFIG.width, height: CONFIG.height }
   if (!isShorts) stageConfig = CONFIG
@@ -47,7 +49,7 @@ export const TrianglePathTransition = ({
   if (!isShorts)
     return (
       <Group
-        x={groupStartX + 350}
+        x={groupStartX}
         y={0}
         ref={(ref) =>
           ref?.to({
@@ -94,7 +96,7 @@ export const TrianglePathTransition = ({
             context.closePath()
             context.fillStrokeShape(shape)
           }}
-          fill="#ffffff"
+          fill={color || '#ffffff'}
           opacity={0.6}
         />
         <Shape
@@ -125,7 +127,7 @@ export const TrianglePathTransition = ({
             context.closePath()
             context.fillStrokeShape(shape)
           }}
-          fill="#ffffff"
+          fill={color || '#ffffff'}
           opacity={0.8}
         />
         <Shape
@@ -159,7 +161,7 @@ export const TrianglePathTransition = ({
             context.closePath()
             context.fillStrokeShape(shape)
           }}
-          fill="#ffffff"
+          fill={color || '#ffffff'}
           opacity={1}
         />
       </Group>
@@ -212,7 +214,7 @@ export const TrianglePathTransition = ({
           context.closePath()
           context.fillStrokeShape(shape)
         }}
-        fill="#ffffff"
+        fill={color || '#ffffff'}
         opacity={0.6}
       />
       <Shape
@@ -243,7 +245,7 @@ export const TrianglePathTransition = ({
           context.closePath()
           context.fillStrokeShape(shape)
         }}
-        fill="#ffffff"
+        fill={color || '#ffffff'}
         opacity={0.8}
       />
       <Shape
@@ -277,7 +279,7 @@ export const TrianglePathTransition = ({
           context.closePath()
           context.fillStrokeShape(shape)
         }}
-        fill="#ffffff"
+        fill={color || '#ffffff'}
         opacity={1}
       />
     </Group>
@@ -428,7 +430,7 @@ export const MultiCircleCenterGrow = ({
         scaleY={0}
         fill={colors ? colors[0] : '#ffffff'}
         ref={(ref) => {
-          reduceSplashAudioVolume(0.01)
+          // reduceSplashAudioVolume(0.01)
           ref?.to({
             scaleX: 5,
             scaleY: 5,
@@ -471,7 +473,7 @@ export const MultiCircleCenterGrow = ({
               // easing: Konva.Easings.EaseIn,
               onFinish: () => {
                 if (!performFinishAction) return
-                reduceSplashAudioVolume(0.0)
+                // reduceSplashAudioVolume(0.0)
                 // setTimeout(() => {
                 //   reduceSplashAudioVolume(0.0)
                 // }, 200)

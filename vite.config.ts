@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite'
-import reactRefresh from '@vitejs/plugin-react-refresh'
 import svgr from 'vite-plugin-svgr'
 import vitePluginHtmlEnv from 'vite-plugin-html-env'
+import react from '@vitejs/plugin-react'
 import path from 'path'
 
 // https://vitejs.dev/config/
@@ -10,13 +10,13 @@ export default defineConfig({
     outDir: 'build',
   },
   plugins: [
-    reactRefresh(),
     svgr({
       svgrOptions: {
         icon: true,
       },
     }),
     vitePluginHtmlEnv(),
+    react(),
   ],
   resolve: {
     alias: {
