@@ -2,23 +2,24 @@ import Konva from 'konva'
 import React, { createRef, useEffect, useState } from 'react'
 import { Group, Rect } from 'react-konva'
 import { useRecoilState, useRecoilValue } from 'recoil'
-import {
-  Fragment_Status_Enum_Enum,
-  Fragment_Type_Enum_Enum,
-} from '../../../generated/graphql'
+import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
 import { User, userState } from '../../../stores/user.store'
-import { BlockProperties, GradientConfig } from '../../../utils/configTypes'
-import { ShortsOutro } from '../effects/fragments/OutroFragment'
 import {
-  MultiCircleCenterGrow,
-  MultiCircleMoveDown,
-} from '../effects/FragmentTransitions'
-import ShapesSplash from '../effects/Splashes/ShapesSplash'
+  BlockProperties,
+  GradientConfig,
+  TopLayerChildren,
+} from '../../../utils/configTypes'
+import { Block } from '../../Flick/editor/utils/utils'
+import GlassySplash from '../effects/Splashes/GlassySplash'
 import ShortsPopSplash from '../effects/Splashes/ShortsPopSplash'
-import { ClipConfig } from '../hooks/use-edit'
+import useEdit, { ClipConfig } from '../hooks/use-edit'
 import { canvasStore, StudioProviderProps, studioStore } from '../stores'
+import { FragmentLayoutConfig } from '../utils/FragmentLayoutConfig'
+import LowerThridProvider from './LowerThirdProvider'
 import PreviewUser from './PreviewUser'
 import StudioUser from './StudioUser'
+import TransitionProvider from './TransitionProvider'
+import VideoBackground from './VideoBackground'
 
 export interface StudioUserConfig {
   x: number
@@ -26,12 +27,16 @@ export interface StudioUserConfig {
   width: number
   height: number
   clipTheme?: string
+  studioUserClipConfig?: ClipConfig
   borderColor?: string
   borderWidth?: number
-  studioUserClipConfig?: ClipConfig
   backgroundRectX?: number
   backgroundRectY?: number
+  backgroundRectWidth?: number
+  backgroundRectHeight?: number
   backgroundRectColor?: string
+  backgroundRectOpacity?: number
+  backgroundRectBorderRadius?: number
   backgroundRectBorderColor?: string
   backgroundRectBorderWidth?: number
 }
@@ -46,12 +51,15 @@ interface ConcourseProps {
   layerChildren: any[]
   viewConfig?: BlockProperties
   stageRef?: React.RefObject<Konva.Stage>
-  layerRef?: React.RefObject<Konva.Layer>
   titleSplashData?: TitleSplashProps
   studioUserConfig?: StudioUserConfig[]
   disableUserMedia?: boolean
-  topLayerChildren?: any[]
+  topLayerChildren?: {
+    id: string
+    state: TopLayerChildren
+  }
   isShorts?: boolean
+  blockType: Block['type']
 }
 
 export const CONFIG = {
@@ -64,16 +72,55 @@ export const SHORTS_CONFIG = {
   height: 704,
 }
 
+const GetTopLayerChildren = ({
+  topLayerChildrenState,
+  isShorts,
+  status,
+}: {
+  topLayerChildrenState: TopLayerChildren
+  isShorts: boolean
+  status: Fragment_Status_Enum_Enum
+}) => {
+  if (status === Fragment_Status_Enum_Enum.Ended) return <></>
+  switch (topLayerChildrenState) {
+    case 'lowerThird': {
+      return <LowerThridProvider theme="glassy" isShorts={isShorts || false} />
+    }
+    case 'transition left': {
+      return (
+        <TransitionProvider
+          theme="glassy"
+          isShorts={isShorts || false}
+          direction="left"
+        />
+      )
+    }
+    case 'transition right': {
+      return (
+        <TransitionProvider
+          theme="glassy"
+          isShorts={isShorts || false}
+          direction="right"
+        />
+      )
+    }
+    case '':
+      return <></>
+    default:
+      return <></>
+  }
+}
+
 const Concourse = ({
   layerChildren,
   viewConfig,
   stageRef,
-  layerRef,
   titleSplashData,
   studioUserConfig,
   disableUserMedia,
   topLayerChildren,
   isShorts,
+  blockType,
 }: ConcourseProps) => {
   const {
     fragment,
@@ -83,7 +130,6 @@ const Concourse = ({
     payload,
     users,
     stopRecording,
-    reduceSplashAudioVolume,
   } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [canvas, setCanvas] = useRecoilState(canvasStore)
   const [isTitleSplash, setIsTitleSplash] = useState<boolean>(false)
@@ -92,6 +138,7 @@ const Concourse = ({
   const { sub, picture } = (useRecoilValue(userState) as User) || {}
 
   const groupRef = createRef<Konva.Group>()
+  const { clipRect } = useEdit()
 
   const [stageConfig, setStageConfig] = useState<{
     width: number
@@ -167,14 +214,30 @@ const Concourse = ({
         groupRef.current.to({
           x: -pointer.x,
           y: -pointer.y,
-          scaleX: 1.5,
-          scaleY: 1.5,
+          scaleX: zoomLevel,
+          scaleY: zoomLevel,
           duration: 0.5,
         })
       }
     }
     setZooming(!isZooming)
   }
+
+  // const onMouseMove = () => {
+  //   if (!groupRef.current || !canvas?.zoomed) return
+  //   const tZooming = isZooming
+  //   if (tZooming) {
+  //     const pointer = stageRef?.current?.getPointerPosition()
+  //     if (pointer)
+  //       groupRef.current.to({
+  //         x: -pointer.x,
+  //         y: -pointer.y,
+  //         // scaleX: 1,
+  //         // scaleY: 1,
+  //         duration: 0.1,
+  //       })
+  //   }
+  // }
 
   const onMouseLeave = () => {
     if (!groupRef.current) return
@@ -215,25 +278,7 @@ const Concourse = ({
 
   return (
     <>
-      {/* {viewConfig.background.type === 'color' ? ( */}
-      <Rect
-        x={0}
-        y={0}
-        width={stageConfig.width}
-        height={stageConfig.height}
-        fillLinearGradientColorStops={viewConfig?.gradient?.values}
-        fillLinearGradientStartPoint={viewConfig?.gradient?.startIndex}
-        fillLinearGradientEndPoint={viewConfig?.gradient?.endIndex}
-      />
-      {/* ) : (
-        <Image
-          x={0}
-          y={0}
-          width={stageConfig.width}
-          height={stageConfig.height}
-          image={bgImage}
-        />
-      )} */}
+      <VideoBackground theme="glassy" stageConfig={stageConfig} />
       {viewConfig?.layout === 'full' &&
       !disableUserMedia &&
       !isTitleSplash &&
@@ -297,7 +342,7 @@ const Concourse = ({
           }
         )
       )}
-      <Group ref={groupRef} onClick={onLayerClick} onMouseLeave={onMouseLeave}>
+      <Group>
         {(() => {
           if (payload?.status === Fragment_Status_Enum_Enum.CountDown) {
             return (
@@ -316,11 +361,11 @@ const Concourse = ({
             if (titleSplashData?.enable && isTitleSplash) {
               return !isShorts ? (
                 <>
-                  <ShapesSplash
+                  <GlassySplash
+                    isShorts={isShorts || false}
                     setIsTitleSplash={setIsTitleSplash}
-                    renderMode="static"
+                    stageConfig={stageConfig}
                   />
-                  <MultiCircleMoveDown />
                 </>
               ) : (
                 <>
@@ -334,21 +379,34 @@ const Concourse = ({
             }
           }
           if (payload?.status === Fragment_Status_Enum_Enum.Ended) {
-            if (fragment?.type === Fragment_Type_Enum_Enum.Outro) {
-              performFinishAction()
-            } else if (fragment?.configuration?.mode === 'Portrait') {
-              return <ShortsOutro performFinishAction={performFinishAction} />
-            }
-            if (fragment?.type === Fragment_Type_Enum_Enum.Intro) {
-              reduceSplashAudioVolume(0.03)
-            }
-            return (
-              <MultiCircleCenterGrow
-                performFinishAction={performFinishAction}
-              />
-            )
+            performFinishAction()
           }
-          return layerChildren
+          return (
+            <Group
+              clipFunc={
+                blockType === 'introBlock' || blockType === 'outroBlock'
+                  ? undefined
+                  : (ctx: any) => {
+                      clipRect(
+                        ctx,
+                        FragmentLayoutConfig({
+                          layout: viewConfig?.layout || 'classic',
+                          isShorts: isShorts || false,
+                        })
+                      )
+                    }
+              }
+            >
+              <Group
+                ref={groupRef}
+                onClick={onLayerClick}
+                onMouseLeave={onMouseLeave}
+                // onMouseMove={onMouseMove}
+              >
+                {layerChildren}
+              </Group>
+            </Group>
+          )
         })()}
       </Group>
       {viewConfig?.layout !== 'full' &&
@@ -414,11 +472,14 @@ const Concourse = ({
           }
         )
       )}
-      <Group>{topLayerChildren}</Group>
-      {(payload?.status === Fragment_Status_Enum_Enum.Live &&
-        fragment?.type) === Fragment_Type_Enum_Enum.Outro && (
-        <MultiCircleMoveDown />
-      )}
+      <Group>
+        <GetTopLayerChildren
+          key={topLayerChildren?.id}
+          topLayerChildrenState={topLayerChildren?.state || ''}
+          isShorts={isShorts || false}
+          status={payload?.status}
+        />
+      </Group>
     </>
   )
 }

@@ -2,7 +2,7 @@ import { sentenceCase } from 'change-case'
 import React, { useEffect, useState } from 'react'
 import { FiChevronLeft } from 'react-icons/fi'
 import { useRecoilState } from 'recoil'
-import { FlickActivity, Download } from '.'
+import { Download } from '.'
 import { Button, Heading } from '../../../components'
 import config from '../../../config'
 import { ASSETS } from '../../../constants'
@@ -12,7 +12,6 @@ import ShareModal from './ShareModal'
 
 const FlickNavBar = () => {
   const [{ flick }, setFlickStore] = useRecoilState(newFlickStore)
-  const [isActivityMenu, setIsActivityMenu] = useState(false)
   const [isShareOpen, setIsShareOpen] = useState(false)
   const [isDownloadOpen, setIsDownloadOpen] = useState(false)
   const [editFlickName, setEditFlickName] = useState(false)
@@ -90,11 +89,6 @@ const FlickNavBar = () => {
         >
           Invite
         </Button>
-        {/* <FiBell
-          className="text-gray-600 cursor-pointer"
-          size={21}
-          onClick={() => setIsActivityMenu(!isActivityMenu)}
-        /> */}
         <Button
           appearance="gray"
           size="small"
@@ -104,19 +98,20 @@ const FlickNavBar = () => {
           Download
         </Button>
       </div>
-      <div className="absolute right-0">
-        <FlickActivity menu={isActivityMenu} setMenu={setIsActivityMenu} />
-      </div>
-      <ShareModal
-        open={isShareOpen}
-        handleClose={() => {
-          setIsShareOpen(false)
-        }}
-      />
-      <Download
-        open={isDownloadOpen}
-        handleClose={(refresh?: boolean) => setIsDownloadOpen(false)}
-      />
+      {isShareOpen && (
+        <ShareModal
+          open={isShareOpen}
+          handleClose={() => {
+            setIsShareOpen(false)
+          }}
+        />
+      )}
+      {isDownloadOpen && (
+        <Download
+          open={isDownloadOpen}
+          handleClose={(refresh?: boolean) => setIsDownloadOpen(false)}
+        />
+      )}
     </div>
   )
 }

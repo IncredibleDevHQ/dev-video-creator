@@ -1,4 +1,5 @@
 import { JSONContent } from '@tiptap/core'
+import { IntroState } from '../../../Studio/effects/fragments/IntroFragment'
 import { Transformations } from '../blocks/VideoEditor'
 
 export type Layout =
@@ -55,6 +56,10 @@ export interface ImageBlock {
   description?: string
 }
 
+export interface IntroBlock {
+  order: IntroState[]
+}
+
 export interface ListItem {
   content?: string
   items?: ListItem[]
@@ -88,11 +93,22 @@ export interface ImageBlockProps extends CommonBlockProps {
   imageBlock: ImageBlock
 }
 
+export interface IntroBlockProps extends CommonBlockProps {
+  type: 'introBlock'
+  introBlock: IntroBlock
+}
+
+export interface OutroBlockProps extends CommonBlockProps {
+  type: 'outroBlock'
+}
+
 export type Block =
   | CodeBlockProps
   | VideoBlockProps
   | ListBlockProps
   | ImageBlockProps
+  | IntroBlockProps
+  | OutroBlockProps
 
 export interface SimpleAST {
   blocks: Block[]
@@ -157,6 +173,7 @@ const getSimpleAST = (state: JSONContent): SimpleAST => {
   }
 
   let prevCoreBlockPos = 0
+  let blockPosition = 1
 
   state?.content?.forEach((slab, index) => {
     if (slab.type === 'paragraph') {
@@ -168,7 +185,7 @@ const getSimpleAST = (state: JSONContent): SimpleAST => {
           blocks.push({
             type: 'imageBlock',
             id: slab.attrs?.id as string,
-            pos: 0,
+            pos: blockPosition,
             nodeIds,
             imageBlock: {
               url: url as string,
@@ -178,6 +195,7 @@ const getSimpleAST = (state: JSONContent): SimpleAST => {
             },
           })
           prevCoreBlockPos = index
+          blockPosition += 1
         }
       })
     } else if (slab.type === 'codeBlock') {
@@ -198,18 +216,19 @@ const getSimpleAST = (state: JSONContent): SimpleAST => {
         type: 'codeBlock',
         codeBlock,
         id: slab.attrs?.id as string,
-        pos: 0,
+        pos: blockPosition,
         nodeIds,
       })
 
       prevCoreBlockPos = index
+      blockPosition += 1
     } else if (slab.type === 'video') {
       const { description, note, title, nodeIds } = getCommonProps(index)
 
       blocks.push({
         type: 'videoBlock',
         id: slab.attrs?.id as string,
-        pos: 0,
+        pos: blockPosition,
         nodeIds,
         videoBlock: {
           url: slab?.attrs?.src as string,
@@ -222,6 +241,7 @@ const getSimpleAST = (state: JSONContent): SimpleAST => {
         },
       })
       prevCoreBlockPos = index
+      blockPosition += 1
     } else if (slab.type === 'image') {
       const url = slab?.attrs?.src
 
@@ -229,7 +249,7 @@ const getSimpleAST = (state: JSONContent): SimpleAST => {
       blocks.push({
         type: 'imageBlock',
         id: slab.attrs?.id as string,
-        pos: 0,
+        pos: blockPosition,
         nodeIds,
         imageBlock: {
           url: url as string,
@@ -239,6 +259,7 @@ const getSimpleAST = (state: JSONContent): SimpleAST => {
         },
       })
       prevCoreBlockPos = index
+      blockPosition += 1
     } else if (slab.type === 'bulletList' || slab.type === 'orderedList') {
       const { description, note, title, nodeIds } = getCommonProps(index)
 
@@ -273,7 +294,7 @@ const getSimpleAST = (state: JSONContent): SimpleAST => {
       blocks.push({
         type: 'listBlock',
         id: slab.attrs?.id as string,
-        pos: 0,
+        pos: blockPosition,
         nodeIds,
         listBlock: {
           description,
@@ -284,6 +305,7 @@ const getSimpleAST = (state: JSONContent): SimpleAST => {
       })
 
       prevCoreBlockPos = index
+      blockPosition += 1
     }
   })
 

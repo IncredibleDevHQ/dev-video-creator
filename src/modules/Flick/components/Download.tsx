@@ -90,8 +90,8 @@ const Download = ({
 
   useEffect(() => {
     if (
-      zipSubscription?.Flick[0].downloadTasks.status === 'Completed' &&
-      zipSubscription?.Flick[0].downloadTasks.zip &&
+      zipSubscription?.Flick[0]?.downloadTasks?.status === 'Completed' &&
+      zipSubscription?.Flick[0]?.downloadTasks?.zip &&
       downloadZipData?.DownloadFlick?.success
     ) {
       ;(async () => {

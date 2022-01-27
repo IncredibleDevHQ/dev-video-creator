@@ -1,21 +1,24 @@
+/* eslint-disable jsx-a11y/no-noninteractive-element-interactions */
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 import { css, cx } from '@emotion/css'
 import React, { HTMLAttributes, useEffect, useState } from 'react'
-import { BiPlayCircle } from 'react-icons/bi'
+import { BiCheck, BiPlayCircle } from 'react-icons/bi'
 import { BsCloudCheck, BsCloudUpload } from 'react-icons/bs'
 import {
-  IoCheckmark,
   IoAlbumsOutline,
+  IoCheckmark,
   IoDesktopOutline,
   IoPhonePortraitOutline,
+  IoWarningOutline,
 } from 'react-icons/io5'
 import { useHistory } from 'react-router-dom'
 import { useRecoilState } from 'recoil'
 import { useDebouncedCallback } from 'use-debounce'
 import { FragmentVideoModal } from '.'
+import { Branding } from '../..'
+import { ReactComponent as BrandIcon } from '../../../assets/BrandIcon.svg'
 import { Button, emitToast, Heading, Text, Tooltip } from '../../../components'
-import { TextEditorParser } from '../../../components/TempTextEditor/utils'
 import config from '../../../config'
 import { ASSETS } from '../../../constants'
 import {
@@ -23,17 +26,15 @@ import {
   FlickFragmentFragment,
   Fragment_Type_Enum_Enum,
   ThemeFragment,
-  useUpdateFlickMarkdownMutation,
+  useGetBrandingQuery,
+  useSaveFlickMutation,
   useUpdateFlickThemeMutation,
-  useUpdateFragmentMarkdownMutation,
-  useUpdateFragmentStateMutation,
 } from '../../../generated/graphql'
 import useDidUpdateEffect from '../../../hooks/use-did-update-effect'
 import { ViewConfig } from '../../../utils/configTypes'
+import { TextEditorParser } from '../editor/utils/helpers'
+import { SimpleAST } from '../editor/utils/utils'
 import { newFlickStore, View } from '../store/flickNew.store'
-import { IntroOutroConfiguration } from './IntroOutroView'
-
-// const dashArray = 10 * Math.PI * 2
 
 const HorizontalContainer = ({
   className,
@@ -264,38 +265,44 @@ const ThemeTooltip = ({
 
 const FragmentBar = ({
   config,
-  markdown,
   editorValue,
   setViewConfig,
-  plateValue,
-  introConfig,
+  simpleAST,
 }: {
   editorValue?: string
-  markdown?: string
   config: ViewConfig
-  plateValue?: any
+  simpleAST?: SimpleAST
   setViewConfig: React.Dispatch<React.SetStateAction<ViewConfig>>
-  introConfig: IntroOutroConfiguration
 }) => {
   const [fragmentVideoModal, setFragmentVideoModal] = useState(false)
   const [themesModal, setThemesModal] = useState(false)
+  const [brandingModal, setBrandingModal] = useState(false)
 
   const [
     { flick, activeFragmentId, view, themes, activeTheme },
     setFlickStore,
   ] = useRecoilState(newFlickStore)
+
   const history = useHistory()
 
   const [fragment, setFragment] = useState<FlickFragmentFragment | undefined>(
     flick?.fragments.find((f) => f.id === activeFragmentId)
   )
 
-  const [updateFragmentMarkdown] = useUpdateFragmentMarkdownMutation()
-  const [updateFlickMarkdown] = useUpdateFlickMarkdownMutation()
+  const [saveFlick, { error }] = useSaveFlickMutation()
 
-  const [updateFragmentState, { error }] = useUpdateFragmentStateMutation()
+  const { data: brandingData } = useGetBrandingQuery()
 
   const [savingConfig, setSavingConfig] = useState(false)
+
+  const [useBranding, setUseBranding] = useState(false)
+  const [brandingId, setBrandingId] = useState<string>()
+
+  useEffect(() => {
+    if (!flick) return
+    setUseBranding(flick.useBranding)
+    setBrandingId(flick.brandingId)
+  }, [flick?.branding])
 
   const debounced = useDebouncedCallback(
     // function
@@ -307,7 +314,7 @@ const FragmentBar = ({
 
   useDidUpdateEffect(() => {
     debounced()
-  }, [editorValue, config, introConfig, markdown])
+  }, [editorValue, config, useBranding, brandingId])
 
   useEffect(() => {
     const f = flick?.fragments.find((f) => f.id === activeFragmentId)
@@ -330,53 +337,23 @@ const FragmentBar = ({
 
   const updateConfig = async () => {
     setSavingConfig(true)
+
     try {
       if (
         fragment &&
-        (fragment?.type === Fragment_Type_Enum_Enum.Intro ||
-          fragment?.type === Fragment_Type_Enum_Enum.Outro)
+        fragment?.type !== Fragment_Type_Enum_Enum.Intro &&
+        fragment?.type !== Fragment_Type_Enum_Enum.Outro
       ) {
-        await updateFragmentState({
-          variables: {
-            editorState: {},
-            id: activeFragmentId,
-            configuration: introConfig,
-          },
-        })
-        if (flick)
-          setFlickStore((store) => ({
-            ...store,
-            flick: {
-              ...flick,
-              fragments: flick.fragments.map((f) =>
-                f.id === activeFragmentId
-                  ? {
-                      ...f,
-                      configuration: introConfig,
-                    }
-                  : f
-              ),
-            },
-          }))
-      } else {
         if (!editorValue || editorValue?.length === 0) return
-        await updateFragmentMarkdown({
-          variables: {
-            fragmentId: activeFragmentId,
-            md: markdown,
-          },
-        })
-        await updateFlickMarkdown({
+        await saveFlick({
           variables: {
             id: flick?.id,
             md: editorValue,
-          },
-        })
-        await updateFragmentState({
-          variables: {
-            editorState: plateValue,
-            id: activeFragmentId,
+            editorState: simpleAST,
+            fragmentId: activeFragmentId,
             configuration: config,
+            branding: useBranding,
+            brandingId,
           },
         })
         if (flick)
@@ -384,13 +361,18 @@ const FragmentBar = ({
             ...store,
             flick: {
               ...flick,
+              useBranding,
+              brandingId,
+              branding: useBranding
+                ? brandingData?.Branding.find((b) => b.id === brandingId)
+                : null,
               md: editorValue,
               fragments: flick.fragments.map((f) =>
                 f.id === activeFragmentId
                   ? {
                       ...f,
                       configuration: config,
-                      editorState: editorValue,
+                      editorState: simpleAST,
                     }
                   : f
               ),
@@ -400,12 +382,14 @@ const FragmentBar = ({
     } catch (error) {
       emitToast({
         type: 'error',
-        title: 'Error updating fragment',
+        title: 'Error saving flick',
       })
     } finally {
       setSavingConfig(false)
     }
   }
+
+  const [isOpen, setIsOpen] = useState(false)
 
   const [mode, setMode] = useState<Content_Type_Enum_Enum>(
     Content_Type_Enum_Enum.Video
@@ -443,19 +427,26 @@ const FragmentBar = ({
           Preview
         </Heading>
       </div>
-      <div className="flex items-center">
-        {savingConfig ? (
+      <div className="flex items-center h-full">
+        {savingConfig && (
           <div className="flex text-gray-400 items-center mr-4">
             <BsCloudUpload className="mr-1" />
             <Text fontSize="small">Saving...</Text>
           </div>
-        ) : (
+        )}
+        {!savingConfig && !error && (
           <div className="flex text-gray-400 items-center mr-4">
             <BsCloudCheck className="mr-1" />
             <Text fontSize="small">Saved</Text>
           </div>
         )}
-        <div className="flex justify-end items-stretch border-l-2 py-2 pl-4 border-brand-grey">
+        {error && (
+          <div className="flex text-red-400 items-center mr-4">
+            <IoWarningOutline className="mr-1" />
+            <Text fontSize="small">Error saving</Text>
+          </div>
+        )}
+        <div className="flex justify-end items-stretch py-2 border-l-2 border-brand-grey">
           <Tooltip
             isOpen={themesModal}
             setIsOpen={setThemesModal}
@@ -475,28 +466,110 @@ const FragmentBar = ({
               appearance="none"
               size="small"
               type="button"
-              className="mr-4"
               icon={IoAlbumsOutline}
               onClick={() => setThemesModal(true)}
             >
-              Theme
+              <Text className=" text-sm font-main text-gray-100">Theme</Text>
+            </Button>
+          </Tooltip>
+        </div>
+        <div className="flex h-full items-center justify-center">
+          <Tooltip
+            className="p-0 m-0"
+            isOpen={isOpen}
+            setIsOpen={setIsOpen}
+            content={
+              <ul
+                style={{
+                  minWidth: '200px',
+                }}
+                className="bg-dark-300 rounded-md -mt-1 flex flex-col justify-center"
+              >
+                {brandingData?.Branding.map((branding, index) => {
+                  return (
+                    <li
+                      key={branding.id}
+                      className={cx(
+                        'hover:bg-dark-100 cursor-pointer text-white flex items-center transition-colors p-3',
+                        {
+                          'rounded-t-md': index === 0,
+                        }
+                      )}
+                      onClick={() => {
+                        setBrandingId(branding.id)
+                        setUseBranding(true)
+                        setIsOpen(false)
+                      }}
+                    >
+                      <BrandIcon className="mr-2" />
+                      <Text className="font-body text-sm mr-4">
+                        {branding.name}
+                      </Text>
+                      {branding.id === brandingId && useBranding && (
+                        <BiCheck className="ml-auto" size={20} />
+                      )}
+                    </li>
+                  )
+                })}
+                <li
+                  className={cx(
+                    'hover:bg-dark-100 cursor-pointer text-white flex items-center transition-colors p-3'
+                  )}
+                  onClick={() => {
+                    setUseBranding(false)
+                    setIsOpen(false)
+                  }}
+                >
+                  <BrandIcon className="mr-2" />
+                  <Text className="font-body text-sm mr-4">None</Text>
+                  {!useBranding && <BiCheck className="ml-auto" size={20} />}
+                </li>
+                {brandingData && brandingData.Branding.length > 0 && (
+                  <div className="border-t border-gray-600 mx-3 mt-1.5" />
+                )}
+                <Button
+                  appearance="gray"
+                  type="button"
+                  className="m-3"
+                  onClick={() => {
+                    setBrandingModal(true)
+                    setIsOpen(false)
+                  }}
+                >
+                  <Text className="text-sm">Add new</Text>
+                </Button>
+              </ul>
+            }
+            placement="bottom-start"
+            triggerOffset={20}
+          >
+            <Button
+              appearance="none"
+              type="button"
+              className="flex items-center"
+              onClick={() => {
+                setIsOpen(!isOpen)
+              }}
+            >
+              <BrandIcon className="mr-2" />
+              <Text className=" text-sm font-main text-gray-100">Brand</Text>
             </Button>
           </Tooltip>
         </div>
         <div className="flex justify-end items-stretch border-l-2 py-2 pl-4 border-brand-grey">
           <Button
-            appearance="gray"
+            appearance={config.mode === 'Landscape' ? 'gray' : 'none'}
             size="small"
             type="button"
-            className="mr-4"
             icon={IoDesktopOutline}
+            className="mr-2 transition-colors"
             onClick={() => setViewConfig({ ...config, mode: 'Landscape' })}
           />
           <Button
-            appearance="none"
+            appearance={config.mode === 'Portrait' ? 'gray' : 'none'}
             size="small"
             type="button"
-            className="mr-4"
+            className="mr-4 transition-colors"
             icon={IoPhonePortraitOutline}
             onClick={() => setViewConfig({ ...config, mode: 'Portrait' })}
           />
@@ -519,7 +592,7 @@ const FragmentBar = ({
             appearance="primary"
             size="small"
             type="button"
-            disabled={checkDisabledState(fragment, plateValue)}
+            disabled={checkDisabledState(fragment, simpleAST)}
             onClick={async () => {
               await updateConfig()
               history.push(`/${activeFragmentId}/studio`)
@@ -538,13 +611,21 @@ const FragmentBar = ({
           contentType={mode}
         />
       )}
+      {brandingModal && (
+        <Branding
+          open={brandingModal}
+          handleClose={() => {
+            setBrandingModal(false)
+          }}
+        />
+      )}
     </div>
   )
 }
 
 const checkDisabledState = (
   fragment: FlickFragmentFragment | undefined,
-  editorValue: any
+  editorValue: SimpleAST | undefined
 ) => {
   if (!fragment) return true
   if (

@@ -1,8 +1,9 @@
 import Konva from 'konva'
-import React from 'react'
-import { Text, Rect, Group, Image } from 'react-konva'
+import React, { useRef } from 'react'
+import { Group, Image, Rect, Text } from 'react-konva'
 import useImage from 'use-image'
 import IncredibleLogo from '../../../assets/incredible-x-logo.svg'
+import useEdit from '../hooks/use-edit'
 
 const CommonLowerThirds = ({
   x,
@@ -154,6 +155,233 @@ const CommonLowerThirds = ({
           }, 400)
         }
       />
+    </>
+  )
+}
+
+export const GlassyLowerThirds = ({
+  x,
+  y,
+  userName,
+  logo,
+  color,
+  textColor,
+}: {
+  x: number
+  y: number
+  userName: string
+  logo: string
+  color: string
+  textColor: string
+}) => {
+  const [image] = useImage(logo, 'anonymous')
+  const { getTextWidth } = useEdit()
+  const textWidth = useRef(getTextWidth(userName, 'Inter', 24, 'bold') + 80)
+
+  if (logo)
+    return (
+      <>
+        <Group x={x} y={y}>
+          <Rect
+            fill={color}
+            fillLinearGradientColorStops={[
+              0,
+              '#7844CAC8',
+              0.92,
+              '#db2887c8',
+              1,
+              '#e32682c8',
+            ]}
+            fillLinearGradientStartPoint={{
+              x: 0,
+              y: 0,
+            }}
+            fillLinearGradientEndPoint={{
+              x: 400,
+              y: 96,
+            }}
+            cornerRadius={8}
+            width={1}
+            height={1}
+            ref={(ref) => {
+              ref?.to({
+                offsetX: 48,
+                offsetY: 48,
+                height: 96,
+                width: 96,
+                duration: 0.5,
+                easing: Konva.Easings.EaseOut,
+                onFinish: () => {
+                  setTimeout(() => {
+                    ref?.to({
+                      x: -Math.floor(textWidth.current),
+                      width: Math.floor(textWidth.current) + 96,
+                      duration: 0.3,
+                      easing: Konva.Easings.BackEaseOut,
+                      onFinish: () => {
+                        setTimeout(() => {
+                          ref?.to({
+                            x: 0,
+                            width: 96,
+                            duration: 0.3,
+                            easing: Konva.Easings.EaseOut,
+                            onFinish: () => {
+                              ref?.to({
+                                offsetX: 0,
+                                offsetY: 0,
+                                height: 0,
+                                width: 0,
+                                duration: 0.2,
+                              })
+                            },
+                          })
+                        }, 2000)
+                      },
+                    })
+                  }, 500)
+                },
+              })
+            }}
+          />
+          {/* 18 is added to position the image in the center subtractiong 48 bcoz the rect's width is scaled to 96 and adding the half of the width and height to x and y respectively 
+        bcoz the image has to scale from the center, so there would be a offset set, 
+        on setting the offset the image moves negative, so to cancel that adding the offset values to x and y */}
+          <Image
+            x={18 - 48 + 30}
+            y={18 - 48 + 30}
+            width={0}
+            height={0}
+            image={image}
+            opcaity={1}
+            ref={(ref) => {
+              ref?.to({
+                offsetX: 30,
+                offsetY: 30,
+                width: 60,
+                height: 60,
+                duration: 0.5,
+                easing: Konva.Easings.EaseOut,
+                onFinish: () => {
+                  setTimeout(() => {
+                    ref?.to({
+                      offsetX: 0,
+                      offsetY: 0,
+                      width: 0,
+                      height: 0,
+                      duration: 0.2,
+                    })
+                  }, 3100)
+                },
+              })
+            }}
+          />
+          <Text
+            x={-textWidth.current - 30}
+            y={-48}
+            fill={textColor || '#fafafa'}
+            text={userName}
+            fontSize={24}
+            opacity={0}
+            height={96}
+            fontStyle="bold"
+            fontFamily="Inter"
+            key="username"
+            verticalAlign="middle"
+            ref={(ref) =>
+              setTimeout(() => {
+                ref?.to({
+                  opacity: 1,
+                  duration: 0.3,
+                  onFinish: () => {
+                    setTimeout(() => {
+                      ref?.to({
+                        opacity: 0,
+                        duration: 0.3,
+                      })
+                    }, 1800)
+                  },
+                })
+              }, 1100)
+            }
+          />
+        </Group>
+      </>
+    )
+  return (
+    <>
+      <Group x={x} y={y}>
+        <Rect
+          x={60}
+          y={-30}
+          fill={color}
+          fillLinearGradientColorStops={[
+            0,
+            '#7844CAC8',
+            0.92,
+            '#db2887c8',
+            1,
+            '#e32682c8',
+          ]}
+          fillLinearGradientStartPoint={{
+            x: 0,
+            y: 0,
+          }}
+          fillLinearGradientEndPoint={{
+            x: 400,
+            y: 60,
+          }}
+          cornerRadius={8}
+          width={0}
+          height={60}
+          ref={(ref) => {
+            ref?.to({
+              x: -Math.floor(textWidth.current) + 60,
+              width: Math.floor(textWidth.current),
+              duration: 0.3,
+              easing: Konva.Easings.BackEaseOut,
+              onFinish: () => {
+                setTimeout(() => {
+                  ref?.to({
+                    x: 0,
+                    width: 0,
+                    duration: 0.3,
+                    easing: Konva.Easings.EaseOut,
+                  })
+                }, 2000)
+              },
+            })
+          }}
+        />
+        <Text
+          x={-textWidth.current + 80}
+          y={-30}
+          fill={textColor || '#fafafa'}
+          text={userName}
+          fontSize={24}
+          opacity={0}
+          height={60}
+          fontStyle="bold"
+          fontFamily="Inter"
+          key="username"
+          verticalAlign="middle"
+          ref={(ref) =>
+            setTimeout(() => {
+              ref?.to({
+                opacity: 1,
+                duration: 0.3,
+                onFinish: () => {
+                  setTimeout(() => {
+                    ref?.to({
+                      opacity: 0,
+                      duration: 0.3,
+                    })
+                  }, 1000)
+                },
+              })
+            }, 300)
+          }
+        />
+      </Group>
     </>
   )
 }

@@ -48,6 +48,13 @@ fragment BaseFlick on Flick {
   status
   deletedAt
   producedLink
+  useBranding
+  brandingId
+  branding {
+    id
+    name
+    branding
+  }
   configuration
   contents {
     ...Content
@@ -207,6 +214,19 @@ mutation UpdateFlickMarkdown($id: uuid!, $md: String!) {
   }
 }
 
+mutation UpdateFlickBranding(
+  $id: uuid!
+  $branding: Boolean!
+  $brandingId: uuid
+) {
+  update_Flick_by_pk(
+    pk_columns: { id: $id }
+    _set: { useBranding: $branding, brandingId: $brandingId }
+  ) {
+    id
+  }
+}
+
 mutation UpdateFlickThumbnail($thumbnail: String, $id: uuid!) {
   update_Flick_by_pk(_set: { thumbnail: $thumbnail }, pk_columns: { id: $id }) {
     id
@@ -335,6 +355,28 @@ mutation UpdateFlickTheme($id: uuid!, $theme: String!) {
   update_Flick_by_pk(pk_columns: { id: $id }, _set: { theme: $theme }) {
     id
     theme
+  }
+}
+mutation SaveFlick(
+  $id: uuid!
+  $md: String!
+  $editorState: json!
+  $fragmentId: uuid!
+  $configuration: json!
+  $branding: Boolean!
+  $brandingId: uuid
+) {
+  update_Flick_by_pk(
+    pk_columns: { id: $id }
+    _set: { md: $md, useBranding: $branding, brandingId: $brandingId }
+  ) {
+    id
+  }
+  update_Fragment_by_pk(
+    pk_columns: { id: $fragmentId }
+    _set: { editorState: $editorState, configuration: $configuration }
+  ) {
+    id
   }
 }
 

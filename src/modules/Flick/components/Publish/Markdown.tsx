@@ -8,7 +8,7 @@ import { useRecoilValue } from 'recoil'
 import rehypeRaw from 'rehype-raw'
 import remarkGfm from 'remark-gfm'
 import { Button, Loading, Text } from '../../../../components'
-import { TextEditorParser } from '../../../../components/TempTextEditor/utils'
+import { TextEditorParser } from '../../editor/utils/helpers'
 import { ASSETS } from '../../../../constants'
 import {
   FlickFragment,
