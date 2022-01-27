@@ -5,7 +5,6 @@ import FragmentBar from './FragmentBar'
 import FragmentVideoModal from './FragmentVideoModal'
 import ProcessingFlick from './ProcessingFlick'
 import ScreenRecording from './ScreenRecording'
-import PublishFlick from './Publish/PublishFlick'
 import VideoEditorModal from './VideoEditorModal'
 import Timeline from './Timeline'
 import EditorHeader from './EditorHeader'
@@ -16,7 +15,6 @@ export {
   FlickNavBar,
   FragmentBar,
   FragmentVideoModal,
-  PublishFlick,
   ScreenRecording,
   VideoEditor,
   VideoEditorModal,

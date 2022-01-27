@@ -10,9 +10,6 @@ import {
   StudioFragmentFragment,
   useGetFlickByIdQuery,
   useGetThemesQuery,
-  UserAssetQuery,
-  useUpdateFragmentMutation,
-  useUserAssetQuery,
 } from '../../generated/graphql'
 import { useCanvasRecorder } from '../../hooks'
 import { BlockProperties, ViewConfig } from '../../utils/configTypes'
@@ -23,7 +20,6 @@ import {
   FragmentBar,
   Preview,
   ProcessingFlick,
-  PublishFlick,
   Timeline,
 } from './components'
 import BlockPreview from './components/BlockPreview'
@@ -104,8 +100,6 @@ const Flick = () => {
 
   const [simpleAST, setSimpleAST] = useState<SimpleAST>()
   const [editorValue, setEditorValue] = useState<string>()
-  const [integrationModal, setIntegrationModal] = useState(false)
-  const [published, setPublished] = useState(false)
   const [previewPosition, setPreviewPosition] = useState<Position>()
   const [activeFragment, setActiveFragment] = useState<FlickFragmentFragment>()
 
@@ -113,8 +107,6 @@ const Flick = () => {
   const [showTimeline, setShowTimeline] = useState(false)
 
   const { updatePayload, payload, resetPayload } = useLocalPayload()
-  const [myMediaAssets, setMyMediaAssets] = useState<UserAssetQuery>()
-  const { data: assetsData, error: assetsError } = useUserAssetQuery()
   const { data: themesData } = useGetThemesQuery()
 
   const updateBlockProperties = (id: string, properties: BlockProperties) => {
@@ -348,30 +340,6 @@ const Flick = () => {
         </div>
       )}
 
-      {integrationModal && (
-        <PublishFlick
-          flickId={flick.id}
-          flickName={flick.name}
-          flickDescription={flick.description as string}
-          flickThumbnail={flick.thumbnail as string}
-          setProcessingFlick={setProcessingFlick}
-          setPublished={setPublished}
-          fragments={flick.fragments.map((f) => {
-            return {
-              id: f.id as string,
-              name: f.name as string,
-            }
-          })}
-          isShortsPresentAndCompleted={flick?.fragments.some(
-            (f) => f.producedShortsLink !== null
-          )}
-          isAllFlicksCompleted={flick?.fragments.every(
-            (f) => f.producedLink !== null
-          )}
-          open={integrationModal}
-          handleClose={() => setIntegrationModal(false)}
-        />
-      )}
       <Timeline
         blocks={simpleAST?.blocks || []}
         showTimeline={showTimeline}
