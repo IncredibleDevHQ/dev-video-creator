@@ -20,6 +20,7 @@ import {
   Fragment_Type_Enum_Enum,
   StudioFragmentFragment,
   useGetFlickByIdQuery,
+  useGetThemesQuery,
   UserAssetQuery,
   useUpdateFragmentMutation,
   useUserAssetQuery,
@@ -193,6 +194,7 @@ const Flick = () => {
   const { updatePayload, payload, resetPayload } = useLocalPayload()
   const [myMediaAssets, setMyMediaAssets] = useState<UserAssetQuery>()
   const { data: assetsData, error: assetsError } = useUserAssetQuery()
+  const { data: themesData } = useGetThemesQuery()
 
   const updateBlockProperties = (id: string, properties: BlockProperties) => {
     const newBlocks = { ...viewConfig.blocks, [id]: properties }
@@ -251,8 +253,10 @@ const Flick = () => {
       ...store,
       flick: data.Flick_by_pk || null,
       activeFragmentId: activeId,
+      activeTheme: themesData?.Theme ? themesData.Theme[0] : null,
+      themes: themesData?.Theme ? themesData?.Theme : [],
     }))
-  }, [data])
+  }, [data, themesData])
 
   useEffect(() => {
     return () => {
@@ -261,6 +265,8 @@ const Flick = () => {
         activeFragmentId: '',
         isMarkdown: true,
         view: View.Notebook,
+        activeTheme: null,
+        themes: [],
       })
     }
   }, [])
@@ -421,7 +427,7 @@ const Flick = () => {
 
   return (
     <div className="relative flex flex-col w-screen h-screen overflow-hidden">
-      <FlickNavBar toggleModal={setIntegrationModal} />
+      <FlickNavBar />
       <FragmentBar
         plateValue={plateValue}
         markdown={fragmentMarkdown}

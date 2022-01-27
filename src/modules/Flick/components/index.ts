@@ -1,31 +1,33 @@
-import ScreenRecording from './ScreenRecording'
-import VideoInventoryModal from './VideoInventoryModal'
-import FlickActivity from './FlickActivity'
-import FragmentSideBar from './FragmentSidebar'
+import VideoEditor from '../editor/blocks/VideoEditor'
 import DeleteFragmentModal from './DeleteFragmentModal'
+import Download from './Download'
+import FlickActivity from './FlickActivity'
+import FlickCard from './FlickCard'
 import FlickNavBar from './FlickNavBar'
 import FragmentBar from './FragmentBar'
-import UpdateFragmentParticipantsModal from './UpdateFragmentParticipantsModal'
+import FragmentSideBar from './FragmentSidebar'
 import FragmentVideoModal from './FragmentVideoModal'
-import FlickCard from './FlickCard'
-import PublishFlick from './Publish/PublishFlick'
-import VideoEditor from '../editor/blocks/VideoEditor'
-import VideoEditorModal from './VideoEditorModal'
 import ProcessingFlick from './ProcessingFlick'
+import PublishFlick from './Publish/PublishFlick'
+import ScreenRecording from './ScreenRecording'
+import UpdateFragmentParticipantsModal from './UpdateFragmentParticipantsModal'
+import VideoEditorModal from './VideoEditorModal'
+import VideoInventoryModal from './VideoInventoryModal'
 
 export {
-  ScreenRecording,
-  VideoInventoryModal,
-  FlickActivity,
-  FragmentSideBar,
   DeleteFragmentModal,
+  Download,
+  FlickActivity,
+  FlickCard,
   FlickNavBar,
   FragmentBar,
-  UpdateFragmentParticipantsModal,
+  FragmentSideBar,
   FragmentVideoModal,
-  FlickCard,
+  ProcessingFlick,
   PublishFlick,
+  ScreenRecording,
+  UpdateFragmentParticipantsModal,
   VideoEditor,
   VideoEditorModal,
-  ProcessingFlick,
+  VideoInventoryModal,
 }
