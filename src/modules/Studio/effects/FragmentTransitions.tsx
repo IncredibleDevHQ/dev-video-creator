@@ -9,10 +9,12 @@ export const TrianglePathTransition = ({
   direction,
   performFinishAction,
   isShorts,
+  color,
 }: {
   direction: string
   performFinishAction?: () => void
   isShorts?: boolean
+  color?: string
 }) => {
   let stageConfig = { width: CONFIG.width, height: CONFIG.height }
   if (!isShorts) stageConfig = CONFIG
@@ -47,7 +49,7 @@ export const TrianglePathTransition = ({
   if (!isShorts)
     return (
       <Group
-        x={groupStartX + 350}
+        x={groupStartX}
         y={0}
         ref={(ref) =>
           ref?.to({
@@ -94,7 +96,7 @@ export const TrianglePathTransition = ({
             context.closePath()
             context.fillStrokeShape(shape)
           }}
-          fill="#ffffff"
+          fill={color || '#ffffff'}
           opacity={0.6}
         />
         <Shape
@@ -125,7 +127,7 @@ export const TrianglePathTransition = ({
             context.closePath()
             context.fillStrokeShape(shape)
           }}
-          fill="#ffffff"
+          fill={color || '#ffffff'}
           opacity={0.8}
         />
         <Shape
@@ -159,7 +161,7 @@ export const TrianglePathTransition = ({
             context.closePath()
             context.fillStrokeShape(shape)
           }}
-          fill="#ffffff"
+          fill={color || '#ffffff'}
           opacity={1}
         />
       </Group>
@@ -212,7 +214,7 @@ export const TrianglePathTransition = ({
           context.closePath()
           context.fillStrokeShape(shape)
         }}
-        fill="#ffffff"
+        fill={color || '#ffffff'}
         opacity={0.6}
       />
       <Shape
@@ -243,7 +245,7 @@ export const TrianglePathTransition = ({
           context.closePath()
           context.fillStrokeShape(shape)
         }}
-        fill="#ffffff"
+        fill={color || '#ffffff'}
         opacity={0.8}
       />
       <Shape
@@ -277,8 +279,134 @@ export const TrianglePathTransition = ({
           context.closePath()
           context.fillStrokeShape(shape)
         }}
-        fill="#ffffff"
+        fill={color || '#ffffff'}
         opacity={1}
+      />
+    </Group>
+  )
+}
+
+export const RectanglesSlideTransition = ({
+  direction,
+  colors,
+  performFinishAction,
+  isShorts,
+}: {
+  direction: string
+  colors?: string[]
+  performFinishAction?: () => void
+  isShorts?: boolean
+}) => {
+  let stageConfig = { width: CONFIG.width, height: CONFIG.height }
+  if (!isShorts) stageConfig = CONFIG
+  else stageConfig = SHORTS_CONFIG
+
+  let rectStartX = 0
+  let rectIntermediateX = 0
+  let rectEndX = 0
+  let duration = 0
+
+  switch (direction) {
+    case 'left':
+      rectStartX = stageConfig.width + 100
+      rectIntermediateX = 0
+      rectEndX = -(stageConfig.width + 100)
+      duration = 0.5
+      break
+    case 'right':
+      rectStartX = -(stageConfig.width + 100)
+      rectIntermediateX = 0
+      rectEndX = stageConfig.width + 100
+      duration = 0.5
+      break
+    case 'moveIn':
+      rectStartX = -(stageConfig.width + 100)
+      rectEndX = 0
+      duration = 0.5
+      break
+    case 'moveAway':
+      rectStartX = 0
+      rectEndX = stageConfig.width + 100
+      duration = 0.5
+      break
+    default:
+      break
+  }
+
+  return (
+    <Group>
+      <Rect
+        x={rectStartX}
+        y={0}
+        width={stageConfig.width}
+        height={stageConfig.height / 3 + 10}
+        fill="#ffffff"
+        ref={(ref) => {
+          ref?.to({
+            x: rectIntermediateX,
+            duration,
+            onFinish: () => {
+              setTimeout(() => {
+                ref?.to({
+                  x: rectEndX,
+                  duration,
+                })
+              }, 1000)
+            },
+          })
+        }}
+      />
+      <Rect
+        x={rectStartX}
+        y={stageConfig.height / 3}
+        width={stageConfig.width}
+        height={stageConfig.height / 3}
+        fill="#ffffff"
+        ref={(ref) => {
+          setTimeout(() => {
+            ref?.to({
+              x: rectIntermediateX,
+              duration,
+              onFinish: () => {
+                setTimeout(() => {
+                  ref?.to({
+                    x: rectEndX,
+                    duration,
+                  })
+                }, 600)
+              },
+            })
+          }, 200)
+        }}
+      />
+      <Rect
+        x={rectStartX}
+        y={(stageConfig.height / 3) * 2 - 10}
+        width={stageConfig.width}
+        height={stageConfig.height / 3 + 10}
+        fill="#ffffff"
+        ref={(ref) => {
+          setTimeout(() => {
+            ref?.to({
+              x: rectIntermediateX,
+              duration,
+              onFinish: () => {
+                setTimeout(() => {
+                  ref?.to({
+                    x: rectEndX,
+                    duration,
+                    onFinish: () => {
+                      if (!performFinishAction) return
+                      setTimeout(() => {
+                        performFinishAction()
+                      }, 300)
+                    },
+                  })
+                }, 200)
+              },
+            })
+          }, 400)
+        }}
       />
     </Group>
   )
@@ -302,7 +430,7 @@ export const MultiCircleCenterGrow = ({
         scaleY={0}
         fill={colors ? colors[0] : '#ffffff'}
         ref={(ref) => {
-          reduceSplashAudioVolume(0.01)
+          // reduceSplashAudioVolume(0.01)
           ref?.to({
             scaleX: 5,
             scaleY: 5,
@@ -345,7 +473,7 @@ export const MultiCircleCenterGrow = ({
               // easing: Konva.Easings.EaseIn,
               onFinish: () => {
                 if (!performFinishAction) return
-                reduceSplashAudioVolume(0.0)
+                // reduceSplashAudioVolume(0.0)
                 // setTimeout(() => {
                 //   reduceSplashAudioVolume(0.0)
                 // }, 200)

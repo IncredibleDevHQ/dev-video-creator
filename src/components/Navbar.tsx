@@ -115,7 +115,7 @@ const Navbar = () => {
         alt="Incredible"
         className="w-28 cursor-pointer"
         onClick={() => {
-          history.push('/dashboard')
+          history.goBack()
         }}
       />
 

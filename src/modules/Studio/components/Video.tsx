@@ -186,7 +186,7 @@ export const Video = ({
               y: videoConfig.clipVideoConfig.y * scaledOriginalVideoDim.height,
               width: videoDimesions.width,
               height: videoDimesions.height,
-              radius: videoConfig?.cornerRadius || 0,
+              borderRadius: videoConfig?.cornerRadius || 0,
             })
           })
         }

@@ -21,4 +21,5 @@ interface ImportMetaEnv {
   VITE_AUTH_ENDPOINT: string
   VITE_COHERE_API_KEY: string
   VITE_LIVE_STREAM_ENDPOINT: string
+  VITE_GOOGLE_FONTS_API_KEY: string
 }

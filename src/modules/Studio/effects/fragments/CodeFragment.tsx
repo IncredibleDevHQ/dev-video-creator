@@ -2,17 +2,21 @@ import axios from 'axios'
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
 import { useAuthState } from 'react-firebase-hooks/auth'
-import { Circle, Group, Rect } from 'react-konva'
+import { Group, Rect } from 'react-konva'
 import { useRecoilState, useRecoilValue } from 'recoil'
+import * as gConfig from '../../../../config'
+import { Fragment_Status_Enum_Enum } from '../../../../generated/graphql'
+import firebaseState from '../../../../stores/firebase.store'
+import {
+  BlockProperties,
+  TopLayerChildren,
+} from '../../../../utils/configTypes'
 import {
   CodeBlockProps,
   CommentExplanations,
 } from '../../../Flick/editor/utils/utils'
-import * as gConfig from '../../../../config'
-import { Fragment_Status_Enum_Enum } from '../../../../generated/graphql'
-import firebaseState from '../../../../stores/firebase.store'
-import { BlockProperties } from '../../../../utils/configTypes'
 import Concourse, { TitleSplashProps } from '../../components/Concourse'
+import FragmentBackground from '../../components/FragmentBackground'
 import RenderTokens, {
   codeConfig,
   FragmentState,
@@ -28,8 +32,11 @@ import {
   FragmentLayoutConfig,
   ObjectConfig,
 } from '../../utils/FragmentLayoutConfig'
-import { StudioUserConfiguration } from '../../utils/StudioUserConfig'
-import { TrianglePathTransition } from '../FragmentTransitions'
+import {
+  ShortsStudioUserConfiguration,
+  StudioUserConfiguration,
+} from '../../utils/StudioUserConfig'
+import { ObjectRenderConfig, ThemeLayoutConfig } from '../../utils/ThemeConfig'
 
 const getColorCodes = async (
   code: string,
@@ -52,7 +59,7 @@ const getColorCodes = async (
           }
         `,
       variables: {
-        code: code || '',
+        code,
         language: language || 'javascript',
       },
     },
@@ -69,28 +76,27 @@ const CodeFragment = ({
   viewConfig,
   dataConfig,
   topLayerChildren,
-  setTopLayerChildren,
   titleSplashData,
   fragmentState,
   setFragmentState,
   stageRef,
-  layerRef,
   shortsMode,
   isPreview,
 }: {
   viewConfig: BlockProperties
   dataConfig: CodeBlockProps
-  topLayerChildren: JSX.Element[]
-  setTopLayerChildren: React.Dispatch<React.SetStateAction<JSX.Element[]>>
+  topLayerChildren: {
+    id: string
+    state: TopLayerChildren
+  }
   titleSplashData?: TitleSplashProps | undefined
   fragmentState: FragmentState
   setFragmentState: React.Dispatch<React.SetStateAction<FragmentState>>
   stageRef: React.RefObject<Konva.Stage>
-  layerRef: React.RefObject<Konva.Layer>
   shortsMode: boolean
   isPreview: boolean
 }) => {
-  const { fragment, payload, updatePayload, state, addMusic } =
+  const { fragment, payload, updatePayload, state } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const { initUseCode } = useCode()
@@ -132,6 +138,15 @@ const CodeFragment = ({
     borderRadius: 0,
   })
 
+  const [objectRenderConfig, setObjectRenderConfig] =
+    useState<ObjectRenderConfig>({
+      startX: 0,
+      startY: 0,
+      availableWidth: 0,
+      availableHeight: 0,
+      textColor: '',
+    })
+
   const [colorCodes, setColorCodes] = useState<any>([])
 
   const { auth } = useRecoilValue(firebaseState)
@@ -158,13 +173,12 @@ const CodeFragment = ({
     const blocks = Object.assign([], dataConfig.codeBlock.explanations || [])
     blocks.unshift({ from: 0, to: 0, explanation: '' })
     setBlockConfig(blocks)
-    setTopLayerChildren([])
     ;(async () => {
       try {
-        if (dataConfig.codeBlock.code !== '') {
+        if (dataConfig.codeBlock.code) {
           const token = await user?.getIdToken()
           const { data } = await getColorCodes(
-            dataConfig.codeBlock.code || '',
+            dataConfig.codeBlock.code,
             dataConfig.codeBlock.language || '',
             token || ''
           )
@@ -178,17 +192,23 @@ const CodeFragment = ({
   }, [dataConfig, shortsMode, viewConfig])
 
   useEffect(() => {
+    setObjectRenderConfig(
+      ThemeLayoutConfig({ theme: 'glassy', layoutConfig: objectConfig })
+    )
+  }, [objectConfig])
+
+  useEffect(() => {
     if (colorCodes.length === 0) return
     setComputedTokens(
       initUseCode({
         tokens: colorCodes,
         canvasWidth: objectConfig.width - 120,
-        canvasHeight: objectConfig.height - 36,
+        canvasHeight: objectRenderConfig.availableHeight,
         gutter: 5,
         fontSize: codeConfig.fontSize,
       })
     )
-  }, [colorCodes, objectConfig])
+  }, [colorCodes, objectRenderConfig])
 
   useEffect(() => {
     setStudio({
@@ -264,10 +284,6 @@ const CodeFragment = ({
   useEffect(() => {
     // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
     if (payload?.fragmentState === 'customLayout') {
-      setTopLayerChildren([
-        <TrianglePathTransition isShorts={shortsMode} direction="right" />,
-      ])
-      addMusic()
       setTimeout(() => {
         setFragmentState(payload?.fragmentState)
         customLayoutRef?.current?.to({
@@ -278,10 +294,6 @@ const CodeFragment = ({
     }
     // Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
     if (payload?.fragmentState === 'onlyUserMedia') {
-      setTopLayerChildren([
-        <TrianglePathTransition isShorts={shortsMode} direction="left" />,
-      ])
-      addMusic()
       setTimeout(() => {
         setFragmentState(payload?.fragmentState)
         customLayoutRef?.current?.to({
@@ -294,22 +306,18 @@ const CodeFragment = ({
 
   const layerChildren: any[] = [
     <Group x={0} y={0} opacity={0} ref={customLayoutRef}>
-      <Rect
-        x={objectConfig.x}
-        y={objectConfig.y}
-        width={objectConfig.width}
-        height={objectConfig.height}
-        fill="#202026"
-        cornerRadius={objectConfig.borderRadius}
+      <FragmentBackground
+        theme="glassy"
+        objectConfig={objectConfig}
+        backgroundRectColor="#202026"
       />
-      <Group x={objectConfig.x + 20} y={objectConfig.y + 20} key="circleGroup">
-        <Circle key="redCircle" x={0} y={0} fill="#FF605C" radius={5} />
-        <Circle key="yellowCircle" x={14} y={0} fill="#FFBD44" radius={5} />
-        <Circle key="greenCircle" x={28} y={0} fill="#00CA4E" radius={5} />
-      </Group>
       {!isPreview ? (
         payload?.status === Fragment_Status_Enum_Enum.Live && (
-          <Group x={objectConfig.x + 25} y={objectConfig.y + 35} key="group">
+          <Group
+            x={objectRenderConfig.startX + 25}
+            y={objectRenderConfig.startY + 10}
+            key="group"
+          >
             {!isCodexFormat ? (
               <>
                 {getRenderedTokens(computedTokens, position)}
@@ -335,7 +343,7 @@ const CodeFragment = ({
                             blockConfig[activeBlockIndex].from) || 0
                     )?.startFromIndex || 0
                   ]?.lineNumber,
-                  objectConfig.height - 40
+                  objectRenderConfig.availableHeight - 10
                 )}
                 {highlightBlockCode && (
                   <Rect
@@ -397,8 +405,8 @@ const CodeFragment = ({
         )
       ) : (
         <Group
-          x={objectConfig.x + 25}
-          y={objectConfig.y + 35}
+          x={objectRenderConfig.startX + 25}
+          y={objectRenderConfig.startY + 10}
           key="previewGroup"
         >
           {getTokens(
@@ -412,7 +420,7 @@ const CodeFragment = ({
                       blockConfig[activeBlockIndex].from) || 0
               )?.startFromIndex || 0
             ]?.lineNumber,
-            objectConfig.height - 40
+            objectRenderConfig.availableHeight - 10
           )}
         </Group>
       )}
@@ -422,12 +430,15 @@ const CodeFragment = ({
           tokens={computedTokens}
           lineNumber={computedTokens[position.prevIndex]?.lineNumber}
           currentIndex={position.currentIndex}
-          groupCoordinates={{ x: objectConfig.x + 10, y: objectConfig.y + 30 }}
+          groupCoordinates={{
+            x: objectRenderConfig.startX + 10,
+            y: objectRenderConfig.startY + 10,
+          }}
           bgRectInfo={{
-            x: objectConfig.x,
-            y: objectConfig.y,
+            x: objectRenderConfig.startX,
+            y: objectRenderConfig.startY,
             width: objectConfig.width,
-            height: objectConfig.height,
+            height: objectRenderConfig.availableHeight,
             radius: objectConfig.borderRadius,
           }}
         />
@@ -453,12 +464,15 @@ const CodeFragment = ({
               blockConfig[activeBlockIndex].explanation) ||
             ''
           }
-          groupCoordinates={{ x: objectConfig.x + 10, y: objectConfig.y + 10 }}
+          groupCoordinates={{
+            x: objectConfig.x + 10,
+            y: objectRenderConfig.startY,
+          }}
           bgRectInfo={{
-            x: objectConfig.x,
-            y: objectConfig.y,
+            x: objectRenderConfig.startX,
+            y: objectRenderConfig.startY,
             width: objectConfig.width,
-            height: objectConfig.height,
+            height: objectRenderConfig.availableHeight,
             radius: objectConfig.borderRadius,
           }}
           opacity={1}
@@ -467,24 +481,30 @@ const CodeFragment = ({
     </Group>,
   ]
 
-  const studioUserConfig = StudioUserConfiguration({
-    layout: viewConfig?.layout || 'classic',
-    fragment,
-    fragmentState,
-    isShorts: shortsMode || false,
-    bgGradientId: viewConfig?.gradient?.id || 1,
-  })
+  const studioUserConfig = !shortsMode
+    ? StudioUserConfiguration({
+        layout: viewConfig?.layout || 'classic',
+        fragment,
+        fragmentState,
+        theme: 'glassy',
+      })
+    : ShortsStudioUserConfiguration({
+        layout: viewConfig?.layout || 'classic',
+        fragment,
+        fragmentState,
+        theme: 'glassy',
+      })
 
   return (
     <Concourse
       layerChildren={layerChildren}
       viewConfig={viewConfig}
       stageRef={stageRef}
-      layerRef={layerRef}
       titleSplashData={titleSplashData}
       studioUserConfig={studioUserConfig}
       topLayerChildren={topLayerChildren}
       isShorts={shortsMode}
+      blockType={dataConfig.type}
     />
   )
 }

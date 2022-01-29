@@ -30,15 +30,20 @@ const StudioUser = ({
     width,
     height,
     clipTheme,
+    studioUserClipConfig,
     borderColor,
     borderWidth,
-    studioUserClipConfig,
-    backgroundRectColor,
     backgroundRectX,
     backgroundRectY,
-    backgroundRectBorderWidth,
+    backgroundRectWidth,
+    backgroundRectHeight,
+    backgroundRectOpacity,
+    backgroundRectBorderRadius,
+    backgroundRectColor,
     backgroundRectBorderColor,
+    backgroundRectBorderWidth,
   } = studioUserConfig
+
   const imageConfig = { width: width || 160, height: height || 120 }
   const imageRef = useRef<Konva.Image | null>(null)
 
@@ -48,7 +53,7 @@ const StudioUser = ({
     y: 0,
     width: 160,
     height: 120,
-    radius: 8,
+    borderRadius: 8,
   }
 
   const { participants, constraints } =
@@ -105,14 +110,13 @@ const StudioUser = ({
       <Rect
         x={backgroundRectX || 775}
         y={backgroundRectY || y}
-        width={studioUserClipConfig?.width || defaultStudioUserClipConfig.width}
-        height={
-          studioUserClipConfig?.height || defaultStudioUserClipConfig.height
-        }
+        width={backgroundRectWidth}
+        height={backgroundRectHeight}
         fill={backgroundRectColor}
         stroke={backgroundRectBorderColor}
         strokeWidth={backgroundRectBorderWidth || 0}
-        cornerRadius={studioUserClipConfig?.radius || 0}
+        cornerRadius={backgroundRectBorderRadius || 0}
+        opacity={backgroundRectOpacity || 0}
       />
       <Rect
         x={(studioUserClipConfig && studioUserClipConfig.x + x) || 775}
@@ -123,7 +127,7 @@ const StudioUser = ({
         }
         stroke={borderColor}
         strokeWidth={borderWidth || 0}
-        cornerRadius={studioUserClipConfig?.radius || 0}
+        cornerRadius={studioUserClipConfig?.borderRadius || 0}
       />
       <Group
         x={x}

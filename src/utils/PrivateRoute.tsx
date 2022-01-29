@@ -18,13 +18,13 @@ const PrivateRoute = ({
   const user = useRecoilValue(userState)
   const { loading } = useRecoilValue(firebaseState)
 
-  if (loading === true || typeof loading === 'undefined')
+  if (loading === true || typeof loading === 'undefined' || !user?.uid)
     return <ScreenState title="Just a jiffy" loading />
 
   if (user) {
-    return user?.uid ? (
+    return (
       <Route {...rest} render={(routeProps) => <Component {...routeProps} />} />
-    ) : null
+    )
   }
 
   return (

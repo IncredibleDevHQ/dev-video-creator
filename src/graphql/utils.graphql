@@ -76,3 +76,9 @@ mutation GetCodeExplanation($code: String!) {
     description
   }
 }
+
+mutation DownloadZip($flickId: uuid!, $objectNames: [String!]!) {
+  DownloadFlick(flickId: $flickId, objectNames: $objectNames) {
+    success
+  }
+}
