@@ -18,6 +18,7 @@ const config = {
    */
   hasura: {
     server: import.meta.env.VITE_HASURA_SERVER,
+    restServer: import.meta.env.VITE_HASURA_REST_SERVER,
     wsServer: import.meta.env.VITE_HASURA_WEBSOCKET_SERVER,
   },
   /**
