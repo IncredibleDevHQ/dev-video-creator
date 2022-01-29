@@ -9,6 +9,7 @@
 
 interface ImportMetaEnv {
   VITE_HASURA_SERVER: string
+  VITE_HASURA_REST_SERVER: string
   VITE_HASURA_WEBSOCKET_SERVER: string
   VITE_FIREBASE_CONFIG: string
   VITE_SENTRY_DSN: string

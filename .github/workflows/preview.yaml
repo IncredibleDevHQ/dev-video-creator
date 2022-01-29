@@ -1,4 +1,4 @@
-name: Surge Preview
+name: Build React App
 
 on:
   pull_request:
@@ -39,3 +39,18 @@ jobs:
           VITE_STORAGE_BASE_URL: ${{ secrets.STORAGE_BASE_URL }}
           VITE_VECTORLY_TOKEN: ${{ secrets.VECTORLY_TOKEN }}
           VITE_GITHUB_INTEGRATION_CONFIG: ${{ secrets.VITE_GITHUB_INTEGRATION_CONFIG }}
+
+      - name: Install GitHub Status Updater
+        run: |
+          curl -L "https://github.com/cloudposse/github-status-updater/releases/download/0.5.0/github-status-updater_linux_amd64" -o /usr/local/bin/github-status-updater
+          chmod +x /usr/local/bin/github-status-updater
+
+      - name: Update GitHub status
+        run: |
+          github-status-updater \
+            -action update_state \
+            -token ${{secrets.PERSONAL_TOKEN}} \
+            -owner IncredibleDevHQ \
+            -repo incredibledev-next \
+            -ref ${{github.event.pull_request.head.sha}} \
+            -state success

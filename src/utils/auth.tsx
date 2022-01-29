@@ -33,7 +33,7 @@ const AuthProvider = ({ children }: { children: JSX.Element }): JSX.Element => {
       if (!dbUser) {
         // console.log('no db user')
         const meResponse = await axios.post(
-          'https://incredibledev-next-staging.hasura.app/api/rest/me',
+          `${config.hasura.restServer}/me`,
           {
             sub: user.uid,
           },
