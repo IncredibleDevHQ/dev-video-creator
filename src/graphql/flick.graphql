@@ -55,6 +55,10 @@ fragment BaseFlick on Flick {
     name
     branding
   }
+  theme {
+    name
+    config
+  }
   configuration
   contents {
     ...Content
@@ -351,10 +355,10 @@ mutation UpdateFlickMd($id: uuid!, $md: String!) {
   }
 }
 
-mutation UpdateFlickTheme($id: uuid!, $theme: String!) {
-  update_Flick_by_pk(pk_columns: { id: $id }, _set: { theme: $theme }) {
+mutation UpdateFlickTheme($id: uuid!, $themeName: String!) {
+  update_Flick_by_pk(pk_columns: { id: $id }, _set: { themeName: $themeName }) {
     id
-    theme
+    themeName
   }
 }
 mutation SaveFlick(

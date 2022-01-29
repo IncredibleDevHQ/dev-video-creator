@@ -88,7 +88,7 @@ const ThemeTooltip = ({
     const { data } = await updateTheme({
       variables: {
         id: flickId,
-        theme: tempActiveTheme.name,
+        themeName: tempActiveTheme.name,
       },
     })
     if (data) {
