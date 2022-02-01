@@ -26,7 +26,7 @@ const ScreenState = ({
           </h2>
         )}
         {subtitle && (
-          <h4 className="text-gray-600 text-xs text-center">{subtitle}</h4>
+          <h4 className="text-gray-600 text-sm text-center">{subtitle}</h4>
         )}
       </div>
 
