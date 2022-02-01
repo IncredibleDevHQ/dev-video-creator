@@ -64,6 +64,7 @@ import {
   VideoJamControls,
 } from './components/Controls'
 import PermissionError from './components/PermissionError'
+import Preload from './components/Preload'
 import RecordingControlsBar from './components/RecordingControlsBar'
 import UnifiedFragment from './effects/fragments/UnifiedFragment'
 import { useAgora, useMediaStream } from './hooks'
@@ -72,7 +73,7 @@ import { useRTDB } from './hooks/use-rtdb'
 import { StudioProviderProps, StudioState, studioStore } from './stores'
 
 const StudioHoC = () => {
-  const [view, setView] = useState<'preview' | 'studio'>('preview')
+  const [view, setView] = useState<'preview' | 'preload' | 'studio'>('preload')
 
   const { sub } = (useRecoilValue(userState) as User) || {}
   const { fragmentId } = useParams<{ fragmentId: string }>()
@@ -123,6 +124,15 @@ const StudioHoC = () => {
       />
     )
 
+  if (view === 'preload' && fragment)
+    return (
+      <Preload
+        fragment={fragment}
+        setFragment={setFragment}
+        setView={setView}
+      />
+    )
+
   if (view === 'preview' && fragment)
     return (
       <Preview
@@ -134,10 +144,12 @@ const StudioHoC = () => {
         }}
       />
     )
+
   if (view === 'studio' && fragment)
     return (
       <Studio
         data={data}
+        studioFragment={fragment}
         branding={
           data?.Fragment?.[0].flick.useBranding
             ? data?.Fragment?.[0]?.flick.branding?.branding
@@ -486,8 +498,10 @@ const Studio = ({
   devices,
   liveStream,
   branding,
+  studioFragment,
 }: {
   data?: GetFragmentByIdQuery
+  studioFragment: StudioFragmentFragment
   devices: { microphone: Device | null; camera: Device | null }
   liveStream?: {
     enabled: boolean
@@ -512,21 +526,6 @@ const Studio = ({
   const layerRef = useRef<Konva.Layer>(null)
   const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
   Konva.pixelRatio = 2
-
-  // const { isFontLoaded } = useLoadFont(
-  //   branding?.font
-  //     ? [
-  //         {
-  //           family: branding?.font.heading?.family as string,
-  //           weights: ['400', '700', '500'],
-  //         },
-  //         {
-  //           family: branding?.font.body?.family as string,
-  //           weights: ['400', '700', '500'],
-  //         },
-  //       ]
-  //     : []
-  // )
 
   const [stageConfig, setStageConfig] = useState<{
     width: number
@@ -650,7 +649,7 @@ const Studio = ({
 
   useEffect(() => {
     if (data?.Fragment[0] === undefined) return
-    setFragment(data.Fragment[0])
+    setFragment(studioFragment)
   }, [data, fragmentId])
 
   useEffect(() => {
