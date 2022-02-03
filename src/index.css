@@ -18,7 +18,7 @@
     font-family: 'Gilroy';
     font-style: normal;
     font-weight: 800;
-    font-display: optional;
+    font-display: fallback;
     src: url('/fonts/Gilroy/gilroy-extrabold-latin.woff2') format('woff2');
   }
 
@@ -27,7 +27,7 @@
     font-family: 'Gilroy';
     font-style: normal;
     font-weight: 700;
-    font-display: optional;
+    font-display: fallback;
     src: url('/fonts/Gilroy/gilroy-bold-latin.woff2') format('woff2');
   }
 
@@ -36,7 +36,7 @@
     font-family: 'Gilroy';
     font-style: normal;
     font-weight: 600;
-    font-display: optional;
+    font-display: fallback;
     src: url('/fonts/Gilroy/gilroy-semibold-latin.woff2') format('woff2');
   }
 
