@@ -1,9 +1,16 @@
 import { cx } from '@emotion/css'
+import { HocuspocusProvider } from '@hocuspocus/provider'
 import UniqueID from '@tiptap-pro/extension-unique-id'
+import Collaboration from '@tiptap/extension-collaboration'
+import CollaborationCursor from '@tiptap/extension-collaboration-cursor'
 import Placeholder from '@tiptap/extension-placeholder'
 import { EditorContent, useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { useRecoilValue } from 'recoil'
+import * as Y from 'yjs'
+import config from '../../../config'
+import { databaseUserState } from '../../../stores/user.store'
 import CodeBlock from './blocks/CodeBlock'
 import ImageBlock from './blocks/ImageBlock'
 import NoteBlock from './blocks/NoteBlock'
@@ -17,6 +24,23 @@ import editorStyle from './style'
 import CustomTypography from './utils/typography'
 import { Block, Position, SimpleAST, useUtils } from './utils/utils'
 
+const yDoc = new Y.Doc()
+
+const provider = new HocuspocusProvider({
+  document: yDoc,
+  url: config.hocusPocus.server,
+  name: `flick-doc-${window.location.href.split('/').pop()}`,
+})
+
+function generateLightColorHex() {
+  let color = '#'
+  for (let i = 0; i < 3; i += 1)
+    color += `0${Math.floor(((1 + Math.random()) * 16 ** 2) / 2).toString(
+      16
+    )}`.slice(-2)
+  return color
+}
+
 const TipTap = ({
   handleActiveBlock,
   handleUpdateAst,
@@ -28,6 +52,7 @@ const TipTap = ({
   initialContent?: string
   handleActiveBlock?: (block?: Block) => void
 }) => {
+  const user = useRecoilValue(databaseUserState)
   const utils = useUtils()
   const [ast, setAST] = useState<SimpleAST>()
 
@@ -48,6 +73,16 @@ const TipTap = ({
     },
     autofocus: true,
     extensions: [
+      Collaboration.configure({
+        document: yDoc,
+      }),
+      CollaborationCursor.configure({
+        provider,
+        user: {
+          name: user?.displayName || 'Anonymous',
+          color: generateLightColorHex(),
+        },
+      }),
       UniqueID.configure({
         attributeName: 'id',
         types: [
@@ -62,6 +97,7 @@ const TipTap = ({
       }),
       CustomTypography,
       StarterKit.configure({
+        history: false,
         codeBlock: false,
         heading: {
           levels: [1, 2, 3],
@@ -114,14 +150,21 @@ const TipTap = ({
       Slab,
       NoteBlock,
     ],
-    content: ``,
   })
 
   const editorRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    return () => {
+      editor?.destroy()
+      provider.destroy()
+    }
+  }, [])
+
+  useEffect(() => {
     if (!initialContent || !editor || editor.isDestroyed) return
-    editor.commands.setContent(initialContent)
+    // Do not set content. Hocuspocus sets it.
+    // editor.commands.setContent(initialContent)
 
     const simpleAST = utils.getSimpleAST(editor.getJSON())
     handleUpdate()
