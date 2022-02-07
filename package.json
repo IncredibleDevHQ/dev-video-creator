@@ -23,7 +23,9 @@
     "@emotion/css": "^11.1.3",
     "@fontsource/fira-mono": "^4.5.0",
     "@headlessui/react": "^1.4.2",
+    "@hocuspocus/provider": "^1.0.0-alpha.29",
     "@monaco-editor/react": "^4.3.1",
+    "@samuelmeuli/font-manager": "^1.4.0",
     "@sentry/react": "^6.10.0",
     "@sentry/tracing": "^6.10.0",
     "@tailwindcss/forms": "^0.4.0",
@@ -32,6 +34,8 @@
     "@tiptap/core": "^2.0.0-beta.168",
     "@tiptap/extension-code-block": "^2.0.0-beta.37",
     "@tiptap/extension-code-block-lowlight": "^2.0.0-beta.68",
+    "@tiptap/extension-collaboration": "^2.0.0-beta.33",
+    "@tiptap/extension-collaboration-cursor": "^2.0.0-beta.34",
     "@tiptap/extension-document": "^2.0.0-beta.15",
     "@tiptap/extension-focus": "^2.0.0-beta.40",
     "@tiptap/extension-image": "^2.0.0-beta.24",
@@ -108,6 +112,7 @@
     "videojs-hls-quality-selector": "^1.1.4",
     "videojs-logo": "^2.1.6",
     "videojs-share": "^3.2.1",
+    "yjs": "^13.5.24",
     "yup": "^0.32.9"
   },
   "devDependencies": {
