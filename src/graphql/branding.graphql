@@ -6,6 +6,15 @@ query GetBranding {
   }
 }
 
+query GetFonts {
+  Fonts {
+    id
+    family
+    url
+    userSub
+  }
+}
+
 mutation CreateBranding($name: String!, $branding: jsonb) {
   insert_Branding_one(object: { name: $name, branding: $branding }) {
     branding
@@ -28,5 +37,13 @@ mutation UpdateBranding($id: uuid!, $name: String!, $branding: jsonb) {
 mutation DeleteBranding($id: uuid!) {
   delete_Branding_by_pk(id: $id) {
     id
+  }
+}
+
+mutation AddFont($family: String!, $url: String!) {
+  insert_Fonts_one(object: { family: $family, url: $url }) {
+    id
+    family
+    url
   }
 }

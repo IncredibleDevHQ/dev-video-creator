@@ -8,7 +8,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { HexColorInput, HexColorPicker } from 'react-colorful'
 import Dropzone from 'react-dropzone'
 import { IconType } from 'react-icons'
-import { BiCheck } from 'react-icons/bi'
+import { BiCheck, BiFileBlank } from 'react-icons/bi'
 import { BsCloudCheck, BsCloudUpload } from 'react-icons/bs'
 import { FiLoader, FiUploadCloud } from 'react-icons/fi'
 import {
@@ -28,17 +28,20 @@ import Modal from 'react-responsive-modal'
 import useMeasure from 'react-use-measure'
 import { useDebouncedCallback } from 'use-debounce'
 import { ReactComponent as BrandIcon } from '../../assets/BrandIcon.svg'
-import { Button, Heading, Text, Tooltip } from '../../components'
+import { Button, emitToast, Heading, Text, Tooltip } from '../../components'
 import {
   GetBrandingQuery,
+  useAddFontMutation,
   useCreateBrandingMutation,
   useDeleteBrandingMutation,
   useGetBrandingQuery,
+  useGetFontsQuery,
   useUpdateBrandingMutation,
 } from '../../generated/graphql'
 import { useUploadFile } from '../../hooks'
 import useDidUpdateEffect from '../../hooks/use-did-update-effect'
 import CustomFontPicker, { IFont } from '../Flick/components/CustomFontPicker'
+import { loadFonts } from '../Studio/hooks/use-load-font'
 import BrandPreview from './BrandPreview'
 
 export interface BrandingJSON {
@@ -154,7 +157,7 @@ const BrandingPage = ({
   const [ref, bounds] = useMeasure()
 
   const [brandingId, setBrandingId] = useState<string>()
-  const [activeTab, setActiveTab] = useState<Tab>(tabs[0])
+  const [activeTab, setActiveTab] = useState<Tab>(tabs[3])
 
   const [brandings, setBrandings] = useState<BrandingInterface[]>([])
 
@@ -192,6 +195,23 @@ const BrandingPage = ({
   const branding = useMemo(() => {
     return brandings.find((branding) => branding.id === brandingId)
   }, [brandings, brandingId])
+
+  useEffect(() => {
+    loadFonts([
+      {
+        family: branding?.branding?.font?.heading?.family as string,
+        weights: ['400'],
+        type: branding?.branding?.font?.heading?.type || 'custom',
+        url: branding?.branding?.font?.heading?.url,
+      },
+      {
+        family: branding?.branding?.font?.body?.family as string,
+        weights: ['400'],
+        type: branding?.branding?.font?.body?.type || 'custom',
+        url: branding?.branding?.font?.body?.url,
+      },
+    ])
+  }, [branding])
 
   useEffect(() => {
     setBrandings(data?.Branding || [])
@@ -281,17 +301,6 @@ const BrandingPage = ({
                     <Text className="text-sm">Add new</Text>
                   )}
                 </Button>
-                {/* <Button
-                  onClick={handleSave}
-                  appearance="primary"
-                  type="button"
-                  size="small"
-                  disabled={updatingBrand}
-                  loading={updatingBrand}
-                  className=""
-                >
-                  <Text className="text-sm">Done</Text>
-                </Button> */}
               </div>
             </div>
             <div className="flex flex-1 w-full justify-between">
@@ -1090,37 +1099,226 @@ const FontSetting = ({
   branding: BrandingInterface
   setBranding: (branding: BrandingInterface) => void
 }) => {
+  const { data, refetch } = useGetFontsQuery()
+  const [addFont, { loading }] = useAddFontMutation()
+  const [showUploadFont, setShowUploadFont] = useState(false)
+  const [headingOrBody, setHeadingOrBody] = useState<'heading' | 'body'>(
+    'heading'
+  )
+
+  const [familyName, setFamilyName] = useState('')
+  const [url, setUrl] = useState('')
+  const [fileName, setFileName] = useState('')
+
+  const [fontUploading, setFontUploading] = useState(false)
+
+  const [uploadFile] = useUploadFile()
+
+  const handleAddFont = async () => {
+    try {
+      await addFont({
+        variables: {
+          url,
+          family: familyName,
+        },
+      })
+      setUrl('')
+      setShowUploadFont(false)
+      refetch()
+      setBranding({
+        ...branding,
+        branding: {
+          ...branding.branding,
+          font: {
+            ...branding?.branding?.font,
+            [headingOrBody]: {
+              ...branding?.branding?.font?.[headingOrBody],
+              family: familyName,
+              type: 'custom',
+              url,
+            },
+          },
+        },
+      })
+    } catch (e) {
+      emitToast({
+        type: 'error',
+        title: 'Could not add font',
+      })
+    }
+  }
+
+  const handleUploadFile = async (files: File[]) => {
+    try {
+      const file = files?.[0]
+      if (!file) return
+
+      setFontUploading(true)
+      const { url } = await uploadFile({
+        extension: file.name.split('.').pop() as any,
+        file,
+      })
+      setUrl(url)
+      setFileName(file.name)
+    } catch (e) {
+      emitToast({
+        type: 'error',
+        title: 'Failed to upload font',
+      })
+    } finally {
+      setFontUploading(false)
+    }
+  }
+
   return (
     <div className="flex flex-col">
       <Heading fontSize="small" className="font-bold mb-2">
         Heading
       </Heading>
-      <CustomFontPicker
-        activeFont={
-          branding.branding?.font?.heading ||
-          (initialValue.font?.heading as IFont)
+      <Tooltip
+        isOpen={showUploadFont}
+        setIsOpen={setShowUploadFont}
+        placement="left-start"
+        content={
+          <div
+            style={{
+              width: '300px',
+            }}
+            className="border border-gray-200 shadow-sm bg-white mr-6 mt-1 p-4 rounded-sm"
+          >
+            <IoCloseOutline
+              className="ml-auto cursor-pointer"
+              size={16}
+              onClick={() => setShowUploadFont(false)}
+            />
+            <Text className="text-sm font-bold">Custom font</Text>
+            <input
+              placeholder="Font family name"
+              className="w-full mt-4 text-sm font-body border rounded-sm px-2 py-1.5 outline-none focus:border-brand"
+              value={familyName}
+              onChange={(e) => setFamilyName(e.currentTarget.value)}
+            />
+            {!url ? (
+              <Dropzone
+                onDrop={handleUploadFile}
+                accept={['.woff', '.woff2']}
+                maxFiles={1}
+              >
+                {({ getRootProps, getInputProps }) => (
+                  <div
+                    tabIndex={-1}
+                    onKeyUp={() => {}}
+                    role="button"
+                    className="flex flex-col items-center p-3 mt-2 mb-2 border border-gray-200 border-dashed rounded-md cursor-pointer"
+                    {...getRootProps()}
+                  >
+                    <input {...getInputProps()} />
+                    {fontUploading && (
+                      <FiLoader className={cx('animate-spin my-6')} size={16} />
+                    )}
+                    {!fontUploading && !url && (
+                      <>
+                        <FiUploadCloud
+                          size={21}
+                          className="my-2 text-gray-600"
+                        />
+
+                        <div className="z-50 text-center ">
+                          <Text className="font-body text-xs text-gray-600">
+                            Drag and drop or
+                          </Text>
+                          <Text className="font-semibold text-xs text-gray-800">
+                            browse
+                          </Text>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+              </Dropzone>
+            ) : (
+              <div className="flex items-center w-full mt-2 bg-gray-100 rounded-sm p-2 relative">
+                <IoCloseCircle
+                  className="absolute top-0 right-0 text-red-500 -m-1.5 cursor-pointer block z-10 bg-white rounded-full"
+                  size={16}
+                  onClick={() => {
+                    setUrl('')
+                  }}
+                />
+                <BiFileBlank size={21} className="flex-shrink-0 mr-2" />
+                <Text className="text-sm font-body text-gray-600 truncate">
+                  {fileName}
+                </Text>
+              </div>
+            )}
+            <Button
+              appearance="primary"
+              type="button"
+              onClick={handleAddFont}
+              disabled={loading || !familyName || !url}
+              loading={loading}
+              className="w-full mt-4"
+              size="small"
+            >
+              <Text className="font-bold">Add font</Text>
+            </Button>
+          </div>
         }
-        onChange={(font) => {
-          setBranding({
-            ...branding,
-            branding: {
-              ...branding.branding,
-              font: {
-                ...branding?.branding?.font,
-                heading: {
-                  type: font.type,
-                  family: font.family,
+      >
+        <CustomFontPicker
+          showUploadFont={() => {
+            setShowUploadFont(true)
+            setHeadingOrBody('heading')
+          }}
+          customFonts={
+            data?.Fonts?.map((f) => {
+              return {
+                family: f.family,
+                type: 'custom',
+                url: f.url,
+              } as IFont
+            }) || []
+          }
+          activeFont={
+            branding.branding?.font?.heading ||
+            (initialValue.font?.heading as IFont)
+          }
+          onChange={(font) => {
+            setBranding({
+              ...branding,
+              branding: {
+                ...branding.branding,
+                font: {
+                  ...branding?.branding?.font,
+                  heading: {
+                    type: font.type,
+                    family: font.family,
+                    url: font.url,
+                  },
                 },
               },
-            },
-          })
-        }}
-      />
+            })
+          }}
+        />
+      </Tooltip>
 
       <Heading fontSize="small" className="font-bold mb-2 mt-10">
         Body
       </Heading>
       <CustomFontPicker
+        showUploadFont={() => {
+          setShowUploadFont(true)
+          setHeadingOrBody('body')
+        }}
+        customFonts={
+          data?.Fonts?.map((f) => {
+            return {
+              family: f.family,
+              type: 'custom',
+              url: f.url,
+            } as IFont
+          }) || []
+        }
         activeFont={
           branding.branding?.font?.body || (initialValue.font?.body as IFont)
         }
@@ -1134,6 +1332,7 @@ const FontSetting = ({
                 body: {
                   type: font.type,
                   family: font.family,
+                  url: font.url,
                 },
               },
             },

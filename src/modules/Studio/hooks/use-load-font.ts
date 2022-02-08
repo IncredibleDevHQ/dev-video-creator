@@ -50,7 +50,7 @@ const createCustomLink = (fonts: Font[]) => {
     `
       return fontFace
     })
-    .join('\n')
+    .join('')
   const file = new File([fontFacesString], 'customFonts.css', {
     type: 'text/css',
   })
