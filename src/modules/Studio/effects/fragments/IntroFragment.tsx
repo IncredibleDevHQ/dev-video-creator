@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { Group } from 'react-konva'
 import { useRecoilValue } from 'recoil'
-import { TopLayerChildren, VideoTheme } from '../../../../utils/configTypes'
+import { ThemeFragment } from '../../../../generated/graphql'
+import { TopLayerChildren } from '../../../../utils/configTypes'
 import Concourse, { CONFIG, SHORTS_CONFIG } from '../../components/Concourse'
 import { Video } from '../../components/Video'
 import { StudioProviderProps, studioStore } from '../../stores'
@@ -10,6 +11,7 @@ import {
   StudioUserConfiguration,
 } from '../../utils/StudioUserConfig'
 import GlassySplash from '../Splashes/GlassySplash'
+import PastelLinesSplash from '../Splashes/PastelLinesSplash'
 
 export type IntroState = 'userMedia' | 'titleSplash' | 'introVideo'
 
@@ -20,16 +22,18 @@ const Splash = ({
   stageConfig,
   isShorts,
 }: {
-  theme: VideoTheme
+  theme: ThemeFragment
   stageConfig: {
     width: number
     height: number
   }
   isShorts: boolean
 }) => {
-  switch (theme) {
-    case 'glassy':
+  switch (theme.name) {
+    case 'DarkGradient':
       return <GlassySplash stageConfig={stageConfig} isShorts={isShorts} />
+    case 'PastelLines':
+      return <PastelLinesSplash stageConfig={stageConfig} isShorts={isShorts} />
     default:
       return <></>
   }
@@ -56,7 +60,7 @@ const IntroFragment = ({
   >
   introSequence: IntroState[]
 }) => {
-  const { fragment, state, payload, branding } =
+  const { fragment, state, payload, branding, theme } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [stageConfig, setStageConfig] = useState<{
@@ -92,7 +96,7 @@ const IntroFragment = ({
         setLayerChildren([
           <Group x={0} y={0}>
             <Splash
-              theme="glassy"
+              theme={theme}
               stageConfig={stageConfig}
               isShorts={shortsMode}
             />
@@ -142,7 +146,7 @@ const IntroFragment = ({
           introSequence[payload.activeIntroIndex] === 'userMedia'
             ? 'onlyUserMedia'
             : 'customLayout',
-        theme: 'glassy',
+        theme,
       })
     : ShortsStudioUserConfiguration({
         layout: 'classic',
@@ -151,7 +155,7 @@ const IntroFragment = ({
           introSequence[payload.activeIntroIndex] === 'userMedia'
             ? 'onlyUserMedia'
             : 'customLayout',
-        theme: 'glassy',
+        theme,
       })
 
   return (

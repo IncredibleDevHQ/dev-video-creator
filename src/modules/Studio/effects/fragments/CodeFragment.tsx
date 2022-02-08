@@ -96,7 +96,7 @@ const CodeFragment = ({
   shortsMode: boolean
   isPreview: boolean
 }) => {
-  const { fragment, payload, updatePayload, state } =
+  const { fragment, payload, updatePayload, state, theme } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const { initUseCode } = useCode()
@@ -145,6 +145,7 @@ const CodeFragment = ({
       availableWidth: 0,
       availableHeight: 0,
       textColor: '',
+      surfaceColor: '',
     })
 
   const [colorCodes, setColorCodes] = useState<any>([])
@@ -165,6 +166,7 @@ const CodeFragment = ({
     })
     setObjectConfig(
       FragmentLayoutConfig({
+        theme,
         layout: viewConfig?.layout || 'classic',
         isShorts: shortsMode || false,
       })
@@ -193,7 +195,7 @@ const CodeFragment = ({
 
   useEffect(() => {
     setObjectRenderConfig(
-      ThemeLayoutConfig({ theme: 'glassy', layoutConfig: objectConfig })
+      ThemeLayoutConfig({ theme, layoutConfig: objectConfig })
     )
   }, [objectConfig])
 
@@ -307,7 +309,7 @@ const CodeFragment = ({
   const layerChildren: any[] = [
     <Group x={0} y={0} opacity={0} ref={customLayoutRef}>
       <FragmentBackground
-        theme="glassy"
+        theme={theme}
         objectConfig={objectConfig}
         backgroundRectColor="#202026"
       />
@@ -486,13 +488,13 @@ const CodeFragment = ({
         layout: viewConfig?.layout || 'classic',
         fragment,
         fragmentState,
-        theme: 'glassy',
+        theme,
       })
     : ShortsStudioUserConfiguration({
         layout: viewConfig?.layout || 'classic',
         fragment,
         fragmentState,
-        theme: 'glassy',
+        theme,
       })
 
   return (

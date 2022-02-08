@@ -8,9 +8,10 @@ import Concourse, { CONFIG, SHORTS_CONFIG } from '../../components/Concourse'
 import useEdit from '../../hooks/use-edit'
 import { studioStore } from '../../stores'
 import { StudioUserConfiguration } from '../../utils/StudioUserConfig'
+import { getThemeTextColor } from '../../utils/ThemeConfig'
 
 const OutroFragment = ({ isShorts }: { isShorts: boolean }) => {
-  const { fragment, branding } = useRecoilValue(studioStore)
+  const { fragment, branding, theme } = useRecoilValue(studioStore)
   const [logo] = useImage(branding?.logo || '', 'anonymous')
 
   const [imgDim, setImgDim] = useState<{
@@ -56,7 +57,7 @@ const OutroFragment = ({ isShorts }: { isShorts: boolean }) => {
         align="center"
         verticalAlign="middle"
         text="Thanks for watching"
-        fill={branding?.colors?.text || '#ffffff'}
+        fill={branding?.colors?.text || getThemeTextColor(theme)}
         fontSize={64}
         fontFamily="Gilroy"
         fontStyle="normal 600"
@@ -76,7 +77,7 @@ const OutroFragment = ({ isShorts }: { isShorts: boolean }) => {
     layout: 'classic',
     fragment,
     fragmentState: 'customLayout',
-    theme: 'glassy',
+    theme,
   })
 
   return (

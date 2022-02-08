@@ -47,7 +47,7 @@ const PointsFragment = ({
   shortsMode: boolean
   isPreview: boolean
 }) => {
-  const { fragment, state, updatePayload, payload, addMusic, branding } =
+  const { fragment, state, updatePayload, payload, addMusic, branding, theme } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [activePointIndex, setActivePointIndex] = useState<number>(0)
@@ -81,6 +81,7 @@ const PointsFragment = ({
       availableWidth: 0,
       availableHeight: 0,
       textColor: '',
+      surfaceColor: '',
     })
 
   useEffect(() => {
@@ -93,6 +94,7 @@ const PointsFragment = ({
     setComputedPoints([])
     setObjectConfig(
       FragmentLayoutConfig({
+        theme,
         layout: viewConfig?.layout || 'classic',
         isShorts: shortsMode || false,
       })
@@ -102,7 +104,7 @@ const PointsFragment = ({
 
   useEffect(() => {
     setObjectRenderConfig(
-      ThemeLayoutConfig({ theme: 'glassy', layoutConfig: objectConfig })
+      ThemeLayoutConfig({ theme, layoutConfig: objectConfig })
     )
   }, [objectConfig])
 
@@ -176,10 +178,12 @@ const PointsFragment = ({
   const layerChildren: any[] = [
     <Group x={0} y={0} opacity={0} ref={customLayoutRef}>
       <FragmentBackground
-        theme="glassy"
+        theme={theme}
         objectConfig={objectConfig}
         backgroundRectColor={
-          branding?.colors?.primary ? branding?.colors?.primary : '#151D2C'
+          branding?.colors?.primary
+            ? branding?.colors?.primary
+            : objectRenderConfig.surfaceColor
         }
       />
       <Text
@@ -296,13 +300,13 @@ const PointsFragment = ({
         layout: viewConfig?.layout || 'classic',
         fragment,
         fragmentState,
-        theme: 'glassy',
+        theme,
       })
     : ShortsStudioUserConfiguration({
         layout: viewConfig?.layout || 'classic',
         fragment,
         fragmentState,
-        theme: 'glassy',
+        theme,
       })
 
   return (

@@ -44,7 +44,7 @@ const VideoFragment = ({
   stageRef: React.RefObject<Konva.Stage>
   shortsMode: boolean
 }) => {
-  const { fragment, payload, updatePayload, state } =
+  const { fragment, payload, updatePayload, state, theme } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [studio, setStudio] = useRecoilState(studioStore)
@@ -72,6 +72,7 @@ const VideoFragment = ({
       availableWidth: 0,
       availableHeight: 0,
       textColor: '',
+      surfaceColor: '',
     })
 
   useEffect(() => {
@@ -99,6 +100,7 @@ const VideoFragment = ({
 
     setObjectConfig(
       FragmentLayoutConfig({
+        theme,
         layout: viewConfig?.layout || 'classic',
         isShorts: shortsMode || false,
       })
@@ -111,7 +113,7 @@ const VideoFragment = ({
 
   useEffect(() => {
     setObjectRenderConfig(
-      ThemeLayoutConfig({ theme: 'glassy', layoutConfig: objectConfig })
+      ThemeLayoutConfig({ theme, layoutConfig: objectConfig })
     )
   }, [objectConfig])
 
@@ -211,7 +213,7 @@ const VideoFragment = ({
     width: objectConfig.width,
     height: objectConfig.height,
     videoFill: objectConfig.color || '#1F2937',
-    cornerRadius: objectConfig.borderRadius,
+    cornerRadius: objectRenderConfig.borderRadius,
     performClip: true,
     clipVideoConfig: {
       x: transformations?.crop?.x || 0,
@@ -224,7 +226,7 @@ const VideoFragment = ({
   const layerChildren: any[] = [
     <Group x={0} y={0} opacity={0} ref={customLayoutRef}>
       {/* <FragmentBackground
-        theme="glassy"
+        theme={theme}
         objectConfig={objectConfig}
         backgroundRectColor="#151D2C"
       /> */}
@@ -239,13 +241,13 @@ const VideoFragment = ({
         layout: viewConfig?.layout || 'classic',
         fragment,
         fragmentState,
-        theme: 'glassy',
+        theme,
       })
     : ShortsStudioUserConfiguration({
         layout: viewConfig?.layout || 'classic',
         fragment,
         fragmentState,
-        theme: 'glassy',
+        theme,
       })
 
   return (
