@@ -20,7 +20,6 @@ import {
   FlickNavBar,
   FragmentBar,
   Preview,
-  ProcessingFlick,
   Timeline,
 } from './components'
 import BlockPreview from './components/BlockPreview'
@@ -104,7 +103,6 @@ const Flick = () => {
   const [previewPosition, setPreviewPosition] = useState<Position>()
   const [activeFragment, setActiveFragment] = useState<FlickFragmentFragment>()
 
-  const [processingFlick, setProcessingFlick] = useState(false)
   const [showTimeline, setShowTimeline] = useState(false)
 
   const { updatePayload, payload, resetPayload } = useLocalPayload()
@@ -259,15 +257,6 @@ const Flick = () => {
     )
 
   if (!flick) return null
-
-  if (processingFlick)
-    return (
-      <ProcessingFlick
-        flickId={flick.id}
-        joinLink={flick.joinLink}
-        setProcessing={setProcessingFlick}
-      />
-    )
 
   return (
     <div className="relative flex flex-col w-screen h-screen overflow-hidden">
