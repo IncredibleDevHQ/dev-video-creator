@@ -107,10 +107,10 @@ export const ThemeUserMediaConfig = ({
   }
 }
 
-export const GetThemeSupportedUserMediaLayouts = (
-  theme: ThemeFragment
+export const getThemeSupportedUserMediaLayouts = (
+  themeName: string
 ): Layout[] => {
-  switch (theme.name) {
+  switch (themeName) {
     case 'DarkGradient':
       return [
         'classic',
@@ -131,7 +131,7 @@ export const GetThemeSupportedUserMediaLayouts = (
         'float-full-right',
         'float-half-right',
         'bottom-right-tile',
-        'padded-split',
+        'bottom-right-circle',
         'full',
       ]
     default:

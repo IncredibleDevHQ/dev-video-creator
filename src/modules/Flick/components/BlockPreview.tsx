@@ -10,7 +10,6 @@ import {
 } from 'recoil'
 import { Preview, Timeline } from '.'
 import {
-  allLayoutTypes,
   BlockProperties,
   Gradient,
   GradientConfig,
@@ -20,6 +19,7 @@ import {
 } from '../../../utils/configTypes'
 import { CONFIG, SHORTS_CONFIG } from '../../Studio/components/Concourse'
 import UnifiedFragment from '../../Studio/effects/fragments/UnifiedFragment'
+import { getThemeSupportedUserMediaLayouts } from '../../Studio/utils/ThemeConfig'
 import { Block } from '../editor/utils/utils'
 import { newFlickStore } from '../store/flickNew.store'
 import LayoutGeneric from './LayoutGeneric'
@@ -184,6 +184,7 @@ export const LayoutSelector = ({
   updateLayout: (layout: Layout) => void
   type: Block['type']
 }) => {
+  const { activeTheme } = useRecoilValue(newFlickStore)
   return (
     <div className={cx('h-full w-full overflow-y-scroll', scrollStyle)}>
       <div
@@ -197,7 +198,9 @@ export const LayoutSelector = ({
         )}
       >
         {mode === 'Landscape'
-          ? allLayoutTypes?.map((layoutType) => (
+          ? getThemeSupportedUserMediaLayouts(
+              activeTheme?.name || 'DarkGradient'
+            ).map((layoutType) => (
               <div className="flex justify-center items-center">
                 <LayoutGeneric
                   type={type}
