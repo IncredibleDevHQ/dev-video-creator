@@ -1,6 +1,7 @@
 import React from 'react'
 import { useRecoilValue } from 'recoil'
 import { ThemeFragment } from '../../../generated/graphql'
+import { TopLayerChildren } from '../../../utils/configTypes'
 import {
   PastelLinesTransition,
   TrianglePathTransition,
@@ -11,11 +12,15 @@ const TransitionProvider = ({
   theme,
   isShorts,
   direction,
+  setTopLayerChildren,
   performFinishAction,
 }: {
   theme: ThemeFragment
   isShorts: boolean
   direction: string
+  setTopLayerChildren?: React.Dispatch<
+    React.SetStateAction<{ id: string; state: TopLayerChildren }>
+  >
   performFinishAction?: () => void
 }) => {
   const { branding } = useRecoilValue(studioStore)
@@ -35,6 +40,7 @@ const TransitionProvider = ({
           direction={direction}
           isShorts={isShorts}
           color={branding?.colors?.transition}
+          setTopLayerChildren={setTopLayerChildren}
         />
       )
     default:

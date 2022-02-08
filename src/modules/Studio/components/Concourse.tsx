@@ -77,11 +77,15 @@ export const SHORTS_CONFIG = {
 
 export const GetTopLayerChildren = ({
   topLayerChildrenState,
+  setTopLayerChildren,
   isShorts,
   status,
   theme,
 }: {
   topLayerChildrenState: TopLayerChildren
+  setTopLayerChildren: React.Dispatch<
+    React.SetStateAction<{ id: string; state: TopLayerChildren }>
+  >
   isShorts: boolean
   status: Fragment_Status_Enum_Enum
   theme: ThemeFragment
@@ -97,6 +101,7 @@ export const GetTopLayerChildren = ({
           theme={theme}
           isShorts={isShorts || false}
           direction="left"
+          setTopLayerChildren={setTopLayerChildren}
         />
       )
     }
@@ -106,6 +111,7 @@ export const GetTopLayerChildren = ({
           theme={theme}
           isShorts={isShorts || false}
           direction="right"
+          setTopLayerChildren={setTopLayerChildren}
         />
       )
     }
@@ -479,15 +485,9 @@ const Concourse = ({
           }
         )
       )}
-      <Group>
-        <GetTopLayerChildren
-          key={topLayerChildren?.id}
-          topLayerChildrenState={topLayerChildren?.state || ''}
-          isShorts={isShorts || false}
-          status={payload?.status}
-          theme={theme}
-        />
-      </Group>
+      {/* <Group>
+        
+      </Group> */}
     </>
   )
 }

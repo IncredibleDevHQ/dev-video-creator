@@ -12,7 +12,7 @@ import AspectRatio from 'react-aspect-ratio'
 import { BiErrorCircle, BiMicrophone, BiVideo } from 'react-icons/bi'
 import { FiArrowRight } from 'react-icons/fi'
 import { IoChevronBack } from 'react-icons/io5'
-import { Layer, Stage } from 'react-konva'
+import { Group, Layer, Stage } from 'react-konva'
 import { useHistory, useParams } from 'react-router-dom'
 import {
   useRecoilBridgeAcrossReactRoots_UNSTABLE,
@@ -44,7 +44,7 @@ import {
 import { useCanvasRecorder } from '../../hooks'
 import { useUploadFile } from '../../hooks/use-upload-file'
 import { User, userState } from '../../stores/user.store'
-import { ViewConfig } from '../../utils/configTypes'
+import { TopLayerChildren, ViewConfig } from '../../utils/configTypes'
 import { BrandingJSON } from '../Branding/BrandingPage'
 import { TextEditorParser } from '../Flick/editor/utils/helpers'
 import {
@@ -56,7 +56,11 @@ import {
   VideoBlockProps,
 } from '../Flick/editor/utils/utils'
 import { Countdown } from './components'
-import { CONFIG, SHORTS_CONFIG } from './components/Concourse'
+import {
+  CONFIG,
+  GetTopLayerChildren,
+  SHORTS_CONFIG,
+} from './components/Concourse'
 import {
   CodeJamControls,
   PointsControls,
@@ -496,7 +500,7 @@ const Studio = ({
   branding?: BrandingJSON | null
 }) => {
   const { fragmentId } = useParams<{ fragmentId: string }>()
-  const { constraints, controlsConfig } =
+  const { constraints, controlsConfig, theme } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [studio, setStudio] = useRecoilState(studioStore)
   const { sub } = (useRecoilValue(userState) as User) || {}
@@ -894,6 +898,12 @@ const Studio = ({
     }
   }
 
+  // state which stores the type of layer children which have to be placed over the studio user
+  const [topLayerChildren, setTopLayerChildren] = useState<{
+    id: string
+    state: TopLayerChildren
+  }>({ id: '', state: '' })
+
   /**
    * =======================
    * END EVENT HANDLERS...
@@ -956,10 +966,24 @@ const Studio = ({
                   {(() => {
                     if (fragment) {
                       return (
-                        <UnifiedFragment
-                          stageRef={stageRef}
-                          // layerRef={layerRef}
-                        />
+                        <Group>
+                          <UnifiedFragment
+                            stageRef={stageRef}
+                            topLayerChildren={topLayerChildren}
+                            setTopLayerChildren={setTopLayerChildren}
+                            // layerRef={layerRef}
+                          />
+                          <GetTopLayerChildren
+                            key={topLayerChildren?.id}
+                            topLayerChildrenState={
+                              topLayerChildren?.state || ''
+                            }
+                            setTopLayerChildren={setTopLayerChildren}
+                            isShorts={shortsMode || false}
+                            status={payload?.status}
+                            theme={theme}
+                          />
+                        </Group>
                       )
                     }
                     return <></>

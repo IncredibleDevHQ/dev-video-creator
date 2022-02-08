@@ -2,6 +2,7 @@ import Konva from 'konva'
 import React, { useRef } from 'react'
 import { Circle, Group, Rect, Shape } from 'react-konva'
 import { useRecoilValue } from 'recoil'
+import { TopLayerChildren } from '../../../utils/configTypes'
 import { CONFIG, SHORTS_CONFIG } from '../components/Concourse'
 import { studioStore } from '../stores'
 
@@ -291,10 +292,14 @@ export const PastelLinesTransition = ({
   direction,
   isShorts,
   color,
+  setTopLayerChildren,
 }: {
   direction: string
   isShorts?: boolean
   color?: string
+  setTopLayerChildren?: React.Dispatch<
+    React.SetStateAction<{ id: string; state: TopLayerChildren }>
+  >
 }) => {
   let stageConfig = { width: CONFIG.width, height: CONFIG.height }
   if (!isShorts) stageConfig = CONFIG
@@ -339,7 +344,7 @@ export const PastelLinesTransition = ({
           height={0}
           fill={color || '#E0D6ED'}
           stroke="#27272A"
-          strokeWidth={2}
+          strokeWidth={1}
           ref={(ref) => {
             rect2Ref.current?.to({
               y: rect2StartY - rectEndHeight,
@@ -356,19 +361,27 @@ export const PastelLinesTransition = ({
                 rect2Ref.current?.to({
                   strokeWidth: 0,
                 })
-                if (direction === 'left' || direction === 'right') {
-                  ref?.to({
-                    height: 0,
-                    strokeWidth: 2,
-                    duration,
-                  })
-                  rect2Ref.current?.to({
-                    y: rect2StartY,
-                    height: 0,
-                    strokeWidth: 2,
-                    duration,
-                  })
-                }
+                setTimeout(() => {
+                  if (direction === 'left' || direction === 'right') {
+                    ref?.to({
+                      y: rect1StartY,
+                      height: 0,
+                      strokeWidth: 1,
+                      duration,
+                      onFinish: () => {
+                        setTimeout(() => {
+                          setTopLayerChildren?.({ id: '', state: '' })
+                        }, 200)
+                      },
+                    })
+                    rect2Ref.current?.to({
+                      y: rect2StartY,
+                      height: 0,
+                      strokeWidth: 1,
+                      duration,
+                    })
+                  }
+                }, 100)
               },
             })
           }}
@@ -382,7 +395,7 @@ export const PastelLinesTransition = ({
           height={0}
           fill={color || '#E0D6ED'}
           stroke="#27272A"
-          strokeWidth={2}
+          strokeWidth={1}
           ref={rect2Ref}
         />
       </Group>
