@@ -1,6 +1,6 @@
 import Konva from 'konva'
 import React, { useRef } from 'react'
-import { Group, Image, Rect, Text } from 'react-konva'
+import { Group, Image, Line, Rect, Text } from 'react-konva'
 import useImage from 'use-image'
 import IncredibleLogo from '../../../assets/incredible-x-logo.svg'
 import useEdit from '../hooks/use-edit'
@@ -184,22 +184,33 @@ export const GlassyLowerThirds = ({
         <Group x={x} y={y}>
           <Rect
             fill={color}
-            fillLinearGradientColorStops={[
-              0,
-              '#7844CAC8',
-              0.92,
-              '#db2887c8',
-              1,
-              '#e32682c8',
-            ]}
-            fillLinearGradientStartPoint={{
-              x: 0,
-              y: 0,
-            }}
-            fillLinearGradientEndPoint={{
-              x: 400,
-              y: 96,
-            }}
+            fillLinearGradientColorStops={
+              color === ''
+                ? [0, '#7844CAC8', 0.92, '#db2887c8', 1, '#e32682c8']
+                : []
+            }
+            fillLinearGradientStartPoint={
+              color === ''
+                ? {
+                    x: 0,
+                    y: 0,
+                  }
+                : {
+                    x: 0,
+                    y: 0,
+                  }
+            }
+            fillLinearGradientEndPoint={
+              color === ''
+                ? {
+                    x: 400,
+                    y: 96,
+                  }
+                : {
+                    x: 0,
+                    y: 0,
+                  }
+            }
             cornerRadius={8}
             width={1}
             height={1}
@@ -379,6 +390,155 @@ export const GlassyLowerThirds = ({
                 },
               })
             }, 300)
+          }
+        />
+      </Group>
+    </>
+  )
+}
+
+export const PastelLinesLowerThirds = ({
+  x,
+  y,
+  userName,
+  logo,
+  color,
+  textColor,
+}: {
+  x: number
+  y: number
+  userName: string
+  logo: string
+  color: string
+  textColor: string
+}) => {
+  const [image] = useImage(logo, 'anonymous')
+  const { getTextWidth } = useEdit()
+  const textWidth = useRef(getTextWidth(userName, 'Inter', 24, 'bold') + 80)
+  return (
+    <>
+      <Group x={x} y={y}>
+        <Rect
+          fill={color || '#E0D6ED'}
+          width={0}
+          height={96}
+          stroke="#27272A"
+          strokeWidth={1}
+          ref={(ref) => {
+            ref?.to({
+              width: 96,
+              duration: 0.5,
+              easing: Konva.Easings.EaseOut,
+              onFinish: () => {
+                setTimeout(() => {
+                  ref?.to({
+                    width: Math.floor(textWidth.current) + 96,
+                    duration: 0.3,
+                    easing: Konva.Easings.EaseOut,
+                    onFinish: () => {
+                      setTimeout(() => {
+                        ref?.to({
+                          width: 96,
+                          duration: 0.3,
+                          easing: Konva.Easings.EaseOut,
+                          onFinish: () => {
+                            ref?.to({
+                              width: 0,
+                              strokeWidth: 0,
+                              duration: 0.3,
+                            })
+                          },
+                        })
+                      }, 2000)
+                    },
+                  })
+                }, 500)
+              },
+            })
+          }}
+        />
+        <Line
+          points={[96, 0, 96, 96]}
+          stroke="#27272A"
+          strokeWidth={1}
+          opacity={0}
+          ref={(ref) => {
+            setTimeout(() => {
+              ref?.to({
+                opacity: 1,
+                duration: 0.3,
+                onFinish: () => {
+                  setTimeout(() => {
+                    ref?.to({
+                      opacity: 0,
+                      duration: 0.1,
+                    })
+                  }, 2500)
+                },
+              })
+            }, 700)
+          }}
+        />
+        {/* 18 is added, to position the image in the center 
+        bcoz the image has to scale from the center, so there would be a offset set, 
+        on setting the offset the image moves negative, so to cancel that adding the offset values to x and y */}
+        <Image
+          x={18 + 30}
+          y={18 + 30}
+          width={0}
+          height={0}
+          image={image}
+          opcaity={1}
+          ref={(ref) => {
+            setTimeout(() => {
+              ref?.to({
+                offsetX: 30,
+                offsetY: 30,
+                width: 60,
+                height: 60,
+                duration: 0.5,
+                easing: Konva.Easings.EaseOut,
+                onFinish: () => {
+                  setTimeout(() => {
+                    ref?.to({
+                      offsetX: 0,
+                      offsetY: 0,
+                      width: 0,
+                      height: 0,
+                      duration: 0.1,
+                    })
+                  }, 3000)
+                },
+              })
+            }, 100)
+          }}
+        />
+        <Text
+          x={108}
+          fill={textColor || '#27272A'}
+          text={userName}
+          fontSize={24}
+          opacity={0}
+          height={96}
+          fontStyle="bold"
+          fontFamily="Inter"
+          key="username"
+          verticalAlign="middle"
+          ref={(ref) =>
+            setTimeout(() => {
+              ref?.to({
+                opacity: 1,
+                duration: 0.3,
+                onFinish: () => {
+                  setTimeout(() => {
+                    ref?.to({
+                      opacity: 0,
+                      duration: 0.3,
+                    })
+                  }, 1800)
+                },
+              })
+            }, 1100)
           }
         />
       </Group>
