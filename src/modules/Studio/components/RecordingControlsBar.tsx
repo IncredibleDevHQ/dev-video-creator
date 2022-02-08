@@ -257,8 +257,10 @@ const RecordingControlsBar = () => {
       )}
       {state !== 'preview' &&
         state !== 'upload' &&
-        fragment?.type !== Fragment_Type_Enum_Enum.Intro &&
-        fragment?.type !== Fragment_Type_Enum_Enum.Outro && (
+        fragment?.editorState?.blocks[payload?.activeObjectIndex]?.type !==
+          'introBlock' &&
+        fragment?.editorState?.blocks[payload?.activeObjectIndex]?.type !==
+          'outroBlock' && (
           <>
             <div className="w-px bg-gray-200 h-full mx-1" />
             <button
