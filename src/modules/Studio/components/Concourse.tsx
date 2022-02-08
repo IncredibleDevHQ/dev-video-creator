@@ -285,7 +285,11 @@ const Concourse = ({
 
   return (
     <>
-      <VideoBackground theme={theme} stageConfig={stageConfig} />
+      <VideoBackground
+        theme={theme}
+        stageConfig={stageConfig}
+        isShorts={isShorts || false}
+      />
       {viewConfig?.layout === 'full' &&
       !disableUserMedia &&
       !isTitleSplash &&

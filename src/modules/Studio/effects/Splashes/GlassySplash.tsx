@@ -49,7 +49,11 @@ const GlassySplash = ({
 
   return (
     <Group>
-      <VideoBackground theme={theme} stageConfig={stageConfig} />
+      <VideoBackground
+        theme={theme}
+        stageConfig={stageConfig}
+        isShorts={isShorts}
+      />
       <Text
         x={40}
         y={0}

@@ -49,7 +49,11 @@ const PastelLinesSplash = ({
 
   return (
     <Group>
-      <VideoBackground theme={theme} stageConfig={stageConfig} />
+      <VideoBackground
+        theme={theme}
+        stageConfig={stageConfig}
+        isShorts={isShorts}
+      />
       <Text
         x={100}
         // y={80}
