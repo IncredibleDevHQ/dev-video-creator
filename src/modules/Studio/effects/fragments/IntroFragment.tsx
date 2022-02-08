@@ -42,17 +42,12 @@ const Splash = ({
 const IntroFragment = ({
   shortsMode,
   isPreview,
-  topLayerChildren,
   setTopLayerChildren,
   introSequence,
 }: {
   shortsMode: boolean
   isPreview: boolean
-  topLayerChildren: {
-    id: string
-    state: TopLayerChildren
-  }
-  setTopLayerChildren: React.Dispatch<
+  setTopLayerChildren?: React.Dispatch<
     React.SetStateAction<{
       id: string
       state: TopLayerChildren
@@ -91,7 +86,7 @@ const IntroFragment = ({
     if (state === 'recording' || state === 'ready' || isPreview) {
       if (introSequence[payload.activeIntroIndex] === 'titleSplash') {
         // if (!isPreview) addMusic('splash')
-        setTopLayerChildren({ id: '', state: '' })
+        setTopLayerChildren?.({ id: '', state: '' })
         videoElement?.pause()
         setLayerChildren([
           <Group x={0} y={0}>
@@ -104,7 +99,7 @@ const IntroFragment = ({
         ])
       }
       if (introSequence[payload.activeIntroIndex] === 'introVideo') {
-        setTopLayerChildren({ id: '', state: '' })
+        setTopLayerChildren?.({ id: '', state: '' })
         if (!videoElement) return
         videoElement?.play()
         setLayerChildren([
@@ -131,7 +126,7 @@ const IntroFragment = ({
         ])
       }
       if (introSequence[payload.activeIntroIndex] === 'userMedia') {
-        setTopLayerChildren({ id: '', state: '' })
+        setTopLayerChildren?.({ id: '', state: '' })
         videoElement?.pause()
         setLayerChildren([])
       }
@@ -162,7 +157,6 @@ const IntroFragment = ({
     <Concourse
       studioUserConfig={studioUserConfig}
       layerChildren={layerChildren}
-      topLayerChildren={topLayerChildren}
       blockType="introBlock"
       isShorts={shortsMode}
     />

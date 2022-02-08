@@ -6,10 +6,7 @@ import { Group, Rect } from 'react-konva'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import * as gConfig from '../../../../config'
 import firebaseState from '../../../../stores/firebase.store'
-import {
-  BlockProperties,
-  TopLayerChildren,
-} from '../../../../utils/configTypes'
+import { BlockProperties } from '../../../../utils/configTypes'
 import {
   CodeBlockProps,
   CommentExplanations,
@@ -74,7 +71,6 @@ const getColorCodes = async (
 const CodeFragment = ({
   viewConfig,
   dataConfig,
-  topLayerChildren,
   titleSplashData,
   fragmentState,
   setFragmentState,
@@ -84,10 +80,6 @@ const CodeFragment = ({
 }: {
   viewConfig: BlockProperties
   dataConfig: CodeBlockProps
-  topLayerChildren: {
-    id: string
-    state: TopLayerChildren
-  }
   titleSplashData?: TitleSplashProps | undefined
   fragmentState: FragmentState
   setFragmentState: React.Dispatch<React.SetStateAction<FragmentState>>
@@ -501,7 +493,6 @@ const CodeFragment = ({
       stageRef={stageRef}
       titleSplashData={titleSplashData}
       studioUserConfig={studioUserConfig}
-      topLayerChildren={topLayerChildren}
       isShorts={shortsMode}
       blockType={dataConfig.type}
     />

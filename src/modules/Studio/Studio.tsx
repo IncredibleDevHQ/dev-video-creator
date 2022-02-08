@@ -969,7 +969,6 @@ const Studio = ({
                         <Group>
                           <UnifiedFragment
                             stageRef={stageRef}
-                            topLayerChildren={topLayerChildren}
                             setTopLayerChildren={setTopLayerChildren}
                             // layerRef={layerRef}
                           />

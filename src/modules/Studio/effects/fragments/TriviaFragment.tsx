@@ -4,10 +4,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Group, Image, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
-import {
-  BlockProperties,
-  TopLayerChildren,
-} from '../../../../utils/configTypes'
+import { BlockProperties } from '../../../../utils/configTypes'
 import { ImageBlockProps } from '../../../Flick/editor/utils/utils'
 import Concourse, { TitleSplashProps } from '../../components/Concourse'
 import FragmentBackground from '../../components/FragmentBackground'
@@ -28,7 +25,6 @@ import { ObjectRenderConfig, ThemeLayoutConfig } from '../../utils/ThemeConfig'
 const TriviaFragment = ({
   viewConfig,
   dataConfig,
-  topLayerChildren,
   titleSplashData,
   fragmentState,
   setFragmentState,
@@ -37,10 +33,6 @@ const TriviaFragment = ({
 }: {
   viewConfig: BlockProperties
   dataConfig: ImageBlockProps
-  topLayerChildren: {
-    id: string
-    state: TopLayerChildren
-  }
   titleSplashData?: TitleSplashProps | undefined
   fragmentState: FragmentState
   setFragmentState: React.Dispatch<React.SetStateAction<FragmentState>>
@@ -319,7 +311,6 @@ const TriviaFragment = ({
       stageRef={stageRef}
       titleSplashData={titleSplashData}
       studioUserConfig={studioUserConfig}
-      topLayerChildren={topLayerChildren}
       isShorts={shortsMode}
       blockType={dataConfig.type}
     />

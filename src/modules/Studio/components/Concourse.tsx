@@ -57,10 +57,6 @@ interface ConcourseProps {
   titleSplashData?: TitleSplashProps
   studioUserConfig?: StudioUserConfig[]
   disableUserMedia?: boolean
-  topLayerChildren?: {
-    id: string
-    state: TopLayerChildren
-  }
   isShorts?: boolean
   blockType: Block['type']
 }
@@ -129,7 +125,6 @@ const Concourse = ({
   titleSplashData,
   studioUserConfig,
   disableUserMedia,
-  topLayerChildren,
   isShorts,
   blockType,
 }: ConcourseProps) => {
@@ -485,9 +480,6 @@ const Concourse = ({
           }
         )
       )}
-      {/* <Group>
-        
-      </Group> */}
     </>
   )
 }
