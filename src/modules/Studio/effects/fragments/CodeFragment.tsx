@@ -5,7 +5,6 @@ import { useAuthState } from 'react-firebase-hooks/auth'
 import { Group, Rect } from 'react-konva'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import * as gConfig from '../../../../config'
-import { Fragment_Status_Enum_Enum } from '../../../../generated/graphql'
 import firebaseState from '../../../../stores/firebase.store'
 import {
   BlockProperties,
@@ -314,60 +313,76 @@ const CodeFragment = ({
         backgroundRectColor="#202026"
       />
       {!isPreview ? (
-        payload?.status === Fragment_Status_Enum_Enum.Live && (
-          <Group
-            x={objectRenderConfig.startX + 25}
-            y={objectRenderConfig.startY + 10}
-            key="group"
-          >
-            {!isCodexFormat ? (
-              <>
-                {getRenderedTokens(computedTokens, position)}
-                {computedTokens.length > 0 && (
-                  <RenderTokens
-                    key={position.prevIndex}
-                    tokens={computedTokens}
-                    startIndex={position.prevIndex}
-                    endIndex={position.currentIndex}
-                  />
-                )}
-              </>
-            ) : (
-              <>
-                {getTokens(
-                  computedTokens,
-                  computedTokens[
-                    computedTokens.find(
+        <Group
+          x={objectRenderConfig.startX + 25}
+          y={objectRenderConfig.startY + 10}
+          key="group"
+        >
+          {!isCodexFormat ? (
+            <>
+              {getRenderedTokens(computedTokens, position)}
+              {computedTokens.length > 0 && (
+                <RenderTokens
+                  key={position.prevIndex}
+                  tokens={computedTokens}
+                  startIndex={position.prevIndex}
+                  endIndex={position.currentIndex}
+                />
+              )}
+            </>
+          ) : (
+            <>
+              {getTokens(
+                computedTokens,
+                computedTokens[
+                  computedTokens.find(
+                    (token) =>
+                      token.lineNumber ===
+                        (blockConfig &&
+                          blockConfig[activeBlockIndex] &&
+                          blockConfig[activeBlockIndex].from) || 0
+                  )?.startFromIndex || 0
+                ]?.lineNumber,
+                objectRenderConfig.availableHeight - 10
+              )}
+              {highlightBlockCode && (
+                <Rect
+                  x={-5}
+                  y={
+                    (computedTokens.find(
                       (token) =>
                         token.lineNumber ===
-                          (blockConfig &&
-                            blockConfig[activeBlockIndex] &&
-                            blockConfig[activeBlockIndex].from) || 0
-                    )?.startFromIndex || 0
-                  ]?.lineNumber,
-                  objectRenderConfig.availableHeight - 10
-                )}
-                {highlightBlockCode && (
-                  <Rect
-                    x={-5}
-                    y={
+                        (blockConfig &&
+                          blockConfig[activeBlockIndex] &&
+                          blockConfig[activeBlockIndex].from)
+                    )?.y || 0) - 5
+                  }
+                  width={objectConfig.width - 40}
+                  height={
+                    (computedTokens.find(
+                      (token) =>
+                        token.lineNumber ===
+                        (blockConfig &&
+                          blockConfig[activeBlockIndex] &&
+                          blockConfig[activeBlockIndex].to)
+                    )?.y || 0) -
                       (computedTokens.find(
                         (token) =>
                           token.lineNumber ===
                           (blockConfig &&
                             blockConfig[activeBlockIndex] &&
                             blockConfig[activeBlockIndex].from)
-                      )?.y || 0) - 5
-                    }
-                    width={objectConfig.width - 40}
-                    height={
-                      (computedTokens.find(
-                        (token) =>
-                          token.lineNumber ===
-                          (blockConfig &&
-                            blockConfig[activeBlockIndex] &&
-                            blockConfig[activeBlockIndex].to)
-                      )?.y || 0) -
+                      )?.y || 0) +
+                      codeConfig.fontSize +
+                      5 >
+                    0
+                      ? (computedTokens.find(
+                          (token) =>
+                            token.lineNumber ===
+                            (blockConfig &&
+                              blockConfig[activeBlockIndex] &&
+                              blockConfig[activeBlockIndex].to)
+                        )?.y || 0) -
                         (computedTokens.find(
                           (token) =>
                             token.lineNumber ===
@@ -376,35 +391,17 @@ const CodeFragment = ({
                               blockConfig[activeBlockIndex].from)
                         )?.y || 0) +
                         codeConfig.fontSize +
-                        5 >
-                      0
-                        ? (computedTokens.find(
-                            (token) =>
-                              token.lineNumber ===
-                              (blockConfig &&
-                                blockConfig[activeBlockIndex] &&
-                                blockConfig[activeBlockIndex].to)
-                          )?.y || 0) -
-                          (computedTokens.find(
-                            (token) =>
-                              token.lineNumber ===
-                              (blockConfig &&
-                                blockConfig[activeBlockIndex] &&
-                                blockConfig[activeBlockIndex].from)
-                          )?.y || 0) +
-                          codeConfig.fontSize +
-                          10
-                        : 0
-                    }
-                    fill="#0066B8"
-                    opacity={0.3}
-                    cornerRadius={8}
-                  />
-                )}
-              </>
-            )}
-          </Group>
-        )
+                        10
+                      : 0
+                  }
+                  fill="#0066B8"
+                  opacity={0.3}
+                  cornerRadius={8}
+                />
+              )}
+            </>
+          )}
+        </Group>
       ) : (
         <Group
           x={objectRenderConfig.startX + 25}
