@@ -2,7 +2,10 @@ import Konva from 'konva'
 import React, { createRef, useEffect, useState } from 'react'
 import { Group, Rect } from 'react-konva'
 import { useRecoilState, useRecoilValue } from 'recoil'
-import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
+import {
+  Fragment_Status_Enum_Enum,
+  ThemeFragment,
+} from '../../../generated/graphql'
 import { User, userState } from '../../../stores/user.store'
 import {
   BlockProperties,
@@ -72,24 +75,26 @@ export const SHORTS_CONFIG = {
   height: 704,
 }
 
-const GetTopLayerChildren = ({
+export const GetTopLayerChildren = ({
   topLayerChildrenState,
   isShorts,
   status,
+  theme,
 }: {
   topLayerChildrenState: TopLayerChildren
   isShorts: boolean
   status: Fragment_Status_Enum_Enum
+  theme: ThemeFragment
 }) => {
   if (status === Fragment_Status_Enum_Enum.Ended) return <></>
   switch (topLayerChildrenState) {
     case 'lowerThird': {
-      return <LowerThridProvider theme="glassy" isShorts={isShorts || false} />
+      return <LowerThridProvider theme={theme} isShorts={isShorts || false} />
     }
     case 'transition left': {
       return (
         <TransitionProvider
-          theme="glassy"
+          theme={theme}
           isShorts={isShorts || false}
           direction="left"
         />
@@ -98,7 +103,7 @@ const GetTopLayerChildren = ({
     case 'transition right': {
       return (
         <TransitionProvider
-          theme="glassy"
+          theme={theme}
           isShorts={isShorts || false}
           direction="right"
         />
@@ -130,6 +135,7 @@ const Concourse = ({
     payload,
     users,
     stopRecording,
+    theme,
   } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [canvas, setCanvas] = useRecoilState(canvasStore)
   const [isTitleSplash, setIsTitleSplash] = useState<boolean>(false)
@@ -278,7 +284,7 @@ const Concourse = ({
 
   return (
     <>
-      <VideoBackground theme="glassy" stageConfig={stageConfig} />
+      <VideoBackground theme={theme} stageConfig={stageConfig} />
       {viewConfig?.layout === 'full' &&
       !disableUserMedia &&
       !isTitleSplash &&
@@ -390,6 +396,7 @@ const Concourse = ({
                       clipRect(
                         ctx,
                         FragmentLayoutConfig({
+                          theme,
                           layout: viewConfig?.layout || 'classic',
                           isShorts: isShorts || false,
                         })
@@ -478,6 +485,7 @@ const Concourse = ({
           topLayerChildrenState={topLayerChildren?.state || ''}
           isShorts={isShorts || false}
           status={payload?.status}
+          theme={theme}
         />
       </Group>
     </>
