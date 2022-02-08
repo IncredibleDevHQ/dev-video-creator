@@ -58,7 +58,7 @@ const OutroFragment = ({ isShorts }: { isShorts: boolean }) => {
         text="Thanks for watching"
         fill={branding?.colors?.text || '#ffffff'}
         fontSize={64}
-        fontFamily="Gilroy"
+        fontFamily={branding?.font?.heading?.family || 'Gilroy'}
         fontStyle="normal 600"
         lineHeight={1.2}
       />

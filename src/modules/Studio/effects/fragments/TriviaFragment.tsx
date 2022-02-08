@@ -228,7 +228,7 @@ const TriviaFragment = ({
                 lineHeight={1.2}
                 text={triviaData?.text}
                 fontStyle="bold"
-                fontFamily="Poppins"
+                fontFamily={branding?.font?.body?.family || 'Inter'}
                 textTransform="capitalize"
               />
               <Gif
@@ -255,7 +255,7 @@ const TriviaFragment = ({
                 lineHeight={1.2}
                 text={triviaData?.text}
                 fontStyle="bold"
-                fontFamily="Poppins"
+                fontFamily={branding?.font?.body?.family || 'Inter'}
                 textTransform="capitalize"
               />
               <Image
@@ -283,7 +283,7 @@ const TriviaFragment = ({
             height={objectRenderConfig.availableHeight}
             text={triviaData?.text}
             fontStyle="bold"
-            fontFamily="Poppins"
+            fontFamily={branding?.font?.body?.family || 'Inter'}
             align="center"
             verticalAlign="middle"
             lineHeight={1.3}
