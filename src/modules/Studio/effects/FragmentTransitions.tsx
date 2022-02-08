@@ -1,10 +1,11 @@
 import Konva from 'konva'
-import React from 'react'
-import { Circle, Rect, Group, Shape } from 'react-konva'
+import React, { useRef } from 'react'
+import { Circle, Group, Rect, Shape } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import { CONFIG, SHORTS_CONFIG } from '../components/Concourse'
 import { studioStore } from '../stores'
 
+// Used for the DarkGradient theme
 export const TrianglePathTransition = ({
   direction,
   performFinishAction,
@@ -282,6 +283,109 @@ export const TrianglePathTransition = ({
         fill={color || '#ffffff'}
         opacity={1}
       />
+    </Group>
+  )
+}
+
+export const PastelLinesTransition = ({
+  direction,
+  isShorts,
+  color,
+}: {
+  direction: string
+  isShorts?: boolean
+  color?: string
+}) => {
+  let stageConfig = { width: CONFIG.width, height: CONFIG.height }
+  if (!isShorts) stageConfig = CONFIG
+  else stageConfig = SHORTS_CONFIG
+  const rect2Ref = useRef<Konva.Rect>(null)
+
+  let rect1StartX = 0
+  let rect1StartY = 0
+  let rectEndHeight = 0
+  let rect2StartX = 0
+  let rect2StartY = 0
+  let duration = 0
+  switch (direction) {
+    case 'left':
+    case 'right':
+    case 'moveIn':
+      rect1StartX = 0
+      rect1StartY = 0
+      rectEndHeight = stageConfig.height / 2
+      rect2StartX = 0
+      rect2StartY = stageConfig.height
+      duration = 0.75
+      break
+    case 'moveAway':
+      rect1StartX = 0
+      rect1StartY = stageConfig.height / 2
+      rect2StartX = 0
+      rect2StartY = stageConfig.height / 2
+      duration = 0.5
+      break
+    default:
+      break
+  }
+
+  return (
+    <Group>
+      <Group>
+        <Rect
+          x={rect1StartX}
+          y={rect1StartY}
+          width={stageConfig.width}
+          height={0}
+          fill={color || '#E0D6ED'}
+          stroke="#27272A"
+          strokeWidth={2}
+          ref={(ref) => {
+            rect2Ref.current?.to({
+              y: rect2StartY - rectEndHeight,
+              height: rectEndHeight,
+              duration,
+            })
+            ref?.to({
+              height: rectEndHeight,
+              duration,
+              onFinish: () => {
+                ref?.to({
+                  strokeWidth: 0,
+                })
+                rect2Ref.current?.to({
+                  strokeWidth: 0,
+                })
+                if (direction === 'left' || direction === 'right') {
+                  ref?.to({
+                    height: 0,
+                    strokeWidth: 2,
+                    duration,
+                  })
+                  rect2Ref.current?.to({
+                    y: rect2StartY,
+                    height: 0,
+                    strokeWidth: 2,
+                    duration,
+                  })
+                }
+              },
+            })
+          }}
+        />
+      </Group>
+      <Group>
+        <Rect
+          x={rect2StartX}
+          y={rect2StartY}
+          width={stageConfig.width}
+          height={0}
+          fill={color || '#E0D6ED'}
+          stroke="#27272A"
+          strokeWidth={2}
+          ref={rect2Ref}
+        />
+      </Group>
     </Group>
   )
 }
