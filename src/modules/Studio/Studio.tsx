@@ -845,6 +845,7 @@ const Studio = ({
       updateParticipant,
       updatePayload,
       branding: fragment.flick.branding ? branding : null,
+      theme: fragment.flick.theme,
       participantId: fragment?.participants.find(
         ({ participant }) => participant.userSub === sub
       )?.participant.id,

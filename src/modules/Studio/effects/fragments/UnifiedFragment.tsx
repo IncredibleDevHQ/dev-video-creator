@@ -2,6 +2,7 @@ import Konva from 'konva'
 import { nanoid } from 'nanoid'
 import React, { useEffect, useRef, useState } from 'react'
 import { useRecoilState, useRecoilValue } from 'recoil'
+import { ThemeFragment } from '../../../../generated/graphql'
 import {
   BlockProperties,
   TitleSplashConfig,
@@ -35,11 +36,13 @@ const UnifiedFragment = ({
   config,
   layoutConfig,
   branding,
+  theme,
 }: {
   stageRef: React.RefObject<Konva.Stage>
   config?: Block[]
   layoutConfig?: ViewConfig
   branding?: BrandingJSON
+  theme?: ThemeFragment | null
 }) => {
   const { fragment, payload, updatePayload, state, addMusic } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
@@ -98,6 +101,17 @@ const UnifiedFragment = ({
       }))
     }
   }, [branding, studio])
+
+  useEffect(() => {
+    if (!config) return
+    if (!theme) return
+    if (theme !== studio.theme) {
+      setStudio((prev) => ({
+        ...prev,
+        theme,
+      }))
+    }
+  }, [theme, studio.theme])
 
   useEffect(() => {
     if (!fragment) return

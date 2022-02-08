@@ -240,7 +240,7 @@ export const CanvasPreview = ({
   const stageRef = createRef<Konva.Stage>()
   const layerRef = createRef<Konva.Layer>()
   const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
-  const { flick } = useRecoilValue(newFlickStore)
+  const { flick, activeTheme } = useRecoilValue(newFlickStore)
 
   const { height, width } = useGetHW({
     maxH: bounds.height * scale,
@@ -286,6 +286,7 @@ export const CanvasPreview = ({
               layoutConfig={config}
               config={[block]}
               branding={flick?.branding?.branding}
+              theme={activeTheme}
             />
           </Layer>
         </Bridge>
