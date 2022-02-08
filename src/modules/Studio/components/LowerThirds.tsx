@@ -415,6 +415,137 @@ export const PastelLinesLowerThirds = ({
   const [image] = useImage(logo, 'anonymous')
   const { getTextWidth } = useEdit()
   const textWidth = useRef(getTextWidth(userName, 'Inter', 24, 'bold') + 80)
+  if (logo)
+    return (
+      <>
+        <Group x={x} y={y}>
+          <Rect
+            fill={color || '#E0D6ED'}
+            width={0}
+            height={96}
+            stroke={textColor || '#27272A'}
+            strokeWidth={1}
+            ref={(ref) => {
+              ref?.to({
+                width: 96,
+                duration: 0.5,
+                easing: Konva.Easings.EaseOut,
+                onFinish: () => {
+                  setTimeout(() => {
+                    ref?.to({
+                      width: Math.floor(textWidth.current) + 96,
+                      duration: 0.3,
+                      easing: Konva.Easings.EaseOut,
+                      onFinish: () => {
+                        setTimeout(() => {
+                          ref?.to({
+                            width: 96,
+                            duration: 0.3,
+                            easing: Konva.Easings.EaseOut,
+                            onFinish: () => {
+                              ref?.to({
+                                width: 0,
+                                strokeWidth: 0,
+                                duration: 0.3,
+                              })
+                            },
+                          })
+                        }, 2000)
+                      },
+                    })
+                  }, 500)
+                },
+              })
+            }}
+          />
+          <Line
+            points={[96, 0, 96, 96]}
+            stroke={textColor || '#27272A'}
+            strokeWidth={1}
+            opacity={0}
+            ref={(ref) => {
+              setTimeout(() => {
+                ref?.to({
+                  opacity: 1,
+                  duration: 0.3,
+                  onFinish: () => {
+                    setTimeout(() => {
+                      ref?.to({
+                        opacity: 0,
+                        duration: 0.1,
+                      })
+                    }, 2500)
+                  },
+                })
+              }, 700)
+            }}
+          />
+          {/* 18 is added, to position the image in the center 
+        bcoz the image has to scale from the center, so there would be a offset set, 
+        on setting the offset the image moves negative, so to cancel that adding the offset values to x and y */}
+          <Image
+            x={18 + 30}
+            y={18 + 30}
+            width={0}
+            height={0}
+            image={image}
+            opcaity={1}
+            ref={(ref) => {
+              setTimeout(() => {
+                ref?.to({
+                  offsetX: 30,
+                  offsetY: 30,
+                  width: 60,
+                  height: 60,
+                  duration: 0.5,
+                  easing: Konva.Easings.EaseOut,
+                  onFinish: () => {
+                    setTimeout(() => {
+                      ref?.to({
+                        offsetX: 0,
+                        offsetY: 0,
+                        width: 0,
+                        height: 0,
+                        duration: 0.1,
+                      })
+                    }, 3000)
+                  },
+                })
+              }, 100)
+            }}
+          />
+          <Text
+            x={150}
+            fill={textColor || '#27272A'}
+            text={userName}
+            fontSize={24}
+            opacity={0}
+            height={96}
+            fontStyle="bold"
+            fontFamily="Inter"
+            key="username"
+            verticalAlign="middle"
+            ref={(ref) =>
+              setTimeout(() => {
+                ref?.to({
+                  x: 108,
+                  opacity: 1,
+                  duration: 0.3,
+                  onFinish: () => {
+                    setTimeout(() => {
+                      ref?.to({
+                        opacity: 0,
+                        duration: 0.3,
+                      })
+                    }, 1800)
+                  },
+                })
+              }, 900)
+            }
+          />
+        </Group>
+      </>
+    )
   return (
     <>
       <Group x={x} y={y}>
@@ -422,99 +553,28 @@ export const PastelLinesLowerThirds = ({
           fill={color || '#E0D6ED'}
           width={0}
           height={96}
-          stroke="#27272A"
+          stroke={textColor || '#27272A'}
           strokeWidth={1}
           ref={(ref) => {
             ref?.to({
-              width: 96,
-              duration: 0.5,
+              width: Math.floor(textWidth.current) + 48,
+              duration: 0.3,
               easing: Konva.Easings.EaseOut,
               onFinish: () => {
                 setTimeout(() => {
                   ref?.to({
-                    width: Math.floor(textWidth.current) + 96,
+                    width: 0,
+                    strokeWidth: 0,
                     duration: 0.3,
                     easing: Konva.Easings.EaseOut,
-                    onFinish: () => {
-                      setTimeout(() => {
-                        ref?.to({
-                          width: 96,
-                          duration: 0.3,
-                          easing: Konva.Easings.EaseOut,
-                          onFinish: () => {
-                            ref?.to({
-                              width: 0,
-                              strokeWidth: 0,
-                              duration: 0.3,
-                            })
-                          },
-                        })
-                      }, 2000)
-                    },
                   })
-                }, 500)
+                }, 2000)
               },
             })
           }}
         />
-        <Line
-          points={[96, 0, 96, 96]}
-          stroke="#27272A"
-          strokeWidth={1}
-          opacity={0}
-          ref={(ref) => {
-            setTimeout(() => {
-              ref?.to({
-                opacity: 1,
-                duration: 0.3,
-                onFinish: () => {
-                  setTimeout(() => {
-                    ref?.to({
-                      opacity: 0,
-                      duration: 0.1,
-                    })
-                  }, 2500)
-                },
-              })
-            }, 700)
-          }}
-        />
-        {/* 18 is added, to position the image in the center 
-        bcoz the image has to scale from the center, so there would be a offset set, 
-        on setting the offset the image moves negative, so to cancel that adding the offset values to x and y */}
-        <Image
-          x={18 + 30}
-          y={18 + 30}
-          width={0}
-          height={0}
-          image={image}
-          opcaity={1}
-          ref={(ref) => {
-            setTimeout(() => {
-              ref?.to({
-                offsetX: 30,
-                offsetY: 30,
-                width: 60,
-                height: 60,
-                duration: 0.5,
-                easing: Konva.Easings.EaseOut,
-                onFinish: () => {
-                  setTimeout(() => {
-                    ref?.to({
-                      offsetX: 0,
-                      offsetY: 0,
-                      width: 0,
-                      height: 0,
-                      duration: 0.1,
-                    })
-                  }, 3000)
-                },
-              })
-            }, 100)
-          }}
-        />
         <Text
-          x={108}
+          x={60}
           fill={textColor || '#27272A'}
           text={userName}
           fontSize={24}
@@ -527,6 +587,7 @@ export const PastelLinesLowerThirds = ({
           ref={(ref) =>
             setTimeout(() => {
               ref?.to({
+                x: 20,
                 opacity: 1,
                 duration: 0.3,
                 onFinish: () => {
@@ -535,10 +596,10 @@ export const PastelLinesLowerThirds = ({
                       opacity: 0,
                       duration: 0.3,
                     })
-                  }, 1800)
+                  }, 1000)
                 },
               })
-            }, 1100)
+            }, 100)
           }
         />
       </Group>
