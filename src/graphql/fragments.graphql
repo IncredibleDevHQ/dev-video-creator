@@ -56,14 +56,6 @@ query GetFragmentById($id: uuid!, $sub: String!) {
     }
   ) {
     ...StudioFragment
-    flick {
-      useBranding
-      branding {
-        id
-        name
-        branding
-      }
-    }
   }
 }
 
