@@ -20,41 +20,84 @@ export const FragmentLayoutConfig = ({
   isShorts?: boolean
 }): ObjectConfig => {
   if (isShorts) {
-    switch (layout) {
-      case 'classic':
-      case 'padded-bottom-right-circle':
-      case 'padded-bottom-right-tile':
-        return {
-          x: 16,
-          y: 16,
-          width: 364,
-          height: 672,
-          borderRadius: 8,
+    switch (theme.name) {
+      case 'DarkGradient':
+        switch (layout) {
+          case 'classic':
+          case 'padded-bottom-right-circle':
+          case 'padded-bottom-right-tile':
+            return {
+              x: 16,
+              y: 16,
+              width: 364,
+              height: 672,
+              borderRadius: 8,
+            }
+          case 'bottom-right-tile':
+          case 'bottom-right-circle':
+            return {
+              x: 0,
+              y: 0,
+              width: 396,
+              height: 704,
+              borderRadius: 8,
+            }
+          case 'split':
+            return {
+              x: 16,
+              y: 12,
+              width: 364,
+              height: 336,
+              borderRadius: 8,
+            }
+          case 'full':
+            return {
+              x: 16,
+              y: 24,
+              width: 364,
+              height: 280,
+              borderRadius: 8,
+            }
+          default:
+            return {
+              x: 16,
+              y: 16,
+              width: 364,
+              height: 672,
+              borderRadius: 8,
+            }
         }
-      case 'bottom-right-tile':
-      case 'bottom-right-circle':
-        return {
-          x: 0,
-          y: 0,
-          width: 396,
-          height: 704,
-          borderRadius: 8,
-        }
-      case 'split':
-        return {
-          x: 16,
-          y: 12,
-          width: 364,
-          height: 336,
-          borderRadius: 8,
-        }
-      case 'full':
-        return {
-          x: 16,
-          y: 24,
-          width: 364,
-          height: 280,
-          borderRadius: 8,
+      case 'PastelLines':
+        switch (layout) {
+          case 'classic':
+          case 'padded-bottom-right-circle':
+          case 'padded-bottom-right-tile':
+          case 'bottom-right-tile':
+          case 'bottom-right-circle':
+            return {
+              x: 40,
+              y: 40,
+              width: 316,
+              height: 624,
+              borderRadius: 0,
+            }
+          case 'split':
+          case 'full':
+            return {
+              x: 40,
+              y: 40,
+              width: 316,
+              height: 312,
+              borderRadius: 0,
+            }
+          default:
+            return {
+              x: 40,
+              y: 40,
+              width: 316,
+              height: 624,
+              borderRadius: 0,
+            }
         }
       default:
         return {
