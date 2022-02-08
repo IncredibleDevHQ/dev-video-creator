@@ -119,7 +119,6 @@ export const FragmentLayoutConfig = ({
             width: 848,
             height: 477,
             borderRadius: 8,
-            color: '#182E42',
           }
         case 'float-full-right':
           return {
@@ -189,10 +188,10 @@ export const FragmentLayoutConfig = ({
           }
         default:
           return {
-            x: 288,
-            y: 90,
-            width: 640,
-            height: 360,
+            x: 56,
+            y: 32,
+            width: 848,
+            height: 477,
             borderRadius: 8,
           }
       }
@@ -241,22 +240,22 @@ export const FragmentLayoutConfig = ({
             height: 468,
             borderRadius: 0,
           }
-        case 'padded-split':
-          return {
-            x: 40,
-            y: 112.5,
-            width: 560,
-            height: 315,
-            borderRadius: 0,
-          }
-        case 'split':
-          return {
-            x: 0,
-            y: 130,
-            width: 480,
-            height: 280,
-            borderRadius: 0,
-          }
+        // case 'padded-split':
+        //   return {
+        //     x: 40,
+        //     y: 112.5,
+        //     width: 560,
+        //     height: 315,
+        //     borderRadius: 0,
+        //   }
+        // case 'split':
+        //   return {
+        //     x: 0,
+        //     y: 130,
+        //     width: 480,
+        //     height: 280,
+        //     borderRadius: 0,
+        //   }
         case 'full':
           return {
             x: 40,
@@ -267,10 +266,10 @@ export const FragmentLayoutConfig = ({
           }
         default:
           return {
-            x: 288,
-            y: 90,
-            width: 640,
-            height: 360,
+            x: 64,
+            y: 36,
+            width: 832,
+            height: 468,
             borderRadius: 0,
           }
       }
