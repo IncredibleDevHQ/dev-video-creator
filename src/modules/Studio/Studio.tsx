@@ -35,11 +35,11 @@ import {
   FlickParticipantsFragment,
   Fragment_Status_Enum_Enum,
   GetFragmentByIdQuery,
+  OrientationEnum,
   StudioFragmentFragment,
+  useCompleteFragmentMutation,
   useGetFragmentByIdLazyQuery,
   useGetRtcTokenMutation,
-  useMarkFragmentCompletedMutation,
-  useUpdateFragmentShortMutation,
 } from '../../generated/graphql'
 import { useCanvasRecorder } from '../../hooks'
 import { useUploadFile } from '../../hooks/use-upload-file'
@@ -503,8 +503,7 @@ const Studio = ({
   const [fragment, setFragment] = useState<StudioFragmentFragment>()
   const history = useHistory()
 
-  const [markFragmentCompleted] = useMarkFragmentCompletedMutation()
-  const [updateFragmentShort] = useUpdateFragmentShortMutation()
+  const [markFragmentCompleted] = useCompleteFragmentMutation()
 
   const [uploadFile] = useUploadFile()
 
@@ -735,18 +734,17 @@ const Studio = ({
 
       const duration = await getBlobDuration(uploadVideoFile)
 
-      if (shortsMode)
-        updateFragmentShort({
-          variables: {
-            id: fragmentId,
-            producedShortsLink: uuid,
-            duration,
-          },
-        })
-      else
-        await markFragmentCompleted({
-          variables: { id: fragmentId, producedLink: uuid, duration },
-        })
+      await markFragmentCompleted({
+        variables: {
+          flickId: fragment?.flick?.id,
+          fragmentId: fragment?.id,
+          duration: Math.ceil(duration),
+          orientation: shortsMode
+            ? OrientationEnum.Portrait
+            : OrientationEnum.Landscape,
+          producedLink: uuid,
+        },
+      })
 
       dismissToast(toast)
       leave()
