@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import useFontFaceObserver from 'use-font-face-observer'
 
 type Font = {
   family: string
+  url?: string
+  type: 'google' | 'custom'
   weights: (
     | 'light'
     | 'normal'
@@ -34,30 +36,56 @@ const createLink = (fonts: Font[]) => {
   const link = document.createElement('link')
   link.rel = 'stylesheet'
   link.href = `https://fonts.googleapis.com/css?family=${families}`
+  document.head.appendChild(link)
+}
 
-  return link
+const createCustomLink = (fonts: Font[]) => {
+  const fontFacesString = fonts
+    .map((font) => {
+      const fontFace = `
+      @font-face {
+        font-family: '${font.family}';
+        src: url('${font.url}');
+      }
+    `
+      return fontFace
+    })
+    .join('\n')
+  const file = new File([fontFacesString], 'customFonts.css', {
+    type: 'text/css',
+  })
+  const url = URL.createObjectURL(file)
+  const link = document.createElement('link')
+  link.rel = 'stylesheet'
+  link.href = url
+  document.head.appendChild(link)
+}
+
+export const loadFonts = (fonts: Font[]) => {
+  const loadedFonts: string[] = []
+  document.fonts.forEach((f) => loadedFonts.push(f.family))
+  const customFonts = fonts.filter(
+    (font) => font.type === 'custom' && !loadedFonts.includes(font.family)
+  )
+  const googleFonts = fonts.filter(
+    (font) => font.type === 'google' && !loadedFonts.includes(font.family)
+  )
+  if (googleFonts.length > 0) createLink(fonts)
+  if (customFonts.length > 0) createCustomLink(fonts)
 }
 
 /** A simple, stupid hook to ensure that if a Google Font is passed, it is loaded */
 const useLoadFont = (fonts: Font[]) => {
-  const [link, setLink] = useState<HTMLLinkElement>()
-
   useEffect(() => {
-    if (fonts.length === 0 || !link) return
-
-    document.head.appendChild(link)
-
-    // eslint-disable-next-line consistent-return
-    return () => {
-      document.head.removeChild(link)
-    }
-  }, [link])
-
-  useEffect(() => {
-    setLink(createLink(fonts))
+    const customFonts = fonts.filter((font) => font.type === 'custom')
+    const googleFonts = fonts.filter((font) => font.type === 'google')
+    if (googleFonts.length > 0) createLink(fonts)
+    if (customFonts.length > 0) createCustomLink(fonts)
   }, [fonts])
 
-  const loaded = useFontFaceObserver(fonts.map((f) => ({ family: f.family })))
+  const loaded = useFontFaceObserver(
+    fonts.filter((f) => f.type === 'google').map((f) => ({ family: f.family }))
+  )
 
   return { isFontLoaded: loaded }
 }

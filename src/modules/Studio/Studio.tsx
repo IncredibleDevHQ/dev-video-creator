@@ -68,6 +68,7 @@ import Preload from './components/Preload'
 import RecordingControlsBar from './components/RecordingControlsBar'
 import UnifiedFragment from './effects/fragments/UnifiedFragment'
 import { useAgora, useMediaStream } from './hooks'
+import { loadFonts } from './hooks/use-load-font'
 import { Device, MediaStreamError } from './hooks/use-media-stream'
 import { useRTDB } from './hooks/use-rtdb'
 import { StudioProviderProps, StudioState, studioStore } from './stores'
@@ -863,6 +864,24 @@ const Studio = ({
     state,
     branding,
   ])
+
+  useMemo(() => {
+    if (fragment?.flick?.branding?.branding?.font)
+      loadFonts([
+        {
+          family: fragment?.flick?.branding?.branding?.font?.heading?.family,
+          weights: ['400'],
+          type: fragment?.flick?.branding?.branding?.font?.heading?.type,
+          url: fragment?.flick?.branding?.branding?.font?.heading?.url,
+        },
+        {
+          family: fragment?.flick?.branding?.branding?.font?.body?.family,
+          weights: ['400'],
+          type: fragment?.flick?.branding?.branding?.font?.body?.type,
+          url: fragment?.flick?.branding?.branding?.font?.body?.url,
+        },
+      ])
+  }, [fragment?.flick?.branding?.branding?.font])
 
   useEffect(() => {
     if (payload?.status === Fragment_Status_Enum_Enum.Live) {

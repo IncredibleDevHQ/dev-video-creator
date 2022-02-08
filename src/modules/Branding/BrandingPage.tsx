@@ -4,13 +4,12 @@
 
 import { css, cx } from '@emotion/css'
 import { Listbox } from '@headlessui/react'
-import FontPicker from 'font-picker-react'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { HexColorInput, HexColorPicker } from 'react-colorful'
 import Dropzone from 'react-dropzone'
 import { IconType } from 'react-icons'
 import { BiCheck } from 'react-icons/bi'
-import { BsCloudUpload, BsCloudCheck } from 'react-icons/bs'
+import { BsCloudCheck, BsCloudUpload } from 'react-icons/bs'
 import { FiLoader, FiUploadCloud } from 'react-icons/fi'
 import {
   IoAddOutline,
@@ -22,6 +21,7 @@ import {
   IoPlayOutline,
   IoShapesOutline,
   IoTabletLandscapeOutline,
+  IoTextOutline,
   IoTrashOutline,
 } from 'react-icons/io5'
 import Modal from 'react-responsive-modal'
@@ -29,7 +29,6 @@ import useMeasure from 'react-use-measure'
 import { useDebouncedCallback } from 'use-debounce'
 import { ReactComponent as BrandIcon } from '../../assets/BrandIcon.svg'
 import { Button, Heading, Text, Tooltip } from '../../components'
-import config from '../../config'
 import {
   GetBrandingQuery,
   useCreateBrandingMutation,
@@ -39,6 +38,7 @@ import {
 } from '../../generated/graphql'
 import { useUploadFile } from '../../hooks'
 import useDidUpdateEffect from '../../hooks/use-did-update-effect'
+import CustomFontPicker, { IFont } from '../Flick/components/CustomFontPicker'
 import BrandPreview from './BrandPreview'
 
 export interface BrandingJSON {
@@ -61,19 +61,24 @@ export interface BrandingJSON {
   logo?: string
   companyName?: string
   font?: {
-    heading?: {
-      family: string
-      type: 'google' | 'custom'
-    }
-    body?: {
-      family: string
-      type: 'google' | 'custom'
-    }
+    heading?: IFont
+    body?: IFont
   }
   introVideoUrl?: string
 }
 
-const initialValue: BrandingJSON = {}
+const initialValue: BrandingJSON = {
+  font: {
+    heading: {
+      family: 'Gilroy',
+      type: 'custom',
+    },
+    body: {
+      family: 'Inter',
+      type: 'custom',
+    },
+  },
+}
 
 type B = GetBrandingQuery['Branding'][0]
 
@@ -103,11 +108,11 @@ const tabs: Tab[] = [
     name: 'Color',
     Icon: IoColorPaletteOutline,
   },
-  // {
-  //   id: 'Font',
-  //   name: 'Font',
-  //   Icon: IoTextOutline,
-  // },
+  {
+    id: 'Font',
+    name: 'Font',
+    Icon: IoTextOutline,
+  },
   {
     id: 'IntroVideo',
     name: 'Intro Video',
@@ -291,7 +296,7 @@ const BrandingPage = ({
             </div>
             <div className="flex flex-1 w-full justify-between">
               <div
-                className=" flex items-center justify-start pl-12 relative w-full bg-gray-100"
+                className=" flex items-center justify-center relative w-full bg-gray-100"
                 ref={ref}
               >
                 {branding && (
@@ -414,7 +419,7 @@ const BrandingPage = ({
                         }}
                       />
                     )}
-                    {/* {activeTab === tabs[3] && (
+                    {activeTab === tabs[3] && (
                       <FontSetting
                         branding={branding}
                         setBranding={(branding) => {
@@ -425,8 +430,8 @@ const BrandingPage = ({
                           })
                         }}
                       />
-                    )} */}
-                    {activeTab === tabs[3] && (
+                    )}
+                    {activeTab === tabs[4] && (
                       <IntroVideoSetting
                         branding={branding}
                         setBranding={(branding) => {
@@ -1090,8 +1095,11 @@ const FontSetting = ({
       <Heading fontSize="small" className="font-bold mb-2">
         Heading
       </Heading>
-      <FontPicker
-        activeFontFamily={branding.branding?.font?.heading?.family}
+      <CustomFontPicker
+        activeFont={
+          branding.branding?.font?.heading ||
+          (initialValue.font?.heading as IFont)
+        }
         onChange={(font) => {
           setBranding({
             ...branding,
@@ -1100,20 +1108,22 @@ const FontSetting = ({
               font: {
                 ...branding?.branding?.font,
                 heading: {
-                  type: 'google',
+                  type: font.type,
                   family: font.family,
                 },
               },
             },
           })
         }}
-        apiKey={config.googleFonts.apiKey}
       />
+
       <Heading fontSize="small" className="font-bold mb-2 mt-10">
         Body
       </Heading>
-      <FontPicker
-        activeFontFamily={branding.branding?.font?.body?.family}
+      <CustomFontPicker
+        activeFont={
+          branding.branding?.font?.body || (initialValue.font?.body as IFont)
+        }
         onChange={(font) => {
           setBranding({
             ...branding,
@@ -1122,14 +1132,13 @@ const FontSetting = ({
               font: {
                 ...branding?.branding?.font,
                 body: {
-                  type: 'google',
+                  type: font.type,
                   family: font.family,
                 },
               },
             },
           })
         }}
-        apiKey={config.googleFonts.apiKey}
       />
     </div>
   )
