@@ -265,3 +265,21 @@ mutation UpdateFragmentMarkdown($fragmentId: uuid!, $md: String = "") {
     md
   }
 }
+
+mutation CompleteFragment(
+  $duration: Int!
+  $flickId: uuid!
+  $fragmentId: uuid!
+  $orientation: OrientationEnum!
+  $producedLink: String!
+) {
+  CompleteFragment(
+    flickId: $flickId
+    fragmentId: $fragmentId
+    orientation: $orientation
+    producedLink: $producedLink
+    duration: $duration
+  ) {
+    success
+  }
+}
