@@ -1,5 +1,5 @@
 import { cx } from '@emotion/css'
-import { HocuspocusProvider } from '@hocuspocus/provider'
+import { HocuspocusProvider, WebSocketStatus } from '@hocuspocus/provider'
 import UniqueID from '@tiptap-pro/extension-unique-id'
 import Collaboration from '@tiptap/extension-collaboration'
 import CollaborationCursor from '@tiptap/extension-collaboration-cursor'
@@ -149,10 +149,7 @@ const TipTap = ({
             ).node
             if (
               selectedNode.nodeName === 'P' &&
-              selectedNode.firstChild?.parentElement?.classList.contains(
-                'has-focus'
-              ) &&
-              selectedNode.firstChild?.parentElement.id === node.attrs.id
+              selectedNode.firstChild?.parentElement?.id === node.attrs.id
             ) {
               return 'Type / for commands'
             }
@@ -175,6 +172,9 @@ const TipTap = ({
   const editorRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    if (provider.status === WebSocketStatus.Disconnected) {
+      provider.connect()
+    }
     return () => {
       editor?.destroy()
       provider.destroy()
