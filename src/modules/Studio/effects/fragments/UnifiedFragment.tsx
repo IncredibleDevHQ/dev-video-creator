@@ -5,15 +5,10 @@ import { useRecoilState, useRecoilValue } from 'recoil'
 import { ThemeFragment } from '../../../../generated/graphql'
 import {
   BlockProperties,
-  TitleSplashConfig,
   TopLayerChildren,
   ViewConfig,
 } from '../../../../utils/configTypes'
 import { BrandingJSON } from '../../../Branding/BrandingPage'
-import {
-  getGradientConfig,
-  gradients,
-} from '../../../Flick/components/BlockPreview'
 import {
   Block,
   CodeBlockProps,
@@ -64,20 +59,12 @@ const UnifiedFragment = ({
 
   const [studio, setStudio] = useRecoilState(studioStore)
 
-  const [titleSplashData, setTitleSplashData] = useState<
-    TitleSplashConfig & { title: string }
-  >({
-    enable: false,
-    title: '',
-    titleSplashConfig: getGradientConfig(gradients[0]),
-  })
-
   // data config holds all the info abt the object
   const [dataConfig, setDataConfig] = useState<Block[]>()
   // view config holds all the info abt the view of the canvas
   const [viewConfig, setViewConfig] = useState<ViewConfig>()
   // holds the index of the present object
-  const [activeObjectIndex, setActiveObjectIndex] = useState(0)
+  const [activeObjectIndex, setActiveObjectIndex] = useState(-1)
 
   // state of the fragment
   const [fragmentState, setFragmentState] =
@@ -114,7 +101,7 @@ const UnifiedFragment = ({
   useEffect(() => {
     if (!config) return
     if (!theme) return
-    if (theme !== studio.theme) {
+    if (theme.name !== studio.theme.name) {
       setStudio((prev) => ({
         ...prev,
         theme,
@@ -134,14 +121,13 @@ const UnifiedFragment = ({
       setIsPreview(true)
       setDataConfig(config)
       setViewConfig(layoutConfig)
+      if (!theme) return
+      setStudio({
+        ...studio,
+        branding,
+        theme,
+      })
     }
-    setTitleSplashData({
-      enable: fragment?.configuration?.titleSplash?.enable || false,
-      title: fragment.name as string,
-      titleSplashConfig:
-        fragment?.configuration?.titleSplash?.titleSplashConfig ||
-        getGradientConfig(gradients[0]),
-    })
     updatePayload?.({
       activeObjectIndex: 0,
       activeIntroIndex: 0,
@@ -149,8 +135,10 @@ const UnifiedFragment = ({
   }, [fragment])
 
   useEffect(() => {
-    setActiveObjectIndex(payload?.activeObjectIndex)
-  }, [payload])
+    setTimeout(() => {
+      setActiveObjectIndex(payload?.activeObjectIndex)
+    }, 800)
+  }, [payload?.activeObjectIndex])
 
   useEffect(() => {
     return () => {
@@ -179,15 +167,6 @@ const UnifiedFragment = ({
         activeIntroIndex: 0,
         fragmentState: 'onlyUserMedia',
       })
-      // if (viewConfig?.mode === 'Portrait') {
-      //   addMusic('splash', 0.2)
-      //   setTimeout(() => {
-      //     reduceSplashAudioVolume(0.12)
-      //   }, 2000)
-      //   setTimeout(() => {
-      //     reduceSplashAudioVolume(0.06)
-      //   }, 2200)
-      // }
       setTopLayerChildren?.({ id: '', state: '' })
       timer.current = setTimeout(() => {
         setTopLayerChildren?.({ id: nanoid(), state: 'lowerThird' })
@@ -196,6 +175,7 @@ const UnifiedFragment = ({
   }, [state])
 
   useEffect(() => {
+    if (!payload?.activeObjectIndex || payload?.activeObjectIndex === 0) return
     // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
     if (payload?.fragmentState === 'customLayout') {
       setTopLayerChildren?.({ id: nanoid(), state: 'transition right' })
@@ -209,21 +189,9 @@ const UnifiedFragment = ({
   }, [payload?.fragmentState])
 
   useEffect(() => {
-    if (activeObjectIndex === 0) return
+    if (!payload?.activeObjectIndex || payload?.activeObjectIndex === 0) return
     setTopLayerChildren?.({ id: nanoid(), state: 'transition right' })
-  }, [activeObjectIndex])
-
-  useEffect(() => {
-    if (activeObjectIndex !== 0)
-      setTitleSplashData({ ...titleSplashData, enable: false })
-    else
-      setTitleSplashData({
-        enable: fragment?.configuration?.titleSplash?.enable || false,
-        title: fragment?.name as string,
-        titleSplashConfig:
-          fragment?.configuration?.titleSplash?.titleSplashConfig || {},
-      })
-  }, [activeObjectIndex])
+  }, [payload?.activeObjectIndex])
 
   const [stageConfig, setStageConfig] = useState<{
     width: number
@@ -255,7 +223,6 @@ const UnifiedFragment = ({
                     dataConfig[activeObjectIndex].id
                   ] as BlockProperties
                 }
-                titleSplashData={titleSplashData}
                 fragmentState={fragmentState}
                 setFragmentState={setFragmentState}
                 stageRef={stageRef}
@@ -274,7 +241,6 @@ const UnifiedFragment = ({
                     dataConfig[activeObjectIndex].id
                   ] as BlockProperties
                 }
-                titleSplashData={titleSplashData}
                 fragmentState={fragmentState}
                 setFragmentState={setFragmentState}
                 stageRef={stageRef}
@@ -291,7 +257,6 @@ const UnifiedFragment = ({
                     dataConfig[activeObjectIndex].id
                   ] as BlockProperties
                 }
-                titleSplashData={titleSplashData}
                 fragmentState={fragmentState}
                 setFragmentState={setFragmentState}
                 stageRef={stageRef}
@@ -309,7 +274,6 @@ const UnifiedFragment = ({
                     dataConfig[activeObjectIndex].id
                   ] as BlockProperties
                 }
-                titleSplashData={titleSplashData}
                 fragmentState={fragmentState}
                 setFragmentState={setFragmentState}
                 stageRef={stageRef}

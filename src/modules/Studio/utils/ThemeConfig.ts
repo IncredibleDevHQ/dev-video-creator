@@ -118,10 +118,10 @@ export const getThemeSupportedUserMediaLayouts = (
         'float-full-left',
         'float-half-right',
         'padded-bottom-right-tile',
-        'bottom-right-tile',
-        'padded-split',
         'padded-bottom-right-circle',
+        'bottom-right-tile',
         'bottom-right-circle',
+        'padded-split',
         'split',
         'full',
       ]

@@ -54,30 +54,54 @@ const PastelLinesSplash = ({
         stageConfig={stageConfig}
         isShorts={isShorts}
       />
-      <Text
-        x={100}
-        // y={80}
-        width={!isShorts ? 720 : 350}
-        height={stageConfig.height}
-        // align="center"
-        verticalAlign="middle"
-        text={fragment?.flick.name || 'Hello Intro'}
-        fill={branding?.colors?.text || getThemeTextColor(theme)}
-        fontSize={72}
-        fontFamily="Gilroy"
-        fontStyle="normal 600"
-        lineHeight={1.2}
-        ref={(ref) => {
-          ref?.to({
-            duration: 3,
-            onFinish: () => {
-              setIsTitleSplash?.(false)
-            },
-          })
-        }}
-      />
+      {branding?.logo ? (
+        <Text
+          x={100}
+          y={100}
+          width={!isShorts ? 720 : 350}
+          height={stageConfig.height}
+          // align="center"
+          text={fragment?.flick.name || 'Hello Intro'}
+          fill={branding?.colors?.text || getThemeTextColor(theme)}
+          fontSize={72}
+          fontFamily="Gilroy"
+          fontStyle="normal 600"
+          lineHeight={1.2}
+          ref={(ref) => {
+            ref?.to({
+              duration: 3,
+              onFinish: () => {
+                setIsTitleSplash?.(false)
+              },
+            })
+          }}
+        />
+      ) : (
+        <Text
+          x={100}
+          // y={80}
+          width={!isShorts ? 720 : 350}
+          height={stageConfig.height}
+          // align="center"
+          verticalAlign="middle"
+          text={fragment?.flick.name || 'Hello Intro'}
+          fill={branding?.colors?.text || getThemeTextColor(theme)}
+          fontSize={72}
+          fontFamily="Gilroy"
+          fontStyle="normal 600"
+          lineHeight={1.2}
+          ref={(ref) => {
+            ref?.to({
+              duration: 3,
+              onFinish: () => {
+                setIsTitleSplash?.(false)
+              },
+            })
+          }}
+        />
+      )}
       <Image
-        x={40}
+        x={100}
         y={stageConfig.height - 90}
         width={imgDim.width}
         height={imgDim.height}

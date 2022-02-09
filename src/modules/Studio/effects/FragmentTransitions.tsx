@@ -28,12 +28,12 @@ export const TrianglePathTransition = ({
     case 'left':
       groupStartX = stageConfig.width + stageConfig.width / 4 + 110
       groupEndX = -(stageConfig.width + stageConfig.width / 4 + 110)
-      duration = 1.5
+      duration = 2
       break
     case 'right':
       groupStartX = -(stageConfig.width + stageConfig.width / 4 + 110)
       groupEndX = stageConfig.width + stageConfig.width / 4 + 110
-      duration = 1.5
+      duration = 2
       break
     case 'moveIn':
       groupStartX = -(stageConfig.width + stageConfig.width / 4 + 110)

@@ -11,7 +11,7 @@ import {
   CodeBlockProps,
   CommentExplanations,
 } from '../../../Flick/editor/utils/utils'
-import Concourse, { TitleSplashProps } from '../../components/Concourse'
+import Concourse from '../../components/Concourse'
 import FragmentBackground from '../../components/FragmentBackground'
 import RenderTokens, {
   codeConfig,
@@ -71,7 +71,6 @@ const getColorCodes = async (
 const CodeFragment = ({
   viewConfig,
   dataConfig,
-  titleSplashData,
   fragmentState,
   setFragmentState,
   stageRef,
@@ -80,7 +79,6 @@ const CodeFragment = ({
 }: {
   viewConfig: BlockProperties
   dataConfig: CodeBlockProps
-  titleSplashData?: TitleSplashProps | undefined
   fragmentState: FragmentState
   setFragmentState: React.Dispatch<React.SetStateAction<FragmentState>>
   stageRef: React.RefObject<Konva.Stage>
@@ -491,7 +489,6 @@ const CodeFragment = ({
       layerChildren={layerChildren}
       viewConfig={viewConfig}
       stageRef={stageRef}
-      titleSplashData={titleSplashData}
       studioUserConfig={studioUserConfig}
       isShorts={shortsMode}
       blockType={dataConfig.type}

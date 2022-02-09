@@ -5,7 +5,7 @@ import { useRecoilState, useRecoilValue } from 'recoil'
 import { BlockProperties } from '../../../../utils/configTypes'
 import { Transformations } from '../../../Flick/editor/blocks/VideoEditor'
 import { VideoBlockProps } from '../../../Flick/editor/utils/utils'
-import Concourse, { TitleSplashProps } from '../../components/Concourse'
+import Concourse from '../../components/Concourse'
 import { FragmentState } from '../../components/RenderTokens'
 import { Video, VideoConfig } from '../../components/Video'
 import { StudioProviderProps, studioStore } from '../../stores'
@@ -22,7 +22,6 @@ import { ObjectRenderConfig, ThemeLayoutConfig } from '../../utils/ThemeConfig'
 const VideoFragment = ({
   viewConfig,
   dataConfig,
-  titleSplashData,
   fragmentState,
   setFragmentState,
   stageRef,
@@ -30,7 +29,6 @@ const VideoFragment = ({
 }: {
   viewConfig: BlockProperties
   dataConfig: VideoBlockProps
-  titleSplashData?: TitleSplashProps | undefined
   fragmentState: FragmentState
   setFragmentState: React.Dispatch<React.SetStateAction<FragmentState>>
   stageRef: React.RefObject<Konva.Stage>
@@ -247,7 +245,6 @@ const VideoFragment = ({
       layerChildren={layerChildren}
       viewConfig={viewConfig}
       stageRef={stageRef}
-      titleSplashData={titleSplashData}
       studioUserConfig={studioUserConfig}
       isShorts={shortsMode}
       blockType={dataConfig.type}
