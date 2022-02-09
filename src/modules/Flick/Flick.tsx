@@ -182,7 +182,7 @@ const Flick = () => {
     setFlickStore((store) => ({
       ...store,
       flick: data.Flick_by_pk || null,
-      activeTheme: themesData?.Theme ? themesData.Theme[0] : null,
+      activeTheme: data.Flick_by_pk ? data.Flick_by_pk.theme : null,
       themes: themesData?.Theme ? themesData?.Theme : [],
       activeFragmentId: fragmentsLength > 0 ? editorFragment?.id : '',
     }))

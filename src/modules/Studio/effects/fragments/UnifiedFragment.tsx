@@ -2,6 +2,7 @@ import Konva from 'konva'
 import { nanoid } from 'nanoid'
 import React, { useEffect, useRef, useState } from 'react'
 import { useRecoilState, useRecoilValue } from 'recoil'
+import { ThemeFragment } from '../../../../generated/graphql'
 import {
   BlockProperties,
   TitleSplashConfig,
@@ -34,17 +35,32 @@ import VideoFragment from './VideoFragment'
 
 const UnifiedFragment = ({
   stageRef,
+  setTopLayerChildren,
   config,
   layoutConfig,
   branding,
+  theme,
 }: {
   stageRef: React.RefObject<Konva.Stage>
+  setTopLayerChildren?: React.Dispatch<
+    React.SetStateAction<{
+      id: string
+      state: TopLayerChildren
+    }>
+  >
   config?: Block[]
   layoutConfig?: ViewConfig
   branding?: BrandingJSON
+  theme?: ThemeFragment | null
 }) => {
-  const { fragment, payload, updatePayload, state, addMusic } =
-    (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const {
+    fragment,
+    payload,
+    updatePayload,
+    state,
+    addMusic,
+    theme: flickTheme,
+  } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [studio, setStudio] = useRecoilState(studioStore)
 
@@ -68,12 +84,6 @@ const UnifiedFragment = ({
     useState<FragmentState>('onlyUserMedia')
 
   const [isPreview, setIsPreview] = useState(false)
-
-  // state which stores the type of layer children which have to be placed over the studio user
-  const [topLayerChildren, setTopLayerChildren] = useState<{
-    id: string
-    state: TopLayerChildren
-  }>({ id: '', state: '' })
 
   const timer = useRef<any>(null)
 
@@ -100,6 +110,17 @@ const UnifiedFragment = ({
       }))
     }
   }, [branding, studio])
+
+  useEffect(() => {
+    if (!config) return
+    if (!theme) return
+    if (theme !== studio.theme) {
+      setStudio((prev) => ({
+        ...prev,
+        theme,
+      }))
+    }
+  }, [theme, studio.theme])
 
   useEffect(() => {
     if (!fragment) return
@@ -167,9 +188,9 @@ const UnifiedFragment = ({
       //     reduceSplashAudioVolume(0.06)
       //   }, 2200)
       // }
-      setTopLayerChildren({ id: '', state: '' })
+      setTopLayerChildren?.({ id: '', state: '' })
       timer.current = setTimeout(() => {
-        setTopLayerChildren({ id: nanoid(), state: 'lowerThird' })
+        setTopLayerChildren?.({ id: nanoid(), state: 'lowerThird' })
       }, 2000)
     }
   }, [state])
@@ -177,19 +198,19 @@ const UnifiedFragment = ({
   useEffect(() => {
     // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
     if (payload?.fragmentState === 'customLayout') {
-      setTopLayerChildren({ id: nanoid(), state: 'transition right' })
+      setTopLayerChildren?.({ id: nanoid(), state: 'transition right' })
       addMusic()
     }
     // Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
     if (payload?.fragmentState === 'onlyUserMedia') {
-      setTopLayerChildren({ id: nanoid(), state: 'transition left' })
+      setTopLayerChildren?.({ id: nanoid(), state: 'transition left' })
       addMusic()
     }
   }, [payload?.fragmentState])
 
   useEffect(() => {
     if (activeObjectIndex === 0) return
-    setTopLayerChildren({ id: nanoid(), state: 'transition right' })
+    setTopLayerChildren?.({ id: nanoid(), state: 'transition right' })
   }, [activeObjectIndex])
 
   useEffect(() => {
@@ -218,7 +239,11 @@ const UnifiedFragment = ({
   if (!dataConfig || !viewConfig || dataConfig.length === 0) return <></>
   return (
     <>
-      <VideoBackground theme="glassy" stageConfig={stageConfig} />
+      <VideoBackground
+        theme={flickTheme}
+        stageConfig={stageConfig}
+        isShorts={viewConfig.mode === 'Portrait'}
+      />
       {(() => {
         switch (dataConfig[activeObjectIndex]?.type) {
           case 'codeBlock': {
@@ -230,7 +255,6 @@ const UnifiedFragment = ({
                     dataConfig[activeObjectIndex].id
                   ] as BlockProperties
                 }
-                topLayerChildren={topLayerChildren}
                 titleSplashData={titleSplashData}
                 fragmentState={fragmentState}
                 setFragmentState={setFragmentState}
@@ -250,7 +274,6 @@ const UnifiedFragment = ({
                     dataConfig[activeObjectIndex].id
                   ] as BlockProperties
                 }
-                topLayerChildren={topLayerChildren}
                 titleSplashData={titleSplashData}
                 fragmentState={fragmentState}
                 setFragmentState={setFragmentState}
@@ -268,7 +291,6 @@ const UnifiedFragment = ({
                     dataConfig[activeObjectIndex].id
                   ] as BlockProperties
                 }
-                topLayerChildren={topLayerChildren}
                 titleSplashData={titleSplashData}
                 fragmentState={fragmentState}
                 setFragmentState={setFragmentState}
@@ -287,7 +309,6 @@ const UnifiedFragment = ({
                     dataConfig[activeObjectIndex].id
                   ] as BlockProperties
                 }
-                topLayerChildren={topLayerChildren}
                 titleSplashData={titleSplashData}
                 fragmentState={fragmentState}
                 setFragmentState={setFragmentState}
@@ -305,7 +326,6 @@ const UnifiedFragment = ({
               <IntroFragment
                 shortsMode={viewConfig.mode === 'Portrait'}
                 isPreview={isPreview}
-                topLayerChildren={topLayerChildren}
                 setTopLayerChildren={setTopLayerChildren}
                 introSequence={
                   studio.branding && studio.branding.introVideoUrl

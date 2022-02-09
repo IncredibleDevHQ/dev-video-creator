@@ -1,6 +1,6 @@
 import React from 'react'
 import { Circle, Group, Rect } from 'react-konva'
-import { VideoTheme } from '../../../utils/configTypes'
+import { ThemeFragment } from '../../../generated/graphql'
 import { ObjectConfig } from '../utils/FragmentLayoutConfig'
 
 const FragmentBackground = ({
@@ -8,12 +8,12 @@ const FragmentBackground = ({
   objectConfig,
   backgroundRectColor,
 }: {
-  theme: VideoTheme
+  theme: ThemeFragment
   objectConfig: ObjectConfig
   backgroundRectColor: string
 }) => {
-  switch (theme) {
-    case 'glassy':
+  switch (theme.name) {
+    case 'DarkGradient':
       return (
         <Group>
           <Rect
@@ -41,6 +41,16 @@ const FragmentBackground = ({
             fill={backgroundRectColor}
           />
         </Group>
+      )
+    case 'PastelLines':
+      return (
+        <Rect
+          x={objectConfig.x}
+          y={objectConfig.y}
+          width={objectConfig.width}
+          height={objectConfig.height}
+          fill={backgroundRectColor}
+        />
       )
     default:
       return <></>

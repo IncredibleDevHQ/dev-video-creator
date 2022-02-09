@@ -2,10 +2,7 @@ import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
 import { Group } from 'react-konva'
 import { useRecoilState, useRecoilValue } from 'recoil'
-import {
-  BlockProperties,
-  TopLayerChildren,
-} from '../../../../utils/configTypes'
+import { BlockProperties } from '../../../../utils/configTypes'
 import { Transformations } from '../../../Flick/editor/blocks/VideoEditor'
 import { VideoBlockProps } from '../../../Flick/editor/utils/utils'
 import Concourse, { TitleSplashProps } from '../../components/Concourse'
@@ -25,7 +22,6 @@ import { ObjectRenderConfig, ThemeLayoutConfig } from '../../utils/ThemeConfig'
 const VideoFragment = ({
   viewConfig,
   dataConfig,
-  topLayerChildren,
   titleSplashData,
   fragmentState,
   setFragmentState,
@@ -34,17 +30,13 @@ const VideoFragment = ({
 }: {
   viewConfig: BlockProperties
   dataConfig: VideoBlockProps
-  topLayerChildren: {
-    id: string
-    state: TopLayerChildren
-  }
   titleSplashData?: TitleSplashProps | undefined
   fragmentState: FragmentState
   setFragmentState: React.Dispatch<React.SetStateAction<FragmentState>>
   stageRef: React.RefObject<Konva.Stage>
   shortsMode: boolean
 }) => {
-  const { fragment, payload, updatePayload, state } =
+  const { fragment, payload, updatePayload, state, theme } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [studio, setStudio] = useRecoilState(studioStore)
@@ -72,6 +64,7 @@ const VideoFragment = ({
       availableWidth: 0,
       availableHeight: 0,
       textColor: '',
+      surfaceColor: '',
     })
 
   useEffect(() => {
@@ -99,6 +92,7 @@ const VideoFragment = ({
 
     setObjectConfig(
       FragmentLayoutConfig({
+        theme,
         layout: viewConfig?.layout || 'classic',
         isShorts: shortsMode || false,
       })
@@ -111,7 +105,7 @@ const VideoFragment = ({
 
   useEffect(() => {
     setObjectRenderConfig(
-      ThemeLayoutConfig({ theme: 'glassy', layoutConfig: objectConfig })
+      ThemeLayoutConfig({ theme, layoutConfig: objectConfig })
     )
   }, [objectConfig])
 
@@ -211,7 +205,7 @@ const VideoFragment = ({
     width: objectConfig.width,
     height: objectConfig.height,
     videoFill: objectConfig.color || '#1F2937',
-    cornerRadius: objectConfig.borderRadius,
+    cornerRadius: objectRenderConfig.borderRadius,
     performClip: true,
     clipVideoConfig: {
       x: transformations?.crop?.x || 0,
@@ -224,7 +218,7 @@ const VideoFragment = ({
   const layerChildren: any[] = [
     <Group x={0} y={0} opacity={0} ref={customLayoutRef}>
       {/* <FragmentBackground
-        theme="glassy"
+        theme={theme}
         objectConfig={objectConfig}
         backgroundRectColor="#151D2C"
       /> */}
@@ -239,13 +233,13 @@ const VideoFragment = ({
         layout: viewConfig?.layout || 'classic',
         fragment,
         fragmentState,
-        theme: 'glassy',
+        theme,
       })
     : ShortsStudioUserConfiguration({
         layout: viewConfig?.layout || 'classic',
         fragment,
         fragmentState,
-        theme: 'glassy',
+        theme,
       })
 
   return (
@@ -255,7 +249,6 @@ const VideoFragment = ({
       stageRef={stageRef}
       titleSplashData={titleSplashData}
       studioUserConfig={studioUserConfig}
-      topLayerChildren={topLayerChildren}
       isShorts={shortsMode}
       blockType={dataConfig.type}
     />

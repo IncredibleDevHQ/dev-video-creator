@@ -1,29 +1,46 @@
 import React from 'react'
 import { useRecoilValue } from 'recoil'
-import { VideoTheme } from '../../../utils/configTypes'
-import { TrianglePathTransition } from '../effects/FragmentTransitions'
+import { ThemeFragment } from '../../../generated/graphql'
+import { TopLayerChildren } from '../../../utils/configTypes'
+import {
+  PastelLinesTransition,
+  TrianglePathTransition,
+} from '../effects/FragmentTransitions'
 import { studioStore } from '../stores'
 
 const TransitionProvider = ({
   theme,
   isShorts,
   direction,
+  setTopLayerChildren,
   performFinishAction,
 }: {
-  theme: VideoTheme
+  theme: ThemeFragment
   isShorts: boolean
   direction: string
+  setTopLayerChildren?: React.Dispatch<
+    React.SetStateAction<{ id: string; state: TopLayerChildren }>
+  >
   performFinishAction?: () => void
 }) => {
   const { branding } = useRecoilValue(studioStore)
-  switch (theme) {
-    case 'glassy':
+  switch (theme.name) {
+    case 'DarkGradient':
       return (
         <TrianglePathTransition
           direction={direction}
           isShorts={isShorts}
           color={branding?.colors?.transition}
           performFinishAction={performFinishAction}
+        />
+      )
+    case 'PastelLines':
+      return (
+        <PastelLinesTransition
+          direction={direction}
+          isShorts={isShorts}
+          color={branding?.colors?.transition}
+          setTopLayerChildren={setTopLayerChildren}
         />
       )
     default:

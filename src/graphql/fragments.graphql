@@ -56,14 +56,6 @@ query GetFragmentById($id: uuid!, $sub: String!) {
     }
   ) {
     ...StudioFragment
-    flick {
-      useBranding
-      branding {
-        id
-        name
-        branding
-      }
-    }
   }
 }
 
@@ -263,5 +255,23 @@ mutation UpdateParticipants($fragmentId: String!, $participantIds: [String!]!) {
 mutation UpdateFragmentMarkdown($fragmentId: uuid!, $md: String = "") {
   update_Fragment_by_pk(pk_columns: { id: $fragmentId }, _set: { md: $md }) {
     md
+  }
+}
+
+mutation CompleteFragment(
+  $duration: Int!
+  $flickId: uuid!
+  $fragmentId: uuid!
+  $orientation: OrientationEnum!
+  $producedLink: String!
+) {
+  CompleteFragment(
+    flickId: $flickId
+    fragmentId: $fragmentId
+    orientation: $orientation
+    producedLink: $producedLink
+    duration: $duration
+  ) {
+    success
   }
 }

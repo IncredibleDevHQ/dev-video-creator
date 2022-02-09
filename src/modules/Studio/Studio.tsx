@@ -12,7 +12,7 @@ import AspectRatio from 'react-aspect-ratio'
 import { BiErrorCircle, BiMicrophone, BiVideo } from 'react-icons/bi'
 import { FiArrowRight } from 'react-icons/fi'
 import { IoChevronBack } from 'react-icons/io5'
-import { Layer, Stage } from 'react-konva'
+import { Group, Layer, Stage } from 'react-konva'
 import { useHistory, useParams } from 'react-router-dom'
 import {
   useRecoilBridgeAcrossReactRoots_UNSTABLE,
@@ -35,16 +35,16 @@ import {
   FlickParticipantsFragment,
   Fragment_Status_Enum_Enum,
   GetFragmentByIdQuery,
+  OrientationEnum,
   StudioFragmentFragment,
+  useCompleteFragmentMutation,
   useGetFragmentByIdLazyQuery,
   useGetRtcTokenMutation,
-  useMarkFragmentCompletedMutation,
-  useUpdateFragmentShortMutation,
 } from '../../generated/graphql'
 import { useCanvasRecorder } from '../../hooks'
 import { useUploadFile } from '../../hooks/use-upload-file'
 import { User, userState } from '../../stores/user.store'
-import { ViewConfig } from '../../utils/configTypes'
+import { TopLayerChildren, ViewConfig } from '../../utils/configTypes'
 import { BrandingJSON } from '../Branding/BrandingPage'
 import { TextEditorParser } from '../Flick/editor/utils/helpers'
 import {
@@ -56,7 +56,11 @@ import {
   VideoBlockProps,
 } from '../Flick/editor/utils/utils'
 import { Countdown } from './components'
-import { CONFIG, SHORTS_CONFIG } from './components/Concourse'
+import {
+  CONFIG,
+  GetTopLayerChildren,
+  SHORTS_CONFIG,
+} from './components/Concourse'
 import {
   CodeJamControls,
   PointsControls,
@@ -511,15 +515,14 @@ const Studio = ({
   branding?: BrandingJSON | null
 }) => {
   const { fragmentId } = useParams<{ fragmentId: string }>()
-  const { constraints, controlsConfig } =
+  const { constraints, controlsConfig, theme } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [studio, setStudio] = useRecoilState(studioStore)
   const { sub } = (useRecoilValue(userState) as User) || {}
   const [fragment, setFragment] = useState<StudioFragmentFragment>()
   const history = useHistory()
 
-  const [markFragmentCompleted] = useMarkFragmentCompletedMutation()
-  const [updateFragmentShort] = useUpdateFragmentShortMutation()
+  const [markFragmentCompleted] = useCompleteFragmentMutation()
 
   const [uploadFile] = useUploadFile()
 
@@ -735,18 +738,17 @@ const Studio = ({
 
       const duration = await getBlobDuration(uploadVideoFile)
 
-      if (shortsMode)
-        updateFragmentShort({
-          variables: {
-            id: fragmentId,
-            producedShortsLink: uuid,
-            duration,
-          },
-        })
-      else
-        await markFragmentCompleted({
-          variables: { id: fragmentId, producedLink: uuid, duration },
-        })
+      await markFragmentCompleted({
+        variables: {
+          flickId: fragment?.flick?.id,
+          fragmentId: fragment?.id,
+          duration: Math.ceil(duration),
+          orientation: shortsMode
+            ? OrientationEnum.Portrait
+            : OrientationEnum.Landscape,
+          producedLink: uuid,
+        },
+      })
 
       dismissToast(toast)
       leave()
@@ -845,6 +847,7 @@ const Studio = ({
       updateParticipant,
       updatePayload,
       branding: fragment.flick.branding ? branding : null,
+      theme: fragment.flick.theme,
       participantId: fragment?.participants.find(
         ({ participant }) => participant.userSub === sub
       )?.participant.id,
@@ -911,6 +914,12 @@ const Studio = ({
     }
   }
 
+  // state which stores the type of layer children which have to be placed over the studio user
+  const [topLayerChildren, setTopLayerChildren] = useState<{
+    id: string
+    state: TopLayerChildren
+  }>({ id: '', state: '' })
+
   /**
    * =======================
    * END EVENT HANDLERS...
@@ -973,10 +982,23 @@ const Studio = ({
                   {(() => {
                     if (fragment) {
                       return (
-                        <UnifiedFragment
-                          stageRef={stageRef}
-                          // layerRef={layerRef}
-                        />
+                        <Group>
+                          <UnifiedFragment
+                            stageRef={stageRef}
+                            setTopLayerChildren={setTopLayerChildren}
+                            // layerRef={layerRef}
+                          />
+                          <GetTopLayerChildren
+                            key={topLayerChildren?.id}
+                            topLayerChildrenState={
+                              topLayerChildren?.state || ''
+                            }
+                            setTopLayerChildren={setTopLayerChildren}
+                            isShorts={shortsMode || false}
+                            status={payload?.status}
+                            theme={theme}
+                          />
+                        </Group>
                       )
                     }
                     return <></>

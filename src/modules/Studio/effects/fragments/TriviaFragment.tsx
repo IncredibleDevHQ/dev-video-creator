@@ -4,10 +4,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Group, Image, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
-import {
-  BlockProperties,
-  TopLayerChildren,
-} from '../../../../utils/configTypes'
+import { BlockProperties } from '../../../../utils/configTypes'
 import { ImageBlockProps } from '../../../Flick/editor/utils/utils'
 import Concourse, { TitleSplashProps } from '../../components/Concourse'
 import FragmentBackground from '../../components/FragmentBackground'
@@ -28,7 +25,6 @@ import { ObjectRenderConfig, ThemeLayoutConfig } from '../../utils/ThemeConfig'
 const TriviaFragment = ({
   viewConfig,
   dataConfig,
-  topLayerChildren,
   titleSplashData,
   fragmentState,
   setFragmentState,
@@ -37,17 +33,13 @@ const TriviaFragment = ({
 }: {
   viewConfig: BlockProperties
   dataConfig: ImageBlockProps
-  topLayerChildren: {
-    id: string
-    state: TopLayerChildren
-  }
   titleSplashData?: TitleSplashProps | undefined
   fragmentState: FragmentState
   setFragmentState: React.Dispatch<React.SetStateAction<FragmentState>>
   stageRef: React.RefObject<Konva.Stage>
   shortsMode: boolean
 }) => {
-  const { fragment, payload, branding } =
+  const { fragment, payload, branding, theme } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   // const [activeQuestionIndex, setActiveQuestionIndex] = useState<number>(0)
@@ -91,12 +83,14 @@ const TriviaFragment = ({
       availableWidth: 0,
       availableHeight: 0,
       textColor: '',
+      surfaceColor: '',
     })
 
   useEffect(() => {
     if (!dataConfig) return
     setObjectConfig(
       FragmentLayoutConfig({
+        theme,
         layout: viewConfig?.layout || 'classic',
         isShorts: shortsMode || false,
       })
@@ -109,7 +103,7 @@ const TriviaFragment = ({
 
   useEffect(() => {
     setObjectRenderConfig(
-      ThemeLayoutConfig({ theme: 'glassy', layoutConfig: objectConfig })
+      ThemeLayoutConfig({ theme, layoutConfig: objectConfig })
     )
   }, [objectConfig])
 
@@ -161,9 +155,9 @@ const TriviaFragment = ({
           },
           objectRenderConfig.availableWidth - 30,
           objectRenderConfig.availableHeight - 30,
-          objectRenderConfig.availableWidth - 40,
+          objectRenderConfig.availableWidth,
           objectRenderConfig.availableHeight,
-          20,
+          0,
           0
         )
       )
@@ -200,10 +194,12 @@ const TriviaFragment = ({
   const layerChildren: any[] = [
     <Group x={0} y={0} opacity={0} ref={customLayoutRef}>
       <FragmentBackground
-        theme="glassy"
+        theme={theme}
         objectConfig={objectConfig}
         backgroundRectColor={
-          branding?.colors?.primary ? branding?.colors?.primary : '#151D2C'
+          branding?.colors?.primary
+            ? branding?.colors?.primary
+            : objectRenderConfig.surfaceColor
         }
       />
       <Group
@@ -299,13 +295,13 @@ const TriviaFragment = ({
         layout: viewConfig?.layout || 'classic',
         fragment,
         fragmentState,
-        theme: 'glassy',
+        theme,
       })
     : ShortsStudioUserConfiguration({
         layout: viewConfig?.layout || 'classic',
         fragment,
         fragmentState,
-        theme: 'glassy',
+        theme,
       })
 
   return (
@@ -315,7 +311,6 @@ const TriviaFragment = ({
       stageRef={stageRef}
       titleSplashData={titleSplashData}
       studioUserConfig={studioUserConfig}
-      topLayerChildren={topLayerChildren}
       isShorts={shortsMode}
       blockType={dataConfig.type}
     />

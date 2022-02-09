@@ -19,10 +19,7 @@ import stopRecordIcon from '../../../assets/StopRecord.svg'
 import swapIcon from '../../../assets/Swap.svg'
 import { ReactComponent as UploadIcon } from '../../../assets/Upload.svg'
 import { Avatar, Heading, Tooltip } from '../../../components'
-import {
-  Fragment_Status_Enum_Enum,
-  Fragment_Type_Enum_Enum,
-} from '../../../generated/graphql'
+import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
 import { useTimekeeper2 } from '../../../hooks'
 import { canvasStore, StudioProviderProps, studioStore } from '../stores'
 
@@ -257,8 +254,10 @@ const RecordingControlsBar = () => {
       )}
       {state !== 'preview' &&
         state !== 'upload' &&
-        fragment?.type !== Fragment_Type_Enum_Enum.Intro &&
-        fragment?.type !== Fragment_Type_Enum_Enum.Outro && (
+        fragment?.editorState?.blocks[payload?.activeObjectIndex]?.type !==
+          'introBlock' &&
+        fragment?.editorState?.blocks[payload?.activeObjectIndex]?.type !==
+          'outroBlock' && (
           <>
             <div className="w-px bg-gray-200 h-full mx-1" />
             <button
