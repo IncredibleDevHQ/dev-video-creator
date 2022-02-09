@@ -228,7 +228,7 @@ const TipTap = ({
 
   return (
     <div className="pb-32 bg-white mt-4" ref={editorRef}>
-      <div id="drag-handle" className="flex items-center text-gray-300">
+      <div id="drag-handle" className="hidden items-center text-gray-300">
         <div className="cursor-pointer flex-shrink-0 hover:bg-gray-100 hover:text-gray-400 rounded-sm p-1">
           <IoAddOutline size={20} className="" />
         </div>

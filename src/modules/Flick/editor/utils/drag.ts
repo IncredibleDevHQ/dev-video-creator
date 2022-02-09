@@ -182,13 +182,16 @@ export const DragHandler = () => {
                       dragHandler.style.left = `${rect.left - WIDTH}px`
                       dragHandler.style.top = `${rect.top}px`
                       dragHandler.style.visibility = 'visible'
+                      dragHandler.style.display = 'flex'
                     }
                   } else {
                     dragHandler.style.visibility = 'hidden'
+                    dragHandler.style.display = 'hidden'
                   }
                 } else {
                   nodeToBeDragged = null
                   dragHandler.style.visibility = 'hidden'
+                  dragHandler.style.display = 'hidden'
                 }
                 return true
               },
@@ -196,6 +199,7 @@ export const DragHandler = () => {
               keydown() {
                 setTimeout(() => {
                   dragHandler.style.visibility = 'hidden'
+                  dragHandler.style.display = 'hidden'
                 }, 250)
                 return false
               },
