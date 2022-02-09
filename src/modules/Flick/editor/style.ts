@@ -15,6 +15,10 @@ const editorStyle = css`
     border-radius: 3px;
   }
 
+  pre {
+    margin: 0px;
+  }
+
   code::before {
     content: '';
   }
