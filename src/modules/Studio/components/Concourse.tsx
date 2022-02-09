@@ -13,8 +13,6 @@ import {
   TopLayerChildren,
 } from '../../../utils/configTypes'
 import { Block } from '../../Flick/editor/utils/utils'
-import GlassySplash from '../effects/Splashes/GlassySplash'
-import ShortsPopSplash from '../effects/Splashes/ShortsPopSplash'
 import useEdit, { ClipConfig } from '../hooks/use-edit'
 import { canvasStore, StudioProviderProps, studioStore } from '../stores'
 import { FragmentLayoutConfig } from '../utils/FragmentLayoutConfig'
@@ -53,7 +51,6 @@ interface ConcourseProps {
   layerChildren: any[]
   viewConfig?: BlockProperties
   stageRef?: React.RefObject<Konva.Stage>
-  titleSplashData?: TitleSplashProps
   studioUserConfig?: StudioUserConfig[]
   disableUserMedia?: boolean
   isShorts?: boolean
@@ -121,7 +118,6 @@ const Concourse = ({
   layerChildren,
   viewConfig,
   stageRef,
-  titleSplashData,
   studioUserConfig,
   disableUserMedia,
   isShorts,
@@ -138,7 +134,6 @@ const Concourse = ({
     theme,
   } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [canvas, setCanvas] = useRecoilState(canvasStore)
-  const [isTitleSplash, setIsTitleSplash] = useState<boolean>(false)
   const [isZooming, setZooming] = useState(false)
 
   const { sub, picture } = (useRecoilValue(userState) as User) || {}
@@ -270,23 +265,10 @@ const Concourse = ({
     setCanvas({ zoomed: false, resetCanvas })
   }, [])
 
-  useEffect(() => {
-    if (titleSplashData?.enable) {
-      if (payload?.status === Fragment_Status_Enum_Enum.Live) {
-        setIsTitleSplash(true)
-      } else {
-        setIsTitleSplash(false)
-      }
-    } else {
-      setIsTitleSplash(false)
-    }
-  }, [titleSplashData, state, payload?.status])
-
   return (
     <>
       {viewConfig?.layout === 'full' &&
       !disableUserMedia &&
-      !isTitleSplash &&
       payload?.status !== Fragment_Status_Enum_Enum.CountDown &&
       payload?.status !== Fragment_Status_Enum_Enum.Ended &&
       users ? (
@@ -324,7 +306,6 @@ const Concourse = ({
       ) : (
         viewConfig?.layout === 'full' &&
         !disableUserMedia &&
-        !isTitleSplash &&
         payload?.status !== Fragment_Status_Enum_Enum.CountDown &&
         payload?.status !== Fragment_Status_Enum_Enum.Ended &&
         fragment &&
@@ -361,28 +342,6 @@ const Concourse = ({
               />
             )
           }
-          if (payload?.status === Fragment_Status_Enum_Enum.Live) {
-            // layerRef?.current?.destroyChildren()
-            if (titleSplashData?.enable && isTitleSplash) {
-              return !isShorts ? (
-                <>
-                  <GlassySplash
-                    isShorts={isShorts || false}
-                    setIsTitleSplash={setIsTitleSplash}
-                    stageConfig={stageConfig}
-                  />
-                </>
-              ) : (
-                <>
-                  <ShortsPopSplash
-                    setIsTitleSplash={setIsTitleSplash}
-                    stageConfig={stageConfig}
-                    renderMode="static"
-                  />
-                </>
-              )
-            }
-          }
           if (payload?.status === Fragment_Status_Enum_Enum.Ended) {
             performFinishAction()
           }
@@ -417,7 +376,6 @@ const Concourse = ({
       </Group>
       {viewConfig?.layout !== 'full' &&
       !disableUserMedia &&
-      !isTitleSplash &&
       payload?.status !== Fragment_Status_Enum_Enum.CountDown &&
       payload?.status !== Fragment_Status_Enum_Enum.Ended &&
       users ? (
@@ -455,7 +413,6 @@ const Concourse = ({
       ) : (
         viewConfig?.layout !== 'full' &&
         !disableUserMedia &&
-        !isTitleSplash &&
         payload?.status !== Fragment_Status_Enum_Enum.CountDown &&
         payload?.status !== Fragment_Status_Enum_Enum.Ended &&
         fragment &&

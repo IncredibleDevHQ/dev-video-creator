@@ -4,7 +4,7 @@ import { Circle, Group, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import { BlockProperties } from '../../../../utils/configTypes'
 import { ListBlockProps, ListItem } from '../../../Flick/editor/utils/utils'
-import Concourse, { TitleSplashProps } from '../../components/Concourse'
+import Concourse from '../../components/Concourse'
 import FragmentBackground from '../../components/FragmentBackground'
 import { FragmentState } from '../../components/RenderTokens'
 import { usePoint } from '../../hooks'
@@ -23,7 +23,6 @@ import { ObjectRenderConfig, ThemeLayoutConfig } from '../../utils/ThemeConfig'
 const PointsFragment = ({
   viewConfig,
   dataConfig,
-  titleSplashData,
   fragmentState,
   setFragmentState,
   stageRef,
@@ -32,7 +31,6 @@ const PointsFragment = ({
 }: {
   viewConfig: BlockProperties
   dataConfig: ListBlockProps
-  titleSplashData?: TitleSplashProps | undefined
   fragmentState: FragmentState
   setFragmentState: React.Dispatch<React.SetStateAction<FragmentState>>
   stageRef: React.RefObject<Konva.Stage>
@@ -306,7 +304,6 @@ const PointsFragment = ({
       layerChildren={layerChildren}
       viewConfig={viewConfig}
       stageRef={stageRef}
-      titleSplashData={titleSplashData}
       studioUserConfig={studioUserConfig}
       isShorts={shortsMode}
       blockType={dataConfig.type}

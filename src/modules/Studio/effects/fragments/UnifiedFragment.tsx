@@ -5,15 +5,10 @@ import { useRecoilState, useRecoilValue } from 'recoil'
 import { ThemeFragment } from '../../../../generated/graphql'
 import {
   BlockProperties,
-  TitleSplashConfig,
   TopLayerChildren,
   ViewConfig,
 } from '../../../../utils/configTypes'
 import { BrandingJSON } from '../../../Branding/BrandingPage'
-import {
-  getGradientConfig,
-  gradients,
-} from '../../../Flick/components/BlockPreview'
 import {
   Block,
   CodeBlockProps,
@@ -63,14 +58,6 @@ const UnifiedFragment = ({
   } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [studio, setStudio] = useRecoilState(studioStore)
-
-  const [titleSplashData, setTitleSplashData] = useState<
-    TitleSplashConfig & { title: string }
-  >({
-    enable: false,
-    title: '',
-    titleSplashConfig: getGradientConfig(gradients[0]),
-  })
 
   // data config holds all the info abt the object
   const [dataConfig, setDataConfig] = useState<Block[]>()
@@ -141,13 +128,6 @@ const UnifiedFragment = ({
         theme,
       })
     }
-    setTitleSplashData({
-      enable: fragment?.configuration?.titleSplash?.enable || false,
-      title: fragment.name as string,
-      titleSplashConfig:
-        fragment?.configuration?.titleSplash?.titleSplashConfig ||
-        getGradientConfig(gradients[0]),
-    })
     updatePayload?.({
       activeObjectIndex: 0,
       activeIntroIndex: 0,
@@ -213,18 +193,6 @@ const UnifiedFragment = ({
     setTopLayerChildren?.({ id: nanoid(), state: 'transition right' })
   }, [payload?.activeObjectIndex])
 
-  useEffect(() => {
-    if (activeObjectIndex !== 0)
-      setTitleSplashData({ ...titleSplashData, enable: false })
-    else
-      setTitleSplashData({
-        enable: fragment?.configuration?.titleSplash?.enable || false,
-        title: fragment?.name as string,
-        titleSplashConfig:
-          fragment?.configuration?.titleSplash?.titleSplashConfig || {},
-      })
-  }, [activeObjectIndex])
-
   const [stageConfig, setStageConfig] = useState<{
     width: number
     height: number
@@ -255,7 +223,6 @@ const UnifiedFragment = ({
                     dataConfig[activeObjectIndex].id
                   ] as BlockProperties
                 }
-                titleSplashData={titleSplashData}
                 fragmentState={fragmentState}
                 setFragmentState={setFragmentState}
                 stageRef={stageRef}
@@ -274,7 +241,6 @@ const UnifiedFragment = ({
                     dataConfig[activeObjectIndex].id
                   ] as BlockProperties
                 }
-                titleSplashData={titleSplashData}
                 fragmentState={fragmentState}
                 setFragmentState={setFragmentState}
                 stageRef={stageRef}
@@ -291,7 +257,6 @@ const UnifiedFragment = ({
                     dataConfig[activeObjectIndex].id
                   ] as BlockProperties
                 }
-                titleSplashData={titleSplashData}
                 fragmentState={fragmentState}
                 setFragmentState={setFragmentState}
                 stageRef={stageRef}
@@ -309,7 +274,6 @@ const UnifiedFragment = ({
                     dataConfig[activeObjectIndex].id
                   ] as BlockProperties
                 }
-                titleSplashData={titleSplashData}
                 fragmentState={fragmentState}
                 setFragmentState={setFragmentState}
                 stageRef={stageRef}
