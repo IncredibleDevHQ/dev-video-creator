@@ -106,7 +106,7 @@ const BrandPreview = ({
               y={40}
               text="Heading"
               fontSize={16}
-              fontFamily="Gilroy"
+              fontFamily={branding?.branding?.font?.heading?.family || 'Gilroy'}
               fontStyle="bold"
               lineHeight={1.2}
               fill={branding.branding?.colors?.text || '#F9FAFB'}
@@ -118,17 +118,18 @@ const BrandPreview = ({
                 <>
                   <Circle
                     x={27}
-                    borderRadius={3}
-                    y={80 + index * 20}
+                    y={76 + index * 20}
                     fill={branding.branding?.colors?.text || '#F9FAFB'}
+                    radius={3}
                   />
                   <Text
                     x={38}
                     y={72 + index * 20}
                     text={`This is point ${item}`}
-                    fontSize={14}
-                    fontFamily="Inter"
-                    fontStyle="regular"
+                    fontSize={10}
+                    fontFamily={
+                      branding?.branding?.font?.body?.family || 'Inter'
+                    }
                     fill={branding.branding?.colors?.text || '#F9FAFB'}
                     align="left"
                     verticalAlign="middle"
@@ -290,7 +291,7 @@ const BrandPreview = ({
               y={293}
               text="This is your text color and font"
               fontSize={14}
-              fontFamily="Gilroy"
+              fontFamily={branding?.branding?.font?.heading?.family || 'Gilroy'}
               fontStyle="bold"
               lineHeight={1.2}
               fill={branding.branding?.colors?.text || '#000000'}

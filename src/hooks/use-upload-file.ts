@@ -18,6 +18,8 @@ export type AllowedFileExtensions =
   | 'm3u8'
   | 'json'
   | 'yaml'
+  | 'woff'
+  | 'woff2'
 
 interface UploadFileProps {
   extension: AllowedFileExtensions

@@ -13,13 +13,13 @@ import {
 } from '../../generated/graphql'
 import { useCanvasRecorder } from '../../hooks'
 import { BlockProperties, ViewConfig } from '../../utils/configTypes'
+import { loadFonts } from '../Studio/hooks/use-load-font'
 import studioStore from '../Studio/stores/studio.store'
 import {
   EditorHeader,
   FlickNavBar,
   FragmentBar,
   Preview,
-  ProcessingFlick,
   Timeline,
 } from './components'
 import BlockPreview from './components/BlockPreview'
@@ -103,7 +103,6 @@ const Flick = () => {
   const [previewPosition, setPreviewPosition] = useState<Position>()
   const [activeFragment, setActiveFragment] = useState<FlickFragmentFragment>()
 
-  const [processingFlick, setProcessingFlick] = useState(false)
   const [showTimeline, setShowTimeline] = useState(false)
 
   const { updatePayload, payload, resetPayload } = useLocalPayload()
@@ -183,7 +182,7 @@ const Flick = () => {
     setFlickStore((store) => ({
       ...store,
       flick: data.Flick_by_pk || null,
-      activeTheme: themesData?.Theme ? themesData.Theme[0] : null,
+      activeTheme: data.Flick_by_pk ? data.Flick_by_pk.theme : null,
       themes: themesData?.Theme ? themesData?.Theme : [],
       activeFragmentId: fragmentsLength > 0 ? editorFragment?.id : '',
     }))
@@ -224,6 +223,24 @@ const Flick = () => {
     setEditorValue(flick.md || '')
   }, [activeFragmentId])
 
+  useMemo(() => {
+    if (flick?.branding?.branding?.font)
+      loadFonts([
+        {
+          family: flick?.branding?.branding?.font?.heading?.family,
+          weights: ['400'],
+          type: flick?.branding?.branding?.font?.heading?.type,
+          url: flick?.branding?.branding?.font?.heading?.url,
+        },
+        {
+          family: flick?.branding?.branding?.font?.body?.family,
+          weights: ['400'],
+          type: flick?.branding?.branding?.font?.body?.type,
+          url: flick?.branding?.branding?.font?.body?.url,
+        },
+      ])
+  }, [flick?.branding?.branding?.font])
+
   if (!data && loading)
     return <ScreenState title="Loading your flick..." loading />
 
@@ -240,15 +257,6 @@ const Flick = () => {
     )
 
   if (!flick) return null
-
-  if (processingFlick)
-    return (
-      <ProcessingFlick
-        flickId={flick.id}
-        joinLink={flick.joinLink}
-        setProcessing={setProcessingFlick}
-      />
-    )
 
   return (
     <div className="relative flex flex-col w-screen h-screen overflow-hidden">

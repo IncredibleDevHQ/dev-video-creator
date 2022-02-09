@@ -215,7 +215,7 @@ const VideoBlock = (props: any) => {
   return (
     <NodeViewWrapper>
       <div
-        className="w-full py-8"
+        className="w-full py-1"
         onMouseEnter={() => setOpen(true)}
         onMouseLeave={() => setOpen(false)}
         ref={ref}
@@ -241,7 +241,8 @@ const VideoBlock = (props: any) => {
             }}
           >
             <Stage
-              {...size}
+              height={height}
+              width={width}
               ref={stageRef}
               scale={{
                 x: height / size.height,

@@ -2,7 +2,10 @@ import Konva from 'konva'
 import React, { createRef, useEffect, useState } from 'react'
 import { Group, Rect } from 'react-konva'
 import { useRecoilState, useRecoilValue } from 'recoil'
-import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
+import {
+  Fragment_Status_Enum_Enum,
+  ThemeFragment,
+} from '../../../generated/graphql'
 import { User, userState } from '../../../stores/user.store'
 import {
   BlockProperties,
@@ -10,8 +13,6 @@ import {
   TopLayerChildren,
 } from '../../../utils/configTypes'
 import { Block } from '../../Flick/editor/utils/utils'
-import GlassySplash from '../effects/Splashes/GlassySplash'
-import ShortsPopSplash from '../effects/Splashes/ShortsPopSplash'
 import useEdit, { ClipConfig } from '../hooks/use-edit'
 import { canvasStore, StudioProviderProps, studioStore } from '../stores'
 import { FragmentLayoutConfig } from '../utils/FragmentLayoutConfig'
@@ -19,7 +20,6 @@ import LowerThridProvider from './LowerThirdProvider'
 import PreviewUser from './PreviewUser'
 import StudioUser from './StudioUser'
 import TransitionProvider from './TransitionProvider'
-import VideoBackground from './VideoBackground'
 
 export interface StudioUserConfig {
   x: number
@@ -51,13 +51,8 @@ interface ConcourseProps {
   layerChildren: any[]
   viewConfig?: BlockProperties
   stageRef?: React.RefObject<Konva.Stage>
-  titleSplashData?: TitleSplashProps
   studioUserConfig?: StudioUserConfig[]
   disableUserMedia?: boolean
-  topLayerChildren?: {
-    id: string
-    state: TopLayerChildren
-  }
   isShorts?: boolean
   blockType: Block['type']
 }
@@ -72,35 +67,43 @@ export const SHORTS_CONFIG = {
   height: 704,
 }
 
-const GetTopLayerChildren = ({
+export const GetTopLayerChildren = ({
   topLayerChildrenState,
+  setTopLayerChildren,
   isShorts,
   status,
+  theme,
 }: {
   topLayerChildrenState: TopLayerChildren
+  setTopLayerChildren: React.Dispatch<
+    React.SetStateAction<{ id: string; state: TopLayerChildren }>
+  >
   isShorts: boolean
   status: Fragment_Status_Enum_Enum
+  theme: ThemeFragment
 }) => {
   if (status === Fragment_Status_Enum_Enum.Ended) return <></>
   switch (topLayerChildrenState) {
     case 'lowerThird': {
-      return <LowerThridProvider theme="glassy" isShorts={isShorts || false} />
+      return <LowerThridProvider theme={theme} isShorts={isShorts || false} />
     }
     case 'transition left': {
       return (
         <TransitionProvider
-          theme="glassy"
+          theme={theme}
           isShorts={isShorts || false}
           direction="left"
+          setTopLayerChildren={setTopLayerChildren}
         />
       )
     }
     case 'transition right': {
       return (
         <TransitionProvider
-          theme="glassy"
+          theme={theme}
           isShorts={isShorts || false}
           direction="right"
+          setTopLayerChildren={setTopLayerChildren}
         />
       )
     }
@@ -115,10 +118,8 @@ const Concourse = ({
   layerChildren,
   viewConfig,
   stageRef,
-  titleSplashData,
   studioUserConfig,
   disableUserMedia,
-  topLayerChildren,
   isShorts,
   blockType,
 }: ConcourseProps) => {
@@ -130,9 +131,9 @@ const Concourse = ({
     payload,
     users,
     stopRecording,
+    theme,
   } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [canvas, setCanvas] = useRecoilState(canvasStore)
-  const [isTitleSplash, setIsTitleSplash] = useState<boolean>(false)
   const [isZooming, setZooming] = useState(false)
 
   const { sub, picture } = (useRecoilValue(userState) as User) || {}
@@ -264,24 +265,10 @@ const Concourse = ({
     setCanvas({ zoomed: false, resetCanvas })
   }, [])
 
-  useEffect(() => {
-    if (titleSplashData?.enable) {
-      if (payload?.status === Fragment_Status_Enum_Enum.Live) {
-        setIsTitleSplash(true)
-      } else {
-        setIsTitleSplash(false)
-      }
-    } else {
-      setIsTitleSplash(false)
-    }
-  }, [titleSplashData, state, payload?.status])
-
   return (
     <>
-      <VideoBackground theme="glassy" stageConfig={stageConfig} />
       {viewConfig?.layout === 'full' &&
       !disableUserMedia &&
-      !isTitleSplash &&
       payload?.status !== Fragment_Status_Enum_Enum.CountDown &&
       payload?.status !== Fragment_Status_Enum_Enum.Ended &&
       users ? (
@@ -319,7 +306,6 @@ const Concourse = ({
       ) : (
         viewConfig?.layout === 'full' &&
         !disableUserMedia &&
-        !isTitleSplash &&
         payload?.status !== Fragment_Status_Enum_Enum.CountDown &&
         payload?.status !== Fragment_Status_Enum_Enum.Ended &&
         fragment &&
@@ -356,28 +342,6 @@ const Concourse = ({
               />
             )
           }
-          if (payload?.status === Fragment_Status_Enum_Enum.Live) {
-            // layerRef?.current?.destroyChildren()
-            if (titleSplashData?.enable && isTitleSplash) {
-              return !isShorts ? (
-                <>
-                  <GlassySplash
-                    isShorts={isShorts || false}
-                    setIsTitleSplash={setIsTitleSplash}
-                    stageConfig={stageConfig}
-                  />
-                </>
-              ) : (
-                <>
-                  <ShortsPopSplash
-                    setIsTitleSplash={setIsTitleSplash}
-                    stageConfig={stageConfig}
-                    renderMode="static"
-                  />
-                </>
-              )
-            }
-          }
           if (payload?.status === Fragment_Status_Enum_Enum.Ended) {
             performFinishAction()
           }
@@ -390,6 +354,7 @@ const Concourse = ({
                       clipRect(
                         ctx,
                         FragmentLayoutConfig({
+                          theme,
                           layout: viewConfig?.layout || 'classic',
                           isShorts: isShorts || false,
                         })
@@ -411,7 +376,6 @@ const Concourse = ({
       </Group>
       {viewConfig?.layout !== 'full' &&
       !disableUserMedia &&
-      !isTitleSplash &&
       payload?.status !== Fragment_Status_Enum_Enum.CountDown &&
       payload?.status !== Fragment_Status_Enum_Enum.Ended &&
       users ? (
@@ -449,7 +413,6 @@ const Concourse = ({
       ) : (
         viewConfig?.layout !== 'full' &&
         !disableUserMedia &&
-        !isTitleSplash &&
         payload?.status !== Fragment_Status_Enum_Enum.CountDown &&
         payload?.status !== Fragment_Status_Enum_Enum.Ended &&
         fragment &&
@@ -472,14 +435,6 @@ const Concourse = ({
           }
         )
       )}
-      <Group>
-        <GetTopLayerChildren
-          key={topLayerChildren?.id}
-          topLayerChildrenState={topLayerChildren?.state || ''}
-          isShorts={isShorts || false}
-          status={payload?.status}
-        />
-      </Group>
     </>
   )
 }
