@@ -534,7 +534,7 @@ const FragmentBar = ({
               history.push(`/${activeFragmentId}/studio`)
             }}
           >
-            {checkHasContent(fragment, mode) ? 'Re-take' : 'Record'}
+            {checkHasContent(fragment, mode) ? 'Retake' : 'Record'}
           </Button>
         </div>
       </div>
