@@ -149,10 +149,7 @@ const TipTap = ({
             ).node
             if (
               selectedNode.nodeName === 'P' &&
-              selectedNode.firstChild?.parentElement?.classList.contains(
-                'has-focus'
-              ) &&
-              selectedNode.firstChild?.parentElement.id === node.attrs.id
+              selectedNode.firstChild?.parentElement?.id === node.attrs.id
             ) {
               return 'Type / for commands'
             }
