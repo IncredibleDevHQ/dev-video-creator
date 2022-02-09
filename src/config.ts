@@ -76,6 +76,10 @@ const config = {
   googleFonts: {
     apiKey: import.meta.env.VITE_GOOGLE_FONTS_API_KEY,
   },
+
+  hocusPocus: {
+    server: import.meta.env.VITE_HOCUSPOCUS_SERVER,
+  },
 }
 
 export default config

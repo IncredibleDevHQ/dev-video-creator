@@ -5,17 +5,13 @@ import { useAuthState } from 'react-firebase-hooks/auth'
 import { Group, Rect } from 'react-konva'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import * as gConfig from '../../../../config'
-import { Fragment_Status_Enum_Enum } from '../../../../generated/graphql'
 import firebaseState from '../../../../stores/firebase.store'
-import {
-  BlockProperties,
-  TopLayerChildren,
-} from '../../../../utils/configTypes'
+import { BlockProperties } from '../../../../utils/configTypes'
 import {
   CodeBlockProps,
   CommentExplanations,
 } from '../../../Flick/editor/utils/utils'
-import Concourse, { TitleSplashProps } from '../../components/Concourse'
+import Concourse from '../../components/Concourse'
 import FragmentBackground from '../../components/FragmentBackground'
 import RenderTokens, {
   codeConfig,
@@ -75,8 +71,6 @@ const getColorCodes = async (
 const CodeFragment = ({
   viewConfig,
   dataConfig,
-  topLayerChildren,
-  titleSplashData,
   fragmentState,
   setFragmentState,
   stageRef,
@@ -85,18 +79,13 @@ const CodeFragment = ({
 }: {
   viewConfig: BlockProperties
   dataConfig: CodeBlockProps
-  topLayerChildren: {
-    id: string
-    state: TopLayerChildren
-  }
-  titleSplashData?: TitleSplashProps | undefined
   fragmentState: FragmentState
   setFragmentState: React.Dispatch<React.SetStateAction<FragmentState>>
   stageRef: React.RefObject<Konva.Stage>
   shortsMode: boolean
   isPreview: boolean
 }) => {
-  const { fragment, payload, updatePayload, state } =
+  const { fragment, payload, updatePayload, state, theme } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const { initUseCode } = useCode()
@@ -145,6 +134,7 @@ const CodeFragment = ({
       availableWidth: 0,
       availableHeight: 0,
       textColor: '',
+      surfaceColor: '',
     })
 
   const [colorCodes, setColorCodes] = useState<any>([])
@@ -165,6 +155,7 @@ const CodeFragment = ({
     })
     setObjectConfig(
       FragmentLayoutConfig({
+        theme,
         layout: viewConfig?.layout || 'classic',
         isShorts: shortsMode || false,
       })
@@ -193,7 +184,7 @@ const CodeFragment = ({
 
   useEffect(() => {
     setObjectRenderConfig(
-      ThemeLayoutConfig({ theme: 'glassy', layoutConfig: objectConfig })
+      ThemeLayoutConfig({ theme, layoutConfig: objectConfig })
     )
   }, [objectConfig])
 
@@ -307,65 +298,81 @@ const CodeFragment = ({
   const layerChildren: any[] = [
     <Group x={0} y={0} opacity={0} ref={customLayoutRef}>
       <FragmentBackground
-        theme="glassy"
+        theme={theme}
         objectConfig={objectConfig}
         backgroundRectColor="#202026"
       />
       {!isPreview ? (
-        payload?.status === Fragment_Status_Enum_Enum.Live && (
-          <Group
-            x={objectRenderConfig.startX + 25}
-            y={objectRenderConfig.startY + 10}
-            key="group"
-          >
-            {!isCodexFormat ? (
-              <>
-                {getRenderedTokens(computedTokens, position)}
-                {computedTokens.length > 0 && (
-                  <RenderTokens
-                    key={position.prevIndex}
-                    tokens={computedTokens}
-                    startIndex={position.prevIndex}
-                    endIndex={position.currentIndex}
-                  />
-                )}
-              </>
-            ) : (
-              <>
-                {getTokens(
-                  computedTokens,
-                  computedTokens[
-                    computedTokens.find(
+        <Group
+          x={objectRenderConfig.startX + 25}
+          y={objectRenderConfig.startY + 10}
+          key="group"
+        >
+          {!isCodexFormat ? (
+            <>
+              {getRenderedTokens(computedTokens, position)}
+              {computedTokens.length > 0 && (
+                <RenderTokens
+                  key={position.prevIndex}
+                  tokens={computedTokens}
+                  startIndex={position.prevIndex}
+                  endIndex={position.currentIndex}
+                />
+              )}
+            </>
+          ) : (
+            <>
+              {getTokens(
+                computedTokens,
+                computedTokens[
+                  computedTokens.find(
+                    (token) =>
+                      token.lineNumber ===
+                        (blockConfig &&
+                          blockConfig[activeBlockIndex] &&
+                          blockConfig[activeBlockIndex].from) || 0
+                  )?.startFromIndex || 0
+                ]?.lineNumber,
+                objectRenderConfig.availableHeight - 10
+              )}
+              {highlightBlockCode && (
+                <Rect
+                  x={-5}
+                  y={
+                    (computedTokens.find(
                       (token) =>
                         token.lineNumber ===
-                          (blockConfig &&
-                            blockConfig[activeBlockIndex] &&
-                            blockConfig[activeBlockIndex].from) || 0
-                    )?.startFromIndex || 0
-                  ]?.lineNumber,
-                  objectRenderConfig.availableHeight - 10
-                )}
-                {highlightBlockCode && (
-                  <Rect
-                    x={-5}
-                    y={
+                        (blockConfig &&
+                          blockConfig[activeBlockIndex] &&
+                          blockConfig[activeBlockIndex].from)
+                    )?.y || 0) - 5
+                  }
+                  width={objectConfig.width - 40}
+                  height={
+                    (computedTokens.find(
+                      (token) =>
+                        token.lineNumber ===
+                        (blockConfig &&
+                          blockConfig[activeBlockIndex] &&
+                          blockConfig[activeBlockIndex].to)
+                    )?.y || 0) -
                       (computedTokens.find(
                         (token) =>
                           token.lineNumber ===
                           (blockConfig &&
                             blockConfig[activeBlockIndex] &&
                             blockConfig[activeBlockIndex].from)
-                      )?.y || 0) - 5
-                    }
-                    width={objectConfig.width - 40}
-                    height={
-                      (computedTokens.find(
-                        (token) =>
-                          token.lineNumber ===
-                          (blockConfig &&
-                            blockConfig[activeBlockIndex] &&
-                            blockConfig[activeBlockIndex].to)
-                      )?.y || 0) -
+                      )?.y || 0) +
+                      codeConfig.fontSize +
+                      5 >
+                    0
+                      ? (computedTokens.find(
+                          (token) =>
+                            token.lineNumber ===
+                            (blockConfig &&
+                              blockConfig[activeBlockIndex] &&
+                              blockConfig[activeBlockIndex].to)
+                        )?.y || 0) -
                         (computedTokens.find(
                           (token) =>
                             token.lineNumber ===
@@ -374,35 +381,17 @@ const CodeFragment = ({
                               blockConfig[activeBlockIndex].from)
                         )?.y || 0) +
                         codeConfig.fontSize +
-                        5 >
-                      0
-                        ? (computedTokens.find(
-                            (token) =>
-                              token.lineNumber ===
-                              (blockConfig &&
-                                blockConfig[activeBlockIndex] &&
-                                blockConfig[activeBlockIndex].to)
-                          )?.y || 0) -
-                          (computedTokens.find(
-                            (token) =>
-                              token.lineNumber ===
-                              (blockConfig &&
-                                blockConfig[activeBlockIndex] &&
-                                blockConfig[activeBlockIndex].from)
-                          )?.y || 0) +
-                          codeConfig.fontSize +
-                          10
-                        : 0
-                    }
-                    fill="#0066B8"
-                    opacity={0.3}
-                    cornerRadius={8}
-                  />
-                )}
-              </>
-            )}
-          </Group>
-        )
+                        10
+                      : 0
+                  }
+                  fill="#0066B8"
+                  opacity={0.3}
+                  cornerRadius={8}
+                />
+              )}
+            </>
+          )}
+        </Group>
       ) : (
         <Group
           x={objectRenderConfig.startX + 25}
@@ -486,13 +475,13 @@ const CodeFragment = ({
         layout: viewConfig?.layout || 'classic',
         fragment,
         fragmentState,
-        theme: 'glassy',
+        theme,
       })
     : ShortsStudioUserConfiguration({
         layout: viewConfig?.layout || 'classic',
         fragment,
         fragmentState,
-        theme: 'glassy',
+        theme,
       })
 
   return (
@@ -500,9 +489,7 @@ const CodeFragment = ({
       layerChildren={layerChildren}
       viewConfig={viewConfig}
       stageRef={stageRef}
-      titleSplashData={titleSplashData}
       studioUserConfig={studioUserConfig}
-      topLayerChildren={topLayerChildren}
       isShorts={shortsMode}
       blockType={dataConfig.type}
     />

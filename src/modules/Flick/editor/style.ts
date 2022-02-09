@@ -15,6 +15,10 @@ const editorStyle = css`
     border-radius: 3px;
   }
 
+  pre {
+    margin: 0px;
+  }
+
   code::before {
     content: '';
   }
@@ -43,14 +47,6 @@ const editorStyle = css`
   h1.is-empty::before,
   h2.is-empty::before,
   h3.is-empty::before {
-    color: rgba(209, 213, 219);
-    content: attr(data-placeholder);
-    float: left;
-    height: 0;
-    pointer-events: none;
-  }
-
-  .is-editor-empty:first-child::before {
     color: rgba(209, 213, 219);
     content: attr(data-placeholder);
     float: left;
@@ -108,6 +104,33 @@ const editorStyle = css`
 
   .hljs-strong {
     font-weight: 700;
+  }
+
+  .collaboration-cursor__caret {
+    border-left: 1px solid #0d0d0d;
+    border-right: 1px solid #0d0d0d;
+    margin-left: -1px;
+    margin-right: -1px;
+    pointer-events: none;
+    position: relative;
+    word-break: normal;
+  }
+
+  /* Render the username above the caret */
+  .collaboration-cursor__label {
+    border-radius: 3px 3px 3px 0;
+    color: #0d0d0d;
+    font-size: 12px;
+    font-style: normal;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    left: -1px;
+    line-height: normal;
+    padding: 0.1rem 0.3rem;
+    position: absolute;
+    top: -1.4em;
+    user-select: none;
+    white-space: nowrap;
   }
 `
 export default editorStyle

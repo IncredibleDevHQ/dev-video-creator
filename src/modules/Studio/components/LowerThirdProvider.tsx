@@ -1,53 +1,98 @@
 import React from 'react'
 import { useRecoilValue } from 'recoil'
+import { ThemeFragment } from '../../../generated/graphql'
 import { User, userState } from '../../../stores/user.store'
-import { VideoTheme } from '../../../utils/configTypes'
 import { studioStore } from '../stores'
 import { CONFIG, SHORTS_CONFIG } from './Concourse'
-import { GlassyLowerThirds } from './LowerThirds'
+import { GlassyLowerThirds, PastelLinesLowerThirds } from './LowerThirds'
 
 const LowerThridProvider = ({
   theme,
   isShorts,
 }: {
-  theme: VideoTheme
+  theme: ThemeFragment
   isShorts: boolean
 }) => {
   const { branding, fragment, users, participants } =
     useRecoilValue(studioStore)
   // holds the user's display name
   const { displayName } = (useRecoilValue(userState) as User) || {}
-  const lowerThirdCoordinates = () => {
-    switch (fragment?.participants.length) {
-      case 2:
-        return [CONFIG.width - 140, CONFIG.width / 2 - 130]
-      case 3:
-        // TODO: calculate the coordinates for 3 people
-        return [665, 355, 45]
-      default:
-        return [CONFIG.width - 170]
-    }
+  const lowerThirdCoordinates = ({ position }: { position: string }) => {
+    if (position === 'right')
+      switch (fragment?.participants.length) {
+        case 2:
+          return [CONFIG.width - 140, CONFIG.width / 2 - 130]
+        case 3:
+          // TODO: calculate the coordinates for 3 people
+          return [665, 355, 45]
+        default:
+          return [CONFIG.width - 170]
+      }
+    if (position === 'left')
+      switch (fragment?.participants.length) {
+        case 2:
+          return [140, CONFIG.width / 2 - 130]
+        case 3:
+          // TODO: calculate the coordinates for 3 people
+          return [665, 355, 45]
+        default:
+          return [90]
+      }
+    else return []
   }
-  switch (theme) {
-    case 'glassy':
+  switch (theme.name) {
+    case 'DarkGradient':
       return (
         <>
           <GlassyLowerThirds
             x={
-              !isShorts ? lowerThirdCoordinates()[0] : SHORTS_CONFIG.width - 90
+              !isShorts
+                ? lowerThirdCoordinates({ position: 'right' })[0]
+                : SHORTS_CONFIG.width - 90
             }
             y={!isShorts ? 450 : 630}
             userName={displayName || ''}
             logo={branding?.logo || ''}
             color={branding?.background?.color?.primary || ''}
             textColor={branding?.colors?.text || ''}
+            branding={branding}
           />
           {users.map((user, index) => (
             <GlassyLowerThirds
               // eslint-disable-next-line react/no-array-index-key
               key={index}
-              x={lowerThirdCoordinates()[index + 1]}
+              x={lowerThirdCoordinates({ position: 'right' })[index + 1]}
               y={!isShorts ? 450 : 630}
+              userName={participants?.[user.uid]?.displayName || ''}
+              logo={branding?.logo || ''}
+              color={branding?.background?.color?.primary || ''}
+              textColor={branding?.colors?.text || ''}
+              branding={branding}
+            />
+          ))}
+        </>
+      )
+    case 'PastelLines':
+      return (
+        <>
+          <PastelLinesLowerThirds
+            x={
+              !isShorts
+                ? lowerThirdCoordinates({ position: 'left' })[0]
+                : SHORTS_CONFIG.width - 90
+            }
+            y={!isShorts ? 400 : 630}
+            userName={displayName || ''}
+            logo={branding?.logo || ''}
+            color={branding?.background?.color?.primary || ''}
+            textColor={branding?.colors?.text || ''}
+          />
+          {users.map((user, index) => (
+            <PastelLinesLowerThirds
+              // eslint-disable-next-line react/no-array-index-key
+              key={index}
+              x={lowerThirdCoordinates({ position: 'left' })[index + 1]}
+              y={!isShorts ? 400 : 630}
               userName={participants?.[user.uid]?.displayName || ''}
               logo={branding?.logo || ''}
               color={branding?.background?.color?.primary || ''}
