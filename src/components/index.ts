@@ -29,6 +29,8 @@ import Photo from './Photo'
 import FileDropzone from './FileDropzone'
 import UploadVideo from './UploadVideo'
 import Video from './Video'
+import ThumbnailPreview from './ThumbailPreview'
+import Image, { isImageLoaded } from './Image'
 
 export {
   Avatar,
@@ -64,6 +66,9 @@ export {
   FileDropzone,
   UploadVideo,
   Video,
+  ThumbnailPreview,
+  Image,
+  isImageLoaded,
 }
 
 export type { Tab }

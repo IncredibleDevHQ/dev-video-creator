@@ -7,10 +7,11 @@ import React, { Fragment, HTMLAttributes, useEffect, useState } from 'react'
 import { HiSelector } from 'react-icons/hi'
 import Modal from 'react-responsive-modal'
 import { useRecoilValue } from 'recoil'
-import { Button, emitToast } from '../../../components'
+import { Button, emitToast, ThumbnailPreview } from '../../../components'
 import config from '../../../config'
 import { ASSETS } from '../../../constants'
 import {
+  OrientationEnum,
   useDownloadZipMutation,
   useZipStatusQuery,
 } from '../../../generated/graphql'
@@ -201,10 +202,10 @@ const Download = ({
         <HorizontalContainer>
           <div
             className={cx(
-              'w-32 h-18 flex justify-center items-center rounded-md hover:border hover:border-brand',
+              'flex justify-center items-center rounded-md border-2 border-transparent hover:border-gray-400',
               {
                 'opacity-60 cursor-not-allowed': !video,
-                'border border-brand':
+                'border-brand hover:border-brand':
                   !!video && !!selectedFormats.includes(video),
               }
             )}
@@ -219,10 +220,17 @@ const Download = ({
               }
             }}
           >
-            <img
-              src={ASSETS.ICONS.FLICK}
-              alt="flick"
-              className="w-full h-full object-cover rounded-md"
+            <ThumbnailPreview
+              backgroundImageSource={`${baseUrl}meta/${flick?.id}/${activeFragment?.id}-storyboard-${OrientationEnum.Landscape}.png`}
+              posterImageSource={`${baseUrl}meta/${flick?.id}/${activeFragment?.id}-thumbnail-${OrientationEnum.Landscape}.png`}
+              className="rounded-md"
+              orientation={OrientationEnum.Landscape}
+              totalImages={50}
+              size={{
+                width: 150,
+                height: 84,
+              }}
+              scale={1.5}
             />
           </div>
         </HorizontalContainer>
@@ -230,10 +238,10 @@ const Download = ({
         <HorizontalContainer>
           <div
             className={cx(
-              'w-32 h-18 flex justify-center items-center rounded-md hover:border hover:border-brand',
+              'flex justify-center items-center rounded-md border-2 border-transparent hover:border-gray-400',
               {
                 'opacity-60 cursor-not-allowed': !shorts,
-                'border border-brand':
+                'border-brand hover:border-brand':
                   !!shorts && !!selectedFormats.includes(shorts),
               }
             )}
@@ -248,10 +256,17 @@ const Download = ({
               }
             }}
           >
-            <img
-              src={ASSETS.ICONS.FLICK}
-              alt="flick"
-              className="w-full h-full object-cover rounded-md"
+            <ThumbnailPreview
+              backgroundImageSource={`${baseUrl}meta/${flick?.id}/${activeFragment?.id}-storyboard-${OrientationEnum.Portrait}.png`}
+              posterImageSource={`${baseUrl}meta/${flick?.id}/${activeFragment?.id}-thumbnail-${OrientationEnum.Portrait}.png`}
+              className="rounded-md"
+              orientation={OrientationEnum.Landscape}
+              totalImages={50}
+              size={{
+                width: 150,
+                height: 84,
+              }}
+              scale={1.5}
             />
           </div>
         </HorizontalContainer>
