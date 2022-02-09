@@ -77,7 +77,7 @@ const UnifiedFragment = ({
   // view config holds all the info abt the view of the canvas
   const [viewConfig, setViewConfig] = useState<ViewConfig>()
   // holds the index of the present object
-  const [activeObjectIndex, setActiveObjectIndex] = useState(0)
+  const [activeObjectIndex, setActiveObjectIndex] = useState(-1)
 
   // state of the fragment
   const [fragmentState, setFragmentState] =
@@ -114,7 +114,7 @@ const UnifiedFragment = ({
   useEffect(() => {
     if (!config) return
     if (!theme) return
-    if (theme !== studio.theme) {
+    if (theme.name !== studio.theme.name) {
       setStudio((prev) => ({
         ...prev,
         theme,
@@ -134,6 +134,12 @@ const UnifiedFragment = ({
       setIsPreview(true)
       setDataConfig(config)
       setViewConfig(layoutConfig)
+      if (!theme) return
+      setStudio({
+        ...studio,
+        branding,
+        theme,
+      })
     }
     setTitleSplashData({
       enable: fragment?.configuration?.titleSplash?.enable || false,
@@ -149,8 +155,10 @@ const UnifiedFragment = ({
   }, [fragment])
 
   useEffect(() => {
-    setActiveObjectIndex(payload?.activeObjectIndex)
-  }, [payload])
+    setTimeout(() => {
+      setActiveObjectIndex(payload?.activeObjectIndex)
+    }, 800)
+  }, [payload?.activeObjectIndex])
 
   useEffect(() => {
     return () => {
@@ -179,15 +187,6 @@ const UnifiedFragment = ({
         activeIntroIndex: 0,
         fragmentState: 'onlyUserMedia',
       })
-      // if (viewConfig?.mode === 'Portrait') {
-      //   addMusic('splash', 0.2)
-      //   setTimeout(() => {
-      //     reduceSplashAudioVolume(0.12)
-      //   }, 2000)
-      //   setTimeout(() => {
-      //     reduceSplashAudioVolume(0.06)
-      //   }, 2200)
-      // }
       setTopLayerChildren?.({ id: '', state: '' })
       timer.current = setTimeout(() => {
         setTopLayerChildren?.({ id: nanoid(), state: 'lowerThird' })
@@ -196,6 +195,7 @@ const UnifiedFragment = ({
   }, [state])
 
   useEffect(() => {
+    if (!payload?.activeObjectIndex || payload?.activeObjectIndex === 0) return
     // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
     if (payload?.fragmentState === 'customLayout') {
       setTopLayerChildren?.({ id: nanoid(), state: 'transition right' })
@@ -209,9 +209,9 @@ const UnifiedFragment = ({
   }, [payload?.fragmentState])
 
   useEffect(() => {
-    if (activeObjectIndex === 0) return
+    if (!payload?.activeObjectIndex || payload?.activeObjectIndex === 0) return
     setTopLayerChildren?.({ id: nanoid(), state: 'transition right' })
-  }, [activeObjectIndex])
+  }, [payload?.activeObjectIndex])
 
   useEffect(() => {
     if (activeObjectIndex !== 0)
