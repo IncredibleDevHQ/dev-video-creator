@@ -193,7 +193,7 @@ const PointsFragment = ({
         lineHeight={1.15}
         text={dataConfig.listBlock.title || fragment?.name || ''}
         fontStyle="normal 800"
-        fontFamily="Gilroy"
+        fontFamily={branding?.font?.heading?.family || 'Gilroy'}
       />
       <Group
         x={objectRenderConfig.startX + 50}
@@ -239,7 +239,7 @@ const PointsFragment = ({
                     text={point.text}
                     // text="Run and test using one command and so on a thats all hd huusd j idhc dsi"
                     lineHeight={1.3}
-                    fontFamily="Inter"
+                    fontFamily={branding?.font?.body?.family || 'Inter'}
                     ref={(ref) =>
                       ref?.to({
                         x: 30,
@@ -279,7 +279,7 @@ const PointsFragment = ({
                   text={point.text}
                   // text="Run and test using one command and so on a thats all hd huusd j idhc dsi"
                   lineHeight={1.3}
-                  fontFamily="Inter"
+                  fontFamily={branding?.font?.body?.family || 'Inter'}
                 />
               </>
             ))}

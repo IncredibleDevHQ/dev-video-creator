@@ -22,7 +22,9 @@ import {
   ListBlockProps,
   VideoBlockProps,
 } from '../../../Flick/editor/utils/utils'
+import { CONFIG, SHORTS_CONFIG } from '../../components/Concourse'
 import { FragmentState } from '../../components/RenderTokens'
+import VideoBackground from '../../components/VideoBackground'
 import { StudioProviderProps, studioStore } from '../../stores'
 import CodeFragment from './CodeFragment'
 import IntroFragment from './IntroFragment'
@@ -51,8 +53,14 @@ const UnifiedFragment = ({
   branding?: BrandingJSON
   theme?: ThemeFragment | null
 }) => {
-  const { fragment, payload, updatePayload, state, addMusic } =
-    (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const {
+    fragment,
+    payload,
+    updatePayload,
+    state,
+    addMusic,
+    theme: flickTheme,
+  } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [studio, setStudio] = useRecoilState(studioStore)
 
@@ -217,9 +225,25 @@ const UnifiedFragment = ({
       })
   }, [activeObjectIndex])
 
+  const [stageConfig, setStageConfig] = useState<{
+    width: number
+    height: number
+  }>({ width: 0, height: 0 })
+
+  useEffect(() => {
+    if (!viewConfig?.mode) return
+    if (viewConfig?.mode === 'Landscape') setStageConfig(CONFIG)
+    else setStageConfig(SHORTS_CONFIG)
+  }, [viewConfig?.mode])
+
   if (!dataConfig || !viewConfig || dataConfig.length === 0) return <></>
   return (
     <>
+      <VideoBackground
+        theme={flickTheme}
+        stageConfig={stageConfig}
+        isShorts={viewConfig.mode === 'Portrait'}
+      />
       {(() => {
         switch (dataConfig[activeObjectIndex]?.type) {
           case 'codeBlock': {

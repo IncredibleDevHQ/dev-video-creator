@@ -1629,6 +1629,22 @@
   resolved "https://registry.yarnpkg.com/@headlessui/react/-/react-1.4.3.tgz#f77c6bb5cb4a614a5d730fb880cab502d48abf37"
   integrity sha512-n2IQkaaw0aAAlQS5MEXsM4uRK+w18CrM72EqnGRl/UBOQeQajad8oiKXR9Nk15jOzTFQjpxzrZMf1NxHidFBiw==
 
+"@hocuspocus/common@^1.0.0-alpha.4":
+  version "1.0.0-alpha.4"
+  resolved "https://registry.yarnpkg.com/@hocuspocus/common/-/common-1.0.0-alpha.4.tgz#cee54af01e34487e3009e4cbdcfca9ed945cb75c"
+  integrity sha512-LvKj+ASSWnvjFB7n2bl7BUGFKF9XFFP1oA3/XmKl3c7wUIvoN1Ir3sX8XnN6qBA3S2CoruEHHk+KPS6zMSMfHA==
+
+"@hocuspocus/provider@^1.0.0-alpha.29":
+  version "1.0.0-alpha.29"
+  resolved "https://registry.yarnpkg.com/@hocuspocus/provider/-/provider-1.0.0-alpha.29.tgz#92f4c247f0d834cdbe6eced93965b9fcf3ed1986"
+  integrity sha512-K8ZWw3LZBmmK5hd8ZoV+fKtxGvzJW8dUQgxDmNPhq0B9q5NWvXT89O64zvWOb5CdVMM9Nbd5pAWBcM5keFKrcw==
+  dependencies:
+    "@hocuspocus/common" "^1.0.0-alpha.4"
+    "@lifeomic/attempt" "^3.0.1"
+    lib0 "^0.2.43"
+    y-protocols "^1.0.5"
+    yjs "^13.5.22"
+
 "@humanwhocodes/config-array@^0.5.0":
   version "0.5.0"
   resolved "https://registry.yarnpkg.com/@humanwhocodes/config-array/-/config-array-0.5.0.tgz#1407967d4c6eecd7388f83acf1eaf4d0c6e58ef9"
@@ -1647,6 +1663,11 @@
   version "2.2.5"
   resolved "https://registry.yarnpkg.com/@iarna/toml/-/toml-2.2.5.tgz#b32366c89b43c6f8cefbdefac778b9c828e3ba8c"
   integrity sha512-trnsAYxU3xnS1gPHPyU961coFyLkh4gAD/0zQ5mymY4yOZ+CYvsPqUbOFSw0aDM4y0tV7tiFxL/1XfXPNC6IPg==
+
+"@lifeomic/attempt@^3.0.1":
+  version "3.0.2"
+  resolved "https://registry.yarnpkg.com/@lifeomic/attempt/-/attempt-3.0.2.tgz#6920d6fa76e911c2d27e5a7c9a5f42aff2292733"
+  integrity sha512-JHRfM7fUit2UroC0xRnuzMGegSTbfvz6X/1PgcIvahXC+A7UsKa8XfR1YrBsvoSu669iMTeNkDb26pSkGOzXKw==
 
 "@microsoft/fetch-event-source@2.0.1":
   version "2.0.1"
@@ -2037,6 +2058,21 @@
   version "2.0.0-beta.26"
   resolved "https://registry.yarnpkg.com/@tiptap/extension-code/-/extension-code-2.0.0-beta.26.tgz#bbfa600a252ee2cded6947b56b6c4c33d998e53a"
   integrity sha512-QcFWdEFfbJ1n5UFFBD17QPPAJ3J5p/b7XV484u0shCzywO7aNPV32QeHy1z0eMoyZtCbOWf6hg/a7Ugv8IwpHw==
+
+"@tiptap/extension-collaboration-cursor@^2.0.0-beta.34":
+  version "2.0.0-beta.34"
+  resolved "https://registry.yarnpkg.com/@tiptap/extension-collaboration-cursor/-/extension-collaboration-cursor-2.0.0-beta.34.tgz#3b926f7fffe989612bd092019be4ec466b509b82"
+  integrity sha512-6jxM8jxOXEwRHv7rkWsacC8Q3km83opEK/2udiMEC7a/yFeMKpYjOP+sAvzdGBposlIof/VgjXhbIUBRBqmqLw==
+  dependencies:
+    y-prosemirror "^1.0.14"
+
+"@tiptap/extension-collaboration@^2.0.0-beta.33":
+  version "2.0.0-beta.33"
+  resolved "https://registry.yarnpkg.com/@tiptap/extension-collaboration/-/extension-collaboration-2.0.0-beta.33.tgz#558db79d08d37de22ada46d9f036f9c81b75a95c"
+  integrity sha512-KMHJxsS/FSVyum2ds3gfu0WFU1Zu7xQ5YmsSCLXyBxkhDtBGWBZTcpcSh9siWfs26+Fk1ZvcEssNyRYMEummpQ==
+  dependencies:
+    prosemirror-state "^1.3.4"
+    y-prosemirror "^1.0.14"
 
 "@tiptap/extension-document@^2.0.0-beta.15":
   version "2.0.0-beta.15"
@@ -5816,6 +5852,11 @@ isomorphic-ws@4.0.1, isomorphic-ws@^4.0.1:
   resolved "https://registry.yarnpkg.com/isomorphic-ws/-/isomorphic-ws-4.0.1.tgz#55fd4cd6c5e6491e76dc125938dd863f5cd4f2dc"
   integrity sha512-BhBvN2MBpWTaSHdWRb/bwdZJ1WaehQ2L1KngkCkfLUGF0mAWAT1sQUQacEmQ0jXkFw/czDXPNQSL5u2/Krsz1w==
 
+isomorphic.js@^0.2.4:
+  version "0.2.4"
+  resolved "https://registry.yarnpkg.com/isomorphic.js/-/isomorphic.js-0.2.4.tgz#24ca374163ae54a7ce3b86ce63b701b91aa84969"
+  integrity sha512-Y4NjZceAwaPXctwsHgNsmfuPxR8lJ3f8X7QTAkhltrX4oGIv+eTlgHLXn4tWysC9zGTi929gapnPp+8F8cg7nA==
+
 iterall@^1.2.1:
   version "1.3.0"
   resolved "https://registry.yarnpkg.com/iterall/-/iterall-1.3.0.tgz#afcb08492e2915cbd8a0884eb93a8c94d0d72fea"
@@ -6040,6 +6081,13 @@ levn@^0.4.1:
   dependencies:
     prelude-ls "^1.2.1"
     type-check "~0.4.0"
+
+lib0@^0.2.42, lib0@^0.2.43:
+  version "0.2.43"
+  resolved "https://registry.yarnpkg.com/lib0/-/lib0-0.2.43.tgz#1c2ed1fb2e9fe136e92abef7ca56875f2ee66b07"
+  integrity sha512-MJ1KLoz5p3gljIUBfdjjNuL/wlWHHK6+DrcIRhzSRLvtAu1XNdRtRGATYM51KSTI0P2nxJZFQM8rwCH6ga9KUw==
+  dependencies:
+    isomorphic.js "^0.2.4"
 
 lie@~3.3.0:
   version "3.3.0"
@@ -9780,6 +9828,20 @@ xtend@^4.0.0, xtend@^4.0.2:
   resolved "https://registry.yarnpkg.com/xtend/-/xtend-4.0.2.tgz#bb72779f5fa465186b1f438f674fa347fdb5db54"
   integrity sha512-LKYU1iAXJXUgAXn9URjiu+MWhyUXHsvfp7mcuYm9dSUKK0/CjtrUwFAxD82/mCWbtLsGjFIad0wIsod4zrTAEQ==
 
+y-prosemirror@^1.0.14:
+  version "1.0.14"
+  resolved "https://registry.yarnpkg.com/y-prosemirror/-/y-prosemirror-1.0.14.tgz#299f05f206544810f1241e81292c8a9b844eee17"
+  integrity sha512-fJQn/XT+z/gks9sd64eB+Mf1UQP0d5SHQ8RwbrzIwYFW+FgU/nx8/hJm+nrBAoO9azHOY5aDeoffeLmOFXLD9w==
+  dependencies:
+    lib0 "^0.2.42"
+
+y-protocols@^1.0.5:
+  version "1.0.5"
+  resolved "https://registry.yarnpkg.com/y-protocols/-/y-protocols-1.0.5.tgz#91d574250060b29fcac8f8eb5e276fbad594245e"
+  integrity sha512-Wil92b7cGk712lRHDqS4T90IczF6RkcvCwAD0A2OPg+adKmOe+nOiT/N2hvpQIWS3zfjmtL4CPaH5sIW1Hkm/A==
+  dependencies:
+    lib0 "^0.2.42"
+
 y18n@^4.0.0:
   version "4.0.3"
   resolved "https://registry.yarnpkg.com/y18n/-/y18n-4.0.3.tgz#b5f259c82cd6e336921efd7bfd8bf560de9eeedf"
@@ -9865,6 +9927,13 @@ yargs@^17.0.0:
     string-width "^4.2.3"
     y18n "^5.0.5"
     yargs-parser "^21.0.0"
+
+yjs@^13.5.22, yjs@^13.5.24:
+  version "13.5.24"
+  resolved "https://registry.yarnpkg.com/yjs/-/yjs-13.5.24.tgz#6d97c186897e0aaffd0d7eac1d6af6305ea242b3"
+  integrity sha512-f6DqRfnhjihj4+iQv5zjhsYqOpkcM9SGroqluq6J6eEUTq7ipbgECKf+h5W4P+LU4fKawWFdQH8mxgJ7baZPJw==
+  dependencies:
+    lib0 "^0.2.43"
 
 yn@3.1.1:
   version "3.1.1"

@@ -23,4 +23,5 @@ interface ImportMetaEnv {
   VITE_COHERE_API_KEY: string
   VITE_LIVE_STREAM_ENDPOINT: string
   VITE_GOOGLE_FONTS_API_KEY: string
+  VITE_HOCUSPOCUS_SERVER: string
 }

@@ -5,6 +5,7 @@ import useImage from 'use-image'
 import config from '../../../config'
 import { ThemeFragment } from '../../../generated/graphql'
 import { studioStore } from '../stores'
+import { Video } from './Video'
 
 const VideoBackground = ({
   theme,
@@ -24,6 +25,21 @@ const VideoBackground = ({
     `${config.storage.baseUrl}themes/glassyThemeBackground.png`,
     'anonymous'
   )
+
+  const videoElement = React.useMemo(() => {
+    if (!branding?.background?.url) return
+    const element = document.createElement('video')
+    element.autoplay = true
+    element.crossOrigin = 'anonymous'
+    element.preload = 'auto'
+    element.muted = true
+    element.loop = true
+    element.src = branding.background?.url || ''
+    element.play()
+    // eslint-disable-next-line consistent-return
+    return element
+  }, [branding, stageConfig])
+
   switch (theme.name) {
     case 'DarkGradient':
       switch (branding?.background?.type) {
@@ -47,6 +63,31 @@ const VideoBackground = ({
               height={stageConfig.height}
               fill={branding?.background?.color?.primary}
             />
+          )
+        case 'video':
+          return (
+            <Group x={0} y={0}>
+              {videoElement && (
+                <Video
+                  videoElement={videoElement}
+                  videoConfig={{
+                    x: 0,
+                    y: 0,
+                    width: stageConfig.width,
+                    height: stageConfig.height,
+                    videoFill: branding?.background?.color?.primary,
+                    cornerRadius: 0,
+                    performClip: true,
+                    clipVideoConfig: {
+                      x: 0,
+                      y: 0,
+                      width: 1,
+                      height: 1,
+                    },
+                  }}
+                />
+              )}
+            </Group>
           )
         default:
           return (
@@ -139,6 +180,31 @@ const VideoBackground = ({
                 stroke={branding?.colors?.text || '#27272A'}
                 strokeWidth={1}
               />
+            </Group>
+          )
+        case 'video':
+          return (
+            <Group x={0} y={0}>
+              {videoElement && (
+                <Video
+                  videoElement={videoElement}
+                  videoConfig={{
+                    x: 0,
+                    y: 0,
+                    width: stageConfig.width,
+                    height: stageConfig.height,
+                    videoFill: branding?.background?.color?.primary,
+                    cornerRadius: 0,
+                    performClip: true,
+                    clipVideoConfig: {
+                      x: 0,
+                      y: 0,
+                      width: 1,
+                      height: 1,
+                    },
+                  }}
+                />
+              )}
             </Group>
           )
         default:

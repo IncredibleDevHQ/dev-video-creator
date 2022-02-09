@@ -63,7 +63,7 @@ const GlassySplash = ({
         text={fragment?.flick.name || 'Hello Intro'}
         fill={branding?.colors?.text || getThemeTextColor(theme)}
         fontSize={64}
-        fontFamily="Gilroy"
+        fontFamily={branding?.font?.heading?.family || 'Gilroy'}
         fontStyle="normal 600"
         lineHeight={1.2}
         ref={(ref) => {

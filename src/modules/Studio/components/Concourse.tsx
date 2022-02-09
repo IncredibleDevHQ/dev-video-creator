@@ -22,7 +22,6 @@ import LowerThridProvider from './LowerThirdProvider'
 import PreviewUser from './PreviewUser'
 import StudioUser from './StudioUser'
 import TransitionProvider from './TransitionProvider'
-import VideoBackground from './VideoBackground'
 
 export interface StudioUserConfig {
   x: number
@@ -285,11 +284,6 @@ const Concourse = ({
 
   return (
     <>
-      <VideoBackground
-        theme={theme}
-        stageConfig={stageConfig}
-        isShorts={isShorts || false}
-      />
       {viewConfig?.layout === 'full' &&
       !disableUserMedia &&
       !isTitleSplash &&

@@ -3,6 +3,7 @@ import React, { useRef } from 'react'
 import { Group, Image, Line, Rect, Text } from 'react-konva'
 import useImage from 'use-image'
 import IncredibleLogo from '../../../assets/incredible-x-logo.svg'
+import { BrandingJSON } from '../../Branding/BrandingPage'
 import useEdit from '../hooks/use-edit'
 
 const CommonLowerThirds = ({
@@ -166,6 +167,7 @@ export const GlassyLowerThirds = ({
   logo,
   color,
   textColor,
+  branding,
 }: {
   x: number
   y: number
@@ -173,6 +175,7 @@ export const GlassyLowerThirds = ({
   logo: string
   color: string
   textColor: string
+  branding: BrandingJSON | null | undefined
 }) => {
   const [image] = useImage(logo, 'anonymous')
   const { getTextWidth } = useEdit()
@@ -295,7 +298,7 @@ export const GlassyLowerThirds = ({
             opacity={0}
             height={96}
             fontStyle="bold"
-            fontFamily="Inter"
+            fontFamily={branding?.font?.body?.family || 'Inter'}
             key="username"
             verticalAlign="middle"
             ref={(ref) =>
@@ -372,7 +375,7 @@ export const GlassyLowerThirds = ({
           opacity={0}
           height={60}
           fontStyle="bold"
-          fontFamily="Inter"
+          fontFamily={branding?.font?.body?.family || 'Inter'}
           key="username"
           verticalAlign="middle"
           ref={(ref) =>

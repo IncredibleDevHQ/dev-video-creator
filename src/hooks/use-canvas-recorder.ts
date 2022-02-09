@@ -3,7 +3,7 @@ import { saveAs } from 'file-saver'
 import { extension } from 'mime-types'
 import { useRef, useState } from 'react'
 import transitionMusic from '../assets/TransitionMusic.mp3'
-import splashMusic from '../assets/IntroOutroBgm.mp3'
+// import splashMusic from '../assets/IntroOutroBgm.mp3'
 import pointsMusic from '../assets/bubblePopMusic.mp3'
 import { getSeekableWebM } from '../utils/helpers'
 import config from '../config'
@@ -59,7 +59,7 @@ const useCanvasRecorder = ({
 
   const ctx = useRef<AudioContext | null>(null)
   const dest = useRef<MediaStreamAudioDestinationNode | null>(null)
-  const splashAudio = new Audio(splashMusic)
+  // const splashAudio = new Audio(splashMusic)
   const splashAudioSourceNode = useRef<MediaElementAudioSourceNode | null>(null)
 
   /**
@@ -142,12 +142,12 @@ const useCanvasRecorder = ({
   const addMusic = (type?: AudioType, volume?: number) => {
     if (!ctx || !dest || !ctx.current || !dest.current) return
     if (type === 'splash') {
-      splashAudioSourceNode.current =
-        ctx.current.createMediaElementSource(splashAudio)
-      splashAudioSourceNode.current.connect(dest.current)
-      splashAudio.loop = true
-      splashAudio.volume = volume || 0.25
-      splashAudio.play()
+      // splashAudioSourceNode.current =
+      //   ctx.current.createMediaElementSource(splashAudio)
+      // splashAudioSourceNode.current.connect(dest.current)
+      // splashAudio.loop = true
+      // splashAudio.volume = volume || 0.25
+      // splashAudio.play()
     } else if (type === 'points') {
       const pointsAudio = new Audio(pointsMusic)
       ctx.current.createMediaElementSource(pointsAudio).connect(dest.current)
@@ -162,7 +162,7 @@ const useCanvasRecorder = ({
   }
 
   const reduceSplashAudioVolume = (volume: number) => {
-    splashAudio.volume = volume
+    // splashAudio.volume = volume
   }
 
   const stopMusic = () => {

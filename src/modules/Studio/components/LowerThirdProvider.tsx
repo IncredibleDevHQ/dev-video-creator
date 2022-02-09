@@ -55,6 +55,7 @@ const LowerThridProvider = ({
             logo={branding?.logo || ''}
             color={branding?.background?.color?.primary || ''}
             textColor={branding?.colors?.text || ''}
+            branding={branding}
           />
           {users.map((user, index) => (
             <GlassyLowerThirds
@@ -66,6 +67,7 @@ const LowerThridProvider = ({
               logo={branding?.logo || ''}
               color={branding?.background?.color?.primary || ''}
               textColor={branding?.colors?.text || ''}
+              branding={branding}
             />
           ))}
         </>
