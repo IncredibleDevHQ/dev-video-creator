@@ -29,10 +29,15 @@ import { Block, Position, SimpleAST, useUtils } from './utils/utils'
 
 const yDoc = new Y.Doc()
 
+const flickIndex = window.location.href
+  .split('/')
+  .findIndex((x) => x === 'flick')
+const flickId = window.location.href.split('/')[flickIndex + 1]
+
 const provider = new HocuspocusProvider({
   document: yDoc,
   url: config.hocusPocus.server,
-  name: `flick-doc-${window.location.href.split('/').pop()}`,
+  name: `flick-doc-${flickId}`,
 })
 
 function generateLightColorHex() {
