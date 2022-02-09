@@ -53,7 +53,7 @@ const FlickNavBar = () => {
   }, [data])
 
   return (
-    <div className="sticky top-0 flex items-center justify-between py-2 pl-3 pr-4 bg-dark-500">
+    <div className="sticky top-0 flex items-center justify-between py-2 pl-3 pr-4 bg-dark-500 z-50">
       <div className="flex items-center">
         <a href={`${config.client.publicUrl}/dashboard`}>
           <div className="flex">
