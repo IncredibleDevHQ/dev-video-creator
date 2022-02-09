@@ -131,7 +131,7 @@ const IntroFragment = ({
         setLayerChildren([])
       }
     }
-  }, [state, payload.activeIntroIndex, videoElement, stageConfig])
+  }, [state, payload?.activeIntroIndex, videoElement, stageConfig])
 
   const studioUserConfig = !shortsMode
     ? StudioUserConfiguration({

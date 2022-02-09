@@ -4,11 +4,29 @@ import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
 import incredibleLogo from '../../../../assets/incredible_logo.svg'
 import outroPattern from '../../../../assets/outroPattern.svg'
+import { ThemeFragment } from '../../../../generated/graphql'
 import Concourse, { CONFIG, SHORTS_CONFIG } from '../../components/Concourse'
 import useEdit from '../../hooks/use-edit'
 import { studioStore } from '../../stores'
 import { StudioUserConfiguration } from '../../utils/StudioUserConfig'
 import { getThemeTextColor } from '../../utils/ThemeConfig'
+
+const getOutroConfig = (theme: ThemeFragment) => {
+  switch (theme.name) {
+    case 'DarkGradient':
+      return {
+        imageX: 40,
+      }
+    case 'PastelLines':
+      return {
+        imageX: 100,
+      }
+    default:
+      return {
+        imageX: 0,
+      }
+  }
+}
 
 const OutroFragment = ({ isShorts }: { isShorts: boolean }) => {
   const { fragment, branding, theme } = useRecoilValue(studioStore)
@@ -64,7 +82,7 @@ const OutroFragment = ({ isShorts }: { isShorts: boolean }) => {
         lineHeight={1.2}
       />
       <Image
-        x={40}
+        x={getOutroConfig(theme).imageX}
         y={stageConfig.height - 90}
         width={imgDim.width}
         height={imgDim.height}
