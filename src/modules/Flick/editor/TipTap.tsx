@@ -3,10 +3,12 @@ import { HocuspocusProvider } from '@hocuspocus/provider'
 import UniqueID from '@tiptap-pro/extension-unique-id'
 import Collaboration from '@tiptap/extension-collaboration'
 import CollaborationCursor from '@tiptap/extension-collaboration-cursor'
+import Focus from '@tiptap/extension-focus'
 import Placeholder from '@tiptap/extension-placeholder'
 import { EditorContent, useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { IoAddOutline } from 'react-icons/io5'
 import { useRecoilValue } from 'recoil'
 import * as Y from 'yjs'
 import config from '../../../config'
@@ -21,6 +23,7 @@ import { getSuggestionItems } from './slashCommand/items'
 import renderItems from './slashCommand/renderItems'
 import { SlashCommands } from './slashCommand/SlashCommands'
 import editorStyle from './style'
+import { DragHandler } from './utils/drag'
 import CustomTypography from './utils/typography'
 import { Block, Position, SimpleAST, useUtils } from './utils/utils'
 
@@ -95,6 +98,8 @@ const TipTap = ({
           'video',
         ],
       }),
+      DragHandler(),
+      Focus,
       CustomTypography,
       StarterKit.configure({
         history: false,
@@ -138,6 +143,21 @@ const TipTap = ({
             return 'Type / to get started'
           }
 
+          if (node.type.name === 'paragraph') {
+            const selectedNode = editor.view.domAtPos(
+              editor.state.selection.from
+            ).node
+            if (
+              selectedNode.nodeName === 'P' &&
+              selectedNode.firstChild?.parentElement?.classList.contains(
+                'has-focus'
+              ) &&
+              selectedNode.firstChild?.parentElement.id === node.attrs.id
+            ) {
+              return 'Type / for commands'
+            }
+          }
+
           return ''
         },
       }),
@@ -163,9 +183,6 @@ const TipTap = ({
 
   useEffect(() => {
     if (!initialContent || !editor || editor.isDestroyed) return
-    // Do not set content. Hocuspocus sets it.
-    // editor.commands.setContent(initialContent)
-
     const simpleAST = utils.getSimpleAST(editor.getJSON())
     handleUpdate()
     handleUpdateAst?.(simpleAST, editor.getHTML())
@@ -211,6 +228,19 @@ const TipTap = ({
 
   return (
     <div className="pb-32 bg-white mt-4" ref={editorRef}>
+      <div id="drag-handle" className="flex items-center text-gray-300">
+        <div className="cursor-pointer flex-shrink-0 hover:bg-gray-100 hover:text-gray-400 rounded-sm p-1">
+          <IoAddOutline size={20} className="" />
+        </div>
+        <span
+          style={{
+            cursor: 'grab',
+          }}
+          className="text-xl hover:bg-gray-100 hover:text-gray-400 px-1 rounded-sm"
+        >
+          ⠿
+        </span>
+      </div>
       <EditorContent editor={editor} />
     </div>
   )

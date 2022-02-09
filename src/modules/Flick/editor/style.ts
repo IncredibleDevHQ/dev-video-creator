@@ -50,14 +50,6 @@ const editorStyle = css`
     pointer-events: none;
   }
 
-  .is-editor-empty:first-child::before {
-    color: rgba(209, 213, 219);
-    content: attr(data-placeholder);
-    float: left;
-    height: 0;
-    pointer-events: none;
-  }
-
   .hljs-comment,
   .hljs-quote {
     color: #616161;
