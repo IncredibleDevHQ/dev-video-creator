@@ -24,6 +24,7 @@ import renderItems from './slashCommand/renderItems'
 import { SlashCommands } from './slashCommand/SlashCommands'
 import editorStyle from './style'
 import { DragHandler } from './utils/drag'
+import { TrailingNode } from './utils/trailingNode'
 import CustomTypography from './utils/typography'
 import { Block, Position, SimpleAST, useUtils } from './utils/utils'
 
@@ -171,6 +172,7 @@ const TipTap = ({
       UploadBlock,
       Slab,
       NoteBlock,
+      TrailingNode,
     ],
   })
 
