@@ -288,7 +288,14 @@ const Flick = () => {
             }
           }}
         >
-          <div className="h-full pt-12 pb-96 col-start-4 col-span-6 ">
+          <div
+            style={{
+              width: '100%',
+              maxWidth: '750px',
+              margin: '0 auto',
+            }}
+            className="h-full pt-12 pb-96 col-start-4 col-span-6"
+          >
             <EditorHeader
               viewConfig={viewConfig}
               setViewConfig={setViewConfig}

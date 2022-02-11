@@ -1,6 +1,9 @@
 import { css } from '@emotion/css'
 
 const editorStyle = css`
+  background: none;
+  background-color: transparent;
+
   img {
     margin-top: 1em;
     margin-bottom: 1em;
@@ -29,7 +32,10 @@ const editorStyle = css`
 
   h1,
   h2,
-  h3 {
+  h3,
+  h4,
+  h5,
+  h6 {
     color: rgba(31, 41, 55);
     font-family: Gilroy, ui-sans-serif, system-ui, -apple-system,
       BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
@@ -46,7 +52,10 @@ const editorStyle = css`
   p.is-empty::before,
   h1.is-empty::before,
   h2.is-empty::before,
-  h3.is-empty::before {
+  h3.is-empty::before,
+  h4.is-empty::before,
+  h5.is-empty::before,
+  h6.is-empty::before {
     color: rgba(209, 213, 219);
     content: attr(data-placeholder);
     float: left;
