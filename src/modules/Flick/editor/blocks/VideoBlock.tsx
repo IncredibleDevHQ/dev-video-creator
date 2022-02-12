@@ -1,11 +1,7 @@
 /* eslint-disable jsx-a11y/media-has-caption */
 import { css, cx } from '@emotion/css'
 import { mergeAttributes, Node } from '@tiptap/core'
-import {
-  NodeViewContent,
-  NodeViewWrapper,
-  ReactNodeViewRenderer,
-} from '@tiptap/react'
+import { NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react'
 import Konva from 'konva'
 import React, { useEffect, useState } from 'react'
 import Dropzone from 'react-dropzone'
@@ -180,9 +176,6 @@ const VideoBlock = (props: any) => {
                 >
                   browse
                 </Text>
-                <div className="hidden">
-                  <NodeViewContent />
-                </div>
               </div>
             </div>
           )}
@@ -213,103 +206,100 @@ const VideoBlock = (props: any) => {
     )
 
   return (
-    <NodeViewWrapper>
-      <div
-        className="w-full py-1"
-        onMouseEnter={() => setOpen(true)}
-        onMouseLeave={() => setOpen(false)}
-        ref={ref}
+    <NodeViewWrapper
+      as="div"
+      id={props.node.attrs.id}
+      className="w-full p-1"
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      ref={ref}
+    >
+      <Tooltip
+        isOpen={isOpen}
+        setIsOpen={setOpen}
+        content={
+          <VideoTooltip
+            editVideo={setEditVideo}
+            retakeVideo={setRetakeVideo}
+            deleteVideo={deleteVideo}
+          />
+        }
+        placement="top-start"
+        triggerOffset={10}
       >
-        <Tooltip
-          isOpen={isOpen}
-          setIsOpen={setOpen}
-          content={
-            <VideoTooltip
-              editVideo={setEditVideo}
-              retakeVideo={setRetakeVideo}
-              deleteVideo={deleteVideo}
-            />
-          }
-          placement="top-start"
-          triggerOffset={10}
+        <div
+          className="relative border"
+          style={{
+            width: divWidth,
+            height: divHeight,
+          }}
         >
-          <div
-            className="relative border"
-            style={{
-              width: divWidth,
-              height: divHeight,
+          <Stage
+            height={height}
+            width={width}
+            ref={stageRef}
+            scale={{
+              x: height / size.height,
+              y: width / size.width,
             }}
           >
-            <Stage
-              height={height}
-              width={width}
-              ref={stageRef}
-              scale={{
-                x: height / size.height,
-                y: width / size.width,
-              }}
-            >
-              <Layer>
-                <Group zIndex={-1}>
-                  {videoRef.current && videoConfig && (
-                    <Video
-                      videoElement={videoRef.current}
-                      videoConfig={videoConfig}
-                    />
-                  )}
-                </Group>
-              </Layer>
-            </Stage>
-            <div
-              className={cx(
-                'absolute top-0 left-0 w-full h-full transition-all ease-in-out',
-                {
-                  'bg-gray-900 opacity-50': !playing,
-                }
-              )}
-            />
-            <div
-              className={cx(
-                'absolute top-1/2 left-1/2 text-gray-50 flex items-center justify-center p-4',
-                { 'bg-gray-800 opacity-50 rounded-full': playing },
-                translateXY
-              )}
-            >
-              <button
-                type="button"
-                onClick={() => setPlaying((playing) => !playing)}
-              >
-                {playing ? <FiPause size={64} /> : <FiPlay size={64} />}
-              </button>
-            </div>
-          </div>
-        </Tooltip>
-        {(editVideo || retakeVideo) && (
-          <AddVideo
-            open={editVideo || retakeVideo}
-            initialValue={{
-              url: props.node.attrs.src as string,
-              transformations: JSON.parse(
-                props.node.attrs['data-transformations']
-              ),
-            }}
-            shouldResetWhenOpened={retakeVideo}
-            handleClose={() => {
-              setEditVideo(false)
-              setRetakeVideo(false)
-            }}
-            handleUpdateVideo={(url, transformations) => {
-              props.updateAttributes({
-                src: url,
-                'data-transformations': JSON.stringify(transformations),
-              })
-            }}
+            <Layer>
+              <Group zIndex={-1}>
+                {videoRef.current && videoConfig && (
+                  <Video
+                    videoElement={videoRef.current}
+                    videoConfig={videoConfig}
+                  />
+                )}
+              </Group>
+            </Layer>
+          </Stage>
+          <div
+            className={cx(
+              'absolute top-0 left-0 w-full h-full transition-all ease-in-out',
+              {
+                'bg-gray-900 opacity-50': !playing,
+              }
+            )}
           />
-        )}
-        {/* <div className="hidden">
-          <NodeViewContent />
-        </div> */}
-      </div>
+          <div
+            className={cx(
+              'absolute top-1/2 left-1/2 text-gray-50 flex items-center justify-center p-4',
+              { 'bg-gray-800 opacity-50 rounded-full': playing },
+              translateXY
+            )}
+          >
+            <button
+              type="button"
+              onClick={() => setPlaying((playing) => !playing)}
+            >
+              {playing ? <FiPause size={64} /> : <FiPlay size={64} />}
+            </button>
+          </div>
+        </div>
+      </Tooltip>
+      {(editVideo || retakeVideo) && (
+        <AddVideo
+          open={editVideo || retakeVideo}
+          initialValue={{
+            url: props.node.attrs.src as string,
+            transformations: JSON.parse(
+              props.node.attrs['data-transformations']
+            ),
+          }}
+          shouldResetWhenOpened={retakeVideo}
+          handleClose={() => {
+            setEditVideo(false)
+            setRetakeVideo(false)
+          }}
+          handleUpdateVideo={(url, transformations) => {
+            props.updateAttributes({
+              src: url,
+              'data-transformations': JSON.stringify(transformations),
+            })
+          }}
+        />
+      )}
     </NodeViewWrapper>
   )
 }
