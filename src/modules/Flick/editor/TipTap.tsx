@@ -75,7 +75,7 @@ const TipTap = ({
     editorProps: {
       attributes: {
         class: cx(
-          'prose max-w-none w-full h-full border-none focus:outline-none',
+          'prose prose-sm max-w-none w-full h-full border-none focus:outline-none',
           editorStyle
         ),
       },
@@ -102,6 +102,7 @@ const TipTap = ({
           'orderedList',
           'codeBlock',
           'video',
+          'image',
         ],
       }),
       DragHandler(),
@@ -174,7 +175,7 @@ const TipTap = ({
       }),
       CodeBlock,
       ImageBlock.configure({
-        inline: true,
+        inline: false,
       }),
       VideoBlock,
       UploadBlock,
@@ -223,11 +224,20 @@ const TipTap = ({
   useEffect(() => {
     if (!editor || !editorRef.current || editor.isDestroyed) return
 
-    const nodeAttrs = (editor.state.selection.$from as any).path[3]?.attrs
-    if (nodeAttrs && ast && nodeAttrs.id) {
-      const block = ast.blocks.find(
-        (b) => b.id === nodeAttrs.id || b.nodeIds?.includes(nodeAttrs.id)
-      )
+    const x = editor.state.selection.from
+    let n = editor.state.doc.nodeAt(x)
+    if (n?.isText) {
+      n = editor.state.doc.childBefore(x).node
+    }
+    let nodeAttrs = n?.attrs
+
+    if (!n) {
+      nodeAttrs = (editor.state.selection.$from as any).path[3]?.attrs
+    }
+    const block = ast?.blocks.find(
+      (b) => b.id === nodeAttrs?.id || b.nodeIds?.includes(nodeAttrs?.id)
+    )
+    if (nodeAttrs && ast && nodeAttrs.id && block) {
       handleActiveBlock?.(block)
     } else {
       handleActiveBlock?.()
@@ -237,7 +247,7 @@ const TipTap = ({
       y:
         editor?.view.coordsAtPos(editor.state.selection.anchor)?.top -
           editorRef.current?.getBoundingClientRect().y +
-          150 || 0,
+          175 || 0,
     })
   }, [editor?.state.selection.anchor, editorRef.current])
 
