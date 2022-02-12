@@ -162,7 +162,7 @@ const EditorHeader = ({
           updateFragment(e.target.value)
         }}
         style={{
-          fontSize: '2.65rem',
+          fontSize: '2.35rem',
         }}
         className="w-full  font-extrabold text-gray-800 resize-none font-main focus:outline-none"
         value={flick?.name || ''}
