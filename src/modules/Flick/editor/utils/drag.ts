@@ -5,7 +5,7 @@ import { NodeSelection, Plugin, PluginKey } from 'prosemirror-state'
 import { EditorView } from 'prosemirror-view'
 
 // FIXME this is a temporary workaround for drag handles
-export const DragHandler = () => {
+export const DragHandler = (dragHandle: HTMLDivElement | null) => {
   return Extension.create({
     name: 'dragHandler',
 
@@ -14,7 +14,11 @@ export const DragHandler = () => {
       const WIDTH = 56
       const HANDLER_GAP = 50
       const dragHandler =
-        document.getElementById('drag-handle') || document.createElement('div')
+        dragHandle ||
+        document.getElementById('drag-handle') ||
+        document.createElement('div')
+      dragHandler.style.visibility = 'hidden'
+      dragHandler.style.display = 'hidden'
       dragHandler.setAttribute('draggable', 'true')
       dragHandler.style.width = `${WIDTH}px`
       dragHandler.style.position = 'absolute'
@@ -187,7 +191,7 @@ export const DragHandler = () => {
                       rect.top += win.pageYOffset
                       rect.left += win.pageXOffset
                       dragHandler.style.left = `${rect.left - WIDTH}px`
-                      dragHandler.style.top = `${rect.top}px`
+                      dragHandler.style.top = `${rect.top - 2}px`
                       dragHandler.style.visibility = 'visible'
                       dragHandler.style.display = 'flex'
                     }

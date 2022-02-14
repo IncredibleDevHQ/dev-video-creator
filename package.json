@@ -32,6 +32,7 @@
     "@tailwindcss/typography": "^0.4.1",
     "@tiptap-pro/extension-unique-id": "^2.0.0-beta.12",
     "@tiptap/core": "^2.0.0-beta.168",
+    "@tiptap/extension-character-count": "^2.0.0-beta.25",
     "@tiptap/extension-code-block": "^2.0.0-beta.37",
     "@tiptap/extension-code-block-lowlight": "^2.0.0-beta.68",
     "@tiptap/extension-collaboration": "^2.0.0-beta.33",

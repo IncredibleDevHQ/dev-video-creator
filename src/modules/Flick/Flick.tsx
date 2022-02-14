@@ -326,7 +326,6 @@ const Flick = () => {
                   }))
                 setEditorValue(editorState)
               }}
-              initialContent={flick.md || ''}
               handleActiveBlock={(block) => {
                 if (block && block !== currentBlock) setCurrentBlock(block)
               }}
