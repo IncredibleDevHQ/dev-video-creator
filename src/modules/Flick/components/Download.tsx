@@ -1,15 +1,19 @@
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 import { css, cx } from '@emotion/css'
-import { Listbox, Transition } from '@headlessui/react'
 import axios from 'axios'
-import React, { Fragment, HTMLAttributes, useEffect, useState } from 'react'
-import { HiSelector } from 'react-icons/hi'
+import React, { useEffect, useState } from 'react'
 import Modal from 'react-responsive-modal'
 import { useRecoilValue } from 'recoil'
-import { Button, emitToast, ThumbnailPreview } from '../../../components'
+import { FiLink2 } from 'react-icons/fi'
+import {
+  Button,
+  emitToast,
+  Heading,
+  ThumbnailPreview,
+} from '../../../components'
 import config from '../../../config'
-import { ASSETS } from '../../../constants'
+import { copyToClipboard } from '../../../utils/helpers'
 import {
   OrientationEnum,
   useDownloadZipMutation,
@@ -17,47 +21,47 @@ import {
 } from '../../../generated/graphql'
 import { newFlickStore } from '../store/flickNew.store'
 
-interface Resolution {
-  id: string
-  name: string
-  description: string
-  isRecommended: boolean
-}
+// interface Resolution {
+//   id: string
+//   name: string
+//   description: string
+//   isRecommended: boolean
+// }
 
-const resolutions: Resolution[] = [
-  {
-    id: '1080',
-    name: 'Youtube 1080p',
-    description: 'Good for social media and streaming sites',
-    isRecommended: true,
-  },
-  {
-    id: '960',
-    name: 'Medium 960p',
-    description: 'Good for local viewing',
-    isRecommended: false,
-  },
-]
+// const resolutions: Resolution[] = [
+//   {
+//     id: '1080',
+//     name: 'Youtube 1080p',
+//     description: 'Good for social media and streaming sites',
+//     isRecommended: true,
+//   },
+//   {
+//     id: '960',
+//     name: 'Medium 960p',
+//     description: 'Good for local viewing',
+//     isRecommended: false,
+//   },
+// ]
 
-const HorizontalContainer = ({
-  className,
-  ...rest
-}: HTMLAttributes<HTMLDivElement>) => (
-  <div
-    className={cx(
-      'flex items-center overflow-x-scroll overflow-y-hidden',
-      css`
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-        ::-webkit-scrollbar {
-          display: none;
-        }
-      `,
-      className
-    )}
-    {...rest}
-  />
-)
+// const HorizontalContainer = ({
+//   className,
+//   ...rest
+// }: HTMLAttributes<HTMLDivElement>) => (
+//   <div
+//     className={cx(
+//       'flex items-center overflow-x-scroll overflow-y-hidden',
+//       css`
+//         -ms-overflow-style: none;
+//         scrollbar-width: none;
+//         ::-webkit-scrollbar {
+//           display: none;
+//         }
+//       `,
+//       className
+//     )}
+//     {...rest}
+//   />
+// )
 
 const Download = ({
   open,
@@ -66,12 +70,14 @@ const Download = ({
   open: boolean
   handleClose: (refresh?: boolean) => void
 }) => {
-  const [selectedResolution, setSelectedResolution] = useState(resolutions[0])
+  // const [selectedResolution, setSelectedResolution] = useState(resolutions[0])
   const [selectedFormats, setSelectedFormats] = useState<string[]>([])
   const { flick, activeFragmentId } = useRecoilValue(newFlickStore)
   const [isDownloading, setIsDownloading] = useState(false)
+  const [copyBtnString, setCopyBtnString] = useState('Copy embed code')
 
   const { baseUrl } = config.storage
+  const { embedPlayerUrl } = config.client
 
   const [downloadZip, { data: downloadZipData }] = useDownloadZipMutation()
   const {
@@ -127,7 +133,8 @@ const Download = ({
 
   useEffect(() => {
     return () => {
-      setSelectedResolution(resolutions[0])
+      // setSelectedResolution(resolutions[0])
+      setCopyBtnString('Copy embed code')
       setSelectedFormats([])
       setIsDownloading(false)
     }
@@ -196,81 +203,87 @@ const Download = ({
       }}
     >
       <div>
-        <h2>Download</h2>
+        <Heading fontSize="medium">Download</Heading>
         <hr />
-        <h4 className="mt-2">Landscape</h4>
-        <HorizontalContainer>
-          <div
-            className={cx(
-              'flex justify-center items-center rounded-md border-2 border-transparent hover:border-gray-400',
-              {
-                'opacity-60 cursor-not-allowed': !video,
-                'border-brand hover:border-brand':
-                  !!video && !!selectedFormats.includes(video),
-              }
-            )}
-            onClick={() => {
-              if (video) {
-                const isVideo = !!selectedFormats.includes(video)
-                if (isVideo) {
-                  setSelectedFormats((prev) =>
-                    prev.filter((format) => format !== video)
-                  )
-                } else setSelectedFormats([...selectedFormats, video])
-              }
-            }}
-          >
-            <ThumbnailPreview
-              backgroundImageSource={`${baseUrl}meta/${flick?.id}/${activeFragment?.id}-storyboard-${OrientationEnum.Landscape}.png`}
-              posterImageSource={`${baseUrl}meta/${flick?.id}/${activeFragment?.id}-thumbnail-${OrientationEnum.Landscape}.png`}
-              className="rounded-md"
-              orientation={OrientationEnum.Landscape}
-              totalImages={50}
-              size={{
-                width: 150,
-                height: 84,
+        <div className="flex justify-evenly items-center my-8">
+          <div>
+            <Heading fontSize="medium" className="text-center">
+              Landscape
+            </Heading>
+            <div
+              className={cx(
+                'flex justify-center items-center rounded-md border-2 border-transparent hover:border-gray-400',
+                {
+                  'opacity-60 cursor-not-allowed': !video,
+                  'border-brand hover:border-brand':
+                    !!video && !!selectedFormats.includes(video),
+                }
+              )}
+              onClick={() => {
+                if (video) {
+                  const isVideo = !!selectedFormats.includes(video)
+                  if (isVideo) {
+                    setSelectedFormats((prev) =>
+                      prev.filter((format) => format !== video)
+                    )
+                  } else setSelectedFormats([...selectedFormats, video])
+                }
               }}
-              scale={1.5}
-            />
+            >
+              <ThumbnailPreview
+                backgroundImageSource={`${baseUrl}meta/${flick?.id}/${activeFragment?.id}-storyboard-${OrientationEnum.Landscape}.png`}
+                posterImageSource={`${baseUrl}meta/${flick?.id}/${activeFragment?.id}-thumbnail-${OrientationEnum.Landscape}.png`}
+                className="rounded-md"
+                orientation={OrientationEnum.Landscape}
+                totalImages={50}
+                size={{
+                  width: 150,
+                  height: 84,
+                }}
+                scale={1.5}
+              />
+            </div>
           </div>
-        </HorizontalContainer>
-        <h4 className="mt-2">Portrait</h4>
-        <HorizontalContainer>
-          <div
-            className={cx(
-              'flex justify-center items-center rounded-md border-2 border-transparent hover:border-gray-400',
-              {
-                'opacity-60 cursor-not-allowed': !shorts,
-                'border-brand hover:border-brand':
-                  !!shorts && !!selectedFormats.includes(shorts),
-              }
-            )}
-            onClick={() => {
-              if (shorts) {
-                const isShorts = !!selectedFormats.includes(shorts)
-                if (isShorts) {
-                  setSelectedFormats((prev) =>
-                    prev.filter((format) => format !== shorts)
-                  )
-                } else setSelectedFormats([...selectedFormats, shorts])
-              }
-            }}
-          >
-            <ThumbnailPreview
-              backgroundImageSource={`${baseUrl}meta/${flick?.id}/${activeFragment?.id}-storyboard-${OrientationEnum.Portrait}.png`}
-              posterImageSource={`${baseUrl}meta/${flick?.id}/${activeFragment?.id}-thumbnail-${OrientationEnum.Portrait}.png`}
-              className="rounded-md"
-              orientation={OrientationEnum.Landscape}
-              totalImages={50}
-              size={{
-                width: 150,
-                height: 84,
+          <div>
+            <Heading fontSize="medium" className="text-center">
+              Portrait
+            </Heading>
+            <div
+              className={cx(
+                'flex justify-center items-center rounded-md border-2 border-transparent hover:border-gray-400',
+                {
+                  'opacity-60 cursor-not-allowed': !shorts,
+                  'border-brand hover:border-brand':
+                    !!shorts && !!selectedFormats.includes(shorts),
+                }
+              )}
+              onClick={() => {
+                if (shorts) {
+                  const isShorts = !!selectedFormats.includes(shorts)
+                  if (isShorts) {
+                    setSelectedFormats((prev) =>
+                      prev.filter((format) => format !== shorts)
+                    )
+                  } else setSelectedFormats([...selectedFormats, shorts])
+                }
               }}
-              scale={1.5}
-            />
+            >
+              <ThumbnailPreview
+                backgroundImageSource={`${baseUrl}meta/${flick?.id}/${activeFragment?.id}-storyboard-${OrientationEnum.Portrait}.png`}
+                posterImageSource={`${baseUrl}meta/${flick?.id}/${activeFragment?.id}-thumbnail-${OrientationEnum.Portrait}.png`}
+                className="rounded-md"
+                orientation={OrientationEnum.Portrait}
+                totalImages={50}
+                size={{
+                  width: 150,
+                  height: 84,
+                }}
+                scale={1.5}
+              />
+            </div>
           </div>
-        </HorizontalContainer>
-        <h4 className="mt-2">Resolution</h4>
+        </div>
+        {/* <h4 className="mt-2">Resolution</h4>
         <Listbox value={selectedResolution} onChange={setSelectedResolution}>
           <div className="relative my-2">
             <Listbox.Button className="relative w-full flex justify-between items-center rounded-md border-2 border-dark-200 p-2">
@@ -333,18 +346,41 @@ const Download = ({
               </Listbox.Options>
             </Transition>
           </div>
-        </Listbox>
-        <Button
-          type="button"
-          appearance="primary"
-          className="w-full"
-          loading={isDownloading}
-          disabled={selectedFormats.length < 1}
-          onClick={downloadVideos}
-        >
-          Download {selectedFormats.length > 0 ? selectedFormats.length : null}{' '}
-          videos
-        </Button>
+        </Listbox> */}
+        <hr className="my-4 mx-2" />
+        <div className="flex items-center justify-between">
+          <Button
+            type="button"
+            appearance="none"
+            className="w-full mx-4"
+            icon={FiLink2}
+            disabled={selectedFormats.length !== 1}
+            onClick={async () => {
+              if (selectedFormats.length !== 1) return
+              let copyString = ''
+              if (selectedFormats[0] === video) {
+                copyString = `<iframe src="${embedPlayerUrl}${flick?.joinLink}" width="320" height="180" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`
+              } else if (selectedFormats[0] === shorts) {
+                copyString = `<iframe src="${embedPlayerUrl}${flick?.joinLink}?orientation=portrait" width="180" height="320" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`
+              }
+              await copyToClipboard(copyString)
+              setCopyBtnString('Copied!')
+            }}
+          >
+            {copyBtnString}
+          </Button>
+          <Button
+            type="button"
+            appearance="primary"
+            className="w-full mx-4"
+            loading={isDownloading}
+            disabled={selectedFormats.length < 1}
+            onClick={downloadVideos}
+          >
+            Download{' '}
+            {selectedFormats.length > 0 ? selectedFormats.length : null} videos
+          </Button>
+        </div>
       </div>
     </Modal>
   )
