@@ -215,7 +215,7 @@ const PointsFragment = ({
                     }
                     ref={(ref) =>
                       ref?.to({
-                        x: 0,
+                        x: 0 + (41 * (point?.level - 1) || 0),
                         duration: 0.3,
                       })
                     }
@@ -233,14 +233,17 @@ const PointsFragment = ({
                     }
                     // why subtracting 110 is that this group starts at x: 50 and this text starts at x: 30,
                     // so we need to subtract 110 to get the correct x, to give 30 padding in the end too
-                    width={objectRenderConfig.availableWidth - 110}
+                    width={
+                      objectRenderConfig.availableWidth -
+                      110 -
+                      (41 * (point?.level - 1) || 0)
+                    }
                     text={point.text}
-                    // text="Run and test using one command and so on a thats all hd huusd j idhc dsi"
                     lineHeight={1.3}
                     fontFamily={branding?.font?.body?.family || 'Inter'}
                     ref={(ref) =>
                       ref?.to({
-                        x: 30,
+                        x: 30 + (41 * (point?.level - 1) || 0),
                         duration: 0.3,
                       })
                     }
@@ -251,7 +254,7 @@ const PointsFragment = ({
               <>
                 <Circle
                   key="points"
-                  x={0}
+                  x={0 + (41 * (point?.level - 1) || 0)}
                   radius={11}
                   y={point.y + 8}
                   fill={
@@ -262,7 +265,7 @@ const PointsFragment = ({
                 />
                 <Text
                   key={point.text}
-                  x={30}
+                  x={30 + (41 * (point?.level - 1) || 0)}
                   y={point.y}
                   align="left"
                   fontSize={16}
@@ -273,7 +276,11 @@ const PointsFragment = ({
                   }
                   // why subtracting 110 is that this group starts at x: 50 and this text starts at x: 30,
                   // so we need to subtract 110 to get the correct x, to give 30 padding in the end too
-                  width={objectRenderConfig.availableWidth - 110}
+                  width={
+                    objectRenderConfig.availableWidth -
+                    110 -
+                    (41 * (point?.level - 1) || 0)
+                  }
                   text={point.text}
                   // text="Run and test using one command and so on a thats all hd huusd j idhc dsi"
                   lineHeight={1.3}
