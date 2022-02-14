@@ -24,6 +24,7 @@ import renderItems from './slashCommand/renderItems'
 import { SlashCommands } from './slashCommand/SlashCommands'
 import editorStyle from './style'
 import { DragHandler } from './utils/drag'
+import { TrailingNode } from './utils/trailingNode'
 import CustomTypography from './utils/typography'
 import { Block, Position, SimpleAST, useUtils } from './utils/utils'
 
@@ -74,7 +75,7 @@ const TipTap = ({
     editorProps: {
       attributes: {
         class: cx(
-          'prose max-w-none w-full h-full border-none focus:outline-none',
+          'prose prose-sm max-w-none w-full h-full border-none focus:outline-none',
           editorStyle
         ),
       },
@@ -101,6 +102,7 @@ const TipTap = ({
           'orderedList',
           'codeBlock',
           'video',
+          'image',
         ],
       }),
       DragHandler(),
@@ -110,10 +112,15 @@ const TipTap = ({
         history: false,
         codeBlock: false,
         heading: {
-          levels: [1, 2, 3],
+          levels: [1, 2, 3, 4, 5, 6],
         },
         bulletList: {
           itemTypeName: 'listItem',
+        },
+        dropcursor: {
+          width: 3.5,
+          color: '#C3E2F0',
+          class: 'transition-all duration-200 ease-in-out',
         },
       }),
       SlashCommands.configure({
@@ -134,6 +141,9 @@ const TipTap = ({
             1: 'Heading 1',
             2: 'Heading 2',
             3: 'Heading 3',
+            4: 'Heading 4',
+            5: 'Heading 5',
+            6: 'Heading 6',
           }
 
           if (node.type.name === 'heading') {
@@ -165,12 +175,13 @@ const TipTap = ({
       }),
       CodeBlock,
       ImageBlock.configure({
-        inline: true,
+        inline: false,
       }),
       VideoBlock,
       UploadBlock,
       Slab,
       NoteBlock,
+      TrailingNode,
     ],
   })
 
@@ -213,11 +224,20 @@ const TipTap = ({
   useEffect(() => {
     if (!editor || !editorRef.current || editor.isDestroyed) return
 
-    const nodeAttrs = (editor.state.selection.$from as any).path[3]?.attrs
-    if (nodeAttrs && ast && nodeAttrs.id) {
-      const block = ast.blocks.find(
-        (b) => b.id === nodeAttrs.id || b.nodeIds?.includes(nodeAttrs.id)
-      )
+    const x = editor.state.selection.from
+    let n = editor.state.doc.nodeAt(x)
+    if (n?.isText) {
+      n = editor.state.doc.childBefore(x).node
+    }
+    let nodeAttrs = n?.attrs
+
+    if (!n) {
+      nodeAttrs = (editor.state.selection.$from as any).path[3]?.attrs
+    }
+    const block = ast?.blocks.find(
+      (b) => b.id === nodeAttrs?.id || b.nodeIds?.includes(nodeAttrs?.id)
+    )
+    if (nodeAttrs && ast && nodeAttrs.id && block) {
       handleActiveBlock?.(block)
     } else {
       handleActiveBlock?.()
@@ -227,13 +247,16 @@ const TipTap = ({
       y:
         editor?.view.coordsAtPos(editor.state.selection.anchor)?.top -
           editorRef.current?.getBoundingClientRect().y +
-          150 || 0,
+          175 || 0,
     })
   }, [editor?.state.selection.anchor, editorRef.current])
 
   return (
     <div className="pb-32 bg-white mt-4" ref={editorRef}>
-      <div id="drag-handle" className="hidden items-center text-gray-300">
+      <div
+        id="drag-handle"
+        className="hidden items-center text-gray-300 transition-all duration-75 ease-in-out"
+      >
         <div className="cursor-pointer flex-shrink-0 hover:bg-gray-100 hover:text-gray-400 rounded-sm p-1">
           <IoAddOutline size={20} className="" />
         </div>
@@ -241,7 +264,7 @@ const TipTap = ({
           style={{
             cursor: 'grab',
           }}
-          className="text-xl hover:bg-gray-100 hover:text-gray-400 px-1 rounded-sm"
+          className="text-xl hover:bg-gray-100 hover:text-gray-400 px-1 rounded-sm cursor-move"
         >
           ⠿
         </span>

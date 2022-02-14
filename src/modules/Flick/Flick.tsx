@@ -278,8 +278,24 @@ const Flick = () => {
         />
       )}
       {activeFragment && view === View.Notebook && (
-        <div className="grid grid-cols-12 flex-1 h-full pb-12 sticky top-0 overflow-y-auto">
-          <div className="h-full pt-12 pb-96 col-start-4 col-span-6 ">
+        <div
+          className="grid grid-cols-12 flex-1 h-full pb-12 sticky top-0 overflow-y-auto"
+          onScroll={() => {
+            const dragHandle = document.getElementById('drag-handle')
+            if (dragHandle) {
+              dragHandle.style.visibility = 'hidden'
+              dragHandle.style.display = 'hidden'
+            }
+          }}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: '750px',
+              margin: '0 auto',
+            }}
+            className="h-full pt-12 pb-96 col-start-4 col-span-6"
+          >
             <EditorHeader
               viewConfig={viewConfig}
               setViewConfig={setViewConfig}

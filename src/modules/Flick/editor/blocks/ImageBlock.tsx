@@ -1,3 +1,4 @@
+import { css, cx } from '@emotion/css'
 import { Node, nodeInputRule } from '@tiptap/core'
 import {
   mergeAttributes,
@@ -55,11 +56,12 @@ export default Node.create<ImageOptions>({
     return this.options.inline ? 'inline' : 'block'
   },
 
-  draggable: true,
-
   addAttributes() {
     return {
       src: {
+        default: null,
+      },
+      localSrc: {
         default: null,
       },
       alt: {
@@ -103,7 +105,7 @@ export default Node.create<ImageOptions>({
             : selection.$to.pos
 
           const node = this.type.create(attrs)
-          const transaction = state.tr.insert(position, node)
+          const transaction = state.tr.insert(position - 1, node)
           return dispatch?.(transaction)
         },
     }
@@ -130,11 +132,10 @@ export default Node.create<ImageOptions>({
 })
 
 const Image = (props: any) => {
-  const { src, alt, title } = props.node.attrs
+  const { src, alt, title, localSrc } = props.node.attrs
   const [upload] = useUploadFile()
   const [loading, setLoading] = useState(false)
   const [progress, setProgress] = useState(0)
-  const [path, setPath] = useState<string>()
 
   const uploadMedia = async (files: File[]) => {
     try {
@@ -153,8 +154,10 @@ const Image = (props: any) => {
         src: `${config.storage.baseUrl}${uuid}`,
       })
       setLoading(false)
+      setProgress(0)
     } catch (error: any) {
       setLoading(false)
+      setProgress(0)
       emitToast({
         type: 'error',
         title: 'Failed to upload thumbnail',
@@ -168,26 +171,27 @@ const Image = (props: any) => {
     const reader = new FileReader()
     reader.readAsDataURL(file)
     reader.onload = (readerEvent) => {
-      setPath(readerEvent.target?.result as string)
+      props.updateAttributes({
+        localSrc: readerEvent.target?.result as string,
+      })
     }
   }
 
   return (
-    <NodeViewWrapper>
+    <NodeViewWrapper as="div" id={props.node.attrs.id}>
       {src && (
         <img
-          src={src}
+          className="cursor-pointer"
+          src={localSrc || src}
           alt={alt}
           title={title}
-          {...props.attributes}
-          {...props.events}
         />
       )}
 
       {loading && (
-        <div className="relative inline-block py-3">
-          {path && <img className="brightness-50" src={path} alt="img" />}
-          <div className="absolute bottom-0 right-0 flex items-center justify-center p-1 m-2 bg-white border border-gray-300 rounded-sm shadow-md gap-x-2">
+        <div className="relative">
+          {localSrc && <img src={localSrc} alt="img" />}
+          <div className="absolute bottom-4 right-4 flex items-center justify-between px-1.5 rounded-sm gap-x-2 bg-black bg-opacity-60 w-20">
             <div className="w-4 h-4">
               <CircularProgressbar
                 styles={buildStyles({
@@ -196,17 +200,23 @@ const Image = (props: any) => {
                   textSize: '12px',
                   pathColor: `rgba(22, 163, 74, ${progress / 100})`,
                   textColor: '#f88',
-                  trailColor: '#d6d6d6',
+                  trailColor: '#fafafa',
                 })}
                 value={progress}
               />
             </div>
             <Text
-              fontSize="small"
-              className="text-sm !important"
+              className={cx(
+                css`
+                  color: #fefefe !important;
+                  font-size: 0.875rem !important;
+                  line-height: 1.25rem !important;
+                  margin: 3px !important;
+                `
+              )}
               contentEditable={false}
             >
-              Uploading
+              {progress}%
             </Text>
           </div>
         </div>
