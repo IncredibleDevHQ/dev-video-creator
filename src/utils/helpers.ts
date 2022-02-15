@@ -1,5 +1,6 @@
 import * as ebml from 'ts-ebml'
 import { Buffer } from 'buffer'
+import { emitToast } from '../components'
 
 /** @ts-ignore */
 window.Buffer = Buffer
@@ -23,4 +24,16 @@ export function getSeekableWebM(arrayBuffer: ArrayBuffer) {
   const body = arrayBuffer.slice(reader.metadataSize)
   const refinedWebM = new Blob([refinedMetadataBuf, body])
   return refinedWebM
+}
+
+export const copyToClipboard = async (text: string) => {
+  try {
+    await navigator.clipboard.writeText(text)
+  } catch (err: any) {
+    emitToast({
+      title: 'Failed to copy text',
+      type: 'error',
+      description: err?.message,
+    })
+  }
 }
