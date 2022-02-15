@@ -219,7 +219,7 @@ mutation PublishFragments(
   $flickId: uuid!
   $isPublic: Boolean!
   $seriesId: uuid = null
-  $publish: [PublishFragmetnsPayload]!
+  $publish: [PublishFragmetnsPayload!]
 ) {
   PublishFragments(
     flickId: $flickId
