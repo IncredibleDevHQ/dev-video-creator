@@ -80,6 +80,10 @@ const config = {
   hocusPocus: {
     server: import.meta.env.VITE_HOCUSPOCUS_SERVER,
   },
+
+  giphy: {
+    apiKey: import.meta.env.VITE_GIPHY_API_KEY,
+  },
 }
 
 export default config
