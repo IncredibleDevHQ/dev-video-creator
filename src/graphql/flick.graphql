@@ -90,6 +90,9 @@ fragment Flick on Flick {
   fragments(order_by: { order: asc }) {
     ...FlickFragment
   }
+  series {
+    seriesId
+  }
 }
 
 query GetMyFlicks($limit: Int, $userId: String) {
@@ -209,6 +212,22 @@ mutation UpdateFlick(
     difficulty: $difficulty
   ) {
     id
+  }
+}
+
+mutation PublishFragments(
+  $flickId: uuid!
+  $isPublic: Boolean!
+  $seriesId: uuid = null
+  $publish: [PublishFragmetnsPayload]!
+) {
+  PublishFragments(
+    flickId: $flickId
+    isPublic: $isPublic
+    seriesId: $seriesId
+    publish: $publish
+  ) {
+    success
   }
 }
 

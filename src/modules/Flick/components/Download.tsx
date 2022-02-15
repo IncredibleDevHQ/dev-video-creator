@@ -2,10 +2,11 @@
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 import { css, cx } from '@emotion/css'
 import axios from 'axios'
+import { Maybe } from 'graphql/jsutils/Maybe'
 import React, { useEffect, useState } from 'react'
+import { FiLink2 } from 'react-icons/fi'
 import Modal from 'react-responsive-modal'
 import { useRecoilValue } from 'recoil'
-import { FiLink2 } from 'react-icons/fi'
 import {
   Button,
   emitToast,
@@ -13,12 +14,14 @@ import {
   ThumbnailPreview,
 } from '../../../components'
 import config from '../../../config'
-import { copyToClipboard } from '../../../utils/helpers'
 import {
   OrientationEnum,
+  PublishFragmetnsPayload,
   useDownloadZipMutation,
+  usePublishFragmentsMutation,
   useZipStatusQuery,
 } from '../../../generated/graphql'
+import { copyToClipboard } from '../../../utils/helpers'
 import { newFlickStore } from '../store/flickNew.store'
 
 // interface Resolution {
@@ -74,12 +77,16 @@ const Download = ({
   const [selectedFormats, setSelectedFormats] = useState<string[]>([])
   const { flick, activeFragmentId } = useRecoilValue(newFlickStore)
   const [isDownloading, setIsDownloading] = useState(false)
-  const [copyBtnString, setCopyBtnString] = useState('Copy embed code')
+  const [copyBtnString, setCopyBtnString] = useState<
+    'Copy embed code' | 'Copied!'
+  >('Copy embed code')
 
   const { baseUrl } = config.storage
   const { embedPlayerUrl } = config.client
 
   const [downloadZip, { data: downloadZipData }] = useDownloadZipMutation()
+  const [publishFragments, { loading: publishLoading }] =
+    usePublishFragmentsMutation()
   const {
     data: zipSubscription,
     startPolling,
@@ -132,6 +139,14 @@ const Download = ({
   }, [zipSubscription?.Flick[0].downloadTasks?.status, downloadZipData])
 
   useEffect(() => {
+    const timer = setTimeout(() => {
+      if (copyBtnString === 'Copied!') setCopyBtnString('Copy embed code')
+    }, 10000)
+
+    return () => clearTimeout(timer)
+  }, [copyBtnString])
+
+  useEffect(() => {
     return () => {
       // setSelectedResolution(resolutions[0])
       setCopyBtnString('Copy embed code')
@@ -179,6 +194,44 @@ const Download = ({
       setIsDownloading(false)
       console.error(error)
     }
+  }
+
+  const publishVideos = async () => {
+    const isVideo = video && selectedFormats.includes(video)
+    const isShorts = shorts && selectedFormats.includes(shorts)
+
+    const videoArray: Maybe<PublishFragmetnsPayload> | null = isVideo
+      ? {
+          fragmentId: activeFragmentId,
+          orientationType: OrientationEnum.Landscape,
+          resource: video,
+          preview: `${baseUrl}meta/${flick?.id}/${activeFragment?.id}-storyboard-${OrientationEnum.Landscape}.png`,
+          thumbnail: `${baseUrl}meta/${flick?.id}/${activeFragment?.id}-thumbnail-${OrientationEnum.Landscape}.png`,
+        }
+      : null
+
+    const shortsArray: Maybe<PublishFragmetnsPayload> | null = isShorts
+      ? {
+          fragmentId: activeFragmentId,
+          orientationType: OrientationEnum.Portrait,
+          resource: shorts,
+          preview: `${baseUrl}meta/${flick?.id}/${activeFragment?.id}-storyboard-${OrientationEnum.Portrait}.png`,
+          thumbnail: `${baseUrl}meta/${flick?.id}/${activeFragment?.id}-thumbnail-${OrientationEnum.Portrait}.png`,
+        }
+      : null
+
+    const publishArray = []
+    if (videoArray) publishArray.push(videoArray)
+    if (shortsArray) publishArray.push(shortsArray)
+
+    await publishFragments({
+      variables: {
+        flickId: flick?.id,
+        isPublic: true,
+        seriesId: flick?.series?.[0]?.seriesId,
+        publish: publishArray,
+      },
+    })
   }
 
   if (!activeFragment) return null
@@ -360,14 +413,26 @@ const Download = ({
               let copyString = ''
               if (selectedFormats[0] === video) {
                 copyString = `<iframe src="${embedPlayerUrl}${flick?.joinLink}" width="320" height="180" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`
+                if (
+                  !flick?.contents?.find(
+                    (content) => content.resource === video
+                  )
+                )
+                  await publishVideos()
               } else if (selectedFormats[0] === shorts) {
                 copyString = `<iframe src="${embedPlayerUrl}${flick?.joinLink}?orientation=portrait" width="180" height="320" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`
+                if (
+                  !flick?.contents?.find(
+                    (content) => content.resource === shorts
+                  )
+                )
+                  await publishVideos()
               }
               await copyToClipboard(copyString)
               setCopyBtnString('Copied!')
             }}
           >
-            {copyBtnString}
+            {publishLoading ? 'Publishing video...' : copyBtnString}
           </Button>
           <Button
             type="button"
