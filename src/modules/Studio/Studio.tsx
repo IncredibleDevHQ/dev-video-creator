@@ -12,7 +12,7 @@ import AspectRatio from 'react-aspect-ratio'
 import { BiErrorCircle, BiMicrophone, BiVideo } from 'react-icons/bi'
 import { FiArrowRight } from 'react-icons/fi'
 import { IoChevronBack } from 'react-icons/io5'
-import { Layer, Stage } from 'react-konva'
+import { Group, Layer, Stage } from 'react-konva'
 import { useHistory, useParams } from 'react-router-dom'
 import {
   useRecoilBridgeAcrossReactRoots_UNSTABLE,
@@ -35,16 +35,16 @@ import {
   FlickParticipantsFragment,
   Fragment_Status_Enum_Enum,
   GetFragmentByIdQuery,
+  OrientationEnum,
   StudioFragmentFragment,
+  useCompleteFragmentMutation,
   useGetFragmentByIdLazyQuery,
   useGetRtcTokenMutation,
-  useMarkFragmentCompletedMutation,
-  useUpdateFragmentShortMutation,
 } from '../../generated/graphql'
 import { useCanvasRecorder } from '../../hooks'
 import { useUploadFile } from '../../hooks/use-upload-file'
 import { User, userState } from '../../stores/user.store'
-import { ViewConfig } from '../../utils/configTypes'
+import { TopLayerChildren, ViewConfig } from '../../utils/configTypes'
 import { BrandingJSON } from '../Branding/BrandingPage'
 import { TextEditorParser } from '../Flick/editor/utils/helpers'
 import {
@@ -56,7 +56,11 @@ import {
   VideoBlockProps,
 } from '../Flick/editor/utils/utils'
 import { Countdown } from './components'
-import { CONFIG, SHORTS_CONFIG } from './components/Concourse'
+import {
+  CONFIG,
+  GetTopLayerChildren,
+  SHORTS_CONFIG,
+} from './components/Concourse'
 import {
   CodeJamControls,
   PointsControls,
@@ -64,15 +68,17 @@ import {
   VideoJamControls,
 } from './components/Controls'
 import PermissionError from './components/PermissionError'
+import Preload from './components/Preload'
 import RecordingControlsBar from './components/RecordingControlsBar'
 import UnifiedFragment from './effects/fragments/UnifiedFragment'
 import { useAgora, useMediaStream } from './hooks'
+import { loadFonts } from './hooks/use-load-font'
 import { Device, MediaStreamError } from './hooks/use-media-stream'
 import { useRTDB } from './hooks/use-rtdb'
 import { StudioProviderProps, StudioState, studioStore } from './stores'
 
 const StudioHoC = () => {
-  const [view, setView] = useState<'preview' | 'studio'>('preview')
+  const [view, setView] = useState<'preview' | 'preload' | 'studio'>('preload')
 
   const { sub } = (useRecoilValue(userState) as User) || {}
   const { fragmentId } = useParams<{ fragmentId: string }>()
@@ -123,6 +129,15 @@ const StudioHoC = () => {
       />
     )
 
+  if (view === 'preload' && fragment)
+    return (
+      <Preload
+        fragment={fragment}
+        setFragment={setFragment}
+        setView={setView}
+      />
+    )
+
   if (view === 'preview' && fragment)
     return (
       <Preview
@@ -134,10 +149,12 @@ const StudioHoC = () => {
         }}
       />
     )
+
   if (view === 'studio' && fragment)
     return (
       <Studio
         data={data}
+        studioFragment={fragment}
         branding={
           data?.Fragment?.[0].flick.useBranding
             ? data?.Fragment?.[0]?.flick.branding?.branding
@@ -486,8 +503,10 @@ const Studio = ({
   devices,
   liveStream,
   branding,
+  studioFragment,
 }: {
   data?: GetFragmentByIdQuery
+  studioFragment: StudioFragmentFragment
   devices: { microphone: Device | null; camera: Device | null }
   liveStream?: {
     enabled: boolean
@@ -496,15 +515,14 @@ const Studio = ({
   branding?: BrandingJSON | null
 }) => {
   const { fragmentId } = useParams<{ fragmentId: string }>()
-  const { constraints, controlsConfig } =
+  const { constraints, controlsConfig, theme } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [studio, setStudio] = useRecoilState(studioStore)
   const { sub } = (useRecoilValue(userState) as User) || {}
   const [fragment, setFragment] = useState<StudioFragmentFragment>()
   const history = useHistory()
 
-  const [markFragmentCompleted] = useMarkFragmentCompletedMutation()
-  const [updateFragmentShort] = useUpdateFragmentShortMutation()
+  const [markFragmentCompleted] = useCompleteFragmentMutation()
 
   const [uploadFile] = useUploadFile()
 
@@ -512,21 +530,6 @@ const Studio = ({
   const layerRef = useRef<Konva.Layer>(null)
   const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
   Konva.pixelRatio = 2
-
-  // const { isFontLoaded } = useLoadFont(
-  //   branding?.font
-  //     ? [
-  //         {
-  //           family: branding?.font.heading?.family as string,
-  //           weights: ['400', '700', '500'],
-  //         },
-  //         {
-  //           family: branding?.font.body?.family as string,
-  //           weights: ['400', '700', '500'],
-  //         },
-  //       ]
-  //     : []
-  // )
 
   const [stageConfig, setStageConfig] = useState<{
     width: number
@@ -650,7 +653,7 @@ const Studio = ({
 
   useEffect(() => {
     if (data?.Fragment[0] === undefined) return
-    setFragment(data.Fragment[0])
+    setFragment(studioFragment)
   }, [data, fragmentId])
 
   useEffect(() => {
@@ -735,18 +738,17 @@ const Studio = ({
 
       const duration = await getBlobDuration(uploadVideoFile)
 
-      if (shortsMode)
-        updateFragmentShort({
-          variables: {
-            id: fragmentId,
-            producedShortsLink: uuid,
-            duration,
-          },
-        })
-      else
-        await markFragmentCompleted({
-          variables: { id: fragmentId, producedLink: uuid, duration },
-        })
+      await markFragmentCompleted({
+        variables: {
+          flickId: fragment?.flick?.id,
+          fragmentId: fragment?.id,
+          duration: Math.ceil(duration),
+          orientation: shortsMode
+            ? OrientationEnum.Portrait
+            : OrientationEnum.Landscape,
+          producedLink: uuid,
+        },
+      })
 
       dismissToast(toast)
       leave()
@@ -845,6 +847,7 @@ const Studio = ({
       updateParticipant,
       updatePayload,
       branding: fragment.flick.branding ? branding : null,
+      theme: fragment.flick.theme,
       participantId: fragment?.participants.find(
         ({ participant }) => participant.userSub === sub
       )?.participant.id,
@@ -864,6 +867,24 @@ const Studio = ({
     state,
     branding,
   ])
+
+  useMemo(() => {
+    if (fragment?.flick?.branding?.branding?.font)
+      loadFonts([
+        {
+          family: fragment?.flick?.branding?.branding?.font?.heading?.family,
+          weights: ['400'],
+          type: fragment?.flick?.branding?.branding?.font?.heading?.type,
+          url: fragment?.flick?.branding?.branding?.font?.heading?.url,
+        },
+        {
+          family: fragment?.flick?.branding?.branding?.font?.body?.family,
+          weights: ['400'],
+          type: fragment?.flick?.branding?.branding?.font?.body?.type,
+          url: fragment?.flick?.branding?.branding?.font?.body?.url,
+        },
+      ])
+  }, [fragment?.flick?.branding?.branding?.font])
 
   useEffect(() => {
     if (payload?.status === Fragment_Status_Enum_Enum.Live) {
@@ -892,6 +913,12 @@ const Studio = ({
         return ''
     }
   }
+
+  // state which stores the type of layer children which have to be placed over the studio user
+  const [topLayerChildren, setTopLayerChildren] = useState<{
+    id: string
+    state: TopLayerChildren
+  }>({ id: '', state: '' })
 
   /**
    * =======================
@@ -955,10 +982,23 @@ const Studio = ({
                   {(() => {
                     if (fragment) {
                       return (
-                        <UnifiedFragment
-                          stageRef={stageRef}
-                          // layerRef={layerRef}
-                        />
+                        <Group>
+                          <UnifiedFragment
+                            stageRef={stageRef}
+                            setTopLayerChildren={setTopLayerChildren}
+                            // layerRef={layerRef}
+                          />
+                          <GetTopLayerChildren
+                            key={topLayerChildren?.id}
+                            topLayerChildrenState={
+                              topLayerChildren?.state || ''
+                            }
+                            setTopLayerChildren={setTopLayerChildren}
+                            isShorts={shortsMode || false}
+                            status={payload?.status}
+                            theme={theme}
+                          />
+                        </Group>
                       )
                     }
                     return <></>

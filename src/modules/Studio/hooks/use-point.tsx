@@ -6,6 +6,7 @@ export interface ComputedPoint {
   y: number
   text: string
   width: number
+  level: number
 }
 
 const usePoint = () => {
@@ -51,6 +52,7 @@ const usePoint = () => {
           gutter +
           presentY.current,
         text: point.text || '',
+        level: point.level || 1,
         width,
       }
 
@@ -59,7 +61,7 @@ const usePoint = () => {
 
       noOfLines.current = getNoOfLinesOfText({
         text: point.text || '',
-        availableWidth,
+        availableWidth: availableWidth - (41 * ((point.level || 1) - 1) || 0),
         fontSize,
         fontFamily,
         fontStyle,

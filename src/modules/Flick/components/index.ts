@@ -3,7 +3,6 @@ import Download from './Download'
 import FlickNavBar from './FlickNavBar'
 import FragmentBar from './FragmentBar'
 import FragmentVideoModal from './FragmentVideoModal'
-import ProcessingFlick from './ProcessingFlick'
 import ScreenRecording from './ScreenRecording'
 import VideoEditorModal from './VideoEditorModal'
 import Timeline from './Timeline'
@@ -18,7 +17,6 @@ export {
   ScreenRecording,
   VideoEditor,
   VideoEditorModal,
-  ProcessingFlick,
   Timeline,
   EditorHeader,
   Preview,

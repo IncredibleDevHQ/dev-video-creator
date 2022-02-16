@@ -52,6 +52,7 @@ const config = {
   client: {
     publicUrl: import.meta.env.VITE_PUBLIC_URL,
     studioUrl: import.meta.env.VITE_STUDIO_URL,
+    embedPlayerUrl: import.meta.env.VITE_EMBED_PLAYER_URL,
   },
   /**
    * Integrations configs...
@@ -75,6 +76,14 @@ const config = {
 
   googleFonts: {
     apiKey: import.meta.env.VITE_GOOGLE_FONTS_API_KEY,
+  },
+
+  hocusPocus: {
+    server: import.meta.env.VITE_HOCUSPOCUS_SERVER,
+  },
+
+  giphy: {
+    apiKey: import.meta.env.VITE_GIPHY_API_KEY,
   },
 }
 

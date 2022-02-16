@@ -1,6 +1,9 @@
 import { ILocalVideoTrack, IMicrophoneAudioTrack } from 'agora-rtc-sdk-ng'
 import { atom } from 'recoil'
-import { StudioFragmentFragment } from '../../../generated/graphql'
+import {
+  StudioFragmentFragment,
+  ThemeFragment,
+} from '../../../generated/graphql'
 import { AudioType } from '../../../hooks/use-canvas-recorder'
 import { BrandingJSON } from '../../Branding/BrandingPage'
 import { RTCUser } from '../hooks/use-video'
@@ -42,6 +45,7 @@ export interface StudioProviderProps<T = any, S = any> {
   updateParticipant?: (value: T) => void
 
   branding?: BrandingJSON | null
+  theme: ThemeFragment
 
   participantId?: string
   // config to render controls
@@ -51,7 +55,12 @@ export interface StudioProviderProps<T = any, S = any> {
 
 const studioStore = atom<StudioProviderProps>({
   key: 'studio',
-  default: {} as StudioProviderProps,
+  default: {
+    theme: {
+      name: 'DarkGradient',
+      config: {},
+    },
+  } as StudioProviderProps,
   dangerouslyAllowMutability: true,
 })
 

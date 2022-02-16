@@ -17,6 +17,10 @@ export default Typography.extend({
           'heading',
           'bulletList',
           'codeBlock',
+          'orderedList',
+          'image',
+          'codeBlock',
+          'video',
         ],
         attributes: {
           id: {

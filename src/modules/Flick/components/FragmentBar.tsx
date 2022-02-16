@@ -71,7 +71,9 @@ const ThemeTooltip = ({
 }) => {
   const { baseUrl } = config.storage
   const [activeScreen, setActiveScreen] = useState<'theme' | 'themes'>('themes')
-  const [tempActiveTheme, setTempActiveTheme] = useState<ThemeFragment>()
+  const [tempActiveTheme, setTempActiveTheme] = useState<ThemeFragment | null>(
+    activeTheme
+  )
 
   const [updateTheme, { loading }] = useUpdateFlickThemeMutation()
 
@@ -125,7 +127,7 @@ const ThemeTooltip = ({
             })}
             onClick={() => {
               setActiveScreen('themes')
-              setTempActiveTheme(undefined)
+              setTempActiveTheme(null)
             }}
           >
             Themes
@@ -153,84 +155,18 @@ const ThemeTooltip = ({
       </div>
       {activeScreen === 'theme' ? (
         <HorizontalContainer>
-          <div className="flex flex-shrink-0 items-center justify-center py-4 px-2">
-            <img
-              className="border-2 border-gray-600 hover:border-brand rounded-md object-cover w-64 h-36 shadow-md"
-              src={
-                tempActiveTheme?.config?.previewImages?.intro
-                  ? baseUrl + tempActiveTheme?.config?.previewImages?.intro
-                  : ASSETS.ICONS.IncredibleLogo
-              }
-              alt="incredible"
-            />
-          </div>
-          <div className="flex flex-shrink-0 items-center justify-center py-4 px-2">
-            <img
-              className="border-2 border-gray-600 hover:border-brand rounded-md object-cover w-64 h-36 shadow-md"
-              src={
-                tempActiveTheme?.config?.previewImages?.['points-ur']
-                  ? baseUrl +
-                    tempActiveTheme?.config?.previewImages?.['points-ur']
-                  : ASSETS.ICONS.IncredibleLogo
-              }
-              alt="incredible"
-            />
-          </div>
-          <div className="flex flex-shrink-0 items-center justify-center py-4 px-2">
-            <img
-              className="border-2 border-gray-600 hover:border-brand rounded-md object-cover w-64 h-36 shadow-md"
-              src={
-                tempActiveTheme?.config?.previewImages?.points
-                  ? baseUrl + tempActiveTheme?.config?.previewImages?.points
-                  : ASSETS.ICONS.IncredibleLogo
-              }
-              alt="incredible"
-            />
-          </div>
-          <div className="flex flex-shrink-0 items-center justify-center py-4 px-2">
-            <img
-              className="border-2 border-gray-600 hover:border-brand rounded-md object-cover w-64 h-36 shadow-md"
-              src={
-                tempActiveTheme?.config?.previewImages?.code
-                  ? baseUrl + tempActiveTheme?.config?.previewImages?.code
-                  : ASSETS.ICONS.IncredibleLogo
-              }
-              alt="incredible"
-            />
-          </div>
-          <div className="flex flex-shrink-0 items-center justify-center py-4 px-2">
-            <img
-              className="border-2 border-gray-600 hover:border-brand rounded-md object-cover w-64 h-36 shadow-md"
-              src={
-                tempActiveTheme?.config?.previewImages?.lowerThird
-                  ? baseUrl + tempActiveTheme?.config?.previewImages?.lowerThird
-                  : ASSETS.ICONS.IncredibleLogo
-              }
-              alt="incredible"
-            />
-          </div>
-          <div className="flex flex-shrink-0 items-center justify-center py-4 px-2">
-            <img
-              className="border-2 border-gray-600 hover:border-brand rounded-md object-cover w-64 h-36 shadow-md"
-              src={
-                tempActiveTheme?.config?.previewImages?.image
-                  ? baseUrl + tempActiveTheme?.config?.previewImages?.image
-                  : ASSETS.ICONS.IncredibleLogo
-              }
-              alt="incredible"
-            />
-          </div>
-          <div className="flex flex-shrink-0 items-center justify-center py-4 px-2">
-            <img
-              className="border-2 border-gray-600 hover:border-brand rounded-md object-cover w-64 h-36 shadow-md"
-              src={
-                tempActiveTheme?.config?.previewImages?.outro
-                  ? baseUrl + tempActiveTheme?.config?.previewImages?.outro
-                  : ASSETS.ICONS.IncredibleLogo
-              }
-              alt="incredible"
-            />
-          </div>
+          {tempActiveTheme?.config?.previewImages?.map((image: string) => (
+            <div
+              className="flex flex-shrink-0 items-center justify-center py-4 px-2"
+              key={image}
+            >
+              <img
+                className="border-2 border-gray-600 hover:border-brand rounded-md object-cover w-64 h-36 shadow-md"
+                src={image ? baseUrl + image : ASSETS.ICONS.IncredibleLogo}
+                alt="incredible"
+              />
+            </div>
+          ))}
         </HorizontalContainer>
       ) : (
         <div className="grid grid-cols-4 gap-2">
@@ -404,7 +340,7 @@ const FragmentBar = ({
   }, [config.mode])
 
   return (
-    <div className="sticky flex items-center justify-between px-4 bg-dark-300 w-full">
+    <div className="sticky flex items-center justify-between px-4 bg-dark-300 w-full z-50">
       <div className="flex items-center justify-start text-dark-title py-2">
         <Heading
           className={cx('cursor-pointer hover:text-white', {
@@ -598,7 +534,7 @@ const FragmentBar = ({
               history.push(`/${activeFragmentId}/studio`)
             }}
           >
-            {checkHasContent(fragment, mode) ? 'Re-take' : 'Record'}
+            {checkHasContent(fragment, mode) ? 'Retake' : 'Record'}
           </Button>
         </div>
       </div>

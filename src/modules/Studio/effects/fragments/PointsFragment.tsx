@@ -2,12 +2,9 @@ import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
 import { Circle, Group, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
-import {
-  BlockProperties,
-  TopLayerChildren,
-} from '../../../../utils/configTypes'
+import { BlockProperties } from '../../../../utils/configTypes'
 import { ListBlockProps, ListItem } from '../../../Flick/editor/utils/utils'
-import Concourse, { TitleSplashProps } from '../../components/Concourse'
+import Concourse from '../../components/Concourse'
 import FragmentBackground from '../../components/FragmentBackground'
 import { FragmentState } from '../../components/RenderTokens'
 import { usePoint } from '../../hooks'
@@ -26,8 +23,6 @@ import { ObjectRenderConfig, ThemeLayoutConfig } from '../../utils/ThemeConfig'
 const PointsFragment = ({
   viewConfig,
   dataConfig,
-  topLayerChildren,
-  titleSplashData,
   fragmentState,
   setFragmentState,
   stageRef,
@@ -36,18 +31,13 @@ const PointsFragment = ({
 }: {
   viewConfig: BlockProperties
   dataConfig: ListBlockProps
-  topLayerChildren: {
-    id: string
-    state: TopLayerChildren
-  }
-  titleSplashData?: TitleSplashProps | undefined
   fragmentState: FragmentState
   setFragmentState: React.Dispatch<React.SetStateAction<FragmentState>>
   stageRef: React.RefObject<Konva.Stage>
   shortsMode: boolean
   isPreview: boolean
 }) => {
-  const { fragment, state, updatePayload, payload, addMusic, branding } =
+  const { fragment, state, updatePayload, payload, addMusic, branding, theme } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [activePointIndex, setActivePointIndex] = useState<number>(0)
@@ -81,6 +71,7 @@ const PointsFragment = ({
       availableWidth: 0,
       availableHeight: 0,
       textColor: '',
+      surfaceColor: '',
     })
 
   useEffect(() => {
@@ -93,6 +84,7 @@ const PointsFragment = ({
     setComputedPoints([])
     setObjectConfig(
       FragmentLayoutConfig({
+        theme,
         layout: viewConfig?.layout || 'classic',
         isShorts: shortsMode || false,
       })
@@ -102,7 +94,7 @@ const PointsFragment = ({
 
   useEffect(() => {
     setObjectRenderConfig(
-      ThemeLayoutConfig({ theme: 'glassy', layoutConfig: objectConfig })
+      ThemeLayoutConfig({ theme, layoutConfig: objectConfig })
     )
   }, [objectConfig])
 
@@ -176,10 +168,12 @@ const PointsFragment = ({
   const layerChildren: any[] = [
     <Group x={0} y={0} opacity={0} ref={customLayoutRef}>
       <FragmentBackground
-        theme="glassy"
+        theme={theme}
         objectConfig={objectConfig}
         backgroundRectColor={
-          branding?.colors?.primary ? branding?.colors?.primary : '#151D2C'
+          branding?.colors?.primary
+            ? branding?.colors?.primary
+            : objectRenderConfig.surfaceColor
         }
       />
       <Text
@@ -197,7 +191,7 @@ const PointsFragment = ({
         lineHeight={1.15}
         text={dataConfig.listBlock.title || fragment?.name || ''}
         fontStyle="normal 800"
-        fontFamily="Gilroy"
+        fontFamily={branding?.font?.heading?.family || 'Gilroy'}
       />
       <Group
         x={objectRenderConfig.startX + 50}
@@ -221,7 +215,7 @@ const PointsFragment = ({
                     }
                     ref={(ref) =>
                       ref?.to({
-                        x: 0,
+                        x: 0 + (41 * (point?.level - 1) || 0),
                         duration: 0.3,
                       })
                     }
@@ -239,14 +233,17 @@ const PointsFragment = ({
                     }
                     // why subtracting 110 is that this group starts at x: 50 and this text starts at x: 30,
                     // so we need to subtract 110 to get the correct x, to give 30 padding in the end too
-                    width={objectRenderConfig.availableWidth - 110}
+                    width={
+                      objectRenderConfig.availableWidth -
+                      110 -
+                      (41 * (point?.level - 1) || 0)
+                    }
                     text={point.text}
-                    // text="Run and test using one command and so on a thats all hd huusd j idhc dsi"
                     lineHeight={1.3}
-                    fontFamily="Inter"
+                    fontFamily={branding?.font?.body?.family || 'Inter'}
                     ref={(ref) =>
                       ref?.to({
-                        x: 30,
+                        x: 30 + (41 * (point?.level - 1) || 0),
                         duration: 0.3,
                       })
                     }
@@ -257,7 +254,7 @@ const PointsFragment = ({
               <>
                 <Circle
                   key="points"
-                  x={0}
+                  x={0 + (41 * (point?.level - 1) || 0)}
                   radius={11}
                   y={point.y + 8}
                   fill={
@@ -268,7 +265,7 @@ const PointsFragment = ({
                 />
                 <Text
                   key={point.text}
-                  x={30}
+                  x={30 + (41 * (point?.level - 1) || 0)}
                   y={point.y}
                   align="left"
                   fontSize={16}
@@ -279,11 +276,15 @@ const PointsFragment = ({
                   }
                   // why subtracting 110 is that this group starts at x: 50 and this text starts at x: 30,
                   // so we need to subtract 110 to get the correct x, to give 30 padding in the end too
-                  width={objectRenderConfig.availableWidth - 110}
+                  width={
+                    objectRenderConfig.availableWidth -
+                    110 -
+                    (41 * (point?.level - 1) || 0)
+                  }
                   text={point.text}
                   // text="Run and test using one command and so on a thats all hd huusd j idhc dsi"
                   lineHeight={1.3}
-                  fontFamily="Inter"
+                  fontFamily={branding?.font?.body?.family || 'Inter'}
                 />
               </>
             ))}
@@ -296,13 +297,13 @@ const PointsFragment = ({
         layout: viewConfig?.layout || 'classic',
         fragment,
         fragmentState,
-        theme: 'glassy',
+        theme,
       })
     : ShortsStudioUserConfiguration({
         layout: viewConfig?.layout || 'classic',
         fragment,
         fragmentState,
-        theme: 'glassy',
+        theme,
       })
 
   return (
@@ -310,9 +311,7 @@ const PointsFragment = ({
       layerChildren={layerChildren}
       viewConfig={viewConfig}
       stageRef={stageRef}
-      titleSplashData={titleSplashData}
       studioUserConfig={studioUserConfig}
-      topLayerChildren={topLayerChildren}
       isShorts={shortsMode}
       blockType={dataConfig.type}
     />

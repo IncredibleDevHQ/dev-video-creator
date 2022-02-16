@@ -20,8 +20,6 @@ import BLOG from './assets/blog.svg'
 import SHORTS from './assets/shorts.svg'
 import PENCIL_ALT from './assets/pencil-alt.svg'
 import EYE_OUTLINE from './assets/eye-outline.svg'
-import PROCESSING from './assets/processing.gif'
-import SUCCESS from './assets/Success.gif'
 import EDITOR from './assets/editor.png'
 import PIN from './assets/incredible_pin.png'
 
@@ -47,8 +45,6 @@ export const ASSETS = {
     SHORTS,
     EYE_OUTLINE,
     PENCIL_ALT,
-    PROCESSING,
-    SUCCESS,
     PIN,
   },
   ANIMATION: {
