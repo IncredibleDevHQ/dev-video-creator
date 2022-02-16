@@ -12,6 +12,9 @@ import {
   useGetThemesQuery,
 } from '../../generated/graphql'
 import { useCanvasRecorder } from '../../hooks'
+import { logPage } from '../../utils/analytics'
+import { PageCategory, PageTitle } from '../../utils/analytics-types'
+
 import { BlockProperties, ViewConfig } from '../../utils/configTypes'
 import { loadFonts } from '../Studio/hooks/use-load-font'
 import studioStore from '../Studio/stores/studio.store'
@@ -202,6 +205,14 @@ const Flick = () => {
   }, [])
 
   useEffect(() => {
+    // Segment Tracking
+    logPage(
+      PageCategory.Studio,
+      view === View.Notebook ? PageTitle.Notebook : PageTitle.Preview
+    )
+  }, [view])
+
+  useEffect(() => {
     if (!activeFragmentId || !flick) return
     const fragment = flick?.fragments.find(
       (frag) => frag.id === activeFragmentId
@@ -278,8 +289,8 @@ const Flick = () => {
         />
       )}
       {activeFragment && view === View.Notebook && (
-        <div className="grid grid-cols-12 flex-1 h-full pb-12 sticky top-0 overflow-y-auto">
-          <div className="h-full pt-12 pb-96 col-start-4 col-span-6 ">
+        <div className="sticky top-0 grid flex-1 h-full grid-cols-12 pb-12 overflow-y-auto">
+          <div className="h-full col-span-6 col-start-4 pt-12 pb-96 ">
             <EditorHeader
               viewConfig={viewConfig}
               setViewConfig={setViewConfig}

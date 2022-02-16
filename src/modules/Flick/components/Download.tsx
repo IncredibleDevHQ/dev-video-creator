@@ -15,6 +15,12 @@ import {
   useDownloadZipMutation,
   useZipStatusQuery,
 } from '../../../generated/graphql'
+import { logEvent, logPage } from '../../../utils/analytics'
+import {
+  PageCategory,
+  PageEvent,
+  PageTitle,
+} from '../../../utils/analytics-types'
 import { newFlickStore } from '../store/flickNew.store'
 
 interface Resolution {
@@ -126,6 +132,9 @@ const Download = ({
   }, [zipSubscription?.Flick[0].downloadTasks?.status, downloadZipData])
 
   useEffect(() => {
+    // Segment Tracking
+    logPage(PageCategory.Studio, PageTitle.Download)
+
     return () => {
       setSelectedResolution(resolutions[0])
       setSelectedFormats([])
@@ -137,6 +146,8 @@ const Download = ({
     if (selectedFormats.length < 1) return
     try {
       setIsDownloading(true)
+      // Segment Tracking
+      logEvent(PageEvent.Download)
 
       if (selectedFormats.length === 1) {
         axios({
@@ -273,9 +284,9 @@ const Download = ({
         <h4 className="mt-2">Resolution</h4>
         <Listbox value={selectedResolution} onChange={setSelectedResolution}>
           <div className="relative my-2">
-            <Listbox.Button className="relative w-full flex justify-between items-center rounded-md border-2 border-dark-200 p-2">
+            <Listbox.Button className="relative flex items-center justify-between w-full p-2 border-2 rounded-md border-dark-200">
               <div className="text-left">
-                <h3 className="block truncate text-gray-900 font-bold text-lg">
+                <h3 className="block text-lg font-bold text-gray-900 truncate">
                   {selectedResolution.name}
                   {selectedResolution.isRecommended && (
                     <span className="ml-2 bg-brand-10 rounded-md text-brand p-0.5 text-sm">
@@ -283,7 +294,7 @@ const Download = ({
                     </span>
                   )}
                 </h3>
-                <p className="text-gray-800 text-sm">
+                <p className="text-sm text-gray-800">
                   {selectedResolution.description}
                 </p>
               </div>
@@ -311,7 +322,7 @@ const Download = ({
                             resolution.id !== '1080',
                         })}
                       >
-                        <h3 className="block truncate text-gray-900 font-bold text-lg">
+                        <h3 className="block text-lg font-bold text-gray-900 truncate">
                           {resolution.name}
                           {resolution.isRecommended ? (
                             <span className="ml-2 bg-brand-10 rounded-md text-brand p-0.5 text-sm">
@@ -323,7 +334,7 @@ const Download = ({
                             </span>
                           )}
                         </h3>
-                        <p className="text-gray-800 text-sm">
+                        <p className="text-sm text-gray-800">
                           {resolution.description}
                         </p>
                       </div>

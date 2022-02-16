@@ -21,6 +21,8 @@ import { ReactComponent as UploadIcon } from '../../../assets/Upload.svg'
 import { Avatar, Heading, Tooltip } from '../../../components'
 import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
 import { useTimekeeper2 } from '../../../hooks'
+import { logEvent } from '../../../utils/analytics'
+import { PageEvent } from '../../../utils/analytics-types'
 import { canvasStore, StudioProviderProps, studioStore } from '../stores'
 
 export const ControlButton = ({
@@ -169,6 +171,7 @@ const RecordingControlsBar = () => {
               updatePayload?.({
                 status: Fragment_Status_Enum_Enum.Completed,
               })
+              logEvent(PageEvent.SaveRecording)
             }}
           >
             <UploadIcon className="h-6 w-6 " />
@@ -184,6 +187,7 @@ const RecordingControlsBar = () => {
               updatePayload?.({
                 status: Fragment_Status_Enum_Enum.NotStarted,
               })
+              logEvent(PageEvent.Retake)
             }}
           >
             <ReRecordIcon className="h-6 w-6 " />
@@ -201,6 +205,7 @@ const RecordingControlsBar = () => {
               ...payload,
               status: Fragment_Status_Enum_Enum.Ended,
             })
+            logEvent(PageEvent.StopRecording)
           }}
           className="flex gap-x-2 bg-gray-700 items-center justify-center p-2 rounded-md"
         >
@@ -216,6 +221,8 @@ const RecordingControlsBar = () => {
             updatePayload?.({
               status: Fragment_Status_Enum_Enum.CountDown,
             })
+            // Segment tracking
+            logEvent(PageEvent.StartRecording)
           }}
           className="flex bg-gray-700 items-center justify-center p-2 rounded-md"
         >

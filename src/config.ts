@@ -35,6 +35,12 @@ const config = {
     enabled: !!(import.meta.env.VITE_SENTRY_ENABLED === 'true'),
   },
   /**
+   * Segmet configs...
+   */
+  segment: {
+    apiKey: import.meta.env.VITE_SEGMENT_API_KEY,
+  },
+  /**
    * Cohere configs...
    */
   cohere: {

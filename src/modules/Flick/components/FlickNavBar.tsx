@@ -53,7 +53,7 @@ const FlickNavBar = () => {
   }, [data])
 
   return (
-    <div className="sticky top-0 flex items-center justify-between py-2 pl-3 pr-4 bg-dark-500 z-50">
+    <div className="sticky top-0 z-50 flex items-center justify-between py-2 pl-3 pr-4 bg-dark-500">
       <div className="flex items-center">
         <a href={`${config.client.publicUrl}/dashboard`}>
           <div className="flex">
@@ -63,7 +63,7 @@ const FlickNavBar = () => {
         </a>
       </div>
       <Heading
-        className="p-2 ml-12 font-bold text-base text-white"
+        className="p-2 ml-12 text-base font-bold text-white"
         contentEditable={editFlickName}
         onMouseDown={() => setEditFlickName(true)}
         onKeyDown={(e) => {

@@ -44,6 +44,8 @@ import {
 import { useCanvasRecorder } from '../../hooks'
 import { useUploadFile } from '../../hooks/use-upload-file'
 import { User, userState } from '../../stores/user.store'
+import { logEvent } from '../../utils/analytics'
+import { PageEvent } from '../../utils/analytics-types'
 import { TopLayerChildren, ViewConfig } from '../../utils/configTypes'
 import { BrandingJSON } from '../Branding/BrandingPage'
 import { TextEditorParser } from '../Flick/editor/utils/helpers'
@@ -423,7 +425,10 @@ const Preview = ({
               const camera = devices.videoDevices.find(
                 (device) => device.id === e.target.value
               )
-              if (camera) setDevice('camera', camera)
+              if (camera) {
+                setDevice('camera', camera)
+                logEvent(PageEvent.ChangeCamera)
+              }
             }}
           >
             {devices.videoDevices.map((camera) => (
@@ -443,7 +448,10 @@ const Preview = ({
               const microphone = devices.audioDevices.find(
                 (device) => device.id === e.target.value
               )
-              if (microphone) setDevice('microphone', microphone)
+              if (microphone) {
+                logEvent(PageEvent.ChangeMicrophone)
+                setDevice('microphone', microphone)
+              }
             }}
           >
             {devices.audioDevices.map((microphone) => (
@@ -709,7 +717,6 @@ const Studio = ({
 
   const upload = async () => {
     setState('upload')
-
     const toastProps = {
       title: 'Pushing pixels...',
       type: 'info',

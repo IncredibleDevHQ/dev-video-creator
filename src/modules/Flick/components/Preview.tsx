@@ -52,7 +52,7 @@ const Preview = ({
   if (!block) return null
 
   return (
-    <div className="flex-1 flex justify-between">
+    <div className="flex justify-between flex-1">
       <div
         className={cx(
           'flex justify-center items-start bg-gray-100 flex-1 pl-0',
@@ -135,7 +135,7 @@ const Preview = ({
       >
         {block.type !== 'introBlock' && block.type !== 'outroBlock' && (
           <>
-            <div className="bg-white w-64">
+            <div className="w-64 bg-white">
               <LayoutSelector
                 mode={config.mode}
                 layout={config.blocks[block.id]?.layout || allLayoutTypes[0]}
@@ -145,7 +145,7 @@ const Preview = ({
                 type={block.type}
               />
             </div>
-            <div className="flex flex-col bg-gray-50 px-2 pt-4 gap-y-2 relative">
+            <div className="relative flex flex-col px-2 pt-4 bg-gray-50 gap-y-2">
               {tabs.map((tab) => (
                 <button
                   type="button"
@@ -160,7 +160,7 @@ const Preview = ({
                   key={tab.id}
                 >
                   <tab.Icon size={21} />
-                  <Text className="font-body font-normal text-xs">
+                  <Text className="text-xs font-normal font-body">
                     {tab.name}
                   </Text>
                 </button>

@@ -1,10 +1,12 @@
 import { css, cx } from '@emotion/css'
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Modal } from 'react-responsive-modal'
 import { useRecoilValue } from 'recoil'
 import { Video } from '../../../components'
 import config from '../../../config'
 import { Content_Type_Enum_Enum } from '../../../generated/graphql'
+import { logPage } from '../../../utils/analytics'
+import { PageCategory, PageTitle } from '../../../utils/analytics-types'
 import { newFlickStore } from '../store/flickNew.store'
 
 const FragmentVideoModal = ({
@@ -19,6 +21,11 @@ const FragmentVideoModal = ({
   const { flick, activeFragmentId } = useRecoilValue(newFlickStore)
 
   const fragment = flick?.fragments.find((f) => f.id === activeFragmentId)
+
+  useEffect(() => {
+    // Segment Tracking
+    logPage(PageCategory.Studio, PageTitle.Playback)
+  }, [])
 
   return (
     <Modal
