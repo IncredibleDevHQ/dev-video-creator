@@ -30,7 +30,7 @@ const ThumbnailPreview = ({
   backgroundImageSource = ASSETS.ICONS.FLICK,
   posterImageSource = ASSETS.ICONS.FLICK,
   size = { width: 150, height: 84 },
-  orientation = OrientationEnum.Landscape,
+  orientation,
 }: {
   scale?: number
   className?: string
