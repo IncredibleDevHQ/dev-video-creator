@@ -57,14 +57,17 @@ export const enum CodeTheme {
   DarkPlus = 'dark_plus',
 }
 
+export interface CodeHighlightConfig {
+  step?: string
+  from?: number
+  to?: number
+  valid?: boolean
+  fileIndex?: number
+}
+
 export interface CodeBlockViewProps {
   animation: CodeAnimation
-  highlightSteps?: {
-    step?: string
-    from?: number
-    to?: number
-    valid?: boolean
-  }[]
+  highlightSteps?: CodeHighlightConfig[]
   theme: CodeTheme
 }
 
