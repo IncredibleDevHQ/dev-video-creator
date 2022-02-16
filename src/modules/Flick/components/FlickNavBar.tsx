@@ -56,7 +56,7 @@ const FlickNavBar = () => {
           }}
         />
       )}
-      {isDownloadOpen && (
+      {isDownloadOpen && flick?.status && (
         <Download
           open={isDownloadOpen}
           handleClose={(refresh?: boolean) => setIsDownloadOpen(false)}
