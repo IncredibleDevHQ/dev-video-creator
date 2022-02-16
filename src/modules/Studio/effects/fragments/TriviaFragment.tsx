@@ -54,7 +54,7 @@ const TriviaFragment = ({
   // const [bgImage] = useImage(viewConfig?.background?.image || '', 'anonymous')
 
   const [isGif, setIsGif] = useState(false)
-  const [gifUrl, setGifUrl] = useState('')
+  // const [gifUrl, setGifUrl] = useState('')
 
   const [imgDim, setImgDim] = useState<{
     width: number
@@ -97,6 +97,8 @@ const TriviaFragment = ({
       image: dataConfig?.imageBlock.url || '',
       text: dataConfig?.imageBlock.title || '',
     })
+    if (dataConfig?.imageBlock.type === 'gif') setIsGif(true)
+    else setIsGif(false)
   }, [dataConfig, shortsMode, viewConfig])
 
   useEffect(() => {
@@ -106,12 +108,6 @@ const TriviaFragment = ({
   }, [objectConfig])
 
   useEffect(() => {
-    if (qnaImage?.src.split('.').pop() === 'gif') {
-      setIsGif(true)
-      setGifUrl(qnaImage.src)
-    } else {
-      setIsGif(false)
-    }
     if (triviaData?.text) {
       if (shortsMode) {
         setImgDim(
@@ -226,7 +222,7 @@ const TriviaFragment = ({
                 textTransform="capitalize"
               />
               <Gif
-                src={gifUrl}
+                src={triviaData?.image}
                 x={imgDim.x}
                 y={imgDim.y}
                 width={imgDim.width}
