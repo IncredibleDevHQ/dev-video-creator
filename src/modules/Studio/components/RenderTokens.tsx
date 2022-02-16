@@ -335,46 +335,30 @@ export const getRenderedTokens = (
 
 export const getTokens = (
   tokens: ComputedToken[],
-  startLineNumber: number | undefined,
-  availableHeight: number,
-  isShorts?: boolean
+  startLineNumber: number | undefined
 ) => {
   let computedLineNumber = 0
   let lineNumber = startLineNumber || 0
-  let noOfLines = 0
 
-  if (isShorts) noOfLines = 29
-  else noOfLines = 20
-
-  return tokens
-    .filter(
-      (token) =>
-        token.lineNumber >= (startLineNumber || 0) &&
-        token.lineNumber < (startLineNumber || 0) + noOfLines
+  return tokens.map((token, index) => {
+    if (lineNumber !== token.lineNumber) {
+      computedLineNumber += token.lineNumber - lineNumber
+      lineNumber = token.lineNumber
+    } else if (token.x === 0 && index !== 0) {
+      computedLineNumber += 1
+    }
+    return (
+      <Text
+        // eslint-disable-next-line
+        key={index}
+        fontSize={codeConfig.fontSize}
+        fill={token.color}
+        text={token.content}
+        x={token.x}
+        y={(codeConfig.fontSize + 5) * computedLineNumber}
+        align="left"
+      />
     )
-    .map((token, index) => {
-      if (lineNumber !== token.lineNumber) {
-        computedLineNumber += token.lineNumber - lineNumber
-        lineNumber = token.lineNumber
-      } else if (token.x === 0 && index !== 0) {
-        computedLineNumber += 1
-      }
-      if (
-        (codeConfig.fontSize + 5) * computedLineNumber <
-        availableHeight - codeConfig.fontSize
-      )
-        return (
-          <Text
-            // eslint-disable-next-line
-            key={index}
-            fontSize={codeConfig.fontSize}
-            fill={token.color}
-            text={token.content}
-            x={token.x}
-            y={(codeConfig.fontSize + 5) * computedLineNumber}
-            align="left"
-          />
-        )
-      return <></>
-    })
+    return <></>
+  })
 }

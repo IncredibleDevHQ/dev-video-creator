@@ -44,11 +44,14 @@ import {
 import { useCanvasRecorder } from '../../hooks'
 import { useUploadFile } from '../../hooks/use-upload-file'
 import { User, userState } from '../../stores/user.store'
-import { TopLayerChildren, ViewConfig } from '../../utils/configTypes'
+import {
+  CodeBlockView,
+  TopLayerChildren,
+  ViewConfig,
+} from '../../utils/configTypes'
 import { BrandingJSON } from '../Branding/BrandingPage'
 import { TextEditorParser } from '../Flick/editor/utils/helpers'
 import {
-  CodeBlock,
   CodeBlockProps,
   ImageBlockProps,
   ListBlock,
@@ -1030,15 +1033,18 @@ const Studio = ({
                     case 'codeBlock': {
                       const codeBlockProps = fragment?.editorState?.blocks[
                         payload?.activeObjectIndex || 0
-                      ]?.codeBlock as CodeBlock
+                      ] as CodeBlockProps
+                      const codeBlockViewProps = (
+                        fragment?.configuration as ViewConfig
+                      ).blocks[codeBlockProps.id].view as CodeBlockView
                       return (
                         <CodeJamControls
                           position={controlsConfig?.position}
                           computedTokens={controlsConfig?.computedTokens}
                           fragmentState={payload?.fragmentState}
-                          isCodexFormat={codeBlockProps.isAutomated || false}
+                          codeAnimation={codeBlockViewProps.code.animation}
                           noOfBlocks={
-                            (codeBlockProps.explanations?.length || 0) + 1
+                            codeBlockViewProps.code.highlightSteps?.length
                           }
                         />
                       )

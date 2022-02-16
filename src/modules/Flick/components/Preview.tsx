@@ -251,8 +251,9 @@ const AnimateTab = ({
             valid:
               value.match(/^\d+-\d+$/) !== null ||
               value.match(/^\d+$/) !== null,
-            from,
-            to,
+            from: from - 1,
+            to: to - 1,
+            fileIndex: 0,
           },
           ...(view.code.highlightSteps?.slice(index + 1) || []),
         ],
