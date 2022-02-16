@@ -1,4 +1,3 @@
-import { CommentExplanations } from '../modules/Flick/editor/utils/utils'
 import { FlickParticipantsFragment } from '../generated/graphql'
 
 export const allLayoutTypes = [
@@ -49,11 +48,44 @@ export interface GradientConfig {
   endIndex: { x: number; y: number }
 }
 
+export enum CodeAnimation {
+  TypeLines = 'Type lines',
+  HighlightLines = 'Highlight lines',
+}
+
+export const enum CodeTheme {
+  DarkPlus = 'dark_plus',
+}
+
+export interface CodeBlockViewProps {
+  animation: CodeAnimation
+  highlightSteps?: {
+    step?: string
+    from?: number
+    to?: number
+    valid?: boolean
+  }[]
+  theme: CodeTheme
+}
+
+export interface CodeBlockView {
+  type: 'codeBlock'
+  code: CodeBlockViewProps
+}
+
+export interface ImageBlockView {
+  type: 'imageBlock'
+  image: never
+}
+
+export type BlockView = CodeBlockView | ImageBlockView
+
 export type BlockProperties = {
   gradient?: GradientConfig
   layout?: Layout
   bgColor?: string
   bgOpacity?: number
+  view?: BlockView
 }
 
 export interface TitleSplashConfig {
@@ -75,17 +107,4 @@ export enum ConfigType {
   VIDEOJAM = 'videojam',
   TRIVIA = 'trivia',
   POINTS = 'points',
-}
-
-// Delete once all the dependent files are delete
-export interface CodejamConfig {
-  id: string
-  type: ConfigType
-  title: string
-  description: string
-  code: string
-  language: string
-  note?: string
-  explanations?: CommentExplanations[]
-  isAutomated?: boolean
 }

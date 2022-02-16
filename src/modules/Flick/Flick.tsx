@@ -12,7 +12,12 @@ import {
   useGetThemesQuery,
 } from '../../generated/graphql'
 import { useCanvasRecorder } from '../../hooks'
-import { BlockProperties, ViewConfig } from '../../utils/configTypes'
+import {
+  BlockProperties,
+  CodeAnimation,
+  CodeTheme,
+  ViewConfig,
+} from '../../utils/configTypes'
 import { loadFonts } from '../Studio/hooks/use-load-font'
 import studioStore from '../Studio/stores/studio.store'
 import {
@@ -147,6 +152,20 @@ const Flick = () => {
       filteredBlocks[currentBlock.id] = {
         layout: 'classic',
       }
+
+      if (currentBlock.type === 'codeBlock') {
+        filteredBlocks[currentBlock.id] = {
+          ...filteredBlocks[currentBlock.id],
+          view: {
+            type: 'codeBlock',
+            code: {
+              animation: CodeAnimation.TypeLines,
+              theme: CodeTheme.DarkPlus,
+            },
+          },
+        }
+      }
+
       setViewConfig({ ...viewConfig, blocks: filteredBlocks })
     }
   }, [currentBlock])
