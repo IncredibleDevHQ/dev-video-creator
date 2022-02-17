@@ -1,4 +1,3 @@
-import { CommentExplanations } from '../modules/Flick/editor/utils/utils'
 import { FlickParticipantsFragment } from '../generated/graphql'
 
 export const allLayoutTypes = [
@@ -49,11 +48,60 @@ export interface GradientConfig {
   endIndex: { x: number; y: number }
 }
 
+export enum CodeAnimation {
+  TypeLines = 'Type lines',
+  HighlightLines = 'Highlight lines',
+}
+
+export const enum CodeTheme {
+  Light = 'light_vs',
+  LightPlus = 'light_plus',
+  QuietLight = 'quietlight',
+  SolarizedLight = 'solarized_light',
+  Abyss = 'abyss',
+  Dark = 'dark_vs',
+  DarkPlus = 'dark_plus',
+  KimbieDark = 'kimbie_dark',
+  Monakai = 'monakai',
+  MonakaiDimmed = 'monakai_dimmed',
+  Red = 'red',
+  SolarizedDark = 'solarized_dark',
+  TomorrowNightBlue = 'tomorrow_night_blue',
+  HighContrast = 'hc_black',
+}
+
+export interface CodeHighlightConfig {
+  step?: string
+  from?: number
+  to?: number
+  valid?: boolean
+  fileIndex?: number
+}
+
+export interface CodeBlockViewProps {
+  animation: CodeAnimation
+  highlightSteps?: CodeHighlightConfig[]
+  theme: CodeTheme
+}
+
+export interface CodeBlockView {
+  type: 'codeBlock'
+  code: CodeBlockViewProps
+}
+
+export interface ImageBlockView {
+  type: 'imageBlock'
+  image: never
+}
+
+export type BlockView = CodeBlockView | ImageBlockView
+
 export type BlockProperties = {
   gradient?: GradientConfig
   layout?: Layout
   bgColor?: string
   bgOpacity?: number
+  view?: BlockView
 }
 
 export interface TitleSplashConfig {
@@ -75,17 +123,4 @@ export enum ConfigType {
   VIDEOJAM = 'videojam',
   TRIVIA = 'trivia',
   POINTS = 'points',
-}
-
-// Delete once all the dependent files are delete
-export interface CodejamConfig {
-  id: string
-  type: ConfigType
-  title: string
-  description: string
-  code: string
-  language: string
-  note?: string
-  explanations?: CommentExplanations[]
-  isAutomated?: boolean
 }

@@ -224,7 +224,7 @@ const getLogo = {
 }
 
 const getOptions = (src: string, type: string) => ({
-  autoplay: true,
+  autoplay: false,
   playbackRates: [0.5, 1, 1.25, 1.5],
   aspectratio: '16:9',
   controls: true,
@@ -266,15 +266,19 @@ const getOptions = (src: string, type: string) => ({
 
 const Video = ({ className, src, ...rest }: VideoProps) => {
   const playerRef = useRef<any>()
-  const [videoType, setVideoType] = useState<string>('')
+  const [videoType, setVideoType] = useState<string>('video/mp4')
   const videoRef = useRef<HTMLVideoElement>(null)
 
   useEffect(() => {
     if (!videoType) return
     const data = src.split('.').slice(-1).join()
-    if (data !== 'm3u8') {
+    if (rest.type) {
+      setVideoType(rest.type)
+    } else if (data !== 'm3u8') {
       setVideoType(`video/${data}`)
-    } else setVideoType('application/x-mpegURL')
+    } else {
+      setVideoType('application/x-mpegURL')
+    }
   }, [src])
 
   const handlePlayerReady = (player: VideoJsPlayer) => {
@@ -326,7 +330,6 @@ const Video = ({ className, src, ...rest }: VideoProps) => {
         {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
         <video
           id="flick_video"
-          autoPlay
           ref={videoRef}
           className="video-js"
           controls
