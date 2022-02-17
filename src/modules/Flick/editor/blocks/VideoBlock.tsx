@@ -1,3 +1,5 @@
+/* eslint-disable react/no-this-in-sfc */
+/* eslint-disable react/jsx-no-bind */
 /* eslint-disable jsx-a11y/media-has-caption */
 import { css, cx } from '@emotion/css'
 import { mergeAttributes, Node } from '@tiptap/core'
@@ -13,7 +15,7 @@ import {
   FiTrash,
   FiUploadCloud,
 } from 'react-icons/fi'
-import { Group, Layer, Stage } from 'react-konva'
+import { Group, Layer, Rect, Stage, Circle } from 'react-konva'
 import useMeasure from 'react-use-measure'
 import { Text } from '../../../../components'
 import Tooltip from '../../../../components/Tooltip'
@@ -63,11 +65,14 @@ const VideoTooltip = ({
 const VideoBlock = (props: any) => {
   const stageRef = React.useRef<Konva.Stage | null>(null)
   const videoRef = React.useRef<HTMLVideoElement | null>(null)
+  const seekbarRef = React.useRef<Konva.Rect | null>(null)
+  const seekPointerRef = React.useRef<Konva.Circle | null>(null)
 
   const [isOpen, setOpen] = useState(false)
   const [playing, setPlaying] = useState(false)
   const [editVideo, setEditVideo] = useState(false)
   const [retakeVideo, setRetakeVideo] = useState(false)
+  const [currentSeekPosition, setCurrentSeekPosition] = useState(0)
   const [videoConfig, setVideoConfig] = useState<VideoConfig>()
 
   const [ref, bounds] = useMeasure()
@@ -109,10 +114,14 @@ const VideoBlock = (props: any) => {
 
     videoRef.current.addEventListener('timeupdate', () => {
       if (!transformations?.clip?.end || !videoRef.current) return
+      setCurrentSeekPosition(
+        videoRef.current.currentTime *
+          (videoRef.current.width / videoRef.current.duration)
+      )
       if (videoRef.current.currentTime >= transformations.clip.end) {
-        videoRef.current.pause()
         videoRef.current.currentTime = transformations?.clip?.start || 0
-        videoRef.current.play()
+        videoRef.current.pause()
+        setPlaying(false)
       }
     })
 
@@ -136,12 +145,27 @@ const VideoBlock = (props: any) => {
   }, [props])
 
   useEffect(() => {
+    if (!stageRef.current) return
+    stageRef.current.container().style.cursor = 'pointer'
+  }, [stageRef])
+
+  useEffect(() => {
     if (playing) {
       videoRef.current?.play()
     } else {
       videoRef.current?.pause()
     }
   }, [playing])
+
+  useEffect(() => {
+    return () => {
+      videoRef.current?.removeEventListener('timeupdate', () => {})
+      videoRef.current = null
+      stageRef.current = null
+      seekbarRef.current = null
+      seekPointerRef.current = null
+    }
+  }, [])
 
   if (!props.node.attrs.src)
     return (
@@ -251,17 +275,96 @@ const VideoBlock = (props: any) => {
                     videoConfig={videoConfig}
                   />
                 )}
+                {!playing && (
+                  <Rect
+                    x={0}
+                    y={0}
+                    fill="#000000"
+                    opacity={0.2}
+                    width={
+                      videoRef.current?.width ? videoRef.current.width : width
+                    }
+                    height={
+                      videoRef.current?.height
+                        ? videoRef.current.height
+                        : height
+                    }
+                  />
+                )}
+                {videoRef.current && (
+                  <Group>
+                    <Rect
+                      fill="#D1D5DB"
+                      cornerRadius={8}
+                      x={10}
+                      y={
+                        videoRef.current?.height
+                          ? videoRef.current.height - 20
+                          : height
+                      }
+                      width={
+                        videoRef.current?.width
+                          ? videoRef.current.width - 20
+                          : width
+                      }
+                      height={10}
+                      opacity={1}
+                    />
+                    <Rect
+                      x={10}
+                      ref={seekbarRef}
+                      width={10 + currentSeekPosition}
+                      y={
+                        videoRef.current?.height
+                          ? videoRef.current.height - 20
+                          : height
+                      }
+                      height={10}
+                      fill="#16A34A"
+                      opacity={1}
+                      cornerRadius={8}
+                    />
+                    <Circle
+                      ref={seekPointerRef}
+                      x={10 + currentSeekPosition}
+                      y={
+                        videoRef.current?.height
+                          ? videoRef.current.height - 15
+                          : height
+                      }
+                      width={20}
+                      height={20}
+                      draggable
+                      dragBoundFunc={function (pos) {
+                        return {
+                          x: pos.x,
+                          y: this.absolutePosition().y,
+                        }
+                      }}
+                      onDragMove={(e) => {
+                        e.cancelBubble = true
+                        e.evt.stopPropagation()
+                        if (!seekPointerRef.current) return
+                        seekPointerRef.current?.y(
+                          videoRef.current?.height
+                            ? videoRef.current.height - 15
+                            : height
+                        )
+                        seekbarRef.current?.width(
+                          seekPointerRef.current.x() - 10
+                        )
+                        if (!videoRef.current) return
+                        videoRef.current.currentTime =
+                          seekPointerRef.current.x() *
+                          (videoRef.current.duration / videoRef.current.width)
+                      }}
+                      fill="#16A34A"
+                    />
+                  </Group>
+                )}
               </Group>
             </Layer>
           </Stage>
-          <div
-            className={cx(
-              'absolute top-0 left-0 w-full h-full transition-all ease-in-out',
-              {
-                'bg-gray-900 opacity-50': !playing,
-              }
-            )}
-          />
           <div
             className={cx(
               'absolute top-1/2 left-1/2 text-gray-50 flex items-center justify-center p-4',
@@ -340,3 +443,5 @@ export default Node.create({
     return ReactNodeViewRenderer(VideoBlock)
   },
 })
+
+// FIXME: Not working with multiple videos. Mostly have to decouple stage from video element.
