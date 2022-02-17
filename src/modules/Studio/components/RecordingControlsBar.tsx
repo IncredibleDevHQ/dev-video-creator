@@ -1,26 +1,32 @@
 /* eslint-disable no-restricted-syntax */
 /* eslint-disable guard-for-in */
 import { cx } from '@emotion/css'
+import Konva from 'konva'
 import React, { HTMLAttributes, useEffect, useState } from 'react'
 import { IconType } from 'react-icons'
-import { FiZoomIn, FiZoomOut } from 'react-icons/fi'
-import {
-  IoHandRightOutline,
-  IoMicOffOutline,
-  IoMicOutline,
-  IoVideocamOffOutline,
-  IoVideocamOutline,
-} from 'react-icons/io5'
+import { IoArrowForwardOutline, IoPause, IoPlay } from 'react-icons/io5'
+import { VscDebugRestart } from 'react-icons/vsc'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import { Timer } from '.'
+import { ReactComponent as CustomLayout } from '../../../assets/CustomLayout.svg'
+import { ReactComponent as OnlyUserMedia } from '../../../assets/OnlyUserMedia.svg'
 import { ReactComponent as ReRecordIcon } from '../../../assets/ReRecord.svg'
-import startRecordIcon from '../../../assets/StartRecord.svg'
-import stopRecordIcon from '../../../assets/StopRecord.svg'
-import swapIcon from '../../../assets/Swap.svg'
+import { ReactComponent as StartRecordIcon } from '../../../assets/StartRecord.svg'
+import { ReactComponent as StopRecordIcon } from '../../../assets/StopRecord.svg'
 import { ReactComponent as UploadIcon } from '../../../assets/Upload.svg'
-import { Avatar, Heading, Tooltip } from '../../../components'
-import { Fragment_Status_Enum_Enum } from '../../../generated/graphql'
+import { Avatar, Heading } from '../../../components'
+import {
+  Fragment_Status_Enum_Enum,
+  StudioFragmentFragment,
+} from '../../../generated/graphql'
 import { useTimekeeper2 } from '../../../hooks'
+import {
+  CodeAnimation,
+  CodeBlockView,
+  ViewConfig,
+} from '../../../utils/configTypes'
+import { BrandingJSON } from '../../Branding/BrandingPage'
+import { CodeBlockProps, ListBlock } from '../../Flick/editor/utils/utils'
 import { canvasStore, StudioProviderProps, studioStore } from '../stores'
 
 export const ControlButton = ({
@@ -91,7 +97,15 @@ const RaiseHandsMenu = ({ participants }: { participants: any[] }) => {
   )
 }
 
-const RecordingControlsBar = () => {
+const RecordingControlsBar = ({
+  stageRef,
+  stageHeight,
+  shortsMode,
+}: {
+  stageRef: React.RefObject<Konva.Stage>
+  stageHeight: number
+  shortsMode: boolean
+}) => {
   const {
     constraints,
     upload,
@@ -104,6 +118,8 @@ const RecordingControlsBar = () => {
     payload,
     updatePayload,
     participantId,
+    branding,
+    controlsConfig,
   } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [canvas, setCanvas] = useRecoilState(canvasStore)
   const [studio, setStudio] = useRecoilState(studioStore)
@@ -149,49 +165,23 @@ const RecordingControlsBar = () => {
     }
   }, [payload])
 
-  useEffect(() => {
-    if (timer === 0) return
-    if (timer === 180) {
-      handleReset()
-      updatePayload?.({ ...payload, status: Fragment_Status_Enum_Enum.Ended })
-    }
-  }, [timer])
+  // useEffect(() => {
+  //   if (timer === 0) return
+  //   if (timer === 180) {
+  //     handleReset()
+  //     updatePayload?.({ ...payload, status: Fragment_Status_Enum_Enum.Ended })
+  //   }
+  // }, [timer])
 
   return (
-    <div className="flex gap-x-4 items-center justify-center">
-      {state === 'preview' && (
-        <div className="flex items-center rounded-md gap-x-4">
-          <button
-            className="bg-green-600 border-green-600 text-white border rounded-sm py-1.5 px-2.5 flex items-center gap-x-2 font-bold hover:shadow-lg text-sm"
-            type="button"
-            onClick={() => {
-              upload()
-              updatePayload?.({
-                status: Fragment_Status_Enum_Enum.Completed,
-              })
-            }}
-          >
-            <UploadIcon className="h-6 w-6 " />
-            Save recording
-          </button>
-
-          <button
-            className="border-red-600 text-red-600 border rounded-sm py-1.5 px-2.5 flex items-center gap-x-2 font-bold hover:shadow-md text-sm"
-            type="button"
-            onClick={() => {
-              reset()
-              handleReset()
-              updatePayload?.({
-                status: Fragment_Status_Enum_Enum.NotStarted,
-              })
-            }}
-          >
-            <ReRecordIcon className="h-6 w-6 " />
-            Retake
-          </button>
-        </div>
-      )}
-
+    <div
+      style={{
+        top: `${
+          (stageRef?.current?.y() || 0) + stageHeight + (shortsMode ? 0 : 25)
+        }px`,
+      }}
+      className="flex gap-x-3 items-center justify-center absolute bottom-6"
+    >
       {(state === 'recording' ||
         payload?.status === Fragment_Status_Enum_Enum.Live) && (
         <button
@@ -202,14 +192,15 @@ const RecordingControlsBar = () => {
               status: Fragment_Status_Enum_Enum.Ended,
             })
           }}
-          className="flex gap-x-2 bg-gray-700 items-center justify-center p-2 rounded-md"
+          className="flex gap-x-2 items-center justify-between bg-grey-500 bg-opacity-50 border border-gray-600 backdrop-filter backdrop-blur-2xl p-1.5 rounded-sm w-24"
         >
-          <img src={stopRecordIcon} alt="stop" />
+          <StopRecordIcon className="m-px w-5 h-5 flex-shrink-0 ml-1" />
           <Timer target={180} timer={timer} />
         </button>
       )}
       {state === 'ready' && (
         <button
+          className="bg-grey-500 bg-opacity-50 border border-gray-600 backdrop-filter backdrop-blur-2xl p-1.5 rounded-sm"
           type="button"
           onClick={() => {
             setStudio({ ...studio, state: 'countDown' })
@@ -217,12 +208,11 @@ const RecordingControlsBar = () => {
               status: Fragment_Status_Enum_Enum.CountDown,
             })
           }}
-          className="flex bg-gray-700 items-center justify-center p-2 rounded-md"
         >
-          <img src={startRecordIcon} alt="start" />
+          <StartRecordIcon className="m-px w-5 h-5" />
         </button>
       )}
-      {state !== 'preview' && state !== 'upload' && (
+      {/* {state !== 'preview' && state !== 'upload' && (
         <>
           <button
             type="button"
@@ -251,7 +241,8 @@ const RecordingControlsBar = () => {
             )}
           </button>
         </>
-      )}
+      )} */}
+
       {state !== 'preview' &&
         state !== 'upload' &&
         fragment?.editorState?.blocks[payload?.activeObjectIndex]?.type !==
@@ -259,8 +250,8 @@ const RecordingControlsBar = () => {
         fragment?.editorState?.blocks[payload?.activeObjectIndex]?.type !==
           'outroBlock' && (
           <>
-            <div className="w-px bg-gray-200 h-full mx-1" />
-            <button
+            {/* <div className="w-px bg-gray-200 h-full mx-1" /> */}
+            {/* <button
               type="button"
               onClick={() => {
                 if (canvas) setCanvas({ ...canvas, zoomed: !canvas.zoomed })
@@ -271,9 +262,10 @@ const RecordingControlsBar = () => {
               ) : (
                 <FiZoomOut className="text-gray-600" size={24} />
               )}
-            </button>
+            </button> */}
             <button
               type="button"
+              className="flex gap-x-2 items-center justify-between bg-grey-500 bg-opacity-50 border border-gray-600 backdrop-filter backdrop-blur-2xl rounded-sm ml-4"
               onClick={() => {
                 if (payload?.fragmentState === 'onlyUserMedia') {
                   // updating the fragment state in the payload to customLayout state
@@ -288,12 +280,90 @@ const RecordingControlsBar = () => {
                 }
               }}
             >
-              <img src={swapIcon} alt="swap" />
+              <div
+                className={cx(
+                  'bg-transparent py-1 px-1 rounded-sm my-1 ml-1 transition-all duration-200',
+                  {
+                    'bg-grey-500': payload?.fragmentState === 'onlyUserMedia',
+                  }
+                )}
+              >
+                <OnlyUserMedia className={cx('m-px w-5 h-4 ', {})} />
+              </div>
+              <div
+                className={cx(
+                  'bg-transparent py-1 px-1 rounded-sm my-1 mr-1 transition-all duration-300',
+                  {
+                    'bg-grey-500': payload?.fragmentState === 'customLayout',
+                  }
+                )}
+              >
+                <CustomLayout className={cx('m-px w-5 h-4', {})} />
+              </div>
             </button>
           </>
         )}
-      {state === 'upload' && <div className="py-5" />}
-      {fragment?.participants.length !== 1 && (
+      {payload?.activeObjectIndex !==
+        fragment?.editorState?.blocks.length - 1 && (
+        <button
+          className="bg-grey-500 bg-opacity-50 border border-gray-600 backdrop-filter backdrop-blur-2xl p-1.5 rounded-sm text-gray-100"
+          type="button"
+          disabled={
+            payload?.activeObjectIndex ===
+            fragment?.editorState?.blocks.length - 1
+          }
+          onClick={() => {
+            if (fragment && payload)
+              performAction(
+                fragment,
+                payload,
+                updatePayload,
+                branding,
+                controlsConfig
+              )
+          }}
+        >
+          <IoArrowForwardOutline className="m-px w-5 h-5 p-px" />
+        </button>
+      )}
+      {fragment?.editorState?.blocks[payload?.activeObjectIndex]?.type ===
+        'videoBlock' && (
+        <button
+          className="bg-grey-500 bg-opacity-50 border border-gray-600 backdrop-filter backdrop-blur-2xl p-1.5 rounded-sm text-gray-100 ml-4"
+          type="button"
+          onClick={() => {
+            const { playing, videoElement } = controlsConfig
+            const next = !playing
+            updatePayload?.({
+              playing: next,
+              currentTime: videoElement?.currentTime || 0,
+            })
+          }}
+        >
+          {controlsConfig.playing ? (
+            <IoPause className="m-px w-5 h-5 p-px" />
+          ) : (
+            <IoPlay className="m-px w-5 h-5 p-px" />
+          )}
+        </button>
+      )}
+      {state === 'ready' && (
+        <button
+          className="bg-grey-500 bg-opacity-50 border border-gray-600 backdrop-filter backdrop-blur-2xl p-1.5 rounded-sm text-gray-100"
+          type="button"
+          onClick={() => {
+            updatePayload?.({
+              activeObjectIndex: 0,
+              activeIntroIndex: 0,
+              fragmentState: 'onlyUserMedia',
+            })
+          }}
+        >
+          <VscDebugRestart className="m-px w-5 h-5 p-px" />
+        </button>
+      )}
+      {/* {state === 'upload' && <div className="py-5" />} */}
+      {/* {fragment?.participants.length !== 1 && (
         <Tooltip
           isOpen={isRaiseHandsTooltip}
           setIsOpen={setRaiseHandsTooltip}
@@ -314,9 +384,157 @@ const RecordingControlsBar = () => {
             <IoHandRightOutline className="text-gray-600 -mb-1.5" size={24} />
           </button>
         </Tooltip>
-      )}
+      )} */}
     </div>
   )
+}
+
+const performAction = (
+  fragment: StudioFragmentFragment,
+  payload: any,
+  updatePayload: ((value: any) => void) | undefined,
+  branding: BrandingJSON | null | undefined,
+  controlsConfig: any
+) => {
+  const block = fragment.editorState.blocks[payload.activeObjectIndex]
+  switch (block.type) {
+    case 'introBlock':
+      handleIntroBlock(payload, updatePayload, branding)
+      break
+    case 'codeBlock':
+      handleCodeBlock(fragment, payload, updatePayload, controlsConfig)
+      break
+    case 'videoBlock':
+      handleVideoBlock(payload, updatePayload)
+      break
+    case 'imageBlock':
+      handleImageBlock(payload, updatePayload)
+      break
+    case 'listBlock':
+      handleListBlock(fragment, payload, updatePayload)
+      break
+    default:
+      break
+  }
+}
+const handleListBlock = (
+  fragment: StudioFragmentFragment,
+  payload: any,
+  updatePayload: ((value: any) => void) | undefined
+) => {
+  const listBlockProps = fragment?.editorState?.blocks[
+    payload?.activeObjectIndex || 0
+  ]?.listBlock as ListBlock
+
+  const noOfPoints = listBlockProps?.list?.length || 0
+
+  if (payload?.activePointIndex === noOfPoints) {
+    updatePayload?.({
+      activeObjectIndex: payload?.activeObjectIndex + 1,
+    })
+  } else {
+    updatePayload?.({
+      activePointIndex: payload?.activePointIndex + 1 || 1,
+    })
+  }
+}
+
+const handleImageBlock = (
+  payload: any,
+  updatePayload: ((value: any) => void) | undefined
+) => {
+  updatePayload?.({
+    activeObjectIndex: payload?.activeObjectIndex + 1,
+  })
+}
+
+const handleVideoBlock = (
+  payload: any,
+  updatePayload: ((value: any) => void) | undefined
+) => {
+  updatePayload?.({
+    activeObjectIndex: payload?.activeObjectIndex + 1,
+  })
+}
+
+const handleCodeBlock = (
+  fragment: StudioFragmentFragment,
+  payload: any,
+  updatePayload: ((value: any) => void) | undefined,
+  controlsConfig: any
+) => {
+  const codeBlockProps = fragment?.editorState?.blocks[
+    payload?.activeObjectIndex || 0
+  ] as CodeBlockProps
+  const codeBlockViewProps = (fragment?.configuration as ViewConfig).blocks[
+    codeBlockProps.id
+  ].view as CodeBlockView
+  const noOfBlocks = codeBlockViewProps.code.highlightSteps?.length
+  const codeAnimation = codeBlockViewProps.code.animation
+  const { position, computedTokens } = controlsConfig
+
+  switch (codeAnimation) {
+    case CodeAnimation.HighlightLines: {
+      if (!noOfBlocks) return
+      if (
+        payload?.activeBlockIndex === noOfBlocks &&
+        !payload?.focusBlockCode
+      ) {
+        updatePayload?.({
+          activeObjectIndex: payload?.activeObjectIndex + 1,
+        })
+      } else if (payload?.focusBlockCode) {
+        updatePayload?.({
+          focusBlockCode: false,
+        })
+      } else if (payload?.activeBlockIndex < noOfBlocks) {
+        updatePayload?.({
+          activeBlockIndex: payload?.activeBlockIndex + 1,
+          focusBlockCode: true,
+        })
+      }
+      break
+    }
+    case CodeAnimation.TypeLines: {
+      if (payload?.currentIndex === computedTokens?.length) {
+        updatePayload?.({
+          activeObjectIndex: payload?.activeObjectIndex + 1,
+        })
+      } else {
+        const current = computedTokens[position.currentIndex]
+        let next = computedTokens.findIndex(
+          (t: any) => t.lineNumber > current.lineNumber
+        )
+        if (next === -1) next = computedTokens.length
+        updatePayload?.({
+          prevIndex: position.currentIndex,
+          currentIndex: next,
+          isFocus: false,
+        })
+      }
+      break
+    }
+    default:
+      break
+  }
+}
+
+const handleIntroBlock = (
+  payload: any,
+  updatePayload: ((value: any) => void) | undefined,
+  branding: BrandingJSON | null | undefined
+) => {
+  if (
+    payload?.activeIntroIndex === (branding && branding?.introVideoUrl ? 2 : 1)
+  ) {
+    updatePayload?.({
+      activeObjectIndex: payload?.activeObjectIndex + 1,
+    })
+  } else {
+    updatePayload?.({
+      activeIntroIndex: payload?.activeIntroIndex + 1,
+    })
+  }
 }
 
 ControlButton.defaultProps = {
