@@ -68,7 +68,7 @@ const UnifiedFragment = ({
 
   // state of the fragment
   const [fragmentState, setFragmentState] =
-    useState<FragmentState>('onlyUserMedia')
+    useState<FragmentState>('customLayout')
 
   const [isPreview, setIsPreview] = useState(false)
 
@@ -170,7 +170,7 @@ const UnifiedFragment = ({
       updatePayload?.({
         activeObjectIndex: 0,
         activeIntroIndex: 0,
-        fragmentState: 'onlyUserMedia',
+        fragmentState: 'customLayout',
         activePointIndex: 0,
         currentIndex: 0,
         currentTime: 0,
@@ -183,7 +183,7 @@ const UnifiedFragment = ({
       updatePayload?.({
         activeObjectIndex: 0,
         activeIntroIndex: 0,
-        fragmentState: 'onlyUserMedia',
+        fragmentState: 'customLayout',
         activePointIndex: 0,
         currentIndex: 0,
         currentTime: 0,
