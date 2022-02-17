@@ -10,6 +10,8 @@ import {
   FlickParticipantsFragment,
   useUpdateFlickMutation,
 } from '../../../generated/graphql'
+import { logEvent } from '../../../utils/analytics'
+import { PageEvent } from '../../../utils/analytics-types'
 import { ViewConfig } from '../../../utils/configTypes'
 import { studioStore } from '../../Studio/stores'
 import { newFlickStore } from '../store/flickNew.store'
@@ -201,7 +203,12 @@ const EditorHeader = ({
           >
             <button
               type="button"
-              onClick={() => setSpeakersTooltip(true)}
+              onClick={() => {
+                // Segment Tracking
+                logEvent(PageEvent.AddSpeaker)
+
+                setSpeakersTooltip(true)
+              }}
               className="flex items-center py-1 px-2 text-gray-400 text-sm rounded-sm border border-transparent transition-all bg-gray-100 hover:bg-gray-200 hover:text-gray-500 gap-x-2 font-body"
             >
               <IoPersonCircleOutline size={18} /> Add speaker

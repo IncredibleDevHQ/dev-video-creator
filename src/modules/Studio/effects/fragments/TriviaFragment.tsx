@@ -222,7 +222,7 @@ const TriviaFragment = ({
                 textTransform="capitalize"
               />
               <Gif
-                src={triviaData?.image}
+                image={qnaImage}
                 x={imgDim.x}
                 y={imgDim.y}
                 width={imgDim.width}

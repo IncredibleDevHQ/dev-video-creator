@@ -18,6 +18,8 @@ import {
   CodeTheme,
   ViewConfig,
 } from '../../utils/configTypes'
+import { logPage } from '../../utils/analytics'
+import { PageCategory, PageTitle } from '../../utils/analytics-types'
 import { loadFonts } from '../Studio/hooks/use-load-font'
 import studioStore from '../Studio/stores/studio.store'
 import {
@@ -219,6 +221,14 @@ const Flick = () => {
       })
     }
   }, [])
+
+  useEffect(() => {
+    // Segment Tracking
+    logPage(
+      PageCategory.Studio,
+      view === View.Notebook ? PageTitle.Notebook : PageTitle.Preview
+    )
+  }, [view])
 
   useEffect(() => {
     if (!activeFragmentId || !flick) return

@@ -29,6 +29,13 @@ const AuthProvider = ({ children }: { children: JSX.Element }): JSX.Element => {
       const { user } = await signInWithCustomToken(auth.auth, data as string)
       // console.log('FB user', user)
       setFbUser(user)
+
+      window.analytics.identify(user.email, {
+        email: user.email,
+        name: user.displayName,
+        userId: user.uid,
+      })
+
       const idToken = await user.getIdToken()
       if (!dbUser) {
         // console.log('no db user')

@@ -333,12 +333,9 @@ export const getRenderedTokens = (
     })
 }
 
-export const getTokens = (
-  tokens: ComputedToken[],
-  startLineNumber: number | undefined
-) => {
+export const getTokens = (tokens: ComputedToken[]) => {
   let computedLineNumber = 0
-  let lineNumber = startLineNumber || 0
+  let lineNumber = 0
 
   return tokens.map((token, index) => {
     if (lineNumber !== token.lineNumber) {
@@ -359,6 +356,33 @@ export const getTokens = (
         align="left"
       />
     )
+  })
+}
+
+export const getLineNumbers = (tokens: ComputedToken[]) => {
+  let computedLineNumber = 0
+  let lineNumber = -1
+
+  return tokens.map((token, index) => {
+    if (lineNumber !== token.lineNumber) {
+      computedLineNumber += token.lineNumber - lineNumber
+      lineNumber = token.lineNumber
+      return (
+        <Text
+          // eslint-disable-next-line
+          key={index}
+          fontSize={codeConfig.fontSize}
+          fill="#6B7280"
+          width={30}
+          text={(lineNumber + 1).toString()}
+          y={(codeConfig.fontSize + 5) * (computedLineNumber - 1)}
+          align="right"
+        />
+      )
+    }
+    if (token.x === 0 && index !== 0) {
+      computedLineNumber += 1
+    }
     return <></>
   })
 }

@@ -12,6 +12,7 @@ import {
   CodeBlockView,
   CodeBlockViewProps,
   CodeHighlightConfig,
+  CodeTheme,
 } from '../../../../utils/configTypes'
 import { CodeBlockProps } from '../../../Flick/editor/utils/utils'
 import Concourse from '../../components/Concourse'
@@ -19,6 +20,7 @@ import FragmentBackground from '../../components/FragmentBackground'
 import RenderTokens, {
   codeConfig,
   FragmentState,
+  getLineNumbers,
   getRenderedTokens,
   getTokens,
   Position,
@@ -39,7 +41,8 @@ import { ObjectRenderConfig, ThemeLayoutConfig } from '../../utils/ThemeConfig'
 const getColorCodes = async (
   code: string,
   language: string,
-  userToken: string
+  userToken: string,
+  codeTheme: CodeTheme
 ) => {
   return axios.post(
     gConfig.default.hasura.server,
@@ -59,6 +62,7 @@ const getColorCodes = async (
       variables: {
         code,
         language: language || 'javascript',
+        theme: codeTheme,
       },
     },
     {
@@ -68,6 +72,41 @@ const getColorCodes = async (
       },
     }
   )
+}
+
+export const getSurafceColor = ({ codeTheme }: { codeTheme: CodeTheme }) => {
+  switch (codeTheme) {
+    case 'light_vs':
+      return '#ffffff'
+    case 'light_plus':
+      return '#ffffff'
+    case 'quietlight':
+      return '#f5f5f5'
+    case 'solarized_light':
+      return '#FDF6E3'
+    case 'abyss':
+      return '#000C18'
+    case 'dark_vs':
+      return '#1E1E1E'
+    case 'dark_plus':
+      return '#1E1E1E'
+    case 'kimbie_dark':
+      return '#221A0F'
+    case 'monakai':
+      return '#272822'
+    case 'monakai_dimmed':
+      return '#1E1E1E'
+    case 'red':
+      return '#390000'
+    case 'solarized_dark':
+      return '#002B36'
+    case 'tomorrow_night_blue':
+      return '#002451'
+    case 'hc_black':
+      return '#000000'
+    default:
+      return '#1E1E1E'
+  }
 }
 
 const CodeFragment = ({
@@ -137,6 +176,7 @@ const CodeFragment = ({
     })
 
   const [colorCodes, setColorCodes] = useState<any>([])
+  const [codeTheme, setCodeTheme] = useState<CodeTheme>(CodeTheme.DarkPlus)
 
   const { auth } = useRecoilValue(firebaseState)
   const [user] = useAuthState(auth)
@@ -162,10 +202,6 @@ const CodeFragment = ({
     const codeBlockViewProps: CodeBlockViewProps = (
       viewConfig.view as CodeBlockView
     ).code
-    setCodeAnimation(codeBlockViewProps.animation)
-    const blocks = Object.assign([], codeBlockViewProps.highlightSteps || [])
-    blocks.unshift({ from: 0, to: 0, fileIndex: 0 })
-    setBlockConfig(blocks)
     ;(async () => {
       try {
         if (dataConfig.codeBlock.code) {
@@ -173,7 +209,8 @@ const CodeFragment = ({
           const { data } = await getColorCodes(
             dataConfig.codeBlock.code,
             dataConfig.codeBlock.language || '',
-            token || ''
+            token || '',
+            codeBlockViewProps.theme
           )
           if (!data?.errors) setColorCodes(data.data.TokenisedCode.data)
         }
@@ -182,6 +219,11 @@ const CodeFragment = ({
         throw e
       }
     })()
+    setCodeAnimation(codeBlockViewProps.animation)
+    setCodeTheme(codeBlockViewProps.theme)
+    const blocks = Object.assign([], codeBlockViewProps.highlightSteps || [])
+    blocks.unshift({ from: 0, to: 0, fileIndex: 0 })
+    setBlockConfig(blocks)
   }, [dataConfig, shortsMode, viewConfig])
 
   useEffect(() => {
@@ -195,7 +237,7 @@ const CodeFragment = ({
     setComputedTokens(
       initUseCode({
         tokens: [colorCodes],
-        canvasWidth: objectConfig.width - 120,
+        canvasWidth: objectConfig.width - 140,
         canvasHeight: objectRenderConfig.availableHeight - 20,
         gutter: 5,
         fontSize: codeConfig.fontSize,
@@ -331,7 +373,7 @@ const CodeFragment = ({
       <FragmentBackground
         theme={theme}
         objectConfig={objectConfig}
-        backgroundRectColor="#202026"
+        backgroundRectColor={getSurafceColor({ codeTheme })}
       />
       {!isPreview ? (
         <Group
@@ -354,26 +396,12 @@ const CodeFragment = ({
             </>
           ) : (
             <>
-              {computedTokens.length > 0 &&
-                computedTokens[0].length > 0 &&
-                getTokens(
-                  computedTokens[
-                    blockConfig?.[payload?.activeBlockIndex]?.fileIndex || 0
-                  ],
-                  computedTokens[
-                    blockConfig?.[payload?.activeBlockIndex]?.fileIndex || 0
-                  ][
-                    computedTokens[
-                      blockConfig?.[payload?.activeBlockIndex]?.fileIndex || 0
-                    ].find(
-                      (token) =>
-                        token.lineNumber ===
-                          (blockConfig &&
-                            blockConfig[activeBlockIndex] &&
-                            blockConfig[activeBlockIndex].from) || 0
-                    )?.startFromIndex || 0
-                  ]?.lineNumber
-                )}
+              {computedTokens.length > 0 && computedTokens[0].length > 0 && (
+                <>
+                  <Group x={-15}>{getLineNumbers(computedTokens[0])}</Group>
+                  <Group x={40}>{getTokens(computedTokens[0])}</Group>
+                </>
+              )}
               {highlightBlockCode && (
                 <Rect
                   x={-5}
@@ -449,18 +477,8 @@ const CodeFragment = ({
           y={objectRenderConfig.startY + 10}
           key="previewGroup"
         >
-          {getTokens(
-            computedTokens[0],
-            computedTokens[0][
-              computedTokens[0].find(
-                (token) =>
-                  token.lineNumber ===
-                    (blockConfig &&
-                      blockConfig[activeBlockIndex] &&
-                      blockConfig[activeBlockIndex].from) || 0
-              )?.startFromIndex || 0
-            ]?.lineNumber
-          )}
+          <Group x={-15}>{getLineNumbers(computedTokens[0])}</Group>
+          <Group x={40}>{getTokens(computedTokens[0])}</Group>
         </Group>
       )}
 

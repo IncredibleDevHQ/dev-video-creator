@@ -10,16 +10,16 @@ import { useRecoilState, useRecoilValue } from 'recoil'
 import { Timer } from '.'
 import { ReactComponent as CustomLayout } from '../../../assets/CustomLayout.svg'
 import { ReactComponent as OnlyUserMedia } from '../../../assets/OnlyUserMedia.svg'
-import { ReactComponent as ReRecordIcon } from '../../../assets/ReRecord.svg'
 import { ReactComponent as StartRecordIcon } from '../../../assets/StartRecord.svg'
 import { ReactComponent as StopRecordIcon } from '../../../assets/StopRecord.svg'
-import { ReactComponent as UploadIcon } from '../../../assets/Upload.svg'
 import { Avatar, Heading } from '../../../components'
 import {
   Fragment_Status_Enum_Enum,
   StudioFragmentFragment,
 } from '../../../generated/graphql'
 import { useTimekeeper2 } from '../../../hooks'
+import { logEvent } from '../../../utils/analytics'
+import { PageEvent } from '../../../utils/analytics-types'
 import {
   CodeAnimation,
   CodeBlockView,
@@ -191,6 +191,7 @@ const RecordingControlsBar = ({
               ...payload,
               status: Fragment_Status_Enum_Enum.Ended,
             })
+            logEvent(PageEvent.StopRecording)
           }}
           className="flex gap-x-2 items-center justify-between bg-grey-500 bg-opacity-50 border border-gray-600 backdrop-filter backdrop-blur-2xl p-1.5 rounded-sm w-24"
         >
@@ -207,6 +208,8 @@ const RecordingControlsBar = ({
             updatePayload?.({
               status: Fragment_Status_Enum_Enum.CountDown,
             })
+            // Segment tracking
+            logEvent(PageEvent.StartRecording)
           }}
         >
           <StartRecordIcon className="m-px w-5 h-5" />

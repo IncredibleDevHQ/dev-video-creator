@@ -40,6 +40,8 @@ import {
 } from '../../generated/graphql'
 import { useUploadFile } from '../../hooks'
 import useDidUpdateEffect from '../../hooks/use-did-update-effect'
+import { logEvent, logPage } from '../../utils/analytics'
+import { PageCategory, PageEvent, PageTitle } from '../../utils/analytics-types'
 import CustomFontPicker, { IFont } from '../Flick/components/CustomFontPicker'
 import { loadFonts } from '../Studio/hooks/use-load-font'
 import BrandPreview from './BrandPreview'
@@ -189,6 +191,11 @@ const BrandingPage = ({
     debounced()
   }, [brandings])
 
+  useEffect(() => {
+    // Segment Tracking
+    logPage(PageCategory.Studio, PageTitle.Brand)
+  }, [])
+
   const [updateBranding, { loading: updatingBrand }] =
     useUpdateBrandingMutation()
 
@@ -227,6 +234,9 @@ const BrandingPage = ({
     })
     await refetch()
     setBrandingId(data?.insert_Branding_one?.id)
+
+    // Segment Tracking
+    logEvent(PageEvent.AddNewBrand)
   }
 
   const handleSave = async (cache?: boolean) => {
@@ -263,24 +273,24 @@ const BrandingPage = ({
       center
       showCloseIcon={false}
     >
-      <div className="flex flex-col h-full w-full">
+      <div className="flex flex-col w-full h-full">
         {fetching && (
-          <div className="h-full w-full flex items-center justify-center">
+          <div className="flex items-center justify-center w-full h-full">
             <FiLoader className={cx('animate-spin my-6')} size={16} />
           </div>
         )}
         {!fetching && (
           <>
-            <div className="flex justify-between items-center w-full border-b border-gray-300 py-2 px-4">
+            <div className="flex items-center justify-between w-full px-4 py-2 border-b border-gray-300">
               <div className="flex items-center gap-x-4">
                 <Text className="font-bold font-main">Brand assets</Text>
                 {updatingBrand ? (
-                  <div className="flex text-gray-400 items-center mr-4 mt-px">
+                  <div className="flex items-center mt-px mr-4 text-gray-400">
                     <BsCloudUpload className="mr-1" />
                     <Text fontSize="small">Saving...</Text>
                   </div>
                 ) : (
-                  <div className="flex text-gray-400 items-center mr-4 mt-px">
+                  <div className="flex items-center mt-px mr-4 text-gray-400">
                     <BsCloudCheck className="mr-1" />
                     <Text fontSize="small">Saved</Text>
                   </div>
@@ -303,9 +313,9 @@ const BrandingPage = ({
                 </Button>
               </div>
             </div>
-            <div className="flex flex-1 w-full justify-between">
+            <div className="flex justify-between flex-1 w-full">
               <div
-                className=" flex items-center justify-center relative w-full bg-gray-100"
+                className="relative flex items-center justify-center w-full bg-gray-100 "
                 ref={ref}
               >
                 {branding && (
@@ -320,11 +330,11 @@ const BrandingPage = ({
                       {({ open }) => (
                         <div className="relative mt-1">
                           <Listbox.Button className="w-full flex gap-x-4 text-left items-center justify-between border rounded-sm bg-white shadow-sm py-1.5 px-3 pr-8 relative">
-                            <div className="flex items-center gap-x-2 w-full">
+                            <div className="flex items-center w-full gap-x-2">
                               <BrandIcon className="flex-shrink-0" />
                               <input
                                 value={branding?.name}
-                                className="text-sm block truncate border border-transparent hover:border-gray-300 focus:outline-none"
+                                className="block text-sm truncate border border-transparent hover:border-gray-300 focus:outline-none"
                                 onClick={(e) => e.stopPropagation()}
                                 onKeyDown={(e) => e.stopPropagation()}
                                 onChange={(e) => {
@@ -350,7 +360,7 @@ const BrandingPage = ({
                               )}
                             </span>
                           </Listbox.Button>
-                          <Listbox.Options className="bg-dark-300 mt-2 rounded-md">
+                          <Listbox.Options className="mt-2 rounded-md bg-dark-300">
                             {brandings.map((brand, index) => (
                               <Listbox.Option
                                 className={({ active }) =>
@@ -370,7 +380,7 @@ const BrandingPage = ({
                                 {({ selected }) => (
                                   <>
                                     <BrandIcon className="flex-shrink-0" />
-                                    <Text className="text-sm block truncate ">
+                                    <Text className="block text-sm truncate ">
                                       {brand.name}
                                     </Text>
                                     {selected && (
@@ -391,7 +401,7 @@ const BrandingPage = ({
               </div>
               <div className="flex">
                 {branding && (
-                  <div className="bg-white w-64 pt-6 px-4">
+                  <div className="w-64 px-4 pt-6 bg-white">
                     {activeTab === tabs[0] && (
                       <LogoSetting
                         branding={branding}
@@ -454,7 +464,7 @@ const BrandingPage = ({
                     )}
                   </div>
                 )}
-                <div className="flex flex-col bg-gray-50 px-2 pt-4 gap-y-2 relative">
+                <div className="relative flex flex-col px-2 pt-4 bg-gray-50 gap-y-2">
                   {tabs.map((tab) => (
                     <button
                       type="button"
@@ -469,14 +479,14 @@ const BrandingPage = ({
                       key={tab.id}
                     >
                       <tab.Icon size={21} />
-                      <Text className="font-body font-normal text-xs">
+                      <Text className="text-xs font-normal font-body">
                         {tab.name}
                       </Text>
                     </button>
                   ))}
                   <div
                     onClick={deleteBranding}
-                    className="-ml-2 py-2 w-full bg-red-500 bottom-0 flex items-center justify-center absolute cursor-pointer"
+                    className="absolute bottom-0 flex items-center justify-center w-full py-2 -ml-2 bg-red-500 cursor-pointer"
                   >
                     <Button
                       appearance="none"
@@ -582,7 +592,7 @@ const BackgroundSetting = ({
             style={{
               width: '300px',
             }}
-            className="border border-gray-200 shadow-sm bg-white mr-6 mt-1 p-4 rounded-sm"
+            className="p-4 mt-1 mr-6 bg-white border border-gray-200 rounded-sm shadow-sm"
           >
             <IoCloseOutline
               className="ml-auto cursor-pointer"
@@ -597,13 +607,13 @@ const BackgroundSetting = ({
             />
             <HexColorInput
               color={branding.branding?.background?.color?.primary || '#000'}
-              className="font-body text-xs w-full text-center bg-gray-100 focus:border-brand transition-colors focus:outline-none rounded p-2 mt-3"
+              className="w-full p-2 mt-3 text-xs text-center transition-colors bg-gray-100 rounded font-body focus:border-brand focus:outline-none"
               onChange={handleColorChange}
             />
-            <div className="border-t my-4 border-gray-200" />
+            <div className="my-4 border-t border-gray-200" />
             {branding.branding?.background?.url ? (
               <div
-                className="relative ring-1 ring-offset-1 ring-gray-100 rounded-sm"
+                className="relative rounded-sm ring-1 ring-offset-1 ring-gray-100"
                 style={{ height: '150px', width: '268px' }}
               >
                 <IoCloseCircle
@@ -623,11 +633,11 @@ const BackgroundSetting = ({
                   <img
                     src={branding.branding?.background?.url || ''}
                     alt="backgroundImage"
-                    className="w-full h-full object-contain rounded-md"
+                    className="object-contain w-full h-full rounded-md"
                   />
                 ) : (
                   <video
-                    className="rounded-sm object-cover h-full w-full"
+                    className="object-cover w-full h-full rounded-sm"
                     src={branding.branding?.background?.url || ''}
                     controls
                   />
@@ -663,10 +673,10 @@ const BackgroundSetting = ({
                           />
 
                           <div className="z-50 text-center ">
-                            <Text className="font-body text-xs text-gray-600">
+                            <Text className="text-xs text-gray-600 font-body">
                               Drag and drop or
                             </Text>
-                            <Text className="font-semibold text-xs text-gray-800">
+                            <Text className="text-xs font-semibold text-gray-800">
                               browse
                             </Text>
                           </div>
@@ -693,7 +703,7 @@ const BackgroundSetting = ({
           }}
           onMouseEnter={() => setHover(true)}
           onMouseLeave={() => setHover(false)}
-          className="flex items-center justify-center h-16 w-1/2 mt-2 cursor-pointer ring-1 ring-offset-1 ring-gray-100 rounded-sm relative"
+          className="relative flex items-center justify-center w-1/2 h-16 mt-2 rounded-sm cursor-pointer ring-1 ring-offset-1 ring-gray-100"
         >
           {branding.branding?.background && (
             <IoCloseCircle
@@ -718,13 +728,13 @@ const BackgroundSetting = ({
             <img
               src={branding.branding?.background?.url || ''}
               alt="backgroundImage"
-              className="w-full h-full object-contain rounded-md"
+              className="object-contain w-full h-full rounded-md"
             />
           )}
           {branding.branding?.background?.type === 'video' && (
             <video
               ref={videoRef}
-              className="rounded-sm object-cover h-full w-full"
+              className="object-cover w-full h-full rounded-sm"
               src={branding.branding?.background?.url || ''}
               muted
             />
@@ -749,7 +759,7 @@ const ColorPicker = ({
       style={{
         width: '300px',
       }}
-      className="border border-gray-200 shadow-sm bg-white mr-6 mt-1 p-4 rounded-sm"
+      className="p-4 mt-1 mr-6 bg-white border border-gray-200 rounded-sm shadow-sm"
     >
       <IoCloseOutline
         className="ml-auto cursor-pointer"
@@ -764,7 +774,7 @@ const ColorPicker = ({
       />
       <HexColorInput
         color={color}
-        className="font-body text-xs w-full text-center bg-gray-100 focus:border-brand transition-colors focus:outline-none rounded p-2 mt-3"
+        className="w-full p-2 mt-3 text-xs text-center transition-colors bg-gray-100 rounded font-body focus:border-brand focus:outline-none"
         onChange={onChange}
       />
     </div>
@@ -849,7 +859,7 @@ const ColorSetting = ({
                         backgroundColor:
                           branding.branding?.colors?.[type] || '',
                       }}
-                      className="relative flex items-center justify-center h-16 w-1/2 mt-2 cursor-pointer ring-1 ring-offset-1 ring-gray-100 rounded-sm"
+                      className="relative flex items-center justify-center w-1/2 h-16 mt-2 rounded-sm cursor-pointer ring-1 ring-offset-1 ring-gray-100"
                     >
                       {branding.branding?.colors?.[type] && (
                         <IoCloseCircle
@@ -935,10 +945,10 @@ const LogoSetting = ({
                     <FiUploadCloud size={21} className="my-2 text-gray-600" />
 
                     <div className="z-50 text-center ">
-                      <Text className="font-body text-xs text-gray-600">
+                      <Text className="text-xs text-gray-600 font-body">
                         Drag and drop or
                       </Text>
-                      <Text className="font-semibold text-xs text-gray-800">
+                      <Text className="text-xs font-semibold text-gray-800">
                         browse
                       </Text>
                     </div>
@@ -953,7 +963,7 @@ const LogoSetting = ({
           <div
             onClick={() => inputRef.current?.click()}
             style={{ background: branding.branding?.logo }}
-            className="w-1/2 h-16 rounded-md border border-gray-200 p-4 mt-2 relative"
+            className="relative w-1/2 h-16 p-4 mt-2 border border-gray-200 rounded-md"
           >
             <IoCloseCircle
               className="absolute top-0 right-0 text-red-500 -m-1.5 cursor-pointer block z-10 bg-white rounded-full"
@@ -970,7 +980,7 @@ const LogoSetting = ({
             />
             {branding.branding?.logo && (
               <img
-                className="h-full w-full object-contain"
+                className="object-contain w-full h-full"
                 src={branding.branding.logo}
                 alt="Logo"
               />
@@ -1046,10 +1056,10 @@ const IntroVideoSetting = ({
                     <FiUploadCloud size={21} className="my-2 text-gray-600" />
 
                     <div className="z-50 text-center ">
-                      <Text className="font-body text-xs text-gray-600">
+                      <Text className="text-xs text-gray-600 font-body">
                         Drag and drop or
                       </Text>
-                      <Text className="font-semibold text-xs text-gray-800">
+                      <Text className="text-xs font-semibold text-gray-800">
                         browse
                       </Text>
                     </div>
@@ -1062,7 +1072,7 @@ const IntroVideoSetting = ({
       ) : (
         <>
           <div
-            className="flex items-center justify-center w-1/2 h-16 rounded-md border border-gray-200 mt-2 cursor-pointer relative"
+            className="relative flex items-center justify-center w-1/2 h-16 mt-2 border border-gray-200 rounded-md cursor-pointer"
             onMouseEnter={() => setHover(true)}
             onMouseLeave={() => setHover(false)}
           >
@@ -1081,7 +1091,7 @@ const IntroVideoSetting = ({
             />
             <video
               ref={videoRef}
-              className="rounded-sm object-cover "
+              className="object-cover rounded-sm "
               src={branding.branding?.introVideoUrl || ''}
               muted
             />
@@ -1172,7 +1182,7 @@ const FontSetting = ({
 
   return (
     <div className="flex flex-col">
-      <Heading fontSize="small" className="font-bold mb-2">
+      <Heading fontSize="small" className="mb-2 font-bold">
         Heading
       </Heading>
       <Tooltip
@@ -1184,7 +1194,7 @@ const FontSetting = ({
             style={{
               width: '300px',
             }}
-            className="border border-gray-200 shadow-sm bg-white mr-6 mt-1 p-4 rounded-sm"
+            className="p-4 mt-1 mr-6 bg-white border border-gray-200 rounded-sm shadow-sm"
           >
             <IoCloseOutline
               className="ml-auto cursor-pointer"
@@ -1224,10 +1234,10 @@ const FontSetting = ({
                         />
 
                         <div className="z-50 text-center ">
-                          <Text className="font-body text-xs text-gray-600">
+                          <Text className="text-xs text-gray-600 font-body">
                             Drag and drop or
                           </Text>
-                          <Text className="font-semibold text-xs text-gray-800">
+                          <Text className="text-xs font-semibold text-gray-800">
                             browse
                           </Text>
                         </div>
@@ -1237,7 +1247,7 @@ const FontSetting = ({
                 )}
               </Dropzone>
             ) : (
-              <div className="flex items-center w-full mt-2 bg-gray-100 rounded-sm p-2 relative">
+              <div className="relative flex items-center w-full p-2 mt-2 bg-gray-100 rounded-sm">
                 <IoCloseCircle
                   className="absolute top-0 right-0 text-red-500 -m-1.5 cursor-pointer block z-10 bg-white rounded-full"
                   size={16}
@@ -1246,7 +1256,7 @@ const FontSetting = ({
                   }}
                 />
                 <BiFileBlank size={21} className="flex-shrink-0 mr-2" />
-                <Text className="text-sm font-body text-gray-600 truncate">
+                <Text className="text-sm text-gray-600 truncate font-body">
                   {fileName}
                 </Text>
               </div>
@@ -1302,7 +1312,7 @@ const FontSetting = ({
         />
       </Tooltip>
 
-      <Heading fontSize="small" className="font-bold mb-2 mt-10">
+      <Heading fontSize="small" className="mt-10 mb-2 font-bold">
         Body
       </Heading>
       <CustomFontPicker
