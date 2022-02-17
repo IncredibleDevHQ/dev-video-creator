@@ -54,7 +54,20 @@ export enum CodeAnimation {
 }
 
 export const enum CodeTheme {
+  Light = 'light_vs',
+  LightPlus = 'light_plus',
+  QuietLight = 'quietlight',
+  SolarizedLight = 'solarized_light',
+  Abyss = 'abyss',
+  Dark = 'dark_vs',
   DarkPlus = 'dark_plus',
+  KimbieDark = 'kimbie_dark',
+  Monakai = 'monakai',
+  MonakaiDimmed = 'monakai_dimmed',
+  Red = 'red',
+  SolarizedDark = 'solarized_dark',
+  TomorrowNightBlue = 'tomorrow_night_blue',
+  HighContrast = 'hc_black',
 }
 
 export interface CodeHighlightConfig {
