@@ -54,6 +54,7 @@ export interface ImageBlock {
   title?: string
   note?: string
   description?: string
+  type?: 'image' | 'gif'
 }
 
 export interface IntroBlock {
@@ -180,6 +181,7 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
       slab.content?.forEach((node) => {
         if (node.type === 'image') {
           const url = node?.attrs?.src
+          const type = url.endsWith('.gif') ? 'gif' : 'image'
 
           const { description, note, title, nodeIds } = getCommonProps(index)
           blocks.push({
@@ -192,6 +194,7 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
               description,
               title,
               note,
+              type,
             },
           })
           prevCoreBlockPos = index
@@ -244,6 +247,7 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
       blockPosition += 1
     } else if (slab.type === 'image') {
       const url = slab?.attrs?.src
+      const type = url.endsWith('.gif') ? 'gif' : 'image'
 
       const { description, note, title, nodeIds } = getCommonProps(index)
       blocks.push({
@@ -256,6 +260,7 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
           description,
           title,
           note,
+          type,
         },
       })
       prevCoreBlockPos = index

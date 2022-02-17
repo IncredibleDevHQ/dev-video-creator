@@ -159,7 +159,7 @@ const BrandingPage = ({
   const [ref, bounds] = useMeasure()
 
   const [brandingId, setBrandingId] = useState<string>()
-  const [activeTab, setActiveTab] = useState<Tab>(tabs[3])
+  const [activeTab, setActiveTab] = useState<Tab>(tabs[0])
 
   const [brandings, setBrandings] = useState<BrandingInterface[]>([])
 
