@@ -1,14 +1,14 @@
 import { cx } from '@emotion/css'
 import React, { useState } from 'react'
 import { FiX } from 'react-icons/fi'
-import { IoPersonOutline } from 'react-icons/io5'
+import { IoPersonCircleOutline } from 'react-icons/io5'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import { useDebouncedCallback } from 'use-debounce'
 import { Text, Tooltip } from '../../../components'
 import {
   FlickFragmentFragment,
   FlickParticipantsFragment,
-  useUpdateFragmentMutation,
+  useUpdateFlickMutation,
 } from '../../../generated/graphql'
 import { logEvent } from '../../../utils/analytics'
 import { PageEvent } from '../../../utils/analytics-types'
@@ -73,11 +73,10 @@ const EditorHeader = ({
   activeFragment: FlickFragmentFragment | undefined
 }) => {
   const [isSpeakersTooltip, setSpeakersTooltip] = useState(false)
-  const [{ flick, activeFragmentId }, setFlickStore] =
-    useRecoilState(newFlickStore)
+  const [{ flick }, setFlickStore] = useRecoilState(newFlickStore)
   const [{ fragment }, setStudio] = useRecoilState(studioStore)
 
-  const [updateFragmentMutation] = useUpdateFragmentMutation()
+  const [updateFlickMutation] = useUpdateFlickMutation()
 
   const updateStoreViewConfig = (vc: ViewConfig) => {
     if (!fragment || !flick) return
@@ -131,12 +130,12 @@ const EditorHeader = ({
     })
   }
 
-  const debounceUpdateFragmentName = useDebouncedCallback((value) => {
+  const debounceUpdateFlickName = useDebouncedCallback((value) => {
     if (value !== activeFragment?.name) {
-      updateFragmentMutation({
+      updateFlickMutation({
         variables: {
-          fragmentId: fragment?.id,
           name: value,
+          flickId: flick?.id,
         },
       })
     }
@@ -148,34 +147,30 @@ const EditorHeader = ({
         ...store,
         flick: {
           ...flick,
-          fragments: flick.fragments.map((f) => {
-            if (f.id === fragment?.id) {
-              return { ...f, name: newName }
-            }
-            return f
-          }),
+          name: newName,
         },
       }))
     }
-    debounceUpdateFragmentName(newName)
+    debounceUpdateFlickName(newName)
   }
 
   if (!flick) return null
 
   return (
-    <div>
+    <div className="border-b pb-4">
       <input
         maxLength={50}
         onChange={(e) => {
           updateFragment(e.target.value)
         }}
-        className="w-full text-4xl font-bold text-gray-800 resize-none font-main focus:outline-none"
-        value={
-          flick.fragments.find((f) => f.id === activeFragmentId)?.name || ''
-        }
+        style={{
+          fontSize: '2.35rem',
+        }}
+        className="w-full  font-extrabold text-gray-800 resize-none font-main focus:outline-none"
+        value={flick?.name || ''}
       />
 
-      <div className="flex items-center justify-start mt-4">
+      <div className="flex items-center justify-start mt-2">
         {viewConfig?.speakers?.map((s) => (
           <div
             className="flex items-center px-2 py-1 mr-2 border border-gray-300 rounded-md font-body"
@@ -192,12 +187,12 @@ const EditorHeader = ({
             <FiX className="cursor-pointer" onClick={() => deleteSpeaker(s)} />
           </div>
         ))}
-        {viewConfig.speakers?.length < flick.participants.length && (
+        {viewConfig.speakers?.length < 1 && (
           <Tooltip
             containerOffset={8}
             isOpen={isSpeakersTooltip}
             setIsOpen={() => setSpeakersTooltip(false)}
-            placement="bottom-center"
+            placement="bottom-start"
             content={
               <SpeakersTooltip
                 speakers={viewConfig.speakers}
@@ -214,9 +209,9 @@ const EditorHeader = ({
 
                 setSpeakersTooltip(true)
               }}
-              className="flex items-center px-2 py-1 text-gray-400 rounded-sm hover:bg-gray-100 gap-x-2 font-body"
+              className="flex items-center py-1 px-2 text-gray-400 text-sm rounded-sm border border-transparent transition-all bg-gray-100 hover:bg-gray-200 hover:text-gray-500 gap-x-2 font-body"
             >
-              <IoPersonOutline /> Add speakers
+              <IoPersonCircleOutline size={18} /> Add speaker
             </button>
           </Tooltip>
         )}

@@ -134,7 +134,7 @@ const textContent = (contentArray?: JSONContent[]) => {
     .join('&nbsp;')
 }
 
-const getSimpleAST = (state: JSONContent): SimpleAST => {
+const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
   const blocks: Block[] = []
 
   const getCommonProps = (index: number) => {

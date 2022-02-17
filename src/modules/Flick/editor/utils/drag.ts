@@ -5,7 +5,7 @@ import { NodeSelection, Plugin, PluginKey } from 'prosemirror-state'
 import { EditorView } from 'prosemirror-view'
 
 // FIXME this is a temporary workaround for drag handles
-export const DragHandler = () => {
+export const DragHandler = (dragHandle: HTMLDivElement | null) => {
   return Extension.create({
     name: 'dragHandler',
 
@@ -14,11 +14,16 @@ export const DragHandler = () => {
       const WIDTH = 56
       const HANDLER_GAP = 50
       const dragHandler =
-        document.getElementById('drag-handle') || document.createElement('div')
+        dragHandle ||
+        document.getElementById('drag-handle') ||
+        document.createElement('div')
+      dragHandler.style.visibility = 'hidden'
+      dragHandler.style.display = 'hidden'
       dragHandler.setAttribute('draggable', 'true')
       dragHandler.style.width = `${WIDTH}px`
       dragHandler.style.position = 'absolute'
       dragHandler.style.zIndex = '1'
+      const { editor } = this
 
       function createRect(
         rect: { left: number; top: number; width: any; height: any } | null
@@ -116,18 +121,24 @@ export const DragHandler = () => {
             // get node at position
             let node = editorView.state.doc.nodeAt(pos)
 
-            // insert paragraph with content " " after current block in the editor
-            // const text = ' '
-            // const textNode = editorView.state.schema.text(text)
-            // const paragraphNode =
-            //   editorView.state.schema.nodes.paragraph.create(null, textNode)
+            // insert paragraph with content "/" after current block in the editor
+            const text = '/'
+            const textNode = editorView.state.schema.text(text)
+            const paragraphNode =
+              editorView.state.schema.nodes.paragraph.create(null, textNode)
 
-            editorView.dispatch(
-              editorView.state.tr.insert(
-                pos + node?.nodeSize || 0,
-                editorView.state.schema.nodes.paragraph.create()
+            if (node?.type.name === 'paragraph' && node?.textContent === '') {
+              editorView.dispatch(editorView.state.tr.insertText('/', pos + 1))
+              editor.commands.focus(pos + 2)
+            } else {
+              editorView.dispatch(
+                editorView.state.tr.insert(
+                  pos + node?.nodeSize || 0,
+                  paragraphNode
+                )
               )
-            )
+              editor.commands.focus(pos + node?.nodeSize + 2 || 0)
+            }
           }
         })
         document.body.appendChild(dragHandler)
@@ -180,7 +191,7 @@ export const DragHandler = () => {
                       rect.top += win.pageYOffset
                       rect.left += win.pageXOffset
                       dragHandler.style.left = `${rect.left - WIDTH}px`
-                      dragHandler.style.top = `${rect.top}px`
+                      dragHandler.style.top = `${rect.top - 2}px`
                       dragHandler.style.visibility = 'visible'
                       dragHandler.style.display = 'flex'
                     }
