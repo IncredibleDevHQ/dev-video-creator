@@ -85,7 +85,7 @@ const Preview = ({
   if (!block) return null
 
   return (
-    <div className="flex-1 flex justify-between">
+    <div className="flex justify-between flex-1">
       <div
         className={cx(
           'flex justify-center items-start bg-gray-100 flex-1 pl-0',
@@ -209,7 +209,7 @@ const Preview = ({
                   key={tab.id}
                 >
                   <tab.Icon size={21} />
-                  <Text className="font-body font-normal text-xs">
+                  <Text className="text-xs font-normal font-body">
                     {tab.name}
                   </Text>
                 </button>
