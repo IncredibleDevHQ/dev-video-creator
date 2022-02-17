@@ -128,16 +128,26 @@ const UnifiedFragment = ({
         theme,
       })
     }
-    updatePayload?.({
-      activeObjectIndex: 0,
-      activeIntroIndex: 0,
-    })
   }, [fragment])
 
   useEffect(() => {
-    setTimeout(() => {
+    if (
+      payload?.activeObjectIndex === undefined ||
+      payload?.activeObjectIndex === -1
+    )
+      return
+    // having a condition on state because on retake initially the active object index will be 3
+    // and it goes to the else case, and at the same time upload payload triggers
+    // and makes the active object index 0 which goes inside the if block,
+    // as the else block contains set timeout it executes after the if block, so active object index becomes 3
+    // so put the condition on state to be recording so that on recording it deosnt take time to make the active object index 0,
+    // so that the old active object index's object doesnt get rendered on the canvas initially
+    if (state === 'recording' && payload?.activeObjectIndex === 0)
       setActiveObjectIndex(payload?.activeObjectIndex)
-    }, 800)
+    else
+      setTimeout(() => {
+        setActiveObjectIndex(payload?.activeObjectIndex)
+      }, 800)
   }, [payload?.activeObjectIndex])
 
   useEffect(() => {
@@ -158,7 +168,15 @@ const UnifiedFragment = ({
   useEffect(() => {
     if (state === 'ready') {
       updatePayload?.({
+        activeObjectIndex: 0,
+        activeIntroIndex: 0,
         fragmentState: 'onlyUserMedia',
+        activePointIndex: 0,
+        currentIndex: 0,
+        currentTime: 0,
+        isFocus: false,
+        playing: false,
+        prevIndex: 0,
       })
     }
     if (state === 'recording') {
@@ -166,6 +184,12 @@ const UnifiedFragment = ({
         activeObjectIndex: 0,
         activeIntroIndex: 0,
         fragmentState: 'onlyUserMedia',
+        activePointIndex: 0,
+        currentIndex: 0,
+        currentTime: 0,
+        isFocus: false,
+        playing: false,
+        prevIndex: 0,
       })
       setTopLayerChildren?.({ id: '', state: '' })
       timer.current = setTimeout(() => {
