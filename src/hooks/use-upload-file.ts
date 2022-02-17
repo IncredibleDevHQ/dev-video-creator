@@ -14,6 +14,7 @@ export type AllowedFileExtensions =
   | 'webp'
   | 'webm'
   | 'mp4'
+  | 'mov'
   | 'ts'
   | 'm3u8'
   | 'json'
