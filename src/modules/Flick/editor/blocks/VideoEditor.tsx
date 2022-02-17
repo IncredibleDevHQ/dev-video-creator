@@ -12,6 +12,12 @@ import { Group, Image, Layer, Rect, Stage, Transformer } from 'react-konva'
 // import useImage from 'use-image'
 import cropIcon from '../../../../assets/crop-outline.svg'
 import trim from '../../../../assets/trim.svg'
+import { logEvent, logPage } from '../../../../utils/analytics'
+import {
+  PageCategory,
+  PageEvent,
+  PageTitle,
+} from '../../../../utils/analytics-types'
 // import { ASSETS } from '../../../constants'
 
 type Size = {
@@ -510,6 +516,11 @@ const VideoEditor = ({
     }
   }, [time])
 
+  useEffect(() => {
+    // Segment Tracking
+    logPage(PageCategory.Studio, PageTitle.VideoEditor)
+  }, [])
+
   if (!videoRef.current) return null
 
   return (
@@ -632,7 +643,10 @@ const VideoEditor = ({
               'border-brand': mode === 'crop',
               'border-transparent': mode !== 'crop',
             })}
-            onClick={() => setMode(mode === 'crop' ? null : 'crop')}
+            onClick={() => {
+              logEvent(PageEvent.CropVideo)
+              setMode(mode === 'crop' ? null : 'crop')
+            }}
           >
             <img className="w-6" src={cropIcon} alt="Crop" />
           </DarkButton>
@@ -641,7 +655,10 @@ const VideoEditor = ({
               'border-brand': mode === 'trim',
               'border-transparent': mode !== 'trim',
             })}
-            onClick={() => setMode(mode === 'trim' ? null : 'trim')}
+            onClick={() => {
+              logEvent(PageEvent.TrimVideo)
+              setMode(mode === 'trim' ? null : 'trim')
+            }}
           >
             <img className="w-6" src={trim} alt="Trim" />
           </DarkButton>

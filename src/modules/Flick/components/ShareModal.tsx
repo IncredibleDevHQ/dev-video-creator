@@ -15,6 +15,12 @@ import {
   useUpdateParticipantRoleMutation,
 } from '../../../generated/graphql'
 import { User, userState } from '../../../stores/user.store'
+import { logEvent, logPage } from '../../../utils/analytics'
+import {
+  PageCategory,
+  PageEvent,
+  PageTitle,
+} from '../../../utils/analytics-types'
 import { newFlickStore } from '../store/flickNew.store'
 
 interface Invitee {
@@ -92,6 +98,9 @@ const ShareModal = ({
 
   const handleAddMember = async () => {
     try {
+      // Segment Tracking
+      logEvent(PageEvent.InviteCollaborator)
+
       await AddMemberToFlickMutation({
         variables: {
           email: invitee?.email as string,
@@ -135,6 +144,11 @@ const ShareModal = ({
     GetFlickParticipants()
   }, [addMemberData])
 
+  useEffect(() => {
+    // Segment Tracking
+    logPage(PageCategory.Studio, PageTitle.Invite)
+  }, [])
+
   const [UpdateParticipantRole] = useUpdateParticipantRoleMutation()
   const updateRole = async (
     participantId: string,
@@ -176,12 +190,12 @@ const ShareModal = ({
       center
       showCloseIcon={false}
     >
-      <Text className="text-gray-800 px-4 py-1 font-semibold text-sm">
+      <Text className="px-4 py-1 text-sm font-semibold text-gray-800">
         Invite
       </Text>
       <hr />
-      <div className="grid grid-cols-6 items-center mt-4 mb-12">
-        <div className="grid grid-cols-6 col-span-5 items-center">
+      <div className="grid items-center grid-cols-6 mt-4 mb-12">
+        <div className="grid items-center grid-cols-6 col-span-5">
           <Select
             className="col-span-4 text-xs"
             noOptionsMessage={() =>
@@ -210,7 +224,7 @@ const ShareModal = ({
             placeholder="Invite Collaborators"
           />
           <Select
-            className="pl-2 col-span-2 text-xs"
+            className="col-span-2 pl-2 text-xs"
             onChange={(value) =>
               setInvitee((prev) => ({
                 ...prev,
@@ -227,7 +241,7 @@ const ShareModal = ({
           />
         </div>
         <Button
-          className="ml-2 col-span-1"
+          className="col-span-1 ml-2"
           type="button"
           appearance="primary"
           size="small"
@@ -246,10 +260,10 @@ const ShareModal = ({
       </div>
       {flick?.participants.map((participant) => {
         return (
-          <div className="grid grid-cols-4 items-center" id={participant.id}>
-            <div className="flex flex-row my-1 col-span-3 items-center">
+          <div className="grid items-center grid-cols-4" id={participant.id}>
+            <div className="flex flex-row items-center col-span-3 my-1">
               <img
-                className="w-8 h-8 rounded-full border-2"
+                className="w-8 h-8 border-2 rounded-full"
                 src={participant.user.picture || ''}
                 alt={participant.user.displayName || ''}
               />
@@ -258,7 +272,7 @@ const ShareModal = ({
               </Text>
             </div>
             {participant.role === Participant_Role_Enum_Enum.Host ? (
-              <Text className="text-right text-xs">{participant.role}</Text>
+              <Text className="text-xs text-right">{participant.role}</Text>
             ) : (
               <Select
                 isDisabled={

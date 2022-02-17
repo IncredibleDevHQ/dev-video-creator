@@ -12,6 +12,9 @@ import {
   useGetThemesQuery,
 } from '../../generated/graphql'
 import { useCanvasRecorder } from '../../hooks'
+import { logPage } from '../../utils/analytics'
+import { PageCategory, PageTitle } from '../../utils/analytics-types'
+
 import { BlockProperties, ViewConfig } from '../../utils/configTypes'
 import { loadFonts } from '../Studio/hooks/use-load-font'
 import studioStore from '../Studio/stores/studio.store'
@@ -200,6 +203,14 @@ const Flick = () => {
       })
     }
   }, [])
+
+  useEffect(() => {
+    // Segment Tracking
+    logPage(
+      PageCategory.Studio,
+      view === View.Notebook ? PageTitle.Notebook : PageTitle.Preview
+    )
+  }, [view])
 
   useEffect(() => {
     if (!activeFragmentId || !flick) return

@@ -28,13 +28,13 @@ export const FragmentTypeIcon = ({ type }: { type: Block['type'] }) => {
             )
           case 'introBlock':
             return (
-              <Text className="w-full h-full text-center justify-center items-center flex text-gray-400 font-main text-xs">
+              <Text className="flex items-center justify-center w-full h-full text-xs text-center text-gray-400 font-main">
                 Title
               </Text>
             )
           case 'outroBlock':
             return (
-              <Text className="w-full h-full text-gray-400 font-main text-xs justify-center items-center flex ">
+              <Text className="flex items-center justify-center w-full h-full text-xs text-gray-400 font-main ">
                 Outro
               </Text>
             )
