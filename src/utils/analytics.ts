@@ -1,4 +1,5 @@
 import { Analytics } from '@segment/analytics-next'
+import config from '../config'
 import { PageCategory, PageEvent, PageTitle } from './analytics-types'
 
 declare global {
@@ -8,11 +9,17 @@ declare global {
 }
 
 export const logPage = (category: PageCategory, page: PageTitle) => {
-  window.analytics.page(category, page)
-  console.log('Segment : logPage => ', category, page)
+  if (config.node_env === 'production') {
+    window.analytics.page(category, page)
+  } else {
+    console.log('Segment : logPage => ', category, page)
+  }
 }
 
 export const logEvent = (eventName: PageEvent) => {
-  window.analytics.track(eventName)
-  console.log('Segment : logEvent => ', eventName)
+  if (config.node_env === 'production') {
+    window.analytics.track(eventName)
+  } else {
+    console.log('Segment : logEvent => ', eventName)
+  }
 }
