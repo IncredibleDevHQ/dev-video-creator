@@ -425,7 +425,7 @@ const Download = ({
                 )
                   await publishVideos()
               } else if (selectedFormats[0] === shorts) {
-                copyString = `<iframe src="${embedPlayerUrl}${flick?.joinLink}?orientation=portrait" width="180" height="320" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`
+                copyString = `<iframe src="${embedPlayerUrl}${flick?.joinLink}?orientation=${OrientationEnum.Portrait}" width="180" height="320" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`
                 if (
                   !flick?.contents?.find(
                     (content) => content.resource === shorts

@@ -1,3 +1,19 @@
+fragment MyNotification on Notifications {
+  id
+  type
+  isRead
+  createdAt
+  message
+  meta
+  metaType
+  sender {
+    sub
+    picture
+    displayName
+    username
+  }
+}
+
 query GetTokenisedCode($code: String!, $language: String!, $theme: String) {
   TokenisedCode(code: $code, language: $language, theme: $theme) {
     success
@@ -32,6 +48,70 @@ query GetFlickByJoinLink($joinLink: String!) {
 query GetImagesFromUnsplash($query: String!) {
   SearchUnsplash(query: $query) {
     results
+  }
+}
+
+query GetMyNotifications($limit: Int = 15) {
+  Notifications(order_by: { createdAt: desc }, limit: $limit) {
+    ...MyNotification
+  }
+}
+
+query GetAllMyNotifications {
+  Notifications(order_by: { createdAt: desc }) {
+    ...MyNotification
+  }
+}
+
+subscription MyUnreadNotificationsCount {
+  Notifications_aggregate(where: { isRead: { _eq: false } }) {
+    aggregate {
+      count
+    }
+  }
+}
+
+mutation MarkNotificationAsRead($id: uuid!) {
+  update_Notifications_by_pk(pk_columns: { id: $id }, _set: { isRead: true }) {
+    id
+  }
+}
+
+mutation CollaborateWithUser(
+  $receiverId: String!
+  $senderId: String!
+  $collaborationType: CollaborationTypes!
+  $contentType: ContentContainerTypes!
+  $isNew: Boolean!
+  $title: String
+  $description: String
+  $flickId: uuid
+  $seriesId: uuid
+  $message: String
+) {
+  Collaborate(
+    receiverId: $receiverId
+    senderId: $senderId
+    seriesId: $seriesId
+    title: $title
+    message: $message
+    isNew: $isNew
+    flickId: $flickId
+    description: $description
+    collaborationType: $collaborationType
+    contentType: $contentType
+  ) {
+    success
+  }
+}
+
+mutation AcceptCollaboration($notificationId: String!, $inviteId: String!) {
+  RespondToCollaboration(
+    inviteId: $inviteId
+    notificationId: $notificationId
+    status: Accepted
+  ) {
+    success
   }
 }
 

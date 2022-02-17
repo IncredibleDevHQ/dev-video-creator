@@ -4,7 +4,14 @@ import Cohere from 'cohere-js'
 import { ToastContainer } from 'react-toastify'
 import { BrowserRouter as Router, Route, Switch } from 'react-router-dom'
 import { ScreenState } from './components'
-import { Flick, GitHubCallback, Integrations, Landing, Studio } from './modules'
+import {
+  Dashboard,
+  Flick,
+  GitHubCallback,
+  Integrations,
+  Landing,
+  Studio,
+} from './modules'
 import AuthProvider from './utils/auth'
 import PrivateRoute from './utils/PrivateRoute'
 import AuthorizedApolloProvider from './utils/AuthorizedApolloProvider'
@@ -61,6 +68,7 @@ const App = () => {
                 <Route exact path="/">
                   <Landing />
                 </Route>
+                <PrivateRoute exact path="/dashboard" component={Dashboard} />
                 <PrivateRoute
                   exact
                   path="/flick/:id/:fragmentId?"
