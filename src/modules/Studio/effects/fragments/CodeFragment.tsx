@@ -20,6 +20,7 @@ import FragmentBackground from '../../components/FragmentBackground'
 import RenderTokens, {
   codeConfig,
   FragmentState,
+  getLineNumbers,
   getRenderedTokens,
   getTokens,
   Position,
@@ -236,7 +237,7 @@ const CodeFragment = ({
     setComputedTokens(
       initUseCode({
         tokens: [colorCodes],
-        canvasWidth: objectConfig.width - 120,
+        canvasWidth: objectConfig.width - 140,
         canvasHeight: objectRenderConfig.availableHeight - 20,
         gutter: 5,
         fontSize: codeConfig.fontSize,
@@ -395,26 +396,12 @@ const CodeFragment = ({
             </>
           ) : (
             <>
-              {computedTokens.length > 0 &&
-                computedTokens[0].length > 0 &&
-                getTokens(
-                  computedTokens[
-                    blockConfig?.[payload?.activeBlockIndex]?.fileIndex || 0
-                  ],
-                  computedTokens[
-                    blockConfig?.[payload?.activeBlockIndex]?.fileIndex || 0
-                  ][
-                    computedTokens[
-                      blockConfig?.[payload?.activeBlockIndex]?.fileIndex || 0
-                    ].find(
-                      (token) =>
-                        token.lineNumber ===
-                          (blockConfig &&
-                            blockConfig[activeBlockIndex] &&
-                            blockConfig[activeBlockIndex].from) || 0
-                    )?.startFromIndex || 0
-                  ]?.lineNumber
-                )}
+              {computedTokens.length > 0 && computedTokens[0].length > 0 && (
+                <>
+                  <Group x={-15}>{getLineNumbers(computedTokens[0])}</Group>
+                  <Group x={40}>{getTokens(computedTokens[0])}</Group>
+                </>
+              )}
               {highlightBlockCode && (
                 <Rect
                   x={-5}
@@ -490,18 +477,8 @@ const CodeFragment = ({
           y={objectRenderConfig.startY + 10}
           key="previewGroup"
         >
-          {getTokens(
-            computedTokens[0],
-            computedTokens[0][
-              computedTokens[0].find(
-                (token) =>
-                  token.lineNumber ===
-                    (blockConfig &&
-                      blockConfig[activeBlockIndex] &&
-                      blockConfig[activeBlockIndex].from) || 0
-              )?.startFromIndex || 0
-            ]?.lineNumber
-          )}
+          <Group x={-15}>{getLineNumbers(computedTokens[0])}</Group>
+          <Group x={40}>{getTokens(computedTokens[0])}</Group>
         </Group>
       )}
 
