@@ -31,6 +31,12 @@ import {
   useUpdateFlickThemeMutation,
 } from '../../../generated/graphql'
 import useDidUpdateEffect from '../../../hooks/use-did-update-effect'
+import { logEvent, logPage } from '../../../utils/analytics'
+import {
+  PageCategory,
+  PageEvent,
+  PageTitle,
+} from '../../../utils/analytics-types'
 import { ViewConfig } from '../../../utils/configTypes'
 import { TextEditorParser } from '../editor/utils/helpers'
 import { SimpleAST } from '../editor/utils/utils'
@@ -85,8 +91,16 @@ const ThemeTooltip = ({
     }
   }, [tempActiveTheme])
 
+  useEffect(() => {
+    if (activeScreen === 'themes') {
+      // Segment Tracking
+      logPage(PageCategory.Studio, PageTitle.Theme)
+    }
+  }, [activeScreen])
+
   const updateFlickTheme = async () => {
     if (!tempActiveTheme) return
+
     const { data } = await updateTheme({
       variables: {
         id: flickId,
@@ -100,6 +114,8 @@ const ThemeTooltip = ({
         title: 'Theme updated',
         description: `Current theme updated to ${tempActiveTheme.name} successfully`,
       })
+      // Segment Tracking
+      logEvent(PageEvent.ApplyTheme)
       handleClose()
     } else {
       emitToast({
@@ -118,7 +134,7 @@ const ThemeTooltip = ({
         `
       )}
     >
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <h4>
           <span
             className={cx('text-white cursor-pointer', {
@@ -157,11 +173,11 @@ const ThemeTooltip = ({
         <HorizontalContainer>
           {tempActiveTheme?.config?.previewImages?.map((image: string) => (
             <div
-              className="flex flex-shrink-0 items-center justify-center py-4 px-2"
+              className="flex items-center justify-center flex-shrink-0 px-2 py-4"
               key={image}
             >
               <img
-                className="border-2 border-gray-600 hover:border-brand rounded-md object-cover w-64 h-36 shadow-md"
+                className="object-cover w-64 border-2 border-gray-600 rounded-md shadow-md hover:border-brand h-36"
                 src={image ? baseUrl + image : ASSETS.ICONS.IncredibleLogo}
                 alt="incredible"
               />
@@ -173,17 +189,17 @@ const ThemeTooltip = ({
           {themes.map((theme) => (
             <div
               key={theme.name}
-              className="flex items-center justify-center py-4 relative"
+              className="relative flex items-center justify-center py-4"
               onClick={() => setTempActiveTheme(theme)}
             >
               {activeTheme?.name === theme.name && (
                 <IoCheckmark
                   size={24}
-                  className="absolute top-6 right-2 text-brand font-bold bg-brand-10 p-1 rounded-md"
+                  className="absolute p-1 font-bold rounded-md top-6 right-2 text-brand bg-brand-10"
                 />
               )}
               <img
-                className="border-2 border-gray-600 hover:border-brand rounded-md object-cover w-64 h-36 shadow-md"
+                className="object-cover w-64 border-2 border-gray-600 rounded-md shadow-md hover:border-brand h-36"
                 src={
                   theme.config.thumbnail
                     ? baseUrl + theme.config.thumbnail
@@ -340,8 +356,8 @@ const FragmentBar = ({
   }, [config.mode])
 
   return (
-    <div className="sticky flex items-center justify-between px-4 bg-dark-300 w-full z-50">
-      <div className="flex items-center justify-start text-dark-title py-2">
+    <div className="sticky z-50 flex items-center justify-between w-full px-4 bg-dark-300">
+      <div className="flex items-center justify-start py-2 text-dark-title">
         <Heading
           className={cx('cursor-pointer hover:text-white', {
             'text-white': view === View.Notebook,
@@ -365,24 +381,24 @@ const FragmentBar = ({
       </div>
       <div className="flex items-center h-full">
         {savingConfig && (
-          <div className="flex text-gray-400 items-center mr-4">
+          <div className="flex items-center mr-4 text-gray-400">
             <BsCloudUpload className="mr-1" />
             <Text fontSize="small">Saving...</Text>
           </div>
         )}
         {!savingConfig && !error && (
-          <div className="flex text-gray-400 items-center mr-4">
+          <div className="flex items-center mr-4 text-gray-400">
             <BsCloudCheck className="mr-1" />
             <Text fontSize="small">Saved</Text>
           </div>
         )}
         {error && (
-          <div className="flex text-red-400 items-center mr-4">
+          <div className="flex items-center mr-4 text-red-400">
             <IoWarningOutline className="mr-1" />
             <Text fontSize="small">Error saving</Text>
           </div>
         )}
-        <div className="flex justify-end items-stretch py-2 border-l-2 border-brand-grey">
+        <div className="flex items-stretch justify-end py-2 border-l-2 border-brand-grey">
           <Tooltip
             isOpen={themesModal}
             setIsOpen={setThemesModal}
@@ -405,11 +421,11 @@ const FragmentBar = ({
               icon={IoAlbumsOutline}
               onClick={() => setThemesModal(true)}
             >
-              <Text className=" text-sm font-main text-gray-100">Theme</Text>
+              <Text className="text-sm text-gray-100 font-main">Theme</Text>
             </Button>
           </Tooltip>
         </div>
-        <div className="flex h-full items-center justify-center">
+        <div className="flex items-center justify-center h-full">
           <Tooltip
             className="p-0 m-0"
             isOpen={isOpen}
@@ -419,7 +435,7 @@ const FragmentBar = ({
                 style={{
                   minWidth: '200px',
                 }}
-                className="bg-dark-300 rounded-md -mt-1 flex flex-col justify-center"
+                className="flex flex-col justify-center -mt-1 rounded-md bg-dark-300"
               >
                 {brandingData?.Branding.map((branding, index) => {
                   return (
@@ -432,13 +448,14 @@ const FragmentBar = ({
                         }
                       )}
                       onClick={() => {
+                        logEvent(PageEvent.SelectBrand)
                         setBrandingId(branding.id)
                         setUseBranding(true)
                         setIsOpen(false)
                       }}
                     >
                       <BrandIcon className="mr-2" />
-                      <Text className="font-body text-sm mr-4">
+                      <Text className="mr-4 text-sm font-body">
                         {branding.name}
                       </Text>
                       {branding.id === brandingId && useBranding && (
@@ -457,7 +474,7 @@ const FragmentBar = ({
                   }}
                 >
                   <BrandIcon className="mr-2" />
-                  <Text className="font-body text-sm mr-4">None</Text>
+                  <Text className="mr-4 text-sm font-body">None</Text>
                   {!useBranding && <BiCheck className="ml-auto" size={20} />}
                 </li>
                 {brandingData && brandingData.Branding.length > 0 && (
@@ -468,6 +485,8 @@ const FragmentBar = ({
                   type="button"
                   className="m-3"
                   onClick={() => {
+                    // Segment Tracking
+                    logEvent(PageEvent.OpenBrandingModal)
                     setBrandingModal(true)
                     setIsOpen(false)
                   }}
@@ -488,18 +507,22 @@ const FragmentBar = ({
               }}
             >
               <BrandIcon className="mr-2" />
-              <Text className=" text-sm font-main text-gray-100">Brand</Text>
+              <Text className="text-sm text-gray-100 font-main">Brand</Text>
             </Button>
           </Tooltip>
         </div>
-        <div className="flex justify-end items-stretch border-l-2 py-2 pl-4 border-brand-grey">
+        <div className="flex items-stretch justify-end py-2 pl-4 border-l-2 border-brand-grey">
           <Button
             appearance={config.mode === 'Landscape' ? 'gray' : 'none'}
             size="small"
             type="button"
             icon={IoDesktopOutline}
             className="mr-2 transition-colors"
-            onClick={() => setViewConfig({ ...config, mode: 'Landscape' })}
+            onClick={() => {
+              // Segment Tracking
+              logEvent(PageEvent.SelectLandscapeMode)
+              setViewConfig({ ...config, mode: 'Landscape' })
+            }}
           />
           <Button
             appearance={config.mode === 'Portrait' ? 'gray' : 'none'}
@@ -507,7 +530,11 @@ const FragmentBar = ({
             type="button"
             className="mr-4 transition-colors"
             icon={IoPhonePortraitOutline}
-            onClick={() => setViewConfig({ ...config, mode: 'Portrait' })}
+            onClick={() => {
+              // Segment Tracking
+              logEvent(PageEvent.SelectPortraitMode)
+              setViewConfig({ ...config, mode: 'Portrait' })
+            }}
           />
           {(fragment?.producedLink || fragment?.producedShortsLink) &&
             (mode === Content_Type_Enum_Enum.Video ||
@@ -530,6 +557,9 @@ const FragmentBar = ({
             type="button"
             disabled={checkDisabledState(fragment, simpleAST)}
             onClick={async () => {
+              // Segment Tracking
+              logEvent(PageEvent.GoToDeviceSelect)
+
               await updateConfig()
               history.push(`/${activeFragmentId}/studio`)
             }}

@@ -1,5 +1,6 @@
 import { useRef } from 'react'
 import Konva from 'konva'
+import { CodeAnimation } from '../../../utils/configTypes'
 
 interface Token {
   content: string
@@ -15,35 +16,12 @@ export interface ComputedToken extends Token {
 }
 
 const useCode = () => {
-  /**
-   *
-   * 1 // 1 2
-   * 2 // 3
-   * 3 // 4 5
-   * 4 // 6
-   */
-
   const computedLineNumber = useRef(0)
   const lineNumber = useRef(0)
-  const computedTokens = useRef<ComputedToken[]>([])
+  const computedTokens = useRef<ComputedToken[][]>([])
+  const fileComputedTokens = useRef<ComputedToken[]>([])
   const currentWidth = useRef(0)
   let startFromIndex = 0
-
-  /**
-   * 1. import
-   * 2. now time
-   * 3. this
-   * 4. ;
-   *
-   * computedLineNumber = 0
-   *
-   * l=1 c=1
-   * now l=2 c=2
-   * time l=2 c=3
-   * this l=3 c=4
-   * ; l=4 c=5
-   *
-   */
 
   const initUseCode = ({
     tokens,
@@ -52,64 +30,71 @@ const useCode = () => {
     gutter,
     fontSize,
     fontFamily,
+    codeAnimation,
   }: {
-    tokens: Token[]
+    tokens: Token[][]
     canvasWidth: number
     canvasHeight: number
     gutter: number
     fontSize: number
     fontFamily?: string
+    codeAnimation: CodeAnimation
   }) => {
     const layer = new Konva.Layer({ width: canvasWidth })
     computedTokens.current = []
-    computedLineNumber.current = 0
-    lineNumber.current = 0
-    currentWidth.current = 0
-    startFromIndex = 0
-
-    tokens.forEach((token, index) => {
-      if (lineNumber.current !== token.lineNumber) {
-        computedLineNumber.current += token.lineNumber - lineNumber.current
-        currentWidth.current = 0
-        if ((fontSize + gutter) * computedLineNumber.current > canvasHeight) {
-          computedLineNumber.current = 0
-          startFromIndex = index
+    tokens.forEach((fileTokens) => {
+      fileComputedTokens.current = []
+      computedLineNumber.current = 0
+      lineNumber.current = 0
+      currentWidth.current = 0
+      startFromIndex = 0
+      fileTokens.forEach((token, index) => {
+        if (lineNumber.current !== token.lineNumber) {
+          computedLineNumber.current += token.lineNumber - lineNumber.current
+          currentWidth.current = 0
+          if (codeAnimation === 'Type lines') {
+            if (
+              (fontSize + gutter) * computedLineNumber.current >
+              canvasHeight
+            ) {
+              computedLineNumber.current = 0
+              startFromIndex = index
+            }
+          }
+          lineNumber.current = token.lineNumber
         }
-        lineNumber.current = token.lineNumber
-      }
 
-      const text = new Konva.Text({ text: token.content, fontSize, fontFamily })
-      layer.add(text)
+        const text = new Konva.Text({
+          text: token.content,
+          fontSize,
+          fontFamily,
+        })
+        layer.add(text)
 
-      const width = text.textWidth
+        const width = text.textWidth
 
-      // Check for wrapping...
-      if (width + currentWidth.current > canvasWidth) {
-        // wrap
-        computedLineNumber.current += 1
-        currentWidth.current = 0
-      }
+        // Check for wrapping...
+        if (width + currentWidth.current > canvasWidth) {
+          // wrap
+          computedLineNumber.current += 1
+          currentWidth.current = 0
+        }
 
-      // console.log(text.measureSize(undefined))
+        const computedToken: ComputedToken = {
+          ...token,
+          x: currentWidth.current,
+          y: (fontSize + gutter) * computedLineNumber.current,
+          width,
+          startFromIndex,
+        }
 
-      // console.log(text)
-      // @ts-ignore
-      // const m = layer.getContext().measureText(text)
-      // console.log(m)
+        currentWidth.current += width
 
-      const computedToken: ComputedToken = {
-        ...token,
-        x: currentWidth.current,
-        y: (fontSize + gutter) * computedLineNumber.current,
-        width,
-        startFromIndex,
-      }
+        fileComputedTokens.current.push(computedToken)
 
-      currentWidth.current += width
-
-      computedTokens.current.push(computedToken)
-
-      text.destroy()
+        text.destroy()
+      })
+      computedTokens.current.push(fileComputedTokens.current)
     })
     return computedTokens.current
   }

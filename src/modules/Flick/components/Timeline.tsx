@@ -9,6 +9,8 @@ import { useRecoilValue } from 'recoil'
 import { ReactComponent as UserPlaceholder } from '../../../assets/StudioUser.svg'
 import { ReactComponent as TimelineIcon } from '../../../assets/Timeline.svg'
 import { Button, Text } from '../../../components'
+import { logEvent } from '../../../utils/analytics'
+import { PageEvent } from '../../../utils/analytics-types'
 import { BrandingInterface } from '../../Branding/BrandingPage'
 import { studioStore } from '../../Studio/stores'
 import { Block } from '../editor/utils/utils'
@@ -74,9 +76,15 @@ const Timeline = ({
             background-color: rgba(17, 24, 39, var(--tw-bg-opacity));
         `)
           )}
-          onClick={() => setShowTimeline(!showTimeline)}
+          onClick={() => {
+            // Segment Tracking
+            logEvent(
+              showTimeline ? PageEvent.OpenTimeLine : PageEvent.CloseTimeLine
+            )
+            setShowTimeline(!showTimeline)
+          }}
         >
-          <TimelineIcon className="h-6 w-6 mr-1" />
+          <TimelineIcon className="w-6 h-6 mr-1" />
           <Text className="text-sm">
             {showTimeline ? 'Close timeline' : 'Open timeline'}
           </Text>
@@ -85,7 +93,7 @@ const Timeline = ({
 
       {showTimeline && (
         <>
-          <div className="absolute right-0 h-full flex items-center">
+          <div className="absolute right-0 flex items-center h-full">
             <IoChevronForwardCircle
               className={cx(
                 'text-white hover:text-white opacity-40 hover:opacity-60 mr-1 cursor-pointer',
@@ -97,7 +105,7 @@ const Timeline = ({
               size={32}
             />
           </div>
-          <div className="absolute left-0 h-full flex items-center">
+          <div className="absolute left-0 flex items-center h-full">
             <IoChevronBackCircle
               className={cx(
                 'text-white hover:text-white opacity-40 hover:opacity-60 ml-1 cursor-pointer',

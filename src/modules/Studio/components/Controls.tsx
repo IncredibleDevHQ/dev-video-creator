@@ -5,6 +5,7 @@ import { FiPause, FiPlay, FiTarget } from 'react-icons/fi'
 import { IoChevronForwardOutline, IoListOutline } from 'react-icons/io5'
 import { useRecoilValue } from 'recoil'
 import { Text } from '../../../components'
+import { CodeAnimation } from '../../../utils/configTypes'
 import { ComputedToken } from '../hooks/use-code'
 import { StudioProviderProps, studioStore } from '../stores'
 import { FragmentState, Position } from './RenderTokens'
@@ -43,13 +44,13 @@ export const CodeJamControls = ({
   position,
   computedTokens,
   fragmentState,
-  isCodexFormat,
+  codeAnimation,
   noOfBlocks,
 }: {
   position: Position
   computedTokens: ComputedToken[]
   fragmentState?: FragmentState
-  isCodexFormat?: boolean
+  codeAnimation?: CodeAnimation
   noOfBlocks?: number
 }) => {
   const { payload, updatePayload, state } =
@@ -58,7 +59,7 @@ export const CodeJamControls = ({
     (state === 'recording' || state === 'ready') &&
     fragmentState === 'customLayout'
   )
-    if (isCodexFormat && noOfBlocks) {
+    if (codeAnimation === 'Highlight lines' && noOfBlocks) {
       return (
         <>
           <ControlButton

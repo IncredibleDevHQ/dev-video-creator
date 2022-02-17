@@ -28,6 +28,8 @@
     "@hocuspocus/provider": "^1.0.0-alpha.29",
     "@monaco-editor/react": "^4.3.1",
     "@samuelmeuli/font-manager": "^1.4.0",
+    "@segment/analytics-next": "^1.33.4",
+    "@segment/snippet": "^4.15.3",
     "@sentry/react": "^6.10.0",
     "@sentry/tracing": "^6.10.0",
     "@tailwindcss/forms": "^0.4.0",
