@@ -185,69 +185,57 @@ const AddVideo = ({
         switch (currentView) {
           case 'select':
             return (
-              <Dropzone
-                onDrop={(file) => {
-                  setVideoType('blob')
-                  handleDrop(file)
-                }}
-                accept="video/*"
-                maxFiles={1}
-              >
-                {({ getRootProps, getInputProps }) => (
-                  <div className="py-32 text-center" {...getRootProps()}>
-                    <Heading fontSize="medium" className="mb-16">
-                      Select a file{' '}
-                      <span
-                        className="mx-1 border-b-2 border-dotted cursor-pointer text-brand-75 hover:text-brand border-brand-75 hover:border-brand"
-                        onClick={() => {
-                          setVideoType('file')
-                          setCurrentView('record-or-upload')
-                        }}
-                      >
-                        locally
-                      </span>{' '}
-                      or{' '}
-                      <span
-                        className="mx-1 border-b-2 border-dotted cursor-pointer text-brand-75 hover:text-brand border-brand-75 hover:border-brand"
-                        onClick={() => {
-                          setVideoType('blob')
-                          setCurrentView('record-or-upload')
-                        }}
-                      >
-                        record
-                      </span>{' '}
-                      screen
-                    </Heading>
-                    <input {...getInputProps()} />
-                    <div className="flex items-center justify-center">
-                      <div
-                        className="flex flex-col items-center justify-center w-40 h-32 p-2 mx-4 text-gray-400 border-2 border-gray-400 rounded-md cursor-pointer hover:border-gray-50 hover:text-gray-50"
-                        onClick={() => {
-                          setVideoType('file')
-                          setCurrentView('record-or-upload')
-                        }}
-                      >
-                        <FiUploadCloud size={32} />
-                        <Text className="mt-4" fontSize="small">
-                          Upload a local Video
-                        </Text>
-                      </div>
-                      <div
-                        className="flex flex-col items-center justify-center w-40 h-32 p-2 mx-4 text-gray-400 border-2 border-gray-400 rounded-md cursor-pointer hover:border-gray-50 hover:text-gray-50"
-                        onClick={() => {
-                          setVideoType('blob')
-                          setCurrentView('record-or-upload')
-                        }}
-                      >
-                        <FiMonitor size={32} />
-                        <Text className="mt-4" fontSize="small">
-                          Record a screen
-                        </Text>
-                      </div>
-                    </div>
+              <div className="py-32 text-center">
+                <Heading fontSize="medium" className="mb-16">
+                  Select a file{' '}
+                  <span
+                    className="mx-1 border-b-2 border-dotted cursor-pointer text-brand-75 hover:text-brand border-brand-75 hover:border-brand"
+                    onClick={() => {
+                      setVideoType('file')
+                      setCurrentView('record-or-upload')
+                    }}
+                  >
+                    locally
+                  </span>{' '}
+                  or{' '}
+                  <span
+                    className="mx-1 border-b-2 border-dotted cursor-pointer text-brand-75 hover:text-brand border-brand-75 hover:border-brand"
+                    onClick={() => {
+                      setVideoType('blob')
+                      setCurrentView('record-or-upload')
+                    }}
+                  >
+                    record
+                  </span>{' '}
+                  screen
+                </Heading>
+                <div className="flex items-center justify-center">
+                  <div
+                    className="flex flex-col items-center justify-center w-40 h-32 p-2 mx-4 text-gray-400 border-2 border-gray-400 rounded-md cursor-pointer hover:border-gray-50 hover:text-gray-50"
+                    onClick={() => {
+                      setVideoType('file')
+                      setCurrentView('record-or-upload')
+                    }}
+                  >
+                    <FiUploadCloud size={32} />
+                    <Text className="mt-4" fontSize="small">
+                      Upload a local Video
+                    </Text>
                   </div>
-                )}
-              </Dropzone>
+                  <div
+                    className="flex flex-col items-center justify-center w-40 h-32 p-2 mx-4 text-gray-400 border-2 border-gray-400 rounded-md cursor-pointer hover:border-gray-50 hover:text-gray-50"
+                    onClick={() => {
+                      setVideoType('blob')
+                      setCurrentView('record-or-upload')
+                    }}
+                  >
+                    <FiMonitor size={32} />
+                    <Text className="mt-4" fontSize="small">
+                      Record a screen
+                    </Text>
+                  </div>
+                </div>
+              </div>
             )
           case 'record-or-upload':
             return videoType === 'file' ? (
@@ -345,7 +333,7 @@ const AddVideo = ({
                 <video
                   controls
                   src={URL.createObjectURL(video as File)}
-                  className="w-full h-full rounded-md"
+                  className="mt-4 mb-8 w-full h-3/4 rounded-md"
                 />
                 <div className="flex items-center justify-center w-full p-4 bg-gray-600 text-gray-50 absolute z-10 bottom-0 left-0">
                   <button
@@ -375,11 +363,11 @@ const AddVideo = ({
             ) : (
               <>
                 <video
-                  controls
                   src={URL.createObjectURL(video as Blob)}
-                  className="w-full h-full rounded-md"
+                  className="mt-4 mb-8 w-full h-3/4 rounded-md"
+                  controls
                 />
-                <div className="flex items-center justify-center w-full p-4 bg-gray-600 text-gray-50">
+                <div className="flex items-center justify-center w-full p-4 bg-gray-600 text-gray-50 absolute z-10 bottom-0 left-0">
                   <button
                     type="button"
                     className="flex px-1.5 py-1 text-sm rounded-sm items-center bg-gray-700 mx-1"
