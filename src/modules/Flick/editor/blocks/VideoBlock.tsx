@@ -280,6 +280,7 @@ const VideoBlock = (props: any) => {
           style={{
             width: divWidth,
             height: divHeight,
+            cursor: 'default',
           }}
         >
           <Stage
