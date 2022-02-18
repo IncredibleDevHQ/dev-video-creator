@@ -473,7 +473,7 @@ const handleCodeBlock = (
 
   switch (codeAnimation) {
     case CodeAnimation.HighlightLines: {
-      if (!noOfBlocks) return
+      if (noOfBlocks === undefined) return
       if (
         payload?.activeBlockIndex === noOfBlocks &&
         !payload?.focusBlockCode
