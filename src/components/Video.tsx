@@ -314,10 +314,10 @@ const Video = ({ className, src, ...rest }: VideoProps) => {
     linkElement.setAttribute('href', getLogo.destination)
     linkElement.setAttribute('title', getLogo.title)
     linkElement.setAttribute('target', getLogo.target)
-    const imageElement = document.createElement('img')
-    imageElement.className = 'vjs-image'
-    imageElement.src = getLogo.image
-    linkElement.appendChild(imageElement)
+    // const imageElement = document.createElement('img')
+    // imageElement.className = 'vjs-image'
+    // imageElement.src = getLogo.image
+    // linkElement.appendChild(imageElement)
     player?.controlBar
       ?.el()
       .insertBefore(linkElement, player.controlBar.el().lastChild)

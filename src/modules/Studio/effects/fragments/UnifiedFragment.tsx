@@ -2,7 +2,10 @@ import Konva from 'konva'
 import { nanoid } from 'nanoid'
 import React, { useEffect, useRef, useState } from 'react'
 import { useRecoilState, useRecoilValue } from 'recoil'
-import { ThemeFragment } from '../../../../generated/graphql'
+import {
+  Fragment_Status_Enum_Enum,
+  ThemeFragment,
+} from '../../../../generated/graphql'
 import {
   BlockProperties,
   TopLayerChildren,
@@ -153,13 +156,17 @@ const UnifiedFragment = ({
   useEffect(() => {
     return () => {
       updatePayload?.({
+        activeObjectIndex: 0,
         activeIntroIndex: 0,
-        activePointIndex: 0,
+        fragmentState: 'customLayout',
         currentIndex: 0,
-        currentTime: 0,
-        isFocus: false,
-        playing: false,
         prevIndex: 0,
+        isFocus: false,
+        focusBlockCode: false,
+        activeBlockIndex: 0,
+        activePointIndex: 0,
+        currentTime: 0,
+        playing: false,
         // status: Fragment_Status_Enum_Enum.NotStarted,
       })
     }
@@ -171,12 +178,15 @@ const UnifiedFragment = ({
         activeObjectIndex: 0,
         activeIntroIndex: 0,
         fragmentState: 'customLayout',
-        activePointIndex: 0,
         currentIndex: 0,
-        currentTime: 0,
-        isFocus: false,
-        playing: false,
         prevIndex: 0,
+        isFocus: false,
+        focusBlockCode: false,
+        activeBlockIndex: 0,
+        activePointIndex: 0,
+        currentTime: 0,
+        playing: false,
+        status: Fragment_Status_Enum_Enum.NotStarted,
       })
     }
     if (state === 'recording') {
@@ -184,12 +194,14 @@ const UnifiedFragment = ({
         activeObjectIndex: 0,
         activeIntroIndex: 0,
         fragmentState: 'customLayout',
-        activePointIndex: 0,
         currentIndex: 0,
-        currentTime: 0,
-        isFocus: false,
-        playing: false,
         prevIndex: 0,
+        isFocus: false,
+        focusBlockCode: false,
+        activeBlockIndex: 0,
+        activePointIndex: 0,
+        currentTime: 0,
+        playing: false,
       })
       setTopLayerChildren?.({ id: '', state: '' })
       timer.current = setTimeout(() => {

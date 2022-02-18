@@ -107,14 +107,9 @@ const RecordingControlsBar = ({
   shortsMode: boolean
 }) => {
   const {
-    constraints,
-    upload,
-    reset,
     state,
     fragment,
-    mute,
     participants,
-    updateParticipant,
     payload,
     updatePayload,
     participantId,
@@ -358,7 +353,7 @@ const RecordingControlsBar = ({
             updatePayload?.({
               activeObjectIndex: 0,
               activeIntroIndex: 0,
-              fragmentState: 'onlyUserMedia',
+              fragmentState: 'customLayout',
             })
           }}
         >
@@ -478,7 +473,7 @@ const handleCodeBlock = (
 
   switch (codeAnimation) {
     case CodeAnimation.HighlightLines: {
-      if (!noOfBlocks) return
+      if (noOfBlocks === undefined) return
       if (
         payload?.activeBlockIndex === noOfBlocks &&
         !payload?.focusBlockCode
