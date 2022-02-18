@@ -1154,13 +1154,24 @@ const Studio = ({
       ) : (
         <div className="flex items-center justify-center flex-col gap-y-12 w-full h-full">
           {recordedVideoSrc && (
-            <Video
-              className="w-3/4"
-              controls
-              autoPlay={false}
-              type="blob"
-              src={recordedVideoSrc}
-            />
+            <div
+              style={{
+                height: '80vh',
+                width: shortsMode
+                  ? `${window.innerHeight / 2.25}px`
+                  : `${window.innerWidth / 1.5}px`,
+              }}
+              className="flex justify-center items-center w-full"
+            >
+              <Video
+                height="auto"
+                className="w-full"
+                controls
+                autoPlay={false}
+                type="blob"
+                src={recordedVideoSrc}
+              />
+            </div>
           )}
 
           {state === 'preview' && (
@@ -1169,6 +1180,7 @@ const Studio = ({
                 className="bg-green-600 border-green-600 text-white border rounded-sm py-1.5 px-2.5 flex items-center gap-x-2 font-bold hover:shadow-lg text-sm"
                 type="button"
                 onClick={() => {
+                  logEvent(PageEvent.SaveRecording)
                   upload()
                   updatePayload?.({
                     status: Fragment_Status_Enum_Enum.Completed,
@@ -1183,6 +1195,7 @@ const Studio = ({
                 className="border-red-600 text-red-600 border rounded-sm py-1.5 px-2.5 flex items-center gap-x-2 font-bold hover:shadow-md text-sm"
                 type="button"
                 onClick={() => {
+                  logEvent(PageEvent.Retake)
                   reset()
                   updatePayload?.({
                     status: Fragment_Status_Enum_Enum.NotStarted,

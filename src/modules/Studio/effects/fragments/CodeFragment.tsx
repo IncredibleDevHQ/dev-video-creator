@@ -38,7 +38,7 @@ import {
 } from '../../utils/StudioUserConfig'
 import { ObjectRenderConfig, ThemeLayoutConfig } from '../../utils/ThemeConfig'
 
-const getColorCodes = async (
+export const getColorCodes = async (
   code: string,
   language: string,
   userToken: string,
@@ -203,20 +203,24 @@ const CodeFragment = ({
       viewConfig.view as CodeBlockView
     ).code
     ;(async () => {
-      try {
-        if (dataConfig.codeBlock.code) {
-          const token = await user?.getIdToken()
-          const { data } = await getColorCodes(
-            dataConfig.codeBlock.code,
-            dataConfig.codeBlock.language || '',
-            token || '',
-            codeBlockViewProps.theme
-          )
-          if (!data?.errors) setColorCodes(data.data.TokenisedCode.data)
+      if (dataConfig.codeBlock.colorCodes) {
+        setColorCodes(dataConfig.codeBlock.colorCodes)
+      } else {
+        try {
+          if (dataConfig.codeBlock.code) {
+            const token = await user?.getIdToken()
+            const { data } = await getColorCodes(
+              dataConfig.codeBlock.code,
+              dataConfig.codeBlock.language || '',
+              token || '',
+              codeBlockViewProps.theme
+            )
+            if (!data?.errors) setColorCodes(data.data.TokenisedCode.data)
+          }
+        } catch (e) {
+          console.error(e)
+          throw e
         }
-      } catch (e) {
-        console.error(e)
-        throw e
       }
     })()
     setCodeAnimation(codeBlockViewProps.animation)
