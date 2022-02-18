@@ -191,10 +191,6 @@ const VideoBlock = (props: any) => {
     }
   }, [])
 
-  useEffect(() => {
-    console.log({ currentSeekPosition })
-  }, [currentSeekPosition])
-
   if (!props.node.attrs.src)
     return (
       <NodeViewWrapper>
@@ -482,5 +478,3 @@ export default Node.create({
     return ReactNodeViewRenderer(VideoBlock)
   },
 })
-
-// FIXME: Not working with multiple videos. Mostly have to decouple stage from video element.
