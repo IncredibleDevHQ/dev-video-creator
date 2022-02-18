@@ -48,9 +48,9 @@ const LowerThridProvider = ({
             x={
               !isShorts
                 ? lowerThirdCoordinates({ position: 'right' })[0]
-                : SHORTS_CONFIG.width - 90
+                : SHORTS_CONFIG.width - 100
             }
-            y={!isShorts ? 450 : 630}
+            y={!isShorts ? 450 : 620}
             userName={displayName || ''}
             logo={branding?.logo || ''}
             color={branding?.background?.color?.primary || ''}
@@ -62,7 +62,7 @@ const LowerThridProvider = ({
               // eslint-disable-next-line react/no-array-index-key
               key={index}
               x={lowerThirdCoordinates({ position: 'right' })[index + 1]}
-              y={!isShorts ? 450 : 630}
+              y={!isShorts ? 450 : 620}
               userName={participants?.[user.uid]?.displayName || ''}
               logo={branding?.logo || ''}
               color={branding?.background?.color?.primary || ''}
@@ -76,12 +76,8 @@ const LowerThridProvider = ({
       return (
         <>
           <PastelLinesLowerThirds
-            x={
-              !isShorts
-                ? lowerThirdCoordinates({ position: 'left' })[0]
-                : SHORTS_CONFIG.width - 90
-            }
-            y={!isShorts ? 400 : 630}
+            x={!isShorts ? lowerThirdCoordinates({ position: 'left' })[0] : 45}
+            y={!isShorts ? 400 : 560}
             userName={displayName || ''}
             logo={branding?.logo || ''}
             color={branding?.background?.color?.primary || ''}
@@ -92,7 +88,7 @@ const LowerThridProvider = ({
               // eslint-disable-next-line react/no-array-index-key
               key={index}
               x={lowerThirdCoordinates({ position: 'left' })[index + 1]}
-              y={!isShorts ? 400 : 630}
+              y={!isShorts ? 400 : 560}
               userName={participants?.[user.uid]?.displayName || ''}
               logo={branding?.logo || ''}
               color={branding?.background?.color?.primary || ''}
