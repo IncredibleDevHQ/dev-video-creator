@@ -184,8 +184,58 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
   let prevCoreBlockPos = 0
   let blockPosition = 1
 
+  // console.log('state', state)
+
   state?.content?.forEach((slab, index) => {
-    if (slab.type === 'paragraph') {
+    if (slab.type === 'heading') {
+      const nextHeadingIndex = state.content?.findIndex(
+        (node, i) =>
+          i > index &&
+          node.type === 'heading' &&
+          node.attrs?.level === slab.attrs?.level
+      )
+      const nextBlockIndex = state.content?.findIndex(
+        (node, i) =>
+          i > index &&
+          (node.type === 'codeBlock' ||
+            node.type === 'video' ||
+            node.type === 'bulletList' ||
+            node.type === 'unorderedList' ||
+            node.type === 'image')
+      )
+
+      const pushBlock = () => {
+        blocks.push({
+          type: 'imageBlock',
+          id: slab.attrs?.id,
+          pos: blockPosition,
+          nodeIds: [slab.attrs?.id],
+          imageBlock: {
+            title: textContent(slab.content),
+          },
+        })
+      }
+      if (
+        nextBlockIndex &&
+        nextHeadingIndex &&
+        nextBlockIndex > nextHeadingIndex
+      ) {
+        pushBlock()
+      }
+
+      if (
+        nextHeadingIndex &&
+        (nextBlockIndex === undefined || nextBlockIndex < 0)
+      ) {
+        pushBlock()
+      }
+      if (
+        (nextHeadingIndex === undefined || nextHeadingIndex < 0) &&
+        (nextBlockIndex === undefined || nextBlockIndex < 0)
+      ) {
+        pushBlock()
+      }
+    } else if (slab.type === 'paragraph') {
       slab.content?.forEach((node) => {
         if (node.type === 'image') {
           const url = node?.attrs?.src
