@@ -1154,13 +1154,24 @@ const Studio = ({
       ) : (
         <div className="flex items-center justify-center flex-col gap-y-12 w-full h-full">
           {recordedVideoSrc && (
-            <Video
-              className="w-3/4"
-              controls
-              autoPlay={false}
-              type="blob"
-              src={recordedVideoSrc}
-            />
+            <div
+              style={{
+                height: '80vh',
+                width: shortsMode
+                  ? `${window.innerHeight / 2.25}px`
+                  : `${window.innerWidth / 1.5}px`,
+              }}
+              className="flex justify-center items-center w-full"
+            >
+              <Video
+                height="auto"
+                className="w-full"
+                controls
+                autoPlay={false}
+                type="blob"
+                src={recordedVideoSrc}
+              />
+            </div>
           )}
 
           {state === 'preview' && (
