@@ -189,10 +189,7 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
   state?.content?.forEach((slab, index) => {
     if (slab.type === 'heading') {
       const nextHeadingIndex = state.content?.findIndex(
-        (node, i) =>
-          i > index &&
-          node.type === 'heading' &&
-          node.attrs?.level === slab.attrs?.level
+        (node, i) => i > index && node.type === 'heading'
       )
       const nextBlockIndex = state.content?.findIndex(
         (node, i) =>
@@ -200,7 +197,7 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
           (node.type === 'codeBlock' ||
             node.type === 'video' ||
             node.type === 'bulletList' ||
-            node.type === 'unorderedList' ||
+            node.type === 'orderedList' ||
             node.type === 'image')
       )
 
@@ -221,15 +218,12 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
         nextBlockIndex > nextHeadingIndex
       ) {
         pushBlock()
-      }
-
-      if (
+      } else if (
         nextHeadingIndex &&
         (nextBlockIndex === undefined || nextBlockIndex < 0)
       ) {
         pushBlock()
-      }
-      if (
+      } else if (
         (nextHeadingIndex === undefined || nextHeadingIndex < 0) &&
         (nextBlockIndex === undefined || nextBlockIndex < 0)
       ) {
