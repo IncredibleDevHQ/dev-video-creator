@@ -55,7 +55,7 @@ const GlassySplash = ({
         isShorts={isShorts}
       />
       <Text
-        x={40}
+        x={!isShorts ? 40 : 20}
         y={0}
         width={!isShorts ? 400 : 350}
         height={stageConfig.height}

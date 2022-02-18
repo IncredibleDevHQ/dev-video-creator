@@ -36,12 +36,16 @@ const Timer = ({ target, timer }: { target: number; timer: number }) => {
 
   return (
     <div
-      className={cx('flex px-2 py-1 rounded-sm', {
-        'bg-brand-10': timerState === 'onTime' || timerState === 'noTarget',
-        'bg-error-10': timerState === 'closeShave' || timerState === 'overtime',
-      })}
+      className={cx(
+        'flex rounded-sm justify-center w-full'
+        // {
+        //   'bg-brand-10': timerState === 'onTime' || timerState === 'noTarget',
+        //   'bg-error-10': timerState === 'closeShave' || timerState === 'overtime',
+        // }
+      )}
     >
-      {(() => {
+      <Text className="text-sm text-gray-300">{formatTime(timer)}</Text>
+      {/* {(() => {
         switch (timerState) {
           case 'noTarget':
             return (
@@ -53,16 +57,12 @@ const Timer = ({ target, timer }: { target: number; timer: number }) => {
             return (
               <Text className="text-sm text-brand font-semibold">
                 <span>{formatTime(timer)}</span>
-                <span>/</span>
-                <span>{formatTime(target)}</span>
               </Text>
             )
           case 'closeShave':
             return (
               <Text className="text-sm text-error font-semibold animate-pulse">
                 <span>{formatTime(timer)}</span>
-                <span>/</span>
-                <span>{formatTime(target)}</span>
               </Text>
             )
           case 'overtime':
@@ -74,7 +74,7 @@ const Timer = ({ target, timer }: { target: number; timer: number }) => {
           default:
             return null
         }
-      })()}
+      })()} */}
     </div>
   )
 }

@@ -2,7 +2,10 @@ import Konva from 'konva'
 import { nanoid } from 'nanoid'
 import React, { useEffect, useRef, useState } from 'react'
 import { useRecoilState, useRecoilValue } from 'recoil'
-import { ThemeFragment } from '../../../../generated/graphql'
+import {
+  Fragment_Status_Enum_Enum,
+  ThemeFragment,
+} from '../../../../generated/graphql'
 import {
   BlockProperties,
   TopLayerChildren,
@@ -68,7 +71,7 @@ const UnifiedFragment = ({
 
   // state of the fragment
   const [fragmentState, setFragmentState] =
-    useState<FragmentState>('onlyUserMedia')
+    useState<FragmentState>('customLayout')
 
   const [isPreview, setIsPreview] = useState(false)
 
@@ -128,28 +131,42 @@ const UnifiedFragment = ({
         theme,
       })
     }
-    updatePayload?.({
-      activeObjectIndex: 0,
-      activeIntroIndex: 0,
-    })
   }, [fragment])
 
   useEffect(() => {
-    setTimeout(() => {
+    if (
+      payload?.activeObjectIndex === undefined ||
+      payload?.activeObjectIndex === -1
+    )
+      return
+    // having a condition on state because on retake initially the active object index will be 3
+    // and it goes to the else case, and at the same time upload payload triggers
+    // and makes the active object index 0 which goes inside the if block,
+    // as the else block contains set timeout it executes after the if block, so active object index becomes 3
+    // so put the condition on state to be recording so that on recording it deosnt take time to make the active object index 0,
+    // so that the old active object index's object doesnt get rendered on the canvas initially
+    if (state === 'recording' && payload?.activeObjectIndex === 0)
       setActiveObjectIndex(payload?.activeObjectIndex)
-    }, 800)
+    else
+      setTimeout(() => {
+        setActiveObjectIndex(payload?.activeObjectIndex)
+      }, 800)
   }, [payload?.activeObjectIndex])
 
   useEffect(() => {
     return () => {
       updatePayload?.({
+        activeObjectIndex: 0,
         activeIntroIndex: 0,
-        activePointIndex: 0,
+        fragmentState: 'customLayout',
         currentIndex: 0,
-        currentTime: 0,
-        isFocus: false,
-        playing: false,
         prevIndex: 0,
+        isFocus: false,
+        focusBlockCode: false,
+        activeBlockIndex: 0,
+        activePointIndex: 0,
+        currentTime: 0,
+        playing: false,
         // status: Fragment_Status_Enum_Enum.NotStarted,
       })
     }
@@ -158,14 +175,33 @@ const UnifiedFragment = ({
   useEffect(() => {
     if (state === 'ready') {
       updatePayload?.({
-        fragmentState: 'onlyUserMedia',
+        activeObjectIndex: 0,
+        activeIntroIndex: 0,
+        fragmentState: 'customLayout',
+        currentIndex: 0,
+        prevIndex: 0,
+        isFocus: false,
+        focusBlockCode: false,
+        activeBlockIndex: 0,
+        activePointIndex: 0,
+        currentTime: 0,
+        playing: false,
+        status: Fragment_Status_Enum_Enum.NotStarted,
       })
     }
     if (state === 'recording') {
       updatePayload?.({
         activeObjectIndex: 0,
         activeIntroIndex: 0,
-        fragmentState: 'onlyUserMedia',
+        fragmentState: 'customLayout',
+        currentIndex: 0,
+        prevIndex: 0,
+        isFocus: false,
+        focusBlockCode: false,
+        activeBlockIndex: 0,
+        activePointIndex: 0,
+        currentTime: 0,
+        playing: false,
       })
       setTopLayerChildren?.({ id: '', state: '' })
       timer.current = setTimeout(() => {

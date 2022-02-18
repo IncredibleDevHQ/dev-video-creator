@@ -1,10 +1,23 @@
 /* eslint-disable jsx-a11y/media-has-caption */
 import axios from 'axios'
 import React, { useEffect, useState } from 'react'
+import { useAuthState } from 'react-firebase-hooks/auth'
+import { useRecoilValue } from 'recoil'
 import { ScreenState } from '../../../components'
 import { StudioFragmentFragment } from '../../../generated/graphql'
+import firebaseState from '../../../stores/firebase.store'
+import {
+  CodeBlockView,
+  CodeTheme,
+  ViewConfig,
+} from '../../../utils/configTypes'
 import { BrandingJSON } from '../../Branding/BrandingPage'
-import { SimpleAST } from '../../Flick/editor/utils/utils'
+import {
+  SimpleAST,
+  CodeBlock,
+  CodeBlockProps,
+} from '../../Flick/editor/utils/utils'
+import { getColorCodes } from '../effects/fragments/CodeFragment'
 
 const Preload = ({
   fragment,
@@ -21,9 +34,16 @@ const Preload = ({
 }) => {
   const [loaded, setLoaded] = useState(false)
   const [progress, setProgress] = useState(0)
+  const { auth } = useRecoilValue(firebaseState)
+  const [user] = useAuthState(auth)
+
+  const performPreload = async () => {
+    const token = await user?.getIdToken()
+    preload({ fragment, setLoaded, setFragment, setProgress, token })
+  }
 
   useEffect(() => {
-    preload({ fragment, setLoaded, setFragment, setProgress })
+    performPreload()
   }, [])
 
   useEffect(() => {
@@ -41,6 +61,7 @@ const preload = async ({
   setFragment,
   setLoaded,
   setProgress,
+  token,
 }: {
   fragment: StudioFragmentFragment
   setFragment: React.Dispatch<
@@ -48,6 +69,7 @@ const preload = async ({
   >
   setLoaded: React.Dispatch<React.SetStateAction<boolean>>
   setProgress: React.Dispatch<React.SetStateAction<number>>
+  token: string | undefined
 }) => {
   let { editorState } = fragment
   let branding = fragment.flick.branding?.branding
@@ -55,11 +77,15 @@ const preload = async ({
   const promises: Promise<{
     key: string
     url: string | undefined
+    colorCodes: any | undefined
   }>[] = []
 
   if (editorState) {
     const mediaBlocks = (editorState as SimpleAST).blocks.filter(
       (block) => block.type === 'imageBlock' || block.type === 'videoBlock'
+    )
+    const codeBlocks = (editorState as SimpleAST).blocks.filter(
+      (block) => block.type === 'codeBlock'
     )
     promises.push(
       ...mediaBlocks.map((block) => {
@@ -71,6 +97,20 @@ const preload = async ({
           url = block.videoBlock.url as string
         }
         return fetcher(id, url)
+      })
+    )
+    promises.push(
+      ...codeBlocks.map((block) => {
+        const { id } = block
+        const codeBlockViewProps = (fragment?.configuration as ViewConfig)
+          .blocks[id].view as CodeBlockView
+        return fetcher(
+          id,
+          undefined,
+          (block as CodeBlockProps).codeBlock,
+          codeBlockViewProps.code.theme,
+          token
+        )
       })
     )
   }
@@ -86,7 +126,13 @@ const preload = async ({
 
   let loaded = 0
 
-  function tick(promise: Promise<{ key: string; url: string | undefined }>) {
+  function tick(
+    promise: Promise<{
+      key: string
+      url: string | undefined
+      colorCodes: any | undefined
+    }>
+  ) {
     promise.then(() => {
       loaded += 1
       setProgress((loaded / promises.length) * 100)
@@ -115,6 +161,16 @@ const preload = async ({
               videoBlock: {
                 ...block.videoBlock,
                 url: result.find((res) => res?.key === block.id)?.url,
+              },
+            }
+          }
+          if (block.type === 'codeBlock') {
+            return {
+              ...block,
+              codeBlock: {
+                ...block.codeBlock,
+                colorCodes: result.find((res) => res?.key === block.id)
+                  ?.colorCodes,
               },
             }
           }
@@ -148,7 +204,38 @@ const preload = async ({
   })
 }
 
-const fetcher = async (key: string, url: string | undefined) => {
+const fetcher = async (
+  key: string,
+  url: string | undefined,
+  codeBlock?: CodeBlock,
+  codeTheme?: CodeTheme,
+  userToken?: string | undefined
+) => {
+  if (codeBlock) {
+    try {
+      if (!codeBlock.code) throw Error('No code')
+      if (!userToken) throw Error('No user token')
+      const { data } = await getColorCodes(
+        codeBlock.code as string,
+        codeBlock.language || 'javascript',
+        userToken,
+        codeTheme || CodeTheme.DarkPlus
+      )
+      if (data?.errors) throw Error("Can't get color codes")
+      return {
+        key,
+        url,
+        colorCodes: data.data.TokenisedCode.data,
+      }
+    } catch (e) {
+      console.error(e)
+      return {
+        key,
+        url,
+        colorCodes: undefined,
+      }
+    }
+  }
   try {
     if (!url) throw Error('url is undefined')
     const response = await axios.get(url, {
@@ -158,11 +245,14 @@ const fetcher = async (key: string, url: string | undefined) => {
     return {
       key,
       url: blobUrl,
+      colorCodes: undefined,
     }
   } catch (e) {
+    console.error(e)
     return {
       key,
       url,
+      colorCodes: undefined,
     }
   }
 }

@@ -1,23 +1,15 @@
 import 'gifler'
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Image } from 'react-konva'
 
 const Gif = ({
-  src,
-  // maxWidth,
-  // maxHeight,
-  // availableWidth,
-  // availableHeight,
+  image,
   x,
   y,
   width,
   height,
 }: {
-  src: HTMLImageElement | undefined | string
-  // maxWidth: number
-  // maxHeight: number
-  // availableWidth: number
-  // availableHeight: number
+  image: HTMLImageElement | undefined
   x: number
   y: number
   width: number
@@ -28,56 +20,42 @@ const Gif = ({
     const node = document.createElement('canvas')
     return node
   }, [])
-  // const { getImageDimensions } = useEdit()
-  // const [imgDim, setImgDim] = useState<{
-  //   width: number
-  //   height: number
-  //   x: number
-  //   y: number
-  // }>({ width: 0, height: 0, x: 0, y: 0 })
+
+  const [startGif, setStartGif] = useState(false)
 
   useEffect(() => {
     let anim: any
-    ;(window as any).gifler(src).get((a: any) => {
-      anim = a
-      anim.animateInCanvas(canvas)
-      anim.onDrawFrame = (ctx: any, frame: any) => {
-        ctx.drawImage(frame.buffer, frame.x, frame.y)
-        imageRef.current?.getLayer().draw()
-      }
-    })
+    setTimeout(() => {
+      setStartGif(true)
+      ;(window as any).gifler(image?.src).get((a: any) => {
+        anim = a
+        anim.animateInCanvas(canvas)
+        anim.onDrawFrame = (ctx: any, frame: any) => {
+          ctx.drawImage(frame.buffer, frame.x, frame.y)
+          imageRef.current?.getLayer().draw()
+        }
+      })
+    }, 1250)
     return () => anim?.stop()
-  }, [src, canvas])
+  }, [image, canvas])
 
-  // useEffect(() => {
-  //   setImgDim(
-  //     getImageDimensions(
-  //       {
-  //         w: (canvas && canvas.width) || 0,
-  //         h: (canvas && canvas.height) || 0,
-  //       },
-  //       maxWidth,
-  //       maxHeight,
-  //       availableWidth,
-  //       availableHeight,
-  //       x,
-  //       y
-  //     )
-  //   )
-  // }, [canvas])
-
-  return (
-    <Image
-      image={canvas}
-      ref={imageRef}
-      x={x}
-      y={y}
-      width={width}
-      height={height}
-      // shadowOpacity={0.3}
-      // shadowOffset={{ x: 0, y: 1 }}
-      // shadowBlur={2}
-    />
+  return startGif ? (
+    <>
+      <Image image={image} x={x} y={y} width={width} height={height} />
+      <Image
+        image={canvas}
+        ref={imageRef}
+        x={x}
+        y={y}
+        width={width}
+        height={height}
+        // shadowOpacity={0.3}
+        // shadowOffset={{ x: 0, y: 1 }}
+        // shadowBlur={2}
+      />
+    </>
+  ) : (
+    <Image image={image} x={x} y={y} width={width} height={height} />
   )
 }
 

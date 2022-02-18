@@ -333,9 +333,9 @@ const AddVideo = ({
                 <video
                   controls
                   src={URL.createObjectURL(video as File)}
-                  className="w-full h-full rounded-md"
+                  className="my-auto w-full h-3/4 rounded-md"
                 />
-                <div className="flex items-center justify-center w-full p-4 bg-gray-600 text-gray-50">
+                <div className="flex items-center justify-center w-full p-4 bg-gray-600 text-gray-50 absolute z-10 bottom-0 left-0">
                   <button
                     type="button"
                     className="flex px-1.5 py-1 text-sm rounded-sm items-center bg-gray-700 mx-1"
@@ -363,11 +363,11 @@ const AddVideo = ({
             ) : (
               <>
                 <video
-                  controls
                   src={URL.createObjectURL(video as Blob)}
-                  className="w-full h-full rounded-md"
+                  className="my-auto w-full h-3/4 rounded-md"
+                  controls
                 />
-                <div className="flex items-center justify-center w-full p-4 bg-gray-600 text-gray-50">
+                <div className="flex items-center justify-center w-full p-4 bg-gray-600 text-gray-50 absolute z-10 bottom-0 left-0">
                   <button
                     type="button"
                     className="flex px-1.5 py-1 text-sm rounded-sm items-center bg-gray-700 mx-1"
@@ -430,7 +430,7 @@ const AddVideo = ({
             }
 
             return (
-              <div className="flex items-center justify-center w-full h-full">
+              <div className="flex-1 my-auto flex items-center justify-center w-full h-full">
                 <VideoEditor
                   handleAction={(transformations) => {
                     handleUpdateVideo?.(videoURL, transformations)

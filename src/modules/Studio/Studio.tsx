@@ -10,10 +10,10 @@ import Konva from 'konva'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import AspectRatio from 'react-aspect-ratio'
 import { BiErrorCircle, BiMicrophone, BiVideo } from 'react-icons/bi'
-import { FiArrowRight } from 'react-icons/fi'
-import { IoChevronBack } from 'react-icons/io5'
+import { IoCheckmarkOutline } from 'react-icons/io5'
 import { Group, Layer, Stage } from 'react-konva'
 import { useHistory, useParams } from 'react-router-dom'
+import useMeasure from 'react-use-measure'
 import {
   useRecoilBridgeAcrossReactRoots_UNSTABLE,
   useRecoilState,
@@ -26,9 +26,9 @@ import {
   EmptyState,
   Heading,
   ScreenState,
-  Text,
   TextField,
   updateToast,
+  Video,
 } from '../../components'
 import { Images } from '../../constants'
 import {
@@ -45,14 +45,17 @@ import { useCanvasRecorder } from '../../hooks'
 import { useUploadFile } from '../../hooks/use-upload-file'
 import { User, userState } from '../../stores/user.store'
 import { TopLayerChildren, ViewConfig } from '../../utils/configTypes'
+import { logEvent } from '../../utils/analytics'
+import { PageEvent } from '../../utils/analytics-types'
 import { BrandingJSON } from '../Branding/BrandingPage'
+import { useGetHW } from '../Flick/components/BlockPreview'
 import { TextEditorParser } from '../Flick/editor/utils/helpers'
 import {
-  CodeBlock,
   CodeBlockProps,
   ImageBlockProps,
-  ListBlock,
   ListBlockProps,
+  SimpleAST,
+  useUtils,
   VideoBlockProps,
 } from '../Flick/editor/utils/utils'
 import { Countdown } from './components'
@@ -61,12 +64,6 @@ import {
   GetTopLayerChildren,
   SHORTS_CONFIG,
 } from './components/Concourse'
-import {
-  CodeJamControls,
-  PointsControls,
-  TriviaControls,
-  VideoJamControls,
-} from './components/Controls'
 import PermissionError from './components/PermissionError'
 import Preload from './components/Preload'
 import RecordingControlsBar from './components/RecordingControlsBar'
@@ -76,6 +73,14 @@ import { loadFonts } from './hooks/use-load-font'
 import { Device, MediaStreamError } from './hooks/use-media-stream'
 import { useRTDB } from './hooks/use-rtdb'
 import { StudioProviderProps, StudioState, studioStore } from './stores'
+import { ReactComponent as ReRecordIcon } from '../../assets/ReRecord.svg'
+import { ReactComponent as UploadIcon } from '../../assets/Upload.svg'
+
+const noScrollBar = css`
+  ::-webkit-scrollbar {
+    display: none;
+  }
+`
 
 const StudioHoC = () => {
   const [view, setView] = useState<'preview' | 'preload' | 'studio'>('preload')
@@ -423,7 +428,10 @@ const Preview = ({
               const camera = devices.videoDevices.find(
                 (device) => device.id === e.target.value
               )
-              if (camera) setDevice('camera', camera)
+              if (camera) {
+                setDevice('camera', camera)
+                logEvent(PageEvent.ChangeCamera)
+              }
             }}
           >
             {devices.videoDevices.map((camera) => (
@@ -443,7 +451,10 @@ const Preview = ({
               const microphone = devices.audioDevices.find(
                 (device) => device.id === e.target.value
               )
-              if (microphone) setDevice('microphone', microphone)
+              if (microphone) {
+                logEvent(PageEvent.ChangeMicrophone)
+                setDevice('microphone', microphone)
+              }
             }}
           >
             {devices.audioDevices.map((microphone) => (
@@ -515,7 +526,7 @@ const Studio = ({
   branding?: BrandingJSON | null
 }) => {
   const { fragmentId } = useParams<{ fragmentId: string }>()
-  const { constraints, controlsConfig, theme } =
+  const { constraints, theme } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [studio, setStudio] = useRecoilState(studioStore)
   const { sub } = (useRecoilValue(userState) as User) || {}
@@ -529,14 +540,31 @@ const Studio = ({
   const stageRef = useRef<Konva.Stage>(null)
   const layerRef = useRef<Konva.Layer>(null)
   const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
-  Konva.pixelRatio = 2
-
-  const [stageConfig, setStageConfig] = useState<{
-    width: number
-    height: number
-  }>({ width: 0, height: 0 })
 
   const [shortsMode, setShortsMode] = useState(false)
+
+  const [stageBoundingDivRef, bounds] = useMeasure()
+
+  const [mountStage, setMountStage] = useState(false)
+
+  const { height: stageHeight, width: stageWidth } = useGetHW({
+    maxH: bounds.height,
+    maxW: bounds.width,
+    aspectRatio: shortsMode ? 9 / 16 : 16 / 9,
+  })
+
+  useEffect(() => {
+    if (!stageWidth) return
+    // console.log('hey pixel ratio', stageWidth, 1920 / stageWidth)
+    // console.log(
+    //   Number(stageWidth.toFixed(3)),
+    //   1920 / Number(stageWidth.toFixed(3))
+    // )
+    Konva.pixelRatio =
+      (shortsMode ? 1080 : 1920) / Number(stageWidth.toFixed(3))
+    setMountStage(true)
+    // console.log('hey pixelRatio2', Konva.pixelRatio)
+  }, [stageWidth])
 
   const tracksRef = useRef<[IMicrophoneAudioTrack, ICameraVideoTrack] | null>(
     null
@@ -546,10 +574,8 @@ const Studio = ({
     if (!fragment) return
     const viewConfig: ViewConfig = fragment.configuration
     if (viewConfig?.mode === 'Portrait') {
-      setStageConfig(SHORTS_CONFIG)
       setShortsMode(true)
     } else {
-      setStageConfig(CONFIG)
       setShortsMode(false)
     }
   }, [fragment])
@@ -709,7 +735,6 @@ const Studio = ({
 
   const upload = async () => {
     setState('upload')
-
     const toastProps = {
       title: 'Pushing pixels...',
       type: 'info',
@@ -899,7 +924,6 @@ const Studio = ({
   const getNote = (activeObjectIndex: number | undefined) => {
     if (!fragment || activeObjectIndex === undefined) return ''
     const blocks = fragment.editorState?.blocks
-
     switch (blocks[activeObjectIndex].type) {
       case 'codeBlock':
         return (blocks[activeObjectIndex] as CodeBlockProps).codeBlock.note
@@ -920,6 +944,56 @@ const Studio = ({
     state: TopLayerChildren
   }>({ id: '', state: '' })
 
+  const utils = useUtils()
+
+  const timelineRef = useRef<HTMLDivElement>(null)
+
+  function isInViewport(element: HTMLElement) {
+    const rect = element.getBoundingClientRect()
+    return (
+      rect.top >= 0 &&
+      rect.left >= 0 &&
+      rect.bottom <=
+        (window.innerHeight || document.documentElement.clientHeight) &&
+      rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+    )
+  }
+
+  useEffect(() => {
+    const block = fragment?.editorState?.blocks?.[payload?.activeObjectIndex]
+    if (!block) return
+    const ele = document.getElementById(`timeline-block-${block.id}`)
+    if (!ele) return
+    if (!isInViewport(ele) && timelineRef.current) {
+      let scrollAmount = 0
+      const slideTimer = setInterval(() => {
+        if (!timelineRef.current) return
+        timelineRef.current.scrollLeft += 100
+        scrollAmount += 100
+        if (scrollAmount >= 1000) {
+          window.clearInterval(slideTimer)
+        }
+      }, 25)
+    }
+  }, [payload?.activeObjectIndex])
+
+  const [recordedVideoSrc, setRecordedVideoSrc] = useState<string>()
+
+  const prepareVideo = async () => {
+    if (state === 'preview') {
+      const blob = await getBlobs()
+      const url = URL.createObjectURL(blob)
+      setRecordedVideoSrc(url)
+    }
+    if (state !== 'preview' && state !== 'upload') {
+      setRecordedVideoSrc(undefined)
+    }
+  }
+
+  useEffect(() => {
+    prepareVideo()
+  }, [state])
+
   /**
    * =======================
    * END EVENT HANDLERS...
@@ -937,218 +1011,204 @@ const Studio = ({
   if (!ready) return <ScreenState loading />
 
   return (
-    <div className="w-full h-screen">
-      {/* Bottom bar with details and global controls */}
-      <div className="fixed top-0 z-20 flex justify-center w-full px-10 py-4 bg-gray-50">
-        <div
-          role="button"
-          tabIndex={0}
-          onKeyUp={() => {}}
-          className="absolute flex items-center rounded-md cursor-pointer left-4 bottom-3 hover:bg-gray-100"
-          onClick={() => history.goBack()}
-        >
-          <IoChevronBack size={24} className="mr-4" />
-          <div>
-            <Heading className="font-semibold text-gray-800 text-md">
-              {fragment.flick.name.length > 40
-                ? `${fragment.flick.name.substring(0, 40)}...`
-                : fragment.flick.name}
-            </Heading>
-            <Text className="text-gray-500 text-md">
-              {fragment.name && fragment.name.length > 20
-                ? `${fragment.name.substring(0, 20)}...`
-                : fragment.name}
-            </Text>
-          </div>
-        </div>
-        <RecordingControlsBar />
-      </div>
-      {/* Studio or Video , Notes and layout controls */}
-      <div className="h-screen px-10 pt-16">
-        <Countdown />
-        {state === 'ready' || state === 'recording' || state === 'countDown' ? (
-          <div className="flex items-center w-full h-full mt-3 gap-x-8">
-            <Stage
-              ref={stageRef}
-              height={stageConfig.height}
-              width={stageConfig.width}
-              // className={cx({
-              //   'cursor-zoom-in': canvas?.zoomed && !isZooming,
-              //   'cursor-zoom-out': canvas?.zoomed && isZooming,
-              // })}
-            >
-              <Bridge>
-                <Layer ref={layerRef}>
-                  {(() => {
-                    if (fragment) {
-                      return (
-                        <Group>
-                          <UnifiedFragment
-                            stageRef={stageRef}
-                            setTopLayerChildren={setTopLayerChildren}
-                            // layerRef={layerRef}
-                          />
-                          <GetTopLayerChildren
-                            key={topLayerChildren?.id}
-                            topLayerChildrenState={
-                              topLayerChildren?.state || ''
-                            }
-                            setTopLayerChildren={setTopLayerChildren}
-                            isShorts={shortsMode || false}
-                            status={payload?.status}
-                            theme={theme}
-                          />
-                        </Group>
-                      )
-                    }
-                    return <></>
-                  })()}
-                </Layer>
-              </Bridge>
-            </Stage>
+    <div
+      style={{
+        background: '#18181B',
+      }}
+      className="flex flex-col w-screen h-screen overflow-hidden"
+    >
+      {state === 'ready' || state === 'recording' || state === 'countDown' ? (
+        <>
+          <Countdown />
+          {/* Stage and notes */}
+          <div className="grid grid-cols-11 gap-x-12 flex-1 items-center px-8 py-8">
+            {/* Stage */}
             <div
-              className={cx(
-                'flex-1 flex flex-col justify-end h-full mb-24 overflow-y-auto',
-                {
-                  'my-12': shortsMode,
-                }
-              )}
+              className="flex justify-center flex-1 col-span-8 w-full h-full relative"
+              ref={stageBoundingDivRef}
             >
-              {/* Notes */}
-              <div className="overflow-y-auto">
-                <Text className="text-gray-800 truncate whitespace-pre-wrap">
-                  {getNote(payload?.activeObjectIndex)}
-                </Text>
-              </div>
-              <div className="flex flex-col items-start justify-end flex-1">
-                {(() => {
-                  switch (
-                    fragment?.editorState?.blocks[
-                      payload?.activeObjectIndex || 0
-                    ]?.type
-                  ) {
-                    case 'codeBlock': {
-                      const codeBlockProps = fragment?.editorState?.blocks[
-                        payload?.activeObjectIndex || 0
-                      ]?.codeBlock as CodeBlock
-                      return (
-                        <CodeJamControls
-                          position={controlsConfig?.position}
-                          computedTokens={controlsConfig?.computedTokens}
-                          fragmentState={payload?.fragmentState}
-                          isCodexFormat={codeBlockProps.isAutomated || false}
-                          noOfBlocks={
-                            (codeBlockProps.explanations?.length || 0) + 1
-                          }
-                        />
-                      )
-                    }
-                    case 'videoBlock':
-                      return (
-                        <VideoJamControls
-                          playing={controlsConfig?.playing}
-                          videoElement={controlsConfig?.videoElement}
-                          fragmentState={payload?.fragmentState}
-                        />
-                      )
-                    case 'imageBlock':
-                      return (
-                        <TriviaControls
-                          fragmentState={payload?.fragmentState}
-                        />
-                      )
-                    case 'listBlock': {
-                      const listBlockProps = fragment?.editorState?.blocks[
-                        payload?.activeObjectIndex || 0
-                      ]?.listBlock as ListBlock
-                      return (
-                        <PointsControls
-                          fragmentState={payload?.fragmentState}
-                          noOfPoints={listBlockProps?.list?.length || 0}
-                        />
-                      )
-                    }
-                    default: {
-                      return <></>
-                    }
-                  }
-                })()}
-                {/* next item button */}
-                <button
-                  type="button"
-                  disabled={
-                    payload?.activeObjectIndex ===
-                    fragment.editorState?.blocks.length - 1
-                  }
-                  onClick={() => {
-                    if (
-                      fragment?.editorState?.blocks[
-                        payload?.activeObjectIndex || 0
-                      ]?.type === 'introBlock'
-                    ) {
-                      if (
-                        payload?.activeIntroIndex ===
-                        (branding && branding?.introVideoUrl ? 2 : 1)
-                      ) {
-                        updatePayload?.({
-                          activeObjectIndex: payload?.activeObjectIndex + 1,
-                        })
-                      } else {
-                        updatePayload?.({
-                          activeIntroIndex: payload?.activeIntroIndex + 1,
-                        })
-                      }
-                    } else {
-                      updatePayload?.({
-                        activeObjectIndex: payload?.activeObjectIndex + 1,
-                      })
-                    }
-                  }}
-                  className="mt-4"
-                >
-                  <div
-                    className={cx(
-                      'flex py-10 px-16 bg-blue-400 items-center justify-center gap-x-2 rounded-md',
-                      {
-                        'opacity-50 cursor-not-allowed':
-                          payload?.activeObjectIndex ===
-                          fragment.editorState?.blocks.length - 1,
-                      }
-                    )}
+              {mountStage &&
+                (state === 'ready' ||
+                  state === 'recording' ||
+                  state === 'countDown') && (
+                  <Stage
+                    ref={stageRef}
+                    className="mt-auto mb-auto"
+                    width={stageWidth}
+                    height={stageHeight}
+                    scale={{
+                      x:
+                        stageHeight /
+                        (shortsMode ? SHORTS_CONFIG.height : CONFIG.height),
+                      y:
+                        stageWidth /
+                        (shortsMode ? SHORTS_CONFIG.width : CONFIG.width),
+                    }}
                   >
-                    <Text className="text-white ">
-                      {payload?.activeObjectIndex !==
-                      fragment.editorState?.blocks.length - 1
-                        ? 'Next Item'
-                        : 'Reached end of items'}
-                    </Text>
-                    {payload?.activeObjectIndex !==
-                      fragment.editorState?.blocks.length - 1 && (
-                      <FiArrowRight className="text-white " size={21} />
-                    )}
-                  </div>
-                </button>
+                    <Bridge>
+                      <Layer ref={layerRef}>
+                        {(() => {
+                          if (fragment) {
+                            return (
+                              <Group>
+                                <UnifiedFragment
+                                  stageRef={stageRef}
+                                  setTopLayerChildren={setTopLayerChildren}
+                                  // layerRef={layerRef}
+                                />
+                                <GetTopLayerChildren
+                                  key={topLayerChildren?.id}
+                                  topLayerChildrenState={
+                                    topLayerChildren?.state || ''
+                                  }
+                                  setTopLayerChildren={setTopLayerChildren}
+                                  isShorts={shortsMode || false}
+                                  status={payload?.status}
+                                  theme={theme}
+                                />
+                              </Group>
+                            )
+                          }
+                          return <></>
+                        })()}
+                      </Layer>
+                    </Bridge>
+                  </Stage>
+                )}
+              <RecordingControlsBar
+                stageRef={stageRef}
+                stageHeight={stageHeight}
+                shortsMode={shortsMode}
+              />
+            </div>
+            {/* Notes */}
+            <div className="col-span-3 w-full">
+              <div
+                style={{
+                  background: '#27272A',
+                  height: `${stageHeight}px`,
+                }}
+                className="h-full p-4 text-gray-100 rounded-sm"
+              >
+                {getNote(payload?.activeObjectIndex) ? (
+                  getNote(payload?.activeObjectIndex)
+                ) : (
+                  <span className="italic">No notes</span>
+                )}
               </div>
             </div>
           </div>
-        ) : (
-          // eslint-disable-next-line jsx-a11y/media-has-caption
-          <video
-            className={
-              !shortsMode ? 'w-8/12 mt-24 rounded-md' : 'w-1/4 mt-16 rounded-md'
-            }
-            controls
-            controlsList="nodownload"
-            ref={async (ref) => {
-              if (!ref || !getBlobs) return
-              const blob = await getBlobs()
-              const url = window.URL.createObjectURL(blob)
-              // eslint-disable-next-line no-param-reassign
-              ref.src = url
+          {/* Mini timeline */}
+          <div
+            ref={timelineRef}
+            style={{
+              background: '#27272A',
             }}
-          />
-        )}
-      </div>
+            onWheel={(e) => {
+              if (timelineRef.current) {
+                timelineRef.current.scrollLeft += e.deltaY
+              }
+            }}
+            className={cx(
+              'mt-auto flex gap-x-4 px-6 py-3 overflow-x-scroll h-14',
+              noScrollBar
+            )}
+          >
+            {fragment?.editorState &&
+              (fragment.editorState as SimpleAST).blocks.map((block, index) => {
+                return (
+                  <div
+                    id={`timeline-block-${block.id}`}
+                    className={cx(
+                      'px-3 py-1.5 font-body text-sm rounded-sm flex items-center justify-center transition-transform duration-500 bg-brand-grey relative text-gray-300 flex-shrink-0',
+                      {
+                        'transform scale-110 border border-gray-400':
+                          payload?.activeObjectIndex === index,
+                        'bg-grey-900 text-gray-500':
+                          index > payload?.activeObjectIndex,
+                      }
+                    )}
+                  >
+                    {(index < payload?.activeObjectIndex ||
+                      payload?.activeObjectIndex ===
+                        fragment.editorState.blocks.length - 1) &&
+                      state !== 'ready' && (
+                        <div
+                          style={{
+                            background: '#71717A',
+                          }}
+                          className="absolute top-0 right-0 rounded-tr-sm rounded-bl-sm"
+                        >
+                          <IoCheckmarkOutline
+                            className="m-px text-gray-200"
+                            size={8}
+                          />
+                        </div>
+                      )}
+                    {utils.getBlockTitle(block)}
+                  </div>
+                )
+              })}
+          </div>
+        </>
+      ) : (
+        <div className="flex items-center justify-center flex-col gap-y-12 w-full h-full">
+          {recordedVideoSrc && (
+            <div
+              style={{
+                height: '80vh',
+                width: shortsMode
+                  ? `${window.innerHeight / 2.25}px`
+                  : `${window.innerWidth / 1.5}px`,
+              }}
+              className="flex justify-center items-center w-full"
+            >
+              <Video
+                height="auto"
+                className="w-full"
+                controls
+                autoPlay={false}
+                type="blob"
+                src={recordedVideoSrc}
+              />
+            </div>
+          )}
+
+          {state === 'preview' && (
+            <div className="flex items-center rounded-md gap-x-4">
+              <button
+                className="bg-green-600 border-green-600 text-white border rounded-sm py-1.5 px-2.5 flex items-center gap-x-2 font-bold hover:shadow-lg text-sm"
+                type="button"
+                onClick={() => {
+                  logEvent(PageEvent.SaveRecording)
+                  upload()
+                  updatePayload?.({
+                    status: Fragment_Status_Enum_Enum.Completed,
+                  })
+                }}
+              >
+                <UploadIcon className="h-6 w-6 " />
+                Save recording
+              </button>
+
+              <button
+                className="border-red-600 text-red-600 border rounded-sm py-1.5 px-2.5 flex items-center gap-x-2 font-bold hover:shadow-md text-sm"
+                type="button"
+                onClick={() => {
+                  logEvent(PageEvent.Retake)
+                  reset()
+                  updatePayload?.({
+                    status: Fragment_Status_Enum_Enum.NotStarted,
+                  })
+                }}
+              >
+                <ReRecordIcon className="h-6 w-6 " />
+                Retake
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

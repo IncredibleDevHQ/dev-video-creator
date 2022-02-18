@@ -56,9 +56,9 @@ const PastelLinesSplash = ({
       />
       {branding?.logo ? (
         <Text
-          x={100}
+          x={!isShorts ? 100 : 60}
           y={100}
-          width={!isShorts ? 720 : 350}
+          width={!isShorts ? 720 : 300}
           height={stageConfig.height}
           // align="center"
           text={fragment?.flick.name || 'Hello Intro'}
@@ -78,9 +78,9 @@ const PastelLinesSplash = ({
         />
       ) : (
         <Text
-          x={100}
+          x={!isShorts ? 100 : 60}
           // y={80}
-          width={!isShorts ? 720 : 350}
+          width={!isShorts ? 720 : 300}
           height={stageConfig.height}
           // align="center"
           verticalAlign="middle"

@@ -24,6 +24,7 @@ export interface CommentExplanations {
 }
 export interface CodeBlock {
   code?: string
+  colorCodes?: any
   language?: string
   title?: string
   note?: string
@@ -54,6 +55,7 @@ export interface ImageBlock {
   title?: string
   note?: string
   description?: string
+  type?: 'image' | 'gif'
 }
 
 export interface IntroBlock {
@@ -137,6 +139,13 @@ const textContent = (contentArray?: JSONContent[]) => {
 const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
   const blocks: Block[] = []
 
+  const blockCount = {
+    codeBlock: 0,
+    videoBlock: 0,
+    listBlock: 0,
+    imageBlock: 0,
+  }
+
   const getCommonProps = (index: number) => {
     const nodeIds: string[] = []
 
@@ -175,11 +184,56 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
   let prevCoreBlockPos = 0
   let blockPosition = 1
 
+  // console.log('state', state)
+
   state?.content?.forEach((slab, index) => {
-    if (slab.type === 'paragraph') {
+    if (slab.type === 'heading') {
+      const nextHeadingIndex = state.content?.findIndex(
+        (node, i) => i > index && node.type === 'heading'
+      )
+      const nextBlockIndex = state.content?.findIndex(
+        (node, i) =>
+          i > index &&
+          (node.type === 'codeBlock' ||
+            node.type === 'video' ||
+            node.type === 'bulletList' ||
+            node.type === 'orderedList' ||
+            node.type === 'image')
+      )
+
+      const pushBlock = () => {
+        blocks.push({
+          type: 'imageBlock',
+          id: slab.attrs?.id,
+          pos: blockPosition,
+          nodeIds: [slab.attrs?.id],
+          imageBlock: {
+            title: textContent(slab.content),
+          },
+        })
+      }
+      if (
+        nextBlockIndex &&
+        nextHeadingIndex &&
+        nextBlockIndex > nextHeadingIndex
+      ) {
+        pushBlock()
+      } else if (
+        nextHeadingIndex &&
+        (nextBlockIndex === undefined || nextBlockIndex < 0)
+      ) {
+        pushBlock()
+      } else if (
+        (nextHeadingIndex === undefined || nextHeadingIndex < 0) &&
+        (nextBlockIndex === undefined || nextBlockIndex < 0)
+      ) {
+        pushBlock()
+      }
+    } else if (slab.type === 'paragraph') {
       slab.content?.forEach((node) => {
         if (node.type === 'image') {
           const url = node?.attrs?.src
+          const type = url.endsWith('.gif') ? 'gif' : 'image'
 
           const { description, note, title, nodeIds } = getCommonProps(index)
           blocks.push({
@@ -190,10 +244,12 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
             imageBlock: {
               url: url as string,
               description,
-              title,
+              title: title || `Image ${blockCount.imageBlock + 1}`,
               note,
+              type,
             },
           })
+          blockCount.imageBlock += 1
           prevCoreBlockPos = index
           blockPosition += 1
         }
@@ -209,7 +265,7 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
         language: slab?.attrs?.language as string,
         note,
         description,
-        title,
+        title: title || `Code ${blockCount.codeBlock + 1}`,
       }
 
       blocks.push({
@@ -220,6 +276,7 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
         nodeIds,
       })
 
+      blockCount.codeBlock += 1
       prevCoreBlockPos = index
       blockPosition += 1
     } else if (slab.type === 'video') {
@@ -233,17 +290,20 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
         videoBlock: {
           url: slab?.attrs?.src as string,
           description,
-          title,
+          title: title || `Video ${blockCount.videoBlock + 1}`,
           note,
           transformations: slab?.attrs?.['data-transformations']
             ? JSON.parse(slab?.attrs?.['data-transformations'])
             : undefined,
         },
       })
+
+      blockCount.videoBlock += 1
       prevCoreBlockPos = index
       blockPosition += 1
     } else if (slab.type === 'image') {
       const url = slab?.attrs?.src
+      const type = url.endsWith('.gif') ? 'gif' : 'image'
 
       const { description, note, title, nodeIds } = getCommonProps(index)
       blocks.push({
@@ -254,10 +314,13 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
         imageBlock: {
           url: url as string,
           description,
-          title,
+          title: title || `Image ${blockCount.imageBlock + 1}`,
           note,
+          type,
         },
       })
+
+      blockCount.imageBlock += 1
       prevCoreBlockPos = index
       blockPosition += 1
     } else if (slab.type === 'bulletList' || slab.type === 'orderedList') {
@@ -298,12 +361,13 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
         nodeIds,
         listBlock: {
           description,
-          title,
+          title: title || `List ${blockCount.listBlock + 1}`,
           note,
           list: simpleListItems,
         },
       })
 
+      blockCount.listBlock += 1
       prevCoreBlockPos = index
       blockPosition += 1
     }
@@ -505,9 +569,29 @@ const getEditorJSON = (ast: SimpleAST): JSONContent => {
   } as JSONContent
 }
 
+export const getBlockTitle = (block: Block): string => {
+  switch (block.type) {
+    case 'introBlock':
+      return 'Intro'
+    case 'codeBlock':
+      return block.codeBlock.title || 'Code Block'
+    case 'listBlock':
+      return block.listBlock.title || 'List Block'
+    case 'imageBlock':
+      return block.imageBlock.title || 'Image Block'
+    case 'videoBlock':
+      return block.videoBlock.title || 'Video Block'
+    case 'outroBlock':
+      return 'Outro'
+    default:
+      return 'Block'
+  }
+}
+
 const useUtils = () => ({
   getSimpleAST,
   getEditorJSON,
+  getBlockTitle,
 })
 
 export { useUtils }

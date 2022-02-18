@@ -1,3 +1,4 @@
+/* eslint-disable consistent-return */
 /* eslint-disable react/no-this-in-sfc */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable react/jsx-no-bind */
@@ -12,6 +13,12 @@ import { Group, Image, Layer, Rect, Stage, Transformer } from 'react-konva'
 // import useImage from 'use-image'
 import cropIcon from '../../../../assets/crop-outline.svg'
 import trim from '../../../../assets/trim.svg'
+import { logEvent, logPage } from '../../../../utils/analytics'
+import {
+  PageCategory,
+  PageEvent,
+  PageTitle,
+} from '../../../../utils/analytics-types'
 // import { ASSETS } from '../../../constants'
 
 type Size = {
@@ -437,6 +444,13 @@ const VideoEditor = ({
   const [clip, setClip] = React.useState<Clip>(transformations?.clip || {})
   const [time, setTime] = useState(transformations?.clip?.start || 0)
   const [playing, setPlaying] = useState(false)
+  const [size, setSize] = useState({
+    width: 0,
+    height: 0,
+  })
+  const [orientation, setOrientation] = useState<'landscape' | 'portrait'>(
+    'landscape'
+  )
 
   const layerRef = React.useRef<Konva.Layer | null>(null)
   const transformerRectRef = React.useRef<Konva.Rect | null>(null)
@@ -455,51 +469,67 @@ const VideoEditor = ({
     }
   }, [mode])
 
-  useEffect(() => {
-    const cb = () => {
-      if (!videoRef.current) return
-      const height = getAspectDimension(videoRef.current, 'height', width)
-      //   videoRef.current.play()
-      videoRef.current.currentTime = time
-      videoRef.current.controls = true
+  const cb = () => {
+    if (!videoRef.current) return
+    videoRef.current.currentTime = time || 0.1
 
+    const orientation =
+      videoRef.current.videoWidth > videoRef.current.videoHeight
+        ? 'landscape'
+        : 'portrait'
+
+    setOrientation(orientation)
+
+    let height = videoRef.current.videoHeight
+    if (orientation === 'landscape') {
+      height = getAspectDimension(videoRef.current, 'height', width)
       setSize({
         height,
         width,
       })
-
-      const crop = convertTo(
-        'px',
-        { height, width },
-        transformations?.crop || {
-          x: 0,
-          y: 0,
-          width: size.width,
-          height: size.height,
-        }
-      )
-
-      setCrop(crop)
+    } else {
+      height = getAspectDimension(videoRef.current, 'height', width / 2.5)
+      setSize({
+        height,
+        width: width / 2.5,
+      })
     }
+    //   videoRef.current.play()
+
+    const crop = convertTo(
+      'px',
+      { height, width },
+      transformations?.crop || {
+        x: 0,
+        y: 0,
+        width: size.width,
+        height: size.height,
+      }
+    )
+
+    setCrop(crop)
+  }
+
+  useEffect(() => {
     const video = document.createElement('video')
+    // video.width = size.width
+    // video.height = size.height
     video.src = url
     videoRef.current = video
+  }, [url, width])
 
-    video.addEventListener('loadedmetadata', cb)
-    video.addEventListener('timeupdate', (e) => {
+  useEffect(() => {
+    if (!videoRef.current) return
+    videoRef.current.addEventListener('loadedmetadata', cb)
+    videoRef.current.addEventListener('timeupdate', (e) => {
       // @ts-ignore
       setTime(e.target.currentTime)
     })
 
     return () => {
-      video.removeEventListener('loadedmetadata', cb)
+      videoRef.current?.removeEventListener('loadedmetadata', cb)
     }
-  }, [url, width])
-
-  const [size, setSize] = useState({
-    width: 0,
-    height: 0,
-  })
+  }, [videoRef])
 
   useEffect(() => {
     if (videoRef.current && clip.start && clip.end) {
@@ -510,11 +540,16 @@ const VideoEditor = ({
     }
   }, [time])
 
+  useEffect(() => {
+    // Segment Tracking
+    logPage(PageCategory.Studio, PageTitle.VideoEditor)
+  }, [])
+
   if (!videoRef.current) return null
 
   return (
-    <div className="flex flex-col items-center justify-center rounded-md">
-      <div>
+    <div className="my-auto flex flex-col w-full h-full items-center justify-between rounded-md relative">
+      <div className="flex-1 flex flex-col items-center justify-center">
         <Stage {...size}>
           <Layer ref={layerRef}>
             <VideoCanvas underlay size={size} videoElement={videoRef.current} />
@@ -624,7 +659,9 @@ const VideoEditor = ({
 
       <div
         className="flex items-center justify-between px-4 py-3 bg-gray-600"
-        style={{ width: size.width }}
+        style={{
+          width: '100%',
+        }}
       >
         <div className="grid grid-cols-2 gap-x-3">
           <DarkButton
@@ -632,7 +669,10 @@ const VideoEditor = ({
               'border-brand': mode === 'crop',
               'border-transparent': mode !== 'crop',
             })}
-            onClick={() => setMode(mode === 'crop' ? null : 'crop')}
+            onClick={() => {
+              logEvent(PageEvent.CropVideo)
+              setMode(mode === 'crop' ? null : 'crop')
+            }}
           >
             <img className="w-6" src={cropIcon} alt="Crop" />
           </DarkButton>
@@ -641,7 +681,10 @@ const VideoEditor = ({
               'border-brand': mode === 'trim',
               'border-transparent': mode !== 'trim',
             })}
-            onClick={() => setMode(mode === 'trim' ? null : 'trim')}
+            onClick={() => {
+              logEvent(PageEvent.TrimVideo)
+              setMode(mode === 'trim' ? null : 'trim')
+            }}
           >
             <img className="w-6" src={trim} alt="Trim" />
           </DarkButton>
