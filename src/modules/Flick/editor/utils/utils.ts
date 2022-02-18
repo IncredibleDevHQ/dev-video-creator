@@ -24,6 +24,7 @@ export interface CommentExplanations {
 }
 export interface CodeBlock {
   code?: string
+  colorCodes?: any
   language?: string
   title?: string
   note?: string
