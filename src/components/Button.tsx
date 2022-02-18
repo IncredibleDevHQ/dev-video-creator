@@ -54,7 +54,7 @@ const Button = ({
           'border-red-600 bg-red-600 text-white hover:shadow-lg hover:bg-red-700 hover:border-red-700 active:bg-red-800 active:border-red-800':
             appearance === 'danger',
           'bg-brand-grey text-white border-brand-grey': appearance === 'gray',
-          'text-inherit border-transparent': appearance === 'none',
+          'text-white border-transparent': appearance === 'none',
           'w-full': stretch,
           'opacity-70 cursor-not-allowed': disabled,
         },

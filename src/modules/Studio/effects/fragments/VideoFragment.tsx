@@ -66,10 +66,6 @@ const VideoFragment = ({
     })
 
   useEffect(() => {
-    updatePayload?.({
-      playing: false,
-      currentTime: transformations?.clip?.start || 0,
-    })
     return () => {
       videoElement?.pause()
       updatePayload?.({
