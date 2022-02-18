@@ -68,6 +68,8 @@ const VideoBlock = (props: any) => {
   const seekbarRef = React.useRef<Konva.Rect | null>(null)
   const seekPointerRef = React.useRef<Konva.Circle | null>(null)
 
+  const [transformations, setTransformations] = useState<any>()
+
   const [isOpen, setOpen] = useState(false)
   const [playing, setPlaying] = useState(false)
   const [editVideo, setEditVideo] = useState(false)
@@ -101,24 +103,46 @@ const VideoBlock = (props: any) => {
       video.width = size.width
       video.height = size.height
       video.addEventListener('loadedmetadata', () => {
-        video.currentTime = 0.1
+        video.currentTime = transformations?.clip?.start || 0.1
       })
       videoRef.current = video
     }
 
-    if (videoRef.current.src !== props.node.attrs.src) {
+    const transformations = JSON.parse(props.node.attrs['data-transformations'])
+    setTransformations(transformations)
+    let offX = 0
+
+    videoRef.current?.addEventListener('loadedmetadata', function () {
+      const { duration, width, currentTime } = this
+      offX =
+        (transformations?.clip?.start || 0) *
+        ((width - 20) /
+          (transformations?.clip?.end - transformations?.clip?.start ||
+            duration))
+      const finalPos =
+        (currentTime - (transformations?.clip?.start || 0)) *
+        ((width - 20) /
+          (transformations?.clip?.end - transformations?.clip?.start ||
+            duration))
+      setCurrentSeekPosition(finalPos > 0 ? finalPos : 0)
+    })
+
+    if (videoRef.current?.src !== props.node.attrs.src) {
       videoRef.current.src = props.node.attrs.src as string
     }
 
-    const transformations = JSON.parse(props.node.attrs['data-transformations'])
-
     videoRef.current.addEventListener('timeupdate', () => {
-      if (!transformations?.clip?.end || !videoRef.current) return
-      setCurrentSeekPosition(
+      if (!videoRef.current) return
+      const origX =
         videoRef.current.currentTime *
-          (videoRef.current.width / videoRef.current.duration)
-      )
-      if (videoRef.current.currentTime >= transformations.clip.end) {
+        ((videoRef.current.width - 20) /
+          (transformations?.clip?.end - transformations?.clip?.start ||
+            videoRef.current.duration))
+      setCurrentSeekPosition(origX - offX > 0 ? origX - offX : 0)
+      if (
+        videoRef.current.currentTime >= transformations?.clip?.end ||
+        videoRef.current.currentTime >= videoRef.current.duration
+      ) {
         videoRef.current.currentTime = transformations?.clip?.start || 0
         videoRef.current.pause()
         setPlaying(false)
@@ -142,7 +166,7 @@ const VideoBlock = (props: any) => {
     }
 
     setVideoConfig(videoConfig)
-  }, [props])
+  }, [props?.node?.attrs])
 
   useEffect(() => {
     if (!stageRef.current) return
@@ -166,6 +190,10 @@ const VideoBlock = (props: any) => {
       seekPointerRef.current = null
     }
   }, [])
+
+  useEffect(() => {
+    console.log({ currentSeekPosition })
+  }, [currentSeekPosition])
 
   if (!props.node.attrs.src)
     return (
@@ -341,22 +369,33 @@ const VideoBlock = (props: any) => {
                           y: this.absolutePosition().y,
                         }
                       }}
-                      onDragMove={(e) => {
-                        e.cancelBubble = true
-                        e.evt.stopPropagation()
+                      onDragMove={() => {
                         if (!seekPointerRef.current) return
                         seekPointerRef.current?.y(
                           videoRef.current?.height
                             ? videoRef.current.height - 15
                             : height
                         )
+                        if (!videoRef.current) return
+                        if (seekPointerRef.current.x() < 10)
+                          seekPointerRef.current.x(10)
+                        if (
+                          seekPointerRef.current.x() >
+                          videoRef.current?.width - 10
+                        )
+                          seekPointerRef.current.x(videoRef.current?.width - 10)
                         seekbarRef.current?.width(
                           seekPointerRef.current.x() - 10
                         )
-                        if (!videoRef.current) return
-                        videoRef.current.currentTime =
+                        const tt =
                           seekPointerRef.current.x() *
-                          (videoRef.current.duration / videoRef.current.width)
+                          ((transformations?.clip?.end -
+                            transformations?.clip?.start ||
+                            videoRef.current.duration) /
+                            (videoRef.current.width - 20))
+
+                        videoRef.current.currentTime =
+                          tt + (transformations?.clip?.start || 0)
                       }}
                       fill="#16A34A"
                     />

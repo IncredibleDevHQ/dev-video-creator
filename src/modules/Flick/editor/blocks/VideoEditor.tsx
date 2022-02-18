@@ -524,7 +524,7 @@ const VideoEditor = ({
   if (!videoRef.current) return null
 
   return (
-    <div className="flex flex-col items-center justify-center rounded-md">
+    <div className="mt-4 flex flex-col items-center justify-center rounded-md relative">
       <div>
         <Stage {...size}>
           <Layer ref={layerRef}>
@@ -634,8 +634,8 @@ const VideoEditor = ({
       </div>
 
       <div
-        className="flex items-center justify-between px-4 py-3 bg-gray-600"
-        style={{ width: size.width }}
+        className="flex items-center justify-between px-4 py-3 bg-gray-600 absolute left-0"
+        style={{ width: size.width, top: '100%' }}
       >
         <div className="grid grid-cols-2 gap-x-3">
           <DarkButton
