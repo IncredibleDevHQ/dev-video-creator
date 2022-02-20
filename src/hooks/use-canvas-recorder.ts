@@ -7,6 +7,8 @@ import transitionMusic from '../assets/TransitionMusic.mp3'
 import pointsMusic from '../assets/bubblePopMusic.mp3'
 import { getSeekableWebM } from '../utils/helpers'
 import config from '../config'
+import { logEvent } from '../utils/analytics'
+import { PageEvent } from '../utils/analytics-types'
 
 const types = [
   'video/x-matroska;codecs=avc1',

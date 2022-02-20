@@ -1,6 +1,6 @@
 import { css, cx } from '@emotion/css'
 import Konva from 'konva'
-import React, { createRef, HTMLAttributes, useState } from 'react'
+import React, { createRef, HTMLAttributes, useEffect, useState } from 'react'
 import { Layer, Stage } from 'react-konva'
 import Modal from 'react-responsive-modal'
 import useMeasure, { RectReadOnly } from 'react-use-measure'
@@ -9,6 +9,8 @@ import {
   useRecoilValue,
 } from 'recoil'
 import { Preview, Timeline } from '.'
+import { logEvent } from '../../../utils/analytics'
+import { PageEvent } from '../../../utils/analytics-types'
 import {
   BlockProperties,
   Gradient,
@@ -185,6 +187,7 @@ export const LayoutSelector = ({
   type: Block['type']
 }) => {
   const { activeTheme } = useRecoilValue(newFlickStore)
+
   return (
     <div className={cx('h-full w-full overflow-y-scroll', scrollStyle)}>
       <div
@@ -201,14 +204,17 @@ export const LayoutSelector = ({
           ? getThemeSupportedUserMediaLayouts(
               activeTheme?.name || 'DarkGradient'
             ).map((layoutType) => (
-              <div className="flex justify-center items-center">
+              <div className="flex items-center justify-center">
                 <LayoutGeneric
                   type={type}
                   key={layoutType}
                   mode={mode}
                   layout={layoutType}
                   isSelected={layout === layoutType}
-                  onClick={() => updateLayout(layoutType)}
+                  onClick={() => {
+                    logEvent(PageEvent.ChangeLayout)
+                    updateLayout(layoutType)
+                  }}
                 />
               </div>
             ))
@@ -219,7 +225,10 @@ export const LayoutSelector = ({
                 mode={mode}
                 layout={layoutType}
                 isSelected={layout === layoutType}
-                onClick={() => updateLayout(layoutType)}
+                onClick={() => {
+                  logEvent(PageEvent.ChangeLayout)
+                  updateLayout(layoutType)
+                }}
               />
             ))}
       </div>
@@ -383,7 +392,10 @@ const BlockPreview = ({
           role="button"
           tabIndex={0}
           onKeyDown={() => null}
-          onClick={() => setPreviewModal(true)}
+          onClick={() => {
+            logEvent(PageEvent.NotebookCanvasPreview)
+            setPreviewModal(true)
+          }}
           className="flex flex-1 w-full h-full border-none outline-none"
           ref={ref}
         >

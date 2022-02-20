@@ -6,21 +6,25 @@ import { Group, Rect } from 'react-konva'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import * as gConfig from '../../../../config'
 import firebaseState from '../../../../stores/firebase.store'
-import { BlockProperties } from '../../../../utils/configTypes'
 import {
-  CodeBlockProps,
-  CommentExplanations,
-} from '../../../Flick/editor/utils/utils'
+  BlockProperties,
+  CodeAnimation,
+  CodeBlockView,
+  CodeBlockViewProps,
+  CodeHighlightConfig,
+  CodeTheme,
+} from '../../../../utils/configTypes'
+import { CodeBlockProps } from '../../../Flick/editor/utils/utils'
 import Concourse from '../../components/Concourse'
 import FragmentBackground from '../../components/FragmentBackground'
 import RenderTokens, {
   codeConfig,
   FragmentState,
+  getLineNumbers,
   getRenderedTokens,
   getTokens,
   Position,
   RenderFocus,
-  RenderMultipleLineFocus,
 } from '../../components/RenderTokens'
 import useCode, { ComputedToken } from '../../hooks/use-code'
 import { StudioProviderProps, studioStore } from '../../stores'
@@ -34,10 +38,11 @@ import {
 } from '../../utils/StudioUserConfig'
 import { ObjectRenderConfig, ThemeLayoutConfig } from '../../utils/ThemeConfig'
 
-const getColorCodes = async (
+export const getColorCodes = async (
   code: string,
   language: string,
-  userToken: string
+  userToken: string,
+  codeTheme: CodeTheme
 ) => {
   return axios.post(
     gConfig.default.hasura.server,
@@ -57,6 +62,7 @@ const getColorCodes = async (
       variables: {
         code,
         language: language || 'javascript',
+        theme: codeTheme,
       },
     },
     {
@@ -66,6 +72,41 @@ const getColorCodes = async (
       },
     }
   )
+}
+
+export const getSurafceColor = ({ codeTheme }: { codeTheme: CodeTheme }) => {
+  switch (codeTheme) {
+    case 'light_vs':
+      return '#ffffff'
+    case 'light_plus':
+      return '#ffffff'
+    case 'quietlight':
+      return '#f5f5f5'
+    case 'solarized_light':
+      return '#FDF6E3'
+    case 'abyss':
+      return '#000C18'
+    case 'dark_vs':
+      return '#1E1E1E'
+    case 'dark_plus':
+      return '#1E1E1E'
+    case 'kimbie_dark':
+      return '#221A0F'
+    case 'monakai':
+      return '#272822'
+    case 'monakai_dimmed':
+      return '#1E1E1E'
+    case 'red':
+      return '#390000'
+    case 'solarized_dark':
+      return '#002B36'
+    case 'tomorrow_night_blue':
+      return '#002451'
+    case 'hc_black':
+      return '#000000'
+    default:
+      return '#1E1E1E'
+  }
 }
 
 const CodeFragment = ({
@@ -89,7 +130,7 @@ const CodeFragment = ({
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const { initUseCode } = useCode()
-  const [computedTokens, setComputedTokens] = useState<ComputedToken[]>([])
+  const [computedTokens, setComputedTokens] = useState<ComputedToken[][]>([[]])
   // const [getTokenisedCode, { data }] = useGetTokenisedCodeLazyQuery()
   const [position, setPosition] = useState<Position>({
     prevIndex: -1,
@@ -102,22 +143,19 @@ const CodeFragment = ({
   // ref to the object grp
   const customLayoutRef = useRef<Konva.Group>(null)
 
+  const codeGroupRef = useRef<Konva.Group>(null)
+
   // states used for codex format
   // a bool state which tells if its a codex format or not
-  const [isCodexFormat, setIsCodexFormat] = useState<boolean>()
+  const [codeAnimation, setCodeAnimation] = useState<CodeAnimation>()
   // a state which stores the active block info like index
   const [activeBlockIndex, setActiveBlockIndex] = useState<number>(0)
   // a state to tell if the block of code is focused or not
-  const [focusBlockCode, setFocusBlockCode] = useState<boolean>(false)
+  // const [focusBlockCode, setFocusBlockCode] = useState<boolean>(false)
   const [highlightBlockCode, setHiglightBlockCode] = useState<boolean>(false)
 
   // config for focusing the lines of code in codex format
-  const [blockConfig, setBlockConfig] = useState<CommentExplanations[]>([])
-
-  // // state which stores if its a short or not
-  // const [isShorts, setIsShorts] = useState<boolean>(false)
-
-  // const [bgImage] = useImage(viewConfig?.background?.image || '', 'anonymous')
+  const [blockConfig, setBlockConfig] = useState<CodeHighlightConfig[]>([])
 
   const [objectConfig, setObjectConfig] = useState<ObjectConfig>({
     x: 0,
@@ -138,6 +176,7 @@ const CodeFragment = ({
     })
 
   const [colorCodes, setColorCodes] = useState<any>([])
+  const [codeTheme, setCodeTheme] = useState<CodeTheme>(CodeTheme.DarkPlus)
 
   const { auth } = useRecoilValue(firebaseState)
   const [user] = useAuthState(auth)
@@ -145,7 +184,7 @@ const CodeFragment = ({
   useEffect(() => {
     if (!dataConfig) return
     setColorCodes([])
-    setComputedTokens([])
+    setComputedTokens([[]])
     updatePayload?.({
       currentIndex: 1,
       prevIndex: 0,
@@ -160,26 +199,35 @@ const CodeFragment = ({
         isShorts: shortsMode || false,
       })
     )
-    setIsCodexFormat(dataConfig.codeBlock.isAutomated || false)
-    const blocks = Object.assign([], dataConfig.codeBlock.explanations || [])
-    blocks.unshift({ from: 0, to: 0, explanation: '' })
-    setBlockConfig(blocks)
+    const codeBlockViewProps: CodeBlockViewProps = (
+      viewConfig.view as CodeBlockView
+    ).code
     ;(async () => {
-      try {
-        if (dataConfig.codeBlock.code) {
-          const token = await user?.getIdToken()
-          const { data } = await getColorCodes(
-            dataConfig.codeBlock.code,
-            dataConfig.codeBlock.language || '',
-            token || ''
-          )
-          if (!data?.errors) setColorCodes(data.data.TokenisedCode.data)
+      if (dataConfig.codeBlock.colorCodes) {
+        setColorCodes(dataConfig.codeBlock.colorCodes)
+      } else {
+        try {
+          if (dataConfig.codeBlock.code) {
+            const token = await user?.getIdToken()
+            const { data } = await getColorCodes(
+              dataConfig.codeBlock.code,
+              dataConfig.codeBlock.language || '',
+              token || '',
+              codeBlockViewProps.theme
+            )
+            if (!data?.errors) setColorCodes(data.data.TokenisedCode.data)
+          }
+        } catch (e) {
+          console.error(e)
+          throw e
         }
-      } catch (e) {
-        console.error(e)
-        throw e
       }
     })()
+    setCodeAnimation(codeBlockViewProps.animation)
+    setCodeTheme(codeBlockViewProps.theme)
+    const blocks = Object.assign([], codeBlockViewProps.highlightSteps || [])
+    blocks.unshift({ from: 0, to: 0, fileIndex: 0 })
+    setBlockConfig(blocks)
   }, [dataConfig, shortsMode, viewConfig])
 
   useEffect(() => {
@@ -192,11 +240,12 @@ const CodeFragment = ({
     if (colorCodes.length === 0) return
     setComputedTokens(
       initUseCode({
-        tokens: colorCodes,
-        canvasWidth: objectConfig.width - 120,
-        canvasHeight: objectRenderConfig.availableHeight,
+        tokens: [colorCodes],
+        canvasWidth: objectConfig.width - 140,
+        canvasHeight: objectRenderConfig.availableHeight - 20,
         gutter: 5,
         fontSize: codeConfig.fontSize,
+        codeAnimation: codeAnimation || CodeAnimation.TypeLines,
       })
     )
   }, [colorCodes, objectRenderConfig])
@@ -206,7 +255,7 @@ const CodeFragment = ({
       ...studio,
       controlsConfig: {
         position,
-        computedTokens,
+        computedTokens: computedTokens[0],
       },
     })
   }, [state, position, computedTokens])
@@ -217,18 +266,46 @@ const CodeFragment = ({
       currentIndex: payload?.currentIndex || 1,
     })
     setFocusCode(payload?.isFocus)
-    if (isCodexFormat) {
+    if (codeAnimation === 'Highlight lines') {
       setActiveBlockIndex(payload?.activeBlockIndex)
       if (payload?.focusBlockCode) {
+        if (
+          (computedTokens[
+            blockConfig?.[payload?.activeBlockIndex]?.fileIndex || 0
+          ].find(
+            (token) =>
+              token.lineNumber ===
+                (blockConfig &&
+                  blockConfig[payload?.activeBlockIndex] &&
+                  blockConfig[payload?.activeBlockIndex].from) || 0
+          )?.y || 0) >
+          objectRenderConfig.availableHeight / 2
+        ) {
+          codeGroupRef.current?.to({
+            y:
+              -(
+                computedTokens[
+                  blockConfig?.[payload?.activeBlockIndex]?.fileIndex || 0
+                ].find(
+                  (token) =>
+                    token.lineNumber ===
+                      (blockConfig &&
+                        blockConfig[payload?.activeBlockIndex] &&
+                        blockConfig[payload?.activeBlockIndex].from) || 0
+                )?.y || 0
+              ) +
+              objectRenderConfig.availableHeight / 2,
+            duration: 0.5,
+          })
+        } else {
+          codeGroupRef.current?.to({
+            y: objectRenderConfig.startY + 10,
+            duration: 0.5,
+          })
+        }
         setHiglightBlockCode(payload?.focusBlockCode)
-        setTimeout(() => {
-          setFocusBlockCode(payload?.focusBlockCode)
-        }, 1000)
       } else {
-        setFocusBlockCode(payload?.focusBlockCode)
-        setTimeout(() => {
-          setHiglightBlockCode(payload?.focusBlockCode)
-        }, 1000)
+        setHiglightBlockCode(payload?.focusBlockCode)
       }
     }
   }, [payload])
@@ -239,7 +316,7 @@ const CodeFragment = ({
         prevIndex: -1,
         currentIndex: 0,
       })
-      if (!isCodexFormat)
+      if (codeAnimation === 'Type lines')
         updatePayload?.({
           currentIndex: 1,
           prevIndex: 0,
@@ -255,7 +332,7 @@ const CodeFragment = ({
         })
     }
     if (state === 'recording') {
-      if (!isCodexFormat)
+      if (codeAnimation === 'Type lines')
         updatePayload?.({
           currentIndex: 1,
           prevIndex: 0,
@@ -270,7 +347,7 @@ const CodeFragment = ({
           activeBlockIndex: 0,
         })
     }
-  }, [state, isCodexFormat])
+  }, [state, codeAnimation])
 
   useEffect(() => {
     // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
@@ -300,21 +377,22 @@ const CodeFragment = ({
       <FragmentBackground
         theme={theme}
         objectConfig={objectConfig}
-        backgroundRectColor="#202026"
+        backgroundRectColor={getSurafceColor({ codeTheme })}
       />
       {!isPreview ? (
         <Group
           x={objectRenderConfig.startX + 25}
           y={objectRenderConfig.startY + 10}
           key="group"
+          ref={codeGroupRef}
         >
-          {!isCodexFormat ? (
+          {codeAnimation === 'Type lines' ? (
             <>
-              {getRenderedTokens(computedTokens, position)}
-              {computedTokens.length > 0 && (
+              {getRenderedTokens(computedTokens[0], position)}
+              {computedTokens.length > 0 && computedTokens[0].length > 0 && (
                 <RenderTokens
                   key={position.prevIndex}
-                  tokens={computedTokens}
+                  tokens={computedTokens[0]}
                   startIndex={position.prevIndex}
                   endIndex={position.currentIndex}
                 />
@@ -322,24 +400,19 @@ const CodeFragment = ({
             </>
           ) : (
             <>
-              {getTokens(
-                computedTokens,
-                computedTokens[
-                  computedTokens.find(
-                    (token) =>
-                      token.lineNumber ===
-                        (blockConfig &&
-                          blockConfig[activeBlockIndex] &&
-                          blockConfig[activeBlockIndex].from) || 0
-                  )?.startFromIndex || 0
-                ]?.lineNumber,
-                objectRenderConfig.availableHeight - 10
+              {computedTokens.length > 0 && computedTokens[0].length > 0 && (
+                <>
+                  <Group x={-15}>{getLineNumbers(computedTokens[0])}</Group>
+                  <Group x={40}>{getTokens(computedTokens[0])}</Group>
+                </>
               )}
               {highlightBlockCode && (
                 <Rect
                   x={-5}
                   y={
-                    (computedTokens.find(
+                    (computedTokens[
+                      blockConfig?.[payload?.activeBlockIndex]?.fileIndex || 0
+                    ].find(
                       (token) =>
                         token.lineNumber ===
                         (blockConfig &&
@@ -349,14 +422,18 @@ const CodeFragment = ({
                   }
                   width={objectConfig.width - 40}
                   height={
-                    (computedTokens.find(
+                    (computedTokens[
+                      blockConfig?.[payload?.activeBlockIndex]?.fileIndex || 0
+                    ].find(
                       (token) =>
                         token.lineNumber ===
                         (blockConfig &&
                           blockConfig[activeBlockIndex] &&
                           blockConfig[activeBlockIndex].to)
                     )?.y || 0) -
-                      (computedTokens.find(
+                      (computedTokens[
+                        blockConfig?.[payload?.activeBlockIndex]?.fileIndex || 0
+                      ].find(
                         (token) =>
                           token.lineNumber ===
                           (blockConfig &&
@@ -366,14 +443,20 @@ const CodeFragment = ({
                       codeConfig.fontSize +
                       5 >
                     0
-                      ? (computedTokens.find(
+                      ? (computedTokens[
+                          blockConfig?.[payload?.activeBlockIndex]?.fileIndex ||
+                            0
+                        ].find(
                           (token) =>
                             token.lineNumber ===
                             (blockConfig &&
                               blockConfig[activeBlockIndex] &&
                               blockConfig[activeBlockIndex].to)
                         )?.y || 0) -
-                        (computedTokens.find(
+                        (computedTokens[
+                          blockConfig?.[payload?.activeBlockIndex]?.fileIndex ||
+                            0
+                        ].find(
                           (token) =>
                             token.lineNumber ===
                             (blockConfig &&
@@ -398,26 +481,15 @@ const CodeFragment = ({
           y={objectRenderConfig.startY + 10}
           key="previewGroup"
         >
-          {getTokens(
-            computedTokens,
-            computedTokens[
-              computedTokens.find(
-                (token) =>
-                  token.lineNumber ===
-                    (blockConfig &&
-                      blockConfig[activeBlockIndex] &&
-                      blockConfig[activeBlockIndex].from) || 0
-              )?.startFromIndex || 0
-            ]?.lineNumber,
-            objectRenderConfig.availableHeight - 10
-          )}
+          <Group x={-15}>{getLineNumbers(computedTokens[0])}</Group>
+          <Group x={40}>{getTokens(computedTokens[0])}</Group>
         </Group>
       )}
 
       {focusCode && (
         <RenderFocus
-          tokens={computedTokens}
-          lineNumber={computedTokens[position.prevIndex]?.lineNumber}
+          tokens={computedTokens[0]}
+          lineNumber={computedTokens[0][position.prevIndex]?.lineNumber}
           currentIndex={position.currentIndex}
           groupCoordinates={{
             x: objectRenderConfig.startX + 10,
@@ -430,41 +502,6 @@ const CodeFragment = ({
             height: objectRenderConfig.availableHeight,
             radius: objectConfig.borderRadius,
           }}
-        />
-      )}
-      {focusBlockCode && (
-        <RenderMultipleLineFocus
-          tokens={computedTokens}
-          startLineNumber={
-            (blockConfig &&
-              blockConfig[activeBlockIndex] &&
-              blockConfig[activeBlockIndex].from) ||
-            0
-          }
-          endLineNumber={
-            (blockConfig &&
-              blockConfig[activeBlockIndex] &&
-              blockConfig[activeBlockIndex].to) ||
-            0
-          }
-          explanation={
-            (blockConfig &&
-              blockConfig[activeBlockIndex] &&
-              blockConfig[activeBlockIndex].explanation) ||
-            ''
-          }
-          groupCoordinates={{
-            x: objectConfig.x + 10,
-            y: objectRenderConfig.startY,
-          }}
-          bgRectInfo={{
-            x: objectRenderConfig.startX,
-            y: objectRenderConfig.startY,
-            width: objectConfig.width,
-            height: objectRenderConfig.availableHeight,
-            radius: objectConfig.borderRadius,
-          }}
-          opacity={1}
         />
       )}
     </Group>,

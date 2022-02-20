@@ -7,6 +7,7 @@ const githubIntegrationConfig = JSON.parse(
 )
 
 const config = {
+  node_env: process.env.NODE_ENV || 'development',
   /**
    * Agora configs...
    */
@@ -33,6 +34,12 @@ const config = {
   sentry: {
     dsn: import.meta.env.VITE_SENTRY_DSN,
     enabled: !!(import.meta.env.VITE_SENTRY_ENABLED === 'true'),
+  },
+  /**
+   * Segmet configs...
+   */
+  segment: {
+    apiKey: import.meta.env.VITE_SEGMENT_API_KEY,
   },
   /**
    * Cohere configs...
@@ -80,6 +87,10 @@ const config = {
 
   hocusPocus: {
     server: import.meta.env.VITE_HOCUSPOCUS_SERVER,
+  },
+
+  giphy: {
+    apiKey: import.meta.env.VITE_GIPHY_API_KEY,
   },
 }
 
