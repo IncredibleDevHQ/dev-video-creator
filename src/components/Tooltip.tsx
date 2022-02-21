@@ -1,3 +1,4 @@
+import { cx } from '@emotion/css'
 import React, { HTMLAttributes, useEffect } from 'react'
 import { useLayer } from 'react-laag'
 import { PlacementType } from 'react-laag/dist/PlacementType'
@@ -15,6 +16,7 @@ export interface TooltipProps extends HTMLAttributes<HTMLElement> {
   overflowContainer?: boolean
   hideOnOutsideClick?: boolean
   containerOffset?: number
+  className?: string
 }
 
 const Tooltip = ({
@@ -30,6 +32,7 @@ const Tooltip = ({
   autoPosition = true,
   overflowContainer = false,
   hideOnOutsideClick = true,
+  className,
 }: TooltipProps) => {
   const { triggerProps, layerProps, renderLayer } = useLayer({
     isOpen,
@@ -61,7 +64,9 @@ const Tooltip = ({
 
   return (
     <>
-      <span {...triggerProps}>{children}</span>
+      <span className={cx(className)} {...triggerProps}>
+        {children}
+      </span>
       {isOpen &&
         renderLayer(
           <div className="tooltip" {...layerProps}>

@@ -185,28 +185,31 @@ const ThemeTooltip = ({
           ))}
         </HorizontalContainer>
       ) : (
-        <div className="grid grid-cols-4 gap-2">
+        <div className="flex gap-x-4 z-50">
           {themes.map((theme) => (
             <div
               key={theme.name}
               className="relative flex items-center justify-center py-4"
               onClick={() => setTempActiveTheme(theme)}
             >
-              {activeTheme?.name === theme.name && (
-                <IoCheckmark
-                  size={24}
-                  className="absolute p-1 font-bold rounded-md top-6 right-2 text-brand bg-brand-10"
-                />
-              )}
-              <img
-                className="object-cover w-64 border-2 border-gray-600 rounded-md shadow-md hover:border-brand h-36"
-                src={
-                  theme.config.thumbnail
-                    ? baseUrl + theme.config.thumbnail
-                    : ASSETS.ICONS.IncredibleLogo
-                }
-                alt="incredible"
-              />
+              <div
+                className="object-cover w-64 border-2 border-gray-600 rounded-md shadow-md hover:border-brand h-36 relative"
+                style={{
+                  background: `url(${
+                    theme.config.thumbnail
+                      ? baseUrl + theme.config.thumbnail
+                      : ASSETS.ICONS.IncredibleLogo
+                  })`,
+                  backgroundSize: '256px 144px',
+                }}
+              >
+                {activeTheme?.name === theme.name && (
+                  <IoCheckmark
+                    size={24}
+                    className="absolute p-1 font-bold rounded-md top-2 right-2 text-brand bg-brand-10"
+                  />
+                )}
+              </div>
             </div>
           ))}
         </div>

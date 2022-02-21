@@ -49,10 +49,10 @@ query GetFilteredUsers($_ilike: String!) {
     where: {
       _or: [
         { displayName: { _ilike: $_ilike } }
-        { email: { _ilike: $_ilike } }
         { username: { _ilike: $_ilike } }
       ]
     }
+    limit: 3
   ) {
     ...FilteredUser
   }
@@ -117,3 +117,53 @@ mutation AddEmailToWaitlist($email: String!) {
     success
   }
 }
+
+mutation CollaborateWithUser(
+  $receiverId: String!
+  $senderId: String!
+  $collaborationType: CollaborationTypes!
+  $contentType: ContentContainerTypes!
+  $isNew: Boolean!
+  $title: String
+  $description: String
+  $flickId: uuid
+  $seriesId: uuid
+  $message: String
+) {
+  Collaborate(
+    receiverId: $receiverId
+    senderId: $senderId
+    seriesId: $seriesId
+    title: $title
+    message: $message
+    isNew: $isNew
+    flickId: $flickId
+    description: $description
+    collaborationType: $collaborationType
+    contentType: $contentType
+  ) {
+    success
+  }
+}
+
+mutation EmailInviteGuestUser($email: String!, $flickId: String!) {
+  InviteWithEmail(email: $email, flickId: $flickId) {
+    success
+  }
+}
+
+query GetPendingInvites($flickId: uuid!) {
+  Invitations(
+    where: {
+      _and: { flickId: { _eq: $flickId }, status: { _in: [Pending, Email] } }
+    }
+  ) {
+    receiver {
+      email
+      sub
+      displayName
+      picture
+    }
+  }
+}
+

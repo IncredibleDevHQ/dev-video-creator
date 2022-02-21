@@ -40,15 +40,8 @@ const AuthorizedApolloProvider = ({
     },
   })
 
-  const errorLink = onError(({ graphQLErrors, networkError }) => {
-    if (graphQLErrors) {
-      const error = graphQLErrors[0]
-      emitToast({
-        title: "There's something really wrong.",
-        type: 'error',
-        description: error.message,
-      })
-    } else if (networkError) {
+  const errorLink = onError(({ networkError }) => {
+    if (networkError) {
       emitToast({
         title: 'We lost connection.',
         type: 'error',
