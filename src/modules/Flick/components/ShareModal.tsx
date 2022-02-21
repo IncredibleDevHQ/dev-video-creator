@@ -84,7 +84,7 @@ const ShareModal = ({
   handleClose: () => void
 }) => {
   const [{ flick }, setFlick] = useRecoilState(newFlickStore)
-  const { uid } = (useRecoilValue(userState) as User) || {}
+  const { uid, displayName } = (useRecoilValue(userState) as User) || {}
   const [inviteLoading, setInviteLoading] = useState(false)
   const [isOwner, setIsOwner] = useState(false)
   const [invitee, setInvitee] = useState<Invitee>({
@@ -151,7 +151,7 @@ const ShareModal = ({
             senderId: flick?.owner?.userSub as string,
             receiverId: invitee.sub,
             contentType: ContentContainerTypes.Flick,
-            message: '',
+            message: `%${displayName}% has invited you to collaborate on the flick ${flick?.name}`,
           },
         })
       }
