@@ -215,7 +215,9 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
       if (
         nextBlockIndex &&
         nextHeadingIndex &&
-        nextBlockIndex > nextHeadingIndex
+        nextBlockIndex > nextHeadingIndex &&
+        nextBlockIndex >= 0 &&
+        nextHeadingIndex >= 0
       ) {
         pushBlock()
       } else if (

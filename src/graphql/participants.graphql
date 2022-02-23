@@ -15,3 +15,15 @@ query FragmentParticipants($fragmentId: uuid!) {
     participantId
   }
 }
+
+mutation RemoveFlickParticipant($flickId: uuid!, $userId: String!) {
+  RemoveParticipant(flickId: $flickId, userId: $userId) {
+    success
+  }
+}
+
+mutation TransferFlickOwnership($flickId: uuid!, $newOwnerId: String!) {
+  TransferOwnership(flickId: $flickId, newOwnerId: $newOwnerId) {
+    success
+  }
+}
