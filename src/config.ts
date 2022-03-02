@@ -7,7 +7,7 @@ const githubIntegrationConfig = JSON.parse(
 )
 
 const config = {
-  env: process.env.DEPLOY_ENV || 'development',
+  env: import.meta.env.DEPLOY_ENV || 'development',
   /**
    * Agora configs...
    */
