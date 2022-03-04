@@ -1,9 +1,8 @@
 import { cx } from '@emotion/css'
 import { Listbox } from '@headlessui/react'
 import React, { useEffect, useState } from 'react'
-import { IconType } from 'react-icons'
 import { BiCheck } from 'react-icons/bi'
-import { FiLayout } from 'react-icons/fi'
+import { FiCode, FiLayout } from 'react-icons/fi'
 import {
   IoAddOutline,
   IoChevronBack,
@@ -21,9 +20,11 @@ import {
   BlockProperties,
   CodeAnimation,
   CodeBlockView,
+  CodeTheme,
   Layout,
   ViewConfig,
 } from '../../../utils/configTypes'
+import { getSurfaceColor } from '../../Studio/effects/fragments/CodeFragment'
 import { studioStore } from '../../Studio/stores'
 import { Block, IntroBlockProps } from '../editor/utils/utils'
 import { CanvasPreview, LayoutSelector } from './BlockPreview'
@@ -31,24 +32,63 @@ import { CanvasPreview, LayoutSelector } from './BlockPreview'
 interface Tab {
   name: string
   id: string
-  Icon: IconType
+  // Icon: IconType | HTMLElement
 }
 
 const commonTabs: Tab[] = [
   {
     id: 'Layout',
     name: 'Layout',
-    Icon: FiLayout,
   },
 ]
 
 const codeBlockTabs: Tab[] = [
   {
+    id: 'CodeTheme',
+    name: 'Code theme',
+  },
+  {
     id: 'Animate',
     name: 'Animate',
-    Icon: IoSparklesOutline,
   },
 ]
+
+const getIcon = (tab: Tab, block?: BlockProperties) => {
+  switch (tab.id) {
+    case 'Layout':
+      return <FiLayout size={21} />
+    case 'CodeTheme':
+      return (
+        <div
+          className="rounded-sm border"
+          style={{
+            backgroundColor:
+              block?.view?.type === 'codeBlock'
+                ? getSurfaceColor({ codeTheme: block.view.code.theme })
+                : '#fff',
+          }}
+        >
+          <FiCode
+            className="m-1"
+            style={{
+              color:
+                block?.view?.type === 'codeBlock'
+                  ? codeThemeConfig.find(
+                      (themeConfig) =>
+                        themeConfig.theme ===
+                        (block.view as CodeBlockView).code.theme
+                    )?.textColor
+                  : '#fff',
+            }}
+          />
+        </div>
+      )
+    case 'Animate':
+      return <IoSparklesOutline size={21} />
+    default:
+      return <IoSparklesOutline size={21} />
+  }
+}
 
 const Preview = ({
   block,
@@ -183,6 +223,17 @@ const Preview = ({
                 />
               )}
               {activeTab.id === codeBlockTabs[0].id && (
+                <CodeThemeTab
+                  view={config.blocks[block.id]?.view as CodeBlockView}
+                  updateView={(view: CodeBlockView) => {
+                    updateConfig(block.id, {
+                      ...config.blocks[block.id],
+                      view,
+                    })
+                  }}
+                />
+              )}
+              {activeTab.id === codeBlockTabs[1].id && (
                 <AnimateTab
                   view={config.blocks[block.id]?.view as CodeBlockView}
                   updateView={(view: CodeBlockView) => {
@@ -194,13 +245,18 @@ const Preview = ({
                 />
               )}
             </div>
-            <div className="flex flex-col bg-gray-50 px-2 pt-4 gap-y-2 relative w-24">
+            <div
+              className="flex flex-col bg-gray-50 px-2 pt-4 gap-y-2 relative"
+              style={{
+                width: '6.75rem',
+              }}
+            >
               {tabs.map((tab) => (
                 <button
                   type="button"
                   onClick={() => setActiveTab(tab)}
                   className={cx(
-                    'flex flex-col items-center bg-transparent py-4 px-5 rounded-md text-gray-500 gap-y-2 transition-all',
+                    'flex flex-col items-center bg-transparent py-4 px-2 rounded-md text-gray-500 gap-y-2 transition-all',
                     {
                       'bg-gray-200 text-gray-800': activeTab.id === tab.id,
                       'hover:bg-gray-100': activeTab.id !== tab.id,
@@ -208,7 +264,7 @@ const Preview = ({
                   )}
                   key={tab.id}
                 >
-                  <tab.Icon size={21} />
+                  {getIcon(tab, config.blocks[block.id])}
                   <Text className="text-xs font-normal font-body">
                     {tab.name}
                   </Text>
@@ -217,6 +273,144 @@ const Preview = ({
             </div>
           </>
         )}
+      </div>
+    </div>
+  )
+}
+
+interface CodeThemeConfig {
+  theme: CodeTheme
+  name: string
+  textColor: string
+}
+
+const codeThemeConfig: CodeThemeConfig[] = [
+  {
+    theme: CodeTheme.Light,
+    name: 'Light',
+    textColor: '#000000',
+  },
+  {
+    theme: CodeTheme.LightPlus,
+    name: 'Light+',
+    textColor: '#001081',
+  },
+  {
+    theme: CodeTheme.QuietLight,
+    name: 'Quiet Light',
+    textColor: '#7A3F9D',
+  },
+  {
+    theme: CodeTheme.SolarizedLight,
+    name: 'Solarized Light',
+    textColor: '#288DD2',
+  },
+  {
+    theme: CodeTheme.Abyss,
+    name: 'Abyss',
+    textColor: '#6588CC',
+  },
+  {
+    theme: CodeTheme.Dark,
+    name: 'Dark',
+    textColor: '#D4D5D4',
+  },
+  {
+    theme: CodeTheme.DarkPlus,
+    name: 'Dark+',
+    textColor: '#9CDCFE',
+  },
+  {
+    theme: CodeTheme.KimbieDark,
+    name: 'Kimbie Dark',
+    textColor: '#D3AF86',
+  },
+  {
+    theme: CodeTheme.Monokai,
+    name: 'Monokai',
+    textColor: '#A6E22E',
+  },
+  {
+    theme: CodeTheme.MonokaiDimmed,
+    name: 'Monokai Dimmed',
+    textColor: '#9872A2',
+  },
+  {
+    theme: CodeTheme.Red,
+    name: 'Red',
+    textColor: '#FB9B4C',
+  },
+  {
+    theme: CodeTheme.SolarizedDark,
+    name: 'Solarized Dark',
+    textColor: '#268BD2',
+  },
+  {
+    theme: CodeTheme.TomorrowNightBlue,
+    name: 'Tomorrow Night Blue',
+    textColor: '#FF9EA4',
+  },
+  {
+    theme: CodeTheme.HighContrast,
+    name: 'High Contrast',
+    textColor: '#9CDDFE',
+  },
+]
+
+const CodeThemeTab = ({
+  view,
+  updateView,
+}: {
+  view: CodeBlockView
+  updateView: (view: CodeBlockView) => void
+}) => {
+  return (
+    <div className="flex flex-col p-5">
+      <Heading fontSize="small" className="font-bold">
+        Code Theme
+      </Heading>
+      <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-3">
+        {codeThemeConfig.map((themeConfig, index) => (
+          <button
+            className={cx('border border-gray-200 h-14 rounded-sm p-1', {
+              'border-gray-800': view.code.theme === themeConfig.theme,
+            })}
+            type="button"
+            onClick={() => {
+              updateView({
+                ...view,
+                code: {
+                  ...view.code,
+                  theme: themeConfig.theme,
+                },
+              })
+            }}
+          >
+            <div
+              style={{
+                backgroundColor: getSurfaceColor({
+                  codeTheme: themeConfig.theme,
+                }),
+              }}
+              className={cx(
+                'border border-transparent w-full h-full flex items-center justify-center rounded-sm',
+                {
+                  'border-gray-200': index === 0 || index === 1,
+                }
+              )}
+            >
+              <Text
+                style={{
+                  fontFamily: 'Monaco',
+                  color: themeConfig.textColor,
+                }}
+                className="text-xs"
+              >
+                {themeConfig.name}
+              </Text>
+            </div>
+          </button>
+        ))}
       </div>
     </div>
   )
