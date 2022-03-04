@@ -62,8 +62,17 @@ export interface IntroBlock {
   order: IntroState[]
 }
 
+export interface RichTextContent {
+  text: string
+  marks: string[]
+}
+
 export interface ListItem {
-  content?: string
+  content?: {
+    type: 'code' | 'image' | 'richText' | 'text'
+    content: CodeBlock | ImageBlock | RichTextContent | string
+    line: number
+  }[]
   items?: ListItem[]
   level?: number
   text?: string
@@ -134,6 +143,69 @@ const textContent = (contentArray?: JSONContent[]) => {
       return ''
     })
     .join('&nbsp;')
+}
+
+const getPointContent = (contentArray?: JSONContent[]) => {
+  if (!contentArray) return []
+  const content: {
+    type: 'code' | 'image' | 'richText' | 'text'
+    content: CodeBlock | ImageBlock | RichTextContent | string
+    line: number
+  }[] = []
+
+  let line = 0
+
+  contentArray.forEach((node) => {
+    switch (node.type) {
+      case 'paragraph': {
+        node.content?.forEach((node) => {
+          if (!node.text) return
+          if (node.marks) {
+            const marks = node.marks.map((mark) => mark.type)
+            content.push({
+              type: 'richText',
+              line,
+              content: {
+                text: node.text,
+                marks,
+              } as RichTextContent,
+            })
+          } else {
+            content.push({ type: 'text', content: node.text, line })
+          }
+          line += 1
+        })
+        break
+      }
+      case 'codeBlock': {
+        content.push({
+          type: 'code',
+          content: {
+            code: textContent(node.content),
+            language: node.attrs?.language as string,
+          } as CodeBlock,
+          line,
+        })
+        line += 1
+        break
+      }
+      case 'image': {
+        content.push({
+          type: 'image',
+          content: {
+            url: node.attrs?.src as string,
+          } as ImageBlock,
+          line,
+        })
+        line += 1
+        break
+      }
+      default:
+        break
+    }
+  })
+
+  return content
 }
 
 const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
@@ -337,13 +409,7 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
       const simplifyListItem = (listItem: JSONContent, lvl: number) => {
         const item: ListItem = {}
 
-        item.text = listItem.content
-          ?.filter((child) => child.type === 'paragraph')
-          .map((p) => {
-            return textContent(p.content)
-          })
-          .join('')
-          .replace(/&nbsp;/g, '')
+        item.content = getPointContent(listItem.content)
         item.level = lvl
         simpleListItems.push(item)
 
@@ -380,197 +446,6 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
   return { blocks }
 }
 
-const getCommonBlocks = (
-  title: string | undefined,
-  desc: string | undefined,
-  notes: string | undefined
-) => {
-  const heading: JSONContent = {
-    type: 'heading',
-    attrs: {
-      level: 2,
-    },
-    content: title
-      ? [
-          {
-            type: 'text',
-            text: title,
-          },
-        ]
-      : undefined,
-  }
-  const description: JSONContent = {
-    type: 'paragraph',
-    content: desc
-      ? [
-          {
-            type: 'text',
-            text: desc,
-          },
-        ]
-      : undefined,
-  }
-
-  const note: JSONContent = {
-    type: 'note',
-    content: [
-      {
-        type: 'paragraph',
-        content: notes
-          ? [
-              {
-                type: 'text',
-                text: notes,
-              },
-            ]
-          : undefined,
-      },
-    ],
-  }
-  return { heading, description, note }
-}
-
-const getEditorJSON = (ast: SimpleAST): JSONContent => {
-  const state: JSONContent[] = []
-  ast.blocks.forEach((block) => {
-    switch (block.type) {
-      case 'codeBlock': {
-        const { heading, description, note } = getCommonBlocks(
-          block.codeBlock.title,
-          block.codeBlock.description,
-          block.codeBlock.note
-        )
-        state.push({
-          type: 'slab',
-          attrs: {
-            type: 'code',
-            id: block.id,
-          },
-          content: [
-            heading,
-            description,
-            {
-              type: 'codeBlock',
-              attrs: {
-                language: block.codeBlock.language,
-              },
-              content: [
-                {
-                  type: 'text',
-                  text: block.codeBlock.code,
-                },
-              ],
-            },
-            note,
-          ],
-        })
-        break
-      }
-      case 'videoBlock': {
-        const { heading, description, note } = getCommonBlocks(
-          block.videoBlock.title,
-          block.videoBlock.description,
-          block.videoBlock.note
-        )
-        state.push({
-          type: 'slab',
-          attrs: {
-            type: 'video',
-            id: block.id,
-          },
-          content: [
-            heading,
-            description,
-            {
-              type: 'video',
-              attrs: {
-                src: block.videoBlock.url,
-                'data-transformations': JSON.stringify(
-                  block.videoBlock.transformations
-                ),
-              },
-            },
-            note,
-          ],
-        })
-        break
-      }
-      case 'imageBlock': {
-        const { heading, description, note } = getCommonBlocks(
-          block.imageBlock.title,
-          block.imageBlock.description,
-          block.imageBlock.note
-        )
-        state.push({
-          type: 'slab',
-          attrs: {
-            type: 'image',
-            id: block.id,
-          },
-          content: [
-            heading,
-            description,
-            {
-              type: 'image',
-              attrs: {
-                src: block.imageBlock.url,
-              },
-            },
-            note,
-          ],
-        })
-        break
-      }
-      case 'listBlock': {
-        const { heading, description, note } = getCommonBlocks(
-          block.listBlock.title,
-          block.listBlock.description,
-          block.listBlock.note
-        )
-        state.push({
-          type: 'slab',
-          attrs: {
-            type: 'list',
-            id: block.id,
-          },
-          content: [
-            heading,
-            description,
-            {
-              type: 'bulletList',
-              content: block.listBlock.list?.map((item) => {
-                return {
-                  type: 'listItem',
-                  content: [
-                    {
-                      type: 'paragraph',
-                      content: [
-                        {
-                          type: 'text',
-                          text: item.content,
-                        },
-                      ],
-                    },
-                  ],
-                }
-              }),
-            },
-            note,
-          ],
-        })
-        break
-      }
-      default:
-        break
-    }
-  })
-
-  return {
-    type: 'doc',
-    content: state,
-  } as JSONContent
-}
-
 export const getBlockTitle = (block: Block): string => {
   switch (block.type) {
     case 'introBlock':
@@ -592,7 +467,6 @@ export const getBlockTitle = (block: Block): string => {
 
 const useUtils = () => ({
   getSimpleAST,
-  getEditorJSON,
   getBlockTitle,
 })
 
