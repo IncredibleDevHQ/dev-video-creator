@@ -173,8 +173,10 @@ const getPointContent = (contentArray?: JSONContent[]) => {
           } else {
             content.push({ type: 'text', content: node.text, line })
           }
-          line += 1
         })
+        if (node.content && node.content?.length > 0) {
+          line += 1
+        }
         break
       }
       case 'codeBlock': {
@@ -256,7 +258,7 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
   let prevCoreBlockPos = 0
   let blockPosition = 1
 
-  // console.log('state', state)
+  console.log('state', state)
 
   state?.content?.forEach((slab, index) => {
     if (slab.type === 'heading') {
