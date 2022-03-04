@@ -169,6 +169,19 @@ const Flick = () => {
       }
 
       setViewConfig({ ...viewConfig, blocks: filteredBlocks })
+    } else if (currentBlock.type === 'codeBlock') {
+      if (!viewConfig.blocks[currentBlock.id].view) {
+        updateBlockProperties(currentBlock.id, {
+          ...viewConfig.blocks[currentBlock.id],
+          view: {
+            type: 'codeBlock',
+            code: {
+              animation: CodeAnimation.TypeLines,
+              theme: CodeTheme.DarkPlus,
+            },
+          },
+        })
+      }
     }
   }, [currentBlock])
 
