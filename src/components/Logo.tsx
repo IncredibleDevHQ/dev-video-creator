@@ -4,22 +4,29 @@ import { ASSETS } from '../constants'
 
 interface LogoProps {
   size: 'small' | 'medium' | 'large'
+  theme: 'dark' | 'light'
 }
 
 const Logo = ({
   className,
+  theme,
   size,
 }: LogoProps & HTMLAttributes<HTMLImageElement>) => (
   <img
     className={cx(
+      'w-auto',
       {
-        'w-8 h-8': size === 'small',
-        'w-12 h-12': size === 'medium',
-        'w-16 h-16': size === 'large',
+        'h-8': size === 'small',
+        'h-10': size === 'medium',
+        'h-14': size === 'large',
       },
       className
     )}
-    src={ASSETS.ICONS.LOGO}
+    src={
+      theme === 'light'
+        ? ASSETS.ICONS.IncredibleLogo
+        : ASSETS.ICONS.IncredibleLogoDark
+    }
     alt="Incredible.dev"
   />
 )
