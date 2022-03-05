@@ -1,8 +1,10 @@
 // eslint-disable-next-line
+import React from 'react'
 import axios from 'axios'
 import { onAuthStateChanged, signInWithCustomToken } from 'firebase/auth'
 import { useEffect } from 'react'
 import { useRecoilState, useSetRecoilState } from 'recoil'
+import { ScreenState } from '../components'
 import config from '../config'
 import firebaseState from '../stores/firebase.store'
 import { databaseUserState, firebaseUserState } from '../stores/user.store'
@@ -98,6 +100,8 @@ const AuthProvider = ({ children }: { children: JSX.Element }): JSX.Element => {
   useEffect(() => {
     login()
   }, [])
+
+  if (!dbUser?.sub) return <ScreenState title="Just a jiffy" loading />
 
   return children
 }

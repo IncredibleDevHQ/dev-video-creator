@@ -63,129 +63,126 @@ const TipTap = ({
 
   const dragRef = useRef<HTMLDivElement>(null)
 
-  const editor = useEditor(
-    {
-      onUpdate: ({ editor }) => {
-        utils.getSimpleAST(editor.getJSON()).then((simpleAST) => {
-          setAST(simpleAST)
-          handleUpdate()
-          handleUpdateAst?.(simpleAST, editor.getHTML())
-        })
-      },
-      editorProps: {
-        attributes: {
-          class: cx(
-            'prose prose-sm max-w-none w-full h-full border-none focus:outline-none',
-            editorStyle
-          ),
-        },
-      },
-      autofocus: true,
-      extensions: [
-        Collaboration.configure({
-          document: yDoc,
-        }),
-        CollaborationCursor.configure({
-          provider,
-          user: {
-            name: user?.displayName || 'Anonymous',
-            color: generateLightColorHex(),
-          },
-        }),
-        UniqueID.configure({
-          attributeName: 'id',
-          types: [
-            'paragraph',
-            'blockquote',
-            'heading',
-            'bulletList',
-            'orderedList',
-            'codeBlock',
-            'video',
-            'image',
-          ],
-        }),
-        DragHandler(dragRef.current),
-        Focus,
-        CustomTypography,
-        StarterKit.configure({
-          history: false,
-          codeBlock: false,
-          heading: {
-            levels: [1, 2, 3, 4, 5, 6],
-          },
-          bulletList: {
-            itemTypeName: 'listItem',
-          },
-          dropcursor: {
-            width: 3.5,
-            color: '#C3E2F0',
-            class: 'transition-all duration-200 ease-in-out',
-          },
-        }),
-        SlashCommands.configure({
-          suggestion: {
-            items: getSuggestionItems,
-            render: renderItems,
-          },
-        }),
-        Placeholder.configure({
-          showOnlyWhenEditable: true,
-          includeChildren: true,
-          showOnlyCurrent: false,
-          emptyEditorClass: 'is-editor-empty',
-          placeholder: ({ node, editor }) => {
-            const headingPlaceholders: {
-              [key: number]: string
-            } = {
-              1: 'Heading 1',
-              2: 'Heading 2',
-              3: 'Heading 3',
-              4: 'Heading 4',
-              5: 'Heading 5',
-              6: 'Heading 6',
-            }
-
-            if (node.type.name === 'heading') {
-              const level = node.attrs.level as number
-              return headingPlaceholders[level]
-            }
-
-            if (
-              node.type.name === 'paragraph' &&
-              editor.getJSON().content?.length === 1
-            ) {
-              return 'Type / to get started'
-            }
-
-            if (node.type.name === 'paragraph') {
-              const selectedNode = editor.view.domAtPos(
-                editor.state.selection.from
-              ).node
-              if (
-                selectedNode.nodeName === 'P' &&
-                selectedNode.firstChild?.parentElement?.id === node.attrs.id
-              ) {
-                return 'Type / for commands'
-              }
-            }
-
-            return ''
-          },
-        }),
-        CodeBlock,
-        ImageBlock.configure({
-          inline: false,
-        }),
-        VideoBlock,
-        TrailingNode,
-        CharacterCount.configure({
-          limit: 20000,
-        }),
-      ],
+  const editor = useEditor({
+    onUpdate: ({ editor }) => {
+      utils.getSimpleAST(editor.getJSON()).then((simpleAST) => {
+        setAST(simpleAST)
+        handleUpdate()
+        handleUpdateAst?.(simpleAST, editor.getHTML())
+      })
     },
-    []
-  )
+    editorProps: {
+      attributes: {
+        class: cx(
+          'prose prose-sm max-w-none w-full h-full border-none focus:outline-none',
+          editorStyle
+        ),
+      },
+    },
+    autofocus: true,
+    extensions: [
+      Collaboration.configure({
+        document: yDoc,
+      }),
+      CollaborationCursor.configure({
+        provider,
+        user: {
+          name: user?.displayName || 'Anonymous',
+          color: generateLightColorHex(),
+        },
+      }),
+      UniqueID.configure({
+        attributeName: 'id',
+        types: [
+          'paragraph',
+          'blockquote',
+          'heading',
+          'bulletList',
+          'orderedList',
+          'codeBlock',
+          'video',
+          'image',
+        ],
+      }),
+      DragHandler(dragRef.current),
+      Focus,
+      CustomTypography,
+      StarterKit.configure({
+        history: false,
+        codeBlock: false,
+        heading: {
+          levels: [1, 2, 3, 4, 5, 6],
+        },
+        bulletList: {
+          itemTypeName: 'listItem',
+        },
+        dropcursor: {
+          width: 3.5,
+          color: '#C3E2F0',
+          class: 'transition-all duration-200 ease-in-out',
+        },
+      }),
+      SlashCommands.configure({
+        suggestion: {
+          items: getSuggestionItems,
+          render: renderItems,
+        },
+      }),
+      Placeholder.configure({
+        showOnlyWhenEditable: true,
+        includeChildren: true,
+        showOnlyCurrent: false,
+        emptyEditorClass: 'is-editor-empty',
+        placeholder: ({ node, editor }) => {
+          const headingPlaceholders: {
+            [key: number]: string
+          } = {
+            1: 'Heading 1',
+            2: 'Heading 2',
+            3: 'Heading 3',
+            4: 'Heading 4',
+            5: 'Heading 5',
+            6: 'Heading 6',
+          }
+
+          if (node.type.name === 'heading') {
+            const level = node.attrs.level as number
+            return headingPlaceholders[level]
+          }
+
+          if (
+            node.type.name === 'paragraph' &&
+            editor.getJSON().content?.length === 1
+          ) {
+            return 'Type / to get started'
+          }
+
+          if (node.type.name === 'paragraph') {
+            const selectedNode = editor.view.domAtPos(
+              editor.state.selection.from
+            ).node
+            if (
+              selectedNode.nodeName === 'P' &&
+              selectedNode.firstChild?.parentElement?.id === node.attrs.id
+            ) {
+              return 'Type / for commands'
+            }
+          }
+
+          return ''
+        },
+      }),
+      CodeBlock,
+      ImageBlock.configure({
+        inline: false,
+      }),
+      VideoBlock,
+      TrailingNode,
+      CharacterCount.configure({
+        limit: 20000,
+      }),
+    ],
+  })
 
   const editorRef = useRef<HTMLDivElement>(null)
 
