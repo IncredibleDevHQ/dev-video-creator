@@ -13,7 +13,6 @@ import {
   Studio,
 } from './modules'
 import AuthProvider from './utils/auth'
-import PrivateRoute from './utils/PrivateRoute'
 import AuthorizedApolloProvider from './utils/AuthorizedApolloProvider'
 import 'react-toastify/dist/ReactToastify.css'
 import 'react-responsive-modal/styles.css'
@@ -68,27 +67,21 @@ const App = () => {
                 <Route exact path="/">
                   <Landing />
                 </Route>
-                <PrivateRoute exact path="/dashboard" component={Dashboard} />
-                <PrivateRoute
-                  exact
-                  path="/flick/:id/:fragmentId?"
-                  component={Flick}
-                />
-                <PrivateRoute
-                  exact
-                  path="/:fragmentId/studio"
-                  component={Studio}
-                />
-                <PrivateRoute
-                  exact
-                  path="/integrations/github/callback"
-                  component={GitHubCallback}
-                />
-                <PrivateRoute
-                  exact
-                  path="/integrations"
-                  component={Integrations}
-                />
+                <Route exact path="/dashboard">
+                  <Dashboard />
+                </Route>
+                <Route exact path="/flick/:id/:fragmentId?">
+                  <Flick />
+                </Route>
+                <Route exact path="/:fragmentId/studio">
+                  <Studio />
+                </Route>
+                <Route exact path="/integrations/github/callback">
+                  <GitHubCallback />
+                </Route>
+                <Route exact path="/integrations">
+                  <Integrations />
+                </Route>
               </Switch>
             </Router>
           </>
