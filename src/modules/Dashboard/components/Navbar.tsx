@@ -39,10 +39,16 @@ const Navbar = ({
   const [isCreateFlickOpen, setIsCreateFlickOpen] = useState(false)
 
   return (
-    <nav className={cx('flex justify-between px-5 py-3.5 w-full', className)}>
+    <nav
+      className={cx(
+        'flex justify-between items-center px-5 py-3.5 w-full',
+        className
+      )}
+    >
       <Logo
         className="cursor-pointer"
-        size="small"
+        size="medium"
+        theme="dark"
         onClick={() => {
           if (sub) history.push('/dashboard')
           else history.push('/')
@@ -101,7 +107,7 @@ const Navbar = ({
               <IoChevronDown />
             </Button>
           </Tooltip>
-          <Notifications />
+          {auth.currentUser?.uid && <Notifications />}
           <Tooltip
             isOpen={isOpen}
             setIsOpen={setIsOpen}

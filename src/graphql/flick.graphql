@@ -24,6 +24,7 @@ fragment Content on Content {
   isPublic
   seriesId
   resource
+  preview
   thumbnail
   type
 }
@@ -82,6 +83,24 @@ fragment FlickActivity on FlickActivity {
   fragmentId
 }
 
+fragment DashboardFlicks on Flick {
+  id
+  name
+  color
+  description
+  joinLink
+  ownerId
+  status
+  thumbnail
+  contents {
+    ...Content
+  }
+  theme {
+    name
+    config
+  }
+}
+
 fragment Flick on Flick {
   ...BaseFlick
   participants {
@@ -100,6 +119,24 @@ query GetMyFlicks($limit: Int, $userId: String) {
     id
     name
     description
+  }
+}
+
+query GetDashboardUserFlicks(
+  $sub: String!
+  $limit: Int = 10
+  $offset: Int = 0
+) {
+  Flick(
+    where: {
+      participants: { userSub: { _eq: $sub } }
+      deletedAt: { _is_null: true }
+    }
+    order_by: { startAt: desc }
+    limit: $limit
+    offset: $offset
+  ) {
+    ...DashboardFlicks
   }
 }
 

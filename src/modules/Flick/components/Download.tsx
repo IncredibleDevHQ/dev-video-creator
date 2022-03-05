@@ -13,6 +13,7 @@ import {
   emitToast,
   Heading,
   ThumbnailPreview,
+  Text,
 } from '../../../components'
 import config from '../../../config'
 import {
@@ -448,7 +449,9 @@ const Download = ({
               setCopyBtnString('Copied!')
             }}
           >
-            {publishLoading ? 'Publishing video...' : copyBtnString}
+            <Text className="text-black">
+              {publishLoading ? 'Publishing video...' : copyBtnString}
+            </Text>
           </Button>
           <Button
             type="button"
