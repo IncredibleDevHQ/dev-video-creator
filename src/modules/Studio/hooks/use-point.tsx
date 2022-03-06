@@ -36,8 +36,10 @@ const usePoint = () => {
     presentY.current = 0
     noOfLines.current = 0
     points.forEach((point, index) => {
+      const pointContent = point.content
+      if (!pointContent) return
       const text = new Konva.Text({
-        text: point.text,
+        text: (pointContent[0]?.content as string) || '',
         fontSize,
         fontFamily,
         width: availableWidth,
@@ -51,7 +53,7 @@ const usePoint = () => {
           noOfLines.current * (fontSize + fontSize * 0.3) +
           gutter +
           presentY.current,
-        text: point.text || '',
+        text: (pointContent[0]?.content as string) || '',
         level: point.level || 1,
         width,
       }
@@ -60,7 +62,7 @@ const usePoint = () => {
         noOfLines.current * (fontSize + fontSize * 0.3) + gutter
 
       noOfLines.current = getNoOfLinesOfText({
-        text: point.text || '',
+        text: (pointContent[0]?.content as string) || '',
         availableWidth: availableWidth - (41 * ((point.level || 1) - 1) || 0),
         fontSize,
         fontFamily,
