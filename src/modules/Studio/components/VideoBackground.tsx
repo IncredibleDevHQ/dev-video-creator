@@ -21,8 +21,12 @@ const VideoBackground = ({
 }) => {
   const { branding } = useRecoilValue(studioStore)
   const [bgImage] = useImage(branding?.background?.url || '', 'anonymous')
-  const [glassyThemeBackground] = useImage(
+  const [darkGradientThemeBackground] = useImage(
     `${config.storage.baseUrl}themes/glassyThemeBackground.png`,
+    'anonymous'
+  )
+  const [cassidooThemeBg] = useImage(
+    `${config.storage.baseUrl}themes/cassidoo/cassidoo.svg`,
     'anonymous'
   )
 
@@ -89,17 +93,18 @@ const VideoBackground = ({
               )}
             </Group>
           )
-        default:
+        default: {
           return (
             <Image
               x={0}
               y={0}
               width={stageConfig.width}
               height={stageConfig.height}
-              image={glassyThemeBackground}
+              image={darkGradientThemeBackground}
               fill="#040E22"
             />
           )
+        }
       }
     case 'PastelLines':
       switch (branding?.background?.type) {
@@ -275,6 +280,67 @@ const VideoBackground = ({
               />
             </Group>
           )
+      }
+    case 'Cassidoo':
+      switch (branding?.background?.type) {
+        case 'image':
+          return (
+            <Image
+              x={0}
+              y={0}
+              width={stageConfig.width}
+              height={stageConfig.height}
+              image={bgImage}
+              fill="#040E22"
+            />
+          )
+        case 'color':
+          return (
+            <Rect
+              x={0}
+              y={0}
+              width={stageConfig.width}
+              height={stageConfig.height}
+              fill={branding?.background?.color?.primary}
+            />
+          )
+        case 'video':
+          return (
+            <Group x={0} y={0}>
+              {videoElement && (
+                <Video
+                  videoElement={videoElement}
+                  videoConfig={{
+                    x: 0,
+                    y: 0,
+                    width: stageConfig.width,
+                    height: stageConfig.height,
+                    videoFill: branding?.background?.color?.primary,
+                    cornerRadius: 0,
+                    performClip: true,
+                    clipVideoConfig: {
+                      x: 0,
+                      y: 0,
+                      width: 1,
+                      height: 1,
+                    },
+                  }}
+                />
+              )}
+            </Group>
+          )
+        default: {
+          return (
+            <Image
+              x={0}
+              y={0}
+              width={stageConfig.width}
+              height={stageConfig.height}
+              image={cassidooThemeBg}
+              fill="#040E22"
+            />
+          )
+        }
       }
     default:
       return <></>
