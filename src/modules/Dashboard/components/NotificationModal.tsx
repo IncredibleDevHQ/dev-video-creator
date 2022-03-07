@@ -39,9 +39,9 @@ export const NotificationMessage = ({
   const end = notification.message.substring(highlightEndIndex + 1)
 
   return (
-    <Text className="text-sm text-dark-body-200">
+    <Text className="text-sm text-gray-400 font-body">
       {start}
-      <span className="text-dark-title font-main">{middle}</span>
+      <span className="text-gray-100 font-main">{middle}</span>
       {end}
     </Text>
   )
@@ -77,7 +77,7 @@ const NotificationsList = ({
   return (
     <div
       className={cx(
-        'flex flex-col bg-dark-200 rounded-md mt-5',
+        'flex flex-col bg-dark-200 rounded-md mt-6',
         css`
           min-width: 350px;
           max-width: 350px;
@@ -103,12 +103,12 @@ const NotificationsList = ({
             'mb-2': !data,
           })}
         >
-          <IoSyncOutline className="text-dark-title-200 animate-spin" />
+          <IoSyncOutline className="text-dark-title animate-spin" />
         </div>
       )}
       {data && data.Notifications.length === 0 && (
         <div className="flex items-center justify-center flex-1 my-12">
-          <Text className="italic text-dark-body-200">
+          <Text className="italic text-gray-200">
             You do not have any notifications
           </Text>
         </div>
@@ -178,7 +178,7 @@ const NotificationsList = ({
                   />
                   <div className="flex flex-col w-full">
                     <NotificationMessage notification={notification} />
-                    <Text className="mt-1 text-xs text-dark-body-200">
+                    <Text className="mt-1 text-xs text-gray-400">
                       {formatDistance(
                         new Date(notification.createdAt),
                         new Date(),
@@ -198,17 +198,17 @@ const NotificationsList = ({
             )
           })}
       </div>
-      {data && data.Notifications.length >= 15 && (
-        <div className="flex items-center justify-center w-full py-2 border-t border-incredible-dark-400">
+      {/* {data && data.Notifications.length >= 15 && (
+        <div className="flex items-center justify-center w-full py-2 border-t border-dark-100">
           <Button
             type="button"
-            appearance="secondary"
+            appearance="gray"
             onClick={() => history.push('/notifications')}
           >
             <Text className="text-sm">See all</Text>
           </Button>
         </div>
-      )}
+      )} */}
     </div>
   )
 }
@@ -252,10 +252,10 @@ const Notifications = () => {
           />
         )}
         {isNotificationsOpen ? (
-          <IoNotifications className="rounded-full text-dark-title" size={24} />
+          <IoNotifications className="rounded-full text-gray-200" size={24} />
         ) : (
           <IoNotificationsOutline
-            className="rounded-full text-dark-title"
+            className="rounded-full text-gray-200"
             size={24}
           />
         )}

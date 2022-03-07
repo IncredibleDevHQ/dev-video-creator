@@ -16,15 +16,18 @@ const hoverImageCSS = ({
   height: number
   source: string
 }) => css`
-  width: ${width * scale}px;
-  height: ${height * scale}px;
   background: url(${source}) no-repeat;
   background-size: cover;
   background-position: 0 0;
 `
 
+const cursor = css`
+  cursor: ew-resize;
+`
+
 const ThumbnailPreview = ({
   scale = 1,
+  useInternalScaling = false,
   className,
   totalImages = 50,
   markerWidth = 4,
@@ -34,6 +37,7 @@ const ThumbnailPreview = ({
   orientation,
 }: {
   scale?: number
+  useInternalScaling?: boolean
   className?: string
   totalImages?: number
   markerWidth?: number
@@ -56,7 +60,7 @@ const ThumbnailPreview = ({
       const activeImage = Math.floor(x / partSize)
       divRef.current.style.backgroundPosition = `0 -${
         activeImage *
-        scale *
+        (useInternalScaling ? bounds.width / 150 : scale) *
         (orientation === OrientationEnum.Landscape ? size.height : size.width)
       }px`
       setX(x)
@@ -66,6 +70,16 @@ const ThumbnailPreview = ({
 
   useEffect(() => {
     if (!divRef.current) return
+    if (!useInternalScaling) {
+      divRef.current.style.width =
+        orientation === OrientationEnum.Landscape
+          ? `${size.width * scale}px`
+          : `${size.height * scale}px`
+      divRef.current.style.height =
+        orientation === OrientationEnum.Landscape
+          ? `${size.height * scale}px`
+          : `${size.width * scale}px`
+    }
     divRef.current.addEventListener('mousemove', mouseEvtListener)
     return () => {
       divRef.current?.removeEventListener('mouseleave', mouseEvtListener)
@@ -117,6 +131,7 @@ const ThumbnailPreview = ({
           source: backgroundImageSource,
           scale,
         }),
+        cursor,
         className
       )}
     >
