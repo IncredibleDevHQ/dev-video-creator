@@ -809,22 +809,22 @@ const Studio = ({
     setState('recording')
   }
 
-  const finalTransition = () => {
-    if (!payload) return
-    payload.playing = false
-    // updatePayload?.({ status: Fragment_Status_Enum_Enum.Ended })
-  }
+  // const finalTransition = () => {
+  //   if (!payload) return
+  //   payload.playing = false
+  //   // updatePayload?.({ status: Fragment_Status_Enum_Enum.Ended })
+  // }
 
   const stop = () => {
     stopRecording()
     setState('preview')
   }
 
-  useEffect(() => {
-    if (payload?.status === Fragment_Status_Enum_Enum.Ended) {
-      finalTransition()
-    }
-  }, [payload])
+  // useEffect(() => {
+  //   if (payload?.status === Fragment_Status_Enum_Enum.Ended) {
+  //     finalTransition()
+  //   }
+  // }, [payload])
 
   useEffect(() => {
     if (payload?.status === Fragment_Status_Enum_Enum.NotStarted) {
@@ -852,7 +852,6 @@ const Studio = ({
       stream: stream as MediaStream,
       startRecording: start,
       stopRecording: stop,
-      showFinalTransition: finalTransition,
       addMusic,
       reduceSplashAudioVolume,
       stopMusic,
