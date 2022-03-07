@@ -10,6 +10,7 @@ import {
   ShortsStudioUserConfiguration,
   StudioUserConfiguration,
 } from '../../utils/StudioUserConfig'
+import CassidooSplash from '../Splashes/CassidooSplash'
 import GlassySplash from '../Splashes/GlassySplash'
 import PastelLinesSplash from '../Splashes/PastelLinesSplash'
 
@@ -34,6 +35,8 @@ const Splash = ({
       return <GlassySplash stageConfig={stageConfig} isShorts={isShorts} />
     case 'PastelLines':
       return <PastelLinesSplash stageConfig={stageConfig} isShorts={isShorts} />
+    case 'Cassidoo':
+      return <CassidooSplash stageConfig={stageConfig} isShorts={isShorts} />
     default:
       return <></>
   }
