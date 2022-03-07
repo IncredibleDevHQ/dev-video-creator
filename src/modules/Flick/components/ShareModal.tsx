@@ -352,13 +352,13 @@ const ShareModal = ({
                 className="grid items-center grid-cols-4"
                 key={participant.id}
               >
-                <div className="flex flex-row items-center col-span-3 my-1">
+                <div className="flex flex-row items-center col-span-3 my-1.5">
                   <img
-                    className="w-7 h-7 rounded-full"
+                    className="w-8 h-8 rounded-full"
                     src={participant.user.picture || dpFallback}
                     alt=""
                   />
-                  <Text className="ml-2 text-xs font-body">
+                  <Text className="ml-2 text-sm font-body text-gray-800">
                     {participant.user.displayName}
                   </Text>
                 </div>
@@ -379,8 +379,8 @@ const ShareModal = ({
                 className="grid items-center grid-cols-4"
                 key={invitee.receiver.sub}
               >
-                <div className="flex items-center text-xs font-body my-1 gap-x-2 text-gray-400 col-span-3">
-                  <div className="h-7 w-7 rounded-full bg-gray-100 border border-gray-300" />
+                <div className="flex items-center text-sm font-body my-1 gap-x-2 text-gray-400 col-span-3">
+                  <div className="h-8 w-8 rounded-full bg-gray-100 border border-gray-300" />
                   {invitee.receiver.email === invitee.receiver.sub
                     ? invitee.receiver.email
                     : invitee.receiver.displayName}
@@ -507,7 +507,7 @@ const AccessControl = ({
           <Menu.Button
             disabled={participantSub === flick?.owner?.userSub || !isOwner}
             className={cx(
-              'w-full flex items-center justify-end pr-0 relative ml-1 text-gray-600',
+              'w-full flex items-center justify-end pr-0 relative ml-3 text-gray-600',
               {
                 'pr-5': participantSub !== flick?.owner?.userSub && isOwner,
               }
