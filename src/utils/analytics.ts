@@ -9,7 +9,7 @@ declare global {
 }
 
 export const logPage = (category: PageCategory, page: PageTitle) => {
-  if (config.node_env === 'production') {
+  if (config.env === 'production') {
     window.analytics.page(category, page)
   } else {
     console.log('Segment : logPage => ', category, page)
@@ -17,7 +17,7 @@ export const logPage = (category: PageCategory, page: PageTitle) => {
 }
 
 export const logEvent = (eventName: PageEvent) => {
-  if (config.node_env === 'production') {
+  if (config.env === 'production') {
     window.analytics.track(eventName)
   } else {
     console.log('Segment : logEvent => ', eventName)

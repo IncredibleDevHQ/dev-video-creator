@@ -228,7 +228,6 @@ const fetcher = async (
         colorCodes: data.data.TokenisedCode.data,
       }
     } catch (e) {
-      console.error(e)
       return {
         key,
         url,
@@ -248,7 +247,6 @@ const fetcher = async (
       colorCodes: undefined,
     }
   } catch (e) {
-    console.error(e)
     return {
       key,
       url,
