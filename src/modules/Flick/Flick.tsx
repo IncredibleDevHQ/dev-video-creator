@@ -1,9 +1,13 @@
+/* eslint-disable no-nested-ternary */
 import { css, cx } from '@emotion/css'
-import React, { useEffect, useMemo, useState } from 'react'
+import { HocuspocusProvider, WebSocketStatus } from '@hocuspocus/provider'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useRecoilState, useSetRecoilState } from 'recoil'
 import { v4 as uuidv4 } from 'uuid'
+import * as Y from 'yjs'
 import { ScreenState } from '../../components'
+import config from '../../config'
 import {
   FlickFragmentFragment,
   Fragment_Status_Enum_Enum,
@@ -12,14 +16,14 @@ import {
   useGetThemesQuery,
 } from '../../generated/graphql'
 import { useCanvasRecorder } from '../../hooks'
+import { logPage } from '../../utils/analytics'
+import { PageCategory, PageTitle } from '../../utils/analytics-types'
 import {
   BlockProperties,
   CodeAnimation,
   CodeTheme,
   ViewConfig,
 } from '../../utils/configTypes'
-import { logPage } from '../../utils/analytics'
-import { PageCategory, PageTitle } from '../../utils/analytics-types'
 import { loadFonts } from '../Studio/hooks/use-load-font'
 import studioStore from '../Studio/stores/studio.store'
 import {
@@ -95,6 +99,7 @@ const Flick = () => {
   const { id } = useParams<{ id: string; fragmentId?: string }>()
   const [{ flick, activeFragmentId, view }, setFlickStore] =
     useRecoilState(newFlickStore)
+
   const { data, error, loading, refetch } = useGetFlickByIdQuery({
     variables: { id },
   })
@@ -114,6 +119,21 @@ const Flick = () => {
 
   const { updatePayload, payload, resetPayload } = useLocalPayload()
   const { data: themesData } = useGetThemesQuery()
+
+  const providerRef = useRef<HocuspocusProvider>()
+  const yDocRef = useRef<Y.Doc>()
+
+  useEffect(() => {
+    if (providerRef.current || yDocRef.current) return
+    const yDoc = new Y.Doc()
+    const provider = new HocuspocusProvider({
+      document: yDoc,
+      url: config.hocusPocus.server,
+      name: `flick-doc-${id}`,
+    })
+    providerRef.current = provider
+    yDocRef.current = yDoc
+  }, [])
 
   const updateBlockProperties = (id: string, properties: BlockProperties) => {
     const filteredBlocks: {
@@ -305,7 +325,13 @@ const Flick = () => {
       <FlickNavBar />
       <FragmentBar
         simpleAST={simpleAST}
-        editorValue={editorValue}
+        editorValue={
+          providerRef.current
+            ? providerRef.current.status === WebSocketStatus.Connected
+              ? editorValue
+              : (flick.md as string)
+            : (flick.md as string)
+        }
         config={viewConfig}
         setViewConfig={setViewConfig}
       />
@@ -344,34 +370,38 @@ const Flick = () => {
               activeFragment={activeFragment}
             />
 
-            <TipTap
-              key={activeFragment.id}
-              handleUpdatePosition={(position) => {
-                setPreviewPosition(position)
-              }}
-              handleUpdateAst={(ast, editorState) => {
-                if (simpleAST)
-                  setSimpleAST((prev) => ({
-                    ...ast,
-                    blocks: [
-                      ...(prev?.blocks ? [prev.blocks[0]] : []),
-                      ...ast.blocks,
-                      ...(prev?.blocks
-                        ? [
-                            {
-                              ...prev.blocks[prev.blocks.length - 1],
-                              pos: ast.blocks.length + 1,
-                            } as Block,
-                          ]
-                        : []),
-                    ],
-                  }))
-                setEditorValue(editorState)
-              }}
-              handleActiveBlock={(block) => {
-                if (block && block !== currentBlock) setCurrentBlock(block)
-              }}
-            />
+            {providerRef.current && yDocRef.current && (
+              <TipTap
+                key={activeFragment.id}
+                provider={providerRef.current}
+                yDoc={yDocRef.current}
+                handleUpdatePosition={(position) => {
+                  setPreviewPosition(position)
+                }}
+                handleUpdateAst={(ast, editorState) => {
+                  if (simpleAST)
+                    setSimpleAST((prev) => ({
+                      ...ast,
+                      blocks: [
+                        ...(prev?.blocks ? [prev.blocks[0]] : []),
+                        ...ast.blocks,
+                        ...(prev?.blocks
+                          ? [
+                              {
+                                ...prev.blocks[prev.blocks.length - 1],
+                                pos: ast.blocks.length + 1,
+                              } as Block,
+                            ]
+                          : []),
+                      ],
+                    }))
+                  setEditorValue(editorState)
+                }}
+                handleActiveBlock={(block) => {
+                  if (block && block !== currentBlock) setCurrentBlock(block)
+                }}
+              />
+            )}
           </div>
 
           <div
