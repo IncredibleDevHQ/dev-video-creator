@@ -74,7 +74,7 @@ export const getColorCodes = async (
   )
 }
 
-export const getSurafceColor = ({ codeTheme }: { codeTheme: CodeTheme }) => {
+export const getSurfaceColor = ({ codeTheme }: { codeTheme: CodeTheme }) => {
   switch (codeTheme) {
     case 'light_vs':
       return '#ffffff'
@@ -92,9 +92,9 @@ export const getSurafceColor = ({ codeTheme }: { codeTheme: CodeTheme }) => {
       return '#1E1E1E'
     case 'kimbie_dark':
       return '#221A0F'
-    case 'monakai':
+    case 'monokai':
       return '#272822'
-    case 'monakai_dimmed':
+    case 'monokai_dimmed':
       return '#1E1E1E'
     case 'red':
       return '#390000'
@@ -377,7 +377,7 @@ const CodeFragment = ({
       <FragmentBackground
         theme={theme}
         objectConfig={objectConfig}
-        backgroundRectColor={getSurafceColor({ codeTheme })}
+        backgroundRectColor={getSurfaceColor({ codeTheme })}
       />
       {!isPreview ? (
         <Group
