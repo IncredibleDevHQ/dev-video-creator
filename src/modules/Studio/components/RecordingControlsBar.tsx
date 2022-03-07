@@ -338,7 +338,7 @@ const RecordingControlsBar = ({
             })
           }}
         >
-          {controlsConfig.playing ? (
+          {controlsConfig?.playing ? (
             <IoPause className="m-px w-5 h-5 p-px" />
           ) : (
             <IoPlay className="m-px w-5 h-5 p-px" />
