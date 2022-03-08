@@ -80,7 +80,7 @@ const CassidooSplash = ({
       <Text
         x={!isShorts ? 100 : 50}
         y={175}
-        width={!isShorts ? 485 : 300}
+        width={!isShorts ? 485 : 290}
         height={!isShorts ? 170 : 340}
         text={fragment?.flick.name || 'Hello Intro'}
         fill={branding?.colors?.text || getThemeTextColor(theme)}
