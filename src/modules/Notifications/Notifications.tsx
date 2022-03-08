@@ -5,10 +5,13 @@ import { formatDistance } from 'date-fns'
 import React, { useEffect, useState } from 'react'
 import { GoPrimitiveDot } from 'react-icons/go'
 import Skeleton, { SkeletonTheme } from 'react-loading-skeleton'
+import { useHistory } from 'react-router-dom'
 import dpFallback from '../../assets/dp_fallback.png'
 import { Button, Heading, Image, Text } from '../../components'
+import config from '../../config'
 import {
   MyNotificationFragment,
+  Notification_Meta_Type_Enum_Enum,
   Notification_Type_Enum_Enum,
   useGetAllMyNotificationsQuery,
   useMarkNotificationAsReadMutation,
@@ -24,6 +27,8 @@ const Notifications = () => {
   useEffect(() => {
     logPage(PageCategory.Main, PageTitle.Notifications)
   }, [])
+
+  const history = useHistory()
 
   const [offset, setOffset] = useState(0)
 
@@ -134,19 +139,28 @@ const Notifications = () => {
                       if (
                         notification.type === Notification_Type_Enum_Enum.Event
                       ) {
-                        // switch (notification.metaType) {
-                        //   case Notification_Meta_Type_Enum_Enum.Follow:
-                        //     router.push(`/${notification.sender.username}`)
-                        //     break
-                        //   case Notification_Meta_Type_Enum_Enum.Flick:
-                        //     router.push(`/flick/${notification.meta.flickId}`)
-                        //     break
-                        //   case Notification_Meta_Type_Enum_Enum.Series:
-                        //     router.push(`/series/${notification.meta.seriesId}`)
-                        //     break
-                        //   default:
-                        //     break
-                        // }
+                        switch (notification.metaType) {
+                          case Notification_Meta_Type_Enum_Enum.Follow:
+                            window.open(
+                              `${config.auth.endpoint}/${notification.sender.username}`
+                            )
+                            break
+                          case Notification_Meta_Type_Enum_Enum.User:
+                            window.open(
+                              `${config.auth.endpoint}/${notification.sender.username}`
+                            )
+                            break
+                          case Notification_Meta_Type_Enum_Enum.Flick:
+                            history.push(`/flick/${notification.meta?.flickId}`)
+                            break
+                          case Notification_Meta_Type_Enum_Enum.Series:
+                            window.open(
+                              `${config.auth.endpoint}/series/series--${notification.meta?.seriesId}`
+                            )
+                            break
+                          default:
+                            break
+                        }
                       }
                       if (
                         notification.type ===

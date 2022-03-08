@@ -20,6 +20,7 @@ import {
 } from '../../../generated/graphql'
 import { Button, Text, Tooltip } from '../../../components'
 import CollaborationRespondModal from './CollaborationResponseModal'
+import config from '../../../config'
 
 export const NotificationMessage = ({
   notification,
@@ -141,19 +142,27 @@ const NotificationsList = ({
                     if (
                       notification.type === Notification_Type_Enum_Enum.Event
                     ) {
-                      switch (notification.meta.type) {
+                      switch (notification.metaType) {
                         case Notification_Meta_Type_Enum_Enum.Follow:
-                          history.push(
-                            `/profile/${notification.sender.username}`
+                          window.open(
+                            `${config.auth.endpoint}/${notification.sender.username}`
+                          )
+                          break
+                        case Notification_Meta_Type_Enum_Enum.User:
+                          window.open(
+                            `${config.auth.endpoint}/${notification.sender.username}`
                           )
                           break
                         case Notification_Meta_Type_Enum_Enum.Flick:
-                          history.push(`/flick/${notification.meta.flickId}`)
+                          history.push(`/flick/${notification.meta?.flickId}`)
                           break
                         case Notification_Meta_Type_Enum_Enum.Series:
-                          history.push(`/series/${notification.meta.seriesId}`)
+                          window.open(
+                            `${config.auth.endpoint}/series/series--${notification.meta?.seriesId}`
+                          )
                           break
                         default:
+                          break
                       }
                     }
                     if (
