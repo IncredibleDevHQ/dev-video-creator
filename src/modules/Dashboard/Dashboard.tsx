@@ -11,7 +11,7 @@ import { Filter, FlickTile, Header, Navbar } from './components'
 import { CollectionFilter } from './components/Filter'
 import { Button, Heading, Text } from '../../components'
 
-const customScroll = css`
+export const customScroll = css`
   ::-webkit-scrollbar {
     width: 18px;
   }
@@ -85,7 +85,7 @@ const Dashboard = () => {
           ) {
             fetchMore({
               variables: {
-                offset: offset + 12,
+                offset: offset + 25,
               },
               updateQuery: (prev, { fetchMoreResult }) => {
                 if (!fetchMoreResult) return prev
@@ -95,7 +95,7 @@ const Dashboard = () => {
                 }
               },
             })
-            setOffset(offset + 12)
+            setOffset(offset + 25)
           }
         }}
       >

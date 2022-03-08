@@ -129,7 +129,7 @@ query GetMyFlicks($limit: Int, $userId: String) {
 
 query GetDashboardUserFlicks(
   $sub: String!
-  $limit: Int = 12
+  $limit: Int = 25
   $offset: Int = 0
 ) {
   Flick(
