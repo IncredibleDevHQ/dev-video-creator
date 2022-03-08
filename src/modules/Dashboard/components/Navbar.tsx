@@ -73,7 +73,7 @@ const Navbar = ({ className }: HTMLAttributes<HTMLDivElement>) => {
               </li>
               <div className="w-full border-t border-dark-100" />
               <li
-                className="p-2 px-6 cursor-pointer text-dark-title-200 rounded-b-md hover:bg-dark-100"
+                className="p-2 px-6 cursor-pointer text-gray-400 rounded-b-md hover:bg-dark-100"
                 onClick={() => handleSignOut()}
               >
                 Sign out
