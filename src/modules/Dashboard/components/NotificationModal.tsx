@@ -18,7 +18,7 @@ import {
   useMarkNotificationAsReadMutation,
   useMyUnreadNotificationsCountSubscription,
 } from '../../../generated/graphql'
-import { Button, Text, Tooltip } from '../../../components'
+import { Button, emitToast, Text, Tooltip } from '../../../components'
 import CollaborationRespondModal from './CollaborationResponseModal'
 
 export const NotificationMessage = ({
