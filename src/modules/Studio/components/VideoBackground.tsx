@@ -26,11 +26,11 @@ const VideoBackground = ({
     'anonymous'
   )
   const [cassidooThemeBg] = useImage(
-    `${config.storage.baseUrl}themes/Cassidoo/cassidoo.svg`,
+    `${config.storage.baseUrl}themes/cassidoo/cassidoo.svg`,
     'anonymous'
   )
   const [cassidooPortraitThemeBg] = useImage(
-    `${config.storage.baseUrl}themes/Cassidoo/cassidooPortrait.svg`,
+    `${config.storage.baseUrl}themes/cassidoo/cassidooPortrait.svg`,
     'anonymous'
   )
 
@@ -295,7 +295,6 @@ const VideoBackground = ({
               width={stageConfig.width}
               height={stageConfig.height}
               image={bgImage}
-              fill="#040E22"
             />
           )
         case 'color':
@@ -341,7 +340,19 @@ const VideoBackground = ({
               width={stageConfig.width}
               height={stageConfig.height}
               image={!isShorts ? cassidooThemeBg : cassidooPortraitThemeBg}
-              fill="#040E22"
+              fillLinearGradientColorStops={[
+                0,
+                '#10A2F5',
+                0.4945,
+                '#CA839F',
+                1,
+                '#24D05A',
+              ]}
+              fillLinearGradientStartPoint={{ x: -100, y: -100 }}
+              fillLinearGradientEndPoint={{
+                x: stageConfig.width + 200,
+                y: stageConfig.height + 200,
+              }}
             />
           )
         }
