@@ -2,11 +2,12 @@
 import { css, cx } from '@emotion/css'
 import { HocuspocusProvider, WebSocketStatus } from '@hocuspocus/provider'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { BiBlock } from 'react-icons/bi'
 import { useParams } from 'react-router-dom'
-import { useRecoilState, useSetRecoilState } from 'recoil'
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
 import { v4 as uuidv4 } from 'uuid'
 import * as Y from 'yjs'
-import { ScreenState } from '../../components'
+import { Heading, ScreenState } from '../../components'
 import config from '../../config'
 import {
   FlickFragmentFragment,
@@ -16,6 +17,7 @@ import {
   useGetThemesQuery,
 } from '../../generated/graphql'
 import { useCanvasRecorder } from '../../hooks'
+import { User, userState } from '../../stores/user.store'
 import { logPage } from '../../utils/analytics'
 import { PageCategory, PageTitle } from '../../utils/analytics-types'
 import {
@@ -99,6 +101,8 @@ const Flick = () => {
   const { id } = useParams<{ id: string; fragmentId?: string }>()
   const [{ flick, activeFragmentId, view }, setFlickStore] =
     useRecoilState(newFlickStore)
+
+  const { sub } = (useRecoilValue(userState) as User) || {}
 
   const { data, error, loading, refetch } = useGetFlickByIdQuery({
     variables: { id },
@@ -304,13 +308,13 @@ const Flick = () => {
   }, [flick?.branding?.branding?.font])
 
   if (!data && loading)
-    return <ScreenState title="Loading your flick..." loading />
+    return <ScreenState title="Loading your story" loading />
 
   if (error)
     return (
       <ScreenState
         title="Something went wrong!!"
-        subtitle="Could not load your flick. Please try again"
+        subtitle="Could not load your story. Please try again"
         button="Retry"
         handleClick={() => {
           refetch()
@@ -319,6 +323,16 @@ const Flick = () => {
     )
 
   if (!flick) return null
+
+  if (!flick.participants.some((p) => p.userSub === sub))
+    return (
+      <div className="w-screen min-h-screen bg-dark-500 flex flex-col items-center justify-center">
+        <BiBlock className="text-red-500" size={96} />
+        <Heading fontSize="large" className="text-white font-main mt-4">
+          You do not have access to this story
+        </Heading>
+      </div>
+    )
 
   return (
     <div className="relative flex flex-col w-screen h-screen overflow-hidden">
