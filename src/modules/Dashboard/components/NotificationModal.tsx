@@ -18,7 +18,7 @@ import {
   useMarkNotificationAsReadMutation,
   useMyUnreadNotificationsCountSubscription,
 } from '../../../generated/graphql'
-import { Button, emitToast, Text, Tooltip } from '../../../components'
+import { Button, Text, Tooltip } from '../../../components'
 import CollaborationRespondModal from './CollaborationResponseModal'
 
 export const NotificationMessage = ({
@@ -26,24 +26,18 @@ export const NotificationMessage = ({
 }: {
   notification: MyNotificationFragment
 }) => {
-  const highlightStartIndex = notification.message.indexOf('%')
-  const highlightEndIndex = notification.message.indexOf(
-    '%',
-    highlightStartIndex + 1
-  )
-  const start = notification.message.substring(0, highlightStartIndex)
-  const middle = notification.message.substring(
-    highlightStartIndex + 1,
-    highlightEndIndex
-  )
-  const end = notification.message.substring(highlightEndIndex + 1)
-
+  const { message } = notification
+  const regex = /%(.*?)%/g
   return (
-    <Text className="text-sm text-gray-400 font-body">
-      {start}
-      <span className="text-gray-100 font-main">{middle}</span>
-      {end}
-    </Text>
+    <Text
+      className="text-sm text-gray-400 font-body"
+      dangerouslySetInnerHTML={{
+        __html: message.replace(
+          regex,
+          '<span class="text-gray-100 font-main">$1</span>'
+        ),
+      }}
+    />
   )
 }
 
@@ -190,15 +184,15 @@ const NotificationsList = ({
                   </div>
                 </div>
                 <GoPrimitiveDot
-                  className={cx('text-incredible-green-600 mr-3', {
-                    'text-transparent': notification.isRead,
+                  className={cx('text-transparent mr-3', {
+                    'text-incredible-green-600': !notification.isRead,
                   })}
                 />
               </div>
             )
           })}
       </div>
-      {/* {data && data.Notifications.length >= 15 && (
+      {data && data.Notifications.length >= 15 && (
         <div className="flex items-center justify-center w-full py-2 border-t border-dark-100">
           <Button
             type="button"
@@ -208,7 +202,7 @@ const NotificationsList = ({
             <Text className="text-sm">See all</Text>
           </Button>
         </div>
-      )} */}
+      )}
     </div>
   )
 }
