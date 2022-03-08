@@ -4,7 +4,6 @@ import { FiChevronLeft } from 'react-icons/fi'
 import { useRecoilState } from 'recoil'
 import { Download } from '.'
 import { Button, Heading } from '../../../components'
-import config from '../../../config'
 import { ASSETS } from '../../../constants'
 import { newFlickStore } from '../store/flickNew.store'
 import ShareModal from './ShareModal'
@@ -17,7 +16,7 @@ const FlickNavBar = () => {
   return (
     <div className="sticky top-0 z-50 flex items-center justify-between py-2 pl-3 pr-4 bg-dark-500">
       <div className="flex items-center">
-        <a href={`${config.client.publicUrl}/dashboard`}>
+        <a href="/dashboard">
           <div className="flex">
             <FiChevronLeft size={28} className="mr-2 text-grey-lighter" />
             <img src={ASSETS.ICONS.StudioLogo} alt="" className="w-28" />
@@ -56,7 +55,7 @@ const FlickNavBar = () => {
           }}
         />
       )}
-      {isDownloadOpen && flick?.status && (
+      {isDownloadOpen && (
         <Download
           open={isDownloadOpen}
           handleClose={(refresh?: boolean) => setIsDownloadOpen(false)}
