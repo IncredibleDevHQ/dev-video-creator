@@ -1,10 +1,14 @@
 export const enum PageCategory {
+  Main = 'Main',
   Studio = 'Studio',
   DeviceSelect = 'DeviceSelect',
   Recording = 'Recording',
 }
 
 export const enum PageTitle {
+  // Main
+  Dashboard = 'Dashboard',
+  Notifications = 'Notifications',
   // Studio
   Notebook = 'Notebook',
   Preview = 'Preview',
@@ -21,6 +25,15 @@ export const enum PageTitle {
 }
 
 export enum PageEvent {
+  /* ---------------
+   * MAIN PAGE EVENTS
+   * ---------------*/
+
+  // DASHBOARD EVENTS
+  CreateBlankStory = 'CreateBlankStory',
+  CreateStoryFromLocalMarkdown = 'CreateStoryFromLocalMarkdown',
+  CreateStoryFromLink = 'CreateStoryFromLink',
+
   /* ---------------
    * STUDIO PAGE EVENTS
    * ---------------*/
