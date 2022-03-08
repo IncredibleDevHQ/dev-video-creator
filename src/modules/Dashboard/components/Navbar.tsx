@@ -12,7 +12,7 @@ import { User, userState } from '../../../stores/user.store'
 import Notifications from './NotificationModal'
 
 const Navbar = ({ className }: HTMLAttributes<HTMLDivElement>) => {
-  const { username, picture, sub, displayName } =
+  const { username, picture, displayName } =
     (useRecoilValue(userState) as User) || {}
   const { auth } = useRecoilValue(firebaseState)
 
@@ -40,17 +40,18 @@ const Navbar = ({ className }: HTMLAttributes<HTMLDivElement>) => {
         className
       )}
     >
-      <Logo
-        className="cursor-pointer"
-        size="small"
-        theme="dark"
+      <button
+        type="button"
         onClick={() => {
-          if (sub) history.push('/dashboard')
-          else history.push('/')
+          if (history.location.pathname !== '/dashboard') {
+            history.push('/dashboard')
+          }
         }}
-      />
+      >
+        <Logo className="cursor-pointer" size="small" theme="dark" />
+      </button>
       <div className="flex items-center justify-center gap-x-6">
-        {auth.currentUser?.uid && <Notifications />}
+        <Notifications />
         <Tooltip
           isOpen={isOpen}
           setIsOpen={setIsOpen}
