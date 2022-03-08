@@ -10,6 +10,7 @@ import {
   GitHubCallback,
   Integrations,
   Landing,
+  Notifications,
   Studio,
 } from './modules'
 import AuthProvider from './utils/auth'
@@ -69,6 +70,9 @@ const App = () => {
                 </Route>
                 <Route exact path="/dashboard">
                   <Dashboard />
+                </Route>
+                <Route exact path="/notifications">
+                  <Notifications />
                 </Route>
                 <Route exact path="/flick/:id/:fragmentId?">
                   <Flick />

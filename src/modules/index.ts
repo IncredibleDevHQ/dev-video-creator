@@ -6,6 +6,7 @@ import Integrations from './Integrations/Integrations'
 import Studio from './Studio/Studio'
 import Landing from './Landing/Landing'
 import Dashboard from './Dashboard/Dashboard'
+import Notifications from './Notifications/Notifications'
 
 export {
   Dashboard,
@@ -15,4 +16,5 @@ export {
   GitHubCallback,
   Studio,
   Landing,
+  Notifications,
 }
