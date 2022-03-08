@@ -14,6 +14,8 @@ import {
   CreateFlickFlickScopeEnumEnum,
   useCreateNewFlickMutation,
 } from '../../../generated/graphql'
+import { logEvent } from '../../../utils/analytics'
+import { PageEvent } from '../../../utils/analytics-types'
 
 enum OptionType {
   blank = 'blank',
@@ -83,6 +85,22 @@ const isRawUrl = (url: string) => {
   const rawMarkdownUrlRegex =
     /^https:\/\/raw.githubusercontent.com\/.*\/.*\/.*\/.*\.md$/
   return rawMarkdownUrlRegex.test(url)
+}
+
+const logCreateEvent = (type: OptionType) => {
+  switch (type) {
+    case OptionType.blank:
+      logEvent(PageEvent.CreateBlankStory)
+      break
+    case OptionType.local:
+      logEvent(PageEvent.CreateStoryFromLocalMarkdown)
+      break
+    case OptionType.link:
+      logEvent(PageEvent.CreateStoryFromLink)
+      break
+    default:
+      break
+  }
 }
 
 const CreateFlickModal = ({
@@ -244,6 +262,7 @@ const Card = ({ color, description, icon: I, title, type }: Option) => {
       <div
         className="bg-dark-400 rounded-md flex justify-between items-center p-3 cursor-pointer hover:bg-dark-300 active:bg-dark-200"
         onClick={() => {
+          logCreateEvent(type)
           if (type === OptionType.local) {
             inputRef.current?.click()
           } else {

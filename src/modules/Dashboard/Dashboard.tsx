@@ -10,6 +10,8 @@ import { User, userState } from '../../stores/user.store'
 import { Filter, FlickTile, Header, Navbar } from './components'
 import { CollectionFilter } from './components/Filter'
 import { Button, Heading, Text } from '../../components'
+import { logPage } from '../../utils/analytics'
+import { PageCategory, PageTitle } from '../../utils/analytics-types'
 
 export const customScroll = css`
   ::-webkit-scrollbar {
@@ -30,6 +32,10 @@ export const customScroll = css`
 `
 
 const Dashboard = () => {
+  useEffect(() => {
+    logPage(PageCategory.Main, PageTitle.Dashboard)
+  }, [])
+
   const { sub } = (useRecoilValue(userState) as User) || {}
   const [fetchFlickData, { data, error, loading, fetchMore, refetch }] =
     useGetDashboardUserFlicksLazyQuery()
