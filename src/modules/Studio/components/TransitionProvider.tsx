@@ -3,6 +3,7 @@ import { useRecoilValue } from 'recoil'
 import { ThemeFragment } from '../../../generated/graphql'
 import { TopLayerChildren } from '../../../utils/configTypes'
 import {
+  CassidooTransition,
   PastelLinesTransition,
   TrianglePathTransition,
 } from '../effects/FragmentTransitions'
@@ -37,6 +38,15 @@ const TransitionProvider = ({
     case 'PastelLines':
       return (
         <PastelLinesTransition
+          direction={direction}
+          isShorts={isShorts}
+          color={branding?.colors?.transition}
+          setTopLayerChildren={setTopLayerChildren}
+        />
+      )
+    case 'Cassidoo':
+      return (
+        <CassidooTransition
           direction={direction}
           isShorts={isShorts}
           color={branding?.colors?.transition}

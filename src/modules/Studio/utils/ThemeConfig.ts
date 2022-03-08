@@ -10,6 +10,7 @@ export interface ObjectRenderConfig {
   availableHeight: number
   textColor: string
   surfaceColor: string
+  surfaceOpacity?: number
   pointsBulletColor?: string
   borderRadius?: number
 }
@@ -58,6 +59,18 @@ export const ThemeLayoutConfig = ({
         borderRadius: layoutConfig.borderRadius,
         surfaceColor: '',
       }
+    case 'Cassidoo':
+      return {
+        startX: layoutConfig.x,
+        startY: layoutConfig.y + 56,
+        availableWidth: layoutConfig.width,
+        availableHeight: layoutConfig.height - 56,
+        textColor: '#374151',
+        pointsBulletColor: '#374151',
+        borderRadius: layoutConfig.borderRadius,
+        surfaceColor: '#fafafa',
+        surfaceOpacity: 0.8,
+      }
     default:
       return {
         startX: layoutConfig.x,
@@ -75,6 +88,8 @@ export const getThemeTextColor = (theme: ThemeFragment): string => {
     case 'DarkGradient':
       return '#ffffff'
     case 'PastelLines':
+      return '#27272A'
+    case 'Cassidoo':
       return '#27272A'
     default:
       return '#ffffff'
@@ -132,6 +147,17 @@ export const getThemeSupportedUserMediaLayouts = (
         'float-half-right',
         'bottom-right-tile',
         'bottom-right-circle',
+        'full',
+      ]
+    case 'Cassidoo':
+      return [
+        'classic',
+        'float-full-right',
+        'float-full-left',
+        'float-half-right',
+        'padded-bottom-right-circle',
+        'bottom-right-circle',
+        'padded-split',
         'full',
       ]
     default:

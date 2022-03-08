@@ -10,9 +10,9 @@ import { EditorContent, useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { IoAddOutline } from 'react-icons/io5'
+import Skeleton, { SkeletonTheme } from 'react-loading-skeleton'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import * as Y from 'yjs'
-import { Text } from '../../../components'
 import { useSetFlickNotDirtyMutation } from '../../../generated/graphql'
 import { databaseUserState } from '../../../stores/user.store'
 import { newFlickStore } from '../store/flickNew.store'
@@ -77,7 +77,7 @@ const TipTap = ({
           ),
         },
       },
-      autofocus: true,
+      autofocus: 'start',
       extensions: [
         Collaboration.configure({
           document: yDoc,
@@ -290,10 +290,37 @@ const TipTap = ({
           ⠿
         </span>
       </div>
+
       {provider.status !== WebSocketStatus.Connected && (
-        <Text className="font-body text-xs italic">Connecting...</Text>
+        <SkeletonTheme>
+          <div className="flex flex-col">
+            <Skeleton height={30} />
+            <Skeleton height={30} width={400} />
+            <Skeleton height={30} width={450} />
+            <Skeleton height={30} width={200} />
+            <Skeleton height={30} className="mt-12" />
+            <Skeleton height={30} width={600} />
+            <Skeleton height={30} width={650} />
+            <Skeleton height={30} />
+            <Skeleton height={30} width={600} />
+            <Skeleton height={30} width={650} />
+
+            <Skeleton height={30} className="mt-12" />
+            <Skeleton height={30} width={400} />
+            <Skeleton height={30} width={450} />
+            <Skeleton height={30} width={200} />
+            <Skeleton height={30} className="mt-12" />
+            <Skeleton height={30} width={600} />
+            <Skeleton height={30} width={650} />
+            <Skeleton height={30} />
+            <Skeleton height={30} width={600} />
+            <Skeleton height={30} width={650} />
+          </div>
+        </SkeletonTheme>
       )}
-      <EditorContent editor={editor} />
+      {provider.status === WebSocketStatus.Connected && (
+        <EditorContent editor={editor} />
+      )}
     </div>
   )
 }
