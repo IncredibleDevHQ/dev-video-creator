@@ -154,6 +154,7 @@ const CreateFlickModal = ({
       title: 'Could not create your flick',
       type: 'error',
     })
+    handleClose()
   }, [error])
 
   const handleCreate = async () => {
