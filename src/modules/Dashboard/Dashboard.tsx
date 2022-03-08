@@ -64,6 +64,10 @@ const Dashboard = () => {
 
   const removeFlick = (id: string) => {
     setAllData(allData?.filter((flick) => flick.id !== id))
+    refetch({
+      limit: offset === 0 ? 25 : offset,
+      sub: sub || '',
+    })
   }
 
   const copyFlick = (id: string, newId: string) => {
