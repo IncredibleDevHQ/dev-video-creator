@@ -26,7 +26,11 @@ const VideoBackground = ({
     'anonymous'
   )
   const [cassidooThemeBg] = useImage(
-    `${config.storage.baseUrl}themes/cassidoo/cassidoo.svg`,
+    `${config.storage.baseUrl}themes/Cassidoo/cassidoo.svg`,
+    'anonymous'
+  )
+  const [cassidooPortraitThemeBg] = useImage(
+    `${config.storage.baseUrl}themes/Cassidoo/cassidooPortrait.svg`,
     'anonymous'
   )
 
@@ -336,7 +340,7 @@ const VideoBackground = ({
               y={0}
               width={stageConfig.width}
               height={stageConfig.height}
-              image={cassidooThemeBg}
+              image={!isShorts ? cassidooThemeBg : cassidooPortraitThemeBg}
               fill="#040E22"
             />
           )
