@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react'
 import Modal from 'react-responsive-modal'
+import { useHistory } from 'react-router-dom'
 import { Button, emitToast, Heading, Text } from '../../../components'
 import {
   MyNotificationFragment,
@@ -16,6 +17,8 @@ const CollaborationRespondModal = ({
   handleClose: () => void
   notification: MyNotificationFragment
 }) => {
+  const history = useHistory()
+
   const [acceptCollaboration, { data, loading }] =
     useAcceptCollaborationMutation({
       variables: {
@@ -27,6 +30,7 @@ const CollaborationRespondModal = ({
   const respond = async () => {
     try {
       await acceptCollaboration()
+      history.push(`/flick/${notification.meta?.flickId}`)
     } catch (e) {
       emitToast({ title: 'Failed to accept collaboration', type: 'error' })
     }
@@ -46,7 +50,7 @@ const CollaborationRespondModal = ({
       }}
       styles={{
         modal: {
-          maxWidth: '25%',
+          maxWidth: '30%',
           maxHeight: '80%',
           width: '100%',
           backgroundColor: '#2E2F34',
@@ -72,12 +76,20 @@ const CollaborationRespondModal = ({
         >
           Collaborate with {notification.sender.displayName}
         </Heading>
-        <Text className="text-dark-title mt-4">{notification.message}</Text>
+        <Text
+          className="text-base text-gray-400 font-body mt-4"
+          dangerouslySetInnerHTML={{
+            __html: notification.message.replace(
+              /%(.*?)%/g,
+              '<span class="text-gray-100 font-main">$1</span>'
+            ),
+          }}
+        />
         <div className="flex gap-x-4 mt-12 w-full items-center justify-center">
           <Button
             type="button"
             stretch
-            appearance="secondary"
+            appearance="gray"
             onClick={() => handleClose()}
           >
             Later
