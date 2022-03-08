@@ -10,10 +10,12 @@ import { EditorContent, useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { IoAddOutline } from 'react-icons/io5'
-import { useRecoilValue } from 'recoil'
+import { useRecoilState, useRecoilValue } from 'recoil'
 import * as Y from 'yjs'
-import config from '../../../config'
+import { Text } from '../../../components'
+import { useSetFlickNotDirtyMutation } from '../../../generated/graphql'
 import { databaseUserState } from '../../../stores/user.store'
+import { newFlickStore } from '../store/flickNew.store'
 import CodeBlock from './blocks/CodeBlock'
 import ImageBlock from './blocks/ImageBlock'
 import VideoBlock from './blocks/VideoBlock'
@@ -25,19 +27,6 @@ import { DragHandler } from './utils/drag'
 import { TrailingNode } from './utils/trailingNode'
 import CustomTypography from './utils/typography'
 import { Block, Position, SimpleAST, useUtils } from './utils/utils'
-
-const yDoc = new Y.Doc()
-
-const flickIndex = window.location.href
-  .split('/')
-  .findIndex((x) => x === 'flick')
-const flickId = window.location.href.split('/')[flickIndex + 1]
-
-const provider = new HocuspocusProvider({
-  document: yDoc,
-  url: config.hocusPocus.server,
-  name: `flick-doc-${flickId}`,
-})
 
 function generateLightColorHex() {
   let color = '#'
@@ -52,149 +41,189 @@ const TipTap = ({
   handleActiveBlock,
   handleUpdateAst,
   handleUpdatePosition,
+  provider,
+  yDoc,
 }: {
   handleUpdatePosition?: (position: Position) => void
   handleUpdateAst?: (ast: SimpleAST, content: string) => void
   handleActiveBlock?: (block?: Block) => void
+  provider: HocuspocusProvider
+  yDoc: Y.Doc
 }) => {
   const user = useRecoilValue(databaseUserState)
+  const [{ flick }, setFlickStore] = useRecoilState(newFlickStore)
   const utils = useUtils()
   const [ast, setAST] = useState<SimpleAST>()
 
+  const [markNotDirty] = useSetFlickNotDirtyMutation()
+
   const dragRef = useRef<HTMLDivElement>(null)
 
-  const editor = useEditor({
-    onUpdate: ({ editor }) => {
-      utils.getSimpleAST(editor.getJSON()).then((simpleAST) => {
-        setAST(simpleAST)
-        handleUpdate()
-        handleUpdateAst?.(simpleAST, editor.getHTML())
-      })
-    },
-    editorProps: {
-      attributes: {
-        class: cx(
-          'prose prose-sm max-w-none w-full h-full border-none focus:outline-none',
-          editorStyle
-        ),
+  const editor = useEditor(
+    {
+      editable: provider.status === WebSocketStatus.Connected,
+      onUpdate: ({ editor }) => {
+        utils.getSimpleAST(editor.getJSON()).then((simpleAST) => {
+          setAST(simpleAST)
+          handleUpdate()
+          handleUpdateAst?.(simpleAST, editor.getHTML())
+        })
       },
-    },
-    autofocus: true,
-    extensions: [
-      Collaboration.configure({
-        document: yDoc,
-      }),
-      CollaborationCursor.configure({
-        provider,
-        user: {
-          name: user?.displayName || 'Anonymous',
-          color: generateLightColorHex(),
+      editorProps: {
+        attributes: {
+          class: cx(
+            'prose prose-sm max-w-none w-full h-full border-none focus:outline-none',
+            editorStyle
+          ),
         },
-      }),
-      UniqueID.configure({
-        attributeName: 'id',
-        types: [
-          'paragraph',
-          'blockquote',
-          'heading',
-          'bulletList',
-          'orderedList',
-          'codeBlock',
-          'video',
-          'image',
-        ],
-      }),
-      DragHandler(dragRef.current),
-      Focus,
-      CustomTypography,
-      StarterKit.configure({
-        history: false,
-        codeBlock: false,
-        heading: {
-          levels: [1, 2, 3, 4, 5, 6],
-        },
-        bulletList: {
-          itemTypeName: 'listItem',
-        },
-        dropcursor: {
-          width: 3.5,
-          color: '#C3E2F0',
-          class: 'transition-all duration-200 ease-in-out',
-        },
-      }),
-      SlashCommands.configure({
-        suggestion: {
-          items: getSuggestionItems,
-          render: renderItems,
-        },
-      }),
-      Placeholder.configure({
-        showOnlyWhenEditable: true,
-        includeChildren: true,
-        showOnlyCurrent: false,
-        emptyEditorClass: 'is-editor-empty',
-        placeholder: ({ node, editor }) => {
-          const headingPlaceholders: {
-            [key: number]: string
-          } = {
-            1: 'Heading 1',
-            2: 'Heading 2',
-            3: 'Heading 3',
-            4: 'Heading 4',
-            5: 'Heading 5',
-            6: 'Heading 6',
-          }
-
-          if (node.type.name === 'heading') {
-            const level = node.attrs.level as number
-            return headingPlaceholders[level]
-          }
-
-          if (
-            node.type.name === 'paragraph' &&
-            editor.getJSON().content?.length === 1
-          ) {
-            return 'Type / to get started'
-          }
-
-          if (node.type.name === 'paragraph') {
-            const selectedNode = editor.view.domAtPos(
-              editor.state.selection.from
-            ).node
-            if (
-              selectedNode.nodeName === 'P' &&
-              selectedNode.firstChild?.parentElement?.id === node.attrs.id
-            ) {
-              return 'Type / for commands'
+      },
+      autofocus: true,
+      extensions: [
+        Collaboration.configure({
+          document: yDoc,
+        }),
+        CollaborationCursor.configure({
+          provider,
+          user: {
+            name: user?.displayName || 'Anonymous',
+            color: generateLightColorHex(),
+          },
+        }),
+        UniqueID.configure({
+          attributeName: 'id',
+          types: [
+            'paragraph',
+            'blockquote',
+            'heading',
+            'bulletList',
+            'orderedList',
+            'codeBlock',
+            'video',
+            'image',
+          ],
+        }),
+        DragHandler(dragRef.current),
+        Focus,
+        CustomTypography,
+        StarterKit.configure({
+          history: false,
+          codeBlock: false,
+          heading: {
+            levels: [1, 2, 3, 4, 5, 6],
+          },
+          bulletList: {
+            itemTypeName: 'listItem',
+          },
+          dropcursor: {
+            width: 3.5,
+            color: '#C3E2F0',
+            class: 'transition-all duration-200 ease-in-out',
+          },
+        }),
+        SlashCommands.configure({
+          suggestion: {
+            items: getSuggestionItems,
+            render: renderItems,
+          },
+        }),
+        Placeholder.configure({
+          showOnlyWhenEditable: true,
+          includeChildren: true,
+          showOnlyCurrent: false,
+          emptyEditorClass: 'is-editor-empty',
+          placeholder: ({ node, editor }) => {
+            const headingPlaceholders: {
+              [key: number]: string
+            } = {
+              1: 'Heading 1',
+              2: 'Heading 2',
+              3: 'Heading 3',
+              4: 'Heading 4',
+              5: 'Heading 5',
+              6: 'Heading 6',
             }
-          }
 
-          return ''
-        },
-      }),
-      CodeBlock,
-      ImageBlock.configure({
-        inline: false,
-      }),
-      VideoBlock,
-      TrailingNode,
-      CharacterCount.configure({
-        limit: 20000,
-      }),
-    ],
-  })
+            if (node.type.name === 'heading') {
+              const level = node.attrs.level as number
+              return headingPlaceholders[level]
+            }
+
+            if (
+              node.type.name === 'paragraph' &&
+              editor.getJSON().content?.length === 1
+            ) {
+              return 'Type / to get started'
+            }
+
+            if (node.type.name === 'paragraph') {
+              const selectedNode = editor.view.domAtPos(
+                editor.state.selection.from
+              ).node
+              if (
+                selectedNode.nodeName === 'P' &&
+                selectedNode.firstChild?.parentElement?.id === node.attrs.id
+              ) {
+                return 'Type / for commands'
+              }
+            }
+
+            return ''
+          },
+        }),
+        CodeBlock,
+        ImageBlock.configure({
+          inline: false,
+        }),
+        VideoBlock,
+        TrailingNode,
+        CharacterCount.configure({
+          limit: 20000,
+        }),
+      ],
+    },
+    [provider.status, user?.displayName]
+  )
 
   const editorRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (provider.status === WebSocketStatus.Disconnected) {
-      provider.connect()
-    }
     return () => {
       editor?.destroy()
       provider.destroy()
     }
   }, [])
+
+  useEffect(() => {
+    if (provider.status === WebSocketStatus.Disconnected) {
+      provider.connect()
+    }
+  }, [provider.status])
+
+  useEffect(() => {
+    if (
+      !flick ||
+      !flick.dirty ||
+      !flick.md ||
+      !editor ||
+      editor.isDestroyed ||
+      provider.status !== WebSocketStatus.Connected
+    )
+      return
+
+    setFlickStore((prev) => ({
+      ...prev,
+      flick: {
+        ...flick,
+        dirty: false,
+      },
+    }))
+    markNotDirty({
+      variables: {
+        id: flick.id,
+      },
+    })
+    editor?.commands.setContent(flick.md)
+  }, [flick, editor, provider.status])
 
   const handleUpdate = useCallback(() => {
     if (!editor || editor.isDestroyed) return
@@ -261,6 +290,9 @@ const TipTap = ({
           ⠿
         </span>
       </div>
+      {provider.status !== WebSocketStatus.Connected && (
+        <Text className="font-body text-xs italic">Connecting...</Text>
+      )}
       <EditorContent editor={editor} />
     </div>
   )

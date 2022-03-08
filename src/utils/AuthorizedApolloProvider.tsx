@@ -36,7 +36,14 @@ const AuthorizedApolloProvider = ({
       reconnect: true,
       lazy: true,
       timeout: 5000,
-      reconnectionAttempts: 3,
+      reconnectionAttempts: 10,
+      connectionParams: async () => {
+        return {
+          headers: {
+            Authorization: `Bearer ${await user?.getIdToken()}`,
+          },
+        }
+      },
     },
   })
 

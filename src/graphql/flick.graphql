@@ -24,6 +24,7 @@ fragment Content on Content {
   isPublic
   seriesId
   resource
+  preview
   thumbnail
   type
 }
@@ -37,6 +38,7 @@ fragment BaseFlick on Flick {
   name
   scope
   md
+  dirty
   plannedEnd
   startAt
   ownerId
@@ -82,6 +84,28 @@ fragment FlickActivity on FlickActivity {
   fragmentId
 }
 
+fragment DashboardFlicks on Flick {
+  id
+  name
+  color
+  description
+  joinLink
+  ownerId
+  status
+  thumbnail
+  updatedAt
+  owner {
+    userSub
+  }
+  contents {
+    ...Content
+  }
+  theme {
+    name
+    config
+  }
+}
+
 fragment Flick on Flick {
   ...BaseFlick
   participants {
@@ -100,6 +124,24 @@ query GetMyFlicks($limit: Int, $userId: String) {
     id
     name
     description
+  }
+}
+
+query GetDashboardUserFlicks(
+  $sub: String!
+  $limit: Int = 25
+  $offset: Int = 0
+) {
+  Flick(
+    where: {
+      participants: { userSub: { _eq: $sub } }
+      deletedAt: { _is_null: true }
+    }
+    order_by: { updatedAt: desc }
+    limit: $limit
+    offset: $offset
+  ) {
+    ...DashboardFlicks
   }
 }
 
@@ -262,6 +304,12 @@ mutation DeleteFlick($flickId: uuid!) {
   }
 }
 
+mutation DuplicateUserFlick($flickId: uuid!) {
+  DuplicateFlick(flickId: $flickId) {
+    id
+  }
+}
+
 mutation UpdateFlick(
   $flickId: String!
   $name: String!
@@ -310,6 +358,7 @@ mutation CreateNewFlick(
   $scope: CreateFlickFlickScopeEnumEnum!
   $seriesId: uuid
   $configuration: json
+  $md: String
 ) {
   CreateFlick(
     name: $name
@@ -317,6 +366,7 @@ mutation CreateNewFlick(
     description: $description
     seriesId: $seriesId
     configuration: $configuration
+    md: $md
   ) {
     id
   }
@@ -406,5 +456,11 @@ mutation SaveFlick(
 subscription FlickStatus($flickId: uuid!) {
   Flick_by_pk(id: $flickId) {
     status
+  }
+}
+
+mutation SetFlickNotDirty($id: uuid!) {
+  update_Flick_by_pk(pk_columns: { id: $id }, _set: { dirty: false }) {
+    id
   }
 }
