@@ -4,7 +4,11 @@ import { ThemeFragment } from '../../../generated/graphql'
 import { User, userState } from '../../../stores/user.store'
 import { studioStore } from '../stores'
 import { CONFIG, SHORTS_CONFIG } from './Concourse'
-import { GlassyLowerThirds, PastelLinesLowerThirds } from './LowerThirds'
+import {
+  CassidooLowerThirds,
+  GlassyLowerThirds,
+  PastelLinesLowerThirds,
+} from './LowerThirds'
 
 const LowerThridProvider = ({
   theme,
@@ -85,6 +89,31 @@ const LowerThridProvider = ({
           />
           {users.map((user, index) => (
             <PastelLinesLowerThirds
+              // eslint-disable-next-line react/no-array-index-key
+              key={index}
+              x={lowerThirdCoordinates({ position: 'left' })[index + 1]}
+              y={!isShorts ? 400 : 560}
+              userName={participants?.[user.uid]?.displayName || ''}
+              logo={branding?.logo || ''}
+              color={branding?.background?.color?.primary || ''}
+              textColor={branding?.colors?.text || ''}
+            />
+          ))}
+        </>
+      )
+    case 'Cassidoo':
+      return (
+        <>
+          <CassidooLowerThirds
+            x={!isShorts ? lowerThirdCoordinates({ position: 'left' })[0] : 45}
+            y={!isShorts ? 400 : 560}
+            userName={displayName || ''}
+            logo={branding?.logo || ''}
+            color={branding?.background?.color?.primary || ''}
+            textColor={branding?.colors?.text || ''}
+          />
+          {users.map((user, index) => (
+            <CassidooLowerThirds
               // eslint-disable-next-line react/no-array-index-key
               key={index}
               x={lowerThirdCoordinates({ position: 'left' })[index + 1]}
