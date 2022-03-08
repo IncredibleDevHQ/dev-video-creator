@@ -181,7 +181,7 @@ const TipTap = ({
         }),
       ],
     },
-    [provider.status, user]
+    [provider.status, user?.displayName]
   )
 
   const editorRef = useRef<HTMLDivElement>(null)
@@ -205,6 +205,7 @@ const TipTap = ({
       !flick.dirty ||
       !flick.md ||
       !editor ||
+      editor.isDestroyed ||
       provider.status !== WebSocketStatus.Connected
     )
       return
