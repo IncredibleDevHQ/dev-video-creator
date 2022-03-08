@@ -80,7 +80,7 @@ const CassidooSplash = ({
       <Text
         x={!isShorts ? 100 : 50}
         y={175}
-        width={!isShorts ? 485 : 290}
+        width={!isShorts ? 485 : 270}
         height={!isShorts ? 170 : 340}
         text={fragment?.flick.name || 'Hello Intro'}
         fill={branding?.colors?.text || getThemeTextColor(theme)}
@@ -92,7 +92,7 @@ const CassidooSplash = ({
       <Text
         x={!isShorts ? 110 : 60}
         y={!isShorts ? 375 : 500}
-        width={!isShorts ? 485 : 300}
+        width={!isShorts ? 485 : 280}
         height={!isShorts ? 32 : 32}
         text={displayName || ''}
         fill={branding?.colors?.text || getThemeTextColor(theme)}
@@ -103,12 +103,12 @@ const CassidooSplash = ({
       {designation && organization && (
         <Text
           x={!isShorts ? 110 : 60}
-          y={!isShorts ? 420 : 540}
-          width={!isShorts ? 485 : 300}
+          y={!isShorts ? 420 : 550}
+          width={!isShorts ? 600 : 280}
           height={!isShorts ? 32 : 80}
-          text={`${designation},${organization}` || ''}
+          text={`${designation}, ${organization}` || ''}
           fill={branding?.colors?.text || getThemeTextColor(theme)}
-          fontSize={32}
+          fontSize={24}
           fontFamily="Roboto Mono"
           lineHeight={1.2}
         />
