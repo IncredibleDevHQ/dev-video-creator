@@ -332,6 +332,10 @@ const CodeFragment = ({
         })
     }
     if (state === 'recording') {
+      setPosition({
+        prevIndex: -1,
+        currentIndex: 0,
+      })
       if (codeAnimation === 'Type lines')
         updatePayload?.({
           currentIndex: 1,

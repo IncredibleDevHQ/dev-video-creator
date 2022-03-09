@@ -26,4 +26,5 @@ interface ImportMetaEnv {
   VITE_HOCUSPOCUS_SERVER: string
   VITE_GIPHY_API_KEY: string
   VITE_EMBED_PLAYER_URL: string
+  VITE_CASSIDY_THEME_WHITELIST: string[]
 }
