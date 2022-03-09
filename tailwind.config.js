@@ -112,7 +112,8 @@ module.exports = {
     opacity: ({ after }) => after(['disabled']),
     cursor: ({ after }) => after(['disabled']),
     extend: {
-      border: ['hover'],
+      border: ['hover', 'group-hover'],
+      borderWidth: ['hover', 'group-hover'],
       backgroundColor: ['active'],
       borderColor: ['active', 'important'],
       transform: ['group-hover'],

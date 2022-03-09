@@ -27,6 +27,7 @@ export interface CodeBlock {
   colorCodes?: any
   language?: string
   title?: string
+  fallbackTitle?: string
   note?: string
   description?: string
   layout?: Layout
@@ -37,6 +38,7 @@ export interface CodeBlock {
 export interface ListBlock {
   list?: ListItem[]
   title?: string
+  fallbackTitle?: string
   note?: string
   description?: string
 }
@@ -45,6 +47,8 @@ export interface ListBlock {
 export interface VideoBlock {
   url?: string
   title?: string
+  fallbackTitle?: string
+  caption?: string
   note?: string
   description?: string
   transformations?: Transformations
@@ -53,6 +57,8 @@ export interface VideoBlock {
 export interface ImageBlock {
   url?: string
   title?: string
+  fallbackTitle?: string
+  caption?: string
   note?: string
   description?: string
   type?: 'image' | 'gif'
@@ -104,6 +110,11 @@ export interface OutroBlockProps extends CommonBlockProps {
   type: 'outroBlock'
 }
 
+export interface ComposedBlockProps extends CommonBlockProps {
+  type: 'composedBlock'
+  composedBlock: (CodeBlock | VideoBlock | ListBlock | ImageBlock)[]
+}
+
 export type Block =
   | CodeBlockProps
   | VideoBlockProps
@@ -111,6 +122,7 @@ export type Block =
   | ImageBlockProps
   | IntroBlockProps
   | OutroBlockProps
+  | ComposedBlockProps
 
 export interface SimpleAST {
   blocks: Block[]
@@ -231,31 +243,6 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
       ) {
         pushBlock()
       }
-    } else if (slab.type === 'paragraph') {
-      slab.content?.forEach((node) => {
-        if (node.type === 'image') {
-          const url = node?.attrs?.src
-          const type = url.endsWith('.gif') ? 'gif' : 'image'
-
-          const { description, note, title, nodeIds } = getCommonProps(index)
-          blocks.push({
-            type: 'imageBlock',
-            id: slab.attrs?.id as string,
-            pos: blockPosition,
-            nodeIds,
-            imageBlock: {
-              url: url as string,
-              description,
-              title: title || `Image ${blockCount.imageBlock + 1}`,
-              note,
-              type,
-            },
-          })
-          blockCount.imageBlock += 1
-          prevCoreBlockPos = index
-          blockPosition += 1
-        }
-      })
     } else if (slab.type === 'codeBlock') {
       let codeBlock: CodeBlock = {}
       const codeValue = textContent(slab?.content)
@@ -267,7 +254,8 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
         language: slab?.attrs?.language as string,
         note,
         description,
-        title: title || `Code ${blockCount.codeBlock + 1}`,
+        title,
+        fallbackTitle: title || `Code ${blockCount.codeBlock + 1}`,
       }
 
       blocks.push({
@@ -292,8 +280,10 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
         videoBlock: {
           url: slab?.attrs?.src as string,
           description,
-          title: title || `Video ${blockCount.videoBlock + 1}`,
+          title,
+          fallbackTitle: title || `Video ${blockCount.videoBlock + 1}`,
           note,
+          caption: slab.attrs?.caption,
           transformations: slab?.attrs?.['data-transformations']
             ? JSON.parse(slab?.attrs?.['data-transformations'])
             : undefined,
@@ -316,9 +306,11 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
         imageBlock: {
           url: url as string,
           description,
-          title: title || `Image ${blockCount.imageBlock + 1}`,
+          title,
+          fallbackTitle: title || `Image ${blockCount.imageBlock + 1}`,
           note,
           type,
+          caption: slab.attrs?.caption,
         },
       })
 
@@ -363,7 +355,8 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
         nodeIds,
         listBlock: {
           description,
-          title: title || `List ${blockCount.listBlock + 1}`,
+          title,
+          fallbackTitle: title || `List ${blockCount.listBlock + 1}`,
           note,
           list: simpleListItems,
         },
@@ -576,13 +569,25 @@ export const getBlockTitle = (block: Block): string => {
     case 'introBlock':
       return 'Intro'
     case 'codeBlock':
-      return block.codeBlock.title || 'Code Block'
+      return (
+        block.codeBlock.title || block.codeBlock.fallbackTitle || 'Code Block'
+      )
     case 'listBlock':
-      return block.listBlock.title || 'List Block'
+      return (
+        block.listBlock.title || block.listBlock.fallbackTitle || 'List Block'
+      )
     case 'imageBlock':
-      return block.imageBlock.title || 'Image Block'
+      return (
+        block.imageBlock.title ||
+        block.imageBlock.fallbackTitle ||
+        'Image Block'
+      )
     case 'videoBlock':
-      return block.videoBlock.title || 'Video Block'
+      return (
+        block.videoBlock.title ||
+        block.videoBlock.fallbackTitle ||
+        'Video Block'
+      )
     case 'outroBlock':
       return 'Outro'
     default:
