@@ -1,8 +1,7 @@
 // eslint-disable-next-line
-import React from 'react'
 import axios from 'axios'
 import { onAuthStateChanged, signInWithCustomToken } from 'firebase/auth'
-import { useEffect } from 'react'
+import React, { useEffect } from 'react'
 import { useRecoilState, useSetRecoilState } from 'recoil'
 import { ScreenState } from '../components'
 import config from '../config'
@@ -75,6 +74,7 @@ const AuthProvider = ({ children }: { children: JSX.Element }): JSX.Element => {
       )
     } catch (e) {
       setAuth({ ...auth, loading: false })
+      window.location.href = `${config.auth.endpoint}/login?redirect=${window.location.href}`
     }
   }
 
