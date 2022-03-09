@@ -15,6 +15,7 @@ import Concourse from '../../components/Concourse'
 import FragmentBackground from '../../components/FragmentBackground'
 import Gif from '../../components/Gif'
 import { FragmentState } from '../../components/RenderTokens'
+import { usePoint } from '../../hooks'
 import useEdit from '../../hooks/use-edit'
 import { StudioProviderProps, studioStore } from '../../stores'
 import {
@@ -55,6 +56,8 @@ const ImageFragment = ({
   )
   const [isGif, setIsGif] = useState(false)
   const [renderMode, setRenderMode] = useState<CaptionTitleView>('titleOnly')
+
+  const { getNoOfLinesOfText } = usePoint()
 
   const [imgDim, setImgDim] = useState<{
     width: number
@@ -113,6 +116,14 @@ const ImageFragment = ({
   }, [objectConfig])
 
   useEffect(() => {
+    const noOfLinesOfTitle = getNoOfLinesOfText({
+      text: triviaData?.title || '',
+      availableWidth: objectRenderConfig.availableWidth - 20,
+      fontSize: 32,
+      fontFamily: branding?.font?.body?.family || 'Inter',
+      fontStyle: 'bold',
+    })
+
     if (triviaData?.title) {
       if (shortsMode) {
         setImgDim(
@@ -137,12 +148,12 @@ const ImageFragment = ({
                 w: (qnaImage && qnaImage.width) || 0,
                 h: (qnaImage && qnaImage.height) || 0,
               },
-              objectRenderConfig.availableWidth - 30,
-              objectRenderConfig.availableHeight - 140,
               objectRenderConfig.availableWidth - 40,
-              objectRenderConfig.availableHeight - 110,
+              objectRenderConfig.availableHeight - (noOfLinesOfTitle * 40 + 20),
+              objectRenderConfig.availableWidth - 40,
+              objectRenderConfig.availableHeight - (noOfLinesOfTitle * 40 + 20),
               20,
-              100
+              noOfLinesOfTitle * 40 + 10
             )
           )
         }
@@ -162,6 +173,22 @@ const ImageFragment = ({
             )
           )
         }
+        if (renderMode === 'none') {
+          setImgDim(
+            getImageDimensions(
+              {
+                w: (qnaImage && qnaImage.width) || 0,
+                h: (qnaImage && qnaImage.height) || 0,
+              },
+              objectRenderConfig.availableWidth - 20,
+              objectRenderConfig.availableHeight - 20,
+              objectRenderConfig.availableWidth - 20,
+              objectRenderConfig.availableHeight - 20,
+              10,
+              10
+            )
+          )
+        }
       }
     } else
       setImgDim(
@@ -178,7 +205,7 @@ const ImageFragment = ({
           0
         )
       )
-  }, [qnaImage, objectRenderConfig])
+  }, [qnaImage, objectRenderConfig, renderMode, triviaData, shortsMode])
 
   // useEffect(() => {
   //   // setActiveQuestionIndex(payload?.activeQuestion)
