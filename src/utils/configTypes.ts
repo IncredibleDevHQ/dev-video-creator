@@ -98,8 +98,13 @@ export interface CodeBlockView {
   code: CodeBlockViewProps
 }
 
+export type CaptionTitleView =
+  | 'titleOnly'
+  | 'captionOnly'
+  | 'none'
+  | 'titleAndCaption'
 export interface ImageBlockViewProps {
-  captionTitleView?: 'titleOnly' | 'captionOnly' | 'none' | 'titleAndCaption'
+  captionTitleView?: CaptionTitleView
 }
 
 export interface ImageBlockView {
