@@ -23,6 +23,7 @@ import { PageCategory, PageTitle } from '../../utils/analytics-types'
 import {
   BlockProperties,
   CodeAnimation,
+  CodeStyle,
   CodeTheme,
   ViewConfig,
 } from '../../utils/configTypes'
@@ -187,6 +188,8 @@ const Flick = () => {
             code: {
               animation: CodeAnimation.TypeLines,
               theme: CodeTheme.DarkPlus,
+              codeStyle: CodeStyle.Editor,
+              fontSize: 16,
             },
           },
         }
@@ -202,6 +205,8 @@ const Flick = () => {
             code: {
               animation: CodeAnimation.TypeLines,
               theme: CodeTheme.DarkPlus,
+              codeStyle: CodeStyle.Editor,
+              fontSize: 16,
             },
           },
         })

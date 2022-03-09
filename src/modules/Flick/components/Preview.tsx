@@ -12,14 +12,19 @@ import {
   IoCloseOutline,
   IoSparklesOutline,
 } from 'react-icons/io5'
+import { MdOutlineTextFields } from 'react-icons/md'
 import useMeasure from 'react-use-measure'
 import { useRecoilValue } from 'recoil'
+import { ReactComponent as EditorStyleIcon } from '../../../assets/EditorStyle.svg'
+import { ReactComponent as TerminalStyleIcon } from '../../../assets/TerminalStyle.svg'
 import { Heading, Text } from '../../../components'
 import {
   allLayoutTypes,
   BlockProperties,
+  BlockView,
   CodeAnimation,
   CodeBlockView,
+  CodeStyle,
   CodeTheme,
   Layout,
   ViewConfig,
@@ -40,12 +45,16 @@ const commonTabs: Tab[] = [
     id: 'Layout',
     name: 'Layout',
   },
+  {
+    id: 'Mode',
+    name: 'Mode',
+  },
 ]
 
 const codeBlockTabs: Tab[] = [
   {
-    id: 'CodeTheme',
-    name: 'Code theme',
+    id: 'TextSize',
+    name: 'Text size',
   },
   {
     id: 'Animate',
@@ -57,7 +66,9 @@ const getIcon = (tab: Tab, block?: BlockProperties) => {
   switch (tab.id) {
     case 'Layout':
       return <FiLayout size={21} />
-    case 'CodeTheme':
+    case 'Mode':
+      if (block && block.view?.type !== 'codeBlock')
+        return <IoSparklesOutline size={21} />
       return (
         <div
           className="rounded-sm border"
@@ -83,6 +94,8 @@ const getIcon = (tab: Tab, block?: BlockProperties) => {
           />
         </div>
       )
+    case 'TextSize':
+      return <MdOutlineTextFields size={21} />
     case 'Animate':
       return <IoSparklesOutline size={21} />
     default:
@@ -222,8 +235,19 @@ const Preview = ({
                   type={block.type}
                 />
               )}
+              {activeTab.id === commonTabs[1].id && (
+                <ModeSelector
+                  view={config.blocks[block.id]?.view}
+                  updateView={(view: BlockView) => {
+                    updateConfig(block.id, {
+                      ...config.blocks[block.id],
+                      view,
+                    })
+                  }}
+                />
+              )}
               {activeTab.id === codeBlockTabs[0].id && (
-                <CodeThemeTab
+                <CodeTextSizeTab
                   view={config.blocks[block.id]?.view as CodeBlockView}
                   updateView={(view: CodeBlockView) => {
                     updateConfig(block.id, {
@@ -234,7 +258,7 @@ const Preview = ({
                 />
               )}
               {activeTab.id === codeBlockTabs[1].id && (
-                <AnimateTab
+                <CodeAnimateTab
                   view={config.blocks[block.id]?.view as CodeBlockView}
                   updateView={(view: CodeBlockView) => {
                     updateConfig(block.id, {
@@ -357,7 +381,28 @@ const codeThemeConfig: CodeThemeConfig[] = [
   },
 ]
 
-const CodeThemeTab = ({
+const ModeSelector = ({
+  view,
+  updateView,
+}: {
+  view: BlockView | undefined
+  updateView: (view: BlockView) => void
+}) => {
+  if (!view) return null
+
+  return (() => {
+    switch (view.type) {
+      case 'codeBlock':
+        return <CodeBlockModeSelector view={view} updateView={updateView} />
+      case 'imageBlock':
+        return null
+      default:
+        return null
+    }
+  })()
+}
+
+const CodeBlockModeSelector = ({
   view,
   updateView,
 }: {
@@ -367,6 +412,46 @@ const CodeThemeTab = ({
   return (
     <div className="flex flex-col p-5">
       <Heading fontSize="small" className="font-bold">
+        Code Style
+      </Heading>
+      <div className="mt-2 grid grid-cols-2 w-full gap-x-4 gap-y-3">
+        <button
+          type="button"
+          onClick={() => {
+            updateView({
+              ...view,
+              code: {
+                ...view.code,
+                codeStyle: CodeStyle.Editor,
+              },
+            })
+          }}
+          className={cx('border border-gray-200 h-14 rounded-sm p-1', {
+            'border-gray-800': view.code.codeStyle === CodeStyle.Editor,
+          })}
+        >
+          <EditorStyleIcon className="w-full h-full" />
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            updateView({
+              ...view,
+              code: {
+                ...view.code,
+                codeStyle: CodeStyle.Terminal,
+              },
+            })
+          }}
+          className={cx('border border-gray-200 h-14 rounded-sm p-1', {
+            'border-gray-800': view.code.codeStyle === CodeStyle.Terminal,
+          })}
+        >
+          <TerminalStyleIcon className="w-full h-full" />
+        </button>
+      </div>
+
+      <Heading fontSize="small" className="font-bold mt-8">
         Code Theme
       </Heading>
       <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-3">
@@ -416,7 +501,58 @@ const CodeThemeTab = ({
   )
 }
 
-const AnimateTab = ({
+const CodeTextSizeTab = ({
+  view,
+  updateView,
+}: {
+  view: CodeBlockView
+  updateView: (view: CodeBlockView) => void
+}) => {
+  return (
+    <div className="flex flex-col p-5">
+      <Heading fontSize="small" className="font-bold">
+        Text size
+      </Heading>
+      <div className="grid grid-cols-3 mt-2 gap-x-2">
+        {[12, 16, 20].map((size) => {
+          return (
+            <button
+              type="button"
+              onClick={() => {
+                updateView({
+                  ...view,
+                  code: {
+                    ...view.code,
+                    fontSize: size,
+                  },
+                })
+              }}
+              className={cx(
+                'border border-gray-200 h-14 rounded-sm p-px transition-colors',
+                {
+                  'border-gray-800': view.code.fontSize === size,
+                }
+              )}
+            >
+              <Text
+                className={cx(
+                  'text-xs transition-colors font-body w-full h-full flex items-center justify-center text-gray-400 bg-gray-100',
+                  {
+                    'text-gray-800 bg-gray-200': view.code.fontSize === size,
+                  }
+                )}
+              >
+                {size}
+              </Text>
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+const CodeAnimateTab = ({
   view,
   updateView,
 }: {

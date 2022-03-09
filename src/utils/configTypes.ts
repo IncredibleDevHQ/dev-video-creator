@@ -78,10 +78,17 @@ export interface CodeHighlightConfig {
   fileIndex?: number
 }
 
+export enum CodeStyle {
+  Editor = 'editor',
+  Terminal = 'terminal',
+}
+
 export interface CodeBlockViewProps {
   animation: CodeAnimation
   highlightSteps?: CodeHighlightConfig[]
   theme: CodeTheme
+  fontSize?: number
+  codeStyle?: CodeStyle
 }
 
 export interface CodeBlockView {
