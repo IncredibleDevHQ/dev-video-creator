@@ -1,8 +1,9 @@
+/* eslint-disable consistent-return */
 /* eslint-disable no-restricted-syntax */
 /* eslint-disable guard-for-in */
 import { cx } from '@emotion/css'
 import Konva from 'konva'
-import React, { HTMLAttributes, useEffect, useState } from 'react'
+import React, { HTMLAttributes, useEffect, useRef, useState } from 'react'
 import { IconType } from 'react-icons'
 import { IoArrowForwardOutline, IoPause, IoPlay } from 'react-icons/io5'
 import { VscDebugRestart } from 'react-icons/vsc'
@@ -123,6 +124,8 @@ const RecordingControlsBar = ({
   const [participantsArray, setParticipantsArray] = useState<any[]>([])
   const { handleStart, handleReset, timer } = useTimekeeper2(0)
 
+  const latestPayload = useRef<any>()
+
   useEffect(() => {
     if (!participants) return
     const arr = []
@@ -152,6 +155,7 @@ const RecordingControlsBar = ({
   }, [participantsArray])
 
   useEffect(() => {
+    latestPayload.current = payload
     if (payload?.status === Fragment_Status_Enum_Enum.Live && timer === 0) {
       handleStart()
     }
@@ -159,6 +163,21 @@ const RecordingControlsBar = ({
       handleReset()
     }
   }, [payload])
+
+  useEffect(() => {
+    if (!fragment) return
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowRight') {
+        performAction(
+          fragment,
+          latestPayload.current,
+          updatePayload,
+          branding,
+          controlsConfig
+        )
+      }
+    })
+  }, [fragment])
 
   // useEffect(() => {
   //   if (timer === 0) return
