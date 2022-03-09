@@ -5,6 +5,7 @@ import useImage from 'use-image'
 import IncredibleLogo from '../../../assets/incredible-x-logo.svg'
 import { BrandingJSON } from '../../Branding/BrandingPage'
 import useEdit from '../hooks/use-edit'
+import { getCanvasGradient } from '../utils/StudioUserConfig'
 
 const CommonLowerThirds = ({
   x,
@@ -483,7 +484,7 @@ export const PastelLinesLowerThirds = ({
               }, 700)
             }}
           />
-          {/* 18 is added, to position the image in the center 
+          {/* 18 is added to position the image in the center and 30 is added 
         bcoz the image has to scale from the center, so there would be a offset set, 
         on setting the offset the image moves negative, so to cancel that adding the offset values to x and y */}
           <Image
@@ -604,6 +605,140 @@ export const PastelLinesLowerThirds = ({
               })
             }, 100)
           }
+        />
+      </Group>
+    </>
+  )
+}
+
+export const CassidooLowerThirds = ({
+  x,
+  y,
+  userName,
+  logo,
+  color,
+  textColor,
+}: {
+  x: number
+  y: number
+  userName: string
+  logo: string
+  color: string
+  textColor: string
+}) => {
+  const [image] = useImage(logo, 'anonymous')
+  const { getTextWidth } = useEdit()
+  const textWidth = useRef(getTextWidth(userName, 'Inter', 24, 'bold') + 80)
+  if (logo)
+    return (
+      <>
+        <Group
+          x={x}
+          y={y}
+          opacity={0}
+          ref={(ref) => {
+            ref?.to({
+              opacity: 1,
+              duration: 0.6,
+              onFinish: () => {
+                setTimeout(() => {
+                  ref?.to({
+                    opacity: 0,
+                    duration: 0.6,
+                  })
+                }, 2000)
+              },
+            })
+          }}
+        >
+          <Rect
+            fill={color || '#E0D6ED'}
+            width={Math.floor(textWidth.current) + 96}
+            height={96}
+            opacity={0.8}
+            cornerRadius={16}
+            stroke={getCanvasGradient(
+              [
+                { color: '#E9BC3F', offset: 0.0 },
+                { color: '#EB4888', offset: 0.5469 },
+                { color: '#10A2F5', offset: 1.0 },
+              ],
+              {
+                x0: 0,
+                y0: 40,
+                x1: Math.floor(textWidth.current),
+                y1: 96,
+              }
+            )}
+            strokeWidth={2}
+          />
+          <Image x={18} y={18} width={60} height={60} image={image} />
+          <Text
+            x={108}
+            fill={textColor || '#27272A'}
+            text={userName}
+            fontSize={24}
+            height={96}
+            fontStyle="bold"
+            fontFamily="Inter"
+            key="username"
+            verticalAlign="middle"
+          />
+        </Group>
+      </>
+    )
+  return (
+    <>
+      <Group
+        x={x}
+        y={y}
+        opacity={0}
+        ref={(ref) => {
+          ref?.to({
+            opacity: 1,
+            duration: 0.6,
+            onFinish: () => {
+              setTimeout(() => {
+                ref?.to({
+                  opacity: 0,
+                  duration: 0.6,
+                })
+              }, 2000)
+            },
+          })
+        }}
+      >
+        <Rect
+          fill={color || '#E0D6ED'}
+          width={Math.floor(textWidth.current) + 48}
+          height={96}
+          opacity={0.8}
+          cornerRadius={16}
+          stroke={getCanvasGradient(
+            [
+              { color: '#E9BC3F', offset: 0.0 },
+              { color: '#EB4888', offset: 0.5469 },
+              { color: '#10A2F5', offset: 1.0 },
+            ],
+            {
+              x0: 0,
+              y0: 40,
+              x1: Math.floor(textWidth.current),
+              y1: 96,
+            }
+          )}
+          strokeWidth={2}
+        />
+        <Text
+          x={20}
+          fill={textColor || '#27272A'}
+          text={userName}
+          fontSize={24}
+          height={96}
+          fontStyle="bold"
+          fontFamily="Inter"
+          key="username"
+          verticalAlign="middle"
         />
       </Group>
     </>

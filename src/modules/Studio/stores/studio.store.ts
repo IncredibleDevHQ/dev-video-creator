@@ -24,7 +24,6 @@ export interface StudioProviderProps<T = any, S = any> {
 
   startRecording: () => void
   stopRecording: () => void
-  showFinalTransition: () => void
   addMusic: (type?: AudioType, volume?: number) => void
   reduceSplashAudioVolume: (volume: number) => void
   stopMusic: () => void

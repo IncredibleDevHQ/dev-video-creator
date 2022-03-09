@@ -28,7 +28,7 @@ export interface StudioUserConfig {
   height: number
   clipTheme?: string
   studioUserClipConfig?: ClipConfig
-  borderColor?: string
+  borderColor?: string | CanvasGradient
   borderWidth?: number
   backgroundRectX?: number
   backgroundRectY?: number

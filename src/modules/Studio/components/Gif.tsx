@@ -41,7 +41,19 @@ const Gif = ({
 
   return startGif ? (
     <>
-      <Image image={image} x={x} y={y} width={width} height={height} />
+      <Image
+        image={image}
+        x={x}
+        y={y}
+        width={width}
+        height={height}
+        ref={(ref) => {
+          ref?.to({
+            opacity: 0,
+            duration: 1,
+          })
+        }}
+      />
       <Image
         image={canvas}
         ref={imageRef}

@@ -6,12 +6,14 @@ import { Maybe } from 'graphql/jsutils/Maybe'
 import React, { useEffect, useState } from 'react'
 import { FiLink2 } from 'react-icons/fi'
 import Modal from 'react-responsive-modal'
+import { nanoid } from 'nanoid'
 import { useRecoilValue } from 'recoil'
 import {
   Button,
   emitToast,
   Heading,
   ThumbnailPreview,
+  Text,
 } from '../../../components'
 import config from '../../../config'
 import {
@@ -295,8 +297,12 @@ const Download = ({
               }}
             >
               <ThumbnailPreview
-                backgroundImageSource={`${baseUrl}meta/${flick?.id}/${activeFragment?.id}-storyboard-${OrientationEnum.Landscape}.png`}
-                posterImageSource={`${baseUrl}meta/${flick?.id}/${activeFragment?.id}-thumbnail-${OrientationEnum.Landscape}.png`}
+                backgroundImageSource={`${baseUrl}meta/${flick?.id}/${
+                  activeFragment?.id
+                }-storyboard-${OrientationEnum.Landscape}.png?id=${nanoid()}`}
+                posterImageSource={`${baseUrl}meta/${flick?.id}/${
+                  activeFragment?.id
+                }-thumbnail-${OrientationEnum.Landscape}.png?id=${nanoid()}`}
                 className="rounded-md"
                 orientation={OrientationEnum.Landscape}
                 totalImages={50}
@@ -431,7 +437,7 @@ const Download = ({
                 )
                   await publishVideos()
               } else if (selectedFormats[0] === shorts) {
-                copyString = `<iframe src="${embedPlayerUrl}${flick?.joinLink}?orientation=portrait" width="180" height="320" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`
+                copyString = `<iframe src="${embedPlayerUrl}${flick?.joinLink}?orientation=${OrientationEnum.Portrait}" width="180" height="320" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`
                 if (
                   !flick?.contents?.find(
                     (content) => content.resource === shorts
@@ -443,7 +449,9 @@ const Download = ({
               setCopyBtnString('Copied!')
             }}
           >
-            {publishLoading ? 'Publishing video...' : copyBtnString}
+            <Text className="text-black">
+              {publishLoading ? 'Publishing video...' : copyBtnString}
+            </Text>
           </Button>
           <Button
             type="button"

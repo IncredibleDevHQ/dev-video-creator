@@ -21,7 +21,7 @@ const PrivateRoute = ({
   if (loading === true || typeof loading === 'undefined' || !user?.uid)
     return <ScreenState title="Just a jiffy" loading />
 
-  if (user) {
+  if (user.sub) {
     return (
       <Route {...rest} render={(routeProps) => <Component {...routeProps} />} />
     )

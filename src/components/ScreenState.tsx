@@ -16,17 +16,17 @@ const ScreenState = ({
   loading?: boolean
 }) => {
   return (
-    <div className="z-10 p-4 flex flex-col items-center justify-center fixed w-screen left-0 top-0 min-h-screen">
+    <div className="z-10 p-4 flex flex-col items-center justify-center fixed w-screen left-0 top-0 min-h-screen bg-dark-500">
       {loading && <img src={loadingImg} className="w-14" alt="Logo" />}
 
       <div style={{ maxWidth: 256 }}>
         {title && (
-          <h2 className="text-gray-800 text-center text-xl font-bold mt-8 mb-2">
+          <h2 className="text-gray-100 text-center text-xl font-bold mt-8 mb-2">
             {title}
           </h2>
         )}
         {subtitle && (
-          <h4 className="text-gray-600 text-sm text-center">{subtitle}</h4>
+          <h4 className="text-gray-200 text-sm text-center">{subtitle}</h4>
         )}
       </div>
 

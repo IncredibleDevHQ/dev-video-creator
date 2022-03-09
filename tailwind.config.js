@@ -54,6 +54,25 @@ module.exports = {
           500: '#27272A',
           900: '#18181B',
         },
+        'incredible-green': {
+          500: '#15803D',
+          600: '#16A34A',
+        },
+        'incredible-green-light': {
+          600: 'rgb(22 163 74 / 10%)',
+        },
+        'incredible-purple': {
+          600: '#7C3AED',
+        },
+        'incredible-purple-light': {
+          600: 'rgb(124 58 237 / 10%)',
+        },
+        'incredible-blue': {
+          600: '#0891B2',
+        },
+        'incredible-blue-light': {
+          600: 'rgb(8 145 178 / 10%)',
+        },
         light: {
           DEFAULT: '#fafafa',
         },
@@ -65,7 +84,8 @@ module.exports = {
           300: '#28292d',
           400: '#1f2024',
           500: '#121212',
-          200: '#D4D4D8',
+          600: '#D4D4D8',
+          700: '#c5c5c5',
         },
         orange: {
           DEFAULT: '#FFEDD5',
@@ -105,5 +125,6 @@ module.exports = {
     require('@tailwindcss/typography'),
     require('@tailwindcss/forms'),
     require('tailwindcss-important')(),
+    require('@tailwindcss/aspect-ratio'),
   ],
 }

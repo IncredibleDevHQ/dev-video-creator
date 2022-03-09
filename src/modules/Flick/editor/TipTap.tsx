@@ -10,10 +10,12 @@ import { EditorContent, useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { IoAddOutline } from 'react-icons/io5'
-import { useRecoilValue } from 'recoil'
+import Skeleton, { SkeletonTheme } from 'react-loading-skeleton'
+import { useRecoilState, useRecoilValue } from 'recoil'
 import * as Y from 'yjs'
-import config from '../../../config'
+import { useSetFlickNotDirtyMutation } from '../../../generated/graphql'
 import { databaseUserState } from '../../../stores/user.store'
+import { newFlickStore } from '../store/flickNew.store'
 import CodeBlock from './blocks/CodeBlock'
 import ImageBlock from './blocks/ImageBlock'
 import VideoBlock from './blocks/VideoBlock'
@@ -25,19 +27,6 @@ import { DragHandler } from './utils/drag'
 import { TrailingNode } from './utils/trailingNode'
 import CustomTypography from './utils/typography'
 import { Block, Position, SimpleAST, useUtils } from './utils/utils'
-
-const yDoc = new Y.Doc()
-
-const flickIndex = window.location.href
-  .split('/')
-  .findIndex((x) => x === 'flick')
-const flickId = window.location.href.split('/')[flickIndex + 1]
-
-const provider = new HocuspocusProvider({
-  document: yDoc,
-  url: config.hocusPocus.server,
-  name: `flick-doc-${flickId}`,
-})
 
 function generateLightColorHex() {
   let color = '#'
@@ -52,19 +41,27 @@ const TipTap = ({
   handleActiveBlock,
   handleUpdateAst,
   handleUpdatePosition,
+  provider,
+  yDoc,
 }: {
   handleUpdatePosition?: (position: Position) => void
   handleUpdateAst?: (ast: SimpleAST, content: string) => void
   handleActiveBlock?: (block?: Block) => void
+  provider: HocuspocusProvider
+  yDoc: Y.Doc
 }) => {
   const user = useRecoilValue(databaseUserState)
+  const [{ flick }, setFlickStore] = useRecoilState(newFlickStore)
   const utils = useUtils()
   const [ast, setAST] = useState<SimpleAST>()
+
+  const [markNotDirty] = useSetFlickNotDirtyMutation()
 
   const dragRef = useRef<HTMLDivElement>(null)
 
   const editor = useEditor(
     {
+      editable: provider.status === WebSocketStatus.Connected,
       onUpdate: ({ editor }) => {
         utils.getSimpleAST(editor.getJSON()).then((simpleAST) => {
           setAST(simpleAST)
@@ -80,7 +77,7 @@ const TipTap = ({
           ),
         },
       },
-      autofocus: true,
+      autofocus: 'start',
       extensions: [
         Collaboration.configure({
           document: yDoc,
@@ -184,20 +181,49 @@ const TipTap = ({
         }),
       ],
     },
-    []
+    [provider.status, user?.displayName]
   )
 
   const editorRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (provider.status === WebSocketStatus.Disconnected) {
-      provider.connect()
-    }
     return () => {
       editor?.destroy()
       provider.destroy()
     }
   }, [])
+
+  useEffect(() => {
+    if (provider.status === WebSocketStatus.Disconnected) {
+      provider.connect()
+    }
+  }, [provider.status])
+
+  useEffect(() => {
+    if (
+      !flick ||
+      !flick.dirty ||
+      !flick.md ||
+      !editor ||
+      editor.isDestroyed ||
+      provider.status !== WebSocketStatus.Connected
+    )
+      return
+
+    setFlickStore((prev) => ({
+      ...prev,
+      flick: {
+        ...flick,
+        dirty: false,
+      },
+    }))
+    markNotDirty({
+      variables: {
+        id: flick.id,
+      },
+    })
+    editor?.commands.setContent(flick.md)
+  }, [flick, editor, provider.status])
 
   const handleUpdate = useCallback(() => {
     if (!editor || editor.isDestroyed) return
@@ -264,7 +290,37 @@ const TipTap = ({
           ⠿
         </span>
       </div>
-      <EditorContent editor={editor} />
+
+      {provider.status !== WebSocketStatus.Connected && (
+        <SkeletonTheme>
+          <div className="flex flex-col">
+            <Skeleton height={30} />
+            <Skeleton height={30} width={400} />
+            <Skeleton height={30} width={450} />
+            <Skeleton height={30} width={200} />
+            <Skeleton height={30} className="mt-12" />
+            <Skeleton height={30} width={600} />
+            <Skeleton height={30} width={650} />
+            <Skeleton height={30} />
+            <Skeleton height={30} width={600} />
+            <Skeleton height={30} width={650} />
+
+            <Skeleton height={30} className="mt-12" />
+            <Skeleton height={30} width={400} />
+            <Skeleton height={30} width={450} />
+            <Skeleton height={30} width={200} />
+            <Skeleton height={30} className="mt-12" />
+            <Skeleton height={30} width={600} />
+            <Skeleton height={30} width={650} />
+            <Skeleton height={30} />
+            <Skeleton height={30} width={600} />
+            <Skeleton height={30} width={650} />
+          </div>
+        </SkeletonTheme>
+      )}
+      {provider.status === WebSocketStatus.Connected && (
+        <EditorContent editor={editor} />
+      )}
     </div>
   )
 }

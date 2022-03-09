@@ -1,5 +1,6 @@
+/* eslint-disable consistent-return */
 import { cx, css } from '@emotion/css'
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { ASSETS } from '../constants'
 import { OrientationEnum } from '../generated/graphql'
 import { isImageLoaded } from './Image'
@@ -15,15 +16,18 @@ const hoverImageCSS = ({
   height: number
   source: string
 }) => css`
-  width: ${width * scale}px;
-  height: ${height * scale}px;
   background: url(${source}) no-repeat;
   background-size: cover;
   background-position: 0 0;
 `
 
+const cursor = css`
+  cursor: ew-resize;
+`
+
 const ThumbnailPreview = ({
   scale = 1,
+  useInternalScaling = false,
   className,
   totalImages = 50,
   markerWidth = 4,
@@ -33,6 +37,7 @@ const ThumbnailPreview = ({
   orientation,
 }: {
   scale?: number
+  useInternalScaling?: boolean
   className?: string
   totalImages?: number
   markerWidth?: number
@@ -46,24 +51,40 @@ const ThumbnailPreview = ({
   const [x, setX] = useState(0)
   const [isThumbnailAvailable, setThumbnailAvailable] = useState(false)
 
-  const mouseEvtListener = (e: MouseEvent) => {
-    if (!divRef.current || !markerRef.current) return
-    const bounds = divRef.current.getBoundingClientRect()
-    const x = e.clientX - bounds.x
-    const partSize = divRef.current.clientWidth / totalImages
-    const activeImage = Math.floor(x / partSize)
-    divRef.current.style.backgroundPosition = `0 -${
-      activeImage *
-      scale *
-      (orientation === OrientationEnum.Landscape ? size.height : size.width)
-    }px`
-    setX(x)
-  }
+  const mouseEvtListener = useCallback(
+    (e: MouseEvent) => {
+      if (!divRef.current || !markerRef.current) return
+      const bounds = divRef.current.getBoundingClientRect()
+      const x = e.clientX - bounds.x
+      const partSize = divRef.current.clientWidth / totalImages
+      const activeImage = Math.floor(x / partSize)
+      divRef.current.style.backgroundPosition = `0 -${
+        activeImage *
+        (useInternalScaling ? bounds.width / 150 : scale) *
+        (orientation === OrientationEnum.Landscape ? size.height : size.width)
+      }px`
+      setX(x)
+    },
+    [divRef, markerRef, totalImages]
+  )
 
   useEffect(() => {
     if (!divRef.current) return
+    if (!useInternalScaling) {
+      divRef.current.style.width =
+        orientation === OrientationEnum.Landscape
+          ? `${size.width * scale}px`
+          : `${size.height * scale}px`
+      divRef.current.style.height =
+        orientation === OrientationEnum.Landscape
+          ? `${size.height * scale}px`
+          : `${size.width * scale}px`
+    }
     divRef.current.addEventListener('mousemove', mouseEvtListener)
-    divRef.current.removeEventListener('mouseleave', mouseEvtListener)
+    return () => {
+      divRef.current?.removeEventListener('mouseleave', mouseEvtListener)
+      divRef.current = null
+    }
   }, [divRef, isThumbnailAvailable])
 
   useEffect(() => {
@@ -72,23 +93,23 @@ const ThumbnailPreview = ({
         setThumbnailAvailable(true)
       else setThumbnailAvailable(false)
     })()
-  }, [backgroundImageSource])
+  }, [backgroundImageSource, posterImageSource])
 
   if (!isThumbnailAvailable)
     return (
       <img
-        src={ASSETS.ICONS.FLICK}
+        src={posterImageSource || ASSETS.ICONS.FLICK}
         alt="thumbnail"
         className={className}
         style={{
           width:
             orientation === OrientationEnum.Landscape
-              ? size.width
-              : size.height,
+              ? size.width * scale
+              : size.height * scale,
           height:
             orientation === OrientationEnum.Landscape
-              ? size.height
-              : size.width,
+              ? size.height * scale
+              : size.width * scale,
         }}
       />
     )
@@ -110,6 +131,7 @@ const ThumbnailPreview = ({
           source: backgroundImageSource,
           scale,
         }),
+        cursor,
         className
       )}
     >
