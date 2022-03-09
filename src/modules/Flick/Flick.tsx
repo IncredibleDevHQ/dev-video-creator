@@ -223,6 +223,20 @@ const Flick = () => {
         }
       }
 
+      if (currentBlock.type === 'listBlock') {
+        filteredBlocks[currentBlock.id] = {
+          ...filteredBlocks[currentBlock.id],
+          view: {
+            type: 'listBlock',
+            list: {
+              appearance: 'stack',
+              orientation: 'vertical',
+              viewStyle: 'bullet',
+            },
+          },
+        }
+      }
+
       setViewConfig({ ...viewConfig, blocks: filteredBlocks })
     } else if (currentBlock.type === 'codeBlock') {
       if (!viewConfig.blocks[currentBlock.id].view) {
@@ -259,6 +273,20 @@ const Flick = () => {
             type: 'videoBlock',
             video: {
               captionTitleView: 'titleOnly',
+            },
+          },
+        })
+      }
+    } else if (currentBlock.type === 'listBlock') {
+      if (!viewConfig.blocks[currentBlock.id].view) {
+        updateBlockProperties(currentBlock.id, {
+          ...viewConfig.blocks[currentBlock.id],
+          view: {
+            type: 'listBlock',
+            list: {
+              appearance: 'stack',
+              orientation: 'vertical',
+              viewStyle: 'bullet',
             },
           },
         })

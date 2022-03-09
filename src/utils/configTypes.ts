@@ -122,7 +122,26 @@ export interface VideoBlockView {
   video: VideoBlockViewProps
 }
 
-export type BlockView = CodeBlockView | ImageBlockView | VideoBlockView
+export type ListAppearance = 'stack' | 'replace' | 'allAtOnce'
+export type ListViewStyle = 'none' | 'bullet' | 'number'
+export type ListOrientation = 'horizontal' | 'vertical'
+
+export interface ListBlockViewProps {
+  viewStyle?: ListViewStyle
+  appearance?: ListAppearance
+  orientation?: ListOrientation
+}
+
+export interface ListBlockView {
+  type: 'listBlock'
+  list: ListBlockViewProps
+}
+
+export type BlockView =
+  | CodeBlockView
+  | ImageBlockView
+  | VideoBlockView
+  | ListBlockView
 
 export type BlockProperties = {
   gradient?: GradientConfig

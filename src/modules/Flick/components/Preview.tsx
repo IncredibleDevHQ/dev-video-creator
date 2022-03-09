@@ -1,5 +1,6 @@
 import { cx } from '@emotion/css'
 import { Listbox } from '@headlessui/react'
+import { sentenceCase } from 'change-case'
 import React, { useEffect, useState } from 'react'
 import { BiCheck } from 'react-icons/bi'
 import { FiCode, FiLayout } from 'react-icons/fi'
@@ -15,7 +16,9 @@ import {
 import { MdOutlineTextFields } from 'react-icons/md'
 import useMeasure from 'react-use-measure'
 import { useRecoilValue } from 'recoil'
+import { ReactComponent as BulletListStyleIcon } from '../../../assets/BulletListStyle.svg'
 import { ReactComponent as EditorStyleIcon } from '../../../assets/EditorStyle.svg'
+import { ReactComponent as NumberListStyleIcon } from '../../../assets/NumberListStyle.svg'
 import { ReactComponent as TerminalStyleIcon } from '../../../assets/TerminalStyle.svg'
 import { Heading, Text } from '../../../components'
 import {
@@ -29,6 +32,10 @@ import {
   CodeTheme,
   ImageBlockView,
   Layout,
+  ListAppearance,
+  ListBlockView,
+  ListOrientation,
+  ListViewStyle,
   VideoBlockView,
   ViewConfig,
 } from '../../../utils/configTypes'
@@ -401,10 +408,224 @@ const ModeSelector = ({
         return <ImageBlockModeSelector view={view} updateView={updateView} />
       case 'videoBlock':
         return <VideoBlockModeSelector view={view} updateView={updateView} />
+      case 'listBlock':
+        return <ListBlockModeSelector view={view} updateView={updateView} />
       default:
         return null
     }
   })()
+}
+
+const ListBlockModeSelector = ({
+  view,
+  updateView,
+}: {
+  view: ListBlockView
+  updateView: (view: ListBlockView) => void
+}) => {
+  return (
+    <div className="flex flex-col p-5">
+      <Heading fontSize="small" className="font-bold">
+        List Style
+      </Heading>
+      <div className="grid grid-cols-3 mt-2 gap-x-2">
+        {(['none', 'bullet', 'number'] as ListViewStyle[]).map((style) => {
+          return (
+            <div className="aspect-w-1 aspect-h-1">
+              <button
+                type="button"
+                onClick={() =>
+                  updateView({
+                    ...view,
+                    list: {
+                      ...view.list,
+                      viewStyle: style,
+                    },
+                  })
+                }
+                className={cx(
+                  'border border-gray-200 h-full w-full rounded-sm p-px',
+                  {
+                    'border-gray-800': view.list.viewStyle === style,
+                  }
+                )}
+              >
+                {style === 'none' && (
+                  <div
+                    className={cx('bg-gray-100 w-full h-full', {
+                      'bg-gray-200': view.list.viewStyle === style,
+                    })}
+                  >
+                    <span
+                      className={cx(
+                        'flex items-center justify-center w-full h-full text-gray-300 rounded-sm text-xl',
+                        {
+                          'text-gray-800': view.list.viewStyle === style,
+                        }
+                      )}
+                    >
+                      -
+                    </span>
+                  </div>
+                )}
+                {(style === 'bullet' || style === 'number') && (
+                  <div
+                    style={{
+                      paddingLeft: '13px',
+                      paddingRight: '13px',
+                    }}
+                    className={cx(
+                      'flex flex-col items-center justify-center gap-y-1 bg-gray-100 w-full h-full p-2',
+                      {
+                        'bg-gray-200': view.list.viewStyle === style,
+                      }
+                    )}
+                  >
+                    <div
+                      className={cx('filter h-full w-full p-1.5', {
+                        'brightness-0': view.list.viewStyle === style,
+                      })}
+                    >
+                      {style === 'bullet' ? (
+                        <BulletListStyleIcon className="h-full w-full" />
+                      ) : (
+                        <NumberListStyleIcon className="h-full w-full" />
+                      )}
+                    </div>
+                  </div>
+                )}
+              </button>
+            </div>
+          )
+        })}
+      </div>
+      <Heading fontSize="small" className="font-bold mt-8">
+        Appearance
+      </Heading>
+      <Listbox
+        value={view.list.appearance}
+        onChange={(value) =>
+          updateView({
+            ...view,
+            list: {
+              ...view.list,
+              appearance: value,
+            },
+          })
+        }
+      >
+        {({ open }) => (
+          <div className="relative mt-2">
+            <Listbox.Button className="w-full flex gap-x-4 text-left items-center justify-between rounded-sm bg-gray-100 shadow-sm py-2 px-3 pr-8 relative text-gray-800">
+              <div className="flex items-center gap-x-2 w-full">
+                <Text className="text-sm block truncate font-body">
+                  {sentenceCase(view.list.appearance as string)}
+                </Text>
+              </div>
+              <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none ">
+                {open ? <IoChevronUpOutline /> : <IoChevronDownOutline />}
+              </span>
+            </Listbox.Button>
+            <Listbox.Options className="bg-dark-300 mt-2 rounded-md absolute w-full z-10">
+              {(['stack', 'replace', 'allAtOnce'] as ListAppearance[]).map(
+                (appearance, index) => (
+                  <Listbox.Option
+                    className={({ active }) =>
+                      cx(
+                        'flex items-center gap-x-4 py-2 px-3 pr-8 relative text-left font-body text-gray-100 cursor-pointer',
+                        {
+                          'bg-dark-100': active,
+                          'rounded-t-md pt-3': index === 0,
+                          'rounded-b-md pb-3':
+                            index ===
+                            (
+                              [
+                                'stack',
+                                'replace',
+                                'allAtOnce',
+                              ] as ListAppearance[]
+                            ).length -
+                              1,
+                        }
+                      )
+                    }
+                    key={appearance}
+                    value={appearance}
+                  >
+                    {({ selected }) => (
+                      <>
+                        <Text className="text-sm block truncate ">
+                          {sentenceCase(appearance)}
+                        </Text>
+                        {selected && (
+                          <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                            <BiCheck size={20} />
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </Listbox.Option>
+                )
+              )}
+            </Listbox.Options>
+          </div>
+        )}
+      </Listbox>
+      <Heading fontSize="small" className="font-bold mt-8">
+        Orientation
+      </Heading>
+      <div className="grid grid-cols-3 mt-2 gap-x-2">
+        {(['vertical', 'horizontal'] as ListOrientation[]).map(
+          (orientation) => {
+            return (
+              <div className="aspect-w-1 aspect-h-1">
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateView({
+                      ...view,
+                      list: {
+                        ...view.list,
+                        orientation,
+                      },
+                    })
+                  }
+                  className={cx(
+                    'border border-gray-200 h-full w-full rounded-sm p-px',
+                    {
+                      'border-gray-800': view.list.orientation === orientation,
+                    }
+                  )}
+                >
+                  <div
+                    className={cx(
+                      'flex items-center justify-center gap-1 bg-gray-100 w-full h-full',
+                      {
+                        'bg-gray-200': view.list.orientation === orientation,
+                        'flex-row': orientation === 'horizontal',
+                        'flex-col': orientation === 'vertical',
+                      }
+                    )}
+                  >
+                    {[1, 2, 3].map(() => {
+                      return (
+                        <div
+                          style={{
+                            borderRadius: '2px',
+                          }}
+                          className="h-1.5 w-1.5 bg-gray-800"
+                        />
+                      )
+                    })}
+                  </div>
+                </button>
+              </div>
+            )
+          }
+        )}
+      </div>
+    </div>
+  )
 }
 
 const ImageBlockModeSelector = ({
@@ -436,22 +657,22 @@ const ImageBlockModeSelector = ({
                     })
                   }
                   className={cx(
-                    'border border-gray-200 h-full w-full rounded-sm p-px transition-colors',
+                    'border border-gray-200 h-full w-full rounded-sm p-px ',
                     {
                       'border-gray-800': view.image.captionTitleView === style,
                     }
                   )}
                 >
                   {style === 'none' && (
-                    <div className="bg-gray-100 w-full h-full p-2">
+                    <div
+                      className={cx('bg-gray-100 w-full h-full p-2', {
+                        'bg-gray-200': view.image.captionTitleView === style,
+                      })}
+                    >
                       <div
-                        className={cx(
-                          'w-full h-full bg-gray-300 rounded-sm transition-colors',
-                          {
-                            'bg-gray-800':
-                              view.image.captionTitleView === style,
-                          }
-                        )}
+                        className={cx('w-full h-full bg-gray-300 rounded-sm', {
+                          'bg-gray-800': view.image.captionTitleView === style,
+                        })}
                       />
                     </div>
                   )}
@@ -465,6 +686,7 @@ const ImageBlockModeSelector = ({
                         'flex flex-col items-center justify-center gap-y-1 bg-gray-100 w-full h-full p-2',
                         {
                           'flex-col-reverse': style === 'captionOnly',
+                          'bg-gray-200': view.image.captionTitleView === style,
                         }
                       )}
                     >
@@ -472,26 +694,19 @@ const ImageBlockModeSelector = ({
                         style={{
                           borderRadius: '2px',
                         }}
-                        className={cx(
-                          'w-full h-full bg-gray-300 transition-colors',
-                          {
-                            'bg-gray-800':
-                              view.image.captionTitleView === style,
-                          }
-                        )}
+                        className={cx('w-full h-full bg-gray-300', {
+                          'bg-gray-800': view.image.captionTitleView === style,
+                        })}
                       />
                       <div className="aspect-w-1 aspect-h-1 w-full">
                         <div
                           style={{
                             borderRadius: '3px',
                           }}
-                          className={cx(
-                            'w-full h-full bg-gray-300 transition-colors',
-                            {
-                              'bg-gray-800':
-                                view.image.captionTitleView === style,
-                            }
-                          )}
+                          className={cx('w-full h-full bg-gray-300', {
+                            'bg-gray-800':
+                              view.image.captionTitleView === style,
+                          })}
                         />
                       </div>
                     </div>
@@ -535,22 +750,23 @@ const VideoBlockModeSelector = ({
                     })
                   }
                   className={cx(
-                    'border border-gray-200 h-full w-full rounded-sm p-px transition-colors',
+                    'border border-gray-200 h-full w-full rounded-sm p-px',
                     {
                       'border-gray-800': view.video.captionTitleView === style,
                     }
                   )}
                 >
                   {style === 'none' && (
-                    <div className="bg-gray-100 w-full h-full p-2">
+                    <div
+                      className={cx('bg-gray-100 w-full h-full p-2', {
+                        'bg-gray-200': view.video.captionTitleView === style,
+                      })}
+                    >
                       <div
-                        className={cx(
-                          'w-full h-full bg-gray-300 rounded-sm transition-colors',
-                          {
-                            'bg-gray-800':
-                              view.video.captionTitleView === style,
-                          }
-                        )}
+                        className={cx('w-full h-full bg-gray-300 rounded-sm', {
+                          'bg-gray-800': view.video.captionTitleView === style,
+                          'bg-gray-200': view.video.captionTitleView === style,
+                        })}
                       />
                     </div>
                   )}
@@ -564,6 +780,7 @@ const VideoBlockModeSelector = ({
                         'flex flex-col items-center justify-center gap-y-1 bg-gray-100 w-full h-full p-2',
                         {
                           'flex-col-reverse': style === 'captionOnly',
+                          'bg-gray-200': view.video.captionTitleView === style,
                         }
                       )}
                     >
@@ -571,26 +788,19 @@ const VideoBlockModeSelector = ({
                         style={{
                           borderRadius: '2px',
                         }}
-                        className={cx(
-                          'w-full h-full bg-gray-300 transition-colors',
-                          {
-                            'bg-gray-800':
-                              view.video.captionTitleView === style,
-                          }
-                        )}
+                        className={cx('w-full h-full bg-gray-300', {
+                          'bg-gray-800': view.video.captionTitleView === style,
+                        })}
                       />
                       <div className="aspect-w-1 aspect-h-1 w-full">
                         <div
                           style={{
                             borderRadius: '3px',
                           }}
-                          className={cx(
-                            'w-full h-full bg-gray-300 transition-colors',
-                            {
-                              'bg-gray-800':
-                                view.video.captionTitleView === style,
-                            }
-                          )}
+                          className={cx('w-full h-full bg-gray-300', {
+                            'bg-gray-800':
+                              view.video.captionTitleView === style,
+                          })}
                         />
                       </div>
                     </div>
