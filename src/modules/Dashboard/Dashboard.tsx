@@ -1,5 +1,5 @@
 import { css, cx } from '@emotion/css'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import Skeleton, { SkeletonTheme } from 'react-loading-skeleton'
 import { useRecoilValue } from 'recoil'
 import {
@@ -37,6 +37,9 @@ const Dashboard = () => {
   }, [])
 
   const { sub } = (useRecoilValue(userState) as User) || {}
+
+  const verticalHeaderRef = useRef<HTMLDivElement>(null)
+
   const [fetchFlickData, { data, error, loading, fetchMore, refetch }] =
     useGetDashboardUserFlicksLazyQuery()
 
@@ -109,8 +112,11 @@ const Dashboard = () => {
           }
         }}
       >
-        {data && allData && allData.length === 0 && (
-          <div className="flex-1 flex flex-col items-center justify-center gap-y-12">
+        {allData && allData.length === 0 && (
+          <div
+            className="flex-1 flex flex-col items-center justify-center gap-y-12"
+            ref={verticalHeaderRef}
+          >
             <Heading fontSize="large">Start by creating a story</Heading>
             <Header vertical />
           </div>
@@ -118,11 +124,16 @@ const Dashboard = () => {
 
         {(loading || error || (data && allData && allData.length > 0)) && (
           <div className="flex flex-col flex-1 py-8 container">
-            <Header />
-            <Filter
-              collectionFilter={collectionFilter}
-              setCollectionFilter={setCollectionFilter}
-            />
+            {!verticalHeaderRef.current && (
+              <>
+                <Header />
+                <Filter
+                  collectionFilter={collectionFilter}
+                  setCollectionFilter={setCollectionFilter}
+                />
+              </>
+            )}
+
             {loading && !data && (
               <SkeletonTheme color="#202020" highlightColor="#444">
                 <div className="flex-1 grid grid-cols-4 gap-10">
