@@ -88,6 +88,7 @@ const StudioHoC = () => {
   const { sub } = (useRecoilValue(userState) as User) || {}
   const { fragmentId } = useParams<{ fragmentId: string }>()
   const [fragment, setFragment] = useState<StudioFragmentFragment>()
+  const [isUserAllowed, setUserAllowed] = useState(false)
 
   const devices = useRef<{ microphone: Device | null; camera: Device | null }>({
     camera: null,
@@ -117,8 +118,13 @@ const StudioHoC = () => {
 
   useEffect(() => {
     if (!data) return
-    setFragment(data.Fragment?.[0])
 
+    setFragment(data.Fragment?.[0])
+    setUserAllowed(
+      !!data.Fragment[0]?.configuration?.speakers?.find(
+        (speaker: any) => speaker.userSub === sub
+      )
+    )
     if (!new TextEditorParser(data.Fragment[0].editorState).isValid()) {
       setError('INVALID_AST')
     }
@@ -133,6 +139,15 @@ const StudioHoC = () => {
         subtitle="The fragment contains an invalid data reference. Please correct it and try again."
       />
     )
+
+  if (!isUserAllowed) {
+    return (
+      <ScreenState
+        title="Permission Denied"
+        subtitle="Please contact the owner to add you as the speaker of the flick"
+      />
+    )
+  }
 
   if (view === 'preload' && fragment)
     return (
@@ -415,7 +430,7 @@ const Preview = ({
         </div>
         <div className="flex flex-col justify-center flex-1 col-span-2">
           <Heading className="mb-4" fontSize="medium">
-            {data?.name}
+            {data?.flick?.name || data?.name}
           </Heading>
 
           <Heading fontSize="extra-small" className="uppercase">
