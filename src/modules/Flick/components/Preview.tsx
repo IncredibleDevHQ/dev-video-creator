@@ -1,4 +1,4 @@
-import { cx } from '@emotion/css'
+import { css, cx } from '@emotion/css'
 import { Listbox } from '@headlessui/react'
 import { sentenceCase } from 'change-case'
 import React, { useEffect, useState } from 'react'
@@ -43,6 +43,24 @@ import { getSurfaceColor } from '../../Studio/effects/fragments/CodeFragment'
 import { studioStore } from '../../Studio/stores'
 import { Block, IntroBlockProps } from '../editor/utils/utils'
 import { CanvasPreview, LayoutSelector } from './BlockPreview'
+
+const customScroll = css`
+  ::-webkit-scrollbar {
+    width: 18px;
+  }
+  ::-webkit-scrollbar-track {
+    background-color: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: #d6dee1;
+    border-radius: 20px;
+    border: 6px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: #a8bbbf;
+  }
+`
 
 interface Tab {
   name: string
@@ -150,7 +168,7 @@ const Preview = ({
   if (!block) return null
 
   return (
-    <div className="flex justify-between flex-1">
+    <div className="flex justify-between flex-1 overflow-hidden">
       <div
         className={cx(
           'flex justify-center items-start bg-gray-100 flex-1 pl-0',
@@ -233,7 +251,12 @@ const Preview = ({
       >
         {block.type !== 'introBlock' && block.type !== 'outroBlock' && (
           <>
-            <div className="bg-white w-64">
+            <div
+              className={cx(
+                'bg-white w-64 flex-1 overflow-y-scroll',
+                customScroll
+              )}
+            >
               {activeTab.id === commonTabs[0].id && (
                 <LayoutSelector
                   mode={config.mode}

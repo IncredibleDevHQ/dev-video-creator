@@ -344,7 +344,7 @@ const PreviewModal = ({
         modal: cx('rounded-md m-0 p-0'),
       }}
     >
-      <div className="flex flex-col h-full ">
+      <div className="flex flex-col h-full w-full overflow-hidden">
         <Preview
           block={block}
           blocks={blocks}
