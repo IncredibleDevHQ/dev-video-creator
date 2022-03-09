@@ -135,6 +135,7 @@ const Preview = ({
 
   useEffect(() => {
     if (!block) return
+    setActiveTab(commonTabs[0])
     const { type } = block
     switch (type) {
       case 'codeBlock':
@@ -142,6 +143,7 @@ const Preview = ({
         break
       default:
         setTabs(commonTabs)
+        break
     }
   }, [block])
 
@@ -256,28 +258,30 @@ const Preview = ({
                   }}
                 />
               )}
-              {activeTab.id === codeBlockTabs[0].id && (
-                <CodeTextSizeTab
-                  view={config.blocks[block.id]?.view as CodeBlockView}
-                  updateView={(view: CodeBlockView) => {
-                    updateConfig(block.id, {
-                      ...config.blocks[block.id],
-                      view,
-                    })
-                  }}
-                />
-              )}
-              {activeTab.id === codeBlockTabs[1].id && (
-                <CodeAnimateTab
-                  view={config.blocks[block.id]?.view as CodeBlockView}
-                  updateView={(view: CodeBlockView) => {
-                    updateConfig(block.id, {
-                      ...config.blocks[block.id],
-                      view,
-                    })
-                  }}
-                />
-              )}
+              {activeTab.id === codeBlockTabs[0].id &&
+                block.type === 'codeBlock' && (
+                  <CodeTextSizeTab
+                    view={config.blocks[block.id]?.view as CodeBlockView}
+                    updateView={(view: CodeBlockView) => {
+                      updateConfig(block.id, {
+                        ...config.blocks[block.id],
+                        view,
+                      })
+                    }}
+                  />
+                )}
+              {activeTab.id === codeBlockTabs[1].id &&
+                block.type === 'codeBlock' && (
+                  <CodeAnimateTab
+                    view={config.blocks[block.id]?.view as CodeBlockView}
+                    updateView={(view: CodeBlockView) => {
+                      updateConfig(block.id, {
+                        ...config.blocks[block.id],
+                        view,
+                      })
+                    }}
+                  />
+                )}
             </div>
             <div
               className="flex flex-col bg-gray-50 px-2 pt-4 gap-y-2 relative"
