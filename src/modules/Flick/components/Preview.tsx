@@ -933,35 +933,34 @@ const CodeTextSizeTab = ({
       <div className="grid grid-cols-3 mt-2 gap-x-2">
         {[12, 16, 20].map((size) => {
           return (
-            <button
-              type="button"
-              onClick={() => {
-                updateView({
-                  ...view,
-                  code: {
-                    ...view.code,
-                    fontSize: size,
-                  },
-                })
-              }}
-              className={cx(
-                'border border-gray-200 h-14 rounded-sm p-px transition-colors',
-                {
+            <div className="aspect-w-1 aspect-h-1">
+              <button
+                type="button"
+                onClick={() => {
+                  updateView({
+                    ...view,
+                    code: {
+                      ...view.code,
+                      fontSize: size,
+                    },
+                  })
+                }}
+                className={cx('border border-gray-200 rounded-sm p-px', {
                   'border-gray-800': view.code.fontSize === size,
-                }
-              )}
-            >
-              <Text
-                className={cx(
-                  'text-xs transition-colors font-body w-full h-full flex items-center justify-center text-gray-400 bg-gray-100',
-                  {
-                    'text-gray-800 bg-gray-200': view.code.fontSize === size,
-                  }
-                )}
+                })}
               >
-                {size}
-              </Text>
-            </button>
+                <Text
+                  className={cx(
+                    'text-xs font-body w-full h-full flex items-center justify-center text-gray-400 bg-gray-100',
+                    {
+                      'text-gray-800 bg-gray-200': view.code.fontSize === size,
+                    }
+                  )}
+                >
+                  {size}px
+                </Text>
+              </button>
+            </div>
           )
         })}
       </div>
