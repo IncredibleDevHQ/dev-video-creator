@@ -311,13 +311,15 @@ const CodeFragment = ({
                         blockConfig[payload?.activeBlockIndex].from) || 0
                 )?.y || 0
               ) +
-              objectRenderConfig.availableHeight / 2,
+              objectRenderConfig.availableHeight / 2 +
+              objectRenderConfig.startY -
+              15,
             duration: 0.5,
             easing: Konva.Easings.EaseInOut,
           })
         } else {
           codeGroupRef.current?.to({
-            y: objectRenderConfig.startY + 10,
+            y: objectRenderConfig.startY + 24,
             duration: 0.5,
             easing: Konva.Easings.EaseInOut,
           })
@@ -565,7 +567,7 @@ const CodeFragment = ({
             {getTokens({
               tokens: computedTokens[0],
               opacity: 1,
-              fontSize: 16,
+              fontSize,
             })}
           </Group>
         </Group>
