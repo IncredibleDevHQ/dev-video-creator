@@ -43,12 +43,14 @@ const TipTap = ({
   handleUpdatePosition,
   provider,
   yDoc,
+  providerStatus,
 }: {
   handleUpdatePosition?: (position: Position) => void
   handleUpdateAst?: (ast: SimpleAST, content: string) => void
   handleActiveBlock?: (block?: Block) => void
   provider: HocuspocusProvider
   yDoc: Y.Doc
+  providerStatus: string | undefined
 }) => {
   const user = useRecoilValue(databaseUserState)
   const [{ flick }, setFlickStore] = useRecoilState(newFlickStore)
@@ -61,7 +63,6 @@ const TipTap = ({
 
   const editor = useEditor(
     {
-      editable: provider.status === WebSocketStatus.Connected,
       onUpdate: ({ editor }) => {
         utils.getSimpleAST(editor.getJSON()).then((simpleAST) => {
           setAST(simpleAST)
@@ -181,7 +182,7 @@ const TipTap = ({
         }),
       ],
     },
-    [provider.status, user?.displayName]
+    [user?.displayName]
   )
 
   const editorRef = useRef<HTMLDivElement>(null)
@@ -194,19 +195,13 @@ const TipTap = ({
   }, [])
 
   useEffect(() => {
-    if (provider.status === WebSocketStatus.Disconnected) {
-      provider.connect()
-    }
-  }, [provider.status])
-
-  useEffect(() => {
     if (
       !flick ||
       !flick.dirty ||
       !flick.md ||
       !editor ||
       editor.isDestroyed ||
-      provider.status !== WebSocketStatus.Connected
+      providerStatus !== WebSocketStatus.Connected
     )
       return
 
@@ -223,7 +218,7 @@ const TipTap = ({
       },
     })
     editor?.commands.setContent(flick.md)
-  }, [flick, editor, provider.status])
+  }, [flick, editor, providerStatus])
 
   const handleUpdate = useCallback(() => {
     if (!editor || editor.isDestroyed) return
@@ -291,7 +286,7 @@ const TipTap = ({
         </span>
       </div>
 
-      {provider.status !== WebSocketStatus.Connected && (
+      {providerStatus !== WebSocketStatus.Connected && (
         <SkeletonTheme>
           <div className="flex flex-col">
             <Skeleton height={30} />
@@ -318,7 +313,7 @@ const TipTap = ({
           </div>
         </SkeletonTheme>
       )}
-      {provider.status === WebSocketStatus.Connected && (
+      {providerStatus === WebSocketStatus.Connected && (
         <EditorContent editor={editor} />
       )}
     </div>
