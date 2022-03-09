@@ -126,6 +126,7 @@ const Flick = () => {
 
   const providerRef = useRef<HocuspocusProvider>()
   const yDocRef = useRef<Y.Doc>()
+  const [providerStatus, setProviderStatus] = useState<string>()
 
   useEffect(() => {
     if (providerRef.current || yDocRef.current) return
@@ -134,6 +135,9 @@ const Flick = () => {
       document: yDoc,
       url: config.hocusPocus.server,
       name: `flick-doc-${id}`,
+      onStatus: (statusObj: any) => {
+        setProviderStatus(statusObj.status)
+      },
     })
     providerRef.current = provider
     yDocRef.current = yDoc
@@ -389,6 +393,7 @@ const Flick = () => {
                 key={activeFragment.id}
                 provider={providerRef.current}
                 yDoc={yDocRef.current}
+                providerStatus={providerStatus}
                 handleUpdatePosition={(position) => {
                   setPreviewPosition(position)
                 }}

@@ -25,7 +25,7 @@
     "@giphy/js-fetch-api": "^4.1.2",
     "@giphy/react-components": "^5.4.0",
     "@headlessui/react": "^1.4.2",
-    "@hocuspocus/provider": "^1.0.0-alpha.29",
+    "@hocuspocus/provider": "^1.0.0-alpha.33",
     "@monaco-editor/react": "^4.3.1",
     "@samuelmeuli/font-manager": "^1.4.0",
     "@segment/analytics-next": "^1.33.4",
