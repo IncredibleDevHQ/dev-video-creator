@@ -103,6 +103,7 @@ export type CaptionTitleView =
   | 'captionOnly'
   | 'none'
   | 'titleAndCaption'
+
 export interface ImageBlockViewProps {
   captionTitleView?: CaptionTitleView
 }
@@ -112,7 +113,16 @@ export interface ImageBlockView {
   image: ImageBlockViewProps
 }
 
-export type BlockView = CodeBlockView | ImageBlockView
+export interface VideoBlockViewProps {
+  captionTitleView?: CaptionTitleView
+}
+
+export interface VideoBlockView {
+  type: 'videoBlock'
+  video: VideoBlockViewProps
+}
+
+export type BlockView = CodeBlockView | ImageBlockView | VideoBlockView
 
 export type BlockProperties = {
   gradient?: GradientConfig

@@ -22,11 +22,14 @@ import {
   allLayoutTypes,
   BlockProperties,
   BlockView,
+  CaptionTitleView,
   CodeAnimation,
   CodeBlockView,
   CodeStyle,
   CodeTheme,
+  ImageBlockView,
   Layout,
+  VideoBlockView,
   ViewConfig,
 } from '../../../utils/configTypes'
 import { getSurfaceColor } from '../../Studio/effects/fragments/CodeFragment'
@@ -395,11 +398,211 @@ const ModeSelector = ({
       case 'codeBlock':
         return <CodeBlockModeSelector view={view} updateView={updateView} />
       case 'imageBlock':
-        return null
+        return <ImageBlockModeSelector view={view} updateView={updateView} />
+      case 'videoBlock':
+        return <VideoBlockModeSelector view={view} updateView={updateView} />
       default:
         return null
     }
   })()
+}
+
+const ImageBlockModeSelector = ({
+  view,
+  updateView,
+}: {
+  view: ImageBlockView
+  updateView: (view: ImageBlockView) => void
+}) => {
+  return (
+    <div className="flex flex-col p-5">
+      <Heading fontSize="small" className="font-bold">
+        Image Style
+      </Heading>
+      <div className="grid grid-cols-3 mt-2 gap-x-2">
+        {(['titleOnly', 'captionOnly', 'none'] as CaptionTitleView[]).map(
+          (style) => {
+            return (
+              <div className="aspect-w-1 aspect-h-1">
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateView({
+                      ...view,
+                      image: {
+                        ...view.image,
+                        captionTitleView: style,
+                      },
+                    })
+                  }
+                  className={cx(
+                    'border border-gray-200 h-full w-full rounded-sm p-px transition-colors',
+                    {
+                      'border-gray-800': view.image.captionTitleView === style,
+                    }
+                  )}
+                >
+                  {style === 'none' && (
+                    <div className="bg-gray-100 w-full h-full p-2">
+                      <div
+                        className={cx(
+                          'w-full h-full bg-gray-300 rounded-sm transition-colors',
+                          {
+                            'bg-gray-800':
+                              view.image.captionTitleView === style,
+                          }
+                        )}
+                      />
+                    </div>
+                  )}
+                  {(style === 'titleOnly' || style === 'captionOnly') && (
+                    <div
+                      style={{
+                        paddingLeft: '13px',
+                        paddingRight: '13px',
+                      }}
+                      className={cx(
+                        'flex flex-col items-center justify-center gap-y-1 bg-gray-100 w-full h-full p-2',
+                        {
+                          'flex-col-reverse': style === 'captionOnly',
+                        }
+                      )}
+                    >
+                      <div
+                        style={{
+                          borderRadius: '2px',
+                        }}
+                        className={cx(
+                          'w-full h-full bg-gray-300 transition-colors',
+                          {
+                            'bg-gray-800':
+                              view.image.captionTitleView === style,
+                          }
+                        )}
+                      />
+                      <div className="aspect-w-1 aspect-h-1 w-full">
+                        <div
+                          style={{
+                            borderRadius: '3px',
+                          }}
+                          className={cx(
+                            'w-full h-full bg-gray-300 transition-colors',
+                            {
+                              'bg-gray-800':
+                                view.image.captionTitleView === style,
+                            }
+                          )}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </button>
+              </div>
+            )
+          }
+        )}
+      </div>
+    </div>
+  )
+}
+
+const VideoBlockModeSelector = ({
+  view,
+  updateView,
+}: {
+  view: VideoBlockView
+  updateView: (view: VideoBlockView) => void
+}) => {
+  return (
+    <div className="flex flex-col p-5">
+      <Heading fontSize="small" className="font-bold">
+        Video Style
+      </Heading>
+      <div className="grid grid-cols-3 mt-2 gap-x-2">
+        {(['titleOnly', 'captionOnly', 'none'] as CaptionTitleView[]).map(
+          (style) => {
+            return (
+              <div className="aspect-w-1 aspect-h-1">
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateView({
+                      ...view,
+                      video: {
+                        ...view.video,
+                        captionTitleView: style,
+                      },
+                    })
+                  }
+                  className={cx(
+                    'border border-gray-200 h-full w-full rounded-sm p-px transition-colors',
+                    {
+                      'border-gray-800': view.video.captionTitleView === style,
+                    }
+                  )}
+                >
+                  {style === 'none' && (
+                    <div className="bg-gray-100 w-full h-full p-2">
+                      <div
+                        className={cx(
+                          'w-full h-full bg-gray-300 rounded-sm transition-colors',
+                          {
+                            'bg-gray-800':
+                              view.video.captionTitleView === style,
+                          }
+                        )}
+                      />
+                    </div>
+                  )}
+                  {(style === 'titleOnly' || style === 'captionOnly') && (
+                    <div
+                      style={{
+                        paddingLeft: '13px',
+                        paddingRight: '13px',
+                      }}
+                      className={cx(
+                        'flex flex-col items-center justify-center gap-y-1 bg-gray-100 w-full h-full p-2',
+                        {
+                          'flex-col-reverse': style === 'captionOnly',
+                        }
+                      )}
+                    >
+                      <div
+                        style={{
+                          borderRadius: '2px',
+                        }}
+                        className={cx(
+                          'w-full h-full bg-gray-300 transition-colors',
+                          {
+                            'bg-gray-800':
+                              view.video.captionTitleView === style,
+                          }
+                        )}
+                      />
+                      <div className="aspect-w-1 aspect-h-1 w-full">
+                        <div
+                          style={{
+                            borderRadius: '3px',
+                          }}
+                          className={cx(
+                            'w-full h-full bg-gray-300 transition-colors',
+                            {
+                              'bg-gray-800':
+                                view.video.captionTitleView === style,
+                            }
+                          )}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </button>
+              </div>
+            )
+          }
+        )}
+      </div>
+    </div>
+  )
 }
 
 const CodeBlockModeSelector = ({

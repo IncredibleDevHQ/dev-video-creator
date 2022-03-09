@@ -199,6 +199,30 @@ const Flick = () => {
         }
       }
 
+      if (currentBlock.type === 'imageBlock') {
+        filteredBlocks[currentBlock.id] = {
+          ...filteredBlocks[currentBlock.id],
+          view: {
+            type: 'imageBlock',
+            image: {
+              captionTitleView: 'titleOnly',
+            },
+          },
+        }
+      }
+
+      if (currentBlock.type === 'videoBlock') {
+        filteredBlocks[currentBlock.id] = {
+          ...filteredBlocks[currentBlock.id],
+          view: {
+            type: 'videoBlock',
+            video: {
+              captionTitleView: 'titleOnly',
+            },
+          },
+        }
+      }
+
       setViewConfig({ ...viewConfig, blocks: filteredBlocks })
     } else if (currentBlock.type === 'codeBlock') {
       if (!viewConfig.blocks[currentBlock.id].view) {
@@ -211,6 +235,30 @@ const Flick = () => {
               theme: CodeTheme.DarkPlus,
               codeStyle: CodeStyle.Editor,
               fontSize: 16,
+            },
+          },
+        })
+      }
+    } else if (currentBlock.type === 'imageBlock') {
+      if (!viewConfig.blocks[currentBlock.id].view) {
+        updateBlockProperties(currentBlock.id, {
+          ...viewConfig.blocks[currentBlock.id],
+          view: {
+            type: 'imageBlock',
+            image: {
+              captionTitleView: 'titleOnly',
+            },
+          },
+        })
+      }
+    } else if (currentBlock.type === 'videoBlock') {
+      if (!viewConfig.blocks[currentBlock.id].view) {
+        updateBlockProperties(currentBlock.id, {
+          ...viewConfig.blocks[currentBlock.id],
+          view: {
+            type: 'videoBlock',
+            video: {
+              captionTitleView: 'titleOnly',
             },
           },
         })
