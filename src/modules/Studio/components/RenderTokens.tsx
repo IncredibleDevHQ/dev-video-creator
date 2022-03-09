@@ -15,26 +15,16 @@ export interface Position {
   currentIndex: number
 }
 
-export const shortsCodeConfig = {
-  fontSize: 14,
-  width: 396,
-  height: 704,
-}
-
-export const codeConfig = {
-  fontSize: 14,
-  width: 960,
-  height: 540,
-}
-
 const RenderTokens = ({
   tokens,
   startIndex,
   endIndex,
+  fontSize,
 }: {
   tokens: ComputedToken[]
   startIndex: number
   endIndex: number
+  fontSize: number
 }) => {
   const tokenSegment = tokens.slice(startIndex, endIndex)
 
@@ -60,7 +50,7 @@ const RenderTokens = ({
       {renderState.tokens.length > 0 &&
         renderState.tokens.map((token, index) => {
           // eslint-disable-next-line
-          return <TypingEffect config={codeConfig} key={index} token={token} />
+          return <TypingEffect fontSize={fontSize} key={index} token={token} />
         })}
     </Group>
   )
@@ -68,61 +58,72 @@ const RenderTokens = ({
 
 export default RenderTokens
 
-export const RenderFocus = ({
+export const RenderHighlight = ({
   tokens,
-  lineNumber,
-  groupCoordinates,
-  currentIndex,
-  bgRectInfo,
+  startLineNumber,
+  endLineNumber,
+  fontSize,
 }: {
   tokens: ComputedToken[]
-  lineNumber: number
-  groupCoordinates: { x: number; y: number }
-  currentIndex: number
-  bgRectInfo: {
-    x: number
-    y: number
-    width: number
-    height: number
-    radius: number
-  }
+  startLineNumber: number
+  endLineNumber: number
+  fontSize: number
 }) => {
   return (
     <>
-      <Rect
-        x={bgRectInfo.x}
-        y={bgRectInfo.y}
-        width={bgRectInfo.width}
-        height={bgRectInfo.height}
-        fill="#000000"
-        opacity={0.8}
-        cornerRadius={bgRectInfo.radius}
-      />
-      <Group
-        ref={(ref) => {
-          ref?.to({
-            scaleX: 1.2,
-            scaleY: 1.2,
-            easing: Konva.Easings.EaseInOut,
-            duration: 0.25,
-          })
-        }}
-      >
+      <Group>
         {tokens
-          .filter((_, i) => i < currentIndex)
-          .filter((token) => token.lineNumber === lineNumber)
+          .filter(
+            (token) =>
+              token.lineNumber >= startLineNumber &&
+              token.lineNumber <= endLineNumber
+          )
           .map((token, index) => {
             return (
               <>
                 <Text
                   // eslint-disable-next-line react/no-array-index-key
                   key={index}
-                  fontSize={codeConfig.fontSize}
+                  fontSize={fontSize}
                   fill={token.color}
                   text={token.content}
-                  x={token.x + groupCoordinates.x}
-                  y={token.y + groupCoordinates.y}
-                  offsetY={(token.y + groupCoordinates.y) / 6}
+                  x={token.x}
+                  y={token.y}
+                  align="left"
+                />
+              </>
+            )
+          })}
+      </Group>
+    </>
+  )
+}
+
+export const RenderLines = ({
+  tokens,
+  lineNumbers,
+  fontSize,
+}: {
+  tokens: ComputedToken[]
+  lineNumbers: number[]
+  fontSize: number
+}) => {
+  return (
+    <>
+      <Group>
+        {tokens
+          .filter((token) => lineNumbers.includes(token.lineNumber))
+          .map((token, index) => {
+            return (
+              <>
+                <Text
+                  // eslint-disable-next-line react/no-array-index-key
+                  key={index}
+                  fontSize={fontSize}
+                  fill={token.color}
+                  text={token.content}
+                  x={token.x}
+                  y={token.y}
                   align="left"
                 />
               </>
@@ -142,6 +143,7 @@ export const RenderMultipleLineFocus = ({
   bgRectInfo,
   opacity,
   isShort,
+  fontSize,
 }: {
   tokens: ComputedToken[]
   startLineNumber: number
@@ -157,6 +159,7 @@ export const RenderMultipleLineFocus = ({
   }
   opacity: number
   isShort?: boolean
+  fontSize: number
 }) => {
   let computedLineNumber = 0
   let lineNumber = startLineNumber
@@ -205,14 +208,11 @@ export const RenderMultipleLineFocus = ({
                 <Text
                   // eslint-disable-next-line react/no-array-index-key
                   key={index}
-                  fontSize={codeConfig.fontSize}
+                  fontSize={fontSize}
                   fill={token.color}
                   text={token.content}
                   x={token.x + groupCoordinates.x}
-                  y={
-                    (codeConfig.fontSize + 5) * computedLineNumber +
-                    groupCoordinates.y
-                  }
+                  y={(fontSize + 5) * computedLineNumber + groupCoordinates.y}
                   // offsetY={
                   //   ((codeConfig.fontSize + 5) * computedLineNumber +
                   //     groupCoordinates.y) /
@@ -307,7 +307,8 @@ export const RenderMultipleLineFocus = ({
 
 export const getRenderedTokens = (
   tokens: ComputedToken[],
-  position: Position
+  position: Position,
+  fontSize: number
 ) => {
   const startFromIndex = Math.max(
     ...tokens
@@ -322,7 +323,7 @@ export const getRenderedTokens = (
         <Text
           // eslint-disable-next-line
           key={index}
-          fontSize={codeConfig.fontSize}
+          fontSize={fontSize}
           fill={token.color}
           text={token.content}
           x={token.x}
@@ -333,7 +334,19 @@ export const getRenderedTokens = (
     })
 }
 
-export const getTokens = (tokens: ComputedToken[]) => {
+// calculating the y coordinate inside this function because it is used in highlight lines and preview, and preview is viewed whatever the code animation is
+// and as in type lines code animation we reset the y when y crosses the height of the screen and in preview that is not the case
+export const getTokens = ({
+  tokens,
+  opacity,
+  fontSize,
+  font,
+}: {
+  tokens: ComputedToken[]
+  opacity: number
+  font?: string
+  fontSize: number
+}) => {
   let computedLineNumber = 0
   let lineNumber = 0
 
@@ -348,18 +361,25 @@ export const getTokens = (tokens: ComputedToken[]) => {
       <Text
         // eslint-disable-next-line
         key={index}
-        fontSize={codeConfig.fontSize}
+        fontSize={fontSize}
         fill={token.color}
         text={token.content}
         x={token.x}
-        y={(codeConfig.fontSize + 5) * computedLineNumber}
+        y={(fontSize + 8) * computedLineNumber}
+        opacity={opacity}
         align="left"
+        fontFamily={font}
       />
     )
   })
 }
 
-export const getLineNumbers = (tokens: ComputedToken[]) => {
+// calculating the y coordinate inside this function because it is used in highlight lines and preview, and preview is viewed whatever the code animation is
+// and as in type lines code animation we reset the y when y crosses the height of the screen and in preview that is not the case
+export const getAllLineNumbers = (
+  tokens: ComputedToken[],
+  fontSize: number
+) => {
   let computedLineNumber = 0
   let lineNumber = -1
 
@@ -371,18 +391,59 @@ export const getLineNumbers = (tokens: ComputedToken[]) => {
         <Text
           // eslint-disable-next-line
           key={index}
-          fontSize={codeConfig.fontSize}
+          fontSize={fontSize}
           fill="#6B7280"
           width={30}
           text={(lineNumber + 1).toString()}
-          y={(codeConfig.fontSize + 5) * (computedLineNumber - 1)}
+          y={(fontSize + 8) * (computedLineNumber - 1)}
           align="right"
         />
       )
     }
+    // condition to handle if a single line renders in 2 lines bcoz of text wrapping
     if (token.x === 0 && index !== 0) {
       computedLineNumber += 1
     }
     return <></>
   })
+}
+
+export const getSomeLineNumbers = ({
+  tokens,
+  lineNumbers,
+  fontSize,
+}: {
+  tokens: ComputedToken[]
+  lineNumbers: number[]
+  fontSize: number
+}) => {
+  let lineNumber = -1
+  return (
+    <>
+      <Group>
+        {tokens
+          .filter((token) => lineNumbers.includes(token.lineNumber))
+          .map((token, index) => {
+            if (lineNumber !== token.lineNumber) {
+              lineNumber = token.lineNumber
+              return (
+                <>
+                  <Text
+                    // eslint-disable-next-line
+                    key={index}
+                    fontSize={fontSize}
+                    fill="#6B7280"
+                    width={30}
+                    text={(lineNumber + 1).toString()}
+                    y={token.y}
+                    align="right"
+                  />
+                </>
+              )
+            }
+            return <></>
+          })}
+      </Group>
+    </>
+  )
 }

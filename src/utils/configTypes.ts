@@ -51,6 +51,7 @@ export interface GradientConfig {
 export enum CodeAnimation {
   TypeLines = 'Type lines',
   HighlightLines = 'Highlight lines',
+  // InsertInBetween = 'Insert in between',
 }
 
 export const enum CodeTheme {
@@ -76,6 +77,7 @@ export interface CodeHighlightConfig {
   to?: number
   valid?: boolean
   fileIndex?: number
+  lineNumbers?: number[]
 }
 
 export enum CodeStyle {
