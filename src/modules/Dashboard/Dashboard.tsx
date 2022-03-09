@@ -1,17 +1,19 @@
 import { css, cx } from '@emotion/css'
 import React, { useEffect, useRef, useState } from 'react'
+import { useAuthState } from 'react-firebase-hooks/auth'
 import Skeleton, { SkeletonTheme } from 'react-loading-skeleton'
 import { useRecoilValue } from 'recoil'
+import { Button, Heading, Text } from '../../components'
 import {
   DashboardFlicksFragment,
   useGetDashboardUserFlicksLazyQuery,
 } from '../../generated/graphql'
+import firebaseState from '../../stores/firebase.store'
 import { User, userState } from '../../stores/user.store'
-import { Filter, FlickTile, Header, Navbar } from './components'
-import { CollectionFilter } from './components/Filter'
-import { Button, Heading, Text } from '../../components'
 import { logPage } from '../../utils/analytics'
 import { PageCategory, PageTitle } from '../../utils/analytics-types'
+import { Filter, FlickTile, Header, Navbar } from './components'
+import { CollectionFilter } from './components/Filter'
 
 export const customScroll = css`
   ::-webkit-scrollbar {
@@ -37,6 +39,9 @@ const Dashboard = () => {
   }, [])
 
   const { sub } = (useRecoilValue(userState) as User) || {}
+
+  const { auth } = useRecoilValue(firebaseState)
+  const [user] = useAuthState(auth)
 
   const verticalHeaderRef = useRef<HTMLDivElement>(null)
 
@@ -122,7 +127,9 @@ const Dashboard = () => {
           </div>
         )}
 
-        {(loading || error || (data && allData && allData.length > 0)) && (
+        {((loading && user) ||
+          error ||
+          (data && allData && allData.length > 0)) && (
           <div className="flex flex-col flex-1 py-8 container">
             {!verticalHeaderRef.current && (
               <>
