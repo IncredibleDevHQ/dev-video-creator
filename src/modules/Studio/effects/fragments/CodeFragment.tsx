@@ -2,7 +2,7 @@ import axios from 'axios'
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
 import { useAuthState } from 'react-firebase-hooks/auth'
-import { Group, Rect } from 'react-konva'
+import { Group } from 'react-konva'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import * as gConfig from '../../../../config'
 import firebaseState from '../../../../stores/firebase.store'
@@ -18,13 +18,12 @@ import { CodeBlockProps } from '../../../Flick/editor/utils/utils'
 import Concourse from '../../components/Concourse'
 import FragmentBackground from '../../components/FragmentBackground'
 import RenderTokens, {
-  codeConfig,
   FragmentState,
-  getLineNumbers,
+  getAllLineNumbers,
   getRenderedTokens,
   getTokens,
   Position,
-  RenderFocus,
+  RenderHighlight,
 } from '../../components/RenderTokens'
 import useCode, { ComputedToken } from '../../hooks/use-code'
 import { StudioProviderProps, studioStore } from '../../stores'
@@ -131,12 +130,11 @@ const CodeFragment = ({
 
   const { initUseCode } = useCode()
   const [computedTokens, setComputedTokens] = useState<ComputedToken[][]>([[]])
-  // const [getTokenisedCode, { data }] = useGetTokenisedCodeLazyQuery()
   const [position, setPosition] = useState<Position>({
     prevIndex: -1,
     currentIndex: 0,
   })
-  const [focusCode, setFocusCode] = useState<boolean>(false)
+  // const [focusCode, setFocusCode] = useState<boolean>(false)
 
   const [studio, setStudio] = useRecoilState(studioStore)
 
@@ -177,6 +175,9 @@ const CodeFragment = ({
 
   const [colorCodes, setColorCodes] = useState<any>([])
   const [codeTheme, setCodeTheme] = useState<CodeTheme>(CodeTheme.DarkPlus)
+  const [fontSize, setFontSize] = useState<number>(16)
+
+  // const [lineNumbers, setLineNumbers] = useState<number[]>([])
 
   const { auth } = useRecoilValue(firebaseState)
   const [user] = useAuthState(auth)
@@ -225,8 +226,16 @@ const CodeFragment = ({
     })()
     setCodeAnimation(codeBlockViewProps.animation)
     setCodeTheme(codeBlockViewProps.theme)
+    if (codeBlockViewProps.fontSize) setFontSize(codeBlockViewProps.fontSize)
     const blocks = Object.assign([], codeBlockViewProps.highlightSteps || [])
-    blocks.unshift({ from: 0, to: 0, fileIndex: 0 })
+    blocks.unshift({ from: 0, to: 0, fileIndex: 0, lineNumbers: [] })
+    // const blocks = [
+    //   { lineNumbers: [] },
+    //   { lineNumbers: [0] },
+    //   { lineNumbers: [2, 5] },
+    //   { lineNumbers: [3, 4] },
+    //   // { lineNumbers: [3] },
+    // ]
     setBlockConfig(blocks)
   }, [dataConfig, shortsMode, viewConfig])
 
@@ -242,13 +251,14 @@ const CodeFragment = ({
       initUseCode({
         tokens: [colorCodes],
         canvasWidth: objectConfig.width - 140,
-        canvasHeight: objectRenderConfig.availableHeight - 20,
-        gutter: 5,
-        fontSize: codeConfig.fontSize,
+        canvasHeight: objectRenderConfig.availableHeight - 35,
+        gutter: 8,
+        fontSize,
         codeAnimation: codeAnimation || CodeAnimation.TypeLines,
+        // fontFamily: branding?.font?.heading?.family,
       })
     )
-  }, [colorCodes, objectRenderConfig])
+  }, [colorCodes, objectRenderConfig, fontSize])
 
   useEffect(() => {
     setStudio({
@@ -265,7 +275,14 @@ const CodeFragment = ({
       prevIndex: payload?.prevIndex || 0,
       currentIndex: payload?.currentIndex || 1,
     })
-    setFocusCode(payload?.isFocus)
+    // setFocusCode(payload?.isFocus)
+    // if (codeAnimation === 'Insert in between') {
+    //   setActiveBlockIndex(payload?.activeBlockIndex)
+    //   setLineNumbers((oldLineNumbers) => [
+    //     ...oldLineNumbers,
+    //     ...(blockConfig?.[payload?.activeBlockIndex]?.lineNumbers || []),
+    //   ])
+    // }
     if (codeAnimation === 'Highlight lines') {
       setActiveBlockIndex(payload?.activeBlockIndex)
       if (payload?.focusBlockCode) {
@@ -296,11 +313,13 @@ const CodeFragment = ({
               ) +
               objectRenderConfig.availableHeight / 2,
             duration: 0.5,
+            easing: Konva.Easings.EaseInOut,
           })
         } else {
           codeGroupRef.current?.to({
             y: objectRenderConfig.startY + 10,
             duration: 0.5,
+            easing: Konva.Easings.EaseInOut,
           })
         }
         setHiglightBlockCode(payload?.focusBlockCode)
@@ -386,55 +405,48 @@ const CodeFragment = ({
       {!isPreview ? (
         <Group
           x={objectRenderConfig.startX + 25}
-          y={objectRenderConfig.startY + 10}
+          y={objectRenderConfig.startY + 24}
           key="group"
           ref={codeGroupRef}
         >
-          {codeAnimation === 'Type lines' ? (
-            <>
-              {getRenderedTokens(computedTokens[0], position)}
-              {computedTokens.length > 0 && computedTokens[0].length > 0 && (
-                <RenderTokens
-                  key={position.prevIndex}
-                  tokens={computedTokens[0]}
-                  startIndex={position.prevIndex}
-                  endIndex={position.currentIndex}
-                />
-              )}
-            </>
-          ) : (
-            <>
-              {computedTokens.length > 0 && computedTokens[0].length > 0 && (
+          {
+            {
+              'Type lines': (
                 <>
-                  <Group x={-15}>{getLineNumbers(computedTokens[0])}</Group>
-                  <Group x={40}>{getTokens(computedTokens[0])}</Group>
+                  {getRenderedTokens(computedTokens[0], position, fontSize)}
+                  {computedTokens.length > 0 &&
+                    computedTokens[0].length > 0 && (
+                      <RenderTokens
+                        key={position.prevIndex}
+                        tokens={computedTokens[0]}
+                        startIndex={position.prevIndex}
+                        endIndex={position.currentIndex}
+                        fontSize={fontSize}
+                      />
+                    )}
                 </>
-              )}
-              {highlightBlockCode && (
-                <Rect
-                  x={-5}
-                  y={
-                    (computedTokens[
-                      blockConfig?.[payload?.activeBlockIndex]?.fileIndex || 0
-                    ].find(
-                      (token) =>
-                        token.lineNumber ===
-                        (blockConfig &&
-                          blockConfig[activeBlockIndex] &&
-                          blockConfig[activeBlockIndex].from)
-                    )?.y || 0) - 5
-                  }
-                  width={objectConfig.width - 40}
-                  height={
-                    (computedTokens[
-                      blockConfig?.[payload?.activeBlockIndex]?.fileIndex || 0
-                    ].find(
-                      (token) =>
-                        token.lineNumber ===
-                        (blockConfig &&
-                          blockConfig[activeBlockIndex] &&
-                          blockConfig[activeBlockIndex].to)
-                    )?.y || 0) -
+              ),
+              'Highlight lines': (
+                <>
+                  {computedTokens.length > 0 && computedTokens[0].length > 0 && (
+                    <>
+                      <Group x={-15}>
+                        {getAllLineNumbers(computedTokens[0], fontSize)}
+                      </Group>
+                      <Group x={40}>
+                        {getTokens({
+                          tokens: computedTokens[0],
+                          opacity: highlightBlockCode ? 0.2 : 1,
+                          fontSize,
+                        })}
+                      </Group>
+                    </>
+                  )}
+                  {highlightBlockCode && (
+                    <>
+                      {/* <Rect
+                    x={-5}
+                    y={
                       (computedTokens[
                         blockConfig?.[payload?.activeBlockIndex]?.fileIndex || 0
                       ].find(
@@ -443,20 +455,19 @@ const CodeFragment = ({
                           (blockConfig &&
                             blockConfig[activeBlockIndex] &&
                             blockConfig[activeBlockIndex].from)
-                      )?.y || 0) +
-                      codeConfig.fontSize +
-                      5 >
-                    0
-                      ? (computedTokens[
-                          blockConfig?.[payload?.activeBlockIndex]?.fileIndex ||
-                            0
-                        ].find(
-                          (token) =>
-                            token.lineNumber ===
-                            (blockConfig &&
-                              blockConfig[activeBlockIndex] &&
-                              blockConfig[activeBlockIndex].to)
-                        )?.y || 0) -
+                      )?.y || 0) - 5
+                    }
+                    width={objectConfig.width - 40}
+                    height={
+                      (computedTokens[
+                        blockConfig?.[payload?.activeBlockIndex]?.fileIndex || 0
+                      ].find(
+                        (token) =>
+                          token.lineNumber ===
+                          (blockConfig &&
+                            blockConfig[activeBlockIndex] &&
+                            blockConfig[activeBlockIndex].to)
+                      )?.y || 0) -
                         (computedTokens[
                           blockConfig?.[payload?.activeBlockIndex]?.fileIndex ||
                             0
@@ -468,45 +479,96 @@ const CodeFragment = ({
                               blockConfig[activeBlockIndex].from)
                         )?.y || 0) +
                         codeConfig.fontSize +
-                        10
-                      : 0
-                  }
-                  fill="#0066B8"
-                  opacity={0.3}
-                  cornerRadius={8}
-                />
-              )}
-            </>
-          )}
+                        5 >
+                      0
+                        ? (computedTokens[
+                            blockConfig?.[payload?.activeBlockIndex]
+                              ?.fileIndex || 0
+                          ].find(
+                            (token) =>
+                              token.lineNumber ===
+                              (blockConfig &&
+                                blockConfig[activeBlockIndex] &&
+                                blockConfig[activeBlockIndex].to)
+                          )?.y || 0) -
+                          (computedTokens[
+                            blockConfig?.[payload?.activeBlockIndex]
+                              ?.fileIndex || 0
+                          ].find(
+                            (token) =>
+                              token.lineNumber ===
+                              (blockConfig &&
+                                blockConfig[activeBlockIndex] &&
+                                blockConfig[activeBlockIndex].from)
+                          )?.y || 0) +
+                          codeConfig.fontSize +
+                          10
+                        : 0
+                    }
+                    fill="#0066B8"
+                    opacity={0.3}
+                    cornerRadius={4}
+                  /> */}
+                      <Group x={40}>
+                        <RenderHighlight
+                          tokens={computedTokens[0]}
+                          startLineNumber={
+                            (blockConfig &&
+                              blockConfig[activeBlockIndex] &&
+                              blockConfig[activeBlockIndex].from) ||
+                            0
+                          }
+                          endLineNumber={
+                            (blockConfig &&
+                              blockConfig[activeBlockIndex] &&
+                              blockConfig[activeBlockIndex].to) ||
+                            0
+                          }
+                          fontSize={fontSize}
+                        />
+                      </Group>
+                    </>
+                  )}
+                </>
+              ),
+              // 'Insert in between': (
+              //   <>
+              //     <Group x={-15}>
+              //       {getSomeLineNumbers({
+              //         tokens: computedTokens[0],
+              //         lineNumbers,
+              //         fontSize,
+              //       })}
+              //     </Group>
+              //     <Group x={40}>
+              //       <RenderLines
+              //         tokens={computedTokens[0]}
+              //         lineNumbers={lineNumbers}
+              //         fontSize={fontSize}
+              //       />
+              //     </Group>
+              //   </>
+              // ),
+            }[codeAnimation || 'Type lines']
+          }
         </Group>
       ) : (
         <Group
           x={objectRenderConfig.startX + 25}
-          y={objectRenderConfig.startY + 10}
+          y={objectRenderConfig.startY + 24}
           key="previewGroup"
         >
-          <Group x={-15}>{getLineNumbers(computedTokens[0])}</Group>
-          <Group x={40}>{getTokens(computedTokens[0])}</Group>
+          <Group x={-15}>
+            {getAllLineNumbers(computedTokens[0], fontSize)}
+          </Group>
+          <Group x={40}>
+            {getTokens({
+              tokens: computedTokens[0],
+              opacity: 1,
+              fontSize: 16,
+            })}
+          </Group>
         </Group>
-      )}
-
-      {focusCode && (
-        <RenderFocus
-          tokens={computedTokens[0]}
-          lineNumber={computedTokens[0][position.prevIndex]?.lineNumber}
-          currentIndex={position.currentIndex}
-          groupCoordinates={{
-            x: objectRenderConfig.startX + 10,
-            y: objectRenderConfig.startY + 10,
-          }}
-          bgRectInfo={{
-            x: objectRenderConfig.startX,
-            y: objectRenderConfig.startY,
-            width: objectConfig.width,
-            height: objectRenderConfig.availableHeight,
-            radius: objectConfig.borderRadius,
-          }}
-        />
       )}
     </Group>,
   ]
