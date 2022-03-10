@@ -1132,19 +1132,17 @@ const Studio = ({
                       payload?.activeObjectIndex ===
                         fragment.editorState.blocks.length - 1) &&
                       state !== 'ready' && (
-                        <div
-                          style={{
-                            background: '#71717A',
-                          }}
-                          className="absolute top-0 right-0 rounded-tr-sm rounded-bl-sm"
-                        >
+                        <div className="absolute top-0 right-0 rounded-tr-sm rounded-bl-sm bg-incredible-green-600">
                           <IoCheckmarkOutline
                             className="m-px text-gray-200"
                             size={8}
                           />
                         </div>
                       )}
-                    {utils.getBlockTitle(block)}
+                    <span>
+                      {utils.getBlockTitle(block).substring(0, 40) +
+                        (utils.getBlockTitle(block).length > 40 ? '...' : '')}
+                    </span>
                   </div>
                 )
               })}
