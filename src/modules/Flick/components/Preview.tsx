@@ -44,21 +44,9 @@ import { studioStore } from '../../Studio/stores'
 import { Block, IntroBlockProps } from '../editor/utils/utils'
 import { CanvasPreview, LayoutSelector } from './BlockPreview'
 
-const customScroll = css`
+const noScrollBar = css`
   ::-webkit-scrollbar {
-    width: 18px;
-  }
-  ::-webkit-scrollbar-track {
-    background-color: transparent;
-  }
-  ::-webkit-scrollbar-thumb {
-    background-color: #d6dee1;
-    border-radius: 20px;
-    border: 6px solid transparent;
-    background-clip: content-box;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    background-color: #a8bbbf;
+    display: none;
   }
 `
 
@@ -254,7 +242,7 @@ const Preview = ({
             <div
               className={cx(
                 'bg-white w-64 flex-1 overflow-y-scroll',
-                customScroll
+                noScrollBar
               )}
             >
               {activeTab.id === commonTabs[0].id && (
