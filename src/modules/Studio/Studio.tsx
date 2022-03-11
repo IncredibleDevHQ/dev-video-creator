@@ -58,7 +58,7 @@ import {
   useUtils,
   VideoBlockProps,
 } from '../Flick/editor/utils/utils'
-import { Countdown } from './components'
+import { Countdown, TimerModal } from './components'
 import {
   CONFIG,
   GetTopLayerChildren,
@@ -562,6 +562,10 @@ const Studio = ({
 
   const [mountStage, setMountStage] = useState(false)
 
+  const [isTimerModalOpen, setIsTimerModalOpen] = useState(true)
+  const [timeLimit, setTimeLimit] = useState<number | undefined>()
+  const [timeLimitOver, setTimeLimitOver] = useState(false)
+
   const { height: stageHeight, width: stageWidth } = useGetHW({
     maxH: bounds.height,
     maxW: bounds.width,
@@ -1041,6 +1045,26 @@ const Studio = ({
               className="flex justify-center flex-1 col-span-8 w-full h-full relative"
               ref={stageBoundingDivRef}
             >
+              <div
+                className={cx(
+                  'animate-pulse rounded-sm absolute',
+                  {
+                    'bg-transparent': !timeLimitOver,
+                    'bg-red-600': timeLimitOver,
+                  },
+                  css`
+                    width: ${layerRef.current
+                      ? layerRef.current?.width() + 10
+                      : 0}px;
+                    height: ${layerRef.current
+                      ? layerRef.current.height() + 10
+                      : 0}px;
+                    left: 50%;
+                    top: 50%;
+                    transform: translate(-50%, -50%);
+                  `
+                )}
+              />
               {mountStage &&
                 (state === 'ready' ||
                   state === 'recording' ||
@@ -1091,8 +1115,11 @@ const Studio = ({
                 )}
               <RecordingControlsBar
                 stageRef={stageRef}
-                stageHeight={stageHeight}
+                timeLimit={timeLimit}
                 shortsMode={shortsMode}
+                stageHeight={stageHeight}
+                timeOver={() => setTimeLimitOver(true)}
+                openTimerModal={() => setIsTimerModalOpen(true)}
               />
             </div>
             {/* Notes */}
@@ -1223,6 +1250,12 @@ const Studio = ({
           )}
         </div>
       )}
+      <TimerModal
+        open={isTimerModalOpen}
+        timeLimit={timeLimit}
+        setTimeLimit={setTimeLimit}
+        handleClose={() => setIsTimerModalOpen(false)}
+      />
     </div>
   )
 }
