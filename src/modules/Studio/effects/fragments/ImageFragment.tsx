@@ -45,13 +45,14 @@ const ImageFragment = ({
 }) => {
   const { fragment, payload, branding, theme } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
-  const [triviaData, setTriviaData] =
+
+  const [imageFragmentData, setImageFragmentData] =
     useState<{ title: string; image?: string; caption: string }>()
 
   const { getImageDimensions } = useEdit()
 
   const [qnaImage] = useImage(
-    triviaData && triviaData.image ? triviaData.image : '',
+    imageFragmentData && imageFragmentData.image ? imageFragmentData.image : '',
     'anonymous'
   )
   const [isGif, setIsGif] = useState(false)
@@ -96,7 +97,7 @@ const ImageFragment = ({
         isShorts: shortsMode || false,
       })
     )
-    setTriviaData({
+    setImageFragmentData({
       image: dataConfig?.imageBlock.url || '',
       title: dataConfig?.imageBlock.title || '',
       caption: dataConfig?.imageBlock.caption || '',
@@ -117,78 +118,61 @@ const ImageFragment = ({
 
   useEffect(() => {
     const noOfLinesOfTitle = getNoOfLinesOfText({
-      text: triviaData?.title || '',
+      text: imageFragmentData?.title || '',
       availableWidth: objectRenderConfig.availableWidth - 20,
-      fontSize: 32,
-      fontFamily: branding?.font?.body?.family || 'Inter',
+      fontSize: 24,
+      fontFamily: branding?.font?.body?.family || 'Gilroy',
       fontStyle: 'bold',
     })
 
-    if (triviaData?.title) {
-      if (shortsMode) {
+    if (imageFragmentData?.title) {
+      if (renderMode === 'titleOnly') {
         setImgDim(
           getImageDimensions(
             {
               w: (qnaImage && qnaImage.width) || 0,
               h: (qnaImage && qnaImage.height) || 0,
             },
-            objectRenderConfig.availableWidth - 30,
-            objectRenderConfig.availableHeight - 140,
             objectRenderConfig.availableWidth - 40,
-            objectRenderConfig.availableHeight,
+            objectRenderConfig.availableHeight - (noOfLinesOfTitle * 38 + 60),
+            objectRenderConfig.availableWidth - 40,
+            objectRenderConfig.availableHeight - (noOfLinesOfTitle * 38 + 60),
             20,
-            0
+            noOfLinesOfTitle * 38 + 40
           )
         )
-      } else {
-        if (renderMode === 'titleOnly') {
-          setImgDim(
-            getImageDimensions(
-              {
-                w: (qnaImage && qnaImage.width) || 0,
-                h: (qnaImage && qnaImage.height) || 0,
-              },
-              objectRenderConfig.availableWidth - 40,
-              objectRenderConfig.availableHeight - (noOfLinesOfTitle * 40 + 20),
-              objectRenderConfig.availableWidth - 40,
-              objectRenderConfig.availableHeight - (noOfLinesOfTitle * 40 + 20),
-              20,
-              noOfLinesOfTitle * 40 + 10
-            )
+      }
+      if (renderMode === 'captionOnly') {
+        setImgDim(
+          getImageDimensions(
+            {
+              w: (qnaImage && qnaImage.width) || 0,
+              h: (qnaImage && qnaImage.height) || 0,
+            },
+            objectRenderConfig.availableWidth - 40,
+            objectRenderConfig.availableHeight - 100,
+            objectRenderConfig.availableWidth - 40,
+            objectRenderConfig.availableHeight - 100,
+            20,
+            20
           )
-        }
-        if (renderMode === 'captionOnly') {
-          setImgDim(
-            getImageDimensions(
-              {
-                w: (qnaImage && qnaImage.width) || 0,
-                h: (qnaImage && qnaImage.height) || 0,
-              },
-              objectRenderConfig.availableWidth - 40,
-              objectRenderConfig.availableHeight - 100,
-              objectRenderConfig.availableWidth - 40,
-              objectRenderConfig.availableHeight - 100,
-              20,
-              20
-            )
+        )
+      }
+      if (renderMode === 'none') {
+        setImgDim(
+          getImageDimensions(
+            {
+              w: (qnaImage && qnaImage.width) || 0,
+              h: (qnaImage && qnaImage.height) || 0,
+            },
+            objectRenderConfig.availableWidth - 20,
+            objectRenderConfig.availableHeight - 20,
+            objectRenderConfig.availableWidth - 20,
+            objectRenderConfig.availableHeight - 20,
+            10,
+            10
           )
-        }
-        if (renderMode === 'none') {
-          setImgDim(
-            getImageDimensions(
-              {
-                w: (qnaImage && qnaImage.width) || 0,
-                h: (qnaImage && qnaImage.height) || 0,
-              },
-              objectRenderConfig.availableWidth - 20,
-              objectRenderConfig.availableHeight - 20,
-              objectRenderConfig.availableWidth - 20,
-              objectRenderConfig.availableHeight - 20,
-              10,
-              10
-            )
-          )
-        }
+        )
       }
     } else
       setImgDim(
@@ -205,7 +189,7 @@ const ImageFragment = ({
           0
         )
       )
-  }, [qnaImage, objectRenderConfig, renderMode, triviaData, shortsMode])
+  }, [qnaImage, objectRenderConfig, renderMode, imageFragmentData, shortsMode])
 
   // useEffect(() => {
   //   // setActiveQuestionIndex(payload?.activeQuestion)
@@ -251,7 +235,7 @@ const ImageFragment = ({
         y={objectRenderConfig.startY}
         key="group1"
       >
-        {triviaData?.image ? (
+        {imageFragmentData?.image ? (
           <>
             {isGif ? (
               <Gif
@@ -279,27 +263,6 @@ const ImageFragment = ({
                 x={10}
                 y={20}
                 align="center"
-                fontSize={32}
-                fill={
-                  branding?.colors?.text
-                    ? branding?.colors?.text
-                    : objectRenderConfig.textColor
-                }
-                width={objectRenderConfig.availableWidth - 20}
-                lineHeight={1.2}
-                text={triviaData?.title}
-                fontStyle="bold"
-                fontFamily={branding?.font?.body?.family || 'Inter'}
-                textTransform="capitalize"
-              />
-            )}
-
-            {(renderMode === 'captionOnly' ||
-              renderMode === 'titleAndCaption') && (
-              <Text
-                x={10}
-                y={objectRenderConfig.availableHeight - 60}
-                align="center"
                 fontSize={24}
                 fill={
                   branding?.colors?.text
@@ -308,8 +271,33 @@ const ImageFragment = ({
                 }
                 width={objectRenderConfig.availableWidth - 20}
                 lineHeight={1.2}
-                text={triviaData?.caption}
-                fontFamily={branding?.font?.body?.family || 'Inter'}
+                text={imageFragmentData?.title}
+                fontStyle="bold"
+                fontFamily={branding?.font?.body?.family || 'Gilroy'}
+                textTransform="capitalize"
+              />
+            )}
+
+            {(renderMode === 'captionOnly' ||
+              renderMode === 'titleAndCaption') && (
+              <Text
+                x={!shortsMode ? 110 : 20}
+                y={objectRenderConfig.availableHeight - 60}
+                align="center"
+                fontSize={16}
+                fill={
+                  branding?.colors?.text
+                    ? branding?.colors?.text
+                    : objectRenderConfig.textColor
+                }
+                width={
+                  !shortsMode
+                    ? objectRenderConfig.availableWidth - 220
+                    : objectRenderConfig.availableWidth - 40
+                }
+                lineHeight={1.2}
+                text={imageFragmentData?.caption}
+                fontFamily={branding?.font?.body?.family || 'GilroyRegular'}
               />
             )}
           </>
@@ -324,7 +312,7 @@ const ImageFragment = ({
             }
             width={objectRenderConfig.availableWidth - 20}
             height={objectRenderConfig.availableHeight}
-            text={triviaData?.title}
+            text={imageFragmentData?.title}
             fontStyle="bold"
             fontFamily={branding?.font?.body?.family || 'Inter'}
             align="center"
