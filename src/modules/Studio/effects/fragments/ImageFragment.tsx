@@ -121,7 +121,10 @@ const ImageFragment = ({
       text: imageFragmentData?.title || '',
       availableWidth: objectRenderConfig.availableWidth - 20,
       fontSize: 24,
-      fontFamily: branding?.font?.body?.family || 'Gilroy',
+      fontFamily:
+        branding?.font?.body?.family ||
+        objectRenderConfig.titleFont ||
+        'Gilroy',
       fontStyle: 'bold',
     })
 
@@ -273,7 +276,11 @@ const ImageFragment = ({
                 lineHeight={1.2}
                 text={imageFragmentData?.title}
                 fontStyle="bold"
-                fontFamily={branding?.font?.body?.family || 'Gilroy'}
+                fontFamily={
+                  branding?.font?.body?.family ||
+                  objectRenderConfig.titleFont ||
+                  'Gilroy'
+                }
                 textTransform="capitalize"
               />
             )}
@@ -297,7 +304,11 @@ const ImageFragment = ({
                 }
                 lineHeight={1.2}
                 text={imageFragmentData?.caption}
-                fontFamily={branding?.font?.body?.family || 'GilroyRegular'}
+                fontFamily={
+                  branding?.font?.body?.family ||
+                  objectRenderConfig.bodyFont ||
+                  'GilroyRegular'
+                }
               />
             )}
           </>
@@ -314,7 +325,9 @@ const ImageFragment = ({
             height={objectRenderConfig.availableHeight}
             text={imageFragmentData?.title}
             fontStyle="bold"
-            fontFamily={branding?.font?.body?.family || 'Inter'}
+            fontFamily={
+              branding?.font?.body?.family || objectRenderConfig.titleFont || 'Gilroy'
+            }
             align="center"
             verticalAlign="middle"
             lineHeight={1.3}

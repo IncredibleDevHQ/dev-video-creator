@@ -228,7 +228,10 @@ const VideoFragment = ({
       text: videoFragmentData?.title || '',
       availableWidth: objectRenderConfig.availableWidth - 20,
       fontSize: 24,
-      fontFamily: branding?.font?.body?.family || 'Gilroy',
+      fontFamily:
+        branding?.font?.body?.family ||
+        objectRenderConfig.titleFont ||
+        'Gilroy',
       fontStyle: 'bold',
     })
     if (renderMode === 'titleOnly') {
@@ -315,7 +318,11 @@ const VideoFragment = ({
             lineHeight={1.2}
             text={videoFragmentData?.title}
             fontStyle="bold"
-            fontFamily={branding?.font?.body?.family || 'Gilroy'}
+            fontFamily={
+              branding?.font?.body?.family ||
+              objectRenderConfig.titleFont ||
+              'Gilroy'
+            }
             textTransform="capitalize"
           />
         )}
@@ -334,7 +341,11 @@ const VideoFragment = ({
             width={objectRenderConfig.availableWidth - 20}
             lineHeight={1.2}
             text={videoFragmentData?.caption}
-            fontFamily={branding?.font?.body?.family || 'GilroyRegular'}
+            fontFamily={
+              branding?.font?.body?.family ||
+              objectRenderConfig.titleFont ||
+              'GilroyRegular'
+            }
           />
         )}
       </Group>
