@@ -1,4 +1,3 @@
-import { sentenceCase } from 'change-case'
 import React, { useState } from 'react'
 import { FiChevronLeft } from 'react-icons/fi'
 import { useRecoilState } from 'recoil'
@@ -24,7 +23,7 @@ const FlickNavBar = () => {
         </a>
       </div>
       <Heading className="p-2 ml-12 font-bold text-base text-white">
-        {sentenceCase(flick?.name || '')}
+        {flick?.name || ''}
       </Heading>
       <div className="flex items-center gap-x-6">
         <Button

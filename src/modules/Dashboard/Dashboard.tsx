@@ -1,17 +1,19 @@
 import { css, cx } from '@emotion/css'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
+import { useAuthState } from 'react-firebase-hooks/auth'
 import Skeleton, { SkeletonTheme } from 'react-loading-skeleton'
 import { useRecoilValue } from 'recoil'
+import { Button, Heading, Text } from '../../components'
 import {
   DashboardFlicksFragment,
   useGetDashboardUserFlicksLazyQuery,
 } from '../../generated/graphql'
+import firebaseState from '../../stores/firebase.store'
 import { User, userState } from '../../stores/user.store'
-import { Filter, FlickTile, Header, Navbar } from './components'
-import { CollectionFilter } from './components/Filter'
-import { Button, Heading, Text } from '../../components'
 import { logPage } from '../../utils/analytics'
 import { PageCategory, PageTitle } from '../../utils/analytics-types'
+import { Filter, FlickTile, Header, Navbar } from './components'
+import { CollectionFilter } from './components/Filter'
 
 export const customScroll = css`
   ::-webkit-scrollbar {
@@ -37,6 +39,12 @@ const Dashboard = () => {
   }, [])
 
   const { sub } = (useRecoilValue(userState) as User) || {}
+
+  const { auth } = useRecoilValue(firebaseState)
+  const [user] = useAuthState(auth)
+
+  const verticalHeaderRef = useRef<HTMLDivElement>(null)
+
   const [fetchFlickData, { data, error, loading, fetchMore, refetch }] =
     useGetDashboardUserFlicksLazyQuery()
 
@@ -109,20 +117,30 @@ const Dashboard = () => {
           }
         }}
       >
-        {data && allData && allData.length === 0 && (
-          <div className="flex-1 flex flex-col items-center justify-center gap-y-12">
+        {allData && allData.length === 0 && (
+          <div
+            className="flex-1 flex flex-col items-center justify-center gap-y-12"
+            ref={verticalHeaderRef}
+          >
             <Heading fontSize="large">Start by creating a story</Heading>
             <Header vertical />
           </div>
         )}
 
-        {(loading || error || (data && allData && allData.length > 0)) && (
+        {((loading && user) ||
+          error ||
+          (data && allData && allData.length > 0)) && (
           <div className="flex flex-col flex-1 py-8 container">
-            <Header />
-            <Filter
-              collectionFilter={collectionFilter}
-              setCollectionFilter={setCollectionFilter}
-            />
+            {!verticalHeaderRef.current && (
+              <>
+                <Header />
+                <Filter
+                  collectionFilter={collectionFilter}
+                  setCollectionFilter={setCollectionFilter}
+                />
+              </>
+            )}
+
             {loading && !data && (
               <SkeletonTheme color="#202020" highlightColor="#444">
                 <div className="flex-1 grid grid-cols-4 gap-10">

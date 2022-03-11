@@ -253,6 +253,7 @@ const UnifiedFragment = ({
           case 'codeBlock': {
             return (
               <CodeFragment
+                key={activeObjectIndex}
                 dataConfig={dataConfig[activeObjectIndex] as CodeBlockProps}
                 viewConfig={
                   viewConfig.blocks[
@@ -287,6 +288,7 @@ const UnifiedFragment = ({
           case 'imageBlock': {
             return (
               <TriviaFragment
+                key={activeObjectIndex}
                 dataConfig={dataConfig[activeObjectIndex] as ImageBlockProps}
                 viewConfig={
                   viewConfig.blocks[

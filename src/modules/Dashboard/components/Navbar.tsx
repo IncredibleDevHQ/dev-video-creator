@@ -3,9 +3,10 @@
 import { cx } from '@emotion/css'
 import axios from 'axios'
 import React, { HTMLAttributes, useState } from 'react'
+import { FiLoader } from 'react-icons/fi'
 import { useHistory } from 'react-router-dom'
 import { useRecoilValue } from 'recoil'
-import { Logo, Tooltip } from '../../../components'
+import { emitToast, Logo, Tooltip } from '../../../components'
 import config from '../../../config'
 import firebaseState from '../../../stores/firebase.store'
 import { User, userState } from '../../../stores/user.store'
@@ -18,17 +19,29 @@ const Navbar = ({ className }: HTMLAttributes<HTMLDivElement>) => {
 
   const history = useHistory()
 
+  const [signingOut, setSigningOut] = useState(false)
+
   const handleSignOut = async () => {
-    await auth.signOut()
-    await axios.post(
-      `${config.auth.endpoint}/api/logout`,
-      {},
-      {
-        withCredentials: true,
-        method: 'POST',
-      }
-    )
-    window.location.href = `${config.auth.endpoint}/login`
+    setSigningOut(true)
+    try {
+      await axios.post(
+        `${config.auth.endpoint}/api/logout`,
+        {},
+        {
+          withCredentials: true,
+          method: 'POST',
+        }
+      )
+      await auth.signOut()
+      window.location.href = `${config.auth.endpoint}/login`
+    } catch (e) {
+      emitToast({
+        type: 'error',
+        title: 'Could not sign you out',
+      })
+    } finally {
+      setSigningOut(false)
+    }
   }
 
   const [isOpen, setIsOpen] = useState(false)
@@ -76,7 +89,11 @@ const Navbar = ({ className }: HTMLAttributes<HTMLDivElement>) => {
                 className="p-2 px-6 cursor-pointer text-gray-400 rounded-b-md hover:bg-dark-100"
                 onClick={() => handleSignOut()}
               >
-                Sign out
+                {signingOut ? (
+                  <FiLoader className="animate-spin w-full my-1" />
+                ) : (
+                  'Sign out'
+                )}
               </li>
             </ul>
           }

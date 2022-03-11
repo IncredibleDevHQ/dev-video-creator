@@ -92,6 +92,10 @@ const config = {
   giphy: {
     apiKey: import.meta.env.VITE_GIPHY_API_KEY,
   },
+
+  whitelist: {
+    cassidyTheme: import.meta.env.VITE_CASSIDY_THEME_WHITELIST,
+  },
 }
 
 export default config

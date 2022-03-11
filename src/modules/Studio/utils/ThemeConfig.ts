@@ -41,7 +41,7 @@ export const ThemeLayoutConfig = ({
       return {
         startX: layoutConfig.x,
         startY: layoutConfig.y + 40,
-        availableWidth: layoutConfig.width,
+        availableWidth: layoutConfig?.availableWidth || layoutConfig.width,
         availableHeight: layoutConfig.height - 40,
         textColor: '#ffffff',
         surfaceColor: '#151D2C',
@@ -52,7 +52,7 @@ export const ThemeLayoutConfig = ({
       return {
         startX: layoutConfig.x,
         startY: layoutConfig.y,
-        availableWidth: layoutConfig.width,
+        availableWidth: layoutConfig?.availableWidth || layoutConfig.width,
         availableHeight: layoutConfig.height,
         textColor: '#27272A',
         pointsBulletColor: '#27272A',
@@ -63,7 +63,7 @@ export const ThemeLayoutConfig = ({
       return {
         startX: layoutConfig.x,
         startY: layoutConfig.y + 56,
-        availableWidth: layoutConfig.width,
+        availableWidth: layoutConfig?.availableWidth || layoutConfig.width,
         availableHeight: layoutConfig.height - 56,
         textColor: '#374151',
         pointsBulletColor: '#374151',

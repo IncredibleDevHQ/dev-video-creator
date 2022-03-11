@@ -25,7 +25,6 @@ enum OptionType {
 
 interface Option {
   icon: IconType
-  color: string
   title: string
   description: string
   type: OptionType
@@ -34,21 +33,18 @@ interface Option {
 const options: Option[] = [
   {
     icon: HiOutlineSparkles,
-    color: 'incredible-green',
     title: 'Create blank story',
     description: 'New story with empty markdown',
     type: OptionType.blank,
   },
   {
     icon: HiOutlineDownload,
-    color: 'incredible-purple',
     title: 'Import local markdown',
     description: 'New story with local markdown',
     type: OptionType.local,
   },
   {
     icon: IoCopyOutline,
-    color: 'incredible-blue',
     title: 'Paste markdown link',
     description: 'New story with markdown from link',
     type: OptionType.link,
@@ -236,7 +232,7 @@ const CreateFlickModal = ({
   )
 }
 
-const Card = ({ color, description, icon: I, title, type }: Option) => {
+const Card = ({ description, icon: I, title, type }: Option) => {
   const [openCreate, setOpenCreate] = useState(false)
   const [markdownHTML, setMarkdownHTML] = useState<string>()
 
@@ -271,8 +267,21 @@ const Card = ({ color, description, icon: I, title, type }: Option) => {
           }
         }}
       >
-        <div className={`bg-${color}-light-600 p-2.5 rounded-sm`}>
-          <I size={24} className={`text-${color}-600`} />
+        <div
+          className={cx(`p-2.5 rounded-sm`, {
+            'bg-incredible-green-light-600': type === OptionType.blank,
+            'bg-incredible-purple-light-600': type === OptionType.local,
+            'bg-incredible-blue-light-600': type === OptionType.link,
+          })}
+        >
+          <I
+            size={24}
+            className={cx({
+              'text-incredible-green-600': type === OptionType.blank,
+              'text-incredible-purple-600': type === OptionType.local,
+              'text-incredible-blue-600': type === OptionType.link,
+            })}
+          />
         </div>
         <div className="flex-1 mx-4 flex flex-col gap-y-1">
           <Heading fontSize="base">{title}</Heading>

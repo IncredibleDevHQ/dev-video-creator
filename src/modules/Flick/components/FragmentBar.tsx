@@ -13,7 +13,7 @@ import {
   IoWarningOutline,
 } from 'react-icons/io5'
 import { useHistory } from 'react-router-dom'
-import { useRecoilState } from 'recoil'
+import { useRecoilState, useRecoilValue } from 'recoil'
 import { useDebouncedCallback } from 'use-debounce'
 import { FragmentVideoModal } from '.'
 import { Branding } from '../..'
@@ -31,6 +31,7 @@ import {
   useUpdateFlickThemeMutation,
 } from '../../../generated/graphql'
 import useDidUpdateEffect from '../../../hooks/use-did-update-effect'
+import { User, userState } from '../../../stores/user.store'
 import { logEvent, logPage } from '../../../utils/analytics'
 import {
   PageCategory,
@@ -75,6 +76,8 @@ const ThemeTooltip = ({
   handleClose: () => void
   updateActiveTheme: (theme: ThemeFragment) => void
 }) => {
+  const { email } = (useRecoilValue(userState) as User) || {}
+
   const { baseUrl } = config.storage
   const [activeScreen, setActiveScreen] = useState<'theme' | 'themes'>('themes')
   const [tempActiveTheme, setTempActiveTheme] = useState<ThemeFragment | null>(
@@ -186,32 +189,46 @@ const ThemeTooltip = ({
         </HorizontalContainer>
       ) : (
         <div className="flex gap-x-4 z-50">
-          {themes.map((theme) => (
-            <div
-              key={theme.name}
-              className="relative flex items-center justify-center py-4"
-              onClick={() => setTempActiveTheme(theme)}
-            >
+          {themes
+            .filter((theme) => {
+              if (theme.name === 'Cassidoo') {
+                if (
+                  email &&
+                  (email.includes('incredible.dev') ||
+                    config.whitelist.cassidyTheme.includes(email))
+                ) {
+                  return true
+                }
+                return false
+              }
+              return true
+            })
+            .map((theme) => (
               <div
-                className="object-cover w-64 border-2 border-gray-600 rounded-md shadow-md hover:border-brand h-36 relative"
-                style={{
-                  background: `url(${
-                    theme.config.thumbnail
-                      ? baseUrl + theme.config.thumbnail
-                      : ASSETS.ICONS.IncredibleLogo
-                  })`,
-                  backgroundSize: '256px 144px',
-                }}
+                key={theme.name}
+                className="relative flex items-center justify-center py-4"
+                onClick={() => setTempActiveTheme(theme)}
               >
-                {activeTheme?.name === theme.name && (
-                  <IoCheckmark
-                    size={24}
-                    className="absolute p-1 font-bold rounded-md top-2 right-2 text-brand bg-brand-10"
-                  />
-                )}
+                <div
+                  className="object-cover w-64 border-2 border-gray-600 rounded-md shadow-md hover:border-brand h-36 relative"
+                  style={{
+                    background: `url(${
+                      theme.config.thumbnail
+                        ? baseUrl + theme.config.thumbnail
+                        : ASSETS.ICONS.IncredibleLogo
+                    })`,
+                    backgroundSize: '256px 144px',
+                  }}
+                >
+                  {activeTheme?.name === theme.name && (
+                    <IoCheckmark
+                      size={24}
+                      className="absolute p-1 font-bold rounded-md top-2 right-2 text-brand bg-brand-10"
+                    />
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
         </div>
       )}
     </div>

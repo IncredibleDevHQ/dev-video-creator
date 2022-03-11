@@ -6,6 +6,8 @@ export interface ObjectConfig {
   y: number
   width: number
   height: number
+  availableWidth?: number
+  availableHeight?: number
   borderRadius: number
   color?: string
 }
@@ -188,6 +190,7 @@ export const FragmentLayoutConfig = ({
             y: 45,
             width: 800,
             height: 450,
+            availableWidth: 650,
             borderRadius: 8,
           }
         case 'padded-bottom-right-tile':
@@ -273,6 +276,7 @@ export const FragmentLayoutConfig = ({
             y: 63,
             width: 736,
             height: 414,
+            availableWidth: 630,
             borderRadius: 0,
           }
         case 'padded-bottom-right-tile':
@@ -351,6 +355,7 @@ export const FragmentLayoutConfig = ({
             y: 45,
             width: 780,
             height: 450,
+            availableWidth: 630,
             borderRadius: 16,
           }
         // case 'padded-bottom-right-tile':
