@@ -1,3 +1,5 @@
+/* eslint-disable jsx-a11y/no-noninteractive-element-interactions */
+/* eslint-disable jsx-a11y/click-events-have-key-events */
 import { css, cx } from '@emotion/css'
 import { Listbox } from '@headlessui/react'
 import { sentenceCase } from 'change-case'
@@ -18,6 +20,9 @@ import useMeasure from 'react-use-measure'
 import { useRecoilValue } from 'recoil'
 import { ReactComponent as BulletListStyleIcon } from '../../../assets/BulletListStyle.svg'
 import { ReactComponent as EditorStyleIcon } from '../../../assets/EditorStyle.svg'
+import listStackGif from '../../../assets/ListStack.svg'
+import listReplaceGif from '../../../assets/ListReplace.svg'
+import listAllAtOnceGif from '../../../assets/ListAllAtOnce.svg'
 import { ReactComponent as NumberListStyleIcon } from '../../../assets/NumberListStyle.svg'
 import { ReactComponent as TerminalStyleIcon } from '../../../assets/TerminalStyle.svg'
 import { Heading, Text } from '../../../components'
@@ -438,6 +443,27 @@ const ListBlockModeSelector = ({
   view: ListBlockView
   updateView: (view: ListBlockView) => void
 }) => {
+  const [appearanceSrc, setAppearanceSrc] = useState<string>()
+
+  useEffect(() => {
+    let appearanceSrc = ''
+    switch (view.list.appearance) {
+      case 'stack':
+        appearanceSrc = `${listStackGif}?${Date.now()}`
+        break
+      case 'replace':
+        appearanceSrc = `${listReplaceGif}?${Date.now()}`
+        break
+      case 'allAtOnce':
+        appearanceSrc = `${listAllAtOnceGif}?${Date.now()}`
+        break
+      default:
+        appearanceSrc = `${listStackGif}?${Date.now()}`
+        break
+    }
+    setAppearanceSrc(appearanceSrc)
+  }, [view.list.appearance])
+
   return (
     <div className="flex flex-col p-5">
       <Heading fontSize="small" className="font-bold">
@@ -541,7 +567,7 @@ const ListBlockModeSelector = ({
                 {open ? <IoChevronUpOutline /> : <IoChevronDownOutline />}
               </span>
             </Listbox.Button>
-            <Listbox.Options className="bg-dark-300 mt-2 rounded-md absolute w-full z-10">
+            <Listbox.Options className="bg-dark-300 mt-2 rounded-md absolute w-full z-10 shadow-md">
               {(['stack', 'replace', 'allAtOnce'] as ListAppearance[]).map(
                 (appearance, index) => (
                   <Listbox.Option
@@ -586,59 +612,77 @@ const ListBlockModeSelector = ({
           </div>
         )}
       </Listbox>
-      <Heading fontSize="small" className="font-bold mt-8">
-        Orientation
-      </Heading>
-      <div className="grid grid-cols-3 mt-2 gap-x-2">
-        {(['vertical', 'horizontal'] as ListOrientation[]).map(
-          (orientation) => {
-            return (
-              <div className="aspect-w-1 aspect-h-1">
-                <button
-                  type="button"
-                  onClick={() =>
-                    updateView({
-                      ...view,
-                      list: {
-                        ...view.list,
-                        orientation,
-                      },
-                    })
-                  }
-                  className={cx(
-                    'border border-gray-200 h-full w-full rounded-sm p-px',
-                    {
-                      'border-gray-800': view.list.orientation === orientation,
-                    }
-                  )}
-                >
-                  <div
-                    className={cx(
-                      'flex items-center justify-center gap-1 bg-gray-100 w-full h-full',
-                      {
-                        'bg-gray-200': view.list.orientation === orientation,
-                        'flex-row': orientation === 'horizontal',
-                        'flex-col': orientation === 'vertical',
+      {appearanceSrc && (
+        <img
+          src={appearanceSrc}
+          alt="Stack Preview"
+          className="w-full h-full mt-2"
+          onClick={(e) => {
+            // invalidate image cache to force reload
+            const src = e.currentTarget.src.split('?')[0]
+            e.currentTarget.src = `${src}?${Date.now()}`
+          }}
+        />
+      )}
+      {view.list.appearance !== 'replace' && (
+        <>
+          <Heading fontSize="small" className="font-bold mt-8">
+            Orientation
+          </Heading>
+          <div className="grid grid-cols-3 mt-2 gap-x-2">
+            {(['vertical', 'horizontal'] as ListOrientation[]).map(
+              (orientation) => {
+                return (
+                  <div className="aspect-w-1 aspect-h-1">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateView({
+                          ...view,
+                          list: {
+                            ...view.list,
+                            orientation,
+                          },
+                        })
                       }
-                    )}
-                  >
-                    {[1, 2, 3].map(() => {
-                      return (
-                        <div
-                          style={{
-                            borderRadius: '2px',
-                          }}
-                          className="h-1.5 w-1.5 bg-gray-800"
-                        />
-                      )
-                    })}
+                      className={cx(
+                        'border border-gray-200 h-full w-full rounded-sm p-px',
+                        {
+                          'border-gray-800':
+                            view.list.orientation === orientation,
+                        }
+                      )}
+                    >
+                      <div
+                        className={cx(
+                          'flex items-center justify-center gap-1 bg-gray-100 w-full h-full',
+                          {
+                            'bg-gray-200':
+                              view.list.orientation === orientation,
+                            'flex-row': orientation === 'horizontal',
+                            'flex-col': orientation === 'vertical',
+                          }
+                        )}
+                      >
+                        {[1, 2, 3].map(() => {
+                          return (
+                            <div
+                              style={{
+                                borderRadius: '2px',
+                              }}
+                              className="h-1.5 w-1.5 bg-gray-800"
+                            />
+                          )
+                        })}
+                      </div>
+                    </button>
                   </div>
-                </button>
-              </div>
-            )
-          }
-        )}
-      </div>
+                )
+              }
+            )}
+          </div>
+        </>
+      )}
     </div>
   )
 }
