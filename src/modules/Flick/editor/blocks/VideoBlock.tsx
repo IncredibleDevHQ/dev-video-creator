@@ -406,7 +406,7 @@ const VideoBlock = (props: any) => {
       <input
         value={caption}
         placeholder="Write a caption..."
-        className="border border-gray-200 border-r-0 border-l-0 w-full mt-1.5 group-hover:bg-gray-100 group-hover:border-r group-hover:border-l font-body px-2 py-1 focus:outline-none placeholder-italic text-black"
+        className="border border-gray-200 w-full mt-1.5 group-hover:bg-gray-100 font-body px-2 py-1 focus:outline-none placeholder-italic text-black"
         onChange={(e) => {
           props.updateAttributes({ caption: e.target.value })
         }}

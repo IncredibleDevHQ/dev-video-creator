@@ -1077,6 +1077,7 @@ const Studio = ({
               <RecordingControlsBar
                 stageRef={stageRef}
                 stageHeight={stageHeight}
+                stageWidth={stageWidth}
                 shortsMode={shortsMode}
               />
             </div>
