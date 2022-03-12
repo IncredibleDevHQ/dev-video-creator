@@ -600,6 +600,7 @@ const FragmentBar = ({
       {brandingModal && (
         <Branding
           open={brandingModal}
+          activeBrand={brandingId}
           handleClose={() => {
             setBrandingModal(false)
           }}

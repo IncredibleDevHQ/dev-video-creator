@@ -151,14 +151,16 @@ const colorPickerStyle = css`
 
 const BrandingPage = ({
   open,
+  activeBrand,
   handleClose,
 }: {
   open: boolean
+  activeBrand?: string
   handleClose: () => void
 }) => {
   const [ref, bounds] = useMeasure()
 
-  const [brandingId, setBrandingId] = useState<string>()
+  const [brandingId, setBrandingId] = useState<string>(activeBrand || '')
   const [activeTab, setActiveTab] = useState<Tab>(tabs[0])
 
   const [brandings, setBrandings] = useState<BrandingInterface[]>([])

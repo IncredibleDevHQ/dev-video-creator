@@ -1,8 +1,11 @@
+/* eslint-disable jsx-a11y/no-static-element-interactions */
+/* eslint-disable jsx-a11y/click-events-have-key-events */
+/* eslint-disable consistent-return */
 /* eslint-disable no-restricted-syntax */
 /* eslint-disable guard-for-in */
 import { cx } from '@emotion/css'
 import Konva from 'konva'
-import React, { HTMLAttributes, useEffect, useState } from 'react'
+import React, { HTMLAttributes, useEffect, useRef, useState } from 'react'
 import { IconType } from 'react-icons'
 import { IoArrowForwardOutline, IoPause, IoPlay } from 'react-icons/io5'
 import { VscDebugRestart } from 'react-icons/vsc'
@@ -98,13 +101,19 @@ const RaiseHandsMenu = ({ participants }: { participants: any[] }) => {
 }
 
 const RecordingControlsBar = ({
+  timeLimit,
+  timeOver,
   stageRef,
-  stageHeight,
   shortsMode,
+  stageHeight,
+  openTimerModal,
 }: {
-  stageRef: React.RefObject<Konva.Stage>
+  timeLimit?: number
   stageHeight: number
   shortsMode: boolean
+  openTimerModal: () => void
+  timeOver: () => void
+  stageRef: React.RefObject<Konva.Stage>
 }) => {
   const {
     state,
@@ -121,7 +130,14 @@ const RecordingControlsBar = ({
   const [isRaiseHandsTooltip, setRaiseHandsTooltip] = useState(false)
   const [participant, setParticipant] = useState<any>()
   const [participantsArray, setParticipantsArray] = useState<any[]>([])
-  const { handleStart, handleReset, timer } = useTimekeeper2(0)
+
+  const {
+    handleStart: handleTimerStart,
+    handleReset: handleTimerReset,
+    timer,
+  } = useTimekeeper2(0)
+
+  const latestPayload = useRef<any>()
 
   useEffect(() => {
     if (!participants) return
@@ -152,13 +168,36 @@ const RecordingControlsBar = ({
   }, [participantsArray])
 
   useEffect(() => {
+    latestPayload.current = payload
     if (payload?.status === Fragment_Status_Enum_Enum.Live && timer === 0) {
-      handleStart()
+      handleTimerStart()
     }
     if (payload?.status === Fragment_Status_Enum_Enum.Ended) {
-      handleReset()
+      handleTimerReset()
     }
   }, [payload])
+
+  useEffect(() => {
+    if (!fragment) return
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowRight') {
+        performAction(
+          fragment,
+          latestPayload.current,
+          updatePayload,
+          branding,
+          controlsConfig
+        )
+      }
+    })
+  }, [fragment])
+
+  useEffect(() => {
+    if (!timer || !timeLimit) return
+    if (timer >= timeLimit * 60) {
+      timeOver()
+    }
+  }, [timer])
 
   // useEffect(() => {
   //   if (timer === 0) return
@@ -181,6 +220,17 @@ const RecordingControlsBar = ({
         payload?.status === Fragment_Status_Enum_Enum.Live) && (
         <button
           type="button"
+          className={cx(
+            'flex gap-x-2 items-center justify-between border backdrop-filter backdrop-blur-2xl p-1.5 rounded-sm',
+            {
+              'bg-grey-500 bg-opacity-50 border-gray-600': timeLimit
+                ? timer < timeLimit * 60
+                : true,
+              'bg-error-10 text-error border-error': timeLimit
+                ? timer >= timeLimit * 60
+                : false,
+            }
+          )}
           onClick={() => {
             updatePayload?.({
               ...payload,
@@ -188,26 +238,38 @@ const RecordingControlsBar = ({
             })
             logEvent(PageEvent.StopRecording)
           }}
-          className="flex gap-x-2 items-center justify-between bg-grey-500 bg-opacity-50 border border-gray-600 backdrop-filter backdrop-blur-2xl p-1.5 rounded-sm w-24"
         >
-          <StopRecordIcon className="m-px w-5 h-5 flex-shrink-0 ml-1" />
-          <Timer target={180} timer={timer} />
+          <StopRecordIcon className="m-px w-5 h-5 flex-shrink-0" />
+          <Timer target={(timeLimit || 3) * 60} timer={timer} />
+          {timeLimit && (
+            <small className="text-xs flex-shrink-0 text-dark-title hover:text-white">
+              Limit: {timeLimit}min{' '}
+            </small>
+          )}
         </button>
       )}
       {state === 'ready' && (
         <button
-          className="bg-grey-500 bg-opacity-50 border border-gray-600 backdrop-filter backdrop-blur-2xl p-1.5 rounded-sm"
+          className="bg-grey-500 bg-opacity-50 border border-gray-600 backdrop-filter backdrop-blur-2xl p-1.5 rounded-sm flex items-center"
           type="button"
-          onClick={() => {
-            setStudio({ ...studio, state: 'countDown' })
-            updatePayload?.({
-              status: Fragment_Status_Enum_Enum.CountDown,
-            })
-            // Segment tracking
-            logEvent(PageEvent.StartRecording)
-          }}
         >
-          <StartRecordIcon className="m-px w-5 h-5" />
+          <StartRecordIcon
+            className="m-px w-5 h-5"
+            onClick={() => {
+              setStudio({ ...studio, state: 'countDown' })
+              updatePayload?.({
+                status: Fragment_Status_Enum_Enum.CountDown,
+              })
+              // Segment tracking
+              logEvent(PageEvent.StartRecording)
+            }}
+          />
+          <small
+            className="text-xs text-dark-title hover:text-white ml-2"
+            onClick={openTimerModal}
+          >
+            {timeLimit ? `Limit: ${timeLimit}min` : 'No Time Limit'}
+          </small>
         </button>
       )}
       {/* {state !== 'preview' && state !== 'upload' && (

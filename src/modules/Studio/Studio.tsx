@@ -58,7 +58,7 @@ import {
   useUtils,
   VideoBlockProps,
 } from '../Flick/editor/utils/utils'
-import { Countdown } from './components'
+import { Countdown, TimerModal } from './components'
 import {
   CONFIG,
   GetTopLayerChildren,
@@ -88,6 +88,7 @@ const StudioHoC = () => {
   const { sub } = (useRecoilValue(userState) as User) || {}
   const { fragmentId } = useParams<{ fragmentId: string }>()
   const [fragment, setFragment] = useState<StudioFragmentFragment>()
+  const [isUserAllowed, setUserAllowed] = useState(false)
 
   const devices = useRef<{ microphone: Device | null; camera: Device | null }>({
     camera: null,
@@ -117,8 +118,13 @@ const StudioHoC = () => {
 
   useEffect(() => {
     if (!data) return
-    setFragment(data.Fragment?.[0])
 
+    setFragment(data.Fragment?.[0])
+    setUserAllowed(
+      !!data.Fragment[0]?.configuration?.speakers?.find(
+        (speaker: any) => speaker.userSub === sub
+      )
+    )
     if (!new TextEditorParser(data.Fragment[0].editorState).isValid()) {
       setError('INVALID_AST')
     }
@@ -133,6 +139,15 @@ const StudioHoC = () => {
         subtitle="The fragment contains an invalid data reference. Please correct it and try again."
       />
     )
+
+  if (!isUserAllowed) {
+    return (
+      <ScreenState
+        title="Permission Denied"
+        subtitle="Please contact the owner to add you as the speaker of the flick"
+      />
+    )
+  }
 
   if (view === 'preload' && fragment)
     return (
@@ -415,7 +430,7 @@ const Preview = ({
         </div>
         <div className="flex flex-col justify-center flex-1 col-span-2">
           <Heading className="mb-4" fontSize="medium">
-            {data?.name}
+            {data?.flick?.name || data?.name}
           </Heading>
 
           <Heading fontSize="extra-small" className="uppercase">
@@ -546,6 +561,10 @@ const Studio = ({
   const [stageBoundingDivRef, bounds] = useMeasure()
 
   const [mountStage, setMountStage] = useState(false)
+
+  const [isTimerModalOpen, setIsTimerModalOpen] = useState(true)
+  const [timeLimit, setTimeLimit] = useState<number | undefined>()
+  const [timeLimitOver, setTimeLimitOver] = useState(false)
 
   const { height: stageHeight, width: stageWidth } = useGetHW({
     maxH: bounds.height,
@@ -1026,6 +1045,26 @@ const Studio = ({
               className="flex justify-center flex-1 col-span-8 w-full h-full relative"
               ref={stageBoundingDivRef}
             >
+              <div
+                className={cx(
+                  'animate-pulse rounded-sm absolute',
+                  {
+                    'bg-transparent': !timeLimitOver,
+                    'bg-red-600': timeLimitOver,
+                  },
+                  css`
+                    width: ${layerRef.current
+                      ? layerRef.current?.width() + 10
+                      : 0}px;
+                    height: ${layerRef.current
+                      ? layerRef.current.height() + 10
+                      : 0}px;
+                    left: 50%;
+                    top: 50%;
+                    transform: translate(-50%, -50%);
+                  `
+                )}
+              />
               {mountStage &&
                 (state === 'ready' ||
                   state === 'recording' ||
@@ -1076,8 +1115,11 @@ const Studio = ({
                 )}
               <RecordingControlsBar
                 stageRef={stageRef}
-                stageHeight={stageHeight}
+                timeLimit={timeLimit}
                 shortsMode={shortsMode}
+                stageHeight={stageHeight}
+                timeOver={() => setTimeLimitOver(true)}
+                openTimerModal={() => setIsTimerModalOpen(true)}
               />
             </div>
             {/* Notes */}
@@ -1208,6 +1250,12 @@ const Studio = ({
           )}
         </div>
       )}
+      <TimerModal
+        open={isTimerModalOpen}
+        timeLimit={timeLimit}
+        setTimeLimit={setTimeLimit}
+        handleClose={() => setIsTimerModalOpen(false)}
+      />
     </div>
   )
 }
