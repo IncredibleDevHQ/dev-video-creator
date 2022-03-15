@@ -19,6 +19,8 @@ import {
   useRecoilState,
   useRecoilValue,
 } from 'recoil'
+import { ReactComponent as ReRecordIcon } from '../../assets/ReRecord.svg'
+import { ReactComponent as UploadIcon } from '../../assets/Upload.svg'
 import {
   Button,
   dismissToast,
@@ -44,26 +46,21 @@ import {
 import { useCanvasRecorder } from '../../hooks'
 import { useUploadFile } from '../../hooks/use-upload-file'
 import { User, userState } from '../../stores/user.store'
-import { TopLayerChildren, ViewConfig } from '../../utils/configTypes'
 import { logEvent } from '../../utils/analytics'
 import { PageEvent } from '../../utils/analytics-types'
+import { TopLayerChildren, ViewConfig } from '../../utils/configTypes'
 import { BrandingJSON } from '../Branding/BrandingPage'
 import { useGetHW } from '../Flick/components/BlockPreview'
 import { TextEditorParser } from '../Flick/editor/utils/helpers'
-import {
-  CodeBlockProps,
-  ImageBlockProps,
-  ListBlockProps,
-  SimpleAST,
-  useUtils,
-  VideoBlockProps,
-} from '../Flick/editor/utils/utils'
+import { SimpleAST, useUtils } from '../Flick/editor/utils/utils'
+import { EditorProvider } from '../Flick/Flick'
 import { Countdown, TimerModal } from './components'
 import {
   CONFIG,
   GetTopLayerChildren,
   SHORTS_CONFIG,
 } from './components/Concourse'
+import Notes from './components/Notes'
 import PermissionError from './components/PermissionError'
 import Preload from './components/Preload'
 import RecordingControlsBar from './components/RecordingControlsBar'
@@ -73,8 +70,6 @@ import { loadFonts } from './hooks/use-load-font'
 import { Device, MediaStreamError } from './hooks/use-media-stream'
 import { useRTDB } from './hooks/use-rtdb'
 import { StudioProviderProps, StudioState, studioStore } from './stores'
-import { ReactComponent as ReRecordIcon } from '../../assets/ReRecord.svg'
-import { ReactComponent as UploadIcon } from '../../assets/Upload.svg'
 
 const noScrollBar = css`
   ::-webkit-scrollbar {
@@ -85,7 +80,7 @@ const noScrollBar = css`
 const StudioHoC = () => {
   const [view, setView] = useState<'preview' | 'preload' | 'studio'>('preload')
 
-  const { sub } = (useRecoilValue(userState) as User) || {}
+  const { sub, displayName } = (useRecoilValue(userState) as User) || {}
   const { fragmentId } = useParams<{ fragmentId: string }>()
   const [fragment, setFragment] = useState<StudioFragmentFragment>()
   const [isUserAllowed, setUserAllowed] = useState(false)
@@ -172,17 +167,22 @@ const StudioHoC = () => {
 
   if (view === 'studio' && fragment)
     return (
-      <Studio
-        data={data}
-        studioFragment={fragment}
-        branding={
-          data?.Fragment?.[0].flick.useBranding
-            ? data?.Fragment?.[0]?.flick.branding?.branding
-            : null
-        }
-        devices={devices.current}
-        liveStream={liveStream.current}
-      />
+      <EditorProvider
+        flickId={fragment.flickId}
+        userName={displayName as string}
+      >
+        <Studio
+          data={data}
+          studioFragment={fragment}
+          branding={
+            data?.Fragment?.[0].flick.useBranding
+              ? data?.Fragment?.[0]?.flick.branding?.branding
+              : null
+          }
+          devices={devices.current}
+          liveStream={liveStream.current}
+        />
+      </EditorProvider>
     )
 
   return null
@@ -939,22 +939,22 @@ const Studio = ({
     }
   }, [payload?.status])
 
-  const getNote = (activeObjectIndex: number | undefined) => {
-    if (!fragment || activeObjectIndex === undefined) return ''
-    const blocks = fragment.editorState?.blocks
-    switch (blocks[activeObjectIndex].type) {
-      case 'codeBlock':
-        return (blocks[activeObjectIndex] as CodeBlockProps).codeBlock.note
-      case 'videoBlock':
-        return (blocks[activeObjectIndex] as VideoBlockProps).videoBlock.note
-      case 'listBlock':
-        return (blocks[activeObjectIndex] as ListBlockProps).listBlock.note
-      case 'imageBlock':
-        return (blocks[activeObjectIndex] as ImageBlockProps).imageBlock.note
-      default:
-        return ''
-    }
-  }
+  // const getNote = (activeObjectIndex: number | undefined) => {
+  //   if (!fragment || activeObjectIndex === undefined) return ''
+  //   const blocks = fragment.editorState?.blocks
+  //   switch (blocks[activeObjectIndex].type) {
+  //     case 'codeBlock':
+  //       return (blocks[activeObjectIndex] as CodeBlockProps).codeBlock.note
+  //     case 'videoBlock':
+  //       return (blocks[activeObjectIndex] as VideoBlockProps).videoBlock.note
+  //     case 'listBlock':
+  //       return (blocks[activeObjectIndex] as ListBlockProps).listBlock.note
+  //     case 'imageBlock':
+  //       return (blocks[activeObjectIndex] as ImageBlockProps).imageBlock.note
+  //     default:
+  //       return ''
+  //   }
+  // }
 
   // state which stores the type of layer children which have to be placed over the studio user
   const [topLayerChildren, setTopLayerChildren] = useState<{
@@ -1115,15 +1115,16 @@ const Studio = ({
                 )}
               <RecordingControlsBar
                 stageRef={stageRef}
+                stageHeight={stageHeight}
+                stageWidth={stageWidth}
                 timeLimit={timeLimit}
                 shortsMode={shortsMode}
-                stageHeight={stageHeight}
                 timeOver={() => setTimeLimitOver(true)}
                 openTimerModal={() => setIsTimerModalOpen(true)}
               />
             </div>
             {/* Notes */}
-            <div className="col-span-3 w-full">
+            {/* <div className="col-span-3 w-full">
               <div
                 style={{
                   background: '#27272A',
@@ -1137,7 +1138,8 @@ const Studio = ({
                   <span className="italic">No notes</span>
                 )}
               </div>
-            </div>
+            </div> */}
+            <Notes stageHeight={stageHeight} />
           </div>
           {/* Mini timeline */}
           <div
@@ -1174,19 +1176,17 @@ const Studio = ({
                       payload?.activeObjectIndex ===
                         fragment.editorState.blocks.length - 1) &&
                       state !== 'ready' && (
-                        <div
-                          style={{
-                            background: '#71717A',
-                          }}
-                          className="absolute top-0 right-0 rounded-tr-sm rounded-bl-sm"
-                        >
+                        <div className="absolute top-0 right-0 rounded-tr-sm rounded-bl-sm bg-incredible-green-600">
                           <IoCheckmarkOutline
                             className="m-px text-gray-200"
                             size={8}
                           />
                         </div>
                       )}
-                    {utils.getBlockTitle(block)}
+                    <span>
+                      {utils.getBlockTitle(block).substring(0, 40) +
+                        (utils.getBlockTitle(block).length > 40 ? '...' : '')}
+                    </span>
                   </div>
                 )
               })}

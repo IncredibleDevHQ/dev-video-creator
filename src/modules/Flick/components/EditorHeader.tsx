@@ -166,7 +166,8 @@ const EditorHeader = ({
         style={{
           fontSize: '2.35rem',
         }}
-        className="w-full  font-extrabold text-gray-800 resize-none font-main focus:outline-none"
+        placeholder="Add a title"
+        className="w-full  font-extrabold text-gray-800 resize-none font-main focus:outline-none placeholder-gray-300"
         value={flick?.name || ''}
       />
 
