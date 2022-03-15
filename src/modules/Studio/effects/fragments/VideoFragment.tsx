@@ -129,13 +129,13 @@ const VideoFragment = ({
       setTransformations(dataConfig.videoBlock.transformations)
     // eslint-disable-next-line consistent-return
     return element
-  }, [dataConfig, viewConfig, shortsMode])
+  }, [dataConfig, viewConfig, shortsMode, theme])
 
   useEffect(() => {
     setObjectRenderConfig(
       ThemeLayoutConfig({ theme, layoutConfig: objectConfig })
     )
-  }, [objectConfig])
+  }, [objectConfig, theme])
 
   useEffect(() => {
     setStudio({

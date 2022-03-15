@@ -108,13 +108,13 @@ const ImageFragment = ({
     setRenderMode(imageBlockViewProps?.captionTitleView || 'titleOnly')
     if (dataConfig?.imageBlock.type === 'gif') setIsGif(true)
     else setIsGif(false)
-  }, [dataConfig, shortsMode, viewConfig])
+  }, [dataConfig, shortsMode, viewConfig, theme])
 
   useEffect(() => {
     setObjectRenderConfig(
       ThemeLayoutConfig({ theme, layoutConfig: objectConfig })
     )
-  }, [objectConfig])
+  }, [objectConfig, theme])
 
   useEffect(() => {
     const noOfLinesOfTitle = getNoOfLinesOfText({

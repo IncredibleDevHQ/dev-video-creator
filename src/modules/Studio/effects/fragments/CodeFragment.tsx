@@ -237,13 +237,13 @@ const CodeFragment = ({
     //   // { lineNumbers: [3] },
     // ]
     setBlockConfig(blocks)
-  }, [dataConfig, shortsMode, viewConfig])
+  }, [dataConfig, shortsMode, viewConfig, theme])
 
   useEffect(() => {
     setObjectRenderConfig(
       ThemeLayoutConfig({ theme, layoutConfig: objectConfig })
     )
-  }, [objectConfig])
+  }, [objectConfig, theme])
 
   useEffect(() => {
     if (colorCodes.length === 0) return

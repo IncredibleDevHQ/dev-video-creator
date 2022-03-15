@@ -146,13 +146,13 @@ const PointsFragment = ({
       setAppearance(listBlockViewProps?.appearance)
     if (listBlockViewProps?.orientation)
       setOrientation(listBlockViewProps?.orientation)
-  }, [dataConfig, shortsMode, viewConfig])
+  }, [dataConfig, shortsMode, viewConfig, theme])
 
   useEffect(() => {
     setObjectRenderConfig(
       ThemeLayoutConfig({ theme, layoutConfig: objectConfig })
     )
-  }, [objectConfig])
+  }, [objectConfig, theme])
 
   useEffect(() => {
     setStudio({
