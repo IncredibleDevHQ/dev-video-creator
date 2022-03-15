@@ -229,6 +229,7 @@ const PointsFragment = ({
   }, [payload?.activePointIndex])
 
   useEffect(() => {
+    if (activePointIndex === 0) return
     addMusic('points')
   }, [activePointIndex])
 
