@@ -220,7 +220,7 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
             />
           ) : (
             <span
-              className={cx({
+              className={cx('whitespace-pre-line', {
                 'italic font-body': !note,
               })}
             >
