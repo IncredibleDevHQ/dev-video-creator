@@ -110,6 +110,31 @@ const Preview = ({
   const [ref, bounds] = useMeasure()
   const { payload, updatePayload } = useRecoilValue(studioStore)
 
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'ArrowLeft') {
+      const currentIndex = tabs.findIndex((tab) => tab.id === activeTab.id)
+      console.log('left', currentIndex)
+      if (currentIndex > 0) {
+        setActiveTab(tabs[currentIndex - 1])
+      }
+    }
+    if (e.key === 'ArrowRight') {
+      const currentIndex = tabs.findIndex((tab) => tab.id === activeTab.id)
+      console.log('right', currentIndex, tabs.length - 1)
+      if (currentIndex < tabs.length - 1) {
+        setActiveTab(tabs[currentIndex + 1])
+      }
+    }
+  }
+
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [])
+
   useEffect(() => {
     if (!block) return
     const { type } = block

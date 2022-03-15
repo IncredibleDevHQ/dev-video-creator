@@ -194,8 +194,8 @@ const ThemeTooltip = ({
               if (theme.name === 'Cassidoo') {
                 if (
                   email &&
-                  (email.includes('incredible.dev') ||
-                    config.whitelist.cassidyTheme.includes(email))
+                  (email?.includes('incredible.dev') ||
+                    config?.whitelist?.cassidyTheme?.includes(email))
                 ) {
                   return true
                 }
