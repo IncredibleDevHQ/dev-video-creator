@@ -44,7 +44,7 @@ const Checkbox = ({
       width: 1.25rem;
       left: 4px;
       bottom: 4px;
-      background-color: #404040;
+      background-color: #ffffff;
       -webkit-transition: 0.4s;
       transition: 0.4s;
       border-radius: 50%;

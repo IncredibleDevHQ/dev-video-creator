@@ -1,6 +1,6 @@
 import { cx } from '@emotion/css'
 import { Listbox } from '@headlessui/react'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { BiCheck } from 'react-icons/bi'
 import { FiCode, FiLayout } from 'react-icons/fi'
 import {
@@ -14,7 +14,7 @@ import {
 } from 'react-icons/io5'
 import useMeasure from 'react-use-measure'
 import { useRecoilValue } from 'recoil'
-import { Heading, Text } from '../../../components'
+import { Checkbox, Heading, Text, TextField } from '../../../components'
 import {
   allLayoutTypes,
   BlockProperties,
@@ -110,30 +110,46 @@ const Preview = ({
   const [ref, bounds] = useMeasure()
   const { payload, updatePayload } = useRecoilValue(studioStore)
 
+  const activeBlockRef = useRef<Block | undefined>(block)
+
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'ArrowLeft') {
-      const currentIndex = tabs.findIndex((tab) => tab.id === activeTab.id)
-      console.log('left', currentIndex)
-      if (currentIndex > 0) {
-        setActiveTab(tabs[currentIndex - 1])
+      if (!block || (block.pos === 0 && payload.activeIntroIndex === 0)) return
+      if (block.type === 'introBlock') {
+        if (payload.activeIntroIndex === 0)
+          setCurrentBlock(blocks[block.pos - 1])
+        else
+          updatePayload?.({
+            activeIntroIndex: payload.activeIntroIndex - 1,
+          })
+      } else {
+        if (blocks[block.pos - 1].type === 'introBlock') {
+          updatePayload?.({
+            activeIntroIndex:
+              (blocks[block.pos - 1] as IntroBlockProps).introBlock.order
+                .length - 1,
+          })
+        }
+        setCurrentBlock(blocks[block.pos - 1])
       }
     }
     if (e.key === 'ArrowRight') {
-      const currentIndex = tabs.findIndex((tab) => tab.id === activeTab.id)
-      console.log('right', currentIndex, tabs.length - 1)
-      if (currentIndex < tabs.length - 1) {
-        setActiveTab(tabs[currentIndex + 1])
-      }
+      if (!block || block.pos === blocks.length - 1) return
+      if (block.type === 'introBlock') {
+        if (payload.activeIntroIndex === block.introBlock.order.length - 1)
+          setCurrentBlock(blocks[block.pos + 1])
+        else
+          updatePayload?.({
+            activeIntroIndex: payload.activeIntroIndex + 1,
+          })
+      } else setCurrentBlock(blocks[block.pos + 1])
     }
   }
 
   useEffect(() => {
+    if (!block) return
     document.addEventListener('keydown', handleKeyDown)
-
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [])
+  }, [blocks])
 
   useEffect(() => {
     if (!block) return
@@ -231,6 +247,11 @@ const Preview = ({
         }}
         className="flex"
       >
+        {block.type === 'outroBlock' && (
+          <div className="bg-white w-full p-4">
+            <OutroTab />
+          </div>
+        )}
         {block.type !== 'introBlock' && block.type !== 'outroBlock' && (
           <>
             <div className="bg-white w-64">
@@ -382,6 +403,26 @@ const codeThemeConfig: CodeThemeConfig[] = [
   },
 ]
 
+const SocialHandle = ({ title }: { title: string }) => {
+  return (
+    <div>
+      <div className="flex justify-between items-center">
+        <Heading>{title}</Heading>
+        <Checkbox name="" label="" checked />
+      </div>
+      <TextField />
+    </div>
+  )
+}
+
+const OutroTab = () => {
+  return (
+    <div className="flex flex-col justify-center w-full">
+      <SocialHandle title="Twitter" />
+    </div>
+  )
+}
+
 const CodeThemeTab = ({
   view,
   updateView,
@@ -410,6 +451,7 @@ const CodeThemeTab = ({
                 },
               })
             }}
+            key={themeConfig.name}
           >
             <div
               style={{
