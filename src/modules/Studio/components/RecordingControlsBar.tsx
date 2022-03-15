@@ -1,6 +1,6 @@
 /* eslint-disable no-restricted-syntax */
 /* eslint-disable guard-for-in */
-import { css, cx } from '@emotion/css'
+import { cx } from '@emotion/css'
 import Konva from 'konva'
 import React, { HTMLAttributes, useEffect, useMemo, useState } from 'react'
 import { IconType } from 'react-icons'
@@ -10,7 +10,6 @@ import {
   IoPause,
   IoPlay,
 } from 'react-icons/io5'
-import { VscDebugRestart } from 'react-icons/vsc'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import { Timer } from '.'
 import { ReactComponent as CustomLayout } from '../../../assets/CustomLayout.svg'
@@ -28,10 +27,16 @@ import { PageEvent } from '../../../utils/analytics-types'
 import {
   CodeAnimation,
   CodeBlockView,
+  ListBlockView,
   ViewConfig,
 } from '../../../utils/configTypes'
 import { BrandingJSON } from '../../Branding/BrandingPage'
-import { CodeBlockProps, ListBlock } from '../../Flick/editor/utils/utils'
+import {
+  CodeBlockProps,
+  ListBlock,
+  ListBlockProps,
+} from '../../Flick/editor/utils/utils'
+import { ComputedPoint } from '../hooks/use-point'
 import { canvasStore, StudioProviderProps, studioStore } from '../stores'
 
 export const ControlButton = ({
@@ -185,7 +190,7 @@ const RecordingControlsBar = ({
       ] as CodeBlockProps
       const codeBlockViewProps = (fragment?.configuration as ViewConfig).blocks[
         codeBlockProps.id
-      ].view as CodeBlockView
+      ]?.view as CodeBlockView
 
       const codeAnimation = codeBlockViewProps?.code?.animation
       return {
@@ -478,7 +483,13 @@ const performAction = (
       handleImageBlock(payload, updatePayload, direction)
       break
     case 'listBlock':
-      handleListBlock(fragment, payload, updatePayload, direction)
+      handleListBlock(
+        fragment,
+        payload,
+        updatePayload,
+        controlsConfig,
+        direction
+      )
       break
     default:
       break
@@ -488,18 +499,35 @@ const handleListBlock = (
   fragment: StudioFragmentFragment,
   payload: any,
   updatePayload: ((value: any) => void) | undefined,
+  controlsConfig: any,
   direction: 'next' | 'previous'
 ) => {
   const listBlockProps = fragment?.editorState?.blocks[
     payload?.activeObjectIndex || 0
-  ]?.listBlock as ListBlock
+  ] as ListBlockProps
+  const listBlock = listBlockProps?.listBlock as ListBlock
+  const listBlockViewProps = (fragment?.configuration as ViewConfig).blocks[
+    listBlockProps.id
+  ]?.view as ListBlockView
+  const appearance = listBlockViewProps?.list?.appearance
 
-  const noOfPoints = listBlockProps?.list?.length || 0
+  const computedPoints: ComputedPoint[] = controlsConfig?.computedPoints
+
+  const noOfPoints = listBlock?.list?.length || 0
 
   if (direction === 'next') {
     if (payload?.activePointIndex === noOfPoints) {
       updatePayload?.({
         activeObjectIndex: payload?.activeObjectIndex + 1,
+      })
+    } else if (appearance === 'allAtOnce') {
+      const index = computedPoints.findIndex(
+        (point) =>
+          point.startFromIndex >
+          computedPoints[payload?.activePointIndex].startFromIndex
+      )
+      updatePayload?.({
+        activePointIndex: index !== -1 ? index : computedPoints.length,
       })
     } else {
       updatePayload?.({
@@ -577,6 +605,20 @@ const handleCodeBlock = (
         }
         break
       }
+      // case CodeAnimation.InsertInBetween: {
+      //   console.log('Hello')
+      //   if (noOfBlocks === undefined) return
+      //   if (payload?.activeBlockIndex === noOfBlocks) {
+      //     updatePayload?.({
+      //       activeObjectIndex: payload?.activeObjectIndex + 1,
+      //     })
+      //   } else {
+      //     updatePayload?.({
+      //       activeBlockIndex: payload?.activeBlockIndex + 1,
+      //     })
+      //   }
+      //   break
+      // }
       case CodeAnimation.TypeLines: {
         if (payload?.currentIndex === computedTokens?.length) {
           updatePayload?.({
