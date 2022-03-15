@@ -127,6 +127,9 @@ export default Node.create<ImageOptions>({
       title: {
         default: null,
       },
+      caption: {
+        default: null,
+      },
     }
   },
   parseHTML: () => [
@@ -189,7 +192,7 @@ export default Node.create<ImageOptions>({
 })
 
 const Image = (props: any) => {
-  const { src, alt, title, localSrc } = props.node.attrs
+  const { src, alt, title, localSrc, caption } = props.node.attrs
   const [upload] = useUploadFile()
   const [loading, setLoading] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -239,12 +242,22 @@ const Image = (props: any) => {
   return (
     <NodeViewWrapper as="div" id={props.node.attrs.id}>
       {src && (
-        <img
-          className="cursor-pointer w-full"
-          src={localSrc || src}
-          alt={alt}
-          title={title}
-        />
+        <div contentEditable={false} className="group">
+          <img
+            className="cursor-pointer w-full group-hover:bg-gray-100 border border-transparent group-hover:border-gray-200 rounded-t-md"
+            src={localSrc || src}
+            alt={alt}
+            title={title}
+          />
+          <input
+            value={caption}
+            placeholder="Write a caption..."
+            className="border border-gray-200 w-full group-hover:bg-gray-100 font-body px-2 py-1 focus:outline-none placeholder-italic text-black mt-px"
+            onChange={(e) => {
+              props.updateAttributes({ caption: e.target.value })
+            }}
+          />
+        </div>
       )}
 
       {loading && (

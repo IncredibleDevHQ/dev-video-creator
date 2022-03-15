@@ -51,6 +51,7 @@ export interface GradientConfig {
 export enum CodeAnimation {
   TypeLines = 'Type lines',
   HighlightLines = 'Highlight lines',
+  // InsertInBetween = 'Insert in between',
 }
 
 export const enum CodeTheme {
@@ -76,12 +77,20 @@ export interface CodeHighlightConfig {
   to?: number
   valid?: boolean
   fileIndex?: number
+  lineNumbers?: number[]
+}
+
+export enum CodeStyle {
+  Editor = 'editor',
+  Terminal = 'terminal',
 }
 
 export interface CodeBlockViewProps {
   animation: CodeAnimation
   highlightSteps?: CodeHighlightConfig[]
   theme: CodeTheme
+  fontSize?: number
+  codeStyle?: CodeStyle
 }
 
 export interface CodeBlockView {
@@ -89,12 +98,50 @@ export interface CodeBlockView {
   code: CodeBlockViewProps
 }
 
-export interface ImageBlockView {
-  type: 'imageBlock'
-  image: never
+export type CaptionTitleView =
+  | 'titleOnly'
+  | 'captionOnly'
+  | 'none'
+  | 'titleAndCaption'
+
+export interface ImageBlockViewProps {
+  captionTitleView?: CaptionTitleView
 }
 
-export type BlockView = CodeBlockView | ImageBlockView
+export interface ImageBlockView {
+  type: 'imageBlock'
+  image: ImageBlockViewProps
+}
+
+export interface VideoBlockViewProps {
+  captionTitleView?: CaptionTitleView
+}
+
+export interface VideoBlockView {
+  type: 'videoBlock'
+  video: VideoBlockViewProps
+}
+
+export type ListAppearance = 'stack' | 'replace' | 'allAtOnce'
+export type ListViewStyle = 'none' | 'bullet' | 'number'
+export type ListOrientation = 'horizontal' | 'vertical'
+
+export interface ListBlockViewProps {
+  viewStyle?: ListViewStyle
+  appearance?: ListAppearance
+  orientation?: ListOrientation
+}
+
+export interface ListBlockView {
+  type: 'listBlock'
+  list: ListBlockViewProps
+}
+
+export type BlockView =
+  | CodeBlockView
+  | ImageBlockView
+  | VideoBlockView
+  | ListBlockView
 
 export type BlockProperties = {
   gradient?: GradientConfig

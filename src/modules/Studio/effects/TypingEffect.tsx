@@ -5,10 +5,10 @@ import { ComputedToken } from '../hooks/use-code'
 
 const TypingEffect = ({
   token,
-  config,
+  fontSize,
 }: {
   token: ComputedToken
-  config: any
+  fontSize: number
 }) => {
   const [text, setText] = useState('')
   useEffect(() => {
@@ -23,7 +23,7 @@ const TypingEffect = ({
   return (
     <Text
       key={`(${token?.x || nanoid()},${token?.y || nanoid()})`}
-      fontSize={config.fontSize}
+      fontSize={fontSize}
       fill={token?.color}
       text={text}
       x={token?.x}
