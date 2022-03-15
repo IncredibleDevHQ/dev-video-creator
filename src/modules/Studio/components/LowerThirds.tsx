@@ -180,7 +180,7 @@ export const GlassyLowerThirds = ({
 }) => {
   const [image] = useImage(logo, 'anonymous')
   const { getTextWidth } = useEdit()
-  const textWidth = useRef(getTextWidth(userName, 'Inter', 24, 'bold') + 80)
+  const textWidth = useRef(getTextWidth(userName, 'Inter', 24, 'bold') + 50)
 
   if (logo)
     return (
@@ -418,7 +418,7 @@ export const PastelLinesLowerThirds = ({
 }) => {
   const [image] = useImage(logo, 'anonymous')
   const { getTextWidth } = useEdit()
-  const textWidth = useRef(getTextWidth(userName, 'Inter', 24, 'bold') + 80)
+  const textWidth = useRef(getTextWidth(userName, 'Inter', 24, 'bold') + 50)
   if (logo)
     return (
       <>
@@ -628,7 +628,7 @@ export const CassidooLowerThirds = ({
 }) => {
   const [image] = useImage(logo, 'anonymous')
   const { getTextWidth } = useEdit()
-  const textWidth = useRef(getTextWidth(userName, 'Inter', 24, 'bold') + 80)
+  const textWidth = useRef(getTextWidth(userName, 'Inter', 24, 'bold') + 50)
   if (logo)
     return (
       <>
