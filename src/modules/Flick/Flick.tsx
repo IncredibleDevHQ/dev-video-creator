@@ -587,7 +587,7 @@ export const EditorContext = React.createContext<{
   dragHandleRef: React.RefObject<HTMLDivElement>
 } | null>(null)
 
-const EditorProvider = ({
+export const EditorProvider = ({
   children,
   flickId,
   userName,

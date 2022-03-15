@@ -391,8 +391,10 @@ const Note = ({
 
   const { note, noteId } = useMemo(() => {
     if (!simpleAST) return {}
-    setLocalNote(undefined)
-    setLocalNoteId(undefined)
+    if (block.type === 'introBlock' || block.type === 'outroBlock') {
+      setLocalNote(undefined)
+      setLocalNoteId(undefined)
+    }
     switch (block.type) {
       case 'listBlock': {
         const listBlock = simpleAST.blocks.find(
@@ -537,6 +539,7 @@ const Note = ({
 
   return (
     <textarea
+      key={block.id}
       placeholder="Add your notes here"
       className="w-full h-full focus:outline-none font-body text-left resize-none outline-none border-none placeholder-gray-400"
       value={localNote === undefined ? note : localNote}
