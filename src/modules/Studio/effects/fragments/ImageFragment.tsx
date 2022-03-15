@@ -206,9 +206,9 @@ const ImageFragment = ({
         setFragmentState(payload?.fragmentState)
         customLayoutRef?.current?.to({
           opacity: 1,
-          duration: 0.2,
+          duration: 0.1,
         })
-      }, 800)
+      }, 400)
     }
     // Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
     if (payload?.fragmentState === 'onlyUserMedia') {
@@ -216,9 +216,9 @@ const ImageFragment = ({
         setFragmentState(payload?.fragmentState)
         customLayoutRef?.current?.to({
           opacity: 0,
-          duration: 0.2,
+          duration: 0.1,
         })
-      }, 800)
+      }, 400)
     }
   }, [payload?.fragmentState])
 
@@ -326,7 +326,9 @@ const ImageFragment = ({
             text={imageFragmentData?.title}
             fontStyle="bold"
             fontFamily={
-              branding?.font?.body?.family || objectRenderConfig.titleFont || 'Gilroy'
+              branding?.font?.body?.family ||
+              objectRenderConfig.titleFont ||
+              'Gilroy'
             }
             align="center"
             verticalAlign="middle"
