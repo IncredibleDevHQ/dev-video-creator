@@ -285,7 +285,7 @@ const RecordingControlsBar = ({
             logEvent(PageEvent.StopRecording)
           }}
           className={cx(
-            'flex gap-x-2 items-center justify-between border backdrop-filter backdrop-blur-2xl p-1.5 rounded-sm w-24 absolute',
+            'flex gap-x-2 items-center justify-between border backdrop-filter backdrop-blur-2xl p-1.5 rounded-sm w-24 absolute min-w-max',
             {
               'left-0 ml-8': shortsMode,
               'bg-grey-500 bg-opacity-50 border-gray-600': timeLimit
@@ -300,7 +300,7 @@ const RecordingControlsBar = ({
           <StopRecordIcon className="m-px w-5 h-5 flex-shrink-0" />
           <Timer target={(timeLimit || 3) * 60} timer={timer} />
           {timeLimit && (
-            <small className="text-xs flex-shrink-0 text-dark-title hover:text-white">
+            <small className="text-xs flex-shrink-0 text-dark-title">
               Limit: {timeLimit}min{' '}
             </small>
           )}
@@ -309,27 +309,28 @@ const RecordingControlsBar = ({
       {state === 'ready' && (
         <button
           className={cx(
-            'bg-grey-500 bg-opacity-50 border border-gray-600 backdrop-filter backdrop-blur-2xl p-1.5 rounded-sm absolute',
+            'bg-grey-500 bg-opacity-50 border border-gray-600 backdrop-filter backdrop-blur-2xl p-1.5 rounded-sm absolute flex items-center',
             {
               'left-0 ml-8': shortsMode,
             }
           )}
           type="button"
+          onClick={() => {
+            setStudio({ ...studio, state: 'countDown' })
+            updatePayload?.({
+              status: Fragment_Status_Enum_Enum.CountDown,
+            })
+            // Segment tracking
+            logEvent(PageEvent.StartRecording)
+          }}
         >
-          <StartRecordIcon
-            className="m-px w-5 h-5"
-            onClick={() => {
-              setStudio({ ...studio, state: 'countDown' })
-              updatePayload?.({
-                status: Fragment_Status_Enum_Enum.CountDown,
-              })
-              // Segment tracking
-              logEvent(PageEvent.StartRecording)
-            }}
-          />
+          <StartRecordIcon className="m-px w-5 h-5" />
           <small
             className="text-xs text-dark-title hover:text-white ml-2"
-            onClick={openTimerModal}
+            onClick={(e) => {
+              e.stopPropagation()
+              openTimerModal()
+            }}
           >
             {timeLimit ? `Limit: ${timeLimit}min` : 'No Time Limit'}
           </small>

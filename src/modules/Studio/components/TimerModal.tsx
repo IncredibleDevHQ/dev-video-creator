@@ -28,7 +28,7 @@ const TimerModal = ({
       center
       classNames={{
         modal: cx(
-          'rounded-lg w-1/3 max-w-md mx-auto p-4 text-white',
+          'rounded-lg mx-auto p-4 text-white',
           css`
             background-color: #27272a !important;
           `
@@ -36,40 +36,43 @@ const TimerModal = ({
       }}
       showCloseIcon={false}
     >
-      <div className="flex flex-col items-center justify-center p-4">
+      <div className="flex flex-col items-center justify-center p-4 w-min">
         <Heading fontSize="medium" className="flex items-center">
           <FiClock className="mr-2" /> Set time limit
         </Heading>
-        <Text fontSize="normal" className="text-center my-2">
+        <Text fontSize="normal" className="text-center my-2 font-body">
           Specify how many minutes you want to talk to see a warning when you’re
           about to reach the limit. You can continue to record even after.
         </Text>
-        <div className="flex items-center justify-between w-full px-4 py-2 bg-dark-400 rounded-sm">
+        <div className="flex items-center justify-between w-full px-4 py-2 bg-dark-400 rounded-sm mt-2">
           <span>{selectedTime}</span>
           <span>min</span>
         </div>
-        <div className="flex items-start flex-wrap my-1">
-          {allowedTimes.map((time) => (
+        <div className="flex items-start flex-wrap my-1 w-max">
+          {allowedTimes.map((time, index) => (
             <span
               className={cx(
-                'rounded-sm px-2 py-1 m-1 text-xs border cursor-pointer',
+                'rounded-sm px-2 py-1 text-xs border cursor-pointer font-body',
                 {
                   'bg-brand-grey text-dark-title border-transparent':
                     time !== selectedTime,
                   'bg-brand-10 text-brand border-brand': time === selectedTime,
+                  'm-1': index !== 0,
+                  'ml-0 m-1': index === 0,
+                  'mr-0 m-1': index === allowedTimes.length - 1,
                 }
               )}
               onClick={() => setSelectedTime(time)}
               key={time}
             >
-              {time} min
+              {time}min
             </span>
           ))}
         </div>
         <Button
           appearance="primary"
           type="button"
-          className="w-full mt-2"
+          className="w-full mt-4"
           onClick={() => {
             setTimeLimit(selectedTime)
             handleClose()
