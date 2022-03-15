@@ -169,7 +169,7 @@ const PointsFragment = ({
       text: dataConfig.listBlock.title || fragment?.name || '',
       availableWidth: objectRenderConfig.availableWidth - 80,
       fontSize: 40,
-      fontFamily: 'Gilroy',
+      fontFamily: branding?.font?.heading?.family || 'Gilroy',
       fontStyle: 'normal 800',
     })
     setTitleNumberOfLines(noOflinesOfTitle)
@@ -181,7 +181,7 @@ const PointsFragment = ({
           objectRenderConfig.availableHeight - 32 - 50 * noOflinesOfTitle,
         gutter: 25,
         fontSize: 16,
-        fontFamily: 'Inter',
+        fontFamily: branding?.font?.body?.family || 'Inter',
         orientation,
         layout: viewConfig?.layout || 'classic',
       })
@@ -200,13 +200,13 @@ const PointsFragment = ({
       getPositionForReplaceMode({
         title: dataConfig.listBlock.title || fragment?.name || '',
         titleFontSize: 40,
-        titleFontFamily: 'Gilroy',
+        titleFontFamily: branding?.font?.heading?.family || 'Gilroy',
         titleFontStyle: 'normal 800',
         points: computedPoints,
         availableWidth: objectRenderConfig.availableWidth - 110,
         availableHeight: objectRenderConfig.availableHeight,
         fontSize: 24,
-        fontFamily: 'Gilroy',
+        fontFamily: branding?.font?.body?.family || 'Inter',
       })
     )
   }, [computedPoints, dataConfig])
@@ -764,17 +764,18 @@ const PointsFragment = ({
                         pointsConfig.paddingBtwBulletText
                       }
                       width={248}
-                      height={(point.height || 0) + 20}
+                      height={(point.height || 0) + 32}
                       stroke="white"
+                      strokeWidth={1}
                       cornerRadius={objectRenderConfig.borderRadius}
                     />
                     <Text
                       key={point.text}
-                      x={10}
+                      x={16}
                       y={
                         pointsConfig.bulletHeight +
                         pointsConfig.paddingBtwBulletText +
-                        10
+                        16
                       }
                       fontSize={pointsConfig.textFontSize}
                       fill={
@@ -784,7 +785,7 @@ const PointsFragment = ({
                       }
                       // why subtracting 110 is that this group starts at x: 50 and this text starts at x: 30,
                       // so we need to subtract 110 to get the correct x, to give 30 padding in the end too
-                      width={228}
+                      width={216}
                       height={point.height}
                       verticalAlign="middle"
                       align="center"
