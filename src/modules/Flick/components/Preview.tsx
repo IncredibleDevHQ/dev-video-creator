@@ -3,8 +3,8 @@
 import { css, cx } from '@emotion/css'
 import { Listbox } from '@headlessui/react'
 import { sentenceCase } from 'change-case'
-import React, { useEffect, useState } from 'react'
-import { BiCheck } from 'react-icons/bi'
+import React, { useContext, useEffect, useMemo, useState } from 'react'
+import { BiCheck, BiNote } from 'react-icons/bi'
 import { FiCode, FiLayout } from 'react-icons/fi'
 import {
   IoAddOutline,
@@ -18,11 +18,12 @@ import {
 import { MdOutlineTextFields } from 'react-icons/md'
 import useMeasure from 'react-use-measure'
 import { useRecoilValue } from 'recoil'
+import { v4 as uuidv4 } from 'uuid'
 import { ReactComponent as BulletListStyleIcon } from '../../../assets/BulletListStyle.svg'
 import { ReactComponent as EditorStyleIcon } from '../../../assets/EditorStyle.svg'
-import listStackGif from '../../../assets/ListStack.svg'
-import listReplaceGif from '../../../assets/ListReplace.svg'
 import listAllAtOnceGif from '../../../assets/ListAllAtOnce.svg'
+import listReplaceGif from '../../../assets/ListReplace.svg'
+import listStackGif from '../../../assets/ListStack.svg'
 import { ReactComponent as NumberListStyleIcon } from '../../../assets/NumberListStyle.svg'
 import { ReactComponent as TerminalStyleIcon } from '../../../assets/TerminalStyle.svg'
 import { Heading, Text } from '../../../components'
@@ -46,7 +47,17 @@ import {
 } from '../../../utils/configTypes'
 import { getSurfaceColor } from '../../Studio/effects/fragments/CodeFragment'
 import { studioStore } from '../../Studio/stores'
-import { Block, IntroBlockProps } from '../editor/utils/utils'
+import {
+  Block,
+  CodeBlockProps,
+  ImageBlockProps,
+  IntroBlockProps,
+  ListBlockProps,
+  OutroBlockProps,
+  SimpleAST,
+  VideoBlockProps,
+} from '../editor/utils/utils'
+import { EditorContext } from '../Flick'
 import { CanvasPreview, LayoutSelector } from './BlockPreview'
 
 const noScrollBar = css`
@@ -69,6 +80,10 @@ const commonTabs: Tab[] = [
   {
     id: 'Mode',
     name: 'Mode',
+  },
+  {
+    id: 'Note',
+    name: 'Note',
   },
 ]
 
@@ -115,6 +130,8 @@ const getIcon = (tab: Tab, block?: BlockProperties) => {
           />
         </div>
       )
+    case 'Note':
+      return <BiNote size={21} />
     case 'TextSize':
       return <MdOutlineTextFields size={21} />
     case 'Animate':
@@ -129,6 +146,8 @@ const Preview = ({
   blocks,
   config,
   centered,
+  simpleAST,
+  setSimpleAST,
   updateConfig,
   setCurrentBlock,
 }: {
@@ -136,6 +155,8 @@ const Preview = ({
   blocks: Block[]
   config: ViewConfig
   centered: boolean
+  simpleAST?: SimpleAST
+  setSimpleAST?: React.Dispatch<React.SetStateAction<SimpleAST | undefined>>
   updateConfig: (id: string, properties: BlockProperties) => void
   setCurrentBlock: React.Dispatch<React.SetStateAction<Block | undefined>>
 }) => {
@@ -146,9 +167,16 @@ const Preview = ({
 
   useEffect(() => {
     if (!block) return
-    setActiveTab(commonTabs[0])
     const { type } = block
+    if (type !== 'introBlock' && type !== 'outroBlock')
+      setActiveTab(commonTabs[0])
     switch (type) {
+      case 'introBlock':
+        setActiveTab(commonTabs[2])
+        break
+      case 'outroBlock':
+        setActiveTab(commonTabs[2])
+        break
       case 'codeBlock':
         setTabs([...commonTabs, ...codeBlockTabs])
         break
@@ -156,7 +184,7 @@ const Preview = ({
         setTabs(commonTabs)
         break
     }
-  }, [block])
+  }, [block?.id])
 
   if (!block) return null
 
@@ -242,31 +270,49 @@ const Preview = ({
         }}
         className="flex"
       >
-        {block.type !== 'introBlock' && block.type !== 'outroBlock' && (
-          <>
-            <div
-              className={cx(
-                'bg-white w-64 flex-1 overflow-y-scroll',
-                noScrollBar
-              )}
-            >
-              {activeTab.id === commonTabs[0].id && (
-                <LayoutSelector
-                  mode={config.mode}
-                  layout={config.blocks[block.id]?.layout || allLayoutTypes[0]}
-                  updateLayout={(layout: Layout) => {
-                    updateConfig(block.id, {
-                      ...config.blocks[block.id],
-                      layout,
-                    })
-                  }}
-                  type={block.type}
-                />
-              )}
-              {activeTab.id === commonTabs[1].id && (
-                <ModeSelector
-                  view={config.blocks[block.id]?.view}
-                  updateView={(view: BlockView) => {
+        <>
+          <div
+            className={cx(
+              'bg-white w-64 flex-1 overflow-y-scroll',
+              noScrollBar
+            )}
+          >
+            {activeTab.id === commonTabs[0].id && (
+              <LayoutSelector
+                mode={config.mode}
+                layout={config.blocks[block.id]?.layout || allLayoutTypes[0]}
+                updateLayout={(layout: Layout) => {
+                  updateConfig(block.id, {
+                    ...config.blocks[block.id],
+                    layout,
+                  })
+                }}
+                type={block.type}
+              />
+            )}
+            {activeTab.id === commonTabs[1].id && (
+              <ModeSelector
+                view={config.blocks[block.id]?.view}
+                updateView={(view: BlockView) => {
+                  updateConfig(block.id, {
+                    ...config.blocks[block.id],
+                    view,
+                  })
+                }}
+              />
+            )}
+            {activeTab.id === commonTabs[2].id && (
+              <Note
+                block={block}
+                simpleAST={simpleAST}
+                setSimpleAST={setSimpleAST}
+              />
+            )}
+            {activeTab.id === codeBlockTabs[0].id &&
+              block.type === 'codeBlock' && (
+                <CodeTextSizeTab
+                  view={config.blocks[block.id]?.view as CodeBlockView}
+                  updateView={(view: CodeBlockView) => {
                     updateConfig(block.id, {
                       ...config.blocks[block.id],
                       view,
@@ -274,38 +320,36 @@ const Preview = ({
                   }}
                 />
               )}
-              {activeTab.id === codeBlockTabs[0].id &&
-                block.type === 'codeBlock' && (
-                  <CodeTextSizeTab
-                    view={config.blocks[block.id]?.view as CodeBlockView}
-                    updateView={(view: CodeBlockView) => {
-                      updateConfig(block.id, {
-                        ...config.blocks[block.id],
-                        view,
-                      })
-                    }}
-                  />
-                )}
-              {activeTab.id === codeBlockTabs[1].id &&
-                block.type === 'codeBlock' && (
-                  <CodeAnimateTab
-                    view={config.blocks[block.id]?.view as CodeBlockView}
-                    updateView={(view: CodeBlockView) => {
-                      updateConfig(block.id, {
-                        ...config.blocks[block.id],
-                        view,
-                      })
-                    }}
-                  />
-                )}
-            </div>
-            <div
-              className="flex flex-col bg-gray-50 px-2 pt-4 gap-y-2 relative"
-              style={{
-                width: '6.75rem',
-              }}
-            >
-              {tabs.map((tab) => (
+            {activeTab.id === codeBlockTabs[1].id &&
+              block.type === 'codeBlock' && (
+                <CodeAnimateTab
+                  view={config.blocks[block.id]?.view as CodeBlockView}
+                  updateView={(view: CodeBlockView) => {
+                    updateConfig(block.id, {
+                      ...config.blocks[block.id],
+                      view,
+                    })
+                  }}
+                />
+              )}
+          </div>
+          <div
+            className="flex flex-col bg-gray-50 px-2 pt-4 gap-y-2 relative"
+            style={{
+              width: '6.75rem',
+            }}
+          >
+            {tabs
+              .filter((tab) => {
+                if (
+                  (block.type === 'introBlock' ||
+                    block.type === 'outroBlock') &&
+                  (tab.id === commonTabs[0].id || tab.id === commonTabs[1].id)
+                )
+                  return false
+                return true
+              })
+              .map((tab) => (
                 <button
                   type="button"
                   onClick={() => setActiveTab(tab)}
@@ -324,11 +368,186 @@ const Preview = ({
                   </Text>
                 </button>
               ))}
-            </div>
-          </>
-        )}
+          </div>
+        </>
       </div>
     </div>
+  )
+}
+
+const Note = ({
+  block,
+  simpleAST,
+  setSimpleAST,
+}: {
+  block: Block
+  simpleAST?: SimpleAST
+  setSimpleAST?: React.Dispatch<React.SetStateAction<SimpleAST | undefined>>
+}) => {
+  const { editor } = useContext(EditorContext) || {}
+
+  const [localNote, setLocalNote] = useState<string>()
+  const [localNoteId, setLocalNoteId] = useState<string>()
+
+  const { note, noteId } = useMemo(() => {
+    if (!simpleAST) return {}
+    if (block.type === 'introBlock' || block.type === 'outroBlock') {
+      setLocalNote(undefined)
+      setLocalNoteId(undefined)
+    }
+    switch (block.type) {
+      case 'listBlock': {
+        const listBlock = simpleAST.blocks.find(
+          (b) => b.id === block.id
+        ) as ListBlockProps
+        return {
+          note: listBlock.listBlock.note,
+          noteId: listBlock.listBlock.noteId,
+        }
+      }
+      case 'imageBlock': {
+        const imageBlock = simpleAST.blocks.find(
+          (b) => b.id === block.id
+        ) as ImageBlockProps
+        return {
+          note: imageBlock.imageBlock.note,
+          noteId: imageBlock.imageBlock.noteId,
+        }
+      }
+      case 'codeBlock': {
+        const codeBlock = simpleAST.blocks.find(
+          (b) => b.id === block.id
+        ) as CodeBlockProps
+        return {
+          note: codeBlock.codeBlock.note,
+          noteId: codeBlock.codeBlock.noteId,
+        }
+      }
+      case 'videoBlock': {
+        const videoBlock = simpleAST.blocks.find(
+          (b) => b.id === block.id
+        ) as VideoBlockProps
+        return {
+          note: videoBlock.videoBlock.note,
+          noteId: videoBlock.videoBlock.noteId,
+        }
+      }
+      case 'introBlock': {
+        const introBlock = simpleAST.blocks.find(
+          (b) => b.id === block.id
+        ) as IntroBlockProps
+        return {
+          note: introBlock.introBlock.note,
+        }
+      }
+      case 'outroBlock': {
+        const outroBlock = simpleAST.blocks.find(
+          (b) => b.id === block.id
+        ) as OutroBlockProps
+        return {
+          note: outroBlock.outroBlock?.note,
+        }
+      }
+      default:
+        return {}
+    }
+  }, [block, simpleAST])
+
+  const updateNotes = (nodeId: string | undefined, notes: string) => {
+    if (!editor) return
+    if (block.type !== 'introBlock' && block.type !== 'outroBlock') {
+      let didInsert = false
+      editor?.state.tr.doc.descendants((node, pos) => {
+        if (node.attrs.id) {
+          if (node.attrs.id === nodeId) {
+            // console.log('found node with note', node, pos, node.nodeSize)
+            node.descendants((childNode, childPos) => {
+              // check for text node
+              if (childNode.type.name === 'text') {
+                // console.log(
+                //   'found text node',
+                //   childNode,
+                //   childPos,
+                //   childNode.nodeSize
+                // )
+                editor.view.dispatch(
+                  editor.state.tr.insertText(
+                    notes,
+                    pos + 1,
+                    pos + 2 + childNode.nodeSize
+                  )
+                )
+                didInsert = true
+              }
+            })
+          }
+        }
+      })
+      if (!didInsert) {
+        // insert blockquote text before block id
+        editor?.state.tr.doc.descendants((node, pos) => {
+          if (node.attrs.id === block.id) {
+            // console.log('found node with note', node, pos, node.nodeSize)
+            const textNode = editor.state.schema.text(notes)
+            const paragraphNode = editor.state.schema.nodes.paragraph.create(
+              null,
+              textNode
+            )
+            const id = uuidv4()
+            setLocalNoteId(id)
+            // console.log('inserting paragraph node', id)
+            const blockquote = editor.state.schema.nodes.blockquote.create(
+              {
+                id,
+              },
+              paragraphNode
+            )
+            editor.view.dispatch(editor.state.tr.insert(pos, blockquote))
+          }
+        })
+      }
+    } else {
+      if (!simpleAST) return
+      setSimpleAST?.({
+        ...simpleAST,
+        blocks: simpleAST.blocks.map((b) => {
+          if (b.id === block.id && block.type === 'introBlock') {
+            const introBlock = b as IntroBlockProps
+            return {
+              ...b,
+              introBlock: {
+                ...introBlock.introBlock,
+                note: notes,
+              },
+            }
+          }
+          if (b.id === block.id && block.type === 'outroBlock') {
+            const outroBlock = b as OutroBlockProps
+            return {
+              ...outroBlock,
+              outroBlock: {
+                ...outroBlock.outroBlock,
+                note: notes,
+              },
+            }
+          }
+          return b
+        }),
+      })
+    }
+  }
+
+  return (
+    <textarea
+      key={block.id}
+      placeholder="Add your notes here"
+      className="w-full h-full focus:outline-none font-body text-left resize-none outline-none border-none placeholder-gray-400"
+      value={localNote === undefined ? note : localNote}
+      onChange={(e) => {
+        setLocalNote(e.target.value)
+        updateNotes(localNoteId || noteId, e.target.value)
+      }}
+    />
   )
 }
 

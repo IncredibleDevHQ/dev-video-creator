@@ -29,6 +29,7 @@ export interface CodeBlock {
   title?: string
   fallbackTitle?: string
   note?: string
+  noteId?: string
   description?: string
   layout?: Layout
   isAutomated?: boolean
@@ -40,6 +41,7 @@ export interface ListBlock {
   title?: string
   fallbackTitle?: string
   note?: string
+  noteId?: string
   description?: string
 }
 
@@ -50,6 +52,7 @@ export interface VideoBlock {
   fallbackTitle?: string
   caption?: string
   note?: string
+  noteId?: string
   description?: string
   transformations?: Transformations
 }
@@ -60,12 +63,18 @@ export interface ImageBlock {
   fallbackTitle?: string
   caption?: string
   note?: string
+  noteId?: string
   description?: string
   type?: 'image' | 'gif'
 }
 
 export interface IntroBlock {
   order: IntroState[]
+  note?: string
+}
+
+export interface OutroBlock {
+  note?: string
 }
 
 export interface ListItem {
@@ -108,6 +117,7 @@ export interface IntroBlockProps extends CommonBlockProps {
 
 export interface OutroBlockProps extends CommonBlockProps {
   type: 'outroBlock'
+  outroBlock?: OutroBlock
 }
 
 export interface ComposedBlockProps extends CommonBlockProps {
@@ -189,8 +199,9 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
       })
       .join('\n')
     nodeIds.push(noteNode?.attrs?.id)
+    const noteId = noteNode?.attrs?.id
 
-    return { note, description, title, nodeIds }
+    return { note, description, title, nodeIds, noteId }
   }
 
   let prevCoreBlockPos = 0
@@ -247,12 +258,14 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
       let codeBlock: CodeBlock = {}
       const codeValue = textContent(slab?.content)
 
-      const { description, note, title, nodeIds } = getCommonProps(index)
+      const { description, note, title, nodeIds, noteId } =
+        getCommonProps(index)
 
       codeBlock = {
         code: codeValue,
         language: slab?.attrs?.language as string,
         note,
+        noteId,
         description,
         title,
         fallbackTitle: title || `Code ${blockCount.codeBlock + 1}`,
@@ -270,7 +283,8 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
       prevCoreBlockPos = index
       blockPosition += 1
     } else if (slab.type === 'video') {
-      const { description, note, title, nodeIds } = getCommonProps(index)
+      const { description, note, title, nodeIds, noteId } =
+        getCommonProps(index)
 
       blocks.push({
         type: 'videoBlock',
@@ -283,6 +297,7 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
           title,
           fallbackTitle: title || `Video ${blockCount.videoBlock + 1}`,
           note,
+          noteId,
           caption: slab.attrs?.caption,
           transformations: slab?.attrs?.['data-transformations']
             ? JSON.parse(slab?.attrs?.['data-transformations'])
@@ -297,7 +312,8 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
       const url = slab?.attrs?.src
       const type = url.endsWith('.gif') ? 'gif' : 'image'
 
-      const { description, note, title, nodeIds } = getCommonProps(index)
+      const { description, note, title, nodeIds, noteId } =
+        getCommonProps(index)
       blocks.push({
         type: 'imageBlock',
         id: slab.attrs?.id as string,
@@ -309,6 +325,7 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
           title,
           fallbackTitle: title || `Image ${blockCount.imageBlock + 1}`,
           note,
+          noteId,
           type,
           caption: slab.attrs?.caption,
         },
@@ -318,7 +335,8 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
       prevCoreBlockPos = index
       blockPosition += 1
     } else if (slab.type === 'bulletList' || slab.type === 'orderedList') {
-      const { description, note, title, nodeIds } = getCommonProps(index)
+      const { description, note, title, nodeIds, noteId } =
+        getCommonProps(index)
 
       const listItems = slab.content?.filter(
         (child) => child.type === 'listItem'
@@ -358,6 +376,7 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
           title,
           fallbackTitle: title || `List ${blockCount.listBlock + 1}`,
           note,
+          noteId,
           list: simpleListItems,
         },
       })

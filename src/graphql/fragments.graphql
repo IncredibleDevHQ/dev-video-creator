@@ -275,3 +275,12 @@ mutation CompleteFragment(
     success
   }
 }
+
+mutation UpdateFragmentEditorState($id: uuid!, $editorState: json!) {
+  update_Fragment_by_pk(
+    pk_columns: { id: $id }
+    _set: { editorState: $editorState }
+  ) {
+    id
+  }
+}
