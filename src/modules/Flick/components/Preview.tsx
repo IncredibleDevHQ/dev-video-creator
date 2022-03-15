@@ -453,6 +453,13 @@ const ListBlockModeSelector = ({
         break
       case 'replace':
         appearanceSrc = `${listReplaceGif}?${Date.now()}`
+        updateView({
+          ...view,
+          list: {
+            ...view.list,
+            orientation: 'vertical',
+          },
+        })
         break
       case 'allAtOnce':
         appearanceSrc = `${listAllAtOnceGif}?${Date.now()}`
