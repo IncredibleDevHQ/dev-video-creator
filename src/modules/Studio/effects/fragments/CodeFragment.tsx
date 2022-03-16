@@ -237,13 +237,13 @@ const CodeFragment = ({
     //   // { lineNumbers: [3] },
     // ]
     setBlockConfig(blocks)
-  }, [dataConfig, shortsMode, viewConfig])
+  }, [dataConfig, shortsMode, viewConfig, theme])
 
   useEffect(() => {
     setObjectRenderConfig(
       ThemeLayoutConfig({ theme, layoutConfig: objectConfig })
     )
-  }, [objectConfig])
+  }, [objectConfig, theme])
 
   useEffect(() => {
     if (colorCodes.length === 0) return
@@ -381,7 +381,7 @@ const CodeFragment = ({
         setFragmentState(payload?.fragmentState)
         customLayoutRef?.current?.to({
           opacity: 1,
-          duration: 0.2,
+          duration: 0.1,
         })
       }, 800)
     }
@@ -391,9 +391,9 @@ const CodeFragment = ({
         setFragmentState(payload?.fragmentState)
         customLayoutRef?.current?.to({
           opacity: 0,
-          duration: 0.2,
+          duration: 0.1,
         })
-      }, 800)
+      }, 400)
     }
   }, [payload?.fragmentState])
 

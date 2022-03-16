@@ -150,7 +150,12 @@ const UnifiedFragment = ({
     else
       setTimeout(() => {
         setActiveObjectIndex(payload?.activeObjectIndex)
-      }, 800)
+      }, 400)
+  }, [payload?.activeObjectIndex])
+
+  useEffect(() => {
+    if (!payload?.activeObjectIndex || payload?.activeObjectIndex === 0) return
+    setTopLayerChildren?.({ id: nanoid(), state: 'transition right' })
   }, [payload?.activeObjectIndex])
 
   useEffect(() => {
@@ -223,11 +228,6 @@ const UnifiedFragment = ({
       addMusic()
     }
   }, [payload?.fragmentState])
-
-  useEffect(() => {
-    if (!payload?.activeObjectIndex || payload?.activeObjectIndex === 0) return
-    setTopLayerChildren?.({ id: nanoid(), state: 'transition right' })
-  }, [payload?.activeObjectIndex])
 
   const [stageConfig, setStageConfig] = useState<{
     width: number

@@ -1,7 +1,8 @@
 import Konva from 'konva'
 import { ThemeFragment } from '../../../generated/graphql'
-import { Layout, OutroLayout, SocialHandles } from '../../../utils/configTypes'
+import { Layout, OutroLayout } from '../../../utils/configTypes'
 import { CONFIG, SHORTS_CONFIG } from '../components/Concourse'
+import { SocialHandles } from '../effects/fragments/OutroFragment'
 
 export interface OutroConfig {
   layoutX: number
