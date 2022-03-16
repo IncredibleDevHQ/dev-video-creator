@@ -48,7 +48,7 @@ const getImagePosition = (theme: ThemeFragment) => {
   }
 }
 
-interface SocialHandles {
+export interface SocialHandles {
   twitterHandle?: string
   discordHandle?: string
   youtubeHandle?: string
