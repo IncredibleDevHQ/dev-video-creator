@@ -28,7 +28,7 @@ export const shortsLayoutTypes = [
 export const outroLayoutTypes = [
   'classic',
   'float-full-right',
-  'float-full-left',
+  // 'float-full-left',
   'split-without-media',
 ] as const
 
