@@ -60,6 +60,11 @@ const ImageFragment = ({
 
   const { getNoOfLinesOfText } = usePoint()
 
+  const [noOfLinesOfText, setNoOfLinesOfText] = useState<{
+    noOfLinesOfTitle: number
+    noOfLinesOfCaption: number
+  }>({ noOfLinesOfCaption: 0, noOfLinesOfTitle: 0 })
+
   const [imgDim, setImgDim] = useState<{
     width: number
     height: number
@@ -122,11 +127,22 @@ const ImageFragment = ({
       availableWidth: objectRenderConfig.availableWidth - 20,
       fontSize: 24,
       fontFamily:
-        branding?.font?.body?.family ||
+        branding?.font?.heading?.family ||
         objectRenderConfig.titleFont ||
         'Gilroy',
       fontStyle: 'bold',
     })
+    const noOfLinesOfCaption = getNoOfLinesOfText({
+      text: imageFragmentData?.caption || '',
+      availableWidth: !shortsMode
+        ? objectRenderConfig.availableWidth - 220
+        : objectRenderConfig.availableWidth - 40,
+      fontSize: 16,
+      fontFamily:
+        branding?.font?.body?.family || objectRenderConfig.bodyFont || 'Gilroy',
+      fontStyle: 'normal',
+    })
+    setNoOfLinesOfText({ noOfLinesOfCaption, noOfLinesOfTitle })
 
     if (imageFragmentData?.title) {
       if (renderMode === 'titleOnly') {
@@ -137,11 +153,15 @@ const ImageFragment = ({
               h: (qnaImage && qnaImage.height) || 0,
             },
             objectRenderConfig.availableWidth - 40,
-            objectRenderConfig.availableHeight - (noOfLinesOfTitle * 38 + 60),
+            objectRenderConfig.availableHeight -
+              48 -
+              noOfLinesOfTitle * (24 + 0.2),
             objectRenderConfig.availableWidth - 40,
-            objectRenderConfig.availableHeight - (noOfLinesOfTitle * 38 + 60),
+            objectRenderConfig.availableHeight -
+              48 -
+              noOfLinesOfTitle * (24 + 0.2),
             20,
-            noOfLinesOfTitle * 38 + 40
+            16 + noOfLinesOfTitle * (24 + 0.2) + 16
           )
         )
       }
@@ -153,11 +173,45 @@ const ImageFragment = ({
               h: (qnaImage && qnaImage.height) || 0,
             },
             objectRenderConfig.availableWidth - 40,
-            objectRenderConfig.availableHeight - 100,
+            objectRenderConfig.availableHeight -
+              16 -
+              noOfLinesOfCaption * (16 + 0.2) -
+              32,
             objectRenderConfig.availableWidth - 40,
-            objectRenderConfig.availableHeight - 100,
+            objectRenderConfig.availableHeight -
+              16 -
+              noOfLinesOfCaption * (16 + 0.2) -
+              32,
             20,
-            20
+            16
+          )
+        )
+      }
+      if (renderMode === 'titleAndCaption') {
+        setImgDim(
+          getImageDimensions(
+            {
+              w: (qnaImage && qnaImage.width) || 0,
+              h: (qnaImage && qnaImage.height) || 0,
+            },
+            objectRenderConfig.availableWidth - 40,
+            objectRenderConfig.availableHeight -
+              16 -
+              noOfLinesOfTitle * (24 + 0.2) -
+              16 -
+              16 -
+              noOfLinesOfCaption * (16 + 0.2) -
+              16,
+            objectRenderConfig.availableWidth - 40,
+            objectRenderConfig.availableHeight -
+              16 -
+              noOfLinesOfTitle * (24 + 0.2) -
+              16 -
+              16 -
+              noOfLinesOfCaption * (16 + 0.2) -
+              16,
+            20,
+            16 + noOfLinesOfTitle * (24 + 0.2) + 16
           )
         )
       }
@@ -264,7 +318,7 @@ const ImageFragment = ({
               renderMode === 'titleAndCaption') && (
               <Text
                 x={10}
-                y={20}
+                y={16}
                 align="center"
                 fontSize={24}
                 fill={
@@ -277,7 +331,7 @@ const ImageFragment = ({
                 text={imageFragmentData?.title}
                 fontStyle="bold"
                 fontFamily={
-                  branding?.font?.body?.family ||
+                  branding?.font?.heading?.family ||
                   objectRenderConfig.titleFont ||
                   'Gilroy'
                 }
@@ -289,7 +343,11 @@ const ImageFragment = ({
               renderMode === 'titleAndCaption') && (
               <Text
                 x={!shortsMode ? 110 : 20}
-                y={objectRenderConfig.availableHeight - 60}
+                y={
+                  objectRenderConfig.availableHeight -
+                  noOfLinesOfText.noOfLinesOfCaption * (16 + 0.2) -
+                  16
+                }
                 align="center"
                 fontSize={16}
                 fill={
