@@ -150,16 +150,17 @@ export interface HandleDetails {
   handle: string
 }
 
-export interface OutroBlockProps {
+export interface OutroBlockViewProps {
   twitter?: HandleDetails
   discord?: HandleDetails
   youtube?: HandleDetails
   noOfSocialHandles?: number
+  layout?: OutroLayout
 }
 
 export interface OutroBlockView {
   type: 'outroBlock'
-  outro?: OutroBlockProps
+  outro: OutroBlockViewProps
 }
 
 export type BlockView =
