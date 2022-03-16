@@ -338,7 +338,16 @@ const UnifiedFragment = ({
             )
           }
           case 'outroBlock': {
-            return <OutroFragment isShorts={viewConfig.mode === 'Portrait'} />
+            return (
+              <OutroFragment
+                isShorts={viewConfig.mode === 'Portrait'}
+                viewConfig={
+                  viewConfig.blocks[
+                    dataConfig[activeObjectIndex].id
+                  ] as BlockProperties
+                }
+              />
+            )
           }
           default:
             return <></>
