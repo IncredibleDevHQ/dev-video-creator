@@ -423,10 +423,7 @@ const PointsFragment = ({
                           lineHeight={1.3}
                           fontFamily={branding?.font?.body?.family || 'Inter'}
                           height={
-                            objectRenderConfig.availableHeight -
-                            (objectRenderConfig.startY +
-                              25 +
-                              50 * titleNumberOfLines)
+                            objectRenderConfig.availableHeight - 32 - titleY
                           }
                           // verticalAlign="middle"
                         />
@@ -580,7 +577,7 @@ const PointsFragment = ({
                   </>
                 ))
             : computedPoints
-                .filter((_, i) => i === 1)
+                .filter((_, i) => i === 0)
                 .map((point) => (
                   <>
                     <Group>
