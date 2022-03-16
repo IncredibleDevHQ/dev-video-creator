@@ -122,6 +122,22 @@ export interface VideoBlockView {
   video: VideoBlockViewProps
 }
 
+export interface HandleDetails {
+  enabled: boolean
+  handle: string
+}
+
+export interface OutroBlockProps {
+  twitter?: HandleDetails
+  discord?: HandleDetails
+  noOfSocialHandles: number
+}
+
+export interface OutroBlockView {
+  type: 'outroBlock'
+  outro?: OutroBlockProps
+}
+
 export type ListAppearance = 'stack' | 'replace' | 'allAtOnce'
 export type ListViewStyle = 'none' | 'bullet' | 'number'
 export type ListOrientation = 'horizontal' | 'vertical'
@@ -142,6 +158,7 @@ export type BlockView =
   | ImageBlockView
   | VideoBlockView
   | ListBlockView
+  | OutroBlockView
 
 export type BlockProperties = {
   gradient?: GradientConfig

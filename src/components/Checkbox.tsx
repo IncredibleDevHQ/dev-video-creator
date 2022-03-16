@@ -1,87 +1,33 @@
-import React, { HTMLProps } from 'react'
-import { css, cx } from '@emotion/css'
+import React from 'react'
+import { Switch } from '@headlessui/react'
 
-interface CheckBoxProps extends HTMLProps<HTMLInputElement> {
-  name: string
-  label: string
-}
-
-const Checkbox = ({
-  name,
+export default function Checkbox({
   label,
-  className,
-  onChange,
   checked,
-  key,
-}: CheckBoxProps) => {
-  const switchCSS = css`
-    position: relative;
-    display: inline-block;
-    width: 3.4375rem;
-    height: 1.75rem;
-    & input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-  `
-
-  const slider = css`
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #202020;
-    -webkit-transition: 0.4s;
-    transition: 0.4s;
-
-    &:before {
-      position: absolute;
-      content: '';
-      height: 1.25rem;
-      width: 1.25rem;
-      left: 4px;
-      bottom: 4px;
-      background-color: #ffffff;
-      -webkit-transition: 0.4s;
-      transition: 0.4s;
-      border-radius: 50%;
-    }
-
-    input:checked + & {
-      background-color: #16a34a;
-    }
-
-    input:focus + & {
-      box-shadow: 0 0 1px #16a34a;
-    }
-
-    input:checked + &:before {
-      -webkit-transform: translateX(1.625rem);
-      -ms-transform: translateX(1.625rem);
-      transform: translateX(1.625rem);
-    }
-
-    border-radius: 2.125rem;
-  `
-
+  onChange,
+}: {
+  label?: string
+  checked: boolean
+  onChange: (checked: boolean) => void
+}) {
   return (
-    <div className={cx('flex items-center', className)} key={key}>
-      <label className={switchCSS} htmlFor={label}>
-        <input
-          type="checkbox"
+    <Switch.Group>
+      <div className="flex items-center">
+        <Switch.Label className="mr-4">{label}</Switch.Label>
+        <Switch
           checked={checked}
           onChange={onChange}
-          name={name}
-          id={label}
-        />
-        <span className={`${slider} round`} />
-      </label>
-      <span className="text-base ml-2">{label}</span>
-    </div>
+          className={`${
+            checked ? 'bg-brand' : 'bg-gray-200'
+          } relative inline-flex items-center h-6 rounded-full w-11 transition-colors focus:outline-none`}
+        >
+          <span
+            className={`${
+              checked ? 'translate-x-6' : 'translate-x-1'
+            } inline-block w-4 h-4 transform bg-white rounded-full transition-transform`}
+          />
+        </Switch>
+      </div>
+    </Switch.Group>
   )
 }
-
-export default Checkbox
