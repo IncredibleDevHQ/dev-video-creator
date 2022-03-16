@@ -184,9 +184,9 @@ export const LayoutSelector = ({
   layout,
   updateLayout,
 }: {
-  layout: Layout | OutroLayout
+  layout: Layout
   mode: ViewConfig['mode']
-  updateLayout: (layout: Layout | OutroLayout) => void
+  updateLayout: (layout: Layout) => void
   type: Block['type']
 }) => {
   const { activeTheme } = useRecoilValue(newFlickStore)

@@ -12,6 +12,7 @@ export const allLayoutTypes = [
   'padded-split',
   'split',
   'full',
+  'split-without-media',
 ] as const
 
 export const shortsLayoutTypes = [
@@ -155,7 +156,6 @@ export interface OutroBlockViewProps {
   discord?: HandleDetails
   youtube?: HandleDetails
   noOfSocialHandles?: number
-  layout?: OutroLayout
 }
 
 export interface OutroBlockView {
@@ -172,7 +172,7 @@ export type BlockView =
 
 export type BlockProperties = {
   gradient?: GradientConfig
-  layout?: Layout | OutroLayout
+  layout?: Layout
   bgColor?: string
   bgOpacity?: number
   view?: BlockView

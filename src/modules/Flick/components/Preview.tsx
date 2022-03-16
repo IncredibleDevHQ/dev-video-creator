@@ -356,7 +356,7 @@ const Preview = ({
               <LayoutSelector
                 mode={config.mode}
                 layout={config.blocks[block.id]?.layout || allLayoutTypes[0]}
-                updateLayout={(layout: Layout | OutroLayout) => {
+                updateLayout={(layout: Layout) => {
                   updateConfig(block.id, {
                     ...config.blocks[block.id],
                     layout,
@@ -766,7 +766,7 @@ const OutroTab = ({
     let socialDetails: OutroBlockView = {
       ...view,
       type: 'outroBlock',
-      outro: view?.outro,
+      outro: view?.outro || {},
     }
 
     if (title === 'Twitter') {

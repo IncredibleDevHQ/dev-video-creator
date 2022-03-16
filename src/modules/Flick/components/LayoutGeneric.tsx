@@ -8,7 +8,7 @@ import {
   IoPlayOutline,
 } from 'react-icons/io5'
 import { Text } from '../../../components'
-import { Layout, OutroLayout, ViewConfig } from '../../../utils/configTypes'
+import { Layout, ViewConfig } from '../../../utils/configTypes'
 import { Block } from '../editor/utils/utils'
 
 export const FragmentTypeIcon = ({
@@ -64,7 +64,7 @@ const LayoutGeneric = ({
 }: {
   isSelected?: boolean
   mode?: ViewConfig['mode']
-  layout: Layout | OutroLayout
+  layout: Layout
   type: Block['type']
   shouldDisplayIcon?: boolean
 } & HTMLAttributes<HTMLDivElement>) => {
