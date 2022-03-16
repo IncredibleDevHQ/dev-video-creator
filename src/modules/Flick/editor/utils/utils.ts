@@ -1,20 +1,21 @@
 import { JSONContent } from '@tiptap/core'
+import { Layout } from '../../../../utils/configTypes'
 import { IntroState } from '../../../Studio/effects/fragments/IntroFragment'
 import { Transformations } from '../blocks/VideoEditor'
 
-export type Layout =
-  | 'top-right-circle'
-  | 'top-left-circle'
-  | 'bottom-left-circle'
-  | 'bottom-right-circle'
-  | 'top-right-square'
-  | 'top-left-square'
-  | 'bottom-left-square'
-  | 'bottom-right-square'
-  | 'right-bar'
-  | 'left-bar'
-  | 'right-bar-floating'
-  | 'left-bar-floating'
+// export type Layout =
+//   | 'top-right-circle'
+//   | 'top-left-circle'
+//   | 'bottom-left-circle'
+//   | 'bottom-right-circle'
+//   | 'top-right-square'
+//   | 'top-left-square'
+//   | 'bottom-left-square'
+//   | 'bottom-right-square'
+//   | 'right-bar'
+//   | 'left-bar'
+//   | 'right-bar-floating'
+//   | 'left-bar-floating'
 
 export interface CommentExplanations {
   explanation: string | undefined

@@ -102,6 +102,32 @@ export const getThemeTextColor = (theme: ThemeFragment): string => {
   }
 }
 
+export const getThemeSurfaceColor = (theme: ThemeFragment): string => {
+  switch (theme.name) {
+    case 'DarkGradient':
+      return '#151D2C'
+    case 'PastelLines':
+      return ''
+    case 'Cassidoo':
+      return '#fafafa'
+    default:
+      return '#ffffff'
+  }
+}
+
+export const getThemeFont = (theme: ThemeFragment): string => {
+  switch (theme.name) {
+    case 'DarkGradient':
+      return 'Gilroy'
+    case 'PastelLines':
+      return 'Outfit'
+    case 'Cassidoo':
+      return 'Roboto Mono'
+    default:
+      return 'Gilroy'
+  }
+}
+
 export const ThemeUserMediaConfig = ({
   theme,
   studioUserConfig,
