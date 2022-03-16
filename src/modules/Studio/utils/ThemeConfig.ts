@@ -13,6 +13,8 @@ export interface ObjectRenderConfig {
   surfaceOpacity?: number
   pointsBulletColor?: string
   borderRadius?: number
+  titleFont?: string
+  bodyFont?: string
 }
 
 export interface StudioUserThemeConfig {
@@ -47,6 +49,8 @@ export const ThemeLayoutConfig = ({
         surfaceColor: '#151D2C',
         pointsBulletColor: '#713654',
         borderRadius: layoutConfig.borderRadius,
+        titleFont: 'Gilroy',
+        bodyFont: 'GilroyRegular',
       }
     case 'PastelLines':
       return {
@@ -70,6 +74,8 @@ export const ThemeLayoutConfig = ({
         borderRadius: layoutConfig.borderRadius,
         surfaceColor: '#fafafa',
         surfaceOpacity: 0.8,
+        titleFont: 'Roboto Mono',
+        bodyFont: 'Roboto Mono',
       }
     default:
       return {
@@ -93,6 +99,32 @@ export const getThemeTextColor = (theme: ThemeFragment): string => {
       return '#27272A'
     default:
       return '#ffffff'
+  }
+}
+
+export const getThemeSurfaceColor = (theme: ThemeFragment): string => {
+  switch (theme.name) {
+    case 'DarkGradient':
+      return '#151D2C'
+    case 'PastelLines':
+      return ''
+    case 'Cassidoo':
+      return '#fafafa'
+    default:
+      return '#ffffff'
+  }
+}
+
+export const getThemeFont = (theme: ThemeFragment): string => {
+  switch (theme.name) {
+    case 'DarkGradient':
+      return 'Gilroy'
+    case 'PastelLines':
+      return 'Outfit'
+    case 'Cassidoo':
+      return 'Roboto Mono'
+    default:
+      return 'Gilroy'
   }
 }
 

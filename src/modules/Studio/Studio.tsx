@@ -19,6 +19,8 @@ import {
   useRecoilState,
   useRecoilValue,
 } from 'recoil'
+import { ReactComponent as ReRecordIcon } from '../../assets/ReRecord.svg'
+import { ReactComponent as UploadIcon } from '../../assets/Upload.svg'
 import {
   Button,
   dismissToast,
@@ -44,26 +46,21 @@ import {
 import { useCanvasRecorder } from '../../hooks'
 import { useUploadFile } from '../../hooks/use-upload-file'
 import { User, userState } from '../../stores/user.store'
-import { TopLayerChildren, ViewConfig } from '../../utils/configTypes'
 import { logEvent } from '../../utils/analytics'
 import { PageEvent } from '../../utils/analytics-types'
+import { TopLayerChildren, ViewConfig } from '../../utils/configTypes'
 import { BrandingJSON } from '../Branding/BrandingPage'
 import { useGetHW } from '../Flick/components/BlockPreview'
 import { TextEditorParser } from '../Flick/editor/utils/helpers'
-import {
-  CodeBlockProps,
-  ImageBlockProps,
-  ListBlockProps,
-  SimpleAST,
-  useUtils,
-  VideoBlockProps,
-} from '../Flick/editor/utils/utils'
-import { Countdown } from './components'
+import { SimpleAST, useUtils } from '../Flick/editor/utils/utils'
+import { EditorProvider } from '../Flick/Flick'
+import { Countdown, TimerModal } from './components'
 import {
   CONFIG,
   GetTopLayerChildren,
   SHORTS_CONFIG,
 } from './components/Concourse'
+import Notes from './components/Notes'
 import PermissionError from './components/PermissionError'
 import Preload from './components/Preload'
 import RecordingControlsBar from './components/RecordingControlsBar'
@@ -73,8 +70,6 @@ import { loadFonts } from './hooks/use-load-font'
 import { Device, MediaStreamError } from './hooks/use-media-stream'
 import { useRTDB } from './hooks/use-rtdb'
 import { StudioProviderProps, StudioState, studioStore } from './stores'
-import { ReactComponent as ReRecordIcon } from '../../assets/ReRecord.svg'
-import { ReactComponent as UploadIcon } from '../../assets/Upload.svg'
 
 const noScrollBar = css`
   ::-webkit-scrollbar {
@@ -85,9 +80,10 @@ const noScrollBar = css`
 const StudioHoC = () => {
   const [view, setView] = useState<'preview' | 'preload' | 'studio'>('preload')
 
-  const { sub } = (useRecoilValue(userState) as User) || {}
+  const { sub, displayName } = (useRecoilValue(userState) as User) || {}
   const { fragmentId } = useParams<{ fragmentId: string }>()
   const [fragment, setFragment] = useState<StudioFragmentFragment>()
+  const [isUserAllowed, setUserAllowed] = useState(false)
 
   const devices = useRef<{ microphone: Device | null; camera: Device | null }>({
     camera: null,
@@ -117,8 +113,13 @@ const StudioHoC = () => {
 
   useEffect(() => {
     if (!data) return
-    setFragment(data.Fragment?.[0])
 
+    setFragment(data.Fragment?.[0])
+    setUserAllowed(
+      !!data.Fragment[0]?.configuration?.speakers?.find(
+        (speaker: any) => speaker.userSub === sub
+      )
+    )
     if (!new TextEditorParser(data.Fragment[0].editorState).isValid()) {
       setError('INVALID_AST')
     }
@@ -133,6 +134,15 @@ const StudioHoC = () => {
         subtitle="The fragment contains an invalid data reference. Please correct it and try again."
       />
     )
+
+  if (!isUserAllowed) {
+    return (
+      <ScreenState
+        title="Permission Denied"
+        subtitle="Please contact the owner to add you as the speaker of the flick"
+      />
+    )
+  }
 
   if (view === 'preload' && fragment)
     return (
@@ -157,17 +167,22 @@ const StudioHoC = () => {
 
   if (view === 'studio' && fragment)
     return (
-      <Studio
-        data={data}
-        studioFragment={fragment}
-        branding={
-          data?.Fragment?.[0].flick.useBranding
-            ? data?.Fragment?.[0]?.flick.branding?.branding
-            : null
-        }
-        devices={devices.current}
-        liveStream={liveStream.current}
-      />
+      <EditorProvider
+        flickId={fragment.flickId}
+        userName={displayName as string}
+      >
+        <Studio
+          data={data}
+          studioFragment={fragment}
+          branding={
+            data?.Fragment?.[0].flick.useBranding
+              ? data?.Fragment?.[0]?.flick.branding?.branding
+              : null
+          }
+          devices={devices.current}
+          liveStream={liveStream.current}
+        />
+      </EditorProvider>
     )
 
   return null
@@ -415,7 +430,7 @@ const Preview = ({
         </div>
         <div className="flex flex-col justify-center flex-1 col-span-2">
           <Heading className="mb-4" fontSize="medium">
-            {data?.name}
+            {data?.flick?.name || data?.name}
           </Heading>
 
           <Heading fontSize="extra-small" className="uppercase">
@@ -546,6 +561,10 @@ const Studio = ({
   const [stageBoundingDivRef, bounds] = useMeasure()
 
   const [mountStage, setMountStage] = useState(false)
+
+  const [isTimerModalOpen, setIsTimerModalOpen] = useState(true)
+  const [timeLimit, setTimeLimit] = useState<number | undefined>()
+  const [timeLimitOver, setTimeLimitOver] = useState(false)
 
   const { height: stageHeight, width: stageWidth } = useGetHW({
     maxH: bounds.height,
@@ -920,22 +939,22 @@ const Studio = ({
     }
   }, [payload?.status])
 
-  const getNote = (activeObjectIndex: number | undefined) => {
-    if (!fragment || activeObjectIndex === undefined) return ''
-    const blocks = fragment.editorState?.blocks
-    switch (blocks[activeObjectIndex].type) {
-      case 'codeBlock':
-        return (blocks[activeObjectIndex] as CodeBlockProps).codeBlock.note
-      case 'videoBlock':
-        return (blocks[activeObjectIndex] as VideoBlockProps).videoBlock.note
-      case 'listBlock':
-        return (blocks[activeObjectIndex] as ListBlockProps).listBlock.note
-      case 'imageBlock':
-        return (blocks[activeObjectIndex] as ImageBlockProps).imageBlock.note
-      default:
-        return ''
-    }
-  }
+  // const getNote = (activeObjectIndex: number | undefined) => {
+  //   if (!fragment || activeObjectIndex === undefined) return ''
+  //   const blocks = fragment.editorState?.blocks
+  //   switch (blocks[activeObjectIndex].type) {
+  //     case 'codeBlock':
+  //       return (blocks[activeObjectIndex] as CodeBlockProps).codeBlock.note
+  //     case 'videoBlock':
+  //       return (blocks[activeObjectIndex] as VideoBlockProps).videoBlock.note
+  //     case 'listBlock':
+  //       return (blocks[activeObjectIndex] as ListBlockProps).listBlock.note
+  //     case 'imageBlock':
+  //       return (blocks[activeObjectIndex] as ImageBlockProps).imageBlock.note
+  //     default:
+  //       return ''
+  //   }
+  // }
 
   // state which stores the type of layer children which have to be placed over the studio user
   const [topLayerChildren, setTopLayerChildren] = useState<{
@@ -1026,6 +1045,26 @@ const Studio = ({
               className="flex justify-center flex-1 col-span-8 w-full h-full relative"
               ref={stageBoundingDivRef}
             >
+              <div
+                className={cx(
+                  'animate-pulse rounded-sm absolute',
+                  {
+                    'bg-transparent': !timeLimitOver,
+                    'bg-red-600': timeLimitOver,
+                  },
+                  css`
+                    width: ${layerRef.current
+                      ? layerRef.current?.width() + 10
+                      : 0}px;
+                    height: ${layerRef.current
+                      ? layerRef.current.height() + 10
+                      : 0}px;
+                    left: 50%;
+                    top: 50%;
+                    transform: translate(-50%, -50%);
+                  `
+                )}
+              />
               {mountStage &&
                 (state === 'ready' ||
                   state === 'recording' ||
@@ -1077,11 +1116,15 @@ const Studio = ({
               <RecordingControlsBar
                 stageRef={stageRef}
                 stageHeight={stageHeight}
+                stageWidth={stageWidth}
+                timeLimit={timeLimit}
                 shortsMode={shortsMode}
+                timeOver={() => setTimeLimitOver(true)}
+                openTimerModal={() => setIsTimerModalOpen(true)}
               />
             </div>
             {/* Notes */}
-            <div className="col-span-3 w-full">
+            {/* <div className="col-span-3 w-full">
               <div
                 style={{
                   background: '#27272A',
@@ -1095,7 +1138,8 @@ const Studio = ({
                   <span className="italic">No notes</span>
                 )}
               </div>
-            </div>
+            </div> */}
+            <Notes stageHeight={stageHeight} />
           </div>
           {/* Mini timeline */}
           <div
@@ -1132,19 +1176,17 @@ const Studio = ({
                       payload?.activeObjectIndex ===
                         fragment.editorState.blocks.length - 1) &&
                       state !== 'ready' && (
-                        <div
-                          style={{
-                            background: '#71717A',
-                          }}
-                          className="absolute top-0 right-0 rounded-tr-sm rounded-bl-sm"
-                        >
+                        <div className="absolute top-0 right-0 rounded-tr-sm rounded-bl-sm bg-incredible-green-600">
                           <IoCheckmarkOutline
                             className="m-px text-gray-200"
                             size={8}
                           />
                         </div>
                       )}
-                    {utils.getBlockTitle(block)}
+                    <span>
+                      {utils.getBlockTitle(block).substring(0, 40) +
+                        (utils.getBlockTitle(block).length > 40 ? '...' : '')}
+                    </span>
                   </div>
                 )
               })}
@@ -1208,6 +1250,12 @@ const Studio = ({
           )}
         </div>
       )}
+      <TimerModal
+        open={isTimerModalOpen}
+        timeLimit={timeLimit}
+        setTimeLimit={setTimeLimit}
+        handleClose={() => setIsTimerModalOpen(false)}
+      />
     </div>
   )
 }

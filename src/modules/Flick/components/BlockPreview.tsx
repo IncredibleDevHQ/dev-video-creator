@@ -1,3 +1,4 @@
+/* eslint-disable no-nested-ternary */
 import { css, cx } from '@emotion/css'
 import Konva from 'konva'
 import React, { createRef, HTMLAttributes, useEffect, useState } from 'react'
@@ -16,13 +17,15 @@ import {
   Gradient,
   GradientConfig,
   Layout,
+  OutroLayout,
+  outroLayoutTypes,
   shortsLayoutTypes,
   ViewConfig,
 } from '../../../utils/configTypes'
 import { CONFIG, SHORTS_CONFIG } from '../../Studio/components/Concourse'
 import UnifiedFragment from '../../Studio/effects/fragments/UnifiedFragment'
 import { getThemeSupportedUserMediaLayouts } from '../../Studio/utils/ThemeConfig'
-import { Block } from '../editor/utils/utils'
+import { Block, SimpleAST } from '../editor/utils/utils'
 import { newFlickStore } from '../store/flickNew.store'
 import LayoutGeneric from './LayoutGeneric'
 
@@ -201,23 +204,40 @@ export const LayoutSelector = ({
         )}
       >
         {mode === 'Landscape'
-          ? getThemeSupportedUserMediaLayouts(
-              activeTheme?.name || 'DarkGradient'
-            ).map((layoutType) => (
-              <div className="flex items-center justify-center">
-                <LayoutGeneric
-                  type={type}
-                  key={layoutType}
-                  mode={mode}
-                  layout={layoutType}
-                  isSelected={layout === layoutType}
-                  onClick={() => {
-                    logEvent(PageEvent.ChangeLayout)
-                    updateLayout(layoutType)
-                  }}
-                />
-              </div>
-            ))
+          ? type === 'outroBlock'
+            ? outroLayoutTypes.map((layoutType) => (
+                <div className="flex items-center justify-center">
+                  <LayoutGeneric
+                    type={type}
+                    key={layoutType}
+                    mode={mode}
+                    layout={layoutType}
+                    shouldDisplayIcon={false}
+                    isSelected={layout === layoutType}
+                    onClick={() => {
+                      logEvent(PageEvent.ChangeLayout)
+                      updateLayout(layoutType)
+                    }}
+                  />
+                </div>
+              ))
+            : getThemeSupportedUserMediaLayouts(
+                activeTheme?.name || 'DarkGradient'
+              ).map((layoutType) => (
+                <div className="flex items-center justify-center">
+                  <LayoutGeneric
+                    type={type}
+                    key={layoutType}
+                    mode={mode}
+                    layout={layoutType}
+                    isSelected={layout === layoutType}
+                    onClick={() => {
+                      logEvent(PageEvent.ChangeLayout)
+                      updateLayout(layoutType)
+                    }}
+                  />
+                </div>
+              ))
           : shortsLayoutTypes?.map((layoutType) => (
               <LayoutGeneric
                 type={type}
@@ -312,6 +332,8 @@ const PreviewModal = ({
   block,
   blocks,
   config,
+  simpleAST,
+  setSimpleAST,
   updateBlockProperties,
   handleClose,
   setCurrentBlock,
@@ -320,6 +342,8 @@ const PreviewModal = ({
   open: boolean
   config: ViewConfig
   blocks: Block[]
+  simpleAST?: SimpleAST
+  setSimpleAST?: React.Dispatch<React.SetStateAction<SimpleAST | undefined>>
   updateBlockProperties: (id: string, properties: BlockProperties) => void
   setCurrentBlock: React.Dispatch<React.SetStateAction<Block | undefined>>
   handleClose: () => void
@@ -344,7 +368,7 @@ const PreviewModal = ({
         modal: cx('rounded-md m-0 p-0'),
       }}
     >
-      <div className="flex flex-col h-full ">
+      <div className="flex flex-col h-full w-full overflow-hidden">
         <Preview
           block={block}
           blocks={blocks}
@@ -352,6 +376,8 @@ const PreviewModal = ({
           updateConfig={updateBlockProperties}
           setCurrentBlock={setCurrentBlock}
           centered
+          simpleAST={simpleAST}
+          setSimpleAST={setSimpleAST}
         />
         <Timeline
           blocks={blocks}
@@ -371,6 +397,8 @@ const BlockPreview = ({
   config,
   block,
   blocks,
+  simpleAST,
+  setSimpleAST,
   setCurrentBlock,
   updateConfig,
   className,
@@ -379,6 +407,8 @@ const BlockPreview = ({
   block: Block
   config: ViewConfig
   blocks: Block[]
+  simpleAST?: SimpleAST
+  setSimpleAST?: React.Dispatch<React.SetStateAction<SimpleAST | undefined>>
   setCurrentBlock: React.Dispatch<React.SetStateAction<Block | undefined>>
   updateConfig: (id: string, properties: BlockProperties) => void
 } & HTMLAttributes<HTMLDivElement>) => {
@@ -415,6 +445,8 @@ const BlockPreview = ({
           updateBlockProperties={updateConfig}
           config={config}
           open={previewModal}
+          simpleAST={simpleAST}
+          setSimpleAST={setSimpleAST}
           handleClose={() => {
             setPreviewModal(() => false)
           }}

@@ -194,8 +194,8 @@ const ThemeTooltip = ({
               if (theme.name === 'Cassidoo') {
                 if (
                   email &&
-                  (email.includes('incredible.dev') ||
-                    config.whitelist.cassidyTheme.includes(email))
+                  (email?.includes('incredible.dev') ||
+                    config?.whitelist?.cassidyTheme?.includes(email))
                 ) {
                   return true
                 }
@@ -286,7 +286,7 @@ const FragmentBar = ({
 
   useDidUpdateEffect(() => {
     debounced()
-  }, [editorValue, config, useBranding, brandingId])
+  }, [editorValue, config, useBranding, brandingId, simpleAST])
 
   useEffect(() => {
     const f = flick?.fragments.find((f) => f.id === activeFragmentId)
@@ -600,6 +600,7 @@ const FragmentBar = ({
       {brandingModal && (
         <Branding
           open={brandingModal}
+          activeBrand={brandingId}
           handleClose={() => {
             setBrandingModal(false)
           }}

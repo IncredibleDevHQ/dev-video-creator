@@ -1,13 +1,20 @@
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
-import { Group } from 'react-konva'
+import { Group, Text } from 'react-konva'
 import { useRecoilState, useRecoilValue } from 'recoil'
-import { BlockProperties } from '../../../../utils/configTypes'
+import {
+  BlockProperties,
+  CaptionTitleView,
+  VideoBlockView,
+  VideoBlockViewProps,
+} from '../../../../utils/configTypes'
 import { Transformations } from '../../../Flick/editor/blocks/VideoEditor'
 import { VideoBlockProps } from '../../../Flick/editor/utils/utils'
 import Concourse from '../../components/Concourse'
+import FragmentBackground from '../../components/FragmentBackground'
 import { FragmentState } from '../../components/RenderTokens'
 import { Video, VideoConfig } from '../../components/Video'
+import { usePoint } from '../../hooks'
 import { StudioProviderProps, studioStore } from '../../stores'
 import {
   FragmentLayoutConfig,
@@ -34,11 +41,25 @@ const VideoFragment = ({
   stageRef: React.RefObject<Konva.Stage>
   shortsMode: boolean
 }) => {
-  const { fragment, payload, updatePayload, state, theme } =
+  const { fragment, payload, updatePayload, state, theme, branding } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
-
   const [studio, setStudio] = useRecoilState(studioStore)
 
+  const [videoConfig, setVideoConfig] = useState<VideoConfig>({
+    x: 0,
+    y: 0,
+    width: 0,
+    height: 0,
+    videoFill: '',
+    cornerRadius: 0,
+    performClip: true,
+    clipVideoConfig: {
+      x: 0,
+      y: 0,
+      width: 1,
+      height: 1,
+    },
+  })
   const [playing, setPlaying] = useState(false)
 
   // ref to the object grp
@@ -64,6 +85,11 @@ const VideoFragment = ({
       textColor: '',
       surfaceColor: '',
     })
+  const [videoFragmentData, setVideoFragentData] =
+    useState<{ title: string; caption: string }>()
+  const [renderMode, setRenderMode] = useState<CaptionTitleView>('titleOnly')
+
+  const { getNoOfLinesOfText } = usePoint()
 
   useEffect(() => {
     return () => {
@@ -91,17 +117,25 @@ const VideoFragment = ({
         isShorts: shortsMode || false,
       })
     )
+    setVideoFragentData({
+      title: dataConfig?.videoBlock.title || '',
+      caption: dataConfig?.videoBlock?.caption || '',
+    })
+    const videoBlockViewProps: VideoBlockViewProps = (
+      viewConfig?.view as VideoBlockView
+    )?.video
+    setRenderMode(videoBlockViewProps?.captionTitleView || 'titleOnly')
     if (dataConfig.videoBlock.transformations)
       setTransformations(dataConfig.videoBlock.transformations)
     // eslint-disable-next-line consistent-return
     return element
-  }, [dataConfig, viewConfig, shortsMode])
+  }, [dataConfig, viewConfig, shortsMode, theme])
 
   useEffect(() => {
     setObjectRenderConfig(
       ThemeLayoutConfig({ theme, layoutConfig: objectConfig })
     )
-  }, [objectConfig])
+  }, [objectConfig, theme])
 
   useEffect(() => {
     setStudio({
@@ -173,9 +207,9 @@ const VideoFragment = ({
         setFragmentState(payload?.fragmentState)
         customLayoutRef?.current?.to({
           opacity: 1,
-          duration: 0.2,
+          duration: 0.1,
         })
-      }, 800)
+      }, 400)
     }
     // Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
     if (payload?.fragmentState === 'onlyUserMedia') {
@@ -183,42 +217,142 @@ const VideoFragment = ({
         setFragmentState(payload?.fragmentState)
         customLayoutRef?.current?.to({
           opacity: 0,
-          duration: 0.2,
+          duration: 0.1,
         })
-      }, 800)
+      }, 400)
     }
   }, [payload?.fragmentState])
 
-  const videoConfig: VideoConfig = {
-    // x: objectRenderConfig.startX,
-    // y: objectRenderConfig.startY,
-    // width: 776.89,
-    // height: objectRenderConfig.availableHeight,
-    x: objectConfig.x,
-    y: objectConfig.y,
-    width: objectConfig.width,
-    height: objectConfig.height,
-    videoFill: objectConfig.color || '#1F2937',
-    cornerRadius: objectRenderConfig.borderRadius,
-    performClip: true,
-    clipVideoConfig: {
-      x: transformations?.crop?.x || 0,
-      y: transformations?.crop?.y || 0,
-      width: transformations?.crop?.width || 1,
-      height: transformations?.crop?.height || 1,
-    },
-  }
+  useEffect(() => {
+    const noOfLinesOfTitle = getNoOfLinesOfText({
+      text: videoFragmentData?.title || '',
+      availableWidth: objectRenderConfig.availableWidth - 20,
+      fontSize: 24,
+      fontFamily:
+        branding?.font?.body?.family ||
+        objectRenderConfig.titleFont ||
+        'Gilroy',
+      fontStyle: 'bold',
+    })
+    if (renderMode === 'titleOnly') {
+      setVideoConfig({
+        x: objectRenderConfig.startX + 10,
+        y: objectRenderConfig.startY + 10 + noOfLinesOfTitle * 38 + 10,
+        width: objectRenderConfig.availableWidth - 20,
+        height:
+          objectRenderConfig.availableHeight -
+          20 -
+          (noOfLinesOfTitle * 38 + 10),
+        // x: objectConfig.x,
+        // y: objectConfig.y,
+        // width: objectConfig.width,
+        // height: objectConfig.height,
+        videoFill: objectConfig.color || '#1F2937',
+        cornerRadius: objectRenderConfig.borderRadius,
+        performClip: true,
+        clipVideoConfig: {
+          x: transformations?.crop?.x || 0,
+          y: transformations?.crop?.y || 0,
+          width: transformations?.crop?.width || 1,
+          height: transformations?.crop?.height || 1,
+        },
+      })
+    } else if (renderMode === 'captionOnly') {
+      setVideoConfig({
+        x: objectRenderConfig.startX + 10,
+        y: objectRenderConfig.startY + 20,
+        width: objectRenderConfig.availableWidth - 20,
+        height: objectRenderConfig.availableHeight - 80,
+        videoFill: objectConfig.color || '#1F2937',
+        cornerRadius: objectRenderConfig.borderRadius,
+        performClip: true,
+        clipVideoConfig: {
+          x: transformations?.crop?.x || 0,
+          y: transformations?.crop?.y || 0,
+          width: transformations?.crop?.width || 1,
+          height: transformations?.crop?.height || 1,
+        },
+      })
+    } else {
+      setVideoConfig({
+        x: objectRenderConfig.startX + 10,
+        y: objectRenderConfig.startY + 10,
+        width: objectRenderConfig.availableWidth - 20,
+        height: objectRenderConfig.availableHeight - 20,
+        videoFill: objectConfig.color || '#1F2937',
+        cornerRadius: objectRenderConfig.borderRadius,
+        performClip: true,
+        clipVideoConfig: {
+          x: transformations?.crop?.x || 0,
+          y: transformations?.crop?.y || 0,
+          width: transformations?.crop?.width || 1,
+          height: transformations?.crop?.height || 1,
+        },
+      })
+    }
+  }, [renderMode, objectRenderConfig, transformations, videoFragmentData])
 
   const layerChildren: any[] = [
     <Group x={0} y={0} opacity={0} ref={customLayoutRef}>
-      {/* <FragmentBackground
+      <FragmentBackground
         theme={theme}
         objectConfig={objectConfig}
-        backgroundRectColor="#151D2C"
-      /> */}
+        backgroundRectColor={
+          branding?.colors?.primary
+            ? branding?.colors?.primary
+            : objectRenderConfig.surfaceColor
+        }
+      />
       {videoElement && (
         <Video videoElement={videoElement} videoConfig={videoConfig} />
       )}
+      <Group x={objectRenderConfig.startX} y={objectRenderConfig.startY}>
+        {renderMode === 'titleOnly' && (
+          <Text
+            x={10}
+            y={10}
+            align="center"
+            fontSize={24}
+            fill={
+              branding?.colors?.text
+                ? branding?.colors?.text
+                : objectRenderConfig.textColor
+            }
+            width={objectRenderConfig.availableWidth - 20}
+            lineHeight={1.2}
+            text={videoFragmentData?.title}
+            fontStyle="bold"
+            fontFamily={
+              branding?.font?.body?.family ||
+              objectRenderConfig.titleFont ||
+              'Gilroy'
+            }
+            textTransform="capitalize"
+          />
+        )}
+
+        {renderMode === 'captionOnly' && (
+          <Text
+            x={10}
+            y={objectRenderConfig.availableHeight - 40}
+            align="center"
+            fontSize={16}
+            fill={
+              branding?.colors?.text
+                ? branding?.colors?.text
+                : objectRenderConfig.textColor
+            }
+            width={objectRenderConfig.availableWidth - 20}
+            lineHeight={1.2}
+            text={videoFragmentData?.caption}
+            fontFamily={
+              branding?.font?.body?.family ||
+              objectRenderConfig.titleFont ||
+              'GilroyRegular'
+            }
+          />
+        )}
+      </Group>
     </Group>,
   ]
 

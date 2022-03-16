@@ -6,7 +6,7 @@ const editorStyle = css`
 
   img {
     margin-top: 1em;
-    margin-bottom: 1em;
+    margin-bottom: 0;
   }
 
   code {

@@ -4,12 +4,18 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Group, Image, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
-import { BlockProperties } from '../../../../utils/configTypes'
+import {
+  BlockProperties,
+  CaptionTitleView,
+  ImageBlockView,
+  ImageBlockViewProps,
+} from '../../../../utils/configTypes'
 import { ImageBlockProps } from '../../../Flick/editor/utils/utils'
 import Concourse from '../../components/Concourse'
 import FragmentBackground from '../../components/FragmentBackground'
 import Gif from '../../components/Gif'
 import { FragmentState } from '../../components/RenderTokens'
+import { usePoint } from '../../hooks'
 import useEdit from '../../hooks/use-edit'
 import { StudioProviderProps, studioStore } from '../../stores'
 import {
@@ -22,7 +28,7 @@ import {
 } from '../../utils/StudioUserConfig'
 import { ObjectRenderConfig, ThemeLayoutConfig } from '../../utils/ThemeConfig'
 
-const TriviaFragment = ({
+const ImageFragment = ({
   viewConfig,
   dataConfig,
   fragmentState,
@@ -40,21 +46,19 @@ const TriviaFragment = ({
   const { fragment, payload, branding, theme } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
-  // const [activeQuestionIndex, setActiveQuestionIndex] = useState<number>(0)
-  const [triviaData, setTriviaData] =
-    useState<{ text: string; image?: string }>()
+  const [imageFragmentData, setImageFragmentData] =
+    useState<{ title: string; image?: string; caption: string }>()
 
   const { getImageDimensions } = useEdit()
 
   const [qnaImage] = useImage(
-    triviaData && triviaData.image ? triviaData.image : '',
+    imageFragmentData && imageFragmentData.image ? imageFragmentData.image : '',
     'anonymous'
   )
-
-  // const [bgImage] = useImage(viewConfig?.background?.image || '', 'anonymous')
-
   const [isGif, setIsGif] = useState(false)
-  // const [gifUrl, setGifUrl] = useState('')
+  const [renderMode, setRenderMode] = useState<CaptionTitleView>('titleOnly')
+
+  const { getNoOfLinesOfText } = usePoint()
 
   const [imgDim, setImgDim] = useState<{
     width: number
@@ -93,50 +97,83 @@ const TriviaFragment = ({
         isShorts: shortsMode || false,
       })
     )
-    setTriviaData({
+    setImageFragmentData({
       image: dataConfig?.imageBlock.url || '',
-      text: dataConfig?.imageBlock.title || '',
+      title: dataConfig?.imageBlock.title || '',
+      caption: dataConfig?.imageBlock.caption || '',
     })
+    const imageBlockViewProps: ImageBlockViewProps = (
+      viewConfig?.view as ImageBlockView
+    )?.image
+    setRenderMode(imageBlockViewProps?.captionTitleView || 'titleOnly')
     if (dataConfig?.imageBlock.type === 'gif') setIsGif(true)
     else setIsGif(false)
-  }, [dataConfig, shortsMode, viewConfig])
+  }, [dataConfig, shortsMode, viewConfig, theme])
 
   useEffect(() => {
     setObjectRenderConfig(
       ThemeLayoutConfig({ theme, layoutConfig: objectConfig })
     )
-  }, [objectConfig])
+  }, [objectConfig, theme])
 
   useEffect(() => {
-    if (triviaData?.text) {
-      if (shortsMode) {
+    const noOfLinesOfTitle = getNoOfLinesOfText({
+      text: imageFragmentData?.title || '',
+      availableWidth: objectRenderConfig.availableWidth - 20,
+      fontSize: 24,
+      fontFamily:
+        branding?.font?.body?.family ||
+        objectRenderConfig.titleFont ||
+        'Gilroy',
+      fontStyle: 'bold',
+    })
+
+    if (imageFragmentData?.title) {
+      if (renderMode === 'titleOnly') {
         setImgDim(
           getImageDimensions(
             {
               w: (qnaImage && qnaImage.width) || 0,
               h: (qnaImage && qnaImage.height) || 0,
             },
-            objectRenderConfig.availableWidth - 30,
-            objectRenderConfig.availableHeight - 140,
             objectRenderConfig.availableWidth - 40,
-            objectRenderConfig.availableHeight,
+            objectRenderConfig.availableHeight - (noOfLinesOfTitle * 38 + 60),
+            objectRenderConfig.availableWidth - 40,
+            objectRenderConfig.availableHeight - (noOfLinesOfTitle * 38 + 60),
             20,
-            0
+            noOfLinesOfTitle * 38 + 40
           )
         )
-      } else {
+      }
+      if (renderMode === 'captionOnly') {
         setImgDim(
           getImageDimensions(
             {
               w: (qnaImage && qnaImage.width) || 0,
               h: (qnaImage && qnaImage.height) || 0,
             },
-            objectRenderConfig.availableWidth - 30,
-            objectRenderConfig.availableHeight - 140,
             objectRenderConfig.availableWidth - 40,
-            objectRenderConfig.availableHeight - 110,
+            objectRenderConfig.availableHeight - 100,
+            objectRenderConfig.availableWidth - 40,
+            objectRenderConfig.availableHeight - 100,
             20,
-            80
+            20
+          )
+        )
+      }
+      if (renderMode === 'none') {
+        setImgDim(
+          getImageDimensions(
+            {
+              w: (qnaImage && qnaImage.width) || 0,
+              h: (qnaImage && qnaImage.height) || 0,
+            },
+            objectRenderConfig.availableWidth - 20,
+            objectRenderConfig.availableHeight - 20,
+            objectRenderConfig.availableWidth - 20,
+            objectRenderConfig.availableHeight - 20,
+            10,
+            10
           )
         )
       }
@@ -155,7 +192,7 @@ const TriviaFragment = ({
           0
         )
       )
-  }, [qnaImage, objectRenderConfig])
+  }, [qnaImage, objectRenderConfig, renderMode, imageFragmentData, shortsMode])
 
   // useEffect(() => {
   //   // setActiveQuestionIndex(payload?.activeQuestion)
@@ -169,9 +206,9 @@ const TriviaFragment = ({
         setFragmentState(payload?.fragmentState)
         customLayoutRef?.current?.to({
           opacity: 1,
-          duration: 0.2,
+          duration: 0.1,
         })
-      }, 800)
+      }, 400)
     }
     // Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
     if (payload?.fragmentState === 'onlyUserMedia') {
@@ -179,9 +216,9 @@ const TriviaFragment = ({
         setFragmentState(payload?.fragmentState)
         customLayoutRef?.current?.to({
           opacity: 0,
-          duration: 0.2,
+          duration: 0.1,
         })
-      }, 800)
+      }, 400)
     }
   }, [payload?.fragmentState])
 
@@ -201,26 +238,9 @@ const TriviaFragment = ({
         y={objectRenderConfig.startY}
         key="group1"
       >
-        {triviaData?.image ? (
-          isGif ? (
-            <>
-              <Text
-                x={10}
-                y={20}
-                align="center"
-                fontSize={32}
-                fill={
-                  branding?.colors?.text
-                    ? branding?.colors?.text
-                    : objectRenderConfig.textColor
-                }
-                width={objectRenderConfig.availableWidth - 20}
-                lineHeight={1.2}
-                text={triviaData?.text}
-                fontStyle="bold"
-                fontFamily={branding?.font?.body?.family || 'Inter'}
-                textTransform="capitalize"
-              />
+        {imageFragmentData?.image ? (
+          <>
+            {isGif ? (
               <Gif
                 image={qnaImage}
                 x={imgDim.x}
@@ -228,26 +248,7 @@ const TriviaFragment = ({
                 width={imgDim.width}
                 height={imgDim.height}
               />
-            </>
-          ) : (
-            <>
-              <Text
-                x={10}
-                y={20}
-                align="center"
-                fontSize={32}
-                fill={
-                  branding?.colors?.text
-                    ? branding?.colors?.text
-                    : objectRenderConfig.textColor
-                }
-                width={objectRenderConfig.availableWidth - 20}
-                lineHeight={1.2}
-                text={triviaData?.text}
-                fontStyle="bold"
-                fontFamily={branding?.font?.body?.family || 'Inter'}
-                textTransform="capitalize"
-              />
+            ) : (
               <Image
                 image={qnaImage}
                 y={imgDim.y}
@@ -258,8 +259,59 @@ const TriviaFragment = ({
                 // shadowOffset={{ x: 0, y: 1 }}
                 // shadowBlur={2}
               />
-            </>
-          )
+            )}
+            {(renderMode === 'titleOnly' ||
+              renderMode === 'titleAndCaption') && (
+              <Text
+                x={10}
+                y={20}
+                align="center"
+                fontSize={24}
+                fill={
+                  branding?.colors?.text
+                    ? branding?.colors?.text
+                    : objectRenderConfig.textColor
+                }
+                width={objectRenderConfig.availableWidth - 20}
+                lineHeight={1.2}
+                text={imageFragmentData?.title}
+                fontStyle="bold"
+                fontFamily={
+                  branding?.font?.body?.family ||
+                  objectRenderConfig.titleFont ||
+                  'Gilroy'
+                }
+                textTransform="capitalize"
+              />
+            )}
+
+            {(renderMode === 'captionOnly' ||
+              renderMode === 'titleAndCaption') && (
+              <Text
+                x={!shortsMode ? 110 : 20}
+                y={objectRenderConfig.availableHeight - 60}
+                align="center"
+                fontSize={16}
+                fill={
+                  branding?.colors?.text
+                    ? branding?.colors?.text
+                    : objectRenderConfig.textColor
+                }
+                width={
+                  !shortsMode
+                    ? objectRenderConfig.availableWidth - 220
+                    : objectRenderConfig.availableWidth - 40
+                }
+                lineHeight={1.2}
+                text={imageFragmentData?.caption}
+                fontFamily={
+                  branding?.font?.body?.family ||
+                  objectRenderConfig.bodyFont ||
+                  'GilroyRegular'
+                }
+              />
+            )}
+          </>
         ) : (
           <Text
             x={10}
@@ -271,9 +323,13 @@ const TriviaFragment = ({
             }
             width={objectRenderConfig.availableWidth - 20}
             height={objectRenderConfig.availableHeight}
-            text={triviaData?.text}
+            text={imageFragmentData?.title}
             fontStyle="bold"
-            fontFamily={branding?.font?.body?.family || 'Inter'}
+            fontFamily={
+              branding?.font?.body?.family ||
+              objectRenderConfig.titleFont ||
+              'Gilroy'
+            }
             align="center"
             verticalAlign="middle"
             lineHeight={1.3}
@@ -310,4 +366,4 @@ const TriviaFragment = ({
   )
 }
 
-export default TriviaFragment
+export default ImageFragment

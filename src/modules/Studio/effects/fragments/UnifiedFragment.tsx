@@ -28,7 +28,7 @@ import CodeFragment from './CodeFragment'
 import IntroFragment from './IntroFragment'
 import OutroFragment from './OutroFragment'
 import PointsFragment from './PointsFragment'
-import TriviaFragment from './TriviaFragment'
+import ImageFragment from './ImageFragment'
 import VideoFragment from './VideoFragment'
 
 const UnifiedFragment = ({
@@ -150,7 +150,12 @@ const UnifiedFragment = ({
     else
       setTimeout(() => {
         setActiveObjectIndex(payload?.activeObjectIndex)
-      }, 800)
+      }, 400)
+  }, [payload?.activeObjectIndex])
+
+  useEffect(() => {
+    if (!payload?.activeObjectIndex || payload?.activeObjectIndex === 0) return
+    setTopLayerChildren?.({ id: nanoid(), state: 'transition right' })
   }, [payload?.activeObjectIndex])
 
   useEffect(() => {
@@ -224,11 +229,6 @@ const UnifiedFragment = ({
     }
   }, [payload?.fragmentState])
 
-  useEffect(() => {
-    if (!payload?.activeObjectIndex || payload?.activeObjectIndex === 0) return
-    setTopLayerChildren?.({ id: nanoid(), state: 'transition right' })
-  }, [payload?.activeObjectIndex])
-
   const [stageConfig, setStageConfig] = useState<{
     width: number
     height: number
@@ -287,7 +287,7 @@ const UnifiedFragment = ({
           }
           case 'imageBlock': {
             return (
-              <TriviaFragment
+              <ImageFragment
                 key={activeObjectIndex}
                 dataConfig={dataConfig[activeObjectIndex] as ImageBlockProps}
                 viewConfig={
@@ -338,7 +338,16 @@ const UnifiedFragment = ({
             )
           }
           case 'outroBlock': {
-            return <OutroFragment isShorts={viewConfig.mode === 'Portrait'} />
+            return (
+              <OutroFragment
+                isShorts={viewConfig.mode === 'Portrait'}
+                viewConfig={
+                  viewConfig.blocks[
+                    dataConfig[activeObjectIndex].id
+                  ] as BlockProperties
+                }
+              />
+            )
           }
           default:
             return <></>

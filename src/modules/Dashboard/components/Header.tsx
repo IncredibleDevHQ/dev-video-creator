@@ -67,7 +67,7 @@ const isUrlValid = (url: string) => {
 
   // check if url is for a markdown file
   const markdownUrlRegex =
-    /^https:\/\/github\.com\/[^/]+\/[^/]+\/blob\/[^/]+\/[^/]+\.md$/
+    /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\/([^/]+)\/(.*)\.md$/
   const rawMarkdownUrlRegex =
     /^https:\/\/raw.githubusercontent.com\/.*\/.*\/.*\/.*\.md$/
 

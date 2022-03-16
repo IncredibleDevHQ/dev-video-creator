@@ -1896,15 +1896,15 @@ export const ShortsStudioUserConfiguration = ({
             default:
               return [
                 {
-                  x: -14,
-                  y: 362,
-                  width: 432,
-                  height: 324,
+                  x: -26,
+                  y: 356,
+                  width: 448,
+                  height: 336,
                   clipTheme: 'rect',
                   borderWidth: 0,
                   studioUserClipConfig: {
-                    x: 38,
-                    y: 2,
+                    x: 50,
+                    y: 8,
                     width: 348,
                     height: 320,
                     borderRadius: 8,
