@@ -1,3 +1,4 @@
+/* eslint-disable no-nested-ternary */
 import { css, cx } from '@emotion/css'
 import Konva from 'konva'
 import React, { createRef, HTMLAttributes, useEffect, useState } from 'react'
@@ -16,6 +17,8 @@ import {
   Gradient,
   GradientConfig,
   Layout,
+  OutroLayout,
+  outroLayoutTypes,
   shortsLayoutTypes,
   ViewConfig,
 } from '../../../utils/configTypes'
@@ -201,23 +204,40 @@ export const LayoutSelector = ({
         )}
       >
         {mode === 'Landscape'
-          ? getThemeSupportedUserMediaLayouts(
-              activeTheme?.name || 'DarkGradient'
-            ).map((layoutType) => (
-              <div className="flex items-center justify-center">
-                <LayoutGeneric
-                  type={type}
-                  key={layoutType}
-                  mode={mode}
-                  layout={layoutType}
-                  isSelected={layout === layoutType}
-                  onClick={() => {
-                    logEvent(PageEvent.ChangeLayout)
-                    updateLayout(layoutType)
-                  }}
-                />
-              </div>
-            ))
+          ? type === 'outroBlock'
+            ? outroLayoutTypes.map((layoutType) => (
+                <div className="flex items-center justify-center">
+                  <LayoutGeneric
+                    type={type}
+                    key={layoutType}
+                    mode={mode}
+                    layout={layoutType}
+                    shouldDisplayIcon={false}
+                    isSelected={layout === layoutType}
+                    onClick={() => {
+                      logEvent(PageEvent.ChangeLayout)
+                      updateLayout(layoutType)
+                    }}
+                  />
+                </div>
+              ))
+            : getThemeSupportedUserMediaLayouts(
+                activeTheme?.name || 'DarkGradient'
+              ).map((layoutType) => (
+                <div className="flex items-center justify-center">
+                  <LayoutGeneric
+                    type={type}
+                    key={layoutType}
+                    mode={mode}
+                    layout={layoutType}
+                    isSelected={layout === layoutType}
+                    onClick={() => {
+                      logEvent(PageEvent.ChangeLayout)
+                      updateLayout(layoutType)
+                    }}
+                  />
+                </div>
+              ))
           : shortsLayoutTypes?.map((layoutType) => (
               <LayoutGeneric
                 type={type}

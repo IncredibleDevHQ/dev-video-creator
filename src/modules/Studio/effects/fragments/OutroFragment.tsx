@@ -1,17 +1,33 @@
 import React, { useEffect, useState } from 'react'
-import { Group, Image, Rect, Text } from 'react-konva'
+import { Group, Image, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
-import incredibleLogo from '../../../../assets/incredible_logo.svg'
-import outroPattern from '../../../../assets/outroPattern.svg'
+import DiscordLogo from '../../../../assets/OutroFragment/discord.svg'
+import TwitterLogo from '../../../../assets/OutroFragment/twitter.svg'
+import YoutubeLogo from '../../../../assets/OutroFragment/youtube.svg'
 import { ThemeFragment } from '../../../../generated/graphql'
-import Concourse, { CONFIG, SHORTS_CONFIG } from '../../components/Concourse'
+import {
+  BlockProperties,
+  OutroBlockView,
+  OutroBlockViewProps,
+} from '../../../../utils/configTypes'
+import Concourse, { SHORTS_CONFIG } from '../../components/Concourse'
+import FragmentBackground from '../../components/FragmentBackground'
 import useEdit from '../../hooks/use-edit'
 import { studioStore } from '../../stores'
+import {
+  getOutroConfig,
+  getSocialHandlePositions,
+  OutroConfig,
+} from '../../utils/OutroConfig'
 import { StudioUserConfiguration } from '../../utils/StudioUserConfig'
-import { getThemeTextColor } from '../../utils/ThemeConfig'
+import {
+  getThemeFont,
+  getThemeSurfaceColor,
+  getThemeTextColor,
+} from '../../utils/ThemeConfig'
 
-const getOutroConfig = (theme: ThemeFragment) => {
+const getImagePosition = (theme: ThemeFragment) => {
   switch (theme.name) {
     case 'DarkGradient':
       return {
@@ -19,7 +35,11 @@ const getOutroConfig = (theme: ThemeFragment) => {
       }
     case 'PastelLines':
       return {
-        imageX: 100,
+        imageX: 60,
+      }
+    case 'Cassidoo':
+      return {
+        imageX: 40,
       }
     default:
       return {
@@ -28,71 +48,251 @@ const getOutroConfig = (theme: ThemeFragment) => {
   }
 }
 
-const OutroFragment = ({ isShorts }: { isShorts: boolean }) => {
+export interface SocialHandles {
+  twitterHandle?: string
+  discordHandle?: string
+  youtubeHandle?: string
+}
+
+const OutroFragment = ({
+  isShorts,
+  viewConfig,
+}: {
+  isShorts: boolean
+  viewConfig: BlockProperties
+}) => {
   const { fragment, branding, theme } = useRecoilValue(studioStore)
   const [logo] = useImage(branding?.logo || '', 'anonymous')
+  const [twitterLogo] = useImage(TwitterLogo, 'anonymous')
+  const [discordLogo] = useImage(DiscordLogo, 'anonymous')
+  const [youtubeLogo] = useImage(YoutubeLogo, 'anonymous')
 
-  const [imgDim, setImgDim] = useState<{
-    width: number
-    height: number
-    x: number
-    y: number
-  }>({ width: 0, height: 0, x: 0, y: 0 })
-  const { getImageDimensions } = useEdit()
+  const [outroConfig, setOutroConfig] = useState<OutroConfig>()
+  const [socialHandles, setSocialHandles] = useState<SocialHandles>({})
+  // const [outroLayout, setOutroLayout] = useState<OutroLayout>()
 
-  const [stageConfig, setStageConfig] = useState<{
-    width: number
-    height: number
-  }>({ width: 0, height: 0 })
+  const [socialHandlesPositionInfo, setSocialHandlesPositionInfo] = useState({
+    twitterX: 0,
+    twitterY: 0,
+    discordX: 0,
+    discordY: 0,
+    youtubeX: 0,
+    youtubeY: 0,
+  })
+
+  const { clipRect } = useEdit()
 
   useEffect(() => {
-    if (!isShorts) setStageConfig(CONFIG)
-    else setStageConfig(SHORTS_CONFIG)
-  }, [isShorts])
-
-  useEffect(() => {
-    setImgDim(
-      getImageDimensions(
-        {
-          w: (logo && logo.width) || 0,
-          h: (logo && logo.height) || 0,
-        },
-        60,
-        60,
-        60,
-        60,
-        0,
-        0
-      )
+    if (!viewConfig) return
+    const outroBlockViewProps: OutroBlockViewProps = (
+      viewConfig?.view as OutroBlockView
+    )?.outro
+    // setOutroLayout(outroBlockViewProps?.layout)
+    setOutroConfig(
+      getOutroConfig({
+        theme,
+        layout: viewConfig?.layout || 'classic',
+        isShorts,
+      })
     )
-  }, [logo])
+    setSocialHandles(
+      {
+        twitterHandle:
+          outroBlockViewProps?.twitter?.enabled &&
+          outroBlockViewProps?.twitter?.handle !== ''
+            ? outroBlockViewProps?.twitter.handle
+            : undefined,
+        discordHandle:
+          outroBlockViewProps?.discord?.enabled &&
+          outroBlockViewProps?.discord?.handle !== ''
+            ? outroBlockViewProps?.discord.handle
+            : undefined,
+        youtubeHandle:
+          outroBlockViewProps?.youtube?.enabled &&
+          outroBlockViewProps?.youtube?.handle !== ''
+            ? outroBlockViewProps?.youtube.handle
+            : undefined,
+      } || {}
+    )
+  }, [viewConfig, theme])
 
-  const layerChildren = [
-    <Group>
-      <Text
-        width={stageConfig.width}
-        height={stageConfig.height}
-        align="center"
-        verticalAlign="middle"
-        text="Thanks for watching"
-        fill={branding?.colors?.text || getThemeTextColor(theme)}
-        fontSize={64}
-        fontFamily={branding?.font?.heading?.family || 'Gilroy'}
-        fontStyle="normal 600"
-        lineHeight={1.2}
-      />
-      <Image
-        x={getOutroConfig(theme).imageX}
-        y={stageConfig.height - 90}
-        width={imgDim.width}
-        height={imgDim.height}
-        image={logo}
-      />
-    </Group>,
-  ]
+  useEffect(() => {
+    if (!outroConfig) return
+    const outroBlockViewProps: OutroBlockViewProps = (
+      viewConfig?.view as OutroBlockView
+    )?.outro
+    setSocialHandlesPositionInfo(
+      getSocialHandlePositions({
+        layout: viewConfig?.layout || 'classic',
+        socialHandles:
+          {
+            twitterHandle:
+              outroBlockViewProps?.twitter?.enabled &&
+              outroBlockViewProps?.twitter?.handle !== ''
+                ? outroBlockViewProps?.twitter.handle
+                : undefined,
+            discordHandle:
+              outroBlockViewProps?.discord?.enabled &&
+              outroBlockViewProps?.discord?.handle !== ''
+                ? outroBlockViewProps?.discord.handle
+                : undefined,
+            youtubeHandle:
+              outroBlockViewProps?.youtube?.enabled &&
+              outroBlockViewProps?.youtube?.handle !== ''
+                ? outroBlockViewProps?.youtube.handle
+                : undefined,
+          } || {},
+        isShorts,
+        noOfSocialHandles: outroBlockViewProps?.noOfSocialHandles || 3,
+        textProperties: {
+          textFontSize: 16,
+          textFontFamily: branding?.font?.body?.family || 'GilroyRegular',
+          // textFontStyle: 'normal',
+        },
+        availableWidth: outroConfig?.layoutWidth || 0,
+        availableHeight: outroConfig?.layoutHeight || 0,
+        socialX: outroConfig?.socialX || 0,
+        socialY: outroConfig?.socialY || 0,
+      })
+    )
+  }, [outroConfig])
+
+  const layerChildren = !isShorts
+    ? [
+        <Group
+          clipFunc={(ctx: any) => {
+            clipRect(ctx, {
+              x: outroConfig?.layoutX || 0,
+              y: outroConfig?.layoutY || 0,
+              width: outroConfig?.layoutWidth || 0,
+              height: outroConfig?.layoutHeight || 0,
+              borderRadius: outroConfig?.layoutBorderRadius || 0,
+            })
+          }}
+        >
+          <FragmentBackground
+            theme={theme}
+            objectConfig={{
+              x: outroConfig?.layoutX || 0,
+              y: outroConfig?.layoutY || 0,
+              width: outroConfig?.layoutWidth || 0,
+              height: outroConfig?.layoutHeight || 0,
+              borderRadius: outroConfig?.layoutBorderRadius || 0,
+            }}
+            backgroundRectColor={
+              branding?.colors?.primary
+                ? branding?.colors?.primary
+                : getThemeSurfaceColor(theme)
+            }
+          />
+          <Group x={outroConfig?.layoutX} y={outroConfig?.layoutY}>
+            <Text
+              x={outroConfig?.textX || 0}
+              y={outroConfig?.textY || 0}
+              width={outroConfig?.textWidth || 0}
+              height={outroConfig?.textHeight || 0}
+              text="Thanks for watching"
+              fill={branding?.colors?.text || getThemeTextColor(theme)}
+              fontSize={outroConfig?.textFontSize || 0}
+              fontFamily={getThemeFont(theme)}
+              fontStyle="normal 600"
+              lineHeight={1.1}
+            />
+            <Image
+              x={outroConfig?.logoX || 0}
+              y={outroConfig?.logoY || 0}
+              width={outroConfig?.logoWidth || 0}
+              height={outroConfig?.logoHeight || 0}
+              image={logo}
+            />
+            {socialHandles?.twitterHandle && (
+              <>
+                <Image
+                  x={socialHandlesPositionInfo?.twitterX}
+                  y={socialHandlesPositionInfo?.twitterY || 0}
+                  width={24}
+                  height={24}
+                  image={twitterLogo}
+                />
+                <Text
+                  x={socialHandlesPositionInfo?.twitterX + 8 + 24}
+                  y={socialHandlesPositionInfo?.twitterY + 3}
+                  text={socialHandles?.twitterHandle}
+                  fill={branding?.colors?.text || getThemeTextColor(theme)}
+                  fontSize={outroConfig?.socialHandlesFontSize || 0}
+                  fontFamily={branding?.font?.body?.family || 'GilroyRegular'}
+                />
+              </>
+            )}
+            {socialHandles?.discordHandle && (
+              <>
+                <Image
+                  x={socialHandlesPositionInfo?.discordX}
+                  y={socialHandlesPositionInfo?.discordY || 0}
+                  width={24}
+                  height={24}
+                  image={discordLogo}
+                />
+                <Text
+                  x={socialHandlesPositionInfo?.discordX + 8 + 24}
+                  y={socialHandlesPositionInfo?.discordY + 3}
+                  text={socialHandles?.discordHandle}
+                  fill={branding?.colors?.text || getThemeTextColor(theme)}
+                  fontSize={outroConfig?.socialHandlesFontSize || 0}
+                  fontFamily={branding?.font?.body?.family || 'GilroyRegular'}
+                  lineHeight={1.2}
+                />
+              </>
+            )}
+            {socialHandles?.youtubeHandle && (
+              <>
+                <Image
+                  x={socialHandlesPositionInfo?.youtubeX}
+                  y={socialHandlesPositionInfo?.youtubeY || 0}
+                  width={24}
+                  height={24}
+                  image={youtubeLogo}
+                />
+                <Text
+                  x={socialHandlesPositionInfo?.youtubeX + 8 + 24}
+                  y={socialHandlesPositionInfo?.youtubeY + 3}
+                  text={socialHandles?.youtubeHandle}
+                  fill={branding?.colors?.text || getThemeTextColor(theme)}
+                  fontSize={outroConfig?.socialHandlesFontSize || 0}
+                  fontFamily={branding?.font?.body?.family || 'GilroyRegular'}
+                  lineHeight={1.2}
+                />
+              </>
+            )}
+          </Group>
+        </Group>,
+      ]
+    : [
+        <Group>
+          <Text
+            width={SHORTS_CONFIG.width}
+            height={SHORTS_CONFIG.height}
+            align="center"
+            verticalAlign="middle"
+            text="Thanks for watching"
+            fill={branding?.colors?.text || getThemeTextColor(theme)}
+            fontSize={64}
+            fontFamily={branding?.font?.heading?.family || 'Gilroy'}
+            fontStyle="normal 600"
+            lineHeight={1.2}
+          />
+          <Image
+            x={getImagePosition(theme).imageX}
+            y={SHORTS_CONFIG.height - 100}
+            width={60}
+            height={60}
+            image={logo}
+          />
+        </Group>,
+      ]
 
   const studioUserConfig = StudioUserConfiguration({
-    layout: 'classic',
+    layout: outroConfig?.userMediaLayout || 'classic',
     fragment,
     fragmentState: 'customLayout',
     theme,
@@ -109,156 +309,3 @@ const OutroFragment = ({ isShorts }: { isShorts: boolean }) => {
 }
 
 export default OutroFragment
-
-export const ShortsOutro = ({
-  performFinishAction,
-}: {
-  performFinishAction: () => void
-}) => {
-  const [incredibleLogoImage] = useImage(incredibleLogo)
-  const [outroPatternImage] = useImage(outroPattern)
-  return (
-    <Group x={0} y={0}>
-      <Rect
-        x={-SHORTS_CONFIG.width}
-        y={0}
-        width={SHORTS_CONFIG.width}
-        height={SHORTS_CONFIG.height}
-        fill="#1F2937"
-        ref={(ref) =>
-          ref?.to({
-            x: 0,
-            duration: 0.2,
-          })
-        }
-      />
-      <Rect
-        x={-SHORTS_CONFIG.width}
-        y={SHORTS_CONFIG.height - 70}
-        width={SHORTS_CONFIG.width}
-        height={70}
-        fill="#ffffff"
-        ref={(ref) =>
-          ref?.to({
-            x: 0,
-            duration: 0.2,
-          })
-        }
-      />
-      <Image
-        image={outroPatternImage}
-        x={SHORTS_CONFIG.width - 385}
-        y={SHORTS_CONFIG.height - 225}
-        width={380}
-        height={150}
-        opacity={0}
-        ref={(ref) =>
-          setTimeout(() => {
-            ref?.to({
-              opacity: 1,
-              duration: 0.2,
-            })
-          }, 100)
-        }
-      />
-      <Text
-        x={40}
-        y={245}
-        text="Thanks for watching"
-        fill="#ffffff"
-        fontSize={32}
-        width={SHORTS_CONFIG.width}
-        lineHeight={1.2}
-        fontFamily="Inter"
-        fontStyle="bold"
-        opacity={0}
-        ref={(ref) =>
-          setTimeout(() => {
-            ref?.to({
-              opacity: 1,
-              duration: 0.2,
-            })
-          }, 100)
-        }
-      />
-      <Text
-        x={44}
-        y={290}
-        text="To create incredible videos like these"
-        fill="#ffffff"
-        fontSize={16}
-        fontFamily="Inter"
-        width={SHORTS_CONFIG.width}
-        lineHeight={1.2}
-        opacity={0}
-        ref={(ref) =>
-          setTimeout(() => {
-            ref?.to({
-              opacity: 1,
-              duration: 0.2,
-            })
-          }, 100)
-        }
-      />
-      <Text
-        x={45}
-        y={315}
-        text="Sign up on"
-        fill="#ffffff"
-        fontSize={16}
-        fontFamily="Inter"
-        width={SHORTS_CONFIG.width}
-        lineHeight={1.2}
-        opacity={0}
-        ref={(ref) =>
-          setTimeout(() => {
-            ref?.to({
-              opacity: 1,
-              duration: 0.2,
-            })
-          }, 100)
-        }
-      />
-      <Text
-        x={131}
-        y={315}
-        text="incredible.dev"
-        fill="#16A34A"
-        fontSize={16}
-        fontFamily="Inter"
-        width={(SHORTS_CONFIG.width * 2) / 3}
-        lineHeight={1.2}
-        opacity={0}
-        fontStyle="bold"
-        textDecoration="underline"
-        ref={(ref) =>
-          setTimeout(() => {
-            ref?.to({
-              opacity: 1,
-              duration: 0.2,
-              onFinish: () => {
-                setTimeout(() => {
-                  performFinishAction()
-                }, 2000)
-              },
-            })
-          }, 100)
-        }
-      />
-      <Image
-        image={incredibleLogoImage}
-        x={SHORTS_CONFIG.width - 140}
-        y={SHORTS_CONFIG.height - 50}
-        opacity={0}
-        ref={(ref) =>
-          setTimeout(() => {
-            ref?.to({
-              opacity: 1,
-              duration: 0.2,
-            })
-          }, 100)
-        }
-      />
-    </Group>
-  )
-}

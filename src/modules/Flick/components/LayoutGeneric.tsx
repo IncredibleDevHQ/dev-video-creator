@@ -11,7 +11,15 @@ import { Text } from '../../../components'
 import { Layout, ViewConfig } from '../../../utils/configTypes'
 import { Block } from '../editor/utils/utils'
 
-export const FragmentTypeIcon = ({ type }: { type: Block['type'] }) => {
+export const FragmentTypeIcon = ({
+  type,
+  shouldDisplayIcon = true,
+}: {
+  type: Block['type']
+  shouldDisplayIcon?: boolean
+}) => {
+  if (!shouldDisplayIcon) return null
+
   return (
     <>
       {(() => {
@@ -51,12 +59,14 @@ const LayoutGeneric = ({
   layout,
   mode = 'Landscape',
   isSelected,
+  shouldDisplayIcon = true,
   ...rest
 }: {
   isSelected?: boolean
   mode?: ViewConfig['mode']
   layout: Layout
   type: Block['type']
+  shouldDisplayIcon?: boolean
 } & HTMLAttributes<HTMLDivElement>) => {
   return (
     <>
@@ -76,7 +86,12 @@ const LayoutGeneric = ({
                 {...rest}
               >
                 <div className="w-full h-full p-2 bg-gray-200 rounded-sm">
-                  {type && <FragmentTypeIcon type={type} />}
+                  {type && (
+                    <FragmentTypeIcon
+                      shouldDisplayIcon={shouldDisplayIcon}
+                      type={type}
+                    />
+                  )}
                 </div>
               </div>
             )
@@ -94,7 +109,12 @@ const LayoutGeneric = ({
                 {...rest}
               >
                 <div className="h-full w-5/6 bg-gray-200 rounded-sm p-2.5">
-                  {type && <FragmentTypeIcon type={type} />}
+                  {type && (
+                    <FragmentTypeIcon
+                      shouldDisplayIcon={shouldDisplayIcon}
+                      type={type}
+                    />
+                  )}
                 </div>
                 <div className="w-1/6 h-full p-2 bg-gray-500 rounded-sm" />
               </div>
@@ -114,7 +134,12 @@ const LayoutGeneric = ({
               >
                 <div className="w-1/6 h-full p-2 bg-gray-500 rounded-sm" />
                 <div className="h-full w-5/6 bg-gray-200 rounded-sm p-2.5">
-                  {type && <FragmentTypeIcon type={type} />}
+                  {type && (
+                    <FragmentTypeIcon
+                      shouldDisplayIcon={shouldDisplayIcon}
+                      type={type}
+                    />
+                  )}
                 </div>
               </div>
             )
@@ -132,7 +157,12 @@ const LayoutGeneric = ({
                 {...rest}
               >
                 <div className="w-full h-full p-2 mr-2 bg-gray-200 rounded-sm">
-                  {type && <FragmentTypeIcon type={type} />}
+                  {type && (
+                    <FragmentTypeIcon
+                      shouldDisplayIcon={shouldDisplayIcon}
+                      type={type}
+                    />
+                  )}
                 </div>
                 <div className="absolute w-1/6 p-2 bg-gray-500 rounded-sm h-7" />
               </div>
@@ -151,7 +181,12 @@ const LayoutGeneric = ({
                 {...rest}
               >
                 <div className="w-full h-full p-2 bg-gray-200 rounded-sm">
-                  {type && <FragmentTypeIcon type={type} />}
+                  {type && (
+                    <FragmentTypeIcon
+                      shouldDisplayIcon={shouldDisplayIcon}
+                      type={type}
+                    />
+                  )}
                 </div>
                 <div className="absolute w-4 h-4 p-2 -m-1 bg-gray-500 rounded-sm" />
               </div>
@@ -170,7 +205,12 @@ const LayoutGeneric = ({
                 {...rest}
               >
                 <div className="w-full h-full p-2 bg-gray-200 rounded-sm">
-                  {type && <FragmentTypeIcon type={type} />}
+                  {type && (
+                    <FragmentTypeIcon
+                      shouldDisplayIcon={shouldDisplayIcon}
+                      type={type}
+                    />
+                  )}
                 </div>
                 <div className="absolute w-4 h-4 p-2 -m-1 bg-gray-500 rounded-full" />
               </div>
@@ -189,7 +229,12 @@ const LayoutGeneric = ({
                 {...rest}
               >
                 <div className="h-full w-full bg-gray-200 rounded-md p-3.5">
-                  {type && <FragmentTypeIcon type={type} />}
+                  {type && (
+                    <FragmentTypeIcon
+                      shouldDisplayIcon={shouldDisplayIcon}
+                      type={type}
+                    />
+                  )}
                 </div>
                 <div className="absolute w-4 h-4 p-2 m-1 bg-gray-500 rounded-sm" />
               </div>
@@ -208,7 +253,12 @@ const LayoutGeneric = ({
                 {...rest}
               >
                 <div className="h-full w-full bg-gray-200 rounded-md p-3.5">
-                  {type && <FragmentTypeIcon type={type} />}
+                  {type && (
+                    <FragmentTypeIcon
+                      shouldDisplayIcon={shouldDisplayIcon}
+                      type={type}
+                    />
+                  )}
                 </div>
                 <div className="absolute w-4 h-4 p-2 m-1 bg-gray-500 rounded-full" />
               </div>
@@ -227,7 +277,12 @@ const LayoutGeneric = ({
                 {...rest}
               >
                 <div className="h-7 w-5/6 bg-gray-200 rounded-sm p-1.5 ml-2">
-                  {type && <FragmentTypeIcon type={type} />}
+                  {type && (
+                    <FragmentTypeIcon
+                      shouldDisplayIcon={shouldDisplayIcon}
+                      type={type}
+                    />
+                  )}
                 </div>
                 <div className="w-3/6 h-full p-2 bg-gray-500 rounded-tr-sm rounded-br-sm" />
               </div>
@@ -251,7 +306,12 @@ const LayoutGeneric = ({
                     'w-3/6 h-8 p-1.5': mode === 'Landscape',
                   })}
                 >
-                  {type && <FragmentTypeIcon type={type} />}
+                  {type && (
+                    <FragmentTypeIcon
+                      shouldDisplayIcon={shouldDisplayIcon}
+                      type={type}
+                    />
+                  )}
                 </div>
                 <div
                   className={cx('bg-gray-500 items-self-end', {
@@ -282,7 +342,41 @@ const LayoutGeneric = ({
                     'h-8 w-2/5 left-1': mode === 'Landscape',
                   })}
                 >
-                  {type && <FragmentTypeIcon type={type} />}
+                  {type && (
+                    <FragmentTypeIcon
+                      shouldDisplayIcon={shouldDisplayIcon}
+                      type={type}
+                    />
+                  )}
+                </div>
+              </div>
+            )
+          case 'split-without-media':
+            return (
+              <div
+                className={cx(
+                  'border border-gray-200 rounded-md cursor-pointer flex items-center relative',
+                  {
+                    'border-brand': isSelected,
+                    'w-16 h-28 justify-center': mode === 'Portrait',
+                    'w-28 h-16': mode === 'Landscape',
+                  }
+                )}
+                {...rest}
+              >
+                <div className="w-full h-full rounded-sm items-self-end" />
+                <div
+                  className={cx('bg-gray-200 p-1.5 absolute rounded-sm', {
+                    'w-4/5 h-2/5 top-2': mode === 'Portrait',
+                    'h-10 w-1/2 left-1': mode === 'Landscape',
+                  })}
+                >
+                  {type && (
+                    <FragmentTypeIcon
+                      shouldDisplayIcon={shouldDisplayIcon}
+                      type={type}
+                    />
+                  )}
                 </div>
               </div>
             )
