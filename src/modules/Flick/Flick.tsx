@@ -360,15 +360,12 @@ const Flick = () => {
     if (!fragment) return
     setActiveFragment(fragment)
 
-    if (fragment?.configuration)
-      setViewConfig(
-        fragment?.configuration || {
-          ...initialConfig,
-          speakers: [
-            flick.participants.find((f) => f.id === fragment.participants[0]),
-          ],
-        }
-      )
+    setViewConfig(
+      fragment?.configuration || {
+        ...initialConfig,
+        speakers: [flick.participants[0]],
+      }
+    )
     setSimpleAST(fragment?.editorState || initialAST)
     setCurrentBlock(fragment?.editorState?.blocks[0] || initialAST.blocks[0])
     setEditorValue(flick.md || '')
