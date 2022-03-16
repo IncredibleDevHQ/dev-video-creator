@@ -146,7 +146,7 @@ const OutroFragment = ({
         noOfSocialHandles: outroBlockViewProps?.noOfSocialHandles || 3,
         textProperties: {
           textFontSize: 16,
-          textFontFamily: 'GilroyRegular',
+          textFontFamily: branding?.font?.body?.family || 'GilroyRegular',
           // textFontStyle: 'normal',
         },
         availableWidth: outroConfig?.layoutWidth || 0,
@@ -194,9 +194,7 @@ const OutroFragment = ({
               text="Thanks for watching"
               fill={branding?.colors?.text || getThemeTextColor(theme)}
               fontSize={outroConfig?.textFontSize || 0}
-              fontFamily={
-                branding?.font?.heading?.family || getThemeFont(theme)
-              }
+              fontFamily={getThemeFont(theme)}
               fontStyle="normal 600"
               lineHeight={1.1}
             />
