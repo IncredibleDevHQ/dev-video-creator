@@ -1,3 +1,4 @@
+/* eslint-disable no-nested-ternary */
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
 import { Circle, Group, Rect, Text } from 'react-konva'
@@ -204,7 +205,7 @@ const PointsFragment = ({
         titleFontStyle: 'normal 800',
         points: computedPoints,
         availableWidth: objectRenderConfig.availableWidth - 110,
-        availableHeight: objectRenderConfig.availableHeight,
+        availableHeight: objectRenderConfig.availableHeight - 16,
         fontSize: 24,
         fontFamily: branding?.font?.body?.family || 'Inter',
       })
@@ -271,9 +272,9 @@ const PointsFragment = ({
         key="fragmentTitle"
         x={objectRenderConfig.startX + 30}
         y={
-          appearance !== 'replace' || isPreview
+          appearance !== 'replace'
             ? objectRenderConfig.startY + 32
-            : titleY
+            : objectRenderConfig.startY + titleY + 8
         }
         align="left"
         fontSize={40}
@@ -292,9 +293,13 @@ const PointsFragment = ({
         <Group
           x={objectRenderConfig.startX + 50}
           y={
-            appearance !== 'replace' || isPreview
+            appearance !== 'replace'
               ? objectRenderConfig.startY + 32 + 50 * titleNumberOfLines
-              : titleY + 50 * titleNumberOfLines + 20
+              : objectRenderConfig.startY +
+                titleY +
+                8 +
+                40 * titleNumberOfLines +
+                20
           }
           key="verticalGroup"
         >
@@ -504,7 +509,8 @@ const PointsFragment = ({
                     </>
                   )),
               }[appearance]
-            : computedPoints
+            : appearance !== 'replace'
+            ? computedPoints
                 .filter((point) => point.startFromIndex === 0)
                 .map((point) => (
                   <>
@@ -571,6 +577,41 @@ const PointsFragment = ({
                       lineHeight={1.3}
                       fontFamily={branding?.font?.body?.family || 'Inter'}
                     />
+                  </>
+                ))
+            : computedPoints
+                .filter((_, i) => i === 1)
+                .map((point) => (
+                  <>
+                    <Group>
+                      <Text
+                        key={point.text}
+                        // x={0 + (41 * (point?.level - 1) || 0)}
+                        x={-10}
+                        align="left"
+                        fontSize={24}
+                        fill={
+                          branding?.colors?.text
+                            ? branding?.colors?.text
+                            : objectRenderConfig.textColor
+                        }
+                        // why subtracting 110 is that this group starts at x: 50 and this text starts at x: 30,
+                        // so we need to subtract 110 to get the correct x, to give 30 padding in the end too
+                        width={
+                          objectRenderConfig.availableWidth -
+                          110 -
+                          (41 * (point?.level - 1) || 0)
+                        }
+                        text={point.text}
+                        // text="Run and test using one command and so on a thats all hd huusd j idhc dsi"
+                        lineHeight={1.3}
+                        fontFamily={branding?.font?.body?.family || 'Inter'}
+                        height={
+                          objectRenderConfig.availableHeight - 32 - titleY
+                        }
+                        // verticalAlign="middle"
+                      />
+                    </Group>
                   </>
                 ))}
         </Group>
