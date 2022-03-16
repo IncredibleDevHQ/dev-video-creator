@@ -1,7 +1,7 @@
 /* eslint-disable no-nested-ternary */
 import { css, cx } from '@emotion/css'
 import Konva from 'konva'
-import React, { createRef, HTMLAttributes, useEffect, useState } from 'react'
+import React, { createRef, HTMLAttributes, useState } from 'react'
 import { Layer, Stage } from 'react-konva'
 import Modal from 'react-responsive-modal'
 import useMeasure, { RectReadOnly } from 'react-use-measure'
@@ -17,7 +17,6 @@ import {
   Gradient,
   GradientConfig,
   Layout,
-  OutroLayout,
   outroLayoutTypes,
   shortsLayoutTypes,
   ViewConfig,
@@ -294,7 +293,7 @@ export const CanvasPreview = ({
         height: divHeight,
         width: divWidth,
       }}
-      className="flex justify-center"
+      className="flex justify-center z-10"
     >
       <Stage
         ref={stageRef}
