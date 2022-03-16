@@ -3,8 +3,16 @@
 import { css, cx } from '@emotion/css'
 import { Listbox } from '@headlessui/react'
 import { sentenceCase } from 'change-case'
-import React, { useContext, useEffect, useMemo, useState } from 'react'
+import React, {
+  ChangeEvent,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { BiCheck, BiNote } from 'react-icons/bi'
+import { BsChatSquare } from 'react-icons/bs'
 import { FiCode, FiLayout } from 'react-icons/fi'
 import {
   IoAddOutline,
@@ -26,7 +34,7 @@ import listReplaceGif from '../../../assets/ListReplace.svg'
 import listStackGif from '../../../assets/ListStack.svg'
 import { ReactComponent as NumberListStyleIcon } from '../../../assets/NumberListStyle.svg'
 import { ReactComponent as TerminalStyleIcon } from '../../../assets/TerminalStyle.svg'
-import { Heading, Text } from '../../../components'
+import { Button, Checkbox, Heading, Text, TextField } from '../../../components'
 import {
   allLayoutTypes,
   BlockProperties,
@@ -36,12 +44,14 @@ import {
   CodeBlockView,
   CodeStyle,
   CodeTheme,
+  HandleDetails,
   ImageBlockView,
   Layout,
   ListAppearance,
   ListBlockView,
   ListOrientation,
   ListViewStyle,
+  OutroBlockView,
   VideoBlockView,
   ViewConfig,
 } from '../../../utils/configTypes'
@@ -98,6 +108,13 @@ const codeBlockTabs: Tab[] = [
   },
 ]
 
+const outroBlockTabs: Tab[] = [
+  {
+    id: 'Social',
+    name: 'Content',
+  },
+]
+
 const getIcon = (tab: Tab, block?: BlockProperties) => {
   switch (tab.id) {
     case 'Layout':
@@ -136,6 +153,8 @@ const getIcon = (tab: Tab, block?: BlockProperties) => {
       return <MdOutlineTextFields size={21} />
     case 'Animate':
       return <IoSparklesOutline size={21} />
+    case 'Social':
+      return <MdOutlineTextFields size={21} />
     default:
       return <IoSparklesOutline size={21} />
   }
@@ -165,6 +184,48 @@ const Preview = ({
   const [ref, bounds] = useMeasure()
   const { payload, updatePayload } = useRecoilValue(studioStore)
 
+  const activeBlockRef = useRef<Block | undefined>(block)
+
+  const handleKeyDown = (e: KeyboardEvent) => {
+    const block = activeBlockRef.current
+    if (e.key === 'ArrowLeft') {
+      if (!block || (block.pos === 0 && payload.activeIntroIndex === 0)) return
+      if (block.type === 'introBlock') {
+        if (payload.activeIntroIndex === 0)
+          setCurrentBlock(blocks[block.pos - 1])
+        else
+          updatePayload?.({
+            activeIntroIndex: payload.activeIntroIndex - 1,
+          })
+      } else {
+        if (blocks[block.pos - 1].type === 'introBlock') {
+          updatePayload?.({
+            activeIntroIndex:
+              (blocks[block.pos - 1] as IntroBlockProps).introBlock.order
+                .length - 1,
+          })
+        }
+        setCurrentBlock(blocks[block.pos - 1])
+      }
+    }
+    if (e.key === 'ArrowRight') {
+      if (!block || block.pos === blocks.length - 1) return
+      if (block.type === 'introBlock') {
+        if (payload.activeIntroIndex === block.introBlock.order.length - 1)
+          setCurrentBlock(blocks[block.pos + 1])
+        else
+          updatePayload?.({
+            activeIntroIndex: payload.activeIntroIndex + 1,
+          })
+      } else setCurrentBlock(blocks[block.pos + 1])
+    }
+  }
+
+  useEffect(() => {
+    if (!activeBlockRef.current) return
+    document.addEventListener('keydown', handleKeyDown)
+  }, [activeBlockRef, blocks])
+
   useEffect(() => {
     if (!block) return
     const { type } = block
@@ -175,7 +236,8 @@ const Preview = ({
         setActiveTab(commonTabs[2])
         break
       case 'outroBlock':
-        setActiveTab(commonTabs[2])
+        setTabs([commonTabs[0], commonTabs[2], ...outroBlockTabs])
+        setActiveTab(commonTabs[0])
         break
       case 'codeBlock':
         setTabs([...commonTabs, ...codeBlockTabs])
@@ -277,6 +339,19 @@ const Preview = ({
               noScrollBar
             )}
           >
+            {activeTab.id === outroBlockTabs[0].id && (
+              <div>
+                <OutroTab
+                  view={config.blocks[block.id]?.view as OutroBlockView}
+                  updateView={(view: OutroBlockView) => {
+                    updateConfig(block.id, {
+                      ...config.blocks[block.id],
+                      view,
+                    })
+                  }}
+                />
+              </div>
+            )}
             {activeTab.id === commonTabs[0].id && (
               <LayoutSelector
                 mode={config.mode}
@@ -342,11 +417,14 @@ const Preview = ({
             {tabs
               .filter((tab) => {
                 if (
-                  (block.type === 'introBlock' ||
-                    block.type === 'outroBlock') &&
+                  block.type === 'introBlock' &&
                   (tab.id === commonTabs[0].id || tab.id === commonTabs[1].id)
                 )
                   return false
+
+                if (block.type === 'outroBlock' && tab.id === commonTabs[1].id)
+                  return false
+
                 return true
               })
               .map((tab) => (
@@ -629,6 +707,143 @@ const codeThemeConfig: CodeThemeConfig[] = [
     textColor: '#9CDDFE',
   },
 ]
+
+const SocialHandleTab = ({
+  title,
+  value,
+  update,
+  updateCount,
+}: {
+  title: string
+  value?: HandleDetails
+  update?: (title: string, value: HandleDetails) => void
+  updateCount?: (handle: HandleDetails) => void
+}) => {
+  return (
+    <div>
+      <div className="flex justify-between items-center my-1">
+        <Heading>{title}</Heading>
+        <Checkbox
+          checked={value?.enabled || false}
+          onChange={(checked) => {
+            update?.(title, {
+              handle: value?.handle || '',
+              enabled: checked,
+            })
+            updateCount?.({
+              handle: value?.handle || '',
+              enabled: checked,
+            })
+          }}
+        />
+      </div>
+      <TextField
+        value={value?.handle}
+        disabled={!value?.enabled}
+        onChange={(e: ChangeEvent<HTMLInputElement>) => {
+          update?.(title, {
+            enabled: value?.enabled || false,
+            handle: e.target.value,
+          })
+        }}
+      />
+    </div>
+  )
+}
+
+const OutroTab = ({
+  view,
+  updateView,
+}: {
+  view: OutroBlockView | undefined
+  updateView: (view: OutroBlockView) => void
+}) => {
+  const [enabledCount, setEnabledCount] = useState(
+    view?.outro?.noOfSocialHandles || 0
+  )
+
+  const updateHandle = (title: string, handle: HandleDetails) => {
+    let socialDetails: OutroBlockView = {
+      ...view,
+      type: 'outroBlock',
+      outro: view?.outro,
+    }
+
+    if (title === 'Twitter') {
+      socialDetails = {
+        type: 'outroBlock',
+        outro: {
+          ...view?.outro,
+          twitter: handle,
+        },
+      }
+    }
+    if (title === 'Discord') {
+      socialDetails = {
+        type: 'outroBlock',
+        outro: {
+          ...view?.outro,
+          discord: handle,
+        },
+      }
+    }
+
+    if (title === 'Youtube') {
+      socialDetails = {
+        type: 'outroBlock',
+        outro: {
+          ...view?.outro,
+          youtube: handle,
+        },
+      }
+    }
+
+    updateView(socialDetails)
+  }
+
+  const updateEnabledCount = (handle: HandleDetails) => {
+    let count = view?.outro?.noOfSocialHandles || 0
+    if (handle.enabled) {
+      count += 1
+    } else {
+      count -= 1
+    }
+    setEnabledCount(count)
+  }
+
+  useEffect(() => {
+    updateView({
+      type: 'outroBlock',
+      outro: {
+        ...view?.outro,
+        noOfSocialHandles: enabledCount,
+      },
+    })
+  }, [enabledCount])
+
+  return (
+    <div className="flex flex-col justify-start p-2">
+      <SocialHandleTab
+        title="Twitter"
+        value={view?.outro?.twitter}
+        update={updateHandle}
+        updateCount={updateEnabledCount}
+      />
+      <SocialHandleTab
+        title="Discord"
+        value={view?.outro?.discord}
+        update={updateHandle}
+        updateCount={updateEnabledCount}
+      />
+      <SocialHandleTab
+        title="Youtube"
+        value={view?.outro?.youtube}
+        update={updateHandle}
+        updateCount={updateEnabledCount}
+      />
+    </div>
+  )
+}
 
 const ModeSelector = ({
   view,
@@ -1168,6 +1383,7 @@ const CodeBlockModeSelector = ({
                 },
               })
             }}
+            key={themeConfig.name}
           >
             <div
               style={{

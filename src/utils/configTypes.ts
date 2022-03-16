@@ -145,21 +145,21 @@ export type ListAppearance = 'stack' | 'replace' | 'allAtOnce'
 export type ListViewStyle = 'none' | 'bullet' | 'number'
 export type ListOrientation = 'horizontal' | 'vertical'
 
+export interface HandleDetails {
+  enabled: boolean
+  handle: string
+}
+
+export interface OutroBlockProps {
+  twitter?: HandleDetails
+  discord?: HandleDetails
+  youtube?: HandleDetails
+  noOfSocialHandles?: number
+}
+
 export interface OutroBlockView {
   type: 'outroBlock'
-  outro: OutroBlockViewProps
-}
-export interface OutroBlockViewProps {
-  layout: OutroLayout
-  socialHandles: SocialHandles
-  noOfSocialHandles: number
-}
-export interface SocialHandles {
-  twitterHandle?: string
-  discordHandle?: string
-  youtubeHandle?: string
-  // instagramHandle?: string
-  // facebookHandle?: string
+  outro?: OutroBlockProps
 }
 
 export type BlockView =
