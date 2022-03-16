@@ -85,6 +85,8 @@ export const ThemeLayoutConfig = ({
         availableHeight: layoutConfig.height,
         surfaceColor: '',
         textColor: '#ffffff',
+        titleFont: 'Gilroy',
+        bodyFont: 'GilroyRegular',
       }
   }
 }
