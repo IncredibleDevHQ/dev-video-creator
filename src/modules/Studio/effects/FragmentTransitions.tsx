@@ -26,12 +26,12 @@ export const TrianglePathTransition = ({
     case 'left':
       groupStartX = stageConfig.width + stageConfig.width / 4 + 110
       groupEndX = -(stageConfig.width + stageConfig.width / 4 + 110)
-      duration = 2
+      duration = 1
       break
     case 'right':
       groupStartX = -(stageConfig.width + stageConfig.width / 4 + 110)
       groupEndX = stageConfig.width + stageConfig.width / 4 + 110
-      duration = 2
+      duration = 1
       break
     case 'moveIn':
       groupStartX = -(stageConfig.width + stageConfig.width / 4 + 110)
@@ -319,14 +319,14 @@ export const PastelLinesTransition = ({
       rectEndHeight = stageConfig.height / 2
       rect2StartX = 0
       rect2StartY = stageConfig.height
-      duration = 0.75
+      duration = 0.375
       break
     case 'moveAway':
       rect1StartX = 0
       rect1StartY = stageConfig.height / 2
       rect2StartX = 0
       rect2StartY = stageConfig.height / 2
-      duration = 0.5
+      duration = 0.25
       break
     default:
       break
@@ -464,7 +464,7 @@ export const CassidooTransition = ({
       // rect2EndCoords = { x: -142, y: 499.84 }
       // rect3EndCoords = { x: 1087.09, y: 50.93 }
       // rect4EndCoords = { x: 369, y: 748.84 }
-      duration = 1.5
+      duration = 0.75
       break
     case 'moveAway':
       rect1StartCoords = { x: 527.09, y: -137.07 }
@@ -475,7 +475,7 @@ export const CassidooTransition = ({
       rect2EndCoords = { x: 558, y: -200.16 }
       rect3EndCoords = { x: 377.09, y: 750.93 }
       rect4EndCoords = { x: 1069, y: 48.84 }
-      duration = 0.5
+      duration = 0.25
       break
     default:
       break
