@@ -103,12 +103,12 @@ const preload = async ({
       ...codeBlocks.map((block) => {
         const { id } = block
         const codeBlockViewProps = (fragment?.configuration as ViewConfig)
-          .blocks[id].view as CodeBlockView
+          .blocks[id]?.view as CodeBlockView
         return fetcher(
           id,
           undefined,
           (block as CodeBlockProps).codeBlock,
-          codeBlockViewProps.code.theme,
+          codeBlockViewProps?.code.theme,
           token
         )
       })

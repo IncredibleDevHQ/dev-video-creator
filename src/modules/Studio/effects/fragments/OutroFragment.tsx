@@ -155,7 +155,7 @@ const OutroFragment = ({
         socialY: outroConfig?.socialY || 0,
       })
     )
-  }, [outroConfig])
+  }, [outroConfig, viewConfig, socialHandles])
 
   const layerChildren = !isShorts
     ? [
