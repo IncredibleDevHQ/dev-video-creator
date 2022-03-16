@@ -389,7 +389,7 @@ export const getSocialHandlePositions = ({
           youtubeY: 0,
         }
         Object.entries(socialHandles).forEach(([key, value]) => {
-          if (key === 'twitterHandle') {
+          if (key === 'twitterHandle' && value) {
             socialHandlesPositionInfo.twitterX = startX
             socialHandlesPositionInfo.twitterY = socialY
             startX +=
@@ -402,7 +402,7 @@ export const getSocialHandlePositions = ({
               }) +
               24
           }
-          if (key === 'discordHandle') {
+          if (key === 'discordHandle' && value) {
             socialHandlesPositionInfo.discordX = startX
             socialHandlesPositionInfo.discordY = socialY
             startX +=
@@ -415,7 +415,7 @@ export const getSocialHandlePositions = ({
               }) +
               24
           }
-          if (key === 'youtubeHandle') {
+          if (key === 'youtubeHandle' && value) {
             socialHandlesPositionInfo.youtubeX = startX
             socialHandlesPositionInfo.youtubeY = socialY
             startX +=
@@ -454,18 +454,18 @@ export const getSocialHandlePositions = ({
         youtubeX: 0,
         youtubeY: 0,
       }
-      Object.keys(socialHandles).forEach((key) => {
-        if (key === 'twitterHandle') {
+      Object.entries(socialHandles).forEach(([key, value]) => {
+        if (key === 'twitterHandle' && value) {
           socialHandlesPositionInfo.twitterX = socialX
           socialHandlesPositionInfo.twitterY = startY
           startY += 24 + 16
         }
-        if (key === 'discordHandle') {
+        if (key === 'discordHandle' && value) {
           socialHandlesPositionInfo.discordX = socialX
           socialHandlesPositionInfo.discordY = startY
           startY += 24 + 16
         }
-        if (key === 'youtubeHandle') {
+        if (key === 'youtubeHandle' && value) {
           socialHandlesPositionInfo.youtubeX = socialX
           socialHandlesPositionInfo.youtubeY = startY
           startY += 24 + 16
