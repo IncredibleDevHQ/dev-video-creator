@@ -1326,7 +1326,8 @@ const CodeBlockModeSelector = ({
 }) => {
   return (
     <div className="flex flex-col p-5">
-      <Heading fontSize="small" className="font-bold">
+      {/* TODO : Code styles */}
+      {/* <Heading fontSize="small" className="font-bold">
         Code Style
       </Heading>
       <div className="mt-2 grid grid-cols-2 w-full gap-x-4 gap-y-3">
@@ -1364,9 +1365,9 @@ const CodeBlockModeSelector = ({
         >
           <TerminalStyleIcon className="w-full h-full" />
         </button>
-      </div>
+      </div> */}
 
-      <Heading fontSize="small" className="font-bold mt-8">
+      <Heading fontSize="small" className="font-bold">
         Code Theme
       </Heading>
       <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-3">
