@@ -369,16 +369,21 @@ const PointsFragment = ({
                         // why subtracting 110 is that this group starts at x: 50 and this text starts at x: 30,
                         // so we need to subtract 110 to get the correct x, to give 30 padding in the end too
                         width={
-                          objectRenderConfig.availableWidth -
-                          110 -
-                          (41 * (point?.level - 1) || 0)
+                          viewStyle !== 'none'
+                            ? objectRenderConfig.availableWidth -
+                              110 -
+                              (41 * (point?.level - 1) || 0)
+                            : objectRenderConfig.availableWidth - 110
                         }
                         text={point.text}
                         lineHeight={1.3}
                         fontFamily={branding?.font?.body?.family || 'Inter'}
                         ref={(ref) =>
                           ref?.to({
-                            x: 30 + (41 * (point?.level - 1) || 0),
+                            x:
+                              viewStyle !== 'none'
+                                ? 30 + (41 * (point?.level - 1) || 0)
+                                : 0,
                             duration: 0.3,
                           })
                         }
@@ -469,7 +474,11 @@ const PointsFragment = ({
                       }
                       <Text
                         key={point.text}
-                        x={30 + (41 * (point?.level - 1) || 0)}
+                        x={
+                          viewStyle !== 'none'
+                            ? 30 + (41 * (point?.level - 1) || 0)
+                            : 0
+                        }
                         y={point.y}
                         align="left"
                         fontSize={16}
@@ -481,9 +490,11 @@ const PointsFragment = ({
                         // why subtracting 110 is that this group starts at x: 50 and this text starts at x: 30,
                         // so we need to subtract 110 to get the correct x, to give 30 padding in the end too
                         width={
-                          objectRenderConfig.availableWidth -
-                          110 -
-                          (41 * (point?.level - 1) || 0)
+                          viewStyle !== 'none'
+                            ? objectRenderConfig.availableWidth -
+                              110 -
+                              (41 * (point?.level - 1) || 0)
+                            : objectRenderConfig.availableWidth - 110
                         }
                         text={point.text}
                         // text="Run and test using one command and so on a thats all hd huusd j idhc dsi"
@@ -533,7 +544,11 @@ const PointsFragment = ({
                     }
                     <Text
                       key={point.text}
-                      x={30 + (41 * (point?.level - 1) || 0)}
+                      x={
+                        viewStyle !== 'none'
+                          ? 30 + (41 * (point?.level - 1) || 0)
+                          : 0
+                      }
                       y={point.y}
                       align="left"
                       fontSize={16}
@@ -545,9 +560,11 @@ const PointsFragment = ({
                       // why subtracting 110 is that this group starts at x: 50 and this text starts at x: 30,
                       // so we need to subtract 110 to get the correct x, to give 30 padding in the end too
                       width={
-                        objectRenderConfig.availableWidth -
-                        110 -
-                        (41 * (point?.level - 1) || 0)
+                        viewStyle !== 'none'
+                          ? objectRenderConfig.availableWidth -
+                            110 -
+                            (41 * (point?.level - 1) || 0)
+                          : objectRenderConfig.availableWidth - 110
                       }
                       text={point.text}
                       // text="Run and test using one command and so on a thats all hd huusd j idhc dsi"
