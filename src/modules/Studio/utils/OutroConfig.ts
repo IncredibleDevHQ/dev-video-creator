@@ -31,7 +31,7 @@ export const getOutroConfig = ({
   isShorts,
 }: {
   theme: ThemeFragment
-  layout: OutroLayout
+  layout: Layout
   isShorts?: boolean
 }): OutroConfig => {
   if (!isShorts)
@@ -341,7 +341,7 @@ export const getSocialHandlePositions = ({
   socialX,
   socialY,
 }: {
-  layout: OutroLayout
+  layout: Layout
   socialHandles: SocialHandles
   noOfSocialHandles: number
   isShorts: boolean

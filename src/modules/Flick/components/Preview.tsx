@@ -721,8 +721,10 @@ const SocialHandleTab = ({
 }) => {
   return (
     <div>
-      <div className="flex justify-between items-center my-1">
-        <Heading>{title}</Heading>
+      <div className="flex justify-between items-center">
+        <Heading fontSize="small" className="font-bold">
+          {title}
+        </Heading>
         <Checkbox
           checked={value?.enabled || false}
           onChange={(checked) => {
@@ -737,9 +739,9 @@ const SocialHandleTab = ({
           }}
         />
       </div>
-      <TextField
+      <input
+        className="bg-gray-100 mt-1.5 py-2 px-2 rounded-sm w-full h-full focus:outline-none font-body text-sm placeholder-gray-400"
         value={value?.handle}
-        disabled={!value?.enabled}
         onChange={(e: ChangeEvent<HTMLInputElement>) => {
           update?.(title, {
             enabled: value?.enabled || false,
@@ -822,7 +824,7 @@ const OutroTab = ({
   }, [enabledCount])
 
   return (
-    <div className="flex flex-col justify-start p-2">
+    <div className="flex flex-col justify-start p-5 gap-y-6">
       <SocialHandleTab
         title="Twitter"
         value={view?.outro?.twitter}

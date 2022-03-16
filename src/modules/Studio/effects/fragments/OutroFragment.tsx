@@ -91,21 +91,27 @@ const OutroFragment = ({
     setOutroConfig(
       getOutroConfig({
         theme,
-        layout: outroBlockViewProps?.layout || 'classic',
+        layout: viewConfig?.layout || 'classic',
         isShorts,
       })
     )
     setSocialHandles(
       {
-        twitterHandle: outroBlockViewProps?.twitter?.enabled
-          ? outroBlockViewProps?.twitter.handle
-          : undefined,
-        discordHandle: outroBlockViewProps?.discord?.enabled
-          ? outroBlockViewProps?.discord.handle
-          : undefined,
-        youtubeHandle: outroBlockViewProps?.youtube?.enabled
-          ? outroBlockViewProps?.youtube.handle
-          : undefined,
+        twitterHandle:
+          outroBlockViewProps?.twitter?.enabled &&
+          outroBlockViewProps?.twitter?.handle !== ''
+            ? outroBlockViewProps?.twitter.handle
+            : undefined,
+        discordHandle:
+          outroBlockViewProps?.discord?.enabled &&
+          outroBlockViewProps?.discord?.handle !== ''
+            ? outroBlockViewProps?.discord.handle
+            : undefined,
+        youtubeHandle:
+          outroBlockViewProps?.youtube?.enabled &&
+          outroBlockViewProps?.youtube?.handle !== ''
+            ? outroBlockViewProps?.youtube.handle
+            : undefined,
       } || {}
     )
   }, [viewConfig, theme])
@@ -117,18 +123,24 @@ const OutroFragment = ({
     )?.outro
     setSocialHandlesPositionInfo(
       getSocialHandlePositions({
-        layout: outroBlockViewProps?.layout || 'classic',
+        layout: viewConfig?.layout || 'classic',
         socialHandles:
           {
-            twitterHandle: outroBlockViewProps?.twitter?.enabled
-              ? outroBlockViewProps?.twitter.handle
-              : undefined,
-            discordHandle: outroBlockViewProps?.discord?.enabled
-              ? outroBlockViewProps?.discord.handle
-              : undefined,
-            youtubeHandle: outroBlockViewProps?.youtube?.enabled
-              ? outroBlockViewProps?.youtube.handle
-              : undefined,
+            twitterHandle:
+              outroBlockViewProps?.twitter?.enabled &&
+              outroBlockViewProps?.twitter?.handle !== ''
+                ? outroBlockViewProps?.twitter.handle
+                : undefined,
+            discordHandle:
+              outroBlockViewProps?.discord?.enabled &&
+              outroBlockViewProps?.discord?.handle !== ''
+                ? outroBlockViewProps?.discord.handle
+                : undefined,
+            youtubeHandle:
+              outroBlockViewProps?.youtube?.enabled &&
+              outroBlockViewProps?.youtube?.handle !== ''
+                ? outroBlockViewProps?.youtube.handle
+                : undefined,
           } || {},
         isShorts,
         noOfSocialHandles: outroBlockViewProps?.noOfSocialHandles || 3,
@@ -207,7 +219,7 @@ const OutroFragment = ({
                 <Text
                   x={socialHandlesPositionInfo?.twitterX + 8 + 24}
                   y={socialHandlesPositionInfo?.twitterY + 3}
-                  text={socialHandles?.twitterHandle || ''}
+                  text={socialHandles?.twitterHandle}
                   fill={branding?.colors?.text || getThemeTextColor(theme)}
                   fontSize={outroConfig?.socialHandlesFontSize || 0}
                   fontFamily={branding?.font?.body?.family || 'GilroyRegular'}
@@ -226,7 +238,7 @@ const OutroFragment = ({
                 <Text
                   x={socialHandlesPositionInfo?.discordX + 8 + 24}
                   y={socialHandlesPositionInfo?.discordY + 3}
-                  text={socialHandles?.discordHandle || ''}
+                  text={socialHandles?.discordHandle}
                   fill={branding?.colors?.text || getThemeTextColor(theme)}
                   fontSize={outroConfig?.socialHandlesFontSize || 0}
                   fontFamily={branding?.font?.body?.family || 'GilroyRegular'}
@@ -246,7 +258,7 @@ const OutroFragment = ({
                 <Text
                   x={socialHandlesPositionInfo?.youtubeX + 8 + 24}
                   y={socialHandlesPositionInfo?.youtubeY + 3}
-                  text={socialHandles?.youtubeHandle || ''}
+                  text={socialHandles?.youtubeHandle}
                   fill={branding?.colors?.text || getThemeTextColor(theme)}
                   fontSize={outroConfig?.socialHandlesFontSize || 0}
                   fontFamily={branding?.font?.body?.family || 'GilroyRegular'}
