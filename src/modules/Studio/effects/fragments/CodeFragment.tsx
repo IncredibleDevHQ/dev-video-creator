@@ -345,9 +345,6 @@ const CodeFragment = ({
         })
       else
         updatePayload?.({
-          currentIndex: 1,
-          prevIndex: 0,
-          isFocus: false,
           focusBlockCode: false,
           activeBlockIndex: 0,
         })
@@ -365,9 +362,6 @@ const CodeFragment = ({
         })
       else
         updatePayload?.({
-          currentIndex: 1,
-          prevIndex: 0,
-          isFocus: false,
           focusBlockCode: false,
           activeBlockIndex: 0,
         })
