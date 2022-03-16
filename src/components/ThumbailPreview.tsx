@@ -98,7 +98,7 @@ const ThumbnailPreview = ({
   if (!isThumbnailAvailable)
     return (
       <img
-        src={posterImageSource || ASSETS.ICONS.FLICK}
+        src={ASSETS.ICONS.FLICK}
         alt="thumbnail"
         className={className}
         style={{
