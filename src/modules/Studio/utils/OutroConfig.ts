@@ -57,7 +57,7 @@ export const getOutroConfig = ({
               logoWidth: 32,
               logoHeight: 32,
             }
-          case 'split-with-right-media':
+          case 'float-full-right':
             return {
               layoutX: 40,
               layoutY: 90,
@@ -141,7 +141,7 @@ export const getOutroConfig = ({
               logoWidth: 54,
               logoHeight: 54,
             }
-          case 'split-with-right-media':
+          case 'float-full-right':
             return {
               layoutX: 80,
               layoutY: 130,
@@ -225,7 +225,7 @@ export const getOutroConfig = ({
               logoWidth: 54,
               logoHeight: 54,
             }
-          case 'split-with-right-media':
+          case 'float-full-right':
             return {
               layoutX: 40,
               layoutY: 90,
@@ -439,8 +439,8 @@ export const getSocialHandlePositions = ({
         youtubeY: 0,
       }
     }
-    case 'split-with-right-media':
-    case 'split-with-left-media':
+    case 'float-full-right':
+    case 'float-full-left':
     case 'split-without-media': {
       const consumedHeight =
         28 + 24 * noOfSocialHandles + 16 * (noOfSocialHandles - 1)

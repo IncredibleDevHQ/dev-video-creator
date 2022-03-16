@@ -26,8 +26,8 @@ export const shortsLayoutTypes = [
 
 export const outroLayoutTypes = [
   'classic',
-  'split-with-right-media',
-  'split-with-left-media',
+  'float-full-right',
+  'float-full-left',
   'split-without-media',
 ] as const
 
@@ -171,7 +171,7 @@ export type BlockView =
 
 export type BlockProperties = {
   gradient?: GradientConfig
-  layout?: Layout
+  layout?: Layout | OutroLayout
   bgColor?: string
   bgOpacity?: number
   view?: BlockView

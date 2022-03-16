@@ -12,7 +12,6 @@ import React, {
   useState,
 } from 'react'
 import { BiCheck, BiNote } from 'react-icons/bi'
-import { BsChatSquare } from 'react-icons/bs'
 import { FiCode, FiLayout } from 'react-icons/fi'
 import {
   IoAddOutline,
@@ -34,7 +33,7 @@ import listReplaceGif from '../../../assets/ListReplace.svg'
 import listStackGif from '../../../assets/ListStack.svg'
 import { ReactComponent as NumberListStyleIcon } from '../../../assets/NumberListStyle.svg'
 import { ReactComponent as TerminalStyleIcon } from '../../../assets/TerminalStyle.svg'
-import { Button, Checkbox, Heading, Text, TextField } from '../../../components'
+import { Checkbox, Heading, Text, TextField } from '../../../components'
 import {
   allLayoutTypes,
   BlockProperties,
@@ -52,6 +51,7 @@ import {
   ListOrientation,
   ListViewStyle,
   OutroBlockView,
+  OutroLayout,
   VideoBlockView,
   ViewConfig,
 } from '../../../utils/configTypes'
@@ -356,7 +356,7 @@ const Preview = ({
               <LayoutSelector
                 mode={config.mode}
                 layout={config.blocks[block.id]?.layout || allLayoutTypes[0]}
-                updateLayout={(layout: Layout) => {
+                updateLayout={(layout: Layout | OutroLayout) => {
                   updateConfig(block.id, {
                     ...config.blocks[block.id],
                     layout,
