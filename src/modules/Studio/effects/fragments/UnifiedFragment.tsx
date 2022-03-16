@@ -156,6 +156,14 @@ const UnifiedFragment = ({
   useEffect(() => {
     if (!payload?.activeObjectIndex || payload?.activeObjectIndex === 0) return
     setTopLayerChildren?.({ id: nanoid(), state: 'transition right' })
+    updatePayload?.({
+      currentIndex: 0,
+      prevIndex: -1,
+      isFocus: false,
+      focusBlockCode: false,
+      activeBlockIndex: 0,
+      activePointIndex: 0,
+    })
   }, [payload?.activeObjectIndex])
 
   useEffect(() => {
