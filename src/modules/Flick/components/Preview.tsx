@@ -712,10 +712,12 @@ const SocialHandleTab = ({
   title,
   value,
   update,
+  updateCount,
 }: {
   title: string
   value?: HandleDetails
   update?: (title: string, value: HandleDetails) => void
+  updateCount?: (handle: HandleDetails) => void
 }) => {
   return (
     <div>
@@ -728,17 +730,22 @@ const SocialHandleTab = ({
               handle: value?.handle || '',
               enabled: checked,
             })
+            updateCount?.({
+              handle: value?.handle || '',
+              enabled: checked,
+            })
           }}
         />
       </div>
       <TextField
         value={value?.handle}
-        onChange={(e: ChangeEvent<HTMLInputElement>) =>
+        disabled={!value?.enabled}
+        onChange={(e: ChangeEvent<HTMLInputElement>) => {
           update?.(title, {
             enabled: value?.enabled || false,
             handle: e.target.value,
           })
-        }
+        }}
       />
     </div>
   )
@@ -751,21 +758,22 @@ const OutroTab = ({
   view: OutroBlockView | undefined
   updateView: (view: OutroBlockView) => void
 }) => {
+  const [enabledCount, setEnabledCount] = useState(
+    view?.outro?.noOfSocialHandles || 0
+  )
+
   const updateHandle = (title: string, handle: HandleDetails) => {
-    let count = 0
     let socialDetails: OutroBlockView = {
       ...view,
       type: 'outroBlock',
-      outro: { ...view?.outro, noOfSocialHandles: 0 },
+      outro: view?.outro,
     }
-    socialDetails.type = 'outroBlock'
 
     if (title === 'Twitter') {
       socialDetails = {
         type: 'outroBlock',
         outro: {
           ...view?.outro,
-          noOfSocialHandles: 1,
           twitter: handle,
         },
       }
@@ -775,22 +783,43 @@ const OutroTab = ({
         type: 'outroBlock',
         outro: {
           ...view?.outro,
-          noOfSocialHandles: 1,
           discord: handle,
         },
       }
     }
 
-    if (socialDetails.outro?.twitter?.enabled) {
-      count += 1
-    }
-    if (socialDetails.outro?.discord?.enabled) {
-      count += 1
+    if (title === 'Youtube') {
+      socialDetails = {
+        type: 'outroBlock',
+        outro: {
+          ...view?.outro,
+          youtube: handle,
+        },
+      }
     }
 
-    if (socialDetails.outro) socialDetails.outro.noOfSocialHandles = count
     updateView(socialDetails)
   }
+
+  const updateEnabledCount = (handle: HandleDetails) => {
+    let count = view?.outro?.noOfSocialHandles || 0
+    if (handle.enabled) {
+      count += 1
+    } else {
+      count -= 1
+    }
+    setEnabledCount(count)
+  }
+
+  useEffect(() => {
+    updateView({
+      type: 'outroBlock',
+      outro: {
+        ...view?.outro,
+        noOfSocialHandles: enabledCount,
+      },
+    })
+  }, [enabledCount])
 
   return (
     <div className="flex flex-col justify-start p-2">
@@ -798,11 +827,19 @@ const OutroTab = ({
         title="Twitter"
         value={view?.outro?.twitter}
         update={updateHandle}
+        updateCount={updateEnabledCount}
       />
       <SocialHandleTab
         title="Discord"
         value={view?.outro?.discord}
         update={updateHandle}
+        updateCount={updateEnabledCount}
+      />
+      <SocialHandleTab
+        title="Youtube"
+        value={view?.outro?.youtube}
+        update={updateHandle}
+        updateCount={updateEnabledCount}
       />
     </div>
   )

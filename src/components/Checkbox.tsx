@@ -4,10 +4,12 @@ import { Switch } from '@headlessui/react'
 export default function Checkbox({
   label,
   checked,
+  disabled,
   onChange,
 }: {
   label?: string
   checked: boolean
+  disabled?: boolean
   onChange: (checked: boolean) => void
 }) {
   return (
@@ -17,6 +19,7 @@ export default function Checkbox({
         <Switch
           checked={checked}
           onChange={onChange}
+          disabled={disabled}
           className={`${
             checked ? 'bg-brand' : 'bg-gray-200'
           } relative inline-flex items-center h-6 rounded-full w-11 transition-colors focus:outline-none`}

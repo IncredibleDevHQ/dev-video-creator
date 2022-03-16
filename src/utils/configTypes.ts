@@ -153,7 +153,8 @@ export interface HandleDetails {
 export interface OutroBlockProps {
   twitter?: HandleDetails
   discord?: HandleDetails
-  noOfSocialHandles: number
+  youtube?: HandleDetails
+  noOfSocialHandles?: number
 }
 
 export interface OutroBlockView {
