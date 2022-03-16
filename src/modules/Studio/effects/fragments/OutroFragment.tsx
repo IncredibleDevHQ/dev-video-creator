@@ -10,7 +10,6 @@ import {
   BlockProperties,
   OutroBlockView,
   OutroBlockViewProps,
-  SocialHandles,
 } from '../../../../utils/configTypes'
 import Concourse, { SHORTS_CONFIG } from '../../components/Concourse'
 import FragmentBackground from '../../components/FragmentBackground'
@@ -47,6 +46,12 @@ const getImagePosition = (theme: ThemeFragment) => {
         imageX: 0,
       }
   }
+}
+
+interface SocialHandles {
+  twitterHandle?: string
+  discordHandle?: string
+  youtubeHandle?: string
 }
 
 const OutroFragment = ({
@@ -90,7 +95,19 @@ const OutroFragment = ({
         isShorts,
       })
     )
-    setSocialHandles(outroBlockViewProps?.socialHandles || {})
+    setSocialHandles(
+      {
+        twitterHandle: outroBlockViewProps?.twitter?.enabled
+          ? outroBlockViewProps?.twitter.handle
+          : undefined,
+        discordHandle: outroBlockViewProps?.discord?.enabled
+          ? outroBlockViewProps?.discord.handle
+          : undefined,
+        youtubeHandle: outroBlockViewProps?.youtube?.enabled
+          ? outroBlockViewProps?.youtube.handle
+          : undefined,
+      } || {}
+    )
   }, [viewConfig, theme])
 
   useEffect(() => {
@@ -101,7 +118,18 @@ const OutroFragment = ({
     setSocialHandlesPositionInfo(
       getSocialHandlePositions({
         layout: outroBlockViewProps?.layout || 'classic',
-        socialHandles: outroBlockViewProps?.socialHandles || {},
+        socialHandles:
+          {
+            twitterHandle: outroBlockViewProps?.twitter?.enabled
+              ? outroBlockViewProps?.twitter.handle
+              : undefined,
+            discordHandle: outroBlockViewProps?.discord?.enabled
+              ? outroBlockViewProps?.discord.handle
+              : undefined,
+            youtubeHandle: outroBlockViewProps?.youtube?.enabled
+              ? outroBlockViewProps?.youtube.handle
+              : undefined,
+          } || {},
         isShorts,
         noOfSocialHandles: outroBlockViewProps?.noOfSocialHandles || 3,
         textProperties: {
