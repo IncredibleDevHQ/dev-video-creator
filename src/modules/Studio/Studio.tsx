@@ -1123,22 +1123,6 @@ const Studio = ({
                 openTimerModal={() => setIsTimerModalOpen(true)}
               />
             </div>
-            {/* Notes */}
-            {/* <div className="col-span-3 w-full">
-              <div
-                style={{
-                  background: '#27272A',
-                  height: `${stageHeight}px`,
-                }}
-                className="h-full p-4 text-gray-100 rounded-sm"
-              >
-                {getNote(payload?.activeObjectIndex) ? (
-                  getNote(payload?.activeObjectIndex)
-                ) : (
-                  <span className="italic">No notes</span>
-                )}
-              </div>
-            </div> */}
             <Notes stageHeight={stageHeight} />
           </div>
           {/* Mini timeline */}
@@ -1160,17 +1144,25 @@ const Studio = ({
             {fragment?.editorState &&
               (fragment.editorState as SimpleAST).blocks.map((block, index) => {
                 return (
-                  <div
+                  <button
+                    type="button"
                     id={`timeline-block-${block.id}`}
                     className={cx(
-                      'px-3 py-1.5 font-body text-sm rounded-sm flex items-center justify-center transition-transform duration-500 bg-brand-grey relative text-gray-300 flex-shrink-0',
+                      'px-3 py-1.5 font-body cursor-pointer text-sm rounded-sm flex items-center justify-center transition-transform duration-500 bg-brand-grey relative text-gray-300 flex-shrink-0',
                       {
                         'transform scale-110 border border-gray-400':
                           payload?.activeObjectIndex === index,
                         'bg-grey-900 text-gray-500':
                           index > payload?.activeObjectIndex,
+                        'cursor-not-allowed': state !== 'ready',
                       }
                     )}
+                    onClick={() => {
+                      if (state !== 'ready') return
+                      updatePayload({
+                        activeObjectIndex: index,
+                      })
+                    }}
                   >
                     {(index < payload?.activeObjectIndex ||
                       payload?.activeObjectIndex ===
@@ -1187,7 +1179,7 @@ const Studio = ({
                       {utils.getBlockTitle(block).substring(0, 40) +
                         (utils.getBlockTitle(block).length > 40 ? '...' : '')}
                     </span>
-                  </div>
+                  </button>
                 )
               })}
           </div>
