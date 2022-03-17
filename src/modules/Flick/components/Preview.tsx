@@ -233,6 +233,7 @@ const Preview = ({
       setActiveTab(commonTabs[0])
     switch (type) {
       case 'introBlock':
+        setTabs([commonTabs[2]])
         setActiveTab(commonTabs[2])
         break
       case 'outroBlock':
