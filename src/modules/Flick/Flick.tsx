@@ -4,7 +4,6 @@ import { HocuspocusProvider, WebSocketStatus } from '@hocuspocus/provider'
 import UniqueID from '@tiptap-pro/extension-unique-id'
 import { Editor as CoreEditor } from '@tiptap/core'
 import CharacterCount from '@tiptap/extension-character-count'
-import CodeBlock from '@tiptap/extension-code-block'
 import Collaboration from '@tiptap/extension-collaboration'
 import CollaborationCursor from '@tiptap/extension-collaboration-cursor'
 import Focus from '@tiptap/extension-focus'
@@ -47,6 +46,7 @@ import {
   Timeline,
 } from './components'
 import BlockPreview from './components/BlockPreview'
+import CodeBlock from './editor/blocks/CodeBlock'
 import ImageBlock from './editor/blocks/ImageBlock'
 import VideoBlock from './editor/blocks/VideoBlock'
 import { getSuggestionItems } from './editor/slashCommand/items'
@@ -237,6 +237,16 @@ const Flick = () => {
         }
       }
 
+      if (currentBlock.type === 'outroBlock') {
+        filteredBlocks[currentBlock.id] = {
+          ...filteredBlocks[currentBlock.id],
+          view: {
+            type: 'outroBlock',
+            outro: {},
+          },
+        }
+      }
+
       setViewConfig({ ...viewConfig, blocks: filteredBlocks })
     } else if (currentBlock.type === 'codeBlock') {
       if (!viewConfig.blocks[currentBlock.id].view) {
@@ -288,6 +298,16 @@ const Flick = () => {
               orientation: 'vertical',
               viewStyle: 'bullet',
             },
+          },
+        })
+      }
+    } else if (currentBlock.type === 'outroBlock') {
+      if (!viewConfig.blocks[currentBlock.id].view) {
+        updateBlockProperties(currentBlock.id, {
+          ...viewConfig.blocks[currentBlock.id],
+          view: {
+            type: 'outroBlock',
+            outro: {},
           },
         })
       }

@@ -27,13 +27,11 @@ import useMeasure from 'react-use-measure'
 import { useRecoilValue } from 'recoil'
 import { v4 as uuidv4 } from 'uuid'
 import { ReactComponent as BulletListStyleIcon } from '../../../assets/BulletListStyle.svg'
-import { ReactComponent as EditorStyleIcon } from '../../../assets/EditorStyle.svg'
 import listAllAtOnceGif from '../../../assets/ListAllAtOnce.svg'
 import listReplaceGif from '../../../assets/ListReplace.svg'
 import listStackGif from '../../../assets/ListStack.svg'
 import { ReactComponent as NumberListStyleIcon } from '../../../assets/NumberListStyle.svg'
-import { ReactComponent as TerminalStyleIcon } from '../../../assets/TerminalStyle.svg'
-import { Checkbox, Heading, Text, TextField } from '../../../components'
+import { Checkbox, Heading, Text } from '../../../components'
 import {
   allLayoutTypes,
   BlockProperties,
@@ -41,7 +39,6 @@ import {
   CaptionTitleView,
   CodeAnimation,
   CodeBlockView,
-  CodeStyle,
   CodeTheme,
   HandleDetails,
   ImageBlockView,
@@ -51,7 +48,6 @@ import {
   ListOrientation,
   ListViewStyle,
   OutroBlockView,
-  OutroLayout,
   VideoBlockView,
   ViewConfig,
 } from '../../../utils/configTypes'
@@ -233,14 +229,15 @@ const Preview = ({
       setActiveTab(commonTabs[0])
     switch (type) {
       case 'introBlock':
+        setTabs([commonTabs[2]])
         setActiveTab(commonTabs[2])
         break
       case 'outroBlock':
-        setTabs([commonTabs[0], commonTabs[2], ...outroBlockTabs])
+        setTabs([commonTabs[0], ...outroBlockTabs, commonTabs[2]])
         setActiveTab(commonTabs[0])
         break
       case 'codeBlock':
-        setTabs([...commonTabs, ...codeBlockTabs])
+        setTabs([commonTabs[0], commonTabs[1], ...codeBlockTabs, commonTabs[2]])
         break
       default:
         setTabs(commonTabs)
@@ -539,7 +536,7 @@ const Note = ({
         if (node.attrs.id) {
           if (node.attrs.id === nodeId) {
             // console.log('found node with note', node, pos, node.nodeSize)
-            node.descendants((childNode, childPos) => {
+            node.descendants((childNode) => {
               // check for text node
               if (childNode.type.name === 'text') {
                 // console.log(
@@ -1142,82 +1139,125 @@ const ImageBlockModeSelector = ({
       <Heading fontSize="small" className="font-bold">
         Image Style
       </Heading>
-      <div className="grid grid-cols-3 mt-2 gap-x-2">
-        {(['titleOnly', 'captionOnly', 'none'] as CaptionTitleView[]).map(
-          (style) => {
-            return (
-              <div className="aspect-w-1 aspect-h-1">
-                <button
-                  type="button"
-                  onClick={() =>
-                    updateView({
-                      ...view,
-                      image: {
-                        ...view.image,
-                        captionTitleView: style,
-                      },
-                    })
+      <div className="grid grid-cols-3 mt-2 gap-2">
+        {(
+          [
+            'none',
+            'titleOnly',
+            'captionOnly',
+            'titleAndCaption',
+          ] as CaptionTitleView[]
+        ).map((style) => {
+          return (
+            <div className="aspect-w-1 aspect-h-1">
+              <button
+                type="button"
+                onClick={() =>
+                  updateView({
+                    ...view,
+                    image: {
+                      ...view.image,
+                      captionTitleView: style,
+                    },
+                  })
+                }
+                className={cx(
+                  'border border-gray-200 h-full w-full rounded-sm p-px ',
+                  {
+                    'border-gray-800': view.image.captionTitleView === style,
                   }
-                  className={cx(
-                    'border border-gray-200 h-full w-full rounded-sm p-px ',
-                    {
-                      'border-gray-800': view.image.captionTitleView === style,
-                    }
-                  )}
-                >
-                  {style === 'none' && (
+                )}
+              >
+                {style === 'none' && (
+                  <div
+                    className={cx('bg-gray-100 w-full h-full p-2', {
+                      'bg-gray-200': view.image.captionTitleView === style,
+                    })}
+                  >
                     <div
-                      className={cx('bg-gray-100 w-full h-full p-2', {
-                        'bg-gray-200': view.image.captionTitleView === style,
+                      className={cx('w-full h-full bg-gray-300 rounded-sm', {
+                        'bg-gray-800': view.image.captionTitleView === style,
                       })}
-                    >
-                      <div
-                        className={cx('w-full h-full bg-gray-300 rounded-sm', {
-                          'bg-gray-800': view.image.captionTitleView === style,
-                        })}
-                      />
-                    </div>
-                  )}
-                  {(style === 'titleOnly' || style === 'captionOnly') && (
+                    />
+                  </div>
+                )}
+                {(style === 'titleOnly' || style === 'captionOnly') && (
+                  <div
+                    style={{
+                      paddingLeft: '13px',
+                      paddingRight: '13px',
+                    }}
+                    className={cx(
+                      'flex flex-col items-center justify-center gap-y-1 bg-gray-100 w-full h-full p-2',
+                      {
+                        'flex-col-reverse': style === 'captionOnly',
+                        'bg-gray-200': view.image.captionTitleView === style,
+                      }
+                    )}
+                  >
                     <div
                       style={{
-                        paddingLeft: '13px',
-                        paddingRight: '13px',
+                        borderRadius: '2px',
                       }}
-                      className={cx(
-                        'flex flex-col items-center justify-center gap-y-1 bg-gray-100 w-full h-full p-2',
-                        {
-                          'flex-col-reverse': style === 'captionOnly',
-                          'bg-gray-200': view.image.captionTitleView === style,
-                        }
-                      )}
-                    >
+                      className={cx('w-full h-full bg-gray-300', {
+                        'bg-gray-800': view.image.captionTitleView === style,
+                      })}
+                    />
+                    <div className="aspect-w-1 aspect-h-1 w-full">
                       <div
                         style={{
-                          borderRadius: '2px',
+                          borderRadius: '3px',
                         }}
                         className={cx('w-full h-full bg-gray-300', {
                           'bg-gray-800': view.image.captionTitleView === style,
                         })}
                       />
-                      <div className="aspect-w-1 aspect-h-1 w-full">
-                        <div
-                          style={{
-                            borderRadius: '3px',
-                          }}
-                          className={cx('w-full h-full bg-gray-300', {
-                            'bg-gray-800':
-                              view.image.captionTitleView === style,
-                          })}
-                        />
-                      </div>
                     </div>
-                  )}
-                </button>
-              </div>
-            )
-          }
-        )}
+                  </div>
+                )}
+                {style === 'titleAndCaption' && (
+                  <div
+                    style={{
+                      paddingLeft: '13px',
+                      paddingRight: '13px',
+                    }}
+                    className={cx(
+                      'flex flex-col items-center justify-center gap-y-1 bg-gray-100 w-full h-full p-2',
+                      {
+                        'bg-gray-200': view.image.captionTitleView === style,
+                      }
+                    )}
+                  >
+                    <div
+                      style={{
+                        borderRadius: '2px',
+                      }}
+                      className={cx('w-full h-3 bg-gray-300', {
+                        'bg-gray-800': view.image.captionTitleView === style,
+                      })}
+                    />
+                    <div
+                      style={{
+                        borderRadius: '2px',
+                      }}
+                      className={cx('w-full h-full bg-gray-300', {
+                        'bg-gray-800': view.image.captionTitleView === style,
+                      })}
+                    />
+                    <div
+                      style={{
+                        borderRadius: '2px',
+                      }}
+                      className={cx('w-full h-3 bg-gray-300', {
+                        'bg-gray-800': view.image.captionTitleView === style,
+                      })}
+                    />
+                  </div>
+                )}
+              </button>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
@@ -1236,82 +1276,125 @@ const VideoBlockModeSelector = ({
         Video Style
       </Heading>
       <div className="grid grid-cols-3 mt-2 gap-x-2">
-        {(['titleOnly', 'captionOnly', 'none'] as CaptionTitleView[]).map(
-          (style) => {
-            return (
-              <div className="aspect-w-1 aspect-h-1">
-                <button
-                  type="button"
-                  onClick={() =>
-                    updateView({
-                      ...view,
-                      video: {
-                        ...view.video,
-                        captionTitleView: style,
-                      },
-                    })
+        {(
+          [
+            'none',
+            'titleOnly',
+            'captionOnly',
+            'titleAndCaption',
+          ] as CaptionTitleView[]
+        ).map((style) => {
+          return (
+            <div className="aspect-w-1 aspect-h-1">
+              <button
+                type="button"
+                onClick={() =>
+                  updateView({
+                    ...view,
+                    video: {
+                      ...view.video,
+                      captionTitleView: style,
+                    },
+                  })
+                }
+                className={cx(
+                  'border border-gray-200 h-full w-full rounded-sm p-px',
+                  {
+                    'border-gray-800': view.video.captionTitleView === style,
                   }
-                  className={cx(
-                    'border border-gray-200 h-full w-full rounded-sm p-px',
-                    {
-                      'border-gray-800': view.video.captionTitleView === style,
-                    }
-                  )}
-                >
-                  {style === 'none' && (
+                )}
+              >
+                {style === 'none' && (
+                  <div
+                    className={cx('bg-gray-100 w-full h-full p-2', {
+                      'bg-gray-200': view.video.captionTitleView === style,
+                    })}
+                  >
                     <div
-                      className={cx('bg-gray-100 w-full h-full p-2', {
+                      className={cx('w-full h-full bg-gray-300 rounded-sm', {
+                        'bg-gray-800': view.video.captionTitleView === style,
                         'bg-gray-200': view.video.captionTitleView === style,
                       })}
-                    >
-                      <div
-                        className={cx('w-full h-full bg-gray-300 rounded-sm', {
-                          'bg-gray-800': view.video.captionTitleView === style,
-                          'bg-gray-200': view.video.captionTitleView === style,
-                        })}
-                      />
-                    </div>
-                  )}
-                  {(style === 'titleOnly' || style === 'captionOnly') && (
+                    />
+                  </div>
+                )}
+                {(style === 'titleOnly' || style === 'captionOnly') && (
+                  <div
+                    style={{
+                      paddingLeft: '13px',
+                      paddingRight: '13px',
+                    }}
+                    className={cx(
+                      'flex flex-col items-center justify-center gap-y-1 bg-gray-100 w-full h-full p-2',
+                      {
+                        'flex-col-reverse': style === 'captionOnly',
+                        'bg-gray-200': view.video.captionTitleView === style,
+                      }
+                    )}
+                  >
                     <div
                       style={{
-                        paddingLeft: '13px',
-                        paddingRight: '13px',
+                        borderRadius: '2px',
                       }}
-                      className={cx(
-                        'flex flex-col items-center justify-center gap-y-1 bg-gray-100 w-full h-full p-2',
-                        {
-                          'flex-col-reverse': style === 'captionOnly',
-                          'bg-gray-200': view.video.captionTitleView === style,
-                        }
-                      )}
-                    >
+                      className={cx('w-full h-full bg-gray-300', {
+                        'bg-gray-800': view.video.captionTitleView === style,
+                      })}
+                    />
+                    <div className="aspect-w-1 aspect-h-1 w-full">
                       <div
                         style={{
-                          borderRadius: '2px',
+                          borderRadius: '3px',
                         }}
                         className={cx('w-full h-full bg-gray-300', {
                           'bg-gray-800': view.video.captionTitleView === style,
                         })}
                       />
-                      <div className="aspect-w-1 aspect-h-1 w-full">
-                        <div
-                          style={{
-                            borderRadius: '3px',
-                          }}
-                          className={cx('w-full h-full bg-gray-300', {
-                            'bg-gray-800':
-                              view.video.captionTitleView === style,
-                          })}
-                        />
-                      </div>
                     </div>
-                  )}
-                </button>
-              </div>
-            )
-          }
-        )}
+                  </div>
+                )}
+                {style === 'titleAndCaption' && (
+                  <div
+                    style={{
+                      paddingLeft: '13px',
+                      paddingRight: '13px',
+                    }}
+                    className={cx(
+                      'flex flex-col items-center justify-center gap-y-1 bg-gray-100 w-full h-full p-2',
+                      {
+                        'bg-gray-200': view.video.captionTitleView === style,
+                      }
+                    )}
+                  >
+                    <div
+                      style={{
+                        borderRadius: '2px',
+                      }}
+                      className={cx('w-full h-3 bg-gray-300', {
+                        'bg-gray-800': view.video.captionTitleView === style,
+                      })}
+                    />
+                    <div
+                      style={{
+                        borderRadius: '2px',
+                      }}
+                      className={cx('w-full h-full bg-gray-300', {
+                        'bg-gray-800': view.video.captionTitleView === style,
+                      })}
+                    />
+                    <div
+                      style={{
+                        borderRadius: '2px',
+                      }}
+                      className={cx('w-full h-3 bg-gray-300', {
+                        'bg-gray-800': view.video.captionTitleView === style,
+                      })}
+                    />
+                  </div>
+                )}
+              </button>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
@@ -1326,7 +1409,8 @@ const CodeBlockModeSelector = ({
 }) => {
   return (
     <div className="flex flex-col p-5">
-      <Heading fontSize="small" className="font-bold">
+      {/* TODO : Code styles */}
+      {/* <Heading fontSize="small" className="font-bold">
         Code Style
       </Heading>
       <div className="mt-2 grid grid-cols-2 w-full gap-x-4 gap-y-3">
@@ -1364,9 +1448,9 @@ const CodeBlockModeSelector = ({
         >
           <TerminalStyleIcon className="w-full h-full" />
         </button>
-      </div>
+      </div> */}
 
-      <Heading fontSize="small" className="font-bold mt-8">
+      <Heading fontSize="small" className="font-bold">
         Code Theme
       </Heading>
       <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-3">

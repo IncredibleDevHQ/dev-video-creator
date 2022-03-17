@@ -52,7 +52,7 @@ export const FragmentLayoutConfig = ({
               height: 336,
               borderRadius: 8,
             }
-          case 'full':
+          case 'full-left':
             return {
               x: 16,
               y: 24,
@@ -84,7 +84,7 @@ export const FragmentLayoutConfig = ({
               borderRadius: 0,
             }
           case 'split':
-          case 'full':
+          case 'full-left':
             return {
               x: 40,
               y: 40,
@@ -130,7 +130,7 @@ export const FragmentLayoutConfig = ({
               height: 336,
               borderRadius: 16,
             }
-          case 'full':
+          case 'full-left':
             return {
               x: 16,
               y: 24,
@@ -227,9 +227,17 @@ export const FragmentLayoutConfig = ({
             height: 280,
             borderRadius: 0,
           }
-        case 'full':
+        case 'full-left':
           return {
             x: 40,
+            y: 120,
+            width: 500,
+            height: 300,
+            borderRadius: 8,
+          }
+        case 'full-right':
+          return {
+            x: 420,
             y: 120,
             width: 500,
             height: 300,
@@ -306,9 +314,17 @@ export const FragmentLayoutConfig = ({
         //     height: 280,
         //     borderRadius: 0,
         //   }
-        case 'full':
+        case 'full-left':
           return {
             x: 40,
+            y: 120,
+            width: 500,
+            height: 300,
+            borderRadius: 0,
+          }
+        case 'full-right':
+          return {
+            x: 420,
             y: 120,
             width: 500,
             height: 300,
@@ -384,9 +400,17 @@ export const FragmentLayoutConfig = ({
             height: 315,
             borderRadius: 16,
           }
-        case 'full':
+        case 'full-left':
           return {
             x: 40,
+            y: 120,
+            width: 500,
+            height: 300,
+            borderRadius: 16,
+          }
+        case 'full-right':
+          return {
+            x: 420,
             y: 120,
             width: 500,
             height: 300,

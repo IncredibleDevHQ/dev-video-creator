@@ -1,3 +1,4 @@
+/* eslint-disable no-nested-ternary */
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
 import { Circle, Group, Rect, Text } from 'react-konva'
@@ -45,7 +46,8 @@ export const getNoOfPointsBasedOnLayout = (layout: Layout) => {
       return 2
     case 'padded-split':
     case 'split':
-    case 'full':
+    case 'full-left':
+    case 'full-right':
       return 1
     default:
       return 3
@@ -204,7 +206,7 @@ const PointsFragment = ({
         titleFontStyle: 'normal 800',
         points: computedPoints,
         availableWidth: objectRenderConfig.availableWidth - 110,
-        availableHeight: objectRenderConfig.availableHeight,
+        availableHeight: objectRenderConfig.availableHeight - 16,
         fontSize: 24,
         fontFamily: branding?.font?.body?.family || 'Inter',
       })
@@ -230,29 +232,45 @@ const PointsFragment = ({
 
   useEffect(() => {
     if (activePointIndex === 0) return
-    addMusic('points')
+    addMusic({ type: 'points', volume: 0.4 })
   }, [activePointIndex])
 
   useEffect(() => {
     // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
     if (payload?.fragmentState === 'customLayout') {
-      setTimeout(() => {
+      if (!shortsMode)
+        setTimeout(() => {
+          setFragmentState(payload?.fragmentState)
+          customLayoutRef?.current?.to({
+            opacity: 1,
+            duration: 0.1,
+          })
+        }, 400)
+      else {
         setFragmentState(payload?.fragmentState)
         customLayoutRef?.current?.to({
           opacity: 1,
           duration: 0.1,
         })
-      }, 400)
+      }
     }
     // Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
     if (payload?.fragmentState === 'onlyUserMedia') {
-      setTimeout(() => {
+      if (!shortsMode)
+        setTimeout(() => {
+          setFragmentState(payload?.fragmentState)
+          customLayoutRef?.current?.to({
+            opacity: 0,
+            duration: 0.1,
+          })
+        }, 400)
+      else {
         setFragmentState(payload?.fragmentState)
         customLayoutRef?.current?.to({
           opacity: 0,
           duration: 0.1,
         })
-      }, 400)
+      }
     }
   }, [payload?.fragmentState])
 
@@ -271,9 +289,9 @@ const PointsFragment = ({
         key="fragmentTitle"
         x={objectRenderConfig.startX + 30}
         y={
-          appearance !== 'replace' || isPreview
+          appearance !== 'replace'
             ? objectRenderConfig.startY + 32
-            : titleY
+            : objectRenderConfig.startY + titleY + 8
         }
         align="left"
         fontSize={40}
@@ -292,9 +310,13 @@ const PointsFragment = ({
         <Group
           x={objectRenderConfig.startX + 50}
           y={
-            appearance !== 'replace' || isPreview
+            appearance !== 'replace'
               ? objectRenderConfig.startY + 32 + 50 * titleNumberOfLines
-              : titleY + 50 * titleNumberOfLines + 20
+              : objectRenderConfig.startY +
+                titleY +
+                8 +
+                40 * titleNumberOfLines +
+                20
           }
           key="verticalGroup"
         >
@@ -369,16 +391,21 @@ const PointsFragment = ({
                         // why subtracting 110 is that this group starts at x: 50 and this text starts at x: 30,
                         // so we need to subtract 110 to get the correct x, to give 30 padding in the end too
                         width={
-                          objectRenderConfig.availableWidth -
-                          110 -
-                          (41 * (point?.level - 1) || 0)
+                          viewStyle !== 'none'
+                            ? objectRenderConfig.availableWidth -
+                              110 -
+                              (41 * (point?.level - 1) || 0)
+                            : objectRenderConfig.availableWidth - 110
                         }
                         text={point.text}
                         lineHeight={1.3}
                         fontFamily={branding?.font?.body?.family || 'Inter'}
                         ref={(ref) =>
                           ref?.to({
-                            x: 30 + (41 * (point?.level - 1) || 0),
+                            x:
+                              viewStyle !== 'none'
+                                ? 30 + (41 * (point?.level - 1) || 0)
+                                : 0,
                             duration: 0.3,
                           })
                         }
@@ -413,10 +440,7 @@ const PointsFragment = ({
                           lineHeight={1.3}
                           fontFamily={branding?.font?.body?.family || 'Inter'}
                           height={
-                            objectRenderConfig.availableHeight -
-                            (objectRenderConfig.startY +
-                              25 +
-                              50 * titleNumberOfLines)
+                            objectRenderConfig.availableHeight - 32 - titleY
                           }
                           // verticalAlign="middle"
                         />
@@ -469,7 +493,11 @@ const PointsFragment = ({
                       }
                       <Text
                         key={point.text}
-                        x={30 + (41 * (point?.level - 1) || 0)}
+                        x={
+                          viewStyle !== 'none'
+                            ? 30 + (41 * (point?.level - 1) || 0)
+                            : 0
+                        }
                         y={point.y}
                         align="left"
                         fontSize={16}
@@ -481,9 +509,11 @@ const PointsFragment = ({
                         // why subtracting 110 is that this group starts at x: 50 and this text starts at x: 30,
                         // so we need to subtract 110 to get the correct x, to give 30 padding in the end too
                         width={
-                          objectRenderConfig.availableWidth -
-                          110 -
-                          (41 * (point?.level - 1) || 0)
+                          viewStyle !== 'none'
+                            ? objectRenderConfig.availableWidth -
+                              110 -
+                              (41 * (point?.level - 1) || 0)
+                            : objectRenderConfig.availableWidth - 110
                         }
                         text={point.text}
                         // text="Run and test using one command and so on a thats all hd huusd j idhc dsi"
@@ -493,7 +523,8 @@ const PointsFragment = ({
                     </>
                   )),
               }[appearance]
-            : computedPoints
+            : appearance !== 'replace'
+            ? computedPoints
                 .filter((point) => point.startFromIndex === 0)
                 .map((point) => (
                   <>
@@ -533,7 +564,11 @@ const PointsFragment = ({
                     }
                     <Text
                       key={point.text}
-                      x={30 + (41 * (point?.level - 1) || 0)}
+                      x={
+                        viewStyle !== 'none'
+                          ? 30 + (41 * (point?.level - 1) || 0)
+                          : 0
+                      }
                       y={point.y}
                       align="left"
                       fontSize={16}
@@ -545,15 +580,52 @@ const PointsFragment = ({
                       // why subtracting 110 is that this group starts at x: 50 and this text starts at x: 30,
                       // so we need to subtract 110 to get the correct x, to give 30 padding in the end too
                       width={
-                        objectRenderConfig.availableWidth -
-                        110 -
-                        (41 * (point?.level - 1) || 0)
+                        viewStyle !== 'none'
+                          ? objectRenderConfig.availableWidth -
+                            110 -
+                            (41 * (point?.level - 1) || 0)
+                          : objectRenderConfig.availableWidth - 110
                       }
                       text={point.text}
                       // text="Run and test using one command and so on a thats all hd huusd j idhc dsi"
                       lineHeight={1.3}
                       fontFamily={branding?.font?.body?.family || 'Inter'}
                     />
+                  </>
+                ))
+            : computedPoints
+                .filter((_, i) => i === 0)
+                .map((point) => (
+                  <>
+                    <Group>
+                      <Text
+                        key={point.text}
+                        // x={0 + (41 * (point?.level - 1) || 0)}
+                        x={-10}
+                        align="left"
+                        fontSize={24}
+                        fill={
+                          branding?.colors?.text
+                            ? branding?.colors?.text
+                            : objectRenderConfig.textColor
+                        }
+                        // why subtracting 110 is that this group starts at x: 50 and this text starts at x: 30,
+                        // so we need to subtract 110 to get the correct x, to give 30 padding in the end too
+                        width={
+                          objectRenderConfig.availableWidth -
+                          110 -
+                          (41 * (point?.level - 1) || 0)
+                        }
+                        text={point.text}
+                        // text="Run and test using one command and so on a thats all hd huusd j idhc dsi"
+                        lineHeight={1.3}
+                        fontFamily={branding?.font?.body?.family || 'Inter'}
+                        height={
+                          objectRenderConfig.availableHeight - 32 - titleY
+                        }
+                        // verticalAlign="middle"
+                      />
+                    </Group>
                   </>
                 ))}
         </Group>

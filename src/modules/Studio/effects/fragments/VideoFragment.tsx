@@ -85,9 +85,13 @@ const VideoFragment = ({
       textColor: '',
       surfaceColor: '',
     })
-  const [videoFragmentData, setVideoFragentData] =
+  const [videoFragmentData, setVideoFragmentData] =
     useState<{ title: string; caption: string }>()
   const [renderMode, setRenderMode] = useState<CaptionTitleView>('titleOnly')
+  const [noOfLinesOfText, setNoOfLinesOfText] = useState<{
+    noOfLinesOfTitle: number
+    noOfLinesOfCaption: number
+  }>({ noOfLinesOfCaption: 0, noOfLinesOfTitle: 0 })
 
   const { getNoOfLinesOfText } = usePoint()
 
@@ -117,7 +121,7 @@ const VideoFragment = ({
         isShorts: shortsMode || false,
       })
     )
-    setVideoFragentData({
+    setVideoFragmentData({
       title: dataConfig?.videoBlock.title || '',
       caption: dataConfig?.videoBlock?.caption || '',
     })
@@ -203,23 +207,39 @@ const VideoFragment = ({
   useEffect(() => {
     // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
     if (payload?.fragmentState === 'customLayout') {
-      setTimeout(() => {
+      if (!shortsMode)
+        setTimeout(() => {
+          setFragmentState(payload?.fragmentState)
+          customLayoutRef?.current?.to({
+            opacity: 1,
+            duration: 0.1,
+          })
+        }, 400)
+      else {
         setFragmentState(payload?.fragmentState)
         customLayoutRef?.current?.to({
           opacity: 1,
           duration: 0.1,
         })
-      }, 400)
+      }
     }
     // Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
     if (payload?.fragmentState === 'onlyUserMedia') {
-      setTimeout(() => {
+      if (!shortsMode)
+        setTimeout(() => {
+          setFragmentState(payload?.fragmentState)
+          customLayoutRef?.current?.to({
+            opacity: 0,
+            duration: 0.1,
+          })
+        }, 400)
+      else {
         setFragmentState(payload?.fragmentState)
         customLayoutRef?.current?.to({
           opacity: 0,
           duration: 0.1,
         })
-      }, 400)
+      }
     }
   }, [payload?.fragmentState])
 
@@ -229,24 +249,31 @@ const VideoFragment = ({
       availableWidth: objectRenderConfig.availableWidth - 20,
       fontSize: 24,
       fontFamily:
-        branding?.font?.body?.family ||
+        branding?.font?.heading?.family ||
         objectRenderConfig.titleFont ||
         'Gilroy',
       fontStyle: 'bold',
     })
+    const noOfLinesOfCaption = getNoOfLinesOfText({
+      text: videoFragmentData?.caption || '',
+      availableWidth: !shortsMode
+        ? objectRenderConfig.availableWidth - 220
+        : objectRenderConfig.availableWidth - 40,
+      fontSize: 16,
+      fontFamily:
+        branding?.font?.body?.family || objectRenderConfig.bodyFont || 'Gilroy',
+      fontStyle: 'normal',
+    })
+    setNoOfLinesOfText({ noOfLinesOfCaption, noOfLinesOfTitle })
     if (renderMode === 'titleOnly') {
       setVideoConfig({
         x: objectRenderConfig.startX + 10,
-        y: objectRenderConfig.startY + 10 + noOfLinesOfTitle * 38 + 10,
+        y: objectRenderConfig.startY + 16 + noOfLinesOfTitle * (24 + 0.2) + 16,
         width: objectRenderConfig.availableWidth - 20,
         height:
           objectRenderConfig.availableHeight -
-          20 -
-          (noOfLinesOfTitle * 38 + 10),
-        // x: objectConfig.x,
-        // y: objectConfig.y,
-        // width: objectConfig.width,
-        // height: objectConfig.height,
+          48 -
+          noOfLinesOfTitle * (24 + 0.2),
         videoFill: objectConfig.color || '#1F2937',
         cornerRadius: objectRenderConfig.borderRadius,
         performClip: true,
@@ -260,9 +287,36 @@ const VideoFragment = ({
     } else if (renderMode === 'captionOnly') {
       setVideoConfig({
         x: objectRenderConfig.startX + 10,
-        y: objectRenderConfig.startY + 20,
+        y: objectRenderConfig.startY + 16,
         width: objectRenderConfig.availableWidth - 20,
-        height: objectRenderConfig.availableHeight - 80,
+        height:
+          objectRenderConfig.availableHeight -
+          16 -
+          noOfLinesOfCaption * (16 + 0.2) -
+          32,
+        videoFill: objectConfig.color || '#1F2937',
+        cornerRadius: objectRenderConfig.borderRadius,
+        performClip: true,
+        clipVideoConfig: {
+          x: transformations?.crop?.x || 0,
+          y: transformations?.crop?.y || 0,
+          width: transformations?.crop?.width || 1,
+          height: transformations?.crop?.height || 1,
+        },
+      })
+    } else if (renderMode === 'titleAndCaption') {
+      setVideoConfig({
+        x: objectRenderConfig.startX + 10,
+        y: objectRenderConfig.startY + 16 + noOfLinesOfTitle * (24 + 0.2) + 16,
+        width: objectRenderConfig.availableWidth - 20,
+        height:
+          objectRenderConfig.availableHeight -
+          16 -
+          noOfLinesOfTitle * (24 + 0.2) -
+          16 -
+          16 -
+          noOfLinesOfCaption * (16 + 0.2) -
+          16,
         videoFill: objectConfig.color || '#1F2937',
         cornerRadius: objectRenderConfig.borderRadius,
         performClip: true,
@@ -307,10 +361,10 @@ const VideoFragment = ({
         <Video videoElement={videoElement} videoConfig={videoConfig} />
       )}
       <Group x={objectRenderConfig.startX} y={objectRenderConfig.startY}>
-        {renderMode === 'titleOnly' && (
+        {(renderMode === 'titleOnly' || renderMode === 'titleAndCaption') && (
           <Text
             x={10}
-            y={10}
+            y={16}
             align="center"
             fontSize={24}
             fill={
@@ -323,7 +377,7 @@ const VideoFragment = ({
             text={videoFragmentData?.title}
             fontStyle="bold"
             fontFamily={
-              branding?.font?.body?.family ||
+              branding?.font?.heading?.family ||
               objectRenderConfig.titleFont ||
               'Gilroy'
             }
@@ -331,10 +385,14 @@ const VideoFragment = ({
           />
         )}
 
-        {renderMode === 'captionOnly' && (
+        {(renderMode === 'captionOnly' || renderMode === 'titleAndCaption') && (
           <Text
-            x={10}
-            y={objectRenderConfig.availableHeight - 40}
+            x={!shortsMode ? 110 : 20}
+            y={
+              objectRenderConfig.availableHeight -
+              noOfLinesOfText.noOfLinesOfCaption * (16 + 0.2) -
+              16
+            }
             align="center"
             fontSize={16}
             fill={
@@ -342,7 +400,11 @@ const VideoFragment = ({
                 ? branding?.colors?.text
                 : objectRenderConfig.textColor
             }
-            width={objectRenderConfig.availableWidth - 20}
+            width={
+              !shortsMode
+                ? objectRenderConfig.availableWidth - 220
+                : objectRenderConfig.availableWidth - 40
+            }
             lineHeight={1.2}
             text={videoFragmentData?.caption}
             fontFamily={

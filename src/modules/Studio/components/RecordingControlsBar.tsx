@@ -287,7 +287,7 @@ const RecordingControlsBar = ({
           className={cx(
             'flex gap-x-2 items-center justify-between border backdrop-filter backdrop-blur-2xl p-1.5 rounded-sm w-24 absolute min-w-max',
             {
-              'left-0 ml-8': shortsMode,
+              'left-0': shortsMode,
               'bg-grey-500 bg-opacity-50 border-gray-600': timeLimit
                 ? timer < timeLimit * 60
                 : true,
@@ -311,7 +311,7 @@ const RecordingControlsBar = ({
           className={cx(
             'bg-grey-500 bg-opacity-50 border border-gray-600 backdrop-filter backdrop-blur-2xl p-1.5 rounded-sm absolute flex items-center',
             {
-              'left-0 ml-8': shortsMode,
+              'left-0': shortsMode,
             }
           )}
           type="button"
@@ -336,7 +336,11 @@ const RecordingControlsBar = ({
           </small>
         </button>
       )}
-      <div className="flex items-center ml-auto mr-8">
+      <div
+        className={cx('flex items-center ml-auto', {
+          'mr-8': !shortsMode,
+        })}
+      >
         {isVideo && (
           <button
             className="bg-grey-500 bg-opacity-50 border border-gray-600 backdrop-filter backdrop-blur-2xl p-1.5 rounded-sm text-gray-100"
@@ -361,13 +365,11 @@ const RecordingControlsBar = ({
           <>
             <button
               type="button"
-              style={{
-                background: 'rgba(39, 39, 42, 0.05);',
-              }}
               className={cx(
-                'flex gap-x-2 items-center justify-between bg-grey-500 bg-opacity-0 border border-gray-600 backdrop-filter backdrop-blur-2xl rounded-sm ml-4',
+                'flex gap-x-2 items-center justify-between border bg-grey-400 bg-opacity-50 backdrop-filter backdrop-blur-2xl border-gray-600 rounded-sm ml-4',
                 {
-                  'bg-opacity-50': !isIntro && !isOutro,
+                  'bg-grey-500 bg-opacity-100': !isIntro && !isOutro,
+                  'cursor-not-allowed': isIntro || isOutro,
                 }
               )}
               disabled={isIntro || isOutro}
@@ -390,11 +392,11 @@ const RecordingControlsBar = ({
                   'bg-transparent py-1 px-1 rounded-sm my-1 ml-1 transition-all duration-200 filter',
                   {
                     'bg-transparent': isIntro || isOutro,
-                    'bg-grey-500':
+                    'bg-grey-900':
                       payload?.fragmentState === 'onlyUserMedia' &&
                       !isIntro &&
                       !isOutro,
-                    'brightness-65': isIntro || isOutro,
+                    'brightness-50': isIntro || isOutro,
                     'brightness-75':
                       payload?.fragmentState === 'customLayout' &&
                       !isIntro &&
@@ -409,11 +411,11 @@ const RecordingControlsBar = ({
                   'bg-transparent py-1 px-1 rounded-sm my-1 mr-1 transition-all duration-300 filter',
                   {
                     'bg-transparent': isIntro || isOutro,
-                    'bg-grey-500':
+                    'bg-grey-900':
                       payload?.fragmentState === 'customLayout' &&
                       !isIntro &&
                       !isOutro,
-                    'brightness-65': isIntro || isOutro,
+                    'brightness-50': isIntro || isOutro,
                     'brightness-75':
                       payload?.fragmentState === 'onlyUserMedia' &&
                       !isIntro &&
@@ -429,16 +431,16 @@ const RecordingControlsBar = ({
 
         <button
           className={cx(
-            'bg-grey-500 border border-gray-600 backdrop-filter bg-opacity-5 backdrop-blur-2xl p-1.5 rounded-sm ml-4',
+            'bg-grey-400 border border-gray-600 backdrop-filter bg-opacity-50 backdrop-blur-2xl p-1.5 rounded-sm ml-4',
             {
-              'bg-opacity-50 text-gray-100': !isBackDisabled(),
+              'bg-grey-500 bg-opacity-100 text-gray-100': !isBackDisabled(),
               // (payload?.activeObjectIndex !== 0 ||
               //   payload?.activeIntroIndex !== 0) &&
               // payload?.activePointIndex !== 0 &&
               // !isVideo &&
               // !isImage &&
               // !isOutro,
-              'text-gray-400': isBackDisabled(),
+              'text-gray-500 cursor-not-allowed': isBackDisabled(),
             }
           )}
           type="button"
@@ -465,12 +467,12 @@ const RecordingControlsBar = ({
 
         <button
           className={cx(
-            'bg-grey-500 border border-gray-600 backdrop-filter bg-opacity-5 backdrop-blur-2xl p-1.5 rounded-sm ml-2',
+            'bg-grey-400 border border-gray-600 backdrop-filter bg-opacity-50 backdrop-blur-2xl p-1.5 rounded-sm ml-2',
             {
               'bg-opacity-50 text-gray-100':
                 payload?.activeObjectIndex !==
                 fragment?.editorState?.blocks.length - 1,
-              'text-gray-400':
+              'text-gray-500 cursor-not-allowed':
                 payload?.activeObjectIndex ===
                 fragment?.editorState?.blocks.length - 1,
             }
@@ -642,9 +644,9 @@ const handleCodeBlock = (
   ] as CodeBlockProps
   const codeBlockViewProps = (fragment?.configuration as ViewConfig).blocks[
     codeBlockProps.id
-  ].view as CodeBlockView
-  const noOfBlocks = codeBlockViewProps.code.highlightSteps?.length
-  const codeAnimation = codeBlockViewProps.code.animation
+  ]?.view as CodeBlockView
+  const noOfBlocks = codeBlockViewProps?.code.highlightSteps?.length
+  const codeAnimation = codeBlockViewProps?.code.animation
   const { position, computedTokens } = controlsConfig
 
   if (direction === 'next') {
@@ -671,7 +673,6 @@ const handleCodeBlock = (
         break
       }
       // case CodeAnimation.InsertInBetween: {
-      //   console.log('Hello')
       //   if (noOfBlocks === undefined) return
       //   if (payload?.activeBlockIndex === noOfBlocks) {
       //     updatePayload?.({

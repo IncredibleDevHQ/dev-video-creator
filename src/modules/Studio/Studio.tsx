@@ -541,7 +541,7 @@ const Studio = ({
   branding?: BrandingJSON | null
 }) => {
   const { fragmentId } = useParams<{ fragmentId: string }>()
-  const { constraints, theme } =
+  const { constraints, theme, staticAssets } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [studio, setStudio] = useRecoilState(studioStore)
   const { sub } = (useRecoilValue(userState) as User) || {}
@@ -728,7 +728,7 @@ const Studio = ({
     reset,
     getBlobs,
     addMusic,
-    reduceSplashAudioVolume,
+    // reduceSplashAudioVolume,
     stopMusic,
     stopStreaming,
   } = useCanvasRecorder({
@@ -824,6 +824,14 @@ const Studio = ({
       localStream: stream as MediaStream,
       remoteStreams: userAudios,
     })
+    if (fragment?.configuration?.mode === 'Portrait') {
+      addMusic({
+        type: 'shorts',
+        volume: 0.2,
+        musicURL: staticAssets?.shortsBackgroundMusic,
+        action: 'start',
+      })
+    }
 
     setState('recording')
   }
@@ -835,7 +843,9 @@ const Studio = ({
   // }
 
   const stop = () => {
+    addMusic({ volume: 0.01, action: 'modifyVolume' })
     stopRecording()
+    addMusic({ action: 'stop' })
     setState('preview')
   }
 
@@ -872,7 +882,7 @@ const Studio = ({
       startRecording: start,
       stopRecording: stop,
       addMusic,
-      reduceSplashAudioVolume,
+      // reduceSplashAudioVolume,
       stopMusic,
       reset: resetRecording,
       upload,
@@ -1123,22 +1133,6 @@ const Studio = ({
                 openTimerModal={() => setIsTimerModalOpen(true)}
               />
             </div>
-            {/* Notes */}
-            {/* <div className="col-span-3 w-full">
-              <div
-                style={{
-                  background: '#27272A',
-                  height: `${stageHeight}px`,
-                }}
-                className="h-full p-4 text-gray-100 rounded-sm"
-              >
-                {getNote(payload?.activeObjectIndex) ? (
-                  getNote(payload?.activeObjectIndex)
-                ) : (
-                  <span className="italic">No notes</span>
-                )}
-              </div>
-            </div> */}
             <Notes stageHeight={stageHeight} />
           </div>
           {/* Mini timeline */}
@@ -1160,17 +1154,25 @@ const Studio = ({
             {fragment?.editorState &&
               (fragment.editorState as SimpleAST).blocks.map((block, index) => {
                 return (
-                  <div
+                  <button
+                    type="button"
                     id={`timeline-block-${block.id}`}
                     className={cx(
-                      'px-3 py-1.5 font-body text-sm rounded-sm flex items-center justify-center transition-transform duration-500 bg-brand-grey relative text-gray-300 flex-shrink-0',
+                      'px-3 py-1.5 font-body cursor-pointer text-sm rounded-sm flex items-center justify-center transition-transform duration-500 bg-brand-grey relative text-gray-300 flex-shrink-0',
                       {
                         'transform scale-110 border border-gray-400':
                           payload?.activeObjectIndex === index,
                         'bg-grey-900 text-gray-500':
                           index > payload?.activeObjectIndex,
+                        'cursor-not-allowed': state !== 'ready',
                       }
                     )}
+                    onClick={() => {
+                      if (state !== 'ready') return
+                      updatePayload({
+                        activeObjectIndex: index,
+                      })
+                    }}
                   >
                     {(index < payload?.activeObjectIndex ||
                       payload?.activeObjectIndex ===
@@ -1187,7 +1189,7 @@ const Studio = ({
                       {utils.getBlockTitle(block).substring(0, 40) +
                         (utils.getBlockTitle(block).length > 40 ? '...' : '')}
                     </span>
-                  </div>
+                  </button>
                 )
               })}
           </div>

@@ -322,7 +322,7 @@ const LayoutGeneric = ({
                 />
               </div>
             )
-          case 'full':
+          case 'full-left':
             return (
               <div
                 className={cx(
@@ -340,6 +340,35 @@ const LayoutGeneric = ({
                   className={cx('bg-gray-200 p-1.5 absolute rounded-sm', {
                     'w-4/5 h-2/5 top-2': mode === 'Portrait',
                     'h-8 w-2/5 left-1': mode === 'Landscape',
+                  })}
+                >
+                  {type && (
+                    <FragmentTypeIcon
+                      shouldDisplayIcon={shouldDisplayIcon}
+                      type={type}
+                    />
+                  )}
+                </div>
+              </div>
+            )
+          case 'full-right':
+            return (
+              <div
+                className={cx(
+                  'border border-gray-200 rounded-md cursor-pointer flex items-center relative',
+                  {
+                    'border-brand': isSelected,
+                    'w-16 h-28 justify-center': mode === 'Portrait',
+                    'w-28 h-16': mode === 'Landscape',
+                  }
+                )}
+                {...rest}
+              >
+                <div className="w-full h-full bg-gray-500 rounded-sm items-self-end" />
+                <div
+                  className={cx('bg-gray-200 p-1.5 absolute rounded-sm', {
+                    'w-4/5 h-2/5 top-2': mode === 'Portrait',
+                    'h-8 w-2/5 right-1': mode === 'Landscape',
                   })}
                 >
                   {type && (

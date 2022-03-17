@@ -187,8 +187,8 @@ const CodeFragment = ({
     setColorCodes([])
     setComputedTokens([[]])
     updatePayload?.({
-      currentIndex: 1,
-      prevIndex: 0,
+      currentIndex: 0,
+      prevIndex: -1,
       isFocus: false,
       focusBlockCode: false,
       activeBlockIndex: 0,
@@ -201,8 +201,8 @@ const CodeFragment = ({
       })
     )
     const codeBlockViewProps: CodeBlockViewProps = (
-      viewConfig.view as CodeBlockView
-    ).code
+      viewConfig?.view as CodeBlockView
+    )?.code
     ;(async () => {
       if (dataConfig.codeBlock.colorCodes) {
         setColorCodes(dataConfig.codeBlock.colorCodes)
@@ -214,7 +214,7 @@ const CodeFragment = ({
               dataConfig.codeBlock.code,
               dataConfig.codeBlock.language || '',
               token || '',
-              codeBlockViewProps.theme
+              codeBlockViewProps?.theme
             )
             if (!data?.errors) setColorCodes(data.data.TokenisedCode.data)
           }
@@ -224,10 +224,10 @@ const CodeFragment = ({
         }
       }
     })()
-    setCodeAnimation(codeBlockViewProps.animation)
-    setCodeTheme(codeBlockViewProps.theme)
-    if (codeBlockViewProps.fontSize) setFontSize(codeBlockViewProps.fontSize)
-    const blocks = Object.assign([], codeBlockViewProps.highlightSteps || [])
+    setCodeAnimation(codeBlockViewProps?.animation)
+    setCodeTheme(codeBlockViewProps?.theme)
+    if (codeBlockViewProps?.fontSize) setFontSize(codeBlockViewProps.fontSize)
+    const blocks = Object.assign([], codeBlockViewProps?.highlightSteps || [])
     blocks.unshift({ from: 0, to: 0, fileIndex: 0, lineNumbers: [] })
     // const blocks = [
     //   { lineNumbers: [] },
@@ -272,8 +272,8 @@ const CodeFragment = ({
 
   useEffect(() => {
     setPosition({
-      prevIndex: payload?.prevIndex || 0,
-      currentIndex: payload?.currentIndex || 1,
+      prevIndex: payload?.prevIndex,
+      currentIndex: payload?.currentIndex,
     })
     // setFocusCode(payload?.isFocus)
     // if (codeAnimation === 'Insert in between') {
@@ -339,15 +339,12 @@ const CodeFragment = ({
       })
       if (codeAnimation === 'Type lines')
         updatePayload?.({
-          currentIndex: 1,
-          prevIndex: 0,
+          prevIndex: -1,
+          currentIndex: 0,
           isFocus: false,
         })
       else
         updatePayload?.({
-          currentIndex: 1,
-          prevIndex: 0,
-          isFocus: false,
           focusBlockCode: false,
           activeBlockIndex: 0,
         })
@@ -359,15 +356,12 @@ const CodeFragment = ({
       })
       if (codeAnimation === 'Type lines')
         updatePayload?.({
-          currentIndex: 1,
-          prevIndex: 0,
+          prevIndex: -1,
+          currentIndex: 0,
           isFocus: false,
         })
       else
         updatePayload?.({
-          currentIndex: 1,
-          prevIndex: 0,
-          isFocus: false,
           focusBlockCode: false,
           activeBlockIndex: 0,
         })
@@ -377,23 +371,39 @@ const CodeFragment = ({
   useEffect(() => {
     // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
     if (payload?.fragmentState === 'customLayout') {
-      setTimeout(() => {
+      if (!shortsMode)
+        setTimeout(() => {
+          setFragmentState(payload?.fragmentState)
+          customLayoutRef?.current?.to({
+            opacity: 1,
+            duration: 0.1,
+          })
+        }, 400)
+      else {
         setFragmentState(payload?.fragmentState)
         customLayoutRef?.current?.to({
           opacity: 1,
           duration: 0.1,
         })
-      }, 800)
+      }
     }
     // Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
     if (payload?.fragmentState === 'onlyUserMedia') {
-      setTimeout(() => {
+      if (!shortsMode)
+        setTimeout(() => {
+          setFragmentState(payload?.fragmentState)
+          customLayoutRef?.current?.to({
+            opacity: 0,
+            duration: 0.1,
+          })
+        }, 400)
+      else {
         setFragmentState(payload?.fragmentState)
         customLayoutRef?.current?.to({
           opacity: 0,
           duration: 0.1,
         })
-      }, 400)
+      }
     }
   }, [payload?.fragmentState])
 
