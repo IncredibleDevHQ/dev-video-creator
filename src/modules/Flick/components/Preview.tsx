@@ -233,11 +233,11 @@ const Preview = ({
         setActiveTab(commonTabs[2])
         break
       case 'outroBlock':
-        setTabs([commonTabs[0], commonTabs[2], ...outroBlockTabs])
+        setTabs([commonTabs[0], ...outroBlockTabs, commonTabs[2]])
         setActiveTab(commonTabs[0])
         break
       case 'codeBlock':
-        setTabs([...commonTabs, ...codeBlockTabs])
+        setTabs([commonTabs[0], commonTabs[1], ...codeBlockTabs, commonTabs[2]])
         break
       default:
         setTabs(commonTabs)
