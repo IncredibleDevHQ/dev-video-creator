@@ -11,7 +11,8 @@ export const allLayoutTypes = [
   'bottom-right-circle',
   'padded-split',
   'split',
-  'full',
+  'full-left',
+  'full-right',
   'split-without-media',
 ] as const
 
@@ -22,7 +23,7 @@ export const shortsLayoutTypes = [
   'bottom-right-tile',
   'bottom-right-circle',
   'split',
-  'full',
+  'full-left',
 ] as const
 
 export const outroLayoutTypes = [

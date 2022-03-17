@@ -53,7 +53,8 @@ export const getPointsConfig = ({
       }
     case 'padded-split':
     case 'split':
-    case 'full':
+    case 'full-left':
+    case 'full-right':
       return {
         bulletWidth: 36,
         bulletHeight: 36,

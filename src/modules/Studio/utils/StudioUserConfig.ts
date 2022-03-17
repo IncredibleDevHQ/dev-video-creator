@@ -549,7 +549,8 @@ export const StudioUserConfiguration = ({
                 },
               ]
           }
-        case 'full':
+        case 'full-left':
+        case 'full-right':
           switch (fragment?.configuration?.speakers?.length) {
             case 2:
               return [
@@ -904,7 +905,8 @@ export const StudioUserConfiguration = ({
                 },
               ]
           }
-        case 'full':
+        case 'full-left':
+        case 'full-right':
           switch (fragment?.configuration?.speakers?.length) {
             case 2:
               return [
@@ -1520,7 +1522,8 @@ export const StudioUserConfiguration = ({
                 },
               ]
           }
-        case 'full':
+        case 'full-left':
+        case 'full-right':
           switch (fragment?.configuration?.speakers?.length) {
             case 2:
               return [
@@ -1919,7 +1922,7 @@ export const ShortsStudioUserConfiguration = ({
                 },
               ]
           }
-        case 'full':
+        case 'full-left':
           switch (fragment?.configuration?.speakers?.length) {
             case 2:
               return [
@@ -2220,7 +2223,7 @@ export const ShortsStudioUserConfiguration = ({
                 },
               ]
           }
-        case 'full':
+        case 'full-left':
           switch (fragment?.configuration?.speakers?.length) {
             case 2:
               return [
@@ -2573,7 +2576,7 @@ export const ShortsStudioUserConfiguration = ({
                 },
               ]
           }
-        case 'full':
+        case 'full-left':
           switch (fragment?.configuration?.speakers?.length) {
             case 2:
               return [

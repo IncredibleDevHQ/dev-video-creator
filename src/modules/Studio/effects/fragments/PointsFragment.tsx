@@ -46,7 +46,8 @@ export const getNoOfPointsBasedOnLayout = (layout: Layout) => {
       return 2
     case 'padded-split':
     case 'split':
-    case 'full':
+    case 'full-left':
+    case 'full-right':
       return 1
     default:
       return 3
