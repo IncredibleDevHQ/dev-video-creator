@@ -48,7 +48,7 @@ export const ThemeLayoutConfig = ({
         textColor: '#ffffff',
         surfaceColor: '#151D2C',
         pointsBulletColor: '#713654',
-        borderRadius: layoutConfig.borderRadius,
+        borderRadius: 8,
         titleFont: 'Gilroy',
         bodyFont: 'GilroyRegular',
       }
@@ -60,7 +60,7 @@ export const ThemeLayoutConfig = ({
         availableHeight: layoutConfig.height,
         textColor: '#27272A',
         pointsBulletColor: '#27272A',
-        borderRadius: layoutConfig.borderRadius,
+        borderRadius: 0,
         surfaceColor: '',
       }
     case 'Cassidoo':
@@ -71,7 +71,7 @@ export const ThemeLayoutConfig = ({
         availableHeight: layoutConfig.height - 56,
         textColor: '#374151',
         pointsBulletColor: '#374151',
-        borderRadius: layoutConfig.borderRadius,
+        borderRadius: 16,
         surfaceColor: '#fafafa',
         surfaceOpacity: 0.8,
         titleFont: 'Roboto Mono',
@@ -85,6 +85,8 @@ export const ThemeLayoutConfig = ({
         availableHeight: layoutConfig.height,
         surfaceColor: '',
         textColor: '#ffffff',
+        titleFont: 'Gilroy',
+        bodyFont: 'GilroyRegular',
       }
   }
 }

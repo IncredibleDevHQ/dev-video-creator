@@ -234,22 +234,21 @@ const usePoint = () => {
         fontFamily,
         fontStyle,
       })
-      if (noOfLines * (fontSize + 10 + fontSize * 0.3) > maxHeightOfPoint) {
-        maxHeightOfPoint = noOfLines * (fontSize + 10 + fontSize * 0.3)
+      if (noOfLines * (fontSize + fontSize * 0.3) > maxHeightOfPoint) {
+        maxHeightOfPoint = noOfLines * (fontSize + fontSize * 0.3)
       }
     })
 
     const titleHeight =
       getNoOfLinesOfText({
         text: title,
-        availableWidth: availableWidth - 30,
+        availableWidth: availableWidth + 30,
         fontSize: titleFontSize,
         fontFamily: titleFontFamily,
         fontStyle: titleFontStyle,
-      }) *
-      (titleFontSize + 10)
+      }) * titleFontSize
 
-    return (availableHeight - maxHeightOfPoint + titleHeight + 20) / 2
+    return (availableHeight - (maxHeightOfPoint + titleHeight + 20)) / 2
   }
 
   return {

@@ -642,9 +642,9 @@ const handleCodeBlock = (
   ] as CodeBlockProps
   const codeBlockViewProps = (fragment?.configuration as ViewConfig).blocks[
     codeBlockProps.id
-  ].view as CodeBlockView
-  const noOfBlocks = codeBlockViewProps.code.highlightSteps?.length
-  const codeAnimation = codeBlockViewProps.code.animation
+  ]?.view as CodeBlockView
+  const noOfBlocks = codeBlockViewProps?.code.highlightSteps?.length
+  const codeAnimation = codeBlockViewProps?.code.animation
   const { position, computedTokens } = controlsConfig
 
   if (direction === 'next') {
@@ -671,7 +671,6 @@ const handleCodeBlock = (
         break
       }
       // case CodeAnimation.InsertInBetween: {
-      //   console.log('Hello')
       //   if (noOfBlocks === undefined) return
       //   if (payload?.activeBlockIndex === noOfBlocks) {
       //     updatePayload?.({
