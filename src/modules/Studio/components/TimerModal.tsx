@@ -49,8 +49,13 @@ const TimerModal = ({
             className="bg-transparent text-white w-full outline-none focus:outline-none"
             value={selectedTime}
             onChange={(e) => {
-              if (Number(e.target.value) >= 0) {
+              if (
+                Number.isNaN(Number(e.target.value)) === false &&
+                Number(e.target.value) >= 0
+              ) {
                 setSelectedTime(Number(e.target.value))
+              } else {
+                setSelectedTime(0)
               }
             }}
           />
