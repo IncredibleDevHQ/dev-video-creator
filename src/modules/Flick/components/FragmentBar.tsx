@@ -3,7 +3,7 @@
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 import { css, cx } from '@emotion/css'
 import React, { HTMLAttributes, useEffect, useState } from 'react'
-import { BiCheck, BiPlayCircle } from 'react-icons/bi'
+import { BiCheck } from 'react-icons/bi'
 import { BsCloudCheck, BsCloudUpload } from 'react-icons/bs'
 import {
   IoAlbumsOutline,
@@ -532,10 +532,10 @@ const FragmentBar = ({
             </Button>
           </Tooltip>
         </div>
-        <div className="flex items-stretch justify-end py-2 pl-4 border-l-2 border-brand-grey">
-          {(fragment?.producedLink || fragment?.producedShortsLink) &&
-            (mode === Content_Type_Enum_Enum.Video ||
-              mode === Content_Type_Enum_Enum.VerticalVideo) && (
+        {(fragment?.producedLink || fragment?.producedShortsLink) &&
+          (mode === Content_Type_Enum_Enum.Video ||
+            mode === Content_Type_Enum_Enum.VerticalVideo) && (
+            <div className="flex items-stretch justify-end py-2 pl-4 border-l-2 border-brand-grey">
               <Button
                 appearance="none"
                 size="small"
@@ -549,8 +549,8 @@ const FragmentBar = ({
               >
                 Recordings
               </Button>
-            )}
-        </div>
+            </div>
+          )}
         <div className="flex items-stretch justify-end py-2 pl-4 border-l-2 border-brand-grey">
           <Button
             appearance={config.mode === 'Landscape' ? 'gray' : 'none'}
