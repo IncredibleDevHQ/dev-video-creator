@@ -346,7 +346,7 @@ const ImageFragment = ({
                 y={
                   objectRenderConfig.availableHeight -
                   noOfLinesOfText.noOfLinesOfCaption * (16 + 0.2) -
-                  16
+                  8
                 }
                 align="center"
                 fontSize={16}
@@ -360,6 +360,7 @@ const ImageFragment = ({
                     ? objectRenderConfig.availableWidth - 220
                     : objectRenderConfig.availableWidth - 40
                 }
+                height={noOfLinesOfText.noOfLinesOfCaption * (16 + 0.2) + 8}
                 lineHeight={1.2}
                 text={imageFragmentData?.caption}
                 fontFamily={
