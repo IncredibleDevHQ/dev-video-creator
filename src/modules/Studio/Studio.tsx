@@ -541,7 +541,7 @@ const Studio = ({
   branding?: BrandingJSON | null
 }) => {
   const { fragmentId } = useParams<{ fragmentId: string }>()
-  const { constraints, theme } =
+  const { constraints, theme, staticAssets } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [studio, setStudio] = useRecoilState(studioStore)
   const { sub } = (useRecoilValue(userState) as User) || {}
@@ -728,7 +728,7 @@ const Studio = ({
     reset,
     getBlobs,
     addMusic,
-    reduceSplashAudioVolume,
+    // reduceSplashAudioVolume,
     stopMusic,
     stopStreaming,
   } = useCanvasRecorder({
@@ -824,6 +824,14 @@ const Studio = ({
       localStream: stream as MediaStream,
       remoteStreams: userAudios,
     })
+    if (fragment?.configuration?.mode === 'Portrait') {
+      addMusic({
+        type: 'shorts',
+        volume: 0.2,
+        musicURL: staticAssets?.shortsBackgroundMusic,
+        action: 'start',
+      })
+    }
 
     setState('recording')
   }
@@ -835,7 +843,9 @@ const Studio = ({
   // }
 
   const stop = () => {
+    addMusic({ volume: 0.01, action: 'modifyVolume' })
     stopRecording()
+    addMusic({ action: 'stop' })
     setState('preview')
   }
 
@@ -872,7 +882,7 @@ const Studio = ({
       startRecording: start,
       stopRecording: stop,
       addMusic,
-      reduceSplashAudioVolume,
+      // reduceSplashAudioVolume,
       stopMusic,
       reset: resetRecording,
       upload,

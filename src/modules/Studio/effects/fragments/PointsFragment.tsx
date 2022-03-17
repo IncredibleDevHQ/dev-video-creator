@@ -231,7 +231,7 @@ const PointsFragment = ({
 
   useEffect(() => {
     if (activePointIndex === 0) return
-    addMusic('points', 0.4)
+    addMusic({ type: 'points', volume: 0.4 })
   }, [activePointIndex])
 
   useEffect(() => {

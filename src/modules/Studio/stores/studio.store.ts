@@ -4,7 +4,7 @@ import {
   StudioFragmentFragment,
   ThemeFragment,
 } from '../../../generated/graphql'
-import { AudioType } from '../../../hooks/use-canvas-recorder'
+import { AudioType, MusicAction } from '../../../hooks/use-canvas-recorder'
 import { BrandingJSON } from '../../Branding/BrandingPage'
 import { RTCUser } from '../hooks/use-video'
 
@@ -28,7 +28,17 @@ export interface StudioProviderProps<T = any, S = any> {
 
   startRecording: () => void
   stopRecording: () => void
-  addMusic: (type?: AudioType, volume?: number) => void
+  addMusic: ({
+    type,
+    volume,
+    musicURL,
+    action,
+  }: {
+    type?: AudioType
+    volume?: number
+    musicURL?: string
+    action?: MusicAction
+  }) => void
   reduceSplashAudioVolume: (volume: number) => void
   stopMusic: () => void
 

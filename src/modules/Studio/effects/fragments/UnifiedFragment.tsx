@@ -168,6 +168,8 @@ const UnifiedFragment = ({
           })
         },
       })
+      if (payload?.activeObjectIndex === (dataConfig?.length || 2) - 1)
+        addMusic({ volume: 0.05, action: 'modifyVolume' })
       setTimeout(() => {
         setActiveObjectIndex(payload?.activeObjectIndex)
       }, 200)
@@ -251,13 +253,13 @@ const UnifiedFragment = ({
       // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
       if (payload?.fragmentState === 'customLayout') {
         setTopLayerChildren?.({ id: nanoid(), state: 'transition right' })
-        addMusic()
       }
       // Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
       if (payload?.fragmentState === 'onlyUserMedia') {
         setTopLayerChildren?.({ id: nanoid(), state: 'transition left' })
-        addMusic()
       }
+    } else {
+      setTopLayerChildren?.({ id: nanoid(), state: '' })
     }
   }, [payload?.fragmentState])
 
