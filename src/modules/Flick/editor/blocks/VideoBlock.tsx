@@ -15,10 +15,9 @@ import {
   FiTrash,
   FiUploadCloud,
 } from 'react-icons/fi'
-import { Group, Layer, Rect, Stage, Circle } from 'react-konva'
+import { Circle, Group, Layer, Rect, Stage } from 'react-konva'
 import useMeasure from 'react-use-measure'
 import { Text } from '../../../../components'
-import Tooltip from '../../../../components/Tooltip'
 import { Video, VideoConfig } from '../../../Studio/components/Video'
 import { useGetHW } from '../../components/BlockPreview'
 import AddVideo from './AddVideo'
@@ -42,19 +41,19 @@ const VideoTooltip = ({
   retakeVideo: (val: boolean) => void
 }) => {
   return (
-    <div className="flex items-center p-2 text-gray-200 bg-gray-800 rounded-md">
+    <div className="hidden group-hover:flex items-center gap-x-1 p-2 text-gray-300 bg-gray-800 rounded-sm m-2 absolute z-50 shadow-md cursor-default">
       <FiEdit
-        size={20}
+        size={18}
         className="mx-1 cursor-pointer hover:text-gray-50"
         onClick={() => editVideo(true)}
       />
       <FiRepeat
-        size={20}
+        size={18}
         className="mx-1 cursor-pointer hover:text-gray-50"
         onClick={() => retakeVideo(true)}
       />
       <FiTrash
-        size={20}
+        size={18}
         className="mx-1 cursor-pointer hover:text-gray-50"
         onClick={deleteVideo}
       />
@@ -63,6 +62,7 @@ const VideoTooltip = ({
 }
 
 const VideoBlock = (props: any) => {
+  const { caption } = props.node.attrs
   const stageRef = React.useRef<Konva.Stage | null>(null)
   const videoRef = React.useRef<HTMLVideoElement | null>(null)
   const seekbarRef = React.useRef<Konva.Rect | null>(null)
@@ -70,7 +70,6 @@ const VideoBlock = (props: any) => {
 
   const [transformations, setTransformations] = useState<any>()
 
-  const [isOpen, setOpen] = useState(false)
   const [playing, setPlaying] = useState(false)
   const [editVideo, setEditVideo] = useState(false)
   const [retakeVideo, setRetakeVideo] = useState(false)
@@ -257,166 +256,161 @@ const VideoBlock = (props: any) => {
     <NodeViewWrapper
       as="div"
       id={props.node.attrs.id}
-      className="w-full p-1"
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
+      className="w-full relative group"
       ref={ref}
     >
-      <Tooltip
-        isOpen={isOpen}
-        setIsOpen={setOpen}
-        content={
-          <VideoTooltip
-            editVideo={setEditVideo}
-            retakeVideo={setRetakeVideo}
-            deleteVideo={deleteVideo}
-          />
-        }
-        placement="top-start"
-        triggerOffset={10}
+      <VideoTooltip
+        editVideo={setEditVideo}
+        retakeVideo={setRetakeVideo}
+        deleteVideo={deleteVideo}
+      />
+
+      <div
+        className="relative group-hover:bg-gray-200"
+        style={{
+          width: divWidth,
+          height: divHeight,
+          cursor: 'default',
+        }}
       >
-        <div
-          className="relative border"
-          style={{
-            width: divWidth,
-            height: divHeight,
-            cursor: 'default',
+        <Stage
+          height={height}
+          width={width}
+          ref={stageRef}
+          className="border"
+          scale={{
+            x: Number((height / size.height).toFixed(2)),
+            y: Number((width / size.width).toFixed(2)),
           }}
         >
-          <Stage
-            height={height}
-            width={width}
-            ref={stageRef}
-            scale={{
-              x: height / size.height,
-              y: width / size.width,
-            }}
-          >
-            <Layer>
-              <Group zIndex={-1}>
-                {videoRef.current && videoConfig && (
-                  <Video
-                    videoElement={videoRef.current}
-                    videoConfig={videoConfig}
-                  />
-                )}
-                {!playing && (
+          <Layer>
+            <Group zIndex={-1}>
+              {videoRef.current && videoConfig && (
+                <Video
+                  videoElement={videoRef.current}
+                  videoConfig={videoConfig}
+                />
+              )}
+              {!playing && (
+                <Rect
+                  x={0}
+                  y={0}
+                  fill="#000000"
+                  opacity={0.2}
+                  width={
+                    videoRef.current?.width ? videoRef.current.width : width
+                  }
+                  height={
+                    videoRef.current?.height ? videoRef.current.height : height
+                  }
+                />
+              )}
+              {videoRef.current && (
+                <Group>
                   <Rect
-                    x={0}
-                    y={0}
-                    fill="#000000"
-                    opacity={0.2}
-                    width={
-                      videoRef.current?.width ? videoRef.current.width : width
-                    }
-                    height={
+                    fill="#D1D5DB"
+                    cornerRadius={8}
+                    x={10}
+                    y={
                       videoRef.current?.height
-                        ? videoRef.current.height
+                        ? videoRef.current.height - 20
                         : height
                     }
+                    width={
+                      videoRef.current?.width
+                        ? videoRef.current.width - 20
+                        : width
+                    }
+                    height={10}
+                    opacity={1}
                   />
-                )}
-                {videoRef.current && (
-                  <Group>
-                    <Rect
-                      fill="#D1D5DB"
-                      cornerRadius={8}
-                      x={10}
-                      y={
-                        videoRef.current?.height
-                          ? videoRef.current.height - 20
-                          : height
+                  <Rect
+                    x={10}
+                    ref={seekbarRef}
+                    width={10 + currentSeekPosition}
+                    y={
+                      videoRef.current?.height
+                        ? videoRef.current.height - 20
+                        : height
+                    }
+                    height={10}
+                    fill="#16A34A"
+                    opacity={1}
+                    cornerRadius={8}
+                  />
+                  <Circle
+                    ref={seekPointerRef}
+                    x={10 + currentSeekPosition}
+                    y={
+                      videoRef.current?.height
+                        ? videoRef.current.height - 15
+                        : height
+                    }
+                    width={20}
+                    height={20}
+                    draggable
+                    dragBoundFunc={function (pos) {
+                      return {
+                        x: pos.x,
+                        y: this.absolutePosition().y,
                       }
-                      width={
-                        videoRef.current?.width
-                          ? videoRef.current.width - 20
-                          : width
-                      }
-                      height={10}
-                      opacity={1}
-                    />
-                    <Rect
-                      x={10}
-                      ref={seekbarRef}
-                      width={10 + currentSeekPosition}
-                      y={
-                        videoRef.current?.height
-                          ? videoRef.current.height - 20
-                          : height
-                      }
-                      height={10}
-                      fill="#16A34A"
-                      opacity={1}
-                      cornerRadius={8}
-                    />
-                    <Circle
-                      ref={seekPointerRef}
-                      x={10 + currentSeekPosition}
-                      y={
+                    }}
+                    onDragMove={() => {
+                      if (!seekPointerRef.current) return
+                      seekPointerRef.current?.y(
                         videoRef.current?.height
                           ? videoRef.current.height - 15
                           : height
-                      }
-                      width={20}
-                      height={20}
-                      draggable
-                      dragBoundFunc={function (pos) {
-                        return {
-                          x: pos.x,
-                          y: this.absolutePosition().y,
-                        }
-                      }}
-                      onDragMove={() => {
-                        if (!seekPointerRef.current) return
-                        seekPointerRef.current?.y(
-                          videoRef.current?.height
-                            ? videoRef.current.height - 15
-                            : height
-                        )
-                        if (!videoRef.current) return
-                        if (seekPointerRef.current.x() < 10)
-                          seekPointerRef.current.x(10)
-                        if (
-                          seekPointerRef.current.x() >
-                          videoRef.current?.width - 10
-                        )
-                          seekPointerRef.current.x(videoRef.current?.width - 10)
-                        seekbarRef.current?.width(
-                          seekPointerRef.current.x() - 10
-                        )
-                        const tt =
-                          seekPointerRef.current.x() *
-                          ((transformations?.clip?.end -
-                            transformations?.clip?.start ||
-                            videoRef.current.duration) /
-                            (videoRef.current.width - 20))
+                      )
+                      if (!videoRef.current) return
+                      if (seekPointerRef.current.x() < 10)
+                        seekPointerRef.current.x(10)
+                      if (
+                        seekPointerRef.current.x() >
+                        videoRef.current?.width - 10
+                      )
+                        seekPointerRef.current.x(videoRef.current?.width - 10)
+                      seekbarRef.current?.width(seekPointerRef.current.x() - 10)
+                      const tt =
+                        seekPointerRef.current.x() *
+                        ((transformations?.clip?.end -
+                          transformations?.clip?.start ||
+                          videoRef.current.duration) /
+                          (videoRef.current.width - 20))
 
-                        videoRef.current.currentTime =
-                          tt + (transformations?.clip?.start || 0)
-                      }}
-                      fill="#16A34A"
-                    />
-                  </Group>
-                )}
-              </Group>
-            </Layer>
-          </Stage>
-          <div
-            className={cx(
-              'absolute top-1/2 left-1/2 text-gray-50 flex items-center justify-center p-4',
-              { 'bg-gray-800 opacity-50 rounded-full': playing },
-              translateXY
-            )}
+                      videoRef.current.currentTime =
+                        tt + (transformations?.clip?.start || 0)
+                    }}
+                    fill="#16A34A"
+                  />
+                </Group>
+              )}
+            </Group>
+          </Layer>
+        </Stage>
+        <div
+          className={cx(
+            'absolute top-1/2 left-1/2 text-gray-50 flex items-center justify-center p-4',
+            { 'bg-gray-800 opacity-50 rounded-full': playing },
+            translateXY
+          )}
+        >
+          <button
+            type="button"
+            onClick={() => setPlaying((playing) => !playing)}
           >
-            <button
-              type="button"
-              onClick={() => setPlaying((playing) => !playing)}
-            >
-              {playing ? <FiPause size={64} /> : <FiPlay size={64} />}
-            </button>
-          </div>
+            {playing ? <FiPause size={64} /> : <FiPlay size={64} />}
+          </button>
         </div>
-      </Tooltip>
+      </div>
+      <input
+        value={caption}
+        placeholder="Write a caption..."
+        className="border border-gray-200 w-full mt-1.5 group-hover:bg-gray-100 font-body px-2 py-1 focus:outline-none placeholder-italic text-black"
+        onChange={(e) => {
+          props.updateAttributes({ caption: e.target.value })
+        }}
+      />
       {(editVideo || retakeVideo) && (
         <AddVideo
           open={editVideo || retakeVideo}
@@ -466,6 +460,9 @@ export default Node.create({
         default: null,
       },
       'data-transformations': {
+        default: null,
+      },
+      caption: {
         default: null,
       },
     }

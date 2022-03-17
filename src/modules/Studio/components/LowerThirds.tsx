@@ -180,7 +180,7 @@ export const GlassyLowerThirds = ({
 }) => {
   const [image] = useImage(logo, 'anonymous')
   const { getTextWidth } = useEdit()
-  const textWidth = useRef(getTextWidth(userName, 'Inter', 24, 'bold') + 80)
+  const textWidth = useRef(getTextWidth(userName, 'Gilroy', 24, 'bold') + 16)
 
   if (logo)
     return (
@@ -208,7 +208,7 @@ export const GlassyLowerThirds = ({
               color === ''
                 ? {
                     x: 400,
-                    y: 96,
+                    y: 80,
                   }
                 : {
                     x: 0,
@@ -220,62 +220,65 @@ export const GlassyLowerThirds = ({
             height={1}
             ref={(ref) => {
               ref?.to({
-                offsetX: 48,
-                offsetY: 48,
-                height: 96,
-                width: 96,
-                duration: 0.5,
-                easing: Konva.Easings.EaseOut,
+                offsetX: 40,
+                offsetY: 40,
+                height: 80,
+                width: 80,
+                duration: 0.4,
+                easing: Konva.Easings.BackEaseOut,
                 onFinish: () => {
                   setTimeout(() => {
                     ref?.to({
                       x: -Math.floor(textWidth.current),
-                      width: Math.floor(textWidth.current) + 96,
+                      width: Math.floor(textWidth.current) + 80,
                       duration: 0.3,
                       easing: Konva.Easings.BackEaseOut,
                       onFinish: () => {
                         setTimeout(() => {
                           ref?.to({
                             x: 0,
-                            width: 96,
+                            width: 80,
                             duration: 0.3,
                             easing: Konva.Easings.EaseOut,
                             onFinish: () => {
-                              ref?.to({
-                                offsetX: 0,
-                                offsetY: 0,
-                                height: 0,
-                                width: 0,
-                                duration: 0.2,
-                              })
+                              setTimeout(() => {
+                                ref?.to({
+                                  offsetX: 40,
+                                  offsetY: 40,
+                                  height: 0,
+                                  width: 0,
+                                  duration: 0.4,
+                                  easing: Konva.Easings.BackEaseIn,
+                                })
+                              }, 200)
                             },
                           })
                         }, 2000)
                       },
                     })
-                  }, 500)
+                  }, 800)
                 },
               })
             }}
           />
-          {/* 18 is added to position the image in the center subtractiong 48 bcoz the rect's width is scaled to 96 and adding the half of the width and height to x and y respectively 
+          {/* 16 is added to position the image in the center, subtractiong 40 bcoz the rect's width is scaled to 80 and adding the half of the width and height to x and y respectively 
         bcoz the image has to scale from the center, so there would be a offset set, 
         on setting the offset the image moves negative, so to cancel that adding the offset values to x and y */}
           <Image
-            x={18 - 48 + 30}
-            y={18 - 48 + 30}
+            x={16 - 40 + 24}
+            y={16 - 40 + 24}
             width={0}
             height={0}
             image={image}
             opcaity={1}
             ref={(ref) => {
               ref?.to({
-                offsetX: 30,
-                offsetY: 30,
-                width: 60,
-                height: 60,
-                duration: 0.5,
-                easing: Konva.Easings.EaseOut,
+                offsetX: 24,
+                offsetY: 24,
+                width: 48,
+                height: 48,
+                duration: 0.4,
+                easing: Konva.Easings.BackEaseOut,
                 onFinish: () => {
                   setTimeout(() => {
                     ref?.to({
@@ -283,15 +286,15 @@ export const GlassyLowerThirds = ({
                       offsetY: 0,
                       width: 0,
                       height: 0,
-                      duration: 0.2,
+                      duration: 0.4,
                     })
-                  }, 3100)
+                  }, 3400)
                 },
               })
             }}
           />
           <Text
-            x={-textWidth.current - 30}
+            x={-textWidth.current - 24}
             y={-48}
             fill={textColor || '#fafafa'}
             text={userName}
@@ -299,7 +302,7 @@ export const GlassyLowerThirds = ({
             opacity={0}
             height={96}
             fontStyle="bold"
-            fontFamily={branding?.font?.body?.family || 'Inter'}
+            fontFamily={branding?.font?.body?.family || 'Gilroy'}
             key="username"
             verticalAlign="middle"
             ref={(ref) =>
@@ -313,10 +316,10 @@ export const GlassyLowerThirds = ({
                         opacity: 0,
                         duration: 0.3,
                       })
-                    }, 1800)
+                    }, 1700)
                   },
                 })
-              }, 1100)
+              }, 1500)
             }
           />
         </Group>
@@ -350,14 +353,14 @@ export const GlassyLowerThirds = ({
           height={60}
           ref={(ref) => {
             ref?.to({
-              x: -Math.floor(textWidth.current) + 60,
-              width: Math.floor(textWidth.current),
+              x: -Math.floor(textWidth.current) - 32 + 60,
+              width: Math.floor(textWidth.current) + 32,
               duration: 0.3,
               easing: Konva.Easings.BackEaseOut,
               onFinish: () => {
                 setTimeout(() => {
                   ref?.to({
-                    x: 0,
+                    x: 60,
                     width: 0,
                     duration: 0.3,
                     easing: Konva.Easings.EaseOut,
@@ -368,7 +371,7 @@ export const GlassyLowerThirds = ({
           }}
         />
         <Text
-          x={-textWidth.current + 80}
+          x={-textWidth.current - 16 + 60}
           y={-30}
           fill={textColor || '#fafafa'}
           text={userName}
@@ -390,7 +393,7 @@ export const GlassyLowerThirds = ({
                       opacity: 0,
                       duration: 0.3,
                     })
-                  }, 1000)
+                  }, 1400)
                 },
               })
             }, 300)
@@ -418,7 +421,7 @@ export const PastelLinesLowerThirds = ({
 }) => {
   const [image] = useImage(logo, 'anonymous')
   const { getTextWidth } = useEdit()
-  const textWidth = useRef(getTextWidth(userName, 'Inter', 24, 'bold') + 80)
+  const textWidth = useRef(getTextWidth(userName, 'Inter', 24, 'bold') + 50)
   if (logo)
     return (
       <>
@@ -628,7 +631,7 @@ export const CassidooLowerThirds = ({
 }) => {
   const [image] = useImage(logo, 'anonymous')
   const { getTextWidth } = useEdit()
-  const textWidth = useRef(getTextWidth(userName, 'Inter', 24, 'bold') + 80)
+  const textWidth = useRef(getTextWidth(userName, 'Inter', 24, 'bold') + 50)
   if (logo)
     return (
       <>

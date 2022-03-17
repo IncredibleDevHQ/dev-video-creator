@@ -267,7 +267,8 @@ const Concourse = ({
 
   return (
     <>
-      {viewConfig?.layout === 'full' &&
+      {(viewConfig?.layout === 'full-left' ||
+        viewConfig?.layout === 'full-right') &&
       !disableUserMedia &&
       payload?.status !== Fragment_Status_Enum_Enum.CountDown &&
       payload?.status !== Fragment_Status_Enum_Enum.Ended &&
@@ -304,7 +305,8 @@ const Concourse = ({
           ))}
         </>
       ) : (
-        viewConfig?.layout === 'full' &&
+        (viewConfig?.layout === 'full-left' ||
+          viewConfig?.layout === 'full-right') &&
         !disableUserMedia &&
         payload?.status !== Fragment_Status_Enum_Enum.CountDown &&
         payload?.status !== Fragment_Status_Enum_Enum.Ended &&
@@ -374,7 +376,8 @@ const Concourse = ({
           )
         })()}
       </Group>
-      {viewConfig?.layout !== 'full' &&
+      {viewConfig?.layout !== 'full-left' &&
+      viewConfig?.layout !== 'full-right' &&
       !disableUserMedia &&
       payload?.status !== Fragment_Status_Enum_Enum.CountDown &&
       payload?.status !== Fragment_Status_Enum_Enum.Ended &&
@@ -411,7 +414,8 @@ const Concourse = ({
           ))}
         </>
       ) : (
-        viewConfig?.layout !== 'full' &&
+        viewConfig?.layout !== 'full-left' &&
+        viewConfig?.layout !== 'full-right' &&
         !disableUserMedia &&
         payload?.status !== Fragment_Status_Enum_Enum.CountDown &&
         payload?.status !== Fragment_Status_Enum_Enum.Ended &&

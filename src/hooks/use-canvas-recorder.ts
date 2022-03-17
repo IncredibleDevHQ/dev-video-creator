@@ -2,13 +2,9 @@
 import { saveAs } from 'file-saver'
 import { extension } from 'mime-types'
 import { useRef, useState } from 'react'
-import transitionMusic from '../assets/TransitionMusic.mp3'
-// import splashMusic from '../assets/IntroOutroBgm.mp3'
 import pointsMusic from '../assets/bubblePopMusic.mp3'
-import { getSeekableWebM } from '../utils/helpers'
 import config from '../config'
-import { logEvent } from '../utils/analytics'
-import { PageEvent } from '../utils/analytics-types'
+import { getSeekableWebM } from '../utils/helpers'
 
 const types = [
   'video/x-matroska;codecs=avc1',
@@ -31,7 +27,8 @@ interface CanvasElement extends HTMLCanvasElement {
   captureStream(frameRate?: number): MediaStream
 }
 
-export type AudioType = 'transition' | 'splash' | 'points'
+export type AudioType = 'transition' | 'shorts' | 'points'
+export type MusicAction = 'start' | 'stop' | 'modifyVolume'
 
 const useCanvasRecorder = ({
   videoBitsPerSecond = 8000000,
@@ -61,8 +58,7 @@ const useCanvasRecorder = ({
 
   const ctx = useRef<AudioContext | null>(null)
   const dest = useRef<MediaStreamAudioDestinationNode | null>(null)
-  // const splashAudio = new Audio(splashMusic)
-  const splashAudioSourceNode = useRef<MediaElementAudioSourceNode | null>(null)
+  const shortsAudioSourceNode = useRef<MediaElementAudioSourceNode | null>(null)
 
   /**
    * Starts recording...
@@ -141,35 +137,48 @@ const useCanvasRecorder = ({
     }
   }
 
-  const addMusic = (type?: AudioType, volume?: number) => {
+  const addMusic = ({
+    type,
+    volume,
+    musicURL,
+    action,
+  }: {
+    type?: AudioType
+    volume?: number
+    musicURL?: string
+    action?: MusicAction
+  }) => {
     if (!ctx || !dest || !ctx.current || !dest.current) return
-    if (type === 'splash') {
-      // splashAudioSourceNode.current =
-      //   ctx.current.createMediaElementSource(splashAudio)
-      // splashAudioSourceNode.current.connect(dest.current)
-      // splashAudio.loop = true
-      // splashAudio.volume = volume || 0.25
-      // splashAudio.play()
+    if (type === 'shorts') {
+      const shortsAudio = new Audio(musicURL)
+      if (action === 'start') {
+        shortsAudioSourceNode.current =
+          ctx.current.createMediaElementSource(shortsAudio)
+        shortsAudioSourceNode.current.connect(dest.current)
+        shortsAudio.loop = true
+        shortsAudio.volume = volume || 0.25
+        shortsAudio.play()
+      } else if (action === 'stop') {
+        shortsAudioSourceNode.current?.disconnect()
+        shortsAudio.pause()
+      } else if (action === 'modifyVolume') {
+        shortsAudio.volume = volume || 0.25
+      }
     } else if (type === 'points') {
       const pointsAudio = new Audio(pointsMusic)
       ctx.current.createMediaElementSource(pointsAudio).connect(dest.current)
+      pointsAudio.volume = volume || 0.4
       pointsAudio.play()
-    } else {
-      const transitionAudio = new Audio(transitionMusic)
-      ctx.current
-        .createMediaElementSource(transitionAudio)
-        .connect(dest.current)
-      transitionAudio.play()
     }
   }
 
-  const reduceSplashAudioVolume = (volume: number) => {
-    // splashAudio.volume = volume
-  }
+  // const reduceSplashAudioVolume = (volume: number) => {
+  //   // splashAudio.volume = volume
+  // }
 
   const stopMusic = () => {
-    if (!splashAudioSourceNode || !splashAudioSourceNode.current) return
-    splashAudioSourceNode.current.disconnect()
+    if (!shortsAudioSourceNode || !shortsAudioSourceNode.current) return
+    shortsAudioSourceNode.current.disconnect()
   }
 
   const stopStreaming = () => {
@@ -211,7 +220,7 @@ const useCanvasRecorder = ({
     getBlobs,
     reset,
     addMusic,
-    reduceSplashAudioVolume,
+    // reduceSplashAudioVolume,
     stopMusic,
     stopStreaming,
   }

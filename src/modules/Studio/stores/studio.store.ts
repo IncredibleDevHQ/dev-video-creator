@@ -4,7 +4,7 @@ import {
   StudioFragmentFragment,
   ThemeFragment,
 } from '../../../generated/graphql'
-import { AudioType } from '../../../hooks/use-canvas-recorder'
+import { AudioType, MusicAction } from '../../../hooks/use-canvas-recorder'
 import { BrandingJSON } from '../../Branding/BrandingPage'
 import { RTCUser } from '../hooks/use-video'
 
@@ -15,6 +15,10 @@ export type StudioState =
   | 'upload'
   | 'countDown'
   | 'finalSplash'
+
+export interface StaticAssets {
+  shortsBackgroundMusic: string
+}
 export interface StudioProviderProps<T = any, S = any> {
   stream: MediaStream
   getBlobs: () => Promise<Blob>
@@ -24,7 +28,17 @@ export interface StudioProviderProps<T = any, S = any> {
 
   startRecording: () => void
   stopRecording: () => void
-  addMusic: (type?: AudioType, volume?: number) => void
+  addMusic: ({
+    type,
+    volume,
+    musicURL,
+    action,
+  }: {
+    type?: AudioType
+    volume?: number
+    musicURL?: string
+    action?: MusicAction
+  }) => void
   reduceSplashAudioVolume: (volume: number) => void
   stopMusic: () => void
 
@@ -50,6 +64,8 @@ export interface StudioProviderProps<T = any, S = any> {
   // config to render controls
   controlsConfig?: any
   shortsMode?: boolean
+
+  staticAssets?: StaticAssets
 }
 
 const studioStore = atom<StudioProviderProps>({

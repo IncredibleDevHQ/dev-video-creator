@@ -13,6 +13,8 @@ export interface ObjectRenderConfig {
   surfaceOpacity?: number
   pointsBulletColor?: string
   borderRadius?: number
+  titleFont?: string
+  bodyFont?: string
 }
 
 export interface StudioUserThemeConfig {
@@ -46,7 +48,9 @@ export const ThemeLayoutConfig = ({
         textColor: '#ffffff',
         surfaceColor: '#151D2C',
         pointsBulletColor: '#713654',
-        borderRadius: layoutConfig.borderRadius,
+        borderRadius: 8,
+        titleFont: 'Gilroy',
+        bodyFont: 'GilroyRegular',
       }
     case 'PastelLines':
       return {
@@ -56,7 +60,7 @@ export const ThemeLayoutConfig = ({
         availableHeight: layoutConfig.height,
         textColor: '#27272A',
         pointsBulletColor: '#27272A',
-        borderRadius: layoutConfig.borderRadius,
+        borderRadius: 0,
         surfaceColor: '',
       }
     case 'Cassidoo':
@@ -67,9 +71,11 @@ export const ThemeLayoutConfig = ({
         availableHeight: layoutConfig.height - 56,
         textColor: '#374151',
         pointsBulletColor: '#374151',
-        borderRadius: layoutConfig.borderRadius,
+        borderRadius: 16,
         surfaceColor: '#fafafa',
         surfaceOpacity: 0.8,
+        titleFont: 'Roboto Mono',
+        bodyFont: 'Roboto Mono',
       }
     default:
       return {
@@ -79,6 +85,8 @@ export const ThemeLayoutConfig = ({
         availableHeight: layoutConfig.height,
         surfaceColor: '',
         textColor: '#ffffff',
+        titleFont: 'Gilroy',
+        bodyFont: 'GilroyRegular',
       }
   }
 }
@@ -93,6 +101,32 @@ export const getThemeTextColor = (theme: ThemeFragment): string => {
       return '#27272A'
     default:
       return '#ffffff'
+  }
+}
+
+export const getThemeSurfaceColor = (theme: ThemeFragment): string => {
+  switch (theme.name) {
+    case 'DarkGradient':
+      return '#151D2C'
+    case 'PastelLines':
+      return ''
+    case 'Cassidoo':
+      return '#fafafa'
+    default:
+      return '#ffffff'
+  }
+}
+
+export const getThemeFont = (theme: ThemeFragment): string => {
+  switch (theme.name) {
+    case 'DarkGradient':
+      return 'Gilroy'
+    case 'PastelLines':
+      return 'Outfit'
+    case 'Cassidoo':
+      return 'Roboto Mono'
+    default:
+      return 'Gilroy'
   }
 }
 
@@ -138,7 +172,8 @@ export const getThemeSupportedUserMediaLayouts = (
         'bottom-right-circle',
         'padded-split',
         'split',
-        'full',
+        'full-left',
+        'full-right',
       ]
     case 'PastelLines':
       return [
@@ -147,7 +182,8 @@ export const getThemeSupportedUserMediaLayouts = (
         'float-half-right',
         'bottom-right-tile',
         'bottom-right-circle',
-        'full',
+        'full-left',
+        'full-right',
       ]
     case 'Cassidoo':
       return [
@@ -158,7 +194,8 @@ export const getThemeSupportedUserMediaLayouts = (
         'padded-bottom-right-circle',
         'bottom-right-circle',
         'padded-split',
-        'full',
+        'full-left',
+        'full-right',
       ]
     default:
       return []

@@ -5,7 +5,14 @@ import { css, cx } from '@emotion/css'
 import React, { useCallback, useEffect, useState } from 'react'
 import Dropzone from 'react-dropzone'
 import { BsRecordCircleFill } from 'react-icons/bs'
-import { FiUploadCloud, FiMonitor, FiCheck, FiX } from 'react-icons/fi'
+import {
+  FiUploadCloud,
+  FiMonitor,
+  FiCheck,
+  FiX,
+  FiVideoOff,
+  FiMicOff,
+} from 'react-icons/fi'
 import { IoChevronBack } from 'react-icons/io5'
 import Modal from 'react-responsive-modal'
 import useScreenRecorder from 'use-screen-recorder'
@@ -16,6 +23,7 @@ import { getSeekableWebM } from '../../../../utils/helpers'
 import { VideoBlockProps } from '../utils/utils'
 import VideoEditor, { Transformations } from './VideoEditor'
 import loadingImg from '../../../../assets/loading.svg'
+import { ASSETS } from '../../../../constants'
 
 const formatTime = (timer: number) => {
   const getSeconds = `0${timer % 60}`.slice(-2)
@@ -265,23 +273,43 @@ const AddVideo = ({
               </>
             ) : (
               <>
-                <div className="relative flex items-center justify-center w-full h-full text-gray-100 rounded-md">
-                  {(() => {
-                    switch (status) {
-                      case 'permission-requested':
-                        return 'Please allow to access your screen. Press the record button below to continue.'
-                      case 'idle':
-                        return 'Press the record button below to start.'
-                      case 'recording':
-                        return 'Recording...'
-                      case 'error':
-                        return `Error. ${error?.message}.`
-                      case 'stopped':
-                        return 'Recording stopped.'
-                      default:
-                        return 'initializing recorder...'
-                    }
-                  })()}
+                <div className="relative flex flex-col items-center justify-center w-full h-full text-gray-100 rounded-md">
+                  <img
+                    src={ASSETS.ICONS.RECORD_SCREEN}
+                    alt="unsplash-img"
+                    className="w-1/3 h-auto rounded-md"
+                  />
+                  <Heading fontSize="medium" className="my-1">
+                    Screen Only
+                  </Heading>
+                  <div className="flex flex-col items-center justify-center text-gray-400 my-4">
+                    <div className="flex items-center justify-center my-2">
+                      <FiMicOff size={20} className="mx-2" />
+                      <FiVideoOff size={20} className="mx-2" />
+                    </div>
+                    <Text fontSize="normal" className="text-center w-2/3">
+                      The screengrab doesn’t record camera or mic. You can talk
+                      over the screengrab during video recording.{' '}
+                    </Text>
+                  </div>
+                  <Text className="my-1">
+                    {(() => {
+                      switch (status) {
+                        case 'permission-requested':
+                          return 'Please allow to access your screen. Press the record button below to continue.'
+                        case 'idle':
+                          return 'Press the record button below to start.'
+                        case 'recording':
+                          return 'Recording...'
+                        case 'error':
+                          return `Error. ${error?.message}.`
+                        case 'stopped':
+                          return 'Recording stopped.'
+                        default:
+                          return 'initializing recorder...'
+                      }
+                    })()}
+                  </Text>
                   <div
                     className="absolute flex items-center justify-start cursor-pointer top-4 left-4"
                     onClick={() => setCurrentView('select')}

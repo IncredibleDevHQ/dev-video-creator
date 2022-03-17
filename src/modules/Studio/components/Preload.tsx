@@ -2,8 +2,9 @@
 import axios from 'axios'
 import React, { useEffect, useState } from 'react'
 import { useAuthState } from 'react-firebase-hooks/auth'
-import { useRecoilValue } from 'recoil'
+import { SetterOrUpdater, useRecoilValue, useSetRecoilState } from 'recoil'
 import { ScreenState } from '../../../components'
+import config from '../../../config'
 import { StudioFragmentFragment } from '../../../generated/graphql'
 import firebaseState from '../../../stores/firebase.store'
 import {
@@ -13,11 +14,19 @@ import {
 } from '../../../utils/configTypes'
 import { BrandingJSON } from '../../Branding/BrandingPage'
 import {
-  SimpleAST,
   CodeBlock,
   CodeBlockProps,
+  SimpleAST,
 } from '../../Flick/editor/utils/utils'
 import { getColorCodes } from '../effects/fragments/CodeFragment'
+import { StudioProviderProps, studioStore } from '../stores'
+
+const portraitStaticAssets = [
+  {
+    name: 'shortsBackgroundMusic',
+    url: `${config.storage.baseUrl}music/scandinavianzAndromeda.mp3`,
+  },
+]
 
 const Preload = ({
   fragment,
@@ -37,9 +46,11 @@ const Preload = ({
   const { auth } = useRecoilValue(firebaseState)
   const [user] = useAuthState(auth)
 
+  const setStudio = useSetRecoilState(studioStore)
+
   const performPreload = async () => {
     const token = await user?.getIdToken()
-    preload({ fragment, setLoaded, setFragment, setProgress, token })
+    preload({ fragment, setLoaded, setFragment, setProgress, token, setStudio })
   }
 
   useEffect(() => {
@@ -62,6 +73,7 @@ const preload = async ({
   setLoaded,
   setProgress,
   token,
+  setStudio,
 }: {
   fragment: StudioFragmentFragment
   setFragment: React.Dispatch<
@@ -70,6 +82,7 @@ const preload = async ({
   setLoaded: React.Dispatch<React.SetStateAction<boolean>>
   setProgress: React.Dispatch<React.SetStateAction<number>>
   token: string | undefined
+  setStudio: SetterOrUpdater<StudioProviderProps<any, any>>
 }) => {
   let { editorState } = fragment
   let branding = fragment.flick.branding?.branding
@@ -103,12 +116,12 @@ const preload = async ({
       ...codeBlocks.map((block) => {
         const { id } = block
         const codeBlockViewProps = (fragment?.configuration as ViewConfig)
-          .blocks[id].view as CodeBlockView
+          .blocks[id]?.view as CodeBlockView
         return fetcher(
           id,
           undefined,
           (block as CodeBlockProps).codeBlock,
-          codeBlockViewProps.code.theme,
+          codeBlockViewProps?.code.theme,
           token
         )
       })
@@ -124,7 +137,14 @@ const preload = async ({
     )
   }
 
+  const staticPromises =
+    fragment.configuration?.mode === 'Portrait'
+      ? portraitStaticAssets.map((asset) => fetchStatic(asset.name, asset.url))
+      : []
+
   let loaded = 0
+  const total =
+    promises.length + (fragment.configuration?.mode === 'Portrait' ? 1 : 0)
 
   function tick(
     promise: Promise<{
@@ -135,7 +155,7 @@ const preload = async ({
   ) {
     promise.then(() => {
       loaded += 1
-      setProgress((loaded / promises.length) * 100)
+      setProgress((loaded / total) * 100)
     })
     return promise
   }
@@ -202,6 +222,49 @@ const preload = async ({
 
     setLoaded(true)
   })
+
+  function tickStatic(
+    promise: Promise<{
+      key: string
+      blobUrl: string | undefined
+    }>
+  ) {
+    promise.then(() => {
+      loaded += 1
+      setProgress((loaded / total) * 100)
+    })
+    return promise
+  }
+
+  Promise.all(staticPromises.map(tickStatic)).then((result) => {
+    if (!result) return
+    setStudio((prev) => ({
+      ...prev,
+      staticAssets: {
+        shortsBackgroundMusic: result.find(
+          (res) => res?.key === 'shortsBackgroundMusic'
+        )?.blobUrl as string,
+      },
+    }))
+  })
+}
+
+const fetchStatic = async (
+  key: string,
+  url: string
+): Promise<{
+  key: string
+  blobUrl: string | undefined
+}> => {
+  try {
+    const response = await axios.get(url, {
+      responseType: 'arraybuffer',
+    })
+    const blobUrl = URL.createObjectURL(new Blob([response.data]))
+    return { key, blobUrl }
+  } catch (error) {
+    return { key, blobUrl: undefined }
+  }
 }
 
 const fetcher = async (

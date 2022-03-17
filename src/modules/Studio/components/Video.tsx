@@ -38,7 +38,7 @@ export const Video = ({
   const imageRef = React.useRef<Konva.Image>(null)
   const { getImageDimensions } = useEdit()
   // stores the calculated dimensions for the cropped video which will be used to in the clip function
-  const [videoDimesions, setVideoDimensions] = useState<{
+  const [videoDimensions, setVideoDimensions] = useState<{
     width: number
     height: number
     x: number
@@ -84,7 +84,7 @@ export const Video = ({
     return () => {
       videoElement.removeEventListener('loadedmetadata', onload)
     }
-  }, [videoElement])
+  }, [videoElement, videoConfig])
 
   useEffect(() => {
     setVideoDimensions(
@@ -108,22 +108,22 @@ export const Video = ({
         videoConfig.y ? videoConfig.y : 0
       )
     )
-  }, [])
+  }, [videoConfig])
 
   useEffect(() => {
     setScaledOriginalVideoDim({
-      width: videoDimesions.width / videoConfig.clipVideoConfig.width,
-      height: videoDimesions.height / videoConfig.clipVideoConfig.height,
+      width: videoDimensions.width / videoConfig.clipVideoConfig.width,
+      height: videoDimensions.height / videoConfig.clipVideoConfig.height,
       x:
-        videoDimesions.x -
-        (videoConfig.clipVideoConfig.x * videoDimesions.width) /
+        videoDimensions.x -
+        (videoConfig.clipVideoConfig.x * videoDimensions.width) /
           videoConfig.clipVideoConfig.width,
       y:
-        videoDimesions.y -
-        (videoConfig.clipVideoConfig.y * videoDimesions.height) /
+        videoDimensions.y -
+        (videoConfig.clipVideoConfig.y * videoDimensions.height) /
           videoConfig.clipVideoConfig.height,
     })
-  }, [videoDimesions])
+  }, [videoDimensions])
 
   useEffect(() => {
     // @ts-ignore
@@ -184,8 +184,8 @@ export const Video = ({
             clipRect(ctx, {
               x: videoConfig.clipVideoConfig.x * scaledOriginalVideoDim.width,
               y: videoConfig.clipVideoConfig.y * scaledOriginalVideoDim.height,
-              width: videoDimesions.width,
-              height: videoDimesions.height,
+              width: videoDimensions.width,
+              height: videoDimensions.height,
               borderRadius: videoConfig?.cornerRadius || 0,
             })
           })
