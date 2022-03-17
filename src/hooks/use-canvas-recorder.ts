@@ -153,6 +153,7 @@ const useCanvasRecorder = ({
     } else if (type === 'points') {
       const pointsAudio = new Audio(pointsMusic)
       ctx.current.createMediaElementSource(pointsAudio).connect(dest.current)
+      pointsAudio.volume = volume || 0.4
       pointsAudio.play()
     } else {
       const transitionAudio = new Audio(transitionMusic)
