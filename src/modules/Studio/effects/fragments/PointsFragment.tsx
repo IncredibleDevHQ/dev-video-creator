@@ -359,7 +359,7 @@ const PointsFragment = ({
                               fill={
                                 branding?.colors?.text
                                   ? branding?.colors?.text
-                                  : objectRenderConfig.pointsBulletColor
+                                  : objectRenderConfig.textColor
                               }
                               ref={(ref) =>
                                 ref?.to({
@@ -368,7 +368,7 @@ const PointsFragment = ({
                                 })
                               }
                               text={point.pointNumber.toString()}
-                              fontSize={16}
+                              fontSize={20}
                               fontFamily={
                                 branding?.font?.body?.family || 'Inter'
                               }
@@ -416,11 +416,49 @@ const PointsFragment = ({
                   .filter((_, i) => i === activePointIndex - 1)
                   .map((point) => (
                     <>
+                      {
+                        {
+                          bullet: (
+                            <Circle
+                              key="points"
+                              x={0 + (41 * (point?.level - 1) || 0)}
+                              radius={11}
+                              y={14}
+                              fill={
+                                branding?.colors?.text
+                                  ? branding?.colors?.text
+                                  : objectRenderConfig.pointsBulletColor
+                              }
+                            />
+                          ),
+                          number: (
+                            <Text
+                              key="points"
+                              x={0 + (41 * (point?.level - 1) || 0)}
+                              y={4}
+                              fill={
+                                branding?.colors?.text
+                                  ? branding?.colors?.text
+                                  : objectRenderConfig.textColor
+                              }
+                              text={point.pointNumber.toString()}
+                              fontSize={24}
+                              fontFamily={
+                                branding?.font?.body?.family || 'Inter'
+                              }
+                            />
+                          ),
+                          none: <></>,
+                        }[viewStyle]
+                      }
                       <Group>
                         <Text
                           key={point.text}
-                          // x={0 + (41 * (point?.level - 1) || 0)}
-                          x={-10}
+                          x={
+                            viewStyle !== 'none'
+                              ? 30 + (41 * (point?.level - 1) || 0)
+                              : -10
+                          }
                           align="left"
                           fontSize={24}
                           fill={
@@ -431,9 +469,11 @@ const PointsFragment = ({
                           // why subtracting 110 is that this group starts at x: 50 and this text starts at x: 30,
                           // so we need to subtract 110 to get the correct x, to give 30 padding in the end too
                           width={
-                            objectRenderConfig.availableWidth -
-                            110 -
-                            (41 * (point?.level - 1) || 0)
+                            viewStyle !== 'none'
+                              ? objectRenderConfig.availableWidth -
+                                110 -
+                                (41 * (point?.level - 1) || 0)
+                              : objectRenderConfig.availableWidth - 110
                           }
                           text={point.text}
                           // text="Run and test using one command and so on a thats all hd huusd j idhc dsi"
@@ -598,10 +638,49 @@ const PointsFragment = ({
                 .map((point) => (
                   <>
                     <Group>
+                      {
+                        {
+                          bullet: (
+                            <Circle
+                              key="points"
+                              x={0 + (41 * (point?.level - 1) || 0)}
+                              radius={11}
+                              y={14}
+                              fill={
+                                branding?.colors?.text
+                                  ? branding?.colors?.text
+                                  : objectRenderConfig.pointsBulletColor
+                              }
+                            />
+                          ),
+                          number: (
+                            <Text
+                              key="points"
+                              x={0 + (41 * (point?.level - 1) || 0)}
+                              y={4}
+                              fill={
+                                branding?.colors?.text
+                                  ? branding?.colors?.text
+                                  : objectRenderConfig.textColor
+                              }
+                              text={point.pointNumber.toString()}
+                              fontSize={24}
+                              // fontStyle="normal 600"
+                              fontFamily={
+                                branding?.font?.body?.family || 'Inter'
+                              }
+                            />
+                          ),
+                          none: <></>,
+                        }[viewStyle]
+                      }
                       <Text
                         key={point.text}
-                        // x={0 + (41 * (point?.level - 1) || 0)}
-                        x={-10}
+                        x={
+                          viewStyle !== 'none'
+                            ? 30 + (41 * (point?.level - 1) || 0)
+                            : -10
+                        }
                         align="left"
                         fontSize={24}
                         fill={
@@ -612,9 +691,11 @@ const PointsFragment = ({
                         // why subtracting 110 is that this group starts at x: 50 and this text starts at x: 30,
                         // so we need to subtract 110 to get the correct x, to give 30 padding in the end too
                         width={
-                          objectRenderConfig.availableWidth -
-                          110 -
-                          (41 * (point?.level - 1) || 0)
+                          viewStyle !== 'none'
+                            ? objectRenderConfig.availableWidth -
+                              110 -
+                              (41 * (point?.level - 1) || 0)
+                            : objectRenderConfig.availableWidth - 110
                         }
                         text={point.text}
                         // text="Run and test using one command and so on a thats all hd huusd j idhc dsi"
