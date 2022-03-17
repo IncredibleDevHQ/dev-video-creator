@@ -237,6 +237,16 @@ const Flick = () => {
         }
       }
 
+      if (currentBlock.type === 'outroBlock') {
+        filteredBlocks[currentBlock.id] = {
+          ...filteredBlocks[currentBlock.id],
+          view: {
+            type: 'outroBlock',
+            outro: {},
+          },
+        }
+      }
+
       setViewConfig({ ...viewConfig, blocks: filteredBlocks })
     } else if (currentBlock.type === 'codeBlock') {
       if (!viewConfig.blocks[currentBlock.id].view) {
@@ -288,6 +298,16 @@ const Flick = () => {
               orientation: 'vertical',
               viewStyle: 'bullet',
             },
+          },
+        })
+      }
+    } else if (currentBlock.type === 'outroBlock') {
+      if (!viewConfig.blocks[currentBlock.id].view) {
+        updateBlockProperties(currentBlock.id, {
+          ...viewConfig.blocks[currentBlock.id],
+          view: {
+            type: 'outroBlock',
+            outro: {},
           },
         })
       }
