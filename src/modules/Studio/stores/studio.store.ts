@@ -15,6 +15,10 @@ export type StudioState =
   | 'upload'
   | 'countDown'
   | 'finalSplash'
+
+export interface StaticAssets {
+  shortsBackgroundMusic: string
+}
 export interface StudioProviderProps<T = any, S = any> {
   stream: MediaStream
   getBlobs: () => Promise<Blob>
@@ -50,6 +54,8 @@ export interface StudioProviderProps<T = any, S = any> {
   // config to render controls
   controlsConfig?: any
   shortsMode?: boolean
+
+  staticAssets?: StaticAssets
 }
 
 const studioStore = atom<StudioProviderProps>({

@@ -45,7 +45,20 @@ const TimerModal = ({
           about to reach the limit. You can continue to record even after.
         </Text>
         <div className="flex items-center justify-between w-full px-4 py-2 bg-dark-400 rounded-sm mt-2">
-          <span>{selectedTime}</span>
+          <input
+            className="bg-transparent text-white w-full outline-none focus:outline-none"
+            value={selectedTime}
+            onChange={(e) => {
+              if (
+                Number.isNaN(Number(e.target.value)) === false &&
+                Number(e.target.value) >= 0
+              ) {
+                setSelectedTime(Number(e.target.value))
+              } else {
+                setSelectedTime(0)
+              }
+            }}
+          />
           <span>min</span>
         </div>
         <div className="flex items-start flex-wrap my-1 w-max">
