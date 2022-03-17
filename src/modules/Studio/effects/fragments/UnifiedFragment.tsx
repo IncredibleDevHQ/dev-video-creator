@@ -2,6 +2,7 @@ import Konva from 'konva'
 import { nanoid } from 'nanoid'
 import React, { useEffect, useRef, useState } from 'react'
 import { useRecoilState, useRecoilValue } from 'recoil'
+import { Rect } from 'react-konva'
 import {
   Fragment_Status_Enum_Enum,
   ThemeFragment,
@@ -77,6 +78,8 @@ const UnifiedFragment = ({
 
   const timer = useRef<any>(null)
 
+  const dipToBlackRef = useRef<Konva.Rect>(null)
+
   useEffect(() => {
     clearTimeout(timer.current)
     return () => {
@@ -147,15 +150,34 @@ const UnifiedFragment = ({
     // so that the old active object index's object doesnt get rendered on the canvas initially
     if (state === 'recording' && payload?.activeObjectIndex === 0)
       setActiveObjectIndex(payload?.activeObjectIndex)
-    else
+    else if (viewConfig?.mode !== 'Portrait')
       setTimeout(() => {
         setActiveObjectIndex(payload?.activeObjectIndex)
       }, 400)
+    else if (
+      payload?.activeObjectIndex === 1 ||
+      payload?.activeObjectIndex === (dataConfig?.length || 2) - 1
+    ) {
+      dipToBlackRef.current?.to({
+        opacity: 1,
+        duration: 0.2,
+        onFinish: () => {
+          dipToBlackRef.current?.to({
+            opacity: 0,
+            duration: 0.2,
+          })
+        },
+      })
+      setTimeout(() => {
+        setActiveObjectIndex(payload?.activeObjectIndex)
+      }, 200)
+    } else setActiveObjectIndex(payload?.activeObjectIndex)
   }, [payload?.activeObjectIndex])
 
   useEffect(() => {
     if (!payload?.activeObjectIndex || payload?.activeObjectIndex === 0) return
-    setTopLayerChildren?.({ id: nanoid(), state: 'transition right' })
+    if (viewConfig?.mode !== 'Portrait')
+      setTopLayerChildren?.({ id: nanoid(), state: 'transition right' })
     updatePayload?.({
       currentIndex: 0,
       prevIndex: -1,
@@ -225,15 +247,17 @@ const UnifiedFragment = ({
 
   useEffect(() => {
     if (!payload?.activeObjectIndex || payload?.activeObjectIndex === 0) return
-    // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
-    if (payload?.fragmentState === 'customLayout') {
-      setTopLayerChildren?.({ id: nanoid(), state: 'transition right' })
-      addMusic()
-    }
-    // Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
-    if (payload?.fragmentState === 'onlyUserMedia') {
-      setTopLayerChildren?.({ id: nanoid(), state: 'transition left' })
-      addMusic()
+    if (viewConfig?.mode !== 'Portrait') {
+      // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
+      if (payload?.fragmentState === 'customLayout') {
+        setTopLayerChildren?.({ id: nanoid(), state: 'transition right' })
+        addMusic()
+      }
+      // Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
+      if (payload?.fragmentState === 'onlyUserMedia') {
+        setTopLayerChildren?.({ id: nanoid(), state: 'transition left' })
+        addMusic()
+      }
     }
   }, [payload?.fragmentState])
 
@@ -361,6 +385,15 @@ const UnifiedFragment = ({
             return <></>
         }
       })()}
+      <Rect
+        x={0}
+        y={0}
+        width={stageConfig.width}
+        height={stageConfig.height}
+        fill="#000000"
+        opacity={0}
+        ref={dipToBlackRef}
+      />
     </>
   )
 }
