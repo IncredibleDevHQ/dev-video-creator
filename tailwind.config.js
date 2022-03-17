@@ -51,6 +51,7 @@ module.exports = {
           lighter: lighten('#1f1f1f', 0.5),
           darker: darken('#1f1f1f', 0.05),
           75: alpha('#1f1f1f', 0.75),
+          400: '#23272A',
           500: '#27272A',
           900: '#18181B',
         },
