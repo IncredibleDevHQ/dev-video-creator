@@ -10,6 +10,7 @@ import {
   IoCheckmark,
   IoDesktopOutline,
   IoPhonePortraitOutline,
+  IoPlayOutline,
   IoWarningOutline,
 } from 'react-icons/io5'
 import { useHistory } from 'react-router-dom'
@@ -532,6 +533,25 @@ const FragmentBar = ({
           </Tooltip>
         </div>
         <div className="flex items-stretch justify-end py-2 pl-4 border-l-2 border-brand-grey">
+          {(fragment?.producedLink || fragment?.producedShortsLink) &&
+            (mode === Content_Type_Enum_Enum.Video ||
+              mode === Content_Type_Enum_Enum.VerticalVideo) && (
+              <Button
+                appearance="none"
+                size="small"
+                type="button"
+                className="mr-4"
+                icon={IoPlayOutline}
+                iconSize={20}
+                onClick={() => {
+                  setFragmentVideoModal(true)
+                }}
+              >
+                Recordings
+              </Button>
+            )}
+        </div>
+        <div className="flex items-stretch justify-end py-2 pl-4 border-l-2 border-brand-grey">
           <Button
             appearance={config.mode === 'Landscape' ? 'gray' : 'none'}
             size="small"
@@ -556,21 +576,6 @@ const FragmentBar = ({
               setViewConfig({ ...config, mode: 'Portrait' })
             }}
           />
-          {(fragment?.producedLink || fragment?.producedShortsLink) &&
-            (mode === Content_Type_Enum_Enum.Video ||
-              mode === Content_Type_Enum_Enum.VerticalVideo) && (
-              <Button
-                appearance="gray"
-                size="small"
-                type="button"
-                className="mr-4"
-                icon={BiPlayCircle}
-                iconSize={20}
-                onClick={() => {
-                  setFragmentVideoModal(true)
-                }}
-              />
-            )}
           <Button
             appearance="primary"
             size="small"
