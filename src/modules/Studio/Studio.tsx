@@ -50,7 +50,6 @@ import { logEvent } from '../../utils/analytics'
 import { PageEvent } from '../../utils/analytics-types'
 import { TopLayerChildren, ViewConfig } from '../../utils/configTypes'
 import { BrandingJSON } from '../Branding/BrandingPage'
-import { useGetHW } from '../Flick/components/BlockPreview'
 import { TextEditorParser } from '../Flick/editor/utils/helpers'
 import { SimpleAST, useUtils } from '../Flick/editor/utils/utils'
 import { EditorProvider } from '../Flick/Flick'
@@ -524,6 +523,29 @@ const Preview = ({
   )
 }
 
+const getIntegerHW = ({
+  maxH,
+  maxW,
+  aspectRatio,
+  isShorts,
+}: {
+  maxH: number
+  maxW: number
+  aspectRatio: number
+  isShorts: boolean
+}) => {
+  let calWidth = 0
+  let calHeight = 0
+  if (aspectRatio > maxW / maxH) {
+    calWidth = Math.floor(maxW - (!isShorts ? maxW % 16 : maxW % 9))
+    calHeight = calWidth * (1 / aspectRatio)
+  } else if (aspectRatio <= maxW / maxH) {
+    calHeight = Math.floor(maxH - (!isShorts ? maxH % 9 : maxH % 16))
+    calWidth = calHeight * aspectRatio
+  }
+  return { width: calWidth, height: calHeight }
+}
+
 const Studio = ({
   data,
   devices,
@@ -566,23 +588,19 @@ const Studio = ({
   const [timeLimit, setTimeLimit] = useState<number | undefined>()
   const [timeLimitOver, setTimeLimitOver] = useState(false)
 
-  const { height: stageHeight, width: stageWidth } = useGetHW({
+  const { height: stageHeight, width: stageWidth } = getIntegerHW({
     maxH: bounds.height,
     maxW: bounds.width,
     aspectRatio: shortsMode ? 9 / 16 : 16 / 9,
+    isShorts: shortsMode,
   })
 
   useEffect(() => {
     if (!stageWidth) return
-    // console.log('hey pixel ratio', stageWidth, 1920 / stageWidth)
-    // console.log(
-    //   Number(stageWidth.toFixed(3)),
-    //   1920 / Number(stageWidth.toFixed(3))
-    // )
-    Konva.pixelRatio =
-      (shortsMode ? 1080 : 1920) / Number(stageWidth.toFixed(3))
+    Konva.pixelRatio = (shortsMode ? 1080 : 1920) / stageWidth
+    // console.log(stageWidth, stageHeight, Konva.pixelRatio)
+    // console.log(Konva.pixelRatio * stageWidth, Konva.pixelRatio * stageHeight)
     setMountStage(true)
-    // console.log('hey pixelRatio2', Konva.pixelRatio)
   }, [stageWidth])
 
   const tracksRef = useRef<[IMicrophoneAudioTrack, ICameraVideoTrack] | null>(
