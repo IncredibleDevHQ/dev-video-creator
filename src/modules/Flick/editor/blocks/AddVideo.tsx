@@ -60,7 +60,7 @@ const AddVideo = ({
   const [videoURL, setVideoURL] = useState<string>('')
 
   const { startRecording, stopRecording, status, resetRecording, blob, error } =
-    useScreenRecorder({ audio: true })
+    useScreenRecorder({ audio: false })
 
   const [uploadVideo] = useUploadFile()
 

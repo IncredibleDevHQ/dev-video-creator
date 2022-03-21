@@ -8,6 +8,7 @@ import VideoEditorModal from './VideoEditorModal'
 import Timeline from './Timeline'
 import EditorHeader from './EditorHeader'
 import Preview from './Preview'
+import ThumbnailModal from './ThumbnailModal'
 
 export {
   Download,
@@ -20,4 +21,5 @@ export {
   Timeline,
   EditorHeader,
   Preview,
+  ThumbnailModal,
 }

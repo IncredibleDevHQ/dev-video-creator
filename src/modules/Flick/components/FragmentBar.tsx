@@ -9,6 +9,7 @@ import {
   IoAlbumsOutline,
   IoCheckmark,
   IoDesktopOutline,
+  IoImageOutline,
   IoPhonePortraitOutline,
   IoPlayOutline,
   IoWarningOutline,
@@ -16,7 +17,7 @@ import {
 import { useHistory } from 'react-router-dom'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import { useDebouncedCallback } from 'use-debounce'
-import { FragmentVideoModal } from '.'
+import { FragmentVideoModal, ThumbnailModal } from '.'
 import { Branding } from '../..'
 import { ReactComponent as BrandIcon } from '../../../assets/BrandIcon.svg'
 import { Button, emitToast, Heading, Text, Tooltip } from '../../../components'
@@ -250,6 +251,7 @@ const FragmentBar = ({
   const [fragmentVideoModal, setFragmentVideoModal] = useState(false)
   const [themesModal, setThemesModal] = useState(false)
   const [brandingModal, setBrandingModal] = useState(false)
+  const [thumbnailModal, setThumbnailModal] = useState(false)
 
   const [
     { flick, activeFragmentId, view, themes, activeTheme },
@@ -419,7 +421,7 @@ const FragmentBar = ({
             <Text fontSize="small">Error saving</Text>
           </div>
         )}
-        <div className="flex items-stretch justify-end py-2 border-l-2 border-brand-grey">
+        <div className="flex items-stretch justify-end text-white py-2 border-l-2 border-brand-grey">
           <Tooltip
             isOpen={themesModal}
             setIsOpen={setThemesModal}
@@ -446,7 +448,7 @@ const FragmentBar = ({
             </Button>
           </Tooltip>
         </div>
-        <div className="flex items-center justify-center h-full">
+        <div className="flex items-center justify-center h-full text-white">
           <Tooltip
             className="p-0 m-0"
             isOpen={isOpen}
@@ -532,15 +534,16 @@ const FragmentBar = ({
             </Button>
           </Tooltip>
         </div>
-        {(fragment?.producedLink || fragment?.producedShortsLink) &&
-          (mode === Content_Type_Enum_Enum.Video ||
-            mode === Content_Type_Enum_Enum.VerticalVideo) && (
-            <div className="flex items-stretch justify-end py-2 pl-4 border-l-2 border-brand-grey">
+
+        <div className="flex items-stretch justify-end py-2 border-l-2 text-white border-brand-grey">
+          {(fragment?.producedLink || fragment?.producedShortsLink) &&
+            (mode === Content_Type_Enum_Enum.Video ||
+              mode === Content_Type_Enum_Enum.VerticalVideo) && (
               <Button
                 appearance="none"
                 size="small"
                 type="button"
-                className="mr-4"
+                className="mx-1"
                 icon={IoPlayOutline}
                 iconSize={20}
                 onClick={() => {
@@ -549,9 +552,22 @@ const FragmentBar = ({
               >
                 Recordings
               </Button>
-            </div>
-          )}
-        <div className="flex items-stretch justify-end py-2 pl-4 border-l-2 border-brand-grey">
+            )}
+          <Button
+            appearance="none"
+            size="small"
+            type="button"
+            className="mx-1"
+            icon={IoImageOutline}
+            iconSize={20}
+            onClick={() => {
+              setThumbnailModal(true)
+            }}
+          >
+            Thumbnail
+          </Button>
+        </div>
+        <div className="flex items-stretch justify-end py-2 pl-4 border-l-2 text-white border-brand-grey">
           <Button
             appearance={config.mode === 'Landscape' ? 'gray' : 'none'}
             size="small"
@@ -608,6 +624,14 @@ const FragmentBar = ({
           activeBrand={brandingId}
           handleClose={() => {
             setBrandingModal(false)
+          }}
+        />
+      )}
+      {thumbnailModal && (
+        <ThumbnailModal
+          open={thumbnailModal}
+          handleClose={() => {
+            setThumbnailModal(false)
           }}
         />
       )}
