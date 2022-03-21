@@ -163,12 +163,24 @@ export interface OutroBlockView {
   outro: OutroBlockViewProps
 }
 
+export interface IntroBlockViewProps {
+  heading?: string
+  name?: string
+  designation?: string
+  displayPicture?: string
+}
+export interface IntroBlockView {
+  type: 'introBlock'
+  intro: IntroBlockViewProps
+}
+
 export type BlockView =
   | CodeBlockView
   | ImageBlockView
   | VideoBlockView
   | ListBlockView
   | OutroBlockView
+  | IntroBlockView
 
 export type BlockProperties = {
   gradient?: GradientConfig
