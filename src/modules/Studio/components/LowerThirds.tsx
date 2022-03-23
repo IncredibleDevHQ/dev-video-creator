@@ -180,7 +180,9 @@ export const GlassyLowerThirds = ({
 }) => {
   const [image] = useImage(logo, 'anonymous')
   const { getTextWidth } = useEdit()
-  const textWidth = useRef(getTextWidth(userName, 'Gilroy', 24, 'bold') + 16)
+  const textWidth = useRef(
+    getTextWidth(userName, 'Gilroy', 24, 'bold') + 16 + 8
+  )
 
   if (logo)
     return (
@@ -243,8 +245,8 @@ export const GlassyLowerThirds = ({
                             onFinish: () => {
                               setTimeout(() => {
                                 ref?.to({
-                                  offsetX: 40,
-                                  offsetY: 40,
+                                  offsetX: 0,
+                                  offsetY: 0,
                                   height: 0,
                                   width: 0,
                                   duration: 0.4,
@@ -277,7 +279,7 @@ export const GlassyLowerThirds = ({
                 offsetY: 24,
                 width: 48,
                 height: 48,
-                duration: 0.4,
+                duration: 0.1,
                 easing: Konva.Easings.BackEaseOut,
                 onFinish: () => {
                   setTimeout(() => {
@@ -288,7 +290,7 @@ export const GlassyLowerThirds = ({
                       height: 0,
                       duration: 0.4,
                     })
-                  }, 3400)
+                  }, 3450)
                 },
               })
             }}
@@ -316,7 +318,7 @@ export const GlassyLowerThirds = ({
                         opacity: 0,
                         duration: 0.3,
                       })
-                    }, 1700)
+                    }, 1500)
                   },
                 })
               }, 1500)
