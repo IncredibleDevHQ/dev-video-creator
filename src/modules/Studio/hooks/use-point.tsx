@@ -2,7 +2,6 @@ import Konva from 'konva'
 import { useRef } from 'react'
 import { Layout, ListOrientation } from '../../../utils/configTypes'
 import { ListItem } from '../../Flick/editor/utils/utils'
-import { getNoOfPointsBasedOnLayout } from '../effects/fragments/PointsFragment'
 import { getPointsConfig } from '../utils/PointsConfig'
 
 export interface ComputedPoint {
@@ -32,6 +31,7 @@ const usePoint = () => {
     fontStyle,
     orientation,
     layout,
+    isShorts,
   }: {
     points: ListItem[]
     availableWidth: number
@@ -42,6 +42,7 @@ const usePoint = () => {
     fontStyle?: string
     orientation: ListOrientation
     layout: Layout
+    isShorts: boolean
   }) => {
     const layer = new Konva.Layer({ width: availableWidth })
     computedPoints.current = []
@@ -60,32 +61,23 @@ const usePoint = () => {
 
         const width = text.textWidth
 
-        if (orientation === 'vertical') {
-          noOfLinesCurrentText.current = getNoOfLinesOfText({
-            text: point.text || '',
-            availableWidth:
-              availableWidth - (41 * ((point.level || 1) - 1) || 0),
-            fontSize,
-            fontFamily,
-            fontStyle,
-          })
-          if (
-            noOfLinesPreviousText.current * (fontSize + fontSize * 0.3) +
-              gutter +
-              presentY.current +
-              noOfLinesCurrentText.current * (fontSize + fontSize * 0.3) >
-            availableHeight
-          ) {
-            presentY.current = 0
-            noOfLinesPreviousText.current = 0
-            startFromIndex.current = index
-          }
-        } else if (orientation === 'horizontal') {
-          if (index % getNoOfPointsBasedOnLayout(layout) === 0) {
-            presentY.current = 0
-            noOfLinesPreviousText.current = 0
-            startFromIndex.current = index
-          }
+        noOfLinesCurrentText.current = getNoOfLinesOfText({
+          text: point.text || '',
+          availableWidth: availableWidth - (41 * ((point.level || 1) - 1) || 0),
+          fontSize,
+          fontFamily,
+          fontStyle,
+        })
+        if (
+          noOfLinesPreviousText.current * (fontSize + fontSize * 0.3) +
+            gutter +
+            presentY.current +
+            noOfLinesCurrentText.current * (fontSize + fontSize * 0.3) >
+          availableHeight
+        ) {
+          presentY.current = 0
+          noOfLinesPreviousText.current = 0
+          startFromIndex.current = index
         }
 
         const computedPoint: ComputedPoint = {
@@ -119,7 +111,7 @@ const usePoint = () => {
     if (orientation === 'horizontal') {
       let maxHeight = 0
       let noOfLines = 0
-      const pointsConfig = getPointsConfig({ layout })
+      const pointsConfig = getPointsConfig({ layout, isShorts })
       points.forEach((point) => {
         noOfLines = getNoOfLinesOfText({
           text: point.text || '',
