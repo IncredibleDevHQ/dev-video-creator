@@ -50,9 +50,9 @@ import { logEvent } from '../../utils/analytics'
 import { PageEvent } from '../../utils/analytics-types'
 import { TopLayerChildren, ViewConfig } from '../../utils/configTypes'
 import { BrandingJSON } from '../Branding/BrandingPage'
+import { EditorProvider } from '../Flick/components/EditorProvider'
 import { TextEditorParser } from '../Flick/editor/utils/helpers'
 import { SimpleAST, useUtils } from '../Flick/editor/utils/utils'
-import { EditorProvider } from '../Flick/Flick'
 import { Countdown, TimerModal } from './components'
 import {
   CONFIG,
@@ -166,10 +166,7 @@ const StudioHoC = () => {
 
   if (view === 'studio' && fragment)
     return (
-      <EditorProvider
-        flickId={fragment.flickId}
-        userName={displayName as string}
-      >
+      <EditorProvider>
         <Studio
           data={data}
           studioFragment={fragment}
@@ -893,9 +890,17 @@ const Studio = ({
 
   useMemo(() => {
     if (!fragment) return
+    console.log('fragment', fragment)
     setStudio({
       ...studio,
       fragment,
+    })
+  }, [fragment])
+
+  useMemo(() => {
+    if (!fragment) return
+    setStudio({
+      ...studio,
       stream: stream as MediaStream,
       startRecording: start,
       stopRecording: stop,
@@ -927,17 +932,7 @@ const Studio = ({
           ({ participant }) => participant.userSub === sub
         )?.participant.owner || false,
     })
-  }, [
-    fragment,
-    stream,
-    users,
-    state,
-    userAudios,
-    payload,
-    participants,
-    state,
-    branding,
-  ])
+  }, [stream, users, state, userAudios, payload, participants, state, branding])
 
   useMemo(() => {
     if (fragment?.flick?.branding?.branding?.font)
@@ -1151,7 +1146,7 @@ const Studio = ({
                 openTimerModal={() => setIsTimerModalOpen(true)}
               />
             </div>
-            <Notes stageHeight={stageHeight} />
+            <Notes key={payload?.activeObjectIndex} stageHeight={stageHeight} />
           </div>
           {/* Mini timeline */}
           <div

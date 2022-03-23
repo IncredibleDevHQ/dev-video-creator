@@ -285,6 +285,10 @@ const FragmentBar = ({
     400
   )
 
+  // useEffect(() => {
+  //   console.log('useEffect', editorValue)
+  // }, [editorValue])
+
   useDidUpdateEffect(() => {
     debounced()
   }, [editorValue, config, useBranding, brandingId, simpleAST])

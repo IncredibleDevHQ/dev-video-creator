@@ -1,11 +1,20 @@
 /* eslint-disable no-nested-ternary */
 import { cx } from '@emotion/css'
-import { WebSocketStatus } from '@hocuspocus/provider'
-import React, { useContext, useMemo, useState } from 'react'
+import Document from '@tiptap/extension-document'
+import Paragraph from '@tiptap/extension-paragraph'
+import Placeholder from '@tiptap/extension-placeholder'
+import Text from '@tiptap/extension-text'
+import { EditorContent, useEditor } from '@tiptap/react'
+import React, { useContext, useEffect, useMemo, useState } from 'react'
 import { useRecoilState } from 'recoil'
 import { useDebouncedCallback } from 'use-debounce'
 import { v4 as uuidv4 } from 'uuid'
-import { useUpdateFragmentEditorStateMutation } from '../../../generated/graphql'
+import {
+  useUpdateFlickMdAndEditorStateMutation,
+  useUpdateFragmentEditorStateMutation,
+} from '../../../generated/graphql'
+import { EditorContext } from '../../Flick/components/EditorProvider'
+import editorStyle from '../../Flick/editor/style'
 import {
   CodeBlockProps,
   ImageBlockProps,
@@ -15,17 +24,21 @@ import {
   SimpleAST,
   VideoBlockProps,
 } from '../../Flick/editor/utils/utils'
-import { EditorContext } from '../../Flick/Flick'
 import { studioStore } from '../stores'
 
+const CustomDocument = Document.extend({
+  content: 'paragraph*',
+})
+
 const Notes = ({ stageHeight }: { stageHeight: number }) => {
-  const { editor, providerStatus } = useContext(EditorContext) || {}
+  const { editor } = useContext(EditorContext) || {}
 
   const [localNote, setLocalNote] = useState<string>()
   const [localNoteId, setLocalNoteId] = useState<string>()
 
   const [{ state, fragment, payload }, setStudio] = useRecoilState(studioStore)
   const [updateFragment] = useUpdateFragmentEditorStateMutation()
+  const [updateFlickAndFragmentNotes] = useUpdateFlickMdAndEditorStateMutation()
 
   const updateFragmentNotes = useDebouncedCallback((value) => {
     updateFragment({
@@ -36,41 +49,115 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
     })
   }, 500)
 
+  const updateFlickMdAndNotes = useDebouncedCallback((value) => {
+    updateFlickAndFragmentNotes({
+      variables: {
+        flickId: fragment?.flickId,
+        fragmentId: fragment?.id,
+        editorState: value,
+        md: editor?.getHTML() as string,
+      },
+    })
+  }, 500)
+
+  useEffect(() => {
+    editor?.commands.setContent(fragment?.flick.md as string)
+  }, [])
+
+  const noteEditor = useEditor(
+    {
+      editable: state === 'ready',
+      autofocus: 'end',
+      onUpdate: ({ editor }) => {
+        const notes =
+          editor
+            .getJSON()
+            .content?.map((node) => {
+              return node.content
+                ?.map((n) => {
+                  return n.text
+                })
+                .join('')
+            })
+            .join('\n') || ''
+
+        setLocalNote(notes)
+      },
+      editorProps: {
+        attributes: {
+          class: cx(
+            'prose prose-sm max-w-none w-full h-full border-none focus:outline-none p-2.5',
+            editorStyle
+          ),
+        },
+      },
+      extensions: [
+        CustomDocument,
+        Text,
+        Paragraph,
+        Placeholder.configure({
+          placeholder: ({ editor }) => {
+            if (editor.getText() === '') {
+              if (state !== 'ready') return 'No notes for this block'
+              return 'Add a note...'
+            }
+            return ''
+          },
+          showOnlyWhenEditable: false,
+          includeChildren: true,
+          showOnlyCurrent: false,
+          emptyEditorClass: 'is-editor-empty',
+        }),
+      ],
+      content:
+        localNote === undefined
+          ? '<p></p>'
+          : localNote
+              .split('\n')
+              .map((line) => {
+                return `<p>${line}</p>`
+              })
+              .join('') || '<p></p>',
+    },
+    [state]
+  )
+
+  const simpleAST: SimpleAST | undefined = useMemo(() => {
+    return fragment?.editorState
+  }, [fragment?.editorState])
+
   const updateNotes = (nodeId: string | undefined, notes: string) => {
-    const simpleAST: SimpleAST | undefined = fragment?.editorState
     if (!simpleAST || payload?.activeObjectIndex === undefined || !editor)
       return
     const block = simpleAST.blocks[payload?.activeObjectIndex]
 
     if (block.type !== 'introBlock' && block.type !== 'outroBlock') {
       let didInsert = false
-      editor?.state.tr.doc.descendants((node, pos) => {
-        if (node.attrs.id) {
-          if (node.attrs.id === nodeId) {
-            // console.log('found node with note', node, pos, node.nodeSize)
-            node.descendants((childNode, childPos) => {
-              // check for text node
-              if (childNode.type.name === 'text') {
-                // console.log(
-                //   'found text node',
-                //   childNode,
-                //   childPos,
-                //   childNode.nodeSize
-                // )
-                editor.view.dispatch(
-                  editor.state.tr.insertText(
-                    notes,
-                    pos + 1,
-                    pos + 2 + childNode.nodeSize
-                  )
+      if (nodeId)
+        editor?.state.tr.doc.descendants((node, pos) => {
+          if (node.attrs.id) {
+            if (node.attrs.id === nodeId) {
+              editor.view.dispatch(
+                editor.state.tr.replaceWith(
+                  pos + 1,
+                  pos + 1 + node.nodeSize,
+                  notes.split('\n').map((line) => {
+                    if (line.trim() === '') return line
+                    const textNode = editor.view.state.schema.text(line)
+                    const paragraphNode =
+                      editor.view.state.schema.nodes.paragraph.create(
+                        null,
+                        textNode
+                      )
+                    return paragraphNode
+                  })
                 )
-                didInsert = true
-              }
-            })
+              )
+              didInsert = true
+            }
           }
-        }
-      })
-      if (!didInsert) {
+        })
+      if (!didInsert && notes.trim() !== '') {
         // insert blockquote text before block id
         editor?.state.tr.doc.descendants((node, pos) => {
           if (node.attrs.id === block.id) {
@@ -93,6 +180,69 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
           }
         })
       }
+      const newSimpleAST = {
+        ...simpleAST,
+        blocks: simpleAST.blocks.map((b) => {
+          if (b.id === block.id && block.type === 'codeBlock') {
+            const codeBlock = b as CodeBlockProps
+            return {
+              ...b,
+              codeBlock: {
+                ...codeBlock.codeBlock,
+                note: notes,
+                noteId: localNoteId,
+              },
+            }
+          }
+          if (b.id === block.id && block.type === 'imageBlock') {
+            const imageBlock = b as ImageBlockProps
+            return {
+              ...b,
+              imageBlock: {
+                ...imageBlock.imageBlock,
+                note: notes,
+                noteId: localNoteId,
+              },
+            }
+          }
+          if (b.id === block.id && block.type === 'videoBlock') {
+            const videoBlock = b as VideoBlockProps
+            return {
+              ...b,
+              videoBlock: {
+                ...videoBlock.videoBlock,
+                note: notes,
+                noteId: localNoteId,
+              },
+            }
+          }
+          if (b.id === block.id && block.type === 'listBlock') {
+            const listBlock = b as ListBlockProps
+            return {
+              ...b,
+              listBlock: {
+                ...listBlock.listBlock,
+                note: notes,
+                noteId: localNoteId,
+              },
+            }
+          }
+          return b
+        }),
+      }
+      if (!fragment) return
+      setStudio((prev) => ({
+        ...prev,
+        fragment: {
+          ...fragment,
+          editorState: { ...newSimpleAST },
+          flick: {
+            ...fragment.flick,
+            md: editor?.getHTML() as string,
+          },
+        },
+      }))
+      updateFlickMdAndNotes(newSimpleAST)
     } else {
       if (!simpleAST || !fragment) return
       const newSimpleAST = {
@@ -121,20 +271,18 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
           return b
         }),
       }
-      if (payload?.activeIntroIndex === 0)
-        setStudio((prev) => ({
-          ...prev,
-          fragment: {
-            ...fragment,
-            editorState: { ...newSimpleAST },
-          },
-        }))
+      setStudio((prev) => ({
+        ...prev,
+        fragment: {
+          ...fragment,
+          editorState: { ...newSimpleAST },
+        },
+      }))
       updateFragmentNotes(newSimpleAST)
     }
   }
 
   const { note, noteId } = useMemo(() => {
-    const simpleAST: SimpleAST | undefined = fragment?.editorState
     if (!simpleAST || payload?.activeObjectIndex === undefined) return {}
     const block = simpleAST.blocks[payload?.activeObjectIndex]
     if (block.type === 'introBlock' || block.type === 'outroBlock') {
@@ -146,6 +294,15 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
         const listBlock = simpleAST.blocks.find(
           (b) => b.id === block.id
         ) as ListBlockProps
+        noteEditor?.commands.setContent(
+          listBlock.listBlock.note
+            ?.split('\n')
+            .map((line) => {
+              return `<p>${line}</p>`
+            })
+            .join('') || '<p></p>',
+          true
+        )
         return {
           note: listBlock.listBlock.note,
           noteId: listBlock.listBlock.noteId,
@@ -155,6 +312,15 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
         const imageBlock = simpleAST.blocks.find(
           (b) => b.id === block.id
         ) as ImageBlockProps
+        noteEditor?.commands.setContent(
+          imageBlock.imageBlock.note
+            ?.split('\n')
+            .map((line) => {
+              return `<p>${line}</p>`
+            })
+            .join('') || '<p></p>',
+          true
+        )
         return {
           note: imageBlock.imageBlock.note,
           noteId: imageBlock.imageBlock.noteId,
@@ -164,6 +330,15 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
         const codeBlock = simpleAST.blocks.find(
           (b) => b.id === block.id
         ) as CodeBlockProps
+        noteEditor?.commands.setContent(
+          codeBlock.codeBlock.note
+            ?.split('\n')
+            .map((line) => {
+              return `<p>${line}</p>`
+            })
+            .join('') || '<p></p>',
+          true
+        )
         return {
           note: codeBlock.codeBlock.note,
           noteId: codeBlock.codeBlock.noteId,
@@ -173,6 +348,15 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
         const videoBlock = simpleAST.blocks.find(
           (b) => b.id === block.id
         ) as VideoBlockProps
+        noteEditor?.commands.setContent(
+          videoBlock.videoBlock.note
+            ?.split('\n')
+            .map((line) => {
+              return `<p>${line}</p>`
+            })
+            .join('') || '<p></p>',
+          true
+        )
         return {
           note: videoBlock.videoBlock.note,
           noteId: videoBlock.videoBlock.noteId,
@@ -182,6 +366,15 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
         const introBlock = simpleAST.blocks.find(
           (b) => b.id === block.id
         ) as IntroBlockProps
+        noteEditor?.commands.setContent(
+          introBlock.introBlock.note
+            ?.split('\n')
+            .map((line) => {
+              return `<p>${line}</p>`
+            })
+            .join('') || '<p></p>',
+          true
+        )
         return {
           note: introBlock.introBlock.note,
         }
@@ -190,6 +383,15 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
         const outroBlock = simpleAST.blocks.find(
           (b) => b.id === block.id
         ) as OutroBlockProps
+        noteEditor?.commands.setContent(
+          outroBlock.outroBlock?.note
+            ?.split('\n')
+            .map((line) => {
+              return `<p>${line}</p>`
+            })
+            .join('') || '<p></p>',
+          true
+        )
         return {
           note: outroBlock.outroBlock?.note,
         }
@@ -197,7 +399,18 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
       default:
         return {}
     }
-  }, [payload?.activeObjectIndex, fragment?.editorState])
+  }, [payload?.activeObjectIndex])
+
+  useEffect(() => {
+    if (localNote === undefined) return
+    updateNotes(localNoteId || noteId, localNote)
+  }, [localNote])
+
+  useEffect(() => {
+    return () => {
+      noteEditor?.destroy()
+    }
+  }, [])
 
   return (
     <div className="col-span-3 w-full" key={payload?.activeObjectIndex}>
@@ -205,29 +418,9 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
         style={{
           height: `${stageHeight}px`,
         }}
-        className="h-full p-4 text-gray-100 rounded-sm outline-none focus:outline-none bg-grey-500"
+        className="h-full p-1 text-gray-100 rounded-sm outline-none focus:outline-none bg-grey-500"
       >
-        {editor && providerStatus === WebSocketStatus.Connected ? (
-          state === 'ready' ? (
-            <textarea
-              placeholder="Add your notes here"
-              className="bg-grey-500 p-0 w-full h-full focus:border-transparent focus:outline-none font-body text-left resize-none outline-none border-none placeholder-gray-400"
-              value={localNote === undefined ? note : localNote}
-              onChange={(e) => {
-                setLocalNote(e.target.value)
-                updateNotes(localNoteId || noteId, e.target.value)
-              }}
-            />
-          ) : (
-            <span
-              className={cx('whitespace-pre-line', {
-                'italic font-body': !note,
-              })}
-            >
-              {note || 'No notes'}
-            </span>
-          )
-        ) : null}
+        <EditorContent editor={noteEditor} />
       </div>
     </div>
   )
