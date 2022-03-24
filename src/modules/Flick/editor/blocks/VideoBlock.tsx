@@ -446,6 +446,8 @@ export default Node.create({
 
   atom: true,
 
+  isolating: true,
+
   parseHTML() {
     return [
       {
