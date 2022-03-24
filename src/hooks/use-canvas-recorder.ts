@@ -202,6 +202,8 @@ const useCanvasRecorder = ({
   const getBlobs = async () => {
     const superblob = new Blob(recordedBlobs.current, { type })
     const arrayBuffer = await superblob.arrayBuffer()
+    recordedBlobs.current = []
+    setMediaRecorder(null)
     if (arrayBuffer) {
       return getSeekableWebM(arrayBuffer)
     }
@@ -210,6 +212,7 @@ const useCanvasRecorder = ({
 
   const reset = () => {
     recordedBlobs.current = []
+    setMediaRecorder(null)
     // setRecordedBlobs([])
   }
 

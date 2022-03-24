@@ -241,7 +241,7 @@ const VideoFragment = ({
         })
       }
     }
-  }, [payload?.fragmentState])
+  }, [payload?.fragmentState, payload?.status])
 
   useEffect(() => {
     const noOfLinesOfTitle = getNoOfLinesOfText({

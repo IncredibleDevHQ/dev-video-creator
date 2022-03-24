@@ -12,7 +12,7 @@ import AspectRatio from 'react-aspect-ratio'
 import { BiErrorCircle, BiMicrophone, BiVideo } from 'react-icons/bi'
 import { IoCheckmarkOutline } from 'react-icons/io5'
 import { Group, Layer, Stage } from 'react-konva'
-import { useHistory, useParams } from 'react-router-dom'
+import { useHistory, useLocation, useParams } from 'react-router-dom'
 import useMeasure from 'react-use-measure'
 import {
   useRecoilBridgeAcrossReactRoots_UNSTABLE,
@@ -113,6 +113,7 @@ const StudioHoC = () => {
   useEffect(() => {
     if (!data) return
 
+    console.log('akki', data.Fragment?.[0])
     setFragment(data.Fragment?.[0])
     setUserAllowed(
       !!data.Fragment[0]?.configuration?.speakers?.find(
@@ -562,6 +563,13 @@ const Studio = ({
   }
   branding?: BrandingJSON | null
 }) => {
+  const { search } = useLocation()
+
+  const query = new URLSearchParams(search)
+  const type = query.get('type')
+
+  console.log({ type })
+
   const { fragmentId } = useParams<{ fragmentId: string }>()
   const { constraints, theme, staticAssets } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
@@ -742,7 +750,7 @@ const Studio = ({
 
   const {
     startRecording,
-    stopRecording,
+    stopRecording: stopCanvasRecording,
     reset,
     getBlobs,
     addMusic,
@@ -798,30 +806,30 @@ const Studio = ({
         },
       })
 
-      const duration = await getBlobDuration(uploadVideoFile)
+      // const duration = await getBlobDuration(uploadVideoFile)
 
-      await markFragmentCompleted({
-        variables: {
-          flickId: fragment?.flick?.id,
-          fragmentId: fragment?.id,
-          duration: Math.ceil(duration),
-          orientation: shortsMode
-            ? OrientationEnum.Portrait
-            : OrientationEnum.Landscape,
-          producedLink: uuid,
-        },
-      })
+      // await markFragmentCompleted({
+      //   variables: {
+      //     flickId: fragment?.flick?.id,
+      //     fragmentId: fragment?.id,
+      //     duration: Math.ceil(duration),
+      //     orientation: shortsMode
+      //       ? OrientationEnum.Portrait
+      //       : OrientationEnum.Landscape,
+      //     producedLink: uuid,
+      //   },
+      // })
 
       dismissToast(toast)
-      leave()
-      stream?.getTracks().forEach((track) => track.stop())
-      setFragment(undefined)
-      setStudio({
-        ...studio,
-        fragment: undefined,
-        tracks,
-      })
-      history.push(`/flick/${fragment?.flickId}/${fragmentId}`)
+      // leave()
+      // stream?.getTracks().forEach((track) => track.stop())
+      // setFragment(undefined)
+      // setStudio({
+      //   ...studio,
+      //   fragment: undefined,
+      //   tracks,
+      // })
+      // history.push(`/flick/${fragment?.flickId}/${fragmentId}`)
     } catch (e) {
       emitToast({
         title: 'Yikes. Something went wrong.',
@@ -851,7 +859,8 @@ const Studio = ({
       })
     }
 
-    setState('recording')
+    if (state === 'ready') setState('start-recording')
+    else if (state === 'resumed') setState('recording')
   }
 
   // const finalTransition = () => {
@@ -861,8 +870,9 @@ const Studio = ({
   // }
 
   const stop = () => {
+    console.log('stop')
     addMusic({ volume: 0.01, action: 'modifyVolume' })
-    stopRecording()
+    stopCanvasRecording()
     addMusic({ action: 'stop' })
     setState('preview')
   }
@@ -935,7 +945,6 @@ const Studio = ({
     userAudios,
     payload,
     participants,
-    state,
     branding,
   ])
 
@@ -959,10 +968,6 @@ const Studio = ({
 
   useEffect(() => {
     if (payload?.status === Fragment_Status_Enum_Enum.Live) {
-      setStudio({
-        ...studio,
-        state: 'recording',
-      })
       start()
     }
   }, [payload?.status])
@@ -1023,6 +1028,16 @@ const Studio = ({
     }
   }, [payload?.activeObjectIndex])
 
+  useEffect(() => {
+    if (
+      payload?.activeObjectIndex === undefined ||
+      payload?.activeObjectIndex === 0 ||
+      payload?.status !== Fragment_Status_Enum_Enum.Live
+    )
+      return
+    stop()
+  }, [payload?.activeObjectIndex]) // undefined -> defined
+
   const [recordedVideoSrc, setRecordedVideoSrc] = useState<string>()
 
   const prepareVideo = async () => {
@@ -1037,6 +1052,11 @@ const Studio = ({
   }
 
   useEffect(() => {
+    console.log({ payload })
+  }, [payload])
+
+  useEffect(() => {
+    console.log({ state })
     prepareVideo()
   }, [state])
 
@@ -1063,7 +1083,11 @@ const Studio = ({
       }}
       className="flex flex-col w-screen h-screen overflow-hidden"
     >
-      {state === 'ready' || state === 'recording' || state === 'countDown' ? (
+      {state === 'ready' ||
+      state === 'resumed' ||
+      state === 'recording' ||
+      state === 'countDown' ||
+      state === 'start-recording' ? (
         <>
           <Countdown />
           {/* Stage and notes */}
@@ -1095,6 +1119,8 @@ const Studio = ({
               />
               {mountStage &&
                 (state === 'ready' ||
+                  state === 'start-recording' ||
+                  state === 'resumed' ||
                   state === 'recording' ||
                   state === 'countDown') && (
                   <Stage
@@ -1186,10 +1212,11 @@ const Studio = ({
                       }
                     )}
                     onClick={() => {
-                      if (state !== 'ready') return
-                      updatePayload({
-                        activeObjectIndex: index,
-                      })
+                      if (state === 'ready' || state === 'resumed') {
+                        updatePayload({
+                          activeObjectIndex: index,
+                        })
+                      }
                     }}
                   >
                     {(index < payload?.activeObjectIndex ||
@@ -1242,14 +1269,22 @@ const Studio = ({
                 type="button"
                 onClick={() => {
                   logEvent(PageEvent.SaveRecording)
+                  const p = payload
+                  if (
+                    p.activeObjectIndex <
+                    fragment?.editorState?.blocks.length - 1
+                  ) {
+                    p.status = Fragment_Status_Enum_Enum.Paused
+                  } else {
+                    p.status = Fragment_Status_Enum_Enum.Completed
+                  }
+                  updatePayload?.(p)
                   upload()
-                  updatePayload?.({
-                    status: Fragment_Status_Enum_Enum.Completed,
-                  })
+                  setState('resumed')
                 }}
               >
                 <UploadIcon className="h-6 w-6 " />
-                Save recording
+                Save and continue
               </button>
 
               <button

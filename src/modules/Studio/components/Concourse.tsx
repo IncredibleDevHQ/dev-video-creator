@@ -160,7 +160,6 @@ const Concourse = ({
 
   const userStudioImageGap = 170
   const zoomLevel = 2
-  Konva.pixelRatio = 2
 
   useEffect(() => {
     if (!canvas) return

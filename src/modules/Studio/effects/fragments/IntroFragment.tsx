@@ -86,7 +86,7 @@ const IntroFragment = ({
   }, [branding, stageConfig])
 
   useEffect(() => {
-    if (state === 'recording' || state === 'ready' || isPreview) {
+    if (state === 'start-recording' || state === 'ready' || isPreview) {
       if (introSequence[payload.activeIntroIndex] === 'titleSplash') {
         // if (!isPreview) addMusic('splash')
         setTopLayerChildren?.({ id: '', state: '' })

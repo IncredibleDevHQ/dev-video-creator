@@ -148,7 +148,7 @@ const UnifiedFragment = ({
     // as the else block contains set timeout it executes after the if block, so active object index becomes 3
     // so put the condition on state to be recording so that on recording it deosnt take time to make the active object index 0,
     // so that the old active object index's object doesnt get rendered on the canvas initially
-    if (state === 'recording' && payload?.activeObjectIndex === 0)
+    if (state === 'start-recording' && payload?.activeObjectIndex === 0)
       setActiveObjectIndex(payload?.activeObjectIndex)
     else if (viewConfig?.mode !== 'Portrait')
       setTimeout(() => {
@@ -190,24 +190,24 @@ const UnifiedFragment = ({
     })
   }, [payload?.activeObjectIndex])
 
-  useEffect(() => {
-    return () => {
-      updatePayload?.({
-        activeObjectIndex: 0,
-        activeIntroIndex: 0,
-        fragmentState: 'customLayout',
-        currentIndex: 0,
-        prevIndex: 0,
-        isFocus: false,
-        focusBlockCode: false,
-        activeBlockIndex: 0,
-        activePointIndex: 0,
-        currentTime: 0,
-        playing: false,
-        // status: Fragment_Status_Enum_Enum.NotStarted,
-      })
-    }
-  }, [])
+  // useEffect(() => {
+  //   return () => {
+  //     updatePayload?.({
+  //       activeObjectIndex: 0,
+  //       activeIntroIndex: 0,
+  //       fragmentState: 'customLayout',
+  //       currentIndex: 0,
+  //       prevIndex: 0,
+  //       isFocus: false,
+  //       focusBlockCode: false,
+  //       activeBlockIndex: 0,
+  //       activePointIndex: 0,
+  //       currentTime: 0,
+  //       playing: false,
+  //       // status: Fragment_Status_Enum_Enum.NotStarted,
+  //     })
+  //   }
+  // }, [])
 
   useEffect(() => {
     if (state === 'ready') {
@@ -226,7 +226,7 @@ const UnifiedFragment = ({
         status: Fragment_Status_Enum_Enum.NotStarted,
       })
     }
-    if (state === 'recording') {
+    if (state === 'start-recording') {
       updatePayload?.({
         activeObjectIndex: 0,
         activeIntroIndex: 0,
@@ -244,6 +244,9 @@ const UnifiedFragment = ({
       timer.current = setTimeout(() => {
         setTopLayerChildren?.({ id: nanoid(), state: 'lowerThird' })
       }, 2000)
+    }
+    if (state === 'recording') {
+      // TODO: after ashwin's changes
     }
   }, [state])
 

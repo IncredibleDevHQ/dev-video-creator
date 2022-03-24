@@ -88,6 +88,17 @@ query GetFragmentNotes($fragmentId: uuid!) {
   }
 }
 
+query GetRecordings($flickId: uuid, $fragmentId: uuid) {
+  Recording(
+    where: { flickId: { _eq: $flickId }, fragmentId: { _eq: $fragmentId } }
+  ) {
+    id
+    type
+    thumbnail
+    storyboard
+  }
+}
+
 mutation AddNote($note: Note_insert_input = {}) {
   insert_Note_one(object: $note) {
     id
@@ -282,5 +293,24 @@ mutation UpdateFragmentEditorState($id: uuid!, $editorState: json!) {
     _set: { editorState: $editorState }
   ) {
     id
+  }
+}
+
+mutation SetupRecording(
+  $contentType: CONTENT_TYPES!
+  $editorState: json!
+  $flickId: uuid!
+  $fragmentId: uuid!
+  $viewConfig: json!
+) {
+  StartRecording(
+    contentType: $contentType
+    flickId: $flickId
+    fragmentId: $fragmentId
+    editorState: $editorState
+    viewConfig: $viewConfig
+  ) {
+    recordingId
+    success
   }
 }

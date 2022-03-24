@@ -276,7 +276,7 @@ const PointsFragment = ({
         })
       }
     }
-  }, [payload?.fragmentState])
+  }, [payload?.fragmentState, payload?.status])
 
   const layerChildren: any[] = [
     <Group x={0} y={0} opacity={0} ref={customLayoutRef}>

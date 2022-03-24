@@ -10,9 +10,11 @@ import { RTCUser } from '../hooks/use-video'
 
 export type StudioState =
   | 'ready'
+  | 'start-recording'
   | 'recording'
   | 'preview'
   | 'upload'
+  | 'resumed'
   | 'countDown'
   | 'finalSplash'
 
@@ -25,6 +27,8 @@ export interface StudioProviderProps<T = any, S = any> {
   tracks: [IMicrophoneAudioTrack, ILocalVideoTrack] | null
   reset: () => void
   upload: () => void
+
+  recordingId?: string
 
   startRecording: () => void
   stopRecording: () => void

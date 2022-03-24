@@ -274,6 +274,7 @@ const RecordingControlsBar = ({
       className="flex items-center justify-center absolute bottom-6 w-full"
     >
       {(state === 'recording' ||
+        state === 'start-recording' ||
         payload?.status === Fragment_Status_Enum_Enum.Live) && (
         <button
           type="button"
@@ -306,7 +307,10 @@ const RecordingControlsBar = ({
           )}
         </button>
       )}
-      {state === 'ready' && (
+      {(state === 'ready' ||
+        state === 'resumed' ||
+        payload?.status === Fragment_Status_Enum_Enum.NotStarted ||
+        payload?.status === Fragment_Status_Enum_Enum.Paused) && (
         <button
           className={cx(
             'bg-grey-500 bg-opacity-50 border border-gray-600 backdrop-filter backdrop-blur-2xl p-1.5 rounded-sm absolute flex items-center',
