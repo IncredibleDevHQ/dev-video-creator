@@ -235,7 +235,7 @@ const Preview = ({
       try {
         if (camera?.id) {
           const stream = await navigator.mediaDevices.getUserMedia({
-            video: { deviceId: camera.id, aspectRatio: { ideal: 16 / 9 } },
+            video: { deviceId: camera.id, aspectRatio: 4 / 3 },
           })
 
           setCameraStream(stream)
@@ -621,7 +621,7 @@ const Studio = ({
     {
       microphoneId: devices.microphone?.id,
     },
-    { cameraId: devices.camera?.id }
+    { cameraId: devices.camera?.id, encoderConfig: '720p_6' }
   )()
 
   // const [canvas, setCanvas] = useRecoilState(canvasStore)
