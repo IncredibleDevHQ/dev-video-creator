@@ -545,9 +545,12 @@ const Flick = () => {
               className="h-full pt-12 pb-96 col-start-4 col-span-6"
             >
               <EditorHeader
+                blocks={simpleAST?.blocks || []}
+                setCurrentBlock={setCurrentBlock}
                 viewConfig={viewConfig}
                 setViewConfig={setViewConfig}
                 activeFragment={activeFragment}
+                setPreviewPosition={setPreviewPosition}
               />
 
               <TipTap
