@@ -34,6 +34,7 @@ import {
   CodeAnimation,
   CodeStyle,
   CodeTheme,
+  OutroBlockView,
   ViewConfig,
 } from '../../utils/configTypes'
 import { loadFonts } from '../Studio/hooks/use-load-font'
@@ -380,13 +381,23 @@ const Flick = () => {
     if (!fragment) return
     setActiveFragment(fragment)
 
+    setSimpleAST(fragment?.editorState || initialAST)
     setViewConfig(
       fragment?.configuration || {
         ...initialConfig,
         speakers: [flick.participants[0]],
+        blocks: {
+          [initialAST.blocks[1].id]: {
+            layout: 'classic',
+            view: {
+              type: 'outroBlock',
+              outro: {},
+            } as OutroBlockView,
+          } as BlockProperties,
+        },
       }
     )
-    setSimpleAST(fragment?.editorState || initialAST)
+
     setCurrentBlock(fragment?.editorState?.blocks[0] || initialAST.blocks[0])
     setEditorValue(flick.md || '')
   }, [activeFragmentId])

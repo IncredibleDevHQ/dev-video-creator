@@ -20,7 +20,8 @@ const LowerThridProvider = ({
   const { branding, fragment, users, participants } =
     useRecoilValue(studioStore)
   // holds the user's display name
-  const { displayName } = (useRecoilValue(userState) as User) || {}
+  const { displayName, designation, organization } =
+    (useRecoilValue(userState) as User) || {}
   const lowerThirdCoordinates = ({ position }: { position: string }) => {
     if (position === 'right')
       switch (fragment?.participants.length) {
@@ -56,6 +57,8 @@ const LowerThridProvider = ({
             }
             y={!isShorts ? 450 : 620}
             userName={displayName || ''}
+            designation={designation || ''}
+            organization={organization || ''}
             logo={branding?.logo || ''}
             color={branding?.background?.color?.primary || ''}
             textColor={branding?.colors?.text || ''}
@@ -68,6 +71,8 @@ const LowerThridProvider = ({
               x={lowerThirdCoordinates({ position: 'right' })[index + 1]}
               y={!isShorts ? 450 : 620}
               userName={participants?.[user.uid]?.displayName || ''}
+              designation={participants?.[user.uid]?.designation || ''}
+              organization={participants?.[user.uid]?.organization || ''}
               logo={branding?.logo || ''}
               color={branding?.background?.color?.primary || ''}
               textColor={branding?.colors?.text || ''}
@@ -83,6 +88,8 @@ const LowerThridProvider = ({
             x={!isShorts ? lowerThirdCoordinates({ position: 'left' })[0] : 45}
             y={!isShorts ? 400 : 560}
             userName={displayName || ''}
+            designation={designation || ''}
+            organization={organization || ''}
             logo={branding?.logo || ''}
             color={branding?.background?.color?.primary || ''}
             textColor={branding?.colors?.text || ''}
@@ -94,6 +101,8 @@ const LowerThridProvider = ({
               x={lowerThirdCoordinates({ position: 'left' })[index + 1]}
               y={!isShorts ? 400 : 560}
               userName={participants?.[user.uid]?.displayName || ''}
+              designation={designation || ''}
+              organization={organization || ''}
               logo={branding?.logo || ''}
               color={branding?.background?.color?.primary || ''}
               textColor={branding?.colors?.text || ''}
@@ -101,31 +110,36 @@ const LowerThridProvider = ({
           ))}
         </>
       )
-    case 'Cassidoo':
+    case 'Cassidoo': {
       return (
         <>
           <CassidooLowerThirds
             x={!isShorts ? lowerThirdCoordinates({ position: 'left' })[0] : 45}
             y={!isShorts ? 400 : 560}
             userName={displayName || ''}
+            designation={designation || ''}
+            organization={organization || ''}
             logo={branding?.logo || ''}
             color={branding?.background?.color?.primary || ''}
             textColor={branding?.colors?.text || ''}
           />
-          {users.map((user, index) => (
+          {/* {users.map((user, index) => (
             <CassidooLowerThirds
               // eslint-disable-next-line react/no-array-index-key
               key={index}
               x={lowerThirdCoordinates({ position: 'left' })[index + 1]}
               y={!isShorts ? 400 : 560}
               userName={participants?.[user.uid]?.displayName || ''}
+              designation={designation || ''}
+              organization={organization || ''}
               logo={branding?.logo || ''}
               color={branding?.background?.color?.primary || ''}
               textColor={branding?.colors?.text || ''}
             />
-          ))}
+          ))} */}
         </>
       )
+    }
     default:
       return <></>
   }

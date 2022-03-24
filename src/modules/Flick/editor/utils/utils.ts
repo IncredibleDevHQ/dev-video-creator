@@ -156,7 +156,7 @@ const textContent = (contentArray?: JSONContent[]) => {
       }
       return ''
     })
-    .join('&nbsp;')
+    .join('')
 }
 
 const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
@@ -187,7 +187,7 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
         }
         return ''
       })
-      .join('&nbsp;')
+      .join('\n')
 
     const titleNode = slice.find((node) => node.type === 'heading')
     const title = titleNode?.content?.[0]?.text
@@ -196,7 +196,11 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
     const noteNode = slice.find((node) => node.type === 'blockquote')
     const note = noteNode?.content
       ?.map((node) => {
-        return node.content?.[0]?.text
+        return node.content
+          ?.map((node) => {
+            return node.text
+          })
+          .join('')
       })
       .join('\n')
     nodeIds.push(noteNode?.attrs?.id)
@@ -226,6 +230,7 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
       )
 
       const pushBlock = () => {
+        const { description, note, noteId } = getCommonProps(index)
         blocks.push({
           type: 'imageBlock',
           id: slab.attrs?.id,
@@ -233,8 +238,14 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
           nodeIds: [slab.attrs?.id],
           imageBlock: {
             title: textContent(slab.content),
+            description,
+            note,
+            noteId,
           },
         })
+        blockCount.imageBlock += 1
+        prevCoreBlockPos = index
+        blockPosition += 1
       }
       if (
         nextBlockIndex &&
@@ -393,197 +404,6 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
   return { blocks }
 }
 
-const getCommonBlocks = (
-  title: string | undefined,
-  desc: string | undefined,
-  notes: string | undefined
-) => {
-  const heading: JSONContent = {
-    type: 'heading',
-    attrs: {
-      level: 2,
-    },
-    content: title
-      ? [
-          {
-            type: 'text',
-            text: title,
-          },
-        ]
-      : undefined,
-  }
-  const description: JSONContent = {
-    type: 'paragraph',
-    content: desc
-      ? [
-          {
-            type: 'text',
-            text: desc,
-          },
-        ]
-      : undefined,
-  }
-
-  const note: JSONContent = {
-    type: 'note',
-    content: [
-      {
-        type: 'paragraph',
-        content: notes
-          ? [
-              {
-                type: 'text',
-                text: notes,
-              },
-            ]
-          : undefined,
-      },
-    ],
-  }
-  return { heading, description, note }
-}
-
-const getEditorJSON = (ast: SimpleAST): JSONContent => {
-  const state: JSONContent[] = []
-  ast.blocks.forEach((block) => {
-    switch (block.type) {
-      case 'codeBlock': {
-        const { heading, description, note } = getCommonBlocks(
-          block.codeBlock.title,
-          block.codeBlock.description,
-          block.codeBlock.note
-        )
-        state.push({
-          type: 'slab',
-          attrs: {
-            type: 'code',
-            id: block.id,
-          },
-          content: [
-            heading,
-            description,
-            {
-              type: 'codeBlock',
-              attrs: {
-                language: block.codeBlock.language,
-              },
-              content: [
-                {
-                  type: 'text',
-                  text: block.codeBlock.code,
-                },
-              ],
-            },
-            note,
-          ],
-        })
-        break
-      }
-      case 'videoBlock': {
-        const { heading, description, note } = getCommonBlocks(
-          block.videoBlock.title,
-          block.videoBlock.description,
-          block.videoBlock.note
-        )
-        state.push({
-          type: 'slab',
-          attrs: {
-            type: 'video',
-            id: block.id,
-          },
-          content: [
-            heading,
-            description,
-            {
-              type: 'video',
-              attrs: {
-                src: block.videoBlock.url,
-                'data-transformations': JSON.stringify(
-                  block.videoBlock.transformations
-                ),
-              },
-            },
-            note,
-          ],
-        })
-        break
-      }
-      case 'imageBlock': {
-        const { heading, description, note } = getCommonBlocks(
-          block.imageBlock.title,
-          block.imageBlock.description,
-          block.imageBlock.note
-        )
-        state.push({
-          type: 'slab',
-          attrs: {
-            type: 'image',
-            id: block.id,
-          },
-          content: [
-            heading,
-            description,
-            {
-              type: 'image',
-              attrs: {
-                src: block.imageBlock.url,
-              },
-            },
-            note,
-          ],
-        })
-        break
-      }
-      case 'listBlock': {
-        const { heading, description, note } = getCommonBlocks(
-          block.listBlock.title,
-          block.listBlock.description,
-          block.listBlock.note
-        )
-        state.push({
-          type: 'slab',
-          attrs: {
-            type: 'list',
-            id: block.id,
-          },
-          content: [
-            heading,
-            description,
-            {
-              type: 'bulletList',
-              content: block.listBlock.list?.map((item) => {
-                return {
-                  type: 'listItem',
-                  content: [
-                    {
-                      type: 'paragraph',
-                      content: [
-                        {
-                          type: 'text',
-                          text: item.content,
-                        },
-                      ],
-                    },
-                  ],
-                }
-              }),
-            },
-            note,
-          ],
-        })
-        break
-      }
-      default:
-        break
-    }
-  })
-
-  return {
-    type: 'doc',
-    content: state,
-  } as JSONContent
-}
-
 export const getBlockTitle = (block: Block): string => {
   switch (block.type) {
     case 'introBlock':
@@ -617,7 +437,6 @@ export const getBlockTitle = (block: Block): string => {
 
 const useUtils = () => ({
   getSimpleAST,
-  getEditorJSON,
   getBlockTitle,
 })
 
