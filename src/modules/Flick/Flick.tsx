@@ -559,6 +559,7 @@ const Flick = () => {
                   setPreviewPosition(position)
                 }}
                 handleActiveBlock={(block) => {
+                  if (block === undefined) setCurrentBlock(undefined)
                   if (block && block !== currentBlock) setCurrentBlock(block)
                 }}
                 ast={simpleAST}
