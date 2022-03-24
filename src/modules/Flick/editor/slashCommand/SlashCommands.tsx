@@ -9,7 +9,7 @@ export const SlashCommands = Extension.create({
       ...this.parent?.(),
       suggestion: {
         char: '/',
-        startOfLine: false,
+        startOfLine: true,
         command: ({ editor, range, props }) => {
           props.command({ editor, range, props })
         },

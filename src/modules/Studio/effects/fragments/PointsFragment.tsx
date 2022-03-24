@@ -186,11 +186,15 @@ const PointsFragment = ({
         fontFamily: branding?.font?.body?.family || 'Inter',
         orientation,
         layout: viewConfig?.layout || 'classic',
+        isShorts: shortsMode || false,
       })
     )
     if (orientation === 'horizontal') {
       setPointsConfig(
-        getPointsConfig({ layout: viewConfig?.layout || 'classic' })
+        getPointsConfig({
+          layout: viewConfig?.layout || 'classic',
+          isShorts: shortsMode,
+        })
       )
     }
   }, [viewConfig, points, objectRenderConfig, orientation])
@@ -875,11 +879,7 @@ const PointsFragment = ({
                   )),
               }[appearance]
             : computedPoints
-                .filter(
-                  (_, i) =>
-                    i <
-                    getNoOfPointsBasedOnLayout(viewConfig?.layout || 'classic')
-                )
+                .filter((_, i) => i < pointsConfig.noOfPoints)
                 .map((point, index) => (
                   <Group
                     x={
