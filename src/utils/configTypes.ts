@@ -153,6 +153,7 @@ export interface HandleDetails {
 }
 
 export interface OutroBlockViewProps {
+  title?: string
   twitter?: HandleDetails
   discord?: HandleDetails
   youtube?: HandleDetails

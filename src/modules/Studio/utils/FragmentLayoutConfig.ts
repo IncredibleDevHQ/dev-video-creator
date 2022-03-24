@@ -270,14 +270,14 @@ export const FragmentLayoutConfig = ({
             height: 360,
             borderRadius: 0,
           }
-        case 'float-full-left':
-          return {
-            x: 288,
-            y: 90,
-            width: 640,
-            height: 360,
-            borderRadius: 0,
-          }
+        // case 'float-full-left':
+        //   return {
+        //     x: 288,
+        //     y: 90,
+        //     width: 640,
+        //     height: 360,
+        //     borderRadius: 0,
+        //   }
         case 'float-half-right':
           return {
             x: 64,

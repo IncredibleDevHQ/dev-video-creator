@@ -7,6 +7,7 @@ import {
 } from 'agora-rtc-react'
 import getBlobDuration from 'get-blob-duration'
 import Konva from 'konva'
+import { nanoid } from 'nanoid'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import AspectRatio from 'react-aspect-ratio'
 import { BiErrorCircle, BiMicrophone, BiVideo } from 'react-icons/bi'
@@ -1258,6 +1259,7 @@ const Studio = ({
                 onClick={() => {
                   logEvent(PageEvent.Retake)
                   reset()
+                  setTopLayerChildren?.({ id: nanoid(), state: '' })
                   updatePayload?.({
                     status: Fragment_Status_Enum_Enum.NotStarted,
                   })
