@@ -821,25 +821,44 @@ const OutroTab = ({
   }, [enabledCount])
 
   return (
-    <div className="flex flex-col justify-start p-5 gap-y-6">
-      <SocialHandleTab
-        title="Twitter"
-        value={view?.outro?.twitter}
-        update={updateHandle}
-        updateCount={updateEnabledCount}
+    <div className="flex flex-col justify-start p-5">
+      <Heading fontSize="small" className="font-bold">
+        Outro Text
+      </Heading>
+      <input
+        className="bg-gray-100 rounded-sm focus:outline-none font-body text-sm placeholder-gray-400 px-2 py-2 mt-1.5"
+        value={view?.outro?.title}
+        placeholder="Thanks for watching"
+        onChange={(e) => {
+          updateView({
+            type: 'outroBlock',
+            outro: {
+              ...view?.outro,
+              title: e.target.value,
+            },
+          })
+        }}
       />
-      <SocialHandleTab
-        title="Discord"
-        value={view?.outro?.discord}
-        update={updateHandle}
-        updateCount={updateEnabledCount}
-      />
-      <SocialHandleTab
-        title="Youtube"
-        value={view?.outro?.youtube}
-        update={updateHandle}
-        updateCount={updateEnabledCount}
-      />
+      <div className="flex flex-col mt-6 gap-y-6">
+        <SocialHandleTab
+          title="Twitter"
+          value={view?.outro?.twitter}
+          update={updateHandle}
+          updateCount={updateEnabledCount}
+        />
+        <SocialHandleTab
+          title="Discord"
+          value={view?.outro?.discord}
+          update={updateHandle}
+          updateCount={updateEnabledCount}
+        />
+        <SocialHandleTab
+          title="Youtube"
+          value={view?.outro?.youtube}
+          update={updateHandle}
+          updateCount={updateEnabledCount}
+        />
+      </div>
     </div>
   )
 }
