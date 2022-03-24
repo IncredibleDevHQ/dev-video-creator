@@ -243,6 +243,9 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
             noteId,
           },
         })
+        blockCount.imageBlock += 1
+        prevCoreBlockPos = index
+        blockPosition += 1
       }
       if (
         nextBlockIndex &&
