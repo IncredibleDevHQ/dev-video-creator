@@ -69,6 +69,7 @@ import {
   SimpleAST,
   VideoBlockProps,
 } from '../editor/utils/utils'
+import { newFlickStore } from '../store/flickNew.store'
 import { CanvasPreview, LayoutSelector } from './BlockPreview'
 import { EditorContext } from './EditorProvider'
 
@@ -185,6 +186,7 @@ const Preview = ({
   const [activeTab, setActiveTab] = useState<Tab>(commonTabs[0])
   const [ref, bounds] = useMeasure()
   const { payload, updatePayload } = useRecoilValue(studioStore)
+  const { flick } = useRecoilValue(newFlickStore)
 
   const activeBlockRef = useRef<Block | undefined>(block)
 
@@ -202,9 +204,7 @@ const Preview = ({
       } else {
         if (blocks[block.pos - 1].type === 'introBlock') {
           updatePayload?.({
-            activeIntroIndex:
-              (blocks[block.pos - 1] as IntroBlockProps).introBlock.order
-                .length - 1,
+            activeIntroIndex: flick?.branding?.branding.introVideoUrl ? 2 : 1,
           })
         }
         setCurrentBlock(blocks[block.pos - 1])
@@ -213,12 +213,16 @@ const Preview = ({
     if (e.key === 'ArrowRight') {
       if (!block || block.pos === blocks.length - 1) return
       if (block.type === 'introBlock') {
-        if (payload.activeIntroIndex === block.introBlock.order.length - 1)
+        if (
+          payload.activeIntroIndex ===
+          (flick?.branding?.branding.introVideoUrl ? 2 : 1)
+        ) {
           setCurrentBlock(blocks[block.pos + 1])
-        else
+        } else {
           updatePayload?.({
             activeIntroIndex: payload.activeIntroIndex + 1,
           })
+        }
       } else setCurrentBlock(blocks[block.pos + 1])
     }
   }
@@ -258,6 +262,12 @@ const Preview = ({
     }
   }, [block?.id])
 
+  useEffect(() => {
+    if (!block) {
+      setCurrentBlock(blocks?.[0])
+    }
+  }, [block])
+
   if (!block) return null
 
   return (
@@ -285,9 +295,9 @@ const Preview = ({
               } else {
                 if (blocks[block.pos - 1].type === 'introBlock') {
                   updatePayload?.({
-                    activeIntroIndex:
-                      (blocks[block.pos - 1] as IntroBlockProps).introBlock
-                        .order.length - 1,
+                    activeIntroIndex: flick?.branding?.branding.introVideoUrl
+                      ? 2
+                      : 1,
                   })
                 }
                 setCurrentBlock(blocks[block.pos - 1])
@@ -315,13 +325,14 @@ const Preview = ({
               if (block.type === 'introBlock') {
                 if (
                   payload.activeIntroIndex ===
-                  block.introBlock.order.length - 1
-                )
+                  (flick?.branding?.branding.introVideoUrl ? 2 : 1)
+                ) {
                   setCurrentBlock(blocks[block.pos + 1])
-                else
+                } else {
                   updatePayload?.({
                     activeIntroIndex: payload.activeIntroIndex + 1,
                   })
+                }
               } else setCurrentBlock(blocks[block.pos + 1])
             }}
             type="button"
@@ -893,25 +904,44 @@ const OutroTab = ({
   }, [enabledCount])
 
   return (
-    <div className="flex flex-col justify-start p-5 gap-y-6">
-      <SocialHandleTab
-        title="Twitter"
-        value={view?.outro?.twitter}
-        update={updateHandle}
-        updateCount={updateEnabledCount}
+    <div className="flex flex-col justify-start p-5">
+      <Heading fontSize="small" className="font-bold">
+        Outro Text
+      </Heading>
+      <input
+        className="bg-gray-100 rounded-sm focus:outline-none font-body text-sm placeholder-gray-400 px-2 py-2 mt-1.5"
+        value={view?.outro?.title}
+        placeholder="Thanks for watching"
+        onChange={(e) => {
+          updateView({
+            type: 'outroBlock',
+            outro: {
+              ...view?.outro,
+              title: e.target.value,
+            },
+          })
+        }}
       />
-      <SocialHandleTab
-        title="Discord"
-        value={view?.outro?.discord}
-        update={updateHandle}
-        updateCount={updateEnabledCount}
-      />
-      <SocialHandleTab
-        title="Youtube"
-        value={view?.outro?.youtube}
-        update={updateHandle}
-        updateCount={updateEnabledCount}
-      />
+      <div className="flex flex-col mt-6 gap-y-6">
+        <SocialHandleTab
+          title="Twitter"
+          value={view?.outro?.twitter}
+          update={updateHandle}
+          updateCount={updateEnabledCount}
+        />
+        <SocialHandleTab
+          title="Discord"
+          value={view?.outro?.discord}
+          update={updateHandle}
+          updateCount={updateEnabledCount}
+        />
+        <SocialHandleTab
+          title="Youtube"
+          value={view?.outro?.youtube}
+          update={updateHandle}
+          updateCount={updateEnabledCount}
+        />
+      </div>
     </div>
   )
 }

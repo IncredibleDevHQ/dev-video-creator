@@ -230,6 +230,7 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
       )
 
       const pushBlock = () => {
+        const { description, note, noteId } = getCommonProps(index)
         blocks.push({
           type: 'imageBlock',
           id: slab.attrs?.id,
@@ -237,8 +238,14 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
           nodeIds: [slab.attrs?.id],
           imageBlock: {
             title: textContent(slab.content),
+            description,
+            note,
+            noteId,
           },
         })
+        blockCount.imageBlock += 1
+        prevCoreBlockPos = index
+        blockPosition += 1
       }
       if (
         nextBlockIndex &&

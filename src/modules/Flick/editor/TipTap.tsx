@@ -35,23 +35,26 @@ const TipTap = ({
     let nodeAttrs = n?.attrs
 
     if (!n) {
-      nodeAttrs = (editor.state.selection.$from as any).path[3]?.attrs
+      const path = (editor.state.selection.$from as any).path[3]
+      if (path?.content?.size > 0) {
+        nodeAttrs = (editor.state.selection.$from as any).path[3]?.attrs
+      }
     }
     const block = ast?.blocks.find(
       (b) => b.id === nodeAttrs?.id || b.nodeIds?.includes(nodeAttrs?.id)
     )
     if (nodeAttrs && ast && nodeAttrs.id && block) {
       handleActiveBlock?.(block)
+      handleUpdatePosition?.({
+        x: editor?.view.coordsAtPos(editor.state.selection.anchor)?.left || 0,
+        y:
+          editor?.view.coordsAtPos(editor.state.selection.anchor)?.top -
+            editorRef.current?.getBoundingClientRect().y +
+            175 || 0,
+      })
     } else {
-      handleActiveBlock?.()
+      handleActiveBlock?.(undefined)
     }
-    handleUpdatePosition?.({
-      x: editor?.view.coordsAtPos(editor.state.selection.anchor)?.left || 0,
-      y:
-        editor?.view.coordsAtPos(editor.state.selection.anchor)?.top -
-          editorRef.current?.getBoundingClientRect().y +
-          175 || 0,
-    })
   }, [editor?.state.selection.anchor, editorRef.current])
 
   return (

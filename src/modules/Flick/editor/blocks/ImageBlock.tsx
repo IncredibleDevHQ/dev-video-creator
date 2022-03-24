@@ -97,6 +97,8 @@ const IMAGE_INPUT_REGEX = /!\[(.+|:?)\]\((\S+)(?:(?:\s+)["'](\S+)["'])?\)/
 export default Node.create<ImageOptions>({
   name: 'image',
 
+  isolating: true,
+
   addOptions() {
     return {
       ...this.parent?.(),

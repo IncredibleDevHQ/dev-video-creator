@@ -165,6 +165,8 @@ export const GlassyLowerThirds = ({
   x,
   y,
   userName,
+  designation,
+  organization,
   logo,
   color,
   textColor,
@@ -173,6 +175,8 @@ export const GlassyLowerThirds = ({
   x: number
   y: number
   userName: string
+  designation: string
+  organization: string
   logo: string
   color: string
   textColor: string
@@ -180,7 +184,11 @@ export const GlassyLowerThirds = ({
 }) => {
   const [image] = useImage(logo, 'anonymous')
   const { getTextWidth } = useEdit()
-  const textWidth = useRef(getTextWidth(userName, 'Gilroy', 24, 'bold') + 16)
+  const userInfoWidth = useRef(
+    getTextWidth(`${designation}, ${organization}`, 'Gilroy', 16, 'normal') +
+      16 +
+      8
+  )
 
   if (logo)
     return (
@@ -220,31 +228,31 @@ export const GlassyLowerThirds = ({
             height={1}
             ref={(ref) => {
               ref?.to({
-                offsetX: 40,
-                offsetY: 40,
-                height: 80,
-                width: 80,
+                offsetX: 48,
+                offsetY: 48,
+                height: 96,
+                width: 96,
                 duration: 0.4,
                 easing: Konva.Easings.BackEaseOut,
                 onFinish: () => {
                   setTimeout(() => {
                     ref?.to({
-                      x: -Math.floor(textWidth.current),
-                      width: Math.floor(textWidth.current) + 80,
+                      x: -Math.floor(userInfoWidth.current),
+                      width: Math.floor(userInfoWidth.current) + 96,
                       duration: 0.3,
                       easing: Konva.Easings.BackEaseOut,
                       onFinish: () => {
                         setTimeout(() => {
                           ref?.to({
                             x: 0,
-                            width: 80,
+                            width: 96,
                             duration: 0.3,
                             easing: Konva.Easings.EaseOut,
                             onFinish: () => {
                               setTimeout(() => {
                                 ref?.to({
-                                  offsetX: 40,
-                                  offsetY: 40,
+                                  offsetX: 0,
+                                  offsetY: 0,
                                   height: 0,
                                   width: 0,
                                   duration: 0.4,
@@ -261,23 +269,23 @@ export const GlassyLowerThirds = ({
               })
             }}
           />
-          {/* 16 is added to position the image in the center, subtractiong 40 bcoz the rect's width is scaled to 80 and adding the half of the width and height to x and y respectively 
+          {/* 20 is added to position the image in the center, subtractiong 48 bcoz the rect's width is scaled to 96 and adding the half of the width and height to x and y respectively 
         bcoz the image has to scale from the center, so there would be a offset set, 
         on setting the offset the image moves negative, so to cancel that adding the offset values to x and y */}
           <Image
-            x={16 - 40 + 24}
-            y={16 - 40 + 24}
+            x={20 - 48 + 28}
+            y={20 - 48 + 28}
             width={0}
             height={0}
             image={image}
             opcaity={1}
             ref={(ref) => {
               ref?.to({
-                offsetX: 24,
-                offsetY: 24,
-                width: 48,
-                height: 48,
-                duration: 0.4,
+                offsetX: 28,
+                offsetY: 28,
+                width: 56,
+                height: 56,
+                duration: 0.1,
                 easing: Konva.Easings.BackEaseOut,
                 onFinish: () => {
                   setTimeout(() => {
@@ -288,14 +296,14 @@ export const GlassyLowerThirds = ({
                       height: 0,
                       duration: 0.4,
                     })
-                  }, 3400)
+                  }, 3450)
                 },
               })
             }}
           />
           <Text
-            x={-textWidth.current - 24}
-            y={-48}
+            x={-userInfoWidth.current - 24}
+            y={-24}
             fill={textColor || '#fafafa'}
             text={userName}
             fontSize={24}
@@ -304,7 +312,6 @@ export const GlassyLowerThirds = ({
             fontStyle="bold"
             fontFamily={branding?.font?.body?.family || 'Gilroy'}
             key="username"
-            verticalAlign="middle"
             ref={(ref) =>
               setTimeout(() => {
                 ref?.to({
@@ -316,7 +323,34 @@ export const GlassyLowerThirds = ({
                         opacity: 0,
                         duration: 0.3,
                       })
-                    }, 1700)
+                    }, 1500)
+                  },
+                })
+              }, 1500)
+            }
+          />
+          <Text
+            x={-userInfoWidth.current - 24}
+            y={8}
+            fill={textColor || '#fafafa'}
+            text={`${designation}, ${organization}`}
+            fontSize={16}
+            opacity={0}
+            height={96}
+            fontFamily={branding?.font?.body?.family || 'Gilroy'}
+            key="designation"
+            ref={(ref) =>
+              setTimeout(() => {
+                ref?.to({
+                  opacity: 1,
+                  duration: 0.3,
+                  onFinish: () => {
+                    setTimeout(() => {
+                      ref?.to({
+                        opacity: 0,
+                        duration: 0.3,
+                      })
+                    }, 1500)
                   },
                 })
               }, 1500)
@@ -353,8 +387,8 @@ export const GlassyLowerThirds = ({
           height={60}
           ref={(ref) => {
             ref?.to({
-              x: -Math.floor(textWidth.current) - 32 + 60,
-              width: Math.floor(textWidth.current) + 32,
+              x: -Math.floor(userInfoWidth.current) - 32 + 60,
+              width: Math.floor(userInfoWidth.current) + 32,
               duration: 0.3,
               easing: Konva.Easings.BackEaseOut,
               onFinish: () => {
@@ -371,17 +405,44 @@ export const GlassyLowerThirds = ({
           }}
         />
         <Text
-          x={-textWidth.current - 16 + 60}
-          y={-30}
+          x={-userInfoWidth.current - 16 + 60}
+          y={-20}
           fill={textColor || '#fafafa'}
           text={userName}
           fontSize={24}
           opacity={0}
           height={60}
           fontStyle="bold"
-          fontFamily={branding?.font?.body?.family || 'Inter'}
+          fontFamily={branding?.font?.body?.family || 'Gilroy'}
           key="username"
-          verticalAlign="middle"
+          ref={(ref) =>
+            setTimeout(() => {
+              ref?.to({
+                opacity: 1,
+                duration: 0.3,
+                onFinish: () => {
+                  setTimeout(() => {
+                    ref?.to({
+                      opacity: 0,
+                      duration: 0.3,
+                    })
+                  }, 1400)
+                },
+              })
+            }, 300)
+          }
+        />
+        <Text
+          x={-userInfoWidth.current - 16 + 60}
+          y={6}
+          fill={textColor || '#fafafa'}
+          text={`${designation}, ${organization}`}
+          fontSize={16}
+          opacity={0}
+          height={60}
+          fontStyle="bold"
+          fontFamily={branding?.font?.body?.family || 'Gilroy'}
+          key="designation"
           ref={(ref) =>
             setTimeout(() => {
               ref?.to({
@@ -408,6 +469,8 @@ export const PastelLinesLowerThirds = ({
   x,
   y,
   userName,
+  designation,
+  organization,
   logo,
   color,
   textColor,
@@ -415,13 +478,17 @@ export const PastelLinesLowerThirds = ({
   x: number
   y: number
   userName: string
+  designation: string
+  organization: string
   logo: string
   color: string
   textColor: string
 }) => {
   const [image] = useImage(logo, 'anonymous')
   const { getTextWidth } = useEdit()
-  const textWidth = useRef(getTextWidth(userName, 'Inter', 24, 'bold') + 50)
+  const userInfoWidth = useRef(
+    getTextWidth(`${designation}, ${organization}`, 'Outfit', 16, 'normal') + 50
+  )
   if (logo)
     return (
       <>
@@ -440,7 +507,7 @@ export const PastelLinesLowerThirds = ({
                 onFinish: () => {
                   setTimeout(() => {
                     ref?.to({
-                      width: Math.floor(textWidth.current) + 96,
+                      width: Math.floor(userInfoWidth.current) + 96,
                       duration: 0.3,
                       easing: Konva.Easings.EaseOut,
                       onFinish: () => {
@@ -523,19 +590,19 @@ export const PastelLinesLowerThirds = ({
           />
           <Text
             x={150}
+            y={24}
             fill={textColor || '#27272A'}
             text={userName}
             fontSize={24}
             opacity={0}
             height={96}
             fontStyle="bold"
-            fontFamily="Inter"
+            fontFamily="Outfit"
             key="username"
-            verticalAlign="middle"
             ref={(ref) =>
               setTimeout(() => {
                 ref?.to({
-                  x: 108,
+                  x: 118,
                   opacity: 1,
                   duration: 0.3,
                   onFinish: () => {
@@ -547,7 +614,35 @@ export const PastelLinesLowerThirds = ({
                     }, 1800)
                   },
                 })
-              }, 900)
+              }, 1100)
+            }
+          />
+          <Text
+            x={150}
+            y={56}
+            fill={textColor || '#27272A'}
+            text={`${designation}, ${organization}`}
+            fontSize={16}
+            opacity={0}
+            height={96}
+            fontFamily="Outfit"
+            key="designation"
+            ref={(ref) =>
+              setTimeout(() => {
+                ref?.to({
+                  x: 118,
+                  opacity: 1,
+                  duration: 0.3,
+                  onFinish: () => {
+                    setTimeout(() => {
+                      ref?.to({
+                        opacity: 0,
+                        duration: 0.3,
+                      })
+                    }, 1800)
+                  },
+                })
+              }, 1100)
             }
           />
         </Group>
@@ -564,7 +659,7 @@ export const PastelLinesLowerThirds = ({
           strokeWidth={1}
           ref={(ref) => {
             ref?.to({
-              width: Math.floor(textWidth.current) + 48,
+              width: Math.floor(userInfoWidth.current),
               duration: 0.3,
               easing: Konva.Easings.EaseOut,
               onFinish: () => {
@@ -575,22 +670,50 @@ export const PastelLinesLowerThirds = ({
                     duration: 0.3,
                     easing: Konva.Easings.EaseOut,
                   })
-                }, 2000)
+                }, 1300)
               },
             })
           }}
         />
         <Text
           x={60}
+          y={24}
           fill={textColor || '#27272A'}
           text={userName}
           fontSize={24}
           opacity={0}
           height={96}
           fontStyle="bold"
-          fontFamily="Inter"
+          fontFamily="Outfit"
           key="username"
-          verticalAlign="middle"
+          ref={(ref) =>
+            setTimeout(() => {
+              ref?.to({
+                x: 20,
+                opacity: 1,
+                duration: 0.3,
+                onFinish: () => {
+                  setTimeout(() => {
+                    ref?.to({
+                      opacity: 0,
+                      duration: 0.3,
+                    })
+                  }, 1000)
+                },
+              })
+            }, 100)
+          }
+        />
+        <Text
+          x={60}
+          y={56}
+          fill={textColor || '#27272A'}
+          text={`${designation}, ${organization}`}
+          fontSize={16}
+          opacity={0}
+          height={96}
+          fontFamily="Outfit"
+          key="designation"
           ref={(ref) =>
             setTimeout(() => {
               ref?.to({
@@ -618,6 +741,8 @@ export const CassidooLowerThirds = ({
   x,
   y,
   userName,
+  designation,
+  organization,
   logo,
   color,
   textColor,
@@ -625,13 +750,22 @@ export const CassidooLowerThirds = ({
   x: number
   y: number
   userName: string
+  designation: string
+  organization: string
   logo: string
   color: string
   textColor: string
 }) => {
   const [image] = useImage(logo, 'anonymous')
   const { getTextWidth } = useEdit()
-  const textWidth = useRef(getTextWidth(userName, 'Inter', 24, 'bold') + 50)
+  const userInfoWidth = useRef(
+    getTextWidth(
+      `${designation}, ${organization}`,
+      'Roboto Mono',
+      16,
+      'normal'
+    ) + 20
+  )
   if (logo)
     return (
       <>
@@ -656,7 +790,7 @@ export const CassidooLowerThirds = ({
         >
           <Rect
             fill={color || '#E0D6ED'}
-            width={Math.floor(textWidth.current) + 96}
+            width={Math.floor(userInfoWidth.current) + 96}
             height={96}
             opacity={0.8}
             cornerRadius={16}
@@ -669,23 +803,33 @@ export const CassidooLowerThirds = ({
               {
                 x0: 0,
                 y0: 40,
-                x1: Math.floor(textWidth.current),
+                x1: Math.floor(userInfoWidth.current),
                 y1: 96,
               }
             )}
-            strokeWidth={2}
+            strokeWidth={3}
           />
           <Image x={18} y={18} width={60} height={60} image={image} />
           <Text
-            x={108}
+            x={98}
+            y={24}
             fill={textColor || '#27272A'}
             text={userName}
             fontSize={24}
             height={96}
             fontStyle="bold"
-            fontFamily="Inter"
+            fontFamily="Roboto Mono"
             key="username"
-            verticalAlign="middle"
+          />
+          <Text
+            x={98}
+            y={60}
+            fill={textColor || '#27272A'}
+            text={`${designation}, ${organization}`}
+            fontSize={16}
+            height={96}
+            fontFamily="Roboto Mono"
+            key="designation"
           />
         </Group>
       </>
@@ -713,7 +857,7 @@ export const CassidooLowerThirds = ({
       >
         <Rect
           fill={color || '#E0D6ED'}
-          width={Math.floor(textWidth.current) + 48}
+          width={Math.floor(userInfoWidth.current) + 48}
           height={96}
           opacity={0.8}
           cornerRadius={16}
@@ -726,22 +870,32 @@ export const CassidooLowerThirds = ({
             {
               x0: 0,
               y0: 40,
-              x1: Math.floor(textWidth.current),
+              x1: Math.floor(userInfoWidth.current),
               y1: 96,
             }
           )}
-          strokeWidth={2}
+          strokeWidth={3}
         />
         <Text
           x={20}
+          y={24}
           fill={textColor || '#27272A'}
           text={userName}
           fontSize={24}
           height={96}
           fontStyle="bold"
-          fontFamily="Inter"
+          fontFamily="Roboto Mono"
           key="username"
-          verticalAlign="middle"
+        />
+        <Text
+          x={20}
+          y={60}
+          fill={textColor || '#27272A'}
+          text={`${designation}, ${organization}`}
+          fontSize={16}
+          height={96}
+          fontFamily="Roboto Mono"
+          key="designation"
         />
       </Group>
     </>
