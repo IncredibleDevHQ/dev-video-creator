@@ -758,14 +758,17 @@ export const CassidooLowerThirds = ({
 }) => {
   const [image] = useImage(logo, 'anonymous')
   const { getTextWidth } = useEdit()
-  const userInfoWidth = useRef(
-    getTextWidth(
-      `${designation}, ${organization}`,
-      'Roboto Mono',
-      16,
-      'normal'
-    ) + 20
-  )
+
+  const rectWidth =
+    Math.max(
+      getTextWidth(
+        `${designation}, ${organization}`,
+        'Roboto Mono',
+        16,
+        'normal'
+      ),
+      getTextWidth(userName || '', 'Roboto Mono', 24, 'bold')
+    ) + 10
   if (logo)
     return (
       <>
@@ -790,7 +793,7 @@ export const CassidooLowerThirds = ({
         >
           <Rect
             fill={color || '#E0D6ED'}
-            width={Math.floor(userInfoWidth.current) + 96}
+            width={Math.floor(rectWidth) + 96}
             height={96}
             opacity={0.8}
             cornerRadius={16}
@@ -803,7 +806,7 @@ export const CassidooLowerThirds = ({
               {
                 x0: 0,
                 y0: 40,
-                x1: Math.floor(userInfoWidth.current),
+                x1: Math.floor(rectWidth),
                 y1: 96,
               }
             )}
@@ -821,16 +824,42 @@ export const CassidooLowerThirds = ({
             fontFamily="Roboto Mono"
             key="username"
           />
-          <Text
-            x={98}
-            y={60}
-            fill={textColor || '#27272A'}
-            text={`${designation}, ${organization}`}
-            fontSize={16}
-            height={96}
-            fontFamily="Roboto Mono"
-            key="designation"
-          />
+          {designation !== '' && organization === '' && (
+            <Text
+              x={98}
+              y={60}
+              fill={textColor || '#27272A'}
+              text={designation}
+              fontSize={16}
+              height={96}
+              fontFamily="Roboto Mono"
+              key="designation"
+            />
+          )}
+          {designation === '' && organization !== '' && (
+            <Text
+              x={98}
+              y={60}
+              fill={textColor || '#27272A'}
+              text={organization}
+              fontSize={16}
+              height={96}
+              fontFamily="Roboto Mono"
+              key="designation"
+            />
+          )}
+          {designation !== '' && organization !== '' && (
+            <Text
+              x={98}
+              y={60}
+              fill={textColor || '#27272A'}
+              text={`${designation}, ${organization}`}
+              fontSize={16}
+              height={96}
+              fontFamily="Roboto Mono"
+              key="designation"
+            />
+          )}
         </Group>
       </>
     )
@@ -857,7 +886,7 @@ export const CassidooLowerThirds = ({
       >
         <Rect
           fill={color || '#E0D6ED'}
-          width={Math.floor(userInfoWidth.current) + 48}
+          width={Math.floor(rectWidth) + 48}
           height={96}
           opacity={0.8}
           cornerRadius={16}
@@ -870,7 +899,7 @@ export const CassidooLowerThirds = ({
             {
               x0: 0,
               y0: 40,
-              x1: Math.floor(userInfoWidth.current),
+              x1: Math.floor(rectWidth),
               y1: 96,
             }
           )}
@@ -887,16 +916,42 @@ export const CassidooLowerThirds = ({
           fontFamily="Roboto Mono"
           key="username"
         />
-        <Text
-          x={20}
-          y={60}
-          fill={textColor || '#27272A'}
-          text={`${designation}, ${organization}`}
-          fontSize={16}
-          height={96}
-          fontFamily="Roboto Mono"
-          key="designation"
-        />
+        {designation !== '' && organization === '' && (
+          <Text
+            x={20}
+            y={60}
+            fill={textColor || '#27272A'}
+            text={designation}
+            fontSize={16}
+            height={96}
+            fontFamily="Roboto Mono"
+            key="designation"
+          />
+        )}
+        {designation === '' && organization !== '' && (
+          <Text
+            x={20}
+            y={60}
+            fill={textColor || '#27272A'}
+            text={organization}
+            fontSize={16}
+            height={96}
+            fontFamily="Roboto Mono"
+            key="designation"
+          />
+        )}
+        {designation !== '' && organization !== '' && (
+          <Text
+            x={20}
+            y={60}
+            fill={textColor || '#27272A'}
+            text={`${designation}, ${organization}`}
+            fontSize={16}
+            height={96}
+            fontFamily="Roboto Mono"
+            key="designation"
+          />
+        )}
       </Group>
     </>
   )
