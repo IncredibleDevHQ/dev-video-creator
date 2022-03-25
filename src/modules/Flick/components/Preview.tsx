@@ -64,6 +64,7 @@ import {
   VideoBlockProps,
 } from '../editor/utils/utils'
 import { EditorContext } from '../Flick'
+import { newFlickStore } from '../store/flickNew.store'
 import { CanvasPreview, LayoutSelector } from './BlockPreview'
 
 const noScrollBar = css`
@@ -179,6 +180,7 @@ const Preview = ({
   const [activeTab, setActiveTab] = useState<Tab>(commonTabs[0])
   const [ref, bounds] = useMeasure()
   const { payload, updatePayload } = useRecoilValue(studioStore)
+  const { flick } = useRecoilValue(newFlickStore)
 
   const activeBlockRef = useRef<Block | undefined>(block)
 
@@ -196,9 +198,7 @@ const Preview = ({
       } else {
         if (blocks[block.pos - 1].type === 'introBlock') {
           updatePayload?.({
-            activeIntroIndex:
-              (blocks[block.pos - 1] as IntroBlockProps).introBlock.order
-                .length - 1,
+            activeIntroIndex: flick?.branding?.branding.introVideoUrl ? 2 : 1,
           })
         }
         setCurrentBlock(blocks[block.pos - 1])
@@ -207,12 +207,16 @@ const Preview = ({
     if (e.key === 'ArrowRight') {
       if (!block || block.pos === blocks.length - 1) return
       if (block.type === 'introBlock') {
-        if (payload.activeIntroIndex === block.introBlock.order.length - 1)
+        if (
+          payload.activeIntroIndex ===
+          (flick?.branding?.branding.introVideoUrl ? 2 : 1)
+        ) {
           setCurrentBlock(blocks[block.pos + 1])
-        else
+        } else {
           updatePayload?.({
             activeIntroIndex: payload.activeIntroIndex + 1,
           })
+        }
       } else setCurrentBlock(blocks[block.pos + 1])
     }
   }
@@ -245,6 +249,12 @@ const Preview = ({
     }
   }, [block?.id])
 
+  useEffect(() => {
+    if (!block) {
+      setCurrentBlock(blocks?.[0])
+    }
+  }, [block])
+
   if (!block) return null
 
   return (
@@ -272,9 +282,9 @@ const Preview = ({
               } else {
                 if (blocks[block.pos - 1].type === 'introBlock') {
                   updatePayload?.({
-                    activeIntroIndex:
-                      (blocks[block.pos - 1] as IntroBlockProps).introBlock
-                        .order.length - 1,
+                    activeIntroIndex: flick?.branding?.branding.introVideoUrl
+                      ? 2
+                      : 1,
                   })
                 }
                 setCurrentBlock(blocks[block.pos - 1])
@@ -302,13 +312,14 @@ const Preview = ({
               if (block.type === 'introBlock') {
                 if (
                   payload.activeIntroIndex ===
-                  block.introBlock.order.length - 1
-                )
+                  (flick?.branding?.branding.introVideoUrl ? 2 : 1)
+                ) {
                   setCurrentBlock(blocks[block.pos + 1])
-                else
+                } else {
                   updatePayload?.({
                     activeIntroIndex: payload.activeIntroIndex + 1,
                   })
+                }
               } else setCurrentBlock(blocks[block.pos + 1])
             }}
             type="button"

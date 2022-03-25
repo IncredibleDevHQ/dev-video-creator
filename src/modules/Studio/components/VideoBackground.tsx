@@ -1,5 +1,5 @@
 import React from 'react'
-import { Group, Image, Line, Rect } from 'react-konva'
+import { Group, Image, Line, Rect, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
 import config from '../../../config'
@@ -289,23 +289,45 @@ const VideoBackground = ({
       switch (branding?.background?.type) {
         case 'image':
           return (
-            <Image
-              x={0}
-              y={0}
-              width={stageConfig.width}
-              height={stageConfig.height}
-              image={bgImage}
-            />
+            <Group>
+              <Image
+                x={0}
+                y={0}
+                width={stageConfig.width}
+                height={stageConfig.height}
+                image={bgImage}
+              />
+              <Text
+                text="Cassidoo"
+                x={0}
+                y={0}
+                fontSize={2}
+                fill="#fff"
+                opacity={0}
+                fontFamily="Roboto Mono"
+              />
+            </Group>
           )
         case 'color':
           return (
-            <Rect
-              x={0}
-              y={0}
-              width={stageConfig.width}
-              height={stageConfig.height}
-              fill={branding?.background?.color?.primary}
-            />
+            <Group>
+              <Rect
+                x={0}
+                y={0}
+                width={stageConfig.width}
+                height={stageConfig.height}
+                fill={branding?.background?.color?.primary}
+              />
+              <Text
+                text="Cassidoo"
+                x={0}
+                y={0}
+                fontSize={2}
+                fill="#fff"
+                opacity={0}
+                fontFamily="Roboto Mono"
+              />
+            </Group>
           )
         case 'video':
           return (
@@ -330,30 +352,50 @@ const VideoBackground = ({
                   }}
                 />
               )}
+              <Text
+                text="Cassidoo"
+                x={0}
+                y={0}
+                fontSize={2}
+                fill="#fff"
+                opacity={0}
+                fontFamily="Roboto Mono"
+              />
             </Group>
           )
         default: {
           return (
-            <Image
-              x={0}
-              y={0}
-              width={stageConfig.width}
-              height={stageConfig.height}
-              image={!isShorts ? cassidooThemeBg : cassidooPortraitThemeBg}
-              fillLinearGradientColorStops={[
-                0,
-                '#10A2F5',
-                0.4945,
-                '#CA839F',
-                1,
-                '#24D05A',
-              ]}
-              fillLinearGradientStartPoint={{ x: -100, y: -100 }}
-              fillLinearGradientEndPoint={{
-                x: stageConfig.width + 200,
-                y: stageConfig.height + 200,
-              }}
-            />
+            <Group>
+              <Image
+                x={0}
+                y={0}
+                width={stageConfig.width}
+                height={stageConfig.height}
+                image={!isShorts ? cassidooThemeBg : cassidooPortraitThemeBg}
+                fillLinearGradientColorStops={[
+                  0,
+                  '#10A2F5',
+                  0.4945,
+                  '#CA839F',
+                  1,
+                  '#24D05A',
+                ]}
+                fillLinearGradientStartPoint={{ x: -100, y: -100 }}
+                fillLinearGradientEndPoint={{
+                  x: stageConfig.width + 200,
+                  y: stageConfig.height + 200,
+                }}
+              />
+              <Text
+                text="Cassidoo"
+                x={0}
+                y={0}
+                fontSize={2}
+                fill="#fff"
+                opacity={0}
+                fontFamily="Roboto Mono"
+              />
+            </Group>
           )
         }
       }

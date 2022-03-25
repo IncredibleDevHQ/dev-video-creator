@@ -70,8 +70,8 @@ export const loadFonts = (fonts: Font[]) => {
   const googleFonts = fonts.filter(
     (font) => font.type === 'google' && !loadedFonts.includes(font.family)
   )
-  if (googleFonts.length > 0) createLink(fonts)
-  if (customFonts.length > 0) createCustomLink(fonts)
+  if (googleFonts.length > 0) createLink(googleFonts)
+  if (customFonts.length > 0) createCustomLink(customFonts)
 }
 
 /** A simple, stupid hook to ensure that if a Google Font is passed, it is loaded */
