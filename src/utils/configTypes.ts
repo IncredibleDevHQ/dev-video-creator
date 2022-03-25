@@ -11,7 +11,9 @@ export const allLayoutTypes = [
   'bottom-right-circle',
   'padded-split',
   'split',
-  'full',
+  'full-left',
+  'full-right',
+  'split-without-media',
 ] as const
 
 export const shortsLayoutTypes = [
@@ -21,8 +23,17 @@ export const shortsLayoutTypes = [
   'bottom-right-tile',
   'bottom-right-circle',
   'split',
-  'full',
+  'full-left',
 ] as const
+
+export const outroLayoutTypes = [
+  'classic',
+  'float-full-right',
+  // 'float-full-left',
+  'split-without-media',
+] as const
+
+export type OutroLayout = typeof outroLayoutTypes[number]
 
 export type Layout = typeof allLayoutTypes[number]
 
@@ -48,9 +59,23 @@ export interface GradientConfig {
   endIndex: { x: number; y: number }
 }
 
+export interface CodeBlockView {
+  type: 'codeBlock'
+  code: CodeBlockViewProps
+}
+
+export interface CodeBlockViewProps {
+  animation: CodeAnimation
+  highlightSteps?: CodeHighlightConfig[]
+  theme: CodeTheme
+  fontSize?: number
+  codeStyle?: CodeStyle
+}
+
 export enum CodeAnimation {
   TypeLines = 'Type lines',
   HighlightLines = 'Highlight lines',
+  // InsertInBetween = 'Insert in between',
 }
 
 export const enum CodeTheme {
@@ -62,8 +87,8 @@ export const enum CodeTheme {
   Dark = 'dark_vs',
   DarkPlus = 'dark_plus',
   KimbieDark = 'kimbie_dark',
-  Monakai = 'monakai',
-  MonakaiDimmed = 'monakai_dimmed',
+  Monokai = 'monokai',
+  MonokaiDimmed = 'monokai_dimmed',
   Red = 'red',
   SolarizedDark = 'solarized_dark',
   TomorrowNightBlue = 'tomorrow_night_blue',
@@ -76,25 +101,76 @@ export interface CodeHighlightConfig {
   to?: number
   valid?: boolean
   fileIndex?: number
+  lineNumbers?: number[]
 }
 
-export interface CodeBlockViewProps {
-  animation: CodeAnimation
-  highlightSteps?: CodeHighlightConfig[]
-  theme: CodeTheme
-}
-
-export interface CodeBlockView {
-  type: 'codeBlock'
-  code: CodeBlockViewProps
+export enum CodeStyle {
+  Editor = 'editor',
+  Terminal = 'terminal',
 }
 
 export interface ImageBlockView {
   type: 'imageBlock'
-  image: never
+  image: ImageBlockViewProps
 }
 
-export type BlockView = CodeBlockView | ImageBlockView
+export interface ImageBlockViewProps {
+  captionTitleView?: CaptionTitleView
+}
+
+export type CaptionTitleView =
+  | 'titleOnly'
+  | 'captionOnly'
+  | 'none'
+  | 'titleAndCaption'
+
+export interface VideoBlockView {
+  type: 'videoBlock'
+  video: VideoBlockViewProps
+}
+
+export interface VideoBlockViewProps {
+  captionTitleView?: CaptionTitleView
+}
+export interface ListBlockView {
+  type: 'listBlock'
+  list: ListBlockViewProps
+}
+
+export interface ListBlockViewProps {
+  viewStyle?: ListViewStyle
+  appearance?: ListAppearance
+  orientation?: ListOrientation
+}
+
+export type ListAppearance = 'stack' | 'replace' | 'allAtOnce'
+export type ListViewStyle = 'none' | 'bullet' | 'number'
+export type ListOrientation = 'horizontal' | 'vertical'
+
+export interface HandleDetails {
+  enabled: boolean
+  handle: string
+}
+
+export interface OutroBlockViewProps {
+  title?: string
+  twitter?: HandleDetails
+  discord?: HandleDetails
+  youtube?: HandleDetails
+  noOfSocialHandles?: number
+}
+
+export interface OutroBlockView {
+  type: 'outroBlock'
+  outro: OutroBlockViewProps
+}
+
+export type BlockView =
+  | CodeBlockView
+  | ImageBlockView
+  | VideoBlockView
+  | ListBlockView
+  | OutroBlockView
 
 export type BlockProperties = {
   gradient?: GradientConfig

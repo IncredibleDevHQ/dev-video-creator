@@ -7,6 +7,7 @@ import {
 } from 'agora-rtc-react'
 import getBlobDuration from 'get-blob-duration'
 import Konva from 'konva'
+import { nanoid } from 'nanoid'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import AspectRatio from 'react-aspect-ratio'
 import { BiErrorCircle, BiMicrophone, BiVideo } from 'react-icons/bi'
@@ -19,6 +20,8 @@ import {
   useRecoilState,
   useRecoilValue,
 } from 'recoil'
+import { ReactComponent as ReRecordIcon } from '../../assets/ReRecord.svg'
+import { ReactComponent as UploadIcon } from '../../assets/Upload.svg'
 import {
   Button,
   dismissToast,
@@ -44,26 +47,20 @@ import {
 import { useCanvasRecorder } from '../../hooks'
 import { useUploadFile } from '../../hooks/use-upload-file'
 import { User, userState } from '../../stores/user.store'
-import { TopLayerChildren, ViewConfig } from '../../utils/configTypes'
 import { logEvent } from '../../utils/analytics'
 import { PageEvent } from '../../utils/analytics-types'
+import { TopLayerChildren, ViewConfig } from '../../utils/configTypes'
 import { BrandingJSON } from '../Branding/BrandingPage'
-import { useGetHW } from '../Flick/components/BlockPreview'
 import { TextEditorParser } from '../Flick/editor/utils/helpers'
-import {
-  CodeBlockProps,
-  ImageBlockProps,
-  ListBlockProps,
-  SimpleAST,
-  useUtils,
-  VideoBlockProps,
-} from '../Flick/editor/utils/utils'
-import { Countdown } from './components'
+import { SimpleAST, useUtils } from '../Flick/editor/utils/utils'
+import { EditorProvider } from '../Flick/Flick'
+import { Countdown, TimerModal } from './components'
 import {
   CONFIG,
   GetTopLayerChildren,
   SHORTS_CONFIG,
 } from './components/Concourse'
+import Notes from './components/Notes'
 import PermissionError from './components/PermissionError'
 import Preload from './components/Preload'
 import RecordingControlsBar from './components/RecordingControlsBar'
@@ -73,8 +70,6 @@ import { loadFonts } from './hooks/use-load-font'
 import { Device, MediaStreamError } from './hooks/use-media-stream'
 import { useRTDB } from './hooks/use-rtdb'
 import { StudioProviderProps, StudioState, studioStore } from './stores'
-import { ReactComponent as ReRecordIcon } from '../../assets/ReRecord.svg'
-import { ReactComponent as UploadIcon } from '../../assets/Upload.svg'
 
 const noScrollBar = css`
   ::-webkit-scrollbar {
@@ -85,9 +80,10 @@ const noScrollBar = css`
 const StudioHoC = () => {
   const [view, setView] = useState<'preview' | 'preload' | 'studio'>('preload')
 
-  const { sub } = (useRecoilValue(userState) as User) || {}
+  const { sub, displayName } = (useRecoilValue(userState) as User) || {}
   const { fragmentId } = useParams<{ fragmentId: string }>()
   const [fragment, setFragment] = useState<StudioFragmentFragment>()
+  const [isUserAllowed, setUserAllowed] = useState(false)
 
   const devices = useRef<{ microphone: Device | null; camera: Device | null }>({
     camera: null,
@@ -117,8 +113,13 @@ const StudioHoC = () => {
 
   useEffect(() => {
     if (!data) return
-    setFragment(data.Fragment?.[0])
 
+    setFragment(data.Fragment?.[0])
+    setUserAllowed(
+      !!data.Fragment[0]?.configuration?.speakers?.find(
+        (speaker: any) => speaker.userSub === sub
+      )
+    )
     if (!new TextEditorParser(data.Fragment[0].editorState).isValid()) {
       setError('INVALID_AST')
     }
@@ -133,6 +134,15 @@ const StudioHoC = () => {
         subtitle="The fragment contains an invalid data reference. Please correct it and try again."
       />
     )
+
+  if (!isUserAllowed) {
+    return (
+      <ScreenState
+        title="Permission Denied"
+        subtitle="Please contact the owner to add you as the speaker of the flick"
+      />
+    )
+  }
 
   if (view === 'preload' && fragment)
     return (
@@ -157,17 +167,22 @@ const StudioHoC = () => {
 
   if (view === 'studio' && fragment)
     return (
-      <Studio
-        data={data}
-        studioFragment={fragment}
-        branding={
-          data?.Fragment?.[0].flick.useBranding
-            ? data?.Fragment?.[0]?.flick.branding?.branding
-            : null
-        }
-        devices={devices.current}
-        liveStream={liveStream.current}
-      />
+      <EditorProvider
+        flickId={fragment.flickId}
+        userName={displayName as string}
+      >
+        <Studio
+          data={data}
+          studioFragment={fragment}
+          branding={
+            data?.Fragment?.[0].flick.useBranding
+              ? data?.Fragment?.[0]?.flick.branding?.branding
+              : null
+          }
+          devices={devices.current}
+          liveStream={liveStream.current}
+        />
+      </EditorProvider>
     )
 
   return null
@@ -221,7 +236,7 @@ const Preview = ({
       try {
         if (camera?.id) {
           const stream = await navigator.mediaDevices.getUserMedia({
-            video: { deviceId: camera.id, aspectRatio: { ideal: 16 / 9 } },
+            video: { deviceId: camera.id, aspectRatio: 4 / 3 },
           })
 
           setCameraStream(stream)
@@ -415,7 +430,7 @@ const Preview = ({
         </div>
         <div className="flex flex-col justify-center flex-1 col-span-2">
           <Heading className="mb-4" fontSize="medium">
-            {data?.name}
+            {data?.flick?.name || data?.name}
           </Heading>
 
           <Heading fontSize="extra-small" className="uppercase">
@@ -509,6 +524,29 @@ const Preview = ({
   )
 }
 
+const getIntegerHW = ({
+  maxH,
+  maxW,
+  aspectRatio,
+  isShorts,
+}: {
+  maxH: number
+  maxW: number
+  aspectRatio: number
+  isShorts: boolean
+}) => {
+  let calWidth = 0
+  let calHeight = 0
+  if (aspectRatio > maxW / maxH) {
+    calWidth = Math.floor(maxW - (!isShorts ? maxW % 16 : maxW % 9))
+    calHeight = calWidth * (1 / aspectRatio)
+  } else if (aspectRatio <= maxW / maxH) {
+    calHeight = Math.floor(maxH - (!isShorts ? maxH % 9 : maxH % 16))
+    calWidth = calHeight * aspectRatio
+  }
+  return { width: calWidth, height: calHeight }
+}
+
 const Studio = ({
   data,
   devices,
@@ -526,7 +564,7 @@ const Studio = ({
   branding?: BrandingJSON | null
 }) => {
   const { fragmentId } = useParams<{ fragmentId: string }>()
-  const { constraints, theme } =
+  const { constraints, theme, staticAssets } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [studio, setStudio] = useRecoilState(studioStore)
   const { sub } = (useRecoilValue(userState) as User) || {}
@@ -547,23 +585,23 @@ const Studio = ({
 
   const [mountStage, setMountStage] = useState(false)
 
-  const { height: stageHeight, width: stageWidth } = useGetHW({
+  const [isTimerModalOpen, setIsTimerModalOpen] = useState(true)
+  const [timeLimit, setTimeLimit] = useState<number | undefined>()
+  const [timeLimitOver, setTimeLimitOver] = useState(false)
+
+  const { height: stageHeight, width: stageWidth } = getIntegerHW({
     maxH: bounds.height,
     maxW: bounds.width,
     aspectRatio: shortsMode ? 9 / 16 : 16 / 9,
+    isShorts: shortsMode,
   })
 
   useEffect(() => {
     if (!stageWidth) return
-    // console.log('hey pixel ratio', stageWidth, 1920 / stageWidth)
-    // console.log(
-    //   Number(stageWidth.toFixed(3)),
-    //   1920 / Number(stageWidth.toFixed(3))
-    // )
-    Konva.pixelRatio =
-      (shortsMode ? 1080 : 1920) / Number(stageWidth.toFixed(3))
+    Konva.pixelRatio = (shortsMode ? 1080 : 1920) / stageWidth
+    // console.log(stageWidth, stageHeight, Konva.pixelRatio)
+    // console.log(Konva.pixelRatio * stageWidth, Konva.pixelRatio * stageHeight)
     setMountStage(true)
-    // console.log('hey pixelRatio2', Konva.pixelRatio)
   }, [stageWidth])
 
   const tracksRef = useRef<[IMicrophoneAudioTrack, ICameraVideoTrack] | null>(
@@ -584,7 +622,7 @@ const Studio = ({
     {
       microphoneId: devices.microphone?.id,
     },
-    { cameraId: devices.camera?.id }
+    { cameraId: devices.camera?.id, encoderConfig: '720p_6' }
   )()
 
   // const [canvas, setCanvas] = useRecoilState(canvasStore)
@@ -709,7 +747,7 @@ const Studio = ({
     reset,
     getBlobs,
     addMusic,
-    reduceSplashAudioVolume,
+    // reduceSplashAudioVolume,
     stopMusic,
     stopStreaming,
   } = useCanvasRecorder({
@@ -805,26 +843,36 @@ const Studio = ({
       localStream: stream as MediaStream,
       remoteStreams: userAudios,
     })
+    if (fragment?.configuration?.mode === 'Portrait') {
+      addMusic({
+        type: 'shorts',
+        volume: 0.2,
+        musicURL: staticAssets?.shortsBackgroundMusic,
+        action: 'start',
+      })
+    }
 
     setState('recording')
   }
 
-  const finalTransition = () => {
-    if (!payload) return
-    payload.playing = false
-    // updatePayload?.({ status: Fragment_Status_Enum_Enum.Ended })
-  }
+  // const finalTransition = () => {
+  //   if (!payload) return
+  //   payload.playing = false
+  //   // updatePayload?.({ status: Fragment_Status_Enum_Enum.Ended })
+  // }
 
   const stop = () => {
+    addMusic({ volume: 0.01, action: 'modifyVolume' })
     stopRecording()
+    addMusic({ action: 'stop' })
     setState('preview')
   }
 
-  useEffect(() => {
-    if (payload?.status === Fragment_Status_Enum_Enum.Ended) {
-      finalTransition()
-    }
-  }, [payload])
+  // useEffect(() => {
+  //   if (payload?.status === Fragment_Status_Enum_Enum.Ended) {
+  //     finalTransition()
+  //   }
+  // }, [payload])
 
   useEffect(() => {
     if (payload?.status === Fragment_Status_Enum_Enum.NotStarted) {
@@ -852,9 +900,8 @@ const Studio = ({
       stream: stream as MediaStream,
       startRecording: start,
       stopRecording: stop,
-      showFinalTransition: finalTransition,
       addMusic,
-      reduceSplashAudioVolume,
+      // reduceSplashAudioVolume,
       stopMusic,
       reset: resetRecording,
       upload,
@@ -921,22 +968,22 @@ const Studio = ({
     }
   }, [payload?.status])
 
-  const getNote = (activeObjectIndex: number | undefined) => {
-    if (!fragment || activeObjectIndex === undefined) return ''
-    const blocks = fragment.editorState?.blocks
-    switch (blocks[activeObjectIndex].type) {
-      case 'codeBlock':
-        return (blocks[activeObjectIndex] as CodeBlockProps).codeBlock.note
-      case 'videoBlock':
-        return (blocks[activeObjectIndex] as VideoBlockProps).videoBlock.note
-      case 'listBlock':
-        return (blocks[activeObjectIndex] as ListBlockProps).listBlock.note
-      case 'imageBlock':
-        return (blocks[activeObjectIndex] as ImageBlockProps).imageBlock.note
-      default:
-        return ''
-    }
-  }
+  // const getNote = (activeObjectIndex: number | undefined) => {
+  //   if (!fragment || activeObjectIndex === undefined) return ''
+  //   const blocks = fragment.editorState?.blocks
+  //   switch (blocks[activeObjectIndex].type) {
+  //     case 'codeBlock':
+  //       return (blocks[activeObjectIndex] as CodeBlockProps).codeBlock.note
+  //     case 'videoBlock':
+  //       return (blocks[activeObjectIndex] as VideoBlockProps).videoBlock.note
+  //     case 'listBlock':
+  //       return (blocks[activeObjectIndex] as ListBlockProps).listBlock.note
+  //     case 'imageBlock':
+  //       return (blocks[activeObjectIndex] as ImageBlockProps).imageBlock.note
+  //     default:
+  //       return ''
+  //   }
+  // }
 
   // state which stores the type of layer children which have to be placed over the studio user
   const [topLayerChildren, setTopLayerChildren] = useState<{
@@ -1027,6 +1074,26 @@ const Studio = ({
               className="flex justify-center flex-1 col-span-8 w-full h-full relative"
               ref={stageBoundingDivRef}
             >
+              <div
+                className={cx(
+                  'animate-pulse rounded-sm absolute',
+                  {
+                    'bg-transparent': !timeLimitOver,
+                    'bg-red-600': timeLimitOver,
+                  },
+                  css`
+                    width: ${layerRef.current
+                      ? layerRef.current?.width() + 10
+                      : 0}px;
+                    height: ${layerRef.current
+                      ? layerRef.current.height() + 10
+                      : 0}px;
+                    left: 50%;
+                    top: 50%;
+                    transform: translate(-50%, -50%);
+                  `
+                )}
+              />
               {mountStage &&
                 (state === 'ready' ||
                   state === 'recording' ||
@@ -1078,25 +1145,14 @@ const Studio = ({
               <RecordingControlsBar
                 stageRef={stageRef}
                 stageHeight={stageHeight}
+                stageWidth={stageWidth}
+                timeLimit={timeLimit}
                 shortsMode={shortsMode}
+                timeOver={() => setTimeLimitOver(true)}
+                openTimerModal={() => setIsTimerModalOpen(true)}
               />
             </div>
-            {/* Notes */}
-            <div className="col-span-3 w-full">
-              <div
-                style={{
-                  background: '#27272A',
-                  height: `${stageHeight}px`,
-                }}
-                className="h-full p-4 text-gray-100 rounded-sm"
-              >
-                {getNote(payload?.activeObjectIndex) ? (
-                  getNote(payload?.activeObjectIndex)
-                ) : (
-                  <span className="italic">No notes</span>
-                )}
-              </div>
-            </div>
+            <Notes stageHeight={stageHeight} />
           </div>
           {/* Mini timeline */}
           <div
@@ -1117,36 +1173,42 @@ const Studio = ({
             {fragment?.editorState &&
               (fragment.editorState as SimpleAST).blocks.map((block, index) => {
                 return (
-                  <div
+                  <button
+                    type="button"
                     id={`timeline-block-${block.id}`}
                     className={cx(
-                      'px-3 py-1.5 font-body text-sm rounded-sm flex items-center justify-center transition-transform duration-500 bg-brand-grey relative text-gray-300 flex-shrink-0',
+                      'px-3 py-1.5 font-body cursor-pointer text-sm rounded-sm flex items-center justify-center transition-transform duration-500 bg-brand-grey relative text-gray-300 flex-shrink-0',
                       {
                         'transform scale-110 border border-gray-400':
                           payload?.activeObjectIndex === index,
                         'bg-grey-900 text-gray-500':
                           index > payload?.activeObjectIndex,
+                        'cursor-not-allowed': state !== 'ready',
                       }
                     )}
+                    onClick={() => {
+                      if (state !== 'ready') return
+                      updatePayload({
+                        activeObjectIndex: index,
+                      })
+                    }}
                   >
                     {(index < payload?.activeObjectIndex ||
                       payload?.activeObjectIndex ===
                         fragment.editorState.blocks.length - 1) &&
                       state !== 'ready' && (
-                        <div
-                          style={{
-                            background: '#71717A',
-                          }}
-                          className="absolute top-0 right-0 rounded-tr-sm rounded-bl-sm"
-                        >
+                        <div className="absolute top-0 right-0 rounded-tr-sm rounded-bl-sm bg-incredible-green-600">
                           <IoCheckmarkOutline
                             className="m-px text-gray-200"
                             size={8}
                           />
                         </div>
                       )}
-                    {utils.getBlockTitle(block)}
-                  </div>
+                    <span>
+                      {utils.getBlockTitle(block).substring(0, 40) +
+                        (utils.getBlockTitle(block).length > 40 ? '...' : '')}
+                    </span>
+                  </button>
                 )
               })}
           </div>
@@ -1197,6 +1259,7 @@ const Studio = ({
                 onClick={() => {
                   logEvent(PageEvent.Retake)
                   reset()
+                  setTopLayerChildren?.({ id: nanoid(), state: '' })
                   updatePayload?.({
                     status: Fragment_Status_Enum_Enum.NotStarted,
                   })
@@ -1209,6 +1272,12 @@ const Studio = ({
           )}
         </div>
       )}
+      <TimerModal
+        open={isTimerModalOpen}
+        timeLimit={timeLimit}
+        setTimeLimit={setTimeLimit}
+        handleClose={() => setIsTimerModalOpen(false)}
+      />
     </div>
   )
 }

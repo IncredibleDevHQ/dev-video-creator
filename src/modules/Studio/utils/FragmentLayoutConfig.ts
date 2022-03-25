@@ -6,6 +6,8 @@ export interface ObjectConfig {
   y: number
   width: number
   height: number
+  availableWidth?: number
+  availableHeight?: number
   borderRadius: number
   color?: string
 }
@@ -40,7 +42,7 @@ export const FragmentLayoutConfig = ({
               y: 0,
               width: 396,
               height: 704,
-              borderRadius: 8,
+              borderRadius: 0,
             }
           case 'split':
             return {
@@ -50,7 +52,7 @@ export const FragmentLayoutConfig = ({
               height: 336,
               borderRadius: 8,
             }
-          case 'full':
+          case 'full-left':
             return {
               x: 16,
               y: 24,
@@ -82,7 +84,7 @@ export const FragmentLayoutConfig = ({
               borderRadius: 0,
             }
           case 'split':
-          case 'full':
+          case 'full-left':
             return {
               x: 40,
               y: 40,
@@ -97,6 +99,52 @@ export const FragmentLayoutConfig = ({
               width: 316,
               height: 624,
               borderRadius: 0,
+            }
+        }
+      case 'Cassidoo':
+        switch (layout) {
+          case 'classic':
+          case 'padded-bottom-right-circle':
+          case 'padded-bottom-right-tile':
+            return {
+              x: 16,
+              y: 16,
+              width: 364,
+              height: 672,
+              borderRadius: 16,
+            }
+          case 'bottom-right-tile':
+          case 'bottom-right-circle':
+            return {
+              x: 0,
+              y: 0,
+              width: 396,
+              height: 704,
+              borderRadius: 0,
+            }
+          case 'split':
+            return {
+              x: 16,
+              y: 12,
+              width: 364,
+              height: 336,
+              borderRadius: 16,
+            }
+          case 'full-left':
+            return {
+              x: 16,
+              y: 24,
+              width: 364,
+              height: 280,
+              borderRadius: 16,
+            }
+          default:
+            return {
+              x: 16,
+              y: 16,
+              width: 364,
+              height: 672,
+              borderRadius: 16,
             }
         }
       default:
@@ -142,6 +190,7 @@ export const FragmentLayoutConfig = ({
             y: 45,
             width: 800,
             height: 450,
+            availableWidth: 650,
             borderRadius: 8,
           }
         case 'padded-bottom-right-tile':
@@ -178,9 +227,17 @@ export const FragmentLayoutConfig = ({
             height: 280,
             borderRadius: 0,
           }
-        case 'full':
+        case 'full-left':
           return {
             x: 40,
+            y: 120,
+            width: 500,
+            height: 300,
+            borderRadius: 8,
+          }
+        case 'full-right':
+          return {
+            x: 420,
             y: 120,
             width: 500,
             height: 300,
@@ -213,20 +270,21 @@ export const FragmentLayoutConfig = ({
             height: 360,
             borderRadius: 0,
           }
-        case 'float-full-left':
-          return {
-            x: 288,
-            y: 90,
-            width: 640,
-            height: 360,
-            borderRadius: 0,
-          }
+        // case 'float-full-left':
+        //   return {
+        //     x: 288,
+        //     y: 90,
+        //     width: 640,
+        //     height: 360,
+        //     borderRadius: 0,
+        //   }
         case 'float-half-right':
           return {
             x: 64,
             y: 63,
             width: 736,
             height: 414,
+            availableWidth: 630,
             borderRadius: 0,
           }
         case 'padded-bottom-right-tile':
@@ -256,9 +314,17 @@ export const FragmentLayoutConfig = ({
         //     height: 280,
         //     borderRadius: 0,
         //   }
-        case 'full':
+        case 'full-left':
           return {
             x: 40,
+            y: 120,
+            width: 500,
+            height: 300,
+            borderRadius: 0,
+          }
+        case 'full-right':
+          return {
+            x: 420,
             y: 120,
             width: 500,
             height: 300,
@@ -271,6 +337,92 @@ export const FragmentLayoutConfig = ({
             width: 832,
             height: 468,
             borderRadius: 0,
+          }
+      }
+    case 'Cassidoo':
+      switch (layout) {
+        case 'classic':
+          return {
+            x: 56,
+            y: 32,
+            width: 848,
+            height: 477,
+            borderRadius: 16,
+          }
+        case 'float-full-right':
+          return {
+            x: 40,
+            y: 60,
+            width: 540,
+            height: 420,
+            borderRadius: 16,
+          }
+        case 'float-full-left':
+          return {
+            x: 390,
+            y: 60,
+            width: 540,
+            height: 420,
+            borderRadius: 16,
+          }
+        case 'float-half-right':
+          return {
+            x: 32,
+            y: 45,
+            width: 780,
+            height: 450,
+            availableWidth: 630,
+            borderRadius: 16,
+          }
+        // case 'padded-bottom-right-tile':
+        case 'padded-bottom-right-circle':
+          return {
+            x: 72,
+            y: 41,
+            width: 816,
+            height: 459,
+            borderRadius: 16,
+          }
+        // case 'bottom-right-tile':
+        case 'bottom-right-circle':
+          return {
+            x: 0,
+            y: 0,
+            width: 960,
+            height: 540,
+            borderRadius: 0,
+          }
+        case 'padded-split':
+          return {
+            x: 40,
+            y: 112.5,
+            width: 544,
+            height: 315,
+            borderRadius: 16,
+          }
+        case 'full-left':
+          return {
+            x: 40,
+            y: 120,
+            width: 500,
+            height: 300,
+            borderRadius: 16,
+          }
+        case 'full-right':
+          return {
+            x: 420,
+            y: 120,
+            width: 500,
+            height: 300,
+            borderRadius: 16,
+          }
+        default:
+          return {
+            x: 56,
+            y: 32,
+            width: 848,
+            height: 477,
+            borderRadius: 16,
           }
       }
     default:

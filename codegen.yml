@@ -3,7 +3,7 @@ schema:
   - ${VITE_HASURA_SERVER}:
       headers:
         'x-hasura-admin-secret': ${HASURA_ADMIN_SECRET}
-  - 'src/graphql/schema.graphql'
+  # - 'src/graphql/schema.graphql'
 documents: 'src/**/*.graphql'
 generates:
   src/generated/graphql.tsx:

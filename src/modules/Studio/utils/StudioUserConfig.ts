@@ -6,6 +6,30 @@ import { Layout } from '../../../utils/configTypes'
 import { StudioUserConfig } from '../components/Concourse'
 import { FragmentState } from '../components/RenderTokens'
 
+interface ColorStop {
+  color: string
+  offset: number
+}
+
+export const getCanvasGradient = (
+  colorstops: ColorStop[],
+  gradientBoundary: { x0: number; y0: number; x1: number; y1: number }
+) => {
+  const canvas = document.createElement('canvas')
+  const ctx = canvas.getContext('2d')
+  const gradient = ctx?.createLinearGradient(
+    gradientBoundary.x0,
+    gradientBoundary.y0,
+    gradientBoundary.x1,
+    gradientBoundary.y1
+  )
+  if (!gradient) return undefined
+  colorstops.forEach(({ color, offset }) => {
+    gradient.addColorStop(offset, color)
+  })
+  return gradient
+}
+
 export const StudioUserConfiguration = ({
   layout,
   fragment,
@@ -525,7 +549,8 @@ export const StudioUserConfiguration = ({
                 },
               ]
           }
-        case 'full':
+        case 'full-left':
+        case 'full-right':
           switch (fragment?.configuration?.speakers?.length) {
             case 2:
               return [
@@ -880,7 +905,8 @@ export const StudioUserConfiguration = ({
                 },
               ]
           }
-        case 'full':
+        case 'full-left':
+        case 'full-right':
           switch (fragment?.configuration?.speakers?.length) {
             case 2:
               return [
@@ -953,6 +979,624 @@ export const StudioUserConfiguration = ({
             },
           ]
       }
+    case 'Cassidoo': {
+      if (fragmentState === 'onlyUserMedia') {
+        switch (fragment?.configuration?.speakers?.length) {
+          case 2:
+            return [
+              {
+                x: 400,
+                y: 25,
+                width: 640,
+                height: 480,
+                clipTheme: 'rect',
+                borderWidth: 0,
+                studioUserClipConfig: {
+                  x: 120,
+                  y: 0,
+                  width: 400,
+                  height: 480,
+                  borderRadius: 8,
+                },
+              },
+              {
+                x: -60,
+                y: 25,
+                width: 640,
+                height: 480,
+                clipTheme: 'rect',
+                borderWidth: 0,
+                studioUserClipConfig: {
+                  x: 120,
+                  y: 0,
+                  width: 400,
+                  height: 480,
+                  borderRadius: 8,
+                },
+              },
+            ]
+          default:
+            return [
+              {
+                x: 56,
+                y: -45,
+                width: 848,
+                height: 636,
+                clipTheme: 'rect',
+                borderWidth: 8,
+                borderColor: getCanvasGradient(
+                  [
+                    { color: '#E9BC3F', offset: 0.0 },
+                    { color: '#EB4888', offset: 0.5469 },
+                    { color: '#10A2F5', offset: 1.0 },
+                  ],
+                  {
+                    x0: 0,
+                    y0: 40,
+                    x1: 848,
+                    y1: 480,
+                  }
+                ),
+                studioUserClipConfig: {
+                  x: 0,
+                  y: 75,
+                  width: 848,
+                  height: 480,
+                  borderRadius: 8,
+                },
+              },
+            ]
+        }
+      }
+      switch (layout) {
+        // case 'classic':
+        //   switch (fragment?.configuration?.speakers?.length) {
+        //     case 2:
+        //       return [{}, {}]
+        //     default:
+        //       return [{}]
+        //   }
+        case 'float-full-right':
+          switch (fragment?.configuration?.speakers?.length) {
+            case 2:
+              return [
+                {
+                  x: 704,
+                  y: 88,
+                  width: 420,
+                  height: 315,
+                  clipTheme: 'rect',
+                  borderWidth: 8,
+                  borderColor: getCanvasGradient(
+                    [
+                      { color: '#E9BC3F', offset: 0.0 },
+                      { color: '#EB4888', offset: 0.5469 },
+                      { color: '#10A2F5', offset: 1.0 },
+                    ],
+                    {
+                      x0: 0,
+                      y0: 40,
+                      x1: 310,
+                      y1: 310,
+                    }
+                  ),
+                  studioUserClipConfig: {
+                    x: 55,
+                    y: 2.5,
+                    width: 310,
+                    height: 310,
+                    borderRadius: 155,
+                  },
+                },
+                {
+                  x: 704,
+                  y: 284,
+                  width: 420,
+                  height: 315,
+                  clipTheme: 'rect',
+                  borderWidth: 8,
+                  borderColor: getCanvasGradient(
+                    [
+                      { color: '#E9BC3F', offset: 0.0 },
+                      { color: '#EB4888', offset: 0.5469 },
+                      { color: '#10A2F5', offset: 1.0 },
+                    ],
+                    {
+                      x0: 0,
+                      y0: 40,
+                      x1: 310,
+                      y1: 310,
+                    }
+                  ),
+                  studioUserClipConfig: {
+                    x: 55,
+                    y: 2.5,
+                    width: 310,
+                    height: 310,
+                    borderRadius: 155,
+                  },
+                },
+              ]
+            default:
+              return [
+                {
+                  x: 568,
+                  y: 113.5,
+                  width: 420,
+                  height: 315,
+                  clipTheme: 'rect',
+                  borderWidth: 8,
+                  borderColor: getCanvasGradient(
+                    [
+                      { color: '#E9BC3F', offset: 0.0 },
+                      { color: '#EB4888', offset: 0.5469 },
+                      { color: '#10A2F5', offset: 1.0 },
+                    ],
+                    {
+                      x0: 0,
+                      y0: 40,
+                      x1: 310,
+                      y1: 310,
+                    }
+                  ),
+                  studioUserClipConfig: {
+                    x: 55,
+                    y: 2.5,
+                    width: 310,
+                    height: 310,
+                    borderRadius: 155,
+                  },
+                },
+              ]
+          }
+        case 'float-full-left':
+          switch (fragment?.configuration?.speakers?.length) {
+            case 2:
+              return [
+                {
+                  x: 32,
+                  y: 88,
+                  width: 224,
+                  height: 168,
+                  clipTheme: 'rect',
+                  borderWidth: 8,
+                  borderColor: getCanvasGradient(
+                    [
+                      { color: '#E9BC3F', offset: 0.0 },
+                      { color: '#EB4888', offset: 0.5469 },
+                      { color: '#10A2F5', offset: 1.0 },
+                    ],
+                    {
+                      x0: 0,
+                      y0: 40,
+                      x1: 224,
+                      y1: 164,
+                    }
+                  ),
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 2,
+                    width: 224,
+                    height: 164,
+                    borderRadius: 8,
+                  },
+                },
+                {
+                  x: 32,
+                  y: 284,
+                  width: 224,
+                  height: 168,
+                  clipTheme: 'rect',
+                  borderWidth: 8,
+                  borderColor: getCanvasGradient(
+                    [
+                      { color: '#E9BC3F', offset: 0.0 },
+                      { color: '#EB4888', offset: 0.5469 },
+                      { color: '#10A2F5', offset: 1.0 },
+                    ],
+                    {
+                      x0: 0,
+                      y0: 40,
+                      x1: 224,
+                      y1: 164,
+                    }
+                  ),
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 2,
+                    width: 224,
+                    height: 164,
+                    borderRadius: 8,
+                  },
+                },
+              ]
+            default:
+              return [
+                {
+                  x: -15,
+                  y: 113.5,
+                  width: 420,
+                  height: 315,
+                  clipTheme: 'rect',
+                  borderWidth: 8,
+                  borderColor: getCanvasGradient(
+                    [
+                      { color: '#E9BC3F', offset: 0.0 },
+                      { color: '#EB4888', offset: 0.5469 },
+                      { color: '#10A2F5', offset: 1.0 },
+                    ],
+                    {
+                      x0: 0,
+                      y0: 40,
+                      x1: 310,
+                      y1: 310,
+                    }
+                  ),
+                  studioUserClipConfig: {
+                    x: 55,
+                    y: 2.5,
+                    width: 310,
+                    height: 310,
+                    borderRadius: 155,
+                  },
+                },
+              ]
+          }
+        case 'float-half-right':
+          switch (fragment?.configuration?.speakers?.length) {
+            case 2:
+              return [
+                {
+                  x: 724,
+                  y: 96,
+                  width: 208,
+                  height: 156,
+                  clipTheme: 'rect',
+                  borderWidth: 8,
+                  borderColor: getCanvasGradient(
+                    [
+                      { color: '#E9BC3F', offset: 0.0 },
+                      { color: '#EB4888', offset: 0.5469 },
+                      { color: '#10A2F5', offset: 1.0 },
+                    ],
+                    {
+                      x0: 0,
+                      y0: 40,
+                      x1: 210,
+                      y1: 156,
+                    }
+                  ),
+                  studioUserClipConfig: {
+                    x: 4,
+                    y: 0,
+                    width: 200,
+                    height: 156,
+                    borderRadius: 8,
+                  },
+                },
+                {
+                  x: 724,
+                  y: 288,
+                  width: 208,
+                  height: 156,
+                  clipTheme: 'rect',
+                  borderWidth: 8,
+                  borderColor: getCanvasGradient(
+                    [
+                      { color: '#E9BC3F', offset: 0.0 },
+                      { color: '#EB4888', offset: 0.5469 },
+                      { color: '#10A2F5', offset: 1.0 },
+                    ],
+                    {
+                      x0: 0,
+                      y0: 40,
+                      x1: 200,
+                      y1: 156,
+                    }
+                  ),
+                  studioUserClipConfig: {
+                    x: 4,
+                    y: 0,
+                    width: 200,
+                    height: 156,
+                    borderRadius: 8,
+                  },
+                },
+              ]
+            default:
+              return [
+                {
+                  x: 598,
+                  y: 115.5,
+                  width: 420,
+                  height: 315,
+                  clipTheme: 'rect',
+                  borderWidth: 8,
+                  borderColor: getCanvasGradient(
+                    [
+                      { color: '#E9BC3F', offset: 0.0 },
+                      { color: '#EB4888', offset: 0.5469 },
+                      { color: '#10A2F5', offset: 1.0 },
+                    ],
+                    {
+                      x0: 0,
+                      y0: 40,
+                      x1: 250,
+                      y1: 250,
+                    }
+                  ),
+                  studioUserClipConfig: {
+                    x: 85,
+                    y: 32.5,
+                    width: 250,
+                    height: 250,
+                    borderRadius: 125,
+                  },
+                },
+              ]
+          }
+        case 'padded-bottom-right-circle':
+        case 'bottom-right-circle':
+          switch (fragment?.configuration?.speakers?.length) {
+            case 2:
+              return [
+                {
+                  x: 756,
+                  y: 364,
+                  width: 216,
+                  height: 162,
+                  clipTheme: 'rect',
+                  borderWidth: 8,
+                  borderColor: getCanvasGradient(
+                    [
+                      { color: '#E9BC3F', offset: 0.0 },
+                      { color: '#EB4888', offset: 0.5469 },
+                      { color: '#10A2F5', offset: 1.0 },
+                    ],
+                    {
+                      x0: 0,
+                      y0: 40,
+                      x1: 160,
+                      y1: 160,
+                    }
+                  ),
+                  studioUserClipConfig: {
+                    x: 28,
+                    y: 1,
+                    width: 160,
+                    height: 160,
+                    borderRadius: 80,
+                  },
+                },
+                {
+                  x: 568,
+                  y: 364,
+                  width: 216,
+                  height: 162,
+                  clipTheme: 'rect',
+                  borderWidth: 8,
+                  borderColor: getCanvasGradient(
+                    [
+                      { color: '#E9BC3F', offset: 0.0 },
+                      { color: '#EB4888', offset: 0.5469 },
+                      { color: '#10A2F5', offset: 1.0 },
+                    ],
+                    {
+                      x0: 0,
+                      y0: 40,
+                      x1: 160,
+                      y1: 160,
+                    }
+                  ),
+                  studioUserClipConfig: {
+                    x: 28,
+                    y: 1,
+                    width: 160,
+                    height: 160,
+                    borderRadius: 80,
+                  },
+                },
+              ]
+            default:
+              return [
+                {
+                  x: 740,
+                  y: 360,
+                  width: 216,
+                  height: 162,
+                  clipTheme: 'rect',
+                  borderWidth: 8,
+                  borderColor: getCanvasGradient(
+                    [
+                      { color: '#E9BC3F', offset: 0.0 },
+                      { color: '#EB4888', offset: 0.5469 },
+                      { color: '#10A2F5', offset: 1.0 },
+                    ],
+                    {
+                      x0: 0,
+                      y0: 40,
+                      x1: 160,
+                      y1: 160,
+                    }
+                  ),
+                  studioUserClipConfig: {
+                    x: 28,
+                    y: 1,
+                    width: 160,
+                    height: 160,
+                    borderRadius: 80,
+                  },
+                },
+              ]
+          }
+        case 'padded-split':
+          switch (fragment?.configuration?.speakers?.length) {
+            case 2:
+              return [
+                {
+                  x: 620,
+                  y: 0,
+                  width: 360,
+                  height: 270,
+                  clipTheme: 'rect',
+                  borderWidth: 8,
+                  borderColor: getCanvasGradient(
+                    [
+                      { color: '#E9BC3F', offset: 0.0 },
+                      { color: '#EB4888', offset: 0.5469 },
+                      { color: '#10A2F5', offset: 1.0 },
+                    ],
+                    {
+                      x0: 0,
+                      y0: 40,
+                      x1: 320,
+                      y1: 270,
+                    }
+                  ),
+                  studioUserClipConfig: {
+                    x: 20,
+                    y: 0,
+                    width: 320,
+                    height: 270,
+                    borderRadius: 0,
+                  },
+                },
+                {
+                  x: 620,
+                  y: 270,
+                  width: 360,
+                  height: 270,
+                  clipTheme: 'rect',
+                  borderWidth: 8,
+                  borderColor: getCanvasGradient(
+                    [
+                      { color: '#E9BC3F', offset: 0.0 },
+                      { color: '#EB4888', offset: 0.5469 },
+                      { color: '#10A2F5', offset: 1.0 },
+                    ],
+                    {
+                      x0: 0,
+                      y0: 40,
+                      x1: 320,
+                      y1: 270,
+                    }
+                  ),
+                  studioUserClipConfig: {
+                    x: 20,
+                    y: 0,
+                    width: 320,
+                    height: 270,
+                    borderRadius: 0,
+                  },
+                },
+              ]
+            default:
+              return [
+                {
+                  x: 456,
+                  y: 39,
+                  width: 616,
+                  height: 462,
+                  clipTheme: 'rect',
+                  borderWidth: 8,
+                  borderColor: getCanvasGradient(
+                    [
+                      { color: '#E9BC3F', offset: 0.0 },
+                      { color: '#EB4888', offset: 0.5469 },
+                      { color: '#10A2F5', offset: 1.0 },
+                    ],
+                    {
+                      x0: 0,
+                      y0: 40,
+                      x1: 312,
+                      y1: 460,
+                    }
+                  ),
+                  studioUserClipConfig: {
+                    x: 152,
+                    y: 1,
+                    width: 312,
+                    height: 460,
+                    borderRadius: 16,
+                  },
+                },
+              ]
+          }
+        case 'full-left':
+        case 'full-right':
+          switch (fragment?.configuration?.speakers?.length) {
+            case 2:
+              return [
+                {
+                  x: 0,
+                  y: 0,
+                  width: 0,
+                  height: 0,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 0,
+                    width: 0,
+                    height: 0,
+                    borderRadius: 0,
+                  },
+                },
+                {
+                  x: 0,
+                  y: 0,
+                  width: 0,
+                  height: 0,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 0,
+                    width: 0,
+                    height: 0,
+                    borderRadius: 0,
+                  },
+                },
+              ]
+            default:
+              return [
+                {
+                  x: 0,
+                  y: -90,
+                  width: 960,
+                  height: 720,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 90,
+                    width: 960,
+                    height: 540,
+                    borderRadius: 0,
+                  },
+                },
+              ]
+          }
+        default:
+          return [
+            {
+              x: 0,
+              y: 0,
+              width: 0,
+              height: 0,
+              clipTheme: 'rect',
+              borderWidth: 0,
+              studioUserClipConfig: {
+                x: 0,
+                y: 0,
+                width: 0,
+                height: 0,
+                borderRadius: 0,
+              },
+            },
+          ]
+      }
+    }
     default:
       return [
         {
@@ -1255,15 +1899,15 @@ export const ShortsStudioUserConfiguration = ({
             default:
               return [
                 {
-                  x: -14,
-                  y: 362,
-                  width: 432,
-                  height: 324,
+                  x: -26,
+                  y: 356,
+                  width: 448,
+                  height: 336,
                   clipTheme: 'rect',
                   borderWidth: 0,
                   studioUserClipConfig: {
-                    x: 38,
-                    y: 2,
+                    x: 50,
+                    y: 8,
                     width: 348,
                     height: 320,
                     borderRadius: 8,
@@ -1278,7 +1922,7 @@ export const ShortsStudioUserConfiguration = ({
                 },
               ]
           }
-        case 'full':
+        case 'full-left':
           switch (fragment?.configuration?.speakers?.length) {
             case 2:
               return [
@@ -1579,7 +2223,7 @@ export const ShortsStudioUserConfiguration = ({
                 },
               ]
           }
-        case 'full':
+        case 'full-left':
           switch (fragment?.configuration?.speakers?.length) {
             case 2:
               return [
@@ -1652,6 +2296,360 @@ export const ShortsStudioUserConfiguration = ({
             },
           ]
       }
+    case 'Cassidoo': {
+      if (fragmentState === 'onlyUserMedia') {
+        switch (fragment?.configuration?.speakers?.length) {
+          case 2:
+            return [
+              {
+                x: -6,
+                y: 27,
+                width: 408,
+                height: 306,
+                clipTheme: 'rect',
+                borderWidth: 0,
+                studioUserClipConfig: {
+                  x: 38,
+                  y: 1,
+                  width: 332,
+                  height: 304,
+                  borderRadius: 8,
+                },
+              },
+              {
+                x: -6,
+                y: 371,
+                width: 408,
+                height: 306,
+                clipTheme: 'rect',
+                borderWidth: 0,
+                studioUserClipConfig: {
+                  x: 38,
+                  y: 1,
+                  width: 332,
+                  height: 304,
+                  borderRadius: 8,
+                },
+              },
+            ]
+          default:
+            return [
+              {
+                x: -250,
+                y: 16,
+                width: 896,
+                height: 672,
+                clipTheme: 'rect',
+                borderWidth: 8,
+                borderColor: getCanvasGradient(
+                  [
+                    { color: '#E9BC3F', offset: 0.0 },
+                    { color: '#EB4888', offset: 0.5469 },
+                    { color: '#10A2F5', offset: 1.0 },
+                  ],
+                  {
+                    x0: 0,
+                    y0: 40,
+                    x1: 364,
+                    y1: 672,
+                  }
+                ),
+                studioUserClipConfig: {
+                  x: 266,
+                  y: 0,
+                  width: 364,
+                  height: 672,
+                  borderRadius: 8,
+                },
+              },
+            ]
+        }
+      }
+      switch (layout) {
+        // case 'classic':
+        //   switch (fragment?.configuration?.speakers?.length) {
+        //     case 2:
+        //       return [{}, {}]
+        //     default:
+        //       return [{}]
+        //   }
+        case 'padded-bottom-right-tile':
+        case 'bottom-right-tile':
+          switch (fragment?.configuration?.speakers?.length) {
+            case 2:
+              return [
+                {
+                  x: 0,
+                  y: 0,
+                  width: 0,
+                  height: 0,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 0,
+                    width: 0,
+                    height: 0,
+                    borderRadius: 0,
+                  },
+                },
+                {
+                  x: 0,
+                  y: 0,
+                  width: 0,
+                  height: 0,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 0,
+                    width: 0,
+                    height: 0,
+                    borderRadius: 0,
+                  },
+                },
+              ]
+            default:
+              return [
+                {
+                  x: 192,
+                  y: 527,
+                  width: 216,
+                  height: 162,
+                  clipTheme: 'rect',
+                  borderWidth: 8,
+                  borderColor: getCanvasGradient(
+                    [
+                      { color: '#E9BC3F', offset: 0.0 },
+                      { color: '#EB4888', offset: 0.5469 },
+                      { color: '#10A2F5', offset: 1.0 },
+                    ],
+                    {
+                      x0: 0,
+                      y0: 40,
+                      x1: 160,
+                      y1: 160,
+                    }
+                  ),
+                  studioUserClipConfig: {
+                    x: 28,
+                    y: 1,
+                    width: 160,
+                    height: 160,
+                    borderRadius: 8,
+                  },
+                },
+              ]
+          }
+        case 'padded-bottom-right-circle':
+        case 'bottom-right-circle':
+          switch (fragment?.configuration?.speakers?.length) {
+            case 2:
+              return [
+                {
+                  x: 756,
+                  y: 364,
+                  width: 216,
+                  height: 162,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 28,
+                    y: 1,
+                    width: 160,
+                    height: 160,
+                    borderRadius: 8,
+                  },
+                },
+                {
+                  x: 568,
+                  y: 364,
+                  width: 216,
+                  height: 162,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 28,
+                    y: 1,
+                    width: 160,
+                    height: 160,
+                    borderRadius: 8,
+                  },
+                },
+              ]
+            default:
+              return [
+                {
+                  x: 195,
+                  y: 530,
+                  width: 216,
+                  height: 162,
+                  clipTheme: 'rect',
+                  borderWidth: 8,
+                  borderColor: getCanvasGradient(
+                    [
+                      { color: '#E9BC3F', offset: 0.0 },
+                      { color: '#EB4888', offset: 0.5469 },
+                      { color: '#10A2F5', offset: 1.0 },
+                    ],
+                    {
+                      x0: 0,
+                      y0: 40,
+                      x1: 160,
+                      y1: 160,
+                    }
+                  ),
+                  studioUserClipConfig: {
+                    x: 28,
+                    y: 1,
+                    width: 160,
+                    height: 160,
+                    borderRadius: 80,
+                  },
+                },
+              ]
+          }
+        case 'split':
+          switch (fragment?.configuration?.speakers?.length) {
+            case 2:
+              return [
+                {
+                  x: 0,
+                  y: 0,
+                  width: 0,
+                  height: 0,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 0,
+                    width: 0,
+                    height: 0,
+                    borderRadius: 0,
+                  },
+                },
+                {
+                  x: 0,
+                  y: 0,
+                  width: 0,
+                  height: 0,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 0,
+                    width: 0,
+                    height: 0,
+                    borderRadius: 0,
+                  },
+                },
+              ]
+            default:
+              return [
+                {
+                  x: -24,
+                  y: 356,
+                  width: 448,
+                  height: 336,
+                  clipTheme: 'rect',
+                  borderWidth: 8,
+                  borderColor: getCanvasGradient(
+                    [
+                      { color: '#E9BC3F', offset: 0.0 },
+                      { color: '#EB4888', offset: 0.5469 },
+                      { color: '#10A2F5', offset: 1.0 },
+                    ],
+                    {
+                      x0: 0,
+                      y0: 40,
+                      x1: 360,
+                      y1: 336,
+                    }
+                  ),
+                  studioUserClipConfig: {
+                    x: 44,
+                    y: 0,
+                    width: 360,
+                    height: 336,
+                    borderRadius: 8,
+                  },
+                },
+              ]
+          }
+        case 'full-left':
+          switch (fragment?.configuration?.speakers?.length) {
+            case 2:
+              return [
+                {
+                  x: 0,
+                  y: 0,
+                  width: 0,
+                  height: 0,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 0,
+                    width: 0,
+                    height: 0,
+                    borderRadius: 0,
+                  },
+                },
+                {
+                  x: 0,
+                  y: 0,
+                  width: 0,
+                  height: 0,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 0,
+                    width: 0,
+                    height: 0,
+                    borderRadius: 0,
+                  },
+                },
+              ]
+            default:
+              return [
+                {
+                  x: -272,
+                  y: -0.5,
+                  width: 940,
+                  height: 705,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 272,
+                    y: 0.5,
+                    width: 396,
+                    height: 704,
+                    borderRadius: 0,
+                  },
+                },
+              ]
+          }
+        default:
+          return [
+            {
+              x: 0,
+              y: 0,
+              width: 0,
+              height: 0,
+              clipTheme: 'rect',
+              borderWidth: 0,
+              studioUserClipConfig: {
+                x: 0,
+                y: 0,
+                width: 0,
+                height: 0,
+                borderRadius: 0,
+              },
+            },
+          ]
+      }
+    }
     default:
       return [
         {

@@ -22,6 +22,8 @@ import PENCIL_ALT from './assets/pencil-alt.svg'
 import EYE_OUTLINE from './assets/eye-outline.svg'
 import EDITOR from './assets/editor.png'
 import PIN from './assets/incredible_pin.png'
+import FLICKBG from './assets/flick-bg.png'
+import RECORD_SCREEN from './assets/record-screen.jpeg'
 
 import askCameraPermission from './assets/ask-camera-permission.png'
 import askMicrophonePermission from './assets/ask-microphone-permission.png'
@@ -41,11 +43,13 @@ export const ASSETS = {
     IncredibleLogoDark,
     StudioLogo,
     FLICK,
+    FLICKBG,
     BLOG,
     SHORTS,
     EYE_OUTLINE,
     PENCIL_ALT,
     PIN,
+    RECORD_SCREEN,
   },
   ANIMATION: {
     LOGIN_USER_ANIMATION,

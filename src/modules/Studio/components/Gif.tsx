@@ -25,7 +25,7 @@ const Gif = ({
 
   useEffect(() => {
     let anim: any
-    setTimeout(() => {
+    const gifSetTimeout = setTimeout(() => {
       setStartGif(true)
       ;(window as any).gifler(image?.src).get((a: any) => {
         anim = a
@@ -36,12 +36,27 @@ const Gif = ({
         }
       })
     }, 1250)
-    return () => anim?.stop()
+    return () => {
+      anim?.stop()
+      clearTimeout(gifSetTimeout)
+    }
   }, [image, canvas])
 
   return startGif ? (
     <>
-      <Image image={image} x={x} y={y} width={width} height={height} />
+      <Image
+        image={image}
+        x={x}
+        y={y}
+        width={width}
+        height={height}
+        ref={(ref) => {
+          ref?.to({
+            opacity: 0,
+            duration: 1,
+          })
+        }}
+      />
       <Image
         image={canvas}
         ref={imageRef}

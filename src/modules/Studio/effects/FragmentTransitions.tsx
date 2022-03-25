@@ -1,10 +1,8 @@
 import Konva from 'konva'
 import React, { useRef } from 'react'
 import { Circle, Group, Rect, Shape } from 'react-konva'
-import { useRecoilValue } from 'recoil'
 import { TopLayerChildren } from '../../../utils/configTypes'
 import { CONFIG, SHORTS_CONFIG } from '../components/Concourse'
-import { studioStore } from '../stores'
 
 // Used for the DarkGradient theme
 export const TrianglePathTransition = ({
@@ -28,12 +26,12 @@ export const TrianglePathTransition = ({
     case 'left':
       groupStartX = stageConfig.width + stageConfig.width / 4 + 110
       groupEndX = -(stageConfig.width + stageConfig.width / 4 + 110)
-      duration = 2
+      duration = 1
       break
     case 'right':
       groupStartX = -(stageConfig.width + stageConfig.width / 4 + 110)
       groupEndX = stageConfig.width + stageConfig.width / 4 + 110
-      duration = 2
+      duration = 1
       break
     case 'moveIn':
       groupStartX = -(stageConfig.width + stageConfig.width / 4 + 110)
@@ -321,14 +319,14 @@ export const PastelLinesTransition = ({
       rectEndHeight = stageConfig.height / 2
       rect2StartX = 0
       rect2StartY = stageConfig.height
-      duration = 0.75
+      duration = 0.375
       break
     case 'moveAway':
       rect1StartX = 0
       rect1StartY = stageConfig.height / 2
       rect2StartX = 0
       rect2StartY = stageConfig.height / 2
-      duration = 0.5
+      duration = 0.25
       break
     default:
       break
@@ -403,14 +401,430 @@ export const PastelLinesTransition = ({
   )
 }
 
+export const CassidooTransition = ({
+  direction,
+  isShorts,
+  color,
+  setTopLayerChildren,
+}: {
+  direction: string
+  isShorts?: boolean
+  color?: string
+  setTopLayerChildren?: React.Dispatch<
+    React.SetStateAction<{ id: string; state: TopLayerChildren }>
+  >
+}) => {
+  let rect1StartCoords = { x: 0, y: 0 }
+  let rect2StartCoords = { x: 0, y: 0 }
+  let rect3StartCoords = { x: 0, y: 0 }
+  let rect4StartCoords = { x: 0, y: 0 }
+  let rect1MidCoords = { x: 0, y: 0 }
+  let rect2MidCoords = { x: 0, y: 0 }
+  let rect3MidCoords = { x: 0, y: 0 }
+  let rect4MidCoords = { x: 0, y: 0 }
+  let rect1EndCoords = { x: 0, y: 0 }
+  let rect2EndCoords = { x: 0, y: 0 }
+  let rect3EndCoords = { x: 0, y: 0 }
+  let rect4EndCoords = { x: 0, y: 0 }
+  let duration = 0
+  switch (direction) {
+    case 'left':
+    case 'right':
+    case 'moveIn':
+      if (!isShorts) {
+        rect1StartCoords = { x: -272.91, y: 662.93 }
+        rect2StartCoords = { x: 658, y: -300.16 }
+        rect3StartCoords = { x: 287.09, y: 850.93 }
+        rect4StartCoords = { x: 1169, y: -51.16 }
+        rect1MidCoords = { x: 527.09, y: -137.07 }
+        rect2MidCoords = { x: -142, y: 499.84 }
+        rect3MidCoords = { x: 1087.09, y: 50.93 }
+        rect4MidCoords = { x: 369, y: 748.84 }
+        rect1EndCoords = { x: 1327.09, y: -937.07 }
+        rect2EndCoords = { x: -942, y: 1299.84 }
+        rect3EndCoords = { x: 1887.09, y: -749.07 }
+        rect4EndCoords = { x: -431, y: 1548.84 }
+      } else {
+        rect1StartCoords = { x: -55.16, y: -209 }
+        rect2StartCoords = { x: 850.93, y: 682.91 }
+        rect3StartCoords = { x: -300.16, y: 302 }
+        rect4StartCoords = { x: 662.93, y: 1232.91 }
+
+        rect1MidCoords = { x: 744.84, y: 591 }
+        rect2MidCoords = { x: 50.93, y: -117.09 }
+        rect3MidCoords = { x: 499.84, y: 1102 }
+        rect4MidCoords = { x: -137.07, y: 432.91 }
+
+        rect1EndCoords = { x: 1544.84, y: 1391 }
+        rect2EndCoords = { x: -749.07, y: -917.09 }
+        rect3EndCoords = { x: 1299.84, y: 1902 }
+        rect4EndCoords = { x: -937.07, y: -367.09 }
+      }
+      // rect1EndCoords = { x: 527.09, y: -137.07 }
+      // rect2EndCoords = { x: -142, y: 499.84 }
+      // rect3EndCoords = { x: 1087.09, y: 50.93 }
+      // rect4EndCoords = { x: 369, y: 748.84 }
+      duration = 0.75
+      break
+    case 'moveAway':
+      rect1StartCoords = { x: 527.09, y: -137.07 }
+      rect2StartCoords = { x: -142, y: 499.84 }
+      rect3StartCoords = { x: 1077.09, y: 50.93 }
+      rect4StartCoords = { x: 369, y: 748.84 }
+      rect1EndCoords = { x: -172.91, y: 562.93 }
+      rect2EndCoords = { x: 558, y: -200.16 }
+      rect3EndCoords = { x: 377.09, y: 750.93 }
+      rect4EndCoords = { x: 1069, y: 48.84 }
+      duration = 0.25
+      break
+    default:
+      break
+  }
+  if (!isShorts)
+    return (
+      <Group>
+        <Rect
+          x={rect1StartCoords.x}
+          y={rect1StartCoords.y}
+          width={1105}
+          height={275}
+          cornerRadius={134}
+          rotation={135.4}
+          fillLinearGradientColorStops={[
+            0,
+            color || '#E9BC3F',
+            0.7725,
+            color || '#E89DBB',
+          ]}
+          fillLinearGradientStartPoint={{ x: 0, y: 134 }}
+          fillLinearGradientEndPoint={{
+            x: 1105,
+            y: 134,
+          }}
+          shadowColor="#000000"
+          shadowOffset={{ x: 0, y: -4 }}
+          shadowOpacity={0.1}
+          shadowBlur={6}
+          ref={(ref) => {
+            ref?.to({
+              x: rect1MidCoords.x,
+              y: rect1MidCoords.y,
+              duration: duration / 2,
+              onFinish: () => {
+                setTimeout(() => {
+                  ref?.to({
+                    x: rect1EndCoords.x,
+                    y: rect1EndCoords.y,
+                    duration: duration / 2,
+                  })
+                }, 150)
+              },
+            })
+          }}
+        />
+        <Rect
+          x={rect2StartCoords.x}
+          y={rect2StartCoords.y}
+          width={1105}
+          height={275}
+          cornerRadius={134}
+          rotation={-44.6}
+          fillLinearGradientColorStops={[
+            0,
+            color || '#E9BC3F',
+            0.7725,
+            color || '#E89DBB',
+          ]}
+          fillLinearGradientStartPoint={{ x: 0, y: 134 }}
+          fillLinearGradientEndPoint={{
+            x: 1105,
+            y: 134,
+          }}
+          shadowColor="#000000"
+          shadowOffset={{ x: 0, y: -4 }}
+          shadowOpacity={0.1}
+          shadowBlur={6}
+          ref={(ref) => {
+            ref?.to({
+              x: rect2MidCoords.x,
+              y: rect2MidCoords.y,
+              duration: duration / 2,
+              onFinish: () => {
+                setTimeout(() => {
+                  ref?.to({
+                    x: rect2EndCoords.x,
+                    y: rect2EndCoords.y,
+                    duration: duration / 2,
+                    onFinish: () => {
+                      setTimeout(() => {
+                        if (direction === 'left' || direction === 'right') {
+                          setTopLayerChildren?.({ id: '', state: '' })
+                        }
+                      }, 200)
+                    },
+                  })
+                }, 150)
+              },
+            })
+          }}
+        />
+        <Rect
+          x={rect3StartCoords.x}
+          y={rect3StartCoords.y}
+          width={1105}
+          height={275}
+          cornerRadius={134}
+          rotation={135.4}
+          fillLinearGradientColorStops={[
+            0,
+            color || '#E9BC3F',
+            0.7725,
+            color || '#E89DBB',
+          ]}
+          fillLinearGradientStartPoint={{ x: 0, y: 134 }}
+          fillLinearGradientEndPoint={{
+            x: 1105,
+            y: 134,
+          }}
+          shadowColor="#000000"
+          shadowOffset={{ x: 0, y: -4 }}
+          shadowOpacity={0.1}
+          shadowBlur={6}
+          ref={(ref) => {
+            ref?.to({
+              x: rect3MidCoords.x,
+              y: rect3MidCoords.y,
+              duration: duration / 2,
+              onFinish: () => {
+                setTimeout(() => {
+                  ref?.to({
+                    x: rect3EndCoords.x,
+                    y: rect3EndCoords.y,
+                    duration: duration / 2,
+                  })
+                }, 150)
+              },
+            })
+          }}
+        />
+        <Rect
+          x={rect4StartCoords.x}
+          y={rect4StartCoords.y}
+          width={1105}
+          height={275}
+          cornerRadius={134}
+          rotation={-44.6}
+          fillLinearGradientColorStops={[
+            0,
+            color || '#E9BC3F',
+            0.7725,
+            color || '#E89DBB',
+          ]}
+          fillLinearGradientStartPoint={{ x: 0, y: 134 }}
+          fillLinearGradientEndPoint={{
+            x: 1105,
+            y: 134,
+          }}
+          shadowColor="#000000"
+          shadowOffset={{ x: 0, y: -4 }}
+          shadowOpacity={0.1}
+          shadowBlur={6}
+          ref={(ref) => {
+            ref?.to({
+              x: rect4MidCoords.x,
+              y: rect4MidCoords.y,
+              duration: duration / 2,
+              onFinish: () => {
+                setTimeout(() => {
+                  ref?.to({
+                    x: rect4EndCoords.x,
+                    y: rect4EndCoords.y,
+                    duration: duration / 2,
+                  })
+                }, 150)
+              },
+            })
+          }}
+        />
+      </Group>
+    )
+  return (
+    <Group>
+      <Rect
+        x={rect1StartCoords.x}
+        y={rect1StartCoords.y}
+        width={1105}
+        height={275}
+        cornerRadius={134}
+        rotation={-134.6}
+        fillLinearGradientColorStops={[
+          0,
+          color || '#E9BC3F',
+          0.7725,
+          color || '#E89DBB',
+        ]}
+        fillLinearGradientStartPoint={{ x: 0, y: 134 }}
+        fillLinearGradientEndPoint={{
+          x: 1105,
+          y: 134,
+        }}
+        shadowColor="#000000"
+        shadowOffset={{ x: 0, y: -4 }}
+        shadowOpacity={0.1}
+        shadowBlur={6}
+        ref={(ref) => {
+          ref?.to({
+            x: rect1MidCoords.x,
+            y: rect1MidCoords.y,
+            duration: duration / 2,
+            onFinish: () => {
+              setTimeout(() => {
+                ref?.to({
+                  x: rect1EndCoords.x,
+                  y: rect1EndCoords.y,
+                  duration: duration / 2,
+                })
+              }, 150)
+            },
+          })
+        }}
+      />
+      <Rect
+        x={rect2StartCoords.x}
+        y={rect2StartCoords.y}
+        width={1105}
+        height={275}
+        cornerRadius={134}
+        rotation={45.4}
+        fillLinearGradientColorStops={[
+          0,
+          color || '#E9BC3F',
+          0.7725,
+          color || '#E89DBB',
+        ]}
+        fillLinearGradientStartPoint={{ x: 0, y: 134 }}
+        fillLinearGradientEndPoint={{
+          x: 1105,
+          y: 134,
+        }}
+        shadowColor="#000000"
+        shadowOffset={{ x: 0, y: -4 }}
+        shadowOpacity={0.1}
+        shadowBlur={6}
+        ref={(ref) => {
+          ref?.to({
+            x: rect2MidCoords.x,
+            y: rect2MidCoords.y,
+            duration: duration / 2,
+            onFinish: () => {
+              setTimeout(() => {
+                ref?.to({
+                  x: rect2EndCoords.x,
+                  y: rect2EndCoords.y,
+                  duration: duration / 2,
+                  onFinish: () => {
+                    setTimeout(() => {
+                      if (direction === 'left' || direction === 'right') {
+                        setTopLayerChildren?.({ id: '', state: '' })
+                      }
+                    }, 200)
+                  },
+                })
+              }, 150)
+            },
+          })
+        }}
+      />
+      <Rect
+        x={rect3StartCoords.x}
+        y={rect3StartCoords.y}
+        width={1105}
+        height={275}
+        cornerRadius={134}
+        rotation={-134.6}
+        fillLinearGradientColorStops={[
+          0,
+          color || '#E9BC3F',
+          0.7725,
+          color || '#E89DBB',
+        ]}
+        fillLinearGradientStartPoint={{ x: 0, y: 134 }}
+        fillLinearGradientEndPoint={{
+          x: 1105,
+          y: 134,
+        }}
+        shadowColor="#000000"
+        shadowOffset={{ x: 0, y: -4 }}
+        shadowOpacity={0.1}
+        shadowBlur={6}
+        ref={(ref) => {
+          ref?.to({
+            x: rect3MidCoords.x,
+            y: rect3MidCoords.y,
+            duration: duration / 2,
+            onFinish: () => {
+              setTimeout(() => {
+                ref?.to({
+                  x: rect3EndCoords.x,
+                  y: rect3EndCoords.y,
+                  duration: duration / 2,
+                })
+              }, 150)
+            },
+          })
+        }}
+      />
+      <Rect
+        x={rect4StartCoords.x}
+        y={rect4StartCoords.y}
+        width={1105}
+        height={275}
+        cornerRadius={134}
+        rotation={45.4}
+        fillLinearGradientColorStops={[
+          0,
+          color || '#E9BC3F',
+          0.7725,
+          color || '#E89DBB',
+        ]}
+        fillLinearGradientStartPoint={{ x: 0, y: 134 }}
+        fillLinearGradientEndPoint={{
+          x: 1105,
+          y: 134,
+        }}
+        shadowColor="#000000"
+        shadowOffset={{ x: 0, y: -4 }}
+        shadowOpacity={0.1}
+        shadowBlur={6}
+        ref={(ref) => {
+          ref?.to({
+            x: rect4MidCoords.x,
+            y: rect4MidCoords.y,
+            duration: duration / 2,
+            onFinish: () => {
+              setTimeout(() => {
+                ref?.to({
+                  x: rect4EndCoords.x,
+                  y: rect4EndCoords.y,
+                  duration: duration / 2,
+                })
+              }, 150)
+            },
+          })
+        }}
+      />
+    </Group>
+  )
+}
+
 export const RectanglesSlideTransition = ({
   direction,
-  colors,
+  // colors,
   performFinishAction,
   isShorts,
 }: {
   direction: string
-  colors?: string[]
+  // colors?: string[]
   performFinishAction?: () => void
   isShorts?: boolean
 }) => {
@@ -536,7 +950,7 @@ export const MultiCircleCenterGrow = ({
   performFinishAction?: () => void
   colors?: string[]
 }) => {
-  const { reduceSplashAudioVolume } = useRecoilValue(studioStore)
+  // const { reduceSplashAudioVolume } = useRecoilValue(studioStore)
   return (
     <>
       <Circle

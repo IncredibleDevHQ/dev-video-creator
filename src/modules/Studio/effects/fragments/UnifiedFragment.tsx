@@ -2,6 +2,7 @@ import Konva from 'konva'
 import { nanoid } from 'nanoid'
 import React, { useEffect, useRef, useState } from 'react'
 import { useRecoilState, useRecoilValue } from 'recoil'
+import { Rect } from 'react-konva'
 import {
   Fragment_Status_Enum_Enum,
   ThemeFragment,
@@ -28,7 +29,7 @@ import CodeFragment from './CodeFragment'
 import IntroFragment from './IntroFragment'
 import OutroFragment from './OutroFragment'
 import PointsFragment from './PointsFragment'
-import TriviaFragment from './TriviaFragment'
+import ImageFragment from './ImageFragment'
 import VideoFragment from './VideoFragment'
 
 const UnifiedFragment = ({
@@ -76,6 +77,8 @@ const UnifiedFragment = ({
   const [isPreview, setIsPreview] = useState(false)
 
   const timer = useRef<any>(null)
+
+  const dipToBlackRef = useRef<Konva.Rect>(null)
 
   useEffect(() => {
     clearTimeout(timer.current)
@@ -147,10 +150,44 @@ const UnifiedFragment = ({
     // so that the old active object index's object doesnt get rendered on the canvas initially
     if (state === 'recording' && payload?.activeObjectIndex === 0)
       setActiveObjectIndex(payload?.activeObjectIndex)
-    else
+    else if (viewConfig?.mode !== 'Portrait')
       setTimeout(() => {
         setActiveObjectIndex(payload?.activeObjectIndex)
-      }, 800)
+      }, 400)
+    else if (
+      payload?.activeObjectIndex === 1 ||
+      payload?.activeObjectIndex === (dataConfig?.length || 2) - 1
+    ) {
+      dipToBlackRef.current?.to({
+        opacity: 1,
+        duration: 0.2,
+        onFinish: () => {
+          dipToBlackRef.current?.to({
+            opacity: 0,
+            duration: 0.2,
+          })
+        },
+      })
+      if (payload?.activeObjectIndex === (dataConfig?.length || 2) - 1)
+        addMusic({ volume: 0.05, action: 'modifyVolume' })
+      setTimeout(() => {
+        setActiveObjectIndex(payload?.activeObjectIndex)
+      }, 200)
+    } else setActiveObjectIndex(payload?.activeObjectIndex)
+  }, [payload?.activeObjectIndex])
+
+  useEffect(() => {
+    if (!payload?.activeObjectIndex || payload?.activeObjectIndex === 0) return
+    if (viewConfig?.mode !== 'Portrait')
+      setTopLayerChildren?.({ id: nanoid(), state: 'transition right' })
+    updatePayload?.({
+      currentIndex: 0,
+      prevIndex: -1,
+      isFocus: false,
+      focusBlockCode: false,
+      activeBlockIndex: 0,
+      activePointIndex: 0,
+    })
   }, [payload?.activeObjectIndex])
 
   useEffect(() => {
@@ -179,7 +216,7 @@ const UnifiedFragment = ({
         activeIntroIndex: 0,
         fragmentState: 'customLayout',
         currentIndex: 0,
-        prevIndex: 0,
+        prevIndex: -1,
         isFocus: false,
         focusBlockCode: false,
         activeBlockIndex: 0,
@@ -195,7 +232,7 @@ const UnifiedFragment = ({
         activeIntroIndex: 0,
         fragmentState: 'customLayout',
         currentIndex: 0,
-        prevIndex: 0,
+        prevIndex: -1,
         isFocus: false,
         focusBlockCode: false,
         activeBlockIndex: 0,
@@ -212,22 +249,19 @@ const UnifiedFragment = ({
 
   useEffect(() => {
     if (!payload?.activeObjectIndex || payload?.activeObjectIndex === 0) return
-    // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
-    if (payload?.fragmentState === 'customLayout') {
-      setTopLayerChildren?.({ id: nanoid(), state: 'transition right' })
-      addMusic()
-    }
-    // Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
-    if (payload?.fragmentState === 'onlyUserMedia') {
-      setTopLayerChildren?.({ id: nanoid(), state: 'transition left' })
-      addMusic()
+    if (viewConfig?.mode !== 'Portrait') {
+      // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
+      if (payload?.fragmentState === 'customLayout') {
+        setTopLayerChildren?.({ id: nanoid(), state: 'transition right' })
+      }
+      // Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
+      if (payload?.fragmentState === 'onlyUserMedia') {
+        setTopLayerChildren?.({ id: nanoid(), state: 'transition left' })
+      }
+    } else {
+      setTopLayerChildren?.({ id: nanoid(), state: '' })
     }
   }, [payload?.fragmentState])
-
-  useEffect(() => {
-    if (!payload?.activeObjectIndex || payload?.activeObjectIndex === 0) return
-    setTopLayerChildren?.({ id: nanoid(), state: 'transition right' })
-  }, [payload?.activeObjectIndex])
 
   const [stageConfig, setStageConfig] = useState<{
     width: number
@@ -253,6 +287,7 @@ const UnifiedFragment = ({
           case 'codeBlock': {
             return (
               <CodeFragment
+                key={activeObjectIndex}
                 dataConfig={dataConfig[activeObjectIndex] as CodeBlockProps}
                 viewConfig={
                   viewConfig.blocks[
@@ -286,7 +321,8 @@ const UnifiedFragment = ({
           }
           case 'imageBlock': {
             return (
-              <TriviaFragment
+              <ImageFragment
+                key={activeObjectIndex}
                 dataConfig={dataConfig[activeObjectIndex] as ImageBlockProps}
                 viewConfig={
                   viewConfig.blocks[
@@ -336,12 +372,30 @@ const UnifiedFragment = ({
             )
           }
           case 'outroBlock': {
-            return <OutroFragment isShorts={viewConfig.mode === 'Portrait'} />
+            return (
+              <OutroFragment
+                isShorts={viewConfig.mode === 'Portrait'}
+                viewConfig={
+                  viewConfig.blocks[
+                    dataConfig[activeObjectIndex].id
+                  ] as BlockProperties
+                }
+              />
+            )
           }
           default:
             return <></>
         }
       })()}
+      <Rect
+        x={0}
+        y={0}
+        width={stageConfig.width}
+        height={stageConfig.height}
+        fill="#000000"
+        opacity={0}
+        ref={dipToBlackRef}
+      />
     </>
   )
 }

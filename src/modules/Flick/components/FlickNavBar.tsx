@@ -1,10 +1,10 @@
-import { sentenceCase } from 'change-case'
 import React, { useState } from 'react'
 import { FiChevronLeft } from 'react-icons/fi'
+import { HiOutlineDownload } from 'react-icons/hi'
+import { IoPeopleOutline } from 'react-icons/io5'
 import { useRecoilState } from 'recoil'
 import { Download } from '.'
 import { Button, Heading } from '../../../components'
-import config from '../../../config'
 import { ASSETS } from '../../../constants'
 import { newFlickStore } from '../store/flickNew.store'
 import ShareModal from './ShareModal'
@@ -17,7 +17,7 @@ const FlickNavBar = () => {
   return (
     <div className="sticky top-0 z-50 flex items-center justify-between py-2 pl-3 pr-4 bg-dark-500">
       <div className="flex items-center">
-        <a href={`${config.client.publicUrl}/dashboard`}>
+        <a href="/dashboard">
           <div className="flex">
             <FiChevronLeft size={28} className="mr-2 text-grey-lighter" />
             <img src={ASSETS.ICONS.StudioLogo} alt="" className="w-28" />
@@ -25,9 +25,9 @@ const FlickNavBar = () => {
         </a>
       </div>
       <Heading className="p-2 ml-12 font-bold text-base text-white">
-        {sentenceCase(flick?.name || '')}
+        {flick?.name || ''}
       </Heading>
-      <div className="flex items-center gap-x-6">
+      <div className="flex items-stretch gap-x-6">
         <Button
           appearance="gray"
           type="button"
@@ -35,6 +35,8 @@ const FlickNavBar = () => {
             setIsShareOpen(true)
           }}
           size="small"
+          icon={IoPeopleOutline}
+          iconSize={20}
           className="-mr-3"
         >
           Invite
@@ -43,10 +45,10 @@ const FlickNavBar = () => {
           appearance="gray"
           size="small"
           type="button"
+          icon={HiOutlineDownload}
+          iconSize={21}
           onClick={() => setIsDownloadOpen(true)}
-        >
-          Download
-        </Button>
+        />
       </div>
       {isShareOpen && (
         <ShareModal
@@ -56,7 +58,7 @@ const FlickNavBar = () => {
           }}
         />
       )}
-      {isDownloadOpen && flick?.status && (
+      {isDownloadOpen && (
         <Download
           open={isDownloadOpen}
           handleClose={(refresh?: boolean) => setIsDownloadOpen(false)}

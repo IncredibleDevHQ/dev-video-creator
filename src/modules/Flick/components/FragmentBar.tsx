@@ -3,17 +3,18 @@
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 import { css, cx } from '@emotion/css'
 import React, { HTMLAttributes, useEffect, useState } from 'react'
-import { BiCheck, BiPlayCircle } from 'react-icons/bi'
+import { BiCheck } from 'react-icons/bi'
 import { BsCloudCheck, BsCloudUpload } from 'react-icons/bs'
 import {
   IoAlbumsOutline,
   IoCheckmark,
   IoDesktopOutline,
   IoPhonePortraitOutline,
+  IoPlayOutline,
   IoWarningOutline,
 } from 'react-icons/io5'
 import { useHistory } from 'react-router-dom'
-import { useRecoilState } from 'recoil'
+import { useRecoilState, useRecoilValue } from 'recoil'
 import { useDebouncedCallback } from 'use-debounce'
 import { FragmentVideoModal } from '.'
 import { Branding } from '../..'
@@ -31,6 +32,7 @@ import {
   useUpdateFlickThemeMutation,
 } from '../../../generated/graphql'
 import useDidUpdateEffect from '../../../hooks/use-did-update-effect'
+import { User, userState } from '../../../stores/user.store'
 import { logEvent, logPage } from '../../../utils/analytics'
 import {
   PageCategory,
@@ -75,6 +77,8 @@ const ThemeTooltip = ({
   handleClose: () => void
   updateActiveTheme: (theme: ThemeFragment) => void
 }) => {
+  const { email } = (useRecoilValue(userState) as User) || {}
+
   const { baseUrl } = config.storage
   const [activeScreen, setActiveScreen] = useState<'theme' | 'themes'>('themes')
   const [tempActiveTheme, setTempActiveTheme] = useState<ThemeFragment | null>(
@@ -186,32 +190,46 @@ const ThemeTooltip = ({
         </HorizontalContainer>
       ) : (
         <div className="flex gap-x-4 z-50">
-          {themes.map((theme) => (
-            <div
-              key={theme.name}
-              className="relative flex items-center justify-center py-4"
-              onClick={() => setTempActiveTheme(theme)}
-            >
+          {themes
+            .filter((theme) => {
+              if (theme.name === 'Cassidoo') {
+                if (
+                  email &&
+                  (email?.includes('incredible.dev') ||
+                    config?.whitelist?.cassidyTheme?.includes(email))
+                ) {
+                  return true
+                }
+                return false
+              }
+              return true
+            })
+            .map((theme) => (
               <div
-                className="object-cover w-64 border-2 border-gray-600 rounded-md shadow-md hover:border-brand h-36 relative"
-                style={{
-                  background: `url(${
-                    theme.config.thumbnail
-                      ? baseUrl + theme.config.thumbnail
-                      : ASSETS.ICONS.IncredibleLogo
-                  })`,
-                  backgroundSize: '256px 144px',
-                }}
+                key={theme.name}
+                className="relative flex items-center justify-center py-4"
+                onClick={() => setTempActiveTheme(theme)}
               >
-                {activeTheme?.name === theme.name && (
-                  <IoCheckmark
-                    size={24}
-                    className="absolute p-1 font-bold rounded-md top-2 right-2 text-brand bg-brand-10"
-                  />
-                )}
+                <div
+                  className="object-cover w-64 border-2 border-gray-600 rounded-md shadow-md hover:border-brand h-36 relative"
+                  style={{
+                    background: `url(${
+                      theme.config.thumbnail
+                        ? baseUrl + theme.config.thumbnail
+                        : ASSETS.ICONS.IncredibleLogo
+                    })`,
+                    backgroundSize: '256px 144px',
+                  }}
+                >
+                  {activeTheme?.name === theme.name && (
+                    <IoCheckmark
+                      size={24}
+                      className="absolute p-1 font-bold rounded-md top-2 right-2 text-brand bg-brand-10"
+                    />
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
         </div>
       )}
     </div>
@@ -269,7 +287,7 @@ const FragmentBar = ({
 
   useDidUpdateEffect(() => {
     debounced()
-  }, [editorValue, config, useBranding, brandingId])
+  }, [editorValue, config, useBranding, brandingId, simpleAST])
 
   useEffect(() => {
     const f = flick?.fragments.find((f) => f.id === activeFragmentId)
@@ -514,6 +532,25 @@ const FragmentBar = ({
             </Button>
           </Tooltip>
         </div>
+        {(fragment?.producedLink || fragment?.producedShortsLink) &&
+          (mode === Content_Type_Enum_Enum.Video ||
+            mode === Content_Type_Enum_Enum.VerticalVideo) && (
+            <div className="flex items-stretch justify-end py-2 pl-4 border-l-2 border-brand-grey">
+              <Button
+                appearance="none"
+                size="small"
+                type="button"
+                className="mr-4"
+                icon={IoPlayOutline}
+                iconSize={20}
+                onClick={() => {
+                  setFragmentVideoModal(true)
+                }}
+              >
+                Recordings
+              </Button>
+            </div>
+          )}
         <div className="flex items-stretch justify-end py-2 pl-4 border-l-2 border-brand-grey">
           <Button
             appearance={config.mode === 'Landscape' ? 'gray' : 'none'}
@@ -539,21 +576,6 @@ const FragmentBar = ({
               setViewConfig({ ...config, mode: 'Portrait' })
             }}
           />
-          {(fragment?.producedLink || fragment?.producedShortsLink) &&
-            (mode === Content_Type_Enum_Enum.Video ||
-              mode === Content_Type_Enum_Enum.VerticalVideo) && (
-              <Button
-                appearance="gray"
-                size="small"
-                type="button"
-                className="mr-4"
-                icon={BiPlayCircle}
-                iconSize={20}
-                onClick={() => {
-                  setFragmentVideoModal(true)
-                }}
-              />
-            )}
           <Button
             appearance="primary"
             size="small"
@@ -583,6 +605,7 @@ const FragmentBar = ({
       {brandingModal && (
         <Branding
           open={brandingModal}
+          activeBrand={brandingId}
           handleClose={() => {
             setBrandingModal(false)
           }}

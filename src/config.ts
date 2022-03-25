@@ -7,7 +7,7 @@ const githubIntegrationConfig = JSON.parse(
 )
 
 const config = {
-  node_env: process.env.NODE_ENV || 'development',
+  env: import.meta.env.VITE_DEPLOY_ENV || 'development',
   /**
    * Agora configs...
    */
@@ -91,6 +91,10 @@ const config = {
 
   giphy: {
     apiKey: import.meta.env.VITE_GIPHY_API_KEY,
+  },
+
+  whitelist: {
+    cassidyTheme: import.meta.env.VITE_CASSIDY_THEME_WHITELIST,
   },
 }
 

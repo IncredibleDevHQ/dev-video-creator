@@ -7,9 +7,11 @@ import { CommandsList } from './CommandsList'
 const renderItems = () => {
   let component: ReactRenderer<CommandsList>
   let popup: Instance<Props>[]
+  let suggestionProps: SuggestionProps
 
   return {
     onStart: (props: SuggestionProps) => {
+      suggestionProps = props
       component = new ReactRenderer(CommandsList, {
         props,
         editor: props.editor,
@@ -26,6 +28,7 @@ const renderItems = () => {
       })
     },
     onUpdate(props: SuggestionProps) {
+      suggestionProps = props
       component.updateProps(props)
 
       popup[0].setProps({
@@ -37,6 +40,18 @@ const renderItems = () => {
         popup[0].hide()
 
         return true
+      }
+
+      if (props.event.key === 'Enter') {
+        if (
+          suggestionProps.items.filter((item) =>
+            item.title
+              .toLowerCase()
+              .startsWith(suggestionProps.query.toLowerCase())
+          ).length === 0
+        ) {
+          this.onExit()
+        }
       }
 
       return component.ref?.onKeyDown(props) || false

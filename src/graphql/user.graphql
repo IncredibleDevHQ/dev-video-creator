@@ -27,6 +27,8 @@ fragment User on MeOutput {
   sub
   username
   updatedAt
+  designation
+  organization
 }
 
 query GetUser {
