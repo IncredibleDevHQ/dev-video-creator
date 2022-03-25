@@ -46,6 +46,12 @@ fragment Note on Note {
   }
 }
 
+fragment RecordedBlocks on Blocks {
+  id
+  objectUrl
+  updatedAt
+}
+
 query GetFragmentById($id: uuid!, $sub: String!) {
   Fragment(
     where: {
@@ -96,6 +102,12 @@ query GetRecordings($flickId: uuid, $fragmentId: uuid) {
     type
     thumbnail
     storyboard
+  }
+}
+
+query GetRecordedBlocks($recordingId: uuid) {
+  Blocks(where: { recordingId: { _eq: $recordingId } }) {
+    ...RecordedBlocks
   }
 }
 
@@ -311,6 +323,25 @@ mutation SetupRecording(
     viewConfig: $viewConfig
   ) {
     recordingId
+    success
+  }
+}
+
+mutation SaveRecordedBlock(
+  $flickId: uuid!
+  $fragmentId: uuid!
+  $objectUrl: String!
+  $recordingId: uuid!
+  $blockId: String!
+) {
+  SaveBlock(
+    flickId: $flickId
+    fragmentId: $fragmentId
+    objectUrl: $objectUrl
+    recordingId: $recordingId
+    blockId: $blockId
+  ) {
+    id
     success
   }
 }

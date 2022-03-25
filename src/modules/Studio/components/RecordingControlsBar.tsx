@@ -122,6 +122,7 @@ const RecordingControlsBar = ({
   stageRef,
   stageHeight,
   stageWidth,
+  resetTimer,
   shortsMode,
   openTimerModal,
 }: {
@@ -130,6 +131,7 @@ const RecordingControlsBar = ({
   stageWidth: number
   shortsMode: boolean
   openTimerModal: () => void
+  resetTimer: boolean
   timeOver: () => void
   stageRef: React.RefObject<Konva.Stage>
 }) => {
@@ -225,6 +227,12 @@ const RecordingControlsBar = ({
   //   }
   // }, [timer])
 
+  useEffect(() => {
+    if (resetTimer) {
+      handleTimerReset()
+    }
+  }, [resetTimer])
+
   const { isIntro, isOutro, isImage, isVideo, isCode, codeAnimation } =
     useMemo(() => {
       const blockType =
@@ -282,7 +290,9 @@ const RecordingControlsBar = ({
             updatePayload?.({
               ...payload,
               status: Fragment_Status_Enum_Enum.Ended,
+              activeObjectIndex: payload?.activeObjectIndex + 1,
             })
+
             logEvent(PageEvent.StopRecording)
           }}
           className={cx(
@@ -324,6 +334,7 @@ const RecordingControlsBar = ({
             updatePayload?.({
               status: Fragment_Status_Enum_Enum.CountDown,
             })
+
             // Segment tracking
             logEvent(PageEvent.StartRecording)
           }}

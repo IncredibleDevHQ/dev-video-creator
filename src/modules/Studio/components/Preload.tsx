@@ -10,6 +10,8 @@ import {
   Content_Type_Enum_Enum,
   SetupRecordingMutationVariables,
   StudioFragmentFragment,
+  useGetRecordedBlocksLazyQuery,
+  useGetRecordedBlocksQuery,
   useGetRecordingsQuery,
   useSetupRecordingMutation,
 } from '../../../generated/graphql'
@@ -55,12 +57,19 @@ const Preload = ({
 
   const setStudio = useSetRecoilState(studioStore)
 
-  const { data: recordingsData } = useGetRecordingsQuery({
-    variables: {
-      flickId: fragment?.flickId,
-      fragmentId: fragment?.id,
-    },
-  })
+  const { data: recordingsData, error: getRecordingsError } =
+    useGetRecordingsQuery({
+      variables: {
+        flickId: fragment?.flickId,
+        fragmentId: fragment?.id,
+      },
+    })
+
+  if (getRecordingsError) {
+    console.log('GQL ERROR:', getRecordingsError)
+  }
+
+  const [getRecordedBlocks] = useGetRecordedBlocksLazyQuery()
 
   const [setupRecording] = useSetupRecordingMutation()
 
@@ -72,10 +81,18 @@ const Preload = ({
     const recording = recordingsData?.Recording?.find(
       (recording) => recording.type === requiredType
     )
+    console.log('Current recording is :', recordingsData)
     if (recording) {
+      const { data: recordedBlocks } = await getRecordedBlocks({
+        variables: {
+          recordingId: recordingsData?.Recording[0].id,
+        },
+      })
+      console.log('RB: ', recordedBlocks)
       setStudio((prev) => ({
         ...prev,
         recordingId: recording.id,
+        recordedBlocks: recordedBlocks?.Blocks,
       }))
       return
     }
@@ -83,6 +100,7 @@ const Preload = ({
     setStudio((prev) => ({
       ...prev,
       recordingId: data?.StartRecording?.recordingId || '',
+      recordedBlocks: [],
     }))
   }
 
@@ -100,8 +118,9 @@ const Preload = ({
   }
 
   useEffect(() => {
+    if (!recordingsData?.Recording) return
     performPreload()
-  }, [])
+  }, [recordingsData])
 
   useEffect(() => {
     if (!loaded) return

@@ -32,16 +32,19 @@ import {
   updateToast,
   Video,
 } from '../../components'
+import config from '../../config'
 import { Images } from '../../constants'
 import {
   FlickParticipantsFragment,
   Fragment_Status_Enum_Enum,
   GetFragmentByIdQuery,
   OrientationEnum,
+  RecordedBlocksFragment,
   StudioFragmentFragment,
   useCompleteFragmentMutation,
   useGetFragmentByIdLazyQuery,
   useGetRtcTokenMutation,
+  useSaveRecordedBlockMutation,
 } from '../../generated/graphql'
 import { useCanvasRecorder } from '../../hooks'
 import { useUploadFile } from '../../hooks/use-upload-file'
@@ -571,7 +574,7 @@ const Studio = ({
   console.log({ type })
 
   const { fragmentId } = useParams<{ fragmentId: string }>()
-  const { constraints, theme, staticAssets } =
+  const { constraints, theme, staticAssets, recordedBlocks } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [studio, setStudio] = useRecoilState(studioStore)
   const { sub } = (useRecoilValue(userState) as User) || {}
@@ -579,6 +582,7 @@ const Studio = ({
   const history = useHistory()
 
   const [markFragmentCompleted] = useCompleteFragmentMutation()
+  const [saveBlock] = useSaveRecordedBlockMutation()
 
   const [uploadFile] = useUploadFile()
 
@@ -595,6 +599,7 @@ const Studio = ({
   const [isTimerModalOpen, setIsTimerModalOpen] = useState(true)
   const [timeLimit, setTimeLimit] = useState<number | undefined>()
   const [timeLimitOver, setTimeLimitOver] = useState(false)
+  const [resetTimer, setResetTimer] = useState(false)
 
   const { height: stageHeight, width: stageWidth } = getIntegerHW({
     maxH: bounds.height,
@@ -724,6 +729,7 @@ const Studio = ({
 
   useEffect(() => {
     if (data?.Fragment[0] === undefined) return
+    console.log('Fragment: ', data.Fragment[0])
     setFragment(studioFragment)
   }, [data, fragmentId])
 
@@ -778,7 +784,7 @@ const Studio = ({
     setState('ready')
   }
 
-  const upload = async () => {
+  const upload = async (blockId: string) => {
     setState('upload')
     const toastProps = {
       title: 'Pushing pixels...',
@@ -792,6 +798,7 @@ const Studio = ({
 
     try {
       const uploadVideoFile = await getBlobs()
+      reset()
       const { uuid } = await uploadFile({
         extension: 'webm',
         file: uploadVideoFile,
@@ -819,6 +826,49 @@ const Studio = ({
       //     producedLink: uuid,
       //   },
       // })
+
+      // Once the block video is uploaded to s3 , save the block to the table
+      await saveBlock({
+        variables: {
+          flickId: fragment?.flickId,
+          fragmentId,
+          recordingId: studio.recordingId,
+          objectUrl: uuid,
+          // TODO: Update creation meta and playbackDuration when implementing continuous recording
+          blockId,
+        },
+      })
+
+      let updatedBlocks = studio?.recordedBlocks
+        ? [...studio.recordedBlocks]
+        : []
+      const currentBlockIndex = studio?.recordedBlocks?.findIndex(
+        (block) => block.id === blockId
+      )
+      if (currentBlockIndex === -1) {
+        updatedBlocks = [
+          ...updatedBlocks,
+          {
+            id: blockId,
+            objectUrl: uuid,
+            updatedAt: Date.now().toLocaleString(),
+          },
+        ]
+        setStudio({
+          ...studio,
+          recordedBlocks: updatedBlocks,
+        })
+      } else if (currentBlockIndex && currentBlockIndex >= 0) {
+        updatedBlocks[currentBlockIndex] = {
+          id: blockId,
+          objectUrl: uuid,
+          updatedAt: Date.now().toLocaleString(),
+        }
+        setStudio({
+          ...studio,
+          recordedBlocks: updatedBlocks,
+        })
+      }
 
       dismissToast(toast)
       // leave()
@@ -850,6 +900,9 @@ const Studio = ({
       localStream: stream as MediaStream,
       remoteStreams: userAudios,
     })
+
+    setResetTimer(false)
+
     if (fragment?.configuration?.mode === 'Portrait') {
       addMusic({
         type: 'shorts',
@@ -860,7 +913,12 @@ const Studio = ({
     }
 
     if (state === 'ready') setState('start-recording')
-    else if (state === 'resumed') setState('recording')
+    else if (state === 'resumed' && payload?.activeObjectIndex === 0)
+      setState('start-recording')
+    else if (state === 'resumed' && payload?.activeObjectIndex !== 0) {
+      console.log('Setting state to recording')
+      setState('recording')
+    }
   }
 
   // const finalTransition = () => {
@@ -874,6 +932,7 @@ const Studio = ({
     addMusic({ volume: 0.01, action: 'modifyVolume' })
     stopCanvasRecording()
     addMusic({ action: 'stop' })
+
     setState('preview')
   }
 
@@ -882,6 +941,12 @@ const Studio = ({
   //     finalTransition()
   //   }
   // }, [payload])
+
+  useEffect(() => {
+    if (payload?.status === Fragment_Status_Enum_Enum.Ended) {
+      stop()
+    }
+  }, [payload])
 
   useEffect(() => {
     if (payload?.status === Fragment_Status_Enum_Enum.NotStarted) {
@@ -1013,6 +1078,19 @@ const Studio = ({
   useEffect(() => {
     const block = fragment?.editorState?.blocks?.[payload?.activeObjectIndex]
     if (!block) return
+
+    // check if block was already recorded and if so show the video preview
+    const previouslyRecordedBlock = recordedBlocks?.find((b) => {
+      return b.id === block.id
+    })
+    if (previouslyRecordedBlock) {
+      setPreviouslyRecordedVideo(
+        `${config.storage.baseUrl}${previouslyRecordedBlock?.objectUrl}`
+      )
+      setState('preview')
+    }
+
+    // update timeline
     const ele = document.getElementById(`timeline-block-${block.id}`)
     if (!ele) return
     if (!isInViewport(ele) && timelineRef.current) {
@@ -1039,12 +1117,18 @@ const Studio = ({
   }, [payload?.activeObjectIndex]) // undefined -> defined
 
   const [recordedVideoSrc, setRecordedVideoSrc] = useState<string>()
+  const [previouslyRecordedVideo, setPreviouslyRecordedVideo] =
+    useState<string>()
 
   const prepareVideo = async () => {
     if (state === 'preview') {
-      const blob = await getBlobs()
-      const url = URL.createObjectURL(blob)
-      setRecordedVideoSrc(url)
+      if (!previouslyRecordedVideo) {
+        const blob = await getBlobs()
+        const url = URL.createObjectURL(blob)
+        setRecordedVideoSrc(url)
+      } else {
+        setRecordedVideoSrc(previouslyRecordedVideo)
+      }
     }
     if (state !== 'preview' && state !== 'upload') {
       setRecordedVideoSrc(undefined)
@@ -1075,6 +1159,93 @@ const Studio = ({
     )
 
   if (!ready) return <ScreenState loading />
+
+  const miniTimeline = (
+    <div
+      ref={timelineRef}
+      style={{
+        background: '#27272A',
+      }}
+      onWheel={(e) => {
+        if (timelineRef.current) {
+          timelineRef.current.scrollLeft += e.deltaY
+        }
+      }}
+      className={cx(
+        'mt-auto flex gap-x-4 px-6 py-3 overflow-x-scroll h-14',
+        noScrollBar
+      )}
+    >
+      {fragment?.editorState &&
+        (fragment.editorState as SimpleAST).blocks.map((block, index) => {
+          return (
+            <button
+              type="button"
+              id={`timeline-block-${block.id}`}
+              className={cx(
+                'px-3 py-1.5 font-body cursor-pointer text-sm rounded-sm flex items-center justify-center transition-transform duration-500 bg-brand-grey relative text-gray-300 flex-shrink-0',
+                {
+                  'transform scale-110 border border-gray-400':
+                    payload?.activeObjectIndex === index,
+                  'bg-grey-900 text-gray-500':
+                    index > payload?.activeObjectIndex,
+                  'cursor-not-allowed': state !== 'ready',
+                }
+              )}
+              onClick={() => {
+                // checking if block already has recording
+                const clickedBlock = recordedBlocks?.find((b) => {
+                  return b.id === block.id
+                })
+                console.log('Recorded Blocks = ', recordedBlocks)
+                console.log('clickedBlock', clickedBlock)
+                console.log('block id = ', block)
+                console.log('state = ', state)
+                if (clickedBlock && clickedBlock.objectUrl) {
+                  updatePayload({
+                    activeObjectIndex: index,
+                  })
+                  setPreviouslyRecordedVideo(
+                    `${config.storage.baseUrl}${clickedBlock?.objectUrl}`
+                  )
+                  setState('preview')
+                } else {
+                  console.log('Active index = ', index)
+                  setState('resumed')
+                  setPreviouslyRecordedVideo(undefined)
+                  updatePayload({
+                    activeObjectIndex: index,
+                  })
+                }
+
+                // if (state === 'ready' || state === 'resumed') {
+                //   setPreviouslyRecordedVideo(undefined)
+                //   updatePayload({
+                //     activeObjectIndex: index,
+                //   })
+                // }
+              }}
+            >
+              {(index < payload?.activeObjectIndex ||
+                payload?.activeObjectIndex ===
+                  fragment.editorState.blocks.length - 1) &&
+                state !== 'ready' && (
+                  <div className="absolute top-0 right-0 rounded-tr-sm rounded-bl-sm bg-incredible-green-600">
+                    <IoCheckmarkOutline
+                      className="m-px text-gray-200"
+                      size={8}
+                    />
+                  </div>
+                )}
+              <span>
+                {utils.getBlockTitle(block).substring(0, 40) +
+                  (utils.getBlockTitle(block).length > 40 ? '...' : '')}
+              </span>
+            </button>
+          )
+        })}
+    </div>
+  )
 
   return (
     <div
@@ -1175,12 +1346,14 @@ const Studio = ({
                 shortsMode={shortsMode}
                 timeOver={() => setTimeLimitOver(true)}
                 openTimerModal={() => setIsTimerModalOpen(true)}
+                resetTimer={resetTimer}
               />
             </div>
             <Notes stageHeight={stageHeight} />
           </div>
           {/* Mini timeline */}
-          <div
+          {miniTimeline}
+          {/* <div
             ref={timelineRef}
             style={{
               background: '#27272A',
@@ -1212,6 +1385,24 @@ const Studio = ({
                       }
                     )}
                     onClick={() => {
+                      const clickedBlock = recordedBlocks?.find((b) => {
+                        return b.id === block.id
+                      })
+                      console.log('Recorded Blocks = ', recordedBlocks)
+                      console.log('clickedBlock', clickedBlock)
+                      console.log('block id = ', block)
+                      if (clickedBlock && clickedBlock.objectUrl) {
+                        updatePayload({
+                          activeObjectIndex: index,
+                        })
+                        setPreviouslyRecordedVideo(
+                          `${config.storage.baseUrl}${clickedBlock?.objectUrl}`
+                        )
+                        setState('preview')
+                      } else {
+                        setPreviouslyRecordedVideo(undefined)
+                      }
+
                       if (state === 'ready' || state === 'resumed') {
                         updatePayload({
                           activeObjectIndex: index,
@@ -1237,73 +1428,99 @@ const Studio = ({
                   </button>
                 )
               })}
-          </div>
+          </div> */}
         </>
       ) : (
-        <div className="flex items-center justify-center flex-col gap-y-12 w-full h-full">
-          {recordedVideoSrc && (
-            <div
-              style={{
-                height: '80vh',
-                width: shortsMode
-                  ? `${window.innerHeight / 2.25}px`
-                  : `${window.innerWidth / 1.5}px`,
-              }}
-              className="flex justify-center items-center w-full"
-            >
-              <Video
-                height="auto"
-                className="w-full"
-                controls
-                autoPlay={false}
-                type="blob"
-                src={recordedVideoSrc}
-              />
-            </div>
-          )}
-
-          {state === 'preview' && (
-            <div className="flex items-center rounded-md gap-x-4">
-              <button
-                className="bg-green-600 border-green-600 text-white border rounded-sm py-1.5 px-2.5 flex items-center gap-x-2 font-bold hover:shadow-lg text-sm"
-                type="button"
-                onClick={() => {
-                  logEvent(PageEvent.SaveRecording)
-                  const p = payload
-                  if (
-                    p.activeObjectIndex <
-                    fragment?.editorState?.blocks.length - 1
-                  ) {
-                    p.status = Fragment_Status_Enum_Enum.Paused
-                  } else {
-                    p.status = Fragment_Status_Enum_Enum.Completed
-                  }
-                  updatePayload?.(p)
-                  upload()
-                  setState('resumed')
+        <>
+          <div className="flex items-center justify-center flex-col gap-y-12 w-full h-full">
+            {recordedVideoSrc && (
+              <div
+                style={{
+                  height: '80vh',
+                  width: shortsMode
+                    ? `${window.innerHeight / 2.25}px`
+                    : `${window.innerWidth / 1.5}px`,
                 }}
+                className="flex justify-center items-center w-full"
               >
-                <UploadIcon className="h-6 w-6 " />
-                Save and continue
-              </button>
+                <Video
+                  height="auto"
+                  className="w-full"
+                  controls
+                  autoPlay={false}
+                  type="blob"
+                  src={recordedVideoSrc}
+                />
+              </div>
+            )}
 
-              <button
-                className="border-red-600 text-red-600 border rounded-sm py-1.5 px-2.5 flex items-center gap-x-2 font-bold hover:shadow-md text-sm"
-                type="button"
-                onClick={() => {
-                  logEvent(PageEvent.Retake)
-                  reset()
-                  updatePayload?.({
-                    status: Fragment_Status_Enum_Enum.NotStarted,
-                  })
-                }}
-              >
-                <ReRecordIcon className="h-6 w-6 " />
-                Retake
-              </button>
-            </div>
-          )}
-        </div>
+            {state === 'preview' && (
+              <div className="flex items-center rounded-md gap-x-4">
+                {
+                  // if block already has a recording dont show save button
+                  !previouslyRecordedVideo && (
+                    <button
+                      className="bg-green-600 border-green-600 text-white border rounded-sm py-1.5 px-2.5 flex items-center gap-x-2 font-bold hover:shadow-lg text-sm"
+                      type="button"
+                      onClick={() => {
+                        logEvent(PageEvent.SaveRecording)
+                        if (
+                          !payload.activeObjectIndex ||
+                          !(payload.activeObjectIndex >= 0)
+                        )
+                          return
+                        const p = payload
+                        const blockId =
+                          fragment?.editorState?.blocks[
+                            payload.activeObjectIndex - 1
+                          ]?.id
+                        if (
+                          p.activeObjectIndex <
+                          fragment?.editorState?.blocks.length - 1
+                        ) {
+                          p.status = Fragment_Status_Enum_Enum.Paused
+                        } else {
+                          p.status = Fragment_Status_Enum_Enum.Completed
+                        }
+
+                        updatePayload?.(p)
+                        // start async upload and move on to next block
+                        upload(blockId)
+                        setState('resumed')
+                      }}
+                    >
+                      <UploadIcon className="h-6 w-6 " />
+                      Save and continue
+                    </button>
+                  )
+                }
+                <button
+                  className="border-red-600 text-red-600 border rounded-sm py-1.5 px-2.5 flex items-center gap-x-2 font-bold hover:shadow-md text-sm"
+                  type="button"
+                  onClick={() => {
+                    logEvent(PageEvent.Retake)
+                    reset()
+                    updatePayload?.({
+                      status: Fragment_Status_Enum_Enum.Paused,
+                      // decrement active object index on retake to repeat the current block
+                      // also reset the block's element active index
+                      activeObjectIndex:
+                        payload.activeObjectIndex - 1 >= 0
+                          ? payload.activeObjectIndex - 1
+                          : 0,
+                    })
+                    setState('resumed')
+                    setResetTimer(true)
+                  }}
+                >
+                  <ReRecordIcon className="h-6 w-6 " />
+                  Retake
+                </button>
+              </div>
+            )}
+          </div>
+          {miniTimeline}
+        </>
       )}
       <TimerModal
         open={isTimerModalOpen}
