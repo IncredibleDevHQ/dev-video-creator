@@ -190,7 +190,7 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
       .join('\n')
 
     const titleNode = slice.find((node) => node.type === 'heading')
-    const title = titleNode?.content?.[0]?.text
+    const title = textContent(titleNode?.content)
     nodeIds.push(titleNode?.attrs?.id)
 
     const noteNode = slice.find((node) => node.type === 'blockquote')

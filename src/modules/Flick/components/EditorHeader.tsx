@@ -14,6 +14,7 @@ import { logEvent } from '../../../utils/analytics'
 import { PageEvent } from '../../../utils/analytics-types'
 import { ViewConfig } from '../../../utils/configTypes'
 import { studioStore } from '../../Studio/stores'
+import { Block, Position } from '../editor/utils/utils'
 import { newFlickStore } from '../store/flickNew.store'
 
 const SpeakersTooltip = ({
@@ -67,14 +68,22 @@ const EditorHeader = ({
   viewConfig,
   setViewConfig,
   activeFragment,
+  blocks,
+  setCurrentBlock,
+  setPreviewPosition,
 }: {
+  blocks: Block[]
+  setCurrentBlock: React.Dispatch<React.SetStateAction<Block | undefined>>
   viewConfig: ViewConfig
   setViewConfig: React.Dispatch<React.SetStateAction<ViewConfig>>
   activeFragment: FlickFragmentFragment | undefined
+  setPreviewPosition: (
+    value: React.SetStateAction<Position | undefined>
+  ) => void
 }) => {
   const [isSpeakersTooltip, setSpeakersTooltip] = useState(false)
   const [{ flick }, setFlickStore] = useRecoilState(newFlickStore)
-  const [{ fragment }, setStudio] = useRecoilState(studioStore)
+  const [{ fragment, updatePayload }, setStudio] = useRecoilState(studioStore)
 
   const [updateFlickMutation] = useUpdateFlickMutation()
 
@@ -141,7 +150,7 @@ const EditorHeader = ({
     }
   }, 1000)
 
-  const updateFragment = async (newName: string) => {
+  const updateFlickName = async (newName: string) => {
     if (flick) {
       setFlickStore((store) => ({
         ...store,
@@ -151,6 +160,17 @@ const EditorHeader = ({
         },
       }))
     }
+    if (fragment)
+      setStudio((store) => ({
+        ...store,
+        fragment: {
+          ...fragment,
+          flick: {
+            ...fragment.flick,
+            name: newName,
+          },
+        },
+      }))
     debounceUpdateFlickName(newName)
   }
 
@@ -159,9 +179,19 @@ const EditorHeader = ({
   return (
     <div className="border-b pb-4">
       <input
+        onFocus={(e) => {
+          setCurrentBlock(blocks?.[0])
+          setPreviewPosition({
+            x: e.currentTarget.getBoundingClientRect().x,
+            y: e.currentTarget.offsetTop,
+          })
+          updatePayload?.({
+            activeIntroIndex: flick.branding?.branding?.introVideoUrl ? 2 : 1,
+          })
+        }}
         maxLength={50}
         onChange={(e) => {
-          updateFragment(e.target.value)
+          updateFlickName(e.target.value)
         }}
         style={{
           fontSize: '2.35rem',
