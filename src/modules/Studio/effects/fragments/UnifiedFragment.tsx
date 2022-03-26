@@ -214,7 +214,7 @@ const UnifiedFragment = ({
   useEffect(() => {
     if (state === 'ready') {
       updatePayload?.({
-        activeObjectIndex: 0,
+        // activeObjectIndex: 0,
         activeIntroIndex: 0,
         fragmentState: 'customLayout',
         currentIndex: 0,

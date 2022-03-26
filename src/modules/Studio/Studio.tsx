@@ -7,6 +7,7 @@ import {
 } from 'agora-rtc-react'
 import getBlobDuration from 'get-blob-duration'
 import Konva from 'konva'
+import { nanoid } from 'nanoid'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import AspectRatio from 'react-aspect-ratio'
 import { BiErrorCircle, BiMicrophone, BiVideo } from 'react-icons/bi'
@@ -571,7 +572,7 @@ const Studio = ({
   const query = new URLSearchParams(search)
   const type = query.get('type')
 
-  console.log({ type })
+  // console.log({ type })
 
   const { fragmentId } = useParams<{ fragmentId: string }>()
   const { constraints, theme, staticAssets, recordedBlocks } =
@@ -608,6 +609,10 @@ const Studio = ({
     isShorts: shortsMode,
   })
 
+  const [prevRecordedBlocks, setPrevRecordedBlocks] = useState<
+    RecordedBlocksFragment[] | undefined
+  >(studio.recordedBlocks)
+
   useEffect(() => {
     if (!stageWidth) return
     Konva.pixelRatio = (shortsMode ? 1080 : 1920) / stageWidth
@@ -619,6 +624,10 @@ const Studio = ({
   const tracksRef = useRef<[IMicrophoneAudioTrack, ICameraVideoTrack] | null>(
     null
   )
+
+  const [recordedVideoSrc, setRecordedVideoSrc] = useState<string>()
+  const [previouslyRecordedVideo, setPreviouslyRecordedVideo] =
+    useState<string>()
 
   useEffect(() => {
     if (!fragment) return
@@ -757,7 +766,7 @@ const Studio = ({
   const {
     startRecording,
     stopRecording: stopCanvasRecording,
-    reset,
+    reset: resetCanvas,
     getBlobs,
     addMusic,
     // reduceSplashAudioVolume,
@@ -779,7 +788,7 @@ const Studio = ({
    */
 
   const resetRecording = () => {
-    reset()
+    resetCanvas()
     init()
     setState('ready')
   }
@@ -798,7 +807,7 @@ const Studio = ({
 
     try {
       const uploadVideoFile = await getBlobs()
-      reset()
+      resetCanvas()
       const { uuid } = await uploadFile({
         extension: 'webm',
         file: uploadVideoFile,
@@ -854,21 +863,15 @@ const Studio = ({
             updatedAt: Date.now().toLocaleString(),
           },
         ]
-        setStudio({
-          ...studio,
-          recordedBlocks: updatedBlocks,
-        })
       } else if (currentBlockIndex && currentBlockIndex >= 0) {
         updatedBlocks[currentBlockIndex] = {
           id: blockId,
           objectUrl: uuid,
           updatedAt: Date.now().toLocaleString(),
         }
-        setStudio({
-          ...studio,
-          recordedBlocks: updatedBlocks,
-        })
       }
+      // after updating the recorded blocks set this state which triggers the useEffect to update studio store
+      setPrevRecordedBlocks(updatedBlocks)
 
       dismissToast(toast)
       // leave()
@@ -912,10 +915,14 @@ const Studio = ({
       })
     }
 
-    if (state === 'ready') setState('start-recording')
-    else if (state === 'resumed' && payload?.activeObjectIndex === 0)
+    if (state === 'ready' && payload?.activeObjectIndex === 0)
       setState('start-recording')
-    else if (state === 'resumed' && payload?.activeObjectIndex !== 0) {
+    else if (state === 'ready' && payload?.activeObjectIndex !== 0)
+      setState('recording')
+    else if (state === 'resumed' && payload?.activeObjectIndex === 0) {
+      console.log('Setting state to start-recording')
+      setState('start-recording')
+    } else if (state === 'resumed' && payload?.activeObjectIndex !== 0) {
       console.log('Setting state to recording')
       setState('recording')
     }
@@ -977,7 +984,7 @@ const Studio = ({
       addMusic,
       // reduceSplashAudioVolume,
       stopMusic,
-      reset: resetRecording,
+      // reset: resetRecording,
       upload,
       getBlobs,
       state,
@@ -997,6 +1004,7 @@ const Studio = ({
       participantId: fragment?.participants.find(
         ({ participant }) => participant.userSub === sub
       )?.participant.id,
+      recordedBlocks: prevRecordedBlocks,
       isHost:
         fragment?.participants.find(
           ({ participant }) => participant.userSub === sub
@@ -1011,6 +1019,7 @@ const Studio = ({
     payload,
     participants,
     branding,
+    prevRecordedBlocks,
   ])
 
   useMemo(() => {
@@ -1076,6 +1085,11 @@ const Studio = ({
   }
 
   useEffect(() => {
+    console.log('PrevRec:', previouslyRecordedVideo)
+    console.log('RecBlovks:', recordedVideoSrc)
+  }, [previouslyRecordedVideo, recordedVideoSrc])
+
+  useEffect(() => {
     const block = fragment?.editorState?.blocks?.[payload?.activeObjectIndex]
     if (!block) return
 
@@ -1084,8 +1098,12 @@ const Studio = ({
       return b.id === block.id
     })
     if (previouslyRecordedBlock) {
+      console.log('prev block is :', previouslyRecordedBlock)
       setPreviouslyRecordedVideo(
         `${config.storage.baseUrl}${previouslyRecordedBlock?.objectUrl}`
+      )
+      setRecordedVideoSrc(
+        `${config.storage.baseUrl}${previouslyRecordedBlock.objectUrl}`
       )
       setState('preview')
     }
@@ -1115,10 +1133,6 @@ const Studio = ({
       return
     stop()
   }, [payload?.activeObjectIndex]) // undefined -> defined
-
-  const [recordedVideoSrc, setRecordedVideoSrc] = useState<string>()
-  const [previouslyRecordedVideo, setPreviouslyRecordedVideo] =
-    useState<string>()
 
   const prepareVideo = async () => {
     if (state === 'preview') {
@@ -1189,7 +1203,8 @@ const Studio = ({
                     payload?.activeObjectIndex === index,
                   'bg-grey-900 text-gray-500':
                     index > payload?.activeObjectIndex,
-                  'cursor-not-allowed': state !== 'ready',
+                  'cursor-not-allowed': state === 'recording',
+                  // state !== 'ready' || state !== 'preview',
                 }
               )}
               onClick={() => {
@@ -1211,11 +1226,11 @@ const Studio = ({
                   setState('preview')
                 } else {
                   console.log('Active index = ', index)
-                  setState('resumed')
                   setPreviouslyRecordedVideo(undefined)
                   updatePayload({
                     activeObjectIndex: index,
                   })
+                  setState('resumed')
                 }
 
                 // if (state === 'ready' || state === 'resumed') {
@@ -1226,17 +1241,11 @@ const Studio = ({
                 // }
               }}
             >
-              {(index < payload?.activeObjectIndex ||
-                payload?.activeObjectIndex ===
-                  fragment.editorState.blocks.length - 1) &&
-                state !== 'ready' && (
-                  <div className="absolute top-0 right-0 rounded-tr-sm rounded-bl-sm bg-incredible-green-600">
-                    <IoCheckmarkOutline
-                      className="m-px text-gray-200"
-                      size={8}
-                    />
-                  </div>
-                )}
+              {recordedBlocks?.find((b) => b.id === block.id) && (
+                <div className="absolute top-0 right-0 rounded-tr-sm rounded-bl-sm bg-incredible-green-600">
+                  <IoCheckmarkOutline className="m-px text-gray-200" size={8} />
+                </div>
+              )}
               <span>
                 {utils.getBlockTitle(block).substring(0, 40) +
                   (utils.getBlockTitle(block).length > 40 ? '...' : '')}
@@ -1450,6 +1459,7 @@ const Studio = ({
                   autoPlay={false}
                   type="blob"
                   src={recordedVideoSrc}
+                  key={nanoid()}
                 />
               </div>
             )}
@@ -1487,6 +1497,7 @@ const Studio = ({
                         // start async upload and move on to next block
                         upload(blockId)
                         setState('resumed')
+                        setResetTimer(true)
                       }}
                     >
                       <UploadIcon className="h-6 w-6 " />
@@ -1499,7 +1510,7 @@ const Studio = ({
                   type="button"
                   onClick={() => {
                     logEvent(PageEvent.Retake)
-                    reset()
+                    resetCanvas()
                     updatePayload?.({
                       status: Fragment_Status_Enum_Enum.Paused,
                       // decrement active object index on retake to repeat the current block
