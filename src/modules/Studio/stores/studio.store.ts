@@ -27,7 +27,7 @@ export interface StudioProviderProps<T = any, S = any> {
   getBlobs: () => Promise<Blob>
   tracks: [IMicrophoneAudioTrack, ILocalVideoTrack] | null
   reset: () => void
-  upload: () => void
+  upload: (id: string) => void
 
   recordingId?: string
 

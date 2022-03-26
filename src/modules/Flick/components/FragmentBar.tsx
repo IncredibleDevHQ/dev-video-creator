@@ -425,7 +425,7 @@ const FragmentBar = ({
             <Text fontSize="small">Error saving</Text>
           </div>
         )}
-        <div className="flex items-stretch justify-end py-2 border-l-2 border-brand-grey">
+        <div className="flex items-stretch justify-end py-2 border-l-2 border-brand-grey text-white">
           <Tooltip
             isOpen={themesModal}
             setIsOpen={setThemesModal}
@@ -541,7 +541,7 @@ const FragmentBar = ({
         {(fragment?.producedLink || fragment?.producedShortsLink) &&
           (mode === Content_Type_Enum_Enum.Video ||
             mode === Content_Type_Enum_Enum.VerticalVideo) && (
-            <div className="flex items-stretch justify-end py-2 pl-4 border-l-2 border-brand-grey">
+            <div className="flex items-stretch justify-end py-2 pl-4 border-l-2 border-brand-grey text-white">
               <Button
                 appearance="none"
                 size="small"
