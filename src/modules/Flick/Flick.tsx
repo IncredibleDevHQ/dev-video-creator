@@ -497,6 +497,8 @@ const Flick = () => {
                     : (flick.md as string)
                   : (flick.md as string)
               }
+              currentBlock={currentBlock}
+              setCurrentBlock={setCurrentBlock}
               config={viewConfig}
               setViewConfig={setViewConfig}
             />

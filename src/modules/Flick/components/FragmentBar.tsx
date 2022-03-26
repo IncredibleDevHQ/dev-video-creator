@@ -41,8 +41,9 @@ import {
 } from '../../../utils/analytics-types'
 import { ViewConfig } from '../../../utils/configTypes'
 import { TextEditorParser } from '../editor/utils/helpers'
-import { SimpleAST } from '../editor/utils/utils'
+import { Block, SimpleAST } from '../editor/utils/utils'
 import { newFlickStore, View } from '../store/flickNew.store'
+import RecordingModal from './RecordingModal'
 
 const HorizontalContainer = ({
   className,
@@ -241,15 +242,20 @@ const FragmentBar = ({
   editorValue,
   setViewConfig,
   simpleAST,
+  currentBlock,
+  setCurrentBlock,
 }: {
   editorValue?: string
   config: ViewConfig
   simpleAST?: SimpleAST
   setViewConfig: React.Dispatch<React.SetStateAction<ViewConfig>>
+  currentBlock: Block | undefined
+  setCurrentBlock: React.Dispatch<React.SetStateAction<Block | undefined>>
 }) => {
   const [fragmentVideoModal, setFragmentVideoModal] = useState(false)
   const [themesModal, setThemesModal] = useState(false)
   const [brandingModal, setBrandingModal] = useState(false)
+  const [recordingModal, setRecordingModal] = useState(false)
 
   const [
     { flick, activeFragmentId, view, themes, activeTheme },
@@ -584,7 +590,7 @@ const FragmentBar = ({
             onClick={async () => {
               // Segment Tracking
               logEvent(PageEvent.GoToDeviceSelect)
-
+              // setRecordingModal(true)
               await updateConfig()
               history.push(`/${activeFragmentId}/studio`)
             }}
@@ -608,6 +614,18 @@ const FragmentBar = ({
           activeBrand={brandingId}
           handleClose={() => {
             setBrandingModal(false)
+          }}
+        />
+      )}
+      {recordingModal && (
+        <RecordingModal
+          open={recordingModal}
+          activeFragmentId={activeFragmentId}
+          simpleAST={simpleAST}
+          currentBlock={currentBlock}
+          setCurrentBlock={setCurrentBlock}
+          handleClose={() => {
+            setRecordingModal(false)
           }}
         />
       )}
