@@ -1216,6 +1216,7 @@ const Studio = ({
                 console.log('clickedBlock', clickedBlock)
                 console.log('block id = ', block)
                 console.log('state = ', state)
+                // when block was previously rec and uploaded and we have a url to show preview
                 if (clickedBlock && clickedBlock.objectUrl) {
                   updatePayload({
                     activeObjectIndex: index,
@@ -1224,7 +1225,18 @@ const Studio = ({
                     `${config.storage.baseUrl}${clickedBlock?.objectUrl}`
                   )
                   setState('preview')
+                } else if (
+                  !recordedBlocks?.find((b) => b.id === block.id) &&
+                  state === 'preview'
+                ) {
+                  console.log('First save/retake the block before changing')
+                  emitToast({
+                    title:
+                      'First save/retake the block before selecting another block',
+                    type: 'warning',
+                  })
                 } else {
+                  // when the clicked block is not yet recorded.
                   console.log('Active index = ', index)
                   setPreviouslyRecordedVideo(undefined)
                   updatePayload({
