@@ -1199,15 +1199,30 @@ const Studio = ({
               className={cx(
                 'px-3 py-1.5 font-body cursor-pointer text-sm rounded-sm flex items-center justify-center transition-transform duration-500 bg-brand-grey relative text-gray-300 flex-shrink-0',
                 {
-                  'transform scale-110 border border-gray-400':
+                  'transform scale-110 border border-brand':
                     payload?.activeObjectIndex === index,
                   'bg-grey-900 text-gray-500':
                     index > payload?.activeObjectIndex,
                   'cursor-not-allowed': state === 'recording',
+
                   // state !== 'ready' || state !== 'preview',
                 }
               )}
               onClick={() => {
+                // if current block is recorded by isnt saved to the cloud or if the user has not intentionally pressed retake to discard the rec, show warning.
+                if (
+                  state === 'preview' &&
+                  (recordedVideoSrc?.includes('blob') ||
+                    previouslyRecordedVideo?.includes('blob'))
+                ) {
+                  emitToast({
+                    title:
+                      'Please save/discard the video before leaving selecting another block',
+                    type: 'warning',
+                  })
+                  return
+                }
+
                 // checking if block already has recording
                 const clickedBlock = recordedBlocks?.find((b) => {
                   return b.id === block.id
@@ -1225,16 +1240,6 @@ const Studio = ({
                     `${config.storage.baseUrl}${clickedBlock?.objectUrl}`
                   )
                   setState('preview')
-                } else if (
-                  !recordedBlocks?.find((b) => b.id === block.id) &&
-                  state === 'preview'
-                ) {
-                  console.log('First save/retake the block before changing')
-                  emitToast({
-                    title:
-                      'First save/retake the block before selecting another block',
-                    type: 'warning',
-                  })
                 } else {
                   // when the clicked block is not yet recorded.
                   console.log('Active index = ', index)
@@ -1373,6 +1378,7 @@ const Studio = ({
             <Notes stageHeight={stageHeight} />
           </div>
           {/* Mini timeline */}
+
           {miniTimeline}
           {/* <div
             ref={timelineRef}
