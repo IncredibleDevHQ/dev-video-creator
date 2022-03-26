@@ -202,8 +202,8 @@ const useCanvasRecorder = ({
   const getBlobs = async () => {
     const superblob = new Blob(recordedBlobs.current, { type })
     const arrayBuffer = await superblob.arrayBuffer()
-    recordedBlobs.current = []
-    setMediaRecorder(null)
+    // recordedBlobs.current = []
+    // setMediaRecorder(null)
     if (arrayBuffer) {
       return getSeekableWebM(arrayBuffer)
     }

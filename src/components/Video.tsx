@@ -10,6 +10,7 @@ import hlsQualitySelector from 'videojs-hls-quality-selector'
 import { css, cx } from '@emotion/css'
 import { ASSETS } from '../constants'
 import config from '../config'
+import { nanoid } from 'nanoid'
 
 const videoJs = css`
   .video-js {
@@ -271,6 +272,7 @@ const Video = ({ className, src, ...rest }: VideoProps) => {
 
   useEffect(() => {
     if (!videoType) return
+    console.log('New Video src : ', src)
     const data = src.split('.').slice(-1).join()
     if (rest.type) {
       setVideoType(rest.type)

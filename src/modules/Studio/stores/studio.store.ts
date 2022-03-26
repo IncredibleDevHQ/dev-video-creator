@@ -1,6 +1,7 @@
 import { ILocalVideoTrack, IMicrophoneAudioTrack } from 'agora-rtc-sdk-ng'
 import { atom } from 'recoil'
 import {
+  RecordedBlocksFragment,
   StudioFragmentFragment,
   ThemeFragment,
 } from '../../../generated/graphql'
@@ -70,6 +71,8 @@ export interface StudioProviderProps<T = any, S = any> {
   shortsMode?: boolean
 
   staticAssets?: StaticAssets
+
+  recordedBlocks?: RecordedBlocksFragment[]
 }
 
 const studioStore = atom<StudioProviderProps>({

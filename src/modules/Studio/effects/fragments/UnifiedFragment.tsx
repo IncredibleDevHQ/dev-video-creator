@@ -177,7 +177,8 @@ const UnifiedFragment = ({
   }, [payload?.activeObjectIndex])
 
   useEffect(() => {
-    if (!payload?.activeObjectIndex || payload?.activeObjectIndex === 0) return
+    // if (!payload?.activeObjectIndex || payload?.activeObjectIndex === 0) return
+    if (payload?.activeObjectIndex === undefined) return
     if (viewConfig?.mode !== 'Portrait')
       setTopLayerChildren?.({ id: nanoid(), state: 'transition right' })
     updatePayload?.({
@@ -187,6 +188,7 @@ const UnifiedFragment = ({
       focusBlockCode: false,
       activeBlockIndex: 0,
       activePointIndex: 0,
+      activeIntroIndex: 0,
     })
   }, [payload?.activeObjectIndex])
 
@@ -212,7 +214,7 @@ const UnifiedFragment = ({
   useEffect(() => {
     if (state === 'ready') {
       updatePayload?.({
-        activeObjectIndex: 0,
+        // activeObjectIndex: 0,
         activeIntroIndex: 0,
         fragmentState: 'customLayout',
         currentIndex: 0,
