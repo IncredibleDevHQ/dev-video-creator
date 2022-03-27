@@ -485,6 +485,8 @@ export const getBlockTitle = (block: Block): string => {
         block.videoBlock.fallbackTitle ||
         'Video Block'
       )
+    case 'headingBlock':
+      return block.headingBlock.title || 'Heading Block'
     case 'outroBlock':
       return 'Outro'
     default:
