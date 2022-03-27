@@ -110,15 +110,6 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
           emptyEditorClass: 'is-editor-empty',
         }),
       ],
-      // content:
-      //   localNote === undefined
-      //     ? '<p></p>'
-      //     : localNote
-      // .split('\n')
-      // .map((line) => {
-      //   return `<p>${line}</p>`
-      // })
-      // .join('') || '<p></p>',
     },
     [state]
   )
@@ -306,15 +297,6 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
         const listBlock = simpleAST.blocks.find(
           (b) => b.id === block.id
         ) as ListBlockProps
-        noteEditor?.commands.setContent(
-          listBlock.listBlock.note
-            ?.split('\n')
-            .map((line) => {
-              return `<p>${line}</p>`
-            })
-            .join('') || '<p></p>',
-          true
-        )
         return {
           note: listBlock.listBlock.note,
           noteId: listBlock.listBlock.noteId,
@@ -324,15 +306,6 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
         const imageBlock = simpleAST.blocks.find(
           (b) => b.id === block.id
         ) as ImageBlockProps
-        noteEditor?.commands.setContent(
-          imageBlock.imageBlock.note
-            ?.split('\n')
-            .map((line) => {
-              return `<p>${line}</p>`
-            })
-            .join('') || '<p></p>',
-          true
-        )
         return {
           note: imageBlock.imageBlock.note,
           noteId: imageBlock.imageBlock.noteId,
@@ -342,15 +315,6 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
         const codeBlock = simpleAST.blocks.find(
           (b) => b.id === block.id
         ) as CodeBlockProps
-        noteEditor?.commands.setContent(
-          codeBlock.codeBlock.note
-            ?.split('\n')
-            .map((line) => {
-              return `<p>${line}</p>`
-            })
-            .join('') || '<p></p>',
-          true
-        )
         return {
           note: codeBlock.codeBlock.note,
           noteId: codeBlock.codeBlock.noteId,
@@ -360,15 +324,6 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
         const videoBlock = simpleAST.blocks.find(
           (b) => b.id === block.id
         ) as VideoBlockProps
-        noteEditor?.commands.setContent(
-          videoBlock.videoBlock.note
-            ?.split('\n')
-            .map((line) => {
-              return `<p>${line}</p>`
-            })
-            .join('') || '<p></p>',
-          true
-        )
         return {
           note: videoBlock.videoBlock.note,
           noteId: videoBlock.videoBlock.noteId,
@@ -378,15 +333,6 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
         const headingBlock = simpleAST.blocks.find(
           (b) => b.id === block.id
         ) as HeadingBlockProps
-        noteEditor?.commands.setContent(
-          headingBlock.headingBlock.note
-            ?.split('\n')
-            .map((line) => {
-              return `<p>${line}</p>`
-            })
-            .join('') || '<p></p>',
-          true
-        )
         return {
           note: headingBlock.headingBlock.note,
           noteId: headingBlock.headingBlock.noteId,
@@ -396,15 +342,6 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
         const introBlock = simpleAST.blocks.find(
           (b) => b.id === block.id
         ) as IntroBlockProps
-        noteEditor?.commands.setContent(
-          introBlock.introBlock.note
-            ?.split('\n')
-            .map((line) => {
-              return `<p>${line}</p>`
-            })
-            .join('') || '<p></p>',
-          true
-        )
         return {
           note: introBlock.introBlock.note,
         }
@@ -413,15 +350,6 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
         const outroBlock = simpleAST.blocks.find(
           (b) => b.id === block.id
         ) as OutroBlockProps
-        noteEditor?.commands.setContent(
-          outroBlock.outroBlock?.note
-            ?.split('\n')
-            .map((line) => {
-              return `<p>${line}</p>`
-            })
-            .join('') || '<p></p>',
-          true
-        )
         return {
           note: outroBlock.outroBlock?.note,
         }
@@ -432,6 +360,7 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
   }, [payload?.activeObjectIndex])
 
   useEffect(() => {
+    if (!noteEditor || noteEditor?.isDestroyed) return
     noteEditor?.commands?.setContent(
       note
         ?.split('\n')
@@ -441,7 +370,7 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
         .join('') || '<p></p>',
       true
     )
-  }, [note])
+  }, [note, noteEditor])
 
   useEffect(() => {
     if (localNote === undefined) return
