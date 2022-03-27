@@ -46,7 +46,7 @@ import {
   ListBlockProps,
 } from '../../Flick/editor/utils/utils'
 import { ComputedPoint } from '../hooks/use-point'
-import { canvasStore, StudioProviderProps, studioStore } from '../stores'
+import { StudioProviderProps, studioStore } from '../stores'
 
 export const ControlButton = ({
   appearance,
@@ -145,7 +145,6 @@ const RecordingControlsBar = ({
     branding,
     controlsConfig,
   } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
-  const [canvas, setCanvas] = useRecoilState(canvasStore)
   const [studio, setStudio] = useRecoilState(studioStore)
   const [isRaiseHandsTooltip, setRaiseHandsTooltip] = useState(false)
   const [participant, setParticipant] = useState<any>()
@@ -196,6 +195,39 @@ const RecordingControlsBar = ({
       handleTimerReset()
     }
   }, [payload])
+
+  useEffect(() => {
+    if (!fragment) return
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowLeft') {
+        performAction(
+          fragment,
+          payload,
+          updatePayload,
+          branding,
+          controlsConfig,
+          'previous'
+        )
+      }
+      if (event.key === 'ArrowRight') {
+        let isBlockCompleted: boolean | undefined = false
+        if (fragment && payload) {
+          isBlockCompleted = performAction(
+            fragment,
+            payload,
+            updatePayload,
+            branding,
+            controlsConfig,
+            'next'
+          )
+
+          if (isBlockCompleted && state === 'recording') {
+            studio.stopRecording()
+          }
+        }
+      }
+    })
+  }, [fragment])
 
   useEffect(() => {
     if (!timer || !timeLimit) return
