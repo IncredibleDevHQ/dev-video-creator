@@ -5,7 +5,6 @@ import {
   ICameraVideoTrack,
   IMicrophoneAudioTrack,
 } from 'agora-rtc-react'
-import getBlobDuration from 'get-blob-duration'
 import Konva from 'konva'
 import { nanoid } from 'nanoid'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
@@ -13,7 +12,7 @@ import AspectRatio from 'react-aspect-ratio'
 import { BiErrorCircle, BiMicrophone, BiVideo } from 'react-icons/bi'
 import { IoCheckmarkOutline } from 'react-icons/io5'
 import { Group, Layer, Stage } from 'react-konva'
-import { useHistory, useLocation, useParams } from 'react-router-dom'
+import { useHistory, useParams } from 'react-router-dom'
 import useMeasure from 'react-use-measure'
 import {
   useRecoilBridgeAcrossReactRoots_UNSTABLE,
@@ -39,10 +38,7 @@ import {
   FlickParticipantsFragment,
   Fragment_Status_Enum_Enum,
   GetFragmentByIdQuery,
-  OrientationEnum,
-  RecordedBlocksFragment,
   StudioFragmentFragment,
-  useCompleteFragmentMutation,
   useGetFragmentByIdLazyQuery,
   useGetRtcTokenMutation,
   useSaveRecordedBlockMutation,
@@ -116,8 +112,6 @@ const StudioHoC = () => {
 
   useEffect(() => {
     if (!data) return
-
-    console.log('akki', data.Fragment?.[0])
     setFragment(data.Fragment?.[0])
     setUserAllowed(
       !!data.Fragment[0]?.configuration?.speakers?.find(
@@ -567,13 +561,6 @@ const Studio = ({
   }
   branding?: BrandingJSON | null
 }) => {
-  const { search } = useLocation()
-
-  const query = new URLSearchParams(search)
-  const type = query.get('type')
-
-  // console.log({ type })
-
   const { fragmentId } = useParams<{ fragmentId: string }>()
   const { constraints, theme, staticAssets, recordedBlocks } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
@@ -582,7 +569,6 @@ const Studio = ({
   const [fragment, setFragment] = useState<StudioFragmentFragment>()
   const history = useHistory()
 
-  const [markFragmentCompleted] = useCompleteFragmentMutation()
   const [saveBlock] = useSaveRecordedBlockMutation()
 
   const [uploadFile] = useUploadFile()
@@ -614,8 +600,6 @@ const Studio = ({
   useEffect(() => {
     if (!stageWidth) return
     Konva.pixelRatio = (shortsMode ? 1080 : 1920) / stageWidth
-    // console.log(stageWidth, stageHeight, Konva.pixelRatio)
-    // console.log(Konva.pixelRatio * stageWidth, Konva.pixelRatio * stageHeight)
     setMountStage(true)
   }, [stageWidth])
 
@@ -624,8 +608,6 @@ const Studio = ({
   )
 
   const [recordedVideoSrc, setRecordedVideoSrc] = useState<string>()
-  const [previouslyRecordedVideo, setPreviouslyRecordedVideo] =
-    useState<string>()
 
   useEffect(() => {
     if (!fragment) return
@@ -643,8 +625,6 @@ const Studio = ({
     },
     { cameraId: devices.camera?.id }
   )()
-
-  // const [canvas, setCanvas] = useRecoilState(canvasStore)
 
   const { stream, join, users, mute, leave, userAudios, renewToken } = useAgora(
     fragmentId,
@@ -738,7 +718,6 @@ const Studio = ({
 
   useEffect(() => {
     if (data?.Fragment[0] === undefined) return
-    console.log('Fragment: ', data.Fragment[0])
     setFragment(studioFragment)
   }, [data, fragmentId])
 
@@ -849,20 +828,6 @@ const Studio = ({
         },
       })
 
-      // const duration = await getBlobDuration(uploadVideoFile)
-
-      // await markFragmentCompleted({
-      //   variables: {
-      //     flickId: fragment?.flick?.id,
-      //     fragmentId: fragment?.id,
-      //     duration: Math.ceil(duration),
-      //     orientation: shortsMode
-      //       ? OrientationEnum.Portrait
-      //       : OrientationEnum.Landscape,
-      //     producedLink: uuid,
-      //   },
-      // })
-
       // Once the block video is uploaded to s3 , save the block to the table
       await saveBlock({
         variables: {
@@ -882,15 +847,6 @@ const Studio = ({
       // setRecordedVideoSrc(`${config.storage.baseUrl}${uuid}`)
 
       dismissToast(toast)
-      // leave()
-      // stream?.getTracks().forEach((track) => track.stop())
-      // setFragment(undefined)
-      // setStudio({
-      //   ...studio,
-      //   fragment: undefined,
-      //   tracks,
-      // })
-      // history.push(`/flick/${fragment?.flickId}/${fragmentId}`)
     } catch (e) {
       console.error('Upload error : ', e)
       emitToast({
@@ -929,10 +885,8 @@ const Studio = ({
     else if (state === 'ready' && payload?.activeObjectIndex !== 0)
       setState('recording')
     else if (state === 'resumed' && payload?.activeObjectIndex === 0) {
-      console.log('Setting state to start-recording')
       setState('start-recording')
     } else if (state === 'resumed' && payload?.activeObjectIndex !== 0) {
-      console.log('Setting state to recording')
       setState('recording')
     }
   }
@@ -1105,10 +1059,6 @@ const Studio = ({
       return b.id === block.id
     })
     if (previouslyRecordedBlock) {
-      console.log('prev block is :', previouslyRecordedBlock)
-      setPreviouslyRecordedVideo(
-        `${config.storage.baseUrl}${previouslyRecordedBlock?.objectUrl}`
-      )
       setRecordedVideoSrc(
         `${config.storage.baseUrl}${previouslyRecordedBlock.objectUrl}`
       )
@@ -1160,11 +1110,7 @@ const Studio = ({
   }
 
   useEffect(() => {
-    console.log({ payload })
-  }, [payload])
-
-  useEffect(() => {
-    console.log({ state })
+    console.log('State changed to', state)
     prepareVideo()
   }, [state])
 
@@ -1249,24 +1195,17 @@ const Studio = ({
                 const clickedBlock = recordedBlocks?.find((b) => {
                   return b.id === block.id
                 })
-                // console.log('Recorded Blocks = ', recordedBlocks)
-                // console.log('clickedBlock', clickedBlock)
-                // console.log('block id = ', block)
-                // console.log('state = ', state)
-                // console.log('Active index = ', index)
+
+                console.log('clickedBlock', clickedBlock)
 
                 // when block was previously rec and uploaded and we have a url to show preview
                 if (clickedBlock && clickedBlock.objectUrl) {
                   updatePayload({
                     activeObjectIndex: index,
                   })
-                  setPreviouslyRecordedVideo(
-                    `${config.storage.baseUrl}${clickedBlock?.objectUrl}`
-                  )
                   setState('preview')
                 } else {
                   // when the clicked block is not yet recorded.
-                  setPreviouslyRecordedVideo(undefined)
                   updatePayload({
                     activeObjectIndex: index,
                   })
@@ -1424,7 +1363,6 @@ const Studio = ({
                         ? recordedBlocks?.find((b) => b.id === currentBlock.id)
                             ?.objectUrl || ''
                         : ''
-                    console.log('NewSRC = ', newSrc)
                     if (newSrc.includes('blob')) return newSrc
                     return `${config.storage.baseUrl}${newSrc}`
                   })()}
@@ -1447,7 +1385,7 @@ const Studio = ({
                           payload.activeObjectIndex === undefined ||
                           !(payload.activeObjectIndex >= 0)
                         ) {
-                          console.log('Invalid activeObjectIndex :', payload)
+                          console.error('Invalid activeObjectIndex :', payload)
                           return
                         }
 
@@ -1496,7 +1434,7 @@ const Studio = ({
                     resetCanvas()
 
                     if (recordedBlocks && currentBlock) {
-                      console.log('DELETING FOR RETAKE')
+                      console.warn('DELETING FOR RETAKE')
                       const localRecordedBlocks = [...recordedBlocks]
                       const currentRecordedBlock =
                         localRecordedBlocks?.findIndex(
@@ -1517,7 +1455,6 @@ const Studio = ({
                           .id
                     )
                     if (isCloudBlock) {
-                      setPreviouslyRecordedVideo(undefined)
                       // remove the cloud block from local store and allow retake of the cloud block
                       const updatedRecordedBlocks =
                         studio.recordedBlocks?.filter(
