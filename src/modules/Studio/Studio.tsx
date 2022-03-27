@@ -1249,13 +1249,6 @@ const Studio = ({
                   })
                   setState('resumed')
                 }
-
-                // if (state === 'ready' || state === 'resumed') {
-                //   setPreviouslyRecordedVideo(undefined)
-                //   updatePayload({
-                //     activeObjectIndex: index,
-                //   })
-                // }
               }}
             >
               {recordedBlocks?.find((b) => b.id === block.id) && (
@@ -1380,82 +1373,6 @@ const Studio = ({
           {/* Mini timeline */}
 
           {miniTimeline}
-          {/* <div
-            ref={timelineRef}
-            style={{
-              background: '#27272A',
-            }}
-            onWheel={(e) => {
-              if (timelineRef.current) {
-                timelineRef.current.scrollLeft += e.deltaY
-              }
-            }}
-            className={cx(
-              'mt-auto flex gap-x-4 px-6 py-3 overflow-x-scroll h-14',
-              noScrollBar
-            )}
-          >
-            {fragment?.editorState &&
-              (fragment.editorState as SimpleAST).blocks.map((block, index) => {
-                return (
-                  <button
-                    type="button"
-                    id={`timeline-block-${block.id}`}
-                    className={cx(
-                      'px-3 py-1.5 font-body cursor-pointer text-sm rounded-sm flex items-center justify-center transition-transform duration-500 bg-brand-grey relative text-gray-300 flex-shrink-0',
-                      {
-                        'transform scale-110 border border-gray-400':
-                          payload?.activeObjectIndex === index,
-                        'bg-grey-900 text-gray-500':
-                          index > payload?.activeObjectIndex,
-                        'cursor-not-allowed': state !== 'ready',
-                      }
-                    )}
-                    onClick={() => {
-                      const clickedBlock = recordedBlocks?.find((b) => {
-                        return b.id === block.id
-                      })
-                      console.log('Recorded Blocks = ', recordedBlocks)
-                      console.log('clickedBlock', clickedBlock)
-                      console.log('block id = ', block)
-                      if (clickedBlock && clickedBlock.objectUrl) {
-                        updatePayload({
-                          activeObjectIndex: index,
-                        })
-                        setPreviouslyRecordedVideo(
-                          `${config.storage.baseUrl}${clickedBlock?.objectUrl}`
-                        )
-                        setState('preview')
-                      } else {
-                        setPreviouslyRecordedVideo(undefined)
-                      }
-
-                      if (state === 'ready' || state === 'resumed') {
-                        updatePayload({
-                          activeObjectIndex: index,
-                        })
-                      }
-                    }}
-                  >
-                    {(index < payload?.activeObjectIndex ||
-                      payload?.activeObjectIndex ===
-                        fragment.editorState.blocks.length - 1) &&
-                      state !== 'ready' && (
-                        <div className="absolute top-0 right-0 rounded-tr-sm rounded-bl-sm bg-incredible-green-600">
-                          <IoCheckmarkOutline
-                            className="m-px text-gray-200"
-                            size={8}
-                          />
-                        </div>
-                      )}
-                    <span>
-                      {utils.getBlockTitle(block).substring(0, 40) +
-                        (utils.getBlockTitle(block).length > 40 ? '...' : '')}
-                    </span>
-                  </button>
-                )
-              })}
-          </div> */}
         </>
       ) : (
         <>
@@ -1493,14 +1410,28 @@ const Studio = ({
                       onClick={() => {
                         logEvent(PageEvent.SaveRecording)
                         if (
-                          !payload.activeObjectIndex ||
+                          payload.activeObjectIndex === undefined ||
                           !(payload.activeObjectIndex >= 0)
-                        )
+                        ) {
+                          console.log('Invalid activeObjectIndex :', payload)
                           return
-                        const p = payload
+                        }
+
+                        const isOutro =
+                          payload?.activeObjectIndex ===
+                          fragment?.editorState?.blocks.length - 1
+
+                        // move on to next block
+                        const p = {
+                          ...payload,
+                          activeObjectIndex: isOutro
+                            ? payload.activeObjectIndex
+                            : payload.activeObjectIndex + 1,
+                        }
+
                         const blockId =
                           fragment?.editorState?.blocks[
-                            payload.activeObjectIndex - 1
+                            payload.activeObjectIndex
                           ]?.id
                         if (
                           p.activeObjectIndex <
@@ -1514,7 +1445,7 @@ const Studio = ({
                         updatePayload?.(p)
                         // start async upload and move on to next block
                         upload(blockId)
-                        setState('resumed')
+                        setState(isOutro ? 'preview' : 'resumed')
                         setResetTimer(true)
                       }}
                     >
@@ -1529,13 +1460,34 @@ const Studio = ({
                   onClick={() => {
                     logEvent(PageEvent.Retake)
                     resetCanvas()
+                    const isCloudBlock = studio.recordedBlocks?.find(
+                      (b) =>
+                        b.id ===
+                        fragment.editorState.blocks[payload?.activeObjectIndex]
+                          .id
+                    )
+                    if (isCloudBlock) {
+                      setPreviouslyRecordedVideo(undefined)
+                      // remove the cloud block from local store and allow retake of the cloud block
+                      const updatedRecordedBlocks =
+                        studio.recordedBlocks?.filter(
+                          (b) => b.id !== isCloudBlock.id
+                        )
+                      setStudio({
+                        ...studio,
+                        recordedBlocks: updatedRecordedBlocks,
+                      })
+                    }
                     updatePayload?.({
                       status: Fragment_Status_Enum_Enum.Paused,
                       // decrement active object index on retake to repeat the current block
                       // also reset the block's element active index
                       activeObjectIndex:
+                        // eslint-disable-next-line no-nested-ternary
                         payload.activeObjectIndex - 1 >= 0
-                          ? payload.activeObjectIndex - 1
+                          ? isCloudBlock
+                            ? payload.activeObjectIndex
+                            : payload.activeObjectIndex - 1
                           : 0,
                     })
                     setState('resumed')
