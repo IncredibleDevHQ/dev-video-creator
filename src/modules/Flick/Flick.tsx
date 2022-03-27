@@ -107,6 +107,7 @@ const Flick = () => {
 
   const { data, error, loading, refetch } = useGetFlickByIdQuery({
     variables: { id },
+    fetchPolicy: 'network-only',
   })
 
   const setStudio = useSetRecoilState(studioStore)
@@ -460,8 +461,7 @@ const Flick = () => {
     })
   }
 
-  if (!data && loading)
-    return <ScreenState title="Loading your story" loading />
+  if (loading) return <ScreenState title="Loading your story" loading />
 
   if (error)
     return (
