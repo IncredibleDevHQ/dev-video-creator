@@ -819,7 +819,7 @@ const Studio = ({
         fragment: undefined,
         tracks,
       })
-      history.push(`/flick/${fragment?.flickId}/${fragmentId}`)
+      history.push(`/story/${fragment?.flickId}/${fragmentId}`)
     } catch (e) {
       emitToast({
         title: 'Yikes. Something went wrong.',
