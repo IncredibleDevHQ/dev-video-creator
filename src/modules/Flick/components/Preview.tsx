@@ -62,6 +62,7 @@ import editorStyle from '../editor/style'
 import {
   Block,
   CodeBlockProps,
+  HeadingBlockProps,
   ImageBlockProps,
   IntroBlockProps,
   ListBlockProps,
@@ -255,6 +256,9 @@ const Preview = ({
         break
       case 'codeBlock':
         setTabs([commonTabs[0], commonTabs[1], ...codeBlockTabs, commonTabs[2]])
+        break
+      case 'headingBlock':
+        setTabs([commonTabs[0], commonTabs[2]])
         break
       default:
         setTabs(commonTabs)
@@ -550,6 +554,15 @@ const Note = ({
           note: outroBlock.outroBlock?.note,
         }
       }
+      case 'headingBlock': {
+        const headingBlock = simpleAST.blocks.find(
+          (b) => b.id === block.id
+        ) as HeadingBlockProps
+        return {
+          note: headingBlock.headingBlock.note,
+          noteId: headingBlock.headingBlock.noteId,
+        }
+      }
       default:
         return {}
     }
@@ -602,7 +615,9 @@ const Note = ({
               },
               paragraphNode
             )
-            editor.view.dispatch(editor.state.tr.insert(pos, blockquote))
+            const position =
+              block.type === 'headingBlock' ? pos + node.nodeSize : pos
+            editor.view.dispatch(editor.state.tr.insert(position, blockquote))
           }
         })
       }
