@@ -557,7 +557,7 @@ const FragmentBar = ({
               </Button>
             </div>
           )}
-        <div className="flex items-stretch justify-end py-2 pl-4 border-l-2 border-brand-grey">
+        <div className="flex items-stretch justify-end py-2 pl-4 border-l-2 border-brand-grey text-gray-400">
           <Button
             appearance={config.mode === 'Landscape' ? 'gray' : 'none'}
             size="small"

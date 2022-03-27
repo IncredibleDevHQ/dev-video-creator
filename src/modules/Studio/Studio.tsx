@@ -1158,6 +1158,15 @@ const Studio = ({
     prepareVideo()
   }, [state])
 
+  // Set 0th index for the first block - first time recording
+  useEffect(() => {
+    if (!recordedBlocks || recordedBlocks.length < 1) {
+      updatePayload({
+        activeObjectIndex: 0,
+      })
+    }
+  }, [recordedBlocks])
+
   /**
    * =======================
    * END EVENT HANDLERS...
