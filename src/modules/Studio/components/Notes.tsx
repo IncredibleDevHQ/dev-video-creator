@@ -14,9 +14,10 @@ import {
   useUpdateFragmentEditorStateMutation,
 } from '../../../generated/graphql'
 import { EditorContext } from '../../Flick/components/EditorProvider'
-import editorStyle from '../../Flick/editor/style'
+import { tinyEditorStyle } from '../../Flick/editor/style'
 import {
   CodeBlockProps,
+  HeadingBlockProps,
   ImageBlockProps,
   IntroBlockProps,
   ListBlockProps,
@@ -87,7 +88,7 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
         attributes: {
           class: cx(
             'prose prose-sm max-w-none w-full h-full border-none focus:outline-none p-2.5',
-            editorStyle
+            tinyEditorStyle
           ),
         },
       },
@@ -109,15 +110,15 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
           emptyEditorClass: 'is-editor-empty',
         }),
       ],
-      content:
-        localNote === undefined
-          ? '<p></p>'
-          : localNote
-              .split('\n')
-              .map((line) => {
-                return `<p>${line}</p>`
-              })
-              .join('') || '<p></p>',
+      // content:
+      //   localNote === undefined
+      //     ? '<p></p>'
+      //     : localNote
+      // .split('\n')
+      // .map((line) => {
+      //   return `<p>${line}</p>`
+      // })
+      // .join('') || '<p></p>',
     },
     [state]
   )
@@ -176,7 +177,9 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
               },
               paragraphNode
             )
-            editor.view.dispatch(editor.state.tr.insert(pos, blockquote))
+            const position =
+              block.type === 'headingBlock' ? pos + node.nodeSize : pos
+            editor.view.dispatch(editor.state.tr.insert(position, blockquote))
           }
         })
       }
@@ -190,7 +193,7 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
               codeBlock: {
                 ...codeBlock.codeBlock,
                 note: notes,
-                noteId: localNoteId,
+                noteId: nodeId,
               },
             }
           }
@@ -201,7 +204,7 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
               imageBlock: {
                 ...imageBlock.imageBlock,
                 note: notes,
-                noteId: localNoteId,
+                noteId: nodeId,
               },
             }
           }
@@ -212,7 +215,7 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
               videoBlock: {
                 ...videoBlock.videoBlock,
                 note: notes,
-                noteId: localNoteId,
+                noteId: nodeId,
               },
             }
           }
@@ -223,7 +226,18 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
               listBlock: {
                 ...listBlock.listBlock,
                 note: notes,
-                noteId: localNoteId,
+                noteId: nodeId,
+              },
+            }
+          }
+          if (b.id === block.id && block.type === 'headingBlock') {
+            const headingBlock = b as HeadingBlockProps
+            return {
+              ...b,
+              headingBlock: {
+                ...headingBlock.headingBlock,
+                note: notes,
+                noteId: nodeId,
               },
             }
           }
@@ -285,10 +299,8 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
   const { note, noteId } = useMemo(() => {
     if (!simpleAST || payload?.activeObjectIndex === undefined) return {}
     const block = simpleAST.blocks[payload?.activeObjectIndex]
-    if (block.type === 'introBlock' || block.type === 'outroBlock') {
-      setLocalNote(undefined)
-      setLocalNoteId(undefined)
-    }
+    setLocalNote(undefined)
+    setLocalNoteId(undefined)
     switch (block.type) {
       case 'listBlock': {
         const listBlock = simpleAST.blocks.find(
@@ -362,6 +374,24 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
           noteId: videoBlock.videoBlock.noteId,
         }
       }
+      case 'headingBlock': {
+        const headingBlock = simpleAST.blocks.find(
+          (b) => b.id === block.id
+        ) as HeadingBlockProps
+        noteEditor?.commands.setContent(
+          headingBlock.headingBlock.note
+            ?.split('\n')
+            .map((line) => {
+              return `<p>${line}</p>`
+            })
+            .join('') || '<p></p>',
+          true
+        )
+        return {
+          note: headingBlock.headingBlock.note,
+          noteId: headingBlock.headingBlock.noteId,
+        }
+      }
       case 'introBlock': {
         const introBlock = simpleAST.blocks.find(
           (b) => b.id === block.id
@@ -402,6 +432,18 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
   }, [payload?.activeObjectIndex])
 
   useEffect(() => {
+    noteEditor?.commands?.setContent(
+      note
+        ?.split('\n')
+        .map((line) => {
+          return `<p>${line}</p>`
+        })
+        .join('') || '<p></p>',
+      true
+    )
+  }, [note])
+
+  useEffect(() => {
     if (localNote === undefined) return
     updateNotes(localNoteId || noteId, localNote)
   }, [localNote])
@@ -413,7 +455,7 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
   }, [])
 
   return (
-    <div className="col-span-3 w-full" key={payload?.activeObjectIndex}>
+    <div className="col-span-3 w-full">
       <div
         style={{
           height: `${stageHeight}px`,
