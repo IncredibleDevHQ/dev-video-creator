@@ -55,7 +55,7 @@ import { PageEvent } from '../../utils/analytics-types'
 import { TopLayerChildren, ViewConfig } from '../../utils/configTypes'
 import { BrandingJSON } from '../Branding/BrandingPage'
 import { TextEditorParser } from '../Flick/editor/utils/helpers'
-import { SimpleAST, useUtils } from '../Flick/editor/utils/utils'
+import { Block, SimpleAST, useUtils } from '../Flick/editor/utils/utils'
 import { EditorProvider } from '../Flick/Flick'
 import { Countdown, TimerModal } from './components'
 import {
@@ -602,16 +602,14 @@ const Studio = ({
   const [timeLimitOver, setTimeLimitOver] = useState(false)
   const [resetTimer, setResetTimer] = useState(false)
 
+  const [currentBlock, setCurrentBlock] = useState<Block>()
+
   const { height: stageHeight, width: stageWidth } = getIntegerHW({
     maxH: bounds.height,
     maxW: bounds.width,
     aspectRatio: shortsMode ? 9 / 16 : 16 / 9,
     isShorts: shortsMode,
   })
-
-  const [prevRecordedBlocks, setPrevRecordedBlocks] = useState<
-    RecordedBlocksFragment[] | undefined
-  >(studio.recordedBlocks)
 
   useEffect(() => {
     if (!stageWidth) return
@@ -668,6 +666,7 @@ const Studio = ({
             join(data?.RTCToken?.token, participantId as string)
           } else {
             leave()
+            clearRecordedBlocks()
             emitToast({
               title: 'Yikes. Something went wrong.',
               type: 'error',
@@ -723,6 +722,7 @@ const Studio = ({
             join(data?.RTCToken?.token, participantId as string)
           } else {
             leave()
+            clearRecordedBlocks()
             emitToast({
               title: 'Yikes. Something went wrong.',
               type: 'error',
@@ -749,6 +749,7 @@ const Studio = ({
   useEffect(() => {
     return () => {
       leave()
+      clearRecordedBlocks()
       tracksRef.current?.forEach((track) => track.close())
       setFragment(undefined)
       setStudio({
@@ -791,6 +792,32 @@ const Studio = ({
     resetCanvas()
     init()
     setState('ready')
+  }
+
+  const updateRecordedBlocks = (blockId: string, newSrc: string) => {
+    let updatedBlocks = studio?.recordedBlocks ? [...studio.recordedBlocks] : []
+    const currentBlockIndex = studio?.recordedBlocks?.findIndex(
+      (block) => block.id === blockId
+    )
+    console.log('Current Block Index = ', currentBlockIndex)
+
+    if (currentBlockIndex === -1) {
+      updatedBlocks = [
+        ...updatedBlocks,
+        {
+          id: blockId,
+          objectUrl: newSrc,
+          updatedAt: Date.now().toLocaleString(),
+        },
+      ]
+    } else if (currentBlockIndex !== undefined && currentBlockIndex >= 0) {
+      updatedBlocks[currentBlockIndex] = {
+        id: blockId,
+        objectUrl: newSrc,
+        updatedAt: Date.now().toLocaleString(),
+      }
+    }
+    setStudio({ ...studio, recordedBlocks: updatedBlocks })
   }
 
   const upload = async (blockId: string) => {
@@ -848,30 +875,11 @@ const Studio = ({
         },
       })
 
-      let updatedBlocks = studio?.recordedBlocks
-        ? [...studio.recordedBlocks]
-        : []
-      const currentBlockIndex = studio?.recordedBlocks?.findIndex(
-        (block) => block.id === blockId
-      )
-      if (currentBlockIndex === -1) {
-        updatedBlocks = [
-          ...updatedBlocks,
-          {
-            id: blockId,
-            objectUrl: uuid,
-            updatedAt: Date.now().toLocaleString(),
-          },
-        ]
-      } else if (currentBlockIndex && currentBlockIndex >= 0) {
-        updatedBlocks[currentBlockIndex] = {
-          id: blockId,
-          objectUrl: uuid,
-          updatedAt: Date.now().toLocaleString(),
-        }
-      }
+      updateRecordedBlocks(blockId, uuid)
       // after updating the recorded blocks set this state which triggers the useEffect to update studio store
-      setPrevRecordedBlocks(updatedBlocks)
+
+      // update block url in store for preview once upload is done
+      // setRecordedVideoSrc(`${config.storage.baseUrl}${uuid}`)
 
       dismissToast(toast)
       // leave()
@@ -884,6 +892,7 @@ const Studio = ({
       // })
       // history.push(`/flick/${fragment?.flickId}/${fragmentId}`)
     } catch (e) {
+      console.error('Upload error : ', e)
       emitToast({
         title: 'Yikes. Something went wrong.',
         type: 'error',
@@ -1004,7 +1013,7 @@ const Studio = ({
       participantId: fragment?.participants.find(
         ({ participant }) => participant.userSub === sub
       )?.participant.id,
-      recordedBlocks: prevRecordedBlocks,
+      recordedBlocks,
       isHost:
         fragment?.participants.find(
           ({ participant }) => participant.userSub === sub
@@ -1019,7 +1028,7 @@ const Studio = ({
     payload,
     participants,
     branding,
-    prevRecordedBlocks,
+    recordedBlocks,
   ])
 
   useMemo(() => {
@@ -1085,13 +1094,11 @@ const Studio = ({
   }
 
   useEffect(() => {
-    console.log('PrevRec:', previouslyRecordedVideo)
-    console.log('RecBlovks:', recordedVideoSrc)
-  }, [previouslyRecordedVideo, recordedVideoSrc])
-
-  useEffect(() => {
     const block = fragment?.editorState?.blocks?.[payload?.activeObjectIndex]
+
     if (!block) return
+
+    setCurrentBlock(block)
 
     // check if block was already recorded and if so show the video preview
     const previouslyRecordedBlock = recordedBlocks?.find((b) => {
@@ -1134,15 +1141,18 @@ const Studio = ({
     stop()
   }, [payload?.activeObjectIndex]) // undefined -> defined
 
+  const clearRecordedBlocks = () => {
+    setStudio({ ...studio, recordedBlocks: [], recordingId: '' })
+  }
+
   const prepareVideo = async () => {
-    if (state === 'preview') {
-      if (!previouslyRecordedVideo) {
-        const blob = await getBlobs()
-        const url = URL.createObjectURL(blob)
-        setRecordedVideoSrc(url)
-      } else {
-        setRecordedVideoSrc(previouslyRecordedVideo)
-      }
+    if (state === 'preview' && currentBlock) {
+      console.log('Preparing video...')
+      const blob = await getBlobs()
+      const url = URL.createObjectURL(blob)
+      setRecordedVideoSrc(url)
+      console.log('Settng src to:', url)
+      updateRecordedBlocks(currentBlock.id, url)
     }
     if (state !== 'preview' && state !== 'upload') {
       setRecordedVideoSrc(undefined)
@@ -1196,6 +1206,14 @@ const Studio = ({
       }}
       className={cx(
         'mt-auto flex gap-x-4 px-6 py-3 overflow-x-scroll h-14',
+        {
+          'pointer-events-none':
+            state === 'preview' && recordedBlocks && currentBlock
+              ? recordedBlocks
+                  ?.find((b) => b.id === currentBlock.id)
+                  ?.objectUrl?.includes('blob') || false
+              : false,
+        },
         noScrollBar
       )}
     >
@@ -1218,28 +1236,25 @@ const Studio = ({
                 }
               )}
               onClick={() => {
-                // if current block is recorded by isnt saved to the cloud or if the user has not intentionally pressed retake to discard the rec, show warning.
-                if (
-                  state === 'preview' &&
-                  (recordedVideoSrc?.includes('blob') ||
-                    previouslyRecordedVideo?.includes('blob'))
-                ) {
-                  emitToast({
-                    title:
-                      'Please save/discard the video before leaving selecting another block',
-                    type: 'warning',
-                  })
-                  return
-                }
+                // TODO: if current block is recorded by isnt saved to the cloud or if the user has not intentionally pressed retake to discard the rec, show warning.
+
+                const newSrc =
+                  recordedBlocks && currentBlock
+                    ? recordedBlocks?.find((b) => b.id === currentBlock.id)
+                        ?.objectUrl || ''
+                    : ''
+                if (newSrc.includes('blob') && state === 'preview') return
 
                 // checking if block already has recording
                 const clickedBlock = recordedBlocks?.find((b) => {
                   return b.id === block.id
                 })
-                console.log('Recorded Blocks = ', recordedBlocks)
-                console.log('clickedBlock', clickedBlock)
-                console.log('block id = ', block)
-                console.log('state = ', state)
+                // console.log('Recorded Blocks = ', recordedBlocks)
+                // console.log('clickedBlock', clickedBlock)
+                // console.log('block id = ', block)
+                // console.log('state = ', state)
+                // console.log('Active index = ', index)
+
                 // when block was previously rec and uploaded and we have a url to show preview
                 if (clickedBlock && clickedBlock.objectUrl) {
                   updatePayload({
@@ -1251,7 +1266,6 @@ const Studio = ({
                   setState('preview')
                 } else {
                   // when the clicked block is not yet recorded.
-                  console.log('Active index = ', index)
                   setPreviouslyRecordedVideo(undefined)
                   updatePayload({
                     activeObjectIndex: index,
@@ -1260,7 +1274,9 @@ const Studio = ({
                 }
               }}
             >
-              {recordedBlocks?.find((b) => b.id === block.id) && (
+              {recordedBlocks
+                ?.find((b) => b.id === block.id)
+                ?.objectUrl?.includes('.webm') && (
                 <div className="absolute top-0 right-0 rounded-tr-sm rounded-bl-sm bg-incredible-green-600">
                   <IoCheckmarkOutline className="m-px text-gray-200" size={8} />
                 </div>
@@ -1386,7 +1402,7 @@ const Studio = ({
       ) : (
         <>
           <div className="flex items-center justify-center flex-col gap-y-12 w-full h-full">
-            {recordedVideoSrc && (
+            {recordedBlocks && (
               <div
                 style={{
                   height: '80vh',
@@ -1402,7 +1418,16 @@ const Studio = ({
                   controls
                   autoPlay={false}
                   type="blob"
-                  src={recordedVideoSrc}
+                  src={(() => {
+                    const newSrc =
+                      recordedBlocks && currentBlock
+                        ? recordedBlocks?.find((b) => b.id === currentBlock.id)
+                            ?.objectUrl || ''
+                        : ''
+                    console.log('NewSRC = ', newSrc)
+                    if (newSrc.includes('blob')) return newSrc
+                    return `${config.storage.baseUrl}${newSrc}`
+                  })()}
                   key={nanoid()}
                 />
               </div>
@@ -1412,7 +1437,7 @@ const Studio = ({
               <div className="flex items-center rounded-md gap-x-4">
                 {
                   // if block already has a recording dont show save button
-                  !previouslyRecordedVideo && (
+                  recordedVideoSrc?.includes('blob') && (
                     <button
                       className="bg-green-600 border-green-600 text-white border rounded-sm py-1.5 px-2.5 flex items-center gap-x-2 font-bold hover:shadow-lg text-sm"
                       type="button"
@@ -1469,7 +1494,23 @@ const Studio = ({
                   onClick={() => {
                     logEvent(PageEvent.Retake)
                     resetCanvas()
-                    const isCloudBlock = studio.recordedBlocks?.find(
+
+                    if (recordedBlocks && currentBlock) {
+                      console.log('DELETING FOR RETAKE')
+                      const localRecordedBlocks = [...recordedBlocks]
+                      const currentRecordedBlock =
+                        localRecordedBlocks?.findIndex(
+                          (b) => b.id === currentBlock?.id
+                        )
+                      localRecordedBlocks.splice(currentRecordedBlock, 1)
+                      console.log('Local Rec Blocks', localRecordedBlocks)
+                      setStudio({
+                        ...studio,
+                        recordedBlocks: localRecordedBlocks,
+                      })
+                    }
+
+                    const isCloudBlock = recordedBlocks?.find(
                       (b) =>
                         b.id ===
                         fragment.editorState.blocks[payload?.activeObjectIndex]

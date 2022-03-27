@@ -85,7 +85,7 @@ const Preload = ({
     if (recording) {
       const { data: recordedBlocks } = await getRecordedBlocks({
         variables: {
-          recordingId: recordingsData?.Recording[0].id,
+          recordingId: recording.id,
         },
       })
       console.log('RB: ', recordedBlocks)
