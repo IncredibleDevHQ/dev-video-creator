@@ -2,7 +2,7 @@
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 import { css, cx } from '@emotion/css'
-import React, { HTMLAttributes, useEffect, useState } from 'react'
+import React, { HTMLAttributes, useEffect, useRef, useState } from 'react'
 import { BiCheck } from 'react-icons/bi'
 import { BsCloudCheck, BsCloudUpload } from 'react-icons/bs'
 import {
@@ -291,7 +291,17 @@ const FragmentBar = ({
     400
   )
 
+  // useEffect(() => {
+  //   console.log('useEffect', editorValue)
+  // }, [editorValue])
+
+  const initialLoad = useRef<boolean>(true)
+
   useDidUpdateEffect(() => {
+    if (initialLoad.current) {
+      initialLoad.current = false
+      return
+    }
     debounced()
   }, [editorValue, config, useBranding, brandingId, simpleAST])
 

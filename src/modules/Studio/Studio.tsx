@@ -50,9 +50,9 @@ import { logEvent } from '../../utils/analytics'
 import { PageEvent } from '../../utils/analytics-types'
 import { TopLayerChildren, ViewConfig } from '../../utils/configTypes'
 import { BrandingJSON } from '../Branding/BrandingPage'
+import { EditorProvider } from '../Flick/components/EditorProvider'
 import { TextEditorParser } from '../Flick/editor/utils/helpers'
 import { Block, SimpleAST, useUtils } from '../Flick/editor/utils/utils'
-import { EditorProvider } from '../Flick/Flick'
 import { Countdown, TimerModal } from './components'
 import {
   CONFIG,
@@ -79,7 +79,7 @@ const noScrollBar = css`
 const StudioHoC = () => {
   const [view, setView] = useState<'preview' | 'preload' | 'studio'>('preload')
 
-  const { sub, displayName } = (useRecoilValue(userState) as User) || {}
+  const { sub } = (useRecoilValue(userState) as User) || {}
   const { fragmentId } = useParams<{ fragmentId: string }>()
   const [fragment, setFragment] = useState<StudioFragmentFragment>()
   const [isUserAllowed, setUserAllowed] = useState(false)
@@ -165,10 +165,7 @@ const StudioHoC = () => {
 
   if (view === 'studio' && fragment)
     return (
-      <EditorProvider
-        flickId={fragment.flickId}
-        userName={displayName as string}
-      >
+      <EditorProvider>
         <Studio
           data={data}
           studioFragment={fragment}
@@ -234,7 +231,7 @@ const Preview = ({
       try {
         if (camera?.id) {
           const stream = await navigator.mediaDevices.getUserMedia({
-            video: { deviceId: camera.id, aspectRatio: { ideal: 16 / 9 } },
+            video: { deviceId: camera.id, aspectRatio: 4 / 3 },
           })
 
           setCameraStream(stream)
@@ -623,7 +620,7 @@ const Studio = ({
     {
       microphoneId: devices.microphone?.id,
     },
-    { cameraId: devices.camera?.id }
+    { cameraId: devices.camera?.id, encoderConfig: '720p_6' }
   )()
 
   const { stream, join, users, mute, leave, userAudios, renewToken } = useAgora(
@@ -940,6 +937,13 @@ const Studio = ({
     setStudio({
       ...studio,
       fragment,
+    })
+  }, [fragment])
+
+  useMemo(() => {
+    if (!fragment) return
+    setStudio({
+      ...studio,
       stream: stream as MediaStream,
       startRecording: start,
       stopRecording: stop,
@@ -973,7 +977,6 @@ const Studio = ({
         )?.participant.owner || false,
     })
   }, [
-    fragment,
     stream,
     users,
     state,
@@ -1331,7 +1334,7 @@ const Studio = ({
                 resetTimer={resetTimer}
               />
             </div>
-            <Notes stageHeight={stageHeight} />
+            <Notes key={payload?.activeObjectIndex} stageHeight={stageHeight} />
           </div>
           {/* Mini timeline */}
 
@@ -1431,6 +1434,7 @@ const Studio = ({
                   onClick={() => {
                     logEvent(PageEvent.Retake)
                     resetCanvas()
+                    setTopLayerChildren?.({ id: nanoid(), state: '' })
 
                     if (recordedBlocks && currentBlock) {
                       console.warn('DELETING FOR RETAKE')

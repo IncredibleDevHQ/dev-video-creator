@@ -1,10 +1,12 @@
+/* eslint-disable jsx-a11y/no-autofocus */
 /* eslint-disable react/no-this-in-sfc */
 /* eslint-disable react/jsx-no-bind */
 /* eslint-disable jsx-a11y/media-has-caption */
 import { css, cx } from '@emotion/css'
-import { mergeAttributes, Node } from '@tiptap/core'
+import { Editor, mergeAttributes, Node } from '@tiptap/core'
 import { NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react'
 import Konva from 'konva'
+import { NodeSelection } from 'prosemirror-state'
 import React, { useEffect, useState } from 'react'
 import Dropzone from 'react-dropzone'
 import {
@@ -35,28 +37,46 @@ const VideoTooltip = ({
   editVideo,
   retakeVideo,
   deleteVideo,
+  props,
 }: {
   deleteVideo: () => void
   editVideo: (val: boolean) => void
   retakeVideo: (val: boolean) => void
+  props: any
 }) => {
   return (
-    <div className="hidden group-hover:flex items-center gap-x-1 p-2 text-gray-300 bg-gray-800 rounded-sm m-2 absolute z-50 shadow-md cursor-default">
+    <div className="hidden group-hover:flex items-center gap-x-1 pl-2 text-gray-300 bg-gray-800 rounded-sm m-2 absolute z-50 shadow-md cursor-default font-body">
       <FiEdit
-        size={18}
+        size={16}
         className="mx-1 cursor-pointer hover:text-gray-50"
         onClick={() => editVideo(true)}
       />
       <FiRepeat
-        size={18}
+        size={16}
         className="mx-1 cursor-pointer hover:text-gray-50"
         onClick={() => retakeVideo(true)}
       />
       <FiTrash
-        size={18}
+        size={16}
         className="mx-1 cursor-pointer hover:text-gray-50"
         onClick={deleteVideo}
       />
+      <button
+        className="hidden group-hover:block hover:bg-gray-700 text-white px-2  border-gray-300 pl-2 rounded-r-sm py-1"
+        type="button"
+        onClick={() => {
+          if (props.node.attrs.caption === null)
+            props.updateAttributes({
+              caption: '',
+            })
+          else
+            props.updateAttributes({
+              caption: null,
+            })
+        }}
+      >
+        {props.node.attrs.caption === null ? 'Add caption' : 'Remove Caption'}
+      </button>
     </div>
   )
 }
@@ -263,6 +283,7 @@ const VideoBlock = (props: any) => {
         editVideo={setEditVideo}
         retakeVideo={setRetakeVideo}
         deleteVideo={deleteVideo}
+        props={props}
       />
 
       <div
@@ -403,14 +424,26 @@ const VideoBlock = (props: any) => {
           </button>
         </div>
       </div>
-      <input
-        value={caption}
-        placeholder="Write a caption..."
-        className="border border-gray-200 w-full mt-1.5 group-hover:bg-gray-100 font-body px-2 py-1 focus:outline-none placeholder-italic text-black"
-        onChange={(e) => {
-          props.updateAttributes({ caption: e.target.value })
-        }}
-      />
+      {caption !== null && (
+        <input
+          autoFocus
+          onFocus={() => {
+            const editor = props.editor as Editor
+            editor.view.dispatch(
+              editor.view.state.tr.setSelection(
+                NodeSelection.create(editor.view.state.doc, props.getPos())
+              )
+            )
+          }}
+          value={caption}
+          placeholder="Write a caption..."
+          className="border border-gray-200 w-full mt-1.5 group-hover:bg-gray-100 font-body px-2 py-1 focus:outline-none placeholder-italic text-black"
+          onChange={(e) => {
+            props.updateAttributes({ caption: e.target.value })
+          }}
+        />
+      )}
+      <div className="w-full p-1" />
       {(editVideo || retakeVideo) && (
         <AddVideo
           open={editVideo || retakeVideo}
@@ -445,6 +478,8 @@ export default Node.create({
   content: 'block*',
 
   atom: true,
+
+  isolating: true,
 
   parseHTML() {
     return [

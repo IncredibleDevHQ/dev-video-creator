@@ -216,7 +216,7 @@ const Timeline = ({
                       '!border-brand':
                         (currentBlock?.type === 'introBlock' &&
                           payload.activeIntroIndex ===
-                            currentBlock?.introBlock.order.length - 1 &&
+                            (flick?.branding?.branding.introVideoUrl ? 2 : 1) &&
                           block.id === currentBlock?.id) ||
                         (currentBlock?.type !== 'introBlock' &&
                           block.id === currentBlock?.id),

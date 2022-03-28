@@ -16,6 +16,7 @@ import { BrandingJSON } from '../../../Branding/BrandingPage'
 import {
   Block,
   CodeBlockProps,
+  HeadingBlockProps,
   ImageBlockProps,
   IntroBlockProps,
   ListBlockProps,
@@ -31,6 +32,7 @@ import OutroFragment from './OutroFragment'
 import PointsFragment from './PointsFragment'
 import ImageFragment from './ImageFragment'
 import VideoFragment from './VideoFragment'
+import HeadingFragment from './HeadingFragment'
 
 const UnifiedFragment = ({
   stageRef,
@@ -369,6 +371,23 @@ const UnifiedFragment = ({
                 stageRef={stageRef}
                 shortsMode={viewConfig.mode === 'Portrait'}
                 isPreview={isPreview}
+              />
+            )
+          }
+          case 'headingBlock': {
+            return (
+              <HeadingFragment
+                key={activeObjectIndex}
+                dataConfig={dataConfig[activeObjectIndex] as HeadingBlockProps}
+                viewConfig={
+                  viewConfig.blocks[
+                    dataConfig[activeObjectIndex].id
+                  ] as BlockProperties
+                }
+                fragmentState={fragmentState}
+                setFragmentState={setFragmentState}
+                stageRef={stageRef}
+                shortsMode={viewConfig.mode === 'Portrait'}
               />
             )
           }

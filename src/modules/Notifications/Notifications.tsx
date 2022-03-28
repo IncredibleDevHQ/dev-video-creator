@@ -151,7 +151,7 @@ const Notifications = () => {
                             )
                             break
                           case Notification_Meta_Type_Enum_Enum.Flick:
-                            history.push(`/flick/${notification.meta?.flickId}`)
+                            history.push(`/story/${notification.meta?.flickId}`)
                             break
                           case Notification_Meta_Type_Enum_Enum.Series:
                             window.open(

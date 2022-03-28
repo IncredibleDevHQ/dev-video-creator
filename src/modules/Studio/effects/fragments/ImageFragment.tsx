@@ -1,5 +1,6 @@
 /* eslint-disable no-nested-ternary */
 import Konva from 'konva'
+import { nanoid } from 'nanoid'
 import React, { useEffect, useRef, useState } from 'react'
 import { Group, Image, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
@@ -322,6 +323,7 @@ const ImageFragment = ({
           <>
             {isGif ? (
               <Gif
+                key={nanoid()}
                 image={qnaImage}
                 x={imgDim.x}
                 y={imgDim.y}

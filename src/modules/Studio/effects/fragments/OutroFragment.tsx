@@ -68,6 +68,7 @@ const OutroFragment = ({
   const [youtubeLogo] = useImage(YoutubeLogo, 'anonymous')
 
   const [outroConfig, setOutroConfig] = useState<OutroConfig>()
+  const [outroMsg, setOutroMsg] = useState<string>()
   const [socialHandles, setSocialHandles] = useState<SocialHandles>({})
   // const [outroLayout, setOutroLayout] = useState<OutroLayout>()
 
@@ -95,6 +96,7 @@ const OutroFragment = ({
         isShorts,
       })
     )
+    setOutroMsg(outroBlockViewProps?.title || 'Thanks for watching')
     setSocialHandles(
       {
         twitterHandle:
@@ -187,11 +189,12 @@ const OutroFragment = ({
           />
           <Group x={outroConfig?.layoutX} y={outroConfig?.layoutY}>
             <Text
-              x={outroConfig?.textX || 0}
+              x={outroConfig?.textX || 16}
               y={outroConfig?.textY || 0}
               width={outroConfig?.textWidth || 0}
               height={outroConfig?.textHeight || 0}
-              text="Thanks for watching"
+              text={outroMsg}
+              align={viewConfig?.layout === 'classic' ? 'center' : 'left'}
               fill={branding?.colors?.text || getThemeTextColor(theme)}
               fontSize={outroConfig?.textFontSize || 0}
               fontFamily={getThemeFont(theme)}

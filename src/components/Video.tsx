@@ -270,19 +270,6 @@ const Video = ({ className, src, ...rest }: VideoProps) => {
   const [videoType, setVideoType] = useState<string>('video/mp4')
   const videoRef = useRef<HTMLVideoElement>(null)
 
-  useEffect(() => {
-    if (!videoType) return
-    console.log('New Video src : ', src)
-    const data = src.split('.').slice(-1).join()
-    if (rest.type) {
-      setVideoType(rest.type)
-    } else if (data !== 'm3u8') {
-      setVideoType(`video/${data}`)
-    } else {
-      setVideoType('application/x-mpegURL')
-    }
-  }, [src])
-
   const handlePlayerReady = (player: VideoJsPlayer) => {
     playerRef.current = player
     player.on('waiting', () => {})
