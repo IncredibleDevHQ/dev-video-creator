@@ -562,7 +562,7 @@ const Flick = () => {
                 currentBlock.type &&
                 viewConfig &&
                 simpleAST &&
-                simpleAST?.blocks?.length > 2 && (
+                simpleAST?.blocks?.length >= 2 && (
                   <BlockPreview
                     block={currentBlock}
                     blocks={simpleAST?.blocks || []}
