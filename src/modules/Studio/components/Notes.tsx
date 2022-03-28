@@ -136,8 +136,11 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
                   pos + 1,
                   pos + node.nodeSize,
                   notes.split('\n').map((line) => {
-                    if (line.trim() === '') return line
-                    const textNode = editor.view.state.schema.text(line)
+                    let lineText = line
+                    if (line === '') {
+                      lineText = ' '
+                    }
+                    const textNode = editor.view.state.schema.text(lineText)
                     const paragraphNode =
                       editor.view.state.schema.nodes.paragraph.create(
                         null,
