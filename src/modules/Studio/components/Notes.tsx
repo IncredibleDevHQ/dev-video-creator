@@ -5,7 +5,7 @@ import Paragraph from '@tiptap/extension-paragraph'
 import Placeholder from '@tiptap/extension-placeholder'
 import Text from '@tiptap/extension-text'
 import { EditorContent, useEditor } from '@tiptap/react'
-import React, { useContext, useEffect, useMemo, useState } from 'react'
+import React, { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useRecoilState } from 'recoil'
 import { useDebouncedCallback } from 'use-debounce'
 import { v4 as uuidv4 } from 'uuid'
@@ -32,6 +32,8 @@ const CustomDocument = Document.extend({
 })
 
 const Notes = ({ stageHeight }: { stageHeight: number }) => {
+  const initialRender = useRef<boolean>(true)
+
   const { editor } = useContext(EditorContext) || {}
 
   const [localNote, setLocalNote] = useState<string>()
@@ -55,8 +57,8 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
       variables: {
         flickId: fragment?.flickId,
         fragmentId: fragment?.id,
-        editorState: value,
-        md: editor?.getHTML() as string,
+        editorState: value.newSimpleAST,
+        md: value.md,
       },
     })
   }, 500)
@@ -132,7 +134,7 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
               editor.view.dispatch(
                 editor.state.tr.replaceWith(
                   pos + 1,
-                  pos + 1 + node.nodeSize,
+                  pos + node.nodeSize,
                   notes.split('\n').map((line) => {
                     if (line.trim() === '') return line
                     const textNode = editor.view.state.schema.text(line)
@@ -247,7 +249,10 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
           },
         },
       }))
-      updateFlickMdAndNotes(newSimpleAST)
+      updateFlickMdAndNotes({
+        newSimpleAST,
+        md: editor?.getHTML() as string,
+      })
     } else {
       if (!simpleAST || !fragment) return
       const newSimpleAST = {
@@ -288,6 +293,7 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
   }
 
   const { note, noteId } = useMemo(() => {
+    initialRender.current = true
     if (!simpleAST || payload?.activeObjectIndex === undefined) return {}
     const block = simpleAST.blocks[payload?.activeObjectIndex]
     setLocalNote(undefined)
@@ -373,6 +379,10 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
   }, [note, noteEditor])
 
   useEffect(() => {
+    if (initialRender.current) {
+      initialRender.current = false
+      return
+    }
     if (localNote === undefined) return
     updateNotes(localNoteId || noteId, localNote)
   }, [localNote])
