@@ -5,6 +5,7 @@ import FlickNavBar from './FlickNavBar'
 import FragmentBar from './FragmentBar'
 import FragmentVideoModal from './FragmentVideoModal'
 import Preview from './Preview'
+import Publish from './Publish'
 import RecordingModal from './RecordingModal'
 import ScreenRecording from './ScreenRecording'
 import Timeline from './Timeline'
@@ -17,6 +18,7 @@ export {
   FragmentBar,
   FragmentVideoModal,
   Preview,
+  Publish,
   RecordingModal,
   ScreenRecording,
   Timeline,

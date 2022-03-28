@@ -60,7 +60,7 @@ const Timeline = ({
 
   return (
     <div
-      className={cx('absolute flex flex-col bottom-0 left-0 w-full', {
+      className={cx('absolute flex flex-col bottom-0 left-0 w-full z-50', {
         relative: persistentTimeline,
       })}
     >

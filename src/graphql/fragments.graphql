@@ -52,6 +52,16 @@ fragment RecordedBlocks on Blocks {
   updatedAt
 }
 
+fragment Recording on Recording {
+  id
+  type
+  url
+  status
+  checkpoint
+  thumbnail
+  storyboard
+}
+
 query GetFragmentById($id: uuid!, $sub: String!) {
   Fragment(
     where: {
@@ -98,10 +108,7 @@ query GetRecordings($flickId: uuid, $fragmentId: uuid) {
   Recording(
     where: { flickId: { _eq: $flickId }, fragmentId: { _eq: $fragmentId } }
   ) {
-    id
-    type
-    thumbnail
-    storyboard
+    ...Recording
   }
 }
 
