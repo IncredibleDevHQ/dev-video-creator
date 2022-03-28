@@ -66,7 +66,7 @@ const Preload = ({
     })
 
   if (getRecordingsError) {
-    console.log('GQL ERROR:', getRecordingsError)
+    console.error('GQL ERROR:', getRecordingsError)
   }
 
   const [getRecordedBlocks] = useGetRecordedBlocksLazyQuery()
@@ -74,6 +74,7 @@ const Preload = ({
   const [setupRecording] = useSetupRecordingMutation()
 
   const getRecording = async (variables: SetupRecordingMutationVariables) => {
+    if (!fragment?.configuration) return
     const requiredType =
       fragment.configuration.mode === 'Portrait'
         ? Content_Type_Enum_Enum.VerticalVideo
@@ -81,14 +82,13 @@ const Preload = ({
     const recording = recordingsData?.Recording?.find(
       (recording) => recording.type === requiredType
     )
-    console.log('Current recording is :', recordingsData)
+    console.log('Current recording is :', recording)
     if (recording) {
       const { data: recordedBlocks } = await getRecordedBlocks({
         variables: {
           recordingId: recording.id,
         },
       })
-      console.log('RB: ', recordedBlocks)
       setStudio((prev) => ({
         ...prev,
         recordingId: recording.id,

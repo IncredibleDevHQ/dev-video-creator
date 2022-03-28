@@ -157,42 +157,43 @@ const UnifiedFragment = ({
     // as the else block contains set timeout it executes after the if block, so active object index becomes 3
     // so put the condition on state to be recording so that on recording it deosnt take time to make the active object index 0,
     // so that the old active object index's object doesnt get rendered on the canvas initially
-    if (state === 'start-recording' && payload?.activeObjectIndex === 0) {
-      setActiveObjectIndex(payload?.activeObjectIndex)
-    } else if (viewConfig?.mode !== 'Portrait') {
-      setTimeout(() => {
-        setActiveObjectIndex(payload?.activeObjectIndex)
-      }, 400)
-    } else if (
-      payload?.activeObjectIndex === 1 ||
-      payload?.activeObjectIndex === (dataConfig?.length || 2) - 1
-    ) {
-      dipToBlackRef.current?.to({
-        opacity: 1,
-        duration: 0.2,
-        onFinish: () => {
-          dipToBlackRef.current?.to({
-            opacity: 0,
-            duration: 0.2,
-          })
-        },
-      })
-      if (payload?.activeObjectIndex === (dataConfig?.length || 2) - 1) {
-        addMusic({ volume: 0.05, action: 'modifyVolume' })
-      }
-      setTimeout(() => {
-        setActiveObjectIndex(payload?.activeObjectIndex)
-      }, 200)
-    } else {
-      setActiveObjectIndex(payload?.activeObjectIndex)
-    }
+    // if (state === 'start-recording' && payload?.activeObjectIndex === 0) {
+    //   setActiveObjectIndex(payload?.activeObjectIndex)
+    // } else if (viewConfig?.mode !== 'Portrait') {
+    //   setTimeout(() => {
+    //     setActiveObjectIndex(payload?.activeObjectIndex)
+    //   }, 400)
+    // } else if (
+    //   payload?.activeObjectIndex === 1 ||
+    //   payload?.activeObjectIndex === (dataConfig?.length || 2) - 1
+    // ) {
+    //   dipToBlackRef.current?.to({
+    //     opacity: 1,
+    //     duration: 0.2,
+    //     onFinish: () => {
+    //       dipToBlackRef.current?.to({
+    //         opacity: 0,
+    //         duration: 0.2,
+    //       })
+    //     },
+    //   })
+    //   if (payload?.activeObjectIndex === (dataConfig?.length || 2) - 1) {
+    //     addMusic({ volume: 0.05, action: 'modifyVolume' })
+    //   }
+    //   setTimeout(() => {
+    //     setActiveObjectIndex(payload?.activeObjectIndex)
+    //   }, 200)
+    // } else {
+    //   setActiveObjectIndex(payload?.activeObjectIndex)
+    // }
+    setActiveObjectIndex(payload?.activeObjectIndex)
   }, [payload?.activeObjectIndex, viewConfig])
 
   useEffect(() => {
     // if (!payload?.activeObjectIndex || payload?.activeObjectIndex === 0) return
     if (payload?.activeObjectIndex === undefined) return
-    if (viewConfig?.mode !== 'Portrait')
-      setTopLayerChildren?.({ id: nanoid(), state: 'transition right' })
+    // if (viewConfig?.mode !== 'Portrait')
+    //   setTopLayerChildren?.({ id: nanoid(), state: 'transition right' })
     updatePayload?.({
       currentIndex: 0,
       prevIndex: -1,

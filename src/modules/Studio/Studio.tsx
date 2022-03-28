@@ -871,14 +871,14 @@ const Studio = ({
 
     setResetTimer(false)
 
-    if (fragment?.configuration?.mode === 'Portrait') {
-      addMusic({
-        type: 'shorts',
-        volume: 0.2,
-        musicURL: staticAssets?.shortsBackgroundMusic,
-        action: 'start',
-      })
-    }
+    // if (fragment?.configuration?.mode === 'Portrait') {
+    //   addMusic({
+    //     type: 'shorts',
+    //     volume: 0.2,
+    //     musicURL: staticAssets?.shortsBackgroundMusic,
+    //     action: 'start',
+    //   })
+    // }
 
     if (state === 'ready' && payload?.activeObjectIndex === 0)
       setState('start-recording')
@@ -899,9 +899,9 @@ const Studio = ({
 
   const stop = () => {
     console.log('stop')
-    addMusic({ volume: 0.01, action: 'modifyVolume' })
+    // addMusic({ volume: 0.01, action: 'modifyVolume' })
     stopCanvasRecording()
-    addMusic({ action: 'stop' })
+    // addMusic({ action: 'stop' })
 
     setState('preview')
   }
@@ -927,7 +927,6 @@ const Studio = ({
       payload?.status === Fragment_Status_Enum_Enum.Completed
     ) {
       stream?.getTracks().forEach((track) => track.stop())
-      history.goBack()
       emitToast({
         title: 'This Fragment is completed.',
         type: 'success',

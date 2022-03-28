@@ -525,8 +525,10 @@ const RecordingControlsBar = ({
                 controlsConfig,
                 'next'
               )
-
-              if (isBlockCompleted && state === 'recording') {
+              if (
+                isBlockCompleted &&
+                (state === 'recording' || state === 'start-recording')
+              ) {
                 studio.stopRecording()
               }
             }
