@@ -80,7 +80,7 @@ const noScrollBar = css`
 const StudioHoC = () => {
   const [view, setView] = useState<'preview' | 'preload' | 'studio'>('preload')
 
-  const { sub, displayName } = (useRecoilValue(userState) as User) || {}
+  const { sub } = (useRecoilValue(userState) as User) || {}
   const { fragmentId } = useParams<{ fragmentId: string }>()
   const [fragment, setFragment] = useState<StudioFragmentFragment>()
   const [isUserAllowed, setUserAllowed] = useState(false)
@@ -891,7 +891,6 @@ const Studio = ({
 
   useMemo(() => {
     if (!fragment) return
-    console.log('fragment', fragment)
     setStudio({
       ...studio,
       fragment,
