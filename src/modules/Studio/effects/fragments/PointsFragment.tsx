@@ -16,6 +16,7 @@ import { ListBlockProps, ListItem } from '../../../Flick/editor/utils/utils'
 import Concourse from '../../components/Concourse'
 import FragmentBackground from '../../components/FragmentBackground'
 import { FragmentState } from '../../components/RenderTokens'
+import RichText from '../../components/RichText'
 import { usePoint } from '../../hooks'
 import { ComputedPoint } from '../../hooks/use-point'
 import { StudioProviderProps, studioStore } from '../../stores'
@@ -289,7 +290,7 @@ const PointsFragment = ({
             : objectRenderConfig.surfaceColor
         }
       />
-      <Text
+      <RichText
         key="fragmentTitle"
         x={objectRenderConfig.startX + 30}
         y={
@@ -306,8 +307,35 @@ const PointsFragment = ({
         }
         width={objectRenderConfig.availableWidth - 80}
         lineHeight={1.15}
-        text={dataConfig.listBlock.title || fragment?.name || ''}
-        fontStyle="normal 800"
+        // text={dataConfig.listBlock.title || fragment?.name || ''}
+        content={[
+          {
+            type: 'text',
+            content: dataConfig.listBlock.title || fragment?.name || '',
+            line: 0,
+          },
+          {
+            type: 'richText',
+            content: { text: 'var i = 0', marks: ['code'] },
+            line: 0,
+          },
+          {
+            type: 'richText',
+            content: { text: 'Hello', marks: ['bold'] },
+            line: 0,
+          },
+          {
+            type: 'richText',
+            content: { text: 'Hello', marks: ['italic'] },
+            line: 0,
+          },
+          {
+            type: 'richText',
+            content: { text: 'Hello', marks: ['italic', 'bold'] },
+            line: 0,
+          },
+        ]}
+        // fontStyle="normal 800"
         fontFamily={branding?.font?.heading?.family || 'Gilroy'}
       />
       {orientation === 'vertical' ? (
