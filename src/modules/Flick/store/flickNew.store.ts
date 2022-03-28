@@ -6,6 +6,11 @@ export enum View {
   Preview = 'preview',
 }
 
+export enum RecordingType {
+  Continuos = 'continuos',
+  BlockByBlock = 'block-by-block',
+}
+
 interface NewFlickStore {
   flick: FlickFragment | null
   activeFragmentId: string
