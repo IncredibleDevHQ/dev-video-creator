@@ -1,7 +1,7 @@
 import { css, cx } from '@emotion/css'
 import axios from 'axios'
 import React, { useEffect, useState } from 'react'
-import { FiExternalLink, FiRefreshCcw, FiRefreshCw } from 'react-icons/fi'
+import { FiExternalLink, FiRefreshCw } from 'react-icons/fi'
 import { HiOutlineDownload } from 'react-icons/hi'
 import { IoPlayOutline } from 'react-icons/io5'
 import Modal from 'react-responsive-modal'
@@ -49,13 +49,13 @@ const Publish = ({
   ] = useCompleteRecordingMutation()
 
   const completeFragmentRecording = async (recordingId: string) => {
-    await completeRecording({
+    const { data } = await completeRecording({
       variables: {
         editorState: JSON.stringify(simpleAST),
         recordingId,
       },
     })
-    await refetch()
+    if (data?.CompleteRecording?.success) await refetch()
   }
 
   useEffect(() => {
@@ -210,12 +210,6 @@ const RecordingItem = ({
           </div>
         </div>
         <div className="flex justify-end items-center">
-          {recording.status !== Recording_Status_Enum_Enum.Processing &&
-            loadingCompleteRecording && (
-              <Text className="flex items-center">
-                <FiRefreshCw className="mr-2 animate-spin" /> Processing
-              </Text>
-            )}
           {(() => {
             if (loadingCompleteRecording) return <></>
             switch (recording.status) {
