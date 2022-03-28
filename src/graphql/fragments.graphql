@@ -284,3 +284,20 @@ mutation UpdateFragmentEditorState($id: uuid!, $editorState: json!) {
     id
   }
 }
+
+mutation UpdateFlickMdAndEditorState(
+  $flickId: uuid!
+  $md: String!
+  $fragmentId: uuid!
+  $editorState: json!
+) {
+  update_Flick_by_pk(pk_columns: { id: $flickId }, _set: { md: $md }) {
+    id
+  }
+  update_Fragment_by_pk(
+    pk_columns: { id: $fragmentId }
+    _set: { editorState: $editorState }
+  ) {
+    id
+  }
+}

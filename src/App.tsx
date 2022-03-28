@@ -74,7 +74,7 @@ const App = () => {
                 <Route exact path="/notifications">
                   <Notifications />
                 </Route>
-                <Route exact path="/flick/:id/:fragmentId?">
+                <Route exact path="/story/:id/:fragmentId?">
                   <Flick />
                 </Route>
                 <Route exact path="/:fragmentId/studio">

@@ -7,6 +7,7 @@ import {
   IoListOutline,
   IoPlayOutline,
 } from 'react-icons/io5'
+import { CgFormatHeading } from 'react-icons/cg'
 import { Text } from '../../../components'
 import { Layout, ViewConfig } from '../../../utils/configTypes'
 import { Block } from '../editor/utils/utils'
@@ -34,6 +35,8 @@ export const FragmentTypeIcon = ({
             return (
               <IoCodeSlashOutline className="w-full h-full text-gray-400" />
             )
+          case 'headingBlock':
+            return <CgFormatHeading className="w-full h-full text-gray-400" />
           case 'introBlock':
             return (
               <Text className="flex items-center justify-center w-full h-full text-xs text-center text-gray-400 font-main">

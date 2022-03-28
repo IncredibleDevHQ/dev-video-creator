@@ -51,9 +51,9 @@ import { logEvent } from '../../utils/analytics'
 import { PageEvent } from '../../utils/analytics-types'
 import { TopLayerChildren, ViewConfig } from '../../utils/configTypes'
 import { BrandingJSON } from '../Branding/BrandingPage'
+import { EditorProvider } from '../Flick/components/EditorProvider'
 import { TextEditorParser } from '../Flick/editor/utils/helpers'
 import { SimpleAST, useUtils } from '../Flick/editor/utils/utils'
-import { EditorProvider } from '../Flick/Flick'
 import { Countdown, TimerModal } from './components'
 import {
   CONFIG,
@@ -80,7 +80,7 @@ const noScrollBar = css`
 const StudioHoC = () => {
   const [view, setView] = useState<'preview' | 'preload' | 'studio'>('preload')
 
-  const { sub, displayName } = (useRecoilValue(userState) as User) || {}
+  const { sub } = (useRecoilValue(userState) as User) || {}
   const { fragmentId } = useParams<{ fragmentId: string }>()
   const [fragment, setFragment] = useState<StudioFragmentFragment>()
   const [isUserAllowed, setUserAllowed] = useState(false)
@@ -167,10 +167,7 @@ const StudioHoC = () => {
 
   if (view === 'studio' && fragment)
     return (
-      <EditorProvider
-        flickId={fragment.flickId}
-        userName={displayName as string}
-      >
+      <EditorProvider>
         <Studio
           data={data}
           studioFragment={fragment}
@@ -822,7 +819,7 @@ const Studio = ({
         fragment: undefined,
         tracks,
       })
-      history.push(`/flick/${fragment?.flickId}/${fragmentId}`)
+      history.push(`/story/${fragment?.flickId}/${fragmentId}`)
     } catch (e) {
       emitToast({
         title: 'Yikes. Something went wrong.',
@@ -897,6 +894,13 @@ const Studio = ({
     setStudio({
       ...studio,
       fragment,
+    })
+  }, [fragment])
+
+  useMemo(() => {
+    if (!fragment) return
+    setStudio({
+      ...studio,
       stream: stream as MediaStream,
       startRecording: start,
       stopRecording: stop,
@@ -928,17 +932,7 @@ const Studio = ({
           ({ participant }) => participant.userSub === sub
         )?.participant.owner || false,
     })
-  }, [
-    fragment,
-    stream,
-    users,
-    state,
-    userAudios,
-    payload,
-    participants,
-    state,
-    branding,
-  ])
+  }, [stream, users, state, userAudios, payload, participants, state, branding])
 
   useMemo(() => {
     if (fragment?.flick?.branding?.branding?.font)
@@ -1152,7 +1146,7 @@ const Studio = ({
                 openTimerModal={() => setIsTimerModalOpen(true)}
               />
             </div>
-            <Notes stageHeight={stageHeight} />
+            <Notes key={payload?.activeObjectIndex} stageHeight={stageHeight} />
           </div>
           {/* Mini timeline */}
           <div

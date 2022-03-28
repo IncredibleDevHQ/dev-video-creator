@@ -558,6 +558,9 @@ const performAction = (
         direction
       )
       break
+    case 'headingBlock':
+      handleImageBlock(payload, updatePayload, direction)
+      break
     default:
       break
   }
