@@ -105,7 +105,7 @@ const FlickTile = ({
   return (
     <div
       className="relative border border-dark-300 rounded-md cursor-pointer hover:border-brand"
-      onClick={() => history.push(`/flick/${id}`)}
+      onClick={() => history.push(`/story/${id}`)}
       onMouseEnter={() => setOverflowButtonVisible(true)}
       onMouseLeave={() => {
         if (!overflowMenuVisible) {
