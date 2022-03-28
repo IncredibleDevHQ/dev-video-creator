@@ -11,8 +11,7 @@ import {
   SetupRecordingMutationVariables,
   StudioFragmentFragment,
   useGetRecordedBlocksLazyQuery,
-  useGetRecordedBlocksQuery,
-  useGetRecordingsQuery,
+  useGetRecordingsLazyQuery,
   useSetupRecordingMutation,
 } from '../../../generated/graphql'
 import firebaseState from '../../../stores/firebase.store'
@@ -57,13 +56,17 @@ const Preload = ({
 
   const setStudio = useSetRecoilState(studioStore)
 
-  const { data: recordingsData, error: getRecordingsError } =
-    useGetRecordingsQuery({
+  const [getRecordings, { data: recordingsData, error: getRecordingsError }] =
+    useGetRecordingsLazyQuery({
       variables: {
         flickId: fragment?.flickId,
         fragmentId: fragment?.id,
       },
     })
+
+  useEffect(() => {
+    getRecordings()
+  }, [])
 
   if (getRecordingsError) {
     console.error('GQL ERROR:', getRecordingsError)
