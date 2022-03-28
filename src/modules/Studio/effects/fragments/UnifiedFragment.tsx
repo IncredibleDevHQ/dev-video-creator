@@ -90,6 +90,13 @@ const UnifiedFragment = ({
   }, [])
 
   useEffect(() => {
+    console.log(
+      'dataConfig at activeobj idx: ',
+      dataConfig?.[activeObjectIndex]
+    )
+  }, [activeObjectIndex])
+
+  useEffect(() => {
     if (!config) return
     setDataConfig(config)
     if (!layoutConfig) return
@@ -123,6 +130,7 @@ const UnifiedFragment = ({
       setIsPreview(false)
       if (fragment.configuration && fragment.editorState) {
         setDataConfig(fragment.editorState?.blocks)
+        console.log('UF: Fragm cofig :', fragment.configuration)
         setViewConfig(fragment.configuration)
       }
     } else {
@@ -141,7 +149,8 @@ const UnifiedFragment = ({
   useEffect(() => {
     if (
       payload?.activeObjectIndex === undefined ||
-      payload?.activeObjectIndex === -1
+      payload?.activeObjectIndex === -1 ||
+      !viewConfig
     )
       return
     // having a condition on state because on retake initially the active object index will be 3
@@ -150,38 +159,43 @@ const UnifiedFragment = ({
     // as the else block contains set timeout it executes after the if block, so active object index becomes 3
     // so put the condition on state to be recording so that on recording it deosnt take time to make the active object index 0,
     // so that the old active object index's object doesnt get rendered on the canvas initially
-    if (state === 'recording' && payload?.activeObjectIndex === 0)
-      setActiveObjectIndex(payload?.activeObjectIndex)
-    else if (viewConfig?.mode !== 'Portrait')
-      setTimeout(() => {
-        setActiveObjectIndex(payload?.activeObjectIndex)
-      }, 400)
-    else if (
-      payload?.activeObjectIndex === 1 ||
-      payload?.activeObjectIndex === (dataConfig?.length || 2) - 1
-    ) {
-      dipToBlackRef.current?.to({
-        opacity: 1,
-        duration: 0.2,
-        onFinish: () => {
-          dipToBlackRef.current?.to({
-            opacity: 0,
-            duration: 0.2,
-          })
-        },
-      })
-      if (payload?.activeObjectIndex === (dataConfig?.length || 2) - 1)
-        addMusic({ volume: 0.05, action: 'modifyVolume' })
-      setTimeout(() => {
-        setActiveObjectIndex(payload?.activeObjectIndex)
-      }, 200)
-    } else setActiveObjectIndex(payload?.activeObjectIndex)
-  }, [payload?.activeObjectIndex])
+    // if (state === 'start-recording' && payload?.activeObjectIndex === 0) {
+    //   setActiveObjectIndex(payload?.activeObjectIndex)
+    // } else if (viewConfig?.mode !== 'Portrait') {
+    //   setTimeout(() => {
+    //     setActiveObjectIndex(payload?.activeObjectIndex)
+    //   }, 400)
+    // } else if (
+    //   payload?.activeObjectIndex === 1 ||
+    //   payload?.activeObjectIndex === (dataConfig?.length || 2) - 1
+    // ) {
+    //   dipToBlackRef.current?.to({
+    //     opacity: 1,
+    //     duration: 0.2,
+    //     onFinish: () => {
+    //       dipToBlackRef.current?.to({
+    //         opacity: 0,
+    //         duration: 0.2,
+    //       })
+    //     },
+    //   })
+    //   if (payload?.activeObjectIndex === (dataConfig?.length || 2) - 1) {
+    //     addMusic({ volume: 0.05, action: 'modifyVolume' })
+    //   }
+    //   setTimeout(() => {
+    //     setActiveObjectIndex(payload?.activeObjectIndex)
+    //   }, 200)
+    // } else {
+    //   setActiveObjectIndex(payload?.activeObjectIndex)
+    // }
+    setActiveObjectIndex(payload?.activeObjectIndex)
+  }, [payload?.activeObjectIndex, viewConfig])
 
   useEffect(() => {
-    if (!payload?.activeObjectIndex || payload?.activeObjectIndex === 0) return
-    if (viewConfig?.mode !== 'Portrait')
-      setTopLayerChildren?.({ id: nanoid(), state: 'transition right' })
+    // if (!payload?.activeObjectIndex || payload?.activeObjectIndex === 0) return
+    if (payload?.activeObjectIndex === undefined) return
+    // if (viewConfig?.mode !== 'Portrait')
+    //   setTopLayerChildren?.({ id: nanoid(), state: 'transition right' })
     updatePayload?.({
       currentIndex: 0,
       prevIndex: -1,
@@ -189,32 +203,33 @@ const UnifiedFragment = ({
       focusBlockCode: false,
       activeBlockIndex: 0,
       activePointIndex: 0,
+      activeIntroIndex: 0,
     })
   }, [payload?.activeObjectIndex])
 
-  useEffect(() => {
-    return () => {
-      updatePayload?.({
-        activeObjectIndex: 0,
-        activeIntroIndex: 0,
-        fragmentState: 'customLayout',
-        currentIndex: 0,
-        prevIndex: 0,
-        isFocus: false,
-        focusBlockCode: false,
-        activeBlockIndex: 0,
-        activePointIndex: 0,
-        currentTime: 0,
-        playing: false,
-        // status: Fragment_Status_Enum_Enum.NotStarted,
-      })
-    }
-  }, [])
+  // useEffect(() => {
+  //   return () => {
+  //     updatePayload?.({
+  //       activeObjectIndex: 0,
+  //       activeIntroIndex: 0,
+  //       fragmentState: 'customLayout',
+  //       currentIndex: 0,
+  //       prevIndex: 0,
+  //       isFocus: false,
+  //       focusBlockCode: false,
+  //       activeBlockIndex: 0,
+  //       activePointIndex: 0,
+  //       currentTime: 0,
+  //       playing: false,
+  //       // status: Fragment_Status_Enum_Enum.NotStarted,
+  //     })
+  //   }
+  // }, [])
 
   useEffect(() => {
     if (state === 'ready') {
       updatePayload?.({
-        activeObjectIndex: 0,
+        // activeObjectIndex: 0,
         activeIntroIndex: 0,
         fragmentState: 'customLayout',
         currentIndex: 0,
@@ -228,7 +243,7 @@ const UnifiedFragment = ({
         status: Fragment_Status_Enum_Enum.NotStarted,
       })
     }
-    if (state === 'recording') {
+    if (state === 'start-recording') {
       updatePayload?.({
         activeObjectIndex: 0,
         activeIntroIndex: 0,
@@ -246,6 +261,9 @@ const UnifiedFragment = ({
       timer.current = setTimeout(() => {
         setTopLayerChildren?.({ id: nanoid(), state: 'lowerThird' })
       }, 2000)
+    }
+    if (state === 'recording') {
+      // TODO: after ashwin's changes
     }
   }, [state])
 

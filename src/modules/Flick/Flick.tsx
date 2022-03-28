@@ -33,6 +33,7 @@ import {
   FlickNavBar,
   FragmentBar,
   Preview,
+  Publish,
   Timeline,
 } from './components'
 import BlockPreview from './components/BlockPreview'
@@ -122,6 +123,7 @@ const Flick = () => {
   const [activeFragment, setActiveFragment] = useState<FlickFragmentFragment>()
 
   const [showTimeline, setShowTimeline] = useState(false)
+  const [publishModal, setPublishModal] = useState(false)
 
   const { updatePayload, payload, resetPayload } = useLocalPayload()
   const { data: themesData } = useGetThemesQuery()
@@ -490,12 +492,14 @@ const Flick = () => {
   return (
     <EditorProvider handleUpdate={handleEditorChange}>
       <div className="relative flex flex-col w-screen h-screen overflow-hidden">
-        <FlickNavBar />
+        <FlickNavBar togglePublishModal={() => setPublishModal(true)} />
         <FragmentBar
           simpleAST={simpleAST}
           editorValue={editorValue}
           config={viewConfig}
           setViewConfig={setViewConfig}
+          currentBlock={currentBlock}
+          setCurrentBlock={setCurrentBlock}
         />
         {activeFragment && view === View.Preview && (
           <Preview
@@ -592,6 +596,14 @@ const Flick = () => {
           persistentTimeline={false}
           shouldScrollToCurrentBlock
         />
+        {publishModal && (
+          <Publish
+            open={publishModal}
+            simpleAST={simpleAST}
+            activeFragment={activeFragment}
+            handleClose={() => setPublishModal(false)}
+          />
+        )}
       </div>
     </EditorProvider>
   )

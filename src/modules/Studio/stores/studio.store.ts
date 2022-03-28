@@ -1,6 +1,7 @@
 import { ILocalVideoTrack, IMicrophoneAudioTrack } from 'agora-rtc-sdk-ng'
 import { atom } from 'recoil'
 import {
+  RecordedBlocksFragment,
   StudioFragmentFragment,
   ThemeFragment,
 } from '../../../generated/graphql'
@@ -10,9 +11,11 @@ import { RTCUser } from '../hooks/use-video'
 
 export type StudioState =
   | 'ready'
+  | 'start-recording'
   | 'recording'
   | 'preview'
   | 'upload'
+  | 'resumed'
   | 'countDown'
   | 'finalSplash'
 
@@ -24,7 +27,9 @@ export interface StudioProviderProps<T = any, S = any> {
   getBlobs: () => Promise<Blob>
   tracks: [IMicrophoneAudioTrack, ILocalVideoTrack] | null
   reset: () => void
-  upload: () => void
+  upload: (id: string) => void
+
+  recordingId?: string
 
   startRecording: () => void
   stopRecording: () => void
@@ -66,6 +71,8 @@ export interface StudioProviderProps<T = any, S = any> {
   shortsMode?: boolean
 
   staticAssets?: StaticAssets
+
+  recordedBlocks?: RecordedBlocksFragment[]
 }
 
 const studioStore = atom<StudioProviderProps>({

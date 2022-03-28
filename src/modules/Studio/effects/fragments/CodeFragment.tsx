@@ -374,41 +374,51 @@ const CodeFragment = ({
   useEffect(() => {
     // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
     if (payload?.fragmentState === 'customLayout') {
-      if (!shortsMode)
-        setTimeout(() => {
-          setFragmentState(payload?.fragmentState)
-          customLayoutRef?.current?.to({
-            opacity: 1,
-            duration: 0.1,
-          })
-        }, 400)
-      else {
-        setFragmentState(payload?.fragmentState)
-        customLayoutRef?.current?.to({
-          opacity: 1,
-          duration: 0.1,
-        })
-      }
+      setFragmentState(payload?.fragmentState)
+      customLayoutRef?.current?.to({
+        opacity: 1,
+        duration: 0.1,
+      })
+      // if (!shortsMode)
+      //   setTimeout(() => {
+      //     setFragmentState(payload?.fragmentState)
+      //     customLayoutRef?.current?.to({
+      //       opacity: 1,
+      //       duration: 0.1,
+      //     })
+      //   }, 400)
+      // else {
+      //   setFragmentState(payload?.fragmentState)
+      //   customLayoutRef?.current?.to({
+      //     opacity: 1,
+      //     duration: 0.1,
+      //   })
+      // }
     }
     // Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
     if (payload?.fragmentState === 'onlyUserMedia') {
-      if (!shortsMode)
-        setTimeout(() => {
-          setFragmentState(payload?.fragmentState)
-          customLayoutRef?.current?.to({
-            opacity: 0,
-            duration: 0.1,
-          })
-        }, 400)
-      else {
-        setFragmentState(payload?.fragmentState)
-        customLayoutRef?.current?.to({
-          opacity: 0,
-          duration: 0.1,
-        })
-      }
+      setFragmentState(payload?.fragmentState)
+      customLayoutRef?.current?.to({
+        opacity: 0,
+        duration: 0.1,
+      })
+      // if (!shortsMode)
+      //   setTimeout(() => {
+      //     setFragmentState(payload?.fragmentState)
+      //     customLayoutRef?.current?.to({
+      //       opacity: 0,
+      //       duration: 0.1,
+      //     })
+      //   }, 400)
+      // else {
+      //   setFragmentState(payload?.fragmentState)
+      //   customLayoutRef?.current?.to({
+      //     opacity: 0,
+      //     duration: 0.1,
+      //   })
+      // }
     }
-  }, [payload?.fragmentState])
+  }, [payload?.fragmentState, payload?.status])
 
   const layerChildren: any[] = [
     <Group x={0} y={0} opacity={0} ref={customLayoutRef}>

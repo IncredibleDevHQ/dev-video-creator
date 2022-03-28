@@ -46,7 +46,7 @@ import {
   ListBlockProps,
 } from '../../Flick/editor/utils/utils'
 import { ComputedPoint } from '../hooks/use-point'
-import { canvasStore, StudioProviderProps, studioStore } from '../stores'
+import { StudioProviderProps, studioStore } from '../stores'
 
 export const ControlButton = ({
   appearance,
@@ -122,6 +122,7 @@ const RecordingControlsBar = ({
   stageRef,
   stageHeight,
   stageWidth,
+  resetTimer,
   shortsMode,
   openTimerModal,
 }: {
@@ -130,6 +131,7 @@ const RecordingControlsBar = ({
   stageWidth: number
   shortsMode: boolean
   openTimerModal: () => void
+  resetTimer: boolean
   timeOver: () => void
   stageRef: React.RefObject<Konva.Stage>
 }) => {
@@ -143,7 +145,6 @@ const RecordingControlsBar = ({
     branding,
     controlsConfig,
   } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
-  const [canvas, setCanvas] = useRecoilState(canvasStore)
   const [studio, setStudio] = useRecoilState(studioStore)
   const [isRaiseHandsTooltip, setRaiseHandsTooltip] = useState(false)
   const [participant, setParticipant] = useState<any>()
@@ -198,14 +199,32 @@ const RecordingControlsBar = ({
   useEffect(() => {
     if (!fragment) return
     document.addEventListener('keydown', (event) => {
-      if (event.key === 'ArrowRight') {
+      if (event.key === 'ArrowLeft') {
         performAction(
           fragment,
-          latestPayload.current,
+          payload,
           updatePayload,
           branding,
-          controlsConfig
+          controlsConfig,
+          'previous'
         )
+      }
+      if (event.key === 'ArrowRight') {
+        let isBlockCompleted: boolean | undefined = false
+        if (fragment && payload) {
+          isBlockCompleted = performAction(
+            fragment,
+            payload,
+            updatePayload,
+            branding,
+            controlsConfig,
+            'next'
+          )
+
+          if (isBlockCompleted && state === 'recording') {
+            studio.stopRecording()
+          }
+        }
       }
     })
   }, [fragment])
@@ -224,6 +243,12 @@ const RecordingControlsBar = ({
   //     updatePayload?.({ ...payload, status: Fragment_Status_Enum_Enum.Ended })
   //   }
   // }, [timer])
+
+  useEffect(() => {
+    if (resetTimer) {
+      handleTimerReset()
+    }
+  }, [resetTimer])
 
   const { isIntro, isOutro, isImage, isVideo, isCode, codeAnimation } =
     useMemo(() => {
@@ -274,6 +299,7 @@ const RecordingControlsBar = ({
       className="flex items-center justify-center absolute bottom-6 w-full"
     >
       {(state === 'recording' ||
+        state === 'start-recording' ||
         payload?.status === Fragment_Status_Enum_Enum.Live) && (
         <button
           type="button"
@@ -281,7 +307,9 @@ const RecordingControlsBar = ({
             updatePayload?.({
               ...payload,
               status: Fragment_Status_Enum_Enum.Ended,
+              // activeObjectIndex: payload?.activeObjectIndex + 1,
             })
+
             logEvent(PageEvent.StopRecording)
           }}
           className={cx(
@@ -306,7 +334,10 @@ const RecordingControlsBar = ({
           )}
         </button>
       )}
-      {state === 'ready' && (
+      {(state === 'ready' ||
+        state === 'resumed' ||
+        payload?.status === Fragment_Status_Enum_Enum.NotStarted ||
+        payload?.status === Fragment_Status_Enum_Enum.Paused) && (
         <button
           className={cx(
             'bg-grey-500 bg-opacity-50 border border-gray-600 backdrop-filter backdrop-blur-2xl p-1.5 rounded-sm absolute flex items-center',
@@ -320,6 +351,7 @@ const RecordingControlsBar = ({
             updatePayload?.({
               status: Fragment_Status_Enum_Enum.CountDown,
             })
+
             // Segment tracking
             logEvent(PageEvent.StartRecording)
           }}
@@ -483,8 +515,9 @@ const RecordingControlsBar = ({
             fragment?.editorState?.blocks.length - 1
           }
           onClick={() => {
-            if (fragment && payload)
-              performAction(
+            let isBlockCompleted: boolean | undefined = false
+            if (fragment && payload) {
+              isBlockCompleted = performAction(
                 fragment,
                 payload,
                 updatePayload,
@@ -492,6 +525,13 @@ const RecordingControlsBar = ({
                 controlsConfig,
                 'next'
               )
+              if (
+                isBlockCompleted &&
+                (state === 'recording' || state === 'start-recording')
+              ) {
+                studio.stopRecording()
+              }
+            }
           }}
         >
           <IoArrowForwardOutline
@@ -528,41 +568,42 @@ const performAction = (
   branding: BrandingJSON | null | undefined,
   controlsConfig: any,
   direction: 'next' | 'previous' = 'next'
-) => {
+): boolean | undefined => {
   const block = fragment.editorState.blocks[payload?.activeObjectIndex]
+
   switch (block.type) {
     case 'introBlock':
-      handleIntroBlock(payload, updatePayload, branding, direction)
-      break
+      return handleIntroBlock(payload, updatePayload, branding, direction)
+    // break
     case 'codeBlock':
-      handleCodeBlock(
+      return handleCodeBlock(
         fragment,
         payload,
         updatePayload,
         controlsConfig,
         direction
       )
-      break
+    // break
     case 'videoBlock':
-      handleVideoBlock(payload, updatePayload, direction)
-      break
+      return handleVideoBlock(payload, updatePayload, direction)
+    // break
     case 'imageBlock':
-      handleImageBlock(payload, updatePayload, direction)
-      break
+      return handleImageBlock(payload, updatePayload, direction)
+    // break
     case 'listBlock':
-      handleListBlock(
+      return handleListBlock(
         fragment,
         payload,
         updatePayload,
         controlsConfig,
         direction
       )
-      break
+    // break
     case 'headingBlock':
-      handleImageBlock(payload, updatePayload, direction)
-      break
+      return handleImageBlock(payload, updatePayload, direction)
+    // break
     default:
-      break
+      return false
   }
 }
 const handleListBlock = (
@@ -571,7 +612,7 @@ const handleListBlock = (
   updatePayload: ((value: any) => void) | undefined,
   controlsConfig: any,
   direction: 'next' | 'previous'
-) => {
+): boolean => {
   const listBlockProps = fragment?.editorState?.blocks[
     payload?.activeObjectIndex || 0
   ] as ListBlockProps
@@ -587,9 +628,11 @@ const handleListBlock = (
 
   if (direction === 'next') {
     if (payload?.activePointIndex === noOfPoints) {
-      updatePayload?.({
-        activeObjectIndex: payload?.activeObjectIndex + 1,
-      })
+      // updatePayload?.({
+      //   activeObjectIndex: payload?.activeObjectIndex + 1,
+      // })
+      return true
+      // eslint-disable-next-line no-else-return
     } else if (appearance === 'allAtOnce') {
       const index = computedPoints.findIndex(
         (point) =>
@@ -599,6 +642,7 @@ const handleListBlock = (
       updatePayload?.({
         activePointIndex: index !== -1 ? index : computedPoints.length,
       })
+      return false
     } else {
       updatePayload?.({
         activePointIndex: payload?.activePointIndex + 1 || 1,
@@ -608,31 +652,37 @@ const handleListBlock = (
     updatePayload?.({
       activePointIndex: payload?.activePointIndex - 1,
     })
+    return false
   }
+  return false
 }
 
 const handleImageBlock = (
   payload: any,
   updatePayload: ((value: any) => void) | undefined,
   direction: 'next' | 'previous'
-) => {
+): boolean => {
   if (direction === 'next') {
-    updatePayload?.({
-      activeObjectIndex: payload?.activeObjectIndex + 1,
-    })
+    // updatePayload?.({
+    //   activeObjectIndex: payload?.activeObjectIndex + 1,
+    // })
+    return true
   }
+  return false
 }
 
 const handleVideoBlock = (
   payload: any,
   updatePayload: ((value: any) => void) | undefined,
   direction: 'next' | 'previous'
-) => {
+): boolean => {
   if (direction === 'next') {
-    updatePayload?.({
-      activeObjectIndex: payload?.activeObjectIndex + 1,
-    })
+    // updatePayload?.({
+    //   activeObjectIndex: payload?.activeObjectIndex + 1,
+    // })
+    return true
   }
+  return false
 }
 
 const handleCodeBlock = (
@@ -641,7 +691,7 @@ const handleCodeBlock = (
   updatePayload: ((value: any) => void) | undefined,
   controlsConfig: any,
   direction: 'next' | 'previous'
-) => {
+): boolean | undefined => {
   const codeBlockProps = fragment?.editorState?.blocks[
     payload?.activeObjectIndex || 0
   ] as CodeBlockProps
@@ -655,14 +705,16 @@ const handleCodeBlock = (
   if (direction === 'next') {
     switch (codeAnimation) {
       case CodeAnimation.HighlightLines: {
-        if (noOfBlocks === undefined) return
+        if (noOfBlocks === undefined) return false
         if (
           payload?.activeBlockIndex === noOfBlocks &&
           !payload?.focusBlockCode
         ) {
-          updatePayload?.({
-            activeObjectIndex: payload?.activeObjectIndex + 1,
-          })
+          // updatePayload?.({
+          //   activeObjectIndex: payload?.activeObjectIndex + 1,
+          // })
+          return true
+          // eslint-disable-next-line no-else-return
         } else if (payload?.focusBlockCode) {
           updatePayload?.({
             focusBlockCode: false,
@@ -673,7 +725,8 @@ const handleCodeBlock = (
             focusBlockCode: true,
           })
         }
-        break
+        return false
+        // break
       }
       // case CodeAnimation.InsertInBetween: {
       //   if (noOfBlocks === undefined) return
@@ -690,9 +743,11 @@ const handleCodeBlock = (
       // }
       case CodeAnimation.TypeLines: {
         if (payload?.currentIndex === computedTokens?.length) {
-          updatePayload?.({
-            activeObjectIndex: payload?.activeObjectIndex + 1,
-          })
+          // updatePayload?.({
+          //   activeObjectIndex: payload?.activeObjectIndex + 1,
+          // })
+          return true
+          // eslint-disable-next-line no-else-return
         } else {
           const current = computedTokens[position.currentIndex]
           let next = computedTokens.findIndex(
@@ -705,7 +760,8 @@ const handleCodeBlock = (
             isFocus: false,
           })
         }
-        break
+        return false
+        // break
       }
       default:
         break
@@ -713,7 +769,7 @@ const handleCodeBlock = (
   } else if (direction === 'previous') {
     switch (codeAnimation) {
       case CodeAnimation.HighlightLines: {
-        if (noOfBlocks === undefined) return
+        if (noOfBlocks === undefined) return false
         if (payload?.activeBlockIndex === 1) {
           updatePayload?.({
             activeBlockIndex: payload?.activeBlockIndex - 1,
@@ -743,6 +799,7 @@ const handleCodeBlock = (
       default:
         break
     }
+    return false
   }
 }
 
@@ -751,15 +808,17 @@ const handleIntroBlock = (
   updatePayload: ((value: any) => void) | undefined,
   branding: BrandingJSON | null | undefined,
   direction: 'next' | 'previous'
-) => {
+): boolean => {
   if (direction === 'next') {
     if (
       payload?.activeIntroIndex ===
       (branding && branding?.introVideoUrl ? 2 : 1)
     ) {
-      updatePayload?.({
-        activeObjectIndex: payload?.activeObjectIndex + 1,
-      })
+      // updatePayload?.({
+      //   activeObjectIndex: payload?.activeObjectIndex + 1,
+      // })
+      return true
+      // eslint-disable-next-line no-else-return
     } else {
       updatePayload?.({
         activeIntroIndex: payload?.activeIntroIndex + 1,
@@ -776,6 +835,7 @@ const handleIntroBlock = (
       })
     }
   }
+  return false
 }
 
 ControlButton.defaultProps = {
