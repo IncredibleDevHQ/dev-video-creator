@@ -579,7 +579,7 @@ const Note = ({
               editor.view.dispatch(
                 editor.state.tr.replaceWith(
                   pos + 1,
-                  pos + 1 + node.nodeSize,
+                  pos + node.nodeSize,
                   notes.split('\n').map((line) => {
                     if (line.trim() === '') return line
                     const textNode = editor.view.state.schema.text(line)
