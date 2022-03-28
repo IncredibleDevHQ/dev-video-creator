@@ -8,22 +8,14 @@ const TipTap = ({
   handleActiveBlock,
   handleUpdatePosition,
   ast,
-  initialContent,
 }: {
   handleUpdatePosition?: (position: Position) => void
   handleActiveBlock?: (block?: Block) => void
   ast: SimpleAST | undefined
-  initialContent: string
 }) => {
   const editorRef = useRef<HTMLDivElement>(null)
 
   const { editor, dragHandleRef } = useContext(EditorContext) || {}
-
-  useEffect(() => {
-    if (!editor || editor.isDestroyed || !initialContent) return
-
-    editor.commands.setContent(initialContent)
-  }, [editor])
 
   useEffect(() => {
     if (!editor || !editorRef.current || editor.isDestroyed || !ast) return

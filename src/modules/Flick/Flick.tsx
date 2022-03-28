@@ -547,7 +547,6 @@ const Flick = () => {
                   if (block && block !== currentBlock) setCurrentBlock(block)
                 }}
                 ast={simpleAST}
-                initialContent={flick?.md || ''}
               />
             </div>
 
