@@ -69,6 +69,13 @@ export interface ImageBlock {
   type?: 'image' | 'gif'
 }
 
+export interface HeadingBlock {
+  title?: string
+  description?: string
+  note?: string
+  noteId?: string
+}
+
 export interface IntroBlock {
   order: IntroState[]
   note?: string
@@ -111,6 +118,11 @@ export interface ImageBlockProps extends CommonBlockProps {
   imageBlock: ImageBlock
 }
 
+export interface HeadingBlockProps extends CommonBlockProps {
+  type: 'headingBlock'
+  headingBlock: HeadingBlock
+}
+
 export interface IntroBlockProps extends CommonBlockProps {
   type: 'introBlock'
   introBlock: IntroBlock
@@ -131,6 +143,7 @@ export type Block =
   | VideoBlockProps
   | ListBlockProps
   | ImageBlockProps
+  | HeadingBlockProps
   | IntroBlockProps
   | OutroBlockProps
   | ComposedBlockProps
@@ -167,13 +180,16 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
     videoBlock: 0,
     listBlock: 0,
     imageBlock: 0,
+    headingBlock: 0,
   }
 
   const getCommonProps = (index: number) => {
     const nodeIds: string[] = []
 
+    const isFirst = Object.values(blockCount).every((count) => count === 0)
+
     const slice = [
-      ...(state.content?.slice(prevCoreBlockPos, index) || []),
+      ...(state.content?.slice(isFirst ? 0 : prevCoreBlockPos, index) || []),
     ].reverse()
 
     const description = slice
@@ -193,23 +209,64 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
     const title = textContent(titleNode?.content)
     nodeIds.push(titleNode?.attrs?.id)
 
-    const noteNode = slice.find((node) => node.type === 'blockquote')
-    const note = noteNode?.content
-      ?.map((node) => {
-        return node.content
-          ?.map((node) => {
-            return node.text
-          })
-          .join('')
-      })
-      .join('\n')
-    nodeIds.push(noteNode?.attrs?.id)
-    const noteId = noteNode?.attrs?.id
+    let note: string | undefined
+    let noteId: string | undefined
+
+    const pushNote = (noteNode: JSONContent | undefined) => {
+      note = noteNode?.content
+        ?.map((node) => {
+          return node.content
+            ?.map((node) => {
+              return node.text
+            })
+            .join('')
+        })
+        .join('\n')
+      nodeIds.push(noteNode?.attrs?.id)
+      noteId = noteNode?.attrs?.id
+    }
+
+    if (state.content?.[prevCoreBlockPos]?.type !== 'heading') {
+      const noteNode = slice.find((node) => node.type === 'blockquote')
+      pushNote(noteNode)
+    }
+
+    if (state.content?.[prevCoreBlockPos]?.type === 'heading') {
+      const headingNotePos = state.content
+        ?.slice(prevCoreBlockPos)
+        .findIndex((node) => node.type === 'blockquote')
+      const noteNode = state.content
+        ?.slice(headingNotePos + 1, index)
+        .find((node) => node.type === 'blockquote')
+      pushNote(noteNode)
+    }
+
+    if (state.content?.[index]?.type === 'heading') {
+      const nextNodeIndex = state.content
+        .slice(index + 1)
+        .findIndex((node) =>
+          [
+            'codeBlock',
+            'video',
+            'bulletList',
+            'orderedList',
+            'image',
+            'heading',
+          ].includes(node.type as string)
+        )
+      const noteNode = state.content
+        .slice(
+          index,
+          nextNodeIndex !== -1 ? index + nextNodeIndex + 1 : undefined
+        )
+        .find((node) => node.type === 'blockquote')
+      pushNote(noteNode)
+    }
 
     return { note, description, title, nodeIds, noteId }
   }
 
-  let prevCoreBlockPos = 0
+  let prevCoreBlockPos = -1
   let blockPosition = 1
 
   // console.log('state', state)
@@ -232,18 +289,18 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
       const pushBlock = () => {
         const { description, note, noteId } = getCommonProps(index)
         blocks.push({
-          type: 'imageBlock',
+          type: 'headingBlock',
           id: slab.attrs?.id,
           pos: blockPosition,
           nodeIds: [slab.attrs?.id],
-          imageBlock: {
+          headingBlock: {
             title: textContent(slab.content),
             description,
             note,
             noteId,
           },
         })
-        blockCount.imageBlock += 1
+        blockCount.headingBlock += 1
         prevCoreBlockPos = index
         blockPosition += 1
       }
@@ -428,6 +485,8 @@ export const getBlockTitle = (block: Block): string => {
         block.videoBlock.fallbackTitle ||
         'Video Block'
       )
+    case 'headingBlock':
+      return block.headingBlock.title || 'Heading Block'
     case 'outroBlock':
       return 'Outro'
     default:
