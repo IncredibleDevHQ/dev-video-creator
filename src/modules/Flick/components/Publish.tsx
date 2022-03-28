@@ -97,7 +97,7 @@ const Publish = ({
       <div>
         <div className="flex items-center justify-between">
           <Heading fontSize="medium">Publish</Heading>
-          <Button
+          {/* <Button
             appearance="none"
             icon={FiExternalLink}
             iconSize={20}
@@ -105,7 +105,8 @@ const Publish = ({
             type="button"
           >
             Public Page
-          </Button>
+          </Button> */}
+          <div />
         </div>
         <hr />
         <div className="">
