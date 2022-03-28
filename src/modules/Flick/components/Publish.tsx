@@ -1,7 +1,7 @@
 import { css, cx } from '@emotion/css'
 import axios from 'axios'
 import React, { useEffect, useState } from 'react'
-import { FiExternalLink, FiRefreshCw } from 'react-icons/fi'
+import { FiRefreshCw } from 'react-icons/fi'
 import { HiOutlineDownload } from 'react-icons/hi'
 import { IoPlayOutline } from 'react-icons/io5'
 import Modal from 'react-responsive-modal'
@@ -88,7 +88,7 @@ const Publish = ({
         modal: cx(
           'rounded-lg w-1/2 max-w-md mx-auto p-4',
           css`
-            background-color: #fffffff !important;
+            background-color: #ffffff !important;
           `
         ),
       }}
