@@ -18,6 +18,34 @@ import AuthorizedApolloProvider from './utils/AuthorizedApolloProvider'
 import 'react-toastify/dist/ReactToastify.css'
 import 'react-responsive-modal/styles.css'
 import config from './config'
+import { ReactComponent as NotFound } from './assets/404.svg'
+
+const FourOhFour = () => {
+  return (
+    <div className="flex flex-row items-center justify-center h-screen px-2 md:px-0 bg-dark-500">
+      <div className="flex flex-col space-y-16">
+        <NotFound className="h-full w-full" />
+        <div className="text-center">
+          <p className="mb-2 text-3xl font-bold text-white font-main">
+            Uh-oh, page not found
+          </p>
+          <p className="mb-6 text-base text-gray-300 font-normal text-incredible-dark-200 font-body">
+            Sorry, this page doesn’t exist or it was removed
+          </p>
+          <button
+            type="button"
+            className="px-5 py-3 text-base font-semibold text-white rounded cursor-pointer font-main bg-incredible-green-600 w-full"
+            onClick={() => {
+              window.location.href = '/'
+            }}
+          >
+            Go home
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 function detectBrowser() {
   if (
@@ -85,6 +113,9 @@ const App = () => {
                 </Route>
                 <Route exact path="/integrations">
                   <Integrations />
+                </Route>
+                <Route>
+                  <FourOhFour />
                 </Route>
               </Switch>
             </Router>
