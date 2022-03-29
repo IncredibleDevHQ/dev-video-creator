@@ -263,7 +263,7 @@ const UnifiedFragment = ({
       }, 2000)
     }
     if (state === 'recording') {
-      // TODO: after ashwin's changes
+      setTopLayerChildren?.({ id: '', state: '' })
     }
   }, [state])
 
