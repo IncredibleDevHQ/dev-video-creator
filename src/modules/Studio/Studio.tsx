@@ -10,7 +10,7 @@ import { nanoid } from 'nanoid'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import AspectRatio from 'react-aspect-ratio'
 import { BiErrorCircle, BiMicrophone, BiVideo } from 'react-icons/bi'
-import { IoCheckmarkOutline } from 'react-icons/io5'
+import { IoArrowBack, IoCheckmarkOutline } from 'react-icons/io5'
 import { Group, Layer, Stage } from 'react-konva'
 import { useHistory, useParams } from 'react-router-dom'
 import useMeasure from 'react-use-measure'
@@ -38,6 +38,7 @@ import {
   FlickParticipantsFragment,
   Fragment_Status_Enum_Enum,
   GetFragmentByIdQuery,
+  RecordedBlocksFragment,
   StudioFragmentFragment,
   useGetFragmentByIdLazyQuery,
   useGetRtcTokenMutation,
@@ -587,6 +588,10 @@ const Studio = ({
 
   const [currentBlock, setCurrentBlock] = useState<Block>()
 
+  const [localRecordedBlocks, setLocalRecordedBlocks] = useState<
+    RecordedBlocksFragment[] | undefined
+  >(recordedBlocks)
+
   const { height: stageHeight, width: stageWidth } = getIntegerHW({
     maxH: bounds.height,
     maxW: bounds.width,
@@ -793,7 +798,8 @@ const Studio = ({
         updatedAt: Date.now().toLocaleString(),
       }
     }
-    setStudio({ ...studio, recordedBlocks: updatedBlocks })
+    // setStudio({ ...studio, recordedBlocks: updatedBlocks })
+    setLocalRecordedBlocks(updatedBlocks)
   }
 
   const upload = async (blockId: string) => {
@@ -970,7 +976,7 @@ const Studio = ({
       participantId: fragment?.participants.find(
         ({ participant }) => participant.userSub === sub
       )?.participant.id,
-      recordedBlocks,
+      recordedBlocks: localRecordedBlocks,
       isHost:
         fragment?.participants.find(
           ({ participant }) => participant.userSub === sub
@@ -984,7 +990,7 @@ const Studio = ({
     payload,
     participants,
     branding,
-    recordedBlocks,
+    localRecordedBlocks,
   ])
 
   useMemo(() => {
@@ -1247,7 +1253,17 @@ const Studio = ({
         <>
           <Countdown />
           {/* Stage and notes */}
-          <div className="grid grid-cols-11 gap-x-12 flex-1 items-center px-8 py-8">
+          <IoArrowBack
+            size={18}
+            type="button"
+            className="max-w-max p-0 cursor-pointer text-white opacity-90 ml-8 mt-8"
+            onClick={() =>
+              history.length > 2
+                ? history.goBack()
+                : history.push(`/story/${fragment?.flickId}`)
+            }
+          />
+          <div className="grid grid-cols-11 gap-x-12 flex-1 items-center px-8 pb-8">
             {/* Stage */}
             <div
               className="flex justify-center flex-1 col-span-8 w-full h-full relative"
@@ -1438,17 +1454,18 @@ const Studio = ({
 
                     if (recordedBlocks && currentBlock) {
                       console.warn('DELETING FOR RETAKE')
-                      const localRecordedBlocks = [...recordedBlocks]
+                      const copyRecordedBlocks = [...recordedBlocks]
                       const currentRecordedBlock =
-                        localRecordedBlocks?.findIndex(
+                        copyRecordedBlocks?.findIndex(
                           (b) => b.id === currentBlock?.id
                         )
-                      localRecordedBlocks.splice(currentRecordedBlock, 1)
-                      console.log('Local Rec Blocks', localRecordedBlocks)
-                      setStudio({
-                        ...studio,
-                        recordedBlocks: localRecordedBlocks,
-                      })
+                      copyRecordedBlocks.splice(currentRecordedBlock, 1)
+                      console.log('Local Rec Blocks', copyRecordedBlocks)
+                      // setStudio({
+                      //   ...studio,
+                      //   recordedBlocks: copyRecordedBlocks,
+                      // })
+                      setLocalRecordedBlocks(copyRecordedBlocks)
                     }
 
                     const isCloudBlock = recordedBlocks?.find(
@@ -1463,10 +1480,11 @@ const Studio = ({
                         studio.recordedBlocks?.filter(
                           (b) => b.id !== isCloudBlock.id
                         )
-                      setStudio({
-                        ...studio,
-                        recordedBlocks: updatedRecordedBlocks,
-                      })
+                      // setStudio({
+                      //   ...studio,
+                      //   recordedBlocks: updatedRecordedBlocks,
+                      // })
+                      setLocalRecordedBlocks(updatedRecordedBlocks)
                     }
                     updatePayload?.({
                       status: Fragment_Status_Enum_Enum.Paused,

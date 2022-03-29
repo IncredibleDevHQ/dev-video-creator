@@ -198,7 +198,7 @@ const Concourse = ({
   // }
 
   const onLayerClick = () => {
-    if (!groupRef.current || !canvas?.zoomed) return
+    if (!groupRef.current) return
     const tZooming = isZooming
     if (tZooming) {
       groupRef.current.to({
@@ -241,9 +241,13 @@ const Concourse = ({
 
   const onMouseLeave = () => {
     if (!groupRef.current) return
-    groupRef.current.x(0)
-    groupRef.current.y(0)
-    groupRef.current.scale({ x: 1, y: 1 })
+    groupRef.current.to({
+      x: 0,
+      y: 0,
+      scaleX: 1,
+      scaleY: 1,
+      duration: 0.5,
+    })
     setZooming(false)
   }
 

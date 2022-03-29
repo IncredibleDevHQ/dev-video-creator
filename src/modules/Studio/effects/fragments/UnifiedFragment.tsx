@@ -263,7 +263,7 @@ const UnifiedFragment = ({
       }, 2000)
     }
     if (state === 'recording') {
-      // TODO: after ashwin's changes
+      setTopLayerChildren?.({ id: '', state: '' })
     }
   }, [state])
 
@@ -424,7 +424,7 @@ const UnifiedFragment = ({
             return <></>
         }
       })()}
-      <Rect
+      {/* <Rect
         x={0}
         y={0}
         width={stageConfig.width}
@@ -432,7 +432,7 @@ const UnifiedFragment = ({
         fill="#000000"
         opacity={0}
         ref={dipToBlackRef}
-      />
+      /> */}
     </>
   )
 }
