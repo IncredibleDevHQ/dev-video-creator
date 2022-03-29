@@ -10,7 +10,7 @@ import { nanoid } from 'nanoid'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import AspectRatio from 'react-aspect-ratio'
 import { BiErrorCircle, BiMicrophone, BiVideo } from 'react-icons/bi'
-import { IoCheckmarkOutline } from 'react-icons/io5'
+import { IoArrowBack, IoCheckmarkOutline } from 'react-icons/io5'
 import { Group, Layer, Stage } from 'react-konva'
 import { useHistory, useParams } from 'react-router-dom'
 import useMeasure from 'react-use-measure'
@@ -1247,7 +1247,17 @@ const Studio = ({
         <>
           <Countdown />
           {/* Stage and notes */}
-          <div className="grid grid-cols-11 gap-x-12 flex-1 items-center px-8 py-8">
+          <IoArrowBack
+            size={18}
+            type="button"
+            className="max-w-max p-0 cursor-pointer text-white opacity-90 ml-8 mt-8"
+            onClick={() =>
+              history.length > 2
+                ? history.goBack()
+                : history.push(`/story/${fragment?.flickId}`)
+            }
+          />
+          <div className="grid grid-cols-11 gap-x-12 flex-1 items-center px-8 pb-8">
             {/* Stage */}
             <div
               className="flex justify-center flex-1 col-span-8 w-full h-full relative"
