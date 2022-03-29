@@ -86,7 +86,12 @@ const IntroFragment = ({
   }, [branding, stageConfig])
 
   useEffect(() => {
-    if (state === 'recording' || state === 'ready' || isPreview) {
+    if (
+      state === 'start-recording' ||
+      state === 'ready' ||
+      state === 'resumed' ||
+      isPreview
+    ) {
       if (introSequence[payload.activeIntroIndex] === 'titleSplash') {
         // if (!isPreview) addMusic('splash')
         setTopLayerChildren?.({ id: '', state: '' })
@@ -103,6 +108,7 @@ const IntroFragment = ({
       }
       if (introSequence[payload.activeIntroIndex] === 'introVideo') {
         setTopLayerChildren?.({ id: '', state: '' })
+        console.log('Playing intro video....')
         if (!videoElement) return
         videoElement?.play()
         setLayerChildren([

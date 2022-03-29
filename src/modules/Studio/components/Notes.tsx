@@ -69,7 +69,7 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
 
   const noteEditor = useEditor(
     {
-      editable: state === 'ready',
+      editable: state === 'ready' || state === 'resumed',
       autofocus: 'end',
       onUpdate: ({ editor }) => {
         const notes =

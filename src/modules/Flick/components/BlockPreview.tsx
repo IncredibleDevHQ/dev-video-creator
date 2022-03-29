@@ -19,6 +19,7 @@ import {
   Layout,
   outroLayoutTypes,
   shortsLayoutTypes,
+  shortsOutroLayoutTypes,
   ViewConfig,
 } from '../../../utils/configTypes'
 import { CONFIG, SHORTS_CONFIG } from '../../Studio/components/Concourse'
@@ -237,6 +238,20 @@ export const LayoutSelector = ({
                   />
                 </div>
               ))
+          : type === 'outroBlock'
+          ? shortsOutroLayoutTypes?.map((layoutType) => (
+              <LayoutGeneric
+                type={type}
+                key={layoutType}
+                mode={mode}
+                layout={layoutType}
+                isSelected={layout === layoutType}
+                onClick={() => {
+                  logEvent(PageEvent.ChangeLayout)
+                  updateLayout(layoutType)
+                }}
+              />
+            ))
           : shortsLayoutTypes?.map((layoutType) => (
               <LayoutGeneric
                 type={type}
