@@ -3,8 +3,9 @@ import axios from 'axios'
 import React, { useEffect, useState } from 'react'
 import { FiRefreshCw } from 'react-icons/fi'
 import { HiOutlineDownload } from 'react-icons/hi'
-import { IoPlayOutline } from 'react-icons/io5'
+import { IoPlayOutline, IoSparklesOutline } from 'react-icons/io5'
 import Modal from 'react-responsive-modal'
+import { useRecoilValue } from 'recoil'
 import { Button, emitToast, Heading, Text } from '../../../components'
 import config from '../../../config'
 import {
@@ -16,6 +17,7 @@ import {
   useGetRecordingsQuery,
 } from '../../../generated/graphql'
 import { SimpleAST } from '../editor/utils/utils'
+import { newFlickStore } from '../store/flickNew.store'
 
 const Publish = ({
   open,
@@ -164,6 +166,7 @@ const RecordingItem = ({
   completeFragmentRecording: (recordingId: string) => Promise<void>
 }) => {
   const { baseUrl } = config.storage
+  const { flick } = useRecoilValue(newFlickStore)
 
   useEffect(() => {
     if (recording.status === Recording_Status_Enum_Enum.Processing) {
@@ -203,11 +206,20 @@ const RecordingItem = ({
               }
             )}
           >
-            <IoPlayOutline size={24} />
+            {recording.type === Content_Type_Enum_Enum.Video ? (
+              <IoPlayOutline size={24} />
+            ) : (
+              <IoSparklesOutline size={24} />
+            )}
           </div>
           <div className="ml-2">
-            <Heading>{activeFragment?.name || 'Untitled'}</Heading>
-            <Text className="text-sm text-gray-500">Last edited </Text>
+            {/* <Heading>{activeFragment?.name || 'Untitled'}</Heading> */}
+            <Heading>{flick?.name}</Heading>
+            <Text className="text-sm text-gray-500">
+              {recording.type === Content_Type_Enum_Enum.Video
+                ? 'Landscape'
+                : 'Portrait'}
+            </Text>
           </div>
         </div>
         <div className="flex justify-end items-center">
