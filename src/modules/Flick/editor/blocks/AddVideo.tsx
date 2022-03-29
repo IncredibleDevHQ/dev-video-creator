@@ -468,8 +468,8 @@ const AddVideo = ({
                   width={720}
                   action="Save"
                   transformations={{
-                    clip: block?.videoBlock?.transformations?.clip || {},
-                    crop: block?.videoBlock?.transformations?.crop,
+                    clip: initialValue?.transformations?.clip || {},
+                    crop: initialValue?.transformations?.crop,
                   }}
                 />
               </div>
