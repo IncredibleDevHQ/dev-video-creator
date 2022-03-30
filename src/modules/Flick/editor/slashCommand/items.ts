@@ -98,6 +98,20 @@ export const getSuggestionItems = (props: {
         },
       },
       {
+        title: 'Screengrab',
+        description: 'Record a screen',
+        shortcut: null,
+        type: SuggestionItemType.Blocks,
+        command: ({ editor, range }) => {
+          editor
+            .chain()
+            .focus()
+            .deleteRange(range)
+            .insertContent('<video type="recording"><p></p></video>')
+            .run()
+        },
+      },
+      {
         title: 'Video',
         description: 'Upload a video',
         shortcut: null,

@@ -6,6 +6,7 @@ import {
   ThemeFragment,
 } from '../../../generated/graphql'
 import { AudioType, MusicAction } from '../../../hooks/use-canvas-recorder'
+import { CodeTheme } from '../../../utils/configTypes'
 import { BrandingJSON } from '../../Branding/BrandingPage'
 import { RTCUser } from '../hooks/use-video'
 
@@ -71,6 +72,14 @@ export interface StudioProviderProps<T = any, S = any> {
   shortsMode?: boolean
 
   staticAssets?: StaticAssets
+
+  codes?: {
+    [key: string]: {
+      code: string | undefined
+      colorCode: any
+      theme: CodeTheme
+    }
+  }
 
   recordedBlocks?: RecordedBlocksFragment[]
 }

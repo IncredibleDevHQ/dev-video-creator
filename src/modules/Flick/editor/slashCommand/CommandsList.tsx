@@ -8,6 +8,7 @@ import { ReactComponent as CommandImage } from '../../../../assets/Command_Image
 import { ReactComponent as CommandList } from '../../../../assets/Command_List.svg'
 import { ReactComponent as CommandText } from '../../../../assets/Command_Text.svg'
 import { ReactComponent as CommandVideo } from '../../../../assets/Command_Video.svg'
+import { ReactComponent as CommandScreenGrab } from '../../../../assets/Command_ScreenGrab.svg'
 import { Text } from '../../../../components'
 import { SuggestionItem } from './items'
 
@@ -51,6 +52,7 @@ export class CommandsList extends React.Component<any, CommandsListState> {
     if (item.title === 'Image') return <CommandImage />
     if (item.title === 'Video') return <CommandVideo />
     if (item.title === 'List') return <CommandList />
+    if (item.title === 'Screengrab') return <CommandScreenGrab />
     return null
   }
 
