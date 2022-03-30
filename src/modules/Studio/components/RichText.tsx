@@ -12,7 +12,7 @@ export interface ComputedRichText {
   styles: string[]
 }
 
-const getRichTextData = ({
+export const getRichTextData = ({
   content,
   fontSize = 12,
   fontFamily,
@@ -41,24 +41,30 @@ const getRichTextData = ({
       if (styles.includes('code')) {
         const konvaText = new Konva.Text({
           text: richText,
-          fontSize: fontSize * 0.6,
+          fontSize: fontSize * 0.9,
           fontFamily,
           fontStyle: styles
             .filter((style) => style === 'bold' || style === 'italic')
             .join(' '),
           lineHeight,
         })
+        const space = new Konva.Text({
+          text: ' ',
+          fontSize,
+          fontFamily,
+          lineHeight,
+        })
         layer.add(konvaText)
-        const textWidth = konvaText.textWidth + 10 + 8
+        const textWidth = konvaText.textWidth + 10 + space.textWidth
         if (textWidth + currentX > width) {
           currentX = 0
-          currentY += fontSize + fontSize * lineHeight
+          currentY += fontSize * lineHeight
         }
         computedRichText.push({
           x: currentX,
           y: currentY,
           text: richText,
-          width: textWidth - 8,
+          width: textWidth - space.textWidth,
           styles,
         })
         currentX += textWidth
@@ -78,7 +84,7 @@ const getRichTextData = ({
           const { textWidth } = konvaText
           if (textWidth + currentX > width) {
             currentX = 0
-            currentY += fontSize + fontSize * lineHeight
+            currentY += fontSize * lineHeight
           }
           computedRichText.push({
             x: currentX,
@@ -105,7 +111,7 @@ const getRichTextData = ({
         const { textWidth } = konvaText
         if (textWidth + currentX > width) {
           currentX = 0
-          currentY += fontSize + fontSize * lineHeight
+          currentY += fontSize * lineHeight
         }
         computedRichText.push({
           x: currentX,
@@ -134,6 +140,8 @@ const RichText = ({
   fontFamily,
   fill = '#000000',
   lineHeight = 1,
+  richTextData,
+  animate,
 }: {
   content: {
     type: 'richText' | 'text'
@@ -149,38 +157,46 @@ const RichText = ({
   fontFamily?: string
   fill?: string
   lineHeight?: number
+  richTextData?: ComputedRichText[]
+  animate?: (ref: any) => void
 }) => {
   const [computedRichText, setComputedRichText] = useState<ComputedRichText[]>(
     []
   )
   useEffect(() => {
-    setComputedRichText(
-      getRichTextData({ content, width, fontSize, fontFamily, lineHeight })
-    )
+    if (richTextData) {
+      setComputedRichText(richTextData)
+    } else {
+      setComputedRichText(
+        getRichTextData({ content, width, fontSize, fontFamily, lineHeight })
+      )
+    }
   }, [content])
 
   return (
-    <Group x={x} y={y}>
+    <Group x={x} y={y} height={height} ref={(ref) => animate?.(ref)}>
       <>
         {computedRichText.map((item) => {
           if (item.styles.includes('code')) {
             return (
               <Group x={item.x} y={item.y}>
                 <Rect
+                  y={-2}
                   width={item.width}
-                  height={fontSize}
+                  height={fontSize + 4}
                   //   fill="#F3F4F6"
-                  fill="#000000"
+                  fill="#383E46"
                   cornerRadius={4}
                 />
                 <Text
                   x={5}
-                  y={fontSize * 0.2}
+                  y={fontSize * 0.05}
                   text={item.text}
                   width={item.width - 10}
+                  height={fontSize}
                   align="center"
-                  fill="#ffffff"
-                  fontSize={fontSize * 0.6}
+                  fill="#C5CED6"
+                  fontSize={fontSize * 0.9}
                   fontFamily={fontFamily}
                   fontStyle={item.styles
                     .filter((style) => style === 'bold' || style === 'italic')

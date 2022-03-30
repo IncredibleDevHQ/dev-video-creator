@@ -188,6 +188,7 @@ const PointsFragment = ({
         orientation,
         layout: viewConfig?.layout || 'classic',
         isShorts: shortsMode || false,
+        lineHeight: 1.3,
       })
     )
     if (orientation === 'horizontal') {
@@ -290,7 +291,7 @@ const PointsFragment = ({
             : objectRenderConfig.surfaceColor
         }
       />
-      <RichText
+      <Text
         key="fragmentTitle"
         x={objectRenderConfig.startX + 30}
         y={
@@ -307,35 +308,8 @@ const PointsFragment = ({
         }
         width={objectRenderConfig.availableWidth - 80}
         lineHeight={1.15}
-        // text={dataConfig.listBlock.title || fragment?.name || ''}
-        content={[
-          {
-            type: 'text',
-            content: dataConfig.listBlock.title || fragment?.name || '',
-            line: 0,
-          },
-          {
-            type: 'richText',
-            content: { text: 'var i = 0', marks: ['code'] },
-            line: 0,
-          },
-          {
-            type: 'richText',
-            content: { text: 'Hello', marks: ['bold'] },
-            line: 0,
-          },
-          {
-            type: 'richText',
-            content: { text: 'Hello', marks: ['italic'] },
-            line: 0,
-          },
-          {
-            type: 'richText',
-            content: { text: 'Hello', marks: ['italic', 'bold'] },
-            line: 0,
-          },
-        ]}
-        // fontStyle="normal 800"
+        text={dataConfig.listBlock.title || fragment?.name || ''}
+        fontStyle="normal 800"
         fontFamily={branding?.font?.heading?.family || 'Gilroy'}
       />
       {orientation === 'vertical' ? (
@@ -411,11 +385,11 @@ const PointsFragment = ({
                           none: <></>,
                         }[viewStyle]
                       }
-                      <Text
-                        key={point.text}
+                      <RichText
+                        key={point.pointNumber}
                         x={-64}
-                        y={point.y}
-                        align="left"
+                        y={point.y + 2}
+                        // align="left"
                         fontSize={16}
                         fill={
                           branding?.colors?.text
@@ -431,10 +405,11 @@ const PointsFragment = ({
                               (41 * (point?.level - 1) || 0)
                             : objectRenderConfig.availableWidth - 110
                         }
-                        text={point.text}
+                        content={point.content}
+                        richTextData={point.richTextData}
                         lineHeight={1.3}
                         fontFamily={branding?.font?.body?.family || 'Inter'}
-                        ref={(ref) =>
+                        animate={(ref) =>
                           ref?.to({
                             x:
                               viewStyle !== 'none'
@@ -486,13 +461,14 @@ const PointsFragment = ({
                         }[viewStyle]
                       }
                       <Group>
-                        <Text
-                          key={point.text}
+                        <RichText
+                          key={point.pointNumber}
                           x={
                             viewStyle !== 'none'
                               ? 30 + (41 * (point?.level - 1) || 0)
                               : -10
                           }
+                          y={3}
                           align="left"
                           fontSize={24}
                           fill={
@@ -509,14 +485,12 @@ const PointsFragment = ({
                                 (41 * (point?.level - 1) || 0)
                               : objectRenderConfig.availableWidth - 110
                           }
-                          text={point.text}
-                          // text="Run and test using one command and so on a thats all hd huusd j idhc dsi"
+                          content={point.content}
                           lineHeight={1.3}
                           fontFamily={branding?.font?.body?.family || 'Inter'}
                           height={
                             objectRenderConfig.availableHeight - 32 - titleY
                           }
-                          // verticalAlign="middle"
                         />
                       </Group>
                     </>
@@ -552,7 +526,7 @@ const PointsFragment = ({
                               fill={
                                 branding?.colors?.text
                                   ? branding?.colors?.text
-                                  : objectRenderConfig.pointsBulletColor
+                                  : objectRenderConfig.textColor
                               }
                               text={point.pointNumber.toString()}
                               fontSize={20}
@@ -565,15 +539,15 @@ const PointsFragment = ({
                           none: <></>,
                         }[viewStyle]
                       }
-                      <Text
-                        key={point.text}
+                      <RichText
+                        key={point.pointNumber}
                         x={
                           viewStyle !== 'none'
                             ? 30 + (41 * (point?.level - 1) || 0)
                             : 0
                         }
-                        y={point.y}
-                        align="left"
+                        y={point.y + 2}
+                        // align="left"
                         fontSize={16}
                         fill={
                           branding?.colors?.text
@@ -589,8 +563,8 @@ const PointsFragment = ({
                               (41 * (point?.level - 1) || 0)
                             : objectRenderConfig.availableWidth - 110
                         }
-                        text={point.text}
-                        // text="Run and test using one command and so on a thats all hd huusd j idhc dsi"
+                        content={point.content}
+                        richTextData={point.richTextData}
                         lineHeight={1.3}
                         fontFamily={branding?.font?.body?.family || 'Inter'}
                       />
@@ -636,15 +610,15 @@ const PointsFragment = ({
                         none: <></>,
                       }[viewStyle]
                     }
-                    <Text
-                      key={point.text}
+                    <RichText
+                      key={point.pointNumber}
                       x={
                         viewStyle !== 'none'
                           ? 30 + (41 * (point?.level - 1) || 0)
                           : 0
                       }
-                      y={point.y}
-                      align="left"
+                      y={point.y + 2}
+                      // align="left"
                       fontSize={16}
                       fill={
                         branding?.colors?.text
@@ -660,8 +634,8 @@ const PointsFragment = ({
                             (41 * (point?.level - 1) || 0)
                           : objectRenderConfig.availableWidth - 110
                       }
-                      text={point.text}
-                      // text="Run and test using one command and so on a thats all hd huusd j idhc dsi"
+                      content={point.content}
+                      richTextData={point.richTextData}
                       lineHeight={1.3}
                       fontFamily={branding?.font?.body?.family || 'Inter'}
                     />
@@ -708,13 +682,14 @@ const PointsFragment = ({
                           none: <></>,
                         }[viewStyle]
                       }
-                      <Text
-                        key={point.text}
+                      <RichText
+                        key={point.pointNumber}
                         x={
                           viewStyle !== 'none'
                             ? 30 + (41 * (point?.level - 1) || 0)
                             : -10
                         }
+                        y={3}
                         align="left"
                         fontSize={24}
                         fill={
@@ -731,14 +706,12 @@ const PointsFragment = ({
                               (41 * (point?.level - 1) || 0)
                             : objectRenderConfig.availableWidth - 110
                         }
-                        text={point.text}
-                        // text="Run and test using one command and so on a thats all hd huusd j idhc dsi"
+                        content={point.content}
                         lineHeight={1.3}
                         fontFamily={branding?.font?.body?.family || 'Inter'}
                         height={
                           objectRenderConfig.availableHeight - 32 - titleY
                         }
-                        // verticalAlign="middle"
                       />
                     </Group>
                   </>
@@ -954,7 +927,7 @@ const PointsFragment = ({
                       cornerRadius={objectRenderConfig.borderRadius}
                     />
                     <Text
-                      key={point.text}
+                      key={point.pointNumber}
                       x={16}
                       y={
                         pointsConfig.bulletHeight +
@@ -974,7 +947,8 @@ const PointsFragment = ({
                       verticalAlign="middle"
                       align="center"
                       text={point.text}
-                      // text="Run and test using one command and so on a thats all hd huusd j idhc dsi"
+                      // content={point.content}
+                      // richTextData={point.richTextData}
                       lineHeight={1.3}
                       fontFamily={branding?.font?.body?.family || 'Inter'}
                     />
