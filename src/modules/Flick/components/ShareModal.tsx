@@ -4,6 +4,7 @@
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 import { css, cx } from '@emotion/css'
 import { Dialog, Menu } from '@headlessui/react'
+import * as Sentry from '@sentry/react'
 import React, { useEffect, useState } from 'react'
 import { BiCheck } from 'react-icons/bi'
 import {
@@ -161,11 +162,16 @@ const ShareModal = ({
       emitToast({
         title: 'User Invited',
         type: 'success',
+        autoClose: 3000,
       })
     } catch (error) {
+      Sentry.captureException(
+        new Error(`Error inviting user: ${JSON.stringify(error)}`)
+      )
       emitToast({
         title: 'Error inviting user',
         type: 'error',
+        autoClose: 3000,
       })
     } finally {
       setInviteLoading(false)
@@ -455,6 +461,7 @@ const AccessControl = ({
       emitToast({
         type: 'error',
         title: 'Could not delete participant',
+        autoClose: 3000,
       })
     }
   }
@@ -496,6 +503,7 @@ const AccessControl = ({
       emitToast({
         type: 'error',
         title: 'Could not transfer ownership',
+        autoClose: 3000,
       })
     }
   }
