@@ -140,14 +140,14 @@ const CreateFlickModal = ({
   useEffect(() => {
     if (!data) return
     handleClose()
-    history.push(`/flick/${data.CreateFlick?.id}`)
+    history.push(`/story/${data.CreateFlick?.id}`)
   }, [data])
 
   useEffect(() => {
     if (!error) return
     emitToast({
       autoClose: 3000,
-      title: 'Could not create your flick',
+      title: 'Could not create your story',
       type: 'error',
     })
     handleClose()
@@ -199,7 +199,7 @@ const CreateFlickModal = ({
       {type !== OptionType.link && (
         <div className="flex items-center gap-x-4 bg-dark-200 z-50 p-4 text-white">
           <Loader className="text-brand animate-spin" />
-          Creating your flick
+          Creating your story
         </div>
       )}
       {type === OptionType.link && (

@@ -169,7 +169,7 @@ const PointsFragment = ({
   useEffect(() => {
     if (points.length === 0) return
     const noOflinesOfTitle = getNoOfLinesOfText({
-      text: dataConfig.listBlock.title || fragment?.name || '',
+      text: dataConfig.listBlock.title || '',
       availableWidth: objectRenderConfig.availableWidth - 80,
       fontSize: 40,
       fontFamily: branding?.font?.heading?.family || 'Gilroy',
@@ -277,10 +277,10 @@ const PointsFragment = ({
         })
       }
     }
-  }, [payload?.fragmentState])
+  }, [payload?.fragmentState, payload?.status])
 
   const layerChildren: any[] = [
-    <Group x={0} y={0} opacity={0} ref={customLayoutRef}>
+    <Group x={0} y={0} opacity={1} ref={customLayoutRef}>
       <FragmentBackground
         theme={theme}
         objectConfig={objectConfig}
@@ -342,7 +342,9 @@ const PointsFragment = ({
         <Group
           x={objectRenderConfig.startX + 50}
           y={
-            appearance !== 'replace'
+            dataConfig?.listBlock?.title === undefined
+              ? objectRenderConfig.startY + 32
+              : appearance !== 'replace'
               ? objectRenderConfig.startY + 32 + 50 * titleNumberOfLines
               : objectRenderConfig.startY +
                 titleY +

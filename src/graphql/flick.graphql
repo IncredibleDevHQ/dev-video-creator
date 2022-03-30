@@ -464,3 +464,9 @@ mutation SetFlickNotDirty($id: uuid!) {
     id
   }
 }
+
+mutation CompleteRecording($editorState: json!, $recordingId: uuid!) {
+  CompleteRecording(editorState: $editorState, recordingId: $recordingId) {
+    success
+  }
+}

@@ -33,6 +33,8 @@ export const outroLayoutTypes = [
   'split-without-media',
 ] as const
 
+export const shortsOutroLayoutTypes = ['classic', 'split'] as const
+
 export type OutroLayout = typeof outroLayoutTypes[number]
 
 export type Layout = typeof allLayoutTypes[number]
@@ -147,6 +149,10 @@ export type ListAppearance = 'stack' | 'replace' | 'allAtOnce'
 export type ListViewStyle = 'none' | 'bullet' | 'number'
 export type ListOrientation = 'horizontal' | 'vertical'
 
+export interface HeadingBlockView {
+  type: 'headingBlock'
+}
+
 export interface HandleDetails {
   enabled: boolean
   handle: string
@@ -170,6 +176,7 @@ export type BlockView =
   | ImageBlockView
   | VideoBlockView
   | ListBlockView
+  | HeadingBlockView
   | OutroBlockView
 
 export type BlockProperties = {

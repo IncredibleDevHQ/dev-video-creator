@@ -34,7 +34,7 @@ export const getOutroConfig = ({
   layout: Layout
   isShorts?: boolean
 }): OutroConfig => {
-  if (!isShorts)
+  if (!isShorts) {
     switch (theme.name) {
       case 'DarkGradient':
         switch (layout) {
@@ -309,24 +309,220 @@ export const getOutroConfig = ({
           logoHeight: 32,
         }
     }
-  return {
-    layoutX: 72,
-    layoutY: 40,
-    layoutWidth: 816,
-    layoutHeight: 460,
-    layoutBorderRadius: 8,
-    textX: 185,
-    textY: 205,
-    textWidth: 446,
-    textHeight: 57,
-    textFontSize: 48,
-    socialX: 244,
-    socialY: 326,
-    socialHandlesFontSize: 16,
-    logoX: 392,
-    logoY: 149,
-    logoWidth: 32,
-    logoHeight: 32,
+  }
+  switch (theme.name) {
+    case 'DarkGradient':
+      switch (layout) {
+        case 'classic':
+          return {
+            layoutX: 40,
+            layoutY: 40,
+            layoutWidth: 316,
+            layoutHeight: 624,
+            layoutBorderRadius: 8,
+            textX: 16,
+            textY: 290,
+            textWidth: 284,
+            textHeight: 70,
+            textFontSize: 26,
+            socialX: 244,
+            socialY: 376,
+            socialHandlesFontSize: 16,
+            logoX: 140,
+            logoY: 234,
+            logoWidth: 28,
+            logoHeight: 28,
+          }
+        case 'split':
+          return {
+            layoutX: 16,
+            layoutY: 16,
+            layoutWidth: 364,
+            layoutHeight: 328,
+            layoutBorderRadius: 8,
+            textX: 30,
+            textY: 65,
+            textWidth: 270,
+            textHeight: 130,
+            textFontSize: 36,
+            socialX: 30,
+            socialY: 210,
+            socialHandlesFontSize: 16,
+            logoX: 300,
+            logoY: 270,
+            logoWidth: 32,
+            logoHeight: 32,
+            userMediaLayout: 'split',
+          }
+        default:
+          return {
+            layoutX: 40,
+            layoutY: 40,
+            layoutWidth: 316,
+            layoutHeight: 624,
+            layoutBorderRadius: 8,
+            textX: 16,
+            textY: 290,
+            textWidth: 284,
+            textHeight: 70,
+            textFontSize: 26,
+            socialX: 244,
+            socialY: 376,
+            socialHandlesFontSize: 16,
+            logoX: 140,
+            logoY: 234,
+            logoWidth: 28,
+            logoHeight: 28,
+          }
+      }
+    case 'PastelLines':
+      switch (layout) {
+        case 'classic':
+          return {
+            layoutX: 40,
+            layoutY: 40,
+            layoutWidth: 316,
+            layoutHeight: 624,
+            layoutBorderRadius: 8,
+            textX: 16,
+            textY: 290,
+            textWidth: 284,
+            textHeight: 70,
+            textFontSize: 26,
+            socialX: 244,
+            socialY: 376,
+            socialHandlesFontSize: 16,
+            logoX: 140,
+            logoY: 234,
+            logoWidth: 28,
+            logoHeight: 28,
+          }
+        case 'split':
+          return {
+            layoutX: 16,
+            layoutY: 16,
+            layoutWidth: 364,
+            layoutHeight: 328,
+            layoutBorderRadius: 8,
+            textX: 30,
+            textY: 65,
+            textWidth: 270,
+            textHeight: 130,
+            textFontSize: 36,
+            socialX: 30,
+            socialY: 210,
+            socialHandlesFontSize: 16,
+            logoX: 300,
+            logoY: 270,
+            logoWidth: 32,
+            logoHeight: 32,
+            userMediaLayout: 'split',
+          }
+        default:
+          return {
+            layoutX: 40,
+            layoutY: 40,
+            layoutWidth: 316,
+            layoutHeight: 624,
+            layoutBorderRadius: 8,
+            textX: 16,
+            textY: 290,
+            textWidth: 284,
+            textHeight: 70,
+            textFontSize: 26,
+            socialX: 244,
+            socialY: 376,
+            socialHandlesFontSize: 16,
+            logoX: 140,
+            logoY: 234,
+            logoWidth: 28,
+            logoHeight: 28,
+          }
+      }
+    case 'Cassidoo':
+      switch (layout) {
+        case 'classic':
+          return {
+            layoutX: 40,
+            layoutY: 40,
+            layoutWidth: 316,
+            layoutHeight: 624,
+            layoutBorderRadius: 8,
+            textX: 16,
+            textY: 290,
+            textWidth: 284,
+            textHeight: 57,
+            textFontSize: 22,
+            socialX: 244,
+            socialY: 376,
+            socialHandlesFontSize: 16,
+            logoX: 140,
+            logoY: 234,
+            logoWidth: 28,
+            logoHeight: 28,
+          }
+        case 'split':
+          return {
+            layoutX: 16,
+            layoutY: 16,
+            layoutWidth: 364,
+            layoutHeight: 328,
+            layoutBorderRadius: 8,
+            textX: 30,
+            textY: 75,
+            textWidth: 270,
+            textHeight: 100,
+            textFontSize: 36,
+            socialX: 30,
+            socialY: 210,
+            socialHandlesFontSize: 16,
+            logoX: 300,
+            logoY: 270,
+            logoWidth: 32,
+            logoHeight: 32,
+            userMediaLayout: 'split',
+          }
+        default:
+          return {
+            layoutX: 40,
+            layoutY: 40,
+            layoutWidth: 316,
+            layoutHeight: 624,
+            layoutBorderRadius: 8,
+            textX: 16,
+            textY: 290,
+            textWidth: 284,
+            textHeight: 57,
+            textFontSize: 22,
+            socialX: 244,
+            socialY: 376,
+            socialHandlesFontSize: 16,
+            logoX: 140,
+            logoY: 234,
+            logoWidth: 28,
+            logoHeight: 28,
+          }
+      }
+    default:
+      return {
+        layoutX: 72,
+        layoutY: 40,
+        layoutWidth: 816,
+        layoutHeight: 460,
+        layoutBorderRadius: 8,
+        textX: 185,
+        textY: 205,
+        textWidth: 446,
+        textHeight: 57,
+        textFontSize: 48,
+        socialX: 244,
+        socialY: 326,
+        socialHandlesFontSize: 16,
+        logoX: 392,
+        logoY: 149,
+        logoWidth: 32,
+        logoHeight: 32,
+      }
   }
 }
 
@@ -357,22 +553,30 @@ export const getSocialHandlePositions = ({
 }) => {
   switch (layout) {
     case 'classic': {
+      const twitterHandleWidth = getTextWidth({
+        isShorts,
+        text: socialHandles.twitterHandle || '',
+        textProperties,
+      })
+      const discordHandleWidth = getTextWidth({
+        isShorts,
+        text: socialHandles.discordHandle || '',
+        textProperties,
+      })
+      const youtubeHandleWidth = getTextWidth({
+        isShorts,
+        text: socialHandles.youtubeHandle || '',
+        textProperties,
+      })
+      const socialHandlesPositionInfo = {
+        twitterX: 0,
+        twitterY: 0,
+        discordX: 0,
+        discordY: 0,
+        youtubeX: 0,
+        youtubeY: 0,
+      }
       if (!isShorts) {
-        const twitterHandleWidth = getTextWidth({
-          isShorts,
-          text: socialHandles.twitterHandle || '',
-          textProperties,
-        })
-        const discordHandleWidth = getTextWidth({
-          isShorts,
-          text: socialHandles.discordHandle || '',
-          textProperties,
-        })
-        const youtubeHandleWidth = getTextWidth({
-          isShorts,
-          text: socialHandles.youtubeHandle || '',
-          textProperties,
-        })
         const consumedWidth =
           24 * (noOfSocialHandles * 2 - 1) +
           8 * noOfSocialHandles +
@@ -380,14 +584,7 @@ export const getSocialHandlePositions = ({
           discordHandleWidth +
           youtubeHandleWidth
         let startX = (availableWidth - consumedWidth) / 2
-        const socialHandlesPositionInfo = {
-          twitterX: 0,
-          twitterY: 0,
-          discordX: 0,
-          discordY: 0,
-          youtubeX: 0,
-          youtubeY: 0,
-        }
+
         Object.entries(socialHandles).forEach(([key, value]) => {
           if (key === 'twitterHandle' && value) {
             socialHandlesPositionInfo.twitterX = startX
@@ -431,18 +628,36 @@ export const getSocialHandlePositions = ({
         })
         return socialHandlesPositionInfo
       }
-      return {
-        twitterX: 0,
-        twitterY: 0,
-        discordX: 0,
-        discordY: 0,
-        youtubeX: 0,
-        youtubeY: 0,
-      }
+      const maxSocialHandleWidth = Math.max(
+        twitterHandleWidth,
+        discordHandleWidth,
+        youtubeHandleWidth
+      )
+      const startX = (availableWidth - maxSocialHandleWidth - 24 - 8) / 2
+      let startY = socialY
+      Object.entries(socialHandles).forEach(([key, value]) => {
+        if (key === 'twitterHandle' && value) {
+          socialHandlesPositionInfo.twitterX = startX
+          socialHandlesPositionInfo.twitterY = startY
+          startY += 24 + 8
+        }
+        if (key === 'discordHandle' && value) {
+          socialHandlesPositionInfo.discordX = startX
+          socialHandlesPositionInfo.discordY = startY
+          startY += 24 + 8
+        }
+        if (key === 'youtubeHandle' && value) {
+          socialHandlesPositionInfo.youtubeX = startX
+          socialHandlesPositionInfo.youtubeY = startY
+          startY += 24 + 8
+        }
+      })
+      return socialHandlesPositionInfo
     }
     case 'float-full-right':
     case 'float-full-left':
-    case 'split-without-media': {
+    case 'split-without-media':
+    case 'split': {
       const consumedHeight =
         28 + 24 * noOfSocialHandles + 16 * (noOfSocialHandles - 1)
       let startY = availableHeight - consumedHeight

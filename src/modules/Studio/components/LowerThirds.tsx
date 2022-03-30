@@ -184,11 +184,13 @@ export const GlassyLowerThirds = ({
 }) => {
   const [image] = useImage(logo, 'anonymous')
   const { getTextWidth } = useEdit()
-  const userInfoWidth = useRef(
-    getTextWidth(`${designation}, ${organization}`, 'Gilroy', 16, 'normal') +
-      16 +
-      8
-  )
+  const rectWidth =
+    Math.max(
+      getTextWidth(`${designation}, ${organization}`, 'Gilroy', 16, 'normal'),
+      getTextWidth(userName || '', 'Gilroy', 24, 'bold')
+    ) +
+    16 +
+    8
 
   if (logo)
     return (
@@ -237,8 +239,8 @@ export const GlassyLowerThirds = ({
                 onFinish: () => {
                   setTimeout(() => {
                     ref?.to({
-                      x: -Math.floor(userInfoWidth.current),
-                      width: Math.floor(userInfoWidth.current) + 96,
+                      x: -Math.floor(rectWidth),
+                      width: Math.floor(rectWidth) + 96,
                       duration: 0.3,
                       easing: Konva.Easings.BackEaseOut,
                       onFinish: () => {
@@ -302,13 +304,16 @@ export const GlassyLowerThirds = ({
             }}
           />
           <Text
-            x={-userInfoWidth.current - 24}
-            y={-24}
+            x={-rectWidth - 24}
+            y={designation === '' && organization === '' ? -48 : -24}
             fill={textColor || '#fafafa'}
             text={userName}
             fontSize={24}
             opacity={0}
             height={96}
+            verticalAlign={
+              designation === '' && organization === '' ? 'middle' : undefined
+            }
             fontStyle="bold"
             fontFamily={branding?.font?.body?.family || 'Gilroy'}
             key="username"
@@ -329,33 +334,93 @@ export const GlassyLowerThirds = ({
               }, 1500)
             }
           />
-          <Text
-            x={-userInfoWidth.current - 24}
-            y={8}
-            fill={textColor || '#fafafa'}
-            text={`${designation}, ${organization}`}
-            fontSize={16}
-            opacity={0}
-            height={96}
-            fontFamily={branding?.font?.body?.family || 'Gilroy'}
-            key="designation"
-            ref={(ref) =>
-              setTimeout(() => {
-                ref?.to({
-                  opacity: 1,
-                  duration: 0.3,
-                  onFinish: () => {
-                    setTimeout(() => {
-                      ref?.to({
-                        opacity: 0,
-                        duration: 0.3,
-                      })
-                    }, 1500)
-                  },
-                })
-              }, 1500)
-            }
-          />
+          {designation !== '' && organization === '' && (
+            <Text
+              x={-rectWidth - 24}
+              y={8}
+              fill={textColor || '#fafafa'}
+              text={designation}
+              fontSize={16}
+              opacity={0}
+              height={96}
+              fontFamily={branding?.font?.body?.family || 'Gilroy'}
+              key="designation"
+              ref={(ref) =>
+                setTimeout(() => {
+                  ref?.to({
+                    opacity: 1,
+                    duration: 0.3,
+                    onFinish: () => {
+                      setTimeout(() => {
+                        ref?.to({
+                          opacity: 0,
+                          duration: 0.3,
+                        })
+                      }, 1500)
+                    },
+                  })
+                }, 1500)
+              }
+            />
+          )}
+          {designation === '' && organization !== '' && (
+            <Text
+              x={-rectWidth - 24}
+              y={8}
+              fill={textColor || '#fafafa'}
+              text={organization}
+              fontSize={16}
+              opacity={0}
+              height={96}
+              fontFamily={branding?.font?.body?.family || 'Gilroy'}
+              key="organization"
+              ref={(ref) =>
+                setTimeout(() => {
+                  ref?.to({
+                    opacity: 1,
+                    duration: 0.3,
+                    onFinish: () => {
+                      setTimeout(() => {
+                        ref?.to({
+                          opacity: 0,
+                          duration: 0.3,
+                        })
+                      }, 1500)
+                    },
+                  })
+                }, 1500)
+              }
+            />
+          )}
+          {designation !== '' && organization !== '' && (
+            <Text
+              x={-rectWidth - 24}
+              y={8}
+              fill={textColor || '#fafafa'}
+              text={`${designation}, ${organization}`}
+              fontSize={16}
+              opacity={0}
+              height={96}
+              fontFamily={branding?.font?.body?.family || 'Gilroy'}
+              key="designationAndOrganization"
+              ref={(ref) =>
+                setTimeout(() => {
+                  ref?.to({
+                    opacity: 1,
+                    duration: 0.3,
+                    onFinish: () => {
+                      setTimeout(() => {
+                        ref?.to({
+                          opacity: 0,
+                          duration: 0.3,
+                        })
+                      }, 1500)
+                    },
+                  })
+                }, 1500)
+              }
+            />
+          )}
         </Group>
       </>
     )
@@ -387,8 +452,8 @@ export const GlassyLowerThirds = ({
           height={60}
           ref={(ref) => {
             ref?.to({
-              x: -Math.floor(userInfoWidth.current) - 32 + 60,
-              width: Math.floor(userInfoWidth.current) + 32,
+              x: -Math.floor(rectWidth) - 32 + 60,
+              width: Math.floor(rectWidth) + 32,
               duration: 0.3,
               easing: Konva.Easings.BackEaseOut,
               onFinish: () => {
@@ -405,8 +470,8 @@ export const GlassyLowerThirds = ({
           }}
         />
         <Text
-          x={-userInfoWidth.current - 16 + 60}
-          y={-20}
+          x={-rectWidth - 16 + 60}
+          y={designation === '' && organization === '' ? -30 : -20}
           fill={textColor || '#fafafa'}
           text={userName}
           fontSize={24}
@@ -414,6 +479,9 @@ export const GlassyLowerThirds = ({
           height={60}
           fontStyle="bold"
           fontFamily={branding?.font?.body?.family || 'Gilroy'}
+          verticalAlign={
+            designation === '' && organization === '' ? 'middle' : undefined
+          }
           key="username"
           ref={(ref) =>
             setTimeout(() => {
@@ -432,34 +500,96 @@ export const GlassyLowerThirds = ({
             }, 300)
           }
         />
-        <Text
-          x={-userInfoWidth.current - 16 + 60}
-          y={6}
-          fill={textColor || '#fafafa'}
-          text={`${designation}, ${organization}`}
-          fontSize={16}
-          opacity={0}
-          height={60}
-          fontStyle="bold"
-          fontFamily={branding?.font?.body?.family || 'Gilroy'}
-          key="designation"
-          ref={(ref) =>
-            setTimeout(() => {
-              ref?.to({
-                opacity: 1,
-                duration: 0.3,
-                onFinish: () => {
-                  setTimeout(() => {
-                    ref?.to({
-                      opacity: 0,
-                      duration: 0.3,
-                    })
-                  }, 1400)
-                },
-              })
-            }, 300)
-          }
-        />
+        {designation !== '' && organization === '' && (
+          <Text
+            x={-rectWidth - 16 + 60}
+            y={6}
+            fill={textColor || '#fafafa'}
+            text={designation}
+            fontSize={16}
+            opacity={0}
+            height={60}
+            fontStyle="bold"
+            fontFamily={branding?.font?.body?.family || 'Gilroy'}
+            key="designation"
+            ref={(ref) =>
+              setTimeout(() => {
+                ref?.to({
+                  opacity: 1,
+                  duration: 0.3,
+                  onFinish: () => {
+                    setTimeout(() => {
+                      ref?.to({
+                        opacity: 0,
+                        duration: 0.3,
+                      })
+                    }, 1400)
+                  },
+                })
+              }, 300)
+            }
+          />
+        )}
+        {designation === '' && organization !== '' && (
+          <Text
+            x={-rectWidth - 16 + 60}
+            y={6}
+            fill={textColor || '#fafafa'}
+            text={organization}
+            fontSize={16}
+            opacity={0}
+            height={60}
+            fontStyle="bold"
+            fontFamily={branding?.font?.body?.family || 'Gilroy'}
+            key="organization"
+            ref={(ref) =>
+              setTimeout(() => {
+                ref?.to({
+                  opacity: 1,
+                  duration: 0.3,
+                  onFinish: () => {
+                    setTimeout(() => {
+                      ref?.to({
+                        opacity: 0,
+                        duration: 0.3,
+                      })
+                    }, 1400)
+                  },
+                })
+              }, 300)
+            }
+          />
+        )}
+        {designation !== '' && organization !== '' && (
+          <Text
+            x={-rectWidth - 16 + 60}
+            y={6}
+            fill={textColor || '#fafafa'}
+            text={`${designation}, ${organization}`}
+            fontSize={16}
+            opacity={0}
+            height={60}
+            fontStyle="bold"
+            fontFamily={branding?.font?.body?.family || 'Gilroy'}
+            key="designationAndOrganization"
+            ref={(ref) =>
+              setTimeout(() => {
+                ref?.to({
+                  opacity: 1,
+                  duration: 0.3,
+                  onFinish: () => {
+                    setTimeout(() => {
+                      ref?.to({
+                        opacity: 0,
+                        duration: 0.3,
+                      })
+                    }, 1400)
+                  },
+                })
+              }, 300)
+            }
+          />
+        )}
       </Group>
     </>
   )
@@ -486,8 +616,11 @@ export const PastelLinesLowerThirds = ({
 }) => {
   const [image] = useImage(logo, 'anonymous')
   const { getTextWidth } = useEdit()
-  const userInfoWidth = useRef(
-    getTextWidth(`${designation}, ${organization}`, 'Outfit', 16, 'normal') + 50
+  const rectWidth = useRef(
+    Math.max(
+      getTextWidth(`${designation}, ${organization}`, 'Outfit', 16, 'normal'),
+      getTextWidth(userName || '', 'Outfit', 24, 'bold')
+    ) + 50
   )
   if (logo)
     return (
@@ -507,7 +640,7 @@ export const PastelLinesLowerThirds = ({
                 onFinish: () => {
                   setTimeout(() => {
                     ref?.to({
-                      width: Math.floor(userInfoWidth.current) + 96,
+                      width: Math.floor(rectWidth.current) + 96,
                       duration: 0.3,
                       easing: Konva.Easings.EaseOut,
                       onFinish: () => {
@@ -590,7 +723,7 @@ export const PastelLinesLowerThirds = ({
           />
           <Text
             x={150}
-            y={24}
+            y={designation === '' && organization === '' ? 0 : 24}
             fill={textColor || '#27272A'}
             text={userName}
             fontSize={24}
@@ -598,6 +731,9 @@ export const PastelLinesLowerThirds = ({
             height={96}
             fontStyle="bold"
             fontFamily="Outfit"
+            verticalAlign={
+              designation === '' && organization === '' ? 'middle' : undefined
+            }
             key="username"
             ref={(ref) =>
               setTimeout(() => {
@@ -617,34 +753,96 @@ export const PastelLinesLowerThirds = ({
               }, 1100)
             }
           />
-          <Text
-            x={150}
-            y={56}
-            fill={textColor || '#27272A'}
-            text={`${designation}, ${organization}`}
-            fontSize={16}
-            opacity={0}
-            height={96}
-            fontFamily="Outfit"
-            key="designation"
-            ref={(ref) =>
-              setTimeout(() => {
-                ref?.to({
-                  x: 118,
-                  opacity: 1,
-                  duration: 0.3,
-                  onFinish: () => {
-                    setTimeout(() => {
-                      ref?.to({
-                        opacity: 0,
-                        duration: 0.3,
-                      })
-                    }, 1800)
-                  },
-                })
-              }, 1100)
-            }
-          />
+          {designation !== '' && organization === '' && (
+            <Text
+              x={150}
+              y={56}
+              fill={textColor || '#27272A'}
+              text={designation}
+              fontSize={16}
+              opacity={0}
+              height={96}
+              fontFamily="Outfit"
+              key="designation"
+              ref={(ref) =>
+                setTimeout(() => {
+                  ref?.to({
+                    x: 118,
+                    opacity: 1,
+                    duration: 0.3,
+                    onFinish: () => {
+                      setTimeout(() => {
+                        ref?.to({
+                          opacity: 0,
+                          duration: 0.3,
+                        })
+                      }, 1800)
+                    },
+                  })
+                }, 1100)
+              }
+            />
+          )}
+          {designation === '' && organization !== '' && (
+            <Text
+              x={150}
+              y={56}
+              fill={textColor || '#27272A'}
+              text={organization}
+              fontSize={16}
+              opacity={0}
+              height={96}
+              fontFamily="Outfit"
+              key="organization"
+              ref={(ref) =>
+                setTimeout(() => {
+                  ref?.to({
+                    x: 118,
+                    opacity: 1,
+                    duration: 0.3,
+                    onFinish: () => {
+                      setTimeout(() => {
+                        ref?.to({
+                          opacity: 0,
+                          duration: 0.3,
+                        })
+                      }, 1800)
+                    },
+                  })
+                }, 1100)
+              }
+            />
+          )}
+          {designation !== '' && organization !== '' && (
+            <Text
+              x={150}
+              y={56}
+              fill={textColor || '#27272A'}
+              text={`${designation}, ${organization}`}
+              fontSize={16}
+              opacity={0}
+              height={96}
+              fontFamily="Outfit"
+              key="designationAndOrganization"
+              ref={(ref) =>
+                setTimeout(() => {
+                  ref?.to({
+                    x: 118,
+                    opacity: 1,
+                    duration: 0.3,
+                    onFinish: () => {
+                      setTimeout(() => {
+                        ref?.to({
+                          opacity: 0,
+                          duration: 0.3,
+                        })
+                      }, 1800)
+                    },
+                  })
+                }, 1100)
+              }
+            />
+          )}
         </Group>
       </>
     )
@@ -659,7 +857,7 @@ export const PastelLinesLowerThirds = ({
           strokeWidth={1}
           ref={(ref) => {
             ref?.to({
-              width: Math.floor(userInfoWidth.current),
+              width: Math.floor(rectWidth.current),
               duration: 0.3,
               easing: Konva.Easings.EaseOut,
               onFinish: () => {
@@ -677,7 +875,7 @@ export const PastelLinesLowerThirds = ({
         />
         <Text
           x={60}
-          y={24}
+          y={designation === '' && organization === '' ? 0 : 24}
           fill={textColor || '#27272A'}
           text={userName}
           fontSize={24}
@@ -685,6 +883,9 @@ export const PastelLinesLowerThirds = ({
           height={96}
           fontStyle="bold"
           fontFamily="Outfit"
+          verticalAlign={
+            designation === '' && organization === '' ? 'middle' : undefined
+          }
           key="username"
           ref={(ref) =>
             setTimeout(() => {
@@ -704,34 +905,96 @@ export const PastelLinesLowerThirds = ({
             }, 100)
           }
         />
-        <Text
-          x={60}
-          y={56}
-          fill={textColor || '#27272A'}
-          text={`${designation}, ${organization}`}
-          fontSize={16}
-          opacity={0}
-          height={96}
-          fontFamily="Outfit"
-          key="designation"
-          ref={(ref) =>
-            setTimeout(() => {
-              ref?.to({
-                x: 20,
-                opacity: 1,
-                duration: 0.3,
-                onFinish: () => {
-                  setTimeout(() => {
-                    ref?.to({
-                      opacity: 0,
-                      duration: 0.3,
-                    })
-                  }, 1000)
-                },
-              })
-            }, 100)
-          }
-        />
+        {designation !== '' && organization === '' && (
+          <Text
+            x={60}
+            y={56}
+            fill={textColor || '#27272A'}
+            text={designation}
+            fontSize={16}
+            opacity={0}
+            height={96}
+            fontFamily="Outfit"
+            key="designation"
+            ref={(ref) =>
+              setTimeout(() => {
+                ref?.to({
+                  x: 20,
+                  opacity: 1,
+                  duration: 0.3,
+                  onFinish: () => {
+                    setTimeout(() => {
+                      ref?.to({
+                        opacity: 0,
+                        duration: 0.3,
+                      })
+                    }, 1000)
+                  },
+                })
+              }, 100)
+            }
+          />
+        )}
+        {designation === '' && organization !== '' && (
+          <Text
+            x={60}
+            y={56}
+            fill={textColor || '#27272A'}
+            text={organization}
+            fontSize={16}
+            opacity={0}
+            height={96}
+            fontFamily="Outfit"
+            key="organization"
+            ref={(ref) =>
+              setTimeout(() => {
+                ref?.to({
+                  x: 20,
+                  opacity: 1,
+                  duration: 0.3,
+                  onFinish: () => {
+                    setTimeout(() => {
+                      ref?.to({
+                        opacity: 0,
+                        duration: 0.3,
+                      })
+                    }, 1000)
+                  },
+                })
+              }, 100)
+            }
+          />
+        )}
+        {designation !== '' && organization !== '' && (
+          <Text
+            x={60}
+            y={56}
+            fill={textColor || '#27272A'}
+            text={`${designation}, ${organization}`}
+            fontSize={16}
+            opacity={0}
+            height={96}
+            fontFamily="Outfit"
+            key="designationAndOrganization"
+            ref={(ref) =>
+              setTimeout(() => {
+                ref?.to({
+                  x: 20,
+                  opacity: 1,
+                  duration: 0.3,
+                  onFinish: () => {
+                    setTimeout(() => {
+                      ref?.to({
+                        opacity: 0,
+                        duration: 0.3,
+                      })
+                    }, 1000)
+                  },
+                })
+              }, 100)
+            }
+          />
+        )}
       </Group>
     </>
   )
@@ -768,7 +1031,7 @@ export const CassidooLowerThirds = ({
         'normal'
       ),
       getTextWidth(userName || '', 'Roboto Mono', 24, 'bold')
-    ) + 10
+    ) + 20
   if (logo)
     return (
       <>
@@ -815,13 +1078,16 @@ export const CassidooLowerThirds = ({
           <Image x={18} y={18} width={60} height={60} image={image} />
           <Text
             x={98}
-            y={24}
+            y={designation === '' && organization === '' ? 0 : 24}
             fill={textColor || '#27272A'}
             text={userName}
             fontSize={24}
             height={96}
             fontStyle="bold"
             fontFamily="Roboto Mono"
+            verticalAlign={
+              designation === '' && organization === '' ? 'middle' : undefined
+            }
             key="username"
           />
           {designation !== '' && organization === '' && (
@@ -845,7 +1111,7 @@ export const CassidooLowerThirds = ({
               fontSize={16}
               height={96}
               fontFamily="Roboto Mono"
-              key="designation"
+              key="organization"
             />
           )}
           {designation !== '' && organization !== '' && (
@@ -857,7 +1123,7 @@ export const CassidooLowerThirds = ({
               fontSize={16}
               height={96}
               fontFamily="Roboto Mono"
-              key="designation"
+              key="designationAndOrganization"
             />
           )}
         </Group>
@@ -907,13 +1173,16 @@ export const CassidooLowerThirds = ({
         />
         <Text
           x={20}
-          y={24}
+          y={designation === '' && organization === '' ? 0 : 24}
           fill={textColor || '#27272A'}
           text={userName}
           fontSize={24}
           height={96}
           fontStyle="bold"
           fontFamily="Roboto Mono"
+          verticalAlign={
+            designation === '' && organization === '' ? 'middle' : undefined
+          }
           key="username"
         />
         {designation !== '' && organization === '' && (

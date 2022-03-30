@@ -1,18 +1,20 @@
 import React, { useState } from 'react'
 import { FiChevronLeft } from 'react-icons/fi'
-import { HiOutlineDownload } from 'react-icons/hi'
+import { HiOutlineUpload } from 'react-icons/hi'
 import { IoPeopleOutline } from 'react-icons/io5'
 import { useRecoilState } from 'recoil'
-import { Download } from '.'
 import { Button, Heading } from '../../../components'
 import { ASSETS } from '../../../constants'
 import { newFlickStore } from '../store/flickNew.store'
 import ShareModal from './ShareModal'
 
-const FlickNavBar = () => {
+const FlickNavBar = ({
+  togglePublishModal,
+}: {
+  togglePublishModal: () => void
+}) => {
   const [{ flick }] = useRecoilState(newFlickStore)
   const [isShareOpen, setIsShareOpen] = useState(false)
-  const [isDownloadOpen, setIsDownloadOpen] = useState(false)
 
   return (
     <div className="sticky top-0 z-50 flex items-center justify-between py-2 pl-3 pr-4 bg-dark-500">
@@ -27,7 +29,7 @@ const FlickNavBar = () => {
       <Heading className="p-2 ml-12 font-bold text-base text-white">
         {flick?.name || ''}
       </Heading>
-      <div className="flex items-stretch gap-x-6">
+      <div className="flex items-stretch gap-x-6 px-2">
         <Button
           appearance="gray"
           type="button"
@@ -43,12 +45,15 @@ const FlickNavBar = () => {
         </Button>
         <Button
           appearance="gray"
-          size="small"
           type="button"
-          icon={HiOutlineDownload}
-          iconSize={21}
-          onClick={() => setIsDownloadOpen(true)}
-        />
+          onClick={togglePublishModal}
+          size="small"
+          icon={HiOutlineUpload}
+          iconSize={20}
+          className="-mr-3"
+        >
+          Publish
+        </Button>
       </div>
       {isShareOpen && (
         <ShareModal
@@ -56,12 +61,6 @@ const FlickNavBar = () => {
           handleClose={() => {
             setIsShareOpen(false)
           }}
-        />
-      )}
-      {isDownloadOpen && (
-        <Download
-          open={isDownloadOpen}
-          handleClose={(refresh?: boolean) => setIsDownloadOpen(false)}
         />
       )}
     </div>

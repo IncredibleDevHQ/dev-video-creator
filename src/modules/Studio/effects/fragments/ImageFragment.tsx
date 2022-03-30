@@ -1,5 +1,6 @@
 /* eslint-disable no-nested-ternary */
 import Konva from 'konva'
+import { nanoid } from 'nanoid'
 import React, { useEffect, useRef, useState } from 'react'
 import { Group, Image, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
@@ -290,10 +291,10 @@ const ImageFragment = ({
         })
       }
     }
-  }, [payload?.fragmentState])
+  }, [payload?.fragmentState, payload?.status])
 
   const layerChildren: any[] = [
-    <Group x={0} y={0} opacity={0} ref={customLayoutRef}>
+    <Group x={0} y={0} opacity={1} ref={customLayoutRef}>
       <FragmentBackground
         theme={theme}
         objectConfig={objectConfig}
@@ -312,6 +313,7 @@ const ImageFragment = ({
           <>
             {isGif ? (
               <Gif
+                key={nanoid()}
                 image={qnaImage}
                 x={imgDim.x}
                 y={imgDim.y}

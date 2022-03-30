@@ -2,6 +2,11 @@
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 import { css, cx } from '@emotion/css'
 import { Listbox } from '@headlessui/react'
+import Document from '@tiptap/extension-document'
+import Paragraph from '@tiptap/extension-paragraph'
+import Placeholder from '@tiptap/extension-placeholder'
+import { Text as TextNode } from '@tiptap/extension-text'
+import { EditorContent, useEditor } from '@tiptap/react'
 import { sentenceCase } from 'change-case'
 import React, {
   ChangeEvent,
@@ -53,9 +58,11 @@ import {
 } from '../../../utils/configTypes'
 import { getSurfaceColor } from '../../Studio/effects/fragments/CodeFragment'
 import { studioStore } from '../../Studio/stores'
+import editorStyle from '../editor/style'
 import {
   Block,
   CodeBlockProps,
+  HeadingBlockProps,
   ImageBlockProps,
   IntroBlockProps,
   ListBlockProps,
@@ -63,9 +70,9 @@ import {
   SimpleAST,
   VideoBlockProps,
 } from '../editor/utils/utils'
-import { EditorContext } from '../Flick'
 import { newFlickStore } from '../store/flickNew.store'
 import { CanvasPreview, LayoutSelector } from './BlockPreview'
+import { EditorContext } from './EditorProvider'
 
 const noScrollBar = css`
   ::-webkit-scrollbar {
@@ -226,6 +233,13 @@ const Preview = ({
     document.addEventListener('keydown', handleKeyDown)
   }, [activeBlockRef, blocks])
 
+  // remove event listener on unmount
+  useEffect(() => {
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [])
+
   useEffect(() => {
     if (!block) return
     const { type } = block
@@ -242,6 +256,9 @@ const Preview = ({
         break
       case 'codeBlock':
         setTabs([commonTabs[0], commonTabs[1], ...codeBlockTabs, commonTabs[2]])
+        break
+      case 'headingBlock':
+        setTabs([commonTabs[0], commonTabs[2]])
         break
       default:
         setTabs(commonTabs)
@@ -461,6 +478,9 @@ const Preview = ({
   )
 }
 
+const CustomDocument = Document.extend({
+  content: 'paragraph*',
+})
 const Note = ({
   block,
   simpleAST,
@@ -534,6 +554,15 @@ const Note = ({
           note: outroBlock.outroBlock?.note,
         }
       }
+      case 'headingBlock': {
+        const headingBlock = simpleAST.blocks.find(
+          (b) => b.id === block.id
+        ) as HeadingBlockProps
+        return {
+          note: headingBlock.headingBlock.note,
+          noteId: headingBlock.headingBlock.noteId,
+        }
+      }
       default:
         return {}
     }
@@ -543,32 +572,33 @@ const Note = ({
     if (!editor) return
     if (block.type !== 'introBlock' && block.type !== 'outroBlock') {
       let didInsert = false
-      editor?.state.tr.doc.descendants((node, pos) => {
-        if (node.attrs.id) {
-          if (node.attrs.id === nodeId) {
-            // console.log('found node with note', node, pos, node.nodeSize)
-            node.descendants((childNode) => {
-              // check for text node
-              if (childNode.type.name === 'text') {
-                // console.log(
-                //   'found text node',
-                //   childNode,
-                //   childPos,
-                //   childNode.nodeSize
-                // )
-                editor.view.dispatch(
-                  editor.state.tr.insertText(
-                    notes,
-                    pos + 1,
-                    pos + 2 + childNode.nodeSize
-                  )
+      if (nodeId)
+        editor?.state.tr.doc.descendants((node, pos) => {
+          if (node.attrs.id) {
+            if (node.attrs.id === nodeId) {
+              editor.view.dispatch(
+                editor.state.tr.replaceWith(
+                  pos + 1,
+                  pos + node.nodeSize,
+                  notes.split('\n').map((line) => {
+                    let lineText = line
+                    if (line === '') {
+                      lineText = ' '
+                    }
+                    const textNode = editor.view.state.schema.text(lineText)
+                    const paragraphNode =
+                      editor.view.state.schema.nodes.paragraph.create(
+                        null,
+                        textNode
+                      )
+                    return paragraphNode
+                  })
                 )
-                didInsert = true
-              }
-            })
+              )
+              didInsert = true
+            }
           }
-        }
-      })
+        })
       if (!didInsert) {
         // insert blockquote text before block id
         editor?.state.tr.doc.descendants((node, pos) => {
@@ -588,7 +618,9 @@ const Note = ({
               },
               paragraphNode
             )
-            editor.view.dispatch(editor.state.tr.insert(pos, blockquote))
+            const position =
+              block.type === 'headingBlock' ? pos + node.nodeSize : pos
+            editor.view.dispatch(editor.state.tr.insert(position, blockquote))
           }
         })
       }
@@ -623,18 +655,75 @@ const Note = ({
     }
   }
 
-  return (
-    <textarea
-      key={block.id}
-      placeholder="Add your notes here"
-      className="w-full h-full focus:outline-none font-body text-left resize-none outline-none border-none placeholder-gray-400"
-      value={localNote === undefined ? note : localNote}
-      onChange={(e) => {
-        setLocalNote(e.target.value)
-        updateNotes(localNoteId || noteId, e.target.value)
-      }}
-    />
-  )
+  useEffect(() => {
+    if (localNote === undefined) return
+    updateNotes(localNoteId || noteId, localNote)
+  }, [localNote])
+
+  const noteEditor = useEditor({
+    autofocus: 'end',
+    onUpdate: ({ editor }) => {
+      const notes =
+        editor
+          .getJSON()
+          .content?.map((node) => {
+            return node.content
+              ?.map((n) => {
+                return n.text
+              })
+              .join('')
+          })
+          .join('\n') || ''
+      setLocalNote(notes)
+    },
+    editorProps: {
+      attributes: {
+        class: cx(
+          'prose prose-sm max-w-none w-full h-full border-none focus:outline-none p-2.5',
+          editorStyle
+        ),
+      },
+    },
+    extensions: [
+      CustomDocument,
+      TextNode,
+      Paragraph,
+      Placeholder.configure({
+        placeholder: ({ editor }) => {
+          if (editor.getText() === '') {
+            return 'Add a note...'
+          }
+          return ''
+        },
+        showOnlyWhenEditable: true,
+        includeChildren: true,
+        showOnlyCurrent: false,
+        emptyEditorClass: 'is-editor-empty',
+      }),
+    ],
+    content:
+      localNote === undefined
+        ? note
+            ?.split('\n')
+            .map((line) => {
+              return `<p>${line}</p>`
+            })
+            .join('') || '<p></p>'
+        : localNote
+            .split('\n')
+            .map((line) => {
+              return `<p>${line}</p>`
+            })
+            .join('') || '<p></p>',
+  })
+
+  useEffect(() => {
+    return () => {
+      noteEditor?.destroy()
+    }
+  }, [])
+
+  return <EditorContent editor={noteEditor} />
 }
 
 interface CodeThemeConfig {

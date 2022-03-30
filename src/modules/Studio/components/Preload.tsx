@@ -5,7 +5,15 @@ import { useAuthState } from 'react-firebase-hooks/auth'
 import { SetterOrUpdater, useRecoilValue, useSetRecoilState } from 'recoil'
 import { ScreenState } from '../../../components'
 import config from '../../../config'
-import { StudioFragmentFragment } from '../../../generated/graphql'
+import {
+  Content_Types,
+  Content_Type_Enum_Enum,
+  SetupRecordingMutationVariables,
+  StudioFragmentFragment,
+  useGetRecordedBlocksLazyQuery,
+  useGetRecordingsLazyQuery,
+  useSetupRecordingMutation,
+} from '../../../generated/graphql'
 import firebaseState from '../../../stores/firebase.store'
 import {
   CodeBlockView,
@@ -48,14 +56,74 @@ const Preload = ({
 
   const setStudio = useSetRecoilState(studioStore)
 
+  const [getRecordings, { data: recordingsData, error: getRecordingsError }] =
+    useGetRecordingsLazyQuery({
+      variables: {
+        flickId: fragment?.flickId,
+        fragmentId: fragment?.id,
+      },
+    })
+
+  useEffect(() => {
+    getRecordings()
+  }, [])
+
+  if (getRecordingsError) {
+    console.error('GQL ERROR:', getRecordingsError)
+  }
+
+  const [getRecordedBlocks] = useGetRecordedBlocksLazyQuery()
+
+  const [setupRecording] = useSetupRecordingMutation()
+
+  const getRecording = async (variables: SetupRecordingMutationVariables) => {
+    if (!fragment?.configuration) return
+    const requiredType =
+      fragment.configuration.mode === 'Portrait'
+        ? Content_Type_Enum_Enum.VerticalVideo
+        : Content_Type_Enum_Enum.Video
+    const recording = recordingsData?.Recording?.find(
+      (recording) => recording.type === requiredType
+    )
+    console.log('Current recording is :', recording)
+    if (recording) {
+      const { data: recordedBlocks } = await getRecordedBlocks({
+        variables: {
+          recordingId: recording.id,
+        },
+      })
+      setStudio((prev) => ({
+        ...prev,
+        recordingId: recording.id,
+        recordedBlocks: recordedBlocks?.Blocks,
+      }))
+      return
+    }
+    const { data } = await setupRecording({ variables })
+    setStudio((prev) => ({
+      ...prev,
+      recordingId: data?.StartRecording?.recordingId || '',
+      recordedBlocks: [],
+    }))
+  }
+
   const performPreload = async () => {
     const token = await user?.getIdToken()
-    preload({ fragment, setLoaded, setFragment, setProgress, token, setStudio })
+    preload({
+      fragment,
+      setLoaded,
+      setFragment,
+      setProgress,
+      token,
+      setStudio,
+      getRecording,
+    })
   }
 
   useEffect(() => {
+    if (!recordingsData?.Recording) return
     performPreload()
-  }, [])
+  }, [recordingsData])
 
   useEffect(() => {
     if (!loaded) return
@@ -74,6 +142,7 @@ const preload = async ({
   setProgress,
   token,
   setStudio,
+  getRecording,
 }: {
   fragment: StudioFragmentFragment
   setFragment: React.Dispatch<
@@ -83,9 +152,21 @@ const preload = async ({
   setProgress: React.Dispatch<React.SetStateAction<number>>
   token: string | undefined
   setStudio: SetterOrUpdater<StudioProviderProps<any, any>>
+  getRecording?: (variables: SetupRecordingMutationVariables) => Promise<void>
 }) => {
   let { editorState } = fragment
   let branding = fragment.flick.branding?.branding
+
+  await getRecording?.({
+    flickId: fragment.flick.id,
+    fragmentId: fragment.id,
+    contentType:
+      fragment.configuration.mode === 'Portrait'
+        ? Content_Types.VerticalVideo
+        : Content_Types.Video,
+    editorState: fragment.editorState,
+    viewConfig: fragment.configuration?.blocks,
+  })
 
   const promises: Promise<{
     key: string
