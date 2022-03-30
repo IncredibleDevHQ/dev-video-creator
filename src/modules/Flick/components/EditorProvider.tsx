@@ -133,6 +133,15 @@ export const EditorProvider = ({
                 selectedNode.nodeName === 'P' &&
                 selectedNode.firstChild?.parentElement?.id === node.attrs.id
               ) {
+                const parentNode = (editor.state.selection.$from as any).path[3]
+                if (
+                  parentNode?.type?.name === 'blockquote' &&
+                  parentNode?.content?.content?.[
+                    parentNode?.content?.content?.length - 1
+                  ]?.attrs?.id === node.attrs?.id
+                ) {
+                  return 'Type or hit enter to exit quote'
+                }
                 return 'Type / for commands'
               }
             }
