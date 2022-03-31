@@ -5,11 +5,13 @@ import {
   ICameraVideoTrack,
   IMicrophoneAudioTrack,
 } from 'agora-rtc-react'
+import * as Sentry from '@sentry/react'
 import Konva from 'konva'
 import { nanoid } from 'nanoid'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import AspectRatio from 'react-aspect-ratio'
 import { BiErrorCircle, BiMicrophone, BiVideo } from 'react-icons/bi'
+import { FiRotateCcw } from 'react-icons/fi'
 import { IoArrowBack, IoCheckmarkOutline } from 'react-icons/io5'
 import { Group, Layer, Stage } from 'react-konva'
 import { useHistory, useParams } from 'react-router-dom'
@@ -852,11 +854,13 @@ const Studio = ({
       dismissToast(toast)
     } catch (e) {
       console.error('Upload error : ', e)
+      Sentry.captureException(e)
       emitToast({
-        title: 'Yikes. Something went wrong.',
+        title: 'Upload failed.',
         type: 'error',
         autoClose: false,
-        description: 'Our servers are a bit cranky today. Try in a while?',
+        description: 'Click here to retry before recording another block',
+        onClick: () => upload(blockId),
       })
     }
   }
@@ -1183,7 +1187,7 @@ const Studio = ({
                   'transform scale-110 border border-brand':
                     payload?.activeObjectIndex === index,
                   'bg-grey-900 text-gray-500':
-                    index > payload?.activeObjectIndex,
+                    index !== payload?.activeObjectIndex,
                   'cursor-not-allowed': state === 'recording',
 
                   // state !== 'ready' || state !== 'preview',
@@ -1359,8 +1363,18 @@ const Studio = ({
           {miniTimeline}
         </>
       ) : (
-        <>
-          <div className="flex items-center justify-center flex-col gap-y-12 w-full h-full">
+        <div className="flex flex-col h-full">
+          <IoArrowBack
+            size={18}
+            type="button"
+            className="max-w-max p-0 cursor-pointer text-white opacity-90 ml-8 mt-8"
+            onClick={() =>
+              history.length > 2
+                ? history.goBack()
+                : history.push(`/story/${fragment?.flickId}`)
+            }
+          />
+          <div className="flex items-center justify-center flex-col w-full flex-1 pt-4">
             {recordedBlocks && (
               <div
                 style={{
@@ -1369,14 +1383,13 @@ const Studio = ({
                     ? `${window.innerHeight / 2.25}px`
                     : `${window.innerWidth / 1.5}px`,
                 }}
-                className="flex justify-center items-center w-full"
+                className="flex justify-center items-center w-full flex-col"
               >
-                <Video
+                <video
                   height="auto"
                   className="w-full"
                   controls
                   autoPlay={false}
-                  type="blob"
                   src={(() => {
                     const newSrc =
                       recordedBlocks && currentBlock
@@ -1388,133 +1401,149 @@ const Studio = ({
                   })()}
                   key={nanoid()}
                 />
-              </div>
-            )}
+                {(state === 'preview' || state === 'upload') && (
+                  <div
+                    style={
+                      recordedVideoSrc?.includes('blob')
+                        ? {
+                            background: 'rgba(39, 39, 42, 0.5)',
+                            border: '0.5px solid #52525B',
+                            boxSizing: 'border-box',
+                            backdropFilter: 'blur(40px)',
+                            borderRadius: '4px',
+                          }
+                        : {}
+                    }
+                    className="flex items-center rounded-md gap-x-2 mt-2 z-10 p-2 px-3"
+                  >
+                    {
+                      // if block already has a recording dont show save button
+                      recordedVideoSrc?.includes('blob') && (
+                        <button
+                          className="bg-incredible-green-600 text-white rounded-sm py-1.5 px-2.5 flex items-center gap-x-2 font-bold hover:shadow-lg text-sm"
+                          type="button"
+                          onClick={() => {
+                            logEvent(PageEvent.SaveRecording)
+                            if (
+                              payload.activeObjectIndex === undefined ||
+                              !(payload.activeObjectIndex >= 0)
+                            ) {
+                              console.error(
+                                'Invalid activeObjectIndex :',
+                                payload
+                              )
+                              return
+                            }
 
-            {state === 'preview' && (
-              <div className="flex items-center rounded-md gap-x-4">
-                {
-                  // if block already has a recording dont show save button
-                  recordedVideoSrc?.includes('blob') && (
+                            const isOutro =
+                              payload?.activeObjectIndex ===
+                              fragment?.editorState?.blocks.length - 1
+
+                            // move on to next block
+                            const p = {
+                              ...payload,
+                              activeObjectIndex: isOutro
+                                ? payload.activeObjectIndex
+                                : payload.activeObjectIndex + 1,
+                            }
+
+                            const blockId =
+                              fragment?.editorState?.blocks[
+                                payload.activeObjectIndex
+                              ]?.id
+                            if (
+                              p.activeObjectIndex <
+                              fragment?.editorState?.blocks.length - 1
+                            ) {
+                              p.status = Fragment_Status_Enum_Enum.Paused
+                            } else {
+                              p.status = Fragment_Status_Enum_Enum.Completed
+                            }
+
+                            updatePayload?.(p)
+                            // start async upload and move on to next block
+                            upload(blockId)
+                            setState(isOutro ? 'preview' : 'resumed')
+                            setResetTimer(true)
+                          }}
+                        >
+                          <UploadIcon className="h-5 w-5 my-px" />
+                          Save and continue
+                        </button>
+                      )
+                    }
                     <button
-                      className="bg-green-600 border-green-600 text-white border rounded-sm py-1.5 px-2.5 flex items-center gap-x-2 font-bold hover:shadow-lg text-sm"
+                      className="bg-grey-500 text-white rounded-sm py-1.5 px-2.5 flex items-center gap-x-2 font-bold hover:shadow-md text-sm"
                       type="button"
                       onClick={() => {
-                        logEvent(PageEvent.SaveRecording)
-                        if (
-                          payload.activeObjectIndex === undefined ||
-                          !(payload.activeObjectIndex >= 0)
-                        ) {
-                          console.error('Invalid activeObjectIndex :', payload)
-                          return
+                        logEvent(PageEvent.Retake)
+                        resetCanvas()
+                        setTopLayerChildren?.({ id: nanoid(), state: '' })
+
+                        if (recordedBlocks && currentBlock) {
+                          console.warn('DELETING FOR RETAKE')
+                          const copyRecordedBlocks = [...recordedBlocks]
+                          const currentRecordedBlock =
+                            copyRecordedBlocks?.findIndex(
+                              (b) => b.id === currentBlock?.id
+                            )
+                          copyRecordedBlocks.splice(currentRecordedBlock, 1)
+                          console.log('Local Rec Blocks', copyRecordedBlocks)
+                          // setStudio({
+                          //   ...studio,
+                          //   recordedBlocks: copyRecordedBlocks,
+                          // })
+                          setLocalRecordedBlocks(copyRecordedBlocks)
                         }
 
-                        const isOutro =
-                          payload?.activeObjectIndex ===
-                          fragment?.editorState?.blocks.length - 1
-
-                        // move on to next block
-                        const p = {
-                          ...payload,
-                          activeObjectIndex: isOutro
-                            ? payload.activeObjectIndex
-                            : payload.activeObjectIndex + 1,
+                        const isCloudBlock = recordedBlocks?.find(
+                          (b) =>
+                            b.id ===
+                            fragment.editorState.blocks[
+                              payload?.activeObjectIndex
+                            ].id
+                        )
+                        if (isCloudBlock) {
+                          // remove the cloud block from local store and allow retake of the cloud block
+                          const updatedRecordedBlocks =
+                            studio.recordedBlocks?.filter(
+                              (b) => b.id !== isCloudBlock.id
+                            )
+                          // setStudio({
+                          //   ...studio,
+                          //   recordedBlocks: updatedRecordedBlocks,
+                          // })
+                          setLocalRecordedBlocks(updatedRecordedBlocks)
                         }
-
-                        const blockId =
-                          fragment?.editorState?.blocks[
-                            payload.activeObjectIndex
-                          ]?.id
-                        if (
-                          p.activeObjectIndex <
-                          fragment?.editorState?.blocks.length - 1
-                        ) {
-                          p.status = Fragment_Status_Enum_Enum.Paused
-                        } else {
-                          p.status = Fragment_Status_Enum_Enum.Completed
-                        }
-
-                        updatePayload?.(p)
-                        // start async upload and move on to next block
-                        upload(blockId)
-                        setState(isOutro ? 'preview' : 'resumed')
+                        updatePayload?.({
+                          status: Fragment_Status_Enum_Enum.Paused,
+                          // decrement active object index on retake to repeat the current block
+                          // also reset the block's element active index
+                          activeObjectIndex:
+                            // eslint-disable-next-line no-nested-ternary
+                            payload.activeObjectIndex - 1 >= 0
+                              ? isCloudBlock
+                                ? payload.activeObjectIndex
+                                : payload.activeObjectIndex - 1
+                              : 0,
+                        })
+                        setState('resumed')
                         setResetTimer(true)
                       }}
                     >
-                      <UploadIcon className="h-6 w-6 " />
-                      Save and continue
+                      <FiRotateCcw className="h-4 w-4 my-1" />
+                      Retake
                     </button>
-                  )
-                }
-                <button
-                  className="border-red-600 text-red-600 border rounded-sm py-1.5 px-2.5 flex items-center gap-x-2 font-bold hover:shadow-md text-sm"
-                  type="button"
-                  onClick={() => {
-                    logEvent(PageEvent.Retake)
-                    resetCanvas()
-                    setTopLayerChildren?.({ id: nanoid(), state: '' })
-
-                    if (recordedBlocks && currentBlock) {
-                      console.warn('DELETING FOR RETAKE')
-                      const copyRecordedBlocks = [...recordedBlocks]
-                      const currentRecordedBlock =
-                        copyRecordedBlocks?.findIndex(
-                          (b) => b.id === currentBlock?.id
-                        )
-                      copyRecordedBlocks.splice(currentRecordedBlock, 1)
-                      console.log('Local Rec Blocks', copyRecordedBlocks)
-                      // setStudio({
-                      //   ...studio,
-                      //   recordedBlocks: copyRecordedBlocks,
-                      // })
-                      setLocalRecordedBlocks(copyRecordedBlocks)
-                    }
-
-                    const isCloudBlock = recordedBlocks?.find(
-                      (b) =>
-                        b.id ===
-                        fragment.editorState.blocks[payload?.activeObjectIndex]
-                          .id
-                    )
-                    if (isCloudBlock) {
-                      // remove the cloud block from local store and allow retake of the cloud block
-                      const updatedRecordedBlocks =
-                        studio.recordedBlocks?.filter(
-                          (b) => b.id !== isCloudBlock.id
-                        )
-                      // setStudio({
-                      //   ...studio,
-                      //   recordedBlocks: updatedRecordedBlocks,
-                      // })
-                      setLocalRecordedBlocks(updatedRecordedBlocks)
-                    }
-                    updatePayload?.({
-                      status: Fragment_Status_Enum_Enum.Paused,
-                      // decrement active object index on retake to repeat the current block
-                      // also reset the block's element active index
-                      activeObjectIndex:
-                        // eslint-disable-next-line no-nested-ternary
-                        payload.activeObjectIndex - 1 >= 0
-                          ? isCloudBlock
-                            ? payload.activeObjectIndex
-                            : payload.activeObjectIndex - 1
-                          : 0,
-                    })
-                    setState('resumed')
-                    setResetTimer(true)
-                  }}
-                >
-                  <ReRecordIcon className="h-6 w-6 " />
-                  Retake
-                </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
           {miniTimeline}
-        </>
+        </div>
       )}
       <TimerModal
-        open={isTimerModalOpen}
+        open={isTimerModalOpen && (state === 'resumed' || state === 'ready')}
         timeLimit={timeLimit}
         setTimeLimit={setTimeLimit}
         handleClose={() => setIsTimerModalOpen(false)}
