@@ -420,7 +420,7 @@ const VideoBlock = (props: any) => {
         </Stage>
         <div
           className={cx(
-            'absolute top-1/2 left-1/2 text-gray-50 flex items-center justify-center p-4',
+            'absolute top-1/2 left-1/2 text-gray-50 items-center justify-center p-4 hidden group-hover:flex',
             { 'bg-gray-800 opacity-50 rounded-full': playing },
             translateXY
           )}
