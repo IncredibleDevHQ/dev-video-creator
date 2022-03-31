@@ -590,9 +590,9 @@ const VideoEditor = ({
                 <Transformer
                   ref={transformerRef}
                   anchorFill="#16A34A"
-                  anchorSize={12}
+                  anchorSize={6}
                   borderStroke="#16A34A"
-                  borderStrokeWidth={4}
+                  borderStrokeWidth={1}
                   rotateEnabled={false}
                   boundBoxFunc={(oldBox, newBox) => {
                     const box = newBox
