@@ -1274,7 +1274,9 @@ const Studio = ({
                   'animate-pulse rounded-sm absolute',
                   {
                     'bg-transparent': !timeLimitOver,
-                    'bg-red-600': timeLimitOver,
+                    'bg-red-600':
+                      timeLimitOver &&
+                      (state === 'recording' || state === 'start-recording'),
                   },
                   css`
                     width: ${layerRef.current
