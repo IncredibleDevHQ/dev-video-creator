@@ -41,8 +41,15 @@ const VideoFragment = ({
   stageRef: React.RefObject<Konva.Stage>
   shortsMode: boolean
 }) => {
-  const { fragment, payload, updatePayload, state, theme, branding } =
-    (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const {
+    fragment,
+    payload,
+    updatePayload,
+    state,
+    theme,
+    branding,
+    preloadedBlobUrls,
+  } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [studio, setStudio] = useRecoilState(studioStore)
 
   const [videoConfig, setVideoConfig] = useState<VideoConfig>({
@@ -112,7 +119,8 @@ const VideoFragment = ({
     element.crossOrigin = 'anonymous'
     element.preload = 'auto'
     element.muted = true
-    element.src = dataConfig.videoBlock.url || ''
+    element.src =
+      preloadedBlobUrls?.[dataConfig.id] || dataConfig.videoBlock.url || ''
 
     setObjectConfig(
       FragmentLayoutConfig({
