@@ -13,6 +13,7 @@ import {
   useUpdateFlickMdAndEditorStateMutation,
   useUpdateFragmentEditorStateMutation,
 } from '../../../generated/graphql'
+import { customScroll } from '../../Dashboard/Dashboard'
 import { EditorContext } from '../../Flick/components/EditorProvider'
 import { tinyEditorStyle } from '../../Flick/editor/style'
 import {
@@ -70,7 +71,7 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
   const noteEditor = useEditor(
     {
       editable: state === 'ready' || state === 'resumed',
-      autofocus: 'end',
+      autofocus: state === 'ready' || state === 'resumed' ? 'end' : 'start',
       onUpdate: ({ editor }) => {
         const notes =
           editor
@@ -366,7 +367,7 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
       default:
         return {}
     }
-  }, [payload?.activeObjectIndex])
+  }, [payload?.activeObjectIndex, state])
 
   useEffect(() => {
     if (!noteEditor || noteEditor?.isDestroyed) return
@@ -402,7 +403,10 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
         style={{
           height: `${stageHeight}px`,
         }}
-        className="h-full p-1 text-gray-100 rounded-sm outline-none focus:outline-none bg-grey-500"
+        className={cx(
+          'h-full p-1 text-gray-100 rounded-sm outline-none focus:outline-none bg-grey-500 overflow-y-scroll',
+          customScroll
+        )}
       >
         <EditorContent editor={noteEditor} />
       </div>
