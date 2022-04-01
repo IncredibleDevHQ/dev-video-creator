@@ -739,6 +739,7 @@ const Studio = ({
         ...studio,
         fragment: undefined,
         tracks,
+        preloadedBlobUrls: undefined,
       })
       updatePayload?.({ status: Fragment_Status_Enum_Enum.NotStarted })
       stopStreaming()
@@ -819,6 +820,7 @@ const Studio = ({
     try {
       const uploadVideoFile = await getBlobs()
       resetCanvas()
+      if (!uploadVideoFile) throw Error('Blobs is undefined')
       const { uuid } = await uploadFile({
         extension: 'webm',
         file: uploadVideoFile,
@@ -1108,9 +1110,35 @@ const Studio = ({
   }
 
   const prepareVideo = async () => {
-    if (state === 'preview' && currentBlock) {
+    if (
+      state === 'preview' &&
+      currentBlock &&
+      !recordedBlocks?.find((b) => b.id === currentBlock.id)
+    ) {
       console.log('Preparing video...')
       const blob = await getBlobs()
+
+      if (!blob || blob?.size <= 0) {
+        setState('resumed')
+        emitToast({
+          title: 'Something went wrong!',
+          description: 'Could not produce the video :(',
+          type: 'error',
+        })
+        Sentry.captureException(
+          new Error(
+            `Could not produce the video.Failed to get blobs when preparing video. ${JSON.stringify(
+              {
+                blobSize: blob?.size,
+                user: sub,
+                currentBlock,
+              }
+            )}`
+          )
+        )
+        return
+      }
+
       const url = URL.createObjectURL(blob)
       setRecordedVideoSrc(url)
       console.log('Settng src to:', url)
@@ -1441,7 +1469,7 @@ const Studio = ({
                             const p = {
                               ...payload,
                               activeObjectIndex: isOutro
-                                ? payload.activeObjectIndex
+                                ? 0
                                 : payload.activeObjectIndex + 1,
                             }
 

@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+import * as Sentry from '@sentry/react'
 import { saveAs } from 'file-saver'
 import { extension } from 'mime-types'
 import { useRef, useState } from 'react'
@@ -193,21 +194,28 @@ const useCanvasRecorder = ({
   }
 
   const download = async (fileName?: string) => {
-    const blob = await getBlobs()
-    // eslint-disable-next-line no-param-reassign
-    fileName = fileName || `${'recording.'}${extension(type as string)}`
-    saveAs(blob, fileName)
+    // const blob = await getBlobs()
+    // // eslint-disable-next-line no-param-reassign
+    // fileName = fileName || `${'recording.'}${extension(type as string)}`
+    // saveAs(blob, fileName)
   }
 
   const getBlobs = async () => {
-    const superblob = new Blob(recordedBlobs.current, { type })
-    const arrayBuffer = await superblob.arrayBuffer()
-    // recordedBlobs.current = []
-    // setMediaRecorder(null)
-    if (arrayBuffer) {
-      return getSeekableWebM(arrayBuffer)
+    try {
+      const superblob = new Blob(recordedBlobs.current, { type })
+      const arrayBuffer = await superblob.arrayBuffer()
+      // recordedBlobs.current = []
+      // setMediaRecorder(null)
+      if (arrayBuffer) {
+        getSeekableWebM(arrayBuffer)
+      }
+      return superblob
+    } catch (e) {
+      console.error(e)
+      Sentry.captureException(
+        new Error(`Failed to get blobs. ${JSON.stringify(e)}`)
+      )
     }
-    return superblob
   }
 
   const reset = () => {
