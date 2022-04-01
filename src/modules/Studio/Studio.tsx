@@ -739,6 +739,7 @@ const Studio = ({
         ...studio,
         fragment: undefined,
         tracks,
+        preloadedBlobUrls: undefined,
       })
       updatePayload?.({ status: Fragment_Status_Enum_Enum.NotStarted })
       stopStreaming()

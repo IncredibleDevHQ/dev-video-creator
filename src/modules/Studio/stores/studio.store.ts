@@ -73,6 +73,10 @@ export interface StudioProviderProps<T = any, S = any> {
 
   staticAssets?: StaticAssets
 
+  preloadedBlobUrls?: {
+    [key: string]: string | undefined
+  }
+
   codes?: {
     [key: string]: {
       code: string | undefined

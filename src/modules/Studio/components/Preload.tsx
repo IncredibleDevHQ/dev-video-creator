@@ -64,8 +64,6 @@ const Preload = ({
       },
     })
 
-  console.log('useEffect i cry')
-
   useEffect(() => {
     getRecordings()
   }, [])
@@ -243,29 +241,22 @@ const preload = async ({
     return promise
   }
 
+  let preloadedBlobs: {
+    [key: string]: string | undefined
+  } = {}
+
   Promise.all(promises.map(tick)).then((result) => {
     if (!result) return
     if (editorState) {
       editorState = {
         ...editorState,
         blocks: (editorState as SimpleAST).blocks.map((block) => {
-          if (block.type === 'imageBlock') {
-            return {
-              ...block,
-              imageBlock: {
-                ...block.imageBlock,
-                url: result.find((res) => res?.key === block.id)?.url,
-              },
+          if (block.type === 'imageBlock' || block.type === 'videoBlock') {
+            preloadedBlobs = {
+              ...preloadedBlobs,
+              [block.id]: result.find((res) => res?.key === block.id)?.url,
             }
-          }
-          if (block.type === 'videoBlock') {
-            return {
-              ...block,
-              videoBlock: {
-                ...block.videoBlock,
-                url: result.find((res) => res?.key === block.id)?.url,
-              },
-            }
+            return block
           }
           if (block.type === 'codeBlock') {
             return {
@@ -302,6 +293,11 @@ const preload = async ({
         branding,
       },
     })
+
+    setStudio((prev) => ({
+      ...prev,
+      preloadedBlobUrls: preloadedBlobs,
+    }))
 
     setLoaded(true)
   })
