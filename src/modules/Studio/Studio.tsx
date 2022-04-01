@@ -820,6 +820,7 @@ const Studio = ({
     try {
       const uploadVideoFile = await getBlobs()
       resetCanvas()
+      if (!uploadVideoFile) throw Error('Blobs is undefined')
       const { uuid } = await uploadFile({
         extension: 'webm',
         file: uploadVideoFile,

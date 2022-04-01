@@ -25,7 +25,7 @@ export interface StaticAssets {
 }
 export interface StudioProviderProps<T = any, S = any> {
   stream: MediaStream
-  getBlobs: () => Promise<Blob>
+  getBlobs: () => Promise<Blob | undefined>
   tracks: [IMicrophoneAudioTrack, ILocalVideoTrack] | null
   reset: () => void
   upload: (id: string) => void

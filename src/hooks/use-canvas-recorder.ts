@@ -194,10 +194,10 @@ const useCanvasRecorder = ({
   }
 
   const download = async (fileName?: string) => {
-    const blob = await getBlobs()
-    // eslint-disable-next-line no-param-reassign
-    fileName = fileName || `${'recording.'}${extension(type as string)}`
-    saveAs(blob, fileName)
+    // const blob = await getBlobs()
+    // // eslint-disable-next-line no-param-reassign
+    // fileName = fileName || `${'recording.'}${extension(type as string)}`
+    // saveAs(blob, fileName)
   }
 
   const getBlobs = async () => {
