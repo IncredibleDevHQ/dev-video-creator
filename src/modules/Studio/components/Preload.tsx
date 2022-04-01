@@ -64,6 +64,8 @@ const Preload = ({
       },
     })
 
+  console.log('useEffect i cry')
+
   useEffect(() => {
     getRecordings()
   }, [])
