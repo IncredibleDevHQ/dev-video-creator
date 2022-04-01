@@ -44,7 +44,7 @@ const ImageFragment = ({
   stageRef: React.RefObject<Konva.Stage>
   shortsMode: boolean
 }) => {
-  const { fragment, payload, branding, theme } =
+  const { fragment, payload, branding, theme, preloadedBlobUrls } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [imageFragmentData, setImageFragmentData] =
@@ -104,7 +104,8 @@ const ImageFragment = ({
       })
     )
     setImageFragmentData({
-      image: dataConfig?.imageBlock.url || '',
+      image:
+        preloadedBlobUrls?.[dataConfig.id] || dataConfig?.imageBlock.url || '',
       title: dataConfig?.imageBlock.title || '',
       caption: dataConfig?.imageBlock.caption || '',
     })

@@ -2,7 +2,6 @@ import Konva from 'konva'
 import { nanoid } from 'nanoid'
 import React, { useEffect, useRef, useState } from 'react'
 import { useRecoilState, useRecoilValue } from 'recoil'
-import { Rect } from 'react-konva'
 import {
   Fragment_Status_Enum_Enum,
   ThemeFragment,
@@ -27,12 +26,12 @@ import { FragmentState } from '../../components/RenderTokens'
 import VideoBackground from '../../components/VideoBackground'
 import { StudioProviderProps, studioStore } from '../../stores'
 import CodeFragment from './CodeFragment'
+import HeadingFragment from './HeadingFragment'
+import ImageFragment from './ImageFragment'
 import IntroFragment from './IntroFragment'
 import OutroFragment from './OutroFragment'
 import PointsFragment from './PointsFragment'
-import ImageFragment from './ImageFragment'
 import VideoFragment from './VideoFragment'
-import HeadingFragment from './HeadingFragment'
 
 const UnifiedFragment = ({
   stageRef,
@@ -59,7 +58,6 @@ const UnifiedFragment = ({
     payload,
     updatePayload,
     state,
-    addMusic,
     theme: flickTheme,
   } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
@@ -80,7 +78,7 @@ const UnifiedFragment = ({
 
   const timer = useRef<any>(null)
 
-  const dipToBlackRef = useRef<Konva.Rect>(null)
+  // const dipToBlackRef = useRef<Konva.Rect>(null)
 
   useEffect(() => {
     clearTimeout(timer.current)
@@ -88,13 +86,6 @@ const UnifiedFragment = ({
       clearTimeout(timer.current)
     }
   }, [])
-
-  useEffect(() => {
-    console.log(
-      'dataConfig at activeobj idx: ',
-      dataConfig?.[activeObjectIndex]
-    )
-  }, [activeObjectIndex])
 
   useEffect(() => {
     if (!config) return

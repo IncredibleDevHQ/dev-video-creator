@@ -85,8 +85,17 @@ export interface OutroBlock {
   note?: string
 }
 
+export interface RichTextContent {
+  text: string
+  marks: string[]
+}
+
 export interface ListItem {
-  content?: string
+  content?: {
+    type: 'code' | 'image' | 'richText' | 'text'
+    content: CodeBlock | ImageBlock | RichTextContent | string
+    line: number
+  }[]
   items?: ListItem[]
   level?: number
   text?: string
@@ -170,6 +179,71 @@ const textContent = (contentArray?: JSONContent[]) => {
       return ''
     })
     .join('')
+}
+
+const getPointContent = (contentArray?: JSONContent[]) => {
+  if (!contentArray) return []
+  const content: {
+    type: 'code' | 'image' | 'richText' | 'text'
+    content: CodeBlock | ImageBlock | RichTextContent | string
+    line: number
+  }[] = []
+
+  let line = 0
+
+  contentArray.forEach((node) => {
+    switch (node.type) {
+      case 'paragraph': {
+        node.content?.forEach((node) => {
+          if (!node.text) return
+          if (node.marks) {
+            const marks = node.marks.map((mark) => mark.type)
+            content.push({
+              type: 'richText',
+              line,
+              content: {
+                text: node.text,
+                marks,
+              } as RichTextContent,
+            })
+          } else {
+            content.push({ type: 'text', content: node.text, line })
+          }
+        })
+        if (node.content && node.content?.length > 0) {
+          line += 1
+        }
+        break
+      }
+      case 'codeBlock': {
+        content.push({
+          type: 'code',
+          content: {
+            code: textContent(node.content),
+            language: node.attrs?.language as string,
+          } as CodeBlock,
+          line,
+        })
+        line += 1
+        break
+      }
+      case 'image': {
+        content.push({
+          type: 'image',
+          content: {
+            url: node.attrs?.src as string,
+          } as ImageBlock,
+          line,
+        })
+        line += 1
+        break
+      }
+      default:
+        break
+    }
+  })
+
+  return content
 }
 
 const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
@@ -269,7 +343,7 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
   let prevCoreBlockPos = -1
   let blockPosition = 1
 
-  // console.log('state', state)
+  console.log('state', state)
 
   state?.content?.forEach((slab, index) => {
     if (slab.type === 'heading') {
@@ -416,13 +490,7 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
       const simplifyListItem = (listItem: JSONContent, lvl: number) => {
         const item: ListItem = {}
 
-        item.text = listItem.content
-          ?.filter((child) => child.type === 'paragraph')
-          .map((p) => {
-            return textContent(p.content)
-          })
-          .join('')
-          .replace(/&nbsp;/g, '')
+        item.content = getPointContent(listItem.content)
         item.level = lvl
         simpleListItems.push(item)
 
