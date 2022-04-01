@@ -207,11 +207,20 @@ const CodeFragment = ({
       viewConfig?.view as CodeBlockView
     )?.code
     ;(async () => {
-      if (dataConfig.codeBlock.colorCodes) {
+      const code = studio.codes?.[dataConfig.id]
+
+      if (
+        dataConfig.codeBlock.colorCodes &&
+        codeBlockViewProps.theme === code?.theme
+      ) {
         setColorCodes(dataConfig.codeBlock.colorCodes)
       } else {
         try {
-          if (dataConfig.codeBlock.code) {
+          if (
+            dataConfig.codeBlock.code &&
+            (code?.code !== dataConfig.codeBlock.code ||
+              codeBlockViewProps.theme !== code?.theme)
+          ) {
             const token = await user?.getIdToken()
             const { data } = await getColorCodes(
               dataConfig.codeBlock.code,
@@ -219,7 +228,22 @@ const CodeFragment = ({
               token || '',
               codeBlockViewProps?.theme
             )
-            if (!data?.errors) setColorCodes(data.data.TokenisedCode.data)
+            if (!data?.errors) {
+              setColorCodes(data.data.TokenisedCode.data)
+              setStudio({
+                ...studio,
+                codes: {
+                  ...studio.codes,
+                  [dataConfig.id]: {
+                    code: dataConfig.codeBlock.code,
+                    colorCode: data.data.TokenisedCode.data,
+                    theme: codeBlockViewProps?.theme,
+                  },
+                },
+              })
+            }
+          } else {
+            setColorCodes(code?.colorCode)
           }
         } catch (e) {
           console.error(e)
@@ -240,7 +264,7 @@ const CodeFragment = ({
     //   // { lineNumbers: [3] },
     // ]
     setBlockConfig(blocks)
-  }, [dataConfig, shortsMode, viewConfig, theme])
+  }, [dataConfig, shortsMode, viewConfig, theme, studio.codes?.[dataConfig.id]])
 
   useEffect(() => {
     setObjectRenderConfig(

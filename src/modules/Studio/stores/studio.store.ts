@@ -6,6 +6,7 @@ import {
   ThemeFragment,
 } from '../../../generated/graphql'
 import { AudioType, MusicAction } from '../../../hooks/use-canvas-recorder'
+import { CodeTheme } from '../../../utils/configTypes'
 import { BrandingJSON } from '../../Branding/BrandingPage'
 import { RTCUser } from '../hooks/use-video'
 
@@ -24,7 +25,7 @@ export interface StaticAssets {
 }
 export interface StudioProviderProps<T = any, S = any> {
   stream: MediaStream
-  getBlobs: () => Promise<Blob>
+  getBlobs: () => Promise<Blob | undefined>
   tracks: [IMicrophoneAudioTrack, ILocalVideoTrack] | null
   reset: () => void
   upload: (id: string) => void
@@ -71,6 +72,18 @@ export interface StudioProviderProps<T = any, S = any> {
   shortsMode?: boolean
 
   staticAssets?: StaticAssets
+
+  preloadedBlobUrls?: {
+    [key: string]: string | undefined
+  }
+
+  codes?: {
+    [key: string]: {
+      code: string | undefined
+      colorCode: any
+      theme: CodeTheme
+    }
+  }
 
   recordedBlocks?: RecordedBlocksFragment[]
 }

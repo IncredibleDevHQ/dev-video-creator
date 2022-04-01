@@ -233,16 +233,24 @@ const VideoBlock = (props: any) => {
               <FiUploadCloud size={24} className="my-2" />
 
               <div className="z-50 text-center text-black">
-                <Text contentEditable={false} fontSize="small">
-                  Drag and drop {props.node.attrs.type} or
-                </Text>
-                <Text
-                  contentEditable={false}
-                  fontSize="small"
-                  className="font-semibold"
-                >
-                  browse
-                </Text>
+                {props.node.attrs.type === 'video' ? (
+                  <>
+                    <Text contentEditable={false} fontSize="small">
+                      Drag and drop {props.node.attrs.type} or
+                    </Text>
+                    <Text
+                      contentEditable={false}
+                      fontSize="small"
+                      className="font-semibold"
+                    >
+                      browse
+                    </Text>
+                  </>
+                ) : (
+                  <Text contentEditable={false} fontSize="small">
+                    Click to record screen
+                  </Text>
+                )}
               </div>
             </div>
           )}
@@ -256,7 +264,7 @@ const VideoBlock = (props: any) => {
                 props.node.attrs['data-transformations']
               ),
             }}
-            shouldResetWhenOpened={retakeVideo}
+            shouldResetWhenOpened={props.node.attrs.type === 'video'}
             handleClose={() => {
               setEditVideo(false)
               setRetakeVideo(false)
@@ -267,6 +275,7 @@ const VideoBlock = (props: any) => {
                 'data-transformations': JSON.stringify(transformations),
               })
             }}
+            recordScreenMode
           />
         )}
       </NodeViewWrapper>
@@ -411,7 +420,7 @@ const VideoBlock = (props: any) => {
         </Stage>
         <div
           className={cx(
-            'absolute top-1/2 left-1/2 text-gray-50 flex items-center justify-center p-4',
+            'absolute top-1/2 left-1/2 text-gray-50 items-center justify-center p-4 hidden group-hover:flex',
             { 'bg-gray-800 opacity-50 rounded-full': playing },
             translateXY
           )}
@@ -499,6 +508,9 @@ export default Node.create({
       },
       caption: {
         default: null,
+      },
+      type: {
+        default: 'video', // video, screengrab
       },
     }
   },
