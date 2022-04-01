@@ -206,7 +206,7 @@ const PointsFragment = ({
     if (!dataConfig) return
     setTitleY(
       getPositionForReplaceMode({
-        title: dataConfig.listBlock.title || fragment?.name || '',
+        title: dataConfig.listBlock.title || '',
         titleFontSize: 40,
         titleFontFamily: branding?.font?.heading?.family || 'Gilroy',
         titleFontStyle: 'normal 800',
@@ -308,7 +308,7 @@ const PointsFragment = ({
         }
         width={objectRenderConfig.availableWidth - 80}
         lineHeight={1.15}
-        text={dataConfig.listBlock.title || fragment?.name || ''}
+        text={dataConfig.listBlock.title || ''}
         fontStyle="normal 800"
         fontFamily={branding?.font?.heading?.family || 'Gilroy'}
       />
