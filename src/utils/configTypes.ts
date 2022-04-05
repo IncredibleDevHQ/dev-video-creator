@@ -175,6 +175,7 @@ export interface IntroBlockViewProps {
   heading?: string
   name?: string
   designation?: string
+  organization?: string
   displayPicture?: string
 }
 export interface IntroBlockView {
