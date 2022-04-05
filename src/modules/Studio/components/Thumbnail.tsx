@@ -104,6 +104,8 @@ const Thumbnail = ({
             y={introConfig?.titleY || 0}
             width={introConfig?.titleWidth || 0}
             height={introConfig?.titleHeight || 0}
+            verticalAlign="middle"
+            align={isShorts ? 'center' : 'left'}
             text={thumbnailInfo?.title}
             fill={branding?.colors?.text || getThemeTextColor(theme)}
             fontSize={introConfig?.titleFontSize || 0}
@@ -120,7 +122,11 @@ const Thumbnail = ({
           />
           <Text
             key="userName"
-            x={introConfig?.userNameX || 0}
+            x={
+              logo
+                ? introConfig?.userNameX || 0
+                : (introConfig?.logoX || 0) + 10
+            }
             y={introConfig?.userNameY || 0}
             width={introConfig?.userNameWidth || 0}
             height={introConfig?.userNameHeight || 0}
@@ -132,7 +138,11 @@ const Thumbnail = ({
           />
           <Text
             key="userInfo"
-            x={introConfig?.userInfoX || 0}
+            x={
+              logo
+                ? introConfig?.userInfoX || 0
+                : (introConfig?.logoX || 0) + 10
+            }
             y={introConfig?.userInfoY || 0}
             width={introConfig?.userInfoWidth || 0}
             height={introConfig?.userInfoHeight || 0}
