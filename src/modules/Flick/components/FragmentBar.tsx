@@ -2,7 +2,7 @@
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 import { css, cx } from '@emotion/css'
-import React, { HTMLAttributes, useEffect, useState } from 'react'
+import React, { HTMLAttributes, useEffect, useRef, useState } from 'react'
 import { BiCheck } from 'react-icons/bi'
 import { BsCloudCheck, BsCloudUpload } from 'react-icons/bs'
 import {
@@ -42,8 +42,9 @@ import {
 } from '../../../utils/analytics-types'
 import { ViewConfig } from '../../../utils/configTypes'
 import { TextEditorParser } from '../editor/utils/helpers'
-import { SimpleAST } from '../editor/utils/utils'
+import { Block, SimpleAST } from '../editor/utils/utils'
 import { newFlickStore, View } from '../store/flickNew.store'
+import RecordingModal from './RecordingModal'
 
 const HorizontalContainer = ({
   className,
@@ -242,16 +243,21 @@ const FragmentBar = ({
   editorValue,
   setViewConfig,
   simpleAST,
+  currentBlock,
+  setCurrentBlock,
 }: {
   editorValue?: string
   config: ViewConfig
   simpleAST?: SimpleAST
   setViewConfig: React.Dispatch<React.SetStateAction<ViewConfig>>
+  currentBlock: Block | undefined
+  setCurrentBlock: React.Dispatch<React.SetStateAction<Block | undefined>>
 }) => {
   const [fragmentVideoModal, setFragmentVideoModal] = useState(false)
   const [themesModal, setThemesModal] = useState(false)
   const [brandingModal, setBrandingModal] = useState(false)
   const [thumbnailModal, setThumbnailModal] = useState(false)
+  const [recordingModal, setRecordingModal] = useState(false)
 
   const [
     { flick, activeFragmentId, view, themes, activeTheme },
@@ -287,7 +293,17 @@ const FragmentBar = ({
     400
   )
 
+  // useEffect(() => {
+  //   console.log('useEffect', editorValue)
+  // }, [editorValue])
+
+  const initialLoad = useRef<boolean>(true)
+
   useDidUpdateEffect(() => {
+    if (initialLoad.current) {
+      initialLoad.current = false
+      return
+    }
     debounced()
   }, [editorValue, config, useBranding, brandingId, simpleAST])
 
@@ -421,7 +437,7 @@ const FragmentBar = ({
             <Text fontSize="small">Error saving</Text>
           </div>
         )}
-        <div className="flex items-stretch justify-end text-white py-2 border-l-2 border-brand-grey">
+        <div className="flex items-stretch justify-end py-2 border-l-2 border-brand-grey text-white">
           <Tooltip
             isOpen={themesModal}
             setIsOpen={setThemesModal}
@@ -534,11 +550,10 @@ const FragmentBar = ({
             </Button>
           </Tooltip>
         </div>
-
-        <div className="flex items-stretch justify-end py-2 border-l-2 text-white border-brand-grey">
-          {(fragment?.producedLink || fragment?.producedShortsLink) &&
-            (mode === Content_Type_Enum_Enum.Video ||
-              mode === Content_Type_Enum_Enum.VerticalVideo) && (
+        {(fragment?.producedLink || fragment?.producedShortsLink) &&
+          (mode === Content_Type_Enum_Enum.Video ||
+            mode === Content_Type_Enum_Enum.VerticalVideo) && (
+            <div className="flex items-stretch justify-end py-2 pl-4 border-l-2 border-brand-grey text-white">
               <Button
                 appearance="none"
                 size="small"
@@ -552,7 +567,9 @@ const FragmentBar = ({
               >
                 Recordings
               </Button>
-            )}
+            </div>
+          )}
+        <div className="flex items-stretch justify-end py-2 pl-2 border-l-2 border-brand-grey text-white">
           <Button
             appearance="none"
             size="small"
@@ -567,7 +584,7 @@ const FragmentBar = ({
             Thumbnail
           </Button>
         </div>
-        <div className="flex items-stretch justify-end py-2 pl-4 border-l-2 text-white border-brand-grey">
+        <div className="flex items-stretch justify-end py-2 pl-4 border-l-2 border-brand-grey text-gray-400">
           <Button
             appearance={config.mode === 'Landscape' ? 'gray' : 'none'}
             size="small"
@@ -600,7 +617,7 @@ const FragmentBar = ({
             onClick={async () => {
               // Segment Tracking
               logEvent(PageEvent.GoToDeviceSelect)
-
+              // setRecordingModal(true)
               await updateConfig()
               history.push(`/${activeFragmentId}/studio`)
             }}
@@ -632,6 +649,18 @@ const FragmentBar = ({
           open={thumbnailModal}
           handleClose={() => {
             setThumbnailModal(false)
+          }}
+        />
+      )}
+      {recordingModal && (
+        <RecordingModal
+          open={recordingModal}
+          activeFragmentId={activeFragmentId}
+          simpleAST={simpleAST}
+          currentBlock={currentBlock}
+          setCurrentBlock={setCurrentBlock}
+          handleClose={() => {
+            setRecordingModal(false)
           }}
         />
       )}

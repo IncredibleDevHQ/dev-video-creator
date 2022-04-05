@@ -1,15 +1,17 @@
+/* eslint-disable jsx-a11y/no-autofocus */
 /* eslint-disable jsx-a11y/no-noninteractive-element-interactions */
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 import { css, cx } from '@emotion/css'
 import { GiphyFetch } from '@giphy/js-fetch-api'
 import { Grid } from '@giphy/react-components'
-import { Node, nodeInputRule } from '@tiptap/core'
+import { Editor, Node, nodeInputRule } from '@tiptap/core'
 import {
   mergeAttributes,
   NodeViewWrapper,
   ReactNodeViewRenderer,
 } from '@tiptap/react'
+import { NodeSelection } from 'prosemirror-state'
 import React, { useEffect, useRef, useState } from 'react'
 import { buildStyles, CircularProgressbar } from 'react-circular-progressbar'
 import Dropzone from 'react-dropzone'
@@ -96,6 +98,8 @@ const IMAGE_INPUT_REGEX = /!\[(.+|:?)\]\((\S+)(?:(?:\s+)["'](\S+)["'])?\)/
 
 export default Node.create<ImageOptions>({
   name: 'image',
+
+  isolating: true,
 
   addOptions() {
     return {
@@ -242,21 +246,48 @@ const Image = (props: any) => {
   return (
     <NodeViewWrapper as="div" id={props.node.attrs.id}>
       {src && (
-        <div contentEditable={false} className="group">
+        <div contentEditable={false} className="group relative">
+          <button
+            className="hidden group-hover:block absolute top-0 left-0 bg-gray-800 hover:bg-gray-700 text-white px-2.5 py-1 rounded-sm z-50 m-2 font-body"
+            type="button"
+            onClick={() => {
+              if (caption === null)
+                props.updateAttributes({
+                  caption: '',
+                })
+              else
+                props.updateAttributes({
+                  caption: null,
+                })
+            }}
+          >
+            {caption === null ? 'Add caption' : 'Remove Caption'}
+          </button>
           <img
-            className="cursor-pointer w-full group-hover:bg-gray-100 border border-transparent group-hover:border-gray-200 rounded-t-md"
+            className="cursor-pointer w-full group-hover:bg-gray-100 border border-transparent group-hover:border-gray-200 rounded-sm"
             src={localSrc || src}
             alt={alt}
             title={title}
           />
-          <input
-            value={caption}
-            placeholder="Write a caption..."
-            className="border border-gray-200 w-full group-hover:bg-gray-100 font-body px-2 py-1 focus:outline-none placeholder-italic text-black mt-px"
-            onChange={(e) => {
-              props.updateAttributes({ caption: e.target.value })
-            }}
-          />
+          {caption !== null && (
+            <input
+              autoFocus
+              onFocus={() => {
+                const editor = props.editor as Editor
+                editor.view.dispatch(
+                  editor.view.state.tr.setSelection(
+                    NodeSelection.create(editor.view.state.doc, props.getPos())
+                  )
+                )
+              }}
+              value={caption}
+              placeholder="Write a caption..."
+              className="border border-gray-200 w-full group-hover:bg-gray-100 font-body px-2 py-1 focus:outline-none placeholder-italic text-black mt-px"
+              onChange={(e) => {
+                props.updateAttributes({ caption: e.target.value })
+              }}
+            />
+          )}
         </div>
       )}
 

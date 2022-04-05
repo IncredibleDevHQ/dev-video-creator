@@ -26,6 +26,7 @@ import RenderTokens, {
   RenderHighlight,
 } from '../../components/RenderTokens'
 import useCode, { ComputedToken } from '../../hooks/use-code'
+import useEdit from '../../hooks/use-edit'
 import { StudioProviderProps, studioStore } from '../../stores'
 import {
   FragmentLayoutConfig,
@@ -182,6 +183,8 @@ const CodeFragment = ({
   const { auth } = useRecoilValue(firebaseState)
   const [user] = useAuthState(auth)
 
+  const { clipRect } = useEdit()
+
   useEffect(() => {
     if (!dataConfig) return
     setColorCodes([])
@@ -204,11 +207,20 @@ const CodeFragment = ({
       viewConfig?.view as CodeBlockView
     )?.code
     ;(async () => {
-      if (dataConfig.codeBlock.colorCodes) {
+      const code = studio.codes?.[dataConfig.id]
+
+      if (
+        dataConfig.codeBlock.colorCodes &&
+        codeBlockViewProps.theme === code?.theme
+      ) {
         setColorCodes(dataConfig.codeBlock.colorCodes)
       } else {
         try {
-          if (dataConfig.codeBlock.code) {
+          if (
+            dataConfig.codeBlock.code &&
+            (code?.code !== dataConfig.codeBlock.code ||
+              codeBlockViewProps.theme !== code?.theme)
+          ) {
             const token = await user?.getIdToken()
             const { data } = await getColorCodes(
               dataConfig.codeBlock.code,
@@ -216,7 +228,22 @@ const CodeFragment = ({
               token || '',
               codeBlockViewProps?.theme
             )
-            if (!data?.errors) setColorCodes(data.data.TokenisedCode.data)
+            if (!data?.errors) {
+              setColorCodes(data.data.TokenisedCode.data)
+              setStudio({
+                ...studio,
+                codes: {
+                  ...studio.codes,
+                  [dataConfig.id]: {
+                    code: dataConfig.codeBlock.code,
+                    colorCode: data.data.TokenisedCode.data,
+                    theme: codeBlockViewProps?.theme,
+                  },
+                },
+              })
+            }
+          } else {
+            setColorCodes(code?.colorCode)
           }
         } catch (e) {
           console.error(e)
@@ -237,7 +264,7 @@ const CodeFragment = ({
     //   // { lineNumbers: [3] },
     // ]
     setBlockConfig(blocks)
-  }, [dataConfig, shortsMode, viewConfig, theme])
+  }, [dataConfig, shortsMode, viewConfig, theme, studio.codes?.[dataConfig.id]])
 
   useEffect(() => {
     setObjectRenderConfig(
@@ -405,10 +432,10 @@ const CodeFragment = ({
         })
       }
     }
-  }, [payload?.fragmentState])
+  }, [payload?.fragmentState, payload?.status])
 
   const layerChildren: any[] = [
-    <Group x={0} y={0} opacity={0} ref={customLayoutRef}>
+    <Group x={0} y={0} opacity={1} ref={customLayoutRef}>
       <FragmentBackground
         theme={theme}
         objectConfig={objectConfig}
@@ -416,47 +443,58 @@ const CodeFragment = ({
       />
       {!isPreview ? (
         <Group
-          x={objectRenderConfig.startX + 25}
-          y={objectRenderConfig.startY + 24}
-          key="group"
-          ref={codeGroupRef}
+          clipFunc={(ctx: any) => {
+            clipRect(ctx, {
+              x: objectRenderConfig.startX,
+              y: objectRenderConfig.startY + 24,
+              width: objectRenderConfig.availableWidth,
+              height: objectRenderConfig.availableHeight,
+              borderRadius: 0,
+            })
+          }}
         >
-          {
+          <Group
+            x={objectRenderConfig.startX + 25}
+            y={objectRenderConfig.startY + 24}
+            key="group"
+            ref={codeGroupRef}
+          >
             {
-              'Type lines': (
-                <>
-                  {getRenderedTokens(computedTokens[0], position, fontSize)}
-                  {computedTokens.length > 0 &&
-                    computedTokens[0].length > 0 && (
-                      <RenderTokens
-                        key={position.prevIndex}
-                        tokens={computedTokens[0]}
-                        startIndex={position.prevIndex}
-                        endIndex={position.currentIndex}
-                        fontSize={fontSize}
-                      />
+              {
+                'Type lines': (
+                  <>
+                    {getRenderedTokens(computedTokens[0], position, fontSize)}
+                    {computedTokens.length > 0 &&
+                      computedTokens[0].length > 0 && (
+                        <RenderTokens
+                          key={position.prevIndex}
+                          tokens={computedTokens[0]}
+                          startIndex={position.prevIndex}
+                          endIndex={position.currentIndex}
+                          fontSize={fontSize}
+                        />
+                      )}
+                  </>
+                ),
+                'Highlight lines': (
+                  <>
+                    {computedTokens.length > 0 && computedTokens[0].length > 0 && (
+                      <>
+                        <Group x={-15}>
+                          {getAllLineNumbers(computedTokens[0], fontSize)}
+                        </Group>
+                        <Group x={40}>
+                          {getTokens({
+                            tokens: computedTokens[0],
+                            opacity: highlightBlockCode ? 0.2 : 1,
+                            fontSize,
+                          })}
+                        </Group>
+                      </>
                     )}
-                </>
-              ),
-              'Highlight lines': (
-                <>
-                  {computedTokens.length > 0 && computedTokens[0].length > 0 && (
-                    <>
-                      <Group x={-15}>
-                        {getAllLineNumbers(computedTokens[0], fontSize)}
-                      </Group>
-                      <Group x={40}>
-                        {getTokens({
-                          tokens: computedTokens[0],
-                          opacity: highlightBlockCode ? 0.2 : 1,
-                          fontSize,
-                        })}
-                      </Group>
-                    </>
-                  )}
-                  {highlightBlockCode && (
-                    <>
-                      {/* <Rect
+                    {highlightBlockCode && (
+                      <>
+                        {/* <Rect
                     x={-5}
                     y={
                       (computedTokens[
@@ -521,48 +559,49 @@ const CodeFragment = ({
                     opacity={0.3}
                     cornerRadius={4}
                   /> */}
-                      <Group x={40}>
-                        <RenderHighlight
-                          tokens={computedTokens[0]}
-                          startLineNumber={
-                            (blockConfig &&
-                              blockConfig[activeBlockIndex] &&
-                              blockConfig[activeBlockIndex].from) ||
-                            0
-                          }
-                          endLineNumber={
-                            (blockConfig &&
-                              blockConfig[activeBlockIndex] &&
-                              blockConfig[activeBlockIndex].to) ||
-                            0
-                          }
-                          fontSize={fontSize}
-                        />
-                      </Group>
-                    </>
-                  )}
-                </>
-              ),
-              // 'Insert in between': (
-              //   <>
-              //     <Group x={-15}>
-              //       {getSomeLineNumbers({
-              //         tokens: computedTokens[0],
-              //         lineNumbers,
-              //         fontSize,
-              //       })}
-              //     </Group>
-              //     <Group x={40}>
-              //       <RenderLines
-              //         tokens={computedTokens[0]}
-              //         lineNumbers={lineNumbers}
-              //         fontSize={fontSize}
-              //       />
-              //     </Group>
-              //   </>
-              // ),
-            }[codeAnimation || 'Type lines']
-          }
+                        <Group x={40}>
+                          <RenderHighlight
+                            tokens={computedTokens[0]}
+                            startLineNumber={
+                              (blockConfig &&
+                                blockConfig[activeBlockIndex] &&
+                                blockConfig[activeBlockIndex].from) ||
+                              0
+                            }
+                            endLineNumber={
+                              (blockConfig &&
+                                blockConfig[activeBlockIndex] &&
+                                blockConfig[activeBlockIndex].to) ||
+                              0
+                            }
+                            fontSize={fontSize}
+                          />
+                        </Group>
+                      </>
+                    )}
+                  </>
+                ),
+                // 'Insert in between': (
+                //   <>
+                //     <Group x={-15}>
+                //       {getSomeLineNumbers({
+                //         tokens: computedTokens[0],
+                //         lineNumbers,
+                //         fontSize,
+                //       })}
+                //     </Group>
+                //     <Group x={40}>
+                //       <RenderLines
+                //         tokens={computedTokens[0]}
+                //         lineNumbers={lineNumbers}
+                //         fontSize={fontSize}
+                //       />
+                //     </Group>
+                //   </>
+                // ),
+              }[codeAnimation || 'Type lines']
+            }
+          </Group>
         </Group>
       ) : (
         <Group

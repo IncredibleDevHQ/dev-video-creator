@@ -160,7 +160,6 @@ const Concourse = ({
 
   const userStudioImageGap = 170
   const zoomLevel = 2
-  Konva.pixelRatio = 2
 
   useEffect(() => {
     if (!canvas) return
@@ -199,7 +198,7 @@ const Concourse = ({
   // }
 
   const onLayerClick = () => {
-    if (!groupRef.current || !canvas?.zoomed) return
+    if (!groupRef.current) return
     const tZooming = isZooming
     if (tZooming) {
       groupRef.current.to({
@@ -242,9 +241,13 @@ const Concourse = ({
 
   const onMouseLeave = () => {
     if (!groupRef.current) return
-    groupRef.current.x(0)
-    groupRef.current.y(0)
-    groupRef.current.scale({ x: 1, y: 1 })
+    groupRef.current.to({
+      x: 0,
+      y: 0,
+      scaleX: 1,
+      scaleY: 1,
+      duration: 0.5,
+    })
     setZooming(false)
   }
 
@@ -267,7 +270,8 @@ const Concourse = ({
 
   return (
     <>
-      {viewConfig?.layout === 'full' &&
+      {(viewConfig?.layout === 'full-left' ||
+        viewConfig?.layout === 'full-right') &&
       !disableUserMedia &&
       payload?.status !== Fragment_Status_Enum_Enum.CountDown &&
       payload?.status !== Fragment_Status_Enum_Enum.Ended &&
@@ -304,7 +308,8 @@ const Concourse = ({
           ))}
         </>
       ) : (
-        viewConfig?.layout === 'full' &&
+        (viewConfig?.layout === 'full-left' ||
+          viewConfig?.layout === 'full-right') &&
         !disableUserMedia &&
         payload?.status !== Fragment_Status_Enum_Enum.CountDown &&
         payload?.status !== Fragment_Status_Enum_Enum.Ended &&
@@ -374,7 +379,8 @@ const Concourse = ({
           )
         })()}
       </Group>
-      {viewConfig?.layout !== 'full' &&
+      {viewConfig?.layout !== 'full-left' &&
+      viewConfig?.layout !== 'full-right' &&
       !disableUserMedia &&
       payload?.status !== Fragment_Status_Enum_Enum.CountDown &&
       payload?.status !== Fragment_Status_Enum_Enum.Ended &&
@@ -411,7 +417,8 @@ const Concourse = ({
           ))}
         </>
       ) : (
-        viewConfig?.layout !== 'full' &&
+        viewConfig?.layout !== 'full-left' &&
+        viewConfig?.layout !== 'full-right' &&
         !disableUserMedia &&
         payload?.status !== Fragment_Status_Enum_Enum.CountDown &&
         payload?.status !== Fragment_Status_Enum_Enum.Ended &&

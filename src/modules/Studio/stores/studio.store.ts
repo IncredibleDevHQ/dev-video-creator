@@ -1,18 +1,22 @@
 import { ILocalVideoTrack, IMicrophoneAudioTrack } from 'agora-rtc-sdk-ng'
 import { atom } from 'recoil'
 import {
+  RecordedBlocksFragment,
   StudioFragmentFragment,
   ThemeFragment,
 } from '../../../generated/graphql'
 import { AudioType, MusicAction } from '../../../hooks/use-canvas-recorder'
+import { CodeTheme } from '../../../utils/configTypes'
 import { BrandingJSON } from '../../Branding/BrandingPage'
 import { RTCUser } from '../hooks/use-video'
 
 export type StudioState =
   | 'ready'
+  | 'start-recording'
   | 'recording'
   | 'preview'
   | 'upload'
+  | 'resumed'
   | 'countDown'
   | 'finalSplash'
 
@@ -21,10 +25,12 @@ export interface StaticAssets {
 }
 export interface StudioProviderProps<T = any, S = any> {
   stream: MediaStream
-  getBlobs: () => Promise<Blob>
+  getBlobs: () => Promise<Blob | undefined>
   tracks: [IMicrophoneAudioTrack, ILocalVideoTrack] | null
   reset: () => void
-  upload: () => void
+  upload: (id: string) => void
+
+  recordingId?: string
 
   startRecording: () => void
   stopRecording: () => void
@@ -66,6 +72,20 @@ export interface StudioProviderProps<T = any, S = any> {
   shortsMode?: boolean
 
   staticAssets?: StaticAssets
+
+  preloadedBlobUrls?: {
+    [key: string]: string | undefined
+  }
+
+  codes?: {
+    [key: string]: {
+      code: string | undefined
+      colorCode: any
+      theme: CodeTheme
+    }
+  }
+
+  recordedBlocks?: RecordedBlocksFragment[]
 }
 
 const studioStore = atom<StudioProviderProps>({

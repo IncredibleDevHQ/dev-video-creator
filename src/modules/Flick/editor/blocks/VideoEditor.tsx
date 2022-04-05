@@ -590,9 +590,9 @@ const VideoEditor = ({
                 <Transformer
                   ref={transformerRef}
                   anchorFill="#16A34A"
-                  anchorSize={12}
+                  anchorSize={6}
                   borderStroke="#16A34A"
-                  borderStrokeWidth={4}
+                  borderStrokeWidth={1}
                   rotateEnabled={false}
                   boundBoxFunc={(oldBox, newBox) => {
                     const box = newBox
@@ -708,7 +708,22 @@ const VideoEditor = ({
             videoRef.current?.currentTime || 0
           )} / ${formattedTime(videoRef.current?.duration || 0)}`}</p>
         </DarkButton>
-        <div>
+        <div className="flex items-center gap-x-2">
+          <DarkButton
+            onClick={() => {
+              setCrop({
+                x: 0,
+                y: 0,
+                width: 0,
+                height: 0,
+              })
+              setClip({})
+              setTime(0)
+              setPlaying(false)
+            }}
+          >
+            Reset
+          </DarkButton>
           <DarkButton
             onClick={() =>
               handleAction?.({ crop: convertTo('%', size, crop), clip })

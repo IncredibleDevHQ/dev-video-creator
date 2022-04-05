@@ -40,6 +40,7 @@ const AddVideo = ({
   initialValue,
   handleUpdateVideo,
   shouldResetWhenOpened = false,
+  recordScreenMode = false,
 }: {
   open: boolean
   block?: VideoBlockProps
@@ -50,6 +51,7 @@ const AddVideo = ({
   }
   handleClose: (shouldRefetch?: boolean) => void
   handleUpdateVideo?: (url: string, transformations?: Transformations) => void
+  recordScreenMode?: boolean
 }) => {
   const [currentView, setCurrentView] = useState<
     'select' | 'record-or-upload' | 'preview' | 'upload-s3' | 'transform'
@@ -65,6 +67,15 @@ const AddVideo = ({
   const [uploadVideo] = useUploadFile()
 
   const { timer, handleStart, handleReset } = useTimekeeper(0)
+
+  useEffect(() => {
+    if (recordScreenMode) {
+      setCurrentView('record-or-upload')
+      setVideoType('blob')
+      setProgress(0)
+      setVideoURL('')
+    }
+  }, [recordScreenMode])
 
   useEffect(() => {
     if (shouldResetWhenOpened) {
@@ -468,8 +479,8 @@ const AddVideo = ({
                   width={720}
                   action="Save"
                   transformations={{
-                    clip: block?.videoBlock?.transformations?.clip || {},
-                    crop: block?.videoBlock?.transformations?.crop,
+                    clip: initialValue?.transformations?.clip || {},
+                    crop: initialValue?.transformations?.crop,
                   }}
                 />
               </div>

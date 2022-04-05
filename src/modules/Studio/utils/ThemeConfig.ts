@@ -172,7 +172,8 @@ export const getThemeSupportedUserMediaLayouts = (
         'bottom-right-circle',
         'padded-split',
         'split',
-        'full',
+        'full-left',
+        'full-right',
       ]
     case 'PastelLines':
       return [
@@ -181,7 +182,8 @@ export const getThemeSupportedUserMediaLayouts = (
         'float-half-right',
         'bottom-right-tile',
         'bottom-right-circle',
-        'full',
+        'full-left',
+        'full-right',
       ]
     case 'Cassidoo':
       return [
@@ -192,7 +194,8 @@ export const getThemeSupportedUserMediaLayouts = (
         'padded-bottom-right-circle',
         'bottom-right-circle',
         'padded-split',
-        'full',
+        'full-left',
+        'full-right',
       ]
     default:
       return []

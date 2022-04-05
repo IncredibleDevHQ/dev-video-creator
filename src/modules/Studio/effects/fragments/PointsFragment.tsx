@@ -16,6 +16,7 @@ import { ListBlockProps, ListItem } from '../../../Flick/editor/utils/utils'
 import Concourse from '../../components/Concourse'
 import FragmentBackground from '../../components/FragmentBackground'
 import { FragmentState } from '../../components/RenderTokens'
+import RichText from '../../components/RichText'
 import { usePoint } from '../../hooks'
 import { ComputedPoint } from '../../hooks/use-point'
 import { StudioProviderProps, studioStore } from '../../stores'
@@ -46,7 +47,8 @@ export const getNoOfPointsBasedOnLayout = (layout: Layout) => {
       return 2
     case 'padded-split':
     case 'split':
-    case 'full':
+    case 'full-left':
+    case 'full-right':
       return 1
     default:
       return 3
@@ -167,7 +169,7 @@ const PointsFragment = ({
   useEffect(() => {
     if (points.length === 0) return
     const noOflinesOfTitle = getNoOfLinesOfText({
-      text: dataConfig.listBlock.title || fragment?.name || '',
+      text: dataConfig.listBlock.title || '',
       availableWidth: objectRenderConfig.availableWidth - 80,
       fontSize: 40,
       fontFamily: branding?.font?.heading?.family || 'Gilroy',
@@ -185,11 +187,16 @@ const PointsFragment = ({
         fontFamily: branding?.font?.body?.family || 'Inter',
         orientation,
         layout: viewConfig?.layout || 'classic',
+        isShorts: shortsMode || false,
+        lineHeight: 1.3,
       })
     )
     if (orientation === 'horizontal') {
       setPointsConfig(
-        getPointsConfig({ layout: viewConfig?.layout || 'classic' })
+        getPointsConfig({
+          layout: viewConfig?.layout || 'classic',
+          isShorts: shortsMode,
+        })
       )
     }
   }, [viewConfig, points, objectRenderConfig, orientation])
@@ -199,7 +206,7 @@ const PointsFragment = ({
     if (!dataConfig) return
     setTitleY(
       getPositionForReplaceMode({
-        title: dataConfig.listBlock.title || fragment?.name || '',
+        title: dataConfig.listBlock.title || '',
         titleFontSize: 40,
         titleFontFamily: branding?.font?.heading?.family || 'Gilroy',
         titleFontStyle: 'normal 800',
@@ -271,10 +278,10 @@ const PointsFragment = ({
         })
       }
     }
-  }, [payload?.fragmentState])
+  }, [payload?.fragmentState, payload?.status])
 
   const layerChildren: any[] = [
-    <Group x={0} y={0} opacity={0} ref={customLayoutRef}>
+    <Group x={0} y={0} opacity={1} ref={customLayoutRef}>
       <FragmentBackground
         theme={theme}
         objectConfig={objectConfig}
@@ -301,7 +308,7 @@ const PointsFragment = ({
         }
         width={objectRenderConfig.availableWidth - 80}
         lineHeight={1.15}
-        text={dataConfig.listBlock.title || fragment?.name || ''}
+        text={dataConfig.listBlock.title || ''}
         fontStyle="normal 800"
         fontFamily={branding?.font?.heading?.family || 'Gilroy'}
       />
@@ -309,7 +316,9 @@ const PointsFragment = ({
         <Group
           x={objectRenderConfig.startX + 50}
           y={
-            appearance !== 'replace'
+            dataConfig?.listBlock?.title === undefined
+              ? objectRenderConfig.startY + 32
+              : appearance !== 'replace'
               ? objectRenderConfig.startY + 32 + 50 * titleNumberOfLines
               : objectRenderConfig.startY +
                 titleY +
@@ -358,7 +367,7 @@ const PointsFragment = ({
                               fill={
                                 branding?.colors?.text
                                   ? branding?.colors?.text
-                                  : objectRenderConfig.pointsBulletColor
+                                  : objectRenderConfig.textColor
                               }
                               ref={(ref) =>
                                 ref?.to({
@@ -367,7 +376,7 @@ const PointsFragment = ({
                                 })
                               }
                               text={point.pointNumber.toString()}
-                              fontSize={16}
+                              fontSize={20}
                               fontFamily={
                                 branding?.font?.body?.family || 'Inter'
                               }
@@ -376,11 +385,11 @@ const PointsFragment = ({
                           none: <></>,
                         }[viewStyle]
                       }
-                      <Text
-                        key={point.text}
+                      <RichText
+                        key={point.pointNumber}
                         x={-64}
-                        y={point.y}
-                        align="left"
+                        y={point.y + 2}
+                        // align="left"
                         fontSize={16}
                         fill={
                           branding?.colors?.text
@@ -396,10 +405,11 @@ const PointsFragment = ({
                               (41 * (point?.level - 1) || 0)
                             : objectRenderConfig.availableWidth - 110
                         }
-                        text={point.text}
+                        content={point.content}
+                        richTextData={point.richTextData}
                         lineHeight={1.3}
                         fontFamily={branding?.font?.body?.family || 'Inter'}
-                        ref={(ref) =>
+                        animate={(ref) =>
                           ref?.to({
                             x:
                               viewStyle !== 'none'
@@ -415,11 +425,50 @@ const PointsFragment = ({
                   .filter((_, i) => i === activePointIndex - 1)
                   .map((point) => (
                     <>
+                      {
+                        {
+                          bullet: (
+                            <Circle
+                              key="points"
+                              x={0 + (41 * (point?.level - 1) || 0)}
+                              radius={11}
+                              y={14}
+                              fill={
+                                branding?.colors?.text
+                                  ? branding?.colors?.text
+                                  : objectRenderConfig.pointsBulletColor
+                              }
+                            />
+                          ),
+                          number: (
+                            <Text
+                              key="points"
+                              x={0 + (41 * (point?.level - 1) || 0)}
+                              y={4}
+                              fill={
+                                branding?.colors?.text
+                                  ? branding?.colors?.text
+                                  : objectRenderConfig.textColor
+                              }
+                              text={point.pointNumber.toString()}
+                              fontSize={24}
+                              fontFamily={
+                                branding?.font?.body?.family || 'Inter'
+                              }
+                            />
+                          ),
+                          none: <></>,
+                        }[viewStyle]
+                      }
                       <Group>
-                        <Text
-                          key={point.text}
-                          // x={0 + (41 * (point?.level - 1) || 0)}
-                          x={-10}
+                        <RichText
+                          key={point.pointNumber}
+                          x={
+                            viewStyle !== 'none'
+                              ? 30 + (41 * (point?.level - 1) || 0)
+                              : -10
+                          }
+                          y={3}
                           align="left"
                           fontSize={24}
                           fill={
@@ -430,18 +479,18 @@ const PointsFragment = ({
                           // why subtracting 110 is that this group starts at x: 50 and this text starts at x: 30,
                           // so we need to subtract 110 to get the correct x, to give 30 padding in the end too
                           width={
-                            objectRenderConfig.availableWidth -
-                            110 -
-                            (41 * (point?.level - 1) || 0)
+                            viewStyle !== 'none'
+                              ? objectRenderConfig.availableWidth -
+                                110 -
+                                (41 * (point?.level - 1) || 0)
+                              : objectRenderConfig.availableWidth - 110
                           }
-                          text={point.text}
-                          // text="Run and test using one command and so on a thats all hd huusd j idhc dsi"
+                          content={point.content}
                           lineHeight={1.3}
                           fontFamily={branding?.font?.body?.family || 'Inter'}
                           height={
                             objectRenderConfig.availableHeight - 32 - titleY
                           }
-                          // verticalAlign="middle"
                         />
                       </Group>
                     </>
@@ -477,7 +526,7 @@ const PointsFragment = ({
                               fill={
                                 branding?.colors?.text
                                   ? branding?.colors?.text
-                                  : objectRenderConfig.pointsBulletColor
+                                  : objectRenderConfig.textColor
                               }
                               text={point.pointNumber.toString()}
                               fontSize={20}
@@ -490,15 +539,15 @@ const PointsFragment = ({
                           none: <></>,
                         }[viewStyle]
                       }
-                      <Text
-                        key={point.text}
+                      <RichText
+                        key={point.pointNumber}
                         x={
                           viewStyle !== 'none'
                             ? 30 + (41 * (point?.level - 1) || 0)
                             : 0
                         }
-                        y={point.y}
-                        align="left"
+                        y={point.y + 2}
+                        // align="left"
                         fontSize={16}
                         fill={
                           branding?.colors?.text
@@ -514,8 +563,8 @@ const PointsFragment = ({
                               (41 * (point?.level - 1) || 0)
                             : objectRenderConfig.availableWidth - 110
                         }
-                        text={point.text}
-                        // text="Run and test using one command and so on a thats all hd huusd j idhc dsi"
+                        content={point.content}
+                        richTextData={point.richTextData}
                         lineHeight={1.3}
                         fontFamily={branding?.font?.body?.family || 'Inter'}
                       />
@@ -561,15 +610,15 @@ const PointsFragment = ({
                         none: <></>,
                       }[viewStyle]
                     }
-                    <Text
-                      key={point.text}
+                    <RichText
+                      key={point.pointNumber}
                       x={
                         viewStyle !== 'none'
                           ? 30 + (41 * (point?.level - 1) || 0)
                           : 0
                       }
-                      y={point.y}
-                      align="left"
+                      y={point.y + 2}
+                      // align="left"
                       fontSize={16}
                       fill={
                         branding?.colors?.text
@@ -585,8 +634,8 @@ const PointsFragment = ({
                             (41 * (point?.level - 1) || 0)
                           : objectRenderConfig.availableWidth - 110
                       }
-                      text={point.text}
-                      // text="Run and test using one command and so on a thats all hd huusd j idhc dsi"
+                      content={point.content}
+                      richTextData={point.richTextData}
                       lineHeight={1.3}
                       fontFamily={branding?.font?.body?.family || 'Inter'}
                     />
@@ -597,10 +646,50 @@ const PointsFragment = ({
                 .map((point) => (
                   <>
                     <Group>
-                      <Text
-                        key={point.text}
-                        // x={0 + (41 * (point?.level - 1) || 0)}
-                        x={-10}
+                      {
+                        {
+                          bullet: (
+                            <Circle
+                              key="points"
+                              x={0 + (41 * (point?.level - 1) || 0)}
+                              radius={11}
+                              y={14}
+                              fill={
+                                branding?.colors?.text
+                                  ? branding?.colors?.text
+                                  : objectRenderConfig.pointsBulletColor
+                              }
+                            />
+                          ),
+                          number: (
+                            <Text
+                              key="points"
+                              x={0 + (41 * (point?.level - 1) || 0)}
+                              y={4}
+                              fill={
+                                branding?.colors?.text
+                                  ? branding?.colors?.text
+                                  : objectRenderConfig.textColor
+                              }
+                              text={point.pointNumber.toString()}
+                              fontSize={24}
+                              // fontStyle="normal 600"
+                              fontFamily={
+                                branding?.font?.body?.family || 'Inter'
+                              }
+                            />
+                          ),
+                          none: <></>,
+                        }[viewStyle]
+                      }
+                      <RichText
+                        key={point.pointNumber}
+                        x={
+                          viewStyle !== 'none'
+                            ? 30 + (41 * (point?.level - 1) || 0)
+                            : -10
+                        }
+                        y={3}
                         align="left"
                         fontSize={24}
                         fill={
@@ -611,18 +700,18 @@ const PointsFragment = ({
                         // why subtracting 110 is that this group starts at x: 50 and this text starts at x: 30,
                         // so we need to subtract 110 to get the correct x, to give 30 padding in the end too
                         width={
-                          objectRenderConfig.availableWidth -
-                          110 -
-                          (41 * (point?.level - 1) || 0)
+                          viewStyle !== 'none'
+                            ? objectRenderConfig.availableWidth -
+                              110 -
+                              (41 * (point?.level - 1) || 0)
+                            : objectRenderConfig.availableWidth - 110
                         }
-                        text={point.text}
-                        // text="Run and test using one command and so on a thats all hd huusd j idhc dsi"
+                        content={point.content}
                         lineHeight={1.3}
                         fontFamily={branding?.font?.body?.family || 'Inter'}
                         height={
                           objectRenderConfig.availableHeight - 32 - titleY
                         }
-                        // verticalAlign="middle"
                       />
                     </Group>
                   </>
@@ -793,11 +882,7 @@ const PointsFragment = ({
                   )),
               }[appearance]
             : computedPoints
-                .filter(
-                  (_, i) =>
-                    i <
-                    getNoOfPointsBasedOnLayout(viewConfig?.layout || 'classic')
-                )
+                .filter((_, i) => i < pointsConfig.noOfPoints)
                 .map((point, index) => (
                   <Group
                     x={
@@ -842,7 +927,7 @@ const PointsFragment = ({
                       cornerRadius={objectRenderConfig.borderRadius}
                     />
                     <Text
-                      key={point.text}
+                      key={point.pointNumber}
                       x={16}
                       y={
                         pointsConfig.bulletHeight +
@@ -862,7 +947,8 @@ const PointsFragment = ({
                       verticalAlign="middle"
                       align="center"
                       text={point.text}
-                      // text="Run and test using one command and so on a thats all hd huusd j idhc dsi"
+                      // content={point.content}
+                      // richTextData={point.richTextData}
                       lineHeight={1.3}
                       fontFamily={branding?.font?.body?.family || 'Inter'}
                     />

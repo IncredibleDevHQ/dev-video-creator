@@ -1,26 +1,31 @@
 import Konva from 'konva'
 import { useRef } from 'react'
 import { Layout, ListOrientation } from '../../../utils/configTypes'
-import { ListItem } from '../../Flick/editor/utils/utils'
-import { getNoOfPointsBasedOnLayout } from '../effects/fragments/PointsFragment'
+import { ListItem, RichTextContent } from '../../Flick/editor/utils/utils'
+import { ComputedRichText, getRichTextData } from '../components/RichText'
 import { getPointsConfig } from '../utils/PointsConfig'
 
 export interface ComputedPoint {
   y: number
   text: string
-  width: number
+  width?: number
   height?: number
   level: number
   startFromIndex: number
   pointNumber: number
+  content: {
+    type: 'richText' | 'text'
+    content: RichTextContent | string
+    line: number
+  }[]
+  richTextData: ComputedRichText[]
 }
 
 const usePoint = () => {
   const presentY = useRef(0)
-  const noOfLinesPreviousText = useRef(0)
-  const noOfLinesCurrentText = useRef(0)
   const computedPoints = useRef<ComputedPoint[]>([])
   const startFromIndex = useRef(0)
+  const textHeight = useRef(0)
 
   const initUsePoint = ({
     points,
@@ -29,9 +34,10 @@ const usePoint = () => {
     gutter,
     fontSize,
     fontFamily,
-    fontStyle,
+    lineHeight = 1,
     orientation,
     layout,
+    isShorts,
   }: {
     points: ListItem[]
     availableWidth: number
@@ -39,109 +45,134 @@ const usePoint = () => {
     gutter: number
     fontSize: number
     fontFamily?: string
-    fontStyle?: string
+    lineHeight?: number
     orientation: ListOrientation
     layout: Layout
+    isShorts: boolean
   }) => {
-    const layer = new Konva.Layer({ width: availableWidth })
     computedPoints.current = []
-    presentY.current = 0
-    noOfLinesPreviousText.current = 0
+    presentY.current = gutter
+    textHeight.current = 0
     startFromIndex.current = 0
     if (orientation === 'vertical') {
       points.forEach((point, index) => {
-        const text = new Konva.Text({
-          text: point.text,
+        if (!point?.content) return
+        if (
+          point?.content?.filter(
+            (item) => item?.type === 'richText' || item.type === 'text'
+          ).length <= 0
+        )
+          return
+        const textOrRichText = point.content.filter(
+          (item) => item.type === 'richText' || item.type === 'text'
+        ) as {
+          type: 'richText' | 'text'
+          content: RichTextContent | string
+          line: number
+        }[]
+        const textData = getRichTextData({
+          content: textOrRichText,
           fontSize,
           fontFamily,
-          width: availableWidth,
+          width: availableWidth - (41 * ((point.level || 1) - 1) || 0),
+          lineHeight,
         })
-        layer.add(text)
 
-        const width = text.textWidth
+        textHeight.current = textData[textData.length - 1].y - textData[0].y
 
-        if (orientation === 'vertical') {
-          noOfLinesCurrentText.current = getNoOfLinesOfText({
-            text: point.text || '',
-            availableWidth:
-              availableWidth - (41 * ((point.level || 1) - 1) || 0),
-            fontSize,
-            fontFamily,
-            fontStyle,
-          })
-          if (
-            noOfLinesPreviousText.current * (fontSize + fontSize * 0.3) +
-              gutter +
-              presentY.current +
-              noOfLinesCurrentText.current * (fontSize + fontSize * 0.3) >
-            availableHeight
-          ) {
-            presentY.current = 0
-            noOfLinesPreviousText.current = 0
-            startFromIndex.current = index
-          }
-        } else if (orientation === 'horizontal') {
-          if (index % getNoOfPointsBasedOnLayout(layout) === 0) {
-            presentY.current = 0
-            noOfLinesPreviousText.current = 0
-            startFromIndex.current = index
-          }
+        if (textHeight.current === 0) {
+          textHeight.current = fontSize * lineHeight
+        } else {
+          textHeight.current += fontSize * lineHeight
+        }
+
+        if (presentY.current + textHeight.current + gutter > availableHeight) {
+          presentY.current = 0
+          startFromIndex.current = index
         }
 
         const computedPoint: ComputedPoint = {
-          y:
-            noOfLinesPreviousText.current * (fontSize + fontSize * 0.3) +
-            gutter +
-            presentY.current,
+          y: presentY.current,
           text: point.text || '',
           level: point.level || 1,
-          width,
           startFromIndex: startFromIndex.current,
           pointNumber: index + 1,
+          richTextData: textData,
+          content: textOrRichText,
         }
 
-        presentY.current +=
-          noOfLinesPreviousText.current * (fontSize + fontSize * 0.3) + gutter
-
-        noOfLinesPreviousText.current = getNoOfLinesOfText({
-          text: point.text || '',
-          availableWidth: availableWidth - (41 * ((point.level || 1) - 1) || 0),
-          fontSize,
-          fontFamily,
-          fontStyle,
-        })
+        presentY.current += textHeight.current + gutter
 
         computedPoints.current.push(computedPoint)
-
-        text.destroy()
       })
     }
     if (orientation === 'horizontal') {
       let maxHeight = 0
-      let noOfLines = 0
-      const pointsConfig = getPointsConfig({ layout })
+      const pointsConfig = getPointsConfig({ layout, isShorts })
+      const pointsRichTextData: any = []
       points.forEach((point) => {
-        noOfLines = getNoOfLinesOfText({
-          text: point.text || '',
-          availableWidth: 228,
+        if (!point?.content) return
+        if (
+          point?.content?.filter(
+            (item) => item?.type === 'richText' || item.type === 'text'
+          ).length <= 0
+        )
+          return
+        const textOrRichText = point.content.filter(
+          (item) => item.type === 'richText' || item.type === 'text'
+        ) as {
+          type: 'richText' | 'text'
+          content: RichTextContent | string
+          line: number
+        }[]
+        const textData = getRichTextData({
+          content: textOrRichText,
           fontSize: pointsConfig.textFontSize,
           fontFamily,
-          fontStyle,
+          width: 228,
+          lineHeight,
         })
-        if (
-          noOfLines *
-            (pointsConfig.textFontSize + pointsConfig.textFontSize * 0.3) >
-          maxHeight
-        ) {
-          maxHeight =
-            noOfLines *
-            (pointsConfig.textFontSize + pointsConfig.textFontSize * 0.3)
+        pointsRichTextData.push(textData)
+        textHeight.current = textData[textData.length - 1].y - textData[0].y
+
+        if (textHeight.current === 0) {
+          textHeight.current = pointsConfig.textFontSize * lineHeight
+        } else {
+          textHeight.current += pointsConfig.textFontSize * lineHeight
+        }
+
+        if (textHeight.current > maxHeight) {
+          maxHeight = textHeight.current
         }
       })
       points.forEach((point, index) => {
+        if (!point?.content) return
+        if (
+          point?.content?.filter(
+            (item) => item?.type === 'richText' || item.type === 'text'
+          ).length <= 0
+        )
+          return
+
+        const textOrRichText = point.content.filter(
+          (item) => item.type === 'richText' || item.type === 'text'
+        ) as {
+          type: 'richText' | 'text'
+          content: RichTextContent | string
+          line: number
+        }[]
+
+        let pointText = ''
+        textOrRichText.forEach((item) => {
+          if (item.type === 'text') {
+            pointText += `${item.content} `
+          } else if (item.type === 'richText') {
+            pointText += (item.content as RichTextContent).text
+          }
+        })
+
         if (index % pointsConfig.noOfPoints === 0) {
           presentY.current = 0
-          noOfLinesPreviousText.current = 0
           startFromIndex.current = index
         }
         const computedPoint: ComputedPoint = {
@@ -151,12 +182,14 @@ const usePoint = () => {
                 pointsConfig.bulletHeight +
                 pointsConfig.paddingBtwBulletText)) /
             2,
-          text: point.text || '',
+          text: pointText || '',
           level: point.level || 1,
           width: 228,
           height: maxHeight,
           startFromIndex: startFromIndex.current,
           pointNumber: index + 1,
+          richTextData: pointsRichTextData[index],
+          content: textOrRichText,
         }
         computedPoints.current.push(computedPoint)
       })

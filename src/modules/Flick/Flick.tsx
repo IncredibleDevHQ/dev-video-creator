@@ -1,23 +1,12 @@
 /* eslint-disable no-nested-ternary */
 import { css, cx } from '@emotion/css'
-import { HocuspocusProvider, WebSocketStatus } from '@hocuspocus/provider'
-import UniqueID from '@tiptap-pro/extension-unique-id'
 import { Editor as CoreEditor } from '@tiptap/core'
-import CharacterCount from '@tiptap/extension-character-count'
-import Collaboration from '@tiptap/extension-collaboration'
-import CollaborationCursor from '@tiptap/extension-collaboration-cursor'
-import Focus from '@tiptap/extension-focus'
-import Placeholder from '@tiptap/extension-placeholder'
-import { Editor, useEditor } from '@tiptap/react'
-import StarterKit from '@tiptap/starter-kit'
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { BiBlock } from 'react-icons/bi'
 import { useParams } from 'react-router-dom'
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
 import { v4 as uuidv4 } from 'uuid'
-import * as Y from 'yjs'
 import { Heading, ScreenState } from '../../components'
-import config from '../../config'
 import {
   FlickFragmentFragment,
   Fragment_Status_Enum_Enum,
@@ -34,6 +23,7 @@ import {
   CodeAnimation,
   CodeStyle,
   CodeTheme,
+  OutroBlockView,
   ViewConfig,
 } from '../../utils/configTypes'
 import { loadFonts } from '../Studio/hooks/use-load-font'
@@ -43,20 +33,12 @@ import {
   FlickNavBar,
   FragmentBar,
   Preview,
+  Publish,
   Timeline,
 } from './components'
 import BlockPreview from './components/BlockPreview'
-import CodeBlock from './editor/blocks/CodeBlock'
-import ImageBlock from './editor/blocks/ImageBlock'
-import VideoBlock from './editor/blocks/VideoBlock'
-import { getSuggestionItems } from './editor/slashCommand/items'
-import renderItems from './editor/slashCommand/renderItems'
-import { SlashCommands } from './editor/slashCommand/SlashCommands'
-import editorStyle from './editor/style'
-import TipTap, { generateLightColorHex } from './editor/TipTap'
-import { DragHandler } from './editor/utils/drag'
-import { TrailingNode } from './editor/utils/trailingNode'
-import CustomTypography from './editor/utils/typography'
+import { EditorProvider } from './components/EditorProvider'
+import TipTap from './editor/TipTap'
 import { Block, Position, SimpleAST, useUtils } from './editor/utils/utils'
 import { newFlickStore, View } from './store/flickNew.store'
 
@@ -122,10 +104,11 @@ const Flick = () => {
   const [{ flick, activeFragmentId, view }, setFlickStore] =
     useRecoilState(newFlickStore)
 
-  const { sub, displayName } = (useRecoilValue(userState) as User) || {}
+  const { sub } = (useRecoilValue(userState) as User) || {}
 
   const { data, error, loading, refetch } = useGetFlickByIdQuery({
     variables: { id },
+    fetchPolicy: 'network-only',
   })
 
   const setStudio = useSetRecoilState(studioStore)
@@ -140,6 +123,7 @@ const Flick = () => {
   const [activeFragment, setActiveFragment] = useState<FlickFragmentFragment>()
 
   const [showTimeline, setShowTimeline] = useState(false)
+  const [publishModal, setPublishModal] = useState(false)
 
   const { updatePayload, payload, resetPayload } = useLocalPayload()
   const { data: themesData } = useGetThemesQuery()
@@ -237,6 +221,15 @@ const Flick = () => {
         }
       }
 
+      if (currentBlock.type === 'headingBlock') {
+        filteredBlocks[currentBlock.id] = {
+          ...filteredBlocks[currentBlock.id],
+          view: {
+            type: 'headingBlock',
+          },
+        }
+      }
+
       if (currentBlock.type === 'outroBlock') {
         filteredBlocks[currentBlock.id] = {
           ...filteredBlocks[currentBlock.id],
@@ -298,6 +291,15 @@ const Flick = () => {
               orientation: 'vertical',
               viewStyle: 'bullet',
             },
+          },
+        })
+      }
+    } else if (currentBlock.type === 'headingBlock') {
+      if (!viewConfig.blocks[currentBlock.id].view) {
+        updateBlockProperties(currentBlock.id, {
+          ...viewConfig.blocks[currentBlock.id],
+          view: {
+            type: 'headingBlock',
           },
         })
       }
@@ -380,13 +382,23 @@ const Flick = () => {
     if (!fragment) return
     setActiveFragment(fragment)
 
+    setSimpleAST(fragment?.editorState || initialAST)
     setViewConfig(
       fragment?.configuration || {
         ...initialConfig,
         speakers: [flick.participants[0]],
+        blocks: {
+          [initialAST.blocks[1].id]: {
+            layout: 'classic',
+            view: {
+              type: 'outroBlock',
+              outro: {},
+            } as OutroBlockView,
+          } as BlockProperties,
+        },
       }
     )
-    setSimpleAST(fragment?.editorState || initialAST)
+
     setCurrentBlock(fragment?.editorState?.blocks[0] || initialAST.blocks[0])
     setEditorValue(flick.md || '')
   }, [activeFragmentId])
@@ -451,8 +463,7 @@ const Flick = () => {
     })
   }
 
-  if (!data && loading)
-    return <ScreenState title="Loading your story" loading />
+  if (loading) return <ScreenState title="Loading your story" loading />
 
   if (error)
     return (
@@ -479,29 +490,17 @@ const Flick = () => {
     )
 
   return (
-    <EditorProvider
-      flickId={id}
-      userName={displayName || 'Anonymous'}
-      handleUpdate={handleEditorChange}
-    >
+    <EditorProvider handleUpdate={handleEditorChange}>
       <div className="relative flex flex-col w-screen h-screen overflow-hidden">
-        <FlickNavBar />
-        <EditorContext.Consumer>
-          {(editor) => (
-            <FragmentBar
-              simpleAST={simpleAST}
-              editorValue={
-                editor?.providerStatus
-                  ? editor.providerStatus === WebSocketStatus.Connected
-                    ? editorValue
-                    : (flick.md as string)
-                  : (flick.md as string)
-              }
-              config={viewConfig}
-              setViewConfig={setViewConfig}
-            />
-          )}
-        </EditorContext.Consumer>
+        <FlickNavBar togglePublishModal={() => setPublishModal(true)} />
+        <FragmentBar
+          simpleAST={simpleAST}
+          editorValue={editorValue}
+          config={viewConfig}
+          setViewConfig={setViewConfig}
+          currentBlock={currentBlock}
+          setCurrentBlock={setCurrentBlock}
+        />
         {activeFragment && view === View.Preview && (
           <Preview
             block={currentBlock}
@@ -534,9 +533,12 @@ const Flick = () => {
               className="h-full pt-12 pb-96 col-start-4 col-span-6"
             >
               <EditorHeader
+                blocks={simpleAST?.blocks || []}
+                setCurrentBlock={setCurrentBlock}
                 viewConfig={viewConfig}
                 setViewConfig={setViewConfig}
                 activeFragment={activeFragment}
+                setPreviewPosition={setPreviewPosition}
               />
 
               <TipTap
@@ -545,6 +547,7 @@ const Flick = () => {
                   setPreviewPosition(position)
                 }}
                 handleActiveBlock={(block) => {
+                  if (block === undefined) setCurrentBlock(undefined)
                   if (block && block !== currentBlock) setCurrentBlock(block)
                 }}
                 ast={simpleAST}
@@ -563,7 +566,7 @@ const Flick = () => {
                 currentBlock.type &&
                 viewConfig &&
                 simpleAST &&
-                simpleAST?.blocks?.length > 2 && (
+                simpleAST?.blocks?.length >= 2 && (
                   <BlockPreview
                     block={currentBlock}
                     blocks={simpleAST?.blocks || []}
@@ -593,218 +596,17 @@ const Flick = () => {
           persistentTimeline={false}
           shouldScrollToCurrentBlock
         />
+        {publishModal && (
+          <Publish
+            open={publishModal}
+            simpleAST={simpleAST}
+            activeFragment={activeFragment}
+            handleClose={() => setPublishModal(false)}
+          />
+        )}
       </div>
     </EditorProvider>
   )
 }
-
-export const EditorContext = React.createContext<{
-  editor: Editor | null
-  providerStatus: string | undefined
-  dragHandleRef: React.RefObject<HTMLDivElement>
-} | null>(null)
-
-export const EditorProvider = ({
-  children,
-  flickId,
-  userName,
-  handleUpdate,
-}: {
-  children: JSX.Element
-  flickId: string
-  userName: string
-  handleUpdate?: (editor: CoreEditor) => void
-}): JSX.Element => {
-  // const [providerStatus, setProviderStatus] = useState<string>()
-
-  const dragRef = useRef<HTMLDivElement>(null)
-
-  const providerRef = useRef<HocuspocusProvider>()
-  const yDocRef = useRef<Y.Doc>()
-  const [providerStatus, setProviderStatus] = useState<string>()
-
-  useEffect(() => {
-    if (providerRef.current || yDocRef.current) return
-    const yDoc = new Y.Doc()
-    const provider = new HocuspocusProvider({
-      document: yDoc,
-      url: config.hocusPocus.server,
-      name: `flick-doc-${flickId}`,
-      onStatus: (statusObj: any) => {
-        setProviderStatus(statusObj.status)
-      },
-    })
-    providerRef.current = provider
-    yDocRef.current = yDoc
-  }, [])
-
-  const editor = useEditor(
-    {
-      onUpdate: ({ editor }) => handleUpdate?.(editor),
-      editorProps: {
-        attributes: {
-          class: cx(
-            'prose prose-sm max-w-none w-full h-full border-none focus:outline-none',
-            editorStyle
-          ),
-        },
-      },
-      autofocus: 'start',
-      extensions: [
-        UniqueID.configure({
-          attributeName: 'id',
-          types: [
-            'paragraph',
-            'blockquote',
-            'heading',
-            'bulletList',
-            'orderedList',
-            'codeBlock',
-            'video',
-            'image',
-          ],
-        }),
-        DragHandler(dragRef.current),
-        Focus,
-        CustomTypography,
-        StarterKit.configure({
-          history: false,
-          codeBlock: false,
-          heading: {
-            levels: [1, 2, 3, 4, 5, 6],
-          },
-          bulletList: {
-            itemTypeName: 'listItem',
-          },
-          dropcursor: {
-            width: 3.5,
-            color: '#C3E2F0',
-            class: 'transition-all duration-200 ease-in-out',
-          },
-        }),
-        SlashCommands.configure({
-          suggestion: {
-            items: getSuggestionItems,
-            render: renderItems,
-          },
-        }),
-        Placeholder.configure({
-          showOnlyWhenEditable: true,
-          includeChildren: true,
-          showOnlyCurrent: false,
-          emptyEditorClass: 'is-editor-empty',
-          placeholder: ({ node, editor }) => {
-            const headingPlaceholders: {
-              [key: number]: string
-            } = {
-              1: 'Heading 1',
-              2: 'Heading 2',
-              3: 'Heading 3',
-              4: 'Heading 4',
-              5: 'Heading 5',
-              6: 'Heading 6',
-            }
-
-            if (node.type.name === 'heading') {
-              const level = node.attrs.level as number
-              return headingPlaceholders[level]
-            }
-
-            if (
-              node.type.name === 'paragraph' &&
-              editor.getJSON().content?.length === 1
-            ) {
-              return 'Type / to get started'
-            }
-
-            if (node.type.name === 'paragraph') {
-              const selectedNode = editor.view.domAtPos(
-                editor.state.selection.from
-              ).node
-              if (
-                selectedNode.nodeName === 'P' &&
-                selectedNode.firstChild?.parentElement?.id === node.attrs.id
-              ) {
-                return 'Type / for commands'
-              }
-            }
-
-            return ''
-          },
-        }),
-        CodeBlock,
-        ImageBlock.configure({
-          inline: false,
-        }),
-        VideoBlock,
-        TrailingNode,
-        CharacterCount.configure({
-          limit: 20000,
-        }),
-      ].concat(
-        providerRef.current
-          ? [
-              Collaboration.configure({
-                document: yDocRef.current,
-              }),
-              CollaborationCursor.configure({
-                provider: providerRef.current,
-                user: {
-                  name: userName,
-                  color: generateLightColorHex(),
-                },
-              }),
-            ]
-          : []
-      ),
-    },
-    [providerRef.current]
-  )
-
-  useEffect(() => {
-    return () => {
-      editor?.destroy()
-      providerRef.current?.destroy()
-    }
-  }, [])
-
-  return (
-    <EditorContext.Provider
-      value={{
-        editor,
-        dragHandleRef: dragRef,
-        providerStatus,
-      }}
-    >
-      {children}
-    </EditorContext.Provider>
-  )
-}
-
-// const FlickHoC = () => {
-//   const { id } = useParams<{ id: string; fragmentId?: string }>()
-//   const { displayName } = (useRecoilValue(userState) as User) || {}
-
-//   return (
-//     <EditorProvider flickId={id} userName={displayName || 'Anonymous'}>
-//       <EditorContentComp />
-//     </EditorProvider>
-//   )
-// }
-
-// const EditorContentComp = () => {
-//   const { editor } = useContext(EditorContext) || {}
-
-//   if (!editor) return null
-
-//   return <EditorContent editor={editor} />
-// }
-
-// const FlickHoc = () => {
-//   const { id } = useParams<{ id: string; fragmentId?: string }>()
-//   const user = useRecoilValue(databaseUserState)
-
-//   return <Flick />
-// }
 
 export default Flick

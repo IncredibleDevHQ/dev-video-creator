@@ -10,6 +10,7 @@ import hlsQualitySelector from 'videojs-hls-quality-selector'
 import { css, cx } from '@emotion/css'
 import { ASSETS } from '../constants'
 import config from '../config'
+import { nanoid } from 'nanoid'
 
 const videoJs = css`
   .video-js {
@@ -268,18 +269,6 @@ const Video = ({ className, src, ...rest }: VideoProps) => {
   const playerRef = useRef<any>()
   const [videoType, setVideoType] = useState<string>('video/mp4')
   const videoRef = useRef<HTMLVideoElement>(null)
-
-  useEffect(() => {
-    if (!videoType) return
-    const data = src.split('.').slice(-1).join()
-    if (rest.type) {
-      setVideoType(rest.type)
-    } else if (data !== 'm3u8') {
-      setVideoType(`video/${data}`)
-    } else {
-      setVideoType('application/x-mpegURL')
-    }
-  }, [src])
 
   const handlePlayerReady = (player: VideoJsPlayer) => {
     playerRef.current = player

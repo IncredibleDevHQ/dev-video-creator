@@ -19,6 +19,7 @@ import {
   Layout,
   outroLayoutTypes,
   shortsLayoutTypes,
+  shortsOutroLayoutTypes,
   ViewConfig,
 } from '../../../utils/configTypes'
 import { CONFIG, SHORTS_CONFIG } from '../../Studio/components/Concourse'
@@ -237,6 +238,20 @@ export const LayoutSelector = ({
                   />
                 </div>
               ))
+          : type === 'outroBlock'
+          ? shortsOutroLayoutTypes?.map((layoutType) => (
+              <LayoutGeneric
+                type={type}
+                key={layoutType}
+                mode={mode}
+                layout={layoutType}
+                isSelected={layout === layoutType}
+                onClick={() => {
+                  logEvent(PageEvent.ChangeLayout)
+                  updateLayout(layoutType)
+                }}
+              />
+            ))
           : shortsLayoutTypes?.map((layoutType) => (
               <LayoutGeneric
                 type={type}
@@ -416,26 +431,24 @@ const BlockPreview = ({
 
   return (
     <div className={className} {...rest}>
-      {block.type !== 'introBlock' && block.type !== 'outroBlock' && (
-        <div
-          role="button"
-          tabIndex={0}
-          onKeyDown={() => null}
-          onClick={() => {
-            logEvent(PageEvent.NotebookCanvasPreview)
-            setPreviewModal(true)
-          }}
-          className="flex flex-1 w-full h-full border-none outline-none"
-          ref={ref}
-        >
-          <CanvasPreview
-            block={block}
-            bounds={bounds}
-            shortsMode={config.mode === 'Portrait'}
-            config={config}
-          />
-        </div>
-      )}
+      <div
+        role="button"
+        tabIndex={0}
+        onKeyDown={() => null}
+        onClick={() => {
+          logEvent(PageEvent.NotebookCanvasPreview)
+          setPreviewModal(true)
+        }}
+        className="flex flex-1 w-full h-full border-none outline-none"
+        ref={ref}
+      >
+        <CanvasPreview
+          block={block}
+          bounds={bounds}
+          shortsMode={config.mode === 'Portrait'}
+          config={config}
+        />
+      </div>
       {previewModal && (
         <PreviewModal
           block={block}

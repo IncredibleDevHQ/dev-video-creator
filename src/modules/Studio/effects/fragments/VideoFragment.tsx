@@ -41,8 +41,15 @@ const VideoFragment = ({
   stageRef: React.RefObject<Konva.Stage>
   shortsMode: boolean
 }) => {
-  const { fragment, payload, updatePayload, state, theme, branding } =
-    (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const {
+    fragment,
+    payload,
+    updatePayload,
+    state,
+    theme,
+    branding,
+    preloadedBlobUrls,
+  } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [studio, setStudio] = useRecoilState(studioStore)
 
   const [videoConfig, setVideoConfig] = useState<VideoConfig>({
@@ -112,7 +119,8 @@ const VideoFragment = ({
     element.crossOrigin = 'anonymous'
     element.preload = 'auto'
     element.muted = true
-    element.src = dataConfig.videoBlock.url || ''
+    element.src =
+      preloadedBlobUrls?.[dataConfig.id] || dataConfig.videoBlock.url || ''
 
     setObjectConfig(
       FragmentLayoutConfig({
@@ -241,7 +249,7 @@ const VideoFragment = ({
         })
       }
     }
-  }, [payload?.fragmentState])
+  }, [payload?.fragmentState, payload?.status])
 
   useEffect(() => {
     const noOfLinesOfTitle = getNoOfLinesOfText({
@@ -347,7 +355,7 @@ const VideoFragment = ({
   }, [renderMode, objectRenderConfig, transformations, videoFragmentData])
 
   const layerChildren: any[] = [
-    <Group x={0} y={0} opacity={0} ref={customLayoutRef}>
+    <Group x={0} y={0} opacity={1} ref={customLayoutRef}>
       <FragmentBackground
         theme={theme}
         objectConfig={objectConfig}

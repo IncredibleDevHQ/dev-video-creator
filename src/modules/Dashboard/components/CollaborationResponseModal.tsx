@@ -30,7 +30,7 @@ const CollaborationRespondModal = ({
   const respond = async () => {
     try {
       await acceptCollaboration()
-      history.push(`/flick/${notification.meta?.flickId}`)
+      history.push(`/story/${notification.meta?.flickId}`)
     } catch (e) {
       emitToast({ title: 'Failed to accept collaboration', type: 'error' })
     }

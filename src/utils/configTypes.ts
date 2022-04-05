@@ -11,7 +11,8 @@ export const allLayoutTypes = [
   'bottom-right-circle',
   'padded-split',
   'split',
-  'full',
+  'full-left',
+  'full-right',
   'split-without-media',
 ] as const
 
@@ -22,7 +23,7 @@ export const shortsLayoutTypes = [
   'bottom-right-tile',
   'bottom-right-circle',
   'split',
-  'full',
+  'full-left',
 ] as const
 
 export const outroLayoutTypes = [
@@ -31,6 +32,8 @@ export const outroLayoutTypes = [
   // 'float-full-left',
   'split-without-media',
 ] as const
+
+export const shortsOutroLayoutTypes = ['classic', 'split'] as const
 
 export type OutroLayout = typeof outroLayoutTypes[number]
 
@@ -146,12 +149,17 @@ export type ListAppearance = 'stack' | 'replace' | 'allAtOnce'
 export type ListViewStyle = 'none' | 'bullet' | 'number'
 export type ListOrientation = 'horizontal' | 'vertical'
 
+export interface HeadingBlockView {
+  type: 'headingBlock'
+}
+
 export interface HandleDetails {
   enabled: boolean
   handle: string
 }
 
 export interface OutroBlockViewProps {
+  title?: string
   twitter?: HandleDetails
   discord?: HandleDetails
   youtube?: HandleDetails
@@ -179,6 +187,7 @@ export type BlockView =
   | ImageBlockView
   | VideoBlockView
   | ListBlockView
+  | HeadingBlockView
   | OutroBlockView
   | IntroBlockView
 

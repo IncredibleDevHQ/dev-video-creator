@@ -46,6 +46,22 @@ fragment Note on Note {
   }
 }
 
+fragment RecordedBlocks on Blocks {
+  id
+  objectUrl
+  updatedAt
+}
+
+fragment Recording on Recording {
+  id
+  type
+  url
+  status
+  checkpoint
+  thumbnail
+  storyboard
+}
+
 query GetFragmentById($id: uuid!, $sub: String!) {
   Fragment(
     where: {
@@ -85,6 +101,20 @@ query GetFragmentParticipants($fragmentId: uuid!) {
 query GetFragmentNotes($fragmentId: uuid!) {
   Note(where: { fragmentId: { _eq: $fragmentId } }) {
     ...Note
+  }
+}
+
+query GetRecordings($flickId: uuid, $fragmentId: uuid) {
+  Recording(
+    where: { flickId: { _eq: $flickId }, fragmentId: { _eq: $fragmentId } }
+  ) {
+    ...Recording
+  }
+}
+
+query GetRecordedBlocks($recordingId: uuid) {
+  Blocks(where: { recordingId: { _eq: $recordingId } }) {
+    ...RecordedBlocks
   }
 }
 
@@ -279,6 +309,60 @@ mutation CompleteFragment(
 mutation UpdateFragmentEditorState($id: uuid!, $editorState: json!) {
   update_Fragment_by_pk(
     pk_columns: { id: $id }
+    _set: { editorState: $editorState }
+  ) {
+    id
+  }
+}
+
+mutation SetupRecording(
+  $contentType: CONTENT_TYPES!
+  $editorState: json!
+  $flickId: uuid!
+  $fragmentId: uuid!
+  $viewConfig: json!
+) {
+  StartRecording(
+    contentType: $contentType
+    flickId: $flickId
+    fragmentId: $fragmentId
+    editorState: $editorState
+    viewConfig: $viewConfig
+  ) {
+    recordingId
+    success
+  }
+}
+
+mutation SaveRecordedBlock(
+  $flickId: uuid!
+  $fragmentId: uuid!
+  $objectUrl: String!
+  $recordingId: uuid!
+  $blockId: String!
+) {
+  SaveBlock(
+    flickId: $flickId
+    fragmentId: $fragmentId
+    objectUrl: $objectUrl
+    recordingId: $recordingId
+    blockId: $blockId
+  ) {
+    id
+    success
+  }
+}
+mutation UpdateFlickMdAndEditorState(
+  $flickId: uuid!
+  $md: String!
+  $fragmentId: uuid!
+  $editorState: json!
+) {
+  update_Flick_by_pk(pk_columns: { id: $flickId }, _set: { md: $md }) {
+    id
+  }
+  update_Fragment_by_pk(
+    pk_columns: { id: $fragmentId }
     _set: { editorState: $editorState }
   ) {
     id
