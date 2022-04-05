@@ -105,7 +105,6 @@ const IntroFragment = ({
       }
       if (introSequence[payload.activeIntroIndex] === 'introVideo') {
         setTopLayerChildren?.({ id: '', state: '' })
-        console.log('Playing intro video....')
         if (!videoElement) return
         videoElement?.play()
         titleScreenRef.current?.opacity(0)
