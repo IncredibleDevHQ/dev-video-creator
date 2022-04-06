@@ -2,6 +2,7 @@ import React from 'react'
 import { Circle, Group, Line, Rect } from 'react-konva'
 import { ThemeFragment } from '../../../generated/graphql'
 import { ObjectConfig } from '../utils/FragmentLayoutConfig'
+import { getCanvasGradient } from '../utils/StudioUserConfig'
 
 const FragmentBackground = ({
   theme,
@@ -89,6 +90,33 @@ const FragmentBackground = ({
             height={objectConfig.height - 56}
             fill={backgroundRectColor}
             opacity={0.8}
+          />
+        </Group>
+      )
+    case 'LambdaTest':
+      return (
+        <Group>
+          <Rect
+            x={objectConfig.x}
+            y={objectConfig.y}
+            width={objectConfig.width}
+            height={objectConfig.height}
+            cornerRadius={16}
+            stroke={getCanvasGradient(
+              [
+                { color: '#8BCBF97B', offset: 0.0 },
+                { color: '#5A80D67B', offset: 0.5204 },
+                { color: '#B7AEFA7B', offset: 1.0 },
+              ],
+              {
+                x0: objectConfig.x,
+                y0: objectConfig.y,
+                x1: objectConfig.width,
+                y1: objectConfig.height,
+              }
+            )}
+            strokeWidth={12}
+            fill={backgroundRectColor}
           />
         </Group>
       )
