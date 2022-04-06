@@ -33,7 +33,14 @@ export const outroLayoutTypes = [
   'split-without-media',
 ] as const
 
+export const introLayoutTypes = [
+  'bottom-right-tile',
+  'float-full-right',
+] as const
+
 export const shortsOutroLayoutTypes = ['classic', 'split'] as const
+
+export type IntroLayout = typeof introLayoutTypes[number]
 
 export type OutroLayout = typeof outroLayoutTypes[number]
 

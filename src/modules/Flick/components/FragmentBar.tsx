@@ -569,7 +569,7 @@ const FragmentBar = ({
               </Button>
             </div>
           )}
-        <div className="flex items-stretch justify-end py-2 pl-2 border-l-2 border-brand-grey text-white">
+        <div className="flex items-stretch justify-end py-2  border-l-2 border-brand-grey text-white">
           <Button
             appearance="none"
             size="small"
@@ -581,7 +581,7 @@ const FragmentBar = ({
               setThumbnailModal(true)
             }}
           >
-            Thumbnail
+            <Text className="text-sm text-gray-100 font-main">Thumbnail</Text>
           </Button>
         </div>
         <div className="flex items-stretch justify-end py-2 pl-4 border-l-2 border-brand-grey text-gray-400">
