@@ -16,17 +16,28 @@ import {
   getThemeSurfaceColor,
   getThemeTextColor,
 } from '../utils/ThemeConfig'
+import { CONFIG, SHORTS_CONFIG } from './Concourse'
 import FragmentBackground from './FragmentBackground'
+import VideoBackground from './VideoBackground'
 
 const Thumbnail = ({
   isShorts,
   viewConfig,
+  isIntro = false,
 }: {
   isShorts: boolean
   viewConfig: BlockProperties
+  isIntro?: boolean
 }) => {
   const { fragment, branding, theme } = useRecoilValue(studioStore)
+  const { displayName, designation, organization } =
+    useRecoilValue(userState) || {}
+
   const [logo] = useImage(branding?.logo || '', 'anonymous')
+  const [userImage] = useImage(
+    (viewConfig?.view as IntroBlockView)?.intro?.displayPicture || '',
+    'anonymous'
+  )
 
   const [introConfig, setIntroConfig] = useState<IntroConfig>()
   const [thumbnailInfo, setThumbnailInfo] = useState<{
@@ -35,10 +46,18 @@ const Thumbnail = ({
     designation: string
     orgnization: string
   }>()
-  const { displayName, designation, organization } =
-    useRecoilValue(userState) || {}
+  const [imgDim, setImgDim] = useState<{
+    width: number
+    height: number
+    x: number
+    y: number
+  }>({ width: 0, height: 0, x: 0, y: 0 })
+  const [stageConfig, setStageConfig] = useState<{
+    width: number
+    height: number
+  }>({ width: 0, height: 0 })
 
-  const { clipRect } = useEdit()
+  const { clipRect, getImageFitDimensions } = useEdit()
 
   useEffect(() => {
     if (!viewConfig) return
@@ -60,15 +79,34 @@ const Thumbnail = ({
     )
   }, [viewConfig])
 
-  //   const studioUserConfig = StudioUserConfiguration({
-  //     layout: introConfig?.userMediaLayout || 'classic',
-  //     fragment,
-  //     fragmentState: 'customLayout',
-  //     theme,
-  //   })
+  useEffect(() => {
+    if (!userImage || !introConfig) return
+    setImgDim(
+      getImageFitDimensions({
+        imgWidth: userImage.width,
+        imgHeight: userImage.height,
+        maxWidth: introConfig.userImageWidth,
+        maxHeight: introConfig.userImageHeight,
+        x: introConfig.userImageX,
+        y: introConfig.userImageY,
+      })
+    )
+  }, [userImage, introConfig])
+
+  useEffect(() => {
+    if (!isShorts) setStageConfig(CONFIG)
+    else setStageConfig(SHORTS_CONFIG)
+  }, [isShorts])
 
   return (
     <>
+      {!isIntro && (
+        <VideoBackground
+          theme={theme}
+          stageConfig={stageConfig}
+          isShorts={isShorts}
+        />
+      )}
       <Group
         clipFunc={(ctx: any) => {
           clipRect(ctx, {
@@ -136,23 +174,82 @@ const Thumbnail = ({
             fontFamily={getThemeFont(theme)}
             lineHeight={1.1}
           />
-          <Text
-            key="userInfo"
-            x={
-              logo
-                ? introConfig?.userInfoX || 0
-                : (introConfig?.logoX || 0) + 10
-            }
-            y={introConfig?.userInfoY || 0}
-            width={introConfig?.userInfoWidth || 0}
-            height={introConfig?.userInfoHeight || 0}
-            text={`${thumbnailInfo?.designation}, ${thumbnailInfo?.orgnization}`}
-            fill={branding?.colors?.text || getThemeTextColor(theme)}
-            fontSize={introConfig?.userInfoFontSize || 0}
-            fontFamily={getThemeFont(theme)}
-            lineHeight={1.1}
-          />
+          {designation !== '' && organization === '' && (
+            <Text
+              key="userInfo"
+              x={
+                logo
+                  ? introConfig?.userInfoX || 0
+                  : (introConfig?.logoX || 0) + 10
+              }
+              y={introConfig?.userInfoY || 0}
+              width={introConfig?.userInfoWidth || 0}
+              height={introConfig?.userInfoHeight || 0}
+              text={thumbnailInfo?.designation}
+              fill={branding?.colors?.text || getThemeTextColor(theme)}
+              fontSize={introConfig?.userInfoFontSize || 0}
+              fontFamily={getThemeFont(theme)}
+              lineHeight={1.1}
+            />
+          )}
+          {designation === '' && organization !== '' && (
+            <Text
+              key="userInfo"
+              x={
+                logo
+                  ? introConfig?.userInfoX || 0
+                  : (introConfig?.logoX || 0) + 10
+              }
+              y={introConfig?.userInfoY || 0}
+              width={introConfig?.userInfoWidth || 0}
+              height={introConfig?.userInfoHeight || 0}
+              text={thumbnailInfo?.orgnization}
+              fill={branding?.colors?.text || getThemeTextColor(theme)}
+              fontSize={introConfig?.userInfoFontSize || 0}
+              fontFamily={getThemeFont(theme)}
+              lineHeight={1.1}
+            />
+          )}
+          {designation !== '' && organization !== '' && (
+            <Text
+              key="userInfo"
+              x={
+                logo
+                  ? introConfig?.userInfoX || 0
+                  : (introConfig?.logoX || 0) + 10
+              }
+              y={introConfig?.userInfoY || 0}
+              width={introConfig?.userInfoWidth || 0}
+              height={introConfig?.userInfoHeight || 0}
+              text={`${thumbnailInfo?.designation}, ${thumbnailInfo?.orgnization}`}
+              fill={branding?.colors?.text || getThemeTextColor(theme)}
+              fontSize={introConfig?.userInfoFontSize || 0}
+              fontFamily={getThemeFont(theme)}
+              lineHeight={1.1}
+            />
+          )}
         </Group>
+      </Group>
+      <Group
+        clipFunc={(ctx: any) => {
+          clipRect(ctx, {
+            x: introConfig?.userImageX || 0,
+            y: introConfig?.userImageY || 0,
+            width: introConfig?.userImageWidth || 0,
+            height: introConfig?.userImageHeight || 0,
+            borderRadius: introConfig?.userImageBorderRadius || 0,
+          })
+        }}
+      >
+        {userImage && (
+          <Image
+            x={imgDim.x}
+            y={imgDim.y}
+            width={imgDim.width}
+            height={imgDim.height}
+            image={userImage}
+          />
+        )}
       </Group>
     </>
   )
