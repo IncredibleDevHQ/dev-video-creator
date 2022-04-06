@@ -11,10 +11,20 @@ export interface ObjectRenderConfig {
   textColor: string
   surfaceColor: string
   surfaceOpacity?: number
-  pointsBulletColor?: string
   borderRadius?: number
   titleFont?: string
   bodyFont?: string
+  pointsBulletColor?: string
+  pointsBulletCornerRadius?: number
+  pointsBulletRotation?: number
+  pointsBulletYOffset?: number
+  horizontalPointsBulletColor?: string
+  horizontalPointsNumberColor?: string
+  horizontalPointsBulletWidth?: number
+  horizontalPointsBulletHeight?: number
+  horizontalPointsBulletXOffset?: number
+  horizontalPointsBulletYOffset?: number
+  horizontalPointsBulletCornerRadius?: number
 }
 
 export interface StudioUserThemeConfig {
@@ -47,10 +57,13 @@ export const ThemeLayoutConfig = ({
         availableHeight: layoutConfig.height - 40,
         textColor: '#ffffff',
         surfaceColor: '#151D2C',
-        pointsBulletColor: '#713654',
         borderRadius: 8,
         titleFont: 'Gilroy',
         bodyFont: 'GilroyRegular',
+        pointsBulletColor: '#4B5563',
+        pointsBulletCornerRadius: 6,
+        pointsBulletYOffset: 3.5,
+        horizontalPointsBulletCornerRadius: 8,
       }
     case 'PastelLines':
       return {
@@ -59,9 +72,12 @@ export const ThemeLayoutConfig = ({
         availableWidth: layoutConfig?.availableWidth || layoutConfig.width,
         availableHeight: layoutConfig.height,
         textColor: '#27272A',
-        pointsBulletColor: '#27272A',
         borderRadius: 0,
         surfaceColor: '',
+        pointsBulletColor: '#27272A',
+        pointsBulletCornerRadius: 6,
+        pointsBulletYOffset: 3.5,
+        horizontalPointsBulletCornerRadius: 0,
       }
     case 'Cassidoo':
       return {
@@ -70,12 +86,38 @@ export const ThemeLayoutConfig = ({
         availableWidth: layoutConfig?.availableWidth || layoutConfig.width,
         availableHeight: layoutConfig.height - 56,
         textColor: '#374151',
-        pointsBulletColor: '#374151',
         borderRadius: 16,
         surfaceColor: '#fafafa',
         surfaceOpacity: 0.8,
         titleFont: 'Roboto Mono',
         bodyFont: 'Roboto Mono',
+        pointsBulletColor: '#374151',
+        pointsBulletCornerRadius: 6,
+        pointsBulletYOffset: 3.5,
+        horizontalPointsBulletCornerRadius: 16,
+      }
+    case 'LambdaTest':
+      return {
+        startX: layoutConfig.x,
+        startY: layoutConfig.y,
+        availableWidth: layoutConfig?.availableWidth || layoutConfig.width,
+        availableHeight: layoutConfig.height,
+        textColor: '#27272A',
+        surfaceColor: '#ffffff',
+        borderRadius: 16,
+        titleFont: 'Inter',
+        bodyFont: 'GilroyRegular',
+        pointsBulletColor: '#0EBAC5',
+        pointsBulletCornerRadius: 2,
+        horizontalPointsNumberColor: '#ffffff',
+        pointsBulletRotation: -45,
+        pointsBulletYOffset: 9,
+        horizontalPointsBulletColor: '#0EBAC5',
+        horizontalPointsBulletWidth: 48,
+        horizontalPointsBulletHeight: 48,
+        horizontalPointsBulletXOffset: -2,
+        horizontalPointsBulletYOffset: 28,
+        horizontalPointsBulletCornerRadius: 4,
       }
     default:
       return {
@@ -99,6 +141,8 @@ export const getThemeTextColor = (theme: ThemeFragment): string => {
       return '#27272A'
     case 'Cassidoo':
       return '#27272A'
+    case 'LambdaTest':
+      return '#27272A'
     default:
       return '#ffffff'
   }
@@ -112,6 +156,8 @@ export const getThemeSurfaceColor = (theme: ThemeFragment): string => {
       return ''
     case 'Cassidoo':
       return '#fafafa'
+    case 'LambdaTest':
+      return '#ffffff'
     default:
       return '#ffffff'
   }
@@ -125,6 +171,8 @@ export const getThemeFont = (theme: ThemeFragment): string => {
       return 'Outfit'
     case 'Cassidoo':
       return 'Roboto Mono'
+    case 'LambdaTest':
+      return 'Inter'
     default:
       return 'Gilroy'
   }
@@ -193,6 +241,18 @@ export const getThemeSupportedUserMediaLayouts = (
         'float-half-right',
         'padded-bottom-right-circle',
         'bottom-right-circle',
+        'padded-split',
+        'full-left',
+        'full-right',
+      ]
+    case 'LambdaTest':
+      return [
+        'classic',
+        'float-full-right',
+        'float-full-left',
+        'float-half-right',
+        'padded-bottom-right-tile',
+        'bottom-right-tile',
         'padded-split',
         'full-left',
         'full-right',

@@ -288,6 +288,90 @@ export const getOutroConfig = ({
               logoHeight: 54,
             }
         }
+      case 'LambdaTest':
+        switch (layout) {
+          case 'classic':
+            return {
+              layoutX: 72,
+              layoutY: 40,
+              layoutWidth: 816,
+              layoutHeight: 460,
+              layoutBorderRadius: 16,
+              textX: 16,
+              textY: 205,
+              textWidth: 784,
+              textHeight: 57,
+              textFontSize: 48,
+              socialX: 244,
+              socialY: 326,
+              socialHandlesFontSize: 16,
+              logoX: 392,
+              logoY: 149,
+              logoWidth: 32,
+              logoHeight: 32,
+            }
+          case 'float-full-right':
+            return {
+              layoutX: 40,
+              layoutY: 90,
+              layoutWidth: 544,
+              layoutHeight: 360,
+              layoutBorderRadius: 16,
+              textX: 48,
+              textY: 48,
+              textWidth: 450,
+              textHeight: 122,
+              textFontSize: 48,
+              socialX: 48,
+              socialY: 300,
+              socialHandlesFontSize: 16,
+              logoX: 488,
+              logoY: 300,
+              logoWidth: 32,
+              logoHeight: 32,
+              userMediaLayout: 'padded-split',
+            }
+          case 'split-without-media':
+            return {
+              layoutX: 40,
+              layoutY: 90,
+              layoutWidth: 400,
+              layoutHeight: 360,
+              layoutBorderRadius: 16,
+              textX: 32,
+              textY: 72,
+              textWidth: 350,
+              textHeight: 122,
+              textFontSize: 48,
+              socialX: 32,
+              socialY: 300,
+              socialHandlesFontSize: 16,
+              logoX: 338,
+              logoY: 300,
+              logoWidth: 32,
+              logoHeight: 32,
+            }
+          default:
+            return {
+              layoutX: 72,
+              layoutY: 40,
+              layoutWidth: 816,
+              layoutHeight: 460,
+              layoutBorderRadius: 16,
+              textX: 185,
+              textY: 205,
+              textWidth: 446,
+              textHeight: 57,
+              textFontSize: 48,
+              socialX: 244,
+              socialY: 326,
+              socialHandlesFontSize: 16,
+              logoX: 392,
+              logoY: 149,
+              logoWidth: 32,
+              logoHeight: 32,
+            }
+        }
       default:
         return {
           layoutX: 72,
@@ -503,25 +587,89 @@ export const getOutroConfig = ({
             logoHeight: 28,
           }
       }
+    case 'LambdaTest':
+      switch (layout) {
+        case 'classic':
+          return {
+            layoutX: 40,
+            layoutY: 40,
+            layoutWidth: 316,
+            layoutHeight: 624,
+            layoutBorderRadius: 8,
+            textX: 16,
+            textY: 290,
+            textWidth: 284,
+            textHeight: 70,
+            textFontSize: 26,
+            socialX: 244,
+            socialY: 376,
+            socialHandlesFontSize: 16,
+            logoX: 140,
+            logoY: 234,
+            logoWidth: 28,
+            logoHeight: 28,
+          }
+        case 'split':
+          return {
+            layoutX: 16,
+            layoutY: 16,
+            layoutWidth: 364,
+            layoutHeight: 328,
+            layoutBorderRadius: 8,
+            textX: 32,
+            textY: 48,
+            textWidth: 270,
+            textHeight: 130,
+            textFontSize: 36,
+            socialX: 32,
+            socialY: 210,
+            socialHandlesFontSize: 16,
+            logoX: 300,
+            logoY: 270,
+            logoWidth: 32,
+            logoHeight: 32,
+            userMediaLayout: 'split',
+          }
+        default:
+          return {
+            layoutX: 40,
+            layoutY: 40,
+            layoutWidth: 316,
+            layoutHeight: 624,
+            layoutBorderRadius: 8,
+            textX: 16,
+            textY: 290,
+            textWidth: 284,
+            textHeight: 70,
+            textFontSize: 26,
+            socialX: 244,
+            socialY: 376,
+            socialHandlesFontSize: 16,
+            logoX: 140,
+            logoY: 234,
+            logoWidth: 28,
+            logoHeight: 28,
+          }
+      }
     default:
       return {
-        layoutX: 72,
+        layoutX: 40,
         layoutY: 40,
-        layoutWidth: 816,
-        layoutHeight: 460,
+        layoutWidth: 316,
+        layoutHeight: 624,
         layoutBorderRadius: 8,
-        textX: 185,
-        textY: 205,
-        textWidth: 446,
-        textHeight: 57,
-        textFontSize: 48,
+        textX: 16,
+        textY: 290,
+        textWidth: 284,
+        textHeight: 70,
+        textFontSize: 26,
         socialX: 244,
-        socialY: 326,
+        socialY: 376,
         socialHandlesFontSize: 16,
-        logoX: 392,
-        logoY: 149,
-        logoWidth: 32,
-        logoHeight: 32,
+        logoX: 140,
+        logoY: 234,
+        logoWidth: 28,
+        logoHeight: 28,
       }
   }
 }
