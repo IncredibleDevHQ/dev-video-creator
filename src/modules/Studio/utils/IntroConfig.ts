@@ -26,7 +26,11 @@ export interface IntroConfig {
   logoY: number
   logoWidth: number
   logoHeight: number
-  userMediaLayout?: Layout
+  userImageX: number
+  userImageY: number
+  userImageWidth: number
+  userImageHeight: number
+  userImageBorderRadius: number
 }
 
 export const getIntroConfig = ({
@@ -42,7 +46,7 @@ export const getIntroConfig = ({
     switch (theme.name) {
       case 'DarkGradient':
         switch (layout) {
-          case 'classic':
+          case 'bottom-right-tile':
             return {
               layoutX: 0,
               layoutY: 0,
@@ -68,6 +72,11 @@ export const getIntroConfig = ({
               logoY: 344,
               logoWidth: 54,
               logoHeight: 54,
+              userImageX: 689,
+              userImageY: 294,
+              userImageWidth: 160,
+              userImageHeight: 160,
+              userImageBorderRadius: 8,
             }
           case 'float-full-right':
             return {
@@ -95,7 +104,11 @@ export const getIntroConfig = ({
               logoY: 445,
               logoWidth: 54,
               logoHeight: 54,
-              userMediaLayout: 'padded-split',
+              userImageX: 624,
+              userImageY: 64,
+              userImageWidth: 280,
+              userImageHeight: 420,
+              userImageBorderRadius: 8,
             }
           default:
             return {
@@ -123,11 +136,16 @@ export const getIntroConfig = ({
               logoY: 344,
               logoWidth: 54,
               logoHeight: 54,
+              userImageX: 689,
+              userImageY: 294,
+              userImageWidth: 160,
+              userImageHeight: 160,
+              userImageBorderRadius: 8,
             }
         }
       case 'PastelLines':
         switch (layout) {
-          case 'classic':
+          case 'bottom-right-tile':
             return {
               layoutX: 64,
               layoutY: 64,
@@ -153,6 +171,11 @@ export const getIntroConfig = ({
               logoY: 248,
               logoWidth: 54,
               logoHeight: 54,
+              userImageX: 686,
+              userImageY: 298,
+              userImageWidth: 160,
+              userImageHeight: 160,
+              userImageBorderRadius: 0,
             }
           case 'float-full-right':
             return {
@@ -180,7 +203,11 @@ export const getIntroConfig = ({
               logoY: 425,
               logoWidth: 54,
               logoHeight: 54,
-              userMediaLayout: 'padded-split',
+              userImageX: 523,
+              userImageY: 36,
+              userImageWidth: 372,
+              userImageHeight: 467,
+              userImageBorderRadius: 0,
             }
           default:
             return {
@@ -208,11 +235,16 @@ export const getIntroConfig = ({
               logoY: 248,
               logoWidth: 54,
               logoHeight: 54,
+              userImageX: 686,
+              userImageY: 298,
+              userImageWidth: 160,
+              userImageHeight: 160,
+              userImageBorderRadius: 0,
             }
         }
       case 'Cassidoo':
         switch (layout) {
-          case 'classic':
+          case 'bottom-right-tile':
             return {
               layoutX: 40,
               layoutY: 40,
@@ -221,23 +253,28 @@ export const getIntroConfig = ({
               layoutBorderRadius: 16,
               titleX: 40,
               titleY: 120,
-              titleWidth: 500,
+              titleWidth: 520,
               titleHeight: 186,
               titleFontSize: 56,
               userNameX: 120,
               userNameY: 350,
-              userNameWidth: 816,
+              userNameWidth: 520,
               userNameHeight: 40,
               userNameFontSize: 24,
               userInfoX: 120,
               userInfoY: 388,
-              userInfoWidth: 816,
+              userInfoWidth: 520,
               userInfoHeight: 40,
               userInfoFontSize: 24,
               logoX: 40,
               logoY: 348,
               logoWidth: 64,
               logoHeight: 64,
+              userImageX: 683,
+              userImageY: 265,
+              userImageWidth: 192,
+              userImageHeight: 192,
+              userImageBorderRadius: 96,
             }
           case 'float-full-right':
             return {
@@ -258,14 +295,18 @@ export const getIntroConfig = ({
               userNameFontSize: 24,
               userInfoX: 44,
               userInfoY: 232,
-              userInfoWidth: 816,
+              userInfoWidth: 400,
               userInfoHeight: 20,
               userInfoFontSize: 18,
               logoX: 44,
               logoY: 270,
               logoWidth: 32,
               logoHeight: 32,
-              userMediaLayout: 'float-full-right',
+              userImageX: 611,
+              userImageY: 116,
+              userImageWidth: 310,
+              userImageHeight: 310,
+              userImageBorderRadius: 155,
             }
           default:
             return {
@@ -293,11 +334,16 @@ export const getIntroConfig = ({
               logoY: 348,
               logoWidth: 64,
               logoHeight: 64,
+              userImageX: 683,
+              userImageY: 265,
+              userImageWidth: 192,
+              userImageHeight: 192,
+              userImageBorderRadius: 96,
             }
         }
       case 'LambdaTest':
         switch (layout) {
-          case 'classic':
+          case 'bottom-right-tile':
             return {
               layoutX: 40,
               layoutY: 40,
@@ -305,8 +351,8 @@ export const getIntroConfig = ({
               layoutHeight: 460,
               layoutBorderRadius: 16,
               titleX: 40,
-              titleY: 100,
-              titleWidth: 620,
+              titleY: 40,
+              titleWidth: 600,
               titleHeight: 172,
               titleFontSize: 72,
               userNameX: 127,
@@ -323,61 +369,75 @@ export const getIntroConfig = ({
               logoY: 304,
               logoWidth: 54,
               logoHeight: 54,
+              userImageX: 693,
+              userImageY: 276,
+              userImageWidth: 192,
+              userImageHeight: 192,
+              userImageBorderRadius: 12,
             }
           case 'float-full-right':
+            return {
+              layoutX: 64,
+              layoutY: 64,
+              layoutWidth: 452,
+              layoutHeight: 412,
+              layoutBorderRadius: 16,
+              titleX: 40,
+              titleY: 40,
+              titleWidth: 372,
+              titleHeight: 140,
+              titleFontSize: 40,
+              userNameX: 40,
+              userNameY: 280,
+              userNameWidth: 400,
+              userNameHeight: 30,
+              userNameFontSize: 24,
+              userInfoX: 40,
+              userInfoY: 312,
+              userInfoWidth: 816,
+              userInfoHeight: 20,
+              userInfoFontSize: 18,
+              logoX: 40,
+              logoY: 350,
+              logoWidth: 32,
+              logoHeight: 32,
+              userImageX: 564,
+              userImageY: 0,
+              userImageWidth: 396,
+              userImageHeight: 540,
+              userImageBorderRadius: 0,
+            }
+          default:
             return {
               layoutX: 40,
               layoutY: 40,
               layoutWidth: 880,
               layoutHeight: 460,
-              layoutBorderRadius: 0,
+              layoutBorderRadius: 16,
               titleX: 40,
-              titleY: 80,
-              titleWidth: 500,
-              titleHeight: 200,
-              titleFontSize: 64,
-              userNameX: 40,
+              titleY: 40,
+              titleWidth: 600,
+              titleHeight: 172,
+              titleFontSize: 72,
+              userNameX: 127,
               userNameY: 296,
               userNameWidth: 600,
               userNameHeight: 40,
               userNameFontSize: 32,
-              userInfoX: 40,
+              userInfoX: 127,
               userInfoY: 340,
               userInfoWidth: 600,
               userInfoHeight: 57,
               userInfoFontSize: 24,
               logoX: 40,
-              logoY: 405,
+              logoY: 304,
               logoWidth: 54,
               logoHeight: 54,
-              userMediaLayout: 'padded-split',
-            }
-          default:
-            return {
-              layoutX: 0,
-              layoutY: 0,
-              layoutWidth: 960,
-              layoutHeight: 540,
-              layoutBorderRadius: 0,
-              titleX: 80,
-              titleY: 140,
-              titleWidth: 620,
-              titleHeight: 172,
-              titleFontSize: 72,
-              userNameX: 167,
-              userNameY: 336,
-              userNameWidth: 600,
-              userNameHeight: 40,
-              userNameFontSize: 32,
-              userInfoX: 167,
-              userInfoY: 380,
-              userInfoWidth: 600,
-              userInfoHeight: 57,
-              userInfoFontSize: 24,
-              logoX: 80,
-              logoY: 344,
-              logoWidth: 54,
-              logoHeight: 54,
+              userImageX: 693,
+              userImageY: 276,
+              userImageWidth: 192,
+              userImageHeight: 192,
+              userImageBorderRadius: 12,
             }
         }
       default:
@@ -406,6 +466,11 @@ export const getIntroConfig = ({
           logoY: 344,
           logoWidth: 54,
           logoHeight: 54,
+          userImageX: 689,
+          userImageY: 294,
+          userImageWidth: 160,
+          userImageHeight: 160,
+          userImageBorderRadius: 8,
         }
     }
   return {
@@ -433,5 +498,10 @@ export const getIntroConfig = ({
     logoY: 540,
     logoWidth: 48,
     logoHeight: 48,
+    userImageX: 0,
+    userImageY: 0,
+    userImageWidth: 0,
+    userImageHeight: 0,
+    userImageBorderRadius: 0,
   }
 }
