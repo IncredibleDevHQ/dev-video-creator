@@ -339,8 +339,8 @@ export const CanvasPreview = ({
     >
       <Stage
         ref={stageRef}
-        height={height}
-        width={width}
+        height={height || 1}
+        width={width || 1}
         className={cx(
           'border border-gray-300',
           css`
