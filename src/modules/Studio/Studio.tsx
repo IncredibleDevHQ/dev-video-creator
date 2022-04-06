@@ -1110,10 +1110,12 @@ const Studio = ({
   }
 
   const prepareVideo = async () => {
+    const current = fragment?.editorState?.blocks?.[payload?.activeObjectIndex]
+
     if (
       state === 'preview' &&
-      currentBlock &&
-      !recordedBlocks?.find((b) => b.id === currentBlock.id)
+      current &&
+      !recordedBlocks?.find((b) => b.id === current.id)
     ) {
       console.log('Preparing video...')
       const blob = await getBlobs()
@@ -1131,7 +1133,7 @@ const Studio = ({
               {
                 blobSize: blob?.size,
                 user: sub,
-                currentBlock,
+                currentBlock: current,
               }
             )}`
           )
@@ -1141,8 +1143,7 @@ const Studio = ({
 
       const url = URL.createObjectURL(blob)
       setRecordedVideoSrc(url)
-      console.log('Settng src to:', url)
-      updateRecordedBlocks(currentBlock.id, url)
+      updateRecordedBlocks(current.id, url)
     }
     if (state !== 'preview' && state !== 'upload') {
       setRecordedVideoSrc(undefined)
@@ -1152,7 +1153,7 @@ const Studio = ({
   useEffect(() => {
     console.log('State changed to', state)
     prepareVideo()
-  }, [state])
+  }, [state, payload?.activeObjectIndex])
 
   // Set 0th index for the first block - first time recording
   useEffect(() => {
@@ -1236,19 +1237,17 @@ const Studio = ({
                   return b.id === block.id
                 })
 
+                updatePayload({
+                  activeObjectIndex: index,
+                })
+
                 console.log('clickedBlock', clickedBlock)
 
                 // when block was previously rec and uploaded and we have a url to show preview
                 if (clickedBlock && clickedBlock.objectUrl) {
-                  updatePayload({
-                    activeObjectIndex: index,
-                  })
                   setState('preview')
                 } else {
                   // when the clicked block is not yet recorded.
-                  updatePayload({
-                    activeObjectIndex: index,
-                  })
                   setState('resumed')
                 }
               }}
