@@ -329,19 +329,25 @@ const Flick = () => {
   }, [currentBlock])
 
   useMemo(() => {
+    setStudio((store) => ({
+      ...store,
+      payload,
+      updatePayload,
+      addMusic,
+      stopMusic,
+    }))
+  }, [activeFragmentId, payload, flick?.fragments])
+
+  useMemo(() => {
     const fragment = flick?.fragments.find(
       (f) => f.id === activeFragmentId
     ) as StudioFragmentFragment
     if (!fragment) return
     setStudio((store) => ({
       ...store,
-      payload,
-      updatePayload,
       fragment,
-      addMusic,
-      stopMusic,
     }))
-  }, [activeFragmentId, payload, flick?.fragments])
+  }, [flick?.fragments])
 
   useEffect(() => {
     resetPayload()
