@@ -67,6 +67,43 @@ const useEdit = () => {
     return { width: calWidth, height: calHeight, x: calX, y: calY }
   }
 
+  // function which returns the coordinates and dimensions of the image such that when cropped it crops the image in the center
+  const getImageFitDimensions = ({
+    imgWidth,
+    imgHeight,
+    maxWidth,
+    maxHeight,
+    x,
+    y,
+  }: {
+    imgWidth: number
+    imgHeight: number
+    maxWidth: number
+    maxHeight: number
+    x: number
+    y: number
+  }) => {
+    let calWidth = 0
+    let calHeight = 0
+    let calX = 0
+    let calY = 0
+    const aspectRatio = imgWidth / imgHeight
+    if (aspectRatio > maxWidth / maxHeight) {
+      // horizontal img
+      calHeight = maxHeight
+      calWidth = maxHeight * aspectRatio
+      calX = x - (calWidth - maxWidth) / 2
+      calY = y
+    } else if (aspectRatio <= maxWidth / maxHeight) {
+      // sqr or vertical image
+      calWidth = maxWidth
+      calHeight = maxWidth * (1 / aspectRatio)
+      calX = x
+      calY = y - (calHeight - maxHeight) / 2
+    }
+    return { width: calWidth, height: calHeight, x: calX, y: calY }
+  }
+
   const getTextWidth = (
     text: string,
     fontFamily: string,
@@ -79,7 +116,13 @@ const useEdit = () => {
     return konvaText.textWidth
   }
 
-  return { clipRect, clipCircle, getImageDimensions, getTextWidth }
+  return {
+    clipRect,
+    clipCircle,
+    getImageDimensions,
+    getTextWidth,
+    getImageFitDimensions,
+  }
 }
 
 export default useEdit
