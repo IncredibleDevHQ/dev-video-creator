@@ -1597,6 +1597,415 @@ export const StudioUserConfiguration = ({
           ]
       }
     }
+    case 'LambdaTest':
+      if (fragmentState === 'onlyUserMedia') {
+        switch (fragment?.configuration?.speakers?.length) {
+          case 2:
+            return [
+              {
+                x: 400,
+                y: 25,
+                width: 640,
+                height: 480,
+                clipTheme: 'rect',
+                borderWidth: 0,
+                studioUserClipConfig: {
+                  x: 120,
+                  y: 0,
+                  width: 400,
+                  height: 480,
+                  borderRadius: 16,
+                },
+              },
+              {
+                x: -60,
+                y: 25,
+                width: 640,
+                height: 480,
+                clipTheme: 'rect',
+                borderWidth: 0,
+                studioUserClipConfig: {
+                  x: 120,
+                  y: 0,
+                  width: 400,
+                  height: 480,
+                  borderRadius: 16,
+                },
+              },
+            ]
+          default:
+            return [
+              {
+                x: 56,
+                y: -45,
+                width: 848,
+                height: 636,
+                clipTheme: 'rect',
+                borderWidth: 0,
+                studioUserClipConfig: {
+                  x: 0,
+                  y: 75,
+                  width: 848,
+                  height: 480,
+                  borderRadius: 16,
+                },
+              },
+            ]
+        }
+      }
+      switch (layout) {
+        // case 'classic':
+        //   switch (fragment?.configuration?.speakers?.length) {
+        //     case 2:
+        //       return [{}, {}]
+        //     default:
+        //       return [{}]
+        //   }
+        case 'float-full-right':
+          switch (fragment?.configuration?.speakers?.length) {
+            case 2:
+              return [
+                {
+                  x: 704,
+                  y: 88,
+                  width: 224,
+                  height: 168,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 2,
+                    width: 224,
+                    height: 164,
+                    borderRadius: 16,
+                  },
+                },
+                {
+                  x: 704,
+                  y: 284,
+                  width: 224,
+                  height: 168,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 2,
+                    width: 224,
+                    height: 164,
+                    borderRadius: 16,
+                  },
+                },
+              ]
+            default:
+              return [
+                {
+                  x: 568,
+                  y: 92,
+                  width: 480,
+                  height: 360,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 128,
+                    y: 0,
+                    width: 224,
+                    height: 360,
+                    borderRadius: 16,
+                  },
+                },
+              ]
+          }
+        case 'float-full-left':
+          switch (fragment?.configuration?.speakers?.length) {
+            case 2:
+              return [
+                {
+                  x: 32,
+                  y: 88,
+                  width: 224,
+                  height: 168,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 2,
+                    width: 224,
+                    height: 164,
+                    borderRadius: 16,
+                  },
+                },
+                {
+                  x: 32,
+                  y: 284,
+                  width: 224,
+                  height: 168,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 2,
+                    width: 224,
+                    height: 164,
+                    borderRadius: 16,
+                  },
+                },
+              ]
+            default:
+              return [
+                {
+                  x: -88,
+                  y: 92,
+                  width: 480,
+                  height: 360,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 128,
+                    y: 0,
+                    width: 224,
+                    height: 360,
+                    borderRadius: 16,
+                  },
+                },
+              ]
+          }
+        case 'float-half-right':
+          switch (fragment?.configuration?.speakers?.length) {
+            case 2:
+              return [
+                {
+                  x: 724,
+                  y: 96,
+                  width: 208,
+                  height: 156,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 4,
+                    y: 0,
+                    width: 200,
+                    height: 156,
+                    borderRadius: 16,
+                  },
+                },
+                {
+                  x: 724,
+                  y: 288,
+                  width: 208,
+                  height: 156,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 4,
+                    y: 0,
+                    width: 200,
+                    height: 156,
+                    borderRadius: 16,
+                  },
+                },
+              ]
+            default:
+              return [
+                {
+                  x: 612,
+                  y: 114,
+                  width: 416,
+                  height: 312,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 108,
+                    y: 0,
+                    width: 200,
+                    height: 312,
+                    borderRadius: 16,
+                  },
+                },
+              ]
+          }
+        case 'padded-bottom-right-tile':
+        case 'bottom-right-tile':
+          switch (fragment?.configuration?.speakers?.length) {
+            case 2:
+              return [
+                {
+                  x: 756,
+                  y: 364,
+                  width: 216,
+                  height: 162,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 28,
+                    y: 1,
+                    width: 160,
+                    height: 160,
+                    borderRadius: 16,
+                  },
+                },
+                {
+                  x: 568,
+                  y: 364,
+                  width: 216,
+                  height: 162,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 28,
+                    y: 1,
+                    width: 160,
+                    height: 160,
+                    borderRadius: 16,
+                  },
+                },
+              ]
+            default:
+              return [
+                {
+                  x: 720,
+                  y: 332,
+                  width: 256,
+                  height: 192,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 32,
+                    y: 0,
+                    width: 192,
+                    height: 192,
+                    borderRadius: 16,
+                  },
+                },
+              ]
+          }
+        case 'padded-split':
+          switch (fragment?.configuration?.speakers?.length) {
+            case 2:
+              return [
+                {
+                  x: 620,
+                  y: 0,
+                  width: 360,
+                  height: 270,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 20,
+                    y: 0,
+                    width: 320,
+                    height: 270,
+                    borderRadius: 0,
+                  },
+                },
+                {
+                  x: 620,
+                  y: 270,
+                  width: 360,
+                  height: 270,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 20,
+                    y: 0,
+                    width: 320,
+                    height: 270,
+                    borderRadius: 0,
+                  },
+                },
+              ]
+            default:
+              return [
+                {
+                  x: 452,
+                  y: 12,
+                  width: 688,
+                  height: 516,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 188,
+                    y: 0,
+                    width: 312,
+                    height: 516,
+                    borderRadius: 16,
+                  },
+                },
+              ]
+          }
+        case 'full-left':
+        case 'full-right':
+          switch (fragment?.configuration?.speakers?.length) {
+            case 2:
+              return [
+                {
+                  x: 0,
+                  y: 0,
+                  width: 0,
+                  height: 0,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 0,
+                    width: 0,
+                    height: 0,
+                    borderRadius: 0,
+                  },
+                },
+                {
+                  x: 0,
+                  y: 0,
+                  width: 0,
+                  height: 0,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 0,
+                    width: 0,
+                    height: 0,
+                    borderRadius: 0,
+                  },
+                },
+              ]
+            default:
+              return [
+                {
+                  x: 0,
+                  y: -90,
+                  width: 960,
+                  height: 720,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 90,
+                    width: 960,
+                    height: 540,
+                    borderRadius: 0,
+                  },
+                },
+              ]
+          }
+        default:
+          return [
+            {
+              x: 0,
+              y: 0,
+              width: 0,
+              height: 0,
+              clipTheme: 'rect',
+              borderWidth: 0,
+              studioUserClipConfig: {
+                x: 0,
+                y: 0,
+                width: 0,
+                height: 0,
+                borderRadius: 0,
+              },
+            },
+          ]
+      }
     default:
       return [
         {
@@ -2650,6 +3059,307 @@ export const ShortsStudioUserConfiguration = ({
           ]
       }
     }
+    case 'LambdaTest':
+      if (fragmentState === 'onlyUserMedia') {
+        switch (fragment?.configuration?.speakers?.length) {
+          case 2:
+            return [
+              {
+                x: -6,
+                y: 27,
+                width: 408,
+                height: 306,
+                clipTheme: 'rect',
+                borderWidth: 0,
+                studioUserClipConfig: {
+                  x: 38,
+                  y: 1,
+                  width: 332,
+                  height: 304,
+                  borderRadius: 16,
+                },
+              },
+              {
+                x: -6,
+                y: 371,
+                width: 408,
+                height: 306,
+                clipTheme: 'rect',
+                borderWidth: 0,
+                studioUserClipConfig: {
+                  x: 38,
+                  y: 1,
+                  width: 332,
+                  height: 304,
+                  borderRadius: 16,
+                },
+              },
+            ]
+          default:
+            return [
+              {
+                x: -250,
+                y: 16,
+                width: 896,
+                height: 672,
+                clipTheme: 'rect',
+                borderWidth: 0,
+                studioUserClipConfig: {
+                  x: 266,
+                  y: 0,
+                  width: 364,
+                  height: 672,
+                  borderRadius: 16,
+                },
+              },
+            ]
+        }
+      }
+      switch (layout) {
+        // case 'classic':
+        //   switch (fragment?.configuration?.speakers?.length) {
+        //     case 2:
+        //       return [{}, {}]
+        //     default:
+        //       return [{}]
+        //   }
+        case 'padded-bottom-right-tile':
+        case 'bottom-right-tile':
+          switch (fragment?.configuration?.speakers?.length) {
+            case 2:
+              return [
+                {
+                  x: 0,
+                  y: 0,
+                  width: 0,
+                  height: 0,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 0,
+                    width: 0,
+                    height: 0,
+                    borderRadius: 0,
+                  },
+                },
+                {
+                  x: 0,
+                  y: 0,
+                  width: 0,
+                  height: 0,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 0,
+                    width: 0,
+                    height: 0,
+                    borderRadius: 0,
+                  },
+                },
+              ]
+            default:
+              return [
+                {
+                  x: 182,
+                  y: 519.5,
+                  width: 236,
+                  height: 177,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 30,
+                    y: 0.5,
+                    width: 176,
+                    height: 176,
+                    borderRadius: 16,
+                  },
+                },
+              ]
+          }
+        case 'padded-bottom-right-circle':
+        case 'bottom-right-circle':
+          switch (fragment?.configuration?.speakers?.length) {
+            case 2:
+              return [
+                {
+                  x: 756,
+                  y: 364,
+                  width: 216,
+                  height: 162,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 28,
+                    y: 1,
+                    width: 160,
+                    height: 160,
+                    borderRadius: 8,
+                  },
+                },
+                {
+                  x: 568,
+                  y: 364,
+                  width: 216,
+                  height: 162,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 28,
+                    y: 1,
+                    width: 160,
+                    height: 160,
+                    borderRadius: 8,
+                  },
+                },
+              ]
+            default:
+              return [
+                {
+                  x: 182,
+                  y: 519.5,
+                  width: 236,
+                  height: 177,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 30,
+                    y: 0.5,
+                    width: 176,
+                    height: 176,
+                    borderRadius: 88,
+                  },
+                },
+              ]
+          }
+        case 'split':
+          switch (fragment?.configuration?.speakers?.length) {
+            case 2:
+              return [
+                {
+                  x: 0,
+                  y: 0,
+                  width: 0,
+                  height: 0,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 0,
+                    width: 0,
+                    height: 0,
+                    borderRadius: 0,
+                  },
+                },
+                {
+                  x: 0,
+                  y: 0,
+                  width: 0,
+                  height: 0,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 0,
+                    width: 0,
+                    height: 0,
+                    borderRadius: 0,
+                  },
+                },
+              ]
+            default:
+              return [
+                {
+                  x: -26,
+                  y: 356,
+                  width: 448,
+                  height: 336,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 42,
+                    y: 0,
+                    width: 364,
+                    height: 336,
+                    borderRadius: 16,
+                  },
+                },
+              ]
+          }
+        case 'full-left':
+          switch (fragment?.configuration?.speakers?.length) {
+            case 2:
+              return [
+                {
+                  x: 0,
+                  y: 0,
+                  width: 0,
+                  height: 0,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 0,
+                    width: 0,
+                    height: 0,
+                    borderRadius: 0,
+                  },
+                },
+                {
+                  x: 0,
+                  y: 0,
+                  width: 0,
+                  height: 0,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 0,
+                    width: 0,
+                    height: 0,
+                    borderRadius: 0,
+                  },
+                },
+              ]
+            default:
+              return [
+                {
+                  x: -272,
+                  y: -0.5,
+                  width: 940,
+                  height: 705,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 272,
+                    y: 0.5,
+                    width: 396,
+                    height: 704,
+                    borderRadius: 0,
+                  },
+                },
+              ]
+          }
+        default:
+          return [
+            {
+              x: 0,
+              y: 0,
+              width: 0,
+              height: 0,
+              clipTheme: 'rect',
+              borderWidth: 0,
+              studioUserClipConfig: {
+                x: 0,
+                y: 0,
+                width: 0,
+                height: 0,
+                borderRadius: 0,
+              },
+            },
+          ]
+      }
     default:
       return [
         {
