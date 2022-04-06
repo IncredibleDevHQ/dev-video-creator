@@ -389,6 +389,11 @@ const UnifiedFragment = ({
             return (
               <IntroFragment
                 shortsMode={viewConfig.mode === 'Portrait'}
+                viewConfig={
+                  viewConfig.blocks[
+                    dataConfig[activeObjectIndex].id
+                  ] as BlockProperties
+                }
                 isPreview={isPreview}
                 setTopLayerChildren={setTopLayerChildren}
                 introSequence={

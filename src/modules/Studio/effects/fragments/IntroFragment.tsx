@@ -2,8 +2,10 @@ import Konva from 'konva'
 import React, { useEffect, useState } from 'react'
 import { Group } from 'react-konva'
 import { useRecoilValue } from 'recoil'
-import { userState } from '../../../../stores/user.store'
-import { BlockView, TopLayerChildren } from '../../../../utils/configTypes'
+import {
+  BlockProperties,
+  TopLayerChildren,
+} from '../../../../utils/configTypes'
 import Concourse, { CONFIG, SHORTS_CONFIG } from '../../components/Concourse'
 import Thumbnail from '../../components/Thumbnail'
 import { Video } from '../../components/Video'
@@ -17,37 +19,15 @@ export type IntroState = 'userMedia' | 'titleSplash' | 'introVideo'
 
 export type SplashRenderState = 'static' | 'animate'
 
-// const Splash = ({
-//   theme,
-//   stageConfig,
-//   isShorts,
-// }: {
-//   theme: ThemeFragment
-//   stageConfig: {
-//     width: number
-//     height: number
-//   }
-//   isShorts: boolean
-// }) => {
-//   switch (theme.name) {
-//     case 'DarkGradient':
-//       return <GlassySplash stageConfig={stageConfig} isShorts={isShorts} />
-//     case 'PastelLines':
-//       return <PastelLinesSplash stageConfig={stageConfig} isShorts={isShorts} />
-//     case 'Cassidoo':
-//       return <CassidooSplash stageConfig={stageConfig} isShorts={isShorts} />
-//     default:
-//       return <></>
-//   }
-// }
-
 const IntroFragment = ({
   shortsMode,
+  viewConfig,
   isPreview,
   setTopLayerChildren,
   introSequence,
 }: {
   shortsMode: boolean
+  viewConfig: BlockProperties
   isPreview: boolean
   setTopLayerChildren?: React.Dispatch<
     React.SetStateAction<{
@@ -59,8 +39,6 @@ const IntroFragment = ({
 }) => {
   const { fragment, state, payload, branding, theme } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
-  const { displayName, designation, organization } =
-    useRecoilValue(userState) || {}
 
   const titleScreenRef = React.useRef<Konva.Group>(null)
   const brandVideoRef = React.useRef<Konva.Group>(null)
@@ -125,16 +103,10 @@ const IntroFragment = ({
         <Thumbnail
           isShorts={shortsMode}
           viewConfig={{
-            layout: 'classic',
-            view: {
-              intro: {
-                heading: fragment?.flick.name,
-                name: displayName,
-                designation,
-                organization,
-              },
-            } as BlockView,
+            layout: viewConfig?.layout || 'bottom-right-tile',
+            view: viewConfig?.view,
           }}
+          isIntro
         />
       </Group>
       <Group x={0} y={0} ref={brandVideoRef} opacity={0}>
