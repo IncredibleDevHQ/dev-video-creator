@@ -1226,6 +1226,291 @@ export const CassidooLowerThirds = ({
   )
 }
 
+export const LambdaTestLowerThirds = ({
+  x,
+  y,
+  userName,
+  designation,
+  organization,
+  logo,
+  color,
+  textColor,
+}: {
+  x: number
+  y: number
+  userName: string
+  designation: string
+  organization: string
+  logo: string
+  color: string
+  textColor: string
+}) => {
+  const [image] = useImage(logo, 'anonymous')
+  const { getTextWidth } = useEdit()
+
+  const userNameWidth =
+    getTextWidth(userName || '', 'Gilroy', 18, 'bold') + 16 + 16
+  const userInfoWidth =
+    getTextWidth(`${designation}, ${organization}`, 'Inter', 12, 'normal') +
+    16 +
+    16
+
+  return (
+    <>
+      <Group x={x} y={y}>
+        <Rect
+          width={0}
+          height={0}
+          fill={color || '#ffffff'}
+          cornerRadius={4}
+          ref={(ref) => {
+            ref?.to({
+              width: logo ? userNameWidth + 40 + 16 : userNameWidth + 16,
+              height: 56,
+              duration: 0.3,
+              easing: Konva.Easings.EaseInOut,
+              onFinish: () => {
+                setTimeout(() => {
+                  ref?.to({
+                    width: 0,
+                    height: 0,
+                    duration: 0.3,
+                    easing: Konva.Easings.EaseOut,
+                  })
+                }, 2600)
+              },
+            })
+          }}
+        />
+        <Text
+          x={16}
+          y={0}
+          fill={textColor || '#27272A'}
+          text={userName}
+          fontSize={18}
+          opacity={0}
+          height={56}
+          fontStyle="bold"
+          fontFamily="Gilroy"
+          verticalAlign="middle"
+          key="username"
+          ref={(ref) => {
+            setTimeout(() => {
+              ref?.to({
+                opacity: 1,
+                duration: 0.3,
+                onFinish: () => {
+                  setTimeout(() => {
+                    ref?.to({
+                      opacity: 0,
+                      duration: 0.2,
+                      easing: Konva.Easings.EaseOut,
+                    })
+                  }, 2400)
+                },
+              })
+            }, 200)
+          }}
+        />
+        <Image
+          x={userNameWidth}
+          y={8}
+          width={40}
+          height={40}
+          image={image}
+          opcaity={0}
+          ref={(ref) => {
+            setTimeout(() => {
+              ref?.to({
+                opacity: 1,
+                duration: 0.3,
+                onFinish: () => {
+                  setTimeout(() => {
+                    ref?.to({
+                      opacity: 0,
+                      duration: 0.1,
+                    })
+                  }, 2300)
+                },
+              })
+            }, 200)
+          }}
+        />
+        <Group y={60}>
+          {designation !== '' && organization === '' && (
+            <>
+              <Rect
+                width={0}
+                height={32}
+                fill="#4B5563"
+                cornerRadius={4}
+                ref={(ref) => {
+                  setTimeout(() => {
+                    ref?.to({
+                      width: userInfoWidth,
+                      duration: 0.2,
+                      easing: Konva.Easings.EaseInOut,
+                      onFinish: () => {
+                        setTimeout(() => {
+                          ref?.to({
+                            width: 0,
+                            duration: 0.3,
+                            easing: Konva.Easings.EaseOut,
+                          })
+                        }, 2200)
+                      },
+                    })
+                  }, 500)
+                }}
+              />
+              <Text
+                x={16}
+                fill="#ffffff"
+                text={designation}
+                fontSize={12}
+                opacity={0}
+                height={32}
+                verticalAlign="middle"
+                fontFamily="Inter"
+                key="designation"
+                ref={(ref) => {
+                  setTimeout(() => {
+                    ref?.to({
+                      opacity: 1,
+                      duration: 0.3,
+                      onFinish: () => {
+                        setTimeout(() => {
+                          ref?.to({
+                            opacity: 0,
+                            duration: 0.1,
+                            easing: Konva.Easings.EaseOut,
+                          })
+                        }, 2000)
+                      },
+                    })
+                  }, 600)
+                }}
+              />
+            </>
+          )}
+          {designation === '' && organization !== '' && (
+            <>
+              <Rect
+                width={0}
+                height={32}
+                fill="#4B5563"
+                cornerRadius={4}
+                ref={(ref) => {
+                  setTimeout(() => {
+                    ref?.to({
+                      width: userInfoWidth,
+                      duration: 0.2,
+                      easing: Konva.Easings.EaseInOut,
+                      onFinish: () => {
+                        setTimeout(() => {
+                          ref?.to({
+                            width: 0,
+                            duration: 0.3,
+                            easing: Konva.Easings.EaseOut,
+                          })
+                        }, 2200)
+                      },
+                    })
+                  }, 500)
+                }}
+              />
+              <Text
+                x={16}
+                fill="#ffffff"
+                text={organization}
+                fontSize={12}
+                opacity={0}
+                height={32}
+                verticalAlign="middle"
+                fontFamily="Inter"
+                key="organization"
+                ref={(ref) => {
+                  setTimeout(() => {
+                    ref?.to({
+                      opacity: 1,
+                      duration: 0.3,
+                      onFinish: () => {
+                        setTimeout(() => {
+                          ref?.to({
+                            opacity: 0,
+                            duration: 0.1,
+                            easing: Konva.Easings.EaseOut,
+                          })
+                        }, 2000)
+                      },
+                    })
+                  }, 600)
+                }}
+              />
+            </>
+          )}
+          {designation !== '' && organization !== '' && (
+            <>
+              <Rect
+                width={0}
+                height={32}
+                fill="#4B5563"
+                cornerRadius={4}
+                ref={(ref) => {
+                  setTimeout(() => {
+                    ref?.to({
+                      width: userInfoWidth,
+                      duration: 0.2,
+                      easing: Konva.Easings.EaseInOut,
+                      onFinish: () => {
+                        setTimeout(() => {
+                          ref?.to({
+                            width: 0,
+                            duration: 0.3,
+                            easing: Konva.Easings.EaseOut,
+                          })
+                        }, 2200)
+                      },
+                    })
+                  }, 500)
+                }}
+              />
+              <Text
+                x={16}
+                fill="#ffffff"
+                text={`${designation}, ${organization}`}
+                fontSize={12}
+                opacity={0}
+                height={32}
+                verticalAlign="middle"
+                fontFamily="Inter"
+                key="designationAndOrganization"
+                ref={(ref) => {
+                  setTimeout(() => {
+                    ref?.to({
+                      opacity: 1,
+                      duration: 0.3,
+                      onFinish: () => {
+                        setTimeout(() => {
+                          ref?.to({
+                            opacity: 0,
+                            duration: 0.1,
+                            easing: Konva.Easings.EaseOut,
+                          })
+                        }, 2000)
+                      },
+                    })
+                  }, 600)
+                }}
+              />
+            </>
+          )}
+        </Group>
+      </Group>
+    </>
+  )
+}
+
 export const IncredibleLowerThirds = ({
   x,
   y,

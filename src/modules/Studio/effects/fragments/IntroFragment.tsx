@@ -12,6 +12,7 @@ import {
 } from '../../utils/StudioUserConfig'
 import CassidooSplash from '../Splashes/CassidooSplash'
 import GlassySplash from '../Splashes/GlassySplash'
+import LambdaTestSplash from '../Splashes/LambdaTestSplash'
 import PastelLinesSplash from '../Splashes/PastelLinesSplash'
 
 export type IntroState = 'userMedia' | 'titleSplash' | 'introVideo'
@@ -37,6 +38,8 @@ const Splash = ({
       return <PastelLinesSplash stageConfig={stageConfig} isShorts={isShorts} />
     case 'Cassidoo':
       return <CassidooSplash stageConfig={stageConfig} isShorts={isShorts} />
+    case 'LambdaTest':
+      return <LambdaTestSplash stageConfig={stageConfig} isShorts={isShorts} />
     default:
       return <></>
   }
@@ -108,7 +111,6 @@ const IntroFragment = ({
       }
       if (introSequence[payload.activeIntroIndex] === 'introVideo') {
         setTopLayerChildren?.({ id: '', state: '' })
-        console.log('Playing intro video....')
         if (!videoElement) return
         videoElement?.play()
         setLayerChildren([

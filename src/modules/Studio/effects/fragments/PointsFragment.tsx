@@ -1,7 +1,7 @@
 /* eslint-disable no-nested-ternary */
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
-import { Circle, Group, Rect, Text } from 'react-konva'
+import { Group, Rect, Text } from 'react-konva'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import {
   BlockProperties,
@@ -341,22 +341,24 @@ const PointsFragment = ({
                       {
                         {
                           bullet: (
-                            <Circle
+                            <Rect
                               key="points"
-                              x={-76}
-                              radius={11}
-                              y={point.y + 8}
+                              x={-2 + (41 * (point?.level - 1) || 0)}
+                              width={12}
+                              height={12}
+                              cornerRadius={
+                                objectRenderConfig.pointsBulletCornerRadius
+                              }
+                              y={
+                                point.y +
+                                (objectRenderConfig.pointsBulletYOffset || 0)
+                              }
                               fill={
                                 branding?.colors?.text
                                   ? branding?.colors?.text
                                   : objectRenderConfig.pointsBulletColor
                               }
-                              ref={(ref) =>
-                                ref?.to({
-                                  x: 0 + (41 * (point?.level - 1) || 0),
-                                  duration: 0.3,
-                                })
-                              }
+                              rotation={objectRenderConfig.pointsBulletRotation}
                             />
                           ),
                           number: (
@@ -428,16 +430,24 @@ const PointsFragment = ({
                       {
                         {
                           bullet: (
-                            <Circle
+                            <Rect
                               key="points"
-                              x={0 + (41 * (point?.level - 1) || 0)}
-                              radius={11}
-                              y={14}
+                              x={-2 + (41 * (point?.level - 1) || 0)}
+                              width={12}
+                              height={12}
+                              cornerRadius={
+                                objectRenderConfig.pointsBulletCornerRadius
+                              }
+                              y={
+                                4 +
+                                (objectRenderConfig.pointsBulletYOffset || 0)
+                              }
                               fill={
                                 branding?.colors?.text
                                   ? branding?.colors?.text
                                   : objectRenderConfig.pointsBulletColor
                               }
+                              rotation={objectRenderConfig.pointsBulletRotation}
                             />
                           ),
                           number: (
@@ -506,16 +516,24 @@ const PointsFragment = ({
                       {
                         {
                           bullet: (
-                            <Circle
+                            <Rect
                               key="points"
-                              x={0 + (41 * (point?.level - 1) || 0)}
-                              radius={11}
-                              y={point.y + 8}
+                              x={-2 + (41 * (point?.level - 1) || 0)}
+                              width={12}
+                              height={12}
+                              cornerRadius={
+                                objectRenderConfig.pointsBulletCornerRadius
+                              }
+                              y={
+                                point.y +
+                                (objectRenderConfig.pointsBulletYOffset || 0)
+                              }
                               fill={
                                 branding?.colors?.text
                                   ? branding?.colors?.text
                                   : objectRenderConfig.pointsBulletColor
                               }
+                              rotation={objectRenderConfig.pointsBulletRotation}
                             />
                           ),
                           number: (
@@ -579,16 +597,24 @@ const PointsFragment = ({
                     {
                       {
                         bullet: (
-                          <Circle
+                          <Rect
                             key="points"
-                            x={0 + (41 * (point?.level - 1) || 0)}
-                            radius={11}
-                            y={point.y + 8}
+                            x={-2 + (41 * (point?.level - 1) || 0)}
+                            width={12}
+                            height={12}
+                            cornerRadius={
+                              objectRenderConfig.pointsBulletCornerRadius
+                            }
+                            y={
+                              point.y +
+                              (objectRenderConfig.pointsBulletYOffset || 0)
+                            }
                             fill={
                               branding?.colors?.text
                                 ? branding?.colors?.text
                                 : objectRenderConfig.pointsBulletColor
                             }
+                            rotation={objectRenderConfig.pointsBulletRotation}
                           />
                         ),
                         number: (
@@ -649,16 +675,24 @@ const PointsFragment = ({
                       {
                         {
                           bullet: (
-                            <Circle
+                            <Rect
                               key="points"
-                              x={0 + (41 * (point?.level - 1) || 0)}
-                              radius={11}
-                              y={14}
+                              x={-2 + (41 * (point?.level - 1) || 0)}
+                              width={12}
+                              height={12}
+                              cornerRadius={
+                                objectRenderConfig.pointsBulletCornerRadius
+                              }
+                              y={
+                                4 +
+                                (objectRenderConfig.pointsBulletYOffset || 0)
+                              }
                               fill={
                                 branding?.colors?.text
                                   ? branding?.colors?.text
                                   : objectRenderConfig.pointsBulletColor
                               }
+                              rotation={objectRenderConfig.pointsBulletRotation}
                             />
                           ),
                           number: (
@@ -751,15 +785,32 @@ const PointsFragment = ({
                     >
                       <Group x={(248 - pointsConfig.bulletWidth) / 2}>
                         <Rect
-                          width={pointsConfig.bulletWidth}
-                          height={pointsConfig.bulletHeight}
-                          fill="white"
-                          cornerRadius={objectRenderConfig.borderRadius}
+                          x={objectRenderConfig.horizontalPointsBulletXOffset}
+                          y={objectRenderConfig.horizontalPointsBulletYOffset}
+                          width={
+                            objectRenderConfig.horizontalPointsBulletWidth ||
+                            pointsConfig.bulletWidth
+                          }
+                          height={
+                            objectRenderConfig.horizontalPointsBulletHeight ||
+                            pointsConfig.bulletHeight
+                          }
+                          fill={
+                            objectRenderConfig.horizontalPointsBulletColor ||
+                            'white'
+                          }
+                          cornerRadius={
+                            objectRenderConfig.horizontalPointsBulletCornerRadius
+                          }
+                          rotation={objectRenderConfig.pointsBulletRotation}
                         />
                         <Text
                           text={point.pointNumber.toString()}
                           fontSize={pointsConfig.bulletFontSize}
-                          fill="black"
+                          fill={
+                            objectRenderConfig.horizontalPointsNumberColor ||
+                            'black'
+                          }
                           fontFamily={branding?.font?.body?.family || 'Inter'}
                           width={pointsConfig.bulletWidth}
                           height={pointsConfig.bulletHeight}
@@ -774,8 +825,14 @@ const PointsFragment = ({
                         }
                         width={248}
                         height={(point.height || 0) + 20}
-                        stroke="white"
-                        cornerRadius={objectRenderConfig.borderRadius}
+                        stroke={
+                          objectRenderConfig.horizontalPointsBulletColor ||
+                          'white'
+                        }
+                        strokeWidth={1}
+                        cornerRadius={
+                          objectRenderConfig.horizontalPointsBulletCornerRadius
+                        }
                       />
                       <Text
                         key={point.text}
@@ -827,15 +884,32 @@ const PointsFragment = ({
                     >
                       <Group x={(248 - pointsConfig.bulletWidth) / 2}>
                         <Rect
-                          width={pointsConfig.bulletWidth}
-                          height={pointsConfig.bulletHeight}
-                          fill="white"
-                          cornerRadius={objectRenderConfig.borderRadius}
+                          x={objectRenderConfig.horizontalPointsBulletXOffset}
+                          y={objectRenderConfig.horizontalPointsBulletYOffset}
+                          width={
+                            objectRenderConfig.horizontalPointsBulletWidth ||
+                            pointsConfig.bulletWidth
+                          }
+                          height={
+                            objectRenderConfig.horizontalPointsBulletHeight ||
+                            pointsConfig.bulletHeight
+                          }
+                          fill={
+                            objectRenderConfig.horizontalPointsBulletColor ||
+                            'white'
+                          }
+                          cornerRadius={
+                            objectRenderConfig.horizontalPointsBulletCornerRadius
+                          }
+                          rotation={objectRenderConfig.pointsBulletRotation}
                         />
                         <Text
                           text={point.pointNumber.toString()}
                           fontSize={pointsConfig.bulletFontSize}
-                          fill="black"
+                          fill={
+                            objectRenderConfig.horizontalPointsNumberColor ||
+                            'black'
+                          }
                           fontFamily={branding?.font?.body?.family || 'Inter'}
                           width={pointsConfig.bulletWidth}
                           height={pointsConfig.bulletHeight}
@@ -850,8 +924,14 @@ const PointsFragment = ({
                         }
                         width={248}
                         height={(point.height || 0) + 20}
-                        stroke="white"
-                        cornerRadius={objectRenderConfig.borderRadius}
+                        stroke={
+                          objectRenderConfig.horizontalPointsBulletColor ||
+                          'white'
+                        }
+                        strokeWidth={1}
+                        cornerRadius={
+                          objectRenderConfig.horizontalPointsBulletCornerRadius
+                        }
                       />
                       <Text
                         key={point.text}
@@ -899,15 +979,32 @@ const PointsFragment = ({
                   >
                     <Group x={(248 - pointsConfig.bulletWidth) / 2}>
                       <Rect
-                        width={pointsConfig.bulletWidth}
-                        height={pointsConfig.bulletHeight}
-                        fill="white"
-                        cornerRadius={objectRenderConfig.borderRadius}
+                        x={objectRenderConfig.horizontalPointsBulletXOffset}
+                        y={objectRenderConfig.horizontalPointsBulletYOffset}
+                        width={
+                          objectRenderConfig.horizontalPointsBulletWidth ||
+                          pointsConfig.bulletWidth
+                        }
+                        height={
+                          objectRenderConfig.horizontalPointsBulletHeight ||
+                          pointsConfig.bulletHeight
+                        }
+                        fill={
+                          objectRenderConfig.horizontalPointsBulletColor ||
+                          'white'
+                        }
+                        cornerRadius={
+                          objectRenderConfig.horizontalPointsBulletCornerRadius
+                        }
+                        rotation={objectRenderConfig.pointsBulletRotation}
                       />
                       <Text
                         text={point.pointNumber.toString()}
                         fontSize={pointsConfig.bulletFontSize}
-                        fill="black"
+                        fill={
+                          objectRenderConfig.horizontalPointsNumberColor ||
+                          'black'
+                        }
                         fontFamily={branding?.font?.body?.family || 'Inter'}
                         width={pointsConfig.bulletWidth}
                         height={pointsConfig.bulletHeight}
@@ -922,9 +1019,14 @@ const PointsFragment = ({
                       }
                       width={248}
                       height={(point.height || 0) + 32}
-                      stroke="white"
+                      stroke={
+                        objectRenderConfig.horizontalPointsBulletColor ||
+                        'white'
+                      }
                       strokeWidth={1}
-                      cornerRadius={objectRenderConfig.borderRadius}
+                      cornerRadius={
+                        objectRenderConfig.horizontalPointsBulletCornerRadius
+                      }
                     />
                     <Text
                       key={point.pointNumber}
