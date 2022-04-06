@@ -7,6 +7,7 @@ import { CONFIG, SHORTS_CONFIG } from './Concourse'
 import {
   CassidooLowerThirds,
   GlassyLowerThirds,
+  LambdaTestLowerThirds,
   PastelLinesLowerThirds,
 } from './LowerThirds'
 
@@ -125,6 +126,36 @@ const LowerThridProvider = ({
           />
           {/* {users.map((user, index) => (
             <CassidooLowerThirds
+              // eslint-disable-next-line react/no-array-index-key
+              key={index}
+              x={lowerThirdCoordinates({ position: 'left' })[index + 1]}
+              y={!isShorts ? 400 : 560}
+              userName={participants?.[user.uid]?.displayName || ''}
+              designation={designation || ''}
+              organization={organization || ''}
+              logo={branding?.logo || ''}
+              color={branding?.background?.color?.primary || ''}
+              textColor={branding?.colors?.text || ''}
+            />
+          ))} */}
+        </>
+      )
+    }
+    case 'LambdaTest': {
+      return (
+        <>
+          <LambdaTestLowerThirds
+            x={!isShorts ? lowerThirdCoordinates({ position: 'left' })[0] : 45}
+            y={!isShorts ? 400 : 560}
+            userName={displayName || ''}
+            designation={designation || ''}
+            organization={organization || ''}
+            logo={branding?.logo || ''}
+            color={branding?.background?.color?.primary || ''}
+            textColor={branding?.colors?.text || ''}
+          />
+          {/* {users.map((user, index) => (
+            <LambdaTestLowerThirds
               // eslint-disable-next-line react/no-array-index-key
               key={index}
               x={lowerThirdCoordinates({ position: 'left' })[index + 1]}
