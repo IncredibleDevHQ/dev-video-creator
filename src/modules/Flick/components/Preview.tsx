@@ -16,14 +16,17 @@ import React, {
   useRef,
   useState,
 } from 'react'
+import Dropzone from 'react-dropzone'
 import { BiCheck, BiNote } from 'react-icons/bi'
-import { FiCode, FiLayout } from 'react-icons/fi'
+import { CgProfile } from 'react-icons/cg'
+import { FiCode, FiLayout, FiLoader, FiUploadCloud } from 'react-icons/fi'
 import {
   IoAddOutline,
   IoChevronBack,
   IoChevronDownOutline,
   IoChevronForward,
   IoChevronUpOutline,
+  IoCloseCircle,
   IoCloseOutline,
   IoSparklesOutline,
 } from 'react-icons/io5'
@@ -37,6 +40,7 @@ import listReplaceGif from '../../../assets/ListReplace.svg'
 import listStackGif from '../../../assets/ListStack.svg'
 import { ReactComponent as NumberListStyleIcon } from '../../../assets/NumberListStyle.svg'
 import { Checkbox, Heading, Text } from '../../../components'
+import { useUploadFile } from '../../../hooks'
 import {
   allLayoutTypes,
   BlockProperties,
@@ -120,6 +124,13 @@ const introOutroBlockTabs: Tab[] = [
   },
 ]
 
+const introBlockTabs: Tab[] = [
+  {
+    id: 'Picture',
+    name: 'Picture',
+  },
+]
+
 const getIcon = (tab: Tab, block?: BlockProperties) => {
   switch (tab.id) {
     case 'Layout':
@@ -160,6 +171,8 @@ const getIcon = (tab: Tab, block?: BlockProperties) => {
       return <IoSparklesOutline size={21} />
     case 'Content':
       return <MdOutlineTextFields size={21} />
+    case 'Picture':
+      return <CgProfile size={21} />
     default:
       return <IoSparklesOutline size={21} />
   }
@@ -248,6 +261,14 @@ const Preview = ({
       setActiveTab(commonTabs[0])
     switch (type) {
       case 'introBlock':
+        setTabs([
+          commonTabs[0],
+          ...introOutroBlockTabs,
+          ...introBlockTabs,
+          commonTabs[2],
+        ])
+        setActiveTab(commonTabs[0])
+        break
       case 'outroBlock':
         setTabs([commonTabs[0], ...introOutroBlockTabs, commonTabs[2]])
         setActiveTab(commonTabs[0])
@@ -387,6 +408,17 @@ const Preview = ({
                 )}
               </div>
             )}
+            {activeTab.id === introBlockTabs[0].id && (
+              <PictureTab
+                view={config.blocks[block.id]?.view as IntroBlockView}
+                updateView={(view: IntroBlockView) => {
+                  updateConfig(block.id, {
+                    ...config.blocks[block.id],
+                    view,
+                  })
+                }}
+              />
+            )}
             {activeTab.id === commonTabs[0].id && (
               <LayoutSelector
                 mode={config.mode}
@@ -482,6 +514,98 @@ const Preview = ({
           </div>
         </>
       </div>
+    </div>
+  )
+}
+
+const PictureTab = ({
+  view,
+  updateView,
+}: {
+  view: IntroBlockView | undefined
+  updateView: (view: IntroBlockView) => void
+}) => {
+  const [uploadFile] = useUploadFile()
+  const [fileUploading, setFileUploading] = useState(false)
+
+  const handleUploadFile = async (files: File[]) => {
+    const file = files?.[0]
+    if (!file) return
+
+    setFileUploading(true)
+    const { url } = await uploadFile({
+      extension: file.name.split('.').pop() as any,
+      file,
+    })
+
+    setFileUploading(false)
+    updateView({
+      ...view,
+      type: 'introBlock',
+      intro: {
+        ...view?.intro,
+        displayPicture: url,
+      },
+    })
+  }
+  return (
+    <div className="flex flex-col pt-6 px-4">
+      <Heading fontSize="small" className="font-bold">
+        Picture
+      </Heading>
+      {view?.intro?.displayPicture ? (
+        <div className="relative rounded-sm ring-1 ring-offset-1 ring-gray-100 w-1/2 mt-2">
+          <IoCloseCircle
+            className="absolute top-0 right-0 text-red-500 -m-1.5 cursor-pointer block z-10 bg-white rounded-full"
+            size={16}
+            onClick={() => {
+              updateView({
+                ...view,
+                type: 'introBlock',
+                intro: {
+                  ...view?.intro,
+                  displayPicture: undefined,
+                },
+              })
+            }}
+          />
+          <img
+            src={view?.intro?.displayPicture || ''}
+            alt="backgroundImage"
+            className="object-contain w-full h-full rounded-md"
+          />
+        </div>
+      ) : (
+        <Dropzone onDrop={handleUploadFile} accept={['image/*']} maxFiles={1}>
+          {({ getRootProps, getInputProps }) => (
+            <div
+              tabIndex={-1}
+              onKeyUp={() => {}}
+              role="button"
+              className="flex flex-col items-center p-3 mt-2 border border-gray-200 border-dashed rounded-md cursor-pointer"
+              {...getRootProps()}
+            >
+              <input {...getInputProps()} />
+              {fileUploading ? (
+                <FiLoader className={cx('animate-spin my-6')} size={16} />
+              ) : (
+                <>
+                  <FiUploadCloud size={21} className="my-2 text-gray-600" />
+
+                  <div className="z-50 text-center ">
+                    <Text className="text-xs text-gray-600 font-body">
+                      Drag and drop or
+                    </Text>
+                    <Text className="text-xs font-semibold text-gray-800">
+                      browse
+                    </Text>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </Dropzone>
+      )}
     </div>
   )
 }
