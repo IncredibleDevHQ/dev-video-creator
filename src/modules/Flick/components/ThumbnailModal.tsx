@@ -1,6 +1,7 @@
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 import { css, cx } from '@emotion/css'
+import { saveAs } from 'file-saver'
 import Konva from 'konva'
 import React, { ChangeEvent, useEffect, useRef, useState } from 'react'
 import Dropzone from 'react-dropzone'
@@ -31,8 +32,9 @@ import {
 } from '../../../utils/configTypes'
 import { CONFIG } from '../../Studio/components/Concourse'
 import Thumbnail from '../../Studio/components/Thumbnail'
+import { getIntegerHW } from '../../Studio/Studio'
 import { newFlickStore } from '../store/flickNew.store'
-import { LayoutSelector, useGetHW } from './BlockPreview'
+import { LayoutSelector } from './BlockPreview'
 
 interface Tab {
   name: string
@@ -68,6 +70,7 @@ const ThumbnailModal = ({
   handleClose: () => void
 }) => {
   Konva.pixelRatio = 2
+  const stageRef = useRef<Konva.Stage>(null)
 
   const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
 
@@ -150,10 +153,11 @@ const ThumbnailModal = ({
 
   const [ref, bounds] = useMeasure()
 
-  const { height, width } = useGetHW({
+  const { height, width } = getIntegerHW({
     maxH: bounds.height / 1.1,
     maxW: bounds.width / 1.1,
     aspectRatio: 16 / 9,
+    isShorts: false,
   })
 
   return (
@@ -208,6 +212,13 @@ const ThumbnailModal = ({
               type="button"
               icon={HiOutlineDownload}
               iconSize={20}
+              onClick={() => {
+                if (!stageRef.current) return
+                const dataURL = stageRef.current.toDataURL({
+                  pixelRatio: 1920 / width,
+                })
+                saveAs(dataURL, 'thumbnail.jpeg')
+              }}
             />
           </div>
           <hr className="w-full h-0.5 bg-gray-300" />
@@ -218,9 +229,10 @@ const ThumbnailModal = ({
             className="relative flex items-center justify-center w-full bg-gray-100"
           >
             <Stage
+              ref={stageRef}
               className="border"
-              height={height}
-              width={width}
+              height={height || 1}
+              width={width || 1}
               scale={{
                 x: height / CONFIG.height,
                 y: width / CONFIG.width,
