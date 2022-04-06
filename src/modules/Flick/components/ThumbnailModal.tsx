@@ -79,6 +79,7 @@ const ThumbnailModal = ({
     name: '',
     designation: '',
     layout: 'bottom-right-tile',
+    organization: '',
     displayPicture: user?.picture || undefined,
   })
 
@@ -434,6 +435,19 @@ const ContentView = ({
         className={cx(
           'mt-2 font-body text-sm rounded-sm border border-transparent outline-none flex-1 focus:ring-0 p-2 focus:border-brand resize-y w-full bg-gray-100'
         )}
+      />
+      <Heading fontSize="small" className="font-bold mt-8">
+        Organization
+      </Heading>
+      <input
+        className="bg-gray-100 mt-1.5 border border-transparent py-2 px-2 rounded-sm w-full h-full focus:border-brand focus:outline-none font-body text-sm placeholder-gray-400"
+        value={thumbnailConfig.organization}
+        onChange={(e: ChangeEvent<HTMLInputElement>) =>
+          setThumbnailConfig({
+            ...thumbnailConfig,
+            organization: e.target.value,
+          })
+        }
       />
     </div>
   )
