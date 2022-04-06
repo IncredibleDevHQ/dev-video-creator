@@ -405,7 +405,7 @@ const ContentView = ({
           })
         }
         className={cx(
-          'mt-2 font-body text-sm rounded-sm border border-transparent outline-none flex-1 focus:ring-0 p-2 focus:border-brand resize-y w-full bg-gray-100'
+          'mt-2 font-body text-sm rounded-sm border border-transparent outline-none flex-1 focus:ring-0 p-2 focus:border-brand resize-none w-full bg-gray-100'
         )}
       />
       <Heading fontSize="small" className="font-bold mt-8">
@@ -433,7 +433,7 @@ const ContentView = ({
           })
         }
         className={cx(
-          'mt-2 font-body text-sm rounded-sm border border-transparent outline-none flex-1 focus:ring-0 p-2 focus:border-brand resize-y w-full bg-gray-100'
+          'mt-2 font-body text-sm rounded-sm border border-transparent outline-none flex-1 focus:ring-0 p-2 focus:border-brand resize-none w-full bg-gray-100'
         )}
       />
       <Heading fontSize="small" className="font-bold mt-8">

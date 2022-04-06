@@ -307,9 +307,21 @@ const Flick = () => {
       if (!viewConfig.blocks[currentBlock.id].view) {
         updateBlockProperties(currentBlock.id, {
           ...viewConfig.blocks[currentBlock.id],
+          layout: 'classic',
           view: {
             type: 'outroBlock',
             outro: {},
+          },
+        })
+      }
+    } else if (currentBlock.type === 'introBlock') {
+      if (!viewConfig.blocks[currentBlock.id].view) {
+        updateBlockProperties(currentBlock.id, {
+          ...viewConfig.blocks[currentBlock.id],
+          layout: 'bottom-right-tile',
+          view: {
+            type: 'introBlock',
+            intro: {},
           },
         })
       }

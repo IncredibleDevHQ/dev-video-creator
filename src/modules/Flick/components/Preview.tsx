@@ -47,6 +47,7 @@ import {
   CodeTheme,
   HandleDetails,
   ImageBlockView,
+  IntroBlockView,
   Layout,
   ListAppearance,
   ListBlockView,
@@ -112,9 +113,9 @@ const codeBlockTabs: Tab[] = [
   },
 ]
 
-const outroBlockTabs: Tab[] = [
+const introOutroBlockTabs: Tab[] = [
   {
-    id: 'Social',
+    id: 'Content',
     name: 'Content',
   },
 ]
@@ -157,7 +158,7 @@ const getIcon = (tab: Tab, block?: BlockProperties) => {
       return <MdOutlineTextFields size={21} />
     case 'Animate':
       return <IoSparklesOutline size={21} />
-    case 'Social':
+    case 'Content':
       return <MdOutlineTextFields size={21} />
     default:
       return <IoSparklesOutline size={21} />
@@ -247,11 +248,8 @@ const Preview = ({
       setActiveTab(commonTabs[0])
     switch (type) {
       case 'introBlock':
-        setTabs([commonTabs[2]])
-        setActiveTab(commonTabs[2])
-        break
       case 'outroBlock':
-        setTabs([commonTabs[0], ...outroBlockTabs, commonTabs[2]])
+        setTabs([commonTabs[0], ...introOutroBlockTabs, commonTabs[2]])
         setActiveTab(commonTabs[0])
         break
       case 'codeBlock':
@@ -364,17 +362,29 @@ const Preview = ({
               noScrollBar
             )}
           >
-            {activeTab.id === outroBlockTabs[0].id && (
+            {activeTab.id === introOutroBlockTabs[0].id && (
               <div>
-                <OutroTab
-                  view={config.blocks[block.id]?.view as OutroBlockView}
-                  updateView={(view: OutroBlockView) => {
-                    updateConfig(block.id, {
-                      ...config.blocks[block.id],
-                      view,
-                    })
-                  }}
-                />
+                {block.type === 'introBlock' ? (
+                  <IntroContentTab
+                    view={config.blocks[block.id]?.view as IntroBlockView}
+                    updateView={(view: IntroBlockView) => {
+                      updateConfig(block.id, {
+                        ...config.blocks[block.id],
+                        view,
+                      })
+                    }}
+                  />
+                ) : (
+                  <OutroTab
+                    view={config.blocks[block.id]?.view as OutroBlockView}
+                    updateView={(view: OutroBlockView) => {
+                      updateConfig(block.id, {
+                        ...config.blocks[block.id],
+                        view,
+                      })
+                    }}
+                  />
+                )}
               </div>
             )}
             {activeTab.id === commonTabs[0].id && (
@@ -442,12 +452,10 @@ const Preview = ({
             {tabs
               .filter((tab) => {
                 if (
-                  block.type === 'introBlock' &&
-                  (tab.id === commonTabs[0].id || tab.id === commonTabs[1].id)
+                  (block.type === 'outroBlock' ||
+                    block.type === 'introBlock') &&
+                  tab.id === commonTabs[1].id
                 )
-                  return false
-
-                if (block.type === 'outroBlock' && tab.id === commonTabs[1].id)
                   return false
 
                 return true
@@ -474,6 +482,91 @@ const Preview = ({
           </div>
         </>
       </div>
+    </div>
+  )
+}
+
+const IntroContentTab = ({
+  view,
+  updateView,
+}: {
+  view: IntroBlockView | undefined
+  updateView: (view: IntroBlockView) => void
+}) => {
+  return (
+    <div className="flex flex-col p-5">
+      <Heading fontSize="small" className="font-bold">
+        Heading
+      </Heading>
+      <textarea
+        value={view?.intro?.heading}
+        onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
+          updateView({
+            ...view,
+            type: 'introBlock',
+            intro: {
+              ...view?.intro,
+              heading: e.target.value,
+            },
+          })
+        }
+        className={cx(
+          'mt-2 font-body text-sm rounded-sm border border-transparent outline-none flex-1 focus:ring-0 p-2 focus:border-brand resize-none w-full bg-gray-100'
+        )}
+      />
+      <Heading fontSize="small" className="font-bold mt-8">
+        Name
+      </Heading>
+      <input
+        className="bg-gray-100 mt-1.5 border border-transparent py-2 px-2 rounded-sm w-full h-full focus:border-brand focus:outline-none font-body text-sm placeholder-gray-400"
+        value={view?.intro?.name}
+        onChange={(e: ChangeEvent<HTMLInputElement>) =>
+          updateView({
+            ...view,
+            type: 'introBlock',
+            intro: {
+              ...view?.intro,
+              name: e.target.value,
+            },
+          })
+        }
+      />
+      <Heading fontSize="small" className="font-bold mt-8">
+        Designation
+      </Heading>
+      <textarea
+        value={view?.intro?.designation}
+        onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
+          updateView({
+            ...view,
+            type: 'introBlock',
+            intro: {
+              ...view?.intro,
+              designation: e.target.value,
+            },
+          })
+        }
+        className={cx(
+          'mt-2 font-body text-sm rounded-sm border border-transparent outline-none flex-1 focus:ring-0 p-2 focus:border-brand w-full bg-gray-100 resize-none'
+        )}
+      />
+      <Heading fontSize="small" className="font-bold mt-8">
+        Organization
+      </Heading>
+      <input
+        className="bg-gray-100 mt-1.5 border border-transparent py-2 px-2 rounded-sm w-full h-full focus:border-brand focus:outline-none font-body text-sm placeholder-gray-400"
+        value={view?.intro?.organization}
+        onChange={(e: ChangeEvent<HTMLInputElement>) =>
+          updateView({
+            ...view,
+            type: 'introBlock',
+            intro: {
+              ...view?.intro,
+              organization: e.target.value,
+            },
+          })
+        }
+      />
     </div>
   )
 }
