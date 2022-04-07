@@ -62,7 +62,9 @@ const AddVideo = ({
   const [videoURL, setVideoURL] = useState<string>('')
 
   const { startRecording, stopRecording, status, resetRecording, blob, error } =
-    useScreenRecorder({ audio: true })
+    useScreenRecorder({
+      audio: true,
+    })
 
   const [uploadVideo] = useUploadFile()
 
@@ -105,10 +107,12 @@ const AddVideo = ({
   useEffect(() => {
     ;(async () => {
       if (status !== 'stopped' || !blob) return
+      console.log({ blob })
       try {
         const arrayBuff = await blob.arrayBuffer()
         if (!arrayBuff) setVideo(blob)
         else setVideo(getSeekableWebM(arrayBuff))
+        // setVideo(blob)
       } catch (error: any) {
         emitToast({
           title: 'Something went wrong',
