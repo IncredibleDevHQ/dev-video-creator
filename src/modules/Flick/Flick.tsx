@@ -307,14 +307,36 @@ const Flick = () => {
       if (!viewConfig.blocks[currentBlock.id].view) {
         updateBlockProperties(currentBlock.id, {
           ...viewConfig.blocks[currentBlock.id],
+          layout: 'classic',
           view: {
             type: 'outroBlock',
             outro: {},
           },
         })
       }
+    } else if (currentBlock.type === 'introBlock') {
+      if (!viewConfig.blocks[currentBlock.id].view) {
+        updateBlockProperties(currentBlock.id, {
+          ...viewConfig.blocks[currentBlock.id],
+          layout: 'bottom-right-tile',
+          view: {
+            type: 'introBlock',
+            intro: {},
+          },
+        })
+      }
     }
   }, [currentBlock])
+
+  useMemo(() => {
+    setStudio((store) => ({
+      ...store,
+      payload,
+      updatePayload,
+      addMusic,
+      stopMusic,
+    }))
+  }, [activeFragmentId, payload, flick?.fragments])
 
   useMemo(() => {
     const fragment = flick?.fragments.find(
@@ -323,13 +345,9 @@ const Flick = () => {
     if (!fragment) return
     setStudio((store) => ({
       ...store,
-      payload,
-      updatePayload,
       fragment,
-      addMusic,
-      stopMusic,
     }))
-  }, [activeFragmentId, payload, flick?.fragments])
+  }, [flick?.fragments])
 
   useEffect(() => {
     resetPayload()

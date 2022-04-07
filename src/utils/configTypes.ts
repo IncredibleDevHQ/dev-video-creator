@@ -33,7 +33,14 @@ export const outroLayoutTypes = [
   'split-without-media',
 ] as const
 
+export const introLayoutTypes = [
+  'bottom-right-tile',
+  'float-full-right',
+] as const
+
 export const shortsOutroLayoutTypes = ['classic', 'split'] as const
+
+export type IntroLayout = typeof introLayoutTypes[number]
 
 export type OutroLayout = typeof outroLayoutTypes[number]
 
@@ -171,6 +178,18 @@ export interface OutroBlockView {
   outro: OutroBlockViewProps
 }
 
+export interface IntroBlockViewProps {
+  heading?: string
+  name?: string
+  designation?: string
+  organization?: string
+  displayPicture?: string
+}
+export interface IntroBlockView {
+  type: 'introBlock'
+  intro: IntroBlockViewProps
+}
+
 export type BlockView =
   | CodeBlockView
   | ImageBlockView
@@ -178,6 +197,7 @@ export type BlockView =
   | ListBlockView
   | HeadingBlockView
   | OutroBlockView
+  | IntroBlockView
 
 export type BlockProperties = {
   gradient?: GradientConfig

@@ -522,7 +522,7 @@ const Preview = ({
   )
 }
 
-const getIntegerHW = ({
+export const getIntegerHW = ({
   maxH,
   maxW,
   aspectRatio,
@@ -1331,8 +1331,8 @@ const Studio = ({
                   <Stage
                     ref={stageRef}
                     className="mt-auto mb-auto"
-                    width={stageWidth}
-                    height={stageHeight}
+                    width={stageWidth || 1}
+                    height={stageHeight || 1}
                     scale={{
                       x:
                         stageHeight /

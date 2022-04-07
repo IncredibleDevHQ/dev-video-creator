@@ -16,6 +16,7 @@ import {
   BlockProperties,
   Gradient,
   GradientConfig,
+  introLayoutTypes,
   Layout,
   outroLayoutTypes,
   shortsLayoutTypes,
@@ -191,6 +192,65 @@ export const LayoutSelector = ({
 }) => {
   const { activeTheme } = useRecoilValue(newFlickStore)
 
+  const getLayouts = () => {
+    switch (type) {
+      case 'outroBlock':
+        return outroLayoutTypes.map((layoutType) => (
+          <div className="flex items-center justify-center">
+            <LayoutGeneric
+              type={type}
+              key={layoutType}
+              mode={mode}
+              layout={layoutType}
+              shouldDisplayIcon={false}
+              isSelected={layout === layoutType}
+              onClick={() => {
+                logEvent(PageEvent.ChangeLayout)
+                updateLayout(layoutType)
+              }}
+            />
+          </div>
+        ))
+
+      case 'introBlock':
+        return introLayoutTypes.map((layoutType) => (
+          <div className="flex items-center justify-center">
+            <LayoutGeneric
+              type={type}
+              key={layoutType}
+              mode={mode}
+              layout={layoutType}
+              shouldDisplayIcon={false}
+              isSelected={layout === layoutType}
+              onClick={() => {
+                logEvent(PageEvent.ChangeLayout)
+                updateLayout(layoutType)
+              }}
+            />
+          </div>
+        ))
+
+      default:
+        return getThemeSupportedUserMediaLayouts(
+          activeTheme?.name || 'DarkGradient'
+        ).map((layoutType) => (
+          <div className="flex items-center justify-center">
+            <LayoutGeneric
+              type={type}
+              key={layoutType}
+              mode={mode}
+              layout={layoutType}
+              isSelected={layout === layoutType}
+              onClick={() => {
+                logEvent(PageEvent.ChangeLayout)
+                updateLayout(layoutType)
+              }}
+            />
+          </div>
+        ))
+    }
+  }
+
   return (
     <div className={cx('h-full w-full overflow-y-scroll', scrollStyle)}>
       <div
@@ -204,40 +264,7 @@ export const LayoutSelector = ({
         )}
       >
         {mode === 'Landscape'
-          ? type === 'outroBlock'
-            ? outroLayoutTypes.map((layoutType) => (
-                <div className="flex items-center justify-center">
-                  <LayoutGeneric
-                    type={type}
-                    key={layoutType}
-                    mode={mode}
-                    layout={layoutType}
-                    shouldDisplayIcon={false}
-                    isSelected={layout === layoutType}
-                    onClick={() => {
-                      logEvent(PageEvent.ChangeLayout)
-                      updateLayout(layoutType)
-                    }}
-                  />
-                </div>
-              ))
-            : getThemeSupportedUserMediaLayouts(
-                activeTheme?.name || 'DarkGradient'
-              ).map((layoutType) => (
-                <div className="flex items-center justify-center">
-                  <LayoutGeneric
-                    type={type}
-                    key={layoutType}
-                    mode={mode}
-                    layout={layoutType}
-                    isSelected={layout === layoutType}
-                    onClick={() => {
-                      logEvent(PageEvent.ChangeLayout)
-                      updateLayout(layoutType)
-                    }}
-                  />
-                </div>
-              ))
+          ? getLayouts()
           : type === 'outroBlock'
           ? shortsOutroLayoutTypes?.map((layoutType) => (
               <LayoutGeneric
@@ -312,8 +339,8 @@ export const CanvasPreview = ({
     >
       <Stage
         ref={stageRef}
-        height={height}
-        width={width}
+        height={height || 1}
+        width={width || 1}
         className={cx(
           'border border-gray-300',
           css`

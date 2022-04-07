@@ -66,8 +66,8 @@ const BrandPreview = ({
     >
       <Stage
         ref={stageRef}
-        height={height}
-        width={width}
+        height={height || 1}
+        width={width || 1}
         scale={{
           x: height / CONFIG.height,
           y: width / CONFIG.width,

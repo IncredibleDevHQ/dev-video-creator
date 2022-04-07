@@ -1,57 +1,33 @@
+import Konva from 'konva'
 import React, { useEffect, useState } from 'react'
 import { Group } from 'react-konva'
 import { useRecoilValue } from 'recoil'
-import { ThemeFragment } from '../../../../generated/graphql'
-import { TopLayerChildren } from '../../../../utils/configTypes'
+import {
+  BlockProperties,
+  TopLayerChildren,
+} from '../../../../utils/configTypes'
 import Concourse, { CONFIG, SHORTS_CONFIG } from '../../components/Concourse'
+import Thumbnail from '../../components/Thumbnail'
 import { Video } from '../../components/Video'
 import { StudioProviderProps, studioStore } from '../../stores'
 import {
   ShortsStudioUserConfiguration,
   StudioUserConfiguration,
 } from '../../utils/StudioUserConfig'
-import CassidooSplash from '../Splashes/CassidooSplash'
-import GlassySplash from '../Splashes/GlassySplash'
-import LambdaTestSplash from '../Splashes/LambdaTestSplash'
-import PastelLinesSplash from '../Splashes/PastelLinesSplash'
 
 export type IntroState = 'userMedia' | 'titleSplash' | 'introVideo'
 
 export type SplashRenderState = 'static' | 'animate'
 
-const Splash = ({
-  theme,
-  stageConfig,
-  isShorts,
-}: {
-  theme: ThemeFragment
-  stageConfig: {
-    width: number
-    height: number
-  }
-  isShorts: boolean
-}) => {
-  switch (theme.name) {
-    case 'DarkGradient':
-      return <GlassySplash stageConfig={stageConfig} isShorts={isShorts} />
-    case 'PastelLines':
-      return <PastelLinesSplash stageConfig={stageConfig} isShorts={isShorts} />
-    case 'Cassidoo':
-      return <CassidooSplash stageConfig={stageConfig} isShorts={isShorts} />
-    case 'LambdaTest':
-      return <LambdaTestSplash stageConfig={stageConfig} isShorts={isShorts} />
-    default:
-      return <></>
-  }
-}
-
 const IntroFragment = ({
   shortsMode,
+  viewConfig,
   isPreview,
   setTopLayerChildren,
   introSequence,
 }: {
   shortsMode: boolean
+  viewConfig: BlockProperties
   isPreview: boolean
   setTopLayerChildren?: React.Dispatch<
     React.SetStateAction<{
@@ -64,6 +40,9 @@ const IntroFragment = ({
   const { fragment, state, payload, branding, theme } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
+  const titleScreenRef = React.useRef<Konva.Group>(null)
+  const brandVideoRef = React.useRef<Konva.Group>(null)
+
   const [stageConfig, setStageConfig] = useState<{
     width: number
     height: number
@@ -74,7 +53,7 @@ const IntroFragment = ({
     else setStageConfig(SHORTS_CONFIG)
   }, [shortsMode])
 
-  const [layerChildren, setLayerChildren] = useState<JSX.Element[]>([])
+  // const [layerChildren, setLayerChildren] = useState<JSX.Element[]>([])
 
   const videoElement = React.useMemo(() => {
     if (!branding?.introVideoUrl) return
@@ -99,50 +78,61 @@ const IntroFragment = ({
         // if (!isPreview) addMusic('splash')
         setTopLayerChildren?.({ id: '', state: '' })
         videoElement?.pause()
-        setLayerChildren([
-          <Group x={0} y={0}>
-            <Splash
-              theme={theme}
-              stageConfig={stageConfig}
-              isShorts={shortsMode}
-            />
-          </Group>,
-        ])
+        titleScreenRef.current?.opacity(1)
+        brandVideoRef.current?.opacity(0)
       }
       if (introSequence[payload.activeIntroIndex] === 'introVideo') {
         setTopLayerChildren?.({ id: '', state: '' })
         if (!videoElement) return
         videoElement?.play()
-        setLayerChildren([
-          <Group x={0} y={0}>
-            <Video
-              videoElement={videoElement}
-              videoConfig={{
-                x: 0,
-                y: 0,
-                width: stageConfig.width,
-                height: stageConfig.height,
-                videoFill: branding?.background?.color?.primary,
-                cornerRadius: 0,
-                performClip: true,
-                clipVideoConfig: {
-                  x: 0,
-                  y: 0,
-                  width: 1,
-                  height: 1,
-                },
-              }}
-            />
-          </Group>,
-        ])
+        titleScreenRef.current?.opacity(0)
+        brandVideoRef.current?.opacity(1)
       }
       if (introSequence[payload.activeIntroIndex] === 'userMedia') {
         setTopLayerChildren?.({ id: '', state: '' })
         videoElement?.pause()
-        setLayerChildren([])
+        titleScreenRef.current?.opacity(0)
+        brandVideoRef.current?.opacity(0)
       }
     }
-  }, [state, payload?.activeIntroIndex, videoElement, stageConfig])
+  }, [state, payload?.activeIntroIndex, videoElement])
+
+  const layerChildren = [
+    <Group>
+      <Group x={0} y={0} ref={titleScreenRef} opacity={0}>
+        <Thumbnail
+          isShorts={shortsMode}
+          viewConfig={{
+            layout: viewConfig?.layout || 'bottom-right-tile',
+            view: viewConfig?.view,
+          }}
+          isIntro
+        />
+      </Group>
+      <Group x={0} y={0} ref={brandVideoRef} opacity={0}>
+        {videoElement && (
+          <Video
+            videoElement={videoElement}
+            videoConfig={{
+              x: 0,
+              y: 0,
+              width: stageConfig.width,
+              height: stageConfig.height,
+              videoFill: branding?.background?.color?.primary,
+              cornerRadius: 0,
+              performClip: true,
+              clipVideoConfig: {
+                x: 0,
+                y: 0,
+                width: 1,
+                height: 1,
+              },
+            }}
+          />
+        )}
+      </Group>
+    </Group>,
+  ]
 
   const studioUserConfig = !shortsMode
     ? StudioUserConfiguration({
