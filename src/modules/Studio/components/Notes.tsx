@@ -241,7 +241,9 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
           return b
         }),
       }
-      if (!fragment) return
+      if (!fragment || state === 'recording' || state === 'start-recording')
+        return
+
       setStudio((prev) => ({
         ...prev,
         fragment: {
@@ -285,6 +287,7 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
           return b
         }),
       }
+      if (state === 'recording' || state === 'start-recording') return
       setStudio((prev) => ({
         ...prev,
         fragment: {
