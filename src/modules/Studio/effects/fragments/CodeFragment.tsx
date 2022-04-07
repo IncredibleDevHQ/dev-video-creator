@@ -230,17 +230,17 @@ const CodeFragment = ({
             )
             if (!data?.errors) {
               setColorCodes(data.data.TokenisedCode.data)
-              setStudio({
-                ...studio,
-                codes: {
-                  ...studio.codes,
-                  [dataConfig.id]: {
-                    code: dataConfig.codeBlock.code,
-                    colorCode: data.data.TokenisedCode.data,
-                    theme: codeBlockViewProps?.theme,
-                  },
-                },
-              })
+              // setStudio({
+              //   ...studio,
+              //   codes: {
+              //     ...studio.codes,
+              //     [dataConfig.id]: {
+              //       code: dataConfig.codeBlock.code,
+              //       colorCode: data.data.TokenisedCode.data,
+              //       theme: codeBlockViewProps?.theme,
+              //     },
+              //   },
+              // })
             }
           } else {
             setColorCodes(code?.colorCode)
