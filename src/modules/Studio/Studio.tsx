@@ -21,6 +21,7 @@ import {
   useRecoilState,
   useRecoilValue,
 } from 'recoil'
+import getBlobDuration from 'get-blob-duration'
 import { ReactComponent as ReRecordIcon } from '../../assets/ReRecord.svg'
 import { ReactComponent as UploadIcon } from '../../assets/Upload.svg'
 import {
@@ -590,6 +591,8 @@ const Studio = ({
 
   const [currentBlock, setCurrentBlock] = useState<Block>()
 
+  const [blockThumbnails, setBlockThumbnails] = useState<any>({})
+
   const [localRecordedBlocks, setLocalRecordedBlocks] = useState<
     RecordedBlocksFragment[] | undefined
   >(recordedBlocks)
@@ -821,7 +824,9 @@ const Studio = ({
       const uploadVideoFile = await getBlobs()
       resetCanvas()
       if (!uploadVideoFile) throw Error('Blobs is undefined')
-      const { uuid } = await uploadFile({
+
+      const duration = await getBlobDuration(uploadVideoFile)
+      const { uuid: objectUrl } = await uploadFile({
         extension: 'webm',
         file: uploadVideoFile,
         handleProgress: ({ percentage }) => {
@@ -835,19 +840,44 @@ const Studio = ({
         },
       })
 
+      let blockThumbnail
+      // Upload block thumbnail
+      if (blockThumbnails[blockId]) {
+        const thumbnailBlob = await fetch(blockThumbnails[blockId]).then((r) =>
+          r.blob()
+        )
+
+        const { uuid } = await uploadFile({
+          extension: 'png',
+          file: thumbnailBlob,
+          handleProgress: ({ percentage }) => {
+            updateToast({
+              id: toast,
+              ...toastProps,
+              type: 'info',
+              autoClose: false,
+              title: `Pushing pixels... (${percentage}%)`,
+            })
+          },
+        })
+        blockThumbnail = uuid
+      }
+
       // Once the block video is uploaded to s3 , save the block to the table
       await saveBlock({
         variables: {
           flickId: fragment?.flickId,
           fragmentId,
           recordingId: studio.recordingId,
-          objectUrl: uuid,
+          objectUrl,
+          thumbnail: blockThumbnail,
           // TODO: Update creation meta and playbackDuration when implementing continuous recording
           blockId,
+          playbackDuration: Math.round(duration),
         },
       })
 
-      updateRecordedBlocks(blockId, uuid)
+      updateRecordedBlocks(blockId, objectUrl)
       // after updating the recorded blocks set this state which triggers the useEffect to update studio store
 
       // update block url in store for preview once upload is done
@@ -908,6 +938,16 @@ const Studio = ({
 
   const stop = () => {
     console.log('stop')
+
+    const thumbnailURL = stageRef.current?.toDataURL()
+    setBlockThumbnails((bts: any) => {
+      if (currentBlock) {
+        // eslint-disable-next-line no-param-reassign
+        bts[currentBlock.id] = thumbnailURL
+      }
+      return bts
+    })
+
     // addMusic({ volume: 0.01, action: 'modifyVolume' })
     stopCanvasRecording()
     // addMusic({ action: 'stop' })
@@ -1516,10 +1556,6 @@ const Studio = ({
                             )
                           copyRecordedBlocks.splice(currentRecordedBlock, 1)
                           console.log('Local Rec Blocks', copyRecordedBlocks)
-                          // setStudio({
-                          //   ...studio,
-                          //   recordedBlocks: copyRecordedBlocks,
-                          // })
                           setLocalRecordedBlocks(copyRecordedBlocks)
                         }
 
@@ -1536,10 +1572,6 @@ const Studio = ({
                             studio.recordedBlocks?.filter(
                               (b) => b.id !== isCloudBlock.id
                             )
-                          // setStudio({
-                          //   ...studio,
-                          //   recordedBlocks: updatedRecordedBlocks,
-                          // })
                           setLocalRecordedBlocks(updatedRecordedBlocks)
                         }
                         updatePayload?.({
