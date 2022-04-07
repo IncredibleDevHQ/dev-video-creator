@@ -217,7 +217,7 @@ const ThumbnailModal = ({
                 const dataURL = stageRef.current.toDataURL({
                   pixelRatio: 1920 / width,
                 })
-                saveAs(dataURL, 'thumbnail.jpeg')
+                saveAs(dataURL, 'thumbnail.png')
               }}
             />
           </div>
