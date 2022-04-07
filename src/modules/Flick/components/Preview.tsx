@@ -16,14 +16,17 @@ import React, {
   useRef,
   useState,
 } from 'react'
+import Dropzone from 'react-dropzone'
 import { BiCheck, BiNote } from 'react-icons/bi'
-import { FiCode, FiLayout } from 'react-icons/fi'
+import { CgProfile } from 'react-icons/cg'
+import { FiCode, FiLayout, FiLoader, FiUploadCloud } from 'react-icons/fi'
 import {
   IoAddOutline,
   IoChevronBack,
   IoChevronDownOutline,
   IoChevronForward,
   IoChevronUpOutline,
+  IoCloseCircle,
   IoCloseOutline,
   IoSparklesOutline,
 } from 'react-icons/io5'
@@ -37,6 +40,7 @@ import listReplaceGif from '../../../assets/ListReplace.svg'
 import listStackGif from '../../../assets/ListStack.svg'
 import { ReactComponent as NumberListStyleIcon } from '../../../assets/NumberListStyle.svg'
 import { Checkbox, Heading, Text } from '../../../components'
+import { useUploadFile } from '../../../hooks'
 import {
   allLayoutTypes,
   BlockProperties,
@@ -47,6 +51,7 @@ import {
   CodeTheme,
   HandleDetails,
   ImageBlockView,
+  IntroBlockView,
   Layout,
   ListAppearance,
   ListBlockView,
@@ -112,10 +117,17 @@ const codeBlockTabs: Tab[] = [
   },
 ]
 
-const outroBlockTabs: Tab[] = [
+const introOutroBlockTabs: Tab[] = [
   {
-    id: 'Social',
+    id: 'Content',
     name: 'Content',
+  },
+]
+
+const introBlockTabs: Tab[] = [
+  {
+    id: 'Picture',
+    name: 'Picture',
   },
 ]
 
@@ -157,8 +169,10 @@ const getIcon = (tab: Tab, block?: BlockProperties) => {
       return <MdOutlineTextFields size={21} />
     case 'Animate':
       return <IoSparklesOutline size={21} />
-    case 'Social':
+    case 'Content':
       return <MdOutlineTextFields size={21} />
+    case 'Picture':
+      return <CgProfile size={21} />
     default:
       return <IoSparklesOutline size={21} />
   }
@@ -247,11 +261,16 @@ const Preview = ({
       setActiveTab(commonTabs[0])
     switch (type) {
       case 'introBlock':
-        setTabs([commonTabs[2]])
-        setActiveTab(commonTabs[2])
+        setTabs([
+          commonTabs[0],
+          ...introOutroBlockTabs,
+          ...introBlockTabs,
+          commonTabs[2],
+        ])
+        setActiveTab(commonTabs[0])
         break
       case 'outroBlock':
-        setTabs([commonTabs[0], ...outroBlockTabs, commonTabs[2]])
+        setTabs([commonTabs[0], ...introOutroBlockTabs, commonTabs[2]])
         setActiveTab(commonTabs[0])
         break
       case 'codeBlock':
@@ -364,18 +383,41 @@ const Preview = ({
               noScrollBar
             )}
           >
-            {activeTab.id === outroBlockTabs[0].id && (
+            {activeTab.id === introOutroBlockTabs[0].id && (
               <div>
-                <OutroTab
-                  view={config.blocks[block.id]?.view as OutroBlockView}
-                  updateView={(view: OutroBlockView) => {
-                    updateConfig(block.id, {
-                      ...config.blocks[block.id],
-                      view,
-                    })
-                  }}
-                />
+                {block.type === 'introBlock' ? (
+                  <IntroContentTab
+                    view={config.blocks[block.id]?.view as IntroBlockView}
+                    updateView={(view: IntroBlockView) => {
+                      updateConfig(block.id, {
+                        ...config.blocks[block.id],
+                        view,
+                      })
+                    }}
+                  />
+                ) : (
+                  <OutroTab
+                    view={config.blocks[block.id]?.view as OutroBlockView}
+                    updateView={(view: OutroBlockView) => {
+                      updateConfig(block.id, {
+                        ...config.blocks[block.id],
+                        view,
+                      })
+                    }}
+                  />
+                )}
               </div>
+            )}
+            {activeTab.id === introBlockTabs[0].id && (
+              <PictureTab
+                view={config.blocks[block.id]?.view as IntroBlockView}
+                updateView={(view: IntroBlockView) => {
+                  updateConfig(block.id, {
+                    ...config.blocks[block.id],
+                    view,
+                  })
+                }}
+              />
             )}
             {activeTab.id === commonTabs[0].id && (
               <LayoutSelector
@@ -442,12 +484,10 @@ const Preview = ({
             {tabs
               .filter((tab) => {
                 if (
-                  block.type === 'introBlock' &&
-                  (tab.id === commonTabs[0].id || tab.id === commonTabs[1].id)
+                  (block.type === 'outroBlock' ||
+                    block.type === 'introBlock') &&
+                  tab.id === commonTabs[1].id
                 )
-                  return false
-
-                if (block.type === 'outroBlock' && tab.id === commonTabs[1].id)
                   return false
 
                 return true
@@ -474,6 +514,183 @@ const Preview = ({
           </div>
         </>
       </div>
+    </div>
+  )
+}
+
+const PictureTab = ({
+  view,
+  updateView,
+}: {
+  view: IntroBlockView | undefined
+  updateView: (view: IntroBlockView) => void
+}) => {
+  const [uploadFile] = useUploadFile()
+  const [fileUploading, setFileUploading] = useState(false)
+
+  const handleUploadFile = async (files: File[]) => {
+    const file = files?.[0]
+    if (!file) return
+
+    setFileUploading(true)
+    const { url } = await uploadFile({
+      extension: file.name.split('.').pop() as any,
+      file,
+    })
+
+    setFileUploading(false)
+    updateView({
+      ...view,
+      type: 'introBlock',
+      intro: {
+        ...view?.intro,
+        displayPicture: url,
+      },
+    })
+  }
+  return (
+    <div className="flex flex-col pt-6 px-4">
+      <Heading fontSize="small" className="font-bold">
+        Picture
+      </Heading>
+      {view?.intro?.displayPicture ? (
+        <div className="relative rounded-sm ring-1 ring-offset-1 ring-gray-100 w-1/2 mt-2">
+          <IoCloseCircle
+            className="absolute top-0 right-0 text-red-500 -m-1.5 cursor-pointer block z-10 bg-white rounded-full"
+            size={16}
+            onClick={() => {
+              updateView({
+                ...view,
+                type: 'introBlock',
+                intro: {
+                  ...view?.intro,
+                  displayPicture: undefined,
+                },
+              })
+            }}
+          />
+          <img
+            src={view?.intro?.displayPicture || ''}
+            alt="backgroundImage"
+            className="object-contain w-full h-full rounded-md"
+          />
+        </div>
+      ) : (
+        <Dropzone onDrop={handleUploadFile} accept={['image/*']} maxFiles={1}>
+          {({ getRootProps, getInputProps }) => (
+            <div
+              tabIndex={-1}
+              onKeyUp={() => {}}
+              role="button"
+              className="flex flex-col items-center p-3 mt-2 border border-gray-200 border-dashed rounded-md cursor-pointer"
+              {...getRootProps()}
+            >
+              <input {...getInputProps()} />
+              {fileUploading ? (
+                <FiLoader className={cx('animate-spin my-6')} size={16} />
+              ) : (
+                <>
+                  <FiUploadCloud size={21} className="my-2 text-gray-600" />
+
+                  <div className="z-50 text-center ">
+                    <Text className="text-xs text-gray-600 font-body">
+                      Drag and drop or
+                    </Text>
+                    <Text className="text-xs font-semibold text-gray-800">
+                      browse
+                    </Text>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </Dropzone>
+      )}
+    </div>
+  )
+}
+
+const IntroContentTab = ({
+  view,
+  updateView,
+}: {
+  view: IntroBlockView | undefined
+  updateView: (view: IntroBlockView) => void
+}) => {
+  return (
+    <div className="flex flex-col p-5">
+      <Heading fontSize="small" className="font-bold">
+        Heading
+      </Heading>
+      <textarea
+        value={view?.intro?.heading}
+        onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
+          updateView({
+            ...view,
+            type: 'introBlock',
+            intro: {
+              ...view?.intro,
+              heading: e.target.value,
+            },
+          })
+        }
+        className={cx(
+          'mt-2 font-body text-sm rounded-sm border border-transparent outline-none flex-1 focus:ring-0 p-2 focus:border-brand resize-none w-full bg-gray-100'
+        )}
+      />
+      <Heading fontSize="small" className="font-bold mt-8">
+        Name
+      </Heading>
+      <input
+        className="bg-gray-100 mt-1.5 border border-transparent py-2 px-2 rounded-sm w-full h-full focus:border-brand focus:outline-none font-body text-sm placeholder-gray-400"
+        value={view?.intro?.name}
+        onChange={(e: ChangeEvent<HTMLInputElement>) =>
+          updateView({
+            ...view,
+            type: 'introBlock',
+            intro: {
+              ...view?.intro,
+              name: e.target.value,
+            },
+          })
+        }
+      />
+      <Heading fontSize="small" className="font-bold mt-8">
+        Designation
+      </Heading>
+      <textarea
+        value={view?.intro?.designation}
+        onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
+          updateView({
+            ...view,
+            type: 'introBlock',
+            intro: {
+              ...view?.intro,
+              designation: e.target.value,
+            },
+          })
+        }
+        className={cx(
+          'mt-2 font-body text-sm rounded-sm border border-transparent outline-none flex-1 focus:ring-0 p-2 focus:border-brand w-full bg-gray-100 resize-none'
+        )}
+      />
+      <Heading fontSize="small" className="font-bold mt-8">
+        Organization
+      </Heading>
+      <input
+        className="bg-gray-100 mt-1.5 border border-transparent py-2 px-2 rounded-sm w-full h-full focus:border-brand focus:outline-none font-body text-sm placeholder-gray-400"
+        value={view?.intro?.organization}
+        onChange={(e: ChangeEvent<HTMLInputElement>) =>
+          updateView({
+            ...view,
+            type: 'introBlock',
+            intro: {
+              ...view?.intro,
+              organization: e.target.value,
+            },
+          })
+        }
+      />
     </div>
   )
 }

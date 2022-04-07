@@ -9,6 +9,7 @@ import Publish from './Publish'
 import RecordingModal from './RecordingModal'
 import ScreenRecording from './ScreenRecording'
 import Timeline from './Timeline'
+import ThumbnailModal from './ThumbnailModal'
 import VideoEditorModal from './VideoEditorModal'
 
 export {
@@ -24,4 +25,5 @@ export {
   Timeline,
   VideoEditor,
   VideoEditorModal,
+  ThumbnailModal,
 }

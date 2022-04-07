@@ -9,6 +9,7 @@ import {
   IoAlbumsOutline,
   IoCheckmark,
   IoDesktopOutline,
+  IoImageOutline,
   IoPhonePortraitOutline,
   IoPlayOutline,
   IoWarningOutline,
@@ -16,7 +17,7 @@ import {
 import { useHistory } from 'react-router-dom'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import { useDebouncedCallback } from 'use-debounce'
-import { FragmentVideoModal } from '.'
+import { FragmentVideoModal, ThumbnailModal } from '.'
 import { Branding } from '../..'
 import { ReactComponent as BrandIcon } from '../../../assets/BrandIcon.svg'
 import { Button, emitToast, Heading, Text, Tooltip } from '../../../components'
@@ -255,6 +256,7 @@ const FragmentBar = ({
   const [fragmentVideoModal, setFragmentVideoModal] = useState(false)
   const [themesModal, setThemesModal] = useState(false)
   const [brandingModal, setBrandingModal] = useState(false)
+  const [thumbnailModal, setThumbnailModal] = useState(false)
   const [recordingModal, setRecordingModal] = useState(false)
 
   const [
@@ -462,7 +464,7 @@ const FragmentBar = ({
             </Button>
           </Tooltip>
         </div>
-        <div className="flex items-center justify-center h-full">
+        <div className="flex items-center justify-center h-full text-white">
           <Tooltip
             className="p-0 m-0"
             isOpen={isOpen}
@@ -556,7 +558,7 @@ const FragmentBar = ({
                 appearance="none"
                 size="small"
                 type="button"
-                className="mr-4"
+                className="mx-1"
                 icon={IoPlayOutline}
                 iconSize={20}
                 onClick={() => {
@@ -567,6 +569,21 @@ const FragmentBar = ({
               </Button>
             </div>
           )}
+        <div className="flex items-stretch justify-end py-2  border-l-2 border-brand-grey text-white">
+          <Button
+            appearance="none"
+            size="small"
+            type="button"
+            className="mx-1"
+            icon={IoImageOutline}
+            iconSize={20}
+            onClick={() => {
+              setThumbnailModal(true)
+            }}
+          >
+            <Text className="text-sm text-gray-100 font-main">Thumbnail</Text>
+          </Button>
+        </div>
         <div className="flex items-stretch justify-end py-2 pl-4 border-l-2 border-brand-grey text-gray-400">
           <Button
             appearance={config.mode === 'Landscape' ? 'gray' : 'none'}
@@ -624,6 +641,14 @@ const FragmentBar = ({
           activeBrand={brandingId}
           handleClose={() => {
             setBrandingModal(false)
+          }}
+        />
+      )}
+      {thumbnailModal && (
+        <ThumbnailModal
+          open={thumbnailModal}
+          handleClose={() => {
+            setThumbnailModal(false)
           }}
         />
       )}

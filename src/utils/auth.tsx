@@ -1,4 +1,5 @@
 // eslint-disable-next-line
+import * as Sentry from '@sentry/react'
 import axios from 'axios'
 import { onAuthStateChanged, signInWithCustomToken } from 'firebase/auth'
 import React, { useEffect } from 'react'
@@ -30,6 +31,12 @@ const AuthProvider = ({ children }: { children: JSX.Element }): JSX.Element => {
       const { user } = await signInWithCustomToken(auth.auth, data as string)
       // console.log('FB user', user)
       setFbUser(user)
+
+      Sentry.setUser({
+        email: user.email || undefined,
+        id: user.uid,
+        username: user.displayName || undefined,
+      })
 
       window.analytics.identify(user.email, {
         email: user.email,
