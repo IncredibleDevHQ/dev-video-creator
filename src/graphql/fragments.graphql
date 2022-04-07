@@ -15,6 +15,7 @@ fragment FlickFragment on Fragment {
   producedLink
   producedShortsLink
   editorState
+  thumbnailConfig
   participants {
     ...FragmentParticipant
   }
@@ -364,6 +365,15 @@ mutation UpdateFlickMdAndEditorState(
   update_Fragment_by_pk(
     pk_columns: { id: $fragmentId }
     _set: { editorState: $editorState }
+  ) {
+    id
+  }
+}
+
+mutation UpdateThumbnail($id: uuid!, $thumbnailConfig: json!) {
+  update_Fragment_by_pk(
+    pk_columns: { id: $id }
+    _set: { thumbnailConfig: $thumbnailConfig }
   ) {
     id
   }
