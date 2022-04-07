@@ -1,3 +1,4 @@
+/* eslint-disable no-nested-ternary */
 import React, { useEffect, useState } from 'react'
 import { Group, Image, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
@@ -163,11 +164,14 @@ const Thumbnail = ({
             x={
               logo
                 ? introConfig?.userNameX || 0
-                : (introConfig?.logoX || 0) + 10
+                : !isShorts
+                ? (introConfig?.logoX || 0) + 10
+                : introConfig?.logoX || 0
             }
             y={introConfig?.userNameY || 0}
             width={introConfig?.userNameWidth || 0}
             height={introConfig?.userNameHeight || 0}
+            align={isShorts ? 'center' : 'left'}
             text={thumbnailInfo?.userName}
             fill={branding?.colors?.text || getThemeTextColor(theme)}
             fontSize={introConfig?.userNameFontSize || 0}
@@ -179,12 +183,15 @@ const Thumbnail = ({
               key="userInfo"
               x={
                 logo
-                  ? introConfig?.userInfoX || 0
-                  : (introConfig?.logoX || 0) + 10
+                  ? introConfig?.userNameX || 0
+                  : !isShorts
+                  ? (introConfig?.logoX || 0) + 10
+                  : introConfig?.logoX || 0
               }
               y={introConfig?.userInfoY || 0}
               width={introConfig?.userInfoWidth || 0}
               height={introConfig?.userInfoHeight || 0}
+              align={isShorts ? 'center' : 'left'}
               text={thumbnailInfo?.designation}
               fill={branding?.colors?.text || getThemeTextColor(theme)}
               fontSize={introConfig?.userInfoFontSize || 0}
@@ -197,12 +204,15 @@ const Thumbnail = ({
               key="userInfo"
               x={
                 logo
-                  ? introConfig?.userInfoX || 0
-                  : (introConfig?.logoX || 0) + 10
+                  ? introConfig?.userNameX || 0
+                  : !isShorts
+                  ? (introConfig?.logoX || 0) + 10
+                  : introConfig?.logoX || 0
               }
               y={introConfig?.userInfoY || 0}
               width={introConfig?.userInfoWidth || 0}
               height={introConfig?.userInfoHeight || 0}
+              align={isShorts ? 'center' : 'left'}
               text={thumbnailInfo?.orgnization}
               fill={branding?.colors?.text || getThemeTextColor(theme)}
               fontSize={introConfig?.userInfoFontSize || 0}
@@ -215,12 +225,15 @@ const Thumbnail = ({
               key="userInfo"
               x={
                 logo
-                  ? introConfig?.userInfoX || 0
-                  : (introConfig?.logoX || 0) + 10
+                  ? introConfig?.userNameX || 0
+                  : !isShorts
+                  ? (introConfig?.logoX || 0) + 10
+                  : introConfig?.logoX || 0
               }
               y={introConfig?.userInfoY || 0}
               width={introConfig?.userInfoWidth || 0}
               height={introConfig?.userInfoHeight || 0}
+              align={isShorts ? 'center' : 'left'}
               text={`${thumbnailInfo?.designation}, ${thumbnailInfo?.orgnization}`}
               fill={branding?.colors?.text || getThemeTextColor(theme)}
               fontSize={introConfig?.userInfoFontSize || 0}
