@@ -2,6 +2,7 @@ import { ThemeFragment } from '../../../generated/graphql'
 import { Layout } from '../../../utils/configTypes'
 import { StudioUserConfig } from '../components/Concourse'
 import { ObjectConfig } from './FragmentLayoutConfig'
+import { PointsConfig } from './PointsConfig'
 
 export interface ObjectRenderConfig {
   startX: number
@@ -20,8 +21,6 @@ export interface ObjectRenderConfig {
   pointsBulletYOffset?: number
   horizontalPointsBulletColor?: string
   horizontalPointsNumberColor?: string
-  horizontalPointsBulletWidth?: number
-  horizontalPointsBulletHeight?: number
   horizontalPointsBulletXOffset?: number
   horizontalPointsBulletYOffset?: number
   horizontalPointsBulletCornerRadius?: number
@@ -44,9 +43,11 @@ export interface StudioUserThemeConfig {
 export const ThemeLayoutConfig = ({
   theme,
   layoutConfig,
+  pointsConfig,
 }: {
   theme: ThemeFragment
   layoutConfig: ObjectConfig
+  pointsConfig?: PointsConfig
 }): ObjectRenderConfig => {
   switch (theme.name) {
     case 'DarkGradient':
@@ -113,10 +114,12 @@ export const ThemeLayoutConfig = ({
         pointsBulletRotation: -45,
         pointsBulletYOffset: 9,
         horizontalPointsBulletColor: '#0EBAC5',
-        horizontalPointsBulletWidth: 48,
-        horizontalPointsBulletHeight: 48,
-        horizontalPointsBulletXOffset: -2,
-        horizontalPointsBulletYOffset: 28,
+        horizontalPointsBulletXOffset: pointsConfig
+          ? pointsConfig?.bulletWidth / 2
+          : 0,
+        horizontalPointsBulletYOffset: pointsConfig
+          ? pointsConfig?.bulletHeight / 2
+          : 0,
         horizontalPointsBulletCornerRadius: 4,
       }
     default:

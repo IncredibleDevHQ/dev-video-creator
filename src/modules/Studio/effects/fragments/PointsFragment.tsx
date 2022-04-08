@@ -153,9 +153,9 @@ const PointsFragment = ({
 
   useEffect(() => {
     setObjectRenderConfig(
-      ThemeLayoutConfig({ theme, layoutConfig: objectConfig })
+      ThemeLayoutConfig({ theme, layoutConfig: objectConfig, pointsConfig })
     )
-  }, [objectConfig, theme])
+  }, [objectConfig, theme, pointsConfig])
 
   useEffect(() => {
     setStudio({
@@ -165,6 +165,18 @@ const PointsFragment = ({
       },
     })
   }, [computedPoints])
+
+  useEffect(() => {
+    if (!viewConfig) return
+    if (orientation === 'horizontal') {
+      setPointsConfig(
+        getPointsConfig({
+          layout: viewConfig?.layout || 'classic',
+          isShorts: shortsMode,
+        })
+      )
+    }
+  }, [viewConfig?.layout, orientation, shortsMode])
 
   useEffect(() => {
     if (points.length === 0) return
@@ -191,14 +203,6 @@ const PointsFragment = ({
         lineHeight: 1.3,
       })
     )
-    if (orientation === 'horizontal') {
-      setPointsConfig(
-        getPointsConfig({
-          layout: viewConfig?.layout || 'classic',
-          isShorts: shortsMode,
-        })
-      )
-    }
   }, [viewConfig, points, objectRenderConfig, orientation])
 
   useEffect(() => {
@@ -787,20 +791,20 @@ const PointsFragment = ({
                         <Rect
                           x={objectRenderConfig.horizontalPointsBulletXOffset}
                           y={objectRenderConfig.horizontalPointsBulletYOffset}
-                          width={
-                            objectRenderConfig.horizontalPointsBulletWidth ||
-                            pointsConfig.bulletWidth
-                          }
-                          height={
-                            objectRenderConfig.horizontalPointsBulletHeight ||
-                            pointsConfig.bulletHeight
-                          }
+                          width={pointsConfig.bulletWidth}
+                          height={pointsConfig.bulletHeight}
                           fill={
                             objectRenderConfig.horizontalPointsBulletColor ||
                             'white'
                           }
                           cornerRadius={
                             objectRenderConfig.horizontalPointsBulletCornerRadius
+                          }
+                          offsetX={
+                            objectRenderConfig.horizontalPointsBulletXOffset
+                          }
+                          offsetY={
+                            objectRenderConfig.horizontalPointsBulletYOffset
                           }
                           rotation={objectRenderConfig.pointsBulletRotation}
                         />
@@ -886,20 +890,20 @@ const PointsFragment = ({
                         <Rect
                           x={objectRenderConfig.horizontalPointsBulletXOffset}
                           y={objectRenderConfig.horizontalPointsBulletYOffset}
-                          width={
-                            objectRenderConfig.horizontalPointsBulletWidth ||
-                            pointsConfig.bulletWidth
-                          }
-                          height={
-                            objectRenderConfig.horizontalPointsBulletHeight ||
-                            pointsConfig.bulletHeight
-                          }
+                          width={pointsConfig.bulletWidth}
+                          height={pointsConfig.bulletHeight}
                           fill={
                             objectRenderConfig.horizontalPointsBulletColor ||
                             'white'
                           }
                           cornerRadius={
                             objectRenderConfig.horizontalPointsBulletCornerRadius
+                          }
+                          offsetX={
+                            objectRenderConfig.horizontalPointsBulletXOffset
+                          }
+                          offsetY={
+                            objectRenderConfig.horizontalPointsBulletYOffset
                           }
                           rotation={objectRenderConfig.pointsBulletRotation}
                         />
@@ -981,20 +985,20 @@ const PointsFragment = ({
                       <Rect
                         x={objectRenderConfig.horizontalPointsBulletXOffset}
                         y={objectRenderConfig.horizontalPointsBulletYOffset}
-                        width={
-                          objectRenderConfig.horizontalPointsBulletWidth ||
-                          pointsConfig.bulletWidth
-                        }
-                        height={
-                          objectRenderConfig.horizontalPointsBulletHeight ||
-                          pointsConfig.bulletHeight
-                        }
+                        width={pointsConfig.bulletWidth}
+                        height={pointsConfig.bulletHeight}
                         fill={
                           objectRenderConfig.horizontalPointsBulletColor ||
                           'white'
                         }
                         cornerRadius={
                           objectRenderConfig.horizontalPointsBulletCornerRadius
+                        }
+                        offsetX={
+                          objectRenderConfig.horizontalPointsBulletXOffset
+                        }
+                        offsetY={
+                          objectRenderConfig.horizontalPointsBulletYOffset
                         }
                         rotation={objectRenderConfig.pointsBulletRotation}
                       />
