@@ -45,7 +45,7 @@ const Thumbnail = ({
     title: string
     userName: string
     designation: string
-    orgnization: string
+    organization: string
   }>()
   const [imgDim, setImgDim] = useState<{
     width: number
@@ -69,7 +69,7 @@ const Thumbnail = ({
       title: introBlockViewProps?.heading || fragment?.flick.name || '',
       userName: introBlockViewProps?.name || displayName || '',
       designation: introBlockViewProps?.designation || designation || '',
-      orgnization: introBlockViewProps?.organization || organization || '',
+      organization: introBlockViewProps?.organization || organization || '',
     })
     setIntroConfig(
       getIntroConfig({
@@ -178,69 +178,72 @@ const Thumbnail = ({
             fontFamily={getThemeFont(theme)}
             lineHeight={1.1}
           />
-          {designation !== '' && organization === '' && (
-            <Text
-              key="userInfo"
-              x={
-                logo
-                  ? introConfig?.userNameX || 0
-                  : !isShorts
-                  ? (introConfig?.logoX || 0) + 10
-                  : introConfig?.logoX || 0
-              }
-              y={introConfig?.userInfoY || 0}
-              width={introConfig?.userInfoWidth || 0}
-              height={introConfig?.userInfoHeight || 0}
-              align={isShorts ? 'center' : 'left'}
-              text={thumbnailInfo?.designation}
-              fill={branding?.colors?.text || getThemeTextColor(theme)}
-              fontSize={introConfig?.userInfoFontSize || 0}
-              fontFamily={getThemeFont(theme)}
-              lineHeight={1.1}
-            />
-          )}
-          {designation === '' && organization !== '' && (
-            <Text
-              key="userInfo"
-              x={
-                logo
-                  ? introConfig?.userNameX || 0
-                  : !isShorts
-                  ? (introConfig?.logoX || 0) + 10
-                  : introConfig?.logoX || 0
-              }
-              y={introConfig?.userInfoY || 0}
-              width={introConfig?.userInfoWidth || 0}
-              height={introConfig?.userInfoHeight || 0}
-              align={isShorts ? 'center' : 'left'}
-              text={thumbnailInfo?.orgnization}
-              fill={branding?.colors?.text || getThemeTextColor(theme)}
-              fontSize={introConfig?.userInfoFontSize || 0}
-              fontFamily={getThemeFont(theme)}
-              lineHeight={1.1}
-            />
-          )}
-          {designation !== '' && organization !== '' && (
-            <Text
-              key="userInfo"
-              x={
-                logo
-                  ? introConfig?.userNameX || 0
-                  : !isShorts
-                  ? (introConfig?.logoX || 0) + 10
-                  : introConfig?.logoX || 0
-              }
-              y={introConfig?.userInfoY || 0}
-              width={introConfig?.userInfoWidth || 0}
-              height={introConfig?.userInfoHeight || 0}
-              align={isShorts ? 'center' : 'left'}
-              text={`${thumbnailInfo?.designation}, ${thumbnailInfo?.orgnization}`}
-              fill={branding?.colors?.text || getThemeTextColor(theme)}
-              fontSize={introConfig?.userInfoFontSize || 0}
-              fontFamily={getThemeFont(theme)}
-              lineHeight={1.1}
-            />
-          )}
+          {thumbnailInfo?.designation !== '' &&
+            thumbnailInfo?.organization === '' && (
+              <Text
+                key="userInfo"
+                x={
+                  logo
+                    ? introConfig?.userNameX || 0
+                    : !isShorts
+                    ? (introConfig?.logoX || 0) + 10
+                    : introConfig?.logoX || 0
+                }
+                y={introConfig?.userInfoY || 0}
+                width={introConfig?.userInfoWidth || 0}
+                height={introConfig?.userInfoHeight || 0}
+                align={isShorts ? 'center' : 'left'}
+                text={thumbnailInfo?.designation}
+                fill={branding?.colors?.text || getThemeTextColor(theme)}
+                fontSize={introConfig?.userInfoFontSize || 0}
+                fontFamily={getThemeFont(theme)}
+                lineHeight={1.1}
+              />
+            )}
+          {thumbnailInfo?.designation === '' &&
+            thumbnailInfo?.organization !== '' && (
+              <Text
+                key="userInfo"
+                x={
+                  logo
+                    ? introConfig?.userNameX || 0
+                    : !isShorts
+                    ? (introConfig?.logoX || 0) + 10
+                    : introConfig?.logoX || 0
+                }
+                y={introConfig?.userInfoY || 0}
+                width={introConfig?.userInfoWidth || 0}
+                height={introConfig?.userInfoHeight || 0}
+                align={isShorts ? 'center' : 'left'}
+                text={thumbnailInfo?.organization}
+                fill={branding?.colors?.text || getThemeTextColor(theme)}
+                fontSize={introConfig?.userInfoFontSize || 0}
+                fontFamily={getThemeFont(theme)}
+                lineHeight={1.1}
+              />
+            )}
+          {thumbnailInfo?.designation !== '' &&
+            thumbnailInfo?.organization !== '' && (
+              <Text
+                key="userInfo"
+                x={
+                  logo
+                    ? introConfig?.userNameX || 0
+                    : !isShorts
+                    ? (introConfig?.logoX || 0) + 10
+                    : introConfig?.logoX || 0
+                }
+                y={introConfig?.userInfoY || 0}
+                width={introConfig?.userInfoWidth || 0}
+                height={introConfig?.userInfoHeight || 0}
+                align={isShorts ? 'center' : 'left'}
+                text={`${thumbnailInfo?.designation}, ${thumbnailInfo?.organization}`}
+                fill={branding?.colors?.text || getThemeTextColor(theme)}
+                fontSize={introConfig?.userInfoFontSize || 0}
+                fontFamily={getThemeFont(theme)}
+                lineHeight={1.1}
+              />
+            )}
         </Group>
       </Group>
       <Group

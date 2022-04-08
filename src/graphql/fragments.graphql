@@ -50,6 +50,7 @@ fragment Note on Note {
 fragment RecordedBlocks on Blocks {
   id
   objectUrl
+  thumbnail
   updatedAt
 }
 
@@ -341,13 +342,17 @@ mutation SaveRecordedBlock(
   $objectUrl: String!
   $recordingId: uuid!
   $blockId: String!
+  $thumbnail: String
+  $playbackDuration: Int
 ) {
   SaveBlock(
     flickId: $flickId
     fragmentId: $fragmentId
     objectUrl: $objectUrl
     recordingId: $recordingId
+    thumbnail: $thumbnail
     blockId: $blockId
+    playbackDuration: $playbackDuration
   ) {
     id
     success
