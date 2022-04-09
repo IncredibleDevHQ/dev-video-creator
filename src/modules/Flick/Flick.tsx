@@ -447,11 +447,25 @@ const Flick = () => {
         ...initialConfig,
         speakers: [flick.participants[0]],
         blocks: {
+          [initialAST.blocks[0].id]: {
+            layout: 'classic',
+            view: {
+              type: 'introBlock',
+              intro: {
+                order: [
+                  { enabled: true, state: 'userMedia' },
+                  { enabled: true, state: 'titleSplash' },
+                ],
+              },
+            },
+          },
           [initialAST.blocks[1].id]: {
             layout: 'classic',
             view: {
               type: 'outroBlock',
-              outro: {},
+              outro: {
+                order: [{ enabled: true, state: 'titleSplash' }],
+              },
             } as OutroBlockView,
           } as BlockProperties,
         },

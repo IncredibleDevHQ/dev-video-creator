@@ -392,7 +392,7 @@ const UnifiedFragment = ({
               viewConfig.blocks[
                 dataConfig[activeObjectIndex].id
               ] as BlockProperties
-            ).view as IntroBlockView
+            )?.view as IntroBlockView
             return (
               <IntroFragment
                 shortsMode={viewConfig.mode === 'Portrait'}
@@ -404,7 +404,7 @@ const UnifiedFragment = ({
                 isPreview={isPreview}
                 setTopLayerChildren={setTopLayerChildren}
                 introSequence={
-                  introBlockViewProps.intro.order
+                  introBlockViewProps?.intro?.order
                     ?.filter((o) => o.enabled)
                     .map((o) => o.state) || ['userMedia', 'titleSplash']
                 }
@@ -416,7 +416,7 @@ const UnifiedFragment = ({
               viewConfig.blocks[
                 dataConfig[activeObjectIndex].id
               ] as BlockProperties
-            ).view as OutroBlockView
+            )?.view as OutroBlockView
             return (
               <OutroFragment
                 isShorts={viewConfig.mode === 'Portrait'}
