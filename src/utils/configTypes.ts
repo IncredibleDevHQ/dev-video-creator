@@ -166,12 +166,14 @@ export interface HandleDetails {
   handle: string
 }
 
+export type OutroState = 'outroVideo' | 'titleSplash'
 export interface OutroBlockViewProps {
   title?: string
   twitter?: HandleDetails
   discord?: HandleDetails
   youtube?: HandleDetails
   noOfSocialHandles?: number
+  order?: { enabled: boolean; state: OutroState }[]
 }
 
 export interface OutroBlockView {

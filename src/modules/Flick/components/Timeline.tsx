@@ -11,7 +11,11 @@ import { ReactComponent as TimelineIcon } from '../../../assets/Timeline.svg'
 import { Button, Text } from '../../../components'
 import { logEvent } from '../../../utils/analytics'
 import { PageEvent } from '../../../utils/analytics-types'
-import { IntroBlockView, ViewConfig } from '../../../utils/configTypes'
+import {
+  IntroBlockView,
+  OutroBlockView,
+  ViewConfig,
+} from '../../../utils/configTypes'
 import { studioStore } from '../../Studio/stores'
 import { Block } from '../editor/utils/utils'
 import { FragmentTypeIcon } from './LayoutGeneric'
@@ -140,7 +144,8 @@ const Timeline = ({
                   'flex items-center gap-x-3 border border-transparent cursor-pointer',
                   {
                     'bg-dark-300 py-1.5 px-2 rounded-md':
-                      block.type === 'introBlock',
+                      block.type === 'introBlock' ||
+                      block.type === 'outroBlock',
                     'ml-5': index === 0,
                     'mr-5': index === blocks.length - 1,
                   }
@@ -150,7 +155,7 @@ const Timeline = ({
                   setCurrentBlock(block)
                 }}
               >
-                {block.type === 'introBlock' ? (
+                {block.type === 'introBlock' &&
                   (config.blocks[block.id].view as IntroBlockView)?.intro?.order
                     ?.filter((o) => o.enabled)
                     ?.map((order, index) => {
@@ -230,8 +235,64 @@ const Timeline = ({
                         default:
                           return null
                       }
-                    })
-                ) : (
+                    })}
+                {block.type === 'outroBlock' &&
+                  (config.blocks[block.id].view as OutroBlockView)?.outro?.order
+                    ?.filter((o) => o.enabled)
+                    ?.map((order, index) => {
+                      switch (order.state) {
+                        case 'titleSplash': {
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                updatePayload?.({
+                                  activeOutroIndex: index,
+                                })
+                              }}
+                              className={cx(
+                                'border border-dark-100 rounded-md flex justify-center items-center w-24 h-12 p-2 ',
+                                {
+                                  'bg-dark-100': block.type === 'outroBlock',
+                                  '!border-brand':
+                                    payload.activeOutroIndex === index &&
+                                    block.id === currentBlock?.id,
+                                }
+                              )}
+                            >
+                              <FragmentTypeIcon type={block.type} />
+                            </button>
+                          )
+                        }
+
+                        case 'outroVideo': {
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                updatePayload?.({
+                                  activeOutroIndex: index,
+                                })
+                              }}
+                              className={cx(
+                                'border border-dark-100 rounded-md flex justify-center items-center w-24 h-12 p-3 bg-dark-100',
+                                {
+                                  '!border-brand':
+                                    payload.activeOutroIndex === index &&
+                                    block.id === currentBlock?.id,
+                                }
+                              )}
+                            >
+                              <IoPlayOutline className="w-full h-full text-gray-400" />
+                            </button>
+                          )
+                        }
+
+                        default:
+                          return null
+                      }
+                    })}
+                {block.type !== 'introBlock' && block.type !== 'outroBlock' && (
                   <button
                     type="button"
                     className={cx(

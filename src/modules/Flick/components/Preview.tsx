@@ -126,16 +126,16 @@ const introOutroBlockTabs: Tab[] = [
     id: 'Content',
     name: 'Content',
   },
+  {
+    id: 'Sequence',
+    name: 'Sequence',
+  },
 ]
 
 const introBlockTabs: Tab[] = [
   {
     id: 'Picture',
     name: 'Picture',
-  },
-  {
-    id: 'Sequence',
-    name: 'Sequence',
   },
 ]
 
@@ -433,11 +433,23 @@ const Preview = ({
                 }}
               />
             )}
-            {activeTab.id === introBlockTabs[1].id &&
+            {activeTab.id === introOutroBlockTabs[1].id &&
               block.type === 'introBlock' && (
                 <SequenceTab
                   view={config.blocks[block.id]?.view as IntroBlockView}
                   updateView={(view: IntroBlockView) => {
+                    updateConfig(block.id, {
+                      ...config.blocks[block.id],
+                      view,
+                    })
+                  }}
+                />
+              )}
+            {activeTab.id === introOutroBlockTabs[1].id &&
+              block.type === 'outroBlock' && (
+                <OutroSequenceTab
+                  view={config.blocks[block.id]?.view as OutroBlockView}
+                  updateView={(view: OutroBlockView) => {
                     updateConfig(block.id, {
                       ...config.blocks[block.id],
                       view,
@@ -736,6 +748,128 @@ const SequenceTab = ({
                             intro: {
                               ...view?.intro,
                               order: view?.intro?.order?.map((item) => {
+                                if (item.state === o.state) {
+                                  return {
+                                    ...o,
+                                    enabled: !o.enabled,
+                                  }
+                                }
+                                return item
+                              }),
+                            },
+                          })
+                        }}
+                      >
+                        {o.enabled ? <IoEyeOutline /> : <IoEyeOffOutline />}
+                      </button>
+                    </div>
+                  )}
+                </Draggable>
+              ))}
+            </div>
+          )}
+        </Droppable>
+      </DragDropContext>
+    </div>
+  )
+}
+
+const OutroSequenceTab = ({
+  view,
+  updateView,
+}: {
+  view: OutroBlockView | undefined
+  updateView: (view: OutroBlockView) => void
+}) => {
+  useEffect(() => {
+    if (!view?.outro.order) {
+      updateView({
+        ...view,
+        type: 'outroBlock',
+        outro: {
+          ...view?.outro,
+          order: [
+            {
+              state: 'outroVideo',
+              enabled: true,
+            },
+            {
+              state: 'titleSplash',
+              enabled: true,
+            },
+          ],
+        },
+      })
+    }
+  }, [view])
+
+  return (
+    <div className="flex flex-col pt-6 px-4">
+      <Heading fontSize="small" className="font-bold">
+        Sequence
+      </Heading>
+      <span className="font-body text-xs text-gray-400">
+        Drag and drop to change sequence
+      </span>
+      <DragDropContext
+        onDragEnd={(result) => {
+          const { destination, source } = result
+
+          if (!destination || !view?.outro?.order) return
+
+          if (
+            destination.droppableId === source.droppableId &&
+            destination.index === source.index
+          )
+            return
+
+          const newOrder = Array.from(view.outro.order)
+          newOrder.splice(source.index, 1)
+          newOrder.splice(destination.index, 0, view.outro.order[source.index])
+          updateView({
+            ...view,
+            type: 'outroBlock',
+            outro: {
+              ...view?.outro,
+              order: newOrder,
+            },
+          })
+        }}
+      >
+        <Droppable droppableId="droppable">
+          {(provided) => (
+            <div
+              className="flex flex-col justify-center gap-y-2 w-full border border-dashed mt-4 rounded-md p-2"
+              style={{
+                height: view?.outro?.order?.length === 2 ? '105px' : '60px',
+              }}
+              {...provided.droppableProps}
+              ref={provided.innerRef}
+            >
+              {view?.outro?.order?.map((o, i) => (
+                <Draggable key={o.state} draggableId={o.state} index={i}>
+                  {(provided) => (
+                    <div
+                      className="flex justify-between border rounded-sm p-2 text-sm font-body bg-white"
+                      ref={provided.innerRef}
+                      {...provided.draggableProps}
+                      {...provided.dragHandleProps}
+                    >
+                      {capitalCase(o.state)}
+                      <button
+                        type="button"
+                        className="disabled:cursor-not-allowed"
+                        disabled={
+                          view?.outro?.order?.filter((o) => o.enabled)
+                            .length === 1 && o.enabled
+                        }
+                        onClick={() => {
+                          updateView({
+                            ...view,
+                            type: 'outroBlock',
+                            outro: {
+                              ...view?.outro,
+                              order: view?.outro?.order?.map((item) => {
                                 if (item.state === o.state) {
                                   return {
                                     ...o,
