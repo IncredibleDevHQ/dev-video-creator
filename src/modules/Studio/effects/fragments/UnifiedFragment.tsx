@@ -9,6 +9,7 @@ import {
 import {
   BlockProperties,
   IntroBlockView,
+  OutroBlockView,
   TopLayerChildren,
   ViewConfig,
 } from '../../../../utils/configTypes'
@@ -195,6 +196,7 @@ const UnifiedFragment = ({
       activeBlockIndex: 0,
       activePointIndex: 0,
       activeIntroIndex: 0,
+      activeOutroIndex: 0,
     })
   }, [payload?.activeObjectIndex])
 
@@ -222,6 +224,7 @@ const UnifiedFragment = ({
       updatePayload?.({
         // activeObjectIndex: 0,
         activeIntroIndex: 0,
+        activeOutroIndex: 0,
         fragmentState: 'customLayout',
         currentIndex: 0,
         prevIndex: -1,
@@ -238,6 +241,7 @@ const UnifiedFragment = ({
       updatePayload?.({
         activeObjectIndex: 0,
         activeIntroIndex: 0,
+        activeOutroIndex: 0,
         fragmentState: 'customLayout',
         currentIndex: 0,
         prevIndex: -1,
@@ -407,6 +411,11 @@ const UnifiedFragment = ({
             )
           }
           case 'outroBlock': {
+            const outroBlockViewProps = (
+              viewConfig.blocks[
+                dataConfig[activeObjectIndex].id
+              ] as BlockProperties
+            ).view as OutroBlockView
             return (
               <OutroFragment
                 isShorts={viewConfig.mode === 'Portrait'}
@@ -414,6 +423,12 @@ const UnifiedFragment = ({
                   viewConfig.blocks[
                     dataConfig[activeObjectIndex].id
                   ] as BlockProperties
+                }
+                isPreview={isPreview}
+                outroSequence={
+                  outroBlockViewProps?.outro?.order
+                    ?.filter((o) => o.enabled)
+                    .map((o) => o.state) || ['titleSplash']
                 }
               />
             )
