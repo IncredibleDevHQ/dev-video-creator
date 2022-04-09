@@ -304,11 +304,12 @@ const RecordingControlsBar = ({
         <button
           type="button"
           onClick={() => {
-            updatePayload?.({
-              ...payload,
-              status: Fragment_Status_Enum_Enum.Ended,
-              // activeObjectIndex: payload?.activeObjectIndex + 1,
-            })
+            studio.stopRecording()
+            // updatePayload?.({
+            //   ...payload,
+            //   status: Fragment_Status_Enum_Enum.Ended,
+            //   // activeObjectIndex: payload?.activeObjectIndex + 1,
+            // })
 
             logEvent(PageEvent.StopRecording)
           }}

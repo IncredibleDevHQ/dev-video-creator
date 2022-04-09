@@ -4,6 +4,7 @@ import { ThemeFragment } from '../../../generated/graphql'
 import { TopLayerChildren } from '../../../utils/configTypes'
 import {
   CassidooTransition,
+  DipTransition,
   PastelLinesTransition,
   TrianglePathTransition,
 } from '../effects/FragmentTransitions'
@@ -27,6 +28,17 @@ const TransitionProvider = ({
   const { branding } = useRecoilValue(studioStore)
   switch (theme.name) {
     case 'DarkGradient':
+      if (direction === 'moveIn' || direction === 'moveAway') {
+        return (
+          <DipTransition
+            direction={direction}
+            isShorts={isShorts}
+            color="black"
+            performFinishAction={performFinishAction}
+            setTopLayerChildren={setTopLayerChildren}
+          />
+        )
+      }
       return (
         <TrianglePathTransition
           direction={direction}
@@ -36,6 +48,17 @@ const TransitionProvider = ({
         />
       )
     case 'PastelLines':
+      if (direction === 'moveIn' || direction === 'moveAway') {
+        return (
+          <DipTransition
+            direction={direction}
+            isShorts={isShorts}
+            color="black"
+            performFinishAction={performFinishAction}
+            setTopLayerChildren={setTopLayerChildren}
+          />
+        )
+      }
       return (
         <PastelLinesTransition
           direction={direction}
@@ -45,11 +68,42 @@ const TransitionProvider = ({
         />
       )
     case 'Cassidoo':
+      if (direction === 'moveIn' || direction === 'moveAway') {
+        return (
+          <DipTransition
+            direction={direction}
+            isShorts={isShorts}
+            color="white"
+            performFinishAction={performFinishAction}
+            setTopLayerChildren={setTopLayerChildren}
+          />
+        )
+      }
       return (
         <CassidooTransition
           direction={direction}
           isShorts={isShorts}
           color={branding?.colors?.transition}
+          setTopLayerChildren={setTopLayerChildren}
+        />
+      )
+    case 'LambdaTest':
+      if (direction === 'moveIn' || direction === 'moveAway') {
+        return (
+          <DipTransition
+            direction={direction}
+            isShorts={isShorts}
+            color="white"
+            performFinishAction={performFinishAction}
+            setTopLayerChildren={setTopLayerChildren}
+          />
+        )
+      }
+      return (
+        <DipTransition
+          direction={direction}
+          isShorts={isShorts}
+          color="white"
           setTopLayerChildren={setTopLayerChildren}
         />
       )

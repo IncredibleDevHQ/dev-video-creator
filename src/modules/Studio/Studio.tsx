@@ -604,6 +604,12 @@ const Studio = ({
     isShorts: shortsMode,
   })
 
+  // state which stores the type of layer children which have to be placed over the studio user
+  const [topLayerChildren, setTopLayerChildren] = useState<{
+    id: string
+    state: TopLayerChildren
+  }>({ id: '', state: '' })
+
   useEffect(() => {
     if (!stageWidth) return
     Konva.pixelRatio = (shortsMode ? 1080 : 1920) / stageWidth
@@ -901,7 +907,8 @@ const Studio = ({
     const canvas = document
       .getElementsByClassName('konvajs-content')[0]
       .getElementsByTagName('canvas')[0]
-
+    if (payload?.activeObjectIndex !== 0)
+      setTopLayerChildren({ id: nanoid(), state: 'transition moveAway' })
     // @ts-ignore
     startRecording(canvas, {
       localStream: stream as MediaStream,
@@ -947,19 +954,15 @@ const Studio = ({
       }
       return bts
     })
-
+    if (payload?.activeObjectIndex !== fragment?.editorState?.blocks.length - 1)
+      setTopLayerChildren({ id: nanoid(), state: 'transition moveIn' })
+    else {
+      stopCanvasRecording()
+      setState('preview')
+    }
     // addMusic({ volume: 0.01, action: 'modifyVolume' })
-    stopCanvasRecording()
     // addMusic({ action: 'stop' })
-
-    setState('preview')
   }
-
-  // useEffect(() => {
-  //   if (payload?.status === Fragment_Status_Enum_Enum.Ended) {
-  //     finalTransition()
-  //   }
-  // }, [payload])
 
   useEffect(() => {
     if (payload?.status === Fragment_Status_Enum_Enum.Ended) {
@@ -1079,12 +1082,6 @@ const Studio = ({
   //       return ''
   //   }
   // }
-
-  // state which stores the type of layer children which have to be placed over the studio user
-  const [topLayerChildren, setTopLayerChildren] = useState<{
-    id: string
-    state: TopLayerChildren
-  }>({ id: '', state: '' })
 
   const utils = useUtils()
 
@@ -1402,6 +1399,15 @@ const Studio = ({
                                   isShorts={shortsMode || false}
                                   status={payload?.status}
                                   theme={theme}
+                                  performFinishAction={() => {
+                                    stopCanvasRecording()
+                                    setState('preview')
+                                    updatePayload?.({
+                                      ...payload,
+                                      status: Fragment_Status_Enum_Enum.Ended,
+                                      // activeObjectIndex: payload?.activeObjectIndex + 1,
+                                    })
+                                  }}
                                 />
                               </Group>
                             )
