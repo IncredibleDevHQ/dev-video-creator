@@ -659,6 +659,7 @@ const FragmentBar = ({
           simpleAST={simpleAST}
           currentBlock={currentBlock}
           setCurrentBlock={setCurrentBlock}
+          config={config}
           handleClose={() => {
             setRecordingModal(false)
           }}
