@@ -1,8 +1,86 @@
 import Konva from 'konva'
+import { nanoid } from 'nanoid'
 import React, { useRef } from 'react'
 import { Circle, Group, Rect, Shape } from 'react-konva'
 import { TopLayerChildren } from '../../../utils/configTypes'
 import { CONFIG, SHORTS_CONFIG } from '../components/Concourse'
+
+export const DipTransition = ({
+  direction,
+  performFinishAction,
+  isShorts,
+  color,
+  setTopLayerChildren,
+}: {
+  direction: string
+  performFinishAction?: () => void
+  isShorts?: boolean
+  color?: string
+  setTopLayerChildren?: React.Dispatch<
+    React.SetStateAction<{ id: string; state: TopLayerChildren }>
+  >
+}) => {
+  let stageConfig = { width: CONFIG.width, height: CONFIG.height }
+  if (!isShorts) stageConfig = CONFIG
+  else stageConfig = SHORTS_CONFIG
+
+  const rectRef = useRef<Konva.Rect>(null)
+  switch (direction) {
+    case 'left':
+    case 'right':
+      rectRef.current?.to({
+        opacity: 1,
+        duration: 0.4,
+        onFinish: () => {
+          rectRef.current?.to({
+            opacity: 0,
+            duration: 0.4,
+          })
+        },
+      })
+      break
+    case 'moveIn':
+      rectRef.current?.to({
+        opacity: 1,
+        duration: 0.2,
+        onFinish: () => {
+          setTimeout(() => {
+            performFinishAction?.()
+            setTopLayerChildren?.({ id: nanoid(), state: '' })
+          }, 500)
+        },
+      })
+      break
+    case 'moveAway':
+      setTimeout(() => {
+        rectRef.current?.to({
+          opacity: 0,
+          duration: 0.2,
+          onFinish: () => {
+            setTimeout(() => {
+              performFinishAction?.()
+              setTopLayerChildren?.({ id: nanoid(), state: '' })
+            }, 500)
+          },
+        })
+      }, 200)
+      break
+    default:
+      break
+  }
+
+  return (
+    <Rect
+      x={0}
+      y={0}
+      width={stageConfig.width}
+      height={stageConfig.height}
+      fill={color}
+      ref={rectRef}
+      opacity={direction === 'moveAway' ? 1 : 0}
+    />
+  )
+}
 
 // Used for the DarkGradient theme
 export const TrianglePathTransition = ({
