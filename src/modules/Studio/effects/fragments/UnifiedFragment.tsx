@@ -8,6 +8,7 @@ import {
 } from '../../../../generated/graphql'
 import {
   BlockProperties,
+  IntroBlockView,
   TopLayerChildren,
   ViewConfig,
 } from '../../../../utils/configTypes'
@@ -17,7 +18,6 @@ import {
   CodeBlockProps,
   HeadingBlockProps,
   ImageBlockProps,
-  IntroBlockProps,
   ListBlockProps,
   VideoBlockProps,
 } from '../../../Flick/editor/utils/utils'
@@ -383,9 +383,11 @@ const UnifiedFragment = ({
             )
           }
           case 'introBlock': {
-            const introBlockProps = dataConfig[
-              activeObjectIndex
-            ] as IntroBlockProps
+            const introBlockViewProps = (
+              viewConfig.blocks[
+                dataConfig[activeObjectIndex].id
+              ] as BlockProperties
+            ).view as IntroBlockView
             return (
               <IntroFragment
                 shortsMode={viewConfig.mode === 'Portrait'}
@@ -397,9 +399,9 @@ const UnifiedFragment = ({
                 isPreview={isPreview}
                 setTopLayerChildren={setTopLayerChildren}
                 introSequence={
-                  studio.branding && studio.branding.introVideoUrl
-                    ? introBlockProps.introBlock.order
-                    : ['userMedia', 'titleSplash']
+                  introBlockViewProps.intro.order
+                    ?.filter((o) => o.enabled)
+                    .map((o) => o.state) || ['userMedia', 'titleSplash']
                 }
               />
             )

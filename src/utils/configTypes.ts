@@ -1,4 +1,5 @@
 import { FlickParticipantsFragment } from '../generated/graphql'
+import { IntroState } from '../modules/Studio/effects/fragments/IntroFragment'
 
 export const allLayoutTypes = [
   'classic',
@@ -184,6 +185,7 @@ export interface IntroBlockViewProps {
   designation?: string
   organization?: string
   displayPicture?: string
+  order?: { enabled: boolean; state: IntroState }[]
 }
 export interface IntroBlockView {
   type: 'introBlock'

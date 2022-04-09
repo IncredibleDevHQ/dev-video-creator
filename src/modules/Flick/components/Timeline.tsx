@@ -11,10 +11,9 @@ import { ReactComponent as TimelineIcon } from '../../../assets/Timeline.svg'
 import { Button, Text } from '../../../components'
 import { logEvent } from '../../../utils/analytics'
 import { PageEvent } from '../../../utils/analytics-types'
-import { BrandingInterface } from '../../Branding/BrandingPage'
+import { IntroBlockView, ViewConfig } from '../../../utils/configTypes'
 import { studioStore } from '../../Studio/stores'
 import { Block } from '../editor/utils/utils'
-import { newFlickStore } from '../store/flickNew.store'
 import { FragmentTypeIcon } from './LayoutGeneric'
 
 const Timeline = ({
@@ -24,6 +23,7 @@ const Timeline = ({
   persistentTimeline = false,
   shouldScrollToCurrentBlock = true,
   showTimeline,
+  config,
   setShowTimeline,
 }: {
   blocks: Block[]
@@ -32,9 +32,9 @@ const Timeline = ({
   persistentTimeline: boolean
   shouldScrollToCurrentBlock: boolean
   showTimeline: boolean
+  config: ViewConfig
   setShowTimeline: React.Dispatch<React.SetStateAction<boolean>>
 }) => {
-  const { flick } = useRecoilValue(newFlickStore)
   const { payload, updatePayload } = useRecoilValue(studioStore)
   const timeline = useRef<HTMLDivElement>(null)
 
@@ -150,81 +150,100 @@ const Timeline = ({
                   setCurrentBlock(block)
                 }}
               >
-                {block.type === 'introBlock' && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        updatePayload?.({
-                          activeIntroIndex: 0,
-                        })
-                      }}
-                      className={cx(
-                        'border border-transparent rounded-md flex justify-center items-center w-24 h-12 p-3 bg-dark-100',
-                        {
-                          '!border-brand':
-                            currentBlock?.type === 'introBlock' &&
-                            payload.activeIntroIndex === 0,
-                          'border-dark-100':
-                            currentBlock?.type !== 'introBlock',
+                {block.type === 'introBlock' ? (
+                  (config.blocks[block.id].view as IntroBlockView)?.intro?.order
+                    ?.filter((o) => o.enabled)
+                    ?.map((order, index) => {
+                      switch (order.state) {
+                        case 'userMedia': {
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                updatePayload?.({
+                                  activeIntroIndex: index,
+                                })
+                              }}
+                              className={cx(
+                                'border border-transparent rounded-md flex justify-center items-center w-24 h-12 p-3 bg-dark-100',
+                                {
+                                  '!border-brand':
+                                    payload.activeIntroIndex === index &&
+                                    block.id === currentBlock?.id,
+                                }
+                              )}
+                            >
+                              <UserPlaceholder className="w-full h-full" />
+                            </button>
+                          )
                         }
-                      )}
-                    >
-                      <UserPlaceholder className="w-full h-full" />
-                    </button>
-                    {flick?.branding &&
-                      flick?.useBranding &&
-                      (flick?.branding as BrandingInterface).branding
-                        ?.introVideoUrl && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            updatePayload?.({
-                              activeIntroIndex: 1,
-                            })
-                          }}
-                          className={cx(
-                            'border border-dark-100 rounded-md flex justify-center items-center w-24 h-12 p-3 bg-dark-100',
-                            {
-                              '!border-brand':
-                                currentBlock?.type === 'introBlock' &&
-                                payload.activeIntroIndex === 1,
-                            }
-                          )}
-                        >
-                          <IoPlayOutline className="w-full h-full text-gray-400" />
-                        </button>
-                      )}
-                  </>
+
+                        case 'titleSplash': {
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (block.type === 'introBlock') {
+                                  updatePayload?.({
+                                    activeIntroIndex: index,
+                                  })
+                                }
+                              }}
+                              className={cx(
+                                'border border-dark-100 rounded-md flex justify-center items-center w-24 h-12 p-2 ',
+                                {
+                                  'bg-dark-100': block.type === 'introBlock',
+                                  '!border-brand':
+                                    payload.activeIntroIndex === index &&
+                                    block.id === currentBlock?.id,
+                                }
+                              )}
+                            >
+                              <FragmentTypeIcon type={block.type} />
+                            </button>
+                          )
+                        }
+
+                        case 'introVideo': {
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                updatePayload?.({
+                                  activeIntroIndex: index,
+                                })
+                              }}
+                              className={cx(
+                                'border border-dark-100 rounded-md flex justify-center items-center w-24 h-12 p-3 bg-dark-100',
+                                {
+                                  '!border-brand':
+                                    payload.activeIntroIndex === index &&
+                                    block.id === currentBlock?.id,
+                                }
+                              )}
+                            >
+                              <IoPlayOutline className="w-full h-full text-gray-400" />
+                            </button>
+                          )
+                        }
+
+                        default:
+                          return null
+                      }
+                    })
+                ) : (
+                  <button
+                    type="button"
+                    className={cx(
+                      'border border-dark-100 rounded-md flex justify-center items-center w-24 h-12 p-2 ',
+                      {
+                        '!border-brand': block.id === currentBlock?.id,
+                      }
+                    )}
+                  >
+                    <FragmentTypeIcon type={block.type} />
+                  </button>
                 )}
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (block.type === 'introBlock') {
-                      updatePayload?.({
-                        activeIntroIndex: flick?.branding?.branding
-                          .introVideoUrl
-                          ? 2
-                          : 1,
-                      })
-                    }
-                  }}
-                  className={cx(
-                    'border border-dark-100 rounded-md flex justify-center items-center w-24 h-12 p-2 ',
-                    {
-                      'bg-dark-100': block.type === 'introBlock',
-                      '!border-brand':
-                        (currentBlock?.type === 'introBlock' &&
-                          payload.activeIntroIndex ===
-                            (flick?.branding?.branding.introVideoUrl ? 2 : 1) &&
-                          block.id === currentBlock?.id) ||
-                        (currentBlock?.type !== 'introBlock' &&
-                          block.id === currentBlock?.id),
-                    }
-                  )}
-                >
-                  <FragmentTypeIcon type={block.type} />
-                </button>
               </a>
             ))}
           </div>

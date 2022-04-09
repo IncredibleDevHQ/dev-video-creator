@@ -36,12 +36,14 @@ import { PageEvent } from '../../../utils/analytics-types'
 import {
   CodeAnimation,
   CodeBlockView,
+  IntroBlockView,
   ListBlockView,
   ViewConfig,
 } from '../../../utils/configTypes'
 import { BrandingJSON } from '../../Branding/BrandingPage'
 import {
   CodeBlockProps,
+  IntroBlockProps,
   ListBlock,
   ListBlockProps,
 } from '../../Flick/editor/utils/utils'
@@ -573,7 +575,13 @@ const performAction = (
 
   switch (block.type) {
     case 'introBlock':
-      return handleIntroBlock(payload, updatePayload, branding, direction)
+      return handleIntroBlock(
+        fragment,
+        payload,
+        updatePayload,
+        branding,
+        direction
+      )
     // break
     case 'codeBlock':
       return handleCodeBlock(
@@ -804,15 +812,23 @@ const handleCodeBlock = (
 }
 
 const handleIntroBlock = (
+  fragment: StudioFragmentFragment,
   payload: any,
   updatePayload: ((value: any) => void) | undefined,
   branding: BrandingJSON | null | undefined,
   direction: 'next' | 'previous'
 ): boolean => {
+  const introBlockProps = fragment?.editorState?.blocks[
+    payload?.activeObjectIndex || 0
+  ] as IntroBlockProps
+  const introBlockViewProps = (fragment?.configuration as ViewConfig).blocks[
+    introBlockProps.id
+  ]?.view as IntroBlockView
+
   if (direction === 'next') {
     if (
       payload?.activeIntroIndex ===
-      (branding && branding?.introVideoUrl ? 2 : 1)
+      (introBlockViewProps.intro?.order?.length || 0) - 1
     ) {
       // updatePayload?.({
       //   activeObjectIndex: payload?.activeObjectIndex + 1,

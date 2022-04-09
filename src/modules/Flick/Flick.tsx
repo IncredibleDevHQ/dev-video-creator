@@ -23,6 +23,7 @@ import {
   CodeAnimation,
   CodeStyle,
   CodeTheme,
+  IntroBlockView,
   OutroBlockView,
   ViewConfig,
 } from '../../utils/configTypes'
@@ -57,9 +58,7 @@ const initialAST: SimpleAST = {
       id: uuidv4(),
       type: 'introBlock',
       pos: 0,
-      introBlock: {
-        order: ['userMedia', 'introVideo', 'titleSplash'],
-      },
+      introBlock: {},
     },
     {
       id: uuidv4(),
@@ -321,7 +320,13 @@ const Flick = () => {
           layout: 'bottom-right-tile',
           view: {
             type: 'introBlock',
-            intro: {},
+            intro: {
+              order: [
+                { enabled: true, state: 'userMedia' },
+                { enabled: true, state: 'introVideo' },
+                { enabled: true, state: 'titleSplash' },
+              ],
+            },
           },
         })
       }
@@ -438,6 +443,42 @@ const Flick = () => {
         },
       ])
   }, [flick?.branding?.branding?.font])
+
+  useEffect(() => {
+    const intro = simpleAST?.blocks.find((b) => b.type === 'introBlock')
+    if (!intro) return
+    const introView = viewConfig.blocks[intro?.id].view as IntroBlockView
+    if (!flick?.useBranding) {
+      updateBlockProperties(intro.id, {
+        view: {
+          ...introView,
+          intro: {
+            ...introView?.intro,
+            order: introView?.intro?.order?.filter(
+              (i) => i.state !== 'introVideo'
+            ),
+          },
+        },
+      })
+    } else {
+      updateBlockProperties(intro.id, {
+        view: {
+          ...introView,
+          intro: {
+            ...introView?.intro,
+            order: flick?.branding?.branding?.introVideoUrl
+              ? [
+                  ...(introView?.intro?.order || []),
+                  { enabled: true, state: 'introVideo' },
+                ]
+              : introView?.intro?.order?.filter(
+                  (i) => i.state !== 'introVideo'
+                ),
+          },
+        },
+      })
+    }
+  }, [flick?.branding?.id, flick?.useBranding])
 
   const utils = useUtils()
 
@@ -613,6 +654,7 @@ const Flick = () => {
           setCurrentBlock={setCurrentBlock}
           persistentTimeline={false}
           shouldScrollToCurrentBlock
+          config={viewConfig}
         />
         {publishModal && (
           <Publish

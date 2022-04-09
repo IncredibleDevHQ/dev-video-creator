@@ -344,7 +344,7 @@ const FragmentBar = ({
             fragmentId: activeFragmentId,
             configuration: config,
             branding: useBranding,
-            brandingId,
+            brandingId: useBranding ? brandingId : undefined,
           },
         })
         if (flick)
@@ -353,7 +353,7 @@ const FragmentBar = ({
             flick: {
               ...flick,
               useBranding,
-              brandingId,
+              brandingId: useBranding ? brandingId : undefined,
               branding: useBranding
                 ? brandingData?.Branding.find((b) => b.id === brandingId)
                 : null,
