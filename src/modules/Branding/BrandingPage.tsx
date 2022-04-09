@@ -70,6 +70,7 @@ export interface BrandingJSON {
     body?: IFont
   }
   introVideoUrl?: string
+  outroVideoUrl?: string
 }
 
 const initialValue: BrandingJSON = {
@@ -119,8 +120,8 @@ const tabs: Tab[] = [
     Icon: IoTextOutline,
   },
   {
-    id: 'IntroVideo',
-    name: 'Intro Video',
+    id: 'SplashVideo',
+    name: 'Splash Videos',
     Icon: IoPlayOutline,
   },
 ]
@@ -488,7 +489,7 @@ const BrandingPage = ({
                   ))}
                   <div
                     onClick={deleteBranding}
-                    className="absolute bottom-0 flex items-center justify-center w-full py-2 -ml-2 bg-red-500 cursor-pointer"
+                    className="absolute bottom-0 flex items-center justify-center w-full py-2 -ml-2 bg-red-500 cursor-pointer text-white"
                   >
                     <Button
                       appearance="none"
@@ -1004,6 +1005,7 @@ const IntroVideoSetting = ({
   const [uploadFile] = useUploadFile()
 
   const [fileUploading, setFileUploading] = useState(false)
+  const [outroFileUploading, setOutroFileUploading] = useState(false)
 
   const [hover, setHover] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -1018,30 +1020,49 @@ const IntroVideoSetting = ({
     }
   }, [hover])
 
-  const handleUploadFile = async (files: File[]) => {
+  const handleUploadFile = async (files: File[], isIntro: boolean) => {
     const file = files?.[0]
     if (!file) return
 
-    setFileUploading(true)
+    if (isIntro) {
+      setFileUploading(true)
+    } else {
+      setOutroFileUploading(true)
+    }
+
     const { url } = await uploadFile({
       extension: file.name.split('.').pop() as any,
       file,
     })
 
     setFileUploading(false)
-    setBranding({
-      ...branding,
-      branding: { ...branding.branding, introVideoUrl: url },
-    })
+    setOutroFileUploading(false)
+
+    if (isIntro) {
+      setBranding({
+        ...branding,
+        branding: { ...branding.branding, introVideoUrl: url },
+      })
+    } else {
+      setBranding({
+        ...branding,
+        branding: { ...branding.branding, outroVideoUrl: url },
+      })
+    }
   }
+
   return (
     <div className="flex flex-col">
       <Heading fontSize="small" className="font-bold">
-        Logo animation
+        Intro Video
       </Heading>
       {!branding.branding?.introVideoUrl ? (
         <>
-          <Dropzone onDrop={handleUploadFile} accept="video/*" maxFiles={1}>
+          <Dropzone
+            onDrop={(files) => handleUploadFile(files, true)}
+            accept="video/*"
+            maxFiles={1}
+          >
             {({ getRootProps, getInputProps }) => (
               <div
                 tabIndex={-1}
@@ -1095,6 +1116,74 @@ const IntroVideoSetting = ({
               ref={videoRef}
               className="object-cover rounded-sm "
               src={branding.branding?.introVideoUrl || ''}
+              muted
+            />
+          </div>
+        </>
+      )}
+      <Heading fontSize="small" className="font-bold mt-8">
+        Outro Video
+      </Heading>
+      {!branding.branding?.outroVideoUrl ? (
+        <>
+          <Dropzone
+            onDrop={(files) => handleUploadFile(files, false)}
+            accept="video/*"
+            maxFiles={1}
+          >
+            {({ getRootProps, getInputProps }) => (
+              <div
+                tabIndex={-1}
+                onKeyUp={() => {}}
+                role="button"
+                className="flex flex-col items-center p-4 my-2 border border-gray-200 border-dashed rounded-md cursor-pointer"
+                {...getRootProps()}
+              >
+                <input {...getInputProps()} />
+                {outroFileUploading ? (
+                  <FiLoader className={cx('animate-spin my-6')} size={16} />
+                ) : (
+                  <>
+                    <FiUploadCloud size={21} className="my-2 text-gray-600" />
+
+                    <div className="z-50 text-center ">
+                      <Text className="text-xs text-gray-600 font-body">
+                        Drag and drop or
+                      </Text>
+                      <Text className="text-xs font-semibold text-gray-800">
+                        browse
+                      </Text>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </Dropzone>
+        </>
+      ) : (
+        <>
+          <div
+            className="relative flex items-center justify-center w-1/2 h-16 mt-2 border border-gray-200 rounded-md cursor-pointer"
+            onMouseEnter={() => setHover(true)}
+            onMouseLeave={() => setHover(false)}
+          >
+            <IoCloseCircle
+              className="absolute top-0 right-0 text-red-500 -m-1.5 cursor-pointer block z-10 bg-white rounded-full"
+              size={16}
+              onClick={() => {
+                setBranding({
+                  ...branding,
+                  branding: {
+                    ...branding.branding,
+                    outroVideoUrl: undefined,
+                  },
+                })
+              }}
+            />
+            <video
+              ref={videoRef}
+              className="object-cover rounded-sm "
+              src={branding.branding?.outroVideoUrl || ''}
               muted
             />
           </div>

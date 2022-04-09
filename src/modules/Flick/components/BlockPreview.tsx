@@ -428,6 +428,7 @@ const PreviewModal = ({
           shouldScrollToCurrentBlock={false}
           showTimeline
           setShowTimeline={() => {}}
+          config={config}
         />
       </div>
     </Modal>
