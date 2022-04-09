@@ -252,18 +252,19 @@ const UnifiedFragment = ({
         currentTime: 0,
         playing: false,
       })
-      setTopLayerChildren?.({ id: '', state: '' })
+      // setTopLayerChildren?.({ id: '', state: '' })
       timer.current = setTimeout(() => {
         setTopLayerChildren?.({ id: nanoid(), state: 'lowerThird' })
       }, 2000)
     }
     if (state === 'recording') {
-      setTopLayerChildren?.({ id: '', state: '' })
+      // setTopLayerChildren?.({ id: '', state: '' })
     }
   }, [state])
 
   useEffect(() => {
     if (!payload?.activeObjectIndex || payload?.activeObjectIndex === 0) return
+    if (payload?.fragmentState === fragmentState) return
     if (viewConfig?.mode !== 'Portrait') {
       // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
       if (payload?.fragmentState === 'customLayout') {

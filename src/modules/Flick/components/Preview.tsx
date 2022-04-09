@@ -79,7 +79,6 @@ import {
   SimpleAST,
   VideoBlockProps,
 } from '../editor/utils/utils'
-import { newFlickStore } from '../store/flickNew.store'
 import { CanvasPreview, LayoutSelector } from './BlockPreview'
 import { EditorContext } from './EditorProvider'
 
@@ -211,7 +210,6 @@ const Preview = ({
   const [activeTab, setActiveTab] = useState<Tab>(commonTabs[0])
   const [ref, bounds] = useMeasure()
   const { payload, updatePayload } = useRecoilValue(studioStore)
-  const { flick } = useRecoilValue(newFlickStore)
 
   const activeBlockRef = useRef<Block | undefined>(block)
 
@@ -220,27 +218,43 @@ const Preview = ({
     if (e.key === 'ArrowLeft') {
       if (!block || (block.pos === 0 && payload.activeIntroIndex === 0)) return
       if (block.type === 'introBlock') {
-        if (payload.activeIntroIndex === 0)
+        updatePayload?.({
+          activeIntroIndex: payload.activeIntroIndex - 1,
+        })
+      } else if (block.type === 'outroBlock') {
+        if (payload.activeOutroIndex === 0)
           setCurrentBlock(blocks[block.pos - 1])
         else
           updatePayload?.({
-            activeIntroIndex: payload.activeIntroIndex - 1,
+            activeOutroIndex: payload.activeOutroIndex - 1,
           })
       } else {
         if (blocks[block.pos - 1].type === 'introBlock') {
           updatePayload?.({
-            activeIntroIndex: flick?.branding?.branding.introVideoUrl ? 2 : 1,
+            activeIntroIndex:
+              ((config.blocks[blocks[block.pos - 1].id].view as IntroBlockView)
+                .intro.order?.length || 0) - 1,
           })
         }
         setCurrentBlock(blocks[block.pos - 1])
       }
     }
     if (e.key === 'ArrowRight') {
-      if (!block || block.pos === blocks.length - 1) return
+      if (
+        !block ||
+        (block.pos === blocks.length - 1 &&
+          payload.activeOutroIndex ===
+            ((config.blocks[blocks[block.pos].id].view as OutroBlockView).outro
+              .order?.length || 0) -
+              1)
+      )
+        return
       if (block.type === 'introBlock') {
         if (
           payload.activeIntroIndex ===
-          (flick?.branding?.branding.introVideoUrl ? 2 : 1)
+          ((config.blocks[blocks[block.pos].id].view as IntroBlockView).intro
+            .order?.length || 0) -
+            1
         ) {
           setCurrentBlock(blocks[block.pos + 1])
         } else {
@@ -248,7 +262,13 @@ const Preview = ({
             activeIntroIndex: payload.activeIntroIndex + 1,
           })
         }
-      } else setCurrentBlock(blocks[block.pos + 1])
+      } else if (block.type === 'outroBlock') {
+        updatePayload?.({
+          activeOutroIndex: payload.activeOutroIndex + 1,
+        })
+      } else {
+        setCurrentBlock(blocks[block.pos + 1])
+      }
     }
   }
 
@@ -319,11 +339,15 @@ const Preview = ({
           <button
             onClick={() => {
               if (block.type === 'introBlock') {
-                if (payload.activeIntroIndex === 0)
+                updatePayload?.({
+                  activeIntroIndex: payload.activeIntroIndex - 1,
+                })
+              } else if (block.type === 'outroBlock') {
+                if (payload.activeOutroIndex === 0)
                   setCurrentBlock(blocks[block.pos - 1])
                 else
                   updatePayload?.({
-                    activeIntroIndex: payload.activeIntroIndex - 1,
+                    activeOutroIndex: payload.activeOutroIndex - 1,
                   })
               } else {
                 if (blocks[block.pos - 1].type === 'introBlock') {
@@ -370,12 +394,29 @@ const Preview = ({
                     activeIntroIndex: payload.activeIntroIndex + 1,
                   })
                 }
-              } else setCurrentBlock(blocks[block.pos + 1])
+              } else if (block.type === 'outroBlock') {
+                updatePayload?.({
+                  activeOutroIndex: payload.activeOutroIndex + 1,
+                })
+              } else {
+                setCurrentBlock(blocks[block.pos + 1])
+              }
             }}
             type="button"
-            disabled={block.pos === blocks.length - 1}
+            disabled={
+              block.pos === blocks.length - 1 &&
+              payload.activeOutroIndex ===
+                ((config.blocks[blocks[block.pos].id].view as OutroBlockView)
+                  .outro.order?.length || 0) -
+                  1
+            }
             className={cx('bg-dark-100 text-white p-2 rounded-sm ml-4', {
-              'opacity-50 cursor-not-allowed': block.pos === blocks.length - 1,
+              'opacity-50 cursor-not-allowed':
+                block.pos === blocks.length - 1 &&
+                payload.activeOutroIndex ===
+                  ((config.blocks[blocks[block.pos].id].view as OutroBlockView)
+                    .outro.order?.length || 0) -
+                    1,
               'opacity-90 hover:bg-dark-100 hover:opacity-100':
                 block.pos < blocks.length - 1,
             })}

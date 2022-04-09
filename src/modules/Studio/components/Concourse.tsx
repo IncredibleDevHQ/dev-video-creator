@@ -73,6 +73,7 @@ export const GetTopLayerChildren = ({
   isShorts,
   status,
   theme,
+  performFinishAction,
 }: {
   topLayerChildrenState: TopLayerChildren
   setTopLayerChildren: React.Dispatch<
@@ -81,6 +82,7 @@ export const GetTopLayerChildren = ({
   isShorts: boolean
   status: Fragment_Status_Enum_Enum
   theme: ThemeFragment
+  performFinishAction: () => void
 }) => {
   if (status === Fragment_Status_Enum_Enum.Ended) return <></>
   switch (topLayerChildrenState) {
@@ -103,6 +105,27 @@ export const GetTopLayerChildren = ({
           theme={theme}
           isShorts={isShorts || false}
           direction="right"
+          setTopLayerChildren={setTopLayerChildren}
+        />
+      )
+    }
+    case 'transition moveIn': {
+      return (
+        <TransitionProvider
+          theme={theme}
+          isShorts={isShorts || false}
+          direction="moveIn"
+          setTopLayerChildren={setTopLayerChildren}
+          performFinishAction={performFinishAction}
+        />
+      )
+    }
+    case 'transition moveAway': {
+      return (
+        <TransitionProvider
+          theme={theme}
+          isShorts={isShorts || false}
+          direction="moveAway"
           setTopLayerChildren={setTopLayerChildren}
         />
       )

@@ -38,6 +38,7 @@ import {
   CodeBlockView,
   IntroBlockView,
   ListBlockView,
+  OutroBlockView,
   ViewConfig,
 } from '../../../utils/configTypes'
 import { BrandingJSON } from '../../Branding/BrandingPage'
@@ -46,6 +47,7 @@ import {
   IntroBlockProps,
   ListBlock,
   ListBlockProps,
+  OutroBlockProps,
 } from '../../Flick/editor/utils/utils'
 import { ComputedPoint } from '../hooks/use-point'
 import { StudioProviderProps, studioStore } from '../stores'
@@ -306,11 +308,12 @@ const RecordingControlsBar = ({
         <button
           type="button"
           onClick={() => {
-            updatePayload?.({
-              ...payload,
-              status: Fragment_Status_Enum_Enum.Ended,
-              // activeObjectIndex: payload?.activeObjectIndex + 1,
-            })
+            studio.stopRecording()
+            // updatePayload?.({
+            //   ...payload,
+            //   status: Fragment_Status_Enum_Enum.Ended,
+            //   // activeObjectIndex: payload?.activeObjectIndex + 1,
+            // })
 
             logEvent(PageEvent.StopRecording)
           }}
@@ -468,12 +471,6 @@ const RecordingControlsBar = ({
             'bg-grey-400 border border-gray-600 backdrop-filter bg-opacity-50 backdrop-blur-2xl p-1.5 rounded-sm ml-4',
             {
               'bg-grey-500 bg-opacity-100 text-gray-100': !isBackDisabled(),
-              // (payload?.activeObjectIndex !== 0 ||
-              //   payload?.activeIntroIndex !== 0) &&
-              // payload?.activePointIndex !== 0 &&
-              // !isVideo &&
-              // !isImage &&
-              // !isOutro,
               'text-gray-500 cursor-not-allowed': isBackDisabled(),
             }
           )}
@@ -501,20 +498,32 @@ const RecordingControlsBar = ({
 
         <button
           className={cx(
-            'bg-grey-400 border border-gray-600 backdrop-filter bg-opacity-50 backdrop-blur-2xl p-1.5 rounded-sm ml-2',
+            'bg-grey-500 border border-gray-600 backdrop-filter bg-opacity-100 backdrop-blur-2xl p-1.5 rounded-sm ml-2 text-gray-100',
             {
-              'bg-opacity-50 text-gray-100':
-                payload?.activeObjectIndex !==
-                fragment?.editorState?.blocks.length - 1,
               'text-gray-500 cursor-not-allowed':
                 payload?.activeObjectIndex ===
-                fragment?.editorState?.blocks.length - 1,
+                  fragment?.editorState?.blocks.length - 1 &&
+                payload.activeOutroIndex ===
+                  ((
+                    fragment?.configuration?.blocks[
+                      fragment?.editorState?.blocks[payload?.activeObjectIndex]
+                        .id
+                    ].view as OutroBlockView
+                  ).outro.order?.length || 0) -
+                    1,
             }
           )}
           type="button"
           disabled={
             payload?.activeObjectIndex ===
-            fragment?.editorState?.blocks.length - 1
+              fragment?.editorState?.blocks.length - 1 &&
+            payload.activeOutroIndex ===
+              ((
+                fragment?.configuration?.blocks[
+                  fragment?.editorState?.blocks[payload?.activeObjectIndex].id
+                ].view as OutroBlockView
+              ).outro.order?.length || 0) -
+                1
           }
           onClick={() => {
             let isBlockCompleted: boolean | undefined = false
@@ -610,6 +619,14 @@ const performAction = (
     case 'headingBlock':
       return handleImageBlock(payload, updatePayload, direction)
     // break
+    case 'outroBlock':
+      return handleOutroBlock(
+        fragment,
+        payload,
+        updatePayload,
+        branding,
+        direction
+      )
     default:
       return false
   }
@@ -851,6 +868,50 @@ const handleIntroBlock = (
       })
     }
   }
+  return false
+}
+
+const handleOutroBlock = (
+  fragment: StudioFragmentFragment,
+  payload: any,
+  updatePayload: ((value: any) => void) | undefined,
+  branding: BrandingJSON | null | undefined,
+  direction: 'next' | 'previous'
+): boolean => {
+  const outroBlockProps = fragment?.editorState?.blocks[
+    payload?.activeObjectIndex || 0
+  ] as OutroBlockProps
+  const outroBlockViewProps = (fragment?.configuration as ViewConfig).blocks[
+    outroBlockProps.id
+  ]?.view as OutroBlockView
+
+  if (direction === 'next') {
+    if (
+      payload?.activeOutroIndex ===
+      (outroBlockViewProps.outro?.order?.length || 0) - 1
+    ) {
+      // updatePayload?.({
+      //   activeObjectIndex: payload?.activeObjectIndex + 1,
+      // })
+      return true
+      // eslint-disable-next-line no-else-return
+    } else {
+      updatePayload?.({
+        activeOutroIndex: payload?.activeOutroIndex + 1,
+      })
+    }
+  } else if (direction === 'previous') {
+    if (payload?.activeOutroIndex === 0) {
+      updatePayload?.({
+        activeObjectIndex: payload?.activeObjectIndex - 1,
+      })
+    } else {
+      updatePayload?.({
+        activeOutroIndex: payload?.activeOutroIndex - 1,
+      })
+    }
+  }
+
   return false
 }
 
