@@ -1,3 +1,4 @@
+import Konva from 'konva'
 import React, { useEffect, useState } from 'react'
 import { Group, Image, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
@@ -9,9 +10,11 @@ import {
   BlockProperties,
   OutroBlockView,
   OutroBlockViewProps,
+  OutroState,
 } from '../../../../utils/configTypes'
-import Concourse from '../../components/Concourse'
+import Concourse, { CONFIG, SHORTS_CONFIG } from '../../components/Concourse'
 import FragmentBackground from '../../components/FragmentBackground'
+import { Video } from '../../components/Video'
 import useEdit from '../../hooks/use-edit'
 import { studioStore } from '../../stores'
 import {
@@ -59,11 +62,16 @@ export interface SocialHandles {
 const OutroFragment = ({
   isShorts,
   viewConfig,
+  isPreview,
+  outroSequence,
 }: {
   isShorts: boolean
   viewConfig: BlockProperties
+  isPreview: boolean
+  outroSequence: OutroState[]
 }) => {
-  const { fragment, branding, theme } = useRecoilValue(studioStore)
+  const { fragment, branding, theme, state, payload } =
+    useRecoilValue(studioStore)
   const [logo] = useImage(branding?.logo || '', 'anonymous')
   const [twitterLogo] = useImage(TwitterLogo, 'anonymous')
   const [discordLogo] = useImage(DiscordLogo, 'anonymous')
@@ -84,6 +92,9 @@ const OutroFragment = ({
   })
 
   const { clipRect } = useEdit()
+
+  const outroScreenRef = React.useRef<Konva.Group>(null)
+  const brandVideoRef = React.useRef<Konva.Group>(null)
 
   useEffect(() => {
     if (!viewConfig) return
@@ -161,112 +172,173 @@ const OutroFragment = ({
     )
   }, [outroConfig, viewConfig, socialHandles, isShorts])
 
+  const videoElement = React.useMemo(() => {
+    if (!branding?.introVideoUrl) return
+    const element = document.createElement('video')
+    element.autoplay = false
+    element.crossOrigin = 'anonymous'
+    element.preload = 'auto'
+    element.muted = true
+    element.src = branding?.outroVideoUrl || ''
+    // eslint-disable-next-line consistent-return
+    return element
+  }, [branding])
+
+  useEffect(() => {
+    if (
+      state === 'recording' ||
+      state === 'ready' ||
+      state === 'resumed' ||
+      isPreview
+    ) {
+      if (outroSequence[payload?.activeOutroIndex] === 'titleSplash') {
+        videoElement?.pause()
+        outroScreenRef.current?.opacity(1)
+        brandVideoRef.current?.opacity(0)
+      }
+      if (outroSequence[payload?.activeOutroIndex] === 'outroVideo') {
+        if (!videoElement) return
+        videoElement?.play()
+        outroScreenRef.current?.opacity(0)
+        brandVideoRef.current?.opacity(1)
+      }
+    }
+  }, [state, payload?.activeOutroIndex, videoElement])
+
   const layerChildren = [
-    <Group
-      clipFunc={(ctx: any) => {
-        clipRect(ctx, {
-          x: outroConfig?.layoutX || 0,
-          y: outroConfig?.layoutY || 0,
-          width: outroConfig?.layoutWidth || 0,
-          height: outroConfig?.layoutHeight || 0,
-          borderRadius: outroConfig?.layoutBorderRadius || 0,
-        })
-      }}
-    >
-      <FragmentBackground
-        theme={theme}
-        objectConfig={{
-          x: outroConfig?.layoutX || 0,
-          y: outroConfig?.layoutY || 0,
-          width: outroConfig?.layoutWidth || 0,
-          height: outroConfig?.layoutHeight || 0,
-          borderRadius: outroConfig?.layoutBorderRadius || 0,
+    <Group>
+      <Group
+        x={0}
+        y={0}
+        ref={outroScreenRef}
+        opacity={0}
+        clipFunc={(ctx: any) => {
+          clipRect(ctx, {
+            x: outroConfig?.layoutX || 0,
+            y: outroConfig?.layoutY || 0,
+            width: outroConfig?.layoutWidth || 0,
+            height: outroConfig?.layoutHeight || 0,
+            borderRadius: outroConfig?.layoutBorderRadius || 0,
+          })
         }}
-        backgroundRectColor={
-          branding?.colors?.primary
-            ? branding?.colors?.primary
-            : getThemeSurfaceColor(theme)
-        }
-      />
-      <Group x={outroConfig?.layoutX} y={outroConfig?.layoutY}>
-        <Text
-          x={outroConfig?.textX || 16}
-          y={outroConfig?.textY || 0}
-          width={outroConfig?.textWidth || 0}
-          height={outroConfig?.textHeight || 0}
-          text={outroMsg}
-          align={viewConfig?.layout === 'classic' ? 'center' : 'left'}
-          fill={branding?.colors?.text || getThemeTextColor(theme)}
-          fontSize={outroConfig?.textFontSize || 0}
-          fontFamily={getThemeFont(theme)}
-          fontStyle="normal 600"
-          lineHeight={1.1}
+      >
+        <FragmentBackground
+          theme={theme}
+          objectConfig={{
+            x: outroConfig?.layoutX || 0,
+            y: outroConfig?.layoutY || 0,
+            width: outroConfig?.layoutWidth || 0,
+            height: outroConfig?.layoutHeight || 0,
+            borderRadius: outroConfig?.layoutBorderRadius || 0,
+          }}
+          backgroundRectColor={
+            branding?.colors?.primary
+              ? branding?.colors?.primary
+              : getThemeSurfaceColor(theme)
+          }
         />
-        <Image
-          x={outroConfig?.logoX || 0}
-          y={outroConfig?.logoY || 0}
-          width={outroConfig?.logoWidth || 0}
-          height={outroConfig?.logoHeight || 0}
-          image={logo}
-        />
-        {socialHandles?.twitterHandle && (
-          <>
-            <Image
-              x={socialHandlesPositionInfo?.twitterX}
-              y={socialHandlesPositionInfo?.twitterY || 0}
-              width={24}
-              height={24}
-              image={twitterLogo}
-            />
-            <Text
-              x={socialHandlesPositionInfo?.twitterX + 8 + 24}
-              y={socialHandlesPositionInfo?.twitterY + 3}
-              text={socialHandles?.twitterHandle}
-              fill={branding?.colors?.text || getThemeTextColor(theme)}
-              fontSize={outroConfig?.socialHandlesFontSize || 0}
-              fontFamily={branding?.font?.body?.family || 'GilroyRegular'}
-            />
-          </>
-        )}
-        {socialHandles?.discordHandle && (
-          <>
-            <Image
-              x={socialHandlesPositionInfo?.discordX}
-              y={socialHandlesPositionInfo?.discordY || 0}
-              width={24}
-              height={24}
-              image={discordLogo}
-            />
-            <Text
-              x={socialHandlesPositionInfo?.discordX + 8 + 24}
-              y={socialHandlesPositionInfo?.discordY + 3}
-              text={socialHandles?.discordHandle}
-              fill={branding?.colors?.text || getThemeTextColor(theme)}
-              fontSize={outroConfig?.socialHandlesFontSize || 0}
-              fontFamily={branding?.font?.body?.family || 'GilroyRegular'}
-              lineHeight={1.2}
-            />
-          </>
-        )}
-        {socialHandles?.youtubeHandle && (
-          <>
-            <Image
-              x={socialHandlesPositionInfo?.youtubeX}
-              y={socialHandlesPositionInfo?.youtubeY || 0}
-              width={24}
-              height={24}
-              image={youtubeLogo}
-            />
-            <Text
-              x={socialHandlesPositionInfo?.youtubeX + 8 + 24}
-              y={socialHandlesPositionInfo?.youtubeY + 3}
-              text={socialHandles?.youtubeHandle}
-              fill={branding?.colors?.text || getThemeTextColor(theme)}
-              fontSize={outroConfig?.socialHandlesFontSize || 0}
-              fontFamily={branding?.font?.body?.family || 'GilroyRegular'}
-              lineHeight={1.2}
-            />
-          </>
+        <Group x={outroConfig?.layoutX} y={outroConfig?.layoutY}>
+          <Text
+            x={outroConfig?.textX || 16}
+            y={outroConfig?.textY || 0}
+            width={outroConfig?.textWidth || 0}
+            height={outroConfig?.textHeight || 0}
+            text={outroMsg}
+            align={viewConfig?.layout === 'classic' ? 'center' : 'left'}
+            fill={branding?.colors?.text || getThemeTextColor(theme)}
+            fontSize={outroConfig?.textFontSize || 0}
+            fontFamily={getThemeFont(theme)}
+            fontStyle="normal 600"
+            lineHeight={1.1}
+          />
+          <Image
+            x={outroConfig?.logoX || 0}
+            y={outroConfig?.logoY || 0}
+            width={outroConfig?.logoWidth || 0}
+            height={outroConfig?.logoHeight || 0}
+            image={logo}
+          />
+          {socialHandles?.twitterHandle && (
+            <>
+              <Image
+                x={socialHandlesPositionInfo?.twitterX}
+                y={socialHandlesPositionInfo?.twitterY || 0}
+                width={24}
+                height={24}
+                image={twitterLogo}
+              />
+              <Text
+                x={socialHandlesPositionInfo?.twitterX + 8 + 24}
+                y={socialHandlesPositionInfo?.twitterY + 3}
+                text={socialHandles?.twitterHandle}
+                fill={branding?.colors?.text || getThemeTextColor(theme)}
+                fontSize={outroConfig?.socialHandlesFontSize || 0}
+                fontFamily={branding?.font?.body?.family || 'GilroyRegular'}
+              />
+            </>
+          )}
+          {socialHandles?.discordHandle && (
+            <>
+              <Image
+                x={socialHandlesPositionInfo?.discordX}
+                y={socialHandlesPositionInfo?.discordY || 0}
+                width={24}
+                height={24}
+                image={discordLogo}
+              />
+              <Text
+                x={socialHandlesPositionInfo?.discordX + 8 + 24}
+                y={socialHandlesPositionInfo?.discordY + 3}
+                text={socialHandles?.discordHandle}
+                fill={branding?.colors?.text || getThemeTextColor(theme)}
+                fontSize={outroConfig?.socialHandlesFontSize || 0}
+                fontFamily={branding?.font?.body?.family || 'GilroyRegular'}
+                lineHeight={1.2}
+              />
+            </>
+          )}
+          {socialHandles?.youtubeHandle && (
+            <>
+              <Image
+                x={socialHandlesPositionInfo?.youtubeX}
+                y={socialHandlesPositionInfo?.youtubeY || 0}
+                width={24}
+                height={24}
+                image={youtubeLogo}
+              />
+              <Text
+                x={socialHandlesPositionInfo?.youtubeX + 8 + 24}
+                y={socialHandlesPositionInfo?.youtubeY + 3}
+                text={socialHandles?.youtubeHandle}
+                fill={branding?.colors?.text || getThemeTextColor(theme)}
+                fontSize={outroConfig?.socialHandlesFontSize || 0}
+                fontFamily={branding?.font?.body?.family || 'GilroyRegular'}
+                lineHeight={1.2}
+              />
+            </>
+          )}
+        </Group>
+      </Group>
+      <Group x={0} y={0} ref={brandVideoRef} opacity={0}>
+        {videoElement && (
+          <Video
+            videoElement={videoElement}
+            videoConfig={{
+              x: 0,
+              y: 0,
+              width: !isShorts ? CONFIG.width : SHORTS_CONFIG.width,
+              height: !isShorts ? CONFIG.height : SHORTS_CONFIG.height,
+              videoFill: branding?.background?.color?.primary,
+              cornerRadius: 0,
+              performClip: true,
+              clipVideoConfig: {
+                x: 0,
+                y: 0,
+                width: 1,
+                height: 1,
+              },
+            }}
+          />
         )}
       </Group>
     </Group>,
@@ -274,13 +346,19 @@ const OutroFragment = ({
 
   const studioUserConfig = !isShorts
     ? StudioUserConfiguration({
-        layout: outroConfig?.userMediaLayout || 'classic',
+        layout:
+          outroSequence[payload?.activeOutroIndex] === 'titleSplash'
+            ? outroConfig?.userMediaLayout || 'classic'
+            : 'classic',
         fragment,
         fragmentState: 'customLayout',
         theme,
       })
     : ShortsStudioUserConfiguration({
-        layout: outroConfig?.userMediaLayout || 'classic',
+        layout:
+          outroSequence[payload?.activeOutroIndex] === 'titleSplash'
+            ? outroConfig?.userMediaLayout || 'classic'
+            : 'classic',
         fragment,
         fragmentState: 'customLayout',
         theme,

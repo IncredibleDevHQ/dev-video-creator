@@ -7,7 +7,7 @@ import Paragraph from '@tiptap/extension-paragraph'
 import Placeholder from '@tiptap/extension-placeholder'
 import { Text as TextNode } from '@tiptap/extension-text'
 import { EditorContent, useEditor } from '@tiptap/react'
-import { sentenceCase } from 'change-case'
+import { capitalCase, sentenceCase } from 'change-case'
 import React, {
   ChangeEvent,
   useContext,
@@ -16,6 +16,7 @@ import React, {
   useRef,
   useState,
 } from 'react'
+import { DragDropContext, Draggable, Droppable } from 'react-beautiful-dnd'
 import Dropzone from 'react-dropzone'
 import { BiCheck, BiNote } from 'react-icons/bi'
 import { CgProfile } from 'react-icons/cg'
@@ -28,6 +29,9 @@ import {
   IoChevronUpOutline,
   IoCloseCircle,
   IoCloseOutline,
+  IoEyeOffOutline,
+  IoEyeOutline,
+  IoPlayForwardOutline,
   IoSparklesOutline,
 } from 'react-icons/io5'
 import { MdOutlineTextFields } from 'react-icons/md'
@@ -75,7 +79,6 @@ import {
   SimpleAST,
   VideoBlockProps,
 } from '../editor/utils/utils'
-import { newFlickStore } from '../store/flickNew.store'
 import { CanvasPreview, LayoutSelector } from './BlockPreview'
 import { EditorContext } from './EditorProvider'
 
@@ -121,6 +124,10 @@ const introOutroBlockTabs: Tab[] = [
   {
     id: 'Content',
     name: 'Content',
+  },
+  {
+    id: 'Sequence',
+    name: 'Sequence',
   },
 ]
 
@@ -173,6 +180,8 @@ const getIcon = (tab: Tab, block?: BlockProperties) => {
       return <MdOutlineTextFields size={21} />
     case 'Picture':
       return <CgProfile size={21} />
+    case 'Sequence':
+      return <IoPlayForwardOutline size={21} />
     default:
       return <IoSparklesOutline size={21} />
   }
@@ -201,7 +210,6 @@ const Preview = ({
   const [activeTab, setActiveTab] = useState<Tab>(commonTabs[0])
   const [ref, bounds] = useMeasure()
   const { payload, updatePayload } = useRecoilValue(studioStore)
-  const { flick } = useRecoilValue(newFlickStore)
 
   const activeBlockRef = useRef<Block | undefined>(block)
 
@@ -210,27 +218,43 @@ const Preview = ({
     if (e.key === 'ArrowLeft') {
       if (!block || (block.pos === 0 && payload.activeIntroIndex === 0)) return
       if (block.type === 'introBlock') {
-        if (payload.activeIntroIndex === 0)
+        updatePayload?.({
+          activeIntroIndex: payload.activeIntroIndex - 1,
+        })
+      } else if (block.type === 'outroBlock') {
+        if (payload.activeOutroIndex === 0)
           setCurrentBlock(blocks[block.pos - 1])
         else
           updatePayload?.({
-            activeIntroIndex: payload.activeIntroIndex - 1,
+            activeOutroIndex: payload.activeOutroIndex - 1,
           })
       } else {
         if (blocks[block.pos - 1].type === 'introBlock') {
           updatePayload?.({
-            activeIntroIndex: flick?.branding?.branding.introVideoUrl ? 2 : 1,
+            activeIntroIndex:
+              ((config.blocks[blocks[block.pos - 1].id].view as IntroBlockView)
+                .intro.order?.length || 0) - 1,
           })
         }
         setCurrentBlock(blocks[block.pos - 1])
       }
     }
     if (e.key === 'ArrowRight') {
-      if (!block || block.pos === blocks.length - 1) return
+      if (
+        !block ||
+        (block.pos === blocks.length - 1 &&
+          payload.activeOutroIndex ===
+            ((config.blocks[blocks[block.pos].id].view as OutroBlockView).outro
+              .order?.length || 0) -
+              1)
+      )
+        return
       if (block.type === 'introBlock') {
         if (
           payload.activeIntroIndex ===
-          (flick?.branding?.branding.introVideoUrl ? 2 : 1)
+          ((config.blocks[blocks[block.pos].id].view as IntroBlockView).intro
+            .order?.length || 0) -
+            1
         ) {
           setCurrentBlock(blocks[block.pos + 1])
         } else {
@@ -238,7 +262,13 @@ const Preview = ({
             activeIntroIndex: payload.activeIntroIndex + 1,
           })
         }
-      } else setCurrentBlock(blocks[block.pos + 1])
+      } else if (block.type === 'outroBlock') {
+        updatePayload?.({
+          activeOutroIndex: payload.activeOutroIndex + 1,
+        })
+      } else {
+        setCurrentBlock(blocks[block.pos + 1])
+      }
     }
   }
 
@@ -309,18 +339,24 @@ const Preview = ({
           <button
             onClick={() => {
               if (block.type === 'introBlock') {
-                if (payload.activeIntroIndex === 0)
+                updatePayload?.({
+                  activeIntroIndex: payload.activeIntroIndex - 1,
+                })
+              } else if (block.type === 'outroBlock') {
+                if (payload.activeOutroIndex === 0)
                   setCurrentBlock(blocks[block.pos - 1])
                 else
                   updatePayload?.({
-                    activeIntroIndex: payload.activeIntroIndex - 1,
+                    activeOutroIndex: payload.activeOutroIndex - 1,
                   })
               } else {
                 if (blocks[block.pos - 1].type === 'introBlock') {
                   updatePayload?.({
-                    activeIntroIndex: flick?.branding?.branding.introVideoUrl
-                      ? 2
-                      : 1,
+                    activeIntroIndex:
+                      ((
+                        config.blocks[blocks[block.pos - 1].id]
+                          .view as IntroBlockView
+                      ).intro.order?.length || 0) - 1,
                   })
                 }
                 setCurrentBlock(blocks[block.pos - 1])
@@ -348,7 +384,9 @@ const Preview = ({
               if (block.type === 'introBlock') {
                 if (
                   payload.activeIntroIndex ===
-                  (flick?.branding?.branding.introVideoUrl ? 2 : 1)
+                  ((config.blocks[blocks[block.pos].id].view as IntroBlockView)
+                    .intro.order?.length || 0) -
+                    1
                 ) {
                   setCurrentBlock(blocks[block.pos + 1])
                 } else {
@@ -356,12 +394,29 @@ const Preview = ({
                     activeIntroIndex: payload.activeIntroIndex + 1,
                   })
                 }
-              } else setCurrentBlock(blocks[block.pos + 1])
+              } else if (block.type === 'outroBlock') {
+                updatePayload?.({
+                  activeOutroIndex: payload.activeOutroIndex + 1,
+                })
+              } else {
+                setCurrentBlock(blocks[block.pos + 1])
+              }
             }}
             type="button"
-            disabled={block.pos === blocks.length - 1}
+            disabled={
+              block.pos === blocks.length - 1 &&
+              payload.activeOutroIndex ===
+                ((config.blocks[blocks[block.pos].id].view as OutroBlockView)
+                  .outro.order?.length || 0) -
+                  1
+            }
             className={cx('bg-dark-100 text-white p-2 rounded-sm ml-4', {
-              'opacity-50 cursor-not-allowed': block.pos === blocks.length - 1,
+              'opacity-50 cursor-not-allowed':
+                block.pos === blocks.length - 1 &&
+                payload.activeOutroIndex ===
+                  ((config.blocks[blocks[block.pos].id].view as OutroBlockView)
+                    .outro.order?.length || 0) -
+                    1,
               'opacity-90 hover:bg-dark-100 hover:opacity-100':
                 block.pos < blocks.length - 1,
             })}
@@ -419,6 +474,30 @@ const Preview = ({
                 }}
               />
             )}
+            {activeTab.id === introOutroBlockTabs[1].id &&
+              block.type === 'introBlock' && (
+                <SequenceTab
+                  view={config.blocks[block.id]?.view as IntroBlockView}
+                  updateView={(view: IntroBlockView) => {
+                    updateConfig(block.id, {
+                      ...config.blocks[block.id],
+                      view,
+                    })
+                  }}
+                />
+              )}
+            {activeTab.id === introOutroBlockTabs[1].id &&
+              block.type === 'outroBlock' && (
+                <OutroSequenceTab
+                  view={config.blocks[block.id]?.view as OutroBlockView}
+                  updateView={(view: OutroBlockView) => {
+                    updateConfig(block.id, {
+                      ...config.blocks[block.id],
+                      view,
+                    })
+                  }}
+                />
+              )}
             {activeTab.id === commonTabs[0].id && (
               <LayoutSelector
                 mode={config.mode}
@@ -606,6 +685,254 @@ const PictureTab = ({
           )}
         </Dropzone>
       )}
+    </div>
+  )
+}
+
+const SequenceTab = ({
+  view,
+  updateView,
+}: {
+  view: IntroBlockView | undefined
+  updateView: (view: IntroBlockView) => void
+}) => {
+  useEffect(() => {
+    if (!view?.intro.order) {
+      updateView({
+        ...view,
+        type: 'introBlock',
+        intro: {
+          ...view?.intro,
+          order: [
+            {
+              state: 'userMedia',
+              enabled: true,
+            },
+            {
+              state: 'introVideo',
+              enabled: true,
+            },
+            {
+              state: 'titleSplash',
+              enabled: true,
+            },
+          ],
+        },
+      })
+    }
+  }, [view])
+
+  return (
+    <div className="flex flex-col pt-6 px-4">
+      <Heading fontSize="small" className="font-bold">
+        Sequence
+      </Heading>
+      <span className="font-body text-xs text-gray-400">
+        Drag and drop to change sequence
+      </span>
+      <DragDropContext
+        onDragEnd={(result) => {
+          const { destination, source } = result
+
+          if (!destination || !view?.intro?.order) return
+
+          if (
+            destination.droppableId === source.droppableId &&
+            destination.index === source.index
+          )
+            return
+
+          const newOrder = Array.from(view.intro.order)
+          newOrder.splice(source.index, 1)
+          newOrder.splice(destination.index, 0, view.intro.order[source.index])
+          updateView({
+            ...view,
+            type: 'introBlock',
+            intro: {
+              ...view?.intro,
+              order: newOrder,
+            },
+          })
+        }}
+      >
+        <Droppable droppableId="droppable">
+          {(provided) => (
+            <div
+              className="flex flex-col justify-center gap-y-2 w-full border border-dashed mt-4 rounded-md p-2"
+              style={{
+                height: view?.intro?.order?.length === 3 ? '150px' : '105px',
+              }}
+              {...provided.droppableProps}
+              ref={provided.innerRef}
+            >
+              {view?.intro?.order?.map((o, i) => (
+                <Draggable key={o.state} draggableId={o.state} index={i}>
+                  {(provided) => (
+                    <div
+                      className="flex justify-between border rounded-sm p-2 text-sm font-body bg-white"
+                      ref={provided.innerRef}
+                      {...provided.draggableProps}
+                      {...provided.dragHandleProps}
+                    >
+                      {capitalCase(o.state)}
+                      <button
+                        type="button"
+                        className="disabled:cursor-not-allowed"
+                        disabled={
+                          view?.intro?.order?.filter((o) => o.enabled)
+                            .length === 1 && o.enabled
+                        }
+                        onClick={() => {
+                          updateView({
+                            ...view,
+                            type: 'introBlock',
+                            intro: {
+                              ...view?.intro,
+                              order: view?.intro?.order?.map((item) => {
+                                if (item.state === o.state) {
+                                  return {
+                                    ...o,
+                                    enabled: !o.enabled,
+                                  }
+                                }
+                                return item
+                              }),
+                            },
+                          })
+                        }}
+                      >
+                        {o.enabled ? <IoEyeOutline /> : <IoEyeOffOutline />}
+                      </button>
+                    </div>
+                  )}
+                </Draggable>
+              ))}
+            </div>
+          )}
+        </Droppable>
+      </DragDropContext>
+    </div>
+  )
+}
+
+const OutroSequenceTab = ({
+  view,
+  updateView,
+}: {
+  view: OutroBlockView | undefined
+  updateView: (view: OutroBlockView) => void
+}) => {
+  useEffect(() => {
+    if (!view?.outro.order) {
+      updateView({
+        ...view,
+        type: 'outroBlock',
+        outro: {
+          ...view?.outro,
+          order: [
+            {
+              state: 'outroVideo',
+              enabled: true,
+            },
+            {
+              state: 'titleSplash',
+              enabled: true,
+            },
+          ],
+        },
+      })
+    }
+  }, [view])
+
+  return (
+    <div className="flex flex-col pt-6 px-4">
+      <Heading fontSize="small" className="font-bold">
+        Sequence
+      </Heading>
+      <span className="font-body text-xs text-gray-400">
+        Drag and drop to change sequence
+      </span>
+      <DragDropContext
+        onDragEnd={(result) => {
+          const { destination, source } = result
+
+          if (!destination || !view?.outro?.order) return
+
+          if (
+            destination.droppableId === source.droppableId &&
+            destination.index === source.index
+          )
+            return
+
+          const newOrder = Array.from(view.outro.order)
+          newOrder.splice(source.index, 1)
+          newOrder.splice(destination.index, 0, view.outro.order[source.index])
+          updateView({
+            ...view,
+            type: 'outroBlock',
+            outro: {
+              ...view?.outro,
+              order: newOrder,
+            },
+          })
+        }}
+      >
+        <Droppable droppableId="droppable">
+          {(provided) => (
+            <div
+              className="flex flex-col justify-center gap-y-2 w-full border border-dashed mt-4 rounded-md p-2"
+              style={{
+                height: view?.outro?.order?.length === 2 ? '105px' : '60px',
+              }}
+              {...provided.droppableProps}
+              ref={provided.innerRef}
+            >
+              {view?.outro?.order?.map((o, i) => (
+                <Draggable key={o.state} draggableId={o.state} index={i}>
+                  {(provided) => (
+                    <div
+                      className="flex justify-between border rounded-sm p-2 text-sm font-body bg-white"
+                      ref={provided.innerRef}
+                      {...provided.draggableProps}
+                      {...provided.dragHandleProps}
+                    >
+                      {capitalCase(o.state)}
+                      <button
+                        type="button"
+                        className="disabled:cursor-not-allowed"
+                        disabled={
+                          view?.outro?.order?.filter((o) => o.enabled)
+                            .length === 1 && o.enabled
+                        }
+                        onClick={() => {
+                          updateView({
+                            ...view,
+                            type: 'outroBlock',
+                            outro: {
+                              ...view?.outro,
+                              order: view?.outro?.order?.map((item) => {
+                                if (item.state === o.state) {
+                                  return {
+                                    ...o,
+                                    enabled: !o.enabled,
+                                  }
+                                }
+                                return item
+                              }),
+                            },
+                          })
+                        }}
+                      >
+                        {o.enabled ? <IoEyeOutline /> : <IoEyeOffOutline />}
+                      </button>
+                    </div>
+                  )}
+                </Draggable>
+              ))}
+            </div>
+          )}
+        </Droppable>
+      </DragDropContext>
     </div>
   )
 }

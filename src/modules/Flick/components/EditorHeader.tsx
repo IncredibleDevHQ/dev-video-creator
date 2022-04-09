@@ -12,7 +12,7 @@ import {
 } from '../../../generated/graphql'
 import { logEvent } from '../../../utils/analytics'
 import { PageEvent } from '../../../utils/analytics-types'
-import { ViewConfig } from '../../../utils/configTypes'
+import { IntroBlockView, ViewConfig } from '../../../utils/configTypes'
 import { studioStore } from '../../Studio/stores'
 import { Block, Position } from '../editor/utils/utils'
 import { newFlickStore } from '../store/flickNew.store'
@@ -185,8 +185,13 @@ const EditorHeader = ({
             x: e.currentTarget.getBoundingClientRect().x,
             y: e.currentTarget.offsetTop,
           })
+          const introBlock = blocks[0]
+          const introBlockView = viewConfig.blocks[introBlock.id]
+            .view as IntroBlockView
           updatePayload?.({
-            activeIntroIndex: flick.branding?.branding?.introVideoUrl ? 2 : 1,
+            activeIntroIndex: introBlockView.intro.order?.findIndex(
+              (o) => o.state === 'titleSplash'
+            ),
           })
         }}
         maxLength={50}

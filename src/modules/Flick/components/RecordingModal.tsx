@@ -3,6 +3,7 @@ import React from 'react'
 import Modal from 'react-responsive-modal'
 import { useHistory } from 'react-router-dom'
 import { Button, Heading, Text } from '../../../components'
+import { ViewConfig } from '../../../utils/configTypes'
 import { Block, SimpleAST } from '../editor/utils/utils'
 import Timeline from './Timeline'
 
@@ -12,12 +13,14 @@ const RecordingModal = ({
   simpleAST,
   handleClose,
   currentBlock,
+  config,
   setCurrentBlock,
 }: {
   open: boolean
   simpleAST: SimpleAST | undefined
   activeFragmentId: string
   currentBlock: Block | undefined
+  config: ViewConfig
   setCurrentBlock: React.Dispatch<React.SetStateAction<Block | undefined>>
   handleClose: (refresh?: boolean) => void
 }) => {
@@ -32,7 +35,7 @@ const RecordingModal = ({
         modal: cx(
           'rounded-lg w-1/2 max-w-md mx-auto p-4',
           css`
-            background-color: #fffffff !important;
+            background-color: #ffffff !important;
           `
         ),
       }}
@@ -53,6 +56,7 @@ const RecordingModal = ({
         currentBlock={currentBlock}
         setCurrentBlock={setCurrentBlock}
         shouldScrollToCurrentBlock
+        config={config}
       />
       <hr />
       <div className="flex justify-between items-center pt-4 px-2 text-black">
