@@ -464,6 +464,78 @@ const VideoBackground = ({
           )
         }
       }
+    case 'LeeRob':
+      switch (branding?.background?.type) {
+        case 'image':
+          return (
+            <Image
+              x={0}
+              y={0}
+              width={stageConfig.width}
+              height={stageConfig.height}
+              image={bgImage}
+              fill="#040E22"
+            />
+          )
+        case 'color':
+          return (
+            <Rect
+              x={0}
+              y={0}
+              width={stageConfig.width}
+              height={stageConfig.height}
+              fill={branding?.background?.color?.primary}
+            />
+          )
+        case 'video':
+          return (
+            <Group x={0} y={0}>
+              {videoElement && (
+                <Video
+                  videoElement={videoElement}
+                  videoConfig={{
+                    x: 0,
+                    y: 0,
+                    width: stageConfig.width,
+                    height: stageConfig.height,
+                    videoFill: branding?.background?.color?.primary,
+                    cornerRadius: 0,
+                    performClip: true,
+                    clipVideoConfig: {
+                      x: 0,
+                      y: 0,
+                      width: 1,
+                      height: 1,
+                    },
+                  }}
+                />
+              )}
+            </Group>
+          )
+        default: {
+          return (
+            <Group>
+              <Rect
+                x={0}
+                y={0}
+                width={stageConfig.width}
+                height={stageConfig.height}
+                fill="#000000"
+              />
+              {[160, 320, 480, 640, 800].map((x) => {
+                return (
+                  <Line
+                    points={[x, 0, x, stageConfig.height]}
+                    stroke="#FFFFFF"
+                    strokeWidth={1}
+                    opacity={0.2}
+                  />
+                )
+              })}
+            </Group>
+          )
+        }
+      }
     default:
       return <></>
   }
