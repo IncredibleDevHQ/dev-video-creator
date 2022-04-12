@@ -122,6 +122,19 @@ const IntroFragment = ({
     }
   }, [activeIntroIndex])
 
+  useEffect(() => {
+    if (!videoElement) return
+    if (isPreview) return
+    if (introSequence[activeIntroIndex] !== 'introVideo') return
+    videoElement.addEventListener('ended', () => {
+      if (activeIntroIndex !== introSequence.length - 1) {
+        updatePayload?.({ activeIntroIndex: activeIntroIndex + 1 })
+      } else {
+        videoElement.pause()
+      }
+    })
+  }, [videoElement, activeIntroIndex])
+
   const layerChildren = [
     <Group>
       <Group x={0} y={0} ref={titleScreenRef} opacity={0}>
