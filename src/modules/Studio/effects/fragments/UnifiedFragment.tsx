@@ -8,6 +8,8 @@ import {
 } from '../../../../generated/graphql'
 import {
   BlockProperties,
+  IntroBlockView,
+  OutroBlockView,
   TopLayerChildren,
   ViewConfig,
 } from '../../../../utils/configTypes'
@@ -17,7 +19,6 @@ import {
   CodeBlockProps,
   HeadingBlockProps,
   ImageBlockProps,
-  IntroBlockProps,
   ListBlockProps,
   VideoBlockProps,
 } from '../../../Flick/editor/utils/utils'
@@ -195,6 +196,7 @@ const UnifiedFragment = ({
       activeBlockIndex: 0,
       activePointIndex: 0,
       activeIntroIndex: 0,
+      activeOutroIndex: 0,
     })
   }, [payload?.activeObjectIndex])
 
@@ -222,6 +224,7 @@ const UnifiedFragment = ({
       updatePayload?.({
         // activeObjectIndex: 0,
         activeIntroIndex: 0,
+        activeOutroIndex: 0,
         fragmentState: 'customLayout',
         currentIndex: 0,
         prevIndex: -1,
@@ -238,6 +241,7 @@ const UnifiedFragment = ({
       updatePayload?.({
         activeObjectIndex: 0,
         activeIntroIndex: 0,
+        activeOutroIndex: 0,
         fragmentState: 'customLayout',
         currentIndex: 0,
         prevIndex: -1,
@@ -248,18 +252,19 @@ const UnifiedFragment = ({
         currentTime: 0,
         playing: false,
       })
-      setTopLayerChildren?.({ id: '', state: '' })
+      // setTopLayerChildren?.({ id: '', state: '' })
       timer.current = setTimeout(() => {
         setTopLayerChildren?.({ id: nanoid(), state: 'lowerThird' })
       }, 2000)
     }
     if (state === 'recording') {
-      setTopLayerChildren?.({ id: '', state: '' })
+      // setTopLayerChildren?.({ id: '', state: '' })
     }
   }, [state])
 
   useEffect(() => {
     if (!payload?.activeObjectIndex || payload?.activeObjectIndex === 0) return
+    if (payload?.fragmentState === fragmentState) return
     if (viewConfig?.mode !== 'Portrait') {
       // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
       if (payload?.fragmentState === 'customLayout') {
@@ -383,9 +388,11 @@ const UnifiedFragment = ({
             )
           }
           case 'introBlock': {
-            const introBlockProps = dataConfig[
-              activeObjectIndex
-            ] as IntroBlockProps
+            const introBlockViewProps = (
+              viewConfig.blocks[
+                dataConfig[activeObjectIndex].id
+              ] as BlockProperties
+            )?.view as IntroBlockView
             return (
               <IntroFragment
                 shortsMode={viewConfig.mode === 'Portrait'}
@@ -397,14 +404,19 @@ const UnifiedFragment = ({
                 isPreview={isPreview}
                 setTopLayerChildren={setTopLayerChildren}
                 introSequence={
-                  studio.branding && studio.branding.introVideoUrl
-                    ? introBlockProps.introBlock.order
-                    : ['userMedia', 'titleSplash']
+                  introBlockViewProps?.intro?.order
+                    ?.filter((o) => o.enabled)
+                    .map((o) => o.state) || ['userMedia', 'titleSplash']
                 }
               />
             )
           }
           case 'outroBlock': {
+            const outroBlockViewProps = (
+              viewConfig.blocks[
+                dataConfig[activeObjectIndex].id
+              ] as BlockProperties
+            )?.view as OutroBlockView
             return (
               <OutroFragment
                 isShorts={viewConfig.mode === 'Portrait'}
@@ -412,6 +424,12 @@ const UnifiedFragment = ({
                   viewConfig.blocks[
                     dataConfig[activeObjectIndex].id
                   ] as BlockProperties
+                }
+                isPreview={isPreview}
+                outroSequence={
+                  outroBlockViewProps?.outro?.order
+                    ?.filter((o) => o.enabled)
+                    .map((o) => o.state) || ['titleSplash']
                 }
               />
             )

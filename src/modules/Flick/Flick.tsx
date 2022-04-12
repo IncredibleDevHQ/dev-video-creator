@@ -23,6 +23,7 @@ import {
   CodeAnimation,
   CodeStyle,
   CodeTheme,
+  IntroBlockView,
   OutroBlockView,
   ViewConfig,
 } from '../../utils/configTypes'
@@ -57,9 +58,7 @@ const initialAST: SimpleAST = {
       id: uuidv4(),
       type: 'introBlock',
       pos: 0,
-      introBlock: {
-        order: ['userMedia', 'introVideo', 'titleSplash'],
-      },
+      introBlock: {},
     },
     {
       id: uuidv4(),
@@ -81,6 +80,7 @@ const useLocalPayload = () => {
     prevIndex: -1,
     status: Fragment_Status_Enum_Enum.NotStarted,
     activeIntroIndex: 0,
+    activeOutroIndex: 0,
   }
 
   const [payload, setPayload] = useState<any>()
@@ -142,6 +142,36 @@ const Flick = () => {
       })
 
     const newBlocks = { ...filteredBlocks, [id]: properties }
+    setViewConfig({ ...viewConfig, blocks: newBlocks })
+  }
+
+  const updateMultipleBlockProperties = (
+    ids: string[],
+    properties: BlockProperties[]
+  ) => {
+    const filteredBlocks: {
+      [x: string]: BlockProperties
+    } = {}
+
+    Object.entries(viewConfig.blocks)
+      .filter((x) => simpleAST?.blocks.map((b) => b.id).includes(x[0]))
+      .forEach((a) => {
+        filteredBlocks[a[0]] = {
+          ...a[1],
+        }
+      })
+
+    const newBlocks = ids.reduce(
+      (acc, id, index) => ({
+        ...acc,
+        [id]: {
+          ...filteredBlocks[id],
+          ...properties[index],
+        },
+      }),
+      filteredBlocks
+    )
+
     setViewConfig({ ...viewConfig, blocks: newBlocks })
   }
 
@@ -310,7 +340,12 @@ const Flick = () => {
           layout: 'classic',
           view: {
             type: 'outroBlock',
-            outro: {},
+            outro: {
+              order: [
+                { enabled: true, state: 'outroVideo' },
+                { enabled: true, state: 'titleSplash' },
+              ],
+            },
           },
         })
       }
@@ -321,7 +356,13 @@ const Flick = () => {
           layout: 'bottom-right-tile',
           view: {
             type: 'introBlock',
-            intro: {},
+            intro: {
+              order: [
+                { enabled: true, state: 'userMedia' },
+                { enabled: true, state: 'introVideo' },
+                { enabled: true, state: 'titleSplash' },
+              ],
+            },
           },
         })
       }
@@ -406,11 +447,25 @@ const Flick = () => {
         ...initialConfig,
         speakers: [flick.participants[0]],
         blocks: {
+          [initialAST.blocks[0].id]: {
+            layout: 'classic',
+            view: {
+              type: 'introBlock',
+              intro: {
+                order: [
+                  { enabled: true, state: 'userMedia' },
+                  { enabled: true, state: 'titleSplash' },
+                ],
+              },
+            },
+          },
           [initialAST.blocks[1].id]: {
             layout: 'classic',
             view: {
               type: 'outroBlock',
-              outro: {},
+              outro: {
+                order: [{ enabled: true, state: 'titleSplash' }],
+              },
             } as OutroBlockView,
           } as BlockProperties,
         },
@@ -438,6 +493,81 @@ const Flick = () => {
         },
       ])
   }, [flick?.branding?.branding?.font])
+
+  useEffect(() => {
+    const intro = simpleAST?.blocks.find((b) => b.type === 'introBlock')
+    const outro = simpleAST?.blocks.find((b) => b.type === 'outroBlock')
+    if (!intro || !outro) return
+    const introView = viewConfig.blocks[intro?.id].view as IntroBlockView
+    const outroView = viewConfig.blocks[outro?.id].view as OutroBlockView
+    if (!flick?.useBranding) {
+      updateMultipleBlockProperties(
+        [intro.id, outro.id],
+        [
+          {
+            view: {
+              ...introView,
+              intro: {
+                ...introView?.intro,
+                order: introView?.intro?.order?.filter(
+                  (i) => i.state !== 'introVideo'
+                ),
+              },
+            },
+          },
+          {
+            view: {
+              ...outroView,
+              outro: {
+                ...outroView?.outro,
+                order: outroView?.outro?.order?.filter(
+                  (i) => i.state !== 'outroVideo'
+                ),
+              },
+            },
+          },
+        ]
+      )
+    } else {
+      updateMultipleBlockProperties(
+        [intro.id, outro.id],
+        [
+          {
+            view: {
+              ...introView,
+              intro: {
+                ...introView?.intro,
+                order: flick?.branding?.branding?.introVideoUrl
+                  ? [
+                      ...(introView?.intro?.order || []),
+                      { enabled: true, state: 'introVideo' },
+                    ]
+                  : introView?.intro?.order?.filter(
+                      (i) => i.state !== 'introVideo'
+                    ),
+              },
+            },
+          },
+          {
+            view: {
+              ...outroView,
+              outro: {
+                ...outroView?.outro,
+                order: flick?.branding?.branding?.outroVideoUrl
+                  ? [
+                      ...(outroView?.outro?.order || []),
+                      { enabled: true, state: 'outroVideo' },
+                    ]
+                  : outroView?.outro?.order?.filter(
+                      (i) => i.state !== 'outroVideo'
+                    ),
+              },
+            },
+          },
+        ]
+      )
+    }
+  }, [flick?.branding?.id, flick?.useBranding])
 
   const utils = useUtils()
 
@@ -613,6 +743,7 @@ const Flick = () => {
           setCurrentBlock={setCurrentBlock}
           persistentTimeline={false}
           shouldScrollToCurrentBlock
+          config={viewConfig}
         />
         {publishModal && (
           <Publish

@@ -362,6 +362,12 @@ const PointsFragment = ({
                                   ? branding?.colors?.text
                                   : objectRenderConfig.pointsBulletColor
                               }
+                              ref={(ref) =>
+                                ref?.to({
+                                  x: 0 + (41 * (point?.level - 1) || 0),
+                                  duration: 0.3,
+                                })
+                              }
                               rotation={objectRenderConfig.pointsBulletRotation}
                             />
                           ),

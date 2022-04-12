@@ -1,4 +1,5 @@
 import { FlickParticipantsFragment } from '../generated/graphql'
+import { IntroState } from '../modules/Studio/effects/fragments/IntroFragment'
 
 export const allLayoutTypes = [
   'classic',
@@ -46,7 +47,7 @@ export type OutroLayout = typeof outroLayoutTypes[number]
 
 export type Layout = typeof allLayoutTypes[number]
 
-export type TransitionDirection = 'left' | 'right'
+export type TransitionDirection = 'left' | 'right' | 'moveIn' | 'moveAway'
 
 export type TopLayerChildren =
   | `transition ${TransitionDirection}`
@@ -165,12 +166,14 @@ export interface HandleDetails {
   handle: string
 }
 
+export type OutroState = 'outroVideo' | 'titleSplash'
 export interface OutroBlockViewProps {
   title?: string
   twitter?: HandleDetails
   discord?: HandleDetails
   youtube?: HandleDetails
   noOfSocialHandles?: number
+  order?: { enabled: boolean; state: OutroState }[]
 }
 
 export interface OutroBlockView {
@@ -184,6 +187,7 @@ export interface IntroBlockViewProps {
   designation?: string
   organization?: string
   displayPicture?: string
+  order?: { enabled: boolean; state: IntroState }[]
 }
 export interface IntroBlockView {
   type: 'introBlock'
