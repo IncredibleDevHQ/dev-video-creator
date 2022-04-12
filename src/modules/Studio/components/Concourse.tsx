@@ -87,7 +87,13 @@ export const GetTopLayerChildren = ({
   if (status === Fragment_Status_Enum_Enum.Ended) return <></>
   switch (topLayerChildrenState) {
     case 'lowerThird': {
-      return <LowerThridProvider theme={theme} isShorts={isShorts || false} />
+      return (
+        <LowerThridProvider
+          theme={theme}
+          isShorts={isShorts || false}
+          setTopLayerChildren={setTopLayerChildren}
+        />
+      )
     }
     case 'transition left': {
       return (
