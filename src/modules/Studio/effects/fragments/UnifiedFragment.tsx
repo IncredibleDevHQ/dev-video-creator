@@ -253,9 +253,6 @@ const UnifiedFragment = ({
         playing: false,
       })
       // setTopLayerChildren?.({ id: '', state: '' })
-      timer.current = setTimeout(() => {
-        setTopLayerChildren?.({ id: nanoid(), state: 'lowerThird' })
-      }, 2000)
     }
     if (state === 'recording') {
       // setTopLayerChildren?.({ id: '', state: '' })

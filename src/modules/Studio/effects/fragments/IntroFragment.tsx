@@ -1,5 +1,6 @@
 import Konva from 'konva'
-import React, { useEffect, useState } from 'react'
+import { nanoid } from 'nanoid'
+import React, { useEffect, useRef, useState } from 'react'
 import { Group } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import {
@@ -37,7 +38,7 @@ const IntroFragment = ({
   >
   introSequence: IntroState[]
 }) => {
-  const { fragment, state, payload, branding, theme } =
+  const { fragment, state, payload, branding, theme, updatePayload } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const titleScreenRef = React.useRef<Konva.Group>(null)
@@ -48,12 +49,23 @@ const IntroFragment = ({
     height: number
   }>({ width: 0, height: 0 })
 
+  const [activeIntroIndex, setActiveIntroIndex] = useState<number>(
+    payload?.activeIntroIndex || 0
+  )
+
+  const timer = useRef<any>(null)
+
+  useEffect(() => {
+    clearTimeout(timer.current)
+    return () => {
+      clearTimeout(timer.current)
+    }
+  }, [])
+
   useEffect(() => {
     if (!shortsMode) setStageConfig(CONFIG)
     else setStageConfig(SHORTS_CONFIG)
   }, [shortsMode])
-
-  // const [layerChildren, setLayerChildren] = useState<JSX.Element[]>([])
 
   const videoElement = React.useMemo(() => {
     if (!branding?.introVideoUrl) return
@@ -68,34 +80,47 @@ const IntroFragment = ({
   }, [branding, stageConfig])
 
   useEffect(() => {
+    if (payload?.activeIntroIndex === activeIntroIndex) return
+    setActiveIntroIndex(payload?.activeIntroIndex)
+  }, [payload?.activeIntroIndex])
+
+  useEffect(() => {
     if (
       state === 'start-recording' ||
       state === 'ready' ||
       state === 'resumed' ||
       isPreview
     ) {
-      if (introSequence[payload.activeIntroIndex] === 'titleSplash') {
+      if (introSequence[activeIntroIndex] === 'titleSplash') {
         // if (!isPreview) addMusic('splash')
         setTopLayerChildren?.({ id: '', state: '' })
         videoElement?.pause()
         titleScreenRef.current?.opacity(1)
         brandVideoRef.current?.opacity(0)
       }
-      if (introSequence[payload.activeIntroIndex] === 'introVideo') {
+      if (introSequence[activeIntroIndex] === 'introVideo') {
         setTopLayerChildren?.({ id: '', state: '' })
         if (!videoElement) return
         videoElement?.play()
         titleScreenRef.current?.opacity(0)
         brandVideoRef.current?.opacity(1)
       }
-      if (introSequence[payload.activeIntroIndex] === 'userMedia') {
+      if (introSequence[activeIntroIndex] === 'userMedia') {
         setTopLayerChildren?.({ id: '', state: '' })
         videoElement?.pause()
         titleScreenRef.current?.opacity(0)
         brandVideoRef.current?.opacity(0)
       }
     }
-  }, [state, payload?.activeIntroIndex, videoElement])
+  }, [state, activeIntroIndex, videoElement])
+
+  useEffect(() => {
+    if (!isPreview && introSequence[activeIntroIndex] === 'userMedia') {
+      timer.current = setTimeout(() => {
+        setTopLayerChildren?.({ id: nanoid(), state: 'lowerThird' })
+      }, 2000)
+    }
+  }, [activeIntroIndex])
 
   const layerChildren = [
     <Group>

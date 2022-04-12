@@ -3,6 +3,7 @@ import React, { useRef } from 'react'
 import { Group, Image, Line, Rect, Text } from 'react-konva'
 import useImage from 'use-image'
 import IncredibleLogo from '../../../assets/incredible-x-logo.svg'
+import { TopLayerChildren } from '../../../utils/configTypes'
 import { BrandingJSON } from '../../Branding/BrandingPage'
 import useEdit from '../hooks/use-edit'
 import { getCanvasGradient } from '../utils/StudioUserConfig'
@@ -171,6 +172,7 @@ export const GlassyLowerThirds = ({
   color,
   textColor,
   branding,
+  setTopLayerChildren,
 }: {
   x: number
   y: number
@@ -181,6 +183,9 @@ export const GlassyLowerThirds = ({
   color: string
   textColor: string
   branding: BrandingJSON | null | undefined
+  setTopLayerChildren?: React.Dispatch<
+    React.SetStateAction<{ id: string; state: TopLayerChildren }>
+  >
 }) => {
   const [image] = useImage(logo, 'anonymous')
   const { getTextWidth } = useEdit()
@@ -259,6 +264,14 @@ export const GlassyLowerThirds = ({
                                   width: 0,
                                   duration: 0.4,
                                   easing: Konva.Easings.BackEaseIn,
+                                  onFinish: () => {
+                                    setTimeout(() => {
+                                      setTopLayerChildren?.({
+                                        id: '',
+                                        state: '',
+                                      })
+                                    }, 400)
+                                  },
                                 })
                               }, 200)
                             },
@@ -463,6 +476,14 @@ export const GlassyLowerThirds = ({
                     width: 0,
                     duration: 0.3,
                     easing: Konva.Easings.EaseOut,
+                    onFinish: () => {
+                      setTimeout(() => {
+                        setTopLayerChildren?.({
+                          id: '',
+                          state: '',
+                        })
+                      }, 400)
+                    },
                   })
                 }, 2000)
               },
@@ -604,6 +625,7 @@ export const PastelLinesLowerThirds = ({
   logo,
   color,
   textColor,
+  setTopLayerChildren,
 }: {
   x: number
   y: number
@@ -613,6 +635,9 @@ export const PastelLinesLowerThirds = ({
   logo: string
   color: string
   textColor: string
+  setTopLayerChildren?: React.Dispatch<
+    React.SetStateAction<{ id: string; state: TopLayerChildren }>
+  >
 }) => {
   const [image] = useImage(logo, 'anonymous')
   const { getTextWidth } = useEdit()
@@ -654,6 +679,14 @@ export const PastelLinesLowerThirds = ({
                                 width: 0,
                                 strokeWidth: 0,
                                 duration: 0.3,
+                                onFinish: () => {
+                                  setTimeout(() => {
+                                    setTopLayerChildren?.({
+                                      id: '',
+                                      state: '',
+                                    })
+                                  }, 400)
+                                },
                               })
                             },
                           })
@@ -867,6 +900,14 @@ export const PastelLinesLowerThirds = ({
                     strokeWidth: 0,
                     duration: 0.3,
                     easing: Konva.Easings.EaseOut,
+                    onFinish: () => {
+                      setTimeout(() => {
+                        setTopLayerChildren?.({
+                          id: '',
+                          state: '',
+                        })
+                      }, 400)
+                    },
                   })
                 }, 1300)
               },
@@ -1009,6 +1050,7 @@ export const CassidooLowerThirds = ({
   logo,
   color,
   textColor,
+  setTopLayerChildren,
 }: {
   x: number
   y: number
@@ -1018,6 +1060,9 @@ export const CassidooLowerThirds = ({
   logo: string
   color: string
   textColor: string
+  setTopLayerChildren?: React.Dispatch<
+    React.SetStateAction<{ id: string; state: TopLayerChildren }>
+  >
 }) => {
   const [image] = useImage(logo, 'anonymous')
   const { getTextWidth } = useEdit()
@@ -1048,6 +1093,14 @@ export const CassidooLowerThirds = ({
                   ref?.to({
                     opacity: 0,
                     duration: 0.6,
+                    onFinish: () => {
+                      setTimeout(() => {
+                        setTopLayerChildren?.({
+                          id: '',
+                          state: '',
+                        })
+                      }, 400)
+                    },
                   })
                 }, 2000)
               },
@@ -1144,6 +1197,14 @@ export const CassidooLowerThirds = ({
                 ref?.to({
                   opacity: 0,
                   duration: 0.6,
+                  onFinish: () => {
+                    setTimeout(() => {
+                      setTopLayerChildren?.({
+                        id: '',
+                        state: '',
+                      })
+                    }, 400)
+                  },
                 })
               }, 2000)
             },
@@ -1235,6 +1296,7 @@ export const LambdaTestLowerThirds = ({
   logo,
   color,
   textColor,
+  setTopLayerChildren,
 }: {
   x: number
   y: number
@@ -1244,6 +1306,9 @@ export const LambdaTestLowerThirds = ({
   logo: string
   color: string
   textColor: string
+  setTopLayerChildren?: React.Dispatch<
+    React.SetStateAction<{ id: string; state: TopLayerChildren }>
+  >
 }) => {
   const [image] = useImage(logo, 'anonymous')
   const { getTextWidth } = useEdit()
@@ -1276,6 +1341,14 @@ export const LambdaTestLowerThirds = ({
                     height: 0,
                     duration: 0.3,
                     easing: Konva.Easings.EaseOut,
+                    onFinish: () => {
+                      setTimeout(() => {
+                        setTopLayerChildren?.({
+                          id: '',
+                          state: '',
+                        })
+                      }, 400)
+                    },
                   })
                 }, 2600)
               },
