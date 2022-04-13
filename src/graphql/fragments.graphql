@@ -4,6 +4,12 @@ fragment FragmentParticipant on Fragment_Participant {
   }
 }
 
+fragment SimpleFragment on Fragment {
+  id
+  name
+  type
+}
+
 fragment FlickFragment on Fragment {
   configuration
   description
@@ -15,6 +21,8 @@ fragment FlickFragment on Fragment {
   producedLink
   producedShortsLink
   editorState
+  editorValue
+  encodedEditorValue
   thumbnailConfig
   participants {
     ...FragmentParticipant
@@ -77,6 +85,12 @@ query GetFragmentById($id: uuid!, $sub: String!) {
   }
 }
 
+query GetFlickFragment($id: uuid!) {
+  Fragment_by_pk(id: $id) {
+    ...FlickFragment
+  }
+}
+
 query FragmentRole($fragmentId: uuid!, $sub: String!) {
   Participant(
     where: {
@@ -89,6 +103,12 @@ query FragmentRole($fragmentId: uuid!, $sub: String!) {
     }
   ) {
     role
+  }
+}
+
+query GetFragmentList($flickId: uuid!) {
+  Fragment(where: { flickId: { _eq: $flickId } }) {
+    ...SimpleFragment
   }
 }
 
@@ -223,20 +243,12 @@ mutation InsertParticipantToFragment(
 }
 
 mutation CreateFragment(
-  $flickId: uuid!
   $name: String!
-  $description: String
-  $creatorPid: uuid
-  $speakerIds: [String] = []
+  $flickId: uuid!
+  $type: FRAGMENT_TYPE_ENUM_enum!
 ) {
-  CreateFragment(
-    flickId: $flickId
-    name: $name
-    description: $description
-    creatorParticipantId: $creatorPid
-    speakerIds: $speakerIds
-  ) {
-    id
+  insert_Fragment_one(object: { name: $name, flickId: $flickId, type: $type }) {
+    ...SimpleFragment
   }
 }
 
@@ -247,7 +259,7 @@ mutation UpdateFragmentConfiguration($fragmentId: uuid!, $items: json!) {
 }
 
 mutation DeleteFragment($id: uuid!) {
-  DeleteFragmentbyID(id: $id) {
+  delete_Fragment_by_pk(id: $id) {
     id
   }
 }
