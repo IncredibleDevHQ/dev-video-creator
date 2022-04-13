@@ -27,4 +27,5 @@ interface ImportMetaEnv {
   VITE_GIPHY_API_KEY: string
   VITE_EMBED_PLAYER_URL: string
   VITE_CASSIDY_THEME_WHITELIST: string[]
+  VITE_LOGROCKET_APP_ID: string
 }

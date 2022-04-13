@@ -256,6 +256,9 @@ const UnifiedFragment = ({
     }
     if (state === 'recording') {
       // setTopLayerChildren?.({ id: '', state: '' })
+      updatePayload?.({
+        activeOutroIndex: 0,
+      })
     }
   }, [state])
 

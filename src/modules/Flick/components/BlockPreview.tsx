@@ -335,7 +335,7 @@ export const CanvasPreview = ({
         height: divHeight,
         width: divWidth,
       }}
-      className="flex justify-center z-10"
+      className="flex justify-center"
     >
       <Stage
         ref={stageRef}
