@@ -208,6 +208,9 @@ const CodeFragment = ({
     )?.code
     ;(async () => {
       const code = studio.codes?.[dataConfig.id]
+      const decodedCode = dataConfig.codeBlock.code
+        ? Buffer.from(dataConfig.codeBlock.code, 'base64').toString('utf8')
+        : undefined
 
       if (
         dataConfig.codeBlock.colorCodes &&
@@ -217,13 +220,13 @@ const CodeFragment = ({
       } else {
         try {
           if (
-            dataConfig.codeBlock.code &&
-            (code?.code !== dataConfig.codeBlock.code ||
+            decodedCode &&
+            (code?.code !== decodedCode ||
               codeBlockViewProps.theme !== code?.theme)
           ) {
             const token = await user?.getIdToken()
             const { data } = await getColorCodes(
-              dataConfig.codeBlock.code,
+              decodedCode,
               dataConfig.codeBlock.language || '',
               token || '',
               codeBlockViewProps?.theme
@@ -235,7 +238,7 @@ const CodeFragment = ({
                 codes: {
                   ...studio.codes,
                   [dataConfig.id]: {
-                    code: dataConfig.codeBlock.code,
+                    code: decodedCode,
                     colorCode: data.data.TokenisedCode.data,
                     theme: codeBlockViewProps?.theme,
                   },
@@ -273,6 +276,7 @@ const CodeFragment = ({
   }, [objectConfig, theme])
 
   useEffect(() => {
+    if (!colorCodes) return
     if (colorCodes.length === 0) return
     setComputedTokens(
       initUseCode({
