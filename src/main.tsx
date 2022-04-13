@@ -1,11 +1,12 @@
-import React from 'react'
-import ReactDOM from 'react-dom'
+import * as snippet from '@segment/snippet'
 import * as Sentry from '@sentry/react'
 import { Integrations } from '@sentry/tracing'
-import './index.css'
-import * as snippet from '@segment/snippet'
+import LogRocket from 'logrocket'
+import React from 'react'
+import ReactDOM from 'react-dom'
 import App from './App'
 import config from './config'
+import './index.css'
 
 if (config.sentry.enabled)
   Sentry.init({
@@ -21,6 +22,9 @@ const segmentSnippet = snippet.max({
 })
 script.innerHTML = segmentSnippet
 document.head.appendChild(script)
+
+// Logrocket
+LogRocket.init(config.logrocket.appId)
 
 ReactDOM.render(
   <React.StrictMode>
