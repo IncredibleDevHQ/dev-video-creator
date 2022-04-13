@@ -372,6 +372,174 @@ export const getOutroConfig = ({
               logoHeight: 32,
             }
         }
+      case 'LeeRob':
+        switch (layout) {
+          case 'classic':
+            return {
+              layoutX: 0,
+              layoutY: 0,
+              layoutWidth: 960,
+              layoutHeight: 540,
+              layoutBorderRadius: 0,
+              textX: 16,
+              textY: 235,
+              textWidth: 928,
+              textHeight: 57,
+              textFontSize: 48,
+              socialX: 316,
+              socialY: 326,
+              socialHandlesFontSize: 16,
+              logoX: 464,
+              logoY: 159,
+              logoWidth: 32,
+              logoHeight: 32,
+            }
+          case 'float-full-right':
+            return {
+              layoutX: 64,
+              layoutY: 230,
+              layoutWidth: 416,
+              layoutHeight: 266,
+              layoutBorderRadius: 0,
+              textX: 0,
+              textY: 0,
+              textWidth: 416,
+              textHeight: 122,
+              textFontSize: 48,
+              socialX: 16,
+              socialY: 220,
+              socialHandlesFontSize: 16,
+              logoX: 360,
+              logoY: 210,
+              logoWidth: 32,
+              logoHeight: 32,
+              userMediaLayout: 'padded-split',
+            }
+          case 'split-without-media':
+            return {
+              layoutX: 40,
+              layoutY: 90,
+              layoutWidth: 420,
+              layoutHeight: 360,
+              layoutBorderRadius: 8,
+              textX: 32,
+              textY: 72,
+              textWidth: 370,
+              textHeight: 122,
+              textFontSize: 48,
+              socialX: 32,
+              socialY: 300,
+              socialHandlesFontSize: 16,
+              logoX: 338,
+              logoY: 300,
+              logoWidth: 32,
+              logoHeight: 32,
+            }
+          default:
+            return {
+              layoutX: 0,
+              layoutY: 0,
+              layoutWidth: 960,
+              layoutHeight: 540,
+              layoutBorderRadius: 0,
+              textX: 16,
+              textY: 235,
+              textWidth: 928,
+              textHeight: 57,
+              textFontSize: 48,
+              socialX: 316,
+              socialY: 326,
+              socialHandlesFontSize: 16,
+              logoX: 464,
+              logoY: 159,
+              logoWidth: 32,
+              logoHeight: 32,
+            }
+        }
+      case 'Web3Auth':
+        switch (layout) {
+          case 'classic':
+            return {
+              layoutX: 0,
+              layoutY: 0,
+              layoutWidth: 960,
+              layoutHeight: 540,
+              layoutBorderRadius: 0,
+              textX: 16,
+              textY: 235,
+              textWidth: 928,
+              textHeight: 57,
+              textFontSize: 48,
+              socialX: 316,
+              socialY: 326,
+              socialHandlesFontSize: 16,
+              logoX: 464,
+              logoY: 159,
+              logoWidth: 32,
+              logoHeight: 32,
+            }
+          case 'float-full-right':
+            return {
+              layoutX: 40,
+              layoutY: 70,
+              layoutWidth: 440,
+              layoutHeight: 360,
+              layoutBorderRadius: 8,
+              textX: 42,
+              textY: 72,
+              textWidth: 370,
+              textHeight: 122,
+              textFontSize: 48,
+              socialX: 42,
+              socialY: 300,
+              socialHandlesFontSize: 16,
+              logoX: 400,
+              logoY: 300,
+              logoWidth: 32,
+              logoHeight: 32,
+              userMediaLayout: 'float-full-right',
+            }
+          case 'split-without-media':
+            return {
+              layoutX: 40,
+              layoutY: 70,
+              layoutWidth: 420,
+              layoutHeight: 360,
+              layoutBorderRadius: 8,
+              textX: 42,
+              textY: 72,
+              textWidth: 370,
+              textHeight: 122,
+              textFontSize: 48,
+              socialX: 42,
+              socialY: 300,
+              socialHandlesFontSize: 16,
+              logoX: 380,
+              logoY: 300,
+              logoWidth: 32,
+              logoHeight: 32,
+            }
+          default:
+            return {
+              layoutX: 0,
+              layoutY: 0,
+              layoutWidth: 960,
+              layoutHeight: 540,
+              layoutBorderRadius: 0,
+              textX: 16,
+              textY: 235,
+              textWidth: 928,
+              textHeight: 57,
+              textFontSize: 48,
+              socialX: 316,
+              socialY: 326,
+              socialHandlesFontSize: 16,
+              logoX: 464,
+              logoY: 159,
+              logoWidth: 32,
+              logoHeight: 32,
+            }
+        }
       default:
         return {
           layoutX: 72,
@@ -588,6 +756,7 @@ export const getOutroConfig = ({
           }
       }
     case 'LambdaTest':
+    case 'LeeRob':
       switch (layout) {
         case 'classic':
           return {
