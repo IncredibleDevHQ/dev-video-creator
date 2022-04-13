@@ -62,6 +62,7 @@ const Preload = ({
         flickId: fragment?.flickId,
         fragmentId: fragment?.id,
       },
+      fetchPolicy: 'cache-first',
     })
 
   useEffect(() => {
