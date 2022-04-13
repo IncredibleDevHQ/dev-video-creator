@@ -207,7 +207,7 @@ const useCanvasRecorder = ({
       // recordedBlobs.current = []
       // setMediaRecorder(null)
       if (arrayBuffer) {
-        getSeekableWebM(arrayBuffer)
+        return getSeekableWebM(arrayBuffer)
       }
       return superblob
     } catch (e) {
@@ -215,6 +215,7 @@ const useCanvasRecorder = ({
       Sentry.captureException(
         new Error(`Failed to get blobs. ${JSON.stringify(e)}`)
       )
+      return undefined
     }
   }
 
