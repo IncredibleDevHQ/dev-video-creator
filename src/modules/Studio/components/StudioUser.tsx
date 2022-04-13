@@ -119,6 +119,15 @@ const StudioUser = ({
         opacity={backgroundRectOpacity || 0}
       />
       <Rect
+        x={backgroundRectX || 775}
+        y={backgroundRectY || y}
+        width={backgroundRectWidth}
+        height={backgroundRectHeight}
+        stroke={backgroundRectBorderColor}
+        strokeWidth={backgroundRectBorderWidth || 0}
+        cornerRadius={backgroundRectBorderRadius || 0}
+      />
+      <Rect
         x={(studioUserClipConfig && studioUserClipConfig.x + x) || 775}
         y={(studioUserClipConfig && studioUserClipConfig.y + y) || y}
         width={studioUserClipConfig?.width || defaultStudioUserClipConfig.width}
