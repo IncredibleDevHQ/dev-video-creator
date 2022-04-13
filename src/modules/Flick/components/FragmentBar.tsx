@@ -41,6 +41,7 @@ import {
   PageTitle,
 } from '../../../utils/analytics-types'
 import { ViewConfig } from '../../../utils/configTypes'
+import { horizontalCustomScrollBar } from '../../../utils/globalStyles'
 import { TextEditorParser } from '../editor/utils/helpers'
 import { Block, SimpleAST } from '../editor/utils/utils'
 import { newFlickStore, View } from '../store/flickNew.store'
@@ -53,13 +54,7 @@ const HorizontalContainer = ({
   <div
     className={cx(
       'flex items-center overflow-x-scroll overflow-y-hidden w-full',
-      css`
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-        ::-webkit-scrollbar {
-          display: none;
-        }
-      `,
+      horizontalCustomScrollBar,
       className
     )}
     {...rest}
@@ -191,7 +186,12 @@ const ThemeTooltip = ({
           ))}
         </HorizontalContainer>
       ) : (
-        <div className="flex gap-x-4 z-50">
+        <div
+          className={cx(
+            'flex gap-x-4 z-50 overflow-x-scroll',
+            horizontalCustomScrollBar
+          )}
+        >
           {themes
             .filter((theme) => {
               if (theme.name === 'Cassidoo') {
