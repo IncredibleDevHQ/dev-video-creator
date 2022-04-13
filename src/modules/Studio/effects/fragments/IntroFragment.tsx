@@ -95,12 +95,14 @@ const IntroFragment = ({
         // if (!isPreview) addMusic('splash')
         setTopLayerChildren?.({ id: '', state: '' })
         videoElement?.pause()
+        if (videoElement) videoElement.currentTime = 0
         titleScreenRef.current?.opacity(1)
         brandVideoRef.current?.opacity(0)
       }
       if (introSequence[activeIntroIndex] === 'introVideo') {
         setTopLayerChildren?.({ id: '', state: '' })
         if (!videoElement) return
+        videoElement.currentTime = 0
         videoElement?.play()
         titleScreenRef.current?.opacity(0)
         brandVideoRef.current?.opacity(1)
@@ -108,6 +110,7 @@ const IntroFragment = ({
       if (introSequence[activeIntroIndex] === 'userMedia') {
         setTopLayerChildren?.({ id: '', state: '' })
         videoElement?.pause()
+        if (videoElement) videoElement.currentTime = 0
         titleScreenRef.current?.opacity(0)
         brandVideoRef.current?.opacity(0)
       }
