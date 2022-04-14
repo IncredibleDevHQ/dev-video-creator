@@ -5,6 +5,7 @@ import { TopLayerChildren } from '../../../utils/configTypes'
 import {
   CassidooTransition,
   DipTransition,
+  LeeRobTransition,
   PastelLinesTransition,
   TrianglePathTransition,
 } from '../effects/FragmentTransitions'
@@ -104,6 +105,46 @@ const TransitionProvider = ({
           direction={direction}
           isShorts={isShorts}
           color="white"
+          setTopLayerChildren={setTopLayerChildren}
+        />
+      )
+    case 'LeeRob':
+      if (direction === 'moveIn' || direction === 'moveAway') {
+        return (
+          <DipTransition
+            direction={direction}
+            isShorts={isShorts}
+            color="black"
+            performFinishAction={performFinishAction}
+            setTopLayerChildren={setTopLayerChildren}
+          />
+        )
+      }
+      return (
+        <LeeRobTransition
+          direction={direction}
+          isShorts={isShorts}
+          // color={branding?.colors?.transition}
+          setTopLayerChildren={setTopLayerChildren}
+        />
+      )
+    case 'Web3Auth':
+      if (direction === 'moveIn' || direction === 'moveAway') {
+        return (
+          <DipTransition
+            direction={direction}
+            isShorts={isShorts}
+            color="black"
+            performFinishAction={performFinishAction}
+            setTopLayerChildren={setTopLayerChildren}
+          />
+        )
+      }
+      return (
+        <DipTransition
+          direction={direction}
+          isShorts={isShorts}
+          color="black"
           setTopLayerChildren={setTopLayerChildren}
         />
       )

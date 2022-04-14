@@ -15,6 +15,7 @@ import {
 import { ListBlockProps, ListItem } from '../../../Flick/editor/utils/utils'
 import Concourse from '../../components/Concourse'
 import FragmentBackground from '../../components/FragmentBackground'
+import PointBullets from '../../components/PointBullets'
 import { FragmentState } from '../../components/RenderTokens'
 import RichText from '../../components/RichText'
 import { usePoint } from '../../hooks'
@@ -24,7 +25,12 @@ import {
   FragmentLayoutConfig,
   ObjectConfig,
 } from '../../utils/FragmentLayoutConfig'
-import { getPointsConfig, PointsConfig } from '../../utils/PointsConfig'
+import {
+  BulletsConfig,
+  getBulletsConfig,
+  getPointsConfig,
+  PointsConfig,
+} from '../../utils/PointsConfig'
 import {
   ShortsStudioUserConfiguration,
   StudioUserConfiguration,
@@ -115,13 +121,22 @@ const PointsFragment = ({
   const [titleY, setTitleY] = useState<number>(0)
 
   const [pointsConfig, setPointsConfig] = useState<PointsConfig>({
-    bulletWidth: 64,
-    bulletHeight: 64,
-    bulletFontSize: 32,
     paddingBtwBulletText: 26,
     textFontSize: 16,
     noOfPoints: 3,
     noForSpacing: 4,
+  })
+
+  const [bulletsConfig, setBulletsConfig] = useState<BulletsConfig>({
+    bulletWidth: 64,
+    bulletHeight: 64,
+    bulletFontSize: 32,
+    bulletCornerRadius: 8,
+    bulletXOffset: 0,
+    bulletYOffset: 0,
+    bulletColor: '#ffffff',
+    bulletTextColor: '#000000',
+    bulletRotation: 0,
   })
 
   useEffect(() => {
@@ -153,9 +168,9 @@ const PointsFragment = ({
 
   useEffect(() => {
     setObjectRenderConfig(
-      ThemeLayoutConfig({ theme, layoutConfig: objectConfig, pointsConfig })
+      ThemeLayoutConfig({ theme, layoutConfig: objectConfig })
     )
-  }, [objectConfig, theme, pointsConfig])
+  }, [objectConfig, theme])
 
   useEffect(() => {
     setStudio({
@@ -165,18 +180,6 @@ const PointsFragment = ({
       },
     })
   }, [computedPoints])
-
-  useEffect(() => {
-    if (!viewConfig) return
-    if (orientation === 'horizontal') {
-      setPointsConfig(
-        getPointsConfig({
-          layout: viewConfig?.layout || 'classic',
-          isShorts: shortsMode,
-        })
-      )
-    }
-  }, [viewConfig?.layout, orientation, shortsMode])
 
   useEffect(() => {
     if (points.length === 0) return
@@ -201,9 +204,24 @@ const PointsFragment = ({
         layout: viewConfig?.layout || 'classic',
         isShorts: shortsMode || false,
         lineHeight: 1.3,
+        theme: theme.name || 'DarkGradient',
       })
     )
-  }, [viewConfig, points, objectRenderConfig, orientation])
+    if (orientation === 'horizontal') {
+      setPointsConfig(
+        getPointsConfig({
+          layout: viewConfig?.layout || 'classic',
+          isShorts: shortsMode,
+        })
+      )
+      setBulletsConfig(
+        getBulletsConfig({
+          theme: theme.name,
+          layout: viewConfig?.layout || 'classic',
+        })
+      )
+    }
+  }, [viewConfig, points, objectRenderConfig, orientation, theme])
 
   useEffect(() => {
     if (computedPoints.length === 0) return
@@ -360,7 +378,7 @@ const PointsFragment = ({
                               fill={
                                 branding?.colors?.text
                                   ? branding?.colors?.text
-                                  : objectRenderConfig.pointsBulletColor
+                                  : (objectRenderConfig.pointsBulletColor as string)
                               }
                               ref={(ref) =>
                                 ref?.to({
@@ -455,7 +473,7 @@ const PointsFragment = ({
                               fill={
                                 branding?.colors?.text
                                   ? branding?.colors?.text
-                                  : objectRenderConfig.pointsBulletColor
+                                  : (objectRenderConfig.pointsBulletColor as string)
                               }
                               rotation={objectRenderConfig.pointsBulletRotation}
                             />
@@ -541,7 +559,7 @@ const PointsFragment = ({
                               fill={
                                 branding?.colors?.text
                                   ? branding?.colors?.text
-                                  : objectRenderConfig.pointsBulletColor
+                                  : (objectRenderConfig.pointsBulletColor as string)
                               }
                               rotation={objectRenderConfig.pointsBulletRotation}
                             />
@@ -622,7 +640,7 @@ const PointsFragment = ({
                             fill={
                               branding?.colors?.text
                                 ? branding?.colors?.text
-                                : objectRenderConfig.pointsBulletColor
+                                : (objectRenderConfig.pointsBulletColor as string)
                             }
                             rotation={objectRenderConfig.pointsBulletRotation}
                           />
@@ -700,7 +718,7 @@ const PointsFragment = ({
                               fill={
                                 branding?.colors?.text
                                   ? branding?.colors?.text
-                                  : objectRenderConfig.pointsBulletColor
+                                  : (objectRenderConfig.pointsBulletColor as string)
                               }
                               rotation={objectRenderConfig.pointsBulletRotation}
                             />
@@ -793,64 +811,39 @@ const PointsFragment = ({
                       }
                       y={point.y}
                     >
-                      <Group x={(248 - pointsConfig.bulletWidth) / 2}>
-                        <Rect
-                          x={objectRenderConfig.horizontalPointsBulletXOffset}
-                          y={objectRenderConfig.horizontalPointsBulletYOffset}
-                          width={pointsConfig.bulletWidth}
-                          height={pointsConfig.bulletHeight}
-                          fill={
-                            objectRenderConfig.horizontalPointsBulletColor ||
-                            'white'
-                          }
-                          cornerRadius={
-                            objectRenderConfig.horizontalPointsBulletCornerRadius
-                          }
-                          offsetX={
-                            objectRenderConfig.horizontalPointsBulletXOffset
-                          }
-                          offsetY={
-                            objectRenderConfig.horizontalPointsBulletYOffset
-                          }
-                          rotation={objectRenderConfig.pointsBulletRotation}
-                        />
-                        <Text
-                          text={point.pointNumber.toString()}
-                          fontSize={pointsConfig.bulletFontSize}
-                          fill={
-                            objectRenderConfig.horizontalPointsNumberColor ||
-                            'black'
-                          }
-                          fontFamily={branding?.font?.body?.family || 'Inter'}
-                          width={pointsConfig.bulletWidth}
-                          height={pointsConfig.bulletHeight}
-                          align="center"
-                          verticalAlign="middle"
+                      <Group x={(248 - bulletsConfig.bulletWidth) / 2}>
+                        <PointBullets
+                          theme={theme.name}
+                          pointNumber={point.pointNumber}
+                          bulletsConfig={bulletsConfig}
                         />
                       </Group>
                       <Rect
                         y={
-                          pointsConfig.bulletHeight +
+                          bulletsConfig.bulletHeight +
                           pointsConfig.paddingBtwBulletText
                         }
                         width={248}
-                        height={(point.height || 0) + 20}
+                        height={(point.height || 0) + 32}
+                        fill={
+                          (objectRenderConfig.horizontalPointRectColor ||
+                            '') as string
+                        }
                         stroke={
-                          objectRenderConfig.horizontalPointsBulletColor ||
-                          'white'
+                          objectRenderConfig.horizontalPointRectStrokeColor
                         }
                         strokeWidth={1}
                         cornerRadius={
-                          objectRenderConfig.horizontalPointsBulletCornerRadius
+                          objectRenderConfig.horizontalPointRectCornerRadius
                         }
                       />
                       <Text
                         key={point.text}
-                        x={10}
+                        x={16}
                         y={
-                          pointsConfig.bulletHeight +
+                          bulletsConfig.bulletHeight +
                           pointsConfig.paddingBtwBulletText +
-                          10
+                          16
                         }
                         fontSize={pointsConfig.textFontSize}
                         fill={
@@ -860,9 +853,11 @@ const PointsFragment = ({
                         }
                         // why subtracting 110 is that this group starts at x: 50 and this text starts at x: 30,
                         // so we need to subtract 110 to get the correct x, to give 30 padding in the end too
-                        width={228}
+                        width={216}
                         height={point.height}
-                        verticalAlign="middle"
+                        verticalAlign={
+                          theme.name === 'LeeRob' ? 'top' : 'middle'
+                        }
                         align="center"
                         text={point.text}
                         // text="Run and test using one command and so on a thats all hd huusd j idhc dsi"
@@ -892,64 +887,39 @@ const PointsFragment = ({
                       }
                       y={point.y}
                     >
-                      <Group x={(248 - pointsConfig.bulletWidth) / 2}>
-                        <Rect
-                          x={objectRenderConfig.horizontalPointsBulletXOffset}
-                          y={objectRenderConfig.horizontalPointsBulletYOffset}
-                          width={pointsConfig.bulletWidth}
-                          height={pointsConfig.bulletHeight}
-                          fill={
-                            objectRenderConfig.horizontalPointsBulletColor ||
-                            'white'
-                          }
-                          cornerRadius={
-                            objectRenderConfig.horizontalPointsBulletCornerRadius
-                          }
-                          offsetX={
-                            objectRenderConfig.horizontalPointsBulletXOffset
-                          }
-                          offsetY={
-                            objectRenderConfig.horizontalPointsBulletYOffset
-                          }
-                          rotation={objectRenderConfig.pointsBulletRotation}
-                        />
-                        <Text
-                          text={point.pointNumber.toString()}
-                          fontSize={pointsConfig.bulletFontSize}
-                          fill={
-                            objectRenderConfig.horizontalPointsNumberColor ||
-                            'black'
-                          }
-                          fontFamily={branding?.font?.body?.family || 'Inter'}
-                          width={pointsConfig.bulletWidth}
-                          height={pointsConfig.bulletHeight}
-                          align="center"
-                          verticalAlign="middle"
+                      <Group x={(248 - bulletsConfig.bulletWidth) / 2}>
+                        <PointBullets
+                          theme={theme.name}
+                          pointNumber={point.pointNumber}
+                          bulletsConfig={bulletsConfig}
                         />
                       </Group>
                       <Rect
                         y={
-                          pointsConfig.bulletHeight +
+                          bulletsConfig.bulletHeight +
                           pointsConfig.paddingBtwBulletText
                         }
                         width={248}
-                        height={(point.height || 0) + 20}
+                        height={(point.height || 0) + 32}
+                        fill={
+                          (objectRenderConfig.horizontalPointRectColor ||
+                            '') as string
+                        }
                         stroke={
-                          objectRenderConfig.horizontalPointsBulletColor ||
-                          'white'
+                          objectRenderConfig.horizontalPointRectStrokeColor
                         }
                         strokeWidth={1}
                         cornerRadius={
-                          objectRenderConfig.horizontalPointsBulletCornerRadius
+                          objectRenderConfig.horizontalPointRectCornerRadius
                         }
                       />
                       <Text
                         key={point.text}
-                        x={10}
+                        x={16}
                         y={
-                          pointsConfig.bulletHeight +
+                          bulletsConfig.bulletHeight +
                           pointsConfig.paddingBtwBulletText +
-                          10
+                          16
                         }
                         fontSize={pointsConfig.textFontSize}
                         fill={
@@ -959,9 +929,11 @@ const PointsFragment = ({
                         }
                         // why subtracting 110 is that this group starts at x: 50 and this text starts at x: 30,
                         // so we need to subtract 110 to get the correct x, to give 30 padding in the end too
-                        width={228}
+                        width={216}
                         height={point.height}
-                        verticalAlign="middle"
+                        verticalAlign={
+                          theme.name === 'LeeRob' ? 'top' : 'middle'
+                        }
                         align="center"
                         text={point.text}
                         // text="Run and test using one command and so on a thats all hd huusd j idhc dsi"
@@ -987,62 +959,35 @@ const PointsFragment = ({
                     }
                     y={point.y}
                   >
-                    <Group x={(248 - pointsConfig.bulletWidth) / 2}>
-                      <Rect
-                        x={objectRenderConfig.horizontalPointsBulletXOffset}
-                        y={objectRenderConfig.horizontalPointsBulletYOffset}
-                        width={pointsConfig.bulletWidth}
-                        height={pointsConfig.bulletHeight}
-                        fill={
-                          objectRenderConfig.horizontalPointsBulletColor ||
-                          'white'
-                        }
-                        cornerRadius={
-                          objectRenderConfig.horizontalPointsBulletCornerRadius
-                        }
-                        offsetX={
-                          objectRenderConfig.horizontalPointsBulletXOffset
-                        }
-                        offsetY={
-                          objectRenderConfig.horizontalPointsBulletYOffset
-                        }
-                        rotation={objectRenderConfig.pointsBulletRotation}
-                      />
-                      <Text
-                        text={point.pointNumber.toString()}
-                        fontSize={pointsConfig.bulletFontSize}
-                        fill={
-                          objectRenderConfig.horizontalPointsNumberColor ||
-                          'black'
-                        }
-                        fontFamily={branding?.font?.body?.family || 'Inter'}
-                        width={pointsConfig.bulletWidth}
-                        height={pointsConfig.bulletHeight}
-                        align="center"
-                        verticalAlign="middle"
+                    <Group x={(248 - bulletsConfig.bulletWidth) / 2}>
+                      <PointBullets
+                        theme={theme.name}
+                        pointNumber={point.pointNumber}
+                        bulletsConfig={bulletsConfig}
                       />
                     </Group>
                     <Rect
                       y={
-                        pointsConfig.bulletHeight +
+                        bulletsConfig.bulletHeight +
                         pointsConfig.paddingBtwBulletText
                       }
                       width={248}
                       height={(point.height || 0) + 32}
-                      stroke={
-                        objectRenderConfig.horizontalPointsBulletColor ||
-                        'white'
+                      fill={
+                        (objectRenderConfig.horizontalPointRectColor ||
+                          '') as string
                       }
+                      stroke={objectRenderConfig.horizontalPointRectStrokeColor}
                       strokeWidth={1}
                       cornerRadius={
-                        objectRenderConfig.horizontalPointsBulletCornerRadius
+                        objectRenderConfig.horizontalPointRectCornerRadius
                       }
                     />
                     <Text
                       key={point.pointNumber}
                       x={16}
                       y={
-                        pointsConfig.bulletHeight +
+                        bulletsConfig.bulletHeight +
                         pointsConfig.paddingBtwBulletText +
                         16
                       }
@@ -1056,7 +1001,7 @@ const PointsFragment = ({
                       // so we need to subtract 110 to get the correct x, to give 30 padding in the end too
                       width={216}
                       height={point.height}
-                      verticalAlign="middle"
+                      verticalAlign={theme.name === 'LeeRob' ? 'top' : 'middle'}
                       align="center"
                       text={point.text}
                       // content={point.content}
