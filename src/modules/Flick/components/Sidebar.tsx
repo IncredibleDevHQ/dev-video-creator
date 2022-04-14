@@ -132,8 +132,15 @@ const Sidebar = ({ storyName }: { storyName: string }): JSX.Element | null => {
       Fragment_Type_Enum_Enum.Blog,
     ].filter((type) => {
       if (
-        (type === Fragment_Type_Enum_Enum.Landscape ||
-          type === Fragment_Type_Enum_Enum.Blog) &&
+        type === Fragment_Type_Enum_Enum.Landscape &&
+        data?.Fragment?.some(
+          (fragment) => fragment.type === type || !fragment.type
+        )
+      ) {
+        return false
+      }
+      if (
+        type === Fragment_Type_Enum_Enum.Blog &&
         data?.Fragment?.some((fragment) => fragment.type === type)
       ) {
         return false
