@@ -62,6 +62,7 @@ const Preload = ({
         flickId: fragment?.flickId,
         fragmentId: fragment?.id,
       },
+      fetchPolicy: 'cache-first',
     })
 
   useEffect(() => {
@@ -358,7 +359,7 @@ const fetcher = async (
       if (!codeBlock.code) throw Error('No code')
       if (!userToken) throw Error('No user token')
       const { data } = await getColorCodes(
-        codeBlock.code as string,
+        Buffer.from(codeBlock.code, 'base64').toString('utf8'),
         codeBlock.language || 'javascript',
         userToken,
         codeTheme || CodeTheme.DarkPlus

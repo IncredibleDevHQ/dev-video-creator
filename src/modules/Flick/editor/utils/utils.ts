@@ -341,7 +341,7 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
   let prevCoreBlockPos = -1
   let blockPosition = 1
 
-  console.log('state', state)
+  // console.log('state', state)
 
   state?.content?.forEach((slab, index) => {
     if (slab.type === 'heading') {
@@ -398,12 +398,15 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
     } else if (slab.type === 'codeBlock') {
       let codeBlock: CodeBlock = {}
       const codeValue = textContent(slab?.content)
+      const encodedCodeValue = codeValue
+        ? Buffer.from(codeValue).toString('base64')
+        : undefined
 
       const { description, note, title, nodeIds, noteId } =
         getCommonProps(index)
 
       codeBlock = {
-        code: codeValue,
+        code: encodedCodeValue,
         language: slab?.attrs?.language as string,
         note,
         noteId,
