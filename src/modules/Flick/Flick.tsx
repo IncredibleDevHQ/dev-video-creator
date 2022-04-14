@@ -549,7 +549,7 @@ const Flick = () => {
           ).toString('utf8')
         : ''
     )
-  }, [activeFragmentId, flick])
+  }, [activeFragmentId, flick?.id])
 
   useMemo(() => {
     if (flick?.branding?.branding?.font)

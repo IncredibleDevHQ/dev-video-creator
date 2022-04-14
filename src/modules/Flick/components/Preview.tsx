@@ -1352,11 +1352,13 @@ const codeThemeConfig: CodeThemeConfig[] = [
 const SocialHandleTab = ({
   title,
   value,
+  enabledCount,
   update,
   updateCount,
 }: {
   title: string
   value?: HandleDetails
+  enabledCount: number
   update?: (title: string, value: HandleDetails) => void
   updateCount?: (handle: HandleDetails) => void
 }) => {
@@ -1367,6 +1369,7 @@ const SocialHandleTab = ({
           {title}
         </Heading>
         <Checkbox
+          disabled={enabledCount === 3 && !value?.enabled}
           checked={value?.enabled || false}
           onChange={(checked) => {
             update?.(title, {
@@ -1441,6 +1444,26 @@ const OutroTab = ({
       }
     }
 
+    if (title === 'LinkedIn') {
+      socialDetails = {
+        type: 'outroBlock',
+        outro: {
+          ...view?.outro,
+          linkedin: handle,
+        },
+      }
+    }
+
+    if (title === 'Website') {
+      socialDetails = {
+        type: 'outroBlock',
+        outro: {
+          ...view?.outro,
+          website: handle,
+        },
+      }
+    }
+
     updateView(socialDetails)
   }
 
@@ -1486,19 +1509,36 @@ const OutroTab = ({
       <div className="flex flex-col mt-6 gap-y-6">
         <SocialHandleTab
           title="Twitter"
+          enabledCount={enabledCount}
           value={view?.outro?.twitter}
           update={updateHandle}
           updateCount={updateEnabledCount}
         />
         <SocialHandleTab
           title="Discord"
+          enabledCount={enabledCount}
           value={view?.outro?.discord}
           update={updateHandle}
           updateCount={updateEnabledCount}
         />
         <SocialHandleTab
           title="Youtube"
+          enabledCount={enabledCount}
           value={view?.outro?.youtube}
+          update={updateHandle}
+          updateCount={updateEnabledCount}
+        />
+        <SocialHandleTab
+          title="LinkedIn"
+          enabledCount={enabledCount}
+          value={view?.outro?.linkedin}
+          update={updateHandle}
+          updateCount={updateEnabledCount}
+        />
+        <SocialHandleTab
+          title="Website"
+          enabledCount={enabledCount}
+          value={view?.outro?.website}
           update={updateHandle}
           updateCount={updateEnabledCount}
         />

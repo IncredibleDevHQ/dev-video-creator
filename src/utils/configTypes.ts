@@ -172,6 +172,8 @@ export interface OutroBlockViewProps {
   twitter?: HandleDetails
   discord?: HandleDetails
   youtube?: HandleDetails
+  website?: HandleDetails
+  linkedin?: HandleDetails
   noOfSocialHandles?: number
   order?: { enabled: boolean; state: OutroState }[]
 }
