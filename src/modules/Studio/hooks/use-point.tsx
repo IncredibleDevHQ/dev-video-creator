@@ -3,7 +3,7 @@ import { useRef } from 'react'
 import { Layout, ListOrientation } from '../../../utils/configTypes'
 import { ListItem, RichTextContent } from '../../Flick/editor/utils/utils'
 import { ComputedRichText, getRichTextData } from '../components/RichText'
-import { getPointsConfig } from '../utils/PointsConfig'
+import { getPointsConfig, getBulletsConfig } from '../utils/PointsConfig'
 
 export interface ComputedPoint {
   y: number
@@ -38,6 +38,7 @@ const usePoint = () => {
     orientation,
     layout,
     isShorts,
+    theme,
   }: {
     points: ListItem[]
     availableWidth: number
@@ -49,6 +50,7 @@ const usePoint = () => {
     orientation: ListOrientation
     layout: Layout
     isShorts: boolean
+    theme: string
   }) => {
     computedPoints.current = []
     presentY.current = gutter
@@ -109,6 +111,7 @@ const usePoint = () => {
     if (orientation === 'horizontal') {
       let maxHeight = 0
       const pointsConfig = getPointsConfig({ layout, isShorts })
+      const bulletsConfig = getBulletsConfig({ theme, layout })
       const pointsRichTextData: any = []
       points.forEach((point) => {
         if (!point?.content) return
@@ -179,7 +182,7 @@ const usePoint = () => {
           y:
             (availableHeight -
               (maxHeight +
-                pointsConfig.bulletHeight +
+                bulletsConfig.bulletHeight +
                 pointsConfig.paddingBtwBulletText)) /
             2,
           text: pointText || '',

@@ -3,6 +3,7 @@ import React, { useRef } from 'react'
 import { Group, Image, Line, Rect, Text } from 'react-konva'
 import useImage from 'use-image'
 import IncredibleLogo from '../../../assets/incredible-x-logo.svg'
+import { TopLayerChildren } from '../../../utils/configTypes'
 import { BrandingJSON } from '../../Branding/BrandingPage'
 import useEdit from '../hooks/use-edit'
 import { getCanvasGradient } from '../utils/StudioUserConfig'
@@ -171,6 +172,7 @@ export const GlassyLowerThirds = ({
   color,
   textColor,
   branding,
+  setTopLayerChildren,
 }: {
   x: number
   y: number
@@ -181,6 +183,9 @@ export const GlassyLowerThirds = ({
   color: string
   textColor: string
   branding: BrandingJSON | null | undefined
+  setTopLayerChildren?: React.Dispatch<
+    React.SetStateAction<{ id: string; state: TopLayerChildren }>
+  >
 }) => {
   const [image] = useImage(logo, 'anonymous')
   const { getTextWidth } = useEdit()
@@ -259,6 +264,14 @@ export const GlassyLowerThirds = ({
                                   width: 0,
                                   duration: 0.4,
                                   easing: Konva.Easings.BackEaseIn,
+                                  onFinish: () => {
+                                    setTimeout(() => {
+                                      setTopLayerChildren?.({
+                                        id: '',
+                                        state: '',
+                                      })
+                                    }, 400)
+                                  },
                                 })
                               }, 200)
                             },
@@ -463,6 +476,14 @@ export const GlassyLowerThirds = ({
                     width: 0,
                     duration: 0.3,
                     easing: Konva.Easings.EaseOut,
+                    onFinish: () => {
+                      setTimeout(() => {
+                        setTopLayerChildren?.({
+                          id: '',
+                          state: '',
+                        })
+                      }, 400)
+                    },
                   })
                 }, 2000)
               },
@@ -604,6 +625,7 @@ export const PastelLinesLowerThirds = ({
   logo,
   color,
   textColor,
+  setTopLayerChildren,
 }: {
   x: number
   y: number
@@ -613,6 +635,9 @@ export const PastelLinesLowerThirds = ({
   logo: string
   color: string
   textColor: string
+  setTopLayerChildren?: React.Dispatch<
+    React.SetStateAction<{ id: string; state: TopLayerChildren }>
+  >
 }) => {
   const [image] = useImage(logo, 'anonymous')
   const { getTextWidth } = useEdit()
@@ -654,6 +679,14 @@ export const PastelLinesLowerThirds = ({
                                 width: 0,
                                 strokeWidth: 0,
                                 duration: 0.3,
+                                onFinish: () => {
+                                  setTimeout(() => {
+                                    setTopLayerChildren?.({
+                                      id: '',
+                                      state: '',
+                                    })
+                                  }, 400)
+                                },
                               })
                             },
                           })
@@ -867,6 +900,14 @@ export const PastelLinesLowerThirds = ({
                     strokeWidth: 0,
                     duration: 0.3,
                     easing: Konva.Easings.EaseOut,
+                    onFinish: () => {
+                      setTimeout(() => {
+                        setTopLayerChildren?.({
+                          id: '',
+                          state: '',
+                        })
+                      }, 400)
+                    },
                   })
                 }, 1300)
               },
@@ -1009,6 +1050,7 @@ export const CassidooLowerThirds = ({
   logo,
   color,
   textColor,
+  setTopLayerChildren,
 }: {
   x: number
   y: number
@@ -1018,6 +1060,9 @@ export const CassidooLowerThirds = ({
   logo: string
   color: string
   textColor: string
+  setTopLayerChildren?: React.Dispatch<
+    React.SetStateAction<{ id: string; state: TopLayerChildren }>
+  >
 }) => {
   const [image] = useImage(logo, 'anonymous')
   const { getTextWidth } = useEdit()
@@ -1048,6 +1093,14 @@ export const CassidooLowerThirds = ({
                   ref?.to({
                     opacity: 0,
                     duration: 0.6,
+                    onFinish: () => {
+                      setTimeout(() => {
+                        setTopLayerChildren?.({
+                          id: '',
+                          state: '',
+                        })
+                      }, 400)
+                    },
                   })
                 }, 2000)
               },
@@ -1144,6 +1197,14 @@ export const CassidooLowerThirds = ({
                 ref?.to({
                   opacity: 0,
                   duration: 0.6,
+                  onFinish: () => {
+                    setTimeout(() => {
+                      setTopLayerChildren?.({
+                        id: '',
+                        state: '',
+                      })
+                    }, 400)
+                  },
                 })
               }, 2000)
             },
@@ -1206,7 +1267,7 @@ export const CassidooLowerThirds = ({
             fontSize={16}
             height={96}
             fontFamily="Roboto Mono"
-            key="designation"
+            key="organization"
           />
         )}
         {designation !== '' && organization !== '' && (
@@ -1218,7 +1279,7 @@ export const CassidooLowerThirds = ({
             fontSize={16}
             height={96}
             fontFamily="Roboto Mono"
-            key="designation"
+            key="designationAndOrganization"
           />
         )}
       </Group>
@@ -1235,6 +1296,7 @@ export const LambdaTestLowerThirds = ({
   logo,
   color,
   textColor,
+  setTopLayerChildren,
 }: {
   x: number
   y: number
@@ -1244,6 +1306,9 @@ export const LambdaTestLowerThirds = ({
   logo: string
   color: string
   textColor: string
+  setTopLayerChildren?: React.Dispatch<
+    React.SetStateAction<{ id: string; state: TopLayerChildren }>
+  >
 }) => {
   const [image] = useImage(logo, 'anonymous')
   const { getTextWidth } = useEdit()
@@ -1276,6 +1341,14 @@ export const LambdaTestLowerThirds = ({
                     height: 0,
                     duration: 0.3,
                     easing: Konva.Easings.EaseOut,
+                    onFinish: () => {
+                      setTimeout(() => {
+                        setTopLayerChildren?.({
+                          id: '',
+                          state: '',
+                        })
+                      }, 400)
+                    },
                   })
                 }, 2600)
               },
@@ -1506,6 +1579,251 @@ export const LambdaTestLowerThirds = ({
             </>
           )}
         </Group>
+      </Group>
+    </>
+  )
+}
+
+export const LeeRobLowerThirds = ({
+  x,
+  y,
+  userName,
+  designation,
+  organization,
+  logo,
+  color,
+  textColor,
+  setTopLayerChildren,
+}: {
+  x: number
+  y: number
+  userName: string
+  designation: string
+  organization: string
+  logo: string
+  color: string
+  textColor: string
+  setTopLayerChildren?: React.Dispatch<
+    React.SetStateAction<{ id: string; state: TopLayerChildren }>
+  >
+}) => {
+  const [image] = useImage(logo, 'anonymous')
+  const { getTextWidth } = useEdit()
+
+  const rectWidth =
+    Math.max(
+      getTextWidth(`${designation}, ${organization}`, 'Inter', 12, 'normal'),
+      getTextWidth(userName || '', 'Inter', 18, 'bold')
+    ) + 20
+  if (logo)
+    return (
+      <>
+        <Group
+          x={x}
+          y={y}
+          opacity={0}
+          ref={(ref) => {
+            ref?.to({
+              opacity: 1,
+              duration: 0.6,
+              onFinish: () => {
+                setTimeout(() => {
+                  ref?.to({
+                    opacity: 0,
+                    duration: 0.6,
+                    onFinish: () => {
+                      setTimeout(() => {
+                        setTopLayerChildren?.({
+                          id: '',
+                          state: '',
+                        })
+                      }, 400)
+                    },
+                  })
+                }, 2000)
+              },
+            })
+          }}
+        >
+          <Rect
+            fill={color || '#111827'}
+            width={Math.floor(rectWidth) + 72}
+            height={86}
+            opacity={0.9}
+            stroke={getCanvasGradient(
+              [
+                { color: '#DB1685', offset: 0.0 },
+                { color: '#8165D6', offset: 0.5208 },
+                { color: '#48A8F6', offset: 0.9583 },
+              ],
+              {
+                x0: 0,
+                y0: 0,
+                x1: Math.floor(rectWidth) + 72,
+                y1: 86,
+              }
+            )}
+            strokeWidth={2}
+          />
+          <Image
+            x={Math.floor(rectWidth) + 22}
+            y={25}
+            width={36}
+            height={36}
+            image={image}
+          />
+          <Text
+            x={22}
+            y={designation === '' && organization === '' ? 0 : 26}
+            fill={textColor || '#ffffff'}
+            text={userName}
+            fontSize={18}
+            height={86}
+            fontStyle="bold"
+            fontFamily="Inter"
+            verticalAlign={
+              designation === '' && organization === '' ? 'middle' : undefined
+            }
+            key="username"
+          />
+          {designation !== '' && organization === '' && (
+            <Text
+              x={22}
+              y={52}
+              fill={textColor || '#E5E7EB'}
+              text={designation}
+              fontSize={12}
+              height={86}
+              fontFamily="Inter"
+              key="designation"
+            />
+          )}
+          {designation === '' && organization !== '' && (
+            <Text
+              x={22}
+              y={52}
+              fill={textColor || '#E5E7EB'}
+              text={organization}
+              fontSize={12}
+              height={86}
+              fontFamily="Inter"
+              key="organization"
+            />
+          )}
+          {designation !== '' && organization !== '' && (
+            <Text
+              x={22}
+              y={52}
+              fill={textColor || '#E5E7EB'}
+              text={`${designation}, ${organization}`}
+              fontSize={12}
+              height={86}
+              fontFamily="Inter"
+              key="designationAndOrganization"
+            />
+          )}
+        </Group>
+      </>
+    )
+  return (
+    <>
+      <Group
+        x={x}
+        y={y}
+        opacity={0}
+        ref={(ref) => {
+          ref?.to({
+            opacity: 1,
+            duration: 0.6,
+            onFinish: () => {
+              setTimeout(() => {
+                ref?.to({
+                  opacity: 0,
+                  duration: 0.6,
+                  onFinish: () => {
+                    setTimeout(() => {
+                      setTopLayerChildren?.({
+                        id: '',
+                        state: '',
+                      })
+                    }, 400)
+                  },
+                })
+              }, 2000)
+            },
+          })
+        }}
+      >
+        <Rect
+          fill={color || '#111827'}
+          width={Math.floor(rectWidth) + 40}
+          height={86}
+          opacity={0.9}
+          stroke={getCanvasGradient(
+            [
+              { color: '#DB1685', offset: 0.0 },
+              { color: '#8165D6', offset: 0.5208 },
+              { color: '#48A8F6', offset: 0.9583 },
+            ],
+            {
+              x0: 0,
+              y0: 0,
+              x1: Math.floor(rectWidth) + 40,
+              y1: 86,
+            }
+          )}
+          strokeWidth={2}
+        />
+        <Text
+          x={22}
+          y={designation === '' && organization === '' ? 0 : 26}
+          fill={textColor || '#ffffff'}
+          text={userName}
+          fontSize={18}
+          height={86}
+          fontStyle="bold"
+          fontFamily="Inter"
+          verticalAlign={
+            designation === '' && organization === '' ? 'middle' : undefined
+          }
+          key="username"
+        />
+        {designation !== '' && organization === '' && (
+          <Text
+            x={22}
+            y={52}
+            fill={textColor || '#E5E7EB'}
+            text={designation}
+            fontSize={12}
+            height={96}
+            fontFamily="Inter"
+            key="designation"
+          />
+        )}
+        {designation === '' && organization !== '' && (
+          <Text
+            x={22}
+            y={52}
+            fill={textColor || '#E5E7EB'}
+            text={organization}
+            fontSize={12}
+            height={96}
+            fontFamily="Inter"
+            key="organization"
+          />
+        )}
+        {designation !== '' && organization !== '' && (
+          <Text
+            x={22}
+            y={52}
+            fill={textColor || '#E5E7EB'}
+            text={`${designation}, ${organization}`}
+            fontSize={12}
+            height={96}
+            fontFamily="Inter"
+            key="designationAndOrganization"
+          />
+        )}
       </Group>
     </>
   )

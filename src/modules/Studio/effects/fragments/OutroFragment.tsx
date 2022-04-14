@@ -70,7 +70,7 @@ const OutroFragment = ({
   isPreview: boolean
   outroSequence: OutroState[]
 }) => {
-  const { fragment, branding, theme, state, payload } =
+  const { fragment, branding, theme, state, payload, updatePayload } =
     useRecoilValue(studioStore)
   const [logo] = useImage(branding?.logo || '', 'anonymous')
   const [twitterLogo] = useImage(TwitterLogo, 'anonymous')
@@ -193,17 +193,32 @@ const OutroFragment = ({
     ) {
       if (outroSequence[payload?.activeOutroIndex] === 'titleSplash') {
         videoElement?.pause()
+        if (videoElement) videoElement.currentTime = 0
         outroScreenRef.current?.opacity(1)
         brandVideoRef.current?.opacity(0)
       }
       if (outroSequence[payload?.activeOutroIndex] === 'outroVideo') {
         if (!videoElement) return
+        if (videoElement) videoElement.currentTime = 0
         videoElement?.play()
         outroScreenRef.current?.opacity(0)
         brandVideoRef.current?.opacity(1)
       }
     }
   }, [state, payload?.activeOutroIndex, videoElement])
+
+  useEffect(() => {
+    if (!videoElement) return
+    if (isPreview) return
+    if (outroSequence[payload?.activeOutroIndex] !== 'outroVideo') return
+    videoElement.addEventListener('ended', () => {
+      if (payload?.activeOutroIndex !== outroSequence.length - 1) {
+        updatePayload?.({ activeOutroIndex: payload?.activeOutroIndex + 1 })
+      } else {
+        videoElement.pause()
+      }
+    })
+  }, [videoElement, payload?.activeOutroIndex])
 
   const layerChildren = [
     <Group>

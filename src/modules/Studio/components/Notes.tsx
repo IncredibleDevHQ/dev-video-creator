@@ -305,7 +305,7 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
     const block = simpleAST.blocks[payload?.activeObjectIndex]
     setLocalNote(undefined)
     setLocalNoteId(undefined)
-    switch (block.type) {
+    switch (block?.type) {
       case 'listBlock': {
         const listBlock = simpleAST.blocks.find(
           (b) => b.id === block.id

@@ -263,7 +263,7 @@ const RecordingControlsBar = ({
         payload?.activeObjectIndex || 0
       ] as CodeBlockProps
       const codeBlockViewProps = (fragment?.configuration as ViewConfig).blocks[
-        codeBlockProps.id
+        codeBlockProps?.id
       ]?.view as CodeBlockView
 
       const codeAnimation = codeBlockViewProps?.code?.animation
