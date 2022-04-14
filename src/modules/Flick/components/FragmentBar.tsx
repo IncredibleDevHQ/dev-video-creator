@@ -392,7 +392,7 @@ const FragmentBar = ({
   }, [config.mode])
 
   return (
-    <div className="sticky z-50 flex items-center justify-between w-full px-4 bg-dark-300">
+    <div className="sticky z-40 flex items-center justify-between w-full px-4 bg-dark-300">
       <div className="flex items-center justify-start py-2 text-dark-title">
         <Heading
           className={cx('cursor-pointer hover:text-white', {

@@ -4,6 +4,7 @@ import { css, cx } from '@emotion/css'
 import { Editor as CoreEditor } from '@tiptap/core'
 import React, { useEffect, useMemo, useState } from 'react'
 import { BiBlock } from 'react-icons/bi'
+import { IoChevronBackOutline, IoChevronForwardOutline } from 'react-icons/io5'
 import { useHistory, useParams } from 'react-router-dom'
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
 import { v4 as uuidv4 } from 'uuid'
@@ -646,6 +647,8 @@ const Flick = () => {
 
   const utils = useUtils()
 
+  const [openSidebar, setOpenSidebar] = useState(true)
+
   const handleEditorChange = (editor: CoreEditor) => {
     // log all blockquotes in editor
     // const blockquotes = editor
@@ -718,7 +721,27 @@ const Flick = () => {
       <div className="relative flex flex-col w-screen h-screen overflow-hidden">
         <FlickNavBar togglePublishModal={() => setPublishModal(true)} />
         <div className="flex flex-1 relative overflow-hidden">
-          <Sidebar storyName={flick.name} />
+          {openSidebar && <Sidebar storyName={flick.name} />}
+          <button
+            type="button"
+            style={{
+              height: 'min-content',
+            }}
+            className={cx(
+              'absolute flex items-center justify-center  bg-white rounded-md z-50 border shadow-md top-0 bottom-0 mb-auto mt-auto',
+              {
+                'left-0 -ml-1': !openSidebar,
+                'left-44 -ml-3': openSidebar,
+              }
+            )}
+            onClick={() => setOpenSidebar(!openSidebar)}
+          >
+            {openSidebar ? (
+              <IoChevronBackOutline className="text-black m-1" size={16} />
+            ) : (
+              <IoChevronForwardOutline className="text-black m-1" size={16} />
+            )}
+          </button>
           <div className="flex flex-col flex-1 overflow-hidden relative">
             <FragmentBar
               simpleAST={simpleAST}
