@@ -1944,12 +1944,12 @@ export const Web3AuthLowerThirds = ({
               setTimeout(() => {
                 ref?.to({
                   opacity: 1,
-                  duration: 0.3,
+                  duration: 0.5,
                   onFinish: () => {
                     setTimeout(() => {
                       ref?.to({
                         opacity: 0,
-                        duration: 0.2,
+                        duration: 0.1,
                       })
                     }, 2000)
                   },
