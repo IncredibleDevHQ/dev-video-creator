@@ -110,12 +110,12 @@ export const TrianglePathTransition = ({
     case 'left':
       groupStartX = stageConfig.width + stageConfig.width / 4 + 110
       groupEndX = -(stageConfig.width + stageConfig.width / 4 + 110)
-      duration = 1
+      duration = 0.8
       break
     case 'right':
       groupStartX = -(stageConfig.width + stageConfig.width / 4 + 110)
       groupEndX = stageConfig.width + stageConfig.width / 4 + 110
-      duration = 1
+      duration = 0.8
       break
     case 'moveIn':
       groupStartX = -(stageConfig.width + stageConfig.width / 4 + 110)
@@ -1060,6 +1060,97 @@ export const LeeRobTransition = ({
         }}
       />
     </Group>
+  )
+}
+
+export const Web3AuthTransition = ({
+  direction,
+  // isShorts,
+  // color,
+  setTopLayerChildren,
+}: {
+  direction: string
+  // isShorts?: boolean
+  // color?: string
+  setTopLayerChildren?: React.Dispatch<
+    React.SetStateAction<{ id: string; state: TopLayerChildren }>
+  >
+}) => {
+  // let stageConfig = { width: CONFIG.width, height: CONFIG.height }
+  // if (!isShorts) stageConfig = CONFIG
+  // else stageConfig = SHORTS_CONFIG
+
+  return (
+    <>
+      <Circle
+        x={CONFIG.width / 2}
+        y={CONFIG.height / 2}
+        radius={150}
+        scaleX={0}
+        scaleY={0}
+        fill="#ffffff"
+        ref={(ref) => {
+          ref?.to({
+            scaleX: 5,
+            scaleY: 5,
+            duration: 0.4,
+            onFinish: () => {
+              setTimeout(() => {
+                ref?.to({
+                  y: CONFIG.height + 900,
+                  duration: 0.4,
+                  onFinish: () => {
+                    setTimeout(() => {
+                      if (direction === 'left' || direction === 'right') {
+                        setTopLayerChildren?.({ id: '', state: '' })
+                      }
+                    }, 200)
+                  },
+                })
+              }, 200)
+            },
+          })
+        }}
+      />
+      <Circle
+        x={CONFIG.width / 2}
+        y={CONFIG.height / 2}
+        radius={100}
+        scaleX={0}
+        scaleY={0}
+        fill="#ededed"
+        ref={(ref) =>
+          ref?.to({
+            scaleX: 5,
+            scaleY: 5,
+            duration: 0.4,
+            onFinish: () => {
+              setTimeout(() => {
+                ref?.to({ y: CONFIG.height + 900, duration: 0.4 })
+              }, 100)
+            },
+          })
+        }
+      />
+      <Circle
+        x={CONFIG.width / 2}
+        y={CONFIG.height / 2}
+        radius={50}
+        scaleX={0}
+        scaleY={0}
+        fill="#ffffff"
+        ref={(ref) =>
+          ref?.to({
+            scaleX: 5,
+            scaleY: 5,
+            duration: 0.4,
+            onFinish: () => {
+              ref?.to({ y: CONFIG.height + 900, duration: 0.4 })
+            },
+          })
+        }
+      />
+    </>
   )
 }
 
