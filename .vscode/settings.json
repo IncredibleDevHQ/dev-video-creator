@@ -8,5 +8,8 @@
     "lowlight",
     "Outro",
     "vectorly"
-  ]
+  ],
+  "files.exclude": {
+    "**/node_modules": true
+  }
 }

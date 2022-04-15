@@ -76,8 +76,10 @@ const useCode = () => {
         // Check for wrapping...
         if (width + currentWidth.current > canvasWidth) {
           // wrap
-          computedLineNumber.current += 1
-          currentWidth.current = 0
+          if (currentWidth.current !== 0) {
+            computedLineNumber.current += 1
+            currentWidth.current = 0
+          }
         }
 
         const computedToken: ComputedToken = {

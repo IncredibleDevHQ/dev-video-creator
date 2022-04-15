@@ -118,12 +118,16 @@ const IntroFragment = ({
   }, [state, activeIntroIndex, videoElement])
 
   useEffect(() => {
-    if (!isPreview && introSequence[activeIntroIndex] === 'userMedia') {
+    if (
+      !isPreview &&
+      introSequence[activeIntroIndex] === 'userMedia' &&
+      state === 'start-recording'
+    ) {
       timer.current = setTimeout(() => {
         setTopLayerChildren?.({ id: nanoid(), state: 'lowerThird' })
       }, 2000)
     }
-  }, [activeIntroIndex])
+  }, [activeIntroIndex, state])
 
   useEffect(() => {
     if (!videoElement) return

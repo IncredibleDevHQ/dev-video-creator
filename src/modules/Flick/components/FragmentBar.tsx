@@ -8,9 +8,7 @@ import { BsCloudCheck, BsCloudUpload } from 'react-icons/bs'
 import {
   IoAlbumsOutline,
   IoCheckmark,
-  IoDesktopOutline,
   IoImageOutline,
-  IoPhonePortraitOutline,
   IoPlayOutline,
   IoWarningOutline,
 } from 'react-icons/io5'
@@ -308,17 +306,13 @@ const FragmentBar = ({
   }, [editorValue, config, useBranding, brandingId, simpleAST])
 
   useEffect(() => {
+    initialLoad.current = true
+  }, [activeFragmentId])
+
+  useEffect(() => {
     const f = flick?.fragments.find((f) => f.id === activeFragmentId)
     setFragment(f)
   }, [activeFragmentId, flick])
-
-  useEffect(() => {
-    if (!error) return
-    emitToast({
-      type: 'error',
-      title: 'Error saving configuration',
-    })
-  }, [error])
 
   const updateActiveTheme = (theme: ThemeFragment) => {
     setFlickStore((prev) => {
@@ -330,6 +324,9 @@ const FragmentBar = ({
     setSavingConfig(true)
 
     try {
+      const encodedEditorValue = Buffer.from(editorValue as string).toString(
+        'base64'
+      )
       if (
         fragment &&
         fragment?.type !== Fragment_Type_Enum_Enum.Intro &&
@@ -339,7 +336,7 @@ const FragmentBar = ({
         await saveFlick({
           variables: {
             id: flick?.id,
-            md: editorValue,
+            encodedEditorValue,
             editorState: simpleAST,
             fragmentId: activeFragmentId,
             configuration: config,
@@ -357,13 +354,13 @@ const FragmentBar = ({
               branding: useBranding
                 ? brandingData?.Branding.find((b) => b.id === brandingId)
                 : null,
-              md: editorValue,
               fragments: flick.fragments.map((f) =>
                 f.id === activeFragmentId
                   ? {
                       ...f,
                       configuration: config,
                       editorState: simpleAST,
+                      encodedEditorValue,
                     }
                   : f
               ),
@@ -395,7 +392,7 @@ const FragmentBar = ({
   }, [config.mode])
 
   return (
-    <div className="sticky z-50 flex items-center justify-between w-full px-4 bg-dark-300">
+    <div className="sticky z-40 flex items-center justify-between w-full px-4 bg-dark-300">
       <div className="flex items-center justify-start py-2 text-dark-title">
         <Heading
           className={cx('cursor-pointer hover:text-white', {
@@ -407,16 +404,18 @@ const FragmentBar = ({
         >
           Notebook
         </Heading>
-        <Heading
-          className={cx('cursor-pointer hover:text-white ml-4', {
-            'text-white': view === View.Preview,
-          })}
-          onClick={() =>
-            setFlickStore((prev) => ({ ...prev, view: View.Preview }))
-          }
-        >
-          Preview
-        </Heading>
+        {fragment?.type !== Fragment_Type_Enum_Enum.Blog && (
+          <Heading
+            className={cx('cursor-pointer hover:text-white ml-4', {
+              'text-white': view === View.Preview,
+            })}
+            onClick={() =>
+              setFlickStore((prev) => ({ ...prev, view: View.Preview }))
+            }
+          >
+            Preview
+          </Heading>
+        )}
       </div>
       <div className="flex items-center h-full">
         {savingConfig && (
@@ -585,30 +584,6 @@ const FragmentBar = ({
           </Button>
         </div>
         <div className="flex items-stretch justify-end py-2 pl-4 border-l-2 border-brand-grey text-gray-400">
-          <Button
-            appearance={config.mode === 'Landscape' ? 'gray' : 'none'}
-            size="small"
-            type="button"
-            icon={IoDesktopOutline}
-            className="mr-2 transition-colors"
-            onClick={() => {
-              // Segment Tracking
-              logEvent(PageEvent.SelectLandscapeMode)
-              setViewConfig({ ...config, mode: 'Landscape' })
-            }}
-          />
-          <Button
-            appearance={config.mode === 'Portrait' ? 'gray' : 'none'}
-            size="small"
-            type="button"
-            className="mr-4 transition-colors"
-            icon={IoPhonePortraitOutline}
-            onClick={() => {
-              // Segment Tracking
-              logEvent(PageEvent.SelectPortraitMode)
-              setViewConfig({ ...config, mode: 'Portrait' })
-            }}
-          />
           <Button
             appearance="primary"
             size="small"

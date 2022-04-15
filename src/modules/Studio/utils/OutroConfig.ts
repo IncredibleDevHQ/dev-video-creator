@@ -885,6 +885,16 @@ export const getSocialHandlePositions = ({
         text: socialHandles.youtubeHandle || '',
         textProperties,
       })
+      const linkedinHandleWidth = getTextWidth({
+        isShorts,
+        text: socialHandles.linkedinHandle || '',
+        textProperties,
+      })
+      const websiteHandleWidth = getTextWidth({
+        isShorts,
+        text: socialHandles.websiteHandle || '',
+        textProperties,
+      })
       const socialHandlesPositionInfo = {
         twitterX: 0,
         twitterY: 0,
@@ -892,6 +902,10 @@ export const getSocialHandlePositions = ({
         discordY: 0,
         youtubeX: 0,
         youtubeY: 0,
+        linkedinX: 0,
+        linkedinY: 0,
+        websiteX: 0,
+        websiteY: 0,
       }
       if (!isShorts) {
         const consumedWidth =
@@ -899,7 +913,9 @@ export const getSocialHandlePositions = ({
           8 * noOfSocialHandles +
           twitterHandleWidth +
           discordHandleWidth +
-          youtubeHandleWidth
+          youtubeHandleWidth +
+          websiteHandleWidth +
+          linkedinHandleWidth
         let startX = (availableWidth - consumedWidth) / 2
 
         Object.entries(socialHandles).forEach(([key, value]) => {
@@ -942,13 +958,41 @@ export const getSocialHandlePositions = ({
               }) +
               24
           }
+          if (key === 'linkedinHandle' && value) {
+            socialHandlesPositionInfo.linkedinX = startX
+            socialHandlesPositionInfo.linkedinY = socialY
+            startX +=
+              24 +
+              4 +
+              getTextWidth({
+                isShorts,
+                text: value,
+                textProperties,
+              }) +
+              24
+          }
+          if (key === 'websiteHandle' && value) {
+            socialHandlesPositionInfo.websiteX = startX
+            socialHandlesPositionInfo.websiteY = socialY
+            startX +=
+              24 +
+              4 +
+              getTextWidth({
+                isShorts,
+                text: value,
+                textProperties,
+              }) +
+              24
+          }
         })
         return socialHandlesPositionInfo
       }
       const maxSocialHandleWidth = Math.max(
         twitterHandleWidth,
         discordHandleWidth,
-        youtubeHandleWidth
+        youtubeHandleWidth,
+        websiteHandleWidth,
+        linkedinHandleWidth
       )
       const startX = (availableWidth - maxSocialHandleWidth - 24 - 8) / 2
       let startY = socialY
@@ -968,6 +1012,16 @@ export const getSocialHandlePositions = ({
           socialHandlesPositionInfo.youtubeY = startY
           startY += 24 + 8
         }
+        if (key === 'linkedinHandle' && value) {
+          socialHandlesPositionInfo.linkedinX = startX
+          socialHandlesPositionInfo.linkedinY = startY
+          startY += 24 + 8
+        }
+        if (key === 'websiteHandle' && value) {
+          socialHandlesPositionInfo.websiteX = startX
+          socialHandlesPositionInfo.websiteY = startY
+          startY += 24 + 8
+        }
       })
       return socialHandlesPositionInfo
     }
@@ -985,6 +1039,10 @@ export const getSocialHandlePositions = ({
         discordY: 0,
         youtubeX: 0,
         youtubeY: 0,
+        linkedinX: 0,
+        linkedinY: 0,
+        websiteX: 0,
+        websiteY: 0,
       }
       Object.entries(socialHandles).forEach(([key, value]) => {
         if (key === 'twitterHandle' && value) {
@@ -1002,6 +1060,16 @@ export const getSocialHandlePositions = ({
           socialHandlesPositionInfo.youtubeY = startY
           startY += 24 + 16
         }
+        if (key === 'linkedinHandle' && value) {
+          socialHandlesPositionInfo.linkedinX = socialX
+          socialHandlesPositionInfo.linkedinY = startY
+          startY += 24 + 16
+        }
+        if (key === 'websiteHandle' && value) {
+          socialHandlesPositionInfo.websiteX = socialX
+          socialHandlesPositionInfo.websiteY = startY
+          startY += 24 + 16
+        }
       })
       return socialHandlesPositionInfo
     }
@@ -1013,6 +1081,10 @@ export const getSocialHandlePositions = ({
         discordY: 0,
         youtubeX: 0,
         youtubeY: 0,
+        linkedinX: 0,
+        linkedinY: 0,
+        websiteX: 0,
+        websiteY: 0,
       }
     }
   }
