@@ -89,7 +89,7 @@ const PointBullets = ({
             width={bulletsConfig.bulletBgRectWidth}
             height={bulletsConfig.bulletBgRectHeight}
             fill={
-              (bulletsConfig.bulletBgRectColor as string[])[
+              (bulletsConfig.bulletBgRectColor as string[])?.[
                 (pointNumber - 1) % 4
               ] || 'white'
             }
@@ -102,7 +102,7 @@ const PointBullets = ({
             width={bulletsConfig.bulletBgRectWidth}
             height={bulletsConfig.bulletBgRectHeight}
             stroke={
-              (bulletsConfig.bulletBgRectColor as string[])[
+              (bulletsConfig.bulletBgRectColor as string[])?.[
                 (pointNumber - 1) % 4
               ] || 'white'
             }
@@ -114,8 +114,9 @@ const PointBullets = ({
             width={bulletsConfig.bulletWidth}
             height={bulletsConfig.bulletHeight}
             fill={
-              (bulletsConfig.bulletColor as string[])[(pointNumber - 1) % 4] ||
-              'white'
+              (bulletsConfig.bulletColor as string[])?.[
+                (pointNumber - 1) % 4
+              ] || 'white'
             }
             cornerRadius={bulletsConfig.bulletCornerRadius}
             offsetX={bulletsConfig.bulletXOffset}
