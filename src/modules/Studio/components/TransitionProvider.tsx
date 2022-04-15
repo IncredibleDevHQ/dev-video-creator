@@ -141,12 +141,18 @@ const TransitionProvider = ({
         )
       }
       return (
-        <DipTransition
+        <TrianglePathTransition
           direction={direction}
           isShorts={isShorts}
-          color="black"
-          setTopLayerChildren={setTopLayerChildren}
+          color={branding?.colors?.transition}
+          performFinishAction={performFinishAction}
         />
+        // <Web3AuthTransition
+        //   direction={direction}
+        //   // isShorts={isShorts}
+        //   // color={branding?.colors?.transition}
+        //   setTopLayerChildren={setTopLayerChildren}
+        // />
       )
     default:
       return <></>
