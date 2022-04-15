@@ -129,7 +129,7 @@ const Sidebar = ({ storyName }: { storyName: string }): JSX.Element | null => {
     const formats = [
       Fragment_Type_Enum_Enum.Landscape,
       Fragment_Type_Enum_Enum.Portrait,
-      Fragment_Type_Enum_Enum.Blog,
+      // Fragment_Type_Enum_Enum.Blog,
     ].filter((type) => {
       if (
         type === Fragment_Type_Enum_Enum.Landscape &&
