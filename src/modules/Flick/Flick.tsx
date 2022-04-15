@@ -550,7 +550,11 @@ const Flick = () => {
           ).toString('utf8')
         : ''
     )
-  }, [activeFragmentId, flick?.id])
+  }, [
+    activeFragmentId,
+    flick?.id,
+    flick?.fragments.find((f) => f.id === activeFragmentId)?.id,
+  ])
 
   useMemo(() => {
     if (flick?.branding?.branding?.font)
