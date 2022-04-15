@@ -1829,6 +1829,338 @@ export const LeeRobLowerThirds = ({
   )
 }
 
+export const Web3AuthLowerThirds = ({
+  x,
+  y,
+  userName,
+  designation,
+  organization,
+  logo,
+  color,
+  textColor,
+  setTopLayerChildren,
+}: {
+  x: number
+  y: number
+  userName: string
+  designation: string
+  organization: string
+  logo: string
+  color: string
+  textColor: string
+  setTopLayerChildren?: React.Dispatch<
+    React.SetStateAction<{ id: string; state: TopLayerChildren }>
+  >
+}) => {
+  const [image] = useImage(logo, 'anonymous')
+  const { getTextWidth, clipRect } = useEdit()
+
+  const rectWidth =
+    Math.max(
+      getTextWidth(`${designation}, ${organization}`, 'Inter', 12, 'normal'),
+      getTextWidth(userName || '', 'Inter', 18, 'bold')
+    ) + 20
+
+  if (logo)
+    return (
+      <>
+        <Group
+          x={x}
+          y={y}
+          clipFunc={(ctx: any) => {
+            clipRect(ctx, {
+              x: 0,
+              y: 0,
+              width: Math.floor(rectWidth) + 80,
+              height: 74,
+              borderRadius: 6,
+            })
+          }}
+        >
+          <Rect
+            x={rectWidth / 2}
+            y={35}
+            width={4}
+            height={4}
+            fill={color}
+            fillLinearGradientColorStops={
+              color === '' ? [0, '#27272A', 1, '#B114FB'] : []
+            }
+            fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+            fillLinearGradientEndPoint={
+              color === ''
+                ? {
+                    x: rectWidth * 2,
+                    y: 148,
+                  }
+                : { x: 0, y: 0 }
+            }
+            ref={(ref) => {
+              ref?.to({
+                y: 0,
+                height: 74,
+                duration: 0.6,
+                easing: Konva.Easings.BackEaseOut,
+                onFinish: () => {
+                  ref?.to({
+                    x: 0,
+                    width: Math.floor(rectWidth) + 80,
+                    duration: 0.6,
+                    easing: Konva.Easings.BackEaseIn,
+                    onFinish: () => {
+                      setTimeout(() => {
+                        ref?.to({
+                          x: rectWidth / 2,
+                          width: 4,
+                          duration: 0.6,
+                          easing: Konva.Easings.BackEaseIn,
+                          onFinish: () => {
+                            ref?.to({
+                              y: 35,
+                              height: 0,
+                              duration: 0.6,
+                              easing: Konva.Easings.BackEaseIn,
+                              onFinish: () => {
+                                setTimeout(() => {
+                                  setTopLayerChildren?.({
+                                    id: '',
+                                    state: '',
+                                  })
+                                }, 400)
+                              },
+                            })
+                          },
+                        })
+                      }, 2000)
+                    },
+                  })
+                },
+              })
+            }}
+          />
+          <Group
+            opacity={0}
+            ref={(ref) => {
+              setTimeout(() => {
+                ref?.to({
+                  opacity: 1,
+                  duration: 0.3,
+                  onFinish: () => {
+                    setTimeout(() => {
+                      ref?.to({
+                        opacity: 0,
+                        duration: 0.2,
+                      })
+                    }, 2000)
+                  },
+                })
+              }, 1200)
+            }}
+          >
+            <Image x={24} y={20} width={32} height={32} image={image} />
+            <Text
+              x={80}
+              y={designation === '' && organization === '' ? 0 : 18}
+              fill={textColor || '#ffffff'}
+              text={userName}
+              fontSize={18}
+              height={74}
+              fontFamily="Inter"
+              verticalAlign={
+                designation === '' && organization === '' ? 'middle' : undefined
+              }
+              key="username"
+            />
+            {designation !== '' && organization === '' && (
+              <Text
+                x={80}
+                y={44}
+                fill={textColor || '#E5E7EB'}
+                text={designation}
+                fontSize={12}
+                height={74}
+                fontFamily="Inter"
+                key="designation"
+              />
+            )}
+            {designation === '' && organization !== '' && (
+              <Text
+                x={80}
+                y={44}
+                fill={textColor || '#E5E7EB'}
+                text={organization}
+                fontSize={12}
+                height={74}
+                fontFamily="Inter"
+                key="organization"
+              />
+            )}
+            {designation !== '' && organization !== '' && (
+              <Text
+                x={80}
+                y={44}
+                fill={textColor || '#E5E7EB'}
+                text={`${designation}, ${organization}`}
+                fontSize={12}
+                height={74}
+                fontFamily="Inter"
+                key="designationAndOrganization"
+              />
+            )}
+          </Group>
+        </Group>
+      </>
+    )
+  return (
+    <>
+      <Group
+        x={x}
+        y={y}
+        clipFunc={(ctx: any) => {
+          clipRect(ctx, {
+            x: 0,
+            y: 0,
+            width: Math.floor(rectWidth) + 48,
+            height: 74,
+            borderRadius: 6,
+          })
+        }}
+      >
+        <Rect
+          x={rectWidth / 2}
+          y={35}
+          width={4}
+          height={4}
+          fill={color}
+          fillLinearGradientColorStops={
+            color === '' ? [0, '#27272A', 1, '#B114FB'] : []
+          }
+          fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+          fillLinearGradientEndPoint={
+            color === ''
+              ? {
+                  x: rectWidth * 2,
+                  y: 148,
+                }
+              : { x: 0, y: 0 }
+          }
+          ref={(ref) => {
+            ref?.to({
+              y: 0,
+              height: 74,
+              duration: 0.6,
+              easing: Konva.Easings.BackEaseOut,
+              onFinish: () => {
+                ref?.to({
+                  x: 0,
+                  width: Math.floor(rectWidth) + 48,
+                  duration: 0.6,
+                  easing: Konva.Easings.BackEaseIn,
+                  onFinish: () => {
+                    setTimeout(() => {
+                      ref?.to({
+                        x: rectWidth / 2,
+                        width: 4,
+                        duration: 0.6,
+                        easing: Konva.Easings.BackEaseIn,
+                        onFinish: () => {
+                          ref?.to({
+                            y: 35,
+                            height: 0,
+                            duration: 0.6,
+                            easing: Konva.Easings.BackEaseIn,
+                            onFinish: () => {
+                              setTimeout(() => {
+                                setTopLayerChildren?.({
+                                  id: '',
+                                  state: '',
+                                })
+                              }, 400)
+                            },
+                          })
+                        },
+                      })
+                    }, 2000)
+                  },
+                })
+              },
+            })
+          }}
+        />
+        <Group
+          opacity={0}
+          ref={(ref) => {
+            setTimeout(() => {
+              ref?.to({
+                opacity: 1,
+                duration: 0.3,
+                onFinish: () => {
+                  setTimeout(() => {
+                    ref?.to({
+                      opacity: 0,
+                      duration: 0.2,
+                    })
+                  }, 2000)
+                },
+              })
+            }, 1200)
+          }}
+        >
+          <Text
+            x={36}
+            y={designation === '' && organization === '' ? 0 : 18}
+            fill={textColor || '#ffffff'}
+            text={userName}
+            fontSize={18}
+            height={74}
+            fontFamily="Inter"
+            verticalAlign={
+              designation === '' && organization === '' ? 'middle' : undefined
+            }
+            key="username"
+          />
+          {designation !== '' && organization === '' && (
+            <Text
+              x={36}
+              y={44}
+              fill={textColor || '#E5E7EB'}
+              text={designation}
+              fontSize={12}
+              height={74}
+              fontFamily="Inter"
+              key="designation"
+            />
+          )}
+          {designation === '' && organization !== '' && (
+            <Text
+              x={36}
+              y={44}
+              fill={textColor || '#E5E7EB'}
+              text={organization}
+              fontSize={12}
+              height={74}
+              fontFamily="Inter"
+              key="organization"
+            />
+          )}
+          {designation !== '' && organization !== '' && (
+            <Text
+              x={36}
+              y={44}
+              fill={textColor || '#E5E7EB'}
+              text={`${designation}, ${organization}`}
+              fontSize={12}
+              height={74}
+              fontFamily="Inter"
+              key="designationAndOrganization"
+            />
+          )}
+        </Group>
+      </Group>
+    </>
+  )
+}
+
 export const IncredibleLowerThirds = ({
   x,
   y,
