@@ -6,6 +6,8 @@ import useImage from 'use-image'
 import DiscordLogo from '../../../../assets/OutroFragment/discord.svg'
 import TwitterLogo from '../../../../assets/OutroFragment/twitter.svg'
 import YoutubeLogo from '../../../../assets/OutroFragment/youtube.svg'
+import LinkedInLogo from '../../../../assets/OutroFragment/linkedin.svg'
+import WebsiteLogo from '../../../../assets/OutroFragment/website.svg'
 import {
   BlockProperties,
   OutroBlockView,
@@ -57,6 +59,8 @@ export interface SocialHandles {
   twitterHandle?: string
   discordHandle?: string
   youtubeHandle?: string
+  websiteHandle?: string
+  linkedinHandle?: string
 }
 
 const OutroFragment = ({
@@ -76,6 +80,8 @@ const OutroFragment = ({
   const [twitterLogo] = useImage(TwitterLogo, 'anonymous')
   const [discordLogo] = useImage(DiscordLogo, 'anonymous')
   const [youtubeLogo] = useImage(YoutubeLogo, 'anonymous')
+  const [linkedinLogo] = useImage(LinkedInLogo, 'anonymous')
+  const [websiteLogo] = useImage(WebsiteLogo, 'anonymous')
 
   const [outroConfig, setOutroConfig] = useState<OutroConfig>()
   const [outroMsg, setOutroMsg] = useState<string>()
@@ -89,6 +95,10 @@ const OutroFragment = ({
     discordY: 0,
     youtubeX: 0,
     youtubeY: 0,
+    linkedinX: 0,
+    linkedinY: 0,
+    websiteX: 0,
+    websiteY: 0,
   })
 
   const { clipRect } = useEdit()
@@ -127,6 +137,16 @@ const OutroFragment = ({
           outroBlockViewProps?.youtube?.handle !== ''
             ? outroBlockViewProps?.youtube.handle
             : undefined,
+        linkedinHandle:
+          outroBlockViewProps?.linkedin?.enabled &&
+          outroBlockViewProps?.linkedin?.handle !== ''
+            ? outroBlockViewProps?.linkedin.handle
+            : undefined,
+        websiteHandle:
+          outroBlockViewProps?.website?.enabled &&
+          outroBlockViewProps?.website?.handle !== ''
+            ? outroBlockViewProps?.website.handle
+            : undefined,
       } || {}
     )
   }, [viewConfig, theme, isShorts])
@@ -155,6 +175,16 @@ const OutroFragment = ({
               outroBlockViewProps?.youtube?.enabled &&
               outroBlockViewProps?.youtube?.handle !== ''
                 ? outroBlockViewProps?.youtube.handle
+                : undefined,
+            linkedinHandle:
+              outroBlockViewProps?.linkedin?.enabled &&
+              outroBlockViewProps?.linkedin?.handle !== ''
+                ? outroBlockViewProps?.linkedin.handle
+                : undefined,
+            websiteHandle:
+              outroBlockViewProps?.website?.enabled &&
+              outroBlockViewProps?.website?.handle !== ''
+                ? outroBlockViewProps?.website.handle
                 : undefined,
           } || {},
         isShorts,
@@ -325,6 +355,46 @@ const OutroFragment = ({
                 x={socialHandlesPositionInfo?.youtubeX + 8 + 24}
                 y={socialHandlesPositionInfo?.youtubeY + 3}
                 text={socialHandles?.youtubeHandle}
+                fill={branding?.colors?.text || getThemeTextColor(theme)}
+                fontSize={outroConfig?.socialHandlesFontSize || 0}
+                fontFamily={branding?.font?.body?.family || 'GilroyRegular'}
+                lineHeight={1.2}
+              />
+            </>
+          )}
+          {socialHandles?.linkedinHandle && (
+            <>
+              <Image
+                x={socialHandlesPositionInfo?.linkedinX}
+                y={socialHandlesPositionInfo?.linkedinY || 0}
+                width={24}
+                height={24}
+                image={linkedinLogo}
+              />
+              <Text
+                x={socialHandlesPositionInfo?.linkedinX + 8 + 24}
+                y={socialHandlesPositionInfo?.linkedinY + 3}
+                text={socialHandles?.linkedinHandle}
+                fill={branding?.colors?.text || getThemeTextColor(theme)}
+                fontSize={outroConfig?.socialHandlesFontSize || 0}
+                fontFamily={branding?.font?.body?.family || 'GilroyRegular'}
+                lineHeight={1.2}
+              />
+            </>
+          )}
+          {socialHandles?.websiteHandle && (
+            <>
+              <Image
+                x={socialHandlesPositionInfo?.websiteX}
+                y={socialHandlesPositionInfo?.websiteY || 0}
+                width={24}
+                height={24}
+                image={websiteLogo}
+              />
+              <Text
+                x={socialHandlesPositionInfo?.websiteX + 8 + 24}
+                y={socialHandlesPositionInfo?.websiteY + 3}
+                text={socialHandles?.websiteHandle}
                 fill={branding?.colors?.text || getThemeTextColor(theme)}
                 fontSize={outroConfig?.socialHandlesFontSize || 0}
                 fontFamily={branding?.font?.body?.family || 'GilroyRegular'}
