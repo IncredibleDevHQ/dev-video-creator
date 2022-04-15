@@ -35,6 +35,12 @@ export const DipTransition = ({
           rectRef.current?.to({
             opacity: 0,
             duration: 0.4,
+            onFinish: () => {
+              setTimeout(() => {
+                performFinishAction?.()
+                setTopLayerChildren?.({ id: nanoid(), state: '' })
+              }, 400)
+            },
           })
         },
       })
@@ -104,12 +110,12 @@ export const TrianglePathTransition = ({
     case 'left':
       groupStartX = stageConfig.width + stageConfig.width / 4 + 110
       groupEndX = -(stageConfig.width + stageConfig.width / 4 + 110)
-      duration = 1
+      duration = 0.8
       break
     case 'right':
       groupStartX = -(stageConfig.width + stageConfig.width / 4 + 110)
       groupEndX = stageConfig.width + stageConfig.width / 4 + 110
-      duration = 1
+      duration = 0.8
       break
     case 'moveIn':
       groupStartX = -(stageConfig.width + stageConfig.width / 4 + 110)
@@ -892,6 +898,259 @@ export const CassidooTransition = ({
         }}
       />
     </Group>
+  )
+}
+
+export const LeeRobTransition = ({
+  direction,
+  isShorts,
+  // color,
+  setTopLayerChildren,
+}: {
+  direction: string
+  isShorts?: boolean
+  // color?: string
+  setTopLayerChildren?: React.Dispatch<
+    React.SetStateAction<{ id: string; state: TopLayerChildren }>
+  >
+}) => {
+  let stageConfig = { width: CONFIG.width, height: CONFIG.height }
+  if (!isShorts) stageConfig = CONFIG
+  else stageConfig = SHORTS_CONFIG
+
+  let rectStartX = 0
+  let rectIntermediateX = 0
+  let rectEndX = 0
+  let duration = 0
+
+  switch (direction) {
+    case 'left':
+      rectStartX = stageConfig.width + 150
+      rectIntermediateX = 0
+      rectEndX = -(stageConfig.width + 150)
+      duration = 0.8
+      break
+    case 'right':
+      rectStartX = -(stageConfig.width + 150)
+      rectIntermediateX = 0
+      rectEndX = stageConfig.width + 150
+      duration = 0.8
+      break
+    case 'moveIn':
+      rectStartX = -(stageConfig.width + 150)
+      rectEndX = 0
+      duration = 0.5
+      break
+    case 'moveAway':
+      rectStartX = 0
+      rectEndX = stageConfig.width + 150
+      duration = 0.5
+      break
+    default:
+      break
+  }
+
+  return (
+    <Group>
+      <Rect
+        x={rectStartX}
+        y={0}
+        width={stageConfig.width}
+        height={stageConfig.height}
+        fill="#ffffff"
+        ref={(ref) => {
+          ref?.to({
+            x: rectIntermediateX,
+            duration: duration * 0.6,
+            easing: Konva.Easings.EaseOut,
+            onFinish: () => {
+              ref?.to({
+                x: rectEndX,
+                duration: duration * 0.4,
+                // easing:
+                //   direction === 'left'
+                //     ? Konva.Easings.EaseOut
+                //     : Konva.Easings.EaseIn,
+              })
+            },
+          })
+        }}
+      />
+      <Rect
+        x={rectStartX}
+        y={0}
+        width={stageConfig.width}
+        height={stageConfig.height}
+        fill="#000000"
+        ref={(ref) => {
+          setTimeout(() => {
+            ref?.to({
+              x: rectIntermediateX,
+              duration: (duration - 0.08) * 0.6,
+              easing: Konva.Easings.EaseOut,
+              onFinish: () => {
+                ref?.to({
+                  x: rectEndX,
+                  duration: (duration - 0.08) * 0.4,
+                  // easing:
+                  //   direction === 'left'
+                  //     ? Konva.Easings.EaseOut
+                  //     : Konva.Easings.EaseIn,
+                })
+              },
+            })
+          }, 80)
+        }}
+      />
+      <Rect
+        x={rectStartX}
+        y={0}
+        width={stageConfig.width}
+        height={stageConfig.height}
+        fill="#ffffff"
+        ref={(ref) => {
+          setTimeout(() => {
+            ref?.to({
+              x: rectIntermediateX,
+              duration: (duration - 0.12) * 0.6,
+              easing: Konva.Easings.EaseOut,
+              onFinish: () => {
+                ref?.to({
+                  x: rectEndX,
+                  duration: (duration - 0.12) * 0.4,
+                  // easing:
+                  //   direction === 'left'
+                  //     ? Konva.Easings.EaseOut
+                  //     : Konva.Easings.EaseIn,
+                })
+              },
+            })
+          }, 120)
+        }}
+      />
+      <Rect
+        x={direction === 'right' ? rectStartX - 100 : rectStartX}
+        y={0}
+        width={
+          direction === 'right' ? stageConfig.width : stageConfig.width + 100
+        }
+        height={stageConfig.height}
+        fill="#000000"
+        ref={(ref) => {
+          setTimeout(() => {
+            ref?.to({
+              x: rectIntermediateX,
+              duration: (duration - 0.14) * 0.6,
+              easing: Konva.Easings.EaseOut,
+              onFinish: () => {
+                ref?.to({
+                  x: rectEndX,
+                  duration: (duration - 0.14) * 0.4,
+                  onFinish: () => {
+                    setTimeout(() => {
+                      if (direction === 'left' || direction === 'right') {
+                        setTopLayerChildren?.({ id: '', state: '' })
+                      }
+                    }, 200)
+                  },
+                })
+              },
+            })
+          }, 140)
+        }}
+      />
+    </Group>
+  )
+}
+
+export const Web3AuthTransition = ({
+  direction,
+  // isShorts,
+  // color,
+  setTopLayerChildren,
+}: {
+  direction: string
+  // isShorts?: boolean
+  // color?: string
+  setTopLayerChildren?: React.Dispatch<
+    React.SetStateAction<{ id: string; state: TopLayerChildren }>
+  >
+}) => {
+  // let stageConfig = { width: CONFIG.width, height: CONFIG.height }
+  // if (!isShorts) stageConfig = CONFIG
+  // else stageConfig = SHORTS_CONFIG
+
+  return (
+    <>
+      <Circle
+        x={CONFIG.width / 2}
+        y={CONFIG.height / 2}
+        radius={150}
+        scaleX={0}
+        scaleY={0}
+        fill="#ffffff"
+        ref={(ref) => {
+          ref?.to({
+            scaleX: 5,
+            scaleY: 5,
+            duration: 0.4,
+            onFinish: () => {
+              setTimeout(() => {
+                ref?.to({
+                  y: CONFIG.height + 900,
+                  duration: 0.4,
+                  onFinish: () => {
+                    setTimeout(() => {
+                      if (direction === 'left' || direction === 'right') {
+                        setTopLayerChildren?.({ id: '', state: '' })
+                      }
+                    }, 200)
+                  },
+                })
+              }, 200)
+            },
+          })
+        }}
+      />
+      <Circle
+        x={CONFIG.width / 2}
+        y={CONFIG.height / 2}
+        radius={100}
+        scaleX={0}
+        scaleY={0}
+        fill="#ededed"
+        ref={(ref) =>
+          ref?.to({
+            scaleX: 5,
+            scaleY: 5,
+            duration: 0.4,
+            onFinish: () => {
+              setTimeout(() => {
+                ref?.to({ y: CONFIG.height + 900, duration: 0.4 })
+              }, 100)
+            },
+          })
+        }
+      />
+      <Circle
+        x={CONFIG.width / 2}
+        y={CONFIG.height / 2}
+        radius={50}
+        scaleX={0}
+        scaleY={0}
+        fill="#ffffff"
+        ref={(ref) =>
+          ref?.to({
+            scaleX: 5,
+            scaleY: 5,
+            duration: 0.4,
+            onFinish: () => {
+              ref?.to({ y: CONFIG.height + 900, duration: 0.4 })
+            },
+          })
+        }
+      />
+    </>
   )
 }
 

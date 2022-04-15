@@ -1,17 +1,21 @@
+/* eslint-disable no-unneeded-ternary */
 /* eslint-disable no-nested-ternary */
 import { css, cx } from '@emotion/css'
 import { Editor as CoreEditor } from '@tiptap/core'
 import React, { useEffect, useMemo, useState } from 'react'
 import { BiBlock } from 'react-icons/bi'
-import { useParams } from 'react-router-dom'
+import { IoChevronBackOutline, IoChevronForwardOutline } from 'react-icons/io5'
+import { useHistory, useParams } from 'react-router-dom'
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
 import { v4 as uuidv4 } from 'uuid'
-import { Heading, ScreenState } from '../../components'
+import { emitToast, Heading, ScreenState } from '../../components'
 import {
   FlickFragmentFragment,
   Fragment_Status_Enum_Enum,
+  Fragment_Type_Enum_Enum,
   StudioFragmentFragment,
   useGetFlickByIdQuery,
+  useGetFlickFragmentLazyQuery,
   useGetThemesQuery,
 } from '../../generated/graphql'
 import { useCanvasRecorder } from '../../hooks'
@@ -39,6 +43,7 @@ import {
 } from './components'
 import BlockPreview from './components/BlockPreview'
 import { EditorProvider } from './components/EditorProvider'
+import Sidebar from './components/Sidebar'
 import TipTap from './editor/TipTap'
 import { Block, Position, SimpleAST, useUtils } from './editor/utils/utils'
 import { newFlickStore, View } from './store/flickNew.store'
@@ -100,11 +105,13 @@ const useLocalPayload = () => {
 }
 
 const Flick = () => {
-  const { id } = useParams<{ id: string; fragmentId?: string }>()
+  const { id, fragmentId } = useParams<{ id: string; fragmentId?: string }>()
   const [{ flick, activeFragmentId, view }, setFlickStore] =
     useRecoilState(newFlickStore)
 
   const { sub } = (useRecoilValue(userState) as User) || {}
+
+  const history = useHistory()
 
   const { data, error, loading, refetch } = useGetFlickByIdQuery({
     variables: { id },
@@ -116,6 +123,8 @@ const Flick = () => {
 
   const [currentBlock, setCurrentBlock] = useState<Block>()
   const [viewConfig, setViewConfig] = useState<ViewConfig>(initialConfig)
+
+  const [getFragment] = useGetFlickFragmentLazyQuery()
 
   const [simpleAST, setSimpleAST] = useState<SimpleAST>()
   const [editorValue, setEditorValue] = useState<string>()
@@ -377,7 +386,7 @@ const Flick = () => {
       addMusic,
       stopMusic,
     }))
-  }, [activeFragmentId, payload, flick?.fragments])
+  }, [payload])
 
   useMemo(() => {
     const fragment = flick?.fragments.find(
@@ -388,7 +397,7 @@ const Flick = () => {
       ...store,
       fragment,
     }))
-  }, [flick?.fragments])
+  }, [flick?.fragments, activeFragmentId])
 
   useEffect(() => {
     resetPayload()
@@ -403,14 +412,39 @@ const Flick = () => {
     const fragmentsLength = data.Flick_by_pk?.fragments.length || 0
     const editorFragment = data.Flick_by_pk?.fragments.find((f) => !f.type)
 
+    if (!fragmentId) {
+      history.push(`/story/${data.Flick_by_pk?.id}/${editorFragment?.id}`)
+    }
     setFlickStore((store) => ({
       ...store,
       flick: data.Flick_by_pk || null,
       activeTheme: data.Flick_by_pk ? data.Flick_by_pk.theme : null,
-      themes: themesData?.Theme ? themesData?.Theme : [],
-      activeFragmentId: fragmentsLength > 0 ? editorFragment?.id : '',
+      activeFragmentId: fragmentId
+        ? fragmentId
+        : fragmentsLength > 0
+        ? editorFragment?.id
+        : '',
     }))
-  }, [data, themesData])
+  }, [data])
+
+  useEffect(() => {
+    if (!fragmentId) {
+      setActiveFragment(undefined)
+    } else {
+      setFlickStore((store) => ({
+        ...store,
+        activeFragmentId: fragmentId,
+      }))
+    }
+  }, [fragmentId])
+
+  useEffect(() => {
+    if (!themesData) return
+    setFlickStore((store) => ({
+      ...store,
+      themes: themesData?.Theme ? themesData?.Theme : [],
+    }))
+  }, [themesData])
 
   useEffect(() => {
     return () => {
@@ -433,18 +467,53 @@ const Flick = () => {
     )
   }, [view])
 
+  const getMissingFragment = async () => {
+    if (!flick) return
+    try {
+      const { data, error } = await getFragment({
+        variables: {
+          id: activeFragmentId,
+        },
+      })
+      if (error) throw new Error("Can't get fragment")
+      if (data?.Fragment_by_pk) {
+        const newFragments = [...flick?.fragments, data?.Fragment_by_pk]
+        setFlickStore((store) => ({
+          ...store,
+          flick: {
+            ...flick,
+            fragments: newFragments,
+          },
+        }))
+      }
+    } catch (e) {
+      emitToast({
+        title: 'Error fetching new format',
+        type: 'error',
+        autoClose: 3000,
+      })
+    }
+  }
+
   useEffect(() => {
     if (!activeFragmentId || !flick) return
     const fragment = flick?.fragments.find(
       (frag) => frag.id === activeFragmentId
     )
-    if (!fragment) return
+    if (!fragment) {
+      getMissingFragment()
+      return
+    }
     setActiveFragment(fragment)
 
     setSimpleAST(fragment?.editorState || initialAST)
     setViewConfig(
       fragment?.configuration || {
         ...initialConfig,
+        mode:
+          fragment.type === Fragment_Type_Enum_Enum.Portrait
+            ? 'Portrait'
+            : 'Landscape',
         speakers: [flick.participants[0]],
         blocks: {
           [initialAST.blocks[0].id]: {
@@ -473,8 +542,15 @@ const Flick = () => {
     )
 
     setCurrentBlock(fragment?.editorState?.blocks[0] || initialAST.blocks[0])
-    setEditorValue(flick.md || '')
-  }, [activeFragmentId])
+    setEditorValue(
+      fragment?.encodedEditorValue
+        ? Buffer.from(
+            fragment?.encodedEditorValue as string,
+            'base64'
+          ).toString('utf8')
+        : ''
+    )
+  }, [activeFragmentId, flick?.id])
 
   useMemo(() => {
     if (flick?.branding?.branding?.font)
@@ -571,6 +647,8 @@ const Flick = () => {
 
   const utils = useUtils()
 
+  const [openSidebar, setOpenSidebar] = useState(true)
+
   const handleEditorChange = (editor: CoreEditor) => {
     // log all blockquotes in editor
     // const blockquotes = editor
@@ -611,7 +689,8 @@ const Flick = () => {
     })
   }
 
-  if (loading) return <ScreenState title="Loading your story" loading />
+  if (!data && loading)
+    return <ScreenState title="Loading your story" loading />
 
   if (error)
     return (
@@ -641,110 +720,137 @@ const Flick = () => {
     <EditorProvider handleUpdate={handleEditorChange}>
       <div className="relative flex flex-col w-screen h-screen overflow-hidden">
         <FlickNavBar togglePublishModal={() => setPublishModal(true)} />
-        <FragmentBar
-          simpleAST={simpleAST}
-          editorValue={editorValue}
-          config={viewConfig}
-          setViewConfig={setViewConfig}
-          currentBlock={currentBlock}
-          setCurrentBlock={setCurrentBlock}
-        />
-        {activeFragment && view === View.Preview && (
-          <Preview
-            block={currentBlock}
-            config={viewConfig}
-            updateConfig={updateBlockProperties}
-            blocks={simpleAST?.blocks || []}
-            setCurrentBlock={setCurrentBlock}
-            centered={!showTimeline}
-            simpleAST={simpleAST}
-            setSimpleAST={setSimpleAST}
-          />
-        )}
-        {activeFragment && view === View.Notebook && (
-          <div
-            className="grid grid-cols-12 flex-1 h-full pb-12 sticky top-0 overflow-y-auto"
-            onScroll={() => {
-              const dragHandle = document.getElementById('drag-handle')
-              if (dragHandle) {
-                dragHandle.style.visibility = 'hidden'
-                dragHandle.style.display = 'hidden'
-              }
+        <div className="flex flex-1 relative overflow-hidden">
+          {openSidebar && <Sidebar storyName={flick.name} />}
+          <button
+            type="button"
+            style={{
+              height: 'min-content',
             }}
+            className={cx(
+              'absolute flex items-center justify-center  bg-white rounded-md z-50 border shadow-md top-0 bottom-0 mb-auto mt-auto',
+              {
+                'left-0 -ml-1': !openSidebar,
+                'left-44 -ml-3': openSidebar,
+              }
+            )}
+            onClick={() => setOpenSidebar(!openSidebar)}
           >
-            <div
-              style={{
-                width: '100%',
-                maxWidth: '750px',
-                margin: '0 auto',
-              }}
-              className="h-full pt-12 pb-96 col-start-4 col-span-6"
-            >
-              <EditorHeader
+            {openSidebar ? (
+              <IoChevronBackOutline className="text-black m-1" size={16} />
+            ) : (
+              <IoChevronForwardOutline className="text-black m-1" size={16} />
+            )}
+          </button>
+          <div className="flex flex-col flex-1 overflow-hidden relative">
+            <FragmentBar
+              simpleAST={simpleAST}
+              editorValue={editorValue}
+              config={viewConfig}
+              setViewConfig={setViewConfig}
+              currentBlock={currentBlock}
+              setCurrentBlock={setCurrentBlock}
+            />
+            {activeFragment && view === View.Preview && (
+              <Preview
+                block={currentBlock}
+                config={viewConfig}
+                updateConfig={updateBlockProperties}
                 blocks={simpleAST?.blocks || []}
                 setCurrentBlock={setCurrentBlock}
-                viewConfig={viewConfig}
-                setViewConfig={setViewConfig}
-                activeFragment={activeFragment}
-                setPreviewPosition={setPreviewPosition}
+                centered={!showTimeline}
+                simpleAST={simpleAST}
+                setSimpleAST={setSimpleAST}
               />
-
-              <TipTap
-                key={activeFragment.id}
-                handleUpdatePosition={(position) => {
-                  setPreviewPosition(position)
+            )}
+            {activeFragment && view === View.Notebook && (
+              <div
+                className="grid grid-cols-12 flex-1 h-full pb-12 sticky top-0 overflow-y-auto"
+                onScroll={() => {
+                  const dragHandle = document.getElementById('drag-handle')
+                  if (dragHandle) {
+                    dragHandle.style.visibility = 'hidden'
+                    dragHandle.style.display = 'hidden'
+                  }
                 }}
-                handleActiveBlock={(block) => {
-                  if (block === undefined) setCurrentBlock(undefined)
-                  if (block && block !== currentBlock) setCurrentBlock(block)
-                }}
-                ast={simpleAST}
-              />
-            </div>
-
-            <div
-              className={cx(
-                'col-start-10 col-end-12 relative border-none outline-none w-full  ml-10',
-                css`
-                  max-height: 20vh;
-                `
-              )}
-            >
-              {currentBlock &&
-                currentBlock.type &&
-                viewConfig &&
-                simpleAST &&
-                simpleAST?.blocks?.length >= 2 && (
-                  <BlockPreview
-                    block={currentBlock}
+              >
+                <div
+                  style={{
+                    width: '100%',
+                    maxWidth: '750px',
+                    margin: '0 auto',
+                  }}
+                  className="h-full pt-12 pb-96 col-start-4 col-span-6"
+                >
+                  <EditorHeader
                     blocks={simpleAST?.blocks || []}
-                    simpleAST={simpleAST}
-                    setSimpleAST={setSimpleAST}
-                    config={viewConfig}
-                    updateConfig={updateBlockProperties}
                     setCurrentBlock={setCurrentBlock}
-                    className={cx(
-                      'absolute w-full h-full',
-                      css`
-                        top: ${previewPosition?.y}px;
-                      `
-                    )}
+                    viewConfig={viewConfig}
+                    setViewConfig={setViewConfig}
+                    activeFragment={activeFragment}
+                    setPreviewPosition={setPreviewPosition}
                   />
-                )}
-            </div>
-          </div>
-        )}
 
-        <Timeline
-          blocks={simpleAST?.blocks || []}
-          showTimeline={showTimeline}
-          setShowTimeline={setShowTimeline}
-          currentBlock={currentBlock}
-          setCurrentBlock={setCurrentBlock}
-          persistentTimeline={false}
-          shouldScrollToCurrentBlock
-          config={viewConfig}
-        />
+                  <TipTap
+                    key={activeFragment.id}
+                    handleUpdatePosition={(position) => {
+                      setPreviewPosition(position)
+                    }}
+                    handleActiveBlock={(block) => {
+                      if (block === undefined) setCurrentBlock(undefined)
+                      if (block && block !== currentBlock)
+                        setCurrentBlock(block)
+                    }}
+                    ast={simpleAST}
+                  />
+                </div>
+
+                <div
+                  className={cx(
+                    'col-start-10 col-end-12 relative border-none outline-none w-full  ml-10',
+                    css`
+                      max-height: 20vh;
+                    `
+                  )}
+                >
+                  {currentBlock &&
+                    currentBlock.type &&
+                    viewConfig &&
+                    simpleAST &&
+                    simpleAST?.blocks?.length >= 2 &&
+                    activeFragment.type !== Fragment_Type_Enum_Enum.Blog && (
+                      <BlockPreview
+                        block={currentBlock}
+                        blocks={simpleAST?.blocks || []}
+                        simpleAST={simpleAST}
+                        setSimpleAST={setSimpleAST}
+                        config={viewConfig}
+                        updateConfig={updateBlockProperties}
+                        setCurrentBlock={setCurrentBlock}
+                        className={cx(
+                          'absolute w-full h-full',
+                          css`
+                            top: ${previewPosition?.y}px;
+                          `
+                        )}
+                      />
+                    )}
+                </div>
+              </div>
+            )}
+            <Timeline
+              blocks={simpleAST?.blocks || []}
+              showTimeline={showTimeline}
+              setShowTimeline={setShowTimeline}
+              currentBlock={currentBlock}
+              setCurrentBlock={setCurrentBlock}
+              persistentTimeline={false}
+              shouldScrollToCurrentBlock
+              config={viewConfig}
+            />
+          </div>
+        </div>
+
         {publishModal && (
           <Publish
             open={publishModal}

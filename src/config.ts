@@ -96,6 +96,10 @@ const config = {
   whitelist: {
     cassidyTheme: import.meta.env.VITE_CASSIDY_THEME_WHITELIST,
   },
+
+  logrocket: {
+    appId: import.meta.env.VITE_LOGROCKET_APP_ID,
+  },
 }
 
 export default config

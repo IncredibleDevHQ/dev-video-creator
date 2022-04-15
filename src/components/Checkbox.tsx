@@ -20,9 +20,9 @@ export default function Checkbox({
           checked={checked}
           onChange={onChange}
           disabled={disabled}
-          className={`${
-            checked ? 'bg-brand' : 'bg-gray-200'
-          } relative inline-flex items-center h-6 rounded-full w-11 transition-colors focus:outline-none`}
+          className={`${checked ? 'bg-brand' : 'bg-gray-200'} ${
+            disabled ? ' opacity-50' : ''
+          } relative inline-flex items-center h-6 rounded-full w-11 transition-colors focus:outline-none disabled:cursor-not-allowed`}
         >
           <span
             className={`${

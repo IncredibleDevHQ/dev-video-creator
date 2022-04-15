@@ -2,6 +2,7 @@
 import * as Sentry from '@sentry/react'
 import axios from 'axios'
 import { onAuthStateChanged, signInWithCustomToken } from 'firebase/auth'
+import LogRocket from 'logrocket'
 import React, { useEffect } from 'react'
 import { useRecoilState, useSetRecoilState } from 'recoil'
 import { ScreenState } from '../components'
@@ -35,12 +36,15 @@ const AuthProvider = ({ children }: { children: JSX.Element }): JSX.Element => {
       Sentry.setUser({
         email: user.email || undefined,
         id: user.uid,
-        username: user.displayName || undefined,
       })
 
       window.analytics.identify(user.email, {
         email: user.email,
-        name: user.displayName,
+        userId: user.uid,
+      })
+
+      LogRocket.identify(user.uid, {
+        email: user.email || 'none',
         userId: user.uid,
       })
 
@@ -60,6 +64,20 @@ const AuthProvider = ({ children }: { children: JSX.Element }): JSX.Element => {
         )
         if (!meResponse.data?.User_by_pk)
           throw new Error('Response returned null')
+
+        LogRocket.identify(user.uid, {
+          name: meResponse.data.User_by_pk.displayName || 'none',
+        })
+
+        Sentry.setUser({
+          email: user.email || undefined,
+          id: user.uid,
+          username: meResponse.data.User_by_pk.displayName || undefined,
+        })
+
+        window.analytics.identify(user.email, {
+          name: meResponse.data.User_by_pk.displayName || 'none',
+        })
 
         setDbUser(meResponse.data.User_by_pk)
       }

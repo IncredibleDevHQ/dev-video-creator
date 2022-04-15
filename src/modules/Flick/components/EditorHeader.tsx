@@ -174,26 +174,33 @@ const EditorHeader = ({
     debounceUpdateFlickName(newName)
   }
 
+  const handleFocus = (
+    e:
+      | React.MouseEvent<HTMLInputElement, MouseEvent>
+      | React.FocusEvent<HTMLInputElement, Element>
+  ) => {
+    setCurrentBlock(blocks?.[0])
+    setPreviewPosition({
+      x: e.currentTarget.getBoundingClientRect().x,
+      y: e.currentTarget.offsetTop,
+    })
+    const introBlock = blocks[0]
+    const introBlockView = viewConfig.blocks[introBlock.id]
+      .view as IntroBlockView
+    updatePayload?.({
+      activeIntroIndex: introBlockView.intro.order?.findIndex(
+        (o) => o.state === 'titleSplash'
+      ),
+    })
+  }
+
   if (!flick) return null
 
   return (
     <div className="border-b pb-4">
       <input
-        onFocus={(e) => {
-          setCurrentBlock(blocks?.[0])
-          setPreviewPosition({
-            x: e.currentTarget.getBoundingClientRect().x,
-            y: e.currentTarget.offsetTop,
-          })
-          const introBlock = blocks[0]
-          const introBlockView = viewConfig.blocks[introBlock.id]
-            .view as IntroBlockView
-          updatePayload?.({
-            activeIntroIndex: introBlockView.intro.order?.findIndex(
-              (o) => o.state === 'titleSplash'
-            ),
-          })
-        }}
+        onMouseDown={handleFocus}
+        onFocus={handleFocus}
         maxLength={50}
         onChange={(e) => {
           updateFlickName(e.target.value)

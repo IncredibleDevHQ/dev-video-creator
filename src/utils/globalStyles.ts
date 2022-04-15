@@ -70,13 +70,17 @@ export const verticalCustomScrollBar = css`
 
 export const horizontalCustomScrollBar = css`
   ::-webkit-scrollbar {
-    height: 0.25rem;
+    height: 0.45rem;
     padding: 0.5rem 0;
   }
   ::-webkit-scrollbar-thumb {
-    height: 0.25rem;
+    height: 0.45rem;
     background-color: #4d4d4d;
     border-radius: 1rem;
+  }
+  /* hover */
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: #9ca3af;
   }
 `
 

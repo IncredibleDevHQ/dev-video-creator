@@ -43,7 +43,7 @@ export const EditorProvider = ({
 }): JSX.Element => {
   const dragRef = useRef<HTMLDivElement>(null)
 
-  const { flick } = useRecoilValue(newFlickStore)
+  const { flick, activeFragmentId } = useRecoilValue(newFlickStore)
 
   const editor = useEditor(
     {
@@ -159,9 +159,18 @@ export const EditorProvider = ({
           limit: 20000,
         }),
       ],
-      content: flick?.md,
+      content: flick?.fragments.find(
+        (fragment) => fragment.id === activeFragmentId
+      )?.encodedEditorValue
+        ? Buffer.from(
+            flick?.fragments.find(
+              (fragment) => fragment.id === activeFragmentId
+            )?.encodedEditorValue as string,
+            'base64'
+          ).toString('utf8')
+        : '',
     },
-    [dragRef.current]
+    [dragRef.current, activeFragmentId]
   )
 
   useEffect(() => {

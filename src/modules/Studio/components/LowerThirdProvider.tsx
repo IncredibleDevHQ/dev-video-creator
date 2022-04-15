@@ -2,21 +2,28 @@ import React from 'react'
 import { useRecoilValue } from 'recoil'
 import { ThemeFragment } from '../../../generated/graphql'
 import { User, userState } from '../../../stores/user.store'
+import { TopLayerChildren } from '../../../utils/configTypes'
 import { studioStore } from '../stores'
 import { CONFIG, SHORTS_CONFIG } from './Concourse'
 import {
   CassidooLowerThirds,
   GlassyLowerThirds,
   LambdaTestLowerThirds,
+  LeeRobLowerThirds,
   PastelLinesLowerThirds,
+  Web3AuthLowerThirds,
 } from './LowerThirds'
 
 const LowerThridProvider = ({
   theme,
   isShorts,
+  setTopLayerChildren,
 }: {
   theme: ThemeFragment
   isShorts: boolean
+  setTopLayerChildren?: React.Dispatch<
+    React.SetStateAction<{ id: string; state: TopLayerChildren }>
+  >
 }) => {
   const { branding, fragment, users, participants } =
     useRecoilValue(studioStore)
@@ -64,6 +71,7 @@ const LowerThridProvider = ({
             color={branding?.background?.color?.primary || ''}
             textColor={branding?.colors?.text || ''}
             branding={branding}
+            setTopLayerChildren={setTopLayerChildren}
           />
           {users.map((user, index) => (
             <GlassyLowerThirds
@@ -78,6 +86,7 @@ const LowerThridProvider = ({
               color={branding?.background?.color?.primary || ''}
               textColor={branding?.colors?.text || ''}
               branding={branding}
+              setTopLayerChildren={setTopLayerChildren}
             />
           ))}
         </>
@@ -94,6 +103,7 @@ const LowerThridProvider = ({
             logo={branding?.logo || ''}
             color={branding?.background?.color?.primary || ''}
             textColor={branding?.colors?.text || ''}
+            setTopLayerChildren={setTopLayerChildren}
           />
           {users.map((user, index) => (
             <PastelLinesLowerThirds
@@ -107,6 +117,7 @@ const LowerThridProvider = ({
               logo={branding?.logo || ''}
               color={branding?.background?.color?.primary || ''}
               textColor={branding?.colors?.text || ''}
+              setTopLayerChildren={setTopLayerChildren}
             />
           ))}
         </>
@@ -123,6 +134,7 @@ const LowerThridProvider = ({
             logo={branding?.logo || ''}
             color={branding?.background?.color?.primary || ''}
             textColor={branding?.colors?.text || ''}
+            setTopLayerChildren={setTopLayerChildren}
           />
           {/* {users.map((user, index) => (
             <CassidooLowerThirds
@@ -153,9 +165,72 @@ const LowerThridProvider = ({
             logo={branding?.logo || ''}
             color={branding?.background?.color?.primary || ''}
             textColor={branding?.colors?.text || ''}
+            setTopLayerChildren={setTopLayerChildren}
           />
           {/* {users.map((user, index) => (
             <LambdaTestLowerThirds
+              // eslint-disable-next-line react/no-array-index-key
+              key={index}
+              x={lowerThirdCoordinates({ position: 'left' })[index + 1]}
+              y={!isShorts ? 400 : 560}
+              userName={participants?.[user.uid]?.displayName || ''}
+              designation={designation || ''}
+              organization={organization || ''}
+              logo={branding?.logo || ''}
+              color={branding?.background?.color?.primary || ''}
+              textColor={branding?.colors?.text || ''}
+            />
+          ))} */}
+        </>
+      )
+    }
+    case 'LeeRob': {
+      return (
+        <>
+          <LeeRobLowerThirds
+            x={!isShorts ? lowerThirdCoordinates({ position: 'left' })[0] : 45}
+            y={!isShorts ? 400 : 560}
+            userName={displayName || ''}
+            designation={designation || ''}
+            organization={organization || ''}
+            logo={branding?.logo || ''}
+            color={branding?.background?.color?.primary || ''}
+            textColor={branding?.colors?.text || ''}
+            setTopLayerChildren={setTopLayerChildren}
+          />
+          {/* {users.map((user, index) => (
+            <LeeRobLowerThirds
+              // eslint-disable-next-line react/no-array-index-key
+              key={index}
+              x={lowerThirdCoordinates({ position: 'left' })[index + 1]}
+              y={!isShorts ? 400 : 560}
+              userName={participants?.[user.uid]?.displayName || ''}
+              designation={designation || ''}
+              organization={organization || ''}
+              logo={branding?.logo || ''}
+              color={branding?.background?.color?.primary || ''}
+              textColor={branding?.colors?.text || ''}
+            />
+          ))} */}
+        </>
+      )
+    }
+    case 'Web3Auth': {
+      return (
+        <>
+          <Web3AuthLowerThirds
+            x={!isShorts ? lowerThirdCoordinates({ position: 'left' })[0] : 45}
+            y={!isShorts ? 400 : 560}
+            userName={displayName || ''}
+            designation={designation || ''}
+            organization={organization || ''}
+            logo={branding?.logo || ''}
+            color={branding?.background?.color?.primary || ''}
+            textColor={branding?.colors?.text || ''}
+            setTopLayerChildren={setTopLayerChildren}
+          />
+          {/* {users.map((user, index) => (
+            <LeeRobLowerThirds
               // eslint-disable-next-line react/no-array-index-key
               key={index}
               x={lowerThirdCoordinates({ position: 'left' })[index + 1]}

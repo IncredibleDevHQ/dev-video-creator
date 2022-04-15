@@ -1,8 +1,7 @@
 import { ThemeFragment } from '../../../generated/graphql'
 import { Layout } from '../../../utils/configTypes'
-import { StudioUserConfig } from '../components/Concourse'
 import { ObjectConfig } from './FragmentLayoutConfig'
-import { PointsConfig } from './PointsConfig'
+import { getCanvasGradient } from './StudioUserConfig'
 
 export interface ObjectRenderConfig {
   startX: number
@@ -15,39 +14,21 @@ export interface ObjectRenderConfig {
   borderRadius?: number
   titleFont?: string
   bodyFont?: string
-  pointsBulletColor?: string
+  pointsBulletColor?: string | CanvasGradient
   pointsBulletCornerRadius?: number
   pointsBulletRotation?: number
   pointsBulletYOffset?: number
-  horizontalPointsBulletColor?: string
-  horizontalPointsNumberColor?: string
-  horizontalPointsBulletXOffset?: number
-  horizontalPointsBulletYOffset?: number
-  horizontalPointsBulletCornerRadius?: number
-}
-
-export interface StudioUserThemeConfig {
-  borderColor?: string
-  borderWidth?: number
-  backgroundRectX?: number
-  backgroundRectY?: number
-  backgroundRectWidth?: number
-  backgroundRectHeight?: number
-  backgroundRectColor?: string
-  backgroundRectOpacity?: number
-  backgroundRectBorderRadius?: number
-  backgroundRectBorderColor?: string
-  backgroundRectBorderWidth?: number
+  horizontalPointRectColor?: string | CanvasGradient
+  horizontalPointRectStrokeColor?: string | CanvasGradient
+  horizontalPointRectCornerRadius?: number
 }
 
 export const ThemeLayoutConfig = ({
   theme,
   layoutConfig,
-  pointsConfig,
 }: {
   theme: ThemeFragment
   layoutConfig: ObjectConfig
-  pointsConfig?: PointsConfig
 }): ObjectRenderConfig => {
   switch (theme.name) {
     case 'DarkGradient':
@@ -64,7 +45,8 @@ export const ThemeLayoutConfig = ({
         pointsBulletColor: '#4B5563',
         pointsBulletCornerRadius: 6,
         pointsBulletYOffset: 3.5,
-        horizontalPointsBulletCornerRadius: 8,
+        horizontalPointRectStrokeColor: '#ffffff',
+        horizontalPointRectCornerRadius: 8,
       }
     case 'PastelLines':
       return {
@@ -78,7 +60,8 @@ export const ThemeLayoutConfig = ({
         pointsBulletColor: '#27272A',
         pointsBulletCornerRadius: 6,
         pointsBulletYOffset: 3.5,
-        horizontalPointsBulletCornerRadius: 0,
+        horizontalPointRectStrokeColor: '#ffffff',
+        horizontalPointRectCornerRadius: 0,
       }
     case 'Cassidoo':
       return {
@@ -95,7 +78,8 @@ export const ThemeLayoutConfig = ({
         pointsBulletColor: '#374151',
         pointsBulletCornerRadius: 6,
         pointsBulletYOffset: 3.5,
-        horizontalPointsBulletCornerRadius: 16,
+        horizontalPointRectStrokeColor: '#ffffff',
+        horizontalPointRectCornerRadius: 16,
       }
     case 'LambdaTest':
       return {
@@ -110,17 +94,80 @@ export const ThemeLayoutConfig = ({
         bodyFont: 'GilroyRegular',
         pointsBulletColor: '#0EBAC5',
         pointsBulletCornerRadius: 2,
-        horizontalPointsNumberColor: '#ffffff',
         pointsBulletRotation: -45,
         pointsBulletYOffset: 9,
-        horizontalPointsBulletColor: '#0EBAC5',
-        horizontalPointsBulletXOffset: pointsConfig
-          ? pointsConfig?.bulletWidth / 2
-          : 0,
-        horizontalPointsBulletYOffset: pointsConfig
-          ? pointsConfig?.bulletHeight / 2
-          : 0,
-        horizontalPointsBulletCornerRadius: 4,
+        horizontalPointRectStrokeColor: getCanvasGradient(
+          [
+            { color: '#8BCBF9', offset: 0.0 },
+            { color: '#5A80D6', offset: 0.5204 },
+            { color: '#B7AEFA', offset: 1 },
+          ],
+          {
+            x0: 0,
+            y0: 0,
+            x1: 248,
+            y1: 80,
+          }
+        ),
+        horizontalPointRectCornerRadius: 4,
+      }
+    case 'LeeRob':
+      return {
+        startX: layoutConfig.x,
+        startY: layoutConfig.y,
+        availableWidth: layoutConfig?.availableWidth || layoutConfig.width,
+        availableHeight: layoutConfig.height,
+        textColor: '#ffffff',
+        borderRadius: 0,
+        surfaceColor: '',
+        titleFont: 'Inter',
+        bodyFont: 'Inter',
+        pointsBulletColor: getCanvasGradient(
+          [
+            { color: '#EA369B', offset: 0.0 },
+            { color: '#8165D6', offset: 0.5208 },
+            { color: '#48A8F6', offset: 0.8764 },
+          ],
+          {
+            x0: 0,
+            y0: 6,
+            x1: 12,
+            y1: 6,
+          }
+        ),
+        pointsBulletCornerRadius: 6,
+        pointsBulletYOffset: 3.5,
+        horizontalPointRectStrokeColor: '',
+        horizontalPointRectCornerRadius: 0,
+      }
+    case 'Web3Auth':
+      return {
+        startX: layoutConfig.x,
+        startY: layoutConfig.y,
+        availableWidth: layoutConfig?.availableWidth || layoutConfig.width,
+        availableHeight: layoutConfig.height,
+        textColor: '#ffffff',
+        borderRadius: 0,
+        surfaceColor: '',
+        titleFont: 'DM Sans',
+        bodyFont: 'DM Sans',
+        pointsBulletColor: getCanvasGradient(
+          [
+            { color: '#0364FF', offset: 0.0 },
+            { color: '#1AC7FE', offset: 1 },
+          ],
+          {
+            x0: 0,
+            y0: 6,
+            x1: 12,
+            y1: 6,
+          }
+        ),
+        pointsBulletCornerRadius: 6,
+        pointsBulletYOffset: 3.5,
+        horizontalPointRectColor: '#fafafa19',
+        horizontalPointRectStrokeColor: '#ffffff',
+        horizontalPointRectCornerRadius: 4,
       }
     default:
       return {
@@ -139,6 +186,8 @@ export const ThemeLayoutConfig = ({
 export const getThemeTextColor = (theme: ThemeFragment): string => {
   switch (theme.name) {
     case 'DarkGradient':
+    case 'LeeRob':
+    case 'Web3Auth':
       return '#ffffff'
     case 'PastelLines':
       return '#27272A'
@@ -156,6 +205,8 @@ export const getThemeSurfaceColor = (theme: ThemeFragment): string => {
     case 'DarkGradient':
       return '#151D2C'
     case 'PastelLines':
+    case 'LeeRob':
+    case 'Web3Auth':
       return ''
     case 'Cassidoo':
       return '#fafafa'
@@ -175,35 +226,12 @@ export const getThemeFont = (theme: ThemeFragment): string => {
     case 'Cassidoo':
       return 'Roboto Mono'
     case 'LambdaTest':
+    case 'LeeRob':
       return 'Inter'
+    case 'Web3Auth':
+      return 'DM Sans'
     default:
       return 'Gilroy'
-  }
-}
-
-export const ThemeUserMediaConfig = ({
-  theme,
-  studioUserConfig,
-}: {
-  theme: ThemeFragment
-  studioUserConfig: StudioUserConfig
-}): StudioUserThemeConfig => {
-  const { x, y, studioUserClipConfig } = studioUserConfig
-  switch (theme.name) {
-    case 'DarkGradient':
-      if (!studioUserClipConfig) return {}
-      if (!studioUserClipConfig.width || !studioUserClipConfig.height) return {}
-      return {
-        backgroundRectX: studioUserClipConfig?.x + x - 16,
-        backgroundRectY: studioUserClipConfig?.y + y - 16,
-        backgroundRectWidth: studioUserClipConfig?.width + 32,
-        backgroundRectHeight: studioUserClipConfig?.height + 32,
-        backgroundRectBorderRadius: studioUserClipConfig?.borderRadius,
-        backgroundRectColor: '#ffffff',
-        backgroundRectOpacity: 0.3,
-      }
-    default:
-      return {}
   }
 }
 
@@ -256,6 +284,31 @@ export const getThemeSupportedUserMediaLayouts = (
         'float-half-right',
         'padded-bottom-right-tile',
         'bottom-right-tile',
+        'padded-split',
+        'full-left',
+        'full-right',
+      ]
+    case 'LeeRob':
+      return [
+        'classic',
+        'float-full-right',
+        'float-full-left',
+        'float-half-right',
+        'padded-bottom-right-tile',
+        'padded-split',
+        'full-left',
+        'full-right',
+      ]
+    case 'Web3Auth':
+      return [
+        'classic',
+        'float-full-right',
+        'float-full-left',
+        'float-half-right',
+        'padded-bottom-right-tile',
+        'padded-bottom-right-circle',
+        'bottom-right-tile',
+        'bottom-right-circle',
         'padded-split',
         'full-left',
         'full-right',

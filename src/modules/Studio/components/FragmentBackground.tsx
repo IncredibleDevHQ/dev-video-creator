@@ -44,6 +44,8 @@ const FragmentBackground = ({
         </Group>
       )
     case 'PastelLines':
+    case 'LeeRob':
+    case 'Web3Auth':
       return (
         <Rect
           x={objectConfig.x}

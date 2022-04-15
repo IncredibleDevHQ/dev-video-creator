@@ -74,11 +74,7 @@ const Timeline = ({
           type="button"
           size="small"
           className={cx(
-            'flex items-center mx-4 my-2 hover:bg-gray-700 max-w-max',
-            css(`
-            --tw-bg-opacity: 1;
-            background-color: rgba(17, 24, 39, var(--tw-bg-opacity));
-        `)
+            'flex items-center mx-4 my-2 hover:bg-gray-700 bg-dark-500 max-w-max'
           )}
           onClick={() => {
             // Segment Tracking
