@@ -197,10 +197,6 @@ const Image = (props: any) => {
 
   const [localSrc, setLocalSrc] = useState<string>()
 
-  // props.updateAttributes({
-  //   localSrc: '',
-  // })
-
   const [upload] = useUploadFile()
   const [loading, setLoading] = useState(false)
   const [progress, setProgress] = useState(0)
