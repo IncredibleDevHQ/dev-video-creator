@@ -122,9 +122,6 @@ export default Node.create<ImageOptions>({
       src: {
         default: null,
       },
-      localSrc: {
-        default: null,
-      },
       alt: {
         default: null,
       },
@@ -196,7 +193,14 @@ export default Node.create<ImageOptions>({
 })
 
 const Image = (props: any) => {
-  const { src, alt, title, localSrc, caption } = props.node.attrs
+  const { src, alt, title, caption } = props.node.attrs
+
+  const [localSrc, setLocalSrc] = useState<string>()
+
+  // props.updateAttributes({
+  //   localSrc: '',
+  // })
+
   const [upload] = useUploadFile()
   const [loading, setLoading] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -235,9 +239,7 @@ const Image = (props: any) => {
     const reader = new FileReader()
     reader.readAsDataURL(file)
     reader.onload = (readerEvent) => {
-      props.updateAttributes({
-        localSrc: readerEvent.target?.result as string,
-      })
+      setLocalSrc(readerEvent.target?.result as string)
     }
   }
 
@@ -330,7 +332,13 @@ const Image = (props: any) => {
           isOpen={isInputOpen}
           setIsOpen={setInputOpen}
           placement="bottom-start"
-          content={<ImageInput uploadMedia={uploadMedia} props={props} />}
+          content={
+            <ImageInput
+              uploadMedia={uploadMedia}
+              props={props}
+              setLocalSrc={setLocalSrc}
+            />
+          }
         >
           <button
             type="button"
@@ -371,9 +379,11 @@ const tabs = [
 const ImageInput = ({
   uploadMedia,
   props,
+  setLocalSrc,
 }: {
   uploadMedia: (files: File[]) => Promise<void>
   props: any
+  setLocalSrc: React.Dispatch<React.SetStateAction<string | undefined>>
 }) => {
   const [activeTabId, setActiveTabId] = useState(tabs[0].id)
 
@@ -427,14 +437,26 @@ const ImageInput = ({
           )}
         </Dropzone>
       )}
-      {activeTabId === tabs[1].id && <IncredibleGifs props={props} />}
-      {activeTabId === tabs[2].id && <GiphyTab props={props} />}
-      {activeTabId === tabs[3].id && <UnsplashTab props={props} />}
+      {activeTabId === tabs[1].id && (
+        <IncredibleGifs props={props} setLocalSrc={setLocalSrc} />
+      )}
+      {activeTabId === tabs[2].id && (
+        <GiphyTab props={props} setLocalSrc={setLocalSrc} />
+      )}
+      {activeTabId === tabs[3].id && (
+        <UnsplashTab props={props} setLocalSrc={setLocalSrc} />
+      )}
     </div>
   )
 }
 
-const GiphyTab = ({ props }: { props: any }) => {
+const GiphyTab = ({
+  props,
+  setLocalSrc,
+}: {
+  props: any
+  setLocalSrc: React.Dispatch<React.SetStateAction<string | undefined>>
+}) => {
   const [search, setSearch] = useState<string | undefined>('')
 
   useEffect(() => {
@@ -472,9 +494,9 @@ const GiphyTab = ({ props }: { props: any }) => {
         onGifClick={(gif, e) => {
           e.preventDefault()
           props.updateAttributes({
-            localSrc: `https://i.giphy.com/media/${gif.id}/giphy.gif`,
             src: `https://i.giphy.com/media/${gif.id}/giphy.gif`,
           })
+          setLocalSrc(`https://i.giphy.com/media/${gif.id}/giphy.gif`)
         }}
         width={divRef.current?.clientWidth || 0}
         fetchGifs={fetchGifs}
@@ -485,7 +507,13 @@ const GiphyTab = ({ props }: { props: any }) => {
   )
 }
 
-const UnsplashTab = ({ props }: { props: any }) => {
+const UnsplashTab = ({
+  props,
+  setLocalSrc,
+}: {
+  props: any
+  setLocalSrc: React.Dispatch<React.SetStateAction<string | undefined>>
+}) => {
   const [search, setSearch] = useState('enjoy')
 
   const gridRef = useRef<StackGrid>(null)
@@ -554,9 +582,9 @@ const UnsplashTab = ({ props }: { props: any }) => {
                 className="object-cover h-full cursor-pointer"
                 onClick={() => {
                   props.updateAttributes({
-                    localSrc: r.urls.small,
                     src: r.urls.full,
                   })
+                  setLocalSrc(r.urls.small)
                 }}
               />
             )
@@ -566,7 +594,13 @@ const UnsplashTab = ({ props }: { props: any }) => {
   )
 }
 
-const IncredibleGifs = ({ props }: { props: any }) => {
+const IncredibleGifs = ({
+  props,
+  setLocalSrc,
+}: {
+  props: any
+  setLocalSrc: React.Dispatch<React.SetStateAction<string | undefined>>
+}) => {
   return (
     <div
       className="flex flex-col"
@@ -590,8 +624,8 @@ const IncredibleGifs = ({ props }: { props: any }) => {
               alt={gif}
               className="object-cover h-full cursor-pointer border"
               onClick={() => {
+                setLocalSrc(`https://cdn-staging.incredible.dev/gifs/${gif}`)
                 props.updateAttributes({
-                  localSrc: `https://cdn-staging.incredible.dev/gifs/${gif}`,
                   src: `https://cdn-staging.incredible.dev/gifs/${gif}`,
                 })
               }}
