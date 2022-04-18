@@ -620,13 +620,13 @@ const IncredibleGifs = ({
         {incredibleGifs.map((gif) => {
           return (
             <img
-              src={`https://cdn-staging.incredible.dev/gifs/${gif}`}
+              src={`${config.storage.baseUrl}gifs/${gif}`}
               alt={gif}
               className="object-cover h-full cursor-pointer border"
               onClick={() => {
-                setLocalSrc(`https://cdn-staging.incredible.dev/gifs/${gif}`)
+                setLocalSrc(`${config.storage.baseUrl}gifs/${gif}`)
                 props.updateAttributes({
-                  src: `https://cdn-staging.incredible.dev/gifs/${gif}`,
+                  src: `${config.storage.baseUrl}/gifs/${gif}`,
                 })
               }}
             />
