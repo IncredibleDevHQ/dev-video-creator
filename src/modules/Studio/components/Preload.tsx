@@ -101,6 +101,7 @@ const Preload = ({
       return
     }
     const { data } = await setupRecording({ variables })
+
     setStudio((prev) => ({
       ...prev,
       recordingId: data?.StartRecording?.recordingId || '',
@@ -168,6 +169,13 @@ const preload = async ({
     editorState: fragment.editorState,
     viewConfig: fragment.configuration?.blocks,
   })
+
+  console.log('Setting continuous recording to true')
+  // set if continue is enabled
+  setStudio((prev) => ({
+    ...prev,
+    continuousRecording: true,
+  }))
 
   const promises: Promise<{
     key: string

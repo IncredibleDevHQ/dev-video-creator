@@ -225,6 +225,7 @@ export interface ViewConfig {
   blocks: {
     [key: string]: BlockProperties
   }
+  selectedBlocks?: string[] // used to store blockids of selected blocks from timeline
 }
 
 export enum ConfigType {

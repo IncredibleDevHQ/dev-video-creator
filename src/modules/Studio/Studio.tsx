@@ -879,11 +879,17 @@ const Studio = ({
           thumbnail: blockThumbnail,
           // TODO: Update creation meta and playbackDuration when implementing continuous recording
           blockId,
-          playbackDuration: Math.round(duration),
+          playbackDuration: duration,
         },
       })
 
-      updateRecordedBlocks(blockId, objectUrl)
+      if (studio.continuousRecording) {
+        // if continuous recording is enabled, mark all the blocks that were recorded in the current take as saved
+        studio.continuousRecordedBlockIds.forEach((blockId) => {
+          updateRecordedBlocks(blockId, objectUrl)
+        })
+        history.goBack()
+      } else updateRecordedBlocks(blockId, objectUrl)
       // after updating the recorded blocks set this state which triggers the useEffect to update studio store
 
       // update block url in store for preview once upload is done
@@ -1026,6 +1032,7 @@ const Studio = ({
         ({ participant }) => participant.userSub === sub
       )?.participant.id,
       recordedBlocks: localRecordedBlocks,
+      continuousRecordedBlockIds: [],
       isHost:
         fragment?.participants.find(
           ({ participant }) => participant.userSub === sub
@@ -1139,7 +1146,7 @@ const Studio = ({
       payload?.status !== Fragment_Status_Enum_Enum.Live
     )
       return
-    stop()
+    if (!studio.continuousRecording) stop()
   }, [payload?.activeObjectIndex]) // undefined -> defined
 
   const clearRecordedBlocks = () => {
@@ -1427,6 +1434,7 @@ const Studio = ({
                 timeOver={() => setTimeLimitOver(true)}
                 openTimerModal={() => setIsTimerModalOpen(true)}
                 resetTimer={resetTimer}
+                currentBlock={currentBlock}
               />
             </div>
             <Notes key={payload?.activeObjectIndex} stageHeight={stageHeight} />

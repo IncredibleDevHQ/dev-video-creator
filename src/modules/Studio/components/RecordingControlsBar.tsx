@@ -43,6 +43,7 @@ import {
 } from '../../../utils/configTypes'
 import { BrandingJSON } from '../../Branding/BrandingPage'
 import {
+  Block,
   CodeBlockProps,
   IntroBlockProps,
   ListBlock,
@@ -129,6 +130,7 @@ const RecordingControlsBar = ({
   resetTimer,
   shortsMode,
   openTimerModal,
+  currentBlock,
 }: {
   timeLimit?: number
   stageHeight: number
@@ -138,6 +140,7 @@ const RecordingControlsBar = ({
   resetTimer: boolean
   timeOver: () => void
   stageRef: React.RefObject<Konva.Stage>
+  currentBlock: Block | undefined
 }) => {
   const {
     state,
@@ -536,11 +539,26 @@ const RecordingControlsBar = ({
                 controlsConfig,
                 'next'
               )
+
               if (
                 isBlockCompleted &&
                 (state === 'recording' || state === 'start-recording')
               ) {
-                studio.stopRecording()
+                if (!studio.continuousRecording) studio.stopRecording()
+                else {
+                  setStudio((prev) => ({
+                    ...prev,
+                    continuousRecordedBlockIds: [
+                      ...studio.continuousRecordedBlockIds,
+                      currentBlock.id,
+                    ],
+                  }))
+                  updatePayload?.({
+                    ...payload,
+                    activeObjectIndex: payload?.activeObjectIndex + 1,
+                  })
+                  isBlockCompleted = false
+                }
               }
             }
           }}

@@ -30,6 +30,9 @@ export interface StudioProviderProps<T = any, S = any> {
   reset: () => void
   upload: (id: string) => void
 
+  continuousRecording: boolean
+  continuousRecordedBlockIds: string[]
+
   recordingId?: string
 
   startRecording: () => void
