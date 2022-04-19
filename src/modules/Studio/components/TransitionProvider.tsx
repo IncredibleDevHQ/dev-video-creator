@@ -4,6 +4,7 @@ import { ThemeFragment } from '../../../generated/graphql'
 import { TopLayerChildren } from '../../../utils/configTypes'
 import {
   CassidooTransition,
+  DevsForUkraineTransition,
   DipTransition,
   LeeRobTransition,
   PastelLinesTransition,
@@ -153,6 +154,26 @@ const TransitionProvider = ({
         //   // color={branding?.colors?.transition}
         //   setTopLayerChildren={setTopLayerChildren}
         // />
+      )
+    case 'DevsForUkraine':
+      if (direction === 'moveIn' || direction === 'moveAway') {
+        return (
+          <DipTransition
+            direction={direction}
+            isShorts={isShorts}
+            color="black"
+            performFinishAction={performFinishAction}
+            setTopLayerChildren={setTopLayerChildren}
+          />
+        )
+      }
+      return (
+        <DevsForUkraineTransition
+          direction={direction}
+          isShorts={isShorts}
+          // color="white"
+          setTopLayerChildren={setTopLayerChildren}
+        />
       )
     default:
       return <></>
