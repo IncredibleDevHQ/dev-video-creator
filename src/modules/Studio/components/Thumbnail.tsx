@@ -1,9 +1,8 @@
 /* eslint-disable no-nested-ternary */
 import React, { useEffect, useState } from 'react'
-import { Arc, Circle, Group, Image, Rect, Ring, Text } from 'react-konva'
+import { Group, Image, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
-import config from '../../../config'
 import { userState } from '../../../stores/user.store'
 import {
   BlockProperties,
@@ -21,6 +20,7 @@ import {
 } from '../utils/ThemeConfig'
 import { CONFIG, SHORTS_CONFIG } from './Concourse'
 import FragmentBackground from './FragmentBackground'
+import ThumbnailElements from './ThumbnailElements'
 import VideoBackground from './VideoBackground'
 
 const Thumbnail = ({
@@ -39,14 +39,6 @@ const Thumbnail = ({
   const [logo] = useImage(branding?.logo || '', 'anonymous')
   const [userImage] = useImage(
     (viewConfig?.view as IntroBlockView)?.intro?.displayPicture || '',
-    'anonymous'
-  )
-  const [star] = useImage(
-    `${config.storage.baseUrl}themes/DevsForUkraine/star.svg`,
-    'anonymous'
-  )
-  const [heart] = useImage(
-    `${config.storage.baseUrl}themes/DevsForUkraine/heart.svg`,
     'anonymous'
   )
 
@@ -98,7 +90,7 @@ const Thumbnail = ({
   useEffect(() => {
     if (
       theme.name === 'DevsForUkraine' &&
-      viewConfig?.layout === 'bottom-right-tile'
+      (viewConfig?.layout === 'bottom-right-tile' || isShorts)
     ) {
       const introBlockViewProps: IntroBlockViewProps = (
         viewConfig?.view as IntroBlockView
@@ -119,7 +111,7 @@ const Thumbnail = ({
         height: noOfLines * ((introConfig?.titleFontSize || 0) + 0.1),
       })
     }
-  }, [viewConfig, theme, introConfig])
+  }, [viewConfig, theme, introConfig, isShorts])
 
   useEffect(() => {
     if (!userImage || !introConfig) return
@@ -177,109 +169,13 @@ const Thumbnail = ({
             }
           />
         )}
-        {theme.name === 'DevsForUkraine' &&
-          viewConfig?.layout === 'bottom-right-tile' &&
-          !isShorts && (
-            <>
-              <Rect
-                x={0}
-                y={0}
-                width={stageConfig.width}
-                height={stageConfig.height}
-                fill="#1C1C1C"
-              />
-              <Group x={85} y={(titleConfig?.y || 0) + 22 || 202}>
-                <Ring innerRadius={22} outerRadius={30} fill="#fafafa" />
-                <Circle x={123} radius={34} fill="#2696FA" />
-                <Rect x={25} y={-4} width={98} height={8} fill="#fafafa" />
-              </Group>
-              <Group x={772} y={(titleConfig?.y || 0) + 22 || 202}>
-                <Arc
-                  innerRadius={22}
-                  outerRadius={30}
-                  angle={180}
-                  fill="#ffe87b"
-                  rotationDeg={90}
-                />
-                <Rect x={-4} y={-30} width={8} height={60} fill="#ffe87b" />
-                <Rect x={25} y={8} width={64} height={8} fill="#fafafa" />
-              </Group>
-              <Group
-                x={772}
-                y={
-                  (titleConfig?.y || 0) + (titleConfig?.height || 0) - 56 >
-                  (titleConfig?.y || 0) + 22 + 80
-                    ? (titleConfig?.y || 0) + (titleConfig?.height || 0) - 56
-                    : (titleConfig?.y || 0) + 22 + 80
-                }
-              >
-                <Circle radius={32} fill="#e2ce68" />
-                <Arc
-                  x={64}
-                  innerRadius={0}
-                  outerRadius={32}
-                  angle={180}
-                  fill="#2696FA"
-                  rotationDeg={90}
-                />
-              </Group>
-              <Image
-                x={196}
-                y={
-                  (titleConfig?.y || 0) + (titleConfig?.height || 0) - 56 >
-                  (titleConfig?.y || 0) + 30 + 80
-                    ? (titleConfig?.y || 0) + (titleConfig?.height || 0) - 56
-                    : (titleConfig?.y || 0) + 30 + 80
-                }
-                image={star}
-                width={40}
-                height={42}
-              />
-              <Image x={40} y={40} image={heart} width={56} height={56} />
-            </>
-          )}
-        {theme.name === 'DevsForUkraine' &&
-          viewConfig?.layout === 'float-full-right' &&
-          !isShorts && (
-            <>
-              <Rect
-                x={0}
-                y={0}
-                width={stageConfig.width}
-                height={stageConfig.height}
-                fill="#1C1C1C"
-              />
-              <Group x={83} y={120}>
-                <Ring innerRadius={22} outerRadius={30} fill="#fafafa" />
-                <Circle x={123} radius={34} fill="#2696FA" />
-                <Rect x={25} y={-4} width={98} height={8} fill="#fafafa" />
-              </Group>
-              <Group x={780} y={114}>
-                <Arc
-                  innerRadius={22}
-                  outerRadius={30}
-                  angle={180}
-                  fill="#ffe87b"
-                  rotationDeg={90}
-                />
-                <Rect x={-4} y={-30} width={8} height={60} fill="#ffe87b" />
-                <Rect x={25} y={8} width={64} height={8} fill="#fafafa" />
-              </Group>
-              <Group x={776} y={216}>
-                <Circle radius={32} fill="#e2ce68" />
-                <Arc
-                  x={64}
-                  innerRadius={0}
-                  outerRadius={32}
-                  angle={180}
-                  fill="#2696FA"
-                  rotationDeg={90}
-                />
-              </Group>
-              <Image x={196} y={275} image={star} width={40} height={42} />
-              <Image x={536} y={315} image={heart} width={40} height={40} />
-            </>
-          )}
+        <ThumbnailElements
+          theme={theme.name}
+          layout={viewConfig?.layout}
+          isShorts={isShorts}
+          stageConfig={stageConfig}
+          titleConfig={titleConfig}
+        />
         <Group x={introConfig?.layoutX} y={introConfig?.layoutY}>
           <Text
             key="title"
