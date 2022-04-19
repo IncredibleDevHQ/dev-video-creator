@@ -86,9 +86,12 @@ const ThumbnailModal = ({
     heading: '',
     name: '',
     designation: '',
-    layout: 'bottom-right-tile',
     organization: '',
     displayPicture: user?.picture || undefined,
+    ...(JSON.parse(
+      localStorage.getItem('thumbnailConfig') || '{}'
+    ) as ThumbnailProps),
+    layout: 'bottom-right-tile',
   })
 
   const [{ flick, activeFragmentId }, setStore] = useRecoilState(newFlickStore)
@@ -173,6 +176,15 @@ const ThumbnailModal = ({
       initialLoad.current = false
       return
     }
+    localStorage.setItem(
+      'thumbnailConfig',
+      JSON.stringify({
+        designation: thumbnailConfig.designation,
+        displayPicture: thumbnailConfig.displayPicture,
+        name: thumbnailConfig.name,
+        organization: thumbnailConfig.organization,
+      } as ThumbnailProps)
+    )
     debounced()
   }, [thumbnailConfig])
 
