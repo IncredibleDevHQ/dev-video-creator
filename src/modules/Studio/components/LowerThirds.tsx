@@ -2161,6 +2161,285 @@ export const Web3AuthLowerThirds = ({
   )
 }
 
+export const DevsForUkraineLowerThirds = ({
+  x,
+  y,
+  userName,
+  designation,
+  organization,
+  logo,
+  color,
+  textColor,
+  setTopLayerChildren,
+}: {
+  x: number
+  y: number
+  userName: string
+  designation: string
+  organization: string
+  logo: string
+  color: string
+  textColor: string
+  setTopLayerChildren?: React.Dispatch<
+    React.SetStateAction<{ id: string; state: TopLayerChildren }>
+  >
+}) => {
+  const [image] = useImage(logo, 'anonymous')
+  const { getTextWidth } = useEdit()
+
+  const rectWidth = getTextWidth(userName || '', 'Inter', 16, 'normal 600') + 20
+  const userInfoWidth = getTextWidth(
+    `${designation}, ${organization}`,
+    'Inter',
+    12,
+    'normal 500'
+  )
+  if (logo)
+    return (
+      <>
+        <Group
+          x={x}
+          y={y}
+          opacity={0}
+          ref={(ref) => {
+            ref?.to({
+              opacity: 1,
+              duration: 0.6,
+              onFinish: () => {
+                setTimeout(() => {
+                  ref?.to({
+                    opacity: 0,
+                    duration: 0.6,
+                    onFinish: () => {
+                      setTimeout(() => {
+                        setTopLayerChildren?.({
+                          id: '',
+                          state: '',
+                        })
+                      }, 400)
+                    },
+                  })
+                }, 3100)
+              },
+            })
+          }}
+        >
+          <Rect
+            fill={color || '#000000'}
+            width={Math.floor(rectWidth) + 72}
+            height={48}
+            cornerRadius={8}
+          />
+          <Image
+            x={Math.floor(rectWidth) + 28}
+            y={12}
+            width={24}
+            height={24}
+            image={image}
+          />
+          <Text
+            x={22}
+            y={15}
+            fill={textColor || '#ffffff'}
+            text={userName}
+            fontSize={18}
+            height={48}
+            fontStyle="normal 600"
+            fontFamily="Inter"
+            key="username"
+          />
+        </Group>
+        <Group
+          x={x}
+          y={y}
+          opacity={0}
+          ref={(ref) => {
+            setTimeout(() => {
+              ref?.to({
+                opacity: 1,
+                duration: 0.6,
+                onFinish: () => {
+                  setTimeout(() => {
+                    ref?.to({
+                      opacity: 0,
+                      duration: 0.6,
+                    })
+                  }, 2000)
+                },
+              })
+            }, 600)
+          }}
+        >
+          <Rect
+            x={0}
+            y={57}
+            fill={color || '#ffffff'}
+            width={Math.floor(userInfoWidth) + 32}
+            height={28}
+            cornerRadius={8}
+          />
+          {designation !== '' && organization === '' && (
+            <Text
+              x={16}
+              y={65}
+              fill={textColor || '#27272A'}
+              text={designation}
+              fontSize={12}
+              height={28}
+              fontStyle="normal 500"
+              fontFamily="Inter"
+              key="designation"
+            />
+          )}
+          {designation === '' && organization !== '' && (
+            <Text
+              x={16}
+              y={65}
+              fill={textColor || '#27272A'}
+              text={organization}
+              fontSize={12}
+              height={28}
+              fontStyle="normal 500"
+              fontFamily="Inter"
+              key="organization"
+            />
+          )}
+          {designation !== '' && organization !== '' && (
+            <Text
+              x={16}
+              y={65}
+              fill={textColor || '#27272A'}
+              text={`${designation}, ${organization}`}
+              fontSize={12}
+              height={28}
+              fontStyle="normal 500"
+              fontFamily="Inter"
+              key="designationAndOrganization"
+            />
+          )}
+        </Group>
+      </>
+    )
+  return (
+    <>
+      <Group
+        x={x}
+        y={y}
+        opacity={0}
+        ref={(ref) => {
+          ref?.to({
+            opacity: 1,
+            duration: 0.6,
+            onFinish: () => {
+              setTimeout(() => {
+                ref?.to({
+                  opacity: 0,
+                  duration: 0.6,
+                  onFinish: () => {
+                    setTimeout(() => {
+                      setTopLayerChildren?.({
+                        id: '',
+                        state: '',
+                      })
+                    }, 400)
+                  },
+                })
+              }, 3100)
+            },
+          })
+        }}
+      >
+        <Rect
+          fill={color || '#111827'}
+          width={Math.floor(rectWidth) + 44}
+          height={48}
+          cornerRadius={8}
+        />
+        <Text
+          x={22}
+          y={15}
+          fill={textColor || '#ffffff'}
+          text={userName}
+          fontSize={18}
+          height={86}
+          fontStyle="normal 600"
+          fontFamily="Inter"
+          key="username"
+        />
+      </Group>
+      <Group
+        x={x}
+        y={y}
+        opacity={0}
+        ref={(ref) => {
+          setTimeout(() => {
+            ref?.to({
+              opacity: 1,
+              duration: 0.6,
+              onFinish: () => {
+                setTimeout(() => {
+                  ref?.to({
+                    opacity: 0,
+                    duration: 0.6,
+                  })
+                }, 2000)
+              },
+            })
+          }, 600)
+        }}
+      >
+        <Rect
+          x={0}
+          y={57}
+          fill={color || '#ffffff'}
+          width={Math.floor(userInfoWidth) + 32}
+          height={28}
+          cornerRadius={8}
+        />
+        {designation !== '' && organization === '' && (
+          <Text
+            x={16}
+            y={65}
+            fill={textColor || '#27272A'}
+            text={designation}
+            fontSize={12}
+            height={28}
+            fontStyle="normal 500"
+            fontFamily="Inter"
+            key="designation"
+          />
+        )}
+        {designation === '' && organization !== '' && (
+          <Text
+            x={16}
+            y={65}
+            fill={textColor || '#27272A'}
+            text={organization}
+            fontSize={12}
+            height={28}
+            fontStyle="normal 500"
+            fontFamily="Inter"
+            key="organization"
+          />
+        )}
+        {designation !== '' && organization !== '' && (
+          <Text
+            x={16}
+            y={65}
+            fill={textColor || '#27272A'}
+            text={`${designation}, ${organization}`}
+            fontSize={12}
+            height={28}
+            fontStyle="normal 500"
+            fontFamily="Inter"
+            key="designationAndOrganization"
+          />
+        )}
+      </Group>
+    </>
+  )
+}
+
 export const IncredibleLowerThirds = ({
   x,
   y,

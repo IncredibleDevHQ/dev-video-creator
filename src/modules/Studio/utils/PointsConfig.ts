@@ -479,6 +479,44 @@ export const getBulletsConfig = ({
             bulletBgRectCornerRadius: 32,
           }
       }
+    case 'DevsForUkraine':
+      switch (layout) {
+        case 'classic':
+        case 'float-full-right':
+        case 'float-full-left':
+        case 'float-half-right':
+        case 'padded-bottom-right-tile':
+        case 'padded-bottom-right-circle':
+        case 'bottom-right-tile':
+        case 'bottom-right-circle':
+        case 'padded-split':
+        case 'split':
+        case 'full-left':
+        case 'full-right':
+          return {
+            bulletWidth: 32,
+            bulletHeight: 32,
+            bulletFontSize: 16,
+            bulletCornerRadius: 16,
+            bulletXOffset: 0,
+            bulletYOffset: 0,
+            bulletColor: '#2696FA',
+            bulletTextColor: '#ffffff',
+            bulletRotation: 0,
+          }
+        default:
+          return {
+            bulletWidth: 32,
+            bulletHeight: 32,
+            bulletFontSize: 16,
+            bulletCornerRadius: 16,
+            bulletXOffset: 0,
+            bulletYOffset: 0,
+            bulletColor: '#2696FA',
+            bulletTextColor: '#ffffff',
+            bulletRotation: 0,
+          }
+      }
     default:
       return {
         bulletWidth: 64,
