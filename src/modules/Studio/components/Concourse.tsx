@@ -39,6 +39,7 @@ export interface StudioUserConfig {
   backgroundRectBorderRadius?: number
   backgroundRectBorderColor?: string
   backgroundRectBorderWidth?: number
+  themeName?: string
 }
 
 export interface TitleSplashProps {

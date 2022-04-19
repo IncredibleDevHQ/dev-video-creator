@@ -3149,6 +3149,7 @@ export const StudioUserConfiguration = ({
                     height: 360,
                     borderRadius: 8,
                   },
+                  themeName: 'DevsForUkraine',
                 },
               ]
           }
@@ -3203,6 +3204,7 @@ export const StudioUserConfiguration = ({
                     height: 360,
                     borderRadius: 8,
                   },
+                  themeName: 'DevsForUkraine',
                 },
               ]
           }
@@ -3257,6 +3259,7 @@ export const StudioUserConfiguration = ({
                     height: 312,
                     borderRadius: 8,
                   },
+                  themeName: 'DevsForUkraine',
                 },
               ]
           }
@@ -3312,6 +3315,7 @@ export const StudioUserConfiguration = ({
                     height: 192,
                     borderRadius: 8,
                   },
+                  themeName: 'DevsForUkraine',
                 },
               ]
           }
