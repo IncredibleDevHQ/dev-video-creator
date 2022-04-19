@@ -316,7 +316,7 @@ const OutroFragment = ({
                   outerRadius={30}
                   angle={180}
                   fill="#ffe87b"
-                  rotationDeg={90}
+                  rotation={90}
                 />
                 <Rect x={-4} y={-30} width={8} height={60} fill="#ffe87b" />
                 <Rect x={25} y={8} width={64} height={8} fill="#fafafa" />
@@ -329,7 +329,7 @@ const OutroFragment = ({
                   outerRadius={32}
                   angle={180}
                   fill="#2696FA"
-                  rotationDeg={90}
+                  rotation={90}
                 />
               </Group>
               <Image x={240} y={317} image={star} width={40} height={42} />
@@ -357,7 +357,7 @@ const OutroFragment = ({
                   outerRadius={30}
                   angle={180}
                   fill="#ffe87b"
-                  rotationDeg={90}
+                  rotation={90}
                 />
                 <Rect x={-4} y={-30} width={8} height={60} fill="#ffe87b" />
                 <Rect x={25} y={8} width={64} height={8} fill="#fafafa" />
@@ -370,7 +370,7 @@ const OutroFragment = ({
                   outerRadius={32}
                   angle={180}
                   fill="#2696FA"
-                  rotationDeg={90}
+                  rotation={90}
                 />
               </Group>
               <Image x={18} y={330} image={star} width={40} height={42} />
