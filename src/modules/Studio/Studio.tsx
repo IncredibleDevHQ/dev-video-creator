@@ -212,6 +212,8 @@ const Preview = ({
     setError,
   } = useMediaStream()
 
+  const history = useHistory()
+
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null)
   const [microphoneStream, setMicrophoneStream] = useState<MediaStream | null>(
     null
@@ -415,6 +417,16 @@ const Preview = ({
 
   return (
     <div className="flex flex-col items-center justify-center flex-1 min-h-screen p-8">
+      <IoArrowBack
+        size={18}
+        type="button"
+        className="max-w-max p-0 cursor-pointer text-black opacity-90 mb-8 mr-auto"
+        onClick={() =>
+          history.length > 2
+            ? history.goBack()
+            : history.push(`/story/${data?.flickId}`)
+        }
+      />
       <div className="grid w-full grid-cols-5 gap-x-8">
         <div className="col-span-3">
           <div className="relative">
