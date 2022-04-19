@@ -1,14 +1,16 @@
 /* eslint-disable no-nested-ternary */
 import React, { useEffect, useState } from 'react'
-import { Group, Image, Text } from 'react-konva'
+import { Arc, Circle, Group, Image, Rect, Ring, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
+import config from '../../../config'
 import { userState } from '../../../stores/user.store'
 import {
   BlockProperties,
   IntroBlockView,
   IntroBlockViewProps,
 } from '../../../utils/configTypes'
+import { usePoint } from '../hooks'
 import useEdit from '../hooks/use-edit'
 import { studioStore } from '../stores'
 import { getIntroConfig, IntroConfig } from '../utils/IntroConfig'
@@ -39,6 +41,14 @@ const Thumbnail = ({
     (viewConfig?.view as IntroBlockView)?.intro?.displayPicture || '',
     'anonymous'
   )
+  const [star] = useImage(
+    `${config.storage.baseUrl}themes/DevsForUkraine/star.svg`,
+    'anonymous'
+  )
+  const [heart] = useImage(
+    `${config.storage.baseUrl}themes/DevsForUkraine/heart.svg`,
+    'anonymous'
+  )
 
   const [introConfig, setIntroConfig] = useState<IntroConfig>()
   const [thumbnailInfo, setThumbnailInfo] = useState<{
@@ -58,7 +68,12 @@ const Thumbnail = ({
     height: number
   }>({ width: 0, height: 0 })
 
+  // used only in 'DevsForUkraine' theme to align other elements position wrt the title
+  const [titleConfig, setTitleConfig] =
+    useState<{ y: number; height: number }>()
+
   const { clipRect, getImageFitDimensions } = useEdit()
+  const { getNoOfLinesOfText } = usePoint()
 
   useEffect(() => {
     if (!viewConfig) return
@@ -74,11 +89,37 @@ const Thumbnail = ({
     setIntroConfig(
       getIntroConfig({
         theme,
-        layout: viewConfig?.layout || 'classic',
+        layout: viewConfig?.layout || 'bottom-right-tile',
         isShorts,
       })
     )
   }, [viewConfig])
+
+  useEffect(() => {
+    if (
+      theme.name === 'DevsForUkraine' &&
+      viewConfig?.layout === 'bottom-right-tile'
+    ) {
+      const introBlockViewProps: IntroBlockViewProps = (
+        viewConfig?.view as IntroBlockView
+      )?.intro
+      const noOfLines = getNoOfLinesOfText({
+        text: introBlockViewProps?.heading || fragment?.flick.name || '',
+        availableWidth: introConfig?.titleWidth || 0,
+        fontSize: introConfig?.titleFontSize || 0,
+        fontFamily: getThemeFont(theme),
+        fontStyle: introConfig?.titleFontStyle || 'normal 600',
+      })
+      setTitleConfig({
+        y:
+          (introConfig?.titleY || 0) +
+          ((introConfig?.titleHeight || 0) -
+            noOfLines * ((introConfig?.titleFontSize || 0) + 0.1)) /
+            2,
+        height: noOfLines * ((introConfig?.titleFontSize || 0) + 0.1),
+      })
+    }
+  }, [viewConfig, theme, introConfig])
 
   useEffect(() => {
     if (!userImage || !introConfig) return
@@ -136,6 +177,109 @@ const Thumbnail = ({
             }
           />
         )}
+        {theme.name === 'DevsForUkraine' &&
+          viewConfig?.layout === 'bottom-right-tile' &&
+          !isShorts && (
+            <>
+              <Rect
+                x={0}
+                y={0}
+                width={stageConfig.width}
+                height={stageConfig.height}
+                fill="#1C1C1C"
+              />
+              <Group x={85} y={(titleConfig?.y || 0) + 22 || 202}>
+                <Ring innerRadius={22} outerRadius={30} fill="#fafafa" />
+                <Circle x={123} radius={34} fill="#2696FA" />
+                <Rect x={25} y={-4} width={98} height={8} fill="#fafafa" />
+              </Group>
+              <Group x={772} y={(titleConfig?.y || 0) + 22 || 202}>
+                <Arc
+                  innerRadius={22}
+                  outerRadius={30}
+                  angle={180}
+                  fill="#ffe87b"
+                  rotationDeg={90}
+                />
+                <Rect x={-4} y={-30} width={8} height={60} fill="#ffe87b" />
+                <Rect x={25} y={8} width={64} height={8} fill="#fafafa" />
+              </Group>
+              <Group
+                x={772}
+                y={
+                  (titleConfig?.y || 0) + (titleConfig?.height || 0) - 56 >
+                  (titleConfig?.y || 0) + 22 + 80
+                    ? (titleConfig?.y || 0) + (titleConfig?.height || 0) - 56
+                    : (titleConfig?.y || 0) + 22 + 80
+                }
+              >
+                <Circle radius={32} fill="#e2ce68" />
+                <Arc
+                  x={64}
+                  innerRadius={0}
+                  outerRadius={32}
+                  angle={180}
+                  fill="#2696FA"
+                  rotationDeg={90}
+                />
+              </Group>
+              <Image
+                x={196}
+                y={
+                  (titleConfig?.y || 0) + (titleConfig?.height || 0) - 56 >
+                  (titleConfig?.y || 0) + 30 + 80
+                    ? (titleConfig?.y || 0) + (titleConfig?.height || 0) - 56
+                    : (titleConfig?.y || 0) + 30 + 80
+                }
+                image={star}
+                width={40}
+                height={42}
+              />
+              <Image x={40} y={40} image={heart} width={56} height={56} />
+            </>
+          )}
+        {theme.name === 'DevsForUkraine' &&
+          viewConfig?.layout === 'float-full-right' &&
+          !isShorts && (
+            <>
+              <Rect
+                x={0}
+                y={0}
+                width={stageConfig.width}
+                height={stageConfig.height}
+                fill="#1C1C1C"
+              />
+              <Group x={83} y={120}>
+                <Ring innerRadius={22} outerRadius={30} fill="#fafafa" />
+                <Circle x={123} radius={34} fill="#2696FA" />
+                <Rect x={25} y={-4} width={98} height={8} fill="#fafafa" />
+              </Group>
+              <Group x={780} y={114}>
+                <Arc
+                  innerRadius={22}
+                  outerRadius={30}
+                  angle={180}
+                  fill="#ffe87b"
+                  rotationDeg={90}
+                />
+                <Rect x={-4} y={-30} width={8} height={60} fill="#ffe87b" />
+                <Rect x={25} y={8} width={64} height={8} fill="#fafafa" />
+              </Group>
+              <Group x={776} y={216}>
+                <Circle radius={32} fill="#e2ce68" />
+                <Arc
+                  x={64}
+                  innerRadius={0}
+                  outerRadius={32}
+                  angle={180}
+                  fill="#2696FA"
+                  rotationDeg={90}
+                />
+              </Group>
+              <Image x={196} y={275} image={star} width={40} height={42} />
+              <Image x={536} y={315} image={heart} width={40} height={40} />
+            </>
+          )}
         <Group x={introConfig?.layoutX} y={introConfig?.layoutY}>
           <Text
             key="title"
@@ -143,35 +287,31 @@ const Thumbnail = ({
             y={introConfig?.titleY || 0}
             width={introConfig?.titleWidth || 0}
             height={introConfig?.titleHeight || 0}
-            verticalAlign="middle"
-            align="left"
+            verticalAlign={introConfig?.titleVerticalAlign || 'middle'}
+            align={introConfig?.titleAlign || 'left'}
             text={thumbnailInfo?.title}
             fill={branding?.colors?.text || getThemeTextColor(theme)}
             fontSize={introConfig?.titleFontSize || 0}
             fontFamily={getThemeFont(theme)}
-            fontStyle="normal 600"
+            fontStyle={introConfig?.titleFontStyle || 'normal 600'}
             lineHeight={1.1}
           />
-          <Image
-            x={introConfig?.logoX || 0}
-            y={introConfig?.logoY || 0}
-            width={introConfig?.logoWidth || 0}
-            height={introConfig?.logoHeight || 0}
-            image={logo}
-          />
+          {theme.name !== 'DevsForUkraine' && (
+            <Image
+              x={introConfig?.logoX || 0}
+              y={introConfig?.logoY || 0}
+              width={introConfig?.logoWidth || 0}
+              height={introConfig?.logoHeight || 0}
+              image={logo}
+            />
+          )}
           <Text
             key="userName"
-            x={
-              logo
-                ? introConfig?.userNameX || 0
-                : !isShorts
-                ? (introConfig?.logoX || 0) + 10
-                : introConfig?.logoX || 0
-            }
+            x={logo ? introConfig?.userNameX || 0 : introConfig?.logoX || 0}
             y={introConfig?.userNameY || 0}
             width={introConfig?.userNameWidth || 0}
             height={introConfig?.userNameHeight || 0}
-            align="left"
+            align={introConfig?.userNameAlign || 'left'}
             text={thumbnailInfo?.userName}
             fill={branding?.colors?.text || getThemeTextColor(theme)}
             fontSize={introConfig?.userNameFontSize || 0}
@@ -183,17 +323,11 @@ const Thumbnail = ({
             thumbnailInfo?.organization === '' && (
               <Text
                 key="userInfo"
-                x={
-                  logo
-                    ? introConfig?.userNameX || 0
-                    : !isShorts
-                    ? (introConfig?.logoX || 0) + 10
-                    : introConfig?.logoX || 0
-                }
+                x={logo ? introConfig?.userNameX || 0 : introConfig?.logoX || 0}
                 y={introConfig?.userInfoY || 0}
                 width={introConfig?.userInfoWidth || 0}
                 height={introConfig?.userInfoHeight || 0}
-                align="left"
+                align={introConfig?.userInfoAlign || 'left'}
                 text={thumbnailInfo?.designation}
                 fill={branding?.colors?.text || getThemeTextColor(theme)}
                 fontSize={introConfig?.userInfoFontSize || 0}
@@ -205,17 +339,11 @@ const Thumbnail = ({
             thumbnailInfo?.organization !== '' && (
               <Text
                 key="userInfo"
-                x={
-                  logo
-                    ? introConfig?.userNameX || 0
-                    : !isShorts
-                    ? (introConfig?.logoX || 0) + 10
-                    : introConfig?.logoX || 0
-                }
+                x={logo ? introConfig?.userNameX || 0 : introConfig?.logoX || 0}
                 y={introConfig?.userInfoY || 0}
                 width={introConfig?.userInfoWidth || 0}
                 height={introConfig?.userInfoHeight || 0}
-                align="left"
+                align={introConfig?.userInfoAlign || 'left'}
                 text={thumbnailInfo?.organization}
                 fill={branding?.colors?.text || getThemeTextColor(theme)}
                 fontSize={introConfig?.userInfoFontSize || 0}
@@ -227,17 +355,11 @@ const Thumbnail = ({
             thumbnailInfo?.organization !== '' && (
               <Text
                 key="userInfo"
-                x={
-                  logo
-                    ? introConfig?.userNameX || 0
-                    : !isShorts
-                    ? (introConfig?.logoX || 0) + 10
-                    : introConfig?.logoX || 0
-                }
+                x={logo ? introConfig?.userNameX || 0 : introConfig?.logoX || 0}
                 y={introConfig?.userInfoY || 0}
                 width={introConfig?.userInfoWidth || 0}
                 height={introConfig?.userInfoHeight || 0}
-                align="left"
+                align={introConfig?.userInfoAlign || 'left'}
                 text={`${thumbnailInfo?.designation}, ${thumbnailInfo?.organization}`}
                 fill={branding?.colors?.text || getThemeTextColor(theme)}
                 fontSize={introConfig?.userInfoFontSize || 0}
