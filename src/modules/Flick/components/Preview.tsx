@@ -1624,6 +1624,7 @@ const ListBlockModeSelector = ({
           list: {
             ...view.list,
             orientation: 'vertical',
+            displayTitle: true,
           },
         })
         break
@@ -1799,6 +1800,95 @@ const ListBlockModeSelector = ({
       )}
       {view.list.appearance !== 'replace' && (
         <>
+          <Heading fontSize="small" className="font-bold mt-8">
+            Title appearance
+          </Heading>
+          <div className="grid grid-cols-3 mt-2 gap-x-2">
+            <div className="aspect-w-1 aspect-h-1">
+              <button
+                type="button"
+                onClick={() =>
+                  updateView({
+                    ...view,
+                    list: {
+                      ...view.list,
+                      displayTitle: false,
+                    },
+                  })
+                }
+                className={cx(
+                  'border border-gray-200 h-full w-full rounded-sm p-px ',
+                  {
+                    'border-gray-800': !view.list.displayTitle,
+                  }
+                )}
+              >
+                <div
+                  className={cx('bg-gray-100 w-full h-full p-2', {
+                    'bg-gray-200': !view.list.displayTitle,
+                  })}
+                >
+                  <div
+                    className={cx('w-full h-full bg-gray-300 rounded-sm', {
+                      'bg-gray-800': !view.list.displayTitle,
+                    })}
+                  />
+                </div>
+              </button>
+            </div>
+            <div className="aspect-w-1 aspect-h-1">
+              <button
+                type="button"
+                onClick={() =>
+                  updateView({
+                    ...view,
+                    list: {
+                      ...view.list,
+                      displayTitle: true,
+                    },
+                  })
+                }
+                className={cx(
+                  'border border-gray-200 h-full w-full rounded-sm p-px ',
+                  {
+                    'border-gray-800': view.list.displayTitle,
+                  }
+                )}
+              >
+                <div
+                  style={{
+                    paddingLeft: '13px',
+                    paddingRight: '13px',
+                  }}
+                  className={cx(
+                    'flex flex-col items-center justify-center gap-y-1 bg-gray-100 w-full h-full p-2',
+                    {
+                      'bg-gray-200': view.list.displayTitle,
+                    }
+                  )}
+                >
+                  <div
+                    style={{
+                      borderRadius: '2px',
+                    }}
+                    className={cx('w-full h-full bg-gray-300', {
+                      'bg-gray-800': view.list.displayTitle,
+                    })}
+                  />
+                  <div className="aspect-w-1 aspect-h-1 w-full">
+                    <div
+                      style={{
+                        borderRadius: '3px',
+                      }}
+                      className={cx('w-full h-full bg-gray-300', {
+                        'bg-gray-800': view.list.displayTitle,
+                      })}
+                    />
+                  </div>
+                </div>
+              </button>
+            </div>
+          </div>
           <Heading fontSize="small" className="font-bold mt-8">
             Orientation
           </Heading>

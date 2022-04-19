@@ -151,6 +151,7 @@ export interface ListBlockViewProps {
   viewStyle?: ListViewStyle
   appearance?: ListAppearance
   orientation?: ListOrientation
+  displayTitle?: boolean
 }
 
 export type ListAppearance = 'stack' | 'replace' | 'allAtOnce'

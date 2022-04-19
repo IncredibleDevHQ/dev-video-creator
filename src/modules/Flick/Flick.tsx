@@ -255,6 +255,7 @@ const Flick = () => {
               appearance: 'stack',
               orientation: 'vertical',
               viewStyle: 'bullet',
+              displayTitle: true,
             },
           },
         }
@@ -329,6 +330,7 @@ const Flick = () => {
               appearance: 'stack',
               orientation: 'vertical',
               viewStyle: 'bullet',
+              displayTitle: true,
             },
           },
         })
