@@ -18,6 +18,7 @@ import {
 } from '../../../utils/configTypes'
 import { studioStore } from '../../Studio/stores'
 import { Block } from '../editor/utils/utils'
+import { newFlickStore, View } from '../store/flickNew.store'
 import { FragmentTypeIcon } from './LayoutGeneric'
 
 const Timeline = ({
@@ -42,9 +43,21 @@ const Timeline = ({
   const { payload, updatePayload } = useRecoilValue(studioStore)
   const timeline = useRef<HTMLDivElement>(null)
 
+  const { view } = useRecoilValue(newFlickStore)
+
   useEffect(() => {
     setShowTimeline(persistentTimeline)
   }, [])
+
+  useEffect(() => {
+    if (persistentTimeline) {
+      setShowTimeline(true)
+    } else if (view === View.Preview) {
+      setShowTimeline(true)
+    } else {
+      setShowTimeline(false)
+    }
+  }, [persistentTimeline, view])
 
   const slide = (direction: 'left' | 'right') => {
     let scrollCompleted = 0
