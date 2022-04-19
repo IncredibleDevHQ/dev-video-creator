@@ -279,6 +279,20 @@ const Preview = ({
 
   // remove event listener on unmount
   useEffect(() => {
+    if (block?.pos === 0) {
+      const introBlock = blocks?.find((b) => b.type === 'introBlock')
+      if (introBlock) {
+        const introBlockView = config.blocks[introBlock.id]
+          ?.view as IntroBlockView
+
+        const titlePos = introBlockView?.intro?.order?.findIndex(
+          (order) => order?.state === 'titleSplash'
+        )
+        updatePayload?.({
+          activeIntroIndex: titlePos || 0,
+        })
+      }
+    }
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
     }
@@ -330,7 +344,7 @@ const Preview = ({
           'flex justify-center items-start bg-gray-100 flex-1 pl-0',
           {
             'items-center': centered,
-            'pt-8': !centered,
+            'pt-12': !centered,
           }
         )}
         ref={ref}
@@ -377,7 +391,7 @@ const Preview = ({
             bounds={bounds}
             shortsMode={config.mode === 'Portrait'}
             config={config}
-            scale={centered ? 0.83 : 0.77}
+            scale={0.83}
           />
           <button
             onClick={() => {
@@ -503,6 +517,22 @@ const Preview = ({
                 mode={config.mode}
                 layout={config.blocks[block.id]?.layout || allLayoutTypes[0]}
                 updateLayout={(layout: Layout) => {
+                  if (block.type === 'introBlock') {
+                    const introBlock = blocks?.find(
+                      (b) => b.type === 'introBlock'
+                    )
+                    if (introBlock) {
+                      const introBlockView = config.blocks[introBlock.id]
+                        ?.view as IntroBlockView
+
+                      const titlePos = introBlockView?.intro?.order?.findIndex(
+                        (order) => order?.state === 'titleSplash'
+                      )
+                      updatePayload?.({
+                        activeIntroIndex: titlePos || 0,
+                      })
+                    }
+                  }
                   updateConfig(block.id, {
                     ...config.blocks[block.id],
                     layout,
