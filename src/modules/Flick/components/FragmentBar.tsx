@@ -45,6 +45,7 @@ import { TextEditorParser } from '../editor/utils/helpers'
 import { Block, SimpleAST } from '../editor/utils/utils'
 import { newFlickStore, View } from '../store/flickNew.store'
 import RecordingModal from './RecordingModal'
+import ViewRecordingsModal from './ViewRecordingsModal'
 
 const HorizontalContainer = ({
   className,
@@ -259,6 +260,7 @@ const FragmentBar = ({
   const [brandingModal, setBrandingModal] = useState(false)
   const [thumbnailModal, setThumbnailModal] = useState(false)
   const [recordingModal, setRecordingModal] = useState(false)
+  const [viewRecordingModal, setViewRecordingModal] = useState(false)
 
   const [
     { flick, activeFragmentId, view, themes, activeTheme },
@@ -577,6 +579,19 @@ const FragmentBar = ({
             size="small"
             type="button"
             className="mx-1"
+            icon={IoPlayOutline}
+            iconSize={20}
+            onClick={() => {
+              setViewRecordingModal(true)
+            }}
+          >
+            <Text className="text-sm text-gray-100 font-main">Recording</Text>
+          </Button>
+          <Button
+            appearance="none"
+            size="small"
+            type="button"
+            className="mx-1"
             icon={IoImageOutline}
             iconSize={20}
             onClick={() => {
@@ -651,6 +666,15 @@ const FragmentBar = ({
           handleClose={() => {
             setRecordingModal(false)
           }}
+        />
+      )}
+      {viewRecordingModal && (
+        <ViewRecordingsModal
+          open={viewRecordingModal}
+          handleClose={() => {
+            setViewRecordingModal(false)
+          }}
+          simpleAST={simpleAST}
         />
       )}
     </div>

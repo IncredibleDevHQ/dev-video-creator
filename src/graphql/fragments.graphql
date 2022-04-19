@@ -10,6 +10,14 @@ fragment SimpleFragment on Fragment {
   type
 }
 
+fragment Block on Blocks {
+  id
+  objectUrl
+  recordingId
+  thumbnail
+  playbackDuration
+}
+
 fragment FlickFragment on Fragment {
   configuration
   description
@@ -28,6 +36,9 @@ fragment FlickFragment on Fragment {
   publishConfig
   participants {
     ...FragmentParticipant
+  }
+  blocks {
+    ...Block
   }
   flick {
     name
