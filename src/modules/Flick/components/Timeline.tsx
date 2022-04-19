@@ -1,8 +1,9 @@
 import { css, cx } from '@emotion/css'
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
   IoChevronBackCircle,
   IoChevronForwardCircle,
+  IoPlay,
   IoPlayOutline,
 } from 'react-icons/io5'
 import { useRecoilValue } from 'recoil'
@@ -20,6 +21,7 @@ import { studioStore } from '../../Studio/stores'
 import { Block } from '../editor/utils/utils'
 import { newFlickStore, View } from '../store/flickNew.store'
 import { FragmentTypeIcon } from './LayoutGeneric'
+import ViewRecordingsModal from './ViewRecordingsModal'
 
 const Timeline = ({
   blocks,
@@ -43,7 +45,16 @@ const Timeline = ({
   const { payload, updatePayload } = useRecoilValue(studioStore)
   const timeline = useRef<HTMLDivElement>(null)
 
-  const { view } = useRecoilValue(newFlickStore)
+  const { view, flick, activeFragmentId } = useRecoilValue(newFlickStore)
+
+  const [viewRecordingModal, setViewRecordingModal] = useState(false)
+  const [blockId, setBlockId] = useState('')
+
+  const recordedBlockIds = useMemo(() => {
+    const fragment = flick?.fragments.find((f) => f.id === activeFragmentId)
+    const blocks = fragment?.blocks || []
+    return blocks.map((b) => b.id)
+  }, [activeFragmentId])
 
   useEffect(() => {
     setShowTimeline(persistentTimeline)
@@ -150,7 +161,7 @@ const Timeline = ({
             {blocks.map((block: Block, index) => (
               <a
                 className={cx(
-                  'flex items-center gap-x-3 border border-transparent cursor-pointer',
+                  'flex items-center gap-x-3 border border-transparent cursor-pointer relative',
                   {
                     'bg-dark-300 py-1.5 px-2 rounded-md':
                       block.type === 'introBlock' ||
@@ -164,6 +175,32 @@ const Timeline = ({
                   setCurrentBlock(block)
                 }}
               >
+                {recordedBlockIds.includes(block.id) && (
+                  <button
+                    style={{
+                      background: 'rgba(82, 82, 91, 0.7)',
+                      boxShadow: '0px 25px 100px rgba(0, 0, 0, 0.5)',
+                      backdropFilter: 'blur(4px)',
+                      borderRadius: '2px',
+                    }}
+                    className={cx(
+                      'flex items-center justify-center absolute m-1 top-0 left-0',
+                      {
+                        'mt-2.5 ml-3':
+                          block.type === 'introBlock' ||
+                          block.type === 'outroBlock',
+                      }
+                    )}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setBlockId(block.id)
+                      setViewRecordingModal(true)
+                    }}
+                  >
+                    <IoPlay size={10} className="m-1 text-white" />
+                  </button>
+                )}
                 {block.type === 'introBlock' &&
                   (config.blocks[block.id].view as IntroBlockView)?.intro?.order
                     ?.filter((o) => o.enabled)
@@ -318,6 +355,18 @@ const Timeline = ({
             ))}
           </div>
         </div>
+      )}
+      {viewRecordingModal && (
+        <ViewRecordingsModal
+          open={viewRecordingModal}
+          handleClose={() => {
+            setViewRecordingModal(false)
+          }}
+          simpleAST={{
+            blocks,
+          }}
+          blockId={blockId}
+        />
       )}
     </div>
   )
