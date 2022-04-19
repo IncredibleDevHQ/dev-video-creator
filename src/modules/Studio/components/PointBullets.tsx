@@ -19,44 +19,10 @@ const PointBullets = ({
     case 'PastelLines':
     case 'Cassidoo':
     case 'LambdaTest':
-      return (
-        <>
-          <Rect
-            x={bulletsConfig.bulletXOffset}
-            y={bulletsConfig.bulletYOffset}
-            width={bulletsConfig.bulletWidth}
-            height={bulletsConfig.bulletHeight}
-            fill={(bulletsConfig.bulletColor as string) || 'white'}
-            cornerRadius={bulletsConfig.bulletCornerRadius}
-            offsetX={bulletsConfig.bulletXOffset}
-            offsetY={bulletsConfig.bulletYOffset}
-            rotation={bulletsConfig.bulletRotation}
-          />
-          <Text
-            text={pointNumber.toString()}
-            fontSize={bulletsConfig.bulletFontSize}
-            fill={bulletsConfig.bulletTextColor || 'black'}
-            fontFamily={branding?.font?.body?.family || 'Inter'}
-            width={bulletsConfig.bulletWidth}
-            height={bulletsConfig.bulletHeight}
-            align="center"
-            verticalAlign="middle"
-          />
-        </>
-      )
     case 'LeeRob':
+    case 'DevsForUkraine':
       return (
         <>
-          {/* <Line
-            points={[
-              -1920,
-              bulletsConfig.bulletHeight / 2,
-              1920,
-              bulletsConfig.bulletHeight / 2,
-            ]}
-            stroke="#ffffff19"
-            strokeWidth={1}
-          /> */}
           <Rect
             x={bulletsConfig.bulletXOffset}
             y={bulletsConfig.bulletYOffset}

@@ -1,5 +1,5 @@
 import React from 'react'
-import { Group, Image, Line, Rect, Text } from 'react-konva'
+import { Circle, Group, Image, Line, Rect, Ring, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
 import config from '../../../config'
@@ -642,6 +642,135 @@ const VideoBackground = ({
                 fill="#fff"
                 opacity={0}
                 fontFamily="D M Sans"
+              />
+            </Group>
+          )
+        }
+      }
+    case 'DevsForUkraine':
+      switch (branding?.background?.type) {
+        case 'image':
+          return (
+            <Group>
+              <Image
+                x={0}
+                y={0}
+                width={stageConfig.width}
+                height={stageConfig.height}
+                image={bgImage}
+              />
+              <Text
+                text="DevsForUkraine"
+                x={0}
+                y={0}
+                fontSize={2}
+                fill="#fff"
+                opacity={0}
+                fontFamily="Montserrat"
+              />
+            </Group>
+          )
+        case 'color':
+          return (
+            <Group>
+              <Rect
+                x={0}
+                y={0}
+                width={stageConfig.width}
+                height={stageConfig.height}
+                fill={branding?.background?.color?.primary}
+              />
+              <Text
+                text="DevsForUkraine"
+                x={0}
+                y={0}
+                fontSize={2}
+                fill="#fff"
+                opacity={0}
+                fontFamily="Montserrat"
+              />
+            </Group>
+          )
+        case 'video':
+          return (
+            <Group x={0} y={0}>
+              {videoElement && (
+                <Video
+                  videoElement={videoElement}
+                  videoConfig={{
+                    x: 0,
+                    y: 0,
+                    width: stageConfig.width,
+                    height: stageConfig.height,
+                    videoFill: branding?.background?.color?.primary,
+                    cornerRadius: 0,
+                    performClip: true,
+                    clipVideoConfig: {
+                      x: 0,
+                      y: 0,
+                      width: 1,
+                      height: 1,
+                    },
+                  }}
+                />
+              )}
+              <Text
+                text="DevsForUkraine"
+                x={0}
+                y={0}
+                fontSize={2}
+                fill="#fff"
+                opacity={0}
+                fontFamily="Montserrat"
+              />
+            </Group>
+          )
+        default: {
+          return (
+            <Group>
+              <Rect
+                x={0}
+                y={0}
+                width={stageConfig.width}
+                height={stageConfig.height}
+                fill="#1C1C1C"
+              />
+              <Ring
+                x={-3}
+                y={67}
+                innerRadius={28}
+                outerRadius={36}
+                fill="#FAFAFA"
+              />
+              <Rect
+                x={!isShorts ? -20 : -40}
+                y={!isShorts ? 500 : 639}
+                width={64}
+                height={8}
+                fill="#FAFAFA"
+              />
+              <Circle x={628} y={477} radius={20} fill="#E2CE68" />
+              <Circle
+                x={!isShorts ? 868 : 302}
+                y={!isShorts ? 548 : 720}
+                radius={36}
+                fill="#2696FA"
+              />
+              <Ring
+                x={stageConfig.width + 5}
+                y={212}
+                innerRadius={28}
+                outerRadius={36}
+                fill="#FFE87B"
+              />
+              <Text
+                text="DevsForUkraine"
+                x={0}
+                y={0}
+                fontSize={2}
+                fill="#fff"
+                opacity={0}
+                fontFamily="Montserrat"
               />
             </Group>
           )
