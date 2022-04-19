@@ -723,7 +723,7 @@ const Flick = () => {
   return (
     <EditorProvider handleUpdate={handleEditorChange}>
       <div className="relative flex flex-col w-screen h-screen overflow-hidden">
-        <FlickNavBar togglePublishModal={() => setPublishModal(true)} />
+        <FlickNavBar />
         <div className="flex flex-1 relative overflow-hidden">
           {openSidebar && <Sidebar storyName={flick.name} />}
           <button
@@ -754,6 +754,7 @@ const Flick = () => {
               setViewConfig={setViewConfig}
               currentBlock={currentBlock}
               setCurrentBlock={setCurrentBlock}
+              togglePublishModal={() => setPublishModal(true)}
             />
             {activeFragment && view === View.Preview && (
               <Preview

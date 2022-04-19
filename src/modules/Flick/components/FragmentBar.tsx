@@ -5,6 +5,7 @@ import { css, cx } from '@emotion/css'
 import React, { HTMLAttributes, useEffect, useRef, useState } from 'react'
 import { BiCheck } from 'react-icons/bi'
 import { BsCloudCheck, BsCloudUpload } from 'react-icons/bs'
+import { HiOutlineUpload } from 'react-icons/hi'
 import {
   IoAlbumsOutline,
   IoCheckmark,
@@ -243,6 +244,7 @@ const FragmentBar = ({
   simpleAST,
   currentBlock,
   setCurrentBlock,
+  togglePublishModal,
 }: {
   editorValue?: string
   config: ViewConfig
@@ -250,6 +252,7 @@ const FragmentBar = ({
   setViewConfig: React.Dispatch<React.SetStateAction<ViewConfig>>
   currentBlock: Block | undefined
   setCurrentBlock: React.Dispatch<React.SetStateAction<Block | undefined>>
+  togglePublishModal: () => void
 }) => {
   const [fragmentVideoModal, setFragmentVideoModal] = useState(false)
   const [themesModal, setThemesModal] = useState(false)
@@ -583,7 +586,17 @@ const FragmentBar = ({
             <Text className="text-sm text-gray-100 font-main">Thumbnail</Text>
           </Button>
         </div>
-        <div className="flex items-stretch justify-end py-2 pl-4 border-l-2 border-brand-grey text-gray-400">
+        <div className="flex items-center gap-x-3 justify-end py-2 pl-4 border-l-2 border-brand-grey text-gray-400">
+          <Button
+            appearance="gray"
+            type="button"
+            onClick={togglePublishModal}
+            size="small"
+            icon={HiOutlineUpload}
+            iconSize={20}
+          >
+            Publish
+          </Button>
           <Button
             appearance="primary"
             size="small"
@@ -597,7 +610,7 @@ const FragmentBar = ({
               history.push(`/${activeFragmentId}/studio`)
             }}
           >
-            {checkHasContent(fragment, mode) ? 'Retake' : 'Record'}
+            Record
           </Button>
         </div>
       </div>
