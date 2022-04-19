@@ -45,6 +45,7 @@ import {
   StudioFragmentFragment,
   useGetFragmentByIdLazyQuery,
   useGetRtcTokenMutation,
+  useSaveMultipleBlocksMutation,
   useSaveRecordedBlockMutation,
 } from '../../generated/graphql'
 import { useCanvasRecorder } from '../../hooks'
@@ -87,6 +88,14 @@ const StudioHoC = () => {
   const { fragmentId } = useParams<{ fragmentId: string }>()
   const [fragment, setFragment] = useState<StudioFragmentFragment>()
   const [isUserAllowed, setUserAllowed] = useState(false)
+
+  const continuousRecordedBlockIds = useRef<
+    { blockId: string; duration: number }[]
+  >([])
+
+  const addContinuousRecordedBlockIds = (blockId: string, duration: number) => {
+    continuousRecordedBlockIds.current.push({ blockId, duration })
+  }
 
   const devices = useRef<{ microphone: Device | null; camera: Device | null }>({
     camera: null,
@@ -180,6 +189,8 @@ const StudioHoC = () => {
           }
           devices={devices.current}
           liveStream={liveStream.current}
+          continuousRecordedBlockIds={continuousRecordedBlockIds.current}
+          addContinuousRecordedBlockIds={addContinuousRecordedBlockIds}
         />
       </EditorProvider>
     )
@@ -552,6 +563,8 @@ const Studio = ({
   liveStream,
   branding,
   studioFragment,
+  continuousRecordedBlockIds,
+  addContinuousRecordedBlockIds,
 }: {
   data?: GetFragmentByIdQuery
   studioFragment: StudioFragmentFragment
@@ -561,6 +574,8 @@ const Studio = ({
     url: string
   }
   branding?: BrandingJSON | null
+  continuousRecordedBlockIds: { blockId: string; duration: number }[]
+  addContinuousRecordedBlockIds: (blockId: string, duration: number) => void
 }) => {
   const { fragmentId } = useParams<{ fragmentId: string }>()
   const { constraints, theme, staticAssets, recordedBlocks } =
@@ -571,6 +586,7 @@ const Studio = ({
   const history = useHistory()
 
   const [saveBlock] = useSaveRecordedBlockMutation()
+  const [saveMultiBlocks] = useSaveMultipleBlocksMutation()
 
   const [uploadFile] = useUploadFile()
 
@@ -846,7 +862,7 @@ const Studio = ({
         },
       })
 
-      let blockThumbnail
+      let blockThumbnail: string | null = null
       // Upload block thumbnail
       if (blockThumbnails[blockId]) {
         const thumbnailBlob = await fetch(blockThumbnails[blockId]).then((r) =>
@@ -869,27 +885,43 @@ const Studio = ({
         blockThumbnail = uuid
       }
 
-      // Once the block video is uploaded to s3 , save the block to the table
-      await saveBlock({
-        variables: {
-          flickId: fragment?.flickId,
-          fragmentId,
-          recordingId: studio.recordingId,
-          objectUrl,
-          thumbnail: blockThumbnail,
-          // TODO: Update creation meta and playbackDuration when implementing continuous recording
-          blockId,
-          playbackDuration: duration,
-        },
-      })
-
-      if (studio.continuousRecording) {
+      if (continuousRecordedBlockIds) {
         // if continuous recording is enabled, mark all the blocks that were recorded in the current take as saved
-        studio.continuousRecordedBlockIds.forEach((blockId) => {
-          updateRecordedBlocks(blockId, objectUrl)
+        continuousRecordedBlockIds.forEach((block) => {
+          updateRecordedBlocks(block.blockId, objectUrl)
         })
-        history.goBack()
-      } else updateRecordedBlocks(blockId, objectUrl)
+        console.log('continuous recorded blocks:', continuousRecordedBlockIds)
+        // save all continuous recorded blocks to hasura
+        await saveMultiBlocks({
+          variables: {
+            blocks: continuousRecordedBlockIds.map((block) => ({
+              blockId: block.blockId,
+              duration: block.duration,
+              thumbnail: blockThumbnail, // TODO: generate thumbnail for each block in continuous recording mode
+            })),
+            flickId: fragment?.flickId,
+            fragmentId,
+            recordingId: studio.recordingId,
+            url: objectUrl,
+          },
+        })
+        history.push(`/story/${fragment?.flickId}/${fragmentId}`)
+      } else {
+        // Once the block video is uploaded to s3 , save the block to the table
+        await saveBlock({
+          variables: {
+            flickId: fragment?.flickId,
+            fragmentId,
+            recordingId: studio.recordingId,
+            objectUrl,
+            thumbnail: blockThumbnail,
+            // TODO: Update creation meta and playbackDuration when implementing continuous recording
+            blockId,
+            playbackDuration: Math.round(duration),
+          },
+        })
+        updateRecordedBlocks(blockId, objectUrl)
+      }
       // after updating the recorded blocks set this state which triggers the useEffect to update studio store
 
       // update block url in store for preview once upload is done
@@ -1146,7 +1178,7 @@ const Studio = ({
       payload?.status !== Fragment_Status_Enum_Enum.Live
     )
       return
-    if (!studio.continuousRecording) stop()
+    if (!continuousRecordedBlockIds) stop()
   }, [payload?.activeObjectIndex]) // undefined -> defined
 
   const clearRecordedBlocks = () => {
@@ -1249,67 +1281,85 @@ const Studio = ({
       )}
     >
       {fragment?.editorState &&
-        (fragment.editorState as SimpleAST).blocks.map((block, index) => {
-          return (
-            <button
-              type="button"
-              id={`timeline-block-${block.id}`}
-              className={cx(
-                'px-3 py-1.5 font-body cursor-pointer text-sm rounded-sm flex items-center justify-center transition-transform duration-500 bg-brand-grey relative text-gray-300 flex-shrink-0',
-                {
-                  'transform scale-110 border border-brand':
-                    payload?.activeObjectIndex === index,
-                  'bg-grey-900 text-gray-500':
-                    index !== payload?.activeObjectIndex,
-                  'cursor-not-allowed': state === 'recording',
+        (fragment.editorState as SimpleAST).blocks
+          .filter((item) => {
+            if (fragment.configuration.continuousRecording) {
+              return !!fragment.configuration?.selectedBlocks.find(
+                (blk: any) => blk.blockId === item.id
+              )
+            }
+            return true
+          })
+          .map((block, index) => {
+            return (
+              <button
+                type="button"
+                id={`timeline-block-${block.id}`}
+                className={cx(
+                  'px-3 py-1.5 font-body cursor-pointer text-sm rounded-sm flex items-center justify-center transition-transform duration-500 bg-brand-grey relative text-gray-300 flex-shrink-0',
+                  {
+                    'transform scale-110 border border-brand':
+                      payload?.activeObjectIndex === index,
+                    'bg-grey-900 text-gray-500':
+                      index !== payload?.activeObjectIndex,
+                    'cursor-not-allowed': state === 'recording',
 
-                  // state !== 'ready' || state !== 'preview',
-                }
-              )}
-              onClick={() => {
-                // TODO: if current block is recorded by isnt saved to the cloud or if the user has not intentionally pressed retake to discard the rec, show warning.
+                    // state !== 'ready' || state !== 'preview',
+                  }
+                )}
+                onClick={() => {
+                  // if continuous recording is enabled, disable mini-timeline onclick
+                  // if (continuousRecordedBlockIds) {
+                  //   return
+                  // }
+                  // maybe this is not the best thing to do , can actually be a feature.
 
-                const newSrc =
-                  recordedBlocks && currentBlock
-                    ? recordedBlocks?.find((b) => b.id === currentBlock.id)
-                        ?.objectUrl || ''
-                    : ''
-                if (newSrc.includes('blob') && state === 'preview') return
+                  // TODO: if current block is recorded by isnt saved to the cloud or if the user has not intentionally pressed retake to discard the rec, show warning.
 
-                // checking if block already has recording
-                const clickedBlock = recordedBlocks?.find((b) => {
-                  return b.id === block.id
-                })
+                  const newSrc =
+                    recordedBlocks && currentBlock
+                      ? recordedBlocks?.find((b) => b.id === currentBlock.id)
+                          ?.objectUrl || ''
+                      : ''
+                  if (newSrc.includes('blob') && state === 'preview') return
 
-                updatePayload({
-                  activeObjectIndex: index,
-                })
+                  // checking if block already has recording
+                  const clickedBlock = recordedBlocks?.find((b) => {
+                    return b.id === block.id
+                  })
 
-                console.log('clickedBlock', clickedBlock)
+                  updatePayload({
+                    activeObjectIndex: index,
+                  })
 
-                // when block was previously rec and uploaded and we have a url to show preview
-                if (clickedBlock && clickedBlock.objectUrl) {
-                  setState('preview')
-                } else {
-                  // when the clicked block is not yet recorded.
-                  setState('resumed')
-                }
-              }}
-            >
-              {recordedBlocks
-                ?.find((b) => b.id === block.id)
-                ?.objectUrl?.includes('.webm') && (
-                <div className="absolute top-0 right-0 rounded-tr-sm rounded-bl-sm bg-incredible-green-600">
-                  <IoCheckmarkOutline className="m-px text-gray-200" size={8} />
-                </div>
-              )}
-              <span>
-                {utils.getBlockTitle(block).substring(0, 40) +
-                  (utils.getBlockTitle(block).length > 40 ? '...' : '')}
-              </span>
-            </button>
-          )
-        })}
+                  console.log('clickedBlock', clickedBlock)
+
+                  // when block was previously rec and uploaded and we have a url to show preview
+                  if (clickedBlock && clickedBlock.objectUrl) {
+                    setState('preview')
+                  } else {
+                    // when the clicked block is not yet recorded.
+                    setState('resumed')
+                  }
+                }}
+              >
+                {recordedBlocks
+                  ?.find((b) => b.id === block.id)
+                  ?.objectUrl?.includes('.webm') && (
+                  <div className="absolute top-0 right-0 rounded-tr-sm rounded-bl-sm bg-incredible-green-600">
+                    <IoCheckmarkOutline
+                      className="m-px text-gray-200"
+                      size={8}
+                    />
+                  </div>
+                )}
+                <span>
+                  {utils.getBlockTitle(block).substring(0, 40) +
+                    (utils.getBlockTitle(block).length > 40 ? '...' : '')}
+                </span>
+              </button>
+            )
+          })}
     </div>
   )
 
@@ -1435,6 +1485,7 @@ const Studio = ({
                 openTimerModal={() => setIsTimerModalOpen(true)}
                 resetTimer={resetTimer}
                 currentBlock={currentBlock}
+                addContinuousRecordedBlockIds={addContinuousRecordedBlockIds}
               />
             </div>
             <Notes key={payload?.activeObjectIndex} stageHeight={stageHeight} />
@@ -1523,8 +1574,11 @@ const Studio = ({
                             // move on to next block
                             const p = {
                               ...payload,
+                              // eslint-disable-next-line no-nested-ternary
                               activeObjectIndex: isOutro
                                 ? 0
+                                : fragment.configuration.continuousRecording // if not outro check if its continuous recording , if not move on to next block
+                                ? payload.activeObjectIndex
                                 : payload.activeObjectIndex + 1,
                             }
 

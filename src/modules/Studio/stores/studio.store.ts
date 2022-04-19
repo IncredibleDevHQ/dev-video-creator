@@ -31,7 +31,6 @@ export interface StudioProviderProps<T = any, S = any> {
   upload: (id: string) => void
 
   continuousRecording: boolean
-  continuousRecordedBlockIds: string[]
 
   recordingId?: string
 

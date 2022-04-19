@@ -174,7 +174,7 @@ const preload = async ({
   // set if continue is enabled
   setStudio((prev) => ({
     ...prev,
-    continuousRecording: true,
+    continuousRecording: fragment.configuration.continuousRecording,
   }))
 
   const promises: Promise<{

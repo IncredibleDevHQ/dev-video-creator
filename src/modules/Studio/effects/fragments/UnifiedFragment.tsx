@@ -121,7 +121,17 @@ const UnifiedFragment = ({
     if (!config) {
       setIsPreview(false)
       if (fragment.configuration && fragment.editorState) {
-        setDataConfig(fragment.editorState?.blocks)
+        if (viewConfig?.continuousRecording) {
+          const localData = fragment.editorState?.blocks.filter(
+            (item: any) =>
+              !!viewConfig?.selectedBlocks.find(
+                (blk) => blk.blockId === item.id
+              )
+          )
+          setDataConfig(localData)
+        } else {
+          setDataConfig(fragment.editorState?.blocks)
+        }
         console.log('UF: Fragm cofig :', fragment.configuration)
         setViewConfig(fragment.configuration)
       }
@@ -299,7 +309,7 @@ const UnifiedFragment = ({
         isShorts={viewConfig.mode === 'Portrait'}
       />
       {(() => {
-        switch (dataConfig[activeObjectIndex]?.type) {
+        switch (dataConfig?.[activeObjectIndex]?.type) {
           case 'codeBlock': {
             return (
               <CodeFragment

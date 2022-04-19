@@ -131,6 +131,7 @@ const RecordingControlsBar = ({
   shortsMode,
   openTimerModal,
   currentBlock,
+  addContinuousRecordedBlockIds,
 }: {
   timeLimit?: number
   stageHeight: number
@@ -141,6 +142,7 @@ const RecordingControlsBar = ({
   timeOver: () => void
   stageRef: React.RefObject<Konva.Stage>
   currentBlock: Block | undefined
+  addContinuousRecordedBlockIds: (blockId: string, duration: number) => void
 }) => {
   const {
     state,
@@ -544,20 +546,30 @@ const RecordingControlsBar = ({
                 isBlockCompleted &&
                 (state === 'recording' || state === 'start-recording')
               ) {
-                if (!studio.continuousRecording) studio.stopRecording()
+                if (!fragment.configuration.continuousRecording)
+                  studio.stopRecording()
                 else {
-                  setStudio((prev) => ({
-                    ...prev,
-                    continuousRecordedBlockIds: [
-                      ...studio.continuousRecordedBlockIds,
-                      currentBlock.id,
-                    ],
-                  }))
-                  updatePayload?.({
-                    ...payload,
-                    activeObjectIndex: payload?.activeObjectIndex + 1,
-                  })
-                  isBlockCompleted = false
+                  // If continuous recording is enabled, we need to track block completions and add metadata
+                  if (!currentBlock)
+                    throw new Error('currentBlock is not defined')
+
+                  addContinuousRecordedBlockIds(currentBlock.id, timer)
+
+                  // After tracking metadata , update active object index
+                  if (
+                    payload?.activeObjectIndex <
+                    fragment.configuration.selectedBlocks[
+                      fragment.configuration.selectedBlocks.length - 1
+                    ].pos
+                  ) {
+                    updatePayload?.({
+                      ...payload,
+                      activeObjectIndex: payload?.activeObjectIndex + 1,
+                    })
+                    isBlockCompleted = false
+                  } else {
+                    studio.stopRecording()
+                  }
                 }
               }
             }

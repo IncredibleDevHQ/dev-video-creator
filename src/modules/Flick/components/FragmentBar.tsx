@@ -588,7 +588,7 @@ const FragmentBar = ({
             appearance="primary"
             size="small"
             type="button"
-            disabled={checkDisabledState(fragment, simpleAST)}
+            disabled={checkDisabledState(fragment, simpleAST, config)}
             onClick={async () => {
               // Segment Tracking
               logEvent(PageEvent.GoToDeviceSelect)
@@ -646,9 +646,15 @@ const FragmentBar = ({
 
 const checkDisabledState = (
   fragment: FlickFragmentFragment | undefined,
-  editorValue: SimpleAST | undefined
+  editorValue: SimpleAST | undefined,
+  config: ViewConfig | undefined
 ) => {
   if (!fragment) return true
+
+  if (config?.continuousRecording && config?.selectedBlocks.length < 1) {
+    return true
+  }
+
   if (
     fragment.type === Fragment_Type_Enum_Enum.Intro ||
     fragment.type === Fragment_Type_Enum_Enum.Outro
