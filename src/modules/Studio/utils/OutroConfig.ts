@@ -845,6 +845,7 @@ export const getOutroConfig = ({
       }
     case 'LambdaTest':
     case 'LeeRob':
+    case 'DevsForUkraine':
       switch (layout) {
         case 'classic':
           return {

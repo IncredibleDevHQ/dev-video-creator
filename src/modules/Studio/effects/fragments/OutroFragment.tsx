@@ -262,7 +262,7 @@ const OutroFragment = ({
 
   const layerChildren = [
     <Group>
-      {theme.name === 'DevsForUkraine' && (
+      {theme.name === 'DevsForUkraine' && !isShorts && (
         <Rect
           x={0}
           y={0}
