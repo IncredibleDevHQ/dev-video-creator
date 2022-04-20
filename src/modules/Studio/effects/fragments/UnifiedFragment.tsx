@@ -121,8 +121,19 @@ const UnifiedFragment = ({
     if (!config) {
       setIsPreview(false)
       if (fragment.configuration && fragment.editorState) {
-        setDataConfig(fragment.editorState?.blocks)
+        if (fragment.configuration.continuousRecording) {
+          const localData = fragment.editorState?.blocks.filter(
+            (item: any) =>
+              !!fragment.configuration.selectedBlocks.find(
+                (blk: any) => blk.blockId === item.id
+              )
+          )
+          setDataConfig(localData)
+        } else {
+          setDataConfig(fragment.editorState?.blocks)
+        }
         console.log('UF: Fragm cofig :', fragment.configuration)
+
         setViewConfig(fragment.configuration)
       }
     } else {
@@ -186,7 +197,7 @@ const UnifiedFragment = ({
   useEffect(() => {
     // if (!payload?.activeObjectIndex || payload?.activeObjectIndex === 0) return
     if (payload?.activeObjectIndex === undefined) return
-    // if (viewConfig?.mode !== 'Portrait')
+    // if (viewConfig?.mode !== 'Portrait' && viewConfig?.continuousRecording)
     //   setTopLayerChildren?.({ id: nanoid(), state: 'transition right' })
     updatePayload?.({
       currentIndex: 0,
@@ -299,7 +310,7 @@ const UnifiedFragment = ({
         isShorts={viewConfig.mode === 'Portrait'}
       />
       {(() => {
-        switch (dataConfig[activeObjectIndex]?.type) {
+        switch (dataConfig?.[activeObjectIndex]?.type) {
           case 'codeBlock': {
             return (
               <CodeFragment

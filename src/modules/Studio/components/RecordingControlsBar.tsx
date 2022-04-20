@@ -43,6 +43,7 @@ import {
 } from '../../../utils/configTypes'
 import { BrandingJSON } from '../../Branding/BrandingPage'
 import {
+  Block,
   CodeBlockProps,
   IntroBlockProps,
   ListBlock,
@@ -129,6 +130,8 @@ const RecordingControlsBar = ({
   resetTimer,
   shortsMode,
   openTimerModal,
+  currentBlock,
+  addContinuousRecordedBlockIds,
 }: {
   timeLimit?: number
   stageHeight: number
@@ -138,6 +141,8 @@ const RecordingControlsBar = ({
   resetTimer: boolean
   timeOver: () => void
   stageRef: React.RefObject<Konva.Stage>
+  currentBlock: Block | undefined
+  addContinuousRecordedBlockIds: (blockId: string, duration: number) => void
 }) => {
   const {
     state,
@@ -538,9 +543,38 @@ const RecordingControlsBar = ({
               )
               if (
                 isBlockCompleted &&
-                (state === 'recording' || state === 'start-recording')
+                (state === 'recording' ||
+                  state === 'start-recording' ||
+                  state === 'resumed' ||
+                  state === 'ready')
               ) {
-                studio.stopRecording()
+                console.log('Inside inside')
+                if (!fragment.configuration.continuousRecording) {
+                  if (state === 'recording' || state === 'start-recording')
+                    studio.stopRecording()
+                } else {
+                  // If continuous recording is enabled, we need to track block completions and add metadata
+                  if (!currentBlock)
+                    throw new Error('currentBlock is not defined')
+
+                  addContinuousRecordedBlockIds(currentBlock.id, timer)
+
+                  // After tracking metadata , update active object index
+                  if (
+                    payload?.activeObjectIndex <
+                    fragment.configuration.selectedBlocks.length - 1
+                  ) {
+                    updatePayload?.({
+                      activeObjectIndex: payload?.activeObjectIndex + 1,
+                    })
+                    isBlockCompleted = false
+                  } else if (
+                    state === 'recording' ||
+                    state === 'start-recording'
+                  ) {
+                    studio.stopRecording()
+                  }
+                }
               }
             }
           }}
@@ -580,7 +614,17 @@ const performAction = (
   controlsConfig: any,
   direction: 'next' | 'previous' = 'next'
 ): boolean | undefined => {
-  const block = fragment.editorState.blocks[payload?.activeObjectIndex]
+  let block: Block
+  if (fragment.configuration.continuousRecording) {
+    block = fragment.editorState?.blocks.filter(
+      (item: Block) =>
+        !!fragment.configuration?.selectedBlocks.find(
+          (blk: any) => blk.blockId === item.id
+        )
+    )[payload?.activeObjectIndex]
+  } else {
+    block = fragment.editorState.blocks[payload?.activeObjectIndex]
+  }
 
   switch (block.type) {
     case 'introBlock':
@@ -589,7 +633,8 @@ const performAction = (
         payload,
         updatePayload,
         branding,
-        direction
+        direction,
+        block.id
       )
     // break
     case 'codeBlock':
@@ -598,7 +643,8 @@ const performAction = (
         payload,
         updatePayload,
         controlsConfig,
-        direction
+        direction,
+        block.id
       )
     // break
     case 'videoBlock':
@@ -613,7 +659,8 @@ const performAction = (
         payload,
         updatePayload,
         controlsConfig,
-        direction
+        direction,
+        block
       )
     // break
     case 'headingBlock':
@@ -625,7 +672,8 @@ const performAction = (
         payload,
         updatePayload,
         branding,
-        direction
+        direction,
+        block.id
       )
     default:
       return false
@@ -636,14 +684,12 @@ const handleListBlock = (
   payload: any,
   updatePayload: ((value: any) => void) | undefined,
   controlsConfig: any,
-  direction: 'next' | 'previous'
+  direction: 'next' | 'previous',
+  block: Block
 ): boolean => {
-  const listBlockProps = fragment?.editorState?.blocks[
-    payload?.activeObjectIndex || 0
-  ] as ListBlockProps
-  const listBlock = listBlockProps?.listBlock as ListBlock
+  const listBlock = (block as ListBlockProps)?.listBlock as ListBlock
   const listBlockViewProps = (fragment?.configuration as ViewConfig).blocks[
-    listBlockProps.id
+    block.id
   ]?.view as ListBlockView
   const appearance = listBlockViewProps?.list?.appearance
 
@@ -715,14 +761,13 @@ const handleCodeBlock = (
   payload: any,
   updatePayload: ((value: any) => void) | undefined,
   controlsConfig: any,
-  direction: 'next' | 'previous'
+  direction: 'next' | 'previous',
+  blockId: string
 ): boolean | undefined => {
-  const codeBlockProps = fragment?.editorState?.blocks[
-    payload?.activeObjectIndex || 0
-  ] as CodeBlockProps
   const codeBlockViewProps = (fragment?.configuration as ViewConfig).blocks[
-    codeBlockProps.id
+    blockId
   ]?.view as CodeBlockView
+
   const noOfBlocks = codeBlockViewProps?.code.highlightSteps?.length
   const codeAnimation = codeBlockViewProps?.code.animation
   const { position, computedTokens } = controlsConfig
@@ -833,13 +878,11 @@ const handleIntroBlock = (
   payload: any,
   updatePayload: ((value: any) => void) | undefined,
   branding: BrandingJSON | null | undefined,
-  direction: 'next' | 'previous'
+  direction: 'next' | 'previous',
+  blockId: string
 ): boolean => {
-  const introBlockProps = fragment?.editorState?.blocks[
-    payload?.activeObjectIndex || 0
-  ] as IntroBlockProps
   const introBlockViewProps = (fragment?.configuration as ViewConfig).blocks[
-    introBlockProps.id
+    blockId
   ]?.view as IntroBlockView
 
   if (direction === 'next') {
@@ -876,13 +919,11 @@ const handleOutroBlock = (
   payload: any,
   updatePayload: ((value: any) => void) | undefined,
   branding: BrandingJSON | null | undefined,
-  direction: 'next' | 'previous'
+  direction: 'next' | 'previous',
+  blockId: string
 ): boolean => {
-  const outroBlockProps = fragment?.editorState?.blocks[
-    payload?.activeObjectIndex || 0
-  ] as OutroBlockProps
   const outroBlockViewProps = (fragment?.configuration as ViewConfig).blocks[
-    outroBlockProps.id
+    blockId
   ]?.view as OutroBlockView
 
   if (direction === 'next') {
