@@ -40,7 +40,7 @@ const Timeline = ({
   showTimeline: boolean
   config: ViewConfig
   setShowTimeline: React.Dispatch<React.SetStateAction<boolean>>
-  setConfig: React.Dispatch<React.SetStateAction<ViewConfig>>
+  setConfig?: React.Dispatch<React.SetStateAction<ViewConfig>>
 }) => {
   const { payload, updatePayload } = useRecoilValue(studioStore)
   const timeline = useRef<HTMLDivElement>(null)
@@ -79,7 +79,7 @@ const Timeline = ({
         console.log('currentBlockIndex', currentBlockIndex)
         if (config.selectedBlocks[0].pos - 1 === currentBlockIndex) {
           console.log('Adding to front')
-          setConfig((prevConfig) => ({
+          setConfig?.((prevConfig) => ({
             ...prevConfig,
             selectedBlocks: [
               { blockId, pos: timelineIndex },
@@ -91,7 +91,7 @@ const Timeline = ({
           currentBlockIndex
         ) {
           console.log('Adding to back')
-          setConfig((prevConfig) => ({
+          setConfig?.((prevConfig) => ({
             ...prevConfig,
             selectedBlocks: [
               ...config.selectedBlocks,
@@ -108,7 +108,7 @@ const Timeline = ({
         }
       } else {
         // Adding the first block
-        setConfig({
+        setConfig?.({
           ...config,
           selectedBlocks: [{ blockId, pos: timelineIndex }],
         })
@@ -119,7 +119,7 @@ const Timeline = ({
         (b) => b.blockId === blockId
       )
       const newSelectedBlocks = config.selectedBlocks?.slice(0, index)
-      setConfig({
+      setConfig?.({
         ...config,
         selectedBlocks: newSelectedBlocks,
       })
@@ -169,7 +169,7 @@ const Timeline = ({
               'flex items-center mx-4 my-2 hover:bg-gray-700 bg-dark-500 max-w-max'
             )}
             onClick={() => {
-              setConfig({
+              setConfig?.({
                 ...config,
                 continuousRecording: !config.continuousRecording,
                 selectedBlocks: config.continuousRecording
