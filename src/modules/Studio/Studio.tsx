@@ -1028,12 +1028,6 @@ const Studio = ({
   }
 
   useEffect(() => {
-    if (payload?.status === Fragment_Status_Enum_Enum.Ended) {
-      stop()
-    }
-  }, [payload])
-
-  useEffect(() => {
     if (payload?.status === Fragment_Status_Enum_Enum.NotStarted) {
       setState('ready')
     }
