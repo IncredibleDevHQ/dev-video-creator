@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
 import { FiChevronLeft } from 'react-icons/fi'
-import { HiOutlineUpload } from 'react-icons/hi'
 import { IoPeopleOutline } from 'react-icons/io5'
 import { useRecoilState } from 'recoil'
 import { Button, Heading } from '../../../components'
@@ -8,16 +7,12 @@ import { ASSETS } from '../../../constants'
 import { newFlickStore } from '../store/flickNew.store'
 import ShareModal from './ShareModal'
 
-const FlickNavBar = ({
-  togglePublishModal,
-}: {
-  togglePublishModal: () => void
-}) => {
+const FlickNavBar = () => {
   const [{ flick }] = useRecoilState(newFlickStore)
   const [isShareOpen, setIsShareOpen] = useState(false)
 
   return (
-    <div className="sticky top-0 z-50 flex items-center justify-between py-2 pl-3 pr-4 bg-dark-500">
+    <div className="sticky top-0 z-50 flex items-center justify-between py-2 pl-3 pr-5 bg-dark-500">
       <div className="flex items-center">
         <a href="/dashboard">
           <div className="flex">
@@ -42,17 +37,6 @@ const FlickNavBar = ({
           className="-mr-3"
         >
           Invite
-        </Button>
-        <Button
-          appearance="gray"
-          type="button"
-          onClick={togglePublishModal}
-          size="small"
-          icon={HiOutlineUpload}
-          iconSize={20}
-          className="-mr-3"
-        >
-          Publish
         </Button>
       </div>
       {isShareOpen && (

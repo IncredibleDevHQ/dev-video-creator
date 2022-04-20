@@ -100,6 +100,7 @@
     "react-responsive-modal": "^6.1.0",
     "react-router-dom": "^5.2.0",
     "react-select": "^5.2.2",
+    "react-simple-timefield": "^3.2.5",
     "react-stack-grid": "^0.7.1",
     "react-table": "^7.7.0",
     "react-toastify": "^7.0.4",

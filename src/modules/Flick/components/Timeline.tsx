@@ -1,9 +1,9 @@
 import { css, cx } from '@emotion/css'
-import { nanoid } from 'nanoid'
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
   IoChevronBackCircle,
   IoChevronForwardCircle,
+  IoPlay,
   IoPlayOutline,
 } from 'react-icons/io5'
 import { useRecoilValue } from 'recoil'
@@ -19,7 +19,9 @@ import {
 } from '../../../utils/configTypes'
 import { studioStore } from '../../Studio/stores'
 import { Block } from '../editor/utils/utils'
+import { newFlickStore, View } from '../store/flickNew.store'
 import { FragmentTypeIcon } from './LayoutGeneric'
+import ViewRecordingsModal from './ViewRecordingsModal'
 
 const Timeline = ({
   blocks,
@@ -45,9 +47,30 @@ const Timeline = ({
   const { payload, updatePayload } = useRecoilValue(studioStore)
   const timeline = useRef<HTMLDivElement>(null)
 
+  const { view, flick, activeFragmentId } = useRecoilValue(newFlickStore)
+
+  const [viewRecordingModal, setViewRecordingModal] = useState(false)
+  const [blockId, setBlockId] = useState('')
+
+  const recordedBlockIds = useMemo(() => {
+    const fragment = flick?.fragments.find((f) => f.id === activeFragmentId)
+    const blocks = fragment?.blocks || []
+    return blocks.map((b) => b.id)
+  }, [activeFragmentId])
+
   useEffect(() => {
     setShowTimeline(persistentTimeline)
   }, [])
+
+  useEffect(() => {
+    if (persistentTimeline) {
+      setShowTimeline(true)
+    } else if (view === View.Preview) {
+      setShowTimeline(true)
+    } else {
+      setShowTimeline(false)
+    }
+  }, [persistentTimeline, view])
 
   const slide = (direction: 'left' | 'right') => {
     let scrollCompleted = 0
@@ -133,57 +156,67 @@ const Timeline = ({
       })}
     >
       {!persistentTimeline && (
-        <Button
-          appearance="gray"
-          type="button"
-          size="small"
-          className={cx(
-            'flex items-center mx-4 my-2 hover:bg-gray-700 bg-dark-500 max-w-max'
-          )}
-          onClick={() => {
-            // Segment Tracking
-            logEvent(
-              showTimeline ? PageEvent.OpenTimeLine : PageEvent.CloseTimeLine
-            )
-            setShowTimeline(!showTimeline)
-
-            // if (showTimeline === false) {
-            //   setBlockSelectMode(false)
-            // }
-          }}
-        >
-          <TimelineIcon className="w-6 h-6 mr-1" />
-          <Text className="text-sm">
-            {showTimeline ? 'Close timeline' : 'Open timeline'}
-          </Text>
-        </Button>
-      )}
-
-      {showTimeline && (
-        <>
+        <div className="flex items-center">
           <Button
             appearance="gray"
             type="button"
             size="small"
             className={cx(
-              'flex items-center mx-4 my-2 hover:bg-gray-700 bg-dark-500 max-w-max'
+              'flex items-center ml-4 mr-2 my-2 hover:bg-gray-700 bg-dark-500 max-w-max'
             )}
             onClick={() => {
-              setConfig?.({
-                ...config,
-                continuousRecording: !config.continuousRecording,
-                selectedBlocks: config.continuousRecording
-                  ? config.selectedBlocks
-                  : [],
-              })
+              // Segment Tracking
+              logEvent(
+                showTimeline ? PageEvent.OpenTimeLine : PageEvent.CloseTimeLine
+              )
+              setShowTimeline(!showTimeline)
+
+              // if (showTimeline === false) {
+              //   setBlockSelectMode(false)
+              // }
             }}
           >
+            <TimelineIcon className="w-6 h-6 mr-1" />
             <Text className="text-sm">
-              {config.continuousRecording
-                ? 'Continuous Recording (Experimental)'
-                : 'Block Recording'}
+              {showTimeline ? 'Close timeline' : 'Open timeline'}
             </Text>
           </Button>
+          {showTimeline && (
+            <Button
+              appearance="gray"
+              type="button"
+              size="small"
+              className={cx(
+                'flex items-center ml-2 my-2 hover:bg-gray-700 bg-dark-500 max-w-max'
+              )}
+              onClick={() => {
+                setConfig?.({
+                  ...config,
+                  continuousRecording: !config.continuousRecording,
+                  selectedBlocks: config.continuousRecording
+                    ? config.selectedBlocks
+                    : [],
+                })
+              }}
+            >
+              <Text
+                style={{
+                  marginTop: '2px',
+                  marginBottom: '2px',
+                }}
+                className="text-sm"
+              >
+                {config.continuousRecording
+                  ? 'Continuous Recording (Experimental)'
+                  : 'Block Recording'}
+              </Text>
+            </Button>
+          )}
+        </div>
+      )}
+
+      {showTimeline && (
+        <>
           <div className="absolute right-0 flex items-center h-full">
             <IoChevronForwardCircle
               className={cx(
@@ -226,7 +259,22 @@ const Timeline = ({
             )}
           >
             {blocks.map((block: Block, index) => (
-              <div className="relative">
+              <a
+                className={cx(
+                  'flex items-center gap-x-3 border border-transparent cursor-pointer relative',
+                  {
+                    'bg-dark-300 py-1.5 px-2 rounded-md':
+                      block.type === 'introBlock' ||
+                      block.type === 'outroBlock',
+                    'ml-5': index === 0,
+                    'mr-5': index === blocks.length - 1,
+                  }
+                )}
+                href={shouldScrollToCurrentBlock ? `#${block.id}` : undefined}
+                onClick={() => {
+                  setCurrentBlock(block)
+                }}
+              >
                 {config.continuousRecording && (
                   <input
                     className="absolute top-0 right-0 origin-top-right"
@@ -245,181 +293,198 @@ const Timeline = ({
                     }}
                   />
                 )}
-                <a
-                  className={cx(
-                    'flex items-center gap-x-3 border border-transparent cursor-pointer',
-                    {
-                      'bg-dark-300 py-1.5 px-2 rounded-md':
-                        block.type === 'introBlock' ||
-                        block.type === 'outroBlock',
-                      'ml-5': index === 0,
-                      'mr-5': index === blocks.length - 1,
-                    }
-                  )}
-                  href={shouldScrollToCurrentBlock ? `#${block.id}` : undefined}
-                  onClick={() => {
-                    setCurrentBlock(block)
-                  }}
-                >
-                  {block.type === 'introBlock' &&
-                    (
-                      config.blocks[block.id].view as IntroBlockView
-                    )?.intro?.order
-                      ?.filter((o) => o.enabled)
-                      ?.map((order, index) => {
-                        switch (order.state) {
-                          case 'userMedia': {
-                            return (
-                              <button
-                                type="button"
-                                onClick={() => {
+                {recordedBlockIds.includes(block.id) && (
+                  <button
+                    style={{
+                      background: 'rgba(82, 82, 91, 0.7)',
+                      boxShadow: '0px 25px 100px rgba(0, 0, 0, 0.5)',
+                      backdropFilter: 'blur(4px)',
+                      borderRadius: '2px',
+                    }}
+                    className={cx(
+                      'flex items-center justify-center absolute m-1 top-0 left-0',
+                      {
+                        'mt-2.5 ml-3':
+                          block.type === 'introBlock' ||
+                          block.type === 'outroBlock',
+                      }
+                    )}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setBlockId(block.id)
+                      setViewRecordingModal(true)
+                    }}
+                  >
+                    <IoPlay size={10} className="m-1 text-white" />
+                  </button>
+                )}
+                {block.type === 'introBlock' &&
+                  (config.blocks[block.id].view as IntroBlockView)?.intro?.order
+                    ?.filter((o) => o.enabled)
+                    ?.map((order, index) => {
+                      switch (order.state) {
+                        case 'userMedia': {
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                updatePayload?.({
+                                  activeIntroIndex: index,
+                                })
+                              }}
+                              className={cx(
+                                'border border-transparent rounded-md flex justify-center items-center w-24 h-12 p-3 bg-dark-100',
+                                {
+                                  '!border-brand':
+                                    payload.activeIntroIndex === index &&
+                                    block.id === currentBlock?.id,
+                                }
+                              )}
+                            >
+                              <UserPlaceholder className="w-full h-full" />
+                            </button>
+                          )
+                        }
+
+                        case 'titleSplash': {
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (block.type === 'introBlock') {
                                   updatePayload?.({
                                     activeIntroIndex: index,
                                   })
-                                }}
-                                className={cx(
-                                  'border border-transparent rounded-md flex justify-center items-center w-24 h-12 p-3 bg-dark-100',
-                                  {
-                                    '!border-brand':
-                                      payload.activeIntroIndex === index &&
-                                      block.id === currentBlock?.id,
-                                  }
-                                )}
-                              >
-                                <UserPlaceholder className="w-full h-full" />
-                              </button>
-                            )
-                          }
-
-                          case 'titleSplash': {
-                            return (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (block.type === 'introBlock') {
-                                    updatePayload?.({
-                                      activeIntroIndex: index,
-                                    })
-                                  }
-                                }}
-                                className={cx(
-                                  'border border-dark-100 rounded-md flex justify-center items-center w-24 h-12 p-2 ',
-                                  {
-                                    'bg-dark-100': block.type === 'introBlock',
-                                    '!border-brand':
-                                      payload.activeIntroIndex === index &&
-                                      block.id === currentBlock?.id,
-                                  }
-                                )}
-                              >
-                                <FragmentTypeIcon type={block.type} />
-                              </button>
-                            )
-                          }
-
-                          case 'introVideo': {
-                            return (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  updatePayload?.({
-                                    activeIntroIndex: index,
-                                  })
-                                }}
-                                className={cx(
-                                  'border border-dark-100 rounded-md flex justify-center items-center w-24 h-12 p-3 bg-dark-100',
-                                  {
-                                    '!border-brand':
-                                      payload.activeIntroIndex === index &&
-                                      block.id === currentBlock?.id,
-                                  }
-                                )}
-                              >
-                                <IoPlayOutline className="w-full h-full text-gray-400" />
-                              </button>
-                            )
-                          }
-
-                          default:
-                            return null
+                                }
+                              }}
+                              className={cx(
+                                'border border-dark-100 rounded-md flex justify-center items-center w-24 h-12 p-2 ',
+                                {
+                                  'bg-dark-100': block.type === 'introBlock',
+                                  '!border-brand':
+                                    payload.activeIntroIndex === index &&
+                                    block.id === currentBlock?.id,
+                                }
+                              )}
+                            >
+                              <FragmentTypeIcon type={block.type} />
+                            </button>
+                          )
                         }
-                      })}
-                  {block.type === 'outroBlock' &&
-                    (
-                      config.blocks[block.id].view as OutroBlockView
-                    )?.outro?.order
-                      ?.filter((o) => o.enabled)
-                      ?.map((order, index) => {
-                        switch (order.state) {
-                          case 'titleSplash': {
-                            return (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  updatePayload?.({
-                                    activeOutroIndex: index,
-                                  })
-                                }}
-                                className={cx(
-                                  'border border-dark-100 rounded-md flex justify-center items-center w-24 h-12 p-2 ',
-                                  {
-                                    'bg-dark-100': block.type === 'outroBlock',
-                                    '!border-brand':
-                                      payload.activeOutroIndex === index &&
-                                      block.id === currentBlock?.id,
-                                  }
-                                )}
-                              >
-                                <FragmentTypeIcon type={block.type} />
-                              </button>
-                            )
-                          }
 
-                          case 'outroVideo': {
-                            return (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  updatePayload?.({
-                                    activeOutroIndex: index,
-                                  })
-                                }}
-                                className={cx(
-                                  'border border-dark-100 rounded-md flex justify-center items-center w-24 h-12 p-3 bg-dark-100',
-                                  {
-                                    '!border-brand':
-                                      payload.activeOutroIndex === index &&
-                                      block.id === currentBlock?.id,
-                                  }
-                                )}
-                              >
-                                <IoPlayOutline className="w-full h-full text-gray-400" />
-                              </button>
-                            )
-                          }
+                        case 'introVideo': {
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                updatePayload?.({
+                                  activeIntroIndex: index,
+                                })
+                              }}
+                              className={cx(
+                                'border border-dark-100 rounded-md flex justify-center items-center w-24 h-12 p-3 bg-dark-100',
+                                {
+                                  '!border-brand':
+                                    payload.activeIntroIndex === index &&
+                                    block.id === currentBlock?.id,
+                                }
+                              )}
+                            >
+                              <IoPlayOutline className="w-full h-full text-gray-400" />
+                            </button>
+                          )
+                        }
 
-                          default:
-                            return null
+                        default:
+                          return null
+                      }
+                    })}
+                {block.type === 'outroBlock' &&
+                  (config.blocks[block.id].view as OutroBlockView)?.outro?.order
+                    ?.filter((o) => o.enabled)
+                    ?.map((order, index) => {
+                      switch (order.state) {
+                        case 'titleSplash': {
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                updatePayload?.({
+                                  activeOutroIndex: index,
+                                })
+                              }}
+                              className={cx(
+                                'border border-dark-100 rounded-md flex justify-center items-center w-24 h-12 p-2 ',
+                                {
+                                  'bg-dark-100': block.type === 'outroBlock',
+                                  '!border-brand':
+                                    payload.activeOutroIndex === index &&
+                                    block.id === currentBlock?.id,
+                                }
+                              )}
+                            >
+                              <FragmentTypeIcon type={block.type} />
+                            </button>
+                          )
                         }
-                      })}
-                  {block.type !== 'introBlock' && block.type !== 'outroBlock' && (
-                    <button
-                      type="button"
-                      className={cx(
-                        'border border-dark-100 rounded-md flex justify-center items-center w-24 h-12 p-2 ',
-                        {
-                          '!border-brand': block.id === currentBlock?.id,
+
+                        case 'outroVideo': {
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                updatePayload?.({
+                                  activeOutroIndex: index,
+                                })
+                              }}
+                              className={cx(
+                                'border border-dark-100 rounded-md flex justify-center items-center w-24 h-12 p-3 bg-dark-100',
+                                {
+                                  '!border-brand':
+                                    payload.activeOutroIndex === index &&
+                                    block.id === currentBlock?.id,
+                                }
+                              )}
+                            >
+                              <IoPlayOutline className="w-full h-full text-gray-400" />
+                            </button>
+                          )
                         }
-                      )}
-                    >
-                      <FragmentTypeIcon type={block.type} />
-                    </button>
-                  )}
-                </a>
-              </div>
+
+                        default:
+                          return null
+                      }
+                    })}
+                {block.type !== 'introBlock' && block.type !== 'outroBlock' && (
+                  <button
+                    type="button"
+                    className={cx(
+                      'border border-dark-100 rounded-md flex justify-center items-center w-24 h-12 p-2 ',
+                      {
+                        '!border-brand': block.id === currentBlock?.id,
+                      }
+                    )}
+                  >
+                    <FragmentTypeIcon type={block.type} />
+                  </button>
+                )}
+              </a>
             ))}
           </div>
         </div>
+      )}
+      {viewRecordingModal && (
+        <ViewRecordingsModal
+          open={viewRecordingModal}
+          handleClose={() => {
+            setViewRecordingModal(false)
+          }}
+          simpleAST={{
+            blocks,
+          }}
+          blockId={blockId}
+        />
       )}
     </div>
   )
