@@ -309,7 +309,17 @@ const Publish = ({
               </div>
             )}
           </div>
-          <Button appearance="primary" type="button" size="small">
+          <Button
+            appearance="primary"
+            type="button"
+            size="small"
+            disabled={
+              !publish.title ||
+              (fragment?.type !== Fragment_Type_Enum_Enum.Portrait &&
+                !publish.description) ||
+              !recording?.id
+            }
+          >
             Publish
           </Button>
         </div>
@@ -714,7 +724,7 @@ const DetailsTab = ({
   return (
     <div>
       <Heading fontSize="small" className="font-bold">
-        Title
+        Title*
       </Heading>
       <textarea
         className={cx(
@@ -728,11 +738,14 @@ const DetailsTab = ({
           })
         }
       />
+      {!publish.title && (
+        <span className="text-xs text-red-500 italic">Title is required</span>
+      )}
       {fragment?.type !== Fragment_Type_Enum_Enum.Portrait && (
         <>
           {' '}
           <Heading fontSize="small" className="font-bold mt-8">
-            Description
+            Description*
           </Heading>
           <textarea
             className={cx(
@@ -746,6 +759,11 @@ const DetailsTab = ({
               })
             }
           />
+          {!publish.description && (
+            <span className="text-xs text-red-500 italic">
+              Description is required
+            </span>
+          )}
         </>
       )}
     </div>
