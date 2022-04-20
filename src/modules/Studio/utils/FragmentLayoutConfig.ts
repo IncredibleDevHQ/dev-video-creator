@@ -24,6 +24,7 @@ export const FragmentLayoutConfig = ({
   if (isShorts) {
     switch (theme.name) {
       case 'DarkGradient':
+      case 'DevsForUkraine':
         switch (layout) {
           case 'classic':
           case 'padded-bottom-right-circle':
@@ -251,6 +252,7 @@ export const FragmentLayoutConfig = ({
   }
   switch (theme.name) {
     case 'DarkGradient':
+    case 'DevsForUkraine':
       switch (layout) {
         case 'classic':
           return {

@@ -21,6 +21,7 @@ export interface ObjectRenderConfig {
   horizontalPointRectColor?: string | CanvasGradient
   horizontalPointRectStrokeColor?: string | CanvasGradient
   horizontalPointRectCornerRadius?: number
+  horizontalPointTextVerticalAlign?: string
 }
 
 export const ThemeLayoutConfig = ({
@@ -139,6 +140,7 @@ export const ThemeLayoutConfig = ({
         pointsBulletYOffset: 3.5,
         horizontalPointRectStrokeColor: '',
         horizontalPointRectCornerRadius: 0,
+        horizontalPointTextVerticalAlign: 'top',
       }
     case 'Web3Auth':
       return {
@@ -169,6 +171,24 @@ export const ThemeLayoutConfig = ({
         horizontalPointRectStrokeColor: '#ffffff',
         horizontalPointRectCornerRadius: 4,
       }
+    case 'DevsForUkraine':
+      return {
+        startX: layoutConfig.x,
+        startY: layoutConfig.y,
+        availableWidth: layoutConfig?.availableWidth || layoutConfig.width,
+        availableHeight: layoutConfig.height,
+        textColor: '#ffffff',
+        borderRadius: 8,
+        surfaceColor: '',
+        titleFont: 'Montserrat',
+        bodyFont: 'Inter',
+        pointsBulletColor: '#E2CE68',
+        pointsBulletCornerRadius: 6,
+        pointsBulletYOffset: 3.5,
+        horizontalPointRectStrokeColor: '',
+        horizontalPointRectCornerRadius: 0,
+        horizontalPointTextVerticalAlign: 'top',
+      }
     default:
       return {
         startX: layoutConfig.x,
@@ -188,6 +208,7 @@ export const getThemeTextColor = (theme: ThemeFragment): string => {
     case 'DarkGradient':
     case 'LeeRob':
     case 'Web3Auth':
+    case 'DevsForUkraine':
       return '#ffffff'
     case 'PastelLines':
       return '#27272A'
@@ -207,6 +228,7 @@ export const getThemeSurfaceColor = (theme: ThemeFragment): string => {
     case 'PastelLines':
     case 'LeeRob':
     case 'Web3Auth':
+    case 'DevsForUkraine':
       return ''
     case 'Cassidoo':
       return '#fafafa'
@@ -230,6 +252,8 @@ export const getThemeFont = (theme: ThemeFragment): string => {
       return 'Inter'
     case 'Web3Auth':
       return 'DM Sans'
+    case 'DevsForUkraine':
+      return 'Montserrat'
     default:
       return 'Gilroy'
   }
@@ -309,6 +333,20 @@ export const getThemeSupportedUserMediaLayouts = (
         'padded-bottom-right-circle',
         'bottom-right-tile',
         'bottom-right-circle',
+        'padded-split',
+        'full-left',
+        'full-right',
+      ]
+    case 'DevsForUkraine':
+      return [
+        'classic',
+        'float-full-right',
+        'float-full-left',
+        'float-half-right',
+        'padded-bottom-right-tile',
+        // 'padded-bottom-right-circle',
+        'bottom-right-tile',
+        // 'bottom-right-circle',
         'padded-split',
         'full-left',
         'full-right',
