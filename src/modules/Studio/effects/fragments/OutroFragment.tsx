@@ -226,6 +226,7 @@ const OutroFragment = ({
 
   useEffect(() => {
     if (
+      state === 'start-recording' ||
       state === 'recording' ||
       state === 'ready' ||
       state === 'resumed' ||
