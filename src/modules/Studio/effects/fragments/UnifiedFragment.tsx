@@ -121,11 +121,11 @@ const UnifiedFragment = ({
     if (!config) {
       setIsPreview(false)
       if (fragment.configuration && fragment.editorState) {
-        if (viewConfig?.continuousRecording) {
+        if (fragment.configuration.continuousRecording) {
           const localData = fragment.editorState?.blocks.filter(
             (item: any) =>
-              !!viewConfig?.selectedBlocks.find(
-                (blk) => blk.blockId === item.id
+              !!fragment.configuration.selectedBlocks.find(
+                (blk: any) => blk.blockId === item.id
               )
           )
           setDataConfig(localData)
@@ -133,6 +133,7 @@ const UnifiedFragment = ({
           setDataConfig(fragment.editorState?.blocks)
         }
         console.log('UF: Fragm cofig :', fragment.configuration)
+
         setViewConfig(fragment.configuration)
       }
     } else {
@@ -196,7 +197,7 @@ const UnifiedFragment = ({
   useEffect(() => {
     // if (!payload?.activeObjectIndex || payload?.activeObjectIndex === 0) return
     if (payload?.activeObjectIndex === undefined) return
-    // if (viewConfig?.mode !== 'Portrait')
+    // if (viewConfig?.mode !== 'Portrait' && viewConfig?.continuousRecording)
     //   setTopLayerChildren?.({ id: nanoid(), state: 'transition right' })
     updatePayload?.({
       currentIndex: 0,

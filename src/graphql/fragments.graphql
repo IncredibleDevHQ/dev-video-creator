@@ -412,6 +412,12 @@ mutation SaveMultipleBlocks(
   }
 }
 
+mutation DeleteBlockGroup($objectUrl: String!, $recordingId: uuid!) {
+  RetakeMultiBlocks(objectUrl: $objectUrl, recordingId: $recordingId) {
+    success
+  }
+}
+
 mutation UpdateFlickMdAndEditorState(
   $flickId: uuid!
   $md: String!

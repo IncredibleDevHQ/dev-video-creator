@@ -1,4 +1,5 @@
 import { css, cx } from '@emotion/css'
+import { nanoid } from 'nanoid'
 import React, { useEffect, useRef } from 'react'
 import {
   IoChevronBackCircle,
@@ -67,9 +68,9 @@ const Timeline = ({
   const handleBlockSelect = (
     blockId: string,
     action: 'added' | 'removed',
-    index: number
+    timelineIndex: number
   ) => {
-    console.log('handleBlockSelect', blockId, action, index)
+    console.log('handleBlockSelect', blockId, action, timelineIndex)
     if (action === 'added') {
       if (config.selectedBlocks?.length > 0) {
         const currentBlockIndex = blocks.findIndex(
@@ -80,7 +81,10 @@ const Timeline = ({
           console.log('Adding to front')
           setConfig((prevConfig) => ({
             ...prevConfig,
-            selectedBlocks: [{ blockId, pos: index }, ...config.selectedBlocks],
+            selectedBlocks: [
+              { blockId, pos: timelineIndex },
+              ...config.selectedBlocks,
+            ],
           }))
         } else if (
           config.selectedBlocks[config.selectedBlocks.length - 1].pos + 1 ===
@@ -89,7 +93,10 @@ const Timeline = ({
           console.log('Adding to back')
           setConfig((prevConfig) => ({
             ...prevConfig,
-            selectedBlocks: [...config.selectedBlocks, { blockId, pos: index }],
+            selectedBlocks: [
+              ...config.selectedBlocks,
+              { blockId, pos: timelineIndex },
+            ],
           }))
         } else {
           console.log('Invalid pos on timeline to add new block')
@@ -103,11 +110,14 @@ const Timeline = ({
         // Adding the first block
         setConfig({
           ...config,
-          selectedBlocks: [{ blockId, pos: index }],
+          selectedBlocks: [{ blockId, pos: timelineIndex }],
         })
       }
     }
     if (action === 'removed') {
+      const index = config.selectedBlocks.findIndex(
+        (b) => b.blockId === blockId
+      )
       const newSelectedBlocks = config.selectedBlocks?.slice(0, index)
       setConfig({
         ...config,

@@ -31,6 +31,7 @@ export interface StudioProviderProps<T = any, S = any> {
   upload: (id: string) => void
 
   continuousRecording: boolean
+  blockGroups: string[] // will be used to store the common object names of blocks recorded in continuous mode
 
   recordingId?: string
 
