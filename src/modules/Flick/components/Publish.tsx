@@ -1,5 +1,5 @@
 /* eslint-disable jsx-a11y/media-has-caption */
-import { cx } from '@emotion/css'
+import { css, cx } from '@emotion/css'
 import { Listbox } from '@headlessui/react'
 import * as Sentry from '@sentry/react'
 import axios from 'axios'
@@ -24,7 +24,6 @@ import {
 } from 'react-icons/io5'
 import { MdOutlineTextFields } from 'react-icons/md'
 import Modal from 'react-responsive-modal'
-import TimeField from 'react-simple-timefield'
 import useMeasure from 'react-use-measure'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import { useDebouncedCallback } from 'use-debounce'
@@ -109,6 +108,17 @@ const initialState: IPublish = {
     method: 'generated',
   },
 }
+
+const noArrowInput = css`
+  ::-webkit-outer-spin-button,
+  ::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  [type='number'] {
+    -moz-appearance: textfield;
+  }
+`
 
 const Publish = ({
   open,
@@ -696,33 +706,55 @@ const CTA = ({
         }
       >
         <div className="flex items-center bg-gray-100 w-full pr-2 rounded-sm border border-transparent justify-between focus-within:border-brand relative">
-          <div className="flex items-center w-min flex-grow-0">
-            <TimeField
-              value={`00:${time.min}:${time.sec}`}
-              onChange={(event, value) => {
-                const [, min, sec] = value.split(':')
+          <div className="flex items-center w-min flex-grow-0 px-3 py-1.5">
+            <input
+              value={time.min}
+              type="number"
+              onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                const min = e.target.value
                 setTime({
+                  ...time,
                   min,
+                })
+                if (Number.isNaN(min)) return
+                convertToSecondsAndSet(Number(min), Number(time.sec))
+              }}
+              className={cx(
+                'border-none bg-transparent text-sm font-body outline-none  focus:outline-none focus:ring-0 w-5 text-center p-0 px-px',
+                noArrowInput
+              )}
+            />
+            <span
+              style={{
+                marginTop: '-2px',
+                marginLeft: '1px',
+              }}
+            >
+              :
+            </span>
+            <input
+              value={time.sec}
+              type="number"
+              onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                const sec = e.target.value
+                setTime({
+                  ...time,
                   sec,
                 })
-                if (Number.isNaN(sec) || Number.isNaN(min)) return
-                convertToSecondsAndSet(Number(min), Number(sec))
+                if (Number.isNaN(sec)) return
+                convertToSecondsAndSet(Number(time.min), Number(sec))
               }}
-              input={
-                <input
-                  type="text"
-                  className="border-none bg-transparent text-sm font-body outline-none focus:outline-none ring-0 w-24"
-                />
-              }
-              colon=":"
-              showSeconds
+              className={cx(
+                'border-none bg-transparent text-sm font-body outline-none focus:outline-none focus:ring-0 w-5 text-center p-0 px-px',
+                noArrowInput
+              )}
             />
           </div>
-          {/* <CallToActionIcon className="flex-shrink-0 absolute inset-0 m-auto right-10" /> */}
+          <CallToActionIcon className="flex-shrink-0 absolute inset-0 m-auto right-16 top-1 opacity-50" />
 
           <Text
             className={cx(
-              'text-xs font-body flex items-center cursor-pointer w-20 justify-start truncate',
+              'text-sm font-body flex items-center cursor-pointer w-20 ml-1 justify-start truncate',
               {
                 'text-gray-400': !cta.text,
               }
