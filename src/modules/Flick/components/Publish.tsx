@@ -1,12 +1,18 @@
 /* eslint-disable jsx-a11y/media-has-caption */
 import { cx } from '@emotion/css'
 import { Listbox } from '@headlessui/react'
+import * as Sentry from '@sentry/react'
 import axios from 'axios'
 import React, { ChangeEvent, useEffect, useRef, useState } from 'react'
 import Dropzone from 'react-dropzone'
 import { BiCheck } from 'react-icons/bi'
 import { BsCloudCheck, BsCloudUpload } from 'react-icons/bs'
-import { FiLoader, FiRefreshCw, FiUploadCloud } from 'react-icons/fi'
+import {
+  FiExternalLink,
+  FiLoader,
+  FiRefreshCw,
+  FiUploadCloud,
+} from 'react-icons/fi'
 import { HiOutlineClock, HiOutlineDownload } from 'react-icons/hi'
 import {
   IoAddOutline,
@@ -23,7 +29,14 @@ import useMeasure from 'react-use-measure'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import { useDebouncedCallback } from 'use-debounce'
 import { ReactComponent as CallToActionIcon } from '../../../assets/CallToAction.svg'
-import { Button, emitToast, Heading, Text, Tooltip } from '../../../components'
+import {
+  Button,
+  Confetti,
+  emitToast,
+  Heading,
+  Text,
+  Tooltip,
+} from '../../../components'
 import config from '../../../config'
 import {
   FlickFragmentFragment,
@@ -32,6 +45,7 @@ import {
   Recording_Status_Enum_Enum,
   useCompleteRecordingMutation,
   useGetRecordingsQuery,
+  usePublishVideoActionMutation,
   useUpdatePublishMutation,
   useUpdateThumbnailObjectMutation,
 } from '../../../generated/graphql'
@@ -111,6 +125,8 @@ const Publish = ({
   const [ref, bounds] = useMeasure()
   const [downloading, setDownloading] = useState(false)
 
+  const [showConfetti, setShowConfetti] = useState(false)
+
   const [{ flick, activeFragmentId }, setStore] = useRecoilState(newFlickStore)
   const fragment = flick?.fragments?.find((f) => f.id === activeFragmentId)
 
@@ -126,6 +142,28 @@ const Publish = ({
       },
     }
   )
+
+  const [
+    doPublish,
+    { data: doPublishData, loading: publishing, error: errorPublishing },
+  ] = usePublishVideoActionMutation()
+
+  useEffect(() => {
+    if (!doPublishData) return
+    setShowConfetti(true)
+    setTimeout(() => {
+      setShowConfetti(false)
+    }, 5000)
+  }, [doPublishData])
+
+  useEffect(() => {
+    if (!errorPublishing) return
+    emitToast({
+      type: 'error',
+      title: 'Error publishing',
+    })
+    Sentry.captureException(updatePublishError)
+  }, [errorPublishing])
 
   const [
     updatePublishConfig,
@@ -292,177 +330,228 @@ const Publish = ({
       center
       showCloseIcon={false}
     >
-      <div className="flex flex-col w-full h-full">
-        {/* Top bar */}
-        <div className="flex items-center justify-between w-full pl-4 pr-2 py-2 border-b border-gray-300">
-          <div className="flex items-center gap-x-4">
-            <Heading>Publish</Heading>
-            {updatePublishLoading ? (
-              <div className="flex items-center mt-px mr-4 text-gray-400">
-                <BsCloudUpload className="mr-1" />
-                <Text fontSize="small">Saving...</Text>
-              </div>
-            ) : (
-              <div className="flex items-center mt-px mr-4 text-gray-400">
-                <BsCloudCheck className="mr-1" />
-                <Text fontSize="small">Saved</Text>
-              </div>
-            )}
-          </div>
-          <Button
-            appearance="primary"
-            type="button"
-            size="small"
-            disabled={
-              !publish.title ||
-              (fragment?.type !== Fragment_Type_Enum_Enum.Portrait &&
-                !publish.description) ||
-              !recording?.id
-            }
-          >
-            Publish
-          </Button>
-        </div>
-
-        <div className="flex justify-between flex-1 w-full">
-          {/* Video Section */}
-          <div
-            className="relative flex items-center justify-center w-full bg-gray-100 "
-            ref={ref}
-          >
-            {recording &&
-            ((recording.url &&
-              recording.status !== Recording_Status_Enum_Enum.Processing &&
-              !getRecordingsLoading &&
-              !loadingCompleteRecording) ||
-              loadingCompleteRecording) ? (
-              <div className="flex flex-col items-end gap-y-4">
-                <video
-                  ref={videoRef}
-                  height={height}
-                  width={width}
-                  style={{
-                    minWidth: width,
-                    minHeight: height,
-                  }}
-                  className="flex-shrink-0"
-                  controls
-                  autoPlay={false}
-                  src={config.storage.baseUrl + recording.url}
-                />
-                <div className="flex items-center gap-x-2">
-                  <Button
-                    icon={IoReloadOutline}
-                    appearance="gray"
-                    type="button"
-                    size="small"
-                    onClick={() => completeFragmentRecording(recording.id)}
-                    loading={loadingCompleteRecording}
-                  />
-
-                  <Button
-                    size="small"
-                    appearance="gray"
-                    icon={HiOutlineDownload}
-                    type="button"
-                    onClick={downloadVideo}
-                    loading={downloading}
-                  />
-                </div>
-              </div>
-            ) : (
-              recording && (
-                <div
-                  className="bg-gray-300 flex items-center justify-center gap-y-4 flex-col"
-                  style={{
-                    width: `${width}px`,
-                    height: `${height}px`,
-                  }}
-                >
-                  {(() => {
-                    switch (recording.status) {
-                      case Recording_Status_Enum_Enum.Pending:
-                      case Recording_Status_Enum_Enum.Completed:
-                        return (
-                          <>
-                            <Text className="font-body">
-                              Produce video to see it here
-                            </Text>
-                            <Button
-                              appearance="primary"
-                              type="button"
-                              size="small"
-                              onClick={() =>
-                                completeFragmentRecording(recording.id)
-                              }
-                              loading={loadingCompleteRecording}
-                            >
-                              Produce
-                            </Button>
-                          </>
-                        )
-                      case Recording_Status_Enum_Enum.Processing:
-                        return (
-                          <>
-                            <FiRefreshCw size={21} className="animate-spin" />
-                            <Text className="font-body">Processing</Text>
-                          </>
-                        )
-                      default:
-                        return <></>
-                    }
-                  })()}
-                </div>
-              )
-            )}
-          </div>
-          {/* Sidebar */}
-          <div className="flex">
-            <div className="w-64 px-4 pt-6 bg-white">
-              {activeTab.id === tabs[0].id && (
-                <DetailsTab publish={publish} setPublish={setPublish} />
-              )}
-              {activeTab.id === tabs[1].id && (
-                <ThumbnailTab publish={publish} setPublish={setPublish} />
-              )}
-              {activeTab.id === tabs[2].id && (
-                <CTATab
-                  publish={publish}
-                  setPublish={setPublish}
-                  currentTime={currentTime}
-                  setCurrentTime={setCurrentTime}
-                />
-              )}
-            </div>
+      {doPublishData && (
+        <>
+          <Confetti fire={showConfetti} />
+          <div className="flex w-full h-full items-center justify-center">
             <div
+              className="flex flex-col w-full h-full items-start justify-center"
               style={{
-                width: '100px',
+                maxWidth: '420px',
+                width: '100%',
               }}
-              className="flex h-full flex-col px-2 pt-4 bg-gray-50 gap-y-2"
             >
-              {tabs.map((tab) => (
-                <button
-                  type="button"
-                  onClick={() => setActiveTab(tab)}
-                  className={cx(
-                    'flex flex-col items-center bg-transparent py-4 px-1 rounded-md text-gray-500 gap-y-2 transition-all',
-                    {
-                      'bg-gray-200 text-gray-800': activeTab.id === tab.id,
-                      'hover:bg-gray-100': activeTab.id !== tab.id,
-                    }
-                  )}
-                  key={tab.id}
-                >
-                  {getIcon(tab.id)}
-                  <Text className="text-xs font-normal font-body">
-                    {tab.name}
-                  </Text>
-                </button>
-              ))}
+              <div className="flex mx-auto">
+                <div className="h-32 w-32 bg-gray-100 rounded-full z-0" />
+                <div className="z-20 w-32 h-32 -ml-32 rounded-full backdrop-filter backdrop-blur-xl" />
+                <div className="z-10 w-24 h-24 -ml-10 rounded-full bg-brand" />
+              </div>
+              <Heading className="mb-4 font-bold text-3xl mt-12">
+                Congratulations! your story is out.
+              </Heading>
+              <Text className="font-body">
+                Your story is available in this link. You can share it with the
+                world.
+              </Text>
+              <a
+                href={`${config.auth.endpoint}/watch/${flick?.joinLink}`}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="w-full flex my-4 border p-2 rounded-md items-center justify-between text-sm gap-x-12 text-gray-600 px-4"
+              >
+                {`${config.auth.endpoint}/watch/${flick?.joinLink}`}
+                <FiExternalLink size={21} className="mx-2" />
+              </a>
+            </div>
+          </div>
+        </>
+      )}
+      {!doPublishData && (
+        <div className="flex flex-col w-full h-full">
+          {/* Top bar */}
+          <div className="flex items-center justify-between w-full pl-4 pr-2 py-2 border-b border-gray-300">
+            <div className="flex items-center gap-x-4">
+              <Heading>Publish</Heading>
+              {updatePublishLoading ? (
+                <div className="flex items-center mt-px mr-4 text-gray-400">
+                  <BsCloudUpload className="mr-1" />
+                  <Text fontSize="small">Saving...</Text>
+                </div>
+              ) : (
+                <div className="flex items-center mt-px mr-4 text-gray-400">
+                  <BsCloudCheck className="mr-1" />
+                  <Text fontSize="small">Saved</Text>
+                </div>
+              )}
+            </div>
+            <Button
+              appearance="primary"
+              type="button"
+              size="small"
+              disabled={
+                !publish.title ||
+                (fragment?.type !== Fragment_Type_Enum_Enum.Portrait &&
+                  !publish.description) ||
+                !recording?.id ||
+                !recording.url ||
+                recording?.status !== Recording_Status_Enum_Enum.Completed ||
+                updatePublishLoading
+              }
+              loading={publishing}
+              onClick={() => {
+                doPublish({
+                  variables: {
+                    data: publish,
+                    fragmentId: activeFragmentId,
+                    recordingId: recording?.id,
+                  },
+                })
+              }}
+            >
+              Publish
+            </Button>
+          </div>
+
+          <div className="flex justify-between flex-1 w-full">
+            {/* Video Section */}
+            <div
+              className="relative flex items-center justify-center w-full bg-gray-100 "
+              ref={ref}
+            >
+              {recording &&
+              ((recording.url &&
+                recording.status !== Recording_Status_Enum_Enum.Processing &&
+                !getRecordingsLoading &&
+                !loadingCompleteRecording) ||
+                loadingCompleteRecording) ? (
+                <div className="flex flex-col items-end gap-y-4">
+                  <video
+                    ref={videoRef}
+                    height={height}
+                    width={width}
+                    style={{
+                      minWidth: width,
+                      minHeight: height,
+                    }}
+                    className="flex-shrink-0"
+                    controls
+                    autoPlay={false}
+                    src={config.storage.baseUrl + recording.url}
+                  />
+                  <div className="flex items-center gap-x-2">
+                    <Button
+                      icon={IoReloadOutline}
+                      appearance="gray"
+                      type="button"
+                      size="small"
+                      onClick={() => completeFragmentRecording(recording.id)}
+                      loading={loadingCompleteRecording}
+                    />
+
+                    <Button
+                      size="small"
+                      appearance="gray"
+                      icon={HiOutlineDownload}
+                      type="button"
+                      onClick={downloadVideo}
+                      loading={downloading}
+                    />
+                  </div>
+                </div>
+              ) : (
+                recording && (
+                  <div
+                    className="bg-gray-300 flex items-center justify-center gap-y-4 flex-col"
+                    style={{
+                      width: `${width}px`,
+                      height: `${height}px`,
+                    }}
+                  >
+                    {(() => {
+                      switch (recording.status) {
+                        case Recording_Status_Enum_Enum.Pending:
+                        case Recording_Status_Enum_Enum.Completed:
+                          return (
+                            <>
+                              <Text className="font-body">
+                                Produce video to see it here
+                              </Text>
+                              <Button
+                                appearance="primary"
+                                type="button"
+                                size="small"
+                                onClick={() =>
+                                  completeFragmentRecording(recording.id)
+                                }
+                                loading={loadingCompleteRecording}
+                              >
+                                Produce
+                              </Button>
+                            </>
+                          )
+                        case Recording_Status_Enum_Enum.Processing:
+                          return (
+                            <>
+                              <FiRefreshCw size={21} className="animate-spin" />
+                              <Text className="font-body">Processing</Text>
+                            </>
+                          )
+                        default:
+                          return <></>
+                      }
+                    })()}
+                  </div>
+                )
+              )}
+            </div>
+            {/* Sidebar */}
+            <div className="flex">
+              <div className="w-64 px-4 pt-6 bg-white">
+                {activeTab.id === tabs[0].id && (
+                  <DetailsTab publish={publish} setPublish={setPublish} />
+                )}
+                {activeTab.id === tabs[1].id && (
+                  <ThumbnailTab publish={publish} setPublish={setPublish} />
+                )}
+                {activeTab.id === tabs[2].id && (
+                  <CTATab
+                    publish={publish}
+                    setPublish={setPublish}
+                    currentTime={currentTime}
+                    setCurrentTime={setCurrentTime}
+                  />
+                )}
+              </div>
+              <div
+                style={{
+                  width: '100px',
+                }}
+                className="flex h-full flex-col px-2 pt-4 bg-gray-50 gap-y-2"
+              >
+                {tabs.map((tab) => (
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab(tab)}
+                    className={cx(
+                      'flex flex-col items-center bg-transparent py-4 px-1 rounded-md text-gray-500 gap-y-2 transition-all',
+                      {
+                        'bg-gray-200 text-gray-800': activeTab.id === tab.id,
+                        'hover:bg-gray-100': activeTab.id !== tab.id,
+                      }
+                    )}
+                    key={tab.id}
+                  >
+                    {getIcon(tab.id)}
+                    <Text className="text-xs font-normal font-body">
+                      {tab.name}
+                    </Text>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </Modal>
   )
 }

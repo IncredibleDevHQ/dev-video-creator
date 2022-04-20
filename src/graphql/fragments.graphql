@@ -474,3 +474,17 @@ mutation UpdatePublish($id: uuid!, $publishConfig: json!) {
     id
   }
 }
+
+mutation PublishVideoAction(
+  $data: json!
+  $fragmentId: uuid!
+  $recordingId: uuid!
+) {
+  PublishVideo(
+    data: $data
+    fragmentId: $fragmentId
+    recordingId: $recordingId
+  ) {
+    success
+  }
+}
