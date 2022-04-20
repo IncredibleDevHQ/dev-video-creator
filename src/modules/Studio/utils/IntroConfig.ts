@@ -12,17 +12,25 @@ export interface IntroConfig {
   titleWidth: number
   titleHeight: number
   titleFontSize: number
+  titleAlign?: string
+  titleVerticalAlign?: string
+  titleFontStyle?: string
   userNameX: number
   userNameY: number
   userNameWidth: number
   userNameHeight: number
   userNameFontSize: number
+  userNameAlign?: string
+  userNameVerticalAlign?: string
   userNameFontStyle?: string
   userInfoX: number
   userInfoY: number
   userInfoWidth: number
   userInfoHeight: number
   userInfoFontSize: number
+  userInfoAlign?: string
+  userInfoVerticalAlign?: string
+  userInfoFontStyle?: string
   logoX: number
   logoY: number
   logoWidth: number
@@ -641,6 +649,123 @@ export const getIntroConfig = ({
               userImageBorderRadius: 0,
             }
         }
+      case 'DevsForUkraine':
+        switch (layout) {
+          case 'bottom-right-tile':
+            return {
+              layoutX: 0,
+              layoutY: 0,
+              layoutWidth: 960,
+              layoutHeight: 540,
+              layoutBorderRadius: 0,
+              titleX: 264,
+              titleY: 125,
+              titleWidth: 454,
+              titleHeight: 290,
+              titleFontSize: 52,
+              titleAlign: 'center',
+              titleVerticalAlign: 'middle',
+              titleFontStyle: 'bold',
+              userNameX: 0,
+              userNameY: 0,
+              userNameWidth: 0,
+              userNameHeight: 0,
+              userNameFontSize: 0,
+              userNameFontStyle: 'bold',
+              userNameAlign: 'center',
+              userInfoX: 0,
+              userInfoY: 0,
+              userInfoWidth: 0,
+              userInfoHeight: 0,
+              userInfoFontSize: 0,
+              userInfoAlign: 'center',
+              logoX: 0,
+              logoY: 0,
+              logoWidth: 0,
+              logoHeight: 0,
+              userImageX: 0,
+              userImageY: 0,
+              userImageWidth: 0,
+              userImageHeight: 0,
+              userImageBorderRadius: 0,
+            }
+          case 'float-full-right':
+            return {
+              layoutX: 0,
+              layoutY: 0,
+              layoutWidth: 960,
+              layoutHeight: 540,
+              layoutBorderRadius: 0,
+              titleX: 264,
+              titleY: 96,
+              titleWidth: 454,
+              titleHeight: 172,
+              titleFontSize: 40,
+              titleAlign: 'center',
+              titleVerticalAlign: 'top',
+              titleFontStyle: 'bold',
+              userNameX: 436,
+              userNameY: 380,
+              userNameWidth: 240,
+              userNameHeight: 40,
+              userNameFontSize: 20,
+              userNameFontStyle: 'bold',
+              userNameAlign: 'center',
+              userInfoX: 436,
+              userInfoY: 410,
+              userInfoWidth: 240,
+              userInfoHeight: 57,
+              userInfoFontSize: 16,
+              userInfoAlign: 'center',
+              logoX: 436,
+              logoY: 395,
+              logoWidth: 54,
+              logoHeight: 54,
+              userImageX: 284,
+              userImageY: 315,
+              userImageWidth: 128,
+              userImageHeight: 128,
+              userImageBorderRadius: 8,
+            }
+          default:
+            return {
+              layoutX: 0,
+              layoutY: 0,
+              layoutWidth: 960,
+              layoutHeight: 540,
+              layoutBorderRadius: 0,
+              titleX: 264,
+              titleY: 96,
+              titleWidth: 454,
+              titleHeight: 172,
+              titleFontSize: 40,
+              titleAlign: 'center',
+              titleVerticalAlign: 'top',
+              titleFontStyle: 'bold',
+              userNameX: 436,
+              userNameY: 380,
+              userNameWidth: 240,
+              userNameHeight: 40,
+              userNameFontSize: 20,
+              userNameFontStyle: 'bold',
+              userNameAlign: 'center',
+              userInfoX: 436,
+              userInfoY: 410,
+              userInfoWidth: 240,
+              userInfoHeight: 57,
+              userInfoFontSize: 16,
+              userInfoAlign: 'center',
+              logoX: 436,
+              logoY: 395,
+              logoWidth: 54,
+              logoHeight: 54,
+              userImageX: 284,
+              userImageY: 315,
+              userImageWidth: 128,
+              userImageHeight: 128,
+              userImageBorderRadius: 8,
+            }
+        }
       default:
         return {
           layoutX: 0,
@@ -867,6 +992,44 @@ export const getIntroConfig = ({
         userImageWidth: 192,
         userImageHeight: 192,
         userImageBorderRadius: 96,
+      }
+    case 'DevsForUkraine':
+      return {
+        layoutX: 0,
+        layoutY: 0,
+        layoutWidth: 396,
+        layoutHeight: 704,
+        layoutBorderRadius: 8,
+        titleX: 86,
+        titleY: 101,
+        titleWidth: 224,
+        titleHeight: 200,
+        titleFontSize: 32,
+        titleAlign: 'center',
+        titleFontStyle: 'bold',
+        userNameX: 80,
+        userNameY: 552,
+        userNameWidth: 237,
+        userNameHeight: 24,
+        userNameFontSize: 20,
+        userNameAlign: 'center',
+        userNameFontStyle: 'bold',
+        userInfoX: 80,
+        userInfoY: 582,
+        userInfoWidth: 237,
+        userInfoHeight: 40,
+        userInfoFontSize: 16,
+        userInfoAlign: 'center',
+        userInfoFontStyle: 'bold',
+        logoX: 80,
+        logoY: 552,
+        logoWidth: 0,
+        logoHeight: 0,
+        userImageX: 135,
+        userImageY: 399,
+        userImageWidth: 128,
+        userImageHeight: 128,
+        userImageBorderRadius: 8,
       }
     default:
       return {

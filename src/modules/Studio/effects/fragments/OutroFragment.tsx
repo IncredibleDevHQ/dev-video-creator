@@ -1,6 +1,6 @@
 import Konva from 'konva'
 import React, { useEffect, useState } from 'react'
-import { Group, Image, Text } from 'react-konva'
+import { Arc, Circle, Group, Image, Rect, Ring, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
 import DiscordLogo from '../../../../assets/OutroFragment/discord.svg'
@@ -33,6 +33,7 @@ import {
   getThemeSurfaceColor,
   getThemeTextColor,
 } from '../../utils/ThemeConfig'
+import config from '../../../../config'
 
 // const getImagePosition = (theme: ThemeFragment) => {
 //   switch (theme.name) {
@@ -105,6 +106,15 @@ const OutroFragment = ({
 
   const outroScreenRef = React.useRef<Konva.Group>(null)
   const brandVideoRef = React.useRef<Konva.Group>(null)
+
+  const [star] = useImage(
+    `${config.storage.baseUrl}themes/DevsForUkraine/star.svg`,
+    'anonymous'
+  )
+  const [heart] = useImage(
+    `${config.storage.baseUrl}themes/DevsForUkraine/heart.svg`,
+    'anonymous'
+  )
 
   useEffect(() => {
     if (!viewConfig) return
@@ -216,6 +226,7 @@ const OutroFragment = ({
 
   useEffect(() => {
     if (
+      state === 'start-recording' ||
       state === 'recording' ||
       state === 'ready' ||
       state === 'resumed' ||
@@ -252,6 +263,15 @@ const OutroFragment = ({
 
   const layerChildren = [
     <Group>
+      {theme.name === 'DevsForUkraine' && !isShorts && (
+        <Rect
+          x={0}
+          y={0}
+          width={CONFIG.width}
+          height={CONFIG.height}
+          fill="#1C1C1C"
+        />
+      )}
       <Group
         x={0}
         y={0}
@@ -282,6 +302,82 @@ const OutroFragment = ({
               : getThemeSurfaceColor(theme)
           }
         />
+        {theme.name === 'DevsForUkraine' &&
+          viewConfig?.layout === 'classic' &&
+          !isShorts && (
+            <>
+              <Group x={92} y={230}>
+                <Ring innerRadius={22} outerRadius={30} fill="#fafafa" />
+                <Circle x={123} radius={34} fill="#2696FA" />
+                <Rect x={25} y={-4} width={98} height={8} fill="#fafafa" />
+              </Group>
+              <Group x={745} y={230}>
+                <Arc
+                  innerRadius={22}
+                  outerRadius={30}
+                  angle={180}
+                  fill="#ffe87b"
+                  rotation={90}
+                />
+                <Rect x={-4} y={-30} width={8} height={60} fill="#ffe87b" />
+                <Rect x={25} y={8} width={64} height={8} fill="#fafafa" />
+              </Group>
+              <Group x={745} y={313}>
+                <Circle radius={32} fill="#e2ce68" />
+                <Arc
+                  x={64}
+                  innerRadius={0}
+                  outerRadius={32}
+                  angle={180}
+                  fill="#2696FA"
+                  rotation={90}
+                />
+              </Group>
+              <Image x={240} y={317} image={star} width={40} height={42} />
+              <Image
+                x={CONFIG.width / 2 - 28}
+                y={72}
+                image={heart}
+                width={56}
+                height={56}
+              />
+            </>
+          )}
+        {theme.name === 'DevsForUkraine' &&
+          (viewConfig?.layout === 'float-full-right' ||
+            viewConfig?.layout === 'split-without-media') && (
+            <>
+              <Group x={30} y={75}>
+                <Ring innerRadius={22} outerRadius={30} fill="#fafafa" />
+                <Circle x={123} radius={34} fill="#2696FA" />
+                <Rect x={25} y={-4} width={98} height={8} fill="#fafafa" />
+              </Group>
+              <Group x={450} y={230}>
+                <Arc
+                  innerRadius={22}
+                  outerRadius={30}
+                  angle={180}
+                  fill="#ffe87b"
+                  rotation={90}
+                />
+                <Rect x={-4} y={-30} width={8} height={60} fill="#ffe87b" />
+                <Rect x={25} y={8} width={64} height={8} fill="#fafafa" />
+              </Group>
+              <Group x={450} y={308}>
+                <Circle radius={32} fill="#e2ce68" />
+                <Arc
+                  x={64}
+                  innerRadius={0}
+                  outerRadius={32}
+                  angle={180}
+                  fill="#2696FA"
+                  rotation={90}
+                />
+              </Group>
+              <Image x={18} y={330} image={star} width={40} height={42} />
+              <Image x={320} y={442} image={heart} width={32} height={32} />
+            </>
+          )}
         <Group x={outroConfig?.layoutX} y={outroConfig?.layoutY}>
           <Text
             x={outroConfig?.textX || 16}
@@ -293,16 +389,18 @@ const OutroFragment = ({
             fill={branding?.colors?.text || getThemeTextColor(theme)}
             fontSize={outroConfig?.textFontSize || 0}
             fontFamily={getThemeFont(theme)}
-            fontStyle="normal 600"
+            fontStyle={outroConfig?.textFontStyle || 'normal 600'}
             lineHeight={1.1}
           />
-          <Image
-            x={outroConfig?.logoX || 0}
-            y={outroConfig?.logoY || 0}
-            width={outroConfig?.logoWidth || 0}
-            height={outroConfig?.logoHeight || 0}
-            image={logo}
-          />
+          {theme.name !== 'DevsForUkraine' && (
+            <Image
+              x={outroConfig?.logoX || 0}
+              y={outroConfig?.logoY || 0}
+              width={outroConfig?.logoWidth || 0}
+              height={outroConfig?.logoHeight || 0}
+              image={logo}
+            />
+          )}
           {socialHandles?.twitterHandle && (
             <>
               <Image

@@ -866,7 +866,8 @@ const PointsFragment = ({
                         width={216}
                         height={point.height}
                         verticalAlign={
-                          theme.name === 'LeeRob' ? 'top' : 'middle'
+                          objectRenderConfig.horizontalPointTextVerticalAlign ||
+                          'middle'
                         }
                         align="center"
                         text={point.text}
@@ -942,7 +943,8 @@ const PointsFragment = ({
                         width={216}
                         height={point.height}
                         verticalAlign={
-                          theme.name === 'LeeRob' ? 'top' : 'middle'
+                          objectRenderConfig.horizontalPointTextVerticalAlign ||
+                          'middle'
                         }
                         align="center"
                         text={point.text}
@@ -1011,7 +1013,10 @@ const PointsFragment = ({
                       // so we need to subtract 110 to get the correct x, to give 30 padding in the end too
                       width={216}
                       height={point.height}
-                      verticalAlign={theme.name === 'LeeRob' ? 'top' : 'middle'}
+                      verticalAlign={
+                        objectRenderConfig.horizontalPointTextVerticalAlign ||
+                        'middle'
+                      }
                       align="center"
                       text={point.text}
                       // content={point.content}

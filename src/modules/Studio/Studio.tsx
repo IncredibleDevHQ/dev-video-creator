@@ -43,8 +43,10 @@ import {
   GetFragmentByIdQuery,
   RecordedBlocksFragment,
   StudioFragmentFragment,
+  useDeleteBlockGroupMutation,
   useGetFragmentByIdLazyQuery,
   useGetRtcTokenMutation,
+  useSaveMultipleBlocksMutation,
   useSaveRecordedBlockMutation,
 } from '../../generated/graphql'
 import { useCanvasRecorder } from '../../hooks'
@@ -87,6 +89,14 @@ const StudioHoC = () => {
   const { fragmentId } = useParams<{ fragmentId: string }>()
   const [fragment, setFragment] = useState<StudioFragmentFragment>()
   const [isUserAllowed, setUserAllowed] = useState(false)
+
+  const continuousRecordedBlockIds = useRef<
+    { blockId: string; duration: number }[]
+  >([])
+
+  const addContinuousRecordedBlockIds = (blockId: string, duration: number) => {
+    continuousRecordedBlockIds.current.push({ blockId, duration })
+  }
 
   const devices = useRef<{ microphone: Device | null; camera: Device | null }>({
     camera: null,
@@ -180,6 +190,8 @@ const StudioHoC = () => {
           }
           devices={devices.current}
           liveStream={liveStream.current}
+          continuousRecordedBlockIds={continuousRecordedBlockIds.current}
+          addContinuousRecordedBlockIds={addContinuousRecordedBlockIds}
         />
       </EditorProvider>
     )
@@ -564,6 +576,8 @@ const Studio = ({
   liveStream,
   branding,
   studioFragment,
+  continuousRecordedBlockIds,
+  addContinuousRecordedBlockIds,
 }: {
   data?: GetFragmentByIdQuery
   studioFragment: StudioFragmentFragment
@@ -573,6 +587,8 @@ const Studio = ({
     url: string
   }
   branding?: BrandingJSON | null
+  continuousRecordedBlockIds: { blockId: string; duration: number }[]
+  addContinuousRecordedBlockIds: (blockId: string, duration: number) => void
 }) => {
   const { fragmentId } = useParams<{ fragmentId: string }>()
   const { constraints, theme, staticAssets, recordedBlocks } =
@@ -580,9 +596,11 @@ const Studio = ({
   const [studio, setStudio] = useRecoilState(studioStore)
   const { sub } = (useRecoilValue(userState) as User) || {}
   const [fragment, setFragment] = useState<StudioFragmentFragment>()
+  const [dataConfig, setDataConfig] = useState<Block[]>()
   const history = useHistory()
 
   const [saveBlock] = useSaveRecordedBlockMutation()
+  const [saveMultiBlocks] = useSaveMultipleBlocksMutation()
 
   const [uploadFile] = useUploadFile()
 
@@ -608,6 +626,10 @@ const Studio = ({
   const [localRecordedBlocks, setLocalRecordedBlocks] = useState<
     RecordedBlocksFragment[] | undefined
   >(recordedBlocks)
+
+  const [deleteBlockGroupMutation] = useDeleteBlockGroupMutation()
+
+  const [confirmMultiBlockRetake, setConfirmMultiBlockRetake] = useState(false)
 
   const { height: stageHeight, width: stageWidth } = getIntegerHW({
     maxH: bounds.height,
@@ -858,7 +880,7 @@ const Studio = ({
         },
       })
 
-      let blockThumbnail
+      let blockThumbnail: string | null = null
       // Upload block thumbnail
       if (blockThumbnails[blockId]) {
         const thumbnailBlob = await fetch(blockThumbnails[blockId]).then((r) =>
@@ -881,21 +903,46 @@ const Studio = ({
         blockThumbnail = uuid
       }
 
-      // Once the block video is uploaded to s3 , save the block to the table
-      await saveBlock({
-        variables: {
-          flickId: fragment?.flickId,
-          fragmentId,
-          recordingId: studio.recordingId,
-          objectUrl,
-          thumbnail: blockThumbnail,
-          // TODO: Update creation meta and playbackDuration when implementing continuous recording
-          blockId,
-          playbackDuration: Math.round(duration),
-        },
-      })
-
-      updateRecordedBlocks(blockId, objectUrl)
+      if (
+        fragment?.configuration.continuousRecording &&
+        continuousRecordedBlockIds
+      ) {
+        // if continuous recording is enabled, mark all the blocks that were recorded in the current take as saved
+        continuousRecordedBlockIds.forEach((block) => {
+          updateRecordedBlocks(block.blockId, objectUrl)
+        })
+        console.log('continuous recorded blocks:', continuousRecordedBlockIds)
+        // save all continuous recorded blocks to hasura
+        await saveMultiBlocks({
+          variables: {
+            blocks: continuousRecordedBlockIds.map((block) => ({
+              blockId: block.blockId,
+              duration: block.duration,
+              thumbnail: blockThumbnail, // TODO: generate thumbnail for each block in continuous recording mode
+            })),
+            flickId: fragment?.flickId,
+            fragmentId,
+            recordingId: studio.recordingId,
+            url: objectUrl,
+          },
+        })
+        history.push(`/story/${fragment?.flickId}/${fragmentId}`)
+      } else {
+        // Once the block video is uploaded to s3 , save the block to the table
+        await saveBlock({
+          variables: {
+            flickId: fragment?.flickId,
+            fragmentId,
+            recordingId: studio.recordingId,
+            objectUrl,
+            thumbnail: blockThumbnail,
+            // TODO: Update creation meta and playbackDuration when implementing continuous recording
+            blockId,
+            playbackDuration: Math.round(duration),
+          },
+        })
+        updateRecordedBlocks(blockId, objectUrl)
+      }
       // after updating the recorded blocks set this state which triggers the useEffect to update studio store
 
       // update block url in store for preview once upload is done
@@ -919,7 +966,10 @@ const Studio = ({
     const canvas = document
       .getElementsByClassName('konvajs-content')[0]
       .getElementsByTagName('canvas')[0]
-    if (payload?.activeObjectIndex !== 0)
+    if (
+      dataConfig &&
+      dataConfig[payload.activeObjectIndex]?.type !== 'introBlock'
+    )
       setTopLayerChildren({ id: nanoid(), state: 'transition moveAway' })
     // @ts-ignore
     startRecording(canvas, {
@@ -966,7 +1016,8 @@ const Studio = ({
       }
       return bts
     })
-    if (payload?.activeObjectIndex !== fragment?.editorState?.blocks.length - 1)
+    // TODO: update for continuous recording
+    if (dataConfig?.[payload?.activeObjectIndex].type !== 'outroBlock')
       setTopLayerChildren({ id: nanoid(), state: 'transition moveIn' })
     else {
       stopCanvasRecording()
@@ -1111,7 +1162,13 @@ const Studio = ({
   }
 
   useEffect(() => {
-    const block = fragment?.editorState?.blocks?.[payload?.activeObjectIndex]
+    let block: Block | undefined
+
+    if (!fragment?.configuration?.continuousRecording) {
+      block = dataConfig?.[payload?.activeObjectIndex]
+    } else {
+      block = dataConfig?.[payload?.activeObjectIndex]
+    }
 
     if (!block) return
 
@@ -1119,7 +1176,7 @@ const Studio = ({
 
     // check if block was already recorded and if so show the video preview
     const previouslyRecordedBlock = recordedBlocks?.find((b) => {
-      return b.id === block.id
+      return b.id === block?.id
     })
     if (previouslyRecordedBlock) {
       setRecordedVideoSrc(
@@ -1151,15 +1208,31 @@ const Studio = ({
       payload?.status !== Fragment_Status_Enum_Enum.Live
     )
       return
-    stop()
+    if (!continuousRecordedBlockIds) stop()
   }, [payload?.activeObjectIndex]) // undefined -> defined
+
+  useEffect(() => {
+    if (!fragment) return
+    if (fragment?.configuration.continuousRecording) {
+      setDataConfig(
+        fragment.editorState?.blocks.filter(
+          (item: any) =>
+            !!fragment.configuration.selectedBlocks.find(
+              (blk: any) => blk.blockId === item.id
+            )
+        )
+      )
+    } else {
+      setDataConfig(fragment.editorState?.blocks)
+    }
+  }, [fragment])
 
   const clearRecordedBlocks = () => {
     setStudio({ ...studio, recordedBlocks: [], recordingId: '' })
   }
 
   const prepareVideo = async () => {
-    const current = fragment?.editorState?.blocks?.[payload?.activeObjectIndex]
+    const current = dataConfig?.[payload?.activeObjectIndex]
 
     if (
       state === 'preview' &&
@@ -1253,8 +1326,16 @@ const Studio = ({
         noScrollBar
       )}
     >
-      {fragment?.editorState &&
-        (fragment.editorState as SimpleAST).blocks.map((block, index) => {
+      {dataConfig
+        ?.filter((item) => {
+          if (fragment.configuration.continuousRecording) {
+            return !!fragment.configuration?.selectedBlocks.find(
+              (blk: any) => blk.blockId === item.id
+            )
+          }
+          return true
+        })
+        .map((block, index) => {
           return (
             <button
               type="button"
@@ -1266,12 +1347,29 @@ const Studio = ({
                     payload?.activeObjectIndex === index,
                   'bg-grey-900 text-gray-500':
                     index !== payload?.activeObjectIndex,
-                  'cursor-not-allowed': state === 'recording',
+                  'cursor-not-allowed':
+                    state === 'recording' ||
+                    state === 'start-recording' ||
+                    (recordedBlocks
+                      ?.find((b) => b?.id === currentBlock?.id)
+                      ?.objectUrl?.includes('blob') &&
+                      state === 'preview'),
 
                   // state !== 'ready' || state !== 'preview',
                 }
               )}
               onClick={() => {
+                // if continuous recording is enabled, disable mini-timeline onclick
+                if (
+                  studio.continuousRecording &&
+                  (state === 'recording' ||
+                    state === 'start-recording' ||
+                    state === 'preview')
+                ) {
+                  return
+                }
+                // maybe this is not the best thing to do , can actually be a feature.
+
                 // TODO: if current block is recorded by isnt saved to the cloud or if the user has not intentionally pressed retake to discard the rec, show warning.
 
                 const newSrc =
@@ -1301,7 +1399,7 @@ const Studio = ({
                 }
               }}
             >
-              {recordedBlocks
+              {localRecordedBlocks
                 ?.find((b) => b.id === block.id)
                 ?.objectUrl?.includes('.webm') && (
                 <div className="absolute top-0 right-0 rounded-tr-sm rounded-bl-sm bg-incredible-green-600">
@@ -1439,6 +1537,8 @@ const Studio = ({
                 timeOver={() => setTimeLimitOver(true)}
                 openTimerModal={() => setIsTimerModalOpen(true)}
                 resetTimer={resetTimer}
+                currentBlock={currentBlock}
+                addContinuousRecordedBlockIds={addContinuousRecordedBlockIds}
               />
             </div>
             <Notes key={payload?.activeObjectIndex} stageHeight={stageHeight} />
@@ -1521,24 +1621,25 @@ const Studio = ({
                             }
 
                             const isOutro =
-                              payload?.activeObjectIndex ===
-                              fragment?.editorState?.blocks.length - 1
+                              dataConfig?.[payload?.activeObjectIndex].type ===
+                              'outroBlock'
 
                             // move on to next block
                             const p = {
                               ...payload,
+                              // eslint-disable-next-line no-nested-ternary
                               activeObjectIndex: isOutro
                                 ? 0
+                                : fragment.configuration.continuousRecording // if not outro check if its continuous recording , if not move on to next block
+                                ? payload.activeObjectIndex
                                 : payload.activeObjectIndex + 1,
                             }
 
                             const blockId =
-                              fragment?.editorState?.blocks[
-                                payload.activeObjectIndex
-                              ]?.id
+                              dataConfig?.[payload.activeObjectIndex]?.id
                             if (
-                              p.activeObjectIndex <
-                              fragment?.editorState?.blocks.length - 1
+                              dataConfig &&
+                              p.activeObjectIndex < dataConfig.length - 1
                             ) {
                               p.status = Fragment_Status_Enum_Enum.Paused
                             } else {
@@ -1547,7 +1648,17 @@ const Studio = ({
 
                             updatePayload?.(p)
                             // start async upload and move on to next block
-                            upload(blockId)
+                            if (blockId) upload(blockId)
+                            else {
+                              emitToast({
+                                title: 'Something went wrong!',
+                                type: 'error',
+                                description: 'Please try again later',
+                              })
+                              Sentry.captureException(
+                                new Error('No blockId in upload')
+                              )
+                            }
                             setState(isOutro ? 'preview' : 'resumed')
                             setResetTimer(true)
                           }}
@@ -1565,45 +1676,96 @@ const Studio = ({
                         resetCanvas()
                         setTopLayerChildren?.({ id: nanoid(), state: '' })
 
-                        if (recordedBlocks && currentBlock) {
-                          console.warn('DELETING FOR RETAKE')
-                          const copyRecordedBlocks = [...recordedBlocks]
-                          const currentRecordedBlock =
-                            copyRecordedBlocks?.findIndex(
-                              (b) => b.id === currentBlock?.id
+                        // if currentBlock.id is in recordedBlocks
+                        const currBlock = recordedBlocks.filter(
+                          (b) => b.id === currentBlock?.id
+                        )[0]
+                        if (currBlock?.objectUrl) {
+                          // if found in recordedBlocks, find if webm is duplicate (meaning its part of continuous recording)
+                          const isDuplicate =
+                            recordedBlocks.filter(
+                              (blk) => blk.objectUrl === currBlock.objectUrl
+                            ).length > 1
+
+                          if (isDuplicate) {
+                            // call action to delete all blocks with currBlock.objectUrl
+                            if (!confirmMultiBlockRetake) {
+                              emitToast({
+                                title: 'Are you sure?',
+                                type: 'warning',
+                                description:
+                                  'You are about to delete the recordings of all blocks that were recorded continuously along with this block. This action cannot be undone. If you would like to continue press retake again.',
+                              })
+                              setConfirmMultiBlockRetake(true)
+                              return
+                              // eslint-disable-next-line no-else-return
+                            } else {
+                              deleteBlockGroupMutation({
+                                variables: {
+                                  objectUrl: currBlock.objectUrl,
+                                  recordingId: studio.recordingId,
+                                },
+                              })
+                              setConfirmMultiBlockRetake(false)
+                              // remove all copies of currBlock.objectUrl from local state
+                              const updatedBlockList = recordedBlocks.filter(
+                                (blk) => blk.objectUrl !== currBlock.objectUrl
+                              )
+                              console.log(
+                                'Removing blks with obj = ',
+                                currBlock.objectUrl
+                              )
+                              console.log(
+                                'UpdatedBlockList = ',
+                                updatedBlockList
+                              )
+                              setLocalRecordedBlocks(updatedBlockList)
+                            }
+                          } else {
+                            if (recordedBlocks && currentBlock) {
+                              let copyRecordedBlocks = [...recordedBlocks]
+                              // const currentRecordedBlock =
+                              //   copyRecordedBlocks?.findIndex(
+                              //     (b) => b.id === currentBlock?.id
+                              //   )
+                              // copyRecordedBlocks.splice(currentRecordedBlock, 1)
+
+                              // remove prev-recorded/continuously-recorded blocks with the same objectURL as the current block object url
+                              copyRecordedBlocks = copyRecordedBlocks.filter(
+                                (blk) => blk.objectUrl !== currBlock.objectUrl
+                              )
+                              setLocalRecordedBlocks(copyRecordedBlocks)
+                            }
+
+                            const isCloudBlock = recordedBlocks?.find(
+                              (b) =>
+                                b.id ===
+                                dataConfig?.[payload?.activeObjectIndex].id
                             )
-                          copyRecordedBlocks.splice(currentRecordedBlock, 1)
-                          console.log('Local Rec Blocks', copyRecordedBlocks)
-                          setLocalRecordedBlocks(copyRecordedBlocks)
+
+                            // if (isCloudBlock) {
+                            //   // remove the cloud block from local store and allow retake of the cloud block
+                            //   const updatedRecordedBlocks =
+                            //     studio.recordedBlocks?.filter(
+                            //       (b) => b.id !== isCloudBlock.id
+                            //     )
+                            //   setLocalRecordedBlocks(updatedRecordedBlocks)
+                            // }
+                            updatePayload?.({
+                              status: Fragment_Status_Enum_Enum.Paused,
+                              // decrement active object index on retake to repeat the current block
+                              // also reset the block's element active index
+                              activeObjectIndex:
+                                // eslint-disable-next-line no-nested-ternary
+                                payload.activeObjectIndex - 1 >= 0
+                                  ? isCloudBlock
+                                    ? payload.activeObjectIndex
+                                    : payload.activeObjectIndex - 1
+                                  : 0,
+                            })
+                          }
                         }
 
-                        const isCloudBlock = recordedBlocks?.find(
-                          (b) =>
-                            b.id ===
-                            fragment.editorState.blocks[
-                              payload?.activeObjectIndex
-                            ].id
-                        )
-                        if (isCloudBlock) {
-                          // remove the cloud block from local store and allow retake of the cloud block
-                          const updatedRecordedBlocks =
-                            studio.recordedBlocks?.filter(
-                              (b) => b.id !== isCloudBlock.id
-                            )
-                          setLocalRecordedBlocks(updatedRecordedBlocks)
-                        }
-                        updatePayload?.({
-                          status: Fragment_Status_Enum_Enum.Paused,
-                          // decrement active object index on retake to repeat the current block
-                          // also reset the block's element active index
-                          activeObjectIndex:
-                            // eslint-disable-next-line no-nested-ternary
-                            payload.activeObjectIndex - 1 >= 0
-                              ? isCloudBlock
-                                ? payload.activeObjectIndex
-                                : payload.activeObjectIndex - 1
-                              : 0,
-                        })
                         setState('resumed')
                         setResetTimer(true)
                       }}

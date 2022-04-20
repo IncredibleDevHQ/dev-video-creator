@@ -349,28 +349,35 @@ const FragmentBar = ({
             brandingId: useBranding ? brandingId : undefined,
           },
         })
-        if (flick)
+        if (flick) {
           setFlickStore((store) => ({
             ...store,
-            flick: {
-              ...flick,
-              useBranding,
-              brandingId: useBranding ? brandingId : undefined,
-              branding: useBranding
-                ? brandingData?.Branding.find((b) => b.id === brandingId)
-                : null,
-              fragments: flick.fragments.map((f) =>
-                f.id === activeFragmentId
-                  ? {
-                      ...f,
-                      configuration: config,
-                      editorState: simpleAST,
-                      encodedEditorValue,
-                    }
-                  : f
-              ),
-            },
+            flick: store.flick
+              ? {
+                  ...store.flick,
+                  useBranding,
+                  brandingId: useBranding ? brandingId : undefined,
+                  branding: useBranding
+                    ? brandingData?.Branding.find((b) => b.id === brandingId)
+                    : null,
+                  fragments: flick.fragments.map((f) =>
+                    f.id === activeFragmentId
+                      ? {
+                          ...f,
+                          flick: {
+                            ...f.flick,
+                            name: flick.name,
+                          },
+                          configuration: config,
+                          editorState: simpleAST,
+                          encodedEditorValue,
+                        }
+                      : f
+                  ),
+                }
+              : null,
           }))
+        }
       }
     } catch (error) {
       emitToast({
@@ -616,7 +623,7 @@ const FragmentBar = ({
             appearance="primary"
             size="small"
             type="button"
-            disabled={checkDisabledState(fragment, simpleAST)}
+            disabled={checkDisabledState(fragment, simpleAST, config)}
             onClick={async () => {
               // Segment Tracking
               logEvent(PageEvent.GoToDeviceSelect)
@@ -683,9 +690,15 @@ const FragmentBar = ({
 
 const checkDisabledState = (
   fragment: FlickFragmentFragment | undefined,
-  editorValue: SimpleAST | undefined
+  editorValue: SimpleAST | undefined,
+  config: ViewConfig | undefined
 ) => {
   if (!fragment) return true
+
+  if (config?.continuousRecording && config?.selectedBlocks.length < 1) {
+    return true
+  }
+
   if (
     fragment.type === Fragment_Type_Enum_Enum.Intro ||
     fragment.type === Fragment_Type_Enum_Enum.Outro

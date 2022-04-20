@@ -383,6 +383,54 @@ mutation SaveRecordedBlock(
     success
   }
 }
+
+mutation SaveRecordedBlock(
+  $flickId: uuid!
+  $fragmentId: uuid!
+  $objectUrl: String!
+  $recordingId: uuid!
+  $blockId: String!
+  $thumbnail: String
+  $playbackDuration: Int
+) {
+  SaveBlock(
+    flickId: $flickId
+    fragmentId: $fragmentId
+    objectUrl: $objectUrl
+    recordingId: $recordingId
+    thumbnail: $thumbnail
+    blockId: $blockId
+    playbackDuration: $playbackDuration
+  ) {
+    id
+    success
+  }
+}
+
+mutation SaveMultipleBlocks(
+  $blocks: [json]!
+  $flickId: uuid!
+  $fragmentId: uuid!
+  $recordingId: uuid!
+  $url: String!
+) {
+  SaveMultiBlocks(
+    blocks: $blocks
+    flickId: $flickId
+    fragmentId: $fragmentId
+    recordingId: $recordingId
+    url: $url
+  ) {
+    success
+  }
+}
+
+mutation DeleteBlockGroup($objectUrl: String!, $recordingId: uuid!) {
+  RetakeMultiBlocks(objectUrl: $objectUrl, recordingId: $recordingId) {
+    success
+  }
+}
+
 mutation UpdateFlickMdAndEditorState(
   $flickId: uuid!
   $md: String!
