@@ -581,19 +581,21 @@ const FragmentBar = ({
             </div>
           )}
         <div className="flex items-stretch justify-end py-2  border-l-2 border-brand-grey text-white">
-          <Button
-            appearance="none"
-            size="small"
-            type="button"
-            className="mx-1"
-            icon={IoPlayOutline}
-            iconSize={20}
-            onClick={() => {
-              setViewRecordingModal(true)
-            }}
-          >
-            <Text className="text-sm text-gray-100 font-main">Recording</Text>
-          </Button>
+          {fragment?.blocks && fragment?.blocks?.length > 0 && (
+            <Button
+              appearance="none"
+              size="small"
+              type="button"
+              className="mx-1"
+              icon={IoPlayOutline}
+              iconSize={20}
+              onClick={() => {
+                setViewRecordingModal(true)
+              }}
+            >
+              <Text className="text-sm text-gray-100 font-main">Recording</Text>
+            </Button>
+          )}
           <Button
             appearance="none"
             size="small"
