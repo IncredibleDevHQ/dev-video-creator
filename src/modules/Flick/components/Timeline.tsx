@@ -178,10 +178,9 @@ const Timeline = ({
               })
             }}
           >
-            <TimelineIcon className="w-6 h-6 mr-1" />
             <Text className="text-sm">
               {config.continuousRecording
-                ? 'Continuous Recording'
+                ? 'Continuous Recording (Experimental)'
                 : 'Block Recording'}
             </Text>
           </Button>
