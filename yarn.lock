@@ -3044,13 +3044,6 @@
   resolved "https://registry.yarnpkg.com/@types/canvas-confetti/-/canvas-confetti-1.4.0.tgz#22127a1a9ed9d456e626d6e2b9a4d3b0a240e18b"
   integrity sha512-Neq4mvVecrHmTdyo98EY5bnKCjkZGQ6Ma7VyOrxIcMHEZPmt4kfquccqfBMrpNrdryMHgk3oGQi7XtpZacltnw==
 
-"@types/cheerio@*":
-  version "0.22.31"
-  resolved "https://registry.yarnpkg.com/@types/cheerio/-/cheerio-0.22.31.tgz#b8538100653d6bb1b08a1e46dec75b4f2a5d5eb6"
-  integrity sha512-Kt7Cdjjdi2XWSfrZ53v4Of0wG3ZcmaegFXjMmz9tfNrZSkzzo36G0AL1YqSdcIA78Etjt6E609pt5h1xnQkPUw==
-  dependencies:
-    "@types/node" "*"
-
 "@types/debug@^4.0.0":
   version "4.1.7"
   resolved "https://registry.yarnpkg.com/@types/debug/-/debug-4.1.7.tgz#7cc0ea761509124709b8b2d1090d8f6c17aadb82"
@@ -3062,21 +3055,6 @@
   version "1.0.11"
   resolved "https://registry.yarnpkg.com/@types/dom-mediacapture-record/-/dom-mediacapture-record-1.0.11.tgz#f61b17e6131d76629d4039b02634c7e786b82c3a"
   integrity sha512-ODVOH95x08arZhbQOjH3no7Iye64akdO+55nM+IGtTzpu2ACKr9CQTrI//CCVieIjlI/eL+rK1hQjMycxIgylQ==
-
-"@types/enzyme-adapter-react-16@1.0.5":
-  version "1.0.5"
-  resolved "https://registry.yarnpkg.com/@types/enzyme-adapter-react-16/-/enzyme-adapter-react-16-1.0.5.tgz#1bf30a166f49be69eeda4b81e3f24113c8b4e9d5"
-  integrity sha512-K7HLFTkBDN5RyRmU90JuYt8OWEY2iKUn43SDWEoBOXd/PowUWjLZ3Q6qMBiQuZeFYK/TOstaZxsnI0fXoAfLpg==
-  dependencies:
-    "@types/enzyme" "*"
-
-"@types/enzyme@*":
-  version "3.10.12"
-  resolved "https://registry.yarnpkg.com/@types/enzyme/-/enzyme-3.10.12.tgz#ac4494801b38188935580642f772ad18f72c132f"
-  integrity sha512-xryQlOEIe1TduDWAOphR0ihfebKFSWOXpIsk+70JskCfRfW+xALdnJ0r1ZOTo85F9Qsjk6vtlU7edTYHbls9tA==
-  dependencies:
-    "@types/cheerio" "*"
-    "@types/react" "*"
 
 "@types/eslint@^7.2.13":
   version "7.29.0"
@@ -9070,13 +9048,6 @@ react-select@^5.2.2:
     memoize-one "^5.0.0"
     prop-types "^15.6.0"
     react-transition-group "^4.3.0"
-
-react-simple-timefield@^3.2.5:
-  version "3.2.5"
-  resolved "https://registry.yarnpkg.com/react-simple-timefield/-/react-simple-timefield-3.2.5.tgz#9a456c195664c070d1a71065b0c39dab7ac9da32"
-  integrity sha512-Sw7C/AS8PyeRzKnVvsF6r64urj8dhWeo2nlek/oxrNqzgadplepucE/SFw8blp3g4DXme6SQsTMNPUEwL2/L5g==
-  dependencies:
-    "@types/enzyme-adapter-react-16" "1.0.5"
 
 react-sizeme@^2.2.0:
   version "2.6.12"
