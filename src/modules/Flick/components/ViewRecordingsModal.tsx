@@ -11,7 +11,7 @@ import {
   BlockFragment,
   Fragment_Type_Enum_Enum,
 } from '../../../generated/graphql'
-import { Block, SimpleAST } from '../editor/utils/utils'
+import { SimpleAST } from '../editor/utils/utils'
 import { newFlickStore } from '../store/flickNew.store'
 import { useGetHW } from './BlockPreview'
 import { FragmentTypeIcon } from './LayoutGeneric'
@@ -29,7 +29,7 @@ const ViewRecordingsModal = ({
 }) => {
   const { flick, activeFragmentId } = useRecoilValue(newFlickStore)
 
-  const { fragment, blocks } = useMemo(() => {
+  const { fragment, blocks, groupedBlocks } = useMemo(() => {
     const fragment = flick?.fragments.find((f) => f.id === activeFragmentId)
     const blockIds = fragment?.blocks?.map((b) => b.id)
     const blocks: BlockFragment[] = []
@@ -41,16 +41,39 @@ const ViewRecordingsModal = ({
           blocks.push(block)
         }
       })
+
+    // group blocks by objectUrl
+    const groupedBlocks = blocks?.reduce((acc, curr) => {
+      const { objectUrl } = curr
+      if (!objectUrl) return acc
+      if (!acc[objectUrl]) {
+        acc[objectUrl] = []
+      }
+      acc[objectUrl].push(curr)
+      return acc
+    }, {} as { [key: string]: BlockFragment[] })
+
     return {
       fragment,
       blocks,
+      groupedBlocks,
     }
   }, [activeFragmentId])
 
   const totalTime = useMemo(() => {
-    const totalTime = blocks?.reduce((acc, block) => {
-      const { playbackDuration } = block
-      return acc + (playbackDuration || 0)
+    const totalTime = Object.keys(groupedBlocks).reduce((acc, key) => {
+      let sum = acc
+      groupedBlocks[key].forEach((b, index) => {
+        if (index === 0) {
+          sum += b.playbackDuration || 0
+        } else {
+          sum += b.playbackDuration || 0
+          groupedBlocks[key].slice(0, index).forEach((b) => {
+            sum -= b.playbackDuration || 0
+          })
+        }
+      })
+      return sum
     }, 0)
     return totalTime
   }, [blocks])
@@ -58,17 +81,43 @@ const ViewRecordingsModal = ({
   const [selectedBlockId, setSelectedBlockId] = useState<string>()
 
   const elapsedTime = useMemo(() => {
-    const selectedBlockIndex = blocks?.findIndex(
-      (b) => b.id === selectedBlockId
+    const selectedBlockIndex = Object.keys(groupedBlocks).findIndex(
+      (key) => groupedBlocks[key][0].id === selectedBlockId
     )
+
     if (selectedBlockIndex === -1) return 0
-    const elapsedTime = blocks
-      ?.slice(0, selectedBlockIndex)
-      .reduce((acc, block) => {
-        const { playbackDuration } = block
-        return acc + (playbackDuration || 0)
+    const elapsedTime = Object.keys(groupedBlocks)
+      .slice(0, selectedBlockIndex)
+      .reduce((acc, key) => {
+        let sum = acc
+        groupedBlocks[key].forEach((b, index) => {
+          if (index === 0) {
+            sum += b.playbackDuration || 0
+          } else {
+            sum += b.playbackDuration || 0
+            groupedBlocks[key].slice(0, index).forEach((b) => {
+              sum -= b.playbackDuration || 0
+            })
+          }
+        })
+        return sum
       }, 0)
     return elapsedTime
+  }, [selectedBlockId])
+
+  const largestDuration = useMemo(() => {
+    let largestDuration = 0
+    Object.keys(groupedBlocks).forEach((key) => {
+      const lastBlock = groupedBlocks[key][groupedBlocks[key].length - 1]
+      if (
+        lastBlock.playbackDuration &&
+        lastBlock.playbackDuration > largestDuration
+      ) {
+        largestDuration = lastBlock.playbackDuration
+      }
+    }, 0)
+
+    return largestDuration
   }, [selectedBlockId])
 
   const getMinuteAndSecondsFromSeconds = (s: number) => {
@@ -107,7 +156,7 @@ const ViewRecordingsModal = ({
   const [currentTime, setCurrentTime] = useState(0)
 
   videoRef.current?.addEventListener('timeupdate', () => {
-    const ct = Math.ceil(videoRef.current?.currentTime || 0)
+    const ct = Math.round(videoRef.current?.currentTime || 0)
     setCurrentTime(ct)
   })
 
@@ -194,19 +243,18 @@ const ViewRecordingsModal = ({
           </div>
         </div>
         <div className="flex items-center mt-auto bg-gray-100 p-4 gap-x-2">
-          {simpleAST?.blocks
-            .filter((b) => blocks?.map((b) => b.id)?.includes(b.id))
-            .map((b) => {
-              return (
-                <BlockTile
-                  key={b.id}
-                  block={blocks?.find((block) => block.id === b.id)}
-                  selectedBlockId={selectedBlockId}
-                  setSelectedBlockId={setSelectedBlockId}
-                  blockType={b.type}
-                />
-              )
-            })}
+          {Object.keys(groupedBlocks).map((objectUrl) => {
+            return (
+              <BlockTile
+                key={objectUrl}
+                groupedBlocks={groupedBlocks[objectUrl]}
+                selectedBlockId={selectedBlockId}
+                setSelectedBlockId={setSelectedBlockId}
+                simpleAST={simpleAST}
+                largestDuration={largestDuration}
+              />
+            )
+          })}
         </div>
       </div>
     </Modal>
@@ -214,36 +262,76 @@ const ViewRecordingsModal = ({
 }
 
 const BlockTile = ({
-  block,
   selectedBlockId,
   setSelectedBlockId,
-  blockType,
+  groupedBlocks,
+  simpleAST,
+  largestDuration,
 }: {
-  block: BlockFragment | undefined
   selectedBlockId: string | undefined
   setSelectedBlockId: React.Dispatch<React.SetStateAction<string | undefined>>
-  blockType: Block['type']
+  groupedBlocks: BlockFragment[]
+  simpleAST: SimpleAST | undefined
+  largestDuration: number
 }) => {
-  if (!block) return null
+  const { widthByDuration, noOfImages } = useMemo(() => {
+    const width =
+      ((groupedBlocks[groupedBlocks.length - 1].playbackDuration || 0) /
+        largestDuration) *
+      100 *
+      2
+    const noOfImages = Math.ceil(width / 85)
+    return {
+      widthByDuration: width,
+      noOfImages,
+    }
+  }, [])
 
   return (
     <button
       type="button"
+      style={{
+        height: '56px',
+        width: `${widthByDuration}px`,
+      }}
       className={cx(
-        'flex border border-gray-300 ring-offset-2 bg-gray-100 items-center justify-center w-24 h-12 p-2 m-1 rounded-md cursor-pointer',
+        'flex border border-gray-300 ring-offset-2 bg-white items-center m-1 rounded-sm cursor-pointer overflow-hidden py-px px-1 gap-x-1',
         {
-          'border-brand': selectedBlockId === block.id,
+          'border-brand': selectedBlockId === groupedBlocks[0].id,
+          'justify-center': !groupedBlocks[0].thumbnail,
         }
       )}
       onClick={() => {
-        setSelectedBlockId(block.id)
+        setSelectedBlockId(groupedBlocks[0].id)
       }}
     >
-      {block.thumbnail ? (
-        <img alt="block" src={config.storage.baseUrl + block.thumbnail} />
-      ) : (
-        <FragmentTypeIcon type={blockType} />
-      )}
+      <>
+        {groupedBlocks[0].thumbnail ? (
+          [...Array(noOfImages).keys()].map(() => (
+            <div
+              className="rounded-none flex-shrink-0"
+              style={{
+                height: '48px',
+                width: '85.33px',
+                backgroundImage: `url(${
+                  config.storage.baseUrl + groupedBlocks[0].thumbnail
+                })`,
+                backgroundSize: 'cover',
+                backgroundRepeat: 'repeat-x',
+              }}
+            />
+          ))
+        ) : (
+          <div className="p-1">
+            <FragmentTypeIcon
+              type={
+                simpleAST?.blocks.find((b) => b.id === groupedBlocks[0].id)
+                  ?.type || 'composedBlock'
+              }
+            />
+          </div>
+        )}
+      </>
     </button>
   )
 }
