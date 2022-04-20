@@ -87,6 +87,7 @@ const Preload = ({
       (recording) => recording.type === requiredType
     )
     console.log('Current recording is :', recording)
+    // let blockGroups: any = []
     if (recording) {
       const { data: recordedBlocks } = await getRecordedBlocks({
         variables: {
@@ -101,10 +102,12 @@ const Preload = ({
       return
     }
     const { data } = await setupRecording({ variables })
+
     setStudio((prev) => ({
       ...prev,
       recordingId: data?.StartRecording?.recordingId || '',
       recordedBlocks: [],
+      // blockGroups,
     }))
   }
 
@@ -168,6 +171,12 @@ const preload = async ({
     editorState: fragment.editorState,
     viewConfig: fragment.configuration?.blocks,
   })
+
+  // set if continue is enabled
+  setStudio((prev) => ({
+    ...prev,
+    continuousRecording: fragment.configuration.continuousRecording,
+  }))
 
   const promises: Promise<{
     key: string

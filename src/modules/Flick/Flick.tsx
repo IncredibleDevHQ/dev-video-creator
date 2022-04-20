@@ -55,6 +55,8 @@ const initialConfig: ViewConfig = {
   speakers: [],
   mode: 'Landscape',
   blocks: {},
+  selectedBlocks: [],
+  continuousRecording: false,
 }
 
 const initialAST: SimpleAST = {
@@ -851,6 +853,7 @@ const Flick = () => {
               persistentTimeline={false}
               shouldScrollToCurrentBlock
               config={viewConfig}
+              setConfig={setViewConfig}
             />
           </div>
         </div>
