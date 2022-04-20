@@ -274,16 +274,28 @@ const BlockTile = ({
   simpleAST: SimpleAST | undefined
   largestDuration: number
 }) => {
-  const { widthByDuration, noOfImages } = useMemo(() => {
+  const { widthByDuration, noOfImages, isStaticWidth } = useMemo(() => {
     const width =
       ((groupedBlocks[groupedBlocks.length - 1].playbackDuration || 0) /
         largestDuration) *
       100 *
       2
-    const noOfImages = Math.ceil(width / 85)
+    let noOfImages = width / 85
+    let isStaticWidth = true
+
+    if (noOfImages % 1 > 0.9) {
+      noOfImages = Math.ceil(noOfImages)
+      isStaticWidth = true
+    } else if (noOfImages % 1 > 0.3) {
+      noOfImages = Math.ceil(noOfImages)
+      isStaticWidth = false
+    } else {
+      noOfImages = Math.floor(noOfImages)
+    }
     return {
       widthByDuration: width,
       noOfImages,
+      isStaticWidth,
     }
   }, [])
 
@@ -292,7 +304,7 @@ const BlockTile = ({
       type="button"
       style={{
         height: '56px',
-        width: `${widthByDuration}px`,
+        width: `${isStaticWidth ? 95 : widthByDuration}px`,
       }}
       className={cx(
         'flex border border-gray-300 ring-offset-2 bg-white items-center m-1 rounded-sm cursor-pointer overflow-hidden py-px px-1 gap-x-1',
