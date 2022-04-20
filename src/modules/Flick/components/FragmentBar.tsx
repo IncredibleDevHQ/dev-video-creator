@@ -5,6 +5,7 @@ import { css, cx } from '@emotion/css'
 import React, { HTMLAttributes, useEffect, useRef, useState } from 'react'
 import { BiCheck } from 'react-icons/bi'
 import { BsCloudCheck, BsCloudUpload } from 'react-icons/bs'
+import { HiOutlineUpload } from 'react-icons/hi'
 import {
   IoAlbumsOutline,
   IoCheckmark,
@@ -44,6 +45,7 @@ import { TextEditorParser } from '../editor/utils/helpers'
 import { Block, SimpleAST } from '../editor/utils/utils'
 import { newFlickStore, View } from '../store/flickNew.store'
 import RecordingModal from './RecordingModal'
+import ViewRecordingsModal from './ViewRecordingsModal'
 
 const HorizontalContainer = ({
   className,
@@ -243,6 +245,7 @@ const FragmentBar = ({
   simpleAST,
   currentBlock,
   setCurrentBlock,
+  togglePublishModal,
 }: {
   editorValue?: string
   config: ViewConfig
@@ -250,12 +253,14 @@ const FragmentBar = ({
   setViewConfig: React.Dispatch<React.SetStateAction<ViewConfig>>
   currentBlock: Block | undefined
   setCurrentBlock: React.Dispatch<React.SetStateAction<Block | undefined>>
+  togglePublishModal: () => void
 }) => {
   const [fragmentVideoModal, setFragmentVideoModal] = useState(false)
   const [themesModal, setThemesModal] = useState(false)
   const [brandingModal, setBrandingModal] = useState(false)
   const [thumbnailModal, setThumbnailModal] = useState(false)
   const [recordingModal, setRecordingModal] = useState(false)
+  const [viewRecordingModal, setViewRecordingModal] = useState(false)
 
   const [
     { flick, activeFragmentId, view, themes, activeTheme },
@@ -581,6 +586,19 @@ const FragmentBar = ({
             size="small"
             type="button"
             className="mx-1"
+            icon={IoPlayOutline}
+            iconSize={20}
+            onClick={() => {
+              setViewRecordingModal(true)
+            }}
+          >
+            <Text className="text-sm text-gray-100 font-main">Recording</Text>
+          </Button>
+          <Button
+            appearance="none"
+            size="small"
+            type="button"
+            className="mx-1"
             icon={IoImageOutline}
             iconSize={20}
             onClick={() => {
@@ -590,7 +608,17 @@ const FragmentBar = ({
             <Text className="text-sm text-gray-100 font-main">Thumbnail</Text>
           </Button>
         </div>
-        <div className="flex items-stretch justify-end py-2 pl-4 border-l-2 border-brand-grey text-gray-400">
+        <div className="flex items-center gap-x-3 justify-end py-2 pl-4 border-l-2 border-brand-grey text-gray-400">
+          <Button
+            appearance="gray"
+            type="button"
+            onClick={togglePublishModal}
+            size="small"
+            icon={HiOutlineUpload}
+            iconSize={20}
+          >
+            Publish
+          </Button>
           <Button
             appearance="primary"
             size="small"
@@ -604,7 +632,7 @@ const FragmentBar = ({
               history.push(`/${activeFragmentId}/studio`)
             }}
           >
-            {checkHasContent(fragment, mode) ? 'Retake' : 'Record'}
+            Record
           </Button>
         </div>
       </div>
@@ -645,6 +673,15 @@ const FragmentBar = ({
           handleClose={() => {
             setRecordingModal(false)
           }}
+        />
+      )}
+      {viewRecordingModal && (
+        <ViewRecordingsModal
+          open={viewRecordingModal}
+          handleClose={() => {
+            setViewRecordingModal(false)
+          }}
+          simpleAST={simpleAST}
         />
       )}
     </div>
