@@ -15,6 +15,7 @@ export interface OutroConfig {
   textWidth: number
   textHeight: number
   textFontSize: number
+  textFontStyle?: string
   socialX: number
   socialY: number
   socialHandlesFontSize: number
@@ -540,6 +541,93 @@ export const getOutroConfig = ({
               logoHeight: 32,
             }
         }
+      case 'DevsForUkraine':
+        switch (layout) {
+          case 'classic':
+            return {
+              layoutX: 0,
+              layoutY: 0,
+              layoutWidth: 960,
+              layoutHeight: 540,
+              layoutBorderRadius: 0,
+              textX: 284,
+              textY: 200,
+              textWidth: 400,
+              textHeight: 160,
+              textFontSize: 64,
+              textFontStyle: 'bold',
+              socialX: 316,
+              socialY: 374,
+              socialHandlesFontSize: 16,
+              logoX: 464,
+              logoY: 159,
+              logoWidth: 0,
+              logoHeight: 0,
+            }
+          case 'float-full-right':
+            return {
+              layoutX: 0,
+              layoutY: 40,
+              layoutWidth: 960,
+              layoutHeight: 460,
+              layoutBorderRadius: 0,
+              textX: 64,
+              textY: 160,
+              textWidth: 316,
+              textHeight: 160,
+              textFontSize: 56,
+              textFontStyle: 'bold',
+              socialX: 72,
+              socialY: 180,
+              socialHandlesFontSize: 16,
+              logoX: 360,
+              logoY: 210,
+              logoWidth: 0,
+              logoHeight: 0,
+              userMediaLayout: 'padded-split',
+            }
+          case 'split-without-media':
+            return {
+              layoutX: 0,
+              layoutY: 0,
+              layoutWidth: 960,
+              layoutHeight: 540,
+              layoutBorderRadius: 0,
+              textX: 64,
+              textY: 200,
+              textWidth: 316,
+              textHeight: 160,
+              textFontSize: 56,
+              textFontStyle: 'bold',
+              socialX: 72,
+              socialY: 220,
+              socialHandlesFontSize: 16,
+              logoX: 360,
+              logoY: 210,
+              logoWidth: 0,
+              logoHeight: 0,
+            }
+          default:
+            return {
+              layoutX: 0,
+              layoutY: 0,
+              layoutWidth: 960,
+              layoutHeight: 540,
+              layoutBorderRadius: 0,
+              textX: 16,
+              textY: 235,
+              textWidth: 928,
+              textHeight: 57,
+              textFontSize: 48,
+              socialX: 316,
+              socialY: 326,
+              socialHandlesFontSize: 16,
+              logoX: 464,
+              logoY: 159,
+              logoWidth: 32,
+              logoHeight: 32,
+            }
+        }
       default:
         return {
           layoutX: 72,
@@ -757,6 +845,7 @@ export const getOutroConfig = ({
       }
     case 'LambdaTest':
     case 'LeeRob':
+    case 'DevsForUkraine':
       switch (layout) {
         case 'classic':
           return {

@@ -344,28 +344,35 @@ const FragmentBar = ({
             brandingId: useBranding ? brandingId : undefined,
           },
         })
-        if (flick)
+        if (flick) {
           setFlickStore((store) => ({
             ...store,
-            flick: {
-              ...flick,
-              useBranding,
-              brandingId: useBranding ? brandingId : undefined,
-              branding: useBranding
-                ? brandingData?.Branding.find((b) => b.id === brandingId)
-                : null,
-              fragments: flick.fragments.map((f) =>
-                f.id === activeFragmentId
-                  ? {
-                      ...f,
-                      configuration: config,
-                      editorState: simpleAST,
-                      encodedEditorValue,
-                    }
-                  : f
-              ),
-            },
+            flick: store.flick
+              ? {
+                  ...store.flick,
+                  useBranding,
+                  brandingId: useBranding ? brandingId : undefined,
+                  branding: useBranding
+                    ? brandingData?.Branding.find((b) => b.id === brandingId)
+                    : null,
+                  fragments: flick.fragments.map((f) =>
+                    f.id === activeFragmentId
+                      ? {
+                          ...f,
+                          flick: {
+                            ...f.flick,
+                            name: flick.name,
+                          },
+                          configuration: config,
+                          editorState: simpleAST,
+                          encodedEditorValue,
+                        }
+                      : f
+                  ),
+                }
+              : null,
           }))
+        }
       }
     } catch (error) {
       emitToast({
