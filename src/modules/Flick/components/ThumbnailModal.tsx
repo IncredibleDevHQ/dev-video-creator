@@ -22,7 +22,10 @@ import {
 } from 'recoil'
 import { useDebouncedCallback } from 'use-debounce'
 import { Button, emitToast, Heading, Text } from '../../../components'
-import { useUpdateThumbnailMutation } from '../../../generated/graphql'
+import {
+  useUpdateThumbnailMutation,
+  useUpdateThumbnailObjectMutation,
+} from '../../../generated/graphql'
 import { useUploadFile } from '../../../hooks'
 import { userState } from '../../../stores/user.store'
 import {
@@ -65,9 +68,11 @@ type ThumbnailProps = IntroBlockViewProps & { layout: Layout }
 const ThumbnailModal = ({
   open,
   handleClose,
+  isPublishFlow,
 }: {
   open: boolean
-  handleClose: () => void
+  handleClose: (thumbnailObject?: string) => void
+  isPublishFlow?: boolean
 }) => {
   Konva.pixelRatio = 2
   const stageRef = useRef<Konva.Stage>(null)
@@ -81,20 +86,52 @@ const ThumbnailModal = ({
     heading: '',
     name: '',
     designation: '',
-    layout: 'bottom-right-tile',
     organization: '',
     displayPicture: user?.picture || undefined,
+    ...(JSON.parse(
+      localStorage.getItem('thumbnailConfig') || '{}'
+    ) as ThumbnailProps),
+    layout: 'bottom-right-tile',
   })
 
   const [{ flick, activeFragmentId }, setStore] = useRecoilState(newFlickStore)
   const fragment = flick?.fragments.find((f) => f.id === activeFragmentId)
   const [updatingThumbnail, setUpdatingThumbnail] = useState(false)
   const [updateThumbnail] = useUpdateThumbnailMutation()
+  const [updateThumbnailObject] = useUpdateThumbnailObjectMutation()
 
   const initialLoad = useRef<boolean>(true)
   const debounced = useDebouncedCallback(() => {
     updateConfig()
   }, 400)
+
+  const [uploadFile] = useUploadFile()
+  const [uploading, setUploading] = useState(false)
+
+  const uploadAndContinue = async (dataURL: string) => {
+    setUploading(true)
+    try {
+      const blob = await fetch(dataURL).then((r) => r.blob())
+      const { uuid } = await uploadFile({
+        extension: 'png',
+        file: blob,
+      })
+      await updateThumbnailObject({
+        variables: {
+          id: activeFragmentId,
+          thumbnailObject: uuid,
+        },
+      })
+      handleClose(uuid)
+    } catch (e) {
+      emitToast({
+        type: 'error',
+        title: 'Failed to upload file',
+      })
+    } finally {
+      setUploading(false)
+    }
+  }
 
   const updateConfig = async () => {
     setUpdatingThumbnail(true)
@@ -139,6 +176,15 @@ const ThumbnailModal = ({
       initialLoad.current = false
       return
     }
+    localStorage.setItem(
+      'thumbnailConfig',
+      JSON.stringify({
+        designation: thumbnailConfig.designation,
+        displayPicture: thumbnailConfig.displayPicture,
+        name: thumbnailConfig.name,
+        organization: thumbnailConfig.organization,
+      } as ThumbnailProps)
+    )
     debounced()
   }, [thumbnailConfig])
 
@@ -166,6 +212,10 @@ const ThumbnailModal = ({
       onClose={() => {
         handleClose()
       }}
+      onOverlayClick={() => {
+        if (!isPublishFlow) handleClose()
+      }}
+      closeOnOverlayClick={!isPublishFlow}
       center
       styles={{
         modal: {
@@ -173,6 +223,11 @@ const ThumbnailModal = ({
           maxHeight: '90vh',
           maxWidth: '90%',
           padding: 0,
+        },
+        overlay: {
+          backgroundColor: isPublishFlow
+            ? 'rgba(0, 0, 0, 0)'
+            : 'rgba(0, 0, 0, 0.5)',
         },
       }}
       classNames={{
@@ -185,6 +240,7 @@ const ThumbnailModal = ({
         closeButton: css`
           svg {
             fill: #000000;
+            padding: 0.3rem;
           }
         `,
       }}
@@ -194,7 +250,10 @@ const ThumbnailModal = ({
         <div>
           <div className="flex justify-between items-center pl-4 pr-2 py-2">
             <div className="flex items-center gap-x-4">
-              <Heading>Thumbnail</Heading>
+              <Heading>
+                {/* {isPublishFlow ? 'Publish > Thumbnail' : ' Thumbnail'} */}
+                Thumbnail
+              </Heading>
               {updatingThumbnail ? (
                 <div className="flex items-center mt-px mr-4 text-gray-400">
                   <BsCloudUpload className="mr-1" />
@@ -207,19 +266,59 @@ const ThumbnailModal = ({
                 </div>
               )}
             </div>
-            <Button
-              appearance="none"
-              type="button"
-              icon={HiOutlineDownload}
-              iconSize={20}
-              onClick={() => {
-                if (!stageRef.current) return
-                const dataURL = stageRef.current.toDataURL({
-                  pixelRatio: 1920 / width,
-                })
-                saveAs(dataURL, 'thumbnail.png')
-              }}
-            />
+
+            {!isPublishFlow ? (
+              <Button
+                appearance="none"
+                type="button"
+                icon={HiOutlineDownload}
+                iconSize={20}
+                onClick={() => {
+                  if (!stageRef.current) return
+                  const dataURL = stageRef.current.toDataURL({
+                    pixelRatio: 1920 / width,
+                  })
+                  saveAs(dataURL, 'thumbnail.png')
+                }}
+              />
+            ) : (
+              <div className="flex items-center">
+                <Button
+                  type="button"
+                  appearance="none"
+                  onClick={() => {
+                    handleClose()
+                  }}
+                >
+                  <Text className="text-sm font-body text-gray-500">
+                    Cancel
+                  </Text>
+                </Button>
+                <Button
+                  appearance="primary"
+                  type="button"
+                  size="small"
+                  onClick={() => {
+                    if (!stageRef.current) return
+                    uploadAndContinue(
+                      stageRef.current.toDataURL({
+                        pixelRatio: 1920 / width,
+                      })
+                    )
+                  }}
+                  disabled={uploading}
+                >
+                  {uploading ? (
+                    <div className="flex items-center">
+                      <FiLoader className="mr-1.5 animate-spin" />
+                      Uploading
+                    </div>
+                  ) : (
+                    'Continue'
+                  )}
+                </Button>
+              </div>
+            )}
           </div>
           <hr className="w-full h-0.5 bg-gray-300" />
         </div>

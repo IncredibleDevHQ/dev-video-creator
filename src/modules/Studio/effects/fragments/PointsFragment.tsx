@@ -90,7 +90,7 @@ const PointsFragment = ({
     usePoint()
 
   // ref to the object grp
-  const [titleNumberOfLines, setTitleNumberOfLines] = useState<number>(0)
+  const [noOfLinesOfTitle, setNoOfLinesOfTitle] = useState<number>(0)
 
   const customLayoutRef = useRef<Konva.Group>(null)
 
@@ -117,6 +117,7 @@ const PointsFragment = ({
   const [viewStyle, setViewStyle] = useState<ListViewStyle>('bullet')
   const [appearance, setAppearance] = useState<ListAppearance>('stack')
   const [orientation, setOrientation] = useState<ListOrientation>('vertical')
+  const [shouldDisplayTitle, setShouldDisplayTitle] = useState(true)
   // used for the replace mode
   const [titleY, setTitleY] = useState<number>(0)
 
@@ -164,6 +165,8 @@ const PointsFragment = ({
       setAppearance(listBlockViewProps?.appearance)
     if (listBlockViewProps?.orientation)
       setOrientation(listBlockViewProps?.orientation)
+    if (listBlockViewProps?.displayTitle !== undefined)
+      setShouldDisplayTitle(listBlockViewProps?.displayTitle)
   }, [dataConfig, shortsMode, viewConfig, theme])
 
   useEffect(() => {
@@ -183,20 +186,25 @@ const PointsFragment = ({
 
   useEffect(() => {
     if (points.length === 0) return
-    const noOflinesOfTitle = getNoOfLinesOfText({
-      text: dataConfig.listBlock.title || '',
+    const listBlockViewProps: ListBlockViewProps = (
+      viewConfig?.view as ListBlockView
+    )?.list
+    const tempNoOfLinesOfTitle = getNoOfLinesOfText({
+      text: listBlockViewProps.displayTitle
+        ? dataConfig.listBlock.title || ''
+        : '',
       availableWidth: objectRenderConfig.availableWidth - 80,
       fontSize: 40,
       fontFamily: branding?.font?.heading?.family || 'Gilroy',
       fontStyle: 'normal 800',
     })
-    setTitleNumberOfLines(noOflinesOfTitle)
+    setNoOfLinesOfTitle(tempNoOfLinesOfTitle)
     setComputedPoints(
       initUsePoint({
         points,
         availableWidth: objectRenderConfig.availableWidth - 110,
         availableHeight:
-          objectRenderConfig.availableHeight - 32 - 50 * noOflinesOfTitle,
+          objectRenderConfig.availableHeight - 32 - 50 * tempNoOfLinesOfTitle,
         gutter: 25,
         fontSize: 16,
         fontFamily: branding?.font?.body?.family || 'Inter',
@@ -330,7 +338,7 @@ const PointsFragment = ({
         }
         width={objectRenderConfig.availableWidth - 80}
         lineHeight={1.15}
-        text={dataConfig.listBlock.title || ''}
+        text={shouldDisplayTitle ? dataConfig.listBlock.title || '' : ''}
         fontStyle="normal 800"
         fontFamily={branding?.font?.heading?.family || 'Gilroy'}
       />
@@ -338,14 +346,14 @@ const PointsFragment = ({
         <Group
           x={objectRenderConfig.startX + 50}
           y={
-            dataConfig?.listBlock?.title === undefined
+            dataConfig?.listBlock?.title === undefined || !shouldDisplayTitle
               ? objectRenderConfig.startY + 32
               : appearance !== 'replace'
-              ? objectRenderConfig.startY + 32 + 50 * titleNumberOfLines
+              ? objectRenderConfig.startY + 32 + 50 * noOfLinesOfTitle
               : objectRenderConfig.startY +
                 titleY +
                 8 +
-                40 * titleNumberOfLines +
+                40 * noOfLinesOfTitle +
                 20
           }
           key="verticalGroup"
@@ -783,9 +791,11 @@ const PointsFragment = ({
         <Group
           x={objectRenderConfig.startX}
           y={
-            appearance !== 'replace' || isPreview
-              ? objectRenderConfig.startY + 50 * titleNumberOfLines
-              : titleY + 50 * titleNumberOfLines + 20
+            shouldDisplayTitle
+              ? appearance !== 'replace' || isPreview
+                ? objectRenderConfig.startY + 50 * noOfLinesOfTitle
+                : titleY + 50 * noOfLinesOfTitle + 20
+              : objectRenderConfig.startY + 50
           }
           key="horizontalGroup"
         >

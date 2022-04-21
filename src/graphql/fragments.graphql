@@ -10,6 +10,14 @@ fragment SimpleFragment on Fragment {
   type
 }
 
+fragment Block on Blocks {
+  id
+  objectUrl
+  recordingId
+  thumbnail
+  playbackDuration
+}
+
 fragment FlickFragment on Fragment {
   configuration
   description
@@ -24,8 +32,13 @@ fragment FlickFragment on Fragment {
   editorValue
   encodedEditorValue
   thumbnailConfig
+  thumbnailObject
+  publishConfig
   participants {
     ...FragmentParticipant
+  }
+  blocks {
+    ...Block
   }
   flick {
     name
@@ -441,5 +454,37 @@ mutation UpdateThumbnail($id: uuid!, $thumbnailConfig: json!) {
     _set: { thumbnailConfig: $thumbnailConfig }
   ) {
     id
+  }
+}
+
+mutation UpdateThumbnailObject($id: uuid!, $thumbnailObject: String!) {
+  update_Fragment_by_pk(
+    pk_columns: { id: $id }
+    _set: { thumbnailObject: $thumbnailObject }
+  ) {
+    id
+  }
+}
+
+mutation UpdatePublish($id: uuid!, $publishConfig: json!) {
+  update_Fragment_by_pk(
+    pk_columns: { id: $id }
+    _set: { publishConfig: $publishConfig }
+  ) {
+    id
+  }
+}
+
+mutation PublishVideoAction(
+  $data: json!
+  $fragmentId: uuid!
+  $recordingId: uuid!
+) {
+  PublishVideo(
+    data: $data
+    fragmentId: $fragmentId
+    recordingId: $recordingId
+  ) {
+    success
   }
 }
