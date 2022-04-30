@@ -190,7 +190,7 @@ const PointsFragment = ({
       viewConfig?.view as ListBlockView
     )?.list
     const tempNoOfLinesOfTitle = getNoOfLinesOfText({
-      text: listBlockViewProps.displayTitle
+      text: listBlockViewProps?.displayTitle
         ? dataConfig.listBlock.title || ''
         : '',
       availableWidth: objectRenderConfig.availableWidth - 80,
