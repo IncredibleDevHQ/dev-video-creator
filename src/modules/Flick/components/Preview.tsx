@@ -1819,18 +1819,18 @@ const ListBlockModeSelector = ({
                 className={cx(
                   'border border-gray-200 h-full w-full rounded-sm p-px ',
                   {
-                    'border-gray-800': !view.list.displayTitle,
+                    'border-gray-800': !view?.list?.displayTitle,
                   }
                 )}
               >
                 <div
                   className={cx('bg-gray-100 w-full h-full p-2', {
-                    'bg-gray-200': !view.list.displayTitle,
+                    'bg-gray-200': !view?.list?.displayTitle,
                   })}
                 >
                   <div
                     className={cx('w-full h-full bg-gray-300 rounded-sm', {
-                      'bg-gray-800': !view.list.displayTitle,
+                      'bg-gray-800': !view?.list?.displayTitle,
                     })}
                   />
                 </div>
@@ -1851,7 +1851,7 @@ const ListBlockModeSelector = ({
                 className={cx(
                   'border border-gray-200 h-full w-full rounded-sm p-px ',
                   {
-                    'border-gray-800': view.list.displayTitle,
+                    'border-gray-800': view?.list?.displayTitle,
                   }
                 )}
               >
@@ -1863,7 +1863,7 @@ const ListBlockModeSelector = ({
                   className={cx(
                     'flex flex-col items-center justify-center gap-y-1 bg-gray-100 w-full h-full p-2',
                     {
-                      'bg-gray-200': view.list.displayTitle,
+                      'bg-gray-200': view?.list?.displayTitle,
                     }
                   )}
                 >
@@ -1872,7 +1872,7 @@ const ListBlockModeSelector = ({
                       borderRadius: '2px',
                     }}
                     className={cx('w-full h-full bg-gray-300', {
-                      'bg-gray-800': view.list.displayTitle,
+                      'bg-gray-800': view?.list?.displayTitle,
                     })}
                   />
                   <div className="aspect-w-1 aspect-h-1 w-full">
@@ -1881,7 +1881,7 @@ const ListBlockModeSelector = ({
                         borderRadius: '3px',
                       }}
                       className={cx('w-full h-full bg-gray-300', {
-                        'bg-gray-800': view.list.displayTitle,
+                        'bg-gray-800': view?.list?.displayTitle,
                       })}
                     />
                   </div>
