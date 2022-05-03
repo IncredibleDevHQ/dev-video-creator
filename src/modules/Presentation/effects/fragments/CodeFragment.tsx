@@ -3,18 +3,7 @@ import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
 import { useAuthState } from 'react-firebase-hooks/auth'
 import { Group } from 'react-konva'
-import { useRecoilState, useRecoilValue } from 'recoil'
-import * as gConfig from '../../../../config'
-import firebaseState from '../../../../stores/firebase.store'
-import {
-  BlockProperties,
-  CodeAnimation,
-  CodeBlockView,
-  CodeBlockViewProps,
-  CodeHighlightConfig,
-  CodeTheme,
-} from '../../../../utils/configTypes'
-import { CodeBlockProps } from '../../../Flick/editor/utils/utils'
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
 import Concourse from '../../components/Concourse'
 import FragmentBackground from '../../components/FragmentBackground'
 import RenderTokens, {
@@ -27,16 +16,27 @@ import RenderTokens, {
 } from '../../components/RenderTokens'
 import useCode, { ComputedToken } from '../../hooks/use-code'
 import useEdit from '../../hooks/use-edit'
-import { StudioProviderProps, studioStore } from '../../stores'
+import { presentationStore } from '../../stores'
+import {
+  BlockProperties,
+  CodeAnimation,
+  CodeBlockView,
+  CodeBlockViewProps,
+  CodeHighlightConfig,
+  CodeTheme,
+} from '../../utils/configTypes'
 import {
   FragmentLayoutConfig,
   ObjectConfig,
 } from '../../utils/FragmentLayoutConfig'
-import {
-  ShortsStudioUserConfiguration,
-  StudioUserConfiguration,
-} from '../../utils/StudioUserConfig'
 import { ObjectRenderConfig, ThemeLayoutConfig } from '../../utils/ThemeConfig'
+import { CodeBlockProps } from '../../utils/utils'
+import * as config from '../../../../config'
+import firebaseState from '../../../../stores/firebase.store'
+import {
+  controlsConfigStore,
+  PresentationProviderProps,
+} from '../../stores/presentation.store'
 
 export const getColorCodes = async (
   code: string,
@@ -45,7 +45,7 @@ export const getColorCodes = async (
   codeTheme: CodeTheme
 ) => {
   return axios.post(
-    gConfig.default.hasura.server,
+    config.default.hasura.server,
     {
       query: `
           query GetTokenisedCode(
@@ -126,10 +126,11 @@ const CodeFragment = ({
   shortsMode: boolean
   isPreview: boolean
 }) => {
-  const { fragment, payload, updatePayload, state, theme } =
-    (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const { codePayload, setCodePayload, theme } =
+    (useRecoilValue(presentationStore) as PresentationProviderProps) || {}
 
   const { initUseCode } = useCode()
+
   const [computedTokens, setComputedTokens] = useState<ComputedToken[][]>([[]])
   const [position, setPosition] = useState<Position>({
     prevIndex: -1,
@@ -137,7 +138,8 @@ const CodeFragment = ({
   })
   // const [focusCode, setFocusCode] = useState<boolean>(false)
 
-  const [studio, setStudio] = useRecoilState(studioStore)
+  const [studio, setStudio] = useRecoilState(presentationStore)
+  const setControlsConfig = useSetRecoilState(controlsConfigStore)
 
   // ref to the object grp
   const customLayoutRef = useRef<Konva.Group>(null)
@@ -183,13 +185,16 @@ const CodeFragment = ({
   const { auth } = useRecoilValue(firebaseState)
   const [user] = useAuthState(auth)
 
+  // const { getIdToken } = useRecoilValue(userState);
+
   const { clipRect } = useEdit()
 
   useEffect(() => {
     if (!dataConfig) return
     setColorCodes([])
     setComputedTokens([[]])
-    updatePayload?.({
+    setCodePayload?.({
+      ...codePayload,
       currentIndex: 0,
       prevIndex: -1,
       isFocus: false,
@@ -208,9 +213,6 @@ const CodeFragment = ({
     )?.code
     ;(async () => {
       const code = studio.codes?.[dataConfig.id]
-      const decodedCode = dataConfig.codeBlock.code
-        ? Buffer.from(dataConfig.codeBlock.code, 'base64').toString('utf8')
-        : undefined
 
       if (
         dataConfig.codeBlock.colorCodes &&
@@ -220,13 +222,13 @@ const CodeFragment = ({
       } else {
         try {
           if (
-            decodedCode &&
-            (code?.code !== decodedCode ||
-              codeBlockViewProps.theme !== code?.theme)
+            dataConfig.codeBlock.code &&
+            (code?.code !== dataConfig.codeBlock.code ||
+              codeBlockViewProps?.theme !== code?.theme)
           ) {
             const token = await user?.getIdToken()
             const { data } = await getColorCodes(
-              decodedCode,
+              dataConfig.codeBlock.code,
               dataConfig.codeBlock.language || '',
               token || '',
               codeBlockViewProps?.theme
@@ -238,7 +240,7 @@ const CodeFragment = ({
                 codes: {
                   ...studio.codes,
                   [dataConfig.id]: {
-                    code: decodedCode,
+                    code: dataConfig.codeBlock.code,
                     colorCode: data.data.TokenisedCode.data,
                     theme: codeBlockViewProps?.theme,
                   },
@@ -259,13 +261,6 @@ const CodeFragment = ({
     if (codeBlockViewProps?.fontSize) setFontSize(codeBlockViewProps.fontSize)
     const blocks = Object.assign([], codeBlockViewProps?.highlightSteps || [])
     blocks.unshift({ from: 0, to: 0, fileIndex: 0, lineNumbers: [] })
-    // const blocks = [
-    //   { lineNumbers: [] },
-    //   { lineNumbers: [0] },
-    //   { lineNumbers: [2, 5] },
-    //   { lineNumbers: [3, 4] },
-    //   // { lineNumbers: [3] },
-    // ]
     setBlockConfig(blocks)
   }, [dataConfig, shortsMode, viewConfig, theme, studio.codes?.[dataConfig.id]])
 
@@ -276,7 +271,6 @@ const CodeFragment = ({
   }, [objectConfig, theme])
 
   useEffect(() => {
-    if (!colorCodes) return
     if (colorCodes.length === 0) return
     setComputedTokens(
       initUseCode({
@@ -292,76 +286,55 @@ const CodeFragment = ({
   }, [colorCodes, objectRenderConfig, fontSize])
 
   useEffect(() => {
-    setStudio({
-      ...studio,
-      controlsConfig: {
-        position,
-        computedTokens: computedTokens[0],
-      },
+    setControlsConfig({
+      position,
+      computedTokens: computedTokens[0],
     })
-  }, [state, position, computedTokens])
+  }, [position, computedTokens])
 
   useEffect(() => {
     setPosition({
-      prevIndex: payload?.prevIndex,
-      currentIndex: payload?.currentIndex,
+      prevIndex: codePayload?.prevIndex,
+      currentIndex: codePayload?.currentIndex,
     })
-    // setFocusCode(payload?.isFocus)
+    // setFocusCode(codePayload?.isFocus)
     // if (codeAnimation === 'Insert in between') {
-    //   setActiveBlockIndex(payload?.activeBlockIndex)
+    //   setActiveBlockIndex(codePayload?.activeBlockIndex)
     //   setLineNumbers((oldLineNumbers) => [
     //     ...oldLineNumbers,
-    //     ...(blockConfig?.[payload?.activeBlockIndex]?.lineNumbers || []),
+    //     ...(blockConfig?.[codePayload?.activeBlockIndex]?.lineNumbers || []),
     //   ])
     // }
     if (codeAnimation === 'Highlight lines') {
-      setActiveBlockIndex(payload?.activeBlockIndex)
-      if (payload?.focusBlockCode) {
+      setActiveBlockIndex(codePayload?.activeBlockIndex)
+      if (codePayload?.focusBlockCode) {
         if (
           (computedTokens[
-            blockConfig?.[payload?.activeBlockIndex]?.fileIndex || 0
+            blockConfig?.[codePayload?.activeBlockIndex]?.fileIndex || 0
           ].find(
             (token) =>
               token.lineNumber ===
                 (blockConfig &&
-                  blockConfig[payload?.activeBlockIndex] &&
-                  blockConfig[payload?.activeBlockIndex].from) || 0
+                  blockConfig[codePayload?.activeBlockIndex] &&
+                  blockConfig[codePayload?.activeBlockIndex].from) || 0
           )?.y || 0) >
           objectRenderConfig.availableHeight / 2
         ) {
-          let valueToCenterTheHighlight = 20
-          if (
-            objectRenderConfig.availableHeight -
-              ((blockConfig?.[payload?.activeBlockIndex]?.to || 0) -
-                (blockConfig?.[payload?.activeBlockIndex]?.from || 0) +
-                // adding 1 bcoz subracting the to and from will give one line less
-                1) *
-                (fontSize + 8) >
-            0
-          ) {
-            // calculating the height of the highlighted part and subtracting it with the total available height and dividing it by 2 to place it in the center
-            valueToCenterTheHighlight =
-              objectRenderConfig.availableHeight -
-              ((blockConfig?.[payload?.activeBlockIndex]?.to || 0) -
-                (blockConfig?.[payload?.activeBlockIndex]?.from || 0) +
-                // adding 1 bcoz subracting the to and from will give one line less
-                1) *
-                (fontSize + 8)
-          }
           codeGroupRef.current?.to({
             y:
               -(
                 computedTokens[
-                  blockConfig?.[payload?.activeBlockIndex]?.fileIndex || 0
+                  blockConfig?.[codePayload?.activeBlockIndex]?.fileIndex || 0
                 ].find(
                   (token) =>
                     token.lineNumber ===
-                      blockConfig?.[payload?.activeBlockIndex]?.from || 0
+                      (blockConfig &&
+                        blockConfig[codePayload?.activeBlockIndex] &&
+                        blockConfig[codePayload?.activeBlockIndex].from) || 0
                 )?.y || 0
               ) +
-              valueToCenterTheHighlight / 2 +
-              // this is the starting y of the code block
-              objectRenderConfig.startY +
+              objectRenderConfig.availableHeight / 2 +
+              objectRenderConfig.startY -
               15,
             duration: 0.5,
             easing: Konva.Easings.EaseInOut,
@@ -373,91 +346,74 @@ const CodeFragment = ({
             easing: Konva.Easings.EaseInOut,
           })
         }
-        setHiglightBlockCode(payload?.focusBlockCode)
+        setHiglightBlockCode(codePayload?.focusBlockCode)
       } else {
-        setHiglightBlockCode(payload?.focusBlockCode)
+        setHiglightBlockCode(codePayload?.focusBlockCode)
       }
     }
-  }, [payload])
+  }, [codePayload])
 
   useEffect(() => {
-    if (state === 'ready') {
-      setPosition({
+    setPosition({
+      prevIndex: -1,
+      currentIndex: 0,
+    })
+    if (codeAnimation === 'Type lines')
+      setCodePayload?.({
+        ...codePayload,
         prevIndex: -1,
         currentIndex: 0,
+        isFocus: false,
       })
-      if (codeAnimation === 'Type lines')
-        updatePayload?.({
-          prevIndex: -1,
-          currentIndex: 0,
-          isFocus: false,
-        })
-      else
-        updatePayload?.({
-          focusBlockCode: false,
-          activeBlockIndex: 0,
-        })
-    }
-    if (state === 'recording') {
-      setPosition({
-        prevIndex: -1,
-        currentIndex: 0,
+    else
+      setCodePayload?.({
+        ...codePayload,
+        focusBlockCode: false,
+        activeBlockIndex: 0,
       })
-      if (codeAnimation === 'Type lines')
-        updatePayload?.({
-          prevIndex: -1,
-          currentIndex: 0,
-          isFocus: false,
-        })
-      else
-        updatePayload?.({
-          focusBlockCode: false,
-          activeBlockIndex: 0,
-        })
-    }
-  }, [state, codeAnimation])
+  }, [codeAnimation])
 
-  useEffect(() => {
-    // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
-    if (payload?.fragmentState === 'customLayout') {
-      if (!shortsMode)
-        setTimeout(() => {
-          setFragmentState(payload?.fragmentState)
-          customLayoutRef?.current?.to({
-            opacity: 1,
-            duration: 0.1,
-          })
-        }, 400)
-      else {
-        setFragmentState(payload?.fragmentState)
-        customLayoutRef?.current?.to({
-          opacity: 1,
-          duration: 0.1,
-        })
-      }
-    }
-    // Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
-    if (payload?.fragmentState === 'onlyUserMedia') {
-      if (!shortsMode)
-        setTimeout(() => {
-          setFragmentState(payload?.fragmentState)
-          customLayoutRef?.current?.to({
-            opacity: 0,
-            duration: 0.1,
-          })
-        }, 400)
-      else {
-        setFragmentState(payload?.fragmentState)
-        customLayoutRef?.current?.to({
-          opacity: 0,
-          duration: 0.1,
-        })
-      }
-    }
-  }, [payload?.fragmentState, payload?.status])
+  // useEffect(() => {
+  // 	// Checking if the current state is only fragment group and making the opacity of the only fragment group 1
+  // 	if (payload?.fragmentState === 'customLayout') {
+  // 		if (!shortsMode)
+  // 			setTimeout(() => {
+  // 				setFragmentState(payload?.fragmentState);
+  // 				customLayoutRef?.current?.to({
+  // 					opacity: 1,
+  // 					duration: 0.1,
+  // 				});
+  // 			}, 400);
+  // 		else {
+  // 			setFragmentState(payload?.fragmentState);
+  // 			customLayoutRef?.current?.to({
+  // 				opacity: 1,
+  // 				duration: 0.1,
+  // 			});
+  // 		}
+  // 	}
+  // 	// Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
+  // 	if (payload?.fragmentState === 'onlyUserMedia') {
+  // 		if (!shortsMode)
+  // 			setTimeout(() => {
+  // 				setFragmentState(payload?.fragmentState);
+  // 				customLayoutRef?.current?.to({
+  // 					opacity: 0,
+  // 					duration: 0.1,
+  // 				});
+  // 			}, 400);
+  // 		else {
+  // 			setFragmentState(payload?.fragmentState);
+  // 			customLayoutRef?.current?.to({
+  // 				opacity: 0,
+  // 				duration: 0.1,
+  // 			});
+  // 		}
+  // 	}
+  // }, [payload?.fragmentState, payload?.status]);
 
   const layerChildren: any[] = [
-    <Group x={0} y={0} opacity={1} ref={customLayoutRef}>
+    <Group x={0} y={0} opacity={1} ref={customLayoutRef} key={0}>
       <FragmentBackground
         theme={theme}
         objectConfig={objectConfig}
@@ -515,112 +471,27 @@ const CodeFragment = ({
                       </>
                     )}
                     {highlightBlockCode && (
-                      <>
-                        {/* <Rect
-                    x={-5}
-                    y={
-                      (computedTokens[
-                        blockConfig?.[payload?.activeBlockIndex]?.fileIndex || 0
-                      ].find(
-                        (token) =>
-                          token.lineNumber ===
-                          (blockConfig &&
-                            blockConfig[activeBlockIndex] &&
-                            blockConfig[activeBlockIndex].from)
-                      )?.y || 0) - 5
-                    }
-                    width={objectConfig.width - 40}
-                    height={
-                      (computedTokens[
-                        blockConfig?.[payload?.activeBlockIndex]?.fileIndex || 0
-                      ].find(
-                        (token) =>
-                          token.lineNumber ===
-                          (blockConfig &&
-                            blockConfig[activeBlockIndex] &&
-                            blockConfig[activeBlockIndex].to)
-                      )?.y || 0) -
-                        (computedTokens[
-                          blockConfig?.[payload?.activeBlockIndex]?.fileIndex ||
-                            0
-                        ].find(
-                          (token) =>
-                            token.lineNumber ===
+                      <Group x={40}>
+                        <RenderHighlight
+                          tokens={computedTokens[0]}
+                          startLineNumber={
                             (blockConfig &&
                               blockConfig[activeBlockIndex] &&
-                              blockConfig[activeBlockIndex].from)
-                        )?.y || 0) +
-                        codeConfig.fontSize +
-                        5 >
-                      0
-                        ? (computedTokens[
-                            blockConfig?.[payload?.activeBlockIndex]
-                              ?.fileIndex || 0
-                          ].find(
-                            (token) =>
-                              token.lineNumber ===
-                              (blockConfig &&
-                                blockConfig[activeBlockIndex] &&
-                                blockConfig[activeBlockIndex].to)
-                          )?.y || 0) -
-                          (computedTokens[
-                            blockConfig?.[payload?.activeBlockIndex]
-                              ?.fileIndex || 0
-                          ].find(
-                            (token) =>
-                              token.lineNumber ===
-                              (blockConfig &&
-                                blockConfig[activeBlockIndex] &&
-                                blockConfig[activeBlockIndex].from)
-                          )?.y || 0) +
-                          codeConfig.fontSize +
-                          10
-                        : 0
-                    }
-                    fill="#0066B8"
-                    opacity={0.3}
-                    cornerRadius={4}
-                  /> */}
-                        <Group x={40}>
-                          <RenderHighlight
-                            tokens={computedTokens[0]}
-                            startLineNumber={
-                              (blockConfig &&
-                                blockConfig[activeBlockIndex] &&
-                                blockConfig[activeBlockIndex].from) ||
-                              0
-                            }
-                            endLineNumber={
-                              (blockConfig &&
-                                blockConfig[activeBlockIndex] &&
-                                blockConfig[activeBlockIndex].to) ||
-                              0
-                            }
-                            fontSize={fontSize}
-                          />
-                        </Group>
-                      </>
+                              blockConfig[activeBlockIndex].from) ||
+                            0
+                          }
+                          endLineNumber={
+                            (blockConfig &&
+                              blockConfig[activeBlockIndex] &&
+                              blockConfig[activeBlockIndex].to) ||
+                            0
+                          }
+                          fontSize={fontSize}
+                        />
+                      </Group>
                     )}
                   </>
                 ),
-                // 'Insert in between': (
-                //   <>
-                //     <Group x={-15}>
-                //       {getSomeLineNumbers({
-                //         tokens: computedTokens[0],
-                //         lineNumbers,
-                //         fontSize,
-                //       })}
-                //     </Group>
-                //     <Group x={40}>
-                //       <RenderLines
-                //         tokens={computedTokens[0]}
-                //         lineNumbers={lineNumbers}
-                //         fontSize={fontSize}
-                //       />
-                //     </Group>
-                //   </>
-                // ),
               }[codeAnimation || 'Type lines']
             }
           </Group>
@@ -646,26 +517,11 @@ const CodeFragment = ({
     </Group>,
   ]
 
-  const studioUserConfig = !shortsMode
-    ? StudioUserConfiguration({
-        layout: viewConfig?.layout || 'classic',
-        fragment,
-        fragmentState,
-        theme,
-      })
-    : ShortsStudioUserConfiguration({
-        layout: viewConfig?.layout || 'classic',
-        fragment,
-        fragmentState,
-        theme,
-      })
-
   return (
     <Concourse
       layerChildren={layerChildren}
       viewConfig={viewConfig}
       stageRef={stageRef}
-      studioUserConfig={studioUserConfig}
       isShorts={shortsMode}
       blockType={dataConfig.type}
     />
