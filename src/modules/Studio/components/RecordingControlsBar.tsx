@@ -623,7 +623,9 @@ const performAction = (
         )
     )[payload?.activeObjectIndex]
   } else {
-    block = fragment.editorState.blocks[payload?.activeObjectIndex]
+    block = fragment.editorState.blocks.filter(
+      (b: any) => b.type !== 'interactionBlock'
+    )[payload?.activeObjectIndex]
   }
 
   switch (block.type) {

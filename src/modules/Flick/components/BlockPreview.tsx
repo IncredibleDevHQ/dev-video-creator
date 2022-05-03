@@ -459,24 +459,26 @@ const BlockPreview = ({
 
   return (
     <div className={className} {...rest}>
-      <div
-        role="button"
-        tabIndex={0}
-        onKeyDown={() => null}
-        onClick={() => {
-          logEvent(PageEvent.NotebookCanvasPreview)
-          setPreviewModal(true)
-        }}
-        className="flex flex-1 w-full h-full border-none outline-none"
-        ref={ref}
-      >
-        <CanvasPreview
-          block={block}
-          bounds={bounds}
-          shortsMode={config.mode === 'Portrait'}
-          config={config}
-        />
-      </div>
+      {block.type !== 'interactionBlock' && (
+        <div
+          role="button"
+          tabIndex={0}
+          onKeyDown={() => null}
+          onClick={() => {
+            logEvent(PageEvent.NotebookCanvasPreview)
+            setPreviewModal(true)
+          }}
+          className="flex flex-1 w-full h-full border-none outline-none"
+          ref={ref}
+        >
+          <CanvasPreview
+            block={block}
+            bounds={bounds}
+            shortsMode={config.mode === 'Portrait'}
+            config={config}
+          />
+        </div>
+      )}
       {previewModal && (
         <PreviewModal
           block={block}

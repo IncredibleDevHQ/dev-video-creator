@@ -65,11 +65,11 @@ const ViewRecordingsModal = ({
       let sum = acc
       groupedBlocks[key].forEach((b, index) => {
         if (index === 0) {
-          sum += b.playbackDuration || 0
+          sum += Math.round(b.playbackDuration || 0)
         } else {
-          sum += b.playbackDuration || 0
+          sum += Math.round(b.playbackDuration || 0)
           groupedBlocks[key].slice(0, index).forEach((b) => {
-            sum -= b.playbackDuration || 0
+            sum -= Math.round(b.playbackDuration || 0)
           })
         }
       })
@@ -92,11 +92,11 @@ const ViewRecordingsModal = ({
         let sum = acc
         groupedBlocks[key].forEach((b, index) => {
           if (index === 0) {
-            sum += b.playbackDuration || 0
+            sum += Math.round(b.playbackDuration || 0)
           } else {
-            sum += b.playbackDuration || 0
+            sum += Math.round(b.playbackDuration || 0)
             groupedBlocks[key].slice(0, index).forEach((b) => {
-              sum -= b.playbackDuration || 0
+              sum -= Math.round(b.playbackDuration || 0)
             })
           }
         })

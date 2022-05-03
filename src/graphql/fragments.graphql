@@ -368,7 +368,7 @@ mutation SaveRecordedBlock(
   $recordingId: uuid!
   $blockId: String!
   $thumbnail: String
-  $playbackDuration: Int
+  $playbackDuration: Float
 ) {
   SaveBlock(
     flickId: $flickId
@@ -391,7 +391,7 @@ mutation SaveRecordedBlock(
   $recordingId: uuid!
   $blockId: String!
   $thumbnail: String
-  $playbackDuration: Int
+  $playbackDuration: Float
 ) {
   SaveBlock(
     flickId: $flickId
