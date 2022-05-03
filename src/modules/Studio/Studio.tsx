@@ -1217,7 +1217,11 @@ const Studio = ({
         )
       )
     } else {
-      setDataConfig(fragment.editorState?.blocks)
+      setDataConfig(
+        fragment.editorState?.blocks.filter(
+          (b: any) => b.type !== 'interactionBlock'
+        )
+      )
     }
   }, [fragment])
 

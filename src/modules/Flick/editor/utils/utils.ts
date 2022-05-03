@@ -22,6 +22,17 @@ export interface CommentExplanations {
   to: number | undefined
   // code: ColorCode[] | undefined
 }
+
+export interface InteractionBlock {
+  note?: string
+  noteId?: string
+  description?: string
+  title?: string
+  url?: string
+  fallbackTitle?: string
+  interactionType?: string
+}
+
 export interface CodeBlock {
   code?: string
   colorCodes?: any
@@ -105,6 +116,11 @@ export interface CommonBlockProps {
   nodeIds?: string[]
 }
 
+export interface InteractionBlockProps extends CommonBlockProps {
+  type: 'interactionBlock'
+  interactionBlock: InteractionBlock
+}
+
 export interface CodeBlockProps extends CommonBlockProps {
   type: 'codeBlock'
   codeBlock: CodeBlock
@@ -154,6 +170,7 @@ export type Block =
   | IntroBlockProps
   | OutroBlockProps
   | ComposedBlockProps
+  | InteractionBlockProps
 
 export interface SimpleAST {
   blocks: Block[]
@@ -253,6 +270,7 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
     listBlock: 0,
     imageBlock: 0,
     headingBlock: 0,
+    interactionBlock: 0,
   }
 
   const getCommonProps = (index: number) => {
@@ -522,12 +540,53 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
       blockCount.listBlock += 1
       prevCoreBlockPos = index
       blockPosition += 1
+    } else if (slab.type === 'interaction') {
+      const url = slab?.attrs?.src
+
+      const { description, note, title, nodeIds, noteId } =
+        getCommonProps(index)
+
+      blocks.push({
+        type: 'interactionBlock',
+        id: slab.attrs?.id as string,
+        pos: blockPosition,
+        nodeIds,
+        interactionBlock: {
+          url: url as string,
+          description,
+          title,
+          fallbackTitle: title || getTypeSpecifics(slab.attrs?.type),
+          note,
+          noteId,
+          interactionType: slab.attrs?.type as string,
+        },
+      })
+
+      blockCount.listBlock += 1
+      prevCoreBlockPos = index
+      blockPosition += 1
     }
   })
 
   // console.log('blocks', blocks)
 
   return { blocks }
+}
+
+const getTypeSpecifics = (type: string): string => {
+  switch (type) {
+    case 'stackblitz':
+      return 'StackBlitz'
+
+    case 'codesandbox':
+      return 'CodeSandbox'
+
+    case 'replit':
+      return 'Replit'
+
+    default:
+      return 'CodeSandbox'
+  }
 }
 
 export const getBlockTitle = (block: Block): string => {
@@ -558,6 +617,12 @@ export const getBlockTitle = (block: Block): string => {
       return block.headingBlock.title || 'Heading Block'
     case 'outroBlock':
       return 'Outro'
+    case 'interactionBlock':
+      return (
+        block.interactionBlock.title ||
+        block.interactionBlock.fallbackTitle ||
+        'Interaction Block'
+      )
     default:
       return 'Block'
   }
