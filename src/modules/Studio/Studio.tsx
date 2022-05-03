@@ -938,7 +938,7 @@ const Studio = ({
             thumbnail: blockThumbnail,
             // TODO: Update creation meta and playbackDuration when implementing continuous recording
             blockId,
-            playbackDuration: Math.round(duration),
+            playbackDuration: duration,
           },
         })
         updateRecordedBlocks(blockId, objectUrl)

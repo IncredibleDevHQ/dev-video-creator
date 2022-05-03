@@ -342,6 +342,7 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
             'orderedList',
             'image',
             'heading',
+            'interaction',
           ].includes(node.type as string)
         )
       const noteNode = state.content
@@ -373,7 +374,8 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
             node.type === 'video' ||
             node.type === 'bulletList' ||
             node.type === 'orderedList' ||
-            node.type === 'image')
+            node.type === 'image' ||
+            node.type === 'interaction')
       )
 
       const pushBlock = () => {
@@ -562,7 +564,7 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
         },
       })
 
-      blockCount.listBlock += 1
+      blockCount.interactionBlock += 1
       prevCoreBlockPos = index
       blockPosition += 1
     }
