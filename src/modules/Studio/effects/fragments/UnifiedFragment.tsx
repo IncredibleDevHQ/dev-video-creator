@@ -130,7 +130,11 @@ const UnifiedFragment = ({
           )
           setDataConfig(localData)
         } else {
-          setDataConfig(fragment.editorState?.blocks)
+          setDataConfig(
+            fragment.editorState?.blocks.filter(
+              (b: any) => b.type !== 'interactionBlock'
+            )
+          )
         }
         console.log('UF: Fragm cofig :', fragment.configuration)
 
