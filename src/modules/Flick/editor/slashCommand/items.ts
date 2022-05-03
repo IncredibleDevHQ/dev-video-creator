@@ -5,6 +5,7 @@ export enum SuggestionItemType {
   Formatting = 'FORMATTING',
   // Elements = 'ELEMENTS',
   Blocks = 'BLOCKS',
+  Interactions = 'INTERACTIONS',
 }
 
 export interface SuggestionItem {
@@ -134,10 +135,56 @@ export const getSuggestionItems = (props: {
           editor.chain().focus().deleteRange(range).toggleBulletList().run()
         },
       },
+      {
+        title: 'CodeSandbox',
+        description: 'Embed CodeSandbox',
+        shortcut: null,
+        type: SuggestionItemType.Interactions,
+        command: ({ editor, range }) => {
+          editor
+            .chain()
+            .focus()
+            .deleteRange(range)
+            .insertContent(
+              '<interaction type="codesandbox"><p></p></interaction>'
+            )
+            .run()
+        },
+      },
+      {
+        title: 'StackBlitz',
+        description: 'Embed StackBlitz',
+        shortcut: null,
+        type: SuggestionItemType.Interactions,
+        command: ({ editor, range }) => {
+          editor
+            .chain()
+            .focus()
+            .deleteRange(range)
+            .insertContent(
+              '<interaction type="stackblitz"><p></p></interaction>'
+            )
+            .run()
+        },
+      },
+      {
+        title: 'Replit',
+        description: 'Embed Replit',
+        shortcut: null,
+        type: SuggestionItemType.Interactions,
+        command: ({ editor, range }) => {
+          editor
+            .chain()
+            .focus()
+            .deleteRange(range)
+            .insertContent('<interaction type="replit"><p></p></interaction>')
+            .run()
+        },
+      },
     ] as SuggestionItem[]
   )
     .filter((item) =>
       item.title.toLowerCase().startsWith(props.query.toLowerCase())
     )
-    .slice(0, 10)
+    .slice(0, 12)
 }

@@ -79,7 +79,7 @@ import {
   SimpleAST,
   VideoBlockProps,
 } from '../editor/utils/utils'
-import { CanvasPreview, LayoutSelector } from './BlockPreview'
+import { CanvasPreview, LayoutSelector, useGetHW } from './BlockPreview'
 import { EditorContext } from './EditorProvider'
 
 const noScrollBar = css`
@@ -335,6 +335,12 @@ const Preview = ({
     }
   }, [block])
 
+  const { height, width } = useGetHW({
+    maxH: bounds.height * 0.83,
+    maxW: bounds.width * 0.83,
+    aspectRatio: config.mode === 'Portrait' ? 9 / 16 : 16 / 9,
+  })
+
   if (!block) return null
 
   return (
@@ -386,13 +392,26 @@ const Preview = ({
           >
             <IoChevronBack />
           </button>
-          <CanvasPreview
-            block={block}
-            bounds={bounds}
-            shortsMode={config.mode === 'Portrait'}
-            config={config}
-            scale={0.83}
-          />
+          {block.type !== 'interactionBlock' && (
+            <CanvasPreview
+              block={block}
+              bounds={bounds}
+              shortsMode={config.mode === 'Portrait'}
+              config={config}
+              scale={0.83}
+            />
+          )}
+          {block.type === 'interactionBlock' && (
+            <div
+              style={{
+                height,
+                width,
+              }}
+              className="flex justify-center items-center flex-1 overflow-hidden font-body"
+            >
+              <span>Preview is unavailable for this block</span>
+            </div>
+          )}
           <button
             onClick={() => {
               if (block.type === 'introBlock') {
@@ -439,58 +458,47 @@ const Preview = ({
           </button>
         </div>
       </div>
-      <div
-        style={{
-          width: '350px',
-        }}
-        className="flex"
-      >
-        <>
-          <div
-            className={cx(
-              'bg-white w-64 flex-1 overflow-y-scroll',
-              noScrollBar
-            )}
-          >
-            {activeTab.id === introOutroBlockTabs[0].id && (
-              <div>
-                {block.type === 'introBlock' ? (
-                  <IntroContentTab
-                    view={config.blocks[block.id]?.view as IntroBlockView}
-                    updateView={(view: IntroBlockView) => {
-                      updateConfig(block.id, {
-                        ...config.blocks[block.id],
-                        view,
-                      })
-                    }}
-                  />
-                ) : (
-                  <OutroTab
-                    view={config.blocks[block.id]?.view as OutroBlockView}
-                    updateView={(view: OutroBlockView) => {
-                      updateConfig(block.id, {
-                        ...config.blocks[block.id],
-                        view,
-                      })
-                    }}
-                  />
-                )}
-              </div>
-            )}
-            {activeTab.id === introBlockTabs[0].id && (
-              <PictureTab
-                view={config.blocks[block.id]?.view as IntroBlockView}
-                updateView={(view: IntroBlockView) => {
-                  updateConfig(block.id, {
-                    ...config.blocks[block.id],
-                    view,
-                  })
-                }}
-              />
-            )}
-            {activeTab.id === introOutroBlockTabs[1].id &&
-              block.type === 'introBlock' && (
-                <SequenceTab
+      {block.type !== 'interactionBlock' && (
+        <div
+          style={{
+            width: '350px',
+          }}
+          className="flex"
+        >
+          <>
+            <div
+              className={cx(
+                'bg-white w-64 flex-1 overflow-y-scroll',
+                noScrollBar
+              )}
+            >
+              {activeTab.id === introOutroBlockTabs[0].id && (
+                <div>
+                  {block.type === 'introBlock' ? (
+                    <IntroContentTab
+                      view={config.blocks[block.id]?.view as IntroBlockView}
+                      updateView={(view: IntroBlockView) => {
+                        updateConfig(block.id, {
+                          ...config.blocks[block.id],
+                          view,
+                        })
+                      }}
+                    />
+                  ) : (
+                    <OutroTab
+                      view={config.blocks[block.id]?.view as OutroBlockView}
+                      updateView={(view: OutroBlockView) => {
+                        updateConfig(block.id, {
+                          ...config.blocks[block.id],
+                          view,
+                        })
+                      }}
+                    />
+                  )}
+                </div>
+              )}
+              {activeTab.id === introBlockTabs[0].id && (
+                <PictureTab
                   view={config.blocks[block.id]?.view as IntroBlockView}
                   updateView={(view: IntroBlockView) => {
                     updateConfig(block.id, {
@@ -500,129 +508,143 @@ const Preview = ({
                   }}
                 />
               )}
-            {activeTab.id === introOutroBlockTabs[1].id &&
-              block.type === 'outroBlock' && (
-                <OutroSequenceTab
-                  view={config.blocks[block.id]?.view as OutroBlockView}
-                  updateView={(view: OutroBlockView) => {
-                    updateConfig(block.id, {
-                      ...config.blocks[block.id],
-                      view,
-                    })
-                  }}
-                />
-              )}
-            {activeTab.id === commonTabs[0].id && (
-              <LayoutSelector
-                mode={config.mode}
-                layout={config.blocks[block.id]?.layout || allLayoutTypes[0]}
-                updateLayout={(layout: Layout) => {
-                  if (block.type === 'introBlock') {
-                    const introBlock = blocks?.find(
-                      (b) => b.type === 'introBlock'
-                    )
-                    if (introBlock) {
-                      const introBlockView = config.blocks[introBlock.id]
-                        ?.view as IntroBlockView
-
-                      const titlePos = introBlockView?.intro?.order?.findIndex(
-                        (order) => order?.state === 'titleSplash'
-                      )
-                      updatePayload?.({
-                        activeIntroIndex: titlePos || 0,
+              {activeTab.id === introOutroBlockTabs[1].id &&
+                block.type === 'introBlock' && (
+                  <SequenceTab
+                    view={config.blocks[block.id]?.view as IntroBlockView}
+                    updateView={(view: IntroBlockView) => {
+                      updateConfig(block.id, {
+                        ...config.blocks[block.id],
+                        view,
                       })
-                    }
-                  }
-                  updateConfig(block.id, {
-                    ...config.blocks[block.id],
-                    layout,
-                  })
-                }}
-                type={block.type}
-              />
-            )}
-            {activeTab.id === commonTabs[1].id && (
-              <ModeSelector
-                view={config.blocks[block.id]?.view}
-                updateView={(view: BlockView) => {
-                  updateConfig(block.id, {
-                    ...config.blocks[block.id],
-                    view,
-                  })
-                }}
-              />
-            )}
-            {activeTab.id === commonTabs[2].id && (
-              <Note
-                block={block}
-                simpleAST={simpleAST}
-                setSimpleAST={setSimpleAST}
-              />
-            )}
-            {activeTab.id === codeBlockTabs[0].id &&
-              block.type === 'codeBlock' && (
-                <CodeTextSizeTab
-                  view={config.blocks[block.id]?.view as CodeBlockView}
-                  updateView={(view: CodeBlockView) => {
-                    updateConfig(block.id, {
-                      ...config.blocks[block.id],
-                      view,
-                    })
-                  }}
-                />
-              )}
-            {activeTab.id === codeBlockTabs[1].id &&
-              block.type === 'codeBlock' && (
-                <CodeAnimateTab
-                  view={config.blocks[block.id]?.view as CodeBlockView}
-                  updateView={(view: CodeBlockView) => {
-                    updateConfig(block.id, {
-                      ...config.blocks[block.id],
-                      view,
-                    })
-                  }}
-                />
-              )}
-          </div>
-          <div
-            className="flex flex-col bg-gray-50 px-2 pt-4 gap-y-2 relative"
-            style={{
-              width: '6.75rem',
-            }}
-          >
-            {tabs
-              .filter((tab) => {
-                if (
-                  (block.type === 'outroBlock' ||
-                    block.type === 'introBlock') &&
-                  tab.id === commonTabs[1].id
-                )
-                  return false
+                    }}
+                  />
+                )}
+              {activeTab.id === introOutroBlockTabs[1].id &&
+                block.type === 'outroBlock' && (
+                  <OutroSequenceTab
+                    view={config.blocks[block.id]?.view as OutroBlockView}
+                    updateView={(view: OutroBlockView) => {
+                      updateConfig(block.id, {
+                        ...config.blocks[block.id],
+                        view,
+                      })
+                    }}
+                  />
+                )}
+              {activeTab.id === commonTabs[0].id && (
+                <LayoutSelector
+                  mode={config.mode}
+                  layout={config.blocks[block.id]?.layout || allLayoutTypes[0]}
+                  updateLayout={(layout: Layout) => {
+                    if (block.type === 'introBlock') {
+                      const introBlock = blocks?.find(
+                        (b) => b.type === 'introBlock'
+                      )
+                      if (introBlock) {
+                        const introBlockView = config.blocks[introBlock.id]
+                          ?.view as IntroBlockView
 
-                return true
-              })
-              .map((tab) => (
-                <button
-                  type="button"
-                  onClick={() => setActiveTab(tab)}
-                  className={cx(
-                    'flex flex-col items-center bg-transparent py-4 px-2 rounded-md text-gray-500 gap-y-2 transition-all',
-                    {
-                      'bg-gray-200 text-gray-800': activeTab.id === tab.id,
-                      'hover:bg-gray-100': activeTab.id !== tab.id,
+                        const titlePos =
+                          introBlockView?.intro?.order?.findIndex(
+                            (order) => order?.state === 'titleSplash'
+                          )
+                        updatePayload?.({
+                          activeIntroIndex: titlePos || 0,
+                        })
+                      }
                     }
-                  )}
-                  key={tab.id}
-                >
-                  {getIcon(tab, config.blocks[block.id])}
-                  <Text className="text-xs font-normal font-body">
-                    {tab.name}
-                  </Text>
-                </button>
-              ))}
-          </div>
-        </>
-      </div>
+                    updateConfig(block.id, {
+                      ...config.blocks[block.id],
+                      layout,
+                    })
+                  }}
+                  type={block.type}
+                />
+              )}
+              {activeTab.id === commonTabs[1].id && (
+                <ModeSelector
+                  view={config.blocks[block.id]?.view}
+                  updateView={(view: BlockView) => {
+                    updateConfig(block.id, {
+                      ...config.blocks[block.id],
+                      view,
+                    })
+                  }}
+                />
+              )}
+              {activeTab.id === commonTabs[2].id && (
+                <Note
+                  block={block}
+                  simpleAST={simpleAST}
+                  setSimpleAST={setSimpleAST}
+                />
+              )}
+              {activeTab.id === codeBlockTabs[0].id &&
+                block.type === 'codeBlock' && (
+                  <CodeTextSizeTab
+                    view={config.blocks[block.id]?.view as CodeBlockView}
+                    updateView={(view: CodeBlockView) => {
+                      updateConfig(block.id, {
+                        ...config.blocks[block.id],
+                        view,
+                      })
+                    }}
+                  />
+                )}
+              {activeTab.id === codeBlockTabs[1].id &&
+                block.type === 'codeBlock' && (
+                  <CodeAnimateTab
+                    view={config.blocks[block.id]?.view as CodeBlockView}
+                    updateView={(view: CodeBlockView) => {
+                      updateConfig(block.id, {
+                        ...config.blocks[block.id],
+                        view,
+                      })
+                    }}
+                  />
+                )}
+            </div>
+            <div
+              className="flex flex-col bg-gray-50 px-2 pt-4 gap-y-2 relative"
+              style={{
+                width: '6.75rem',
+              }}
+            >
+              {tabs
+                .filter((tab) => {
+                  if (
+                    (block.type === 'outroBlock' ||
+                      block.type === 'introBlock') &&
+                    tab.id === commonTabs[1].id
+                  )
+                    return false
+
+                  return true
+                })
+                .map((tab) => (
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab(tab)}
+                    className={cx(
+                      'flex flex-col items-center bg-transparent py-4 px-2 rounded-md text-gray-500 gap-y-2 transition-all',
+                      {
+                        'bg-gray-200 text-gray-800': activeTab.id === tab.id,
+                        'hover:bg-gray-100': activeTab.id !== tab.id,
+                      }
+                    )}
+                    key={tab.id}
+                  >
+                    {getIcon(tab, config.blocks[block.id])}
+                    <Text className="text-xs font-normal font-body">
+                      {tab.name}
+                    </Text>
+                  </button>
+                ))}
+            </div>
+          </>
+        </div>
+      )}
     </div>
   )
 }

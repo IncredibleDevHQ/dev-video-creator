@@ -19,6 +19,7 @@ import { DragHandler } from '../editor/utils/drag'
 import { TrailingNode } from '../editor/utils/trailingNode'
 import CustomTypography from '../editor/utils/typography'
 import { newFlickStore } from '../store/flickNew.store'
+import InteractionBlock from '../editor/blocks/InteractionBlock'
 
 export const EditorContext = React.createContext<{
   editor: Editor | null
@@ -71,6 +72,7 @@ export const EditorProvider = ({
             'codeBlock',
             'video',
             'image',
+            'interaction',
           ],
         }),
         DragHandler(dragRef.current),
@@ -158,6 +160,7 @@ export const EditorProvider = ({
         CharacterCount.configure({
           limit: 20000,
         }),
+        InteractionBlock,
       ],
       content: flick?.fragments.find(
         (fragment) => fragment.id === activeFragmentId
