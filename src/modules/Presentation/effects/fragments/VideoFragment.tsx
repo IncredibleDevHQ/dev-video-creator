@@ -1,14 +1,17 @@
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
 import { Group, Text } from 'react-konva'
-import { useRecoilState, useRecoilValue } from 'recoil'
+import { useRecoilValue, useSetRecoilState } from 'recoil'
 import Concourse from '../../components/Concourse'
 import FragmentBackground from '../../components/FragmentBackground'
 import { FragmentState } from '../../components/RenderTokens'
 import { Video, VideoConfig } from '../../components/Video'
 import { usePoint } from '../../hooks'
 import { presentationStore } from '../../stores'
-import { PresentationProviderProps } from '../../stores/presentation.store'
+import {
+  controlsConfigStore,
+  PresentationProviderProps,
+} from '../../stores/presentation.store'
 import {
   BlockProperties,
   CaptionTitleView,
@@ -39,7 +42,7 @@ const VideoFragment = ({
 }) => {
   const { videoPayload, setVideoPayload, theme, branding, preloadedBlobUrls } =
     (useRecoilValue(presentationStore) as PresentationProviderProps) || {}
-  const [studio, setStudio] = useRecoilState(presentationStore)
+  const setControlsConfig = useSetRecoilState(controlsConfigStore)
 
   const [videoConfig, setVideoConfig] = useState<VideoConfig>({
     x: 0,
@@ -140,12 +143,9 @@ const VideoFragment = ({
   }, [objectConfig, theme])
 
   useEffect(() => {
-    setStudio({
-      ...studio,
-      controlsConfig: {
-        playing,
-        videoElement,
-      },
+    setControlsConfig({
+      playing,
+      videoElement,
     })
   }, [dataConfig, videoElement, playing])
 

@@ -3,7 +3,7 @@ import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
 import { useAuthState } from 'react-firebase-hooks/auth'
 import { Group } from 'react-konva'
-import { useRecoilState, useRecoilValue } from 'recoil'
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
 import Concourse from '../../components/Concourse'
 import FragmentBackground from '../../components/FragmentBackground'
 import RenderTokens, {
@@ -33,7 +33,10 @@ import { ObjectRenderConfig, ThemeLayoutConfig } from '../../utils/ThemeConfig'
 import { CodeBlockProps } from '../../utils/utils'
 import * as config from '../../../../config'
 import firebaseState from '../../../../stores/firebase.store'
-import { PresentationProviderProps } from '../../stores/presentation.store'
+import {
+  controlsConfigStore,
+  PresentationProviderProps,
+} from '../../stores/presentation.store'
 
 export const getColorCodes = async (
   code: string,
@@ -136,6 +139,7 @@ const CodeFragment = ({
   // const [focusCode, setFocusCode] = useState<boolean>(false)
 
   const [studio, setStudio] = useRecoilState(presentationStore)
+  const setControlsConfig = useSetRecoilState(controlsConfigStore)
 
   // ref to the object grp
   const customLayoutRef = useRef<Konva.Group>(null)
@@ -282,14 +286,9 @@ const CodeFragment = ({
   }, [colorCodes, objectRenderConfig, fontSize])
 
   useEffect(() => {
-    setStudio(() => {
-      return {
-        ...studio,
-        controlsConfig: {
-          position,
-          computedTokens: computedTokens[0],
-        },
-      }
+    setControlsConfig({
+      position,
+      computedTokens: computedTokens[0],
     })
   }, [position, computedTokens])
 

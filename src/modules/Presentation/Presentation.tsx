@@ -199,8 +199,6 @@ const Presentation = ({
     setMountStage(true)
   }, [stageWidth])
 
-  console.log(payload)
-
   useEffect(() => {
     setStudio((prev) => {
       return {

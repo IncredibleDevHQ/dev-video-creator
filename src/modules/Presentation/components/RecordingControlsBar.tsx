@@ -16,7 +16,10 @@ import {
 import { useRecoilValue } from 'recoil'
 import { ComputedPoint } from '../hooks/use-point'
 import { presentationStore } from '../stores'
-import { PresentationProviderProps } from '../stores/presentation.store'
+import {
+  controlsConfigStore,
+  PresentationProviderProps,
+} from '../stores/presentation.store'
 import {
   BrandingJSON,
   CodeAnimation,
@@ -91,7 +94,6 @@ const RecordingControlsBar = ({
     branding,
     // dataConfig,
     // viewConfig,
-    controlsConfig,
     setPayload,
     codePayload,
     setCodePayload,
@@ -100,6 +102,8 @@ const RecordingControlsBar = ({
     videoPayload,
     setVideoPayload,
   } = (useRecoilValue(presentationStore) as PresentationProviderProps) || {}
+
+  const controlsConfig = useRecoilValue(controlsConfigStore)
 
   useEffect(() => {
     document.addEventListener('keydown', (event) => {

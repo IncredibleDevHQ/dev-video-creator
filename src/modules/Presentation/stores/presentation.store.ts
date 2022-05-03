@@ -37,7 +37,7 @@ export interface PresentationProviderProps<T = any, S = any> {
   // setOutroPayload: (payload: any) => void;
 
   // config to render controls
-  controlsConfig?: any
+  // controlsConfig?: any
   shortsMode?: boolean
 
   staticAssets?: StaticAssets
@@ -54,6 +54,11 @@ export interface PresentationProviderProps<T = any, S = any> {
     }
   }
 }
+
+export const controlsConfigStore = atom<any>({
+  key: 'controlsConfig',
+  default: {},
+})
 
 const presentationStore = atom<PresentationProviderProps>({
   key: 'presentation',
