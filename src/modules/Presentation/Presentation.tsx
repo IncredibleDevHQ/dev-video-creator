@@ -110,15 +110,18 @@ const PresentationHoc = () => {
       />
     )
 
-  // if (!isPublic)
-  //   return (
-  //     <ScreenState
-  //       title="Something went wrong."
-  //       subtitle="You dont have permission to view this presentation"
-  //     />
-  //   )
+  if (!presentationConfig)
+    return <ScreenState title="Just a jiffy..." loading />
 
-  if (view === 'preload') return <Preload setView={setView} />
+  if (view === 'preload' && presentationConfig)
+    return (
+      <Preload
+        setView={setView}
+        branding={presentationConfig?.flick?.branding}
+        dataConfig={presentationConfig?.editorState}
+        viewConfig={presentationConfig?.configuration}
+      />
+    )
 
   if (view === 'studio' && presentationConfig)
     return (

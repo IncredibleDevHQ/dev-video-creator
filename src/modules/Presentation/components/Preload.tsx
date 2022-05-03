@@ -1,25 +1,31 @@
 /* eslint-disable jsx-a11y/media-has-caption */
 import axios from 'axios'
 import React, { useEffect, useState } from 'react'
-import { SetterOrUpdater, useRecoilState, useRecoilValue } from 'recoil'
 import { useAuthState } from 'react-firebase-hooks/auth'
+import { SetterOrUpdater, useRecoilValue, useSetRecoilState } from 'recoil'
+import { ScreenState } from '../../../components'
+import firebaseState from '../../../stores/firebase.store'
+import { getColorCodes } from '../effects/fragments/CodeFragment'
+import { presentationStore } from '../stores'
+import { PresentationProviderProps } from '../stores/presentation.store'
 import {
+  BrandingJSON,
   CodeBlockView,
   CodeTheme,
   ViewConfig,
-  BrandingJSON,
 } from '../utils/configTypes'
 import { CodeBlock, CodeBlockProps, SimpleAST } from '../utils/utils'
-import { getColorCodes } from '../effects/fragments/CodeFragment'
-import { presentationStore } from '../stores'
-import { ScreenState } from '../../../components'
-import firebaseState from '../../../stores/firebase.store'
-import { PresentationProviderProps } from '../stores/presentation.store'
 
 const Preload = ({
   setView,
+  dataConfig,
+  viewConfig,
+  branding,
 }: {
   setView: React.Dispatch<React.SetStateAction<'preload' | 'studio'>>
+  dataConfig: any
+  viewConfig: ViewConfig
+  branding?: BrandingJSON | null
 }) => {
   const [loaded, setLoaded] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -27,7 +33,7 @@ const Preload = ({
   // const { getIdToken } = useRecoilValue(userState);
   const { auth } = useRecoilValue(firebaseState)
   const [user] = useAuthState(auth)
-  const [studio, setStudio] = useRecoilState(presentationStore)
+  const setStudio = useSetRecoilState(presentationStore)
 
   const performPreload = async () => {
     const token = await user?.getIdToken()
@@ -36,9 +42,9 @@ const Preload = ({
       setStudio,
       setLoaded,
       setProgress,
-      branding: studio.branding,
-      viewConfig: studio.viewConfig,
-      dataConfig: studio.dataConfig,
+      branding,
+      viewConfig,
+      dataConfig,
     })
   }
 
