@@ -11,6 +11,7 @@ import {
   Integrations,
   Landing,
   Notifications,
+  Presentation,
   Studio,
 } from './modules'
 import AuthProvider from './utils/auth'
@@ -78,21 +79,24 @@ const App = () => {
 
   return agentAllowed ? (
     <RecoilRoot>
-      <AuthorizedApolloProvider>
-        <AuthProvider>
-          <>
-            <ToastContainer
-              position="bottom-right"
-              autoClose={5000}
-              newestOnTop
-              hideProgressBar
-              closeOnClick
-              draggable={false}
-              toastClassName="rounded-2xl shadow-lg"
-              closeButton={false}
-            />
-            <Router>
-              <Switch>
+      <Router>
+        <Switch>
+          <Route exact path="/present/:fragmentId">
+            <Presentation />
+          </Route>
+          <AuthorizedApolloProvider>
+            <AuthProvider>
+              <>
+                <ToastContainer
+                  position="bottom-right"
+                  autoClose={5000}
+                  newestOnTop
+                  hideProgressBar
+                  closeOnClick
+                  draggable={false}
+                  toastClassName="rounded-2xl shadow-lg"
+                  closeButton={false}
+                />
                 <Route exact path="/">
                   <Landing />
                 </Route>
@@ -117,11 +121,11 @@ const App = () => {
                 <Route>
                   <FourOhFour />
                 </Route>
-              </Switch>
-            </Router>
-          </>
-        </AuthProvider>
-      </AuthorizedApolloProvider>
+              </>
+            </AuthProvider>
+          </AuthorizedApolloProvider>
+        </Switch>
+      </Router>
     </RecoilRoot>
   ) : (
     <ScreenState
