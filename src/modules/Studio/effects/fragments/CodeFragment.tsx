@@ -329,6 +329,25 @@ const CodeFragment = ({
           )?.y || 0) >
           objectRenderConfig.availableHeight / 2
         ) {
+          let valueToCenterTheHighlight = 20
+          if (
+            objectRenderConfig.availableHeight -
+              ((blockConfig?.[payload?.activeBlockIndex]?.to || 0) -
+                (blockConfig?.[payload?.activeBlockIndex]?.from || 0) +
+                // adding 1 bcoz subracting the to and from will give one line less
+                1) *
+                (fontSize + 8) >
+            0
+          ) {
+            // calculating the height of the highlighted part and subtracting it with the total available height and dividing it by 2 to place it in the center
+            valueToCenterTheHighlight =
+              objectRenderConfig.availableHeight -
+              ((blockConfig?.[payload?.activeBlockIndex]?.to || 0) -
+                (blockConfig?.[payload?.activeBlockIndex]?.from || 0) +
+                // adding 1 bcoz subracting the to and from will give one line less
+                1) *
+                (fontSize + 8)
+          }
           codeGroupRef.current?.to({
             y:
               -(
@@ -337,13 +356,12 @@ const CodeFragment = ({
                 ].find(
                   (token) =>
                     token.lineNumber ===
-                      (blockConfig &&
-                        blockConfig[payload?.activeBlockIndex] &&
-                        blockConfig[payload?.activeBlockIndex].from) || 0
+                      blockConfig?.[payload?.activeBlockIndex]?.from || 0
                 )?.y || 0
               ) +
-              objectRenderConfig.availableHeight / 2 +
-              objectRenderConfig.startY -
+              valueToCenterTheHighlight / 2 +
+              // this is the starting y of the code block
+              objectRenderConfig.startY +
               15,
             duration: 0.5,
             easing: Konva.Easings.EaseInOut,
