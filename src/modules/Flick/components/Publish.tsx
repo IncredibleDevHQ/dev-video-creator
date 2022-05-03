@@ -34,6 +34,7 @@ import {
   emitToast,
   Heading,
   Text,
+  TextField,
   Tooltip,
 } from '../../../components'
 import config from '../../../config'
@@ -68,6 +69,7 @@ interface IPublish {
     method?: 'generated' | 'uploaded'
   }
   ctas: CallToAction[]
+  discordCTA?: { url: string; text: string }
 }
 interface Tab {
   name: string
@@ -827,6 +829,23 @@ const CTATab = ({
           Add {publish.ctas?.length > 0 && 'another'}
         </Text>
       </button>
+      <Heading fontSize="small" className="mt-8 font-bold">
+        Add Discord Link
+      </Heading>
+      <TextField
+        placeholder="https://discord.gg/jJQWQs8Fh2"
+        value={publish.discordCTA?.url}
+        className="font-normal"
+        onChange={(e: ChangeEvent<HTMLInputElement>) => {
+          setPublish({
+            ...publish,
+            discordCTA: {
+              url: e.target.value,
+              text: 'Join our discord',
+            },
+          })
+        }}
+      />
     </div>
   )
 }
