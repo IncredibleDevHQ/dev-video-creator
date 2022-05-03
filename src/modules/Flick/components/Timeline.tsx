@@ -236,8 +236,8 @@ const Timeline = ({
                 className="text-sm"
               >
                 {config.continuousRecording
-                  ? 'Continuous Recording (Experimental)'
-                  : 'Block Recording'}
+                  ? 'Block Recording'
+                  : 'Continuous Recording (Experimental)'}
               </Text>
             </Button>
           )}
