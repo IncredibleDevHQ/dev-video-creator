@@ -938,7 +938,7 @@ const Studio = ({
             thumbnail: blockThumbnail,
             // TODO: Update creation meta and playbackDuration when implementing continuous recording
             blockId,
-            playbackDuration: Math.round(duration),
+            playbackDuration: duration,
           },
         })
         updateRecordedBlocks(blockId, objectUrl)
@@ -1217,7 +1217,11 @@ const Studio = ({
         )
       )
     } else {
-      setDataConfig(fragment.editorState?.blocks)
+      setDataConfig(
+        fragment.editorState?.blocks.filter(
+          (b: any) => b.type !== 'interactionBlock'
+        )
+      )
     }
   }, [fragment])
 

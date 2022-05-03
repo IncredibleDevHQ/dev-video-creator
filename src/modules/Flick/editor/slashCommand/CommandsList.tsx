@@ -9,6 +9,9 @@ import { ReactComponent as CommandList } from '../../../../assets/Command_List.s
 import { ReactComponent as CommandText } from '../../../../assets/Command_Text.svg'
 import { ReactComponent as CommandVideo } from '../../../../assets/Command_Video.svg'
 import { ReactComponent as CommandScreenGrab } from '../../../../assets/Command_ScreenGrab.svg'
+import { ReactComponent as CommandCodeSandbox } from '../../../../assets/Command_CodeSandbox.svg'
+import { ReactComponent as CommandStackBlitz } from '../../../../assets/Command_Stackblitz.svg'
+import { ReactComponent as CommandReplit } from '../../../../assets/Command_Replit.svg'
 import { Text } from '../../../../components'
 import { SuggestionItem } from './items'
 
@@ -53,6 +56,9 @@ export class CommandsList extends React.Component<any, CommandsListState> {
     if (item.title === 'Video') return <CommandVideo />
     if (item.title === 'List') return <CommandList />
     if (item.title === 'Screengrab') return <CommandScreenGrab />
+    if (item.title === 'CodeSandbox') return <CommandCodeSandbox />
+    if (item.title === 'StackBlitz') return <CommandStackBlitz />
+    if (item.title === 'Replit') return <CommandReplit />
     return null
   }
 
