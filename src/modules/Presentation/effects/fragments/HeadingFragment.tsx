@@ -59,7 +59,7 @@ const HeadingFragment = ({
     setObjectConfig(
       FragmentLayoutConfig({
         theme,
-        layout: viewConfig?.layout || 'classic',
+        layout: 'classic',
         isShorts: shortsMode || false,
       })
     )

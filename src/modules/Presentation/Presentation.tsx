@@ -1,30 +1,31 @@
 /* eslint-disable jsx-a11y/media-has-caption */
 import { css, cx } from '@emotion/css'
+import axios from 'axios'
 import Konva from 'konva'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { BsFullscreen, BsFullscreenExit } from 'react-icons/bs'
+import { BsFullscreen } from 'react-icons/bs'
 import { Group, Layer, Stage } from 'react-konva'
+import { useParams } from 'react-router-dom'
 import useMeasure from 'react-use-measure'
 import {
   useRecoilBridgeAcrossReactRoots_UNSTABLE,
   useRecoilState,
+  useSetRecoilState,
 } from 'recoil'
-import { useParams } from 'react-router-dom'
-import axios from 'axios'
 import { ScreenState } from '../../components'
+import config from '../../config'
 import {
   FragmentPresentationData,
   ThemeFragment,
 } from '../../generated/graphql'
-import Preload from './components/Preload'
 import { CONFIG, SHORTS_CONFIG } from './components/Concourse'
+import Preload from './components/Preload'
 import RecordingControlsBar from './components/RecordingControlsBar'
 import UnifiedFragment from './effects/fragments/UnifiedFragment'
 import { loadFonts } from './hooks/use-load-font'
-import { BrandingJSON, TopLayerChildren, ViewConfig } from './utils/configTypes'
-import { Block, SimpleAST, useUtils } from './utils/utils'
 import presentationStore from './stores/presentation.store'
-import config from '../../config'
+import { BrandingJSON, ViewConfig } from './utils/configTypes'
+import { SimpleAST, useUtils } from './utils/utils'
 
 const noScrollBar = css`
   ::-webkit-scrollbar {
@@ -153,7 +154,7 @@ const Presentation = ({
   const layerRef = useRef<Konva.Layer>(null)
   const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
 
-  const [currentBlock, setCurrentBlock] = useState<Block>()
+  // const [currentBlock, setCurrentBlock] = useState<Block>()
   const [mountStage, setMountStage] = useState(false)
   const [shortsMode] = useState(viewConfig?.mode === 'Portrait')
   const [payload, setPayload] = useState<any>({
@@ -177,7 +178,7 @@ const Presentation = ({
 
   const [stageBoundingDivRef, bounds] = useMeasure()
 
-  const [studio, setStudio] = useRecoilState(presentationStore)
+  const setStudio = useSetRecoilState(presentationStore)
 
   const [isFullScreen, setIsFullScreen] = useState(false)
   const [{ height: stageHeight, width: stageWidth }, setStageSize] = useState({
@@ -257,10 +258,10 @@ const Presentation = ({
       ])
   }, [branding])
 
-  const [topLayerChildren, setTopLayerChildren] = useState<{
-    id: string
-    state: TopLayerChildren
-  }>({ id: '', state: '' })
+  // const [topLayerChildren, setTopLayerChildren] = useState<{
+  //   id: string
+  //   state: TopLayerChildren
+  // }>({ id: '', state: '' })
 
   const utils = useUtils()
 
@@ -281,8 +282,6 @@ const Presentation = ({
     const block = dataConfig?.blocks?.[payload?.activeObjectIndex]
 
     if (!block) return
-    setCurrentBlock(block)
-
     // update timeline
     const ele = document.getElementById(`timeline-block-${block.id}`)
     if (!ele) return
@@ -372,12 +371,12 @@ const Presentation = ({
         background: '#18181B',
       }}
       className="flex flex-col w-screen min-h-screen"
-      id="mainDiv"
     >
       {/* Stage */}
       <div
         className="flex justify-center items-center flex-1 w-full relative"
         ref={stageBoundingDivRef}
+        id="canvasDiv"
       >
         {mountStage && (
           <Stage
@@ -399,7 +398,7 @@ const Presentation = ({
                       <Group>
                         <UnifiedFragment
                           stageRef={stageRef}
-                          setTopLayerChildren={setTopLayerChildren}
+                          // setTopLayerChildren={setTopLayerChildren}
                           config={dataConfig.blocks}
                           layoutConfig={viewConfig}
                           theme={theme}
@@ -440,13 +439,13 @@ const Presentation = ({
             size={24}
             color="#fff"
             onClick={() => {
-              const canvas = document.getElementById('mainDiv')
+              const canvas = document.getElementById('canvasDiv')
               canvas?.requestFullscreen()
               setIsFullScreen(true)
             }}
           />
         )}
-        {isFullScreen && (
+        {/* {isFullScreen && (
           <BsFullscreenExit
             size={24}
             color="#fff"
@@ -455,7 +454,7 @@ const Presentation = ({
               setIsFullScreen(false)
             }}
           />
-        )}
+        )} */}
       </div>
       {/* Mini timeline */}
       {miniTimeline}

@@ -130,7 +130,6 @@ const CodeFragment = ({
     (useRecoilValue(presentationStore) as PresentationProviderProps) || {}
 
   const { initUseCode } = useCode()
-
   const [computedTokens, setComputedTokens] = useState<ComputedToken[][]>([[]])
   const [position, setPosition] = useState<Position>({
     prevIndex: -1,
@@ -185,8 +184,6 @@ const CodeFragment = ({
   const { auth } = useRecoilValue(firebaseState)
   const [user] = useAuthState(auth)
 
-  // const { getIdToken } = useRecoilValue(userState);
-
   const { clipRect } = useEdit()
 
   useEffect(() => {
@@ -204,7 +201,7 @@ const CodeFragment = ({
     setObjectConfig(
       FragmentLayoutConfig({
         theme,
-        layout: viewConfig?.layout || 'classic',
+        layout: 'classic',
         isShorts: shortsMode || false,
       })
     )
@@ -213,6 +210,9 @@ const CodeFragment = ({
     )?.code
     ;(async () => {
       const code = studio.codes?.[dataConfig.id]
+      const decodedCode = dataConfig.codeBlock.code
+        ? Buffer.from(dataConfig.codeBlock.code, 'base64').toString('utf8')
+        : undefined
 
       if (
         dataConfig.codeBlock.colorCodes &&
@@ -222,13 +222,13 @@ const CodeFragment = ({
       } else {
         try {
           if (
-            dataConfig.codeBlock.code &&
-            (code?.code !== dataConfig.codeBlock.code ||
-              codeBlockViewProps?.theme !== code?.theme)
+            decodedCode &&
+            (code?.code !== decodedCode ||
+              codeBlockViewProps.theme !== code?.theme)
           ) {
             const token = await user?.getIdToken()
             const { data } = await getColorCodes(
-              dataConfig.codeBlock.code,
+              decodedCode,
               dataConfig.codeBlock.language || '',
               token || '',
               codeBlockViewProps?.theme
@@ -240,7 +240,7 @@ const CodeFragment = ({
                 codes: {
                   ...studio.codes,
                   [dataConfig.id]: {
-                    code: dataConfig.codeBlock.code,
+                    code: decodedCode,
                     colorCode: data.data.TokenisedCode.data,
                     theme: codeBlockViewProps?.theme,
                   },
@@ -320,6 +320,25 @@ const CodeFragment = ({
           )?.y || 0) >
           objectRenderConfig.availableHeight / 2
         ) {
+          let valueToCenterTheHighlight = 20
+          if (
+            objectRenderConfig.availableHeight -
+              ((blockConfig?.[codePayload?.activeBlockIndex]?.to || 0) -
+                (blockConfig?.[codePayload?.activeBlockIndex]?.from || 0) +
+                // adding 1 bcoz subracting the to and from will give one line less
+                1) *
+                (fontSize + 8) >
+            0
+          ) {
+            // calculating the height of the highlighted part and subtracting it with the total available height and dividing it by 2 to place it in the center
+            valueToCenterTheHighlight =
+              objectRenderConfig.availableHeight -
+              ((blockConfig?.[codePayload?.activeBlockIndex]?.to || 0) -
+                (blockConfig?.[codePayload?.activeBlockIndex]?.from || 0) +
+                // adding 1 bcoz subracting the to and from will give one line less
+                1) *
+                (fontSize + 8)
+          }
           codeGroupRef.current?.to({
             y:
               -(
@@ -328,13 +347,12 @@ const CodeFragment = ({
                 ].find(
                   (token) =>
                     token.lineNumber ===
-                      (blockConfig &&
-                        blockConfig[codePayload?.activeBlockIndex] &&
-                        blockConfig[codePayload?.activeBlockIndex].from) || 0
+                      blockConfig?.[codePayload?.activeBlockIndex]?.from || 0
                 )?.y || 0
               ) +
-              objectRenderConfig.availableHeight / 2 +
-              objectRenderConfig.startY -
+              valueToCenterTheHighlight / 2 +
+              // this is the starting y of the code block
+              objectRenderConfig.startY +
               15,
             duration: 0.5,
             easing: Konva.Easings.EaseInOut,
@@ -372,45 +390,6 @@ const CodeFragment = ({
         activeBlockIndex: 0,
       })
   }, [codeAnimation])
-
-  // useEffect(() => {
-  // 	// Checking if the current state is only fragment group and making the opacity of the only fragment group 1
-  // 	if (payload?.fragmentState === 'customLayout') {
-  // 		if (!shortsMode)
-  // 			setTimeout(() => {
-  // 				setFragmentState(payload?.fragmentState);
-  // 				customLayoutRef?.current?.to({
-  // 					opacity: 1,
-  // 					duration: 0.1,
-  // 				});
-  // 			}, 400);
-  // 		else {
-  // 			setFragmentState(payload?.fragmentState);
-  // 			customLayoutRef?.current?.to({
-  // 				opacity: 1,
-  // 				duration: 0.1,
-  // 			});
-  // 		}
-  // 	}
-  // 	// Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
-  // 	if (payload?.fragmentState === 'onlyUserMedia') {
-  // 		if (!shortsMode)
-  // 			setTimeout(() => {
-  // 				setFragmentState(payload?.fragmentState);
-  // 				customLayoutRef?.current?.to({
-  // 					opacity: 0,
-  // 					duration: 0.1,
-  // 				});
-  // 			}, 400);
-  // 		else {
-  // 			setFragmentState(payload?.fragmentState);
-  // 			customLayoutRef?.current?.to({
-  // 				opacity: 0,
-  // 				duration: 0.1,
-  // 			});
-  // 		}
-  // 	}
-  // }, [payload?.fragmentState, payload?.status]);
 
   const layerChildren: any[] = [
     <Group x={0} y={0} opacity={1} ref={customLayoutRef} key={0}>
