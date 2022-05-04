@@ -152,7 +152,7 @@ const PointsFragment = ({
     setObjectConfig(
       FragmentLayoutConfig({
         theme,
-        layout: viewConfig?.layout || 'classic',
+        layout: 'classic',
         isShorts: shortsMode || false,
       })
     )
@@ -200,7 +200,7 @@ const PointsFragment = ({
         fontSize: 16,
         fontFamily: branding?.font?.body?.family || 'Inter',
         orientation,
-        layout: viewConfig?.layout || 'classic',
+        layout: 'classic',
         isShorts: shortsMode || false,
         lineHeight: 1.3,
         theme: theme.name || 'DarkGradient',
@@ -209,14 +209,14 @@ const PointsFragment = ({
     if (orientation === 'horizontal') {
       setPointsConfig(
         getPointsConfig({
-          layout: viewConfig?.layout || 'classic',
+          layout: 'classic',
           isShorts: shortsMode,
         })
       )
       setBulletsConfig(
         getBulletsConfig({
           theme: theme.name,
-          layout: viewConfig?.layout || 'classic',
+          layout: 'classic',
         })
       )
     }
@@ -240,61 +240,9 @@ const PointsFragment = ({
     )
   }, [computedPoints, dataConfig])
 
-  // useEffect(() => {
-  // 	if (state === 'ready') {
-  // 		setPayload?.({
-  // 			activePointIndex: 0,
-  // 		});
-  // 	}
-  // 	if (state === 'recording') {
-  // 		setPayload?.({
-  // 			activePointIndex: 0,
-  // 		});
-  // 	}
-  // }, [state]);
-
   useEffect(() => {
     setActivePointIndex(listPayload?.activePointIndex)
   }, [listPayload?.activePointIndex])
-
-  // useEffect(() => {
-  // 	// Checking if the current state is only fragment group and making the opacity of the only fragment group 1
-  // 	if (listPayload?.fragmentState === 'customLayout') {
-  // 		if (!shortsMode)
-  // 			setTimeout(() => {
-  // 				setFragmentState(listPayload?.fragmentState);
-  // 				customLayoutRef?.current?.to({
-  // 					opacity: 1,
-  // 					duration: 0.1,
-  // 				});
-  // 			}, 400);
-  // 		else {
-  // 			setFragmentState(listPayload?.fragmentState);
-  // 			customLayoutRef?.current?.to({
-  // 				opacity: 1,
-  // 				duration: 0.1,
-  // 			});
-  // 		}
-  // 	}
-  // 	// Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
-  // 	if (listPayload?.fragmentState === 'onlyUserMedia') {
-  // 		if (!shortsMode)
-  // 			setTimeout(() => {
-  // 				setFragmentState(listPayload?.fragmentState);
-  // 				customLayoutRef?.current?.to({
-  // 					opacity: 0,
-  // 					duration: 0.1,
-  // 				});
-  // 			}, 400);
-  // 		else {
-  // 			setFragmentState(listPayload?.fragmentState);
-  // 			customLayoutRef?.current?.to({
-  // 				opacity: 0,
-  // 				duration: 0.1,
-  // 			});
-  // 		}
-  // 	}
-  // }, [listPayload?.fragmentState, listPayload?.status]);
 
   const layerChildren: any[] = [
     <Group x={0} y={0} opacity={1} ref={customLayoutRef} key={0}>
@@ -1013,26 +961,11 @@ const PointsFragment = ({
     </Group>,
   ]
 
-  // const studioUserConfig = !shortsMode
-  // 	? StudioUserConfiguration({
-  // 			layout: viewConfig?.layout || 'classic',
-  // 			fragment,
-  // 			fragmentState,
-  // 			theme,
-  // 	  })
-  // 	: ShortsStudioUserConfiguration({
-  // 			layout: viewConfig?.layout || 'classic',
-  // 			fragment,
-  // 			fragmentState,
-  // 			theme,
-  // 	  });
-
   return (
     <Concourse
       layerChildren={layerChildren}
       viewConfig={viewConfig}
       stageRef={stageRef}
-      // studioUserConfig={studioUserConfig}
       isShorts={shortsMode}
       blockType={dataConfig.type}
     />

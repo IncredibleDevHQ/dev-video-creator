@@ -113,7 +113,7 @@ const OutroFragment = ({
     setOutroConfig(
       getOutroConfig({
         theme,
-        layout: viewConfig?.layout || 'classic',
+        layout: 'classic',
         isShorts,
       })
     )
@@ -156,7 +156,7 @@ const OutroFragment = ({
     )?.outro
     setSocialHandlesPositionInfo(
       getSocialHandlePositions({
-        layout: viewConfig?.layout || 'classic',
+        layout: 'classic',
         socialHandles:
           {
             twitterHandle:
@@ -285,7 +285,7 @@ const OutroFragment = ({
             width={outroConfig?.textWidth || 0}
             height={outroConfig?.textHeight || 0}
             text={outroMsg}
-            align={viewConfig?.layout === 'classic' ? 'center' : 'left'}
+            align="center"
             fill={branding?.colors?.text || getThemeTextColor(theme)}
             fontSize={outroConfig?.textFontSize || 0}
             fontFamily={getThemeFont(theme)}
