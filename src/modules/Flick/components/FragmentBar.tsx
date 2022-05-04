@@ -611,16 +611,18 @@ const FragmentBar = ({
           </Button>
         </div>
         <div className="flex items-center gap-x-3 justify-end py-2 pl-4 border-l-2 border-brand-grey text-gray-400">
-          <Button
-            appearance="gray"
-            type="button"
-            onClick={togglePublishModal}
-            size="small"
-            icon={HiOutlineUpload}
-            iconSize={20}
-          >
-            Publish
-          </Button>
+          {fragment?.type !== Fragment_Type_Enum_Enum.Presentation && (
+            <Button
+              appearance="gray"
+              type="button"
+              onClick={togglePublishModal}
+              size="small"
+              icon={HiOutlineUpload}
+              iconSize={20}
+            >
+              Publish
+            </Button>
+          )}
           <Button
             appearance="primary"
             size="small"
@@ -631,10 +633,14 @@ const FragmentBar = ({
               logEvent(PageEvent.GoToDeviceSelect)
               // setRecordingModal(true)
               await updateConfig()
-              history.push(`/${activeFragmentId}/studio`)
+              if (fragment?.type !== Fragment_Type_Enum_Enum.Presentation)
+                history.push(`/${activeFragmentId}/studio`)
+              else history.push(`/present/${activeFragmentId}`)
             }}
           >
-            Record
+            {fragment?.type !== Fragment_Type_Enum_Enum.Presentation
+              ? 'Record'
+              : 'Present'}
           </Button>
         </div>
       </div>

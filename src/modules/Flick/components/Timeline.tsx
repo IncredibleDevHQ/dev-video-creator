@@ -25,6 +25,7 @@ import ViewRecordingsModal from './ViewRecordingsModal'
 import { ReactComponent as CommandCodeSandbox } from '../../../assets/Command_CodeSandbox.svg'
 import { ReactComponent as CommandStackBlitz } from '../../../assets/Command_Stackblitz.svg'
 import { ReactComponent as CommandReplit } from '../../../assets/Command_Replit.svg'
+import { Fragment_Type_Enum_Enum } from '../../../generated/graphql'
 
 const Timeline = ({
   blocks,
@@ -54,6 +55,8 @@ const Timeline = ({
 
   const [viewRecordingModal, setViewRecordingModal] = useState(false)
   const [blockId, setBlockId] = useState('')
+
+  const activeFragment = flick?.fragments.find((f) => f.id === activeFragmentId)
 
   const recordedBlockIds = useMemo(() => {
     const fragment = flick?.fragments.find((f) => f.id === activeFragmentId)
@@ -210,37 +213,38 @@ const Timeline = ({
               {showTimeline ? 'Close timeline' : 'Open timeline'}
             </Text>
           </Button>
-          {showTimeline && (
-            <Button
-              appearance="gray"
-              type="button"
-              size="small"
-              className={cx(
-                'flex items-center ml-2 my-2 hover:bg-gray-700 bg-dark-500 max-w-max'
-              )}
-              onClick={() => {
-                setConfig?.({
-                  ...config,
-                  continuousRecording: !config.continuousRecording,
-                  selectedBlocks: config.continuousRecording
-                    ? config.selectedBlocks
-                    : [],
-                })
-              }}
-            >
-              <Text
-                style={{
-                  marginTop: '2px',
-                  marginBottom: '2px',
+          {showTimeline &&
+            activeFragment?.type !== Fragment_Type_Enum_Enum.Presentation && (
+              <Button
+                appearance="gray"
+                type="button"
+                size="small"
+                className={cx(
+                  'flex items-center ml-2 my-2 hover:bg-gray-700 bg-dark-500 max-w-max'
+                )}
+                onClick={() => {
+                  setConfig?.({
+                    ...config,
+                    continuousRecording: !config.continuousRecording,
+                    selectedBlocks: config.continuousRecording
+                      ? config.selectedBlocks
+                      : [],
+                  })
                 }}
-                className="text-sm"
               >
-                {config.continuousRecording
-                  ? 'Block Recording'
-                  : 'Continuous Recording (Experimental)'}
-              </Text>
-            </Button>
-          )}
+                <Text
+                  style={{
+                    marginTop: '2px',
+                    marginBottom: '2px',
+                  }}
+                  className="text-sm"
+                >
+                  {config.continuousRecording
+                    ? 'Block Recording'
+                    : 'Continuous Recording (Experimental)'}
+                </Text>
+              </Button>
+            )}
         </div>
       )}
 

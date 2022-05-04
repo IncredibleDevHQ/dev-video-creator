@@ -113,6 +113,9 @@ const App = () => {
                   <Route exact path="/:fragmentId/studio">
                     <Studio />
                   </Route>
+                  <Route exact path="/present/:fragmentId">
+                    <Presentation />
+                  </Route>
                   <Route exact path="/integrations/github/callback">
                     <GitHubCallback />
                   </Route>

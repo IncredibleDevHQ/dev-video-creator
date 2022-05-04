@@ -162,8 +162,20 @@ const Sidebar = ({ storyName }: { storyName: string }): JSX.Element | null => {
       })
       if (error) throw new Error("Can't get fragment")
       if (data?.Fragment_by_pk) {
-        const newFragment = {
+        let newFragment = {
           ...data.Fragment_by_pk,
+        }
+        if (
+          newFragment.configuration &&
+          type === Fragment_Type_Enum_Enum.Presentation
+        ) {
+          newFragment = {
+            ...newFragment,
+            configuration: {
+              ...newFragment.configuration,
+              continuousRecording: false,
+            },
+          }
         }
         await duplicateFragment({
           variables: {
@@ -362,6 +374,7 @@ const Sidebar = ({ storyName }: { storyName: string }): JSX.Element | null => {
                       <AvailableFormats
                         availableFormats={availableFormats}
                         handleCreate={(type) => {
+                          setMoreOpen(false)
                           handleDuplicate(type, fragment.id)
                         }}
                       />
