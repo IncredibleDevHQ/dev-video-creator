@@ -1,5 +1,5 @@
-import { Layout } from '../../../utils/configTypes'
-import { getCanvasGradient } from './StudioUserConfig'
+import { getCanvasGradient } from '../../Studio/utils/StudioUserConfig'
+import { Layout } from './configTypes'
 
 export interface PointsConfig {
   textFontSize: number
@@ -531,53 +531,4 @@ export const getBulletsConfig = ({
         bulletRotation: 0,
       }
   }
-  // } else {
-  //   switch (layout) {
-  //     case 'classic':
-  //     case 'float-half-right':
-  //     case 'padded-bottom-right-tile':
-  //     case 'padded-bottom-right-circle':
-  //     case 'bottom-right-tile':
-  //     case 'bottom-right-circle':
-  //       return {
-  //         bulletWidth: 64,
-  //         bulletHeight: 64,
-  //         bulletFontSize: 32,
-  //         paddingBtwBulletText: 26,
-  //         textFontSize: 16,
-  //         noOfPoints: 1,
-  //         noForSpacing: 2,
-  //       }
-  //     case 'split':
-  //       return {
-  //         bulletWidth: 48,
-  //         bulletHeight: 48,
-  //         bulletFontSize: 24,
-  //         paddingBtwBulletText: 26,
-  //         textFontSize: 16,
-  //         noOfPoints: 1,
-  //         noForSpacing: 2,
-  //       }
-  //     case 'full-left':
-  //       return {
-  //         bulletWidth: 36,
-  //         bulletHeight: 36,
-  //         bulletFontSize: 18,
-  //         paddingBtwBulletText: 26,
-  //         textFontSize: 12,
-  //         noOfPoints: 1,
-  //         noForSpacing: 2,
-  //       }
-  //     default:
-  //       return {
-  //         bulletWidth: 64,
-  //         bulletHeight: 64,
-  //         bulletFontSize: 32,
-  //         paddingBtwBulletText: 26,
-  //         textFontSize: 16,
-  //         noOfPoints: 1,
-  //         noForSpacing: 2,
-  //       }
-  //   }
-  // }
 }

@@ -384,29 +384,6 @@ mutation SaveRecordedBlock(
   }
 }
 
-mutation SaveRecordedBlock(
-  $flickId: uuid!
-  $fragmentId: uuid!
-  $objectUrl: String!
-  $recordingId: uuid!
-  $blockId: String!
-  $thumbnail: String
-  $playbackDuration: Float
-) {
-  SaveBlock(
-    flickId: $flickId
-    fragmentId: $fragmentId
-    objectUrl: $objectUrl
-    recordingId: $recordingId
-    thumbnail: $thumbnail
-    blockId: $blockId
-    playbackDuration: $playbackDuration
-  ) {
-    id
-    success
-  }
-}
-
 mutation SaveMultipleBlocks(
   $blocks: [json]!
   $flickId: uuid!
