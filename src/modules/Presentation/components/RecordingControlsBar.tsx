@@ -164,18 +164,7 @@ const RecordingControlsBar = ({
     }, [payload?.activeObjectIndex])
 
   const isBackDisabled = () => {
-    return (
-      payload?.activeObjectIndex === 0 ||
-      listPayload?.activePointIndex === 0 ||
-      isVideo ||
-      isImage ||
-      (codeAnimation === CodeAnimation.HighlightLines &&
-        codePayload?.activeBlockIndex === 0 &&
-        codePayload?.focusBlockCode === false) ||
-      (codeAnimation === CodeAnimation.TypeLines &&
-        codePayload?.currentIndex === 0) ||
-      isOutro
-    )
+    return payload?.activeObjectIndex === 0
   }
 
   return (
@@ -212,69 +201,6 @@ const RecordingControlsBar = ({
             )}
           </button>
         )}
-        {/* <button
-					type='button'
-					className={cx(
-						'flex gap-x-2 items-center justify-between border bg-grey-400 bg-opacity-50 backdrop-filter backdrop-blur-2xl border-gray-600 rounded-sm ml-4',
-						{
-							'bg-grey-500 bg-opacity-100': !isIntro && !isOutro,
-							'cursor-not-allowed': isIntro || isOutro,
-						}
-					)}
-					disabled={isIntro || isOutro}
-					onClick={() => {
-						if (payload?.fragmentState === 'onlyUserMedia') {
-							// updating the fragment state in the payload to customLayout state
-							setPayload?.({
-								fragmentState: 'customLayout',
-							});
-						} else {
-							// updating the fragment state in the payload to onlyUserMedia state
-							setPayload?.({
-								fragmentState: 'onlyUserMedia',
-							});
-						}
-					}}
-				>
-					<div
-						className={cx(
-							'bg-transparent py-1 px-1 rounded-sm my-1 ml-1 transition-all duration-200 filter',
-							{
-								'bg-transparent': isIntro || isOutro,
-								'bg-grey-900':
-									payload?.fragmentState === 'onlyUserMedia' &&
-									!isIntro &&
-									!isOutro,
-								'brightness-50': isIntro || isOutro,
-								'brightness-75':
-									payload?.fragmentState === 'customLayout' &&
-									!isIntro &&
-									!isOutro,
-							}
-						)}
-					>
-						<OnlyUserMedia className={cx('m-px w-5 h-4 ', {})} />
-					</div>
-					<div
-						className={cx(
-							'bg-transparent py-1 px-1 rounded-sm my-1 mr-1 transition-all duration-300 filter',
-							{
-								'bg-transparent': isIntro || isOutro,
-								'bg-grey-900':
-									payload?.fragmentState === 'customLayout' &&
-									!isIntro &&
-									!isOutro,
-								'brightness-50': isIntro || isOutro,
-								'brightness-75':
-									payload?.fragmentState === 'onlyUserMedia' &&
-									!isIntro &&
-									!isOutro,
-							}
-						)}
-					>
-						<CustomLayout className={cx('m-px w-5 h-4', {})} />
-					</div>
-				</button> */}
 
         <button
           className={cx(
@@ -406,6 +332,9 @@ const performAction = (
     case 'headingBlock':
       handleImageBlock(payload, setPayload, direction)
       break
+    case 'outroBlock':
+      handleOutroBlock(payload, setPayload, direction)
+      break
     default:
       return false
   }
@@ -438,8 +367,6 @@ const handleListBlock = (
         ...payload,
         activeObjectIndex: payload?.activeObjectIndex + 1,
       })
-      // return true;
-      // eslint-disable-next-line no-else-return
     } else if (appearance === 'allAtOnce') {
       const index = computedPoints.findIndex(
         (point) =>
@@ -458,13 +385,31 @@ const handleListBlock = (
       })
     }
   } else if (direction === 'previous') {
-    setListPayload?.({
-      ...listPayload,
-      activePointIndex: listPayload?.activePointIndex - 1,
-    })
-    // return false;
+    switch (appearance) {
+      case 'allAtOnce':
+        setPayload?.({
+          ...payload,
+          activeObjectIndex: payload?.activeObjectIndex - 1,
+        })
+        break
+      case 'replace':
+      case 'stack':
+        if (listPayload?.activePointIndex === 0) {
+          setPayload?.({
+            ...payload,
+            activeObjectIndex: payload?.activeObjectIndex - 1,
+          })
+        } else {
+          setListPayload?.({
+            ...listPayload,
+            activePointIndex: listPayload?.activePointIndex - 1,
+          })
+        }
+        break
+      default:
+        break
+    }
   }
-  // return false;
 }
 
 const handleImageBlock = (
@@ -477,9 +422,13 @@ const handleImageBlock = (
       ...payload,
       activeObjectIndex: payload?.activeObjectIndex + 1,
     })
-    // return true;
   }
-  // return false;
+  if (direction === 'previous') {
+    setPayload?.({
+      ...payload,
+      activeObjectIndex: payload?.activeObjectIndex - 1,
+    })
+  }
 }
 
 const handleVideoBlock = (
@@ -492,9 +441,13 @@ const handleVideoBlock = (
       ...payload,
       activeObjectIndex: payload?.activeObjectIndex + 1,
     })
-    // return true;
   }
-  // return false;
+  if (direction === 'previous') {
+    setPayload?.({
+      ...payload,
+      activeObjectIndex: payload?.activeObjectIndex - 1,
+    })
+  }
 }
 
 const handleCodeBlock = (
@@ -519,7 +472,7 @@ const handleCodeBlock = (
   if (direction === 'next') {
     switch (codeAnimation) {
       case CodeAnimation.HighlightLines: {
-        if (noOfBlocks === undefined) return false
+        if (noOfBlocks === undefined) return
         if (
           codePayload?.activeBlockIndex === noOfBlocks &&
           !codePayload?.focusBlockCode
@@ -528,9 +481,7 @@ const handleCodeBlock = (
             ...payload,
             activeObjectIndex: payload?.activeObjectIndex + 1,
           })
-          // return true;
-          // eslint-disable-next-line no-else-return
-        } else if (payload?.focusBlockCode) {
+        } else if (codePayload?.focusBlockCode) {
           setCodePayload?.({
             ...codePayload,
             focusBlockCode: false,
@@ -542,7 +493,6 @@ const handleCodeBlock = (
             focusBlockCode: true,
           })
         }
-        // return false;
         break
       }
       case CodeAnimation.TypeLines: {
@@ -551,8 +501,6 @@ const handleCodeBlock = (
             ...payload,
             activeObjectIndex: payload?.activeObjectIndex + 1,
           })
-          // return true;
-          // eslint-disable-next-line no-else-return
         } else {
           const current = computedTokens[position.currentIndex]
           let next = computedTokens.findIndex(
@@ -566,7 +514,6 @@ const handleCodeBlock = (
             isFocus: false,
           })
         }
-        // return false;
         break
       }
       default:
@@ -575,7 +522,13 @@ const handleCodeBlock = (
   } else if (direction === 'previous') {
     switch (codeAnimation) {
       case CodeAnimation.HighlightLines: {
-        if (noOfBlocks === undefined) return false
+        if (noOfBlocks === undefined) return
+        if (codePayload?.activeBlockIndex === 0) {
+          setPayload?.({
+            ...payload,
+            activeObjectIndex: payload?.activeObjectIndex - 1,
+          })
+        }
         if (codePayload?.activeBlockIndex === 1) {
           setCodePayload?.({
             ...codePayload,
@@ -592,17 +545,24 @@ const handleCodeBlock = (
         break
       }
       case CodeAnimation.TypeLines: {
-        const current = computedTokens[position.currentIndex - 1]
-        let next = [...computedTokens]
-          .reverse()
-          .findIndex((t: any) => t.lineNumber < current.lineNumber)
-        if (next === -1) next = computedTokens.length
-        setCodePayload?.({
-          ...codePayload,
-          prevIndex: computedTokens.length - next - 1,
-          currentIndex: computedTokens.length - next,
-          isFocus: false,
-        })
+        if (codePayload?.currentIndex === 0) {
+          setPayload?.({
+            ...payload,
+            activeObjectIndex: payload?.activeObjectIndex - 1,
+          })
+        } else {
+          const current = computedTokens[position.currentIndex - 1]
+          let next = [...computedTokens]
+            .reverse()
+            .findIndex((t: any) => t.lineNumber < current.lineNumber)
+          if (next === -1) next = computedTokens.length
+          setCodePayload?.({
+            ...codePayload,
+            prevIndex: computedTokens.length - next - 1,
+            currentIndex: computedTokens.length - next,
+            isFocus: false,
+          })
+        }
         break
       }
       default:
@@ -619,7 +579,6 @@ const handleIntroBlock = (
   direction: 'next' | 'previous'
 ) => {
   if (direction === 'next') {
-    // if (introPayload?.activeIntroIndex === 1) {
     setPayload?.({
       ...payload,
       activeObjectIndex: payload?.activeObjectIndex + 1,
@@ -642,6 +601,19 @@ const handleIntroBlock = (
   // 	}
   // }
   // return false;
+}
+
+const handleOutroBlock = (
+  payload: any,
+  setPayload: ((value: any) => void) | undefined,
+  direction: 'next' | 'previous'
+) => {
+  if (direction === 'previous') {
+    setPayload?.({
+      ...payload,
+      activeObjectIndex: payload?.activeObjectIndex - 1,
+    })
+  }
 }
 
 ControlButton.defaultProps = {

@@ -118,7 +118,7 @@ const VideoFragment = ({
     setObjectConfig(
       FragmentLayoutConfig({
         theme,
-        layout: viewConfig?.layout || 'classic',
+        layout: 'classic',
         isShorts: shortsMode || false,
       })
     )
@@ -194,45 +194,6 @@ const VideoFragment = ({
       videoElement.currentTime = videoPayload?.currentTime || 0
     }
   }, [videoPayload?.currentTime, videoElement])
-
-  // useEffect(() => {
-  // 	// Checking if the current state is only fragment group and making the opacity of the only fragment group 1
-  // 	if (videoPayload?.fragmentState === 'customLayout') {
-  // 		if (!shortsMode)
-  // 			setTimeout(() => {
-  // 				setFragmentState(videoPayload?.fragmentState);
-  // 				customLayoutRef?.current?.to({
-  // 					opacity: 1,
-  // 					duration: 0.1,
-  // 				});
-  // 			}, 400);
-  // 		else {
-  // 			setFragmentState(videoPayload?.fragmentState);
-  // 			customLayoutRef?.current?.to({
-  // 				opacity: 1,
-  // 				duration: 0.1,
-  // 			});
-  // 		}
-  // 	}
-  // 	// Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
-  // 	if (videoPayload?.fragmentState === 'onlyUserMedia') {
-  // 		if (!shortsMode)
-  // 			setTimeout(() => {
-  // 				setFragmentState(videoPayload?.fragmentState);
-  // 				customLayoutRef?.current?.to({
-  // 					opacity: 0,
-  // 					duration: 0.1,
-  // 				});
-  // 			}, 400);
-  // 		else {
-  // 			setFragmentState(videoPayload?.fragmentState);
-  // 			customLayoutRef?.current?.to({
-  // 				opacity: 0,
-  // 				duration: 0.1,
-  // 			});
-  // 		}
-  // 	}
-  // }, [videoPayload?.fragmentState, videoPayload?.status]);
 
   useEffect(() => {
     const noOfLinesOfTitle = getNoOfLinesOfText({
@@ -408,20 +369,6 @@ const VideoFragment = ({
       </Group>
     </Group>,
   ]
-
-  // const studioUserConfig = !shortsMode
-  //   ? StudioUserConfiguration({
-  //       layout: viewConfig?.layout || 'classic',
-  //       fragment,
-  //       fragmentState,
-  //       theme,
-  //     })
-  //   : ShortsStudioUserConfiguration({
-  //       layout: viewConfig?.layout || 'classic',
-  //       fragment,
-  //       fragmentState,
-  //       theme,
-  //     })
 
   return (
     <Concourse

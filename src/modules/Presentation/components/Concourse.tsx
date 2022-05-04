@@ -237,7 +237,7 @@ const Concourse = ({
                   ctx,
                   FragmentLayoutConfig({
                     theme,
-                    layout: viewConfig?.layout || 'classic',
+                    layout: 'classic',
                     isShorts: isShorts || false,
                   })
                 )
