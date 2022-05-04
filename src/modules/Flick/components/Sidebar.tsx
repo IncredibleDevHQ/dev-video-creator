@@ -5,11 +5,13 @@ import { HiOutlineSparkles } from 'react-icons/hi'
 import {
   IoAddOutline,
   IoChevronForwardOutline,
+  IoCopyOutline,
   IoFolderOpenOutline,
   IoMenuOutline,
   IoPlayOutline,
   IoTrashOutline,
 } from 'react-icons/io5'
+import { MdOutlinePresentToAll } from 'react-icons/md'
 import { Link, useHistory, useParams } from 'react-router-dom'
 import { Button, emitToast, Text, Tooltip } from '../../../components'
 import {
@@ -19,6 +21,8 @@ import {
   GetFragmentListQueryVariables,
   useCreateFragmentMutation,
   useDeleteFragmentMutation,
+  useDuplicateFragmentMutation,
+  useGetFlickFragmentLazyQuery,
   useGetFragmentListQuery,
 } from '../../../generated/graphql'
 import { verticalCustomScrollBar } from '../../../utils/globalStyles'
@@ -36,6 +40,8 @@ const Sidebar = ({ storyName }: { storyName: string }): JSX.Element | null => {
       flickId: id,
     },
   })
+
+  const [getFragment] = useGetFlickFragmentLazyQuery()
 
   const [createFragment, { loading: creatingFragment }] =
     useCreateFragmentMutation({
@@ -68,6 +74,33 @@ const Sidebar = ({ storyName }: { storyName: string }): JSX.Element | null => {
         )
       },
     })
+
+  const [duplicateFragment] = useDuplicateFragmentMutation({
+    update(cache, { data: duplicateFragmentData, errors }) {
+      const newFragment = duplicateFragmentData?.insert_Fragment_one
+
+      if (errors) return
+      if (!newFragment) return
+
+      emitToast({
+        title: 'Successfully duplicated format',
+        type: 'success',
+        autoClose: 3000,
+      })
+
+      history.push(`/story/${id}/${newFragment.id}`)
+
+      cache.updateQuery<GetFragmentListQuery, GetFragmentListQueryVariables>(
+        {
+          query: GetFragmentListDocument,
+          variables: { flickId: id },
+        },
+        (prevData) => ({
+          Fragment: [newFragment, ...(prevData?.Fragment || [])],
+        })
+      )
+    },
+  })
 
   const [deleteFragment, { loading: deletingFragment }] =
     useDeleteFragmentMutation({
@@ -117,9 +150,52 @@ const Sidebar = ({ storyName }: { storyName: string }): JSX.Element | null => {
       },
     })
 
+  const handleDuplicate = async (
+    type: Fragment_Type_Enum_Enum,
+    fragmentId: string
+  ) => {
+    try {
+      const { data, error } = await getFragment({
+        variables: {
+          id: fragmentId,
+        },
+      })
+      if (error) throw new Error("Can't get fragment")
+      if (data?.Fragment_by_pk) {
+        const newFragment = {
+          ...data.Fragment_by_pk,
+        }
+        await duplicateFragment({
+          variables: {
+            configuration: newFragment.configuration,
+            description: newFragment.description,
+            editorState: newFragment.editorState,
+            editorValue: newFragment.editorValue,
+            encodedEditorValue: newFragment.encodedEditorValue,
+            flickId: id,
+            type,
+          },
+        })
+      }
+    } catch (e) {
+      emitToast({
+        title: 'Could not duplicate format',
+        type: 'error',
+        autoClose: 3000,
+      })
+    }
+  }
+
   const [open, setOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
   const [moreId, setMoreId] = useState<string>()
+  const [duplicateOpen, setDuplicateOpen] = useState(false)
+
+  useEffect(() => {
+    if (!moreOpen) {
+      setDuplicateOpen(false)
+    }
+  }, [moreOpen])
 
   const [availableFormats, setAvailableFormats] =
     useState<Fragment_Type_Enum_Enum[]>()
@@ -129,6 +205,7 @@ const Sidebar = ({ storyName }: { storyName: string }): JSX.Element | null => {
     const formats = [
       Fragment_Type_Enum_Enum.Landscape,
       Fragment_Type_Enum_Enum.Portrait,
+      Fragment_Type_Enum_Enum.Presentation,
       // Fragment_Type_Enum_Enum.Blog,
     ].filter((type) => {
       if (
@@ -145,6 +222,13 @@ const Sidebar = ({ storyName }: { storyName: string }): JSX.Element | null => {
       ) {
         return false
       }
+      if (
+        type === Fragment_Type_Enum_Enum.Presentation &&
+        data?.Fragment?.some((fragment) => fragment.type === type)
+      ) {
+        return false
+      }
+
       return true
     })
     setAvailableFormats(formats)
@@ -161,50 +245,19 @@ const Sidebar = ({ storyName }: { storyName: string }): JSX.Element | null => {
     >
       <Tooltip
         content={
-          availableFormats ? (
-            <div className="bg-dark-400 text-gray-50 text-xs font-body rounded-sm">
-              {availableFormats.map((type, index) => (
-                <button
-                  type="button"
-                  className={cx(
-                    'flex items-center gap-x-2 py-1.5 px-3 hover:bg-dark-200 active:bg-dark-300 w-full',
-                    {
-                      'pt-2 rounded-t-sm': index === 0,
-                      'pb-2 rounded-b-sm':
-                        index === availableFormats.length - 1,
-                    }
-                  )}
-                  onClick={() => {
-                    setOpen(false)
-                    createFragment({
-                      variables: {
-                        flickId: id,
-                        name: 'Untitled',
-                        type,
-                      },
-                    })
-                  }}
-                >
-                  {(() => {
-                    switch (type) {
-                      case Fragment_Type_Enum_Enum.Landscape:
-                        return <IoPlayOutline />
-                      case Fragment_Type_Enum_Enum.Portrait:
-                        return <HiOutlineSparkles />
-                      case Fragment_Type_Enum_Enum.Blog:
-                        return <IoMenuOutline />
-                      default:
-                        return null
-                    }
-                  })()}
-                  <Text>
-                    {type}{' '}
-                    {type === Fragment_Type_Enum_Enum.Blog ? '' : 'video'}
-                  </Text>
-                </button>
-              ))}
-            </div>
-          ) : null
+          <AvailableFormats
+            availableFormats={availableFormats}
+            handleCreate={(type) => {
+              setOpen(false)
+              createFragment({
+                variables: {
+                  flickId: id,
+                  name: 'Untitled',
+                  type,
+                },
+              })
+            }}
+          />
         }
         isOpen={open}
         setIsOpen={setOpen}
@@ -249,6 +302,8 @@ const Sidebar = ({ storyName }: { storyName: string }): JSX.Element | null => {
                       return <HiOutlineSparkles />
                     case Fragment_Type_Enum_Enum.Blog:
                       return <IoMenuOutline />
+                    case Fragment_Type_Enum_Enum.Presentation:
+                      return <MdOutlinePresentToAll />
                     default:
                       return <IoPlayOutline />
                   }
@@ -257,32 +312,61 @@ const Sidebar = ({ storyName }: { storyName: string }): JSX.Element | null => {
               </div>
               <Tooltip
                 content={
-                  <div className="bg-dark-500 text-white text-xs font-body rounded-sm">
-                    {deletingFragment && moreId === fragment.id && (
-                      <FiLoader className="animate-spin h-8 w-20 p-2.5" />
-                    )}
-                    <button
-                      type="button"
-                      className={cx(
-                        'flex items-center gap-x-2 py-2 px-3 rounded-sm hover:bg-dark-200 active:bg-dark-300 w-full flex-shrink-0',
-                        {
-                          hidden: deletingFragment && moreId === fragment.id,
-                        }
+                  !duplicateOpen ? (
+                    <div className="bg-dark-500 text-white text-xs font-body rounded-sm p-1">
+                      {deletingFragment && moreId === fragment.id && (
+                        <FiLoader className="animate-spin h-8 w-20 p-2.5" />
                       )}
-                      onClick={() => {
-                        setOpen(false)
-                        deleteFragment({
-                          variables: {
-                            id: fragment.id,
-                          },
-                        })
-                      }}
-                      disabled={deletingFragment}
-                    >
-                      <IoTrashOutline className="flex-shrink-0" />
-                      <Text>Delete</Text>
-                    </button>
-                  </div>
+                      <button
+                        type="button"
+                        className={cx(
+                          'flex items-center gap-x-2 py-1 px-2 rounded-sm hover:bg-dark-200 active:bg-dark-300 w-full flex-shrink-0',
+                          {
+                            hidden: deletingFragment && moreId === fragment.id,
+                          }
+                        )}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setOpen(false)
+                          deleteFragment({
+                            variables: {
+                              id: fragment.id,
+                            },
+                          })
+                        }}
+                        disabled={deletingFragment}
+                      >
+                        <IoTrashOutline className="flex-shrink-0" />
+                        <Text>Delete</Text>
+                      </button>
+                      <button
+                        type="button"
+                        className={cx(
+                          'flex items-center gap-x-2 py-1 px-2 rounded-sm hover:bg-dark-200 active:bg-dark-300 w-full flex-shrink-0',
+                          {
+                            hidden: deletingFragment && moreId === fragment.id,
+                          }
+                        )}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setDuplicateOpen(true)
+                        }}
+                        disabled={deletingFragment}
+                      >
+                        <IoCopyOutline className="flex-shrink-0" />
+                        <Text>Duplicate</Text>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="min-w-max">
+                      <AvailableFormats
+                        availableFormats={availableFormats}
+                        handleCreate={(type) => {
+                          handleDuplicate(type, fragment.id)
+                        }}
+                      />
+                    </div>
+                  )
                 }
                 isOpen={moreOpen && fragment.id === moreId}
                 setIsOpen={setMoreOpen}
@@ -312,4 +396,52 @@ const Sidebar = ({ storyName }: { storyName: string }): JSX.Element | null => {
   )
 }
 
+const AvailableFormats = ({
+  availableFormats,
+  handleCreate,
+}: {
+  availableFormats: Fragment_Type_Enum_Enum[] | undefined
+  handleCreate: (type: Fragment_Type_Enum_Enum) => void
+}) => {
+  if (!availableFormats) return null
+
+  return (
+    <div className="bg-dark-400 text-gray-50 text-xs font-body rounded-sm p-1">
+      {availableFormats.map((type) => (
+        <button
+          type="button"
+          className={cx(
+            'flex rounded-sm items-center gap-x-2 py-1.5 px-3 hover:bg-dark-200 active:bg-dark-300 w-full'
+          )}
+          onClick={(e) => {
+            e.stopPropagation()
+            handleCreate(type)
+          }}
+        >
+          {(() => {
+            switch (type) {
+              case Fragment_Type_Enum_Enum.Landscape:
+                return <IoPlayOutline />
+              case Fragment_Type_Enum_Enum.Portrait:
+                return <HiOutlineSparkles />
+              case Fragment_Type_Enum_Enum.Blog:
+                return <IoMenuOutline />
+              case Fragment_Type_Enum_Enum.Presentation:
+                return <MdOutlinePresentToAll />
+              default:
+                return null
+            }
+          })()}
+          <Text>
+            {type}{' '}
+            {type === Fragment_Type_Enum_Enum.Blog ||
+            type === Fragment_Type_Enum_Enum.Presentation
+              ? ''
+              : 'video'}
+          </Text>
+        </button>
+      ))}
+    </div>
+  )
+}
 export default Sidebar

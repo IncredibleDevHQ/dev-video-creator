@@ -465,3 +465,29 @@ mutation PublishVideoAction(
     success
   }
 }
+
+mutation DuplicateFragment(
+  $configuration: json
+  $description: String
+  $editorState: json
+  $editorValue: json
+  $encodedEditorValue: String
+  $flickId: uuid
+  $type: FRAGMENT_TYPE_ENUM_enum
+) {
+  insert_Fragment_one(
+    object: {
+      configuration: $configuration
+      description: $description
+      editorState: $editorState
+      editorValue: $editorValue
+      encodedEditorValue: $encodedEditorValue
+      flickId: $flickId
+      type: $type
+    }
+  ) {
+    id
+    name
+    type
+  }
+}
