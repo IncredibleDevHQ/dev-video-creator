@@ -89,45 +89,41 @@ const App = () => {
         toastClassName="rounded-2xl shadow-lg"
         closeButton={false}
       />
-      <Router>
-        <Switch>
-          <Route exact path="/present/:fragmentId">
-            <Presentation />
-          </Route>
-          <AuthorizedApolloProvider>
-            <AuthProvider>
-              <Router>
-                <Switch>
-                  <Route exact path="/">
-                    <Landing />
-                  </Route>
-                  <Route exact path="/dashboard">
-                    <Dashboard />
-                  </Route>
-                  <Route exact path="/notifications">
-                    <Notifications />
-                  </Route>
-                  <Route exact path="/story/:id/:fragmentId?">
-                    <Flick />
-                  </Route>
-                  <Route exact path="/:fragmentId/studio">
-                    <Studio />
-                  </Route>
-                  <Route exact path="/integrations/github/callback">
-                    <GitHubCallback />
-                  </Route>
-                  <Route exact path="/integrations">
-                    <Integrations />
-                  </Route>
-                  <Route>
-                    <FourOhFour />
-                  </Route>
-                </Switch>
-              </Router>
-            </AuthProvider>
-          </AuthorizedApolloProvider>
-        </Switch>
-      </Router>
+      <AuthorizedApolloProvider>
+        <AuthProvider>
+          <Router>
+            <Switch>
+              <Route exact path="/">
+                <Landing />
+              </Route>
+              <Route exact path="/dashboard">
+                <Dashboard />
+              </Route>
+              <Route exact path="/notifications">
+                <Notifications />
+              </Route>
+              <Route exact path="/story/:id/:fragmentId?">
+                <Flick />
+              </Route>
+              <Route exact path="/:fragmentId/studio">
+                <Studio />
+              </Route>
+              <Route exact path="/integrations/github/callback">
+                <GitHubCallback />
+              </Route>
+              <Route exact path="/integrations">
+                <Integrations />
+              </Route>
+              <Route exact path="/present/:fragmentId">
+                <Presentation />
+              </Route>
+              <Route>
+                <FourOhFour />
+              </Route>
+            </Switch>
+          </Router>
+        </AuthProvider>
+      </AuthorizedApolloProvider>
     </RecoilRoot>
   ) : (
     <ScreenState

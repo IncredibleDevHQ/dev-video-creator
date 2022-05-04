@@ -123,10 +123,13 @@ const AuthProvider = ({ children }: { children: JSX.Element }): JSX.Element => {
   }, [])
 
   useEffect(() => {
-    login()
+    if (!window.location.pathname.startsWith('/present')) {
+      login()
+    }
   }, [])
 
-  if (!dbUser?.sub) return <ScreenState title="Just a jiffy" loading />
+  if (!dbUser?.sub && !window.location.pathname.startsWith('/present'))
+    return <ScreenState title="Just a jiffy" loading />
 
   return children
 }
