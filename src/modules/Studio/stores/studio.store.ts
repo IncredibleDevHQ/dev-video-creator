@@ -91,6 +91,11 @@ export interface StudioProviderProps<T = any, S = any> {
   recordedBlocks?: RecordedBlocksFragment[]
 }
 
+export const codePreviewStore = atom<number>({
+  key: 'preview',
+  default: 0,
+})
+
 const studioStore = atom<StudioProviderProps>({
   key: 'studio',
   default: {

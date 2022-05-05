@@ -52,6 +52,9 @@ const TipTap = ({
   return (
     <div className="pb-32 bg-white mt-4" ref={editorRef}>
       <div
+        style={{
+          zIndex: 0,
+        }}
         ref={dragHandleRef}
         id="drag-handle"
         className="hidden items-center text-gray-300 transition-all duration-75 ease-in-out"

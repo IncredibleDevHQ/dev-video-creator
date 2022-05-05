@@ -31,7 +31,6 @@ const PreviewUser = ({
     backgroundRectColor,
     backgroundRectBorderColor,
     backgroundRectBorderWidth,
-    themeName,
   } = studioUserConfig
 
   const imageConfig = { width: width || 160, height: height || 120 }
@@ -47,11 +46,6 @@ const PreviewUser = ({
 
   const [image] = useImage(
     `${config.storage.baseUrl}StudioUser.png`,
-    'anonymous'
-  )
-
-  const [star] = useImage(
-    `${config.storage.baseUrl}themes/DevsForUkraine/star.svg`,
     'anonymous'
   )
 
@@ -163,15 +157,6 @@ const PreviewUser = ({
         width={imgDim.width}
         height={imgDim.height}
       />
-      {themeName === 'DevsForUkraine' && (
-        <Image
-          x={(studioUserClipConfig && studioUserClipConfig.x + x - 23) || 960}
-          y={(studioUserClipConfig && studioUserClipConfig.y + y - 24) || 540}
-          image={star}
-          width={46}
-          height={48}
-        />
-      )}
     </>
   )
 }

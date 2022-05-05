@@ -23,6 +23,8 @@ import { CgProfile } from 'react-icons/cg'
 import { FiCode, FiLayout, FiLoader, FiUploadCloud } from 'react-icons/fi'
 import {
   IoAddOutline,
+  IoArrowDownOutline,
+  IoArrowUpOutline,
   IoChevronBack,
   IoChevronDownOutline,
   IoChevronForward,
@@ -36,7 +38,7 @@ import {
 } from 'react-icons/io5'
 import { MdOutlineTextFields } from 'react-icons/md'
 import useMeasure from 'react-use-measure'
-import { useRecoilValue } from 'recoil'
+import { useRecoilState, useRecoilValue } from 'recoil'
 import { v4 as uuidv4 } from 'uuid'
 import { ReactComponent as BulletListStyleIcon } from '../../../assets/BulletListStyle.svg'
 import listAllAtOnceGif from '../../../assets/ListAllAtOnce.svg'
@@ -66,7 +68,7 @@ import {
   ViewConfig,
 } from '../../../utils/configTypes'
 import { getSurfaceColor } from '../../Studio/effects/fragments/CodeFragment'
-import { studioStore } from '../../Studio/stores'
+import { codePreviewStore, studioStore } from '../../Studio/stores'
 import editorStyle from '../editor/style'
 import {
   Block,
@@ -211,6 +213,9 @@ const Preview = ({
   const [ref, bounds] = useMeasure()
   const { payload, updatePayload } = useRecoilValue(studioStore)
 
+  const [codePreviewValue, setCodePreviewValue] =
+    useRecoilState(codePreviewStore)
+
   const activeBlockRef = useRef<Block | undefined>(block)
 
   const handleKeyDown = (e: KeyboardEvent) => {
@@ -317,9 +322,11 @@ const Preview = ({
         setTabs([commonTabs[0], ...introOutroBlockTabs, commonTabs[2]])
         setActiveTab(commonTabs[0])
         break
-      case 'codeBlock':
+      case 'codeBlock': {
         setTabs([commonTabs[0], commonTabs[1], ...codeBlockTabs, commonTabs[2]])
+        setCodePreviewValue(0)
         break
+      }
       case 'headingBlock':
         setTabs([commonTabs[0], commonTabs[2]])
         break
@@ -355,7 +362,7 @@ const Preview = ({
         )}
         ref={ref}
       >
-        <div className="flex items-center">
+        <div className="flex items-center relative">
           <button
             onClick={() => {
               if (block.type === 'introBlock') {
@@ -456,6 +463,44 @@ const Preview = ({
           >
             <IoChevronForward />
           </button>
+          {block.type === 'codeBlock' && (
+            <div className="absolute bottom-0 right-8 -mb-4">
+              <button
+                className={cx(
+                  'bg-gray-800 border border-gray-200 text-white p-1.5 rounded-sm'
+                )}
+                type="button"
+                onClick={() => {
+                  setCodePreviewValue?.(
+                    codePreviewValue ? codePreviewValue - 1 : 0
+                  )
+                }}
+              >
+                <IoArrowUpOutline
+                  style={{
+                    margin: '3px',
+                  }}
+                  className="w-4 h-4 p-px"
+                />
+              </button>
+              <button
+                className={cx(
+                  'bg-gray-800 border border-gray-200 text-white p-1.5 rounded-sm ml-2'
+                )}
+                type="button"
+                onClick={() => {
+                  setCodePreviewValue?.(codePreviewValue + 1)
+                }}
+              >
+                <IoArrowDownOutline
+                  style={{
+                    margin: '3px',
+                  }}
+                  className="w-4 h-4 p-px"
+                />
+              </button>
+            </div>
+          )}
         </div>
       </div>
       {block.type !== 'interactionBlock' && (
