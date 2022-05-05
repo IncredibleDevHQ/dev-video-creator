@@ -129,7 +129,7 @@ const Flick = () => {
   const [getFragment] = useGetFlickFragmentLazyQuery()
 
   const [simpleAST, setSimpleAST] = useState<SimpleAST>()
-  const [editorValue, setEditorValue] = useState<string>()
+  const [editorValue, setEditorValue] = useState<any>()
   const [previewPosition, setPreviewPosition] = useState<Position>()
   const [activeFragment, setActiveFragment] = useState<FlickFragmentFragment>()
 
@@ -546,14 +546,17 @@ const Flick = () => {
     )
 
     setCurrentBlock(fragment?.editorState?.blocks[0] || initialAST.blocks[0])
-    setEditorValue(
-      fragment?.encodedEditorValue
-        ? Buffer.from(
-            fragment?.encodedEditorValue as string,
-            'base64'
-          ).toString('utf8')
-        : ''
-    )
+    const ev = fragment?.encodedEditorValue
+      ? Buffer.from(fragment?.encodedEditorValue as string, 'base64').toString(
+          'utf8'
+        )
+      : ''
+    // detect if stored editor value is in html or json format
+    if (ev.startsWith('<') || ev === '') {
+      setEditorValue(ev)
+    } else {
+      setEditorValue(JSON.parse(ev))
+    }
   }, [
     activeFragmentId,
     flick?.id,
@@ -680,7 +683,7 @@ const Flick = () => {
               : []),
           ],
         }))
-      setEditorValue(editor.getHTML())
+      setEditorValue(editor.getJSON())
       if (!editor || editor.isDestroyed) return
       const transaction = editor.state.tr
       editor.state.doc.descendants((node, pos) => {

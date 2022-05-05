@@ -8,7 +8,6 @@ import Gravatar from 'react-gravatar'
 import { StudioProviderProps, studioStore } from '../stores'
 import { StudioUserConfig } from './Concourse'
 import useEdit, { ClipConfig } from '../hooks/use-edit'
-import config from '../../../config'
 
 type StudioUserType = 'local' | 'remote'
 
@@ -43,7 +42,6 @@ const StudioUser = ({
     backgroundRectColor,
     backgroundRectBorderColor,
     backgroundRectBorderWidth,
-    themeName,
   } = studioUserConfig
 
   const imageConfig = { width: width || 160, height: height || 120 }
@@ -62,11 +60,6 @@ const StudioUser = ({
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [image] = useImage(picture, 'anonymous')
-
-  const [star] = useImage(
-    `${config.storage.baseUrl}themes/DevsForUkraine/star.svg`,
-    'anonymous'
-  )
 
   const videoElement = React.useMemo(() => {
     if (!stream) return
@@ -187,15 +180,6 @@ const StudioUser = ({
             />
           ))}
       </Group>
-      {themeName === 'DevsForUkraine' && (
-        <Image
-          x={(studioUserClipConfig && studioUserClipConfig.x + x - 23) || 960}
-          y={(studioUserClipConfig && studioUserClipConfig.y + y - 24) || 540}
-          image={star}
-          width={46}
-          height={48}
-        />
-      )}
     </>
   )
 }

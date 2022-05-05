@@ -27,7 +27,11 @@ import RenderTokens, {
 } from '../../components/RenderTokens'
 import useCode, { ComputedToken } from '../../hooks/use-code'
 import useEdit from '../../hooks/use-edit'
-import { StudioProviderProps, studioStore } from '../../stores'
+import {
+  codePreviewStore,
+  StudioProviderProps,
+  studioStore,
+} from '../../stores'
 import {
   FragmentLayoutConfig,
   ObjectConfig,
@@ -129,6 +133,8 @@ const CodeFragment = ({
   const { fragment, payload, updatePayload, state, theme } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
+  const codePreviewValue = useRecoilValue(codePreviewStore)
+
   const { initUseCode } = useCode()
   const [computedTokens, setComputedTokens] = useState<ComputedToken[][]>([[]])
   const [position, setPosition] = useState<Position>({
@@ -143,6 +149,7 @@ const CodeFragment = ({
   const customLayoutRef = useRef<Konva.Group>(null)
 
   const codeGroupRef = useRef<Konva.Group>(null)
+  const previewGroupRef = useRef<Konva.Group>(null)
 
   // states used for codex format
   // a bool state which tells if its a codex format or not
@@ -456,6 +463,17 @@ const CodeFragment = ({
     }
   }, [payload?.fragmentState, payload?.status])
 
+  useEffect(() => {
+    previewGroupRef?.current?.to({
+      y:
+        -(codePreviewValue * (8 * (fontSize + 8))) +
+        objectRenderConfig.startY +
+        24,
+      duration: 0.5,
+      easing: Konva.Easings.EaseInOut,
+    })
+  }, [objectRenderConfig, codePreviewValue])
+
   const layerChildren: any[] = [
     <Group x={0} y={0} opacity={1} ref={customLayoutRef}>
       <FragmentBackground
@@ -463,18 +481,18 @@ const CodeFragment = ({
         objectConfig={objectConfig}
         backgroundRectColor={getSurfaceColor({ codeTheme })}
       />
-      {!isPreview ? (
-        <Group
-          clipFunc={(ctx: any) => {
-            clipRect(ctx, {
-              x: objectRenderConfig.startX,
-              y: objectRenderConfig.startY + 24,
-              width: objectRenderConfig.availableWidth,
-              height: objectRenderConfig.availableHeight,
-              borderRadius: 0,
-            })
-          }}
-        >
+      <Group
+        clipFunc={(ctx: any) => {
+          clipRect(ctx, {
+            x: objectRenderConfig.startX,
+            y: objectRenderConfig.startY + 24,
+            width: objectRenderConfig.availableWidth,
+            height: objectRenderConfig.availableHeight,
+            borderRadius: 0,
+          })
+        }}
+      >
+        {!isPreview ? (
           <Group
             x={objectRenderConfig.startX + 25}
             y={objectRenderConfig.startY + 24}
@@ -624,25 +642,26 @@ const CodeFragment = ({
               }[codeAnimation || 'Type lines']
             }
           </Group>
-        </Group>
-      ) : (
-        <Group
-          x={objectRenderConfig.startX + 25}
-          y={objectRenderConfig.startY + 24}
-          key="previewGroup"
-        >
-          <Group x={-15}>
-            {getAllLineNumbers(computedTokens[0], fontSize)}
+        ) : (
+          <Group
+            x={objectRenderConfig.startX + 25}
+            y={objectRenderConfig.startY + 24}
+            key="previewGroup"
+            ref={previewGroupRef}
+          >
+            <Group x={-15}>
+              {getAllLineNumbers(computedTokens[0], fontSize)}
+            </Group>
+            <Group x={40}>
+              {getTokens({
+                tokens: computedTokens[0],
+                opacity: 1,
+                fontSize,
+              })}
+            </Group>
           </Group>
-          <Group x={40}>
-            {getTokens({
-              tokens: computedTokens[0],
-              opacity: 1,
-              fontSize,
-            })}
-          </Group>
-        </Group>
-      )}
+        )}
+      </Group>
     </Group>,
   ]
 
