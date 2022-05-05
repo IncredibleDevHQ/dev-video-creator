@@ -322,9 +322,11 @@ const Preview = ({
         setTabs([commonTabs[0], ...introOutroBlockTabs, commonTabs[2]])
         setActiveTab(commonTabs[0])
         break
-      case 'codeBlock':
+      case 'codeBlock': {
         setTabs([commonTabs[0], commonTabs[1], ...codeBlockTabs, commonTabs[2]])
+        setCodePreviewValue(0)
         break
+      }
       case 'headingBlock':
         setTabs([commonTabs[0], commonTabs[2]])
         break
