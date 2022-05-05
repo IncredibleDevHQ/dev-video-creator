@@ -362,7 +362,7 @@ const Preview = ({
         )}
         ref={ref}
       >
-        <div className="flex items-center">
+        <div className="flex items-center relative">
           <button
             onClick={() => {
               if (block.type === 'introBlock') {
@@ -463,44 +463,46 @@ const Preview = ({
           >
             <IoChevronForward />
           </button>
+          {block.type === 'codeBlock' && (
+            <div className="absolute bottom-0 right-8 -mb-4">
+              <button
+                className={cx(
+                  'bg-gray-800 border border-gray-200 text-white p-1.5 rounded-sm'
+                )}
+                type="button"
+                onClick={() => {
+                  setCodePreviewValue?.(
+                    codePreviewValue ? codePreviewValue - 1 : 0
+                  )
+                }}
+              >
+                <IoArrowUpOutline
+                  style={{
+                    margin: '3px',
+                  }}
+                  className="w-4 h-4 p-px"
+                />
+              </button>
+              <button
+                className={cx(
+                  'bg-gray-800 border border-gray-200 text-white p-1.5 rounded-sm ml-2'
+                )}
+                type="button"
+                onClick={() => {
+                  setCodePreviewValue?.(codePreviewValue + 1)
+                }}
+              >
+                <IoArrowDownOutline
+                  style={{
+                    margin: '3px',
+                  }}
+                  className="w-4 h-4 p-px"
+                />
+              </button>
+            </div>
+          )}
         </div>
       </div>
-      {block.type === 'codeBlock' && (
-        <div className="absolute left-4">
-          <button
-            className={cx(
-              'bg-grey-100 border border-gray-800 backdrop-filter bg-opacity-50 backdrop-blur-2xl p-1.5 rounded-sm ml-4'
-            )}
-            type="button"
-            onClick={() => {
-              setCodePreviewValue?.(codePreviewValue ? codePreviewValue - 1 : 0)
-            }}
-          >
-            <IoArrowUpOutline
-              style={{
-                margin: '3px',
-              }}
-              className="w-4 h-4 p-px"
-            />
-          </button>
-          <button
-            className={cx(
-              'bg-grey-100 border border-gray-800 backdrop-filter bg-opacity-50 backdrop-blur-2xl p-1.5 rounded-sm ml-4'
-            )}
-            type="button"
-            onClick={() => {
-              setCodePreviewValue?.(codePreviewValue + 1)
-            }}
-          >
-            <IoArrowDownOutline
-              style={{
-                margin: '3px',
-              }}
-              className="w-4 h-4 p-px"
-            />
-          </button>
-        </div>
-      )}
       {block.type !== 'interactionBlock' && (
         <div
           style={{
