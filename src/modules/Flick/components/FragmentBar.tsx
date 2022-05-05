@@ -329,9 +329,9 @@ const FragmentBar = ({
     setSavingConfig(true)
 
     try {
-      const encodedEditorValue = Buffer.from(editorValue as string).toString(
-        'base64'
-      )
+      const encodedEditorValue = Buffer.from(
+        JSON.stringify(editorValue)
+      ).toString('base64')
       if (
         fragment &&
         fragment?.type !== Fragment_Type_Enum_Enum.Intro &&
