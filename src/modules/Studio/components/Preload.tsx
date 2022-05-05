@@ -269,6 +269,20 @@ const preload = async ({
             return block
           }
           if (block.type === 'codeBlock') {
+            const codeBlockViewProps = (fragment?.configuration as ViewConfig)
+              .blocks[block.id]?.view as CodeBlockView
+            setStudio((prev) => ({
+              ...prev,
+              codes: {
+                ...prev.codes,
+                [block.id]: {
+                  code: (block as CodeBlockProps).codeBlock.code,
+                  colorCode: result.find((res) => res?.key === block.id)
+                    ?.colorCodes,
+                  theme: codeBlockViewProps?.code?.theme,
+                },
+              },
+            }))
             return {
               ...block,
               codeBlock: {
@@ -374,6 +388,7 @@ const fetcher = async (
         codeTheme || CodeTheme.DarkPlus
       )
       if (data?.errors) throw Error("Can't get color codes")
+      console.log('fetchedColorCodes', data)
       return {
         key,
         url,
