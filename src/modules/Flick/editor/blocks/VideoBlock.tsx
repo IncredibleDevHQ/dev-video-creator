@@ -236,7 +236,7 @@ const VideoBlock = (props: any) => {
                 {props.node.attrs.type === 'video' ? (
                   <>
                     <Text contentEditable={false} fontSize="small">
-                      Drag and drop {props.node.attrs.type} or
+                      Drag and drop a {props.node.attrs.type} or
                     </Text>
                     <Text
                       contentEditable={false}
@@ -248,7 +248,7 @@ const VideoBlock = (props: any) => {
                   </>
                 ) : (
                   <Text contentEditable={false} fontSize="small">
-                    Click to record screen
+                    Click to record the screen
                   </Text>
                 )}
               </div>
