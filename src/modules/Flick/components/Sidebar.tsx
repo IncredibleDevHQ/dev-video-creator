@@ -339,17 +339,12 @@ const Sidebar = ({ storyName }: { storyName: string }): JSX.Element | null => {
                         )}
                         onClick={(e) => {
                           e.stopPropagation()
-                          setOpen(false)
-                          deleteFragment({
-                            variables: {
-                              id: fragment.id,
-                            },
-                          })
+                          setDuplicateOpen(true)
                         }}
                         disabled={deletingFragment}
                       >
-                        <IoTrashOutline className="flex-shrink-0" />
-                        <Text>Delete</Text>
+                        <IoCopyOutline className="flex-shrink-0" />
+                        <Text>Duplicate</Text>
                       </button>
                       <button
                         type="button"
@@ -361,12 +356,17 @@ const Sidebar = ({ storyName }: { storyName: string }): JSX.Element | null => {
                         )}
                         onClick={(e) => {
                           e.stopPropagation()
-                          setDuplicateOpen(true)
+                          setOpen(false)
+                          deleteFragment({
+                            variables: {
+                              id: fragment.id,
+                            },
+                          })
                         }}
                         disabled={deletingFragment}
                       >
-                        <IoCopyOutline className="flex-shrink-0" />
-                        <Text>Duplicate</Text>
+                        <IoTrashOutline className="flex-shrink-0" />
+                        <Text>Delete</Text>
                       </button>
                     </div>
                   ) : (
