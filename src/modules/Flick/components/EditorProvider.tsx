@@ -46,6 +46,23 @@ export const EditorProvider = ({
 
   const { flick, activeFragmentId } = useRecoilValue(newFlickStore)
 
+  const getContent = (activeFragmentId: string) => {
+    const ev = flick?.fragments.find(
+      (fragment) => fragment.id === activeFragmentId
+    )?.encodedEditorValue
+      ? Buffer.from(
+          flick?.fragments.find((fragment) => fragment.id === activeFragmentId)
+            ?.encodedEditorValue as string,
+          'base64'
+        ).toString('utf8')
+      : ''
+    // detect if stored editor value is in html or json format
+    if (ev.startsWith('<') || ev === '') {
+      return ev
+    }
+    return JSON.parse(ev)
+  }
+
   const editor = useEditor(
     {
       onUpdate: ({ editor }) => {
@@ -162,16 +179,7 @@ export const EditorProvider = ({
         }),
         InteractionBlock,
       ],
-      content: flick?.fragments.find(
-        (fragment) => fragment.id === activeFragmentId
-      )?.encodedEditorValue
-        ? Buffer.from(
-            flick?.fragments.find(
-              (fragment) => fragment.id === activeFragmentId
-            )?.encodedEditorValue as string,
-            'base64'
-          ).toString('utf8')
-        : '',
+      content: getContent(activeFragmentId),
     },
     [dragRef.current, activeFragmentId]
   )
