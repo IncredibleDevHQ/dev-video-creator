@@ -23,6 +23,8 @@ import { CgProfile } from 'react-icons/cg'
 import { FiCode, FiLayout, FiLoader, FiUploadCloud } from 'react-icons/fi'
 import {
   IoAddOutline,
+  IoArrowDownOutline,
+  IoArrowUpOutline,
   IoChevronBack,
   IoChevronDownOutline,
   IoChevronForward,
@@ -36,7 +38,7 @@ import {
 } from 'react-icons/io5'
 import { MdOutlineTextFields } from 'react-icons/md'
 import useMeasure from 'react-use-measure'
-import { useRecoilValue } from 'recoil'
+import { useRecoilState, useRecoilValue } from 'recoil'
 import { v4 as uuidv4 } from 'uuid'
 import { ReactComponent as BulletListStyleIcon } from '../../../assets/BulletListStyle.svg'
 import listAllAtOnceGif from '../../../assets/ListAllAtOnce.svg'
@@ -66,7 +68,7 @@ import {
   ViewConfig,
 } from '../../../utils/configTypes'
 import { getSurfaceColor } from '../../Studio/effects/fragments/CodeFragment'
-import { studioStore } from '../../Studio/stores'
+import { codePreviewStore, studioStore } from '../../Studio/stores'
 import editorStyle from '../editor/style'
 import {
   Block,
@@ -210,6 +212,9 @@ const Preview = ({
   const [activeTab, setActiveTab] = useState<Tab>(commonTabs[0])
   const [ref, bounds] = useMeasure()
   const { payload, updatePayload } = useRecoilValue(studioStore)
+
+  const [codePreviewValue, setCodePreviewValue] =
+    useRecoilState(codePreviewStore)
 
   const activeBlockRef = useRef<Block | undefined>(block)
 
@@ -458,6 +463,42 @@ const Preview = ({
           </button>
         </div>
       </div>
+      {block.type === 'codeBlock' && (
+        <div className="absolute left-4">
+          <button
+            className={cx(
+              'bg-grey-100 border border-gray-800 backdrop-filter bg-opacity-50 backdrop-blur-2xl p-1.5 rounded-sm ml-4'
+            )}
+            type="button"
+            onClick={() => {
+              setCodePreviewValue?.(codePreviewValue ? codePreviewValue - 1 : 0)
+            }}
+          >
+            <IoArrowUpOutline
+              style={{
+                margin: '3px',
+              }}
+              className="w-4 h-4 p-px"
+            />
+          </button>
+          <button
+            className={cx(
+              'bg-grey-100 border border-gray-800 backdrop-filter bg-opacity-50 backdrop-blur-2xl p-1.5 rounded-sm ml-4'
+            )}
+            type="button"
+            onClick={() => {
+              setCodePreviewValue?.(codePreviewValue + 1)
+            }}
+          >
+            <IoArrowDownOutline
+              style={{
+                margin: '3px',
+              }}
+              className="w-4 h-4 p-px"
+            />
+          </button>
+        </div>
+      )}
       {block.type !== 'interactionBlock' && (
         <div
           style={{
