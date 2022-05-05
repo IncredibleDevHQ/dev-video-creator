@@ -491,3 +491,21 @@ mutation DuplicateFragment(
     type
   }
 }
+
+mutation MoveOrCopyBlocks(
+  $id: uuid!
+  $encodedEditorValue: String!
+  $editorState: json!
+  $configuration: json!
+) {
+  update_Fragment_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+      encodedEditorValue: $encodedEditorValue
+      editorState: $editorState
+      configuration: $configuration
+    }
+  ) {
+    id
+  }
+}
