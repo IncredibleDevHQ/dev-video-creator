@@ -472,6 +472,7 @@ const BlockPreview = ({
           ref={ref}
         >
           <CanvasPreview
+            key={block.id}
             block={block}
             bounds={bounds}
             shortsMode={config.mode === 'Portrait'}
