@@ -190,16 +190,50 @@ const Presentation = ({
     width: 0,
   })
 
+  const [initialHeightWidth, setInitialHeightWidth] = useState({
+    height: 0,
+    width: 0,
+  })
+
   useEffect(() => {
+    if (initialHeightWidth.height !== 0 || initialHeightWidth.width !== 0)
+      return
+    setInitialHeightWidth({
+      height: bounds.height,
+      width: bounds.width,
+    })
+  }, [bounds])
+
+  document.onfullscreenchange = (e) => {
+    setIsFullScreen(!isFullScreen)
+  }
+
+  useEffect(() => {
+    // console.log(
+    //   'mountStage',
+    //   'initialValues',
+    //   initialHeightWidth,
+    //   'bounds',
+    //   bounds,
+    //   'setting',
+    //   'isFullScreen',
+    //   isFullScreen,
+    //   isFullScreen ? bounds.height : initialHeightWidth.height || bounds.height,
+    //   isFullScreen ? bounds.width : initialHeightWidth.width || bounds.width
+    // )
     setStageSize(
       getIntegerHW({
-        maxH: bounds.height,
-        maxW: bounds.width,
+        maxH: isFullScreen
+          ? bounds.height
+          : initialHeightWidth.height || bounds.height,
+        maxW: isFullScreen
+          ? bounds.width
+          : initialHeightWidth.width || bounds.width,
         aspectRatio: shortsMode ? 9 / 16 : 16 / 9,
         isShorts: shortsMode,
       })
     )
-  }, [bounds, isFullScreen])
+  }, [isFullScreen, bounds, initialHeightWidth])
 
   useEffect(() => {
     if (!stageWidth) return
@@ -445,7 +479,7 @@ const Presentation = ({
             onClick={() => {
               const canvas = document.getElementById('canvasDiv')
               canvas?.requestFullscreen()
-              setIsFullScreen(true)
+              // setIsFullScreen(true)
             }}
           />
         )}
