@@ -145,7 +145,7 @@ const Publish = ({
   const [publish, setPublish] = useState<IPublish>(
     fragment?.publishConfig || {
       ...initialState,
-      title: flick?.name,
+      title: fragment?.name,
       thumbnail: {
         ...initialState.thumbnail,
         objectId:

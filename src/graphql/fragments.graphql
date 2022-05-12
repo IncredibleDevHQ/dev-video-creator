@@ -154,6 +154,12 @@ query GetRecordedBlocks($recordingId: uuid) {
   }
 }
 
+mutation UpdateFragmentName($id: uuid!, $name: String!) {
+  update_Fragment_by_pk(pk_columns: { id: $id }, _set: { name: $name }) {
+    id
+  }
+}
+
 mutation AddNote($note: Note_insert_input = {}) {
   insert_Note_one(object: $note) {
     id
