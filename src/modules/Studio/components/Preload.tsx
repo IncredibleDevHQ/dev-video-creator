@@ -75,12 +75,8 @@ const Preload = ({
     recordingsData: GetRecordingsQuery | undefined
   ) => {
     if (!fragment?.configuration) return
-    const requiredType =
-      fragment.configuration.mode === 'Portrait'
-        ? Content_Type_Enum_Enum.VerticalVideo
-        : Content_Type_Enum_Enum.Video
     const recording = recordingsData?.Recording?.find(
-      (recording) => recording.type === requiredType
+      (recording) => recording.fragmentId === fragment.id
     )
     console.log('Current recording is :', recording)
     // let blockGroups: any = []
