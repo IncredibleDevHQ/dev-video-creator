@@ -5,6 +5,7 @@ import { sentenceCase } from 'change-case'
 import { differenceInMonths, format, formatDistance } from 'date-fns'
 import React, { useEffect, useState } from 'react'
 import { FiCopy, FiMoreHorizontal } from 'react-icons/fi'
+import { GoLinkExternal } from 'react-icons/go'
 import { IoDocumentTextOutline, IoTrashOutline } from 'react-icons/io5'
 import { useHistory } from 'react-router-dom'
 import { useRecoilValue } from 'recoil'
@@ -15,6 +16,7 @@ import {
   ThumbnailPreview,
   Tooltip,
 } from '../../../components'
+import config from '../../../config'
 import { ASSETS } from '../../../constants'
 import {
   Content_Type_Enum_Enum,
@@ -36,6 +38,7 @@ const FlickTile = ({
   owner,
   handleDelete,
   handleCopy,
+  joinLink,
 }: DashboardFlicksFragment & {
   handleDelete: (id: string) => void
   handleCopy: (id: string, newId: string) => void
@@ -114,6 +117,11 @@ const FlickTile = ({
         }
       }}
     >
+      {contents.length > 0 && (
+        <div className="absolute z-10 text-xs bg-incredible-green-500 rounded-br-sm rounded-tl-sm px-1 py-px">
+          Published
+        </div>
+      )}
       <div className="aspect-w-16 aspect-h-9">
         <div className="flex items-center justify-center bg-dark-300 w-full h-full rounded-md">
           {(() => {
@@ -191,13 +199,13 @@ const FlickTile = ({
               isOpen={overflowMenuVisible}
               setIsOpen={setOverflowMenuVisible}
               content={
-                <div className="flex flex-col mt-3 bg-dark-400 rounded-md cursor-pointer -mr-5 shadow-md">
+                <div className="flex flex-col mt-3 bg-dark-400 rounded-md cursor-pointer -mr-5 shadow-md p-1">
                   <div
                     role="button"
                     tabIndex={0}
                     onKeyUp={() => {}}
                     className={cx(
-                      'flex items-center hover:bg-dark-100 px-3 py-2 rounded-t-md',
+                      'flex items-center hover:bg-dark-100 px-3 py-1.5 rounded-sm',
                       {
                         'cursor-not-allowed ': owner?.userSub !== sub,
                       }
@@ -217,12 +225,36 @@ const FlickTile = ({
                       Make a copy
                     </span>
                   </div>
+                  {contents.length > 0 && (
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onKeyUp={() => {}}
+                      className={cx(
+                        'flex items-center hover:bg-dark-100 px-3 py-1.5 rounded-sm'
+                      )}
+                      onClick={() => {
+                        window.open(
+                          `${config.auth.endpoint}/watch/${joinLink}`,
+                          '_blank'
+                        )
+                      }}
+                    >
+                      <GoLinkExternal
+                        size={16}
+                        className="text-gray-100 mr-4"
+                      />
+                      <span className="font-medium text-gray-100 text-sm font-main">
+                        Public page
+                      </span>
+                    </div>
+                  )}
                   <div
                     role="button"
                     tabIndex={0}
                     onKeyUp={() => {}}
                     className={cx(
-                      'flex items-center rounded-b-md hover:bg-dark-100 px-3 py-2',
+                      'flex items-center hover:bg-dark-100 px-3 py-1.5 rounded-sm',
                       {
                         'cursor-not-allowed ': owner?.userSub !== sub,
                       }

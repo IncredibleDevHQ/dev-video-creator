@@ -7,6 +7,7 @@ export interface StaticAssets {
 }
 export interface PresentationProviderProps<T = any, S = any> {
   fragmentId: string
+  flickId?: string
   flickName: string
   ownerName: string
   ownerDesignation: string

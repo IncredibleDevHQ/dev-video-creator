@@ -396,32 +396,44 @@ const Publish = ({
                 </div>
               )}
             </div>
-            <Button
-              appearance="primary"
-              type="button"
-              size="small"
-              disabled={
-                !publish.title ||
-                (fragment?.type !== Fragment_Type_Enum_Enum.Portrait &&
-                  !publish.description) ||
-                !recording?.id ||
-                !recording.url ||
-                recording?.status !== Recording_Status_Enum_Enum.Completed ||
-                updatePublishLoading
-              }
-              loading={publishing}
-              onClick={() => {
-                doPublish({
-                  variables: {
-                    data: publish,
-                    fragmentId: activeFragmentId,
-                    recordingId: recording?.id,
-                  },
-                })
-              }}
-            >
-              Publish
-            </Button>
+            <div className="flex items-center gap-x-4">
+              {flick && flick.contents.length > 0 && (
+                <a
+                  rel="noopener noreferrer"
+                  target="_blank"
+                  href={`${config.auth.endpoint}/watch/${flick?.joinLink}`}
+                  className="flex items-center gap-x-2 text-sm hover:underline"
+                >
+                  Story page
+                </a>
+              )}
+              <Button
+                appearance="primary"
+                type="button"
+                size="small"
+                disabled={
+                  !publish.title ||
+                  (fragment?.type !== Fragment_Type_Enum_Enum.Portrait &&
+                    !publish.description) ||
+                  !recording?.id ||
+                  !recording.url ||
+                  recording?.status !== Recording_Status_Enum_Enum.Completed ||
+                  updatePublishLoading
+                }
+                loading={publishing}
+                onClick={() => {
+                  doPublish({
+                    variables: {
+                      data: publish,
+                      fragmentId: activeFragmentId,
+                      recordingId: recording?.id,
+                    },
+                  })
+                }}
+              >
+                Publish
+              </Button>
+            </div>
           </div>
 
           <div className="flex justify-between flex-1 w-full">
@@ -830,18 +842,18 @@ const CTATab = ({
         </Text>
       </button>
       <Heading fontSize="small" className="mt-8 font-bold">
-        Add Discord Link
+        Add discord link
       </Heading>
       <TextField
         placeholder="https://discord.gg/jJQWQs8Fh2"
         value={publish.discordCTA?.url}
-        className="font-normal"
+        className="font-normal font-body text-sm"
         onChange={(e: ChangeEvent<HTMLInputElement>) => {
           setPublish({
             ...publish,
             discordCTA: {
               url: e.target.value,
-              text: 'Join our discord',
+              text: 'Join discord',
             },
           })
         }}

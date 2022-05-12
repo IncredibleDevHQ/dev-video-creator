@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useAuthState } from 'react-firebase-hooks/auth'
 import { Group } from 'react-konva'
 import { useRecoilState, useRecoilValue } from 'recoil'
+import { useDebouncedCallback } from 'use-debounce'
 import * as gConfig from '../../../../config'
 import firebaseState from '../../../../stores/firebase.store'
 import {
@@ -192,10 +193,36 @@ const CodeFragment = ({
 
   const { clipRect } = useEdit()
 
+  const debounceColorCodes = useDebouncedCallback(async (value) => {
+    const { data } = await getColorCodes(
+      value.decodedCode,
+      value.language,
+      value.token,
+      value.theme
+    )
+    if (!data?.errors) {
+      setColorCodes(data.data.TokenisedCode.data)
+      setStudio({
+        ...studio,
+        codes: {
+          ...studio.codes,
+          [dataConfig.id]: {
+            code: value.decodedCode,
+            colorCode: data.data.TokenisedCode.data,
+            theme: value.theme,
+          },
+        },
+      })
+    }
+  }, 1000)
+
   useEffect(() => {
-    if (!dataConfig) return
     setColorCodes([])
     setComputedTokens([[]])
+  }, [])
+
+  useEffect(() => {
+    if (!dataConfig) return
     updatePayload?.({
       currentIndex: 0,
       prevIndex: -1,
@@ -232,26 +259,12 @@ const CodeFragment = ({
               codeBlockViewProps.theme !== code?.theme)
           ) {
             const token = await user?.getIdToken()
-            const { data } = await getColorCodes(
+            debounceColorCodes({
               decodedCode,
-              dataConfig.codeBlock.language || '',
-              token || '',
-              codeBlockViewProps?.theme
-            )
-            if (!data?.errors) {
-              setColorCodes(data.data.TokenisedCode.data)
-              setStudio({
-                ...studio,
-                codes: {
-                  ...studio.codes,
-                  [dataConfig.id]: {
-                    code: decodedCode,
-                    colorCode: data.data.TokenisedCode.data,
-                    theme: codeBlockViewProps?.theme,
-                  },
-                },
-              })
-            }
+              language: dataConfig.codeBlock.language || '',
+              token,
+              theme: codeBlockViewProps?.theme,
+            })
           } else {
             setColorCodes(code?.colorCode)
           }

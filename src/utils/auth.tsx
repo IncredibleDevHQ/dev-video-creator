@@ -99,7 +99,9 @@ const AuthProvider = ({ children }: { children: JSX.Element }): JSX.Element => {
       )
     } catch (e) {
       setAuth({ ...auth, loading: false })
-      window.location.href = `${config.auth.endpoint}/login?redirect=${window.location.href}`
+      if (!window.location.pathname.startsWith('/present')) {
+        window.location.href = `${config.auth.endpoint}/login?redirect=${window.location.href}`
+      }
     }
   }
 
@@ -123,9 +125,7 @@ const AuthProvider = ({ children }: { children: JSX.Element }): JSX.Element => {
   }, [])
 
   useEffect(() => {
-    if (!window.location.pathname.startsWith('/present')) {
-      login()
-    }
+    login()
   }, [])
 
   if (!dbUser?.sub && !window.location.pathname.startsWith('/present'))
