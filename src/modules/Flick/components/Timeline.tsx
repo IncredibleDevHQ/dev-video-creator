@@ -40,6 +40,7 @@ import { newFlickStore, View } from '../store/flickNew.store'
 import { EditorContext } from './EditorProvider'
 import { FragmentTypeIcon } from './LayoutGeneric'
 import ViewRecordingsModal from './ViewRecordingsModal'
+import { v4 as uuidv4 } from 'uuid'
 
 const CopyMoveActions = ({
   action,
@@ -142,7 +143,15 @@ const CopyMoveActions = ({
           if (![...(block.nodeIds || []), block.id]?.includes(c.attrs?.id)) {
             remainingEditorContent.push(c)
           } else {
-            selectedEditorContent.push(c)
+            selectedEditorContent.push({
+              ...c,
+              attrs: c.attrs
+                ? {
+                    ...c.attrs,
+                    id: uuidv4(),
+                  }
+                : c.attrs,
+            })
             remainingEditorContent = remainingEditorContent.filter(
               (rec) => c.attrs?.id === rec.attrs?.id
             )
