@@ -128,7 +128,9 @@ const InteractionBlock = (props: any) => {
             <div className="filter grayscale brightness-75">
               {getTypeSpecifics(type).icon}
             </div>
-            <span className="font-body">Add {getTypeSpecifics(type).name}</span>
+            <span spellCheck={false} className="font-body">
+              Add {getTypeSpecifics(type).name}
+            </span>
           </button>
         </Tooltip>
       )}

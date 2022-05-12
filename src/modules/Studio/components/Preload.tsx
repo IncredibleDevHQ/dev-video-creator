@@ -1,4 +1,5 @@
 /* eslint-disable jsx-a11y/media-has-caption */
+import * as Sentry from '@sentry/react'
 import axios from 'axios'
 import React, { useEffect, useState } from 'react'
 import { useAuthState } from 'react-firebase-hooks/auth'
@@ -8,6 +9,7 @@ import config from '../../../config'
 import {
   Content_Types,
   Content_Type_Enum_Enum,
+  GetRecordingsQuery,
   SetupRecordingMutationVariables,
   StudioFragmentFragment,
   useGetRecordedBlocksLazyQuery,
@@ -56,35 +58,25 @@ const Preload = ({
 
   const setStudio = useSetRecoilState(studioStore)
 
-  const [getRecordings, { data: recordingsData, error: getRecordingsError }] =
-    useGetRecordingsLazyQuery({
-      variables: {
-        flickId: fragment?.flickId,
-        fragmentId: fragment?.id,
-      },
-      fetchPolicy: 'cache-first',
-    })
-
-  useEffect(() => {
-    getRecordings()
-  }, [])
-
-  if (getRecordingsError) {
-    console.error('GQL ERROR:', getRecordingsError)
-  }
+  const [getRecordings] = useGetRecordingsLazyQuery({
+    variables: {
+      flickId: fragment?.flickId,
+      fragmentId: fragment?.id,
+    },
+    fetchPolicy: 'cache-first',
+  })
 
   const [getRecordedBlocks] = useGetRecordedBlocksLazyQuery()
 
   const [setupRecording] = useSetupRecordingMutation()
 
-  const getRecording = async (variables: SetupRecordingMutationVariables) => {
+  const findOrSetupRecording = async (
+    variables: SetupRecordingMutationVariables,
+    recordingsData: GetRecordingsQuery | undefined
+  ) => {
     if (!fragment?.configuration) return
-    const requiredType =
-      fragment.configuration.mode === 'Portrait'
-        ? Content_Type_Enum_Enum.VerticalVideo
-        : Content_Type_Enum_Enum.Video
     const recording = recordingsData?.Recording?.find(
-      (recording) => recording.type === requiredType
+      (recording) => recording.fragmentId === fragment.id
     )
     console.log('Current recording is :', recording)
     // let blockGroups: any = []
@@ -120,14 +112,43 @@ const Preload = ({
       setProgress,
       token,
       setStudio,
-      getRecording,
     })
   }
 
   useEffect(() => {
-    if (!recordingsData?.Recording) return
-    performPreload()
-  }, [recordingsData])
+    ;(async () => {
+      try {
+        const { data: recordingsData, error: getRecordingsError } =
+          await getRecordings()
+
+        if (getRecordingsError) {
+          throw new Error(getRecordingsError.message)
+        }
+
+        if (!recordingsData?.Recording) {
+          throw new Error('No recordings found')
+        }
+        await findOrSetupRecording?.(
+          {
+            flickId: fragment.flick.id,
+            fragmentId: fragment.id,
+            contentType:
+              fragment.configuration.mode === 'Portrait'
+                ? Content_Types.VerticalVideo
+                : Content_Types.Video,
+            editorState: fragment.editorState,
+            viewConfig: fragment.configuration?.blocks,
+          },
+          recordingsData
+        )
+        performPreload()
+      } catch (e) {
+        Sentry.captureException(
+          `Error while getting recordings ${JSON.stringify(e)}`
+        )
+      }
+    })()
+  }, [])
 
   useEffect(() => {
     if (!loaded) return
@@ -146,7 +167,6 @@ const preload = async ({
   setProgress,
   token,
   setStudio,
-  getRecording,
 }: {
   fragment: StudioFragmentFragment
   setFragment: React.Dispatch<
@@ -156,21 +176,9 @@ const preload = async ({
   setProgress: React.Dispatch<React.SetStateAction<number>>
   token: string | undefined
   setStudio: SetterOrUpdater<StudioProviderProps<any, any>>
-  getRecording?: (variables: SetupRecordingMutationVariables) => Promise<void>
 }) => {
   let { editorState } = fragment
   let branding = fragment.flick.branding?.branding
-
-  await getRecording?.({
-    flickId: fragment.flick.id,
-    fragmentId: fragment.id,
-    contentType:
-      fragment.configuration.mode === 'Portrait'
-        ? Content_Types.VerticalVideo
-        : Content_Types.Video,
-    editorState: fragment.editorState,
-    viewConfig: fragment.configuration?.blocks,
-  })
 
   // set if continue is enabled
   setStudio((prev) => ({
@@ -269,6 +277,20 @@ const preload = async ({
             return block
           }
           if (block.type === 'codeBlock') {
+            const codeBlockViewProps = (fragment?.configuration as ViewConfig)
+              .blocks[block.id]?.view as CodeBlockView
+            setStudio((prev) => ({
+              ...prev,
+              codes: {
+                ...prev.codes,
+                [block.id]: {
+                  code: (block as CodeBlockProps).codeBlock.code,
+                  colorCode: result.find((res) => res?.key === block.id)
+                    ?.colorCodes,
+                  theme: codeBlockViewProps?.code?.theme,
+                },
+              },
+            }))
             return {
               ...block,
               codeBlock: {
@@ -374,6 +396,7 @@ const fetcher = async (
         codeTheme || CodeTheme.DarkPlus
       )
       if (data?.errors) throw Error("Can't get color codes")
+      console.log('fetchedColorCodes', data)
       return {
         key,
         url,

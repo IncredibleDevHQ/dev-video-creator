@@ -4,12 +4,14 @@ import axios from 'axios'
 import Konva from 'konva'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { BsFullscreen } from 'react-icons/bs'
+import { IoArrowBack } from 'react-icons/io5'
 import { Group, Layer, Stage } from 'react-konva'
-import { useParams } from 'react-router-dom'
+import { useHistory, useParams } from 'react-router-dom'
 import useMeasure from 'react-use-measure'
 import {
   useRecoilBridgeAcrossReactRoots_UNSTABLE,
   useRecoilState,
+  useRecoilValue,
   useSetRecoilState,
 } from 'recoil'
 import { ScreenState } from '../../components'
@@ -18,6 +20,7 @@ import {
   FragmentPresentationData,
   ThemeFragment,
 } from '../../generated/graphql'
+import { userState } from '../../stores/user.store'
 import { CONFIG, SHORTS_CONFIG } from './components/Concourse'
 import Preload from './components/Preload'
 import RecordingControlsBar from './components/RecordingControlsBar'
@@ -83,6 +86,7 @@ const PresentationHoc = () => {
         setPresentationConfig(config)
         setStudio({
           ...studio,
+          flickId: config.flick?.id,
           flickName: config?.flick?.name,
           ownerName: config?.flick?.owner?.user?.displayName,
           ownerDesignation: config?.flick?.owner?.user?.designation,
@@ -186,16 +190,50 @@ const Presentation = ({
     width: 0,
   })
 
+  const [initialHeightWidth, setInitialHeightWidth] = useState({
+    height: 0,
+    width: 0,
+  })
+
   useEffect(() => {
+    if (initialHeightWidth.height !== 0 || initialHeightWidth.width !== 0)
+      return
+    setInitialHeightWidth({
+      height: bounds.height,
+      width: bounds.width,
+    })
+  }, [bounds])
+
+  document.onfullscreenchange = (e) => {
+    setIsFullScreen(!isFullScreen)
+  }
+
+  useEffect(() => {
+    // console.log(
+    //   'mountStage',
+    //   'initialValues',
+    //   initialHeightWidth,
+    //   'bounds',
+    //   bounds,
+    //   'setting',
+    //   'isFullScreen',
+    //   isFullScreen,
+    //   isFullScreen ? bounds.height : initialHeightWidth.height || bounds.height,
+    //   isFullScreen ? bounds.width : initialHeightWidth.width || bounds.width
+    // )
     setStageSize(
       getIntegerHW({
-        maxH: bounds.height,
-        maxW: bounds.width,
+        maxH: isFullScreen
+          ? bounds.height
+          : initialHeightWidth.height || bounds.height,
+        maxW: isFullScreen
+          ? bounds.width
+          : initialHeightWidth.width || bounds.width,
         aspectRatio: shortsMode ? 9 / 16 : 16 / 9,
         isShorts: shortsMode,
       })
     )
-  }, [bounds, isFullScreen])
+  }, [isFullScreen, bounds, initialHeightWidth])
 
   useEffect(() => {
     if (!stageWidth) return
@@ -432,16 +470,16 @@ const Presentation = ({
       </div>
       <div
         className="absolute"
-        style={{ right: 4, margin: '4px', cursor: 'pointer' }}
+        style={{ right: 4, margin: '12px', cursor: 'pointer' }}
       >
         {!isFullScreen && (
           <BsFullscreen
             size={24}
-            color="#fff"
+            color="#9ca3af"
             onClick={() => {
               const canvas = document.getElementById('canvasDiv')
               canvas?.requestFullscreen()
-              setIsFullScreen(true)
+              // setIsFullScreen(true)
             }}
           />
         )}
@@ -456,8 +494,33 @@ const Presentation = ({
           />
         )} */}
       </div>
+      {!isFullScreen && <GoBack />}
+
       {/* Mini timeline */}
       {miniTimeline}
+    </div>
+  )
+}
+
+const GoBack = () => {
+  const history = useHistory()
+  const { sub } = useRecoilValue(userState) || {}
+  const { fragmentId } = useParams<{ fragmentId: string }>()
+  const store = useRecoilValue(presentationStore)
+
+  return (
+    <div className="absolute left-0 top-0 m-2">
+      <IoArrowBack
+        size={24}
+        color="#9ca3af"
+        onClick={() => {
+          if (sub && store?.flickId) {
+            history.push(`/story/${store?.flickId}/${fragmentId}`)
+          } else {
+            window.location.href = `${config.auth.endpoint}`
+          }
+        }}
+      />
     </div>
   )
 }
