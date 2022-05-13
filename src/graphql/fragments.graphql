@@ -415,18 +415,14 @@ mutation DeleteBlockGroup($objectUrl: String!, $recordingId: uuid!) {
   }
 }
 
-mutation UpdateFlickMdAndEditorState(
-  $flickId: uuid!
-  $md: String!
+mutation UpdateNotesAndEditor(
   $fragmentId: uuid!
   $editorState: json!
+  $encodedEditorValue: String!
 ) {
-  update_Flick_by_pk(pk_columns: { id: $flickId }, _set: { md: $md }) {
-    id
-  }
   update_Fragment_by_pk(
     pk_columns: { id: $fragmentId }
-    _set: { editorState: $editorState }
+    _set: { editorState: $editorState, encodedEditorValue: $encodedEditorValue }
   ) {
     id
   }

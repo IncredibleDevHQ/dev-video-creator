@@ -10,8 +10,8 @@ import { useRecoilState } from 'recoil'
 import { useDebouncedCallback } from 'use-debounce'
 import { v4 as uuidv4 } from 'uuid'
 import {
-  useUpdateFlickMdAndEditorStateMutation,
   useUpdateFragmentEditorStateMutation,
+  useUpdateNotesAndEditorMutation,
 } from '../../../generated/graphql'
 import { customScroll } from '../../Dashboard/Dashboard'
 import { EditorContext } from '../../Flick/components/EditorProvider'
@@ -42,7 +42,7 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
 
   const [{ state, fragment, payload }, setStudio] = useRecoilState(studioStore)
   const [updateFragment] = useUpdateFragmentEditorStateMutation()
-  const [updateFlickAndFragmentNotes] = useUpdateFlickMdAndEditorStateMutation()
+  const [updateFragmentNotesAndEditor] = useUpdateNotesAndEditorMutation()
 
   const updateFragmentNotes = useDebouncedCallback((value) => {
     updateFragment({
@@ -53,19 +53,34 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
     })
   }, 500)
 
-  const updateFlickMdAndNotes = useDebouncedCallback((value) => {
-    updateFlickAndFragmentNotes({
-      variables: {
-        flickId: fragment?.flickId,
-        fragmentId: fragment?.id,
-        editorState: value.newSimpleAST,
-        md: value.md,
-      },
-    })
-  }, 500)
+  const updateFragmentNotesAndEditorDebounced = useDebouncedCallback(
+    (value) => {
+      updateFragmentNotesAndEditor({
+        variables: {
+          fragmentId: fragment?.id,
+          editorState: value.newSimpleAST,
+          encodedEditorValue: value.encodedEditorValue,
+        },
+      })
+    },
+    500
+  )
+
+  const getContent = () => {
+    const ev = fragment?.encodedEditorValue
+      ? Buffer.from(fragment?.encodedEditorValue as string, 'base64').toString(
+          'utf8'
+        )
+      : ''
+    // detect if stored editor value is in html or json format
+    if (ev.startsWith('<') || ev === '') {
+      return ev
+    }
+    return JSON.parse(ev)
+  }
 
   useEffect(() => {
-    editor?.commands.setContent(fragment?.flick.md as string)
+    editor?.commands.setContent(getContent())
   }, [])
 
   const noteEditor = useEditor(
@@ -244,20 +259,20 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
       if (!fragment || state === 'recording' || state === 'start-recording')
         return
 
+      const encodedEditorValue = Buffer.from(
+        JSON.stringify(editor?.getJSON())
+      ).toString('base64')
       setStudio((prev) => ({
         ...prev,
         fragment: {
           ...fragment,
           editorState: { ...newSimpleAST },
-          flick: {
-            ...fragment.flick,
-            md: editor?.getHTML() as string,
-          },
+          encodedEditorValue,
         },
       }))
-      updateFlickMdAndNotes({
+      updateFragmentNotesAndEditorDebounced({
         newSimpleAST,
-        md: editor?.getHTML() as string,
+        encodedEditorValue,
       })
     } else {
       if (!simpleAST || !fragment) return
@@ -302,7 +317,9 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
   const { note, noteId } = useMemo(() => {
     initialRender.current = true
     if (!simpleAST || payload?.activeObjectIndex === undefined) return {}
-    const block = simpleAST.blocks[payload?.activeObjectIndex]
+    const block = simpleAST.blocks.filter(
+      (b: any) => b.type !== 'interactionBlock'
+    )[payload?.activeObjectIndex]
     setLocalNote(undefined)
     setLocalNoteId(undefined)
     switch (block?.type) {
