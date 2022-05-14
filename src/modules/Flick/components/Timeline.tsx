@@ -14,6 +14,7 @@ import {
 } from 'react-icons/io5'
 import { MdOutlinePresentToAll } from 'react-icons/md'
 import { useRecoilState, useRecoilValue } from 'recoil'
+import { v4 as uuidv4 } from 'uuid'
 import { ReactComponent as CommandCodeSandbox } from '../../../assets/Command_CodeSandbox.svg'
 import { ReactComponent as CommandReplit } from '../../../assets/Command_Replit.svg'
 import { ReactComponent as CommandStackBlitz } from '../../../assets/Command_Stackblitz.svg'
@@ -40,7 +41,6 @@ import { newFlickStore, View } from '../store/flickNew.store'
 import { EditorContext } from './EditorProvider'
 import { FragmentTypeIcon } from './LayoutGeneric'
 import ViewRecordingsModal from './ViewRecordingsModal'
-import { v4 as uuidv4 } from 'uuid'
 
 const CopyMoveActions = ({
   action,
@@ -295,7 +295,7 @@ const CopyMoveActions = ({
       </Text>
       {flick?.fragments
         ?.filter((f) => f.id !== activeFragmentId)
-        ?.map(({ type, id }) => {
+        ?.map(({ type, id, name }) => {
           return (
             <button
               type="button"
@@ -321,13 +321,7 @@ const CopyMoveActions = ({
                     return null
                 }
               })()}
-              <Text className="text-xs">
-                {type}{' '}
-                {type === Fragment_Type_Enum_Enum.Blog ||
-                type === Fragment_Type_Enum_Enum.Presentation
-                  ? ''
-                  : 'video'}
-              </Text>
+              <Text className="text-xs">{name}</Text>
             </button>
           )
         })}
