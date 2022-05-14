@@ -9,8 +9,8 @@ import React, {
   HTMLAttributes,
   useEffect,
   useMemo,
-  useState,
   useRef,
+  useState,
 } from 'react'
 import { IconType } from 'react-icons'
 import {
@@ -45,10 +45,8 @@ import { BrandingJSON } from '../../Branding/BrandingPage'
 import {
   Block,
   CodeBlockProps,
-  IntroBlockProps,
   ListBlock,
   ListBlockProps,
-  OutroBlockProps,
 } from '../../Flick/editor/utils/utils'
 import { ComputedPoint } from '../hooks/use-point'
 import { StudioProviderProps, studioStore } from '../stores'
@@ -261,12 +259,13 @@ const RecordingControlsBar = ({
 
   const { isIntro, isOutro, isImage, isVideo, isCode, codeAnimation } =
     useMemo(() => {
-      const blockType =
-        fragment?.editorState?.blocks[payload?.activeObjectIndex]?.type
+      const blockType = fragment?.editorState?.blocks.filter(
+        (b: any) => b.type !== 'interactionBlock'
+      )[payload?.activeObjectIndex]?.type
 
-      const codeBlockProps = fragment?.editorState?.blocks[
-        payload?.activeObjectIndex || 0
-      ] as CodeBlockProps
+      const codeBlockProps = fragment?.editorState?.blocks.filter(
+        (b: any) => b.type !== 'interactionBlock'
+      )[payload?.activeObjectIndex || 0] as CodeBlockProps
       const codeBlockViewProps = (fragment?.configuration as ViewConfig).blocks[
         codeBlockProps?.id
       ]?.view as CodeBlockView
@@ -303,7 +302,7 @@ const RecordingControlsBar = ({
         top: `${
           (stageRef?.current?.y() || 0) + stageHeight + (shortsMode ? 0 : 25)
         }px`,
-        width: `${stageWidth}px`,
+        width: `${shortsMode ? stageWidth + 35 : stageWidth}px`,
       }}
       className="flex items-center justify-center absolute bottom-6 w-full"
     >
@@ -507,12 +506,16 @@ const RecordingControlsBar = ({
             {
               'text-gray-500 cursor-not-allowed':
                 payload?.activeObjectIndex ===
-                  fragment?.editorState?.blocks.length - 1 &&
+                  fragment?.editorState?.blocks.filter(
+                    (b: any) => b.type !== 'interactionBlock'
+                  ).length -
+                    1 &&
                 payload.activeOutroIndex ===
                   ((
                     fragment?.configuration?.blocks[
-                      fragment?.editorState?.blocks[payload?.activeObjectIndex]
-                        .id
+                      fragment?.editorState?.blocks.filter(
+                        (b: any) => b.type !== 'interactionBlock'
+                      )[payload?.activeObjectIndex].id
                     ].view as OutroBlockView
                   ).outro.order?.length || 0) -
                     1,
@@ -521,11 +524,16 @@ const RecordingControlsBar = ({
           type="button"
           disabled={
             payload?.activeObjectIndex ===
-              fragment?.editorState?.blocks.length - 1 &&
+              fragment?.editorState?.blocks.filter(
+                (b: any) => b.type !== 'interactionBlock'
+              ).length -
+                1 &&
             payload.activeOutroIndex ===
               ((
                 fragment?.configuration?.blocks[
-                  fragment?.editorState?.blocks[payload?.activeObjectIndex].id
+                  fragment?.editorState?.blocks.filter(
+                    (b: any) => b.type !== 'interactionBlock'
+                  )[payload?.activeObjectIndex].id
                 ].view as OutroBlockView
               ).outro.order?.length || 0) -
                 1

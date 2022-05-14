@@ -13,6 +13,8 @@ import {
 } from 'react-icons/io5'
 import { MdOutlinePresentToAll } from 'react-icons/md'
 import { Link, useHistory, useParams } from 'react-router-dom'
+import { useRecoilState } from 'recoil'
+import { useDebouncedCallback } from 'use-debounce'
 import { Button, emitToast, Text, Tooltip } from '../../../components'
 import {
   Fragment_Type_Enum_Enum,
@@ -24,8 +26,10 @@ import {
   useDuplicateFragmentMutation,
   useGetFlickFragmentLazyQuery,
   useGetFragmentListQuery,
+  useUpdateFragmentNameMutation,
 } from '../../../generated/graphql'
 import { verticalCustomScrollBar } from '../../../utils/globalStyles'
+import { newFlickStore } from '../store/flickNew.store'
 
 const Sidebar = ({ storyName }: { storyName: string }): JSX.Element | null => {
   const { id, fragmentId } = useParams<{
@@ -40,6 +44,8 @@ const Sidebar = ({ storyName }: { storyName: string }): JSX.Element | null => {
       flickId: id,
     },
   })
+
+  const [store, setStore] = useRecoilState(newFlickStore)
 
   const [getFragment] = useGetFlickFragmentLazyQuery()
 
@@ -139,6 +145,17 @@ const Sidebar = ({ storyName }: { storyName: string }): JSX.Element | null => {
         } else {
           history.push(`/story/${id}`)
         }
+        setStore((prevState) => ({
+          ...prevState,
+          flick: prevState.flick
+            ? {
+                ...prevState.flick,
+                fragments: prevState.flick.fragments.filter(
+                  (fragment) => fragment.id !== deletedFragmentId
+                ),
+              }
+            : null,
+        }))
         cache.writeQuery<GetFragmentListQuery, GetFragmentListQueryVariables>({
           query: GetFragmentListDocument,
           variables: { flickId: id },
@@ -246,6 +263,37 @@ const Sidebar = ({ storyName }: { storyName: string }): JSX.Element | null => {
     setAvailableFormats(formats)
   }, [data])
 
+  const [updateFragmentName] = useUpdateFragmentNameMutation()
+
+  const debounceUpdateFlickName = useDebouncedCallback((value) => {
+    updateFragmentName({
+      variables: {
+        name: value,
+        id: fragmentId,
+      },
+    })
+  }, 1000)
+
+  const changeFormatTitle = (title: string, fragmentId: string) => {
+    debounceUpdateFlickName(title)
+    setStore((prevState) => ({
+      ...prevState,
+      flick: prevState.flick
+        ? {
+            ...prevState.flick,
+            fragments: prevState.flick.fragments.map((fragment) =>
+              fragment.id === fragmentId
+                ? {
+                    ...fragment,
+                    name: title,
+                  }
+                : fragment
+            ),
+          }
+        : null,
+    }))
+  }
+
   if (error) return <div>Failed getting fragments</div>
 
   return (
@@ -296,7 +344,7 @@ const Sidebar = ({ storyName }: { storyName: string }): JSX.Element | null => {
           <IoFolderOpenOutline className="flex-shrink-0" />
           <span className="truncate pr-1">{storyName}</span>
         </p>
-        <div className="flex flex-col items-start gap-y-3 pl-4 w-full">
+        <div className="flex flex-col items-start gap-y-2 pl-4 w-full">
           {data?.Fragment.map((fragment) => (
             <Link
               className={cx('flex items-center group w-full justify-between', {
@@ -320,77 +368,27 @@ const Sidebar = ({ storyName }: { storyName: string }): JSX.Element | null => {
                       return <IoPlayOutline />
                   }
                 })()}
-                {fragment?.type || 'Landscape'}
+                {fragmentId !== fragment.id ? (
+                  <span className="border border-transparent">
+                    {fragment?.name}
+                  </span>
+                ) : (
+                  <input
+                    onChange={(e) => {
+                      changeFormatTitle(e.target.value, fragment.id)
+                    }}
+                    value={
+                      store.flick?.fragments?.find((f) => f.id === fragment.id)
+                        ?.name ||
+                      fragment.name ||
+                      ''
+                    }
+                    className="w-24 bg-transparent border border-transparent hover:border-gray-300 focus:outline-none focus:border-gray-300"
+                  />
+                )}
               </div>
-              <Tooltip
-                content={
-                  !duplicateOpen ? (
-                    <div className="bg-dark-500 text-white text-xs font-body rounded-sm p-1">
-                      {deletingFragment && moreId === fragment.id && (
-                        <FiLoader className="animate-spin h-8 w-20 p-2.5" />
-                      )}
-                      <button
-                        type="button"
-                        className={cx(
-                          'flex items-center gap-x-2 py-1 px-2 rounded-sm hover:bg-dark-200 active:bg-dark-300 w-full flex-shrink-0',
-                          {
-                            hidden: deletingFragment && moreId === fragment.id,
-                          }
-                        )}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setDuplicateOpen(true)
-                        }}
-                        disabled={deletingFragment}
-                      >
-                        <IoCopyOutline className="flex-shrink-0" />
-                        <Text>Duplicate</Text>
-                      </button>
-                      <button
-                        type="button"
-                        className={cx(
-                          'flex items-center gap-x-2 py-1 px-2 rounded-sm hover:bg-dark-200 active:bg-dark-300 w-full flex-shrink-0',
-                          {
-                            hidden: deletingFragment && moreId === fragment.id,
-                          }
-                        )}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setOpen(false)
-                          deleteFragment({
-                            variables: {
-                              id: fragment.id,
-                            },
-                          })
-                        }}
-                        disabled={deletingFragment}
-                      >
-                        <IoTrashOutline className="flex-shrink-0" />
-                        <Text>Delete</Text>
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="min-w-max">
-                      <AvailableFormats
-                        availableFormats={availableFormats}
-                        handleCreate={(type) => {
-                          setMoreOpen(false)
-                          handleDuplicate(type, fragment.id)
-                        }}
-                      />
-                    </div>
-                  )
-                }
-                isOpen={moreOpen && fragment.id === moreId}
-                setIsOpen={setMoreOpen}
-                placement="bottom-end"
-              >
-                <FiMoreVertical
-                  onClick={(e) => {
-                    e.preventDefault()
-                    setMoreOpen(!moreOpen)
-                    setMoreId(fragment.id)
-                  }}
+              <div className="flex items-center gap-x-2">
+                {/* <IoPencil
                   style={
                     moreOpen && fragment.id === moreId
                       ? {
@@ -399,8 +397,89 @@ const Sidebar = ({ storyName }: { storyName: string }): JSX.Element | null => {
                       : undefined
                   }
                   className="hidden group-hover:block"
-                />
-              </Tooltip>
+                /> */}
+                <Tooltip
+                  content={
+                    !duplicateOpen ? (
+                      <div className="bg-dark-500 text-white text-xs font-body rounded-sm p-1">
+                        {deletingFragment && moreId === fragment.id && (
+                          <FiLoader className="animate-spin h-8 w-20 p-2.5" />
+                        )}
+                        <button
+                          type="button"
+                          className={cx(
+                            'flex items-center gap-x-2 py-1 px-2 rounded-sm hover:bg-dark-200 active:bg-dark-300 w-full flex-shrink-0',
+                            {
+                              hidden:
+                                deletingFragment && moreId === fragment.id,
+                            }
+                          )}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setDuplicateOpen(true)
+                          }}
+                          disabled={deletingFragment}
+                        >
+                          <IoCopyOutline className="flex-shrink-0" />
+                          <Text>Duplicate</Text>
+                        </button>
+                        <button
+                          type="button"
+                          className={cx(
+                            'flex items-center gap-x-2 py-1 px-2 rounded-sm hover:bg-dark-200 active:bg-dark-300 w-full flex-shrink-0',
+                            {
+                              hidden:
+                                deletingFragment && moreId === fragment.id,
+                            }
+                          )}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setOpen(false)
+                            deleteFragment({
+                              variables: {
+                                id: fragment.id,
+                              },
+                            })
+                          }}
+                          disabled={deletingFragment}
+                        >
+                          <IoTrashOutline className="flex-shrink-0" />
+                          <Text>Delete</Text>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="min-w-max">
+                        <AvailableFormats
+                          availableFormats={availableFormats}
+                          handleCreate={(type) => {
+                            setMoreOpen(false)
+                            handleDuplicate(type, fragment.id)
+                          }}
+                        />
+                      </div>
+                    )
+                  }
+                  isOpen={moreOpen && fragment.id === moreId}
+                  setIsOpen={setMoreOpen}
+                  placement="bottom-end"
+                >
+                  <FiMoreVertical
+                    onClick={(e) => {
+                      e.preventDefault()
+                      setMoreOpen(!moreOpen)
+                      setMoreId(fragment.id)
+                    }}
+                    style={
+                      moreOpen && fragment.id === moreId
+                        ? {
+                            display: 'block',
+                          }
+                        : undefined
+                    }
+                    className="hidden group-hover:block"
+                  />
+                </Tooltip>
+              </div>
             </Link>
           ))}
         </div>
