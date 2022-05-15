@@ -379,25 +379,13 @@ const Sidebar = ({ storyName }: { storyName: string }): JSX.Element | null => {
                     }}
                     value={
                       store.flick?.fragments?.find((f) => f.id === fragment.id)
-                        ?.name ||
-                      fragment.name ||
-                      ''
+                        ?.name || ''
                     }
                     className="w-24 bg-transparent border border-transparent hover:border-gray-300 focus:outline-none focus:border-gray-300"
                   />
                 )}
               </div>
               <div className="flex items-center gap-x-2">
-                {/* <IoPencil
-                  style={
-                    moreOpen && fragment.id === moreId
-                      ? {
-                          display: 'block',
-                        }
-                      : undefined
-                  }
-                  className="hidden group-hover:block"
-                /> */}
                 <Tooltip
                   content={
                     !duplicateOpen ? (

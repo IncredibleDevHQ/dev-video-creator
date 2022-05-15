@@ -22,7 +22,7 @@ const Filter = ({
   setCollectionFilter: React.Dispatch<React.SetStateAction<CollectionFilter>>
 }) => {
   return (
-    <div className="flex justify-between items-center text-sm my-8 ml-1.5">
+    <div className="flex justify-between items-center text-sm ml-1.5">
       <div className="flex justify-start items-center">
         {Object.keys(CollectionFilter).map((key) => (
           <Text
