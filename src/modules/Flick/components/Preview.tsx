@@ -1331,7 +1331,10 @@ const Note = ({
       Paragraph,
       Placeholder.configure({
         placeholder: ({ editor }) => {
-          if (editor.getText() === '') {
+          if (
+            editor.getText() === '' &&
+            (editor.getJSON()?.content?.length || 0) <= 1
+          ) {
             return 'Add a note...'
           }
           return ''
