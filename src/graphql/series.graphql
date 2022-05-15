@@ -1,0 +1,21 @@
+fragment DashboardSeries on Series {
+  id
+  name
+  description
+  picture
+  createdAt
+  updatedAt
+  ownerSub
+}
+
+query GetDashboardUserSeries($limit: Int = 25, $offset: Int = 0) {
+  Series(order_by: { createdAt: desc }, limit: $limit, offset: $offset) {
+    ...DashboardSeries
+  }
+}
+
+mutation CreateUserSeries($name: String!, $description: String!) {
+  CreateSeries(name: $name, description: $description) {
+    id
+  }
+}

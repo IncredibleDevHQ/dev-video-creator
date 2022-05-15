@@ -116,7 +116,10 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
         Paragraph,
         Placeholder.configure({
           placeholder: ({ editor }) => {
-            if (editor.getText() === '') {
+            if (
+              editor.getText() === '' &&
+              (editor.getJSON()?.content?.length || 0) <= 1
+            ) {
               if (state !== 'ready') return 'No notes for this block'
               return 'Add a note...'
             }
