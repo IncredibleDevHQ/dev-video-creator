@@ -6,6 +6,7 @@ import { BrowserRouter as Router, Route, Switch } from 'react-router-dom'
 import { ScreenState } from './components'
 import {
   Dashboard,
+  FastRecord,
   Flick,
   GitHubCallback,
   Integrations,
@@ -116,6 +117,9 @@ const App = () => {
               </Route>
               <Route exact path="/present/:fragmentId">
                 <Presentation />
+              </Route>
+              <Route exact path="/fast-record/:videoUrl">
+                <FastRecord />
               </Route>
               <Route>
                 <FourOhFour />

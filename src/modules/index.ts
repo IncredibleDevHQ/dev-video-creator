@@ -1,6 +1,7 @@
 import '@fontsource/fira-mono'
 import BrandingPage from './Branding/BrandingPage'
 import Flick from './Flick/Flick'
+import FastRecord from './FastRecord/FastRecord'
 import GitHubCallback from './Integrations/GitHubCallback'
 import Integrations from './Integrations/Integrations'
 import Studio from './Studio/Studio'
@@ -13,6 +14,7 @@ export {
   Dashboard,
   BrandingPage as Branding,
   Flick,
+  FastRecord,
   Integrations,
   GitHubCallback,
   Studio,
