@@ -5,6 +5,7 @@ import { useRecoilState, useRecoilValue } from 'recoil'
 import {
   BlockProperties,
   CaptionTitleView,
+  Layout,
   VideoBlockView,
   VideoBlockViewProps,
 } from '../../../../utils/configTypes'
@@ -76,6 +77,8 @@ const VideoFragment = ({
   // const [bgImage] = useImage(viewConfig?.background?.image || '', 'anonymous')
   const [transformations, setTransformations] = useState<Transformations>()
 
+  const [layout, setLayout] = useState<Layout | undefined>()
+
   const [objectConfig, setObjectConfig] = useState<ObjectConfig>({
     x: 0,
     y: 0,
@@ -114,6 +117,10 @@ const VideoFragment = ({
     }
   }, [])
 
+  useEffect(() => {
+    setLayout(viewConfig?.layout)
+  }, [viewConfig])
+
   const videoElement = React.useMemo(() => {
     if (!dataConfig) return
     const element = document.createElement('video')
@@ -127,7 +134,7 @@ const VideoFragment = ({
     setObjectConfig(
       FragmentLayoutConfig({
         theme,
-        layout: viewConfig?.layout || 'classic',
+        layout: layout || viewConfig?.layout || 'classic',
         isShorts: shortsMode || false,
       })
     )
@@ -143,7 +150,7 @@ const VideoFragment = ({
       setTransformations(dataConfig.videoBlock.transformations)
     // eslint-disable-next-line consistent-return
     return element
-  }, [dataConfig, viewConfig, shortsMode, theme])
+  }, [dataConfig, viewConfig, shortsMode, theme, layout])
 
   useEffect(() => {
     setObjectRenderConfig(
@@ -219,6 +226,7 @@ const VideoFragment = ({
     if (payload?.fragmentState === 'customLayout') {
       if (!shortsMode)
         setTimeout(() => {
+          setLayout(viewConfig?.layout || 'classic')
           setFragmentState(payload?.fragmentState)
           customLayoutRef?.current?.to({
             opacity: 1,
@@ -247,6 +255,25 @@ const VideoFragment = ({
         setFragmentState(payload?.fragmentState)
         customLayoutRef?.current?.to({
           opacity: 0,
+          duration: 0.1,
+        })
+      }
+    }
+    if (payload?.fragmentState === 'onlyFragment') {
+      if (!shortsMode)
+        setTimeout(() => {
+          setLayout('classic')
+          setFragmentState(payload?.fragmentState)
+          customLayoutRef?.current?.to({
+            opacity: 1,
+            duration: 0.1,
+          })
+        }, 400)
+      else {
+        setLayout('classic')
+        setFragmentState(payload?.fragmentState)
+        customLayoutRef?.current?.to({
+          opacity: 1,
           duration: 0.1,
         })
       }
@@ -514,13 +541,13 @@ const VideoFragment = ({
 
   const studioUserConfig = !shortsMode
     ? StudioUserConfiguration({
-        layout: viewConfig?.layout || 'classic',
+        layout: layout || 'classic',
         fragment,
         fragmentState,
         theme,
       })
     : ShortsStudioUserConfiguration({
-        layout: viewConfig?.layout || 'classic',
+        layout: layout || 'classic',
         fragment,
         fragmentState,
         theme,
@@ -534,6 +561,7 @@ const VideoFragment = ({
       studioUserConfig={studioUserConfig}
       isShorts={shortsMode}
       blockType={dataConfig.type}
+      fragmentState={fragmentState}
     />
   )
 }

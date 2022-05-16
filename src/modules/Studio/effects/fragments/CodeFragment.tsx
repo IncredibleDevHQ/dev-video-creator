@@ -14,6 +14,7 @@ import {
   CodeBlockViewProps,
   CodeHighlightConfig,
   CodeTheme,
+  Layout,
 } from '../../../../utils/configTypes'
 import { CodeBlockProps } from '../../../Flick/editor/utils/utils'
 import Concourse from '../../components/Concourse'
@@ -164,6 +165,8 @@ const CodeFragment = ({
   // config for focusing the lines of code in codex format
   const [blockConfig, setBlockConfig] = useState<CodeHighlightConfig[]>([])
 
+  const [layout, setLayout] = useState<Layout | undefined>()
+
   const [objectConfig, setObjectConfig] = useState<ObjectConfig>({
     x: 0,
     y: 0,
@@ -222,6 +225,10 @@ const CodeFragment = ({
   }, [])
 
   useEffect(() => {
+    setLayout(viewConfig?.layout)
+  }, [viewConfig])
+
+  useEffect(() => {
     if (!dataConfig) return
     updatePayload?.({
       currentIndex: 0,
@@ -233,7 +240,7 @@ const CodeFragment = ({
     setObjectConfig(
       FragmentLayoutConfig({
         theme,
-        layout: viewConfig?.layout || 'classic',
+        layout: layout || viewConfig?.layout || 'classic',
         isShorts: shortsMode || false,
       })
     )
@@ -287,7 +294,14 @@ const CodeFragment = ({
     //   // { lineNumbers: [3] },
     // ]
     setBlockConfig(blocks)
-  }, [dataConfig, shortsMode, viewConfig, theme, studio.codes?.[dataConfig.id]])
+  }, [
+    dataConfig,
+    shortsMode,
+    viewConfig,
+    theme,
+    studio.codes?.[dataConfig.id],
+    layout,
+  ])
 
   useEffect(() => {
     setObjectRenderConfig(
@@ -442,6 +456,7 @@ const CodeFragment = ({
     if (payload?.fragmentState === 'customLayout') {
       if (!shortsMode)
         setTimeout(() => {
+          setLayout(viewConfig?.layout || 'classic')
           setFragmentState(payload?.fragmentState)
           customLayoutRef?.current?.to({
             opacity: 1,
@@ -474,6 +489,25 @@ const CodeFragment = ({
         })
       }
     }
+    if (payload?.fragmentState === 'onlyFragment') {
+      if (!shortsMode)
+        setTimeout(() => {
+          setLayout('classic')
+          setFragmentState(payload?.fragmentState)
+          customLayoutRef?.current?.to({
+            opacity: 1,
+            duration: 0.1,
+          })
+        }, 400)
+      else {
+        setLayout('classic')
+        setFragmentState(payload?.fragmentState)
+        customLayoutRef?.current?.to({
+          opacity: 1,
+          duration: 0.1,
+        })
+      }
+    }
   }, [payload?.fragmentState, payload?.status])
 
   useEffect(() => {
@@ -488,7 +522,7 @@ const CodeFragment = ({
   }, [objectRenderConfig, codePreviewValue])
 
   const layerChildren: any[] = [
-    <Group x={0} y={0} opacity={1} ref={customLayoutRef}>
+    <Group x={0} y={0} opacity={0} ref={customLayoutRef}>
       <FragmentBackground
         theme={theme}
         objectConfig={objectConfig}
@@ -680,13 +714,13 @@ const CodeFragment = ({
 
   const studioUserConfig = !shortsMode
     ? StudioUserConfiguration({
-        layout: viewConfig?.layout || 'classic',
+        layout: layout || 'classic',
         fragment,
         fragmentState,
         theme,
       })
     : ShortsStudioUserConfiguration({
-        layout: viewConfig?.layout || 'classic',
+        layout: layout || 'classic',
         fragment,
         fragmentState,
         theme,
@@ -700,6 +734,7 @@ const CodeFragment = ({
       studioUserConfig={studioUserConfig}
       isShorts={shortsMode}
       blockType={dataConfig.type}
+      fragmentState={fragmentState}
     />
   )
 }

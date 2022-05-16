@@ -98,6 +98,8 @@ const PointsFragment = ({
 
   const [computedPoints, setComputedPoints] = useState<ComputedPoint[]>([])
 
+  const [layout, setLayout] = useState<Layout | undefined>()
+
   const [objectConfig, setObjectConfig] = useState<ObjectConfig>({
     x: 0,
     y: 0,
@@ -143,6 +145,10 @@ const PointsFragment = ({
   })
 
   useEffect(() => {
+    setLayout(viewConfig?.layout)
+  }, [viewConfig])
+
+  useEffect(() => {
     if (!dataConfig) return
     updatePayload?.({
       activePointIndex: 0,
@@ -153,7 +159,7 @@ const PointsFragment = ({
     setObjectConfig(
       FragmentLayoutConfig({
         theme,
-        layout: viewConfig?.layout || 'classic',
+        layout: layout || viewConfig?.layout || 'classic',
         isShorts: shortsMode || false,
       })
     )
@@ -169,7 +175,7 @@ const PointsFragment = ({
       setOrientation(listBlockViewProps?.orientation)
     if (listBlockViewProps?.displayTitle !== undefined)
       setShouldDisplayTitle(listBlockViewProps?.displayTitle)
-  }, [dataConfig, shortsMode, viewConfig, theme])
+  }, [dataConfig, shortsMode, viewConfig, theme, layout])
 
   useEffect(() => {
     setObjectRenderConfig(
@@ -215,7 +221,7 @@ const PointsFragment = ({
         fontSize: 16,
         fontFamily: branding?.font?.body?.family || 'Inter',
         orientation,
-        layout: viewConfig?.layout || 'classic',
+        layout: layout || viewConfig?.layout || 'classic',
         isShorts: shortsMode || false,
         lineHeight: 1.3,
         theme: theme.name || 'DarkGradient',
@@ -224,18 +230,18 @@ const PointsFragment = ({
     if (orientation === 'horizontal') {
       setPointsConfig(
         getPointsConfig({
-          layout: viewConfig?.layout || 'classic',
+          layout: layout || viewConfig?.layout || 'classic',
           isShorts: shortsMode,
         })
       )
       setBulletsConfig(
         getBulletsConfig({
           theme: theme.name,
-          layout: viewConfig?.layout || 'classic',
+          layout: layout || viewConfig?.layout || 'classic',
         })
       )
     }
-  }, [viewConfig, points, objectRenderConfig, orientation, theme])
+  }, [viewConfig, points, objectRenderConfig, orientation, theme, layout])
 
   useEffect(() => {
     if (computedPoints.length === 0) return
@@ -282,6 +288,7 @@ const PointsFragment = ({
     if (payload?.fragmentState === 'customLayout') {
       if (!shortsMode)
         setTimeout(() => {
+          setLayout(viewConfig?.layout || 'classic')
           setFragmentState(payload?.fragmentState)
           customLayoutRef?.current?.to({
             opacity: 1,
@@ -310,6 +317,25 @@ const PointsFragment = ({
         setFragmentState(payload?.fragmentState)
         customLayoutRef?.current?.to({
           opacity: 0,
+          duration: 0.1,
+        })
+      }
+    }
+    if (payload?.fragmentState === 'onlyFragment') {
+      if (!shortsMode)
+        setTimeout(() => {
+          setLayout('classic')
+          setFragmentState(payload?.fragmentState)
+          customLayoutRef?.current?.to({
+            opacity: 1,
+            duration: 0.1,
+          })
+        }, 400)
+      else {
+        setLayout('classic')
+        setFragmentState(payload?.fragmentState)
+        customLayoutRef?.current?.to({
+          opacity: 1,
           duration: 0.1,
         })
       }
@@ -1342,13 +1368,13 @@ const PointsFragment = ({
 
   const studioUserConfig = !shortsMode
     ? StudioUserConfiguration({
-        layout: viewConfig?.layout || 'classic',
+        layout: layout || 'classic',
         fragment,
         fragmentState,
         theme,
       })
     : ShortsStudioUserConfiguration({
-        layout: viewConfig?.layout || 'classic',
+        layout: layout || 'classic',
         fragment,
         fragmentState,
         theme,
@@ -1362,6 +1388,7 @@ const PointsFragment = ({
       studioUserConfig={studioUserConfig}
       isShorts={shortsMode}
       blockType={dataConfig.type}
+      fragmentState={fragmentState}
     />
   )
 }

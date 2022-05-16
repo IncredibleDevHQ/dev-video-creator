@@ -10,6 +10,7 @@ import {
   CaptionTitleView,
   ImageBlockView,
   ImageBlockViewProps,
+  Layout,
 } from '../../../../utils/configTypes'
 import { ImageBlockProps } from '../../../Flick/editor/utils/utils'
 import Concourse from '../../components/Concourse'
@@ -77,6 +78,8 @@ const ImageFragment = ({
   // ref to the object grp
   const customLayoutRef = useRef<Konva.Group>(null)
 
+  const [layout, setLayout] = useState<Layout | undefined>()
+
   const [objectConfig, setObjectConfig] = useState<ObjectConfig>({
     x: 0,
     y: 0,
@@ -96,11 +99,15 @@ const ImageFragment = ({
     })
 
   useEffect(() => {
+    setLayout(viewConfig?.layout)
+  }, [viewConfig])
+
+  useEffect(() => {
     if (!dataConfig) return
     setObjectConfig(
       FragmentLayoutConfig({
         theme,
-        layout: viewConfig?.layout || 'classic',
+        layout: layout || viewConfig?.layout || 'classic',
         isShorts: shortsMode || false,
       })
     )
@@ -116,7 +123,7 @@ const ImageFragment = ({
     setRenderMode(imageBlockViewProps?.captionTitleView || 'titleOnly')
     if (dataConfig?.imageBlock.type === 'gif') setIsGif(true)
     else setIsGif(false)
-  }, [dataConfig, shortsMode, viewConfig, theme])
+  }, [dataConfig, shortsMode, viewConfig, theme, layout])
 
   useEffect(() => {
     setObjectRenderConfig(
@@ -292,6 +299,7 @@ const ImageFragment = ({
     if (payload?.fragmentState === 'customLayout') {
       if (!shortsMode)
         setTimeout(() => {
+          setLayout(viewConfig?.layout || 'classic')
           setFragmentState(payload?.fragmentState)
           customLayoutRef?.current?.to({
             opacity: 1,
@@ -320,6 +328,25 @@ const ImageFragment = ({
         setFragmentState(payload?.fragmentState)
         customLayoutRef?.current?.to({
           opacity: 0,
+          duration: 0.1,
+        })
+      }
+    }
+    if (payload?.fragmentState === 'onlyFragment') {
+      if (!shortsMode)
+        setTimeout(() => {
+          setLayout('classic')
+          setFragmentState(payload?.fragmentState)
+          customLayoutRef?.current?.to({
+            opacity: 1,
+            duration: 0.1,
+          })
+        }, 400)
+      else {
+        setLayout('classic')
+        setFragmentState(payload?.fragmentState)
+        customLayoutRef?.current?.to({
+          opacity: 1,
           duration: 0.1,
         })
       }
@@ -514,13 +541,13 @@ const ImageFragment = ({
 
   const studioUserConfig = !shortsMode
     ? StudioUserConfiguration({
-        layout: viewConfig?.layout || 'classic',
+        layout: layout || 'classic',
         fragment,
         fragmentState,
         theme,
       })
     : ShortsStudioUserConfiguration({
-        layout: viewConfig?.layout || 'classic',
+        layout: layout || 'classic',
         fragment,
         fragmentState,
         theme,
@@ -534,6 +561,7 @@ const ImageFragment = ({
       studioUserConfig={studioUserConfig}
       isShorts={shortsMode}
       blockType={dataConfig.type}
+      fragmentState={fragmentState}
     />
   )
 }
