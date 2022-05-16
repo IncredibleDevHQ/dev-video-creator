@@ -18,10 +18,14 @@ export interface ObjectRenderConfig {
   pointsBulletCornerRadius?: number
   pointsBulletRotation?: number
   pointsBulletYOffset?: number
+  // these bottom 4 are for the rectangle that contains the points
   horizontalPointRectColor?: string | CanvasGradient
   horizontalPointRectStrokeColor?: string | CanvasGradient
   horizontalPointRectCornerRadius?: number
   horizontalPointTextVerticalAlign?: string
+  // block title config
+  blockTitleFontSize?: number
+  blockTitleHeight?: number
 }
 
 export const ThemeLayoutConfig = ({
@@ -189,6 +193,26 @@ export const ThemeLayoutConfig = ({
         horizontalPointRectCornerRadius: 0,
         horizontalPointTextVerticalAlign: 'top',
       }
+    case 'Whitep4nth3r':
+      return {
+        startX: layoutConfig.x,
+        startY: layoutConfig.y,
+        availableWidth: layoutConfig?.availableWidth || layoutConfig.width,
+        availableHeight: layoutConfig.height,
+        textColor: '#ffffff',
+        borderRadius: 0,
+        surfaceColor: '',
+        titleFont: 'Work Sans',
+        bodyFont: 'Work Sans',
+        pointsBulletColor: '#FFB626',
+        pointsBulletCornerRadius: 0,
+        pointsBulletYOffset: 9,
+        horizontalPointRectColor: '#2C2E39',
+        horizontalPointRectStrokeColor: '',
+        horizontalPointRectCornerRadius: 8,
+        horizontalPointTextVerticalAlign: 'middle',
+        blockTitleFontSize: 32,
+      }
     default:
       return {
         startX: layoutConfig.x,
@@ -209,6 +233,7 @@ export const getThemeTextColor = (theme: ThemeFragment): string => {
     case 'LeeRob':
     case 'Web3Auth':
     case 'DevsForUkraine':
+    case 'Whitep4nth3r':
       return '#ffffff'
     case 'PastelLines':
       return '#27272A'
@@ -229,6 +254,7 @@ export const getThemeSurfaceColor = (theme: ThemeFragment): string => {
     case 'LeeRob':
     case 'Web3Auth':
     case 'DevsForUkraine':
+    case 'Whitep4nth3r':
       return ''
     case 'Cassidoo':
       return '#fafafa'
@@ -254,6 +280,8 @@ export const getThemeFont = (theme: ThemeFragment): string => {
       return 'DM Sans'
     case 'DevsForUkraine':
       return 'Montserrat'
+    case 'Whitep4nth3r':
+      return 'Work Sans'
     default:
       return 'Gilroy'
   }
@@ -351,6 +379,30 @@ export const getThemeSupportedUserMediaLayouts = (
         'full-left',
         'full-right',
       ]
+    case 'Whitep4nth3r':
+      return [
+        'classic',
+        'float-full-right',
+        'float-full-left',
+        'float-half-right',
+        'padded-bottom-right-tile',
+        'padded-split',
+        'full-left',
+        'full-right',
+      ]
+    default:
+      return []
+  }
+}
+
+export const getThemeBasedIntroLayouts = (themeName: string): Layout[] => {
+  switch (themeName) {
+    case 'DarkGradient':
+    case 'PastelLines':
+      return ['bottom-right-tile', 'float-full-right']
+    case 'DevsForUkraine':
+    case 'Whitep4nth3r':
+      return ['classic', 'bottom-right-tile']
     default:
       return []
   }

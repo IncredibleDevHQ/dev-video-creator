@@ -195,6 +195,8 @@ export const FragmentLayoutConfig = ({
             }
         }
       case 'LeeRob':
+      case 'Web3Auth':
+      case 'Whitep4nth3r':
         switch (layout) {
           case 'classic':
           case 'padded-bottom-right-circle':
@@ -605,6 +607,7 @@ export const FragmentLayoutConfig = ({
       }
     case 'LeeRob':
     case 'Web3Auth':
+    case 'Whitep4nth3r':
       switch (layout) {
         case 'classic':
           return {
@@ -645,30 +648,31 @@ export const FragmentLayoutConfig = ({
             y: 41,
             width: 816,
             height: 459,
+            availableWidth: 750,
             borderRadius: 0,
           }
         case 'padded-split':
           return {
             x: 40,
-            y: 112.5,
+            y: 80,
             width: 560,
-            height: 315,
+            height: 380,
             borderRadius: 0,
           }
         case 'full-left':
           return {
             x: 40,
-            y: 120,
+            y: 90,
             width: 500,
-            height: 300,
+            height: 360,
             borderRadius: 0,
           }
         case 'full-right':
           return {
             x: 420,
-            y: 120,
+            y: 90,
             width: 500,
-            height: 300,
+            height: 360,
             borderRadius: 0,
           }
         default:
