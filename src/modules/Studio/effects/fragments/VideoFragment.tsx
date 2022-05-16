@@ -1,6 +1,6 @@
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
-import { Group, Text } from 'react-konva'
+import { Group, Rect, Text } from 'react-konva'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import {
   BlockProperties,
@@ -15,6 +15,7 @@ import FragmentBackground from '../../components/FragmentBackground'
 import { FragmentState } from '../../components/RenderTokens'
 import { Video, VideoConfig } from '../../components/Video'
 import { usePoint } from '../../hooks'
+import useEdit from '../../hooks/use-edit'
 import { StudioProviderProps, studioStore } from '../../stores'
 import {
   FragmentLayoutConfig,
@@ -101,6 +102,7 @@ const VideoFragment = ({
   }>({ noOfLinesOfCaption: 0, noOfLinesOfTitle: 0 })
 
   const { getNoOfLinesOfText } = usePoint()
+  const { getTextWidth } = useEdit()
 
   useEffect(() => {
     return () => {
@@ -252,16 +254,18 @@ const VideoFragment = ({
   }, [payload?.fragmentState, payload?.status])
 
   useEffect(() => {
-    const noOfLinesOfTitle = getNoOfLinesOfText({
+    let noOfLinesOfTitle = getNoOfLinesOfText({
       text: videoFragmentData?.title || '',
       availableWidth: objectRenderConfig.availableWidth - 20,
-      fontSize: 24,
+      fontSize: objectRenderConfig?.blockTitleFontSize || 24,
       fontFamily:
         branding?.font?.heading?.family ||
         objectRenderConfig.titleFont ||
         'Gilroy',
       fontStyle: 'bold',
     })
+    noOfLinesOfTitle =
+      theme?.name === 'Whitep4nth3r' ? noOfLinesOfTitle + 0.8 : noOfLinesOfTitle
     const noOfLinesOfCaption = getNoOfLinesOfText({
       text: videoFragmentData?.caption || '',
       availableWidth: !shortsMode
@@ -272,16 +276,28 @@ const VideoFragment = ({
         branding?.font?.body?.family || objectRenderConfig.bodyFont || 'Gilroy',
       fontStyle: 'normal',
     })
-    setNoOfLinesOfText({ noOfLinesOfCaption, noOfLinesOfTitle })
+    setNoOfLinesOfText({
+      noOfLinesOfCaption,
+      noOfLinesOfTitle,
+    })
     if (renderMode === 'titleOnly') {
       setVideoConfig({
         x: objectRenderConfig.startX + 10,
-        y: objectRenderConfig.startY + 16 + noOfLinesOfTitle * (24 + 0.2) + 16,
+        y:
+          objectRenderConfig.startY +
+          // adding 16 bcoz its the starting y coordinate of the text
+          16 +
+          noOfLinesOfTitle *
+            ((objectRenderConfig?.blockTitleFontSize || 24) + 0.2) +
+          // this addition of 16 is for the pading between the title and the video
+          16,
         width: objectRenderConfig.availableWidth - 20,
         height:
           objectRenderConfig.availableHeight -
+          // this 48 constitutes of, the starting y coordinate of the text ie 16, padding between the title and the video ie 16, and the bottom padding
           48 -
-          noOfLinesOfTitle * (24 + 0.2),
+          noOfLinesOfTitle *
+            ((objectRenderConfig?.blockTitleFontSize || 24) + 0.2),
         videoFill: objectConfig.color || '#1F2937',
         cornerRadius: objectRenderConfig.borderRadius,
         performClip: true,
@@ -295,12 +311,14 @@ const VideoFragment = ({
     } else if (renderMode === 'captionOnly') {
       setVideoConfig({
         x: objectRenderConfig.startX + 10,
+        // adding 16 is for the padding
         y: objectRenderConfig.startY + 16,
         width: objectRenderConfig.availableWidth - 20,
         height:
           objectRenderConfig.availableHeight -
           16 -
           noOfLinesOfCaption * (16 + 0.2) -
+          // this 32 is the space for the caption and the bottom padding between the video and the caption
           32,
         videoFill: objectConfig.color || '#1F2937',
         cornerRadius: objectRenderConfig.borderRadius,
@@ -315,15 +333,27 @@ const VideoFragment = ({
     } else if (renderMode === 'titleAndCaption') {
       setVideoConfig({
         x: objectRenderConfig.startX + 10,
-        y: objectRenderConfig.startY + 16 + noOfLinesOfTitle * (24 + 0.2) + 16,
+        y:
+          objectRenderConfig.startY +
+          // adding 16 bcoz its the starting y coordinate of the text
+          16 +
+          noOfLinesOfTitle *
+            ((objectRenderConfig?.blockTitleFontSize || 24) + 0.2) +
+          // this addition of 16 is for the pading between the title and the video
+          16,
         width: objectRenderConfig.availableWidth - 20,
         height:
           objectRenderConfig.availableHeight -
+          // 16 bcoz its the starting y coordinate of the text
           16 -
-          noOfLinesOfTitle * (24 + 0.2) -
+          noOfLinesOfTitle *
+            ((objectRenderConfig?.blockTitleFontSize || 24) + 0.2) -
+          // padding between the title and the video
           16 -
+          // padding between the video and the caption
           16 -
           noOfLinesOfCaption * (16 + 0.2) -
+          // the bottom padding
           16,
         videoFill: objectConfig.color || '#1F2937',
         cornerRadius: objectRenderConfig.borderRadius,
@@ -355,7 +385,7 @@ const VideoFragment = ({
   }, [renderMode, objectRenderConfig, transformations, videoFragmentData])
 
   const layerChildren: any[] = [
-    <Group x={0} y={0} opacity={1} ref={customLayoutRef}>
+    <Group x={0} y={0} opacity={0} ref={customLayoutRef}>
       <FragmentBackground
         theme={theme}
         objectConfig={objectConfig}
@@ -370,27 +400,83 @@ const VideoFragment = ({
       )}
       <Group x={objectRenderConfig.startX} y={objectRenderConfig.startY}>
         {(renderMode === 'titleOnly' || renderMode === 'titleAndCaption') && (
-          <Text
-            x={10}
-            y={16}
-            align="center"
-            fontSize={24}
-            fill={
-              branding?.colors?.text
-                ? branding?.colors?.text
-                : objectRenderConfig.textColor
-            }
-            width={objectRenderConfig.availableWidth - 20}
-            lineHeight={1.2}
-            text={videoFragmentData?.title}
-            fontStyle="bold"
-            fontFamily={
-              branding?.font?.heading?.family ||
-              objectRenderConfig.titleFont ||
-              'Gilroy'
-            }
-            textTransform="capitalize"
-          />
+          <Group>
+            {theme.name === 'Whitep4nth3r' && videoFragmentData?.title !== '' && (
+              <Rect
+                x={
+                  (objectRenderConfig.availableWidth - 20) / 2 -
+                  (noOfLinesOfText.noOfLinesOfTitle - 0.8 === 1
+                    ? getTextWidth(
+                        videoFragmentData?.title || '',
+                        branding?.font?.heading?.family ||
+                          objectRenderConfig.titleFont ||
+                          'Gilroy',
+                        objectRenderConfig?.blockTitleFontSize || 24,
+                        'bold'
+                      ) + 30
+                    : objectRenderConfig.availableWidth - 80) /
+                    2 +
+                  10
+                }
+                y={
+                  16 +
+                  (noOfLinesOfText.noOfLinesOfTitle - 0.25) *
+                    (objectRenderConfig?.blockTitleFontSize || 24)
+                }
+                width={
+                  // checking if the no of lines of title is equal to 1, and based on that calculate the width of the title
+                  noOfLinesOfText.noOfLinesOfTitle - 0.8 === 1
+                    ? getTextWidth(
+                        videoFragmentData?.title || '',
+                        branding?.font?.heading?.family ||
+                          objectRenderConfig.titleFont ||
+                          'Gilroy',
+                        objectRenderConfig?.blockTitleFontSize || 24,
+                        'bold'
+                      ) + 30
+                    : objectRenderConfig.availableWidth - 80
+                }
+                height={5}
+                fillLinearGradientColorStops={[0, '#F11012', 1, '#FFB626']}
+                fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+                fillLinearGradientEndPoint={{
+                  x:
+                    noOfLinesOfText.noOfLinesOfTitle - 0.8 === 1
+                      ? getTextWidth(
+                          videoFragmentData?.title || '',
+                          branding?.font?.heading?.family ||
+                            objectRenderConfig.titleFont ||
+                            'Gilroy',
+                          objectRenderConfig?.blockTitleFontSize || 24,
+                          'bold'
+                        ) + 30
+                      : objectRenderConfig.availableWidth - 80,
+                  y: 0,
+                }}
+              />
+            )}
+            <Text
+              x={10}
+              y={16}
+              align="center"
+              fontSize={objectRenderConfig?.blockTitleFontSize || 24}
+              fill={
+                branding?.colors?.text
+                  ? branding?.colors?.text
+                  : objectRenderConfig.textColor
+              }
+              width={objectRenderConfig.availableWidth - 20}
+              lineHeight={1.2}
+              text={videoFragmentData?.title}
+              fontStyle="bold"
+              fontFamily={
+                branding?.font?.heading?.family ||
+                objectRenderConfig.titleFont ||
+                'Gilroy'
+              }
+              textTransform="capitalize"
+            />
+          </Group>
         )}
 
         {(renderMode === 'captionOnly' || renderMode === 'titleAndCaption') && (

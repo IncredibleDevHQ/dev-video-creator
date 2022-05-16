@@ -19,6 +19,7 @@ import PointBullets from '../../components/PointBullets'
 import { FragmentState } from '../../components/RenderTokens'
 import RichText from '../../components/RichText'
 import { usePoint } from '../../hooks'
+import useEdit from '../../hooks/use-edit'
 import { ComputedPoint } from '../../hooks/use-point'
 import { StudioProviderProps, studioStore } from '../../stores'
 import {
@@ -88,6 +89,7 @@ const PointsFragment = ({
 
   const { initUsePoint, getNoOfLinesOfText, getPositionForReplaceMode } =
     usePoint()
+  const { getTextWidth } = useEdit()
 
   // ref to the object grp
   const [noOfLinesOfTitle, setNoOfLinesOfTitle] = useState<number>(0)
@@ -198,7 +200,11 @@ const PointsFragment = ({
       fontFamily: branding?.font?.heading?.family || 'Gilroy',
       fontStyle: 'normal 800',
     })
-    setNoOfLinesOfTitle(tempNoOfLinesOfTitle)
+    setNoOfLinesOfTitle(
+      theme?.name === 'Whitep4nth3r'
+        ? tempNoOfLinesOfTitle + 0.5
+        : tempNoOfLinesOfTitle
+    )
     setComputedPoints(
       initUsePoint({
         points,
@@ -311,7 +317,7 @@ const PointsFragment = ({
   }, [payload?.fragmentState, payload?.status])
 
   const layerChildren: any[] = [
-    <Group x={0} y={0} opacity={1} ref={customLayoutRef}>
+    <Group x={0} y={0} opacity={0} ref={customLayoutRef}>
       <FragmentBackground
         theme={theme}
         objectConfig={objectConfig}
@@ -342,6 +348,52 @@ const PointsFragment = ({
         fontStyle="normal 800"
         fontFamily={branding?.font?.heading?.family || 'Gilroy'}
       />
+      {theme.name === 'Whitep4nth3r' &&
+        shouldDisplayTitle &&
+        dataConfig?.listBlock?.title !== undefined && (
+          <Rect
+            x={objectRenderConfig.startX + 30}
+            y={
+              appearance !== 'replace'
+                ? // the no of line of title is used to calculate the height of the title and subtracting 0.25 bcoz we added 0.5 to no of lines if the theme is whitep4nth3r, so subtracting 0.25 to center the line
+                  objectRenderConfig.startY +
+                  32 +
+                  (noOfLinesOfTitle - 0.25) * 50
+                : objectRenderConfig.startY +
+                  titleY +
+                  8 +
+                  +(noOfLinesOfTitle - 0.25) * 50
+            }
+            width={
+              // checking if the no of lines of title is equal to 1, and based on that calculate the width of the title
+              noOfLinesOfTitle - 0.5 === 1
+                ? getTextWidth(
+                    shouldDisplayTitle ? dataConfig.listBlock.title || '' : '',
+                    branding?.font?.heading?.family || 'Gilroy',
+                    40,
+                    'normal 800'
+                  ) + 10
+                : objectRenderConfig.availableWidth - 80
+            }
+            height={5}
+            fillLinearGradientColorStops={[0, '#F11012', 1, '#FFB626']}
+            fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+            fillLinearGradientEndPoint={{
+              x:
+                noOfLinesOfTitle - 0.5 === 1
+                  ? getTextWidth(
+                      shouldDisplayTitle
+                        ? dataConfig.listBlock.title || ''
+                        : '',
+                      branding?.font?.heading?.family || 'Gilroy',
+                      40,
+                      'normal 800'
+                    ) + 10
+                  : objectRenderConfig.availableWidth - 80,
+              y: 0,
+            }}
+          />
+        )}
       {orientation === 'vertical' ? (
         <Group
           x={objectRenderConfig.startX + 50}
@@ -353,7 +405,7 @@ const PointsFragment = ({
               : objectRenderConfig.startY +
                 titleY +
                 8 +
-                40 * noOfLinesOfTitle +
+                50 * noOfLinesOfTitle +
                 20
           }
           key="verticalGroup"
@@ -370,33 +422,95 @@ const PointsFragment = ({
                     <>
                       {
                         {
-                          bullet: (
-                            <Rect
-                              key="points"
-                              x={-2 + (41 * (point?.level - 1) || 0)}
-                              width={12}
-                              height={12}
-                              cornerRadius={
-                                objectRenderConfig.pointsBulletCornerRadius
-                              }
-                              y={
-                                point.y +
-                                (objectRenderConfig.pointsBulletYOffset || 0)
-                              }
-                              fill={
-                                branding?.colors?.text
-                                  ? branding?.colors?.text
-                                  : (objectRenderConfig.pointsBulletColor as string)
-                              }
-                              ref={(ref) =>
-                                ref?.to({
-                                  x: 0 + (41 * (point?.level - 1) || 0),
-                                  duration: 0.3,
-                                })
-                              }
-                              rotation={objectRenderConfig.pointsBulletRotation}
-                            />
-                          ),
+                          bullet:
+                            theme.name !== 'Whitep4nth3r' ? (
+                              <Rect
+                                key="points"
+                                x={-2 + (41 * (point?.level - 1) || 0)}
+                                width={12}
+                                height={12}
+                                cornerRadius={
+                                  objectRenderConfig.pointsBulletCornerRadius
+                                }
+                                y={
+                                  point.y +
+                                  (objectRenderConfig.pointsBulletYOffset || 0)
+                                }
+                                fill={
+                                  branding?.colors?.text
+                                    ? branding?.colors?.text
+                                    : (objectRenderConfig.pointsBulletColor as string)
+                                }
+                                ref={(ref) =>
+                                  ref?.to({
+                                    x: 0 + (41 * (point?.level - 1) || 0),
+                                    duration: 0.3,
+                                  })
+                                }
+                                rotation={
+                                  objectRenderConfig.pointsBulletRotation
+                                }
+                              />
+                            ) : (
+                              <Group
+                                x={-2 + (41 * (point?.level - 1) || 0)}
+                                ref={(ref) =>
+                                  ref?.to({
+                                    x: 0 + (41 * (point?.level - 1) || 0),
+                                    duration: 0.3,
+                                  })
+                                }
+                              >
+                                <Rect
+                                  y={
+                                    point.y +
+                                    (objectRenderConfig.pointsBulletYOffset ||
+                                      0)
+                                  }
+                                  width={12}
+                                  height={2}
+                                  fill={
+                                    branding?.colors?.text
+                                      ? branding?.colors?.text
+                                      : (objectRenderConfig.pointsBulletColor as string)
+                                  }
+                                />
+                                <Rect
+                                  x={12}
+                                  y={
+                                    point.y +
+                                    (objectRenderConfig.pointsBulletYOffset ||
+                                      0)
+                                  }
+                                  width={8}
+                                  height={2}
+                                  fill={
+                                    branding?.colors?.text
+                                      ? branding?.colors?.text
+                                      : (objectRenderConfig.pointsBulletColor as string)
+                                  }
+                                  offsetX={8}
+                                  rotation={45}
+                                />
+                                <Rect
+                                  x={12}
+                                  y={
+                                    point.y +
+                                    (objectRenderConfig.pointsBulletYOffset ||
+                                      0)
+                                  }
+                                  width={10}
+                                  height={2}
+                                  fill={
+                                    branding?.colors?.text
+                                      ? branding?.colors?.text
+                                      : (objectRenderConfig.pointsBulletColor as string)
+                                  }
+                                  offsetX={10}
+                                  rotation={-45}
+                                />
+                              </Group>
+                            ),
                           number: (
                             <Text
                               key="points"
@@ -465,27 +579,72 @@ const PointsFragment = ({
                     <>
                       {
                         {
-                          bullet: (
-                            <Rect
-                              key="points"
-                              x={-2 + (41 * (point?.level - 1) || 0)}
-                              width={12}
-                              height={12}
-                              cornerRadius={
-                                objectRenderConfig.pointsBulletCornerRadius
-                              }
-                              y={
-                                4 +
-                                (objectRenderConfig.pointsBulletYOffset || 0)
-                              }
-                              fill={
-                                branding?.colors?.text
-                                  ? branding?.colors?.text
-                                  : (objectRenderConfig.pointsBulletColor as string)
-                              }
-                              rotation={objectRenderConfig.pointsBulletRotation}
-                            />
-                          ),
+                          bullet:
+                            theme.name !== 'Whitep4nth3r' ? (
+                              <Rect
+                                key="points"
+                                x={-2 + (41 * (point?.level - 1) || 0)}
+                                width={12}
+                                height={12}
+                                cornerRadius={
+                                  objectRenderConfig.pointsBulletCornerRadius
+                                }
+                                y={
+                                  4 +
+                                  (objectRenderConfig.pointsBulletYOffset || 0)
+                                }
+                                fill={
+                                  branding?.colors?.text
+                                    ? branding?.colors?.text
+                                    : (objectRenderConfig.pointsBulletColor as string)
+                                }
+                                rotation={
+                                  objectRenderConfig.pointsBulletRotation
+                                }
+                              />
+                            ) : (
+                              <Group
+                                x={-2 + (41 * (point?.level - 1) || 0)}
+                                y={
+                                  4 +
+                                  (objectRenderConfig.pointsBulletYOffset || 0)
+                                }
+                              >
+                                <Rect
+                                  width={12}
+                                  height={2}
+                                  fill={
+                                    branding?.colors?.text
+                                      ? branding?.colors?.text
+                                      : (objectRenderConfig.pointsBulletColor as string)
+                                  }
+                                />
+                                <Rect
+                                  x={12}
+                                  width={8}
+                                  height={2}
+                                  fill={
+                                    branding?.colors?.text
+                                      ? branding?.colors?.text
+                                      : (objectRenderConfig.pointsBulletColor as string)
+                                  }
+                                  offsetX={8}
+                                  rotation={45}
+                                />
+                                <Rect
+                                  x={12}
+                                  width={10}
+                                  height={2}
+                                  fill={
+                                    branding?.colors?.text
+                                      ? branding?.colors?.text
+                                      : (objectRenderConfig.pointsBulletColor as string)
+                                  }
+                                  offsetX={10}
+                                  rotation={-45}
+                                />
+                              </Group>
+                            ),
                           number: (
                             <Text
                               key="points"
@@ -551,27 +710,82 @@ const PointsFragment = ({
                     <>
                       {
                         {
-                          bullet: (
-                            <Rect
-                              key="points"
-                              x={-2 + (41 * (point?.level - 1) || 0)}
-                              width={12}
-                              height={12}
-                              cornerRadius={
-                                objectRenderConfig.pointsBulletCornerRadius
-                              }
-                              y={
-                                point.y +
-                                (objectRenderConfig.pointsBulletYOffset || 0)
-                              }
-                              fill={
-                                branding?.colors?.text
-                                  ? branding?.colors?.text
-                                  : (objectRenderConfig.pointsBulletColor as string)
-                              }
-                              rotation={objectRenderConfig.pointsBulletRotation}
-                            />
-                          ),
+                          bullet:
+                            theme.name !== 'Whitep4nth3r' ? (
+                              <Rect
+                                key="points"
+                                x={-2 + (41 * (point?.level - 1) || 0)}
+                                width={12}
+                                height={12}
+                                cornerRadius={
+                                  objectRenderConfig.pointsBulletCornerRadius
+                                }
+                                y={
+                                  point.y +
+                                  (objectRenderConfig.pointsBulletYOffset || 0)
+                                }
+                                fill={
+                                  branding?.colors?.text
+                                    ? branding?.colors?.text
+                                    : (objectRenderConfig.pointsBulletColor as string)
+                                }
+                                rotation={
+                                  objectRenderConfig.pointsBulletRotation
+                                }
+                              />
+                            ) : (
+                              <Group>
+                                <Rect
+                                  x={-2 + (41 * (point?.level - 1) || 0)}
+                                  y={
+                                    point.y +
+                                    (objectRenderConfig.pointsBulletYOffset ||
+                                      0)
+                                  }
+                                  width={12}
+                                  height={2}
+                                  fill={
+                                    branding?.colors?.text
+                                      ? branding?.colors?.text
+                                      : (objectRenderConfig.pointsBulletColor as string)
+                                  }
+                                />
+                                <Rect
+                                  x={10 + (41 * (point?.level - 1) || 0)}
+                                  y={
+                                    point.y +
+                                    (objectRenderConfig.pointsBulletYOffset ||
+                                      0)
+                                  }
+                                  width={8}
+                                  height={2}
+                                  fill={
+                                    branding?.colors?.text
+                                      ? branding?.colors?.text
+                                      : (objectRenderConfig.pointsBulletColor as string)
+                                  }
+                                  offsetX={8}
+                                  rotation={45}
+                                />
+                                <Rect
+                                  x={10 + (41 * (point?.level - 1) || 0)}
+                                  y={
+                                    point.y +
+                                    (objectRenderConfig.pointsBulletYOffset ||
+                                      0)
+                                  }
+                                  width={10}
+                                  height={2}
+                                  fill={
+                                    branding?.colors?.text
+                                      ? branding?.colors?.text
+                                      : (objectRenderConfig.pointsBulletColor as string)
+                                  }
+                                  offsetX={10}
+                                  rotation={-45}
+                                />
+                              </Group>
+                            ),
                           number: (
                             <Text
                               key="points"
@@ -632,27 +846,77 @@ const PointsFragment = ({
                   <>
                     {
                       {
-                        bullet: (
-                          <Rect
-                            key="points"
-                            x={-2 + (41 * (point?.level - 1) || 0)}
-                            width={12}
-                            height={12}
-                            cornerRadius={
-                              objectRenderConfig.pointsBulletCornerRadius
-                            }
-                            y={
-                              point.y +
-                              (objectRenderConfig.pointsBulletYOffset || 0)
-                            }
-                            fill={
-                              branding?.colors?.text
-                                ? branding?.colors?.text
-                                : (objectRenderConfig.pointsBulletColor as string)
-                            }
-                            rotation={objectRenderConfig.pointsBulletRotation}
-                          />
-                        ),
+                        bullet:
+                          theme.name !== 'Whitep4nth3r' ? (
+                            <Rect
+                              key="points"
+                              x={-2 + (41 * (point?.level - 1) || 0)}
+                              width={12}
+                              height={12}
+                              cornerRadius={
+                                objectRenderConfig.pointsBulletCornerRadius
+                              }
+                              y={
+                                point.y +
+                                (objectRenderConfig.pointsBulletYOffset || 0)
+                              }
+                              fill={
+                                branding?.colors?.text
+                                  ? branding?.colors?.text
+                                  : (objectRenderConfig.pointsBulletColor as string)
+                              }
+                              rotation={objectRenderConfig.pointsBulletRotation}
+                            />
+                          ) : (
+                            <Group>
+                              <Rect
+                                x={-2 + (41 * (point?.level - 1) || 0)}
+                                y={
+                                  point.y +
+                                  (objectRenderConfig.pointsBulletYOffset || 0)
+                                }
+                                width={12}
+                                height={2}
+                                fill={
+                                  branding?.colors?.text
+                                    ? branding?.colors?.text
+                                    : (objectRenderConfig.pointsBulletColor as string)
+                                }
+                              />
+                              <Rect
+                                x={10 + (41 * (point?.level - 1) || 0)}
+                                y={
+                                  point.y +
+                                  (objectRenderConfig.pointsBulletYOffset || 0)
+                                }
+                                width={8}
+                                height={2}
+                                fill={
+                                  branding?.colors?.text
+                                    ? branding?.colors?.text
+                                    : (objectRenderConfig.pointsBulletColor as string)
+                                }
+                                offsetX={8}
+                                rotation={45}
+                              />
+                              <Rect
+                                x={10 + (41 * (point?.level - 1) || 0)}
+                                y={
+                                  point.y +
+                                  (objectRenderConfig.pointsBulletYOffset || 0)
+                                }
+                                width={10}
+                                height={2}
+                                fill={
+                                  branding?.colors?.text
+                                    ? branding?.colors?.text
+                                    : (objectRenderConfig.pointsBulletColor as string)
+                                }
+                                offsetX={10}
+                                rotation={-45}
+                              />
+                            </Group>
+                          ),
                         number: (
                           <Text
                             key="points"
@@ -710,27 +974,72 @@ const PointsFragment = ({
                     <Group>
                       {
                         {
-                          bullet: (
-                            <Rect
-                              key="points"
-                              x={-2 + (41 * (point?.level - 1) || 0)}
-                              width={12}
-                              height={12}
-                              cornerRadius={
-                                objectRenderConfig.pointsBulletCornerRadius
-                              }
-                              y={
-                                4 +
-                                (objectRenderConfig.pointsBulletYOffset || 0)
-                              }
-                              fill={
-                                branding?.colors?.text
-                                  ? branding?.colors?.text
-                                  : (objectRenderConfig.pointsBulletColor as string)
-                              }
-                              rotation={objectRenderConfig.pointsBulletRotation}
-                            />
-                          ),
+                          bullet:
+                            theme.name !== 'Whitep4nth3r' ? (
+                              <Rect
+                                key="points"
+                                x={-2 + (41 * (point?.level - 1) || 0)}
+                                width={12}
+                                height={12}
+                                cornerRadius={
+                                  objectRenderConfig.pointsBulletCornerRadius
+                                }
+                                y={
+                                  4 +
+                                  (objectRenderConfig.pointsBulletYOffset || 0)
+                                }
+                                fill={
+                                  branding?.colors?.text
+                                    ? branding?.colors?.text
+                                    : (objectRenderConfig.pointsBulletColor as string)
+                                }
+                                rotation={
+                                  objectRenderConfig.pointsBulletRotation
+                                }
+                              />
+                            ) : (
+                              <Group
+                                x={-2 + (41 * (point?.level - 1) || 0)}
+                                y={
+                                  4 +
+                                  (objectRenderConfig.pointsBulletYOffset || 0)
+                                }
+                              >
+                                <Rect
+                                  width={12}
+                                  height={2}
+                                  fill={
+                                    branding?.colors?.text
+                                      ? branding?.colors?.text
+                                      : (objectRenderConfig.pointsBulletColor as string)
+                                  }
+                                />
+                                <Rect
+                                  x={12}
+                                  width={8}
+                                  height={2}
+                                  fill={
+                                    branding?.colors?.text
+                                      ? branding?.colors?.text
+                                      : (objectRenderConfig.pointsBulletColor as string)
+                                  }
+                                  offsetX={8}
+                                  rotation={45}
+                                />
+                                <Rect
+                                  x={12}
+                                  width={10}
+                                  height={2}
+                                  fill={
+                                    branding?.colors?.text
+                                      ? branding?.colors?.text
+                                      : (objectRenderConfig.pointsBulletColor as string)
+                                  }
+                                  offsetX={10}
+                                  rotation={-45}
+                                />
+                              </Group>
+                            ),
                           number: (
                             <Text
                               key="points"
