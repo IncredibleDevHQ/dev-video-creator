@@ -16,6 +16,8 @@ export interface OutroConfig {
   textHeight: number
   textFontSize: number
   textFontStyle?: string
+  textAlign?: string
+  textVerticalAlign?: string
   socialX: number
   socialY: number
   socialHandlesFontSize: number
@@ -624,6 +626,95 @@ export const getOutroConfig = ({
               socialHandlesFontSize: 16,
               logoX: 464,
               logoY: 159,
+              logoWidth: 32,
+              logoHeight: 32,
+            }
+        }
+      case 'Whitep4nth3r':
+        switch (layout) {
+          case 'classic':
+            return {
+              layoutX: 72,
+              layoutY: 20,
+              layoutWidth: 816,
+              layoutHeight: 460,
+              layoutBorderRadius: 8,
+              textX: 16,
+              textY: 205,
+              textWidth: 784,
+              textHeight: 57,
+              textFontSize: 48,
+              textFontStyle: 'bold',
+              socialX: 244,
+              socialY: 326,
+              socialHandlesFontSize: 16,
+              logoX: 392,
+              logoY: 144,
+              logoWidth: 32,
+              logoHeight: 32,
+            }
+          case 'float-full-right':
+            return {
+              layoutX: 100,
+              layoutY: 122,
+              layoutWidth: 416,
+              layoutHeight: 320,
+              layoutBorderRadius: 8,
+              textX: 16,
+              textY: 0,
+              textWidth: 450,
+              textHeight: 122,
+              textFontSize: 48,
+              textFontStyle: 'bold',
+              socialX: 16,
+              socialY: 200,
+              socialHandlesFontSize: 16,
+              logoX: 384,
+              logoY: 264,
+              logoWidth: 32,
+              logoHeight: 32,
+              userMediaLayout: 'outro',
+            }
+          case 'split-without-media':
+            return {
+              layoutX: 480,
+              layoutY: 122,
+              layoutWidth: 400,
+              layoutHeight: 320,
+              layoutBorderRadius: 8,
+              textX: 16,
+              textY: 0,
+              textWidth: 384,
+              textHeight: 122,
+              textFontSize: 48,
+              textFontStyle: 'bold',
+              textAlign: 'right',
+              socialX: 16,
+              socialY: 200,
+              socialHandlesFontSize: 16,
+              logoX: 364,
+              logoY: 260,
+              logoWidth: 32,
+              logoHeight: 32,
+            }
+          default:
+            return {
+              layoutX: 72,
+              layoutY: 20,
+              layoutWidth: 816,
+              layoutHeight: 460,
+              layoutBorderRadius: 8,
+              textX: 16,
+              textY: 205,
+              textWidth: 784,
+              textHeight: 57,
+              textFontSize: 48,
+              textFontStyle: 'bold',
+              socialX: 244,
+              socialY: 326,
+              socialHandlesFontSize: 16,
+              logoX: 392,
+              logoY: 144,
               logoWidth: 32,
               logoHeight: 32,
             }
