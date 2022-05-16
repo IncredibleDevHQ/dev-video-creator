@@ -47,6 +47,7 @@ const FragmentBackground = ({
     case 'LeeRob':
     case 'Web3Auth':
     case 'DevsForUkraine':
+    case 'Whitep4nth3r':
       return (
         <Rect
           x={objectConfig.x}
