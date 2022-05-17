@@ -506,6 +506,16 @@ const FastVideoEditor = ({
   }
 
   useEffect(() => {
+    if (!activeVideoConfig.transformations.clip) return
+    setClip(activeVideoConfig.transformations.clip)
+  }, [activeVideoConfig.transformations.clip])
+
+  useEffect(() => {
+    if (!activeVideoConfig.transformations.crop) return
+    setCrop(activeVideoConfig.transformations.crop)
+  }, [activeVideoConfig.transformations.crop])
+
+  useEffect(() => {
     if (mode === 'crop') {
       if (!transformerRectRef.current) return
       transformerRef.current?.nodes([transformerRectRef.current])

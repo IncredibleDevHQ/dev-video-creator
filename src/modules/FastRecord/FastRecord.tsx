@@ -91,23 +91,6 @@ const FastRecord = () => {
           },
         },
       })
-      setVideosConfig([
-        ...videosConfig,
-        {
-          id,
-          start: 0,
-          end: duration || video.duration || 0,
-          duration: duration || video.duration || 0,
-          transformations: {
-            ...initalTransformations,
-            clip: {
-              ...initalTransformations.clip,
-              start: 0,
-              end: duration || video.duration || 0,
-            },
-          },
-        },
-      ])
     }
     video.src = url
 
@@ -123,8 +106,9 @@ const FastRecord = () => {
     )
     if (index === -1) {
       tempVideoConfig.push(activeVideoConfig)
+    } else {
+      tempVideoConfig[index] = activeVideoConfig
     }
-    tempVideoConfig[index] = activeVideoConfig
     setVideosConfig(tempVideoConfig)
   }
 
