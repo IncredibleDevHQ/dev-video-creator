@@ -2501,44 +2501,21 @@ export const Whitep4nth3rLowerThirds = ({
               ref?.to({
                 scaleX: 0.9,
                 scaleY: 0.9,
-                x:
-                  x +
-                  (logo
-                    ? Math.floor(rectWidth) + 82
-                    : Math.floor(rectWidth) + 30) /
-                    2,
-                y: y + 31,
-                offsetX:
-                  (logo
-                    ? Math.floor(rectWidth) + 82
-                    : Math.floor(rectWidth) + 30) / 2,
-                offsetY: 31,
                 duration: 0.2,
                 onFinish: () => {
                   setTimeout(() => {
                     ref?.to({
                       scaleX: 1,
                       scaleY: 1,
-                      offsetX:
-                        (logo
-                          ? Math.floor(rectWidth) + 82
-                          : Math.floor(rectWidth) + 30) / 2,
-                      offsetY: 31,
                       duration: 0.2,
                       onFinish: () => {
                         ref?.to({
-                          x:
-                            x +
-                            30 +
-                            (logo
-                              ? Math.floor(rectWidth) + 82
-                              : Math.floor(rectWidth) + 30) /
-                              2,
+                          x: x + 30,
                           duration: 0.3,
                         })
                       },
                     })
-                  }, 2000)
+                  }, 3000)
                 },
               })
             },
@@ -2573,7 +2550,7 @@ export const Whitep4nth3rLowerThirds = ({
                     }, 400)
                   },
                 })
-              }, 3100)
+              }, 4100)
             },
           })
         }}
@@ -2591,7 +2568,7 @@ export const Whitep4nth3rLowerThirds = ({
                     opacity: 0,
                     duration: 0.1,
                   })
-                }, 3100)
+                }, 4100)
               },
             })
           }, 300)
