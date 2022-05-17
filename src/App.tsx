@@ -118,7 +118,7 @@ const App = () => {
               <Route exact path="/present/:fragmentId">
                 <Presentation />
               </Route>
-              <Route exact path="/fast-record/:videoUrl">
+              <Route exact path="/fast-record">
                 <FastRecord />
               </Route>
               <Route>

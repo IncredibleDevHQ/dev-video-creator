@@ -1,3 +1,4 @@
+/* eslint-disable no-restricted-globals */
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 /* eslint-disable jsx-a11y/no-noninteractive-element-interactions */
 /* eslint-disable consistent-return */
@@ -9,8 +10,11 @@
 
 import { cx } from '@emotion/css'
 import Konva from 'konva'
+import { nanoid } from 'nanoid'
 import React, { HTMLAttributes, useEffect, useRef, useState } from 'react'
-import { BiPause, BiPlay } from 'react-icons/bi'
+import { BiPause, BiPlay, BiTrim } from 'react-icons/bi'
+import { FiScissors } from 'react-icons/fi'
+import { IoCropSharp } from 'react-icons/io5'
 import { Group, Image, Layer, Rect, Stage, Transformer } from 'react-konva'
 import useImage from 'use-image'
 import { ASSETS } from '../../constants'
@@ -39,12 +43,24 @@ export interface Transformations {
   crop?: Coordinates
   clip?: Clip
 }
+
+export interface VideoConfig {
+  id: string
+  start: number
+  end: number
+  duration: number
+  thumbnail?: string
+  transformations: Transformations
+}
+
 export interface EditorProps {
   url: string
   width: number
-  transformations?: Transformations
-  handleAction?: (transformations: Transformations) => void
-  action: string
+  totalDuration: number
+  videosConfig: VideoConfig[]
+  activeVideoConfig: VideoConfig
+  setActiveVideoConfig: (videoConfig: VideoConfig) => void
+  setVideosConfig: (videosConfig: VideoConfig[]) => void
 }
 
 const convertTimeToPx = ({
@@ -82,23 +98,25 @@ const getAspectDimension = (
 }
 
 const formattedTime = (seconds: number) => {
-  const minutes = parseInt((seconds / 60).toFixed(0), 10)
-  const secondsLeft = parseInt((seconds % 60).toFixed(0), 10)
+  const minutes = Math.floor(seconds / 60)
+  const secondsLeft = Math.floor(seconds % 60)
+  if (isNaN(secondsLeft)) return '00:00'
+  if (isNaN(minutes)) return `00:${secondsLeft}`
   return `${minutes < 10 ? `0${minutes}` : minutes}:${
     secondsLeft < 10 ? `0${secondsLeft}` : secondsLeft
   }`
 }
 
 export const VideoCanvas = ({
-  videoElement,
   size,
-  underlay,
   crop,
+  underlay,
+  videoElement,
 }: {
-  videoElement: HTMLVideoElement
   size: Size
-  underlay?: boolean
   crop?: Coordinates
+  underlay?: boolean
+  videoElement: HTMLVideoElement
 }) => {
   const imageRef = React.useRef<Konva.Image>(null)
 
@@ -432,10 +450,13 @@ const Scrubber = ({
 const FastVideoEditor = ({
   url,
   width,
-  transformations,
-  handleAction,
-  action,
+  videosConfig,
+  totalDuration,
+  setVideosConfig,
+  activeVideoConfig,
+  setActiveVideoConfig,
 }: EditorProps) => {
+  const { transformations } = activeVideoConfig
   const videoRef = React.useRef<HTMLVideoElement | null>(null)
 
   const [mode, setMode] = React.useState<'crop' | 'trim' | 'split' | null>(null)
@@ -460,8 +481,29 @@ const FastVideoEditor = ({
   )
 
   const layerRef = React.useRef<Konva.Layer | null>(null)
+  const stageRef = React.useRef<Konva.Stage | null>(null)
   const transformerRectRef = React.useRef<Konva.Rect | null>(null)
   const transformerRef = React.useRef<Konva.Transformer | null>(null)
+
+  const saveCrop = () => {
+    setActiveVideoConfig({
+      ...activeVideoConfig,
+      transformations: {
+        ...activeVideoConfig.transformations,
+        crop,
+      },
+    })
+  }
+
+  const saveClip = () => {
+    setActiveVideoConfig({
+      ...activeVideoConfig,
+      transformations: {
+        ...activeVideoConfig.transformations,
+        clip,
+      },
+    })
+  }
 
   useEffect(() => {
     if (mode === 'crop') {
@@ -476,9 +518,52 @@ const FastVideoEditor = ({
     }
   }, [mode])
 
+  const getImageFromCanvas = () => {
+    if (!stageRef.current) return
+    return stageRef.current.toDataURL({
+      pixelRatio: 3,
+      ...crop,
+      width: size.width,
+      height: size.height,
+    })
+  }
+
+  const addSplitVideoConfig = (time: number) => {
+    const tempVideosConfig = [...videosConfig]
+    tempVideosConfig.push({
+      id: nanoid(),
+      start: time,
+      end: activeVideoConfig.end,
+      duration: activeVideoConfig.end - time,
+      transformations: {
+        ...activeVideoConfig.transformations,
+        clip: {
+          ...activeVideoConfig.transformations.clip,
+          start: time,
+          end: activeVideoConfig.end,
+        },
+      },
+    })
+
+    const index = tempVideosConfig.findIndex(
+      (video) => video.id === activeVideoConfig.id
+    )
+    if (index !== -1) {
+      tempVideosConfig[index] = {
+        ...activeVideoConfig,
+        end: time,
+        duration: time - activeVideoConfig.start,
+      }
+    }
+    setVideosConfig(tempVideosConfig)
+  }
+
   const cb = () => {
     if (!videoRef.current) return
     videoRef.current.currentTime = time || 0.1
+
+    // const url = getImageFromCanvas()
+    // setActiveVideoConfig({ ...activeVideoConfig, thumbnail: url })
 
     const orientation =
       videoRef.current.videoWidth > videoRef.current.videoHeight
@@ -560,35 +645,31 @@ const FastVideoEditor = ({
     <div className="my-auto flex flex-col w-full h-full items-center justify-between rounded-md relative">
       <div className="flex-1 flex flex-col items-center justify-center relative">
         <div
-          className="absolute bg-gray-800 bg-opacity-0 hover:bg-opacity-20 top-0 left-0 z-10 flex flex-col justify-end"
-          style={{
-            width: size.width,
-            height: size.height,
-          }}
+          className="absolute bottom-4 left-1/2 z-10 flex flex-col justify-end"
+          style={{ transform: 'translate(-50%)' }}
         >
-          <div className="flex justify-center py-4">
-            <DarkButton
-              className="flex"
-              onClick={() => {
-                if (!videoRef.current) return
-                if (playing) {
-                  videoRef.current.pause()
-                  setPlaying(false)
-                } else {
-                  videoRef.current.currentTime = clip.start || 0
-                  videoRef.current.play()
-                  setPlaying(true)
-                }
-              }}
-            >
-              {playing ? <BiPause size={24} /> : <BiPlay size={24} />}
-              <p className="ml-1">{`${formattedTime(
-                videoRef.current?.currentTime || 0
-              )} / ${formattedTime(videoRef.current?.duration || 0)}`}</p>
-            </DarkButton>
-          </div>
+          <DarkButton
+            className="flex"
+            onClick={() => {
+              if (!videoRef.current) return
+              if (playing) {
+                videoRef.current.pause()
+                setPlaying(false)
+              } else {
+                videoRef.current.currentTime = clip.start || 0
+                videoRef.current.play()
+                setPlaying(true)
+              }
+            }}
+          >
+            {playing ? <BiPause size={24} /> : <BiPlay size={24} />}
+            <p className="ml-1">
+              {formattedTime(videoRef.current?.currentTime || 0)} /{' '}
+              {formattedTime(totalDuration || 0)}
+            </p>
+          </DarkButton>
         </div>
-        <Stage {...size}>
+        <Stage ref={stageRef} {...size}>
           <Layer ref={layerRef}>
             <VideoCanvas underlay size={size} videoElement={videoRef.current} />
             <Group clip={crop}>
@@ -687,7 +768,7 @@ const FastVideoEditor = ({
                     }
                     setClip(() => trim)
                   }}
-                  duration={videoRef.current.duration || 0}
+                  duration={totalDuration}
                   {...clip}
                 />
               </Group>
@@ -704,7 +785,7 @@ const FastVideoEditor = ({
                     videoRef.current!.currentTime = time
                     setTime(time)
                   }}
-                  duration={videoRef.current.duration || 0}
+                  duration={totalDuration}
                   marker={time}
                 />
               </Group>
@@ -756,34 +837,32 @@ const FastVideoEditor = ({
             Trim
           </p>
         </div>
-
-        <div className="flex items-center gap-x-2">
-          <DarkButton
-            onClick={() => {
-              setCrop({
-                x: 0,
-                y: 0,
-                width: 0,
-                height: 0,
-              })
-              setClip({})
-              setTime(0)
-              setPlaying(false)
-            }}
-          >
-            Reset
-          </DarkButton>
-          <DarkButton
-            onClick={() =>
-              handleAction?.({ crop: convertTo('%', size, crop), clip })
-            }
-          >
-            {action}
-          </DarkButton>
+        <div>
+          {mode === 'split' && (
+            <p
+              className="text-sm bg-black text-white py-0.5 px-2 rounded-md cursor-pointer flex items-center"
+              onClick={() => addSplitVideoConfig(time)}
+            >
+              <FiScissors className="mr-2" /> Split at {formattedTime(time)}
+            </p>
+          )}
+          {mode === 'trim' && (
+            <p
+              className="text-sm bg-black text-white py-0.5 px-2 rounded-md cursor-pointer flex items-center"
+              onClick={saveClip}
+            >
+              <BiTrim className="mr-2" /> Save trim
+            </p>
+          )}
+          {mode === 'crop' && (
+            <p
+              className="text-sm bg-black text-white py-0.5 px-2 rounded-md cursor-pointer flex items-center"
+              onClick={saveCrop}
+            >
+              <IoCropSharp className="mr-2" /> Save crop
+            </p>
+          )}
         </div>
-      </div>
-      <div className="w-full flex justify-start bg-gray-900 p-4 mt-2">
-        <div className="w-32 h-16 bg-gray-300 rounded-md" />
       </div>
     </div>
   )
