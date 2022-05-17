@@ -4,7 +4,7 @@ import { Group, Rect, Text } from 'react-konva'
 import TypingEffect from '../effects/TypingEffect'
 import { ComputedToken } from '../hooks/use-code'
 
-export type FragmentState = 'onlyUserMedia' | 'customLayout' | 'both'
+export type FragmentState = 'onlyUserMedia' | 'customLayout' | 'onlyFragment'
 export interface TokenRenderState {
   tokens: ComputedToken[]
   index: number

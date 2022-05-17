@@ -15,6 +15,7 @@ export const allLayoutTypes = [
   'full-left',
   'full-right',
   'split-without-media',
+  'outro',
 ] as const
 
 export const shortsLayoutTypes = [

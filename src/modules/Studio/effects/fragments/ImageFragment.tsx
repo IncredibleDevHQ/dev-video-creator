@@ -2,7 +2,7 @@
 import Konva from 'konva'
 import { nanoid } from 'nanoid'
 import React, { useEffect, useRef, useState } from 'react'
-import { Group, Image, Text } from 'react-konva'
+import { Group, Image, Rect, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
 import {
@@ -10,6 +10,7 @@ import {
   CaptionTitleView,
   ImageBlockView,
   ImageBlockViewProps,
+  Layout,
 } from '../../../../utils/configTypes'
 import { ImageBlockProps } from '../../../Flick/editor/utils/utils'
 import Concourse from '../../components/Concourse'
@@ -51,6 +52,7 @@ const ImageFragment = ({
     useState<{ title: string; image?: string; caption: string }>()
 
   const { getImageDimensions } = useEdit()
+  const { getTextWidth } = useEdit()
 
   const [qnaImage] = useImage(
     imageFragmentData && imageFragmentData.image ? imageFragmentData.image : '',
@@ -76,6 +78,8 @@ const ImageFragment = ({
   // ref to the object grp
   const customLayoutRef = useRef<Konva.Group>(null)
 
+  const [layout, setLayout] = useState<Layout | undefined>()
+
   const [objectConfig, setObjectConfig] = useState<ObjectConfig>({
     x: 0,
     y: 0,
@@ -95,11 +99,15 @@ const ImageFragment = ({
     })
 
   useEffect(() => {
+    setLayout(viewConfig?.layout)
+  }, [viewConfig])
+
+  useEffect(() => {
     if (!dataConfig) return
     setObjectConfig(
       FragmentLayoutConfig({
         theme,
-        layout: viewConfig?.layout || 'classic',
+        layout: layout || viewConfig?.layout || 'classic',
         isShorts: shortsMode || false,
       })
     )
@@ -115,7 +123,7 @@ const ImageFragment = ({
     setRenderMode(imageBlockViewProps?.captionTitleView || 'titleOnly')
     if (dataConfig?.imageBlock.type === 'gif') setIsGif(true)
     else setIsGif(false)
-  }, [dataConfig, shortsMode, viewConfig, theme])
+  }, [dataConfig, shortsMode, viewConfig, theme, layout])
 
   useEffect(() => {
     setObjectRenderConfig(
@@ -124,16 +132,18 @@ const ImageFragment = ({
   }, [objectConfig, theme])
 
   useEffect(() => {
-    const noOfLinesOfTitle = getNoOfLinesOfText({
+    let noOfLinesOfTitle = getNoOfLinesOfText({
       text: imageFragmentData?.title || '',
       availableWidth: objectRenderConfig.availableWidth - 20,
-      fontSize: 24,
+      fontSize: objectRenderConfig?.blockTitleFontSize || 24,
       fontFamily:
         branding?.font?.heading?.family ||
         objectRenderConfig.titleFont ||
         'Gilroy',
       fontStyle: 'bold',
     })
+    noOfLinesOfTitle =
+      theme?.name === 'Whitep4nth3r' ? noOfLinesOfTitle + 0.8 : noOfLinesOfTitle
     const noOfLinesOfCaption = getNoOfLinesOfText({
       text: imageFragmentData?.caption || '',
       availableWidth: !shortsMode
@@ -156,14 +166,23 @@ const ImageFragment = ({
             },
             objectRenderConfig.availableWidth - 40,
             objectRenderConfig.availableHeight -
+              // this 48 constitutes of, the starting y coordinate of the text ie 16, padding between the title and the image ie 16, and the bottom padding
               48 -
-              noOfLinesOfTitle * (24 + 0.2),
+              noOfLinesOfTitle *
+                ((objectRenderConfig?.blockTitleFontSize || 24) + 0.2),
             objectRenderConfig.availableWidth - 40,
             objectRenderConfig.availableHeight -
+              // this 48 constitutes of, the starting y coordinate of the text ie 16, padding between the title and the image ie 16, and the bottom padding
               48 -
-              noOfLinesOfTitle * (24 + 0.2),
+              noOfLinesOfTitle *
+                ((objectRenderConfig?.blockTitleFontSize || 24) + 0.2),
             20,
-            16 + noOfLinesOfTitle * (24 + 0.2) + 16
+            // adding 16 bcoz its the starting y coordinate of the text
+            16 +
+              noOfLinesOfTitle *
+                ((objectRenderConfig?.blockTitleFontSize || 24) + 0.2) +
+              // this addition of 16 is for the pading between the title and the image
+              16
           )
         )
       }
@@ -176,15 +195,20 @@ const ImageFragment = ({
             },
             objectRenderConfig.availableWidth - 40,
             objectRenderConfig.availableHeight -
+              // top padding
               16 -
               noOfLinesOfCaption * (16 + 0.2) -
+              // 32 is the padding between the image and the caption and the bottom padding
               32,
             objectRenderConfig.availableWidth - 40,
             objectRenderConfig.availableHeight -
+              // top padding
               16 -
               noOfLinesOfCaption * (16 + 0.2) -
+              // 32 is the padding between the image and the caption and the bottom padding
               32,
             20,
+            // 16 is for the top padding
             16
           )
         )
@@ -198,22 +222,37 @@ const ImageFragment = ({
             },
             objectRenderConfig.availableWidth - 40,
             objectRenderConfig.availableHeight -
+              // adding 16 bcoz its the starting y coordinate of the text
               16 -
-              noOfLinesOfTitle * (24 + 0.2) -
+              noOfLinesOfTitle *
+                ((objectRenderConfig?.blockTitleFontSize || 24) + 0.2) -
+              // this addition of 16 is for the pading between the title and the image
               16 -
+              // padding between the image and the caption
               16 -
               noOfLinesOfCaption * (16 + 0.2) -
+              // bottom padding
               16,
             objectRenderConfig.availableWidth - 40,
             objectRenderConfig.availableHeight -
+              // adding 16 bcoz its the starting y coordinate of the text
               16 -
-              noOfLinesOfTitle * (24 + 0.2) -
+              noOfLinesOfTitle *
+                ((objectRenderConfig?.blockTitleFontSize || 24) + 0.2) -
+              // this addition of 16 is for the pading between the title and the image
               16 -
+              // padding between the image and the caption
               16 -
               noOfLinesOfCaption * (16 + 0.2) -
+              // bottom padding
               16,
             20,
-            16 + noOfLinesOfTitle * (24 + 0.2) + 16
+            // adding 16 bcoz its the starting y coordinate of the text
+            16 +
+              noOfLinesOfTitle *
+                ((objectRenderConfig?.blockTitleFontSize || 24) + 0.2) +
+              // this addition of 16 is for the pading between the title and the image
+              16
           )
         )
       }
@@ -260,6 +299,7 @@ const ImageFragment = ({
     if (payload?.fragmentState === 'customLayout') {
       if (!shortsMode)
         setTimeout(() => {
+          setLayout(viewConfig?.layout || 'classic')
           setFragmentState(payload?.fragmentState)
           customLayoutRef?.current?.to({
             opacity: 1,
@@ -292,10 +332,29 @@ const ImageFragment = ({
         })
       }
     }
+    if (payload?.fragmentState === 'onlyFragment') {
+      if (!shortsMode)
+        setTimeout(() => {
+          setLayout('classic')
+          setFragmentState(payload?.fragmentState)
+          customLayoutRef?.current?.to({
+            opacity: 1,
+            duration: 0.1,
+          })
+        }, 400)
+      else {
+        setLayout('classic')
+        setFragmentState(payload?.fragmentState)
+        customLayoutRef?.current?.to({
+          opacity: 1,
+          duration: 0.1,
+        })
+      }
+    }
   }, [payload?.fragmentState, payload?.status])
 
   const layerChildren: any[] = [
-    <Group x={0} y={0} opacity={1} ref={customLayoutRef}>
+    <Group x={0} y={0} opacity={0} ref={customLayoutRef}>
       <FragmentBackground
         theme={theme}
         objectConfig={objectConfig}
@@ -335,27 +394,89 @@ const ImageFragment = ({
             )}
             {(renderMode === 'titleOnly' ||
               renderMode === 'titleAndCaption') && (
-              <Text
-                x={10}
-                y={16}
-                align="center"
-                fontSize={24}
-                fill={
-                  branding?.colors?.text
-                    ? branding?.colors?.text
-                    : objectRenderConfig.textColor
-                }
-                width={objectRenderConfig.availableWidth - 20}
-                lineHeight={1.2}
-                text={imageFragmentData?.title}
-                fontStyle="bold"
-                fontFamily={
-                  branding?.font?.heading?.family ||
-                  objectRenderConfig.titleFont ||
-                  'Gilroy'
-                }
-                textTransform="capitalize"
-              />
+              <Group>
+                {theme.name === 'Whitep4nth3r' &&
+                  imageFragmentData?.title !== '' && (
+                    <Rect
+                      x={
+                        (objectRenderConfig.availableWidth - 20) / 2 -
+                        (noOfLinesOfText.noOfLinesOfTitle - 0.8 === 1
+                          ? getTextWidth(
+                              imageFragmentData?.title || '',
+                              branding?.font?.heading?.family ||
+                                objectRenderConfig.titleFont ||
+                                'Gilroy',
+                              objectRenderConfig?.blockTitleFontSize || 24,
+                              'bold'
+                            ) + 30
+                          : objectRenderConfig.availableWidth - 80) /
+                          2 +
+                        10
+                      }
+                      y={
+                        16 +
+                        (noOfLinesOfText.noOfLinesOfTitle - 0.25) *
+                          (objectRenderConfig?.blockTitleFontSize || 24)
+                      }
+                      width={
+                        // checking if the no of lines of title is equal to 1, and based on that calculate the width of the title
+                        noOfLinesOfText.noOfLinesOfTitle - 0.8 === 1
+                          ? getTextWidth(
+                              imageFragmentData?.title || '',
+                              branding?.font?.heading?.family ||
+                                objectRenderConfig.titleFont ||
+                                'Gilroy',
+                              objectRenderConfig?.blockTitleFontSize || 24,
+                              'bold'
+                            ) + 30
+                          : objectRenderConfig.availableWidth - 80
+                      }
+                      height={5}
+                      fillLinearGradientColorStops={[
+                        0,
+                        '#F11012',
+                        1,
+                        '#FFB626',
+                      ]}
+                      fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+                      fillLinearGradientEndPoint={{
+                        x:
+                          noOfLinesOfText.noOfLinesOfTitle - 0.8 === 1
+                            ? getTextWidth(
+                                imageFragmentData?.title || '',
+                                branding?.font?.heading?.family ||
+                                  objectRenderConfig.titleFont ||
+                                  'Gilroy',
+                                objectRenderConfig?.blockTitleFontSize || 24,
+                                'bold'
+                              ) + 30
+                            : objectRenderConfig.availableWidth - 80,
+                        y: 0,
+                      }}
+                    />
+                  )}
+                <Text
+                  x={10}
+                  y={16}
+                  align="center"
+                  fontSize={objectRenderConfig?.blockTitleFontSize || 24}
+                  fill={
+                    branding?.colors?.text
+                      ? branding?.colors?.text
+                      : objectRenderConfig.textColor
+                  }
+                  width={objectRenderConfig.availableWidth - 20}
+                  lineHeight={1.2}
+                  text={imageFragmentData?.title}
+                  fontStyle="bold"
+                  fontFamily={
+                    branding?.font?.heading?.family ||
+                    objectRenderConfig.titleFont ||
+                    'Gilroy'
+                  }
+                  textTransform="capitalize"
+                />
+              </Group>
             )}
 
             {(renderMode === 'captionOnly' ||
@@ -420,13 +541,13 @@ const ImageFragment = ({
 
   const studioUserConfig = !shortsMode
     ? StudioUserConfiguration({
-        layout: viewConfig?.layout || 'classic',
+        layout: layout || 'classic',
         fragment,
         fragmentState,
         theme,
       })
     : ShortsStudioUserConfiguration({
-        layout: viewConfig?.layout || 'classic',
+        layout: layout || 'classic',
         fragment,
         fragmentState,
         theme,
@@ -440,6 +561,7 @@ const ImageFragment = ({
       studioUserConfig={studioUserConfig}
       isShorts={shortsMode}
       blockType={dataConfig.type}
+      fragmentState={fragmentState}
     />
   )
 }

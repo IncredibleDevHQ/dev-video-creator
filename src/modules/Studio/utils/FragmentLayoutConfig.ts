@@ -1,5 +1,6 @@
 import { ThemeFragment } from '../../../generated/graphql'
 import { Layout } from '../../../utils/configTypes'
+import { getCanvasGradient } from './StudioUserConfig'
 
 export interface ObjectConfig {
   x: number
@@ -9,6 +10,8 @@ export interface ObjectConfig {
   availableWidth?: number
   availableHeight?: number
   borderRadius: number
+  borderColor?: CanvasGradient | string
+  surfaceColor?: string
   color?: string
 }
 
@@ -60,6 +63,7 @@ export const FragmentLayoutConfig = ({
               width: 364,
               height: 280,
               borderRadius: 8,
+              surfaceColor: theme.name === 'DevsForUkraine' ? '#1c1c1c7B' : '',
             }
           default:
             return {
@@ -195,6 +199,8 @@ export const FragmentLayoutConfig = ({
             }
         }
       case 'LeeRob':
+      case 'Web3Auth':
+      case 'Whitep4nth3r':
         switch (layout) {
           case 'classic':
           case 'padded-bottom-right-circle':
@@ -328,6 +334,7 @@ export const FragmentLayoutConfig = ({
             width: 500,
             height: 300,
             borderRadius: 8,
+            surfaceColor: theme.name === 'DevsForUkraine' ? '#1c1c1c7B' : '',
           }
         case 'full-right':
           return {
@@ -336,6 +343,7 @@ export const FragmentLayoutConfig = ({
             width: 500,
             height: 300,
             borderRadius: 8,
+            surfaceColor: theme.name === 'DevsForUkraine' ? '#1c1c1c7B' : '',
           }
         default:
           return {
@@ -415,6 +423,7 @@ export const FragmentLayoutConfig = ({
             width: 500,
             height: 300,
             borderRadius: 0,
+            borderColor: '#000000',
           }
         case 'full-right':
           return {
@@ -423,6 +432,7 @@ export const FragmentLayoutConfig = ({
             width: 500,
             height: 300,
             borderRadius: 0,
+            borderColor: '#000000',
           }
         default:
           return {
@@ -604,6 +614,110 @@ export const FragmentLayoutConfig = ({
           }
       }
     case 'LeeRob':
+      switch (layout) {
+        case 'classic':
+          return {
+            x: 56,
+            y: 32,
+            width: 848,
+            height: 477,
+            borderRadius: 0,
+          }
+        case 'float-full-right':
+          return {
+            x: 32,
+            y: 90,
+            width: 640,
+            height: 360,
+            borderRadius: 0,
+          }
+        case 'float-full-left':
+          return {
+            x: 288,
+            y: 90,
+            width: 640,
+            height: 360,
+            borderRadius: 0,
+          }
+        case 'float-half-right':
+          return {
+            x: 32,
+            y: 45,
+            width: 800,
+            height: 450,
+            availableWidth: 650,
+            borderRadius: 0,
+          }
+        case 'padded-bottom-right-tile':
+          return {
+            x: 72,
+            y: 41,
+            width: 816,
+            height: 459,
+            availableWidth: 750,
+            borderRadius: 0,
+          }
+        case 'padded-split':
+          return {
+            x: 40,
+            y: 80,
+            width: 560,
+            height: 380,
+            borderRadius: 0,
+          }
+        case 'full-left':
+          return {
+            x: 40,
+            y: 90,
+            width: 500,
+            height: 360,
+            borderRadius: 0,
+            surfaceColor: '#0000007B',
+            borderColor: getCanvasGradient(
+              [
+                { color: '#DB1685', offset: 0.0 },
+                { color: '#8165D6', offset: 0.5208 },
+                { color: '#48A8F6', offset: 0.9583 },
+              ],
+              {
+                x0: 40,
+                y0: 90,
+                x1: 500,
+                y1: 360,
+              }
+            ),
+          }
+        case 'full-right':
+          return {
+            x: 420,
+            y: 90,
+            width: 500,
+            height: 360,
+            borderRadius: 0,
+            surfaceColor: '#0000007B',
+            borderColor: getCanvasGradient(
+              [
+                { color: '#DB1685', offset: 0.0 },
+                { color: '#8165D6', offset: 0.5208 },
+                { color: '#48A8F6', offset: 0.9583 },
+              ],
+              {
+                x0: 40,
+                y0: 90,
+                x1: 500,
+                y1: 360,
+              }
+            ),
+          }
+        default:
+          return {
+            x: 56,
+            y: 32,
+            width: 848,
+            height: 477,
+            borderRadius: 0,
+          }
+      }
     case 'Web3Auth':
       switch (layout) {
         case 'classic':
@@ -645,31 +759,113 @@ export const FragmentLayoutConfig = ({
             y: 41,
             width: 816,
             height: 459,
+            availableWidth: 750,
             borderRadius: 0,
           }
         case 'padded-split':
           return {
             x: 40,
-            y: 112.5,
+            y: 80,
             width: 560,
-            height: 315,
+            height: 380,
             borderRadius: 0,
           }
         case 'full-left':
           return {
             x: 40,
-            y: 120,
+            y: 90,
             width: 500,
-            height: 300,
+            height: 360,
             borderRadius: 0,
+            surfaceColor: '#27272A7B',
+            borderColor: '#ffffff',
           }
         case 'full-right':
           return {
             x: 420,
-            y: 120,
+            y: 90,
             width: 500,
-            height: 300,
+            height: 360,
             borderRadius: 0,
+            surfaceColor: '#27272A7B',
+            borderColor: '#ffffff',
+          }
+        default:
+          return {
+            x: 56,
+            y: 32,
+            width: 848,
+            height: 477,
+            borderRadius: 0,
+          }
+      }
+    case 'Whitep4nth3r':
+      switch (layout) {
+        case 'classic':
+          return {
+            x: 56,
+            y: 32,
+            width: 848,
+            height: 477,
+            borderRadius: 0,
+          }
+        case 'float-full-right':
+          return {
+            x: 32,
+            y: 90,
+            width: 640,
+            height: 360,
+            borderRadius: 0,
+          }
+        case 'float-full-left':
+          return {
+            x: 288,
+            y: 90,
+            width: 640,
+            height: 360,
+            borderRadius: 0,
+          }
+        case 'float-half-right':
+          return {
+            x: 32,
+            y: 45,
+            width: 800,
+            height: 450,
+            availableWidth: 650,
+            borderRadius: 0,
+          }
+        case 'padded-bottom-right-tile':
+          return {
+            x: 72,
+            y: 41,
+            width: 816,
+            height: 459,
+            availableWidth: 750,
+            borderRadius: 0,
+          }
+        case 'padded-split':
+          return {
+            x: 40,
+            y: 80,
+            width: 560,
+            height: 380,
+            borderRadius: 0,
+          }
+        case 'full-left':
+          return {
+            x: 40,
+            y: 90,
+            width: 500,
+            height: 360,
+            borderRadius: 8,
+          }
+        case 'full-right':
+          return {
+            x: 420,
+            y: 90,
+            width: 500,
+            height: 360,
+            borderRadius: 8,
           }
         default:
           return {
