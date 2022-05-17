@@ -399,6 +399,10 @@ export const getThemeBasedIntroLayouts = (themeName: string): Layout[] => {
   switch (themeName) {
     case 'DarkGradient':
     case 'PastelLines':
+    case 'Cassidoo':
+    case 'LambdaTest':
+    case 'LeeRob':
+    case 'Web3Auth':
       return ['bottom-right-tile', 'float-full-right']
     case 'DevsForUkraine':
     case 'Whitep4nth3r':
