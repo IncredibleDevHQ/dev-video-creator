@@ -1515,6 +1515,10 @@ export const Whitep4nth3rTransition = ({
         width={stageConfig.width}
         height={stageConfig.height / 2 + 75}
         fill="#ffffff"
+        shadowColor="#000000"
+        shadowOffset={{ x: -5, y: 10 }}
+        shadowOpacity={0.25}
+        shadowBlur={10}
         ref={(ref) => {
           ref?.to({
             x: rectIntermediateX,
