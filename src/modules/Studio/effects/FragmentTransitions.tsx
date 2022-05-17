@@ -1428,6 +1428,118 @@ export const DevsForUkraineTransition = ({
   )
 }
 
+export const Whitep4nth3rTransition = ({
+  direction,
+  isShorts,
+  // color,
+  setTopLayerChildren,
+}: {
+  direction: string
+  isShorts?: boolean
+  // color?: string
+  setTopLayerChildren?: React.Dispatch<
+    React.SetStateAction<{ id: string; state: TopLayerChildren }>
+  >
+}) => {
+  let stageConfig = { width: CONFIG.width, height: CONFIG.height }
+  if (!isShorts) stageConfig = CONFIG
+  else stageConfig = SHORTS_CONFIG
+
+  let rectStartX = 0
+  let rectIntermediateX = 0
+  let rectEndX = 0
+  let duration = 0
+
+  switch (direction) {
+    case 'left':
+      rectStartX = stageConfig.width + 150
+      rectIntermediateX = 0
+      rectEndX = -(stageConfig.width + 150)
+      duration = 0.8
+      break
+    case 'right':
+      rectStartX = -(stageConfig.width + 150)
+      rectIntermediateX = 0
+      rectEndX = stageConfig.width + 150
+      duration = 0.8
+      break
+    case 'moveIn':
+      rectStartX = -(stageConfig.width + 150)
+      rectEndX = 0
+      duration = 0.5
+      break
+    case 'moveAway':
+      rectStartX = 0
+      rectEndX = stageConfig.width + 150
+      duration = 0.5
+      break
+    default:
+      break
+  }
+
+  return (
+    <Group>
+      <Rect
+        x={rectStartX}
+        y={stageConfig.height / 2}
+        width={stageConfig.width}
+        height={stageConfig.height / 2}
+        fill="#FFB126"
+        ref={(ref) => {
+          ref?.to({
+            x: rectIntermediateX,
+            duration: duration / 2 - 0.1,
+            easing: Konva.Easings.StrongEaseOut,
+            onFinish: () => {
+              setTimeout(() => {
+                ref?.to({
+                  x: rectEndX,
+                  duration: duration / 2 - 0.05,
+                  easing: Konva.Easings.EaseIn,
+                  onFinish: () => {
+                    setTimeout(() => {
+                      if (direction === 'left' || direction === 'right') {
+                        setTopLayerChildren?.({ id: '', state: '' })
+                      }
+                    }, 200)
+                  },
+                })
+              }, 200)
+            },
+          })
+        }}
+      />
+      <Rect
+        x={rectStartX}
+        y={0}
+        width={stageConfig.width}
+        height={stageConfig.height / 2 + 75}
+        fill="#ffffff"
+        shadowColor="#000000"
+        shadowOffset={{ x: -5, y: 10 }}
+        shadowOpacity={0.25}
+        shadowBlur={10}
+        ref={(ref) => {
+          ref?.to({
+            x: rectIntermediateX,
+            duration: duration / 2 - 0.1,
+            easing: Konva.Easings.EaseIn,
+            onFinish: () => {
+              setTimeout(() => {
+                ref?.to({
+                  x: rectEndX,
+                  duration: duration / 2,
+                  easing: Konva.Easings.EaseOut,
+                })
+              }, 300)
+            },
+          })
+        }}
+      />
+    </Group>
+  )
+}
+
 export const RectanglesSlideTransition = ({
   direction,
   // colors,

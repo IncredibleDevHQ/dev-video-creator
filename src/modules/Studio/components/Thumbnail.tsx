@@ -83,6 +83,7 @@ const Thumbnail = ({
         theme,
         layout: viewConfig?.layout || 'bottom-right-tile',
         isShorts,
+        logoFallback: !logo,
       })
     )
   }, [viewConfig])
@@ -90,7 +91,7 @@ const Thumbnail = ({
   useEffect(() => {
     if (
       theme.name === 'DevsForUkraine' &&
-      (viewConfig?.layout === 'bottom-right-tile' || isShorts)
+      (viewConfig?.layout === 'classic' || isShorts)
     ) {
       const introBlockViewProps: IntroBlockViewProps = (
         viewConfig?.view as IntroBlockView
@@ -203,7 +204,7 @@ const Thumbnail = ({
           )}
           <Text
             key="userName"
-            x={logo ? introConfig?.userNameX || 0 : introConfig?.logoX || 0}
+            x={introConfig?.userNameFallbackX || introConfig?.userNameX || 0}
             y={introConfig?.userNameY || 0}
             width={introConfig?.userNameWidth || 0}
             height={introConfig?.userNameHeight || 0}
@@ -219,7 +220,9 @@ const Thumbnail = ({
             thumbnailInfo?.organization === '' && (
               <Text
                 key="userInfo"
-                x={logo ? introConfig?.userNameX || 0 : introConfig?.logoX || 0}
+                x={
+                  introConfig?.userNameFallbackX || introConfig?.userNameX || 0
+                }
                 y={introConfig?.userInfoY || 0}
                 width={introConfig?.userInfoWidth || 0}
                 height={introConfig?.userInfoHeight || 0}
@@ -235,7 +238,9 @@ const Thumbnail = ({
             thumbnailInfo?.organization !== '' && (
               <Text
                 key="userInfo"
-                x={logo ? introConfig?.userNameX || 0 : introConfig?.logoX || 0}
+                x={
+                  introConfig?.userNameFallbackX || introConfig?.userNameX || 0
+                }
                 y={introConfig?.userInfoY || 0}
                 width={introConfig?.userInfoWidth || 0}
                 height={introConfig?.userInfoHeight || 0}
@@ -251,7 +256,9 @@ const Thumbnail = ({
             thumbnailInfo?.organization !== '' && (
               <Text
                 key="userInfo"
-                x={logo ? introConfig?.userNameX || 0 : introConfig?.logoX || 0}
+                x={
+                  introConfig?.userNameFallbackX || introConfig?.userNameX || 0
+                }
                 y={introConfig?.userInfoY || 0}
                 width={introConfig?.userInfoWidth || 0}
                 height={introConfig?.userInfoHeight || 0}

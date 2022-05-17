@@ -283,11 +283,20 @@ const UnifiedFragment = ({
     if (viewConfig?.mode !== 'Portrait') {
       // Checking if the current state is only fragment group and making the opacity of the only fragment group 1
       if (payload?.fragmentState === 'customLayout') {
-        setTopLayerChildren?.({ id: nanoid(), state: 'transition right' })
+        setTopLayerChildren?.({
+          id: nanoid(),
+          state:
+            fragmentState === 'onlyUserMedia'
+              ? 'transition right'
+              : 'transition left',
+        })
       }
       // Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
       if (payload?.fragmentState === 'onlyUserMedia') {
         setTopLayerChildren?.({ id: nanoid(), state: 'transition left' })
+      }
+      if (payload?.fragmentState === 'onlyFragment') {
+        setTopLayerChildren?.({ id: nanoid(), state: 'transition right' })
       }
     } else {
       setTopLayerChildren?.({ id: nanoid(), state: '' })

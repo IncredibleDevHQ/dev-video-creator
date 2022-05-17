@@ -21,6 +21,7 @@ const PointBullets = ({
     case 'LambdaTest':
     case 'LeeRob':
     case 'DevsForUkraine':
+    case 'Whitep4nth3r':
       return (
         <>
           <Rect
@@ -39,6 +40,7 @@ const PointBullets = ({
             fontSize={bulletsConfig.bulletFontSize}
             fill={bulletsConfig.bulletTextColor || 'black'}
             fontFamily={branding?.font?.body?.family || 'Inter'}
+            fontStyle={bulletsConfig.bulletFontStyle}
             width={bulletsConfig.bulletWidth}
             height={bulletsConfig.bulletHeight}
             align="center"

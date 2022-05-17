@@ -2,7 +2,12 @@ import React from 'react'
 import { useRecoilValue } from 'recoil'
 import { ThemeFragment } from '../../../generated/graphql'
 import { User, userState } from '../../../stores/user.store'
-import { TopLayerChildren } from '../../../utils/configTypes'
+import {
+  IntroBlockView,
+  TopLayerChildren,
+  ViewConfig,
+} from '../../../utils/configTypes'
+import { IntroBlockProps } from '../../Flick/editor/utils/utils'
 import { studioStore } from '../stores'
 import { CONFIG, SHORTS_CONFIG } from './Concourse'
 import {
@@ -13,6 +18,7 @@ import {
   LeeRobLowerThirds,
   PastelLinesLowerThirds,
   Web3AuthLowerThirds,
+  Whitep4nth3rLowerThirds,
 } from './LowerThirds'
 
 const LowerThridProvider = ({
@@ -28,9 +34,20 @@ const LowerThridProvider = ({
 }) => {
   const { branding, fragment, users, participants } =
     useRecoilValue(studioStore)
+  const introBlockViewProps = (
+    (fragment?.configuration as ViewConfig)?.blocks[
+      (fragment?.editorState?.blocks[0] as IntroBlockProps).id
+    ]?.view as IntroBlockView
+  )?.intro
   // holds the user's display name
   const { displayName, designation, organization } =
     (useRecoilValue(userState) as User) || {}
+  const lowerThirdUserName = introBlockViewProps?.name || displayName
+  const lowerThirdUserDesignation =
+    introBlockViewProps?.designation || designation
+  const lowerThirdUserOrganization =
+    introBlockViewProps?.organization || organization
+
   const lowerThirdCoordinates = ({ position }: { position: string }) => {
     if (position === 'right')
       switch (fragment?.participants.length) {
@@ -62,17 +79,18 @@ const LowerThridProvider = ({
             x={
               !isShorts
                 ? lowerThirdCoordinates({ position: 'right' })[0]
-                : SHORTS_CONFIG.width - 100
+                : SHORTS_CONFIG.width - 80
             }
             y={!isShorts ? 450 : 620}
-            userName={displayName || ''}
-            designation={designation || ''}
-            organization={organization || ''}
+            userName={lowerThirdUserName || ''}
+            designation={lowerThirdUserDesignation || ''}
+            organization={lowerThirdUserOrganization || ''}
             logo={branding?.logo || ''}
             color={branding?.background?.color?.primary || ''}
             textColor={branding?.colors?.text || ''}
             branding={branding}
             setTopLayerChildren={setTopLayerChildren}
+            isShorts={isShorts}
           />
           {users.map((user, index) => (
             <GlassyLowerThirds
@@ -87,6 +105,7 @@ const LowerThridProvider = ({
               color={branding?.background?.color?.primary || ''}
               textColor={branding?.colors?.text || ''}
               branding={branding}
+              isShorts={isShorts}
               setTopLayerChildren={setTopLayerChildren}
             />
           ))}
@@ -98,9 +117,9 @@ const LowerThridProvider = ({
           <PastelLinesLowerThirds
             x={!isShorts ? lowerThirdCoordinates({ position: 'left' })[0] : 45}
             y={!isShorts ? 400 : 560}
-            userName={displayName || ''}
-            designation={designation || ''}
-            organization={organization || ''}
+            userName={lowerThirdUserName || ''}
+            designation={lowerThirdUserDesignation || ''}
+            organization={lowerThirdUserOrganization || ''}
             logo={branding?.logo || ''}
             color={branding?.background?.color?.primary || ''}
             textColor={branding?.colors?.text || ''}
@@ -113,8 +132,8 @@ const LowerThridProvider = ({
               x={lowerThirdCoordinates({ position: 'left' })[index + 1]}
               y={!isShorts ? 400 : 560}
               userName={participants?.[user.uid]?.displayName || ''}
-              designation={designation || ''}
-              organization={organization || ''}
+              designation={lowerThirdUserDesignation || ''}
+              organization={lowerThirdUserOrganization || ''}
               logo={branding?.logo || ''}
               color={branding?.background?.color?.primary || ''}
               textColor={branding?.colors?.text || ''}
@@ -129,9 +148,9 @@ const LowerThridProvider = ({
           <CassidooLowerThirds
             x={!isShorts ? lowerThirdCoordinates({ position: 'left' })[0] : 45}
             y={!isShorts ? 400 : 560}
-            userName={displayName || ''}
-            designation={designation || ''}
-            organization={organization || ''}
+            userName={lowerThirdUserName || ''}
+            designation={lowerThirdUserDesignation || ''}
+            organization={lowerThirdUserOrganization || ''}
             logo={branding?.logo || ''}
             color={branding?.background?.color?.primary || ''}
             textColor={branding?.colors?.text || ''}
@@ -144,8 +163,8 @@ const LowerThridProvider = ({
               x={lowerThirdCoordinates({ position: 'left' })[index + 1]}
               y={!isShorts ? 400 : 560}
               userName={participants?.[user.uid]?.displayName || ''}
-              designation={designation || ''}
-              organization={organization || ''}
+              designation={lowerThirdUserDesignation || ''}
+              organization={lowerThirdUserOrganization || ''}
               logo={branding?.logo || ''}
               color={branding?.background?.color?.primary || ''}
               textColor={branding?.colors?.text || ''}
@@ -160,9 +179,9 @@ const LowerThridProvider = ({
           <LambdaTestLowerThirds
             x={!isShorts ? lowerThirdCoordinates({ position: 'left' })[0] : 45}
             y={!isShorts ? 400 : 560}
-            userName={displayName || ''}
-            designation={designation || ''}
-            organization={organization || ''}
+            userName={lowerThirdUserName || ''}
+            designation={lowerThirdUserDesignation || ''}
+            organization={lowerThirdUserOrganization || ''}
             logo={branding?.logo || ''}
             color={branding?.background?.color?.primary || ''}
             textColor={branding?.colors?.text || ''}
@@ -175,8 +194,8 @@ const LowerThridProvider = ({
               x={lowerThirdCoordinates({ position: 'left' })[index + 1]}
               y={!isShorts ? 400 : 560}
               userName={participants?.[user.uid]?.displayName || ''}
-              designation={designation || ''}
-              organization={organization || ''}
+              designation={lowerThirdUserDesignation || ''}
+              organization={lowerThirdUserOrganization || ''}
               logo={branding?.logo || ''}
               color={branding?.background?.color?.primary || ''}
               textColor={branding?.colors?.text || ''}
@@ -191,9 +210,9 @@ const LowerThridProvider = ({
           <LeeRobLowerThirds
             x={!isShorts ? lowerThirdCoordinates({ position: 'left' })[0] : 45}
             y={!isShorts ? 400 : 560}
-            userName={displayName || ''}
-            designation={designation || ''}
-            organization={organization || ''}
+            userName={lowerThirdUserName || ''}
+            designation={lowerThirdUserDesignation || ''}
+            organization={lowerThirdUserOrganization || ''}
             logo={branding?.logo || ''}
             color={branding?.background?.color?.primary || ''}
             textColor={branding?.colors?.text || ''}
@@ -206,8 +225,8 @@ const LowerThridProvider = ({
               x={lowerThirdCoordinates({ position: 'left' })[index + 1]}
               y={!isShorts ? 400 : 560}
               userName={participants?.[user.uid]?.displayName || ''}
-              designation={designation || ''}
-              organization={organization || ''}
+              designation={lowerThirdUserDesignation || ''}
+              organization={lowerThirdUserOrganization || ''}
               logo={branding?.logo || ''}
               color={branding?.background?.color?.primary || ''}
               textColor={branding?.colors?.text || ''}
@@ -222,9 +241,9 @@ const LowerThridProvider = ({
           <Web3AuthLowerThirds
             x={!isShorts ? lowerThirdCoordinates({ position: 'left' })[0] : 45}
             y={!isShorts ? 400 : 560}
-            userName={displayName || ''}
-            designation={designation || ''}
-            organization={organization || ''}
+            userName={lowerThirdUserName || ''}
+            designation={lowerThirdUserDesignation || ''}
+            organization={lowerThirdUserOrganization || ''}
             logo={branding?.logo || ''}
             color={branding?.background?.color?.primary || ''}
             textColor={branding?.colors?.text || ''}
@@ -237,8 +256,8 @@ const LowerThridProvider = ({
               x={lowerThirdCoordinates({ position: 'left' })[index + 1]}
               y={!isShorts ? 400 : 560}
               userName={participants?.[user.uid]?.displayName || ''}
-              designation={designation || ''}
-              organization={organization || ''}
+              designation={lowerThirdUserDesignation || ''}
+              organization={lowerThirdUserOrganization || ''}
               logo={branding?.logo || ''}
               color={branding?.background?.color?.primary || ''}
               textColor={branding?.colors?.text || ''}
@@ -253,9 +272,9 @@ const LowerThridProvider = ({
           <DevsForUkraineLowerThirds
             x={!isShorts ? lowerThirdCoordinates({ position: 'left' })[0] : 45}
             y={!isShorts ? 400 : 560}
-            userName={displayName || ''}
-            designation={designation || ''}
-            organization={organization || ''}
+            userName={lowerThirdUserName || ''}
+            designation={lowerThirdUserDesignation || ''}
+            organization={lowerThirdUserOrganization || ''}
             logo={branding?.logo || ''}
             color={branding?.background?.color?.primary || ''}
             textColor={branding?.colors?.text || ''}
@@ -268,8 +287,39 @@ const LowerThridProvider = ({
               x={lowerThirdCoordinates({ position: 'left' })[index + 1]}
               y={!isShorts ? 400 : 560}
               userName={participants?.[user.uid]?.displayName || ''}
-              designation={designation || ''}
-              organization={organization || ''}
+              designation={lowerThirdUserDesignation || ''}
+              organization={lowerThirdUserOrganization || ''}
+              logo={branding?.logo || ''}
+              color={branding?.background?.color?.primary || ''}
+              textColor={branding?.colors?.text || ''}
+            />
+          ))} */}
+        </>
+      )
+    }
+    case 'Whitep4nth3r': {
+      return (
+        <>
+          <Whitep4nth3rLowerThirds
+            x={!isShorts ? lowerThirdCoordinates({ position: 'left' })[0] : 45}
+            y={!isShorts ? 430 : 600}
+            userName={lowerThirdUserName || ''}
+            designation={lowerThirdUserDesignation || ''}
+            organization={lowerThirdUserOrganization || ''}
+            logo={branding?.logo || ''}
+            color={branding?.background?.color?.primary || ''}
+            textColor={branding?.colors?.text || ''}
+            setTopLayerChildren={setTopLayerChildren}
+          />
+          {/* {users.map((user, index) => (
+            <LeeRobLowerThirds
+              // eslint-disable-next-line react/no-array-index-key
+              key={index}
+              x={lowerThirdCoordinates({ position: 'left' })[index + 1]}
+              y={!isShorts ? 400 : 560}
+              userName={participants?.[user.uid]?.displayName || ''}
+              designation={lowerThirdUserDesignation || ''}
+              organization={lowerThirdUserOrganization || ''}
               logo={branding?.logo || ''}
               color={branding?.background?.color?.primary || ''}
               textColor={branding?.colors?.text || ''}

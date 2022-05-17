@@ -35,27 +35,6 @@ import {
 } from '../../utils/ThemeConfig'
 import config from '../../../../config'
 
-// const getImagePosition = (theme: ThemeFragment) => {
-//   switch (theme.name) {
-//     case 'DarkGradient':
-//       return {
-//         imageX: 40,
-//       }
-//     case 'PastelLines':
-//       return {
-//         imageX: 60,
-//       }
-//     case 'Cassidoo':
-//       return {
-//         imageX: 40,
-//       }
-//     default:
-//       return {
-//         imageX: 0,
-//       }
-//   }
-// }
-
 export interface SocialHandles {
   twitterHandle?: string
   discordHandle?: string
@@ -113,6 +92,11 @@ const OutroFragment = ({
   )
   const [heart] = useImage(
     `${config.storage.baseUrl}themes/DevsForUkraine/heart.svg`,
+    'anonymous'
+  )
+
+  const [pantherBg] = useImage(
+    `${config.storage.baseUrl}themes/Whitep4nth3r/Whitep4nth3rBg.svg`,
     'anonymous'
   )
 
@@ -272,6 +256,46 @@ const OutroFragment = ({
           fill="#1C1C1C"
         />
       )}
+      {theme.name === 'Whitep4nth3r' && (
+        <Group>
+          <Image
+            x={0}
+            y={0}
+            image={pantherBg}
+            width={CONFIG.width}
+            height={CONFIG.height}
+          />
+          <Rect
+            x={
+              viewConfig?.layout === 'classic'
+                ? 216
+                : (outroConfig?.layoutX || 0) + (outroConfig?.textX || 0)
+            }
+            y={
+              viewConfig?.layout === 'classic'
+                ? 295
+                : (outroConfig?.layoutY || 0) +
+                  (outroConfig?.textY || 0) +
+                  (outroConfig?.textHeight || 0)
+            }
+            width={
+              viewConfig?.layout === 'classic'
+                ? 540
+                : outroConfig?.layoutWidth || 0
+            }
+            height={5}
+            fillLinearGradientColorStops={[0, '#F11012', 1, '#FFB626']}
+            fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+            fillLinearGradientEndPoint={{
+              x:
+                viewConfig?.layout === 'classic'
+                  ? 540
+                  : outroConfig?.layoutWidth || 0,
+              y: 0,
+            }}
+          />
+        </Group>
+      )}
       <Group
         x={0}
         y={0}
@@ -385,7 +409,10 @@ const OutroFragment = ({
             width={outroConfig?.textWidth || 0}
             height={outroConfig?.textHeight || 0}
             text={outroMsg}
-            align={viewConfig?.layout === 'classic' ? 'center' : 'left'}
+            align={
+              outroConfig?.textAlign ||
+              (viewConfig?.layout === 'classic' ? 'center' : 'left')
+            }
             fill={branding?.colors?.text || getThemeTextColor(theme)}
             fontSize={outroConfig?.textFontSize || 0}
             fontFamily={getThemeFont(theme)}

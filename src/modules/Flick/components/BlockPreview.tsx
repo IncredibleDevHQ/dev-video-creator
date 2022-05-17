@@ -16,7 +16,6 @@ import {
   BlockProperties,
   Gradient,
   GradientConfig,
-  introLayoutTypes,
   Layout,
   outroLayoutTypes,
   shortsLayoutTypes,
@@ -25,7 +24,10 @@ import {
 } from '../../../utils/configTypes'
 import { CONFIG, SHORTS_CONFIG } from '../../Studio/components/Concourse'
 import UnifiedFragment from '../../Studio/effects/fragments/UnifiedFragment'
-import { getThemeSupportedUserMediaLayouts } from '../../Studio/utils/ThemeConfig'
+import {
+  getThemeBasedIntroLayouts,
+  getThemeSupportedUserMediaLayouts,
+} from '../../Studio/utils/ThemeConfig'
 import { Block, SimpleAST } from '../editor/utils/utils'
 import { newFlickStore } from '../store/flickNew.store'
 import LayoutGeneric from './LayoutGeneric'
@@ -213,7 +215,9 @@ export const LayoutSelector = ({
         ))
 
       case 'introBlock':
-        return introLayoutTypes.map((layoutType) => (
+        return getThemeBasedIntroLayouts(
+          activeTheme?.name || 'DarkGradient'
+        ).map((layoutType) => (
           <div className="flex items-center justify-center">
             <LayoutGeneric
               type={type}
