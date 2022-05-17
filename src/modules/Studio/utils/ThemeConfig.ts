@@ -11,6 +11,7 @@ export interface ObjectRenderConfig {
   textColor: string
   surfaceColor: string
   surfaceOpacity?: number
+  // used only as the border radius of the video
   borderRadius?: number
   titleFont?: string
   bodyFont?: string
@@ -61,7 +62,7 @@ export const ThemeLayoutConfig = ({
         availableHeight: layoutConfig.height,
         textColor: '#27272A',
         borderRadius: 0,
-        surfaceColor: '',
+        surfaceColor: '#E0D6ED7B',
         pointsBulletColor: '#27272A',
         pointsBulletCornerRadius: 6,
         pointsBulletYOffset: 3.5,
@@ -124,7 +125,7 @@ export const ThemeLayoutConfig = ({
         availableHeight: layoutConfig.height,
         textColor: '#ffffff',
         borderRadius: 0,
-        surfaceColor: '',
+        surfaceColor: layoutConfig?.surfaceColor || '',
         titleFont: 'Inter',
         bodyFont: 'Inter',
         pointsBulletColor: getCanvasGradient(
@@ -154,7 +155,7 @@ export const ThemeLayoutConfig = ({
         availableHeight: layoutConfig.height,
         textColor: '#ffffff',
         borderRadius: 0,
-        surfaceColor: '',
+        surfaceColor: layoutConfig?.surfaceColor || '',
         titleFont: 'DM Sans',
         bodyFont: 'DM Sans',
         pointsBulletColor: getCanvasGradient(
@@ -183,7 +184,7 @@ export const ThemeLayoutConfig = ({
         availableHeight: layoutConfig.height,
         textColor: '#ffffff',
         borderRadius: 8,
-        surfaceColor: '',
+        surfaceColor: layoutConfig?.surfaceColor || '',
         titleFont: 'Montserrat',
         bodyFont: 'Inter',
         pointsBulletColor: '#E2CE68',
@@ -201,7 +202,7 @@ export const ThemeLayoutConfig = ({
         availableHeight: layoutConfig.height,
         textColor: '#ffffff',
         borderRadius: 0,
-        surfaceColor: '',
+        surfaceColor: '#0F111A7B',
         titleFont: 'Work Sans',
         bodyFont: 'Work Sans',
         pointsBulletColor: '#FFB626',
@@ -246,6 +247,7 @@ export const getThemeTextColor = (theme: ThemeFragment): string => {
   }
 }
 
+// used in intro and outro fragments
 export const getThemeSurfaceColor = (theme: ThemeFragment): string => {
   switch (theme.name) {
     case 'DarkGradient':

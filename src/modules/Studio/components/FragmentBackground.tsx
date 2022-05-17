@@ -44,8 +44,18 @@ const FragmentBackground = ({
         </Group>
       )
     case 'PastelLines':
-    case 'LeeRob':
     case 'Web3Auth':
+      return (
+        <Rect
+          x={objectConfig.x}
+          y={objectConfig.y}
+          width={objectConfig.width}
+          height={objectConfig.height}
+          fill={backgroundRectColor}
+          stroke={objectConfig.borderColor}
+          strokeWidth={1}
+        />
+      )
     case 'DevsForUkraine':
     case 'Whitep4nth3r':
       return (
@@ -123,6 +133,18 @@ const FragmentBackground = ({
             fill={backgroundRectColor}
           />
         </Group>
+      )
+    case 'LeeRob':
+      return (
+        <Rect
+          x={objectConfig.x}
+          y={objectConfig.y}
+          width={objectConfig.width}
+          height={objectConfig.height}
+          fill={backgroundRectColor}
+          stroke={objectConfig?.borderColor}
+          strokeWidth={8}
+        />
       )
     default:
       return <></>
