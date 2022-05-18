@@ -3,6 +3,7 @@ import { Arc, Circle, Group, Image, Rect, Ring } from 'react-konva'
 import useImage from 'use-image'
 import config from '../../../config'
 import { Layout } from '../../../utils/configTypes'
+import { CONFIG } from './Concourse'
 
 // This components returns the additional elements for the thumbnail based on theme
 const ThumbnailElements = ({
@@ -34,9 +35,13 @@ const ThumbnailElements = ({
     `${config.storage.baseUrl}themes/DevsForUkraine/heart.svg`,
     'anonymous'
   )
+  const [pantherBg] = useImage(
+    `${config.storage.baseUrl}themes/Whitep4nth3r/Whitep4nth3rBg.svg`,
+    'anonymous'
+  )
   switch (theme) {
     case 'DevsForUkraine': {
-      if (layout === 'bottom-right-tile' && !isShorts)
+      if (layout === 'classic' && !isShorts)
         return (
           <>
             <Rect
@@ -96,7 +101,7 @@ const ThumbnailElements = ({
             <Image x={40} y={40} image={heart} width={56} height={56} />
           </>
         )
-      if (layout === 'float-full-right' && !isShorts)
+      if (layout === 'bottom-right-tile' && !isShorts)
         return (
           <>
             <Rect
@@ -183,6 +188,57 @@ const ThumbnailElements = ({
             <Image x={12} y={266} image={star} width={24} height={25} />
             <Image x={182} y={645} image={heart} width={32} height={32} />
           </>
+        )
+      return <></>
+    }
+    case 'Whitep4nth3r': {
+      if (layout === 'classic' && !isShorts)
+        return (
+          <Group>
+            <Image
+              x={0}
+              y={0}
+              image={pantherBg}
+              width={CONFIG.width}
+              height={CONFIG.height}
+            />
+            <Rect
+              x={216}
+              y={464}
+              width={680}
+              height={5}
+              fillLinearGradientColorStops={[0, '#F11012', 1, '#FFB626']}
+              fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+              fillLinearGradientEndPoint={{
+                x: 680,
+                y: 0,
+              }}
+            />
+          </Group>
+        )
+      if (layout === 'bottom-right-tile' && !isShorts)
+        return (
+          <Group>
+            <Image
+              x={0}
+              y={0}
+              image={pantherBg}
+              width={CONFIG.width}
+              height={CONFIG.height}
+            />
+            <Rect
+              x={216}
+              y={245}
+              width={680}
+              height={5}
+              fillLinearGradientColorStops={[0, '#F11012', 1, '#FFB626']}
+              fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+              fillLinearGradientEndPoint={{
+                x: 680,
+                y: 0,
+              }}
+            />
+          </Group>
         )
       return <></>
     }

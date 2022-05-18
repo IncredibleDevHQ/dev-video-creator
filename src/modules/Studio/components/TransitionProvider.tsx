@@ -9,6 +9,7 @@ import {
   LeeRobTransition,
   PastelLinesTransition,
   TrianglePathTransition,
+  Whitep4nth3rTransition,
 } from '../effects/FragmentTransitions'
 import { studioStore } from '../stores'
 
@@ -172,6 +173,26 @@ const TransitionProvider = ({
           direction={direction}
           isShorts={isShorts}
           // color="white"
+          setTopLayerChildren={setTopLayerChildren}
+        />
+      )
+    case 'Whitep4nth3r':
+      if (direction === 'moveIn' || direction === 'moveAway') {
+        return (
+          <DipTransition
+            direction={direction}
+            isShorts={isShorts}
+            color="black"
+            performFinishAction={performFinishAction}
+            setTopLayerChildren={setTopLayerChildren}
+          />
+        )
+      }
+      return (
+        <Whitep4nth3rTransition
+          direction={direction}
+          isShorts={isShorts}
+          // color="black"
           setTopLayerChildren={setTopLayerChildren}
         />
       )

@@ -49,8 +49,8 @@ export const getPointsConfig = ({
       case 'full-left':
       case 'full-right':
         return {
-          paddingBtwBulletText: 36,
-          textFontSize: 12,
+          paddingBtwBulletText: 24,
+          textFontSize: 14,
           noOfPoints: 1,
           noForSpacing: 2,
         }
@@ -105,6 +105,7 @@ export interface BulletsConfig {
   bulletWidth: number
   bulletHeight: number
   bulletFontSize: number
+  bulletFontStyle?: string
   bulletCornerRadius: number
   bulletXOffset: number
   bulletYOffset: number
@@ -386,6 +387,7 @@ export const getBulletsConfig = ({
             bulletWidth: 32,
             bulletHeight: 32,
             bulletFontSize: 16,
+            bulletFontStyle: 'bold',
             bulletCornerRadius: 16,
             bulletXOffset: 0,
             bulletYOffset: 0,
@@ -498,6 +500,7 @@ export const getBulletsConfig = ({
             bulletWidth: 32,
             bulletHeight: 32,
             bulletFontSize: 16,
+            bulletFontStyle: 'bold',
             bulletCornerRadius: 16,
             bulletXOffset: 0,
             bulletYOffset: 0,
@@ -510,11 +513,52 @@ export const getBulletsConfig = ({
             bulletWidth: 32,
             bulletHeight: 32,
             bulletFontSize: 16,
+            bulletFontStyle: 'bold',
             bulletCornerRadius: 16,
             bulletXOffset: 0,
             bulletYOffset: 0,
             bulletColor: '#2696FA',
             bulletTextColor: '#ffffff',
+            bulletRotation: 0,
+          }
+      }
+    case 'Whitep4nth3r':
+      switch (layout) {
+        case 'classic':
+        case 'float-full-right':
+        case 'float-full-left':
+        case 'float-half-right':
+        case 'padded-bottom-right-tile':
+        case 'padded-bottom-right-circle':
+        case 'bottom-right-tile':
+        case 'bottom-right-circle':
+        case 'padded-split':
+        case 'split':
+        case 'full-left':
+        case 'full-right':
+          return {
+            bulletWidth: 40,
+            bulletHeight: 40,
+            bulletFontSize: 20,
+            bulletFontStyle: 'bold',
+            bulletCornerRadius: 8,
+            bulletXOffset: 0,
+            bulletYOffset: 0,
+            bulletColor: '#FFB626',
+            bulletTextColor: '#000000',
+            bulletRotation: 0,
+          }
+        default:
+          return {
+            bulletWidth: 40,
+            bulletHeight: 40,
+            bulletFontSize: 20,
+            bulletFontStyle: 'bold',
+            bulletCornerRadius: 8,
+            bulletXOffset: 0,
+            bulletYOffset: 0,
+            bulletColor: '#FFB626',
+            bulletTextColor: '#000000',
             bulletRotation: 0,
           }
       }

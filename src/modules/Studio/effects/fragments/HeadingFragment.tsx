@@ -1,22 +1,22 @@
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
-import { useRecoilValue } from 'recoil'
 import { Group, Text } from 'react-konva'
-import { BlockProperties } from '../../../../utils/configTypes'
+import { useRecoilValue } from 'recoil'
+import { BlockProperties, Layout } from '../../../../utils/configTypes'
 import { HeadingBlockProps } from '../../../Flick/editor/utils/utils'
+import { Concourse } from '../../components'
+import FragmentBackground from '../../components/FragmentBackground'
 import { FragmentState } from '../../components/RenderTokens'
 import { StudioProviderProps, studioStore } from '../../stores'
-import { ObjectRenderConfig, ThemeLayoutConfig } from '../../utils/ThemeConfig'
 import {
   FragmentLayoutConfig,
   ObjectConfig,
 } from '../../utils/FragmentLayoutConfig'
-import FragmentBackground from '../../components/FragmentBackground'
-import { Concourse } from '../../components'
 import {
   ShortsStudioUserConfiguration,
   StudioUserConfiguration,
 } from '../../utils/StudioUserConfig'
+import { ObjectRenderConfig, ThemeLayoutConfig } from '../../utils/ThemeConfig'
 
 const HeadingFragment = ({
   dataConfig,
@@ -41,6 +41,8 @@ const HeadingFragment = ({
   // ref to the object grp
   const customLayoutRef = useRef<Konva.Group>(null)
 
+  const [layout, setLayout] = useState<Layout | undefined>()
+
   const [objectConfig, setObjectConfig] = useState<ObjectConfig>({
     x: 0,
     y: 0,
@@ -60,17 +62,21 @@ const HeadingFragment = ({
     })
 
   useEffect(() => {
+    setLayout(viewConfig?.layout)
+  }, [viewConfig])
+
+  useEffect(() => {
     if (!dataConfig) return
     setObjectConfig(
       FragmentLayoutConfig({
         theme,
-        layout: viewConfig?.layout || 'classic',
+        layout: layout || viewConfig?.layout || 'classic',
         isShorts: shortsMode || false,
       })
     )
     if (dataConfig?.headingBlock?.title)
       setTitle(dataConfig?.headingBlock?.title || '')
-  }, [dataConfig, shortsMode, viewConfig, theme])
+  }, [dataConfig, shortsMode, viewConfig, theme, layout])
 
   useEffect(() => {
     setObjectRenderConfig(
@@ -83,6 +89,7 @@ const HeadingFragment = ({
     if (payload?.fragmentState === 'customLayout') {
       if (!shortsMode)
         setTimeout(() => {
+          setLayout(viewConfig?.layout || 'classic')
           setFragmentState(payload?.fragmentState)
           customLayoutRef?.current?.to({
             opacity: 1,
@@ -115,10 +122,29 @@ const HeadingFragment = ({
         })
       }
     }
-  }, [payload?.fragmentState])
+    if (payload?.fragmentState === 'onlyFragment') {
+      if (!shortsMode)
+        setTimeout(() => {
+          setLayout('classic')
+          setFragmentState(payload?.fragmentState)
+          customLayoutRef?.current?.to({
+            opacity: 1,
+            duration: 0.1,
+          })
+        }, 400)
+      else {
+        setLayout('classic')
+        setFragmentState(payload?.fragmentState)
+        customLayoutRef?.current?.to({
+          opacity: 1,
+          duration: 0.1,
+        })
+      }
+    }
+  }, [payload?.fragmentState, payload?.status])
 
   const layerChildren: any[] = [
-    <Group x={0} y={0} opacity={1} ref={customLayoutRef}>
+    <Group x={0} y={0} opacity={0} ref={customLayoutRef}>
       <FragmentBackground
         theme={theme}
         objectConfig={objectConfig}
@@ -161,13 +187,13 @@ const HeadingFragment = ({
 
   const studioUserConfig = !shortsMode
     ? StudioUserConfiguration({
-        layout: viewConfig?.layout || 'classic',
+        layout: layout || 'classic',
         fragment,
         fragmentState,
         theme,
       })
     : ShortsStudioUserConfiguration({
-        layout: viewConfig?.layout || 'classic',
+        layout: layout || 'classic',
         fragment,
         fragmentState,
         theme,
@@ -181,6 +207,7 @@ const HeadingFragment = ({
       studioUserConfig={studioUserConfig}
       isShorts={shortsMode}
       blockType={dataConfig.type}
+      fragmentState={fragmentState}
     />
   )
 }

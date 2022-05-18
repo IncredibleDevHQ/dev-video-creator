@@ -414,19 +414,19 @@ const RecordingControlsBar = ({
                 }
               )}
               disabled={isIntro || isOutro}
-              onClick={() => {
-                if (payload?.fragmentState === 'onlyUserMedia') {
-                  // updating the fragment state in the payload to customLayout state
-                  updatePayload?.({
-                    fragmentState: 'customLayout',
-                  })
-                } else {
-                  // updating the fragment state in the payload to onlyUserMedia state
-                  updatePayload?.({
-                    fragmentState: 'onlyUserMedia',
-                  })
-                }
-              }}
+              // onClick={() => {
+              //   if (payload?.fragmentState === 'onlyUserMedia') {
+              //     // updating the fragment state in the payload to customLayout state
+              //     updatePayload?.({
+              //       fragmentState: 'customLayout',
+              //     })
+              //   } else {
+              //     // updating the fragment state in the payload to onlyUserMedia state
+              //     updatePayload?.({
+              //       fragmentState: 'onlyUserMedia',
+              //     })
+              //   }
+              // }}
             >
               <div
                 className={cx(
@@ -439,11 +439,17 @@ const RecordingControlsBar = ({
                       !isOutro,
                     'brightness-50': isIntro || isOutro,
                     'brightness-75':
-                      payload?.fragmentState === 'customLayout' &&
+                      (payload?.fragmentState === 'customLayout' ||
+                        payload?.fragmentState === 'onlyFragment') &&
                       !isIntro &&
                       !isOutro,
                   }
                 )}
+                onClick={() =>
+                  updatePayload?.({
+                    fragmentState: 'onlyUserMedia',
+                  })
+                }
               >
                 <OnlyUserMedia className={cx('m-px w-5 h-4 ', {})} />
               </div>
@@ -458,11 +464,42 @@ const RecordingControlsBar = ({
                       !isOutro,
                     'brightness-50': isIntro || isOutro,
                     'brightness-75':
-                      payload?.fragmentState === 'onlyUserMedia' &&
+                      (payload?.fragmentState === 'onlyUserMedia' ||
+                        payload?.fragmentState === 'onlyFragment') &&
                       !isIntro &&
                       !isOutro,
                   }
                 )}
+                onClick={() =>
+                  updatePayload?.({
+                    fragmentState: 'customLayout',
+                  })
+                }
+              >
+                <CustomLayout className={cx('m-px w-5 h-4', {})} />
+              </div>
+              <div
+                className={cx(
+                  'bg-transparent py-1 px-1 rounded-sm my-1 mr-1 transition-all duration-300 filter',
+                  {
+                    'bg-transparent': isIntro || isOutro,
+                    'bg-grey-900':
+                      payload?.fragmentState === 'onlyFragment' &&
+                      !isIntro &&
+                      !isOutro,
+                    'brightness-50': isIntro || isOutro,
+                    'brightness-75':
+                      (payload?.fragmentState === 'customLayout' ||
+                        payload?.fragmentState === 'onlyUserMedia') &&
+                      !isIntro &&
+                      !isOutro,
+                  }
+                )}
+                onClick={() =>
+                  updatePayload?.({
+                    fragmentState: 'onlyFragment',
+                  })
+                }
               >
                 <CustomLayout className={cx('m-px w-5 h-4', {})} />
               </div>

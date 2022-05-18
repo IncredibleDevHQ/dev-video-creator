@@ -172,6 +172,7 @@ export const GlassyLowerThirds = ({
   color,
   textColor,
   branding,
+  isShorts,
   setTopLayerChildren,
 }: {
   x: number
@@ -183,19 +184,21 @@ export const GlassyLowerThirds = ({
   color: string
   textColor: string
   branding: BrandingJSON | null | undefined
+  isShorts: boolean
   setTopLayerChildren?: React.Dispatch<
     React.SetStateAction<{ id: string; state: TopLayerChildren }>
   >
 }) => {
   const [image] = useImage(logo, 'anonymous')
   const { getTextWidth } = useEdit()
-  const rectWidth =
+  let rectWidth =
     Math.max(
       getTextWidth(`${designation}, ${organization}`, 'Gilroy', 16, 'normal'),
       getTextWidth(userName || '', 'Gilroy', 24, 'bold')
     ) +
     16 +
     8
+  if (isShorts && rectWidth > 250) rectWidth = 230
 
   if (logo)
     return (
@@ -235,24 +238,26 @@ export const GlassyLowerThirds = ({
             height={1}
             ref={(ref) => {
               ref?.to({
-                offsetX: 48,
-                offsetY: 48,
-                height: 96,
-                width: 96,
+                offsetX: !isShorts ? 48 : 38,
+                offsetY: !isShorts ? 48 : 38,
+                height: !isShorts ? 96 : 76,
+                width: !isShorts ? 96 : 76,
                 duration: 0.4,
                 easing: Konva.Easings.BackEaseOut,
                 onFinish: () => {
                   setTimeout(() => {
                     ref?.to({
                       x: -Math.floor(rectWidth),
-                      width: Math.floor(rectWidth) + 96,
+                      width: !isShorts
+                        ? Math.floor(rectWidth) + 96
+                        : Math.floor(rectWidth) + 76,
                       duration: 0.3,
                       easing: Konva.Easings.BackEaseOut,
                       onFinish: () => {
                         setTimeout(() => {
                           ref?.to({
                             x: 0,
-                            width: 96,
+                            width: !isShorts ? 96 : 76,
                             duration: 0.3,
                             easing: Konva.Easings.EaseOut,
                             onFinish: () => {
@@ -288,18 +293,20 @@ export const GlassyLowerThirds = ({
         bcoz the image has to scale from the center, so there would be a offset set, 
         on setting the offset the image moves negative, so to cancel that adding the offset values to x and y */}
           <Image
-            x={20 - 48 + 28}
-            y={20 - 48 + 28}
+            // x={20 - 48 + 28}
+            // y={20 - 48 + 28}
+            x={0}
+            y={0}
             width={0}
             height={0}
             image={image}
             opcaity={1}
             ref={(ref) => {
               ref?.to({
-                offsetX: 28,
-                offsetY: 28,
-                width: 56,
-                height: 56,
+                offsetX: !isShorts ? 28 : 21,
+                offsetY: !isShorts ? 28 : 21,
+                width: !isShorts ? 56 : 42,
+                height: !isShorts ? 56 : 42,
                 duration: 0.1,
                 easing: Konva.Easings.BackEaseOut,
                 onFinish: () => {
@@ -318,15 +325,16 @@ export const GlassyLowerThirds = ({
           />
           <Text
             x={-rectWidth - 24}
-            y={designation === '' && organization === '' ? -48 : -24}
+            y={designation === '' && organization === '' ? -12 : -24}
             fill={textColor || '#fafafa'}
             text={userName}
             fontSize={24}
             opacity={0}
-            height={96}
-            verticalAlign={
-              designation === '' && organization === '' ? 'middle' : undefined
-            }
+            width={rectWidth}
+            height={30}
+            // verticalAlign={
+            //   designation === '' && organization === '' ? 'middle' : undefined
+            // }
             fontStyle="bold"
             fontFamily={branding?.font?.body?.family || 'Gilroy'}
             key="username"
@@ -355,6 +363,7 @@ export const GlassyLowerThirds = ({
               text={designation}
               fontSize={16}
               opacity={0}
+              // width={rectWidth}
               height={96}
               fontFamily={branding?.font?.body?.family || 'Gilroy'}
               key="designation"
@@ -384,6 +393,7 @@ export const GlassyLowerThirds = ({
               text={organization}
               fontSize={16}
               opacity={0}
+              width={rectWidth}
               height={96}
               fontFamily={branding?.font?.body?.family || 'Gilroy'}
               key="organization"
@@ -413,7 +423,8 @@ export const GlassyLowerThirds = ({
               text={`${designation}, ${organization}`}
               fontSize={16}
               opacity={0}
-              height={96}
+              width={rectWidth}
+              height={20}
               fontFamily={branding?.font?.body?.family || 'Gilroy'}
               key="designationAndOrganization"
               ref={(ref) =>
@@ -465,8 +476,8 @@ export const GlassyLowerThirds = ({
           height={60}
           ref={(ref) => {
             ref?.to({
-              x: -Math.floor(rectWidth) - 32 + 60,
-              width: Math.floor(rectWidth) + 32,
+              x: -Math.floor(rectWidth) - 16 + 60,
+              width: Math.floor(rectWidth) + 16,
               duration: 0.3,
               easing: Konva.Easings.BackEaseOut,
               onFinish: () => {
@@ -491,7 +502,7 @@ export const GlassyLowerThirds = ({
           }}
         />
         <Text
-          x={-rectWidth - 16 + 60}
+          x={-rectWidth + 60}
           y={designation === '' && organization === '' ? -30 : -20}
           fill={textColor || '#fafafa'}
           text={userName}
@@ -523,7 +534,7 @@ export const GlassyLowerThirds = ({
         />
         {designation !== '' && organization === '' && (
           <Text
-            x={-rectWidth - 16 + 60}
+            x={-rectWidth + 60}
             y={6}
             fill={textColor || '#fafafa'}
             text={designation}
@@ -553,7 +564,7 @@ export const GlassyLowerThirds = ({
         )}
         {designation === '' && organization !== '' && (
           <Text
-            x={-rectWidth - 16 + 60}
+            x={-rectWidth + 60}
             y={6}
             fill={textColor || '#fafafa'}
             text={organization}
@@ -583,7 +594,7 @@ export const GlassyLowerThirds = ({
         )}
         {designation !== '' && organization !== '' && (
           <Text
-            x={-rectWidth - 16 + 60}
+            x={-rectWidth + 60}
             y={6}
             fill={textColor || '#fafafa'}
             text={`${designation}, ${organization}`}
@@ -2437,6 +2448,192 @@ export const DevsForUkraineLowerThirds = ({
         )}
       </Group>
     </>
+  )
+}
+
+export const Whitep4nth3rLowerThirds = ({
+  x,
+  y,
+  userName,
+  designation,
+  organization,
+  logo,
+  color,
+  textColor,
+  setTopLayerChildren,
+}: {
+  x: number
+  y: number
+  userName: string
+  designation: string
+  organization: string
+  logo: string
+  color: string
+  textColor: string
+  setTopLayerChildren?: React.Dispatch<
+    React.SetStateAction<{ id: string; state: TopLayerChildren }>
+  >
+}) => {
+  const [image] = useImage(logo, 'anonymous')
+  const { getTextWidth } = useEdit()
+
+  const rectWidth =
+    Math.max(
+      getTextWidth(
+        `${designation}, ${organization}`,
+        'Work Sans',
+        12,
+        'normal'
+      ),
+      getTextWidth(userName || '', 'Work Sans', 18, 'bold')
+    ) + 20
+  return (
+    <Group
+      x={x + 30}
+      y={y}
+      ref={(ref) => {
+        setTimeout(() => {
+          ref?.to({
+            x,
+            duration: 0.3,
+            easing: Konva.Easings.BackEaseOut,
+            onFinish: () => {
+              ref?.to({
+                scaleX: 0.9,
+                scaleY: 0.9,
+                duration: 0.2,
+                onFinish: () => {
+                  setTimeout(() => {
+                    ref?.to({
+                      scaleX: 1,
+                      scaleY: 1,
+                      duration: 0.2,
+                      onFinish: () => {
+                        ref?.to({
+                          x: x + 30,
+                          duration: 0.3,
+                        })
+                      },
+                    })
+                  }, 3000)
+                },
+              })
+            },
+          })
+        }, 400)
+      }}
+    >
+      <Rect
+        fill={color || '#2B2E3A'}
+        width={logo ? Math.floor(rectWidth) + 82 : Math.floor(rectWidth) + 30}
+        height={0}
+        cornerRadius={6}
+        stroke="#FFB126"
+        strokeWidth={2}
+        ref={(ref) => {
+          ref?.to({
+            height: 62,
+            duration: 0.4,
+            easing: Konva.Easings.BackEaseOut,
+            onFinish: () => {
+              setTimeout(() => {
+                ref?.to({
+                  height: 0,
+                  strokeWidth: 0,
+                  duration: 0.4,
+                  onFinish: () => {
+                    setTimeout(() => {
+                      setTopLayerChildren?.({
+                        id: '',
+                        state: '',
+                      })
+                    }, 400)
+                  },
+                })
+              }, 4100)
+            },
+          })
+        }}
+      />
+      <Group
+        opacity={0}
+        ref={(ref) => {
+          setTimeout(() => {
+            ref?.to({
+              opacity: 1,
+              duration: 0.1,
+              onFinish: () => {
+                setTimeout(() => {
+                  ref?.to({
+                    opacity: 0,
+                    duration: 0.1,
+                  })
+                }, 4100)
+              },
+            })
+          }, 300)
+        }}
+      >
+        <Text
+          x={18}
+          y={designation === '' && organization === '' ? 0 : 12}
+          fill={textColor || '#ffffff'}
+          text={userName}
+          fontSize={18}
+          height={62}
+          fontStyle="bold"
+          fontFamily="Work Sans"
+          key="username"
+        />
+        <Image
+          x={Math.floor(rectWidth) + 15}
+          y={10}
+          width={42}
+          height={42}
+          image={image}
+        />
+
+        {designation !== '' && organization === '' && (
+          <Text
+            x={18}
+            y={37}
+            fill={textColor || '#ffffff'}
+            text={designation}
+            fontSize={12}
+            height={28}
+            fontStyle="normal 400"
+            fontFamily="Work Sans"
+            key="designation"
+          />
+        )}
+        {designation === '' && organization !== '' && (
+          <Text
+            x={16}
+            y={37}
+            fill={textColor || '#ffffff'}
+            text={organization}
+            fontSize={12}
+            height={28}
+            fontStyle="normal 400"
+            fontFamily="Work Sans"
+            key="organization"
+          />
+        )}
+        {designation !== '' && organization !== '' && (
+          <Text
+            x={16}
+            y={37}
+            fill={textColor || '#ffffff'}
+            text={`${designation}, ${organization}`}
+            fontSize={12}
+            height={28}
+            fontStyle="normal 400"
+            fontFamily="Work Sans"
+            key="designationAndOrganization"
+          />
+        )}
+      </Group>
+    </Group>
   )
 }
 
