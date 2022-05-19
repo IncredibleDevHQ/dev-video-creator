@@ -13,6 +13,7 @@ import {
   Landing,
   Notifications,
   Presentation,
+  Settings,
   Studio,
 } from './modules'
 import AuthProvider from './utils/auth'
@@ -120,6 +121,9 @@ const App = () => {
               </Route>
               <Route exact path="/fast-record">
                 <FastRecord />
+              </Route>
+              <Route exact path="/settings">
+                <Settings />
               </Route>
               <Route>
                 <FourOhFour />

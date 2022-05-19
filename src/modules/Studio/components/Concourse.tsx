@@ -162,6 +162,7 @@ const Concourse = ({
     users,
     stopRecording,
     theme,
+    config,
   } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [canvas, setCanvas] = useRecoilState(canvasStore)
   const [isZooming, setZooming] = useState(false)
@@ -452,25 +453,27 @@ const Concourse = ({
         !disableUserMedia &&
         payload?.status !== Fragment_Status_Enum_Enum.CountDown &&
         payload?.status !== Fragment_Status_Enum_Enum.Ended &&
-        fragment &&
-        [...(fragment.configuration?.speakers || fragment.participants)]?.map(
-          (_: any, index: number) => {
-            return (
-              <PreviewUser
-                studioUserConfig={
-                  (studioUserConfig && studioUserConfig[index]) || {
-                    x:
-                      defaultStudioUserConfig.x -
-                      (index + 1) * userStudioImageGap,
-                    y: defaultStudioUserConfig.y,
-                    width: defaultStudioUserConfig.width,
-                    height: defaultStudioUserConfig.height,
-                  }
+        [
+          ...(config?.speakers ||
+            fragment?.configuration?.speakers ||
+            fragment?.participants ||
+            []),
+        ]?.map((_: any, index: number) => {
+          return (
+            <PreviewUser
+              studioUserConfig={
+                (studioUserConfig && studioUserConfig[index]) || {
+                  x:
+                    defaultStudioUserConfig.x -
+                    (index + 1) * userStudioImageGap,
+                  y: defaultStudioUserConfig.y,
+                  width: defaultStudioUserConfig.width,
+                  height: defaultStudioUserConfig.height,
                 }
-              />
-            )
-          }
-        )
+              }
+            />
+          )
+        })
       )}
     </>
   )

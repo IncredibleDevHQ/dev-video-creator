@@ -9,6 +9,7 @@ import Presentation from './Presentation/Presentation'
 import Landing from './Landing/Landing'
 import Dashboard from './Dashboard/Dashboard'
 import Notifications from './Notifications/Notifications'
+import Settings from './Settings/Settings'
 
 export {
   Dashboard,
@@ -21,4 +22,5 @@ export {
   Presentation,
   Landing,
   Notifications,
+  Settings,
 }

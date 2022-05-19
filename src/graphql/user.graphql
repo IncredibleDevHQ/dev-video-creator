@@ -86,6 +86,26 @@ query SendMagicSignInLink($email: String!) {
   }
 }
 
+query GetUserPreferences($sub: String = "") {
+  User(where: { sub: { _eq: $sub } }) {
+    preferences
+  }
+  Branding {
+    branding
+    id
+    name
+  }
+}
+
+mutation UpdateUserPreferences($sub: String!, $preferences: json!) {
+  update_User_by_pk(
+    pk_columns: { sub: $sub }
+    _set: { preferences: $preferences }
+  ) {
+    preferences
+  }
+}
+
 mutation UpdateOnboardingUser(
   $sub: String!
   $displayName: String!
@@ -105,9 +125,18 @@ mutation SetOnboarding {
   }
 }
 
-mutation UpdateProfile($displayName: String!, $userId: String!) {
+mutation UpdateProfile(
+  $displayName: String!
+  $userId: String!
+  $designation: String
+  $organization: String
+) {
   update_User(
-    _set: { displayName: $displayName }
+    _set: {
+      displayName: $displayName
+      designation: $designation
+      organization: $organization
+    }
     where: { sub: { _eq: $userId } }
   ) {
     affected_rows
@@ -168,4 +197,3 @@ query GetPendingInvites($flickId: uuid!) {
     }
   }
 }
-

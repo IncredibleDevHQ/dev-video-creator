@@ -10,6 +10,7 @@ import {
   useRecoilValue,
 } from 'recoil'
 import { Preview, Timeline } from '.'
+import { ThemeFragment } from '../../../generated/graphql'
 import { logEvent } from '../../../utils/analytics'
 import { PageEvent } from '../../../utils/analytics-types'
 import {
@@ -183,12 +184,16 @@ export const LayoutSelector = ({
   type,
   mode,
   layout,
+  theme,
   updateLayout,
+  darkMode = false,
 }: {
   layout: Layout
   mode: ViewConfig['mode']
   updateLayout: (layout: Layout) => void
   type: Block['type']
+  theme?: ThemeFragment
+  darkMode?: boolean
 }) => {
   const { activeTheme } = useRecoilValue(newFlickStore)
 
@@ -208,6 +213,7 @@ export const LayoutSelector = ({
                 logEvent(PageEvent.ChangeLayout)
                 updateLayout(layoutType)
               }}
+              darkMode={darkMode}
             />
           </div>
         ))
@@ -226,13 +232,14 @@ export const LayoutSelector = ({
                 logEvent(PageEvent.ChangeLayout)
                 updateLayout(layoutType)
               }}
+              darkMode={darkMode}
             />
           </div>
         ))
 
       default:
         return getThemeSupportedUserMediaLayouts(
-          activeTheme?.name || 'DarkGradient'
+          theme?.name || activeTheme?.name || 'DarkGradient'
         ).map((layoutType) => (
           <div className="flex items-center justify-center">
             <LayoutGeneric
@@ -245,6 +252,7 @@ export const LayoutSelector = ({
                 logEvent(PageEvent.ChangeLayout)
                 updateLayout(layoutType)
               }}
+              darkMode={darkMode}
             />
           </div>
         ))
@@ -277,6 +285,7 @@ export const LayoutSelector = ({
                   logEvent(PageEvent.ChangeLayout)
                   updateLayout(layoutType)
                 }}
+                darkMode={darkMode}
               />
             ))
           : shortsLayoutTypes?.map((layoutType) => (
@@ -290,6 +299,7 @@ export const LayoutSelector = ({
                   logEvent(PageEvent.ChangeLayout)
                   updateLayout(layoutType)
                 }}
+                darkMode={darkMode}
               />
             ))}
       </div>
