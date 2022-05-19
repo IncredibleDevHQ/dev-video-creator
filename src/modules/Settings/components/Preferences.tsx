@@ -18,6 +18,7 @@ import {
   useRecoilValue,
   useSetRecoilState,
 } from 'recoil'
+import { useDebouncedCallback } from 'use-debounce'
 import { ReactComponent as BrandIcon } from '../../../assets/BrandIcon.svg'
 import { emitToast, Heading, Text } from '../../../components'
 import config from '../../../config'
@@ -32,6 +33,7 @@ import {
   useUpdateUserPreferencesMutation,
 } from '../../../generated/graphql'
 import { useCanvasRecorder } from '../../../hooks'
+import useDidUpdateEffect from '../../../hooks/use-did-update-effect'
 import { User, userState } from '../../../stores/user.store'
 import { Layout, ViewConfig } from '../../../utils/configTypes'
 import { verticalCustomScrollBar } from '../../../utils/globalStyles'
@@ -42,8 +44,6 @@ import { useLocalPayload } from '../../Flick/Flick'
 import { CONFIG } from '../../Studio/components/Concourse'
 import UnifiedFragment from '../../Studio/effects/fragments/UnifiedFragment'
 import { studioStore } from '../../Studio/stores'
-import useDidUpdateEffect from '../../../hooks/use-did-update-effect'
-import { useDebouncedCallback } from 'use-debounce'
 
 interface IPreferences {
   theme?: ThemeFragment
@@ -299,13 +299,9 @@ const Canvas = ({
 
   Konva.pixelRatio = 2
 
-  const { updatePayload, payload } = useLocalPayload()
+  const { updatePayload } = useLocalPayload()
   const { addMusic, stopMusic } = useCanvasRecorder({})
   const setStudio = useSetRecoilState(studioStore)
-
-  useEffect(() => {
-    console.log('preferences', preferences)
-  }, [preferences, setPreferences])
 
   useEffect(() => {
     setStudio((store) => ({
@@ -457,7 +453,7 @@ const ThemesPopover = ({
             width: '590px',
             backgroundColor: '#27272A',
           }}
-          className="flex flex-col rounded-md py-4 mt-8 overflow-hidden"
+          className="flex flex-col rounded-md py-4 mt-6 overflow-hidden"
         >
           <div className="flex items-center justify-between px-6">
             <div className="flex items-center gap-x-2 text-sm">
