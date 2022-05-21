@@ -357,7 +357,6 @@ mutation CreateNewFlick(
   $description: String
   $scope: CreateFlickFlickScopeEnumEnum!
   $seriesId: uuid
-  $configuration: json
   $md: String
 ) {
   CreateFlick(
@@ -365,7 +364,6 @@ mutation CreateNewFlick(
     scope: $scope
     description: $description
     seriesId: $seriesId
-    configuration: $configuration
     md: $md
   ) {
     id

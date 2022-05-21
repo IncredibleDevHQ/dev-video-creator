@@ -23,6 +23,7 @@ import { useRecoilState, useRecoilValue } from 'recoil'
 import { Timer } from '.'
 import { ReactComponent as CustomLayout } from '../../../assets/CustomLayout.svg'
 import { ReactComponent as OnlyUserMedia } from '../../../assets/OnlyUserMedia.svg'
+import { ReactComponent as ThreeWaySwap } from '../../../assets/ThreeWaySwap.svg'
 import { ReactComponent as StartRecordIcon } from '../../../assets/StartRecord.svg'
 import { ReactComponent as StopRecordIcon } from '../../../assets/StopRecord.svg'
 import { Avatar, Heading } from '../../../components'
@@ -476,7 +477,7 @@ const RecordingControlsBar = ({
                   })
                 }
               >
-                <CustomLayout className={cx('m-px w-5 h-4', {})} />
+                <ThreeWaySwap className={cx('m-px w-5 h-4', {})} />
               </div>
               <div
                 className={cx(

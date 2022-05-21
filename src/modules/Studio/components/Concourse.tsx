@@ -187,8 +187,8 @@ const Concourse = ({
   const defaultStudioUserConfig: StudioUserConfig = {
     x: 780,
     y: 400,
-    width: 160,
-    height: 120,
+    width: 0,
+    height: 0,
   }
 
   const userStudioImageGap = 170
@@ -303,6 +303,8 @@ const Concourse = ({
   useEffect(() => {
     setCanvas({ zoomed: false, resetCanvas })
   }, [])
+
+  console.log('test Concourse', users)
 
   return (
     <>
