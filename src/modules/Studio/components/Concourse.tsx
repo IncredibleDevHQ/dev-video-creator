@@ -18,6 +18,7 @@ import { canvasStore, StudioProviderProps, studioStore } from '../stores'
 import { FragmentLayoutConfig } from '../utils/FragmentLayoutConfig'
 import LowerThridProvider from './LowerThirdProvider'
 import PreviewUser from './PreviewUser'
+import { FragmentState } from './RenderTokens'
 import StudioUser from './StudioUser'
 import TransitionProvider from './TransitionProvider'
 
@@ -55,6 +56,7 @@ interface ConcourseProps {
   studioUserConfig?: StudioUserConfig[]
   disableUserMedia?: boolean
   isShorts?: boolean
+  fragmentState?: FragmentState
   blockType: Block['type']
 }
 
@@ -151,6 +153,7 @@ const Concourse = ({
   studioUserConfig,
   disableUserMedia,
   isShorts,
+  fragmentState,
   blockType,
 }: ConcourseProps) => {
   const {
@@ -185,8 +188,8 @@ const Concourse = ({
   const defaultStudioUserConfig: StudioUserConfig = {
     x: 780,
     y: 400,
-    width: 160,
-    height: 120,
+    width: 0,
+    height: 0,
   }
 
   const userStudioImageGap = 170
@@ -241,10 +244,13 @@ const Concourse = ({
       })
     } else {
       const pointer = stageRef?.current?.getPointerPosition()
+      const scaleRatio =
+        document.getElementsByClassName('konvajs-content')[0].clientWidth /
+        stageConfig.width
       if (pointer) {
         groupRef.current.to({
-          x: -pointer.x,
-          y: -pointer.y,
+          x: (pointer.x - pointer.x * zoomLevel) / scaleRatio,
+          y: (pointer.y - pointer.y * zoomLevel) / scaleRatio,
           scaleX: zoomLevel,
           scaleY: zoomLevel,
           duration: 0.5,
@@ -298,6 +304,8 @@ const Concourse = ({
   useEffect(() => {
     setCanvas({ zoomed: false, resetCanvas })
   }, [])
+
+  console.log('test Concourse', users)
 
   return (
     <>
@@ -391,7 +399,10 @@ const Concourse = ({
                         ctx,
                         FragmentLayoutConfig({
                           theme,
-                          layout: viewConfig?.layout || 'classic',
+                          layout:
+                            fragmentState === 'onlyFragment'
+                              ? 'classic'
+                              : viewConfig?.layout || 'classic',
                           isShorts: isShorts || false,
                         })
                       )

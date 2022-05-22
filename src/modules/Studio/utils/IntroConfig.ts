@@ -17,6 +17,8 @@ export interface IntroConfig {
   titleFontStyle?: string
   userNameX: number
   userNameY: number
+  userNameFallbackX?: number
+  userNameFallbackY?: number
   userNameWidth: number
   userNameHeight: number
   userNameFontSize: number
@@ -46,10 +48,13 @@ export const getIntroConfig = ({
   theme,
   layout,
   isShorts,
+  logoFallback,
 }: {
   theme: ThemeFragment
   layout: Layout
   isShorts?: boolean
+  // boolean which detremines if the username has to fallback to the logo's x coordinate
+  logoFallback?: boolean
 }): IntroConfig => {
   if (!isShorts)
     switch (theme.name) {
@@ -69,6 +74,7 @@ export const getIntroConfig = ({
               titleFontSize: 72,
               userNameX: 167,
               userNameY: 336,
+              userNameFallbackX: logoFallback ? 80 : 0,
               userNameWidth: 600,
               userNameHeight: 40,
               userNameFontSize: 32,
@@ -133,6 +139,7 @@ export const getIntroConfig = ({
               titleFontSize: 72,
               userNameX: 167,
               userNameY: 336,
+              userNameFallbackX: logoFallback ? 80 : 0,
               userNameWidth: 600,
               userNameHeight: 40,
               userNameFontSize: 32,
@@ -168,6 +175,7 @@ export const getIntroConfig = ({
               titleFontSize: 72,
               userNameX: 134,
               userNameY: 244,
+              userNameFallbackX: logoFallback ? 56 : 0,
               userNameWidth: 600,
               userNameHeight: 40,
               userNameFontSize: 32,
@@ -237,6 +245,7 @@ export const getIntroConfig = ({
               userNameFontSize: 32,
               userInfoX: 134,
               userInfoY: 284,
+              userNameFallbackX: logoFallback ? 56 : 0,
               userInfoWidth: 600,
               userInfoHeight: 57,
               userInfoFontSize: 24,
@@ -267,6 +276,7 @@ export const getIntroConfig = ({
               titleFontSize: 56,
               userNameX: 120,
               userNameY: 350,
+              userNameFallbackX: logoFallback ? 44 : 0,
               userNameWidth: 520,
               userNameHeight: 40,
               userNameFontSize: 24,
@@ -331,6 +341,7 @@ export const getIntroConfig = ({
               titleFontSize: 56,
               userNameX: 120,
               userNameY: 350,
+              userNameFallbackX: logoFallback ? 44 : 0,
               userNameWidth: 816,
               userNameHeight: 40,
               userNameFontSize: 24,
@@ -366,6 +377,7 @@ export const getIntroConfig = ({
               titleFontSize: 72,
               userNameX: 127,
               userNameY: 296,
+              userNameFallbackX: logoFallback ? 45 : 0,
               userNameWidth: 600,
               userNameHeight: 40,
               userNameFontSize: 32,
@@ -430,6 +442,7 @@ export const getIntroConfig = ({
               titleFontSize: 72,
               userNameX: 127,
               userNameY: 296,
+              userNameFallbackX: logoFallback ? 45 : 0,
               userNameWidth: 600,
               userNameHeight: 40,
               userNameFontSize: 32,
@@ -465,6 +478,7 @@ export const getIntroConfig = ({
               titleFontSize: 72,
               userNameX: 150,
               userNameY: 336,
+              userNameFallbackX: logoFallback ? 68 : 0,
               userNameWidth: 600,
               userNameHeight: 40,
               userNameFontSize: 32,
@@ -531,6 +545,7 @@ export const getIntroConfig = ({
               titleFontSize: 72,
               userNameX: 150,
               userNameY: 336,
+              userNameFallbackX: logoFallback ? 68 : 0,
               userNameWidth: 600,
               userNameHeight: 40,
               userNameFontSize: 32,
@@ -651,7 +666,7 @@ export const getIntroConfig = ({
         }
       case 'DevsForUkraine':
         switch (layout) {
-          case 'bottom-right-tile':
+          case 'classic':
             return {
               layoutX: 0,
               layoutY: 0,
@@ -689,7 +704,7 @@ export const getIntroConfig = ({
               userImageHeight: 0,
               userImageBorderRadius: 0,
             }
-          case 'float-full-right':
+          case 'bottom-right-tile':
             return {
               layoutX: 0,
               layoutY: 0,
@@ -764,6 +779,117 @@ export const getIntroConfig = ({
               userImageWidth: 128,
               userImageHeight: 128,
               userImageBorderRadius: 8,
+            }
+        }
+      case 'Whitep4nth3r':
+        switch (layout) {
+          case 'classic':
+            return {
+              layoutX: 0,
+              layoutY: 0,
+              layoutWidth: 960,
+              layoutHeight: 540,
+              layoutBorderRadius: 0,
+              titleX: 216,
+              titleY: 95,
+              titleWidth: 680,
+              titleHeight: 350,
+              titleFontSize: 72,
+              titleFontStyle: 'bold',
+              titleAlign: 'right',
+              titleVerticalAlign: 'bottom',
+              userNameX: 0,
+              userNameY: 0,
+              userNameWidth: 0,
+              userNameHeight: 0,
+              userNameFontSize: 0,
+              userInfoX: 0,
+              userInfoY: 0,
+              userInfoWidth: 0,
+              userInfoHeight: 0,
+              userInfoFontSize: 0,
+              logoX: 840,
+              logoY: 56,
+              logoWidth: 56,
+              logoHeight: 56,
+              userImageX: 0,
+              userImageY: 0,
+              userImageWidth: 0,
+              userImageHeight: 0,
+              userImageBorderRadius: 0,
+            }
+          case 'bottom-right-tile':
+            return {
+              layoutX: 0,
+              layoutY: 0,
+              layoutWidth: 960,
+              layoutHeight: 540,
+              layoutBorderRadius: 0,
+              titleX: 213,
+              titleY: 64,
+              titleWidth: 680,
+              titleHeight: 160,
+              titleFontSize: 72,
+              titleFontStyle: 'bold',
+              titleAlign: 'right',
+              titleVerticalAlign: 'bottom',
+              userNameX: 510,
+              userNameY: 336,
+              userNameWidth: 386,
+              userNameHeight: 30,
+              userNameFontSize: 24,
+              userNameFontStyle: 'bold',
+              userNameAlign: 'right',
+              userInfoX: 510,
+              userInfoY: 375,
+              userInfoWidth: 386,
+              userInfoHeight: 57,
+              userInfoFontSize: 24,
+              userInfoAlign: 'right',
+              logoX: 856,
+              logoY: 436,
+              logoWidth: 40,
+              logoHeight: 40,
+              userImageX: 213,
+              userImageY: 336,
+              userImageWidth: 140,
+              userImageHeight: 140,
+              userImageBorderRadius: 8,
+            }
+          default:
+            return {
+              layoutX: 0,
+              layoutY: 0,
+              layoutWidth: 960,
+              layoutHeight: 540,
+              layoutBorderRadius: 0,
+              titleX: 216,
+              titleY: 95,
+              titleWidth: 680,
+              titleHeight: 350,
+              titleFontSize: 72,
+              titleFontStyle: 'bold',
+              titleAlign: 'right',
+              titleVerticalAlign: 'bottom',
+              userNameX: 0,
+              userNameY: 0,
+              userNameWidth: 0,
+              userNameHeight: 0,
+              userNameFontSize: 0,
+              userInfoX: 0,
+              userInfoY: 0,
+              userInfoWidth: 0,
+              userInfoHeight: 0,
+              userInfoFontSize: 0,
+              logoX: 840,
+              logoY: 64,
+              logoWidth: 56,
+              logoHeight: 56,
+              userImageX: 0,
+              userImageY: 0,
+              userImageWidth: 0,
+              userImageHeight: 0,
+              userImageBorderRadius: 0,
             }
         }
       default:

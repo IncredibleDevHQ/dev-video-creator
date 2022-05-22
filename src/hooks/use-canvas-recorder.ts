@@ -80,7 +80,7 @@ const useCanvasRecorder = ({
           )
         : undefined
 
-    const stream = (canvas as CanvasElement).captureStream(30)
+    const stream = (canvas as CanvasElement).captureStream(60)
 
     if (!stream) {
       throw Error('No stream found')
