@@ -37,7 +37,6 @@ import useDidUpdateEffect from '../../../hooks/use-did-update-effect'
 import { User, userState } from '../../../stores/user.store'
 import { Layout, ViewConfig } from '../../../utils/configTypes'
 import { verticalCustomScrollBar } from '../../../utils/globalStyles'
-import { BrandingInterface } from '../../Branding/BrandingPage'
 import { LayoutSelector } from '../../Flick/components/BlockPreview'
 import { VideoBlockProps } from '../../Flick/editor/utils/utils'
 import { useLocalPayload } from '../../Flick/Flick'
@@ -47,7 +46,7 @@ import { studioStore } from '../../Studio/stores'
 
 interface IPreferences {
   theme?: ThemeFragment
-  branding?: BrandingInterface
+  brandingId?: string
   screenRecordingLayout?: Layout
 }
 
@@ -158,9 +157,9 @@ const Preferences = () => {
         Default brand
       </Heading>
       <Listbox
-        value={preferences?.branding}
+        value={preferences?.brandingId}
         onChange={(value) =>
-          setPreferences({ ...preferences, branding: value })
+          setPreferences({ ...preferences, brandingId: value })
         }
       >
         {({ open }) => (
@@ -169,7 +168,8 @@ const Preferences = () => {
               <div className="flex items-center w-full gap-x-2">
                 <BrandIcon className="flex-shrink-0" />
                 <span className="block text-sm truncate">
-                  {preferences?.branding?.name || 'None'}
+                  {data?.Branding?.find((b) => b.id === preferences?.brandingId)
+                    ?.name || 'None'}
                 </span>
               </div>
               <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none ">
@@ -193,7 +193,7 @@ const Preferences = () => {
                     )
                   }
                   key={brand.id}
-                  value={brand}
+                  value={brand.id}
                 >
                   {({ selected }) => (
                     <>
@@ -312,6 +312,10 @@ const Canvas = ({
       updatePayload,
       addMusic,
       stopMusic,
+      theme: preferences?.theme || {
+        name: 'DarkGradient',
+        config: {},
+      },
       config: getViewConfig(preferences?.screenRecordingLayout || 'classic'),
     }))
   }, [])
@@ -350,7 +354,7 @@ const Canvas = ({
                   preferences?.screenRecordingLayout || 'classic'
                 )}
                 config={[block]}
-                branding={preferences?.branding?.branding || undefined}
+                branding={undefined}
                 theme={preferences?.theme}
               />
             </Layer>
