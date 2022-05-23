@@ -45,7 +45,7 @@ const ImageFragment = ({
   stageRef: React.RefObject<Konva.Stage>
   shortsMode: boolean
 }) => {
-  const { fragment, payload, branding, theme, preloadedBlobUrls } =
+  const { fragment, payload, branding, theme, preloadedBlobUrls, users } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [imageFragmentData, setImageFragmentData] =
@@ -99,10 +99,6 @@ const ImageFragment = ({
     })
 
   useEffect(() => {
-    setLayout(viewConfig?.layout)
-  }, [viewConfig])
-
-  useEffect(() => {
     if (!dataConfig) return
     setObjectConfig(
       FragmentLayoutConfig({
@@ -123,7 +119,17 @@ const ImageFragment = ({
     setRenderMode(imageBlockViewProps?.captionTitleView || 'titleOnly')
     if (dataConfig?.imageBlock.type === 'gif') setIsGif(true)
     else setIsGif(false)
-  }, [dataConfig, shortsMode, viewConfig, theme, layout])
+  }, [dataConfig, shortsMode, viewConfig, theme])
+
+  useEffect(() => {
+    setObjectConfig(
+      FragmentLayoutConfig({
+        theme,
+        layout: layout || viewConfig?.layout || 'classic',
+        isShorts: shortsMode || false,
+      })
+    )
+  }, [shortsMode, viewConfig, theme, layout])
 
   useEffect(() => {
     setObjectRenderConfig(
@@ -542,13 +548,17 @@ const ImageFragment = ({
   const studioUserConfig = !shortsMode
     ? StudioUserConfiguration({
         layout: layout || 'classic',
-        fragment,
+        noOfParticipants: users
+          ? users?.length + 1
+          : fragment?.configuration?.speakers?.length,
         fragmentState,
         theme,
       })
     : ShortsStudioUserConfiguration({
         layout: layout || 'classic',
-        fragment,
+        noOfParticipants: users
+          ? users?.length + 1
+          : fragment?.configuration?.speakers?.length,
         fragmentState,
         theme,
       })

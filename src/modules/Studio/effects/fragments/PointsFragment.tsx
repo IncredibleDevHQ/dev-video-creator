@@ -79,8 +79,16 @@ const PointsFragment = ({
   shortsMode: boolean
   isPreview: boolean
 }) => {
-  const { fragment, state, updatePayload, payload, addMusic, branding, theme } =
-    (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const {
+    fragment,
+    state,
+    updatePayload,
+    payload,
+    addMusic,
+    branding,
+    theme,
+    users,
+  } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [studio, setStudio] = useRecoilState(studioStore)
 
@@ -145,10 +153,6 @@ const PointsFragment = ({
   })
 
   useEffect(() => {
-    setLayout(viewConfig?.layout)
-  }, [viewConfig])
-
-  useEffect(() => {
     if (!dataConfig) return
     updatePayload?.({
       activePointIndex: 0,
@@ -156,13 +160,6 @@ const PointsFragment = ({
     setActivePointIndex(0)
     setPoints([])
     setComputedPoints([])
-    setObjectConfig(
-      FragmentLayoutConfig({
-        theme,
-        layout: layout || viewConfig?.layout || 'classic',
-        isShorts: shortsMode || false,
-      })
-    )
     setPoints(dataConfig.listBlock.list || [])
     const listBlockViewProps: ListBlockViewProps = (
       viewConfig?.view as ListBlockView
@@ -175,7 +172,17 @@ const PointsFragment = ({
       setOrientation(listBlockViewProps?.orientation)
     if (listBlockViewProps?.displayTitle !== undefined)
       setShouldDisplayTitle(listBlockViewProps?.displayTitle)
-  }, [dataConfig, shortsMode, viewConfig, theme, layout])
+  }, [dataConfig, shortsMode, viewConfig, theme])
+
+  useEffect(() => {
+    setObjectConfig(
+      FragmentLayoutConfig({
+        theme,
+        layout: layout || viewConfig?.layout || 'classic',
+        isShorts: shortsMode || false,
+      })
+    )
+  }, [theme, layout, viewConfig, shortsMode])
 
   useEffect(() => {
     setObjectRenderConfig(
@@ -1369,13 +1376,17 @@ const PointsFragment = ({
   const studioUserConfig = !shortsMode
     ? StudioUserConfiguration({
         layout: layout || 'classic',
-        fragment,
+        noOfParticipants: users
+          ? users?.length + 1
+          : fragment?.configuration?.speakers?.length,
         fragmentState,
         theme,
       })
     : ShortsStudioUserConfiguration({
         layout: layout || 'classic',
-        fragment,
+        noOfParticipants: users
+          ? users?.length + 1
+          : fragment?.configuration?.speakers?.length,
         fragmentState,
         theme,
       })
