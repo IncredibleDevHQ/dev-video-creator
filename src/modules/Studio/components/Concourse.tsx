@@ -12,6 +12,7 @@ import {
   GradientConfig,
   TopLayerChildren,
 } from '../../../utils/configTypes'
+import { BrandingJSON } from '../../Branding/BrandingPage'
 import { Block } from '../../Flick/editor/utils/utils'
 import useEdit, { ClipConfig } from '../hooks/use-edit'
 import { canvasStore, StudioProviderProps, studioStore } from '../stores'
@@ -76,6 +77,7 @@ export const GetTopLayerChildren = ({
   isShorts,
   status,
   theme,
+  branding,
   performFinishAction,
 }: {
   topLayerChildrenState: TopLayerChildren
@@ -85,6 +87,7 @@ export const GetTopLayerChildren = ({
   isShorts: boolean
   status: Fragment_Status_Enum_Enum
   theme: ThemeFragment
+  branding?: BrandingJSON | null
   performFinishAction: () => void
 }) => {
   if (status === Fragment_Status_Enum_Enum.Ended) return <></>
@@ -105,6 +108,7 @@ export const GetTopLayerChildren = ({
           isShorts={isShorts || false}
           direction="left"
           setTopLayerChildren={setTopLayerChildren}
+          brandingJSON={branding}
         />
       )
     }
@@ -115,6 +119,7 @@ export const GetTopLayerChildren = ({
           isShorts={isShorts || false}
           direction="right"
           setTopLayerChildren={setTopLayerChildren}
+          brandingJSON={branding}
         />
       )
     }
@@ -126,6 +131,7 @@ export const GetTopLayerChildren = ({
           direction="moveIn"
           setTopLayerChildren={setTopLayerChildren}
           performFinishAction={performFinishAction}
+          brandingJSON={branding}
         />
       )
     }
@@ -136,6 +142,7 @@ export const GetTopLayerChildren = ({
           isShorts={isShorts || false}
           direction="moveAway"
           setTopLayerChildren={setTopLayerChildren}
+          brandingJSON={branding}
         />
       )
     }

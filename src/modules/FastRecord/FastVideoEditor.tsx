@@ -10,13 +10,13 @@
 
 import { cx } from '@emotion/css'
 import Konva from 'konva'
-import { nanoid } from 'nanoid'
 import React, { HTMLAttributes, useEffect, useRef, useState } from 'react'
 import { BiPause, BiPlay, BiTrim } from 'react-icons/bi'
 import { FiScissors } from 'react-icons/fi'
 import { IoCropSharp } from 'react-icons/io5'
 import { Group, Image, Layer, Rect, Stage, Transformer } from 'react-konva'
 import useImage from 'use-image'
+import { v4 as uuidv4 } from 'uuid'
 import { ASSETS } from '../../constants'
 import { logEvent, logPage } from '../../utils/analytics'
 import { PageCategory, PageEvent, PageTitle } from '../../utils/analytics-types'
@@ -459,7 +459,9 @@ const FastVideoEditor = ({
   const { transformations } = activeVideoConfig
   const videoRef = React.useRef<HTMLVideoElement | null>(null)
 
-  const [mode, setMode] = React.useState<'crop' | 'trim' | 'split' | null>(null)
+  const [mode, setMode] = React.useState<'crop' | 'trim' | 'split' | null>(
+    'split'
+  )
   const [crop, setCrop] = React.useState<Coordinates>(
     transformations?.crop || {
       x: 0,
@@ -541,7 +543,7 @@ const FastVideoEditor = ({
   const addSplitVideoConfig = (time: number) => {
     const tempVideosConfig = [...videosConfig]
     tempVideosConfig.push({
-      id: nanoid(),
+      id: uuidv4(),
       start: time,
       end: activeVideoConfig.end,
       duration: activeVideoConfig.end - time,
@@ -760,6 +762,80 @@ const FastVideoEditor = ({
         </Stage>
       </div>
 
+      <div
+        className="flex items-center justify-between pt-3"
+        style={{
+          width: size.width,
+        }}
+      >
+        <div className="grid grid-cols-3 gap-x-3 text-sm">
+          <p
+            className={cx('cursor-pointer', {
+              'text-gray-800': mode === 'split',
+              'text-gray-400': mode !== 'split',
+            })}
+            onClick={() => {
+              setMode(mode === 'split' ? null : 'split')
+            }}
+          >
+            Split
+          </p>
+          <p
+            className={cx('cursor-pointer', {
+              'text-gray-800': mode === 'crop',
+              'text-gray-400': mode !== 'crop',
+            })}
+            onClick={() => {
+              logEvent(PageEvent.CropVideo)
+              setMode(mode === 'crop' ? null : 'crop')
+            }}
+          >
+            Crop
+          </p>
+          <p
+            className={cx('cursor-pointer', {
+              'text-gray-800': mode === 'trim',
+              'text-gray-400': mode !== 'trim',
+            })}
+            onClick={() => {
+              logEvent(PageEvent.TrimVideo)
+              setMode(mode === 'trim' ? null : 'trim')
+            }}
+          >
+            Trim
+          </p>
+        </div>
+        <div>
+          {mode === 'split' && (
+            <button
+              type="button"
+              className="text-sm bg-black text-white py-2 px-2 rounded-md cursor-pointer flex items-center"
+              onClick={() => addSplitVideoConfig(time)}
+            >
+              <FiScissors className="mr-2" /> Split at {formattedTime(time)}
+            </button>
+          )}
+          {mode === 'trim' && (
+            <button
+              type="button"
+              className="text-sm bg-black text-white py-2 px-2 rounded-md cursor-pointer flex items-center"
+              onClick={saveClip}
+            >
+              <BiTrim className="mr-2" /> Save trim
+            </button>
+          )}
+          {mode === 'crop' && (
+            <button
+              type="button"
+              className="text-sm bg-black text-white py-2 px-2 rounded-md cursor-pointer flex items-center"
+              onClick={saveCrop}
+            >
+              <IoCropSharp className="mr-2" /> Save crop
+            </button>
+          )}
+        </div>
+      </div>
+
       <div>
         <Stage height={100} width={size.width}>
           <Layer>
@@ -802,77 +878,6 @@ const FastVideoEditor = ({
             )}
           </Layer>
         </Stage>
-      </div>
-
-      <div
-        className="flex items-center justify-between px-4 py-3 mt-4"
-        style={{
-          width: '100%',
-        }}
-      >
-        <div className="grid grid-cols-3 gap-x-3">
-          <p
-            className={cx('cursor-pointer', {
-              'text-gray-800': mode === 'split',
-              'text-gray-400': mode !== 'split',
-            })}
-            onClick={() => {
-              setMode(mode === 'split' ? null : 'split')
-            }}
-          >
-            Split
-          </p>
-          <p
-            className={cx('cursor-pointer', {
-              'text-gray-800': mode === 'crop',
-              'text-gray-400': mode !== 'crop',
-            })}
-            onClick={() => {
-              logEvent(PageEvent.CropVideo)
-              setMode(mode === 'crop' ? null : 'crop')
-            }}
-          >
-            Crop
-          </p>
-          <p
-            className={cx('cursor-pointer', {
-              'text-gray-800': mode === 'trim',
-              'text-gray-400': mode !== 'trim',
-            })}
-            onClick={() => {
-              logEvent(PageEvent.TrimVideo)
-              setMode(mode === 'trim' ? null : 'trim')
-            }}
-          >
-            Trim
-          </p>
-        </div>
-        <div>
-          {mode === 'split' && (
-            <p
-              className="text-sm bg-black text-white py-0.5 px-2 rounded-md cursor-pointer flex items-center"
-              onClick={() => addSplitVideoConfig(time)}
-            >
-              <FiScissors className="mr-2" /> Split at {formattedTime(time)}
-            </p>
-          )}
-          {mode === 'trim' && (
-            <p
-              className="text-sm bg-black text-white py-0.5 px-2 rounded-md cursor-pointer flex items-center"
-              onClick={saveClip}
-            >
-              <BiTrim className="mr-2" /> Save trim
-            </p>
-          )}
-          {mode === 'crop' && (
-            <p
-              className="text-sm bg-black text-white py-0.5 px-2 rounded-md cursor-pointer flex items-center"
-              onClick={saveCrop}
-            >
-              <IoCropSharp className="mr-2" /> Save crop
-            </p>
-          )}
-        </div>
       </div>
     </div>
   )
