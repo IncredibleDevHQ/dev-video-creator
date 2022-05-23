@@ -4,7 +4,6 @@ import Konva from 'konva'
 import { Group, Image, Rect } from 'react-konva'
 import { useImage } from 'react-konva-utils'
 import { useRecoilValue } from 'recoil'
-import Gravatar from 'react-gravatar'
 import { StudioProviderProps, studioStore } from '../stores'
 import { StudioUserConfig } from './Concourse'
 import useEdit, { ClipConfig } from '../hooks/use-edit'
@@ -15,13 +14,11 @@ const StudioUser = ({
   stream,
   studioUserConfig,
   type,
-  uid,
   picture,
 }: {
   stream: MediaStream | null
   type: StudioUserType
   studioUserConfig: StudioUserConfig
-  uid: string
   picture: string
 }) => {
   const {
@@ -44,7 +41,7 @@ const StudioUser = ({
     backgroundRectBorderWidth,
   } = studioUserConfig
 
-  const imageConfig = { width: width || 160, height: height || 120 }
+  const imageConfig = { width: width || 0, height: height || 0 }
   const imageRef = useRef<Konva.Image | null>(null)
 
   const { clipCircle, clipRect } = useEdit()
@@ -56,7 +53,7 @@ const StudioUser = ({
     borderRadius: 8,
   }
 
-  const { participants, constraints } =
+  const { constraints } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [image] = useImage(picture, 'anonymous')
@@ -165,20 +162,19 @@ const StudioUser = ({
             height={imageConfig.height}
           />
         )}
-        {type === 'remote' &&
-          (stream && participants?.[uid]?.video ? (
-            <Image
-              ref={imageRef}
-              image={videoElement}
-              width={imageConfig.width}
-              height={imageConfig.height}
-            />
-          ) : (
-            <Gravatar
-              className="w-6 h-6 rounded-full bg-gray-100"
-              email={participants[uid]?.email as string}
-            />
-          ))}
+        {type === 'remote' && stream && (
+          <Image
+            ref={imageRef}
+            image={videoElement}
+            width={imageConfig.width}
+            height={imageConfig.height}
+          />
+          // ) : (
+          //   <Gravatar
+          //     className="w-6 h-6 rounded-full bg-gray-100"
+          //     email={participants[uid]?.email as string}
+          //   />
+        )}
       </Group>
     </>
   )
