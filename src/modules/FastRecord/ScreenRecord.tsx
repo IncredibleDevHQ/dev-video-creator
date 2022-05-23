@@ -74,7 +74,7 @@ import RecordingControlsBar from './RecordingControlsBar'
 import VideoFragment from './VideoFragment'
 
 const ScreenRecordHoC = () => {
-  const [view, setView] = useState<'preview' | 'preload' | 'studio'>('studio')
+  const [view, setView] = useState<'preview' | 'preload' | 'studio'>('preload')
   const { sub } = (useRecoilValue(userState) as User) || {}
   const { fragmentId } = useParams<{ fragmentId: string }>()
 
