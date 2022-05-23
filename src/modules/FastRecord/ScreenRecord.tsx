@@ -50,6 +50,7 @@ import { logEvent } from '../../utils/analytics'
 import { PageEvent } from '../../utils/analytics-types'
 import { BlockProperties, TopLayerChildren } from '../../utils/configTypes'
 import { BrandingJSON } from '../Branding/BrandingPage'
+import { EditorProvider } from '../Flick/components/EditorProvider'
 import { TextEditorParser } from '../Flick/editor/utils/helpers'
 import { Block, SimpleAST, VideoBlockProps } from '../Flick/editor/utils/utils'
 import { TimerModal } from '../Studio/components'
@@ -67,6 +68,7 @@ import { getIntegerHW } from '../Studio/Studio'
 import Countdown from './Countdown'
 import FastRecord from './FastRecord'
 import MiniTimeline from './MiniTimeline'
+import Notes from './Notes'
 import Preload from './Preload'
 import RecordingControlsBar from './RecordingControlsBar'
 import VideoFragment from './VideoFragment'
@@ -160,17 +162,19 @@ const ScreenRecordHoC = () => {
 
   if (view === 'studio' && fragment)
     return (
-      <ScreenRecord
-        fragment={fragment}
-        branding={
-          data?.Fragment?.[0].flick.useBranding
-            ? data?.Fragment?.[0]?.flick.branding?.branding
-            : null
-        }
-        devices={devices.current}
-        recordingsData={recordingsData}
-        localVideoUrl={localVideoUrl}
-      />
+      <EditorProvider>
+        <ScreenRecord
+          fragment={fragment}
+          branding={
+            data?.Fragment?.[0].flick.useBranding
+              ? data?.Fragment?.[0]?.flick.branding?.branding
+              : null
+          }
+          devices={devices.current}
+          recordingsData={recordingsData}
+          localVideoUrl={localVideoUrl}
+        />
+      </EditorProvider>
     )
 
   return null
@@ -846,6 +850,49 @@ const ScreenRecord = ({
     }
   }, [payload?.fragmentState])
 
+  useEffect(() => {
+    if (state === 'ready') {
+      updatePayload?.({
+        // activeObjectIndex: 0,
+        activeIntroIndex: 0,
+        activeOutroIndex: 0,
+        fragmentState: 'customLayout',
+        currentIndex: 0,
+        prevIndex: -1,
+        isFocus: false,
+        focusBlockCode: false,
+        activeBlockIndex: 0,
+        activePointIndex: 0,
+        currentTime: 0,
+        playing: false,
+        status: Fragment_Status_Enum_Enum.NotStarted,
+      })
+    }
+    if (state === 'start-recording') {
+      updatePayload?.({
+        activeObjectIndex: 0,
+        activeIntroIndex: 0,
+        activeOutroIndex: 0,
+        fragmentState: 'customLayout',
+        currentIndex: 0,
+        prevIndex: -1,
+        isFocus: false,
+        focusBlockCode: false,
+        activeBlockIndex: 0,
+        activePointIndex: 0,
+        currentTime: 0,
+        playing: false,
+      })
+      // setTopLayerChildren?.({ id: '', state: '' })
+    }
+    if (state === 'recording') {
+      // setTopLayerChildren?.({ id: '', state: '' })
+      updatePayload?.({
+        activeOutroIndex: 0,
+      })
+    }
+  }, [state])
+
   const updateRecordedBlocks = (blockId: string, newSrc: string) => {
     let updatedBlocks = recordingsData?.recordedBlocks
       ? [...recordingsData?.recordedBlocks]
@@ -1071,6 +1118,7 @@ const ScreenRecord = ({
                               <Group>
                                 {viewConfig && dataConfig && (
                                   <VideoFragment
+                                    key={currentBlock?.id}
                                     fragment={fragment}
                                     viewConfig={viewConfig}
                                     dataConfig={dataConfig as VideoBlockProps}
@@ -1137,7 +1185,14 @@ const ScreenRecord = ({
                 updatePayload={updatePayload}
               />
             </div>
-            {/* <Notes key={payload?.activeObjectIndex} stageHeight={stageHeight} /> */}
+            <Notes
+              key={payload?.activeObjectIndex}
+              stageHeight={stageHeight}
+              fragment={fragment}
+              state={state}
+              payload={payload}
+              setFragment={setFragment}
+            />
           </div>
           {/* Mini timeline */}
           <MiniTimeline

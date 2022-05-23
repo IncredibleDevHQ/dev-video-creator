@@ -158,9 +158,9 @@ const VideoFragment = ({
     }
   }, [])
 
-  useEffect(() => {
-    setLayout(viewConfig?.layout)
-  }, [viewConfig])
+  // useEffect(() => {
+  //   setLayout(viewConfig?.layout)
+  // }, [viewConfig])
 
   const videoElement = React.useMemo(() => {
     if (!dataConfig) return
