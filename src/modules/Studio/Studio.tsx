@@ -1,11 +1,12 @@
 /* eslint-disable jsx-a11y/media-has-caption */
 import { css, cx } from '@emotion/css'
+import * as Sentry from '@sentry/react'
 import {
   createMicrophoneAndCameraTracks,
   ICameraVideoTrack,
   IMicrophoneAudioTrack,
 } from 'agora-rtc-react'
-import * as Sentry from '@sentry/react'
+import getBlobDuration from 'get-blob-duration'
 import Konva from 'konva'
 import { nanoid } from 'nanoid'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
@@ -21,8 +22,6 @@ import {
   useRecoilState,
   useRecoilValue,
 } from 'recoil'
-import getBlobDuration from 'get-blob-duration'
-import { ReactComponent as ReRecordIcon } from '../../assets/ReRecord.svg'
 import { ReactComponent as UploadIcon } from '../../assets/Upload.svg'
 import {
   Button,
@@ -33,7 +32,6 @@ import {
   ScreenState,
   TextField,
   updateToast,
-  Video,
 } from '../../components'
 import config from '../../config'
 import { Images } from '../../constants'
@@ -58,7 +56,7 @@ import { TopLayerChildren, ViewConfig } from '../../utils/configTypes'
 import { BrandingJSON } from '../Branding/BrandingPage'
 import { EditorProvider } from '../Flick/components/EditorProvider'
 import { TextEditorParser } from '../Flick/editor/utils/helpers'
-import { Block, SimpleAST, useUtils } from '../Flick/editor/utils/utils'
+import { Block, useUtils } from '../Flick/editor/utils/utils'
 import { Countdown, TimerModal } from './components'
 import {
   CONFIG,
@@ -591,7 +589,7 @@ const Studio = ({
   addContinuousRecordedBlockIds: (blockId: string, duration: number) => void
 }) => {
   const { fragmentId } = useParams<{ fragmentId: string }>()
-  const { constraints, theme, staticAssets, recordedBlocks } =
+  const { constraints, theme, recordedBlocks } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [studio, setStudio] = useRecoilState(studioStore)
   const { sub } = (useRecoilValue(userState) as User) || {}
@@ -690,7 +688,7 @@ const Studio = ({
               participant.userSub === sub
           )?.participant.id
           if (participantId) {
-            join(data?.RTCToken?.token, participantId as string)
+            join(data?.RTCToken?.token, participantId as string, tracks)
           } else {
             leave()
             clearRecordedBlocks()
@@ -737,7 +735,7 @@ const Studio = ({
     })
 
   useEffect(() => {
-    if (fragment) {
+    if (fragment && tracks) {
       ;(async () => {
         init()
         const { data } = await getRTCToken({ variables: { fragmentId } })
@@ -746,7 +744,7 @@ const Studio = ({
             fragment?.configuration?.speakers as FlickParticipantsFragment[]
           ).find(({ userSub }) => userSub === sub)?.id
           if (participantId) {
-            join(data?.RTCToken?.token, participantId as string)
+            join(data?.RTCToken?.token, participantId as string, tracks)
           } else {
             leave()
             clearRecordedBlocks()
@@ -761,7 +759,7 @@ const Studio = ({
         }
       })()
     }
-  }, [fragment])
+  }, [fragment, tracks])
 
   useEffect(() => {
     if (data?.Fragment[0] === undefined) return
@@ -1004,6 +1002,12 @@ const Studio = ({
   //   payload.playing = false
   //   // updatePayload?.({ status: Fragment_Status_Enum_Enum.Ended })
   // }
+
+  useEffect(() => {
+    if (payload?.status === Fragment_Status_Enum_Enum.Ended) {
+      stop()
+    }
+  }, [payload?.status])
 
   const stop = () => {
     console.log('stop')
@@ -1510,11 +1514,6 @@ const Studio = ({
                                   performFinishAction={() => {
                                     stopCanvasRecording()
                                     setState('preview')
-                                    updatePayload?.({
-                                      ...payload,
-                                      status: Fragment_Status_Enum_Enum.Ended,
-                                      // activeObjectIndex: payload?.activeObjectIndex + 1,
-                                    })
                                   }}
                                 />
                               </Group>
