@@ -462,14 +462,12 @@ const FastVideoEditor = ({
   const [mode, setMode] = React.useState<'crop' | 'trim' | 'split' | null>(
     'split'
   )
-  const [crop, setCrop] = React.useState<Coordinates>(
-    transformations?.crop || {
-      x: 0,
-      y: 0,
-      width: 0,
-      height: 0,
-    }
-  )
+  const [crop, setCrop] = React.useState<Coordinates>({
+    x: 0,
+    y: 0,
+    width: 40,
+    height: 40,
+  })
 
   const [clip, setClip] = React.useState<Clip>(transformations?.clip || {})
   const [time, setTime] = useState(transformations?.clip?.start || 0)
@@ -492,7 +490,7 @@ const FastVideoEditor = ({
       ...activeVideoConfig,
       transformations: {
         ...activeVideoConfig.transformations,
-        crop,
+        crop: convertTo('%', size, crop),
       },
     })
   }
@@ -513,8 +511,9 @@ const FastVideoEditor = ({
   }, [activeVideoConfig.transformations.clip])
 
   useEffect(() => {
-    if (!activeVideoConfig.transformations.crop) return
-    setCrop(activeVideoConfig.transformations.crop)
+    if (!activeVideoConfig.transformations.crop || !size.width || !size.height)
+      return
+    setCrop(convertTo('px', size, activeVideoConfig.transformations.crop))
   }, [activeVideoConfig.transformations.crop])
 
   useEffect(() => {

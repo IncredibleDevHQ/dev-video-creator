@@ -728,6 +728,10 @@ const ScreenRecord = ({
     START OF EVENT HANDLERS
   */
 
+  useEffect(() => {
+    updatePayload?.({ activeObjectIndex: 0 })
+  }, [])
+
   const start = () => {
     const canvas = document
       .getElementsByClassName('konvajs-content')[0]

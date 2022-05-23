@@ -111,6 +111,7 @@ const MiniTimeline = ({
           <button
             type="button"
             id={`timeline-block-${block.id}`}
+            key={block.id}
             className={cx(
               'px-3 py-1.5 font-body cursor-pointer text-sm rounded-sm flex items-center justify-center transition-transform duration-500 bg-brand-grey relative text-gray-300 flex-shrink-0',
               {

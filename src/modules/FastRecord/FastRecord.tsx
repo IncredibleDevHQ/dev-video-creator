@@ -113,6 +113,7 @@ const FastRecord = ({
 
   useEffect(() => {
     if (!activeVideoConfig) return
+    console.log('activeVideoConfig', activeVideoConfig)
     updateVideoConfig(activeVideoConfig)
   }, [activeVideoConfig])
 
