@@ -82,7 +82,6 @@ const VideoFragment = ({
   setFragmentState: React.Dispatch<React.SetStateAction<FragmentState>>
   updatePayload: (value: any) => void
 }) => {
-  console.log('VideoFragment', dataConfig)
   const groupRef = useRef<Konva.Group>(null)
   const { sub, picture } = (useRecoilValue(userState) as User) || {}
 

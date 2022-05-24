@@ -6,7 +6,7 @@
 import { cx } from '@emotion/css'
 import { JSONContent } from '@tiptap/core'
 import produce from 'immer'
-import React, { useEffect, useState } from 'react'
+import React, { useContext, useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { v4 as uuidv4 } from 'uuid'
 import { Button, emitToast } from '../../components'
@@ -16,6 +16,7 @@ import {
 } from '../../generated/graphql'
 import { useQuery } from '../../hooks'
 import { ViewConfig } from '../../utils/configTypes'
+import { EditorContext } from '../Flick/components/EditorProvider'
 import { Block, SimpleAST, useUtils } from '../Flick/editor/utils/utils'
 import { VideoBlockProps } from '../Presentation/utils/utils'
 import FastVideoEditor, {
@@ -60,6 +61,8 @@ const FastRecord = ({
 }) => {
   const { url } = (blocks[0] as VideoBlockProps).videoBlock
   const { fragmentId } = useParams<{ fragmentId: string }>()
+
+  const { editor } = useContext(EditorContext) || {}
 
   const query = useQuery()
   const blockId = query.get('blockId')
@@ -273,8 +276,17 @@ const FastRecord = ({
       })
 
       // 6. Update blocks in the parent component and set the first block as active
-      setBlocks(newDataConfigWithoutIntroOutro.blocks)
+      const allBlocks = [
+        ...remainingBlocks.map((b) => b.id),
+        ...newBlocks.map((b) => b.id),
+      ]
+      setBlocks(
+        newDataConfigWithoutIntroOutro.blocks.filter((b) =>
+          allBlocks.includes(b.id)
+        )
+      )
       setCurrentBlock(newDataConfigWithoutIntroOutro.blocks[0])
+      editor?.commands.setContent(editorJSON)
       setFragment({
         ...fragment,
         configuration: newViewConfig,
