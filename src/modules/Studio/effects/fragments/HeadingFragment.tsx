@@ -25,6 +25,7 @@ const HeadingFragment = ({
   setFragmentState,
   stageRef,
   shortsMode,
+  isPreview,
 }: {
   dataConfig: HeadingBlockProps
   viewConfig: BlockProperties
@@ -32,6 +33,7 @@ const HeadingFragment = ({
   setFragmentState: React.Dispatch<React.SetStateAction<FragmentState>>
   stageRef: React.RefObject<Konva.Stage>
   shortsMode: boolean
+  isPreview: boolean
 }) => {
   const { fragment, payload, branding, theme, users } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
@@ -66,7 +68,9 @@ const HeadingFragment = ({
     setObjectConfig(
       FragmentLayoutConfig({
         theme,
-        layout: layout || viewConfig?.layout || 'classic',
+        layout: !isPreview
+          ? layout || viewConfig?.layout || 'classic'
+          : viewConfig?.layout || 'classic',
         isShorts: shortsMode || false,
       })
     )
@@ -93,6 +97,7 @@ const HeadingFragment = ({
           })
         }, 400)
       else {
+        setLayout(viewConfig?.layout || 'classic')
         setFragmentState(payload?.fragmentState)
         customLayoutRef?.current?.to({
           opacity: 1,
@@ -183,7 +188,9 @@ const HeadingFragment = ({
 
   const studioUserConfig = !shortsMode
     ? StudioUserConfiguration({
-        layout: layout || 'classic',
+        layout: !isPreview
+          ? layout || 'classic'
+          : viewConfig?.layout || 'classic',
         noOfParticipants: users
           ? users?.length + 1
           : fragment?.configuration?.speakers?.length,
@@ -191,7 +198,9 @@ const HeadingFragment = ({
         theme,
       })
     : ShortsStudioUserConfiguration({
-        layout: layout || 'classic',
+        layout: !isPreview
+          ? layout || 'classic'
+          : viewConfig?.layout || 'classic',
         noOfParticipants: users
           ? users?.length + 1
           : fragment?.configuration?.speakers?.length,

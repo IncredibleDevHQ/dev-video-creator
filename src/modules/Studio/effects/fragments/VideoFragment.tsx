@@ -35,6 +35,7 @@ const VideoFragment = ({
   setFragmentState,
   stageRef,
   shortsMode,
+  isPreview,
 }: {
   viewConfig: BlockProperties
   dataConfig: VideoBlockProps
@@ -42,6 +43,7 @@ const VideoFragment = ({
   setFragmentState: React.Dispatch<React.SetStateAction<FragmentState>>
   stageRef: React.RefObject<Konva.Stage>
   shortsMode: boolean
+  isPreview: boolean
 }) => {
   const {
     fragment,
@@ -146,11 +148,13 @@ const VideoFragment = ({
     setObjectConfig(
       FragmentLayoutConfig({
         theme,
-        layout: layout || viewConfig?.layout || 'classic',
+        layout: !isPreview
+          ? layout || viewConfig?.layout || 'classic'
+          : viewConfig?.layout || 'classic',
         isShorts: shortsMode || false,
       })
     )
-  }, [viewConfig, shortsMode, theme, layout])
+  }, [viewConfig, shortsMode, theme, layout, isPreview])
 
   useEffect(() => {
     setObjectRenderConfig(
@@ -234,6 +238,7 @@ const VideoFragment = ({
           })
         }, 400)
       else {
+        setLayout(viewConfig?.layout || 'classic')
         setFragmentState(payload?.fragmentState)
         customLayoutRef?.current?.to({
           opacity: 1,
@@ -541,7 +546,9 @@ const VideoFragment = ({
 
   const studioUserConfig = !shortsMode
     ? StudioUserConfiguration({
-        layout: layout || 'classic',
+        layout: !isPreview
+          ? layout || 'classic'
+          : viewConfig?.layout || 'classic',
         noOfParticipants: users
           ? users?.length + 1
           : fragment?.configuration?.speakers?.length,
@@ -549,7 +556,9 @@ const VideoFragment = ({
         theme,
       })
     : ShortsStudioUserConfiguration({
-        layout: layout || 'classic',
+        layout: !isPreview
+          ? layout || 'classic'
+          : viewConfig?.layout || 'classic',
         noOfParticipants: users
           ? users?.length + 1
           : fragment?.configuration?.speakers?.length,
