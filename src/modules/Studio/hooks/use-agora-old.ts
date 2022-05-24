@@ -17,7 +17,7 @@ export type Device = {
 
 const videoConfig: ClientConfig = {
   mode: 'rtc',
-  codec: 'vp8',
+  codec: 'h264',
 }
 
 const { appId } = config.agora
