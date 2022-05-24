@@ -33,7 +33,7 @@ const HeadingFragment = ({
   stageRef: React.RefObject<Konva.Stage>
   shortsMode: boolean
 }) => {
-  const { fragment, payload, branding, theme } =
+  const { fragment, payload, branding, theme, users } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [title, setTitle] = useState('')
@@ -60,10 +60,6 @@ const HeadingFragment = ({
       textColor: '',
       surfaceColor: '',
     })
-
-  useEffect(() => {
-    setLayout(viewConfig?.layout)
-  }, [viewConfig])
 
   useEffect(() => {
     if (!dataConfig) return
@@ -188,13 +184,17 @@ const HeadingFragment = ({
   const studioUserConfig = !shortsMode
     ? StudioUserConfiguration({
         layout: layout || 'classic',
-        fragment,
+        noOfParticipants: users
+          ? users?.length + 1
+          : fragment?.configuration?.speakers?.length,
         fragmentState,
         theme,
       })
     : ShortsStudioUserConfiguration({
         layout: layout || 'classic',
-        fragment,
+        noOfParticipants: users
+          ? users?.length + 1
+          : fragment?.configuration?.speakers?.length,
         fragmentState,
         theme,
       })

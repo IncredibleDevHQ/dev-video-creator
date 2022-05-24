@@ -75,7 +75,7 @@ const initialAST: SimpleAST = {
   ],
 }
 
-const useLocalPayload = () => {
+export const useLocalPayload = () => {
   const initialPayload = {
     activeObjectIndex: 0,
     activePointIndex: 0,

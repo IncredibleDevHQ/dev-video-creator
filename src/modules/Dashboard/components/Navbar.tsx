@@ -69,9 +69,14 @@ const Navbar = ({ className }: HTMLAttributes<HTMLDivElement>) => {
           isOpen={isOpen}
           setIsOpen={setIsOpen}
           content={
-            <ul className="-mt-1 font-semibold text-gray-100 rounded-md shadow-xl bg-dark-200 font-main">
+            <ul
+              style={{
+                minWidth: '180px',
+              }}
+              className="-mt-1 font-semibold text-gray-100 rounded-md shadow-xl bg-dark-200 font-main p-1 text-sm"
+            >
               <li
-                className="p-2 px-6 font-semibold cursor-pointer rounded-t-md hover:bg-dark-100 font-main"
+                className="p-1.5 px-4 font-semibold cursor-pointer rounded-sm hover:bg-dark-100 font-main"
                 onClick={() => {
                   window.open(`${config.auth.endpoint}/${username}`)
                 }}
@@ -79,14 +84,14 @@ const Navbar = ({ className }: HTMLAttributes<HTMLDivElement>) => {
                 Profile
               </li>
               <li
-                className="p-2 px-6 font-semibold cursor-pointer rounded-t-md hover:bg-dark-100 font-main"
-                onClick={() => history.push('/integrations')}
+                className="p-1.5 px-4 font-semibold cursor-pointer rounded-sm hover:bg-dark-100 font-main"
+                onClick={() => history.push('/settings')}
               >
-                Integrations
+                Settings
               </li>
-              <div className="w-full border-t border-dark-100" />
+              <div className="w-full border-t border-dark-100 my-1" />
               <li
-                className="p-2 px-6 cursor-pointer text-gray-400 rounded-b-md hover:bg-dark-100"
+                className="p-1.5 px-4 cursor-pointer text-gray-400 rounded-sm hover:bg-dark-100"
                 onClick={() => handleSignOut()}
               >
                 {signingOut ? (
