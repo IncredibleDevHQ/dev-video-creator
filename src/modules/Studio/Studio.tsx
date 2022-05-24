@@ -589,7 +589,7 @@ const Studio = ({
   addContinuousRecordedBlockIds: (blockId: string, duration: number) => void
 }) => {
   const { fragmentId } = useParams<{ fragmentId: string }>()
-  const { constraints, theme, recordedBlocks } =
+  const { constraints, theme, recordedBlocks, isHost } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [studio, setStudio] = useRecoilState(studioStore)
   const { sub } = (useRecoilValue(userState) as User) || {}
@@ -1088,9 +1088,9 @@ const Studio = ({
       )?.participant.id,
       recordedBlocks: localRecordedBlocks,
       isHost:
-        fragment?.participants.find(
-          ({ participant }) => participant.userSub === sub
-        )?.participant.owner || false,
+        fragment?.configuration?.speakers.find(
+          (speaker: FlickParticipantsFragment) => speaker.userSub === sub
+        )?.role === 'Host' || false,
     })
   }, [
     stream,
@@ -1288,6 +1288,22 @@ const Studio = ({
     }
   }, [recordedBlocks])
 
+  useEffect(() => {
+    if (payload?.actionTriggered === '') return
+    if (payload?.actionTriggered === 'Save and continue') {
+      const isOutro =
+        dataConfig?.[payload?.activeObjectIndex].type === 'outroBlock'
+      setState(isOutro ? 'preview' : 'resumed')
+      setResetTimer(true)
+    }
+    if (payload?.actionTriggered === 'Retake') {
+      resetCanvas()
+      setTopLayerChildren?.({ id: nanoid(), state: '' })
+      setState('resumed')
+      setResetTimer(true)
+    }
+  }, [payload?.actionTriggered])
+
   /**
    * =======================
    * END EVENT HANDLERS...
@@ -1361,6 +1377,7 @@ const Studio = ({
                 }
               )}
               onClick={() => {
+                if (!isHost) return
                 // if continuous recording is enabled, disable mini-timeline onclick
                 if (
                   studio.continuousRecording &&
@@ -1525,18 +1542,20 @@ const Studio = ({
                     </Bridge>
                   </Stage>
                 )}
-              <RecordingControlsBar
-                stageRef={stageRef}
-                stageHeight={stageHeight}
-                stageWidth={stageWidth}
-                timeLimit={timeLimit}
-                shortsMode={shortsMode}
-                timeOver={() => setTimeLimitOver(true)}
-                openTimerModal={() => setIsTimerModalOpen(true)}
-                resetTimer={resetTimer}
-                currentBlock={currentBlock}
-                addContinuousRecordedBlockIds={addContinuousRecordedBlockIds}
-              />
+              {isHost && (
+                <RecordingControlsBar
+                  stageRef={stageRef}
+                  stageHeight={stageHeight}
+                  stageWidth={stageWidth}
+                  timeLimit={timeLimit}
+                  shortsMode={shortsMode}
+                  timeOver={() => setTimeLimitOver(true)}
+                  openTimerModal={() => setIsTimerModalOpen(true)}
+                  resetTimer={resetTimer}
+                  currentBlock={currentBlock}
+                  addContinuousRecordedBlockIds={addContinuousRecordedBlockIds}
+                />
+              )}
             </div>
             <Notes key={payload?.activeObjectIndex} stageHeight={stageHeight} />
           </div>
@@ -1583,7 +1602,7 @@ const Studio = ({
                   })()}
                   key={nanoid()}
                 />
-                {(state === 'preview' || state === 'upload') && (
+                {(state === 'preview' || state === 'upload') && isHost && (
                   <div
                     style={
                       recordedVideoSrc?.includes('blob')
@@ -1642,6 +1661,7 @@ const Studio = ({
                             } else {
                               p.status = Fragment_Status_Enum_Enum.Completed
                             }
+                            p.actionTriggered = 'Save and continue'
 
                             updatePayload?.(p)
                             // start async upload and move on to next block
@@ -1656,8 +1676,8 @@ const Studio = ({
                                 new Error('No blockId in upload')
                               )
                             }
-                            setState(isOutro ? 'preview' : 'resumed')
-                            setResetTimer(true)
+                            // setState(isOutro ? 'preview' : 'resumed')
+                            // setResetTimer(true)
                           }}
                         >
                           <UploadIcon className="h-5 w-5 my-px" />
@@ -1670,8 +1690,8 @@ const Studio = ({
                       type="button"
                       onClick={() => {
                         logEvent(PageEvent.Retake)
-                        resetCanvas()
-                        setTopLayerChildren?.({ id: nanoid(), state: '' })
+                        // resetCanvas()
+                        // setTopLayerChildren?.({ id: nanoid(), state: '' })
 
                         // if currentBlock.id is in recordedBlocks
                         const currBlock = recordedBlocks.filter(
@@ -1694,7 +1714,7 @@ const Studio = ({
                                   'You are about to delete the recordings of all blocks that were recorded continuously along with this block. This action cannot be undone. If you would like to continue press retake again.',
                               })
                               setConfirmMultiBlockRetake(true)
-                              return
+                              // return
                               // eslint-disable-next-line no-else-return
                             } else {
                               deleteBlockGroupMutation({
@@ -1750,6 +1770,7 @@ const Studio = ({
                             // }
                             updatePayload?.({
                               status: Fragment_Status_Enum_Enum.Paused,
+                              actionTriggered: 'Retake',
                               // decrement active object index on retake to repeat the current block
                               // also reset the block's element active index
                               activeObjectIndex:
@@ -1763,8 +1784,8 @@ const Studio = ({
                           }
                         }
 
-                        setState('resumed')
-                        setResetTimer(true)
+                        // setState('resumed')
+                        // setResetTimer(true)
                       }}
                     >
                       <FiRotateCcw className="h-4 w-4 my-1" />
