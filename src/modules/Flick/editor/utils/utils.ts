@@ -66,6 +66,7 @@ export interface VideoBlock {
   noteId?: string
   description?: string
   transformations?: Transformations
+  associatedBlockId?: string
 }
 
 export interface ImageBlock {
@@ -457,6 +458,7 @@ const getSimpleAST = async (state: JSONContent): Promise<SimpleAST> => {
         nodeIds,
         videoBlock: {
           url: slab?.attrs?.src as string,
+          associatedBlockId: slab?.attrs?.associatedBlockId || undefined,
           description,
           title,
           fallbackTitle: title || `Video ${blockCount.videoBlock + 1}`,

@@ -56,7 +56,7 @@ const StudioUser = ({
     borderRadius: 8,
   }
 
-  const { participants, constraints } =
+  const { participants } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [image] = useImage(picture, 'anonymous')
@@ -151,7 +151,7 @@ const StudioUser = ({
         offsetX={imageConfig.width}
         scaleX={-1}
       >
-        {type === 'local' && constraints?.video ? (
+        {type === 'local' ? (
           <Image
             ref={imageRef}
             image={videoElement}

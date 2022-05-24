@@ -503,6 +503,9 @@ export default Node.create({
       src: {
         default: null,
       },
+      associatedBlockId: {
+        default: null,
+      },
       'data-transformations': {
         default: null,
       },

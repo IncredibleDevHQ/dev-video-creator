@@ -6,12 +6,14 @@ import { BrowserRouter as Router, Route, Switch } from 'react-router-dom'
 import { ScreenState } from './components'
 import {
   Dashboard,
+  FastRecord,
   Flick,
   GitHubCallback,
   Integrations,
   Landing,
   Notifications,
   Presentation,
+  Settings,
   Studio,
 } from './modules'
 import AuthProvider from './utils/auth'
@@ -20,6 +22,7 @@ import 'react-toastify/dist/ReactToastify.css'
 import 'react-responsive-modal/styles.css'
 import config from './config'
 import { ReactComponent as NotFound } from './assets/404.svg'
+import ScreenRecordHoC from './modules/FastRecord/ScreenRecord'
 
 const FourOhFour = () => {
   return (
@@ -116,6 +119,12 @@ const App = () => {
               </Route>
               <Route exact path="/present/:fragmentId">
                 <Presentation />
+              </Route>
+              <Route exact path="/fast-record/:fragmentId">
+                <ScreenRecordHoC />
+              </Route>
+              <Route exact path="/settings">
+                <Settings />
               </Route>
               <Route>
                 <FourOhFour />

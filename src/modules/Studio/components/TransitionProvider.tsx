@@ -2,6 +2,7 @@ import React from 'react'
 import { useRecoilValue } from 'recoil'
 import { ThemeFragment } from '../../../generated/graphql'
 import { TopLayerChildren } from '../../../utils/configTypes'
+import { BrandingJSON } from '../../Branding/BrandingPage'
 import {
   CassidooTransition,
   DevsForUkraineTransition,
@@ -19,6 +20,7 @@ const TransitionProvider = ({
   direction,
   setTopLayerChildren,
   performFinishAction,
+  brandingJSON,
 }: {
   theme: ThemeFragment
   isShorts: boolean
@@ -27,8 +29,9 @@ const TransitionProvider = ({
     React.SetStateAction<{ id: string; state: TopLayerChildren }>
   >
   performFinishAction?: () => void
+  brandingJSON?: BrandingJSON | null
 }) => {
-  const { branding } = useRecoilValue(studioStore)
+  const branding = useRecoilValue(studioStore).branding || brandingJSON
   switch (theme.name) {
     case 'DarkGradient':
       if (direction === 'moveIn' || direction === 'moveAway') {

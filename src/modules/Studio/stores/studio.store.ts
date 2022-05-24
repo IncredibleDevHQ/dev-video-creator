@@ -6,7 +6,7 @@ import {
   ThemeFragment,
 } from '../../../generated/graphql'
 import { AudioType, MusicAction } from '../../../hooks/use-canvas-recorder'
-import { CodeTheme } from '../../../utils/configTypes'
+import { CodeTheme, ViewConfig } from '../../../utils/configTypes'
 import { BrandingJSON } from '../../Branding/BrandingPage'
 import { RTCUser } from '../hooks/use-video'
 
@@ -89,6 +89,8 @@ export interface StudioProviderProps<T = any, S = any> {
   }
 
   recordedBlocks?: RecordedBlocksFragment[]
+
+  config?: ViewConfig
 }
 
 export const codePreviewStore = atom<number>({
