@@ -1375,8 +1375,7 @@ const ScreenRecord = ({
       {blocks.length > 0 &&
         fragment.encodedEditorValue &&
         fragment.configuration &&
-        fragment.editorState &&
-        isEditOpen && (
+        fragment.editorState && (
           <Modal
             open={isEditOpen}
             onClose={() => {
