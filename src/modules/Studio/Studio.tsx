@@ -668,7 +668,16 @@ const Studio = ({
     {
       microphoneId: devices.microphone?.id,
     },
-    { cameraId: devices.camera?.id, encoderConfig: '720p_6' }
+    {
+      cameraId: devices.camera?.id,
+      encoderConfig: {
+        width: 960,
+        height: 720,
+        frameRate: 60,
+        bitrateMax: 3000,
+        bitrateMin: 2200,
+      },
+    }
   )()
 
   const { stream, join, users, mute, leave, userAudios, renewToken } = useAgora(
