@@ -623,13 +623,17 @@ const VideoFragment = ({
   const studioUserConfig = !shortsMode
     ? StudioUserConfiguration({
         layout: layout || 'classic',
-        fragment,
+        noOfParticipants: users
+          ? users?.length + 1
+          : fragment?.configuration?.speakers?.length,
         fragmentState,
         theme,
       })
     : ShortsStudioUserConfiguration({
         layout: layout || 'classic',
-        fragment,
+        noOfParticipants: users
+          ? users?.length + 1
+          : fragment?.configuration?.speakers?.length,
         fragmentState,
         theme,
       })
@@ -663,12 +667,10 @@ const VideoFragment = ({
               }
               picture={picture as string}
               type="local"
-              uid={sub as string}
             />
             {users.map((user, index) => (
               <StudioUser
                 key={user.uid as string}
-                uid={user.uid as string}
                 type="remote"
                 stream={user.mediaStream as MediaStream}
                 picture={participants?.[user.uid]?.picture || ''}
@@ -725,12 +727,10 @@ const VideoFragment = ({
               }
               picture={picture as string}
               type="local"
-              uid={sub as string}
             />
             {users.map((user, index) => (
               <StudioUser
                 key={user.uid as string}
-                uid={user.uid as string}
                 type="remote"
                 stream={user.mediaStream as MediaStream}
                 picture={participants?.[user.uid]?.picture || ''}

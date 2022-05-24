@@ -33,7 +33,7 @@ const PreviewUser = ({
     backgroundRectBorderWidth,
   } = studioUserConfig
 
-  const imageConfig = { width: width || 160, height: height || 120 }
+  const imageConfig = { width: width || 0, height: height || 0 }
 
   const { clipCircle, clipRect, getImageDimensions } = useEdit()
   const defaultStudioUserClipConfig: ClipConfig = {

@@ -51,6 +51,7 @@ const VideoFragment = ({
     theme,
     branding,
     preloadedBlobUrls,
+    users,
   } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [studio, setStudio] = useRecoilState(studioStore)
 
@@ -117,10 +118,6 @@ const VideoFragment = ({
     }
   }, [])
 
-  useEffect(() => {
-    setLayout(viewConfig?.layout)
-  }, [viewConfig])
-
   const videoElement = React.useMemo(() => {
     if (!dataConfig) return
     const element = document.createElement('video')
@@ -131,13 +128,6 @@ const VideoFragment = ({
     element.src =
       preloadedBlobUrls?.[dataConfig.id] || dataConfig.videoBlock.url || ''
 
-    setObjectConfig(
-      FragmentLayoutConfig({
-        theme,
-        layout: layout || viewConfig?.layout || 'classic',
-        isShorts: shortsMode || false,
-      })
-    )
     setVideoFragmentData({
       title: dataConfig?.videoBlock.title || '',
       caption: dataConfig?.videoBlock?.caption || '',
@@ -151,6 +141,16 @@ const VideoFragment = ({
     // eslint-disable-next-line consistent-return
     return element
   }, [dataConfig, viewConfig, shortsMode, theme, layout])
+
+  useEffect(() => {
+    setObjectConfig(
+      FragmentLayoutConfig({
+        theme,
+        layout: layout || viewConfig?.layout || 'classic',
+        isShorts: shortsMode || false,
+      })
+    )
+  }, [viewConfig, shortsMode, theme, layout])
 
   useEffect(() => {
     setObjectRenderConfig(
@@ -542,13 +542,17 @@ const VideoFragment = ({
   const studioUserConfig = !shortsMode
     ? StudioUserConfiguration({
         layout: layout || 'classic',
-        fragment,
+        noOfParticipants: users
+          ? users?.length + 1
+          : fragment?.configuration?.speakers?.length,
         fragmentState,
         theme,
       })
     : ShortsStudioUserConfiguration({
         layout: layout || 'classic',
-        fragment,
+        noOfParticipants: users
+          ? users?.length + 1
+          : fragment?.configuration?.speakers?.length,
         fragmentState,
         theme,
       })

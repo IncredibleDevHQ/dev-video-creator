@@ -132,7 +132,7 @@ const CodeFragment = ({
   shortsMode: boolean
   isPreview: boolean
 }) => {
-  const { fragment, payload, updatePayload, state, theme } =
+  const { fragment, payload, updatePayload, state, theme, users } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const codePreviewValue = useRecoilValue(codePreviewStore)
@@ -225,10 +225,6 @@ const CodeFragment = ({
   }, [])
 
   useEffect(() => {
-    setLayout(viewConfig?.layout)
-  }, [viewConfig])
-
-  useEffect(() => {
     if (!dataConfig) return
     updatePayload?.({
       currentIndex: 0,
@@ -237,13 +233,6 @@ const CodeFragment = ({
       focusBlockCode: false,
       activeBlockIndex: 0,
     })
-    setObjectConfig(
-      FragmentLayoutConfig({
-        theme,
-        layout: layout || viewConfig?.layout || 'classic',
-        isShorts: shortsMode || false,
-      })
-    )
     const codeBlockViewProps: CodeBlockViewProps = (
       viewConfig?.view as CodeBlockView
     )?.code
@@ -294,14 +283,17 @@ const CodeFragment = ({
     //   // { lineNumbers: [3] },
     // ]
     setBlockConfig(blocks)
-  }, [
-    dataConfig,
-    shortsMode,
-    viewConfig,
-    theme,
-    studio.codes?.[dataConfig.id],
-    layout,
-  ])
+  }, [dataConfig, shortsMode, viewConfig, theme, studio.codes?.[dataConfig.id]])
+
+  useEffect(() => {
+    setObjectConfig(
+      FragmentLayoutConfig({
+        theme,
+        layout: layout || viewConfig?.layout || 'classic',
+        isShorts: shortsMode || false,
+      })
+    )
+  }, [shortsMode, viewConfig, theme, layout])
 
   useEffect(() => {
     setObjectRenderConfig(
@@ -715,13 +707,17 @@ const CodeFragment = ({
   const studioUserConfig = !shortsMode
     ? StudioUserConfiguration({
         layout: layout || 'classic',
-        fragment,
+        noOfParticipants: users
+          ? users?.length + 1
+          : fragment?.configuration?.speakers?.length,
         fragmentState,
         theme,
       })
     : ShortsStudioUserConfiguration({
         layout: layout || 'classic',
-        fragment,
+        noOfParticipants: users
+          ? users?.length + 1
+          : fragment?.configuration?.speakers?.length,
         fragmentState,
         theme,
       })

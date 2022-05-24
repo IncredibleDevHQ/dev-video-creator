@@ -17,7 +17,7 @@ export type Device = {
 
 const videoConfig: ClientConfig = {
   mode: 'rtc',
-  codec: 'vp8',
+  codec: 'h264',
 }
 
 const { appId } = config.agora
@@ -110,11 +110,11 @@ export default function useAgoraOld(
         onTokenDidExpire()
       })
 
-      client.on('user-left', (user) => {
-        setUsers((prevUsers) => {
-          return prevUsers.filter((User) => User.uid !== user.uid)
-        })
-      })
+      // client.on('user-left', (user) => {
+      //   setUsers((prevUsers) => {
+      //     return prevUsers.filter((User) => User.uid !== user.uid)
+      //   })
+      // })
     } catch (error) {
       console.log(error)
       throw error
@@ -146,10 +146,14 @@ export default function useAgoraOld(
     client.renewToken(token)
   }
 
-  const join = async (token: string, uid: string) => {
+  const join = async (
+    token: string,
+    uid: string,
+    mediaTracks: [IMicrophoneAudioTrack, ILocalVideoTrack] | null
+  ) => {
     try {
       await client.join(appId, channel, token, uid)
-      if (tracks) await client.publish(tracks)
+      if (mediaTracks) await client.publish(mediaTracks)
     } catch (error) {
       console.error(error)
       throw error

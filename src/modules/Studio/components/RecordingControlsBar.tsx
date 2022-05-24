@@ -230,7 +230,11 @@ const RecordingControlsBar = ({
           )
 
           if (isBlockCompleted && state === 'recording') {
-            studio.stopRecording()
+            // studio.stopRecording()
+            updatePayload?.({
+              ...payload,
+              status: Fragment_Status_Enum_Enum.Ended,
+            })
           }
         }
       }
@@ -313,12 +317,11 @@ const RecordingControlsBar = ({
         <button
           type="button"
           onClick={() => {
-            studio.stopRecording()
-            // updatePayload?.({
-            //   ...payload,
-            //   status: Fragment_Status_Enum_Enum.Ended,
-            //   // activeObjectIndex: payload?.activeObjectIndex + 1,
-            // })
+            // studio.stopRecording()
+            updatePayload?.({
+              ...payload,
+              status: Fragment_Status_Enum_Enum.Ended,
+            })
 
             logEvent(PageEvent.StopRecording)
           }}
@@ -597,7 +600,11 @@ const RecordingControlsBar = ({
                 console.log('Inside inside')
                 if (!fragment.configuration.continuousRecording) {
                   if (state === 'recording' || state === 'start-recording')
-                    studio.stopRecording()
+                    // studio.stopRecording()
+                    updatePayload?.({
+                      ...payload,
+                      status: Fragment_Status_Enum_Enum.Ended,
+                    })
                 } else {
                   // If continuous recording is enabled, we need to track block completions and add metadata
                   if (!currentBlock)
@@ -618,7 +625,11 @@ const RecordingControlsBar = ({
                     state === 'recording' ||
                     state === 'start-recording'
                   ) {
-                    studio.stopRecording()
+                    // studio.stopRecording()
+                    updatePayload?.({
+                      ...payload,
+                      status: Fragment_Status_Enum_Enum.Ended,
+                    })
                   }
                 }
               }

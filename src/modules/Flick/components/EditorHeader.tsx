@@ -230,7 +230,7 @@ const EditorHeader = ({
             <FiX className="cursor-pointer" onClick={() => deleteSpeaker(s)} />
           </div>
         ))}
-        {viewConfig.speakers?.length < 1 && (
+        {viewConfig.speakers?.length < 2 && (
           <Tooltip
             containerOffset={8}
             isOpen={isSpeakersTooltip}

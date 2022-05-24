@@ -54,7 +54,7 @@ const OutroFragment = ({
   isPreview: boolean
   outroSequence: OutroState[]
 }) => {
-  const { fragment, branding, theme, state, payload, updatePayload } =
+  const { branding, theme, state, payload, updatePayload } =
     useRecoilValue(studioStore)
   const [logo] = useImage(branding?.logo || '', 'anonymous')
   const [twitterLogo] = useImage(TwitterLogo, 'anonymous')
@@ -560,7 +560,7 @@ const OutroFragment = ({
           outroSequence[payload?.activeOutroIndex] === 'titleSplash'
             ? outroConfig?.userMediaLayout || 'classic'
             : 'classic',
-        fragment,
+        noOfParticipants: 1,
         fragmentState: 'customLayout',
         theme,
       })
@@ -569,7 +569,7 @@ const OutroFragment = ({
           outroSequence[payload?.activeOutroIndex] === 'titleSplash'
             ? outroConfig?.userMediaLayout || 'classic'
             : 'classic',
-        fragment,
+        noOfParticipants: 1,
         fragmentState: 'customLayout',
         theme,
       })

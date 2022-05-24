@@ -632,7 +632,7 @@ const ScreenRecord = ({
               participant.userSub === sub
           )?.participant.id
           if (participantId) {
-            join(data?.RTCToken?.token, participantId as string)
+            join(data?.RTCToken?.token, participantId as string, tracks)
           } else {
             leave()
             emitToast({
@@ -691,7 +691,7 @@ const ScreenRecord = ({
               ?.speakers as FlickParticipantsFragment[]
           ).find(({ userSub }) => userSub === sub)?.id
           if (participantId) {
-            join(data?.RTCToken?.token, participantId as string)
+            join(data?.RTCToken?.token, participantId as string, tracks)
           } else {
             leave()
             emitToast({
