@@ -63,6 +63,7 @@ const LayoutGeneric = ({
   mode = 'Landscape',
   isSelected,
   shouldDisplayIcon = true,
+  darkMode = false,
   ...rest
 }: {
   isSelected?: boolean
@@ -70,6 +71,7 @@ const LayoutGeneric = ({
   layout: Layout
   type: Block['type']
   shouldDisplayIcon?: boolean
+  darkMode?: boolean
 } & HTMLAttributes<HTMLDivElement>) => {
   return (
     <>
@@ -107,6 +109,7 @@ const LayoutGeneric = ({
                     'border-brand': isSelected,
                     'p-1 w-16 h-28': mode === 'Portrait',
                     'p-2 w-28 h-16': mode === 'Landscape',
+                    'bg-white': darkMode,
                   }
                 )}
                 {...rest}
@@ -131,6 +134,7 @@ const LayoutGeneric = ({
                     'border-brand': isSelected,
                     'w-16 h-28': mode === 'Portrait',
                     'w-28 h-16': mode === 'Landscape',
+                    'bg-white': darkMode,
                   }
                 )}
                 {...rest}
@@ -155,6 +159,7 @@ const LayoutGeneric = ({
                     'border-brand': isSelected,
                     'w-16 h-28': mode === 'Portrait',
                     'w-28 h-16': mode === 'Landscape',
+                    'bg-white': darkMode,
                   }
                 )}
                 {...rest}
@@ -179,6 +184,7 @@ const LayoutGeneric = ({
                     'border-brand': isSelected,
                     'w-16 h-28': mode === 'Portrait',
                     'w-28 h-16': mode === 'Landscape',
+                    'bg-white': darkMode,
                   }
                 )}
                 {...rest}
@@ -203,6 +209,7 @@ const LayoutGeneric = ({
                     'border-brand': isSelected,
                     'w-16 h-28': mode === 'Portrait',
                     'w-28 h-16': mode === 'Landscape',
+                    'bg-white': darkMode,
                   }
                 )}
                 {...rest}
@@ -227,6 +234,7 @@ const LayoutGeneric = ({
                     'border-brand': isSelected,
                     'w-16 h-28': mode === 'Portrait',
                     'w-28 h-16': mode === 'Landscape',
+                    'bg-white': darkMode,
                   }
                 )}
                 {...rest}
@@ -251,6 +259,7 @@ const LayoutGeneric = ({
                     'border-brand': isSelected,
                     'w-16 h-28': mode === 'Portrait',
                     'w-28 h-16': mode === 'Landscape',
+                    'bg-white': darkMode,
                   }
                 )}
                 {...rest}
@@ -275,6 +284,7 @@ const LayoutGeneric = ({
                     'border-brand': isSelected,
                     'w-16 h-28': mode === 'Portrait',
                     'w-28 h-16': mode === 'Landscape',
+                    'bg-white': darkMode,
                   }
                 )}
                 {...rest}
@@ -299,6 +309,7 @@ const LayoutGeneric = ({
                     'border-brand': isSelected,
                     'flex-col w-16 h-28 p-1.5 gap-y-1': mode === 'Portrait',
                     'w-28 h-16': mode === 'Landscape',
+                    'bg-white': darkMode,
                   }
                 )}
                 {...rest}
@@ -334,6 +345,7 @@ const LayoutGeneric = ({
                     'border-brand': isSelected,
                     'w-16 h-28 justify-center': mode === 'Portrait',
                     'w-28 h-16': mode === 'Landscape',
+                    'bg-white': darkMode,
                   }
                 )}
                 {...rest}
@@ -363,6 +375,7 @@ const LayoutGeneric = ({
                     'border-brand': isSelected,
                     'w-16 h-28 justify-center': mode === 'Portrait',
                     'w-28 h-16': mode === 'Landscape',
+                    'bg-white': darkMode,
                   }
                 )}
                 {...rest}
@@ -392,6 +405,7 @@ const LayoutGeneric = ({
                     'border-brand': isSelected,
                     'w-16 h-28 justify-center': mode === 'Portrait',
                     'w-28 h-16': mode === 'Landscape',
+                    'bg-white': darkMode,
                   }
                 )}
                 {...rest}
