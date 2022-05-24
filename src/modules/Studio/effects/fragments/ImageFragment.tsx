@@ -102,13 +102,6 @@ const ImageFragment = ({
 
   useEffect(() => {
     if (!dataConfig) return
-    setObjectConfig(
-      FragmentLayoutConfig({
-        theme,
-        layout: layout || viewConfig?.layout || 'classic',
-        isShorts: shortsMode || false,
-      })
-    )
     setImageFragmentData({
       image:
         preloadedBlobUrls?.[dataConfig.id] || dataConfig?.imageBlock.url || '',
