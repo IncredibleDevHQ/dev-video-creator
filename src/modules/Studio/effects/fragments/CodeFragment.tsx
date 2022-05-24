@@ -289,11 +289,13 @@ const CodeFragment = ({
     setObjectConfig(
       FragmentLayoutConfig({
         theme,
-        layout: layout || viewConfig?.layout || 'classic',
+        layout: !isPreview
+          ? layout || viewConfig?.layout || 'classic'
+          : viewConfig?.layout || 'classic',
         isShorts: shortsMode || false,
       })
     )
-  }, [shortsMode, viewConfig, theme, layout])
+  }, [shortsMode, viewConfig, theme, layout, isPreview])
 
   useEffect(() => {
     setObjectRenderConfig(
@@ -456,6 +458,7 @@ const CodeFragment = ({
           })
         }, 400)
       else {
+        setLayout(viewConfig?.layout || 'classic')
         setFragmentState(payload?.fragmentState)
         customLayoutRef?.current?.to({
           opacity: 1,
@@ -706,7 +709,9 @@ const CodeFragment = ({
 
   const studioUserConfig = !shortsMode
     ? StudioUserConfiguration({
-        layout: layout || 'classic',
+        layout: !isPreview
+          ? layout || 'classic'
+          : viewConfig?.layout || 'classic',
         noOfParticipants: users
           ? users?.length + 1
           : fragment?.configuration?.speakers?.length,
@@ -714,7 +719,9 @@ const CodeFragment = ({
         theme,
       })
     : ShortsStudioUserConfiguration({
-        layout: layout || 'classic',
+        layout: !isPreview
+          ? layout || 'classic'
+          : viewConfig?.layout || 'classic',
         noOfParticipants: users
           ? users?.length + 1
           : fragment?.configuration?.speakers?.length,

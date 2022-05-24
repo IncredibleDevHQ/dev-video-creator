@@ -178,11 +178,13 @@ const PointsFragment = ({
     setObjectConfig(
       FragmentLayoutConfig({
         theme,
-        layout: layout || viewConfig?.layout || 'classic',
+        layout: !isPreview
+          ? layout || viewConfig?.layout || 'classic'
+          : viewConfig?.layout || 'classic',
         isShorts: shortsMode || false,
       })
     )
-  }, [theme, layout, viewConfig, shortsMode])
+  }, [theme, layout, viewConfig, shortsMode, isPreview])
 
   useEffect(() => {
     setObjectRenderConfig(
@@ -303,6 +305,7 @@ const PointsFragment = ({
           })
         }, 400)
       else {
+        setLayout(viewConfig?.layout || 'classic')
         setFragmentState(payload?.fragmentState)
         customLayoutRef?.current?.to({
           opacity: 1,
@@ -1375,7 +1378,9 @@ const PointsFragment = ({
 
   const studioUserConfig = !shortsMode
     ? StudioUserConfiguration({
-        layout: layout || 'classic',
+        layout: !isPreview
+          ? layout || 'classic'
+          : viewConfig?.layout || 'classic',
         noOfParticipants: users
           ? users?.length + 1
           : fragment?.configuration?.speakers?.length,
@@ -1383,7 +1388,9 @@ const PointsFragment = ({
         theme,
       })
     : ShortsStudioUserConfiguration({
-        layout: layout || 'classic',
+        layout: !isPreview
+          ? layout || 'classic'
+          : viewConfig?.layout || 'classic',
         noOfParticipants: users
           ? users?.length + 1
           : fragment?.configuration?.speakers?.length,

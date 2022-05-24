@@ -37,6 +37,7 @@ const ImageFragment = ({
   setFragmentState,
   stageRef,
   shortsMode,
+  isPreview,
 }: {
   viewConfig: BlockProperties
   dataConfig: ImageBlockProps
@@ -44,6 +45,7 @@ const ImageFragment = ({
   setFragmentState: React.Dispatch<React.SetStateAction<FragmentState>>
   stageRef: React.RefObject<Konva.Stage>
   shortsMode: boolean
+  isPreview: boolean
 }) => {
   const { fragment, payload, branding, theme, preloadedBlobUrls, users } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
@@ -100,13 +102,6 @@ const ImageFragment = ({
 
   useEffect(() => {
     if (!dataConfig) return
-    setObjectConfig(
-      FragmentLayoutConfig({
-        theme,
-        layout: layout || viewConfig?.layout || 'classic',
-        isShorts: shortsMode || false,
-      })
-    )
     setImageFragmentData({
       image:
         preloadedBlobUrls?.[dataConfig.id] || dataConfig?.imageBlock.url || '',
@@ -125,11 +120,13 @@ const ImageFragment = ({
     setObjectConfig(
       FragmentLayoutConfig({
         theme,
-        layout: layout || viewConfig?.layout || 'classic',
+        layout: !isPreview
+          ? layout || viewConfig?.layout || 'classic'
+          : viewConfig?.layout || 'classic',
         isShorts: shortsMode || false,
       })
     )
-  }, [shortsMode, viewConfig, theme, layout])
+  }, [shortsMode, viewConfig, theme, layout, isPreview])
 
   useEffect(() => {
     setObjectRenderConfig(
@@ -313,6 +310,7 @@ const ImageFragment = ({
           })
         }, 400)
       else {
+        setLayout(viewConfig?.layout || 'classic')
         setFragmentState(payload?.fragmentState)
         customLayoutRef?.current?.to({
           opacity: 1,
@@ -547,7 +545,9 @@ const ImageFragment = ({
 
   const studioUserConfig = !shortsMode
     ? StudioUserConfiguration({
-        layout: layout || 'classic',
+        layout: !isPreview
+          ? layout || 'classic'
+          : viewConfig?.layout || 'classic',
         noOfParticipants: users
           ? users?.length + 1
           : fragment?.configuration?.speakers?.length,
@@ -555,7 +555,9 @@ const ImageFragment = ({
         theme,
       })
     : ShortsStudioUserConfiguration({
-        layout: layout || 'classic',
+        layout: !isPreview
+          ? layout || 'classic'
+          : viewConfig?.layout || 'classic',
         noOfParticipants: users
           ? users?.length + 1
           : fragment?.configuration?.speakers?.length,
