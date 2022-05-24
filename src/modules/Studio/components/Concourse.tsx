@@ -156,16 +156,8 @@ const Concourse = ({
   fragmentState,
   blockType,
 }: ConcourseProps) => {
-  const {
-    fragment,
-    state,
-    stream,
-    participants,
-    payload,
-    users,
-    stopRecording,
-    theme,
-  } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const { fragment, stream, participants, payload, users, theme } =
+    (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [canvas, setCanvas] = useRecoilState(canvasStore)
   const [isZooming, setZooming] = useState(false)
 
