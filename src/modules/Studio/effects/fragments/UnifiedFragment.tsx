@@ -359,6 +359,7 @@ const UnifiedFragment = ({
                 setFragmentState={setFragmentState}
                 stageRef={stageRef}
                 shortsMode={viewConfig.mode === 'Portrait'}
+                isPreview={isPreview}
               />
             )
           }
@@ -376,6 +377,7 @@ const UnifiedFragment = ({
                 setFragmentState={setFragmentState}
                 stageRef={stageRef}
                 shortsMode={viewConfig.mode === 'Portrait'}
+                isPreview={isPreview}
               />
             )
           }
@@ -411,6 +413,7 @@ const UnifiedFragment = ({
                 setFragmentState={setFragmentState}
                 stageRef={stageRef}
                 shortsMode={viewConfig.mode === 'Portrait'}
+                isPreview={isPreview}
               />
             )
           }
