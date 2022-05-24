@@ -1,59 +1,99 @@
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
 import { Group, Rect, Text } from 'react-konva'
-import { useRecoilState, useRecoilValue } from 'recoil'
+import { useRecoilValue } from 'recoil'
+import {
+  Fragment_Status_Enum_Enum,
+  StudioFragmentFragment,
+  ThemeFragment,
+} from '../../generated/graphql'
+import { User, userState } from '../../stores/user.store'
 import {
   BlockProperties,
   CaptionTitleView,
   Layout,
   VideoBlockView,
   VideoBlockViewProps,
-} from '../../../../utils/configTypes'
-import { Transformations } from '../../../Flick/editor/blocks/VideoEditor'
-import { VideoBlockProps } from '../../../Flick/editor/utils/utils'
-import Concourse from '../../components/Concourse'
-import FragmentBackground from '../../components/FragmentBackground'
-import { FragmentState } from '../../components/RenderTokens'
-import { Video, VideoConfig } from '../../components/Video'
-import { usePoint } from '../../hooks'
-import useEdit from '../../hooks/use-edit'
-import { StudioProviderProps, studioStore } from '../../stores'
+} from '../../utils/configTypes'
+import { BrandingJSON } from '../Branding/BrandingPage'
+import { Transformations } from '../Flick/editor/blocks/VideoEditor'
+import { VideoBlockProps } from '../Flick/editor/utils/utils'
+import { StudioUser } from '../Studio/components'
+import {
+  CONFIG,
+  SHORTS_CONFIG,
+  StudioUserConfig,
+} from '../Studio/components/Concourse'
+import FragmentBackground from '../Studio/components/FragmentBackground'
+import { FragmentState } from '../Studio/components/RenderTokens'
+import { Video, VideoConfig } from '../Studio/components/Video'
+import VideoBackground from '../Studio/components/VideoBackground'
+import { usePoint } from '../Studio/hooks'
+import useEdit from '../Studio/hooks/use-edit'
+import { RTCUser } from '../Studio/hooks/use-video'
+import { StudioState } from '../Studio/stores'
 import {
   FragmentLayoutConfig,
   ObjectConfig,
-} from '../../utils/FragmentLayoutConfig'
+} from '../Studio/utils/FragmentLayoutConfig'
 import {
   ShortsStudioUserConfiguration,
   StudioUserConfiguration,
-} from '../../utils/StudioUserConfig'
-import { ObjectRenderConfig, ThemeLayoutConfig } from '../../utils/ThemeConfig'
+} from '../Studio/utils/StudioUserConfig'
+import {
+  ObjectRenderConfig,
+  ThemeLayoutConfig,
+} from '../Studio/utils/ThemeConfig'
 
 const VideoFragment = ({
   viewConfig,
   dataConfig,
   fragmentState,
-  setFragmentState,
+  fragment,
   stageRef,
   shortsMode,
+  localVideoUrl,
+  theme,
+  state,
+  payload,
+  branding,
+  users,
+  stream,
+  participants,
+  setControlsConfig,
+  setFragmentState,
+  updatePayload,
 }: {
+  fragment: StudioFragmentFragment
   viewConfig: BlockProperties
   dataConfig: VideoBlockProps
   fragmentState: FragmentState
-  setFragmentState: React.Dispatch<React.SetStateAction<FragmentState>>
   stageRef: React.RefObject<Konva.Stage>
   shortsMode: boolean
+  localVideoUrl?: string
+  theme: ThemeFragment
+  state: StudioState
+  payload: any
+  branding: BrandingJSON | null
+  users: RTCUser[]
+  stream: MediaStream | undefined
+  participants: any
+  setControlsConfig: (config: any) => void
+  setFragmentState: React.Dispatch<React.SetStateAction<FragmentState>>
+  updatePayload: (value: any) => void
 }) => {
-  const {
-    fragment,
-    payload,
-    updatePayload,
-    state,
-    theme,
-    branding,
-    preloadedBlobUrls,
-    users,
-  } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
-  const [studio, setStudio] = useRecoilState(studioStore)
+  const groupRef = useRef<Konva.Group>(null)
+  const { sub, picture } = (useRecoilValue(userState) as User) || {}
+
+  const [stageConfig, setStageConfig] = useState<{
+    width: number
+    height: number
+  }>({ width: 0, height: 0 })
+
+  useEffect(() => {
+    if (shortsMode) setStageConfig(SHORTS_CONFIG)
+    else setStageConfig(CONFIG)
+  }, [shortsMode])
 
   const [videoConfig, setVideoConfig] = useState<VideoConfig>({
     x: 0,
@@ -106,7 +146,7 @@ const VideoFragment = ({
   }>({ noOfLinesOfCaption: 0, noOfLinesOfTitle: 0 })
 
   const { getNoOfLinesOfText } = usePoint()
-  const { getTextWidth } = useEdit()
+  const { getTextWidth, clipRect } = useEdit()
 
   useEffect(() => {
     return () => {
@@ -118,6 +158,10 @@ const VideoFragment = ({
     }
   }, [])
 
+  // useEffect(() => {
+  //   setLayout(viewConfig?.layout)
+  // }, [viewConfig])
+
   const videoElement = React.useMemo(() => {
     if (!dataConfig) return
     const element = document.createElement('video')
@@ -125,9 +169,15 @@ const VideoFragment = ({
     element.crossOrigin = 'anonymous'
     element.preload = 'auto'
     element.muted = true
-    element.src =
-      preloadedBlobUrls?.[dataConfig.id] || dataConfig.videoBlock.url || ''
+    element.src = localVideoUrl || dataConfig.videoBlock.url || ''
 
+    setObjectConfig(
+      FragmentLayoutConfig({
+        theme,
+        layout: layout || viewConfig?.layout || 'classic',
+        isShorts: shortsMode || false,
+      })
+    )
     setVideoFragmentData({
       title: dataConfig?.videoBlock.title || '',
       caption: dataConfig?.videoBlock?.caption || '',
@@ -143,30 +193,17 @@ const VideoFragment = ({
   }, [dataConfig, viewConfig, shortsMode, theme, layout])
 
   useEffect(() => {
-    setObjectConfig(
-      FragmentLayoutConfig({
-        theme,
-        layout: layout || viewConfig?.layout || 'classic',
-        isShorts: shortsMode || false,
-      })
-    )
-  }, [viewConfig, shortsMode, theme, layout])
-
-  useEffect(() => {
     setObjectRenderConfig(
       ThemeLayoutConfig({ theme, layoutConfig: objectConfig })
     )
   }, [objectConfig, theme])
 
   useEffect(() => {
-    setStudio({
-      ...studio,
-      controlsConfig: {
-        playing,
-        videoElement,
-      },
+    setControlsConfig({
+      playing,
+      videoElement,
     })
-  }, [state, dataConfig, videoElement, playing])
+  }, [dataConfig, videoElement, playing])
 
   useEffect(() => {
     if (!videoElement) return
@@ -539,6 +576,50 @@ const VideoFragment = ({
     </Group>,
   ]
 
+  const [isZooming, setZooming] = useState(false)
+  const zoomLevel = 2
+  const userStudioImageGap = 170
+
+  const onLayerClick = () => {
+    if (!groupRef.current) return
+    const tZooming = isZooming
+    if (tZooming) {
+      groupRef.current.to({
+        x: 0,
+        y: 0,
+        scaleX: 1,
+        scaleY: 1,
+        duration: 0.5,
+      })
+    } else {
+      const pointer = stageRef?.current?.getPointerPosition()
+      const scaleRatio =
+        document.getElementsByClassName('konvajs-content')[0].clientWidth /
+        stageConfig.width
+      if (pointer) {
+        groupRef.current.to({
+          x: (pointer.x - pointer.x * zoomLevel) / scaleRatio,
+          y: (pointer.y - pointer.y * zoomLevel) / scaleRatio,
+          scaleX: zoomLevel,
+          scaleY: zoomLevel,
+          duration: 0.5,
+        })
+      }
+    }
+    setZooming(!isZooming)
+  }
+  const onMouseLeave = () => {
+    if (!groupRef.current) return
+    groupRef.current.to({
+      x: 0,
+      y: 0,
+      scaleX: 1,
+      scaleY: 1,
+      duration: 0.5,
+    })
+    setZooming(false)
+  }
+
   const studioUserConfig = !shortsMode
     ? StudioUserConfiguration({
         layout: layout || 'classic',
@@ -557,16 +638,117 @@ const VideoFragment = ({
         theme,
       })
 
+  const defaultStudioUserConfig: StudioUserConfig = {
+    x: 780,
+    y: 400,
+    width: 0,
+    height: 0,
+  }
+
   return (
-    <Concourse
-      layerChildren={layerChildren}
-      viewConfig={viewConfig}
-      stageRef={stageRef}
-      studioUserConfig={studioUserConfig}
-      isShorts={shortsMode}
-      blockType={dataConfig.type}
-      fragmentState={fragmentState}
-    />
+    <>
+      <VideoBackground
+        theme={theme}
+        stageConfig={stageConfig}
+        isShorts={shortsMode}
+      />
+      {(viewConfig?.layout === 'full-left' ||
+        viewConfig?.layout === 'full-right') &&
+        payload?.status !== Fragment_Status_Enum_Enum.CountDown &&
+        payload?.status !== Fragment_Status_Enum_Enum.Ended &&
+        users &&
+        stream && (
+          <>
+            <StudioUser
+              stream={stream}
+              studioUserConfig={
+                (studioUserConfig && studioUserConfig[0]) ||
+                defaultStudioUserConfig
+              }
+              picture={picture as string}
+              type="local"
+            />
+            {users.map((user, index) => (
+              <StudioUser
+                key={user.uid as string}
+                type="remote"
+                stream={user.mediaStream as MediaStream}
+                picture={participants?.[user.uid]?.picture || ''}
+                studioUserConfig={
+                  (studioUserConfig && studioUserConfig[index + 1]) || {
+                    x:
+                      defaultStudioUserConfig.x -
+                      (index + 1) * userStudioImageGap,
+                    y: defaultStudioUserConfig.y,
+                    width: defaultStudioUserConfig.width,
+                    height: defaultStudioUserConfig.height,
+                  }
+                }
+              />
+            ))}
+          </>
+        )}
+      <Group
+        clipFunc={(ctx: any) => {
+          clipRect(
+            ctx,
+            FragmentLayoutConfig({
+              theme,
+              layout:
+                fragmentState === 'onlyFragment'
+                  ? 'classic'
+                  : viewConfig?.layout || 'classic',
+              isShorts: shortsMode || false,
+            })
+          )
+        }}
+      >
+        <Group
+          ref={groupRef}
+          onClick={onLayerClick}
+          onMouseLeave={onMouseLeave}
+          // onMouseMove={onMouseMove}
+        >
+          {layerChildren}
+        </Group>
+      </Group>
+      {viewConfig?.layout !== 'full-left' &&
+        viewConfig?.layout !== 'full-right' &&
+        payload?.status !== Fragment_Status_Enum_Enum.CountDown &&
+        payload?.status !== Fragment_Status_Enum_Enum.Ended &&
+        users &&
+        stream && (
+          <>
+            <StudioUser
+              stream={stream}
+              studioUserConfig={
+                (studioUserConfig && studioUserConfig[0]) ||
+                defaultStudioUserConfig
+              }
+              picture={picture as string}
+              type="local"
+            />
+            {users.map((user, index) => (
+              <StudioUser
+                key={user.uid as string}
+                type="remote"
+                stream={user.mediaStream as MediaStream}
+                picture={participants?.[user.uid]?.picture || ''}
+                studioUserConfig={
+                  (studioUserConfig && studioUserConfig[index + 1]) || {
+                    x:
+                      defaultStudioUserConfig.x -
+                      (index + 1) * userStudioImageGap,
+                    y: defaultStudioUserConfig.y,
+                    width: defaultStudioUserConfig.width,
+                    height: defaultStudioUserConfig.height,
+                  }
+                }
+              />
+            ))}
+          </>
+        )}
+    </>
   )
 }
 

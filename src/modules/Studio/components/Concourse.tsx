@@ -12,6 +12,7 @@ import {
   GradientConfig,
   TopLayerChildren,
 } from '../../../utils/configTypes'
+import { BrandingJSON } from '../../Branding/BrandingPage'
 import { Block } from '../../Flick/editor/utils/utils'
 import useEdit, { ClipConfig } from '../hooks/use-edit'
 import { canvasStore, StudioProviderProps, studioStore } from '../stores'
@@ -76,6 +77,7 @@ export const GetTopLayerChildren = ({
   isShorts,
   status,
   theme,
+  branding,
   performFinishAction,
 }: {
   topLayerChildrenState: TopLayerChildren
@@ -85,9 +87,10 @@ export const GetTopLayerChildren = ({
   isShorts: boolean
   status: Fragment_Status_Enum_Enum
   theme: ThemeFragment
+  branding?: BrandingJSON | null
   performFinishAction: () => void
 }) => {
-  if (status === Fragment_Status_Enum_Enum.Ended) return <></>
+  // if (status === Fragment_Status_Enum_Enum.Ended) return <></>
   switch (topLayerChildrenState) {
     case 'lowerThird': {
       return (
@@ -105,6 +108,7 @@ export const GetTopLayerChildren = ({
           isShorts={isShorts || false}
           direction="left"
           setTopLayerChildren={setTopLayerChildren}
+          brandingJSON={branding}
         />
       )
     }
@@ -115,6 +119,7 @@ export const GetTopLayerChildren = ({
           isShorts={isShorts || false}
           direction="right"
           setTopLayerChildren={setTopLayerChildren}
+          brandingJSON={branding}
         />
       )
     }
@@ -126,6 +131,7 @@ export const GetTopLayerChildren = ({
           direction="moveIn"
           setTopLayerChildren={setTopLayerChildren}
           performFinishAction={performFinishAction}
+          brandingJSON={branding}
         />
       )
     }
@@ -136,6 +142,7 @@ export const GetTopLayerChildren = ({
           isShorts={isShorts || false}
           direction="moveAway"
           setTopLayerChildren={setTopLayerChildren}
+          brandingJSON={branding}
         />
       )
     }
@@ -156,20 +163,13 @@ const Concourse = ({
   fragmentState,
   blockType,
 }: ConcourseProps) => {
-  const {
-    fragment,
-    state,
-    stream,
-    participants,
-    payload,
-    users,
-    stopRecording,
-    theme,
-  } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const { fragment, stream, participants, payload, users, theme, config } =
+    (useRecoilValue(studioStore) as StudioProviderProps) || {}
+
   const [canvas, setCanvas] = useRecoilState(canvasStore)
   const [isZooming, setZooming] = useState(false)
 
-  const { sub, picture } = (useRecoilValue(userState) as User) || {}
+  const { picture } = (useRecoilValue(userState) as User) || {}
 
   const groupRef = createRef<Konva.Group>()
   const { clipRect } = useEdit()
@@ -294,17 +294,15 @@ const Concourse = ({
     onMouseLeave()
   }
 
-  const performFinishAction = () => {
-    if (state === 'recording') {
-      stopRecording()
-    }
-  }
+  // const performFinishAction = () => {
+  //   if (state === 'recording') {
+  //     stopRecording()
+  //   }
+  // }
 
   useEffect(() => {
     setCanvas({ zoomed: false, resetCanvas })
   }, [])
-
-  console.log('test Concourse', users)
 
   return (
     <>
@@ -323,12 +321,10 @@ const Concourse = ({
             }
             picture={picture as string}
             type="local"
-            uid={sub as string}
           />
           {users.map((user, index) => (
             <StudioUser
               key={user.uid as string}
-              uid={user.uid as string}
               type="remote"
               stream={user.mediaStream as MediaStream}
               picture={participants?.[user.uid]?.picture || ''}
@@ -385,9 +381,9 @@ const Concourse = ({
               />
             )
           }
-          if (payload?.status === Fragment_Status_Enum_Enum.Ended) {
-            performFinishAction()
-          }
+          // if (payload?.status === Fragment_Status_Enum_Enum.Ended) {
+          //   performFinishAction()
+          // }
           return (
             <Group
               clipFunc={
@@ -435,12 +431,10 @@ const Concourse = ({
             }
             picture={picture as string}
             type="local"
-            uid={sub as string}
           />
           {users.map((user, index) => (
             <StudioUser
               key={user.uid as string}
-              uid={user.uid as string}
               type="remote"
               stream={user.mediaStream as MediaStream}
               picture={participants?.[user.uid]?.picture || ''}
@@ -463,25 +457,27 @@ const Concourse = ({
         !disableUserMedia &&
         payload?.status !== Fragment_Status_Enum_Enum.CountDown &&
         payload?.status !== Fragment_Status_Enum_Enum.Ended &&
-        fragment &&
-        [...(fragment.configuration?.speakers || fragment.participants)]?.map(
-          (_: any, index: number) => {
-            return (
-              <PreviewUser
-                studioUserConfig={
-                  (studioUserConfig && studioUserConfig[index]) || {
-                    x:
-                      defaultStudioUserConfig.x -
-                      (index + 1) * userStudioImageGap,
-                    y: defaultStudioUserConfig.y,
-                    width: defaultStudioUserConfig.width,
-                    height: defaultStudioUserConfig.height,
-                  }
+        [
+          ...(config?.speakers ||
+            fragment?.configuration?.speakers ||
+            fragment?.participants ||
+            []),
+        ]?.map((_: any, index: number) => {
+          return (
+            <PreviewUser
+              studioUserConfig={
+                (studioUserConfig && studioUserConfig[index]) || {
+                  x:
+                    defaultStudioUserConfig.x -
+                    (index + 1) * userStudioImageGap,
+                  y: defaultStudioUserConfig.y,
+                  width: defaultStudioUserConfig.width,
+                  height: defaultStudioUserConfig.height,
                 }
-              />
-            )
-          }
-        )
+              }
+            />
+          )
+        })
       )}
     </>
   )

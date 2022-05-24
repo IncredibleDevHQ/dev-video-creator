@@ -1,7 +1,4 @@
-import {
-  StudioFragmentFragment,
-  ThemeFragment,
-} from '../../../generated/graphql'
+import { ThemeFragment } from '../../../generated/graphql'
 import { Layout } from '../../../utils/configTypes'
 import { StudioUserConfig } from '../components/Concourse'
 import { FragmentState } from '../components/RenderTokens'
@@ -32,19 +29,19 @@ export const getCanvasGradient = (
 
 export const StudioUserConfiguration = ({
   layout,
-  fragment,
+  noOfParticipants,
   fragmentState,
   theme,
 }: {
   layout: Layout
-  fragment: StudioFragmentFragment | undefined
+  noOfParticipants: number
   fragmentState: FragmentState
   theme: ThemeFragment
 }): StudioUserConfig[] => {
   switch (theme.name) {
     case 'DarkGradient':
       if (fragmentState === 'onlyUserMedia') {
-        switch (fragment?.configuration?.speakers?.length) {
+        switch (noOfParticipants) {
           case 2:
             return [
               {
@@ -121,14 +118,14 @@ export const StudioUserConfiguration = ({
       }
       switch (layout) {
         // case 'classic':
-        //   switch (fragment?.configuration?.speakers?.length) {
+        //   switch (noOfParticipants) {
         //     case 2:
         //       return [{}, {}]
         //     default:
         //       return [{}]
         //   }
         case 'float-full-right':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -145,6 +142,13 @@ export const StudioUserConfiguration = ({
                     height: 164,
                     borderRadius: 8,
                   },
+                  backgroundRectX: 696,
+                  backgroundRectY: 82,
+                  backgroundRectWidth: 240,
+                  backgroundRectHeight: 180,
+                  backgroundRectBorderRadius: 8,
+                  backgroundRectColor: '#ffffff',
+                  backgroundRectOpacity: 0.3,
                 },
                 {
                   x: 704,
@@ -160,6 +164,13 @@ export const StudioUserConfiguration = ({
                     height: 164,
                     borderRadius: 8,
                   },
+                  backgroundRectX: 696,
+                  backgroundRectY: 278,
+                  backgroundRectWidth: 240,
+                  backgroundRectHeight: 180,
+                  backgroundRectBorderRadius: 8,
+                  backgroundRectColor: '#ffffff',
+                  backgroundRectOpacity: 0.3,
                 },
               ]
             default:
@@ -189,7 +200,7 @@ export const StudioUserConfiguration = ({
               ]
           }
         case 'float-full-left':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -206,6 +217,13 @@ export const StudioUserConfiguration = ({
                     height: 164,
                     borderRadius: 8,
                   },
+                  backgroundRectX: 24,
+                  backgroundRectY: 82,
+                  backgroundRectWidth: 240,
+                  backgroundRectHeight: 180,
+                  backgroundRectBorderRadius: 8,
+                  backgroundRectColor: '#ffffff',
+                  backgroundRectOpacity: 0.3,
                 },
                 {
                   x: 32,
@@ -221,6 +239,13 @@ export const StudioUserConfiguration = ({
                     height: 164,
                     borderRadius: 8,
                   },
+                  backgroundRectX: 24,
+                  backgroundRectY: 278,
+                  backgroundRectWidth: 240,
+                  backgroundRectHeight: 180,
+                  backgroundRectBorderRadius: 8,
+                  backgroundRectColor: '#ffffff',
+                  backgroundRectOpacity: 0.3,
                 },
               ]
             default:
@@ -250,12 +275,12 @@ export const StudioUserConfiguration = ({
               ]
           }
         case 'float-half-right':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
                   x: 724,
-                  y: 96,
+                  y: 110,
                   width: 208,
                   height: 156,
                   clipTheme: 'rect',
@@ -267,10 +292,17 @@ export const StudioUserConfiguration = ({
                     height: 156,
                     borderRadius: 8,
                   },
+                  backgroundRectX: 720,
+                  backgroundRectY: 102,
+                  backgroundRectWidth: 216,
+                  backgroundRectHeight: 172,
+                  backgroundRectBorderRadius: 8,
+                  backgroundRectColor: '#ffffff',
+                  backgroundRectOpacity: 0.3,
                 },
                 {
                   x: 724,
-                  y: 288,
+                  y: 302,
                   width: 208,
                   height: 156,
                   clipTheme: 'rect',
@@ -282,6 +314,13 @@ export const StudioUserConfiguration = ({
                     height: 156,
                     borderRadius: 8,
                   },
+                  backgroundRectX: 720,
+                  backgroundRectY: 294,
+                  backgroundRectWidth: 216,
+                  backgroundRectHeight: 172,
+                  backgroundRectBorderRadius: 8,
+                  backgroundRectColor: '#ffffff',
+                  backgroundRectOpacity: 0.3,
                 },
               ]
             default:
@@ -312,7 +351,7 @@ export const StudioUserConfiguration = ({
           }
         case 'padded-bottom-right-tile':
         case 'bottom-right-tile':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -374,7 +413,7 @@ export const StudioUserConfiguration = ({
           }
         case 'padded-bottom-right-circle':
         case 'bottom-right-circle':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -435,7 +474,7 @@ export const StudioUserConfiguration = ({
               ]
           }
         case 'split':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -489,7 +528,7 @@ export const StudioUserConfiguration = ({
               ]
           }
         case 'padded-split':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -551,21 +590,21 @@ export const StudioUserConfiguration = ({
           }
         case 'full-left':
         case 'full-right':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
                   x: 0,
-                  y: 0,
-                  width: 0,
-                  height: 0,
+                  y: -90,
+                  width: 960,
+                  height: 720,
                   clipTheme: 'rect',
                   borderWidth: 0,
                   studioUserClipConfig: {
                     x: 0,
-                    y: 0,
-                    width: 0,
-                    height: 0,
+                    y: 90,
+                    width: 960,
+                    height: 540,
                     borderRadius: 0,
                   },
                 },
@@ -625,7 +664,7 @@ export const StudioUserConfiguration = ({
       }
     case 'PastelLines':
       if (fragmentState === 'onlyUserMedia') {
-        switch (fragment?.configuration?.speakers?.length) {
+        switch (noOfParticipants) {
           case 2:
             return [
               {
@@ -681,14 +720,14 @@ export const StudioUserConfiguration = ({
       }
       switch (layout) {
         // case 'classic':
-        //   switch (fragment?.configuration?.speakers?.length) {
+        //   switch (noOfParticipants) {
         //     case 2:
         //       return [{}, {}]
         //     default:
         //       return [{}]
         //   }
         case 'float-full-right':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -742,7 +781,7 @@ export const StudioUserConfiguration = ({
               ]
           }
         case 'float-half-right':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -797,7 +836,7 @@ export const StudioUserConfiguration = ({
           }
         case 'padded-bottom-right-tile':
         case 'bottom-right-tile':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -852,7 +891,7 @@ export const StudioUserConfiguration = ({
           }
         case 'padded-bottom-right-circle':
         case 'bottom-right-circle':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -907,7 +946,7 @@ export const StudioUserConfiguration = ({
           }
         case 'full-left':
         case 'full-right':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -981,7 +1020,7 @@ export const StudioUserConfiguration = ({
       }
     case 'Cassidoo': {
       if (fragmentState === 'onlyUserMedia') {
-        switch (fragment?.configuration?.speakers?.length) {
+        switch (noOfParticipants) {
           case 2:
             return [
               {
@@ -1050,14 +1089,14 @@ export const StudioUserConfiguration = ({
       }
       switch (layout) {
         // case 'classic':
-        //   switch (fragment?.configuration?.speakers?.length) {
+        //   switch (noOfParticipants) {
         //     case 2:
         //       return [{}, {}]
         //     default:
         //       return [{}]
         //   }
         case 'float-full-right':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -1150,7 +1189,7 @@ export const StudioUserConfiguration = ({
               ]
           }
         case 'float-full-left':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -1243,7 +1282,7 @@ export const StudioUserConfiguration = ({
               ]
           }
         case 'float-half-right':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -1337,7 +1376,7 @@ export const StudioUserConfiguration = ({
           }
         case 'padded-bottom-right-circle':
         case 'bottom-right-circle':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -1430,7 +1469,7 @@ export const StudioUserConfiguration = ({
               ]
           }
         case 'padded-split':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -1524,7 +1563,7 @@ export const StudioUserConfiguration = ({
           }
         case 'full-left':
         case 'full-right':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -1599,7 +1638,7 @@ export const StudioUserConfiguration = ({
     }
     case 'LambdaTest':
       if (fragmentState === 'onlyUserMedia') {
-        switch (fragment?.configuration?.speakers?.length) {
+        switch (noOfParticipants) {
           case 2:
             return [
               {
@@ -1655,14 +1694,14 @@ export const StudioUserConfiguration = ({
       }
       switch (layout) {
         // case 'classic':
-        //   switch (fragment?.configuration?.speakers?.length) {
+        //   switch (noOfParticipants) {
         //     case 2:
         //       return [{}, {}]
         //     default:
         //       return [{}]
         //   }
         case 'float-full-right':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -1716,7 +1755,7 @@ export const StudioUserConfiguration = ({
               ]
           }
         case 'float-full-left':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -1770,7 +1809,7 @@ export const StudioUserConfiguration = ({
               ]
           }
         case 'float-half-right':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -1825,7 +1864,7 @@ export const StudioUserConfiguration = ({
           }
         case 'padded-bottom-right-tile':
         case 'bottom-right-tile':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -1879,7 +1918,7 @@ export const StudioUserConfiguration = ({
               ]
           }
         case 'padded-split':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -1934,7 +1973,7 @@ export const StudioUserConfiguration = ({
           }
         case 'full-left':
         case 'full-right':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -2008,7 +2047,7 @@ export const StudioUserConfiguration = ({
       }
     case 'LeeRob':
       if (fragmentState === 'onlyUserMedia') {
-        switch (fragment?.configuration?.speakers?.length) {
+        switch (noOfParticipants) {
           case 2:
             return [
               {
@@ -2077,14 +2116,14 @@ export const StudioUserConfiguration = ({
       }
       switch (layout) {
         // case 'classic':
-        //   switch (fragment?.configuration?.speakers?.length) {
+        //   switch (noOfParticipants) {
         //     case 2:
         //       return [{}, {}]
         //     default:
         //       return [{}]
         //   }
         case 'float-full-right':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -2151,7 +2190,7 @@ export const StudioUserConfiguration = ({
               ]
           }
         case 'float-full-left':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -2218,7 +2257,7 @@ export const StudioUserConfiguration = ({
               ]
           }
         case 'float-half-right':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -2286,7 +2325,7 @@ export const StudioUserConfiguration = ({
           }
         case 'padded-bottom-right-tile':
         case 'bottom-right-tile':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -2353,7 +2392,7 @@ export const StudioUserConfiguration = ({
               ]
           }
         case 'padded-split':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -2421,7 +2460,7 @@ export const StudioUserConfiguration = ({
           }
         case 'full-left':
         case 'full-right':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -2495,7 +2534,7 @@ export const StudioUserConfiguration = ({
       }
     case 'Web3Auth':
       if (fragmentState === 'onlyUserMedia') {
-        switch (fragment?.configuration?.speakers?.length) {
+        switch (noOfParticipants) {
           case 2:
             return [
               {
@@ -2574,14 +2613,14 @@ export const StudioUserConfiguration = ({
       }
       switch (layout) {
         // case 'classic':
-        //   switch (fragment?.configuration?.speakers?.length) {
+        //   switch (noOfParticipants) {
         //     case 2:
         //       return [{}, {}]
         //     default:
         //       return [{}]
         //   }
         case 'float-full-right':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -2644,7 +2683,7 @@ export const StudioUserConfiguration = ({
               ]
           }
         case 'float-full-left':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -2707,7 +2746,7 @@ export const StudioUserConfiguration = ({
               ]
           }
         case 'float-half-right':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -2771,7 +2810,7 @@ export const StudioUserConfiguration = ({
           }
         case 'padded-bottom-right-tile':
         case 'bottom-right-tile':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -2835,7 +2874,7 @@ export const StudioUserConfiguration = ({
           }
         case 'padded-bottom-right-circle':
         case 'bottom-right-circle':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -2898,7 +2937,7 @@ export const StudioUserConfiguration = ({
               ]
           }
         case 'padded-split':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -2962,7 +3001,7 @@ export const StudioUserConfiguration = ({
           }
         case 'full-left':
         case 'full-right':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -3036,7 +3075,7 @@ export const StudioUserConfiguration = ({
       }
     case 'DevsForUkraine':
       if (fragmentState === 'onlyUserMedia') {
-        switch (fragment?.configuration?.speakers?.length) {
+        switch (noOfParticipants) {
           case 2:
             return [
               {
@@ -3092,14 +3131,14 @@ export const StudioUserConfiguration = ({
       }
       switch (layout) {
         // case 'classic':
-        //   switch (fragment?.configuration?.speakers?.length) {
+        //   switch (noOfParticipants) {
         //     case 2:
         //       return [{}, {}]
         //     default:
         //       return [{}]
         //   }
         case 'float-full-right':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -3154,7 +3193,7 @@ export const StudioUserConfiguration = ({
               ]
           }
         case 'float-full-left':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -3209,7 +3248,7 @@ export const StudioUserConfiguration = ({
               ]
           }
         case 'float-half-right':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -3265,7 +3304,7 @@ export const StudioUserConfiguration = ({
           }
         case 'padded-bottom-right-tile':
         case 'bottom-right-tile':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -3320,7 +3359,7 @@ export const StudioUserConfiguration = ({
               ]
           }
         case 'padded-split':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -3375,7 +3414,7 @@ export const StudioUserConfiguration = ({
           }
         case 'full-left':
         case 'full-right':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -3449,7 +3488,7 @@ export const StudioUserConfiguration = ({
       }
     case 'Whitep4nth3r':
       if (fragmentState === 'onlyUserMedia') {
-        switch (fragment?.configuration?.speakers?.length) {
+        switch (noOfParticipants) {
           case 2:
             return [
               {
@@ -3508,14 +3547,14 @@ export const StudioUserConfiguration = ({
       }
       switch (layout) {
         // case 'classic':
-        //   switch (fragment?.configuration?.speakers?.length) {
+        //   switch (noOfParticipants) {
         //     case 2:
         //       return [{}, {}]
         //     default:
         //       return [{}]
         //   }
         case 'float-full-right':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -3572,7 +3611,7 @@ export const StudioUserConfiguration = ({
               ]
           }
         case 'float-full-left':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -3629,7 +3668,7 @@ export const StudioUserConfiguration = ({
               ]
           }
         case 'float-half-right':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -3687,7 +3726,7 @@ export const StudioUserConfiguration = ({
           }
         case 'padded-bottom-right-tile':
         case 'bottom-right-tile':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -3744,7 +3783,7 @@ export const StudioUserConfiguration = ({
               ]
           }
         case 'padded-split':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -3802,7 +3841,7 @@ export const StudioUserConfiguration = ({
           }
         case 'full-left':
         case 'full-right':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -3859,7 +3898,7 @@ export const StudioUserConfiguration = ({
               ]
           }
         case 'outro':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -3957,19 +3996,19 @@ export const StudioUserConfiguration = ({
 
 export const ShortsStudioUserConfiguration = ({
   layout,
-  fragment,
+  noOfParticipants,
   fragmentState,
   theme,
 }: {
   layout: Layout
-  fragment: StudioFragmentFragment | undefined
+  noOfParticipants: number
   fragmentState: FragmentState
   theme: ThemeFragment
 }): StudioUserConfig[] => {
   switch (theme.name) {
     case 'DarkGradient':
       if (fragmentState === 'onlyUserMedia') {
-        switch (fragment?.configuration?.speakers?.length) {
+        switch (noOfParticipants) {
           case 2:
             return [
               {
@@ -4046,7 +4085,7 @@ export const ShortsStudioUserConfiguration = ({
       }
       switch (layout) {
         // case 'classic':
-        //   switch (fragment?.configuration?.speakers?.length) {
+        //   switch (noOfParticipants) {
         //     case 2:
         //       return [{}, {}]
         //     default:
@@ -4054,7 +4093,7 @@ export const ShortsStudioUserConfiguration = ({
         //   }
         case 'padded-bottom-right-tile':
         case 'bottom-right-tile':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -4138,7 +4177,7 @@ export const ShortsStudioUserConfiguration = ({
           }
         case 'padded-bottom-right-circle':
         case 'bottom-right-circle':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -4199,7 +4238,7 @@ export const ShortsStudioUserConfiguration = ({
               ]
           }
         case 'split':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -4260,7 +4299,7 @@ export const ShortsStudioUserConfiguration = ({
               ]
           }
         case 'full-left':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -4334,7 +4373,7 @@ export const ShortsStudioUserConfiguration = ({
       }
     case 'PastelLines':
       if (fragmentState === 'onlyUserMedia') {
-        switch (fragment?.configuration?.speakers?.length) {
+        switch (noOfParticipants) {
           case 2:
             return [
               {
@@ -4390,7 +4429,7 @@ export const ShortsStudioUserConfiguration = ({
       }
       switch (layout) {
         // case 'classic':
-        //   switch (fragment?.configuration?.speakers?.length) {
+        //   switch (noOfParticipants) {
         //     case 2:
         //       return [{}, {}]
         //     default:
@@ -4398,7 +4437,7 @@ export const ShortsStudioUserConfiguration = ({
         //   }
         case 'padded-bottom-right-tile':
         case 'bottom-right-tile':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -4453,7 +4492,7 @@ export const ShortsStudioUserConfiguration = ({
           }
         case 'padded-bottom-right-circle':
         case 'bottom-right-circle':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -4507,7 +4546,7 @@ export const ShortsStudioUserConfiguration = ({
               ]
           }
         case 'split':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -4561,7 +4600,7 @@ export const ShortsStudioUserConfiguration = ({
               ]
           }
         case 'full-left':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -4635,7 +4674,7 @@ export const ShortsStudioUserConfiguration = ({
       }
     case 'Cassidoo': {
       if (fragmentState === 'onlyUserMedia') {
-        switch (fragment?.configuration?.speakers?.length) {
+        switch (noOfParticipants) {
           case 2:
             return [
               {
@@ -4704,7 +4743,7 @@ export const ShortsStudioUserConfiguration = ({
       }
       switch (layout) {
         // case 'classic':
-        //   switch (fragment?.configuration?.speakers?.length) {
+        //   switch (noOfParticipants) {
         //     case 2:
         //       return [{}, {}]
         //     default:
@@ -4712,7 +4751,7 @@ export const ShortsStudioUserConfiguration = ({
         //   }
         case 'padded-bottom-right-tile':
         case 'bottom-right-tile':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -4780,7 +4819,7 @@ export const ShortsStudioUserConfiguration = ({
           }
         case 'padded-bottom-right-circle':
         case 'bottom-right-circle':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -4847,7 +4886,7 @@ export const ShortsStudioUserConfiguration = ({
               ]
           }
         case 'split':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -4914,7 +4953,7 @@ export const ShortsStudioUserConfiguration = ({
               ]
           }
         case 'full-left':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -4989,7 +5028,7 @@ export const ShortsStudioUserConfiguration = ({
     }
     case 'LambdaTest':
       if (fragmentState === 'onlyUserMedia') {
-        switch (fragment?.configuration?.speakers?.length) {
+        switch (noOfParticipants) {
           case 2:
             return [
               {
@@ -5045,7 +5084,7 @@ export const ShortsStudioUserConfiguration = ({
       }
       switch (layout) {
         // case 'classic':
-        //   switch (fragment?.configuration?.speakers?.length) {
+        //   switch (noOfParticipants) {
         //     case 2:
         //       return [{}, {}]
         //     default:
@@ -5053,7 +5092,7 @@ export const ShortsStudioUserConfiguration = ({
         //   }
         case 'padded-bottom-right-tile':
         case 'bottom-right-tile':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -5108,7 +5147,7 @@ export const ShortsStudioUserConfiguration = ({
           }
         case 'padded-bottom-right-circle':
         case 'bottom-right-circle':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -5162,7 +5201,7 @@ export const ShortsStudioUserConfiguration = ({
               ]
           }
         case 'split':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -5216,7 +5255,7 @@ export const ShortsStudioUserConfiguration = ({
               ]
           }
         case 'full-left':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -5290,7 +5329,7 @@ export const ShortsStudioUserConfiguration = ({
       }
     case 'LeeRob':
       if (fragmentState === 'onlyUserMedia') {
-        switch (fragment?.configuration?.speakers?.length) {
+        switch (noOfParticipants) {
           case 2:
             return [
               {
@@ -5359,7 +5398,7 @@ export const ShortsStudioUserConfiguration = ({
       }
       switch (layout) {
         // case 'classic':
-        //   switch (fragment?.configuration?.speakers?.length) {
+        //   switch (noOfParticipants) {
         //     case 2:
         //       return [{}, {}]
         //     default:
@@ -5367,7 +5406,7 @@ export const ShortsStudioUserConfiguration = ({
         //   }
         case 'padded-bottom-right-tile':
         case 'bottom-right-tile':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -5435,7 +5474,7 @@ export const ShortsStudioUserConfiguration = ({
           }
         case 'padded-bottom-right-circle':
         case 'bottom-right-circle':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -5502,7 +5541,7 @@ export const ShortsStudioUserConfiguration = ({
               ]
           }
         case 'split':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -5569,7 +5608,7 @@ export const ShortsStudioUserConfiguration = ({
               ]
           }
         case 'full-left':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -5643,7 +5682,7 @@ export const ShortsStudioUserConfiguration = ({
       }
     case 'Web3Auth':
       if (fragmentState === 'onlyUserMedia') {
-        switch (fragment?.configuration?.speakers?.length) {
+        switch (noOfParticipants) {
           case 2:
             return [
               {
@@ -5726,7 +5765,7 @@ export const ShortsStudioUserConfiguration = ({
       }
       switch (layout) {
         // case 'classic':
-        //   switch (fragment?.configuration?.speakers?.length) {
+        //   switch (noOfParticipants) {
         //     case 2:
         //       return [{}, {}]
         //     default:
@@ -5734,7 +5773,7 @@ export const ShortsStudioUserConfiguration = ({
         //   }
         case 'padded-bottom-right-tile':
         case 'bottom-right-tile':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -5798,7 +5837,7 @@ export const ShortsStudioUserConfiguration = ({
           }
         case 'padded-bottom-right-circle':
         case 'bottom-right-circle':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -5861,7 +5900,7 @@ export const ShortsStudioUserConfiguration = ({
               ]
           }
         case 'split':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -5924,7 +5963,7 @@ export const ShortsStudioUserConfiguration = ({
               ]
           }
         case 'full-left':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -5998,7 +6037,7 @@ export const ShortsStudioUserConfiguration = ({
       }
     case 'DevsForUkraine':
       if (fragmentState === 'onlyUserMedia') {
-        switch (fragment?.configuration?.speakers?.length) {
+        switch (noOfParticipants) {
           case 2:
             return [
               {
@@ -6054,7 +6093,7 @@ export const ShortsStudioUserConfiguration = ({
       }
       switch (layout) {
         // case 'classic':
-        //   switch (fragment?.configuration?.speakers?.length) {
+        //   switch (noOfParticipants) {
         //     case 2:
         //       return [{}, {}]
         //     default:
@@ -6062,7 +6101,7 @@ export const ShortsStudioUserConfiguration = ({
         //   }
         case 'padded-bottom-right-tile':
         case 'bottom-right-tile':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -6117,7 +6156,7 @@ export const ShortsStudioUserConfiguration = ({
           }
         case 'padded-bottom-right-circle':
         case 'bottom-right-circle':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -6171,7 +6210,7 @@ export const ShortsStudioUserConfiguration = ({
               ]
           }
         case 'split':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -6225,7 +6264,7 @@ export const ShortsStudioUserConfiguration = ({
               ]
           }
         case 'full-left':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -6299,7 +6338,7 @@ export const ShortsStudioUserConfiguration = ({
       }
     case 'Whitep4nth3r':
       if (fragmentState === 'onlyUserMedia') {
-        switch (fragment?.configuration?.speakers?.length) {
+        switch (noOfParticipants) {
           case 2:
             return [
               {
@@ -6358,7 +6397,7 @@ export const ShortsStudioUserConfiguration = ({
       }
       switch (layout) {
         // case 'classic':
-        //   switch (fragment?.configuration?.speakers?.length) {
+        //   switch (noOfParticipants) {
         //     case 2:
         //       return [{}, {}]
         //     default:
@@ -6366,7 +6405,7 @@ export const ShortsStudioUserConfiguration = ({
         //   }
         case 'padded-bottom-right-tile':
         case 'bottom-right-tile':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -6424,7 +6463,7 @@ export const ShortsStudioUserConfiguration = ({
           }
         case 'padded-bottom-right-circle':
         case 'bottom-right-circle':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -6481,7 +6520,7 @@ export const ShortsStudioUserConfiguration = ({
               ]
           }
         case 'split':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {
@@ -6538,7 +6577,7 @@ export const ShortsStudioUserConfiguration = ({
               ]
           }
         case 'full-left':
-          switch (fragment?.configuration?.speakers?.length) {
+          switch (noOfParticipants) {
             case 2:
               return [
                 {

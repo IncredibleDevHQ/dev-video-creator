@@ -250,6 +250,7 @@ const UnifiedFragment = ({
         currentTime: 0,
         playing: false,
         status: Fragment_Status_Enum_Enum.NotStarted,
+        actionTriggered: '',
       })
     }
     if (state === 'start-recording') {
@@ -266,6 +267,7 @@ const UnifiedFragment = ({
         activePointIndex: 0,
         currentTime: 0,
         playing: false,
+        actionTriggered: '',
       })
       // setTopLayerChildren?.({ id: '', state: '' })
     }
@@ -273,6 +275,7 @@ const UnifiedFragment = ({
       // setTopLayerChildren?.({ id: '', state: '' })
       updatePayload?.({
         activeOutroIndex: 0,
+        actionTriggered: '',
       })
     }
   }, [state])
