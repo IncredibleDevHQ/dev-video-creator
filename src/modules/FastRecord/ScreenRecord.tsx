@@ -33,6 +33,7 @@ import {
   ScreenState,
   updateToast,
 } from '../../components'
+import config from '../../config'
 import { Images } from '../../constants'
 import {
   FlickParticipantsFragment,
@@ -812,7 +813,6 @@ const ScreenRecord = ({
       const url = URL.createObjectURL(blob)
       console.log('Prepare video success', url)
       setRecordedVideoSrc(url)
-      // updateRecordedBlocks(currentBlock.id, url)
     }
     if (state !== 'preview' && state !== 'upload') {
       setRecordedVideoSrc(undefined)
@@ -822,7 +822,7 @@ const ScreenRecord = ({
   useEffect(() => {
     console.log('State changed to', state)
     prepareVideo()
-  }, [state, currentBlock])
+  }, [state, currentBlock?.id])
 
   useEffect(() => {
     console.log('payload is', payload)
@@ -1000,7 +1000,7 @@ const ScreenRecord = ({
       // after updating the recorded blocks set this state which triggers the useEffect to update studio store
 
       // update block url in store for preview once upload is done
-      // setRecordedVideoSrc(`${config.storage.baseUrl}${uuid}`)
+      setRecordedVideoSrc(`${config.storage.baseUrl}${objectUrl}`)
 
       dismissToast(toast)
     } catch (e) {
@@ -1263,7 +1263,8 @@ const ScreenRecord = ({
                       recordedVideoSrc?.includes('blob') &&
                         !localRecordedBlocks
                           .map((b) => b.id)
-                          .includes(currentBlock?.id as string) && (
+                          .includes(currentBlock?.id as string) &&
+                        state !== 'upload' && (
                           <button
                             className="bg-incredible-green-600 text-white rounded-sm py-1.5 px-2.5 flex items-center gap-x-2 font-bold hover:shadow-lg text-sm"
                             type="button"
@@ -1280,22 +1281,9 @@ const ScreenRecord = ({
                                 return
                               }
 
-                              const isLastBlock =
-                                payload?.activeObjectIndex === blocks.length - 1
-                              // move on to next block
-                              const p = {
-                                ...payload,
-                                // eslint-disable-next-line no-nested-ternary
-                                activeObjectIndex: isLastBlock
-                                  ? 0
-                                  : payload.activeObjectIndex + 1,
-                              }
-
-                              p.status = Fragment_Status_Enum_Enum.Completed
-
-                              updatePayload?.(p)
                               // start async upload and move on to next block
-                              if (blockId) upload(blockId)
+                              if (blockId)
+                                upload(blocks[payload?.activeObjectIndex].id)
                               else {
                                 emitToast({
                                   title: 'Something went wrong!',
@@ -1306,7 +1294,19 @@ const ScreenRecord = ({
                                   new Error('No blockId in upload')
                                 )
                               }
-                              setState(isLastBlock ? 'preview' : 'resumed')
+
+                              const isLastBlock =
+                                payload?.activeObjectIndex === blocks.length - 1
+                              // move on to next block
+                              const p = {
+                                ...payload,
+                                // eslint-disable-next-line no-nested-ternary
+                                activeObjectIndex: isLastBlock
+                                  ? 0
+                                  : payload.activeObjectIndex + 1,
+                              }
+                              updatePayload?.(p)
+                              // setState(isLastBlock ? 'preview' : 'resumed')
                               setResetTimer(true)
                             }}
                           >
