@@ -136,12 +136,9 @@ const UnifiedFragment = ({
             )
           )
         }
-        console.log('UF: Fragm cofig :', fragment.configuration)
-
         setViewConfig(fragment.configuration)
       }
     } else {
-      console.log('ELSE', config, layoutConfig)
       setIsPreview(true)
       setDataConfig(config)
       setViewConfig(layoutConfig)
