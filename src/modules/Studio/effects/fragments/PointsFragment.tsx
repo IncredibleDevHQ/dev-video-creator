@@ -230,7 +230,9 @@ const PointsFragment = ({
         fontSize: 16,
         fontFamily: branding?.font?.body?.family || 'Inter',
         orientation,
-        layout: layout || viewConfig?.layout || 'classic',
+        layout: !isPreview
+          ? layout || viewConfig?.layout || 'classic'
+          : viewConfig?.layout || 'classic',
         isShorts: shortsMode || false,
         lineHeight: 1.3,
         theme: theme.name || 'DarkGradient',
@@ -239,14 +241,18 @@ const PointsFragment = ({
     if (orientation === 'horizontal') {
       setPointsConfig(
         getPointsConfig({
-          layout: layout || viewConfig?.layout || 'classic',
+          layout: !isPreview
+            ? layout || viewConfig?.layout || 'classic'
+            : viewConfig?.layout || 'classic',
           isShorts: shortsMode,
         })
       )
       setBulletsConfig(
         getBulletsConfig({
           theme: theme.name,
-          layout: layout || viewConfig?.layout || 'classic',
+          layout: !isPreview
+            ? layout || viewConfig?.layout || 'classic'
+            : viewConfig?.layout || 'classic',
         })
       )
     }
