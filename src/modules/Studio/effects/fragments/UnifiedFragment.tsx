@@ -117,8 +117,8 @@ const UnifiedFragment = ({
   }, [theme, studio.theme])
 
   useEffect(() => {
-    if (!fragment) return
     if (!config) {
+      if (!fragment) return
       setIsPreview(false)
       if (fragment.configuration && fragment.editorState) {
         if (fragment.configuration.continuousRecording) {
@@ -141,6 +141,7 @@ const UnifiedFragment = ({
         setViewConfig(fragment.configuration)
       }
     } else {
+      console.log('ELSE', config, layoutConfig)
       setIsPreview(true)
       setDataConfig(config)
       setViewConfig(layoutConfig)
