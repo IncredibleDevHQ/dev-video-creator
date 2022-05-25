@@ -53,8 +53,6 @@ const MiniTimeline = ({
 
     if (!block) return
 
-    setCurrentBlock(block)
-
     // check if block was already recorded and if so show the video preview
     const previouslyRecordedBlock = recordedBlocks?.find((b) => {
       return b.id === block?.id
@@ -142,6 +140,8 @@ const MiniTimeline = ({
               const clickedBlock = recordedBlocks?.find((b) => {
                 return b.id === block.id
               })
+
+              setCurrentBlock(block)
 
               updatePayload({
                 activeObjectIndex: index,
