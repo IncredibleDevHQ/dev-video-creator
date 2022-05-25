@@ -17,7 +17,7 @@ const tabs: Tab[] = [
 ]
 
 const Settings = () => {
-  const [currentTabId, setCurrentTabId] = useState<string>(tabs[1].id)
+  const [currentTabId, setCurrentTabId] = useState<string>(tabs[0].id)
 
   return (
     <div className="flex flex-col h-screen">
