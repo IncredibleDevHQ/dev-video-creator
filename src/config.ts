@@ -29,6 +29,13 @@ const config = {
     default: firebaseConfig,
   },
   /**
+   * OUR API configs...
+   */
+  api: {
+    server: import.meta.env.VITE_API_ENDPOINT,
+  },
+
+  /**
    * Sentry configs...
    */
   sentry: {
