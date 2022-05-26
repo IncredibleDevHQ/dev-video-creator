@@ -142,7 +142,7 @@ const VideoFragment = ({
       setTransformations(dataConfig.videoBlock.transformations)
     // eslint-disable-next-line consistent-return
     return element
-  }, [dataConfig, viewConfig, shortsMode, theme, layout])
+  }, [dataConfig, viewConfig, shortsMode, theme])
 
   useEffect(() => {
     setObjectConfig(
@@ -417,7 +417,7 @@ const VideoFragment = ({
   }, [renderMode, objectRenderConfig, transformations, videoFragmentData])
 
   const layerChildren: any[] = [
-    <Group x={0} y={0} opacity={0} ref={customLayoutRef}>
+    <Group x={0} y={0} opacity={!isPreview ? 0 : 1} ref={customLayoutRef}>
       <FragmentBackground
         theme={theme}
         objectConfig={objectConfig}
