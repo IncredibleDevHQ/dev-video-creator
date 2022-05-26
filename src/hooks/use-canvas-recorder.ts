@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import * as Sentry from '@sentry/react'
 import { saveAs } from 'file-saver'
@@ -207,7 +208,14 @@ const useCanvasRecorder = ({
       // recordedBlobs.current = []
       // setMediaRecorder(null)
       if (arrayBuffer) {
-        return getSeekableWebM(arrayBuffer)
+        try {
+          return getSeekableWebM(arrayBuffer)
+        } catch (e) {
+          console.error(e)
+          Sentry.captureException(
+            new Error(`Failed to make the blob seekable. ${JSON.stringify(e)}`)
+          )
+        }
       }
       return superblob
     } catch (e) {
