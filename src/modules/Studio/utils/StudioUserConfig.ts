@@ -45,7 +45,7 @@ export const StudioUserConfiguration = ({
           case 2:
             return [
               {
-                x: 400,
+                x: 392,
                 y: 25,
                 width: 640,
                 height: 480,
@@ -58,7 +58,7 @@ export const StudioUserConfiguration = ({
                   height: 480,
                   borderRadius: 8,
                 },
-                backgroundRectX: 504,
+                backgroundRectX: 496,
                 backgroundRectY: 9,
                 backgroundRectWidth: 432,
                 backgroundRectHeight: 512,
@@ -67,7 +67,7 @@ export const StudioUserConfiguration = ({
                 backgroundRectOpacity: 0.3,
               },
               {
-                x: -60,
+                x: -72,
                 y: 25,
                 width: 640,
                 height: 480,
@@ -80,7 +80,7 @@ export const StudioUserConfiguration = ({
                   height: 480,
                   borderRadius: 8,
                 },
-                backgroundRectX: 44,
+                backgroundRectX: 32,
                 backgroundRectY: 9,
                 backgroundRectWidth: 432,
                 backgroundRectHeight: 512,

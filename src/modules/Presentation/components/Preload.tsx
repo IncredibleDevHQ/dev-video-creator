@@ -221,14 +221,13 @@ const fetcher = async (
       const { data } = await getColorCodes(
         Buffer.from(codeBlock.code, 'base64').toString('utf8'),
         codeBlock.language || 'javascript',
-        userToken,
         codeTheme || CodeTheme.DarkPlus
       )
-      if (data?.errors) throw Error("Can't get color codes")
+      if (!data?.success) throw Error("Can't get color codes")
       return {
         key,
         url,
-        colorCodes: data.data.TokenisedCode.data,
+        colorCodes: data.data,
       }
     } catch (e) {
       return {
