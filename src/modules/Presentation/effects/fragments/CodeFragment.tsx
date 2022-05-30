@@ -1,9 +1,9 @@
 import axios from 'axios'
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
-import { useAuthState } from 'react-firebase-hooks/auth'
 import { Group } from 'react-konva'
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
+import * as config from '../../../../config'
 import Concourse from '../../components/Concourse'
 import FragmentBackground from '../../components/FragmentBackground'
 import RenderTokens, {
@@ -18,6 +18,10 @@ import useCode, { ComputedToken } from '../../hooks/use-code'
 import useEdit from '../../hooks/use-edit'
 import { presentationStore } from '../../stores'
 import {
+  controlsConfigStore,
+  PresentationProviderProps,
+} from '../../stores/presentation.store'
+import {
   BlockProperties,
   CodeAnimation,
   CodeBlockView,
@@ -31,44 +35,22 @@ import {
 } from '../../utils/FragmentLayoutConfig'
 import { ObjectRenderConfig, ThemeLayoutConfig } from '../../utils/ThemeConfig'
 import { CodeBlockProps } from '../../utils/utils'
-import * as config from '../../../../config'
-import firebaseState from '../../../../stores/firebase.store'
-import {
-  controlsConfigStore,
-  PresentationProviderProps,
-} from '../../stores/presentation.store'
 
 export const getColorCodes = async (
   code: string,
   language: string,
-  userToken: string,
   codeTheme: CodeTheme
 ) => {
   return axios.post(
-    config.default.hasura.server,
+    `${config.default.api.server}tokenisation/color-codes`,
     {
-      query: `
-          query GetTokenisedCode(
-            $code: String!
-            $language: String!
-            $theme: String
-          ) {
-            TokenisedCode(code: $code, language: $language, theme: $theme) {
-              success
-              data
-            }
-          }
-        `,
-      variables: {
-        code,
-        language: language || 'javascript',
-        theme: codeTheme,
-      },
+      code,
+      language: language || 'javascript',
+      theme: codeTheme,
     },
     {
       headers: {
         'Content-Type': 'application/json',
-        authorization: `Bearer ${userToken}`,
       },
     }
   )
@@ -181,9 +163,6 @@ const CodeFragment = ({
 
   // const [lineNumbers, setLineNumbers] = useState<number[]>([])
 
-  const { auth } = useRecoilValue(firebaseState)
-  const [user] = useAuthState(auth)
-
   const { clipRect } = useEdit()
 
   useEffect(() => {
@@ -226,22 +205,20 @@ const CodeFragment = ({
             (code?.code !== decodedCode ||
               codeBlockViewProps.theme !== code?.theme)
           ) {
-            const token = await user?.getIdToken()
             const { data } = await getColorCodes(
               decodedCode,
               dataConfig.codeBlock.language || '',
-              token || '',
               codeBlockViewProps?.theme
             )
-            if (!data?.errors) {
-              setColorCodes(data.data.TokenisedCode.data)
+            if (data?.success) {
+              setColorCodes(data.data)
               setStudio({
                 ...studio,
                 codes: {
                   ...studio.codes,
                   [dataConfig.id]: {
                     code: decodedCode,
-                    colorCode: data.data.TokenisedCode.data,
+                    colorCode: data.data,
                     theme: codeBlockViewProps?.theme,
                   },
                 },

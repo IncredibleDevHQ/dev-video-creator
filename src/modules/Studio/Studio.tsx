@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /* eslint-disable jsx-a11y/media-has-caption */
 import { css, cx } from '@emotion/css'
 import * as Sentry from '@sentry/react'
@@ -1006,18 +1007,6 @@ const Studio = ({
     }
   }
 
-  // const finalTransition = () => {
-  //   if (!payload) return
-  //   payload.playing = false
-  //   // updatePayload?.({ status: Fragment_Status_Enum_Enum.Ended })
-  // }
-
-  useEffect(() => {
-    if (payload?.status === Fragment_Status_Enum_Enum.Ended) {
-      stop()
-    }
-  }, [payload?.status])
-
   const stop = () => {
     console.log('stop')
 
@@ -1041,6 +1030,12 @@ const Studio = ({
   }
 
   useEffect(() => {
+    if (payload?.status === Fragment_Status_Enum_Enum.Ended) {
+      stop()
+    }
+  }, [payload?.status])
+
+  useEffect(() => {
     if (payload?.status === Fragment_Status_Enum_Enum.NotStarted) {
       setState('ready')
     }
@@ -1049,11 +1044,6 @@ const Studio = ({
       payload?.status === Fragment_Status_Enum_Enum.Completed
     ) {
       stream?.getTracks().forEach((track) => track.stop())
-      emitToast({
-        title: 'This Fragment is completed.',
-        type: 'success',
-        autoClose: 3000,
-      })
     }
   }, [payload, studio.isHost])
 
@@ -1304,12 +1294,49 @@ const Studio = ({
         dataConfig?.[payload?.activeObjectIndex].type === 'outroBlock'
       setState(isOutro ? 'preview' : 'resumed')
       setResetTimer(true)
+      updatePayload?.({
+        actionTriggered: '',
+      })
     }
     if (payload?.actionTriggered === 'Retake') {
       resetCanvas()
       setTopLayerChildren?.({ id: nanoid(), state: '' })
+
+      if (recordedBlocks && currentBlock) {
+        const currBlock = recordedBlocks.filter(
+          (b) => b.id === currentBlock?.id
+        )[0]
+        let copyRecordedBlocks = [...recordedBlocks]
+        copyRecordedBlocks = copyRecordedBlocks.filter(
+          (blk) => blk.objectUrl !== currBlock.objectUrl
+        )
+        setLocalRecordedBlocks(copyRecordedBlocks)
+      }
+
       setState('resumed')
       setResetTimer(true)
+      updatePayload?.({
+        actionTriggered: '',
+      })
+    }
+    if (payload?.actionTriggered === 'RetakeMultipleBlocks') {
+      resetCanvas()
+      setTopLayerChildren?.({ id: nanoid(), state: '' })
+
+      const currBlock = recordedBlocks?.filter(
+        (b) => b.id === currentBlock?.id
+      )[0]
+      // remove all copies of currBlock.objectUrl from local state
+      const updatedBlockList = recordedBlocks?.filter(
+        (blk) => blk.objectUrl !== currBlock?.objectUrl
+      )
+      setLocalRecordedBlocks(updatedBlockList)
+
+      setState('resumed')
+      setResetTimer(true)
+      updatePayload?.({
+        actionTriggered: '',
+      })
     }
   }, [payload?.actionTriggered])
 
@@ -1713,6 +1740,7 @@ const Studio = ({
                               (blk) => blk.objectUrl === currBlock.objectUrl
                             ).length > 1
 
+                          // this if handles the case when the retake button is clicked on a block that is part of continuous recording
                           if (isDuplicate) {
                             // call action to delete all blocks with currBlock.objectUrl
                             if (!confirmMultiBlockRetake) {
@@ -1733,35 +1761,40 @@ const Studio = ({
                                 },
                               })
                               setConfirmMultiBlockRetake(false)
-                              // remove all copies of currBlock.objectUrl from local state
-                              const updatedBlockList = recordedBlocks.filter(
-                                (blk) => blk.objectUrl !== currBlock.objectUrl
-                              )
-                              console.log(
-                                'Removing blks with obj = ',
-                                currBlock.objectUrl
-                              )
-                              console.log(
-                                'UpdatedBlockList = ',
-                                updatedBlockList
-                              )
-                              setLocalRecordedBlocks(updatedBlockList)
+
+                              updatePayload?.({
+                                actionTriggered: 'RetakeMultipleBlocks',
+                              })
+
+                              // // remove all copies of currBlock.objectUrl from local state
+                              // const updatedBlockList = recordedBlocks.filter(
+                              //   (blk) => blk.objectUrl !== currBlock.objectUrl
+                              // )
+                              // console.log(
+                              //   'Removing blks with obj = ',
+                              //   currBlock.objectUrl
+                              // )
+                              // console.log(
+                              //   'UpdatedBlockList = ',
+                              //   updatedBlockList
+                              // )
+                              // setLocalRecordedBlocks(updatedBlockList)
                             }
                           } else {
-                            if (recordedBlocks && currentBlock) {
-                              let copyRecordedBlocks = [...recordedBlocks]
-                              // const currentRecordedBlock =
-                              //   copyRecordedBlocks?.findIndex(
-                              //     (b) => b.id === currentBlock?.id
-                              //   )
-                              // copyRecordedBlocks.splice(currentRecordedBlock, 1)
+                            // if (recordedBlocks && currentBlock) {
+                            //   let copyRecordedBlocks = [...recordedBlocks]
+                            //   // const currentRecordedBlock =
+                            //   //   copyRecordedBlocks?.findIndex(
+                            //   //     (b) => b.id === currentBlock?.id
+                            //   //   )
+                            //   // copyRecordedBlocks.splice(currentRecordedBlock, 1)
 
-                              // remove prev-recorded/continuously-recorded blocks with the same objectURL as the current block object url
-                              copyRecordedBlocks = copyRecordedBlocks.filter(
-                                (blk) => blk.objectUrl !== currBlock.objectUrl
-                              )
-                              setLocalRecordedBlocks(copyRecordedBlocks)
-                            }
+                            //   // remove prev-recorded/continuously-recorded blocks with the same objectURL as the current block object url
+                            //   copyRecordedBlocks = copyRecordedBlocks.filter(
+                            //     (blk) => blk.objectUrl !== currBlock.objectUrl
+                            //   )
+                            //   setLocalRecordedBlocks(copyRecordedBlocks)
+                            // }
 
                             const isCloudBlock = recordedBlocks?.find(
                               (b) =>
