@@ -540,6 +540,7 @@ const AccessControl = ({
             {!isInvitee && (
               <>
                 <Menu.Item
+                  as="button"
                   onClick={() => {
                     handleTransfer(participantId, participantSub)
                   }}
@@ -585,6 +586,7 @@ const AccessControl = ({
               </>
             )}
             <Menu.Item
+              as="button"
               onClick={() => {
                 handleRemoval(participantSub)
               }}

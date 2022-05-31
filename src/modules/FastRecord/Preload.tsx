@@ -247,7 +247,12 @@ const preload = async ({
       editorState,
       flick: {
         ...fragment.flick,
-        branding,
+        branding: fragment.flick.branding
+          ? {
+              ...fragment.flick.branding,
+              branding,
+            }
+          : undefined,
       },
     })
 

@@ -12,7 +12,7 @@ import { cx } from '@emotion/css'
 import Konva from 'konva'
 import React, { HTMLAttributes, useEffect, useRef, useState } from 'react'
 import { BiPause, BiPlay, BiTrim } from 'react-icons/bi'
-import { FiScissors } from 'react-icons/fi'
+import { FiLoader, FiScissors } from 'react-icons/fi'
 import { IoCropSharp } from 'react-icons/io5'
 import { Group, Image, Layer, Rect, Stage, Transformer } from 'react-konva'
 import useImage from 'use-image'
@@ -59,6 +59,7 @@ export interface EditorProps {
   totalDuration: number
   videosConfig: VideoConfig[]
   activeVideoConfig: VideoConfig
+  saving: boolean
   setActiveVideoConfig: (videoConfig: VideoConfig) => void
   setVideosConfig: (videosConfig: VideoConfig[]) => void
 }
@@ -452,6 +453,7 @@ const FastVideoEditor = ({
   width,
   videosConfig,
   totalDuration,
+  saving,
   setVideosConfig,
   activeVideoConfig,
   setActiveVideoConfig,
@@ -460,7 +462,7 @@ const FastVideoEditor = ({
   const videoRef = React.useRef<HTMLVideoElement | null>(null)
 
   const [mode, setMode] = React.useState<'crop' | 'trim' | 'split' | null>(
-    'split'
+    'trim'
   )
   const [crop, setCrop] = React.useState<Coordinates>({
     x: 0,
@@ -807,29 +809,53 @@ const FastVideoEditor = ({
         <div>
           {mode === 'split' && (
             <button
+              style={{
+                minWidth: '112px',
+              }}
               type="button"
-              className="text-sm bg-black text-white py-2 px-2 rounded-md cursor-pointer flex items-center"
-              onClick={() => addSplitVideoConfig(time)}
+              className="text-sm bg-dark-500 hover:bg-dark-100 active:bg-dark-300 text-white py-2 px-2 rounded-md cursor-pointer flex items-center justify-center h-9 min-w-max"
+              onClick={() => {
+                addSplitVideoConfig(time)
+              }}
             >
-              <FiScissors className="mr-2" /> Split at {formattedTime(time)}
+              {saving && <FiLoader className="animate-spin" />}
+              {!saving && (
+                <>
+                  <FiScissors className="mr-2" /> Split at {formattedTime(time)}
+                </>
+              )}
             </button>
           )}
           {mode === 'trim' && (
             <button
               type="button"
-              className="text-sm bg-black text-white py-2 px-2 rounded-md cursor-pointer flex items-center"
-              onClick={saveClip}
+              className="text-sm bg-dark-500 hover:bg-dark-100 active:bg-dark-400 text-white py-2 px-2 rounded-md cursor-pointer flex items-center justify-center h-9 w-28"
+              onClick={() => {
+                saveClip()
+              }}
             >
-              <BiTrim className="mr-2" /> Save trim
+              {saving && <FiLoader className="animate-spin" />}
+              {!saving && (
+                <>
+                  <BiTrim className="mr-2" /> Save trim
+                </>
+              )}
             </button>
           )}
           {mode === 'crop' && (
             <button
               type="button"
-              className="text-sm bg-black text-white py-2 px-2 rounded-md cursor-pointer flex items-center"
-              onClick={saveCrop}
+              className="text-sm bg-dark-500 hover:bg-dark-100 active:bg-dark-400 text-white py-2 px-2 rounded-md cursor-pointer flex items-center items-center justify-center h-9 w-28"
+              onClick={() => {
+                saveCrop()
+              }}
             >
-              <IoCropSharp className="mr-2" /> Save crop
+              {saving && <FiLoader className="animate-spin" />}
+              {!saving && (
+                <>
+                  <IoCropSharp className="mr-2" /> Save crop
+                </>
+              )}
             </button>
           )}
         </div>
