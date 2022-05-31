@@ -238,7 +238,7 @@ const Preview = ({
           updatePayload?.({
             activeIntroIndex:
               ((config.blocks[blocks[block.pos - 1].id].view as IntroBlockView)
-                .intro.order?.length || 0) - 1,
+                ?.intro?.order?.length || 0) - 1,
           })
         }
         setCurrentBlock(blocks[block.pos - 1])
@@ -249,16 +249,16 @@ const Preview = ({
         !block ||
         (block.pos === blocks.length - 1 &&
           payload.activeOutroIndex ===
-            ((config.blocks[blocks[block.pos].id].view as OutroBlockView).outro
-              .order?.length || 0) -
+            ((config.blocks[blocks[block.pos].id].view as OutroBlockView)?.outro
+              ?.order?.length || 0) -
               1)
       )
         return
       if (block.type === 'introBlock') {
         if (
           payload.activeIntroIndex ===
-          ((config.blocks[blocks[block.pos].id].view as IntroBlockView).intro
-            .order?.length || 0) -
+          ((config.blocks[blocks[block.pos].id].view as IntroBlockView)?.intro
+            ?.order?.length || 0) -
             1
         ) {
           setCurrentBlock(blocks[block.pos + 1])
@@ -378,7 +378,7 @@ const Preview = ({
                       ((
                         config.blocks[blocks[block.pos - 1].id]
                           .view as IntroBlockView
-                      ).intro.order?.length || 0) - 1,
+                      )?.intro?.order?.length || 0) - 1,
                   })
                 }
                 setCurrentBlock(blocks[block.pos - 1])
@@ -420,7 +420,7 @@ const Preview = ({
                 if (
                   payload.activeIntroIndex ===
                   ((config.blocks[blocks[block.pos].id].view as IntroBlockView)
-                    .intro.order?.length || 0) -
+                    ?.intro?.order?.length || 0) -
                     1
                 ) {
                   setCurrentBlock(blocks[block.pos + 1])
@@ -442,7 +442,7 @@ const Preview = ({
               block.pos === blocks.length - 1 &&
               payload.activeOutroIndex ===
                 ((config.blocks[blocks[block.pos].id].view as OutroBlockView)
-                  .outro.order?.length || 0) -
+                  ?.outro?.order?.length || 0) -
                   1
             }
             className={cx('bg-dark-100 text-white p-2 rounded-sm ml-4', {
@@ -450,7 +450,7 @@ const Preview = ({
                 block.pos === blocks.length - 1 &&
                 payload.activeOutroIndex ===
                   ((config.blocks[blocks[block.pos].id].view as OutroBlockView)
-                    .outro.order?.length || 0) -
+                    ?.outro?.order?.length || 0) -
                     1,
               'opacity-90 hover:bg-dark-100 hover:opacity-100':
                 block.pos < blocks.length - 1,
