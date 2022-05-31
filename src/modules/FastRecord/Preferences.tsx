@@ -67,7 +67,7 @@ const Preferences = ({
 }) => {
   const [preferences, setPreferences] = useState<IPreferences>()
 
-  const [tab, setTab] = useState<'theme' | 'layout'>('theme')
+  const [tab, setTab] = useState<'theme' | 'layout'>('layout')
 
   const [referenceElement, setReferenceElement] = useState<HTMLElement | null>(
     null
@@ -88,7 +88,6 @@ const Preferences = ({
     useUpdateFlickPreferencesMutation()
 
   useEffect(() => {
-    if (!data) return
     setPreferences({
       brandingId: fragment.flick.brandingId,
       screenRecordingLayout: viewConfig.blocks[blocks[0].id].layout,
@@ -143,17 +142,6 @@ const Preferences = ({
       <div className="flex w-full items-center text-xs gap-x-4 pt-2 px-3 pl-4 border-b border-dark-100 pb-2">
         <button
           className={cx({
-            'text-dark-title': tab !== 'theme',
-          })}
-          type="button"
-          onClick={() => {
-            setTab('theme')
-          }}
-        >
-          Theme & brand
-        </button>
-        <button
-          className={cx({
             'text-dark-title': tab !== 'layout',
           })}
           type="button"
@@ -162,6 +150,17 @@ const Preferences = ({
           }}
         >
           Layout
+        </button>
+        <button
+          className={cx({
+            'text-dark-title': tab !== 'theme',
+          })}
+          type="button"
+          onClick={() => {
+            setTab('theme')
+          }}
+        >
+          Theme & brand
         </button>
         <button
           type="button"
@@ -396,7 +395,7 @@ const Canvas = ({
                   },
                 }}
                 config={[block]}
-                branding={undefined}
+                branding={preferences?.branding?.branding || undefined}
                 theme={preferences?.theme}
               />
             </Layer>
