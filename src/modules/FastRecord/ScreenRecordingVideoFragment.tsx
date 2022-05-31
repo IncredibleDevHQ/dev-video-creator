@@ -158,9 +158,9 @@ const VideoFragment = ({
     }
   }, [])
 
-  // useEffect(() => {
-  //   setLayout(viewConfig?.layout)
-  // }, [viewConfig])
+  useEffect(() => {
+    setLayout(viewConfig?.layout)
+  }, [viewConfig])
 
   const videoElement = React.useMemo(() => {
     if (!dataConfig) return
@@ -171,13 +171,6 @@ const VideoFragment = ({
     element.muted = true
     element.src = localVideoUrl || dataConfig.videoBlock.url || ''
 
-    setObjectConfig(
-      FragmentLayoutConfig({
-        theme,
-        layout: layout || viewConfig?.layout || 'classic',
-        isShorts: shortsMode || false,
-      })
-    )
     setVideoFragmentData({
       title: dataConfig?.videoBlock.title || '',
       caption: dataConfig?.videoBlock?.caption || '',
@@ -190,7 +183,17 @@ const VideoFragment = ({
       setTransformations(dataConfig.videoBlock.transformations)
     // eslint-disable-next-line consistent-return
     return element
-  }, [dataConfig, viewConfig, shortsMode, theme, layout])
+  }, [dataConfig, viewConfig, shortsMode, theme])
+
+  useEffect(() => {
+    setObjectConfig(
+      FragmentLayoutConfig({
+        theme,
+        layout: layout || viewConfig?.layout || 'classic',
+        isShorts: shortsMode || false,
+      })
+    )
+  }, [layout, viewConfig?.layout, shortsMode])
 
   useEffect(() => {
     setObjectRenderConfig(
@@ -622,7 +625,7 @@ const VideoFragment = ({
 
   const studioUserConfig = !shortsMode
     ? StudioUserConfiguration({
-        layout: layout || 'classic',
+        layout: layout || viewConfig?.layout || 'classic',
         noOfParticipants: users
           ? users?.length + 1
           : fragment?.configuration?.speakers?.length,
@@ -630,7 +633,7 @@ const VideoFragment = ({
         theme,
       })
     : ShortsStudioUserConfiguration({
-        layout: layout || 'classic',
+        layout: layout || viewConfig?.layout || 'classic',
         noOfParticipants: users
           ? users?.length + 1
           : fragment?.configuration?.speakers?.length,
@@ -651,6 +654,7 @@ const VideoFragment = ({
         theme={theme}
         stageConfig={stageConfig}
         isShorts={shortsMode}
+        branding={branding}
       />
       {(viewConfig?.layout === 'full-left' ||
         viewConfig?.layout === 'full-right') &&

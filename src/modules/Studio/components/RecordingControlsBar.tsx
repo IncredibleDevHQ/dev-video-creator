@@ -558,7 +558,7 @@ const RecordingControlsBar = ({
                         (b: any) => b.type !== 'interactionBlock'
                       )[payload?.activeObjectIndex].id
                     ].view as OutroBlockView
-                  ).outro.order?.length || 0) -
+                  )?.outro?.order?.length || 0) -
                     1,
             }
           )}
@@ -576,7 +576,7 @@ const RecordingControlsBar = ({
                     (b: any) => b.type !== 'interactionBlock'
                   )[payload?.activeObjectIndex].id
                 ].view as OutroBlockView
-              ).outro.order?.length || 0) -
+              )?.outro?.order?.length || 0) -
                 1
           }
           onClick={() => {
@@ -988,7 +988,7 @@ const handleOutroBlock = (
   if (direction === 'next') {
     if (
       payload?.activeOutroIndex ===
-      (outroBlockViewProps.outro?.order?.length || 0) - 1
+      (outroBlockViewProps?.outro?.order?.length || 0) - 1
     ) {
       // updatePayload?.({
       //   activeObjectIndex: payload?.activeObjectIndex + 1,

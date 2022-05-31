@@ -188,7 +188,7 @@ const EditorHeader = ({
     const introBlockView = viewConfig.blocks[introBlock.id]
       .view as IntroBlockView
     updatePayload?.({
-      activeIntroIndex: introBlockView.intro.order?.findIndex(
+      activeIntroIndex: introBlockView?.intro?.order?.findIndex(
         (o) => o.state === 'titleSplash'
       ),
     })

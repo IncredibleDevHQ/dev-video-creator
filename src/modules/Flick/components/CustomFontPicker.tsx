@@ -137,7 +137,11 @@ const CustomFontPicker = ({
                 )}
               >
                 {fonts.map((font, index) => (
-                  <Menu.Item key={font.family} onClick={() => onChange(font)}>
+                  <Menu.Item
+                    as="button"
+                    key={font.family}
+                    onClick={() => onChange(font)}
+                  >
                     {({ active }) => (
                       <div
                         className={cx(
@@ -170,6 +174,7 @@ const CustomFontPicker = ({
               </Menu.Items>
               {open && (
                 <Menu.Item
+                  as="button"
                   onClick={() => {
                     showUploadFont()
                   }}
