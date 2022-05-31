@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 /* eslint-disable jsx-a11y/media-has-caption */
 import { css, cx } from '@emotion/css'
+import { Dialog, Switch } from '@headlessui/react'
 import * as Sentry from '@sentry/react'
 import {
   createMicrophoneAndCameraTracks,
@@ -14,7 +15,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import AspectRatio from 'react-aspect-ratio'
 import { BiErrorCircle, BiMicrophone, BiVideo } from 'react-icons/bi'
 import { FiRotateCcw } from 'react-icons/fi'
-import { IoArrowBack, IoPencilOutline } from 'react-icons/io5'
+import { HiOutlinePencilAlt } from 'react-icons/hi'
+import { IoArrowBack, IoSettingsOutline } from 'react-icons/io5'
 import { Group, Layer, Stage } from 'react-konva'
 import Modal from 'react-responsive-modal'
 import { useHistory, useParams } from 'react-router-dom'
@@ -50,7 +52,6 @@ import { User, userState } from '../../stores/user.store'
 import { logEvent } from '../../utils/analytics'
 import { PageEvent } from '../../utils/analytics-types'
 import { BlockProperties, TopLayerChildren } from '../../utils/configTypes'
-import { BrandingJSON } from '../Branding/BrandingPage'
 import { EditorProvider } from '../Flick/components/EditorProvider'
 import { TextEditorParser } from '../Flick/editor/utils/helpers'
 import { Block, SimpleAST, VideoBlockProps } from '../Flick/editor/utils/utils'
@@ -70,9 +71,10 @@ import Countdown from './Countdown'
 import FastRecord from './FastRecord'
 import MiniTimeline from './MiniTimeline'
 import Notes from './Notes'
+import Preferences from './Preferences'
 import Preload from './Preload'
 import RecordingControlsBar from './RecordingControlsBar'
-import VideoFragment from './VideoFragment'
+import VideoFragment from './ScreenRecordingVideoFragment'
 
 const ScreenRecordHoC = () => {
   const [view, setView] = useState<'preview' | 'preload' | 'studio'>('preload')
@@ -166,11 +168,6 @@ const ScreenRecordHoC = () => {
       <EditorProvider>
         <ScreenRecord
           fragment={fragment}
-          branding={
-            data?.Fragment?.[0].flick.useBranding
-              ? data?.Fragment?.[0]?.flick.branding?.branding
-              : null
-          }
           devices={devices.current}
           recordingsData={recordingsData}
           localVideoUrl={localVideoUrl}
@@ -493,13 +490,11 @@ const Preview = ({
 const ScreenRecord = ({
   fragment: studioFragment,
   devices,
-  branding,
   recordingsData,
   localVideoUrl,
 }: {
   fragment: StudioFragmentFragment
   devices: { microphone: Device | null; camera: Device | null }
-  branding: BrandingJSON | null
   localVideoUrl?: string
   recordingsData:
     | {
@@ -520,6 +515,9 @@ const ScreenRecord = ({
     useState<StudioFragmentFragment>(studioFragment)
 
   const [isEditOpen, setIsEditOpen] = useState(false)
+  const [isPreferencesOpen, setIsPreferencesOpen] = useState(false)
+
+  const [isLowerThirdEnabled, setIsLowerThirdEnabled] = useState(true)
 
   const [blocks, setBlocks] = useState<Block[]>(
     fragment.editorState?.blocks.filter(
@@ -744,6 +742,11 @@ const ScreenRecord = ({
       localStream: stream as MediaStream,
       remoteStreams: userAudios,
     })
+
+    if (isLowerThirdEnabled)
+      setTimeout(() => {
+        setTopLayerChildren({ id: nanoid(), state: 'lowerThird' })
+      }, 1000)
 
     setResetTimer(false)
 
@@ -1047,28 +1050,74 @@ const ScreenRecord = ({
             payload={payload}
             updatePayload={updatePayload}
             state={state}
+            setState={setState}
           />
           {/* Stage and notes */}
           <div className="flex items-center justify-between mt-8 mx-8">
-            <IoArrowBack
-              size={18}
-              type="button"
-              className="max-w-max p-0 cursor-pointer text-white opacity-90"
-              onClick={() =>
-                history.length > 2
-                  ? history.goBack()
-                  : history.push(`/story/${fragment?.flickId}`)
-              }
-            />
             <button
+              onClick={() => history.push(`/story/${fragment?.flickId}`)}
               type="button"
-              className="bg-dark-100 hover:bg-dark-200 active:bg-dark-300 text-gray-100 rounded-sm"
-              onClick={() => {
-                setIsEditOpen(true)
-              }}
+              className="flex items-center cursor-pointer text-white gap-x-2 opacity-90"
             >
-              <IoPencilOutline className="m-2" />
+              <IoArrowBack size={16} type="button" className="max-w-max p-0" />
+              <span className="text-xs">Go to notebook</span>
             </button>
+            <div className="flex items-center gap-x-2">
+              <Switch.Group
+                as="div"
+                className={cx(
+                  'flex items-center gap-x-2 bg-dark-100 px-2 py-2 rounded-sm',
+                  {
+                    'opacity-70 cursor-not-allowed':
+                      state === 'recording' || state === 'start-recording',
+                  }
+                )}
+              >
+                <Switch
+                  checked={isLowerThirdEnabled}
+                  onChange={() => {
+                    setIsLowerThirdEnabled(!isLowerThirdEnabled)
+                  }}
+                  disabled={
+                    state === 'recording' || state === 'start-recording'
+                  }
+                  className={`${
+                    isLowerThirdEnabled ? 'bg-brand' : 'bg-gray-400'
+                  }  relative inline-flex items-center h-3 rounded-full w-6 transition-colors focus:outline-none disabled:cursor-not-allowed`}
+                >
+                  <span
+                    className={`${
+                      isLowerThirdEnabled ? 'translate-x-3.5' : 'translate-x-px'
+                    } inline-block w-2 h-2 transform bg-white rounded-full transition-transform`}
+                  />
+                </Switch>
+                <Switch.Label className="text-white text-xs">
+                  Show lower third
+                </Switch.Label>
+              </Switch.Group>
+              <button
+                disabled={state === 'recording' || state === 'start-recording'}
+                type="button"
+                className="bg-dark-100 hover:bg-dark-200 active:bg-dark-300 text-gray-100 rounded-sm flex items-center gap-x-2 text-xs px-2 py-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                onClick={() => {
+                  setIsPreferencesOpen(true)
+                }}
+              >
+                <IoSettingsOutline className="" />
+                <span>Edit preferences</span>
+              </button>
+              <button
+                disabled={state === 'recording' || state === 'start-recording'}
+                type="button"
+                className="bg-dark-100 hover:bg-dark-200 active:bg-dark-300 text-gray-100 rounded-sm flex items-center gap-x-2 text-xs px-2 py-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                onClick={() => {
+                  setIsEditOpen(true)
+                }}
+              >
+                <HiOutlinePencilAlt className="" />
+                <span>Split, Trim & Crop</span>
+              </button>
+            </div>
           </div>
           <div className="grid grid-cols-11 gap-x-12 flex-1 items-center px-8 pb-8">
             {/* Stage */}
@@ -1132,7 +1181,9 @@ const ScreenRecord = ({
                                     theme={fragment.flick.theme}
                                     state={state}
                                     payload={payload}
-                                    branding={branding}
+                                    branding={
+                                      fragment.flick.branding?.branding || null
+                                    }
                                     setControlsConfig={setControlsConfig}
                                     setFragmentState={setFragmentState}
                                     updatePayload={updatePayload}
@@ -1151,7 +1202,9 @@ const ScreenRecord = ({
                                   isShorts={false}
                                   status={payload?.status}
                                   theme={fragment.flick.theme}
-                                  branding={branding}
+                                  branding={
+                                    fragment.flick.branding?.branding || null
+                                  }
                                   performFinishAction={() => {
                                     stopCanvasRecording()
                                     setState('preview')
@@ -1213,16 +1266,14 @@ const ScreenRecord = ({
         </>
       ) : (
         <div className="flex flex-col h-full">
-          <IoArrowBack
-            size={18}
+          <button
+            onClick={() => history.push(`/story/${fragment?.flickId}`)}
             type="button"
-            className="max-w-max p-0 cursor-pointer text-white opacity-90 ml-8 mt-8"
-            onClick={() =>
-              history.length > 2
-                ? history.goBack()
-                : history.push(`/story/${fragment?.flickId}`)
-            }
-          />
+            className="flex items-center cursor-pointer text-white gap-x-2 ml-8 mt-8 opacity-90"
+          >
+            <IoArrowBack size={16} type="button" className="max-w-max p-0" />
+            <span className="text-xs">Go to notebook</span>
+          </button>
           <div className="flex items-center justify-center flex-col w-full flex-1 pt-4">
             {localRecordedBlocks && (
               <div
@@ -1376,40 +1427,77 @@ const ScreenRecord = ({
         fragment.encodedEditorValue &&
         fragment.configuration &&
         fragment.editorState && (
-          <Modal
-            open={isEditOpen}
-            onClose={() => {
-              setIsEditOpen(false)
-            }}
-            styles={{
-              modal: {
-                maxWidth: '90%',
-                width: '100%',
-                maxHeight: '90vh',
-                height: '100%',
-                padding: '0',
-              },
-            }}
-            classNames={{
-              modal: cx('rounded-md m-0 p-0'),
-            }}
-            center
-            showCloseIcon={false}
-          >
-            <FastRecord
-              blocks={blocks as VideoBlockProps[]}
-              viewConfig={fragment.configuration}
-              dataConfig={fragment.editorState}
-              encodedEditorJSON={fragment.encodedEditorValue}
-              setBlocks={setBlocks}
-              setCurrentBlock={setCurrentBlock}
-              fragment={fragment}
-              setFragment={setFragment}
-              handleClose={() => {
+          <>
+            <Modal
+              open={isEditOpen}
+              onClose={() => {
                 setIsEditOpen(false)
               }}
-            />
-          </Modal>
+              styles={{
+                modal: {
+                  maxWidth: '90%',
+                  width: '100%',
+                  maxHeight: '90vh',
+                  height: '100%',
+                  padding: '0',
+                },
+              }}
+              classNames={{
+                modal: cx('rounded-md m-0 p-0'),
+              }}
+              center
+              showCloseIcon={false}
+            >
+              <FastRecord
+                blocks={blocks as VideoBlockProps[]}
+                viewConfig={fragment.configuration}
+                dataConfig={fragment.editorState}
+                encodedEditorJSON={fragment.encodedEditorValue}
+                setBlocks={setBlocks}
+                setCurrentBlock={setCurrentBlock}
+                fragment={fragment}
+                setFragment={setFragment}
+                handleClose={() => {
+                  setIsEditOpen(false)
+                }}
+              />
+            </Modal>
+
+            <Dialog
+              className="relative z-50"
+              open={isPreferencesOpen}
+              onClose={() => {
+                setIsPreferencesOpen(false)
+              }}
+            >
+              <div
+                className="fixed inset-0 bg-black opacity-50"
+                aria-hidden="true"
+              />
+              <Dialog.Panel>
+                <div
+                  style={{
+                    maxWidth: '70%',
+                    width: '100%',
+                    maxHeight: '80vh',
+                    height: '100%',
+                    padding: '0',
+                  }}
+                  className="fixed inset-0 m-auto p-4 bg-dark-300 text-white rounded-md"
+                >
+                  <Preferences
+                    blocks={blocks as VideoBlockProps[]}
+                    viewConfig={fragment.configuration}
+                    fragment={fragment}
+                    setFragment={setFragment}
+                    handleClose={() => {
+                      setIsPreferencesOpen(false)
+                    }}
+                  />
+                </div>
+              </Dialog.Panel>
+            </Dialog>
+          </>
         )}
     </div>
   )

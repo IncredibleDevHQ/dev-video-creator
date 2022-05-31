@@ -472,3 +472,29 @@ mutation CompleteRecording($editorState: json!, $recordingId: uuid!) {
     success
   }
 }
+
+mutation UpdateFlickPreferences(
+  $id: uuid!
+  $useBranding: Boolean!
+  $brandingId: uuid
+  $themeName: String!
+  $fragmentId: uuid!
+  $configuration: json!
+) {
+  update_Flick_by_pk(
+    pk_columns: { id: $id }
+    _set: {
+      useBranding: $useBranding
+      brandingId: $brandingId
+      themeName: $themeName
+    }
+  ) {
+    id
+  }
+  update_Fragment_by_pk(
+    pk_columns: { id: $fragmentId }
+    _set: { configuration: $configuration }
+  ) {
+    id
+  }
+}

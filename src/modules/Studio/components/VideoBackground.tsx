@@ -4,6 +4,7 @@ import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
 import config from '../../../config'
 import { ThemeFragment } from '../../../generated/graphql'
+import { BrandingJSON } from '../../Branding/BrandingPage'
 import { studioStore } from '../stores'
 import { Video } from './Video'
 
@@ -11,6 +12,7 @@ const VideoBackground = ({
   theme,
   stageConfig,
   isShorts,
+  branding: brandingProp,
 }: {
   theme: ThemeFragment
   stageConfig: {
@@ -18,8 +20,10 @@ const VideoBackground = ({
     height: number
   }
   isShorts: boolean
+  branding?: BrandingJSON | null
 }) => {
-  const { branding } = useRecoilValue(studioStore)
+  const brandingFromStore = useRecoilValue(studioStore).branding
+  const branding = brandingProp || brandingFromStore
   const [bgImage] = useImage(branding?.background?.url || '', 'anonymous')
   const [darkGradientThemeBackground] = useImage(
     `${config.storage.baseUrl}themes/glassyThemeBackground.png`,
