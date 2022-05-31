@@ -7,10 +7,12 @@ const Countdown = ({
   payload,
   state,
   updatePayload,
+  setState,
 }: {
   payload: any
   updatePayload: (value: any) => void
   state: StudioState
+  setState: (state: StudioState) => void
 }) => {
   const [timer, setTimer] = useState<number>(3)
 
@@ -20,6 +22,7 @@ const Countdown = ({
         updatePayload?.({
           status: Fragment_Status_Enum_Enum.Live,
         })
+        setState('recording')
       } else {
         setTimeout(() => {
           setTimer(timer - 1)

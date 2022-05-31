@@ -38,7 +38,7 @@ const AuthProvider = ({ children }: { children: JSX.Element }): JSX.Element => {
         id: user.uid,
       })
 
-      window.analytics.identify(user.email, {
+      window.analytics.identify(user.uid, {
         email: user.email,
         userId: user.uid,
       })

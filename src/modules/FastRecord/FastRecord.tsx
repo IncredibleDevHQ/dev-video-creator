@@ -6,7 +6,7 @@
 import { cx } from '@emotion/css'
 import { JSONContent } from '@tiptap/core'
 import produce from 'immer'
-import React, { useContext, useEffect, useState } from 'react'
+import React, { useContext, useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { v4 as uuidv4 } from 'uuid'
 import { Button, emitToast } from '../../components'
@@ -15,6 +15,7 @@ import {
   useMoveOrCopyBlocksMutation,
 } from '../../generated/graphql'
 import { useQuery } from '../../hooks'
+import useDidUpdateEffect from '../../hooks/use-did-update-effect'
 import { ViewConfig } from '../../utils/configTypes'
 import { EditorContext } from '../Flick/components/EditorProvider'
 import { Block, SimpleAST, useUtils } from '../Flick/editor/utils/utils'
@@ -134,7 +135,11 @@ const FastRecord = ({
   */
 
   //  1. Keep track of old block ids
-  const initialBlockIds = blocks.map((b) => b.id)
+
+  const [initialBlockIds, setInitialBlockIds] = useState(
+    blocks.map((b) => b.id)
+  )
+
   const handleSave = async () => {
     setSaving(true)
     try {
@@ -280,6 +285,7 @@ const FastRecord = ({
         ...remainingBlocks.map((b) => b.id),
         ...newBlocks.map((b) => b.id),
       ]
+      setInitialBlockIds(allBlocks)
       setBlocks(
         newDataConfigWithoutIntroOutro.blocks.filter((b) =>
           allBlocks.includes(b.id)
@@ -295,8 +301,6 @@ const FastRecord = ({
           'base64'
         ),
       })
-
-      handleClose()
     } catch (e: any) {
       emitToast({
         title: 'Error Saving',
@@ -308,21 +312,17 @@ const FastRecord = ({
     }
   }
 
+  const initialRender = useRef(true)
+  useDidUpdateEffect(() => {
+    if (initialRender.current) {
+      initialRender.current = false
+      return
+    }
+    handleSave()
+  }, [videosConfigs])
+
   return (
     <div className="flex flex-col items-stretch justify-between h-full">
-      <div className="w-full flex items-center">
-        <Button
-          className="ml-auto m-2"
-          size="small"
-          appearance="primary"
-          type="button"
-          loading={saving}
-          disabled={saving}
-          onClick={handleSave}
-        >
-          Save
-        </Button>
-      </div>
       <div className="flex-1 my-auto flex items-center justify-center w-full">
         {activeVideoConfig && url && (
           <FastVideoEditor
@@ -333,6 +333,7 @@ const FastRecord = ({
             setVideosConfig={setVideosConfigs}
             activeVideoConfig={activeVideoConfig}
             setActiveVideoConfig={setActiveVideoConfig}
+            saving={saving}
           />
         )}
       </div>
