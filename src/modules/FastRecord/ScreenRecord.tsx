@@ -517,7 +517,7 @@ const ScreenRecord = ({
 
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isPreferencesOpen, setIsPreferencesOpen] = useState(false)
-  const [isPublishOpen, setIsPublishOpen] = useState(true)
+  const [isPublishOpen, setIsPublishOpen] = useState(false)
 
   const [isLowerThirdEnabled, setIsLowerThirdEnabled] = useState(true)
 
