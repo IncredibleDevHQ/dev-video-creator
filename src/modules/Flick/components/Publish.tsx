@@ -1,6 +1,6 @@
 /* eslint-disable jsx-a11y/media-has-caption */
 import { css, cx } from '@emotion/css'
-import { Listbox } from '@headlessui/react'
+import { Listbox, Switch } from '@headlessui/react'
 import * as Sentry from '@sentry/react'
 import axios from 'axios'
 import React, { ChangeEvent, useEffect, useRef, useState } from 'react'
@@ -138,6 +138,8 @@ const Publish = ({
   const [downloading, setDownloading] = useState(false)
 
   const [showConfetti, setShowConfetti] = useState(false)
+
+  const [enablePublishToYT, setEnablePublishToYT] = useState(false)
 
   const [{ flick, activeFragmentId }, setStore] = useRecoilState(newFlickStore)
   const fragment = flick?.fragments?.find((f) => f.id === activeFragmentId)
@@ -407,6 +409,29 @@ const Publish = ({
                   Story page
                 </a>
               )}
+              <Text> Publish to Youtube</Text>
+              <Switch
+                checked={enablePublishToYT}
+                onChange={() => setEnablePublishToYT(!enablePublishToYT)}
+                className={`${
+                  enablePublishToYT ? 'bg-green-500' : 'bg-gray-200'
+                } relative inline-flex h-6 w-11 items-center rounded-full`}
+                disabled={
+                  !publish.title ||
+                  (fragment?.type !== Fragment_Type_Enum_Enum.Portrait &&
+                    !publish.description) ||
+                  !recording?.id ||
+                  !recording.url ||
+                  recording?.status !== Recording_Status_Enum_Enum.Completed ||
+                  updatePublishLoading
+                }
+              >
+                <span
+                  className={`${
+                    enablePublishToYT ? 'translate-x-6' : 'translate-x-1'
+                  } inline-block h-4 w-4 transform rounded-full bg-white`}
+                />
+              </Switch>
               <Button
                 appearance="primary"
                 type="button"
@@ -427,6 +452,7 @@ const Publish = ({
                       data: publish,
                       fragmentId: activeFragmentId,
                       recordingId: recording?.id,
+                      publishToYoutube: enablePublishToYT,
                     },
                   })
                 }}
