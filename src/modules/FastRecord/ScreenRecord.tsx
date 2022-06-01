@@ -73,6 +73,7 @@ import MiniTimeline from './MiniTimeline'
 import Notes from './Notes'
 import Preferences from './Preferences'
 import Preload from './Preload'
+import Publish from './Publish'
 import RecordingControlsBar from './RecordingControlsBar'
 import VideoFragment from './ScreenRecordingVideoFragment'
 
@@ -516,6 +517,7 @@ const ScreenRecord = ({
 
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isPreferencesOpen, setIsPreferencesOpen] = useState(false)
+  const [isPublishOpen, setIsPublishOpen] = useState(false)
 
   const [isLowerThirdEnabled, setIsLowerThirdEnabled] = useState(true)
 
@@ -1266,14 +1268,26 @@ const ScreenRecord = ({
         </>
       ) : (
         <div className="flex flex-col h-full">
-          <button
-            onClick={() => history.push(`/story/${fragment?.flickId}`)}
-            type="button"
-            className="flex items-center cursor-pointer text-white gap-x-2 ml-8 mt-8 opacity-90"
-          >
-            <IoArrowBack size={16} type="button" className="max-w-max p-0" />
-            <span className="text-xs">Go to notebook</span>
-          </button>
+          <div className="w-full flex items-center justify-between px-8 mt-8">
+            <button
+              onClick={() => history.push(`/story/${fragment?.flickId}`)}
+              type="button"
+              className="flex items-center cursor-pointer text-white gap-x-2 opacity-90"
+            >
+              <IoArrowBack size={16} type="button" className="max-w-max p-0" />
+              <span className="text-xs">Go to notebook</span>
+            </button>
+            {localRecordedBlocks && localRecordedBlocks?.length > 0 && (
+              <Button
+                onClick={() => setIsPublishOpen(true)}
+                size="small"
+                appearance="primary"
+                type="button"
+              >
+                Publish
+              </Button>
+            )}
+          </div>
           <div className="flex items-center justify-center flex-col w-full flex-1 pt-4">
             {localRecordedBlocks && (
               <div
@@ -1497,6 +1511,38 @@ const ScreenRecord = ({
                 </div>
               </Dialog.Panel>
             </Dialog>
+
+            {recordingsData?.recordingId && (
+              <Dialog
+                className="relative z-50"
+                open={isPublishOpen}
+                onClose={() => {
+                  setIsPublishOpen(false)
+                }}
+              >
+                <div
+                  className="fixed inset-0 bg-black opacity-50"
+                  aria-hidden="true"
+                />
+                <Dialog.Panel>
+                  <div
+                    style={{
+                      width: '520px',
+                      height: '450px',
+                      padding: '0',
+                    }}
+                    className="fixed inset-0 m-auto p-4 bg-dark-300 text-white rounded-md"
+                  >
+                    <Publish
+                      flickDescription={fragment.flick.description || undefined}
+                      flickName={fragment.flick.name}
+                      recordingId={recordingsData?.recordingId}
+                      fragment={fragment}
+                    />
+                  </div>
+                </Dialog.Panel>
+              </Dialog>
+            )}
           </>
         )}
     </div>

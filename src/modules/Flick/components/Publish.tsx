@@ -61,7 +61,7 @@ interface CallToAction {
   url?: string
 }
 
-interface IPublish {
+export interface IPublish {
   title?: string
   description?: string
   thumbnail?: {
