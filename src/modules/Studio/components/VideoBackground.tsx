@@ -881,6 +881,120 @@ const VideoBackground = ({
           )
         }
       }
+    case 'VetsWhoCode':
+      switch (branding?.background?.type) {
+        case 'image':
+          return (
+            <Group>
+              <Image
+                x={0}
+                y={0}
+                width={stageConfig.width}
+                height={stageConfig.height}
+                image={bgImage}
+              />
+              <Text
+                text="DevsForUkraine"
+                x={0}
+                y={0}
+                fontSize={2}
+                fill="#fff"
+                opacity={0}
+                fontFamily="Work Sans"
+              />
+            </Group>
+          )
+        case 'color':
+          return (
+            <Group>
+              <Rect
+                x={0}
+                y={0}
+                width={stageConfig.width}
+                height={stageConfig.height}
+                fill={branding?.background?.color?.primary}
+              />
+              <Text
+                text="DevsForUkraine"
+                x={0}
+                y={0}
+                fontSize={2}
+                fill="#fff"
+                opacity={0}
+                fontFamily="Work Sans"
+              />
+            </Group>
+          )
+        case 'video':
+          return (
+            <Group x={0} y={0}>
+              {videoElement && (
+                <Video
+                  videoElement={videoElement}
+                  videoConfig={{
+                    x: 0,
+                    y: 0,
+                    width: stageConfig.width,
+                    height: stageConfig.height,
+                    videoFill: branding?.background?.color?.primary,
+                    cornerRadius: 0,
+                    performClip: true,
+                    clipVideoConfig: {
+                      x: 0,
+                      y: 0,
+                      width: 1,
+                      height: 1,
+                    },
+                  }}
+                />
+              )}
+              <Text
+                text="DevsForUkraine"
+                x={0}
+                y={0}
+                fontSize={2}
+                fill="#fff"
+                opacity={0}
+                fontFamily="Work Sans"
+              />
+            </Group>
+          )
+        default: {
+          return (
+            <Group>
+              <Rect
+                x={0}
+                y={0}
+                width={stageConfig.width}
+                height={stageConfig.height}
+                fill="#091F40"
+              />
+              <Rect
+                x={!isShorts ? 44 : 16}
+                y={!isShorts ? 45 : 16}
+                width={
+                  !isShorts ? stageConfig.width - 88 : stageConfig.width - 32
+                }
+                height={
+                  !isShorts ? stageConfig.height - 90 : stageConfig.height - 32
+                }
+                stroke="#ffffff"
+                strokeWidth={1}
+                dash={[10, 5.5]}
+              />
+              <Text
+                text="VetsWhoCode"
+                x={0}
+                y={0}
+                fontSize={2}
+                fill="#fff"
+                opacity={0}
+                fontFamily="Work Sans"
+              />
+            </Group>
+          )
+        }
+      }
     default:
       return <></>
   }
