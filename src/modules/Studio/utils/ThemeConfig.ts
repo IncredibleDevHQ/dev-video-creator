@@ -23,6 +23,7 @@ export interface ObjectRenderConfig {
   horizontalPointRectColor?: string | CanvasGradient
   horizontalPointRectStrokeColor?: string | CanvasGradient
   horizontalPointRectCornerRadius?: number
+  horizontalPointsTextColor?: string
   horizontalPointTextVerticalAlign?: string
   // block title config
   blockTitleFontSize?: number
@@ -214,6 +215,26 @@ export const ThemeLayoutConfig = ({
         horizontalPointTextVerticalAlign: 'middle',
         blockTitleFontSize: 32,
       }
+    case 'VetsWhoCode':
+      return {
+        startX: layoutConfig.x,
+        startY: layoutConfig.y,
+        availableWidth: layoutConfig?.availableWidth || layoutConfig.width,
+        availableHeight: layoutConfig.height,
+        textColor: layoutConfig?.textColor || '#ffffff',
+        borderRadius: 0,
+        surfaceColor: layoutConfig?.surfaceColor || '',
+        titleFont: 'Gilroy',
+        bodyFont: 'Inter',
+        pointsBulletColor: '#C5203E',
+        pointsBulletCornerRadius: 0,
+        pointsBulletYOffset: 8.5,
+        horizontalPointRectColor: '#ffffff',
+        horizontalPointRectStrokeColor: '',
+        horizontalPointRectCornerRadius: 8,
+        horizontalPointsTextColor: '#091F40',
+        horizontalPointTextVerticalAlign: 'middle',
+      }
     default:
       return {
         startX: layoutConfig.x,
@@ -228,6 +249,7 @@ export const ThemeLayoutConfig = ({
   }
 }
 
+// used in intro and outro fragments
 export const getThemeTextColor = (theme: ThemeFragment): string => {
   switch (theme.name) {
     case 'DarkGradient':
@@ -242,6 +264,8 @@ export const getThemeTextColor = (theme: ThemeFragment): string => {
       return '#27272A'
     case 'LambdaTest':
       return '#27272A'
+    case 'VetsWhoCode':
+      return '#091F40'
     default:
       return '#ffffff'
   }
@@ -261,6 +285,7 @@ export const getThemeSurfaceColor = (theme: ThemeFragment): string => {
     case 'Cassidoo':
       return '#fafafa'
     case 'LambdaTest':
+    case 'VetsWhoCode':
       return '#ffffff'
     default:
       return '#ffffff'
@@ -392,6 +417,16 @@ export const getThemeSupportedUserMediaLayouts = (
         'full-left',
         'full-right',
       ]
+    case 'VetsWhoCode':
+      return [
+        'classic',
+        'float-full-right',
+        'float-half-right',
+        'padded-bottom-right-circle',
+        'split',
+        'full-left',
+        'full-right',
+      ]
     default:
       return []
   }
@@ -409,6 +444,8 @@ export const getThemeBasedIntroLayouts = (themeName: string): Layout[] => {
     case 'DevsForUkraine':
     case 'Whitep4nth3r':
       return ['classic', 'bottom-right-tile']
+    case 'VetsWhoCode':
+      return ['classic', 'bottom-right-circle', 'float-full-right']
     default:
       return []
   }

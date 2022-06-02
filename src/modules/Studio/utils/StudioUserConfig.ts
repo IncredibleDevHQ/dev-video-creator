@@ -3973,6 +3973,396 @@ export const StudioUserConfiguration = ({
             },
           ]
       }
+    case 'VetsWhoCode':
+      if (fragmentState === 'onlyUserMedia') {
+        switch (noOfParticipants) {
+          case 2:
+            return [
+              {
+                x: 400,
+                y: 25,
+                width: 640,
+                height: 480,
+                clipTheme: 'rect',
+                borderWidth: 0,
+                studioUserClipConfig: {
+                  x: 120,
+                  y: 0,
+                  width: 400,
+                  height: 480,
+                  borderRadius: 16,
+                },
+              },
+              {
+                x: -60,
+                y: 25,
+                width: 640,
+                height: 480,
+                clipTheme: 'rect',
+                borderWidth: 0,
+                studioUserClipConfig: {
+                  x: 120,
+                  y: 0,
+                  width: 400,
+                  height: 480,
+                  borderRadius: 16,
+                },
+              },
+            ]
+          default:
+            return [
+              {
+                x: 54,
+                y: -48.5,
+                width: 852,
+                height: 639,
+                clipTheme: 'rect',
+                borderWidth: 0,
+                studioUserClipConfig: {
+                  x: 0,
+                  y: 103.5,
+                  width: 852,
+                  height: 432,
+                  borderRadius: 0,
+                },
+              },
+            ]
+        }
+      }
+      switch (layout) {
+        // case 'classic':
+        //   switch (noOfParticipants) {
+        //     case 2:
+        //       return [{}, {}]
+        //     default:
+        //       return [{}]
+        //   }
+        case 'float-full-right':
+        case 'float-half-right':
+          switch (noOfParticipants) {
+            case 2:
+              return [
+                {
+                  x: 704,
+                  y: 88,
+                  width: 224,
+                  height: 168,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 2,
+                    width: 224,
+                    height: 164,
+                    borderRadius: 16,
+                  },
+                },
+                {
+                  x: 704,
+                  y: 284,
+                  width: 224,
+                  height: 168,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 2,
+                    width: 224,
+                    height: 164,
+                    borderRadius: 16,
+                  },
+                },
+              ]
+            default:
+              return [
+                {
+                  x: 568,
+                  y: 129,
+                  width: 376,
+                  height: 282,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 48,
+                    y: 1,
+                    width: 280,
+                    height: 280,
+                    borderRadius: 140,
+                  },
+                  // backgroundRectX: 720,
+                  // backgroundRectY: 115,
+                  // backgroundRectWidth: 180,
+                  // backgroundRectHeight: 180,
+                  // backgroundRectBorderRadius: 90,
+                  // backgroundRectColor: '#C5203E',
+                  // backgroundRectOpacity: 1,
+                  backgroundRectX: 666,
+                  backgroundRectY: 85,
+                  backgroundRectWidth: 240,
+                  backgroundRectHeight: 240,
+                  backgroundRectBorderRadius: 120,
+                  backgroundRectColor: '#C5203E',
+                  backgroundRectOpacity: 1,
+                },
+              ]
+          }
+        case 'padded-bottom-right-circle':
+          switch (noOfParticipants) {
+            case 2:
+              return [
+                {
+                  x: 756,
+                  y: 364,
+                  width: 216,
+                  height: 162,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 28,
+                    y: 1,
+                    width: 160,
+                    height: 160,
+                    borderRadius: 16,
+                  },
+                },
+                {
+                  x: 568,
+                  y: 364,
+                  width: 216,
+                  height: 162,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 28,
+                    y: 1,
+                    width: 160,
+                    height: 160,
+                    borderRadius: 16,
+                  },
+                },
+              ]
+            default:
+              return [
+                {
+                  x: 670,
+                  y: 280,
+                  width: 240,
+                  height: 180,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 30,
+                    y: 0,
+                    width: 180,
+                    height: 180,
+                    borderRadius: 90,
+                  },
+                  backgroundRectX: 750,
+                  backgroundRectY: 255,
+                  backgroundRectWidth: 140,
+                  backgroundRectHeight: 140,
+                  backgroundRectBorderRadius: 70,
+                  backgroundRectColor: '#C5203E',
+                  backgroundRectOpacity: 1,
+                },
+              ]
+          }
+        case 'split':
+          switch (noOfParticipants) {
+            case 2:
+              return [
+                {
+                  x: 620,
+                  y: 0,
+                  width: 360,
+                  height: 270,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 20,
+                    y: 0,
+                    width: 320,
+                    height: 270,
+                    borderRadius: 0,
+                  },
+                },
+                {
+                  x: 620,
+                  y: 270,
+                  width: 360,
+                  height: 270,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 20,
+                    y: 0,
+                    width: 320,
+                    height: 270,
+                    borderRadius: 0,
+                  },
+                },
+              ]
+            default:
+              return [
+                {
+                  x: 481,
+                  y: 61,
+                  width: 552,
+                  height: 414,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 137,
+                    y: 2,
+                    width: 278,
+                    height: 410,
+                    borderRadius: 0,
+                  },
+                },
+              ]
+          }
+        case 'full-left':
+        case 'full-right':
+          switch (noOfParticipants) {
+            case 2:
+              return [
+                {
+                  x: 0,
+                  y: 0,
+                  width: 0,
+                  height: 0,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 0,
+                    width: 0,
+                    height: 0,
+                    borderRadius: 0,
+                  },
+                },
+                {
+                  x: 0,
+                  y: 0,
+                  width: 0,
+                  height: 0,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 0,
+                    width: 0,
+                    height: 0,
+                    borderRadius: 0,
+                  },
+                },
+              ]
+            default:
+              return [
+                {
+                  x: 0,
+                  y: -90,
+                  width: 960,
+                  height: 720,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 90,
+                    width: 960,
+                    height: 540,
+                    borderRadius: 0,
+                  },
+                },
+              ]
+          }
+        case 'outro':
+          switch (noOfParticipants) {
+            case 2:
+              return [
+                {
+                  x: 546,
+                  y: 142,
+                  width: 376,
+                  height: 282,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 48,
+                    y: 1,
+                    width: 280,
+                    height: 280,
+                    borderRadius: 140,
+                  },
+                  backgroundRectX: 666,
+                  backgroundRectY: 85,
+                  backgroundRectWidth: 240,
+                  backgroundRectHeight: 240,
+                  backgroundRectBorderRadius: 120,
+                  backgroundRectColor: '#C5203E',
+                  backgroundRectOpacity: 1,
+                },
+                {
+                  x: 0,
+                  y: 0,
+                  width: 0,
+                  height: 0,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 0,
+                    width: 0,
+                    height: 0,
+                    borderRadius: 0,
+                  },
+                },
+              ]
+            default:
+              return [
+                {
+                  x: 546,
+                  y: 142,
+                  width: 376,
+                  height: 282,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 48,
+                    y: 1,
+                    width: 280,
+                    height: 280,
+                    borderRadius: 140,
+                  },
+                  backgroundRectX: 645,
+                  backgroundRectY: 100,
+                  backgroundRectWidth: 240,
+                  backgroundRectHeight: 240,
+                  backgroundRectBorderRadius: 120,
+                  backgroundRectColor: '#C5203E',
+                  backgroundRectOpacity: 1,
+                },
+              ]
+          }
+        default:
+          return [
+            {
+              x: 0,
+              y: 0,
+              width: 0,
+              height: 0,
+              clipTheme: 'rect',
+              borderWidth: 0,
+              studioUserClipConfig: {
+                x: 0,
+                y: 0,
+                width: 0,
+                height: 0,
+                borderRadius: 0,
+              },
+            },
+          ]
+      }
     default:
       return [
         {
@@ -6566,6 +6956,319 @@ export const ShortsStudioUserConfiguration = ({
                   clipTheme: 'rect',
                   borderWidth: 6,
                   borderColor: '#FFB626',
+                  studioUserClipConfig: {
+                    x: 54,
+                    y: 1,
+                    width: 316,
+                    height: 316,
+                    borderRadius: 8,
+                  },
+                },
+              ]
+          }
+        case 'full-left':
+          switch (noOfParticipants) {
+            case 2:
+              return [
+                {
+                  x: 0,
+                  y: 0,
+                  width: 0,
+                  height: 0,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 0,
+                    width: 0,
+                    height: 0,
+                    borderRadius: 0,
+                  },
+                },
+                {
+                  x: 0,
+                  y: 0,
+                  width: 0,
+                  height: 0,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 0,
+                    width: 0,
+                    height: 0,
+                    borderRadius: 0,
+                  },
+                },
+              ]
+            default:
+              return [
+                {
+                  x: -272,
+                  y: -0.5,
+                  width: 940,
+                  height: 705,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 272,
+                    y: 0.5,
+                    width: 396,
+                    height: 704,
+                    borderRadius: 0,
+                  },
+                },
+              ]
+          }
+        default:
+          return [
+            {
+              x: 0,
+              y: 0,
+              width: 0,
+              height: 0,
+              clipTheme: 'rect',
+              borderWidth: 0,
+              studioUserClipConfig: {
+                x: 0,
+                y: 0,
+                width: 0,
+                height: 0,
+                borderRadius: 0,
+              },
+            },
+          ]
+      }
+    case 'VetsWhoCode':
+      if (fragmentState === 'onlyUserMedia') {
+        switch (noOfParticipants) {
+          case 2:
+            return [
+              {
+                x: -6,
+                y: 27,
+                width: 408,
+                height: 306,
+                clipTheme: 'rect',
+                borderWidth: 6,
+                borderColor: '',
+                studioUserClipConfig: {
+                  x: 38,
+                  y: 1,
+                  width: 332,
+                  height: 304,
+                  borderRadius: 8,
+                },
+              },
+              {
+                x: -6,
+                y: 371,
+                width: 408,
+                height: 306,
+                clipTheme: 'rect',
+                borderWidth: 6,
+                borderColor: '',
+                studioUserClipConfig: {
+                  x: 38,
+                  y: 1,
+                  width: 332,
+                  height: 304,
+                  borderRadius: 8,
+                },
+              },
+            ]
+          default:
+            return [
+              {
+                x: -250,
+                y: 16,
+                width: 896,
+                height: 672,
+                clipTheme: 'rect',
+                borderWidth: 6,
+                borderColor: '',
+                studioUserClipConfig: {
+                  x: 266,
+                  y: 0,
+                  width: 364,
+                  height: 672,
+                  borderRadius: 8,
+                },
+              },
+            ]
+        }
+      }
+      switch (layout) {
+        // case 'classic':
+        //   switch (noOfParticipants) {
+        //     case 2:
+        //       return [{}, {}]
+        //     default:
+        //       return [{}]
+        //   }
+        case 'padded-bottom-right-tile':
+        case 'bottom-right-tile':
+          switch (noOfParticipants) {
+            case 2:
+              return [
+                {
+                  x: 0,
+                  y: 0,
+                  width: 0,
+                  height: 0,
+                  clipTheme: 'rect',
+                  borderWidth: 6,
+                  borderColor: '',
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 0,
+                    width: 0,
+                    height: 0,
+                    borderRadius: 0,
+                  },
+                },
+                {
+                  x: 0,
+                  y: 0,
+                  width: 0,
+                  height: 0,
+                  clipTheme: 'rect',
+                  borderWidth: 6,
+                  borderColor: '',
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 0,
+                    width: 0,
+                    height: 0,
+                    borderRadius: 0,
+                  },
+                },
+              ]
+            default:
+              return [
+                {
+                  x: 182,
+                  y: 519.5,
+                  width: 236,
+                  height: 177,
+                  clipTheme: 'rect',
+                  borderWidth: 6,
+                  borderColor: '',
+                  studioUserClipConfig: {
+                    x: 30,
+                    y: 0.5,
+                    width: 176,
+                    height: 176,
+                    borderRadius: 8,
+                  },
+                },
+              ]
+          }
+        case 'padded-bottom-right-circle':
+        case 'bottom-right-circle':
+          switch (noOfParticipants) {
+            case 2:
+              return [
+                {
+                  x: 756,
+                  y: 364,
+                  width: 216,
+                  height: 162,
+                  clipTheme: 'rect',
+                  borderWidth: 6,
+                  borderColor: '',
+                  studioUserClipConfig: {
+                    x: 28,
+                    y: 1,
+                    width: 160,
+                    height: 160,
+                    borderRadius: 8,
+                  },
+                },
+                {
+                  x: 568,
+                  y: 364,
+                  width: 216,
+                  height: 162,
+                  clipTheme: 'rect',
+                  borderWidth: 6,
+                  borderColor: '',
+                  studioUserClipConfig: {
+                    x: 28,
+                    y: 1,
+                    width: 160,
+                    height: 160,
+                    borderRadius: 8,
+                  },
+                },
+              ]
+            default:
+              return [
+                {
+                  x: 182,
+                  y: 519.5,
+                  width: 236,
+                  height: 177,
+                  clipTheme: 'rect',
+                  borderWidth: 6,
+                  borderColor: '',
+                  studioUserClipConfig: {
+                    x: 30,
+                    y: 0.5,
+                    width: 176,
+                    height: 176,
+                    borderRadius: 88,
+                  },
+                },
+              ]
+          }
+        case 'split':
+          switch (noOfParticipants) {
+            case 2:
+              return [
+                {
+                  x: 0,
+                  y: 0,
+                  width: 0,
+                  height: 0,
+                  clipTheme: 'rect',
+                  borderWidth: 6,
+                  borderColor: '',
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 0,
+                    width: 0,
+                    height: 0,
+                    borderRadius: 0,
+                  },
+                },
+                {
+                  x: 0,
+                  y: 0,
+                  width: 0,
+                  height: 0,
+                  clipTheme: 'rect',
+                  borderWidth: 6,
+                  borderColor: '',
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 0,
+                    width: 0,
+                    height: 0,
+                    borderRadius: 0,
+                  },
+                },
+              ]
+            default:
+              return [
+                {
+                  x: -14,
+                  y: 356,
+                  width: 424,
+                  height: 318,
+                  clipTheme: 'rect',
+                  borderWidth: 6,
+                  borderColor: '',
                   studioUserClipConfig: {
                     x: 54,
                     y: 1,

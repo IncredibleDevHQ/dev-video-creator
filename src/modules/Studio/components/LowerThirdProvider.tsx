@@ -17,6 +17,7 @@ import {
   LambdaTestLowerThirds,
   LeeRobLowerThirds,
   PastelLinesLowerThirds,
+  VetsWhoCodeLowerThirds,
   Web3AuthLowerThirds,
   Whitep4nth3rLowerThirds,
 } from './LowerThirds'
@@ -303,6 +304,37 @@ const LowerThridProvider = ({
           <Whitep4nth3rLowerThirds
             x={!isShorts ? lowerThirdCoordinates({ position: 'left' })[0] : 45}
             y={!isShorts ? 430 : 600}
+            userName={lowerThirdUserName || ''}
+            designation={lowerThirdUserDesignation || ''}
+            organization={lowerThirdUserOrganization || ''}
+            logo={branding?.logo || ''}
+            color={branding?.background?.color?.primary || ''}
+            textColor={branding?.colors?.text || ''}
+            setTopLayerChildren={setTopLayerChildren}
+          />
+          {/* {users.map((user, index) => (
+            <LeeRobLowerThirds
+              // eslint-disable-next-line react/no-array-index-key
+              key={index}
+              x={lowerThirdCoordinates({ position: 'left' })[index + 1]}
+              y={!isShorts ? 400 : 560}
+              userName={participants?.[user.uid]?.displayName || ''}
+              designation={lowerThirdUserDesignation || ''}
+              organization={lowerThirdUserOrganization || ''}
+              logo={branding?.logo || ''}
+              color={branding?.background?.color?.primary || ''}
+              textColor={branding?.colors?.text || ''}
+            />
+          ))} */}
+        </>
+      )
+    }
+    case 'VetsWhoCode': {
+      return (
+        <>
+          <VetsWhoCodeLowerThirds
+            x={!isShorts ? lowerThirdCoordinates({ position: 'left' })[0] : 45}
+            y={!isShorts ? 390 : 600}
             userName={lowerThirdUserName || ''}
             designation={lowerThirdUserDesignation || ''}
             organization={lowerThirdUserOrganization || ''}
