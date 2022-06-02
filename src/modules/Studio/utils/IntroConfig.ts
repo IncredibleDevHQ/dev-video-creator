@@ -1307,6 +1307,38 @@ export const getIntroConfig = ({
         userImageHeight: 128,
         userImageBorderRadius: 8,
       }
+    case 'VetsWhoCode':
+      return {
+        layoutX: 24,
+        layoutY: 24,
+        layoutWidth: 348,
+        layoutHeight: 656,
+        layoutBorderRadius: 8,
+        titleX: 24,
+        titleY: 24,
+        titleWidth: 316,
+        titleHeight: 150,
+        titleFontSize: 40,
+        userNameX: 24,
+        userNameY: 506,
+        userNameWidth: 316,
+        userNameHeight: 24,
+        userNameFontSize: 24,
+        userInfoX: 24,
+        userInfoY: 546,
+        userInfoWidth: 316,
+        userInfoHeight: 20,
+        userInfoFontSize: 16,
+        logoX: 24,
+        logoY: 586,
+        logoWidth: 36,
+        logoHeight: 36,
+        userImageX: 40,
+        userImageY: 290,
+        userImageWidth: 192,
+        userImageHeight: 192,
+        userImageBorderRadius: 96,
+      }
     default:
       return {
         layoutX: 16,

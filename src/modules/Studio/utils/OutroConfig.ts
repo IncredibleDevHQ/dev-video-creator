@@ -1024,7 +1024,9 @@ export const getOutroConfig = ({
       }
     case 'LambdaTest':
     case 'LeeRob':
+    case 'Web3Auth':
     case 'DevsForUkraine':
+    case 'Whitep4nth3r':
       switch (layout) {
         case 'classic':
           return {
@@ -1063,6 +1065,70 @@ export const getOutroConfig = ({
             socialHandlesFontSize: 16,
             logoX: 300,
             logoY: 270,
+            logoWidth: 32,
+            logoHeight: 32,
+            userMediaLayout: 'split',
+          }
+        default:
+          return {
+            layoutX: 40,
+            layoutY: 40,
+            layoutWidth: 316,
+            layoutHeight: 624,
+            layoutBorderRadius: 8,
+            textX: 16,
+            textY: 290,
+            textWidth: 284,
+            textHeight: 70,
+            textFontSize: 26,
+            socialX: 244,
+            socialY: 376,
+            socialHandlesFontSize: 16,
+            logoX: 140,
+            logoY: 234,
+            logoWidth: 28,
+            logoHeight: 28,
+          }
+      }
+    case 'VetsWhoCode':
+      switch (layout) {
+        case 'classic':
+          return {
+            layoutX: 40,
+            layoutY: 40,
+            layoutWidth: 316,
+            layoutHeight: 624,
+            layoutBorderRadius: 8,
+            textX: 16,
+            textY: 290,
+            textWidth: 284,
+            textHeight: 70,
+            textFontSize: 26,
+            socialX: 244,
+            socialY: 376,
+            socialHandlesFontSize: 16,
+            logoX: 140,
+            logoY: 234,
+            logoWidth: 28,
+            logoHeight: 28,
+          }
+        case 'split':
+          return {
+            layoutX: 32,
+            layoutY: 32,
+            layoutWidth: 332,
+            layoutHeight: 296,
+            layoutBorderRadius: 8,
+            textX: 16,
+            textY: 32,
+            textWidth: 270,
+            textHeight: 130,
+            textFontSize: 36,
+            socialX: 16,
+            socialY: 210,
+            socialHandlesFontSize: 16,
+            logoX: 280,
+            logoY: 240,
             logoWidth: 32,
             logoHeight: 32,
             userMediaLayout: 'split',
