@@ -719,6 +719,94 @@ export const getOutroConfig = ({
               logoHeight: 32,
             }
         }
+      case 'VetsWhoCode':
+        switch (layout) {
+          case 'classic':
+            return {
+              layoutX: 64,
+              layoutY: 65,
+              layoutWidth: 832,
+              layoutHeight: 410,
+              layoutBorderRadius: 0,
+              textX: 16,
+              textY: 190,
+              textWidth: 800,
+              textHeight: 57,
+              textFontSize: 48,
+              textFontStyle: 'bold',
+              socialX: 244,
+              socialY: 280,
+              socialHandlesFontSize: 16,
+              logoX: 400,
+              logoY: 120,
+              logoWidth: 36,
+              logoHeight: 36,
+            }
+          case 'float-full-right':
+            return {
+              layoutX: 59,
+              layoutY: 65,
+              layoutWidth: 842,
+              layoutHeight: 410,
+              layoutBorderRadius: 0,
+              textX: 40,
+              textY: 40,
+              textWidth: 450,
+              textHeight: 160,
+              textFontSize: 48,
+              textFontStyle: 'normal 500',
+              socialX: 40,
+              socialY: 300,
+              socialHandlesFontSize: 16,
+              logoX: 435,
+              logoY: 348,
+              logoWidth: 36,
+              logoHeight: 36,
+              userMediaLayout: 'outro',
+            }
+          case 'split-without-media':
+            return {
+              layoutX: 59,
+              layoutY: 65,
+              layoutWidth: 525,
+              layoutHeight: 410,
+              layoutBorderRadius: 0,
+              textX: 40,
+              textY: 40,
+              textWidth: 450,
+              textHeight: 160,
+              textFontSize: 48,
+              textFontStyle: 'normal 500',
+              socialX: 40,
+              socialY: 300,
+              socialHandlesFontSize: 16,
+              logoX: 435,
+              logoY: 348,
+              logoWidth: 36,
+              logoHeight: 36,
+            }
+          default:
+            return {
+              layoutX: 64,
+              layoutY: 65,
+              layoutWidth: 832,
+              layoutHeight: 410,
+              layoutBorderRadius: 0,
+              textX: 16,
+              textY: 190,
+              textWidth: 800,
+              textHeight: 57,
+              textFontSize: 48,
+              textFontStyle: 'bold',
+              socialX: 244,
+              socialY: 280,
+              socialHandlesFontSize: 16,
+              logoX: 400,
+              logoY: 120,
+              logoWidth: 36,
+              logoHeight: 36,
+            }
+        }
       default:
         return {
           layoutX: 72,
