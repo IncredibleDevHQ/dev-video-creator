@@ -33,6 +33,7 @@ import {
   Confetti,
   emitToast,
   Heading,
+  Image,
   Text,
   TextField,
   Tooltip,
@@ -45,11 +46,14 @@ import {
   Recording_Status_Enum_Enum,
   useCompleteRecordingMutation,
   useGetRecordingsQuery,
+  useGetUserYtIntegrationQuery,
+  useGetUserYtIntegrationSubscription,
   usePublishVideoActionMutation,
   useUpdatePublishMutation,
   useUpdateThumbnailObjectMutation,
 } from '../../../generated/graphql'
 import { useUploadFile } from '../../../hooks'
+import firebaseState from '../../../stores/firebase.store'
 import { SimpleAST } from '../editor/utils/utils'
 import { newFlickStore } from '../store/flickNew.store'
 import { useGetHW } from './BlockPreview'
@@ -122,6 +126,11 @@ const noArrowInput = css`
   }
 `
 
+export interface YTIntegration {
+  name: string
+  picture: string
+}
+
 const Publish = ({
   open,
   simpleAST,
@@ -142,6 +151,7 @@ const Publish = ({
   const [enablePublishToYT, setEnablePublishToYT] = useState(false)
 
   const [{ flick, activeFragmentId }, setStore] = useRecoilState(newFlickStore)
+
   const fragment = flick?.fragments?.find((f) => f.id === activeFragmentId)
 
   const [publish, setPublish] = useState<IPublish>(
@@ -188,6 +198,16 @@ const Publish = ({
       publishConfig: publish,
     },
   })
+
+  const {
+    data: ytData,
+    error: ytError,
+    loading: ytLoading,
+  } = useGetUserYtIntegrationSubscription()
+
+  const [ytIntegration, setYtIntegration] = useState<YTIntegration>()
+
+  const auth = useRecoilValue(firebaseState)
 
   useEffect(() => {
     if (!updatePublishError) return
@@ -323,6 +343,22 @@ const Publish = ({
     }
   }, [errorCompletingRecording, getRecordingsError])
 
+  useEffect(() => {
+    if (ytError || !ytData || ytData?.YoutubeIntegration.length === 0) {
+      if (ytError)
+        emitToast({
+          title: 'Ops something is wrong with your Youtube Integration',
+          type: 'error',
+          autoClose: 5000,
+        })
+      return
+    }
+    setYtIntegration(ytData?.YoutubeIntegration[0].userInfo as YTIntegration)
+    if (openIntegrationModal) setOpenIntegrationModal(false)
+  }, [ytLoading, ytData])
+
+  const [openIntegrationModal, setOpenIntegrationModal] = useState(false)
+
   return (
     <Modal
       open={open}
@@ -344,6 +380,71 @@ const Publish = ({
       center
       showCloseIcon={false}
     >
+      <Modal
+        open={openIntegrationModal}
+        onClose={() => {
+          setOpenIntegrationModal(false)
+        }}
+        styles={{
+          modal: {
+            maxWidth: '90%',
+            width: '320px',
+            maxHeight: '90vh',
+            height: '330px',
+            padding: '32px',
+          },
+        }}
+        classNames={{
+          modal: cx('rounded-md m-0 p-0'),
+        }}
+        center
+        showCloseIcon={false}
+      >
+        <div className=" flex flex-col items-center text-center w-full h-full">
+          <Text>
+            <Heading className="font-main text-2xl">
+              Automatically share to Youtube
+            </Heading>
+            <Text className="font-body text-base pt-4">
+              Publish videos you post on Incredible on Youtube too. You can
+              disable this anytime.
+            </Text>
+          </Text>
+          <div className="flex flex-col items-center mt-auto ">
+            <Button
+              appearance="primary"
+              type="button"
+              size="small"
+              onClick={async () => {
+                const res = await axios.get(
+                  `${config.integrations.serverURL}/youtube/authorize`,
+                  {
+                    headers: {
+                      Authorization: `Bearer ${auth.token}`,
+                    },
+                  }
+                )
+                setOpenIntegrationModal(false)
+                window.open(res.data, '_blank')
+              }}
+            >
+              Integrate Youtube
+            </Button>
+
+            <Button
+              appearance="none"
+              type="button"
+              size="small"
+              className="mt-2.5"
+              onClick={() => {
+                setOpenIntegrationModal(false)
+              }}
+            >
+              Not Now
+            </Button>
+          </div>
+        </div>
+      </Modal>
       {doPublishData && (
         <>
           <Confetti fire={showConfetti} />
@@ -409,10 +510,25 @@ const Publish = ({
                   Story page
                 </a>
               )}
+              {ytIntegration?.picture && (
+                <Image
+                  className="rounded-full h-5 w-5"
+                  mainSrc={ytIntegration?.picture}
+                  alt=" "
+                  fallbackSrc="https://via.placeholder.com/150"
+                />
+              )}
               <Text> Publish to Youtube</Text>
               <Switch
                 checked={enablePublishToYT}
-                onChange={() => setEnablePublishToYT(!enablePublishToYT)}
+                onClick={() => {
+                  if (!ytIntegration) {
+                    setOpenIntegrationModal(true)
+                  }
+                }}
+                onChange={() => {
+                  if (ytIntegration) setEnablePublishToYT(!enablePublishToYT)
+                }}
                 className={`${
                   enablePublishToYT ? 'bg-green-500' : 'bg-gray-200'
                 } relative inline-flex h-6 w-11 items-center rounded-full`}
