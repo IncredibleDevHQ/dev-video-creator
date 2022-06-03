@@ -98,6 +98,7 @@ export const GetTopLayerChildren = ({
           theme={theme}
           isShorts={isShorts || false}
           setTopLayerChildren={setTopLayerChildren}
+          brandingJSON={branding}
         />
       )
     }

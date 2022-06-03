@@ -1912,6 +1912,126 @@ export const Whitep4nth3rTransition = ({
   )
 }
 
+export const VetsWhoCodeTransition = ({
+  direction,
+  isShorts,
+  color,
+  setTopLayerChildren,
+}: {
+  direction: string
+  isShorts?: boolean
+  color?: string
+  setTopLayerChildren?: React.Dispatch<
+    React.SetStateAction<{ id: string; state: TopLayerChildren }>
+  >
+}) => {
+  let stageConfig = { width: CONFIG.width, height: CONFIG.height }
+  if (!isShorts) stageConfig = CONFIG
+  else stageConfig = SHORTS_CONFIG
+  // const rect2Ref = useRef<Konva.Rect>(null)
+
+  let rect1StartX = 0
+  let rect1StartY = 0
+  let rect1EndX = 0
+  let rect2StartX = 0
+  let rect2StartY = 0
+  let rect2EndX = 0
+  let duration = 0
+  switch (direction) {
+    case 'left':
+    case 'right':
+    case 'moveIn':
+      rect1StartX = -stageConfig.width / 2 - 10
+      rect1StartY = 0
+      rect1EndX = 0
+      rect2StartX = stageConfig.width
+      rect2StartY = 0
+      rect2EndX = stageConfig.width / 2
+      duration = 0.375
+      break
+    case 'moveAway':
+      rect1StartX = 0
+      rect1StartY = 0
+      rect1EndX = -stageConfig.width / 2 - 10
+      rect2StartX = stageConfig.width / 2
+      rect2StartY = 0
+      rect2EndX = stageConfig.width
+      duration = 0.25
+      break
+    default:
+      break
+  }
+
+  return (
+    <Group>
+      <Group>
+        <Rect
+          x={rect1StartX}
+          y={rect1StartY}
+          width={stageConfig.width / 2 + 10}
+          height={stageConfig.height}
+          fill={color || '#ffffff'}
+          ref={(ref) => {
+            ref?.to({
+              x: rect1EndX,
+              duration,
+              // easing: Konva.Easings.EaseIn,
+              onFinish: () => {
+                setTimeout(() => {
+                  ref?.to({
+                    x: rect1StartX,
+                    duration,
+                    // easing: Konva.Easings.EaseOut,
+                    onFinish: () => {
+                      setTimeout(() => {
+                        if (direction === 'left' || direction === 'right') {
+                          setTopLayerChildren?.({ id: '', state: '' })
+                        }
+                      }, 200)
+                    },
+                  })
+                }, 200)
+              },
+            })
+          }}
+        />
+      </Group>
+      <Group>
+        <Rect
+          x={rect2StartX}
+          y={rect2StartY}
+          width={stageConfig.width / 2}
+          height={stageConfig.height}
+          fill={color || '#C5203E'}
+          ref={(ref) => {
+            ref?.to({
+              x: rect2EndX,
+              duration,
+              // easing: Konva.Easings.EaseIn,
+              onFinish: () => {
+                setTimeout(() => {
+                  ref?.to({
+                    x: rect2StartX,
+                    duration,
+                    // easing: Konva.Easings.EaseOut,
+                    onFinish: () => {
+                      setTimeout(() => {
+                        if (direction === 'left' || direction === 'right') {
+                          setTopLayerChildren?.({ id: '', state: '' })
+                        }
+                      }, 200)
+                    },
+                  })
+                }, 200)
+              },
+            })
+          }}
+        />
+      </Group>
+    </Group>
+  )
+}
+
 export const RectanglesSlideTransition = ({
   direction,
   // colors,

@@ -405,10 +405,10 @@ const Notes = ({
     noteEditor?.commands?.setContent(
       note
         ?.split('\n')
-        .map((line) => {
+        ?.map((line) => {
           return `<p>${line}</p>`
         })
-        .join('') || '<p></p>',
+        ?.join('') || '<p></p>',
       true
     )
   }, [note, noteEditor])

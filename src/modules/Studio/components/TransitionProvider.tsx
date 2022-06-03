@@ -10,6 +10,7 @@ import {
   LeeRobTransition,
   PastelLinesTransition,
   TrianglePathTransition,
+  VetsWhoCodeTransition,
   Whitep4nth3rTransition,
 } from '../effects/FragmentTransitions'
 import { studioStore } from '../stores'
@@ -260,6 +261,26 @@ const TransitionProvider = ({
         }
         return (
           <Whitep4nth3rTransition
+            direction={direction}
+            isShorts={isShorts}
+            // color="black"
+            setTopLayerChildren={setTopLayerChildren}
+          />
+        )
+      case 'VetsWhoCode':
+        if (direction === 'moveIn' || direction === 'moveAway') {
+          return (
+            <DipTransition
+              direction={direction}
+              isShorts={isShorts}
+              color="black"
+              performFinishAction={performFinishAction}
+              setTopLayerChildren={setTopLayerChildren}
+            />
+          )
+        }
+        return (
+          <VetsWhoCodeTransition
             direction={direction}
             isShorts={isShorts}
             // color="black"

@@ -522,7 +522,7 @@ const ScreenRecord = ({
   const [isLowerThirdEnabled, setIsLowerThirdEnabled] = useState(true)
 
   const [blocks, setBlocks] = useState<Block[]>(
-    fragment.editorState?.blocks.filter(
+    fragment.editorState?.blocks?.filter(
       (block: any) =>
         block.type === 'videoBlock' &&
         (block.id === blockId || block.videoBlock.associatedBlockId === blockId)
@@ -1334,8 +1334,8 @@ const ScreenRecord = ({
                       // if block already has a recording dont show save button
                       recordedVideoSrc?.includes('blob') &&
                         !localRecordedBlocks
-                          .map((b) => b.id)
-                          .includes(currentBlock?.id as string) &&
+                          ?.map((b) => b.id)
+                          ?.includes(currentBlock?.id as string) &&
                         state !== 'upload' && (
                           <button
                             className="bg-incredible-green-600 text-white rounded-sm py-1.5 px-2.5 flex items-center gap-x-2 font-bold hover:shadow-lg text-sm"

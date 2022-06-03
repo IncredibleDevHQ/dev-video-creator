@@ -154,7 +154,9 @@ const ImageFragment = ({
         : objectRenderConfig.availableWidth - 40,
       fontSize: 16,
       fontFamily:
-        branding?.font?.body?.family || objectRenderConfig.bodyFont || 'Gilroy',
+        branding?.font?.body?.family ||
+        objectRenderConfig.bodyFont ||
+        'GilroyRegular',
       fontStyle: 'normal',
     })
     setNoOfLinesOfText({ noOfLinesOfCaption, noOfLinesOfTitle })

@@ -230,7 +230,7 @@ const Thumbnail = ({
                 text={thumbnailInfo?.designation}
                 fill={branding?.colors?.text || getThemeTextColor(theme)}
                 fontSize={introConfig?.userInfoFontSize || 0}
-                fontFamily={getThemeFont(theme)}
+                fontFamily={introConfig?.userInfoFont || getThemeFont(theme)}
                 lineHeight={1.1}
               />
             )}
@@ -248,7 +248,7 @@ const Thumbnail = ({
                 text={thumbnailInfo?.organization}
                 fill={branding?.colors?.text || getThemeTextColor(theme)}
                 fontSize={introConfig?.userInfoFontSize || 0}
-                fontFamily={getThemeFont(theme)}
+                fontFamily={introConfig?.userInfoFont || getThemeFont(theme)}
                 lineHeight={1.1}
               />
             )}
@@ -266,7 +266,7 @@ const Thumbnail = ({
                 text={`${thumbnailInfo?.designation}, ${thumbnailInfo?.organization}`}
                 fill={branding?.colors?.text || getThemeTextColor(theme)}
                 fontSize={introConfig?.userInfoFontSize || 0}
-                fontFamily={getThemeFont(theme)}
+                fontFamily={introConfig?.userInfoFont || getThemeFont(theme)}
                 lineHeight={1.1}
               />
             )}
