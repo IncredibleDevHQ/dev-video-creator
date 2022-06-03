@@ -224,8 +224,8 @@ export const ThemeLayoutConfig = ({
         textColor: layoutConfig?.textColor || '#ffffff',
         borderRadius: 0,
         surfaceColor: layoutConfig?.surfaceColor || '',
-        titleFont: 'Gilroy',
-        bodyFont: 'Inter',
+        titleFont: 'Gotham',
+        bodyFont: 'GothamLight',
         pointsBulletColor: '#C5203E',
         pointsBulletCornerRadius: 0,
         pointsBulletYOffset: 8.5,
@@ -309,6 +309,8 @@ export const getThemeFont = (theme: ThemeFragment): string => {
       return 'Montserrat'
     case 'Whitep4nth3r':
       return 'Work Sans'
+    case 'VetsWhoCode':
+      return 'Gotham'
     default:
       return 'Gilroy'
   }

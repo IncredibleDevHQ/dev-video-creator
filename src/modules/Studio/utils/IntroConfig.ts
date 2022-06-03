@@ -29,6 +29,7 @@ export interface IntroConfig {
   userInfoY: number
   userInfoWidth: number
   userInfoHeight: number
+  userInfoFont?: string
   userInfoFontSize: number
   userInfoAlign?: string
   userInfoVerticalAlign?: string
@@ -955,6 +956,7 @@ export const getIntroConfig = ({
               userInfoY: 222,
               userInfoWidth: 445,
               userInfoHeight: 30,
+              userInfoFont: 'GothamLight',
               userInfoFontSize: 24,
               userInfoFontStyle: 'normal 100',
               userInfoAlign: 'left',
@@ -994,6 +996,7 @@ export const getIntroConfig = ({
               userInfoY: 276,
               userInfoWidth: 450,
               userInfoHeight: 30,
+              userInfoFont: 'GothamLight',
               userInfoFontSize: 24,
               userInfoAlign: 'left',
               logoX: 94,
