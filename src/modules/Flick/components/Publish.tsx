@@ -521,6 +521,19 @@ const Publish = ({
               <Switch
                 checked={enablePublishToYT}
                 onClick={() => {
+                  // TODO: Remove this once we have public access to the youtube data API
+                  // As of now we only have added @incredible.dev to tester group
+                  if (
+                    !auth.auth.currentUser?.email?.includes('@incredible.dev')
+                  ) {
+                    emitToast({
+                      title: 'Coming soon!',
+                      type: 'info',
+                      description: 'Publishing to Youtube is coming soon!',
+                      autoClose: 5000,
+                    })
+                    return
+                  }
                   if (!ytIntegration) {
                     setOpenIntegrationModal(true)
                   }
