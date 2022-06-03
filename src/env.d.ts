@@ -29,4 +29,5 @@ interface ImportMetaEnv {
   VITE_EMBED_PLAYER_URL: string
   VITE_CASSIDY_THEME_WHITELIST: string[]
   VITE_LOGROCKET_APP_ID: string
+  VITE_LIVEBLOCKS_PUBLIC_KEY: string
 }

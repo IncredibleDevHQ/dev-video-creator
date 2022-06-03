@@ -1,7 +1,8 @@
 /* eslint-disable no-nested-ternary */
 import { css, cx } from '@emotion/css'
+import { useUpdateMyPresence } from '@liveblocks/react'
 import Konva from 'konva'
-import React, { createRef, HTMLAttributes, useState } from 'react'
+import React, { createRef, HTMLAttributes, useEffect, useState } from 'react'
 import { Layer, Stage } from 'react-konva'
 import Modal from 'react-responsive-modal'
 import useMeasure, { RectReadOnly } from 'react-use-measure'
@@ -30,6 +31,7 @@ import {
   getThemeSupportedUserMediaLayouts,
 } from '../../Studio/utils/ThemeConfig'
 import { Block, SimpleAST } from '../editor/utils/utils'
+import { Presence, PresencePage } from '../Flick'
 import { newFlickStore } from '../store/flickNew.store'
 import LayoutGeneric from './LayoutGeneric'
 
@@ -403,6 +405,18 @@ const PreviewModal = ({
   setCurrentBlock: React.Dispatch<React.SetStateAction<Block | undefined>>
   handleClose: () => void
 }) => {
+  const updateMyPresence = useUpdateMyPresence<Presence>()
+  useEffect(() => {
+    updateMyPresence({
+      page: PresencePage.Preview,
+    })
+    return () => {
+      updateMyPresence({
+        page: PresencePage.Notebook,
+      })
+    }
+  }, [])
+
   return (
     <Modal
       open={open}

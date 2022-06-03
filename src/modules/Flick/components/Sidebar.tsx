@@ -1,4 +1,5 @@
 import { cx } from '@emotion/css'
+import { useUpdateMyPresence } from '@liveblocks/react'
 import React, { useEffect, useState } from 'react'
 import { FiLoader, FiMoreVertical } from 'react-icons/fi'
 import { HiOutlineSparkles } from 'react-icons/hi'
@@ -29,6 +30,7 @@ import {
   useUpdateFragmentNameMutation,
 } from '../../../generated/graphql'
 import { verticalCustomScrollBar } from '../../../utils/globalStyles'
+import { Presence } from '../Flick'
 import { newFlickStore } from '../store/flickNew.store'
 
 const Sidebar = ({ storyName }: { storyName: string }): JSX.Element | null => {
@@ -36,6 +38,15 @@ const Sidebar = ({ storyName }: { storyName: string }): JSX.Element | null => {
     id: string
     fragmentId: string | undefined
   }>()
+
+  const updateMyPresence = useUpdateMyPresence<Presence>()
+  useEffect(() => {
+    if (fragmentId) {
+      updateMyPresence({
+        formatId: fragmentId,
+      })
+    }
+  }, [fragmentId])
 
   const history = useHistory()
 

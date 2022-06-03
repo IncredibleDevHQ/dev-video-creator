@@ -1676,6 +1676,16 @@
   resolved "https://registry.yarnpkg.com/@lifeomic/attempt/-/attempt-3.0.2.tgz#6920d6fa76e911c2d27e5a7c9a5f42aff2292733"
   integrity sha512-JHRfM7fUit2UroC0xRnuzMGegSTbfvz6X/1PgcIvahXC+A7UsKa8XfR1YrBsvoSu669iMTeNkDb26pSkGOzXKw==
 
+"@liveblocks/client@^0.16.15":
+  version "0.16.15"
+  resolved "https://registry.yarnpkg.com/@liveblocks/client/-/client-0.16.15.tgz#f3598a17e17bb5619ea33fb7f14e6f9216331b74"
+  integrity sha512-cymqQL53V/ow1xz628viIniEv3QCLkwhqsx/txuKR1ziIHyTpqBMzYPUlDUNqCjCzLL/WuyK+kfFpK6Ux9wiBA==
+
+"@liveblocks/react@^0.16.15":
+  version "0.16.15"
+  resolved "https://registry.yarnpkg.com/@liveblocks/react/-/react-0.16.15.tgz#e9b13ce3b15add926e3623fe3ea6a60184379b17"
+  integrity sha512-fs6+GO3KZ8Vil2JdtkCclS3A0duT5hs8mCzGWvPzGHjdwethokJL5d6T1zoNTwb7qIoy0/7TPDPh8bd0a4ZiPA==
+
 "@lukeed/csprng@^1.0.0":
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/@lukeed/csprng/-/csprng-1.0.1.tgz#625e93a0edb2c830e3c52ce2d67b9d53377c6a66"
