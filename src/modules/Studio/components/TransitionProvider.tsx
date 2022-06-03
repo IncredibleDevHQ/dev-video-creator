@@ -43,6 +43,7 @@ const TransitionProvider = ({
             isShorts={isShorts}
             // color="white"
             setTopLayerChildren={setTopLayerChildren}
+            performFinishAction={performFinishAction}
           />
         )
       case 'DipToBlack':
@@ -62,6 +63,7 @@ const TransitionProvider = ({
             isShorts={isShorts}
             color={branding?.colors?.transition}
             setTopLayerChildren={setTopLayerChildren}
+            performFinishAction={performFinishAction}
           />
         )
       case 'Rectangles':
@@ -71,6 +73,7 @@ const TransitionProvider = ({
             isShorts={isShorts}
             // color="black"
             setTopLayerChildren={setTopLayerChildren}
+            performFinishAction={performFinishAction}
           />
         )
       case 'Triangles':
@@ -89,6 +92,7 @@ const TransitionProvider = ({
             isShorts={isShorts}
             // color={branding?.colors?.transition}
             setTopLayerChildren={setTopLayerChildren}
+            performFinishAction={performFinishAction}
           />
         )
       default:

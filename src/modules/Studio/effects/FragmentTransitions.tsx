@@ -375,6 +375,7 @@ export const PastelLinesTransition = ({
   isShorts,
   color,
   setTopLayerChildren,
+  performFinishAction,
 }: {
   direction: string
   isShorts?: boolean
@@ -382,6 +383,7 @@ export const PastelLinesTransition = ({
   setTopLayerChildren?: React.Dispatch<
     React.SetStateAction<{ id: string; state: TopLayerChildren }>
   >
+  performFinishAction?: () => void
 }) => {
   let stageConfig = { width: CONFIG.width, height: CONFIG.height }
   if (!isShorts) stageConfig = CONFIG
@@ -464,6 +466,11 @@ export const PastelLinesTransition = ({
                     })
                   }
                 }, 100)
+                if (performFinishAction) {
+                  setTimeout(() => {
+                    performFinishAction()
+                  }, 300)
+                }
               },
             })
           }}
@@ -490,6 +497,7 @@ export const CassidooTransition = ({
   isShorts,
   color,
   setTopLayerChildren,
+  performFinishAction,
 }: {
   direction: string
   isShorts?: boolean
@@ -497,6 +505,7 @@ export const CassidooTransition = ({
   setTopLayerChildren?: React.Dispatch<
     React.SetStateAction<{ id: string; state: TopLayerChildren }>
   >
+  performFinishAction?: () => void
 }) => {
   let rect1StartCoords = { x: 0, y: 0 }
   let rect2StartCoords = { x: 0, y: 0 }
@@ -645,6 +654,11 @@ export const CassidooTransition = ({
                           setTopLayerChildren?.({ id: '', state: '' })
                         }
                       }, 200)
+                      if (performFinishAction) {
+                        setTimeout(() => {
+                          performFinishAction()
+                        }, 300)
+                      }
                     },
                   })
                 }, 150)
@@ -906,6 +920,7 @@ export const LeeRobTransition = ({
   isShorts,
   // color,
   setTopLayerChildren,
+  performFinishAction,
 }: {
   direction: string
   isShorts?: boolean
@@ -913,6 +928,7 @@ export const LeeRobTransition = ({
   setTopLayerChildren?: React.Dispatch<
     React.SetStateAction<{ id: string; state: TopLayerChildren }>
   >
+  performFinishAction?: () => void
 }) => {
   let stageConfig = { width: CONFIG.width, height: CONFIG.height }
   if (!isShorts) stageConfig = CONFIG
@@ -1052,6 +1068,11 @@ export const LeeRobTransition = ({
                         setTopLayerChildren?.({ id: '', state: '' })
                       }
                     }, 200)
+                    if (performFinishAction) {
+                      setTimeout(() => {
+                        performFinishAction()
+                      }, 300)
+                    }
                   },
                 })
               },
@@ -1159,6 +1180,7 @@ export const DevsForUkraineTransition = ({
   isShorts,
   // color,
   setTopLayerChildren,
+  performFinishAction,
 }: {
   direction: string
   isShorts?: boolean
@@ -1166,266 +1188,609 @@ export const DevsForUkraineTransition = ({
   setTopLayerChildren?: React.Dispatch<
     React.SetStateAction<{ id: string; state: TopLayerChildren }>
   >
+  performFinishAction?: () => void
 }) => {
-  return (
-    <>
-      <Circle
-        x={CONFIG.width / 2 + 100}
-        y={CONFIG.height / 2}
-        radius={50}
-        scaleX={0}
-        scaleY={0}
-        fill="#2696FA"
-        ref={(ref) => {
-          ref?.to({
-            scaleX: 3,
-            scaleY: 3,
-            duration: 0.3,
-            easing: Konva.Easings.BackEaseOut,
-            onFinish: () => {
-              setTimeout(() => {
-                ref?.to({
-                  scaleX: 0,
-                  scaleY: 0,
-                  duration: 0.3,
-                  onFinish: () => {
+  if (direction === 'left' || direction === 'right') {
+    return (
+      <>
+        <Circle
+          x={CONFIG.width / 2 + 100}
+          y={CONFIG.height / 2}
+          radius={50}
+          scaleX={0}
+          scaleY={0}
+          fill="#2696FA"
+          ref={(ref) => {
+            ref?.to({
+              scaleX: 3,
+              scaleY: 3,
+              duration: 0.3,
+              easing: Konva.Easings.BackEaseOut,
+              onFinish: () => {
+                setTimeout(() => {
+                  ref?.to({
+                    scaleX: 0,
+                    scaleY: 0,
+                    duration: 0.3,
+                    onFinish: () => {
+                      setTimeout(() => {
+                        if (direction === 'left' || direction === 'right') {
+                          setTopLayerChildren?.({ id: '', state: '' })
+                        }
+                      }, 200)
+                    },
+                  })
+                }, 400)
+              },
+            })
+          }}
+        />
+        <Circle
+          x={CONFIG.width / 2 - 200}
+          y={CONFIG.height / 2 - 100}
+          radius={65}
+          scaleX={0}
+          scaleY={0}
+          fill="#ffffff"
+          ref={(ref) => {
+            setTimeout(() => {
+              ref?.to({
+                scaleX: 5,
+                scaleY: 5,
+                duration: 0.3,
+                easing: Konva.Easings.BackEaseOut,
+                onFinish: () => {
+                  setTimeout(() => {
+                    ref?.to({
+                      scaleX: 0,
+                      scaleY: 0,
+                      duration: 0.3,
+                      easing: Konva.Easings.BackEaseIn,
+                    })
+                  }, 300)
+                },
+              })
+            }, 100)
+          }}
+        />
+        <Circle
+          x={CONFIG.width - 60}
+          y={CONFIG.height - 20}
+          radius={70}
+          scaleX={0}
+          scaleY={0}
+          fill="#ffffff"
+          ref={(ref) => {
+            setTimeout(() => {
+              ref?.to({
+                scaleX: 5,
+                scaleY: 5,
+                duration: 0.3,
+                easing: Konva.Easings.BackEaseOut,
+                onFinish: () => {
+                  setTimeout(() => {
+                    ref?.to({
+                      scaleX: 0,
+                      scaleY: 0,
+                      duration: 0.2,
+                      easing: Konva.Easings.BackEaseIn,
+                    })
+                  }, 300)
+                },
+              })
+            }, 200)
+          }}
+        />
+        <Circle
+          x={50}
+          y={CONFIG.height - 90}
+          radius={60}
+          scaleX={0}
+          scaleY={0}
+          fill="#2696FA"
+          ref={(ref) => {
+            setTimeout(() => {
+              ref?.to({
+                scaleX: 3,
+                scaleY: 3,
+                duration: 0.3,
+                easing: Konva.Easings.BackEaseOut,
+                onFinish: () => {
+                  setTimeout(() => {
+                    ref?.to({
+                      scaleX: 0,
+                      scaleY: 0,
+                      duration: 0.2,
+                      easing: Konva.Easings.BackEaseIn,
+                    })
+                  }, 250)
+                },
+              })
+            }, 100)
+          }}
+        />
+        <Circle
+          x={CONFIG.width / 2 + 30}
+          y={CONFIG.height - 80}
+          radius={50}
+          scaleX={0}
+          scaleY={0}
+          fill="#2696FA"
+          ref={(ref) => {
+            setTimeout(() => {
+              ref?.to({
+                scaleX: 3,
+                scaleY: 3,
+                duration: 0.4,
+                easing: Konva.Easings.BackEaseOut,
+                onFinish: () => {
+                  setTimeout(() => {
+                    ref?.to({
+                      scaleX: 0,
+                      scaleY: 0,
+                      duration: 0.2,
+                      easing: Konva.Easings.BackEaseIn,
+                    })
+                  }, 250)
+                },
+              })
+            }, 100)
+          }}
+        />
+        <Circle
+          x={CONFIG.width + 20}
+          y={20}
+          radius={70}
+          scaleX={0}
+          scaleY={0}
+          fill="#2696FA"
+          ref={(ref) => {
+            setTimeout(() => {
+              ref?.to({
+                scaleX: 4,
+                scaleY: 4,
+                duration: 0.2,
+                easing: Konva.Easings.BackEaseOut,
+                onFinish: () => {
+                  setTimeout(() => {
+                    ref?.to({
+                      scaleX: 0,
+                      scaleY: 0,
+                      duration: 0.2,
+                      easing: Konva.Easings.BackEaseIn,
+                    })
+                  }, 100)
+                },
+              })
+            }, 300)
+          }}
+        />
+        <Circle
+          x={CONFIG.width / 2 + 100}
+          y={80}
+          radius={65}
+          scaleX={0}
+          scaleY={0}
+          fill="#FFE87B"
+          ref={(ref) => {
+            setTimeout(() => {
+              ref?.to({
+                scaleX: 4,
+                scaleY: 4,
+                duration: 0.2,
+                easing: Konva.Easings.BackEaseOut,
+                onFinish: () => {
+                  setTimeout(() => {
+                    ref?.to({
+                      scaleX: 0,
+                      scaleY: 0,
+                      duration: 0.2,
+                      easing: Konva.Easings.BackEaseIn,
+                    })
+                  }, 50)
+                },
+              })
+            }, 300)
+          }}
+        />
+        <Circle
+          x={275}
+          y={CONFIG.height + 100}
+          radius={70}
+          scaleX={0}
+          scaleY={0}
+          fill="#FFE87B"
+          ref={(ref) => {
+            setTimeout(() => {
+              ref?.to({
+                scaleX: 4,
+                scaleY: 4,
+                duration: 0.3,
+                easing: Konva.Easings.BackEaseOut,
+                onFinish: () => {
+                  setTimeout(() => {
+                    ref?.to({
+                      scaleX: 0,
+                      scaleY: 0,
+                      duration: 0.3,
+                      easing: Konva.Easings.BackEaseIn,
+                    })
+                  }, 200)
+                },
+              })
+            }, 200)
+          }}
+        />
+        <Circle
+          x={10}
+          y={10}
+          radius={50}
+          scaleX={0}
+          scaleY={0}
+          fill="#FFE87B"
+          ref={(ref) => {
+            setTimeout(() => {
+              ref?.to({
+                scaleX: 4,
+                scaleY: 4,
+                duration: 0.3,
+                easing: Konva.Easings.BackEaseOut,
+                onFinish: () => {
+                  setTimeout(() => {
+                    ref?.to({
+                      scaleX: 0,
+                      scaleY: 0,
+                      duration: 0.2,
+                    })
+                  }, 150)
+                },
+              })
+            }, 250)
+          }}
+        />
+      </>
+    )
+  }
+  if (direction === 'moveIn') {
+    return (
+      <>
+        <Circle
+          x={CONFIG.width / 2 + 100}
+          y={CONFIG.height / 2}
+          radius={50}
+          scaleX={0}
+          scaleY={0}
+          fill="#2696FA"
+          ref={(ref) => {
+            ref?.to({
+              scaleX: 3,
+              scaleY: 3,
+              duration: 0.3,
+              easing: Konva.Easings.BackEaseOut,
+            })
+          }}
+        />
+        <Circle
+          x={CONFIG.width / 2 - 200}
+          y={CONFIG.height / 2 - 100}
+          radius={65}
+          scaleX={0}
+          scaleY={0}
+          fill="#ffffff"
+          ref={(ref) => {
+            setTimeout(() => {
+              ref?.to({
+                scaleX: 5,
+                scaleY: 5,
+                duration: 0.3,
+                easing: Konva.Easings.BackEaseOut,
+              })
+            }, 100)
+          }}
+        />
+        <Circle
+          x={CONFIG.width - 60}
+          y={CONFIG.height - 20}
+          radius={70}
+          scaleX={0}
+          scaleY={0}
+          fill="#ffffff"
+          ref={(ref) => {
+            setTimeout(() => {
+              ref?.to({
+                scaleX: 5,
+                scaleY: 5,
+                duration: 0.3,
+                easing: Konva.Easings.BackEaseOut,
+              })
+            }, 200)
+          }}
+        />
+        <Circle
+          x={50}
+          y={CONFIG.height - 90}
+          radius={60}
+          scaleX={0}
+          scaleY={0}
+          fill="#2696FA"
+          ref={(ref) => {
+            setTimeout(() => {
+              ref?.to({
+                scaleX: 3,
+                scaleY: 3,
+                duration: 0.3,
+                easing: Konva.Easings.BackEaseOut,
+              })
+            }, 100)
+          }}
+        />
+        <Circle
+          x={CONFIG.width / 2 + 30}
+          y={CONFIG.height - 80}
+          radius={50}
+          scaleX={0}
+          scaleY={0}
+          fill="#2696FA"
+          ref={(ref) => {
+            setTimeout(() => {
+              ref?.to({
+                scaleX: 3,
+                scaleY: 3,
+                duration: 0.4,
+                easing: Konva.Easings.BackEaseOut,
+              })
+            }, 100)
+          }}
+        />
+        <Circle
+          x={CONFIG.width + 20}
+          y={20}
+          radius={70}
+          scaleX={0}
+          scaleY={0}
+          fill="#2696FA"
+          ref={(ref) => {
+            setTimeout(() => {
+              ref?.to({
+                scaleX: 4,
+                scaleY: 4,
+                duration: 0.2,
+                easing: Konva.Easings.BackEaseOut,
+              })
+            }, 300)
+          }}
+        />
+        <Circle
+          x={CONFIG.width / 2 + 100}
+          y={80}
+          radius={65}
+          scaleX={0}
+          scaleY={0}
+          fill="#FFE87B"
+          ref={(ref) => {
+            setTimeout(() => {
+              ref?.to({
+                scaleX: 4,
+                scaleY: 4,
+                duration: 0.2,
+                easing: Konva.Easings.BackEaseOut,
+              })
+            }, 300)
+          }}
+        />
+        <Circle
+          x={275}
+          y={CONFIG.height + 100}
+          radius={70}
+          scaleX={0}
+          scaleY={0}
+          fill="#FFE87B"
+          ref={(ref) => {
+            setTimeout(() => {
+              ref?.to({
+                scaleX: 4,
+                scaleY: 4,
+                duration: 0.3,
+                easing: Konva.Easings.BackEaseOut,
+              })
+            }, 200)
+          }}
+        />
+        <Circle
+          x={10}
+          y={10}
+          radius={50}
+          scaleX={0}
+          scaleY={0}
+          fill="#FFE87B"
+          ref={(ref) => {
+            setTimeout(() => {
+              ref?.to({
+                scaleX: 4,
+                scaleY: 4,
+                duration: 0.3,
+                easing: Konva.Easings.BackEaseOut,
+                onFinish: () => {
+                  if (performFinishAction) {
                     setTimeout(() => {
-                      if (direction === 'left' || direction === 'right') {
-                        setTopLayerChildren?.({ id: '', state: '' })
-                      }
-                    }, 200)
-                  },
-                })
-              }, 400)
-            },
-          })
-        }}
-      />
-      <Circle
-        x={CONFIG.width / 2 - 200}
-        y={CONFIG.height / 2 - 100}
-        radius={65}
-        scaleX={0}
-        scaleY={0}
-        fill="#ffffff"
-        ref={(ref) => {
-          setTimeout(() => {
-            ref?.to({
-              scaleX: 5,
-              scaleY: 5,
-              duration: 0.3,
-              easing: Konva.Easings.BackEaseOut,
-              onFinish: () => {
-                setTimeout(() => {
-                  ref?.to({
-                    scaleX: 0,
-                    scaleY: 0,
-                    duration: 0.3,
-                    easing: Konva.Easings.BackEaseIn,
-                  })
-                }, 300)
-              },
-            })
-          }, 100)
-        }}
-      />
-      <Circle
-        x={CONFIG.width - 60}
-        y={CONFIG.height - 20}
-        radius={70}
-        scaleX={0}
-        scaleY={0}
-        fill="#ffffff"
-        ref={(ref) => {
-          setTimeout(() => {
-            ref?.to({
-              scaleX: 5,
-              scaleY: 5,
-              duration: 0.3,
-              easing: Konva.Easings.BackEaseOut,
-              onFinish: () => {
-                setTimeout(() => {
-                  ref?.to({
-                    scaleX: 0,
-                    scaleY: 0,
-                    duration: 0.2,
-                    easing: Konva.Easings.BackEaseIn,
-                  })
-                }, 300)
-              },
-            })
-          }, 200)
-        }}
-      />
-      <Circle
-        x={50}
-        y={CONFIG.height - 90}
-        radius={60}
-        scaleX={0}
-        scaleY={0}
-        fill="#2696FA"
-        ref={(ref) => {
-          setTimeout(() => {
-            ref?.to({
-              scaleX: 3,
-              scaleY: 3,
-              duration: 0.3,
-              easing: Konva.Easings.BackEaseOut,
-              onFinish: () => {
-                setTimeout(() => {
-                  ref?.to({
-                    scaleX: 0,
-                    scaleY: 0,
-                    duration: 0.2,
-                    easing: Konva.Easings.BackEaseIn,
-                  })
-                }, 250)
-              },
-            })
-          }, 100)
-        }}
-      />
-      <Circle
-        x={CONFIG.width / 2 + 30}
-        y={CONFIG.height - 80}
-        radius={50}
-        scaleX={0}
-        scaleY={0}
-        fill="#2696FA"
-        ref={(ref) => {
-          setTimeout(() => {
-            ref?.to({
-              scaleX: 3,
-              scaleY: 3,
-              duration: 0.4,
-              easing: Konva.Easings.BackEaseOut,
-              onFinish: () => {
-                setTimeout(() => {
-                  ref?.to({
-                    scaleX: 0,
-                    scaleY: 0,
-                    duration: 0.2,
-                    easing: Konva.Easings.BackEaseIn,
-                  })
-                }, 250)
-              },
-            })
-          }, 100)
-        }}
-      />
-      <Circle
-        x={CONFIG.width + 20}
-        y={20}
-        radius={70}
-        scaleX={0}
-        scaleY={0}
-        fill="#2696FA"
-        ref={(ref) => {
-          setTimeout(() => {
-            ref?.to({
-              scaleX: 4,
-              scaleY: 4,
-              duration: 0.2,
-              easing: Konva.Easings.BackEaseOut,
-              onFinish: () => {
-                setTimeout(() => {
-                  ref?.to({
-                    scaleX: 0,
-                    scaleY: 0,
-                    duration: 0.2,
-                    easing: Konva.Easings.BackEaseIn,
-                  })
-                }, 100)
-              },
-            })
-          }, 300)
-        }}
-      />
-      <Circle
-        x={CONFIG.width / 2 + 100}
-        y={80}
-        radius={65}
-        scaleX={0}
-        scaleY={0}
-        fill="#FFE87B"
-        ref={(ref) => {
-          setTimeout(() => {
-            ref?.to({
-              scaleX: 4,
-              scaleY: 4,
-              duration: 0.2,
-              easing: Konva.Easings.BackEaseOut,
-              onFinish: () => {
-                setTimeout(() => {
-                  ref?.to({
-                    scaleX: 0,
-                    scaleY: 0,
-                    duration: 0.2,
-                    easing: Konva.Easings.BackEaseIn,
-                  })
-                }, 50)
-              },
-            })
-          }, 300)
-        }}
-      />
-      <Circle
-        x={275}
-        y={CONFIG.height + 100}
-        radius={70}
-        scaleX={0}
-        scaleY={0}
-        fill="#FFE87B"
-        ref={(ref) => {
-          setTimeout(() => {
-            ref?.to({
-              scaleX: 4,
-              scaleY: 4,
-              duration: 0.3,
-              easing: Konva.Easings.BackEaseOut,
-              onFinish: () => {
-                setTimeout(() => {
-                  ref?.to({
-                    scaleX: 0,
-                    scaleY: 0,
-                    duration: 0.3,
-                    easing: Konva.Easings.BackEaseIn,
-                  })
-                }, 200)
-              },
-            })
-          }, 200)
-        }}
-      />
-      <Circle
-        x={10}
-        y={10}
-        radius={50}
-        scaleX={0}
-        scaleY={0}
-        fill="#FFE87B"
-        ref={(ref) => {
-          setTimeout(() => {
-            ref?.to({
-              scaleX: 4,
-              scaleY: 4,
-              duration: 0.3,
-              easing: Konva.Easings.BackEaseOut,
-              onFinish: () => {
-                setTimeout(() => {
-                  ref?.to({
-                    scaleX: 0,
-                    scaleY: 0,
-                    duration: 0.2,
-                  })
-                }, 150)
-              },
-            })
-          }, 250)
-        }}
-      />
-    </>
-  )
+                      performFinishAction()
+                    }, 300)
+                  }
+                },
+              })
+            }, 250)
+          }}
+        />
+      </>
+    )
+  }
+  if (direction === 'moveAway') {
+    return (
+      <>
+        <Circle
+          x={CONFIG.width / 2 + 100}
+          y={CONFIG.height / 2}
+          radius={50}
+          scaleX={3}
+          scaleY={3}
+          fill="#2696FA"
+          ref={(ref) => {
+            setTimeout(() => {
+              ref?.to({
+                scaleX: 0,
+                scaleY: 0,
+                duration: 0.3,
+              })
+            }, 400)
+          }}
+        />
+        <Circle
+          x={CONFIG.width / 2 - 200}
+          y={CONFIG.height / 2 - 100}
+          radius={65}
+          scaleX={5}
+          scaleY={5}
+          fill="#ffffff"
+          ref={(ref) => {
+            setTimeout(() => {
+              ref?.to({
+                scaleX: 0,
+                scaleY: 0,
+                duration: 0.3,
+                easing: Konva.Easings.BackEaseIn,
+              })
+            }, 300)
+          }}
+        />
+        <Circle
+          x={CONFIG.width - 60}
+          y={CONFIG.height - 20}
+          radius={70}
+          scaleX={5}
+          scaleY={5}
+          fill="#ffffff"
+          ref={(ref) => {
+            setTimeout(() => {
+              ref?.to({
+                scaleX: 0,
+                scaleY: 0,
+                duration: 0.2,
+                easing: Konva.Easings.BackEaseIn,
+              })
+            }, 300)
+          }}
+        />
+        <Circle
+          x={50}
+          y={CONFIG.height - 90}
+          radius={60}
+          scaleX={3}
+          scaleY={3}
+          fill="#2696FA"
+          ref={(ref) => {
+            setTimeout(() => {
+              ref?.to({
+                scaleX: 0,
+                scaleY: 0,
+                duration: 0.2,
+                easing: Konva.Easings.BackEaseIn,
+              })
+            }, 250)
+          }}
+        />
+        <Circle
+          x={CONFIG.width / 2 + 30}
+          y={CONFIG.height - 80}
+          radius={50}
+          scaleX={3}
+          scaleY={3}
+          fill="#2696FA"
+          ref={(ref) => {
+            setTimeout(() => {
+              ref?.to({
+                scaleX: 0,
+                scaleY: 0,
+                duration: 0.2,
+                easing: Konva.Easings.BackEaseIn,
+              })
+            }, 250)
+          }}
+        />
+        <Circle
+          x={CONFIG.width + 20}
+          y={20}
+          radius={70}
+          scaleX={4}
+          scaleY={4}
+          fill="#2696FA"
+          ref={(ref) => {
+            setTimeout(() => {
+              ref?.to({
+                scaleX: 0,
+                scaleY: 0,
+                duration: 0.2,
+                easing: Konva.Easings.BackEaseIn,
+              })
+            }, 100)
+          }}
+        />
+        <Circle
+          x={CONFIG.width / 2 + 100}
+          y={80}
+          radius={65}
+          scaleX={4}
+          scaleY={4}
+          fill="#FFE87B"
+          ref={(ref) => {
+            setTimeout(() => {
+              ref?.to({
+                scaleX: 0,
+                scaleY: 0,
+                duration: 0.2,
+                easing: Konva.Easings.BackEaseIn,
+              })
+            }, 50)
+          }}
+        />
+        <Circle
+          x={275}
+          y={CONFIG.height + 100}
+          radius={70}
+          scaleX={4}
+          scaleY={4}
+          fill="#FFE87B"
+          ref={(ref) => {
+            setTimeout(() => {
+              ref?.to({
+                scaleX: 0,
+                scaleY: 0,
+                duration: 0.3,
+                easing: Konva.Easings.BackEaseIn,
+              })
+            }, 200)
+          }}
+        />
+        <Circle
+          x={10}
+          y={10}
+          radius={50}
+          scaleX={4}
+          scaleY={4}
+          fill="#FFE87B"
+          ref={(ref) => {
+            setTimeout(() => {
+              ref?.to({
+                scaleX: 0,
+                scaleY: 0,
+                duration: 0.2,
+              })
+            }, 150)
+          }}
+        />
+      </>
+    )
+  }
+  return <></>
 }
 
 export const Whitep4nth3rTransition = ({
@@ -1433,6 +1798,7 @@ export const Whitep4nth3rTransition = ({
   isShorts,
   // color,
   setTopLayerChildren,
+  performFinishAction,
 }: {
   direction: string
   isShorts?: boolean
@@ -1440,6 +1806,7 @@ export const Whitep4nth3rTransition = ({
   setTopLayerChildren?: React.Dispatch<
     React.SetStateAction<{ id: string; state: TopLayerChildren }>
   >
+  performFinishAction?: () => void
 }) => {
   let stageConfig = { width: CONFIG.width, height: CONFIG.height }
   if (!isShorts) stageConfig = CONFIG
@@ -1502,6 +1869,11 @@ export const Whitep4nth3rTransition = ({
                         setTopLayerChildren?.({ id: '', state: '' })
                       }
                     }, 200)
+                    if (performFinishAction) {
+                      setTimeout(() => {
+                        performFinishAction()
+                      }, 300)
+                    }
                   },
                 })
               }, 200)
