@@ -190,7 +190,11 @@ const useCanvasRecorder = ({
   const stopRecording = (fileName?: string) => {
     if (mediaRecorder?.state === 'inactive') return
     if (mediaRecorder?.state === 'recording') {
-      mediaRecorder?.stop()
+      try {
+        mediaRecorder?.stop()
+      } catch (e) {
+        console.log('Stop recording error: ', e)
+      }
     } else console.error('Cannot stop canvas recorder', mediaRecorder?.state)
   }
 

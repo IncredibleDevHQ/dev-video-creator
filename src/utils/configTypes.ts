@@ -26,6 +26,7 @@ export const shortsLayoutTypes = [
   'bottom-right-circle',
   'split',
   'full-left',
+  'full-right',
 ] as const
 
 export const outroLayoutTypes = [

@@ -1,10 +1,11 @@
 import React from 'react'
-import { Rect, Text } from 'react-konva'
+import { Group, Rect, Star, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import { studioStore } from '../stores'
 import { BulletsConfig } from '../utils/PointsConfig'
+import { ObjectRenderConfig } from '../utils/ThemeConfig'
 
-const PointBullets = ({
+const HorizontalPointBullets = ({
   theme,
   bulletsConfig,
   pointNumber,
@@ -103,9 +104,133 @@ const PointBullets = ({
           />
         </>
       )
+    case 'VetsWhoCode':
+      return (
+        <Star
+          x={bulletsConfig.bulletXOffset}
+          y={bulletsConfig.bulletYOffset}
+          numPoints={5}
+          innerRadius={7}
+          outerRadius={17}
+          fill={bulletsConfig.bulletColor as string}
+        />
+      )
     default:
       return <></>
   }
 }
 
-export default PointBullets
+export const PointBullets = ({
+  theme,
+  objectRenderConfig,
+  pointY,
+  pointLevel,
+}: {
+  theme: string
+  objectRenderConfig: ObjectRenderConfig
+  pointY: number
+  pointLevel: number
+}) => {
+  const { branding } = useRecoilValue(studioStore)
+  switch (theme) {
+    case 'DarkGradient':
+    case 'PastelLines':
+    case 'Cassidoo':
+    case 'LambdaTest':
+    case 'LeeRob':
+    case 'DevsForUkraine':
+    case 'Web3Auth':
+      return (
+        <Rect
+          key="points"
+          x={-2 + (41 * (pointLevel - 1) || 0)}
+          y={pointY + (objectRenderConfig.pointsBulletYOffset || 0)}
+          width={12}
+          height={12}
+          cornerRadius={objectRenderConfig.pointsBulletCornerRadius}
+          fill={
+            branding?.colors?.text
+              ? branding?.colors?.text
+              : (objectRenderConfig.pointsBulletColor as string)
+          }
+          ref={(ref) =>
+            ref?.to({
+              x: 0 + (41 * (pointLevel - 1) || 0),
+              duration: 0.3,
+            })
+          }
+          rotation={objectRenderConfig.pointsBulletRotation}
+        />
+      )
+    case 'Whitep4nth3r':
+      return (
+        <Group
+          x={-2 + (41 * (pointLevel - 1) || 0)}
+          ref={(ref) =>
+            ref?.to({
+              x: 0 + (41 * (pointLevel - 1) || 0),
+              duration: 0.3,
+            })
+          }
+        >
+          <Rect
+            y={pointY + (objectRenderConfig.pointsBulletYOffset || 0)}
+            width={12}
+            height={2}
+            fill={
+              branding?.colors?.text
+                ? branding?.colors?.text
+                : (objectRenderConfig.pointsBulletColor as string)
+            }
+          />
+          <Rect
+            x={12}
+            y={pointY + (objectRenderConfig.pointsBulletYOffset || 0)}
+            width={8}
+            height={2}
+            fill={
+              branding?.colors?.text
+                ? branding?.colors?.text
+                : (objectRenderConfig.pointsBulletColor as string)
+            }
+            offsetX={8}
+            rotation={45}
+          />
+          <Rect
+            x={12}
+            y={pointY + (objectRenderConfig.pointsBulletYOffset || 0)}
+            width={10}
+            height={2}
+            fill={
+              branding?.colors?.text
+                ? branding?.colors?.text
+                : (objectRenderConfig.pointsBulletColor as string)
+            }
+            offsetX={10}
+            rotation={-45}
+          />
+        </Group>
+      )
+    case 'VetsWhoCode':
+      return (
+        <Star
+          x={-2 + (41 * (pointLevel - 1) || 0)}
+          y={pointY + (objectRenderConfig.pointsBulletYOffset || 0)}
+          numPoints={5}
+          innerRadius={3.5}
+          outerRadius={8.5}
+          fill={objectRenderConfig.pointsBulletColor as string}
+          ref={(ref) =>
+            ref?.to({
+              x: 0 + (41 * (pointLevel - 1) || 0),
+              duration: 0.3,
+            })
+          }
+        />
+      )
+    default:
+      return <></>
+  }
+}
+
+export default HorizontalPointBullets

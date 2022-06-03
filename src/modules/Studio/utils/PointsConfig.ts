@@ -562,6 +562,46 @@ export const getBulletsConfig = ({
             bulletRotation: 0,
           }
       }
+    case 'VetsWhoCode':
+      switch (layout) {
+        case 'classic':
+        case 'float-full-right':
+        case 'float-full-left':
+        case 'float-half-right':
+        case 'padded-bottom-right-tile':
+        case 'padded-bottom-right-circle':
+        case 'bottom-right-tile':
+        case 'bottom-right-circle':
+        case 'padded-split':
+        case 'split':
+        case 'full-left':
+        case 'full-right':
+          return {
+            bulletWidth: 40,
+            bulletHeight: 40,
+            bulletFontSize: 0,
+            bulletFontStyle: '',
+            bulletCornerRadius: 0,
+            bulletXOffset: 17,
+            bulletYOffset: 17,
+            bulletColor: '#C5203E',
+            bulletTextColor: '',
+            bulletRotation: 0,
+          }
+        default:
+          return {
+            bulletWidth: 40,
+            bulletHeight: 40,
+            bulletFontSize: 0,
+            bulletFontStyle: '',
+            bulletCornerRadius: 0,
+            bulletXOffset: 17,
+            bulletYOffset: 17,
+            bulletColor: '#C5203E',
+            bulletTextColor: '',
+            bulletRotation: 0,
+          }
+      }
     default:
       return {
         bulletWidth: 64,
