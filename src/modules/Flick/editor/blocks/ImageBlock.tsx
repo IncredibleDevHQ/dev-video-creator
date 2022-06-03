@@ -622,7 +622,7 @@ const IncredibleGifs = ({
               onClick={() => {
                 setLocalSrc(`${config.storage.baseUrl}gifs/${gif}`)
                 props.updateAttributes({
-                  src: `${config.storage.baseUrl}/gifs/${gif}`,
+                  src: `${config.storage.baseUrl}gifs/${gif}`,
                 })
               }}
             />
