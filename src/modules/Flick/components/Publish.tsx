@@ -46,7 +46,6 @@ import {
   Recording_Status_Enum_Enum,
   useCompleteRecordingMutation,
   useGetRecordingsQuery,
-  useGetUserYtIntegrationQuery,
   useGetUserYtIntegrationSubscription,
   usePublishVideoActionMutation,
   useUpdatePublishMutation,
