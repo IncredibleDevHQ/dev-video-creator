@@ -1917,6 +1917,7 @@ export const VetsWhoCodeTransition = ({
   isShorts,
   color,
   setTopLayerChildren,
+  performFinishAction,
 }: {
   direction: string
   isShorts?: boolean
@@ -1924,6 +1925,7 @@ export const VetsWhoCodeTransition = ({
   setTopLayerChildren?: React.Dispatch<
     React.SetStateAction<{ id: string; state: TopLayerChildren }>
   >
+  performFinishAction?: () => void
 }) => {
   let stageConfig = { width: CONFIG.width, height: CONFIG.height }
   if (!isShorts) stageConfig = CONFIG
@@ -1988,6 +1990,11 @@ export const VetsWhoCodeTransition = ({
                           setTopLayerChildren?.({ id: '', state: '' })
                         }
                       }, 200)
+                      if (performFinishAction) {
+                        setTimeout(() => {
+                          performFinishAction()
+                        }, 300)
+                      }
                     },
                   })
                 }, 200)
