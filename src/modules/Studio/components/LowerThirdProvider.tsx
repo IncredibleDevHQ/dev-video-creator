@@ -7,6 +7,7 @@ import {
   TopLayerChildren,
   ViewConfig,
 } from '../../../utils/configTypes'
+import { BrandingJSON } from '../../Branding/BrandingPage'
 import { IntroBlockProps } from '../../Flick/editor/utils/utils'
 import { studioStore } from '../stores'
 import { CONFIG, SHORTS_CONFIG } from './Concourse'
@@ -26,15 +27,17 @@ const LowerThridProvider = ({
   theme,
   isShorts,
   setTopLayerChildren,
+  brandingJSON,
 }: {
   theme: ThemeFragment
   isShorts: boolean
   setTopLayerChildren?: React.Dispatch<
     React.SetStateAction<{ id: string; state: TopLayerChildren }>
   >
+  brandingJSON?: BrandingJSON | null
 }) => {
-  const { branding, fragment, users, participants } =
-    useRecoilValue(studioStore)
+  const branding = useRecoilValue(studioStore).branding || brandingJSON
+  const { fragment, users, participants } = useRecoilValue(studioStore)
   const introBlockViewProps = (
     (fragment?.configuration as ViewConfig)?.blocks[
       (fragment?.editorState?.blocks[0] as IntroBlockProps).id
@@ -93,23 +96,24 @@ const LowerThridProvider = ({
             setTopLayerChildren={setTopLayerChildren}
             isShorts={isShorts}
           />
-          {users.map((user, index) => (
-            <GlassyLowerThirds
-              // eslint-disable-next-line react/no-array-index-key
-              key={index}
-              x={lowerThirdCoordinates({ position: 'right' })[index + 1]}
-              y={!isShorts ? 450 : 620}
-              userName={participants?.[user.uid]?.displayName || ''}
-              designation={participants?.[user.uid]?.designation || ''}
-              organization={participants?.[user.uid]?.organization || ''}
-              logo={branding?.logo || ''}
-              color={branding?.background?.color?.primary || ''}
-              textColor={branding?.colors?.text || ''}
-              branding={branding}
-              isShorts={isShorts}
-              setTopLayerChildren={setTopLayerChildren}
-            />
-          ))}
+          {users &&
+            users?.map((user, index) => (
+              <GlassyLowerThirds
+                // eslint-disable-next-line react/no-array-index-key
+                key={index}
+                x={lowerThirdCoordinates({ position: 'right' })[index + 1]}
+                y={!isShorts ? 450 : 620}
+                userName={participants?.[user.uid]?.displayName || ''}
+                designation={participants?.[user.uid]?.designation || ''}
+                organization={participants?.[user.uid]?.organization || ''}
+                logo={branding?.logo || ''}
+                color={branding?.background?.color?.primary || ''}
+                textColor={branding?.colors?.text || ''}
+                branding={branding}
+                isShorts={isShorts}
+                setTopLayerChildren={setTopLayerChildren}
+              />
+            ))}
         </>
       )
     case 'PastelLines':
@@ -126,21 +130,22 @@ const LowerThridProvider = ({
             textColor={branding?.colors?.text || ''}
             setTopLayerChildren={setTopLayerChildren}
           />
-          {users.map((user, index) => (
-            <PastelLinesLowerThirds
-              // eslint-disable-next-line react/no-array-index-key
-              key={index}
-              x={lowerThirdCoordinates({ position: 'left' })[index + 1]}
-              y={!isShorts ? 400 : 560}
-              userName={participants?.[user.uid]?.displayName || ''}
-              designation={lowerThirdUserDesignation || ''}
-              organization={lowerThirdUserOrganization || ''}
-              logo={branding?.logo || ''}
-              color={branding?.background?.color?.primary || ''}
-              textColor={branding?.colors?.text || ''}
-              setTopLayerChildren={setTopLayerChildren}
-            />
-          ))}
+          {users &&
+            users?.map((user, index) => (
+              <PastelLinesLowerThirds
+                // eslint-disable-next-line react/no-array-index-key
+                key={index}
+                x={lowerThirdCoordinates({ position: 'left' })[index + 1]}
+                y={!isShorts ? 400 : 560}
+                userName={participants?.[user.uid]?.displayName || ''}
+                designation={lowerThirdUserDesignation || ''}
+                organization={lowerThirdUserOrganization || ''}
+                logo={branding?.logo || ''}
+                color={branding?.background?.color?.primary || ''}
+                textColor={branding?.colors?.text || ''}
+                setTopLayerChildren={setTopLayerChildren}
+              />
+            ))}
         </>
       )
     case 'Cassidoo': {
