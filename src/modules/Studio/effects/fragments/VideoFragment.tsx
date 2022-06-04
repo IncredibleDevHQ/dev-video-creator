@@ -305,7 +305,9 @@ const VideoFragment = ({
         : objectRenderConfig.availableWidth - 40,
       fontSize: 16,
       fontFamily:
-        branding?.font?.body?.family || objectRenderConfig.bodyFont || 'Gilroy',
+        branding?.font?.body?.family ||
+        objectRenderConfig.bodyFont ||
+        'GilroyRegular',
       fontStyle: 'normal',
     })
     setNoOfLinesOfText({
@@ -535,7 +537,7 @@ const VideoFragment = ({
             text={videoFragmentData?.caption}
             fontFamily={
               branding?.font?.body?.family ||
-              objectRenderConfig.titleFont ||
+              objectRenderConfig.bodyFont ||
               'GilroyRegular'
             }
           />

@@ -57,6 +57,24 @@
     font-display: optional;
     src: url('/fonts/Inter/inter-var-latin.woff2') format('woff2');
   }
+
+  /* Gotham Bold - Subsetting : Latin */
+  @font-face {
+    font-family: 'Gotham';
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: fallback;
+    src: url('/fonts/Gotham/GothamBold.ttf') format('truetype');
+  }
+
+  /* Gotham Light - Subsetting : Latin */
+  @font-face {
+    font-family: 'GothamLight';
+    font-style: normal;
+    font-weight: 100 800;
+    font-display: fallback;
+    src: url('/fonts/Gotham/GothamLight.ttf') format('truetype');
+  }
 }
 
 @layer utilities {
