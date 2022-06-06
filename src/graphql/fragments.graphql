@@ -459,11 +459,13 @@ mutation PublishVideoAction(
   $data: json!
   $fragmentId: uuid!
   $recordingId: uuid!
+  $publishToYoutube: Boolean
 ) {
   PublishVideo(
     data: $data
     fragmentId: $fragmentId
     recordingId: $recordingId
+    publishToYoutube: $publishToYoutube
   ) {
     success
   }

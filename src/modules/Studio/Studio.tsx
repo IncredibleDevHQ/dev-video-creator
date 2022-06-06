@@ -749,6 +749,14 @@ const Studio = ({
     tracks
   )
 
+  console.log(
+    'stream',
+    stream?.getVideoTracks()[0].getSettings().width,
+    stream?.getVideoTracks()[0].getSettings().height,
+    stream?.getVideoTracks()[0].getSettings().aspectRatio,
+    stream?.getVideoTracks()[0].getSettings().frameRate
+  )
+
   const [getRTCToken] = useGetRtcTokenMutation({
     variables: { fragmentId },
   })
@@ -1612,8 +1620,15 @@ const Studio = ({
                                   }
                                   setTopLayerChildren={setTopLayerChildren}
                                   isShorts={shortsMode || false}
-                                  status={payload?.status}
                                   theme={theme}
+                                  transitionSettings={{
+                                    blockTransition:
+                                      fragment?.flick?.configuration
+                                        ?.transitions?.blockTransition?.name,
+                                    swapTransition:
+                                      fragment?.flick?.configuration
+                                        ?.transitions?.swapTransition?.name,
+                                  }}
                                   performFinishAction={() => {
                                     stopCanvasRecording()
                                     setState('preview')

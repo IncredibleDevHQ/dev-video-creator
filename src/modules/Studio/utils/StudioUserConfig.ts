@@ -4689,6 +4689,7 @@ export const ShortsStudioUserConfiguration = ({
               ]
           }
         case 'full-left':
+        case 'full-right':
           switch (noOfParticipants) {
             case 2:
               return [
@@ -4990,6 +4991,7 @@ export const ShortsStudioUserConfiguration = ({
               ]
           }
         case 'full-left':
+        case 'full-right':
           switch (noOfParticipants) {
             case 2:
               return [
@@ -5343,6 +5345,7 @@ export const ShortsStudioUserConfiguration = ({
               ]
           }
         case 'full-left':
+        case 'full-right':
           switch (noOfParticipants) {
             case 2:
               return [
@@ -5645,6 +5648,7 @@ export const ShortsStudioUserConfiguration = ({
               ]
           }
         case 'full-left':
+        case 'full-right':
           switch (noOfParticipants) {
             case 2:
               return [
@@ -5998,6 +6002,7 @@ export const ShortsStudioUserConfiguration = ({
               ]
           }
         case 'full-left':
+        case 'full-right':
           switch (noOfParticipants) {
             case 2:
               return [
@@ -6353,6 +6358,7 @@ export const ShortsStudioUserConfiguration = ({
               ]
           }
         case 'full-left':
+        case 'full-right':
           switch (noOfParticipants) {
             case 2:
               return [
@@ -6654,6 +6660,7 @@ export const ShortsStudioUserConfiguration = ({
               ]
           }
         case 'full-left':
+        case 'full-right':
           switch (noOfParticipants) {
             case 2:
               return [
@@ -6967,6 +6974,7 @@ export const ShortsStudioUserConfiguration = ({
               ]
           }
         case 'full-left':
+        case 'full-right':
           switch (noOfParticipants) {
             case 2:
               return [
@@ -7280,6 +7288,7 @@ export const ShortsStudioUserConfiguration = ({
               ]
           }
         case 'full-left':
+        case 'full-right':
           switch (noOfParticipants) {
             case 2:
               return [

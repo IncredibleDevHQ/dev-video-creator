@@ -97,6 +97,13 @@ query GetUserPreferences($sub: String = "") {
   }
 }
 
+subscription GetUserYTIntegration {
+  YoutubeIntegration {
+    id
+    userInfo
+  }
+}
+
 mutation UpdateUserPreferences($sub: String!, $preferences: json!) {
   update_User_by_pk(
     pk_columns: { sub: $sub }

@@ -436,10 +436,15 @@ mutation SaveFlick(
   $configuration: json!
   $branding: Boolean!
   $brandingId: uuid
+  $flickConfiguration: json!
 ) {
   update_Flick_by_pk(
     pk_columns: { id: $id }
-    _set: { useBranding: $branding, brandingId: $brandingId }
+    _set: {
+      useBranding: $branding
+      brandingId: $brandingId
+      configuration: $flickConfiguration
+    }
   ) {
     id
   }

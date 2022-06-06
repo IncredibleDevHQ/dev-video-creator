@@ -383,7 +383,7 @@ const LayoutGeneric = ({
                 <div className="w-full h-full bg-gray-500 rounded-sm items-self-end" />
                 <div
                   className={cx('bg-gray-200 p-1.5 absolute rounded-sm', {
-                    'w-4/5 h-2/5 top-2': mode === 'Portrait',
+                    'w-4/5 h-2/5 bottom-2': mode === 'Portrait',
                     'h-8 w-2/5 right-1': mode === 'Landscape',
                   })}
                 >
