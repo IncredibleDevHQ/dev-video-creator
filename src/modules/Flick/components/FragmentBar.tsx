@@ -384,18 +384,16 @@ const TransitionCard = ({
 }
 
 const FragmentBar = ({
-  config,
   editorValue,
-  setViewConfig,
   simpleAST,
   currentBlock,
+  viewConfig,
   setCurrentBlock,
   togglePublishModal,
 }: {
+  viewConfig: ViewConfig
   editorValue?: string
-  config: ViewConfig
   simpleAST?: SimpleAST
-  setViewConfig: React.Dispatch<React.SetStateAction<ViewConfig>>
   currentBlock: Block | undefined
   setCurrentBlock: React.Dispatch<React.SetStateAction<Block | undefined>>
   togglePublishModal: () => void
@@ -503,7 +501,6 @@ const FragmentBar = ({
             encodedEditorValue,
             editorState: simpleAST,
             fragmentId: activeFragmentId,
-            configuration: config,
             branding: useBranding,
             brandingId: useBranding ? brandingId : undefined,
             flickConfiguration: {
@@ -535,7 +532,6 @@ const FragmentBar = ({
                             ...f.flick,
                             name: flick.name,
                           },
-                          configuration: config,
                           editorState: simpleAST,
                           encodedEditorValue,
                         }
@@ -563,12 +559,12 @@ const FragmentBar = ({
   )
 
   useEffect(() => {
-    if (config.mode === 'Portrait') {
+    if (viewConfig.mode === 'Portrait') {
       setMode(Content_Type_Enum_Enum.VerticalVideo)
     } else {
       setMode(Content_Type_Enum_Enum.Video)
     }
-  }, [config.mode])
+  }, [viewConfig.mode])
 
   return (
     <div className="sticky z-40 flex items-center justify-between w-full px-4 bg-dark-300">
@@ -824,7 +820,7 @@ const FragmentBar = ({
             appearance="primary"
             size="small"
             type="button"
-            disabled={checkDisabledState(fragment, simpleAST, config)}
+            disabled={checkDisabledState(fragment, simpleAST, viewConfig)}
             onClick={async () => {
               // Segment Tracking
               logEvent(PageEvent.GoToDeviceSelect)
@@ -874,7 +870,7 @@ const FragmentBar = ({
           simpleAST={simpleAST}
           currentBlock={currentBlock}
           setCurrentBlock={setCurrentBlock}
-          config={config}
+          config={viewConfig}
           handleClose={() => {
             setRecordingModal(false)
           }}
@@ -896,19 +892,14 @@ const FragmentBar = ({
 const checkDisabledState = (
   fragment: FlickFragmentFragment | undefined,
   editorValue: SimpleAST | undefined,
-  config: ViewConfig | undefined
+  viewConfig: ViewConfig | undefined
 ) => {
   if (!fragment) return true
 
-  if (config?.continuousRecording && config?.selectedBlocks.length < 1) {
-    return true
-  }
-
   if (
-    fragment.type === Fragment_Type_Enum_Enum.Intro ||
-    fragment.type === Fragment_Type_Enum_Enum.Outro
+    viewConfig?.continuousRecording &&
+    viewConfig?.selectedBlocks.length < 1
   ) {
-    if (fragment.configuration) return false
     return true
   }
 
@@ -920,25 +911,6 @@ const checkDisabledState = (
     return false
 
   return true
-}
-
-const checkHasContent = (
-  fragment: FlickFragmentFragment | undefined,
-  mode: Content_Type_Enum_Enum
-) => {
-  switch (mode) {
-    case Content_Type_Enum_Enum.Video:
-      if (fragment?.producedLink) return true
-      break
-
-    case Content_Type_Enum_Enum.VerticalVideo:
-      if (fragment?.producedShortsLink) return true
-      break
-
-    default:
-      return false
-  }
-  return false
 }
 
 export default FragmentBar

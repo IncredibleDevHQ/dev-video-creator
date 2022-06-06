@@ -1,10 +1,10 @@
 /* eslint-disable no-unneeded-ternary */
 /* eslint-disable no-nested-ternary */
 import { css, cx } from '@emotion/css'
-import { createClient } from '@liveblocks/client'
-import { LiveblocksProvider, RoomProvider } from '@liveblocks/react'
+import { createClient, LiveObject } from '@liveblocks/client'
+import { LiveblocksProvider, RoomProvider, useObject } from '@liveblocks/react'
 import { Editor as CoreEditor } from '@tiptap/core'
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { BiBlock } from 'react-icons/bi'
 import { IoChevronBackOutline, IoChevronForwardOutline } from 'react-icons/io5'
 import { useHistory, useParams } from 'react-router-dom'
@@ -138,8 +138,7 @@ const Flick = () => {
   const [{ flick, activeFragmentId, view }, setFlickStore] =
     useRecoilState(newFlickStore)
 
-  const { sub, displayName, picture } =
-    (useRecoilValue(userState) as User) || {}
+  const { sub } = (useRecoilValue(userState) as User) || {}
 
   const history = useHistory()
 
@@ -152,7 +151,24 @@ const Flick = () => {
   const { addMusic, stopMusic } = useCanvasRecorder({})
 
   const [currentBlock, setCurrentBlock] = useState<Block>()
-  const [viewConfig, setViewConfig] = useState<ViewConfig>(initialConfig)
+
+  const viewConfigLiveObject = useObject<ViewConfig>('viewConfig')
+  const viewConfig = viewConfigLiveObject?.toObject() || initialConfig
+  const setViewConfig = useCallback(
+    (vc: ViewConfig) => {
+      console.log('Saving vc')
+      viewConfigLiveObject?.update(vc)
+    },
+    [viewConfigLiveObject]
+  )
+  const [updatesQueue, setUpdatesQueue] = useState<ViewConfig[]>([])
+  useEffect(() => {
+    console.log('Adding to queue')
+    if (!viewConfigLiveObject) return
+    updatesQueue.forEach((update) => {
+      setViewConfig(update)
+    })
+  }, [viewConfigLiveObject, updatesQueue])
 
   const [getFragment] = useGetFlickFragmentLazyQuery()
 
@@ -408,7 +424,7 @@ const Flick = () => {
         })
       }
     }
-  }, [currentBlock])
+  }, [currentBlock, viewConfig])
 
   useMemo(() => {
     setStudio((store) => ({
@@ -433,18 +449,14 @@ const Flick = () => {
 
   useEffect(() => {
     resetPayload()
-    setStudio((store) => ({
-      ...store,
-      shortsMode: false,
-    }))
   }, [activeFragmentId])
 
   useEffect(() => {
     if (!data) return
     const fragmentsLength = data.Flick_by_pk?.fragments.length || 0
-    const editorFragment = data.Flick_by_pk?.fragments.find((f) => !f.type)
+    const editorFragment = data.Flick_by_pk?.fragments?.[0]
 
-    if (!fragmentId) {
+    if (!fragmentId && fragmentsLength > 0) {
       history.push(`/story/${data.Flick_by_pk?.id}/${editorFragment?.id}`)
     }
     setFlickStore((store) => ({
@@ -539,41 +551,44 @@ const Flick = () => {
     setActiveFragment(fragment)
 
     setSimpleAST(fragment?.editorState || initialAST)
-    setViewConfig(
-      fragment?.configuration || {
-        ...initialConfig,
-        mode:
-          fragment.type === Fragment_Type_Enum_Enum.Portrait
-            ? 'Portrait'
-            : 'Landscape',
-        speakers: [flick.participants[0]],
-        blocks: {
-          [initialAST.blocks[0].id]: {
-            layout: 'classic',
-            view: {
-              type: 'introBlock',
-              intro: {
-                order: [
-                  { enabled: true, state: 'userMedia' },
-                  { enabled: true, state: 'titleSplash' },
-                ],
+    if (!fragment?.editorState) {
+      setUpdatesQueue((q) => [
+        ...q,
+        {
+          ...initialConfig,
+          mode:
+            fragment.type === Fragment_Type_Enum_Enum.Portrait
+              ? 'Portrait'
+              : 'Landscape',
+          speakers: [flick.participants[0]],
+          blocks: {
+            [initialAST.blocks[0].id]: {
+              layout: 'classic',
+              view: {
+                type: 'introBlock',
+                intro: {
+                  order: [
+                    { enabled: true, state: 'userMedia' },
+                    { enabled: true, state: 'titleSplash' },
+                  ],
+                },
               },
             },
+            [initialAST.blocks[1].id]: {
+              layout: 'classic',
+              view: {
+                type: 'outroBlock',
+                outro: {
+                  order: [{ enabled: true, state: 'titleSplash' }],
+                },
+              } as OutroBlockView,
+            } as BlockProperties,
           },
-          [initialAST.blocks[1].id]: {
-            layout: 'classic',
-            view: {
-              type: 'outroBlock',
-              outro: {
-                order: [{ enabled: true, state: 'titleSplash' }],
-              },
-            } as OutroBlockView,
-          } as BlockProperties,
         },
-      }
-    )
+      ])
+    }
 
-    setCurrentBlock(fragment?.editorState?.blocks[0] || initialAST.blocks[0])
+    // setCurrentBlock(fragment?.editorState?.blocks[0] || initialAST.blocks[0])
     const ev = fragment?.encodedEditorValue
       ? Buffer.from(fragment?.encodedEditorValue as string, 'base64').toString(
           'utf8'
@@ -728,18 +743,6 @@ const Flick = () => {
     })
   }
 
-  const initialPresence: Presence = useMemo(() => {
-    return {
-      user: {
-        id: sub as string,
-        name: displayName as string,
-        picture: picture as string,
-      },
-      page: PresencePage.Notebook,
-      cursor: { x: 0, y: 0 },
-    }
-  }, [sub, displayName, picture])
-
   if (!data && loading)
     return <ScreenState title="Loading your story" loading />
 
@@ -768,161 +771,185 @@ const Flick = () => {
     )
 
   return (
-    <LiveblocksProvider client={client}>
-      <RoomProvider id={`story-${flick.id}`} initialPresence={initialPresence}>
-        <EditorProvider handleUpdate={handleEditorChange}>
-          <div className="relative flex flex-col w-screen h-screen overflow-hidden">
-            <FlickNavBar />
-            <div className="flex flex-1 relative overflow-hidden">
-              {openSidebar && <Sidebar storyName={flick.name} />}
-              <button
-                type="button"
-                style={{
-                  height: 'min-content',
-                }}
-                className={cx(
-                  'absolute flex items-center justify-center  bg-white rounded-md z-50 border shadow-md top-0 bottom-0 mb-auto mt-auto',
-                  {
-                    'left-0 -ml-1': !openSidebar,
-                    'left-44 -ml-3': openSidebar,
-                  }
-                )}
-                onClick={() => setOpenSidebar(!openSidebar)}
-              >
-                {openSidebar ? (
-                  <IoChevronBackOutline className="text-black m-1" size={16} />
-                ) : (
-                  <IoChevronForwardOutline
-                    className="text-black m-1"
-                    size={16}
-                  />
-                )}
-              </button>
-              <div className="flex flex-col flex-1 overflow-hidden relative">
-                <FragmentBar
-                  simpleAST={simpleAST}
-                  editorValue={editorValue}
-                  config={viewConfig}
-                  setViewConfig={setViewConfig}
-                  currentBlock={currentBlock}
-                  setCurrentBlock={setCurrentBlock}
-                  togglePublishModal={() => setPublishModal(true)}
-                />
-                {activeFragment && view === View.Preview && (
-                  <Preview
-                    block={currentBlock}
-                    config={viewConfig}
-                    updateConfig={updateBlockProperties}
-                    blocks={simpleAST?.blocks || []}
-                    setCurrentBlock={setCurrentBlock}
-                    centered={!showTimeline}
-                    simpleAST={simpleAST}
-                    setSimpleAST={setSimpleAST}
-                  />
-                )}
-                {activeFragment && view === View.Notebook && (
-                  <div
-                    className="grid grid-cols-12 flex-1 h-full pb-12 sticky top-0 overflow-y-auto"
-                    onScroll={() => {
-                      const dragHandle = document.getElementById('drag-handle')
-                      if (dragHandle) {
-                        dragHandle.style.visibility = 'hidden'
-                        dragHandle.style.display = 'hidden'
-                      }
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: '100%',
-                        maxWidth: '750px',
-                        margin: '0 auto',
-                      }}
-                      className="h-full pt-12 pb-96 col-start-4 col-span-6"
-                    >
-                      <EditorHeader
-                        blocks={simpleAST?.blocks || []}
-                        setCurrentBlock={setCurrentBlock}
-                        viewConfig={viewConfig}
-                        setViewConfig={setViewConfig}
-                        activeFragment={activeFragment}
-                        setPreviewPosition={setPreviewPosition}
-                      />
-
-                      <TipTap
-                        key={activeFragment.id}
-                        handleUpdatePosition={(position) => {
-                          setPreviewPosition(position)
-                        }}
-                        handleActiveBlock={(block) => {
-                          if (block === undefined) setCurrentBlock(undefined)
-                          if (block && block !== currentBlock)
-                            setCurrentBlock(block)
-                        }}
-                        ast={simpleAST}
-                      />
-                    </div>
-
-                    <div
-                      className={cx(
-                        'col-start-10 col-end-12 relative border-none outline-none w-full  ml-10',
-                        css`
-                          max-height: 20vh;
-                        `
-                      )}
-                    >
-                      {currentBlock &&
-                        currentBlock.type &&
-                        viewConfig &&
-                        simpleAST &&
-                        simpleAST?.blocks?.length >= 2 &&
-                        activeFragment.type !==
-                          Fragment_Type_Enum_Enum.Blog && (
-                          <BlockPreview
-                            block={currentBlock}
-                            blocks={simpleAST?.blocks || []}
-                            simpleAST={simpleAST}
-                            setSimpleAST={setSimpleAST}
-                            config={viewConfig}
-                            updateConfig={updateBlockProperties}
-                            setCurrentBlock={setCurrentBlock}
-                            className={cx(
-                              'absolute w-full h-full',
-                              css`
-                                top: ${previewPosition?.y}px;
-                              `
-                            )}
-                          />
-                        )}
-                    </div>
-                  </div>
-                )}
-                <Timeline
-                  blocks={simpleAST?.blocks || []}
-                  showTimeline={showTimeline}
-                  setShowTimeline={setShowTimeline}
-                  currentBlock={currentBlock}
-                  setCurrentBlock={setCurrentBlock}
-                  persistentTimeline={false}
-                  shouldScrollToCurrentBlock
-                  config={viewConfig}
-                  setConfig={setViewConfig}
-                />
-              </div>
-            </div>
-
-            {publishModal && (
-              <Publish
-                open={publishModal}
+    <EditorProvider handleUpdate={handleEditorChange}>
+      <div className="relative flex flex-col w-screen h-screen overflow-hidden">
+        <FlickNavBar />
+        <div className="flex flex-1 relative overflow-hidden">
+          {openSidebar && <Sidebar storyName={flick.name} />}
+          <button
+            type="button"
+            style={{
+              height: 'min-content',
+            }}
+            className={cx(
+              'absolute flex items-center justify-center  bg-white rounded-md z-50 border shadow-md top-0 bottom-0 mb-auto mt-auto',
+              {
+                'left-0 -ml-1': !openSidebar,
+                'left-44 -ml-3': openSidebar,
+              }
+            )}
+            onClick={() => setOpenSidebar(!openSidebar)}
+          >
+            {openSidebar ? (
+              <IoChevronBackOutline className="text-black m-1" size={16} />
+            ) : (
+              <IoChevronForwardOutline className="text-black m-1" size={16} />
+            )}
+          </button>
+          <div className="flex flex-col flex-1 overflow-hidden relative">
+            <FragmentBar
+              simpleAST={simpleAST}
+              editorValue={editorValue}
+              viewConfig={viewConfig}
+              currentBlock={currentBlock}
+              setCurrentBlock={setCurrentBlock}
+              togglePublishModal={() => setPublishModal(true)}
+            />
+            {activeFragment && view === View.Preview && (
+              <Preview
+                block={currentBlock}
+                config={viewConfig}
+                updateConfig={updateBlockProperties}
+                blocks={simpleAST?.blocks || []}
+                setCurrentBlock={setCurrentBlock}
+                centered={!showTimeline}
                 simpleAST={simpleAST}
-                activeFragment={activeFragment}
-                handleClose={() => setPublishModal(false)}
+                setSimpleAST={setSimpleAST}
               />
             )}
+            {activeFragment && view === View.Notebook && (
+              <div
+                className="grid grid-cols-12 flex-1 h-full pb-12 sticky top-0 overflow-y-auto"
+                onScroll={() => {
+                  const dragHandle = document.getElementById('drag-handle')
+                  if (dragHandle) {
+                    dragHandle.style.visibility = 'hidden'
+                    dragHandle.style.display = 'hidden'
+                  }
+                }}
+              >
+                <div
+                  style={{
+                    width: '100%',
+                    maxWidth: '750px',
+                    margin: '0 auto',
+                  }}
+                  className="h-full pt-12 pb-96 col-start-4 col-span-6"
+                >
+                  <EditorHeader
+                    blocks={simpleAST?.blocks || []}
+                    setCurrentBlock={setCurrentBlock}
+                    viewConfig={viewConfig}
+                    setViewConfig={setViewConfig}
+                    activeFragment={activeFragment}
+                    setPreviewPosition={setPreviewPosition}
+                  />
+
+                  <TipTap
+                    key={activeFragment.id}
+                    handleUpdatePosition={(position) => {
+                      setPreviewPosition(position)
+                    }}
+                    handleActiveBlock={(block) => {
+                      if (block === undefined) setCurrentBlock(undefined)
+                      if (block && block !== currentBlock)
+                        setCurrentBlock(block)
+                    }}
+                    ast={simpleAST}
+                  />
+                </div>
+
+                <div
+                  className={cx(
+                    'col-start-10 col-end-12 relative border-none outline-none w-full  ml-10',
+                    css`
+                      max-height: 20vh;
+                    `
+                  )}
+                >
+                  {currentBlock &&
+                    currentBlock.type &&
+                    viewConfig &&
+                    simpleAST &&
+                    simpleAST?.blocks?.length >= 2 &&
+                    activeFragment.type !== Fragment_Type_Enum_Enum.Blog && (
+                      <BlockPreview
+                        block={currentBlock}
+                        blocks={simpleAST?.blocks || []}
+                        simpleAST={simpleAST}
+                        setSimpleAST={setSimpleAST}
+                        config={viewConfig}
+                        updateConfig={updateBlockProperties}
+                        setCurrentBlock={setCurrentBlock}
+                        className={cx(
+                          'absolute w-full h-full',
+                          css`
+                            top: ${previewPosition?.y}px;
+                          `
+                        )}
+                      />
+                    )}
+                </div>
+              </div>
+            )}
+            <Timeline
+              blocks={simpleAST?.blocks || []}
+              showTimeline={showTimeline}
+              setShowTimeline={setShowTimeline}
+              currentBlock={currentBlock}
+              setCurrentBlock={setCurrentBlock}
+              persistentTimeline={false}
+              shouldScrollToCurrentBlock
+              config={viewConfig}
+              setConfig={setViewConfig}
+            />
           </div>
-        </EditorProvider>
+        </div>
+
+        {publishModal && (
+          <Publish
+            open={publishModal}
+            simpleAST={simpleAST}
+            activeFragment={activeFragment}
+            handleClose={() => setPublishModal(false)}
+          />
+        )}
+      </div>
+    </EditorProvider>
+  )
+}
+
+const FlickHoC = () => {
+  const { id } = useParams<{ id: string; fragmentId?: string }>()
+
+  const { sub, displayName, picture } =
+    (useRecoilValue(userState) as User) || {}
+
+  const initialPresence: Presence = useMemo(() => {
+    return {
+      user: {
+        id: sub as string,
+        name: displayName as string,
+        picture: picture as string,
+      },
+      page: PresencePage.Notebook,
+      cursor: { x: 0, y: 0 },
+    }
+  }, [sub, displayName, picture])
+
+  return (
+    <LiveblocksProvider client={client}>
+      <RoomProvider
+        id={`story-${id}`}
+        initialPresence={initialPresence}
+        initialStorage={() => ({
+          viewConfig: new LiveObject(initialConfig),
+        })}
+      >
+        <Flick />
       </RoomProvider>
     </LiveblocksProvider>
   )
 }
 
-export default Flick
+export default FlickHoC
