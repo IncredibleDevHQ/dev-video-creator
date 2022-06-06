@@ -96,7 +96,24 @@ const FlickHuddle = ({
 
   if (trackError) return <div>{trackError.message}</div>
 
-  return <div>Hi</div>
+  return (
+    <div>
+      <button
+        type="button"
+        className="bg-blue-400 rounded-md text-white px-4 py-1"
+        onClick={() => user?.sub && mute(user.sub)}
+      >
+        mute
+      </button>
+      <button
+        type="button"
+        className="bg-red-600 rounded-md text-white px-4 py-1"
+        onClick={leave}
+      >
+        Leave
+      </button>
+    </div>
+  )
 }
 
 const FlickNavBar = () => {
