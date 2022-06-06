@@ -1202,11 +1202,18 @@ const ScreenRecord = ({
                                   }
                                   setTopLayerChildren={setTopLayerChildren}
                                   isShorts={false}
-                                  status={payload?.status}
                                   theme={fragment.flick.theme}
                                   branding={
                                     fragment.flick.branding?.branding || null
                                   }
+                                  transitionSettings={{
+                                    blockTransition:
+                                      fragment?.flick?.configuration
+                                        ?.transitions?.blockTransition?.name,
+                                    swapTransition:
+                                      fragment?.flick?.configuration
+                                        ?.transitions?.swapTransition?.name,
+                                  }}
                                   performFinishAction={() => {
                                     stopCanvasRecording()
                                     setState('preview')
