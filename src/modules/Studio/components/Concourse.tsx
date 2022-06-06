@@ -75,8 +75,8 @@ export const GetTopLayerChildren = ({
   topLayerChildrenState,
   setTopLayerChildren,
   isShorts,
-  status,
   theme,
+  transitionSettings,
   branding,
   performFinishAction,
 }: {
@@ -85,8 +85,8 @@ export const GetTopLayerChildren = ({
     React.SetStateAction<{ id: string; state: TopLayerChildren }>
   >
   isShorts: boolean
-  status: Fragment_Status_Enum_Enum
   theme: ThemeFragment
+  transitionSettings?: { blockTransition?: string; swapTransition?: string }
   branding?: BrandingJSON | null
   performFinishAction: () => void
 }) => {
@@ -110,6 +110,7 @@ export const GetTopLayerChildren = ({
           direction="left"
           setTopLayerChildren={setTopLayerChildren}
           brandingJSON={branding}
+          transitionSettings={transitionSettings?.swapTransition}
         />
       )
     }
@@ -121,6 +122,7 @@ export const GetTopLayerChildren = ({
           direction="right"
           setTopLayerChildren={setTopLayerChildren}
           brandingJSON={branding}
+          transitionSettings={transitionSettings?.swapTransition}
         />
       )
     }
@@ -133,6 +135,7 @@ export const GetTopLayerChildren = ({
           setTopLayerChildren={setTopLayerChildren}
           performFinishAction={performFinishAction}
           brandingJSON={branding}
+          transitionSettings={transitionSettings?.blockTransition}
         />
       )
     }
@@ -144,6 +147,7 @@ export const GetTopLayerChildren = ({
           direction="moveAway"
           setTopLayerChildren={setTopLayerChildren}
           brandingJSON={branding}
+          transitionSettings={transitionSettings?.blockTransition}
         />
       )
     }
