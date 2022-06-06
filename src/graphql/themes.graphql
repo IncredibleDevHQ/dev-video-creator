@@ -8,3 +8,14 @@ query GetThemes {
     ...Theme
   }
 }
+
+fragment Transition on Transition {
+  name
+  config
+}
+
+query GetTransitions {
+  Transition {
+    ...Transition
+  }
+}

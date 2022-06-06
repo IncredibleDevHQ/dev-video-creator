@@ -19,6 +19,7 @@ import { useDebouncedCallback } from 'use-debounce'
 import { FragmentVideoModal, ThumbnailModal } from '.'
 import { Branding } from '../..'
 import { ReactComponent as BrandIcon } from '../../../assets/BrandIcon.svg'
+import { ReactComponent as Transition } from '../../../assets/Transition.svg'
 import { Button, emitToast, Heading, Text, Tooltip } from '../../../components'
 import config from '../../../config'
 import { ASSETS } from '../../../constants'
@@ -27,7 +28,9 @@ import {
   FlickFragmentFragment,
   Fragment_Type_Enum_Enum,
   ThemeFragment,
+  TransitionFragment,
   useGetBrandingQuery,
+  useGetTransitionsQuery,
   useSaveFlickMutation,
   useUpdateFlickThemeMutation,
 } from '../../../generated/graphql'
@@ -129,9 +132,10 @@ const ThemeTooltip = ({
   return (
     <div
       className={cx(
-        'bg-gray-800 text-white rounded-md p-4 mx-2 max-h-screen',
+        'text-white rounded-md p-4 mx-4 max-h-screen',
         css`
           width: 70vw;
+          background-color: #27272a;
         `
       )}
     >
@@ -238,6 +242,147 @@ const ThemeTooltip = ({
   )
 }
 
+export interface TransitionConfig {
+  swapTransition?: TransitionFragment
+  blockTransition?: TransitionFragment
+}
+
+const TransitionTooltip = ({
+  transitions,
+  handleClose,
+  transitionConfig,
+  updateTransitions,
+}: {
+  transitions: TransitionFragment[]
+  transitionConfig: TransitionConfig | undefined
+  updateTransitions: (config: TransitionConfig) => void
+  handleClose: () => void
+}) => {
+  const [tab, setTab] = useState<'block' | 'swap'>('block')
+
+  return (
+    <div
+      className={cx(
+        'text-white rounded-md p-4 max-h-screen mx-4',
+        css`
+          background-color: #27272a;
+          width: 70vw;
+        `
+      )}
+    >
+      <div className="flex items-center text-xs gap-x-4">
+        <button
+          className={cx({
+            'text-dark-title': tab !== 'block',
+          })}
+          type="button"
+          onClick={() => {
+            setTab('block')
+          }}
+        >
+          Block transitions
+        </button>
+        <button
+          className={cx({
+            'text-dark-title': tab !== 'swap',
+          })}
+          type="button"
+          onClick={() => {
+            setTab('swap')
+          }}
+        >
+          Swap transitions
+        </button>
+      </div>
+      <div
+        className={cx(
+          'flex gap-x-4 z-50 overflow-x-scroll mt-4',
+          horizontalCustomScrollBar
+        )}
+      >
+        {transitions.map((transition) => (
+          <TransitionCard
+            tab={tab}
+            active={
+              tab === 'block'
+                ? transitionConfig?.blockTransition?.name === transition.name
+                : transitionConfig?.swapTransition?.name === transition.name
+            }
+            transition={transition}
+            transitionConfig={transitionConfig}
+            updateTransitions={updateTransitions}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+const TransitionCard = ({
+  transition,
+  active,
+  tab,
+  transitionConfig,
+  updateTransitions,
+}: {
+  transition: TransitionFragment
+  active: boolean
+  tab: 'block' | 'swap'
+  transitionConfig: TransitionConfig | undefined
+  updateTransitions: (config: TransitionConfig) => void
+}) => {
+  const imageSrc = transition.config.thumbnail
+    ? config.storage.baseUrl + transition.config.thumbnail
+    : ASSETS.ICONS.IncredibleLogo
+
+  const gifSrc = transition.config.gif
+    ? config.storage.baseUrl + transition.config.gif
+    : ASSETS.ICONS.IncredibleLogo
+
+  const [src, setSrc] = useState<string>(imageSrc)
+
+  return (
+    <div
+      key={transition.name}
+      className="relative flex items-center justify-center py-4 group"
+      onMouseEnter={() => {
+        setSrc(gifSrc)
+      }}
+      onMouseLeave={() => {
+        setSrc(imageSrc)
+      }}
+      onClick={() => {
+        if (tab === 'block') {
+          updateTransitions({
+            ...transitionConfig,
+            blockTransition: transition,
+          })
+        } else {
+          updateTransitions({
+            ...transitionConfig,
+            swapTransition: transition,
+          })
+        }
+      }}
+    >
+      <div
+        className="object-cover w-64 border-2 border-gray-600 rounded-md shadow-md hover:border-brand h-36 relative"
+        style={{
+          backgroundImage: `url(${src})`,
+          backgroundSize: '256px 144px',
+        }}
+      >
+        {active && (
+          <IoCheckmark
+            size={24}
+            className="absolute p-1 font-bold rounded-md top-2 right-2 text-brand bg-brand-10"
+          />
+        )}
+      </div>
+    </div>
+  )
+}
+
 const FragmentBar = ({
   config,
   editorValue,
@@ -271,6 +416,13 @@ const FragmentBar = ({
 
   const [fragment, setFragment] = useState<FlickFragmentFragment | undefined>(
     flick?.fragments.find((f) => f.id === activeFragmentId)
+  )
+
+  const { data: transitionsData } = useGetTransitionsQuery()
+  const [transitionsModal, setTransitionsModal] = useState(false)
+
+  const [transitionConfig, setTransitionConfig] = useState(
+    flick?.configuration?.transitions
   )
 
   const [saveFlick, { error }] = useSaveFlickMutation()
@@ -308,7 +460,14 @@ const FragmentBar = ({
       return
     }
     debounced()
-  }, [editorValue, config, useBranding, brandingId, simpleAST])
+  }, [
+    editorValue,
+    config,
+    useBranding,
+    brandingId,
+    simpleAST,
+    transitionConfig,
+  ])
 
   useEffect(() => {
     initialLoad.current = true
@@ -347,6 +506,10 @@ const FragmentBar = ({
             configuration: config,
             branding: useBranding,
             brandingId: useBranding ? brandingId : undefined,
+            flickConfiguration: {
+              ...flick?.configuration,
+              transitions: transitionConfig,
+            },
           },
         })
         if (flick) {
@@ -356,6 +519,10 @@ const FragmentBar = ({
               ? {
                   ...store.flick,
                   useBranding,
+                  configuration: {
+                    ...store.flick.configuration,
+                    transitions: transitionConfig,
+                  },
                   brandingId: useBranding ? brandingId : undefined,
                   branding: useBranding
                     ? brandingData?.Branding.find((b) => b.id === brandingId)
@@ -461,7 +628,7 @@ const FragmentBar = ({
                 updateActiveTheme={updateActiveTheme}
               />
             }
-            placement="bottom-center"
+            placement="bottom-start"
             triggerOffset={16}
           >
             <Button
@@ -558,6 +725,36 @@ const FragmentBar = ({
             >
               <BrandIcon className="mr-2" />
               <Text className="text-sm text-gray-100 font-main">Brand</Text>
+            </Button>
+          </Tooltip>
+          <Tooltip
+            isOpen={transitionsModal}
+            setIsOpen={setTransitionsModal}
+            content={
+              transitionsData ? (
+                <TransitionTooltip
+                  transitions={transitionsData.Transition}
+                  transitionConfig={transitionConfig}
+                  handleClose={() => setTransitionsModal(false)}
+                  updateTransitions={setTransitionConfig}
+                />
+              ) : null
+            }
+            placement="bottom-start"
+            triggerOffset={16}
+          >
+            <Button
+              appearance="none"
+              type="button"
+              className="flex items-center"
+              onClick={() => {
+                setTransitionsModal(!isOpen)
+              }}
+            >
+              <Transition className="mr-2" />
+              <Text className="text-sm text-gray-100 font-main">
+                Transition
+              </Text>
             </Button>
           </Tooltip>
         </div>
