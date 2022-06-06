@@ -57,6 +57,16 @@ const TransitionProvider = ({
             setTopLayerChildren={setTopLayerChildren}
           />
         )
+      case 'DipToWhite':
+        return (
+          <DipTransition
+            direction={direction}
+            isShorts={isShorts}
+            color="white"
+            performFinishAction={performFinishAction}
+            setTopLayerChildren={setTopLayerChildren}
+          />
+        )
       case 'Line':
         return (
           <PastelLinesTransition
@@ -92,6 +102,16 @@ const TransitionProvider = ({
             direction={direction}
             isShorts={isShorts}
             // color={branding?.colors?.transition}
+            setTopLayerChildren={setTopLayerChildren}
+            performFinishAction={performFinishAction}
+          />
+        )
+      case 'CloseSides':
+        return (
+          <VetsWhoCodeTransition
+            direction={direction}
+            isShorts={isShorts}
+            // color="black"
             setTopLayerChildren={setTopLayerChildren}
             performFinishAction={performFinishAction}
           />

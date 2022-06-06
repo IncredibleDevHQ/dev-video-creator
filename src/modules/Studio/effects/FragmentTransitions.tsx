@@ -409,15 +409,89 @@ export const PastelLinesTransition = ({
       break
     case 'moveAway':
       rect1StartX = 0
-      rect1StartY = stageConfig.height / 2
+      rect1StartY = 0
+      rectEndHeight = 0
       rect2StartX = 0
       rect2StartY = stageConfig.height / 2
-      duration = 0.25
+      duration = 0.275
       break
     default:
       break
   }
-
+  if (direction !== 'moveAway') {
+    return (
+      <Group>
+        <Group>
+          <Rect
+            x={rect1StartX}
+            y={rect1StartY}
+            width={stageConfig.width}
+            height={0}
+            fill={color || '#E0D6ED'}
+            stroke="#27272A"
+            strokeWidth={1}
+            ref={(ref) => {
+              rect2Ref.current?.to({
+                y: rect2StartY - rectEndHeight,
+                height: rectEndHeight,
+                duration,
+              })
+              ref?.to({
+                height: rectEndHeight,
+                duration,
+                onFinish: () => {
+                  ref?.to({
+                    strokeWidth: 0,
+                  })
+                  rect2Ref.current?.to({
+                    strokeWidth: 0,
+                  })
+                  if (direction === 'left' || direction === 'right') {
+                    setTimeout(() => {
+                      ref?.to({
+                        y: rect1StartY,
+                        height: 0,
+                        strokeWidth: 1,
+                        duration,
+                        onFinish: () => {
+                          setTimeout(() => {
+                            setTopLayerChildren?.({ id: '', state: '' })
+                          }, 200)
+                        },
+                      })
+                      rect2Ref.current?.to({
+                        y: rect2StartY,
+                        height: 0,
+                        strokeWidth: 1,
+                        duration,
+                      })
+                    }, 100)
+                  }
+                  if (performFinishAction) {
+                    setTimeout(() => {
+                      performFinishAction()
+                    }, 350)
+                  }
+                },
+              })
+            }}
+          />
+        </Group>
+        <Group>
+          <Rect
+            x={rect2StartX}
+            y={rect2StartY}
+            width={stageConfig.width}
+            height={0}
+            fill={color || '#E0D6ED'}
+            stroke="#27272A"
+            strokeWidth={1}
+            ref={rect2Ref}
+          />
+        </Group>
+      </Group>
+    )
+  }
   return (
     <Group>
       <Group>
@@ -425,54 +499,27 @@ export const PastelLinesTransition = ({
           x={rect1StartX}
           y={rect1StartY}
           width={stageConfig.width}
-          height={0}
+          height={stageConfig.height / 2}
           fill={color || '#E0D6ED'}
           stroke="#27272A"
           strokeWidth={1}
           ref={(ref) => {
-            rect2Ref.current?.to({
-              y: rect2StartY - rectEndHeight,
-              height: rectEndHeight,
-              duration,
-            })
-            ref?.to({
-              height: rectEndHeight,
-              duration,
-              onFinish: () => {
-                ref?.to({
-                  strokeWidth: 0,
-                })
-                rect2Ref.current?.to({
-                  strokeWidth: 0,
-                })
-                setTimeout(() => {
-                  if (direction === 'left' || direction === 'right') {
-                    ref?.to({
-                      y: rect1StartY,
-                      height: 0,
-                      strokeWidth: 1,
-                      duration,
-                      onFinish: () => {
-                        setTimeout(() => {
-                          setTopLayerChildren?.({ id: '', state: '' })
-                        }, 200)
-                      },
-                    })
-                    rect2Ref.current?.to({
-                      y: rect2StartY,
-                      height: 0,
-                      strokeWidth: 1,
-                      duration,
-                    })
-                  }
-                }, 100)
-                if (performFinishAction) {
+            setTimeout(() => {
+              rect2Ref.current?.to({
+                y: stageConfig.height,
+                height: rectEndHeight,
+                duration,
+              })
+              ref?.to({
+                height: rectEndHeight,
+                duration,
+                onFinish: () => {
                   setTimeout(() => {
-                    performFinishAction()
-                  }, 300)
-                }
-              },
-            })
+                    setTopLayerChildren?.({ id: '', state: '' })
+                  }, 200)
+                },
+              })
+            }, 100)
           }}
         />
       </Group>
@@ -481,7 +528,7 @@ export const PastelLinesTransition = ({
           x={rect2StartX}
           y={rect2StartY}
           width={stageConfig.width}
-          height={0}
+          height={stageConfig.height / 2}
           fill={color || '#E0D6ED'}
           stroke="#27272A"
           strokeWidth={1}
@@ -959,7 +1006,7 @@ export const LeeRobTransition = ({
       break
     case 'moveAway':
       rectStartX = 0
-      rectEndX = stageConfig.width + 150
+      rectEndX = stageConfig.width + 350
       duration = 0.5
       break
     default:
@@ -983,10 +1030,6 @@ export const LeeRobTransition = ({
               ref?.to({
                 x: rectEndX,
                 duration: duration * 0.4,
-                // easing:
-                //   direction === 'left'
-                //     ? Konva.Easings.EaseOut
-                //     : Konva.Easings.EaseIn,
               })
             },
           })
@@ -1008,10 +1051,6 @@ export const LeeRobTransition = ({
                 ref?.to({
                   x: rectEndX,
                   duration: (duration - 0.08) * 0.4,
-                  // easing:
-                  //   direction === 'left'
-                  //     ? Konva.Easings.EaseOut
-                  //     : Konva.Easings.EaseIn,
                 })
               },
             })
@@ -1034,10 +1073,6 @@ export const LeeRobTransition = ({
                 ref?.to({
                   x: rectEndX,
                   duration: (duration - 0.12) * 0.4,
-                  // easing:
-                  //   direction === 'left'
-                  //     ? Konva.Easings.EaseOut
-                  //     : Konva.Easings.EaseIn,
                 })
               },
             })
@@ -1958,7 +1993,7 @@ export const VetsWhoCodeTransition = ({
       rect2StartX = stageConfig.width / 2
       rect2StartY = 0
       rect2EndX = stageConfig.width
-      duration = 0.25
+      duration = 0.375
       break
     default:
       break
@@ -1977,27 +2012,32 @@ export const VetsWhoCodeTransition = ({
             ref?.to({
               x: rect1EndX,
               duration,
-              // easing: Konva.Easings.EaseIn,
               onFinish: () => {
-                setTimeout(() => {
-                  ref?.to({
-                    x: rect1StartX,
-                    duration,
-                    // easing: Konva.Easings.EaseOut,
-                    onFinish: () => {
-                      setTimeout(() => {
-                        if (direction === 'left' || direction === 'right') {
-                          setTopLayerChildren?.({ id: '', state: '' })
-                        }
-                      }, 200)
-                      if (performFinishAction) {
+                if (direction === 'moveAway') {
+                  setTimeout(() => {
+                    setTopLayerChildren?.({ id: '', state: '' })
+                  }, 200)
+                } else if (direction === 'moveIn') {
+                  if (performFinishAction) {
+                    setTimeout(() => {
+                      performFinishAction()
+                    }, 350)
+                  }
+                } else {
+                  setTimeout(() => {
+                    ref?.to({
+                      x: rect1StartX,
+                      duration,
+                      onFinish: () => {
                         setTimeout(() => {
-                          performFinishAction()
-                        }, 300)
-                      }
-                    },
-                  })
-                }, 200)
+                          if (direction === 'left' || direction === 'right') {
+                            setTopLayerChildren?.({ id: '', state: '' })
+                          }
+                        }, 200)
+                      },
+                    })
+                  }, 200)
+                }
               },
             })
           }}
@@ -2016,20 +2056,27 @@ export const VetsWhoCodeTransition = ({
               duration,
               // easing: Konva.Easings.EaseIn,
               onFinish: () => {
-                setTimeout(() => {
-                  ref?.to({
-                    x: rect2StartX,
-                    duration,
-                    // easing: Konva.Easings.EaseOut,
-                    onFinish: () => {
-                      setTimeout(() => {
-                        if (direction === 'left' || direction === 'right') {
-                          setTopLayerChildren?.({ id: '', state: '' })
-                        }
-                      }, 200)
-                    },
-                  })
-                }, 200)
+                if (direction === 'moveIn') return
+                if (direction === 'moveAway') {
+                  setTimeout(() => {
+                    setTopLayerChildren?.({ id: '', state: '' })
+                  }, 200)
+                } else {
+                  setTimeout(() => {
+                    ref?.to({
+                      x: rect2StartX,
+                      duration,
+                      // easing: Konva.Easings.EaseOut,
+                      onFinish: () => {
+                        setTimeout(() => {
+                          if (direction === 'left' || direction === 'right') {
+                            setTopLayerChildren?.({ id: '', state: '' })
+                          }
+                        }, 200)
+                      },
+                    })
+                  }, 200)
+                }
               },
             })
           }}
