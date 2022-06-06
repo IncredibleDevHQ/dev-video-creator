@@ -44,6 +44,7 @@ const useAudio = () => {
       setAudioTrack(track)
 
       client.on('user-published', async (user, mediaType) => {
+        console.log('user-published', user, mediaType)
         await client.subscribe(user, mediaType)
         const tracks: MediaStreamTrack[] = []
         if (user.audioTrack) tracks.push(user.audioTrack?.getMediaStreamTrack())
@@ -109,7 +110,7 @@ const useAudio = () => {
   ) => {
     try {
       if (!channel || !ready) return
-      console.log('joining channel', { appId, channel, token, uid })
+      console.log('came here', { channel, uid, token, mediaTracks, appId })
       await client.join(appId, channel, token, uid)
       if (mediaTracks) await client.publish(mediaTracks)
     } catch (error) {

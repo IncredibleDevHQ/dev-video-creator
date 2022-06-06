@@ -1,6 +1,6 @@
 import AgoraRTC from 'agora-rtc-sdk-ng'
 import { createMicrophoneAudioTrack } from 'agora-rtc-react'
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { FiChevronLeft } from 'react-icons/fi'
 import { IoPeopleOutline } from 'react-icons/io5'
 import { useRecoilState, useRecoilValue } from 'recoil'
@@ -16,12 +16,17 @@ const FlickHuddle = ({
   flickId,
   devices,
   deviceId,
+  setInHuddle,
+  participantId,
 }: {
   flickId: string
   deviceId?: string
+  participantId: string
   devices: MediaDeviceInfo[]
+  setInHuddle: (inHuddle: boolean) => void
 }) => {
-  const user = useRecoilValue(userState)
+  // const user = useRecoilValue(userState)
+  const [rtcToken, setRtcToken] = useState<string>()
   const useTrack = createMicrophoneAudioTrack(
     deviceId
       ? {
@@ -30,8 +35,7 @@ const FlickHuddle = ({
       : undefined
   )
   const { ready: trackReady, error: trackError, track } = useTrack()
-  const [getHuddleToken, { data: rtcTokenData }] =
-    useGetHuddleRtcTokenMutation()
+  const [getHuddleToken] = useGetHuddleRtcTokenMutation()
   const {
     init,
     mute,
@@ -43,12 +47,24 @@ const FlickHuddle = ({
   } = useAudio()
 
   useEffect(() => {
-    if (!agoraReady || !user?.sub || !track) return
+    if (!agoraReady || !participantId || !track || !rtcToken) return
     ;(async () => {
       try {
-        if (!user?.sub || !rtcTokenData?.HuddleRtcToken?.token) return
-        await join(rtcTokenData.HuddleRtcToken.token, user.sub, track)
+        if (!participantId || !rtcToken) {
+          await leave()
+          setInHuddle(false)
+          emitToast({
+            type: 'error',
+            title: 'Error',
+            description: 'Failed to get huddle token',
+          })
+          return
+        }
+        console.log('joining huddle')
+        await join(rtcToken, participantId, track)
       } catch (error: any) {
+        await leave()
+        setInHuddle(false)
         emitToast({
           type: 'error',
           title: 'Failed to initialize AgoraRTC',
@@ -56,12 +72,20 @@ const FlickHuddle = ({
         })
       }
     })()
-  }, [agoraReady, user?.sub, track, rtcTokenData?.HuddleRtcToken?.token])
+  }, [agoraReady, participantId, track, rtcToken])
 
   useEffect(() => {
     ;(async () => {
       try {
-        if (!trackReady || !track) return
+        if (!trackReady || !track || !flickId || !participantId) return
+        const { data } = await getHuddleToken({
+          variables: {
+            flickId,
+          },
+        })
+        if (data?.HuddleRtcToken?.token) {
+          setRtcToken(data.HuddleRtcToken.token)
+        }
         await init(
           flickId,
           {
@@ -78,13 +102,15 @@ const FlickHuddle = ({
                 variables: { flickId },
               })
               if (data?.HuddleRtcToken?.token) {
-                join(data?.HuddleRtcToken?.token, user?.sub as string, track)
+                join(data?.HuddleRtcToken?.token, participantId, track)
               }
             },
           },
           track
         )
       } catch (error: any) {
+        await leave()
+        setInHuddle(false)
         emitToast({
           type: 'error',
           title: 'Failed to initialize AgoraRTC',
@@ -92,7 +118,7 @@ const FlickHuddle = ({
         })
       }
     })()
-  }, [trackReady, track])
+  }, [trackReady, track, flickId, participantId])
 
   if (trackError) return <div>{trackError.message}</div>
 
@@ -101,14 +127,17 @@ const FlickHuddle = ({
       <button
         type="button"
         className="bg-blue-400 rounded-md text-white px-4 py-1"
-        onClick={() => user?.sub && mute(user.sub)}
+        onClick={() => mute(participantId)}
       >
         mute
       </button>
       <button
         type="button"
         className="bg-red-600 rounded-md text-white px-4 py-1"
-        onClick={leave}
+        onClick={() => {
+          leave()
+          setInHuddle(false)
+        }}
       >
         Leave
       </button>
@@ -117,6 +146,7 @@ const FlickHuddle = ({
 }
 
 const FlickNavBar = () => {
+  const user = useRecoilValue(userState)
   const [{ flick }] = useRecoilState(newFlickStore)
   const [isShareOpen, setIsShareOpen] = useState(false)
 
@@ -125,6 +155,14 @@ const FlickNavBar = () => {
     useState<MediaDeviceInfo>()
 
   const [inHuddle, setInHuddle] = useState(false)
+
+  const participant = useCallback(() => {
+    return flick?.participants?.find(
+      (participant) => participant.userSub === user?.sub
+    )
+  }, [user])
+
+  const participantId = participant()?.id
 
   const joinHuddle = async () => {
     try {
@@ -160,10 +198,12 @@ const FlickNavBar = () => {
         {flick?.name || ''}
       </Heading>
       <div className="flex justify-end items-center gap-x-2 px-2">
-        {inHuddle ? (
+        {inHuddle && participantId ? (
           <FlickHuddle
             flickId={flick?.id}
             devices={audioDevices}
+            participantId={participantId}
+            setInHuddle={setInHuddle}
             deviceId={currentAudioDevice?.deviceId}
           />
         ) : (
