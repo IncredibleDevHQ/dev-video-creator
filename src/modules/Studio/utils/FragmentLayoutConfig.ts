@@ -72,7 +72,7 @@ export const FragmentLayoutConfig = ({
               y: 380,
               width: 364,
               height: 280,
-              borderRadius: 0,
+              borderRadius: 8,
               surfaceColor: theme.name === 'DevsForUkraine' ? '#1c1c1c7B' : '',
             }
           default:
