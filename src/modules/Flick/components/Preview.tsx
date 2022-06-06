@@ -514,7 +514,7 @@ const Preview = ({
             >
               {activeTab.id === introOutroBlockTabs[0].id && (
                 <div>
-                  {block.type === 'introBlock' ? (
+                  {block.type === 'introBlock' && (
                     <IntroContentTab
                       view={config.blocks[block.id]?.view as IntroBlockView}
                       updateView={(view: IntroBlockView) => {
@@ -524,7 +524,8 @@ const Preview = ({
                         })
                       }}
                     />
-                  ) : (
+                  )}
+                  {block.type === 'outroBlock' && (
                     <OutroTab
                       view={config.blocks[block.id]?.view as OutroBlockView}
                       updateView={(view: OutroBlockView) => {
