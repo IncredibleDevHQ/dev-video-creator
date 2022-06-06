@@ -242,6 +242,55 @@ const ThumbnailElements = ({
         )
       return <></>
     }
+    case 'VetsWhoCode': {
+      if (layout === 'classic' && !isShorts)
+        return (
+          <Rect
+            x={456}
+            y={153}
+            width={280}
+            height={280}
+            cornerRadius={140}
+            fill="#C5203E"
+          />
+        )
+      if (layout === 'bottom-right-circle' && !isShorts)
+        return (
+          <Rect
+            x={634}
+            y={169}
+            width={240}
+            height={240}
+            cornerRadius={120}
+            fill="#C5203E"
+          />
+        )
+      if (layout === 'float-full-right' && !isShorts)
+        return (
+          <Group>
+            <Rect x={0} y={0} width={632} height={540} fill="#091F40" />
+            <Rect
+              x={470}
+              y={-56}
+              width={240}
+              height={240}
+              cornerRadius={120}
+              fill="#C5203E"
+            />
+            <Rect
+              x={44}
+              y={44}
+              width={547}
+              height={452}
+              stroke="#ffffff"
+              strokeWidth={1}
+              dash={[10, 5.5]}
+            />
+            <Rect x={64} y={64} width={507} height={412} fill="#ffffff" />
+          </Group>
+        )
+      return <></>
+    }
     default:
       return <></>
   }
