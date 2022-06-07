@@ -38,7 +38,7 @@ const AuthProvider = ({ children }: { children: JSX.Element }): JSX.Element => {
         id: user.uid,
       })
 
-      window.analytics.identify(user.uid, {
+      window.analytics.identify(user.email, {
         email: user.email,
         userId: user.uid,
       })
@@ -65,10 +65,6 @@ const AuthProvider = ({ children }: { children: JSX.Element }): JSX.Element => {
         if (!meResponse.data?.User_by_pk)
           throw new Error('Response returned null')
 
-        LogRocket.identify(user.uid, {
-          name: meResponse.data.User_by_pk.displayName || 'none',
-        })
-
         Sentry.setUser({
           email: user.email || undefined,
           id: user.uid,
@@ -76,8 +72,11 @@ const AuthProvider = ({ children }: { children: JSX.Element }): JSX.Element => {
         })
 
         if (meResponse.data.User_by_pk.displayName) {
-          window.analytics.identify(user.uid, {
-            name: meResponse.data.User_by_pk.displayName || 'none',
+          LogRocket.identify(user.uid, {
+            name: meResponse.data.User_by_pk.displayName,
+          })
+          window.analytics.identify(user.email, {
+            name: meResponse.data.User_by_pk.displayName,
           })
         }
 
