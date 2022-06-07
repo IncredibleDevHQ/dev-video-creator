@@ -76,6 +76,8 @@ const config = {
       clientId: githubIntegrationConfig.clientId,
       scope: githubIntegrationConfig.scope,
     },
+    // points to the base url of the integration server route
+    serverURL: import.meta.env.VITE_INTEGRATION_SERVER_URL,
   },
   /**
    * Auth endpoint
