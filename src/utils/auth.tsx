@@ -75,7 +75,7 @@ const AuthProvider = ({ children }: { children: JSX.Element }): JSX.Element => {
           username: meResponse.data.User_by_pk.displayName || undefined,
         })
 
-        window.analytics.identify(user.email, {
+        window.analytics.identify(user.uid, {
           name: meResponse.data.User_by_pk.displayName || 'none',
         })
 
