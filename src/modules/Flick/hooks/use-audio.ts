@@ -4,7 +4,7 @@ import AgoraRTC, {
   IAgoraRTCRemoteUser,
   IMicrophoneAudioTrack,
 } from 'agora-rtc-sdk-ng'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import config from '../../../config'
 
 export interface RTCUser extends IAgoraRTCRemoteUser {
@@ -18,8 +18,6 @@ const audioConfig: ClientConfig = {
 
 const { appId } = config.agora
 
-console.log('app id', appId)
-
 const useClient = createClient(audioConfig)
 
 const useAudio = () => {
@@ -29,6 +27,10 @@ const useAudio = () => {
   const [channel, setChannel] = useState<string>()
 
   const [audioTrack, setAudioTrack] = useState<IMicrophoneAudioTrack>()
+
+  useEffect(() => {
+    console.log('useAudio users:', users)
+  }, [users])
 
   const init = async (
     channel: string,
@@ -51,8 +53,10 @@ const useAudio = () => {
         if (mediaType === 'audio') {
           user.audioTrack?.play()
           setUsers((prevUsers) => {
-            if (prevUsers.find((element) => element.uid === user.uid))
+            if (prevUsers.find((element) => element.uid === user.uid)) {
+              console.log('landing in [] condition')
               return [...prevUsers]
+            }
             return [
               ...prevUsers,
               {
@@ -142,6 +146,9 @@ const useAudio = () => {
     try {
       if (!ready) return
       audioTrack?.stop()
+      users.forEach((user) => {
+        user.audioTrack?.stop()
+      })
       await client.leave()
     } catch (error) {
       console.error(error)

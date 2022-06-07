@@ -1,31 +1,35 @@
+/* eslint-disable jsx-a11y/no-static-element-interactions */
+/* eslint-disable jsx-a11y/click-events-have-key-events */
 import AgoraRTC from 'agora-rtc-sdk-ng'
 import { createMicrophoneAudioTrack } from 'agora-rtc-react'
 import React, { useCallback, useEffect, useState } from 'react'
 import { FiChevronLeft } from 'react-icons/fi'
-import { IoPeopleOutline } from 'react-icons/io5'
+import { IoHeadsetOutline, IoPeopleOutline } from 'react-icons/io5'
 import { useRecoilState, useRecoilValue } from 'recoil'
-import { Button, emitToast, Heading, Text } from '../../../components'
+import { Button, emitToast, Heading } from '../../../components'
 import { ASSETS } from '../../../constants'
-import { useGetHuddleRtcTokenMutation } from '../../../generated/graphql'
+import {
+  FlickFragment,
+  useGetHuddleRtcTokenMutation,
+} from '../../../generated/graphql'
 import { userState } from '../../../stores/user.store'
 import useAudio from '../hooks/use-audio'
 import { newFlickStore } from '../store/flickNew.store'
 import ShareModal from './ShareModal'
 
 const FlickHuddle = ({
-  flickId,
+  flick,
   devices,
   deviceId,
   setInHuddle,
   participantId,
 }: {
-  flickId: string
+  flick: FlickFragment
   deviceId?: string
   participantId: string
   devices: MediaDeviceInfo[]
   setInHuddle: (inHuddle: boolean) => void
 }) => {
-  // const user = useRecoilValue(userState)
   const [rtcToken, setRtcToken] = useState<string>()
   const useTrack = createMicrophoneAudioTrack(
     deviceId
@@ -51,6 +55,7 @@ const FlickHuddle = ({
     ;(async () => {
       try {
         if (!participantId || !rtcToken) {
+          track?.stop()
           await leave()
           setInHuddle(false)
           emitToast({
@@ -60,9 +65,9 @@ const FlickHuddle = ({
           })
           return
         }
-        console.log('joining huddle')
         await join(rtcToken, participantId, track)
       } catch (error: any) {
+        track?.stop()
         await leave()
         setInHuddle(false)
         emitToast({
@@ -77,21 +82,21 @@ const FlickHuddle = ({
   useEffect(() => {
     ;(async () => {
       try {
-        if (!trackReady || !track || !flickId || !participantId) return
+        if (!trackReady || !track || !flick.id || !participantId) return
         const { data } = await getHuddleToken({
           variables: {
-            flickId,
+            flickId: flick.id,
           },
         })
         if (data?.HuddleRtcToken?.token) {
           setRtcToken(data.HuddleRtcToken.token)
         }
         await init(
-          flickId,
+          flick.id,
           {
             onTokenWillExpire: async () => {
               const { data } = await getHuddleToken({
-                variables: { flickId },
+                variables: { flickId: flick.id },
               })
               if (data?.HuddleRtcToken?.token) {
                 renewToken(data?.HuddleRtcToken?.token)
@@ -99,7 +104,7 @@ const FlickHuddle = ({
             },
             onTokenDidExpire: async () => {
               const { data } = await getHuddleToken({
-                variables: { flickId },
+                variables: { flickId: flick.id },
               })
               if (data?.HuddleRtcToken?.token) {
                 join(data?.HuddleRtcToken?.token, participantId, track)
@@ -109,6 +114,7 @@ const FlickHuddle = ({
           track
         )
       } catch (error: any) {
+        track?.stop()
         await leave()
         setInHuddle(false)
         emitToast({
@@ -118,29 +124,34 @@ const FlickHuddle = ({
         })
       }
     })()
-  }, [trackReady, track, flickId, participantId])
+  }, [trackReady, track, flick, participantId])
 
   if (trackError) return <div>{trackError.message}</div>
 
   return (
-    <div>
-      <button
-        type="button"
-        className="bg-blue-400 rounded-md text-white px-4 py-1"
-        onClick={() => mute(participantId)}
-      >
-        mute
-      </button>
-      <button
-        type="button"
-        className="bg-red-600 rounded-md text-white px-4 py-1"
+    <div className="border border-brand rounded-full flex justify-end items-center p-2">
+      <div
+        className="bg-brand hover:bg-error cursor-pointer rounded-full p-2 text-white mr-2"
         onClick={() => {
+          track?.stop()
           leave()
           setInHuddle(false)
         }}
       >
-        Leave
-      </button>
+        <IoHeadsetOutline size={16} />
+      </div>
+      {users.map((user) => {
+        const participant = flick.participants.find((p) => p.id === user.uid)
+        return participant ? (
+          <div key={user.uid}>
+            <img
+              src={participant.user.picture || ''}
+              alt={participant.user.displayName || ''}
+              className="rounded-full w-8 h-8 mr-2"
+            />
+          </div>
+        ) : null
+      })}
     </div>
   )
 }
@@ -198,38 +209,23 @@ const FlickNavBar = () => {
         {flick?.name || ''}
       </Heading>
       <div className="flex justify-end items-center gap-x-2 px-2">
-        {inHuddle && participantId ? (
+        {inHuddle && participantId && flick?.participants ? (
           <FlickHuddle
-            flickId={flick?.id}
+            flick={flick}
             devices={audioDevices}
-            participantId={participantId}
             setInHuddle={setInHuddle}
+            participantId={participantId}
             deviceId={currentAudioDevice?.deviceId}
           />
         ) : (
-          <Button
-            appearance="primary"
-            type="button"
+          <div
             onClick={joinHuddle}
-            size="small"
-            className="mr-2"
+            className="mr-2 border-4 border-brand-10 rounded-full cursor-pointer"
           >
-            <Text className="mr-2 text-sm">Join</Text>
-            <div className="flex justify-end items-center">
-              {flick?.participants.map((participant, index) => (
-                <div
-                  key={participant.id || index}
-                  className="flex items-center"
-                >
-                  <img
-                    src={participant.user.picture || ''}
-                    alt={participant.user.displayName || ''}
-                    className="w-6 h-6 rounded-full"
-                  />
-                </div>
-              ))}
+            <div className="border border-brand rounded-full p-2 text-gray-600">
+              <IoHeadsetOutline size={16} />
             </div>
-          </Button>
+          </div>
         )}
         <Button
           appearance="gray"
