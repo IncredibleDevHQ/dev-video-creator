@@ -75,9 +75,11 @@ const AuthProvider = ({ children }: { children: JSX.Element }): JSX.Element => {
           username: meResponse.data.User_by_pk.displayName || undefined,
         })
 
-        window.analytics.identify(user.uid, {
-          name: meResponse.data.User_by_pk.displayName || 'none',
-        })
+        if (meResponse.data.User_by_pk.displayName) {
+          window.analytics.identify(user.uid, {
+            name: meResponse.data.User_by_pk.displayName || 'none',
+          })
+        }
 
         setDbUser(meResponse.data.User_by_pk)
       }
