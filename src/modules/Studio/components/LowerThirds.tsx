@@ -3016,7 +3016,7 @@ export const ShrutiKapoorLowerThirds = ({
           fill={color || '#5B3298'}
           cornerRadius={0}
           width={rectWidth + 25}
-          height={100}
+          height={90}
           rotation={180}
         />
         {Array.from(
@@ -3025,7 +3025,7 @@ export const ShrutiKapoorLowerThirds = ({
         ).map((x) => {
           return (
             <Line
-              points={[x, 0, x, 100]}
+              points={[x, 0, x, 90]}
               stroke="#FFFFFF"
               strokeWidth={1}
               opacity={0.1}
@@ -3033,7 +3033,7 @@ export const ShrutiKapoorLowerThirds = ({
             />
           )
         })}
-        {Array.from({ length: (100 - 5) / 20 + 1 }, (_, i) => 5 + i * 20).map(
+        {Array.from({ length: (90 - 5) / 20 + 1 }, (_, i) => 5 + i * 20).map(
           (y) => {
             return (
               <Line
@@ -3047,7 +3047,7 @@ export const ShrutiKapoorLowerThirds = ({
           }
         )}
         <Rect
-          y={-15}
+          y={-10}
           fill={color || '#350F6D'}
           cornerRadius={0}
           width={rectWidth + 15}
@@ -3057,14 +3057,14 @@ export const ShrutiKapoorLowerThirds = ({
         />
         <Image
           x={-rectWidth - 45}
-          y={-70}
+          y={-65}
           width={40}
           height={40}
           image={image}
         />
         <Text
           x={-rectWidth + 10}
-          y={designation === '' && organization === '' ? -85 : -70}
+          y={designation === '' && organization === '' ? -80 : -65}
           fill={textColor || '#fafafa'}
           text={userName}
           fontSize={24}
@@ -3081,7 +3081,7 @@ export const ShrutiKapoorLowerThirds = ({
         {designation !== '' && organization === '' && (
           <Text
             x={-rectWidth + 10}
-            y={-40}
+            y={-36}
             fill={textColor || '#ffffff'}
             text={designation}
             fontSize={12}
@@ -3093,7 +3093,7 @@ export const ShrutiKapoorLowerThirds = ({
         {designation === '' && organization !== '' && (
           <Text
             x={-rectWidth + 10}
-            y={-40}
+            y={-36}
             fill={textColor || '#ffffff'}
             text={organization}
             fontSize={12}
@@ -3105,7 +3105,7 @@ export const ShrutiKapoorLowerThirds = ({
         {designation !== '' && organization !== '' && (
           <Text
             x={-rectWidth + 10}
-            y={-40}
+            y={-36}
             fill={textColor || '#ffffff'}
             text={`${designation}, ${organization}`}
             fontSize={12}
