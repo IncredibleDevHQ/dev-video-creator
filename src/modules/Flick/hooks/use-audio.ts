@@ -33,7 +33,7 @@ const useAudio = () => {
   const [users, setUsers] = useState<RTCUser[]>([])
   const [currentUser, setCurrentUser] = useState<LocalAgoraUser>({
     uid: '',
-    hasAudio: false,
+    hasAudio: true,
     audioTrack: null,
   })
   const [channel, setChannel] = useState<string>()

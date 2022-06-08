@@ -3,7 +3,7 @@
 import AgoraRTC from 'agora-rtc-sdk-ng'
 import { createMicrophoneAudioTrack } from 'agora-rtc-react'
 import React, { useCallback, useEffect, useState } from 'react'
-import { FiChevronLeft, FiMic, FiMicOff } from 'react-icons/fi'
+import { FiChevronLeft, FiLoader, FiMic, FiMicOff } from 'react-icons/fi'
 import { IoHeadsetOutline, IoPeopleOutline } from 'react-icons/io5'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import { Button, emitToast, Heading } from '../../../components'
@@ -128,6 +128,13 @@ const FlickHuddle = ({
   }, [trackReady, track, flick, participantId])
 
   if (trackError) return <div>{trackError.message}</div>
+
+  if (!agoraReady || !trackReady)
+    return (
+      <div>
+        <FiLoader size={16} className="animate-spin" />
+      </div>
+    )
 
   return (
     <div className="border border-brand rounded-full flex justify-end items-center p-2">
