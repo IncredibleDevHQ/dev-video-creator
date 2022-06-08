@@ -50,6 +50,7 @@ const FlickHuddle = ({
     renewToken,
     currentUser,
     ready: agoraReady,
+    setMicrophoneDevice,
   } = useAudio()
 
   useEffect(() => {

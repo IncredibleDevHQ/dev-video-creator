@@ -143,6 +143,11 @@ const useAudio = () => {
     }
   }
 
+  const setMicrophoneDevice = async (deviceId: string) => {
+    if (!currentUser) return
+    await currentUser.audioTrack?.setDevice(deviceId)
+  }
+
   const mute = async () => {
     try {
       if (!ready) return
@@ -185,6 +190,7 @@ const useAudio = () => {
     leave,
     renewToken,
     currentUser,
+    setMicrophoneDevice,
   }
 }
 
