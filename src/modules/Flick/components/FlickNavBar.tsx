@@ -1,13 +1,19 @@
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 import { cx } from '@emotion/css'
+import { Listbox } from '@headlessui/react'
 import { createMicrophoneAudioTrack } from 'agora-rtc-react'
 import AgoraRTC from 'agora-rtc-sdk-ng'
 import React, { useCallback, useEffect, useState } from 'react'
 import { FiChevronLeft, FiLoader, FiMic, FiMicOff } from 'react-icons/fi'
-import { IoHeadsetOutline, IoPeopleOutline } from 'react-icons/io5'
+import {
+  IoChevronDownOutline,
+  IoHeadsetOutline,
+  IoPeopleOutline,
+} from 'react-icons/io5'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import { Button, emitToast, Heading } from '../../../components'
+import config from '../../../config'
 import { ASSETS } from '../../../constants'
 import {
   FlickFragment,
@@ -114,7 +120,7 @@ const FlickHuddle = ({
               }
             },
           },
-          { uid: participantId, track }
+          { uid: participantId, track, hasAudio: true }
         )
       } catch (error: any) {
         track?.stop()
@@ -137,7 +143,6 @@ const FlickHuddle = ({
         <FiLoader size={16} className="animate-spin" />
       </div>
     )
-
   return (
     <div className="border border-brand rounded-full flex justify-end items-center p-2">
       <div
@@ -157,6 +162,31 @@ const FlickHuddle = ({
           <FiMicOff className="cursor-pointer" size={20} />
         )}
       </div>
+
+      <Listbox
+        value={devices.filter((d) => d.deviceId === deviceId)}
+        onChange={setMicrophoneDevice}
+      >
+        <Listbox.Button>
+          <IoChevronDownOutline size={16} color="FFF" />
+        </Listbox.Button>
+        <Listbox.Options className="absolute z-10">
+          {devices.map((device) => (
+            <Listbox.Option key={device.deviceId} value={device.deviceId}>
+              {({ active }) => (
+                <p
+                  className={`${
+                    active ? 'bg-blue-500 text-white' : 'bg-white text-black'
+                  }`}
+                >
+                  {device.label}
+                </p>
+              )}
+            </Listbox.Option>
+          ))}
+        </Listbox.Options>
+      </Listbox>
+
       {users.map((user) => {
         const participant = flick.participants.find((p) => p.id === user.uid)
         return participant ? (
@@ -168,19 +198,19 @@ const FlickHuddle = ({
             })}
           >
             <img
-              src={participant.user.picture || ''}
+              src={
+                participant.user.picture ||
+                `${config.storage.baseUrl}/idev-logo.svg`
+              }
               alt={participant.user.displayName || ''}
-              className="rounded-full w-8 h-8 mr-2"
+              className="rounded-full w-8 h-8 mr-2 ml-2"
             />
-            {user.hasAudio ? (
-              <FiMic
-                className="cursor-pointer absolute bottom-0 right-0"
-                size={8}
-              />
-            ) : (
+            {user.hasAudio ? null : (
               <FiMicOff
-                className="cursor-pointer absolute bottom-0 right-0"
-                size={8}
+                className="cursor-pointer absolute bottom-0 right-0 w-4 h-4"
+                color="#FFF"
+                style={{ backgroundColor: '#000', borderRadius: '50%' }}
+                size={15}
               />
             )}
           </div>

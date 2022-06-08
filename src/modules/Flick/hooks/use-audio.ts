@@ -51,9 +51,11 @@ const useAudio = () => {
     {
       uid,
       track,
+      hasAudio,
     }: {
       uid: string
       track: IMicrophoneAudioTrack
+      hasAudio: boolean
     }
   ) => {
     try {
@@ -61,7 +63,7 @@ const useAudio = () => {
       setChannel(channel)
       setCurrentUser({
         uid,
-        hasAudio: true,
+        hasAudio,
         audioTrack: track,
       })
 
@@ -80,6 +82,7 @@ const useAudio = () => {
               {
                 ...user,
                 muted: false,
+                hasAudio,
                 mediaStream:
                   tracks && tracks.length > 0
                     ? new MediaStream(tracks.filter((track) => !!track))
@@ -93,6 +96,20 @@ const useAudio = () => {
       client.on('user-left', (user) => {
         setUsers((prevUsers) => {
           return prevUsers.filter((User) => User.uid !== user.uid)
+        })
+      })
+
+      client.on('user-info-updated', (user, msg) => {
+        setUsers((prevUsers) => {
+          return prevUsers.map((User) => {
+            if (User.uid === user) {
+              return {
+                ...User,
+                hasAudio: msg !== 'mute-audio',
+              }
+            }
+            return User
+          })
         })
       })
 
@@ -165,12 +182,7 @@ const useAudio = () => {
   const leave = async () => {
     try {
       if (!ready) return
-      currentUser?.audioTrack?.close()
-      setCurrentUser({
-        uid: '',
-        hasAudio: false,
-        audioTrack: null,
-      })
+      currentUser?.audioTrack?.stop()
       users.forEach((user) => {
         user.audioTrack?.stop()
       })
