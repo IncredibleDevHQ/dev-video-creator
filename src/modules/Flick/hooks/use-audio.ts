@@ -146,7 +146,7 @@ const useAudio = () => {
   const mute = async () => {
     try {
       if (!ready) return
-      await currentUser?.audioTrack?.setMuted(!currentUser.hasAudio)
+      await currentUser?.audioTrack?.setEnabled(!currentUser.hasAudio)
       // currentUser?.audioTrack.setEnabled(false)
       setCurrentUser((prev) => ({
         ...prev,
@@ -160,7 +160,12 @@ const useAudio = () => {
   const leave = async () => {
     try {
       if (!ready) return
-      currentUser?.audioTrack?.stop()
+      currentUser?.audioTrack?.close()
+      setCurrentUser({
+        uid: '',
+        hasAudio: false,
+        audioTrack: null,
+      })
       users.forEach((user) => {
         user.audioTrack?.stop()
       })

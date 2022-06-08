@@ -1,7 +1,8 @@
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 /* eslint-disable jsx-a11y/click-events-have-key-events */
-import AgoraRTC from 'agora-rtc-sdk-ng'
+import { cx } from '@emotion/css'
 import { createMicrophoneAudioTrack } from 'agora-rtc-react'
+import AgoraRTC from 'agora-rtc-sdk-ng'
 import React, { useCallback, useEffect, useState } from 'react'
 import { FiChevronLeft, FiLoader, FiMic, FiMicOff } from 'react-icons/fi'
 import { IoHeadsetOutline, IoPeopleOutline } from 'react-icons/io5'
@@ -140,9 +141,9 @@ const FlickHuddle = ({
     <div className="border border-brand rounded-full flex justify-end items-center p-2">
       <div
         className="bg-brand hover:bg-error cursor-pointer rounded-full p-2 text-white mr-2"
-        onClick={() => {
-          track?.stop()
-          leave()
+        onClick={async () => {
+          track?.close()
+          await leave()
           setInHuddle(false)
         }}
       >
@@ -158,12 +159,29 @@ const FlickHuddle = ({
       {users.map((user) => {
         const participant = flick.participants.find((p) => p.id === user.uid)
         return participant ? (
-          <div key={user.uid}>
+          <div
+            key={user.uid}
+            className={cx('relative rounded-full border', {
+              'border-transparent': !user.audioTrack?.isPlaying,
+              'border-brand': user.audioTrack?.isPlaying,
+            })}
+          >
             <img
               src={participant.user.picture || ''}
               alt={participant.user.displayName || ''}
               className="rounded-full w-8 h-8 mr-2"
             />
+            {user.hasAudio ? (
+              <FiMic
+                className="cursor-pointer absolute bottom-0 right-0"
+                size={8}
+              />
+            ) : (
+              <FiMicOff
+                className="cursor-pointer absolute bottom-0 right-0"
+                size={8}
+              />
+            )}
           </div>
         ) : null
       })}
