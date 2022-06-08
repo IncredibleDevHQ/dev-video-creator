@@ -60,19 +60,12 @@ const TransitionProvider = ({
         )
       case 'DipToWhite':
         return (
-          // <DipTransition
-          //   direction={direction}
-          //   isShorts={isShorts}
-          //   color="white"
-          //   performFinishAction={performFinishAction}
-          //   setTopLayerChildren={setTopLayerChildren}
-          // />
-          <ShrutiKapoorTransition
+          <DipTransition
             direction={direction}
             isShorts={isShorts}
-            // color="black"
-            setTopLayerChildren={setTopLayerChildren}
+            color="white"
             performFinishAction={performFinishAction}
+            setTopLayerChildren={setTopLayerChildren}
           />
         )
       case 'Line':
