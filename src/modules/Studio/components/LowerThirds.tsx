@@ -7,6 +7,7 @@ import { TopLayerChildren } from '../../../utils/configTypes'
 import { BrandingJSON } from '../../Branding/BrandingPage'
 import useEdit from '../hooks/use-edit'
 import { getCanvasGradient } from '../utils/StudioUserConfig'
+import { CONFIG, SHORTS_CONFIG } from './Concourse'
 
 const CommonLowerThirds = ({
   x,
@@ -2660,7 +2661,6 @@ export const VetsWhoCodeLowerThirds = ({
     React.SetStateAction<{ id: string; state: TopLayerChildren }>
   >
 }) => {
-  const [image] = useImage(logo, 'anonymous')
   const { getTextWidth } = useEdit()
   const rectWidth =
     getTextWidth(userName.toUpperCase() || '', 'Inter', 24, 'normal 600') + 16
@@ -2925,6 +2925,196 @@ export const VetsWhoCodeLowerThirds = ({
           }}
         />
       )}
+    </Group>
+  )
+}
+
+export const ShrutiKapoorLowerThirds = ({
+  x,
+  y,
+  userName,
+  designation,
+  organization,
+  logo,
+  color,
+  textColor,
+  branding,
+  isShorts,
+  setTopLayerChildren,
+}: {
+  x: number
+  y: number
+  userName: string
+  designation: string
+  organization: string
+  logo: string
+  color: string
+  textColor: string
+  branding: BrandingJSON | null | undefined
+  isShorts: boolean
+  setTopLayerChildren?: React.Dispatch<
+    React.SetStateAction<{ id: string; state: TopLayerChildren }>
+  >
+}) => {
+  const [image] = useImage(logo, 'anonymous')
+  const { getTextWidth, clipRect } = useEdit()
+  const rectWidth =
+    Math.max(
+      getTextWidth(
+        `${designation}, ${organization}`,
+        'Space Mono',
+        12,
+        'normal'
+      ),
+      getTextWidth(userName || '', 'Space Mono', 24, 'bold')
+    ) + 16
+
+  // in this lower third, the x and y are the bottom right corner as we have rotated the rects
+  return (
+    <Group
+      clipFunc={(ctx: any) => {
+        clipRect(ctx, {
+          x: 0,
+          y: 0,
+          width: !isShorts ? 904 : 380,
+          height: !isShorts ? CONFIG.height : SHORTS_CONFIG.height,
+          borderRadius: 0,
+        })
+      }}
+    >
+      {/* rectWidth 25 is the width of the main rect and 20 is occupied by the
+      image(that is half of the image) */}
+      <Group
+        x={CONFIG.width + rectWidth + 25 + 20}
+        y={y}
+        ref={(ref) => {
+          ref?.to({
+            x,
+            duration: 0.6,
+            easing: Konva.Easings.EaseIn,
+            onFinish: () => {
+              setTimeout(() => {
+                ref?.to({
+                  x: CONFIG.width + rectWidth + 25 + 20,
+                  duration: 0.6,
+                  easing: Konva.Easings.EaseIn,
+                  onFinish: () => {
+                    setTimeout(() => {
+                      setTopLayerChildren?.({
+                        id: '',
+                        state: '',
+                      })
+                    }, 400)
+                  },
+                })
+              }, 2000)
+            },
+          })
+        }}
+      >
+        <Rect
+          fill={color || '#5B3298'}
+          cornerRadius={0}
+          width={rectWidth + 25}
+          height={100}
+          rotation={180}
+        />
+        {Array.from(
+          { length: (rectWidth + 25 - 5) / 20 + 1 },
+          (_, i) => 5 + i * 20
+        ).map((x) => {
+          return (
+            <Line
+              points={[x, 0, x, 100]}
+              stroke="#FFFFFF"
+              strokeWidth={1}
+              opacity={0.1}
+              rotation={180}
+            />
+          )
+        })}
+        {Array.from({ length: (100 - 5) / 20 + 1 }, (_, i) => 5 + i * 20).map(
+          (y) => {
+            return (
+              <Line
+                points={[0, y, rectWidth + 25, y]}
+                stroke="#FFFFFF"
+                strokeWidth={1}
+                opacity={0.1}
+                rotation={180}
+              />
+            )
+          }
+        )}
+        <Rect
+          y={-15}
+          fill={color || '#350F6D'}
+          cornerRadius={0}
+          width={rectWidth + 15}
+          height={70}
+          rotation={180}
+          opacity={1}
+        />
+        <Image
+          x={-rectWidth - 45}
+          y={-70}
+          width={40}
+          height={40}
+          image={image}
+        />
+        <Text
+          x={-rectWidth + 10}
+          y={designation === '' && organization === '' ? -85 : -70}
+          fill={textColor || '#fafafa'}
+          text={userName}
+          fontSize={24}
+          opacity={1}
+          width={rectWidth}
+          height={70}
+          verticalAlign={
+            designation === '' && organization === '' ? 'middle' : undefined
+          }
+          fontStyle="bold"
+          fontFamily={branding?.font?.body?.family || 'Space Mono'}
+          key="username"
+        />
+        {designation !== '' && organization === '' && (
+          <Text
+            x={-rectWidth + 10}
+            y={-40}
+            fill={textColor || '#ffffff'}
+            text={designation}
+            fontSize={12}
+            height={96}
+            fontFamily="Roboto Mono"
+            key="designation"
+          />
+        )}
+        {designation === '' && organization !== '' && (
+          <Text
+            x={-rectWidth + 10}
+            y={-40}
+            fill={textColor || '#ffffff'}
+            text={organization}
+            fontSize={12}
+            height={96}
+            fontFamily="Roboto Mono"
+            key="organization"
+          />
+        )}
+        {designation !== '' && organization !== '' && (
+          <Text
+            x={-rectWidth + 10}
+            y={-40}
+            fill={textColor || '#ffffff'}
+            text={`${designation}, ${organization}`}
+            fontSize={12}
+            height={96}
+            fontFamily="Roboto Mono"
+            key="designationAndOrganization"
+          />
+        )}
+      </Group>
     </Group>
   )
 }
