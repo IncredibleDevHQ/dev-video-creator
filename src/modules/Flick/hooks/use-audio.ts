@@ -11,6 +11,13 @@ export interface RTCUser extends IAgoraRTCRemoteUser {
   audioStream?: MediaStream
 }
 
+export interface LocalAgoraUser {
+  uid: string
+  hasAudio: boolean
+  audioStream?: MediaStream
+  audioTrack: IMicrophoneAudioTrack | null
+}
+
 const audioConfig: ClientConfig = {
   mode: 'rtc',
   codec: 'h264',
@@ -24,13 +31,16 @@ const useAudio = () => {
   const client = useClient()
   const [ready, setReady] = useState(false)
   const [users, setUsers] = useState<RTCUser[]>([])
+  const [currentUser, setCurrentUser] = useState<LocalAgoraUser>({
+    uid: '',
+    hasAudio: false,
+    audioTrack: null,
+  })
   const [channel, setChannel] = useState<string>()
 
-  const [audioTrack, setAudioTrack] = useState<IMicrophoneAudioTrack>()
-
   useEffect(() => {
-    console.log('useAudio users:', users)
-  }, [users])
+    console.log({ currentUser })
+  }, [currentUser])
 
   const init = async (
     channel: string,
@@ -38,15 +48,24 @@ const useAudio = () => {
       onTokenWillExpire,
       onTokenDidExpire,
     }: { onTokenWillExpire: () => void; onTokenDidExpire: () => void },
-    track: IMicrophoneAudioTrack
+    {
+      uid,
+      track,
+    }: {
+      uid: string
+      track: IMicrophoneAudioTrack
+    }
   ) => {
     try {
       setReady(false)
       setChannel(channel)
-      setAudioTrack(track)
+      setCurrentUser({
+        uid,
+        hasAudio: true,
+        audioTrack: track,
+      })
 
       client.on('user-published', async (user, mediaType) => {
-        console.log('user-published', user, mediaType)
         await client.subscribe(user, mediaType)
         const tracks: MediaStreamTrack[] = []
         if (user.audioTrack) tracks.push(user.audioTrack?.getMediaStreamTrack())
@@ -54,7 +73,6 @@ const useAudio = () => {
           user.audioTrack?.play()
           setUsers((prevUsers) => {
             if (prevUsers.find((element) => element.uid === user.uid)) {
-              console.log('landing in [] condition')
               return [...prevUsers]
             }
             return [
@@ -93,13 +111,16 @@ const useAudio = () => {
   }
 
   AgoraRTC.onMicrophoneChanged = async (changedDevice) => {
+    if (!currentUser) return
     if (changedDevice.state === 'ACTIVE') {
-      await audioTrack?.setDevice(changedDevice.device.deviceId)
+      await currentUser.audioTrack?.setDevice(changedDevice.device.deviceId)
       // Switch to an existing device when the current device is unplugged.
-    } else if (changedDevice.device.label === audioTrack?.getTrackLabel()) {
+    } else if (
+      changedDevice.device.label === currentUser.audioTrack?.getTrackLabel()
+    ) {
       const oldMicrophones = await AgoraRTC.getMicrophones()
       // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-      await audioTrack?.setDevice(oldMicrophones?.[0]?.deviceId)
+      await currentUser.audioTrack?.setDevice(oldMicrophones?.[0]?.deviceId)
     }
   }
 
@@ -114,7 +135,6 @@ const useAudio = () => {
   ) => {
     try {
       if (!channel || !ready) return
-      console.log('came here', { channel, uid, token, mediaTracks, appId })
       await client.join(appId, channel, token, uid)
       if (mediaTracks) await client.publish(mediaTracks)
     } catch (error) {
@@ -123,20 +143,15 @@ const useAudio = () => {
     }
   }
 
-  const mute = async (uid: string) => {
+  const mute = async () => {
     try {
       if (!ready) return
-      const tempUsers = [...users]
-      const currentUserIndex = tempUsers.findIndex((user) => user.uid === uid)
-      if (currentUserIndex === -1) return
-      tempUsers.splice(currentUserIndex, 1, {
-        ...tempUsers[currentUserIndex],
-        hasAudio: !tempUsers[currentUserIndex].hasAudio,
-      })
-      if (audioTrack)
-        audioTrack.setEnabled(!tempUsers[currentUserIndex].hasAudio)
-      else throw new Error('No audio track')
-      setUsers(tempUsers)
+      await currentUser?.audioTrack?.setMuted(!currentUser.hasAudio)
+      // currentUser?.audioTrack.setEnabled(false)
+      setCurrentUser((prev) => ({
+        ...prev,
+        hasAudio: !prev.hasAudio,
+      }))
     } catch (error) {
       console.error(error)
     }
@@ -145,7 +160,7 @@ const useAudio = () => {
   const leave = async () => {
     try {
       if (!ready) return
-      audioTrack?.stop()
+      currentUser?.audioTrack?.stop()
       users.forEach((user) => {
         user.audioTrack?.stop()
       })
@@ -164,6 +179,7 @@ const useAudio = () => {
     mute,
     leave,
     renewToken,
+    currentUser,
   }
 }
 

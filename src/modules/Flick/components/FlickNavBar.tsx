@@ -3,7 +3,7 @@
 import AgoraRTC from 'agora-rtc-sdk-ng'
 import { createMicrophoneAudioTrack } from 'agora-rtc-react'
 import React, { useCallback, useEffect, useState } from 'react'
-import { FiChevronLeft } from 'react-icons/fi'
+import { FiChevronLeft, FiMic, FiMicOff } from 'react-icons/fi'
 import { IoHeadsetOutline, IoPeopleOutline } from 'react-icons/io5'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import { Button, emitToast, Heading } from '../../../components'
@@ -47,6 +47,7 @@ const FlickHuddle = ({
     users,
     leave,
     renewToken,
+    currentUser,
     ready: agoraReady,
   } = useAudio()
 
@@ -111,7 +112,7 @@ const FlickHuddle = ({
               }
             },
           },
-          track
+          { uid: participantId, track }
         )
       } catch (error: any) {
         track?.stop()
@@ -139,6 +140,13 @@ const FlickHuddle = ({
         }}
       >
         <IoHeadsetOutline size={16} />
+      </div>
+      <div className="text-gray-400 hover:text-white" onClick={mute}>
+        {currentUser?.hasAudio ? (
+          <FiMic className="cursor-pointer" size={20} />
+        ) : (
+          <FiMicOff className="cursor-pointer" size={20} />
+        )}
       </div>
       {users.map((user) => {
         const participant = flick.participants.find((p) => p.id === user.uid)
