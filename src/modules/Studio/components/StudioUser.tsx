@@ -1,12 +1,10 @@
 /* eslint-disable consistent-return */
-import React, { useEffect, useRef } from 'react'
 import Konva from 'konva'
+import React, { useEffect, useRef } from 'react'
 import { Group, Image, Rect } from 'react-konva'
 import { useImage } from 'react-konva-utils'
-import { useRecoilValue } from 'recoil'
-import { StudioProviderProps, studioStore } from '../stores'
-import { StudioUserConfig } from './Concourse'
 import useEdit, { ClipConfig } from '../hooks/use-edit'
+import { StudioUserConfig } from './Concourse'
 
 type StudioUserType = 'local' | 'remote'
 
