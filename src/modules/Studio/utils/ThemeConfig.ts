@@ -268,6 +268,37 @@ export const ThemeLayoutConfig = ({
         horizontalPointsTextColor: '#ffffff',
         horizontalPointTextVerticalAlign: 'middle',
       }
+    case 'Mux':
+      return {
+        startX: layoutConfig.x,
+        startY: layoutConfig.y,
+        availableWidth: layoutConfig?.availableWidth || layoutConfig.width,
+        availableHeight: layoutConfig.height,
+        textColor: '#383838',
+        borderRadius: 0,
+        surfaceColor: '#FAFAFC',
+        titleFont: 'Work Sans',
+        bodyFont: 'Work Sans',
+        pointsBulletColor: getCanvasGradient(
+          [
+            { color: '#EB4F3E', offset: 0.0 },
+            { color: '#EB4463', offset: 0.7604 },
+          ],
+          {
+            x0: 0,
+            y0: 6,
+            x1: 12,
+            y1: 6,
+          }
+        ),
+        pointsBulletCornerRadius: 0,
+        pointsBulletYOffset: 3.5,
+        horizontalPointRectColor: '#FAFAFC',
+        horizontalPointRectStrokeColor: '#D4D4D8',
+        horizontalPointRectCornerRadius: 6,
+        horizontalPointsTextColor: '#383838',
+        horizontalPointTextVerticalAlign: 'middle',
+      }
     default:
       return {
         startX: layoutConfig.x,
@@ -300,6 +331,8 @@ export const getThemeTextColor = (theme: ThemeFragment): string => {
       return '#27272A'
     case 'VetsWhoCode':
       return '#091F40'
+    case 'Mux':
+      return '#383838'
     default:
       return '#ffffff'
   }
@@ -322,6 +355,8 @@ export const getThemeSurfaceColor = (theme: ThemeFragment): string => {
     case 'LambdaTest':
     case 'VetsWhoCode':
       return '#ffffff'
+    case 'Mux':
+      return '#FAFAFC'
     default:
       return '#ffffff'
   }
@@ -343,6 +378,7 @@ export const getThemeFont = (theme: ThemeFragment): string => {
     case 'DevsForUkraine':
       return 'Montserrat'
     case 'Whitep4nth3r':
+    case 'Mux':
       return 'Work Sans'
     case 'VetsWhoCode':
       return 'Gotham'
@@ -478,6 +514,17 @@ export const getThemeSupportedUserMediaLayouts = (
         'full-left',
         'full-right',
       ]
+    case 'Mux':
+      return [
+        'classic',
+        'float-full-right',
+        'float-full-left',
+        'float-half-right',
+        'padded-bottom-right-tile',
+        'padded-split',
+        'full-left',
+        'full-right',
+      ]
     default:
       return []
   }
@@ -498,6 +545,7 @@ export const getThemeBasedIntroLayouts = (themeName: string): Layout[] => {
     case 'VetsWhoCode':
       return ['classic', 'bottom-right-circle', 'float-full-right']
     case 'ShrutiKapoor':
+    case 'Mux':
       return ['classic', 'bottom-right-tile', 'float-full-right']
     default:
       return []
