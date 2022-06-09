@@ -214,7 +214,7 @@ const FlickHuddle = ({
       >
         <IoHeadsetOutline size={16} />
       </div>
-      <div className="group rounded-sm hover:bg-dark-200 flex items-center cursor-pointer">
+      <div className="group rounded-sm hover:bg-dark-200 flex items-center cursor-pointer ml-3 mr-1 gap-x-1">
         <div
           className="text-white flex items-center hover:bg-dark-100 rounded-l-sm justify-center px-1 py-1.5"
           onClick={mute}
