@@ -69,6 +69,7 @@ export type Presence = {
     x: number
     y: number
   }
+  inHuddle: boolean
 }
 
 const initialConfig: ViewConfig = {
@@ -934,6 +935,7 @@ const FlickHoC = () => {
       },
       page: PresencePage.Notebook,
       cursor: { x: 0, y: 0 },
+      inHuddle: false,
     }
   }, [sub, displayName, picture])
 
