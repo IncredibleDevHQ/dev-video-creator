@@ -33,7 +33,7 @@ export type AudioType = 'transition' | 'shorts' | 'points'
 export type MusicAction = 'start' | 'stop' | 'modifyVolume'
 
 const useCanvasRecorder = ({
-  videoBitsPerSecond = 8000000,
+  videoBitsPerSecond = 12000000,
   liveStreamEnabled = false,
   liveStreamUrl,
 }: {

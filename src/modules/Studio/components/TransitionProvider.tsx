@@ -9,6 +9,7 @@ import {
   DipTransition,
   LeeRobTransition,
   PastelLinesTransition,
+  ShrutiKapoorTransition,
   TrianglePathTransition,
   VetsWhoCodeTransition,
   Whitep4nth3rTransition,
@@ -35,7 +36,7 @@ const TransitionProvider = ({
   transitionSettings?: string
 }) => {
   const branding = useRecoilValue(studioStore).branding || brandingJSON
-  if (transitionSettings) {
+  if (transitionSettings && !isShorts) {
     switch (transitionSettings) {
       case 'Circles':
         return (
@@ -301,6 +302,26 @@ const TransitionProvider = ({
         }
         return (
           <VetsWhoCodeTransition
+            direction={direction}
+            isShorts={isShorts}
+            // color="black"
+            setTopLayerChildren={setTopLayerChildren}
+          />
+        )
+      case 'ShrutiKapoor':
+        if (direction === 'moveIn' || direction === 'moveAway') {
+          return (
+            <DipTransition
+              direction={direction}
+              isShorts={isShorts}
+              color="black"
+              performFinishAction={performFinishAction}
+              setTopLayerChildren={setTopLayerChildren}
+            />
+          )
+        }
+        return (
+          <ShrutiKapoorTransition
             direction={direction}
             isShorts={isShorts}
             // color="black"
