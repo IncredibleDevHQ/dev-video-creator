@@ -2134,7 +2134,7 @@ export const ShrutiKapoorTransition = ({
         y={stageConfig.height}
         width={stageConfig.width * 2}
         height={stageConfig.height * (3 / 2) + 100}
-        fill="#350F6D"
+        fill="#2E2144"
         rotation={-45}
         ref={(ref) => {
           setTimeout(() => {
@@ -2168,7 +2168,7 @@ export const ShrutiKapoorTransition = ({
         y={stageConfig.height}
         width={stageConfig.width * 2}
         height={stageConfig.height * (3 / 2)}
-        fill="#282855"
+        fill="#1D1A23"
         rotation={-45}
         ref={(ref) => {
           setTimeout(() => {
