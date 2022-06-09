@@ -1,14 +1,17 @@
 /* eslint-disable no-unneeded-ternary */
 /* eslint-disable no-nested-ternary */
 import { css, cx } from '@emotion/css'
+import { createClient, LiveObject } from '@liveblocks/client'
+import { LiveblocksProvider, RoomProvider, useObject } from '@liveblocks/react'
 import { Editor as CoreEditor } from '@tiptap/core'
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { BiBlock } from 'react-icons/bi'
 import { IoChevronBackOutline, IoChevronForwardOutline } from 'react-icons/io5'
 import { useHistory, useParams } from 'react-router-dom'
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
 import { v4 as uuidv4 } from 'uuid'
 import { emitToast, Heading, ScreenState } from '../../components'
+import config from '../../config'
 import {
   FlickFragmentFragment,
   Fragment_Status_Enum_Enum,
@@ -47,6 +50,26 @@ import Sidebar from './components/Sidebar'
 import TipTap from './editor/TipTap'
 import { Block, Position, SimpleAST, useUtils } from './editor/utils/utils'
 import { newFlickStore, View } from './store/flickNew.store'
+
+export enum PresencePage {
+  Notebook = 'notebook',
+  Preview = 'preview',
+  Backstage = 'backstage',
+  Recording = 'recording',
+}
+export type Presence = {
+  user: {
+    id: string
+    name: string
+    picture: string
+  }
+  page: PresencePage
+  formatId?: string
+  cursor: {
+    x: number
+    y: number
+  }
+}
 
 const initialConfig: ViewConfig = {
   titleSplash: {
@@ -106,6 +129,10 @@ export const useLocalPayload = () => {
   return { updatePayload, payload, resetPayload }
 }
 
+const client = createClient({
+  publicApiKey: config.liveblocks.publicKey,
+})
+
 const Flick = () => {
   const { id, fragmentId } = useParams<{ id: string; fragmentId?: string }>()
   const [{ flick, activeFragmentId, view }, setFlickStore] =
@@ -124,7 +151,24 @@ const Flick = () => {
   const { addMusic, stopMusic } = useCanvasRecorder({})
 
   const [currentBlock, setCurrentBlock] = useState<Block>()
-  const [viewConfig, setViewConfig] = useState<ViewConfig>(initialConfig)
+
+  const viewConfigLiveObject = useObject<ViewConfig>('viewConfig')
+  const viewConfig = viewConfigLiveObject?.toObject() || initialConfig
+  const setViewConfig = useCallback(
+    (vc: ViewConfig) => {
+      console.log('Saving vc')
+      viewConfigLiveObject?.update(vc)
+    },
+    [viewConfigLiveObject]
+  )
+  const [updatesQueue, setUpdatesQueue] = useState<ViewConfig[]>([])
+  useEffect(() => {
+    console.log('Adding to queue')
+    if (!viewConfigLiveObject) return
+    updatesQueue.forEach((update) => {
+      setViewConfig(update)
+    })
+  }, [viewConfigLiveObject, updatesQueue])
 
   const [getFragment] = useGetFlickFragmentLazyQuery()
 
@@ -380,7 +424,7 @@ const Flick = () => {
         })
       }
     }
-  }, [currentBlock])
+  }, [currentBlock, viewConfig])
 
   useMemo(() => {
     setStudio((store) => ({
@@ -405,18 +449,14 @@ const Flick = () => {
 
   useEffect(() => {
     resetPayload()
-    setStudio((store) => ({
-      ...store,
-      shortsMode: false,
-    }))
   }, [activeFragmentId])
 
   useEffect(() => {
     if (!data) return
     const fragmentsLength = data.Flick_by_pk?.fragments.length || 0
-    const editorFragment = data.Flick_by_pk?.fragments.find((f) => !f.type)
+    const editorFragment = data.Flick_by_pk?.fragments?.[0]
 
-    if (!fragmentId) {
+    if (!fragmentId && fragmentsLength > 0) {
       history.push(`/story/${data.Flick_by_pk?.id}/${editorFragment?.id}`)
     }
     setFlickStore((store) => ({
@@ -511,41 +551,44 @@ const Flick = () => {
     setActiveFragment(fragment)
 
     setSimpleAST(fragment?.editorState || initialAST)
-    setViewConfig(
-      fragment?.configuration || {
-        ...initialConfig,
-        mode:
-          fragment.type === Fragment_Type_Enum_Enum.Portrait
-            ? 'Portrait'
-            : 'Landscape',
-        speakers: [flick.participants[0]],
-        blocks: {
-          [initialAST.blocks[0].id]: {
-            layout: 'classic',
-            view: {
-              type: 'introBlock',
-              intro: {
-                order: [
-                  { enabled: true, state: 'userMedia' },
-                  { enabled: true, state: 'titleSplash' },
-                ],
+    if (!fragment?.editorState) {
+      setUpdatesQueue((q) => [
+        ...q,
+        {
+          ...initialConfig,
+          mode:
+            fragment.type === Fragment_Type_Enum_Enum.Portrait
+              ? 'Portrait'
+              : 'Landscape',
+          speakers: [flick.participants[0]],
+          blocks: {
+            [initialAST.blocks[0].id]: {
+              layout: 'classic',
+              view: {
+                type: 'introBlock',
+                intro: {
+                  order: [
+                    { enabled: true, state: 'userMedia' },
+                    { enabled: true, state: 'titleSplash' },
+                  ],
+                },
               },
             },
+            [initialAST.blocks[1].id]: {
+              layout: 'classic',
+              view: {
+                type: 'outroBlock',
+                outro: {
+                  order: [{ enabled: true, state: 'titleSplash' }],
+                },
+              } as OutroBlockView,
+            } as BlockProperties,
           },
-          [initialAST.blocks[1].id]: {
-            layout: 'classic',
-            view: {
-              type: 'outroBlock',
-              outro: {
-                order: [{ enabled: true, state: 'titleSplash' }],
-              },
-            } as OutroBlockView,
-          } as BlockProperties,
         },
-      }
-    )
+      ])
+    }
 
-    setCurrentBlock(fragment?.editorState?.blocks[0] || initialAST.blocks[0])
+    // setCurrentBlock(fragment?.editorState?.blocks[0] || initialAST.blocks[0])
     const ev = fragment?.encodedEditorValue
       ? Buffer.from(fragment?.encodedEditorValue as string, 'base64').toString(
           'utf8'
@@ -757,8 +800,7 @@ const Flick = () => {
             <FragmentBar
               simpleAST={simpleAST}
               editorValue={editorValue}
-              config={viewConfig}
-              setViewConfig={setViewConfig}
+              viewConfig={viewConfig}
               currentBlock={currentBlock}
               setCurrentBlock={setCurrentBlock}
               togglePublishModal={() => setPublishModal(true)}
@@ -877,4 +919,37 @@ const Flick = () => {
   )
 }
 
-export default Flick
+const FlickHoC = () => {
+  const { id } = useParams<{ id: string; fragmentId?: string }>()
+
+  const { sub, displayName, picture } =
+    (useRecoilValue(userState) as User) || {}
+
+  const initialPresence: Presence = useMemo(() => {
+    return {
+      user: {
+        id: sub as string,
+        name: displayName as string,
+        picture: picture as string,
+      },
+      page: PresencePage.Notebook,
+      cursor: { x: 0, y: 0 },
+    }
+  }, [sub, displayName, picture])
+
+  return (
+    <LiveblocksProvider client={client}>
+      <RoomProvider
+        id={`story-${id}`}
+        initialPresence={initialPresence}
+        initialStorage={() => ({
+          viewConfig: new LiveObject(initialConfig),
+        })}
+      >
+        <Flick />
+      </RoomProvider>
+    </LiveblocksProvider>
+  )
+}
+
+export default FlickHoC

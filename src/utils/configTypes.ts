@@ -26,6 +26,7 @@ export const shortsLayoutTypes = [
   'bottom-right-circle',
   'split',
   'full-left',
+  'full-right',
 ] as const
 
 export const outroLayoutTypes = [
@@ -55,14 +56,14 @@ export type TopLayerChildren =
   | 'lowerThird'
   | ''
 
-export interface Gradient {
+export type Gradient = {
   id: number
   angle: number
   values: (number | string)[]
   cssString: string
 }
 
-export interface GradientConfig {
+export type GradientConfig = {
   id: number
   cssString: string
   values: (string | number)[]
@@ -70,12 +71,12 @@ export interface GradientConfig {
   endIndex: { x: number; y: number }
 }
 
-export interface CodeBlockView {
+export type CodeBlockView = {
   type: 'codeBlock'
   code: CodeBlockViewProps
 }
 
-export interface CodeBlockViewProps {
+export type CodeBlockViewProps = {
   animation: CodeAnimation
   highlightSteps?: CodeHighlightConfig[]
   theme: CodeTheme
@@ -106,7 +107,7 @@ export const enum CodeTheme {
   HighContrast = 'hc_black',
 }
 
-export interface CodeHighlightConfig {
+export type CodeHighlightConfig = {
   step?: string
   from?: number
   to?: number
@@ -120,12 +121,12 @@ export enum CodeStyle {
   Terminal = 'terminal',
 }
 
-export interface ImageBlockView {
+export type ImageBlockView = {
   type: 'imageBlock'
   image: ImageBlockViewProps
 }
 
-export interface ImageBlockViewProps {
+export type ImageBlockViewProps = {
   captionTitleView?: CaptionTitleView
 }
 
@@ -135,20 +136,20 @@ export type CaptionTitleView =
   | 'none'
   | 'titleAndCaption'
 
-export interface VideoBlockView {
+export type VideoBlockView = {
   type: 'videoBlock'
   video: VideoBlockViewProps
 }
 
-export interface VideoBlockViewProps {
+export type VideoBlockViewProps = {
   captionTitleView?: CaptionTitleView
 }
-export interface ListBlockView {
+export type ListBlockView = {
   type: 'listBlock'
   list: ListBlockViewProps
 }
 
-export interface ListBlockViewProps {
+export type ListBlockViewProps = {
   viewStyle?: ListViewStyle
   appearance?: ListAppearance
   orientation?: ListOrientation
@@ -159,17 +160,17 @@ export type ListAppearance = 'stack' | 'replace' | 'allAtOnce'
 export type ListViewStyle = 'none' | 'bullet' | 'number'
 export type ListOrientation = 'horizontal' | 'vertical'
 
-export interface HeadingBlockView {
+export type HeadingBlockView = {
   type: 'headingBlock'
 }
 
-export interface HandleDetails {
+export type HandleDetails = {
   enabled: boolean
   handle: string
 }
 
 export type OutroState = 'outroVideo' | 'titleSplash'
-export interface OutroBlockViewProps {
+export type OutroBlockViewProps = {
   title?: string
   twitter?: HandleDetails
   discord?: HandleDetails
@@ -180,12 +181,12 @@ export interface OutroBlockViewProps {
   order?: { enabled: boolean; state: OutroState }[]
 }
 
-export interface OutroBlockView {
+export type OutroBlockView = {
   type: 'outroBlock'
   outro: OutroBlockViewProps
 }
 
-export interface IntroBlockViewProps {
+export type IntroBlockViewProps = {
   heading?: string
   name?: string
   designation?: string
@@ -193,7 +194,7 @@ export interface IntroBlockViewProps {
   displayPicture?: string
   order?: { enabled: boolean; state: IntroState }[]
 }
-export interface IntroBlockView {
+export type IntroBlockView = {
   type: 'introBlock'
   intro: IntroBlockViewProps
 }
@@ -215,12 +216,12 @@ export type BlockProperties = {
   view?: BlockView
 }
 
-export interface TitleSplashConfig {
+export type TitleSplashConfig = {
   enable: boolean
   titleSplashConfig?: GradientConfig
 }
 
-export interface ViewConfig {
+export type ViewConfig = {
   mode: 'Portrait' | 'Landscape'
   titleSplash: TitleSplashConfig
   speakers: FlickParticipantsFragment[]

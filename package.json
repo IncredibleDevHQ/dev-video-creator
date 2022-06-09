@@ -26,6 +26,8 @@
     "@giphy/react-components": "^5.4.0",
     "@headlessui/react": "^1.6.4",
     "@hocuspocus/provider": "^1.0.0-alpha.33",
+    "@liveblocks/client": "^0.16.15",
+    "@liveblocks/react": "^0.16.15",
     "@monaco-editor/react": "^4.3.1",
     "@popperjs/core": "^2.11.5",
     "@samuelmeuli/font-manager": "^1.4.0",

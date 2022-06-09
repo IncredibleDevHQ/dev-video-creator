@@ -2686,6 +2686,14 @@ export const VetsWhoCodeLowerThirds = ({
                 ref?.to({
                   width: 0,
                   duration: 0.4,
+                  onFinish: () => {
+                    setTimeout(() => {
+                      setTopLayerChildren?.({
+                        id: '',
+                        state: '',
+                      })
+                    }, 400)
+                  },
                 })
               }, 3800)
             },
@@ -2735,13 +2743,13 @@ export const VetsWhoCodeLowerThirds = ({
                     opacity: 0,
                     duration: 0.1,
                   })
-                }, 3300)
+                }, 3200)
               },
             })
-          }, 400)
+          }, 500)
         }}
       />
-      <Rect
+      {/* <Rect
         fill={color || '#ffffff'}
         width={0}
         height={48}
@@ -2775,7 +2783,7 @@ export const VetsWhoCodeLowerThirds = ({
             })
           }, 200)
         }}
-      />
+      /> */}
       {(designation !== '' || organization !== '') && (
         <Group>
           <Rect

@@ -21,7 +21,9 @@ import {
 } from '../../../generated/graphql'
 import { userState } from '../../../stores/user.store'
 import useAudio from '../hooks/use-audio'
-import { newFlickStore } from '../store/flickNew.store'
+import { useMyPresence, useOthers } from '@liveblocks/react'
+import { Presence, PresencePage } from '../Flick'
+import { newFlickStore, View } from '../store/flickNew.store'
 import ShareModal from './ShareModal'
 
 const FlickHuddle = ({
@@ -258,6 +260,22 @@ const FlickNavBar = () => {
       })
     }
   }
+  const others = useOthers()
+  const [myPresence, updateMyPresence] = useMyPresence<Presence>()
+
+  const { view } = useRecoilValue(newFlickStore)
+
+  useEffect(() => {
+    if (view === View.Notebook) {
+      updateMyPresence({
+        page: PresencePage.Notebook,
+      })
+    } else {
+      updateMyPresence({
+        page: PresencePage.Preview,
+      })
+    }
+  }, [view])
 
   return (
     <div className="sticky top-0 z-50 flex items-center justify-between py-2 pl-3 pr-5 bg-dark-500">
@@ -291,6 +309,31 @@ const FlickNavBar = () => {
             </div>
           </div>
         )}
+      </div>
+      <div className="flex items-center gap-x-6 px-2">
+        {/* Users in the story page */}
+        <div className="flex items-center gap-x-2">
+          {myPresence.user && (
+            <img
+              src={myPresence.user.picture as string}
+              alt={myPresence.user.name as string}
+              className="h-8 w-8 rounded-full"
+            />
+          )}
+          {others?.map(({ presence }) => {
+            if (presence) {
+              const otherPresence = presence as Presence
+              return (
+                <img
+                  src={otherPresence.user.picture}
+                  className="h-8 w-8 rounded-full"
+                  alt={otherPresence.user.picture}
+                />
+              )
+            }
+            return null
+          })}
+        </div>
         <Button
           appearance="gray"
           type="button"

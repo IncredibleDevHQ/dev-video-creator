@@ -1,6 +1,12 @@
 /* eslint-disable no-console */
 /* eslint-disable jsx-a11y/media-has-caption */
 import { css, cx } from '@emotion/css'
+import { createClient } from '@liveblocks/client'
+import {
+  LiveblocksProvider,
+  RoomProvider,
+  useUpdateMyPresence,
+} from '@liveblocks/react'
 import * as Sentry from '@sentry/react'
 import {
   createMicrophoneAndCameraTracks,
@@ -58,6 +64,7 @@ import { BrandingJSON } from '../Branding/BrandingPage'
 import { EditorProvider } from '../Flick/components/EditorProvider'
 import { TextEditorParser } from '../Flick/editor/utils/helpers'
 import { Block, useUtils } from '../Flick/editor/utils/utils'
+import { Presence, PresencePage } from '../Flick/Flick'
 import { Countdown, TimerModal } from './components'
 import {
   CONFIG,
@@ -81,11 +88,30 @@ const noScrollBar = css`
   }
 `
 
+const client = createClient({
+  publicApiKey: config.liveblocks.publicKey,
+})
+
 const StudioHoC = () => {
   const [view, setView] = useState<'preview' | 'preload' | 'studio'>('preload')
 
-  const { sub } = (useRecoilValue(userState) as User) || {}
+  const { sub, displayName, picture } =
+    (useRecoilValue(userState) as User) || {}
   const { fragmentId } = useParams<{ fragmentId: string }>()
+
+  const initialPresence: Presence = useMemo(() => {
+    return {
+      user: {
+        id: sub as string,
+        name: displayName as string,
+        picture: picture as string,
+      },
+      page: PresencePage.Backstage,
+      formatId: fragmentId as string,
+      cursor: { x: 0, y: 0 },
+    }
+  }, [sub, displayName, picture])
+
   const [fragment, setFragment] = useState<StudioFragmentFragment>()
   const [isUserAllowed, setUserAllowed] = useState(false)
 
@@ -178,21 +204,28 @@ const StudioHoC = () => {
 
   if (view === 'studio' && fragment)
     return (
-      <EditorProvider>
-        <Studio
-          data={data}
-          studioFragment={fragment}
-          branding={
-            data?.Fragment?.[0].flick.useBranding
-              ? data?.Fragment?.[0]?.flick.branding?.branding
-              : null
-          }
-          devices={devices.current}
-          liveStream={liveStream.current}
-          continuousRecordedBlockIds={continuousRecordedBlockIds.current}
-          addContinuousRecordedBlockIds={addContinuousRecordedBlockIds}
-        />
-      </EditorProvider>
+      <LiveblocksProvider client={client}>
+        <RoomProvider
+          id={`story-${fragment.flickId}`}
+          initialPresence={initialPresence}
+        >
+          <EditorProvider>
+            <Studio
+              data={data}
+              studioFragment={fragment}
+              branding={
+                data?.Fragment?.[0].flick.useBranding
+                  ? data?.Fragment?.[0]?.flick.branding?.branding
+                  : null
+              }
+              devices={devices.current}
+              liveStream={liveStream.current}
+              continuousRecordedBlockIds={continuousRecordedBlockIds.current}
+              addContinuousRecordedBlockIds={addContinuousRecordedBlockIds}
+            />
+          </EditorProvider>
+        </RoomProvider>
+      </LiveblocksProvider>
     )
 
   return null
@@ -716,6 +749,14 @@ const Studio = ({
     tracks
   )
 
+  console.log(
+    'stream',
+    stream?.getVideoTracks()[0].getSettings().width,
+    stream?.getVideoTracks()[0].getSettings().height,
+    stream?.getVideoTracks()[0].getSettings().aspectRatio,
+    stream?.getVideoTracks()[0].getSettings().frameRate
+  )
+
   const [getRTCToken] = useGetRtcTokenMutation({
     variables: { fragmentId },
   })
@@ -1125,6 +1166,23 @@ const Studio = ({
       start()
     }
   }, [payload?.status])
+
+  const updateMyPresence = useUpdateMyPresence<Presence>()
+  useEffect(() => {
+    if (
+      state === 'recording' ||
+      state === 'countDown' ||
+      state === 'start-recording'
+    ) {
+      updateMyPresence({
+        page: PresencePage.Recording,
+      })
+    } else {
+      updateMyPresence({
+        page: PresencePage.Backstage,
+      })
+    }
+  }, [state])
 
   // const getNote = (activeObjectIndex: number | undefined) => {
   //   if (!fragment || activeObjectIndex === undefined) return ''
@@ -1562,8 +1620,15 @@ const Studio = ({
                                   }
                                   setTopLayerChildren={setTopLayerChildren}
                                   isShorts={shortsMode || false}
-                                  status={payload?.status}
                                   theme={theme}
+                                  transitionSettings={{
+                                    blockTransition:
+                                      fragment?.flick?.configuration
+                                        ?.transitions?.blockTransition?.name,
+                                    swapTransition:
+                                      fragment?.flick?.configuration
+                                        ?.transitions?.swapTransition?.name,
+                                  }}
                                   performFinishAction={() => {
                                     stopCanvasRecording()
                                     setState('preview')

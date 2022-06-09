@@ -894,13 +894,22 @@ const VideoBackground = ({
                 image={bgImage}
               />
               <Text
-                text="DevsForUkraine"
+                text="VetsWhoCode"
                 x={0}
                 y={0}
                 fontSize={2}
                 fill="#fff"
                 opacity={0}
-                fontFamily="Work Sans"
+                fontFamily="Gotham"
+              />
+              <Text
+                text="VetsWhoCode"
+                x={0}
+                y={0}
+                fontSize={2}
+                fill="#fff"
+                opacity={0}
+                fontFamily="GothamLight"
               />
             </Group>
           )
@@ -915,13 +924,22 @@ const VideoBackground = ({
                 fill={branding?.background?.color?.primary}
               />
               <Text
-                text="DevsForUkraine"
+                text="VetsWhoCode"
                 x={0}
                 y={0}
                 fontSize={2}
                 fill="#fff"
                 opacity={0}
-                fontFamily="Work Sans"
+                fontFamily="Gotham"
+              />
+              <Text
+                text="VetsWhoCode"
+                x={0}
+                y={0}
+                fontSize={2}
+                fill="#fff"
+                opacity={0}
+                fontFamily="GothamLight"
               />
             </Group>
           )
@@ -949,13 +967,22 @@ const VideoBackground = ({
                 />
               )}
               <Text
-                text="DevsForUkraine"
+                text="VetsWhoCode"
                 x={0}
                 y={0}
                 fontSize={2}
                 fill="#fff"
                 opacity={0}
-                fontFamily="Work Sans"
+                fontFamily="Gotham"
+              />
+              <Text
+                text="VetsWhoCode"
+                x={0}
+                y={0}
+                fontSize={2}
+                fill="#fff"
+                opacity={0}
+                fontFamily="GothamLight"
               />
             </Group>
           )
@@ -989,7 +1016,16 @@ const VideoBackground = ({
                 fontSize={2}
                 fill="#fff"
                 opacity={0}
-                fontFamily="Work Sans"
+                fontFamily="Gotham"
+              />
+              <Text
+                text="VetsWhoCode"
+                x={0}
+                y={0}
+                fontSize={2}
+                fill="#fff"
+                opacity={0}
+                fontFamily="GothamLight"
               />
             </Group>
           )

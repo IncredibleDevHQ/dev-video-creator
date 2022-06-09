@@ -75,7 +75,7 @@ const EditorHeader = ({
   blocks: Block[]
   setCurrentBlock: React.Dispatch<React.SetStateAction<Block | undefined>>
   viewConfig: ViewConfig
-  setViewConfig: React.Dispatch<React.SetStateAction<ViewConfig>>
+  setViewConfig: (viewConfig: ViewConfig) => void
   activeFragment: FlickFragmentFragment | undefined
   setPreviewPosition: (
     value: React.SetStateAction<Position | undefined>

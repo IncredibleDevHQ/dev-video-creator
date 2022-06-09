@@ -66,6 +66,15 @@ export const FragmentLayoutConfig = ({
               borderRadius: 8,
               surfaceColor: theme.name === 'DevsForUkraine' ? '#1c1c1c7B' : '',
             }
+          case 'full-right':
+            return {
+              x: 16,
+              y: 380,
+              width: 364,
+              height: 280,
+              borderRadius: 8,
+              surfaceColor: theme.name === 'DevsForUkraine' ? '#1c1c1c7B' : '',
+            }
           default:
             return {
               x: 16,
@@ -90,6 +99,13 @@ export const FragmentLayoutConfig = ({
               borderRadius: 0,
             }
           case 'split':
+            return {
+              x: 40,
+              y: 40,
+              width: 316,
+              height: 312,
+              borderRadius: 0,
+            }
           case 'full-left':
             return {
               x: 40,
@@ -97,6 +113,16 @@ export const FragmentLayoutConfig = ({
               width: 316,
               height: 312,
               borderRadius: 0,
+              borderColor: '#000000',
+            }
+          case 'full-right':
+            return {
+              x: 40,
+              y: 360,
+              width: 316,
+              height: 312,
+              borderRadius: 0,
+              borderColor: '#000000',
             }
           default:
             return {
@@ -140,6 +166,14 @@ export const FragmentLayoutConfig = ({
             return {
               x: 16,
               y: 24,
+              width: 364,
+              height: 280,
+              borderRadius: 16,
+            }
+          case 'full-right':
+            return {
+              x: 16,
+              y: 380,
               width: 364,
               height: 280,
               borderRadius: 16,
@@ -190,6 +224,14 @@ export const FragmentLayoutConfig = ({
               height: 280,
               borderRadius: 16,
             }
+          case 'full-right':
+            return {
+              x: 16,
+              y: 380,
+              width: 364,
+              height: 280,
+              borderRadius: 16,
+            }
           default:
             return {
               x: 16,
@@ -200,7 +242,145 @@ export const FragmentLayoutConfig = ({
             }
         }
       case 'LeeRob':
+        switch (layout) {
+          case 'classic':
+          case 'padded-bottom-right-circle':
+          case 'padded-bottom-right-tile':
+            return {
+              x: 16,
+              y: 16,
+              width: 364,
+              height: 672,
+              borderRadius: 0,
+            }
+          case 'bottom-right-tile':
+          case 'bottom-right-circle':
+            return {
+              x: 0,
+              y: 0,
+              width: 396,
+              height: 704,
+              borderRadius: 0,
+            }
+          case 'split':
+            return {
+              x: 16,
+              y: 12,
+              width: 364,
+              height: 336,
+              borderRadius: 0,
+            }
+          case 'full-left':
+            return {
+              x: 16,
+              y: 24,
+              width: 364,
+              height: 280,
+              borderRadius: 0,
+              surfaceColor: '#0000007B',
+              borderColor: getCanvasGradient(
+                [
+                  { color: '#DB1685', offset: 0.0 },
+                  { color: '#8165D6', offset: 0.5208 },
+                  { color: '#48A8F6', offset: 0.9583 },
+                ],
+                {
+                  x0: 40,
+                  y0: 90,
+                  x1: 500,
+                  y1: 360,
+                }
+              ),
+            }
+          case 'full-right':
+            return {
+              x: 16,
+              y: 380,
+              width: 364,
+              height: 280,
+              borderRadius: 0,
+              surfaceColor: '#0000007B',
+              borderColor: getCanvasGradient(
+                [
+                  { color: '#DB1685', offset: 0.0 },
+                  { color: '#8165D6', offset: 0.5208 },
+                  { color: '#48A8F6', offset: 0.9583 },
+                ],
+                {
+                  x0: 40,
+                  y0: 90,
+                  x1: 500,
+                  y1: 360,
+                }
+              ),
+            }
+          default:
+            return {
+              x: 16,
+              y: 16,
+              width: 364,
+              height: 672,
+              borderRadius: 0,
+            }
+        }
       case 'Web3Auth':
+        switch (layout) {
+          case 'classic':
+          case 'padded-bottom-right-circle':
+          case 'padded-bottom-right-tile':
+            return {
+              x: 16,
+              y: 16,
+              width: 364,
+              height: 672,
+              borderRadius: 0,
+            }
+          case 'bottom-right-tile':
+          case 'bottom-right-circle':
+            return {
+              x: 0,
+              y: 0,
+              width: 396,
+              height: 704,
+              borderRadius: 0,
+            }
+          case 'split':
+            return {
+              x: 16,
+              y: 12,
+              width: 364,
+              height: 336,
+              borderRadius: 0,
+            }
+          case 'full-left':
+            return {
+              x: 16,
+              y: 24,
+              width: 364,
+              height: 280,
+              borderRadius: 0,
+              surfaceColor: '#27272A7B',
+              borderColor: '#ffffff',
+            }
+          case 'full-right':
+            return {
+              x: 16,
+              y: 380,
+              width: 364,
+              height: 280,
+              borderRadius: 0,
+              surfaceColor: '#27272A7B',
+              borderColor: '#ffffff',
+            }
+          default:
+            return {
+              x: 16,
+              y: 16,
+              width: 364,
+              height: 672,
+              borderRadius: 0,
+            }
+        }
       case 'Whitep4nth3r':
         switch (layout) {
           case 'classic':
@@ -234,6 +414,14 @@ export const FragmentLayoutConfig = ({
             return {
               x: 16,
               y: 24,
+              width: 364,
+              height: 280,
+              borderRadius: 0,
+            }
+          case 'full-right':
+            return {
+              x: 16,
+              y: 380,
               width: 364,
               height: 280,
               borderRadius: 0,
@@ -283,6 +471,18 @@ export const FragmentLayoutConfig = ({
               width: 364,
               height: 280,
               borderRadius: 0,
+              surfaceColor: '#fcfcfccc',
+              textColor: '#383838',
+            }
+          case 'full-right':
+            return {
+              x: 16,
+              y: 380,
+              width: 364,
+              height: 280,
+              borderRadius: 0,
+              surfaceColor: '#fcfcfccc',
+              textColor: '#383838',
             }
           default:
             return {
