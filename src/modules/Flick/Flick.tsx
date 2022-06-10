@@ -157,16 +157,15 @@ const Flick = () => {
   const viewConfig = viewConfigLiveObject?.toObject() || initialConfig
   const setViewConfig = useCallback(
     (vc: ViewConfig) => {
-      console.log('Saving vc')
       viewConfigLiveObject?.update(vc)
     },
     [viewConfigLiveObject]
   )
   const [updatesQueue, setUpdatesQueue] = useState<ViewConfig[]>([])
   useEffect(() => {
-    console.log('Adding to queue')
     if (!viewConfigLiveObject) return
     updatesQueue.forEach((update) => {
+      console.log('Updating viewConfig from queue', update)
       setViewConfig(update)
     })
   }, [viewConfigLiveObject, updatesQueue])
@@ -744,7 +743,7 @@ const Flick = () => {
     })
   }
 
-  if (!data && loading)
+  if ((!data && loading) || !viewConfigLiveObject)
     return <ScreenState title="Loading your story" loading />
 
   if (error)
