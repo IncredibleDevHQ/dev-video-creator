@@ -1392,7 +1392,8 @@ export const FragmentLayoutConfig = ({
             y: 120,
             width: 500,
             height: 300,
-            borderRadius: 0,
+            borderRadius: 6,
+            surfaceColor: '#FCFCFCCC',
           }
         case 'full-right':
           return {
@@ -1400,7 +1401,8 @@ export const FragmentLayoutConfig = ({
             y: 120,
             width: 500,
             height: 300,
-            borderRadius: 0,
+            borderRadius: 6,
+            surfaceColor: '#FCFCFCCC',
           }
         default:
           return {

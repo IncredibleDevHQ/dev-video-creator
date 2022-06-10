@@ -276,7 +276,7 @@ export const ThemeLayoutConfig = ({
         availableHeight: layoutConfig.height,
         textColor: '#383838',
         borderRadius: 0,
-        surfaceColor: '#FAFAFC',
+        surfaceColor: layoutConfig?.surfaceColor || '#FAFAFC',
         titleFont: 'Work Sans',
         bodyFont: 'Work Sans',
         pointsBulletColor: getCanvasGradient(
