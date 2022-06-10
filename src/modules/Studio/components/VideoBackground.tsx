@@ -1234,6 +1234,13 @@ const VideoBackground = ({
                 y={0}
                 width={stageConfig.width}
                 height={stageConfig.height}
+                fill="#ffffff"
+              />
+              <Rect
+                x={0}
+                y={0}
+                width={stageConfig.width}
+                height={stageConfig.height}
                 fillLinearGradientColorStops={[0, '#FB249119', 1, '#FB501D19']}
                 fillLinearGradientStartPoint={{ x: stageConfig.width, y: 0 }}
                 fillLinearGradientEndPoint={{
