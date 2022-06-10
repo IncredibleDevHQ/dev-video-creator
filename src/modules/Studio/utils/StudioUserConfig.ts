@@ -4929,13 +4929,6 @@ export const StudioUserConfiguration = ({
         }
       }
       switch (layout) {
-        // case 'classic':
-        //   switch (noOfParticipants) {
-        //     case 2:
-        //       return [{}, {}]
-        //     default:
-        //       return [{}]
-        //   }
         case 'float-full-right':
           switch (noOfParticipants) {
             case 2:
@@ -5113,34 +5106,34 @@ export const StudioUserConfiguration = ({
             case 2:
               return [
                 {
-                  x: 756,
-                  y: 364,
-                  width: 216,
-                  height: 162,
+                  x: 698,
+                  y: 285.5,
+                  width: 240,
+                  height: 180,
                   clipTheme: 'rect',
                   borderWidth: 2,
                   borderColor: '#D4D4D8',
                   studioUserClipConfig: {
-                    x: 28,
-                    y: 1,
-                    width: 160,
-                    height: 160,
+                    x: 30,
+                    y: 0,
+                    width: 180,
+                    height: 180,
                     borderRadius: 0,
                   },
                 },
                 {
-                  x: 568,
-                  y: 364,
-                  width: 216,
-                  height: 162,
+                  x: 698,
+                  y: 90.5,
+                  width: 240,
+                  height: 180,
                   clipTheme: 'rect',
                   borderWidth: 2,
                   borderColor: '#D4D4D8',
                   studioUserClipConfig: {
-                    x: 28,
-                    y: 1,
-                    width: 160,
-                    height: 160,
+                    x: 30,
+                    y: 0,
+                    width: 180,
+                    height: 180,
                     borderRadius: 0,
                   },
                 },
@@ -5229,16 +5222,16 @@ export const StudioUserConfiguration = ({
               return [
                 {
                   x: 0,
-                  y: 0,
-                  width: 0,
-                  height: 0,
+                  y: -90,
+                  width: 960,
+                  height: 720,
                   clipTheme: 'rect',
                   borderWidth: 0,
                   studioUserClipConfig: {
                     x: 0,
-                    y: 0,
-                    width: 0,
-                    height: 0,
+                    y: 90,
+                    width: 960,
+                    height: 540,
                     borderRadius: 0,
                   },
                 },
