@@ -382,6 +382,7 @@ export const FragmentLayoutConfig = ({
             }
         }
       case 'Whitep4nth3r':
+      case 'ShrutiKapoor':
         switch (layout) {
           case 'classic':
           case 'padded-bottom-right-circle':
@@ -1193,6 +1194,90 @@ export const FragmentLayoutConfig = ({
             y: 36,
             width: 832,
             height: 468,
+            borderRadius: 0,
+          }
+      }
+    case 'ShrutiKapoor':
+      switch (layout) {
+        case 'classic':
+          return {
+            x: 56,
+            y: 32,
+            width: 848,
+            height: 477,
+            borderRadius: 0,
+          }
+        case 'float-full-right':
+          return {
+            x: 40,
+            y: 40,
+            width: 640,
+            height: 460,
+            borderRadius: 0,
+          }
+        case 'float-full-left':
+          return {
+            x: 288,
+            y: 45,
+            width: 640,
+            height: 460,
+            borderRadius: 0,
+          }
+        case 'float-half-right':
+          return {
+            x: 40,
+            y: 40,
+            width: 800,
+            height: 460,
+            availableWidth: 650,
+            borderRadius: 0,
+          }
+        case 'padded-bottom-right-tile':
+          return {
+            x: 40,
+            y: 40,
+            width: 832,
+            height: 460,
+            borderRadius: 0,
+          }
+        case 'bottom-right-tile':
+          return {
+            x: 0,
+            y: 0,
+            width: 960,
+            height: 540,
+            borderRadius: 0,
+          }
+        case 'padded-split':
+          return {
+            x: 40,
+            y: 40,
+            width: 520,
+            height: 460,
+            borderRadius: 0,
+          }
+        case 'full-left':
+          return {
+            x: 40,
+            y: 120,
+            width: 500,
+            height: 300,
+            borderRadius: 0,
+          }
+        case 'full-right':
+          return {
+            x: 380,
+            y: 120,
+            width: 500,
+            height: 300,
+            borderRadius: 0,
+          }
+        default:
+          return {
+            x: 56,
+            y: 32,
+            width: 848,
+            height: 477,
             borderRadius: 0,
           }
       }

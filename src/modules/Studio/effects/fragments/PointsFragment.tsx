@@ -214,7 +214,10 @@ const PointsFragment = ({
         : '',
       availableWidth: objectRenderConfig.availableWidth - 80,
       fontSize: 40,
-      fontFamily: branding?.font?.heading?.family || 'Gilroy',
+      fontFamily:
+        branding?.font?.heading?.family ||
+        objectRenderConfig.titleFont ||
+        'Gilroy',
       fontStyle: 'normal 800',
     })
     setNoOfLinesOfTitle(
@@ -230,7 +233,10 @@ const PointsFragment = ({
           objectRenderConfig.availableHeight - 32 - 50 * tempNoOfLinesOfTitle,
         gutter: 25,
         fontSize: 16,
-        fontFamily: branding?.font?.body?.family || 'Inter',
+        fontFamily:
+          branding?.font?.body?.family ||
+          objectRenderConfig.bodyFont ||
+          'Inter',
         orientation,
         layout: !isPreview
           ? layout || viewConfig?.layout || 'classic'
@@ -267,13 +273,19 @@ const PointsFragment = ({
       getPositionForReplaceMode({
         title: dataConfig.listBlock.title || '',
         titleFontSize: 40,
-        titleFontFamily: branding?.font?.heading?.family || 'Gilroy',
+        titleFontFamily:
+          branding?.font?.heading?.family ||
+          objectRenderConfig.titleFont ||
+          'Gilroy',
         titleFontStyle: 'normal 800',
         points: computedPoints,
         availableWidth: objectRenderConfig.availableWidth - 110,
         availableHeight: objectRenderConfig.availableHeight - 16,
         fontSize: 24,
-        fontFamily: branding?.font?.body?.family || 'Inter',
+        fontFamily:
+          branding?.font?.body?.family ||
+          objectRenderConfig.bodyFont ||
+          'Inter',
       })
     )
   }, [computedPoints, dataConfig])
@@ -390,7 +402,11 @@ const PointsFragment = ({
         lineHeight={1.15}
         text={shouldDisplayTitle ? dataConfig.listBlock.title || '' : ''}
         fontStyle="normal 800"
-        fontFamily={branding?.font?.heading?.family || 'Gilroy'}
+        fontFamily={
+          branding?.font?.heading?.family ||
+          objectRenderConfig.titleFont ||
+          'Gilroy'
+        }
       />
       {theme.name === 'Whitep4nth3r' &&
         shouldDisplayTitle &&
@@ -413,7 +429,9 @@ const PointsFragment = ({
               noOfLinesOfTitle - 0.5 === 1
                 ? getTextWidth(
                     shouldDisplayTitle ? dataConfig.listBlock.title || '' : '',
-                    branding?.font?.heading?.family || 'Gilroy',
+                    branding?.font?.heading?.family ||
+                      objectRenderConfig.titleFont ||
+                      'Gilroy',
                     40,
                     'normal 800'
                   ) + 10
@@ -429,7 +447,9 @@ const PointsFragment = ({
                       shouldDisplayTitle
                         ? dataConfig.listBlock.title || ''
                         : '',
-                      branding?.font?.heading?.family || 'Gilroy',
+                      branding?.font?.heading?.family ||
+                        objectRenderConfig.titleFont ||
+                        'Gilroy',
                       40,
                       'normal 800'
                     ) + 10
@@ -472,6 +492,7 @@ const PointsFragment = ({
                               objectRenderConfig={objectRenderConfig}
                               pointY={point?.y}
                               pointLevel={point?.level}
+                              pointRenderMode="stack"
                             />
                           ),
                           number: (
@@ -493,7 +514,9 @@ const PointsFragment = ({
                               text={point.pointNumber.toString()}
                               fontSize={20}
                               fontFamily={
-                                branding?.font?.body?.family || 'Inter'
+                                branding?.font?.body?.family ||
+                                objectRenderConfig.bodyFont ||
+                                'Inter'
                               }
                             />
                           ),
@@ -523,7 +546,11 @@ const PointsFragment = ({
                         content={point.content}
                         richTextData={point.richTextData}
                         lineHeight={1.3}
-                        fontFamily={branding?.font?.body?.family || 'Inter'}
+                        fontFamily={
+                          branding?.font?.body?.family ||
+                          objectRenderConfig.bodyFont ||
+                          'Inter'
+                        }
                         animate={(ref) =>
                           ref?.to({
                             x:
@@ -546,8 +573,9 @@ const PointsFragment = ({
                             <PointBullets
                               theme={theme.name}
                               objectRenderConfig={objectRenderConfig}
-                              pointY={point?.y}
+                              pointY={4}
                               pointLevel={point?.level}
+                              pointRenderMode="replace"
                             />
                           ),
                           number: (
@@ -563,7 +591,9 @@ const PointsFragment = ({
                               text={point.pointNumber.toString()}
                               fontSize={24}
                               fontFamily={
-                                branding?.font?.body?.family || 'Inter'
+                                branding?.font?.body?.family ||
+                                objectRenderConfig.bodyFont ||
+                                'Inter'
                               }
                             />
                           ),
@@ -597,7 +627,11 @@ const PointsFragment = ({
                           }
                           content={point.content}
                           lineHeight={1.3}
-                          fontFamily={branding?.font?.body?.family || 'Inter'}
+                          fontFamily={
+                            branding?.font?.body?.family ||
+                            objectRenderConfig.bodyFont ||
+                            'Inter'
+                          }
                           height={
                             objectRenderConfig.availableHeight - 32 - titleY
                           }
@@ -621,6 +655,7 @@ const PointsFragment = ({
                               objectRenderConfig={objectRenderConfig}
                               pointY={point?.y}
                               pointLevel={point?.level}
+                              pointRenderMode="allAtOnce"
                             />
                           ),
                           number: (
@@ -637,7 +672,9 @@ const PointsFragment = ({
                               fontSize={20}
                               fontStyle="normal 600"
                               fontFamily={
-                                branding?.font?.body?.family || 'Inter'
+                                branding?.font?.body?.family ||
+                                objectRenderConfig.bodyFont ||
+                                'Inter'
                               }
                             />
                           ),
@@ -671,7 +708,11 @@ const PointsFragment = ({
                         content={point.content}
                         richTextData={point.richTextData}
                         lineHeight={1.3}
-                        fontFamily={branding?.font?.body?.family || 'Inter'}
+                        fontFamily={
+                          branding?.font?.body?.family ||
+                          objectRenderConfig.bodyFont ||
+                          'Inter'
+                        }
                       />
                     </>
                   )),
@@ -689,6 +730,7 @@ const PointsFragment = ({
                             objectRenderConfig={objectRenderConfig}
                             pointY={point?.y}
                             pointLevel={point?.level}
+                            pointRenderMode="preview"
                           />
                         ),
                         number: (
@@ -704,7 +746,11 @@ const PointsFragment = ({
                             text={point.pointNumber.toString()}
                             fontSize={20}
                             // fontStyle="normal 600"
-                            fontFamily={branding?.font?.body?.family || 'Inter'}
+                            fontFamily={
+                              branding?.font?.body?.family ||
+                              objectRenderConfig.bodyFont ||
+                              'Inter'
+                            }
                           />
                         ),
                         none: <></>,
@@ -737,7 +783,11 @@ const PointsFragment = ({
                       content={point.content}
                       richTextData={point.richTextData}
                       lineHeight={1.3}
-                      fontFamily={branding?.font?.body?.family || 'Inter'}
+                      fontFamily={
+                        branding?.font?.body?.family ||
+                        objectRenderConfig.bodyFont ||
+                        'Inter'
+                      }
                     />
                   </>
                 ))
@@ -752,8 +802,9 @@ const PointsFragment = ({
                             <PointBullets
                               theme={theme.name}
                               objectRenderConfig={objectRenderConfig}
-                              pointY={point?.y}
+                              pointY={4}
                               pointLevel={point?.level}
+                              pointRenderMode="replace"
                             />
                           ),
                           number: (
@@ -770,7 +821,9 @@ const PointsFragment = ({
                               fontSize={24}
                               // fontStyle="normal 600"
                               fontFamily={
-                                branding?.font?.body?.family || 'Inter'
+                                branding?.font?.body?.family ||
+                                objectRenderConfig.bodyFont ||
+                                'Inter'
                               }
                             />
                           ),
@@ -803,7 +856,11 @@ const PointsFragment = ({
                         }
                         content={point.content}
                         lineHeight={1.3}
-                        fontFamily={branding?.font?.body?.family || 'Inter'}
+                        fontFamily={
+                          branding?.font?.body?.family ||
+                          objectRenderConfig.bodyFont ||
+                          'Inter'
+                        }
                         height={
                           objectRenderConfig.availableHeight - 32 - titleY
                         }
@@ -900,7 +957,11 @@ const PointsFragment = ({
                         text={point.text}
                         // text="Run and test using one command and so on a thats all hd huusd j idhc dsi"
                         lineHeight={1.3}
-                        fontFamily={branding?.font?.body?.family || 'Inter'}
+                        fontFamily={
+                          branding?.font?.body?.family ||
+                          objectRenderConfig.bodyFont ||
+                          'Inter'
+                        }
                       />
                     </Group>
                   )),
@@ -979,7 +1040,11 @@ const PointsFragment = ({
                         text={point.text}
                         // text="Run and test using one command and so on a thats all hd huusd j idhc dsi"
                         lineHeight={1.3}
-                        fontFamily={branding?.font?.body?.family || 'Inter'}
+                        fontFamily={
+                          branding?.font?.body?.family ||
+                          objectRenderConfig.bodyFont ||
+                          'Inter'
+                        }
                       />
                     </Group>
                   )),
@@ -1053,7 +1118,11 @@ const PointsFragment = ({
                       // content={point.content}
                       // richTextData={point.richTextData}
                       lineHeight={1.3}
-                      fontFamily={branding?.font?.body?.family || 'Inter'}
+                      fontFamily={
+                        branding?.font?.body?.family ||
+                        objectRenderConfig.bodyFont ||
+                        'Inter'
+                      }
                     />
                   </Group>
                 ))}

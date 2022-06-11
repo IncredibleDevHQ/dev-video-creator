@@ -63,6 +63,8 @@ export const ThemeLayoutConfig = ({
         availableHeight: layoutConfig.height,
         textColor: '#27272A',
         borderRadius: 0,
+        titleFont: 'Gilroy',
+        bodyFont: 'GilroyRegular',
         surfaceColor: '#E0D6ED7B',
         pointsBulletColor: '#27272A',
         pointsBulletCornerRadius: 6,
@@ -235,6 +237,37 @@ export const ThemeLayoutConfig = ({
         horizontalPointsTextColor: '#091F40',
         horizontalPointTextVerticalAlign: 'middle',
       }
+    case 'ShrutiKapoor':
+      return {
+        startX: layoutConfig.x,
+        startY: layoutConfig.y,
+        availableWidth: layoutConfig?.availableWidth || layoutConfig.width,
+        availableHeight: layoutConfig.height,
+        textColor: '#ffffff',
+        borderRadius: 0,
+        surfaceColor: layoutConfig?.surfaceColor || '',
+        titleFont: 'Space Mono',
+        bodyFont: 'Space Mono',
+        pointsBulletColor: '#ffffff',
+        pointsBulletCornerRadius: 0,
+        pointsBulletYOffset: 8,
+        horizontalPointRectColor: '#fafafa19',
+        horizontalPointRectStrokeColor: getCanvasGradient(
+          [
+            { color: '#FAFAFABF', offset: 0.0 },
+            { color: '#FFFFFF00', offset: 1 },
+          ],
+          {
+            x0: 124,
+            y0: 0,
+            x1: 124,
+            y1: 80,
+          }
+        ),
+        horizontalPointRectCornerRadius: 0,
+        horizontalPointsTextColor: '#ffffff',
+        horizontalPointTextVerticalAlign: 'middle',
+      }
     default:
       return {
         startX: layoutConfig.x,
@@ -257,6 +290,7 @@ export const getThemeTextColor = (theme: ThemeFragment): string => {
     case 'Web3Auth':
     case 'DevsForUkraine':
     case 'Whitep4nth3r':
+    case 'ShrutiKapoor':
       return '#ffffff'
     case 'PastelLines':
       return '#27272A'
@@ -281,6 +315,7 @@ export const getThemeSurfaceColor = (theme: ThemeFragment): string => {
     case 'Web3Auth':
     case 'DevsForUkraine':
     case 'Whitep4nth3r':
+    case 'ShrutiKapoor':
       return ''
     case 'Cassidoo':
       return '#fafafa'
@@ -311,6 +346,8 @@ export const getThemeFont = (theme: ThemeFragment): string => {
       return 'Work Sans'
     case 'VetsWhoCode':
       return 'Gotham'
+    case 'ShrutiKapoor':
+      return 'Space Mono'
     default:
       return 'Gilroy'
   }
@@ -429,6 +466,18 @@ export const getThemeSupportedUserMediaLayouts = (
         'full-left',
         'full-right',
       ]
+    case 'ShrutiKapoor':
+      return [
+        'classic',
+        'float-full-right',
+        'float-full-left',
+        'float-half-right',
+        'padded-bottom-right-tile',
+        'bottom-right-tile',
+        'padded-split',
+        'full-left',
+        'full-right',
+      ]
     default:
       return []
   }
@@ -448,6 +497,8 @@ export const getThemeBasedIntroLayouts = (themeName: string): Layout[] => {
       return ['classic', 'bottom-right-tile']
     case 'VetsWhoCode':
       return ['classic', 'bottom-right-circle', 'float-full-right']
+    case 'ShrutiKapoor':
+      return ['classic', 'bottom-right-tile', 'float-full-right']
     default:
       return []
   }
