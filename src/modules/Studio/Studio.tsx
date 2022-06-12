@@ -109,6 +109,7 @@ const StudioHoC = () => {
       page: PresencePage.Backstage,
       formatId: fragmentId as string,
       cursor: { x: 0, y: 0 },
+      inHuddle: false,
     }
   }, [sub, displayName, picture])
 
