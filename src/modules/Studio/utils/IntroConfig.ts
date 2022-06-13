@@ -848,7 +848,7 @@ export const getIntroConfig = ({
               userInfoX: 510,
               userInfoY: 375,
               userInfoWidth: 386,
-              userInfoHeight: 57,
+              userInfoHeight: 70,
               userInfoFontSize: 24,
               userInfoAlign: 'right',
               logoX: 856,
