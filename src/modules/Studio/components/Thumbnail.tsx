@@ -84,6 +84,7 @@ const Thumbnail = ({
         layout: viewConfig?.layout || 'bottom-right-tile',
         isShorts,
         logoFallback: !logo,
+        userImageFallback: !userImage,
       })
     )
   }, [viewConfig])
@@ -276,15 +277,17 @@ const Thumbnail = ({
             )}
         </Group>
       </Group>
-      <Rect
-        x={introConfig?.userImageX || 0}
-        y={introConfig?.userImageY || 0}
-        width={introConfig?.userImageWidth || 0}
-        height={introConfig?.userImageHeight || 0}
-        stroke={introConfig?.userImageBorderColor}
-        strokeWidth={introConfig?.userImageBorderWidth || 0}
-        cornerRadius={introConfig?.userImageBorderRadius || 0}
-      />
+      {userImage && (
+        <Rect
+          x={introConfig?.userImageX || 0}
+          y={introConfig?.userImageY || 0}
+          width={introConfig?.userImageWidth || 0}
+          height={introConfig?.userImageHeight || 0}
+          stroke={introConfig?.userImageBorderColor}
+          strokeWidth={introConfig?.userImageBorderWidth || 0}
+          cornerRadius={introConfig?.userImageBorderRadius || 0}
+        />
+      )}
       <Group
         clipFunc={(ctx: any) => {
           clipRect(ctx, {

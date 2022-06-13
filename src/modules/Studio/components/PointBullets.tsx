@@ -23,6 +23,7 @@ const HorizontalPointBullets = ({
     case 'LeeRob':
     case 'DevsForUkraine':
     case 'Whitep4nth3r':
+    case 'Mux':
       return (
         <>
           <Rect
@@ -169,6 +170,7 @@ export const PointBullets = ({
     case 'LeeRob':
     case 'DevsForUkraine':
     case 'Web3Auth':
+    case 'Mux':
       return (
         <Rect
           key="points"
