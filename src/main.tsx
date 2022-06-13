@@ -24,8 +24,10 @@ script.innerHTML = segmentSnippet
 document.head.appendChild(script)
 
 // Logrocket
-LogRocket.init(config.logrocket.appId)
-
+LogRocket.init(config.logrocket.appId, {
+  serverUrl: 'https://cdn-log.incredible.dev/',
+} as any)
+// console.log('Logrocket is_init:', LogRocket?._isInitialized)
 ReactDOM.render(
   <React.StrictMode>
     <App />
