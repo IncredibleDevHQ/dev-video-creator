@@ -309,10 +309,20 @@ const Preview = ({
     if (type !== 'introBlock' && type !== 'outroBlock')
       setActiveTab(commonTabs[0])
     switch (type) {
-      case 'introBlock':
-        setTabs([...introOutroBlockTabs, ...introBlockTabs, commonTabs[2]])
+      case 'introBlock': {
+        if (config?.mode === 'Landscape') {
+          setTabs([
+            commonTabs[0],
+            ...introOutroBlockTabs,
+            ...introBlockTabs,
+            commonTabs[2],
+          ])
+        } else {
+          setTabs([...introOutroBlockTabs, ...introBlockTabs, commonTabs[2]])
+        }
         setActiveTab(introOutroBlockTabs[0])
         break
+      }
       case 'outroBlock':
         setTabs([commonTabs[0], ...introOutroBlockTabs, commonTabs[2]])
         setActiveTab(commonTabs[0])
