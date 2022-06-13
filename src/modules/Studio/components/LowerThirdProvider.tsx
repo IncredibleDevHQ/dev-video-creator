@@ -17,6 +17,7 @@ import {
   GlassyLowerThirds,
   LambdaTestLowerThirds,
   LeeRobLowerThirds,
+  MuxLowerThirds,
   PastelLinesLowerThirds,
   ShrutiKapoorLowerThirds,
   VetsWhoCodeLowerThirds,
@@ -402,6 +403,36 @@ const LowerThridProvider = ({
             ))} */}
         </>
       )
+    case 'Mux': {
+      return (
+        <>
+          <MuxLowerThirds
+            x={!isShorts ? lowerThirdCoordinates({ position: 'left' })[0] : 25}
+            y={!isShorts ? 390 : 600}
+            userName={lowerThirdUserName || ''}
+            designation={lowerThirdUserDesignation || ''}
+            organization={lowerThirdUserOrganization || ''}
+            color={branding?.background?.color?.primary || ''}
+            textColor={branding?.colors?.text || ''}
+            setTopLayerChildren={setTopLayerChildren}
+          />
+          {/* {users.map((user, index) => (
+            <LeeRobLowerThirds
+              // eslint-disable-next-line react/no-array-index-key
+              key={index}
+              x={lowerThirdCoordinates({ position: 'left' })[index + 1]}
+              y={!isShorts ? 400 : 560}
+              userName={participants?.[user.uid]?.displayName || ''}
+              designation={lowerThirdUserDesignation || ''}
+              organization={lowerThirdUserOrganization || ''}
+              logo={branding?.logo || ''}
+              color={branding?.background?.color?.primary || ''}
+              textColor={branding?.colors?.text || ''}
+            />
+          ))} */}
+        </>
+      )
+    }
     default:
       return <></>
   }
