@@ -328,6 +328,26 @@ const TransitionProvider = ({
             setTopLayerChildren={setTopLayerChildren}
           />
         )
+      case 'Mux':
+        if (direction === 'moveIn' || direction === 'moveAway') {
+          return (
+            <DipTransition
+              direction={direction}
+              isShorts={isShorts}
+              color="white"
+              performFinishAction={performFinishAction}
+              setTopLayerChildren={setTopLayerChildren}
+            />
+          )
+        }
+        return (
+          <DipTransition
+            direction={direction}
+            isShorts={isShorts}
+            color="white"
+            setTopLayerChildren={setTopLayerChildren}
+          />
+        )
       default:
         return <></>
     }

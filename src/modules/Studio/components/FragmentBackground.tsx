@@ -59,6 +59,7 @@ const FragmentBackground = ({
     case 'DevsForUkraine':
     case 'Whitep4nth3r':
     case 'VetsWhoCode':
+    case 'Mux':
       return (
         <Rect
           x={objectConfig.x}

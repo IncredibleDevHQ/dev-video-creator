@@ -2966,7 +2966,12 @@ export const ShrutiKapoorLowerThirds = ({
         12,
         'normal'
       ),
-      getTextWidth(userName || '', 'Space Mono', 24, 'bold')
+      getTextWidth(
+        userName || '',
+        branding?.font?.body?.family || 'Space Mono',
+        24,
+        'bold'
+      )
     ) + 16
 
   // in this lower third, the x and y are the bottom right corner as we have rotated the rects
@@ -3086,7 +3091,7 @@ export const ShrutiKapoorLowerThirds = ({
             text={designation}
             fontSize={12}
             height={96}
-            fontFamily="Roboto Mono"
+            fontFamily="Space Mono"
             key="designation"
           />
         )}
@@ -3098,7 +3103,7 @@ export const ShrutiKapoorLowerThirds = ({
             text={organization}
             fontSize={12}
             height={96}
-            fontFamily="Roboto Mono"
+            fontFamily="Space Mono"
             key="organization"
           />
         )}
@@ -3110,7 +3115,147 @@ export const ShrutiKapoorLowerThirds = ({
             text={`${designation}, ${organization}`}
             fontSize={12}
             height={96}
-            fontFamily="Roboto Mono"
+            fontFamily="Space Mono"
+            key="designationAndOrganization"
+          />
+        )}
+      </Group>
+    </Group>
+  )
+}
+
+export const MuxLowerThirds = ({
+  x,
+  y,
+  userName,
+  designation,
+  organization,
+  color,
+  textColor,
+  setTopLayerChildren,
+}: {
+  x: number
+  y: number
+  userName: string
+  designation: string
+  organization: string
+  color: string
+  textColor: string
+  setTopLayerChildren?: React.Dispatch<
+    React.SetStateAction<{ id: string; state: TopLayerChildren }>
+  >
+}) => {
+  const { getTextWidth } = useEdit()
+  const rectWidth =
+    Math.max(
+      getTextWidth(
+        `${designation}, ${organization}`,
+        'Work Sans',
+        16,
+        'normal'
+      ),
+      getTextWidth(userName || '', 'Work Sans', 24, 'bold')
+    ) + 32
+
+  // in this lower third, the x and y are the bottom right corner as we have rotated the rects
+  return (
+    <Group x={x} y={y}>
+      <Rect
+        fill={color || '#231f20'}
+        cornerRadius={0}
+        width={rectWidth}
+        height={0}
+        ref={(ref) => {
+          ref?.to({
+            height: 80,
+            duration: 0.3,
+            onFinish: () => {
+              setTimeout(() => {
+                ref?.to({
+                  height: 0,
+                  duration: 0.3,
+                  onFinish: () => {
+                    setTimeout(() => {
+                      setTopLayerChildren?.({
+                        id: '',
+                        state: '',
+                      })
+                    }, 400)
+                  },
+                })
+              }, 2200)
+            },
+          })
+        }}
+      />
+      <Group
+        opacity={0}
+        ref={(ref) => {
+          setTimeout(() => {
+            ref?.to({
+              opacity: 1,
+              duration: 0.3,
+              onFinish: () => {
+                setTimeout(() => {
+                  ref?.to({
+                    opacity: 0,
+                    duration: 0.3,
+                  })
+                }, 2000)
+              },
+            })
+          }, 150)
+        }}
+      >
+        <Text
+          x={16}
+          y={designation === '' && organization === '' ? 0 : 17}
+          fill={textColor || '#ffffff'}
+          text={userName}
+          fontSize={24}
+          opacity={1}
+          width={rectWidth}
+          height={80}
+          verticalAlign={
+            designation === '' && organization === '' ? 'middle' : undefined
+          }
+          fontStyle="bold"
+          fontFamily="Work Sans"
+          key="username"
+        />
+        {designation !== '' && organization === '' && (
+          <Text
+            x={16}
+            y={48}
+            fill={textColor || '#ffffff'}
+            text={designation}
+            fontSize={16}
+            height={20}
+            fontFamily="Work Sans"
+            key="designation"
+          />
+        )}
+        {designation === '' && organization !== '' && (
+          <Text
+            x={16}
+            y={48}
+            fill={textColor || '#ffffff'}
+            text={organization}
+            fontSize={16}
+            height={20}
+            fontFamily="Work Sans"
+            key="organization"
+          />
+        )}
+        {designation !== '' && organization !== '' && (
+          <Text
+            x={16}
+            y={48}
+            fill={textColor || '#ffffff'}
+            text={`${designation}, ${organization}`}
+            fontSize={16}
+            height={20}
+            fontFamily="Work Sans"
             key="designationAndOrganization"
           />
         )}
