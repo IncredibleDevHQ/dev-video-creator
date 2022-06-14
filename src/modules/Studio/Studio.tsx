@@ -6,6 +6,8 @@ import {
   LiveblocksProvider,
   RoomProvider,
   useMap,
+  useMyPresence,
+  useOthers,
   useUpdateMyPresence,
 } from '@liveblocks/react'
 import * as Sentry from '@sentry/react'
@@ -33,6 +35,7 @@ import {
 } from 'recoil'
 import { ReactComponent as UploadIcon } from '../../assets/Upload.svg'
 import {
+  Avatar,
   Button,
   dismissToast,
   emitToast,
@@ -709,6 +712,10 @@ const Studio = ({
   )
 
   const [recordedVideoSrc, setRecordedVideoSrc] = useState<string>()
+
+  // gettinng the presence of others from live blocks
+  const [myPresence] = useMyPresence<Presence>()
+  const others = useOthers()
 
   useEffect(() => {
     if (!fragment) return
@@ -1588,7 +1595,7 @@ const Studio = ({
         <>
           <Countdown />
           {/* Stage and notes */}
-          <div className="flex items-center justify-between mt-8 mx-8 h-24">
+          <div className="flex items-center justify-between mt-8 mx-8 h-16">
             <IoArrowBack
               size={18}
               type="button"
@@ -1599,34 +1606,62 @@ const Studio = ({
                   : history.push(`/story/${fragment?.flickId}`)
               }
             />
-            {!isHost && payload?.studioControllerSub !== sub && (
-              <button
-                disabled={state === 'recording' || state === 'start-recording'}
-                type="button"
-                className="bg-dark-100 hover:bg-dark-200 active:bg-dark-300 text-gray-100 rounded-sm flex items-center gap-x-2 text-xs px-2 py-2 disabled:opacity-70 disabled:cursor-not-allowed"
-                onClick={() => {
-                  updatePayload?.({
-                    controlsRequestorSub: sub,
-                  })
-                }}
-              >
-                Request Control
-              </button>
-            )}
-            {isHost && payload?.studioControllerSub !== sub && (
-              <button
-                disabled={state === 'recording' || state === 'start-recording'}
-                type="button"
-                className="bg-dark-100 hover:bg-dark-200 active:bg-dark-300 text-gray-100 rounded-sm flex items-center gap-x-2 text-xs px-2 py-2 disabled:opacity-70 disabled:cursor-not-allowed"
-                onClick={() => {
-                  updatePayload?.({
-                    studioControllerSub: sub,
-                  })
-                }}
-              >
-                Revoke Controls
-              </button>
-            )}
+            <div className="flex gap-x-2">
+              {!isHost && payload?.studioControllerSub !== sub && (
+                <button
+                  disabled={
+                    state === 'recording' || state === 'start-recording'
+                  }
+                  type="button"
+                  className="bg-dark-100 hover:bg-dark-200 active:bg-dark-300 text-gray-100 rounded-sm flex items-center gap-x-2 text-xs px-2 py-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                  onClick={() => {
+                    updatePayload?.({
+                      controlsRequestorSub: sub,
+                    })
+                  }}
+                >
+                  Request Control
+                </button>
+              )}
+              {isHost && payload?.studioControllerSub !== sub && (
+                <button
+                  disabled={
+                    state === 'recording' || state === 'start-recording'
+                  }
+                  type="button"
+                  className="bg-dark-100 hover:bg-dark-200 active:bg-dark-300 text-gray-100 rounded-sm flex items-center gap-x-2 text-xs px-2 py-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                  onClick={() => {
+                    updatePayload?.({
+                      studioControllerSub: sub,
+                    })
+                  }}
+                >
+                  Revoke Controls
+                </button>
+              )}
+              {/* <div></div> */}
+              <Avatar
+                src={myPresence.user.picture}
+                name={myPresence.user.name}
+                alt={myPresence.user.name}
+                className="h-7 w-7 rounded-full"
+              />
+              {others?.map(({ presence }) => {
+                if (presence) {
+                  const otherPresence = presence as Presence
+                  return otherPresence.page === PresencePage.Recording ||
+                    otherPresence.page === PresencePage.Backstage ? (
+                    <Avatar
+                      src={otherPresence.user.picture}
+                      name={otherPresence.user.name}
+                      className="h-7 w-7 rounded-full"
+                      alt={otherPresence.user.name}
+                    />
+                  ) : null
+                }
+                return null
+              })}
+            </div>
           </div>
           <div className="grid grid-cols-11 gap-x-12 flex-1 items-center px-8 pb-8">
             {/* Stage */}
