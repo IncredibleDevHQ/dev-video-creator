@@ -694,13 +694,13 @@ const Flick = () => {
           ...simpleAST,
           blocks: [
             ...(prev?.blocks
-              ? prev?.blocks[0].type === 'introBlock'
+              ? prev?.blocks[0]?.type === 'introBlock'
                 ? [prev.blocks[0]]
                 : []
               : []),
             ...simpleAST.blocks,
             ...(prev?.blocks
-              ? prev?.blocks[prev?.blocks.length - 1].type === 'outroBlock'
+              ? prev?.blocks?.[prev?.blocks.length - 1]?.type === 'outroBlock'
                 ? [
                     {
                       ...prev.blocks[prev.blocks.length - 1],
