@@ -216,7 +216,10 @@ const Flick = () => {
             type: 'codeBlock',
             code: {
               animation: CodeAnimation.TypeLines,
-              theme: CodeTheme.DarkPlus,
+              theme:
+                flick?.theme?.name !== 'Mux'
+                  ? CodeTheme.DarkPlus
+                  : CodeTheme.LightPlus,
               codeStyle: CodeStyle.Editor,
               fontSize: 16,
             },
@@ -291,7 +294,10 @@ const Flick = () => {
             type: 'codeBlock',
             code: {
               animation: CodeAnimation.TypeLines,
-              theme: CodeTheme.DarkPlus,
+              theme:
+                flick?.theme?.name !== 'Mux'
+                  ? CodeTheme.DarkPlus
+                  : CodeTheme.LightPlus,
               codeStyle: CodeStyle.Editor,
               fontSize: 16,
             },
@@ -380,7 +386,7 @@ const Flick = () => {
         })
       }
     }
-  }, [currentBlock])
+  }, [currentBlock, flick?.theme])
 
   useMemo(() => {
     setStudio((store) => ({
