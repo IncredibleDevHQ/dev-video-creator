@@ -3,7 +3,6 @@
 import { cx } from '@emotion/css'
 import axios from 'axios'
 import React, { HTMLProps } from 'react'
-import Gravatar from 'react-gravatar'
 
 export const isImageLoaded = async (src: string) => {
   try {
@@ -22,36 +21,20 @@ const Avatar = ({
   name,
   onClick,
 }: { name: string } & HTMLProps<HTMLImageElement>) => {
-  const [imageSrc, setImageSrc] = React.useState<string>()
-
-  React.useEffect(() => {
-    if (!src) return
-    ;(async () => {
-      if (await isImageLoaded(src)) setImageSrc(src)
-    })()
-  }, [src])
-
-  if (!imageSrc && name !== undefined && name !== null && name !== '')
+  if (src && src?.includes('cdn')) {
     return (
-      <img
-        className={cx(className)}
-        src={`https://ui-avatars.com/api/?name=${name}`}
-        alt={alt}
-        onClick={onClick}
-      />
+      <img className={cx(className)} src={src} alt={alt} onClick={onClick} />
     )
+  }
 
-  if (!imageSrc)
-    return (
-      <Gravatar
-        className={cx(className)}
-        alt={alt}
-        email=""
-        default="retro"
-        onClick={onClick}
-      />
-    )
-  return <img className={cx(className)} src={src} alt={alt} onClick={onClick} />
+  return (
+    <img
+      className={cx(className)}
+      src={`https://ui-avatars.com/api/?name=${name}`}
+      alt={alt}
+      onClick={onClick}
+    />
+  )
 }
 
 export default Avatar
