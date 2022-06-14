@@ -16,6 +16,7 @@ import { BiErrorCircle, BiMicrophone, BiVideo } from 'react-icons/bi'
 import { FiRotateCcw } from 'react-icons/fi'
 import { IoArrowBack, IoCheckmarkOutline } from 'react-icons/io5'
 import { Group, Layer, Stage } from 'react-konva'
+import Modal from 'react-responsive-modal'
 import { useHistory, useParams } from 'react-router-dom'
 import useMeasure from 'react-use-measure'
 import {
@@ -643,6 +644,10 @@ const Studio = ({
     state: TopLayerChildren
   }>({ id: '', state: '' })
 
+  // bool used to open the modal which asks the host to accept or reject the request from the collaborator to get controls
+  const [openControlsApprovalModal, setOpenControlsApprovalModal] =
+    useState(false)
+
   useEffect(() => {
     if (!stageWidth) return
     Konva.pixelRatio = (shortsMode ? 1080 : 1920) / stageWidth
@@ -831,11 +836,11 @@ const Studio = ({
    * =====================
    */
 
-  const resetRecording = () => {
-    resetCanvas()
-    init()
-    setState('ready')
-  }
+  // const resetRecording = () => {
+  //   resetCanvas()
+  //   init()
+  //   setState('ready')
+  // }
 
   const updateRecordedBlocks = (blockId: string, newSrc: string) => {
     let updatedBlocks = studio?.recordedBlocks ? [...studio.recordedBlocks] : []
@@ -1348,6 +1353,28 @@ const Studio = ({
     }
   }, [payload?.actionTriggered])
 
+  useEffect(() => {
+    if (!fragment || !isHost) return
+    const studioControllerSub = fragment?.configuration?.speakers.find(
+      (speaker: FlickParticipantsFragment) => speaker?.role === 'Host'
+    )?.userSub
+    if (studioControllerSub) {
+      updatePayload?.({
+        // stores the sub of the user who has the controls
+        studioControllerSub,
+        // stores the sub of the user who requested for controls
+        controlsRequestorSub: '',
+      })
+    }
+  }, [fragment, isHost])
+
+  // useEffect which makes the open control approval modal true, when someone requests for controls
+  useEffect(() => {
+    if (!payload) return
+    if (payload?.controlsRequestorSub === '') return
+    setOpenControlsApprovalModal(true)
+  }, [payload?.controlsRequestorSub])
+
   /**
    * =======================
    * END EVENT HANDLERS...
@@ -1421,7 +1448,7 @@ const Studio = ({
                 }
               )}
               onClick={() => {
-                if (!isHost) return
+                if (payload?.studioControllerSub !== sub) return
                 // if continuous recording is enabled, disable mini-timeline onclick
                 if (
                   studio.continuousRecording &&
@@ -1494,16 +1521,46 @@ const Studio = ({
         <>
           <Countdown />
           {/* Stage and notes */}
-          <IoArrowBack
-            size={18}
-            type="button"
-            className="max-w-max p-0 cursor-pointer text-white opacity-90 ml-8 mt-8"
-            onClick={() =>
-              history.length > 2
-                ? history.goBack()
-                : history.push(`/story/${fragment?.flickId}`)
-            }
-          />
+          <div className="flex items-center justify-between mt-8 mx-8 h-24">
+            <IoArrowBack
+              size={18}
+              type="button"
+              className="max-w-max p-0 cursor-pointer text-white opacity-90"
+              onClick={() =>
+                history.length > 2
+                  ? history.goBack()
+                  : history.push(`/story/${fragment?.flickId}`)
+              }
+            />
+            {!isHost && payload?.studioControllerSub !== sub && (
+              <button
+                disabled={state === 'recording' || state === 'start-recording'}
+                type="button"
+                className="bg-dark-100 hover:bg-dark-200 active:bg-dark-300 text-gray-100 rounded-sm flex items-center gap-x-2 text-xs px-2 py-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                onClick={() => {
+                  updatePayload?.({
+                    controlsRequestorSub: sub,
+                  })
+                }}
+              >
+                Request Control
+              </button>
+            )}
+            {isHost && payload?.studioControllerSub !== sub && (
+              <button
+                disabled={state === 'recording' || state === 'start-recording'}
+                type="button"
+                className="bg-dark-100 hover:bg-dark-200 active:bg-dark-300 text-gray-100 rounded-sm flex items-center gap-x-2 text-xs px-2 py-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                onClick={() => {
+                  updatePayload?.({
+                    studioControllerSub: sub,
+                  })
+                }}
+              >
+                Revoke Controls
+              </button>
+            )}
+          </div>
           <div className="grid grid-cols-11 gap-x-12 flex-1 items-center px-8 pb-8">
             {/* Stage */}
             <div
@@ -1593,7 +1650,7 @@ const Studio = ({
                     </Bridge>
                   </Stage>
                 )}
-              {isHost && (
+              {payload?.studioControllerSub === sub && (
                 <RecordingControlsBar
                   stageRef={stageRef}
                   stageHeight={stageHeight}
@@ -1862,6 +1919,61 @@ const Studio = ({
         setTimeLimit={setTimeLimit}
         handleClose={() => setIsTimerModalOpen(false)}
       />
+      {/* Controls request modal */}
+      <Modal
+        open={isHost && openControlsApprovalModal}
+        onClose={() => {
+          updatePayload?.({
+            controlsRequestorSub: '',
+          })
+          setOpenControlsApprovalModal(false)
+        }}
+        center
+        classNames={{
+          modal: cx(
+            'rounded-lg mx-auto px-8 pt-8 pb-4 text-white',
+            css`
+              background-color: #27272a !important;
+            `
+          ),
+        }}
+        showCloseIcon={false}
+      >
+        <div className=" flex flex-col items-center text-center w-full h-full">
+          <Heading className="font-main font-medium text-md text-gray-100">
+            Would you like to hand over the controls ?
+          </Heading>
+          <div className="flex flex-col justify-center w-full pt-8 gap-y-4">
+            <Button
+              appearance="primary"
+              type="button"
+              size="small"
+              className=""
+              onClick={() => {
+                updatePayload?.({
+                  studioControllerSub: payload?.controlsRequestorSub,
+                  controlsRequestorSub: '',
+                })
+                setOpenControlsApprovalModal(false)
+              }}
+            >
+              Approve
+            </Button>
+            <button
+              type="button"
+              className="text-red-500 font-main font-semibold"
+              onClick={() => {
+                updatePayload?.({
+                  controlsRequestorSub: '',
+                })
+                setOpenControlsApprovalModal(false)
+              }}
+            >
+              Reject
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }
