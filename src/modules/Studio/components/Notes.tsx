@@ -5,14 +5,8 @@ import Paragraph from '@tiptap/extension-paragraph'
 import Placeholder from '@tiptap/extension-placeholder'
 import Text from '@tiptap/extension-text'
 import { EditorContent, useEditor } from '@tiptap/react'
-import React, { useContext, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useContext, useEffect, useMemo, useRef } from 'react'
 import { useRecoilState } from 'recoil'
-import { useDebouncedCallback } from 'use-debounce'
-import { v4 as uuidv4 } from 'uuid'
-import {
-  useUpdateFragmentEditorStateMutation,
-  useUpdateNotesAndEditorMutation,
-} from '../../../generated/graphql'
 import { customScroll } from '../../Dashboard/Dashboard'
 import { EditorContext } from '../../Flick/components/EditorProvider'
 import { tinyEditorStyle } from '../../Flick/editor/style'
@@ -37,34 +31,34 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
 
   const { editor } = useContext(EditorContext) || {}
 
-  const [localNote, setLocalNote] = useState<string>()
-  const [localNoteId, setLocalNoteId] = useState<string>()
+  // const [localNote, setLocalNote] = useState<string>()
+  // const [localNoteId, setLocalNoteId] = useState<string>()
 
-  const [{ state, fragment, payload }, setStudio] = useRecoilState(studioStore)
-  const [updateFragment] = useUpdateFragmentEditorStateMutation()
-  const [updateFragmentNotesAndEditor] = useUpdateNotesAndEditorMutation()
+  const [{ state, fragment, payload }] = useRecoilState(studioStore)
+  // const [updateFragment] = useUpdateFragmentEditorStateMutation()
+  // const [updateFragmentNotesAndEditor] = useUpdateNotesAndEditorMutation()
 
-  const updateFragmentNotes = useDebouncedCallback((value) => {
-    updateFragment({
-      variables: {
-        id: fragment?.id,
-        editorState: value,
-      },
-    })
-  }, 500)
+  // const updateFragmentNotes = useDebouncedCallback((value) => {
+  //   updateFragment({
+  //     variables: {
+  //       id: fragment?.id,
+  //       editorState: value,
+  //     },
+  //   })
+  // }, 500)
 
-  const updateFragmentNotesAndEditorDebounced = useDebouncedCallback(
-    (value) => {
-      updateFragmentNotesAndEditor({
-        variables: {
-          fragmentId: fragment?.id,
-          editorState: value.newSimpleAST,
-          encodedEditorValue: value.encodedEditorValue,
-        },
-      })
-    },
-    500
-  )
+  // const updateFragmentNotesAndEditorDebounced = useDebouncedCallback(
+  //   (value) => {
+  //     updateFragmentNotesAndEditor({
+  //       variables: {
+  //         fragmentId: fragment?.id,
+  //         editorState: value.newSimpleAST,
+  //         encodedEditorValue: value.encodedEditorValue,
+  //       },
+  //     })
+  //   },
+  //   500
+  // )
 
   const getContent = () => {
     const ev = fragment?.encodedEditorValue
@@ -85,23 +79,23 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
 
   const noteEditor = useEditor(
     {
-      editable: state === 'ready' || state === 'resumed',
+      editable: false,
       autofocus: state === 'ready' || state === 'resumed' ? 'end' : 'start',
-      onUpdate: ({ editor }) => {
-        const notes =
-          editor
-            .getJSON()
-            .content?.map((node) => {
-              return node.content
-                ?.map((n) => {
-                  return n.text
-                })
-                .join('')
-            })
-            .join('\n') || ''
+      // onUpdate: ({ editor }) => {
+      //   const notes =
+      //     editor
+      //       .getJSON()
+      //       .content?.map((node) => {
+      //         return node.content
+      //           ?.map((n) => {
+      //             return n.text
+      //           })
+      //           .join('')
+      //       })
+      //       .join('\n') || ''
 
-        setLocalNote(notes)
-      },
+      //   setLocalNote(notes)
+      // },
       editorProps: {
         attributes: {
           class: cx(
@@ -139,192 +133,192 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
     return fragment?.editorState
   }, [fragment?.editorState])
 
-  const updateNotes = (nodeId: string | undefined, notes: string) => {
-    if (!simpleAST || payload?.activeObjectIndex === undefined || !editor)
-      return
-    const block = simpleAST.blocks[payload?.activeObjectIndex]
+  // const updateNotes = (nodeId: string | undefined, notes: string) => {
+  //   if (!simpleAST || payload?.activeObjectIndex === undefined || !editor)
+  //     return
+  //   const block = simpleAST.blocks[payload?.activeObjectIndex]
 
-    if (block.type !== 'introBlock' && block.type !== 'outroBlock') {
-      let didInsert = false
-      if (nodeId)
-        editor?.state.tr.doc.descendants((node, pos) => {
-          if (node.attrs.id) {
-            if (node.attrs.id === nodeId) {
-              editor.view.dispatch(
-                editor.state.tr.replaceWith(
-                  pos + 1,
-                  pos + node.nodeSize,
-                  notes.split('\n').map((line) => {
-                    let lineText = line
-                    if (line === '') {
-                      lineText = ' '
-                    }
-                    const textNode = editor.view.state.schema.text(lineText)
-                    const paragraphNode =
-                      editor.view.state.schema.nodes.paragraph.create(
-                        null,
-                        textNode
-                      )
-                    return paragraphNode
-                  })
-                )
-              )
-              didInsert = true
-            }
-          }
-        })
-      if (!didInsert && notes.trim() !== '') {
-        // insert blockquote text before block id
-        editor?.state.tr.doc.descendants((node, pos) => {
-          if (node.attrs.id === block.id) {
-            // console.log('found node with note', node, pos, node.nodeSize)
-            const textNode = editor.state.schema.text(notes)
-            const paragraphNode = editor.state.schema.nodes.paragraph.create(
-              null,
-              textNode
-            )
-            const id = uuidv4()
-            setLocalNoteId(id)
-            // console.log('inserting paragraph node', id)
-            const blockquote = editor.state.schema.nodes.blockquote.create(
-              {
-                id,
-              },
-              paragraphNode
-            )
-            const position =
-              block.type === 'headingBlock' ? pos + node.nodeSize : pos
-            editor.view.dispatch(editor.state.tr.insert(position, blockquote))
-          }
-        })
-      }
-      const newSimpleAST = {
-        ...simpleAST,
-        blocks: simpleAST.blocks.map((b) => {
-          if (b.id === block.id && block.type === 'codeBlock') {
-            const codeBlock = b as CodeBlockProps
-            return {
-              ...b,
-              codeBlock: {
-                ...codeBlock.codeBlock,
-                note: notes,
-                noteId: nodeId,
-              },
-            }
-          }
-          if (b.id === block.id && block.type === 'imageBlock') {
-            const imageBlock = b as ImageBlockProps
-            return {
-              ...b,
-              imageBlock: {
-                ...imageBlock.imageBlock,
-                note: notes,
-                noteId: nodeId,
-              },
-            }
-          }
-          if (b.id === block.id && block.type === 'videoBlock') {
-            const videoBlock = b as VideoBlockProps
-            return {
-              ...b,
-              videoBlock: {
-                ...videoBlock.videoBlock,
-                note: notes,
-                noteId: nodeId,
-              },
-            }
-          }
-          if (b.id === block.id && block.type === 'listBlock') {
-            const listBlock = b as ListBlockProps
-            return {
-              ...b,
-              listBlock: {
-                ...listBlock.listBlock,
-                note: notes,
-                noteId: nodeId,
-              },
-            }
-          }
-          if (b.id === block.id && block.type === 'headingBlock') {
-            const headingBlock = b as HeadingBlockProps
-            return {
-              ...b,
-              headingBlock: {
-                ...headingBlock.headingBlock,
-                note: notes,
-                noteId: nodeId,
-              },
-            }
-          }
-          return b
-        }),
-      }
-      if (!fragment || state === 'recording' || state === 'start-recording')
-        return
+  //   if (block.type !== 'introBlock' && block.type !== 'outroBlock') {
+  //     let didInsert = false
+  //     if (nodeId)
+  //       editor?.state.tr.doc.descendants((node, pos) => {
+  //         if (node.attrs.id) {
+  //           if (node.attrs.id === nodeId) {
+  //             editor.view.dispatch(
+  //               editor.state.tr.replaceWith(
+  //                 pos + 1,
+  //                 pos + node.nodeSize,
+  //                 notes.split('\n').map((line) => {
+  //                   let lineText = line
+  //                   if (line === '') {
+  //                     lineText = ' '
+  //                   }
+  //                   const textNode = editor.view.state.schema.text(lineText)
+  //                   const paragraphNode =
+  //                     editor.view.state.schema.nodes.paragraph.create(
+  //                       null,
+  //                       textNode
+  //                     )
+  //                   return paragraphNode
+  //                 })
+  //               )
+  //             )
+  //             didInsert = true
+  //           }
+  //         }
+  //       })
+  //     if (!didInsert && notes.trim() !== '') {
+  //       // insert blockquote text before block id
+  //       editor?.state.tr.doc.descendants((node, pos) => {
+  //         if (node.attrs.id === block.id) {
+  //           // console.log('found node with note', node, pos, node.nodeSize)
+  //           const textNode = editor.state.schema.text(notes)
+  //           const paragraphNode = editor.state.schema.nodes.paragraph.create(
+  //             null,
+  //             textNode
+  //           )
+  //           const id = uuidv4()
+  //           setLocalNoteId(id)
+  //           // console.log('inserting paragraph node', id)
+  //           const blockquote = editor.state.schema.nodes.blockquote.create(
+  //             {
+  //               id,
+  //             },
+  //             paragraphNode
+  //           )
+  //           const position =
+  //             block.type === 'headingBlock' ? pos + node.nodeSize : pos
+  //           editor.view.dispatch(editor.state.tr.insert(position, blockquote))
+  //         }
+  //       })
+  //     }
+  //     const newSimpleAST = {
+  //       ...simpleAST,
+  //       blocks: simpleAST.blocks.map((b) => {
+  //         if (b.id === block.id && block.type === 'codeBlock') {
+  //           const codeBlock = b as CodeBlockProps
+  //           return {
+  //             ...b,
+  //             codeBlock: {
+  //               ...codeBlock.codeBlock,
+  //               note: notes,
+  //               noteId: nodeId,
+  //             },
+  //           }
+  //         }
+  //         if (b.id === block.id && block.type === 'imageBlock') {
+  //           const imageBlock = b as ImageBlockProps
+  //           return {
+  //             ...b,
+  //             imageBlock: {
+  //               ...imageBlock.imageBlock,
+  //               note: notes,
+  //               noteId: nodeId,
+  //             },
+  //           }
+  //         }
+  //         if (b.id === block.id && block.type === 'videoBlock') {
+  //           const videoBlock = b as VideoBlockProps
+  //           return {
+  //             ...b,
+  //             videoBlock: {
+  //               ...videoBlock.videoBlock,
+  //               note: notes,
+  //               noteId: nodeId,
+  //             },
+  //           }
+  //         }
+  //         if (b.id === block.id && block.type === 'listBlock') {
+  //           const listBlock = b as ListBlockProps
+  //           return {
+  //             ...b,
+  //             listBlock: {
+  //               ...listBlock.listBlock,
+  //               note: notes,
+  //               noteId: nodeId,
+  //             },
+  //           }
+  //         }
+  //         if (b.id === block.id && block.type === 'headingBlock') {
+  //           const headingBlock = b as HeadingBlockProps
+  //           return {
+  //             ...b,
+  //             headingBlock: {
+  //               ...headingBlock.headingBlock,
+  //               note: notes,
+  //               noteId: nodeId,
+  //             },
+  //           }
+  //         }
+  //         return b
+  //       }),
+  //     }
+  //     if (!fragment || state === 'recording' || state === 'start-recording')
+  //       return
 
-      const encodedEditorValue = Buffer.from(
-        JSON.stringify(editor?.getJSON())
-      ).toString('base64')
-      setStudio((prev) => ({
-        ...prev,
-        fragment: {
-          ...fragment,
-          editorState: { ...newSimpleAST },
-          encodedEditorValue,
-        },
-      }))
-      updateFragmentNotesAndEditorDebounced({
-        newSimpleAST,
-        encodedEditorValue,
-      })
-    } else {
-      if (!simpleAST || !fragment) return
-      const newSimpleAST = {
-        ...simpleAST,
-        blocks: simpleAST.blocks.map((b) => {
-          if (b.id === block.id && block.type === 'introBlock') {
-            const introBlock = b as IntroBlockProps
-            return {
-              ...b,
-              introBlock: {
-                ...introBlock.introBlock,
-                note: notes,
-              },
-            }
-          }
-          if (b.id === block.id && block.type === 'outroBlock') {
-            const outroBlock = b as OutroBlockProps
-            return {
-              ...outroBlock,
-              outroBlock: {
-                ...outroBlock.outroBlock,
-                note: notes,
-              },
-            }
-          }
-          return b
-        }),
-      }
-      if (state === 'recording' || state === 'start-recording') return
-      setStudio((prev) => ({
-        ...prev,
-        fragment: {
-          ...fragment,
-          editorState: { ...newSimpleAST },
-        },
-      }))
-      updateFragmentNotes(newSimpleAST)
-    }
-  }
+  //     const encodedEditorValue = Buffer.from(
+  //       JSON.stringify(editor?.getJSON())
+  //     ).toString('base64')
+  //     setStudio((prev) => ({
+  //       ...prev,
+  //       fragment: {
+  //         ...fragment,
+  //         editorState: { ...newSimpleAST },
+  //         encodedEditorValue,
+  //       },
+  //     }))
+  //     updateFragmentNotesAndEditorDebounced({
+  //       newSimpleAST,
+  //       encodedEditorValue,
+  //     })
+  //   } else {
+  //     if (!simpleAST || !fragment) return
+  //     const newSimpleAST = {
+  //       ...simpleAST,
+  //       blocks: simpleAST.blocks.map((b) => {
+  //         if (b.id === block.id && block.type === 'introBlock') {
+  //           const introBlock = b as IntroBlockProps
+  //           return {
+  //             ...b,
+  //             introBlock: {
+  //               ...introBlock.introBlock,
+  //               note: notes,
+  //             },
+  //           }
+  //         }
+  //         if (b.id === block.id && block.type === 'outroBlock') {
+  //           const outroBlock = b as OutroBlockProps
+  //           return {
+  //             ...outroBlock,
+  //             outroBlock: {
+  //               ...outroBlock.outroBlock,
+  //               note: notes,
+  //             },
+  //           }
+  //         }
+  //         return b
+  //       }),
+  //     }
+  //     if (state === 'recording' || state === 'start-recording') return
+  //     setStudio((prev) => ({
+  //       ...prev,
+  //       fragment: {
+  //         ...fragment,
+  //         editorState: { ...newSimpleAST },
+  //       },
+  //     }))
+  //     updateFragmentNotes(newSimpleAST)
+  //   }
+  // }
 
-  const { note, noteId } = useMemo(() => {
+  const { note } = useMemo(() => {
     initialRender.current = true
     if (!simpleAST || payload?.activeObjectIndex === undefined) return {}
     const block = simpleAST.blocks.filter(
       (b: any) => b.type !== 'interactionBlock'
     )[payload?.activeObjectIndex]
-    setLocalNote(undefined)
-    setLocalNoteId(undefined)
+    // setLocalNote(undefined)
+    // setLocalNoteId(undefined)
     switch (block?.type) {
       case 'listBlock': {
         const listBlock = simpleAST.blocks.find(
@@ -405,14 +399,14 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
     )
   }, [note, noteEditor])
 
-  useEffect(() => {
-    if (initialRender.current) {
-      initialRender.current = false
-      return
-    }
-    if (localNote === undefined) return
-    updateNotes(localNoteId || noteId, localNote)
-  }, [localNote])
+  // useEffect(() => {
+  //   if (initialRender.current) {
+  //     initialRender.current = false
+  //     return
+  //   }
+  //   if (localNote === undefined) return
+  //   updateNotes(localNoteId || noteId, localNote)
+  // }, [localNote])
 
   useEffect(() => {
     return () => {
