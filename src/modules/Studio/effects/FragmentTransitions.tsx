@@ -2056,24 +2056,13 @@ export const VetsWhoCodeTransition = ({
               duration,
               // easing: Konva.Easings.EaseIn,
               onFinish: () => {
-                if (direction === 'moveIn') return
-                if (direction === 'moveAway') {
-                  setTimeout(() => {
-                    setTopLayerChildren?.({ id: '', state: '' })
-                  }, 200)
-                } else {
+                if (direction === 'moveIn' || direction === 'moveAway') return
+                if (direction === 'left' || direction === 'right') {
                   setTimeout(() => {
                     ref?.to({
                       x: rect2StartX,
                       duration,
                       // easing: Konva.Easings.EaseOut,
-                      onFinish: () => {
-                        setTimeout(() => {
-                          if (direction === 'left' || direction === 'right') {
-                            setTopLayerChildren?.({ id: '', state: '' })
-                          }
-                        }, 200)
-                      },
                     })
                   }, 200)
                 }
@@ -2082,6 +2071,115 @@ export const VetsWhoCodeTransition = ({
           }}
         />
       </Group>
+    </Group>
+  )
+}
+
+export const ShrutiKapoorTransition = ({
+  direction,
+  isShorts,
+  // color,
+  setTopLayerChildren,
+  performFinishAction,
+}: {
+  direction: string
+  isShorts?: boolean
+  // color?: string
+  setTopLayerChildren?: React.Dispatch<
+    React.SetStateAction<{ id: string; state: TopLayerChildren }>
+  >
+  performFinishAction?: () => void
+}) => {
+  let stageConfig = { width: CONFIG.width, height: CONFIG.height }
+  if (!isShorts) stageConfig = CONFIG
+  else stageConfig = SHORTS_CONFIG
+
+  let rect1StartX = 0
+  let rect2StartX = 0
+  let rect1EndX = 0
+  let rect2EndX = 0
+  let duration = 0
+
+  switch (direction) {
+    case 'left':
+    case 'right':
+      rect1StartX = -1880
+      rect2StartX = stageConfig.width
+      rect1EndX = stageConfig.width
+      rect2EndX = -1880
+      duration = 0.8
+      break
+    case 'moveIn':
+      rect1StartX = -1880
+      rect2StartX = 1110
+      rect1EndX = -980
+      rect2EndX = 210
+      duration = 0.4
+      break
+    case 'moveAway':
+      rect1StartX = 210
+      rect2StartX = -940
+      rect1EndX = 1110
+      rect2EndX = -1840
+      duration = 0.6
+      break
+    default:
+      break
+  }
+
+  return (
+    <Group>
+      <Rect
+        x={rect1StartX}
+        y={stageConfig.height}
+        width={stageConfig.width * 2}
+        height={stageConfig.height * (3 / 2) + 100}
+        fill="#2E2144"
+        rotation={-45}
+        ref={(ref) => {
+          setTimeout(() => {
+            ref?.to({
+              x: rect1EndX,
+              duration,
+              easing: Konva.Easings.EaseOut,
+              onFinish: () => {
+                if (
+                  direction === 'moveAway' ||
+                  direction === 'left' ||
+                  direction === 'right'
+                ) {
+                  setTimeout(() => {
+                    setTopLayerChildren?.({ id: '', state: '' })
+                  }, 200)
+                } else if (direction === 'moveIn') {
+                  if (performFinishAction) {
+                    setTimeout(() => {
+                      performFinishAction()
+                    }, 350)
+                  }
+                }
+              },
+            })
+          }, 100)
+        }}
+      />
+      <Rect
+        x={rect2StartX}
+        y={stageConfig.height}
+        width={stageConfig.width * 2}
+        height={stageConfig.height * (3 / 2)}
+        fill="#1D1A23"
+        rotation={-45}
+        ref={(ref) => {
+          setTimeout(() => {
+            ref?.to({
+              x: rect2EndX,
+              duration,
+              easing: Konva.Easings.EaseOut,
+            })
+          }, 100)
+        }}
+      />
     </Group>
   )
 }

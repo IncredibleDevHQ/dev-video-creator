@@ -49,6 +49,10 @@ const VideoBackground = ({
     `${config.storage.baseUrl}themes/Web3Auth/Web3AuthShortsBg.svg`,
     'anonymous'
   )
+  const [shrutiKapoorThemeBg] = useImage(
+    `${config.storage.baseUrl}themes/ShrutiKapoor/shrutiKapoorBg.svg`,
+    'anonymous'
+  )
 
   const videoElement = React.useMemo(() => {
     if (!branding?.background?.url) return
@@ -1026,6 +1030,250 @@ const VideoBackground = ({
                 fill="#fff"
                 opacity={0}
                 fontFamily="GothamLight"
+              />
+            </Group>
+          )
+        }
+      }
+    case 'ShrutiKapoor':
+      switch (branding?.background?.type) {
+        case 'image':
+          return (
+            <Group>
+              <Image
+                x={0}
+                y={0}
+                width={stageConfig.width}
+                height={stageConfig.height}
+                image={bgImage}
+                fill="#040E22"
+              />
+              <Text
+                text="ShrutiKapoor"
+                x={0}
+                y={0}
+                fontSize={2}
+                fill="#fff"
+                opacity={0}
+                fontFamily="Space Mono"
+              />
+            </Group>
+          )
+        case 'color':
+          return (
+            <Group>
+              <Rect
+                x={0}
+                y={0}
+                width={stageConfig.width}
+                height={stageConfig.height}
+                fill={branding?.background?.color?.primary}
+              />
+              <Text
+                text="ShrutiKapoor"
+                x={0}
+                y={0}
+                fontSize={2}
+                fill="#fff"
+                opacity={0}
+                fontFamily="Space Mono"
+              />
+            </Group>
+          )
+        case 'video':
+          return (
+            <Group x={0} y={0}>
+              {videoElement && (
+                <Video
+                  videoElement={videoElement}
+                  videoConfig={{
+                    x: 0,
+                    y: 0,
+                    width: stageConfig.width,
+                    height: stageConfig.height,
+                    videoFill: branding?.background?.color?.primary,
+                    cornerRadius: 0,
+                    performClip: true,
+                    clipVideoConfig: {
+                      x: 0,
+                      y: 0,
+                      width: 1,
+                      height: 1,
+                    },
+                  }}
+                />
+              )}
+              <Text
+                text="ShrutiKapoor"
+                x={0}
+                y={0}
+                fontSize={2}
+                fill="#fff"
+                opacity={0}
+                fontFamily="Space Mono"
+              />
+            </Group>
+          )
+        default: {
+          return (
+            <Group>
+              <Image
+                x={0}
+                y={0}
+                width={stageConfig.width}
+                height={stageConfig.height}
+                image={shrutiKapoorThemeBg}
+                fill="#18181B"
+              />
+              <Text
+                text="ShrutiKapoor"
+                x={0}
+                y={0}
+                fontSize={2}
+                fill="#fff"
+                opacity={0}
+                fontFamily="Space Mono"
+              />
+            </Group>
+          )
+        }
+      }
+    case 'Mux':
+      switch (branding?.background?.type) {
+        case 'image':
+          return (
+            <Group>
+              <Image
+                x={0}
+                y={0}
+                width={stageConfig.width}
+                height={stageConfig.height}
+                image={bgImage}
+              />
+              <Text
+                text="Mux"
+                x={0}
+                y={0}
+                fontSize={2}
+                fill="#fff"
+                opacity={0}
+                fontFamily="Work Sans"
+              />
+            </Group>
+          )
+        case 'color':
+          return (
+            <Group>
+              <Rect
+                x={0}
+                y={0}
+                width={stageConfig.width}
+                height={stageConfig.height}
+                fill={branding?.background?.color?.primary}
+              />
+              <Line
+                points={!isShorts ? [40, 40, 520, 40] : [40, 40, 520, 40]}
+                stroke={branding?.colors?.text || '#383838'}
+                strokeWidth={1}
+              />
+              <Line
+                points={!isShorts ? [440, 500, 920, 500] : [40, 40, 520, 40]}
+                stroke={branding?.colors?.text || '#383838'}
+                strokeWidth={1}
+              />
+              <Text
+                text="Mux"
+                x={0}
+                y={0}
+                fontSize={2}
+                fill="#fff"
+                opacity={0}
+                fontFamily="Work Sans"
+              />
+            </Group>
+          )
+        case 'video':
+          return (
+            <Group x={0} y={0}>
+              {videoElement && (
+                <Video
+                  videoElement={videoElement}
+                  videoConfig={{
+                    x: 0,
+                    y: 0,
+                    width: stageConfig.width,
+                    height: stageConfig.height,
+                    videoFill: branding?.background?.color?.primary,
+                    cornerRadius: 0,
+                    performClip: true,
+                    clipVideoConfig: {
+                      x: 0,
+                      y: 0,
+                      width: 1,
+                      height: 1,
+                    },
+                  }}
+                />
+              )}
+              <Text
+                text="Mux"
+                x={0}
+                y={0}
+                fontSize={2}
+                fill="#fff"
+                opacity={0}
+                fontFamily="Work Sans"
+              />
+            </Group>
+          )
+        default: {
+          return (
+            <Group>
+              <Rect
+                x={0}
+                y={0}
+                width={stageConfig.width}
+                height={stageConfig.height}
+                fill="#ffffff"
+              />
+              <Rect
+                x={0}
+                y={0}
+                width={stageConfig.width}
+                height={stageConfig.height}
+                fillLinearGradientColorStops={[0, '#FB249119', 1, '#FB501D19']}
+                fillLinearGradientStartPoint={{ x: stageConfig.width, y: 0 }}
+                fillLinearGradientEndPoint={{
+                  x: 0,
+                  y: stageConfig.height,
+                }}
+              />
+              <Line
+                points={
+                  !isShorts
+                    ? [40, 40, 520, 40]
+                    : [16, 16, stageConfig.width / 2 + 16, 16]
+                }
+                stroke="#383838"
+                strokeWidth={1}
+              />
+              <Line
+                points={
+                  !isShorts
+                    ? [440, 500, 920, 500]
+                    : [182, 688, stageConfig.width / 2 + 182, 688]
+                }
+                stroke="#383838"
+                strokeWidth={1}
+              />
+              <Text
+                text="Mux"
+                x={0}
+                y={0}
+                fontSize={2}
+                fill="#fff"
+                opacity={0}
+                fontFamily="Work Sans"
               />
             </Group>
           )

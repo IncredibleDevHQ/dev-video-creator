@@ -1,5 +1,6 @@
 import { ThemeFragment } from '../../../generated/graphql'
 import { Layout } from '../../../utils/configTypes'
+import { getCanvasGradient } from './StudioUserConfig'
 
 export interface IntroConfig {
   layoutX: number
@@ -12,6 +13,7 @@ export interface IntroConfig {
   titleWidth: number
   titleHeight: number
   titleFontSize: number
+  titleColor?: string | CanvasGradient
   titleAlign?: string
   titleVerticalAlign?: string
   titleFontStyle?: string
@@ -43,6 +45,8 @@ export interface IntroConfig {
   userImageWidth: number
   userImageHeight: number
   userImageBorderRadius: number
+  userImageBorderWidth?: number
+  userImageBorderColor?: string | CanvasGradient
 }
 
 export const getIntroConfig = ({
@@ -50,12 +54,14 @@ export const getIntroConfig = ({
   layout,
   isShorts,
   logoFallback,
+  userImageFallback,
 }: {
   theme: ThemeFragment
   layout: Layout
   isShorts?: boolean
   // boolean which detremines if the username has to fallback to the logo's x coordinate
   logoFallback?: boolean
+  userImageFallback?: boolean
 }): IntroConfig => {
   if (!isShorts)
     switch (theme.name) {
@@ -844,7 +850,7 @@ export const getIntroConfig = ({
               userInfoX: 510,
               userInfoY: 375,
               userInfoWidth: 386,
-              userInfoHeight: 57,
+              userInfoHeight: 70,
               userInfoFontSize: 24,
               userInfoAlign: 'right',
               logoX: 856,
@@ -1038,6 +1044,386 @@ export const getIntroConfig = ({
               logoY: 80,
               logoWidth: 62,
               logoHeight: 62,
+              userImageX: 0,
+              userImageY: 0,
+              userImageWidth: 0,
+              userImageHeight: 0,
+              userImageBorderRadius: 0,
+            }
+        }
+      case 'ShrutiKapoor':
+        switch (layout) {
+          case 'classic':
+            return {
+              layoutX: 0,
+              layoutY: 0,
+              layoutWidth: 960,
+              layoutHeight: 540,
+              layoutBorderRadius: 0,
+              titleX: 64,
+              titleY: 64,
+              titleWidth: 736,
+              titleHeight: 240,
+              titleFontSize: 72,
+              titleColor: getCanvasGradient(
+                [
+                  { color: '#FA709A', offset: 0.0 },
+                  { color: '#FEE140', offset: 1.0 },
+                ],
+                {
+                  x0: 0,
+                  y0: 30,
+                  x1: 710,
+                  y1: 120,
+                }
+              ),
+              titleFontStyle: 'bold',
+              titleAlign: 'left',
+              titleVerticalAlign: 'top',
+              userNameX: 0,
+              userNameY: 0,
+              userNameWidth: 0,
+              userNameHeight: 0,
+              userNameFontSize: 0,
+              userInfoX: 0,
+              userInfoY: 0,
+              userInfoWidth: 0,
+              userInfoHeight: 0,
+              userInfoFontSize: 0,
+              logoX: 840,
+              logoY: 69,
+              logoWidth: 56,
+              logoHeight: 56,
+              userImageX: 0,
+              userImageY: 0,
+              userImageWidth: 0,
+              userImageHeight: 0,
+              userImageBorderRadius: 0,
+            }
+          case 'bottom-right-tile':
+            return {
+              layoutX: 0,
+              layoutY: 0,
+              layoutWidth: 960,
+              layoutHeight: 540,
+              layoutBorderRadius: 0,
+              titleX: 64,
+              titleY: 64,
+              titleWidth: 736,
+              titleHeight: 240,
+              titleFontSize: 72,
+              titleColor: getCanvasGradient(
+                [
+                  { color: '#FA709A', offset: 0.0 },
+                  { color: '#FEE140', offset: 1.0 },
+                ],
+                {
+                  x0: 0,
+                  y0: 30,
+                  x1: 710,
+                  y1: 120,
+                }
+              ),
+              titleFontStyle: 'bold',
+              titleAlign: 'left',
+              titleVerticalAlign: 'top',
+              userNameX: 64,
+              userNameY: 404,
+              userNameWidth: 500,
+              userNameHeight: 40,
+              userNameFontSize: 32,
+              userInfoX: 64,
+              userInfoY: 450,
+              userInfoWidth: 500,
+              userInfoHeight: 30,
+              userInfoFontSize: 24,
+              logoX: 840,
+              logoY: 69,
+              logoWidth: 56,
+              logoHeight: 56,
+              userImageX: 716,
+              userImageY: 296,
+              userImageWidth: 180,
+              userImageHeight: 180,
+              userImageBorderRadius: 0,
+              userImageBorderColor: getCanvasGradient(
+                [
+                  { color: '#FAFAFABF', offset: 0.0 },
+                  { color: '#FFFFFF00', offset: 1.0 },
+                ],
+                {
+                  x0: 90,
+                  y0: 0,
+                  x1: 90,
+                  y1: 135,
+                }
+              ),
+              userImageBorderWidth: 4,
+            }
+          case 'float-full-right':
+            return {
+              layoutX: 0,
+              layoutY: 0,
+              layoutWidth: 960,
+              layoutHeight: 540,
+              layoutBorderRadius: 0,
+              titleX: 64,
+              titleY: 172,
+              titleWidth: 480,
+              titleHeight: 140,
+              titleFontSize: 48,
+              titleColor: getCanvasGradient(
+                [
+                  { color: '#FA709A', offset: 0.0 },
+                  { color: '#FEE140', offset: 1.0 },
+                ],
+                {
+                  x0: 0,
+                  y0: 30,
+                  x1: 710,
+                  y1: 120,
+                }
+              ),
+              titleFontStyle: 'bold',
+              titleAlign: 'left',
+              titleVerticalAlign: 'top',
+              userNameX: 64,
+              userNameY: 320,
+              userNameWidth: 440,
+              userNameHeight: 40,
+              userNameFontSize: 32,
+              userInfoX: 64,
+              userInfoY: 365,
+              userInfoWidth: 440,
+              userInfoHeight: 60,
+              userInfoFontSize: 24,
+              logoX: 64,
+              logoY: 440,
+              logoWidth: 56,
+              logoHeight: 56,
+              userImageX: 584,
+              userImageY: 0,
+              userImageWidth: 376,
+              userImageHeight: 540,
+              userImageBorderRadius: 0,
+              userImageBorderColor: getCanvasGradient(
+                [
+                  { color: '#FAFAFABF', offset: 0.0 },
+                  { color: '#FFFFFF00', offset: 1.0 },
+                ],
+                {
+                  x0: 188,
+                  y0: 0,
+                  x1: 188,
+                  y1: 405,
+                }
+              ),
+              userImageBorderWidth: 4,
+            }
+          default:
+            return {
+              layoutX: 0,
+              layoutY: 0,
+              layoutWidth: 960,
+              layoutHeight: 540,
+              layoutBorderRadius: 0,
+              titleX: 64,
+              titleY: 64,
+              titleWidth: 736,
+              titleHeight: 240,
+              titleFontSize: 72,
+              titleColor: getCanvasGradient(
+                [
+                  { color: '#FA709A', offset: 0.0 },
+                  { color: '#FEE140', offset: 1.0 },
+                ],
+                {
+                  x0: 0,
+                  y0: 30,
+                  x1: 710,
+                  y1: 120,
+                }
+              ),
+              titleFontStyle: 'bold',
+              titleAlign: 'left',
+              titleVerticalAlign: 'top',
+              userNameX: 0,
+              userNameY: 0,
+              userNameWidth: 0,
+              userNameHeight: 0,
+              userNameFontSize: 0,
+              userInfoX: 0,
+              userInfoY: 0,
+              userInfoWidth: 0,
+              userInfoHeight: 0,
+              userInfoFontSize: 0,
+              logoX: 840,
+              logoY: 69,
+              logoWidth: 56,
+              logoHeight: 56,
+              userImageX: 0,
+              userImageY: 0,
+              userImageWidth: 0,
+              userImageHeight: 0,
+              userImageBorderRadius: 0,
+            }
+        }
+      case 'Mux':
+        switch (layout) {
+          case 'classic':
+            return {
+              layoutX: 64,
+              layoutY: 150,
+              layoutWidth: 702,
+              layoutHeight: 238,
+              layoutBorderRadius: 0,
+              titleX: 40,
+              titleY: 40,
+              titleWidth: 622,
+              titleHeight: 170,
+              titleFontSize: 72,
+              titleColor: '#383838',
+              titleFontStyle: 'normal 500',
+              titleAlign: 'left',
+              titleVerticalAlign: 'top',
+              userNameX: 0,
+              userNameY: 0,
+              userNameWidth: 0,
+              userNameHeight: 0,
+              userNameFontSize: 0,
+              userInfoX: 0,
+              userInfoY: 0,
+              userInfoWidth: 0,
+              userInfoHeight: 0,
+              userInfoFontSize: 0,
+              logoX: 856,
+              logoY: 40,
+              logoWidth: 40,
+              logoHeight: 40,
+              userImageX: 0,
+              userImageY: 0,
+              userImageWidth: 0,
+              userImageHeight: 0,
+              userImageBorderRadius: 0,
+            }
+          case 'bottom-right-tile':
+            return {
+              layoutX: 64,
+              layoutY: 86,
+              layoutWidth: 832,
+              layoutHeight: 364,
+              layoutBorderRadius: 0,
+              titleX: 40,
+              titleY: 40,
+              titleWidth: 752,
+              titleHeight: 140,
+              titleFontSize: 56,
+              titleColor: '#383838',
+              titleFontStyle: 'normal 600',
+              titleAlign: 'left',
+              titleVerticalAlign: 'top',
+              userNameX: 184,
+              userNameY: 254,
+              userNameFallbackX: userImageFallback ? 40 : 184,
+              userNameWidth: 500,
+              userNameHeight: 40,
+              userNameFontSize: 32,
+              userInfoX: 184,
+              userInfoY: 300,
+              userInfoWidth: 500,
+              userInfoHeight: 30,
+              userInfoFontSize: 24,
+              logoX: 726,
+              logoY: 40,
+              logoWidth: 56,
+              logoHeight: 56,
+              userImageX: 104,
+              userImageY: 290,
+              userImageWidth: 120,
+              userImageHeight: 120,
+              userImageBorderRadius: 0,
+              userImageBorderColor: '#D4D4D8',
+              userImageBorderWidth: 2,
+            }
+          case 'float-full-right':
+            return {
+              layoutX: 64,
+              layoutY: 86,
+              layoutWidth: 536,
+              layoutHeight: 368,
+              layoutBorderRadius: 0,
+              titleX: 40,
+              titleY: 40,
+              titleWidth: 400,
+              titleHeight: 200,
+              titleFontSize: 56,
+              titleColor: '#383838',
+              titleFontStyle: 'normal 600',
+              titleAlign: 'left',
+              titleVerticalAlign: 'top',
+              userNameX: 40,
+              userNameY: 258,
+              userNameWidth: 400,
+              userNameHeight: 40,
+              userNameFontSize: 32,
+              userInfoX: 40,
+              userInfoY: 300,
+              userInfoWidth: 440,
+              userInfoHeight: 30,
+              userInfoFontSize: 24,
+              logoX: 456,
+              logoY: 45,
+              logoWidth: 40,
+              logoHeight: 40,
+              userImageX: 616,
+              userImageY: 86,
+              userImageWidth: 280,
+              userImageHeight: 368,
+              userImageBorderRadius: 0,
+              userImageBorderColor: '#D4D4D8',
+              userImageBorderWidth: 2,
+            }
+          default:
+            return {
+              layoutX: 0,
+              layoutY: 0,
+              layoutWidth: 960,
+              layoutHeight: 540,
+              layoutBorderRadius: 0,
+              titleX: 64,
+              titleY: 64,
+              titleWidth: 736,
+              titleHeight: 240,
+              titleFontSize: 72,
+              titleColor: getCanvasGradient(
+                [
+                  { color: '#FA709A', offset: 0.0 },
+                  { color: '#FEE140', offset: 1.0 },
+                ],
+                {
+                  x0: 0,
+                  y0: 30,
+                  x1: 710,
+                  y1: 120,
+                }
+              ),
+              titleFontStyle: 'bold',
+              titleAlign: 'left',
+              titleVerticalAlign: 'top',
+              userNameX: 0,
+              userNameY: 0,
+              userNameWidth: 0,
+              userNameHeight: 0,
+              userNameFontSize: 0,
+              userInfoX: 0,
+              userInfoY: 0,
+              userInfoWidth: 0,
+              userInfoHeight: 0,
+              userInfoFontSize: 0,
+              logoX: 840,
+              logoY: 69,
+              logoWidth: 56,
+              logoHeight: 56,
               userImageX: 0,
               userImageY: 0,
               userImageWidth: 0,
@@ -1341,6 +1727,85 @@ export const getIntroConfig = ({
         userImageWidth: 192,
         userImageHeight: 192,
         userImageBorderRadius: 96,
+      }
+    case 'ShrutiKapoor':
+      return {
+        layoutX: 16,
+        layoutY: 16,
+        layoutWidth: 364,
+        layoutHeight: 672,
+        layoutBorderRadius: 0,
+        titleX: 24,
+        titleY: 24,
+        titleWidth: 316,
+        titleHeight: 150,
+        titleFontSize: 40,
+        userNameX: 24,
+        userNameY: 516,
+        userNameWidth: 316,
+        userNameHeight: 24,
+        userNameFontSize: 24,
+        userInfoX: 24,
+        userInfoY: 552,
+        userInfoWidth: 316,
+        userInfoHeight: 40,
+        userInfoFontSize: 16,
+        logoX: 24,
+        logoY: 606,
+        logoWidth: 36,
+        logoHeight: 36,
+        userImageX: 40,
+        userImageY: 300,
+        userImageWidth: 200,
+        userImageHeight: 200,
+        userImageBorderRadius: 0,
+        userImageBorderColor: getCanvasGradient(
+          [
+            { color: '#FAFAFABF', offset: 0.0 },
+            { color: '#FFFFFF00', offset: 1.0 },
+          ],
+          {
+            x0: 100,
+            y0: 0,
+            x1: 100,
+            y1: 150,
+          }
+        ),
+        userImageBorderWidth: 4,
+      }
+    case 'Mux':
+      return {
+        layoutX: 16,
+        layoutY: 32,
+        layoutWidth: 364,
+        layoutHeight: 640,
+        layoutBorderRadius: 0,
+        titleX: 24,
+        titleY: 24,
+        titleWidth: 316,
+        titleHeight: 150,
+        titleFontSize: 40,
+        userNameX: 24,
+        userNameY: 500,
+        userNameWidth: 316,
+        userNameHeight: 24,
+        userNameFontSize: 32,
+        userInfoX: 24,
+        userInfoY: 542,
+        userInfoWidth: 316,
+        userInfoHeight: 40,
+        userInfoFontSize: 16,
+        logoX: 24,
+        logoY: 586,
+        logoWidth: 36,
+        logoHeight: 36,
+        userImageX: 40,
+        userImageY: 300,
+        userImageWidth: 200,
+        userImageHeight: 200,
+        userImageBorderRadius: 0,
+        userImageBorderColor: '#D4D4D8',
+        userImageBorderWidth: 2,
       }
     default:
       return {

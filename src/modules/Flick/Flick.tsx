@@ -251,7 +251,10 @@ const Flick = () => {
             type: 'codeBlock',
             code: {
               animation: CodeAnimation.TypeLines,
-              theme: CodeTheme.DarkPlus,
+              theme:
+                flick?.theme?.name !== 'Mux'
+                  ? CodeTheme.DarkPlus
+                  : CodeTheme.LightPlus,
               codeStyle: CodeStyle.Editor,
               fontSize: 16,
             },
@@ -326,7 +329,10 @@ const Flick = () => {
             type: 'codeBlock',
             code: {
               animation: CodeAnimation.TypeLines,
-              theme: CodeTheme.DarkPlus,
+              theme:
+                flick?.theme?.name !== 'Mux'
+                  ? CodeTheme.DarkPlus
+                  : CodeTheme.LightPlus,
               codeStyle: CodeStyle.Editor,
               fontSize: 16,
             },
@@ -415,7 +421,7 @@ const Flick = () => {
         })
       }
     }
-  }, [currentBlock])
+  }, [currentBlock, flick?.theme])
 
   useMemo(() => {
     setStudio((store) => ({
@@ -683,7 +689,28 @@ const Flick = () => {
 
   const handleEditorChange = (editor: CoreEditor) => {
     utils.getSimpleAST(editor.getJSON()).then((simpleAST) => {
-      if (simpleAST) setSimpleAST(simpleAST)
+      if (simpleAST)
+        setSimpleAST((prev) => ({
+          ...simpleAST,
+          blocks: [
+            ...(prev?.blocks
+              ? prev?.blocks[0].type === 'introBlock'
+                ? [prev.blocks[0]]
+                : []
+              : []),
+            ...simpleAST.blocks,
+            ...(prev?.blocks
+              ? prev?.blocks[prev?.blocks.length - 1].type === 'outroBlock'
+                ? [
+                    {
+                      ...prev.blocks[prev.blocks.length - 1],
+                      pos: simpleAST.blocks.length + 1,
+                    } as Block,
+                  ]
+                : []
+              : []),
+          ],
+        }))
       if (!editor || editor.isDestroyed) return
       const transaction = editor.state.tr
       editor.state.doc.descendants((node, pos) => {

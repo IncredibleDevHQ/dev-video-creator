@@ -59,6 +59,7 @@ const FragmentBackground = ({
     case 'DevsForUkraine':
     case 'Whitep4nth3r':
     case 'VetsWhoCode':
+    case 'Mux':
       return (
         <Rect
           x={objectConfig.x}
@@ -145,6 +146,30 @@ const FragmentBackground = ({
           fill={backgroundRectColor}
           stroke={objectConfig?.borderColor}
           strokeWidth={8}
+        />
+      )
+    case 'ShrutiKapoor':
+      return (
+        <Rect
+          x={objectConfig.x}
+          y={objectConfig.y}
+          width={objectConfig.width}
+          height={objectConfig.height}
+          fill={backgroundRectColor}
+          stroke={getCanvasGradient(
+            [
+              { color: '#FA709A', offset: 0.0 },
+              { color: '#FEE14080', offset: 0.5156 },
+              { color: '#FEE14000', offset: 1.0 },
+            ],
+            {
+              x0: objectConfig.x,
+              y0: objectConfig.y + 20,
+              x1: objectConfig.width * 0.9,
+              y1: objectConfig.height / 1.75,
+            }
+          )}
+          strokeWidth={1}
         />
       )
     default:

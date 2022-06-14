@@ -382,6 +382,7 @@ export const FragmentLayoutConfig = ({
             }
         }
       case 'Whitep4nth3r':
+      case 'ShrutiKapoor':
         switch (layout) {
           case 'classic':
           case 'padded-bottom-right-circle':
@@ -483,6 +484,60 @@ export const FragmentLayoutConfig = ({
               borderRadius: 0,
               surfaceColor: '#fcfcfccc',
               textColor: '#383838',
+            }
+          default:
+            return {
+              x: 16,
+              y: 16,
+              width: 364,
+              height: 672,
+              borderRadius: 0,
+            }
+        }
+      case 'Mux':
+        switch (layout) {
+          case 'classic':
+          case 'padded-bottom-right-circle':
+          case 'padded-bottom-right-tile':
+            return {
+              x: 16,
+              y: 32,
+              width: 364,
+              height: 640,
+              borderRadius: 0,
+            }
+          case 'bottom-right-tile':
+          case 'bottom-right-circle':
+            return {
+              x: 0,
+              y: 0,
+              width: 396,
+              height: 704,
+              borderRadius: 0,
+            }
+          case 'split':
+            return {
+              x: 16,
+              y: 32,
+              width: 364,
+              height: 312,
+              borderRadius: 0,
+            }
+          case 'full-left':
+            return {
+              x: 16,
+              y: 24,
+              width: 364,
+              height: 280,
+              borderRadius: 0,
+            }
+          case 'full-right':
+            return {
+              x: 16,
+              y: 380,
+              width: 364,
+              height: 280,
+              borderRadius: 0,
             }
           default:
             return {
@@ -1193,6 +1248,168 @@ export const FragmentLayoutConfig = ({
             y: 36,
             width: 832,
             height: 468,
+            borderRadius: 0,
+          }
+      }
+    case 'ShrutiKapoor':
+      switch (layout) {
+        case 'classic':
+          return {
+            x: 56,
+            y: 32,
+            width: 848,
+            height: 477,
+            borderRadius: 0,
+          }
+        case 'float-full-right':
+          return {
+            x: 40,
+            y: 40,
+            width: 640,
+            height: 460,
+            borderRadius: 0,
+          }
+        case 'float-full-left':
+          return {
+            x: 288,
+            y: 45,
+            width: 640,
+            height: 460,
+            borderRadius: 0,
+          }
+        case 'float-half-right':
+          return {
+            x: 40,
+            y: 40,
+            width: 800,
+            height: 460,
+            availableWidth: 650,
+            borderRadius: 0,
+          }
+        case 'padded-bottom-right-tile':
+          return {
+            x: 40,
+            y: 40,
+            width: 832,
+            height: 460,
+            borderRadius: 0,
+          }
+        case 'bottom-right-tile':
+          return {
+            x: 0,
+            y: 0,
+            width: 960,
+            height: 540,
+            borderRadius: 0,
+          }
+        case 'padded-split':
+          return {
+            x: 40,
+            y: 40,
+            width: 520,
+            height: 460,
+            borderRadius: 0,
+          }
+        case 'full-left':
+          return {
+            x: 40,
+            y: 120,
+            width: 500,
+            height: 300,
+            borderRadius: 0,
+          }
+        case 'full-right':
+          return {
+            x: 380,
+            y: 120,
+            width: 500,
+            height: 300,
+            borderRadius: 0,
+          }
+        default:
+          return {
+            x: 56,
+            y: 32,
+            width: 848,
+            height: 477,
+            borderRadius: 0,
+          }
+      }
+    case 'Mux':
+      switch (layout) {
+        case 'classic':
+          return {
+            x: 80,
+            y: 74.5,
+            width: 800,
+            height: 391,
+            borderRadius: 0,
+          }
+        case 'float-full-right':
+          return {
+            x: 40,
+            y: 74.5,
+            width: 616,
+            height: 391,
+            borderRadius: 0,
+          }
+        case 'float-full-left':
+          return {
+            x: 304,
+            y: 74.5,
+            width: 616,
+            height: 391,
+            borderRadius: 0,
+          }
+        case 'float-half-right':
+          return {
+            x: 40,
+            y: 60,
+            width: 832,
+            height: 420,
+            availableWidth: 650,
+            borderRadius: 0,
+          }
+        case 'padded-bottom-right-tile':
+          return {
+            x: 40,
+            y: 74.5,
+            width: 660,
+            height: 391,
+            borderRadius: 0,
+          }
+        case 'padded-split':
+          return {
+            x: 40,
+            y: 74.5,
+            width: 548,
+            height: 391,
+            borderRadius: 0,
+          }
+        case 'full-left':
+          return {
+            x: 40,
+            y: 120,
+            width: 500,
+            height: 300,
+            borderRadius: 6,
+            surfaceColor: '#FCFCFCCC',
+          }
+        case 'full-right':
+          return {
+            x: 380,
+            y: 120,
+            width: 500,
+            height: 300,
+            borderRadius: 6,
+            surfaceColor: '#FCFCFCCC',
+          }
+        default:
+          return {
+            x: 56,
+            y: 32,
+            width: 848,
+            height: 477,
             borderRadius: 0,
           }
       }

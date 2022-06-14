@@ -602,6 +602,133 @@ export const getBulletsConfig = ({
             bulletRotation: 0,
           }
       }
+    case 'ShrutiKapoor':
+      switch (layout) {
+        case 'classic':
+        case 'float-full-right':
+        case 'float-full-left':
+        case 'float-half-right':
+        case 'padded-bottom-right-tile':
+        case 'padded-bottom-right-circle':
+        case 'bottom-right-tile':
+        case 'bottom-right-circle':
+        case 'padded-split':
+        case 'split':
+          return {
+            bulletWidth: 64,
+            bulletHeight: 64,
+            bulletFontSize: 20,
+            bulletFontStyle: '',
+            bulletCornerRadius: 0,
+            bulletXOffset: 0,
+            bulletYOffset: 0,
+            bulletColor: getCanvasGradient(
+              [
+                { color: '#FA709A', offset: 0.0 },
+                { color: '#FEE140', offset: 0.5156 },
+                { color: '#FEE1407B', offset: 1.0 },
+              ],
+              {
+                x0: 64,
+                y0: 0,
+                x1: 0,
+                y1: 64,
+              }
+            ),
+            bulletTextColor: '#ffffff',
+            bulletRotation: 0,
+          }
+        case 'full-left':
+        case 'full-right':
+          return {
+            bulletWidth: 40,
+            bulletHeight: 40,
+            bulletFontSize: 15,
+            bulletFontStyle: '',
+            bulletCornerRadius: 0,
+            bulletXOffset: 0,
+            bulletYOffset: 0,
+            bulletColor: getCanvasGradient(
+              [
+                { color: '#FA709A', offset: 0.0 },
+                { color: '#FEE140', offset: 0.5156 },
+                { color: '#FEE1407B', offset: 1.0 },
+              ],
+              {
+                x0: 40,
+                y0: 0,
+                x1: 0,
+                y1: 40,
+              }
+            ),
+            bulletTextColor: '#ffffff',
+            bulletRotation: 0,
+          }
+        default:
+          return {
+            bulletWidth: 40,
+            bulletHeight: 40,
+            bulletFontSize: 0,
+            bulletFontStyle: '',
+            bulletCornerRadius: 0,
+            bulletXOffset: 17,
+            bulletYOffset: 17,
+            bulletColor: '#C5203E',
+            bulletTextColor: '',
+            bulletRotation: 0,
+          }
+      }
+    case 'Mux':
+      switch (layout) {
+        case 'classic':
+        case 'float-full-right':
+        case 'float-full-left':
+        case 'float-half-right':
+        case 'padded-bottom-right-tile':
+        case 'padded-bottom-right-circle':
+        case 'bottom-right-tile':
+        case 'bottom-right-circle':
+        case 'padded-split':
+        case 'split':
+        case 'full-left':
+        case 'full-right':
+          return {
+            bulletWidth: 48,
+            bulletHeight: 48,
+            bulletFontSize: 20,
+            bulletFontStyle: 'normal',
+            bulletCornerRadius: 0,
+            bulletXOffset: 0,
+            bulletYOffset: 0,
+            bulletColor: getCanvasGradient(
+              [
+                { color: '#EB4F3E', offset: 0.0 },
+                { color: '#EB4463', offset: 0.7604 },
+              ],
+              {
+                x0: 0,
+                y0: 24,
+                x1: 48,
+                y1: 24,
+              }
+            ),
+            bulletTextColor: '#ffffff',
+            bulletRotation: 0,
+          }
+        default:
+          return {
+            bulletWidth: 40,
+            bulletHeight: 40,
+            bulletFontSize: 0,
+            bulletFontStyle: '',
+            bulletCornerRadius: 0,
+            bulletXOffset: 17,
+            bulletYOffset: 17,
+            bulletColor: '#C5203E',
+            bulletTextColor: '',
+            bulletRotation: 0,
+          }
+      }
     default:
       return {
         bulletWidth: 64,

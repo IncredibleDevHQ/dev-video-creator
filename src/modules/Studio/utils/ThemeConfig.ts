@@ -63,6 +63,8 @@ export const ThemeLayoutConfig = ({
         availableHeight: layoutConfig.height,
         textColor: '#27272A',
         borderRadius: 0,
+        titleFont: 'Gilroy',
+        bodyFont: 'GilroyRegular',
         surfaceColor: '#E0D6ED7B',
         pointsBulletColor: '#27272A',
         pointsBulletCornerRadius: 6,
@@ -235,6 +237,68 @@ export const ThemeLayoutConfig = ({
         horizontalPointsTextColor: '#091F40',
         horizontalPointTextVerticalAlign: 'middle',
       }
+    case 'ShrutiKapoor':
+      return {
+        startX: layoutConfig.x,
+        startY: layoutConfig.y,
+        availableWidth: layoutConfig?.availableWidth || layoutConfig.width,
+        availableHeight: layoutConfig.height,
+        textColor: '#ffffff',
+        borderRadius: 0,
+        surfaceColor: layoutConfig?.surfaceColor || '',
+        titleFont: 'Space Mono',
+        bodyFont: 'Space Mono',
+        pointsBulletColor: '#ffffff',
+        pointsBulletCornerRadius: 0,
+        pointsBulletYOffset: 8,
+        horizontalPointRectColor: '#fafafa19',
+        horizontalPointRectStrokeColor: getCanvasGradient(
+          [
+            { color: '#FAFAFABF', offset: 0.0 },
+            { color: '#FFFFFF00', offset: 1 },
+          ],
+          {
+            x0: 124,
+            y0: 0,
+            x1: 124,
+            y1: 80,
+          }
+        ),
+        horizontalPointRectCornerRadius: 0,
+        horizontalPointsTextColor: '#ffffff',
+        horizontalPointTextVerticalAlign: 'middle',
+      }
+    case 'Mux':
+      return {
+        startX: layoutConfig.x,
+        startY: layoutConfig.y,
+        availableWidth: layoutConfig?.availableWidth || layoutConfig.width,
+        availableHeight: layoutConfig.height,
+        textColor: '#383838',
+        borderRadius: 0,
+        surfaceColor: layoutConfig?.surfaceColor || '#FAFAFC',
+        titleFont: 'Work Sans',
+        bodyFont: 'Work Sans',
+        pointsBulletColor: getCanvasGradient(
+          [
+            { color: '#EB4F3E', offset: 0.0 },
+            { color: '#EB4463', offset: 0.7604 },
+          ],
+          {
+            x0: 0,
+            y0: 6,
+            x1: 12,
+            y1: 6,
+          }
+        ),
+        pointsBulletCornerRadius: 0,
+        pointsBulletYOffset: 3.5,
+        horizontalPointRectColor: '#FAFAFC',
+        horizontalPointRectStrokeColor: '#D4D4D8',
+        horizontalPointRectCornerRadius: 6,
+        horizontalPointsTextColor: '#383838',
+        horizontalPointTextVerticalAlign: 'middle',
+      }
     default:
       return {
         startX: layoutConfig.x,
@@ -257,6 +321,7 @@ export const getThemeTextColor = (theme: ThemeFragment): string => {
     case 'Web3Auth':
     case 'DevsForUkraine':
     case 'Whitep4nth3r':
+    case 'ShrutiKapoor':
       return '#ffffff'
     case 'PastelLines':
       return '#27272A'
@@ -266,6 +331,8 @@ export const getThemeTextColor = (theme: ThemeFragment): string => {
       return '#27272A'
     case 'VetsWhoCode':
       return '#091F40'
+    case 'Mux':
+      return '#383838'
     default:
       return '#ffffff'
   }
@@ -281,12 +348,15 @@ export const getThemeSurfaceColor = (theme: ThemeFragment): string => {
     case 'Web3Auth':
     case 'DevsForUkraine':
     case 'Whitep4nth3r':
+    case 'ShrutiKapoor':
       return ''
     case 'Cassidoo':
       return '#fafafa'
     case 'LambdaTest':
     case 'VetsWhoCode':
       return '#ffffff'
+    case 'Mux':
+      return '#FAFAFC'
     default:
       return '#ffffff'
   }
@@ -308,9 +378,12 @@ export const getThemeFont = (theme: ThemeFragment): string => {
     case 'DevsForUkraine':
       return 'Montserrat'
     case 'Whitep4nth3r':
+    case 'Mux':
       return 'Work Sans'
     case 'VetsWhoCode':
       return 'Gotham'
+    case 'ShrutiKapoor':
+      return 'Space Mono'
     default:
       return 'Gilroy'
   }
@@ -429,6 +502,29 @@ export const getThemeSupportedUserMediaLayouts = (
         'full-left',
         'full-right',
       ]
+    case 'ShrutiKapoor':
+      return [
+        'classic',
+        'float-full-right',
+        'float-full-left',
+        'float-half-right',
+        'padded-bottom-right-tile',
+        'bottom-right-tile',
+        'padded-split',
+        'full-left',
+        'full-right',
+      ]
+    case 'Mux':
+      return [
+        'classic',
+        'float-full-right',
+        'float-full-left',
+        'float-half-right',
+        'padded-bottom-right-tile',
+        'padded-split',
+        'full-left',
+        'full-right',
+      ]
     default:
       return []
   }
@@ -448,6 +544,9 @@ export const getThemeBasedIntroLayouts = (themeName: string): Layout[] => {
       return ['classic', 'bottom-right-tile']
     case 'VetsWhoCode':
       return ['classic', 'bottom-right-circle', 'float-full-right']
+    case 'ShrutiKapoor':
+    case 'Mux':
+      return ['classic', 'bottom-right-tile', 'float-full-right']
     default:
       return []
   }

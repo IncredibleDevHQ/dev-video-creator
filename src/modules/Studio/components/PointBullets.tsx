@@ -23,6 +23,7 @@ const HorizontalPointBullets = ({
     case 'LeeRob':
     case 'DevsForUkraine':
     case 'Whitep4nth3r':
+    case 'Mux':
       return (
         <>
           <Rect
@@ -115,6 +116,33 @@ const HorizontalPointBullets = ({
           fill={bulletsConfig.bulletColor as string}
         />
       )
+    case 'ShrutiKapoor':
+      return (
+        <>
+          <Rect
+            x={bulletsConfig.bulletXOffset}
+            y={bulletsConfig.bulletYOffset}
+            width={bulletsConfig.bulletWidth}
+            height={bulletsConfig.bulletHeight}
+            stroke={(bulletsConfig.bulletColor as string) || 'white'}
+            cornerRadius={bulletsConfig.bulletCornerRadius}
+            offsetX={bulletsConfig.bulletXOffset}
+            offsetY={bulletsConfig.bulletYOffset}
+            rotation={bulletsConfig.bulletRotation}
+          />
+          <Text
+            text={pointNumber.toString()}
+            fontSize={bulletsConfig.bulletFontSize}
+            fill={bulletsConfig.bulletTextColor || 'black'}
+            fontFamily={branding?.font?.body?.family || 'Space Mono'}
+            fontStyle={bulletsConfig.bulletFontStyle}
+            width={bulletsConfig.bulletWidth}
+            height={bulletsConfig.bulletHeight}
+            align="center"
+            verticalAlign="middle"
+          />
+        </>
+      )
     default:
       return <></>
   }
@@ -125,11 +153,13 @@ export const PointBullets = ({
   objectRenderConfig,
   pointY,
   pointLevel,
+  pointRenderMode,
 }: {
   theme: string
   objectRenderConfig: ObjectRenderConfig
   pointY: number
   pointLevel: number
+  pointRenderMode: string
 }) => {
   const { branding } = useRecoilValue(studioStore)
   switch (theme) {
@@ -140,10 +170,15 @@ export const PointBullets = ({
     case 'LeeRob':
     case 'DevsForUkraine':
     case 'Web3Auth':
+    case 'Mux':
       return (
         <Rect
           key="points"
-          x={-2 + (41 * (pointLevel - 1) || 0)}
+          x={
+            pointRenderMode === 'stack'
+              ? -2 + (41 * (pointLevel - 1) || 0)
+              : 0 + (41 * (pointLevel - 1) || 0)
+          }
           y={pointY + (objectRenderConfig.pointsBulletYOffset || 0)}
           width={12}
           height={12}
@@ -153,25 +188,31 @@ export const PointBullets = ({
               ? branding?.colors?.text
               : (objectRenderConfig.pointsBulletColor as string)
           }
-          ref={(ref) =>
+          ref={(ref) => {
+            if (pointRenderMode !== 'stack') return
             ref?.to({
               x: 0 + (41 * (pointLevel - 1) || 0),
               duration: 0.3,
             })
-          }
+          }}
           rotation={objectRenderConfig.pointsBulletRotation}
         />
       )
     case 'Whitep4nth3r':
       return (
         <Group
-          x={-2 + (41 * (pointLevel - 1) || 0)}
-          ref={(ref) =>
+          x={
+            pointRenderMode === 'stack'
+              ? -2 + (41 * (pointLevel - 1) || 0)
+              : 0 + (41 * (pointLevel - 1) || 0)
+          }
+          ref={(ref) => {
+            if (pointRenderMode !== 'stack') return
             ref?.to({
               x: 0 + (41 * (pointLevel - 1) || 0),
               duration: 0.3,
             })
-          }
+          }}
         >
           <Rect
             y={pointY + (objectRenderConfig.pointsBulletYOffset || 0)}
@@ -214,19 +255,68 @@ export const PointBullets = ({
     case 'VetsWhoCode':
       return (
         <Star
-          x={-2 + (41 * (pointLevel - 1) || 0)}
+          x={
+            pointRenderMode === 'stack'
+              ? -2 + (41 * (pointLevel - 1) || 0)
+              : 0 + (41 * (pointLevel - 1) || 0)
+          }
           y={pointY + (objectRenderConfig.pointsBulletYOffset || 0)}
           numPoints={5}
           innerRadius={3.5}
           outerRadius={8.5}
           fill={objectRenderConfig.pointsBulletColor as string}
-          ref={(ref) =>
+          ref={(ref) => {
+            if (pointRenderMode !== 'stack') return
             ref?.to({
               x: 0 + (41 * (pointLevel - 1) || 0),
               duration: 0.3,
             })
-          }
+          }}
         />
+      )
+    case 'ShrutiKapoor':
+      return (
+        <Group
+          x={
+            pointRenderMode === 'stack'
+              ? -2 + (41 * (pointLevel - 1) || 0)
+              : 0 + (41 * (pointLevel - 1) || 0)
+          }
+          ref={(ref) => {
+            if (pointRenderMode !== 'stack') return
+            ref?.to({
+              x: 0 + (41 * (pointLevel - 1) || 0),
+              duration: 0.3,
+            })
+          }}
+        >
+          <Rect
+            x={12}
+            y={pointY + (objectRenderConfig.pointsBulletYOffset || 0)}
+            width={8.4}
+            height={2}
+            fill={
+              branding?.colors?.text
+                ? branding?.colors?.text
+                : (objectRenderConfig.pointsBulletColor as string)
+            }
+            offsetX={8}
+            rotation={30}
+          />
+          <Rect
+            x={12.5}
+            y={pointY + (objectRenderConfig.pointsBulletYOffset || 0)}
+            width={9.7}
+            height={2}
+            fill={
+              branding?.colors?.text
+                ? branding?.colors?.text
+                : (objectRenderConfig.pointsBulletColor as string)
+            }
+            offsetX={10}
+            rotation={-30}
+          />
+        </Group>
       )
     default:
       return <></>

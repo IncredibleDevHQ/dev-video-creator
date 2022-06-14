@@ -1,6 +1,6 @@
 /* eslint-disable no-nested-ternary */
 import React, { useEffect, useState } from 'react'
-import { Group, Image, Text } from 'react-konva'
+import { Group, Image, Rect, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
 import useImage from 'use-image'
 import { userState } from '../../../stores/user.store'
@@ -84,6 +84,7 @@ const Thumbnail = ({
         layout: viewConfig?.layout || 'bottom-right-tile',
         isShorts,
         logoFallback: !logo,
+        userImageFallback: !userImage,
       })
     )
   }, [viewConfig])
@@ -187,7 +188,11 @@ const Thumbnail = ({
             verticalAlign={introConfig?.titleVerticalAlign || 'middle'}
             align={introConfig?.titleAlign || 'left'}
             text={thumbnailInfo?.title}
-            fill={branding?.colors?.text || getThemeTextColor(theme)}
+            fill={
+              branding?.colors?.text ||
+              (introConfig?.titleColor as string) ||
+              getThemeTextColor(theme)
+            }
             fontSize={introConfig?.titleFontSize || 0}
             fontFamily={getThemeFont(theme)}
             fontStyle={introConfig?.titleFontStyle || 'normal 600'}
@@ -214,7 +219,7 @@ const Thumbnail = ({
             fontSize={introConfig?.userNameFontSize || 0}
             fontFamily={getThemeFont(theme)}
             fontStyle={introConfig?.userNameFontStyle || 'normal'}
-            lineHeight={1.1}
+            lineHeight={1.2}
           />
           {thumbnailInfo?.designation !== '' &&
             thumbnailInfo?.organization === '' && (
@@ -231,7 +236,7 @@ const Thumbnail = ({
                 fill={branding?.colors?.text || getThemeTextColor(theme)}
                 fontSize={introConfig?.userInfoFontSize || 0}
                 fontFamily={introConfig?.userInfoFont || getThemeFont(theme)}
-                lineHeight={1.1}
+                lineHeight={1.2}
               />
             )}
           {thumbnailInfo?.designation === '' &&
@@ -249,7 +254,7 @@ const Thumbnail = ({
                 fill={branding?.colors?.text || getThemeTextColor(theme)}
                 fontSize={introConfig?.userInfoFontSize || 0}
                 fontFamily={introConfig?.userInfoFont || getThemeFont(theme)}
-                lineHeight={1.1}
+                lineHeight={1.2}
               />
             )}
           {thumbnailInfo?.designation !== '' &&
@@ -267,11 +272,22 @@ const Thumbnail = ({
                 fill={branding?.colors?.text || getThemeTextColor(theme)}
                 fontSize={introConfig?.userInfoFontSize || 0}
                 fontFamily={introConfig?.userInfoFont || getThemeFont(theme)}
-                lineHeight={1.1}
+                lineHeight={1.2}
               />
             )}
         </Group>
       </Group>
+      {userImage && (
+        <Rect
+          x={introConfig?.userImageX || 0}
+          y={introConfig?.userImageY || 0}
+          width={introConfig?.userImageWidth || 0}
+          height={introConfig?.userImageHeight || 0}
+          stroke={introConfig?.userImageBorderColor}
+          strokeWidth={introConfig?.userImageBorderWidth || 0}
+          cornerRadius={introConfig?.userImageBorderRadius || 0}
+        />
+      )}
       <Group
         clipFunc={(ctx: any) => {
           clipRect(ctx, {

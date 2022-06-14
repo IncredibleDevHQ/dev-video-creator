@@ -17,7 +17,9 @@ import {
   GlassyLowerThirds,
   LambdaTestLowerThirds,
   LeeRobLowerThirds,
+  MuxLowerThirds,
   PastelLinesLowerThirds,
+  ShrutiKapoorLowerThirds,
   VetsWhoCodeLowerThirds,
   Web3AuthLowerThirds,
   Whitep4nth3rLowerThirds,
@@ -96,7 +98,7 @@ const LowerThridProvider = ({
             setTopLayerChildren={setTopLayerChildren}
             isShorts={isShorts}
           />
-          {users &&
+          {/* {users &&
             users?.map((user, index) => (
               <GlassyLowerThirds
                 // eslint-disable-next-line react/no-array-index-key
@@ -113,7 +115,7 @@ const LowerThridProvider = ({
                 isShorts={isShorts}
                 setTopLayerChildren={setTopLayerChildren}
               />
-            ))}
+            ))} */}
         </>
       )
     case 'PastelLines':
@@ -130,7 +132,7 @@ const LowerThridProvider = ({
             textColor={branding?.colors?.text || ''}
             setTopLayerChildren={setTopLayerChildren}
           />
-          {users &&
+          {/* {users &&
             users?.map((user, index) => (
               <PastelLinesLowerThirds
                 // eslint-disable-next-line react/no-array-index-key
@@ -145,7 +147,7 @@ const LowerThridProvider = ({
                 textColor={branding?.colors?.text || ''}
                 setTopLayerChildren={setTopLayerChildren}
               />
-            ))}
+            ))} */}
         </>
       )
     case 'Cassidoo': {
@@ -344,6 +346,72 @@ const LowerThridProvider = ({
             designation={lowerThirdUserDesignation || ''}
             organization={lowerThirdUserOrganization || ''}
             logo={branding?.logo || ''}
+            color={branding?.background?.color?.primary || ''}
+            textColor={branding?.colors?.text || ''}
+            setTopLayerChildren={setTopLayerChildren}
+          />
+          {/* {users.map((user, index) => (
+            <LeeRobLowerThirds
+              // eslint-disable-next-line react/no-array-index-key
+              key={index}
+              x={lowerThirdCoordinates({ position: 'left' })[index + 1]}
+              y={!isShorts ? 400 : 560}
+              userName={participants?.[user.uid]?.displayName || ''}
+              designation={lowerThirdUserDesignation || ''}
+              organization={lowerThirdUserOrganization || ''}
+              logo={branding?.logo || ''}
+              color={branding?.background?.color?.primary || ''}
+              textColor={branding?.colors?.text || ''}
+            />
+          ))} */}
+        </>
+      )
+    }
+    case 'ShrutiKapoor':
+      return (
+        <>
+          <ShrutiKapoorLowerThirds
+            x={!isShorts ? CONFIG.width - 56 : SHORTS_CONFIG.width - 16}
+            y={!isShorts ? 500 : 650}
+            userName={lowerThirdUserName || ''}
+            designation={lowerThirdUserDesignation || ''}
+            organization={lowerThirdUserOrganization || ''}
+            logo={branding?.logo || ''}
+            color={branding?.background?.color?.primary || ''}
+            textColor={branding?.colors?.text || ''}
+            branding={branding}
+            setTopLayerChildren={setTopLayerChildren}
+            isShorts={isShorts}
+          />
+          {/* {users &&
+            users?.map((user, index) => (
+              <GlassyLowerThirds
+                // eslint-disable-next-line react/no-array-index-key
+                key={index}
+                x={lowerThirdCoordinates({ position: 'right' })[index + 1]}
+                y={!isShorts ? 450 : 620}
+                userName={participants?.[user.uid]?.displayName || ''}
+                designation={participants?.[user.uid]?.designation || ''}
+                organization={participants?.[user.uid]?.organization || ''}
+                logo={branding?.logo || ''}
+                color={branding?.background?.color?.primary || ''}
+                textColor={branding?.colors?.text || ''}
+                branding={branding}
+                isShorts={isShorts}
+                setTopLayerChildren={setTopLayerChildren}
+              />
+            ))} */}
+        </>
+      )
+    case 'Mux': {
+      return (
+        <>
+          <MuxLowerThirds
+            x={!isShorts ? lowerThirdCoordinates({ position: 'left' })[0] : 25}
+            y={!isShorts ? 390 : 600}
+            userName={lowerThirdUserName || ''}
+            designation={lowerThirdUserDesignation || ''}
+            organization={lowerThirdUserOrganization || ''}
             color={branding?.background?.color?.primary || ''}
             textColor={branding?.colors?.text || ''}
             setTopLayerChildren={setTopLayerChildren}
