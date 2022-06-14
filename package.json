@@ -25,7 +25,7 @@
     "@giphy/js-fetch-api": "^4.1.2",
     "@giphy/react-components": "^5.4.0",
     "@headlessui/react": "^1.6.4",
-    "@hocuspocus/provider": "^1.0.0-alpha.33",
+    "@hocuspocus/provider": "^1.0.0-alpha.38",
     "@liveblocks/client": "^0.16.15",
     "@liveblocks/react": "^0.16.15",
     "@monaco-editor/react": "^4.3.1",
@@ -129,7 +129,7 @@
     "videojs-hls-quality-selector": "^1.1.4",
     "videojs-logo": "^2.1.6",
     "videojs-share": "^3.2.1",
-    "yjs": "^13.5.24",
+    "yjs": "^13.5.38",
     "yup": "^0.32.9"
   },
   "devDependencies": {

@@ -430,9 +430,6 @@ mutation UpdateFlickTheme($id: uuid!, $themeName: String!) {
 }
 mutation SaveFlick(
   $id: uuid!
-  $encodedEditorValue: String!
-  $editorState: json!
-  $fragmentId: uuid!
   $branding: Boolean!
   $brandingId: uuid
   $flickConfiguration: json!
@@ -444,12 +441,6 @@ mutation SaveFlick(
       brandingId: $brandingId
       configuration: $flickConfiguration
     }
-  ) {
-    id
-  }
-  update_Fragment_by_pk(
-    pk_columns: { id: $fragmentId }
-    _set: { editorState: $editorState, encodedEditorValue: $encodedEditorValue }
   ) {
     id
   }

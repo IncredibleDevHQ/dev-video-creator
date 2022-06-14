@@ -5,6 +5,7 @@ import { createClient } from '@liveblocks/client'
 import {
   LiveblocksProvider,
   RoomProvider,
+  useMap,
   useUpdateMyPresence,
 } from '@liveblocks/react'
 import * as Sentry from '@sentry/react'
@@ -92,13 +93,10 @@ const client = createClient({
   publicApiKey: config.liveblocks.publicKey,
 })
 
-const StudioHoC = () => {
-  const [view, setView] = useState<'preview' | 'preload' | 'studio'>('preload')
-
+const LiveblocksRoomProvider = () => {
   const { sub, displayName, picture } =
     (useRecoilValue(userState) as User) || {}
-  const { fragmentId } = useParams<{ fragmentId: string }>()
-
+  const { fragmentId, id } = useParams<{ id: string; fragmentId: string }>()
   const initialPresence: Presence = useMemo(() => {
     return {
       user: {
@@ -112,6 +110,29 @@ const StudioHoC = () => {
       inHuddle: false,
     }
   }, [sub, displayName, picture])
+
+  return (
+    <LiveblocksProvider client={client}>
+      <RoomProvider id={`story-${id}`} initialPresence={initialPresence}>
+        <StudioHoC />
+      </RoomProvider>
+    </LiveblocksProvider>
+  )
+}
+
+const StudioHoC = () => {
+  const [view, setView] = useState<'preview' | 'preload' | 'studio'>('preload')
+
+  const { sub } = (useRecoilValue(userState) as User) || {}
+  const { fragmentId } = useParams<{ id: string; fragmentId: string }>()
+
+  const [viewConfig, setViewConfig] = useState<ViewConfig>()
+  const viewConfigLiveMap = useMap<string, ViewConfig>('viewConfig')
+  useEffect(() => {
+    if (viewConfigLiveMap && !viewConfig) {
+      setViewConfig(viewConfigLiveMap?.get(fragmentId))
+    }
+  }, [viewConfig, viewConfigLiveMap])
 
   const [fragment, setFragment] = useState<StudioFragmentFragment>()
   const [isUserAllowed, setUserAllowed] = useState(false)
@@ -151,13 +172,15 @@ const StudioHoC = () => {
   }, [sub])
 
   useEffect(() => {
+    if (!viewConfig) return
+    setUserAllowed(
+      !!viewConfig.speakers?.find((speaker: any) => speaker.userSub === sub)
+    )
+  }, [viewConfig])
+
+  useEffect(() => {
     if (!data) return
     setFragment(data.Fragment?.[0])
-    setUserAllowed(
-      !!data.Fragment[0]?.configuration?.speakers?.find(
-        (speaker: any) => speaker.userSub === sub
-      )
-    )
     if (!new TextEditorParser(data.Fragment[0].editorState).isValid()) {
       setError('INVALID_AST')
     }
@@ -173,7 +196,7 @@ const StudioHoC = () => {
       />
     )
 
-  if (!isUserAllowed) {
+  if (!isUserAllowed && viewConfigLiveMap) {
     return (
       <ScreenState
         title="Permission Denied"
@@ -182,19 +205,19 @@ const StudioHoC = () => {
     )
   }
 
-  if (view === 'preload' && fragment)
+  if (view === 'preload' && fragment && viewConfig)
     return (
       <Preload
-        fragment={fragment}
+        fragment={{ ...fragment, configuration: viewConfig }}
         setFragment={setFragment}
         setView={setView}
       />
     )
 
-  if (view === 'preview' && fragment)
+  if (view === 'preview' && fragment && viewConfig)
     return (
       <Preview
-        data={fragment}
+        data={{ ...fragment, configuration: viewConfig }}
         handleJoin={({ microphone, camera, liveStream: ls }) => {
           devices.current = { microphone, camera }
           liveStream.current = ls
@@ -203,33 +226,26 @@ const StudioHoC = () => {
       />
     )
 
-  if (view === 'studio' && fragment)
+  if (view === 'studio' && fragment && viewConfig)
     return (
-      <LiveblocksProvider client={client}>
-        <RoomProvider
-          id={`story-${fragment.flickId}`}
-          initialPresence={initialPresence}
-        >
-          <EditorProvider>
-            <Studio
-              data={data}
-              studioFragment={fragment}
-              branding={
-                data?.Fragment?.[0].flick.useBranding
-                  ? data?.Fragment?.[0]?.flick.branding?.branding
-                  : null
-              }
-              devices={devices.current}
-              liveStream={liveStream.current}
-              continuousRecordedBlockIds={continuousRecordedBlockIds.current}
-              addContinuousRecordedBlockIds={addContinuousRecordedBlockIds}
-            />
-          </EditorProvider>
-        </RoomProvider>
-      </LiveblocksProvider>
+      <EditorProvider>
+        <Studio
+          data={data}
+          studioFragment={{ ...fragment, configuration: viewConfig }}
+          branding={
+            data?.Fragment?.[0].flick.useBranding
+              ? data?.Fragment?.[0]?.flick.branding?.branding
+              : null
+          }
+          devices={devices.current}
+          liveStream={liveStream.current}
+          continuousRecordedBlockIds={continuousRecordedBlockIds.current}
+          addContinuousRecordedBlockIds={addContinuousRecordedBlockIds}
+        />
+      </EditorProvider>
     )
 
-  return null
+  return <ScreenState loading />
 }
 
 const Preview = ({
@@ -623,7 +639,7 @@ const Studio = ({
   continuousRecordedBlockIds: { blockId: string; duration: number }[]
   addContinuousRecordedBlockIds: (blockId: string, duration: number) => void
 }) => {
-  const { fragmentId } = useParams<{ fragmentId: string }>()
+  const { fragmentId } = useParams<{ id: string; fragmentId: string }>()
   const { constraints, theme, recordedBlocks, isHost } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [studio, setStudio] = useRecoilState(studioStore)
@@ -1917,4 +1933,4 @@ const Studio = ({
   )
 }
 
-export default StudioHoC
+export default LiveblocksRoomProvider

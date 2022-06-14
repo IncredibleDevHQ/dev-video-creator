@@ -1,16 +1,20 @@
 /* eslint-disable no-unneeded-ternary */
 /* eslint-disable no-nested-ternary */
 import { css, cx } from '@emotion/css'
-import { createClient, LiveObject } from '@liveblocks/client'
-import { LiveblocksProvider, RoomProvider, useObject } from '@liveblocks/react'
+import { createClient, LiveMap } from '@liveblocks/client'
+import { LiveblocksProvider, RoomProvider, useMap } from '@liveblocks/react'
 import { Editor as CoreEditor } from '@tiptap/core'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { BiBlock } from 'react-icons/bi'
 import { IoChevronBackOutline, IoChevronForwardOutline } from 'react-icons/io5'
 import { useHistory, useParams } from 'react-router-dom'
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
-import { v4 as uuidv4 } from 'uuid'
-import { emitToast, Heading, ScreenState } from '../../components'
+import {
+  emitToast,
+  ErrorBoundary,
+  Heading,
+  ScreenState,
+} from '../../components'
 import config from '../../config'
 import {
   FlickFragmentFragment,
@@ -83,22 +87,6 @@ const initialConfig: ViewConfig = {
   continuousRecording: false,
 }
 
-const initialAST: SimpleAST = {
-  blocks: [
-    {
-      id: uuidv4(),
-      type: 'introBlock',
-      pos: 0,
-      introBlock: {},
-    },
-    {
-      id: uuidv4(),
-      type: 'outroBlock',
-      pos: 1,
-    },
-  ],
-}
-
 export const useLocalPayload = () => {
   const initialPayload = {
     activeObjectIndex: 0,
@@ -153,27 +141,30 @@ const Flick = () => {
 
   const [currentBlock, setCurrentBlock] = useState<Block>()
 
-  const viewConfigLiveObject = useObject<ViewConfig>('viewConfig')
-  const viewConfig = viewConfigLiveObject?.toObject() || initialConfig
+  const viewConfigLiveMap = useMap<string, ViewConfig>('viewConfig')
+  const viewConfig =
+    (fragmentId ? viewConfigLiveMap?.get(fragmentId) : undefined) ||
+    initialConfig
   const setViewConfig = useCallback(
     (vc: ViewConfig) => {
-      viewConfigLiveObject?.update(vc)
+      if (!fragmentId) return
+      viewConfigLiveMap?.set(fragmentId, vc)
     },
-    [viewConfigLiveObject]
+    [viewConfigLiveMap, fragmentId]
   )
   const [updatesQueue, setUpdatesQueue] = useState<ViewConfig[]>([])
   useEffect(() => {
-    if (!viewConfigLiveObject) return
+    if (!fragmentId) return
+    if (!viewConfigLiveMap || viewConfigLiveMap?.get(fragmentId)) return
     updatesQueue.forEach((update) => {
-      console.log('Updating viewConfig from queue', update)
       setViewConfig(update)
     })
-  }, [viewConfigLiveObject, updatesQueue])
+    setUpdatesQueue([])
+  }, [viewConfigLiveMap, updatesQueue, fragmentId])
 
   const [getFragment] = useGetFlickFragmentLazyQuery()
 
   const [simpleAST, setSimpleAST] = useState<SimpleAST>()
-  const [editorValue, setEditorValue] = useState<any>()
   const [previewPosition, setPreviewPosition] = useState<Position>()
   const [activeFragment, setActiveFragment] = useState<FlickFragmentFragment>()
 
@@ -424,7 +415,7 @@ const Flick = () => {
         })
       }
     }
-  }, [currentBlock, viewConfig])
+  }, [currentBlock])
 
   useMemo(() => {
     setStudio((store) => ({
@@ -549,9 +540,9 @@ const Flick = () => {
       return
     }
     setActiveFragment(fragment)
+    if (fragment?.editorState) {
+      setSimpleAST(fragment.editorState)
 
-    setSimpleAST(fragment?.editorState || initialAST)
-    if (!fragment?.editorState) {
       setUpdatesQueue((q) => [
         ...q,
         {
@@ -562,7 +553,7 @@ const Flick = () => {
               : 'Landscape',
           speakers: [flick.participants[0]],
           blocks: {
-            [initialAST.blocks[0].id]: {
+            [fragment.editorState.blocks[0].id]: {
               layout: 'classic',
               view: {
                 type: 'introBlock',
@@ -574,7 +565,7 @@ const Flick = () => {
                 },
               },
             },
-            [initialAST.blocks[1].id]: {
+            [fragment.editorState.blocks[1].id]: {
               layout: 'classic',
               view: {
                 type: 'outroBlock',
@@ -586,19 +577,6 @@ const Flick = () => {
           },
         },
       ])
-    }
-
-    // setCurrentBlock(fragment?.editorState?.blocks[0] || initialAST.blocks[0])
-    const ev = fragment?.encodedEditorValue
-      ? Buffer.from(fragment?.encodedEditorValue as string, 'base64').toString(
-          'utf8'
-        )
-      : ''
-    // detect if stored editor value is in html or json format
-    if (ev.startsWith('<') || ev === '') {
-      setEditorValue(ev)
-    } else {
-      setEditorValue(JSON.parse(ev))
     }
   }, [
     activeFragmentId,
@@ -704,29 +682,8 @@ const Flick = () => {
   const [openSidebar, setOpenSidebar] = useState(true)
 
   const handleEditorChange = (editor: CoreEditor) => {
-    // log all blockquotes in editor
-    // const blockquotes = editor
-    //   .getJSON()
-    //   .content?.filter((block) => block.type === 'blockquote')
-    // console.log(blockquotes?.map((b) => b.attrs.id))
     utils.getSimpleAST(editor.getJSON()).then((simpleAST) => {
-      if (simpleAST)
-        setSimpleAST((prev) => ({
-          ...simpleAST,
-          blocks: [
-            ...(prev?.blocks ? [prev.blocks[0]] : []),
-            ...simpleAST.blocks,
-            ...(prev?.blocks
-              ? [
-                  {
-                    ...prev.blocks[prev.blocks.length - 1],
-                    pos: simpleAST.blocks.length + 1,
-                  } as Block,
-                ]
-              : []),
-          ],
-        }))
-      setEditorValue(editor.getJSON())
+      if (simpleAST) setSimpleAST(simpleAST)
       if (!editor || editor.isDestroyed) return
       const transaction = editor.state.tr
       editor.state.doc.descendants((node, pos) => {
@@ -743,7 +700,7 @@ const Flick = () => {
     })
   }
 
-  if ((!data && loading) || !viewConfigLiveObject)
+  if ((!data && loading) || !viewConfigLiveMap)
     return <ScreenState title="Loading your story" loading />
 
   if (error)
@@ -799,7 +756,6 @@ const Flick = () => {
           <div className="flex flex-col flex-1 overflow-hidden relative">
             <FragmentBar
               simpleAST={simpleAST}
-              editorValue={editorValue}
               viewConfig={viewConfig}
               currentBlock={currentBlock}
               setCurrentBlock={setCurrentBlock}
@@ -851,9 +807,12 @@ const Flick = () => {
                       setPreviewPosition(position)
                     }}
                     handleActiveBlock={(block) => {
-                      if (block === undefined) setCurrentBlock(undefined)
-                      if (block && block !== currentBlock)
+                      if (block === undefined) {
+                        setCurrentBlock(undefined)
+                      }
+                      if (block && block !== currentBlock) {
                         setCurrentBlock(block)
+                      }
                     }}
                     ast={simpleAST}
                   />
@@ -939,17 +898,19 @@ const FlickHoC = () => {
   }, [sub, displayName, picture])
 
   return (
-    <LiveblocksProvider client={client}>
-      <RoomProvider
-        id={`story-${id}`}
-        initialPresence={initialPresence}
-        initialStorage={() => ({
-          viewConfig: new LiveObject(initialConfig),
-        })}
-      >
-        <Flick />
-      </RoomProvider>
-    </LiveblocksProvider>
+    <ErrorBoundary>
+      <LiveblocksProvider client={client}>
+        <RoomProvider
+          id={`story-${id}`}
+          initialPresence={initialPresence}
+          initialStorage={() => ({
+            viewConfig: new LiveMap(),
+          })}
+        >
+          <Flick />
+        </RoomProvider>
+      </LiveblocksProvider>
+    </ErrorBoundary>
   )
 }
 

@@ -2,7 +2,15 @@
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 import { css, cx } from '@emotion/css'
-import React, { HTMLAttributes, useEffect, useRef, useState } from 'react'
+import { useRoom } from '@liveblocks/react'
+import React, {
+  HTMLAttributes,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { BiCheck } from 'react-icons/bi'
 import { BsCloudCheck, BsCloudUpload } from 'react-icons/bs'
 import { HiOutlineUpload } from 'react-icons/hi'
@@ -47,6 +55,7 @@ import { horizontalCustomScrollBar } from '../../../utils/globalStyles'
 import { TextEditorParser } from '../editor/utils/helpers'
 import { Block, SimpleAST } from '../editor/utils/utils'
 import { newFlickStore, View } from '../store/flickNew.store'
+import { EditorContext } from './EditorProvider'
 import RecordingModal from './RecordingModal'
 import ViewRecordingsModal from './ViewRecordingsModal'
 
@@ -249,14 +258,12 @@ export interface TransitionConfig {
 
 const TransitionTooltip = ({
   transitions,
-  handleClose,
   transitionConfig,
   updateTransitions,
 }: {
   transitions: TransitionFragment[]
   transitionConfig: TransitionConfig | undefined
   updateTransitions: (config: TransitionConfig) => void
-  handleClose: () => void
 }) => {
   const [tab, setTab] = useState<'block' | 'swap'>('block')
 
@@ -384,7 +391,6 @@ const TransitionCard = ({
 }
 
 const FragmentBar = ({
-  editorValue,
   simpleAST,
   currentBlock,
   viewConfig,
@@ -392,7 +398,6 @@ const FragmentBar = ({
   togglePublishModal,
 }: {
   viewConfig: ViewConfig
-  editorValue?: string
   simpleAST?: SimpleAST
   currentBlock: Block | undefined
   setCurrentBlock: React.Dispatch<React.SetStateAction<Block | undefined>>
@@ -404,6 +409,34 @@ const FragmentBar = ({
   const [thumbnailModal, setThumbnailModal] = useState(false)
   const [recordingModal, setRecordingModal] = useState(false)
   const [viewRecordingModal, setViewRecordingModal] = useState(false)
+
+  const { editorSaved, editor } = useContext(EditorContext) || {}
+  const [connectionState, setConnectionState] = useState<string>()
+
+  const isSaved = useMemo(() => {
+    if (!editorSaved || connectionState !== 'open') return false
+    return true
+  }, [editorSaved, connectionState])
+
+  const room = useRoom()
+
+  useEffect(() => {
+    setConnectionState(room.getConnectionState())
+  }, [room.getConnectionState()])
+
+  useEffect(() => {
+    const saveWarningHandler = (e: any) => {
+      const confirmationMessage =
+        'It looks like you have been editing something. ' +
+        'If you leave before saving, your changes will be lost.'
+
+      ;(e || window.event).returnValue = confirmationMessage
+      return confirmationMessage
+    }
+
+    if (isSaved) window.onbeforeunload = null
+    else window.onbeforeunload = saveWarningHandler
+  }, [isSaved])
 
   const [
     { flick, activeFragmentId, view, themes, activeTheme },
@@ -446,10 +479,6 @@ const FragmentBar = ({
     400
   )
 
-  // useEffect(() => {
-  //   console.log('useEffect', editorValue)
-  // }, [editorValue])
-
   const initialLoad = useRef<boolean>(true)
 
   useDidUpdateEffect(() => {
@@ -458,14 +487,7 @@ const FragmentBar = ({
       return
     }
     debounced()
-  }, [
-    editorValue,
-    config,
-    useBranding,
-    brandingId,
-    simpleAST,
-    transitionConfig,
-  ])
+  }, [useBranding, brandingId, transitionConfig])
 
   useEffect(() => {
     initialLoad.current = true
@@ -486,6 +508,7 @@ const FragmentBar = ({
     setSavingConfig(true)
 
     try {
+      const editorValue = editor?.getJSON()
       const encodedEditorValue = Buffer.from(
         JSON.stringify(editorValue)
       ).toString('base64')
@@ -494,13 +517,9 @@ const FragmentBar = ({
         fragment?.type !== Fragment_Type_Enum_Enum.Intro &&
         fragment?.type !== Fragment_Type_Enum_Enum.Outro
       ) {
-        if (!editorValue || editorValue?.length === 0) return
         await saveFlick({
           variables: {
             id: flick?.id,
-            encodedEditorValue,
-            editorState: simpleAST,
-            fragmentId: activeFragmentId,
             branding: useBranding,
             brandingId: useBranding ? brandingId : undefined,
             flickConfiguration: {
@@ -599,7 +618,7 @@ const FragmentBar = ({
             <Text fontSize="small">Saving...</Text>
           </div>
         )}
-        {!savingConfig && !error && (
+        {!savingConfig && !error && isSaved && (
           <div className="flex items-center mr-4 text-gray-400">
             <BsCloudCheck className="mr-1" />
             <Text fontSize="small">Saved</Text>
@@ -609,6 +628,12 @@ const FragmentBar = ({
           <div className="flex items-center mr-4 text-red-400">
             <IoWarningOutline className="mr-1" />
             <Text fontSize="small">Error saving</Text>
+          </div>
+        )}
+        {!isSaved && (
+          <div className="flex items-center mr-4 text-red-700">
+            <IoWarningOutline className="mr-1" />
+            <Text fontSize="small">Unsaved changes</Text>
           </div>
         )}
         <div className="flex items-stretch justify-end py-2 border-l-2 border-brand-grey text-white">
@@ -731,7 +756,6 @@ const FragmentBar = ({
                 <TransitionTooltip
                   transitions={transitionsData.Transition}
                   transitionConfig={transitionConfig}
-                  handleClose={() => setTransitionsModal(false)}
                   updateTransitions={setTransitionConfig}
                 />
               ) : null
@@ -820,14 +844,16 @@ const FragmentBar = ({
             appearance="primary"
             size="small"
             type="button"
-            disabled={checkDisabledState(fragment, simpleAST, viewConfig)}
+            disabled={
+              checkDisabledState(fragment, simpleAST, viewConfig) || !isSaved
+            }
             onClick={async () => {
               // Segment Tracking
               logEvent(PageEvent.GoToDeviceSelect)
               // setRecordingModal(true)
               await updateConfig()
               if (fragment?.type !== Fragment_Type_Enum_Enum.Presentation)
-                history.push(`/${activeFragmentId}/studio`)
+                history.push(`/studio/${flick?.id}/${activeFragmentId}`)
               else history.push(`/present/${activeFragmentId}`)
             }}
           >
@@ -891,7 +917,7 @@ const FragmentBar = ({
 
 const checkDisabledState = (
   fragment: FlickFragmentFragment | undefined,
-  editorValue: SimpleAST | undefined,
+  simpleAST: SimpleAST | undefined,
   viewConfig: ViewConfig | undefined
 ) => {
   if (!fragment) return true
@@ -904,9 +930,9 @@ const checkDisabledState = (
   }
 
   if (
-    editorValue &&
-    new TextEditorParser(editorValue).isValid() &&
-    editorValue.blocks.length > 0
+    simpleAST &&
+    new TextEditorParser(simpleAST).isValid() &&
+    simpleAST.blocks.length > 0
   )
     return false
 
