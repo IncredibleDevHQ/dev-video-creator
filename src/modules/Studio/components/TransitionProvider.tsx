@@ -95,6 +95,7 @@ const TransitionProvider = ({
             isShorts={isShorts}
             color={branding?.colors?.transition}
             performFinishAction={performFinishAction}
+            setTopLayerChildren={setTopLayerChildren}
           />
         )
       case 'Wipe':
@@ -140,6 +141,7 @@ const TransitionProvider = ({
             isShorts={isShorts}
             color={branding?.colors?.transition}
             performFinishAction={performFinishAction}
+            setTopLayerChildren={setTopLayerChildren}
           />
         )
       case 'PastelLines':
