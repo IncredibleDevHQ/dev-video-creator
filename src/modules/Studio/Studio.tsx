@@ -66,7 +66,6 @@ import { logEvent } from '../../utils/analytics'
 import { PageEvent } from '../../utils/analytics-types'
 import { TopLayerChildren, ViewConfig } from '../../utils/configTypes'
 import { BrandingJSON } from '../Branding/BrandingPage'
-import { EditorProvider } from '../Flick/components/EditorProvider'
 import { TextEditorParser } from '../Flick/editor/utils/helpers'
 import { Block, useUtils } from '../Flick/editor/utils/utils'
 import { Presence, PresencePage } from '../Flick/Flick'
@@ -232,21 +231,21 @@ const StudioHoC = () => {
 
   if (view === 'studio' && fragment && viewConfig)
     return (
-      <EditorProvider>
-        <Studio
-          data={data}
-          studioFragment={{ ...fragment, configuration: viewConfig }}
-          branding={
-            data?.Fragment?.[0].flick.useBranding
-              ? data?.Fragment?.[0]?.flick.branding?.branding
-              : null
-          }
-          devices={devices.current}
-          liveStream={liveStream.current}
-          continuousRecordedBlockIds={continuousRecordedBlockIds.current}
-          addContinuousRecordedBlockIds={addContinuousRecordedBlockIds}
-        />
-      </EditorProvider>
+      // <EditorProvider>
+      <Studio
+        data={data}
+        studioFragment={{ ...fragment, configuration: viewConfig }}
+        branding={
+          data?.Fragment?.[0].flick.useBranding
+            ? data?.Fragment?.[0]?.flick.branding?.branding
+            : null
+        }
+        devices={devices.current}
+        liveStream={liveStream.current}
+        continuousRecordedBlockIds={continuousRecordedBlockIds.current}
+        addContinuousRecordedBlockIds={addContinuousRecordedBlockIds}
+      />
+      // </EditorProvider>
     )
 
   return <ScreenState loading />

@@ -113,8 +113,9 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
               editor.getText() === '' &&
               (editor.getJSON()?.content?.length || 0) <= 1
             ) {
-              if (state !== 'ready') return 'No notes for this block'
-              return 'Add a note...'
+              // if (state !== 'ready')
+              return 'No notes for this block'
+              // return 'Add a note...'
             }
             return ''
           },
