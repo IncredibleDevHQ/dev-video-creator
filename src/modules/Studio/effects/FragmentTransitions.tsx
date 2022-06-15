@@ -94,11 +94,15 @@ export const TrianglePathTransition = ({
   performFinishAction,
   isShorts,
   color,
+  setTopLayerChildren,
 }: {
   direction: string
   performFinishAction?: () => void
   isShorts?: boolean
   color?: string
+  setTopLayerChildren?: React.Dispatch<
+    React.SetStateAction<{ id: string; state: TopLayerChildren }>
+  >
 }) => {
   let stageConfig = { width: CONFIG.width, height: CONFIG.height }
   if (!isShorts) stageConfig = CONFIG
@@ -141,6 +145,15 @@ export const TrianglePathTransition = ({
             duration,
             // easing: Konva.Easings.EaseOut,
             onFinish: () => {
+              if (
+                direction === 'left' ||
+                direction === 'right' ||
+                direction === 'moveAway'
+              ) {
+                setTimeout(() => {
+                  setTopLayerChildren?.({ id: '', state: '' })
+                }, 350)
+              }
               if (!performFinishAction) return
               setTimeout(() => {
                 performFinishAction()
@@ -697,7 +710,11 @@ export const CassidooTransition = ({
                     duration: duration / 2,
                     onFinish: () => {
                       setTimeout(() => {
-                        if (direction === 'left' || direction === 'right') {
+                        if (
+                          direction === 'left' ||
+                          direction === 'right' ||
+                          direction === 'moveAway'
+                        ) {
                           setTopLayerChildren?.({ id: '', state: '' })
                         }
                       }, 200)
@@ -1099,7 +1116,11 @@ export const LeeRobTransition = ({
                   duration: (duration - 0.14) * 0.4,
                   onFinish: () => {
                     setTimeout(() => {
-                      if (direction === 'left' || direction === 'right') {
+                      if (
+                        direction === 'left' ||
+                        direction === 'right' ||
+                        direction === 'moveAway'
+                      ) {
                         setTopLayerChildren?.({ id: '', state: '' })
                       }
                     }, 200)
@@ -1675,6 +1696,11 @@ export const DevsForUkraineTransition = ({
                 scaleX: 0,
                 scaleY: 0,
                 duration: 0.3,
+                onFinish: () => {
+                  setTimeout(() => {
+                    setTopLayerChildren?.({ id: '', state: '' })
+                  }, 300)
+                },
               })
             }, 400)
           }}
@@ -1900,7 +1926,11 @@ export const Whitep4nth3rTransition = ({
                   easing: Konva.Easings.EaseIn,
                   onFinish: () => {
                     setTimeout(() => {
-                      if (direction === 'left' || direction === 'right') {
+                      if (
+                        direction === 'left' ||
+                        direction === 'right' ||
+                        direction === 'moveAway'
+                      ) {
                         setTopLayerChildren?.({ id: '', state: '' })
                       }
                     }, 200)
