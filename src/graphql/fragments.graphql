@@ -34,6 +34,7 @@ fragment FlickFragment on Fragment {
   thumbnailConfig
   thumbnailObject
   publishConfig
+  version
   participants {
     ...FragmentParticipant
   }
@@ -513,5 +514,11 @@ mutation MoveOrCopyBlocks(
     }
   ) {
     id
+  }
+}
+
+mutation UpdateNotebookVersion($fragmentId: uuid!) {
+  UpdateNotebookVer(fragmentId: $fragmentId) {
+    success
   }
 }

@@ -24,6 +24,7 @@ import {
   useGetFlickByIdQuery,
   useGetFlickFragmentLazyQuery,
   useGetThemesQuery,
+  useUpdateNotebookVersionMutation,
 } from '../../generated/graphql'
 import { useCanvasRecorder } from '../../hooks'
 import { User, userState } from '../../stores/user.store'
@@ -135,6 +136,9 @@ const Flick = () => {
     variables: { id },
     fetchPolicy: 'network-only',
   })
+
+  const [updateNotebookVersion] = useUpdateNotebookVersionMutation()
+  const [updatingNotebook, setUpdatingNotebook] = useState(false)
 
   const setStudio = useSetRecoilState(studioStore)
   const { addMusic, stopMusic } = useCanvasRecorder({})
@@ -508,7 +512,7 @@ const Flick = () => {
   }, [view])
 
   const getMissingFragment = async () => {
-    if (!flick) return
+    if (!flick) return undefined
     try {
       const { data, error } = await getFragment({
         variables: {
@@ -526,70 +530,100 @@ const Flick = () => {
           },
         }))
       }
+      return data?.Fragment_by_pk || undefined
     } catch (e) {
       emitToast({
         title: 'Error fetching new format',
         type: 'error',
         autoClose: 3000,
       })
+      return undefined
     }
   }
 
   useEffect(() => {
-    if (!activeFragmentId || !flick) return
-    const fragment = flick?.fragments.find(
-      (frag) => frag.id === activeFragmentId
-    )
-    if (!fragment) {
-      getMissingFragment()
-      return
-    }
-    setActiveFragment(fragment)
-    if (fragment?.editorState && fragment?.editorState?.blocks?.length > 0) {
-      setSimpleAST(fragment.editorState)
-      let blocks: {
-        [key: string]: BlockProperties
-      } = {
-        [fragment.editorState.blocks[0].id]: {
-          layout: 'classic',
-          view: {
-            type: 'introBlock',
-            intro: {
-              order: [
-                { enabled: true, state: 'userMedia' },
-                { enabled: true, state: 'titleSplash' },
-              ],
-            },
-          },
-        },
+    ;(async () => {
+      if (!activeFragmentId || !flick) return
+      let fragment: FlickFragmentFragment | undefined = flick?.fragments.find(
+        (frag) => frag.id === activeFragmentId
+      )
+      if (!fragment) {
+        fragment = await getMissingFragment()
+        return
       }
-      if (fragment.editorState.blocks.length > 1) {
-        blocks = {
-          ...blocks,
-          [fragment.editorState.blocks[1].id]: {
+      if (!fragment) return
+      if (fragment.version === 1) {
+        setUpdatingNotebook(true)
+        await updateNotebookVersion({
+          variables: {
+            fragmentId: fragment.id,
+          },
+        })
+        const newFragments = flick?.fragments.map((frag) => {
+          if (frag.id === fragment?.id) {
+            return {
+              ...frag,
+              version: 2,
+            }
+          }
+          return frag
+        })
+        setFlickStore((store) => ({
+          ...store,
+          flick: {
+            ...flick,
+            fragments: newFragments,
+          },
+        }))
+        setUpdatingNotebook(false)
+      }
+      setActiveFragment(fragment)
+      if (fragment?.editorState && fragment?.editorState?.blocks?.length > 0) {
+        setSimpleAST(fragment.editorState)
+        let blocks: {
+          [key: string]: BlockProperties
+        } = {
+          [fragment.editorState.blocks[0].id]: {
             layout: 'classic',
             view: {
-              type: 'outroBlock',
-              outro: {
-                order: [{ enabled: true, state: 'titleSplash' }],
+              type: 'introBlock',
+              intro: {
+                order: [
+                  { enabled: true, state: 'userMedia' },
+                  { enabled: true, state: 'titleSplash' },
+                ],
               },
-            } as OutroBlockView,
-          } as BlockProperties,
+            },
+          },
         }
+        if (fragment.editorState.blocks.length > 1) {
+          blocks = {
+            ...blocks,
+            [fragment.editorState.blocks[1].id]: {
+              layout: 'classic',
+              view: {
+                type: 'outroBlock',
+                outro: {
+                  order: [{ enabled: true, state: 'titleSplash' }],
+                },
+              } as OutroBlockView,
+            } as BlockProperties,
+          }
+        }
+        setUpdatesQueue((q) => [
+          ...q,
+          {
+            ...initialConfig,
+            mode:
+              fragment?.type === Fragment_Type_Enum_Enum.Portrait
+                ? 'Portrait'
+                : 'Landscape',
+            speakers: [flick.participants[0]],
+            blocks,
+          },
+        ])
       }
-      setUpdatesQueue((q) => [
-        ...q,
-        {
-          ...initialConfig,
-          mode:
-            fragment.type === Fragment_Type_Enum_Enum.Portrait
-              ? 'Portrait'
-              : 'Landscape',
-          speakers: [flick.participants[0]],
-          blocks,
-        },
-      ])
-    }
+    })()
   }, [
     activeFragmentId,
     flick?.id,
@@ -735,6 +769,8 @@ const Flick = () => {
 
   if ((!data && loading) || !viewConfigLiveMap)
     return <ScreenState title="Loading your story" loading />
+
+  if (updatingNotebook) return <ScreenState title="Updating notebook" />
 
   if (error)
     return (
