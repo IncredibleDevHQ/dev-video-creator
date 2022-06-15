@@ -1,5 +1,5 @@
 import { cx } from '@emotion/css'
-import { HocuspocusProvider } from '@hocuspocus/provider'
+import { HocuspocusProvider, WebSocketStatus } from '@hocuspocus/provider'
 import UniqueID from '@tiptap-pro/extension-unique-id'
 import { Editor as CoreEditor } from '@tiptap/core'
 import CharacterCount from '@tiptap/extension-character-count'
@@ -32,6 +32,7 @@ export const EditorContext = React.createContext<{
   editor: Editor | null
   dragHandleRef: React.RefObject<HTMLDivElement>
   editorSaved: boolean | undefined
+  providerWebsocketState: WebSocketStatus
 } | null>(null)
 
 export function generateLightColorHex() {
@@ -56,6 +57,9 @@ export const EditorProvider = ({
   const yDocRef = useRef<Y.Doc>()
 
   const [unsyncedChanges, setUnsyncedChanges] = useState(0)
+  const [websocketStatus, setWebsocketStatus] = useState<WebSocketStatus>(
+    WebSocketStatus.Disconnected
+  )
 
   const { fragmentId } = useParams<{ id: string; fragmentId?: string }>()
 
@@ -80,6 +84,10 @@ export const EditorProvider = ({
       maxDelay: 0,
       delay: 0,
       broadcast: false,
+      onStatus: ({ status }) => {
+        setWebsocketStatus(status)
+      },
+      forceSyncInterval: 30000,
     })
     providerRef.current = provider
     yDocRef.current = yDoc
@@ -294,6 +302,7 @@ export const EditorProvider = ({
         editor,
         dragHandleRef: dragRef,
         editorSaved: unsyncedChanges === 0,
+        providerWebsocketState: websocketStatus,
       }}
     >
       {children}

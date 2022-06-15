@@ -274,10 +274,7 @@ const FlickHuddle = ({
             })}
           >
             <Avatar
-              src={
-                participant.user.picture ||
-                `${config.storage.baseUrl}/idev-logo.svg`
-              }
+              src={participant.user.picture as string}
               alt={participant.user.displayName || ''}
               name={participant.user.displayName || ''}
               className="rounded-full w-7 h-7 ml-2"
