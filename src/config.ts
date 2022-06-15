@@ -109,6 +109,10 @@ const config = {
   logrocket: {
     appId: import.meta.env.VITE_LOGROCKET_APP_ID,
   },
+
+  liveblocks: {
+    publicKey: import.meta.env.VITE_LIVEBLOCKS_PUBLIC_KEY,
+  },
 }
 
 export default config

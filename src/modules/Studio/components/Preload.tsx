@@ -74,7 +74,6 @@ const Preload = ({
     variables: SetupRecordingMutationVariables,
     recordingsData: GetRecordingsQuery | undefined
   ) => {
-    if (!fragment?.configuration) return
     const recording = recordingsData?.Recording?.find(
       (recording) => recording.fragmentId === fragment.id
     )
@@ -128,7 +127,7 @@ const Preload = ({
         if (!recordingsData?.Recording) {
           throw new Error('No recordings found')
         }
-        await findOrSetupRecording?.(
+        await findOrSetupRecording(
           {
             flickId: fragment.flick.id,
             fragmentId: fragment.id,

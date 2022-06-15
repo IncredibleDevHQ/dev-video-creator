@@ -108,7 +108,7 @@ const App = () => {
               <Route exact path="/story/:id/:fragmentId?">
                 <Flick />
               </Route>
-              <Route exact path="/:fragmentId/studio">
+              <Route exact path="/studio/:id/:fragmentId">
                 <Studio />
               </Route>
               <Route exact path="/integrations/github/callback">
