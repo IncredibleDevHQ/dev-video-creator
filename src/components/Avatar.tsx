@@ -1,34 +1,40 @@
+/* eslint-disable jsx-a11y/click-events-have-key-events */
 /* eslint-disable jsx-a11y/no-noninteractive-element-interactions */
 import { cx } from '@emotion/css'
+import axios from 'axios'
 import React, { HTMLProps } from 'react'
-import Gravatar from 'react-gravatar'
+
+export const isImageLoaded = async (src: string) => {
+  try {
+    const { status } = await axios.get(src)
+    if (status === 200) return true
+    return false
+  } catch (e) {
+    return false
+  }
+}
 
 const Avatar = ({
   className,
   alt,
   src,
-  email,
+  name,
   onClick,
-}: { email?: string } & HTMLProps<HTMLImageElement>) => {
-  if (!src)
+}: { name: string } & HTMLProps<HTMLImageElement>) => {
+  if (src && src?.includes('cdn')) {
     return (
-      <Gravatar
-        className={cx(className)}
-        email={email}
-        alt={alt}
-        onClick={onClick}
-      />
+      <img className={cx(className)} src={src} alt={alt} onClick={onClick} />
     )
-  return (
-    // eslint-disable-next-line jsx-a11y/click-events-have-key-events
-    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
-    // eslint-disable-next-line jsx-a11y/click-events-have-key-events
-    <img className={cx(className)} src={src} alt={alt} onClick={onClick} />
-  )
-}
+  }
 
-Avatar.defaultProps = {
-  email: undefined,
+  return (
+    <img
+      className={cx(className)}
+      src={`https://ui-avatars.com/api/?name=${name}`}
+      alt={alt}
+      onClick={onClick}
+    />
+  )
 }
 
 export default Avatar

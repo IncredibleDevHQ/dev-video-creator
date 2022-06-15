@@ -97,29 +97,6 @@ export const ControlButton = ({
   )
 }
 
-const RaiseHandsMenu = ({ participants }: { participants: any[] }) => {
-  return (
-    <div className="flex flex-col shadow-2xl p-1 rounded-md bg-background">
-      {participants.map(({ name, id, picture, email }, index) => (
-        <div
-          className="flex justify-start items-center w-full mb-2 last:mb-0"
-          key={id || index}
-        >
-          <Avatar
-            className="w-6 h-6 rounded-full"
-            src={picture}
-            alt={name}
-            email={email}
-          />
-          <Heading fontSize="small" className="ml-1">
-            {name}
-          </Heading>
-        </div>
-      ))}
-    </div>
-  )
-}
-
 const RecordingControlsBar = ({
   timeLimit,
   timeOver,

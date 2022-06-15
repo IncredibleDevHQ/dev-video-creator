@@ -1,7 +1,8 @@
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
-import { Group, Rect, Text } from 'react-konva'
+import { Group, Rect, Text, Image } from 'react-konva'
 import { useRecoilValue } from 'recoil'
+import useImage from 'use-image'
 import {
   Fragment_Status_Enum_Enum,
   StudioFragmentFragment,
@@ -83,7 +84,7 @@ const VideoFragment = ({
   updatePayload: (value: any) => void
 }) => {
   const groupRef = useRef<Konva.Group>(null)
-  const { sub, picture } = (useRecoilValue(userState) as User) || {}
+  const { picture } = (useRecoilValue(userState) as User) || {}
 
   const [stageConfig, setStageConfig] = useState<{
     width: number
@@ -147,6 +148,8 @@ const VideoFragment = ({
 
   const { getNoOfLinesOfText } = usePoint()
   const { getTextWidth, clipRect } = useEdit()
+
+  const [logo] = useImage(branding?.logo || '', 'anonymous')
 
   useEffect(() => {
     return () => {
@@ -752,6 +755,26 @@ const VideoFragment = ({
             ))}
           </>
         )}
+      {logo && logo?.width && logo?.height && (
+        <Group>
+          <Rect
+            x={CONFIG.width - 24 - ((logo?.width * 32) / logo?.height + 24)}
+            y={24}
+            width={(logo?.width * 32) / logo?.height + 24}
+            height={56}
+            fill="#ffffff"
+            opacity={0.3}
+            cornerRadius={8}
+          />
+          <Image
+            x={CONFIG.width - 24 - (logo?.width * 32) / logo?.height - 12}
+            y={36}
+            width={(logo?.width * 32) / logo?.height}
+            height={32}
+            image={logo}
+          />
+        </Group>
+      )}
     </>
   )
 }

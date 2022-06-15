@@ -430,10 +430,6 @@ mutation UpdateFlickTheme($id: uuid!, $themeName: String!) {
 }
 mutation SaveFlick(
   $id: uuid!
-  $encodedEditorValue: String!
-  $editorState: json!
-  $fragmentId: uuid!
-  $configuration: json!
   $branding: Boolean!
   $brandingId: uuid
   $flickConfiguration: json!
@@ -444,16 +440,6 @@ mutation SaveFlick(
       useBranding: $branding
       brandingId: $brandingId
       configuration: $flickConfiguration
-    }
-  ) {
-    id
-  }
-  update_Fragment_by_pk(
-    pk_columns: { id: $fragmentId }
-    _set: {
-      editorState: $editorState
-      configuration: $configuration
-      encodedEditorValue: $encodedEditorValue
     }
   ) {
     id
@@ -501,5 +487,12 @@ mutation UpdateFlickPreferences(
     _set: { configuration: $configuration }
   ) {
     id
+  }
+}
+
+mutation GetHuddleRtcToken($flickId: uuid!) {
+  HuddleRtcToken(flickId: $flickId) {
+    success
+    token
   }
 }

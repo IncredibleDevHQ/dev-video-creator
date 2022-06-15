@@ -112,7 +112,7 @@ const RecordingControlsBar = ({
     <div
       style={{
         top: `${
-          (stageRef?.current?.y() || 0) + stageHeight + (shortsMode ? 0 : 25)
+          (stageRef?.current?.y() || 0) + stageHeight + (shortsMode ? 0 : 0)
         }px`,
         width: `${shortsMode ? stageWidth + 35 : stageWidth}px`,
       }}

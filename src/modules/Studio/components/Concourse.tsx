@@ -1,7 +1,8 @@
 import Konva from 'konva'
 import React, { createRef, useEffect, useState } from 'react'
-import { Group, Rect } from 'react-konva'
+import { Group, Rect, Image } from 'react-konva'
 import { useRecoilState, useRecoilValue } from 'recoil'
+import useImage from 'use-image'
 import {
   Fragment_Status_Enum_Enum,
   ThemeFragment,
@@ -168,13 +169,23 @@ const Concourse = ({
   fragmentState,
   blockType,
 }: ConcourseProps) => {
-  const { fragment, stream, participants, payload, users, theme, config } =
-    (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const {
+    fragment,
+    stream,
+    participants,
+    payload,
+    users,
+    theme,
+    config,
+    branding,
+  } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [canvas, setCanvas] = useRecoilState(canvasStore)
   const [isZooming, setZooming] = useState(false)
 
   const { picture } = (useRecoilValue(userState) as User) || {}
+
+  const [logo] = useImage(branding?.logo || '', 'anonymous')
 
   const groupRef = createRef<Konva.Group>()
   const { clipRect } = useEdit()
@@ -352,25 +363,27 @@ const Concourse = ({
         !disableUserMedia &&
         payload?.status !== Fragment_Status_Enum_Enum.CountDown &&
         payload?.status !== Fragment_Status_Enum_Enum.Ended &&
-        fragment &&
-        [...(fragment.configuration?.speakers || fragment.participants)]?.map(
-          (_: any, index: number) => {
-            return (
-              <PreviewUser
-                studioUserConfig={
-                  (studioUserConfig && studioUserConfig[index]) || {
-                    x:
-                      defaultStudioUserConfig.x -
-                      (index + 1) * userStudioImageGap,
-                    y: defaultStudioUserConfig.y,
-                    width: defaultStudioUserConfig.width,
-                    height: defaultStudioUserConfig.height,
-                  }
+        [
+          ...(config?.speakers ||
+            fragment?.configuration?.speakers ||
+            fragment?.participants ||
+            []),
+        ]?.map((_: any, index: number) => {
+          return (
+            <PreviewUser
+              studioUserConfig={
+                (studioUserConfig && studioUserConfig[index]) || {
+                  x:
+                    defaultStudioUserConfig.x -
+                    (index + 1) * userStudioImageGap,
+                  y: defaultStudioUserConfig.y,
+                  width: defaultStudioUserConfig.width,
+                  height: defaultStudioUserConfig.height,
                 }
-              />
-            )
-          }
-        )
+              }
+            />
+          )
+        })
       )}
       <Group>
         {(() => {
@@ -484,6 +497,31 @@ const Concourse = ({
           )
         })
       )}
+      {!isShorts &&
+        logo &&
+        logo?.width &&
+        logo?.height &&
+        blockType !== 'introBlock' &&
+        blockType !== 'outroBlock' && (
+          <Group>
+            <Rect
+              x={CONFIG.width - 24 - ((logo?.width * 24) / logo?.height + 24)}
+              y={24}
+              width={(logo?.width * 24) / logo?.height + 24}
+              height={48}
+              fill="#ffffff"
+              opacity={0.3}
+              cornerRadius={8}
+            />
+            <Image
+              x={CONFIG.width - 24 - (logo?.width * 24) / logo?.height - 12}
+              y={36}
+              width={(logo?.width * 24) / logo?.height}
+              height={24}
+              image={logo}
+            />
+          </Group>
+        )}
     </>
   )
 }

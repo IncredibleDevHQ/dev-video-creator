@@ -5,8 +5,10 @@
     "dropcursor",
     "Dropzone",
     "Hocuspocus",
+    "liveblocks",
     "lowlight",
     "Outro",
+    "unsynced",
     "vectorly"
   ],
   "files.exclude": {
