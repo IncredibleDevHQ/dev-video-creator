@@ -5,10 +5,9 @@ import Paragraph from '@tiptap/extension-paragraph'
 import Placeholder from '@tiptap/extension-placeholder'
 import Text from '@tiptap/extension-text'
 import { EditorContent, useEditor } from '@tiptap/react'
-import React, { useContext, useEffect, useMemo, useRef } from 'react'
+import React, { useEffect, useMemo, useRef } from 'react'
 import { useRecoilState } from 'recoil'
 import { customScroll } from '../../Dashboard/Dashboard'
-import { EditorContext } from '../../Flick/components/EditorProvider'
 import { tinyEditorStyle } from '../../Flick/editor/style'
 import {
   CodeBlockProps,
@@ -29,7 +28,7 @@ const CustomDocument = Document.extend({
 const Notes = ({ stageHeight }: { stageHeight: number }) => {
   const initialRender = useRef<boolean>(true)
 
-  const { editor } = useContext(EditorContext) || {}
+  // const { editor } = useContext(EditorContext) || {}
 
   // const [localNote, setLocalNote] = useState<string>()
   // const [localNoteId, setLocalNoteId] = useState<string>()
@@ -60,22 +59,22 @@ const Notes = ({ stageHeight }: { stageHeight: number }) => {
   //   500
   // )
 
-  const getContent = () => {
-    const ev = fragment?.encodedEditorValue
-      ? Buffer.from(fragment?.encodedEditorValue as string, 'base64').toString(
-          'utf8'
-        )
-      : ''
-    // detect if stored editor value is in html or json format
-    if (ev.startsWith('<') || ev === '') {
-      return ev
-    }
-    return JSON.parse(ev)
-  }
+  // const getContent = () => {
+  //   const ev = fragment?.encodedEditorValue
+  //     ? Buffer.from(fragment?.encodedEditorValue as string, 'base64').toString(
+  //         'utf8'
+  //       )
+  //     : ''
+  //   // detect if stored editor value is in html or json format
+  //   if (ev.startsWith('<') || ev === '') {
+  //     return ev
+  //   }
+  //   return JSON.parse(ev)
+  // }
 
-  useEffect(() => {
-    editor?.commands.setContent(getContent())
-  }, [])
+  // useEffect(() => {
+  //   editor?.commands.setContent(getContent())
+  // }, [])
 
   const noteEditor = useEditor(
     {

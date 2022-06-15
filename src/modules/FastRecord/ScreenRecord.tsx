@@ -505,6 +505,7 @@ const ScreenRecord = ({
     | undefined
 }) => {
   const { fragmentId } = useParams<{ fragmentId: string }>()
+  const { flickId } = studioFragment
   const query = useQuery()
   const blockId = query.get('blockId')
   const history = useHistory()
@@ -606,7 +607,7 @@ const ScreenRecord = ({
     null
   )
   const [getRTCToken] = useGetRtcTokenMutation({
-    variables: { fragmentId },
+    variables: { fragmentId, flickId },
   })
 
   const { ready, tracks, error } = createMicrophoneAndCameraTracks(
@@ -620,13 +621,17 @@ const ScreenRecord = ({
     fragmentId,
     {
       onTokenWillExpire: async () => {
-        const { data } = await getRTCToken({ variables: { fragmentId } })
+        const { data } = await getRTCToken({
+          variables: { fragmentId, flickId },
+        })
         if (data?.RTCToken?.token) {
           renewToken(data.RTCToken.token)
         }
       },
       onTokenDidExpire: async () => {
-        const { data } = await getRTCToken({ variables: { fragmentId } })
+        const { data } = await getRTCToken({
+          variables: { fragmentId, flickId },
+        })
         if (data?.RTCToken?.token) {
           const participantId = fragment?.configuration?.speakers?.find(
             ({ participant }: { participant: FlickParticipantsFragment }) =>
@@ -685,7 +690,9 @@ const ScreenRecord = ({
     if (studioFragment) {
       ;(async () => {
         init()
-        const { data } = await getRTCToken({ variables: { fragmentId } })
+        const { data } = await getRTCToken({
+          variables: { fragmentId, flickId },
+        })
         if (data?.RTCToken?.token) {
           const participantId = (
             studioFragment?.configuration
@@ -1121,10 +1128,10 @@ const ScreenRecord = ({
               </button>
             </div>
           </div>
-          <div className="grid grid-cols-11 gap-x-12 flex-1 items-center px-8 pb-8">
+          <div className="grid grid-cols-11 gap-x-12 flex-1 items-center px-8">
             {/* Stage */}
             <div
-              className="flex justify-center flex-1 col-span-8 w-full h-full relative"
+              className="flex justify-center flex-1 col-span-12 w-full h-full relative"
               ref={stageBoundingDivRef}
             >
               <div
@@ -1165,6 +1172,7 @@ const ScreenRecord = ({
                       y: stageWidth / CONFIG.width,
                     }}
                   >
+                    {console.log('stageRef', stageRef)}
                     <Bridge>
                       <Layer ref={layerRef}>
                         {(() => {
@@ -1251,14 +1259,14 @@ const ScreenRecord = ({
                 updatePayload={updatePayload}
               />
             </div>
-            <Notes
+            {/* <Notes
               key={payload?.activeObjectIndex}
               stageHeight={stageHeight}
               fragment={fragment}
               state={state}
               payload={payload}
               setFragment={setFragment}
-            />
+            /> */}
           </div>
           {/* Mini timeline */}
           <MiniTimeline

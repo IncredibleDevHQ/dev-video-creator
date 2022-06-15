@@ -159,7 +159,6 @@ const Flick = () => {
     updatesQueue.forEach((update) => {
       setViewConfig(update)
     })
-    setUpdatesQueue([])
   }, [viewConfigLiveMap, updatesQueue, fragmentId])
 
   const [getFragment] = useGetFlickFragmentLazyQuery()
@@ -546,9 +545,38 @@ const Flick = () => {
       return
     }
     setActiveFragment(fragment)
-    if (fragment?.editorState) {
+    if (fragment?.editorState && fragment?.editorState?.blocks > 0) {
       setSimpleAST(fragment.editorState)
-
+      let blocks: {
+        [key: string]: BlockProperties
+      } = {
+        [fragment.editorState.blocks[0].id]: {
+          layout: 'classic',
+          view: {
+            type: 'introBlock',
+            intro: {
+              order: [
+                { enabled: true, state: 'userMedia' },
+                { enabled: true, state: 'titleSplash' },
+              ],
+            },
+          },
+        },
+      }
+      if (fragment.editorState.blocks.length > 1) {
+        blocks = {
+          ...blocks,
+          [fragment.editorState.blocks[1].id]: {
+            layout: 'classic',
+            view: {
+              type: 'outroBlock',
+              outro: {
+                order: [{ enabled: true, state: 'titleSplash' }],
+              },
+            } as OutroBlockView,
+          } as BlockProperties,
+        }
+      }
       setUpdatesQueue((q) => [
         ...q,
         {
@@ -558,29 +586,7 @@ const Flick = () => {
               ? 'Portrait'
               : 'Landscape',
           speakers: [flick.participants[0]],
-          blocks: {
-            [fragment.editorState.blocks[0].id]: {
-              layout: 'classic',
-              view: {
-                type: 'introBlock',
-                intro: {
-                  order: [
-                    { enabled: true, state: 'userMedia' },
-                    { enabled: true, state: 'titleSplash' },
-                  ],
-                },
-              },
-            },
-            [fragment.editorState.blocks[1].id]: {
-              layout: 'classic',
-              view: {
-                type: 'outroBlock',
-                outro: {
-                  order: [{ enabled: true, state: 'titleSplash' }],
-                },
-              } as OutroBlockView,
-            } as BlockProperties,
-          },
+          blocks,
         },
       ])
     }
