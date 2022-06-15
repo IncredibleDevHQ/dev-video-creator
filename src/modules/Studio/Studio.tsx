@@ -1758,7 +1758,7 @@ const Studio = ({
                   : history.push(`/story/${fragment?.flickId}`)
               }
             />
-            <div className="mr-8 mt-8">
+            <div className="flex gap-x-2 mr-8 mt-8">
               <PresenceAvatars />
             </div>
           </div>
