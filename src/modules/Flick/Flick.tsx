@@ -545,7 +545,7 @@ const Flick = () => {
       return
     }
     setActiveFragment(fragment)
-    if (fragment?.editorState && fragment?.editorState?.blocks > 0) {
+    if (fragment?.editorState && fragment?.editorState?.blocks?.length > 0) {
       setSimpleAST(fragment.editorState)
       let blocks: {
         [key: string]: BlockProperties
