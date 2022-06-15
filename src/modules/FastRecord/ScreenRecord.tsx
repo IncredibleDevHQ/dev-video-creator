@@ -52,7 +52,6 @@ import { User, userState } from '../../stores/user.store'
 import { logEvent } from '../../utils/analytics'
 import { PageEvent } from '../../utils/analytics-types'
 import { BlockProperties, TopLayerChildren } from '../../utils/configTypes'
-import { EditorProvider } from '../Flick/components/EditorProvider'
 import { TextEditorParser } from '../Flick/editor/utils/helpers'
 import { Block, SimpleAST, VideoBlockProps } from '../Flick/editor/utils/utils'
 import { TimerModal } from '../Studio/components'
@@ -70,7 +69,6 @@ import { getIntegerHW } from '../Studio/Studio'
 import Countdown from './Countdown'
 import FastRecord from './FastRecord'
 import MiniTimeline from './MiniTimeline'
-import Notes from './Notes'
 import Preferences from './Preferences'
 import Preload from './Preload'
 import Publish from './Publish'
@@ -166,14 +164,12 @@ const ScreenRecordHoC = () => {
 
   if (view === 'studio' && fragment)
     return (
-      <EditorProvider>
-        <ScreenRecord
-          fragment={fragment}
-          devices={devices.current}
-          recordingsData={recordingsData}
-          localVideoUrl={localVideoUrl}
-        />
-      </EditorProvider>
+      <ScreenRecord
+        fragment={fragment}
+        devices={devices.current}
+        recordingsData={recordingsData}
+        localVideoUrl={localVideoUrl}
+      />
     )
 
   return null
