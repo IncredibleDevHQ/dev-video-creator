@@ -22,7 +22,7 @@ import {
   GetFragmentListDocument,
   GetFragmentListQuery,
   GetFragmentListQueryVariables,
-  useCreateFragmentMutation,
+  useAddFragmentMutation,
   useDeleteFragmentMutation,
   useDuplicateFragmentMutation,
   useGetFlickFragmentLazyQuery,
@@ -61,9 +61,9 @@ const Sidebar = ({ storyName }: { storyName: string }): JSX.Element | null => {
   const [getFragment] = useGetFlickFragmentLazyQuery()
 
   const [createFragment, { loading: creatingFragment }] =
-    useCreateFragmentMutation({
+    useAddFragmentMutation({
       update(cache, { data: updateCreateFragmentData, errors }) {
-        const newFragment = updateCreateFragmentData?.insert_Fragment_one
+        const newFragment = updateCreateFragmentData?.CreateFragment
 
         if (errors) {
           emitToast({
@@ -79,14 +79,21 @@ const Sidebar = ({ storyName }: { storyName: string }): JSX.Element | null => {
           type: 'success',
           autoClose: 3000,
         })
-        history.push(`/story/${id}/${newFragment.id}`)
+        history.push(`/story/${id}/${newFragment.fragmentId}`)
         cache.updateQuery<GetFragmentListQuery, GetFragmentListQueryVariables>(
           {
             query: GetFragmentListDocument,
             variables: { flickId: id },
           },
           (prevData) => ({
-            Fragment: [newFragment, ...(prevData?.Fragment || [])],
+            Fragment: [
+              {
+                id: newFragment.fragmentId,
+                name: 'Untitled',
+                type: newFragment.type as any,
+              },
+              ...(prevData?.Fragment || []),
+            ],
           })
         )
       },
@@ -324,7 +331,7 @@ const Sidebar = ({ storyName }: { storyName: string }): JSX.Element | null => {
                 variables: {
                   flickId: id,
                   name: 'Untitled',
-                  type,
+                  type: type as any,
                 },
               })
             }}

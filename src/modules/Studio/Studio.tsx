@@ -643,7 +643,8 @@ const Studio = ({
   continuousRecordedBlockIds: { blockId: string; duration: number }[]
   addContinuousRecordedBlockIds: (blockId: string, duration: number) => void
 }) => {
-  const { fragmentId } = useParams<{ id: string; fragmentId: string }>()
+  const { id: flickId, fragmentId } =
+    useParams<{ id: string; fragmentId: string }>()
   const { constraints, theme, recordedBlocks, isHost } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [studio, setStudio] = useRecoilState(studioStore)
@@ -747,13 +748,17 @@ const Studio = ({
     fragmentId,
     {
       onTokenWillExpire: async () => {
-        const { data } = await getRTCToken({ variables: { fragmentId } })
+        const { data } = await getRTCToken({
+          variables: { fragmentId, flickId },
+        })
         if (data?.RTCToken?.token) {
           renewToken(data.RTCToken.token)
         }
       },
       onTokenDidExpire: async () => {
-        const { data } = await getRTCToken({ variables: { fragmentId } })
+        const { data } = await getRTCToken({
+          variables: { fragmentId, flickId },
+        })
         if (data?.RTCToken?.token) {
           const participantId = fragment?.configuration?.speakers?.find(
             ({ participant }: { participant: FlickParticipantsFragment }) =>
@@ -787,7 +792,7 @@ const Studio = ({
   )
 
   const [getRTCToken] = useGetRtcTokenMutation({
-    variables: { fragmentId },
+    variables: { fragmentId, flickId },
   })
 
   const { participants, init, payload, updatePayload, updateParticipant } =
@@ -818,7 +823,9 @@ const Studio = ({
     if (fragment && tracks) {
       ;(async () => {
         init()
-        const { data } = await getRTCToken({ variables: { fragmentId } })
+        const { data } = await getRTCToken({
+          variables: { fragmentId, flickId },
+        })
         if (data?.RTCToken?.token) {
           const participantId = (
             fragment?.configuration?.speakers as FlickParticipantsFragment[]

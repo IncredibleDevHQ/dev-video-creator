@@ -262,13 +262,14 @@ mutation InsertParticipantToFragment(
   }
 }
 
-mutation CreateFragment(
+mutation AddFragment(
   $name: String!
   $flickId: uuid!
-  $type: FRAGMENT_TYPE_ENUM_enum!
+  $type: FragmentTypeEnum!
 ) {
-  insert_Fragment_one(object: { name: $name, flickId: $flickId, type: $type }) {
-    ...SimpleFragment
+  CreateFragment(flickId: $flickId, name: $name, type: $type) {
+    fragmentId
+    type
   }
 }
 

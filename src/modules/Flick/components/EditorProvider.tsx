@@ -15,7 +15,6 @@ import { useRecoilValue } from 'recoil'
 import * as Y from 'yjs'
 import { emitToast } from '../../../components'
 import config from '../../../config'
-import firebaseState from '../../../stores/firebase.store'
 import { User, userState } from '../../../stores/user.store'
 import CodeBlock from '../editor/blocks/CodeBlock'
 import ImageBlock from '../editor/blocks/ImageBlock'
@@ -51,8 +50,6 @@ export const EditorProvider = ({
   children: JSX.Element
   handleUpdate?: (editor: CoreEditor) => void
 }): JSX.Element => {
-  const auth = useRecoilValue(firebaseState)
-
   const dragRef = useRef<HTMLDivElement>(null)
 
   const providerRef = useRef<HocuspocusProvider>()
@@ -79,12 +76,10 @@ export const EditorProvider = ({
       messageReconnectTimeout: 15000,
       maxAttempts: 10,
       timeout: 10000,
-      factor: 1.25,
       minDelay: 0,
       maxDelay: 0,
       delay: 0,
       broadcast: false,
-      token: auth.token,
     })
     providerRef.current = provider
     yDocRef.current = yDoc
@@ -255,7 +250,7 @@ export const EditorProvider = ({
         timeout = setTimeout(() => {
           setUnsyncedChanges(providerRef.current?.unsyncedChanges || 0)
         }, 250)
-        await providerRef.current.connect()
+        // await providerRef.current.connect()
       } else {
         // If there are no unsynced changes, we can set the no of unsynced changes to 0 and clear the timeout
         if (timeout) clearTimeout(timeout)
