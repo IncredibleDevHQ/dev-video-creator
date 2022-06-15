@@ -2,6 +2,7 @@
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 import { css, cx } from '@emotion/css'
+import { WebSocketStatus } from '@hocuspocus/provider'
 import { useRoom } from '@liveblocks/react'
 import React, {
   HTMLAttributes,
@@ -410,11 +411,17 @@ const FragmentBar = ({
   const [recordingModal, setRecordingModal] = useState(false)
   const [viewRecordingModal, setViewRecordingModal] = useState(false)
 
-  const { editorSaved, editor } = useContext(EditorContext) || {}
+  const { editorSaved, editor, providerWebsocketState } =
+    useContext(EditorContext) || {}
   const [connectionState, setConnectionState] = useState<string>()
 
   const isSaved = useMemo(() => {
-    if (!editorSaved || connectionState !== 'open') return false
+    if (
+      !editorSaved ||
+      connectionState !== 'open' ||
+      providerWebsocketState !== WebSocketStatus.Connected
+    )
+      return false
     return true
   }, [editorSaved, connectionState])
 
