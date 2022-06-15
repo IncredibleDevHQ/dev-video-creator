@@ -713,10 +713,6 @@ const Studio = ({
 
   const [recordedVideoSrc, setRecordedVideoSrc] = useState<string>()
 
-  // gettinng the presence of others from live blocks
-  const [myPresence] = useMyPresence<Presence>()
-  const others = useOthers()
-
   useEffect(() => {
     if (!fragment) return
     const viewConfig: ViewConfig = fragment.configuration
@@ -1204,20 +1200,10 @@ const Studio = ({
 
   const updateMyPresence = useUpdateMyPresence<Presence>()
   useEffect(() => {
-    if (
-      state === 'recording' ||
-      state === 'countDown' ||
-      state === 'start-recording'
-    ) {
-      updateMyPresence({
-        page: PresencePage.Recording,
-      })
-    } else {
-      updateMyPresence({
-        page: PresencePage.Backstage,
-      })
-    }
-  }, [state])
+    updateMyPresence({
+      page: PresencePage.Recording,
+    })
+  }, [])
 
   // const getNote = (activeObjectIndex: number | undefined) => {
   //   if (!fragment || activeObjectIndex === undefined) return ''
@@ -1646,27 +1632,7 @@ const Studio = ({
                 </button>
               )}
               {/* <div></div> */}
-              <Avatar
-                src={myPresence.user.picture}
-                name={myPresence.user.name}
-                alt={myPresence.user.name}
-                className="h-7 w-7 rounded-full"
-              />
-              {others?.map(({ presence }) => {
-                if (presence) {
-                  const otherPresence = presence as Presence
-                  return otherPresence.page === PresencePage.Recording ||
-                    otherPresence.page === PresencePage.Backstage ? (
-                    <Avatar
-                      src={otherPresence.user.picture}
-                      name={otherPresence.user.name}
-                      className="h-7 w-7 rounded-full"
-                      alt={otherPresence.user.name}
-                    />
-                  ) : null
-                }
-                return null
-              })}
+              <PresenceAvatars />
             </div>
           </div>
           <div className="grid grid-cols-11 gap-x-12 flex-1 items-center px-8 pb-8">
@@ -1781,16 +1747,21 @@ const Studio = ({
         </>
       ) : (
         <div className="flex flex-col h-full">
-          <IoArrowBack
-            size={18}
-            type="button"
-            className="max-w-max p-0 cursor-pointer text-white opacity-90 ml-8 mt-8"
-            onClick={() =>
-              history.length > 2
-                ? history.goBack()
-                : history.push(`/story/${fragment?.flickId}`)
-            }
-          />
+          <div className="flex items-center w-full justify-between">
+            <IoArrowBack
+              size={18}
+              type="button"
+              className="max-w-max p-0 cursor-pointer text-white opacity-90 ml-8 mt-8"
+              onClick={() =>
+                history.length > 2
+                  ? history.goBack()
+                  : history.push(`/story/${fragment?.flickId}`)
+              }
+            />
+            <div className="mr-8 mt-8">
+              <PresenceAvatars />
+            </div>
+          </div>
           <div className="flex items-center justify-center flex-col w-full flex-1 pt-4">
             {recordedBlocks && (
               <div
@@ -2083,6 +2054,37 @@ const Studio = ({
         </div>
       </Modal>
     </div>
+  )
+}
+
+const PresenceAvatars = () => {
+  // getting the presence of others from live blocks
+  const [myPresence] = useMyPresence<Presence>()
+  const others = useOthers()
+  return (
+    <>
+      <Avatar
+        src={myPresence.user.picture}
+        name={myPresence.user.name}
+        alt={myPresence.user.name}
+        className="h-7 w-7 rounded-full"
+      />
+      {others?.map(({ presence }) => {
+        if (presence) {
+          const otherPresence = presence as Presence
+          return otherPresence.page === PresencePage.Recording ||
+            otherPresence.page === PresencePage.Backstage ? (
+            <Avatar
+              src={otherPresence.user.picture}
+              name={otherPresence.user.name}
+              className="h-7 w-7 rounded-full"
+              alt={otherPresence.user.name}
+            />
+          ) : null
+        }
+        return null
+      })}
+    </>
   )
 }
 
