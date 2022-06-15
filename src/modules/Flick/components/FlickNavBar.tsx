@@ -392,7 +392,7 @@ const FlickNavBar = () => {
           </div>
         </a>
       </div>
-      <Heading className="font-bold text-base text-white absolute my-auto mx-auto left-0 right-0 w-32 pl-12">
+      <Heading className="font-bold text-base text-white absolute my-auto mx-auto left-0 right-0 w-96 truncate text-center">
         {flick?.name || ''}
       </Heading>
       <div className="flex items-center gap-x-5 px-2">
