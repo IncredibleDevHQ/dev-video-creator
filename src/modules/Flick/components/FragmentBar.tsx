@@ -426,7 +426,7 @@ const FragmentBar = ({
     )
       return false
     return true
-  }, [editorSaved, connectionState])
+  }, [editorSaved, connectionState, providerWebsocketState])
 
   const room = useRoom()
 
