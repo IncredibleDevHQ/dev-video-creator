@@ -1168,10 +1168,10 @@ const Studio = ({
         ({ participant }) => participant.userSub === sub
       )?.participant.id,
       recordedBlocks: payload?.localRecordedBlocks,
-      isHost:
-        fragment?.configuration?.speakers.find(
-          (speaker: FlickParticipantsFragment) => speaker.userSub === sub
-        )?.role === 'Host' || false,
+      isHost: fragment?.flick?.owner?.userSub === sub,
+      // fragment?.configuration?.speakers.find(
+      //   (speaker: FlickParticipantsFragment) => speaker.userSub === sub
+      // )?.role === 'Host' || false,
     })
   }, [
     stream,
@@ -1437,9 +1437,7 @@ const Studio = ({
 
   useEffect(() => {
     if (!fragment || !isHost) return
-    const studioControllerSub = fragment?.configuration?.speakers.find(
-      (speaker: FlickParticipantsFragment) => speaker?.role === 'Host'
-    )?.userSub
+    const studioControllerSub = fragment?.flick?.owner?.userSub
     if (studioControllerSub) {
       updatePayload?.({
         // stores the sub of the user who has the controls
