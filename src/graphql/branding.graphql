@@ -1,5 +1,5 @@
-query GetBranding {
-  Branding {
+query GetBranding($_eq: String!) {
+  Branding(where: { user: { sub: { _eq: $_eq } } }) {
     branding
     id
     name

@@ -77,6 +77,13 @@ export type Presence = {
   inHuddle: boolean
 }
 
+export enum FlickBroadcastEvent {
+  ThemeChanged = 'themeChanged',
+  BrandingChanged = 'brandingChanged',
+  TransitionChanged = 'transitionChanged',
+  FlickNameChanged = 'flickNameChanged',
+}
+
 const initialConfig: ViewConfig = {
   titleSplash: {
     enable: true,
