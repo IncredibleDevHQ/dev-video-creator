@@ -26,6 +26,7 @@ import {
 } from 'react-icons/io5'
 import Modal from 'react-responsive-modal'
 import useMeasure from 'react-use-measure'
+import { useRecoilValue } from 'recoil'
 import { useDebouncedCallback } from 'use-debounce'
 import { ReactComponent as BrandIcon } from '../../assets/BrandIcon.svg'
 import { Button, emitToast, Heading, Text, Tooltip } from '../../components'
@@ -40,6 +41,7 @@ import {
 } from '../../generated/graphql'
 import { useUploadFile } from '../../hooks'
 import useDidUpdateEffect from '../../hooks/use-did-update-effect'
+import { userState } from '../../stores/user.store'
 import { logEvent, logPage } from '../../utils/analytics'
 import { PageCategory, PageEvent, PageTitle } from '../../utils/analytics-types'
 import CustomFontPicker, { IFont } from '../Flick/components/CustomFontPicker'
@@ -166,7 +168,17 @@ const BrandingPage = ({
 
   const [brandings, setBrandings] = useState<BrandingInterface[]>([])
 
-  const { data, loading: fetching, refetch } = useGetBrandingQuery()
+  const { sub } = useRecoilValue(userState) || {}
+
+  const {
+    data,
+    loading: fetching,
+    refetch,
+  } = useGetBrandingQuery({
+    variables: {
+      _eq: sub as string,
+    },
+  })
 
   const [createBranding, { loading }] = useCreateBrandingMutation()
 

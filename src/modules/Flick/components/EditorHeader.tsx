@@ -1,4 +1,5 @@
 import { cx } from '@emotion/css'
+import { useBroadcastEvent, useEventListener } from '@liveblocks/react'
 import React, { useState } from 'react'
 import { FiX } from 'react-icons/fi'
 import { IoPersonCircleOutline } from 'react-icons/io5'
@@ -15,6 +16,7 @@ import { PageEvent } from '../../../utils/analytics-types'
 import { IntroBlockView, ViewConfig } from '../../../utils/configTypes'
 import { studioStore } from '../../Studio/stores'
 import { Block, Position } from '../editor/utils/utils'
+import { FlickBroadcastEvent } from '../Flick'
 import { newFlickStore } from '../store/flickNew.store'
 
 const SpeakersTooltip = ({
@@ -85,6 +87,8 @@ const EditorHeader = ({
   const [isSpeakersTooltip, setSpeakersTooltip] = useState(false)
   const [{ flick }, setFlickStore] = useRecoilState(newFlickStore)
   const [{ fragment, updatePayload }, setStudio] = useRecoilState(studioStore)
+
+  const broadcast = useBroadcastEvent()
 
   const [updateFlickMutation] = useUpdateFlickMutation()
 
@@ -172,8 +176,42 @@ const EditorHeader = ({
           },
         },
       }))
+    broadcast(
+      {
+        type: FlickBroadcastEvent.FlickNameChanged,
+        name: newName,
+      },
+      {
+        shouldQueueEventIfNotReady: true,
+      }
+    )
     debounceUpdateFlickName(newName)
   }
+
+  useEventListener(({ event }: { event: any }) => {
+    if (event.type === FlickBroadcastEvent.FlickNameChanged) {
+      if (flick) {
+        setFlickStore((store) => ({
+          ...store,
+          flick: {
+            ...flick,
+            name: event.name,
+          },
+        }))
+      }
+      if (fragment)
+        setStudio((store) => ({
+          ...store,
+          fragment: {
+            ...fragment,
+            flick: {
+              ...fragment.flick,
+              name: event.name,
+            },
+          },
+        }))
+    }
+  })
 
   const handleFocus = (
     e:
