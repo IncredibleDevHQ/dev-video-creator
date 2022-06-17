@@ -676,9 +676,9 @@ const Studio = ({
 
   const [blockThumbnails, setBlockThumbnails] = useState<any>({})
 
-  // const [localRecordedBlocks, setLocalRecordedBlocks] = useState<
-  //   RecordedBlocksFragment[] | undefined
-  // >(recordedBlocks)
+  const [localRecordedBlocks, setLocalRecordedBlocks] = useState<
+    RecordedBlocksFragment[] | undefined
+  >(recordedBlocks)
 
   const [deleteBlockGroupMutation] = useDeleteBlockGroupMutation()
 
@@ -869,12 +869,12 @@ const Studio = ({
     }
   }, [])
 
-  useEffect(() => {
-    if (!updatePayload || !recordedBlocks) return
-    updatePayload?.({
-      localRecordedBlocks: recordedBlocks,
-    })
-  }, [updatePayload, recordedBlocks])
+  // useEffect(() => {
+  //   if (!updatePayload || !recordedBlocks) return
+  //   updatePayload?.({
+  //     localRecordedBlocks: recordedBlocks,
+  //   })
+  // }, [updatePayload, recordedBlocks])
 
   const [state, setState] = useState<StudioState>('ready')
 
@@ -932,10 +932,10 @@ const Studio = ({
       }
     }
     // setStudio({ ...studio, recordedBlocks: updatedBlocks })
-    // setLocalRecordedBlocks(updatedBlocks)
-    updatePayload?.({
-      localRecordedBlocks: updatedBlocks,
-    })
+    setLocalRecordedBlocks(updatedBlocks)
+    // updatePayload?.({
+    //   localRecordedBlocks: updatedBlocks,
+    // })
   }
 
   const upload = async (blockId: string) => {
@@ -1167,7 +1167,7 @@ const Studio = ({
       participantId: fragment?.participants.find(
         ({ participant }) => participant.userSub === sub
       )?.participant.id,
-      recordedBlocks: payload?.localRecordedBlocks,
+      recordedBlocks: localRecordedBlocks,
       isHost: fragment?.flick?.owner?.userSub === sub,
       // fragment?.configuration?.speakers.find(
       //   (speaker: FlickParticipantsFragment) => speaker.userSub === sub
@@ -1181,7 +1181,7 @@ const Studio = ({
     payload,
     participants,
     branding,
-    // localRecordedBlocks,
+    localRecordedBlocks,
   ])
 
   useMemo(() => {
@@ -1391,19 +1391,19 @@ const Studio = ({
       resetCanvas()
       setTopLayerChildren?.({ id: nanoid(), state: '' })
 
-      // if (recordedBlocks && currentBlock) {
-      //   const currBlock = recordedBlocks.filter(
-      //     (b) => b.id === currentBlock?.id
-      //   )[0]
-      //   let copyRecordedBlocks = [...recordedBlocks]
-      //   copyRecordedBlocks = copyRecordedBlocks.filter(
-      //     (blk) => blk.objectUrl !== currBlock.objectUrl
-      //   )
-      //   // setLocalRecordedBlocks(copyRecordedBlocks)
-      //   updatePayload?.({
-      //     localRecordedBlocks: copyRecordedBlocks,
-      //   })
-      // }
+      if (recordedBlocks && currentBlock) {
+        const currBlock = recordedBlocks.filter(
+          (b) => b.id === currentBlock?.id
+        )[0]
+        let copyRecordedBlocks = [...recordedBlocks]
+        copyRecordedBlocks = copyRecordedBlocks.filter(
+          (blk) => blk.objectUrl !== currBlock.objectUrl
+        )
+        setLocalRecordedBlocks(copyRecordedBlocks)
+        // updatePayload?.({
+        //   localRecordedBlocks: copyRecordedBlocks,
+        // })
+      }
 
       setState('resumed')
       setResetTimer(true)
@@ -1415,14 +1415,14 @@ const Studio = ({
       resetCanvas()
       setTopLayerChildren?.({ id: nanoid(), state: '' })
 
-      // const currBlock = recordedBlocks?.filter(
-      //   (b) => b.id === currentBlock?.id
-      // )[0]
-      // // remove all copies of currBlock.objectUrl from local state
-      // const updatedBlockList = recordedBlocks?.filter(
-      //   (blk) => blk.objectUrl !== currBlock?.objectUrl
-      // )
-      // // setLocalRecordedBlocks(updatedBlockList)
+      const currBlock = recordedBlocks?.filter(
+        (b) => b.id === currentBlock?.id
+      )[0]
+      // remove all copies of currBlock.objectUrl from local state
+      const updatedBlockList = recordedBlocks?.filter(
+        (blk) => blk.objectUrl !== currBlock?.objectUrl
+      )
+      setLocalRecordedBlocks(updatedBlockList)
       // updatePayload?.({
       //   localRecordedBlocks: updatedBlockList,
       // })
@@ -1569,7 +1569,7 @@ const Studio = ({
                 }
               }}
             >
-              {payload?.localRecordedBlocks
+              {localRecordedBlocks
                 ?.find((b: RecordedBlocksFragment) => b.id === block.id)
                 ?.objectUrl?.includes('.webm') && (
                 <div className="absolute top-0 right-0 rounded-tr-sm rounded-bl-sm bg-incredible-green-600">
@@ -1927,34 +1927,34 @@ const Studio = ({
                                 })
                                 setConfirmMultiBlockRetake(false)
 
-                                // remove all copies of currBlock.objectUrl from local state
-                                const updatedBlockList = recordedBlocks.filter(
-                                  (blk) => blk.objectUrl !== currBlock.objectUrl
-                                )
+                                // // remove all copies of currBlock.objectUrl from local state
+                                // const updatedBlockList = recordedBlocks.filter(
+                                //   (blk) => blk.objectUrl !== currBlock.objectUrl
+                                // )
                                 // setLocalRecordedBlocks(updatedBlockList)
                                 updatePayload?.({
-                                  localRecordedBlocks: updatedBlockList,
+                                  // localRecordedBlocks: updatedBlockList,
                                   actionTriggered: 'RetakeMultipleBlocks',
                                 })
                               }
                             } else {
-                              if (recordedBlocks && currentBlock) {
-                                let copyRecordedBlocks = [...recordedBlocks]
-                                // const currentRecordedBlock =
-                                //   copyRecordedBlocks?.findIndex(
-                                //     (b) => b.id === currentBlock?.id
-                                //   )
-                                // copyRecordedBlocks.splice(currentRecordedBlock, 1)
+                              // if (recordedBlocks && currentBlock) {
+                              //   let copyRecordedBlocks = [...recordedBlocks]
+                              //   // const currentRecordedBlock =
+                              //   //   copyRecordedBlocks?.findIndex(
+                              //   //     (b) => b.id === currentBlock?.id
+                              //   //   )
+                              //   // copyRecordedBlocks.splice(currentRecordedBlock, 1)
 
-                                // remove prev-recorded/continuously-recorded blocks with the same objectURL as the current block object url
-                                copyRecordedBlocks = copyRecordedBlocks.filter(
-                                  (blk) => blk.objectUrl !== currBlock.objectUrl
-                                )
-                                // setLocalRecordedBlocks(copyRecordedBlocks)
-                                updatePayload?.({
-                                  localRecordedBlocks: copyRecordedBlocks,
-                                })
-                              }
+                              //   // remove prev-recorded/continuously-recorded blocks with the same objectURL as the current block object url
+                              //   copyRecordedBlocks = copyRecordedBlocks.filter(
+                              //     (blk) => blk.objectUrl !== currBlock.objectUrl
+                              //   )
+                              //   // setLocalRecordedBlocks(copyRecordedBlocks)
+                              //   updatePayload?.({
+                              //     localRecordedBlocks: copyRecordedBlocks,
+                              //   })
+                              // }
 
                               const isCloudBlock = recordedBlocks?.find(
                                 (b) =>
