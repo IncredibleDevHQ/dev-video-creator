@@ -48,7 +48,7 @@ export const DipTransition = ({
     case 'moveIn':
       rectRef.current?.to({
         opacity: 1,
-        duration: 0.2,
+        duration: 0.4,
         onFinish: () => {
           setTimeout(() => {
             performFinishAction?.()
