@@ -3,7 +3,7 @@
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 import { css, cx } from '@emotion/css'
 import { WebSocketStatus } from '@hocuspocus/provider'
-import { useRoom } from '@liveblocks/react'
+import { useBroadcastEvent, useEventListener, useRoom } from '@liveblocks/react'
 import React, {
   HTMLAttributes,
   useContext,
@@ -55,6 +55,7 @@ import { ViewConfig } from '../../../utils/configTypes'
 import { horizontalCustomScrollBar } from '../../../utils/globalStyles'
 import { TextEditorParser } from '../editor/utils/helpers'
 import { Block, SimpleAST } from '../editor/utils/utils'
+import { FlickBroadcastEvent } from '../Flick'
 import { newFlickStore, View } from '../store/flickNew.store'
 import { EditorContext } from './EditorProvider'
 import RecordingModal from './RecordingModal'
@@ -411,6 +412,8 @@ const FragmentBar = ({
   const [recordingModal, setRecordingModal] = useState(false)
   const [viewRecordingModal, setViewRecordingModal] = useState(false)
 
+  const broadcast = useBroadcastEvent()
+
   const { editorSaved, editor, providerWebsocketState } =
     useContext(EditorContext) || {}
   const [connectionState, setConnectionState] = useState<string>()
@@ -423,7 +426,7 @@ const FragmentBar = ({
     )
       return false
     return true
-  }, [editorSaved, connectionState])
+  }, [editorSaved, connectionState, providerWebsocketState])
 
   const room = useRoom()
 
@@ -450,6 +453,8 @@ const FragmentBar = ({
     setFlickStore,
   ] = useRecoilState(newFlickStore)
 
+  const { sub } = useRecoilValue(userState) || {}
+
   const history = useHistory()
 
   const [fragment, setFragment] = useState<FlickFragmentFragment | undefined>(
@@ -465,7 +470,11 @@ const FragmentBar = ({
 
   const [saveFlick, { error }] = useSaveFlickMutation()
 
-  const { data: brandingData } = useGetBrandingQuery()
+  const { data: brandingData } = useGetBrandingQuery({
+    variables: {
+      _eq: sub as string,
+    },
+  })
 
   const [savingConfig, setSavingConfig] = useState(false)
 
@@ -509,7 +518,52 @@ const FragmentBar = ({
     setFlickStore((prev) => {
       return { ...prev, activeTheme: theme }
     })
+    broadcast(
+      {
+        type: FlickBroadcastEvent.ThemeChanged,
+        themeName: theme.name,
+      },
+      {
+        shouldQueueEventIfNotReady: true,
+      }
+    )
   }
+
+  useEventListener(({ event }: { event: any }) => {
+    if (event.type === FlickBroadcastEvent.ThemeChanged) {
+      setFlickStore((prev) => {
+        return {
+          ...prev,
+          activeTheme: themes.find((t) => t.name === event.themeName) || null,
+        }
+      })
+    }
+    if (event.type === FlickBroadcastEvent.BrandingChanged) {
+      if (event.brandingId) {
+        setBrandingId(event.branding.id)
+      }
+      if (event.branding.useBranding) {
+        setUseBranding(event.branding.useBranding)
+      }
+      setFlickStore((prev) => {
+        return {
+          ...prev,
+          flick: prev.flick
+            ? {
+                ...prev.flick,
+                useBranding:
+                  event.branding.useBranding || prev.flick.useBranding,
+                brandingId: event.branding.id || prev.flick.brandingId,
+                branding: event.branding.brandingData || prev.flick.branding,
+              }
+            : null,
+        }
+      })
+    }
+    if (event.type === FlickBroadcastEvent.TransitionChanged) {
+      setTransitionConfig(event.transitionConfig)
+    }
+  })
 
   const updateConfig = async () => {
     setSavingConfig(true)
@@ -541,15 +595,6 @@ const FragmentBar = ({
             flick: store.flick
               ? {
                   ...store.flick,
-                  useBranding,
-                  configuration: {
-                    ...store.flick.configuration,
-                    transitions: transitionConfig,
-                  },
-                  brandingId: useBranding ? brandingId : undefined,
-                  branding: useBranding
-                    ? brandingData?.Branding.find((b) => b.id === brandingId)
-                    : null,
                   fragments: flick.fragments.map((f) =>
                     f.id === activeFragmentId
                       ? {
@@ -697,6 +742,36 @@ const FragmentBar = ({
                         setBrandingId(branding.id)
                         setUseBranding(true)
                         setIsOpen(false)
+                        broadcast(
+                          {
+                            type: FlickBroadcastEvent.BrandingChanged,
+                            branding: {
+                              id: branding.id,
+                              useBranding: true,
+                              brandingData: brandingData?.Branding.find(
+                                (b) => b.id === branding.id
+                              ),
+                            },
+                          },
+                          {
+                            shouldQueueEventIfNotReady: true,
+                          }
+                        )
+                        setFlickStore((prev) => {
+                          return {
+                            ...prev,
+                            flick: prev.flick
+                              ? {
+                                  ...prev.flick,
+                                  useBranding: true,
+                                  brandingId: branding.id,
+                                  branding: brandingData?.Branding.find(
+                                    (b) => b.id === branding.id
+                                  ),
+                                }
+                              : null,
+                          }
+                        })
                       }}
                     >
                       <BrandIcon className="mr-2" />
@@ -715,6 +790,30 @@ const FragmentBar = ({
                   )}
                   onClick={() => {
                     setUseBranding(false)
+                    broadcast(
+                      {
+                        type: FlickBroadcastEvent.BrandingChanged,
+                        branding: {
+                          useBranding: false,
+                        },
+                      },
+                      {
+                        shouldQueueEventIfNotReady: true,
+                      }
+                    )
+                    setFlickStore((prev) => {
+                      return {
+                        ...prev,
+                        flick: prev.flick
+                          ? {
+                              ...prev.flick,
+                              useBranding: false,
+                              brandingId: undefined,
+                              branding: null,
+                            }
+                          : null,
+                      }
+                    })
                     setIsOpen(false)
                   }}
                 >
@@ -763,7 +862,27 @@ const FragmentBar = ({
                 <TransitionTooltip
                   transitions={transitionsData.Transition}
                   transitionConfig={transitionConfig}
-                  updateTransitions={setTransitionConfig}
+                  updateTransitions={(config) => {
+                    setTransitionConfig(config)
+                    broadcast({
+                      type: FlickBroadcastEvent.TransitionChanged,
+                      transitionConfig: config,
+                    })
+                    setFlickStore((prev) => {
+                      return {
+                        ...prev,
+                        flick: prev.flick
+                          ? {
+                              ...prev.flick,
+                              configuration: {
+                                ...prev.flick.configuration,
+                                transitions: config,
+                              },
+                            }
+                          : null,
+                      }
+                    })
+                  }}
                 />
               ) : null
             }
