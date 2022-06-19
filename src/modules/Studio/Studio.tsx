@@ -1,6 +1,15 @@
 /* eslint-disable no-console */
 /* eslint-disable jsx-a11y/media-has-caption */
 import { css, cx } from '@emotion/css'
+import { createClient } from '@liveblocks/client'
+import {
+  LiveblocksProvider,
+  RoomProvider,
+  useMap,
+  useMyPresence,
+  useOthers,
+  useUpdateMyPresence,
+} from '@liveblocks/react'
 import * as Sentry from '@sentry/react'
 import {
   createMicrophoneAndCameraTracks,
@@ -16,6 +25,7 @@ import { BiErrorCircle, BiMicrophone, BiVideo } from 'react-icons/bi'
 import { FiRotateCcw } from 'react-icons/fi'
 import { IoArrowBack, IoCheckmarkOutline } from 'react-icons/io5'
 import { Group, Layer, Stage } from 'react-konva'
+import Modal from 'react-responsive-modal'
 import { useHistory, useParams } from 'react-router-dom'
 import useMeasure from 'react-use-measure'
 import {
@@ -25,6 +35,7 @@ import {
 } from 'recoil'
 import { ReactComponent as UploadIcon } from '../../assets/Upload.svg'
 import {
+  Avatar,
   Button,
   dismissToast,
   emitToast,
@@ -55,9 +66,9 @@ import { logEvent } from '../../utils/analytics'
 import { PageEvent } from '../../utils/analytics-types'
 import { TopLayerChildren, ViewConfig } from '../../utils/configTypes'
 import { BrandingJSON } from '../Branding/BrandingPage'
-import { EditorProvider } from '../Flick/components/EditorProvider'
 import { TextEditorParser } from '../Flick/editor/utils/helpers'
 import { Block, useUtils } from '../Flick/editor/utils/utils'
+import { Presence, PresencePage } from '../Flick/Flick'
 import { Countdown, TimerModal } from './components'
 import {
   CONFIG,
@@ -81,11 +92,51 @@ const noScrollBar = css`
   }
 `
 
+const client = createClient({
+  publicApiKey: config.liveblocks.publicKey,
+})
+
+const LiveblocksRoomProvider = () => {
+  const { sub, displayName, picture } =
+    (useRecoilValue(userState) as User) || {}
+  const { fragmentId, id } = useParams<{ id: string; fragmentId: string }>()
+  const initialPresence: Presence = useMemo(() => {
+    return {
+      user: {
+        id: sub as string,
+        name: displayName as string,
+        picture: picture as string,
+      },
+      page: PresencePage.Backstage,
+      formatId: fragmentId as string,
+      cursor: { x: 0, y: 0 },
+      inHuddle: false,
+    }
+  }, [sub, displayName, picture])
+
+  return (
+    <LiveblocksProvider client={client}>
+      <RoomProvider id={`story-${id}`} initialPresence={initialPresence}>
+        <StudioHoC />
+      </RoomProvider>
+    </LiveblocksProvider>
+  )
+}
+
 const StudioHoC = () => {
   const [view, setView] = useState<'preview' | 'preload' | 'studio'>('preload')
 
   const { sub } = (useRecoilValue(userState) as User) || {}
-  const { fragmentId } = useParams<{ fragmentId: string }>()
+  const { fragmentId } = useParams<{ id: string; fragmentId: string }>()
+
+  const [viewConfig, setViewConfig] = useState<ViewConfig>()
+  const viewConfigLiveMap = useMap<string, ViewConfig>('viewConfig')
+  useEffect(() => {
+    if (viewConfigLiveMap && !viewConfig) {
+      setViewConfig(viewConfigLiveMap?.get(fragmentId))
+    }
+  }, [viewConfig, viewConfigLiveMap])
+
   const [fragment, setFragment] = useState<StudioFragmentFragment>()
   const [isUserAllowed, setUserAllowed] = useState(false)
 
@@ -124,13 +175,15 @@ const StudioHoC = () => {
   }, [sub])
 
   useEffect(() => {
+    if (!viewConfig) return
+    setUserAllowed(
+      !!viewConfig.speakers?.find((speaker: any) => speaker.userSub === sub)
+    )
+  }, [viewConfig])
+
+  useEffect(() => {
     if (!data) return
     setFragment(data.Fragment?.[0])
-    setUserAllowed(
-      !!data.Fragment[0]?.configuration?.speakers?.find(
-        (speaker: any) => speaker.userSub === sub
-      )
-    )
     if (!new TextEditorParser(data.Fragment[0].editorState).isValid()) {
       setError('INVALID_AST')
     }
@@ -146,7 +199,7 @@ const StudioHoC = () => {
       />
     )
 
-  if (!isUserAllowed) {
+  if (!isUserAllowed && viewConfigLiveMap) {
     return (
       <ScreenState
         title="Permission Denied"
@@ -155,19 +208,19 @@ const StudioHoC = () => {
     )
   }
 
-  if (view === 'preload' && fragment)
+  if (view === 'preload' && fragment && viewConfig)
     return (
       <Preload
-        fragment={fragment}
+        fragment={{ ...fragment, configuration: viewConfig }}
         setFragment={setFragment}
         setView={setView}
       />
     )
 
-  if (view === 'preview' && fragment)
+  if (view === 'preview' && fragment && viewConfig)
     return (
       <Preview
-        data={fragment}
+        data={{ ...fragment, configuration: viewConfig }}
         handleJoin={({ microphone, camera, liveStream: ls }) => {
           devices.current = { microphone, camera }
           liveStream.current = ls
@@ -176,26 +229,26 @@ const StudioHoC = () => {
       />
     )
 
-  if (view === 'studio' && fragment)
+  if (view === 'studio' && fragment && viewConfig)
     return (
-      <EditorProvider>
-        <Studio
-          data={data}
-          studioFragment={fragment}
-          branding={
-            data?.Fragment?.[0].flick.useBranding
-              ? data?.Fragment?.[0]?.flick.branding?.branding
-              : null
-          }
-          devices={devices.current}
-          liveStream={liveStream.current}
-          continuousRecordedBlockIds={continuousRecordedBlockIds.current}
-          addContinuousRecordedBlockIds={addContinuousRecordedBlockIds}
-        />
-      </EditorProvider>
+      // <EditorProvider>
+      <Studio
+        data={data}
+        studioFragment={{ ...fragment, configuration: viewConfig }}
+        branding={
+          data?.Fragment?.[0].flick.useBranding
+            ? data?.Fragment?.[0]?.flick.branding?.branding
+            : null
+        }
+        devices={devices.current}
+        liveStream={liveStream.current}
+        continuousRecordedBlockIds={continuousRecordedBlockIds.current}
+        addContinuousRecordedBlockIds={addContinuousRecordedBlockIds}
+      />
+      // </EditorProvider>
     )
 
-  return null
+  return <ScreenState loading />
 }
 
 const Preview = ({
@@ -405,26 +458,26 @@ const Preview = ({
     )
   }
 
-  if (error.camera || error.microphone) {
-    return (
-      <PermissionError
-        heading={<>Oops</>}
-        description={
-          <>
-            Something went wrong while trying to get access to your{' '}
-            {error.camera ? 'camera' : 'microphone'} device.
-          </>
-        }
-        icon={BiErrorCircle}
-        byline={
-          <>
-            Error code:{' '}
-            <b> {error.camera ? error.camera.name : error.microphone?.name}</b>.
-          </>
-        }
-      />
-    )
-  }
+  // if (error.camera || error.microphone) {
+  //   return (
+  //     <PermissionError
+  //       heading={<>Oops</>}
+  //       description={
+  //         <>
+  //           Something went wrong while trying to get access to your{' '}
+  //           {error.camera ? 'camera' : 'microphone'} device.
+  //         </>
+  //       }
+  //       icon={BiErrorCircle}
+  //       byline={
+  //         <>
+  //           Error code:{' '}
+  //           <b> {error.camera ? error.camera.name : error.microphone?.name}</b>.
+  //         </>
+  //       }
+  //     />
+  //   )
+  // }
 
   return (
     <div className="flex flex-col items-center justify-center flex-1 min-h-screen p-8">
@@ -441,13 +494,39 @@ const Preview = ({
       <div className="grid w-full grid-cols-5 gap-x-8">
         <div className="col-span-3">
           <div className="relative">
-            <AspectRatio
-              ratio="16/9"
-              className="overflow-hidden bg-gray-800 rounded-lg"
-            >
-              {/* using video tag because agora player failed due to updates */}
-              <video className={videoCSS} ref={videoRef} />
-            </AspectRatio>
+            {(error.camera || error.microphone) && (
+              <PermissionError
+                heading={<>Oops</>}
+                description={
+                  <>
+                    Something went wrong while trying to get access to your{' '}
+                    {error.camera ? 'camera' : 'microphone'} device.
+                  </>
+                }
+                icon={BiErrorCircle}
+                byline={
+                  <>
+                    Error code:{' '}
+                    <b>
+                      {' '}
+                      {error.camera
+                        ? error.camera.name
+                        : error.microphone?.name}
+                    </b>
+                    .
+                  </>
+                }
+              />
+            )}
+            {!error.camera && !error.microphone && (
+              <AspectRatio
+                ratio="16/9"
+                className="overflow-hidden bg-gray-800 rounded-lg"
+              >
+                {/* using video tag because agora player failed due to updates */}
+                <video className={videoCSS} ref={videoRef} />
+              </AspectRatio>
+            )}
           </div>
         </div>
         <div className="flex flex-col justify-center flex-1 col-span-2">
@@ -533,6 +612,7 @@ const Preview = ({
 
           <Button
             className="self-start"
+            disabled={!!(error.camera || error.microphone)}
             size="small"
             appearance="primary"
             type="button"
@@ -589,7 +669,8 @@ const Studio = ({
   continuousRecordedBlockIds: { blockId: string; duration: number }[]
   addContinuousRecordedBlockIds: (blockId: string, duration: number) => void
 }) => {
-  const { fragmentId } = useParams<{ fragmentId: string }>()
+  const { id: flickId, fragmentId } =
+    useParams<{ id: string; fragmentId: string }>()
   const { constraints, theme, recordedBlocks, isHost } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
   const [studio, setStudio] = useRecoilState(studioStore)
@@ -643,6 +724,10 @@ const Studio = ({
     state: TopLayerChildren
   }>({ id: '', state: '' })
 
+  // bool used to open the modal which asks the host to accept or reject the request from the collaborator to get controls
+  const [openControlsApprovalModal, setOpenControlsApprovalModal] =
+    useState(false)
+
   useEffect(() => {
     if (!stageWidth) return
     Konva.pixelRatio = (shortsMode ? 1080 : 1920) / stageWidth
@@ -685,13 +770,17 @@ const Studio = ({
     fragmentId,
     {
       onTokenWillExpire: async () => {
-        const { data } = await getRTCToken({ variables: { fragmentId } })
+        const { data } = await getRTCToken({
+          variables: { fragmentId, flickId },
+        })
         if (data?.RTCToken?.token) {
           renewToken(data.RTCToken.token)
         }
       },
       onTokenDidExpire: async () => {
-        const { data } = await getRTCToken({ variables: { fragmentId } })
+        const { data } = await getRTCToken({
+          variables: { fragmentId, flickId },
+        })
         if (data?.RTCToken?.token) {
           const participantId = fragment?.configuration?.speakers?.find(
             ({ participant }: { participant: FlickParticipantsFragment }) =>
@@ -725,7 +814,7 @@ const Studio = ({
   )
 
   const [getRTCToken] = useGetRtcTokenMutation({
-    variables: { fragmentId },
+    variables: { fragmentId, flickId },
   })
 
   const { participants, init, payload, updatePayload, updateParticipant } =
@@ -756,7 +845,9 @@ const Studio = ({
     if (fragment && tracks) {
       ;(async () => {
         init()
-        const { data } = await getRTCToken({ variables: { fragmentId } })
+        const { data } = await getRTCToken({
+          variables: { fragmentId, flickId },
+        })
         if (data?.RTCToken?.token) {
           const participantId = (
             fragment?.configuration?.speakers as FlickParticipantsFragment[]
@@ -805,6 +896,13 @@ const Studio = ({
     }
   }, [])
 
+  // useEffect(() => {
+  //   if (!updatePayload || !recordedBlocks) return
+  //   updatePayload?.({
+  //     localRecordedBlocks: recordedBlocks,
+  //   })
+  // }, [updatePayload, recordedBlocks])
+
   const [state, setState] = useState<StudioState>('ready')
 
   const {
@@ -831,11 +929,11 @@ const Studio = ({
    * =====================
    */
 
-  const resetRecording = () => {
-    resetCanvas()
-    init()
-    setState('ready')
-  }
+  // const resetRecording = () => {
+  //   resetCanvas()
+  //   init()
+  //   setState('ready')
+  // }
 
   const updateRecordedBlocks = (blockId: string, newSrc: string) => {
     let updatedBlocks = studio?.recordedBlocks ? [...studio.recordedBlocks] : []
@@ -862,6 +960,9 @@ const Studio = ({
     }
     // setStudio({ ...studio, recordedBlocks: updatedBlocks })
     setLocalRecordedBlocks(updatedBlocks)
+    // updatePayload?.({
+    //   localRecordedBlocks: updatedBlocks,
+    // })
   }
 
   const upload = async (blockId: string) => {
@@ -1094,10 +1195,10 @@ const Studio = ({
         ({ participant }) => participant.userSub === sub
       )?.participant.id,
       recordedBlocks: localRecordedBlocks,
-      isHost:
-        fragment?.configuration?.speakers.find(
-          (speaker: FlickParticipantsFragment) => speaker.userSub === sub
-        )?.role === 'Host' || false,
+      isHost: fragment?.flick?.owner?.userSub === sub,
+      // fragment?.configuration?.speakers.find(
+      //   (speaker: FlickParticipantsFragment) => speaker.userSub === sub
+      // )?.role === 'Host' || false,
     })
   }, [
     stream,
@@ -1133,6 +1234,13 @@ const Studio = ({
       start()
     }
   }, [payload?.status])
+
+  const updateMyPresence = useUpdateMyPresence<Presence>()
+  useEffect(() => {
+    updateMyPresence({
+      page: PresencePage.Recording,
+    })
+  }, [])
 
   // const getNote = (activeObjectIndex: number | undefined) => {
   //   if (!fragment || activeObjectIndex === undefined) return ''
@@ -1319,6 +1427,9 @@ const Studio = ({
           (blk) => blk.objectUrl !== currBlock.objectUrl
         )
         setLocalRecordedBlocks(copyRecordedBlocks)
+        // updatePayload?.({
+        //   localRecordedBlocks: copyRecordedBlocks,
+        // })
       }
 
       setState('resumed')
@@ -1339,6 +1450,9 @@ const Studio = ({
         (blk) => blk.objectUrl !== currBlock?.objectUrl
       )
       setLocalRecordedBlocks(updatedBlockList)
+      // updatePayload?.({
+      //   localRecordedBlocks: updatedBlockList,
+      // })
 
       setState('resumed')
       setResetTimer(true)
@@ -1347,6 +1461,26 @@ const Studio = ({
       })
     }
   }, [payload?.actionTriggered])
+
+  useEffect(() => {
+    if (!fragment || !isHost) return
+    const studioControllerSub = fragment?.flick?.owner?.userSub
+    if (studioControllerSub) {
+      updatePayload?.({
+        // stores the sub of the user who has the controls
+        studioControllerSub,
+        // stores the sub of the user who requested for controls
+        controlsRequestorSub: '',
+      })
+    }
+  }, [fragment, isHost])
+
+  // useEffect which makes the open control approval modal true, when someone requests for controls
+  useEffect(() => {
+    if (!payload) return
+    if (payload?.controlsRequestorSub === '') return
+    setOpenControlsApprovalModal(true)
+  }, [payload?.controlsRequestorSub])
 
   /**
    * =======================
@@ -1421,7 +1555,7 @@ const Studio = ({
                 }
               )}
               onClick={() => {
-                if (!isHost) return
+                if (payload?.studioControllerSub !== sub) return
                 // if continuous recording is enabled, disable mini-timeline onclick
                 if (
                   studio.continuousRecording &&
@@ -1463,7 +1597,7 @@ const Studio = ({
               }}
             >
               {localRecordedBlocks
-                ?.find((b) => b.id === block.id)
+                ?.find((b: RecordedBlocksFragment) => b.id === block.id)
                 ?.objectUrl?.includes('.webm') && (
                 <div className="absolute top-0 right-0 rounded-tr-sm rounded-bl-sm bg-incredible-green-600">
                   <IoCheckmarkOutline className="m-px text-gray-200" size={8} />
@@ -1494,16 +1628,54 @@ const Studio = ({
         <>
           <Countdown />
           {/* Stage and notes */}
-          <IoArrowBack
-            size={18}
-            type="button"
-            className="max-w-max p-0 cursor-pointer text-white opacity-90 ml-8 mt-8"
-            onClick={() =>
-              history.length > 2
-                ? history.goBack()
-                : history.push(`/story/${fragment?.flickId}`)
-            }
-          />
+          <div className="flex items-center justify-between mt-8 mx-8 h-16">
+            <IoArrowBack
+              size={18}
+              type="button"
+              className="max-w-max p-0 cursor-pointer text-white opacity-90"
+              onClick={() =>
+                history.length > 2
+                  ? history.goBack()
+                  : history.push(`/story/${fragment?.flickId}`)
+              }
+            />
+            <div className="flex gap-x-2">
+              {!isHost && payload?.studioControllerSub !== sub && (
+                <button
+                  disabled={
+                    state === 'recording' || state === 'start-recording'
+                  }
+                  type="button"
+                  className="bg-dark-100 hover:bg-dark-200 active:bg-dark-300 text-gray-100 rounded-sm flex items-center gap-x-2 text-xs px-2 py-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                  onClick={() => {
+                    updatePayload?.({
+                      controlsRequestorSub: sub,
+                    })
+                  }}
+                >
+                  Request Control
+                </button>
+              )}
+              {isHost && payload?.studioControllerSub !== sub && (
+                <button
+                  disabled={
+                    state === 'recording' || state === 'start-recording'
+                  }
+                  type="button"
+                  className="bg-dark-100 hover:bg-dark-200 active:bg-dark-300 text-gray-100 rounded-sm flex items-center gap-x-2 text-xs px-2 py-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                  onClick={() => {
+                    updatePayload?.({
+                      studioControllerSub: sub,
+                    })
+                  }}
+                >
+                  Revoke Controls
+                </button>
+              )}
+              {/* <div></div> */}
+              <PresenceAvatars />
+            </div>
+          </div>
           <div className="grid grid-cols-11 gap-x-12 flex-1 items-center px-8 pb-8">
             {/* Stage */}
             <div
@@ -1593,20 +1765,19 @@ const Studio = ({
                     </Bridge>
                   </Stage>
                 )}
-              {isHost && (
-                <RecordingControlsBar
-                  stageRef={stageRef}
-                  stageHeight={stageHeight}
-                  stageWidth={stageWidth}
-                  timeLimit={timeLimit}
-                  shortsMode={shortsMode}
-                  timeOver={() => setTimeLimitOver(true)}
-                  openTimerModal={() => setIsTimerModalOpen(true)}
-                  resetTimer={resetTimer}
-                  currentBlock={currentBlock}
-                  addContinuousRecordedBlockIds={addContinuousRecordedBlockIds}
-                />
-              )}
+              <RecordingControlsBar
+                stageRef={stageRef}
+                stageHeight={stageHeight}
+                stageWidth={stageWidth}
+                timeLimit={timeLimit}
+                shortsMode={shortsMode}
+                timeOver={() => setTimeLimitOver(true)}
+                openTimerModal={() => setIsTimerModalOpen(true)}
+                resetTimer={resetTimer}
+                currentBlock={currentBlock}
+                addContinuousRecordedBlockIds={addContinuousRecordedBlockIds}
+                shouldHaveControls={payload?.studioControllerSub === sub}
+              />
             </div>
             <Notes key={payload?.activeObjectIndex} stageHeight={stageHeight} />
           </div>
@@ -1616,16 +1787,21 @@ const Studio = ({
         </>
       ) : (
         <div className="flex flex-col h-full">
-          <IoArrowBack
-            size={18}
-            type="button"
-            className="max-w-max p-0 cursor-pointer text-white opacity-90 ml-8 mt-8"
-            onClick={() =>
-              history.length > 2
-                ? history.goBack()
-                : history.push(`/story/${fragment?.flickId}`)
-            }
-          />
+          <div className="flex items-center w-full justify-between">
+            <IoArrowBack
+              size={18}
+              type="button"
+              className="max-w-max p-0 cursor-pointer text-white opacity-90 ml-8 mt-8"
+              onClick={() =>
+                history.length > 2
+                  ? history.goBack()
+                  : history.push(`/story/${fragment?.flickId}`)
+              }
+            />
+            <div className="flex gap-x-2 mr-8 mt-8">
+              <PresenceAvatars />
+            </div>
+          </div>
           <div className="flex items-center justify-center flex-col w-full flex-1 pt-4">
             {recordedBlocks && (
               <div
@@ -1653,203 +1829,199 @@ const Studio = ({
                   })()}
                   key={nanoid()}
                 />
-                {(state === 'preview' || state === 'upload') && isHost && (
-                  <div
-                    style={
-                      recordedVideoSrc?.includes('blob')
-                        ? {
-                            background: 'rgba(39, 39, 42, 0.5)',
-                            border: '0.5px solid #52525B',
-                            boxSizing: 'border-box',
-                            backdropFilter: 'blur(40px)',
-                            borderRadius: '4px',
-                          }
-                        : {}
-                    }
-                    className="flex items-center rounded-md gap-x-2 mt-2 z-10 p-2 px-3"
-                  >
-                    {
-                      // if block already has a recording dont show save button
-                      recordedVideoSrc?.includes('blob') && (
-                        <button
-                          className="bg-incredible-green-600 text-white rounded-sm py-1.5 px-2.5 flex items-center gap-x-2 font-bold hover:shadow-lg text-sm"
-                          type="button"
-                          onClick={() => {
-                            logEvent(PageEvent.SaveRecording)
-                            if (
-                              payload.activeObjectIndex === undefined ||
-                              !(payload.activeObjectIndex >= 0)
-                            ) {
-                              console.error(
-                                'Invalid activeObjectIndex :',
-                                payload
-                              )
-                              return
+                {(state === 'preview' || state === 'upload') &&
+                  payload?.studioControllerSub === sub && (
+                    <div
+                      style={
+                        recordedVideoSrc?.includes('blob')
+                          ? {
+                              background: 'rgba(39, 39, 42, 0.5)',
+                              border: '0.5px solid #52525B',
+                              boxSizing: 'border-box',
+                              backdropFilter: 'blur(40px)',
+                              borderRadius: '4px',
                             }
-
-                            const isOutro =
-                              dataConfig?.[payload?.activeObjectIndex].type ===
-                              'outroBlock'
-
-                            // move on to next block
-                            const p = {
-                              ...payload,
-                              // eslint-disable-next-line no-nested-ternary
-                              activeObjectIndex: isOutro
-                                ? 0
-                                : fragment.configuration.continuousRecording // if not outro check if its continuous recording , if not move on to next block
-                                ? payload.activeObjectIndex
-                                : payload.activeObjectIndex + 1,
-                            }
-
-                            const blockId =
-                              dataConfig?.[payload.activeObjectIndex]?.id
-                            if (
-                              dataConfig &&
-                              p.activeObjectIndex < dataConfig.length - 1
-                            ) {
-                              p.status = Fragment_Status_Enum_Enum.Paused
-                            } else {
-                              p.status = Fragment_Status_Enum_Enum.Completed
-                            }
-                            p.actionTriggered = 'Save and continue'
-
-                            updatePayload?.(p)
-                            // start async upload and move on to next block
-                            if (blockId) upload(blockId)
-                            else {
-                              emitToast({
-                                title: 'Something went wrong!',
-                                type: 'error',
-                                description: 'Please try again later',
-                              })
-                              Sentry.captureException(
-                                new Error('No blockId in upload')
-                              )
-                            }
-                            // setState(isOutro ? 'preview' : 'resumed')
-                            // setResetTimer(true)
-                          }}
-                        >
-                          <UploadIcon className="h-5 w-5 my-px" />
-                          Save and continue
-                        </button>
-                      )
-                    }
-                    <button
-                      className="bg-grey-500 text-white rounded-sm py-1.5 px-2.5 flex items-center gap-x-2 font-bold hover:shadow-md text-sm"
-                      type="button"
-                      onClick={() => {
-                        logEvent(PageEvent.Retake)
-                        // resetCanvas()
-                        // setTopLayerChildren?.({ id: nanoid(), state: '' })
-
-                        // if currentBlock.id is in recordedBlocks
-                        const currBlock = recordedBlocks.filter(
-                          (b) => b.id === currentBlock?.id
-                        )[0]
-                        if (currBlock?.objectUrl) {
-                          // if found in recordedBlocks, find if webm is duplicate (meaning its part of continuous recording)
-                          const isDuplicate =
-                            recordedBlocks.filter(
-                              (blk) => blk.objectUrl === currBlock.objectUrl
-                            ).length > 1
-
-                          // this if handles the case when the retake button is clicked on a block that is part of continuous recording
-                          if (isDuplicate) {
-                            // call action to delete all blocks with currBlock.objectUrl
-                            if (!confirmMultiBlockRetake) {
-                              emitToast({
-                                title: 'Are you sure?',
-                                type: 'warning',
-                                description:
-                                  'You are about to delete the recordings of all blocks that were recorded continuously along with this block. This action cannot be undone. If you would like to continue press retake again.',
-                              })
-                              setConfirmMultiBlockRetake(true)
-                              // return
-                              // eslint-disable-next-line no-else-return
-                            } else {
-                              deleteBlockGroupMutation({
-                                variables: {
-                                  objectUrl: currBlock.objectUrl,
-                                  recordingId: studio.recordingId,
-                                },
-                              })
-                              setConfirmMultiBlockRetake(false)
-
-                              updatePayload?.({
-                                actionTriggered: 'RetakeMultipleBlocks',
-                              })
-
-                              // // remove all copies of currBlock.objectUrl from local state
-                              // const updatedBlockList = recordedBlocks.filter(
-                              //   (blk) => blk.objectUrl !== currBlock.objectUrl
-                              // )
-                              // console.log(
-                              //   'Removing blks with obj = ',
-                              //   currBlock.objectUrl
-                              // )
-                              // console.log(
-                              //   'UpdatedBlockList = ',
-                              //   updatedBlockList
-                              // )
-                              // setLocalRecordedBlocks(updatedBlockList)
-                            }
-                          } else {
-                            // if (recordedBlocks && currentBlock) {
-                            //   let copyRecordedBlocks = [...recordedBlocks]
-                            //   // const currentRecordedBlock =
-                            //   //   copyRecordedBlocks?.findIndex(
-                            //   //     (b) => b.id === currentBlock?.id
-                            //   //   )
-                            //   // copyRecordedBlocks.splice(currentRecordedBlock, 1)
-
-                            //   // remove prev-recorded/continuously-recorded blocks with the same objectURL as the current block object url
-                            //   copyRecordedBlocks = copyRecordedBlocks.filter(
-                            //     (blk) => blk.objectUrl !== currBlock.objectUrl
-                            //   )
-                            //   setLocalRecordedBlocks(copyRecordedBlocks)
-                            // }
-
-                            const isCloudBlock = recordedBlocks?.find(
-                              (b) =>
-                                b.id ===
-                                dataConfig?.[payload?.activeObjectIndex].id
-                            )
-
-                            // if (isCloudBlock) {
-                            //   // remove the cloud block from local store and allow retake of the cloud block
-                            //   const updatedRecordedBlocks =
-                            //     studio.recordedBlocks?.filter(
-                            //       (b) => b.id !== isCloudBlock.id
-                            //     )
-                            //   setLocalRecordedBlocks(updatedRecordedBlocks)
-                            // }
-                            updatePayload?.({
-                              status: Fragment_Status_Enum_Enum.Paused,
-                              actionTriggered: 'Retake',
-                              // decrement active object index on retake to repeat the current block
-                              // also reset the block's element active index
-                              activeObjectIndex:
-                                // eslint-disable-next-line no-nested-ternary
-                                payload.activeObjectIndex - 1 >= 0
-                                  ? isCloudBlock
-                                    ? payload.activeObjectIndex
-                                    : payload.activeObjectIndex - 1
-                                  : 0,
-                            })
-                          }
-                        }
-
-                        // setState('resumed')
-                        // setResetTimer(true)
-                      }}
+                          : {}
+                      }
+                      className="flex items-center rounded-md gap-x-2 mt-2 z-10 p-2 px-3"
                     >
-                      <FiRotateCcw className="h-4 w-4 my-1" />
-                      Retake
-                    </button>
-                  </div>
-                )}
+                      {
+                        // if block already has a recording dont show save button
+                        recordedVideoSrc?.includes('blob') && (
+                          <button
+                            className="bg-incredible-green-600 text-white rounded-sm py-1.5 px-2.5 flex items-center gap-x-2 font-bold hover:shadow-lg text-sm"
+                            type="button"
+                            onClick={() => {
+                              logEvent(PageEvent.SaveRecording)
+                              if (
+                                payload.activeObjectIndex === undefined ||
+                                !(payload.activeObjectIndex >= 0)
+                              ) {
+                                console.error(
+                                  'Invalid activeObjectIndex :',
+                                  payload
+                                )
+                                return
+                              }
+
+                              const isOutro =
+                                dataConfig?.[payload?.activeObjectIndex]
+                                  .type === 'outroBlock'
+
+                              // move on to next block
+                              const p = {
+                                ...payload,
+                                // eslint-disable-next-line no-nested-ternary
+                                activeObjectIndex: isOutro
+                                  ? 0
+                                  : fragment.configuration.continuousRecording // if not outro check if its continuous recording , if not move on to next block
+                                  ? payload.activeObjectIndex
+                                  : payload.activeObjectIndex + 1,
+                              }
+
+                              const blockId =
+                                dataConfig?.[payload.activeObjectIndex]?.id
+                              if (
+                                dataConfig &&
+                                p.activeObjectIndex < dataConfig.length - 1
+                              ) {
+                                p.status = Fragment_Status_Enum_Enum.Paused
+                              } else {
+                                p.status = Fragment_Status_Enum_Enum.Completed
+                              }
+                              p.actionTriggered = 'Save and continue'
+
+                              updatePayload?.(p)
+                              // start async upload and move on to next block
+                              if (blockId) upload(blockId)
+                              else {
+                                emitToast({
+                                  title: 'Something went wrong!',
+                                  type: 'error',
+                                  description: 'Please try again later',
+                                })
+                                Sentry.captureException(
+                                  new Error('No blockId in upload')
+                                )
+                              }
+                              // setState(isOutro ? 'preview' : 'resumed')
+                              // setResetTimer(true)
+                            }}
+                          >
+                            <UploadIcon className="h-5 w-5 my-px" />
+                            Save and continue
+                          </button>
+                        )
+                      }
+                      <button
+                        className="bg-grey-500 text-white rounded-sm py-1.5 px-2.5 flex items-center gap-x-2 font-bold hover:shadow-md text-sm"
+                        type="button"
+                        onClick={() => {
+                          logEvent(PageEvent.Retake)
+                          // resetCanvas()
+                          // setTopLayerChildren?.({ id: nanoid(), state: '' })
+
+                          // if currentBlock.id is in recordedBlocks
+                          const currBlock = recordedBlocks.filter(
+                            (b) => b.id === currentBlock?.id
+                          )[0]
+                          if (currBlock?.objectUrl) {
+                            // if found in recordedBlocks, find if webm is duplicate (meaning its part of continuous recording)
+                            const isDuplicate =
+                              recordedBlocks.filter(
+                                (blk) => blk.objectUrl === currBlock.objectUrl
+                              ).length > 1
+
+                            // this if handles the case when the retake button is clicked on a block that is part of continuous recording
+                            if (isDuplicate) {
+                              // call action to delete all blocks with currBlock.objectUrl
+                              if (!confirmMultiBlockRetake) {
+                                emitToast({
+                                  title: 'Are you sure?',
+                                  type: 'warning',
+                                  description:
+                                    'You are about to delete the recordings of all blocks that were recorded continuously along with this block. This action cannot be undone. If you would like to continue press retake again.',
+                                })
+                                setConfirmMultiBlockRetake(true)
+                                // return
+                                // eslint-disable-next-line no-else-return
+                              } else {
+                                deleteBlockGroupMutation({
+                                  variables: {
+                                    objectUrl: currBlock.objectUrl,
+                                    recordingId: studio.recordingId,
+                                  },
+                                })
+                                setConfirmMultiBlockRetake(false)
+
+                                // // remove all copies of currBlock.objectUrl from local state
+                                // const updatedBlockList = recordedBlocks.filter(
+                                //   (blk) => blk.objectUrl !== currBlock.objectUrl
+                                // )
+                                // setLocalRecordedBlocks(updatedBlockList)
+                                updatePayload?.({
+                                  // localRecordedBlocks: updatedBlockList,
+                                  actionTriggered: 'RetakeMultipleBlocks',
+                                })
+                              }
+                            } else {
+                              // if (recordedBlocks && currentBlock) {
+                              //   let copyRecordedBlocks = [...recordedBlocks]
+                              //   // const currentRecordedBlock =
+                              //   //   copyRecordedBlocks?.findIndex(
+                              //   //     (b) => b.id === currentBlock?.id
+                              //   //   )
+                              //   // copyRecordedBlocks.splice(currentRecordedBlock, 1)
+
+                              //   // remove prev-recorded/continuously-recorded blocks with the same objectURL as the current block object url
+                              //   copyRecordedBlocks = copyRecordedBlocks.filter(
+                              //     (blk) => blk.objectUrl !== currBlock.objectUrl
+                              //   )
+                              //   // setLocalRecordedBlocks(copyRecordedBlocks)
+                              //   updatePayload?.({
+                              //     localRecordedBlocks: copyRecordedBlocks,
+                              //   })
+                              // }
+
+                              const isCloudBlock = recordedBlocks?.find(
+                                (b) =>
+                                  b.id ===
+                                  dataConfig?.[payload?.activeObjectIndex].id
+                              )
+
+                              // if (isCloudBlock) {
+                              //   // remove the cloud block from local store and allow retake of the cloud block
+                              //   const updatedRecordedBlocks =
+                              //     studio.recordedBlocks?.filter(
+                              //       (b) => b.id !== isCloudBlock.id
+                              //     )
+                              //   setLocalRecordedBlocks(updatedRecordedBlocks)
+                              // }
+                              updatePayload?.({
+                                status: Fragment_Status_Enum_Enum.Paused,
+                                actionTriggered: 'Retake',
+                                // decrement active object index on retake to repeat the current block
+                                // also reset the block's element active index
+                                activeObjectIndex:
+                                  // eslint-disable-next-line no-nested-ternary
+                                  payload.activeObjectIndex - 1 >= 0
+                                    ? isCloudBlock
+                                      ? payload.activeObjectIndex
+                                      : payload.activeObjectIndex - 1
+                                    : 0,
+                              })
+                            }
+                          }
+
+                          // setState('resumed')
+                          // setResetTimer(true)
+                        }}
+                      >
+                        <FiRotateCcw className="h-4 w-4 my-1" />
+                        Retake
+                      </button>
+                    </div>
+                  )}
               </div>
             )}
           </div>
@@ -1862,8 +2034,94 @@ const Studio = ({
         setTimeLimit={setTimeLimit}
         handleClose={() => setIsTimerModalOpen(false)}
       />
+      {/* Controls request modal */}
+      <Modal
+        open={isHost && openControlsApprovalModal}
+        onClose={() => {
+          updatePayload?.({
+            controlsRequestorSub: '',
+          })
+          setOpenControlsApprovalModal(false)
+        }}
+        center
+        classNames={{
+          modal: cx(
+            'rounded-lg mx-auto px-8 pt-8 pb-4 text-white',
+            css`
+              background-color: #27272a !important;
+            `
+          ),
+        }}
+        showCloseIcon={false}
+      >
+        <div className=" flex flex-col items-center text-center w-full h-full">
+          <Heading className="font-main font-medium text-md text-gray-100">
+            Would you like to hand over the controls ?
+          </Heading>
+          <div className="flex flex-col justify-center w-full pt-8 gap-y-4">
+            <Button
+              appearance="primary"
+              type="button"
+              size="small"
+              className=""
+              onClick={() => {
+                updatePayload?.({
+                  studioControllerSub: payload?.controlsRequestorSub,
+                  controlsRequestorSub: '',
+                })
+                setOpenControlsApprovalModal(false)
+              }}
+            >
+              Approve
+            </Button>
+            <button
+              type="button"
+              className="text-red-500 font-main font-semibold"
+              onClick={() => {
+                updatePayload?.({
+                  controlsRequestorSub: '',
+                })
+                setOpenControlsApprovalModal(false)
+              }}
+            >
+              Reject
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }
 
-export default StudioHoC
+const PresenceAvatars = () => {
+  // getting the presence of others from live blocks
+  const [myPresence] = useMyPresence<Presence>()
+  const others = useOthers()
+  return (
+    <>
+      <Avatar
+        src={myPresence.user.picture}
+        name={myPresence.user.name}
+        alt={myPresence.user.name}
+        className="h-7 w-7 rounded-full"
+      />
+      {others?.map(({ presence }) => {
+        if (presence) {
+          const otherPresence = presence as Presence
+          return otherPresence.page === PresencePage.Recording ||
+            otherPresence.page === PresencePage.Backstage ? (
+            <Avatar
+              src={otherPresence.user.picture}
+              name={otherPresence.user.name}
+              className="h-7 w-7 rounded-full"
+              alt={otherPresence.user.name}
+            />
+          ) : null
+        }
+        return null
+      })}
+    </>
+  )
+}
+
+export default LiveblocksRoomProvider

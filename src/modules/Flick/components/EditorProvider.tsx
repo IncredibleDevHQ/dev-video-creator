@@ -1,15 +1,24 @@
 import { cx } from '@emotion/css'
+import { HocuspocusProvider, WebSocketStatus } from '@hocuspocus/provider'
 import UniqueID from '@tiptap-pro/extension-unique-id'
 import { Editor as CoreEditor } from '@tiptap/core'
 import CharacterCount from '@tiptap/extension-character-count'
+import Collaboration from '@tiptap/extension-collaboration'
+import CollaborationCursor from '@tiptap/extension-collaboration-cursor'
 import Focus from '@tiptap/extension-focus'
 import Placeholder from '@tiptap/extension-placeholder'
 import { Editor, useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
+import { useParams } from 'react-router-dom'
 import { useRecoilValue } from 'recoil'
+import * as Y from 'yjs'
+import { emitToast } from '../../../components'
+import config from '../../../config'
+import { User, userState } from '../../../stores/user.store'
 import CodeBlock from '../editor/blocks/CodeBlock'
 import ImageBlock from '../editor/blocks/ImageBlock'
+import InteractionBlock from '../editor/blocks/InteractionBlock'
 import VideoBlock from '../editor/blocks/VideoBlock'
 import { getSuggestionItems } from '../editor/slashCommand/items'
 import renderItems from '../editor/slashCommand/renderItems'
@@ -18,12 +27,12 @@ import editorStyle from '../editor/style'
 import { DragHandler } from '../editor/utils/drag'
 import { TrailingNode } from '../editor/utils/trailingNode'
 import CustomTypography from '../editor/utils/typography'
-import { newFlickStore } from '../store/flickNew.store'
-import InteractionBlock from '../editor/blocks/InteractionBlock'
 
 export const EditorContext = React.createContext<{
   editor: Editor | null
   dragHandleRef: React.RefObject<HTMLDivElement>
+  editorSaved: boolean | undefined
+  providerWebsocketState: WebSocketStatus
 } | null>(null)
 
 export function generateLightColorHex() {
@@ -44,24 +53,65 @@ export const EditorProvider = ({
 }): JSX.Element => {
   const dragRef = useRef<HTMLDivElement>(null)
 
-  const { flick, activeFragmentId } = useRecoilValue(newFlickStore)
+  const providerRef = useRef<HocuspocusProvider>()
+  const yDocRef = useRef<Y.Doc>()
 
-  const getContent = (activeFragmentId: string) => {
-    const ev = flick?.fragments.find(
-      (fragment) => fragment.id === activeFragmentId
-    )?.encodedEditorValue
-      ? Buffer.from(
-          flick?.fragments.find((fragment) => fragment.id === activeFragmentId)
-            ?.encodedEditorValue as string,
-          'base64'
-        ).toString('utf8')
-      : ''
-    // detect if stored editor value is in html or json format
-    if (ev.startsWith('<') || ev === '') {
-      return ev
-    }
-    return JSON.parse(ev)
-  }
+  const [unsyncedChanges, setUnsyncedChanges] = useState(0)
+  const [websocketStatus, setWebsocketStatus] = useState<WebSocketStatus>(
+    WebSocketStatus.Disconnected
+  )
+
+  const { fragmentId } = useParams<{ id: string; fragmentId?: string }>()
+
+  const prevFragmentId = useRef<string>()
+
+  useEffect(() => {
+    if (
+      (providerRef.current || yDocRef.current || !fragmentId) &&
+      fragmentId === prevFragmentId.current
+    )
+      return
+    providerRef.current?.disconnect()
+    const yDoc = new Y.Doc()
+    const provider = new HocuspocusProvider({
+      document: yDoc,
+      url: config.hocusPocus.server,
+      name: `${fragmentId}`,
+      messageReconnectTimeout: 15000,
+      maxAttempts: 10,
+      timeout: 10000,
+      minDelay: 0,
+      maxDelay: 0,
+      delay: 0,
+      broadcast: false,
+      onStatus: ({ status }) => {
+        setWebsocketStatus(status)
+      },
+      forceSyncInterval: 30000,
+    })
+    providerRef.current = provider
+    yDocRef.current = yDoc
+    prevFragmentId.current = fragmentId
+  }, [fragmentId, prevFragmentId])
+
+  const { displayName } = (useRecoilValue(userState) as User) || {}
+
+  // const getContent = (activeFragmentId: string) => {
+  //   const ev = flick?.fragments.find(
+  //     (fragment) => fragment.id === activeFragmentId
+  //   )?.encodedEditorValue
+  //     ? Buffer.from(
+  //         flick?.fragments.find((fragment) => fragment.id === activeFragmentId)
+  //           ?.encodedEditorValue as string,
+  //         'base64'
+  //       ).toString('utf8')
+  //     : ''
+  //   // detect if stored editor value is in html or json format
+  //   if (ev.startsWith('<') || ev === '') {
+  //     return ev
+  //   }
+  //   return JSON.parse(ev)
+  // }
 
   const editor = useEditor(
     {
@@ -97,6 +147,7 @@ export const EditorProvider = ({
         CustomTypography,
         StarterKit.configure({
           codeBlock: false,
+          history: false,
           heading: {
             levels: [1, 2, 3, 4, 5, 6],
           },
@@ -178,15 +229,70 @@ export const EditorProvider = ({
           limit: 20000,
         }),
         InteractionBlock,
-      ],
-      content: getContent(activeFragmentId),
+      ].concat(
+        yDocRef.current
+          ? [
+              Collaboration.configure({
+                document: yDocRef.current,
+              }),
+              CollaborationCursor.configure({
+                provider: providerRef.current,
+                user: {
+                  name: displayName,
+                  color: generateLightColorHex(),
+                },
+              }),
+            ]
+          : []
+      ),
+      // content: getContent(activeFragmentId),
     },
-    [dragRef.current, activeFragmentId]
+    [dragRef.current, yDocRef.current, displayName]
   )
 
   useEffect(() => {
+    ;(async () => {
+      let timeout: NodeJS.Timeout | null = null
+      if (providerRef.current?.hasUnsyncedChanges) {
+        // It takes a fraction of a second to sync, so we wait a bit before setting the no of unsynced changes
+        timeout = setTimeout(() => {
+          setUnsyncedChanges(providerRef.current?.unsyncedChanges || 0)
+        }, 250)
+        // await providerRef.current.connect()
+      } else {
+        // If there are no unsynced changes, we can set the no of unsynced changes to 0 and clear the timeout
+        if (timeout) clearTimeout(timeout)
+        setUnsyncedChanges(0)
+      }
+    })()
+  }, [
+    providerRef?.current?.unsyncedChanges,
+    providerRef.current?.hasUnsyncedChanges,
+  ])
+
+  useEffect(() => {
+    const saveHandler = (e: KeyboardEvent) => {
+      if (
+        e.key === 's' &&
+        (navigator.userAgent.match('Mac') ? e.metaKey : e.ctrlKey)
+      ) {
+        e.preventDefault()
+        providerRef.current?.connect()
+        providerRef.current?.forceSync()
+        emitToast({
+          title: 'Your changes will be autosaved',
+          type: 'info',
+          autoClose: 1500,
+        })
+      }
+    }
+
+    document.addEventListener('keydown', saveHandler, false)
+
     return () => {
       editor?.destroy()
+      providerRef.current?.destroy()
+      document.removeEventListener('keydown', saveHandler, false)
     }
   }, [])
 
@@ -195,6 +301,8 @@ export const EditorProvider = ({
       value={{
         editor,
         dragHandleRef: dragRef,
+        editorSaved: unsyncedChanges === 0,
+        providerWebsocketState: websocketStatus,
       }}
     >
       {children}

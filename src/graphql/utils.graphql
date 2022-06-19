@@ -128,8 +128,8 @@ mutation ProduceVideo($flickId: uuid!) {
   }
 }
 
-mutation GetRTCToken($fragmentId: uuid!) {
-  RTCToken(fragmentId: $fragmentId) {
+mutation GetRTCToken($fragmentId: uuid!, $flickId: uuid!) {
+  RTCToken(fragmentId: $fragmentId, flickId: $flickId) {
     token
     success
   }

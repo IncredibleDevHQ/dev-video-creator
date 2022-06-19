@@ -23,10 +23,9 @@ import { useRecoilState, useRecoilValue } from 'recoil'
 import { Timer } from '.'
 import { ReactComponent as CustomLayout } from '../../../assets/CustomLayout.svg'
 import { ReactComponent as OnlyUserMedia } from '../../../assets/OnlyUserMedia.svg'
-import { ReactComponent as ThreeWaySwap } from '../../../assets/ThreeWaySwap.svg'
 import { ReactComponent as StartRecordIcon } from '../../../assets/StartRecord.svg'
 import { ReactComponent as StopRecordIcon } from '../../../assets/StopRecord.svg'
-import { Avatar, Heading } from '../../../components'
+import { ReactComponent as ThreeWaySwap } from '../../../assets/ThreeWaySwap.svg'
 import {
   Fragment_Status_Enum_Enum,
   StudioFragmentFragment,
@@ -97,29 +96,6 @@ export const ControlButton = ({
   )
 }
 
-const RaiseHandsMenu = ({ participants }: { participants: any[] }) => {
-  return (
-    <div className="flex flex-col shadow-2xl p-1 rounded-md bg-background">
-      {participants.map(({ name, id, picture, email }, index) => (
-        <div
-          className="flex justify-start items-center w-full mb-2 last:mb-0"
-          key={id || index}
-        >
-          <Avatar
-            className="w-6 h-6 rounded-full"
-            src={picture}
-            alt={name}
-            email={email}
-          />
-          <Heading fontSize="small" className="ml-1">
-            {name}
-          </Heading>
-        </div>
-      ))}
-    </div>
-  )
-}
-
 const RecordingControlsBar = ({
   timeLimit,
   timeOver,
@@ -131,6 +107,7 @@ const RecordingControlsBar = ({
   openTimerModal,
   currentBlock,
   addContinuousRecordedBlockIds,
+  shouldHaveControls,
 }: {
   timeLimit?: number
   stageHeight: number
@@ -142,6 +119,7 @@ const RecordingControlsBar = ({
   stageRef: React.RefObject<Konva.Stage>
   currentBlock: Block | undefined
   addContinuousRecordedBlockIds: (blockId: string, duration: number) => void
+  shouldHaveControls: boolean
 }) => {
   const {
     state,
@@ -300,6 +278,27 @@ const RecordingControlsBar = ({
       isOutro
     )
   }
+
+  if (!shouldHaveControls)
+    return (
+      <div
+        style={{
+          top: `${
+            (stageRef?.current?.y() || 0) + stageHeight + (shortsMode ? 0 : 25)
+          }px`,
+          width: `${shortsMode ? stageWidth + 35 : stageWidth}px`,
+        }}
+        className="flex items-center justify-center absolute bottom-6 w-full"
+      >
+        {(state === 'recording' ||
+          state === 'start-recording' ||
+          payload?.status === Fragment_Status_Enum_Enum.Live) && (
+          <div className="p-1.5 mt-2 rounded-sm bg-grey-500 bg-opacity-50 border border-gray-600">
+            <Timer timer={timer} />
+          </div>
+        )}
+      </div>
+    )
 
   return (
     <div

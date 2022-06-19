@@ -1,14 +1,21 @@
 /* eslint-disable no-unneeded-ternary */
 /* eslint-disable no-nested-ternary */
 import { css, cx } from '@emotion/css'
+import { createClient, LiveMap } from '@liveblocks/client'
+import { LiveblocksProvider, RoomProvider, useMap } from '@liveblocks/react'
 import { Editor as CoreEditor } from '@tiptap/core'
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { BiBlock } from 'react-icons/bi'
 import { IoChevronBackOutline, IoChevronForwardOutline } from 'react-icons/io5'
 import { useHistory, useParams } from 'react-router-dom'
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
-import { v4 as uuidv4 } from 'uuid'
-import { emitToast, Heading, ScreenState } from '../../components'
+import {
+  emitToast,
+  ErrorBoundary,
+  Heading,
+  ScreenState,
+} from '../../components'
+import config from '../../config'
 import {
   FlickFragmentFragment,
   Fragment_Status_Enum_Enum,
@@ -17,6 +24,7 @@ import {
   useGetFlickByIdQuery,
   useGetFlickFragmentLazyQuery,
   useGetThemesQuery,
+  useUpdateNotebookVersionMutation,
 } from '../../generated/graphql'
 import { useCanvasRecorder } from '../../hooks'
 import { User, userState } from '../../stores/user.store'
@@ -48,6 +56,34 @@ import TipTap from './editor/TipTap'
 import { Block, Position, SimpleAST, useUtils } from './editor/utils/utils'
 import { newFlickStore, View } from './store/flickNew.store'
 
+export enum PresencePage {
+  Notebook = 'notebook',
+  Preview = 'preview',
+  Backstage = 'backstage',
+  Recording = 'recording',
+}
+export type Presence = {
+  user: {
+    id: string
+    name: string
+    picture: string
+  }
+  page: PresencePage
+  formatId?: string
+  cursor: {
+    x: number
+    y: number
+  }
+  inHuddle: boolean
+}
+
+export enum FlickBroadcastEvent {
+  ThemeChanged = 'themeChanged',
+  BrandingChanged = 'brandingChanged',
+  TransitionChanged = 'transitionChanged',
+  FlickNameChanged = 'flickNameChanged',
+}
+
 const initialConfig: ViewConfig = {
   titleSplash: {
     enable: true,
@@ -57,22 +93,6 @@ const initialConfig: ViewConfig = {
   blocks: {},
   selectedBlocks: [],
   continuousRecording: false,
-}
-
-const initialAST: SimpleAST = {
-  blocks: [
-    {
-      id: uuidv4(),
-      type: 'introBlock',
-      pos: 0,
-      introBlock: {},
-    },
-    {
-      id: uuidv4(),
-      type: 'outroBlock',
-      pos: 1,
-    },
-  ],
 }
 
 export const useLocalPayload = () => {
@@ -106,6 +126,10 @@ export const useLocalPayload = () => {
   return { updatePayload, payload, resetPayload }
 }
 
+const client = createClient({
+  publicApiKey: config.liveblocks.publicKey,
+})
+
 const Flick = () => {
   const { id, fragmentId } = useParams<{ id: string; fragmentId?: string }>()
   const [{ flick, activeFragmentId, view }, setFlickStore] =
@@ -120,16 +144,37 @@ const Flick = () => {
     fetchPolicy: 'network-only',
   })
 
+  const [updateNotebookVersion] = useUpdateNotebookVersionMutation()
+  const [updatingNotebook, setUpdatingNotebook] = useState(false)
+
   const setStudio = useSetRecoilState(studioStore)
   const { addMusic, stopMusic } = useCanvasRecorder({})
 
   const [currentBlock, setCurrentBlock] = useState<Block>()
-  const [viewConfig, setViewConfig] = useState<ViewConfig>(initialConfig)
+
+  const viewConfigLiveMap = useMap<string, ViewConfig>('viewConfig')
+  const viewConfig =
+    (fragmentId ? viewConfigLiveMap?.get(fragmentId) : undefined) ||
+    initialConfig
+  const setViewConfig = useCallback(
+    (vc: ViewConfig) => {
+      if (!fragmentId) return
+      viewConfigLiveMap?.set(fragmentId, vc)
+    },
+    [viewConfigLiveMap, fragmentId]
+  )
+  const [updatesQueue, setUpdatesQueue] = useState<ViewConfig[]>([])
+  useEffect(() => {
+    if (!fragmentId) return
+    if (!viewConfigLiveMap || viewConfigLiveMap?.get(fragmentId)) return
+    updatesQueue.forEach((update) => {
+      setViewConfig(update)
+    })
+  }, [viewConfigLiveMap, updatesQueue, fragmentId])
 
   const [getFragment] = useGetFlickFragmentLazyQuery()
 
   const [simpleAST, setSimpleAST] = useState<SimpleAST>()
-  const [editorValue, setEditorValue] = useState<any>()
   const [previewPosition, setPreviewPosition] = useState<Position>()
   const [activeFragment, setActiveFragment] = useState<FlickFragmentFragment>()
 
@@ -411,18 +456,14 @@ const Flick = () => {
 
   useEffect(() => {
     resetPayload()
-    setStudio((store) => ({
-      ...store,
-      shortsMode: false,
-    }))
   }, [activeFragmentId])
 
   useEffect(() => {
     if (!data) return
     const fragmentsLength = data.Flick_by_pk?.fragments.length || 0
-    const editorFragment = data.Flick_by_pk?.fragments.find((f) => !f.type)
+    const editorFragment = data.Flick_by_pk?.fragments?.[0]
 
-    if (!fragmentId) {
+    if (!fragmentId && fragmentsLength > 0) {
       history.push(`/story/${data.Flick_by_pk?.id}/${editorFragment?.id}`)
     }
     setFlickStore((store) => ({
@@ -478,7 +519,7 @@ const Flick = () => {
   }, [view])
 
   const getMissingFragment = async () => {
-    if (!flick) return
+    if (!flick) return undefined
     try {
       const { data, error } = await getFragment({
         variables: {
@@ -496,37 +537,60 @@ const Flick = () => {
           },
         }))
       }
+      return data?.Fragment_by_pk || undefined
     } catch (e) {
       emitToast({
         title: 'Error fetching new format',
         type: 'error',
         autoClose: 3000,
       })
+      return undefined
     }
   }
 
   useEffect(() => {
-    if (!activeFragmentId || !flick) return
-    const fragment = flick?.fragments.find(
-      (frag) => frag.id === activeFragmentId
-    )
-    if (!fragment) {
-      getMissingFragment()
-      return
-    }
-    setActiveFragment(fragment)
-
-    setSimpleAST(fragment?.editorState || initialAST)
-    setViewConfig(
-      fragment?.configuration || {
-        ...initialConfig,
-        mode:
-          fragment.type === Fragment_Type_Enum_Enum.Portrait
-            ? 'Portrait'
-            : 'Landscape',
-        speakers: [flick.participants[0]],
-        blocks: {
-          [initialAST.blocks[0].id]: {
+    ;(async () => {
+      if (!activeFragmentId || !flick) return
+      let fragment: FlickFragmentFragment | undefined = flick?.fragments.find(
+        (frag) => frag.id === activeFragmentId
+      )
+      if (!fragment) {
+        fragment = await getMissingFragment()
+        return
+      }
+      if (!fragment) return
+      if (fragment.version === 1) {
+        setUpdatingNotebook(true)
+        await updateNotebookVersion({
+          variables: {
+            fragmentId: fragment.id,
+          },
+        })
+        const newFragments = flick?.fragments.map((frag) => {
+          if (frag.id === fragment?.id) {
+            return {
+              ...frag,
+              version: 2,
+            }
+          }
+          return frag
+        })
+        setFlickStore((store) => ({
+          ...store,
+          flick: {
+            ...flick,
+            fragments: newFragments,
+          },
+        }))
+        setUpdatingNotebook(false)
+      }
+      setActiveFragment(fragment)
+      if (fragment?.editorState && fragment?.editorState?.blocks?.length > 0) {
+        setSimpleAST(fragment.editorState)
+        let blocks: {
+          [key: string]: BlockProperties
+        } = {
+          [fragment.editorState.blocks[0].id]: {
             layout: 'classic',
             view: {
               type: 'introBlock',
@@ -538,31 +602,35 @@ const Flick = () => {
               },
             },
           },
-          [initialAST.blocks[1].id]: {
-            layout: 'classic',
-            view: {
-              type: 'outroBlock',
-              outro: {
-                order: [{ enabled: true, state: 'titleSplash' }],
-              },
-            } as OutroBlockView,
-          } as BlockProperties,
-        },
+        }
+        if (fragment.editorState.blocks.length > 1) {
+          blocks = {
+            ...blocks,
+            [fragment.editorState.blocks[1].id]: {
+              layout: 'classic',
+              view: {
+                type: 'outroBlock',
+                outro: {
+                  order: [{ enabled: true, state: 'titleSplash' }],
+                },
+              } as OutroBlockView,
+            } as BlockProperties,
+          }
+        }
+        setUpdatesQueue((q) => [
+          ...q,
+          {
+            ...initialConfig,
+            mode:
+              fragment?.type === Fragment_Type_Enum_Enum.Portrait
+                ? 'Portrait'
+                : 'Landscape',
+            speakers: [flick.participants[0]],
+            blocks,
+          },
+        ])
       }
-    )
-
-    setCurrentBlock(fragment?.editorState?.blocks[0] || initialAST.blocks[0])
-    const ev = fragment?.encodedEditorValue
-      ? Buffer.from(fragment?.encodedEditorValue as string, 'base64').toString(
-          'utf8'
-        )
-      : ''
-    // detect if stored editor value is in html or json format
-    if (ev.startsWith('<') || ev === '') {
-      setEditorValue(ev)
-    } else {
-      setEditorValue(JSON.parse(ev))
-    }
+    })()
   }, [
     activeFragmentId,
     flick?.id,
@@ -667,29 +735,29 @@ const Flick = () => {
   const [openSidebar, setOpenSidebar] = useState(true)
 
   const handleEditorChange = (editor: CoreEditor) => {
-    // log all blockquotes in editor
-    // const blockquotes = editor
-    //   .getJSON()
-    //   .content?.filter((block) => block.type === 'blockquote')
-    // console.log(blockquotes?.map((b) => b.attrs.id))
     utils.getSimpleAST(editor.getJSON()).then((simpleAST) => {
       if (simpleAST)
         setSimpleAST((prev) => ({
           ...simpleAST,
           blocks: [
-            ...(prev?.blocks ? [prev.blocks[0]] : []),
+            ...(prev?.blocks
+              ? prev?.blocks[0]?.type === 'introBlock'
+                ? [prev.blocks[0]]
+                : []
+              : []),
             ...simpleAST.blocks,
             ...(prev?.blocks
-              ? [
-                  {
-                    ...prev.blocks[prev.blocks.length - 1],
-                    pos: simpleAST.blocks.length + 1,
-                  } as Block,
-                ]
+              ? prev?.blocks?.[prev?.blocks.length - 1]?.type === 'outroBlock'
+                ? [
+                    {
+                      ...prev.blocks[prev.blocks.length - 1],
+                      pos: simpleAST.blocks.length + 1,
+                    } as Block,
+                  ]
+                : []
               : []),
           ],
         }))
-      setEditorValue(editor.getJSON())
       if (!editor || editor.isDestroyed) return
       const transaction = editor.state.tr
       editor.state.doc.descendants((node, pos) => {
@@ -706,8 +774,10 @@ const Flick = () => {
     })
   }
 
-  if (!data && loading)
+  if ((!data && loading) || !viewConfigLiveMap)
     return <ScreenState title="Loading your story" loading />
+
+  if (updatingNotebook) return <ScreenState title="Updating notebook" />
 
   if (error)
     return (
@@ -762,9 +832,7 @@ const Flick = () => {
           <div className="flex flex-col flex-1 overflow-hidden relative">
             <FragmentBar
               simpleAST={simpleAST}
-              editorValue={editorValue}
-              config={viewConfig}
-              setViewConfig={setViewConfig}
+              viewConfig={viewConfig}
               currentBlock={currentBlock}
               setCurrentBlock={setCurrentBlock}
               togglePublishModal={() => setPublishModal(true)}
@@ -815,9 +883,12 @@ const Flick = () => {
                       setPreviewPosition(position)
                     }}
                     handleActiveBlock={(block) => {
-                      if (block === undefined) setCurrentBlock(undefined)
-                      if (block && block !== currentBlock)
+                      if (block === undefined) {
+                        setCurrentBlock(undefined)
+                      }
+                      if (block && block !== currentBlock) {
                         setCurrentBlock(block)
+                      }
                     }}
                     ast={simpleAST}
                   />
@@ -883,4 +954,40 @@ const Flick = () => {
   )
 }
 
-export default Flick
+const FlickHoC = () => {
+  const { id } = useParams<{ id: string; fragmentId?: string }>()
+
+  const { sub, displayName, picture } =
+    (useRecoilValue(userState) as User) || {}
+
+  const initialPresence: Presence = useMemo(() => {
+    return {
+      user: {
+        id: sub as string,
+        name: displayName as string,
+        picture: picture as string,
+      },
+      page: PresencePage.Notebook,
+      cursor: { x: 0, y: 0 },
+      inHuddle: false,
+    }
+  }, [sub, displayName, picture])
+
+  return (
+    <ErrorBoundary>
+      <LiveblocksProvider client={client}>
+        <RoomProvider
+          id={`story-${id}`}
+          initialPresence={initialPresence}
+          initialStorage={() => ({
+            viewConfig: new LiveMap(),
+          })}
+        >
+          <Flick />
+        </RoomProvider>
+      </LiveblocksProvider>
+    </ErrorBoundary>
+  )
+}
+
+export default FlickHoC

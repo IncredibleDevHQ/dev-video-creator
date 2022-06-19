@@ -1634,23 +1634,23 @@
   resolved "https://registry.yarnpkg.com/@headlessui/react/-/react-1.6.4.tgz#c73084e23386bef5fb86cd16da3352c3a844bb4c"
   integrity sha512-0yqz1scwbFtwljmbbKjXsSGl5ABEYNICVHZnMCWo0UtOZodo2Tpu94uOVgCRjRZ77l2WcTi2S0uidINDvG7lsA==
 
-"@hocuspocus/common@^1.0.0-alpha.8":
-  version "1.0.0-alpha.8"
-  resolved "https://registry.yarnpkg.com/@hocuspocus/common/-/common-1.0.0-alpha.8.tgz#ca0fdf8105e4652f91bd7fc93f5371df23bc8f56"
-  integrity sha512-irdhg/z+ytoyUz+feZqLyyzSXFjId81Iufjhzr2SrOAYoQvo7NSxGYuMaO4lBLsGlmjonvcXE6g3PmGUVS4lvQ==
+"@hocuspocus/common@^1.0.0-alpha.11":
+  version "1.0.0-alpha.11"
+  resolved "https://registry.yarnpkg.com/@hocuspocus/common/-/common-1.0.0-alpha.11.tgz#d598d221465338c1d912251105519e88f8486805"
+  integrity sha512-oOddSLUTr8KrC58KSs5YHzr99ZSI4HZdIkYRoqmrusViF8M850uLXgYce7eG7Xaq4KlvXCSDG+wioQRTFXkCaA==
   dependencies:
-    lib0 "^0.2.43"
+    lib0 "^0.2.47"
 
-"@hocuspocus/provider@^1.0.0-alpha.33":
-  version "1.0.0-alpha.33"
-  resolved "https://registry.yarnpkg.com/@hocuspocus/provider/-/provider-1.0.0-alpha.33.tgz#ef53aabb3f21a79b3432193e4750d48f4f4d1a7f"
-  integrity sha512-V4VehgakHghoU2o2aaVxTf81hAywPwXfq1YyR7ZUKAd8OH74jeYtlvOMRKQQPxcI+oaQ6p3gWU+48k67awnP5w==
+"@hocuspocus/provider@^1.0.0-alpha.38":
+  version "1.0.0-alpha.38"
+  resolved "https://registry.yarnpkg.com/@hocuspocus/provider/-/provider-1.0.0-alpha.38.tgz#c19725f674065087ad2d8f30d5ca25057c0bc2e4"
+  integrity sha512-smyX9MmTFi6KunBfr3DrGHxFVFVh5h8ql8SO0LkTnex5KBFvo5t/KHAQ6Nof1ms0uEVv9Wx994qNJQ547lXGBQ==
   dependencies:
-    "@hocuspocus/common" "^1.0.0-alpha.8"
+    "@hocuspocus/common" "^1.0.0-alpha.11"
     "@lifeomic/attempt" "^3.0.2"
-    lib0 "^0.2.43"
+    lib0 "^0.2.46"
     y-protocols "^1.0.5"
-    yjs "^13.5.24"
+    yjs "^13.5.29"
 
 "@humanwhocodes/config-array@^0.5.0":
   version "0.5.0"
@@ -1672,9 +1672,19 @@
   integrity sha512-trnsAYxU3xnS1gPHPyU961coFyLkh4gAD/0zQ5mymY4yOZ+CYvsPqUbOFSw0aDM4y0tV7tiFxL/1XfXPNC6IPg==
 
 "@lifeomic/attempt@^3.0.2":
-  version "3.0.2"
-  resolved "https://registry.yarnpkg.com/@lifeomic/attempt/-/attempt-3.0.2.tgz#6920d6fa76e911c2d27e5a7c9a5f42aff2292733"
-  integrity sha512-JHRfM7fUit2UroC0xRnuzMGegSTbfvz6X/1PgcIvahXC+A7UsKa8XfR1YrBsvoSu669iMTeNkDb26pSkGOzXKw==
+  version "3.0.3"
+  resolved "https://registry.yarnpkg.com/@lifeomic/attempt/-/attempt-3.0.3.tgz#e742a5b85eb673e2f1746b0f39cb932cbc6145bb"
+  integrity sha512-GlM2AbzrErd/TmLL3E8hAHmb5Q7VhDJp35vIbyPVA5Rz55LZuRr8pwL3qrwwkVNo05gMX1J44gURKb4MHQZo7w==
+
+"@liveblocks/client@^0.16.15":
+  version "0.16.15"
+  resolved "https://registry.yarnpkg.com/@liveblocks/client/-/client-0.16.15.tgz#f3598a17e17bb5619ea33fb7f14e6f9216331b74"
+  integrity sha512-cymqQL53V/ow1xz628viIniEv3QCLkwhqsx/txuKR1ziIHyTpqBMzYPUlDUNqCjCzLL/WuyK+kfFpK6Ux9wiBA==
+
+"@liveblocks/react@^0.16.15":
+  version "0.16.15"
+  resolved "https://registry.yarnpkg.com/@liveblocks/react/-/react-0.16.15.tgz#e9b13ce3b15add926e3623fe3ea6a60184379b17"
+  integrity sha512-fs6+GO3KZ8Vil2JdtkCclS3A0duT5hs8mCzGWvPzGHjdwethokJL5d6T1zoNTwb7qIoy0/7TPDPh8bd0a4ZiPA==
 
 "@lukeed/csprng@^1.0.0":
   version "1.0.1"
@@ -7048,10 +7058,17 @@ levn@^0.4.1:
     prelude-ls "^1.2.1"
     type-check "~0.4.0"
 
-lib0@^0.2.42, lib0@^0.2.43:
+lib0@^0.2.42:
   version "0.2.43"
   resolved "https://registry.yarnpkg.com/lib0/-/lib0-0.2.43.tgz#1c2ed1fb2e9fe136e92abef7ca56875f2ee66b07"
   integrity sha512-MJ1KLoz5p3gljIUBfdjjNuL/wlWHHK6+DrcIRhzSRLvtAu1XNdRtRGATYM51KSTI0P2nxJZFQM8rwCH6ga9KUw==
+  dependencies:
+    isomorphic.js "^0.2.4"
+
+lib0@^0.2.46, lib0@^0.2.47, lib0@^0.2.49:
+  version "0.2.51"
+  resolved "https://registry.yarnpkg.com/lib0/-/lib0-0.2.51.tgz#23b1271a26f39120a4d0f86b9dfb44577f5ce98c"
+  integrity sha512-05Erb3465CxJa38LQlMz4EbetNvRna1S3BzqEjC0/pmp5cQuQSfNNmeS0722Wev1dRlMUp2Cql0gQ55krSXf2Q==
   dependencies:
     isomorphic.js "^0.2.4"
 
@@ -11135,12 +11152,12 @@ yargs@^17.0.0:
     y18n "^5.0.5"
     yargs-parser "^21.0.0"
 
-yjs@^13.5.24:
-  version "13.5.24"
-  resolved "https://registry.yarnpkg.com/yjs/-/yjs-13.5.24.tgz#6d97c186897e0aaffd0d7eac1d6af6305ea242b3"
-  integrity sha512-f6DqRfnhjihj4+iQv5zjhsYqOpkcM9SGroqluq6J6eEUTq7ipbgECKf+h5W4P+LU4fKawWFdQH8mxgJ7baZPJw==
+yjs@^13.5.29, yjs@^13.5.38:
+  version "13.5.38"
+  resolved "https://registry.yarnpkg.com/yjs/-/yjs-13.5.38.tgz#58dc8d679c69bddaf7c62e74c909ca08a8e592c9"
+  integrity sha512-YCHj6DkgxhIRqdxqTI+htGAhvfmgkS974pz+/OOiuLOj0EgGfUKvtp4yYyQGg1Wf3m4oLet9x7gEvCrxaGiVZQ==
   dependencies:
-    lib0 "^0.2.43"
+    lib0 "^0.2.49"
 
 yn@3.1.1:
   version "3.1.1"

@@ -38,7 +38,7 @@ const IntroFragment = ({
   >
   introSequence: IntroState[]
 }) => {
-  const { state, payload, branding, theme, updatePayload } =
+  const { state, payload, branding, theme, updatePayload, users, fragment } =
     (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const titleScreenRef = React.useRef<Konva.Group>(null)
@@ -182,7 +182,9 @@ const IntroFragment = ({
   const studioUserConfig = !shortsMode
     ? StudioUserConfiguration({
         layout: 'classic',
-        noOfParticipants: 0,
+        noOfParticipants: users
+          ? users?.length + 1
+          : fragment?.configuration?.speakers?.length,
         fragmentState:
           introSequence[payload.activeIntroIndex] === 'userMedia'
             ? 'onlyUserMedia'

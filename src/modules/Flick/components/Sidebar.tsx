@@ -1,4 +1,5 @@
 import { cx } from '@emotion/css'
+import { useUpdateMyPresence } from '@liveblocks/react'
 import React, { useEffect, useState } from 'react'
 import { FiLoader, FiMoreVertical } from 'react-icons/fi'
 import { HiOutlineSparkles } from 'react-icons/hi'
@@ -21,7 +22,7 @@ import {
   GetFragmentListDocument,
   GetFragmentListQuery,
   GetFragmentListQueryVariables,
-  useCreateFragmentMutation,
+  useAddFragmentMutation,
   useDeleteFragmentMutation,
   useDuplicateFragmentMutation,
   useGetFlickFragmentLazyQuery,
@@ -29,6 +30,7 @@ import {
   useUpdateFragmentNameMutation,
 } from '../../../generated/graphql'
 import { verticalCustomScrollBar } from '../../../utils/globalStyles'
+import { Presence } from '../Flick'
 import { newFlickStore } from '../store/flickNew.store'
 
 const Sidebar = ({ storyName }: { storyName: string }): JSX.Element | null => {
@@ -36,6 +38,15 @@ const Sidebar = ({ storyName }: { storyName: string }): JSX.Element | null => {
     id: string
     fragmentId: string | undefined
   }>()
+
+  const updateMyPresence = useUpdateMyPresence<Presence>()
+  useEffect(() => {
+    if (fragmentId) {
+      updateMyPresence({
+        formatId: fragmentId,
+      })
+    }
+  }, [fragmentId])
 
   const history = useHistory()
 
@@ -50,9 +61,9 @@ const Sidebar = ({ storyName }: { storyName: string }): JSX.Element | null => {
   const [getFragment] = useGetFlickFragmentLazyQuery()
 
   const [createFragment, { loading: creatingFragment }] =
-    useCreateFragmentMutation({
+    useAddFragmentMutation({
       update(cache, { data: updateCreateFragmentData, errors }) {
-        const newFragment = updateCreateFragmentData?.insert_Fragment_one
+        const newFragment = updateCreateFragmentData?.CreateFragment
 
         if (errors) {
           emitToast({
@@ -68,14 +79,21 @@ const Sidebar = ({ storyName }: { storyName: string }): JSX.Element | null => {
           type: 'success',
           autoClose: 3000,
         })
-        history.push(`/story/${id}/${newFragment.id}`)
+        history.push(`/story/${id}/${newFragment.fragmentId}`)
         cache.updateQuery<GetFragmentListQuery, GetFragmentListQueryVariables>(
           {
             query: GetFragmentListDocument,
             variables: { flickId: id },
           },
           (prevData) => ({
-            Fragment: [newFragment, ...(prevData?.Fragment || [])],
+            Fragment: [
+              {
+                id: newFragment.fragmentId,
+                name: 'Untitled',
+                type: newFragment.type as any,
+              },
+              ...(prevData?.Fragment || []),
+            ],
           })
         )
       },
@@ -313,7 +331,7 @@ const Sidebar = ({ storyName }: { storyName: string }): JSX.Element | null => {
                 variables: {
                   flickId: id,
                   name: 'Untitled',
-                  type,
+                  type: type as any,
                 },
               })
             }}

@@ -431,7 +431,7 @@ const Timeline = ({
   showTimeline: boolean
   config: ViewConfig
   setShowTimeline: React.Dispatch<React.SetStateAction<boolean>>
-  setConfig?: React.Dispatch<React.SetStateAction<ViewConfig>>
+  setConfig?: (config: ViewConfig) => void
 }) => {
   const { payload, updatePayload } = useRecoilValue(studioStore)
   const timeline = useRef<HTMLDivElement>(null)
@@ -493,37 +493,37 @@ const Timeline = ({
         console.log(config.selectedBlocks[0].pos)
         if (config.selectedBlocks[0].pos - 1 === currentBlockIndex) {
           console.log('Adding to front')
-          setConfig?.((prevConfig) => ({
-            ...prevConfig,
+          setConfig?.({
+            ...config,
             selectedBlocks: [
               { blockId, pos: timelineIndex },
               ...config.selectedBlocks,
             ],
-          }))
+          })
         } else if (
           config.selectedBlocks[config.selectedBlocks.length - 1].pos + 1 ===
           currentBlockIndex
         ) {
           console.log('Adding to back')
-          setConfig?.((prevConfig) => ({
-            ...prevConfig,
+          setConfig?.({
+            ...config,
             selectedBlocks: [
               ...config.selectedBlocks,
               { blockId, pos: timelineIndex },
             ],
-          }))
+          })
         } else if (
           checkInBetween(config.selectedBlocks[0].pos, currentBlockIndex) ||
           checkInBetween(currentBlockIndex, config.selectedBlocks[0].pos)
         ) {
           console.log('Adding in between')
-          setConfig?.((prevConfig) => ({
-            ...prevConfig,
+          setConfig?.({
+            ...config,
             selectedBlocks: [
               ...config.selectedBlocks,
               { blockId, pos: timelineIndex },
             ],
-          }))
+          })
         } else {
           console.log('Invalid pos on timeline to add new block')
           emitToast({
