@@ -595,15 +595,6 @@ const FragmentBar = ({
             flick: store.flick
               ? {
                   ...store.flick,
-                  useBranding,
-                  configuration: {
-                    ...store.flick.configuration,
-                    transitions: transitionConfig,
-                  },
-                  brandingId: useBranding ? brandingId : undefined,
-                  branding: useBranding
-                    ? brandingData?.Branding.find((b) => b.id === brandingId)
-                    : null,
                   fragments: flick.fragments.map((f) =>
                     f.id === activeFragmentId
                       ? {
@@ -766,6 +757,21 @@ const FragmentBar = ({
                             shouldQueueEventIfNotReady: true,
                           }
                         )
+                        setFlickStore((prev) => {
+                          return {
+                            ...prev,
+                            flick: prev.flick
+                              ? {
+                                  ...prev.flick,
+                                  useBranding: true,
+                                  brandingId: branding.id,
+                                  branding: brandingData?.Branding.find(
+                                    (b) => b.id === branding.id
+                                  ),
+                                }
+                              : null,
+                          }
+                        })
                       }}
                     >
                       <BrandIcon className="mr-2" />
@@ -795,6 +801,19 @@ const FragmentBar = ({
                         shouldQueueEventIfNotReady: true,
                       }
                     )
+                    setFlickStore((prev) => {
+                      return {
+                        ...prev,
+                        flick: prev.flick
+                          ? {
+                              ...prev.flick,
+                              useBranding: false,
+                              brandingId: undefined,
+                              branding: null,
+                            }
+                          : null,
+                      }
+                    })
                     setIsOpen(false)
                   }}
                 >
@@ -848,6 +867,20 @@ const FragmentBar = ({
                     broadcast({
                       type: FlickBroadcastEvent.TransitionChanged,
                       transitionConfig: config,
+                    })
+                    setFlickStore((prev) => {
+                      return {
+                        ...prev,
+                        flick: prev.flick
+                          ? {
+                              ...prev.flick,
+                              configuration: {
+                                ...prev.flick.configuration,
+                                transitions: config,
+                              },
+                            }
+                          : null,
+                      }
                     })
                   }}
                 />
