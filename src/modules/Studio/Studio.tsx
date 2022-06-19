@@ -458,26 +458,26 @@ const Preview = ({
     )
   }
 
-  if (error.camera || error.microphone) {
-    return (
-      <PermissionError
-        heading={<>Oops</>}
-        description={
-          <>
-            Something went wrong while trying to get access to your{' '}
-            {error.camera ? 'camera' : 'microphone'} device.
-          </>
-        }
-        icon={BiErrorCircle}
-        byline={
-          <>
-            Error code:{' '}
-            <b> {error.camera ? error.camera.name : error.microphone?.name}</b>.
-          </>
-        }
-      />
-    )
-  }
+  // if (error.camera || error.microphone) {
+  //   return (
+  //     <PermissionError
+  //       heading={<>Oops</>}
+  //       description={
+  //         <>
+  //           Something went wrong while trying to get access to your{' '}
+  //           {error.camera ? 'camera' : 'microphone'} device.
+  //         </>
+  //       }
+  //       icon={BiErrorCircle}
+  //       byline={
+  //         <>
+  //           Error code:{' '}
+  //           <b> {error.camera ? error.camera.name : error.microphone?.name}</b>.
+  //         </>
+  //       }
+  //     />
+  //   )
+  // }
 
   return (
     <div className="flex flex-col items-center justify-center flex-1 min-h-screen p-8">
@@ -494,13 +494,39 @@ const Preview = ({
       <div className="grid w-full grid-cols-5 gap-x-8">
         <div className="col-span-3">
           <div className="relative">
-            <AspectRatio
-              ratio="16/9"
-              className="overflow-hidden bg-gray-800 rounded-lg"
-            >
-              {/* using video tag because agora player failed due to updates */}
-              <video className={videoCSS} ref={videoRef} />
-            </AspectRatio>
+            {(error.camera || error.microphone) && (
+              <PermissionError
+                heading={<>Oops</>}
+                description={
+                  <>
+                    Something went wrong while trying to get access to your{' '}
+                    {error.camera ? 'camera' : 'microphone'} device.
+                  </>
+                }
+                icon={BiErrorCircle}
+                byline={
+                  <>
+                    Error code:{' '}
+                    <b>
+                      {' '}
+                      {error.camera
+                        ? error.camera.name
+                        : error.microphone?.name}
+                    </b>
+                    .
+                  </>
+                }
+              />
+            )}
+            {!error.camera && !error.microphone && (
+              <AspectRatio
+                ratio="16/9"
+                className="overflow-hidden bg-gray-800 rounded-lg"
+              >
+                {/* using video tag because agora player failed due to updates */}
+                <video className={videoCSS} ref={videoRef} />
+              </AspectRatio>
+            )}
           </div>
         </div>
         <div className="flex flex-col justify-center flex-1 col-span-2">
@@ -586,6 +612,7 @@ const Preview = ({
 
           <Button
             className="self-start"
+            disabled={!!(error.camera || error.microphone)}
             size="small"
             appearance="primary"
             type="button"
