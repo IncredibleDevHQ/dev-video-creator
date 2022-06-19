@@ -12,10 +12,14 @@ const formatTime = (timer: number) => {
 
 type TimerState = 'noTarget' | 'onTime' | 'overtime' | 'closeShave'
 
-const Timer = ({ target, timer }: { target: number; timer: number }) => {
+const Timer = ({ target, timer }: { target?: number; timer: number }) => {
   const [timerState, setTimerState] = useState<TimerState>()
 
   useEffect(() => {
+    if (!target) {
+      setTimerState('noTarget')
+      return
+    }
     switch (true) {
       case typeof target === 'undefined':
         setTimerState('noTarget')
