@@ -200,7 +200,7 @@ const FlickTile = ({
               setIsOpen={setOverflowMenuVisible}
               content={
                 <div className="flex flex-col mt-3 bg-dark-400 rounded-md cursor-pointer -mr-5 shadow-md p-1">
-                  <div
+                  {/* <div
                     role="button"
                     tabIndex={0}
                     onKeyUp={() => {}}
@@ -224,7 +224,7 @@ const FlickTile = ({
                     <span className="font-medium text-gray-100 text-sm font-main">
                       Make a copy
                     </span>
-                  </div>
+                  </div> */}
                   {contents.length > 0 && (
                     <div
                       role="button"

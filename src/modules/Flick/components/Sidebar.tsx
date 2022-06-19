@@ -411,7 +411,7 @@ const Sidebar = ({ storyName }: { storyName: string }): JSX.Element | null => {
                         {deletingFragment && moreId === fragment.id && (
                           <FiLoader className="animate-spin h-8 w-20 p-2.5" />
                         )}
-                        <button
+                        {/* <button
                           type="button"
                           className={cx(
                             'flex items-center gap-x-2 py-1 px-2 rounded-sm hover:bg-dark-200 active:bg-dark-300 w-full flex-shrink-0',
@@ -428,7 +428,7 @@ const Sidebar = ({ storyName }: { storyName: string }): JSX.Element | null => {
                         >
                           <IoCopyOutline className="flex-shrink-0" />
                           <Text>Duplicate</Text>
-                        </button>
+                        </button> */}
                         <button
                           type="button"
                           className={cx(

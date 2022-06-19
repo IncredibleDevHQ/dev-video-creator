@@ -700,7 +700,7 @@ const Timeline = ({
                     </button>
                   )}
 
-                {block.type !== 'introBlock' && block.type !== 'outroBlock' && (
+                {/* {block.type !== 'introBlock' && block.type !== 'outroBlock' && (
                   <input
                     type="checkbox"
                     onClick={(e) => {
@@ -721,7 +721,7 @@ const Timeline = ({
                     }
                     className="hidden group-hover:block bg-gray-600 text-incredible-green-600 rounded-sm absolute top-0 right-0 m-1"
                   />
-                )}
+                )} */}
 
                 {(() => {
                   switch (block.type) {
