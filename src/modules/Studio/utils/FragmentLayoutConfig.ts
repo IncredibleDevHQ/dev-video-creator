@@ -542,9 +542,9 @@ export const FragmentLayoutConfig = ({
           default:
             return {
               x: 16,
-              y: 16,
+              y: 32,
               width: 364,
-              height: 672,
+              height: 640,
               borderRadius: 0,
             }
         }

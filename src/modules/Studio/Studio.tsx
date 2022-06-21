@@ -301,9 +301,15 @@ const Preview = ({
       try {
         if (camera?.id) {
           const stream = await navigator.mediaDevices.getUserMedia({
-            video: { deviceId: camera.id, aspectRatio: 4 / 3 },
+            video: { deviceId: camera.id },
           })
-
+          console.log(
+            'stream',
+            stream?.getVideoTracks()[0].getSettings().width,
+            stream?.getVideoTracks()[0].getSettings().height,
+            stream?.getVideoTracks()[0].getSettings().aspectRatio,
+            stream?.getVideoTracks()[0].getSettings().frameRate
+          )
           setCameraStream(stream)
           setError((err) => ({ ...err, camera: null }))
         }
@@ -806,7 +812,7 @@ const Studio = ({
   )
 
   console.log(
-    'stream',
+    'stream inside',
     stream?.getVideoTracks()[0].getSettings().width,
     stream?.getVideoTracks()[0].getSettings().height,
     stream?.getVideoTracks()[0].getSettings().aspectRatio,
