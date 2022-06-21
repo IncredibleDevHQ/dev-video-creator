@@ -1,4 +1,5 @@
 import Konva from 'konva'
+import { Vector2d } from 'konva/lib/types'
 import React, { createRef, useEffect, useState } from 'react'
 import { Group, Rect, Image } from 'react-konva'
 import { useRecoilState, useRecoilValue } from 'recoil'
@@ -174,6 +175,7 @@ const Concourse = ({
     stream,
     participants,
     payload,
+    updatePayload,
     users,
     theme,
     config,
@@ -181,9 +183,9 @@ const Concourse = ({
   } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [canvas, setCanvas] = useRecoilState(canvasStore)
-  const [isZooming, setZooming] = useState(false)
+  const [isZooming, setIsZooming] = useState(false)
 
-  const { picture } = (useRecoilValue(userState) as User) || {}
+  const { picture, sub } = (useRecoilValue(userState) as User) || {}
 
   const [logo] = useImage(branding?.logo || '', 'anonymous')
 
@@ -246,34 +248,41 @@ const Concourse = ({
   //   stageRef.current.position(newPos)
   // }
 
-  const onLayerClick = () => {
+  const onLayerClick = ({
+    pointer,
+  }: {
+    pointer: Vector2d | null | undefined
+  }) => {
     if (!groupRef.current) return
-    const tZooming = isZooming
-    if (tZooming) {
+    if (pointer) {
       groupRef.current.to({
-        x: 0,
-        y: 0,
-        scaleX: 1,
-        scaleY: 1,
+        x: pointer.x,
+        y: pointer.y,
+        scaleX: zoomLevel,
+        scaleY: zoomLevel,
         duration: 0.5,
       })
-    } else {
-      const pointer = stageRef?.current?.getPointerPosition()
-      const scaleRatio =
-        document.getElementsByClassName('konvajs-content')[0].clientWidth /
-        stageConfig.width
-      if (pointer) {
-        groupRef.current.to({
-          x: (pointer.x - pointer.x * zoomLevel) / scaleRatio,
-          y: (pointer.y - pointer.y * zoomLevel) / scaleRatio,
-          scaleX: zoomLevel,
-          scaleY: zoomLevel,
-          duration: 0.5,
-        })
-      }
     }
-    setZooming(!isZooming)
   }
+
+  const onMouseLeave = () => {
+    if (!groupRef.current) return
+    groupRef.current.to({
+      x: 0,
+      y: 0,
+      scaleX: 1,
+      scaleY: 1,
+      duration: 0.5,
+    })
+  }
+
+  useEffect(() => {
+    if (payload?.shouldZoom) {
+      onLayerClick({ pointer: payload?.zoomPointer })
+    } else {
+      onMouseLeave()
+    }
+  }, [payload?.shouldZoom])
 
   // const onMouseMove = () => {
   //   if (!groupRef.current || !canvas?.zoomed) return
@@ -290,18 +299,6 @@ const Concourse = ({
   //       })
   //   }
   // }
-
-  const onMouseLeave = () => {
-    if (!groupRef.current) return
-    groupRef.current.to({
-      x: 0,
-      y: 0,
-      scaleX: 1,
-      scaleY: 1,
-      duration: 0.5,
-    })
-    setZooming(false)
-  }
 
   const resetCanvas = () => {
     if (!stageRef?.current) return
@@ -424,8 +421,33 @@ const Concourse = ({
             >
               <Group
                 ref={groupRef}
-                onClick={onLayerClick}
-                onMouseLeave={onMouseLeave}
+                onClick={() => {
+                  if (payload?.studioControllerSub === sub) {
+                    const pointer = stageRef?.current?.getPointerPosition()
+                    const scaleRatio =
+                      document.getElementsByClassName('konvajs-content')[0]
+                        .clientWidth / stageConfig.width
+                    if (pointer) {
+                      updatePayload?.({
+                        zoomPointer: {
+                          x: (pointer.x - pointer.x * zoomLevel) / scaleRatio,
+                          y: (pointer.y - pointer.y * zoomLevel) / scaleRatio,
+                        },
+                        shouldZoom: !isZooming,
+                      })
+                      setIsZooming(!isZooming)
+                    }
+                  }
+                }}
+                onMouseLeave={() => {
+                  if (payload?.studioControllerSub === sub) {
+                    updatePayload?.({
+                      zoomPointer: null,
+                      shouldZoom: false,
+                    })
+                    setIsZooming(false)
+                  }
+                }}
                 // onMouseMove={onMouseMove}
               >
                 {layerChildren}
