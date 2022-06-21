@@ -163,13 +163,17 @@ const Flick = () => {
     },
     [viewConfigLiveMap, fragmentId]
   )
-  const [updatesQueue, setUpdatesQueue] = useState<ViewConfig[]>([])
+  const [updatesQueue, setUpdatesQueue] = useState<
+    { fid: string; viewConfig: ViewConfig }[]
+  >([])
   useEffect(() => {
     if (!fragmentId) return
     if (!viewConfigLiveMap || viewConfigLiveMap?.get(fragmentId)) return
-    updatesQueue.forEach((update) => {
-      setViewConfig(update)
-    })
+    updatesQueue
+      .filter((q) => q.fid === fragmentId)
+      .forEach((update) => {
+        setViewConfig(update.viewConfig)
+      })
   }, [viewConfigLiveMap, updatesQueue, fragmentId])
 
   const [getFragment] = useGetFlickFragmentLazyQuery()
@@ -518,12 +522,12 @@ const Flick = () => {
     )
   }, [view])
 
-  const getMissingFragment = async () => {
+  const getMissingFragment = async (fid: string) => {
     if (!flick) return undefined
     try {
       const { data, error } = await getFragment({
         variables: {
-          id: activeFragmentId,
+          id: fid,
         },
       })
       if (error) throw new Error("Can't get fragment")
@@ -555,8 +559,7 @@ const Flick = () => {
         (frag) => frag.id === activeFragmentId
       )
       if (!fragment) {
-        fragment = await getMissingFragment()
-        return
+        fragment = await getMissingFragment(activeFragmentId)
       }
       if (!fragment) return
       if (fragment.version === 1) {
@@ -620,13 +623,16 @@ const Flick = () => {
         setUpdatesQueue((q) => [
           ...q,
           {
-            ...initialConfig,
-            mode:
-              fragment?.type === Fragment_Type_Enum_Enum.Portrait
-                ? 'Portrait'
-                : 'Landscape',
-            speakers: [flick.participants[0]],
-            blocks,
+            fid: fragment?.id,
+            viewConfig: {
+              ...initialConfig,
+              mode:
+                fragment?.type === Fragment_Type_Enum_Enum.Portrait
+                  ? 'Portrait'
+                  : 'Landscape',
+              speakers: [flick.participants[0]],
+              blocks,
+            },
           },
         ])
       }
