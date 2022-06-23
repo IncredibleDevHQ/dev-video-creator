@@ -1,10 +1,11 @@
 import { cx } from '@emotion/css'
+import { useBroadcastEvent, useEventListener } from '@liveblocks/react'
 import React, { useState } from 'react'
 import { FiX } from 'react-icons/fi'
 import { IoPersonCircleOutline } from 'react-icons/io5'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import { useDebouncedCallback } from 'use-debounce'
-import { Text, Tooltip } from '../../../components'
+import { Avatar, Text, Tooltip } from '../../../components'
 import {
   FlickFragmentFragment,
   FlickParticipantsFragment,
@@ -15,6 +16,7 @@ import { PageEvent } from '../../../utils/analytics-types'
 import { IntroBlockView, ViewConfig } from '../../../utils/configTypes'
 import { studioStore } from '../../Studio/stores'
 import { Block, Position } from '../editor/utils/utils'
+import { FlickBroadcastEvent } from '../Flick'
 import { newFlickStore } from '../store/flickNew.store'
 
 const SpeakersTooltip = ({
@@ -52,9 +54,10 @@ const SpeakersTooltip = ({
               }
             }}
           >
-            <img
+            <Avatar
               src={participant.user.picture as string}
               alt={participant.user.displayName as string}
+              name={participant.user.displayName as string}
               className="w-6 h-6 rounded-full"
             />
             <Text className="text-sm">{participant.user.displayName}</Text>
@@ -75,7 +78,7 @@ const EditorHeader = ({
   blocks: Block[]
   setCurrentBlock: React.Dispatch<React.SetStateAction<Block | undefined>>
   viewConfig: ViewConfig
-  setViewConfig: React.Dispatch<React.SetStateAction<ViewConfig>>
+  setViewConfig: (viewConfig: ViewConfig) => void
   activeFragment: FlickFragmentFragment | undefined
   setPreviewPosition: (
     value: React.SetStateAction<Position | undefined>
@@ -84,6 +87,8 @@ const EditorHeader = ({
   const [isSpeakersTooltip, setSpeakersTooltip] = useState(false)
   const [{ flick }, setFlickStore] = useRecoilState(newFlickStore)
   const [{ fragment, updatePayload }, setStudio] = useRecoilState(studioStore)
+
+  const broadcast = useBroadcastEvent()
 
   const [updateFlickMutation] = useUpdateFlickMutation()
 
@@ -171,8 +176,42 @@ const EditorHeader = ({
           },
         },
       }))
+    broadcast(
+      {
+        type: FlickBroadcastEvent.FlickNameChanged,
+        name: newName,
+      },
+      {
+        shouldQueueEventIfNotReady: true,
+      }
+    )
     debounceUpdateFlickName(newName)
   }
+
+  useEventListener(({ event }: { event: any }) => {
+    if (event.type === FlickBroadcastEvent.FlickNameChanged) {
+      if (flick) {
+        setFlickStore((store) => ({
+          ...store,
+          flick: {
+            ...flick,
+            name: event.name,
+          },
+        }))
+      }
+      if (fragment)
+        setStudio((store) => ({
+          ...store,
+          fragment: {
+            ...fragment,
+            flick: {
+              ...fragment.flick,
+              name: event.name,
+            },
+          },
+        }))
+    }
+  })
 
   const handleFocus = (
     e:
@@ -219,8 +258,9 @@ const EditorHeader = ({
             className="flex items-center px-2 py-1 mr-2 border border-gray-300 rounded-md font-body"
             key={s.user.sub}
           >
-            <img
+            <Avatar
               src={s.user.picture as string}
+              name={s.user.displayName as string}
               alt={s.user.displayName as string}
               className="w-5 h-5 rounded-full"
             />

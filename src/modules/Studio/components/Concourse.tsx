@@ -1,7 +1,9 @@
 import Konva from 'konva'
+import { Vector2d } from 'konva/lib/types'
 import React, { createRef, useEffect, useState } from 'react'
-import { Group, Rect } from 'react-konva'
+import { Group, Rect, Image } from 'react-konva'
 import { useRecoilState, useRecoilValue } from 'recoil'
+import useImage from 'use-image'
 import {
   Fragment_Status_Enum_Enum,
   ThemeFragment,
@@ -168,13 +170,24 @@ const Concourse = ({
   fragmentState,
   blockType,
 }: ConcourseProps) => {
-  const { fragment, stream, participants, payload, users, theme, config } =
-    (useRecoilValue(studioStore) as StudioProviderProps) || {}
+  const {
+    fragment,
+    stream,
+    participants,
+    payload,
+    updatePayload,
+    users,
+    theme,
+    config,
+    branding,
+  } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
 
   const [canvas, setCanvas] = useRecoilState(canvasStore)
-  const [isZooming, setZooming] = useState(false)
+  const [isZooming, setIsZooming] = useState(false)
 
-  const { picture } = (useRecoilValue(userState) as User) || {}
+  const { picture, sub } = (useRecoilValue(userState) as User) || {}
+
+  const [logo] = useImage(branding?.logo || '', 'anonymous')
 
   const groupRef = createRef<Konva.Group>()
   const { clipRect } = useEdit()
@@ -235,34 +248,41 @@ const Concourse = ({
   //   stageRef.current.position(newPos)
   // }
 
-  const onLayerClick = () => {
+  const onLayerClick = ({
+    pointer,
+  }: {
+    pointer: Vector2d | null | undefined
+  }) => {
     if (!groupRef.current) return
-    const tZooming = isZooming
-    if (tZooming) {
+    if (pointer) {
       groupRef.current.to({
-        x: 0,
-        y: 0,
-        scaleX: 1,
-        scaleY: 1,
+        x: pointer.x,
+        y: pointer.y,
+        scaleX: zoomLevel,
+        scaleY: zoomLevel,
         duration: 0.5,
       })
-    } else {
-      const pointer = stageRef?.current?.getPointerPosition()
-      const scaleRatio =
-        document.getElementsByClassName('konvajs-content')[0].clientWidth /
-        stageConfig.width
-      if (pointer) {
-        groupRef.current.to({
-          x: (pointer.x - pointer.x * zoomLevel) / scaleRatio,
-          y: (pointer.y - pointer.y * zoomLevel) / scaleRatio,
-          scaleX: zoomLevel,
-          scaleY: zoomLevel,
-          duration: 0.5,
-        })
-      }
     }
-    setZooming(!isZooming)
   }
+
+  const onMouseLeave = () => {
+    if (!groupRef.current) return
+    groupRef.current.to({
+      x: 0,
+      y: 0,
+      scaleX: 1,
+      scaleY: 1,
+      duration: 0.5,
+    })
+  }
+
+  useEffect(() => {
+    if (payload?.shouldZoom) {
+      onLayerClick({ pointer: payload?.zoomPointer })
+    } else {
+      onMouseLeave()
+    }
+  }, [payload?.shouldZoom])
 
   // const onMouseMove = () => {
   //   if (!groupRef.current || !canvas?.zoomed) return
@@ -279,18 +299,6 @@ const Concourse = ({
   //       })
   //   }
   // }
-
-  const onMouseLeave = () => {
-    if (!groupRef.current) return
-    groupRef.current.to({
-      x: 0,
-      y: 0,
-      scaleX: 1,
-      scaleY: 1,
-      duration: 0.5,
-    })
-    setZooming(false)
-  }
 
   const resetCanvas = () => {
     if (!stageRef?.current) return
@@ -352,25 +360,27 @@ const Concourse = ({
         !disableUserMedia &&
         payload?.status !== Fragment_Status_Enum_Enum.CountDown &&
         payload?.status !== Fragment_Status_Enum_Enum.Ended &&
-        fragment &&
-        [...(fragment.configuration?.speakers || fragment.participants)]?.map(
-          (_: any, index: number) => {
-            return (
-              <PreviewUser
-                studioUserConfig={
-                  (studioUserConfig && studioUserConfig[index]) || {
-                    x:
-                      defaultStudioUserConfig.x -
-                      (index + 1) * userStudioImageGap,
-                    y: defaultStudioUserConfig.y,
-                    width: defaultStudioUserConfig.width,
-                    height: defaultStudioUserConfig.height,
-                  }
+        [
+          ...(config?.speakers ||
+            fragment?.configuration?.speakers ||
+            fragment?.participants ||
+            []),
+        ]?.map((_: any, index: number) => {
+          return (
+            <PreviewUser
+              studioUserConfig={
+                (studioUserConfig && studioUserConfig[index]) || {
+                  x:
+                    defaultStudioUserConfig.x -
+                    (index + 1) * userStudioImageGap,
+                  y: defaultStudioUserConfig.y,
+                  width: defaultStudioUserConfig.width,
+                  height: defaultStudioUserConfig.height,
                 }
-              />
-            )
-          }
-        )
+              }
+            />
+          )
+        })
       )}
       <Group>
         {(() => {
@@ -411,8 +421,33 @@ const Concourse = ({
             >
               <Group
                 ref={groupRef}
-                onClick={onLayerClick}
-                onMouseLeave={onMouseLeave}
+                onClick={() => {
+                  if (payload?.studioControllerSub === sub) {
+                    const pointer = stageRef?.current?.getPointerPosition()
+                    const scaleRatio =
+                      document.getElementsByClassName('konvajs-content')[0]
+                        .clientWidth / stageConfig.width
+                    if (pointer) {
+                      updatePayload?.({
+                        zoomPointer: {
+                          x: (pointer.x - pointer.x * zoomLevel) / scaleRatio,
+                          y: (pointer.y - pointer.y * zoomLevel) / scaleRatio,
+                        },
+                        shouldZoom: !isZooming,
+                      })
+                      setIsZooming(!isZooming)
+                    }
+                  }
+                }}
+                onMouseLeave={() => {
+                  if (payload?.studioControllerSub === sub) {
+                    updatePayload?.({
+                      zoomPointer: null,
+                      shouldZoom: false,
+                    })
+                    setIsZooming(false)
+                  }
+                }}
                 // onMouseMove={onMouseMove}
               >
                 {layerChildren}
@@ -484,6 +519,31 @@ const Concourse = ({
           )
         })
       )}
+      {!isShorts &&
+        logo &&
+        logo?.width &&
+        logo?.height &&
+        blockType !== 'introBlock' &&
+        blockType !== 'outroBlock' && (
+          <Group>
+            <Rect
+              x={CONFIG.width - 24 - ((logo?.width * 24) / logo?.height + 24)}
+              y={24}
+              width={(logo?.width * 24) / logo?.height + 24}
+              height={48}
+              fill="#ffffff"
+              opacity={0.3}
+              cornerRadius={8}
+            />
+            <Image
+              x={CONFIG.width - 24 - (logo?.width * 24) / logo?.height - 12}
+              y={36}
+              width={(logo?.width * 24) / logo?.height}
+              height={24}
+              image={logo}
+            />
+          </Group>
+        )}
     </>
   )
 }

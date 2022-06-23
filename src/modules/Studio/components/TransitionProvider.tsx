@@ -95,6 +95,7 @@ const TransitionProvider = ({
             isShorts={isShorts}
             color={branding?.colors?.transition}
             performFinishAction={performFinishAction}
+            setTopLayerChildren={setTopLayerChildren}
           />
         )
       case 'Wipe':
@@ -140,6 +141,7 @@ const TransitionProvider = ({
             isShorts={isShorts}
             color={branding?.colors?.transition}
             performFinishAction={performFinishAction}
+            setTopLayerChildren={setTopLayerChildren}
           />
         )
       case 'PastelLines':
@@ -325,6 +327,26 @@ const TransitionProvider = ({
             direction={direction}
             isShorts={isShorts}
             // color="black"
+            setTopLayerChildren={setTopLayerChildren}
+          />
+        )
+      case 'Mux':
+        if (direction === 'moveIn' || direction === 'moveAway') {
+          return (
+            <DipTransition
+              direction={direction}
+              isShorts={isShorts}
+              color="white"
+              performFinishAction={performFinishAction}
+              setTopLayerChildren={setTopLayerChildren}
+            />
+          )
+        }
+        return (
+          <DipTransition
+            direction={direction}
+            isShorts={isShorts}
+            color="white"
             setTopLayerChildren={setTopLayerChildren}
           />
         )

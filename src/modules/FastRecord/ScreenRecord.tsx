@@ -52,7 +52,6 @@ import { User, userState } from '../../stores/user.store'
 import { logEvent } from '../../utils/analytics'
 import { PageEvent } from '../../utils/analytics-types'
 import { BlockProperties, TopLayerChildren } from '../../utils/configTypes'
-import { EditorProvider } from '../Flick/components/EditorProvider'
 import { TextEditorParser } from '../Flick/editor/utils/helpers'
 import { Block, SimpleAST, VideoBlockProps } from '../Flick/editor/utils/utils'
 import { TimerModal } from '../Studio/components'
@@ -70,7 +69,6 @@ import { getIntegerHW } from '../Studio/Studio'
 import Countdown from './Countdown'
 import FastRecord from './FastRecord'
 import MiniTimeline from './MiniTimeline'
-import Notes from './Notes'
 import Preferences from './Preferences'
 import Preload from './Preload'
 import Publish from './Publish'
@@ -166,14 +164,12 @@ const ScreenRecordHoC = () => {
 
   if (view === 'studio' && fragment)
     return (
-      <EditorProvider>
-        <ScreenRecord
-          fragment={fragment}
-          devices={devices.current}
-          recordingsData={recordingsData}
-          localVideoUrl={localVideoUrl}
-        />
-      </EditorProvider>
+      <ScreenRecord
+        fragment={fragment}
+        devices={devices.current}
+        recordingsData={recordingsData}
+        localVideoUrl={localVideoUrl}
+      />
     )
 
   return null
@@ -505,6 +501,7 @@ const ScreenRecord = ({
     | undefined
 }) => {
   const { fragmentId } = useParams<{ fragmentId: string }>()
+  const { flickId } = studioFragment
   const query = useQuery()
   const blockId = query.get('blockId')
   const history = useHistory()
@@ -606,7 +603,7 @@ const ScreenRecord = ({
     null
   )
   const [getRTCToken] = useGetRtcTokenMutation({
-    variables: { fragmentId },
+    variables: { fragmentId, flickId },
   })
 
   const { ready, tracks, error } = createMicrophoneAndCameraTracks(
@@ -620,13 +617,17 @@ const ScreenRecord = ({
     fragmentId,
     {
       onTokenWillExpire: async () => {
-        const { data } = await getRTCToken({ variables: { fragmentId } })
+        const { data } = await getRTCToken({
+          variables: { fragmentId, flickId },
+        })
         if (data?.RTCToken?.token) {
           renewToken(data.RTCToken.token)
         }
       },
       onTokenDidExpire: async () => {
-        const { data } = await getRTCToken({ variables: { fragmentId } })
+        const { data } = await getRTCToken({
+          variables: { fragmentId, flickId },
+        })
         if (data?.RTCToken?.token) {
           const participantId = fragment?.configuration?.speakers?.find(
             ({ participant }: { participant: FlickParticipantsFragment }) =>
@@ -685,7 +686,9 @@ const ScreenRecord = ({
     if (studioFragment) {
       ;(async () => {
         init()
-        const { data } = await getRTCToken({ variables: { fragmentId } })
+        const { data } = await getRTCToken({
+          variables: { fragmentId, flickId },
+        })
         if (data?.RTCToken?.token) {
           const participantId = (
             studioFragment?.configuration
@@ -1121,10 +1124,10 @@ const ScreenRecord = ({
               </button>
             </div>
           </div>
-          <div className="grid grid-cols-11 gap-x-12 flex-1 items-center px-8 pb-8">
+          <div className="grid grid-cols-11 gap-x-12 flex-1 items-center px-8">
             {/* Stage */}
             <div
-              className="flex justify-center flex-1 col-span-8 w-full h-full relative"
+              className="flex justify-center flex-1 col-span-12 w-full h-full relative"
               ref={stageBoundingDivRef}
             >
               <div
@@ -1165,6 +1168,7 @@ const ScreenRecord = ({
                       y: stageWidth / CONFIG.width,
                     }}
                   >
+                    {console.log('stageRef', stageRef)}
                     <Bridge>
                       <Layer ref={layerRef}>
                         {(() => {
@@ -1251,14 +1255,14 @@ const ScreenRecord = ({
                 updatePayload={updatePayload}
               />
             </div>
-            <Notes
+            {/* <Notes
               key={payload?.activeObjectIndex}
               stageHeight={stageHeight}
               fragment={fragment}
               state={state}
               payload={payload}
               setFragment={setFragment}
-            />
+            /> */}
           </div>
           {/* Mini timeline */}
           <MiniTimeline

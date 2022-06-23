@@ -368,6 +368,13 @@ export const StudioUserConfiguration = ({
                     height: 160,
                     borderRadius: 8,
                   },
+                  backgroundRectX: 776,
+                  backgroundRectY: 357,
+                  backgroundRectWidth: 176,
+                  backgroundRectHeight: 176,
+                  backgroundRectBorderRadius: 8,
+                  backgroundRectColor: '#ffffff',
+                  backgroundRectOpacity: 0.3,
                 },
                 {
                   x: 568,
@@ -383,6 +390,13 @@ export const StudioUserConfiguration = ({
                     height: 160,
                     borderRadius: 8,
                   },
+                  backgroundRectX: 588,
+                  backgroundRectY: 357,
+                  backgroundRectWidth: 176,
+                  backgroundRectHeight: 176,
+                  backgroundRectBorderRadius: 8,
+                  backgroundRectColor: '#ffffff',
+                  backgroundRectOpacity: 0.3,
                 },
               ]
             default:
@@ -430,6 +444,13 @@ export const StudioUserConfiguration = ({
                     height: 160,
                     borderRadius: 80,
                   },
+                  backgroundRectX: 776,
+                  backgroundRectY: 357,
+                  backgroundRectWidth: 176,
+                  backgroundRectHeight: 176,
+                  backgroundRectBorderRadius: 88,
+                  backgroundRectColor: '#ffffff',
+                  backgroundRectOpacity: 0.3,
                 },
                 {
                   x: 568,
@@ -445,6 +466,13 @@ export const StudioUserConfiguration = ({
                     height: 160,
                     borderRadius: 80,
                   },
+                  backgroundRectX: 588,
+                  backgroundRectY: 357,
+                  backgroundRectWidth: 176,
+                  backgroundRectHeight: 176,
+                  backgroundRectBorderRadius: 88,
+                  backgroundRectColor: '#ffffff',
+                  backgroundRectOpacity: 0.3,
                 },
               ]
             default:
@@ -668,32 +696,32 @@ export const StudioUserConfiguration = ({
           case 2:
             return [
               {
-                x: 400,
-                y: 25,
+                x: 367.5,
+                y: 30,
                 width: 640,
                 height: 480,
                 clipTheme: 'rect',
                 borderWidth: 0,
                 studioUserClipConfig: {
-                  x: 120,
-                  y: 0,
-                  width: 400,
-                  height: 480,
+                  x: 112.5,
+                  y: 7,
+                  width: 415,
+                  height: 466,
                   borderRadius: 0,
                 },
               },
               {
-                x: -60,
-                y: 25,
+                x: -47.5,
+                y: 30,
                 width: 640,
                 height: 480,
                 clipTheme: 'rect',
                 borderWidth: 0,
                 studioUserClipConfig: {
-                  x: 120,
-                  y: 0,
-                  width: 400,
-                  height: 480,
+                  x: 112.5,
+                  y: 7,
+                  width: 415,
+                  height: 466,
                   borderRadius: 0,
                 },
               },
@@ -731,8 +759,8 @@ export const StudioUserConfiguration = ({
             case 2:
               return [
                 {
-                  x: 756,
-                  y: 364,
+                  x: 708,
+                  y: 104,
                   width: 216,
                   height: 162,
                   clipTheme: 'rect',
@@ -742,12 +770,12 @@ export const StudioUserConfiguration = ({
                     y: 1,
                     width: 160,
                     height: 160,
-                    borderRadius: 8,
+                    borderRadius: 0,
                   },
                 },
                 {
-                  x: 568,
-                  y: 364,
+                  x: 708,
+                  y: 274,
                   width: 216,
                   height: 162,
                   clipTheme: 'rect',
@@ -757,7 +785,7 @@ export const StudioUserConfiguration = ({
                     y: 1,
                     width: 160,
                     height: 160,
-                    borderRadius: 8,
+                    borderRadius: 0,
                   },
                 },
               ]
@@ -785,31 +813,31 @@ export const StudioUserConfiguration = ({
             case 2:
               return [
                 {
-                  x: 704,
+                  x: 684,
                   y: 88,
                   width: 224,
                   height: 168,
                   clipTheme: 'rect',
                   borderWidth: 0,
                   studioUserClipConfig: {
-                    x: 0,
+                    x: 12,
                     y: 2,
-                    width: 224,
+                    width: 200,
                     height: 164,
                     borderRadius: 0,
                   },
                 },
                 {
-                  x: 704,
+                  x: 684,
                   y: 284,
                   width: 224,
                   height: 168,
                   clipTheme: 'rect',
                   borderWidth: 0,
                   studioUserClipConfig: {
-                    x: 0,
+                    x: 12,
                     y: 2,
-                    width: 224,
+                    width: 200,
                     height: 164,
                     borderRadius: 0,
                   },
@@ -840,8 +868,8 @@ export const StudioUserConfiguration = ({
             case 2:
               return [
                 {
-                  x: 756,
-                  y: 364,
+                  x: 521,
+                  y: 329,
                   width: 216,
                   height: 162,
                   clipTheme: 'rect',
@@ -851,12 +879,12 @@ export const StudioUserConfiguration = ({
                     y: 1,
                     width: 160,
                     height: 160,
-                    borderRadius: 8,
+                    borderRadius: 0,
                   },
                 },
                 {
-                  x: 568,
-                  y: 364,
+                  x: 694,
+                  y: 329,
                   width: 216,
                   height: 162,
                   clipTheme: 'rect',
@@ -866,7 +894,7 @@ export const StudioUserConfiguration = ({
                     y: 1,
                     width: 160,
                     height: 160,
-                    borderRadius: 8,
+                    borderRadius: 0,
                   },
                 },
               ]
@@ -895,8 +923,8 @@ export const StudioUserConfiguration = ({
             case 2:
               return [
                 {
-                  x: 756,
-                  y: 364,
+                  x: 521,
+                  y: 329,
                   width: 216,
                   height: 162,
                   clipTheme: 'rect',
@@ -906,12 +934,12 @@ export const StudioUserConfiguration = ({
                     y: 1,
                     width: 160,
                     height: 160,
-                    borderRadius: 8,
+                    borderRadius: 80,
                   },
                 },
                 {
-                  x: 568,
-                  y: 364,
+                  x: 694,
+                  y: 329,
                   width: 216,
                   height: 162,
                   clipTheme: 'rect',
@@ -921,7 +949,7 @@ export const StudioUserConfiguration = ({
                     y: 1,
                     width: 160,
                     height: 160,
-                    borderRadius: 8,
+                    borderRadius: 80,
                   },
                 },
               ]
@@ -951,16 +979,16 @@ export const StudioUserConfiguration = ({
               return [
                 {
                   x: 0,
-                  y: 0,
-                  width: 0,
-                  height: 0,
+                  y: -90,
+                  width: 960,
+                  height: 720,
                   clipTheme: 'rect',
                   borderWidth: 0,
                   studioUserClipConfig: {
                     x: 0,
-                    y: 0,
-                    width: 0,
-                    height: 0,
+                    y: 90,
+                    width: 960,
+                    height: 540,
                     borderRadius: 0,
                   },
                 },
@@ -1024,12 +1052,25 @@ export const StudioUserConfiguration = ({
           case 2:
             return [
               {
-                x: 400,
+                x: 385,
                 y: 25,
                 width: 640,
                 height: 480,
                 clipTheme: 'rect',
-                borderWidth: 0,
+                borderWidth: 8,
+                borderColor: getCanvasGradient(
+                  [
+                    { color: '#E9BC3F', offset: 0.0 },
+                    { color: '#EB4888', offset: 0.5469 },
+                    { color: '#10A2F5', offset: 1.0 },
+                  ],
+                  {
+                    x0: 0,
+                    y0: 40,
+                    x1: 400,
+                    y1: 480,
+                  }
+                ),
                 studioUserClipConfig: {
                   x: 120,
                   y: 0,
@@ -1039,12 +1080,25 @@ export const StudioUserConfiguration = ({
                 },
               },
               {
-                x: -60,
+                x: -65,
                 y: 25,
                 width: 640,
                 height: 480,
                 clipTheme: 'rect',
-                borderWidth: 0,
+                borderWidth: 8,
+                borderColor: getCanvasGradient(
+                  [
+                    { color: '#E9BC3F', offset: 0.0 },
+                    { color: '#EB4888', offset: 0.5469 },
+                    { color: '#10A2F5', offset: 1.0 },
+                  ],
+                  {
+                    x0: 0,
+                    y0: 40,
+                    x1: 400,
+                    y1: 480,
+                  }
+                ),
                 studioUserClipConfig: {
                   x: 120,
                   y: 0,
@@ -1088,22 +1142,15 @@ export const StudioUserConfiguration = ({
         }
       }
       switch (layout) {
-        // case 'classic':
-        //   switch (noOfParticipants) {
-        //     case 2:
-        //       return [{}, {}]
-        //     default:
-        //       return [{}]
-        //   }
         case 'float-full-right':
           switch (noOfParticipants) {
             case 2:
               return [
                 {
-                  x: 704,
-                  y: 88,
-                  width: 420,
-                  height: 315,
+                  x: 636,
+                  y: 284,
+                  width: 268,
+                  height: 201,
                   clipTheme: 'rect',
                   borderWidth: 8,
                   borderColor: getCanvasGradient(
@@ -1115,23 +1162,23 @@ export const StudioUserConfiguration = ({
                     {
                       x0: 0,
                       y0: 40,
-                      x1: 310,
-                      y1: 310,
+                      x1: 200,
+                      y1: 200,
                     }
                   ),
                   studioUserClipConfig: {
-                    x: 55,
-                    y: 2.5,
-                    width: 310,
-                    height: 310,
-                    borderRadius: 155,
+                    x: 34,
+                    y: 0.5,
+                    width: 200,
+                    height: 200,
+                    borderRadius: 100,
                   },
                 },
                 {
-                  x: 704,
-                  y: 284,
-                  width: 420,
-                  height: 315,
+                  x: 636,
+                  y: 70,
+                  width: 268,
+                  height: 201,
                   clipTheme: 'rect',
                   borderWidth: 8,
                   borderColor: getCanvasGradient(
@@ -1143,16 +1190,16 @@ export const StudioUserConfiguration = ({
                     {
                       x0: 0,
                       y0: 40,
-                      x1: 310,
-                      y1: 310,
+                      x1: 200,
+                      y1: 200,
                     }
                   ),
                   studioUserClipConfig: {
-                    x: 55,
-                    y: 2.5,
-                    width: 310,
-                    height: 310,
-                    borderRadius: 155,
+                    x: 34,
+                    y: 0.5,
+                    width: 200,
+                    height: 200,
+                    borderRadius: 100,
                   },
                 },
               ]
@@ -1193,10 +1240,10 @@ export const StudioUserConfiguration = ({
             case 2:
               return [
                 {
-                  x: 32,
-                  y: 88,
-                  width: 224,
-                  height: 168,
+                  x: 61,
+                  y: 284,
+                  width: 268,
+                  height: 201,
                   clipTheme: 'rect',
                   borderWidth: 8,
                   borderColor: getCanvasGradient(
@@ -1208,23 +1255,23 @@ export const StudioUserConfiguration = ({
                     {
                       x0: 0,
                       y0: 40,
-                      x1: 224,
-                      y1: 164,
+                      x1: 200,
+                      y1: 200,
                     }
                   ),
                   studioUserClipConfig: {
-                    x: 0,
-                    y: 2,
-                    width: 224,
-                    height: 164,
-                    borderRadius: 8,
+                    x: 34,
+                    y: 0.5,
+                    width: 200,
+                    height: 200,
+                    borderRadius: 100,
                   },
                 },
                 {
-                  x: 32,
-                  y: 284,
-                  width: 224,
-                  height: 168,
+                  x: 61,
+                  y: 70,
+                  width: 268,
+                  height: 201,
                   clipTheme: 'rect',
                   borderWidth: 8,
                   borderColor: getCanvasGradient(
@@ -1236,16 +1283,16 @@ export const StudioUserConfiguration = ({
                     {
                       x0: 0,
                       y0: 40,
-                      x1: 224,
-                      y1: 164,
+                      x1: 200,
+                      y1: 200,
                     }
                   ),
                   studioUserClipConfig: {
-                    x: 0,
-                    y: 2,
-                    width: 224,
-                    height: 164,
-                    borderRadius: 8,
+                    x: 34,
+                    y: 0.5,
+                    width: 200,
+                    height: 200,
+                    borderRadius: 100,
                   },
                 },
               ]
@@ -1287,9 +1334,9 @@ export const StudioUserConfiguration = ({
               return [
                 {
                   x: 724,
-                  y: 96,
-                  width: 208,
-                  height: 156,
+                  y: 303,
+                  width: 216,
+                  height: 162,
                   clipTheme: 'rect',
                   borderWidth: 8,
                   borderColor: getCanvasGradient(
@@ -1301,23 +1348,23 @@ export const StudioUserConfiguration = ({
                     {
                       x0: 0,
                       y0: 40,
-                      x1: 210,
-                      y1: 156,
+                      x1: 160,
+                      y1: 160,
                     }
                   ),
                   studioUserClipConfig: {
-                    x: 4,
-                    y: 0,
-                    width: 200,
-                    height: 156,
-                    borderRadius: 8,
+                    x: 8,
+                    y: 1,
+                    width: 160,
+                    height: 160,
+                    borderRadius: 80,
                   },
                 },
                 {
                   x: 724,
-                  y: 288,
-                  width: 208,
-                  height: 156,
+                  y: 120,
+                  width: 216,
+                  height: 162,
                   clipTheme: 'rect',
                   borderWidth: 8,
                   borderColor: getCanvasGradient(
@@ -1329,16 +1376,16 @@ export const StudioUserConfiguration = ({
                     {
                       x0: 0,
                       y0: 40,
-                      x1: 200,
-                      y1: 156,
+                      x1: 160,
+                      y1: 160,
                     }
                   ),
                   studioUserClipConfig: {
-                    x: 4,
-                    y: 0,
-                    width: 200,
-                    height: 156,
-                    borderRadius: 8,
+                    x: 8,
+                    y: 1,
+                    width: 160,
+                    height: 160,
+                    borderRadius: 80,
                   },
                 },
               ]
@@ -1568,16 +1615,16 @@ export const StudioUserConfiguration = ({
               return [
                 {
                   x: 0,
-                  y: 0,
-                  width: 0,
-                  height: 0,
+                  y: -90,
+                  width: 960,
+                  height: 720,
                   clipTheme: 'rect',
                   borderWidth: 0,
                   studioUserClipConfig: {
                     x: 0,
-                    y: 0,
-                    width: 0,
-                    height: 0,
+                    y: 90,
+                    width: 960,
+                    height: 540,
                     borderRadius: 0,
                   },
                 },
@@ -1642,7 +1689,7 @@ export const StudioUserConfiguration = ({
           case 2:
             return [
               {
-                x: 400,
+                x: 385,
                 y: 25,
                 width: 640,
                 height: 480,
@@ -1657,7 +1704,7 @@ export const StudioUserConfiguration = ({
                 },
               },
               {
-                x: -60,
+                x: -65,
                 y: 25,
                 width: 640,
                 height: 480,
@@ -1693,13 +1740,6 @@ export const StudioUserConfiguration = ({
         }
       }
       switch (layout) {
-        // case 'classic':
-        //   switch (noOfParticipants) {
-        //     case 2:
-        //       return [{}, {}]
-        //     default:
-        //       return [{}]
-        //   }
         case 'float-full-right':
           switch (noOfParticipants) {
             case 2:
@@ -1978,16 +2018,16 @@ export const StudioUserConfiguration = ({
               return [
                 {
                   x: 0,
-                  y: 0,
-                  width: 0,
-                  height: 0,
+                  y: -90,
+                  width: 960,
+                  height: 720,
                   clipTheme: 'rect',
                   borderWidth: 0,
                   studioUserClipConfig: {
                     x: 0,
-                    y: 0,
-                    width: 0,
-                    height: 0,
+                    y: 90,
+                    width: 960,
+                    height: 540,
                     borderRadius: 0,
                   },
                 },
@@ -2051,12 +2091,25 @@ export const StudioUserConfiguration = ({
           case 2:
             return [
               {
-                x: 400,
+                x: 385,
                 y: 25,
                 width: 640,
                 height: 480,
                 clipTheme: 'rect',
-                borderWidth: 0,
+                borderWidth: 8,
+                borderColor: getCanvasGradient(
+                  [
+                    { color: '#DB1685', offset: 0.0 },
+                    { color: '#8165D6', offset: 0.5208 },
+                    { color: '#48A8F6', offset: 0.9583 },
+                  ],
+                  {
+                    x0: 0,
+                    y0: 0,
+                    x1: 400,
+                    y1: 480,
+                  }
+                ),
                 studioUserClipConfig: {
                   x: 120,
                   y: 0,
@@ -2066,12 +2119,25 @@ export const StudioUserConfiguration = ({
                 },
               },
               {
-                x: -60,
+                x: -65,
                 y: 25,
                 width: 640,
                 height: 480,
                 clipTheme: 'rect',
-                borderWidth: 0,
+                borderWidth: 8,
+                borderColor: getCanvasGradient(
+                  [
+                    { color: '#DB1685', offset: 0.0 },
+                    { color: '#8165D6', offset: 0.5208 },
+                    { color: '#48A8F6', offset: 0.9583 },
+                  ],
+                  {
+                    x0: 0,
+                    y0: 0,
+                    x1: 400,
+                    y1: 480,
+                  }
+                ),
                 studioUserClipConfig: {
                   x: 120,
                   y: 0,
@@ -2115,13 +2181,6 @@ export const StudioUserConfiguration = ({
         }
       }
       switch (layout) {
-        // case 'classic':
-        //   switch (noOfParticipants) {
-        //     case 2:
-        //       return [{}, {}]
-        //     default:
-        //       return [{}]
-        //   }
         case 'float-full-right':
           switch (noOfParticipants) {
             case 2:
@@ -2132,7 +2191,20 @@ export const StudioUserConfiguration = ({
                   width: 224,
                   height: 168,
                   clipTheme: 'rect',
-                  borderWidth: 0,
+                  borderWidth: 8,
+                  borderColor: getCanvasGradient(
+                    [
+                      { color: '#DB1685', offset: 0.0 },
+                      { color: '#8165D6', offset: 0.5208 },
+                      { color: '#48A8F6', offset: 0.9583 },
+                    ],
+                    {
+                      x0: 0,
+                      y0: 0,
+                      x1: 224,
+                      y1: 164,
+                    }
+                  ),
                   studioUserClipConfig: {
                     x: 0,
                     y: 2,
@@ -2147,7 +2219,20 @@ export const StudioUserConfiguration = ({
                   width: 224,
                   height: 168,
                   clipTheme: 'rect',
-                  borderWidth: 0,
+                  borderWidth: 8,
+                  borderColor: getCanvasGradient(
+                    [
+                      { color: '#DB1685', offset: 0.0 },
+                      { color: '#8165D6', offset: 0.5208 },
+                      { color: '#48A8F6', offset: 0.9583 },
+                    ],
+                    {
+                      x0: 0,
+                      y0: 0,
+                      x1: 224,
+                      y1: 164,
+                    }
+                  ),
                   studioUserClipConfig: {
                     x: 0,
                     y: 2,
@@ -2199,7 +2284,20 @@ export const StudioUserConfiguration = ({
                   width: 224,
                   height: 168,
                   clipTheme: 'rect',
-                  borderWidth: 0,
+                  borderWidth: 8,
+                  borderColor: getCanvasGradient(
+                    [
+                      { color: '#DB1685', offset: 0.0 },
+                      { color: '#8165D6', offset: 0.5208 },
+                      { color: '#48A8F6', offset: 0.9583 },
+                    ],
+                    {
+                      x0: 0,
+                      y0: 0,
+                      x1: 224,
+                      y1: 164,
+                    }
+                  ),
                   studioUserClipConfig: {
                     x: 0,
                     y: 2,
@@ -2214,7 +2312,20 @@ export const StudioUserConfiguration = ({
                   width: 224,
                   height: 168,
                   clipTheme: 'rect',
-                  borderWidth: 0,
+                  borderWidth: 8,
+                  borderColor: getCanvasGradient(
+                    [
+                      { color: '#DB1685', offset: 0.0 },
+                      { color: '#8165D6', offset: 0.5208 },
+                      { color: '#48A8F6', offset: 0.9583 },
+                    ],
+                    {
+                      x0: 0,
+                      y0: 0,
+                      x1: 224,
+                      y1: 164,
+                    }
+                  ),
                   studioUserClipConfig: {
                     x: 0,
                     y: 2,
@@ -2266,7 +2377,20 @@ export const StudioUserConfiguration = ({
                   width: 208,
                   height: 156,
                   clipTheme: 'rect',
-                  borderWidth: 0,
+                  borderWidth: 8,
+                  borderColor: getCanvasGradient(
+                    [
+                      { color: '#DB1685', offset: 0.0 },
+                      { color: '#8165D6', offset: 0.5208 },
+                      { color: '#48A8F6', offset: 0.9583 },
+                    ],
+                    {
+                      x0: 0,
+                      y0: 0,
+                      x1: 200,
+                      y1: 156,
+                    }
+                  ),
                   studioUserClipConfig: {
                     x: 4,
                     y: 0,
@@ -2281,7 +2405,20 @@ export const StudioUserConfiguration = ({
                   width: 208,
                   height: 156,
                   clipTheme: 'rect',
-                  borderWidth: 0,
+                  borderWidth: 8,
+                  borderColor: getCanvasGradient(
+                    [
+                      { color: '#DB1685', offset: 0.0 },
+                      { color: '#8165D6', offset: 0.5208 },
+                      { color: '#48A8F6', offset: 0.9583 },
+                    ],
+                    {
+                      x0: 0,
+                      y0: 0,
+                      x1: 200,
+                      y1: 156,
+                    }
+                  ),
                   studioUserClipConfig: {
                     x: 4,
                     y: 0,
@@ -2334,7 +2471,20 @@ export const StudioUserConfiguration = ({
                   width: 216,
                   height: 162,
                   clipTheme: 'rect',
-                  borderWidth: 0,
+                  borderWidth: 8,
+                  borderColor: getCanvasGradient(
+                    [
+                      { color: '#DB1685', offset: 0.0 },
+                      { color: '#8165D6', offset: 0.5208 },
+                      { color: '#48A8F6', offset: 0.9583 },
+                    ],
+                    {
+                      x0: 0,
+                      y0: 0,
+                      x1: 160,
+                      y1: 160,
+                    }
+                  ),
                   studioUserClipConfig: {
                     x: 28,
                     y: 1,
@@ -2349,7 +2499,20 @@ export const StudioUserConfiguration = ({
                   width: 216,
                   height: 162,
                   clipTheme: 'rect',
-                  borderWidth: 0,
+                  borderWidth: 8,
+                  borderColor: getCanvasGradient(
+                    [
+                      { color: '#DB1685', offset: 0.0 },
+                      { color: '#8165D6', offset: 0.5208 },
+                      { color: '#48A8F6', offset: 0.9583 },
+                    ],
+                    {
+                      x0: 0,
+                      y0: 0,
+                      x1: 160,
+                      y1: 160,
+                    }
+                  ),
                   studioUserClipConfig: {
                     x: 28,
                     y: 1,
@@ -2401,7 +2564,20 @@ export const StudioUserConfiguration = ({
                   width: 360,
                   height: 270,
                   clipTheme: 'rect',
-                  borderWidth: 0,
+                  borderWidth: 4,
+                  borderColor: getCanvasGradient(
+                    [
+                      { color: '#DB1685', offset: 0.0 },
+                      { color: '#8165D6', offset: 0.5208 },
+                      { color: '#48A8F6', offset: 0.9583 },
+                    ],
+                    {
+                      x0: 0,
+                      y0: 0,
+                      x1: 320,
+                      y1: 270,
+                    }
+                  ),
                   studioUserClipConfig: {
                     x: 20,
                     y: 0,
@@ -2416,7 +2592,20 @@ export const StudioUserConfiguration = ({
                   width: 360,
                   height: 270,
                   clipTheme: 'rect',
-                  borderWidth: 0,
+                  borderWidth: 4,
+                  borderColor: getCanvasGradient(
+                    [
+                      { color: '#DB1685', offset: 0.0 },
+                      { color: '#8165D6', offset: 0.5208 },
+                      { color: '#48A8F6', offset: 0.9583 },
+                    ],
+                    {
+                      x0: 0,
+                      y0: 0,
+                      x1: 320,
+                      y1: 270,
+                    }
+                  ),
                   studioUserClipConfig: {
                     x: 20,
                     y: 0,
@@ -2465,16 +2654,16 @@ export const StudioUserConfiguration = ({
               return [
                 {
                   x: 0,
-                  y: 0,
-                  width: 0,
-                  height: 0,
+                  y: -90,
+                  width: 960,
+                  height: 720,
                   clipTheme: 'rect',
                   borderWidth: 0,
                   studioUserClipConfig: {
                     x: 0,
-                    y: 0,
-                    width: 0,
-                    height: 0,
+                    y: 90,
+                    width: 960,
+                    height: 540,
                     borderRadius: 0,
                   },
                 },
@@ -2538,8 +2727,8 @@ export const StudioUserConfiguration = ({
           case 2:
             return [
               {
-                x: 400,
-                y: 25,
+                x: 392,
+                y: 30,
                 width: 640,
                 height: 480,
                 clipTheme: 'rect',
@@ -2551,8 +2740,8 @@ export const StudioUserConfiguration = ({
                   height: 480,
                   borderRadius: 12,
                 },
-                backgroundRectX: 504,
-                backgroundRectY: 9,
+                backgroundRectX: 496,
+                backgroundRectY: 14,
                 backgroundRectWidth: 432,
                 backgroundRectHeight: 512,
                 backgroundRectBorderRadius: 12,
@@ -2560,8 +2749,8 @@ export const StudioUserConfiguration = ({
                 backgroundRectOpacity: 0.3,
               },
               {
-                x: -60,
-                y: 25,
+                x: -72,
+                y: 30,
                 width: 640,
                 height: 480,
                 clipTheme: 'rect',
@@ -2573,8 +2762,8 @@ export const StudioUserConfiguration = ({
                   height: 480,
                   borderRadius: 12,
                 },
-                backgroundRectX: 44,
-                backgroundRectY: 9,
+                backgroundRectX: 32,
+                backgroundRectY: 14,
                 backgroundRectWidth: 432,
                 backgroundRectHeight: 512,
                 backgroundRectBorderRadius: 12,
@@ -2612,20 +2801,13 @@ export const StudioUserConfiguration = ({
         }
       }
       switch (layout) {
-        // case 'classic':
-        //   switch (noOfParticipants) {
-        //     case 2:
-        //       return [{}, {}]
-        //     default:
-        //       return [{}]
-        //   }
         case 'float-full-right':
           switch (noOfParticipants) {
             case 2:
               return [
                 {
                   x: 704,
-                  y: 88,
+                  y: 94,
                   width: 224,
                   height: 168,
                   clipTheme: 'rect',
@@ -2635,12 +2817,21 @@ export const StudioUserConfiguration = ({
                     y: 2,
                     width: 224,
                     height: 164,
-                    borderRadius: 8,
+                    borderRadius: 12,
                   },
+                  backgroundRectX: 696,
+                  backgroundRectY: 88,
+                  backgroundRectWidth: 240,
+                  backgroundRectHeight: 180,
+                  backgroundRectBorderRadius: 12,
+                  backgroundRectColor: '#ffffff',
+                  backgroundRectOpacity: 0.3,
+                  backgroundRectBorderColor: '#ffffff',
+                  backgroundRectBorderWidth: 1,
                 },
                 {
                   x: 704,
-                  y: 284,
+                  y: 290,
                   width: 224,
                   height: 168,
                   clipTheme: 'rect',
@@ -2650,8 +2841,17 @@ export const StudioUserConfiguration = ({
                     y: 2,
                     width: 224,
                     height: 164,
-                    borderRadius: 8,
+                    borderRadius: 12,
                   },
+                  backgroundRectX: 696,
+                  backgroundRectY: 284,
+                  backgroundRectWidth: 240,
+                  backgroundRectHeight: 180,
+                  backgroundRectBorderRadius: 12,
+                  backgroundRectColor: '#ffffff',
+                  backgroundRectOpacity: 0.3,
+                  backgroundRectBorderColor: '#ffffff',
+                  backgroundRectBorderWidth: 1,
                 },
               ]
             default:
@@ -2688,7 +2888,7 @@ export const StudioUserConfiguration = ({
               return [
                 {
                   x: 32,
-                  y: 88,
+                  y: 94,
                   width: 224,
                   height: 168,
                   clipTheme: 'rect',
@@ -2698,12 +2898,21 @@ export const StudioUserConfiguration = ({
                     y: 2,
                     width: 224,
                     height: 164,
-                    borderRadius: 8,
+                    borderRadius: 12,
                   },
+                  backgroundRectX: 24,
+                  backgroundRectY: 88,
+                  backgroundRectWidth: 240,
+                  backgroundRectHeight: 180,
+                  backgroundRectBorderRadius: 12,
+                  backgroundRectColor: '#ffffff',
+                  backgroundRectOpacity: 0.3,
+                  backgroundRectBorderColor: '#ffffff',
+                  backgroundRectBorderWidth: 1,
                 },
                 {
                   x: 32,
-                  y: 284,
+                  y: 290,
                   width: 224,
                   height: 168,
                   clipTheme: 'rect',
@@ -2713,8 +2922,17 @@ export const StudioUserConfiguration = ({
                     y: 2,
                     width: 224,
                     height: 164,
-                    borderRadius: 8,
+                    borderRadius: 12,
                   },
+                  backgroundRectX: 24,
+                  backgroundRectY: 284,
+                  backgroundRectWidth: 240,
+                  backgroundRectHeight: 180,
+                  backgroundRectBorderRadius: 12,
+                  backgroundRectColor: '#ffffff',
+                  backgroundRectOpacity: 0.3,
+                  backgroundRectBorderColor: '#ffffff',
+                  backgroundRectBorderWidth: 1,
                 },
               ]
             default:
@@ -2751,7 +2969,7 @@ export const StudioUserConfiguration = ({
               return [
                 {
                   x: 724,
-                  y: 96,
+                  y: 110,
                   width: 208,
                   height: 156,
                   clipTheme: 'rect',
@@ -2761,12 +2979,21 @@ export const StudioUserConfiguration = ({
                     y: 0,
                     width: 200,
                     height: 156,
-                    borderRadius: 8,
+                    borderRadius: 12,
                   },
+                  backgroundRectX: 720,
+                  backgroundRectY: 102,
+                  backgroundRectWidth: 216,
+                  backgroundRectHeight: 172,
+                  backgroundRectBorderRadius: 12,
+                  backgroundRectColor: '#ffffff',
+                  backgroundRectOpacity: 0.3,
+                  backgroundRectBorderColor: '#ffffff',
+                  backgroundRectBorderWidth: 1,
                 },
                 {
                   x: 724,
-                  y: 288,
+                  y: 302,
                   width: 208,
                   height: 156,
                   clipTheme: 'rect',
@@ -2776,8 +3003,17 @@ export const StudioUserConfiguration = ({
                     y: 0,
                     width: 200,
                     height: 156,
-                    borderRadius: 8,
+                    borderRadius: 12,
                   },
+                  backgroundRectX: 720,
+                  backgroundRectY: 294,
+                  backgroundRectWidth: 216,
+                  backgroundRectHeight: 172,
+                  backgroundRectBorderRadius: 12,
+                  backgroundRectColor: '#ffffff',
+                  backgroundRectOpacity: 0.3,
+                  backgroundRectBorderColor: '#ffffff',
+                  backgroundRectBorderWidth: 1,
                 },
               ]
             default:
@@ -2825,8 +3061,17 @@ export const StudioUserConfiguration = ({
                     y: 1,
                     width: 160,
                     height: 160,
-                    borderRadius: 8,
+                    borderRadius: 12,
                   },
+                  backgroundRectX: 776,
+                  backgroundRectY: 357,
+                  backgroundRectWidth: 176,
+                  backgroundRectHeight: 176,
+                  backgroundRectBorderRadius: 12,
+                  backgroundRectColor: '#ffffff',
+                  backgroundRectOpacity: 0.3,
+                  backgroundRectBorderColor: '#ffffff',
+                  backgroundRectBorderWidth: 1,
                 },
                 {
                   x: 568,
@@ -2840,8 +3085,17 @@ export const StudioUserConfiguration = ({
                     y: 1,
                     width: 160,
                     height: 160,
-                    borderRadius: 8,
+                    borderRadius: 12,
                   },
+                  backgroundRectX: 588,
+                  backgroundRectY: 357,
+                  backgroundRectWidth: 176,
+                  backgroundRectHeight: 176,
+                  backgroundRectBorderRadius: 12,
+                  backgroundRectColor: '#ffffff',
+                  backgroundRectOpacity: 0.3,
+                  backgroundRectBorderColor: '#ffffff',
+                  backgroundRectBorderWidth: 1,
                 },
               ]
             default:
@@ -2891,6 +3145,15 @@ export const StudioUserConfiguration = ({
                     height: 160,
                     borderRadius: 80,
                   },
+                  backgroundRectX: 776,
+                  backgroundRectY: 357,
+                  backgroundRectWidth: 176,
+                  backgroundRectHeight: 176,
+                  backgroundRectBorderRadius: 88,
+                  backgroundRectColor: '#ffffff',
+                  backgroundRectOpacity: 0.3,
+                  backgroundRectBorderColor: '#ffffff',
+                  backgroundRectBorderWidth: 1,
                 },
                 {
                   x: 568,
@@ -2906,6 +3169,15 @@ export const StudioUserConfiguration = ({
                     height: 160,
                     borderRadius: 80,
                   },
+                  backgroundRectX: 588,
+                  backgroundRectY: 357,
+                  backgroundRectWidth: 176,
+                  backgroundRectHeight: 176,
+                  backgroundRectBorderRadius: 88,
+                  backgroundRectColor: '#ffffff',
+                  backgroundRectOpacity: 0.3,
+                  backgroundRectBorderColor: '#ffffff',
+                  backgroundRectBorderWidth: 1,
                 },
               ]
             default:
@@ -3006,16 +3278,16 @@ export const StudioUserConfiguration = ({
               return [
                 {
                   x: 0,
-                  y: 0,
-                  width: 0,
-                  height: 0,
+                  y: -90,
+                  width: 960,
+                  height: 720,
                   clipTheme: 'rect',
                   borderWidth: 0,
                   studioUserClipConfig: {
                     x: 0,
-                    y: 0,
-                    width: 0,
-                    height: 0,
+                    y: 90,
+                    width: 960,
+                    height: 540,
                     borderRadius: 0,
                   },
                 },
@@ -3079,7 +3351,7 @@ export const StudioUserConfiguration = ({
           case 2:
             return [
               {
-                x: 400,
+                x: 385,
                 y: 25,
                 width: 640,
                 height: 480,
@@ -3090,11 +3362,11 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 400,
                   height: 480,
-                  borderRadius: 0,
+                  borderRadius: 8,
                 },
               },
               {
-                x: -60,
+                x: -65,
                 y: 25,
                 width: 640,
                 height: 480,
@@ -3105,7 +3377,7 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 400,
                   height: 480,
-                  borderRadius: 0,
+                  borderRadius: 8,
                 },
               },
             ]
@@ -3130,13 +3402,6 @@ export const StudioUserConfiguration = ({
         }
       }
       switch (layout) {
-        // case 'classic':
-        //   switch (noOfParticipants) {
-        //     case 2:
-        //       return [{}, {}]
-        //     default:
-        //       return [{}]
-        //   }
         case 'float-full-right':
           switch (noOfParticipants) {
             case 2:
@@ -3153,7 +3418,7 @@ export const StudioUserConfiguration = ({
                     y: 2,
                     width: 224,
                     height: 164,
-                    borderRadius: 0,
+                    borderRadius: 8,
                   },
                 },
                 {
@@ -3168,7 +3433,7 @@ export const StudioUserConfiguration = ({
                     y: 2,
                     width: 224,
                     height: 164,
-                    borderRadius: 0,
+                    borderRadius: 8,
                   },
                 },
               ]
@@ -3208,7 +3473,7 @@ export const StudioUserConfiguration = ({
                     y: 2,
                     width: 224,
                     height: 164,
-                    borderRadius: 0,
+                    borderRadius: 8,
                   },
                 },
                 {
@@ -3223,7 +3488,7 @@ export const StudioUserConfiguration = ({
                     y: 2,
                     width: 224,
                     height: 164,
-                    borderRadius: 0,
+                    borderRadius: 8,
                   },
                 },
               ]
@@ -3263,7 +3528,7 @@ export const StudioUserConfiguration = ({
                     y: 0,
                     width: 200,
                     height: 156,
-                    borderRadius: 0,
+                    borderRadius: 8,
                   },
                 },
                 {
@@ -3319,7 +3584,7 @@ export const StudioUserConfiguration = ({
                     y: 1,
                     width: 160,
                     height: 160,
-                    borderRadius: 0,
+                    borderRadius: 8,
                   },
                 },
                 {
@@ -3334,7 +3599,7 @@ export const StudioUserConfiguration = ({
                     y: 1,
                     width: 160,
                     height: 160,
-                    borderRadius: 0,
+                    borderRadius: 8,
                   },
                 },
               ]
@@ -3419,16 +3684,16 @@ export const StudioUserConfiguration = ({
               return [
                 {
                   x: 0,
-                  y: 0,
-                  width: 0,
-                  height: 0,
+                  y: -90,
+                  width: 960,
+                  height: 720,
                   clipTheme: 'rect',
                   borderWidth: 0,
                   studioUserClipConfig: {
                     x: 0,
-                    y: 0,
-                    width: 0,
-                    height: 0,
+                    y: 90,
+                    width: 960,
+                    height: 540,
                     borderRadius: 0,
                   },
                 },
@@ -3492,7 +3757,7 @@ export const StudioUserConfiguration = ({
           case 2:
             return [
               {
-                x: 400,
+                x: 385,
                 y: 25,
                 width: 640,
                 height: 480,
@@ -3504,11 +3769,11 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 400,
                   height: 480,
-                  borderRadius: 0,
+                  borderRadius: 8,
                 },
               },
               {
-                x: -60,
+                x: -65,
                 y: 25,
                 width: 640,
                 height: 480,
@@ -3520,7 +3785,7 @@ export const StudioUserConfiguration = ({
                   y: 0,
                   width: 400,
                   height: 480,
-                  borderRadius: 0,
+                  borderRadius: 8,
                 },
               },
             ]
@@ -3546,20 +3811,13 @@ export const StudioUserConfiguration = ({
         }
       }
       switch (layout) {
-        // case 'classic':
-        //   switch (noOfParticipants) {
-        //     case 2:
-        //       return [{}, {}]
-        //     default:
-        //       return [{}]
-        //   }
         case 'float-full-right':
           switch (noOfParticipants) {
             case 2:
               return [
                 {
                   x: 704,
-                  y: 88,
+                  y: 94,
                   width: 224,
                   height: 168,
                   clipTheme: 'rect',
@@ -3570,12 +3828,12 @@ export const StudioUserConfiguration = ({
                     y: 2,
                     width: 224,
                     height: 164,
-                    borderRadius: 0,
+                    borderRadius: 8,
                   },
                 },
                 {
                   x: 704,
-                  y: 284,
+                  y: 290,
                   width: 224,
                   height: 168,
                   clipTheme: 'rect',
@@ -3586,7 +3844,7 @@ export const StudioUserConfiguration = ({
                     y: 2,
                     width: 224,
                     height: 164,
-                    borderRadius: 0,
+                    borderRadius: 8,
                   },
                 },
               ]
@@ -3627,7 +3885,7 @@ export const StudioUserConfiguration = ({
                     y: 2,
                     width: 224,
                     height: 164,
-                    borderRadius: 0,
+                    borderRadius: 8,
                   },
                 },
                 {
@@ -3643,7 +3901,7 @@ export const StudioUserConfiguration = ({
                     y: 2,
                     width: 224,
                     height: 164,
-                    borderRadius: 0,
+                    borderRadius: 8,
                   },
                 },
               ]
@@ -3684,7 +3942,7 @@ export const StudioUserConfiguration = ({
                     y: 0,
                     width: 200,
                     height: 156,
-                    borderRadius: 0,
+                    borderRadius: 8,
                   },
                 },
                 {
@@ -3742,7 +4000,7 @@ export const StudioUserConfiguration = ({
                     y: 1,
                     width: 160,
                     height: 160,
-                    borderRadius: 0,
+                    borderRadius: 8,
                   },
                 },
                 {
@@ -3758,7 +4016,7 @@ export const StudioUserConfiguration = ({
                     y: 1,
                     width: 160,
                     height: 160,
-                    borderRadius: 0,
+                    borderRadius: 8,
                   },
                 },
               ]
@@ -3846,17 +4104,17 @@ export const StudioUserConfiguration = ({
               return [
                 {
                   x: 0,
-                  y: 0,
-                  width: 0,
-                  height: 0,
+                  y: -90,
+                  width: 960,
+                  height: 720,
                   clipTheme: 'rect',
-                  borderWidth: 6,
+                  borderWidth: 0,
                   borderColor: '#FFB626',
                   studioUserClipConfig: {
                     x: 0,
-                    y: 0,
-                    width: 0,
-                    height: 0,
+                    y: 90,
+                    width: 960,
+                    height: 540,
                     borderRadius: 0,
                   },
                 },
@@ -3979,33 +4237,33 @@ export const StudioUserConfiguration = ({
           case 2:
             return [
               {
-                x: 400,
-                y: 25,
-                width: 640,
-                height: 480,
+                x: 385,
+                y: 55,
+                width: 576,
+                height: 432,
                 clipTheme: 'rect',
                 borderWidth: 0,
                 studioUserClipConfig: {
                   x: 120,
                   y: 0,
                   width: 400,
-                  height: 480,
-                  borderRadius: 16,
+                  height: 432,
+                  borderRadius: 0,
                 },
               },
               {
-                x: -60,
-                y: 25,
-                width: 640,
-                height: 480,
+                x: -65,
+                y: 55,
+                width: 576,
+                height: 432,
                 clipTheme: 'rect',
                 borderWidth: 0,
                 studioUserClipConfig: {
                   x: 120,
                   y: 0,
                   width: 400,
-                  height: 480,
-                  borderRadius: 16,
+                  height: 432,
+                  borderRadius: 0,
                 },
               },
             ]
@@ -4030,47 +4288,54 @@ export const StudioUserConfiguration = ({
         }
       }
       switch (layout) {
-        // case 'classic':
-        //   switch (noOfParticipants) {
-        //     case 2:
-        //       return [{}, {}]
-        //     default:
-        //       return [{}]
-        //   }
         case 'float-full-right':
         case 'float-half-right':
           switch (noOfParticipants) {
             case 2:
               return [
                 {
-                  x: 704,
-                  y: 88,
-                  width: 224,
-                  height: 168,
+                  x: 616,
+                  y: 300,
+                  width: 240,
+                  height: 180,
                   clipTheme: 'rect',
                   borderWidth: 0,
                   studioUserClipConfig: {
-                    x: 0,
-                    y: 2,
-                    width: 224,
-                    height: 164,
-                    borderRadius: 16,
+                    x: 30,
+                    y: 0,
+                    width: 180,
+                    height: 180,
+                    borderRadius: 90,
                   },
+                  backgroundRectX: 716,
+                  backgroundRectY: 275,
+                  backgroundRectWidth: 130,
+                  backgroundRectHeight: 130,
+                  backgroundRectBorderRadius: 75,
+                  backgroundRectColor: '#C5203E',
+                  backgroundRectOpacity: 1,
                 },
                 {
-                  x: 704,
-                  y: 284,
-                  width: 224,
-                  height: 168,
+                  x: 616,
+                  y: 90,
+                  width: 240,
+                  height: 180,
                   clipTheme: 'rect',
                   borderWidth: 0,
                   studioUserClipConfig: {
-                    x: 0,
-                    y: 2,
-                    width: 224,
-                    height: 164,
-                    borderRadius: 16,
+                    x: 30,
+                    y: 0,
+                    width: 180,
+                    height: 180,
+                    borderRadius: 90,
                   },
+                  backgroundRectX: 716,
+                  backgroundRectY: 65,
+                  backgroundRectWidth: 130,
+                  backgroundRectHeight: 130,
+                  backgroundRectBorderRadius: 75,
+                  backgroundRectColor: '#C5203E',
+                  backgroundRectOpacity: 1,
                 },
               ]
             default:
@@ -4111,34 +4376,48 @@ export const StudioUserConfiguration = ({
             case 2:
               return [
                 {
-                  x: 756,
-                  y: 364,
+                  x: 672,
+                  y: 290,
                   width: 216,
                   height: 162,
                   clipTheme: 'rect',
                   borderWidth: 0,
                   studioUserClipConfig: {
                     x: 28,
-                    y: 1,
+                    y: 0,
                     width: 160,
                     height: 160,
-                    borderRadius: 16,
+                    borderRadius: 80,
                   },
+                  backgroundRectX: 750,
+                  backgroundRectY: 265,
+                  backgroundRectWidth: 120,
+                  backgroundRectHeight: 120,
+                  backgroundRectBorderRadius: 60,
+                  backgroundRectColor: '#C5203E',
+                  backgroundRectOpacity: 1,
                 },
                 {
-                  x: 568,
-                  y: 364,
+                  x: 672,
+                  y: 120,
                   width: 216,
                   height: 162,
                   clipTheme: 'rect',
                   borderWidth: 0,
                   studioUserClipConfig: {
                     x: 28,
-                    y: 1,
+                    y: 0,
                     width: 160,
                     height: 160,
-                    borderRadius: 16,
+                    borderRadius: 80,
                   },
+                  backgroundRectX: 750,
+                  backgroundRectY: 95,
+                  backgroundRectWidth: 120,
+                  backgroundRectHeight: 120,
+                  backgroundRectBorderRadius: 60,
+                  backgroundRectColor: '#C5203E',
+                  backgroundRectOpacity: 1,
                 },
               ]
             default:
@@ -4172,32 +4451,32 @@ export const StudioUserConfiguration = ({
             case 2:
               return [
                 {
-                  x: 620,
-                  y: 0,
-                  width: 360,
-                  height: 270,
+                  x: 617,
+                  y: 268,
+                  width: 280,
+                  height: 210,
                   clipTheme: 'rect',
                   borderWidth: 0,
                   studioUserClipConfig: {
-                    x: 20,
-                    y: 0,
-                    width: 320,
-                    height: 270,
+                    x: 1,
+                    y: 5,
+                    width: 278,
+                    height: 200,
                     borderRadius: 0,
                   },
                 },
                 {
-                  x: 620,
-                  y: 270,
-                  width: 360,
-                  height: 270,
+                  x: 617,
+                  y: 58,
+                  width: 280,
+                  height: 210,
                   clipTheme: 'rect',
                   borderWidth: 0,
                   studioUserClipConfig: {
-                    x: 20,
-                    y: 0,
-                    width: 320,
-                    height: 270,
+                    x: 1,
+                    y: 5,
+                    width: 278,
+                    height: 200,
                     borderRadius: 0,
                   },
                 },
@@ -4228,16 +4507,16 @@ export const StudioUserConfiguration = ({
               return [
                 {
                   x: 0,
-                  y: 0,
-                  width: 0,
-                  height: 0,
+                  y: -90,
+                  width: 960,
+                  height: 720,
                   clipTheme: 'rect',
                   borderWidth: 0,
                   studioUserClipConfig: {
                     x: 0,
-                    y: 0,
-                    width: 0,
-                    height: 0,
+                    y: 90,
+                    width: 960,
+                    height: 540,
                     borderRadius: 0,
                   },
                 },
@@ -4456,13 +4735,6 @@ export const StudioUserConfiguration = ({
         }
       }
       switch (layout) {
-        // case 'classic':
-        //   switch (noOfParticipants) {
-        //     case 2:
-        //       return [{}, {}]
-        //     default:
-        //       return [{}]
-        //   }
         case 'float-full-right':
         case 'float-half-right':
           switch (noOfParticipants) {
@@ -4474,7 +4746,19 @@ export const StudioUserConfiguration = ({
                   width: 224,
                   height: 168,
                   clipTheme: 'rect',
-                  borderWidth: 0,
+                  borderWidth: 4,
+                  borderColor: getCanvasGradient(
+                    [
+                      { color: '#FAFAFABF', offset: 0.0 },
+                      { color: '#FFFFFF00', offset: 1.0 },
+                    ],
+                    {
+                      x0: 112,
+                      y0: 0,
+                      x1: 112,
+                      y1: 100,
+                    }
+                  ),
                   studioUserClipConfig: {
                     x: 0,
                     y: 2,
@@ -4489,7 +4773,19 @@ export const StudioUserConfiguration = ({
                   width: 224,
                   height: 168,
                   clipTheme: 'rect',
-                  borderWidth: 0,
+                  borderWidth: 4,
+                  borderColor: getCanvasGradient(
+                    [
+                      { color: '#FAFAFABF', offset: 0.0 },
+                      { color: '#FFFFFF00', offset: 1.0 },
+                    ],
+                    {
+                      x0: 112,
+                      y0: 0,
+                      x1: 112,
+                      y1: 100,
+                    }
+                  ),
                   studioUserClipConfig: {
                     x: 0,
                     y: 2,
@@ -4540,7 +4836,19 @@ export const StudioUserConfiguration = ({
                   width: 224,
                   height: 168,
                   clipTheme: 'rect',
-                  borderWidth: 0,
+                  borderWidth: 4,
+                  borderColor: getCanvasGradient(
+                    [
+                      { color: '#FAFAFABF', offset: 0.0 },
+                      { color: '#FFFFFF00', offset: 1.0 },
+                    ],
+                    {
+                      x0: 112,
+                      y0: 0,
+                      x1: 112,
+                      y1: 100,
+                    }
+                  ),
                   studioUserClipConfig: {
                     x: 0,
                     y: 2,
@@ -4555,7 +4863,19 @@ export const StudioUserConfiguration = ({
                   width: 224,
                   height: 168,
                   clipTheme: 'rect',
-                  borderWidth: 0,
+                  borderWidth: 4,
+                  borderColor: getCanvasGradient(
+                    [
+                      { color: '#FAFAFABF', offset: 0.0 },
+                      { color: '#FFFFFF00', offset: 1.0 },
+                    ],
+                    {
+                      x0: 112,
+                      y0: 0,
+                      x1: 112,
+                      y1: 100,
+                    }
+                  ),
                   studioUserClipConfig: {
                     x: 0,
                     y: 2,
@@ -4607,7 +4927,19 @@ export const StudioUserConfiguration = ({
                   width: 216,
                   height: 162,
                   clipTheme: 'rect',
-                  borderWidth: 0,
+                  borderWidth: 4,
+                  borderColor: getCanvasGradient(
+                    [
+                      { color: '#FAFAFABF', offset: 0.0 },
+                      { color: '#FFFFFF00', offset: 1.0 },
+                    ],
+                    {
+                      x0: 80,
+                      y0: 0,
+                      x1: 80,
+                      y1: 120,
+                    }
+                  ),
                   studioUserClipConfig: {
                     x: 28,
                     y: 1,
@@ -4622,7 +4954,19 @@ export const StudioUserConfiguration = ({
                   width: 216,
                   height: 162,
                   clipTheme: 'rect',
-                  borderWidth: 0,
+                  borderWidth: 4,
+                  borderColor: getCanvasGradient(
+                    [
+                      { color: '#FAFAFABF', offset: 0.0 },
+                      { color: '#FFFFFF00', offset: 1.0 },
+                    ],
+                    {
+                      x0: 80,
+                      y0: 0,
+                      x1: 80,
+                      y1: 120,
+                    }
+                  ),
                   studioUserClipConfig: {
                     x: 28,
                     y: 1,
@@ -4673,7 +5017,19 @@ export const StudioUserConfiguration = ({
                   width: 360,
                   height: 270,
                   clipTheme: 'rect',
-                  borderWidth: 0,
+                  borderWidth: 4,
+                  borderColor: getCanvasGradient(
+                    [
+                      { color: '#FAFAFABF', offset: 0.0 },
+                      { color: '#FFFFFF00', offset: 1.0 },
+                    ],
+                    {
+                      x0: 160,
+                      y0: 0,
+                      x1: 160,
+                      y1: 202,
+                    }
+                  ),
                   studioUserClipConfig: {
                     x: 20,
                     y: 0,
@@ -4688,7 +5044,19 @@ export const StudioUserConfiguration = ({
                   width: 360,
                   height: 270,
                   clipTheme: 'rect',
-                  borderWidth: 0,
+                  borderWidth: 4,
+                  borderColor: getCanvasGradient(
+                    [
+                      { color: '#FAFAFABF', offset: 0.0 },
+                      { color: '#FFFFFF00', offset: 1.0 },
+                    ],
+                    {
+                      x0: 160,
+                      y0: 0,
+                      x1: 160,
+                      y1: 202,
+                    }
+                  ),
                   studioUserClipConfig: {
                     x: 20,
                     y: 0,
@@ -4736,16 +5104,16 @@ export const StudioUserConfiguration = ({
               return [
                 {
                   x: 0,
-                  y: 0,
-                  width: 0,
-                  height: 0,
+                  y: -90,
+                  width: 960,
+                  height: 720,
                   clipTheme: 'rect',
                   borderWidth: 0,
                   studioUserClipConfig: {
                     x: 0,
-                    y: 0,
-                    width: 0,
-                    height: 0,
+                    y: 90,
+                    width: 960,
+                    height: 540,
                     borderRadius: 0,
                   },
                 },
@@ -4845,6 +5213,481 @@ export const StudioUserConfiguration = ({
                     y: 0,
                     width: 240,
                     height: 330,
+                    borderRadius: 0,
+                  },
+                },
+              ]
+          }
+        default:
+          return [
+            {
+              x: 0,
+              y: 0,
+              width: 0,
+              height: 0,
+              clipTheme: 'rect',
+              borderWidth: 0,
+              studioUserClipConfig: {
+                x: 0,
+                y: 0,
+                width: 0,
+                height: 0,
+                borderRadius: 0,
+              },
+            },
+          ]
+      }
+    case 'Mux':
+      if (fragmentState === 'onlyUserMedia') {
+        switch (noOfParticipants) {
+          case 2:
+            return [
+              {
+                x: 416,
+                y: 49.5,
+                width: 588,
+                height: 441,
+                clipTheme: 'rect',
+                borderWidth: 2,
+                borderColor: '#D4D4D8',
+                studioUserClipConfig: {
+                  x: 84,
+                  y: 0.5,
+                  width: 420,
+                  height: 440,
+                  borderRadius: 0,
+                },
+              },
+              {
+                x: -44,
+                y: 49.5,
+                width: 588,
+                height: 441,
+                clipTheme: 'rect',
+                borderWidth: 2,
+                borderColor: '#D4D4D8',
+                studioUserClipConfig: {
+                  x: 84,
+                  y: 0.5,
+                  width: 420,
+                  height: 440,
+                  borderRadius: 0,
+                },
+              },
+            ]
+          default:
+            return [
+              {
+                x: 40,
+                y: -50,
+                width: 880,
+                height: 660,
+                clipTheme: 'rect',
+                borderWidth: 2,
+                borderColor: '#D4D4D8',
+                studioUserClipConfig: {
+                  x: 0,
+                  y: 80,
+                  width: 880,
+                  height: 480,
+                  borderRadius: 0,
+                },
+              },
+            ]
+        }
+      }
+      switch (layout) {
+        case 'float-full-right':
+          switch (noOfParticipants) {
+            case 2:
+              return [
+                {
+                  x: 704,
+                  y: 88,
+                  width: 224,
+                  height: 168,
+                  clipTheme: 'rect',
+                  borderWidth: 2,
+                  borderColor: '#D4D4D8',
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 2,
+                    width: 224,
+                    height: 164,
+                    borderRadius: 0,
+                  },
+                },
+                {
+                  x: 704,
+                  y: 284,
+                  width: 224,
+                  height: 168,
+                  clipTheme: 'rect',
+                  borderWidth: 2,
+                  borderColor: '#D4D4D8',
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 2,
+                    width: 224,
+                    height: 164,
+                    borderRadius: 0,
+                  },
+                },
+              ]
+            default:
+              return [
+                {
+                  x: 568,
+                  y: 91,
+                  width: 480,
+                  height: 360,
+                  clipTheme: 'rect',
+                  borderWidth: 2,
+                  borderColor: '#D4D4D8',
+                  studioUserClipConfig: {
+                    x: 128,
+                    y: 0,
+                    width: 224,
+                    height: 360,
+                    borderRadius: 0,
+                  },
+                },
+              ]
+          }
+        case 'float-full-left':
+          switch (noOfParticipants) {
+            case 2:
+              return [
+                {
+                  x: 32,
+                  y: 88,
+                  width: 224,
+                  height: 168,
+                  clipTheme: 'rect',
+                  borderWidth: 2,
+                  borderColor: '#D4D4D8',
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 2,
+                    width: 224,
+                    height: 164,
+                    borderRadius: 0,
+                  },
+                },
+                {
+                  x: 32,
+                  y: 284,
+                  width: 224,
+                  height: 168,
+                  clipTheme: 'rect',
+                  borderWidth: 2,
+                  borderColor: '#D4D4D8',
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 2,
+                    width: 224,
+                    height: 164,
+                    borderRadius: 0,
+                  },
+                },
+              ]
+            default:
+              return [
+                {
+                  x: -88,
+                  y: 91,
+                  width: 480,
+                  height: 360,
+                  clipTheme: 'rect',
+                  borderWidth: 2,
+                  borderColor: '#D4D4D8',
+                  studioUserClipConfig: {
+                    x: 128,
+                    y: 0,
+                    width: 224,
+                    height: 360,
+                    borderRadius: 0,
+                  },
+                },
+              ]
+          }
+        case 'float-half-right':
+          switch (noOfParticipants) {
+            case 2:
+              return [
+                {
+                  x: 724,
+                  y: 96,
+                  width: 208,
+                  height: 156,
+                  clipTheme: 'rect',
+                  borderWidth: 2,
+                  borderColor: '#D4D4D8',
+                  studioUserClipConfig: {
+                    x: 4,
+                    y: 0,
+                    width: 200,
+                    height: 156,
+                    borderRadius: 0,
+                  },
+                },
+                {
+                  x: 724,
+                  y: 288,
+                  width: 208,
+                  height: 156,
+                  clipTheme: 'rect',
+                  borderWidth: 2,
+                  borderColor: '#D4D4D8',
+                  studioUserClipConfig: {
+                    x: 4,
+                    y: 0,
+                    width: 200,
+                    height: 156,
+                    borderRadius: 0,
+                  },
+                },
+              ]
+            default:
+              return [
+                {
+                  x: 608,
+                  y: 108,
+                  width: 432,
+                  height: 324,
+                  clipTheme: 'rect',
+                  borderWidth: 2,
+                  borderColor: '#D4D4D8',
+                  studioUserClipConfig: {
+                    x: 104,
+                    y: 0,
+                    width: 224,
+                    height: 324,
+                    borderRadius: 0,
+                  },
+                },
+              ]
+          }
+        case 'padded-bottom-right-tile':
+        case 'bottom-right-tile':
+          switch (noOfParticipants) {
+            case 2:
+              return [
+                {
+                  x: 698,
+                  y: 285.5,
+                  width: 240,
+                  height: 180,
+                  clipTheme: 'rect',
+                  borderWidth: 2,
+                  borderColor: '#D4D4D8',
+                  studioUserClipConfig: {
+                    x: 30,
+                    y: 0,
+                    width: 180,
+                    height: 180,
+                    borderRadius: 0,
+                  },
+                },
+                {
+                  x: 698,
+                  y: 90.5,
+                  width: 240,
+                  height: 180,
+                  clipTheme: 'rect',
+                  borderWidth: 2,
+                  borderColor: '#D4D4D8',
+                  studioUserClipConfig: {
+                    x: 30,
+                    y: 0,
+                    width: 180,
+                    height: 180,
+                    borderRadius: 0,
+                  },
+                },
+              ]
+            default:
+              return [
+                {
+                  x: 698,
+                  y: 285.5,
+                  width: 240,
+                  height: 180,
+                  clipTheme: 'rect',
+                  borderWidth: 2,
+                  borderColor: '#D4D4D8',
+                  studioUserClipConfig: {
+                    x: 30,
+                    y: 0,
+                    width: 180,
+                    height: 180,
+                    borderRadius: 0,
+                  },
+                },
+              ]
+          }
+        case 'padded-split':
+          switch (noOfParticipants) {
+            case 2:
+              return [
+                {
+                  x: 620,
+                  y: 0,
+                  width: 360,
+                  height: 270,
+                  clipTheme: 'rect',
+                  borderWidth: 2,
+                  borderColor: '#D4D4D8',
+                  studioUserClipConfig: {
+                    x: 20,
+                    y: 0,
+                    width: 320,
+                    height: 270,
+                    borderRadius: 0,
+                  },
+                },
+                {
+                  x: 620,
+                  y: 270,
+                  width: 360,
+                  height: 270,
+                  clipTheme: 'rect',
+                  borderWidth: 2,
+                  borderColor: '#D4D4D8',
+                  studioUserClipConfig: {
+                    x: 20,
+                    y: 0,
+                    width: 320,
+                    height: 270,
+                    borderRadius: 0,
+                  },
+                },
+              ]
+            default:
+              return [
+                {
+                  x: 434,
+                  y: 0,
+                  width: 720,
+                  height: 540,
+                  clipTheme: 'rect',
+                  borderWidth: 2,
+                  borderColor: '#D4D4D8',
+                  studioUserClipConfig: {
+                    x: 194,
+                    y: 0,
+                    width: 332,
+                    height: 540,
+                    borderRadius: 0,
+                  },
+                },
+              ]
+          }
+        case 'full-left':
+        case 'full-right':
+          switch (noOfParticipants) {
+            case 2:
+              return [
+                {
+                  x: 0,
+                  y: -90,
+                  width: 960,
+                  height: 720,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 90,
+                    width: 960,
+                    height: 540,
+                    borderRadius: 0,
+                  },
+                },
+                {
+                  x: 0,
+                  y: 0,
+                  width: 0,
+                  height: 0,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 0,
+                    width: 0,
+                    height: 0,
+                    borderRadius: 0,
+                  },
+                },
+              ]
+            default:
+              return [
+                {
+                  x: 0,
+                  y: -90,
+                  width: 960,
+                  height: 720,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 90,
+                    width: 960,
+                    height: 540,
+                    borderRadius: 0,
+                  },
+                },
+              ]
+          }
+        case 'outro':
+          switch (noOfParticipants) {
+            case 2:
+              return [
+                {
+                  x: 0,
+                  y: 0,
+                  width: 0,
+                  height: 0,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 0,
+                    width: 0,
+                    height: 0,
+                    borderRadius: 0,
+                  },
+                },
+                {
+                  x: 0,
+                  y: 0,
+                  width: 0,
+                  height: 0,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 0,
+                    width: 0,
+                    height: 0,
+                    borderRadius: 0,
+                  },
+                },
+              ]
+            default:
+              return [
+                {
+                  x: 516,
+                  y: 90,
+                  width: 480,
+                  height: 360,
+                  clipTheme: 'rect',
+                  borderWidth: 2,
+                  borderColor: '#D4D4D8',
+                  studioUserClipConfig: {
+                    x: 100,
+                    y: 0,
+                    width: 280,
+                    height: 360,
                     borderRadius: 0,
                   },
                 },
@@ -8168,6 +9011,313 @@ export const ShortsStudioUserConfiguration = ({
                     y: 1,
                     width: 360,
                     height: 316,
+                    borderRadius: 0,
+                  },
+                },
+              ]
+          }
+        case 'full-left':
+        case 'full-right':
+          switch (noOfParticipants) {
+            case 2:
+              return [
+                {
+                  x: 0,
+                  y: 0,
+                  width: 0,
+                  height: 0,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 0,
+                    width: 0,
+                    height: 0,
+                    borderRadius: 0,
+                  },
+                },
+                {
+                  x: 0,
+                  y: 0,
+                  width: 0,
+                  height: 0,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 0,
+                    width: 0,
+                    height: 0,
+                    borderRadius: 0,
+                  },
+                },
+              ]
+            default:
+              return [
+                {
+                  x: -272,
+                  y: -0.5,
+                  width: 940,
+                  height: 705,
+                  clipTheme: 'rect',
+                  borderWidth: 0,
+                  studioUserClipConfig: {
+                    x: 272,
+                    y: 0.5,
+                    width: 396,
+                    height: 704,
+                    borderRadius: 0,
+                  },
+                },
+              ]
+          }
+        default:
+          return [
+            {
+              x: 0,
+              y: 0,
+              width: 0,
+              height: 0,
+              clipTheme: 'rect',
+              borderWidth: 0,
+              studioUserClipConfig: {
+                x: 0,
+                y: 0,
+                width: 0,
+                height: 0,
+                borderRadius: 0,
+              },
+            },
+          ]
+      }
+    case 'Mux':
+      if (fragmentState === 'onlyUserMedia') {
+        switch (noOfParticipants) {
+          case 2:
+            return [
+              {
+                x: -6,
+                y: 27,
+                width: 408,
+                height: 306,
+                clipTheme: 'rect',
+                borderWidth: 2,
+                borderColor: '#D4D4D8',
+                studioUserClipConfig: {
+                  x: 38,
+                  y: 1,
+                  width: 332,
+                  height: 304,
+                  borderRadius: 0,
+                },
+              },
+              {
+                x: -6,
+                y: 371,
+                width: 408,
+                height: 306,
+                clipTheme: 'rect',
+                borderWidth: 2,
+                borderColor: '#D4D4D8',
+                studioUserClipConfig: {
+                  x: 38,
+                  y: 1,
+                  width: 332,
+                  height: 304,
+                  borderRadius: 0,
+                },
+              },
+            ]
+          default:
+            return [
+              {
+                x: -250,
+                y: 16,
+                width: 896,
+                height: 672,
+                clipTheme: 'rect',
+                borderWidth: 2,
+                borderColor: '#D4D4D8',
+                studioUserClipConfig: {
+                  x: 266,
+                  y: 0,
+                  width: 364,
+                  height: 672,
+                  borderRadius: 0,
+                },
+              },
+            ]
+        }
+      }
+      switch (layout) {
+        case 'padded-bottom-right-tile':
+        case 'bottom-right-tile':
+          switch (noOfParticipants) {
+            case 2:
+              return [
+                {
+                  x: 0,
+                  y: 0,
+                  width: 0,
+                  height: 0,
+                  clipTheme: 'rect',
+                  borderWidth: 2,
+                  borderColor: '#D4D4D8',
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 0,
+                    width: 0,
+                    height: 0,
+                    borderRadius: 0,
+                  },
+                },
+                {
+                  x: 0,
+                  y: 0,
+                  width: 0,
+                  height: 0,
+                  clipTheme: 'rect',
+                  borderWidth: 2,
+                  borderColor: '#D4D4D8',
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 0,
+                    width: 0,
+                    height: 0,
+                    borderRadius: 0,
+                  },
+                },
+              ]
+            default:
+              return [
+                {
+                  x: 182,
+                  y: 519.5,
+                  width: 236,
+                  height: 177,
+                  clipTheme: 'rect',
+                  borderWidth: 2,
+                  borderColor: '#D4D4D8',
+                  studioUserClipConfig: {
+                    x: 30,
+                    y: 0.5,
+                    width: 176,
+                    height: 176,
+                    borderRadius: 0,
+                  },
+                },
+              ]
+          }
+        case 'padded-bottom-right-circle':
+        case 'bottom-right-circle':
+          switch (noOfParticipants) {
+            case 2:
+              return [
+                {
+                  x: 756,
+                  y: 364,
+                  width: 216,
+                  height: 162,
+                  clipTheme: 'rect',
+                  borderWidth: 2,
+                  borderColor: '#D4D4D8',
+                  studioUserClipConfig: {
+                    x: 28,
+                    y: 1,
+                    width: 160,
+                    height: 160,
+                    borderRadius: 0,
+                  },
+                },
+                {
+                  x: 568,
+                  y: 364,
+                  width: 216,
+                  height: 162,
+                  clipTheme: 'rect',
+                  borderWidth: 2,
+                  borderColor: '#D4D4D8',
+                  studioUserClipConfig: {
+                    x: 28,
+                    y: 1,
+                    width: 160,
+                    height: 160,
+                    borderRadius: 0,
+                  },
+                },
+              ]
+            default:
+              return [
+                {
+                  x: 182,
+                  y: 519.5,
+                  width: 236,
+                  height: 177,
+                  clipTheme: 'rect',
+                  borderWidth: 2,
+                  borderColor: '#D4D4D8',
+                  studioUserClipConfig: {
+                    x: 30,
+                    y: 0.5,
+                    width: 176,
+                    height: 176,
+                    borderRadius: 88,
+                  },
+                },
+              ]
+          }
+        case 'split':
+          switch (noOfParticipants) {
+            case 2:
+              return [
+                {
+                  x: 0,
+                  y: 0,
+                  width: 0,
+                  height: 0,
+                  clipTheme: 'rect',
+                  borderWidth: 2,
+                  borderColor: '#D4D4D8',
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 0,
+                    width: 0,
+                    height: 0,
+                    borderRadius: 0,
+                  },
+                },
+                {
+                  x: 0,
+                  y: 0,
+                  width: 0,
+                  height: 0,
+                  clipTheme: 'rect',
+                  borderWidth: 2,
+                  borderColor: '#D4D4D8',
+                  studioUserClipConfig: {
+                    x: 0,
+                    y: 0,
+                    width: 0,
+                    height: 0,
+                    borderRadius: 0,
+                  },
+                },
+              ]
+            default:
+              return [
+                {
+                  x: -36,
+                  y: 360,
+                  width: 416,
+                  height: 312,
+                  clipTheme: 'rect',
+                  borderWidth: 2,
+                  borderColor: '#D4D4D8',
+                  studioUserClipConfig: {
+                    x: 52,
+                    y: 0,
+                    width: 364,
+                    height: 312,
                     borderRadius: 0,
                   },
                 },
