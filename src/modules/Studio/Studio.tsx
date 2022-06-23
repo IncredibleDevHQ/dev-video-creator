@@ -1396,7 +1396,7 @@ const Studio = ({
   }
 
   useEffect(() => {
-    console.log('State changed to', state)
+    console.log('State changed to', state, payload?.activeObjectIndex)
     prepareVideo()
   }, [state, payload?.activeObjectIndex])
 
@@ -1412,6 +1412,7 @@ const Studio = ({
   useEffect(() => {
     if (payload?.actionTriggered === '') return
     if (payload?.actionTriggered === 'Save and continue') {
+      setTopLayerChildren?.({ id: nanoid(), state: '' })
       const isOutro =
         dataConfig?.[payload?.activeObjectIndex].type === 'outroBlock'
       setState(isOutro ? 'preview' : 'resumed')
