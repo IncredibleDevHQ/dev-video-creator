@@ -4,7 +4,7 @@ import { css, cx } from '@emotion/css'
 import { createClient, LiveMap } from '@liveblocks/client'
 import { LiveblocksProvider, RoomProvider, useMap } from '@liveblocks/react'
 import { Editor as CoreEditor } from '@tiptap/core'
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { BiBlock } from 'react-icons/bi'
 import { IoChevronBackOutline, IoChevronForwardOutline } from 'react-icons/io5'
 import { useHistory, useParams } from 'react-router-dom'
@@ -740,6 +740,8 @@ const Flick = () => {
 
   const [openSidebar, setOpenSidebar] = useState(true)
 
+  const initialRender = useRef(true)
+
   const handleEditorChange = (editor: CoreEditor) => {
     utils.getSimpleAST(editor.getJSON()).then((simpleAST) => {
       if (simpleAST)
@@ -897,6 +899,7 @@ const Flick = () => {
                       }
                     }}
                     ast={simpleAST}
+                    initialRender={initialRender}
                   />
                 </div>
 

@@ -77,7 +77,6 @@ export const EditorProvider = ({
       document: yDoc,
       url: config.hocusPocus.server,
       name: `${fragmentId}`,
-      messageReconnectTimeout: 15000,
       maxAttempts: 10,
       timeout: 10000,
       minDelay: 0,
