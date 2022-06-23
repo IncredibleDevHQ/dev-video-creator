@@ -10,10 +10,12 @@ const TipTap = ({
   handleActiveBlock,
   handleUpdatePosition,
   ast,
+  initialRender,
 }: {
   handleUpdatePosition?: (position: Position) => void
   handleActiveBlock?: (block?: Block) => void
   ast: SimpleAST | undefined
+  initialRender: React.MutableRefObject<boolean>
 }) => {
   const editorRef = useRef<HTMLDivElement>(null)
 
@@ -75,7 +77,10 @@ const TipTap = ({
         </span>
       </div>
       {editor && providerWebsocketState === WebSocketStatus.Connecting && (
-        <TipTapSkeleton status={providerWebsocketState} />
+        <TipTapSkeleton
+          status={providerWebsocketState}
+          initialRender={initialRender}
+        />
       )}
       {editor && providerWebsocketState !== WebSocketStatus.Connecting && (
         <EditorContent editor={editor} />
@@ -84,19 +89,24 @@ const TipTap = ({
   )
 }
 
-const TipTapSkeleton = ({ status }: { status: WebSocketStatus }) => {
-  const [didRenderInitially, setDidRenderInitially] = React.useState(false)
-
+const TipTapSkeleton = ({
+  status,
+  initialRender,
+}: {
+  status: WebSocketStatus
+  initialRender: React.MutableRefObject<boolean>
+}) => {
   useEffect(() => {
-    if (status === WebSocketStatus.Connected && !didRenderInitially) {
-      setDidRenderInitially(true)
+    if (status === WebSocketStatus.Connected && initialRender.current) {
+      // eslint-disable-next-line no-param-reassign
+      initialRender.current = false
     }
-  }, [status])
+  }, [initialRender])
 
   return (
     <div
       style={{
-        display: didRenderInitially ? 'none' : 'block',
+        display: !initialRender.current ? 'none' : 'block',
       }}
     >
       <SkeletonTheme>
