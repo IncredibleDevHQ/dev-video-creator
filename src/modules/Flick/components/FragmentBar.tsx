@@ -980,7 +980,7 @@ const FragmentBar = ({
               await updateConfig()
               if (fragment?.type !== Fragment_Type_Enum_Enum.Presentation)
                 history.push(`/studio/${flick?.id}/${activeFragmentId}`)
-              else history.push(`/present/${activeFragmentId}`)
+              else history.push(`/present/${flick?.id}/${activeFragmentId}`)
             }}
           >
             {fragment?.type !== Fragment_Type_Enum_Enum.Presentation

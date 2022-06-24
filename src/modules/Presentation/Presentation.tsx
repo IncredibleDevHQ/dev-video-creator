@@ -1,5 +1,7 @@
 /* eslint-disable jsx-a11y/media-has-caption */
 import { css, cx } from '@emotion/css'
+import { createClient } from '@liveblocks/client'
+import { LiveblocksProvider, RoomProvider, useMap } from '@liveblocks/react'
 import axios from 'axios'
 import Konva from 'konva'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
@@ -20,7 +22,8 @@ import {
   FragmentPresentationData,
   ThemeFragment,
 } from '../../generated/graphql'
-import { userState } from '../../stores/user.store'
+import { User, userState } from '../../stores/user.store'
+import { Presence, PresencePage } from '../Flick/Flick'
 import { CONFIG, SHORTS_CONFIG } from './components/Concourse'
 import Preload from './components/Preload'
 import RecordingControlsBar from './components/RecordingControlsBar'
@@ -59,11 +62,50 @@ const getIntegerHW = ({
   return { width: calWidth, height: calHeight }
 }
 
+const client = createClient({
+  publicApiKey: config.liveblocks.publicKey,
+})
+
+const LiveblocksRoomProvider = () => {
+  const { sub, displayName, picture } =
+    (useRecoilValue(userState) as User) || {}
+  const { fragmentId, id } = useParams<{ id: string; fragmentId: string }>()
+  const initialPresence: Presence = useMemo(() => {
+    return {
+      user: {
+        id: sub as string,
+        name: displayName as string,
+        picture: picture as string,
+      },
+      page: PresencePage.Backstage,
+      formatId: fragmentId as string,
+      cursor: { x: 0, y: 0 },
+      inHuddle: false,
+    }
+  }, [sub, displayName, picture])
+
+  return (
+    <LiveblocksProvider client={client}>
+      <RoomProvider id={`story-${id}`} initialPresence={initialPresence}>
+        <PresentationHoc />
+      </RoomProvider>
+    </LiveblocksProvider>
+  )
+}
+
 const PresentationHoc = () => {
   const [view, setView] = useState<'preload' | 'studio'>('preload')
   const { fragmentId } = useParams<{ fragmentId: string }>()
 
   const [studio, setStudio] = useRecoilState(presentationStore)
+
+  const [viewConfig, setViewConfig] = useState<ViewConfig>()
+  const viewConfigLiveMap = useMap<string, ViewConfig>('viewConfig')
+  useEffect(() => {
+    if (viewConfigLiveMap && !viewConfig) {
+      setViewConfig(viewConfigLiveMap?.get(fragmentId))
+    }
+  }, [viewConfig, viewConfigLiveMap])
 
   const [presentationConfig, setPresentationConfig] =
     useState<FragmentPresentationData>()
@@ -118,17 +160,17 @@ const PresentationHoc = () => {
   if (!presentationConfig)
     return <ScreenState title="Just a jiffy..." loading />
 
-  if (view === 'preload' && presentationConfig)
+  if (view === 'preload' && presentationConfig && viewConfig)
     return (
       <Preload
         setView={setView}
         branding={presentationConfig?.flick?.branding}
         dataConfig={presentationConfig?.editorState}
-        viewConfig={presentationConfig?.configuration}
+        viewConfig={viewConfig}
       />
     )
 
-  if (view === 'studio' && presentationConfig)
+  if (view === 'studio' && presentationConfig && viewConfig)
     return (
       <Presentation
         theme={{
@@ -137,10 +179,10 @@ const PresentationHoc = () => {
         }}
         branding={presentationConfig?.flick?.branding}
         dataConfig={presentationConfig?.editorState}
-        viewConfig={presentationConfig?.configuration}
+        viewConfig={viewConfig}
       />
     )
-  return <></>
+  return <ScreenState loading />
 }
 
 const Presentation = ({
@@ -525,4 +567,4 @@ const GoBack = () => {
   )
 }
 
-export default PresentationHoc
+export default LiveblocksRoomProvider
