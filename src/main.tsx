@@ -23,11 +23,11 @@ const segmentSnippet = snippet.max({
 script.innerHTML = segmentSnippet
 document.head.appendChild(script)
 
-// Logrocket
-LogRocket.init(config.logrocket.appId, {
-  serverUrl:
-    config.env === 'production' ? 'https://cdn-log.incredible.dev/i' : null,
-} as any)
+// // Logrocket
+// LogRocket.init(config.logrocket.appId, {
+//   serverUrl:
+//     config.env === 'production' ? 'https://cdn-log.incredible.dev/i' : null,
+// } as any)
 // console.log('Logrocket is_init:', LogRocket?._isInitialized)
 ReactDOM.render(
   <React.StrictMode>
