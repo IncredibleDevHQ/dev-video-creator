@@ -117,7 +117,7 @@ const App = () => {
               <Route exact path="/integrations">
                 <Integrations />
               </Route>
-              <Route exact path="/present/:fragmentId">
+              <Route exact path="/present/:id/:fragmentId">
                 <Presentation />
               </Route>
               <Route exact path="/fast-record/:fragmentId">
