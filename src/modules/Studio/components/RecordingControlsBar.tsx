@@ -556,7 +556,7 @@ const RecordingControlsBar = ({
                       fragment?.editorState?.blocks.filter(
                         (b: any) => b.type !== 'interactionBlock'
                       )[payload?.activeObjectIndex].id
-                    ].view as OutroBlockView
+                    ]?.view as OutroBlockView
                   )?.outro?.order?.length || 0) -
                     1,
             }
@@ -574,7 +574,7 @@ const RecordingControlsBar = ({
                   fragment?.editorState?.blocks.filter(
                     (b: any) => b.type !== 'interactionBlock'
                   )[payload?.activeObjectIndex].id
-                ].view as OutroBlockView
+                ]?.view as OutroBlockView
               )?.outro?.order?.length || 0) -
                 1
           }
