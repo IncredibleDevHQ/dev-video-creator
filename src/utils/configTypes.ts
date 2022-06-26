@@ -49,7 +49,12 @@ export type OutroLayout = typeof outroLayoutTypes[number]
 
 export type Layout = typeof allLayoutTypes[number]
 
-export type TransitionDirection = 'left' | 'right' | 'moveIn' | 'moveAway'
+export type TransitionDirection =
+  | 'left'
+  | 'right'
+  | 'moveIn'
+  | 'moveAway'
+  | 'continuousRight'
 
 export type TopLayerChildren =
   | `transition ${TransitionDirection}`
