@@ -879,7 +879,7 @@ const handleCodeBlock = (
         } else {
           const current = computedTokens[position.currentIndex]
           let next = computedTokens.findIndex(
-            (t: any) => t.lineNumber > current.lineNumber
+            (t: any) => t.lineNumber > current?.lineNumber
           )
           if (next === -1) next = computedTokens.length
           updatePayload?.({
