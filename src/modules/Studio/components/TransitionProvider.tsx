@@ -36,6 +36,40 @@ const TransitionProvider = ({
   transitionSettings?: string
 }) => {
   const branding = useRecoilValue(studioStore).branding || brandingJSON
+  if (direction === 'continuousRight') {
+    switch (theme.name) {
+      case 'DarkGradient':
+      case 'PastelLines':
+      case 'LeeRob':
+      case 'Web3Auth':
+      case 'DevsForUkraine':
+      case 'Whitep4nth3r':
+      case 'VetsWhoCode':
+      case 'ShrutiKapoor':
+        return (
+          <DipTransition
+            direction="right"
+            isShorts={isShorts}
+            color="black"
+            setTopLayerChildren={setTopLayerChildren}
+          />
+        )
+      case 'Cassidoo':
+      case 'LambdaTest':
+      case 'Mux':
+        return (
+          <DipTransition
+            direction="right"
+            isShorts={isShorts}
+            color="white"
+            setTopLayerChildren={setTopLayerChildren}
+          />
+        )
+
+      default:
+        return <></>
+    }
+  }
   if (transitionSettings && !isShorts) {
     switch (transitionSettings) {
       case 'Circles':

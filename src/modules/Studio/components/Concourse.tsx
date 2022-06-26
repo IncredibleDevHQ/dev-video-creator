@@ -153,6 +153,18 @@ export const GetTopLayerChildren = ({
         />
       )
     }
+    case 'transition continuousRight': {
+      return (
+        <TransitionProvider
+          theme={theme}
+          isShorts={isShorts || false}
+          direction="continuousRight"
+          setTopLayerChildren={setTopLayerChildren}
+          brandingJSON={branding}
+          transitionSettings={transitionSettings?.swapTransition}
+        />
+      )
+    }
     case '':
       return <></>
     default:
