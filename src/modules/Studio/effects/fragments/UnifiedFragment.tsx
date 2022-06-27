@@ -154,8 +154,7 @@ const UnifiedFragment = ({
   useEffect(() => {
     if (
       payload?.activeObjectIndex === undefined ||
-      payload?.activeObjectIndex === -1 ||
-      !viewConfig
+      payload?.activeObjectIndex === -1
     )
       return
     // having a condition on state because on retake initially the active object index will be 3
@@ -205,7 +204,7 @@ const UnifiedFragment = ({
         setActiveObjectIndex(payload?.activeObjectIndex)
       }, 400)
     } else setActiveObjectIndex(payload?.activeObjectIndex)
-  }, [payload?.activeObjectIndex, viewConfig])
+  }, [payload?.activeObjectIndex])
 
   useEffect(() => {
     // if (!payload?.activeObjectIndex || payload?.activeObjectIndex === 0) return
