@@ -192,18 +192,7 @@ const UnifiedFragment = ({
     // } else {
     //   setActiveObjectIndex(payload?.activeObjectIndex)
     // }
-    if (
-      fragment?.configuration?.continuousRecording
-      // (state === 'start-recording' || state === 'recording')
-    ) {
-      setTopLayerChildren?.({
-        id: nanoid(),
-        state: 'transition continuousRight',
-      })
-      setTimeout(() => {
-        setActiveObjectIndex(payload?.activeObjectIndex)
-      }, 400)
-    } else setActiveObjectIndex(payload?.activeObjectIndex)
+    setActiveObjectIndex(payload?.activeObjectIndex)
   }, [payload?.activeObjectIndex])
 
   useEffect(() => {
