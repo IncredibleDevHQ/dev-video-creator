@@ -154,8 +154,7 @@ const UnifiedFragment = ({
   useEffect(() => {
     if (
       payload?.activeObjectIndex === undefined ||
-      payload?.activeObjectIndex === -1 ||
-      !viewConfig
+      payload?.activeObjectIndex === -1
     )
       return
     // having a condition on state because on retake initially the active object index will be 3
@@ -193,19 +192,8 @@ const UnifiedFragment = ({
     // } else {
     //   setActiveObjectIndex(payload?.activeObjectIndex)
     // }
-    if (
-      fragment?.configuration?.continuousRecording
-      // (state === 'start-recording' || state === 'recording')
-    ) {
-      setTopLayerChildren?.({
-        id: nanoid(),
-        state: 'transition continuousRight',
-      })
-      setTimeout(() => {
-        setActiveObjectIndex(payload?.activeObjectIndex)
-      }, 400)
-    } else setActiveObjectIndex(payload?.activeObjectIndex)
-  }, [payload?.activeObjectIndex, viewConfig])
+    setActiveObjectIndex(payload?.activeObjectIndex)
+  }, [payload?.activeObjectIndex])
 
   useEffect(() => {
     // if (!payload?.activeObjectIndex || payload?.activeObjectIndex === 0) return

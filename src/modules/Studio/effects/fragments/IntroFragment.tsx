@@ -59,6 +59,9 @@ const IntroFragment = ({
     clearTimeout(timer.current)
     return () => {
       clearTimeout(timer.current)
+      updatePayload?.({
+        activeIntroIndex: 0,
+      })
     }
   }, [])
 
