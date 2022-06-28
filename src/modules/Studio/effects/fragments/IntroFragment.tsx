@@ -189,7 +189,7 @@ const IntroFragment = ({
           ? users?.length + 1
           : fragment?.configuration?.speakers?.length,
         fragmentState:
-          introSequence[payload.activeIntroIndex] === 'userMedia'
+          introSequence[payload?.activeIntroIndex] === 'userMedia'
             ? 'onlyUserMedia'
             : 'customLayout',
         theme,
@@ -198,7 +198,7 @@ const IntroFragment = ({
         layout: 'classic',
         noOfParticipants: 0,
         fragmentState:
-          introSequence[payload.activeIntroIndex] === 'userMedia'
+          introSequence[payload?.activeIntroIndex] === 'userMedia'
             ? 'onlyUserMedia'
             : 'customLayout',
         theme,
