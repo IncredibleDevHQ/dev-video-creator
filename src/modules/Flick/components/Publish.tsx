@@ -258,11 +258,20 @@ const Publish = ({
   const [recording, setRecording] = useState<RecordingFragment>()
 
   const videoRef = useRef<HTMLVideoElement>(null)
-  const [currentTime, setCurrentTime] = useState(0)
+  const currentTime = useRef<number>(0)
 
   videoRef.current?.addEventListener('timeupdate', () => {
-    setCurrentTime(videoRef.current?.currentTime || 0)
+    currentTime.current = videoRef.current?.currentTime || 0
   })
+
+  videoRef.current?.addEventListener('seeked', () => {
+    currentTime.current = videoRef.current?.currentTime || 0
+  })
+
+  const updateCurrentTime = (time: number) => {
+    if (!videoRef.current) return
+    currentTime.current = time
+  }
 
   useEffect(() => {
     if (!recording) return
@@ -695,8 +704,8 @@ const Publish = ({
                   <CTATab
                     publish={publish}
                     setPublish={setPublish}
-                    currentTime={currentTime}
-                    setCurrentTime={setCurrentTime}
+                    currentTime={currentTime.current}
+                    setCurrentTime={updateCurrentTime}
                   />
                 )}
               </div>
@@ -738,7 +747,6 @@ const CTA = ({
   publish,
   setPublish,
   currentTime,
-  setCurrentTime,
   cta,
   index,
 }: {
@@ -747,7 +755,6 @@ const CTA = ({
   publish: IPublish
   setPublish: React.Dispatch<React.SetStateAction<IPublish>>
   currentTime: number
-  setCurrentTime: React.Dispatch<React.SetStateAction<number>>
 }) => {
   const [time, setTime] = useState<{
     min: string | undefined
@@ -958,7 +965,7 @@ const CTATab = ({
   publish: IPublish
   setPublish: React.Dispatch<React.SetStateAction<IPublish>>
   currentTime: number
-  setCurrentTime: React.Dispatch<React.SetStateAction<number>>
+  setCurrentTime: (time: number) => void
 }) => {
   return (
     <div>
@@ -970,7 +977,6 @@ const CTATab = ({
           publish={publish}
           setPublish={setPublish}
           currentTime={currentTime}
-          setCurrentTime={setCurrentTime}
           cta={cta}
           index={index}
         />

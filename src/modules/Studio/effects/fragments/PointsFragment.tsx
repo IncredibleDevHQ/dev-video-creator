@@ -372,6 +372,20 @@ const PointsFragment = ({
     }
   }, [payload?.fragmentState, payload?.status])
 
+  useEffect(() => {
+    if (fragment?.configuration?.continuousRecording) {
+      if (
+        payload?.fragmentState === 'customLayout' ||
+        payload?.fragmentState === 'onlyFragment'
+      ) {
+        setLayout(viewConfig?.layout || 'classic')
+        customLayoutRef?.current?.to({
+          opacity: 1,
+        })
+      }
+    }
+  }, [])
+
   const layerChildren: any[] = [
     <Group x={0} y={0} opacity={0} ref={customLayoutRef}>
       <FragmentBackground

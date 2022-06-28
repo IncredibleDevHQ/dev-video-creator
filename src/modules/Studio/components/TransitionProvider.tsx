@@ -217,10 +217,16 @@ const TransitionProvider = ({
           )
         }
         return (
-          <LeeRobTransition
+          // <LeeRobTransition
+          //   direction={direction}
+          //   isShorts={isShorts}
+          //   // color={branding?.colors?.transition}
+          //   setTopLayerChildren={setTopLayerChildren}
+          // />
+          <DipTransition
             direction={direction}
             isShorts={isShorts}
-            // color={branding?.colors?.transition}
+            color="black"
             setTopLayerChildren={setTopLayerChildren}
           />
         )
