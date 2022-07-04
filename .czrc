@@ -1,0 +1,51 @@
+{
+	"path": "cz-conventional-changelog",
+	"types": {
+		"feat": {
+			"description": "A new feature",
+			"name": "Feature"
+		},
+		"fix": {
+			"description": "A bug fix",
+			"name": "Fix"
+		},
+		"style": {
+			"description": "Changes to style files or css",
+			"name": "Style"
+		},
+		"hotfix": {
+			"description": "A hotfix",
+			"name": "Hotfix"
+		},
+		"refactor": {
+			"description": "A code change that neither fixes a bug nor adds a feature",
+			"name": "Refactor"
+		},
+		"chore": {
+			"name": "Chore",
+			"description": "Changes to the build process, auxiliary tools, libraries or packages"
+		},
+		"ci": {
+			"name": "CI/CD",
+			"description": "Changes to the CI/CD process"
+		},
+		"perf": {
+			"description": "A code change that improves performance",
+			"name": "Performance"
+		},
+		"docs": {
+			"description": "Changes to only documentation",
+			"name": "Documentation"
+		},
+		"revert": {
+			"description": "Reverts a previous commit",
+			"name": "Revert"
+		}
+	},
+	"scopes": [
+		"root",
+		"webfront",
+		"ui",
+		"config"
+	]
+}

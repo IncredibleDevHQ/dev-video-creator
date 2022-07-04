@@ -1,0 +1,25 @@
+fragment FlickParticipant on User {
+	displayName
+	picture
+	username
+	email
+	sub
+}
+
+fragment FlickParticipants on Participant {
+	id
+	status
+	role
+	userSub
+	owner
+	inviteStatus
+	user {
+		...FlickParticipant
+	}
+}
+
+fragment FragmentParticipant on Fragment_Participant {
+	participant {
+		...FlickParticipants
+	}
+}

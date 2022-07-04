@@ -1,0 +1,16 @@
+{
+	"cSpell.words": [
+		"codegen",
+		"giphy",
+		"hasura",
+		"hocuspocus",
+		"liveblocks",
+		"logrocket",
+		"tailwindcss",
+		"tiptap",
+		"webfront"
+	],
+	"files.exclude": {
+		"**/**/node_modules/": true
+	}
+}

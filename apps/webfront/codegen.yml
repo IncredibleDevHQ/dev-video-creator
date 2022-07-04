@@ -1,0 +1,24 @@
+overwrite: true
+schema:
+  - ${NEXT_PUBLIC_HASURA_SERVER}:
+      headers:
+        'x-hasura-admin-secret': ${HASURA_ADMIN_SECRET}
+documents: ['src/pages/**/*.graphql', 'src/graphql/**/*.graphql']
+generates:
+  src/graphql/generated.ts:
+    plugins:
+      - 'typescript'
+      - 'typescript-operations'
+      - 'typescript-react-apollo'
+      - 'fragment-matcher'
+  src/graphql/generated-ssr.ts:
+    plugins:
+      - 'typescript'
+      - 'typescript-operations'
+      - 'typescript-graphql-request'
+      - 'fragment-matcher'
+    config:
+      rawRequest: true
+  ./graphql.schema.json:
+    plugins:
+      - 'introspection'

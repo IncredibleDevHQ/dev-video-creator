@@ -1,0 +1,16 @@
+{
+	"globalDependencies": [".env, **/*/.env"],
+	"pipeline": {
+		"codegen": {},
+		"build": {
+			"dependsOn": ["^build"],
+			"outputs": ["dist/**", ".next/**"]
+		},
+		"lint": {
+			"outputs": []
+		},
+		"dev": {
+			"cache": false
+		}
+	}
+}

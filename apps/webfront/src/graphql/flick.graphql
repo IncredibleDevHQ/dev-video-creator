@@ -1,0 +1,82 @@
+fragment BaseFlick on Flick {
+	color
+	description
+	joinLink
+	lobbyPicture
+	id
+	name
+	scope
+	md
+	dirty
+	plannedEnd
+	startAt
+	ownerId
+	owner {
+		userSub
+	}
+	updatedAt
+	thumbnail
+	status
+	deletedAt
+	producedLink
+	useBranding
+	brandingId
+	branding {
+		id
+		name
+		branding
+	}
+	theme {
+		name
+		config
+	}
+	configuration
+	contents {
+		...Content
+	}
+	participants {
+		user {
+			sub
+			displayName
+			picture
+		}
+	}
+}
+
+fragment Flick on Flick {
+	...BaseFlick
+	participants {
+		...FlickParticipants
+	}
+	fragments(order_by: { order: asc }) {
+		...FlickFragment
+	}
+	series {
+		seriesId
+	}
+}
+
+query GetFlickById($id: uuid!) {
+	Flick_by_pk(id: $id) {
+		...Flick
+	}
+}
+
+mutation CreateNewFlick(
+	$name: String!
+	$description: String
+	$scope: CreateFlickFlickScopeEnumEnum!
+	$seriesId: uuid
+	$md: String
+) {
+	CreateFlick(
+		name: $name
+		scope: $scope
+		description: $description
+		seriesId: $seriesId
+		md: $md
+	) {
+		id
+		fragmentId
+	}
+}

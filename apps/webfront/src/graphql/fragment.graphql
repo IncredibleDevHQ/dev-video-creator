@@ -1,0 +1,36 @@
+fragment Block on Blocks {
+	id
+	objectUrl
+	recordingId
+	thumbnail
+	playbackDuration
+}
+
+fragment FlickFragment on Fragment {
+	configuration
+	description
+	flickId
+	id
+	name
+	order
+	type
+	producedLink
+	producedShortsLink
+	editorState
+	editorValue
+	encodedEditorValue
+	thumbnailConfig
+	thumbnailObject
+	publishConfig
+	version
+	participants {
+		...FragmentParticipant
+	}
+	blocks {
+		...Block
+	}
+	flick {
+		name
+		description
+	}
+}
