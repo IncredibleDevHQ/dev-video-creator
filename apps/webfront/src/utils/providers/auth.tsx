@@ -3,7 +3,7 @@ import { getApp, getApps, initializeApp } from 'firebase/app'
 import { getAuth, onAuthStateChanged, User } from 'firebase/auth'
 import { getDatabase, ref, onValue } from 'firebase/database'
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import { getEnv } from '../hooks/useEnv'
+import { getEnv } from 'utils/src'
 
 export const createFirebaseApp = () => {
 	const { firebaseConfig } = getEnv()

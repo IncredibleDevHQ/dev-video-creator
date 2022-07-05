@@ -1,4 +1,9 @@
-const withTM = require('next-transpile-modules')(['ui'])
+const withTM = require('next-transpile-modules')([
+	'ui',
+	'editor',
+	'icanvas',
+	'utils',
+])
 
 module.exports = withTM({
 	reactStrictMode: true,
