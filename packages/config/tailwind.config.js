@@ -7,6 +7,8 @@ const typographyPlugin = require('@tailwindcss/typography')
 module.exports = {
 	content: [
 		'../../packages/ui/src/**/*.{ts,tsx}',
+		'../../packages/editor/src/**/*.{ts,tsx}',
+		'../../packages/icanvas/src/**/*.{ts,tsx}',
 		'./index.html',
 		'./src/**/*.{vue,js,ts,jsx,tsx}',
 	],
@@ -34,7 +36,7 @@ module.exports = {
 				gray: {
 					...colors.zinc,
 				},
-				zinc: {
+				'cool-gray': {
 					...colors.gray,
 				},
 				dark: {
