@@ -1,3 +1,5 @@
+import { Loader } from './Loader'
+
 export const ScreenState = ({
 	title,
 	subtitle,
@@ -12,7 +14,7 @@ export const ScreenState = ({
 	loading?: boolean
 }) => (
 	<div className='fixed left-0 top-0 z-10 flex min-h-screen w-screen flex-col items-center justify-center bg-dark-500 p-4'>
-		{loading && <div className='w-14 h-14 loader' />}
+		{loading && <Loader className='w-14 h-14' />}
 
 		<div style={{ maxWidth: 256 }}>
 			{title && (
