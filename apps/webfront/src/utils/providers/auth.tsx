@@ -4,6 +4,7 @@ import { getAuth, onAuthStateChanged, User } from 'firebase/auth'
 import { getDatabase, ref, onValue } from 'firebase/database'
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { getEnv } from 'utils/src'
+import trpc from '../trpc'
 
 export const createFirebaseApp = () => {
 	const { firebaseConfig } = getEnv()
@@ -73,6 +74,7 @@ const UserProvider = ({ children }: { children: React.ReactNode }) => {
 	const [user, setUser] = useState<User | null>(null)
 	const [token, setToken] = useState<string | null>(null)
 	const [loadingUser, setLoadingUser] = useState(true)
+	const trpcContext = trpc.useContext()
 
 	useEffect(() => {
 		createFirebaseApp()
@@ -89,6 +91,14 @@ const UserProvider = ({ children }: { children: React.ReactNode }) => {
 		// Unsubscribe auth listener on unmount
 		return () => unsubscribe()
 	}, [])
+
+	// update local storage on token refresh/change
+	useEffect(() => {
+		if (token && typeof window !== 'undefined') {
+			localStorage.setItem('token', token)
+			trpcContext.invalidateQueries()
+		}
+	}, [token, trpcContext])
 
 	const value = useMemo(
 		() => ({

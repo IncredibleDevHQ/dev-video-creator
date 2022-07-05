@@ -12,6 +12,10 @@
 	"dependencies": {
 		"@apollo/client": "^3.6.9",
 		"@emotion/css": "^11.9.0",
+		"@trpc/client": "^9.25.3",
+		"@trpc/next": "^9.25.3",
+		"@trpc/react": "^9.25.3",
+		"@trpc/server": "^9.25.3",
 		"axios": "^0.27.2",
 		"cookie": "^0.5.0",
 		"cors": "^2.8.5",
@@ -26,10 +30,13 @@
 		"react": "17.0.2",
 		"react-dom": "17.0.2",
 		"react-icons": "^4.4.0",
+		"react-query": "^3.39.1",
 		"recoil": "^0.7.4",
 		"subscriptions-transport-ws": "^0.11.0",
+		"superjson": "^1.9.1",
+		"utils": "*",
 		"ui": "*",
-		"utils": "*"
+		"zod": "^3.17.3"
 	},
 	"devDependencies": {
 		"@graphql-codegen/cli": "^2.0.1",
