@@ -27,7 +27,7 @@ const login = async (token: string) =>
 		}
 	)
 
-type User = Partial<FBUser> & Partial<UserFragment>
+type User = FBUser & Partial<UserFragment>
 
 const UserContext = createContext<
 	Partial<{
@@ -56,7 +56,7 @@ const getDBUser = async (
 		}
 	)
 	if (meResponse.data?.User_by_pk) {
-		setUser({ ...user, ...meResponse.data.User_by_pk })
+		setUser(Object.assign(user, meResponse.data?.User_by_pk))
 	}
 }
 
