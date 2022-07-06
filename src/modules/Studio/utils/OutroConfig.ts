@@ -983,6 +983,94 @@ export const getOutroConfig = ({
               logoHeight: 36,
             }
         }
+      case 'WunderGraph':
+        switch (layout) {
+          case 'classic':
+            return {
+              layoutX: 124.5,
+              layoutY: 135.5,
+              layoutWidth: 711,
+              layoutHeight: 269,
+              layoutBorderRadius: 8,
+              textX: 32,
+              textY: 97,
+              textWidth: 647,
+              textHeight: 57,
+              textFontSize: 48,
+              textFontStyle: 'normal 600',
+              socialX: 90.5,
+              socialY: 183,
+              socialHandlesFontSize: 16,
+              logoX: 339.5,
+              logoY: 32,
+              logoWidth: 32,
+              logoHeight: 32,
+            }
+          case 'float-full-right':
+            return {
+              layoutX: 64,
+              layoutY: 90,
+              layoutWidth: 512,
+              layoutHeight: 360,
+              layoutBorderRadius: 8,
+              textX: 40,
+              textY: 40,
+              textWidth: 416,
+              textHeight: 160,
+              textFontSize: 48,
+              textFontStyle: 'normal 600',
+              socialX: 42,
+              socialY: 194,
+              socialHandlesFontSize: 16,
+              logoX: 456,
+              logoY: 302,
+              logoWidth: 36,
+              logoHeight: 36,
+              userMediaLayout: 'outro',
+            }
+          case 'split-without-media':
+            return {
+              layoutX: 40,
+              layoutY: 105,
+              layoutWidth: 480,
+              layoutHeight: 330,
+              layoutBorderRadius: 8,
+              textX: 32,
+              textY: 32,
+              textWidth: 416,
+              textHeight: 106,
+              textFontSize: 48,
+              textFontStyle: 'normal 600',
+              socialX: 34,
+              socialY: 194,
+              socialHandlesFontSize: 16,
+              logoX: 416,
+              logoY: 266,
+              logoWidth: 36,
+              logoHeight: 36,
+            }
+          default:
+            return {
+              layoutX: 124.5,
+              layoutY: 135.5,
+              layoutWidth: 711,
+              layoutHeight: 269,
+              layoutBorderRadius: 8,
+              textX: 32,
+              textY: 97,
+              textWidth: 647,
+              textHeight: 57,
+              textFontSize: 48,
+              textFontStyle: 'normal 600',
+              socialX: 90.5,
+              socialY: 183,
+              socialHandlesFontSize: 16,
+              logoX: 339.5,
+              logoY: 32,
+              logoWidth: 32,
+              logoHeight: 32,
+            }
+        }
       default:
         return {
           layoutX: 72,
@@ -1267,6 +1355,7 @@ export const getOutroConfig = ({
           }
       }
     case 'VetsWhoCode':
+    case 'WunderGraph':
       switch (layout) {
         case 'classic':
           return {

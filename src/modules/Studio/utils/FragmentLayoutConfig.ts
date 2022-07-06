@@ -1413,6 +1413,84 @@ export const FragmentLayoutConfig = ({
             borderRadius: 0,
           }
       }
+    case 'WunderGraph':
+      switch (layout) {
+        case 'classic':
+          return {
+            x: 80,
+            y: 40,
+            width: 800,
+            height: 460,
+            borderRadius: 8,
+          }
+        case 'float-full-right':
+          return {
+            x: 40,
+            y: 74.5,
+            width: 616,
+            height: 391,
+            borderRadius: 8,
+          }
+        case 'float-full-left':
+          return {
+            x: 304,
+            y: 74.5,
+            width: 616,
+            height: 391,
+            borderRadius: 8,
+          }
+        case 'float-half-right':
+          return {
+            x: 40,
+            y: 60,
+            width: 832,
+            height: 420,
+            availableWidth: 650,
+            borderRadius: 8,
+          }
+        case 'padded-bottom-right-tile':
+          return {
+            x: 40,
+            y: 74.5,
+            width: 660,
+            height: 391,
+            borderRadius: 8,
+          }
+        case 'padded-split':
+          return {
+            x: 40,
+            y: 74.5,
+            width: 548,
+            height: 391,
+            borderRadius: 8,
+          }
+        case 'full-left':
+          return {
+            x: 40,
+            y: 120,
+            width: 500,
+            height: 300,
+            borderRadius: 8,
+            surfaceColor: '#2D37487B',
+          }
+        case 'full-right':
+          return {
+            x: 380,
+            y: 120,
+            width: 500,
+            height: 300,
+            borderRadius: 8,
+            surfaceColor: '#2D37487B',
+          }
+        default:
+          return {
+            x: 80,
+            y: 74.5,
+            width: 800,
+            height: 391,
+            borderRadius: 8,
+          }
+      }
     default:
       return {
         x: 56,
