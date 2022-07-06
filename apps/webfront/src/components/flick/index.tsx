@@ -31,6 +31,8 @@ const FlickBody = ({
 	const { user } = useUser()
 	const activeFragmentId = useRecoilValue(activeFragmentIdAtom)
 
+	if (!activeFragmentId) return null
+
 	return (
 		<EditorProvider
 			displayName={user?.displayName || 'Anonymous'}
