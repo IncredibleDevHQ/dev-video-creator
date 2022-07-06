@@ -140,7 +140,7 @@ export const EditorProvider = ({
 				Typography,
 				StarterKit.configure({
 					codeBlock: false,
-					// history: false,
+					history: false,
 					heading: {
 						levels: [1, 2, 3, 4, 5, 6],
 					},
@@ -165,6 +165,8 @@ export const EditorProvider = ({
 					showOnlyCurrent: false,
 					emptyEditorClass: 'is-editor-empty',
 					placeholder: ({ node, editor: coreEditor }) => {
+						if (coreEditor.isDestroyed) return ''
+
 						const headingPlaceholders: {
 							[key: number]: string
 						} = {
