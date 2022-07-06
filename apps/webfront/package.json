@@ -12,6 +12,8 @@
 	"dependencies": {
 		"@apollo/client": "^3.6.9",
 		"@emotion/css": "^11.9.0",
+		"@liveblocks/client": "^0.17.5",
+		"@liveblocks/react": "^0.17.5",
 		"@trpc/client": "^9.25.3",
 		"@trpc/next": "^9.25.3",
 		"@trpc/react": "^9.25.3",

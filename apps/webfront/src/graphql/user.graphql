@@ -1,0 +1,13 @@
+fragment User on MeOutput {
+	createdAt
+	displayName
+	email
+	onboarded
+	picture
+	provider
+	sub
+	username
+	updatedAt
+	designation
+	organization
+}

@@ -12,13 +12,13 @@ import { Block, ListItem, SimpleAST } from './types'
 	Converts the json from the editor to 
 	customAST and viewConfiguration needed by the Canvas 
 */
-const parser = ({
+const parser = async ({
 	editorJSON,
 }: {
 	editorJSON: JSONContent
-}): {
+}): Promise<{
 	ast: SimpleAST
-} => {
+}> => {
 	const blocks: Block[] = []
 
 	const blockCount: BlockCount = {

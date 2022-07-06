@@ -1,9 +1,9 @@
-import { useRecoilValue } from 'recoil'
-import { flickNameAtom } from 'src/stores/flick.store'
-import { Button, Heading } from 'ui/src'
-import StudioLogo from 'svg/StudioLogo.svg'
 import Link from 'next/link'
 import { IoChevronBackOutline, IoPeopleOutline } from 'react-icons/io5'
+import { useRecoilValue } from 'recoil'
+import { flickNameAtom } from 'src/stores/flick.store'
+import StudioLogo from 'svg/StudioLogo.svg'
+import { Button, Heading } from 'ui/src'
 
 const Navbar = () => {
 	const flickName = useRecoilValue(flickNameAtom)

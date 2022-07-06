@@ -2334,6 +2334,16 @@
   resolved "https://registry.yarnpkg.com/@lifeomic/attempt/-/attempt-3.0.3.tgz#e742a5b85eb673e2f1746b0f39cb932cbc6145bb"
   integrity sha512-GlM2AbzrErd/TmLL3E8hAHmb5Q7VhDJp35vIbyPVA5Rz55LZuRr8pwL3qrwwkVNo05gMX1J44gURKb4MHQZo7w==
 
+"@liveblocks/client@^0.17.5":
+  version "0.17.5"
+  resolved "https://registry.yarnpkg.com/@liveblocks/client/-/client-0.17.5.tgz#00513c9b99b3987e3e4861613e88f9ca5a766c3e"
+  integrity sha512-a3zyT2x8oW/i+OC3U38rMzQRbiO0p80qmWjXdW6F5OkAV7MAyhZyhwG52oO5sHV3QPjrczjXPXdnTzoxZ5sx3Q==
+
+"@liveblocks/react@^0.17.5":
+  version "0.17.5"
+  resolved "https://registry.yarnpkg.com/@liveblocks/react/-/react-0.17.5.tgz#6793ae7261fc6ecdb3ae795c491eaa876ce94d5b"
+  integrity sha512-KcNaIxO37ztJerCKzwxd2+0NQwiYxCvxoxlojMBafjVKoIk5aozNiUMft5TVCO2bjp/tA+S40KlTh+T2GRjPQQ==
+
 "@n1ru4l/graphql-live-query@^0.9.0":
   version "0.9.0"
   resolved "https://registry.yarnpkg.com/@n1ru4l/graphql-live-query/-/graphql-live-query-0.9.0.tgz#defaebdd31f625bee49e6745934f36312532b2bc"

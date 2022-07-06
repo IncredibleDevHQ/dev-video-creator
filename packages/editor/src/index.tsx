@@ -45,8 +45,6 @@ type EC = {
 }
 const EditorContext = createContext<Partial<EC>>({})
 
-export const EditorContent = EditorContentReact
-
 const generateLightColorHex = () => {
 	let color = '#'
 	for (let i = 0; i < 3; i += 1)
@@ -303,7 +301,10 @@ export const EditorProvider = ({
 	)
 }
 
+export const EditorContent = EditorContentReact
 export const useIncredibleEditor = () => useContext(EditorContext)
+
+export type CoreEditorInstance = CoreEditor
 
 EditorProvider.defaultProps = {
 	handleUpdate: undefined,
