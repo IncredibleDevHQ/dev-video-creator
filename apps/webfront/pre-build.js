@@ -28,7 +28,7 @@ const getDopplerSecrets = async () => {
 /* ref: https://gist.github.com/siwalikm/8311cf0a287b98ef67c73c1b03b47154#file-aes-256-cbc-js-L2 */
 const encryptEnv = val => {
 	const cipher = crypto.createCipheriv(
-		process.env.ENV_ENCRYPTION_ALGORITHM,
+		process.env.ENV_ENCRYPTION_ALGORITHM || `aes-256-cbc`,
 		process.env.ENCRYPTION_KEY, // process.env.ENC_KEY, generate using crypto.randomBytes(16).toString('hex')
 		process.env.IV // process.env.IV?.toString() , generate using crypto.randomBytes(8).toString('hex')
 	)
