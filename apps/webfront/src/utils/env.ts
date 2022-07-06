@@ -1,4 +1,5 @@
 import crypto from 'crypto'
+import { env } from 'webfront-env'
 
 export type EnvType = {
 	[key: string]: string
@@ -30,4 +31,6 @@ const decryptEnvs = (encrypted: string): EnvType => {
 	}
 }
 
-export default decryptEnvs
+const serverEnvs = decryptEnvs(env)
+
+export default serverEnvs

@@ -1,8 +1,8 @@
 import * as trpc from '@trpc/server'
 import { TRPCError } from '@trpc/server'
 // eslint-disable-next-line import/no-extraneous-dependencies
-import mime from 'mime'
 import { s3 } from 'src/utils/aws'
+import serverEnvs from 'src/utils/env'
 import { getStoragePath, UploadType } from 'src/utils/helpers/s3-path-builder'
 import { z } from 'zod'
 import type { Context } from '../createContext'
@@ -50,8 +50,9 @@ const userRouter = trpc
 		resolve: async ({ input, ctx }) => {
 			const context = await (ctx as Context)
 			let uploadType: UploadType
+
+			// validate upload tag
 			try {
-				// eslint-disable-next-line no-param-reassign
 				uploadType = input.tag as UploadType
 			} catch (e) {
 				throw new TRPCError({
@@ -59,8 +60,9 @@ const userRouter = trpc
 					message: 'Invalid upload tag',
 				})
 			}
+
 			// check validity of passed key of new object
-			const { valid, ext } = await isKeyAllowed(input.key)
+			const { valid, mime } = await isKeyAllowed(input.key)
 			if (!valid)
 				throw new trpc.TRPCError({
 					code: 'INTERNAL_SERVER_ERROR',
@@ -69,13 +71,17 @@ const userRouter = trpc
 
 			// Check if key is duplicate
 			try {
-				if (process.env.aws_s3_bucket)
+				if (serverEnvs.AWS_S3_UPLOAD_BUCKET)
 					await s3
 						.headObject({
-							Bucket: process.env.aws_s3_bucket,
+							Bucket: serverEnvs.AWS_S3_UPLOAD_BUCKET,
 							Key: input.key,
 						})
 						.promise()
+				else {
+					// TODO: Add sentry alert
+					throw new Error('INTERNAL SERVER ERROR')
+				}
 			} catch (e) {
 				throw new TRPCError({
 					code: 'CONFLICT',
@@ -87,10 +93,10 @@ const userRouter = trpc
 			try {
 				const path = getStoragePath(context.user!.sub, uploadType, input.meta)
 				const url = await s3.getSignedUrlPromise('putObject', {
-					Bucket: process.env.aws_s3_bucket,
+					Bucket: serverEnvs.AWS_S3_UPLOAD_BUCKET,
 					Expires: 20 * 60,
 					Key: path + input.key,
-					ContentType: mime.lookup(ext),
+					ContentType: mime,
 				})
 				// TODO: Add entry on Assets table to track objects uploaded by user
 				return { success: true, url }

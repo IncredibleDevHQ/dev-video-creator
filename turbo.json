@@ -2,9 +2,8 @@
 	"globalDependencies": [".env, **/*/.env"],
 	"pipeline": {
 		"codegen": {},
-		"prebuild": {},
 		"build": {
-			"dependsOn": ["prebuild", "^build"],
+			"dependsOn": ["^build"],
 			"outputs": ["dist/**", ".next/**"]
 		},
 		"lint": {

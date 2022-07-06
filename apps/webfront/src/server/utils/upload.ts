@@ -1,10 +1,16 @@
-import fileExtension from 'file-extension'
+import { fileTypeFromFile } from 'file-type'
+import serverEnvs from 'src/utils/env'
 
-const allowedExtensions = process.env.ALLOWED_EXT?.split(',') || []
+const allowedExtensions = serverEnvs.ALLOWED_EXT?.split(',') || []
 
 const isKeyAllowed = async (key: string) => {
-	const ext = await fileExtension(key)
-	return { ext, valid: allowedExtensions.includes(ext) }
+	const fileData = await fileTypeFromFile(key)
+	if (!fileData) return { ext: null, valid: false }
+	return {
+		ext: fileData.ext.toString(),
+		mime: fileData.mime.toString(),
+		valid: allowedExtensions.includes(fileData.ext),
+	}
 }
 
 // eslint-disable-next-line import/prefer-default-export
