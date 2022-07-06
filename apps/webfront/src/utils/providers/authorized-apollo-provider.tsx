@@ -29,7 +29,7 @@ const AuthorizedApolloProvider = ({
 		const newHeaders = user
 			? {
 					...headers,
-					Authorization: `Bearer ${await user.getIdToken()}`,
+					Authorization: `Bearer ${await user?.getIdToken?.()}`,
 			  }
 			: { ...headers, 'X-Hasura-Role': 'anonymous' }
 		return {
@@ -47,7 +47,7 @@ const AuthorizedApolloProvider = ({
 						lazy: true,
 						connectionParams: async () => ({
 							headers: {
-								Authorization: `Bearer ${await user?.getIdToken()}`,
+								Authorization: `Bearer ${await user?.getIdToken?.()}`,
 							},
 						}),
 					},
