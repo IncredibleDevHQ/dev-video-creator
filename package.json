@@ -7,7 +7,6 @@
 		"packages/*"
 	],
 	"scripts": {
-		"prebuild": "turbo run prebuild",
 		"build": "turbo run build",
 		"commit": "cz",
 		"dev": "turbo run dev --parallel",

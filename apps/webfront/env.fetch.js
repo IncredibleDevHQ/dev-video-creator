@@ -50,8 +50,8 @@ if (require.main === module) {
 
 			console.log('PREBUILD-WF : UPDATING SECRETS FILE...')
 			fs.writeFileSync(
-				'webfront-env.js',
-				`export const env = "${encryptedSecrets}"`
+				'env.webfront.js',
+				`// Do not modify, auto generated file \nexport const env = "${encryptedSecrets}"`
 			)
 
 			console.log('PREBUILD-WF : DONE!')

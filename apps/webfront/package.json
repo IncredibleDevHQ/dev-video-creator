@@ -4,8 +4,8 @@
 	"private": true,
 	"scripts": {
 		"dev": "next dev",
-		"prebuild": "yarn run fetch-env",
-		"fetch-env": "node pre-build.js",
+		"prebuild": "yarn fetch-env",
+		"fetch-env": "node -r dotenv/config env.fetch.js",
 		"build": "next build",
 		"start": "next start",
 		"lint": "eslint src --fix",
