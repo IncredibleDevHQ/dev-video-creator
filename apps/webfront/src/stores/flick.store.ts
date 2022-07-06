@@ -1,3 +1,4 @@
+import { SimpleAST } from 'editor/src/utils/types'
 import { atom } from 'recoil'
 
 /* Stores name of the flick */
@@ -22,5 +23,11 @@ const viewAtom = atom<View>({
 	default: View.Notebook,
 })
 
-export { flickNameAtom, activeFragmentIdAtom, viewAtom }
+/* This atom stores the ast */
+const astAtom = atom<SimpleAST | null>({
+	key: 'ast',
+	default: null,
+})
+
+export { flickNameAtom, activeFragmentIdAtom, viewAtom, astAtom }
 export { View }

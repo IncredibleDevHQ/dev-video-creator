@@ -1,9 +1,10 @@
 import axios from 'axios'
 import { getApp, getApps, initializeApp } from 'firebase/app'
-import { getAuth, onAuthStateChanged, User } from 'firebase/auth'
-import { getDatabase, ref, onValue } from 'firebase/database'
+import { getAuth, onAuthStateChanged, User as FBUser } from 'firebase/auth'
+import { getDatabase, onValue, ref } from 'firebase/database'
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import { getEnv } from '../hooks/useEnv'
+import { UserFragment } from 'src/graphql/generated'
+import { getEnv } from 'utils/src'
 import trpc from '../trpc'
 
 export const createFirebaseApp = () => {
@@ -26,6 +27,8 @@ const login = async (token: string) =>
 		}
 	)
 
+type User = Partial<FBUser> & Partial<UserFragment>
+
 const UserContext = createContext<
 	Partial<{
 		user: User | null
@@ -34,6 +37,28 @@ const UserContext = createContext<
 		token: string | null
 	}>
 >({})
+
+const getDBUser = async (
+	user: User,
+	idToken: string,
+	setUser: (user: User | null) => void
+) => {
+	const { hasura } = getEnv()
+	const meResponse = await axios.post(
+		`${hasura.restServer}/me`,
+		{
+			sub: user.uid,
+		},
+		{
+			headers: {
+				Authorization: `Bearer ${idToken}`,
+			},
+		}
+	)
+	if (meResponse.data?.User_by_pk) {
+		setUser({ ...user, ...meResponse.data.User_by_pk })
+	}
+}
 
 const handleUser = async (
 	user: User | null,
@@ -49,13 +74,14 @@ const handleUser = async (
 		return
 	}
 
-	const token = await user.getIdToken(forceRefresh)
-	const idTokenResult = await user.getIdTokenResult()
-	const hasuraClaim = idTokenResult.claims['https://hasura.io/jwt/claims']
+	const token = (await user.getIdToken?.(forceRefresh)) as string
+	const idTokenResult = await user.getIdTokenResult?.()
+	const hasuraClaim = idTokenResult?.claims['https://hasura.io/jwt/claims']
 
 	if (hasuraClaim) {
 		login(token)
 		setUser(user)
+		getDBUser(user, token, setUser)
 		setToken(token)
 		setLoadingUser(false)
 	} else {

@@ -5,6 +5,18 @@ schema:
         'x-hasura-admin-secret': ${HASURA_ADMIN_SECRET}
 documents: ['src/pages/**/*.graphql', 'src/graphql/**/*.graphql']
 generates:
+  ../../packages/utils/src/graphql/generated.ts:
+    plugins:
+      - 'typescript'
+      - 'typescript-operations'
+      - 'typescript-react-apollo'
+      - 'fragment-matcher'
+  ../../packages/editor/src/graphql/generated.ts:
+    plugins:
+      - 'typescript'
+      - 'typescript-operations'
+      - 'typescript-react-apollo'
+      - 'fragment-matcher'
   src/graphql/generated.ts:
     plugins:
       - 'typescript'

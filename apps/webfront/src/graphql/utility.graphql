@@ -1,0 +1,12 @@
+mutation UploadFile($key: String!) {
+	UploadFile(key: $key) {
+		success
+		url
+	}
+}
+
+query GetImagesFromUnsplash($query: String!) {
+	SearchUnsplash(query: $query) {
+		results
+	}
+}

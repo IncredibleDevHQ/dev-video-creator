@@ -1,6 +1,6 @@
 import admin from 'firebase-admin'
 
-async function verifyJwt<T>(token: string) {
+async function verifyJwt(token: string) {
 	if (!token) return null
 	if (!admin.apps.length) {
 		admin.initializeApp({
@@ -10,7 +10,7 @@ async function verifyJwt<T>(token: string) {
 		})
 	}
 	const decoded = await admin.auth().verifyIdToken(token)
-	return decoded as T
+	return decoded
 }
 
 export default verifyJwt

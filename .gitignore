@@ -31,6 +31,7 @@ yarn-error.log*
 
 # all env files
 **/*/.env
+**/*/webfront-env.js
 
 # graphql related files
 **/graphql/generated.ts
@@ -40,3 +41,4 @@ yarn-error.log*
 # turbo
 .turbo
 .vercel
+.npmrc

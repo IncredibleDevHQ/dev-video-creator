@@ -4,6 +4,8 @@
 	"private": true,
 	"scripts": {
 		"dev": "next dev",
+		"prebuild": "yarn run fetch-env",
+		"fetch-env": "node pre-build.js",
 		"build": "next build",
 		"start": "next start",
 		"lint": "eslint src --fix",
@@ -12,6 +14,8 @@
 	"dependencies": {
 		"@apollo/client": "^3.6.9",
 		"@emotion/css": "^11.9.0",
+		"@liveblocks/client": "^0.17.5",
+		"@liveblocks/react": "^0.17.5",
 		"@trpc/client": "^9.25.3",
 		"@trpc/next": "^9.25.3",
 		"@trpc/react": "^9.25.3",
@@ -21,11 +25,13 @@
 		"cookie": "^0.5.0",
 		"cors": "^2.8.5",
 		"file-extension": "^4.0.5",
+		"editor": "*",
 		"firebase": "^9.8.4",
 		"firebase-admin": "^11.0.0",
 		"graphql": "^16.5.0",
 		"graphql-request": "^4.3.0",
 		"mime-types": "^2.1.35",
+		"icanvas": "*",
 		"next": "^12.2.0",
 		"nookies": "^2.5.2",
 		"react": "17.0.2",
@@ -36,6 +42,7 @@
 		"subscriptions-transport-ws": "^0.11.0",
 		"superjson": "^1.9.1",
 		"ui": "*",
+		"utils": "*",
 		"zod": "^3.17.3"
 	},
 	"devDependencies": {
@@ -55,6 +62,7 @@
 		"@types/react": "17.0.37",
 		"autoprefixer": "^10.4.7",
 		"config": "*",
+		"dotenv": "^16.0.1",
 		"eslint": "7.32.0",
 		"next-transpile-modules": "9.0.0",
 		"postcss": "^8.4.14",

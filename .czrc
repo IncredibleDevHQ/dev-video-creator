@@ -40,6 +40,10 @@
 		"revert": {
 			"description": "Reverts a previous commit",
 			"name": "Revert"
+		},
+		"merge": {
+			"description": "Merges a branch to another",
+			"name": "Merge"
 		}
 	},
 	"scopes": [
