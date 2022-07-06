@@ -7,6 +7,6 @@
 	"paths": {
 		"@/*": ["./src/*"]
 	},
-	"include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
+	"include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "pre-build.js"],
 	"exclude": ["node_modules"]
 }
