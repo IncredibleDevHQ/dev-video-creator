@@ -12,14 +12,15 @@ import {
 } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import React, { createContext, useContext, useMemo, useRef } from 'react'
+import CodeBlock from './nodes/extension-code'
 import Drag from './nodes/extension-drag'
-import { SlashCommands } from './nodes/extension-slash-command'
+import ImageBlock from './nodes/extension-image'
+import InteractionBlock from './nodes/extension-interaction'
+import SlashCommands from './nodes/extension-slash-command'
 import { getSuggestionItems } from './nodes/extension-slash-command/items'
 import renderItems from './nodes/extension-slash-command/renderItems'
+import TrailingNode from './nodes/extension-trailing-node'
 import Typography from './nodes/extension-typography'
-import CodeBlock from './nodes/extension-code'
-import ImageBlock from './nodes/extension-image'
-import { TrailingNode } from './nodes/extension-trailing-node'
 import VideoBlock from './nodes/extension-video'
 import editorStyle from './styles/editorStyle'
 
@@ -163,6 +164,7 @@ export const EditorProvider = ({
 				CodeBlock,
 				VideoBlock,
 				ImageBlock,
+				InteractionBlock,
 			],
 		},
 		[dragRef.current]
