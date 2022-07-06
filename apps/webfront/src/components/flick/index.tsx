@@ -1,8 +1,9 @@
 import { EditorProvider } from 'editor/src'
 import { useEffect } from 'react'
-import { useRecoilCallback } from 'recoil'
+import { useRecoilCallback, useRecoilValue } from 'recoil'
 import { FlickFragment } from 'src/graphql/generated'
 import { activeFragmentIdAtom, flickNameAtom } from 'src/stores/flick.store'
+import { useUser } from 'src/utils/providers/auth'
 import EditorSection from './core/EditorSection'
 import Navbar from './core/Navbar'
 import SubHeader from './core/SubHeader'
@@ -27,8 +28,14 @@ const FlickBody = ({
 		setStoresInitially()
 	}, [setStoresInitially])
 
+	const { user } = useUser()
+	const activeFragmentId = useRecoilValue(activeFragmentIdAtom)
+
 	return (
-		<EditorProvider>
+		<EditorProvider
+			displayName={user?.displayName || 'Anonymous'}
+			documentId={activeFragmentId as string}
+		>
 			<div>
 				<Navbar />
 				<SubHeader />
