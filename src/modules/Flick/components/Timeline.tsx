@@ -727,7 +727,7 @@ const Timeline = ({
                   switch (block.type) {
                     case 'introBlock':
                       return (
-                        config.blocks[block.id].view as IntroBlockView
+                        config.blocks[block.id]?.view as IntroBlockView
                       )?.intro?.order
                         ?.filter((o) => o.enabled)
                         ?.map((order, index) => {

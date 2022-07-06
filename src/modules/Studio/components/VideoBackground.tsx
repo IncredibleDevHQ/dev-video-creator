@@ -1279,6 +1279,107 @@ const VideoBackground = ({
           )
         }
       }
+    case 'WunderGraph':
+      switch (branding?.background?.type) {
+        case 'image':
+          return (
+            <Group>
+              <Image
+                x={0}
+                y={0}
+                width={stageConfig.width}
+                height={stageConfig.height}
+                image={bgImage}
+              />
+              <Text
+                text="WunderGraph"
+                x={0}
+                y={0}
+                fontSize={2}
+                fill="#fff"
+                opacity={0}
+                fontFamily="Inter"
+              />
+            </Group>
+          )
+        case 'color':
+          return (
+            <Group>
+              <Rect
+                x={0}
+                y={0}
+                width={stageConfig.width}
+                height={stageConfig.height}
+                fill={branding?.background?.color?.primary}
+              />
+              <Text
+                text="WunderGraph"
+                x={0}
+                y={0}
+                fontSize={2}
+                fill="#fff"
+                opacity={0}
+                fontFamily="Inter"
+              />
+            </Group>
+          )
+        case 'video':
+          return (
+            <Group x={0} y={0}>
+              {videoElement && (
+                <Video
+                  videoElement={videoElement}
+                  videoConfig={{
+                    x: 0,
+                    y: 0,
+                    width: stageConfig.width,
+                    height: stageConfig.height,
+                    videoFill: branding?.background?.color?.primary,
+                    cornerRadius: 0,
+                    performClip: true,
+                    clipVideoConfig: {
+                      x: 0,
+                      y: 0,
+                      width: 1,
+                      height: 1,
+                    },
+                  }}
+                />
+              )}
+              <Text
+                text="WunderGraph"
+                x={0}
+                y={0}
+                fontSize={2}
+                fill="#fff"
+                opacity={0}
+                fontFamily="Inter"
+              />
+            </Group>
+          )
+        default: {
+          return (
+            <Group>
+              <Rect
+                x={0}
+                y={0}
+                width={stageConfig.width}
+                height={stageConfig.height}
+                fill="#1A202C"
+              />
+              <Text
+                text="WunderGraph"
+                x={0}
+                y={0}
+                fontSize={2}
+                fill="#fff"
+                opacity={0}
+                fontFamily="Inter"
+              />
+            </Group>
+          )
+        }
+      }
     default:
       return <></>
   }
