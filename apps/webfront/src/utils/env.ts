@@ -1,5 +1,5 @@
 import crypto from 'crypto'
-import { env } from 'webfront-env'
+import { env } from 'env.webfront'
 
 export type EnvType = {
 	[key: string]: string

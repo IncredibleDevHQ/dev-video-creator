@@ -8,47 +8,64 @@ import { z } from 'zod'
 import type { Context } from '../createContext'
 import { isKeyAllowed } from '../utils/upload'
 
+export interface Meta {
+	hasAuth: boolean // can be used to disable auth for this specific routes
+}
+
 const userRouter = trpc
-	.router()
-	.middleware(async ({ ctx, next }) => {
+	.router<Context, Meta>()
+	.middleware(async ({ meta, ctx, next }) => {
 		const context = await (ctx as Context)
-		if (!context.user) {
+
+		// only check authorization if enabled
+		if (meta?.hasAuth && !context.user) {
 			throw new TRPCError({ code: 'UNAUTHORIZED' })
 		}
-		return next()
+		return next({
+			ctx: {
+				...context,
+				user: context.user,
+			},
+		})
 	})
 	/*
 	Dummy test query
 	*/
 	.query('me', {
+		meta: {
+			hasAuth: true,
+		},
 		input: z
 			.object({
 				text: z.string().nullish(),
 			})
 			.nullish(),
 		resolve: async ({ input, ctx }) => {
-			const context = await (ctx as Context)
 			const out = {
-				greeting: `hello ${input?.text ?? context.user?.email}`,
-				ctx: context.user,
+				greeting: `hello ${input?.text ?? ctx.user?.email}`,
+				ctx: ctx.user,
 			}
 
 			return out
 		},
 	})
 	.mutation('getUploadUrl', {
+		meta: {
+			hasAuth: true,
+		},
 		input: z.object({
 			key: z.string(),
-			tag: z.string(),
-			meta: z.object({
-				flickId: z.string().nullable(),
-				fragmentId: z.string().nullable(),
-				brandId: z.string().nullable(),
-				recordingId: z.string().nullable(),
-			}),
+			tag: z.nativeEnum(UploadType).nullish(),
+			meta: z
+				.object({
+					flickId: z.string().nullable(),
+					fragmentId: z.string().nullable(),
+					brandId: z.string().nullable(),
+					recordingId: z.string().nullable(),
+				})
+				.nullish(),
 		}),
 		resolve: async ({ input, ctx }) => {
-			const context = await (ctx as Context)
 			let uploadType: UploadType
 
 			// validate upload tag
@@ -60,38 +77,47 @@ const userRouter = trpc
 					message: 'Invalid upload tag',
 				})
 			}
+			// console.log('VALID UPLOAD TAG')
 
 			// check validity of passed key of new object
-			const { valid, mime } = await isKeyAllowed(input.key)
+			const { valid, mime, ext } = await isKeyAllowed(input.key)
+			// console.log('VALID KEY: ', { valid, mime })
 			if (!valid)
 				throw new trpc.TRPCError({
 					code: 'INTERNAL_SERVER_ERROR',
-					message: 'invalid file extension.',
+					message: `invalid file extension. ${ext}`,
 				})
+			// console.log('VALID UPLOAD KEY')
 
 			// Check if key is duplicate
 			try {
-				if (serverEnvs.AWS_S3_UPLOAD_BUCKET)
+				if (serverEnvs.AWS_S3_UPLOAD_BUCKET) {
 					await s3
 						.headObject({
 							Bucket: serverEnvs.AWS_S3_UPLOAD_BUCKET,
 							Key: input.key,
 						})
 						.promise()
-				else {
+
+					// console.log('DUPLICATE UPLOAD KEY')
+					throw new TRPCError({ code: 'CONFLICT' })
+				} else {
 					// TODO: Add sentry alert
-					throw new Error('INTERNAL SERVER ERROR')
+					// console.log('NO BUCKET!')
+					throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' })
 				}
 			} catch (e) {
-				throw new TRPCError({
-					code: 'CONFLICT',
-					message: 'This key already exists. Please select another key.',
-				})
+				if (e instanceof TRPCError && e.code === 'CONFLICT')
+					throw new TRPCError({
+						code: 'CONFLICT',
+						message: 'This key already exists. Please select another key.',
+					})
 			}
+			// console.log('UNIQUE UPLOAD KEY')
 
 			// generate pre-signed URL to upload object
 			try {
-				const path = getStoragePath(context.user!.sub, uploadType, input.meta)
+				const path = getStoragePath(ctx.user!.sub, uploadType, input.meta)
 				const url = await s3.getSignedUrlPromise('putObject', {
 					Bucket: serverEnvs.AWS_S3_UPLOAD_BUCKET,
 					Expires: 20 * 60,
@@ -101,7 +127,7 @@ const userRouter = trpc
 				// TODO: Add entry on Assets table to track objects uploaded by user
 				return { success: true, url }
 			} catch (e) {
-				console.log('Error generating pre-signed URL :', e)
+				// console.log('Error generating pre-signed URL :', e)
 				throw new TRPCError({
 					code: 'INTERNAL_SERVER_ERROR',
 					message: 'Failed to generate upload url.',

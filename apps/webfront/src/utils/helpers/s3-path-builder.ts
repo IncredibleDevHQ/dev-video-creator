@@ -43,6 +43,6 @@ export const getStoragePath = (
 				: new Error('Invalid thumbnail meta')
 
 		default:
-			return new Error('Invalid upload type')
+			throw new Error('Invalid upload type')
 	}
 }

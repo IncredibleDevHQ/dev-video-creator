@@ -1,15 +1,16 @@
-import { fileTypeFromFile } from 'file-type'
 import serverEnvs from 'src/utils/env'
+import mime from 'mime'
 
 const allowedExtensions = serverEnvs.ALLOWED_EXT?.split(',') || []
 
 const isKeyAllowed = async (key: string) => {
-	const fileData = await fileTypeFromFile(key)
-	if (!fileData) return { ext: null, valid: false }
+	const ext = key.split('.').pop()?.trim()
+	if (!ext) return { ext: null, valid: false }
+
 	return {
-		ext: fileData.ext.toString(),
-		mime: fileData.mime.toString(),
-		valid: allowedExtensions.includes(fileData.ext),
+		ext: ext.toString(),
+		mime: mime.getType(ext)?.toString(),
+		valid: allowedExtensions.includes(ext),
 	}
 }
 
