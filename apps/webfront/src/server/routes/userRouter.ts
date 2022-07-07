@@ -40,10 +40,14 @@ const userRouter = trpc
 				text: z.string().nullish(),
 			})
 			.nullish(),
+		output: z.object({
+			greeting: z.string(),
+			ctx: z.string(),
+		}),
 		resolve: async ({ input, ctx }) => {
 			const out = {
 				greeting: `hello ${input?.text ?? ctx.user?.email}`,
-				ctx: ctx.user,
+				ctx: ctx.user!.sub,
 			}
 
 			return out
@@ -64,6 +68,10 @@ const userRouter = trpc
 					recordingId: z.string().nullable(),
 				})
 				.nullish(),
+		}),
+		output: z.object({
+			success: z.boolean(),
+			url: z.string(),
 		}),
 		resolve: async ({ input, ctx }) => {
 			let uploadType: UploadType
