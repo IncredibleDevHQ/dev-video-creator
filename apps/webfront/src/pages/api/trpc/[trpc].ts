@@ -7,6 +7,7 @@ export default trpcNext.createNextApiHandler({
 	router: appRouter,
 	createContext,
 	onError({ error }) {
+		// TODO: Add sentry
 		if (error.code === 'INTERNAL_SERVER_ERROR') {
 			// TODO: Add logger
 		} else {

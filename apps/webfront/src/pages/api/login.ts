@@ -1,5 +1,6 @@
 import admin from 'firebase-admin'
 import { NextApiRequest, NextApiResponse } from 'next'
+import serverEnvs from 'src/utils/env'
 import setCookie from 'src/utils/helpers/setCookie'
 
 const login = async (req: NextApiRequest, res: NextApiResponse) => {
@@ -22,7 +23,7 @@ const login = async (req: NextApiRequest, res: NextApiResponse) => {
 			if (!admin.apps.length) {
 				admin.initializeApp({
 					credential: admin.credential.cert(
-						JSON.parse(process.env.FIREBASE_SERVICE_CONFIG as string)
+						JSON.parse(serverEnvs.FIREBASE_SERVICE_CONFIG as string)
 					),
 				})
 			}
@@ -49,7 +50,7 @@ const login = async (req: NextApiRequest, res: NextApiResponse) => {
 					httpOnly: true,
 					secure: true,
 					path: '/',
-					domain: process.env.NEXT_PUBLIC_COOKIE_DOMAIN as string,
+					domain: serverEnvs.COOKIE_DOMAIN as string,
 					sameSite: 'none',
 				})
 

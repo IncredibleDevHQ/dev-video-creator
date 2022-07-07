@@ -1,6 +1,7 @@
 import Cors from 'cors'
 import admin, { auth } from 'firebase-admin'
 import { NextApiRequest, NextApiResponse } from 'next'
+import serverEnvs from 'src/utils/env'
 import initMiddleware from 'src/utils/helpers/initMiddleware'
 import setCookie from 'src/utils/helpers/setCookie'
 
@@ -17,7 +18,7 @@ const logout = async (req: NextApiRequest, res: NextApiResponse) => {
 		if (!admin.apps.length) {
 			admin.initializeApp({
 				credential: admin.credential.cert(
-					JSON.parse(process.env.FIREBASE_SERVICE_CONFIG as string)
+					JSON.parse(serverEnvs.FIREBASE_SERVICE_CONFIG as string)
 				),
 			})
 		}
