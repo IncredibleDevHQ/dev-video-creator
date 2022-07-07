@@ -356,6 +356,26 @@ const TransitionProvider = ({
             setTopLayerChildren={setTopLayerChildren}
           />
         )
+      case 'WunderGraph':
+        if (direction === 'moveIn' || direction === 'moveAway') {
+          return (
+            <DipTransition
+              direction={direction}
+              isShorts={isShorts}
+              color="black"
+              performFinishAction={performFinishAction}
+              setTopLayerChildren={setTopLayerChildren}
+            />
+          )
+        }
+        return (
+          <DipTransition
+            direction={direction}
+            isShorts={isShorts}
+            color="black"
+            setTopLayerChildren={setTopLayerChildren}
+          />
+        )
       default:
         return <></>
     }
