@@ -35,6 +35,7 @@ module.exports = {
 			},
 		],
 		'react/react-in-jsx-scope': 'off',
+		'react/require-default-props': 'off',
 		// next
 		'@next/next/no-html-link-for-pages': 'off',
 	},
