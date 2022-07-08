@@ -4,7 +4,7 @@
 	"private": true,
 	"scripts": {
 		"dev": "next dev",
-		"prebuild": "yarn fetch-env",
+		"prepare": "yarn fetch-env",
 		"fetch-env": "node -r dotenv/config env.fetch.js",
 		"build": "next build",
 		"start": "next start",
