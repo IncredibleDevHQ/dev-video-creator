@@ -1,0 +1,21 @@
+fragment Theme on Theme {
+	name
+	config
+}
+
+query GetThemes {
+	Theme {
+		...Theme
+	}
+}
+
+fragment Transition on Transition {
+	name
+	config
+}
+
+query GetTransitions {
+	Transition {
+		...Transition
+	}
+}
