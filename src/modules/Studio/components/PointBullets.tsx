@@ -1,6 +1,8 @@
 import React from 'react'
-import { Group, Rect, Star, Text } from 'react-konva'
+import { Group, Rect, Star, Text, Image } from 'react-konva'
 import { useRecoilValue } from 'recoil'
+import useImage from 'use-image'
+import config from '../../../config'
 import { studioStore } from '../stores'
 import { BulletsConfig } from '../utils/PointsConfig'
 import { ObjectRenderConfig } from '../utils/ThemeConfig'
@@ -24,6 +26,7 @@ const HorizontalPointBullets = ({
     case 'DevsForUkraine':
     case 'Whitep4nth3r':
     case 'Mux':
+    case 'WunderGraph':
       return (
         <>
           <Rect
@@ -162,6 +165,10 @@ export const PointBullets = ({
   pointRenderMode: string
 }) => {
   const { branding } = useRecoilValue(studioStore)
+  const [wunderGraphBullet] = useImage(
+    `${config.storage.baseUrl}themes/WunderGraph/wunderGraphBullet.svg`,
+    'anonymous'
+  )
   switch (theme) {
     case 'DarkGradient':
     case 'PastelLines':
@@ -317,6 +324,29 @@ export const PointBullets = ({
             rotation={-30}
           />
         </Group>
+      )
+    case 'WunderGraph':
+      return (
+        <Image
+          key="points"
+          image={wunderGraphBullet}
+          x={
+            pointRenderMode === 'stack'
+              ? -2 + (41 * (pointLevel - 1) || 0)
+              : 0 + (41 * (pointLevel - 1) || 0)
+          }
+          y={pointY + (objectRenderConfig.pointsBulletYOffset || 0)}
+          width={12}
+          height={12}
+          cornerRadius={objectRenderConfig.pointsBulletCornerRadius}
+          ref={(ref) => {
+            if (pointRenderMode !== 'stack') return
+            ref?.to({
+              x: 0 + (41 * (pointLevel - 1) || 0),
+              duration: 0.3,
+            })
+          }}
+        />
       )
     default:
       return <></>

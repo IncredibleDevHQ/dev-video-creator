@@ -23,6 +23,7 @@ import {
   VetsWhoCodeLowerThirds,
   Web3AuthLowerThirds,
   Whitep4nth3rLowerThirds,
+  WunderGraphLowerThirds,
 } from './LowerThirds'
 
 const LowerThridProvider = ({
@@ -418,6 +419,37 @@ const LowerThridProvider = ({
           />
           {/* {users.map((user, index) => (
             <LeeRobLowerThirds
+              // eslint-disable-next-line react/no-array-index-key
+              key={index}
+              x={lowerThirdCoordinates({ position: 'left' })[index + 1]}
+              y={!isShorts ? 400 : 560}
+              userName={participants?.[user.uid]?.displayName || ''}
+              designation={lowerThirdUserDesignation || ''}
+              organization={lowerThirdUserOrganization || ''}
+              logo={branding?.logo || ''}
+              color={branding?.background?.color?.primary || ''}
+              textColor={branding?.colors?.text || ''}
+            />
+          ))} */}
+        </>
+      )
+    }
+    case 'WunderGraph': {
+      return (
+        <>
+          <WunderGraphLowerThirds
+            x={!isShorts ? lowerThirdCoordinates({ position: 'left' })[0] : 45}
+            y={!isShorts ? 400 : 560}
+            userName={lowerThirdUserName || ''}
+            designation={lowerThirdUserDesignation || ''}
+            organization={lowerThirdUserOrganization || ''}
+            logo={branding?.logo || ''}
+            color={branding?.background?.color?.primary || ''}
+            textColor={branding?.colors?.text || ''}
+            setTopLayerChildren={setTopLayerChildren}
+          />
+          {/* {users.map((user, index) => (
+            <LambdaTestLowerThirds
               // eslint-disable-next-line react/no-array-index-key
               key={index}
               x={lowerThirdCoordinates({ position: 'left' })[index + 1]}
