@@ -1,3 +1,4 @@
+/* eslint-disable react/jsx-no-constructed-context-values */
 /* eslint-disable no-unsafe-optional-chaining */
 import { cx } from '@emotion/css'
 import { HocuspocusProvider, WebSocketStatus } from '@hocuspocus/provider'
@@ -18,7 +19,6 @@ import React, {
 	createContext,
 	useContext,
 	useEffect,
-	useMemo,
 	useRef,
 	useState,
 } from 'react'
@@ -288,18 +288,17 @@ export const EditorProvider = ({
 		}
 	}, [])
 
-	const value: EC = useMemo(
-		() => ({
-			editor,
-			dragHandleRef: dragRef,
-			editorSaved: unsyncedChanges === 0,
-			providerWebsocketState: websocketStatus,
-		}),
-		[editor, dragRef, unsyncedChanges, websocketStatus]
-	)
-
 	return (
-		<EditorContext.Provider value={value}>{children}</EditorContext.Provider>
+		<EditorContext.Provider
+			value={{
+				editor,
+				dragHandleRef: dragRef,
+				editorSaved: unsyncedChanges === 0,
+				providerWebsocketState: websocketStatus,
+			}}
+		>
+			{children}
+		</EditorContext.Provider>
 	)
 }
 

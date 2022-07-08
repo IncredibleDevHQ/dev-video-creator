@@ -1,4 +1,4 @@
-import { LiveMap } from '@liveblocks/client'
+import { LiveMap, LiveObject } from '@liveblocks/client'
 import { FlickParticipantsFragment } from '../graphql/generated'
 
 export const allLayoutTypes = [
@@ -237,7 +237,7 @@ export type LiveViewConfig = {
 	mode: 'Portrait' | 'Landscape'
 	titleSplash: TitleSplashConfig
 	speakers: FlickParticipantsFragment[]
-	blocks: LiveMap<string, BlockProperties>
+	blocks: LiveMap<string, LiveObject<BlockProperties>>
 	selectedBlocks: { blockId: string; pos: number }[] // used to store blockids of selected blocks from timeline
 	continuousRecording: boolean
 }

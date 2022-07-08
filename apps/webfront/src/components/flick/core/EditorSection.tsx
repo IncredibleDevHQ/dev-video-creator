@@ -1,32 +1,100 @@
 import { EditorContent, useIncredibleEditor } from 'editor/src'
+import { useEffect, useRef } from 'react'
+import { useRecoilValue, useSetRecoilState } from 'recoil'
+import { astAtom, currentBlockIdAtom } from 'src/stores/flick.store'
 
 const EditorSection = () => {
 	const { editor, dragHandleRef } = useIncredibleEditor()
+	const editorContainerRef = useRef<HTMLDivElement>(null)
+	const previewRef = useRef<HTMLDivElement>(null)
+	const setCurrentBlockId = useSetRecoilState(currentBlockIdAtom)
+
+	const ast = useRecoilValue(astAtom)
+
+	useEffect(() => {
+		if (
+			!editor ||
+			!editorContainerRef.current ||
+			editor.isDestroyed ||
+			!ast ||
+			!previewRef.current
+		)
+			return
+
+		const { from } = editor.state.selection
+		let nodeAtPos = editor.state.doc.nodeAt(from)
+		if (nodeAtPos?.isText) {
+			nodeAtPos = editor.state.doc.childBefore(from).node
+		}
+		let nodeAttrs = nodeAtPos?.attrs
+
+		if (!nodeAtPos) {
+			const path = (editor.state.selection.$from as any).path[3]
+			if (path?.content?.size > 0) {
+				nodeAttrs = (editor.state.selection.$from as any).path[3]?.attrs
+			}
+		}
+		const block = ast?.blocks.find(
+			b => b.id === nodeAttrs?.id || b.nodeIds?.includes(nodeAttrs?.id)
+		)
+		if (nodeAttrs && ast && nodeAttrs.id && block) {
+			setCurrentBlockId(block.id)
+			const editorTop =
+				editor?.view.coordsAtPos(editor.state.selection.anchor)?.top ?? 0
+			const editorContainerTop =
+				editorContainerRef.current?.getBoundingClientRect().top ?? 0
+			const previewPosition = editorTop - editorContainerTop - 48 // adjust for padding
+
+			previewRef.current.style.top = `${previewPosition}px`
+		} else {
+			setCurrentBlockId(null)
+		}
+	}, [ast, editor, editor?.state.selection.anchor, setCurrentBlockId])
 
 	return (
-		<div className='flex justify-center pt-12'>
+		<div
+			className='grid grid-cols-12 flex-1 h-full sticky top-0 overflow-y-auto'
+			onScroll={() => {
+				const dragHandle = dragHandleRef?.current
+				if (dragHandle) {
+					dragHandle.style.visibility = 'hidden'
+					dragHandle.style.display = 'hidden'
+				}
+			}}
+		>
 			<div
-				style={{
-					zIndex: 0,
-				}}
-				ref={dragHandleRef}
-				id='drag-handle'
-				className='hidden items-center text-gray-300 transition-all duration-75 ease-in-out text-size-lg'
+				className='h-full w-full max-w-[750px] pt-12 pb-32 col-start-4 col-span-6'
+				ref={editorContainerRef}
 			>
-				<div className='cursor-pointer flex-shrink-0 hover:bg-gray-100 hover:text-gray-400 rounded-sm px-1'>
-					+
-				</div>
-				<span
+				<div
 					style={{
-						cursor: 'grab',
+						zIndex: 0,
 					}}
-					className=' hover:bg-gray-100 hover:text-gray-400 px-1 rounded-sm cursor-move'
+					ref={dragHandleRef}
+					id='drag-handle'
+					className='hidden items-center text-gray-300 transition-all duration-75 ease-in-out text-size-lg'
 				>
-					⠿
-				</span>
-			</div>
-			<div className='w-6/12'>
+					<div className='cursor-pointer flex-shrink-0 hover:bg-gray-100 hover:text-gray-400 rounded-sm px-1'>
+						+
+					</div>
+					<span
+						style={{
+							cursor: 'grab',
+						}}
+						className=' hover:bg-gray-100 hover:text-gray-400 px-1 rounded-sm cursor-move'
+					>
+						⠿
+					</span>
+				</div>
 				{editor && <EditorContent editor={editor} />}
+			</div>
+			<div className='col-start-10 col-end-12 relative border-none outline-none w-full mt-10  ml-10'>
+				<div
+					className='absolute w-full  aspect-[16/9] border flex items-center justify-center'
+					ref={previewRef}
+				>
+					Preview
+				</div>
 			</div>
 		</div>
 	)

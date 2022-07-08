@@ -1,5 +1,5 @@
 import { LiveMap } from '@liveblocks/client'
-import { EditorProvider, CoreEditorInstance } from 'editor/src'
+import { CoreEditorInstance, EditorProvider } from 'editor/src'
 import parser from 'editor/src/utils/parser'
 import { Block } from 'editor/src/utils/types'
 import { useEffect, useMemo } from 'react'
@@ -9,6 +9,8 @@ import {
 	activeFragmentIdAtom,
 	astAtom,
 	flickNameAtom,
+	View,
+	viewAtom,
 } from 'src/stores/flick.store'
 import {
 	Presence,
@@ -19,6 +21,9 @@ import { useUser } from 'src/utils/providers/auth'
 import EditorSection from './core/EditorSection'
 import Navbar from './core/Navbar'
 import SubHeader from './core/SubHeader'
+import ViewConfigUpdater from './core/ViewConfigUpdater'
+import Preview from './preview/Preview'
+import Timeline from './preview/Timeline'
 
 const FlickBody = ({
 	flick,
@@ -30,8 +35,13 @@ const FlickBody = ({
 	const setStoresInitially = useRecoilCallback(
 		({ set }) =>
 			() => {
+				const ast = flick.fragments.find(
+					fragment => fragment.id === initialFragmentId
+				)?.editorState
+
 				set(flickNameAtom, flick.name)
 				set(activeFragmentIdAtom, initialFragmentId)
+				set(astAtom, ast ?? null)
 			},
 		[]
 	)
@@ -42,6 +52,7 @@ const FlickBody = ({
 
 	const { user } = useUser()
 	const activeFragmentId = useRecoilValue(activeFragmentIdAtom)
+	const view = useRecoilValue(viewAtom)
 
 	const initialPresence: Presence = useMemo(
 		() => ({
@@ -116,10 +127,12 @@ const FlickBody = ({
 				displayName={user?.displayName || 'Anonymous'}
 				documentId={activeFragmentId as string}
 			>
-				<div>
+				<div className='flex flex-col h-screen overflow-hidden'>
 					<Navbar />
 					<SubHeader />
-					<EditorSection />
+					{view === View.Notebook ? <EditorSection /> : <Preview />}
+					<Timeline persistentTimeline={false} shouldScrollToCurrentBlock />
+					<ViewConfigUpdater />
 				</div>
 			</EditorProvider>
 		</RoomProvider>
