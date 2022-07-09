@@ -92,10 +92,8 @@ const Timeline = ({
 									switch (block.type) {
 										case 'introBlock':
 											return (
-												viewConfig
-													?.get('blocks')
-													?.get(block.id)
-													?.get('view') as IntroBlockView
+												viewConfig?.get('blocks')?.get(block.id)
+													?.view as IntroBlockView
 											)?.intro?.order
 												?.filter(o => o.enabled)
 												?.map(order => {
@@ -183,10 +181,8 @@ const Timeline = ({
 
 										case 'outroBlock':
 											return (
-												viewConfig
-													?.get('blocks')
-													?.get(block.id)
-													?.get('view') as OutroBlockView
+												viewConfig?.get('blocks')?.get(block.id)
+													?.view as OutroBlockView
 											)?.outro?.order
 												?.filter(o => o.enabled)
 												?.map(order => {

@@ -1,5 +1,4 @@
-import { LiveObject } from '@liveblocks/client'
-import { useState, useEffect, useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { BlockProperties } from 'utils/src'
 import { useMap, useRoom } from '../liveblocks.config'
 
@@ -16,7 +15,7 @@ const useBlock = (fragmentId: string, blockId: string) => {
 
 	useEffect(() => {
 		if (block) {
-			setBlockProperties(block.toObject())
+			setBlockProperties(block)
 		}
 	}, [block])
 
@@ -24,11 +23,11 @@ const useBlock = (fragmentId: string, blockId: string) => {
 
 	useEffect(() => {
 		let unsubscribe: any
-		if (block && !unsubscribe) {
+		if (blocks && !unsubscribe) {
 			unsubscribe = room.subscribe(
-				block,
+				blocks,
 				() => {
-					setBlockProperties(blocks?.get(blockId)?.toObject())
+					setBlockProperties(blocks?.get(blockId))
 				},
 				{ isDeep: true }
 			)
@@ -40,7 +39,7 @@ const useBlock = (fragmentId: string, blockId: string) => {
 
 	const updateBlockProperties = useCallback(
 		(properties: BlockProperties) => {
-			blocks?.set(blockId, new LiveObject(properties))
+			blocks?.set(blockId, properties)
 		},
 		[blockId, blocks]
 	)

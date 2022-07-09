@@ -1,10 +1,9 @@
-/*  
+/*
     Function to handle updates to the view config
     These updates do not reside inside any other component to prevent rerenders
-    Returns null 
+    Returns null
 */
 
-import { LiveObject } from '@liveblocks/client'
 import { useEffect } from 'react'
 import { useRecoilValue } from 'recoil'
 import {
@@ -13,7 +12,7 @@ import {
 	currentBlockSelector,
 } from 'src/stores/flick.store'
 import { useMap } from 'src/utils/liveblocks.config'
-import { BlockProperties, CodeAnimation, CodeTheme, CodeStyle } from 'utils/src'
+import { BlockProperties, CodeAnimation, CodeStyle, CodeTheme } from 'utils/src'
 
 const ViewConfigUpdater = () => {
 	const currentBlock = useRecoilValue(currentBlockSelector)
@@ -54,7 +53,7 @@ const ViewConfigUpdater = () => {
 					viewConfig.blocks.delete(a)
 				})
 
-			viewConfig.blocks.set(id, new LiveObject(properties))
+			viewConfig.blocks.set(id, properties)
 		}
 
 		if (!currentBlock) return
