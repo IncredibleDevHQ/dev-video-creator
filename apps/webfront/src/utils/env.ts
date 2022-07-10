@@ -1,9 +1,27 @@
 import crypto from 'crypto'
-import { env } from 'env.webfront'
+import env from '../../env.webfront'
 
 export type EnvType = {
 	[key: string]: string
 }
+
+// TODO: Implement env validation
+const validateEnvs = (envs: any) =>
+	// const envSchema = z.object({
+	// 	DATABASE_URL: z.string().url(),
+	// 	NODE_ENV: z.enum(['development', 'test', 'production']),
+	// })
+
+	// const verified = envSchema.safeParse(process.env)
+
+	// if (!verified.success) {
+	// 	console.error(
+	// 		'❌ Invalid environment variables:',
+	// 		JSON.stringify(verified.error.format(), null, 4)
+	// 	)
+	// 	// process.exit(1)
+	// }
+	envs
 
 const decryptEnvs = (encrypted: string): EnvType => {
 	try {
@@ -25,9 +43,9 @@ const decryptEnvs = (encrypted: string): EnvType => {
 		decrypted += decipher.final('utf8')
 
 		const envs: EnvType = JSON.parse(decrypted)
-		return envs
+		return validateEnvs(envs)
 	} catch (e) {
-		throw new Error(`Invalid encrypted env. Error: ${e}`)
+		throw new Error(`Invalid encrypted env. ${e}`)
 	}
 }
 
