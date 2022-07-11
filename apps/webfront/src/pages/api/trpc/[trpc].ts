@@ -8,10 +8,6 @@ export default trpcNext.createNextApiHandler({
 	createContext,
 	onError({ error }) {
 		// TODO: Add sentry
-		if (error.code === 'INTERNAL_SERVER_ERROR') {
-			// TODO: Add logger
-		} else {
-			// TODO: Add logger
-		}
+		console.error(error)
 	},
 })
