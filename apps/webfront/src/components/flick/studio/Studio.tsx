@@ -10,10 +10,10 @@ import useCanvasRecorder from 'src/utils/hooks/useCanvasRecorder'
 import { useUser } from 'src/utils/providers/auth'
 import { Heading, Text } from 'ui/src'
 import { ViewConfig } from 'utils/src'
-import CanvasComponent from './canvas/CanvasComponent'
+import CanvasComponent from '../canvas/CanvasComponent'
 import MediaControls from './MediaControls'
 import MiniTimeline from './MiniTimeline'
-import RecordingControls from './RecordingControls'
+import RecordingControls from '../RecordingControls'
 
 const Studio = ({
 	fragmentId,
@@ -179,9 +179,9 @@ const Studio = ({
 					</Heading>
 					<MediaControls />
 				</div>
-				<div className='grid grid-cols-8 flex-1 items-center'>
+				<div className='grid grid-cols-12 flex-1 items-center'>
 					<div
-						className='flex justify-center col-span-6 col-start-2 w-full h-full pt-8'
+						className='flex justify-center items-center col-span-8 col-start-3 w-full h-full'
 						ref={ref}
 					>
 						<Canvas
@@ -198,6 +198,7 @@ const Studio = ({
 					dataConfig={dataConfig}
 					viewConfig={viewConfig}
 					shortsMode={false}
+          isPreview={false}
 				/>
 				{/* // TODO when calling mini time line filter dataConfig for continuousRecording */}
         <MiniTimeline dataConfig={dataConfig}/>
