@@ -1,8 +1,9 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect } from 'react'
 import { useSetRecoilState } from 'recoil'
 import { payloadFamily } from 'src/stores/studio.store'
 import { FragmentPayload } from '../configs'
-import { useMap } from '../liveblocks.config'
+import { useMap, useRoom } from '../liveblocks.config'
 
 const useUpdatePayload = ({
 	blockId,
@@ -13,14 +14,30 @@ const useUpdatePayload = ({
 }) => {
 	const fragmentPayload = useMap('payload')?.get(blockId)
 	const setFragmentPayload = useSetRecoilState(payloadFamily(blockId))
+	const room = useRoom()
 
 	useEffect(() => {
-		if (fragmentPayload && setFragmentPayload && shouldUpdateLiveblocks) {
-			setFragmentPayload(fragmentPayload.toObject())
+		let unsubscribe: any
+		if (
+			fragmentPayload &&
+			setFragmentPayload &&
+			shouldUpdateLiveblocks &&
+			!unsubscribe
+		) {
+			unsubscribe = room.subscribe(
+				fragmentPayload,
+				() => {
+					setFragmentPayload(fragmentPayload.toObject())
+				},
+				{ isDeep: true }
+			)
 		}
-	}, [fragmentPayload, setFragmentPayload, shouldUpdateLiveblocks])
+		return () => {
+			unsubscribe?.()
+		}
+	}, [fragmentPayload, shouldUpdateLiveblocks])
 
-	const updatePayload = ( payload: FragmentPayload ) => {
+	const updatePayload = (payload: FragmentPayload) => {
 		if (shouldUpdateLiveblocks) {
 			fragmentPayload?.update(payload)
 		} else {
