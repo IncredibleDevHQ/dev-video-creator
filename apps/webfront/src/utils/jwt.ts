@@ -1,17 +1,10 @@
-import admin from 'firebase-admin'
-import serverEnvs from './env'
+import { initFirebaseAdmin } from '../server/utils/helpers'
 
 async function verifyJwt(token: string) {
 	if (!token) {
 		return null
 	}
-	if (!admin.apps.length && serverEnvs.FIREBASE_SERVICE_CONFIG) {
-		admin.initializeApp({
-			credential: admin.credential.cert(
-				JSON.parse(serverEnvs.FIREBASE_SERVICE_CONFIG as string)
-			),
-		})
-	}
+	const admin = initFirebaseAdmin()
 	const decoded = await admin.auth().verifyIdToken(token)
 	return decoded
 }

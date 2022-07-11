@@ -1,58 +1,37 @@
 import * as trpc from '@trpc/server'
 import { TRPCError } from '@trpc/server'
-// eslint-disable-next-line import/no-extraneous-dependencies
+import { z } from 'zod'
+
+import { getStoragePath, UploadType } from 'src/utils/helpers/s3-path-builder'
 import { s3 } from 'src/utils/aws'
 import serverEnvs from 'src/utils/env'
-import { getStoragePath, UploadType } from 'src/utils/helpers/s3-path-builder'
-import { z } from 'zod'
-import type { Context } from '../createContext'
+import { Context } from '../createContext'
+import { Meta } from '../utils/helpers'
 import { isKeyAllowed } from '../utils/upload'
 
-export interface Meta {
-	hasAuth: boolean // can be used to disable auth for this specific routes
-}
-
-const userRouter = trpc
+const utilsRouter = trpc
 	.router<Context, Meta>()
-	.middleware(async ({ meta, ctx, next }) => {
-		const context = await (ctx as Context)
+	/*
+		AUTH CHECK MIDDLEWARE
 
+		Note: Certain routes that don't require authentication can be excluded from this middleware
+		by passing meta.hasAuth = false.
+	*/
+	.middleware(({ meta, ctx, next }) => {
 		// only check authorization if enabled
-		if (meta?.hasAuth && !context.user) {
+		if (meta?.hasAuth && !ctx.user) {
 			throw new TRPCError({ code: 'UNAUTHORIZED' })
 		}
 		return next({
 			ctx: {
-				...context,
-				user: context.user,
+				...ctx,
+				user: ctx.user,
 			},
 		})
 	})
 	/*
-	Dummy test query
+		MUTATIONS
 	*/
-	.query('me', {
-		meta: {
-			hasAuth: true,
-		},
-		input: z
-			.object({
-				text: z.string().nullish(),
-			})
-			.nullish(),
-		output: z.object({
-			greeting: z.string(),
-			ctx: z.string(),
-		}),
-		resolve: async ({ input, ctx }) => {
-			const out = {
-				greeting: `hello ${input?.text ?? ctx.user?.email}`,
-				ctx: ctx.user!.sub,
-			}
-
-			return out
-		},
-	})
 	.mutation('getUploadUrl', {
 		meta: {
 			hasAuth: true,
@@ -144,4 +123,4 @@ const userRouter = trpc
 		},
 	})
 
-export default userRouter
+export default utilsRouter

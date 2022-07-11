@@ -1,0 +1,776 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["referentialIntegrity"]
+}
+
+datasource db {
+  provider             = "mysql"
+  referentialIntegrity = "prisma"
+  url                  = env("DATABASE_URL")
+}
+
+model Asset {
+  id                String            @id @default(uuid())
+  ownerId           String
+  displayName       String?
+  objectLink        String            @unique
+  type              String
+  metadata          Json?             @db.Json
+  organisationId    String?
+  source            String
+  createdAt         DateTime          @default(now()) @db.Timestamp(6)
+  updatedAt         DateTime          @default(now()) @db.Timestamp(6)
+  deletedAt         DateTime?         @db.Timestamp(6)
+  transformations   Json?             @db.Json
+  Organisation      Organisation?     @relation(fields: [organisationId], references: [slug], onDelete: Restrict)
+  User              User              @relation(fields: [ownerId], references: [sub])
+  ASSET_SOURCE_ENUM ASSET_SOURCE_ENUM @relation(fields: [source], references: [value], onDelete: SetNull, map: "Artifact_source_fkey")
+  ASSET_TYPE_ENUM   ASSET_TYPE_ENUM   @relation(fields: [type], references: [value], onDelete: SetNull, map: "Artifact_type_fkey")
+  Asset_Fragment    Asset_Fragment[]
+}
+
+model Asset_Fragment {
+  assetId    String   @db.VarChar(32)
+  fragmentId String   @db.VarChar(32)
+  Asset      Asset    @relation(fields: [assetId], references: [id], map: "Artifact_Fragment_artifactId_fkey")
+  Fragment   Fragment @relation(fields: [fragmentId], references: [id], map: "Artifact_Fragment_fragmentId_fkey")
+
+  @@id([assetId, fragmentId])
+}
+
+model ASSET_SOURCE_ENUM {
+  value       String  @id
+  description String?
+  Asset       Asset[]
+}
+
+model ASSET_TYPE_ENUM {
+  value       String  @id
+  description String?
+  Asset       Asset[]
+}
+
+model BLOCK_PARTICIPANT_ENUM {
+  value       String @id
+  description String
+}
+
+model Block_Participants {
+  blockId       String
+  participantId String      @db.VarChar(32)
+  Participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  @@id([blockId, participantId])
+}
+
+model Blocks {
+  id               String
+  fragmentId       String    @db.VarChar(32)
+  flickId          String    @db.VarChar(32)
+  createdAt        DateTime  @default(now()) @db.Timestamp(6)
+  updatedAt        DateTime  @default(now()) @db.Timestamp(6)
+  creationMeta     Json?     @db.Json
+  objectUrl        String?
+  deletedAt        DateTime? @db.Timestamp(6)
+  playbackDuration Float?    @db.Float()
+  recordingId      String    @db.VarChar(32)
+  thumbnail        String?
+  Flick            Flick     @relation(fields: [flickId], references: [id], onDelete: Cascade)
+  Fragment         Fragment  @relation(fields: [fragmentId], references: [id], onDelete: Cascade)
+  Recording        Recording @relation(fields: [recordingId], references: [id], onDelete: Cascade)
+
+  @@id([id, recordingId])
+}
+
+model Branding {
+  id       String  @id @default(uuid()) @db.VarChar(32)
+  name     String
+  branding Json?
+  userSub  String
+  User     User    @relation(fields: [userSub], references: [sub], onDelete: Cascade)
+  Flick    Flick[]
+}
+
+model Circle {
+  centre                   String
+  member                   String
+  createdAt                DateTime  @default(now()) @db.Timestamp(6)
+  score                    Int       @default(1)
+  deletedAt                DateTime? @db.Timestamp(6)
+  User_Circle_centreToUser User      @relation("Circle_centreToUser", fields: [centre], references: [sub], onDelete: Cascade)
+  User_Circle_memberToUser User      @relation("Circle_memberToUser", fields: [member], references: [sub], onDelete: Cascade, map: "Circle_revolver_fkey")
+
+  @@id([centre, member])
+}
+
+model Content {
+  id                String            @id @default(uuid()) @db.VarChar(32)
+  type              String
+  flickId           String            @db.VarChar(32)
+  seriesId          String?           @db.VarChar(32)
+  published_at      DateTime          @default(now()) @db.Timestamp(6)
+  updated_at        DateTime          @default(now()) @db.Timestamp(6)
+  isPublic          Boolean           @default(true)
+  thumbnail         String?
+  preview           String?
+  resource          String
+  data              Json?             @db.Json
+  fragmentId        String?           @unique @db.VarChar(32)
+  Flick             Flick             @relation(fields: [flickId], references: [id], onDelete: Cascade)
+  Fragment          Fragment?         @relation(fields: [fragmentId], references: [id], onDelete: Cascade)
+  Series            Series?           @relation(fields: [seriesId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  CONTENT_TYPE_ENUM CONTENT_TYPE_ENUM @relation(fields: [type], references: [value], onUpdate: Restrict)
+  Mux_Assets        Mux_Assets[]
+}
+
+model CONTENT_TYPE_ENUM {
+  value       String      @id
+  description String?
+  Content     Content[]
+  Recording   Recording[]
+}
+
+model DEVIntegration {
+  id          String    @id @default(uuid()) @db.VarChar(32)
+  accessToken String?
+  userSub     String
+  createdAt   DateTime  @default(now()) @db.Timestamp(6)
+  updatedAt   DateTime  @default(now()) @db.Timestamp(6)
+  deletedAt   DateTime? @db.Timestamp(6)
+  User        User      @relation(fields: [userSub], references: [sub], onDelete: Cascade)
+}
+
+model Email_Lists {
+  id          String  @id @default(uuid()) @db.VarChar(32)
+  entity_type String
+  userSub     String?
+  seriesId    String? @db.VarChar(32)
+  Series      Series? @relation(fields: [seriesId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  User        User?   @relation(fields: [userSub], references: [sub], onDelete: Restrict, onUpdate: Restrict)
+}
+
+model Flick {
+  name                     String
+  description              String?
+  id                       String                   @id @default(uuid()) @db.VarChar(32)
+  startAt                  DateTime?                @db.Timestamp(6)
+  endAt                    DateTime?                @db.Timestamp(6)
+  updatedAt                DateTime                 @default(now()) @db.Timestamp(6)
+  createdAt                DateTime                 @default(now()) @db.Timestamp(6)
+  lobbyPicture             String?
+  status                   String                   @default("Draft")
+  color                    String                   @default("Green")
+  sendEmailsAutomatically  Boolean                  @default(true)
+  scope                    String                   @default("Public")
+  plannedEnd               DateTime?                @db.Timestamp(6)
+  actualStart              DateTime?                @db.Timestamp(6)
+  joinLink                 String                   @unique @default(uuid())
+  producedLink             String?
+  deletedAt                DateTime?                @db.Timestamp(6)
+  ownerId                  String?                  @db.VarChar(32)
+  organisationSlug         String?
+  previewLink              String?
+  difficulty               String                   @default("Beginner")
+  configuration            Json?                    @default("{ \"themeId\": 0 }") @db.Json
+  thumbnail                String?
+  youtubeLink              String?
+  flickResourceUrl         String?
+  publishedAt              DateTime?                @db.Timestamp(6)
+  md                       String?
+  duration                 Int?
+  interactions             Json?                    @db.Json
+  topicTags                String?                  @db.VarChar(255)
+  useBranding              Boolean                  @default(false)
+  brandingId               String?                  @db.VarChar(32)
+  downloadTasks            Json?
+  themeName                String                   @default("DarkGradient")
+  dirty                    Boolean                  @default(true)
+  creationFlow             String                   @default("Notebook")
+  Branding                 Branding?                @relation(fields: [brandingId], references: [id], onUpdate: NoAction)
+  FLICK_CREATION_FLOW_ENUM FLICK_CREATION_FLOW_ENUM @relation(fields: [creationFlow], references: [value], onUpdate: Restrict)
+  Organisation             Organisation?            @relation(fields: [organisationSlug], references: [slug], onDelete: Cascade, map: "Flick_organisationId_fkey")
+  FLICK_SCOPE_ENUM         FLICK_SCOPE_ENUM         @relation(fields: [scope], references: [value], onUpdate: Restrict)
+  FLICK_STATUS_ENUM        FLICK_STATUS_ENUM        @relation(fields: [status], references: [value], onUpdate: Restrict)
+  Theme                    Theme                    @relation(fields: [themeName], references: [name], onUpdate: Restrict, map: "Flick_themeId_fkey")
+  Blocks                   Blocks[]
+  Content                  Content[]
+  FlickActivity            FlickActivity[]
+  Flick_Claps              Flick_Claps[]
+  Flick_Series             Flick_Series[]
+  Flick_Tag                Flick_Tag[]
+  Fragment                 Fragment[]
+  Integrations             Integrations[]
+  Invitations              Invitations[]
+  Note                     Note[]
+  Recording                Recording[]
+  Subscription             Subscription[]
+  Videos                   Videos[]
+}
+
+model FlickActivity {
+  createdAt                DateTime                 @default(now()) @db.Timestamp(6)
+  title                    String
+  description              String
+  type                     String
+  flickId                  String                   @db.VarChar(32)
+  fragmentId               String?                  @db.VarChar(32)
+  id                       String                   @id @unique @default(uuid()) @db.VarChar(32)
+  Flick                    Flick                    @relation(fields: [flickId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "Notifications_flickId_fkey")
+  Fragment                 Fragment?                @relation(fields: [fragmentId], references: [id], onDelete: Cascade)
+  FLICK_ACTIVITY_TYPE_ENUM FLICK_ACTIVITY_TYPE_ENUM @relation(fields: [type], references: [value], onDelete: NoAction)
+}
+
+model FLICK_ACTIVITY_TYPE_ENUM {
+  value         String          @id
+  description   String?
+  FlickActivity FlickActivity[]
+}
+
+model Flick_Claps {
+  flickId   String @db.VarChar(32)
+  userId    String
+  clapCount Int    @default(0)
+  Flick     Flick  @relation(fields: [flickId], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  User      User   @relation(fields: [userId], references: [sub], onDelete: Cascade)
+
+  @@id([flickId, userId])
+}
+
+model FLICK_CREATION_FLOW_ENUM {
+  value       String  @id
+  description String
+  Flick       Flick[]
+}
+
+model FLICK_SCOPE_ENUM {
+  value       String  @id
+  description String?
+  Flick       Flick[]
+}
+
+model Flick_Series {
+  flickId  String @db.VarChar(32)
+  seriesId String @db.VarChar(32)
+  order    Int
+  Flick    Flick  @relation(fields: [flickId], references: [id], onDelete: Cascade)
+  Series   Series @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+
+  @@id([flickId, seriesId])
+}
+
+model FLICK_STATUS_ENUM {
+  value       String  @id
+  description String?
+  Flick       Flick[]
+}
+
+model Flick_Tag {
+  flickId String @db.VarChar(32)
+  tagId   String @db.VarChar(32)
+  Flick   Flick  @relation(fields: [flickId], references: [id], onUpdate: Restrict)
+  Tag     Tag    @relation(fields: [tagId], references: [id], onUpdate: Restrict)
+
+  @@id([flickId, tagId])
+}
+
+model Follow {
+  targetId                     String
+  followerId                   String
+  created_at                   DateTime @default(now()) @db.Timestamp(6)
+  User_Follow_followerIdToUser User     @relation("Follow_followerIdToUser", fields: [followerId], references: [sub], onDelete: Cascade)
+  User_Follow_targetIdToUser   User     @relation("Follow_targetIdToUser", fields: [targetId], references: [sub], onDelete: Cascade)
+
+  @@id([targetId, followerId])
+}
+
+model Fonts {
+  id      String @id @default(uuid()) @db.VarChar(32)
+  family  String
+  userSub String
+  url     String
+  User    User   @relation(fields: [userSub], references: [sub], onDelete: Cascade)
+}
+
+model Fragment {
+  id                   String                 @id @default(uuid()) @db.VarChar(32)
+  name                 String?
+  description          String?
+  type                 String?                @default("Landscape")
+  flickId              String                 @db.VarChar(32)
+  configuration        Json?                  @db.Json
+  producedLink         String?
+  createdAt            DateTime?              @default(now()) @db.Timestamp(6)
+  updatedAt            DateTime?              @default(now()) @db.Timestamp(6)
+  deletedAt            DateTime?              @db.Timestamp(6)
+  order                Int?
+  status               String                 @default("Draft")
+  duration             Float?
+  templateId           String?                @db.VarChar(32)
+  producedShortsLink   String?
+  editorState          Json?                  @db.Json
+  shortsDuration       Float?
+  md                   String?
+  thumbnailConfig      Json?                  @db.Json
+  editorValue          Json?                  @db.Json
+  encodedEditorValue   String?
+  thumbnailObject      String?
+  publishConfig        Json?                  @db.Json
+  version              Decimal                @default(2) @db.Decimal
+  Flick                Flick                  @relation(fields: [flickId], references: [id], onDelete: Cascade)
+  FRAGMENT_STATUS_ENUM FRAGMENT_STATUS_ENUM   @relation(fields: [status], references: [value], onDelete: Cascade)
+  Template             Template?              @relation(fields: [templateId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  FRAGMENT_TYPE_ENUM   FRAGMENT_TYPE_ENUM?    @relation(fields: [type], references: [value], onDelete: Cascade)
+  Asset_Fragment       Asset_Fragment[]
+  Blocks               Blocks[]
+  Content              Content?
+  FlickActivity        FlickActivity[]
+  Fragment_Participant Fragment_Participant[]
+  Note                 Note[]
+  Recording            Recording[]
+}
+
+model Fragment_Participant {
+  fragmentId    String      @db.VarChar(32)
+  participantId String      @db.VarChar(32)
+  createdAt     DateTime    @default(now()) @db.Timestamp(6)
+  updatedAt     DateTime    @default(now()) @db.Timestamp(6)
+  deletedAt     DateTime?   @db.Timestamp(6)
+  Fragment      Fragment    @relation(fields: [fragmentId], references: [id], onDelete: Cascade)
+  Participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  @@id([fragmentId, participantId])
+}
+
+model FRAGMENT_STATUS_ENUM {
+  value       String     @id
+  description String?
+  Fragment    Fragment[]
+}
+
+model FRAGMENT_TYPE_ENUM {
+  value       String     @id
+  description String?
+  Fragment    Fragment[]
+}
+
+model GitHubIntegration {
+  id          String    @id @default(uuid()) @db.VarChar(32)
+  userSub     String    @unique
+  accessToken String    @unique
+  createdAt   DateTime  @default(now()) @db.Timestamp(6)
+  updatedAt   DateTime  @default(now()) @db.Timestamp(6)
+  deletedAt   DateTime? @db.Timestamp(6)
+  scope       String
+  branch      String?
+  repository  String?
+  User        User      @relation(fields: [userSub], references: [sub], onDelete: Cascade)
+}
+
+model HashnodeIntegration {
+  id          String    @id @default(uuid()) @db.VarChar(32)
+  userSub     String
+  accessToken String?
+  createdAt   DateTime  @default(now()) @db.Timestamp(6)
+  updatedAt   DateTime  @default(now()) @db.Timestamp(6)
+  deletedAt   DateTime? @db.Timestamp(6)
+  username    String
+  User        User      @relation(fields: [userSub], references: [sub], onDelete: Cascade)
+}
+
+model Integrations {
+  id        String @id @default(uuid()) @db.VarChar(32)
+  groupId   String
+  channelId String
+  flickId   String @db.VarChar(32)
+  source    String
+  Flick     Flick  @relation(fields: [flickId], references: [id], onUpdate: Restrict)
+}
+
+model Invitations {
+  senderId                          String
+  receiverId                        String
+  flickId                           String?            @db.VarChar(32)
+  seriesId                          String?            @db.VarChar(32)
+  status                            String
+  type                              String
+  message                           String?
+  created_at                        DateTime           @default(now()) @db.Timestamp(6)
+  updated_at                        DateTime           @default(now()) @db.Timestamp(6)
+  id                                String             @id @default(uuid()) @db.VarChar(32)
+  Flick                             Flick?             @relation(fields: [flickId], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  User_Invitations_receiverIdToUser User               @relation("Invitations_receiverIdToUser", fields: [receiverId], references: [sub], onDelete: Cascade)
+  User_Invitations_senderIdToUser   User               @relation("Invitations_senderIdToUser", fields: [senderId], references: [sub], onDelete: Cascade)
+  Series                            Series?            @relation(fields: [seriesId], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  INVITE_STATUS_ENUM                INVITE_STATUS_ENUM @relation(fields: [status], references: [value], onUpdate: Restrict)
+  INVITE_TYPE_ENUM                  INVITE_TYPE_ENUM   @relation(fields: [type], references: [value], onUpdate: Restrict)
+
+  @@unique([senderId, receiverId, flickId])
+}
+
+model INVITE_STATUS_ENUM {
+  value       String        @id
+  description String?
+  Invitations Invitations[]
+}
+
+model INVITE_TYPE_ENUM {
+  value       String        @id
+  description String
+  Invitations Invitations[]
+}
+
+model MagicLink {
+  id         String   @id @default(uuid()) @db.VarChar(32)
+  userSub    String
+  state      String?  @unique(map: "MagicLink_token_key")
+  createdAt  DateTime @default(now()) @db.Timestamp(6)
+  updatedAt  DateTime @default(now()) @db.Timestamp(6)
+  usageCount Int      @default(0)
+  User       User     @relation(fields: [userSub], references: [sub], onDelete: Cascade)
+}
+
+model Member {
+  id               String           @id @default(uuid()) @db.VarChar(32)
+  role             String           @default("Member")
+  userSub          String
+  createdAt        DateTime         @default(now()) @db.Timestamp(6)
+  updatedAt        DateTime         @default(now()) @db.Timestamp(6)
+  deletedAt        DateTime?        @db.Timestamp(6)
+  organisationSlug String
+  Organisation     Organisation     @relation(fields: [organisationSlug], references: [slug], onDelete: Cascade)
+  MEMBER_ROLE_ENUM MEMBER_ROLE_ENUM @relation(fields: [role], references: [value], onUpdate: Restrict)
+  User             User             @relation(fields: [userSub], references: [sub], onDelete: Cascade)
+
+  @@unique([organisationSlug, userSub])
+}
+
+model MEMBER_ROLE_ENUM {
+  value       String   @id
+  description String?
+  Member      Member[]
+}
+
+model Mux_Assets {
+  s3Object          String
+  muxAssetId        String
+  muxPlaybackId     String
+  muxPlaybackPolicy String
+  muxAssetStatus    String
+  contentId         String    @db.VarChar(32)
+  id                String    @id @default(uuid()) @db.VarChar(32)
+  created_at        DateTime? @unique @default(now()) @db.Timestamp(6)
+  Content           Content   @relation(fields: [contentId], references: [id], onDelete: Cascade)
+}
+
+model Note {
+  id            String       @id @default(uuid()) @db.VarChar(32)
+  flickId       String?      @db.VarChar(32)
+  note          String
+  sourceUrl     String?
+  createdAt     DateTime     @default(now()) @db.Timestamp(6)
+  updatedAt     DateTime     @default(now()) @db.Timestamp(6)
+  participantId String?      @db.VarChar(32)
+  deletedAt     DateTime?    @db.Timestamp(6)
+  fragmentId    String?      @db.VarChar(32)
+  Flick         Flick?       @relation(fields: [flickId], references: [id], onDelete: Restrict)
+  Fragment      Fragment?    @relation(fields: [fragmentId], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  Participant   Participant? @relation(fields: [participantId], references: [id], onDelete: Cascade)
+}
+
+model NOTIFICATION_META_TYPE_ENUM {
+  value         String          @id
+  description   String?
+  Notifications Notifications[]
+}
+
+model Notifications {
+  id                                  String                       @id @default(uuid()) @db.VarChar(32)
+  senderId                            String
+  receiverId                          String
+  message                             String
+  meta                                Json?                        @db.Json
+  type                                String
+  isRead                              Boolean                      @default(false)
+  metaType                            String?
+  createdAt                           DateTime                     @default(now()) @db.Timestamp(6)
+  updatedAt                           DateTime?                    @default(now()) @db.Timestamp(6)
+  NOTIFICATION_META_TYPE_ENUM         NOTIFICATION_META_TYPE_ENUM? @relation(fields: [metaType], references: [value], onDelete: Restrict, onUpdate: Restrict)
+  User_Notifications_receiverIdToUser User                         @relation("Notifications_receiverIdToUser", fields: [receiverId], references: [sub], onDelete: Cascade)
+  User_Notifications_senderIdToUser   User                         @relation("Notifications_senderIdToUser", fields: [senderId], references: [sub], onDelete: Cascade)
+  NOTIFICATION_TYPE_ENUM              NOTIFICATION_TYPE_ENUM       @relation(fields: [type], references: [value], onUpdate: Restrict)
+}
+
+model NOTIFICATION_TYPE_ENUM {
+  value         String          @id
+  description   String?
+  Notifications Notifications[]
+}
+
+model Organisation {
+  name        String
+  description String?
+  picture     String?
+  slug        String      @id @unique
+  createdAt   DateTime    @default(now()) @db.Timestamp(6)
+  updatedAt   DateTime    @default(now()) @db.Timestamp(6)
+  deletedAt   DateTime?   @db.Timestamp(6)
+  ownerId     String?     @db.VarChar(32)
+  id          String      @default(uuid()) @db.VarChar(32)
+  Asset       Asset[]
+  Flick       Flick[]
+  Member      Member[]
+  Series      Series[]
+  SlackAuth   SlackAuth[]
+}
+
+model Participant {
+  id                             String                         @id @default(uuid()) @db.VarChar(32)
+  flickId                        String                         @db.VarChar(32)
+  userSub                        String
+  createdAt                      DateTime                       @default(now()) @db.Timestamp(6)
+  deletedAt                      DateTime?                      @db.Timestamp(6)
+  cameraEnabled                  Boolean?
+  micEnabled                     Boolean?
+  role                           String
+  inviteStatus                   String                         @default("Pending")
+  status                         String                         @default("NotJoined")
+  token                          String?
+  updatedAt                      DateTime                       @default(now()) @db.Timestamp(6)
+  PARTICIPANT_INVITE_STATUS_ENUM PARTICIPANT_INVITE_STATUS_ENUM @relation(fields: [inviteStatus], references: [value], onUpdate: Restrict)
+  PARTICIPANT_ROLE_ENUM          PARTICIPANT_ROLE_ENUM          @relation(fields: [role], references: [value], onUpdate: Restrict)
+  PARTICIPANT_STATUS_ENUM        PARTICIPANT_STATUS_ENUM        @relation(fields: [status], references: [value], onUpdate: Restrict)
+  User                           User                           @relation(fields: [userSub], references: [sub], onDelete: Cascade)
+  Block_Participants             Block_Participants[]
+  Fragment_Participant           Fragment_Participant[]
+  Note                           Note[]
+}
+
+model PARTICIPANT_INVITE_STATUS_ENUM {
+  value       String        @id
+  description String?
+  Participant Participant[]
+}
+
+model PARTICIPANT_ROLE_ENUM {
+  value       String        @id
+  description String?
+  Participant Participant[]
+}
+
+model PARTICIPANT_STATUS_ENUM {
+  value       String        @id
+  description String?
+  Participant Participant[]
+}
+
+model Profile {
+  id              String  @id @default(uuid()) @db.VarChar(32)
+  userSub         String  @unique
+  coverImage      String?
+  about           String? @db.VarChar(1000)
+  tags            String  @db.VarChar(255)
+  title           String  @default("Incredible Creator") @db.VarChar(100)
+  githubProfile   String?
+  hashnodeProfile String?
+  mediumProfile   String?
+  linkedinProfile String?
+  twitterProfile  String?
+  User            User    @relation(fields: [userSub], references: [sub], onDelete: Cascade)
+}
+
+model Recording {
+  id                    String                @id @default(uuid()) @db.VarChar(32)
+  url                   String?
+  editorState           Json?                 @db.Json
+  viewConfig            Json?                 @db.Json
+  flickId               String                @db.VarChar(32)
+  fragmentId            String                @db.VarChar(32)
+  thumbnail             String?
+  storyboard            String?
+  status                String
+  checkpoint            Json?                 @db.Json
+  type                  String?
+  Flick                 Flick                 @relation(fields: [flickId], references: [id], onDelete: Cascade)
+  Fragment              Fragment              @relation(fields: [fragmentId], references: [id], onDelete: Cascade)
+  RECORDING_STATUS_ENUM RECORDING_STATUS_ENUM @relation(fields: [status], references: [value])
+  CONTENT_TYPE_ENUM     CONTENT_TYPE_ENUM?    @relation(fields: [type], references: [value], onDelete: Restrict)
+  Blocks                Blocks[]
+  YoutubeUploads        YoutubeUploads?
+}
+
+model RECORDING_STATUS_ENUM {
+  value       String      @id
+  description String?
+  Recording   Recording[]
+}
+
+model Series {
+  id               String         @id @default(uuid()) @db.VarChar(32)
+  name             String
+  description      String?
+  picture          String?
+  createdAt        DateTime       @default(now()) @db.Timestamp(6)
+  updatedAt        DateTime       @default(now()) @db.Timestamp(6)
+  deletedAt        DateTime?      @db.Timestamp(6)
+  organisationSlug String?
+  ownerSub         String
+  splashId         String?        @db.VarChar(32)
+  Organisation     Organisation?  @relation(fields: [organisationSlug], references: [slug], onDelete: Cascade)
+  User             User           @relation(fields: [ownerSub], references: [sub], onDelete: Cascade)
+  Content          Content[]
+  Email_Lists      Email_Lists[]
+  Flick_Series     Flick_Series[]
+  Invitations      Invitations[]
+  Series_Stars     Series_Stars[]
+  Subscription     Subscription[]
+}
+
+model Series_Stars {
+  userId   String
+  seriesId String @db.VarChar(32)
+  Series   Series @relation(fields: [seriesId], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  User     User   @relation(fields: [userId], references: [sub], onDelete: Cascade, onUpdate: Restrict)
+
+  @@id([userId, seriesId])
+}
+
+model SlackAuth {
+  id               String          @id @default(uuid()) @db.VarChar(32)
+  state            String?         @default(uuid()) @db.VarChar(32)
+  organizationSlug String
+  enabled          Boolean         @default(true)
+  channels         String
+  Organisation     Organisation    @relation(fields: [organizationSlug], references: [slug], onUpdate: Restrict)
+  SlackChannels    SlackChannels[]
+}
+
+model SlackChannels {
+  channelId   String    @id
+  workspaceId String    @db.VarChar(32)
+  channelName String
+  SlackAuth   SlackAuth @relation(fields: [workspaceId], references: [id], onUpdate: Restrict)
+}
+
+model Subscription {
+  id        String   @id @default(uuid()) @db.VarChar(32)
+  email     String
+  seriesId  String?  @db.VarChar(32)
+  userSub   String?
+  createdAt DateTime @default(now()) @db.Timestamp(6)
+  updatedAt DateTime @default(now()) @db.Timestamp(6)
+  flickId   String?  @db.VarChar(32)
+  Flick     Flick?   @relation(fields: [flickId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  Series    Series?  @relation(fields: [seriesId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  User      User?    @relation(fields: [userSub], references: [sub], onDelete: Restrict, onUpdate: Restrict)
+}
+
+model Tag {
+  id        String      @id @default(uuid()) @db.VarChar(32)
+  tag       String      @unique
+  test      Int?
+  Flick_Tag Flick_Tag[]
+}
+
+model Template {
+  id       String     @id @default(uuid()) @db.VarChar(32)
+  manifest Json?      @db.Json
+  Fragment Fragment[]
+}
+
+model Theme {
+  name   String  @id
+  config Json    @db.Json
+  Flick  Flick[]
+}
+
+model Transition {
+  name   String @id
+  config Json   @db.Json
+}
+
+model User {
+  sub                                          String                @id
+  displayName                                  String?
+  email                                        String?               @unique
+  picture                                      String?
+  createdAt                                    DateTime              @default(now()) @db.Timestamp(6)
+  username                                     String                @unique
+  updatedAt                                    DateTime?             @default(now()) @db.Timestamp(6)
+  deletedAt                                    DateTime?             @db.Timestamp(6)
+  onboarded                                    Boolean               @default(false)
+  provider                                     String?
+  verified                                     Boolean               @default(false)
+  state                                        String?               @unique
+  branding                                     Json?
+  designation                                  String?
+  organization                                 String?
+  preferences                                  Json?                 @db.Json
+  referred_by                                  String?
+  User                                         User?                 @relation("UserToUser_referred_by", fields: [referred_by], references: [sub], onDelete: Restrict, onUpdate: Restrict)
+  Asset                                        Asset[]
+  Branding                                     Branding[]
+  Circle_Circle_centreToUser                   Circle[]              @relation("Circle_centreToUser")
+  Circle_Circle_memberToUser                   Circle[]              @relation("Circle_memberToUser")
+  DEVIntegration                               DEVIntegration[]
+  Email_Lists                                  Email_Lists[]
+  Flick_Claps                                  Flick_Claps[]
+  Follow_Follow_followerIdToUser               Follow[]              @relation("Follow_followerIdToUser")
+  Follow_Follow_targetIdToUser                 Follow[]              @relation("Follow_targetIdToUser")
+  Fonts                                        Fonts[]
+  GitHubIntegration                            GitHubIntegration?
+  HashnodeIntegration                          HashnodeIntegration[]
+  Invitations_Invitations_receiverIdToUser     Invitations[]         @relation("Invitations_receiverIdToUser")
+  Invitations_Invitations_senderIdToUser       Invitations[]         @relation("Invitations_senderIdToUser")
+  MagicLink                                    MagicLink[]
+  Member                                       Member[]
+  Notifications_Notifications_receiverIdToUser Notifications[]       @relation("Notifications_receiverIdToUser")
+  Notifications_Notifications_senderIdToUser   Notifications[]       @relation("Notifications_senderIdToUser")
+  Participant                                  Participant[]
+  Profile                                      Profile?
+  Series                                       Series[]
+  Series_Stars                                 Series_Stars[]
+  Subscription                                 Subscription[]
+  other_User                                   User[]                @relation("UserToUser_referred_by")
+  YoutubeIntegration                           YoutubeIntegration?
+}
+
+model Videos {
+  id                String            @id @default(uuid()) @db.VarChar(32)
+  flickId           String            @db.VarChar(32)
+  title             String
+  description       String
+  videoMeta         Json?             @db.Json
+  creationMeta      Json?             @db.Json
+  versionTag        String?
+  videoLink         String?
+  thumbnailLink     String?
+  previewLink       String?
+  status            String            @default("Processing")
+  Flick             Flick             @relation(fields: [flickId], references: [id], onUpdate: Restrict)
+  VIDEO_STATUS_ENUM VIDEO_STATUS_ENUM @relation(fields: [status], references: [value], onUpdate: Restrict)
+}
+
+model VIDEO_STATUS_ENUM {
+  value       String   @id
+  description String
+  Videos      Videos[]
+}
+
+model YoutubeIntegration {
+  id         String   @id @default(uuid()) @db.VarChar(32)
+  userInfo   Json     @db.Json
+  tokens     Json     @db.Json
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  updated_at DateTime @default(now()) @db.Timestamp(6)
+  userSub    String   @unique
+  User       User     @relation(fields: [userSub], references: [sub], onDelete: Cascade)
+}
+
+model YoutubeUploads {
+  id          String    @id @default(uuid()) @db.VarChar(32)
+  status      String    @default("pending")
+  ytMeta      Json?     @db.Json
+  ytUrl       String?
+  recordingId String    @unique @db.VarChar(32)
+  Recording   Recording @relation(fields: [recordingId], references: [id], onDelete: Cascade)
+}
