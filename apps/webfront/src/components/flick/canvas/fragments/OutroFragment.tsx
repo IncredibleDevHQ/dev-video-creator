@@ -111,7 +111,7 @@ const OutroFragment = ({
 	)
 
 	useEffect(() => {
-    if(!reset) return
+		if (!reset) return
 		// eslint-disable-next-line consistent-return
 		return () => {
 			reset({
@@ -231,7 +231,7 @@ const OutroFragment = ({
 	useEffect(() => {
 		if (payload?.activeOutroIndex === undefined) return
 		if (
-			state === 'start-recording' ||
+			state === 'startRecording' ||
 			state === 'recording' ||
 			state === 'ready' ||
 			state === 'resumed' ||

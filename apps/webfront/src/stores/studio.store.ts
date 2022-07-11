@@ -10,12 +10,13 @@ import { CodeTheme } from 'utils/src'
 
 export type StudioState =
 	| 'ready'
-	| 'start-recording'
+	| 'startRecording'
 	| 'recording'
 	| 'preview'
 	| 'upload'
 	| 'resumed'
 	| 'countDown'
+	| 'stopRecording'
 
 export interface RTCUser extends IAgoraRTCRemoteUser {
 	mediaStream?: MediaStream
