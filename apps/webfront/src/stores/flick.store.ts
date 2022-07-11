@@ -54,6 +54,12 @@ const currentBlockSelector = selector<Block | undefined>({
 	},
 })
 
+export type FragmentType = 'Portrait' | 'Landscape'
+const fragmentTypeAtom = atom<FragmentType>({
+	key: 'fragmentType',
+	default: 'Landscape',
+})
+
 export {
 	flickNameAtom,
 	activeFragmentIdAtom,
@@ -62,5 +68,7 @@ export {
 	currentBlockIdAtom,
 	currentBlockSelector,
 	isTimelineVisibleAtom,
+	fragmentTypeAtom,
 }
+
 export { View }

@@ -1,7 +1,11 @@
 import { IAgoraRTCRemoteUser } from 'agora-rtc-sdk-ng'
 import { atom, atomFamily } from 'recoil'
 import { ThemeFragment } from 'src/graphql/generated'
-import { BrandingJSON, FragmentPayload } from 'src/utils/configs'
+import {
+	BrandingJSON,
+	ControlsConfig,
+	FragmentPayload,
+} from 'src/utils/configs'
 import { CodeTheme } from 'utils/src'
 
 export type StudioState =
@@ -54,6 +58,11 @@ export const streamAtom = atom<MediaStream | null>({
 
 export const payloadFamily = atomFamily<FragmentPayload, string>({
 	key: 'payload',
+	default: {},
+})
+
+export const controlsConfigAtom = atom<ControlsConfig>({
+	key: 'controlsConfig',
 	default: {},
 })
 
