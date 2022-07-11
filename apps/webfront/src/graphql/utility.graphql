@@ -10,3 +10,10 @@ query GetImagesFromUnsplash($query: String!) {
 		results
 	}
 }
+
+mutation GetRTCToken($fragmentId: uuid!, $flickId: uuid!) {
+	RTCToken(fragmentId: $fragmentId, flickId: $flickId) {
+		token
+		success
+	}
+}
