@@ -78,8 +78,6 @@ const CanvasComponent = ({
 		setMountStage(true)
 	}, [stageWidth, shortsMode])
 
-	const Unified = React.memo(UnifiedFragment)
-
 	console.log('CanvasComponent', stageWidth, stageHeight)
 
 	return (
@@ -110,7 +108,7 @@ const CanvasComponent = ({
 							<Layer ref={layerRef}>
 								{(() => (
 									<Group>
-										<Unified
+										<UnifiedFragment
 											stageRef={stageRef}
 											// setTopLayerChildren={setTopLayerChildren}
 											config={dataConfig}

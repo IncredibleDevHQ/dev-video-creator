@@ -1,5 +1,5 @@
 import { css, cx } from '@emotion/css'
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { BiNote } from 'react-icons/bi'
 import { CgProfile } from 'react-icons/cg'
 import { FiCode, FiLayout } from 'react-icons/fi'
@@ -164,8 +164,6 @@ const Preview = ({ centered }: { centered: boolean }) => {
 
 	const [ref, bounds] = useMeasure()
 
-	const Canvas = React.memo(CanvasComponent)
-
 	// TODO: Key down listener
 
 	useEffect(() => {
@@ -221,8 +219,7 @@ const Preview = ({ centered }: { centered: boolean }) => {
 			>
 				<div className='flex items-center relative'>
 					{/* TODO: Canvas Preview */}
-					{/* {blockProperties && block && config && ( */}
-					<Canvas
+					<CanvasComponent
 						bounds={bounds}
 						dataConfig={[block]}
 						viewConfig={{
@@ -238,7 +235,6 @@ const Preview = ({ centered }: { centered: boolean }) => {
 						flickId={flickId as string}
 						scale={0.83}
 					/>
-					{/* )} */}
 					{/* TODO: Code controls */}
 				</div>
 			</div>
