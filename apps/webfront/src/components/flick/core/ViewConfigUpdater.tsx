@@ -4,6 +4,7 @@
     Returns null
 */
 
+import { LiveObject } from '@liveblocks/client'
 import { useEffect } from 'react'
 import { useRecoilValue } from 'recoil'
 import {
@@ -22,6 +23,8 @@ const ViewConfigUpdater = () => {
 	const viewConfig = useMap('viewConfig')
 		?.get(activeFragmentId as string)
 		?.toObject()
+
+  const payload = useMap('payload')
 
 	// TODO: Use when branding is implemented
 	// const updateMultipleBlockProperties = (
@@ -54,6 +57,7 @@ const ViewConfigUpdater = () => {
 				})
 
 			viewConfig.blocks.set(id, properties)
+      payload?.set(id, new LiveObject({}))
 		}
 
 		if (!currentBlock) return
@@ -136,7 +140,7 @@ const ViewConfigUpdater = () => {
 		}
 
 		updateBlockProperties(currentBlock.id, properties)
-	}, [currentBlock, simpleAST?.blocks, viewConfig, viewConfig?.blocks])
+	}, [currentBlock, payload, simpleAST?.blocks, viewConfig, viewConfig?.blocks])
 
 	return null
 }
