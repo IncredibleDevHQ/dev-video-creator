@@ -1,4 +1,8 @@
+import { RichTextContent } from 'editor/src/utils/types'
 import { ClipConfig } from 'icanvas/src/hooks/useEdit'
+import { Position } from 'src/components/flick/canvas/CodeAnimations'
+import { ComputedRichText } from 'src/components/flick/canvas/RichText'
+import { ComputedToken } from './hooks/useCode'
 
 export const CONFIG = {
 	width: 960,
@@ -85,4 +89,40 @@ export type FragmentPayload = {
 	}
 	shouldZoom?: boolean
 	// actionTriggered?: string
+}
+
+export interface ControlsConfig {
+	updatePayload?: (value: any) => void
+  blockId?: string
+	playing?: boolean
+	videoElement?: HTMLVideoElement
+	computedTokens?: ComputedToken[]
+	position?: Position
+  computedPoints?: ComputedPoint[]
+}
+
+// points configs
+export interface ComputedPoint {
+	y: number
+	text: string
+	width?: number
+	height?: number
+	level: number
+	startFromIndex: number
+	pointNumber: number
+	content: {
+		type: 'richText' | 'text'
+		content: RichTextContent | string
+		line: number
+	}[]
+	richTextData: ComputedRichText[]
+}
+
+// outro configs
+export interface SocialHandles {
+	twitterHandle?: string
+	discordHandle?: string
+	youtubeHandle?: string
+	websiteHandle?: string
+	linkedinHandle?: string
 }

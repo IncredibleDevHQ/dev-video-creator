@@ -217,14 +217,8 @@ export type BlockProperties = {
 	view?: BlockView
 }
 
-export type TitleSplashConfig = {
-	enable: boolean
-	titleSplashConfig?: GradientConfig
-}
-
 export type ViewConfig = {
 	mode: 'Portrait' | 'Landscape'
-	titleSplash: TitleSplashConfig
 	speakers: FlickParticipantsFragment[]
 	blocks: {
 		[key: string]: BlockProperties
@@ -235,7 +229,6 @@ export type ViewConfig = {
 
 export type LiveViewConfig = {
 	mode: 'Portrait' | 'Landscape'
-	titleSplash: TitleSplashConfig
 	speakers: FlickParticipantsFragment[]
 	blocks: LiveMap<string, BlockProperties>
 	selectedBlocks: { blockId: string; pos: number }[] // used to store blockids of selected blocks from timeline
