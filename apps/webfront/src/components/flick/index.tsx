@@ -1,8 +1,8 @@
-import { LiveMap } from '@liveblocks/client'
+import { LiveMap, LiveObject } from '@liveblocks/client'
 import { CoreEditorInstance, EditorProvider } from 'editor/src'
 import parser from 'editor/src/utils/parser'
 import { Block } from 'editor/src/utils/types'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRecoilCallback, useRecoilValue, useSetRecoilState } from 'recoil'
 import { FlickFragment } from 'src/graphql/generated'
 import {
@@ -18,12 +18,14 @@ import {
 	RoomProvider,
 } from 'src/utils/liveblocks.config'
 import { useUser } from 'src/utils/providers/auth'
+import { Button } from 'ui/src'
 import EditorSection from './core/EditorSection'
 import Navbar from './core/Navbar'
 import SubHeader from './core/SubHeader'
 import ViewConfigUpdater from './core/ViewConfigUpdater'
 import Preview from './preview/Preview'
 import Timeline from './preview/Timeline'
+import StudioHoC from './StudioHoc'
 
 const FlickBody = ({
 	flick,
@@ -112,7 +114,10 @@ const FlickBody = ({
 		})
 	}
 
+	const [openStudio, setOpenStudio] = useState(false)
 	if (!activeFragmentId) return null
+
+  console.log('index', openStudio)
 
 	return (
 		<RoomProvider
@@ -120,6 +125,10 @@ const FlickBody = ({
 			initialPresence={initialPresence}
 			initialStorage={() => ({
 				viewConfig: new LiveMap(),
+				payload: new LiveMap(),
+				activeObjectIndex: 0,
+				state: 'ready',
+				studioControls: new LiveObject(),
 			})}
 		>
 			<EditorProvider
@@ -130,11 +139,21 @@ const FlickBody = ({
 				<div className='flex flex-col h-screen overflow-hidden'>
 					<Navbar />
 					<SubHeader />
-					{view === View.Notebook ? <EditorSection /> : <Preview />}
+					{view === View.Notebook ? (
+						<EditorSection />
+					) : (
+						<Preview centered flickId={flick.id} />
+					)}
 					<Timeline persistentTimeline={false} shouldScrollToCurrentBlock />
 					<ViewConfigUpdater />
 				</div>
 			</EditorProvider>
+			<Button className='absolute right-4 bottom-4' onClick={() => setOpenStudio(true)}>Studio</Button>
+			{openStudio && (
+				<div className='absolute top-0 left-0 w-full h-screen z-50'>
+					<StudioHoC fragmentId={activeFragmentId} flickId={flick.id} />
+				</div>
+			)}
 		</RoomProvider>
 	)
 }
