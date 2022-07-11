@@ -1,6 +1,8 @@
 import { createClient, LiveMap, LiveObject } from '@liveblocks/client'
 import { createRoomContext } from '@liveblocks/react'
+import { StudioState } from 'src/stores/studio.store'
 import { getEnv, LiveViewConfig } from 'utils/src'
+import { FragmentPayload } from './configs'
 
 const client = createClient({
 	publicApiKey: getEnv().liveblocks.publicKey,
@@ -36,6 +38,13 @@ export type Presence = {
 // automatically persisted and synced to all connected clients.
 type Storage = {
 	viewConfig: LiveMap<string, LiveObject<LiveViewConfig>>
+	payload: LiveMap<string, LiveObject<FragmentPayload>>
+	activeObjectIndex: LiveObject<{activeObjectIndex: number}>
+	state: LiveObject<{state: StudioState}>
+	studioControls: LiveObject<{
+		studioControllerSub: string
+		controlsRequestorSub: string
+	}>
 }
 
 // Blank user meta for now

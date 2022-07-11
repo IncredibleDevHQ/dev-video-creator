@@ -1,3 +1,14 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -31,6 +42,15 @@
 		src: url('/fonts/Gilroy/gilroy-semibold-latin.woff2') format('woff2');
 	}
 
+  /* Gilroy Regular - Subsetting : Latin */
+  @font-face {
+    font-family: 'GilroyRegular';
+    font-style: normal;
+    font-weight: 400;
+    font-display: fallback;
+    src: url('/fonts/Gilroy/gilroy-regular-latin.woff2') format('woff2');
+  }
+
 	/* Inter Variable - Subsetting : Latin */
 	@font-face {
 		font-family: 'InterBody';
@@ -39,6 +59,24 @@
 		font-display: fallback;
 		src: url('/fonts/Inter/inter-var-latin.woff2') format('woff2');
 	}
+
+  /* Gotham Bold - Subsetting : Latin */
+  @font-face {
+    font-family: 'Gotham';
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: fallback;
+    src: url('/fonts/Gotham/GothamBold.ttf') format('truetype');
+  }
+
+  /* Gotham Light - Subsetting : Latin */
+  @font-face {
+    font-family: 'GothamLight';
+    font-style: normal;
+    font-weight: 100 800;
+    font-display: fallback;
+    src: url('/fonts/Gotham/GothamLight.ttf') format('truetype');
+  }
 }
 
 h1,

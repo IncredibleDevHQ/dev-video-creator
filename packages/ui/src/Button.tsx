@@ -38,13 +38,13 @@ export const Button = ({
 
 			// solid color schemes
 			{
-				'bg-green-600 text-dark-title hover:bg-green-700 active:bg-green-800 disabled:bg-green-600':
+				'bg-green-600 text-dark-title hover:bg-green-500 transform active:scale-95 disabled:bg-green-600':
 					appearance === 'solid' && colorScheme === 'green',
-				'bg-green-700 text-dark-title hover:bg-green-800 active:bg-green-900 disabled:bg-green-700':
+				'bg-green-700 text-dark-title hover:bg-green-800 transform active:scale-95 disabled:bg-green-700':
 					appearance === 'solid' && colorScheme === 'darkGreen',
-				'bg-dark-100 text-dark-title hover:bg-dark-200 active:bg-dark-300 disabled:bg-dark-100':
+				'bg-dark-100 text-dark-title hover:bg-gray-600 transform active:scale-95 disabled:bg-dark-100':
 					appearance === 'solid' && colorScheme === 'dark',
-				'bg-dark-400 text-dark-title hover:bg-dark-200 active:bg-dark-300 disabled:bg-dark-400':
+				'bg-dark-400 text-dark-title hover:bg-dark-300 transform active:scale-95 disabled:bg-dark-400':
 					appearance === 'solid' && colorScheme === 'darker',
 			},
 

@@ -73,6 +73,7 @@ export interface ListItem {
 	content?: ListItemContent[]
 	items?: ListItem[]
 	level?: number
+  text?: string
 }
 export interface ListBlock {
 	list?: ListItem[]

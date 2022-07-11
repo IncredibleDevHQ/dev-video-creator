@@ -13,7 +13,7 @@
 		"lint": "turbo run lint",
 		"codegen": "turbo run codegen",
 		"format": "prettier --write \"**/*.{ts,tsx,md}\"",
-		"prepare": "husky install"
+		"prepare": "husky install && turbo run prepare"
 	},
 	"devDependencies": {
 		"commitizen": "^4.2.4",

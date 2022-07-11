@@ -1,3 +1,4 @@
+/* eslint-disable react/jsx-no-constructed-context-values */
 /* eslint-disable no-unsafe-optional-chaining */
 import { cx } from '@emotion/css'
 import { HocuspocusProvider, WebSocketStatus } from '@hocuspocus/provider'
@@ -18,7 +19,6 @@ import React, {
 	createContext,
 	useContext,
 	useEffect,
-	useMemo,
 	useRef,
 	useState,
 } from 'react'
@@ -140,7 +140,7 @@ export const EditorProvider = ({
 				Typography,
 				StarterKit.configure({
 					codeBlock: false,
-					// history: false,
+					history: false,
 					heading: {
 						levels: [1, 2, 3, 4, 5, 6],
 					},
@@ -165,6 +165,8 @@ export const EditorProvider = ({
 					showOnlyCurrent: false,
 					emptyEditorClass: 'is-editor-empty',
 					placeholder: ({ node, editor: coreEditor }) => {
+						if (coreEditor.isDestroyed) return ''
+
 						const headingPlaceholders: {
 							[key: number]: string
 						} = {
@@ -286,18 +288,17 @@ export const EditorProvider = ({
 		}
 	}, [])
 
-	const value: EC = useMemo(
-		() => ({
-			editor,
-			dragHandleRef: dragRef,
-			editorSaved: unsyncedChanges === 0,
-			providerWebsocketState: websocketStatus,
-		}),
-		[editor, dragRef, unsyncedChanges, websocketStatus]
-	)
-
 	return (
-		<EditorContext.Provider value={value}>{children}</EditorContext.Provider>
+		<EditorContext.Provider
+			value={{
+				editor,
+				dragHandleRef: dragRef,
+				editorSaved: unsyncedChanges === 0,
+				providerWebsocketState: websocketStatus,
+			}}
+		>
+			{children}
+		</EditorContext.Provider>
 	)
 }
 
