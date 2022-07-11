@@ -1,5 +1,5 @@
 import { css, cx } from '@emotion/css'
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { BiNote } from 'react-icons/bi'
 import { CgProfile } from 'react-icons/cg'
 import { FiCode, FiLayout } from 'react-icons/fi'
@@ -24,6 +24,7 @@ import {
 	Layout,
 	OutroBlockView,
 } from 'utils/src'
+import CanvasComponent from '../canvas/CanvasComponent'
 import { CodeAnimateTab, CodeTextSizeTab } from './CodePreview'
 import { IntroContentTab, IntroSequenceTab, PictureTab } from './IntroPreview'
 import LayoutSelector from './LayoutSelector'
@@ -136,7 +137,13 @@ const getIcon = (tab: Tab, block?: BlockProperties) => {
 	}
 }
 
-const Preview = ({ centered }: { centered: boolean }) => {
+const Preview = ({
+	centered,
+	flickId,
+}: {
+	centered: boolean
+	flickId: string
+}) => {
 	const activeFragmentId = useRecoilValue(activeFragmentIdAtom)
 	const config = useMap('viewConfig')
 		?.get(activeFragmentId as string)
@@ -158,7 +165,9 @@ const Preview = ({ centered }: { centered: boolean }) => {
 	const [tabs, setTabs] = useState<Tab[]>(commonTabs)
 	const [activeTab, setActiveTab] = useState<Tab>(commonTabs[0])
 
-	const [ref] = useMeasure()
+	const [ref, bounds] = useMeasure()
+
+	const Canvas = React.memo(CanvasComponent)
 
 	// TODO: Key down listener
 
@@ -215,6 +224,23 @@ const Preview = ({ centered }: { centered: boolean }) => {
 			>
 				<div className='flex items-center relative'>
 					{/* TODO: Canvas Preview */}
+					{/* {blockProperties && block && config && ( */}
+						<Canvas
+							bounds={bounds}
+							dataConfig={[block]}
+							viewConfig={{
+								mode: config?.mode || 'Landscape',
+								speakers: config?.speakers || [],
+								selectedBlocks: config?.selectedBlocks || [],
+								continuousRecording: config?.continuousRecording || false,
+								blocks: {
+									[block.id]: blockProperties || {},
+								},
+							}}
+							isPreview
+							flickId={flickId}
+						/>
+					{/* )} */}
 					{/* TODO: Code controls */}
 				</div>
 			</div>
