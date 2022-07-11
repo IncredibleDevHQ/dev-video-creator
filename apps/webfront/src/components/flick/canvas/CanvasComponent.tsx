@@ -11,6 +11,7 @@ import {
 import { fragmentTypeAtom } from 'src/stores/flick.store'
 import { CONFIG, SHORTS_CONFIG } from 'src/utils/configs'
 import { RoomProvider } from 'src/utils/liveblocks.config'
+import { UserContext, useUser } from 'src/utils/providers/auth'
 import { ViewConfig } from 'utils/src'
 import UnifiedFragment from './fragments/UnifiedFragment'
 
@@ -52,6 +53,8 @@ const CanvasComponent = ({
 	flickId: string
 	scale?: number
 }) => {
+  const user = useUser()
+
 	const stageRef = useRef<Konva.Stage>(null)
 	const layerRef = useRef<Konva.Layer>(null)
 	const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
@@ -95,27 +98,28 @@ const CanvasComponent = ({
 					}}
 				>
 					<Bridge>
-						<RoomProvider
-							id={`story-${flickId}`}
-							initialStorage={() => ({
-								viewConfig: new LiveMap(),
-								payload: new LiveMap(),
-								activeObjectIndex: new LiveObject({ activeObjectIndex: 0 }),
-								state: new LiveObject({ state: 'ready' }),
-								studioControls: new LiveObject(),
-							})}
-						>
-							<Layer ref={layerRef}>
-								{(() => (
-									<Group>
-										<UnifiedFragment
-											stageRef={stageRef}
-											// setTopLayerChildren={setTopLayerChildren}
-											config={dataConfig}
-											layoutConfig={viewConfig}
-											isPreview={isPreview}
-										/>
-										{/* <GetTopLayerChildren
+						<UserContext.Provider value={user}>
+							<RoomProvider
+								id={`story-${flickId}`}
+								initialStorage={() => ({
+									viewConfig: new LiveMap(),
+									payload: new LiveMap(),
+									activeObjectIndex: new LiveObject({ activeObjectIndex: 0 }),
+									state: new LiveObject({ state: 'ready' }),
+									studioControls: new LiveObject(),
+								})}
+							>
+								<Layer ref={layerRef}>
+									{(() => (
+										<Group>
+											<UnifiedFragment
+												stageRef={stageRef}
+												// setTopLayerChildren={setTopLayerChildren}
+												config={dataConfig}
+												layoutConfig={viewConfig}
+												isPreview={isPreview}
+											/>
+											{/* <GetTopLayerChildren
 												key={topLayerChildren?.id}
 												topLayerChildrenState={topLayerChildren?.state || ''}
 												setTopLayerChildren={setTopLayerChildren}
@@ -134,10 +138,11 @@ const CanvasComponent = ({
 													setState('preview')
 												}}
 											/> */}
-									</Group>
-								))()}
-							</Layer>
-						</RoomProvider>
+										</Group>
+									))()}
+								</Layer>
+							</RoomProvider>
+						</UserContext.Provider>
 					</Bridge>
 				</Stage>
 			)}

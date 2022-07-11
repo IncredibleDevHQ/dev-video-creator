@@ -29,7 +29,7 @@ const login = async (token: string) =>
 
 type User = FBUser & Partial<UserFragment>
 
-const UserContext = createContext<
+export const UserContext = createContext<
 	Partial<{
 		user: User | null
 		setUser: (user: User | null) => void

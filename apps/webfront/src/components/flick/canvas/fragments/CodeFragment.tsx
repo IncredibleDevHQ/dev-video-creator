@@ -4,7 +4,7 @@ import axios from 'axios'
 import { CodeBlockProps } from 'editor/src/utils/types'
 import useEdit from 'icanvas/src/hooks/useEdit'
 import Konva from 'konva'
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useContext, useEffect, useRef, useState } from 'react'
 import { useRecoilValue, useRecoilState } from 'recoil'
 import studioStore, {
 	colorCodesAtom,
@@ -40,7 +40,7 @@ import {
 } from 'src/utils/canvasConfigs/studioUserConfig'
 import { useDebouncedCallback } from 'use-debounce'
 import useUpdatePayload from 'src/utils/hooks/useUpdatePayload'
-import { useUser } from 'src/utils/providers/auth'
+import { UserContext } from 'src/utils/providers/auth'
 import Concourse from '../Concourse'
 import FragmentBackground from '../FragmentBackground'
 import RenderTokens, {
@@ -152,7 +152,7 @@ const CodeFragment = ({
 	})
 
 	const { hasura } = useEnv()
-	const { token: userToken } = useUser()
+	const { token: userToken } = useContext(UserContext)
 
 	// const codePreviewValue = useRecoilValue(codePreviewStore)
 
