@@ -39,8 +39,8 @@ export type Presence = {
 type Storage = {
 	viewConfig: LiveMap<string, LiveObject<LiveViewConfig>>
 	payload: LiveMap<string, LiveObject<FragmentPayload>>
-	activeObjectIndex: number
-	state: StudioState
+	activeObjectIndex: LiveObject<{activeObjectIndex: number}>
+	state: LiveObject<{state: StudioState}>
 	studioControls: LiveObject<{
 		studioControllerSub: string
 		controlsRequestorSub: string

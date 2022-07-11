@@ -100,8 +100,8 @@ const CanvasComponent = ({
 							initialStorage={() => ({
 								viewConfig: new LiveMap(),
 								payload: new LiveMap(),
-								activeObjectIndex: 0,
-								state: 'ready',
+								activeObjectIndex: new LiveObject({ activeObjectIndex: 0 }),
+								state: new LiveObject({ state: 'ready' }),
 								studioControls: new LiveObject(),
 							})}
 						>

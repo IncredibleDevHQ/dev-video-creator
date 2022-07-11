@@ -26,7 +26,7 @@ import SubHeader from './core/SubHeader'
 import ViewConfigUpdater from './core/ViewConfigUpdater'
 import Preview from './preview/Preview'
 import Timeline from './preview/Timeline'
-import StudioHoC from './StudioHoc'
+import StudioHoC from './studio/StudioHoc'
 
 const FlickBody = ({
 	flick,
@@ -127,8 +127,8 @@ const FlickBody = ({
 			initialStorage={() => ({
 				viewConfig: new LiveMap(),
 				payload: new LiveMap(),
-				activeObjectIndex: 0,
-				state: 'ready',
+				activeObjectIndex: new LiveObject({ activeObjectIndex: 0 }),
+				state: new LiveObject({ state: 'ready' }),
 				studioControls: new LiveObject(),
 			})}
 		>
