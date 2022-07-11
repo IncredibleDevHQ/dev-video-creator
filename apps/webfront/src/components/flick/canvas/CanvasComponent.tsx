@@ -43,12 +43,14 @@ const CanvasComponent = ({
 	viewConfig,
 	isPreview,
 	flickId,
+	scale = 1,
 }: {
 	bounds: RectReadOnly
 	dataConfig: Block[]
 	viewConfig: ViewConfig
 	isPreview: boolean
 	flickId: string
+	scale?: number
 }) => {
 	const stageRef = useRef<Konva.Stage>(null)
 	const layerRef = useRef<Konva.Layer>(null)
@@ -64,8 +66,8 @@ const CanvasComponent = ({
 	// }>({ id: '', state: '' })
 
 	const { height: stageHeight, width: stageWidth } = getIntegerHW({
-		maxH: bounds.height,
-		maxW: bounds.width,
+		maxH: bounds.height * scale,
+		maxW: bounds.width * scale,
 		aspectRatio: shortsMode ? 9 / 16 : 16 / 9,
 		isShorts: shortsMode,
 	})
@@ -76,7 +78,7 @@ const CanvasComponent = ({
 		setMountStage(true)
 	}, [stageWidth, shortsMode])
 
-  const Unified = React.memo(UnifiedFragment)
+	const Unified = React.memo(UnifiedFragment)
 
 	console.log('CanvasComponent', stageWidth, stageHeight)
 

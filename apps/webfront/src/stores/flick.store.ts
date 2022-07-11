@@ -1,6 +1,14 @@
 import { Block, SimpleAST } from 'editor/src/utils/types'
 import { atom, DefaultValue, selector } from 'recoil'
 
+/* Stores some basic flick details */
+const flickAtom = atom<{
+	id: string
+} | null>({
+	key: 'flick',
+	default: null,
+})
+
 /* Stores name of the flick */
 const flickNameAtom = atom<string | null>({
 	key: 'flickName',
@@ -61,6 +69,7 @@ const fragmentTypeAtom = atom<FragmentType>({
 })
 
 export {
+	flickAtom,
 	flickNameAtom,
 	activeFragmentIdAtom,
 	viewAtom,

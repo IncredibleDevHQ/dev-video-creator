@@ -8,6 +8,7 @@ import { FlickFragment } from 'src/graphql/generated'
 import {
 	activeFragmentIdAtom,
 	astAtom,
+	flickAtom,
 	flickNameAtom,
 	View,
 	viewAtom,
@@ -40,7 +41,9 @@ const FlickBody = ({
 				const ast = flick.fragments.find(
 					fragment => fragment.id === initialFragmentId
 				)?.editorState
-
+				set(flickAtom, {
+					id: flick.id,
+				})
 				set(flickNameAtom, flick.name)
 				set(activeFragmentIdAtom, initialFragmentId)
 				set(astAtom, ast ?? null)
@@ -117,8 +120,6 @@ const FlickBody = ({
 	const [openStudio, setOpenStudio] = useState(false)
 	if (!activeFragmentId) return null
 
-  console.log('index', openStudio)
-
 	return (
 		<RoomProvider
 			id={`story-${flick.id}`}
@@ -139,16 +140,17 @@ const FlickBody = ({
 				<div className='flex flex-col h-screen overflow-hidden'>
 					<Navbar />
 					<SubHeader />
-					{view === View.Notebook ? (
-						<EditorSection />
-					) : (
-						<Preview centered flickId={flick.id} />
-					)}
+					{view === View.Notebook ? <EditorSection /> : <Preview centered />}
 					<Timeline persistentTimeline={false} shouldScrollToCurrentBlock />
 					<ViewConfigUpdater />
 				</div>
 			</EditorProvider>
-			<Button className='absolute right-4 bottom-4' onClick={() => setOpenStudio(true)}>Studio</Button>
+			<Button
+				className='absolute right-4 bottom-4'
+				onClick={() => setOpenStudio(true)}
+			>
+				Studio
+			</Button>
 			{openStudio && (
 				<div className='absolute top-0 left-0 w-full h-screen z-50'>
 					<StudioHoC fragmentId={activeFragmentId} flickId={flick.id} />

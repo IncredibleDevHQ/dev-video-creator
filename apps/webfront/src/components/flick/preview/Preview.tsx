@@ -11,6 +11,7 @@ import {
 	activeFragmentIdAtom,
 	astAtom,
 	currentBlockSelector,
+	flickAtom,
 } from 'src/stores/flick.store'
 import useBlock from 'src/utils/hooks/useBlock'
 import { useMap } from 'src/utils/liveblocks.config'
@@ -137,14 +138,10 @@ const getIcon = (tab: Tab, block?: BlockProperties) => {
 	}
 }
 
-const Preview = ({
-	centered,
-	flickId,
-}: {
-	centered: boolean
-	flickId: string
-}) => {
+const Preview = ({ centered }: { centered: boolean }) => {
+	const flickId = useRecoilValue(flickAtom)?.id
 	const activeFragmentId = useRecoilValue(activeFragmentIdAtom)
+
 	const config = useMap('viewConfig')
 		?.get(activeFragmentId as string)
 		?.toObject()
@@ -216,7 +213,7 @@ const Preview = ({
 				className={cx(
 					'flex justify-center items-start bg-gray-100 flex-1 pl-0',
 					{
-						'items-center': centered,
+						'items-center -mt-8': centered,
 						'pt-12': !centered,
 					}
 				)}
@@ -225,21 +222,22 @@ const Preview = ({
 				<div className='flex items-center relative'>
 					{/* TODO: Canvas Preview */}
 					{/* {blockProperties && block && config && ( */}
-						<Canvas
-							bounds={bounds}
-							dataConfig={[block]}
-							viewConfig={{
-								mode: config?.mode || 'Landscape',
-								speakers: config?.speakers || [],
-								selectedBlocks: config?.selectedBlocks || [],
-								continuousRecording: config?.continuousRecording || false,
-								blocks: {
-									[block.id]: blockProperties || {},
-								},
-							}}
-							isPreview
-							flickId={flickId}
-						/>
+					<Canvas
+						bounds={bounds}
+						dataConfig={[block]}
+						viewConfig={{
+							mode: config?.mode || 'Landscape',
+							speakers: config?.speakers || [],
+							selectedBlocks: config?.selectedBlocks || [],
+							continuousRecording: config?.continuousRecording || false,
+							blocks: {
+								[block.id]: blockProperties || {},
+							},
+						}}
+						isPreview
+						flickId={flickId as string}
+						scale={0.83}
+					/>
 					{/* )} */}
 					{/* TODO: Code controls */}
 				</div>
