@@ -24,6 +24,8 @@ import {
 	handleListBlock,
 	handleOutroBlock,
 } from 'src/utils/helpers/recordingControlsFunctions'
+import useUpdateActiveObjectIndex from 'src/utils/hooks/useUpdateActiveObjectIndex'
+import useUpdateState from 'src/utils/hooks/useUpdateState'
 import {
 	ViewConfig,
 	CodeBlockView,
@@ -40,16 +42,21 @@ const RecordingControls = ({
 	dataConfig,
 	viewConfig,
 	shortsMode,
+	isPreview,
 }: {
 	dataConfig: Block[]
 	viewConfig: ViewConfig
 	shortsMode: boolean
+	isPreview: boolean
 }) => {
 	const state = useRecoilValue(studioStateAtom)
 	const controlsConfig = useRecoilValue(controlsConfigAtom)
 	const activeObjectIndex = useRecoilValue(activeObjectIndexAtom)
 	const payload = useRecoilValue(payloadFamily(controlsConfig?.blockId || ''))
 	const { updatePayload } = controlsConfig
+
+	const { updateState } = useUpdateState(!isPreview)
+	const { updateActiveObjectIndex } = useUpdateActiveObjectIndex(!isPreview)
 
 	const { isIntro, isOutro, isImage, isVideo, codeAnimation } = useMemo(() => {
 		const blockType = dataConfig[activeObjectIndex]?.type
@@ -66,7 +73,7 @@ const RecordingControls = ({
 			isCode: blockType === 'codeBlock',
 			codeAnimation: codeAnim,
 		}
-	}, [activeObjectIndex])
+	}, [activeObjectIndex, dataConfig, viewConfig.blocks])
 
 	const isBackDisabled = () =>
 		(activeObjectIndex === 0 && payload?.activeIntroIndex === 0) ||
@@ -92,6 +99,8 @@ const RecordingControls = ({
 					viewConfig,
 					blockPayload,
 					updatePayload,
+          updateActiveObjectIndex,
+          activeObjectIndex,
 					direction,
 					block.id
 				)
@@ -130,6 +139,8 @@ const RecordingControls = ({
 					viewConfig,
 					blockPayload,
 					updatePayload,
+					updateActiveObjectIndex,
+          activeObjectIndex,
 					direction,
 					block.id
 				)
@@ -139,7 +150,7 @@ const RecordingControls = ({
 	}
 
 	return (
-		<div className='grid grid-cols-8 w-full'>
+		<div className='grid grid-cols-12 w-full'>
 			<div
 				// style={{
 				// 	top: `${
@@ -147,15 +158,15 @@ const RecordingControls = ({
 				// 	}px`,
 				// 	width: `${shortsMode ? stageWidth + 35 : stageWidth}px`,
 				// }}
-				className='flex items-center col-span-6 col-start-2 py-3'
+				className='flex items-center col-span-8 col-start-3 pb-6'
 			>
 				{/* Stop Recording Button */}
-				{(state === 'recording' || state === 'start-recording') && (
+				{(state === 'recording' || state === 'startRecording') && (
 					<button
 						type='button'
 						onClick={() => {
 							// studio.stopRecording()
-							// TODO change state to stop recording
+              updateState('stopRecording')
 						}}
 						className={cx(
 							'flex gap-x-2 items-center justify-between border backdrop-filter backdrop-blur-2xl p-1.5 rounded-sm w-24 absolute min-w-max'
@@ -190,7 +201,7 @@ const RecordingControls = ({
 						)}
 						type='button'
 						onClick={() => {
-							// TODO change state to countdown
+              updateState('countDown')
 						}}
 					>
 						<StartRecordIcon className='m-px w-5 h-5' />
@@ -318,7 +329,7 @@ const RecordingControls = ({
 							</div>
 						</button>
 					)}
-
+					{/* previous button */}
 					<button
 						className={cx(
 							'bg-grey-400 border border-gray-600 backdrop-filter bg-opacity-50 backdrop-blur-2xl p-1.5 rounded-sm ml-4',
@@ -340,7 +351,7 @@ const RecordingControls = ({
 							className='w-4 h-4 p-px'
 						/>
 					</button>
-
+					{/* next button */}
 					<button
 						className={cx(
 							'bg-grey-500 border border-gray-600 backdrop-filter bg-opacity-100 backdrop-blur-2xl p-1.5 rounded-sm ml-2 text-gray-100',
@@ -372,15 +383,14 @@ const RecordingControls = ({
 								if (
 									isBlockCompleted &&
 									(state === 'recording' ||
-										state === 'start-recording' ||
+										state === 'startRecording' ||
 										state === 'resumed' ||
 										state === 'ready')
 								) {
-									console.log('Inside inside')
 									if (!viewConfig.continuousRecording) {
-										if (state === 'recording' || state === 'start-recording') {
+										if (state === 'recording' || state === 'startRecording') {
 											// studio.stopRecording()
-											// TODO change state to stop recording
+                      updateState('stopRecording')
 										}
 									} else {
 										// TODO
@@ -396,16 +406,14 @@ const RecordingControls = ({
 											activeObjectIndex <
 											viewConfig.selectedBlocks.length - 1
 										) {
-											updatePayload?.({
-												activeObjectIndex: activeObjectIndex + 1,
-											})
+											updateActiveObjectIndex?.(activeObjectIndex + 1)
 											isBlockCompleted = false
 										} else if (
 											state === 'recording' ||
-											state === 'start-recording'
+											state === 'startRecording'
 										) {
 											// studio.stopRecording()
-											// TODO change state to stop recording
+                      updateState('stopRecording')
 										}
 									}
 								}

@@ -97,7 +97,7 @@ export const handleCodeBlock = (
 	const codeAnimation = codeBlockViewProps?.code.animation
 	const { position, computedTokens } = controlsConfig
 
-  if(!position || !computedTokens) return false
+	if (!position || !computedTokens) return false
 	if (direction === 'next') {
 		switch (codeAnimation) {
 			case CodeAnimation.HighlightLines: {
@@ -190,6 +190,8 @@ export const handleIntroBlock = (
 	viewConfig: ViewConfig,
 	payload: any,
 	updatePayload: ((value: any) => void) | undefined,
+	updateActiveObjectIndex: ((value: any) => void) | undefined,
+	activeObjectIndex: number,
 	direction: 'next' | 'previous',
 	blockId: string
 ): boolean => {
@@ -210,8 +212,8 @@ export const handleIntroBlock = (
 		})
 	} else if (direction === 'previous') {
 		if (payload?.activeIntroIndex === 0) {
-			updatePayload?.({
-				activeObjectIndex: (payload?.activeObjectIndex || 1) - 1,
+			updateActiveObjectIndex?.({
+				activeObjectIndex: (activeObjectIndex || 1) - 1,
 			})
 		} else {
 			updatePayload?.({
@@ -223,9 +225,11 @@ export const handleIntroBlock = (
 }
 
 export const handleOutroBlock = (
-  viewConfig: ViewConfig,
+	viewConfig: ViewConfig,
 	payload: any,
 	updatePayload: ((value: any) => void) | undefined,
+	updateActiveObjectIndex: ((value: any) => void) | undefined,
+  activeObjectIndex: number,
 	direction: 'next' | 'previous',
 	blockId: string
 ): boolean => {
@@ -248,12 +252,10 @@ export const handleOutroBlock = (
 		}
 	} else if (direction === 'previous') {
 		if (payload?.activeOutroIndex === 0) {
-			updatePayload?.({
-				activeObjectIndex: (payload?.activeObjectIndex || 1) - 1,
-			})
+			updateActiveObjectIndex?.((activeObjectIndex || 1) - 1)
 		} else {
 			updatePayload?.({
-				activeOutroIndex: (payload?.activeObjectIndex || 1) - 1,
+				activeOutroIndex: (payload?.activeOutroIndex || 1) - 1,
 			})
 		}
 	}
