@@ -4,9 +4,10 @@ import useEdit from 'icanvas/src/hooks/useEdit'
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
 import { Group, Rect, Text } from 'react-konva'
-import { useRecoilValue } from 'recoil'
+import { useRecoilValue, useSetRecoilState } from 'recoil'
 import studioStore, {
 	brandingAtom,
+	controlsConfigAtom,
 	payloadFamily,
 	StudioProviderProps,
 	studioStateAtom,
@@ -72,6 +73,7 @@ const VideoFragment = ({
 		blockId: dataConfig.id,
 		shouldUpdateLiveblocks: !isPreview,
 	})
+	const setControlsConfig = useSetRecoilState(controlsConfigAtom)
 
 	// const [studio, setStudio] = useRecoilState(studioStore)
 
@@ -90,8 +92,7 @@ const VideoFragment = ({
 			height: 1,
 		},
 	})
-	// const [playing, setPlaying] = useState(false)
-	const [,setPlaying] = useState(false)
+	const [playing, setPlaying] = useState(false)
 
 	// ref to the object grp
 	const customLayoutRef = useRef<Konva.Group>(null)
@@ -184,15 +185,14 @@ const VideoFragment = ({
 		)
 	}, [objectConfig, theme])
 
-	// useEffect(() => {
-	// 	setStudio({
-	// 		...studio,
-	// 		controlsConfig: {
-	// 			playing,
-	// 			videoElement,
-	// 		},
-	// 	})
-	// }, [state, dataConfig, videoElement, playing])
+	useEffect(() => {
+		setControlsConfig({
+			updatePayload,
+			blockId: dataConfig.id,
+			playing,
+			videoElement,
+		})
+	}, [state, dataConfig, videoElement, playing])
 
 	useEffect(() => {
 		if (!videoElement) return
@@ -616,5 +616,3 @@ const VideoFragment = ({
 }
 
 export default VideoFragment
-
-

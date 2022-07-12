@@ -6,9 +6,10 @@ import Konva from 'konva'
 import { nanoid } from 'nanoid'
 import React, { useEffect, useRef, useState } from 'react'
 import { Group, Image, Rect, Text } from 'react-konva'
-import { useRecoilValue } from 'recoil'
+import { useRecoilValue, useSetRecoilState } from 'recoil'
 import studioStore, {
 	brandingAtom,
+	controlsConfigAtom,
 	payloadFamily,
 	StudioProviderProps,
 	themeAtom,
@@ -68,6 +69,7 @@ const ImageFragment = ({
 		blockId: dataConfig.id,
 		shouldUpdateLiveblocks: !isPreview,
 	})
+  const setControlsConfig = useSetRecoilState(controlsConfigAtom)
 
 	const [imageFragmentData, setImageFragmentData] = useState<{
 		title: string
@@ -122,14 +124,17 @@ const ImageFragment = ({
 			surfaceColor: '',
 		})
 
-	useEffect(
-		() => () => {
+	useEffect(() => {
+    setControlsConfig({
+			updatePayload,
+			blockId: dataConfig.id,
+		})
+		return () => {
 			reset({
 				fragmentState: 'customLayout',
 			})
-		},
-		[]
-	)
+		}
+	}, [])
 
 	useEffect(() => {
 		if (!dataConfig) return

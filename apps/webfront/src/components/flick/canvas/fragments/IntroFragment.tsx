@@ -4,9 +4,10 @@ import Konva from 'konva'
 import { nanoid } from 'nanoid'
 import React, { useEffect, useRef, useState } from 'react'
 import { Group } from 'react-konva'
-import { useRecoilValue } from 'recoil'
+import { useRecoilValue, useSetRecoilState } from 'recoil'
 import studioStore, {
 	brandingAtom,
+	controlsConfigAtom,
 	payloadFamily,
 	StudioProviderProps,
 	studioStateAtom,
@@ -55,6 +56,7 @@ const IntroFragment = ({
 		blockId,
 		shouldUpdateLiveblocks: !isPreview,
 	})
+  const setControlsConfig = useSetRecoilState(controlsConfigAtom)
 
 	const titleScreenRef = React.useRef<Konva.Group>(null)
 	const brandVideoRef = React.useRef<Konva.Group>(null)
@@ -72,6 +74,10 @@ const IntroFragment = ({
 
 	useEffect(() => {
 		clearTimeout(timer.current)
+    setControlsConfig({
+      updatePayload,
+      blockId
+    })
 		return () => {
 			clearTimeout(timer.current)
 			reset({

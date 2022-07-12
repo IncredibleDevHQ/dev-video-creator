@@ -2,9 +2,10 @@ import { HeadingBlockProps } from 'editor/src/utils/types'
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
 import { Group, Text } from 'react-konva'
-import { useRecoilValue } from 'recoil'
+import { useRecoilValue, useSetRecoilState } from 'recoil'
 import studioStore, {
 	brandingAtom,
+	controlsConfigAtom,
 	payloadFamily,
 	themeAtom,
 } from 'src/stores/studio.store'
@@ -53,6 +54,7 @@ const HeadingFragment = ({
 		blockId: dataConfig.id,
 		shouldUpdateLiveblocks: !isPreview,
 	})
+  const setControlsConfig = useSetRecoilState(controlsConfigAtom)
 
 	const [title, setTitle] = useState('')
 
@@ -81,6 +83,10 @@ const HeadingFragment = ({
 
 	useEffect(() => {
 		if (!reset) return
+    setControlsConfig({
+			updatePayload,
+			blockId: dataConfig.id
+		})
 		// eslint-disable-next-line consistent-return
 		return () => {
 			reset({

@@ -2,12 +2,13 @@
 import Konva from 'konva'
 import React, { useEffect, useState } from 'react'
 import { Arc, Circle, Group, Image, Rect, Ring, Text } from 'react-konva'
-import { useRecoilValue } from 'recoil'
+import { useRecoilValue, useSetRecoilState } from 'recoil'
 import useImage from 'use-image'
 import useEdit from 'icanvas/src/hooks/useEdit'
 import { Video } from 'icanvas/src/Video'
 import {
 	brandingAtom,
+	controlsConfigAtom,
 	payloadFamily,
 	studioStateAtom,
 	themeAtom,
@@ -64,6 +65,7 @@ const OutroFragment = ({
 		blockId,
 		shouldUpdateLiveblocks: !isPreview,
 	})
+  const setControlsConfig = useSetRecoilState(controlsConfigAtom)
 	const { storage } = useEnv()
 
 	const [logo] = useImage(branding?.logo || '', 'anonymous')
@@ -112,6 +114,10 @@ const OutroFragment = ({
 
 	useEffect(() => {
 		if (!reset) return
+    setControlsConfig({
+			updatePayload,
+			blockId,
+		})
 		// eslint-disable-next-line consistent-return
 		return () => {
 			reset({

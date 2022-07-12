@@ -5,9 +5,10 @@ import { CodeBlockProps } from 'editor/src/utils/types'
 import useEdit from 'icanvas/src/hooks/useEdit'
 import Konva from 'konva'
 import React, { useContext, useEffect, useRef, useState } from 'react'
-import { useRecoilValue, useRecoilState } from 'recoil'
+import { useRecoilValue, useRecoilState, useSetRecoilState } from 'recoil'
 import studioStore, {
 	colorCodesAtom,
+	controlsConfigAtom,
 	payloadFamily,
 	StudioProviderProps,
 	studioStateAtom,
@@ -150,6 +151,7 @@ const CodeFragment = ({
 		blockId: dataConfig.id,
 		shouldUpdateLiveblocks: !isPreview,
 	})
+  const setControlsConfig = useSetRecoilState(controlsConfigAtom)
 
 	const { hasura } = useEnv()
 	const { token: userToken } = useContext(UserContext)
@@ -341,16 +343,14 @@ const CodeFragment = ({
 	}, [colorCodes, objectRenderConfig, fontSize])
 
 
-	// TODO
-	// useEffect(() => {
-	// 	setStudio({
-	// 		...studio,
-	// 		controlsConfig: {
-	// 			position,
-	// 			computedTokens: computedTokens[0],
-	// 		},
-	// 	})
-	// }, [state, position, computedTokens])
+	useEffect(() => {
+		setControlsConfig({
+			updatePayload,
+			blockId: dataConfig.id,
+			position,
+			computedTokens: computedTokens[0],
+		})
+	}, [state, position, computedTokens])
 
 	useEffect(() => {
 		setPosition({

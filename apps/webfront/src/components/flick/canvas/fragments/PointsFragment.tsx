@@ -3,7 +3,7 @@
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
 import { Group, Rect, Text } from 'react-konva'
-import { useRecoilValue } from 'recoil'
+import { useRecoilValue, useSetRecoilState } from 'recoil'
 import usePoint from 'src/utils/hooks/usePoint'
 import {
 	getFragmentLayoutConfig,
@@ -31,6 +31,7 @@ import {
 } from 'utils/src'
 import studioStore, {
 	brandingAtom,
+	controlsConfigAtom,
 	payloadFamily,
 	StudioProviderProps,
 	studioStateAtom,
@@ -100,6 +101,7 @@ const PointsFragment = ({
 		blockId: dataConfig.id,
 		shouldUpdateLiveblocks: !isPreview,
 	})
+	const setControlsConfig = useSetRecoilState(controlsConfigAtom)
 
 	const [activePointIndex, setActivePointIndex] = useState<number>(0)
 	const [points, setPoints] = useState<ListItem[]>([])
@@ -211,14 +213,13 @@ const PointsFragment = ({
 		)
 	}, [objectConfig, theme])
 
-	// useEffect(() => {
-	// 	setStudio({
-	// 		...studio,
-	// 		controlsConfig: {
-	// 			computedPoints,
-	// 		},
-	// 	})
-	// }, [computedPoints])
+	useEffect(() => {
+		setControlsConfig({
+			updatePayload,
+			blockId: dataConfig.id,
+			computedPoints,
+		})
+	}, [computedPoints])
 
 	useEffect(() => {
 		if (points.length === 0) return
