@@ -33,6 +33,7 @@
 		"editor": "*",
 		"firebase": "^9.8.4",
 		"firebase-admin": "^11.0.0",
+		"get-blob-duration": "^1.2.0",
 		"gifler": "^0.1.0",
 		"graphql": "^16.5.0",
 		"graphql-request": "^4.3.0",
