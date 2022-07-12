@@ -55,6 +55,7 @@ const CanvasComponent = React.memo(
 		isPreview,
 		flickId,
     scale = 1,
+    stage
 	}: {
 		bounds: RectReadOnly
 		dataConfig: Block[]
@@ -62,6 +63,7 @@ const CanvasComponent = React.memo(
 		isPreview: boolean
 		flickId: string
     scale?: number
+    stage?: React.RefObject<Konva.Stage>
 	}) => {
 		const user = useUser()
 		const state = useRecoilValue(studioStateAtom)
@@ -69,7 +71,10 @@ const CanvasComponent = React.memo(
 
 		const [mountStage, setMountStage] = useState(false)
 
-		const stageRef = useRef<Konva.Stage>(null)
+		const stageRef1 = useRef<Konva.Stage>(null)
+    // Doing this because if called from studio, we pass stageRef as it is used to get the thumbnail
+    const stageRef = stage || stageRef1
+
 		const layerRef = useRef<Konva.Layer>(null)
 		const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
 
@@ -125,6 +130,7 @@ const CanvasComponent = React.memo(
 										activeObjectIndex: new LiveObject({ activeObjectIndex: 0 }),
 										state: new LiveObject({ state: 'ready' }),
 										studioControls: new LiveObject(),
+                    recordedBlocks: new LiveMap(),
 									})}
 								>
 									<Layer ref={layerRef}>

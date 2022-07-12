@@ -39,12 +39,13 @@ export type Presence = {
 type Storage = {
 	viewConfig: LiveMap<string, LiveObject<LiveViewConfig>>
 	payload: LiveMap<string, LiveObject<FragmentPayload>>
-	activeObjectIndex: LiveObject<{activeObjectIndex: number}>
-	state: LiveObject<{state: StudioState}>
+	activeObjectIndex: LiveObject<{ activeObjectIndex: number }>
+	state: LiveObject<{ state: StudioState }>
 	studioControls: LiveObject<{
 		studioControllerSub: string
 		controlsRequestorSub: string
 	}>
+	recordedBlocks: LiveMap<string, string>
 }
 
 // Blank user meta for now
@@ -57,6 +58,8 @@ export enum RoomEventTypes {
 	BrandingChanged = 'brandingChanged',
 	TransitionChanged = 'transitionChanged',
 	FlickNameChanged = 'flickNameChanged',
+	RetakeButtonClick = 'retakeButtonClick',
+	SaveButtonClick = 'saveButtonClick',
 }
 type RoomEvent =
 	| {
@@ -75,6 +78,13 @@ type RoomEvent =
 			type: RoomEventTypes.FlickNameChanged
 			payload: any
 	  }
+	| {
+			type: RoomEventTypes.RetakeButtonClick
+			payload: any
+	  }
+	| { type: RoomEventTypes.SaveButtonClick
+      payload: any
+    }
 
 export const {
 	RoomProvider,
