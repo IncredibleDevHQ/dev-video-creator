@@ -1,28 +1,45 @@
+/* eslint-disable no-console */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Block } from 'editor/src/utils/types'
-import React, {
-  useEffect,
-  useMemo
-} from 'react'
+import getBlobDuration from 'get-blob-duration'
+import Konva from 'konva'
+import { nanoid } from 'nanoid'
+import React, { useEffect, useMemo, useRef } from 'react'
+import { FiRotateCcw } from 'react-icons/fi'
 import { IoChevronBackOutline } from 'react-icons/io5'
 import useMeasure from 'react-use-measure'
 import { useRecoilValue, useSetRecoilState } from 'recoil'
+import {
+	Content_Types,
+	SetupRecordingMutationVariables,
+	useDeleteBlockGroupMutation,
+	useSaveMultipleBlocksMutation,
+	useSaveRecordedBlockMutation,
+	useSetupRecordingMutation,
+} from 'src/graphql/generated'
 import { flickNameAtom } from 'src/stores/flick.store'
 import studioAtom, {
-  studioStateAtom
+	activeObjectIndexAtom,
+	studioStateAtom,
 } from 'src/stores/studio.store'
 import useCanvasRecorder from 'src/utils/hooks/useCanvasRecorder'
 import useUpdateState from 'src/utils/hooks/useUpdateState'
+import {
+	RoomEventTypes,
+	useBroadcastEvent,
+	useEventListener,
+	useMap,
+	useObject,
+} from 'src/utils/liveblocks.config'
 import { useUser } from 'src/utils/providers/auth'
-import { Heading, Text } from 'ui/src'
-import { ViewConfig } from 'utils/src'
-import CanvasComponent, {
-  StudioContext
-} from '../canvas/CanvasComponent'
+import { dismissToast, emitToast, Heading, Text, updateToast } from 'ui/src'
+import { useEnv, useUploadFile, ViewConfig } from 'utils/src'
+import CanvasComponent, { StudioContext } from '../canvas/CanvasComponent'
 import RecordingControls from '../RecordingControls'
 import Countdown from './Countdown'
 import MediaControls from './MediaControls'
 import MiniTimeline from './MiniTimeline'
+import UploadIcon from '../../../../svg/RecordingScreen/Upload.svg'
 
 const Studio = ({
 	fragmentId,
@@ -36,23 +53,40 @@ const Studio = ({
 	viewConfig: ViewConfig
 }) => {
 	const { user } = useUser()
+	const { storage } = useEnv()
 
 	const state = useRecoilValue(studioStateAtom)
 	const { updateState, reset } = useUpdateState(true)
-	// const activeObjectIndex = useRecoilValue(activeObjectIndexAtom)
+	const activeObjectIndex = useRecoilValue(activeObjectIndexAtom)
 	const setStudio = useSetRecoilState(studioAtom)
 	const flickName = useRecoilValue(flickNameAtom)
+
+	const recordedBlocks = useMap('recordedBlocks')
+	const studioController = useObject('studioControls')
+	const broadcast = useBroadcastEvent()
+
+	const blockThumbnails = useRef<{ [key: string]: string }>({})
+	const stageRef = useRef<Konva.Stage>(null)
+	// ref to store the recording id
+	const recordingId = useRef<string>('')
+	// bool to warn and ask the users to retake the multi block recording
+	const confirmMultiBlockRetake = useRef<boolean>(false)
+
+	const [uploadFile] = useUploadFile()
+	const [saveBlock] = useSaveRecordedBlockMutation()
+	const [saveMultiBlocks] = useSaveMultipleBlocksMutation()
+	const [deleteBlockGroupMutation] = useDeleteBlockGroupMutation()
+	// to get the recording id
+	const [setupRecording] = useSetupRecordingMutation()
 
 	// used to measure the div
 	const [ref, bounds] = useMeasure()
 
-	// const Canvas = React.memo(CanvasComponent)
-
 	const {
 		startRecording: startCanvasRecording,
 		stopRecording: stopCanvasRecording,
-		// reset: resetCanvas,
-		// getBlobs,
+		reset: resetCanvas,
+		getBlobs,
 	} = useCanvasRecorder({})
 
 	const start = () => {
@@ -60,41 +94,178 @@ const Studio = ({
 			const canvas = document
 				.getElementsByClassName('konvajs-content')[0]
 				.getElementsByTagName('canvas')[0]
-			console.log('start', canvas)
 			// // if (
 			// // 	dataConfig &&
 			// // 	dataConfig[activeObjectIndex]?.type !== 'introBlock'
 			// // )
 			// // setTopLayerChildren({ id: nanoid(), state: 'transition moveAway' })
-			// if (canvas)
-				// startCanvasRecording(canvas, {
-				// 	localStream: stream as MediaStream,
-				// 	remoteStreams: userAudios,
-				// })
+
+			// startCanvasRecording(canvas, {
+			// 	localStream: stream as MediaStream,
+			// 	remoteStreams: userAudios,
 		} catch (e) {
 			console.log(e)
 		}
-
 		// setResetTimer(false)
 	}
 
+	// function which gets triggered on stop, used for converting the blobs in to url and
+	// store it in recorded blocks and checking if the blobs are empty
+	const prepareVideo = async () => {
+		const currentBlockDataConfig = dataConfig[activeObjectIndex]
+		console.log('Preparing video...')
+		const blob = await getBlobs()
+		if (!blob || blob?.size <= 0) {
+			updateState('resumed')
+			emitToast('Could not produce the video', {
+				type: 'error',
+				autoClose: 2000,
+			})
+			// Sentry.captureException(
+			// 	new Error(
+			// 		`Could not produce the video.Failed to get blobs when preparing video. ${JSON.stringify(
+			// 			{
+			// 				blobSize: blob?.size,
+			// 				user: sub,
+			// 				currentBlock: current,
+			// 			}
+			// 		)}`
+			// 	)
+			// )
+			return
+		}
+
+		const url = URL.createObjectURL(blob)
+		recordedBlocks?.set(currentBlockDataConfig.id, url)
+	}
+
+	const upload = async (blockId: string) => {
+		const toast = emitToast(
+			'Pushing pixels... \\/n Our hamsters are gift-wrapping your Fragment. Do hold. :)',
+			{
+				type: 'info',
+				autoClose: false,
+			}
+		)
+
+		try {
+			const uploadVideoFile = await getBlobs()
+			resetCanvas()
+			if (!uploadVideoFile) throw Error('Blobs is undefined')
+
+			const duration = await getBlobDuration(uploadVideoFile)
+			const { uuid: objectUrl } = await uploadFile({
+				extension: 'webm',
+				file: uploadVideoFile,
+				handleProgress: ({ percentage }) => {
+					updateToast(toast, `Pushing pixels... (${percentage}%)`, {
+						type: 'info',
+						autoClose: false,
+					})
+				},
+			})
+
+			let thumbnailFilename: string | null = null
+			// Upload block thumbnail
+			if (blockThumbnails.current[blockId]) {
+				const thumbnailBlob = await fetch(
+					blockThumbnails.current[blockId]
+				).then(r => r.blob())
+
+				const { uuid } = await uploadFile({
+					extension: 'png',
+					file: thumbnailBlob,
+					handleProgress: ({ percentage }) => {
+						updateToast(toast, `Pushing pixels... (${percentage}%)`, {
+							type: 'info',
+							autoClose: false,
+						})
+					},
+				})
+				thumbnailFilename = uuid
+			}
+
+			// if (
+			// 	viewConfig.continuousRecording &&
+			// 	continuousRecordedBlockIds
+			// ) {
+			// 	// if continuous recording is enabled, mark all the blocks that were recorded in the current take as saved
+			// 	continuousRecordedBlockIds.forEach(block => {
+			// 		updateRecordedBlocks(block.blockId, objectUrl)
+			// 	})
+			// 	console.log('continuous recorded blocks:', continuousRecordedBlockIds)
+			// 	// save all continuous recorded blocks to hasura
+			// 	await saveMultiBlocks({
+			// 		variables: {
+			// 			blocks: continuousRecordedBlockIds.map(block => ({
+			// 				blockId: block.blockId,
+			// 				duration: block.duration,
+			// 				thumbnail: blockThumbnail, // TODO: generate thumbnail for each block in continuous recording mode
+			// 			})),
+			// 			flickId: fragment?.flickId,
+			// 			fragmentId,
+			// 			recordingId: studio.recordingId,
+			// 			url: objectUrl,
+			// 		},
+			// 	})
+			// 	history.push(`/story/${fragment?.flickId}/${fragmentId}`)
+			// } else {
+			// Once the block video is uploaded to s3 , save the block to the table
+			await saveBlock({
+				variables: {
+					flickId,
+					fragmentId,
+					recordingId: recordingId.current,
+					objectUrl,
+					thumbnail: thumbnailFilename,
+					// TODO: Update creation meta and playbackDuration when implementing continuous recording
+					blockId,
+					playbackDuration: duration,
+				},
+			})
+			recordedBlocks?.set(blockId, objectUrl)
+			// }
+			dismissToast(toast)
+		} catch (e) {
+			console.error('Upload error : ', e)
+			// Sentry.captureException(e)
+			emitToast(
+				'Upload failed.\\/n Click here to retry before recording another block.',
+				{
+					type: 'error',
+					autoClose: false,
+					onClick: () => upload(blockId),
+				}
+			)
+		}
+	}
+
 	const stop = () => {
-		// const thumbnailURL = stageRef.current?.toDataURL()
-		// setBlockThumbnails((bts: any) => {
-		// 	if (currentBlock) {
-		// 		// eslint-disable-next-line no-param-reassign
-		// 		bts[currentBlock.id] = thumbnailURL
-		// 	}
-		// 	return bts
-		// })
-		// TODO: update for continuous recording
+		const currentBlockDataConfig = dataConfig[activeObjectIndex]
+		const thumbnailURL = stageRef.current?.toDataURL()
+		if (thumbnailURL) {
+			blockThumbnails.current[currentBlockDataConfig.id] = thumbnailURL
+		}
 		// if (dataConfig?.[payload?.activeObjectIndex].type !== 'outroBlock')
 		// 	setTopLayerChildren({ id: nanoid(), state: 'transition moveIn' })
 		// else {
 		stopCanvasRecording()
+		prepareVideo()
 		updateState('preview')
 		// }
 	}
+
+	useEventListener(({ event }) => {
+		if (event.type === RoomEventTypes.RetakeButtonClick) {
+			resetCanvas()
+			// setTopLayerChildren?.({ id: nanoid(), state: '' })
+			// setResetTimer(true)
+		}
+    if(event.type === RoomEventTypes.RetakeButtonClick){
+			// setTopLayerChildren?.({ id: nanoid(), state: '' })
+			// setResetTimer(true)
+		}
+	})
 
 	// Hooks
 	const value = useMemo(
@@ -105,16 +276,33 @@ const Studio = ({
 		[]
 	)
 
-	// // Write into studio store
-	// useMemo(() => {
-	// 	setStudio(prev => ({
-	// 		...prev,
-	// 		users,
-	// 	}))
-	// }, [users])
+	// on unmount changing the state back to ready
+	useEffect(() => {
+		updateState('ready')
+		return () => {
+			reset('ready')
+		}
+	}, [])
+
+	// fetch recordingId on mount
+	useEffect(() => {
+		;(async () => {
+			const variables = {
+				editorState: dataConfig,
+				flickId,
+				fragmentId,
+				viewConfig,
+				contentType:
+					viewConfig.mode === 'Portrait'
+						? Content_Types.VerticalVideo
+						: Content_Types.Video,
+			} as SetupRecordingMutationVariables
+			const { data } = await setupRecording({ variables })
+			recordingId.current = data?.StartRecording?.recordingId || ''
+		})()
+	}, [])
 
 	useEffect(() => {
-		// if (state === 'startRecording' || state === 'recording') start()
 		if (state === 'stopRecording') stop()
 	}, [state])
 
@@ -140,8 +328,7 @@ const Studio = ({
 					</Heading>
 					<MediaControls />
 				</div>
-				{/* TODO Think abt removing upload state, because it might interfere if the user moves to the next block and records */}
-				{state !== 'preview' && state !== 'upload' ? (
+				{state !== 'preview' ? (
 					<>
 						<div className='grid grid-cols-12 flex-1 items-center'>
 							<div
@@ -154,10 +341,10 @@ const Studio = ({
 									viewConfig={viewConfig}
 									isPreview={false}
 									flickId={flickId}
+									stage={stageRef}
 								/>
 							</div>
 						</div>
-						{/* // TODO when calling recording controls bar filter dataConfig for continuousRecording */}
 						<RecordingControls
 							dataConfig={dataConfig}
 							viewConfig={viewConfig}
@@ -167,41 +354,171 @@ const Studio = ({
 						/>
 					</>
 				) : (
-					<>Video</>
-					//   <div className="flex items-center justify-center flex-col w-full flex-1 pt-4">
-					//     {recordedBlocks && (
-					//       <div
-					//         style={{
-					//           height: '80vh',
-					//           width: viewConfig?.mode === 'Portrait'
-					//             ? `${window.innerHeight / 2.25}px`
-					//             : `${window.innerWidth / 1.5}px`,
-					//         }}
-					//         className="flex justify-center items-center w-full flex-col"
-					//       >
-					//         <video
-					//           height="auto"
-					//           className="w-full"
-					//           controls
-					//           autoPlay={false}
-					//           src={(() => {
-					//             const newSrc =
-					//               recordedBlocks && currentBlock
-					//                 ? recordedBlocks?.find((b) => b.id === currentBlock.id)
-					//                     ?.objectUrl || ''
-					//                 : ''
-					//             if (newSrc.includes('blob')) return newSrc
-					//             return `${config.storage.baseUrl}${newSrc}`
-					//           })()}
-					//           key={nanoid()}
-					//         />
+					<div className='flex items-center justify-center flex-col w-full flex-1 pt-4'>
+						{recordedBlocks && (
+							<div
+								style={{
+									height: '80vh',
+									width:
+										viewConfig?.mode === 'Portrait'
+											? `${window.innerHeight / 2.25}px`
+											: `${window.innerWidth / 1.5}px`,
+								}}
+								className='flex justify-center items-center w-full flex-col'
+							>
+								{/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+								<video
+									height='auto'
+									className='w-full'
+									controls
+									autoPlay={false}
+									src={(() => {
+										const newSrc =
+											recordedBlocks?.get(dataConfig[activeObjectIndex].id) ||
+											''
+										if (newSrc.includes('blob')) return newSrc
+										return `${storage.cdn}${newSrc}`
+									})()}
+									key={nanoid()}
+								/>
+								{studioController?.get('studioControllerSub') === user?.uid && (
+									<div
+										style={
+											recordedBlocks
+												?.get(dataConfig[activeObjectIndex].id)
+												?.includes('blob')
+												? {
+														background: 'rgba(39, 39, 42, 0.5)',
+														border: '0.5px solid #52525B',
+														boxSizing: 'border-box',
+														backdropFilter: 'blur(40px)',
+														borderRadius: '4px',
+												  }
+												: {}
+										}
+										className='flex items-center rounded-md gap-x-2 mt-2 z-10 p-2 px-3'
+									>
+										{
+											// if block already has a recording dont show save button
+											// checks if the url in the recorded blocks is a blob url
+											recordedBlocks
+												?.get(dataConfig[activeObjectIndex].id)
+												?.includes('blob') && (
+												// Save and continue button
+												<button
+													className='bg-incredible-green-600 text-white rounded-sm py-1.5 px-2.5 flex items-center gap-x-2 font-bold hover:shadow-lg text-sm'
+													type='button'
+													onClick={() => {
+														if (
+															activeObjectIndex === undefined &&
+															activeObjectIndex < 0
+														)
+															return
+														// TODO move to the next block on click of save and continue
+														broadcast({
+															type: RoomEventTypes.SaveButtonClick,
+															payload: {},
+														})
+                            // TODO if we change the active object index we need to update the state
+														// setTopLayerChildren?.({ id: nanoid(), state: '',})
+                            // setResetTimer(true)
 
-					// )}
-					// </div>
+														if (dataConfig?.[activeObjectIndex]?.id)
+															// calls the upload function
+															upload(dataConfig?.[activeObjectIndex]?.id)
+														else {
+															emitToast(
+																'Something went wrong! Please try again later',
+																{
+																	type: 'error',
+																}
+															)
+														}
+													}}
+												>
+													<UploadIcon className='h-5 w-5 my-px' />
+													Save and continue
+												</button>
+											)
+										}
+										{/* Retake button */}
+										<button
+											className='bg-grey-500 text-white rounded-sm py-1.5 px-2.5 flex items-center gap-x-2 font-bold hover:shadow-md text-sm'
+											type='button'
+											onClick={() => {
+												const currentBlockURL = recordedBlocks?.get(
+													dataConfig[activeObjectIndex].id
+												)
+												if (currentBlockURL) {
+													// if found in recordedBlocks, find if webm is duplicate (meaning its part of continuous recording)
+													const isPartOfContinuousRecording =
+														Object.keys(recordedBlocks).filter(
+															key =>
+																recordedBlocks?.get(key) === currentBlockURL
+														).length > 1
+
+													// this if handles the case when the retake button is clicked on a block that is part of continuous recording
+													if (isPartOfContinuousRecording) {
+														// call action to delete all blocks with currBlock.objectUrl
+														if (!confirmMultiBlockRetake.current) {
+															emitToast(
+																'Are you sure?\\nYou are about to delete the recordings of all blocks that were recorded continuously along with this block.This action cannot be undone. If you would like to continue press retake again.',
+																{
+																	type: 'warning',
+																}
+															)
+															confirmMultiBlockRetake.current = true
+															return
+															// eslint-disable-next-line no-else-return
+														} else {
+															deleteBlockGroupMutation({
+																variables: {
+																	objectUrl: currentBlockURL,
+																	recordingId: recordingId.current,
+																},
+															})
+															confirmMultiBlockRetake.current = false
+
+															// remove all the blocks with the current block url in recordedBlocks
+															Object.keys(recordedBlocks).forEach(block => {
+																if (
+																	recordedBlocks.get(block) === currentBlockURL
+																) {
+																	recordedBlocks.delete(block)
+																}
+															})
+														}
+													} else {
+														// deletes the current block id from recorded blocks
+														recordedBlocks.delete(
+															dataConfig[activeObjectIndex].id
+														)
+													}
+												}
+												broadcast({
+													type: RoomEventTypes.RetakeButtonClick,
+													payload: {},
+												})
+												resetCanvas()
+												updateState('resumed')
+												// setTopLayerChildren?.({ id: nanoid(), state: '' })
+												// setResetTimer(true)
+											}}
+										>
+											<FiRotateCcw className='h-4 w-4 my-1' />
+											Retake
+										</button>
+									</div>
+								)}
+							</div>
+						)}
+					</div>
 				)}
-
-				{/* // TODO when calling mini time line filter dataConfig for continuousRecording */}
-				<MiniTimeline dataConfig={dataConfig} />
+				<MiniTimeline
+					dataConfig={dataConfig}
+					continuousRecording={viewConfig?.continuousRecording}
+					updateState={updateState}
+				/>
 			</div>
 		</StudioContext.Provider>
 	)

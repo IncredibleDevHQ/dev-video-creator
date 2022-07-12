@@ -62,7 +62,7 @@ const Concourse = ({
 	const stream = useRecoilValue(streamAtom)
 	const theme = useRecoilValue(themeAtom)
 	const branding = useRecoilValue(brandingAtom)
-	const studioControllerSub = useObject('studioControls')?.get('studioControllerSub')
+	const studioController = useObject('studioControls')
 
 	const { user } = useUser()
 
@@ -268,7 +268,7 @@ const Concourse = ({
 							<Group
 								ref={groupRef}
 								onClick={() => {
-									if (studioControllerSub === user?.uid) {
+									if (studioController?.get('studioControllerSub') === user?.uid) {
 										const pointer = stageRef?.current?.getPointerPosition()
 										const scaleRatio =
 											document.getElementsByClassName('konvajs-content')[0]
@@ -286,7 +286,9 @@ const Concourse = ({
 									}
 								}}
 								onMouseLeave={() => {
-									if (studioControllerSub === user?.uid) {
+									if (
+										studioController?.get('studioControllerSub') === user?.uid
+									) {
 										updatePayload?.({
 											zoomPointer: undefined,
 											shouldZoom: false,

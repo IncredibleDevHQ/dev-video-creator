@@ -33,6 +33,7 @@ const StudioHoC = ({
 		}
 	}, [fragmentId, viewConfig, viewConfigLiveMap])
 
+  // TODO on continous recording filter the dataConfig to only include the blocks that are recorded
 	useEffect(() => {
 		if (ast && !dataConfig) {
 			setDataConfig(
