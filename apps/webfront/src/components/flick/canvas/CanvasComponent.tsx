@@ -1,7 +1,7 @@
 import { LiveMap, LiveObject } from '@liveblocks/client'
 import { Block } from 'editor/src/utils/types'
 import Konva from 'konva'
-import React, { useEffect, useRef, useState } from 'react'
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { Group, Layer, Stage } from 'react-konva'
 import { RectReadOnly } from 'react-use-measure'
 import {
@@ -9,11 +9,20 @@ import {
 	useRecoilValue,
 } from 'recoil'
 import { fragmentTypeAtom } from 'src/stores/flick.store'
+import { studioStateAtom } from 'src/stores/studio.store'
 import { CONFIG, SHORTS_CONFIG } from 'src/utils/configs'
 import { RoomProvider } from 'src/utils/liveblocks.config'
 import { UserContext, useUser } from 'src/utils/providers/auth'
 import { ViewConfig } from 'utils/src'
 import UnifiedFragment from './fragments/UnifiedFragment'
+
+export const StudioContext = createContext<{
+	start: () => void
+	stop: () => void
+}>({
+	start: () => {},
+	stop: () => {},
+})
 
 export const getIntegerHW = ({
 	maxH,
@@ -38,88 +47,97 @@ export const getIntegerHW = ({
 	return { width: calWidth, height: calHeight }
 }
 
-const CanvasComponent = ({
-	bounds,
-	dataConfig,
-	viewConfig,
-	isPreview,
-	flickId,
-	scale = 1,
-}: {
-	bounds: RectReadOnly
-	dataConfig: Block[]
-	viewConfig: ViewConfig
-	isPreview: boolean
-	flickId: string
-	scale?: number
-}) => {
-  const user = useUser()
+const CanvasComponent = React.memo(
+	({
+		bounds,
+		dataConfig,
+		viewConfig,
+		isPreview,
+		flickId,
+    scale = 1,
+	}: {
+		bounds: RectReadOnly
+		dataConfig: Block[]
+		viewConfig: ViewConfig
+		isPreview: boolean
+		flickId: string
+    scale?: number
+	}) => {
+		const user = useUser()
+		const state = useRecoilValue(studioStateAtom)
+		const { start } = useContext(StudioContext)
 
-	const stageRef = useRef<Konva.Stage>(null)
-	const layerRef = useRef<Konva.Layer>(null)
-	const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
+		const [mountStage, setMountStage] = useState(false)
 
-	const [mountStage, setMountStage] = useState(false)
-	const shortsMode = useRecoilValue(fragmentTypeAtom) !== 'Landscape'
+		const stageRef = useRef<Konva.Stage>(null)
+		const layerRef = useRef<Konva.Layer>(null)
+		const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
 
-	// // state which stores the type of layer children which have to be placed over the studio user
-	// const [topLayerChildren, setTopLayerChildren] = useState<{
-	// 	id: string
-	// 	state: TopLayerChildren
-	// }>({ id: '', state: '' })
+		const shortsMode = useRecoilValue(fragmentTypeAtom) !== 'Landscape'
 
-	const { height: stageHeight, width: stageWidth } = getIntegerHW({
-		maxH: bounds.height * scale,
-		maxW: bounds.width * scale,
-		aspectRatio: shortsMode ? 9 / 16 : 16 / 9,
-		isShorts: shortsMode,
-	})
+		// // state which stores the type of layer children which have to be placed over the studio user
+		// const [topLayerChildren, setTopLayerChildren] = useState<{
+		// 	id: string
+		// 	state: TopLayerChildren
+		// }>({ id: '', state: '' })
 
-	useEffect(() => {
-		if (!stageWidth) return
-		Konva.pixelRatio = (shortsMode ? 1080 : 1920) / stageWidth
-		setMountStage(true)
-	}, [stageWidth, shortsMode])
+		const { height: stageHeight, width: stageWidth } = getIntegerHW({
+			maxH: bounds.height * scale,
+			maxW: bounds.width * scale,
+			aspectRatio: shortsMode ? 9 / 16 : 16 / 9,
+			isShorts: shortsMode,
+		})
 
-	console.log('CanvasComponent', stageWidth, stageHeight)
+		useEffect(() => {
+			if (!stageWidth) return
+			Konva.pixelRatio = (shortsMode ? 1080 : 1920) / stageWidth
+			setMountStage(true)
+		}, [stageWidth, shortsMode])
 
-	return (
-		<div>
-			{mountStage && (
-				<Stage
-					ref={stageRef}
-					className='mt-auto mb-auto'
-					width={stageWidth || 1}
-					height={stageHeight || 1}
-					scale={{
-						x:
-							stageHeight / (shortsMode ? SHORTS_CONFIG.height : CONFIG.height),
-						y: stageWidth / (shortsMode ? SHORTS_CONFIG.width : CONFIG.width),
-					}}
-				>
-					<Bridge>
-						<UserContext.Provider value={user}>
-							<RoomProvider
-								id={`story-${flickId}`}
-								initialStorage={() => ({
-									viewConfig: new LiveMap(),
-									payload: new LiveMap(),
-									activeObjectIndex: new LiveObject({ activeObjectIndex: 0 }),
-									state: new LiveObject({ state: 'ready' }),
-									studioControls: new LiveObject(),
-								})}
-							>
-								<Layer ref={layerRef}>
-									{(() => (
-										<Group>
-											<UnifiedFragment
-												stageRef={stageRef}
-												// setTopLayerChildren={setTopLayerChildren}
-												config={dataConfig}
-												layoutConfig={viewConfig}
-												isPreview={isPreview}
-											/>
-											{/* <GetTopLayerChildren
+		useEffect(() => {
+			if (state === 'recording' && mountStage) start()
+		}, [state, mountStage])
+
+		// console.log('CanvasComponent', stageWidth, stageHeight)
+
+		return (
+			<div>
+				{mountStage && (
+					<Stage
+						ref={stageRef}
+						className='mt-auto mb-auto'
+						width={stageWidth || 1}
+						height={stageHeight || 1}
+						scale={{
+							x:
+								stageHeight /
+								(shortsMode ? SHORTS_CONFIG.height : CONFIG.height),
+							y: stageWidth / (shortsMode ? SHORTS_CONFIG.width : CONFIG.width),
+						}}
+					>
+						<Bridge>
+							<UserContext.Provider value={user}>
+								<RoomProvider
+									id={`story-${flickId}`}
+									initialStorage={() => ({
+										viewConfig: new LiveMap(),
+										payload: new LiveMap(),
+										activeObjectIndex: new LiveObject({ activeObjectIndex: 0 }),
+										state: new LiveObject({ state: 'ready' }),
+										studioControls: new LiveObject(),
+									})}
+								>
+									<Layer ref={layerRef}>
+										{(() => (
+											<Group>
+												<UnifiedFragment
+													stageRef={stageRef}
+													// setTopLayerChildren={setTopLayerChildren}
+													config={dataConfig}
+													layoutConfig={viewConfig}
+													isPreview={isPreview}
+												/>
+												{/* <GetTopLayerChildren
 												key={topLayerChildren?.id}
 												topLayerChildrenState={topLayerChildren?.state || ''}
 												setTopLayerChildren={setTopLayerChildren}
@@ -138,15 +156,16 @@ const CanvasComponent = ({
 													setState('preview')
 												}}
 											/> */}
-										</Group>
-									))()}
-								</Layer>
-							</RoomProvider>
-						</UserContext.Provider>
-					</Bridge>
-				</Stage>
-			)}
-		</div>
-	)
-}
+											</Group>
+										))()}
+									</Layer>
+								</RoomProvider>
+							</UserContext.Provider>
+						</Bridge>
+					</Stage>
+				)}
+			</div>
+		)
+	}
+)
 export default CanvasComponent
