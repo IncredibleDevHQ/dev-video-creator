@@ -16,7 +16,10 @@ const userRouter = trpc
 	.middleware(({ meta, ctx, next }) => {
 		// only check authorization if enabled
 		if (meta?.hasAuth && !ctx.user) {
-			throw new TRPCError({ code: 'UNAUTHORIZED' })
+			throw new TRPCError({
+				code: 'UNAUTHORIZED',
+				message: 'Invalid Auth Token',
+			})
 		}
 		return next({
 			ctx: {
@@ -48,6 +51,39 @@ const userRouter = trpc
 			}
 
 			return out
+		},
+	})
+	/*
+		MUTATIONS
+	*/
+	.mutation('onboard', {
+		meta: {
+			hasAuth: true,
+		},
+		input: z.object({
+			designation: z.string().optional(),
+			name: z.string(),
+			organization: z.string().optional(),
+			profilePicture: z.string().optional(),
+		}),
+		output: z.object({
+			success: z.boolean(),
+		}),
+		resolve: async ({ input, ctx }) => {
+			const uptd = await ctx.prisma.user.updateMany({
+				where: {
+					sub: ctx.user!.sub,
+				},
+				data: {
+					designation: input.designation,
+					displayName: input.name,
+					organization: input.organization,
+					picture: input.profilePicture,
+				},
+			})
+			if (uptd && uptd.count === 1) return { success: true }
+
+			return { success: false }
 		},
 	})
 

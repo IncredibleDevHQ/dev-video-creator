@@ -83,6 +83,7 @@
 		"dotenv": "^16.0.1",
 		"eslint": "7.32.0",
 		"jest": "^28.1.2",
+		"jest-mock-extended": "^2.0.6",
 		"next-transpile-modules": "9.0.0",
 		"postcss": "^8.4.14",
 		"prisma": "^4.0.0",

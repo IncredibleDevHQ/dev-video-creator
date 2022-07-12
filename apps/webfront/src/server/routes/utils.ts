@@ -29,6 +29,31 @@ const utilsRouter = trpc
 			},
 		})
 	})
+	.query('test', {
+		meta: {
+			hasAuth: false,
+		},
+		resolve: async ({ ctx }) => {
+			try {
+				const x = await ctx.prisma.bLOCK_PARTICIPANT_ENUM.create({
+					data: {
+						value: 'admin',
+						description: 'Admin is the boss',
+					},
+					select: {
+						description: true,
+						value: true,
+					},
+				})
+				return x
+			} catch (e) {
+				throw new TRPCError({
+					code: 'INTERNAL_SERVER_ERROR',
+					message: 'Something went wrong!',
+				})
+			}
+		},
+	})
 	/*
 		MUTATIONS
 	*/

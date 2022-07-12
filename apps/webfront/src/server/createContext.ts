@@ -1,16 +1,16 @@
+import { PrismaClient } from '@prisma/client'
 import { inferAsyncReturnType } from '@trpc/server'
 import * as trpcNext from '@trpc/server/adapters/next'
-import { NextApiRequest, NextApiResponse } from 'next'
 import verifyJwt from '../utils/jwt'
+import prisma from './prisma'
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-interface CreateContextOptions {
-	req?: NextApiRequest
-	res?: NextApiResponse<any>
+interface CreateContextOptions extends trpcNext.CreateNextContextOptions {
+	prisma?: PrismaClient
 }
 
 async function getUserFromRequestHeader(authHeader: string) {
-	const token = authHeader // split by ' ' if Bearer is added
+	const token = authHeader.split(' ')[1] // split by ' ' if Bearer is added
 	if (token) {
 		try {
 			const v = await verifyJwt(token)
@@ -34,6 +34,7 @@ export async function createContextInner(
 	return {
 		..._opts,
 		user: authHeader ? await getUserFromRequestHeader(authHeader) : null,
+		prisma,
 	}
 }
 
