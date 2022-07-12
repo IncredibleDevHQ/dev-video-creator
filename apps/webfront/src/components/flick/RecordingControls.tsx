@@ -14,6 +14,7 @@ import {
 	activeObjectIndexAtom,
 	controlsConfigAtom,
 	payloadFamily,
+	StudioState,
 	studioStateAtom,
 } from 'src/stores/studio.store'
 import {
@@ -25,7 +26,6 @@ import {
 	handleOutroBlock,
 } from 'src/utils/helpers/recordingControlsFunctions'
 import useUpdateActiveObjectIndex from 'src/utils/hooks/useUpdateActiveObjectIndex'
-import useUpdateState from 'src/utils/hooks/useUpdateState'
 import {
 	ViewConfig,
 	CodeBlockView,
@@ -43,11 +43,13 @@ const RecordingControls = ({
 	viewConfig,
 	shortsMode,
 	isPreview,
+	updateState,
 }: {
 	dataConfig: Block[]
 	viewConfig: ViewConfig
 	shortsMode: boolean
 	isPreview: boolean
+	updateState?: (state: StudioState) => void
 }) => {
 	const state = useRecoilValue(studioStateAtom)
 	const controlsConfig = useRecoilValue(controlsConfigAtom)
@@ -55,7 +57,6 @@ const RecordingControls = ({
 	const payload = useRecoilValue(payloadFamily(controlsConfig?.blockId || ''))
 	const { updatePayload } = controlsConfig
 
-	const { updateState } = useUpdateState(!isPreview)
 	const { updateActiveObjectIndex } = useUpdateActiveObjectIndex(!isPreview)
 
 	const { isIntro, isOutro, isImage, isVideo, codeAnimation } = useMemo(() => {
@@ -99,8 +100,8 @@ const RecordingControls = ({
 					viewConfig,
 					blockPayload,
 					updatePayload,
-          updateActiveObjectIndex,
-          activeObjectIndex,
+					updateActiveObjectIndex,
+					activeObjectIndex,
 					direction,
 					block.id
 				)
@@ -140,7 +141,7 @@ const RecordingControls = ({
 					blockPayload,
 					updatePayload,
 					updateActiveObjectIndex,
-          activeObjectIndex,
+					activeObjectIndex,
 					direction,
 					block.id
 				)
@@ -166,7 +167,7 @@ const RecordingControls = ({
 						type='button'
 						onClick={() => {
 							// studio.stopRecording()
-              updateState('stopRecording')
+							updateState?.('stopRecording')
 						}}
 						className={cx(
 							'flex gap-x-2 items-center justify-between border backdrop-filter backdrop-blur-2xl p-1.5 rounded-sm w-24 absolute min-w-max'
@@ -201,7 +202,13 @@ const RecordingControls = ({
 						)}
 						type='button'
 						onClick={() => {
-              updateState('countDown')
+							console.log(
+								'start recording',
+								document
+									.getElementsByClassName('konvajs-content')[0]
+									.getElementsByTagName('canvas')[0]
+							)
+							updateState?.('countDown')
 						}}
 					>
 						<StartRecordIcon className='m-px w-5 h-5' />
@@ -390,7 +397,7 @@ const RecordingControls = ({
 									if (!viewConfig.continuousRecording) {
 										if (state === 'recording' || state === 'startRecording') {
 											// studio.stopRecording()
-                      updateState('stopRecording')
+											updateState?.('stopRecording')
 										}
 									} else {
 										// TODO
@@ -413,7 +420,7 @@ const RecordingControls = ({
 											state === 'startRecording'
 										) {
 											// studio.stopRecording()
-                      updateState('stopRecording')
+											updateState?.('stopRecording')
 										}
 									}
 								}
