@@ -21,11 +21,24 @@ export const defaultToastOptions: ToastOptions = {
 export const emitToast = (
 	content: string | JSX.Element,
 	options?: ToastOptions
-) => {
-	toast(content, {
+) => toast(content, {
 		...defaultToastOptions,
 		...options,
 	} as ToastOptions)
+
+export const updateToast = (
+	id: React.ReactText,
+	content: string | JSX.Element,
+	options?: ToastOptions
+) => toast.update(id, {
+		render: toast(content, {
+			...defaultToastOptions,
+			...options,
+		} as ToastOptions),
+	})
+
+export const dismissToast = (id: any) => {
+  toast.dismiss(id)
 }
 
 export const ToastContainer = TC
