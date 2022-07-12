@@ -1,6 +1,7 @@
 import { css, cx } from '@emotion/css'
 import { Block } from 'editor/src/utils/types'
 import { useRef } from 'react'
+import useUpdateActiveObjectIndex from 'src/utils/hooks/useUpdateActiveObjectIndex'
 
 const noScrollBar = css`
 	::-webkit-scrollbar {
@@ -13,35 +14,19 @@ export const getBlockTitle = (block: Block): string => {
 		case 'introBlock':
 			return 'Intro'
 		case 'codeBlock':
-			return (
-				block.title || block.fallbackTitle || 'Code Block'
-			)
+			return block.title || block.fallbackTitle || 'Code Block'
 		case 'listBlock':
-			return (
-				block.title || block.fallbackTitle || 'List Block'
-			)
+			return block.title || block.fallbackTitle || 'List Block'
 		case 'imageBlock':
-			return (
-				block.title ||
-				block.fallbackTitle ||
-				'Image Block'
-			)
+			return block.title || block.fallbackTitle || 'Image Block'
 		case 'videoBlock':
-			return (
-				block.title ||
-				block.fallbackTitle ||
-				'Video Block'
-			)
+			return block.title || block.fallbackTitle || 'Video Block'
 		case 'headingBlock':
 			return block.title || 'Heading Block'
 		case 'outroBlock':
 			return 'Outro'
 		case 'interactionBlock':
-			return (
-				block.title ||
-				block.fallbackTitle ||
-				'Interaction Block'
-			)
+			return block.title || block.fallbackTitle || 'Interaction Block'
 		default:
 			return 'Block'
 	}
@@ -49,13 +34,14 @@ export const getBlockTitle = (block: Block): string => {
 
 const MiniTimeline = ({
 	dataConfig,
-	// continuousRecording,
-}: {
+}: // continuousRecording,
+{
 	dataConfig: Block[]
-  // continuousRecording: boolean
+	// continuousRecording: boolean
 }) => {
 	const timelineRef = useRef<HTMLDivElement>(null)
-  // const state = useRecoilValue(studioStateAtom)
+	// const state = useRecoilValue(studioStateAtom)
+	const { updateActiveObjectIndex } = useUpdateActiveObjectIndex(true)
 
 	return (
 		<div
@@ -81,7 +67,7 @@ const MiniTimeline = ({
 				noScrollBar
 			)}
 		>
-			{dataConfig.map(block => (
+			{dataConfig.map((block,index) => (
 				<button
 					type='button'
 					id={`timeline-block-${block.id}`}
@@ -102,45 +88,40 @@ const MiniTimeline = ({
 						// 	// state !== 'ready' || state !== 'preview',
 						// }
 					)}
-					// onClick={() => {
-					// 	if (payload?.studioControllerSub !== sub) return
-					// 	// if continuous recording is enabled, disable mini-timeline onclick
-					// 	if (
-					// 		continuousRecording &&
-					// 		(state === 'recording' ||
-					// 			state === 'start-recording' ||
-					// 			state === 'preview')
-					// 	) {
-					// 		return
-					// 	}
-					// 	// maybe this is not the best thing to do , can actually be a feature.
-
-					// 	// TODO: if current block is recorded by isnt saved to the cloud or if the user has not intentionally pressed retake to discard the rec, show warning.
-
-					// 	const newSrc =
-					// 		recordedBlocks && currentBlock
-					// 			? recordedBlocks?.find(b => b.id === currentBlock.id)
-					// 					?.objectUrl || ''
-					// 			: ''
-					// 	if (newSrc.includes('blob') && state === 'preview') return
-
-					// 	// checking if block already has recording
-					// 	const clickedBlock = recordedBlocks?.find(b => b.id === block.id)
-
-					// 	updatePayload({
-					// 		activeObjectIndex: index,
-					// 	})
-
-					// 	console.log('clickedBlock', clickedBlock)
-
-					// 	// when block was previously rec and uploaded and we have a url to show preview
-					// 	if (clickedBlock && clickedBlock.objectUrl) {
-					// 		setState('preview')
-					// 	} else {
-					// 		// when the clicked block is not yet recorded.
-					// 		setState('resumed')
-					// 	}
-					// }}
+					onClick={() => {
+            updateActiveObjectIndex(index)
+						// if (payload?.studioControllerSub !== sub) return
+						// // if continuous recording is enabled, disable mini-timeline onclick
+						// if (
+						// 	continuousRecording &&
+						// 	(state === 'recording' ||
+						// 		state === 'start-recording' ||
+						// 		state === 'preview')
+						// ) {
+						// 	return
+						// }
+						// // maybe this is not the best thing to do , can actually be a feature.
+						// // TODO: if current block is recorded by isnt saved to the cloud or if the user has not intentionally pressed retake to discard the rec, show warning.
+						// const newSrc =
+						// 	recordedBlocks && currentBlock
+						// 		? recordedBlocks?.find(b => b.id === currentBlock.id)
+						// 				?.objectUrl || ''
+						// 		: ''
+						// if (newSrc.includes('blob') && state === 'preview') return
+						// // checking if block already has recording
+						// const clickedBlock = recordedBlocks?.find(b => b.id === block.id)
+						// updatePayload({
+						// 	activeObjectIndex: index,
+						// })
+						// console.log('clickedBlock', clickedBlock)
+						// // when block was previously rec and uploaded and we have a url to show preview
+						// if (clickedBlock && clickedBlock.objectUrl) {
+						// 	setState('preview')
+						// } else {
+						// 	// when the clicked block is not yet recorded.
+						// 	setState('resumed')
+						// }
+					}}
 				>
 					{/* {localRecordedBlocks
 						?.find((b: RecordedBlocksFragment) => b.id === block.id)
