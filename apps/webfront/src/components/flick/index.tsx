@@ -11,6 +11,7 @@ import {
 	flickAtom,
 	flickNameAtom,
 	openStudioAtom,
+	participantsAtom,
 	View,
 	viewAtom,
 } from 'src/stores/flick.store'
@@ -47,6 +48,7 @@ const FlickBody = ({
 				set(flickNameAtom, flick.name)
 				set(activeFragmentIdAtom, initialFragmentId)
 				set(astAtom, ast ?? null)
+				set(participantsAtom, flick.participants)
 			},
 		[]
 	)
@@ -58,7 +60,7 @@ const FlickBody = ({
 	const { user } = useUser()
 	const activeFragmentId = useRecoilValue(activeFragmentIdAtom)
 	const view = useRecoilValue(viewAtom)
-  const openStudio = useRecoilValue(openStudioAtom)
+	const openStudio = useRecoilValue(openStudioAtom)
 
 	const initialPresence: Presence = useMemo(
 		() => ({
@@ -130,7 +132,7 @@ const FlickBody = ({
 				activeObjectIndex: new LiveObject({ activeObjectIndex: 0 }),
 				state: new LiveObject({ state: 'ready' }),
 				studioControls: new LiveObject(),
-        recordedBlocks: new LiveMap(),
+				recordedBlocks: new LiveMap(),
 			})}
 		>
 			<EditorProvider

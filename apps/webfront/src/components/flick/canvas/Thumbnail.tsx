@@ -92,7 +92,7 @@ const Thumbnail = ({
 				userImageFallback: !userImage,
 			})
 		)
-	}, [viewConfig])
+	}, [viewConfig, flickName, user])
 
 	useEffect(() => {
 		if (
@@ -118,7 +118,7 @@ const Thumbnail = ({
 				height: noOfLines * ((introConfig?.titleFontSize || 0) + 0.1),
 			})
 		}
-	}, [viewConfig, theme, introConfig, isShorts])
+	}, [viewConfig, theme, introConfig, isShorts, flickName])
 
 	useEffect(() => {
 		if (!userImage || !introConfig) return

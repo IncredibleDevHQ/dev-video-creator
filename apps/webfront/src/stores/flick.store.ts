@@ -1,5 +1,6 @@
 import { Block, SimpleAST } from 'editor/src/utils/types'
 import { atom, DefaultValue, selector } from 'recoil'
+import { FlickParticipantsFragment } from 'src/graphql/generated'
 
 /* Stores some basic flick details */
 const flickAtom = atom<{
@@ -13,6 +14,12 @@ const flickAtom = atom<{
 const flickNameAtom = atom<string | null>({
 	key: 'flickName',
 	default: null,
+})
+
+/* This atom keeps track of flick participants */
+const participantsAtom = atom<FlickParticipantsFragment[]>({
+	key: 'participants',
+	default: [],
 })
 
 /* This atom stores the currently selected format */
@@ -62,6 +69,12 @@ const currentBlockSelector = selector<Block | undefined>({
 	},
 })
 
+/* Atom that stores preview position */
+const previewPositionAtom = atom<number | null>({
+	key: 'previewPosition',
+	default: null,
+})
+
 export type FragmentType = 'Portrait' | 'Landscape'
 const fragmentTypeAtom = atom<FragmentType>({
 	key: 'fragmentType',
@@ -69,8 +82,8 @@ const fragmentTypeAtom = atom<FragmentType>({
 })
 
 const openStudioAtom = atom<boolean>({
-  key: 'openStudio',
-  default: false,
+	key: 'openStudio',
+	default: false,
 })
 
 export {
@@ -81,9 +94,10 @@ export {
 	astAtom,
 	currentBlockIdAtom,
 	currentBlockSelector,
+	previewPositionAtom,
+	participantsAtom,
 	isTimelineVisibleAtom,
 	fragmentTypeAtom,
 	openStudioAtom,
 }
-
 export { View }

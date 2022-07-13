@@ -1,25 +1,24 @@
 import { EditorContent, useIncredibleEditor } from 'editor/src'
 import { useEffect, useRef } from 'react'
 import { useRecoilValue, useSetRecoilState } from 'recoil'
-import { astAtom, currentBlockIdAtom } from 'src/stores/flick.store'
+import {
+	astAtom,
+	currentBlockIdAtom,
+	previewPositionAtom,
+} from 'src/stores/flick.store'
 import BlockPreview from './BlockPreview'
+import EditorHeader from './EditorHeader'
 
 const EditorSection = () => {
 	const { editor, dragHandleRef } = useIncredibleEditor()
 	const editorContainerRef = useRef<HTMLDivElement>(null)
-	const previewRef = useRef<HTMLButtonElement>(null)
 	const setCurrentBlockId = useSetRecoilState(currentBlockIdAtom)
+	const setPreviewPosition = useSetRecoilState(previewPositionAtom)
 
 	const ast = useRecoilValue(astAtom)
 
 	useEffect(() => {
-		if (
-			!editor ||
-			!editorContainerRef.current ||
-			editor.isDestroyed ||
-			!ast ||
-			!previewRef.current
-		)
+		if (!editor || !editorContainerRef.current || editor.isDestroyed || !ast)
 			return
 
 		const { from } = editor.state.selection
@@ -46,11 +45,17 @@ const EditorSection = () => {
 				editorContainerRef.current?.getBoundingClientRect().top ?? 0
 			const previewPosition = editorTop - editorContainerTop - 48 // adjust for padding
 
-			previewRef.current.style.top = `${previewPosition}px`
+			setPreviewPosition(previewPosition)
 		} else {
 			setCurrentBlockId(null)
 		}
-	}, [ast, editor, editor?.state.selection.anchor, setCurrentBlockId])
+	}, [
+		ast,
+		editor,
+		editor?.state.selection.anchor,
+		setCurrentBlockId,
+		setPreviewPosition,
+	])
 
 	return (
 		<div
@@ -67,6 +72,7 @@ const EditorSection = () => {
 				className='h-full w-full max-w-[750px] pt-12 pb-32 col-start-4 col-span-6'
 				ref={editorContainerRef}
 			>
+				<EditorHeader />
 				<div
 					style={{
 						zIndex: 0,
@@ -90,7 +96,7 @@ const EditorSection = () => {
 				{editor && <EditorContent editor={editor} />}
 			</div>
 			<div className='col-start-10 col-end-12 relative border-none outline-none w-full mt-10  ml-10'>
-				<BlockPreview previewRef={previewRef} />
+				<BlockPreview />
 			</div>
 		</div>
 	)
