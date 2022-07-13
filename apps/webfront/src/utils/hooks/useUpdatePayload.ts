@@ -18,12 +18,7 @@ const useUpdatePayload = ({
 
 	useEffect(() => {
 		let unsubscribe: any
-		if (
-			fragmentPayload &&
-			setFragmentPayload &&
-			shouldUpdateLiveblocks &&
-			!unsubscribe
-		) {
+		if (fragmentPayload && shouldUpdateLiveblocks && !unsubscribe) {
 			unsubscribe = room.subscribe(
 				fragmentPayload,
 				() => {

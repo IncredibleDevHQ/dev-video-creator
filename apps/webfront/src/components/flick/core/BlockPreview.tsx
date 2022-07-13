@@ -1,12 +1,13 @@
 import { cx } from '@emotion/css'
 import { Dialog, Transition } from '@headlessui/react'
-import { Fragment, RefObject, useState } from 'react'
+import { Fragment, useState } from 'react'
 import useMeasure from 'react-use-measure'
 import { useRecoilValue } from 'recoil'
 import {
-	flickAtom,
 	activeFragmentIdAtom,
 	currentBlockSelector,
+	flickAtom,
+	previewPositionAtom,
 } from 'src/stores/flick.store'
 import useBlock from 'src/utils/hooks/useBlock'
 import { useMap } from 'src/utils/liveblocks.config'
@@ -14,13 +15,10 @@ import CanvasComponent from '../canvas/CanvasComponent'
 import Preview from '../preview/Preview'
 import Timeline from '../preview/Timeline'
 
-const BlockPreview = ({
-	previewRef,
-}: {
-	previewRef: RefObject<HTMLButtonElement>
-}) => {
+const BlockPreview = () => {
 	const [ref, bounds] = useMeasure()
 	const [previewOpen, setPreviewOpen] = useState(false)
+	const previewPosition = useRecoilValue(previewPositionAtom)
 
 	const flickId = useRecoilValue(flickAtom)?.id
 	const activeFragmentId = useRecoilValue(activeFragmentIdAtom)
@@ -39,31 +37,32 @@ const BlockPreview = ({
 		<button
 			type='button'
 			onClick={() => setPreviewOpen(true)}
+			style={{
+				top: `${previewPosition}px`,
+			}}
 			className={cx('absolute w-full aspect-[16/9] border cursor-pointer', {
 				'border-transparent': !block,
 			})}
-			ref={previewRef}
+			ref={ref}
 		>
-			<div className='w-full h-full' ref={ref}>
-				{block && (
-					<CanvasComponent
-						bounds={bounds}
-						dataConfig={[block]}
-						viewConfig={{
-							mode: config?.mode || 'Landscape',
-							speakers: config?.speakers || [],
-							selectedBlocks: config?.selectedBlocks || [],
-							continuousRecording: config?.continuousRecording || false,
-							blocks: {
-								[block.id]: blockProperties || {},
-							},
-						}}
-						isPreview
-						flickId={flickId as string}
-						scale={1.03}
-					/>
-				)}
-			</div>
+			{block && (
+				<CanvasComponent
+					bounds={bounds}
+					dataConfig={[block]}
+					viewConfig={{
+						mode: config?.mode || 'Landscape',
+						speakers: config?.speakers || [],
+						selectedBlocks: config?.selectedBlocks || [],
+						continuousRecording: config?.continuousRecording || false,
+						blocks: {
+							[block.id]: blockProperties || {},
+						},
+					}}
+					isPreview
+					flickId={flickId as string}
+					scale={1.03}
+				/>
+			)}
 			<Transition appear show={previewOpen} as={Fragment}>
 				<Dialog
 					// open={previewOpen}

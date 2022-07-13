@@ -36,9 +36,7 @@ const Timeline = ({
 	const viewConfig = useMap('viewConfig')?.get(activeFragmentId as string)
 
 	useEffect(() => {
-		if (persistentTimeline) {
-			setShowTimeline(true)
-		} else if (view === View.Preview) {
+		if (view === View.Preview) {
 			setShowTimeline(true)
 		} else {
 			setShowTimeline(false)
@@ -67,7 +65,7 @@ const Timeline = ({
 				</div>
 			)}
 
-			{showTimeline && (
+			{(showTimeline || persistentTimeline) && (
 				<div className='flex'>
 					<div className='h-24' />
 					<div className='flex items-center w-full bg-dark-500 py-4 gap-x-4 overflow-x-auto'>
