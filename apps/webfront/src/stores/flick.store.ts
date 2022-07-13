@@ -5,6 +5,10 @@ import { FlickParticipantsFragment } from 'src/graphql/generated'
 /* Stores some basic flick details */
 const flickAtom = atom<{
 	id: string
+	owner: {
+		id: string
+		sub: string
+	}
 } | null>({
 	key: 'flick',
 	default: null,

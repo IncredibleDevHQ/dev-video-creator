@@ -44,6 +44,10 @@ const FlickBody = ({
 				)?.editorState
 				set(flickAtom, {
 					id: flick.id,
+					owner: {
+						id: flick.ownerId,
+						sub: flick.owner?.userSub as string,
+					},
 				})
 				set(flickNameAtom, flick.name)
 				set(activeFragmentIdAtom, initialFragmentId)
