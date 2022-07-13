@@ -1,6 +1,7 @@
 import 'react-toastify/dist/ReactToastify.css'
 import './index.css'
 
+export * from './Avatar'
 export * from './Button'
 export * from './Heading'
 export * from './IconButton'
