@@ -12,24 +12,22 @@ import { useRecoilValue, useSetRecoilState } from 'recoil'
 import {
 	Content_Types,
 	SetupRecordingMutationVariables,
-  useDeleteBlockGroupMutation,
-  useSaveMultipleBlocksMutation,
-  useSaveRecordedBlockMutation,
-  useSetupRecordingMutation
+	useDeleteBlockGroupMutation,
+	useGetRecordingsLazyQuery,
+	useSaveMultipleBlocksMutation,
+	useSaveRecordedBlockMutation,
+	useSetupRecordingMutation,
 } from 'src/graphql/generated'
 import { flickNameAtom, openStudioAtom } from 'src/stores/flick.store'
-import {
-  activeObjectIndexAtom,
-  studioStateAtom
-} from 'src/stores/studio.store'
+import { activeObjectIndexAtom, studioStateAtom } from 'src/stores/studio.store'
 import useCanvasRecorder from 'src/utils/hooks/useCanvasRecorder'
 import useUpdateState from 'src/utils/hooks/useUpdateState'
 import {
-  RoomEventTypes,
-  useBroadcastEvent,
-  useEventListener,
-  useMap,
-  useObject
+	RoomEventTypes,
+	useBroadcastEvent,
+	useEventListener,
+	useMap,
+	useObject,
 } from 'src/utils/liveblocks.config'
 import { useUser } from 'src/utils/providers/auth'
 import { dismissToast, emitToast, Heading, Text, updateToast } from 'ui/src'
@@ -78,6 +76,13 @@ const Studio = ({
 	const [saveMultiBlocks] = useSaveMultipleBlocksMutation()
 	const [deleteBlockGroupMutation] = useDeleteBlockGroupMutation()
 	// to get the recording id
+	const [getRecordingId] = useGetRecordingsLazyQuery({
+		variables: {
+			flickId,
+			fragmentId,
+		},
+		fetchPolicy: 'cache-first',
+	})
 	const [setupRecording] = useSetupRecordingMutation()
 
 	// used to measure the div
@@ -288,18 +293,26 @@ const Studio = ({
 	// fetch recordingId on mount
 	useEffect(() => {
 		;(async () => {
-			const variables = {
-				editorState: dataConfig,
-				flickId,
-				fragmentId,
-				viewConfig,
-				contentType:
-					viewConfig.mode === 'Portrait'
-						? Content_Types.VerticalVideo
-						: Content_Types.Video,
-			} as SetupRecordingMutationVariables
-			const { data } = await setupRecording({ variables })
-			recordingId.current = data?.StartRecording?.recordingId || ''
+			const { data: recordingsData, error: getRecordingsError } =
+				await getRecordingId()
+			const recording = recordingsData?.Recording?.find(
+				r => r.fragmentId === fragmentId
+			)
+			if (recording) recordingId.current = recording.id
+			else {
+				const variables = {
+					editorState: dataConfig,
+					flickId,
+					fragmentId,
+					viewConfig,
+					contentType:
+						viewConfig.mode === 'Portrait'
+							? Content_Types.VerticalVideo
+							: Content_Types.Video,
+				} as SetupRecordingMutationVariables
+				const { data } = await setupRecording({ variables })
+				recordingId.current = data?.StartRecording?.recordingId || ''
+			}
 		})()
 	}, [])
 
@@ -331,7 +344,14 @@ const Studio = ({
 					>
 						{flickName}
 					</Heading>
-					<MediaControls />
+					<MediaControls
+						flickId={flickId}
+						fragmentId={fragmentId}
+						participantId={
+							viewConfig.speakers.find(({ userSub }) => userSub === user?.uid)
+								?.id
+						}
+					/>
 				</div>
 				{state !== 'preview' ? (
 					<>
