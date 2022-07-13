@@ -2,6 +2,7 @@ import { EditorContent, useIncredibleEditor } from 'editor/src'
 import { useEffect, useRef } from 'react'
 import { useRecoilValue, useSetRecoilState } from 'recoil'
 import { astAtom, currentBlockIdAtom } from 'src/stores/flick.store'
+import BlockPreview from './BlockPreview'
 
 const EditorSection = () => {
 	const { editor, dragHandleRef } = useIncredibleEditor()
@@ -89,12 +90,7 @@ const EditorSection = () => {
 				{editor && <EditorContent editor={editor} />}
 			</div>
 			<div className='col-start-10 col-end-12 relative border-none outline-none w-full mt-10  ml-10'>
-				<div
-					className='absolute w-full  aspect-[16/9] border flex items-center justify-center'
-					ref={previewRef}
-				>
-					Preview
-				</div>
+				<BlockPreview previewRef={previewRef} />
 			</div>
 		</div>
 	)
