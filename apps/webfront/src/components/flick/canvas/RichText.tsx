@@ -139,8 +139,7 @@ const RichText = ({
 	y,
 	width = 960,
 	height,
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	align = 'left',
+	// align = 'left',
 	fontSize = 12,
 	fontFamily,
 	fill = '#000000',
@@ -157,7 +156,7 @@ const RichText = ({
 	y?: number
 	width?: number
 	height?: number
-	align?: 'left' | 'center' | 'right'
+	// align?: 'left' | 'center' | 'right'
 	fontSize?: number
 	fontFamily?: string
 	fill?: string
