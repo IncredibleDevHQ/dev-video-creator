@@ -5,11 +5,11 @@ import { Vector2d } from 'konva/lib/types'
 import React, { createRef, useEffect, useState } from 'react'
 import { Group, Image, Rect } from 'react-konva'
 import { useRecoilValue } from 'recoil'
-import studioStore, {
+import {
+	agoraUsersAtom,
 	brandingAtom,
 	payloadFamily,
 	streamAtom,
-	StudioProviderProps,
 	themeAtom,
 } from 'src/stores/studio.store'
 import { getFragmentLayoutConfig } from 'src/utils/canvasConfigs/fragmentLayoutConfig'
@@ -55,9 +55,7 @@ const Concourse = ({
 	updatePayload,
 	blockId,
 }: ConcourseProps) => {
-	const { users } =
-		(useRecoilValue(studioStore) as StudioProviderProps) || {}
-
+	const users = useRecoilValue(agoraUsersAtom)
 	const payload = useRecoilValue(payloadFamily(blockId))
 	const stream = useRecoilValue(streamAtom)
 	const theme = useRecoilValue(themeAtom)
@@ -192,7 +190,6 @@ const Concourse = ({
 	// useEffect(() => {
 	// 	setCanvas({ zoomed: false, resetCanvas })
 	// }, [])
-
 	return (
 		<>
 			{(viewConfig?.layout === 'full-left' ||
@@ -201,15 +198,17 @@ const Concourse = ({
 				// payload?.status !== Fragment_Status_Enum_Enum.Ended &&
 				users && (
 					<>
-						<StudioUser
-							stream={stream}
-							studioUserConfig={
-								(studioUserConfig && studioUserConfig[0]) ||
-								defaultStudioUserConfig
-							}
-							// picture={picture as string}
-							type='local'
-						/>
+						{stream?.stream && (
+							<StudioUser
+								stream={stream?.stream}
+								studioUserConfig={
+									(studioUserConfig && studioUserConfig[0]) ||
+									defaultStudioUserConfig
+								}
+								// picture={picture as string}
+								type='local'
+							/>
+						)}
 						{users.map((rtcUser, index) => (
 							<StudioUser
 								key={rtcUser.uid as string}
@@ -231,7 +230,7 @@ const Concourse = ({
 					</>
 				)}
 			<Group>
-				{(() =>
+				{(() => (
 					// TODO
 					// if (payload?.status === Fragment_Status_Enum_Enum.CountDown) {
 					// 	return (
@@ -245,64 +244,64 @@ const Concourse = ({
 					// 		/>
 					// 	)
 					// }
-					 (
-						<Group
-							clipFunc={
-								blockType === 'introBlock' || blockType === 'outroBlock'
-									? undefined
-									: (ctx: any) => {
-											clipRect(
-												ctx,
-												getFragmentLayoutConfig({
-													theme,
-													layout:
-														fragmentState === 'onlyFragment'
-															? 'classic'
-															: viewConfig?.layout || 'classic',
-													isShorts: isShorts || false,
-												})
-											)
-									  }
-							}
-						>
-							<Group
-								ref={groupRef}
-								onClick={() => {
-									if (studioController?.get('studioControllerSub') === user?.uid) {
-										const pointer = stageRef?.current?.getPointerPosition()
-										const scaleRatio =
-											document.getElementsByClassName('konvajs-content')[0]
-												.clientWidth / stageConfig.width
-										if (pointer) {
-											updatePayload?.({
-												zoomPointer: {
-													x: (pointer.x - pointer.x * zoomLevel) / scaleRatio,
-													y: (pointer.y - pointer.y * zoomLevel) / scaleRatio,
-												},
-												shouldZoom: !isZooming,
+					<Group
+						clipFunc={
+							blockType === 'introBlock' || blockType === 'outroBlock'
+								? undefined
+								: (ctx: any) => {
+										clipRect(
+											ctx,
+											getFragmentLayoutConfig({
+												theme,
+												layout:
+													fragmentState === 'onlyFragment'
+														? 'classic'
+														: viewConfig?.layout || 'classic',
+												isShorts: isShorts || false,
 											})
-											setIsZooming(!isZooming)
-										}
-									}
-								}}
-								onMouseLeave={() => {
-									if (
-										studioController?.get('studioControllerSub') === user?.uid
-									) {
+										)
+								  }
+						}
+					>
+						<Group
+							ref={groupRef}
+							onClick={() => {
+								if (
+									studioController?.get('studioControllerSub') === user?.uid
+								) {
+									const pointer = stageRef?.current?.getPointerPosition()
+									const scaleRatio =
+										document.getElementsByClassName('konvajs-content')[0]
+											.clientWidth / stageConfig.width
+									if (pointer) {
 										updatePayload?.({
-											zoomPointer: undefined,
-											shouldZoom: false,
+											zoomPointer: {
+												x: (pointer.x - pointer.x * zoomLevel) / scaleRatio,
+												y: (pointer.y - pointer.y * zoomLevel) / scaleRatio,
+											},
+											shouldZoom: !isZooming,
 										})
-										setIsZooming(false)
+										setIsZooming(!isZooming)
 									}
-								}}
-								// onMouseMove={onMouseMove}
-							>
-								{layerChildren}
-							</Group>
+								}
+							}}
+							onMouseLeave={() => {
+								if (
+									studioController?.get('studioControllerSub') === user?.uid
+								) {
+									updatePayload?.({
+										zoomPointer: undefined,
+										shouldZoom: false,
+									})
+									setIsZooming(false)
+								}
+							}}
+							// onMouseMove={onMouseMove}
+						>
+							{layerChildren}
 						</Group>
-					)
-				)()}
+					</Group>
+				))()}
 			</Group>
 			{viewConfig?.layout !== 'full-left' &&
 				viewConfig?.layout !== 'full-right' &&
@@ -310,14 +309,17 @@ const Concourse = ({
 				// payload?.status !== Fragment_Status_Enum_Enum.Ended &&
 				users && (
 					<>
-						<StudioUser
-							stream={stream}
-							studioUserConfig={
-								(studioUserConfig && studioUserConfig[0]) ||
-								defaultStudioUserConfig
-							}
-							type='local'
-						/>
+						{stream?.stream && (
+							<StudioUser
+								stream={stream?.stream}
+								studioUserConfig={
+									(studioUserConfig && studioUserConfig[0]) ||
+									defaultStudioUserConfig
+								}
+								// picture={picture as string}
+								type='local'
+							/>
+						)}
 						{users.map((rtcUser, index) => (
 							<StudioUser
 								key={rtcUser.uid as string}

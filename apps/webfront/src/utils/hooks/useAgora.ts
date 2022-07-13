@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { createClient } from 'agora-rtc-react'
 import AgoraRTC, {
 	ClientConfig,
@@ -5,7 +6,7 @@ import AgoraRTC, {
 	ICameraVideoTrack,
 	IMicrophoneAudioTrack,
 } from 'agora-rtc-sdk-ng'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useEnv } from 'utils/src'
 
 export interface RTCUser extends IAgoraRTCRemoteUser {
@@ -42,10 +43,6 @@ const useAgora = () => {
 
 	const [userAudios, setUserAudios] = useState<MediaStream[]>([])
 
-	useEffect(() => {
-		console.log({ currentUser })
-	}, [currentUser])
-
 	const init = async (
 		agoraChannel: string,
 		{
@@ -69,6 +66,10 @@ const useAgora = () => {
 				uid,
 				hasAudio,
 				tracks,
+				stream: new MediaStream([
+					tracks[0].getMediaStreamTrack(),
+					tracks[1].getMediaStreamTrack(),
+				]),
 			})
 
 			client.on('user-published', async (user, mediaType) => {
