@@ -35,6 +35,25 @@ fragment FlickFragment on Fragment {
 	}
 }
 
+fragment Recording on Recording {
+	id
+	fragmentId
+	type
+	url
+	status
+	checkpoint
+	thumbnail
+	storyboard
+}
+
+query GetRecordings($flickId: uuid, $fragmentId: uuid) {
+	Recording(
+		where: { flickId: { _eq: $flickId }, fragmentId: { _eq: $fragmentId } }
+	) {
+		...Recording
+	}
+}
+
 mutation SaveRecordedBlock(
 	$flickId: uuid!
 	$fragmentId: uuid!

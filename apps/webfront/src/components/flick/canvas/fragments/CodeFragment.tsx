@@ -151,7 +151,7 @@ const CodeFragment = ({
 		blockId: dataConfig.id,
 		shouldUpdateLiveblocks: !isPreview,
 	})
-  const setControlsConfig = useSetRecoilState(controlsConfigAtom)
+	const setControlsConfig = useSetRecoilState(controlsConfigAtom)
 
 	const { hasura } = useEnv()
 	const { token: userToken } = useContext(UserContext)
@@ -276,7 +276,7 @@ const CodeFragment = ({
 					if (
 						decodedCode &&
 						(code?.code !== decodedCode ||
-							codeBlockViewProps.theme !== code?.theme)
+							codeBlockViewProps?.theme !== code?.theme)
 					) {
 						debounceColorCodes({
 							decodedCode,
@@ -341,7 +341,6 @@ const CodeFragment = ({
 			})
 		)
 	}, [colorCodes, objectRenderConfig, fontSize])
-
 
 	useEffect(() => {
 		setControlsConfig({

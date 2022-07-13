@@ -7,7 +7,7 @@ import BlockPreview from './BlockPreview'
 const EditorSection = () => {
 	const { editor, dragHandleRef } = useIncredibleEditor()
 	const editorContainerRef = useRef<HTMLDivElement>(null)
-	const previewRef = useRef<HTMLDivElement>(null)
+	const previewRef = useRef<HTMLButtonElement>(null)
 	const setCurrentBlockId = useSetRecoilState(currentBlockIdAtom)
 
 	const ast = useRecoilValue(astAtom)
