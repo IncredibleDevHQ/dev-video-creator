@@ -12,34 +12,34 @@ import { useRecoilValue, useSetRecoilState } from 'recoil'
 import {
 	Content_Types,
 	SetupRecordingMutationVariables,
-	useDeleteBlockGroupMutation,
-	useSaveMultipleBlocksMutation,
-	useSaveRecordedBlockMutation,
-	useSetupRecordingMutation,
+  useDeleteBlockGroupMutation,
+  useSaveMultipleBlocksMutation,
+  useSaveRecordedBlockMutation,
+  useSetupRecordingMutation
 } from 'src/graphql/generated'
-import { flickNameAtom } from 'src/stores/flick.store'
-import studioAtom, {
-	activeObjectIndexAtom,
-	studioStateAtom,
+import { flickNameAtom, openStudioAtom } from 'src/stores/flick.store'
+import {
+  activeObjectIndexAtom,
+  studioStateAtom
 } from 'src/stores/studio.store'
 import useCanvasRecorder from 'src/utils/hooks/useCanvasRecorder'
 import useUpdateState from 'src/utils/hooks/useUpdateState'
 import {
-	RoomEventTypes,
-	useBroadcastEvent,
-	useEventListener,
-	useMap,
-	useObject,
+  RoomEventTypes,
+  useBroadcastEvent,
+  useEventListener,
+  useMap,
+  useObject
 } from 'src/utils/liveblocks.config'
 import { useUser } from 'src/utils/providers/auth'
 import { dismissToast, emitToast, Heading, Text, updateToast } from 'ui/src'
 import { useEnv, useUploadFile, ViewConfig } from 'utils/src'
+import UploadIcon from '../../../../svg/RecordingScreen/Upload.svg'
 import CanvasComponent, { StudioContext } from '../canvas/CanvasComponent'
 import RecordingControls from '../RecordingControls'
 import Countdown from './Countdown'
 import MediaControls from './MediaControls'
 import MiniTimeline from './MiniTimeline'
-import UploadIcon from '../../../../svg/RecordingScreen/Upload.svg'
 import Notes from './Notes'
 
 const Studio = ({
@@ -59,8 +59,8 @@ const Studio = ({
 	const state = useRecoilValue(studioStateAtom)
 	const { updateState, reset } = useUpdateState(true)
 	const activeObjectIndex = useRecoilValue(activeObjectIndexAtom)
-	const setStudio = useSetRecoilState(studioAtom)
 	const flickName = useRecoilValue(flickNameAtom)
+	const setOpenStudio = useSetRecoilState(openStudioAtom)
 
 	const recordedBlocks = useMap('recordedBlocks')
 	const studioController = useObject('studioControls')
@@ -314,12 +314,16 @@ const Studio = ({
 			<Countdown updateState={updateState} />
 			<div className='flex flex-col w-screen h-screen overflow-hidden backdrop-blur-md bg-black/80'>
 				<div className='flex h-12 w-full flex-row items-center justify-between bg-gray-900 px-5'>
-					<div className='flex items-center gap-x-2 cursor-pointer'>
+					<button
+						type='button'
+						className='flex items-center gap-x-2 cursor-pointer'
+						onClick={() => setOpenStudio(false)}
+					>
 						<IoChevronBackOutline className='text-gray-400 h-4 w-4' />
 						<Text className='text-dark-title font-medium' textStyle='caption'>
 							Go to Notebook
 						</Text>
-					</div>
+					</button>
 					<Heading
 						as='h1'
 						textStyle='smallTitle'
@@ -345,7 +349,7 @@ const Studio = ({
 									stage={stageRef}
 								/>
 							</div>
-              <Notes dataConfig={dataConfig} bounds={bounds} />
+							<Notes dataConfig={dataConfig} bounds={bounds} />
 						</div>
 						<RecordingControls
 							dataConfig={dataConfig}

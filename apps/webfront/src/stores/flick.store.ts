@@ -68,6 +68,11 @@ const fragmentTypeAtom = atom<FragmentType>({
 	default: 'Landscape',
 })
 
+const openStudioAtom = atom<boolean>({
+  key: 'openStudio',
+  default: false,
+})
+
 export {
 	flickAtom,
 	flickNameAtom,
@@ -78,6 +83,7 @@ export {
 	currentBlockSelector,
 	isTimelineVisibleAtom,
 	fragmentTypeAtom,
+	openStudioAtom,
 }
 
 export { View }
