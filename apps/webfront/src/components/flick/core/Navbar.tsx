@@ -10,7 +10,7 @@ import Invite from './Invite'
 const Navbar = () => {
 	const flickName = useRecoilValue(flickNameAtom)
 
-	const [inviteOpen, setInviteOpen] = useState(true)
+	const [inviteOpen, setInviteOpen] = useState(false)
 
 	return (
 		<div className='relative flex h-12 w-full flex-row items-center justify-between bg-gray-900 px-5'>
