@@ -51,10 +51,37 @@ export const brandingAtom = atom<BrandingJSON>({
 	default: {},
 })
 
-// stores the user media stream
-export const streamAtom = atom<MediaStream | null>({
+// stores stream and audio from media
+interface AgoraStreamData {
+	stream: MediaStream
+	audios: MediaStream[]
+}
+export const streamAtom = atom<AgoraStreamData | null>({
 	key: 'stream',
 	default: null,
+})
+
+// join , leave , renew in diff
+interface AgoraActions {
+	join: any
+	leave: any
+	renewToken: any
+}
+
+export const agoraActionsAtom = atom<AgoraActions | null>({
+	key: 'agoraActions',
+	default: null,
+})
+
+// user
+export const agoraUsersAtom = atom<RTCUser[]>({
+	key: 'agoraUsers',
+	default: [],
+})
+
+// agora all channel users
+export const agoraChannelUsersAtom = atom<RTCUser[] | null>({
+	key: 'agoraChannelUsers',
 })
 
 export const payloadFamily = atomFamily<FragmentPayload, string>({

@@ -331,7 +331,14 @@ const Studio = ({
 					>
 						{flickName}
 					</Heading>
-					<MediaControls />
+					<MediaControls
+						flickId={flickId}
+						fragmentId={fragmentId}
+						participantId={
+							viewConfig.speakers.find(({ userSub }) => userSub === user?.uid)
+								?.id
+						}
+					/>
 				</div>
 				{state !== 'preview' ? (
 					<>
