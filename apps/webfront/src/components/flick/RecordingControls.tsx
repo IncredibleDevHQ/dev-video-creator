@@ -34,8 +34,6 @@ import {
 } from 'utils/src'
 import CustomLayout from '../../../svg/RecordingScreen/CustomLayout.svg'
 import OnlyUserMedia from '../../../svg/RecordingScreen/OnlyUserMedia.svg'
-import StartRecordIcon from '../../../svg/RecordingScreen/StartRecord.svg'
-import StopRecordIcon from '../../../svg/RecordingScreen/StopRecord.svg'
 import ThreeWaySwap from '../../../svg/RecordingScreen/ThreeWaySwap.svg'
 
 const RecordingControls = ({
@@ -170,7 +168,7 @@ const RecordingControls = ({
 							updateState?.('stopRecording')
 						}}
 						className={cx(
-							'flex gap-x-2 items-center justify-between border backdrop-filter backdrop-blur-2xl p-1.5 rounded-sm w-24 absolute min-w-max'
+							'flex gap-x-3 bg-white font-main items-center justify-between border backdrop-filter backdrop-blur-2xl px-4 py-2 rounded-sm w-24 absolute min-w-max'
 							// {
 							// 	'left-0': shortsMode,
 							// 	'bg-grey-500 bg-opacity-50 border-gray-600': timeLimit
@@ -182,7 +180,8 @@ const RecordingControls = ({
 							// }
 						)}
 					>
-						<StopRecordIcon className='m-px w-5 h-5 flex-shrink-0' />
+						<div className='w-4 h-4 bg-red-600 rounded-sm' />
+						Stop Recording
 						{/* <Timer target={(timeLimit || 3) * 60} timer={timer} /> */}
 						{/* {timeLimit && (
 						<small className='text-xs flex-shrink-0 text-dark-title'>
@@ -195,7 +194,7 @@ const RecordingControls = ({
 				{(state === 'ready' || state === 'resumed') && (
 					<button
 						className={cx(
-							'bg-grey-500 bg-opacity-50 border border-gray-600 backdrop-filter backdrop-blur-2xl p-1.5 rounded-sm absolute flex items-center',
+							'bg-red-500 text-white font-main backdrop-filter backdrop-blur-2xl px-4 py-2 rounded-sm absolute flex items-center gap-x-2',
 							{
 								'left-0': shortsMode,
 							}
@@ -211,17 +210,8 @@ const RecordingControls = ({
 							updateState?.('countDown')
 						}}
 					>
-						<StartRecordIcon className='m-px w-5 h-5' />
-						<small
-							className='text-xs text-dark-title hover:text-white ml-2'
-							// onClick={e => {
-							// 	e.stopPropagation()
-							// 	openTimerModal()
-							// }}
-						>
-							{/* {timeLimit ? `Limit: ${timeLimit}min` : 'No Time Limit'} */}
-							Limit: min
-						</small>
+						<div className='w-3 h-3 bg-white rounded-lg' />
+						Start Recording
 					</button>
 				)}
 				<div className='flex items-center ml-auto'>
