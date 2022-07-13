@@ -81,10 +81,6 @@ const MediaControls = React.memo(
 				const { data } = await getRTCToken()
 				rtcTokenRef.current = data?.RTCToken?.token
 			})()
-			console.log('Mounting Media Controls')
-			return () => {
-				console.log('Unmounting Media Controls')
-			}
 		}, [])
 
 		useEffect(() => {
@@ -98,7 +94,6 @@ const MediaControls = React.memo(
 				const videoDevices: Device[] = mediaDevices
 					.filter(device => device.kind === 'videoinput')
 					.map(device => ({ id: device.deviceId, label: device.label }))
-				console.log('devices:', { audioDevices, videoDevices })
 				setDevices({ videoDevices, audioDevices })
 			})()
 		}, [])
@@ -114,7 +109,7 @@ const MediaControls = React.memo(
 		}, [join, leave, renewToken])
 
 		useEffect(() => {
-			if (!currentUser.stream || userAudios) return
+			if (!currentUser.stream || !userAudios) return
 			setStream({
 				stream: currentUser.stream,
 				audios: userAudios,
