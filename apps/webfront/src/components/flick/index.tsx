@@ -2,7 +2,7 @@ import { LiveMap, LiveObject } from '@liveblocks/client'
 import { CoreEditorInstance, EditorProvider } from 'editor/src'
 import parser from 'editor/src/utils/parser'
 import { Block } from 'editor/src/utils/types'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useRecoilCallback, useRecoilValue, useSetRecoilState } from 'recoil'
 import { FlickFragment } from 'src/graphql/generated'
 import {
@@ -10,6 +10,7 @@ import {
 	astAtom,
 	flickAtom,
 	flickNameAtom,
+	openStudioAtom,
 	View,
 	viewAtom,
 } from 'src/stores/flick.store'
@@ -19,7 +20,6 @@ import {
 	RoomProvider,
 } from 'src/utils/liveblocks.config'
 import { useUser } from 'src/utils/providers/auth'
-import { Button } from 'ui/src'
 import EditorSection from './core/EditorSection'
 import Navbar from './core/Navbar'
 import SubHeader from './core/SubHeader'
@@ -58,6 +58,7 @@ const FlickBody = ({
 	const { user } = useUser()
 	const activeFragmentId = useRecoilValue(activeFragmentIdAtom)
 	const view = useRecoilValue(viewAtom)
+  const openStudio = useRecoilValue(openStudioAtom)
 
 	const initialPresence: Presence = useMemo(
 		() => ({
@@ -117,7 +118,6 @@ const FlickBody = ({
 		})
 	}
 
-	const [openStudio, setOpenStudio] = useState(false)
 	if (!activeFragmentId) return null
 
 	return (
@@ -146,12 +146,6 @@ const FlickBody = ({
 					<ViewConfigUpdater />
 				</div>
 			</EditorProvider>
-			<Button
-				className='absolute right-4 bottom-4'
-				onClick={() => setOpenStudio(true)}
-			>
-				Studio
-			</Button>
 			{openStudio && (
 				<div className='absolute top-0 left-0 w-full h-screen z-50'>
 					<StudioHoC fragmentId={activeFragmentId} flickId={flick.id} />
