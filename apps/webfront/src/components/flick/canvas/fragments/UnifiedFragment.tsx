@@ -1,18 +1,24 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import {
 	Block,
-	CodeBlockProps, HeadingBlockProps, ImageBlockProps,
-	ListBlockProps, VideoBlockProps
+	CodeBlockProps,
+	HeadingBlockProps,
+	ImageBlockProps,
+	ListBlockProps,
+	VideoBlockProps,
 } from 'editor/src/utils/types'
 import Konva from 'konva'
 // import { nanoid } from 'nanoid'
 import React, { useEffect, useState } from 'react'
 import { useRecoilValue } from 'recoil'
 import { activeObjectIndexAtom, themeAtom } from 'src/stores/studio.store'
+import { CONFIG, FragmentState, SHORTS_CONFIG } from 'src/utils/configs'
 import {
-	CONFIG, FragmentState, SHORTS_CONFIG
-} from 'src/utils/configs'
-import { BlockProperties, IntroBlockView, OutroBlockView, ViewConfig } from 'utils/src'
+	BlockProperties,
+	IntroBlockView,
+	OutroBlockView,
+	ViewConfig,
+} from 'utils/src'
 import VideoBackground from '../VideoBackground'
 import CodeFragment from './CodeFragment'
 import HeadingFragment from './HeadingFragment'
@@ -106,7 +112,7 @@ const UnifiedFragment = ({
 		else setStageConfig(SHORTS_CONFIG)
 	}, [viewConfig?.mode])
 
-  console.log('UnifiedFragment', flickTheme)
+	// console.log('UnifiedFragment', flickTheme)
 
 	if (!dataConfig || !viewConfig || dataConfig.length === 0) return null
 	return (
