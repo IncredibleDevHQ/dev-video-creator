@@ -5,21 +5,33 @@ import { CodeBlockProps } from 'editor/src/utils/types'
 import useEdit from 'icanvas/src/hooks/useEdit'
 import Konva from 'konva'
 import React, { useContext, useEffect, useRef, useState } from 'react'
-import { useRecoilValue, useRecoilState, useSetRecoilState } from 'recoil'
-import studioStore, {
+import { Group } from 'react-konva'
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
+import {
+	agoraUsersAtom,
 	colorCodesAtom,
 	controlsConfigAtom,
 	payloadFamily,
-	StudioProviderProps,
 	studioStateAtom,
 	themeAtom,
 } from 'src/stores/studio.store'
+import {
+	getFragmentLayoutConfig,
+	ObjectConfig,
+} from 'src/utils/canvasConfigs/fragmentLayoutConfig'
+import {
+	getShortsStudioUserConfiguration,
+	getStudioUserConfiguration,
+} from 'src/utils/canvasConfigs/studioUserConfig'
 import {
 	getThemeLayoutConfig,
 	ObjectRenderConfig,
 } from 'src/utils/canvasConfigs/themeConfig'
 import { FragmentState } from 'src/utils/configs'
 import useCode, { ComputedToken } from 'src/utils/hooks/useCode'
+import useUpdatePayload from 'src/utils/hooks/useUpdatePayload'
+import { UserContext } from 'src/utils/providers/auth'
+import { useDebouncedCallback } from 'use-debounce'
 import {
 	BlockProperties,
 	CodeAnimation,
@@ -30,20 +42,6 @@ import {
 	Layout,
 	useEnv,
 } from 'utils/src'
-import { Group } from 'react-konva'
-import {
-	getFragmentLayoutConfig,
-	ObjectConfig,
-} from 'src/utils/canvasConfigs/fragmentLayoutConfig'
-import {
-	getShortsStudioUserConfiguration,
-	getStudioUserConfiguration,
-} from 'src/utils/canvasConfigs/studioUserConfig'
-import { useDebouncedCallback } from 'use-debounce'
-import useUpdatePayload from 'src/utils/hooks/useUpdatePayload'
-import { UserContext } from 'src/utils/providers/auth'
-import Concourse from '../Concourse'
-import FragmentBackground from '../FragmentBackground'
 import RenderTokens, {
 	getAllLineNumbers,
 	getRenderedTokens,
@@ -51,6 +49,8 @@ import RenderTokens, {
 	Position,
 	RenderHighlight,
 } from '../CodeAnimations'
+import Concourse from '../Concourse'
+import FragmentBackground from '../FragmentBackground'
 
 export const getColorCodes = async (
 	code: string,
@@ -142,7 +142,7 @@ const CodeFragment = ({
 	isPreview: boolean
 	speakersLength: number
 }) => {
-	const { users } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
+	const users = useRecoilValue(agoraUsersAtom)
 	const state = useRecoilValue(studioStateAtom)
 	const theme = useRecoilValue(themeAtom)
 	const payload = useRecoilValue(payloadFamily(dataConfig.id))

@@ -1,15 +1,16 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { Transformations, VideoBlockProps } from 'editor/src/utils/types'
 import useEdit from 'icanvas/src/hooks/useEdit'
+import { Video, VideoConfig } from 'icanvas/src/Video'
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
 import { Group, Rect, Text } from 'react-konva'
 import { useRecoilValue, useSetRecoilState } from 'recoil'
-import studioStore, {
+import {
+	agoraUsersAtom,
 	brandingAtom,
 	controlsConfigAtom,
 	payloadFamily,
-	StudioProviderProps,
 	studioStateAtom,
 	themeAtom,
 } from 'src/stores/studio.store'
@@ -18,13 +19,13 @@ import {
 	ObjectConfig,
 } from 'src/utils/canvasConfigs/fragmentLayoutConfig'
 import {
-	getThemeLayoutConfig,
-	ObjectRenderConfig,
-} from 'src/utils/canvasConfigs/themeConfig'
-import {
 	getShortsStudioUserConfiguration,
 	getStudioUserConfiguration,
 } from 'src/utils/canvasConfigs/studioUserConfig'
+import {
+	getThemeLayoutConfig,
+	ObjectRenderConfig,
+} from 'src/utils/canvasConfigs/themeConfig'
 import { FragmentState } from 'src/utils/configs'
 import usePoint from 'src/utils/hooks/usePoint'
 import useUpdatePayload from 'src/utils/hooks/useUpdatePayload'
@@ -35,7 +36,6 @@ import {
 	VideoBlockView,
 	VideoBlockViewProps,
 } from 'utils/src'
-import { VideoConfig, Video } from 'icanvas/src/Video'
 import Concourse from '../Concourse'
 import FragmentBackground from '../FragmentBackground'
 
@@ -58,13 +58,7 @@ const VideoFragment = ({
 	isPreview: boolean
 	speakersLength: number
 }) => {
-	const {
-		// fragment,
-		// state,
-		// preloadedBlobUrls,
-		users,
-	} = (useRecoilValue(studioStore) as StudioProviderProps) || {}
-
+	const users = useRecoilValue(agoraUsersAtom)
 	const state = useRecoilValue(studioStateAtom)
 	const theme = useRecoilValue(themeAtom)
 	const branding = useRecoilValue(brandingAtom)

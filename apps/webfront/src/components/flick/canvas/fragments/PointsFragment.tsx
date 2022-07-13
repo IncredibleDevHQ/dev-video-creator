@@ -1,53 +1,53 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-nested-ternary */
+import { ListBlockProps, ListItem } from 'editor/src/utils/types'
+import useEdit from 'icanvas/src/hooks/useEdit'
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
 import { Group, Rect, Text } from 'react-konva'
 import { useRecoilValue, useSetRecoilState } from 'recoil'
-import usePoint from 'src/utils/hooks/usePoint'
+import {
+	agoraUsersAtom,
+	brandingAtom,
+	controlsConfigAtom,
+	payloadFamily,
+	studioStateAtom,
+	themeAtom,
+} from 'src/stores/studio.store'
 import {
 	getFragmentLayoutConfig,
 	ObjectConfig,
 } from 'src/utils/canvasConfigs/fragmentLayoutConfig'
 import {
+	BulletsConfig,
+	getBulletsConfig,
+	getPointsConfig,
+	PointsConfig,
+} from 'src/utils/canvasConfigs/pointsConfig'
+import {
 	getShortsStudioUserConfiguration,
 	getStudioUserConfiguration,
 } from 'src/utils/canvasConfigs/studioUserConfig'
-import { ListBlockProps, ListItem } from 'editor/src/utils/types'
-import useEdit from 'icanvas/src/hooks/useEdit'
 import {
 	getThemeLayoutConfig,
 	ObjectRenderConfig,
 } from 'src/utils/canvasConfigs/themeConfig'
 import { ComputedPoint, FragmentState } from 'src/utils/configs'
-import {
-	Layout,
-	BlockProperties,
-	ListViewStyle,
-	ListAppearance,
-	ListOrientation,
-	ListBlockViewProps,
-	ListBlockView,
-} from 'utils/src'
-import studioStore, {
-	brandingAtom,
-	controlsConfigAtom,
-	payloadFamily,
-	StudioProviderProps,
-	studioStateAtom,
-	themeAtom,
-} from 'src/stores/studio.store'
-import {
-	PointsConfig,
-	BulletsConfig,
-	getPointsConfig,
-	getBulletsConfig,
-} from 'src/utils/canvasConfigs/pointsConfig'
+import usePoint from 'src/utils/hooks/usePoint'
 import useUpdatePayload from 'src/utils/hooks/useUpdatePayload'
-import RichText from '../RichText'
+import {
+	BlockProperties,
+	Layout,
+	ListAppearance,
+	ListBlockView,
+	ListBlockViewProps,
+	ListOrientation,
+	ListViewStyle,
+} from 'utils/src'
 import Concourse from '../Concourse'
 import FragmentBackground from '../FragmentBackground'
 import HorizontalPointBullets, { PointBullets } from '../PointBullets'
+import RichText from '../RichText'
 
 // returns total no of points to be rendered
 // for a particular layout in horizontal orientation
@@ -92,7 +92,7 @@ const PointsFragment = ({
 	isPreview: boolean
 	speakersLength: number
 }) => {
-	const { users } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
+	const users = useRecoilValue(agoraUsersAtom)
 	const state = useRecoilValue(studioStateAtom)
 	const theme = useRecoilValue(themeAtom)
 	const branding = useRecoilValue(brandingAtom)
@@ -632,7 +632,7 @@ const PointsFragment = ({
 															: -10
 													}
 													y={3}
-													align='left'
+													// align='left'
 													fontSize={24}
 													fill={
 														branding?.colors?.text
@@ -860,7 +860,7 @@ const PointsFragment = ({
 													: -10
 											}
 											y={3}
-											align='left'
+											// align='left'
 											fontSize={24}
 											fill={
 												branding?.colors?.text

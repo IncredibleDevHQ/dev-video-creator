@@ -3,7 +3,8 @@ import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
 import { Group, Text } from 'react-konva'
 import { useRecoilValue, useSetRecoilState } from 'recoil'
-import studioStore, {
+import {
+	agoraUsersAtom,
 	brandingAtom,
 	controlsConfigAtom,
 	payloadFamily,
@@ -46,7 +47,7 @@ const HeadingFragment = ({
 	isPreview: boolean
 	speakersLength: number
 }) => {
-	const { users } = useRecoilValue(studioStore)
+	const users = useRecoilValue(agoraUsersAtom)
 	const theme = useRecoilValue(themeAtom)
 	const branding = useRecoilValue(brandingAtom)
 	const payload = useRecoilValue(payloadFamily(dataConfig.id))
@@ -54,7 +55,7 @@ const HeadingFragment = ({
 		blockId: dataConfig.id,
 		shouldUpdateLiveblocks: !isPreview,
 	})
-  const setControlsConfig = useSetRecoilState(controlsConfigAtom)
+	const setControlsConfig = useSetRecoilState(controlsConfigAtom)
 
 	const [title, setTitle] = useState('')
 
@@ -83,9 +84,9 @@ const HeadingFragment = ({
 
 	useEffect(() => {
 		if (!reset) return
-    setControlsConfig({
+		setControlsConfig({
 			updatePayload,
-			blockId: dataConfig.id
+			blockId: dataConfig.id,
 		})
 		// eslint-disable-next-line consistent-return
 		return () => {
@@ -93,7 +94,7 @@ const HeadingFragment = ({
 				fragmentState: 'customLayout',
 			})
 		}
-	// eslint-disable-next-line react-hooks/exhaustive-deps
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [])
 
 	useEffect(() => {
