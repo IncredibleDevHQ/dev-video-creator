@@ -40,6 +40,7 @@ import Countdown from './Countdown'
 import MediaControls from './MediaControls'
 import MiniTimeline from './MiniTimeline'
 import UploadIcon from '../../../../svg/RecordingScreen/Upload.svg'
+import Notes from './Notes'
 
 const Studio = ({
 	fragmentId,
@@ -261,7 +262,7 @@ const Studio = ({
 			// setTopLayerChildren?.({ id: nanoid(), state: '' })
 			// setResetTimer(true)
 		}
-    if(event.type === RoomEventTypes.RetakeButtonClick){
+		if (event.type === RoomEventTypes.SaveButtonClick) {
 			// setTopLayerChildren?.({ id: nanoid(), state: '' })
 			// setResetTimer(true)
 		}
@@ -344,6 +345,7 @@ const Studio = ({
 									stage={stageRef}
 								/>
 							</div>
+              <Notes dataConfig={dataConfig} bounds={bounds} />
 						</div>
 						<RecordingControls
 							dataConfig={dataConfig}
@@ -419,9 +421,9 @@ const Studio = ({
 															type: RoomEventTypes.SaveButtonClick,
 															payload: {},
 														})
-                            // TODO if we change the active object index we need to update the state
+														// TODO if we change the active object index we need to update the state
 														// setTopLayerChildren?.({ id: nanoid(), state: '',})
-                            // setResetTimer(true)
+														// setResetTimer(true)
 
 														if (dataConfig?.[activeObjectIndex]?.id)
 															// calls the upload function
