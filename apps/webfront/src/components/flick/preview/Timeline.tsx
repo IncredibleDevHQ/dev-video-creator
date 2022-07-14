@@ -1,10 +1,11 @@
 /* eslint-disable arrow-body-style */
 import { cx } from '@emotion/css'
+import { Transition } from '@headlessui/react'
 import CodeSandbox from 'editor/src/assets/Command_CodeSandbox.svg'
 import Replit from 'editor/src/assets/Command_Replit.svg'
 import StackBlitz from 'editor/src/assets/Command_Stackblitz.svg'
 import { Block } from 'editor/src/utils/types'
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { IoPlayOutline } from 'react-icons/io5'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import {
@@ -273,7 +274,16 @@ const Timeline = ({
 				</div>
 			)}
 
-			{(showTimeline || persistentTimeline) && (
+			<Transition
+				show={showTimeline || persistentTimeline}
+				as={Fragment}
+				enter='transition ease-out duration-200'
+				enterFrom='opacity-0 translate-y-10'
+				enterTo='opacity-100 translate-y-1'
+				leave='transition ease-in duration-150'
+				leaveFrom='opacity-100 translate-y-0'
+				leaveTo='opacity-0 translate-y-10'
+			>
 				<div className='flex'>
 					<div className='h-24' />
 					<div className='flex items-center w-full bg-dark-500 py-4 gap-x-4 overflow-x-auto'>
@@ -351,7 +361,7 @@ const Timeline = ({
 						))}
 					</div>
 				</div>
-			)}
+			</Transition>
 		</div>
 	)
 }
