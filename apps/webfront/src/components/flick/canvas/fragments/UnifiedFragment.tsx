@@ -8,15 +8,21 @@ import {
 	VideoBlockProps,
 } from 'editor/src/utils/types'
 import Konva from 'konva'
+import { nanoid } from 'nanoid'
 // import { nanoid } from 'nanoid'
 import React, { useEffect, useState } from 'react'
 import { useRecoilValue } from 'recoil'
-import { activeObjectIndexAtom, themeAtom } from 'src/stores/studio.store'
+import {
+	activeObjectIndexAtom,
+	payloadFamily,
+	themeAtom,
+} from 'src/stores/studio.store'
 import { CONFIG, FragmentState, SHORTS_CONFIG } from 'src/utils/configs'
 import {
 	BlockProperties,
 	IntroBlockView,
 	OutroBlockView,
+	TopLayerChildren,
 	ViewConfig,
 } from 'utils/src'
 import VideoBackground from '../VideoBackground'
@@ -30,18 +36,18 @@ import VideoFragment from './VideoFragment'
 
 const UnifiedFragment = ({
 	stageRef,
-	// setTopLayerChildren,
+	setTopLayerChildren,
 	config,
 	layoutConfig,
 	isPreview,
 }: {
 	stageRef: React.RefObject<Konva.Stage>
-	// setTopLayerChildren?: React.Dispatch<
-	// 	React.SetStateAction<{
-	// 		id: string
-	// 		state: TopLayerChildren
-	// 	}>
-	// >
+	setTopLayerChildren?: React.Dispatch<
+		React.SetStateAction<{
+			id: string
+			state: TopLayerChildren
+		}>
+	>
 	config: Block[]
 	layoutConfig: ViewConfig
 	isPreview: boolean
@@ -55,6 +61,10 @@ const UnifiedFragment = ({
 	const [viewConfig, setViewConfig] = useState<ViewConfig>()
 	// holds the index of the present object
 	const [activeObjectIndex, setActiveObjectIndex] = useState(-1)
+
+	const { fragmentState: payloadFragmentState } = useRecoilValue(
+		payloadFamily(config[activeObjectIndex]?.id)
+	)
 
 	// state of the fragment
 	const [fragmentState, setFragmentState] =
@@ -75,31 +85,31 @@ const UnifiedFragment = ({
 	}, [storeActiveObjectIndex])
 
 	// TODO Deal with transitions
-	// useEffect(() => {
-	// 	if (!payload?.activeObjectIndex || payload?.activeObjectIndex === 0) return
-	// 	if (payload?.fragmentState === fragmentState) return
-	// 	if (viewConfig?.mode !== 'Portrait') {
-	// 		// Checking if the current state is only fragment group and making the opacity of the only fragment group 1
-	// 		if (payload?.fragmentState === 'customLayout') {
-	// 			setTopLayerChildren?.({
-	// 				id: nanoid(),
-	// 				state:
-	// 					fragmentState === 'onlyUserMedia'
-	// 						? 'transition right'
-	// 						: 'transition left',
-	// 			})
-	// 		}
-	// 		// Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
-	// 		if (payload?.fragmentState === 'onlyUserMedia') {
-	// 			setTopLayerChildren?.({ id: nanoid(), state: 'transition left' })
-	// 		}
-	// 		if (payload?.fragmentState === 'onlyFragment') {
-	// 			setTopLayerChildren?.({ id: nanoid(), state: 'transition right' })
-	// 		}
-	// 	} else {
-	// 		setTopLayerChildren?.({ id: nanoid(), state: '' })
-	// 	}
-	// }, [payload?.fragmentState])
+	useEffect(() => {
+		if (!storeActiveObjectIndex || storeActiveObjectIndex === 0) return
+		if (payloadFragmentState === fragmentState) return
+		if (viewConfig?.mode !== 'Portrait') {
+			// Checking if the current state is only fragment group and making the opacity of the only fragment group 1
+			if (payloadFragmentState === 'customLayout') {
+				setTopLayerChildren?.({
+					id: nanoid(),
+					state:
+						fragmentState === 'onlyUserMedia'
+							? 'transition right'
+							: 'transition left',
+				})
+			}
+			// Checking if the current state is only usermedia group and making the opacity of the only fragment group 0
+			if (payloadFragmentState === 'onlyUserMedia') {
+				setTopLayerChildren?.({ id: nanoid(), state: 'transition left' })
+			}
+			if (payloadFragmentState === 'onlyFragment') {
+				setTopLayerChildren?.({ id: nanoid(), state: 'transition right' })
+			}
+		} else {
+			setTopLayerChildren?.({ id: nanoid(), state: '' })
+		}
+	}, [payloadFragmentState])
 
 	const [stageConfig, setStageConfig] = useState<{
 		width: number
@@ -111,8 +121,6 @@ const UnifiedFragment = ({
 		if (viewConfig?.mode === 'Landscape') setStageConfig(CONFIG)
 		else setStageConfig(SHORTS_CONFIG)
 	}, [viewConfig?.mode])
-
-	// console.log('UnifiedFragment', flickTheme)
 
 	if (!dataConfig || !viewConfig || dataConfig.length === 0) return null
 	return (
