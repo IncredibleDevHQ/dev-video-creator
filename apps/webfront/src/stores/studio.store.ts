@@ -23,7 +23,6 @@ export interface RTCUser extends IAgoraRTCRemoteUser {
 }
 
 export interface StudioProviderProps {
-	users: RTCUser[]
 	isHost: boolean
 	shortsMode?: boolean
 }
@@ -108,7 +107,6 @@ export const colorCodesAtom = atom<{
 const studioAtom = atom<StudioProviderProps>({
 	key: 'studio',
 	default: {
-		users: [],
 		isHost: false,
 		shortsMode: false,
 	},

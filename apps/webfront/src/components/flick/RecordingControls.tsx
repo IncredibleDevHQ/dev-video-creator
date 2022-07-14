@@ -201,12 +201,6 @@ const RecordingControls = ({
 						)}
 						type='button'
 						onClick={() => {
-							console.log(
-								'start recording',
-								document
-									.getElementsByClassName('konvajs-content')[0]
-									.getElementsByTagName('canvas')[0]
-							)
 							updateState?.('countDown')
 						}}
 					>

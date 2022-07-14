@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-console */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Block } from 'editor/src/utils/types'
@@ -14,12 +15,15 @@ import {
 	SetupRecordingMutationVariables,
 	useDeleteBlockGroupMutation,
 	useGetRecordingsLazyQuery,
-	useSaveMultipleBlocksMutation,
 	useSaveRecordedBlockMutation,
 	useSetupRecordingMutation,
 } from 'src/graphql/generated'
 import { flickNameAtom, openStudioAtom } from 'src/stores/flick.store'
-import { activeObjectIndexAtom, studioStateAtom } from 'src/stores/studio.store'
+import {
+	activeObjectIndexAtom,
+	streamAtom,
+	studioStateAtom,
+} from 'src/stores/studio.store'
 import useCanvasRecorder from 'src/utils/hooks/useCanvasRecorder'
 import useUpdateState from 'src/utils/hooks/useUpdateState'
 import {
@@ -59,6 +63,7 @@ const Studio = ({
 	const activeObjectIndex = useRecoilValue(activeObjectIndexAtom)
 	const flickName = useRecoilValue(flickNameAtom)
 	const setOpenStudio = useSetRecoilState(openStudioAtom)
+	const agoraStreamData = useRecoilValue(streamAtom)
 
 	const recordedBlocks = useMap('recordedBlocks')
 	const studioController = useObject('studioControls')
@@ -73,7 +78,7 @@ const Studio = ({
 
 	const [uploadFile] = useUploadFile()
 	const [saveBlock] = useSaveRecordedBlockMutation()
-	const [saveMultiBlocks] = useSaveMultipleBlocksMutation()
+	// const [saveMultiBlocks] = useSaveMultipleBlocksMutation()
 	const [deleteBlockGroupMutation] = useDeleteBlockGroupMutation()
 	// to get the recording id
 	const [getRecordingId] = useGetRecordingsLazyQuery({
@@ -100,20 +105,22 @@ const Studio = ({
 			const canvas = document
 				.getElementsByClassName('konvajs-content')[0]
 				.getElementsByTagName('canvas')[0]
-			// // if (
-			// // 	dataConfig &&
-			// // 	dataConfig[activeObjectIndex]?.type !== 'introBlock'
-			// // )
-			// // setTopLayerChildren({ id: nanoid(), state: 'transition moveAway' })
-
-			// startCanvasRecording(canvas, {
-			// 	localStream: stream as MediaStream,
-			// 	remoteStreams: userAudios,
+			// if (
+			// 	dataConfig &&
+			// 	dataConfig[activeObjectIndex]?.type !== 'introBlock'
+			// )
+			// setTopLayerChildren({ id: nanoid(), state: 'transition moveAway' })
+			startCanvasRecording(canvas, {
+				localStream: agoraStreamData?.stream as MediaStream,
+				remoteStreams: agoraStreamData?.audios as MediaStream[],
+			})
 		} catch (e) {
 			console.log(e)
 		}
 		// setResetTimer(false)
 	}
+
+	// console.log('studio', agoraStreamData)
 
 	// function which gets triggered on stop, used for converting the blobs in to url and
 	// store it in recorded blocks and checking if the blobs are empty
@@ -140,9 +147,9 @@ const Studio = ({
 			// )
 			return
 		}
-
 		const url = URL.createObjectURL(blob)
 		recordedBlocks?.set(currentBlockDataConfig.id, url)
+		updateState('preview')
 	}
 
 	const upload = async (blockId: string) => {
@@ -190,7 +197,7 @@ const Studio = ({
 				})
 				thumbnailFilename = uuid
 			}
-
+			// TODO
 			// if (
 			// 	viewConfig.continuousRecording &&
 			// 	continuousRecordedBlockIds
@@ -256,9 +263,9 @@ const Studio = ({
 		// 	setTopLayerChildren({ id: nanoid(), state: 'transition moveIn' })
 		// else {
 		stopCanvasRecording()
-		prepareVideo()
-		updateState('preview')
-		// }
+		setTimeout(() => {
+			prepareVideo()
+		}, 250)
 	}
 
 	useEventListener(({ event }) => {
@@ -279,7 +286,7 @@ const Studio = ({
 			start,
 			stop,
 		}),
-		[]
+		[start]
 	)
 
 	// on unmount changing the state back to ready
@@ -320,8 +327,6 @@ const Studio = ({
 		if (state === 'stopRecording') stop()
 	}, [state])
 
-	console.log('Studio', state)
-
 	return (
 		<StudioContext.Provider value={value}>
 			<Countdown updateState={updateState} />
@@ -330,7 +335,9 @@ const Studio = ({
 					<button
 						type='button'
 						className='flex items-center gap-x-2 cursor-pointer'
-						onClick={() => setOpenStudio(false)}
+						onClick={() => {
+							setOpenStudio(false)
+						}}
 					>
 						<IoChevronBackOutline className='text-gray-400 h-4 w-4' />
 						<Text className='text-dark-title font-medium' textStyle='caption'>

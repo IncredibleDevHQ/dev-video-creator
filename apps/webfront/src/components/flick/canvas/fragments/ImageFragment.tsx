@@ -7,35 +7,31 @@ import { nanoid } from 'nanoid'
 import React, { useEffect, useRef, useState } from 'react'
 import { Group, Image, Rect, Text } from 'react-konva'
 import { useRecoilValue, useSetRecoilState } from 'recoil'
-import studioStore, {
-	brandingAtom,
-	controlsConfigAtom,
-	payloadFamily,
-	StudioProviderProps,
-	themeAtom,
+import {
+  agoraUsersAtom,
+  brandingAtom,
+  controlsConfigAtom,
+  payloadFamily, themeAtom
 } from 'src/stores/studio.store'
 import {
-	getFragmentLayoutConfig,
-	ObjectConfig,
+  getFragmentLayoutConfig,
+  ObjectConfig
 } from 'src/utils/canvasConfigs/fragmentLayoutConfig'
 import {
-	getThemeLayoutConfig,
-	ObjectRenderConfig,
-} from 'src/utils/canvasConfigs/themeConfig'
-import {
-	getShortsStudioUserConfiguration,
-	getStudioUserConfiguration,
+  getShortsStudioUserConfiguration,
+  getStudioUserConfiguration
 } from 'src/utils/canvasConfigs/studioUserConfig'
+import {
+  getThemeLayoutConfig,
+  ObjectRenderConfig
+} from 'src/utils/canvasConfigs/themeConfig'
 import { FragmentState } from 'src/utils/configs'
 import usePoint from 'src/utils/hooks/usePoint'
 import useUpdatePayload from 'src/utils/hooks/useUpdatePayload'
 import useImage from 'use-image'
 import {
-	BlockProperties,
-	CaptionTitleView,
-	Layout,
-	ImageBlockViewProps,
-	ImageBlockView,
+  BlockProperties,
+  CaptionTitleView, ImageBlockView, ImageBlockViewProps, Layout
 } from 'utils/src'
 import Concourse from '../Concourse'
 import FragmentBackground from '../FragmentBackground'
@@ -60,8 +56,7 @@ const ImageFragment = ({
 	isPreview: boolean
 	speakersLength: number
 }) => {
-	const { users } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
-
+	const users = useRecoilValue(agoraUsersAtom)
 	const theme = useRecoilValue(themeAtom)
 	const branding = useRecoilValue(brandingAtom)
 	const payload = useRecoilValue(payloadFamily(dataConfig.id))

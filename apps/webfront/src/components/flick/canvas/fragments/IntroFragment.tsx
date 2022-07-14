@@ -5,17 +5,15 @@ import { nanoid } from 'nanoid'
 import React, { useEffect, useRef, useState } from 'react'
 import { Group } from 'react-konva'
 import { useRecoilValue, useSetRecoilState } from 'recoil'
-import studioStore, {
-	brandingAtom,
-	controlsConfigAtom,
-	payloadFamily,
-	StudioProviderProps,
-	studioStateAtom,
-	themeAtom,
+import {
+  agoraUsersAtom,
+  brandingAtom,
+  controlsConfigAtom,
+  payloadFamily, studioStateAtom,
+  themeAtom
 } from 'src/stores/studio.store'
 import {
-	getStudioUserConfiguration,
-	getShortsStudioUserConfiguration,
+  getShortsStudioUserConfiguration, getStudioUserConfiguration
 } from 'src/utils/canvasConfigs/studioUserConfig'
 import { CONFIG, SHORTS_CONFIG } from 'src/utils/configs'
 import useUpdatePayload from 'src/utils/hooks/useUpdatePayload'
@@ -47,7 +45,7 @@ const IntroFragment = ({
 	blockId: string
 	speakersLength: number
 }) => {
-	const { users } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
+	const users  = useRecoilValue(agoraUsersAtom)
 	const state = useRecoilValue(studioStateAtom)
 	const theme = useRecoilValue(themeAtom)
 	const branding = useRecoilValue(brandingAtom)
@@ -112,6 +110,7 @@ const IntroFragment = ({
 	useEffect(() => {
 		if (
 			state === 'startRecording' ||
+      state === 'recording' ||
 			state === 'ready' ||
 			state === 'resumed' ||
 			isPreview
