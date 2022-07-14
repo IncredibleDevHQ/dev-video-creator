@@ -177,6 +177,7 @@ model Flick {
   FLICK_SCOPE_ENUM         FLICK_SCOPE_ENUM         @relation(fields: [scope], references: [value], onUpdate: Restrict)
   FLICK_STATUS_ENUM        FLICK_STATUS_ENUM        @relation(fields: [status], references: [value], onUpdate: Restrict)
   Theme                    Theme                    @relation(fields: [themeName], references: [name], onUpdate: Restrict, map: "Flick_themeId_fkey")
+  Participants             Participant[]
   Blocks                   Blocks[]
   Content                  Content[]
   FlickActivity            FlickActivity[]
@@ -510,6 +511,7 @@ model Participant {
   Block_Participants             Block_Participants[]
   Fragment_Participant           Fragment_Participant[]
 
+  Flick Flick @relation(fields: [flickId], references: [id])
   @@index([flickId, userSub])
 }
 

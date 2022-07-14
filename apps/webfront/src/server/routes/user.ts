@@ -36,22 +36,44 @@ const userRouter = trpc
 		meta: {
 			hasAuth: true,
 		},
-		input: z
-			.object({
-				text: z.string().nullish(),
-			})
-			.nullish(),
+		input: z.object({
+			sub: z.string(),
+		}),
 		output: z.object({
-			greeting: z.string(),
-			ctx: z.string(),
+			onboarded: z.boolean(),
+			sub: z.string(),
+			username: z.string(),
+			displayName: z.string().nullable(),
+			email: z.string().nullable(),
+			provider: z.string().nullable().optional().nullable(),
+			picture: z.string().nullable(),
+			updatedAt: z.date().nullable(),
+			createdAt: z.date(),
 		}),
 		resolve: async ({ input, ctx }) => {
-			const out = {
-				greeting: `hello ${input?.text ?? ctx.user?.email}`,
-				ctx: ctx.user!.sub,
+			const me = await ctx.prisma.user.findUnique({
+				where: {
+					sub: input.sub,
+				},
+				select: {
+					onboarded: true,
+					sub: true,
+					username: true,
+					displayName: true,
+					email: true,
+					provider: true,
+					picture: true,
+					updatedAt: true,
+					createdAt: true,
+				},
+			})
+			if (!me) {
+				throw new TRPCError({
+					code: 'NOT_FOUND',
+					message: 'User not found',
+				})
 			}
-
-			return out
+			return me
 		},
 	})
 	.query('availability', {
@@ -130,6 +152,7 @@ const userRouter = trpc
 					displayName: input.name,
 					organization: input.organization,
 					picture: input.profilePicture,
+					onboarded: true,
 				},
 				select: {
 					displayName: true,

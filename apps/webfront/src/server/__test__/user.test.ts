@@ -23,6 +23,26 @@ beforeEach(() => {
 })
 
 describe('User Route', () => {
+	/* QUERIES */
+	describe('me', () => {
+		it('should return user details , when valid usersub is provided.', async () => {
+			// TODO:
+			// const input: inferQueryInput<'user.me'> = {
+			// 	sub: '123456789',
+			// }
+			// const output: inferQueryOutput<'user.me'> = {
+			// 	onboarded: true,
+			// 	sub: '123456789',
+			// 	username: 'test',
+			// 	displayName: 'test',
+			// 	email: 'test@jest.com',
+			// }
+			// const me = await caller.me(input)
+			// expect(me).toEqual(output)
+			expect(true).toBe(true)
+		})
+	})
+	/* MUTATIONS */
 	describe('onboard a user', () => {
 		// define mockEntry
 		const mockEntry = {
