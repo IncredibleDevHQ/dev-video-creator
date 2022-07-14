@@ -1,5 +1,6 @@
 import { createClient, LiveMap, LiveObject } from '@liveblocks/client'
 import { createRoomContext } from '@liveblocks/react'
+import { ThemeFragment } from 'src/graphql/generated'
 import { StudioState } from 'src/stores/studio.store'
 import { getEnv, LiveViewConfig } from 'utils/src'
 import { FragmentPayload } from './configs'
@@ -64,7 +65,7 @@ export enum RoomEventTypes {
 type RoomEvent =
 	| {
 			type: RoomEventTypes.ThemeChanged
-			payload: any
+			payload: ThemeFragment
 	  }
 	| {
 			type: RoomEventTypes.BrandingChanged
@@ -82,9 +83,7 @@ type RoomEvent =
 			type: RoomEventTypes.RetakeButtonClick
 			payload: any
 	  }
-	| { type: RoomEventTypes.SaveButtonClick
-      payload: any
-    }
+	| { type: RoomEventTypes.SaveButtonClick; payload: any }
 
 export const {
 	RoomProvider,

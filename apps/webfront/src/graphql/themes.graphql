@@ -9,6 +9,13 @@ query GetThemes {
 	}
 }
 
+mutation UpdateFlickTheme($id: uuid!, $themeName: String!) {
+	update_Flick_by_pk(pk_columns: { id: $id }, _set: { themeName: $themeName }) {
+		id
+		themeName
+	}
+}
+
 fragment Transition on Transition {
 	name
 	config

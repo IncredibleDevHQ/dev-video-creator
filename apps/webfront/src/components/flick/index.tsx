@@ -23,7 +23,7 @@ import {
 import { useUser } from 'src/utils/providers/auth'
 import EditorSection from './core/EditorSection'
 import Navbar from './core/Navbar'
-import SubHeader from './core/SubHeader'
+import SubHeader from './subheader/SubHeader'
 import ViewConfigUpdater from './core/ViewConfigUpdater'
 import Preview from './preview/Preview'
 import Timeline from './preview/Timeline'

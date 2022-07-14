@@ -1,18 +1,72 @@
 import { cx } from '@emotion/css'
+import { useIncredibleEditor } from 'editor/src'
+import { useEffect, useMemo, useState } from 'react'
+import { BsCloudCheck } from 'react-icons/bs'
+import {
+	IoImageOutline,
+	IoPlayOutline,
+	IoWarningOutline,
+} from 'react-icons/io5'
+import { useRecoilState, useSetRecoilState } from 'recoil'
+import { openStudioAtom, View, viewAtom } from 'src/stores/flick.store'
+import { useRoom } from 'src/utils/liveblocks.config'
 import BrandIcon from 'svg/BrandIcon.svg'
 import TransitionIcon from 'svg/TransitionIcon.svg'
 import { Button, Text } from 'ui/src'
-import { BsCloudCheck } from 'react-icons/bs'
-import { IoAlbumsOutline, IoImageOutline, IoPlayOutline } from 'react-icons/io5'
-import { useRecoilState, useSetRecoilState } from 'recoil'
-import { openStudioAtom, View, viewAtom } from 'src/stores/flick.store'
+import Theme from './Theme'
 
-const AutoSave = () => (
-	<div className='flex items-center gap-x-2 text-gray-400'>
-		<BsCloudCheck />
-		<Text textStyle='bodySmall'>Saved</Text>
-	</div>
-)
+const AutoSave = () => {
+	const { editorSaved, providerWebsocketState } = useIncredibleEditor()
+	const [connectionState, setConnectionState] = useState<string>()
+
+	const room = useRoom()
+
+	useEffect(() => {
+		setConnectionState(room.getConnectionState())
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [room.getConnectionState()])
+
+	const isSaved = useMemo(() => {
+		if (
+			!editorSaved ||
+			connectionState !== 'open' ||
+			providerWebsocketState !== 'connected'
+		)
+			return false
+		return true
+	}, [editorSaved, connectionState, providerWebsocketState])
+
+	useEffect(() => {
+		const saveWarningHandler = (e: any) => {
+			const confirmationMessage =
+				'It looks like you have been editing something. ' +
+				'If you leave before saving, your changes will be lost.'
+
+			;(e || window.event).returnValue = confirmationMessage
+			return confirmationMessage
+		}
+
+		if (isSaved) window.onbeforeunload = null
+		else window.onbeforeunload = saveWarningHandler
+	}, [isSaved])
+
+	return (
+		<div className='flex items-center gap-x-2 text-gray-400'>
+			{isSaved && (
+				<>
+					<BsCloudCheck />
+					<Text textStyle='bodySmall'>Saved</Text>
+				</>
+			)}
+			{!isSaved && (
+				<>
+					<IoWarningOutline />
+					<Text textStyle='bodySmall'>Unsaved changes</Text>
+				</>
+			)}
+		</div>
+	)
+}
 
 const ViewSwitch = (): JSX.Element => {
 	const [view, setView] = useRecoilState(viewAtom)
@@ -44,7 +98,7 @@ const ViewSwitch = (): JSX.Element => {
 }
 
 const SubHeader = (): JSX.Element => {
-  const setOpenStudio = useSetRecoilState(openStudioAtom)
+	const setOpenStudio = useSetRecoilState(openStudioAtom)
 	return (
 		<div className='flex h-12 flex-row justify-between bg-gray-800 px-5'>
 			<ViewSwitch />
@@ -53,13 +107,7 @@ const SubHeader = (): JSX.Element => {
 					<AutoSave />
 				</div>
 				<div className='flex h-full items-center gap-x-5 border-l border-gray-700 px-4'>
-					<Button
-						leftIcon={<IoAlbumsOutline className='h-4 w-4' />}
-						appearance='none'
-						className='text-dark-title'
-					>
-						Theme
-					</Button>
+					<Theme />
 					<Button
 						leftIcon={<BrandIcon />}
 						appearance='none'
