@@ -322,6 +322,50 @@ const storyRouter = trpc
 			}
 		},
 	})
+	// TODO: Add s3 cleanup on delete
+	.mutation('delete', {
+		meta: {
+			hasAuth: true,
+		},
+		input: z.object({ flickId: z.string() }),
+		output: z.object({ flickId: z.string() }),
+		resolve: async ({ input, ctx }) => {
+			// check if user is flickOwner
+			const flick = await ctx.prisma.flick.findUnique({
+				where: {
+					id: input.flickId,
+				},
+				select: {
+					ownerId: true,
+				},
+			})
+			const userParticipantId = await ctx.prisma.participant.findFirst({
+				where: {
+					flickId: input.flickId,
+					userSub: ctx.user!.sub,
+				},
+				select: {
+					id: true,
+				},
+			})
+			if (flick?.ownerId !== userParticipantId?.id) {
+				throw new TRPCError({
+					code: 'UNAUTHORIZED',
+					message:
+						'You are not authorized to delete this story.Contact the owner of the story.',
+				})
+			}
+			// delete the story
+			const story = await ctx.prisma.flick.delete({
+				where: {
+					id: input.flickId,
+				},
+			})
+			return {
+				flickId: story.id,
+			}
+		},
+	})
 	.mutation('createFragment', {
 		meta: {
 			hasAuth: true,
@@ -390,6 +434,7 @@ const storyRouter = trpc
 			}
 		},
 	})
+	// TODO: Add s3 cleanup on delete
 	.mutation('deleteFragment', {
 		meta: {
 			hasAuth: true,
