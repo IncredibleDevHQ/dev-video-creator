@@ -1,10 +1,12 @@
 import createRouter from '../createRouter'
 import userRouter from './user'
 import utilsRouter from './utils'
+import storyRouter from './story'
 
 const appRouter = createRouter()
 	.merge('user.', userRouter)
 	.merge('util.', utilsRouter)
+	.merge('story.', storyRouter)
 	.query('healthz', {
 		async resolve() {
 			return 'Up!'
