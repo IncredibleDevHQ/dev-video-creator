@@ -17,16 +17,15 @@ export interface RTCUser extends IAgoraRTCRemoteUser {
 export interface LocalAgoraUser {
 	uid: string
 	hasAudio: boolean
-	stream?: MediaStream
 	tracks: [IMicrophoneAudioTrack, ICameraVideoTrack] | null
 }
 
-const audioConfig: ClientConfig = {
+const config: ClientConfig = {
 	mode: 'rtc',
 	codec: 'h264',
 }
 
-const useClient = createClient(audioConfig)
+const useClient = createClient(config)
 
 const useAgora = () => {
 	const { appId } = useEnv().agora
@@ -34,6 +33,7 @@ const useAgora = () => {
 	const client = useClient()
 	const [ready, setReady] = useState(false)
 	const [users, setUsers] = useState<RTCUser[]>([])
+  const [stream, setStream] = useState<MediaStream | null>(null)
 	const [currentUser, setCurrentUser] = useState<LocalAgoraUser>({
 		uid: '',
 		hasAudio: true,
@@ -66,11 +66,12 @@ const useAgora = () => {
 				uid,
 				hasAudio,
 				tracks,
-				stream: new MediaStream([
+			})
+
+      setStream(new MediaStream([
 					tracks[0].getMediaStreamTrack(),
 					tracks[1].getMediaStreamTrack(),
-				]),
-			})
+				]))
 
 			client.on('user-published', async (user, mediaType) => {
 				await client.subscribe(user, mediaType)
@@ -185,13 +186,26 @@ const useAgora = () => {
 	}
 
 	const setMicrophoneDevice = async (deviceId: string) => {
-		if (!currentUser) return
+		if (!currentUser.tracks) return
 		await currentUser.tracks?.[0]?.setDevice(deviceId)
+    setStream(
+			new MediaStream([
+				currentUser.tracks[0].getMediaStreamTrack(),
+				currentUser.tracks[1].getMediaStreamTrack(),
+			])
+		)
 	}
 
 	const setCameraDevice = async (deviceId: string) => {
-		if (!currentUser) return
+		if (!currentUser.tracks) return
+		console.log('studio camera')
 		await currentUser.tracks?.[1]?.setDevice(deviceId)
+    setStream(
+			new MediaStream([
+				currentUser.tracks[0].getMediaStreamTrack(),
+				currentUser.tracks[1].getMediaStreamTrack(),
+			])
+		)
 	}
 
 	const mute = async () => {
@@ -228,6 +242,7 @@ const useAgora = () => {
 		init,
 		ready,
 		users,
+    stream,
 		join,
 		mute,
 		leave,
