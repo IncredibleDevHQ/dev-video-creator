@@ -198,7 +198,6 @@ const Concourse = ({
 				// payload?.status !== Fragment_Status_Enum_Enum.Ended &&
 				users && (
 					<>
-						{stream?.stream && (
 							<StudioUser
 								stream={stream?.stream}
 								studioUserConfig={
@@ -208,7 +207,6 @@ const Concourse = ({
 								// picture={picture as string}
 								type='local'
 							/>
-						)}
 						{users.map((rtcUser, index) => (
 							<StudioUser
 								key={rtcUser.uid as string}
@@ -309,7 +307,6 @@ const Concourse = ({
 				// payload?.status !== Fragment_Status_Enum_Enum.Ended &&
 				users && (
 					<>
-						{stream?.stream && (
 							<StudioUser
 								stream={stream?.stream}
 								studioUserConfig={
@@ -319,7 +316,6 @@ const Concourse = ({
 								// picture={picture as string}
 								type='local'
 							/>
-						)}
 						{users.map((rtcUser, index) => (
 							<StudioUser
 								key={rtcUser.uid as string}

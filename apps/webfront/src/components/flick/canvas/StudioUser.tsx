@@ -14,7 +14,7 @@ const StudioUser = ({
 	studioUserConfig,
 	type,
 }: {
-	stream: MediaStream | null
+	stream: MediaStream | undefined
 	type: StudioUserType
 	studioUserConfig: StudioUserConfig
 }) => {
