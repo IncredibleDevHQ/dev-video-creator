@@ -1179,6 +1179,7 @@ const PointsFragment = ({
 			fragmentState={fragmentState}
 			updatePayload={updatePayload}
 			blockId={dataConfig.id}
+			speakersLength={speakersLength}
 		/>
 	)
 }

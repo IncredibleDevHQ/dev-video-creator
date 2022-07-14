@@ -231,6 +231,7 @@ const IntroFragment = ({
 			isShorts={shortsMode}
 			updatePayload={updatePayload}
 			blockId={blockId}
+      speakersLength={speakersLength}
 		/>
 	)
 }

@@ -612,6 +612,7 @@ const OutroFragment = ({
 			isShorts={isShorts}
 			updatePayload={updatePayload}
 			blockId={blockId}
+      speakersLength={1}
 		/>
 	)
 }
