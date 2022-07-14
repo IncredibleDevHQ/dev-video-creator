@@ -145,7 +145,7 @@ const IntroFragment = ({
 		if (
 			!isPreview &&
 			introSequence[activeIntroIndex] === 'userMedia' &&
-			state === 'startRecording'
+			state === 'recording'
 		) {
 			timer.current = setTimeout(() => {
 				setTopLayerChildren?.({ id: nanoid(), state: 'lowerThird' })
