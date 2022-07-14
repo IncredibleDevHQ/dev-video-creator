@@ -124,7 +124,6 @@ const CodeBlockMode = ({
 	updateView: (view: CodeBlockView) => void
 }) => (
 	<div className='flex flex-col p-5'>
-		{/* TODO : Code styles */}
 		{/* <Heading fontSize="small" className="font-bold">
         Code Style
       </Heading>

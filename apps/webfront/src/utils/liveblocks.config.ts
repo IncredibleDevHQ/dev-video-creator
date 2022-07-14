@@ -52,7 +52,7 @@ type Storage = {
 // Blank user meta for now
 type UserMeta = {}
 
-// TODO: The type of custom events broadcasted and listened for in this
+// The type of custom events broadcasted and listened for in this
 // room. Must be JSON-serializable.
 export enum RoomEventTypes {
 	ThemeChanged = 'themeChanged',

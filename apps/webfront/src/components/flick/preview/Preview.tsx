@@ -218,7 +218,6 @@ const Preview = ({ centered }: { centered: boolean }) => {
 				ref={ref}
 			>
 				<div className='flex items-center relative'>
-					{/* TODO: Canvas Preview */}
 					<CanvasComponent
 						bounds={bounds}
 						dataConfig={[block]}

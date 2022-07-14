@@ -5,45 +5,149 @@
 */
 
 import { LiveObject } from '@liveblocks/client'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useRecoilValue } from 'recoil'
 import {
 	activeFragmentIdAtom,
 	astAtom,
 	currentBlockSelector,
 } from 'src/stores/flick.store'
+import { brandingAtom, themeAtom } from 'src/stores/studio.store'
+import { loadFonts } from 'src/utils/hooks/useLoadFont'
 import { useMap } from 'src/utils/liveblocks.config'
-import { BlockProperties, CodeAnimation, CodeStyle, CodeTheme } from 'utils/src'
+import {
+	BlockProperties,
+	CodeAnimation,
+	CodeStyle,
+	CodeTheme,
+	IntroBlockView,
+	OutroBlockView,
+} from 'utils/src'
 
 const ViewConfigUpdater = () => {
 	const currentBlock = useRecoilValue(currentBlockSelector)
 	const activeFragmentId = useRecoilValue(activeFragmentIdAtom)
 	const simpleAST = useRecoilValue(astAtom)
+	const theme = useRecoilValue(themeAtom)
+	const branding = useRecoilValue(brandingAtom)
 
 	const viewConfig = useMap('viewConfig')
 		?.get(activeFragmentId as string)
 		?.toObject()
 
-  const payload = useMap('payload')
+	const payload = useMap('payload')
 
-	// TODO: Use when branding is implemented
-	// const updateMultipleBlockProperties = (
-	// 	ids: string[],
-	// 	properties: BlockProperties[]
-	// ) => {
-	// 	if (!viewConfig) return
+	useMemo(() => {
+		if (branding?.font)
+			loadFonts([
+				{
+					family: branding?.font?.heading?.family as string,
+					weights: ['400'],
+					type: branding?.font?.heading?.type ?? 'google',
+					url: branding?.font?.heading?.url,
+				},
+				{
+					family: branding?.font?.body?.family as string,
+					weights: ['400'],
+					type: branding?.font?.body?.type ?? 'google',
+					url: branding?.font?.body?.url,
+				},
+			])
+	}, [branding?.font])
 
-	// 	// Delete configs of blocks which are not there in the editor
-	// 	Object.entries(viewConfig.blocks)
-	// 		.filter(x => !simpleAST?.blocks.map(b => b.id).includes(x[0]))
-	// 		.forEach(a => {
-	// 			viewConfig.blocks.delete(a[0])
-	// 		})
+	useEffect(() => {
+		const updateMultipleBlockProperties = (
+			ids: string[],
+			properties: BlockProperties[]
+		) => {
+			if (!viewConfig) return
 
-	// 	for (let i = 0; i < ids.length; i += 1) {
-	// 		viewConfig.blocks.set(ids[i], properties[i])
-	// 	}
-	// }
+			// Delete configs of blocks which are not there in the editor
+			Object.entries(viewConfig.blocks)
+				.filter(x => !simpleAST?.blocks.map(b => b.id).includes(x[0]))
+				.forEach(a => {
+					viewConfig.blocks.delete(a[0])
+				})
+
+			for (let i = 0; i < ids.length; i += 1) {
+				viewConfig.blocks.set(ids[i], properties[i])
+			}
+		}
+
+		const intro = simpleAST?.blocks.find(b => b.type === 'introBlock')
+		const outro = simpleAST?.blocks.find(b => b.type === 'outroBlock')
+		if (!intro || !outro || !viewConfig) return
+		const introView = viewConfig.blocks?.get(intro?.id)?.view as IntroBlockView
+		const outroView = viewConfig.blocks?.get(outro?.id)?.view as OutroBlockView
+		if (!branding) {
+			updateMultipleBlockProperties(
+				[intro.id, outro.id],
+				[
+					{
+						view: {
+							...introView,
+							intro: {
+								...introView?.intro,
+								order: introView?.intro?.order?.filter(
+									i => i.state !== 'introVideo'
+								),
+							},
+						},
+					},
+					{
+						view: {
+							...outroView,
+							outro: {
+								...outroView?.outro,
+								order: outroView?.outro?.order?.filter(
+									i => i.state !== 'outroVideo'
+								),
+							},
+						},
+					},
+				]
+			)
+		} else {
+			updateMultipleBlockProperties(
+				[intro.id, outro.id],
+				[
+					{
+						view: {
+							...introView,
+							intro: {
+								...introView?.intro,
+								order: branding?.introVideoUrl
+									? [
+											...(introView?.intro?.order || []),
+											{ enabled: true, state: 'introVideo' },
+									  ]
+									: introView?.intro?.order?.filter(
+											i => i.state !== 'introVideo'
+									  ),
+							},
+						},
+					},
+					{
+						view: {
+							...outroView,
+							outro: {
+								...outroView?.outro,
+								order: branding?.outroVideoUrl
+									? [
+											...(outroView?.outro?.order || []),
+											{ enabled: true, state: 'outroVideo' },
+									  ]
+									: outroView?.outro?.order?.filter(
+											i => i.state !== 'outroVideo'
+									  ),
+							},
+						},
+					},
+				]
+			)
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [branding])
 
 	useEffect(() => {
 		const updateBlockProperties = (id: string, properties: BlockProperties) => {
@@ -57,7 +161,7 @@ const ViewConfigUpdater = () => {
 				})
 
 			viewConfig.blocks.set(id, properties)
-      payload?.set(id, new LiveObject({}))
+			payload?.set(id, new LiveObject({}))
 		}
 
 		if (!currentBlock) return
@@ -75,11 +179,10 @@ const ViewConfigUpdater = () => {
 						type: 'codeBlock',
 						code: {
 							animation: CodeAnimation.TypeLines,
-							theme: CodeTheme.DarkPlus,
-							// TODO: After implementing theme
-							// flick?.theme?.name !== 'Mux'
-							// 	? CodeTheme.DarkPlus
-							// 	: CodeTheme.LightPlus,
+							theme:
+								theme?.name !== 'Mux'
+									? CodeTheme.DarkPlus
+									: CodeTheme.LightPlus,
 							codeStyle: CodeStyle.Editor,
 							fontSize: 16,
 						},
@@ -140,7 +243,14 @@ const ViewConfigUpdater = () => {
 		}
 
 		updateBlockProperties(currentBlock.id, properties)
-	}, [currentBlock, payload, simpleAST?.blocks, viewConfig, viewConfig?.blocks])
+	}, [
+		currentBlock,
+		payload,
+		simpleAST?.blocks,
+		viewConfig,
+		viewConfig?.blocks,
+		theme,
+	])
 
 	return null
 }

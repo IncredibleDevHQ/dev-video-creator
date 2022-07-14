@@ -58,7 +58,7 @@ const FlickBody = ({
 				set(activeFragmentIdAtom, initialFragmentId)
 				set(astAtom, ast ?? null)
 				set(participantsAtom, flick.participants)
-				set(brandingAtom, flick.branding?.branding)
+				set(brandingAtom, flick.useBranding ? flick.branding?.branding : {})
 				set(activeBrandIdAtom, flick.useBranding ? flick.branding?.id : null)
 				set(transitionAtom, flick.configuration?.transitions)
 			},
