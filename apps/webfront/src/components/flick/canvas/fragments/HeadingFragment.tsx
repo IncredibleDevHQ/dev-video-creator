@@ -263,6 +263,7 @@ const HeadingFragment = ({
 			fragmentState={fragmentState}
 			updatePayload={updatePayload}
 			blockId={dataConfig.id}
+			speakersLength={speakersLength}
 		/>
 	)
 }

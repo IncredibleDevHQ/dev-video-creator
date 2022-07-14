@@ -146,7 +146,6 @@ const FlickBody = ({
 				payload: new LiveMap(),
 				activeObjectIndex: new LiveObject({ activeObjectIndex: 0 }),
 				state: new LiveObject({ state: 'ready' }),
-				studioControls: new LiveObject(),
 				recordedBlocks: new LiveMap(),
 			})}
 		>

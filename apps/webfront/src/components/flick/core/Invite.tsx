@@ -416,6 +416,7 @@ const Invite = ({
 							) : (
 								<input
 									placeholder='dumbledore@hogwarts.com'
+									onChange={e => setSearch(e.currentTarget.value)}
 									className='w-full border focus:border-green-600 py-2 px-2 bg-gray-100 rounded-sm font-body focus:outline-none text-size-xs flex-1'
 								/>
 							)}

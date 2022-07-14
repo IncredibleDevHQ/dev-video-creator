@@ -8,6 +8,7 @@ import { useRecoilValue } from 'recoil'
 import {
 	agoraUsersAtom,
 	brandingAtom,
+	isStudioControllerAtom,
 	payloadFamily,
 	streamAtom,
 	themeAtom,
@@ -20,8 +21,6 @@ import {
 	SHORTS_CONFIG,
 	StudioUserConfig,
 } from 'src/utils/configs'
-import { useObject } from 'src/utils/liveblocks.config'
-import { useUser } from 'src/utils/providers/auth'
 import useImage from 'use-image'
 import { BlockProperties, GradientConfig } from 'utils/src'
 import StudioUser from './StudioUser'
@@ -42,6 +41,7 @@ interface ConcourseProps {
 	blockType: Block['type']
 	updatePayload: (payload: FragmentPayload) => void
 	blockId: string
+  speakersLength: number
 }
 
 const Concourse = ({
@@ -54,15 +54,14 @@ const Concourse = ({
 	blockType,
 	updatePayload,
 	blockId,
+  speakersLength
 }: ConcourseProps) => {
 	const users = useRecoilValue(agoraUsersAtom)
 	const payload = useRecoilValue(payloadFamily(blockId))
 	const stream = useRecoilValue(streamAtom)
 	const theme = useRecoilValue(themeAtom)
 	const branding = useRecoilValue(brandingAtom)
-	const studioController = useObject('studioControls')
-
-	const { user } = useUser()
+	const isStudioController = useRecoilValue(isStudioControllerAtom)
 
 	// const [canvas, setCanvas] = useRecoilState(canvasStore)
 	const [isZooming, setIsZooming] = useState(false)
@@ -190,43 +189,57 @@ const Concourse = ({
 	// useEffect(() => {
 	// 	setCanvas({ zoomed: false, resetCanvas })
 	// }, [])
+
 	return (
 		<>
 			{(viewConfig?.layout === 'full-left' ||
 				viewConfig?.layout === 'full-right') &&
-				// payload?.status !== Fragment_Status_Enum_Enum.CountDown &&
-				// payload?.status !== Fragment_Status_Enum_Enum.Ended &&
-				users && (
-					<>
-							<StudioUser
-								stream={stream?.stream}
-								studioUserConfig={
-									(studioUserConfig && studioUserConfig[0]) ||
-									defaultStudioUserConfig
+			users.length !== 0 ? (
+				<>
+					<StudioUser
+						stream={stream?.stream}
+						studioUserConfig={
+							(studioUserConfig && studioUserConfig[0]) ||
+							defaultStudioUserConfig
+						}
+						type='local'
+					/>
+					{users.map((rtcUser, index) => (
+						<StudioUser
+							key={rtcUser.uid as string}
+							type='remote'
+							stream={rtcUser.mediaStream as MediaStream}
+							studioUserConfig={
+								(studioUserConfig && studioUserConfig[index + 1]) || {
+									x:
+										defaultStudioUserConfig.x -
+										(index + 1) * userStudioImageGap,
+									y: defaultStudioUserConfig.y,
+									width: defaultStudioUserConfig.width,
+									height: defaultStudioUserConfig.height,
 								}
-								// picture={picture as string}
-								type='local'
-							/>
-						{users.map((rtcUser, index) => (
-							<StudioUser
-								key={rtcUser.uid as string}
-								type='remote'
-								stream={rtcUser.mediaStream as MediaStream}
-								// picture={participants?.[user.uid]?.picture || ''}
-								studioUserConfig={
-									(studioUserConfig && studioUserConfig[index + 1]) || {
-										x:
-											defaultStudioUserConfig.x -
-											(index + 1) * userStudioImageGap,
-										y: defaultStudioUserConfig.y,
-										width: defaultStudioUserConfig.width,
-										height: defaultStudioUserConfig.height,
-									}
-								}
-							/>
-						))}
-					</>
-				)}
+							}
+						/>
+					))}
+				</>
+			) : (
+				(viewConfig?.layout === 'full-left' ||
+					viewConfig?.layout === 'full-right') &&
+				[...Array(speakersLength).keys()]?.map((index: number) => (
+					<StudioUser
+						type='local'
+						stream={undefined}
+						studioUserConfig={
+							(studioUserConfig && studioUserConfig[index]) || {
+								x: defaultStudioUserConfig.x - (index + 1) * userStudioImageGap,
+								y: defaultStudioUserConfig.y,
+								width: defaultStudioUserConfig.width,
+								height: defaultStudioUserConfig.height,
+							}
+						}
+					/>
+				))
+			)}
 			<Group>
 				{(() => (
 					// TODO
@@ -264,9 +277,7 @@ const Concourse = ({
 						<Group
 							ref={groupRef}
 							onClick={() => {
-								if (
-									studioController?.get('studioControllerSub') === user?.uid
-								) {
+								if (isStudioController) {
 									const pointer = stageRef?.current?.getPointerPosition()
 									const scaleRatio =
 										document.getElementsByClassName('konvajs-content')[0]
@@ -284,9 +295,7 @@ const Concourse = ({
 								}
 							}}
 							onMouseLeave={() => {
-								if (
-									studioController?.get('studioControllerSub') === user?.uid
-								) {
+								if (isStudioController) {
 									updatePayload?.({
 										zoomPointer: undefined,
 										shouldZoom: false,
@@ -302,39 +311,53 @@ const Concourse = ({
 				))()}
 			</Group>
 			{viewConfig?.layout !== 'full-left' &&
+			viewConfig?.layout !== 'full-right' &&
+			users.length !== 0 ? (
+				<>
+					<StudioUser
+						stream={stream?.stream}
+						studioUserConfig={
+							(studioUserConfig && studioUserConfig[0]) ||
+							defaultStudioUserConfig
+						}
+						type='local'
+					/>
+					{users.map((rtcUser, index) => (
+						<StudioUser
+							key={rtcUser.uid as string}
+							type='remote'
+							stream={rtcUser.mediaStream as MediaStream}
+							studioUserConfig={
+								(studioUserConfig && studioUserConfig[index + 1]) || {
+									x:
+										defaultStudioUserConfig.x -
+										(index + 1) * userStudioImageGap,
+									y: defaultStudioUserConfig.y,
+									width: defaultStudioUserConfig.width,
+									height: defaultStudioUserConfig.height,
+								}
+							}
+						/>
+					))}
+				</>
+			) : (
+				viewConfig?.layout !== 'full-left' &&
 				viewConfig?.layout !== 'full-right' &&
-				// payload?.status !== Fragment_Status_Enum_Enum.CountDown &&
-				// payload?.status !== Fragment_Status_Enum_Enum.Ended &&
-				users && (
-					<>
-							<StudioUser
-								stream={stream?.stream}
-								studioUserConfig={
-									(studioUserConfig && studioUserConfig[0]) ||
-									defaultStudioUserConfig
-								}
-								// picture={picture as string}
-								type='local'
-							/>
-						{users.map((rtcUser, index) => (
-							<StudioUser
-								key={rtcUser.uid as string}
-								type='remote'
-								stream={rtcUser.mediaStream as MediaStream}
-								studioUserConfig={
-									(studioUserConfig && studioUserConfig[index + 1]) || {
-										x:
-											defaultStudioUserConfig.x -
-											(index + 1) * userStudioImageGap,
-										y: defaultStudioUserConfig.y,
-										width: defaultStudioUserConfig.width,
-										height: defaultStudioUserConfig.height,
-									}
-								}
-							/>
-						))}
-					</>
-				)}
+				[...Array(speakersLength).keys()]?.map((index: number) => (
+					<StudioUser
+						type='local'
+						stream={undefined}
+						studioUserConfig={
+							(studioUserConfig && studioUserConfig[index]) || {
+								x: defaultStudioUserConfig.x - (index + 1) * userStudioImageGap,
+								y: defaultStudioUserConfig.y,
+								width: defaultStudioUserConfig.width,
+								height: defaultStudioUserConfig.height,
+							}
+						}
+					/>
+				))
+			)}
 			{!isShorts &&
 				logo &&
 				logo?.width &&
