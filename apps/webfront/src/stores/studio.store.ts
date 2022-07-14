@@ -106,6 +106,11 @@ export const controlsConfigAtom = atom<ControlsConfig>({
 	default: {},
 })
 
+export const isStudioControllerAtom = atom<boolean>({
+  key: 'isStudioController',
+  default: false,
+})
+
 export const colorCodesAtom = atom<{
 	[key: string]: {
 		code: string | undefined

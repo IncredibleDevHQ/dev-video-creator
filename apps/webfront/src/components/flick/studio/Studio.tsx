@@ -1,15 +1,17 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-console */
 /* eslint-disable @typescript-eslint/no-unused-vars */
+import { css, cx } from '@emotion/css'
+import { Dialog } from '@headlessui/react'
 import { Block } from 'editor/src/utils/types'
 import getBlobDuration from 'get-blob-duration'
 import Konva from 'konva'
 import { nanoid } from 'nanoid'
-import React, { useEffect, useMemo, useRef } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { FiRotateCcw } from 'react-icons/fi'
 import { IoChevronBackOutline } from 'react-icons/io5'
 import useMeasure from 'react-use-measure'
-import { useRecoilValue, useSetRecoilState } from 'recoil'
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
 import {
 	Content_Types,
 	SetupRecordingMutationVariables,
@@ -18,9 +20,10 @@ import {
 	useSaveRecordedBlockMutation,
 	useSetupRecordingMutation,
 } from 'src/graphql/generated'
-import { flickNameAtom, openStudioAtom } from 'src/stores/flick.store'
+import { flickAtom, flickNameAtom, openStudioAtom } from 'src/stores/flick.store'
 import {
 	activeObjectIndexAtom,
+	isStudioControllerAtom,
 	streamAtom,
 	studioStateAtom,
 } from 'src/stores/studio.store'
@@ -31,10 +34,9 @@ import {
 	useBroadcastEvent,
 	useEventListener,
 	useMap,
-	useObject,
 } from 'src/utils/liveblocks.config'
 import { useUser } from 'src/utils/providers/auth'
-import { dismissToast, emitToast, Heading, Text, updateToast } from 'ui/src'
+import { Button, dismissToast, emitToast, Heading, Text, updateToast } from 'ui/src'
 import { useEnv, useUploadFile, ViewConfig } from 'utils/src'
 import UploadIcon from '../../../../svg/RecordingScreen/Upload.svg'
 import CanvasComponent, { StudioContext } from '../canvas/CanvasComponent'
@@ -61,12 +63,19 @@ const Studio = ({
 	const state = useRecoilValue(studioStateAtom)
 	const { updateState, reset } = useUpdateState(true)
 	const activeObjectIndex = useRecoilValue(activeObjectIndexAtom)
+	const flick = useRecoilValue(flickAtom)
 	const flickName = useRecoilValue(flickNameAtom)
 	const setOpenStudio = useSetRecoilState(openStudioAtom)
 	const agoraStreamData = useRecoilValue(streamAtom)
 
+	const [isHost, setIsHost] = useState(false)
+	const [isStudioController, setIsStudioController] = useRecoilState(isStudioControllerAtom)
+	const [controlsRequestorSub, setControlsRequestorSub] = useState('')
+	// bool used to open the modal which asks the host to accept or reject the request from the collaborator to get controls
+	const [openControlsApprovalModal, setOpenControlsApprovalModal] =
+		useState(false)
+
 	const recordedBlocks = useMap('recordedBlocks')
-	const studioController = useObject('studioControls')
 	const broadcast = useBroadcastEvent()
 
 	const blockThumbnails = useRef<{ [key: string]: string }>({})
@@ -278,6 +287,23 @@ const Studio = ({
 			// setTopLayerChildren?.({ id: nanoid(), state: '' })
 			// setResetTimer(true)
 		}
+		if (event.type === RoomEventTypes.RequestControls) {
+			if (isStudioController) {
+        if(event.payload.requestorSub === '') return
+        setControlsRequestorSub(event.payload.requestorSub)
+        setOpenControlsApprovalModal(true)
+			}
+		}
+    if (event.type === RoomEventTypes.ApproveRequestControls) {
+			if (event.payload.requestorSub === user?.uid) {
+        setIsStudioController(true)
+			}
+		}
+    if(event.type === RoomEventTypes.RevokeControls) {
+      if(isStudioController) {
+        setIsStudioController(false)
+      }
+    }
 	})
 
 	// Hooks
@@ -324,6 +350,14 @@ const Studio = ({
 	}, [])
 
 	useEffect(() => {
+		if (!flick?.owner) return
+		if (flick.owner.sub === user?.uid) {
+			setIsHost(true)
+			setIsStudioController(true)
+		}
+	}, [flick?.owner])
+
+	useEffect(() => {
 		if (state === 'stopRecording') stop()
 	}, [state])
 
@@ -351,14 +385,49 @@ const Studio = ({
 					>
 						{flickName}
 					</Heading>
-					<MediaControls
-						flickId={flickId}
-						fragmentId={fragmentId}
-						participantId={
-							viewConfig.speakers.find(({ userSub }) => userSub === user?.uid)
-								?.id
-						}
-					/>
+					<div className='flex gap-x-3'>
+						{!isStudioController && (
+							<button
+								disabled={state === 'recording'}
+								type='button'
+								className='bg-dark-100 hover:bg-dark-200 active:bg-dark-300 text-gray-100 rounded-sm text-size-xs-title font-normal flex items-center px-2 disabled:opacity-70 disabled:cursor-not-allowed'
+								onClick={() => {
+									broadcast({
+										type: RoomEventTypes.RequestControls,
+										payload: {
+											requestorSub: user?.uid || '',
+										},
+									})
+								}}
+							>
+								Request Control
+							</button>
+						)}
+						{isHost && !isStudioController && (
+							<button
+								disabled={state === 'recording'}
+								type='button'
+								className='bg-dark-100 hover:bg-dark-200 active:bg-dark-300 text-gray-100 rounded-sm text-size-xs-title font-normal flex items-center px-2 disabled:opacity-70 disabled:cursor-not-allowed'
+								onClick={() => {
+									broadcast({
+										type: RoomEventTypes.RevokeControls,
+										payload: {}
+									})
+                  setIsStudioController(true)
+								}}
+							>
+								Request Control
+							</button>
+						)}
+						<MediaControls
+							flickId={flickId}
+							fragmentId={fragmentId}
+							participantId={
+								viewConfig.speakers.find(({ userSub }) => userSub === user?.uid)
+									?.id
+							}
+						/>
+					</div>
 				</div>
 				{state !== 'preview' ? (
 					<>
@@ -414,7 +483,7 @@ const Studio = ({
 									})()}
 									key={nanoid()}
 								/>
-								{studioController?.get('studioControllerSub') === user?.uid && (
+								{isStudioController && (
 									<div
 										style={
 											recordedBlocks
@@ -439,7 +508,7 @@ const Studio = ({
 												?.includes('blob') && (
 												// Save and continue button
 												<button
-													className='bg-incredible-green-600 text-white rounded-sm py-1.5 px-2.5 flex items-center gap-x-2 font-bold hover:shadow-lg text-sm'
+													className='bg-green-600 text-white rounded-sm py-1.5 px-2.5 flex items-center gap-x-2 font-bold hover:shadow-lg text-sm'
 													type='button'
 													onClick={() => {
 														if (
@@ -553,6 +622,55 @@ const Studio = ({
 					updateState={updateState}
 				/>
 			</div>
+			{/* Controls request modal */}
+			<Dialog
+				open={isHost && openControlsApprovalModal}
+				onClose={() => {
+					setControlsRequestorSub('')
+					setOpenControlsApprovalModal(false)
+				}}
+				className={cx(
+					'rounded-lg mx-auto px-8 pt-8 pb-4 text-white',
+					css`
+						background-color: #27272a !important;
+					`
+				)}
+			>
+				<Dialog.Panel>
+					<Dialog.Title className='font-main font-medium text-md text-gray-100'>
+						Would you like to hand over the controls ?
+					</Dialog.Title>
+					<Button
+						appearance='solid'
+						type='button'
+						size='small'
+						className=''
+						onClick={() => {
+							broadcast({
+								type: RoomEventTypes.ApproveRequestControls,
+								payload: {
+									requestorSub: controlsRequestorSub,
+								},
+							})
+							setIsStudioController(false)
+							setControlsRequestorSub('')
+							setOpenControlsApprovalModal(false)
+						}}
+					>
+						Approve
+					</Button>
+					<button
+						type='button'
+						className='text-red-500 font-main font-semibold'
+						onClick={() => {
+							setControlsRequestorSub('')
+							setOpenControlsApprovalModal(false)
+						}}
+					>
+						Reject
+					</button>
+				</Dialog.Panel>
+			</Dialog>
 		</StudioContext.Provider>
 	)
 }

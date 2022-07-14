@@ -8,6 +8,7 @@ import { useRecoilValue } from 'recoil'
 import {
 	agoraUsersAtom,
 	brandingAtom,
+	isStudioControllerAtom,
 	payloadFamily,
 	streamAtom,
 	themeAtom,
@@ -20,8 +21,6 @@ import {
 	SHORTS_CONFIG,
 	StudioUserConfig,
 } from 'src/utils/configs'
-import { useObject } from 'src/utils/liveblocks.config'
-import { useUser } from 'src/utils/providers/auth'
 import useImage from 'use-image'
 import { BlockProperties, GradientConfig } from 'utils/src'
 import StudioUser from './StudioUser'
@@ -60,9 +59,7 @@ const Concourse = ({
 	const stream = useRecoilValue(streamAtom)
 	const theme = useRecoilValue(themeAtom)
 	const branding = useRecoilValue(brandingAtom)
-	const studioController = useObject('studioControls')
-
-	const { user } = useUser()
+	const isStudioController = useRecoilValue(isStudioControllerAtom)
 
 	// const [canvas, setCanvas] = useRecoilState(canvasStore)
 	const [isZooming, setIsZooming] = useState(false)
@@ -264,9 +261,7 @@ const Concourse = ({
 						<Group
 							ref={groupRef}
 							onClick={() => {
-								if (
-									studioController?.get('studioControllerSub') === user?.uid
-								) {
+								if (isStudioController) {
 									const pointer = stageRef?.current?.getPointerPosition()
 									const scaleRatio =
 										document.getElementsByClassName('konvajs-content')[0]
@@ -284,9 +279,7 @@ const Concourse = ({
 								}
 							}}
 							onMouseLeave={() => {
-								if (
-									studioController?.get('studioControllerSub') === user?.uid
-								) {
+								if (isStudioController) {
 									updatePayload?.({
 										zoomPointer: undefined,
 										shouldZoom: false,
