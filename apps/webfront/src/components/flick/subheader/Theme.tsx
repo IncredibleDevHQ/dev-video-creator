@@ -119,7 +119,7 @@ const Theme = () => {
 				<>
 					<Popover.Button
 						className={cx(
-							'text-gray-100 flex items-center gap-x-2 text-size-xs hover:bg-white/10 px-2 py-2 rounded-sm transform active:scale-95 transition-all',
+							'text-gray-100 flex items-center gap-x-2 text-size-xs hover:bg-white/10 px-2 py-2 rounded-sm transform active:scale-95 transition-all font-main font-semibold',
 							{
 								'bg-white/10': open,
 							}
