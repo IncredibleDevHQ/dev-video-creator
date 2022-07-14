@@ -42,10 +42,6 @@ type Storage = {
 	payload: LiveMap<string, LiveObject<FragmentPayload>>
 	activeObjectIndex: LiveObject<{ activeObjectIndex: number }>
 	state: LiveObject<{ state: StudioState }>
-	studioControls: LiveObject<{
-		studioControllerSub: string
-		controlsRequestorSub: string
-	}>
 	recordedBlocks: LiveMap<string, string>
 }
 
@@ -61,6 +57,9 @@ export enum RoomEventTypes {
 	FlickNameChanged = 'flickNameChanged',
 	RetakeButtonClick = 'retakeButtonClick',
 	SaveButtonClick = 'saveButtonClick',
+	RequestControls = 'requestControls',
+	ApproveRequestControls = 'approveRequestControls',
+  RevokeControls = 'revokeControls',
 }
 type RoomEvent =
 	| {
@@ -84,6 +83,12 @@ type RoomEvent =
 			payload: any
 	  }
 	| { type: RoomEventTypes.SaveButtonClick; payload: any }
+	| { type: RoomEventTypes.RequestControls; payload: { requestorSub: string } }
+	| {
+			type: RoomEventTypes.ApproveRequestControls
+			payload: { requestorSub: string; }
+	  }
+  | { type: RoomEventTypes.RevokeControls; payload: any }
 
 export const {
 	RoomProvider,

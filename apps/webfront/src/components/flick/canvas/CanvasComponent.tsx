@@ -103,8 +103,6 @@ const CanvasComponent = React.memo(
 			if (state === 'recording' && mountStage) start()
 		}, [state, mountStage])
 
-		// console.log('CanvasComponent', stageWidth, stageHeight)
-
 		return (
 			<div>
 				{mountStage && (
@@ -129,7 +127,6 @@ const CanvasComponent = React.memo(
 										payload: new LiveMap(),
 										activeObjectIndex: new LiveObject({ activeObjectIndex: 0 }),
 										state: new LiveObject({ state: 'ready' }),
-										studioControls: new LiveObject(),
                     recordedBlocks: new LiveMap(),
 									})}
 								>
