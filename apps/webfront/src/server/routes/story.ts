@@ -15,6 +15,7 @@ import serverEnvs from 'src/utils/env'
 import type { Context } from '../createContext'
 import {
 	createLiveBlocksRoom,
+	FragmentTypeEnum,
 	initRedisWithDataConfig,
 	Meta,
 } from '../utils/helpers'
@@ -318,6 +319,125 @@ const storyRouter = trpc
 			return {
 				id: story.id,
 				fragmentId: fragment.id,
+			}
+		},
+	})
+	.mutation('createFragment', {
+		meta: {
+			hasAuth: true,
+		},
+		input: z.object({
+			flickId: z.string(),
+			name: z.string().default('Untitled'),
+			type: z.nativeEnum(FragmentTypeEnum).default(FragmentTypeEnum.Landscape),
+		}),
+		output: z.object({
+			fragmentId: z.string(),
+			type: z.nativeEnum(FragmentTypeEnum),
+		}),
+		resolve: async ({ ctx, input }) => {
+			// check if the user is a participant
+			const participants = await ctx.prisma.participant.findMany({
+				where: {
+					flickId: input.flickId,
+				},
+				select: {
+					userSub: true,
+				},
+			})
+
+			const isParticipant = participants.find(p => p.userSub === ctx.user!.sub)
+			if (!isParticipant)
+				throw new TRPCError({
+					message: 'You are not a participant of this flick',
+					code: 'UNAUTHORIZED',
+				})
+
+			const editorState = {
+				blocks: [
+					{
+						id: uuid.v4(),
+						type: 'introBlock',
+						pos: 0,
+						introBlock: {},
+					},
+					{
+						id: uuid.v4(),
+						type: 'outroBlock',
+						pos: 1,
+					},
+				],
+			}
+			// add the fragment to the database
+			const fragment = await ctx.prisma.fragment.create({
+				data: {
+					name: input.name,
+					flickId: input.flickId,
+					type: input.type,
+					editorState,
+				},
+				select: {
+					id: true,
+					type: true,
+				},
+			})
+			// update redis for hocuspocus
+			await initRedisWithDataConfig(fragment.id, editorState)
+
+			return {
+				fragmentId: fragment.id,
+				type: fragment.type as FragmentTypeEnum,
+			}
+		},
+	})
+	.mutation('deleteFragment', {
+		meta: {
+			hasAuth: true,
+		},
+		input: z.object({
+			flickId: z.string(),
+			fragmentId: z.string(),
+		}),
+		output: z.object({
+			fragmentId: z.string(),
+			success: z.boolean(),
+		}),
+		resolve: async ({ ctx, input }) => {
+			// check if the user is a participant
+			const participants = await ctx.prisma.flick.findUnique({
+				where: {
+					id: input.flickId,
+				},
+				include: {
+					Participants: true,
+				},
+			})
+			if (!participants)
+				throw new TRPCError({
+					message: 'Story not found!',
+					code: 'NOT_FOUND',
+				})
+			const isParticipant = participants.Participants.find(
+				p => p.userSub === ctx.user!.sub
+			)
+			if (!isParticipant)
+				throw new TRPCError({
+					message: 'You are not a participant of this story.',
+					code: 'UNAUTHORIZED',
+				})
+			// delete the fragment
+			const fragment = await ctx.prisma.fragment.delete({
+				where: {
+					id: input.fragmentId,
+				},
+				select: {
+					id: true,
+				},
+			})
+
+			return {
+				fragmentId: fragment.id,
+				success: true,
 			}
 		},
 	})

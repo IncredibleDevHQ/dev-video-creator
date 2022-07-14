@@ -8,6 +8,12 @@ export interface Meta {
 	hasAuth: boolean // can be used to disable auth for this specific routes
 }
 
+export enum FragmentTypeEnum {
+	Landscape = 'Landscape',
+	Portrait = 'Portrait',
+	Presentation = 'Presentation',
+}
+
 export const initFirebaseAdmin = () => {
 	if (!admin.apps.length && serverEnvs.FIREBASE_SERVICE_CONFIG) {
 		return admin.initializeApp({
