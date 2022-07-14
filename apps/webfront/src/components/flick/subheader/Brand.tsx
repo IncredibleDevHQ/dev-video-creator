@@ -1,5 +1,5 @@
 import { cx } from '@emotion/css'
-import { Menu } from '@headlessui/react'
+import { Menu, Transition } from '@headlessui/react'
 import { Fragment, useState } from 'react'
 import { BiCheck } from 'react-icons/bi'
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
@@ -64,85 +64,95 @@ const Brand = () => {
 							<BrandIcon />
 							Brand
 						</Menu.Button>
-						<Menu.Items
-							as='ul'
-							className='absolute flex flex-col text-left bg-dark-300 bg-opacity-100 z-50 rounded-sm p-1.5 mt-2.5 min-w-[190px]'
+						<Transition
+							as={Fragment}
+							enter='transition ease-out duration-100'
+							enterFrom='transform opacity-0 scale-95'
+							enterTo='transform opacity-100 scale-100'
+							leave='transition ease-in duration-75'
+							leaveFrom='transform opacity-100 scale-100'
+							leaveTo='transform opacity-0 scale-95'
 						>
-							{data?.Branding.map(branding => (
+							<Menu.Items
+								as='ul'
+								className='absolute flex flex-col text-left bg-dark-300 bg-opacity-100 z-50 rounded-sm p-1.5 mt-2.5 min-w-[190px]'
+							>
+								{data?.Branding.map(branding => (
+									<Menu.Item
+										as='li'
+										key={branding.id}
+										className={cx(
+											'hover:bg-dark-100 cursor-pointer text-white flex items-center px-2 py-2 rounded-sm w-full'
+										)}
+										onClick={() => {
+											broadcast({
+												type: RoomEventTypes.BrandingChanged,
+												payload: branding,
+											})
+											updateBrand({
+												variables: {
+													id: flickId,
+													useBranding: true,
+													brandingId: branding.id,
+												},
+											})
+											setActiveBrandId(branding.id)
+											setBrandingJSON(branding.branding)
+										}}
+									>
+										<BrandIcon className='mr-2' />
+										<Text textStyle='caption' className='mr-4'>
+											{branding.name}
+										</Text>
+										{branding.id === activeBrandId && (
+											<BiCheck className='ml-auto' size={16} />
+										)}
+									</Menu.Item>
+								))}
 								<Menu.Item
 									as='li'
-									key={branding.id}
 									className={cx(
 										'hover:bg-dark-100 cursor-pointer text-white flex items-center px-2 py-2 rounded-sm w-full'
 									)}
 									onClick={() => {
 										broadcast({
 											type: RoomEventTypes.BrandingChanged,
-											payload: branding,
+											payload: null,
 										})
 										updateBrand({
 											variables: {
 												id: flickId,
-												useBranding: true,
-												brandingId: branding.id,
+												useBranding: false,
 											},
 										})
-										setActiveBrandId(branding.id)
-										setBrandingJSON(branding.branding)
+										setActiveBrandId(null)
+										setBrandingJSON({})
 									}}
 								>
 									<BrandIcon className='mr-2' />
 									<Text textStyle='caption' className='mr-4'>
-										{branding.name}
+										None
 									</Text>
-									{branding.id === activeBrandId && (
+									{activeBrandId === null && (
 										<BiCheck className='ml-auto' size={16} />
 									)}
 								</Menu.Item>
-							))}
-							<Menu.Item
-								as='li'
-								className={cx(
-									'hover:bg-dark-100 cursor-pointer text-white flex items-center px-2 py-2 rounded-sm w-full'
+								{data && data.Branding.length > 0 && (
+									<div className='border-t border-gray-600 mx-2 mt-1.5' />
 								)}
-								onClick={() => {
-									broadcast({
-										type: RoomEventTypes.BrandingChanged,
-										payload: null,
-									})
-									updateBrand({
-										variables: {
-											id: flickId,
-											useBranding: false,
-										},
-									})
-									setActiveBrandId(null)
-									setBrandingJSON({})
-								}}
-							>
-								<BrandIcon className='mr-2' />
-								<Text textStyle='caption' className='mr-4'>
-									None
-								</Text>
-								{activeBrandId === null && (
-									<BiCheck className='ml-auto' size={16} />
-								)}
-							</Menu.Item>
-							{data && data.Branding.length > 0 && (
-								<div className='border-t border-gray-600 mx-2 mt-1.5' />
-							)}
-							<Menu.Item as={Fragment}>
-								<Button
-									className='m-2 max-w-none'
-									colorScheme='dark'
-									onClick={() => {
-										setBrandingModal(true)
-									}}
-								>
-									Add new
-								</Button>
-							</Menu.Item>
-						</Menu.Items>
+								<Menu.Item as={Fragment}>
+									<Button
+										className='m-2 max-w-none'
+										colorScheme='dark'
+										onClick={() => {
+											setBrandingModal(true)
+										}}
+									>
+										Add new
+									</Button>
+								</Menu.Item>
+							</Menu.Items>
+						</Transition>
 					</div>
 				)}
 			</Menu>

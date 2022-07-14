@@ -1,6 +1,6 @@
 import { css, cx } from '@emotion/css'
-import { Popover } from '@headlessui/react'
-import { useState } from 'react'
+import { Popover, Transition as TransitionAnim } from '@headlessui/react'
+import { Fragment, useState } from 'react'
 import { IoCheckmark } from 'react-icons/io5'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import { transitionAtom, TransitionConfig } from 'src/stores/studio.store'
@@ -149,17 +149,26 @@ const Transition = () => {
 						<TransitionIcon />
 						Transition
 					</Popover.Button>
-					<Popover.Panel className='absolute z-10 right-0 mt-3' as='div'>
-						<div
-							className={cx(
-								'text-white rounded-md p-4 max-h-screen mx-4',
-								css`
-									background-color: #27272a;
-									width: 70vw;
-								`
-							)}
-						>
-							{/* <div className='flex items-center text-size-xs gap-x-4'>
+					<TransitionAnim
+						as={Fragment}
+						enter='transition ease-out duration-200'
+						enterFrom='opacity-0 translate-y-0'
+						enterTo='opacity-100 translate-y-1'
+						leave='transition ease-in duration-150'
+						leaveFrom='opacity-100 translate-y-0'
+						leaveTo='opacity-0 translate-y-1'
+					>
+						<Popover.Panel className='absolute z-10 right-0 mt-1.5' as='div'>
+							<div
+								className={cx(
+									'text-white rounded-md p-4 max-h-screen mx-4',
+									css`
+										background-color: #27272a;
+										width: 70vw;
+									`
+								)}
+							>
+								{/* <div className='flex items-center text-size-xs gap-x-4'>
 								<button
 									className={cx({
 										'text-dark-title': tab !== 'block',
@@ -183,30 +192,31 @@ const Transition = () => {
 									Swap transitions
 								</button>
 							</div> */}
-							<div
-								className={cx(
-									'flex gap-x-4 z-50 overflow-x-scroll',
-									horizontalCustomScrollBar
-								)}
-							>
-								{data?.Transition.map(transition => (
-									<TransitionCard
-										tab={tab}
-										active={
-											tab === 'block'
-												? transitionConfig?.blockTransition?.name ===
-												  transition.name
-												: transitionConfig?.swapTransition?.name ===
-												  transition.name
-										}
-										transition={transition}
-										transitionConfig={transitionConfig}
-										updateTransitions={config => updateTransitions(config)}
-									/>
-								))}
+								<div
+									className={cx(
+										'flex gap-x-4 z-50 overflow-x-scroll',
+										horizontalCustomScrollBar
+									)}
+								>
+									{data?.Transition.map(transition => (
+										<TransitionCard
+											tab={tab}
+											active={
+												tab === 'block'
+													? transitionConfig?.blockTransition?.name ===
+													  transition.name
+													: transitionConfig?.swapTransition?.name ===
+													  transition.name
+											}
+											transition={transition}
+											transitionConfig={transitionConfig}
+											updateTransitions={config => updateTransitions(config)}
+										/>
+									))}
+								</div>
 							</div>
-						</div>
-					</Popover.Panel>
+						</Popover.Panel>
+					</TransitionAnim>
 				</>
 			)}
 		</Popover>
