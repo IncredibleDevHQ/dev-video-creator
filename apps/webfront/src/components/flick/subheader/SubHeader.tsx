@@ -10,10 +10,10 @@ import {
 import { useRecoilState, useSetRecoilState } from 'recoil'
 import { openStudioAtom, View, viewAtom } from 'src/stores/flick.store'
 import { useRoom } from 'src/utils/liveblocks.config'
-import TransitionIcon from 'svg/TransitionIcon.svg'
 import { Button, Text } from 'ui/src'
 import Brand from './Brand'
 import Theme from './Theme'
+import Transition from './Transition'
 
 const AutoSave = () => {
 	const { editorSaved, providerWebsocketState } = useIncredibleEditor()
@@ -106,16 +106,10 @@ const SubHeader = (): JSX.Element => {
 				<div className='mr-4'>
 					<AutoSave />
 				</div>
-				<div className='flex h-full items-center gap-x-5 border-l border-gray-700 px-4'>
+				<div className='flex h-full items-center gap-x-2 border-l border-gray-700 px-2'>
 					<Theme />
 					<Brand />
-					<Button
-						leftIcon={<TransitionIcon />}
-						appearance='none'
-						className='text-dark-title'
-					>
-						Transition
-					</Button>
+					<Transition />
 				</div>
 
 				<div className='flex h-full items-center gap-x-5 border-l border-gray-700 px-4'>

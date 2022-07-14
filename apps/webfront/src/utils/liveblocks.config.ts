@@ -1,7 +1,7 @@
 import { createClient, LiveMap, LiveObject } from '@liveblocks/client'
 import { createRoomContext } from '@liveblocks/react'
 import { BrandingFragment, ThemeFragment } from 'src/graphql/generated'
-import { StudioState } from 'src/stores/studio.store'
+import { StudioState, TransitionConfig } from 'src/stores/studio.store'
 import { getEnv, LiveViewConfig } from 'utils/src'
 import { FragmentPayload } from './configs'
 
@@ -73,11 +73,11 @@ type RoomEvent =
 	  }
 	| {
 			type: RoomEventTypes.TransitionChanged
-			payload: any
+			payload: TransitionConfig
 	  }
 	| {
 			type: RoomEventTypes.FlickNameChanged
-			payload: any
+			payload: string
 	  }
 	| {
 			type: RoomEventTypes.RetakeButtonClick

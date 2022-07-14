@@ -26,3 +26,12 @@ query GetTransitions {
 		...Transition
 	}
 }
+
+mutation UpdateTransition($id: uuid!, $flickConfiguration: json!) {
+	update_Flick_by_pk(
+		pk_columns: { id: $id }
+		_set: { configuration: $flickConfiguration }
+	) {
+		id
+	}
+}

@@ -15,7 +15,11 @@ import {
 	View,
 	viewAtom,
 } from 'src/stores/flick.store'
-import { activeBrandIdAtom, brandingAtom } from 'src/stores/studio.store'
+import {
+	activeBrandIdAtom,
+	brandingAtom,
+	transitionAtom,
+} from 'src/stores/studio.store'
 import {
 	Presence,
 	PresencePage,
@@ -56,6 +60,7 @@ const FlickBody = ({
 				set(participantsAtom, flick.participants)
 				set(brandingAtom, flick.branding?.branding)
 				set(activeBrandIdAtom, flick.useBranding ? flick.branding?.id : null)
+				set(transitionAtom, flick.configuration?.transitions)
 			},
 		[]
 	)

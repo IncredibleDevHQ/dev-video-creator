@@ -1,6 +1,6 @@
 import { IAgoraRTCRemoteUser } from 'agora-rtc-sdk-ng'
 import { atom, atomFamily } from 'recoil'
-import { ThemeFragment } from 'src/graphql/generated'
+import { ThemeFragment, TransitionFragment } from 'src/graphql/generated'
 import {
 	BrandingJSON,
 	ControlsConfig,
@@ -51,6 +51,15 @@ export const activeBrandIdAtom = atom<string | null>({
 })
 export const brandingAtom = atom<BrandingJSON>({
 	key: 'branding',
+	default: {},
+})
+
+export type TransitionConfig = {
+	swapTransition?: TransitionFragment
+	blockTransition?: TransitionFragment
+}
+export const transitionAtom = atom<TransitionConfig>({
+	key: 'transition',
 	default: {},
 })
 
