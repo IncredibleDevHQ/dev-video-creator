@@ -10,9 +10,9 @@ import {
 import { useRecoilState, useSetRecoilState } from 'recoil'
 import { openStudioAtom, View, viewAtom } from 'src/stores/flick.store'
 import { useRoom } from 'src/utils/liveblocks.config'
-import BrandIcon from 'svg/BrandIcon.svg'
 import TransitionIcon from 'svg/TransitionIcon.svg'
 import { Button, Text } from 'ui/src'
+import Brand from './Brand'
 import Theme from './Theme'
 
 const AutoSave = () => {
@@ -108,13 +108,7 @@ const SubHeader = (): JSX.Element => {
 				</div>
 				<div className='flex h-full items-center gap-x-5 border-l border-gray-700 px-4'>
 					<Theme />
-					<Button
-						leftIcon={<BrandIcon />}
-						appearance='none'
-						className='text-dark-title'
-					>
-						Brand
-					</Button>
+					<Brand />
 					<Button
 						leftIcon={<TransitionIcon />}
 						appearance='none'

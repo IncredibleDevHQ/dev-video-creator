@@ -15,6 +15,7 @@ import {
 	View,
 	viewAtom,
 } from 'src/stores/flick.store'
+import { activeBrandIdAtom, brandingAtom } from 'src/stores/studio.store'
 import {
 	Presence,
 	PresencePage,
@@ -23,11 +24,11 @@ import {
 import { useUser } from 'src/utils/providers/auth'
 import EditorSection from './core/EditorSection'
 import Navbar from './core/Navbar'
-import SubHeader from './subheader/SubHeader'
 import ViewConfigUpdater from './core/ViewConfigUpdater'
 import Preview from './preview/Preview'
 import Timeline from './preview/Timeline'
 import StudioHoC from './studio/StudioHoc'
+import SubHeader from './subheader/SubHeader'
 
 const FlickBody = ({
 	flick,
@@ -53,6 +54,8 @@ const FlickBody = ({
 				set(activeFragmentIdAtom, initialFragmentId)
 				set(astAtom, ast ?? null)
 				set(participantsAtom, flick.participants)
+				set(brandingAtom, flick.branding?.branding)
+				set(activeBrandIdAtom, flick.useBranding ? flick.branding?.id : null)
 			},
 		[]
 	)

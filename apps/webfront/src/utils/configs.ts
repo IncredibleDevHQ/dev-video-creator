@@ -2,6 +2,7 @@ import { RichTextContent } from 'editor/src/utils/types'
 import { ClipConfig } from 'icanvas/src/hooks/useEdit'
 import { Position } from 'src/components/flick/canvas/CodeAnimations'
 import { ComputedRichText } from 'src/components/flick/canvas/RichText'
+import { GetBrandingQuery } from 'src/graphql/generated'
 import { ComputedToken } from './hooks/useCode'
 
 export const CONFIG = {
@@ -19,6 +20,12 @@ export interface IFont {
 	family: string
 	type: 'google' | 'custom'
 	url?: string
+}
+
+type B = GetBrandingQuery['Branding'][0]
+
+export interface BrandingInterface extends B {
+	branding?: BrandingJSON | null
 }
 
 export interface BrandingJSON {
@@ -93,12 +100,12 @@ export type FragmentPayload = {
 
 export interface ControlsConfig {
 	updatePayload?: (value: any) => void
-  blockId?: string
+	blockId?: string
 	playing?: boolean
 	videoElement?: HTMLVideoElement
 	computedTokens?: ComputedToken[]
 	position?: Position
-  computedPoints?: ComputedPoint[]
+	computedPoints?: ComputedPoint[]
 }
 
 // points configs

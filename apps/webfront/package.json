@@ -19,6 +19,7 @@
 		"@liveblocks/client": "^0.17.5",
 		"@liveblocks/react": "^0.17.5",
 		"@prisma/client": "^4.0.0",
+		"@samuelmeuli/font-manager": "^1.4.0",
 		"@trpc/client": "^9.25.3",
 		"@trpc/next": "^9.25.3",
 		"@trpc/react": "^9.25.3",
@@ -46,6 +47,7 @@
 		"nookies": "^2.5.2",
 		"react": "17.0.2",
 		"react-beautiful-dnd": "^13.1.0",
+		"react-colorful": "^5.5.1",
 		"react-dom": "17.0.2",
 		"react-dropzone": "^14.2.2",
 		"react-icons": "^4.4.0",
@@ -57,6 +59,7 @@
 		"superjson": "^1.9.1",
 		"ui": "*",
 		"use-debounce": "^8.0.1",
+		"use-font-face-observer": "^1.2.1",
 		"use-image": "^1.0.12",
 		"utils": "*",
 		"zod": "^3.17.3"

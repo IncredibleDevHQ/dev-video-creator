@@ -45,6 +45,10 @@ export const themeAtom = atom<ThemeFragment>({
 	},
 })
 
+export const activeBrandIdAtom = atom<string | null>({
+	key: 'activeBrandId',
+	default: null,
+})
 export const brandingAtom = atom<BrandingJSON>({
 	key: 'branding',
 	default: {},
