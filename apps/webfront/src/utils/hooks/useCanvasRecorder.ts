@@ -28,7 +28,7 @@ export type AudioType = 'transition' | 'shorts' | 'points'
 export type MusicAction = 'start' | 'stop' | 'modifyVolume'
 
 const useCanvasRecorder = ({
-	videoBitsPerSecond = 12000000
+	videoBitsPerSecond = 12000000,
 }: {
 	videoBitsPerSecond?: number
 }) => {
@@ -66,9 +66,7 @@ const useCanvasRecorder = ({
 			throw Error('No stream found')
 		}
 
-		const videoType = types.find( t =>
-			MediaRecorder.isTypeSupported(t)
-		)
+		const videoType = types.find(t => MediaRecorder.isTypeSupported(t))
 		if (!videoType) {
 			throw Error('No supported type found for MediaRecorder')
 		}
