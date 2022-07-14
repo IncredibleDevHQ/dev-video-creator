@@ -19,6 +19,7 @@ import {
 import {
 	activeBrandIdAtom,
 	brandingAtom,
+	themeAtom,
 	transitionAtom,
 } from 'src/stores/studio.store'
 import {
@@ -62,6 +63,7 @@ const FlickBody = ({
 				set(brandingAtom, flick.useBranding ? flick.branding?.branding : {})
 				set(activeBrandIdAtom, flick.useBranding ? flick.branding?.id : null)
 				set(transitionAtom, flick.configuration?.transitions)
+				set(themeAtom, flick.theme)
 			},
 		[]
 	)
