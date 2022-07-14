@@ -65,9 +65,10 @@ const MediaControls = React.memo(
 
 		const {
 			init,
-			currentUser,
+			// currentUser,
 			join,
 			users,
+      stream,
 			leave,
 			userAudios,
 			renewToken,
@@ -81,7 +82,23 @@ const MediaControls = React.memo(
 				const { data } = await getRTCToken()
 				rtcTokenRef.current = data?.RTCToken?.token
 			})()
+			return () => {
+				setAgoraUsers([])
+				setStream(null)
+			}
 		}, [])
+
+    // on unmount it stops the tracks and releases the media resources
+		useEffect(
+			() => () => {
+				if (!leave || !stream) return
+				stream.getTracks().forEach(track => {
+					track.stop()
+				})
+				leave()
+			},
+			[leave, stream]
+		)
 
 		useEffect(() => {
 			;(async () => {
@@ -109,12 +126,12 @@ const MediaControls = React.memo(
 		}, [join, leave, renewToken])
 
 		useEffect(() => {
-			if (!currentUser.stream || !userAudios) return
+			if (!stream || !userAudios) return
 			setStream({
-				stream: currentUser.stream,
+				stream,
 				audios: userAudios,
 			})
-		}, [currentUser.stream, userAudios])
+		}, [stream, userAudios])
 
 		useEffect(() => {
 			if (
@@ -144,7 +161,6 @@ const MediaControls = React.memo(
 			;(async () => {
 				try {
 					if (!trackReady || !tracks || !flickId || !participantId) return
-
 					await init(
 						fragmentId,
 						{
