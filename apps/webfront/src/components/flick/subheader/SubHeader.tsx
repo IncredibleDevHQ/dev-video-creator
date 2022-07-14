@@ -112,18 +112,18 @@ const SubHeader = (): JSX.Element => {
 					<Transition />
 				</div>
 
-				<div className='flex h-full items-center gap-x-5 border-l border-gray-700 px-4'>
+				<div className='flex h-full items-center gap-x-2 border-l border-gray-700 px-2'>
 					<Button
 						leftIcon={<IoPlayOutline className='h-4 w-4' />}
 						appearance='none'
-						className='text-dark-title'
+						className='text-dark-title hover:bg-white/10 !px-2 transform active:scale-95'
 					>
 						Recording
 					</Button>
 					<Button
 						leftIcon={<IoImageOutline className='h-4 w-4' />}
 						appearance='none'
-						className='text-dark-title'
+						className='text-dark-title hover:bg-white/10 !px-2 transform active:scale-95'
 					>
 						Thumbnail
 					</Button>
