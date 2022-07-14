@@ -148,31 +148,21 @@ model Flick {
   name                     String
   description              String?
   id                       String                   @id @default(uuid()) @db.VarChar(32)
-  startAt                  DateTime?                @db.Timestamp(6)
-  endAt                    DateTime?                @db.Timestamp(6)
   updatedAt                DateTime                 @default(now()) @db.Timestamp(6)
   createdAt                DateTime                 @default(now()) @db.Timestamp(6)
   lobbyPicture             String?
   status                   String                   @default("Draft")
-  color                    String                   @default("Green")
-  sendEmailsAutomatically  Boolean                  @default(true)
   scope                    String                   @default("Public")
-  plannedEnd               DateTime?                @db.Timestamp(6)
-  actualStart              DateTime?                @db.Timestamp(6)
   joinLink                 String                   @unique @default(uuid())
   producedLink             String?
   deletedAt                DateTime?                @db.Timestamp(6)
   ownerId                  String?                  @db.VarChar(32)
   organisationSlug         String?
   previewLink              String?
-  difficulty               String                   @default("Beginner")
   configuration            Json?                    @default("{ \"themeId\": 0 }") @db.Json
   thumbnail                String?
   youtubeLink              String?
-  flickResourceUrl         String?
   publishedAt              DateTime?                @db.Timestamp(6)
-  md                       String?
-  duration                 Int?
   interactions             Json?                    @db.Json
   topicTags                String?                  @db.VarChar(255)
   useBranding              Boolean                  @default(false)
