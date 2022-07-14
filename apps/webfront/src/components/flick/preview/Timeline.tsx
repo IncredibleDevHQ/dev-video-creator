@@ -1,8 +1,10 @@
+/* eslint-disable arrow-body-style */
 import { cx } from '@emotion/css'
 import CodeSandbox from 'editor/src/assets/Command_CodeSandbox.svg'
 import Replit from 'editor/src/assets/Command_Replit.svg'
 import StackBlitz from 'editor/src/assets/Command_Stackblitz.svg'
-import { useEffect } from 'react'
+import { Block } from 'editor/src/utils/types'
+import { useEffect, useState } from 'react'
 import { IoPlayOutline } from 'react-icons/io5'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import {
@@ -13,12 +15,191 @@ import {
 	View,
 	viewAtom,
 } from 'src/stores/flick.store'
-import { useMap } from 'src/utils/liveblocks.config'
+import { payloadFamily } from 'src/stores/studio.store'
+import useUpdatePayload from 'src/utils/hooks/useUpdatePayload'
+import { useMap, useRoom } from 'src/utils/liveblocks.config'
 import TimelineIcon from 'svg/Timeline.svg'
 import UserPlaceholder from 'svg/UserPlaceholder.svg'
 import { Button } from 'ui/src'
-import { IntroBlockView, OutroBlockView } from 'utils/src'
+import { IntroBlockView, LiveViewConfig, OutroBlockView } from 'utils/src'
 import { FragmentTypeIcon } from './LayoutGeneric'
+
+const IntroTile = ({
+	block,
+	viewConfig,
+}: {
+	viewConfig?: LiveViewConfig
+	block: Block
+}) => {
+	const currentBlock = useRecoilValue(currentBlockSelector)
+	const payload = useRecoilValue(payloadFamily(block.id))
+	const { updatePayload } = useUpdatePayload({
+		blockId: block.id,
+		shouldUpdateLiveblocks: false,
+	})
+
+	return (
+		// eslint-disable-next-line react/jsx-no-useless-fragment
+		<>
+			{(viewConfig?.blocks?.get(block.id)?.view as IntroBlockView)?.intro?.order
+				?.filter(o => o.enabled)
+				?.map((order, orderIndex) => {
+					switch (order.state) {
+						case 'userMedia': {
+							return (
+								<button
+									type='button'
+									onClick={() => {
+										updatePayload?.({
+											activeIntroIndex: orderIndex,
+										})
+									}}
+									className={cx(
+										'border border-transparent rounded-md p-2 w-24 h-12 bg-dark-100 relative',
+										{
+											'!border-green-600':
+												payload.activeIntroIndex === orderIndex &&
+												block.id === currentBlock?.id,
+										}
+									)}
+								>
+									<UserPlaceholder className='transform w-full h-full' />
+								</button>
+							)
+						}
+
+						case 'titleSplash': {
+							return (
+								<button
+									type='button'
+									onClick={() => {
+										if (block.type === 'introBlock') {
+											updatePayload?.({
+												activeIntroIndex: orderIndex,
+											})
+										}
+									}}
+									className={cx(
+										'border border-dark-100 rounded-md flex justify-center items-center w-24 h-12 p-2 ',
+										{
+											'bg-dark-100': block.type === 'introBlock',
+											'!border-green-600':
+												payload.activeIntroIndex === orderIndex &&
+												block.id === currentBlock?.id,
+										}
+									)}
+								>
+									<FragmentTypeIcon type={block.type} />
+								</button>
+							)
+						}
+
+						case 'introVideo': {
+							return (
+								<button
+									type='button'
+									onClick={() => {
+										updatePayload?.({
+											activeIntroIndex: orderIndex,
+										})
+									}}
+									className={cx(
+										'border border-dark-100 rounded-md flex justify-center items-center w-24 h-12 p-3 bg-dark-100',
+										{
+											'!border-green-600':
+												payload.activeIntroIndex === orderIndex &&
+												block.id === currentBlock?.id,
+										}
+									)}
+								>
+									<IoPlayOutline className='w-full h-full text-gray-400' />
+								</button>
+							)
+						}
+
+						default:
+							return null
+					}
+				})}
+		</>
+	)
+}
+
+const OutroTile = ({
+	block,
+	viewConfig,
+}: {
+	viewConfig?: LiveViewConfig
+	block: Block
+}) => {
+	const currentBlock = useRecoilValue(currentBlockSelector)
+	const payload = useRecoilValue(payloadFamily(block.id))
+	const { updatePayload } = useUpdatePayload({
+		blockId: block.id,
+		shouldUpdateLiveblocks: false,
+	})
+
+	return (
+		// eslint-disable-next-line react/jsx-no-useless-fragment
+		<>
+			{(viewConfig?.blocks?.get(block.id)?.view as OutroBlockView)?.outro?.order
+				?.filter(o => o.enabled)
+				?.map((order, outroIndex) => {
+					switch (order.state) {
+						case 'titleSplash': {
+							return (
+								<button
+									type='button'
+									onClick={() => {
+										updatePayload?.({
+											activeOutroIndex: outroIndex,
+										})
+									}}
+									className={cx(
+										'border border-dark-100 rounded-md flex justify-center items-center w-24 h-12 p-2 ',
+										{
+											'bg-dark-100': block.type === 'outroBlock',
+											'!border-green-600':
+												payload.activeOutroIndex === outroIndex &&
+												block.id === currentBlock?.id,
+										}
+									)}
+								>
+									<FragmentTypeIcon type={block.type} />
+								</button>
+							)
+						}
+
+						case 'outroVideo': {
+							return (
+								<button
+									type='button'
+									onClick={() => {
+										updatePayload?.({
+											activeOutroIndex: outroIndex,
+										})
+									}}
+									className={cx(
+										'border border-dark-100 rounded-md flex justify-center items-center w-24 h-12 p-3 bg-dark-100',
+										{
+											'!border-green-600':
+												payload.activeOutroIndex === outroIndex &&
+												block.id === currentBlock?.id,
+										}
+									)}
+								>
+									<IoPlayOutline className='w-full h-full text-gray-400' />
+								</button>
+							)
+						}
+
+						default:
+							return null
+					}
+				})}
+		</>
+	)
+}
 
 const Timeline = ({
 	persistentTimeline = false,
@@ -33,7 +214,34 @@ const Timeline = ({
 	const view = useRecoilValue(viewAtom)
 	const [showTimeline, setShowTimeline] = useRecoilState(isTimelineVisibleAtom)
 
-	const viewConfig = useMap('viewConfig')?.get(activeFragmentId as string)
+	const room = useRoom()
+	const config = useMap('viewConfig')?.get(activeFragmentId as string)
+	const [viewConfig, setViewConfig] = useState<LiveViewConfig>()
+
+	useEffect(() => {
+		if (!config) return
+		setViewConfig({
+			...config.toObject(),
+		})
+	}, [config])
+
+	useEffect(() => {
+		let unsubscribe: any
+		if (config && !unsubscribe) {
+			unsubscribe = room.subscribe(
+				config,
+				() => {
+					setViewConfig({
+						...config.toObject(),
+					})
+				},
+				{ isDeep: true }
+			)
+		}
+		return () => {
+			unsubscribe?.()
+		}
+	}, [config, room])
 
 	useEffect(() => {
 		if (view === View.Preview) {
@@ -89,156 +297,10 @@ const Timeline = ({
 								{(() => {
 									switch (block.type) {
 										case 'introBlock':
-											return (
-												viewConfig?.get('blocks')?.get(block.id)
-													?.view as IntroBlockView
-											)?.intro?.order
-												?.filter(o => o.enabled)
-												?.map(order => {
-													switch (order.state) {
-														case 'userMedia': {
-															return (
-																<button
-																	type='button'
-																	onClick={() => {
-																		// updatePayload?.({
-																		//   activeIntroIndex: orderIndex,
-																		// })
-																	}}
-																	className={cx(
-																		'border border-transparent rounded-md p-2 w-24 h-12 bg-dark-100 relative',
-																		{
-																			'!border-green-600':
-																				// payload.activeIntroIndex ===
-																				//   orderIndex &&
-																				block.id === currentBlock?.id,
-																		}
-																	)}
-																>
-																	<UserPlaceholder className='transform w-full h-full' />
-																</button>
-															)
-														}
-
-														case 'titleSplash': {
-															return (
-																<button
-																	type='button'
-																	onClick={() => {
-																		if (block.type === 'introBlock') {
-																			//   updatePayload?.({
-																			//     activeIntroIndex: orderIndex,
-																			//   })
-																		}
-																	}}
-																	className={cx(
-																		'border border-dark-100 rounded-md flex justify-center items-center w-24 h-12 p-2 ',
-																		{
-																			'bg-dark-100':
-																				block.type === 'introBlock',
-																			'!border-green-600':
-																				// payload.activeIntroIndex ===
-																				//   orderIndex &&
-																				block.id === currentBlock?.id,
-																		}
-																	)}
-																>
-																	<FragmentTypeIcon type={block.type} />
-																</button>
-															)
-														}
-
-														case 'introVideo': {
-															return (
-																<button
-																	type='button'
-																	onClick={() => {
-																		// updatePayload?.({
-																		//   activeIntroIndex: orderIndex,
-																		// })
-																	}}
-																	className={cx(
-																		'border border-dark-100 rounded-md flex justify-center items-center w-24 h-12 p-3 bg-dark-100',
-																		{
-																			'!border-green-600':
-																				// payload.activeIntroIndex ===
-																				//   orderIndex &&
-																				block.id === currentBlock?.id,
-																		}
-																	)}
-																>
-																	<IoPlayOutline className='w-full h-full text-gray-400' />
-																</button>
-															)
-														}
-
-														default:
-															return null
-													}
-												})
+											return <IntroTile viewConfig={viewConfig} block={block} />
 
 										case 'outroBlock':
-											return (
-												viewConfig?.get('blocks')?.get(block.id)
-													?.view as OutroBlockView
-											)?.outro?.order
-												?.filter(o => o.enabled)
-												?.map(order => {
-													switch (order.state) {
-														case 'titleSplash': {
-															return (
-																<button
-																	type='button'
-																	onClick={() => {
-																		// updatePayload?.({
-																		//   activeOutroIndex: outroIndex,
-																		// })
-																	}}
-																	className={cx(
-																		'border border-dark-100 rounded-md flex justify-center items-center w-24 h-12 p-2 ',
-																		{
-																			'bg-dark-100':
-																				block.type === 'outroBlock',
-																			'!border-green-600':
-																				// payload.activeOutroIndex ===
-																				//   outroIndex &&
-																				block.id === currentBlock?.id,
-																		}
-																	)}
-																>
-																	<FragmentTypeIcon type={block.type} />
-																</button>
-															)
-														}
-
-														case 'outroVideo': {
-															return (
-																<button
-																	type='button'
-																	onClick={() => {
-																		// updatePayload?.({
-																		//   activeOutroIndex: outroIndex,
-																		// })
-																	}}
-																	className={cx(
-																		'border border-dark-100 rounded-md flex justify-center items-center w-24 h-12 p-3 bg-dark-100',
-																		{
-																			'!border-green-600':
-																				// payload.activeOutroIndex ===
-																				//   outroIndex &&
-																				block.id === currentBlock?.id,
-																		}
-																	)}
-																>
-																	<IoPlayOutline className='w-full h-full text-gray-400' />
-																</button>
-															)
-														}
-
-														default:
-															return null
-													}
-												})
+											return <OutroTile viewConfig={viewConfig} block={block} />
 
 										case 'interactionBlock':
 											return (
