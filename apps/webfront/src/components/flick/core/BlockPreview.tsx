@@ -34,41 +34,39 @@ const BlockPreview = () => {
 		?.toObject()
 
 	return (
-		<button
-			type='button'
-			onClick={() => setPreviewOpen(true)}
-			style={{
-				top: `${previewPosition}px`,
-			}}
-			className={cx('absolute w-full aspect-[16/9] border cursor-pointer', {
-				'border-transparent': !block,
-			})}
-			ref={ref}
-		>
-			{block && (
-				<CanvasComponent
-					bounds={bounds}
-					dataConfig={[block]}
-					viewConfig={{
-						mode: config?.mode || 'Landscape',
-						speakers: config?.speakers || [],
-						selectedBlocks: config?.selectedBlocks || [],
-						continuousRecording: config?.continuousRecording || false,
-						blocks: {
-							[block.id]: blockProperties || {},
-						},
-					}}
-					isPreview
-					flickId={flickId as string}
-					scale={1.03}
-				/>
-			)}
+		<>
+			<button
+				type='button'
+				onClick={() => setPreviewOpen(true)}
+				style={{
+					top: `${previewPosition}px`,
+				}}
+				className={cx('absolute w-full aspect-[16/9] border cursor-pointer', {
+					'border-transparent': !block,
+				})}
+				ref={ref}
+			>
+				{block && (
+					<CanvasComponent
+						bounds={bounds}
+						dataConfig={[block]}
+						viewConfig={{
+							mode: config?.mode || 'Landscape',
+							speakers: config?.speakers || [],
+							selectedBlocks: config?.selectedBlocks || [],
+							continuousRecording: config?.continuousRecording || false,
+							blocks: {
+								[block.id]: blockProperties || {},
+							},
+						}}
+						isPreview
+						flickId={flickId as string}
+						scale={1.03}
+					/>
+				)}
+			</button>
 			<Transition appear show={previewOpen} as={Fragment}>
-				<Dialog
-					// open={previewOpen}
-					onClose={() => setPreviewOpen(false)}
-					className='relative z-50'
-				>
+				<Dialog onClose={() => setPreviewOpen(false)} className='relative z-50'>
 					<Transition.Child
 						as={Fragment}
 						enter='ease-out duration-300'
@@ -101,7 +99,7 @@ const BlockPreview = () => {
 					</div>
 				</Dialog>
 			</Transition>
-		</button>
+		</>
 	)
 }
 

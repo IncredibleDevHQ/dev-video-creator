@@ -204,7 +204,6 @@ const Branding = ({
 					height: '100%',
 					padding: '0',
 				}}
-				open={open}
 				onClose={() => {
 					handleSave(true)
 					handleClose()
@@ -418,7 +417,7 @@ const Branding = ({
 												)}
 											</div>
 										)}
-										<div className='relative flex flex-col px-2 pt-4 bg-gray-50 gap-y-2'>
+										<div className='relative flex flex-col px-2 pt-4 bg-gray-50 gap-y-2 w-[88px]'>
 											{tabs.map(tab => (
 												<button
 													type='button'

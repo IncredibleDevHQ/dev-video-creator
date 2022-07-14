@@ -1,8 +1,9 @@
+import { Transition } from '@headlessui/react'
 import { LiveMap, LiveObject } from '@liveblocks/client'
 import { CoreEditorInstance, EditorProvider } from 'editor/src'
 import parser from 'editor/src/utils/parser'
 import { Block } from 'editor/src/utils/types'
-import { useEffect, useMemo } from 'react'
+import { Fragment, useEffect, useMemo } from 'react'
 import { useRecoilCallback, useRecoilValue, useSetRecoilState } from 'recoil'
 import { FlickFragment } from 'src/graphql/generated'
 import {
@@ -18,6 +19,7 @@ import {
 import {
 	activeBrandIdAtom,
 	brandingAtom,
+	themeAtom,
 	transitionAtom,
 } from 'src/stores/studio.store'
 import {
@@ -61,6 +63,7 @@ const FlickBody = ({
 				set(brandingAtom, flick.useBranding ? flick.branding?.branding : {})
 				set(activeBrandIdAtom, flick.useBranding ? flick.branding?.id : null)
 				set(transitionAtom, flick.configuration?.transitions)
+				set(themeAtom, flick.theme)
 			},
 		[]
 	)
@@ -159,11 +162,21 @@ const FlickBody = ({
 					<ViewConfigUpdater />
 				</div>
 			</EditorProvider>
-			{openStudio && (
+
+			<Transition
+				show={openStudio}
+				as={Fragment}
+				enter='transition ease-out duration-200'
+				enterFrom='transform opacity-0'
+				enterTo='transform opacity-100'
+				leave='transition ease-in duration-200'
+				leaveFrom='transform opacity-100'
+				leaveTo='transform opacity-0'
+			>
 				<div className='absolute top-0 left-0 w-full h-screen z-50'>
 					<StudioHoC fragmentId={activeFragmentId} flickId={flick.id} />
 				</div>
-			)}
+			</Transition>
 		</RoomProvider>
 	)
 }
