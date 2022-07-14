@@ -1,9 +1,10 @@
+/* eslint-disable no-underscore-dangle */
 import * as trpc from '@trpc/server'
 import { TRPCError } from '@trpc/server'
 
 import { z } from 'zod'
 import type { Context } from '../createContext'
-import { Meta } from '../utils/helpers'
+import { generateSuggestionsFromEmail, Meta } from '../utils/helpers'
 
 const userRouter = trpc
 	.router<Context, Meta>()
@@ -53,6 +54,50 @@ const userRouter = trpc
 			return out
 		},
 	})
+	.query('availability', {
+		meta: {
+			hasAuth: true,
+		},
+		input: z.object({
+			username: z.string(),
+			senderEmail: z.string(),
+		}),
+		output: z.object({
+			valid: z.boolean(),
+			message: z.string(),
+			suggestion: z.string().array().optional(),
+		}),
+		resolve: async ({ input, ctx }) => {
+			if (!/^[a-z0-9]+$/.test(input.username)) {
+				throw new TRPCError({
+					code: 'BAD_REQUEST',
+					message:
+						'The username seems invalid. Try a username that is all lowercase.',
+					cause: 'Username failed validation.',
+				})
+			}
+			const unameAvailable = await ctx.prisma.user.aggregate({
+				_count: true,
+				where: {
+					username: input.username,
+					NOT: {
+						email: input.senderEmail,
+					},
+				},
+			})
+			if (unameAvailable._count === 0) {
+				return {
+					valid: true,
+					message: 'Username is available',
+				}
+			}
+			return {
+				valid: false,
+				message: 'Username is not available',
+				suggestion: generateSuggestionsFromEmail(input.senderEmail),
+			}
+		},
+	})
 	/*
 		MUTATIONS
 	*/
@@ -68,9 +113,15 @@ const userRouter = trpc
 		}),
 		output: z.object({
 			success: z.boolean(),
+			updated: z
+				.object({
+					email: z.string().nullable(),
+					displayName: z.string().nullable(),
+				})
+				.optional(),
 		}),
 		resolve: async ({ input, ctx }) => {
-			const uptd = await ctx.prisma.user.updateMany({
+			const uptd = await ctx.prisma.user.update({
 				where: {
 					sub: ctx.user!.sub,
 				},
@@ -80,8 +131,19 @@ const userRouter = trpc
 					organization: input.organization,
 					picture: input.profilePicture,
 				},
+				select: {
+					displayName: true,
+					email: true,
+				},
 			})
-			if (uptd && uptd.count === 1) return { success: true }
+			if (uptd)
+				return {
+					success: true,
+					updated: {
+						displayName: uptd.displayName,
+						email: uptd.email,
+					},
+				}
 
 			return { success: false }
 		},

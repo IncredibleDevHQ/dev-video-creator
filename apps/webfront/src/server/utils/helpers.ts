@@ -1,4 +1,5 @@
 import admin from 'firebase-admin'
+import * as crypto from 'crypto'
 import serverEnvs from '../../utils/env'
 
 export interface Meta {
@@ -14,4 +15,15 @@ export const initFirebaseAdmin = () => {
 		})
 	}
 	return admin
+}
+
+export function generateSuggestionsFromEmail(email: string): string[] {
+	const suggestions = []
+
+	for (let i = 0; i < 3; i += 1) {
+		const nameParts = email.replace(/@.+/, '')
+		const name = nameParts.replace(/[&/\\#,+()$~%._@'":*?<>{}]/g, '')
+		suggestions.push(name + crypto.randomInt(100, 900).toString())
+	}
+	return suggestions
 }
