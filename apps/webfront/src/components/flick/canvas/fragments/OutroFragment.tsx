@@ -118,6 +118,9 @@ const OutroFragment = ({
 			updatePayload,
 			blockId,
 		})
+    updatePayload({
+			activeOutroIndex: 0,
+		})
 		// eslint-disable-next-line consistent-return
 		return () => {
 			reset({
