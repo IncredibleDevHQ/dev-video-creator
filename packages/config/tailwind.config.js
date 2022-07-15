@@ -13,6 +13,10 @@ module.exports = {
 		'./src/**/*.{vue,js,ts,jsx,tsx}',
 	],
 	theme: {
+		screens: {
+			xs: '320px',
+			...defaultConfig.theme.screens,
+		},
 		fontFamily: {
 			main: ['Gilroy', ...defaultConfig.theme.fontFamily.sans],
 			body: ['InterBody', ...defaultConfig.theme.fontFamily.sans],

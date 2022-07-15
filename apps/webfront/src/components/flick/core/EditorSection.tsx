@@ -59,7 +59,7 @@ const EditorSection = () => {
 
 	return (
 		<div
-			className='grid grid-cols-12 flex-1 h-full sticky top-0 overflow-y-auto'
+			className='grid grid-cols-12 flex-1 h-full sticky top-0 overflow-y-auto bg-white'
 			onScroll={() => {
 				const dragHandle = dragHandleRef?.current
 				if (dragHandle) {

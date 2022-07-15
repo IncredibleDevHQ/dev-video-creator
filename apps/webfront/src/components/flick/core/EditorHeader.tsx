@@ -138,7 +138,7 @@ const EditorHeader = () => {
 					updateFlickName(e.target.value)
 				}}
 				placeholder='Add a title'
-				className='w-full text-[2.35em] font-extrabold text-gray-800 resize-none font-main focus:outline-none placeholder-gray-300'
+				className='w-full text-[2.35em] font-extrabold text-gray-800 resize-none font-main focus:outline-none placeholder-gray-300 bg-white'
 				value={flickName ?? ''}
 			/>
 			<div className='flex items-center justify-start mt-2'>

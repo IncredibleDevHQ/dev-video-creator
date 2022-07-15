@@ -1,8 +1,9 @@
-import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useEffect } from 'react'
+import Container from 'src/components/core/Container'
+import CoreLayout from 'src/components/core/CoreLayout'
+import Hero from 'src/components/core/Hero'
 import { useUser } from 'src/utils/providers/auth'
-import { Heading } from 'ui/src'
 
 const Web = () => {
 	const { user, loadingUser } = useUser()
@@ -15,12 +16,18 @@ const Web = () => {
 	}, [user, loadingUser, replace])
 
 	return (
-		<div>
-			<Heading>Webfront</Heading>
-			<Link href='/login' passHref>
-				<span className='underline'>Login</span>
-			</Link>
-		</div>
+		<Container>
+			<CoreLayout>
+				<div className='lines'>
+					<div className='line' />
+					<div className='line' />
+					<div className='line' />
+					<div className='line' />
+					<div className='line' />
+				</div>
+				<Hero />
+			</CoreLayout>
+		</Container>
 	)
 }
 

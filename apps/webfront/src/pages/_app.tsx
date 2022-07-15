@@ -1,17 +1,19 @@
 /* eslint-disable react/jsx-props-no-spreading */
-import { AppProps } from 'next/app'
-import { RecoilRoot } from 'recoil'
 import { withTRPC } from '@trpc/next'
-import superjson from 'superjson'
+import { AppProps } from 'next/app'
+import NextNProgress from 'nextjs-progressbar'
+import { RecoilRoot } from 'recoil'
+import { AppRouter } from 'src/server/routes/route'
 import UserProvider from 'src/utils/providers/auth'
 import AuthorizedApolloProvider from 'src/utils/providers/authorized-apollo-provider'
+import superjson from 'superjson'
 import { ToastContainer } from 'ui/src'
 import '../styles/globals.css'
-import { AppRouter } from 'src/server/routes/route'
 
 const MyApp = ({ Component, pageProps }: AppProps) => (
 	<RecoilRoot>
 		<UserProvider>
+			<NextNProgress color='#15803D' height={3} />
 			<ToastContainer limit={2} />
 			<AuthorizedApolloProvider>
 				<Component {...pageProps} />
