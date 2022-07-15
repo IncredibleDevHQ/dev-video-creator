@@ -1,7 +1,13 @@
 import { LiveMap, LiveObject } from '@liveblocks/client'
-import { Block } from 'editor/src/utils/types'
+import { Block, IntroBlockProps } from 'editor/src/utils/types'
 import Konva from 'konva'
-import React, { createContext, useContext, useEffect, useRef, useState } from 'react'
+import React, {
+	createContext,
+	useContext,
+	useEffect,
+	useRef,
+	useState,
+} from 'react'
 import { Group, Layer, Stage } from 'react-konva'
 import { RectReadOnly } from 'react-use-measure'
 import {
@@ -9,12 +15,13 @@ import {
 	useRecoilValue,
 } from 'recoil'
 import { fragmentTypeAtom } from 'src/stores/flick.store'
-import { studioStateAtom } from 'src/stores/studio.store'
+import { studioStateAtom, themeAtom } from 'src/stores/studio.store'
 import { CONFIG, SHORTS_CONFIG } from 'src/utils/configs'
 import { RoomProvider } from 'src/utils/liveblocks.config'
 import { UserContext, useUser } from 'src/utils/providers/auth'
-import { ViewConfig } from 'utils/src'
+import { IntroBlockView, TopLayerChildren, ViewConfig } from 'utils/src'
 import UnifiedFragment from './fragments/UnifiedFragment'
+import GetTopLayerChildren from './GetTopLayerChildren'
 
 export const StudioContext = createContext<{
 	start: () => void
@@ -54,37 +61,38 @@ const CanvasComponent = React.memo(
 		viewConfig,
 		isPreview,
 		flickId,
-    scale = 1,
-    stage
+		scale = 1,
+		stage,
 	}: {
 		bounds: RectReadOnly
 		dataConfig: Block[]
 		viewConfig: ViewConfig
 		isPreview: boolean
 		flickId: string
-    scale?: number
-    stage?: React.RefObject<Konva.Stage>
+		scale?: number
+		stage?: React.RefObject<Konva.Stage>
 	}) => {
 		const user = useUser()
 		const state = useRecoilValue(studioStateAtom)
+		const theme = useRecoilValue(themeAtom)
 		const { start } = useContext(StudioContext)
 
 		const [mountStage, setMountStage] = useState(false)
 
 		const stageRef1 = useRef<Konva.Stage>(null)
-    // Doing this because if called from studio, we pass stageRef as it is used to get the thumbnail
-    const stageRef = stage || stageRef1
+		// Doing this because if called from studio, we pass stageRef as it is used to get the thumbnail
+		const stageRef = stage || stageRef1
 
 		const layerRef = useRef<Konva.Layer>(null)
 		const Bridge = useRecoilBridgeAcrossReactRoots_UNSTABLE()
 
 		const shortsMode = useRecoilValue(fragmentTypeAtom) !== 'Landscape'
 
-		// // state which stores the type of layer children which have to be placed over the studio user
-		// const [topLayerChildren, setTopLayerChildren] = useState<{
-		// 	id: string
-		// 	state: TopLayerChildren
-		// }>({ id: '', state: '' })
+		// state which stores the type of layer children which have to be placed over the studio user
+		const [topLayerChildren, setTopLayerChildren] = useState<{
+			id: string
+			state: TopLayerChildren
+		}>({ id: '', state: '' })
 
 		const { height: stageHeight, width: stageWidth } = getIntegerHW({
 			maxH: bounds.height * scale,
@@ -127,7 +135,7 @@ const CanvasComponent = React.memo(
 										payload: new LiveMap(),
 										activeObjectIndex: new LiveObject({ activeObjectIndex: 0 }),
 										state: new LiveObject({ state: 'ready' }),
-                    recordedBlocks: new LiveMap(),
+										recordedBlocks: new LiveMap(),
 									})}
 								>
 									<Layer ref={layerRef}>
@@ -135,30 +143,38 @@ const CanvasComponent = React.memo(
 											<Group>
 												<UnifiedFragment
 													stageRef={stageRef}
-													// setTopLayerChildren={setTopLayerChildren}
+													setTopLayerChildren={setTopLayerChildren}
 													config={dataConfig}
 													layoutConfig={viewConfig}
 													isPreview={isPreview}
 												/>
-												{/* <GetTopLayerChildren
-												key={topLayerChildren?.id}
-												topLayerChildrenState={topLayerChildren?.state || ''}
-												setTopLayerChildren={setTopLayerChildren}
-												isShorts={shortsMode || false}
-												theme={theme}
-												transitionSettings={{
-													blockTransition:
-														fragment?.flick?.configuration?.transitions
-															?.blockTransition?.name,
-													swapTransition:
-														fragment?.flick?.configuration?.transitions
-															?.swapTransition?.name,
-												}}
-												performFinishAction={() => {
-													stopCanvasRecording()
-													setState('preview')
-												}}
-											/> */}
+												<GetTopLayerChildren
+													key={topLayerChildren?.id}
+													topLayerChildrenState={topLayerChildren?.state || ''}
+													setTopLayerChildren={setTopLayerChildren}
+													isShorts={shortsMode || false}
+													theme={theme}
+													speakersLength={viewConfig?.speakers?.length || 1}
+													introBlockViewProps={
+														(
+															viewConfig?.blocks[
+																(dataConfig?.[0] as IntroBlockProps).id
+															]?.view as IntroBlockView
+														)?.intro
+													}
+													// transitionSettings={{
+													// 	blockTransition:
+													// 		fragment?.flick?.configuration?.transitions
+													// 			?.blockTransition?.name,
+													// 	swapTransition:
+													// 		fragment?.flick?.configuration?.transitions
+													// 			?.swapTransition?.name,
+													// }}
+													// performFinishAction={() => {
+													// 	stopCanvasRecording()
+													// 	setState('preview')
+													// }}
+												/>
 											</Group>
 										))()}
 									</Layer>

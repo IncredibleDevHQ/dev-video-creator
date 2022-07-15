@@ -104,6 +104,7 @@ const MiniTimeline = ({
 							(recordedBlocks?.get(dataConfig[index].id)?.includes('blob') &&
 								state === 'preview')
 						) {
+              // TODO emit toast to notify the user to svae and proceed
 							return
 						}
             updateActiveObjectIndex(index)
@@ -113,7 +114,6 @@ const MiniTimeline = ({
 						} else {
 							updateState('resumed')
 						}
-
 					}}
 				>
 					{recordedBlocks?.get(dataConfig[index].id)?.includes('.webm') && (

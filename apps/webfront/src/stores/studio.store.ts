@@ -86,9 +86,9 @@ export const agoraActionsAtom = atom<AgoraActions | null>({
 })
 
 // user
-export const agoraUsersAtom = atom<RTCUser[]>({
+export const agoraUsersAtom = atom<RTCUser[] | undefined>({
 	key: 'agoraUsers',
-	default: [],
+	default: undefined,
 })
 
 // agora all channel users

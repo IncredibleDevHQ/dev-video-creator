@@ -145,7 +145,7 @@ const IntroFragment = ({
 		if (
 			!isPreview &&
 			introSequence[activeIntroIndex] === 'userMedia' &&
-			state === 'startRecording'
+			state === 'recording'
 		) {
 			timer.current = setTimeout(() => {
 				setTopLayerChildren?.({ id: nanoid(), state: 'lowerThird' })
@@ -206,7 +206,9 @@ const IntroFragment = ({
 	const studioUserConfig = !shortsMode
 		? getStudioUserConfiguration({
 				layout: 'classic',
-				noOfParticipants: !isPreview ? users.length + 1 : speakersLength,
+				noOfParticipants: !isPreview
+					? (users?.length || 0) + 1
+					: speakersLength,
 				fragmentState:
 					introSequence[payload?.activeIntroIndex || 0] === 'userMedia'
 						? 'onlyUserMedia'

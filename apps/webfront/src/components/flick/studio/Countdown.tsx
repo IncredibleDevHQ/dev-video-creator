@@ -17,7 +17,7 @@ const Countdown = ({ updateState }: { updateState: (value: StudioState) => void 
 				}, 1000)
 			}
 		}
-		if (state === 'ready') setTimer(3)
+		if (state === 'ready' || state === 'resumed') setTimer(3)
 	}, [state, timer])
 
 	return timer > 0 && state === 'countDown' ? (

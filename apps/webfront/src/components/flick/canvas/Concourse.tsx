@@ -41,7 +41,7 @@ interface ConcourseProps {
 	blockType: Block['type']
 	updatePayload: (payload: FragmentPayload) => void
 	blockId: string
-  speakersLength: number
+	speakersLength: number
 }
 
 const Concourse = ({
@@ -54,7 +54,7 @@ const Concourse = ({
 	blockType,
 	updatePayload,
 	blockId,
-  speakersLength
+	speakersLength,
 }: ConcourseProps) => {
 	const users = useRecoilValue(agoraUsersAtom)
 	const payload = useRecoilValue(payloadFamily(blockId))
@@ -194,7 +194,7 @@ const Concourse = ({
 		<>
 			{(viewConfig?.layout === 'full-left' ||
 				viewConfig?.layout === 'full-right') &&
-			users.length !== 0 ? (
+			users ? (
 				<>
 					<StudioUser
 						stream={stream?.stream}
@@ -312,7 +312,7 @@ const Concourse = ({
 			</Group>
 			{viewConfig?.layout !== 'full-left' &&
 			viewConfig?.layout !== 'full-right' &&
-			users.length !== 0 ? (
+			users ? (
 				<>
 					<StudioUser
 						stream={stream?.stream}
