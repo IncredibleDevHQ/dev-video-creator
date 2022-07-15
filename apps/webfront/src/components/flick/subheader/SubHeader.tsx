@@ -2,11 +2,7 @@ import { cx } from '@emotion/css'
 import { useIncredibleEditor } from 'editor/src'
 import { useEffect, useMemo, useState } from 'react'
 import { BsCloudCheck } from 'react-icons/bs'
-import {
-	IoImageOutline,
-	IoPlayOutline,
-	IoWarningOutline,
-} from 'react-icons/io5'
+import { IoImageOutline, IoWarningOutline } from 'react-icons/io5'
 import { useRecoilState, useSetRecoilState } from 'recoil'
 import { openStudioAtom, View, viewAtom } from 'src/stores/flick.store'
 import { useRoom } from 'src/utils/liveblocks.config'
@@ -118,13 +114,6 @@ const SubHeader = (): JSX.Element => {
 				</div>
 
 				<div className='flex h-full items-center gap-x-2 border-l border-gray-700 px-2'>
-					<Button
-						leftIcon={<IoPlayOutline className='h-4 w-4' />}
-						appearance='none'
-						className='text-dark-title hover:bg-white/10 !px-2 transform active:scale-95'
-					>
-						Recording
-					</Button>
 					<Button
 						leftIcon={<IoImageOutline className='h-4 w-4' />}
 						appearance='none'
