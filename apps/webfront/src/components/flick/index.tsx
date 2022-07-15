@@ -159,7 +159,11 @@ const FlickBody = ({
 				<div className='flex flex-col h-screen overflow-hidden'>
 					<Navbar />
 					<SubHeader />
-					{view === View.Notebook ? <EditorSection /> : <Preview centered />}
+					{view === View.Notebook ? (
+						<EditorSection />
+					) : (
+						<Preview centered={false} />
+					)}
 					<Timeline persistentTimeline={false} shouldScrollToCurrentBlock />
 					<ViewConfigUpdater />
 				</div>

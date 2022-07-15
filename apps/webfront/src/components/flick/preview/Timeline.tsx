@@ -258,7 +258,7 @@ const Timeline = ({
 				relative: persistentTimeline,
 			})}
 		>
-			{!persistentTimeline && (
+			{!persistentTimeline && view !== View.Preview && (
 				<div className='flex items-center'>
 					<Button
 						colorScheme='darker'
