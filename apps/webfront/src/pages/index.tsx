@@ -1,6 +1,7 @@
 import { useRouter } from 'next/router'
 import { useEffect } from 'react'
 import Container from 'src/components/core/Container'
+import CookieBanner from 'src/components/core/CookieBanner'
 import CoreLayout from 'src/components/core/CoreLayout'
 import Hero from 'src/components/core/Hero'
 import { useUser } from 'src/utils/providers/auth'
@@ -27,6 +28,7 @@ const Web = () => {
 				</div>
 				<Hero />
 			</CoreLayout>
+			<CookieBanner />
 		</Container>
 	)
 }

@@ -1,7 +1,6 @@
 /* eslint-disable react/prop-types */
 import Head from 'next/head'
 import { useRouter } from 'next/router'
-import CookieBanner from './CookieBanner'
 
 const Container = (props: any) => {
 	const { children, ...customMeta } = props
@@ -50,10 +49,7 @@ const Container = (props: any) => {
 					<meta property='article:published_time' content={meta.date} />
 				)}
 			</Head>
-			<main className='bg-dark-500'>
-				{children}
-				<CookieBanner />
-			</main>
+			<main className='bg-dark-500'>{children}</main>
 		</>
 	)
 }
