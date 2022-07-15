@@ -39,9 +39,9 @@ export type Presence = {
 // automatically persisted and synced to all connected clients.
 type Storage = {
 	viewConfig: LiveMap<string, LiveObject<LiveViewConfig>>
-	payload: LiveMap<string, LiveObject<FragmentPayload>>
+	// payload: LiveMap<string, LiveObject<FragmentPayload>>
 	activeObjectIndex: LiveObject<{ activeObjectIndex: number }>
-	state: LiveObject<{ state: StudioState }>
+	// state: LiveObject<{ state: StudioState }>
 	recordedBlocks: LiveMap<string, string>
 }
 
@@ -55,11 +55,13 @@ export enum RoomEventTypes {
 	BrandingChanged = 'brandingChanged',
 	TransitionChanged = 'transitionChanged',
 	FlickNameChanged = 'flickNameChanged',
+	PayloadChanged = 'payloadChanged',
+	StateChanged = 'stateChanged',
 	RetakeButtonClick = 'retakeButtonClick',
 	SaveButtonClick = 'saveButtonClick',
 	RequestControls = 'requestControls',
 	ApproveRequestControls = 'approveRequestControls',
-  RevokeControls = 'revokeControls',
+	RevokeControls = 'revokeControls',
 }
 type RoomEvent =
 	| {
@@ -79,6 +81,17 @@ type RoomEvent =
 			payload: string
 	  }
 	| {
+			type: RoomEventTypes.PayloadChanged
+			payload: {
+				blockId: string
+				payload: FragmentPayload
+			}
+	  }
+	| {
+			type: RoomEventTypes.StateChanged
+			payload: StudioState
+	  }
+	| {
 			type: RoomEventTypes.RetakeButtonClick
 			payload: any
 	  }
@@ -86,9 +99,9 @@ type RoomEvent =
 	| { type: RoomEventTypes.RequestControls; payload: { requestorSub: string } }
 	| {
 			type: RoomEventTypes.ApproveRequestControls
-			payload: { requestorSub: string; }
+			payload: { requestorSub: string }
 	  }
-  | { type: RoomEventTypes.RevokeControls; payload: any }
+	| { type: RoomEventTypes.RevokeControls; payload: any }
 
 export const {
 	RoomProvider,

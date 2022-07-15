@@ -132,9 +132,7 @@ const CanvasComponent = React.memo(
 									id={`story-${flickId}`}
 									initialStorage={() => ({
 										viewConfig: new LiveMap(),
-										payload: new LiveMap(),
 										activeObjectIndex: new LiveObject({ activeObjectIndex: 0 }),
-										state: new LiveObject({ state: 'ready' }),
 										recordedBlocks: new LiveMap(),
 									})}
 								>
