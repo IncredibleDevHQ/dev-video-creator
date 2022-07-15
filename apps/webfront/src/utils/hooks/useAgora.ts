@@ -89,9 +89,9 @@ const useAgora = () => {
 							{
 								...user,
 								mediaStream:
-									tracks && tracks.length > 0
+									remoteTracks && remoteTracks.length > 0
 										? // @ts-ignore
-										  new MediaStream(tracks.filter(track => !!track))
+										  new MediaStream(remoteTracks.filter(track => !!track))
 										: undefined,
 							},
 						]
