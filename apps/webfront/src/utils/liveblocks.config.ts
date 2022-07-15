@@ -62,6 +62,7 @@ export enum RoomEventTypes {
 	RequestControls = 'requestControls',
 	ApproveRequestControls = 'approveRequestControls',
 	RevokeControls = 'revokeControls',
+	Zoom = 'zoom',
 }
 type RoomEvent =
 	| {
@@ -102,6 +103,13 @@ type RoomEvent =
 			payload: { requestorSub: string }
 	  }
 	| { type: RoomEventTypes.RevokeControls; payload: any }
+	| {
+			type: RoomEventTypes.Zoom
+			payload: {
+				zoomPointer: { x: number; y: number } | undefined
+				shouldZoom: boolean
+			}
+	  }
 
 export const {
 	RoomProvider,

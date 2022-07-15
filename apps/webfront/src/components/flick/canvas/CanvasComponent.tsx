@@ -162,12 +162,8 @@ const CanvasComponent = React.memo(
 														)?.intro
 													}
 													transitionSettings={{
-														blockTransition:
-															transition
-																?.blockTransition?.name,
-														swapTransition:
-															transition
-																?.swapTransition?.name,
+														blockTransition: transition?.blockTransition?.name,
+														swapTransition: transition?.swapTransition?.name,
 													}}
 													// performFinishAction={() => {
 													// 	stopCanvasRecording()

@@ -613,8 +613,6 @@ const OutroFragment = ({
 			blockType='outroBlock'
 			studioUserConfig={studioUserConfig}
 			isShorts={isShorts}
-			updatePayload={updatePayload}
-			blockId={blockId}
       speakersLength={1}
 		/>
 	)

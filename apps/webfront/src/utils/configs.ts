@@ -90,11 +90,6 @@ export type FragmentPayload = {
 	activePointIndex?: number
 	currentTime?: number
 	playing?: boolean
-	zoomPointer?: {
-		x: number
-		y: number
-	}
-	shouldZoom?: boolean
 	// actionTriggered?: string
 }
 
