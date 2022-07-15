@@ -705,8 +705,6 @@ const CodeFragment = ({
 			isShorts={shortsMode}
 			blockType={dataConfig.type}
 			fragmentState={fragmentState}
-			updatePayload={updatePayload}
-			blockId={dataConfig.id}
 			speakersLength={speakersLength}
 		/>
 	)

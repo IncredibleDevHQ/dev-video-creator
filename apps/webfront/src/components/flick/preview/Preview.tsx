@@ -12,6 +12,7 @@ import {
 	astAtom,
 	currentBlockSelector,
 	flickAtom,
+  openStudioAtom,
 } from 'src/stores/flick.store'
 import useBlock from 'src/utils/hooks/useBlock'
 import { useMap } from 'src/utils/liveblocks.config'
@@ -142,6 +143,7 @@ const getIcon = (tab: Tab, block?: BlockProperties) => {
 const Preview = ({ centered }: { centered: boolean }) => {
 	const flickId = useRecoilValue(flickAtom)?.id
 	const activeFragmentId = useRecoilValue(activeFragmentIdAtom)
+  const openStudio = useRecoilValue(openStudioAtom)
 
 	const config = useMap('viewConfig')
 		?.get(activeFragmentId as string)
@@ -220,22 +222,24 @@ const Preview = ({ centered }: { centered: boolean }) => {
 				ref={ref}
 			>
 				<div className='flex items-center relative'>
-					<CanvasComponent
-						bounds={bounds}
-						dataConfig={[block]}
-						viewConfig={{
-							mode: config?.mode || 'Landscape',
-							speakers: config?.speakers || [],
-							selectedBlocks: config?.selectedBlocks || [],
-							continuousRecording: config?.continuousRecording || false,
-							blocks: {
-								[block.id]: blockProperties || {},
-							},
-						}}
-						isPreview
-						flickId={flickId as string}
-						scale={0.83}
-					/>
+					{!openStudio && (
+						<CanvasComponent
+							bounds={bounds}
+							dataConfig={[block]}
+							viewConfig={{
+								mode: config?.mode || 'Landscape',
+								speakers: config?.speakers || [],
+								selectedBlocks: config?.selectedBlocks || [],
+								continuousRecording: config?.continuousRecording || false,
+								blocks: {
+									[block.id]: blockProperties || {},
+								},
+							}}
+							isPreview
+							flickId={flickId as string}
+							scale={0.83}
+						/>
+					)}
 					{/* TODO: Code controls */}
 				</div>
 			</div>

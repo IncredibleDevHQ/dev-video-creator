@@ -9,18 +9,21 @@ import {
 	agoraUsersAtom,
 	brandingAtom,
 	isStudioControllerAtom,
-	payloadFamily,
 	streamAtom,
 	themeAtom,
 } from 'src/stores/studio.store'
 import { getFragmentLayoutConfig } from 'src/utils/canvasConfigs/fragmentLayoutConfig'
 import {
 	CONFIG,
-	FragmentPayload,
 	FragmentState,
 	SHORTS_CONFIG,
 	StudioUserConfig,
 } from 'src/utils/configs'
+import {
+	RoomEventTypes,
+	useBroadcastEvent,
+	useEventListener,
+} from 'src/utils/liveblocks.config'
 import useImage from 'use-image'
 import { BlockProperties, GradientConfig } from 'utils/src'
 import StudioUser from './StudioUser'
@@ -39,8 +42,6 @@ interface ConcourseProps {
 	isShorts?: boolean
 	fragmentState?: FragmentState
 	blockType: Block['type']
-	updatePayload: (payload: FragmentPayload) => void
-	blockId: string
 	speakersLength: number
 }
 
@@ -52,19 +53,16 @@ const Concourse = ({
 	isShorts,
 	fragmentState,
 	blockType,
-	updatePayload,
-	blockId,
 	speakersLength,
 }: ConcourseProps) => {
 	const users = useRecoilValue(agoraUsersAtom)
-	const payload = useRecoilValue(payloadFamily(blockId))
 	const stream = useRecoilValue(streamAtom)
 	const theme = useRecoilValue(themeAtom)
 	const branding = useRecoilValue(brandingAtom)
 	const isStudioController = useRecoilValue(isStudioControllerAtom)
 
-	// const [canvas, setCanvas] = useRecoilState(canvasStore)
 	const [isZooming, setIsZooming] = useState(false)
+	const broadcast = useBroadcastEvent()
 
 	const [logo] = useImage(branding?.logo || '', 'anonymous')
 
@@ -155,13 +153,15 @@ const Concourse = ({
 		})
 	}
 
-	useEffect(() => {
-		if (payload?.shouldZoom) {
-			onLayerClick({ pointer: payload?.zoomPointer })
-		} else {
-			onMouseLeave()
+	useEventListener(({ event }) => {
+		if (event.type === RoomEventTypes.Zoom) {
+			if (event.payload.shouldZoom) {
+				onLayerClick({ pointer: event.payload.zoomPointer })
+			} else {
+				onMouseLeave()
+			}
 		}
-	}, [payload?.shouldZoom])
+	})
 
 	// const onMouseMove = () => {
 	//   if (!groupRef.current || !canvas?.zoomed) return
@@ -279,27 +279,46 @@ const Concourse = ({
 							onClick={() => {
 								if (isStudioController) {
 									const pointer = stageRef?.current?.getPointerPosition()
-									const scaleRatio =
+									const clientStageWidth =
 										document.getElementsByClassName('konvajs-content')[0]
-											.clientWidth / stageConfig.width
+											.clientWidth
+									const scaleRatio = clientStageWidth / stageConfig.width
 									if (pointer) {
-										updatePayload?.({
-											zoomPointer: {
-												x: (pointer.x - pointer.x * zoomLevel) / scaleRatio,
-												y: (pointer.y - pointer.y * zoomLevel) / scaleRatio,
+										broadcast({
+											type: RoomEventTypes.Zoom,
+											payload: {
+												zoomPointer: {
+													x: (pointer.x - pointer.x * zoomLevel) / scaleRatio,
+													y: (pointer.y - pointer.y * zoomLevel) / scaleRatio,
+												},
+												shouldZoom: !isZooming,
 											},
-											shouldZoom: !isZooming,
 										})
+										if (!isZooming) {
+											onLayerClick({
+												pointer: {
+													x: (pointer.x - pointer.x * zoomLevel) / scaleRatio,
+													y: (pointer.y - pointer.y * zoomLevel) / scaleRatio,
+												},
+											})
+										}
+                    else{
+                      onMouseLeave()
+                    }
 										setIsZooming(!isZooming)
 									}
 								}
 							}}
 							onMouseLeave={() => {
 								if (isStudioController) {
-									updatePayload?.({
-										zoomPointer: undefined,
-										shouldZoom: false,
+									broadcast({
+										type: RoomEventTypes.Zoom,
+										payload: {
+											zoomPointer: undefined,
+											shouldZoom: false,
+										},
 									})
+									onMouseLeave()
 									setIsZooming(false)
 								}
 							}}

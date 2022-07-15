@@ -7,6 +7,7 @@ import {
 	activeFragmentIdAtom,
 	currentBlockSelector,
 	flickAtom,
+	openStudioAtom,
 	previewPositionAtom,
 } from 'src/stores/flick.store'
 import useBlock from 'src/utils/hooks/useBlock'
@@ -23,6 +24,7 @@ const BlockPreview = () => {
 	const flickId = useRecoilValue(flickAtom)?.id
 	const activeFragmentId = useRecoilValue(activeFragmentIdAtom)
 	const block = useRecoilValue(currentBlockSelector)
+  const openStudio = useRecoilValue(openStudioAtom)
 
 	const { blockProperties } = useBlock(
 		activeFragmentId as string,
@@ -46,7 +48,7 @@ const BlockPreview = () => {
 				})}
 				ref={ref}
 			>
-				{block && (
+				{block && !openStudio && (
 					<CanvasComponent
 						bounds={bounds}
 						dataConfig={[block]}

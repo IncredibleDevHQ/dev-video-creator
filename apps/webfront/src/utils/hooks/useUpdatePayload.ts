@@ -1,9 +1,11 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-import { useEffect } from 'react'
 import { useSetRecoilState } from 'recoil'
 import { payloadFamily } from 'src/stores/studio.store'
 import { FragmentPayload } from '../configs'
-import { useMap, useRoom } from '../liveblocks.config'
+import {
+	RoomEventTypes,
+	useBroadcastEvent,
+	useEventListener,
+} from '../liveblocks.config'
 
 const useUpdatePayload = ({
 	blockId,
@@ -12,36 +14,58 @@ const useUpdatePayload = ({
 	blockId: string
 	shouldUpdateLiveblocks: boolean
 }) => {
-	const fragmentPayload = useMap('payload')?.get(blockId)
 	const setFragmentPayload = useSetRecoilState(payloadFamily(blockId))
-	const room = useRoom()
+	const broadcast = useBroadcastEvent()
 
-	useEffect(() => {
-		let unsubscribe: any
-		if (fragmentPayload && shouldUpdateLiveblocks && !unsubscribe) {
-			unsubscribe = room.subscribe(
-				fragmentPayload,
-				() => {
-					setFragmentPayload(fragmentPayload.toObject())
-				},
-				{ isDeep: true }
-			)
+	// useEffect(() => {
+	// 	let unsubscribe: any
+	//   console.log('fragment',fragmentPayload)
+	// 	if (fragmentPayload && shouldUpdateLiveblocks && !unsubscribe) {
+	// 		unsubscribe = room.subscribe(
+	// 			fragmentPayload,
+	// 			() => {
+	// 				setFragmentPayload(fragmentPayload.toObject())
+	// 			},
+	// 			{ isDeep: true }
+	// 		)
+	// 	}
+	// 	return () => {
+	// 		unsubscribe?.()
+	// 	}
+	// }, [fragmentPayload, shouldUpdateLiveblocks])
+
+	useEventListener(({ event }) => {
+		if (event.type === RoomEventTypes.PayloadChanged) {
+			if (event.payload.blockId === blockId && shouldUpdateLiveblocks) {
+				setFragmentPayload(prev => ({ ...prev, ...event.payload.payload }))
+			}
 		}
-		return () => {
-			unsubscribe?.()
-		}
-	}, [fragmentPayload, shouldUpdateLiveblocks])
+	})
 
 	const updatePayload = (payload: FragmentPayload) => {
 		if (shouldUpdateLiveblocks) {
-			fragmentPayload?.update(payload)
+			broadcast({
+				type: RoomEventTypes.PayloadChanged,
+				payload: {
+					blockId,
+					payload,
+				},
+			})
+			setFragmentPayload(prev => ({ ...prev, ...payload }))
 		} else {
 			setFragmentPayload(prev => ({ ...prev, ...payload }))
 		}
 	}
 
 	const reset = (payload: FragmentPayload) => {
-		if (shouldUpdateLiveblocks) fragmentPayload?.update(payload)
+		if (shouldUpdateLiveblocks)
+			broadcast({
+				type: RoomEventTypes.PayloadChanged,
+				payload: {
+					blockId,
+					payload,
+				},
+			})
 		setFragmentPayload(payload)
 	}
 

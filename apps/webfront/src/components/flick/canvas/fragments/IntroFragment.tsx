@@ -231,8 +231,6 @@ const IntroFragment = ({
 			layerChildren={layerChildren}
 			blockType='introBlock'
 			isShorts={shortsMode}
-			updatePayload={updatePayload}
-			blockId={blockId}
       speakersLength={speakersLength}
 		/>
 	)

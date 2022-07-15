@@ -15,7 +15,7 @@ import {
 	useRecoilValue,
 } from 'recoil'
 import { fragmentTypeAtom } from 'src/stores/flick.store'
-import { studioStateAtom, themeAtom } from 'src/stores/studio.store'
+import { studioStateAtom, themeAtom, transitionAtom } from 'src/stores/studio.store'
 import { CONFIG, SHORTS_CONFIG } from 'src/utils/configs'
 import { RoomProvider } from 'src/utils/liveblocks.config'
 import { UserContext, useUser } from 'src/utils/providers/auth'
@@ -75,6 +75,7 @@ const CanvasComponent = React.memo(
 		const user = useUser()
 		const state = useRecoilValue(studioStateAtom)
 		const theme = useRecoilValue(themeAtom)
+    const transition = useRecoilValue(transitionAtom)
 		const { start } = useContext(StudioContext)
 
 		const [mountStage, setMountStage] = useState(false)
@@ -132,9 +133,7 @@ const CanvasComponent = React.memo(
 									id={`story-${flickId}`}
 									initialStorage={() => ({
 										viewConfig: new LiveMap(),
-										payload: new LiveMap(),
 										activeObjectIndex: new LiveObject({ activeObjectIndex: 0 }),
-										state: new LiveObject({ state: 'ready' }),
 										recordedBlocks: new LiveMap(),
 									})}
 								>
@@ -162,14 +161,10 @@ const CanvasComponent = React.memo(
 															]?.view as IntroBlockView
 														)?.intro
 													}
-													// transitionSettings={{
-													// 	blockTransition:
-													// 		fragment?.flick?.configuration?.transitions
-													// 			?.blockTransition?.name,
-													// 	swapTransition:
-													// 		fragment?.flick?.configuration?.transitions
-													// 			?.swapTransition?.name,
-													// }}
+													transitionSettings={{
+														blockTransition: transition?.blockTransition?.name,
+														swapTransition: transition?.swapTransition?.name,
+													}}
 													// performFinishAction={() => {
 													// 	stopCanvasRecording()
 													// 	setState('preview')
