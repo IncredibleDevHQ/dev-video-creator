@@ -13,6 +13,7 @@ import { useRoom } from 'src/utils/liveblocks.config'
 import { Button, Text } from 'ui/src'
 import Brand from './Brand'
 import Theme from './Theme'
+import ThumbnailModal from './ThumbnailModal'
 import Transition from './Transition'
 
 const AutoSave = () => {
@@ -99,6 +100,8 @@ const ViewSwitch = (): JSX.Element => {
 
 const SubHeader = (): JSX.Element => {
 	const setOpenStudio = useSetRecoilState(openStudioAtom)
+	const [thumbnailModal, setThumbnailModal] = useState(false)
+
 	return (
 		<div className='flex h-12 flex-row justify-between bg-gray-800 px-5'>
 			<ViewSwitch />
@@ -124,6 +127,7 @@ const SubHeader = (): JSX.Element => {
 						leftIcon={<IoImageOutline className='h-4 w-4' />}
 						appearance='none'
 						className='text-dark-title hover:bg-white/10 !px-2 transform active:scale-95'
+						onClick={() => setThumbnailModal(true)}
 					>
 						Thumbnail
 					</Button>
@@ -141,6 +145,10 @@ const SubHeader = (): JSX.Element => {
 					</Button>
 				</div>
 			</div>
+			<ThumbnailModal
+				open={thumbnailModal}
+				handleClose={() => setThumbnailModal(false)}
+			/>
 		</div>
 	)
 }

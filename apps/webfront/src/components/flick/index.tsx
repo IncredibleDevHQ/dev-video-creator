@@ -13,6 +13,7 @@ import {
 	flickNameAtom,
 	openStudioAtom,
 	participantsAtom,
+	thumbnailAtom,
 	View,
 	viewAtom,
 } from 'src/stores/flick.store'
@@ -46,9 +47,10 @@ const FlickBody = ({
 	const setStoresInitially = useRecoilCallback(
 		({ set }) =>
 			() => {
-				const ast = flick.fragments.find(
+				const initialFragment = flick.fragments.find(
 					fragment => fragment.id === initialFragmentId
-				)?.editorState
+				)
+				const ast = initialFragment?.editorState
 				set(flickAtom, {
 					id: flick.id,
 					owner: {
@@ -64,6 +66,7 @@ const FlickBody = ({
 				set(activeBrandIdAtom, flick.useBranding ? flick.branding?.id : null)
 				set(transitionAtom, flick.configuration?.transitions)
 				set(themeAtom, flick.theme)
+				set(thumbnailAtom, initialFragment?.thumbnailConfig ?? null)
 			},
 		[]
 	)

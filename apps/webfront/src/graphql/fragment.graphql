@@ -119,3 +119,21 @@ mutation SetupRecording(
 		success
 	}
 }
+
+mutation UpdateThumbnail($id: uuid!, $thumbnailConfig: json!) {
+	update_Fragment_by_pk(
+		pk_columns: { id: $id }
+		_set: { thumbnailConfig: $thumbnailConfig }
+	) {
+		id
+	}
+}
+
+mutation UpdateThumbnailObject($id: uuid!, $thumbnailObject: String!) {
+	update_Fragment_by_pk(
+		pk_columns: { id: $id }
+		_set: { thumbnailObject: $thumbnailObject }
+	) {
+		id
+	}
+}

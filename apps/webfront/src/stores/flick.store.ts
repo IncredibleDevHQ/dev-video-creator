@@ -1,6 +1,7 @@
 import { Block, SimpleAST } from 'editor/src/utils/types'
 import { atom, DefaultValue, selector } from 'recoil'
 import { FlickParticipantsFragment } from 'src/graphql/generated'
+import { IntroBlockViewProps, Layout } from 'utils/src'
 
 /* Stores some basic flick details */
 const flickAtom = atom<{
@@ -79,6 +80,13 @@ const previewPositionAtom = atom<number | null>({
 	default: null,
 })
 
+/* Atom that stores thumbnail config of current fragment */
+type ThumbnailProps = IntroBlockViewProps & { layout: Layout }
+const thumbnailAtom = atom<ThumbnailProps | null>({
+	key: 'thumbnail',
+	default: null,
+})
+
 export type FragmentType = 'Portrait' | 'Landscape'
 const fragmentTypeAtom = atom<FragmentType>({
 	key: 'fragmentType',
@@ -103,5 +111,7 @@ export {
 	isTimelineVisibleAtom,
 	fragmentTypeAtom,
 	openStudioAtom,
+	thumbnailAtom,
 }
 export { View }
+export type { ThumbnailProps }
