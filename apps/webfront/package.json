@@ -20,6 +20,11 @@
 		"@liveblocks/react": "^0.17.5",
 		"@prisma/client": "^4.0.0",
 		"@samuelmeuli/font-manager": "^1.4.0",
+		"@tiptap/extension-document": "^2.0.0-beta.17",
+		"@tiptap/extension-paragraph": "^2.0.0-beta.26",
+		"@tiptap/extension-placeholder": "^2.0.0-beta.53",
+		"@tiptap/extension-text": "^2.0.0-beta.17",
+		"@tiptap/react": "^2.0.0-beta.114",
 		"@trpc/client": "^9.25.3",
 		"@trpc/next": "^9.25.3",
 		"@trpc/react": "^9.25.3",
@@ -63,6 +68,7 @@
 		"use-font-face-observer": "^1.2.1",
 		"use-image": "^1.0.12",
 		"utils": "*",
+		"uuid": "^8.3.2",
 		"zod": "^3.17.3"
 	},
 	"devDependencies": {
@@ -84,6 +90,7 @@
 		"@types/node": "^17.0.12",
 		"@types/react": "17.0.37",
 		"@types/react-beautiful-dnd": "^13.1.2",
+		"@types/uuid": "^8.3.4",
 		"autoprefixer": "^10.4.7",
 		"config": "*",
 		"dotenv": "^16.0.1",

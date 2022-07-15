@@ -31,6 +31,7 @@ import { IntroContentTab, IntroSequenceTab, PictureTab } from './IntroPreview'
 import LayoutSelector from './LayoutSelector'
 import ModeSelector from './mode'
 import { codeThemeConfig, getSurfaceColor } from './mode/CodeBlockMode'
+import Note from './Notes'
 import { OutroContentTab, OutroSequenceTab } from './OutroPreview'
 
 const noScrollBar = css`
@@ -201,7 +202,8 @@ const Preview = ({ centered }: { centered: boolean }) => {
 				setTabs(commonTabs)
 				break
 		}
-	}, [block, config?.mode])
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [block?.id, config?.mode])
 
 	if (!block) return null
 
@@ -314,22 +316,6 @@ const Preview = ({ centered }: { centered: boolean }) => {
 								mode={config?.mode || 'Landscape'}
 								layout={blockProperties?.layout || allLayoutTypes[0]}
 								updateLayout={(layout: Layout) => {
-									// TODO: if (block.type === 'introBlock') {
-									// 	const introBlock = blocks?.find(
-									// 		b => b.type === 'introBlock'
-									// 	)
-									// 	if (introBlock) {
-									// 		const introBlockView = config.blocks[introBlock.id]
-									// 			?.view as IntroBlockView
-
-									// 		const titlePos = introBlockView?.intro?.order?.findIndex(
-									// 			order => order?.state === 'titleSplash'
-									// 		)
-									// 		updatePayload?.({
-									// 			activeIntroIndex: titlePos || 0,
-									// 		})
-									// 	}
-									// }
 									updateBlockProperties({
 										...blockProperties,
 										layout,
@@ -349,15 +335,7 @@ const Preview = ({ centered }: { centered: boolean }) => {
 								}}
 							/>
 						)}
-						{/*
-						{activeTab.id === commonTabs[2].id && (
-							<Note
-								block={block}
-								simpleAST={simpleAST}
-								setSimpleAST={setSimpleAST}
-							/>
-						)}
-            */}
+						{activeTab.id === commonTabs[2].id && <Note block={block} />}
 						{activeTab.id === codeBlockTabs[0].id &&
 							block.type === 'codeBlock' && (
 								<CodeTextSizeTab
