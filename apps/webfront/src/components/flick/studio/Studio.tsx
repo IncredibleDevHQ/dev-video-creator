@@ -20,7 +20,11 @@ import {
 	useSaveRecordedBlockMutation,
 	useSetupRecordingMutation,
 } from 'src/graphql/generated'
-import { flickAtom, flickNameAtom, openStudioAtom } from 'src/stores/flick.store'
+import {
+	flickAtom,
+	flickNameAtom,
+	openStudioAtom,
+} from 'src/stores/flick.store'
 import {
 	activeObjectIndexAtom,
 	agoraActionsAtom,
@@ -37,7 +41,14 @@ import {
 	useMap,
 } from 'src/utils/liveblocks.config'
 import { useUser } from 'src/utils/providers/auth'
-import { Button, dismissToast, emitToast, Heading, Text, updateToast } from 'ui/src'
+import {
+	Button,
+	dismissToast,
+	emitToast,
+	Heading,
+	Text,
+	updateToast,
+} from 'ui/src'
 import { useEnv, useUploadFile, ViewConfig } from 'utils/src'
 import UploadIcon from '../../../../svg/RecordingScreen/Upload.svg'
 import CanvasComponent, { StudioContext } from '../canvas/CanvasComponent'
@@ -46,6 +57,7 @@ import Countdown from './Countdown'
 import MediaControls from './MediaControls'
 import MiniTimeline from './MiniTimeline'
 import Notes from './Notes'
+import PresenceAvatars from './PresenceAvatars'
 
 const Studio = ({
 	fragmentId,
@@ -68,10 +80,12 @@ const Studio = ({
 	const flickName = useRecoilValue(flickNameAtom)
 	const setOpenStudio = useSetRecoilState(openStudioAtom)
 	const agoraStreamData = useRecoilValue(streamAtom)
-  const agoraActions = useRecoilValue(agoraActionsAtom)
+	const agoraActions = useRecoilValue(agoraActionsAtom)
 
 	const [isHost, setIsHost] = useState(false)
-	const [isStudioController, setIsStudioController] = useRecoilState(isStudioControllerAtom)
+	const [isStudioController, setIsStudioController] = useRecoilState(
+		isStudioControllerAtom
+	)
 	const [controlsRequestorSub, setControlsRequestorSub] = useState('')
 	// bool used to open the modal which asks the host to accept or reject the request from the collaborator to get controls
 	const [openControlsApprovalModal, setOpenControlsApprovalModal] =
@@ -291,21 +305,21 @@ const Studio = ({
 		}
 		if (event.type === RoomEventTypes.RequestControls) {
 			if (isStudioController) {
-        if(event.payload.requestorSub === '') return
-        setControlsRequestorSub(event.payload.requestorSub)
-        setOpenControlsApprovalModal(true)
+				if (event.payload.requestorSub === '') return
+				setControlsRequestorSub(event.payload.requestorSub)
+				setOpenControlsApprovalModal(true)
 			}
 		}
-    if (event.type === RoomEventTypes.ApproveRequestControls) {
+		if (event.type === RoomEventTypes.ApproveRequestControls) {
 			if (event.payload.requestorSub === user?.uid) {
-        setIsStudioController(true)
+				setIsStudioController(true)
 			}
 		}
-    if(event.type === RoomEventTypes.RevokeControls) {
-      if(isStudioController) {
-        setIsStudioController(false)
-      }
-    }
+		if (event.type === RoomEventTypes.RevokeControls) {
+			if (isStudioController) {
+				setIsStudioController(false)
+			}
+		}
 	})
 
 	// Hooks
@@ -325,22 +339,28 @@ const Studio = ({
 		}
 	}, [])
 
-  // remove local blobs from recorded blocks on unmount
-  // this happens only when the user records and doent take any action and leaves the page
-  useEffect(() => () => {
-      if (
+	// remove local blobs from recorded blocks on unmount
+	// this happens only when the user records and doent take any action and leaves the page
+	useEffect(
+		() => () => {
+			if (
 				recordedBlocks?.get(dataConfig[activeObjectIndex].id)?.includes('blob')
 			)
 				recordedBlocks.delete(dataConfig[activeObjectIndex].id)
-    },[activeObjectIndex])
+		},
+		[activeObjectIndex]
+	)
 
-  useEffect(() => () => {
-      if(!agoraStreamData?.stream || !agoraActions?.leave) return
-      agoraStreamData.stream.getTracks().forEach(track => {
+	useEffect(
+		() => () => {
+			if (!agoraStreamData?.stream || !agoraActions?.leave) return
+			agoraStreamData.stream.getTracks().forEach(track => {
 				track.stop()
 			})
-      agoraActions.leave()
-    },[agoraStreamData?.stream, agoraActions?.leave])
+			agoraActions.leave()
+		},
+		[agoraStreamData?.stream, agoraActions?.leave]
+	)
 
 	// fetch recordingId on mount
 	useEffect(() => {
@@ -430,9 +450,9 @@ const Studio = ({
 								onClick={() => {
 									broadcast({
 										type: RoomEventTypes.RevokeControls,
-										payload: {}
+										payload: {},
 									})
-                  setIsStudioController(true)
+									setIsStudioController(true)
 								}}
 							>
 								Request Control
@@ -446,6 +466,7 @@ const Studio = ({
 									?.id
 							}
 						/>
+						<PresenceAvatars />
 					</div>
 				</div>
 				{state !== 'preview' ? (
