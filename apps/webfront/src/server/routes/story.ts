@@ -15,6 +15,7 @@ import serverEnvs from 'src/utils/env'
 import type { Context } from '../createContext'
 import {
 	createLiveBlocksRoom,
+	FlickScopeEnum,
 	FragmentTypeEnum,
 	initRedisWithDataConfig,
 	Meta,
@@ -55,7 +56,7 @@ const storyRouter = trpc
 			sub: z.string(),
 			name: z.string(),
 			description: z.string().optional(),
-			scope: z.enum(['public', 'private']).optional().default('private'),
+			scope: z.nativeEnum(FlickScopeEnum).default(FlickScopeEnum.Private),
 			configuration: z.any().optional(),
 			organisationSlug: z.string().optional(),
 			seriesId: z.string().optional(),
@@ -366,6 +367,36 @@ const storyRouter = trpc
 			}
 		},
 	})
+	.mutation('update', {
+		meta: {
+			hasAuth: true,
+		},
+		input: z.object({
+			id: z.string().optional(),
+			name: z.string().optional(),
+			organisationSlug: z.string().optional(),
+			scope: z.nativeEnum(FlickScopeEnum).optional(),
+		}),
+		resolve: async ({ input, ctx }) => {
+			const flick = await ctx.prisma.flick.update({
+				where: {
+					id: input.id,
+				},
+				data: {
+					name: input.name,
+					organisationSlug: input.organisationSlug,
+					scope: input.scope,
+				},
+				select: {
+					id: true,
+				},
+			})
+			return {
+				id: flick.id,
+			}
+		},
+	})
+
 	.mutation('createFragment', {
 		meta: {
 			hasAuth: true,
@@ -483,6 +514,28 @@ const storyRouter = trpc
 			return {
 				fragmentId: fragment.id,
 				success: true,
+			}
+		},
+	})
+	.mutation('updateFragment', {
+		meta: {
+			hasAuth: true,
+		},
+		input: z.object({
+			fragmentId: z.string(),
+			name: z.string().optional(),
+		}),
+		resolve: async ({ ctx, input }) => {
+			const fragment = await ctx.prisma.fragment.update({
+				where: {
+					id: input.fragmentId,
+				},
+				data: {
+					name: input.name,
+				},
+			})
+			return {
+				id: fragment.id,
 			}
 		},
 	})

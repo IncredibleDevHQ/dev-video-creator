@@ -2,7 +2,12 @@ import admin from 'firebase-admin'
 import * as crypto from 'crypto'
 import axios from 'axios'
 import { createClient } from 'redis'
+import { TRPCError } from '@trpc/server'
 import serverEnvs from '../../utils/env'
+import {
+	sendTransactionalEmail,
+	TransactionalMailType,
+} from './transactionalEmail'
 
 export interface Meta {
 	hasAuth: boolean // can be used to disable auth for this specific routes
@@ -12,6 +17,27 @@ export enum FragmentTypeEnum {
 	Landscape = 'Landscape',
 	Portrait = 'Portrait',
 	Presentation = 'Presentation',
+}
+
+export enum FlickScopeEnum {
+	Public = 'Public',
+	Private = 'Private',
+}
+
+export enum InvitationStatusEnum {
+	Pending = 'Pending',
+	Accepted = 'Accepted',
+	Declined = 'Declined',
+	Email = 'Email',
+}
+
+export enum NotificationMetaTypeEnum {
+	Flick = 'Flick',
+	Follow = 'Follow',
+	/** the meta will contains series details */
+	Series = 'Series',
+	/** the meta will contains user/profile details */
+	User = 'User',
 }
 
 export const initFirebaseAdmin = () => {
@@ -96,4 +122,57 @@ export const initRedisWithDataConfig = async (
 		.finally(() => {
 			redisClient.disconnect()
 		})
+}
+
+export const sendInviteEmail = async (
+	magicLinkState: string,
+	receiver: {
+		sub: string
+		email: string | null
+		displayName: string | null
+		picture: string | null
+	},
+	sender: {
+		sub: string
+		email: string | null
+		displayName: string | null
+		picture: string | null
+	},
+	flick: {
+		id: string
+		name: string
+	} | null,
+	invite: {
+		id: string
+		notificationId: string
+	}
+) => {
+	if (!flick?.id || !invite.id || !magicLinkState)
+		throw new TRPCError({
+			code: 'INTERNAL_SERVER_ERROR',
+			message: 'Missing required parameters for invite email',
+		})
+
+	// TODO: move NEXT_API_BASE_URL handler to nextjs
+	const emailPayload = {
+		url:
+			`${serverEnvs.NEXT_API_BASE_URL}/loginInvitedUser` +
+			`?nid=${invite.notificationId}&state=${magicLinkState}&inviteId=${invite.id}&redirectURI=${serverEnvs.NEXT_STUDIO_BASE_URL}/story/${flick?.id}`,
+	}
+
+	if (!receiver.email)
+		throw new TRPCError({
+			code: 'INTERNAL_SERVER_ERROR',
+			message: 'Could not send invitation email, receiver email not found',
+		})
+
+	await sendTransactionalEmail({
+		mailType: TransactionalMailType.COLLABORATION,
+		sendToEmail: receiver.email,
+		messageData: {
+			btnUrl: emailPayload.url,
+			senderName: sender.displayName || sender.email || 'An Incredible Creator',
+			storyTitle: flick?.name || 'New Story',
+		},
+	})
 }

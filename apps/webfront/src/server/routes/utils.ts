@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { getStoragePath, UploadType } from 'src/utils/helpers/s3-path-builder'
 import { s3 } from 'src/utils/aws'
 import serverEnvs from 'src/utils/env'
+import axios from 'axios'
 import { Context } from '../createContext'
 import { Meta } from '../utils/helpers'
 import { isKeyAllowed } from '../utils/upload'
@@ -143,6 +144,71 @@ const utilsRouter = trpc
 				throw new TRPCError({
 					code: 'INTERNAL_SERVER_ERROR',
 					message: 'Failed to generate upload url.',
+				})
+			}
+		},
+	})
+	.mutation('getRtcToken', {
+		meta: {
+			hasAuth: true,
+		},
+		input: z.object({
+			flickId: z.string(),
+			fragmentId: z.string(),
+		}),
+		output: z.object({
+			token: z.string(),
+			success: z.boolean(),
+		}),
+		resolve: async ({ input, ctx }) => {
+			// get flick participants
+			const flickParticipants = await ctx.prisma.participant.findMany({
+				where: {
+					flickId: input.flickId,
+				},
+				select: {
+					id: true,
+					userSub: true,
+				},
+			})
+			if (flickParticipants.length === 0) {
+				throw new TRPCError({
+					code: 'BAD_REQUEST',
+					message: 'Invalid Request',
+				})
+			}
+
+			const participant = flickParticipants.find(
+				(p: { userSub: string }) => p.userSub === ctx.user!.sub
+			)
+			if (!participant) {
+				throw new TRPCError({
+					code: 'UNAUTHORIZED',
+					message: 'You are not a participant of this story.',
+				})
+			}
+			try {
+				const {
+					data: { token, success },
+				} = await axios.post(
+					serverEnvs.RTC_TOKEN_SVC_ENDPOINT,
+					{
+						user_uid: participant.id,
+						channel_name: input.fragmentId,
+						role: 1,
+					},
+					{
+						headers: {
+							'x-auth-secret': serverEnvs.RTC_TOKEN_SVC_SECRET,
+							'Content-Type': 'application/json',
+						},
+					}
+				)
+				return { token, success }
+			} catch (e) {
+				throw new TRPCError({
+					code: 'INTERNAL_SERVER_ERROR',
+					message: 'Failed to generate RTC token.',
 				})
 			}
 		},
