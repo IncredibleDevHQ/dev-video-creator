@@ -242,7 +242,7 @@ const UnifiedFragment = ({
 									] as BlockProperties
 								}
 								isPreview={isPreview}
-								// setTopLayerChildren={setTopLayerChildren}
+								setTopLayerChildren={setTopLayerChildren}
 								introSequence={
 									introBlockViewProps?.intro?.order
 										?.filter(o => o.enabled)

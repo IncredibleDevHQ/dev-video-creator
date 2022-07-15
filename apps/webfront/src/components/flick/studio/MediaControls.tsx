@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { Listbox } from '@headlessui/react'
 import { createMicrophoneAndCameraTracks } from 'agora-rtc-react'
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { BiCheck } from 'react-icons/bi'
 import { FiCamera, FiMic } from 'react-icons/fi'
 import { IoChevronDownOutline } from 'react-icons/io5'
@@ -43,7 +43,7 @@ const MediaControls = React.memo(
 		const [getRTCToken] = useGetRtcTokenMutation({
 			variables: { fragmentId, flickId },
 		})
-		const rtcTokenRef = useRef<string | undefined>()
+		const [rtcToken, setRtcToken] = useState<string | undefined>()
 
 		// Gives the tracks of camera and microphone, given the camera and microphone device ids
 		const useTrack = createMicrophoneAndCameraTracks(
@@ -68,7 +68,7 @@ const MediaControls = React.memo(
 			// currentUser,
 			join,
 			users,
-      stream,
+			stream,
 			leave,
 			userAudios,
 			renewToken,
@@ -80,25 +80,13 @@ const MediaControls = React.memo(
 		useEffect(() => {
 			;(async () => {
 				const { data } = await getRTCToken()
-				rtcTokenRef.current = data?.RTCToken?.token
+				setRtcToken(data?.RTCToken?.token)
 			})()
 			return () => {
-				setAgoraUsers([])
+				setAgoraUsers(undefined)
 				setStream(null)
 			}
 		}, [])
-
-    // on unmount it stops the tracks and releases the media resources
-		useEffect(
-			() => () => {
-				if (!leave || !stream) return
-				stream.getTracks().forEach(track => {
-					track.stop()
-				})
-				leave()
-			},
-			[leave, stream]
-		)
 
 		useEffect(() => {
 			;(async () => {
@@ -192,14 +180,13 @@ const MediaControls = React.memo(
 					})
 				}
 			})()
-		}, [trackReady, tracks, flickId, participantId, rtcTokenRef.current])
+		}, [trackReady, tracks, flickId, participantId, rtcToken])
 
 		useEffect(() => {
-			if (!agoraReady || !participantId || !tracks || !rtcTokenRef.current)
-				return
+			if (!agoraReady || !participantId || !tracks || !rtcToken) return
 			;(async () => {
 				try {
-					if (!participantId || !rtcTokenRef.current) {
+					if (!participantId || !rtcToken) {
 						tracks?.[0].stop()
 						tracks?.[1].stop()
 						await leave()
@@ -208,17 +195,17 @@ const MediaControls = React.memo(
 						})
 						return
 					}
-					await join(rtcTokenRef.current, participantId, tracks)
+					await join(rtcToken, participantId, tracks)
 				} catch (error: any) {
 					tracks?.[0]?.stop()
 					tracks?.[1]?.stop()
 					await leave()
-					emitToast('Failed to initialize AgoraRTC', {
+					emitToast('Failed to join channel', {
 						type: 'error',
 					})
 				}
 			})()
-		}, [agoraReady, participantId, tracks])
+		}, [agoraReady, participantId, tracks, rtcToken])
 
 		return (
 			<div className='bg-zinc-700/90 h-8 rounded-3xl text-cyan-50 px-4 py-1 flex flex-row '>

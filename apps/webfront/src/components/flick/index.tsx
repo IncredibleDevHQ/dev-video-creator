@@ -1,9 +1,8 @@
-import { Transition } from '@headlessui/react'
 import { LiveMap, LiveObject } from '@liveblocks/client'
 import { CoreEditorInstance, EditorProvider } from 'editor/src'
 import parser from 'editor/src/utils/parser'
 import { Block } from 'editor/src/utils/types'
-import { Fragment, useEffect, useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useRecoilCallback, useRecoilValue, useSetRecoilState } from 'recoil'
 import { FlickFragment } from 'src/graphql/generated'
 import { Fragment_Type_Enum_Enum } from 'src/graphql/generated-ssr'
@@ -183,7 +182,7 @@ const FlickBody = ({
 				</div>
 			</EditorProvider>
 
-			<Transition
+			{/* <Transition
 				show={openStudio}
 				as={Fragment}
 				enter='transition ease-out duration-200'
@@ -192,11 +191,13 @@ const FlickBody = ({
 				leave='transition ease-in duration-200'
 				leaveFrom='transform opacity-100'
 				leaveTo='transform opacity-0'
-			>
+			> */}
+			{openStudio && (
 				<div className='absolute top-0 left-0 w-full h-screen z-50'>
 					<StudioHoC fragmentId={activeFragmentId} flickId={flick.id} />
 				</div>
-			</Transition>
+			)}
+			{/* </Transition> */}
 		</RoomProvider>
 	)
 }

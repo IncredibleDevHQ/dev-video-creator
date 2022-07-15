@@ -23,6 +23,7 @@ import {
 import { flickAtom, flickNameAtom, openStudioAtom } from 'src/stores/flick.store'
 import {
 	activeObjectIndexAtom,
+	agoraActionsAtom,
 	isStudioControllerAtom,
 	streamAtom,
 	studioStateAtom,
@@ -67,6 +68,7 @@ const Studio = ({
 	const flickName = useRecoilValue(flickNameAtom)
 	const setOpenStudio = useSetRecoilState(openStudioAtom)
 	const agoraStreamData = useRecoilValue(streamAtom)
+  const agoraActions = useRecoilValue(agoraActionsAtom)
 
 	const [isHost, setIsHost] = useState(false)
 	const [isStudioController, setIsStudioController] = useRecoilState(isStudioControllerAtom)
@@ -163,7 +165,7 @@ const Studio = ({
 
 	const upload = async (blockId: string) => {
 		const toast = emitToast(
-			'Pushing pixels... \\/n Our hamsters are gift-wrapping your Fragment. Do hold. :)',
+			'Pushing pixels... \n Our hamsters are gift-wrapping your Fragment. Do hold. :)',
 			{
 				type: 'info',
 				autoClose: false,
@@ -252,7 +254,7 @@ const Studio = ({
 			console.error('Upload error : ', e)
 			// Sentry.captureException(e)
 			emitToast(
-				'Upload failed.\\/n Click here to retry before recording another block.',
+				'Upload failed.\n Click here to retry before recording another block.',
 				{
 					type: 'error',
 					autoClose: false,
@@ -322,6 +324,14 @@ const Studio = ({
 			reset('ready')
 		}
 	}, [])
+
+  useEffect(() => () => {
+      if(!agoraStreamData?.stream || !agoraActions?.leave) return
+      agoraStreamData.stream.getTracks().forEach(track => {
+				track.stop()
+			})
+      agoraActions.leave()
+    },[agoraStreamData?.stream, agoraActions?.leave])
 
 	// fetch recordingId on mount
 	useEffect(() => {
@@ -564,7 +574,7 @@ const Studio = ({
 														// call action to delete all blocks with currBlock.objectUrl
 														if (!confirmMultiBlockRetake.current) {
 															emitToast(
-																'Are you sure?\\nYou are about to delete the recordings of all blocks that were recorded continuously along with this block.This action cannot be undone. If you would like to continue press retake again.',
+																'Are you sure?\nYou are about to delete the recordings of all blocks that were recorded continuously along with this block.This action cannot be undone. If you would like to continue press retake again.',
 																{
 																	type: 'warning',
 																}
