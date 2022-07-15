@@ -365,8 +365,7 @@ const Studio = ({
 	// fetch recordingId on mount
 	useEffect(() => {
 		;(async () => {
-			const { data: recordingsData, error: getRecordingsError } =
-				await getRecordingId()
+			const { data: recordingsData } = await getRecordingId()
 			const recording = recordingsData?.Recording?.find(
 				r => r.fragmentId === fragmentId
 			)

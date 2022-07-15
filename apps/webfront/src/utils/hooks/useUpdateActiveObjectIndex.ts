@@ -10,13 +10,8 @@ const useUpdateActiveObjectIndex = (shouldUpdateLiveblocks: boolean) => {
 	const room = useRoom()
 
 	useEffect(() => {
-    let unsubscribe: any
-		if (
-			activeObjectIndex &&
-			setActiveObjectIndex &&
-			shouldUpdateLiveblocks &&
-			!unsubscribe
-		) {
+		let unsubscribe: any
+		if (activeObjectIndex && shouldUpdateLiveblocks && !unsubscribe) {
 			unsubscribe = room.subscribe(
 				activeObjectIndex,
 				() => {
@@ -25,9 +20,9 @@ const useUpdateActiveObjectIndex = (shouldUpdateLiveblocks: boolean) => {
 				{ isDeep: true }
 			)
 		}
-    return () => {
-      unsubscribe?.()
-    }
+		return () => {
+			unsubscribe?.()
+		}
 	}, [activeObjectIndex, shouldUpdateLiveblocks])
 
 	const updateActiveObjectIndex = (index: number) => {
