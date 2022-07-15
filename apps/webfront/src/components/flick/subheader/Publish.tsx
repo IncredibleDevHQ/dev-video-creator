@@ -388,11 +388,11 @@ const CTATab = ({
 		<Heading textStyle='extraSmallTitle' className='mt-8'>
 			Add discord link
 		</Heading>
-		{/* <TextField
-			placeholder='https://discord.gg/jJQWQs8Fh2'
+		<input
+			className='bg-gray-100 border border-transparent mt-2 py-2 px-2 rounded-sm w-full h-full focus:border-brand focus:outline-none font-body text-size-xs placeholder-gray-400'
 			value={publish.discordCTA?.url}
-			className='font-normal font-body text-sm'
-			onChange={(e: ChangeEvent<HTMLInputElement>) => {
+			placeholder='https://discord.gg/jJQWQs8Fh2'
+			onChange={(e: ChangeEvent<HTMLInputElement>) =>
 				setPublish({
 					...publish,
 					discordCTA: {
@@ -400,8 +400,8 @@ const CTATab = ({
 						text: 'Join discord',
 					},
 				})
-			}}
-		/> */}
+			}
+		/>
 	</div>
 )
 
