@@ -31,6 +31,17 @@ export enum InvitationStatusEnum {
 	Email = 'Email',
 }
 
+export enum NotificationTypeEnum {
+	/** To communicate something async failed.  */
+	Error = 'Error',
+	/** Indicates some platform event , such as a flick is publish, blog is now live etc. */
+	Event = 'Event',
+	/** Indicates that the notification is either an invite or request to collaborate */
+	Invitation = 'Invitation',
+	/** Request */
+	Request = 'Request',
+}
+
 export enum NotificationMetaTypeEnum {
 	Flick = 'Flick',
 	Follow = 'Follow',
@@ -38,6 +49,12 @@ export enum NotificationMetaTypeEnum {
 	Series = 'Series',
 	/** the meta will contains user/profile details */
 	User = 'User',
+}
+
+export enum ParticipantRoleEnum {
+	Host = 'Host',
+	Assistant = 'Assistant',
+	Viewer = 'Viewer',
 }
 
 export const initFirebaseAdmin = () => {
