@@ -254,9 +254,12 @@ const Timeline = ({
 
 	return (
 		<div
-			className={cx('absolute flex flex-col bottom-0 left-0 w-full z-40', {
-				relative: persistentTimeline,
-			})}
+			className={cx(
+				'absolute flex flex-col bottom-0 left-0 w-full z-40 overflow-hidden',
+				{
+					relative: persistentTimeline,
+				}
+			)}
 		>
 			{!persistentTimeline && view !== View.Preview && (
 				<div className='flex items-center'>

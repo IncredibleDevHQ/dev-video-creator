@@ -137,3 +137,34 @@ mutation UpdateThumbnailObject($id: uuid!, $thumbnailObject: String!) {
 		id
 	}
 }
+
+mutation PublishVideoAction(
+	$data: json!
+	$fragmentId: uuid!
+	$recordingId: uuid!
+	$publishToYoutube: Boolean
+) {
+	PublishVideo(
+		data: $data
+		fragmentId: $fragmentId
+		recordingId: $recordingId
+		publishToYoutube: $publishToYoutube
+	) {
+		success
+	}
+}
+
+mutation UpdatePublish($id: uuid!, $publishConfig: json!) {
+	update_Fragment_by_pk(
+		pk_columns: { id: $id }
+		_set: { publishConfig: $publishConfig }
+	) {
+		id
+	}
+}
+
+mutation CompleteRecording($editorState: json!, $recordingId: uuid!) {
+	CompleteRecording(editorState: $editorState, recordingId: $recordingId) {
+		success
+	}
+}

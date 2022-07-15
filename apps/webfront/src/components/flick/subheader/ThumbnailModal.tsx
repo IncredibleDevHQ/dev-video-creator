@@ -340,10 +340,6 @@ const ThumbnailModal = ({
 					handleClose()
 				}}
 				className='relative z-50'
-				// onOverlayClick={() => {
-				// 	if (!isPublishFlow) handleClose()
-				// }}
-				// closeOnOverlayClick={!isPublishFlow}
 			>
 				<Transition.Child
 					as={Fragment}
@@ -397,7 +393,7 @@ const ThumbnailModal = ({
 										}}
 									/>
 								) : (
-									<div className='flex items-center'>
+									<div className='flex items-center gap-x-4'>
 										<Button
 											type='button'
 											appearance='none'
@@ -405,9 +401,7 @@ const ThumbnailModal = ({
 												handleClose()
 											}}
 										>
-											<Text className='text-size-xs font-body text-gray-500'>
-												Cancel
-											</Text>
+											Cancel
 										</Button>
 										<Button
 											onClick={() => {

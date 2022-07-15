@@ -11,3 +11,10 @@ fragment User on MeOutput {
 	designation
 	organization
 }
+
+subscription GetUserYTIntegration {
+	YoutubeIntegration {
+		id
+		userInfo
+	}
+}

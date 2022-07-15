@@ -12,6 +12,7 @@ import { openStudioAtom, View, viewAtom } from 'src/stores/flick.store'
 import { useRoom } from 'src/utils/liveblocks.config'
 import { Button, Text } from 'ui/src'
 import Brand from './Brand'
+import Publish from './Publish'
 import Theme from './Theme'
 import ThumbnailModal from './ThumbnailModal'
 import Transition from './Transition'
@@ -101,6 +102,7 @@ const ViewSwitch = (): JSX.Element => {
 const SubHeader = (): JSX.Element => {
 	const setOpenStudio = useSetRecoilState(openStudioAtom)
 	const [thumbnailModal, setThumbnailModal] = useState(false)
+	const [publishModal, setPublishModal] = useState(false)
 
 	return (
 		<div className='flex h-12 flex-row justify-between bg-gray-800 px-5'>
@@ -134,7 +136,11 @@ const SubHeader = (): JSX.Element => {
 				</div>
 
 				<div className='flex h-full items-center gap-x-2 border-l border-gray-700 pl-3'>
-					<Button colorScheme='dark' className='text-dark-title'>
+					<Button
+						colorScheme='dark'
+						className='text-dark-title'
+						onClick={() => setPublishModal(true)}
+					>
 						Publish
 					</Button>
 					<Button
@@ -149,6 +155,7 @@ const SubHeader = (): JSX.Element => {
 				open={thumbnailModal}
 				handleClose={() => setThumbnailModal(false)}
 			/>
+			<Publish open={publishModal} handleClose={() => setPublishModal(false)} />
 		</div>
 	)
 }

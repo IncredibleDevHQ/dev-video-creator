@@ -109,7 +109,7 @@ const Navbar = () => {
 	return (
 		<div className='relative flex h-12 w-full flex-row items-center justify-between bg-gray-900 px-5'>
 			<Link href='/dashboard' passHref>
-				<div className='flex items-center gap-x-1 cursor-pointer'>
+				<div className='flex items-center gap-x-1 cursor-pointer -ml-1.5'>
 					<IoChevronBackOutline className='text-gray-400 h-4 w-4' />
 					<StudioLogo />
 				</div>

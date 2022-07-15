@@ -6,14 +6,18 @@ import { Block } from 'editor/src/utils/types'
 import { Fragment, useEffect, useMemo } from 'react'
 import { useRecoilCallback, useRecoilValue, useSetRecoilState } from 'recoil'
 import { FlickFragment } from 'src/graphql/generated'
+import { Fragment_Type_Enum_Enum } from 'src/graphql/generated-ssr'
 import {
 	activeFragmentIdAtom,
 	astAtom,
 	flickAtom,
 	flickNameAtom,
+	fragmentTypeAtom,
 	openStudioAtom,
 	participantsAtom,
+	publishConfigAtom,
 	thumbnailAtom,
+	thumbnailObjectAtom,
 	View,
 	viewAtom,
 } from 'src/stores/flick.store'
@@ -57,6 +61,8 @@ const FlickBody = ({
 						id: flick.ownerId,
 						sub: flick.owner?.userSub as string,
 					},
+					joinLink: flick.joinLink,
+					contents: flick.contents,
 				})
 				set(flickNameAtom, flick.name)
 				set(activeFragmentIdAtom, initialFragmentId)
@@ -67,6 +73,14 @@ const FlickBody = ({
 				set(transitionAtom, flick.configuration?.transitions)
 				set(themeAtom, flick.theme)
 				set(thumbnailAtom, initialFragment?.thumbnailConfig ?? null)
+				set(
+					fragmentTypeAtom,
+					initialFragment?.type === Fragment_Type_Enum_Enum.Portrait
+						? 'Portrait'
+						: 'Landscape'
+				)
+				set(thumbnailObjectAtom, initialFragment?.thumbnailObject ?? null)
+				set(publishConfigAtom, initialFragment?.publishConfig ?? null)
 			},
 		[]
 	)

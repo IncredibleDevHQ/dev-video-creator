@@ -3336,6 +3336,11 @@
     "@types/connect" "*"
     "@types/node" "*"
 
+"@types/canvas-confetti@1.4.2":
+  version "1.4.2"
+  resolved "https://registry.yarnpkg.com/@types/canvas-confetti/-/canvas-confetti-1.4.2.tgz#35c99fc904492fdcc6515c742509e04f3527211c"
+  integrity sha512-t45KUDHlwrD9PJVRHc5z1SlXhO82BQEgMKUXGEV1KnWLFMPA6Y5LfUsLTHHzH9KcKDHZLEiYYH5nIDcjRKWNTg==
+
 "@types/connect@*":
   version "3.4.35"
   resolved "https://registry.npmjs.org/@types/connect/-/connect-3.4.35.tgz"
@@ -4455,6 +4460,11 @@ caniuse-lite@^1.0.30001332, caniuse-lite@^1.0.30001335, caniuse-lite@^1.0.300013
   version "1.0.30001363"
   resolved "https://registry.npmjs.org/caniuse-lite/-/caniuse-lite-1.0.30001363.tgz"
   integrity sha512-HpQhpzTGGPVMnCjIomjt+jvyUu8vNFo3TaDiZ/RcoTrlOq/5+tC8zHdsbgFB6MxmaY+jCpsH09aD80Bb4Ow3Sg==
+
+canvas-confetti@1.5.1:
+  version "1.5.1"
+  resolved "https://registry.yarnpkg.com/canvas-confetti/-/canvas-confetti-1.5.1.tgz#bf5b8622ef3bcd347378a972fc4194a89cfe0c9b"
+  integrity sha512-Ncz+oZJP6OvY7ti4E1slxVlyAV/3g7H7oQtcCDXgwGgARxPnwYY9PW5Oe+I8uvspYNtuHviAdgA0LfcKFWJfpg==
 
 capital-case@^1.0.4:
   version "1.0.4"
@@ -9314,6 +9324,14 @@ react-beautiful-dnd@^13.1.0:
     react-redux "^7.2.0"
     redux "^4.0.4"
     use-memo-one "^1.1.1"
+
+react-canvas-confetti@^1.3.0:
+  version "1.3.0"
+  resolved "https://registry.yarnpkg.com/react-canvas-confetti/-/react-canvas-confetti-1.3.0.tgz#128d181381a1a37138ab3f2b212139f2aab0a614"
+  integrity sha512-5qBYTux3GKIu77SZ72oZYk4yvy1r4Z8q/BgIuO7mZrkqv/wH9vM7Yr/BzcqApGy9qZtIctF1Q41EYyw3aSDBmg==
+  dependencies:
+    "@types/canvas-confetti" "1.4.2"
+    canvas-confetti "1.5.1"
 
 react-circular-progressbar@^2.1.0:
   version "2.1.0"

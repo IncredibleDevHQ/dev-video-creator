@@ -1,6 +1,9 @@
 import { Block, SimpleAST } from 'editor/src/utils/types'
 import { atom, DefaultValue, selector } from 'recoil'
-import { FlickParticipantsFragment } from 'src/graphql/generated'
+import {
+	ContentFragment,
+	FlickParticipantsFragment,
+} from 'src/graphql/generated'
 import { IntroBlockViewProps, Layout } from 'utils/src'
 
 /* Stores some basic flick details */
@@ -10,6 +13,8 @@ const flickAtom = atom<{
 		id: string
 		sub: string
 	}
+	joinLink: string
+	contents: ContentFragment[]
 } | null>({
 	key: 'flick',
 	default: null,
@@ -87,6 +92,31 @@ const thumbnailAtom = atom<ThumbnailProps | null>({
 	default: null,
 })
 
+const thumbnailObjectAtom = atom<string | null>({
+	key: 'thumbnailObject',
+	default: null,
+})
+
+export interface CallToAction {
+	seconds: number
+	text?: string
+	url?: string
+}
+export interface IPublish {
+	title?: string
+	description?: string
+	thumbnail?: {
+		objectId?: string
+		method?: 'generated' | 'uploaded'
+	}
+	ctas: CallToAction[]
+	discordCTA?: { url: string; text: string }
+}
+const publishConfigAtom = atom<IPublish | null>({
+	key: 'publishConfig',
+	default: null,
+})
+
 export type FragmentType = 'Portrait' | 'Landscape'
 const fragmentTypeAtom = atom<FragmentType>({
 	key: 'fragmentType',
@@ -112,6 +142,8 @@ export {
 	fragmentTypeAtom,
 	openStudioAtom,
 	thumbnailAtom,
+	thumbnailObjectAtom,
+	publishConfigAtom,
 }
 export { View }
 export type { ThumbnailProps }
