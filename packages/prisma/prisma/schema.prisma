@@ -697,6 +697,8 @@ model User {
   Subscription                   Subscription[]
   other_User                     User[]                @relation("UserToUser_referred_by")
   YoutubeIntegration             YoutubeIntegration?
+
+  @@index([sub, email])
 }
 
 model YoutubeIntegration {
