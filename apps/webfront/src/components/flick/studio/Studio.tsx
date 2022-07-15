@@ -325,6 +325,15 @@ const Studio = ({
 		}
 	}, [])
 
+  // remove local blobs from recorded blocks on unmount
+  // this happens only when the user records and doent take any action and leaves the page
+  useEffect(() => () => {
+      if (
+				recordedBlocks?.get(dataConfig[activeObjectIndex].id)?.includes('blob')
+			)
+				recordedBlocks.delete(dataConfig[activeObjectIndex].id)
+    },[activeObjectIndex])
+
   useEffect(() => () => {
       if(!agoraStreamData?.stream || !agoraActions?.leave) return
       agoraStreamData.stream.getTracks().forEach(track => {
