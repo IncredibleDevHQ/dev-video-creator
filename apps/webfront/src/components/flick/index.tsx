@@ -107,8 +107,7 @@ const FlickBody = ({
 						...ast.blocks,
 						// eslint-disable-next-line no-nested-ternary
 						...(prev?.blocks
-							? // eslint-disable-next-line no-unsafe-optional-chaining
-							  prev?.blocks?.[prev?.blocks.length - 1]?.type === 'outroBlock'
+							? prev?.blocks?.[prev.blocks.length - 1]?.type === 'outroBlock'
 								? [
 										{
 											...prev.blocks[prev.blocks.length - 1],

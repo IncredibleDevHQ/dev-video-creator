@@ -69,7 +69,7 @@ const EditorSection = () => {
 			}}
 		>
 			<div
-				className='h-full w-full max-w-[750px] pt-12 pb-32 col-start-4 col-span-6'
+				className='h-full w-full max-w-[750px] pt-12 pb-32 col-start-4 col-span-6 mx-auto'
 				ref={editorContainerRef}
 			>
 				<EditorHeader />

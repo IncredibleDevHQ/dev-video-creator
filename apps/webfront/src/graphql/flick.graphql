@@ -98,3 +98,10 @@ mutation UpdateFlick(
 		id
 	}
 }
+
+mutation GetHuddleRtcToken($flickId: uuid!) {
+	HuddleRtcToken(flickId: $flickId) {
+		success
+		token
+	}
+}
