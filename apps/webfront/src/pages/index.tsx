@@ -12,7 +12,11 @@ const Web = () => {
 
 	useEffect(() => {
 		if (!loadingUser && user) {
-			replace('/dashboard')
+			if (user.onboarded) {
+				replace('/dashboard')
+			} else {
+				replace('/onboarding')
+			}
 		}
 	}, [user, loadingUser, replace])
 

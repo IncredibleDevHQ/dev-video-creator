@@ -6,11 +6,12 @@ import { useUser } from 'src/utils/providers/auth'
 
 const ErrorPage = () => {
 	const push = usePush()
-	const user = useUser()
+	const { user } = useUser()
 
 	useEffect(() => {
 		if (user) {
-			push('/dashboard')
+			if (user.onboarded) push('/dashboard')
+			else push('/onboarding')
 		}
 	}, [user, push])
 

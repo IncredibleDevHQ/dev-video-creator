@@ -351,16 +351,16 @@ const Studio = ({
 		[activeObjectIndex]
 	)
 
-	useEffect(
-		() => () => {
-			if (!agoraStreamData?.stream || !agoraActions?.leave) return
-			agoraStreamData.stream.getTracks().forEach(track => {
-				track.stop()
-			})
-			agoraActions.leave()
-		},
-		[agoraStreamData?.stream, agoraActions?.leave]
-	)
+	// useEffect(
+	// 	() => () => {
+	// if (!agoraStreamData?.stream || !agoraActions?.leave) return
+	// agoraStreamData.stream.getTracks().forEach(track => {
+	// 	track.stop()
+	// })
+	// agoraActions.leave()
+	// 	},
+	// 	[agoraStreamData?.stream, agoraActions?.leave]
+	// )
 
 	// fetch recordingId on mount
 	useEffect(() => {
@@ -408,6 +408,11 @@ const Studio = ({
 						type='button'
 						className='flex items-center gap-x-2 cursor-pointer'
 						onClick={() => {
+							if (!agoraStreamData?.stream || !agoraActions?.leave) return
+							agoraStreamData.stream.getTracks().forEach(track => {
+								track.stop()
+							})
+							agoraActions.leave()
 							setOpenStudio(false)
 						}}
 					>

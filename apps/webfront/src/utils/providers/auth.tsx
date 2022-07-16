@@ -80,8 +80,8 @@ const handleUser = async (
 
 	if (hasuraClaim) {
 		login(token)
+		await getDBUser(user, token, setUser)
 		setUser(user)
-		getDBUser(user, token, setUser)
 		setToken(token)
 		setLoadingUser(false)
 	} else {

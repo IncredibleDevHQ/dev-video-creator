@@ -16,11 +16,15 @@ const LoginPage = () => {
 
 	useEffect(() => {
 		if (user) {
-			if (query.continue && typeof query.continue === 'string') {
-				replace(query.continue)
-				return
+			if (user.onboarded) {
+				if (query.continue && typeof query.continue === 'string') {
+					replace(query.continue)
+					return
+				}
+				replace('/dashboard')
+			} else {
+				replace('/onboarding')
 			}
-			replace('/dashboard')
 		}
 	}, [user, replace, query])
 

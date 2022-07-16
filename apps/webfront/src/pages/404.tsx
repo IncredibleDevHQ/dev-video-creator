@@ -8,11 +8,12 @@ import NotFound from 'svg/404.svg'
 
 const FourOhFour = () => {
 	const push = usePush()
-	const user = useUser()
+	const { user } = useUser()
 
 	useEffect(() => {
 		if (user) {
-			push('/dashboard')
+			if (user.onboarded) push('/dashboard')
+			else push('/onboarding')
 		}
 	}, [user, push])
 
