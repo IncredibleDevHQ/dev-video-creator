@@ -299,6 +299,25 @@ export const getThemeLayoutConfig = ({
 				horizontalPointsTextColor: '#383838',
 				horizontalPointTextVerticalAlign: 'middle',
 			}
+		case 'WunderGraph':
+			return {
+				startX: layoutConfig.x,
+				startY: layoutConfig.y,
+				availableWidth: layoutConfig?.availableWidth || layoutConfig.width,
+				availableHeight: layoutConfig.height,
+				textColor: '#ffffff',
+				borderRadius: 8,
+				surfaceColor: layoutConfig?.surfaceColor || '#2D3748',
+				titleFont: 'Inter',
+				bodyFont: 'Inter',
+				pointsBulletCornerRadius: 0,
+				pointsBulletYOffset: 3.5,
+				horizontalPointRectColor: '#1A202C',
+				horizontalPointRectStrokeColor: '',
+				horizontalPointRectCornerRadius: 8,
+				horizontalPointsTextColor: '#ffffff',
+				horizontalPointTextVerticalAlign: 'middle',
+			}
 		default:
 			return {
 				startX: layoutConfig.x,
@@ -322,6 +341,7 @@ export const getThemeTextColor = (theme: ThemeFragment): string => {
 		case 'DevsForUkraine':
 		case 'Whitep4nth3r':
 		case 'ShrutiKapoor':
+		case 'WunderGraph':
 			return '#ffffff'
 		case 'PastelLines':
 			return '#27272A'
@@ -357,6 +377,8 @@ export const getThemeSurfaceColor = (theme: ThemeFragment): string => {
 			return '#ffffff'
 		case 'Mux':
 			return '#FAFAFC'
+		case 'WunderGraph':
+			return '#2D3748'
 		default:
 			return '#ffffff'
 	}
@@ -372,6 +394,7 @@ export const getThemeFont = (theme: ThemeFragment): string => {
 			return 'Roboto Mono'
 		case 'LambdaTest':
 		case 'LeeRob':
+		case 'WunderGraph':
 			return 'Inter'
 		case 'Web3Auth':
 			return 'DM Sans'
@@ -515,6 +538,7 @@ export const getThemeSupportedUserMediaLayouts = (
 				'full-right',
 			]
 		case 'Mux':
+		case 'WunderGraph':
 			return [
 				'classic',
 				'float-full-right',
@@ -546,6 +570,7 @@ export const getThemeBasedIntroLayouts = (themeName: string): Layout[] => {
 			return ['classic', 'bottom-right-circle', 'float-full-right']
 		case 'ShrutiKapoor':
 		case 'Mux':
+		case 'WunderGraph':
 			return ['classic', 'bottom-right-tile', 'float-full-right']
 		default:
 			return []

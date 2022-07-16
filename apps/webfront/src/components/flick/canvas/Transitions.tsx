@@ -25,57 +25,6 @@ export const DipTransition = ({
 	if (!isShorts) stageConfig = CONFIG
 	else stageConfig = SHORTS_CONFIG
 
-	const rectRef = useRef<Konva.Rect>(null)
-	switch (direction) {
-		case 'left':
-		case 'right':
-			rectRef.current?.to({
-				opacity: 1,
-				duration: 0.4,
-				onFinish: () => {
-					rectRef.current?.to({
-						opacity: 0,
-						duration: 0.4,
-						onFinish: () => {
-							setTimeout(() => {
-								performFinishAction?.()
-								setTopLayerChildren?.({ id: nanoid(), state: '' })
-							}, 400)
-						},
-					})
-				},
-			})
-			break
-		case 'moveIn':
-			rectRef.current?.to({
-				opacity: 1,
-				duration: 0.4,
-				onFinish: () => {
-					setTimeout(() => {
-						performFinishAction?.()
-						setTopLayerChildren?.({ id: nanoid(), state: '' })
-					}, 300)
-				},
-			})
-			break
-		case 'moveAway':
-			setTimeout(() => {
-				rectRef.current?.to({
-					opacity: 0,
-					duration: 0.4,
-					onFinish: () => {
-						setTimeout(() => {
-							performFinishAction?.()
-							setTopLayerChildren?.({ id: nanoid(), state: '' })
-						}, 300)
-					},
-				})
-			}, 100)
-			break
-		default:
-			break
-	}
-
 	return (
 		<Rect
 			x={0}
@@ -83,7 +32,57 @@ export const DipTransition = ({
 			width={stageConfig.width}
 			height={stageConfig.height}
 			fill={color}
-			ref={rectRef}
+			ref={ref => {
+        switch (direction) {
+					case 'left':
+					case 'right':
+						ref?.to({
+							opacity: 1,
+							duration: 0.4,
+							onFinish: () => {
+								ref?.to({
+									opacity: 0,
+									duration: 0.4,
+									onFinish: () => {
+										setTimeout(() => {
+											performFinishAction?.()
+											setTopLayerChildren?.({ id: nanoid(), state: '' })
+										}, 400)
+									},
+								})
+							},
+						})
+						break
+					case 'moveIn':
+						ref?.to({
+							opacity: 1,
+							duration: 0.4,
+							onFinish: () => {
+								setTimeout(() => {
+									performFinishAction?.()
+									setTopLayerChildren?.({ id: nanoid(), state: '' })
+								}, 300)
+							},
+						})
+						break
+					case 'moveAway':
+						setTimeout(() => {
+							ref?.to({
+								opacity: 0,
+								duration: 0.4,
+								onFinish: () => {
+									setTimeout(() => {
+										performFinishAction?.()
+										setTopLayerChildren?.({ id: nanoid(), state: '' })
+									}, 300)
+								},
+							})
+						}, 100)
+						break
+					default:
+						break
+				}
+      }}
 			opacity={direction === 'moveAway' ? 1 : 0}
 		/>
 	)

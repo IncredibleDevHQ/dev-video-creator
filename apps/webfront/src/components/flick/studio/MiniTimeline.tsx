@@ -5,6 +5,7 @@ import { IoCheckmarkOutline } from 'react-icons/io5'
 import { useRecoilValue } from 'recoil'
 import {
 	activeObjectIndexAtom,
+	isStudioControllerAtom,
 	StudioState,
 	studioStateAtom,
 } from 'src/stores/studio.store'
@@ -52,6 +53,7 @@ const MiniTimeline = ({
 	const timelineRef = useRef<HTMLDivElement>(null)
 	const state = useRecoilValue(studioStateAtom)
 	const activeObjectIndex = useRecoilValue(activeObjectIndexAtom)
+  const isStudioController = useRecoilValue(isStudioControllerAtom)
 	const recordedBlocks = useMap('recordedBlocks')
 	const { updateActiveObjectIndex } = useUpdateActiveObjectIndex(true)
 
@@ -92,11 +94,12 @@ const MiniTimeline = ({
 							'cursor-not-allowed':
 								state === 'recording' ||
 								(recordedBlocks?.get(dataConfig[index].id)?.includes('blob') &&
-									state === 'preview'),
+									state === 'preview') ||
+                  !isStudioController,
 						}
 					)}
 					onClick={() => {
-						// if (payload?.studioControllerSub !== sub) return
+						if (!isStudioController) return
 						// if continuous recording is enabled, disable mini-timeline onclick
 						if (
 							(continuousRecording && state === 'preview') ||
