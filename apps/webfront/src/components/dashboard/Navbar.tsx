@@ -1,14 +1,15 @@
 import { cx } from '@emotion/css'
-import { Menu } from '@headlessui/react'
+import { Menu, Transition } from '@headlessui/react'
 import axios from 'axios'
 import { getAuth } from 'firebase/auth'
 import Image from 'next/image'
 import Link from 'next/link'
-import { HTMLAttributes } from 'react'
+import { Fragment, HTMLAttributes } from 'react'
 import usePush from 'src/utils/hooks/usePush'
 import useReplace from 'src/utils/hooks/useReplace'
 import { useUser } from 'src/utils/providers/auth'
 import { emitToast } from 'ui/src'
+import Notifications from '../notifications/Notifications'
 
 const Navbar = ({ className }: HTMLAttributes<HTMLDivElement>) => {
 	const { user } = useUser()
@@ -40,7 +41,7 @@ const Navbar = ({ className }: HTMLAttributes<HTMLDivElement>) => {
 				className
 			)}
 		>
-			<Link href='/'>
+			<Link href='/dashboard'>
 				<Image
 					src='/logo.svg'
 					alt='incredible.dev'
@@ -50,50 +51,60 @@ const Navbar = ({ className }: HTMLAttributes<HTMLDivElement>) => {
 				/>
 			</Link>
 			<div className='flex items-center justify-center gap-x-6'>
+				<Notifications />
 				<Menu>
 					<Menu.Button>
 						<Image
 							src={user?.picture || '/dp_fallback.png'}
 							className='rounded-full cursor-pointer'
-							width={30}
-							height={30}
+							width={35}
+							height={35}
 						/>
 					</Menu.Button>
-					<Menu.Items
-						as='ul'
-						className='bg-dark-200 rounded-sm absolute mt-14 mr-5 top-0 right-0 min-w-[150px] p-1.5 text-dark-title'
+					<Transition
+						as={Fragment}
+						enter='transition ease-out duration-100'
+						enterFrom='transform opacity-0 scale-95'
+						enterTo='transform opacity-100 scale-100'
+						leave='transition ease-in duration-75'
+						leaveFrom='transform opacity-100 scale-100'
+						leaveTo='transform opacity-0 scale-95'
 					>
-						<Menu.Item
-							as='li'
-							className='py-2 px-3 cursor-pointer rounded-sm hover:bg-dark-100 font-main text-size-sm'
-							onClick={() => {
-								push(`/${user?.username}`)
-							}}
+						<Menu.Items
+							as='ul'
+							className='bg-dark-200 rounded-md absolute mt-14 mr-5 top-0 right-0 min-w-[150px] p-1.5 text-dark-title'
 						>
-							Profile
-						</Menu.Item>
-						<Menu.Item
-							as='li'
-							className='py-2 px-3 cursor-pointer rounded-sm hover:bg-dark-100 font-main text-size-sm'
-							onClick={() => {
-								push(`/settings`)
-							}}
-						>
-							Settings
-						</Menu.Item>
-						<div className='border-t my-1 border-gray-500' />
-						<Menu.Item
-							as='li'
-							className='py-2 px-3 cursor-pointer rounded-sm hover:bg-dark-100 font-main text-size-sm text-red-700'
-							onClick={() => {
-								handleSignOut()
-							}}
-						>
-							Sign out
-						</Menu.Item>
-					</Menu.Items>
+							<Menu.Item
+								as='li'
+								className='py-2 px-3 cursor-pointer rounded-sm hover:bg-dark-100 font-main text-size-sm'
+								onClick={() => {
+									push(`/${user?.username}`)
+								}}
+							>
+								Profile
+							</Menu.Item>
+							<Menu.Item
+								as='li'
+								className='py-2 px-3 cursor-pointer rounded-sm hover:bg-dark-100 font-main text-size-sm'
+								onClick={() => {
+									push(`/settings`)
+								}}
+							>
+								Settings
+							</Menu.Item>
+							<div className='border-t my-1 border-gray-500' />
+							<Menu.Item
+								as='li'
+								className='py-2 px-3 cursor-pointer rounded-sm hover:bg-dark-100 font-main text-size-sm text-red-700'
+								onClick={() => {
+									handleSignOut()
+								}}
+							>
+								Sign out
+							</Menu.Item>
+						</Menu.Items>
+					</Transition>
 				</Menu>
-				{/* <Notifications /> */}
 			</div>
 		</nav>
 	)

@@ -201,6 +201,7 @@ const Transition = () => {
 									{data?.Transition.map(transition => (
 										<TransitionCard
 											tab={tab}
+											key={transition.name}
 											active={
 												tab === 'block'
 													? transitionConfig?.blockTransition?.name ===

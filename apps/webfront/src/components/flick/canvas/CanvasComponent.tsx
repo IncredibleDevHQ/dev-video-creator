@@ -15,7 +15,11 @@ import {
 	useRecoilValue,
 } from 'recoil'
 import { fragmentTypeAtom } from 'src/stores/flick.store'
-import { studioStateAtom, themeAtom, transitionAtom } from 'src/stores/studio.store'
+import {
+	studioStateAtom,
+	themeAtom,
+	transitionAtom,
+} from 'src/stores/studio.store'
 import { CONFIG, SHORTS_CONFIG } from 'src/utils/configs'
 import { RoomProvider } from 'src/utils/liveblocks.config'
 import { UserContext, useUser } from 'src/utils/providers/auth'
@@ -75,7 +79,7 @@ const CanvasComponent = React.memo(
 		const user = useUser()
 		const state = useRecoilValue(studioStateAtom)
 		const theme = useRecoilValue(themeAtom)
-    const transition = useRecoilValue(transitionAtom)
+		const transition = useRecoilValue(transitionAtom)
 		const { start } = useContext(StudioContext)
 
 		const [mountStage, setMountStage] = useState(false)

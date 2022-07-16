@@ -1,10 +1,10 @@
 import { cx } from '@emotion/css'
-import { Menu } from '@headlessui/react'
+import { Menu, Transition } from '@headlessui/react'
 import { sentenceCase } from 'change-case'
 import { differenceInMonths, format, formatDistance } from 'date-fns'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { FiMoreHorizontal } from 'react-icons/fi'
 import { GoLinkExternal } from 'react-icons/go'
 import {
@@ -176,77 +176,87 @@ const FlickTile = ({
 						>
 							<FiMoreHorizontal className='text-gray-100' />
 						</Menu.Button>
-						<Menu.Items
-							as='ul'
-							className='absolute top-10 right-3 bg-dark-400 flex flex-col p-1.5 rounded-md'
+						<Transition
+							as={Fragment}
+							enter='transition ease-out duration-100'
+							enterFrom='transform opacity-0 scale-95'
+							enterTo='transform opacity-100 scale-100'
+							leave='transition ease-in duration-75'
+							leaveFrom='transform opacity-100 scale-100'
+							leaveTo='transform opacity-0 scale-95'
 						>
-							{contents.length > 0 && (
+							<Menu.Items
+								as='ul'
+								className='absolute top-10 right-2 bg-dark-400 flex flex-col p-1.5 rounded-md'
+							>
+								{contents.length > 0 && (
+									<Menu.Item
+										as='li'
+										className={cx(
+											'flex items-center hover:bg-dark-100 px-3 py-1.5 rounded-sm text-size-xs gap-x-3'
+										)}
+										onClick={() => {
+											router.push(`/watch/${joinLink}`)
+										}}
+									>
+										<GoLinkExternal size={14} className='text-gray-100' />
+										<span className='font-medium text-gray-100 text-sm font-main'>
+											Public page
+										</span>
+									</Menu.Item>
+								)}
 								<Menu.Item
 									as='li'
 									className={cx(
-										'flex items-center hover:bg-dark-100 px-3 py-1.5 rounded-sm text-size-xs gap-x-3'
+										' items-center hover:bg-dark-100 px-3 py-1.5 rounded-sm text-size-xs gap-x-3 hidden',
+										{
+											'cursor-not-allowed ': owner?.userSub !== user?.uid,
+										}
 									)}
-									onClick={() => {
-										router.push(`/watch/${joinLink}`)
+									onClick={(e: any) => {
+										e.stopPropagation()
+										duplicateFlick()
 									}}
 								>
-									<GoLinkExternal size={14} className='text-gray-100' />
-									<span className='font-medium text-gray-100 text-sm font-main'>
-										Public page
+									<IoCopyOutline size={14} className='text-gray-100' />
+									<span className='font-medium text-gray-100 text-sm'>
+										Make a copy
 									</span>
 								</Menu.Item>
-							)}
-							<Menu.Item
-								as='li'
-								className={cx(
-									' items-center hover:bg-dark-100 px-3 py-1.5 rounded-sm text-size-xs gap-x-3 hidden',
-									{
-										'cursor-not-allowed ': owner?.userSub !== user?.uid,
-									}
-								)}
-								onClick={(e: any) => {
-									e.stopPropagation()
-									duplicateFlick()
-								}}
-							>
-								<IoCopyOutline size={14} className='text-gray-100' />
-								<span className='font-medium text-gray-100 text-sm'>
-									Make a copy
-								</span>
-							</Menu.Item>
-							<Menu.Item
-								as='li'
-								className={cx(
-									'flex items-center hover:bg-dark-100 px-3 py-1.5 rounded-sm text-size-xs gap-x-3',
-									{
-										'cursor-not-allowed ': owner?.userSub !== user?.uid,
-									}
-								)}
-								onClick={(e: any) => {
-									e.stopPropagation()
-									if (owner?.userSub !== user?.uid) return
-									if (showDeleteConfirmation) {
-										deleteFlickFunction()
-									} else {
-										setShowDeleteConfirmation(true)
-									}
-								}}
-							>
-								<IoTrashOutline
-									size={14}
-									className={cx('text-gray-100', {
-										'text-red-400': showDeleteConfirmation,
-									})}
-								/>
-								<span
-									className={cx('font-medium text-gray-100 text-sm', {
-										'text-red-400': showDeleteConfirmation,
-									})}
+								<Menu.Item
+									as='li'
+									className={cx(
+										'flex items-center hover:bg-dark-100 px-3 py-1.5 rounded-sm text-size-xs gap-x-3',
+										{
+											'cursor-not-allowed ': owner?.userSub !== user?.uid,
+										}
+									)}
+									onClick={(e: any) => {
+										e.stopPropagation()
+										if (owner?.userSub !== user?.uid) return
+										if (showDeleteConfirmation) {
+											deleteFlickFunction()
+										} else {
+											setShowDeleteConfirmation(true)
+										}
+									}}
 								>
-									{showDeleteConfirmation ? 'Yes, delete it' : 'Delete'}
-								</span>
-							</Menu.Item>
-						</Menu.Items>
+									<IoTrashOutline
+										size={14}
+										className={cx('text-gray-100', {
+											'text-red-400': showDeleteConfirmation,
+										})}
+									/>
+									<span
+										className={cx('font-medium text-gray-100 text-sm', {
+											'text-red-400': showDeleteConfirmation,
+										})}
+									>
+										{showDeleteConfirmation ? 'Yes, delete it' : 'Delete'}
+									</span>
+								</Menu.Item>
+							</Menu.Items>
+						</Transition>
 					</Menu>
 				)}
 			</div>

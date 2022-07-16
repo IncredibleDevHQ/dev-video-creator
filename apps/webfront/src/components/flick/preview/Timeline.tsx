@@ -49,6 +49,7 @@ const IntroTile = ({
 						case 'userMedia': {
 							return (
 								<button
+									key='userMedia'
 									type='button'
 									onClick={() => {
 										updatePayload?.({
@@ -72,6 +73,7 @@ const IntroTile = ({
 						case 'titleSplash': {
 							return (
 								<button
+									key='titleSplash'
 									type='button'
 									onClick={() => {
 										if (block.type === 'introBlock') {
@@ -98,6 +100,7 @@ const IntroTile = ({
 						case 'introVideo': {
 							return (
 								<button
+									key='introVideo'
 									type='button'
 									onClick={() => {
 										updatePayload?.({
@@ -150,6 +153,7 @@ const OutroTile = ({
 						case 'titleSplash': {
 							return (
 								<button
+									key='titleSplash'
 									type='button'
 									onClick={() => {
 										updatePayload?.({
@@ -174,6 +178,7 @@ const OutroTile = ({
 						case 'outroVideo': {
 							return (
 								<button
+									key='outroVideo'
 									type='button'
 									onClick={() => {
 										updatePayload?.({
@@ -292,6 +297,7 @@ const Timeline = ({
 					<div className='flex items-center w-full bg-dark-500 py-4 gap-x-4 overflow-x-auto'>
 						{blocks?.map((block, index) => (
 							<a
+								key={block.id}
 								className={cx(
 									'group flex items-center gap-x-3 border border-transparent cursor-pointer relative',
 									{
