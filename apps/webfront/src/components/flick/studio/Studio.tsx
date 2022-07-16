@@ -486,13 +486,15 @@ const Studio = ({
 							</div>
 							<Notes dataConfig={dataConfig} bounds={bounds} />
 						</div>
-						<RecordingControls
-							dataConfig={dataConfig}
-							viewConfig={viewConfig}
-							shortsMode={viewConfig?.mode === 'Portrait'}
-							isPreview={false}
-							updateState={updateState}
-						/>
+						{isStudioController && (
+							<RecordingControls
+								dataConfig={dataConfig}
+								viewConfig={viewConfig}
+								shortsMode={viewConfig?.mode === 'Portrait'}
+								isPreview={false}
+								updateState={updateState}
+							/>
+						)}
 					</>
 				) : (
 					<div className='flex items-center justify-center flex-col w-full flex-1 pt-4'>
