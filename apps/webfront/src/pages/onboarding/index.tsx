@@ -1,6 +1,7 @@
 import { useRouter } from 'next/router'
 import { useEffect } from 'react'
 import OnBoarding from 'src/components/onboarding/OnBoarding'
+import requireAuth from 'src/utils/helpers/requireAuth'
 import { useUser } from 'src/utils/providers/auth'
 import { ScreenState } from 'ui/src'
 
@@ -24,5 +25,9 @@ const OnboardingPage = () => {
 		<OnBoarding />
 	)
 }
+
+export const getServerSideProps = requireAuth()(async () => ({
+	props: {},
+}))
 
 export default OnboardingPage

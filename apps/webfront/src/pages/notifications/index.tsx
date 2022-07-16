@@ -13,6 +13,7 @@ import {
 	useGetAllMyNotificationsQuery,
 	useMarkNotificationAsReadMutation,
 } from 'src/graphql/generated'
+import requireAuth from 'src/utils/helpers/requireAuth'
 import { Avatar, Button, Heading, Text } from 'ui/src'
 import {
 	Notification_Meta_Type_Enum_Enum,
@@ -186,5 +187,9 @@ const Notifications = () => {
 		</Container>
 	)
 }
+
+export const getServerSideProps = requireAuth()(async () => ({
+	props: {},
+}))
 
 export default Notifications
