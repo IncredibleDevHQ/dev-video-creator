@@ -14,6 +14,7 @@ import {
 	Notification_Meta_Type_Enum_Enum,
 	Notification_Type_Enum_Enum,
 	useGetMyNotificationsLazyQuery,
+	useMarkAllNotificationsAsReadMutation,
 	useMarkNotificationAsReadMutation,
 	useMyUnreadNotificationsCountSubscription,
 } from 'src/graphql/generated'
@@ -58,7 +59,15 @@ const NotificationsList = ({
 		})
 
 	const [markAsRead] = useMarkNotificationAsReadMutation()
+	const [markAllAsRead] = useMarkAllNotificationsAsReadMutation()
 	const { push } = useRouter()
+
+	useEffect(
+		() => () => {
+			markAllAsRead()
+		},
+		[]
+	)
 
 	useEffect(() => {
 		if (isNotificationsOpen) {

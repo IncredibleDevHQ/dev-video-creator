@@ -60,6 +60,15 @@ mutation MarkNotificationAsRead($id: uuid!) {
 	}
 }
 
+mutation MarkAllNotificationsAsRead {
+	update_Notifications(
+		where: { isRead: { _eq: false } }
+		_set: { isRead: true }
+	) {
+		affected_rows
+	}
+}
+
 mutation AcceptCollaboration($notificationId: String!, $inviteId: String!) {
 	RespondToCollaboration(
 		inviteId: $inviteId
