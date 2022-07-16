@@ -60,6 +60,7 @@ const FragmentBackground = ({
 		case 'Whitep4nth3r':
 		case 'VetsWhoCode':
 		case 'Mux':
+		case 'WunderGraph':
 			return (
 				<Rect
 					x={objectConfig.x}
