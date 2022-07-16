@@ -4,12 +4,14 @@ import { useRouter } from 'next/router'
 import { useEffect } from 'react'
 import { IoLogoGoogle } from 'react-icons/io5'
 import Container from 'src/components/core/Container'
+import useReplace from 'src/utils/hooks/useReplace'
 import { useUser } from 'src/utils/providers/auth'
 import Logo from 'svg/Logo.svg'
 import { Button, Heading, ScreenState, Text } from 'ui/src'
 
 const LoginPage = () => {
-	const { replace, query } = useRouter()
+	const { query } = useRouter()
+	const replace = useReplace()
 	const { user, loadingUser } = useUser()
 
 	useEffect(() => {

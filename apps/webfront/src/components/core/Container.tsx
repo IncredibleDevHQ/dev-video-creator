@@ -49,7 +49,7 @@ const Container = (props: any) => {
 					<meta property='article:published_time' content={meta.date} />
 				)}
 			</Head>
-			<main className='bg-dark-500'>{children}</main>
+			<main className='bg-dark-500 font-main'>{children}</main>
 		</>
 	)
 }

@@ -1,77 +1,55 @@
-import axios from 'axios'
-import { getAuth } from 'firebase/auth'
-import Link from 'next/link'
-import { useRouter } from 'next/router'
-import {
-	CreateFlickFlickScopeEnumEnum,
-	useCreateNewFlickMutation,
-	useGetDashboardUserFlicksQuery,
-} from 'src/graphql/generated'
+import { cx } from '@emotion/css'
+import { useState } from 'react'
+import { IoAlbumsOutline, IoDocumentTextOutline } from 'react-icons/io5'
+import Container from 'src/components/core/Container'
+import FlickTab from 'src/components/dashboard/FlickTab'
+import Navbar from 'src/components/dashboard/Navbar'
+import SeriesTab from 'src/components/dashboard/SeriesTab'
 import requireAuth from 'src/utils/helpers/requireAuth'
-import { useUser } from 'src/utils/providers/auth'
 
 const Dashboard = () => {
-	const { user } = useUser()
-	const { replace, push } = useRouter()
-
-	const handleLogout = async () => {
-		await axios.post(
-			'/api/logout',
-			{},
-			{
-				withCredentials: true,
-			}
-		)
-		await getAuth().signOut()
-		replace('/login')
-	}
-
-	const { data, loading } = useGetDashboardUserFlicksQuery({
-		variables: {
-			sub: user?.uid as string,
-			limit: 1000,
-		},
-	})
-
-	const [createFlick, { loading: creating }] = useCreateNewFlickMutation({
-		variables: {
-			name: 'Untitled',
-			scope: CreateFlickFlickScopeEnumEnum.Public,
-		},
-		onCompleted: createData => {
-			const { id, fragmentId } = createData.CreateFlick || {}
-			push(`/story/${id}/${fragmentId}`)
-		},
-	})
+	const [activeTab, setActiveTab] = useState<'stories' | 'series'>('stories')
 
 	return (
-		<div className='flex flex-col p-4'>
-			<nav className='flex items-center justify-between mb-12'>
-				<span>
-					Dashboard
-					<button
-						className='border p-1 mx-2'
-						type='button'
-						disabled={creating}
-						onClick={() => createFlick()}
-					>
-						{creating ? 'Creating' : 'Create story'}
-					</button>
-				</span>
-				<button onClick={handleLogout} className='border p-1' type='button'>
-					Logout
-				</button>
-			</nav>
-			{loading && <div>Fetching stories...</div>}
-			{data &&
-				data.Flick.map(f => (
-					<Link href={`/story/${f.id}`} passHref>
-						<div className='text-blue-500 cursor-pointer hover:underline flex items-center'>
-							{f.name}
-						</div>
-					</Link>
-				))}
-		</div>
+		<Container title='Incredible | Dashboard'>
+			<div className='flex flex-col bg-dark-500 h-screen w-screen items-center overflow-hidden'>
+				<Navbar />
+				<div className='flex items-start flex-1 w-full h-full overflow-hidden'>
+					<div className='flex flex-col w-44 py-8 h-full pl-6 gap-y-2'>
+						<button
+							type='button'
+							onClick={() => setActiveTab('stories')}
+							className={cx(
+								'flex items-center gap-x-2 w-full py-1.5 text-left px-4 border-l-2 hover:text-gray-100 text-size-sm',
+								{
+									'border-green-600 text-gray-100': activeTab === 'stories',
+									'border-transparent text-gray-400': activeTab !== 'stories',
+								}
+							)}
+						>
+							<IoDocumentTextOutline />
+							<span className='text-sm'>Stories</span>
+						</button>
+						<button
+							type='button'
+							onClick={() => setActiveTab('series')}
+							className={cx(
+								'flex items-center gap-x-2 w-full py-1.5 text-left px-4 border-l-2 hover:text-gray-100 text-size-sm',
+								{
+									'border-green-600 text-gray-100': activeTab === 'series',
+									'border-transparent text-gray-400': activeTab !== 'series',
+								}
+							)}
+						>
+							<IoAlbumsOutline />
+							<span className='text-sm'>Series</span>
+						</button>
+					</div>
+					{activeTab === 'stories' && <FlickTab />}
+					{activeTab === 'series' && <SeriesTab />}
+				</div>
+			</div>
+		</Container>
 	)
 }
 
