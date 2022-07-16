@@ -5,7 +5,7 @@ import { BsCloudCheck } from 'react-icons/bs'
 import { IoImageOutline, IoWarningOutline } from 'react-icons/io5'
 import { useRecoilState, useSetRecoilState } from 'recoil'
 import { openStudioAtom, View, viewAtom } from 'src/stores/flick.store'
-import { useRoom } from 'src/utils/liveblocks.config'
+import { PresencePage, useRoom, useUpdateMyPresence } from 'src/utils/liveblocks.config'
 import { Button, Text } from 'ui/src'
 import Brand from './Brand'
 import Publish from './Publish'
@@ -99,6 +99,7 @@ const SubHeader = (): JSX.Element => {
 	const setOpenStudio = useSetRecoilState(openStudioAtom)
 	const [thumbnailModal, setThumbnailModal] = useState(false)
 	const [publishModal, setPublishModal] = useState(false)
+  const updateMyPresence = useUpdateMyPresence()
 
 	return (
 		<div className='flex h-12 flex-row justify-between bg-gray-800 px-5'>
@@ -134,7 +135,12 @@ const SubHeader = (): JSX.Element => {
 					</Button>
 					<Button
 						className='text-dark-title'
-						onClick={() => setOpenStudio(true)}
+						onClick={() => {
+							setOpenStudio(true)
+              updateMyPresence({
+								page: PresencePage.Backstage,
+							})
+						}}
 					>
 						Record
 					</Button>
