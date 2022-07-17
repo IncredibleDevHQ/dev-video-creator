@@ -5,6 +5,7 @@ import { getAuth, signInWithCustomToken, User } from 'firebase/auth'
 import { GetServerSidePropsContext, PreviewData } from 'next'
 import { parseCookies } from 'nookies'
 import { ParsedUrlQuery } from 'querystring'
+import serverEnvs from '../env'
 import { createFirebaseApp } from '../providers/auth'
 
 type SSRUserContext = GetServerSidePropsContext<ParsedUrlQuery, PreviewData> & {
@@ -24,7 +25,7 @@ const verifyCookie = async (
 		if (!admin.apps.length) {
 			admin.initializeApp({
 				credential: admin.credential.cert(
-					JSON.parse(process.env.FIREBASE_SERVICE_CONFIG as string)
+					JSON.parse(serverEnvs.FIREBASE_SERVICE_CONFIG as string)
 				),
 			})
 		}
