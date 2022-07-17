@@ -1,3 +1,4 @@
+/* eslint-disable no-underscore-dangle */
 import admin from 'firebase-admin'
 import { DecodedIdToken } from 'firebase-admin/lib/auth/token-verifier'
 import { getAuth, signInWithCustomToken, User } from 'firebase/auth'
@@ -69,10 +70,10 @@ const requireAuth =
 		}
 
 		const cookies = parseCookies(context)
-		if (!cookies.thisIsASessionCookie) return redirect
+		if (!cookies.__session) return redirect
 
 		const { authenticated, user, userInfo } = await verifyCookie(
-			cookies.thisIsASessionCookie,
+			cookies.__session,
 			requestUser
 		)
 
