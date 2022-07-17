@@ -8,7 +8,11 @@ const withTM = require('next-transpile-modules')([
 module.exports = withTM({
 	reactStrictMode: true,
 	images: {
-		domains: ['lh3.googleusercontent.com'],
+		domains: [
+			'lh3.googleusercontent.com',
+			'cdn-staging.incredible.dev',
+			'cdn.incredible.dev',
+		],
 	},
 	webpack(config) {
 		config.module.rules.push({
