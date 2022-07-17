@@ -49,7 +49,7 @@ const login = async (req: NextApiRequest, res: NextApiResponse) => {
 					maxAge: expiresIn,
 					httpOnly: true,
 					secure: true,
-					path: '/',
+					path: '*/*',
 					domain: serverEnvs.COOKIE_DOMAIN as string,
 					sameSite: 'none',
 				})
