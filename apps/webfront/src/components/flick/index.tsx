@@ -191,7 +191,7 @@ const FlickBody = ({
 				leaveTo='transform opacity-0'
 			> */}
 			{openStudio && (
-				<div className='absolute top-0 left-0 w-full h-screen z-50'>
+				<div className='absolute top-0 left-0 w-full h-screen z-[60]'>
 					<StudioHoC fragmentId={activeFragmentId} flickId={flick.id} />
 				</div>
 			)}

@@ -1,12 +1,13 @@
 import { css, cx } from '@emotion/css'
 import { useEffect, useState } from 'react'
 import { BiNote } from 'react-icons/bi'
+import { BsFillRecordFill } from 'react-icons/bs'
 import { CgProfile } from 'react-icons/cg'
 import { FiCode, FiLayout } from 'react-icons/fi'
 import { IoArrowDownOutline, IoArrowUpOutline, IoPlayForwardOutline, IoSparklesOutline } from 'react-icons/io5'
 import { MdOutlineTextFields } from 'react-icons/md'
 import useMeasure from 'react-use-measure'
-import { useRecoilState, useRecoilValue } from 'recoil'
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
 import {
 	activeFragmentIdAtom,
 	astAtom,
@@ -16,8 +17,8 @@ import {
 } from 'src/stores/flick.store'
 import { codePreviewStore } from 'src/stores/studio.store'
 import useBlock from 'src/utils/hooks/useBlock'
-import { useMap } from 'src/utils/liveblocks.config'
-import { Text } from 'ui/src'
+import { PresencePage, useMap, useUpdateMyPresence } from 'src/utils/liveblocks.config'
+import { Button, Text } from 'ui/src'
 import {
 	allLayoutTypes,
 	BlockProperties,
@@ -169,6 +170,9 @@ const Preview = ({ centered }: { centered: boolean }) => {
   const [codePreviewValue, setCodePreviewValue] =
 		useRecoilState(codePreviewStore)
 
+  const setOpenStudio = useSetRecoilState(openStudioAtom)
+	const updateMyPresence = useUpdateMyPresence()
+
 	const [ref, bounds] = useMeasure()
 
 	// TODO: Key down listener
@@ -245,8 +249,22 @@ const Preview = ({ centered }: { centered: boolean }) => {
 							scale={0.83}
 						/>
 					)}
+					<Button
+						className='text-dark-title absolute bottom-0 left-0 -mb-12'
+            colorScheme='darker'
+            size='large'
+            leftIcon={<BsFillRecordFill size={18} className='text-red-500' />}
+						onClick={() => {
+							setOpenStudio(true)
+							updateMyPresence({
+								page: PresencePage.Backstage,
+							})
+						}}
+					>
+						Record
+					</Button>
 					{block.type === 'codeBlock' && (
-						<div className='absolute bottom-0 right-8 -mb-4'>
+						<div className='absolute bottom-0 right-0 -mb-11'>
 							<button
 								className={cx(
 									'bg-gray-800 border border-gray-200 text-white p-1.5 rounded-sm'
