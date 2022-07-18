@@ -205,6 +205,7 @@ const utilsRouter = trpc
 		input: z.object({
 			flickId: z.string(),
 			fragmentId: z.string(),
+			huddle: z.boolean(),
 		}),
 		output: z.object({
 			token: z.string(),
@@ -244,7 +245,7 @@ const utilsRouter = trpc
 					serverEnvs.RTC_TOKEN_SVC_ENDPOINT,
 					{
 						user_uid: participant.id,
-						channel_name: input.fragmentId,
+						channel_name: input.huddle ? input.flickId : input.fragmentId,
 						role: 1,
 					},
 					{

@@ -126,7 +126,7 @@ export const createLiveBlocksRoom = async (
 		{},
 		{
 			headers: {
-				Authorization: `Bearer ${serverEnvs.LIVEBLOCKS_APIKEY}`,
+				Authorization: `Bearer ${serverEnvs.LIVEBLOCKS_API_KEY}`,
 			},
 		}
 	)

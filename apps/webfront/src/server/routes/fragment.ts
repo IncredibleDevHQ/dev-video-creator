@@ -325,7 +325,7 @@ const fragmentRouter = trpc
 				try {
 					// make req to youtube upload microservice
 					axios.post(
-						`${serverEnvs.INTEGRATIONS__URL}/youtube/upload`,
+						`${serverEnvs.INTEGRATIONS_URL}/youtube/upload`,
 						{
 							recordingId: fragmentData.Recording[0].id,
 						},
