@@ -407,12 +407,12 @@ const Studio = ({
 						type='button'
 						className='flex items-center gap-x-2 cursor-pointer'
 						onClick={() => {
+              setOpenStudio(false)
 							if (!agoraStreamData?.stream || !agoraActions?.leave) return
 							agoraStreamData.stream.getTracks().forEach(track => {
 								track.stop()
 							})
 							agoraActions.leave()
-							setOpenStudio(false)
 						}}
 					>
 						<IoArrowBackOutline className='text-gray-400 h-4 w-4' />

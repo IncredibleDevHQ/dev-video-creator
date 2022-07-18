@@ -111,6 +111,11 @@ export const isStudioControllerAtom = atom<boolean>({
   default: false,
 })
 
+export const codePreviewStore = atom<number>({
+	key: 'codePreview',
+	default: 0,
+})
+
 export const colorCodesAtom = atom<{
 	[key: string]: {
 		code: string | undefined
