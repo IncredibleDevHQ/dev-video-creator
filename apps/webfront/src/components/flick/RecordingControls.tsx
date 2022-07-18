@@ -149,16 +149,8 @@ const RecordingControls = ({
 	}
 
 	return (
-		<div className='grid grid-cols-12 w-full'>
-			<div
-				// style={{
-				// 	top: `${
-				// 		(stageRef?.current?.y() || 0) + stageHeight + (shortsMode ? 0 : 25)
-				// 	}px`,
-				// 	width: `${shortsMode ? stageWidth + 35 : stageWidth}px`,
-				// }}
-				className='flex items-center col-span-8 col-start-3 pb-6'
-			>
+		<div className='grid grid-cols-12 w-full mb-2'>
+			<div className='flex items-center col-span-8 col-start-3 pb-6'>
 				{/* Stop Recording Button */}
 				{(state === 'recording' || state === 'startRecording') && (
 					<button
@@ -168,7 +160,7 @@ const RecordingControls = ({
 							updateState?.('stopRecording')
 						}}
 						className={cx(
-							'flex gap-x-3 bg-white font-main items-center justify-between border backdrop-filter backdrop-blur-2xl px-4 py-2 rounded-sm w-24 absolute min-w-max'
+							'flex gap-x-3 bg-white font-main items-center justify-between border backdrop-filter backdrop-blur-2xl px-4 py-2 rounded-sm w-24 absolute min-w-max text-size-sm-title active:scale-95 transition-all'
 							// {
 							// 	'left-0': shortsMode,
 							// 	'bg-grey-500 bg-opacity-50 border-gray-600': timeLimit
@@ -180,7 +172,7 @@ const RecordingControls = ({
 							// }
 						)}
 					>
-						<div className='w-4 h-4 bg-red-600 rounded-sm' />
+						<div className='w-3 h-3 bg-red-600 rounded-sm' />
 						Stop Recording
 						{/* <Timer target={(timeLimit || 3) * 60} timer={timer} /> */}
 						{/* {timeLimit && (
@@ -194,7 +186,7 @@ const RecordingControls = ({
 				{(state === 'ready' || state === 'resumed') && (
 					<button
 						className={cx(
-							'bg-red-500 text-white font-main backdrop-filter backdrop-blur-2xl px-4 py-2 rounded-sm absolute flex items-center gap-x-2',
+							'bg-red-500 text-white font-main backdrop-filter backdrop-blur-2xl px-4 py-2 rounded-sm absolute flex items-center gap-x-2 text-size-sm-title active:scale-95 transition-all',
 							{
 								'left-0': shortsMode,
 							}
@@ -204,7 +196,7 @@ const RecordingControls = ({
 							updateState?.('countDown')
 						}}
 					>
-						<div className='w-3 h-3 bg-white rounded-lg' />
+						<div className='w-3 h-3 bg-white rounded-full' />
 						Start Recording
 					</button>
 				)}
@@ -235,7 +227,7 @@ const RecordingControls = ({
 						<button
 							type='button'
 							className={cx(
-								'flex gap-x-2 items-center justify-between border bg-grey-400 bg-opacity-50 backdrop-filter backdrop-blur-2xl border-gray-600 rounded-sm ml-4',
+								'flex gap-x-2 items-center justify-between border bg-gray-600 border-gray-600 rounded-sm ml-4',
 								{
 									'bg-grey-500 bg-opacity-100': !isIntro && !isOutro,
 									'cursor-not-allowed': isIntro || isOutro,
@@ -248,7 +240,7 @@ const RecordingControls = ({
 									'bg-transparent py-1 px-1 rounded-sm my-1 ml-1 transition-all duration-200 filter',
 									{
 										'bg-transparent': isIntro || isOutro,
-										'bg-grey-900':
+										'bg-gray-800':
 											payload?.fragmentState === 'onlyUserMedia' &&
 											!isIntro &&
 											!isOutro,
@@ -266,14 +258,14 @@ const RecordingControls = ({
 									})
 								}
 							>
-								<OnlyUserMedia className={cx('m-px w-5 h-4 ', {})} />
+								<OnlyUserMedia className='m-1' />
 							</div>
 							<div
 								className={cx(
 									'bg-transparent py-1 px-1 rounded-sm my-1 mr-1 transition-all duration-300 filter',
 									{
 										'bg-transparent': isIntro || isOutro,
-										'bg-grey-900':
+										'bg-gray-800':
 											payload?.fragmentState === 'customLayout' &&
 											!isIntro &&
 											!isOutro,
@@ -291,14 +283,14 @@ const RecordingControls = ({
 									})
 								}
 							>
-								<ThreeWaySwap className={cx('m-px w-5 h-4', {})} />
+								<ThreeWaySwap className='m-1' />
 							</div>
 							<div
 								className={cx(
 									'bg-transparent py-1 px-1 rounded-sm my-1 mr-1 transition-all duration-300 filter',
 									{
 										'bg-transparent': isIntro || isOutro,
-										'bg-grey-900':
+										'bg-gray-800':
 											payload?.fragmentState === 'onlyFragment' &&
 											!isIntro &&
 											!isOutro,
@@ -316,16 +308,16 @@ const RecordingControls = ({
 									})
 								}
 							>
-								<CustomLayout className={cx('m-px w-5 h-4', {})} />
+								<CustomLayout className='m-1' />
 							</div>
 						</button>
 					)}
 					{/* previous button */}
 					<button
 						className={cx(
-							'bg-grey-400 border border-gray-600 backdrop-filter bg-opacity-50 backdrop-blur-2xl p-1.5 rounded-sm ml-4',
+							'bg-gray-600 border border-gray-600 p-1.5 rounded-sm ml-4 transition-all',
 							{
-								'bg-grey-500 bg-opacity-100 text-gray-100': !isBackDisabled(),
+								'text-gray-100': !isBackDisabled(),
 								'text-gray-500 cursor-not-allowed': isBackDisabled(),
 							}
 						)}
@@ -345,9 +337,9 @@ const RecordingControls = ({
 					{/* next button */}
 					<button
 						className={cx(
-							'bg-grey-500 border border-gray-600 backdrop-filter bg-opacity-100 backdrop-blur-2xl p-1.5 rounded-sm ml-2 text-gray-100',
+							'bg-gray-600 border border-gray-600 p-1.5 rounded-sm ml-2 text-gray-100 transition-all',
 							{
-								'text-gray-500 cursor-not-allowed':
+								'cursor-not-allowed text-gray-500':
 									activeObjectIndex === dataConfig.length - 1 &&
 									payload.activeOutroIndex ===
 										((

@@ -53,7 +53,7 @@ const MiniTimeline = ({
 	const timelineRef = useRef<HTMLDivElement>(null)
 	const state = useRecoilValue(studioStateAtom)
 	const activeObjectIndex = useRecoilValue(activeObjectIndexAtom)
-  const isStudioController = useRecoilValue(isStudioControllerAtom)
+	const isStudioController = useRecoilValue(isStudioControllerAtom)
 	const recordedBlocks = useMap('recordedBlocks')
 	const { updateActiveObjectIndex } = useUpdateActiveObjectIndex(true)
 
@@ -69,7 +69,7 @@ const MiniTimeline = ({
 				}
 			}}
 			className={cx(
-				'mt-auto flex gap-x-3 px-6 py-2 overflow-x-scroll h-12',
+				'mt-auto flex gap-x-3 px-6 py-2 overflow-x-scroll h-14 items-center',
 				{
 					'pointer-events-none':
 						state === 'preview'
@@ -88,14 +88,14 @@ const MiniTimeline = ({
 					className={cx(
 						'px-3 py-1.5 h-8 font-body cursor-pointer text-size-sm rounded-sm flex items-center justify-center transition-transform duration-500 bg-gray-700 relative text-gray-300 flex-shrink-0',
 						{
-							'transform scale-110 border border-brand':
+							'transform scale-110 border-[0.5px] border-gray-400':
 								activeObjectIndex === index,
 							'bg-grey-900 text-gray-500': index !== activeObjectIndex,
 							'cursor-not-allowed':
 								state === 'recording' ||
 								(recordedBlocks?.get(dataConfig[index].id)?.includes('blob') &&
 									state === 'preview') ||
-                  !isStudioController,
+								!isStudioController,
 						}
 					)}
 					onClick={() => {
@@ -107,10 +107,10 @@ const MiniTimeline = ({
 							(recordedBlocks?.get(dataConfig[index].id)?.includes('blob') &&
 								state === 'preview')
 						) {
-              // TODO emit toast to notify the user to svae and proceed
+							// TODO emit toast to notify the user to svae and proceed
 							return
 						}
-            updateActiveObjectIndex(index)
+						updateActiveObjectIndex(index)
 						// checking if block is recorded or not
 						if (recordedBlocks?.get(dataConfig[index].id)) {
 							updateState('preview')

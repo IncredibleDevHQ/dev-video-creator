@@ -129,10 +129,8 @@ const MediaControls = React.memo(
 				return
 			const preferredCamera = localStorage.getItem('preferred-camera')
 			const preferredMicrophone = localStorage.getItem('preferred-microphone')
-			setMicrophoneDevice(
-				preferredMicrophone || devices.audioDevices?.[0].id || ''
-			)
-			setCameraDevice(preferredCamera || devices.videoDevices?.[0].id || '')
+			setMicrophoneId(preferredMicrophone || devices.audioDevices?.[0].id || '')
+			setCameraId(preferredCamera || devices.videoDevices?.[0].id || '')
 		}, [devices.audioDevices, devices.videoDevices])
 
 		useEffect(() => {
@@ -208,99 +206,82 @@ const MediaControls = React.memo(
 		}, [agoraReady, participantId, tracks, rtcToken])
 
 		return (
-			<div className='bg-zinc-700/90 h-8 rounded-3xl text-cyan-50 px-4 py-1 flex flex-row '>
-				<div className='group rounded-sm hover:bg-dark-200 flex items-center cursor-pointer ml-3 mr-1 gap-x-1'>
-					<div className='text-white flex items-center hover:bg-dark-100 rounded-l-sm justify-center px-1 py-1.5'>
-						<FiMic className='cursor-pointer flex-shrink-0' size={14} />
+			<div className='bg-dark-100 h-9 rounded-3xl text-cyan-50 py-1 flex flex-row gap-x-4 px-2'>
+				<Listbox
+					value={
+						devices.audioDevices.find(d => d.id === microphoneId)?.id || ''
+					}
+					onChange={e => {
+						setMicrophoneId(
+							devices.audioDevices.find(d => d.id === e)?.id || microphoneId
+						)
+					}}
+				>
+					<div className='relative'>
+						<Listbox.Button className='hover:bg-dark-200 px-px pl-1 py-1.5 rounded-sm flex items-center justify-center gap-x-1.5'>
+							<FiMic className='cursor-pointer flex-shrink-0' size={14} />
+							<IoChevronDownOutline size={16} color='FFF' />
+						</Listbox.Button>
+						<Listbox.Options className='bg-[#27272A]/90 border-[#52525B] backdrop-filter backdrop-blur-md mt-3 rounded-md absolute z-10 shadow-md right-0 py-2 px-2'>
+							{devices.audioDevices.map(device => (
+								<Listbox.Option
+									className='flex items-center gap-x-4 py-2 px-3 hover:bg-[#27272A] rounded-sm bg-opacity-100 relative text-start font-body text-gray-100 cursor-pointer text-size-xs'
+									key={device.id}
+									value={device.id}
+								>
+									{({ selected }) => (
+										<>
+											{selected && (
+												<span className='absolute inset-y-0 left-0 flex items-center pl-2 pointer-events-none'>
+													<BiCheck size={20} />
+												</span>
+											)}
+											<span className='truncate pl-6'>{device.label}</span>
+										</>
+									)}
+								</Listbox.Option>
+							))}
+						</Listbox.Options>
 					</div>
-					<Listbox
-						value={
-							devices.audioDevices.find(d => d.id === microphoneId)?.id || ''
-						}
-						onChange={e => {
-							setMicrophoneId(
-								devices.audioDevices.find(d => d.id === e)?.id || microphoneId
-							)
-						}}
-					>
-						<div className='relative'>
-							<Listbox.Button className='hover:bg-dark-100 px-px py-1.5 rounded-r-sm flex items-center justify-center'>
-								<IoChevronDownOutline size={16} color='FFF' />
-							</Listbox.Button>
-							<Listbox.Options
-								style={{
-									border: '0.5px solid #52525B',
-								}}
-								className='bg-grey-500 bg-opacity-90 backdrop-filter backdrop-blur-md mt-3 rounded-md absolute w-72 z-10 shadow-md left-0 -ml-32 py-2 px-2'
-							>
-								{devices.audioDevices.map(device => (
-									<Listbox.Option
-										className='flex items-center gap-x-4 py-2 px-3 hover:bg-grey-500 rounded-sm bg-opacity-100 relative text-left font-body text-gray-100 cursor-pointer text-sm'
-										key={device.id}
-										value={device.id}
-									>
-										{({ selected }) => (
-											<>
-												{selected && (
-													<span className='absolute inset-y-0 left-0 flex items-center pl-2 pointer-events-none'>
-														<BiCheck size={20} />
-													</span>
-												)}
-												<span className='truncate pl-6'>{device.label}</span>
-											</>
-										)}
-									</Listbox.Option>
-								))}
-							</Listbox.Options>
-						</div>
-					</Listbox>
-				</div>
+				</Listbox>
 
 				{/* camera */}
-				<div className='group rounded-sm hover:bg-dark-200 flex items-center cursor-pointer ml-3 mr-1 gap-x-1'>
-					<div className='text-white flex items-center hover:bg-dark-100 rounded-l-sm justify-center px-1 py-1.5'>
-						<FiCamera className='cursor-pointer flex-shrink-0' size={14} />
+
+				<Listbox
+					value={devices.videoDevices.find(d => d.id === cameraId)?.id || ''}
+					onChange={e => {
+						setCameraId(
+							devices.videoDevices.find(d => d.id === e)?.id || cameraId
+						)
+					}}
+				>
+					<div className='relative'>
+						<Listbox.Button className='hover:bg-dark-200 px-px pl-1 py-1.5 rounded-sm flex items-center justify-center gap-x-1.5'>
+							<FiCamera className='cursor-pointer flex-shrink-0' size={14} />
+							<IoChevronDownOutline size={16} color='FFF' />
+						</Listbox.Button>
+						<Listbox.Options className='bg-[#27272A]/90 border-[#52525B] backdrop-filter backdrop-blur-md mt-3 rounded-md absolute z-10 shadow-md right-0 py-2 px-2'>
+							{devices.videoDevices.map(device => (
+								<Listbox.Option
+									className='flex items-center gap-x-4 py-2 px-3 hover:bg-[#27272A] rounded-sm bg-opacity-100 relative text-start font-body text-gray-100 cursor-pointer text-size-xs'
+									key={device.id}
+									value={device.id}
+								>
+									{({ selected }) => (
+										<>
+											{selected && (
+												<span className='absolute inset-y-0 left-0 flex items-center pl-2 pointer-events-none'>
+													<BiCheck size={20} />
+												</span>
+											)}
+											<span className='truncate pl-6'>{device.label}</span>
+										</>
+									)}
+								</Listbox.Option>
+							))}
+						</Listbox.Options>
 					</div>
-					<Listbox
-						value={devices.videoDevices.find(d => d.id === cameraId)?.id || ''}
-						onChange={e => {
-							setCameraId(
-								devices.videoDevices.find(d => d.id === e)?.id || cameraId
-							)
-						}}
-					>
-						<div className='relative'>
-							<Listbox.Button className='hover:bg-dark-100 px-px py-1.5 rounded-r-sm flex items-center justify-center'>
-								<IoChevronDownOutline size={16} color='FFF' />
-							</Listbox.Button>
-							<Listbox.Options
-								style={{
-									border: '0.5px solid #52525B',
-								}}
-								className='bg-grey-500 bg-opacity-90 backdrop-filter backdrop-blur-md mt-3 rounded-md absolute w-72 z-10 shadow-md left-0 -ml-32 py-2 px-2'
-							>
-								{devices.videoDevices.map(device => (
-									<Listbox.Option
-										className='flex items-center gap-x-4 py-2 px-3 hover:bg-grey-500 rounded-sm bg-opacity-100 relative text-left font-body text-gray-100 cursor-pointer text-sm'
-										key={device.id}
-										value={device.id}
-									>
-										{({ selected }) => (
-											<>
-												{selected && (
-													<span className='absolute inset-y-0 left-0 flex items-center pl-2 pointer-events-none'>
-														<BiCheck size={20} />
-													</span>
-												)}
-												<span className='truncate pl-6'>{device.label}</span>
-											</>
-										)}
-									</Listbox.Option>
-								))}
-							</Listbox.Options>
-						</div>
-					</Listbox>
-				</div>
+				</Listbox>
 			</div>
 		)
 	}

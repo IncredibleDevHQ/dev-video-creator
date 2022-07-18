@@ -179,23 +179,11 @@ const FlickBody = ({
 					<ViewConfigUpdater />
 				</div>
 			</EditorProvider>
-
-			{/* <Transition
-				show={openStudio}
-				as={Fragment}
-				enter='transition ease-out duration-200'
-				enterFrom='transform opacity-0'
-				enterTo='transform opacity-100'
-				leave='transition ease-in duration-200'
-				leaveFrom='transform opacity-100'
-				leaveTo='transform opacity-0'
-			> */}
 			{openStudio && (
 				<div className='absolute top-0 left-0 w-full h-screen z-50'>
 					<StudioHoC fragmentId={activeFragmentId} flickId={flick.id} />
 				</div>
 			)}
-			{/* </Transition> */}
 		</RoomProvider>
 	)
 }

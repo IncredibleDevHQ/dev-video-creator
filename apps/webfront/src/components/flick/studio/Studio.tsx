@@ -7,9 +7,9 @@ import { Block } from 'editor/src/utils/types'
 import getBlobDuration from 'get-blob-duration'
 import Konva from 'konva'
 import { nanoid } from 'nanoid'
-import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { FiRotateCcw } from 'react-icons/fi'
-import { IoChevronBackOutline } from 'react-icons/io5'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { FiRotateCcw, FiUpload } from 'react-icons/fi'
+import { IoArrowBackOutline } from 'react-icons/io5'
 import useMeasure from 'react-use-measure'
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
 import {
@@ -50,7 +50,6 @@ import {
 	updateToast,
 } from 'ui/src'
 import { useEnv, useUploadFile, ViewConfig } from 'utils/src'
-import UploadIcon from '../../../../svg/RecordingScreen/Upload.svg'
 import CanvasComponent, { StudioContext } from '../canvas/CanvasComponent'
 import RecordingControls from '../RecordingControls'
 import Countdown from './Countdown'
@@ -403,7 +402,7 @@ const Studio = ({
 		<StudioContext.Provider value={value}>
 			<Countdown updateState={updateState} />
 			<div className='flex flex-col w-screen h-screen overflow-hidden backdrop-blur-md bg-black/80'>
-				<div className='flex h-12 w-full flex-row items-center justify-between bg-gray-900 px-5'>
+				<div className='flex h-12 w-full flex-row items-center justify-between bg-gray-800 px-5'>
 					<button
 						type='button'
 						className='flex items-center gap-x-2 cursor-pointer'
@@ -416,7 +415,7 @@ const Studio = ({
 							setOpenStudio(false)
 						}}
 					>
-						<IoChevronBackOutline className='text-gray-400 h-4 w-4' />
+						<IoArrowBackOutline className='text-gray-400 h-4 w-4' />
 						<Text className='text-dark-title font-medium' textStyle='caption'>
 							Go to Notebook
 						</Text>
@@ -428,7 +427,7 @@ const Studio = ({
 					>
 						{flickName}
 					</Heading>
-					<div className='flex gap-x-3'>
+					<div className='flex gap-x-3 items-center'>
 						{!isStudioController && (
 							<button
 								disabled={state === 'recording'}
@@ -477,7 +476,7 @@ const Studio = ({
 					<>
 						<div className='grid grid-cols-12 flex-1 items-center'>
 							<div
-								className='flex justify-center items-center col-span-8 col-start-3 w-full h-full'
+								className='flex justify-center items-start col-span-8 col-start-3 w-full h-full pt-16'
 								ref={ref}
 							>
 								<CanvasComponent
@@ -530,22 +529,7 @@ const Studio = ({
 									key={nanoid()}
 								/>
 								{isStudioController && (
-									<div
-										style={
-											recordedBlocks
-												?.get(dataConfig[activeObjectIndex].id)
-												?.includes('blob')
-												? {
-														background: 'rgba(39, 39, 42, 0.5)',
-														border: '0.5px solid #52525B',
-														boxSizing: 'border-box',
-														backdropFilter: 'blur(40px)',
-														borderRadius: '4px',
-												  }
-												: {}
-										}
-										className='flex items-center rounded-md gap-x-2 mt-2 z-10 p-2 px-3'
-									>
+									<div className='flex items-center rounded-md gap-x-2 mt-2 z-10 p-2 px-3'>
 										{
 											// if block already has a recording dont show save button
 											// checks if the url in the recorded blocks is a blob url
@@ -553,9 +537,8 @@ const Studio = ({
 												?.get(dataConfig[activeObjectIndex].id)
 												?.includes('blob') && (
 												// Save and continue button
-												<button
-													className='bg-green-600 text-white rounded-sm py-1.5 px-2.5 flex items-center gap-x-2 font-bold hover:shadow-lg text-sm'
-													type='button'
+												<Button
+													leftIcon={<FiUpload size={14} />}
 													onClick={() => {
 														if (
 															activeObjectIndex === undefined &&
@@ -584,15 +567,14 @@ const Studio = ({
 														}
 													}}
 												>
-													<UploadIcon className='h-5 w-5 my-px' />
 													Save and continue
-												</button>
+												</Button>
 											)
 										}
 										{/* Retake button */}
-										<button
-											className='bg-grey-500 text-white rounded-sm py-1.5 px-2.5 flex items-center gap-x-2 font-bold hover:shadow-md text-sm'
-											type='button'
+										<Button
+											colorScheme='darker'
+											leftIcon={<FiRotateCcw size={14} />}
 											onClick={() => {
 												const currentBlockURL = recordedBlocks?.get(
 													dataConfig[activeObjectIndex].id
@@ -653,9 +635,8 @@ const Studio = ({
 												// setResetTimer(true)
 											}}
 										>
-											<FiRotateCcw className='h-4 w-4 my-1' />
 											Retake
-										</button>
+										</Button>
 									</div>
 								)}
 							</div>
