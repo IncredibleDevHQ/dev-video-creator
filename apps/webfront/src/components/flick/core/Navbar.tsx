@@ -196,12 +196,14 @@ const Navbar = () => {
 					Invite
 				</Button>
 			</div>
-			<Invite
-				open={inviteOpen}
-				handleClose={() => {
-					setInviteOpen(false)
-				}}
-			/>
+			{inviteOpen && (
+				<Invite
+					open={inviteOpen}
+					handleClose={() => {
+						setInviteOpen(false)
+					}}
+				/>
+			)}
 		</div>
 	)
 }
