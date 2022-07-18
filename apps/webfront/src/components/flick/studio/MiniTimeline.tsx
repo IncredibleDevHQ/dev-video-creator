@@ -120,7 +120,7 @@ const MiniTimeline = ({
 					}}
 				>
 					{recordedBlocks?.get(dataConfig[index].id)?.includes('.webm') && (
-						<div className='absolute top-0 right-0 rounded-tr-sm rounded-bl-sm bg-incredible-green-600'>
+						<div className='absolute top-0 right-0 rounded-tr-sm rounded-bl-sm bg-green-600'>
 							<IoCheckmarkOutline className='m-px text-gray-200' size={8} />
 						</div>
 					)}
