@@ -4,14 +4,13 @@ import { z } from 'zod'
 import { nanoid } from 'nanoid'
 import serverEnvs from 'src/utils/env'
 import { Context } from '../createContext'
+import { Meta, sendInviteEmail } from '../utils/helpers'
 import {
 	InvitationStatusEnum,
-	Meta,
 	NotificationMetaTypeEnum,
 	NotificationTypeEnum,
 	ParticipantRoleEnum,
-	sendInviteEmail,
-} from '../utils/helpers'
+} from '../utils/enums'
 import {
 	sendTransactionalEmail,
 	TransactionalMailType,
@@ -148,6 +147,7 @@ const collaborateRouter = trpc
 			},
 		})
 	})
+	// ACTIONS
 	.mutation('invite', {
 		meta: {
 			hasAuth: true,

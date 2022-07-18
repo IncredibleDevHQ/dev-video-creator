@@ -14,16 +14,15 @@ import type { Context } from '../createContext'
 import {
 	BlockMeta,
 	BlockParticipant,
-	ContentTypeEnum,
 	CreateMuxAsset,
 	DeleteMuxAsset,
 	EditorState,
-	FragmentTypeEnum,
 	getBlockTitle,
 	initRedisWithDataConfig,
 	Meta,
 	validateEmail,
 } from '../utils/helpers'
+import { ContentTypeEnum, FragmentTypeEnum } from '../utils/enums'
 
 const fragmentRouter = trpc
 	.router<Context, Meta>()
@@ -48,7 +47,7 @@ const fragmentRouter = trpc
 			},
 		})
 	})
-
+	// ACTIONS
 	.mutation('create', {
 		meta: {
 			hasAuth: true,

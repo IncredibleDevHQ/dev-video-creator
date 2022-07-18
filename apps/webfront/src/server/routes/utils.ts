@@ -30,27 +30,70 @@ const utilsRouter = trpc
 			},
 		})
 	})
-	.query('test', {
+	// ACTIONS
+	.query('searchUnsplash', {
 		meta: {
-			hasAuth: false,
+			hasAuth: true,
 		},
-		resolve: async ({ ctx }) => {
-			try {
-				const x = await ctx.prisma.bLOCK_PARTICIPANT_ENUM.create({
-					data: {
-						value: 'admin',
-						description: 'Admin is the boss',
-					},
-					select: {
-						description: true,
-						value: true,
-					},
+		input: z.object({
+			query: z.string().optional(),
+		}),
+		resolve: async ({ input }) => {
+			const unspashAccessKey = serverEnvs.UNSPLASH_ACCESS_KEY // config.services.unsplash.accesskey
+			if (typeof input.query === 'undefined') {
+				const { data } = await axios.get(
+					`https://api.unsplash.com/photos?client_id=${unspashAccessKey}`
+				)
+				return data
+			}
+
+			const { data } = await axios.get(
+				`https://api.unsplash.com/search/photos?query=${input.query}&client_id=${unspashAccessKey}&per_page=50`
+			)
+			return data.results
+		},
+	})
+	.query('tokenizeCode', {
+		meta: {
+			hasAuth: true,
+		},
+		input: z.object({
+			code: z.string(),
+			language: z.string(),
+			theme: z.string().default('dark_plus'),
+		}),
+		resolve: async ({ input, ctx }) => {
+			if (!ctx.user?.sub)
+				throw new TRPCError({
+					code: 'UNAUTHORIZED',
 				})
-				return x
+			const { endpoint, secret } = {
+				endpoint: serverEnvs.TOKENIZE_ENDPOINT,
+				secret: serverEnvs.TOKENIZE_SECRET,
+			}
+			try {
+				const {
+					data: { success, data },
+				} = await axios.post(
+					endpoint,
+					{
+						code: input.code,
+						language: input.language,
+						theme: input.theme,
+					},
+					{
+						headers: {
+							'x-secret': secret,
+							'Content-Type': 'application/json',
+						},
+					}
+				)
+				return { data, success }
 			} catch (e) {
 				throw new TRPCError({
 					code: 'INTERNAL_SERVER_ERROR',
-					message: 'Something went wrong!',
+					message:
+						(e as any).response.message || (e as any).response.data.error,
 				})
 			}
 		},
@@ -58,6 +101,7 @@ const utilsRouter = trpc
 	/*
 		MUTATIONS
 	*/
+	// ACTIONS
 	.mutation('getUploadUrl', {
 		meta: {
 			hasAuth: true,

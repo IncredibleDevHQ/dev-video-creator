@@ -32,6 +32,7 @@ const userRouter = trpc
 	/*
 		QUERIES
 	*/
+	// ACTION'S
 	.query('me', {
 		meta: {
 			hasAuth: true,
@@ -120,9 +121,11 @@ const userRouter = trpc
 			}
 		},
 	})
+	// Data Queries
 	/*
 		MUTATIONS
 	*/
+	// ACTION'S
 	.mutation('onboard', {
 		meta: {
 			hasAuth: true,
@@ -171,5 +174,6 @@ const userRouter = trpc
 			return { success: false }
 		},
 	})
+// Data Mutations
 
 export default userRouter

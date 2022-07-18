@@ -15,10 +15,10 @@ import serverEnvs from 'src/utils/env'
 import type { Context } from '../createContext'
 import {
 	createLiveBlocksRoom,
-	FlickScopeEnum,
 	initRedisWithDataConfig,
 	Meta,
 } from '../utils/helpers'
+import { FlickScopeEnum } from '../utils/enums'
 import {
 	sendTransactionalEmail,
 	TransactionalMailType,
@@ -47,6 +47,7 @@ const storyRouter = trpc
 			},
 		})
 	})
+	// ACTIONS
 	.mutation('create', {
 		meta: {
 			hasAuth: true,
