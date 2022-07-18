@@ -33,7 +33,7 @@ const useAgora = () => {
 	const client = useClient()
 	const [ready, setReady] = useState(false)
 	const [users, setUsers] = useState<RTCUser[]>([])
-  const [stream, setStream] = useState<MediaStream | null>(null)
+	const [stream, setStream] = useState<MediaStream | null>(null)
 	const [currentUser, setCurrentUser] = useState<LocalAgoraUser>({
 		uid: '',
 		hasAudio: true,
@@ -68,10 +68,12 @@ const useAgora = () => {
 				tracks,
 			})
 
-      setStream(new MediaStream([
+			setStream(
+				new MediaStream([
 					tracks[0].getMediaStreamTrack(),
 					tracks[1].getMediaStreamTrack(),
-				]))
+				])
+			)
 
 			client.on('user-published', async (user, mediaType) => {
 				await client.subscribe(user, mediaType)
@@ -188,7 +190,7 @@ const useAgora = () => {
 	const setMicrophoneDevice = async (deviceId: string) => {
 		if (!currentUser.tracks) return
 		await currentUser.tracks?.[0]?.setDevice(deviceId)
-    setStream(
+		setStream(
 			new MediaStream([
 				currentUser.tracks[0].getMediaStreamTrack(),
 				currentUser.tracks[1].getMediaStreamTrack(),
@@ -200,7 +202,7 @@ const useAgora = () => {
 		if (!currentUser.tracks) return
 		console.log('studio camera')
 		await currentUser.tracks?.[1]?.setDevice(deviceId)
-    setStream(
+		setStream(
 			new MediaStream([
 				currentUser.tracks[0].getMediaStreamTrack(),
 				currentUser.tracks[1].getMediaStreamTrack(),
@@ -242,7 +244,7 @@ const useAgora = () => {
 		init,
 		ready,
 		users,
-    stream,
+		stream,
 		join,
 		mute,
 		leave,

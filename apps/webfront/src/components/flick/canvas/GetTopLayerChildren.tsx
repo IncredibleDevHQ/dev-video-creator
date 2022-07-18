@@ -1,8 +1,8 @@
-import { ThemeFragment } from "src/graphql/generated";
-import { BrandingJSON } from "src/utils/configs";
-import { IntroBlockViewProps, TopLayerChildren } from "utils/src"
-import LowerThridProvider from "./LowerThirdProvider";
-import TransitionProvider from "./TransitionProvider";
+import { ThemeFragment } from 'src/graphql/generated'
+import { BrandingJSON } from 'src/utils/configs'
+import { IntroBlockViewProps, TopLayerChildren } from 'utils/src'
+import LowerThridProvider from './LowerThirdProvider'
+import TransitionProvider from './TransitionProvider'
 
 const GetTopLayerChildren = ({
 	topLayerChildrenState,
@@ -12,8 +12,8 @@ const GetTopLayerChildren = ({
 	transitionSettings,
 	branding,
 	performFinishAction,
-  introBlockViewProps,
-  speakersLength,
+	introBlockViewProps,
+	speakersLength,
 }: {
 	topLayerChildrenState: TopLayerChildren
 	setTopLayerChildren: React.Dispatch<
@@ -24,8 +24,8 @@ const GetTopLayerChildren = ({
 	transitionSettings?: { blockTransition?: string; swapTransition?: string }
 	branding?: BrandingJSON | null
 	performFinishAction?: () => void
-  introBlockViewProps?: IntroBlockViewProps
-  speakersLength: number
+	introBlockViewProps?: IntroBlockViewProps
+	speakersLength: number
 }) => {
 	switch (topLayerChildrenState) {
 		case 'lowerThird': {
@@ -36,7 +36,7 @@ const GetTopLayerChildren = ({
 					setTopLayerChildren={setTopLayerChildren}
 					brandingJSON={branding}
 					introBlockViewProps={introBlockViewProps}
-          speakersLength={speakersLength}
+					speakersLength={speakersLength}
 				/>
 			)
 		}
@@ -96,4 +96,4 @@ const GetTopLayerChildren = ({
 	}
 }
 
- export default GetTopLayerChildren
+export default GetTopLayerChildren

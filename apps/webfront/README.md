@@ -1,12 +1,14 @@
-## Getting Started
+# Getting Started
 
 Run the development server:
 
 ```bash
 yarn dev
 ```
-# Initializing tests
-```
+
+## Initializing tests
+
+```bash
 yarn workspace webfront install -D jest @types/jest ts-jest
 cd apps/webfront
 yarn ts-jest config:init

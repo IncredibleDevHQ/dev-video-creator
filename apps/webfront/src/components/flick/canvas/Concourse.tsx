@@ -301,10 +301,9 @@ const Concourse = ({
 													y: (pointer.y - pointer.y * zoomLevel) / scaleRatio,
 												},
 											})
+										} else {
+											onMouseLeave()
 										}
-                    else{
-                      onMouseLeave()
-                    }
 										setIsZooming(!isZooming)
 									}
 								}

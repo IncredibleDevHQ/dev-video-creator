@@ -8,30 +8,34 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Group, Image, Rect, Text } from 'react-konva'
 import { useRecoilValue, useSetRecoilState } from 'recoil'
 import {
-  agoraUsersAtom,
-  brandingAtom,
-  controlsConfigAtom,
-  payloadFamily, themeAtom
+	agoraUsersAtom,
+	brandingAtom,
+	controlsConfigAtom,
+	payloadFamily,
+	themeAtom,
 } from 'src/stores/studio.store'
 import {
-  getFragmentLayoutConfig,
-  ObjectConfig
+	getFragmentLayoutConfig,
+	ObjectConfig,
 } from 'src/utils/canvasConfigs/fragmentLayoutConfig'
 import {
-  getShortsStudioUserConfiguration,
-  getStudioUserConfiguration
+	getShortsStudioUserConfiguration,
+	getStudioUserConfiguration,
 } from 'src/utils/canvasConfigs/studioUserConfig'
 import {
-  getThemeLayoutConfig,
-  ObjectRenderConfig
+	getThemeLayoutConfig,
+	ObjectRenderConfig,
 } from 'src/utils/canvasConfigs/themeConfig'
 import { FragmentState } from 'src/utils/configs'
 import usePoint from 'src/utils/hooks/usePoint'
 import useUpdatePayload from 'src/utils/hooks/useUpdatePayload'
 import useImage from 'use-image'
 import {
-  BlockProperties,
-  CaptionTitleView, ImageBlockView, ImageBlockViewProps, Layout
+	BlockProperties,
+	CaptionTitleView,
+	ImageBlockView,
+	ImageBlockViewProps,
+	Layout,
 } from 'utils/src'
 import Concourse from '../Concourse'
 import FragmentBackground from '../FragmentBackground'
@@ -64,7 +68,7 @@ const ImageFragment = ({
 		blockId: dataConfig.id,
 		shouldUpdateLiveblocks: !isPreview,
 	})
-  const setControlsConfig = useSetRecoilState(controlsConfigAtom)
+	const setControlsConfig = useSetRecoilState(controlsConfigAtom)
 
 	const [imageFragmentData, setImageFragmentData] = useState<{
 		title: string
@@ -120,7 +124,7 @@ const ImageFragment = ({
 		})
 
 	useEffect(() => {
-    setControlsConfig({
+		setControlsConfig({
 			updatePayload,
 			blockId: dataConfig.id,
 		})

@@ -4,7 +4,12 @@ import { BiNote } from 'react-icons/bi'
 import { BsFillRecordFill } from 'react-icons/bs'
 import { CgProfile } from 'react-icons/cg'
 import { FiCode, FiLayout } from 'react-icons/fi'
-import { IoArrowDownOutline, IoArrowUpOutline, IoPlayForwardOutline, IoSparklesOutline } from 'react-icons/io5'
+import {
+	IoArrowDownOutline,
+	IoArrowUpOutline,
+	IoPlayForwardOutline,
+	IoSparklesOutline,
+} from 'react-icons/io5'
 import { MdOutlineTextFields } from 'react-icons/md'
 import useMeasure from 'react-use-measure'
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
@@ -13,11 +18,15 @@ import {
 	astAtom,
 	currentBlockSelector,
 	flickAtom,
-  openStudioAtom,
+	openStudioAtom,
 } from 'src/stores/flick.store'
 import { codePreviewStore } from 'src/stores/studio.store'
 import useBlock from 'src/utils/hooks/useBlock'
-import { PresencePage, useMap, useUpdateMyPresence } from 'src/utils/liveblocks.config'
+import {
+	PresencePage,
+	useMap,
+	useUpdateMyPresence,
+} from 'src/utils/liveblocks.config'
 import { Button, Text } from 'ui/src'
 import {
 	allLayoutTypes,
@@ -145,7 +154,7 @@ const getIcon = (tab: Tab, block?: BlockProperties) => {
 const Preview = ({ centered }: { centered: boolean }) => {
 	const flickId = useRecoilValue(flickAtom)?.id
 	const activeFragmentId = useRecoilValue(activeFragmentIdAtom)
-  const openStudio = useRecoilValue(openStudioAtom)
+	const openStudio = useRecoilValue(openStudioAtom)
 
 	const config = useMap('viewConfig')
 		?.get(activeFragmentId as string)
@@ -167,10 +176,10 @@ const Preview = ({ centered }: { centered: boolean }) => {
 	const [tabs, setTabs] = useState<Tab[]>(commonTabs)
 	const [activeTab, setActiveTab] = useState<Tab>(commonTabs[0])
 
-  const [codePreviewValue, setCodePreviewValue] =
+	const [codePreviewValue, setCodePreviewValue] =
 		useRecoilState(codePreviewStore)
 
-  const setOpenStudio = useSetRecoilState(openStudioAtom)
+	const setOpenStudio = useSetRecoilState(openStudioAtom)
 	const updateMyPresence = useUpdateMyPresence()
 
 	const [ref, bounds] = useMeasure()
@@ -203,7 +212,7 @@ const Preview = ({ centered }: { centered: boolean }) => {
 				break
 			case 'codeBlock': {
 				setTabs([commonTabs[0], commonTabs[1], ...codeBlockTabs, commonTabs[2]])
-        setCodePreviewValue(0)
+				setCodePreviewValue(0)
 				break
 			}
 			case 'headingBlock':
@@ -251,9 +260,9 @@ const Preview = ({ centered }: { centered: boolean }) => {
 					)}
 					<Button
 						className='text-dark-title absolute bottom-0 left-0 -mb-12'
-            colorScheme='darker'
-            size='large'
-            leftIcon={<BsFillRecordFill size={18} className='text-red-500' />}
+						colorScheme='darker'
+						size='large'
+						leftIcon={<BsFillRecordFill size={18} className='text-red-500' />}
 						onClick={() => {
 							setOpenStudio(true)
 							updateMyPresence({

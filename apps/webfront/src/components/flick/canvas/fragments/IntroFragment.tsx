@@ -6,14 +6,16 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Group } from 'react-konva'
 import { useRecoilValue, useSetRecoilState } from 'recoil'
 import {
-  agoraUsersAtom,
-  brandingAtom,
-  controlsConfigAtom,
-  payloadFamily, studioStateAtom,
-  themeAtom
+	agoraUsersAtom,
+	brandingAtom,
+	controlsConfigAtom,
+	payloadFamily,
+	studioStateAtom,
+	themeAtom,
 } from 'src/stores/studio.store'
 import {
-  getShortsStudioUserConfiguration, getStudioUserConfiguration
+	getShortsStudioUserConfiguration,
+	getStudioUserConfiguration,
 } from 'src/utils/canvasConfigs/studioUserConfig'
 import { CONFIG, SHORTS_CONFIG } from 'src/utils/configs'
 import useUpdatePayload from 'src/utils/hooks/useUpdatePayload'
@@ -45,7 +47,7 @@ const IntroFragment = ({
 	blockId: string
 	speakersLength: number
 }) => {
-	const users  = useRecoilValue(agoraUsersAtom)
+	const users = useRecoilValue(agoraUsersAtom)
 	const state = useRecoilValue(studioStateAtom)
 	const theme = useRecoilValue(themeAtom)
 	const branding = useRecoilValue(brandingAtom)
@@ -54,7 +56,7 @@ const IntroFragment = ({
 		blockId,
 		shouldUpdateLiveblocks: !isPreview,
 	})
-  const setControlsConfig = useSetRecoilState(controlsConfigAtom)
+	const setControlsConfig = useSetRecoilState(controlsConfigAtom)
 
 	const titleScreenRef = React.useRef<Konva.Group>(null)
 	const brandVideoRef = React.useRef<Konva.Group>(null)
@@ -72,10 +74,10 @@ const IntroFragment = ({
 
 	useEffect(() => {
 		clearTimeout(timer.current)
-    setControlsConfig({
-      updatePayload,
-      blockId
-    })
+		setControlsConfig({
+			updatePayload,
+			blockId,
+		})
 		return () => {
 			clearTimeout(timer.current)
 			reset({
@@ -110,7 +112,7 @@ const IntroFragment = ({
 	useEffect(() => {
 		if (
 			state === 'startRecording' ||
-      state === 'recording' ||
+			state === 'recording' ||
 			state === 'ready' ||
 			state === 'resumed' ||
 			isPreview
@@ -231,7 +233,7 @@ const IntroFragment = ({
 			layerChildren={layerChildren}
 			blockType='introBlock'
 			isShorts={shortsMode}
-      speakersLength={speakersLength}
+			speakersLength={speakersLength}
 		/>
 	)
 }

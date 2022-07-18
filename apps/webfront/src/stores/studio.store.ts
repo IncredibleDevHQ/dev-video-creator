@@ -107,8 +107,8 @@ export const controlsConfigAtom = atom<ControlsConfig>({
 })
 
 export const isStudioControllerAtom = atom<boolean>({
-  key: 'isStudioController',
-  default: false,
+	key: 'isStudioController',
+	default: false,
 })
 
 export const codePreviewStore = atom<number>({

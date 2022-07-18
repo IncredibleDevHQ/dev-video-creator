@@ -17,7 +17,6 @@ import {
 	Whitep4nth3rTransition,
 } from './Transitions'
 
-
 const TransitionProvider = ({
 	theme,
 	isShorts,

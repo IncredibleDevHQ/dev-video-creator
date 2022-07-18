@@ -7,7 +7,6 @@ import { BrandingJSON, CONFIG, SHORTS_CONFIG } from 'src/utils/configs'
 import useImage from 'use-image'
 import { TopLayerChildren } from 'utils/src'
 
-
 const CommonLowerThirds = ({
 	x,
 	y,
@@ -23,25 +22,61 @@ const CommonLowerThirds = ({
 	rectTwoColors: string[]
 	rectThreeColors: string[]
 }) => (
-		<>
-			<Rect
-				x={x}
-				y={y}
-				fillLinearGradientColorStops={[
-					0,
-					rectOneColors[0] || '#EE676D',
-					1,
-					rectOneColors[1] || '#CB56AF',
-				]}
-				fillLinearGradientStartPoint={{ x, y }}
-				fillLinearGradientEndPoint={{
-					x: 200,
-					y: 20,
-				}}
-				cornerRadius={8}
-				width={0}
-				height={40}
-				ref={ref =>
+	<>
+		<Rect
+			x={x}
+			y={y}
+			fillLinearGradientColorStops={[
+				0,
+				rectOneColors[0] || '#EE676D',
+				1,
+				rectOneColors[1] || '#CB56AF',
+			]}
+			fillLinearGradientStartPoint={{ x, y }}
+			fillLinearGradientEndPoint={{
+				x: 200,
+				y: 20,
+			}}
+			cornerRadius={8}
+			width={0}
+			height={40}
+			ref={ref =>
+				ref?.to({
+					width: 300,
+					duration: 0.3,
+					easing: Konva.Easings.EaseOut,
+					onFinish: () => {
+						setTimeout(() => {
+							ref?.to({
+								width: 0,
+								duration: 0.3,
+								easing: Konva.Easings.EaseOut,
+							})
+						}, 2800)
+					},
+				})
+			}
+		/>
+		<Rect
+			x={x}
+			y={y}
+			fillLinearGradientColorStops={[
+				0,
+				rectTwoColors[0] || '#ffffff',
+				1,
+				rectTwoColors[1] || '#ffffff',
+			]}
+			fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+			fillLinearGradientEndPoint={{
+				x: 200,
+				y: 20,
+			}}
+			cornerRadius={8}
+			width={0}
+			height={40}
+			key='secondRect'
+			ref={ref =>
+				setTimeout(() => {
 					ref?.to({
 						width: 300,
 						duration: 0.3,
@@ -53,112 +88,76 @@ const CommonLowerThirds = ({
 									duration: 0.3,
 									easing: Konva.Easings.EaseOut,
 								})
-							}, 2800)
+							}, 2400)
 						},
 					})
-				}
-			/>
-			<Rect
-				x={x}
-				y={y}
-				fillLinearGradientColorStops={[
-					0,
-					rectTwoColors[0] || '#ffffff',
-					1,
-					rectTwoColors[1] || '#ffffff',
-				]}
-				fillLinearGradientStartPoint={{ x: 0, y: 0 }}
-				fillLinearGradientEndPoint={{
-					x: 200,
-					y: 20,
-				}}
-				cornerRadius={8}
-				width={0}
-				height={40}
-				key='secondRect'
-				ref={ref =>
-					setTimeout(() => {
-						ref?.to({
-							width: 300,
-							duration: 0.3,
-							easing: Konva.Easings.EaseOut,
-							onFinish: () => {
-								setTimeout(() => {
-									ref?.to({
-										width: 0,
-										duration: 0.3,
-										easing: Konva.Easings.EaseOut,
-									})
-								}, 2400)
-							},
-						})
-					}, 200)
-				}
-			/>
-			<Rect
-				x={x}
-				y={y}
-				fillLinearGradientColorStops={[
-					0,
-					rectThreeColors[0] || '#0093E9',
-					1,
-					rectThreeColors[1] || '#80D0C7',
-				]}
-				fillLinearGradientStartPoint={{ x: 0, y: 0 }}
-				fillLinearGradientEndPoint={{
-					x: 200,
-					y: 20,
-				}}
-				cornerRadius={8}
-				width={0}
-				height={40}
-				key='thirdRect'
-				ref={ref =>
-					setTimeout(() => {
-						ref?.to({
-							width: 300,
-							duration: 0.3,
-							easing: Konva.Easings.EaseOut,
-							onFinish: () => {
-								setTimeout(() => {
-									ref?.to({
-										width: 0,
-										duration: 0.3,
-										easing: Konva.Easings.EaseOut,
-									})
-								}, 2000)
-							},
-						})
-					}, 400)
-				}
-			/>
-			<Text
-				x={x + 10}
-				y={y + 8}
-				fill='#ffffff'
-				text={userName}
-				fontSize={24}
-				opacity={0}
-				key='username'
-				ref={ref =>
-					setTimeout(() => {
-						ref?.to({
-							opacity: 1,
-							duration: 0.3,
-							onFinish: () => {
-								setTimeout(() => {
-									ref?.to({
-										opacity: 0,
-										duration: 0.3,
-									})
-								}, 2000)
-							},
-						})
-					}, 400)
-				}
-			/>
-		</>
-	)
+				}, 200)
+			}
+		/>
+		<Rect
+			x={x}
+			y={y}
+			fillLinearGradientColorStops={[
+				0,
+				rectThreeColors[0] || '#0093E9',
+				1,
+				rectThreeColors[1] || '#80D0C7',
+			]}
+			fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+			fillLinearGradientEndPoint={{
+				x: 200,
+				y: 20,
+			}}
+			cornerRadius={8}
+			width={0}
+			height={40}
+			key='thirdRect'
+			ref={ref =>
+				setTimeout(() => {
+					ref?.to({
+						width: 300,
+						duration: 0.3,
+						easing: Konva.Easings.EaseOut,
+						onFinish: () => {
+							setTimeout(() => {
+								ref?.to({
+									width: 0,
+									duration: 0.3,
+									easing: Konva.Easings.EaseOut,
+								})
+							}, 2000)
+						},
+					})
+				}, 400)
+			}
+		/>
+		<Text
+			x={x + 10}
+			y={y + 8}
+			fill='#ffffff'
+			text={userName}
+			fontSize={24}
+			opacity={0}
+			key='username'
+			ref={ref =>
+				setTimeout(() => {
+					ref?.to({
+						opacity: 1,
+						duration: 0.3,
+						onFinish: () => {
+							setTimeout(() => {
+								ref?.to({
+									opacity: 0,
+									duration: 0.3,
+								})
+							}, 2000)
+						},
+					})
+				}, 400)
+			}
+		/>
+	</>
+)
 
 export const GlassyLowerThirds = ({
 	x,
@@ -201,140 +200,169 @@ export const GlassyLowerThirds = ({
 	if (logo)
 		return (
 			<Group x={x} y={y}>
-					<Rect
-						fill={color}
-						fillLinearGradientColorStops={
-							color === ''
-								? [0, '#7844CAC8', 0.92, '#db2887c8', 1, '#e32682c8']
-								: []
-						}
-						fillLinearGradientStartPoint={
-							color === ''
-								? {
-										x: 0,
-										y: 0,
-								  }
-								: {
-										x: 0,
-										y: 0,
-								  }
-						}
-						fillLinearGradientEndPoint={
-							color === ''
-								? {
-										x: 400,
-										y: 80,
-								  }
-								: {
-										x: 0,
-										y: 0,
-								  }
-						}
-						cornerRadius={8}
-						width={1}
-						height={1}
-						ref={ref => {
-							ref?.to({
-								offsetX: !isShorts ? 48 : 38,
-								offsetY: !isShorts ? 48 : 38,
-								height: !isShorts ? 96 : 76,
-								width: !isShorts ? 96 : 76,
-								duration: 0.4,
-								easing: Konva.Easings.BackEaseOut,
-								onFinish: () => {
-									setTimeout(() => {
-										ref?.to({
-											x: -Math.floor(rectWidth),
-											width: !isShorts
-												? Math.floor(rectWidth) + 96
-												: Math.floor(rectWidth) + 76,
-											duration: 0.3,
-											easing: Konva.Easings.BackEaseOut,
-											onFinish: () => {
-												setTimeout(() => {
-													ref?.to({
-														x: 0,
-														width: !isShorts ? 96 : 76,
-														duration: 0.3,
-														easing: Konva.Easings.EaseOut,
-														onFinish: () => {
-															setTimeout(() => {
-																ref?.to({
-																	offsetX: 0,
-																	offsetY: 0,
-																	height: 0,
-																	width: 0,
-																	duration: 0.4,
-																	easing: Konva.Easings.BackEaseIn,
-																	onFinish: () => {
-																		setTimeout(() => {
-																			setTopLayerChildren?.({
-																				id: '',
-																				state: '',
-																			})
-																		}, 400)
-																	},
-																})
-															}, 200)
-														},
-													})
-												}, 2000)
-											},
-										})
-									}, 800)
-								},
-							})
-						}}
-					/>
-					{/* 20 is added to position the image in the center, subtractiong 48 bcoz the rect's width is scaled to 96 and adding the half of the width and height to x and y respectively
+				<Rect
+					fill={color}
+					fillLinearGradientColorStops={
+						color === ''
+							? [0, '#7844CAC8', 0.92, '#db2887c8', 1, '#e32682c8']
+							: []
+					}
+					fillLinearGradientStartPoint={
+						color === ''
+							? {
+									x: 0,
+									y: 0,
+							  }
+							: {
+									x: 0,
+									y: 0,
+							  }
+					}
+					fillLinearGradientEndPoint={
+						color === ''
+							? {
+									x: 400,
+									y: 80,
+							  }
+							: {
+									x: 0,
+									y: 0,
+							  }
+					}
+					cornerRadius={8}
+					width={1}
+					height={1}
+					ref={ref => {
+						ref?.to({
+							offsetX: !isShorts ? 48 : 38,
+							offsetY: !isShorts ? 48 : 38,
+							height: !isShorts ? 96 : 76,
+							width: !isShorts ? 96 : 76,
+							duration: 0.4,
+							easing: Konva.Easings.BackEaseOut,
+							onFinish: () => {
+								setTimeout(() => {
+									ref?.to({
+										x: -Math.floor(rectWidth),
+										width: !isShorts
+											? Math.floor(rectWidth) + 96
+											: Math.floor(rectWidth) + 76,
+										duration: 0.3,
+										easing: Konva.Easings.BackEaseOut,
+										onFinish: () => {
+											setTimeout(() => {
+												ref?.to({
+													x: 0,
+													width: !isShorts ? 96 : 76,
+													duration: 0.3,
+													easing: Konva.Easings.EaseOut,
+													onFinish: () => {
+														setTimeout(() => {
+															ref?.to({
+																offsetX: 0,
+																offsetY: 0,
+																height: 0,
+																width: 0,
+																duration: 0.4,
+																easing: Konva.Easings.BackEaseIn,
+																onFinish: () => {
+																	setTimeout(() => {
+																		setTopLayerChildren?.({
+																			id: '',
+																			state: '',
+																		})
+																	}, 400)
+																},
+															})
+														}, 200)
+													},
+												})
+											}, 2000)
+										},
+									})
+								}, 800)
+							},
+						})
+					}}
+				/>
+				{/* 20 is added to position the image in the center, subtractiong 48 bcoz the rect's width is scaled to 96 and adding the half of the width and height to x and y respectively
         bcoz the image has to scale from the center, so there would be a offset set,
         on setting the offset the image moves negative, so to cancel that adding the offset values to x and y */}
-					<Image
-						// x={20 - 48 + 28}
-						// y={20 - 48 + 28}
-						x={0}
-						y={0}
-						width={0}
-						height={0}
-						image={image}
-						opcaity={1}
-						ref={ref => {
+				<Image
+					// x={20 - 48 + 28}
+					// y={20 - 48 + 28}
+					x={0}
+					y={0}
+					width={0}
+					height={0}
+					image={image}
+					opcaity={1}
+					ref={ref => {
+						ref?.to({
+							offsetX: !isShorts ? 28 : 21,
+							offsetY: !isShorts ? 28 : 21,
+							width: !isShorts ? 56 : 42,
+							height: !isShorts ? 56 : 42,
+							duration: 0.1,
+							easing: Konva.Easings.BackEaseOut,
+							onFinish: () => {
+								setTimeout(() => {
+									ref?.to({
+										offsetX: 0,
+										offsetY: 0,
+										width: 0,
+										height: 0,
+										duration: 0.4,
+									})
+								}, 3450)
+							},
+						})
+					}}
+				/>
+				<Text
+					x={-rectWidth - 24}
+					y={designation === '' && organization === '' ? -12 : -24}
+					fill={textColor || '#fafafa'}
+					text={userName}
+					fontSize={24}
+					opacity={0}
+					width={rectWidth}
+					height={30}
+					// verticalAlign={
+					//   designation === '' && organization === '' ? 'middle' : undefined
+					// }
+					fontStyle='bold'
+					fontFamily={branding?.font?.body?.family || 'Gilroy'}
+					key='username'
+					ref={ref =>
+						setTimeout(() => {
 							ref?.to({
-								offsetX: !isShorts ? 28 : 21,
-								offsetY: !isShorts ? 28 : 21,
-								width: !isShorts ? 56 : 42,
-								height: !isShorts ? 56 : 42,
-								duration: 0.1,
-								easing: Konva.Easings.BackEaseOut,
+								opacity: 1,
+								duration: 0.3,
 								onFinish: () => {
 									setTimeout(() => {
 										ref?.to({
-											offsetX: 0,
-											offsetY: 0,
-											width: 0,
-											height: 0,
-											duration: 0.4,
+											opacity: 0,
+											duration: 0.3,
 										})
-									}, 3450)
+									}, 1500)
 								},
 							})
-						}}
-					/>
+						}, 1500)
+					}
+				/>
+				{designation !== '' && organization === '' && (
 					<Text
 						x={-rectWidth - 24}
-						y={designation === '' && organization === '' ? -12 : -24}
+						y={8}
 						fill={textColor || '#fafafa'}
-						text={userName}
-						fontSize={24}
+						text={designation}
+						fontSize={16}
 						opacity={0}
-						width={rectWidth}
-						height={30}
-						// verticalAlign={
-						//   designation === '' && organization === '' ? 'middle' : undefined
-						// }
-						fontStyle='bold'
+						// width={rectWidth}
+						height={96}
 						fontFamily={branding?.font?.body?.family || 'Gilroy'}
-						key='username'
+						key='designation'
 						ref={ref =>
 							setTimeout(() => {
 								ref?.to({
@@ -352,164 +380,164 @@ export const GlassyLowerThirds = ({
 							}, 1500)
 						}
 					/>
-					{designation !== '' && organization === '' && (
-						<Text
-							x={-rectWidth - 24}
-							y={8}
-							fill={textColor || '#fafafa'}
-							text={designation}
-							fontSize={16}
-							opacity={0}
-							// width={rectWidth}
-							height={96}
-							fontFamily={branding?.font?.body?.family || 'Gilroy'}
-							key='designation'
-							ref={ref =>
-								setTimeout(() => {
-									ref?.to({
-										opacity: 1,
-										duration: 0.3,
-										onFinish: () => {
-											setTimeout(() => {
-												ref?.to({
-													opacity: 0,
-													duration: 0.3,
-												})
-											}, 1500)
-										},
-									})
-								}, 1500)
-							}
-						/>
-					)}
-					{designation === '' && organization !== '' && (
-						<Text
-							x={-rectWidth - 24}
-							y={8}
-							fill={textColor || '#fafafa'}
-							text={organization}
-							fontSize={16}
-							opacity={0}
-							width={rectWidth}
-							height={96}
-							fontFamily={branding?.font?.body?.family || 'Gilroy'}
-							key='organization'
-							ref={ref =>
-								setTimeout(() => {
-									ref?.to({
-										opacity: 1,
-										duration: 0.3,
-										onFinish: () => {
-											setTimeout(() => {
-												ref?.to({
-													opacity: 0,
-													duration: 0.3,
-												})
-											}, 1500)
-										},
-									})
-								}, 1500)
-							}
-						/>
-					)}
-					{designation !== '' && organization !== '' && (
-						<Text
-							x={-rectWidth - 24}
-							y={8}
-							fill={textColor || '#fafafa'}
-							text={`${designation}, ${organization}`}
-							fontSize={16}
-							opacity={0}
-							width={rectWidth}
-							height={20}
-							fontFamily={branding?.font?.body?.family || 'Gilroy'}
-							key='designationAndOrganization'
-							ref={ref =>
-								setTimeout(() => {
-									ref?.to({
-										opacity: 1,
-										duration: 0.3,
-										onFinish: () => {
-											setTimeout(() => {
-												ref?.to({
-													opacity: 0,
-													duration: 0.3,
-												})
-											}, 1500)
-										},
-									})
-								}, 1500)
-							}
-						/>
-					)}
-				</Group>
+				)}
+				{designation === '' && organization !== '' && (
+					<Text
+						x={-rectWidth - 24}
+						y={8}
+						fill={textColor || '#fafafa'}
+						text={organization}
+						fontSize={16}
+						opacity={0}
+						width={rectWidth}
+						height={96}
+						fontFamily={branding?.font?.body?.family || 'Gilroy'}
+						key='organization'
+						ref={ref =>
+							setTimeout(() => {
+								ref?.to({
+									opacity: 1,
+									duration: 0.3,
+									onFinish: () => {
+										setTimeout(() => {
+											ref?.to({
+												opacity: 0,
+												duration: 0.3,
+											})
+										}, 1500)
+									},
+								})
+							}, 1500)
+						}
+					/>
+				)}
+				{designation !== '' && organization !== '' && (
+					<Text
+						x={-rectWidth - 24}
+						y={8}
+						fill={textColor || '#fafafa'}
+						text={`${designation}, ${organization}`}
+						fontSize={16}
+						opacity={0}
+						width={rectWidth}
+						height={20}
+						fontFamily={branding?.font?.body?.family || 'Gilroy'}
+						key='designationAndOrganization'
+						ref={ref =>
+							setTimeout(() => {
+								ref?.to({
+									opacity: 1,
+									duration: 0.3,
+									onFinish: () => {
+										setTimeout(() => {
+											ref?.to({
+												opacity: 0,
+												duration: 0.3,
+											})
+										}, 1500)
+									},
+								})
+							}, 1500)
+						}
+					/>
+				)}
+			</Group>
 		)
 	return (
 		<Group x={x} y={y}>
-				<Rect
-					x={60}
-					y={-30}
-					fill={color}
-					fillLinearGradientColorStops={[
-						0,
-						'#7844CAC8',
-						0.92,
-						'#db2887c8',
-						1,
-						'#e32682c8',
-					]}
-					fillLinearGradientStartPoint={{
-						x: 0,
-						y: 0,
-					}}
-					fillLinearGradientEndPoint={{
-						x: 400,
-						y: 60,
-					}}
-					cornerRadius={8}
-					width={0}
-					height={60}
-					ref={ref => {
+			<Rect
+				x={60}
+				y={-30}
+				fill={color}
+				fillLinearGradientColorStops={[
+					0,
+					'#7844CAC8',
+					0.92,
+					'#db2887c8',
+					1,
+					'#e32682c8',
+				]}
+				fillLinearGradientStartPoint={{
+					x: 0,
+					y: 0,
+				}}
+				fillLinearGradientEndPoint={{
+					x: 400,
+					y: 60,
+				}}
+				cornerRadius={8}
+				width={0}
+				height={60}
+				ref={ref => {
+					ref?.to({
+						x: -Math.floor(rectWidth) - 16 + 60,
+						width: Math.floor(rectWidth) + 16,
+						duration: 0.3,
+						easing: Konva.Easings.BackEaseOut,
+						onFinish: () => {
+							setTimeout(() => {
+								ref?.to({
+									x: 60,
+									width: 0,
+									duration: 0.3,
+									easing: Konva.Easings.EaseOut,
+									onFinish: () => {
+										setTimeout(() => {
+											setTopLayerChildren?.({
+												id: '',
+												state: '',
+											})
+										}, 400)
+									},
+								})
+							}, 2000)
+						},
+					})
+				}}
+			/>
+			<Text
+				x={-rectWidth + 60}
+				y={designation === '' && organization === '' ? -30 : -20}
+				fill={textColor || '#fafafa'}
+				text={userName}
+				fontSize={24}
+				opacity={0}
+				height={60}
+				fontStyle='bold'
+				fontFamily={branding?.font?.body?.family || 'Gilroy'}
+				verticalAlign={
+					designation === '' && organization === '' ? 'middle' : undefined
+				}
+				key='username'
+				ref={ref =>
+					setTimeout(() => {
 						ref?.to({
-							x: -Math.floor(rectWidth) - 16 + 60,
-							width: Math.floor(rectWidth) + 16,
+							opacity: 1,
 							duration: 0.3,
-							easing: Konva.Easings.BackEaseOut,
 							onFinish: () => {
 								setTimeout(() => {
 									ref?.to({
-										x: 60,
-										width: 0,
+										opacity: 0,
 										duration: 0.3,
-										easing: Konva.Easings.EaseOut,
-										onFinish: () => {
-											setTimeout(() => {
-												setTopLayerChildren?.({
-													id: '',
-													state: '',
-												})
-											}, 400)
-										},
 									})
-								}, 2000)
+								}, 1400)
 							},
 						})
-					}}
-				/>
+					}, 300)
+				}
+			/>
+			{designation !== '' && organization === '' && (
 				<Text
 					x={-rectWidth + 60}
-					y={designation === '' && organization === '' ? -30 : -20}
+					y={6}
 					fill={textColor || '#fafafa'}
-					text={userName}
-					fontSize={24}
+					text={designation}
+					fontSize={16}
 					opacity={0}
 					height={60}
 					fontStyle='bold'
 					fontFamily={branding?.font?.body?.family || 'Gilroy'}
-					verticalAlign={
-						designation === '' && organization === '' ? 'middle' : undefined
-					}
-					key='username'
+					key='designation'
 					ref={ref =>
 						setTimeout(() => {
 							ref?.to({
@@ -527,97 +555,68 @@ export const GlassyLowerThirds = ({
 						}, 300)
 					}
 				/>
-				{designation !== '' && organization === '' && (
-					<Text
-						x={-rectWidth + 60}
-						y={6}
-						fill={textColor || '#fafafa'}
-						text={designation}
-						fontSize={16}
-						opacity={0}
-						height={60}
-						fontStyle='bold'
-						fontFamily={branding?.font?.body?.family || 'Gilroy'}
-						key='designation'
-						ref={ref =>
-							setTimeout(() => {
-								ref?.to({
-									opacity: 1,
-									duration: 0.3,
-									onFinish: () => {
-										setTimeout(() => {
-											ref?.to({
-												opacity: 0,
-												duration: 0.3,
-											})
-										}, 1400)
-									},
-								})
-							}, 300)
-						}
-					/>
-				)}
-				{designation === '' && organization !== '' && (
-					<Text
-						x={-rectWidth + 60}
-						y={6}
-						fill={textColor || '#fafafa'}
-						text={organization}
-						fontSize={16}
-						opacity={0}
-						height={60}
-						fontStyle='bold'
-						fontFamily={branding?.font?.body?.family || 'Gilroy'}
-						key='organization'
-						ref={ref =>
-							setTimeout(() => {
-								ref?.to({
-									opacity: 1,
-									duration: 0.3,
-									onFinish: () => {
-										setTimeout(() => {
-											ref?.to({
-												opacity: 0,
-												duration: 0.3,
-											})
-										}, 1400)
-									},
-								})
-							}, 300)
-						}
-					/>
-				)}
-				{designation !== '' && organization !== '' && (
-					<Text
-						x={-rectWidth + 60}
-						y={6}
-						fill={textColor || '#fafafa'}
-						text={`${designation}, ${organization}`}
-						fontSize={16}
-						opacity={0}
-						height={60}
-						fontStyle='bold'
-						fontFamily={branding?.font?.body?.family || 'Gilroy'}
-						key='designationAndOrganization'
-						ref={ref =>
-							setTimeout(() => {
-								ref?.to({
-									opacity: 1,
-									duration: 0.3,
-									onFinish: () => {
-										setTimeout(() => {
-											ref?.to({
-												opacity: 0,
-												duration: 0.3,
-											})
-										}, 1400)
-									},
-								})
-							}, 300)
-						}
-					/>
-				)}
-			</Group>
+			)}
+			{designation === '' && organization !== '' && (
+				<Text
+					x={-rectWidth + 60}
+					y={6}
+					fill={textColor || '#fafafa'}
+					text={organization}
+					fontSize={16}
+					opacity={0}
+					height={60}
+					fontStyle='bold'
+					fontFamily={branding?.font?.body?.family || 'Gilroy'}
+					key='organization'
+					ref={ref =>
+						setTimeout(() => {
+							ref?.to({
+								opacity: 1,
+								duration: 0.3,
+								onFinish: () => {
+									setTimeout(() => {
+										ref?.to({
+											opacity: 0,
+											duration: 0.3,
+										})
+									}, 1400)
+								},
+							})
+						}, 300)
+					}
+				/>
+			)}
+			{designation !== '' && organization !== '' && (
+				<Text
+					x={-rectWidth + 60}
+					y={6}
+					fill={textColor || '#fafafa'}
+					text={`${designation}, ${organization}`}
+					fontSize={16}
+					opacity={0}
+					height={60}
+					fontStyle='bold'
+					fontFamily={branding?.font?.body?.family || 'Gilroy'}
+					key='designationAndOrganization'
+					ref={ref =>
+						setTimeout(() => {
+							ref?.to({
+								opacity: 1,
+								duration: 0.3,
+								onFinish: () => {
+									setTimeout(() => {
+										ref?.to({
+											opacity: 0,
+											duration: 0.3,
+										})
+									}, 1400)
+								},
+							})
+						}, 300)
+					}
+				/>
+			)}
+		</Group>
 	)
 }
 
@@ -655,123 +654,152 @@ export const PastelLinesLowerThirds = ({
 	if (logo)
 		return (
 			<Group x={x} y={y}>
-					<Rect
-						fill={color || '#E0D6ED'}
-						width={0}
-						height={96}
-						stroke={textColor || '#27272A'}
-						strokeWidth={1}
-						ref={ref => {
+				<Rect
+					fill={color || '#E0D6ED'}
+					width={0}
+					height={96}
+					stroke={textColor || '#27272A'}
+					strokeWidth={1}
+					ref={ref => {
+						ref?.to({
+							width: 96,
+							duration: 0.5,
+							easing: Konva.Easings.EaseOut,
+							onFinish: () => {
+								setTimeout(() => {
+									ref?.to({
+										width: Math.floor(rectWidth.current) + 96,
+										duration: 0.3,
+										easing: Konva.Easings.EaseOut,
+										onFinish: () => {
+											setTimeout(() => {
+												ref?.to({
+													width: 96,
+													duration: 0.3,
+													easing: Konva.Easings.EaseOut,
+													onFinish: () => {
+														ref?.to({
+															width: 0,
+															strokeWidth: 0,
+															duration: 0.3,
+															onFinish: () => {
+																setTimeout(() => {
+																	setTopLayerChildren?.({
+																		id: '',
+																		state: '',
+																	})
+																}, 400)
+															},
+														})
+													},
+												})
+											}, 2000)
+										},
+									})
+								}, 500)
+							},
+						})
+					}}
+				/>
+				<Line
+					points={[96, 0, 96, 96]}
+					stroke={textColor || '#27272A'}
+					strokeWidth={1}
+					opacity={0}
+					ref={ref => {
+						setTimeout(() => {
 							ref?.to({
-								width: 96,
+								opacity: 1,
+								duration: 0.3,
+								onFinish: () => {
+									setTimeout(() => {
+										ref?.to({
+											opacity: 0,
+											duration: 0.1,
+										})
+									}, 2500)
+								},
+							})
+						}, 700)
+					}}
+				/>
+				{/* 18 is added to position the image in the center and 30 is added
+        bcoz the image has to scale from the center, so there would be a offset set,
+        on setting the offset the image moves negative, so to cancel that adding the offset values to x and y */}
+				<Image
+					x={18 + 30}
+					y={18 + 30}
+					width={0}
+					height={0}
+					image={image}
+					opcaity={1}
+					ref={ref => {
+						setTimeout(() => {
+							ref?.to({
+								offsetX: 30,
+								offsetY: 30,
+								width: 60,
+								height: 60,
 								duration: 0.5,
 								easing: Konva.Easings.EaseOut,
 								onFinish: () => {
 									setTimeout(() => {
 										ref?.to({
-											width: Math.floor(rectWidth.current) + 96,
-											duration: 0.3,
-											easing: Konva.Easings.EaseOut,
-											onFinish: () => {
-												setTimeout(() => {
-													ref?.to({
-														width: 96,
-														duration: 0.3,
-														easing: Konva.Easings.EaseOut,
-														onFinish: () => {
-															ref?.to({
-																width: 0,
-																strokeWidth: 0,
-																duration: 0.3,
-																onFinish: () => {
-																	setTimeout(() => {
-																		setTopLayerChildren?.({
-																			id: '',
-																			state: '',
-																		})
-																	}, 400)
-																},
-															})
-														},
-													})
-												}, 2000)
-											},
+											offsetX: 0,
+											offsetY: 0,
+											width: 0,
+											height: 0,
+											duration: 0.1,
 										})
-									}, 500)
+									}, 3000)
 								},
 							})
-						}}
-					/>
-					<Line
-						points={[96, 0, 96, 96]}
-						stroke={textColor || '#27272A'}
-						strokeWidth={1}
-						opacity={0}
-						ref={ref => {
-							setTimeout(() => {
-								ref?.to({
-									opacity: 1,
-									duration: 0.3,
-									onFinish: () => {
-										setTimeout(() => {
-											ref?.to({
-												opacity: 0,
-												duration: 0.1,
-											})
-										}, 2500)
-									},
-								})
-							}, 700)
-						}}
-					/>
-					{/* 18 is added to position the image in the center and 30 is added
-        bcoz the image has to scale from the center, so there would be a offset set,
-        on setting the offset the image moves negative, so to cancel that adding the offset values to x and y */}
-					<Image
-						x={18 + 30}
-						y={18 + 30}
-						width={0}
-						height={0}
-						image={image}
-						opcaity={1}
-						ref={ref => {
-							setTimeout(() => {
-								ref?.to({
-									offsetX: 30,
-									offsetY: 30,
-									width: 60,
-									height: 60,
-									duration: 0.5,
-									easing: Konva.Easings.EaseOut,
-									onFinish: () => {
-										setTimeout(() => {
-											ref?.to({
-												offsetX: 0,
-												offsetY: 0,
-												width: 0,
-												height: 0,
-												duration: 0.1,
-											})
-										}, 3000)
-									},
-								})
-							}, 100)
-						}}
-					/>
+						}, 100)
+					}}
+				/>
+				<Text
+					x={150}
+					y={designation === '' && organization === '' ? 0 : 24}
+					fill={textColor || '#27272A'}
+					text={userName}
+					fontSize={24}
+					opacity={0}
+					height={96}
+					fontStyle='bold'
+					fontFamily='Outfit'
+					verticalAlign={
+						designation === '' && organization === '' ? 'middle' : undefined
+					}
+					key='username'
+					ref={ref =>
+						setTimeout(() => {
+							ref?.to({
+								x: 118,
+								opacity: 1,
+								duration: 0.3,
+								onFinish: () => {
+									setTimeout(() => {
+										ref?.to({
+											opacity: 0,
+											duration: 0.3,
+										})
+									}, 1800)
+								},
+							})
+						}, 1100)
+					}
+				/>
+				{designation !== '' && organization === '' && (
 					<Text
 						x={150}
-						y={designation === '' && organization === '' ? 0 : 24}
+						y={56}
 						fill={textColor || '#27272A'}
-						text={userName}
-						fontSize={24}
+						text={designation}
+						fontSize={16}
 						opacity={0}
 						height={96}
-						fontStyle='bold'
 						fontFamily='Outfit'
-						verticalAlign={
-							designation === '' && organization === '' ? 'middle' : undefined
-						}
-						key='username'
+						key='designation'
 						ref={ref =>
 							setTimeout(() => {
 								ref?.to({
@@ -790,146 +818,146 @@ export const PastelLinesLowerThirds = ({
 							}, 1100)
 						}
 					/>
-					{designation !== '' && organization === '' && (
-						<Text
-							x={150}
-							y={56}
-							fill={textColor || '#27272A'}
-							text={designation}
-							fontSize={16}
-							opacity={0}
-							height={96}
-							fontFamily='Outfit'
-							key='designation'
-							ref={ref =>
-								setTimeout(() => {
-									ref?.to({
-										x: 118,
-										opacity: 1,
-										duration: 0.3,
-										onFinish: () => {
-											setTimeout(() => {
-												ref?.to({
-													opacity: 0,
-													duration: 0.3,
-												})
-											}, 1800)
-										},
-									})
-								}, 1100)
-							}
-						/>
-					)}
-					{designation === '' && organization !== '' && (
-						<Text
-							x={150}
-							y={56}
-							fill={textColor || '#27272A'}
-							text={organization}
-							fontSize={16}
-							opacity={0}
-							height={96}
-							fontFamily='Outfit'
-							key='organization'
-							ref={ref =>
-								setTimeout(() => {
-									ref?.to({
-										x: 118,
-										opacity: 1,
-										duration: 0.3,
-										onFinish: () => {
-											setTimeout(() => {
-												ref?.to({
-													opacity: 0,
-													duration: 0.3,
-												})
-											}, 1800)
-										},
-									})
-								}, 1100)
-							}
-						/>
-					)}
-					{designation !== '' && organization !== '' && (
-						<Text
-							x={150}
-							y={56}
-							fill={textColor || '#27272A'}
-							text={`${designation}, ${organization}`}
-							fontSize={16}
-							opacity={0}
-							height={96}
-							fontFamily='Outfit'
-							key='designationAndOrganization'
-							ref={ref =>
-								setTimeout(() => {
-									ref?.to({
-										x: 118,
-										opacity: 1,
-										duration: 0.3,
-										onFinish: () => {
-											setTimeout(() => {
-												ref?.to({
-													opacity: 0,
-													duration: 0.3,
-												})
-											}, 1800)
-										},
-									})
-								}, 1100)
-							}
-						/>
-					)}
-				</Group>
+				)}
+				{designation === '' && organization !== '' && (
+					<Text
+						x={150}
+						y={56}
+						fill={textColor || '#27272A'}
+						text={organization}
+						fontSize={16}
+						opacity={0}
+						height={96}
+						fontFamily='Outfit'
+						key='organization'
+						ref={ref =>
+							setTimeout(() => {
+								ref?.to({
+									x: 118,
+									opacity: 1,
+									duration: 0.3,
+									onFinish: () => {
+										setTimeout(() => {
+											ref?.to({
+												opacity: 0,
+												duration: 0.3,
+											})
+										}, 1800)
+									},
+								})
+							}, 1100)
+						}
+					/>
+				)}
+				{designation !== '' && organization !== '' && (
+					<Text
+						x={150}
+						y={56}
+						fill={textColor || '#27272A'}
+						text={`${designation}, ${organization}`}
+						fontSize={16}
+						opacity={0}
+						height={96}
+						fontFamily='Outfit'
+						key='designationAndOrganization'
+						ref={ref =>
+							setTimeout(() => {
+								ref?.to({
+									x: 118,
+									opacity: 1,
+									duration: 0.3,
+									onFinish: () => {
+										setTimeout(() => {
+											ref?.to({
+												opacity: 0,
+												duration: 0.3,
+											})
+										}, 1800)
+									},
+								})
+							}, 1100)
+						}
+					/>
+				)}
+			</Group>
 		)
 	return (
 		<Group x={x} y={y}>
-				<Rect
-					fill={color || '#E0D6ED'}
-					width={0}
-					height={96}
-					stroke={textColor || '#27272A'}
-					strokeWidth={1}
-					ref={ref => {
+			<Rect
+				fill={color || '#E0D6ED'}
+				width={0}
+				height={96}
+				stroke={textColor || '#27272A'}
+				strokeWidth={1}
+				ref={ref => {
+					ref?.to({
+						width: Math.floor(rectWidth.current),
+						duration: 0.3,
+						easing: Konva.Easings.EaseOut,
+						onFinish: () => {
+							setTimeout(() => {
+								ref?.to({
+									width: 0,
+									strokeWidth: 0,
+									duration: 0.3,
+									easing: Konva.Easings.EaseOut,
+									onFinish: () => {
+										setTimeout(() => {
+											setTopLayerChildren?.({
+												id: '',
+												state: '',
+											})
+										}, 400)
+									},
+								})
+							}, 1300)
+						},
+					})
+				}}
+			/>
+			<Text
+				x={60}
+				y={designation === '' && organization === '' ? 0 : 24}
+				fill={textColor || '#27272A'}
+				text={userName}
+				fontSize={24}
+				opacity={0}
+				height={96}
+				fontStyle='bold'
+				fontFamily='Outfit'
+				verticalAlign={
+					designation === '' && organization === '' ? 'middle' : undefined
+				}
+				key='username'
+				ref={ref =>
+					setTimeout(() => {
 						ref?.to({
-							width: Math.floor(rectWidth.current),
+							x: 20,
+							opacity: 1,
 							duration: 0.3,
-							easing: Konva.Easings.EaseOut,
 							onFinish: () => {
 								setTimeout(() => {
 									ref?.to({
-										width: 0,
-										strokeWidth: 0,
+										opacity: 0,
 										duration: 0.3,
-										easing: Konva.Easings.EaseOut,
-										onFinish: () => {
-											setTimeout(() => {
-												setTopLayerChildren?.({
-													id: '',
-													state: '',
-												})
-											}, 400)
-										},
 									})
-								}, 1300)
+								}, 1000)
 							},
 						})
-					}}
-				/>
+					}, 100)
+				}
+			/>
+			{designation !== '' && organization === '' && (
 				<Text
 					x={60}
-					y={designation === '' && organization === '' ? 0 : 24}
+					y={56}
 					fill={textColor || '#27272A'}
-					text={userName}
-					fontSize={24}
+					text={designation}
+					fontSize={16}
 					opacity={0}
 					height={96}
-					fontStyle='bold'
 					fontFamily='Outfit'
-					verticalAlign={
-						designation === '' && organization === '' ? 'middle' : undefined
-					}
-					key='username'
+					key='designation'
 					ref={ref =>
 						setTimeout(() => {
 							ref?.to({
@@ -948,97 +976,68 @@ export const PastelLinesLowerThirds = ({
 						}, 100)
 					}
 				/>
-				{designation !== '' && organization === '' && (
-					<Text
-						x={60}
-						y={56}
-						fill={textColor || '#27272A'}
-						text={designation}
-						fontSize={16}
-						opacity={0}
-						height={96}
-						fontFamily='Outfit'
-						key='designation'
-						ref={ref =>
-							setTimeout(() => {
-								ref?.to({
-									x: 20,
-									opacity: 1,
-									duration: 0.3,
-									onFinish: () => {
-										setTimeout(() => {
-											ref?.to({
-												opacity: 0,
-												duration: 0.3,
-											})
-										}, 1000)
-									},
-								})
-							}, 100)
-						}
-					/>
-				)}
-				{designation === '' && organization !== '' && (
-					<Text
-						x={60}
-						y={56}
-						fill={textColor || '#27272A'}
-						text={organization}
-						fontSize={16}
-						opacity={0}
-						height={96}
-						fontFamily='Outfit'
-						key='organization'
-						ref={ref =>
-							setTimeout(() => {
-								ref?.to({
-									x: 20,
-									opacity: 1,
-									duration: 0.3,
-									onFinish: () => {
-										setTimeout(() => {
-											ref?.to({
-												opacity: 0,
-												duration: 0.3,
-											})
-										}, 1000)
-									},
-								})
-							}, 100)
-						}
-					/>
-				)}
-				{designation !== '' && organization !== '' && (
-					<Text
-						x={60}
-						y={56}
-						fill={textColor || '#27272A'}
-						text={`${designation}, ${organization}`}
-						fontSize={16}
-						opacity={0}
-						height={96}
-						fontFamily='Outfit'
-						key='designationAndOrganization'
-						ref={ref =>
-							setTimeout(() => {
-								ref?.to({
-									x: 20,
-									opacity: 1,
-									duration: 0.3,
-									onFinish: () => {
-										setTimeout(() => {
-											ref?.to({
-												opacity: 0,
-												duration: 0.3,
-											})
-										}, 1000)
-									},
-								})
-							}, 100)
-						}
-					/>
-				)}
-			</Group>
+			)}
+			{designation === '' && organization !== '' && (
+				<Text
+					x={60}
+					y={56}
+					fill={textColor || '#27272A'}
+					text={organization}
+					fontSize={16}
+					opacity={0}
+					height={96}
+					fontFamily='Outfit'
+					key='organization'
+					ref={ref =>
+						setTimeout(() => {
+							ref?.to({
+								x: 20,
+								opacity: 1,
+								duration: 0.3,
+								onFinish: () => {
+									setTimeout(() => {
+										ref?.to({
+											opacity: 0,
+											duration: 0.3,
+										})
+									}, 1000)
+								},
+							})
+						}, 100)
+					}
+				/>
+			)}
+			{designation !== '' && organization !== '' && (
+				<Text
+					x={60}
+					y={56}
+					fill={textColor || '#27272A'}
+					text={`${designation}, ${organization}`}
+					fontSize={16}
+					opacity={0}
+					height={96}
+					fontFamily='Outfit'
+					key='designationAndOrganization'
+					ref={ref =>
+						setTimeout(() => {
+							ref?.to({
+								x: 20,
+								opacity: 1,
+								duration: 0.3,
+								onFinish: () => {
+									setTimeout(() => {
+										ref?.to({
+											opacity: 0,
+											duration: 0.3,
+										})
+									}, 1000)
+								},
+							})
+						}, 100)
+					}
+				/>
+			)}
+		</Group>
 	)
 }
 
@@ -1081,108 +1080,6 @@ export const CassidooLowerThirds = ({
 	if (logo)
 		return (
 			<Group
-					x={x}
-					y={y}
-					opacity={0}
-					ref={ref => {
-						ref?.to({
-							opacity: 1,
-							duration: 0.6,
-							onFinish: () => {
-								setTimeout(() => {
-									ref?.to({
-										opacity: 0,
-										duration: 0.6,
-										onFinish: () => {
-											setTimeout(() => {
-												setTopLayerChildren?.({
-													id: '',
-													state: '',
-												})
-											}, 400)
-										},
-									})
-								}, 2000)
-							},
-						})
-					}}
-				>
-					<Rect
-						fill={color || '#E0D6ED'}
-						width={Math.floor(rectWidth) + 96}
-						height={96}
-						opacity={0.8}
-						cornerRadius={16}
-						stroke={getCanvasGradient(
-							[
-								{ color: '#E9BC3F', offset: 0.0 },
-								{ color: '#EB4888', offset: 0.5469 },
-								{ color: '#10A2F5', offset: 1.0 },
-							],
-							{
-								x0: 0,
-								y0: 40,
-								x1: Math.floor(rectWidth),
-								y1: 96,
-							}
-						)}
-						strokeWidth={3}
-					/>
-					<Image x={18} y={18} width={60} height={60} image={image} />
-					<Text
-						x={98}
-						y={designation === '' && organization === '' ? 0 : 24}
-						fill={textColor || '#27272A'}
-						text={userName}
-						fontSize={24}
-						height={96}
-						fontStyle='bold'
-						fontFamily='Roboto Mono'
-						verticalAlign={
-							designation === '' && organization === '' ? 'middle' : undefined
-						}
-						key='username'
-					/>
-					{designation !== '' && organization === '' && (
-						<Text
-							x={98}
-							y={60}
-							fill={textColor || '#27272A'}
-							text={designation}
-							fontSize={16}
-							height={96}
-							fontFamily='Roboto Mono'
-							key='designation'
-						/>
-					)}
-					{designation === '' && organization !== '' && (
-						<Text
-							x={98}
-							y={60}
-							fill={textColor || '#27272A'}
-							text={organization}
-							fontSize={16}
-							height={96}
-							fontFamily='Roboto Mono'
-							key='organization'
-						/>
-					)}
-					{designation !== '' && organization !== '' && (
-						<Text
-							x={98}
-							y={60}
-							fill={textColor || '#27272A'}
-							text={`${designation}, ${organization}`}
-							fontSize={16}
-							height={96}
-							fontFamily='Roboto Mono'
-							key='designationAndOrganization'
-						/>
-					)}
-				</Group>
-		)
-	return (
-		<Group
 				x={x}
 				y={y}
 				opacity={0}
@@ -1211,7 +1108,7 @@ export const CassidooLowerThirds = ({
 			>
 				<Rect
 					fill={color || '#E0D6ED'}
-					width={Math.floor(rectWidth) + 48}
+					width={Math.floor(rectWidth) + 96}
 					height={96}
 					opacity={0.8}
 					cornerRadius={16}
@@ -1230,8 +1127,9 @@ export const CassidooLowerThirds = ({
 					)}
 					strokeWidth={3}
 				/>
+				<Image x={18} y={18} width={60} height={60} image={image} />
 				<Text
-					x={20}
+					x={98}
 					y={designation === '' && organization === '' ? 0 : 24}
 					fill={textColor || '#27272A'}
 					text={userName}
@@ -1246,7 +1144,7 @@ export const CassidooLowerThirds = ({
 				/>
 				{designation !== '' && organization === '' && (
 					<Text
-						x={20}
+						x={98}
 						y={60}
 						fill={textColor || '#27272A'}
 						text={designation}
@@ -1258,7 +1156,7 @@ export const CassidooLowerThirds = ({
 				)}
 				{designation === '' && organization !== '' && (
 					<Text
-						x={20}
+						x={98}
 						y={60}
 						fill={textColor || '#27272A'}
 						text={organization}
@@ -1270,7 +1168,7 @@ export const CassidooLowerThirds = ({
 				)}
 				{designation !== '' && organization !== '' && (
 					<Text
-						x={20}
+						x={98}
 						y={60}
 						fill={textColor || '#27272A'}
 						text={`${designation}, ${organization}`}
@@ -1281,6 +1179,107 @@ export const CassidooLowerThirds = ({
 					/>
 				)}
 			</Group>
+		)
+	return (
+		<Group
+			x={x}
+			y={y}
+			opacity={0}
+			ref={ref => {
+				ref?.to({
+					opacity: 1,
+					duration: 0.6,
+					onFinish: () => {
+						setTimeout(() => {
+							ref?.to({
+								opacity: 0,
+								duration: 0.6,
+								onFinish: () => {
+									setTimeout(() => {
+										setTopLayerChildren?.({
+											id: '',
+											state: '',
+										})
+									}, 400)
+								},
+							})
+						}, 2000)
+					},
+				})
+			}}
+		>
+			<Rect
+				fill={color || '#E0D6ED'}
+				width={Math.floor(rectWidth) + 48}
+				height={96}
+				opacity={0.8}
+				cornerRadius={16}
+				stroke={getCanvasGradient(
+					[
+						{ color: '#E9BC3F', offset: 0.0 },
+						{ color: '#EB4888', offset: 0.5469 },
+						{ color: '#10A2F5', offset: 1.0 },
+					],
+					{
+						x0: 0,
+						y0: 40,
+						x1: Math.floor(rectWidth),
+						y1: 96,
+					}
+				)}
+				strokeWidth={3}
+			/>
+			<Text
+				x={20}
+				y={designation === '' && organization === '' ? 0 : 24}
+				fill={textColor || '#27272A'}
+				text={userName}
+				fontSize={24}
+				height={96}
+				fontStyle='bold'
+				fontFamily='Roboto Mono'
+				verticalAlign={
+					designation === '' && organization === '' ? 'middle' : undefined
+				}
+				key='username'
+			/>
+			{designation !== '' && organization === '' && (
+				<Text
+					x={20}
+					y={60}
+					fill={textColor || '#27272A'}
+					text={designation}
+					fontSize={16}
+					height={96}
+					fontFamily='Roboto Mono'
+					key='designation'
+				/>
+			)}
+			{designation === '' && organization !== '' && (
+				<Text
+					x={20}
+					y={60}
+					fill={textColor || '#27272A'}
+					text={organization}
+					fontSize={16}
+					height={96}
+					fontFamily='Roboto Mono'
+					key='organization'
+				/>
+			)}
+			{designation !== '' && organization !== '' && (
+				<Text
+					x={20}
+					y={60}
+					fill={textColor || '#27272A'}
+					text={`${designation}, ${organization}`}
+					fontSize={16}
+					height={96}
+					fontFamily='Roboto Mono'
+					key='designationAndOrganization'
+				/>
+			)}
+		</Group>
 	)
 }
 
@@ -1319,263 +1318,263 @@ export const LambdaTestLowerThirds = ({
 
 	return (
 		<Group x={x} y={y}>
-				<Rect
-					width={0}
-					height={0}
-					fill={color || '#ffffff'}
-					cornerRadius={4}
-					ref={ref => {
+			<Rect
+				width={0}
+				height={0}
+				fill={color || '#ffffff'}
+				cornerRadius={4}
+				ref={ref => {
+					ref?.to({
+						width: logo ? userNameWidth + 40 + 16 : userNameWidth + 16,
+						height: 56,
+						duration: 0.3,
+						easing: Konva.Easings.EaseInOut,
+						onFinish: () => {
+							setTimeout(() => {
+								ref?.to({
+									width: 0,
+									height: 0,
+									duration: 0.3,
+									easing: Konva.Easings.EaseOut,
+									onFinish: () => {
+										setTimeout(() => {
+											setTopLayerChildren?.({
+												id: '',
+												state: '',
+											})
+										}, 400)
+									},
+								})
+							}, 2600)
+						},
+					})
+				}}
+			/>
+			<Text
+				x={16}
+				y={0}
+				fill={textColor || '#27272A'}
+				text={userName}
+				fontSize={18}
+				opacity={0}
+				height={56}
+				fontStyle='bold'
+				fontFamily='Gilroy'
+				verticalAlign='middle'
+				key='username'
+				ref={ref => {
+					setTimeout(() => {
 						ref?.to({
-							width: logo ? userNameWidth + 40 + 16 : userNameWidth + 16,
-							height: 56,
+							opacity: 1,
 							duration: 0.3,
-							easing: Konva.Easings.EaseInOut,
 							onFinish: () => {
 								setTimeout(() => {
 									ref?.to({
-										width: 0,
-										height: 0,
-										duration: 0.3,
+										opacity: 0,
+										duration: 0.2,
 										easing: Konva.Easings.EaseOut,
-										onFinish: () => {
-											setTimeout(() => {
-												setTopLayerChildren?.({
-													id: '',
-													state: '',
-												})
-											}, 400)
-										},
 									})
-								}, 2600)
+								}, 2400)
 							},
 						})
-					}}
-				/>
-				<Text
-					x={16}
-					y={0}
-					fill={textColor || '#27272A'}
-					text={userName}
-					fontSize={18}
-					opacity={0}
-					height={56}
-					fontStyle='bold'
-					fontFamily='Gilroy'
-					verticalAlign='middle'
-					key='username'
-					ref={ref => {
-						setTimeout(() => {
-							ref?.to({
-								opacity: 1,
-								duration: 0.3,
-								onFinish: () => {
-									setTimeout(() => {
-										ref?.to({
-											opacity: 0,
-											duration: 0.2,
-											easing: Konva.Easings.EaseOut,
-										})
-									}, 2400)
-								},
-							})
-						}, 200)
-					}}
-				/>
-				<Image
-					x={userNameWidth}
-					y={8}
-					width={40}
-					height={40}
-					image={image}
-					opcaity={0}
-					ref={ref => {
-						setTimeout(() => {
-							ref?.to({
-								opacity: 1,
-								duration: 0.3,
-								onFinish: () => {
-									setTimeout(() => {
-										ref?.to({
-											opacity: 0,
-											duration: 0.1,
-										})
-									}, 2300)
-								},
-							})
-						}, 200)
-					}}
-				/>
-				<Group y={60}>
-					{designation !== '' && organization === '' && (
-						<>
-							<Rect
-								width={0}
-								height={32}
-								fill='#4B5563'
-								cornerRadius={4}
-								ref={ref => {
-									setTimeout(() => {
-										ref?.to({
-											width: userInfoWidth,
-											duration: 0.2,
-											easing: Konva.Easings.EaseInOut,
-											onFinish: () => {
-												setTimeout(() => {
-													ref?.to({
-														width: 0,
-														duration: 0.3,
-														easing: Konva.Easings.EaseOut,
-													})
-												}, 2200)
-											},
-										})
-									}, 500)
-								}}
-							/>
-							<Text
-								x={16}
-								fill='#ffffff'
-								text={designation}
-								fontSize={12}
-								opacity={0}
-								height={32}
-								verticalAlign='middle'
-								fontFamily='Inter'
-								key='designation'
-								ref={ref => {
-									setTimeout(() => {
-										ref?.to({
-											opacity: 1,
-											duration: 0.3,
-											onFinish: () => {
-												setTimeout(() => {
-													ref?.to({
-														opacity: 0,
-														duration: 0.1,
-														easing: Konva.Easings.EaseOut,
-													})
-												}, 2000)
-											},
-										})
-									}, 600)
-								}}
-							/>
-						</>
-					)}
-					{designation === '' && organization !== '' && (
-						<>
-							<Rect
-								width={0}
-								height={32}
-								fill='#4B5563'
-								cornerRadius={4}
-								ref={ref => {
-									setTimeout(() => {
-										ref?.to({
-											width: userInfoWidth,
-											duration: 0.2,
-											easing: Konva.Easings.EaseInOut,
-											onFinish: () => {
-												setTimeout(() => {
-													ref?.to({
-														width: 0,
-														duration: 0.3,
-														easing: Konva.Easings.EaseOut,
-													})
-												}, 2200)
-											},
-										})
-									}, 500)
-								}}
-							/>
-							<Text
-								x={16}
-								fill='#ffffff'
-								text={organization}
-								fontSize={12}
-								opacity={0}
-								height={32}
-								verticalAlign='middle'
-								fontFamily='Inter'
-								key='organization'
-								ref={ref => {
-									setTimeout(() => {
-										ref?.to({
-											opacity: 1,
-											duration: 0.3,
-											onFinish: () => {
-												setTimeout(() => {
-													ref?.to({
-														opacity: 0,
-														duration: 0.1,
-														easing: Konva.Easings.EaseOut,
-													})
-												}, 2000)
-											},
-										})
-									}, 600)
-								}}
-							/>
-						</>
-					)}
-					{designation !== '' && organization !== '' && (
-						<>
-							<Rect
-								width={0}
-								height={32}
-								fill='#4B5563'
-								cornerRadius={4}
-								ref={ref => {
-									setTimeout(() => {
-										ref?.to({
-											width: userInfoWidth,
-											duration: 0.2,
-											easing: Konva.Easings.EaseInOut,
-											onFinish: () => {
-												setTimeout(() => {
-													ref?.to({
-														width: 0,
-														duration: 0.3,
-														easing: Konva.Easings.EaseOut,
-													})
-												}, 2200)
-											},
-										})
-									}, 500)
-								}}
-							/>
-							<Text
-								x={16}
-								fill='#ffffff'
-								text={`${designation}, ${organization}`}
-								fontSize={12}
-								opacity={0}
-								height={32}
-								verticalAlign='middle'
-								fontFamily='Inter'
-								key='designationAndOrganization'
-								ref={ref => {
-									setTimeout(() => {
-										ref?.to({
-											opacity: 1,
-											duration: 0.3,
-											onFinish: () => {
-												setTimeout(() => {
-													ref?.to({
-														opacity: 0,
-														duration: 0.1,
-														easing: Konva.Easings.EaseOut,
-													})
-												}, 2000)
-											},
-										})
-									}, 600)
-								}}
-							/>
-						</>
-					)}
-				</Group>
+					}, 200)
+				}}
+			/>
+			<Image
+				x={userNameWidth}
+				y={8}
+				width={40}
+				height={40}
+				image={image}
+				opcaity={0}
+				ref={ref => {
+					setTimeout(() => {
+						ref?.to({
+							opacity: 1,
+							duration: 0.3,
+							onFinish: () => {
+								setTimeout(() => {
+									ref?.to({
+										opacity: 0,
+										duration: 0.1,
+									})
+								}, 2300)
+							},
+						})
+					}, 200)
+				}}
+			/>
+			<Group y={60}>
+				{designation !== '' && organization === '' && (
+					<>
+						<Rect
+							width={0}
+							height={32}
+							fill='#4B5563'
+							cornerRadius={4}
+							ref={ref => {
+								setTimeout(() => {
+									ref?.to({
+										width: userInfoWidth,
+										duration: 0.2,
+										easing: Konva.Easings.EaseInOut,
+										onFinish: () => {
+											setTimeout(() => {
+												ref?.to({
+													width: 0,
+													duration: 0.3,
+													easing: Konva.Easings.EaseOut,
+												})
+											}, 2200)
+										},
+									})
+								}, 500)
+							}}
+						/>
+						<Text
+							x={16}
+							fill='#ffffff'
+							text={designation}
+							fontSize={12}
+							opacity={0}
+							height={32}
+							verticalAlign='middle'
+							fontFamily='Inter'
+							key='designation'
+							ref={ref => {
+								setTimeout(() => {
+									ref?.to({
+										opacity: 1,
+										duration: 0.3,
+										onFinish: () => {
+											setTimeout(() => {
+												ref?.to({
+													opacity: 0,
+													duration: 0.1,
+													easing: Konva.Easings.EaseOut,
+												})
+											}, 2000)
+										},
+									})
+								}, 600)
+							}}
+						/>
+					</>
+				)}
+				{designation === '' && organization !== '' && (
+					<>
+						<Rect
+							width={0}
+							height={32}
+							fill='#4B5563'
+							cornerRadius={4}
+							ref={ref => {
+								setTimeout(() => {
+									ref?.to({
+										width: userInfoWidth,
+										duration: 0.2,
+										easing: Konva.Easings.EaseInOut,
+										onFinish: () => {
+											setTimeout(() => {
+												ref?.to({
+													width: 0,
+													duration: 0.3,
+													easing: Konva.Easings.EaseOut,
+												})
+											}, 2200)
+										},
+									})
+								}, 500)
+							}}
+						/>
+						<Text
+							x={16}
+							fill='#ffffff'
+							text={organization}
+							fontSize={12}
+							opacity={0}
+							height={32}
+							verticalAlign='middle'
+							fontFamily='Inter'
+							key='organization'
+							ref={ref => {
+								setTimeout(() => {
+									ref?.to({
+										opacity: 1,
+										duration: 0.3,
+										onFinish: () => {
+											setTimeout(() => {
+												ref?.to({
+													opacity: 0,
+													duration: 0.1,
+													easing: Konva.Easings.EaseOut,
+												})
+											}, 2000)
+										},
+									})
+								}, 600)
+							}}
+						/>
+					</>
+				)}
+				{designation !== '' && organization !== '' && (
+					<>
+						<Rect
+							width={0}
+							height={32}
+							fill='#4B5563'
+							cornerRadius={4}
+							ref={ref => {
+								setTimeout(() => {
+									ref?.to({
+										width: userInfoWidth,
+										duration: 0.2,
+										easing: Konva.Easings.EaseInOut,
+										onFinish: () => {
+											setTimeout(() => {
+												ref?.to({
+													width: 0,
+													duration: 0.3,
+													easing: Konva.Easings.EaseOut,
+												})
+											}, 2200)
+										},
+									})
+								}, 500)
+							}}
+						/>
+						<Text
+							x={16}
+							fill='#ffffff'
+							text={`${designation}, ${organization}`}
+							fontSize={12}
+							opacity={0}
+							height={32}
+							verticalAlign='middle'
+							fontFamily='Inter'
+							key='designationAndOrganization'
+							ref={ref => {
+								setTimeout(() => {
+									ref?.to({
+										opacity: 1,
+										duration: 0.3,
+										onFinish: () => {
+											setTimeout(() => {
+												ref?.to({
+													opacity: 0,
+													duration: 0.1,
+													easing: Konva.Easings.EaseOut,
+												})
+											}, 2000)
+										},
+									})
+								}, 600)
+							}}
+						/>
+					</>
+				)}
 			</Group>
+		</Group>
 	)
 }
 
@@ -1613,113 +1612,6 @@ export const LeeRobLowerThirds = ({
 	if (logo)
 		return (
 			<Group
-					x={x}
-					y={y}
-					opacity={0}
-					ref={ref => {
-						ref?.to({
-							opacity: 1,
-							duration: 0.6,
-							onFinish: () => {
-								setTimeout(() => {
-									ref?.to({
-										opacity: 0,
-										duration: 0.6,
-										onFinish: () => {
-											setTimeout(() => {
-												setTopLayerChildren?.({
-													id: '',
-													state: '',
-												})
-											}, 400)
-										},
-									})
-								}, 2000)
-							},
-						})
-					}}
-				>
-					<Rect
-						fill={color || '#111827'}
-						width={Math.floor(rectWidth) + 72}
-						height={86}
-						opacity={0.9}
-						stroke={getCanvasGradient(
-							[
-								{ color: '#DB1685', offset: 0.0 },
-								{ color: '#8165D6', offset: 0.5208 },
-								{ color: '#48A8F6', offset: 0.9583 },
-							],
-							{
-								x0: 0,
-								y0: 0,
-								x1: Math.floor(rectWidth) + 72,
-								y1: 86,
-							}
-						)}
-						strokeWidth={2}
-					/>
-					<Image
-						x={Math.floor(rectWidth) + 22}
-						y={25}
-						width={36}
-						height={36}
-						image={image}
-					/>
-					<Text
-						x={22}
-						y={designation === '' && organization === '' ? 0 : 26}
-						fill={textColor || '#ffffff'}
-						text={userName}
-						fontSize={18}
-						height={86}
-						fontStyle='bold'
-						fontFamily='Inter'
-						verticalAlign={
-							designation === '' && organization === '' ? 'middle' : undefined
-						}
-						key='username'
-					/>
-					{designation !== '' && organization === '' && (
-						<Text
-							x={22}
-							y={52}
-							fill={textColor || '#E5E7EB'}
-							text={designation}
-							fontSize={12}
-							height={86}
-							fontFamily='Inter'
-							key='designation'
-						/>
-					)}
-					{designation === '' && organization !== '' && (
-						<Text
-							x={22}
-							y={52}
-							fill={textColor || '#E5E7EB'}
-							text={organization}
-							fontSize={12}
-							height={86}
-							fontFamily='Inter'
-							key='organization'
-						/>
-					)}
-					{designation !== '' && organization !== '' && (
-						<Text
-							x={22}
-							y={52}
-							fill={textColor || '#E5E7EB'}
-							text={`${designation}, ${organization}`}
-							fontSize={12}
-							height={86}
-							fontFamily='Inter'
-							key='designationAndOrganization'
-						/>
-					)}
-				</Group>
-		)
-	return (
-		<Group
 				x={x}
 				y={y}
 				opacity={0}
@@ -1748,7 +1640,7 @@ export const LeeRobLowerThirds = ({
 			>
 				<Rect
 					fill={color || '#111827'}
-					width={Math.floor(rectWidth) + 40}
+					width={Math.floor(rectWidth) + 72}
 					height={86}
 					opacity={0.9}
 					stroke={getCanvasGradient(
@@ -1760,11 +1652,18 @@ export const LeeRobLowerThirds = ({
 						{
 							x0: 0,
 							y0: 0,
-							x1: Math.floor(rectWidth) + 40,
+							x1: Math.floor(rectWidth) + 72,
 							y1: 86,
 						}
 					)}
 					strokeWidth={2}
+				/>
+				<Image
+					x={Math.floor(rectWidth) + 22}
+					y={25}
+					width={36}
+					height={36}
+					image={image}
 				/>
 				<Text
 					x={22}
@@ -1787,7 +1686,7 @@ export const LeeRobLowerThirds = ({
 						fill={textColor || '#E5E7EB'}
 						text={designation}
 						fontSize={12}
-						height={96}
+						height={86}
 						fontFamily='Inter'
 						key='designation'
 					/>
@@ -1799,7 +1698,7 @@ export const LeeRobLowerThirds = ({
 						fill={textColor || '#E5E7EB'}
 						text={organization}
 						fontSize={12}
-						height={96}
+						height={86}
 						fontFamily='Inter'
 						key='organization'
 					/>
@@ -1811,12 +1710,112 @@ export const LeeRobLowerThirds = ({
 						fill={textColor || '#E5E7EB'}
 						text={`${designation}, ${organization}`}
 						fontSize={12}
-						height={96}
+						height={86}
 						fontFamily='Inter'
 						key='designationAndOrganization'
 					/>
 				)}
 			</Group>
+		)
+	return (
+		<Group
+			x={x}
+			y={y}
+			opacity={0}
+			ref={ref => {
+				ref?.to({
+					opacity: 1,
+					duration: 0.6,
+					onFinish: () => {
+						setTimeout(() => {
+							ref?.to({
+								opacity: 0,
+								duration: 0.6,
+								onFinish: () => {
+									setTimeout(() => {
+										setTopLayerChildren?.({
+											id: '',
+											state: '',
+										})
+									}, 400)
+								},
+							})
+						}, 2000)
+					},
+				})
+			}}
+		>
+			<Rect
+				fill={color || '#111827'}
+				width={Math.floor(rectWidth) + 40}
+				height={86}
+				opacity={0.9}
+				stroke={getCanvasGradient(
+					[
+						{ color: '#DB1685', offset: 0.0 },
+						{ color: '#8165D6', offset: 0.5208 },
+						{ color: '#48A8F6', offset: 0.9583 },
+					],
+					{
+						x0: 0,
+						y0: 0,
+						x1: Math.floor(rectWidth) + 40,
+						y1: 86,
+					}
+				)}
+				strokeWidth={2}
+			/>
+			<Text
+				x={22}
+				y={designation === '' && organization === '' ? 0 : 26}
+				fill={textColor || '#ffffff'}
+				text={userName}
+				fontSize={18}
+				height={86}
+				fontStyle='bold'
+				fontFamily='Inter'
+				verticalAlign={
+					designation === '' && organization === '' ? 'middle' : undefined
+				}
+				key='username'
+			/>
+			{designation !== '' && organization === '' && (
+				<Text
+					x={22}
+					y={52}
+					fill={textColor || '#E5E7EB'}
+					text={designation}
+					fontSize={12}
+					height={96}
+					fontFamily='Inter'
+					key='designation'
+				/>
+			)}
+			{designation === '' && organization !== '' && (
+				<Text
+					x={22}
+					y={52}
+					fill={textColor || '#E5E7EB'}
+					text={organization}
+					fontSize={12}
+					height={96}
+					fontFamily='Inter'
+					key='organization'
+				/>
+			)}
+			{designation !== '' && organization !== '' && (
+				<Text
+					x={22}
+					y={52}
+					fill={textColor || '#E5E7EB'}
+					text={`${designation}, ${organization}`}
+					fontSize={12}
+					height={96}
+					fontFamily='Inter'
+					key='designationAndOrganization'
+				/>
+			)}
+		</Group>
 	)
 }
 
@@ -1855,160 +1854,13 @@ export const Web3AuthLowerThirds = ({
 	if (logo)
 		return (
 			<Group
-					x={x}
-					y={y}
-					clipFunc={(ctx: any) => {
-						clipRect(ctx, {
-							x: 0,
-							y: 0,
-							width: Math.floor(rectWidth) + 80,
-							height: 74,
-							borderRadius: 6,
-						})
-					}}
-				>
-					<Rect
-						x={rectWidth / 2}
-						y={35}
-						width={4}
-						height={4}
-						fill={color}
-						fillLinearGradientColorStops={
-							color === '' ? [0, '#27272A', 1, '#B114FB'] : []
-						}
-						fillLinearGradientStartPoint={{ x: 0, y: 0 }}
-						fillLinearGradientEndPoint={
-							color === ''
-								? {
-										x: rectWidth * 2,
-										y: 148,
-								  }
-								: { x: 0, y: 0 }
-						}
-						ref={ref => {
-							ref?.to({
-								y: 0,
-								height: 74,
-								duration: 0.6,
-								easing: Konva.Easings.BackEaseOut,
-								onFinish: () => {
-									ref?.to({
-										x: 0,
-										width: Math.floor(rectWidth) + 80,
-										duration: 0.6,
-										easing: Konva.Easings.BackEaseIn,
-										onFinish: () => {
-											setTimeout(() => {
-												ref?.to({
-													x: rectWidth / 2,
-													width: 4,
-													duration: 0.6,
-													easing: Konva.Easings.BackEaseIn,
-													onFinish: () => {
-														ref?.to({
-															y: 35,
-															height: 0,
-															duration: 0.6,
-															easing: Konva.Easings.BackEaseIn,
-															onFinish: () => {
-																setTimeout(() => {
-																	setTopLayerChildren?.({
-																		id: '',
-																		state: '',
-																	})
-																}, 400)
-															},
-														})
-													},
-												})
-											}, 2000)
-										},
-									})
-								},
-							})
-						}}
-					/>
-					<Group
-						opacity={0}
-						ref={ref => {
-							setTimeout(() => {
-								ref?.to({
-									opacity: 1,
-									duration: 0.5,
-									onFinish: () => {
-										setTimeout(() => {
-											ref?.to({
-												opacity: 0,
-												duration: 0.1,
-											})
-										}, 2000)
-									},
-								})
-							}, 1200)
-						}}
-					>
-						<Image x={24} y={20} width={32} height={32} image={image} />
-						<Text
-							x={80}
-							y={designation === '' && organization === '' ? 0 : 18}
-							fill={textColor || '#ffffff'}
-							text={userName}
-							fontSize={18}
-							height={74}
-							fontFamily='Inter'
-							verticalAlign={
-								designation === '' && organization === '' ? 'middle' : undefined
-							}
-							key='username'
-						/>
-						{designation !== '' && organization === '' && (
-							<Text
-								x={80}
-								y={44}
-								fill={textColor || '#E5E7EB'}
-								text={designation}
-								fontSize={12}
-								height={74}
-								fontFamily='Inter'
-								key='designation'
-							/>
-						)}
-						{designation === '' && organization !== '' && (
-							<Text
-								x={80}
-								y={44}
-								fill={textColor || '#E5E7EB'}
-								text={organization}
-								fontSize={12}
-								height={74}
-								fontFamily='Inter'
-								key='organization'
-							/>
-						)}
-						{designation !== '' && organization !== '' && (
-							<Text
-								x={80}
-								y={44}
-								fill={textColor || '#E5E7EB'}
-								text={`${designation}, ${organization}`}
-								fontSize={12}
-								height={74}
-								fontFamily='Inter'
-								key='designationAndOrganization'
-							/>
-						)}
-					</Group>
-				</Group>
-		)
-	return (
-		<Group
 				x={x}
 				y={y}
 				clipFunc={(ctx: any) => {
 					clipRect(ctx, {
 						x: 0,
 						y: 0,
-						width: Math.floor(rectWidth) + 48,
+						width: Math.floor(rectWidth) + 80,
 						height: 74,
 						borderRadius: 6,
 					})
@@ -2041,7 +1893,7 @@ export const Web3AuthLowerThirds = ({
 							onFinish: () => {
 								ref?.to({
 									x: 0,
-									width: Math.floor(rectWidth) + 48,
+									width: Math.floor(rectWidth) + 80,
 									duration: 0.6,
 									easing: Konva.Easings.BackEaseIn,
 									onFinish: () => {
@@ -2081,12 +1933,12 @@ export const Web3AuthLowerThirds = ({
 						setTimeout(() => {
 							ref?.to({
 								opacity: 1,
-								duration: 0.3,
+								duration: 0.5,
 								onFinish: () => {
 									setTimeout(() => {
 										ref?.to({
 											opacity: 0,
-											duration: 0.2,
+											duration: 0.1,
 										})
 									}, 2000)
 								},
@@ -2094,8 +1946,9 @@ export const Web3AuthLowerThirds = ({
 						}, 1200)
 					}}
 				>
+					<Image x={24} y={20} width={32} height={32} image={image} />
 					<Text
-						x={36}
+						x={80}
 						y={designation === '' && organization === '' ? 0 : 18}
 						fill={textColor || '#ffffff'}
 						text={userName}
@@ -2109,7 +1962,7 @@ export const Web3AuthLowerThirds = ({
 					/>
 					{designation !== '' && organization === '' && (
 						<Text
-							x={36}
+							x={80}
 							y={44}
 							fill={textColor || '#E5E7EB'}
 							text={designation}
@@ -2121,7 +1974,7 @@ export const Web3AuthLowerThirds = ({
 					)}
 					{designation === '' && organization !== '' && (
 						<Text
-							x={36}
+							x={80}
 							y={44}
 							fill={textColor || '#E5E7EB'}
 							text={organization}
@@ -2133,7 +1986,7 @@ export const Web3AuthLowerThirds = ({
 					)}
 					{designation !== '' && organization !== '' && (
 						<Text
-							x={36}
+							x={80}
 							y={44}
 							fill={textColor || '#E5E7EB'}
 							text={`${designation}, ${organization}`}
@@ -2145,6 +1998,152 @@ export const Web3AuthLowerThirds = ({
 					)}
 				</Group>
 			</Group>
+		)
+	return (
+		<Group
+			x={x}
+			y={y}
+			clipFunc={(ctx: any) => {
+				clipRect(ctx, {
+					x: 0,
+					y: 0,
+					width: Math.floor(rectWidth) + 48,
+					height: 74,
+					borderRadius: 6,
+				})
+			}}
+		>
+			<Rect
+				x={rectWidth / 2}
+				y={35}
+				width={4}
+				height={4}
+				fill={color}
+				fillLinearGradientColorStops={
+					color === '' ? [0, '#27272A', 1, '#B114FB'] : []
+				}
+				fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+				fillLinearGradientEndPoint={
+					color === ''
+						? {
+								x: rectWidth * 2,
+								y: 148,
+						  }
+						: { x: 0, y: 0 }
+				}
+				ref={ref => {
+					ref?.to({
+						y: 0,
+						height: 74,
+						duration: 0.6,
+						easing: Konva.Easings.BackEaseOut,
+						onFinish: () => {
+							ref?.to({
+								x: 0,
+								width: Math.floor(rectWidth) + 48,
+								duration: 0.6,
+								easing: Konva.Easings.BackEaseIn,
+								onFinish: () => {
+									setTimeout(() => {
+										ref?.to({
+											x: rectWidth / 2,
+											width: 4,
+											duration: 0.6,
+											easing: Konva.Easings.BackEaseIn,
+											onFinish: () => {
+												ref?.to({
+													y: 35,
+													height: 0,
+													duration: 0.6,
+													easing: Konva.Easings.BackEaseIn,
+													onFinish: () => {
+														setTimeout(() => {
+															setTopLayerChildren?.({
+																id: '',
+																state: '',
+															})
+														}, 400)
+													},
+												})
+											},
+										})
+									}, 2000)
+								},
+							})
+						},
+					})
+				}}
+			/>
+			<Group
+				opacity={0}
+				ref={ref => {
+					setTimeout(() => {
+						ref?.to({
+							opacity: 1,
+							duration: 0.3,
+							onFinish: () => {
+								setTimeout(() => {
+									ref?.to({
+										opacity: 0,
+										duration: 0.2,
+									})
+								}, 2000)
+							},
+						})
+					}, 1200)
+				}}
+			>
+				<Text
+					x={36}
+					y={designation === '' && organization === '' ? 0 : 18}
+					fill={textColor || '#ffffff'}
+					text={userName}
+					fontSize={18}
+					height={74}
+					fontFamily='Inter'
+					verticalAlign={
+						designation === '' && organization === '' ? 'middle' : undefined
+					}
+					key='username'
+				/>
+				{designation !== '' && organization === '' && (
+					<Text
+						x={36}
+						y={44}
+						fill={textColor || '#E5E7EB'}
+						text={designation}
+						fontSize={12}
+						height={74}
+						fontFamily='Inter'
+						key='designation'
+					/>
+				)}
+				{designation === '' && organization !== '' && (
+					<Text
+						x={36}
+						y={44}
+						fill={textColor || '#E5E7EB'}
+						text={organization}
+						fontSize={12}
+						height={74}
+						fontFamily='Inter'
+						key='organization'
+					/>
+				)}
+				{designation !== '' && organization !== '' && (
+					<Text
+						x={36}
+						y={44}
+						fill={textColor || '#E5E7EB'}
+						text={`${designation}, ${organization}`}
+						fontSize={12}
+						height={74}
+						fontFamily='Inter'
+						key='designationAndOrganization'
+					/>
+				)}
+			</Group>
+		</Group>
 	)
 }
 
@@ -3270,263 +3269,263 @@ export const WunderGraphLowerThirds = ({
 
 	return (
 		<Group x={x} y={y}>
-				<Rect
-					width={0}
-					height={0}
-					fill={color || '#ffffff'}
-					cornerRadius={4}
-					ref={ref => {
+			<Rect
+				width={0}
+				height={0}
+				fill={color || '#ffffff'}
+				cornerRadius={4}
+				ref={ref => {
+					ref?.to({
+						width: logo ? userNameWidth + 40 + 16 : userNameWidth + 16,
+						height: 56,
+						duration: 0.3,
+						easing: Konva.Easings.EaseInOut,
+						onFinish: () => {
+							setTimeout(() => {
+								ref?.to({
+									width: 0,
+									height: 0,
+									duration: 0.3,
+									easing: Konva.Easings.EaseOut,
+									onFinish: () => {
+										setTimeout(() => {
+											setTopLayerChildren?.({
+												id: '',
+												state: '',
+											})
+										}, 400)
+									},
+								})
+							}, 2600)
+						},
+					})
+				}}
+			/>
+			<Text
+				x={16}
+				y={0}
+				fill={textColor || '#27272A'}
+				text={userName}
+				fontSize={18}
+				opacity={0}
+				height={56}
+				fontStyle='bold'
+				fontFamily='Inter'
+				verticalAlign='middle'
+				key='username'
+				ref={ref => {
+					setTimeout(() => {
 						ref?.to({
-							width: logo ? userNameWidth + 40 + 16 : userNameWidth + 16,
-							height: 56,
+							opacity: 1,
 							duration: 0.3,
-							easing: Konva.Easings.EaseInOut,
 							onFinish: () => {
 								setTimeout(() => {
 									ref?.to({
-										width: 0,
-										height: 0,
-										duration: 0.3,
+										opacity: 0,
+										duration: 0.2,
 										easing: Konva.Easings.EaseOut,
-										onFinish: () => {
-											setTimeout(() => {
-												setTopLayerChildren?.({
-													id: '',
-													state: '',
-												})
-											}, 400)
-										},
 									})
-								}, 2600)
+								}, 2400)
 							},
 						})
-					}}
-				/>
-				<Text
-					x={16}
-					y={0}
-					fill={textColor || '#27272A'}
-					text={userName}
-					fontSize={18}
-					opacity={0}
-					height={56}
-					fontStyle='bold'
-					fontFamily='Inter'
-					verticalAlign='middle'
-					key='username'
-					ref={ref => {
-						setTimeout(() => {
-							ref?.to({
-								opacity: 1,
-								duration: 0.3,
-								onFinish: () => {
-									setTimeout(() => {
-										ref?.to({
-											opacity: 0,
-											duration: 0.2,
-											easing: Konva.Easings.EaseOut,
-										})
-									}, 2400)
-								},
-							})
-						}, 200)
-					}}
-				/>
-				<Image
-					x={userNameWidth}
-					y={8}
-					width={40}
-					height={40}
-					image={image}
-					opcaity={0}
-					ref={ref => {
-						setTimeout(() => {
-							ref?.to({
-								opacity: 1,
-								duration: 0.3,
-								onFinish: () => {
-									setTimeout(() => {
-										ref?.to({
-											opacity: 0,
-											duration: 0.1,
-										})
-									}, 2300)
-								},
-							})
-						}, 200)
-					}}
-				/>
-				<Group y={60}>
-					{designation !== '' && organization === '' && (
-						<>
-							<Rect
-								width={0}
-								height={32}
-								fill='#2D3748'
-								cornerRadius={4}
-								ref={ref => {
-									setTimeout(() => {
-										ref?.to({
-											width: userInfoWidth,
-											duration: 0.2,
-											easing: Konva.Easings.EaseInOut,
-											onFinish: () => {
-												setTimeout(() => {
-													ref?.to({
-														width: 0,
-														duration: 0.3,
-														easing: Konva.Easings.EaseOut,
-													})
-												}, 2200)
-											},
-										})
-									}, 500)
-								}}
-							/>
-							<Text
-								x={16}
-								fill='#ffffff'
-								text={designation}
-								fontSize={12}
-								opacity={0}
-								height={32}
-								verticalAlign='middle'
-								fontFamily='Inter'
-								key='designation'
-								ref={ref => {
-									setTimeout(() => {
-										ref?.to({
-											opacity: 1,
-											duration: 0.3,
-											onFinish: () => {
-												setTimeout(() => {
-													ref?.to({
-														opacity: 0,
-														duration: 0.1,
-														easing: Konva.Easings.EaseOut,
-													})
-												}, 2000)
-											},
-										})
-									}, 600)
-								}}
-							/>
-						</>
-					)}
-					{designation === '' && organization !== '' && (
-						<>
-							<Rect
-								width={0}
-								height={32}
-								fill='#2D3748'
-								cornerRadius={4}
-								ref={ref => {
-									setTimeout(() => {
-										ref?.to({
-											width: userInfoWidth,
-											duration: 0.2,
-											easing: Konva.Easings.EaseInOut,
-											onFinish: () => {
-												setTimeout(() => {
-													ref?.to({
-														width: 0,
-														duration: 0.3,
-														easing: Konva.Easings.EaseOut,
-													})
-												}, 2200)
-											},
-										})
-									}, 500)
-								}}
-							/>
-							<Text
-								x={16}
-								fill='#ffffff'
-								text={organization}
-								fontSize={12}
-								opacity={0}
-								height={32}
-								verticalAlign='middle'
-								fontFamily='Inter'
-								key='organization'
-								ref={ref => {
-									setTimeout(() => {
-										ref?.to({
-											opacity: 1,
-											duration: 0.3,
-											onFinish: () => {
-												setTimeout(() => {
-													ref?.to({
-														opacity: 0,
-														duration: 0.1,
-														easing: Konva.Easings.EaseOut,
-													})
-												}, 2000)
-											},
-										})
-									}, 600)
-								}}
-							/>
-						</>
-					)}
-					{designation !== '' && organization !== '' && (
-						<>
-							<Rect
-								width={0}
-								height={32}
-								fill='#2D3748'
-								cornerRadius={4}
-								ref={ref => {
-									setTimeout(() => {
-										ref?.to({
-											width: userInfoWidth,
-											duration: 0.2,
-											easing: Konva.Easings.EaseInOut,
-											onFinish: () => {
-												setTimeout(() => {
-													ref?.to({
-														width: 0,
-														duration: 0.3,
-														easing: Konva.Easings.EaseOut,
-													})
-												}, 2200)
-											},
-										})
-									}, 500)
-								}}
-							/>
-							<Text
-								x={16}
-								fill='#ffffff'
-								text={`${designation}, ${organization}`}
-								fontSize={12}
-								opacity={0}
-								height={32}
-								verticalAlign='middle'
-								fontFamily='Inter'
-								key='designationAndOrganization'
-								ref={ref => {
-									setTimeout(() => {
-										ref?.to({
-											opacity: 1,
-											duration: 0.3,
-											onFinish: () => {
-												setTimeout(() => {
-													ref?.to({
-														opacity: 0,
-														duration: 0.1,
-														easing: Konva.Easings.EaseOut,
-													})
-												}, 2000)
-											},
-										})
-									}, 600)
-								}}
-							/>
-						</>
-					)}
-				</Group>
+					}, 200)
+				}}
+			/>
+			<Image
+				x={userNameWidth}
+				y={8}
+				width={40}
+				height={40}
+				image={image}
+				opcaity={0}
+				ref={ref => {
+					setTimeout(() => {
+						ref?.to({
+							opacity: 1,
+							duration: 0.3,
+							onFinish: () => {
+								setTimeout(() => {
+									ref?.to({
+										opacity: 0,
+										duration: 0.1,
+									})
+								}, 2300)
+							},
+						})
+					}, 200)
+				}}
+			/>
+			<Group y={60}>
+				{designation !== '' && organization === '' && (
+					<>
+						<Rect
+							width={0}
+							height={32}
+							fill='#2D3748'
+							cornerRadius={4}
+							ref={ref => {
+								setTimeout(() => {
+									ref?.to({
+										width: userInfoWidth,
+										duration: 0.2,
+										easing: Konva.Easings.EaseInOut,
+										onFinish: () => {
+											setTimeout(() => {
+												ref?.to({
+													width: 0,
+													duration: 0.3,
+													easing: Konva.Easings.EaseOut,
+												})
+											}, 2200)
+										},
+									})
+								}, 500)
+							}}
+						/>
+						<Text
+							x={16}
+							fill='#ffffff'
+							text={designation}
+							fontSize={12}
+							opacity={0}
+							height={32}
+							verticalAlign='middle'
+							fontFamily='Inter'
+							key='designation'
+							ref={ref => {
+								setTimeout(() => {
+									ref?.to({
+										opacity: 1,
+										duration: 0.3,
+										onFinish: () => {
+											setTimeout(() => {
+												ref?.to({
+													opacity: 0,
+													duration: 0.1,
+													easing: Konva.Easings.EaseOut,
+												})
+											}, 2000)
+										},
+									})
+								}, 600)
+							}}
+						/>
+					</>
+				)}
+				{designation === '' && organization !== '' && (
+					<>
+						<Rect
+							width={0}
+							height={32}
+							fill='#2D3748'
+							cornerRadius={4}
+							ref={ref => {
+								setTimeout(() => {
+									ref?.to({
+										width: userInfoWidth,
+										duration: 0.2,
+										easing: Konva.Easings.EaseInOut,
+										onFinish: () => {
+											setTimeout(() => {
+												ref?.to({
+													width: 0,
+													duration: 0.3,
+													easing: Konva.Easings.EaseOut,
+												})
+											}, 2200)
+										},
+									})
+								}, 500)
+							}}
+						/>
+						<Text
+							x={16}
+							fill='#ffffff'
+							text={organization}
+							fontSize={12}
+							opacity={0}
+							height={32}
+							verticalAlign='middle'
+							fontFamily='Inter'
+							key='organization'
+							ref={ref => {
+								setTimeout(() => {
+									ref?.to({
+										opacity: 1,
+										duration: 0.3,
+										onFinish: () => {
+											setTimeout(() => {
+												ref?.to({
+													opacity: 0,
+													duration: 0.1,
+													easing: Konva.Easings.EaseOut,
+												})
+											}, 2000)
+										},
+									})
+								}, 600)
+							}}
+						/>
+					</>
+				)}
+				{designation !== '' && organization !== '' && (
+					<>
+						<Rect
+							width={0}
+							height={32}
+							fill='#2D3748'
+							cornerRadius={4}
+							ref={ref => {
+								setTimeout(() => {
+									ref?.to({
+										width: userInfoWidth,
+										duration: 0.2,
+										easing: Konva.Easings.EaseInOut,
+										onFinish: () => {
+											setTimeout(() => {
+												ref?.to({
+													width: 0,
+													duration: 0.3,
+													easing: Konva.Easings.EaseOut,
+												})
+											}, 2200)
+										},
+									})
+								}, 500)
+							}}
+						/>
+						<Text
+							x={16}
+							fill='#ffffff'
+							text={`${designation}, ${organization}`}
+							fontSize={12}
+							opacity={0}
+							height={32}
+							verticalAlign='middle'
+							fontFamily='Inter'
+							key='designationAndOrganization'
+							ref={ref => {
+								setTimeout(() => {
+									ref?.to({
+										opacity: 1,
+										duration: 0.3,
+										onFinish: () => {
+											setTimeout(() => {
+												ref?.to({
+													opacity: 0,
+													duration: 0.1,
+													easing: Konva.Easings.EaseOut,
+												})
+											}, 2000)
+										},
+									})
+								}, 600)
+							}}
+						/>
+					</>
+				)}
 			</Group>
+		</Group>
 	)
 }
 
@@ -3778,95 +3777,95 @@ export const FragmentCard = ({
 		y: number
 	}
 }) => (
-		<Group x={x} y={y}>
-			<Rect
-				x={15}
-				y={15}
-				width={400}
-				height={350}
-				fillLinearGradientColorStops={[
-					0,
-					rectOneColors[0] || '#EE676D',
-					1,
-					rectOneColors[0] || '#CB56AF',
-				]}
-				fillLinearGradientStartPoint={{ x: 0, y: 0 }}
-				fillLinearGradientEndPoint={{
-					x: 415,
-					y: 365,
-				}}
-				opacity={0}
-				ref={ref =>
+	<Group x={x} y={y}>
+		<Rect
+			x={15}
+			y={15}
+			width={400}
+			height={350}
+			fillLinearGradientColorStops={[
+				0,
+				rectOneColors[0] || '#EE676D',
+				1,
+				rectOneColors[0] || '#CB56AF',
+			]}
+			fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+			fillLinearGradientEndPoint={{
+				x: 415,
+				y: 365,
+			}}
+			opacity={0}
+			ref={ref =>
+				ref?.to({
+					opacity: 1,
+					duration: 0.2,
+				})
+			}
+			cornerRadius={8}
+		/>
+		<Rect
+			x={0}
+			y={0}
+			width={400}
+			height={0}
+			fillLinearGradientColorStops={[
+				0,
+				rectTwoColors[0] || '#ffffff',
+				1,
+				rectTwoColors[1] || '#ffffff',
+			]}
+			fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+			fillLinearGradientEndPoint={{
+				x: 400,
+				y: 350,
+			}}
+			ref={ref =>
+				setTimeout(() => {
+					ref?.to({
+						height: 350,
+						duration: 0.3,
+					})
+				}, 200)
+			}
+			cornerRadius={8}
+		/>
+		<Text
+			x={20}
+			y={25}
+			text={fragmentTitle}
+			fill='#4B5563'
+			fontSize={36}
+			fontFamily='Roboto'
+			fontStyle='normal 400'
+			align='left'
+			width={350}
+			opacity={0}
+			ref={ref =>
+				setTimeout(() => {
 					ref?.to({
 						opacity: 1,
-						duration: 0.2,
+						duration: 0.3,
 					})
-				}
-				cornerRadius={8}
-			/>
-			<Rect
-				x={0}
-				y={0}
-				width={400}
-				height={0}
-				fillLinearGradientColorStops={[
-					0,
-					rectTwoColors[0] || '#ffffff',
-					1,
-					rectTwoColors[1] || '#ffffff',
-				]}
-				fillLinearGradientStartPoint={{ x: 0, y: 0 }}
-				fillLinearGradientEndPoint={{
-					x: 400,
-					y: 350,
-				}}
-				ref={ref =>
-					setTimeout(() => {
-						ref?.to({
-							height: 350,
-							duration: 0.3,
-						})
-					}, 200)
-				}
-				cornerRadius={8}
-			/>
-			<Text
-				x={20}
-				y={25}
-				text={fragmentTitle}
-				fill='#4B5563'
-				fontSize={36}
-				fontFamily='Roboto'
-				fontStyle='normal 400'
-				align='left'
-				width={350}
-				opacity={0}
-				ref={ref =>
-					setTimeout(() => {
-						ref?.to({
-							opacity: 1,
-							duration: 0.3,
-						})
-					}, 600)
-				}
-			/>
-			<Image
-				x={fragmentImageDimensions.x}
-				y={fragmentImageDimensions.y}
-				width={fragmentImageDimensions.width}
-				height={fragmentImageDimensions.height}
-				image={fragmentImage}
-				opacity={0}
-				ref={ref =>
-					setTimeout(() => {
-						ref?.to({
-							opacity: 1,
-							duration: 0.3,
-						})
-					}, 600)
-				}
-			/>
-		</Group>
-	)
+				}, 600)
+			}
+		/>
+		<Image
+			x={fragmentImageDimensions.x}
+			y={fragmentImageDimensions.y}
+			width={fragmentImageDimensions.width}
+			height={fragmentImageDimensions.height}
+			image={fragmentImage}
+			opacity={0}
+			ref={ref =>
+				setTimeout(() => {
+					ref?.to({
+						opacity: 1,
+						duration: 0.3,
+					})
+				}, 600)
+			}
+		/>
+	</Group>
+)
 
 export default CommonLowerThirds

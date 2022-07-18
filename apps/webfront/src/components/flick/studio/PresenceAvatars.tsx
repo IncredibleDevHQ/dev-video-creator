@@ -22,7 +22,7 @@ const PresenceAvatars = () => {
 			updateMyPresence({
 				page: PresencePage.Backstage,
 			})
-		if (state === "recording")
+		if (state === 'recording')
 			updateMyPresence({
 				page: PresencePage.Recording,
 			})

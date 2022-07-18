@@ -4,24 +4,21 @@ import { ThemeFragment } from 'src/graphql/generated'
 import { brandingAtom } from 'src/stores/studio.store'
 import { BrandingJSON, CONFIG, SHORTS_CONFIG } from 'src/utils/configs'
 import { useUser } from 'src/utils/providers/auth'
+import { IntroBlockViewProps, TopLayerChildren } from 'utils/src'
 import {
-  IntroBlockViewProps, TopLayerChildren
-} from 'utils/src'
-import {
-  CassidooLowerThirds,
-  DevsForUkraineLowerThirds,
-  GlassyLowerThirds,
-  LambdaTestLowerThirds,
-  LeeRobLowerThirds,
-  MuxLowerThirds,
-  PastelLinesLowerThirds,
-  ShrutiKapoorLowerThirds,
-  VetsWhoCodeLowerThirds,
-  Web3AuthLowerThirds,
-  Whitep4nth3rLowerThirds,
-  WunderGraphLowerThirds
+	CassidooLowerThirds,
+	DevsForUkraineLowerThirds,
+	GlassyLowerThirds,
+	LambdaTestLowerThirds,
+	LeeRobLowerThirds,
+	MuxLowerThirds,
+	PastelLinesLowerThirds,
+	ShrutiKapoorLowerThirds,
+	VetsWhoCodeLowerThirds,
+	Web3AuthLowerThirds,
+	Whitep4nth3rLowerThirds,
+	WunderGraphLowerThirds,
 } from './LowerThirds'
-
 
 const LowerThridProvider = ({
 	theme,

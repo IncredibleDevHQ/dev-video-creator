@@ -407,7 +407,7 @@ const Studio = ({
 						type='button'
 						className='flex items-center gap-x-2 cursor-pointer'
 						onClick={() => {
-              setOpenStudio(false)
+							setOpenStudio(false)
 							if (!agoraStreamData?.stream || !agoraActions?.leave) return
 							agoraStreamData.stream.getTracks().forEach(track => {
 								track.stop()

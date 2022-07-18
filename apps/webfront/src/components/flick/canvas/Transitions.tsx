@@ -5,7 +5,6 @@ import { Circle, Group, Rect, Shape } from 'react-konva'
 import { CONFIG, SHORTS_CONFIG } from 'src/utils/configs'
 import { TopLayerChildren } from 'utils/src'
 
-
 export const DipTransition = ({
 	direction,
 	performFinishAction,
@@ -33,7 +32,7 @@ export const DipTransition = ({
 			height={stageConfig.height}
 			fill={color}
 			ref={ref => {
-        switch (direction) {
+				switch (direction) {
 					case 'left':
 					case 'right':
 						ref?.to({
@@ -82,7 +81,7 @@ export const DipTransition = ({
 					default:
 						break
 				}
-      }}
+			}}
 			opacity={direction === 'moveAway' ? 1 : 0}
 		/>
 	)
@@ -1152,84 +1151,82 @@ export const Web3AuthTransition = ({
 	setTopLayerChildren?: React.Dispatch<
 		React.SetStateAction<{ id: string; state: TopLayerChildren }>
 	>
-}) =>
+}) => (
 	// let stageConfig = { width: CONFIG.width, height: CONFIG.height }
 	// if (!isShorts) stageConfig = CONFIG
 	// else stageConfig = SHORTS_CONFIG
 
-	 (
-		<>
-			<Circle
-				x={CONFIG.width / 2}
-				y={CONFIG.height / 2}
-				radius={150}
-				scaleX={0}
-				scaleY={0}
-				fill='#ffffff'
-				ref={ref => {
-					ref?.to({
-						scaleX: 5,
-						scaleY: 5,
-						duration: 0.4,
-						onFinish: () => {
-							setTimeout(() => {
-								ref?.to({
-									y: CONFIG.height + 900,
-									duration: 0.4,
-									onFinish: () => {
-										setTimeout(() => {
-											if (direction === 'left' || direction === 'right') {
-												setTopLayerChildren?.({ id: '', state: '' })
-											}
-										}, 200)
-									},
-								})
-							}, 200)
-						},
-					})
-				}}
-			/>
-			<Circle
-				x={CONFIG.width / 2}
-				y={CONFIG.height / 2}
-				radius={100}
-				scaleX={0}
-				scaleY={0}
-				fill='#ededed'
-				ref={ref =>
-					ref?.to({
-						scaleX: 5,
-						scaleY: 5,
-						duration: 0.4,
-						onFinish: () => {
-							setTimeout(() => {
-								ref?.to({ y: CONFIG.height + 900, duration: 0.4 })
-							}, 100)
-						},
-					})
-				}
-			/>
-			<Circle
-				x={CONFIG.width / 2}
-				y={CONFIG.height / 2}
-				radius={50}
-				scaleX={0}
-				scaleY={0}
-				fill='#ffffff'
-				ref={ref =>
-					ref?.to({
-						scaleX: 5,
-						scaleY: 5,
-						duration: 0.4,
-						onFinish: () => {
+	<>
+		<Circle
+			x={CONFIG.width / 2}
+			y={CONFIG.height / 2}
+			radius={150}
+			scaleX={0}
+			scaleY={0}
+			fill='#ffffff'
+			ref={ref => {
+				ref?.to({
+					scaleX: 5,
+					scaleY: 5,
+					duration: 0.4,
+					onFinish: () => {
+						setTimeout(() => {
+							ref?.to({
+								y: CONFIG.height + 900,
+								duration: 0.4,
+								onFinish: () => {
+									setTimeout(() => {
+										if (direction === 'left' || direction === 'right') {
+											setTopLayerChildren?.({ id: '', state: '' })
+										}
+									}, 200)
+								},
+							})
+						}, 200)
+					},
+				})
+			}}
+		/>
+		<Circle
+			x={CONFIG.width / 2}
+			y={CONFIG.height / 2}
+			radius={100}
+			scaleX={0}
+			scaleY={0}
+			fill='#ededed'
+			ref={ref =>
+				ref?.to({
+					scaleX: 5,
+					scaleY: 5,
+					duration: 0.4,
+					onFinish: () => {
+						setTimeout(() => {
 							ref?.to({ y: CONFIG.height + 900, duration: 0.4 })
-						},
-					})
-				}
-			/>
-		</>
-	)
-
+						}, 100)
+					},
+				})
+			}
+		/>
+		<Circle
+			x={CONFIG.width / 2}
+			y={CONFIG.height / 2}
+			radius={50}
+			scaleX={0}
+			scaleY={0}
+			fill='#ffffff'
+			ref={ref =>
+				ref?.to({
+					scaleX: 5,
+					scaleY: 5,
+					duration: 0.4,
+					onFinish: () => {
+						ref?.to({ y: CONFIG.height + 900, duration: 0.4 })
+					},
+				})
+			}
+		/>
+	</>
+)
 
 export const DevsForUkraineTransition = ({
 	direction,
@@ -2346,75 +2343,73 @@ export const MultiCircleCenterGrow = ({
 }: {
 	performFinishAction?: () => void
 	colors?: string[]
-}) =>
-	 (
-		<>
-			<Circle
-				x={CONFIG.width / 2}
-				y={CONFIG.height / 2}
-				radius={150}
-				scaleX={0}
-				scaleY={0}
-				fill={colors ? colors[0] : '#ffffff'}
-				ref={ref => {
-					// reduceSplashAudioVolume(0.01)
+}) => (
+	<>
+		<Circle
+			x={CONFIG.width / 2}
+			y={CONFIG.height / 2}
+			radius={150}
+			scaleX={0}
+			scaleY={0}
+			fill={colors ? colors[0] : '#ffffff'}
+			ref={ref => {
+				// reduceSplashAudioVolume(0.01)
+				ref?.to({
+					scaleX: 5,
+					scaleY: 5,
+					duration: 0.5,
+					// easing: Konva.Easings.EaseOut,
+				})
+			}}
+		/>
+		<Circle
+			x={CONFIG.width / 2}
+			y={CONFIG.height / 2}
+			radius={100}
+			scaleX={0}
+			scaleY={0}
+			fill={colors ? colors[1] : '#D1D5DB'}
+			ref={ref =>
+				setTimeout(() => {
 					ref?.to({
 						scaleX: 5,
 						scaleY: 5,
 						duration: 0.5,
 						// easing: Konva.Easings.EaseOut,
 					})
-				}}
-			/>
-			<Circle
-				x={CONFIG.width / 2}
-				y={CONFIG.height / 2}
-				radius={100}
-				scaleX={0}
-				scaleY={0}
-				fill={colors ? colors[1] : '#D1D5DB'}
-				ref={ref =>
-					setTimeout(() => {
-						ref?.to({
-							scaleX: 5,
-							scaleY: 5,
-							duration: 0.5,
-							// easing: Konva.Easings.EaseOut,
-						})
-					}, 200)
-				}
-			/>
-			<Circle
-				x={CONFIG.width / 2}
-				y={CONFIG.height / 2}
-				radius={50}
-				scaleX={0}
-				scaleY={0}
-				fill={colors ? colors[2] : '#4B5563'}
-				ref={ref =>
-					setTimeout(() => {
-						ref?.to({
-							scaleX: 5,
-							scaleY: 5,
-							duration: 0.5,
-							// easing: Konva.Easings.EaseIn,
-							onFinish: () => {
-								if (!performFinishAction) return
-								// reduceSplashAudioVolume(0.0)
-								// setTimeout(() => {
-								//   reduceSplashAudioVolume(0.0)
-								// }, 200)
-								setTimeout(() => {
-									performFinishAction()
-								}, 400)
-							},
-						})
-					}, 300)
-				}
-			/>
-		</>
-	)
-
+				}, 200)
+			}
+		/>
+		<Circle
+			x={CONFIG.width / 2}
+			y={CONFIG.height / 2}
+			radius={50}
+			scaleX={0}
+			scaleY={0}
+			fill={colors ? colors[2] : '#4B5563'}
+			ref={ref =>
+				setTimeout(() => {
+					ref?.to({
+						scaleX: 5,
+						scaleY: 5,
+						duration: 0.5,
+						// easing: Konva.Easings.EaseIn,
+						onFinish: () => {
+							if (!performFinishAction) return
+							// reduceSplashAudioVolume(0.0)
+							// setTimeout(() => {
+							//   reduceSplashAudioVolume(0.0)
+							// }, 200)
+							setTimeout(() => {
+								performFinishAction()
+							}, 400)
+						},
+					})
+				}, 300)
+			}
+		/>
+	</>
+)
 
 export const MultiCircleMoveDown = ({
 	performFinishAction,
@@ -2423,58 +2418,58 @@ export const MultiCircleMoveDown = ({
 	performFinishAction?: () => void
 	colors?: string[]
 }) => (
-		<>
-			<Circle
-				x={CONFIG.width / 2}
-				y={CONFIG.height / 2}
-				radius={600}
-				fill={colors ? colors[0] : '#ffffff'}
-				ref={ref =>
-					setTimeout(() => {
-						ref?.to({
-							y: CONFIG.height + 700,
-							duration: 0.3,
-							// easing: Konva.Easings.EaseOut,
-							onFinish: () => {
-								if (!performFinishAction) return
-								setTimeout(() => {
-									performFinishAction()
-								}, 300)
-							},
-						})
-					}, 250)
-				}
-			/>
-			<Circle
-				x={CONFIG.width / 2}
-				y={CONFIG.height / 2}
-				radius={400}
-				fill={colors ? colors[1] : '#D1D5DB'}
-				ref={ref =>
-					setTimeout(() => {
-						ref?.to({
-							y: CONFIG.height + 500,
-							duration: 0.3,
-							// easing: Konva.Easings.EaseOut,
-						})
-					}, 125)
-				}
-			/>
-			<Circle
-				x={CONFIG.width / 2}
-				y={CONFIG.height / 2}
-				radius={200}
-				fill={colors ? colors[2] : '#4B5563'}
-				ref={ref =>
+	<>
+		<Circle
+			x={CONFIG.width / 2}
+			y={CONFIG.height / 2}
+			radius={600}
+			fill={colors ? colors[0] : '#ffffff'}
+			ref={ref =>
+				setTimeout(() => {
 					ref?.to({
-						y: CONFIG.height + 300,
+						y: CONFIG.height + 700,
 						duration: 0.3,
-						// easing: Konva.Easings.EaseIn,
+						// easing: Konva.Easings.EaseOut,
+						onFinish: () => {
+							if (!performFinishAction) return
+							setTimeout(() => {
+								performFinishAction()
+							}, 300)
+						},
 					})
-				}
-			/>
-		</>
-	)
+				}, 250)
+			}
+		/>
+		<Circle
+			x={CONFIG.width / 2}
+			y={CONFIG.height / 2}
+			radius={400}
+			fill={colors ? colors[1] : '#D1D5DB'}
+			ref={ref =>
+				setTimeout(() => {
+					ref?.to({
+						y: CONFIG.height + 500,
+						duration: 0.3,
+						// easing: Konva.Easings.EaseOut,
+					})
+				}, 125)
+			}
+		/>
+		<Circle
+			x={CONFIG.width / 2}
+			y={CONFIG.height / 2}
+			radius={200}
+			fill={colors ? colors[2] : '#4B5563'}
+			ref={ref =>
+				ref?.to({
+					y: CONFIG.height + 300,
+					duration: 0.3,
+					// easing: Konva.Easings.EaseIn,
+				})
+			}
+		/>
+	</>
+)
 
 export const MutipleRectMoveRight = ({
 	performFinishAction,
@@ -2681,54 +2676,54 @@ export const CircleShrink = ({
 }: {
 	performFinishAction?: () => void
 }) => (
-		<Circle
-			x={-200}
-			y={CONFIG.height / 2}
-			radius={100}
-			scaleX={18}
-			scaleY={18}
-			fill='#16A34A'
-			ref={ref =>
-				ref?.to({
-					scaleX: 0,
-					scaleY: 0,
-					duration: 1,
-					onFinish: () => {
-						if (!performFinishAction) return
-						setTimeout(() => {
-							performFinishAction()
-						}, 200)
-					},
-				})
-			}
-		/>
-	)
+	<Circle
+		x={-200}
+		y={CONFIG.height / 2}
+		radius={100}
+		scaleX={18}
+		scaleY={18}
+		fill='#16A34A'
+		ref={ref =>
+			ref?.to({
+				scaleX: 0,
+				scaleY: 0,
+				duration: 1,
+				onFinish: () => {
+					if (!performFinishAction) return
+					setTimeout(() => {
+						performFinishAction()
+					}, 200)
+				},
+			})
+		}
+	/>
+)
 
 export const CircleGrow = ({
 	performFinishAction,
 }: {
 	performFinishAction?: () => void
 }) => (
-		<Circle
-			x={CONFIG.width + 100}
-			y={CONFIG.height / 2}
-			radius={100}
-			fill='#16A34A'
-			ref={ref =>
-				ref?.to({
-					scaleX: 20,
-					scaleY: 20,
-					duration: 1,
-					onFinish: () => {
-						if (!performFinishAction) return
-						setTimeout(() => {
-							performFinishAction()
-						}, 200)
-					},
-				})
-			}
-		/>
-	)
+	<Circle
+		x={CONFIG.width + 100}
+		y={CONFIG.height / 2}
+		radius={100}
+		fill='#16A34A'
+		ref={ref =>
+			ref?.to({
+				scaleX: 20,
+				scaleY: 20,
+				duration: 1,
+				onFinish: () => {
+					if (!performFinishAction) return
+					setTimeout(() => {
+						performFinishAction()
+					}, 200)
+				},
+			})
+		}
+	/>
+)
 
 export const CircleCenterShrink = ({
 	performFinishAction,
@@ -2737,212 +2732,212 @@ export const CircleCenterShrink = ({
 	performFinishAction?: () => void
 	color?: string
 }) => (
-		<Circle
-			x={CONFIG.width / 2}
-			y={CONFIG.height / 2}
-			radius={600}
-			fill={!color ? '#16A34A' : color}
-			ref={ref =>
-				ref?.to({
-					scaleX: 0,
-					scaleY: 0,
-					duration: 0.3,
-					onFinish: () => {
-						ref?.to({ opacity: 0 })
-						if (!performFinishAction) return
-						setTimeout(() => {
-							performFinishAction()
-						}, 200)
-					},
-				})
-			}
-		/>
-	)
+	<Circle
+		x={CONFIG.width / 2}
+		y={CONFIG.height / 2}
+		radius={600}
+		fill={!color ? '#16A34A' : color}
+		ref={ref =>
+			ref?.to({
+				scaleX: 0,
+				scaleY: 0,
+				duration: 0.3,
+				onFinish: () => {
+					ref?.to({ opacity: 0 })
+					if (!performFinishAction) return
+					setTimeout(() => {
+						performFinishAction()
+					}, 200)
+				},
+			})
+		}
+	/>
+)
 
 export const CircleCenterGrow = ({
 	performFinishAction,
 }: {
 	performFinishAction?: () => void
 }) => (
-		<Circle
-			x={CONFIG.width / 2}
-			y={CONFIG.height / 2}
-			radius={100}
-			scaleX={0}
-			scaleY={0}
-			fill='#16A34A'
-			ref={ref =>
-				ref?.to({
-					scaleX: 10,
-					scaleY: 10,
-					duration: 0.15,
-					onFinish: () => {
-						if (!performFinishAction) return
-						setTimeout(() => {
-							performFinishAction()
-						}, 200)
-					},
-				})
-			}
-		/>
-	)
+	<Circle
+		x={CONFIG.width / 2}
+		y={CONFIG.height / 2}
+		radius={100}
+		scaleX={0}
+		scaleY={0}
+		fill='#16A34A'
+		ref={ref =>
+			ref?.to({
+				scaleX: 10,
+				scaleY: 10,
+				duration: 0.15,
+				onFinish: () => {
+					if (!performFinishAction) return
+					setTimeout(() => {
+						performFinishAction()
+					}, 200)
+				},
+			})
+		}
+	/>
+)
 
 export const RectCenterGrow = ({
 	performFinishAction,
 }: {
 	performFinishAction?: () => void
 }) => (
-		<Rect
-			x={0}
-			y={CONFIG.height / 2}
-			fill='#16A34A'
-			width={CONFIG.width}
-			height={1}
-			ref={ref =>
-				ref?.to({
-					height: CONFIG.height,
-					y: 0,
-					duration: 0.2,
-					easing: Konva.Easings.EaseOut,
-					onFinish: () => {
-						if (!performFinishAction) return
-						setTimeout(() => {
-							performFinishAction()
-						}, 200)
-					},
-				})
-			}
-		/>
-	)
+	<Rect
+		x={0}
+		y={CONFIG.height / 2}
+		fill='#16A34A'
+		width={CONFIG.width}
+		height={1}
+		ref={ref =>
+			ref?.to({
+				height: CONFIG.height,
+				y: 0,
+				duration: 0.2,
+				easing: Konva.Easings.EaseOut,
+				onFinish: () => {
+					if (!performFinishAction) return
+					setTimeout(() => {
+						performFinishAction()
+					}, 200)
+				},
+			})
+		}
+	/>
+)
 
 export const RectCenterShrink = ({
 	performFinishAction,
 }: {
 	performFinishAction?: () => void
 }) => (
-		<Rect
-			x={0}
-			y={0}
-			fill='#16A34A'
-			width={CONFIG.width}
-			height={CONFIG.height}
-			opacity={1}
-			ref={ref =>
-				ref?.to({
-					height: 240,
-					y: CONFIG.height / 2 - 120,
-					duration: 0.2,
-					easing: Konva.Easings.EaseOut,
-					onFinish: () => {
-						ref?.to({ opacity: 0 })
-						if (!performFinishAction) return
-						setTimeout(() => {
-							performFinishAction()
-						}, 200)
-					},
-				})
-			}
-		/>
-	)
+	<Rect
+		x={0}
+		y={0}
+		fill='#16A34A'
+		width={CONFIG.width}
+		height={CONFIG.height}
+		opacity={1}
+		ref={ref =>
+			ref?.to({
+				height: 240,
+				y: CONFIG.height / 2 - 120,
+				duration: 0.2,
+				easing: Konva.Easings.EaseOut,
+				onFinish: () => {
+					ref?.to({ opacity: 0 })
+					if (!performFinishAction) return
+					setTimeout(() => {
+						performFinishAction()
+					}, 200)
+				},
+			})
+		}
+	/>
+)
 
 export const MutipleRectMoveCenter = ({
 	performFinishAction,
 }: {
 	performFinishAction?: () => void
 }) => (
-		<>
-			<Rect
-				x={-CONFIG.width / 2}
-				y={0}
-				fillLinearGradientColorStops={[0, '#EE676D', 1, '#CB56AF']}
-				fillLinearGradientStartPoint={{ x: 0, y: 0 }}
-				fillLinearGradientEndPoint={{
+	<>
+		<Rect
+			x={-CONFIG.width / 2}
+			y={0}
+			fillLinearGradientColorStops={[0, '#EE676D', 1, '#CB56AF']}
+			fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+			fillLinearGradientEndPoint={{
+				x: 0,
+				y: CONFIG.height,
+			}}
+			width={CONFIG.width / 2}
+			height={CONFIG.height}
+			ref={ref =>
+				ref?.to({
 					x: 0,
-					y: CONFIG.height,
-				}}
-				width={CONFIG.width / 2}
-				height={CONFIG.height}
-				ref={ref =>
-					ref?.to({
-						x: 0,
-						duration: 0.3,
-						easing: Konva.Easings.EaseOut,
-						onFinish: () => {
-							if (!performFinishAction) return
-							setTimeout(() => {
-								performFinishAction()
-							}, 300)
-						},
-					})
-				}
-			/>
-			<Rect
-				x={CONFIG.width}
-				y={0}
-				// fill="#558FF6"
-				fillLinearGradientColorStops={[0, '#0093E9', 1, '#80D0C7']}
-				fillLinearGradientStartPoint={{ x: 0, y: 0 }}
-				fillLinearGradientEndPoint={{
-					x: 0,
-					y: CONFIG.height,
-				}}
-				width={CONFIG.width / 2}
-				height={CONFIG.height}
-				ref={ref =>
-					ref?.to({
-						x: CONFIG.width / 2,
-						duration: 0.3,
-						easing: Konva.Easings.EaseOut,
-					})
-				}
-			/>
-		</>
-	)
+					duration: 0.3,
+					easing: Konva.Easings.EaseOut,
+					onFinish: () => {
+						if (!performFinishAction) return
+						setTimeout(() => {
+							performFinishAction()
+						}, 300)
+					},
+				})
+			}
+		/>
+		<Rect
+			x={CONFIG.width}
+			y={0}
+			// fill="#558FF6"
+			fillLinearGradientColorStops={[0, '#0093E9', 1, '#80D0C7']}
+			fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+			fillLinearGradientEndPoint={{
+				x: 0,
+				y: CONFIG.height,
+			}}
+			width={CONFIG.width / 2}
+			height={CONFIG.height}
+			ref={ref =>
+				ref?.to({
+					x: CONFIG.width / 2,
+					duration: 0.3,
+					easing: Konva.Easings.EaseOut,
+				})
+			}
+		/>
+	</>
+)
 
 export const MutipleRectMoveAway = ({
 	performFinishAction,
 }: {
 	performFinishAction?: () => void
 }) => (
-		<>
-			<Rect
-				x={0}
-				y={0}
-				fillLinearGradientColorStops={[0, '#EE676D', 1, '#CB56AF']}
-				fillLinearGradientStartPoint={{ x: 0, y: 0 }}
-				fillLinearGradientEndPoint={{
-					x: 0,
-					y: CONFIG.height,
-				}}
-				width={CONFIG.width / 2}
-				height={CONFIG.height}
-				ref={ref =>
-					ref?.to({
-						x: -CONFIG.width / 2,
-						duration: 0.3,
-						easing: Konva.Easings.EaseOut,
-						onFinish: () => {
-							if (!performFinishAction) return
-							setTimeout(() => {
-								performFinishAction()
-							}, 300)
-						},
-					})
-				}
-			/>
-			<Rect
-				x={CONFIG.width / 2}
-				y={0}
-				fill='#558FF6'
-				width={CONFIG.width / 2}
-				height={CONFIG.height}
-				ref={ref =>
-					ref?.to({
-						x: CONFIG.width,
-						duration: 0.3,
-						easing: Konva.Easings.EaseOut,
-					})
-				}
-			/>
-		</>
-	)
+	<>
+		<Rect
+			x={0}
+			y={0}
+			fillLinearGradientColorStops={[0, '#EE676D', 1, '#CB56AF']}
+			fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+			fillLinearGradientEndPoint={{
+				x: 0,
+				y: CONFIG.height,
+			}}
+			width={CONFIG.width / 2}
+			height={CONFIG.height}
+			ref={ref =>
+				ref?.to({
+					x: -CONFIG.width / 2,
+					duration: 0.3,
+					easing: Konva.Easings.EaseOut,
+					onFinish: () => {
+						if (!performFinishAction) return
+						setTimeout(() => {
+							performFinishAction()
+						}, 300)
+					},
+				})
+			}
+		/>
+		<Rect
+			x={CONFIG.width / 2}
+			y={0}
+			fill='#558FF6'
+			width={CONFIG.width / 2}
+			height={CONFIG.height}
+			ref={ref =>
+				ref?.to({
+					x: CONFIG.width,
+					duration: 0.3,
+					easing: Konva.Easings.EaseOut,
+				})
+			}
+		/>
+	</>
+)

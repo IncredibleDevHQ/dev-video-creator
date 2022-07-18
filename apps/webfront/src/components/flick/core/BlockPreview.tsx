@@ -24,7 +24,7 @@ const BlockPreview = () => {
 	const flickId = useRecoilValue(flickAtom)?.id
 	const activeFragmentId = useRecoilValue(activeFragmentIdAtom)
 	const block = useRecoilValue(currentBlockSelector)
-  const openStudio = useRecoilValue(openStudioAtom)
+	const openStudio = useRecoilValue(openStudioAtom)
 
 	const { blockProperties } = useBlock(
 		activeFragmentId as string,

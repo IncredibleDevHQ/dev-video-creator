@@ -65,7 +65,7 @@ const OutroFragment = ({
 		blockId,
 		shouldUpdateLiveblocks: !isPreview,
 	})
-  const setControlsConfig = useSetRecoilState(controlsConfigAtom)
+	const setControlsConfig = useSetRecoilState(controlsConfigAtom)
 	const { storage } = useEnv()
 
 	const [logo] = useImage(branding?.logo || '', 'anonymous')
@@ -114,11 +114,11 @@ const OutroFragment = ({
 
 	useEffect(() => {
 		if (!reset) return
-    setControlsConfig({
+		setControlsConfig({
 			updatePayload,
 			blockId,
 		})
-    updatePayload({
+		updatePayload({
 			activeOutroIndex: 0,
 		})
 		// eslint-disable-next-line consistent-return
@@ -613,7 +613,7 @@ const OutroFragment = ({
 			blockType='outroBlock'
 			studioUserConfig={studioUserConfig}
 			isShorts={isShorts}
-      speakersLength={1}
+			speakersLength={1}
 		/>
 	)
 }
