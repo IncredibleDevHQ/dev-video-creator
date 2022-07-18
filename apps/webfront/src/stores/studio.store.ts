@@ -111,6 +111,11 @@ export const isStudioControllerAtom = atom<boolean>({
 	default: false,
 })
 
+export const recordedBlocksAtom = atom<{ [key: string]: string }>({
+	key: 'recordedBlocks',
+	default: {},
+})
+
 export const codePreviewStore = atom<number>({
 	key: 'codePreview',
 	default: 0,

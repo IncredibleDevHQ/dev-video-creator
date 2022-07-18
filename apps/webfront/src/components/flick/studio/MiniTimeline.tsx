@@ -6,11 +6,11 @@ import { useRecoilValue } from 'recoil'
 import {
 	activeObjectIndexAtom,
 	isStudioControllerAtom,
+	recordedBlocksAtom,
 	StudioState,
 	studioStateAtom,
 } from 'src/stores/studio.store'
 import useUpdateActiveObjectIndex from 'src/utils/hooks/useUpdateActiveObjectIndex'
-import { useMap } from 'src/utils/liveblocks.config'
 
 const noScrollBar = css`
 	::-webkit-scrollbar {
@@ -54,7 +54,8 @@ const MiniTimeline = ({
 	const state = useRecoilValue(studioStateAtom)
 	const activeObjectIndex = useRecoilValue(activeObjectIndexAtom)
 	const isStudioController = useRecoilValue(isStudioControllerAtom)
-	const recordedBlocks = useMap('recordedBlocks')
+	// const recordedBlocks = useMap('recordedBlocks')
+	const recordedBlocks = useRecoilValue(recordedBlocksAtom)
 	const { updateActiveObjectIndex } = useUpdateActiveObjectIndex(true)
 
 	return (
@@ -73,9 +74,9 @@ const MiniTimeline = ({
 				{
 					'pointer-events-none':
 						state === 'preview'
-							? recordedBlocks
-									?.get(dataConfig[activeObjectIndex].id)
-									?.includes('blob') || false
+							? recordedBlocks[dataConfig[activeObjectIndex].id]?.includes(
+									'blob'
+							  ) || false
 							: false,
 				},
 				noScrollBar
@@ -93,7 +94,7 @@ const MiniTimeline = ({
 							'bg-grey-900 text-gray-500': index !== activeObjectIndex,
 							'cursor-not-allowed':
 								state === 'recording' ||
-								(recordedBlocks?.get(dataConfig[index].id)?.includes('blob') &&
+								(recordedBlocks[dataConfig[index].id]?.includes('blob') &&
 									state === 'preview') ||
 								!isStudioController,
 						}
@@ -104,7 +105,7 @@ const MiniTimeline = ({
 						if (
 							(continuousRecording && state === 'preview') ||
 							state === 'recording' ||
-							(recordedBlocks?.get(dataConfig[index].id)?.includes('blob') &&
+							(recordedBlocks[dataConfig[index].id]?.includes('blob') &&
 								state === 'preview')
 						) {
 							// TODO emit toast to notify the user to svae and proceed
@@ -112,14 +113,14 @@ const MiniTimeline = ({
 						}
 						updateActiveObjectIndex(index)
 						// checking if block is recorded or not
-						if (recordedBlocks?.get(dataConfig[index].id)) {
+						if (recordedBlocks[dataConfig[index].id]) {
 							updateState('preview')
 						} else {
 							updateState('resumed')
 						}
 					}}
 				>
-					{recordedBlocks?.get(dataConfig[index].id)?.includes('.webm') && (
+					{recordedBlocks[dataConfig[index].id]?.includes('.webm') && (
 						<div className='absolute top-0 right-0 rounded-tr-sm rounded-bl-sm bg-green-600'>
 							<IoCheckmarkOutline className='m-px text-gray-200' size={8} />
 						</div>

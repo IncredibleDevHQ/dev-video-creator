@@ -46,11 +46,24 @@ fragment Recording on Recording {
 	storyboard
 }
 
+fragment RecordedBlocks on Blocks {
+	id
+	objectUrl
+	thumbnail
+	updatedAt
+}
+
 query GetRecordings($flickId: uuid, $fragmentId: uuid) {
 	Recording(
 		where: { flickId: { _eq: $flickId }, fragmentId: { _eq: $fragmentId } }
 	) {
 		...Recording
+	}
+}
+
+query GetRecordedBlocks($recordingId: uuid) {
+	Blocks(where: { recordingId: { _eq: $recordingId } }) {
+		...RecordedBlocks
 	}
 }
 
