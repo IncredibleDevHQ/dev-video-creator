@@ -537,31 +537,24 @@ model Profile {
 }
 
 model Recording {
-  id                    String                @id @default(uuid()) @db.VarChar(32)
-  url                   String?
-  editorState           Json?                 @db.Json
-  viewConfig            Json?                 @db.Json
-  flickId               String                @db.VarChar(32)
-  fragmentId            String                @db.VarChar(32)
-  thumbnail             String?
-  storyboard            String?
-  status                String
-  checkpoint            Json?                 @db.Json
-  type                  String?
-  Flick                 Flick                 @relation(fields: [flickId], references: [id], onDelete: Cascade)
-  Fragment              Fragment              @relation(fields: [fragmentId], references: [id], onDelete: Cascade)
-  RECORDING_STATUS_ENUM RECORDING_STATUS_ENUM @relation(fields: [status], references: [value])
-  CONTENT_TYPE_ENUM     CONTENT_TYPE_ENUM?    @relation(fields: [type], references: [value], onDelete: Restrict)
-  Blocks                Blocks[]
-  YoutubeUploads        YoutubeUploads?
+  id                String             @id @default(uuid()) @db.VarChar(32)
+  url               String?
+  editorState       Json?              @db.Json
+  viewConfig        Json?              @db.Json
+  flickId           String             @db.VarChar(32)
+  fragmentId        String             @db.VarChar(32)
+  thumbnail         String?
+  storyboard        String?
+  status            String
+  checkpoint        Json?              @db.Json
+  type              String?
+  Flick             Flick              @relation(fields: [flickId], references: [id], onDelete: Cascade)
+  Fragment          Fragment           @relation(fields: [fragmentId], references: [id], onDelete: Cascade)
+  CONTENT_TYPE_ENUM CONTENT_TYPE_ENUM? @relation(fields: [type], references: [value], onDelete: Restrict)
+  Blocks            Blocks[]
+  YoutubeUploads    YoutubeUploads?
 
   @@index([flickId, fragmentId])
-}
-
-model RECORDING_STATUS_ENUM {
-  value       String      @id
-  description String?
-  Recording   Recording[]
 }
 
 model Series {
