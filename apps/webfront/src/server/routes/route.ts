@@ -3,11 +3,13 @@ import userRouter from './user'
 import utilsRouter from './utils'
 import storyRouter from './story'
 import collaborateRouter from './collaborate'
+import fragmentRouter from './fragment'
 
 const appRouter = createRouter()
 	.merge('user.', userRouter)
 	.merge('util.', utilsRouter)
 	.merge('story.', storyRouter)
+	.merge('fragment', fragmentRouter)
 	.merge('collab.', collaborateRouter)
 	.query('healthz', {
 		async resolve() {
