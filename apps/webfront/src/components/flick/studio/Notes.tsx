@@ -1,9 +1,18 @@
-import { css, cx } from "@emotion/css"
-import { Block, CodeBlockProps, HeadingBlockProps, ImageBlockProps, IntroBlockProps, ListBlockProps, OutroBlockProps, VideoBlockProps } from "editor/src/utils/types"
-import { useMemo } from "react"
-import { RectReadOnly } from "react-use-measure"
-import { useRecoilValue } from "recoil"
-import { activeObjectIndexAtom } from "src/stores/studio.store"
+import { css, cx } from '@emotion/css'
+import {
+	Block,
+	CodeBlockProps,
+	HeadingBlockProps,
+	ImageBlockProps,
+	IntroBlockProps,
+	ListBlockProps,
+	OutroBlockProps,
+	VideoBlockProps,
+} from 'editor/src/utils/types'
+import { useMemo } from 'react'
+import { RectReadOnly } from 'react-use-measure'
+import { useRecoilValue } from 'recoil'
+import { activeObjectIndexAtom } from 'src/stores/studio.store'
 
 export const customScroll = css`
 	::-webkit-scrollbar {
@@ -25,7 +34,7 @@ export const customScroll = css`
 
 const Notes = ({
 	dataConfig,
-  bounds,
+	bounds,
 }: {
 	dataConfig: Block[]
 	bounds: RectReadOnly
@@ -100,13 +109,13 @@ const Notes = ({
 		}
 	}, [activeObjectIndex, dataConfig])
 	return (
-		<div className='col-span-2 col-start-11 w-full px-6'>
+		<div className='col-span-2 col-start-11 w-full'>
 			<div
 				style={{
 					height: `${bounds.height * 0.6}px`,
 				}}
 				className={cx(
-					'h-full p-2 bg-zinc-800/90 border-1 border-zinc-600 text-gray-100 text-center rounded-sm outline-none focus:outline-none  overflow-y-scroll',
+					'h-full w-[192px] mx-auto p-3 bg-zinc-800/90 border border-[#52525B] text-gray-100 text-left text-size-sm font-body rounded-sm outline-none focus:outline-none  overflow-y-auto whitespace-pre',
 					customScroll
 				)}
 			>
