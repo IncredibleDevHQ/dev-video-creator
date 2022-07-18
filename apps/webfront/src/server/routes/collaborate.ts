@@ -33,13 +33,20 @@ const sendCollaborationInvite = async (
 		senderId: string
 	}
 ): Promise<{ success: boolean }> => {
+	if (!ctx.user?.sub) {
+		throw new TRPCError({
+			code: 'UNAUTHORIZED',
+			message: 'Invalid Auth Token',
+		})
+	}
+
 	// Create invitation
 	const invitation = await ctx.prisma.invitations.create({
 		data: {
 			message: input.message,
 			receiverId: input.receiverId,
-			senderId: ctx.user!.sub,
-			status: InvitationStatusEnum.Pending,
+			senderId: ctx.user.sub,
+			status: InvitationStatusEnum.Pending.toString(),
 			type: 'Invite',
 			flickId: input.flickId,
 		},
@@ -224,7 +231,11 @@ const collaborateRouter = trpc
 			const ownerParticipant = flick?.Participants.find(
 				p => p.userSub === ctx.user!.sub
 			)
-			if (!ownerParticipant || flick?.ownerId !== ownerParticipant.id) {
+			if (
+				!ownerParticipant ||
+				flick?.ownerId !== ownerParticipant.id ||
+				!ctx.user?.sub
+			) {
 				throw new TRPCError({
 					code: 'UNAUTHORIZED',
 					message: 'Unauthorized, only the story owner can invite new members.',
@@ -283,6 +294,12 @@ const collaborateRouter = trpc
 			nid: z.string(),
 		}),
 		resolve: async ({ ctx, input }) => {
+			if (!ctx.user?.sub) {
+				throw new TRPCError({
+					code: 'UNAUTHORIZED',
+					message: 'Invalid Auth Token',
+				})
+			}
 			// validate requestUser === invite receiver
 			const invite = await ctx.prisma.invitations.findUnique({
 				where: {
@@ -336,7 +353,7 @@ const collaborateRouter = trpc
 				})
 			} else {
 				// If Accepted
-				if (!invite.Flick?.id) {
+				if (!invite?.Flick?.id) {
 					throw new TRPCError({
 						code: 'INTERNAL_SERVER_ERROR',
 						message: 'Story for this invite could not be found',

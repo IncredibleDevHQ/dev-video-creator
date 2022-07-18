@@ -14,7 +14,7 @@ async function getUserFromRequestHeader(authHeader: string) {
 	if (token) {
 		try {
 			const v = await verifyJwt(token)
-			return v
+			return { ...v, token }
 		} catch (e) {
 			// TODO: Add logger
 			return null

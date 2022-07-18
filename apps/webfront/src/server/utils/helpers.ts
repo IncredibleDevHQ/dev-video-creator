@@ -3,14 +3,82 @@ import * as crypto from 'crypto'
 import axios from 'axios'
 import { createClient } from 'redis'
 import { TRPCError } from '@trpc/server'
+import { PrismaClient } from '@prisma/client'
+import Mux from '@mux/mux-node'
+import { s3 } from 'src/utils/aws'
 import serverEnvs from '../../utils/env'
 import {
 	sendTransactionalEmail,
 	TransactionalMailType,
 } from './transactionalEmail'
 
+// Delete on mux
+const { Video: MuxVideo } = new Mux(
+	serverEnvs.MUX_TOKEN_ID, // config.services.mux.tokenId,
+	serverEnvs.MUX_TOKEN_SECRET, // config.services.mux.tokenSecret,
+	{}
+)
 export interface Meta {
 	hasAuth: boolean // can be used to disable auth for this specific routes
+}
+
+export interface EditorState {
+	blocks?: BlocksEntity[]
+}
+
+export interface BlocksEntity {
+	pos: number
+	introBlock?: any | null
+	id: string
+	type: string
+	listBlock?: any | null
+	nodeIds?: (string | null)[] | null
+	imageBlock?: any | null
+	videoBlock?: any | null
+	codeBlock?: any | null
+	headingBlock?: any | null
+	interactionBlock?: any | null
+	ts: Date
+	url: string
+}
+export interface CallToAction {
+	seconds: number
+	text?: string
+	url?: string
+}
+
+export interface BlockParticipant {
+	username?: string
+	displayName?: string
+	picture?: string
+}
+
+export interface BlockMeta {
+	id: string
+	playbackDuration: number
+	thumbnail?: string
+	title: string
+	type: string
+	participants: BlockParticipant[]
+	code: string | undefined
+	interactionUrl: string | undefined
+	interactionType: string | undefined
+}
+
+export interface IPublish {
+	title?: string
+	description?: string
+	thumbnail?: {
+		objectId?: string
+		method?: 'generated' | 'uploaded'
+	}
+	ctas: CallToAction[]
+	blocks: BlockMeta[]
+	discordCTA?: { url: string; text: string }
+}
+
+export interface MuxMetaPassThrough {
+	contentId: string
 }
 
 export enum FragmentTypeEnum {
@@ -57,6 +125,12 @@ export enum ParticipantRoleEnum {
 	Viewer = 'Viewer',
 }
 
+export enum ContentTypeEnum {
+	Blog = 'Blog',
+	VerticalVideo = 'VerticalVideo',
+	Video = 'Video',
+}
+
 export const initFirebaseAdmin = () => {
 	if (!admin.apps.length && serverEnvs.FIREBASE_SERVICE_CONFIG) {
 		return admin.initializeApp({
@@ -74,6 +148,12 @@ export const redisClient = createClient({
 		port: Number(serverEnvs.REDIS_PORT),
 	},
 })
+
+export const validateEmail = (email: string) => {
+	const re =
+		/^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+	return re.test(String(email).toLowerCase())
+}
 
 export function generateSuggestionsFromEmail(email: string): string[] {
 	const suggestions = []
@@ -192,4 +272,144 @@ export const sendInviteEmail = async (
 			storyTitle: flick?.name || 'New Story',
 		},
 	})
+}
+
+export const getBlockTitle = (block: BlocksEntity): string => {
+	switch (block.type) {
+		case 'introBlock':
+			return 'Intro'
+		case 'codeBlock':
+			return (
+				block.codeBlock.title || block.codeBlock.fallbackTitle || 'Code Block'
+			)
+		case 'listBlock':
+			return (
+				block.listBlock.title || block.listBlock.fallbackTitle || 'List Block'
+			)
+		case 'imageBlock':
+			return (
+				block.imageBlock.title ||
+				block.imageBlock.fallbackTitle ||
+				'Image Block'
+			)
+		case 'videoBlock':
+			return (
+				block.videoBlock.title ||
+				block.videoBlock.fallbackTitle ||
+				'Video Block'
+			)
+		case 'headingBlock':
+			return block.headingBlock.title || 'Heading Block'
+		case 'outroBlock':
+			return 'Outro'
+
+		case 'interactionBlock':
+			return (
+				block.interactionBlock.title ||
+				block.interactionBlock.fallbackTitle ||
+				'Interaction Block'
+			)
+
+		default:
+			return 'Block'
+	}
+}
+
+/*
+  We dont throw an exception for delete currently because current flow will try to delete non-existing asset which was
+  created b4 mux migration.
+*/
+export const DeleteMuxAsset = async (
+	contentId: string,
+	prisma: PrismaClient
+) => {
+	console.log(`Deleting Mux Asset for contentId ${contentId}`)
+	// Mark as delete on MuxTracking table on DB
+	const muxDel = await prisma.mux_Assets.delete({
+		where: {
+			contentId,
+		},
+		select: {
+			muxAssetId: true,
+		},
+	})
+	if (!muxDel) {
+		console.log('Failed to mark Mux Asset as deleted on psql tracker table')
+		// Sentry.captureException(
+		// 	'Error Deleting mux asset:' + muxDel.errors[0].message
+		// )
+		return
+	}
+
+	const res = await MuxVideo.Assets.del(muxDel.muxAssetId)
+	if (!res) {
+		console.log('Error deleting video on Mux : ', JSON.stringify(res.data))
+		// Sentry.captureException(
+		// 	new Error('cid: ' + contentId + 'Error deleting video on Mux')
+		// )
+		// throw new Error("Mux error: " + JSON.stringify(res.data));
+	}
+	console.log('DeleteMuxAsset completed with res : ', res)
+}
+
+export const AddVideoToMux = async (
+	objectKey: string,
+	passThrough: MuxMetaPassThrough
+) => {
+	// get pre-signed url for the object to send to mux
+	const presignedUrl = s3.getSignedUrl('getObject', {
+		Bucket: serverEnvs.AWS_S3_UPLOAD_BUCKET,
+		Key: objectKey,
+		Expires: 300, // in seconds
+	})
+	const res = await MuxVideo.Assets.create({
+		input: presignedUrl,
+		playback_policy: 'public',
+		passthrough: JSON.stringify(passThrough), // NOTE: mux has a character limit on this - Max: 255 characters.
+		test: false, // config.env === "development" ? true : false,
+	})
+	if (!res) {
+		console.log('Error adding video to Mux')
+		throw new Error('Mux error')
+	}
+	return res
+}
+
+export const CreateMuxAsset = async (
+	prisma: PrismaClient,
+	objectKey: string,
+	contentId: string
+) => {
+	console.log('Creating mux asset for content Id ', contentId)
+	// Add video to mux for streaming
+	const muxAsset = await AddVideoToMux(objectKey, { contentId })
+
+	if (!muxAsset) {
+		throw new Error('Failed to add video to mux')
+	}
+
+	if (
+		!muxAsset.playback_ids ||
+		muxAsset.playback_ids.length < 1 ||
+		!muxAsset.playback_ids[0].id ||
+		!muxAsset.playback_ids[0].policy
+	) {
+		throw new Error(
+			`Invalid playback id in muxAsset: ${JSON.stringify(muxAsset)}`
+		)
+	}
+
+	// track mux asset on postgres
+	await prisma.mux_Assets.create({
+		data: {
+			muxAssetId: muxAsset.id,
+			muxPlaybackId: muxAsset.playback_ids[0].id,
+			muxPlaybackPolicy: muxAsset.playback_ids[0].policy,
+			muxAssetStatus: muxAsset.status,
+			s3Object: objectKey,
+			contentId,
+		},
+	})
+
+	return muxAsset.playback_ids[0]
 }

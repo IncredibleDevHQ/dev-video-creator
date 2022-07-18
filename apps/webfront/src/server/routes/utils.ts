@@ -130,7 +130,13 @@ const utilsRouter = trpc
 
 			// generate pre-signed URL to upload object
 			try {
-				const path = getStoragePath(ctx.user!.sub, uploadType, input.meta)
+				if (!ctx.user?.sub) {
+					throw new TRPCError({
+						code: 'UNAUTHORIZED',
+						message: 'You must be logged in to upload files.',
+					})
+				}
+				const path = getStoragePath(ctx.user.sub, uploadType, input.meta)
 				const url = await s3.getSignedUrlPromise('putObject', {
 					Bucket: serverEnvs.AWS_S3_UPLOAD_BUCKET,
 					Expires: 20 * 60,

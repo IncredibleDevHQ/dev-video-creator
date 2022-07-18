@@ -5,8 +5,8 @@ generator client {
 
 datasource db {
   provider             = "mysql"
-  referentialIntegrity = "prisma"
   url                  = env("DATABASE_URL")
+  referentialIntegrity = "prisma"
 }
 
 model Asset {
@@ -366,35 +366,21 @@ model Integrations {
 model Invitations {
   senderId                          String
   receiverId                        String
-  flickId                           String?            @db.VarChar(32)
-  seriesId                          String?            @db.VarChar(32)
+  flickId                           String?  @db.VarChar(32)
+  seriesId                          String?  @db.VarChar(32)
   status                            String
   type                              String
-  message                           String?            @db.VarChar(255)
-  created_at                        DateTime           @default(now()) @db.Timestamp(6)
-  updated_at                        DateTime           @default(now()) @db.Timestamp(6)
-  id                                String             @id @default(uuid()) @db.VarChar(32)
-  Flick                             Flick?             @relation(fields: [flickId], references: [id], onDelete: Cascade, onUpdate: Restrict)
-  User_Invitations_receiverIdToUser User               @relation("Invitations_receiverIdToUser", fields: [receiverId], references: [sub], onDelete: Cascade)
-  User_Invitations_senderIdToUser   User               @relation("Invitations_senderIdToUser", fields: [senderId], references: [sub], onDelete: Cascade)
-  Series                            Series?            @relation(fields: [seriesId], references: [id], onDelete: Cascade, onUpdate: Restrict)
-  INVITE_STATUS_ENUM                INVITE_STATUS_ENUM @relation(fields: [status], references: [value], onUpdate: Restrict)
-  INVITE_TYPE_ENUM                  INVITE_TYPE_ENUM   @relation(fields: [type], references: [value], onUpdate: Restrict)
+  message                           String?  @db.VarChar(255)
+  created_at                        DateTime @default(now()) @db.Timestamp(6)
+  updated_at                        DateTime @default(now()) @db.Timestamp(6)
+  id                                String   @id @default(uuid()) @db.VarChar(32)
+  Flick                             Flick?   @relation(fields: [flickId], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  User_Invitations_receiverIdToUser User     @relation("Invitations_receiverIdToUser", fields: [receiverId], references: [sub], onDelete: Cascade)
+  User_Invitations_senderIdToUser   User     @relation("Invitations_senderIdToUser", fields: [senderId], references: [sub], onDelete: Cascade)
+  Series                            Series?  @relation(fields: [seriesId], references: [id], onDelete: Cascade, onUpdate: Restrict)
 
   @@unique([senderId, receiverId, flickId])
   @@index([senderId, receiverId])
-}
-
-model INVITE_STATUS_ENUM {
-  value       String        @id
-  description String?
-  Invitations Invitations[]
-}
-
-model INVITE_TYPE_ENUM {
-  value       String        @id
-  description String
-  Invitations Invitations[]
 }
 
 model MagicLink {
@@ -437,10 +423,12 @@ model Mux_Assets {
   muxPlaybackId     String
   muxPlaybackPolicy String
   muxAssetStatus    String
-  contentId         String    @db.VarChar(32)
+  contentId         String    @unique @db.VarChar(32)
   id                String    @id @default(uuid()) @db.VarChar(32)
   created_at        DateTime? @unique @default(now()) @db.Timestamp(6)
   Content           Content   @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@index([contentId])
 }
 
 model NOTIFICATION_META_TYPE_ENUM {
