@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { BiNote } from 'react-icons/bi'
 import { CgProfile } from 'react-icons/cg'
 import { FiCode, FiLayout } from 'react-icons/fi'
-import { IoPlayForwardOutline, IoSparklesOutline } from 'react-icons/io5'
+import { IoArrowDownOutline, IoArrowUpOutline, IoPlayForwardOutline, IoSparklesOutline } from 'react-icons/io5'
 import { MdOutlineTextFields } from 'react-icons/md'
 import useMeasure from 'react-use-measure'
 import { useRecoilState, useRecoilValue } from 'recoil'
@@ -14,6 +14,7 @@ import {
 	flickAtom,
   openStudioAtom,
 } from 'src/stores/flick.store'
+import { codePreviewStore } from 'src/stores/studio.store'
 import useBlock from 'src/utils/hooks/useBlock'
 import { useMap } from 'src/utils/liveblocks.config'
 import { Text } from 'ui/src'
@@ -165,6 +166,9 @@ const Preview = ({ centered }: { centered: boolean }) => {
 	const [tabs, setTabs] = useState<Tab[]>(commonTabs)
 	const [activeTab, setActiveTab] = useState<Tab>(commonTabs[0])
 
+  const [codePreviewValue, setCodePreviewValue] =
+		useRecoilState(codePreviewStore)
+
 	const [ref, bounds] = useMeasure()
 
 	// TODO: Key down listener
@@ -195,6 +199,7 @@ const Preview = ({ centered }: { centered: boolean }) => {
 				break
 			case 'codeBlock': {
 				setTabs([commonTabs[0], commonTabs[1], ...codeBlockTabs, commonTabs[2]])
+        setCodePreviewValue(0)
 				break
 			}
 			case 'headingBlock':
@@ -240,7 +245,44 @@ const Preview = ({ centered }: { centered: boolean }) => {
 							scale={0.83}
 						/>
 					)}
-					{/* TODO: Code controls */}
+					{block.type === 'codeBlock' && (
+						<div className='absolute bottom-0 right-8 -mb-4'>
+							<button
+								className={cx(
+									'bg-gray-800 border border-gray-200 text-white p-1.5 rounded-sm'
+								)}
+								type='button'
+								onClick={() => {
+									setCodePreviewValue?.(
+										codePreviewValue ? codePreviewValue - 1 : 0
+									)
+								}}
+							>
+								<IoArrowUpOutline
+									style={{
+										margin: '3px',
+									}}
+									className='w-4 h-4 p-px'
+								/>
+							</button>
+							<button
+								className={cx(
+									'bg-gray-800 border border-gray-200 text-white p-1.5 rounded-sm ml-2'
+								)}
+								type='button'
+								onClick={() => {
+									setCodePreviewValue?.(codePreviewValue + 1)
+								}}
+							>
+								<IoArrowDownOutline
+									style={{
+										margin: '3px',
+									}}
+									className='w-4 h-4 p-px'
+								/>
+							</button>
+						</div>
+					)}
 				</div>
 			</div>
 			{block.type !== 'interactionBlock' && (

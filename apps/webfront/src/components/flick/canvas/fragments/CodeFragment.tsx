@@ -9,6 +9,7 @@ import { Group } from 'react-konva'
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
 import {
 	agoraUsersAtom,
+	codePreviewStore,
 	colorCodesAtom,
 	controlsConfigAtom,
 	payloadFamily,
@@ -156,7 +157,7 @@ const CodeFragment = ({
 	const { hasura } = useEnv()
 	const { token: userToken } = useContext(UserContext)
 
-	// const codePreviewValue = useRecoilValue(codePreviewStore)
+	const codePreviewValue = useRecoilValue(codePreviewStore)
 
 	const { initUseCode } = useCode()
 	const [computedTokens, setComputedTokens] = useState<ComputedToken[][]>([[]])
@@ -528,18 +529,18 @@ const CodeFragment = ({
 		}
 	}, [payload?.fragmentState])
 
-	// TODO
-	// useEffect(() => {
-	// 	previewGroupRef?.current?.to({
-	// 		y:
-	// 			-(codePreviewValue * (8 * (fontSize + 8))) +
-	// 			objectRenderConfig.startY +
-	// 			24,
-	// 		duration: 0.5,
-	// 		easing: Konva.Easings.EaseInOut,
-	// 	})
-	// }, [objectRenderConfig, codePreviewValue])
+	useEffect(() => {
+		previewGroupRef?.current?.to({
+			y:
+				-(codePreviewValue * (8 * (fontSize + 8))) +
+				objectRenderConfig.startY +
+				24,
+			duration: 0.5,
+			easing: Konva.Easings.EaseInOut,
+		})
+	}, [objectRenderConfig, codePreviewValue])
 
+	// TODO
 	// useEffect(() => {
 	// 	if (fragment?.configuration?.continuousRecording) {
 	// 		if (
@@ -683,7 +684,9 @@ const CodeFragment = ({
 				layout: !isPreview
 					? layout || 'classic'
 					: viewConfig?.layout || 'classic',
-				noOfParticipants: !isPreview ? (users?.length || 0) + 1 : speakersLength,
+				noOfParticipants: !isPreview
+					? (users?.length || 0) + 1
+					: speakersLength,
 				fragmentState,
 				theme,
 		  })
@@ -691,7 +694,9 @@ const CodeFragment = ({
 				layout: !isPreview
 					? layout || 'classic'
 					: viewConfig?.layout || 'classic',
-				noOfParticipants: !isPreview ? (users?.length || 0) + 1 : speakersLength,
+				noOfParticipants: !isPreview
+					? (users?.length || 0) + 1
+					: speakersLength,
 				fragmentState,
 				theme,
 		  })
