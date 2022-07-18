@@ -285,7 +285,7 @@ const Branding = ({
 																	<BrandIcon className='flex-shrink-0' />
 																	<input
 																		value={branding?.name}
-																		className='block text-size-xs truncate border border-transparent hover:border-gray-300 focus:outline-none'
+																		className='block text-size-xs truncate border border-transparent hover:border-gray-300 focus:outline-none bg-white'
 																		onClick={e => e.stopPropagation()}
 																		onKeyDown={e => e.stopPropagation()}
 																		onChange={e => {

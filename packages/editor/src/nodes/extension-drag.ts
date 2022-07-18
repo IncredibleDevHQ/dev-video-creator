@@ -23,6 +23,7 @@ export default (dragHandle: HTMLDivElement | null) =>
 			dragHandler.setAttribute('draggable', 'true')
 			dragHandler.style.width = `${WIDTH}px`
 			dragHandler.style.position = 'absolute'
+			dragHandler.style.zIndex = '0'
 			const { editor } = this
 
 			function createRect(

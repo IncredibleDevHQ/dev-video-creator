@@ -57,6 +57,12 @@ const EditorSection = () => {
 		setPreviewPosition,
 	])
 
+	useEffect(() => () => {
+		if (!dragHandleRef?.current) return
+		dragHandleRef.current.style.visibility = 'hidden'
+		dragHandleRef.current.style.display = 'hidden'
+	})
+
 	return (
 		<div
 			className='grid grid-cols-12 flex-1 h-full sticky top-0 overflow-y-auto bg-white'
