@@ -42,7 +42,7 @@ type Storage = {
 	// payload: LiveMap<string, LiveObject<FragmentPayload>>
 	activeObjectIndex: LiveObject<{ activeObjectIndex: number }>
 	// state: LiveObject<{ state: StudioState }>
-	recordedBlocks: LiveMap<string, string>
+	// recordedBlocks: LiveMap<string, string>
 }
 
 // Blank user meta for now

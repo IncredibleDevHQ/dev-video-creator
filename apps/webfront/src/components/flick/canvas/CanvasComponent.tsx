@@ -138,7 +138,6 @@ const CanvasComponent = React.memo(
 									initialStorage={() => ({
 										viewConfig: new LiveMap(),
 										activeObjectIndex: new LiveObject({ activeObjectIndex: 0 }),
-										recordedBlocks: new LiveMap(),
 									})}
 								>
 									<Layer ref={layerRef}>
