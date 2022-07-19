@@ -3,17 +3,12 @@ import { TRPCError } from '@trpc/server'
 
 import { z } from 'zod'
 
-import * as Y from 'yjs'
-import { TiptapTransformer } from '@hocuspocus/transformer'
-import VideoBlock from 'editor/src/nodes/extension-video'
-import Paragraph from '@tiptap/extension-paragraph'
-import Document from '@tiptap/extension-document'
-import Text from '@tiptap/extension-text'
-// eslint-disable-next-line import/no-extraneous-dependencies
-import * as uuid from 'uuid'
 import serverEnvs from 'src/utils/env'
+import { nanoid } from 'nanoid'
 import type { Context } from '../createContext'
 import {
+	defaultDataConfig,
+	getDefaultViewConfig,
 	createLiveBlocksRoom,
 	initRedisWithDataConfig,
 	Meta,
@@ -117,21 +112,7 @@ const storyRouter = trpc
 			// setup fallback for data config if not present
 			if (!input.fragmentDataConfig) {
 				// eslint-disable-next-line no-param-reassign
-				input.fragmentDataConfig = {
-					blocks: [
-						{
-							id: uuid.v4(),
-							type: 'introBlock',
-							pos: 0,
-							introBlock: {},
-						},
-						{
-							id: uuid.v4(),
-							type: 'outroBlock',
-							pos: 1,
-						},
-					],
-				}
+				input.fragmentDataConfig = defaultDataConfig
 			}
 
 			// Create new story|flick
@@ -156,8 +137,18 @@ const storyRouter = trpc
 				},
 				select: {
 					id: true,
+					status: true,
+					role: true,
+					userSub: true,
+					inviteStatus: true,
 					User: {
-						select: { email: true, displayName: true },
+						select: {
+							sub: true,
+							email: true,
+							displayName: true,
+							picture: true,
+							username: true,
+						},
 					},
 				},
 			})
@@ -198,97 +189,46 @@ const storyRouter = trpc
 			// Setup fallback view config if not present
 			// create the default view config
 			if (!input.fragmentViewConfig) {
-				const blocks = {
-					[introBlockId]: {
-						layout: 'classic',
-						view: {
-							type: 'introBlock',
-							intro: {
-								order: [
-									{ enabled: true, state: 'userMedia' },
-									{ enabled: true, state: 'titleSplash' },
-								],
-							},
-						},
-					},
-					[outroBlockId]: {
-						layout: 'classic',
-						view: {
-							type: 'outroBlock',
-							outro: {
-								order: [{ enabled: true, state: 'titleSplash' }],
-							},
-						},
-					},
-				}
 				// eslint-disable-next-line no-param-reassign
-				input.fragmentViewConfig = {
-					selectedBlocks: [],
-					continuousRecording: false,
-					mode: 'Landscape',
-					speakers: ownerParticipant,
-					blocks,
-				}
-			}
-			// re-srctructure the view config for liveblocks
-			const roomId = `story-${story.id}`
-			const obj: any = {}
-			obj[fragment.id] = {
-				liveblocksType: 'LiveObject',
-				data: {
-					...input.fragmentViewConfig,
-					blocks: {
-						liveblocksType: 'LiveMap',
-						data: input.fragmentViewConfig.blocks,
-					},
-				},
-			}
-
-			// construct the payload for liveblocks
-			const payload: any = {}
-			payload[introBlockId] = {
-				liveblocksType: 'LiveObject',
-				data: {
-					activeIntroIndex: 0,
-				},
-			}
-			payload[outroBlockId] = {
-				liveblocksType: 'LiveObject',
-				data: {
-					activeOutroIndex: 0,
-				},
-			}
-
-			// create the room on liveblocks and init with data
-			await createLiveBlocksRoom(roomId, obj, payload)
-
-			// Init yjs binary layer
-			let raw
-			let redisBody: any = {
-				ast: input.fragmentDataConfig,
-			}
-			if (input.fragmentEncodedEditorValue) {
-				const yDoc = TiptapTransformer.extensions([
-					VideoBlock,
-					Document,
-					Text,
-					Paragraph,
-				]).toYdoc(
-					JSON.parse(
-						Buffer.from(input.fragmentEncodedEditorValue, 'base64').toString(
-							'utf8'
-						)
-					)
+				input.fragmentViewConfig = getDefaultViewConfig(
+					introBlockId,
+					outroBlockId,
+					ownerParticipant
 				)
-				const state = Buffer.from(Y.encodeStateAsUpdate(yDoc))
-				raw = Buffer.from(state).toString('binary')
-				redisBody = {
-					...redisBody,
-					raw,
-				}
 			}
+			try {
+				// init liveblocks
+				await createLiveBlocksRoom(
+					story.id,
+					fragment.id,
+					input.fragmentViewConfig,
+					introBlockId,
+					outroBlockId
+				)
+			} catch (e) {
+				// TODO: Sentry error logging
+				throw new TRPCError({
+					code: 'INTERNAL_SERVER_ERROR',
+					message: 'Story creation failed',
+					cause: JSON.stringify(e),
+				})
+			}
+
 			// Init redis on flick create with initial ast(data-config)
-			await initRedisWithDataConfig(story.id, redisBody)
+			try {
+				await initRedisWithDataConfig(
+					fragment.id,
+					input.fragmentDataConfig,
+					input.fragmentEncodedEditorValue
+				)
+			} catch (e) {
+				// TODO: Sentry error logging
+				throw new TRPCError({
+					code: 'INTERNAL_SERVER_ERROR',
+					message: 'Story creation failed',
+					cause: JSON.stringify(e),
+				})
+			}
 
 			// Send notification email to owner
 			try {
@@ -401,5 +341,195 @@ const storyRouter = trpc
 			}
 		},
 	})
+	.mutation('duplicate', {
+		meta: {
+			hasAuth: true,
+		},
+		input: z.object({
+			flickId: z.string(),
+		}),
+		resolve: async ({ input, ctx }) => {
+			if (!ctx.user?.sub)
+				throw new TRPCError({
+					code: 'INTERNAL_SERVER_ERROR',
+					message: 'Story creation failed',
+				})
+			// check if use requester is the owner of the flick
+			const flick = await ctx.prisma.flick.findUnique({
+				where: {
+					id: input.flickId,
+				},
+				select: {
+					name: true,
+					description: true,
+					scope: true,
+					configuration: true,
+					dirty: true,
+					themeName: true,
+					brandingId: true,
+					useBranding: true,
+					ownerId: true,
+					Participants: {
+						select: {
+							id: true,
+							userSub: true,
+							status: true,
+							role: true,
+							inviteStatus: true,
+							User: {
+								select: {
+									sub: true,
+									email: true,
+									displayName: true,
+									picture: true,
+									username: true,
+								},
+							},
+						},
+					},
+					Fragment: {
+						select: {
+							name: true,
+							type: true,
+							configuration: true,
+							editorState: true,
+							encodedEditorValue: true,
+						},
+					},
+				},
+			})
+			if (!flick)
+				throw new TRPCError({
+					code: 'INTERNAL_SERVER_ERROR',
+					message: 'Story creation failed',
+				})
 
+			const ownerParticipant = flick.Participants.find(
+				p => p.userSub === ctx.user!.sub
+			)
+			if (flick.ownerId !== ownerParticipant?.id) {
+				throw new TRPCError({
+					code: 'UNAUTHORIZED',
+					message: 'You are not authorized to duplicate this story.',
+				})
+			}
+
+			// create a new flick with existing data
+			const newFlick = await ctx.prisma.flick.create({
+				data: {
+					name: `${flick.name} (copy)`,
+					description: flick.description,
+					scope: flick.scope,
+					configuration: flick.configuration || undefined,
+					dirty: flick.dirty,
+					themeName: flick.themeName,
+					brandingId: flick.brandingId,
+					useBranding: flick.useBranding,
+				},
+				select: {
+					id: true,
+				},
+			})
+
+			// add owner as participant
+			const newFlickOwner = await ctx.prisma.participant.create({
+				data: {
+					flickId: newFlick.id,
+					createdAt: new Date(),
+					updatedAt: new Date(),
+					userSub: ctx.user!.sub,
+					role: 'Host',
+				},
+				select: {
+					id: true,
+					userSub: true,
+					status: true,
+					role: true,
+					inviteStatus: true,
+					User: {
+						select: {
+							sub: true,
+							email: true,
+							displayName: true,
+							picture: true,
+							username: true,
+						},
+					},
+				},
+			})
+			// update flick table with owner participant id as ownerId
+			await ctx.prisma.flick.update({
+				where: {
+					id: newFlick.id,
+				},
+				data: {
+					ownerId: newFlickOwner.id,
+				},
+			})
+			// add fragments
+			await ctx.prisma.fragment.createMany({
+				data: flick.Fragment.map(f => ({
+					flickId: newFlick.id,
+					configuration:
+						f.configuration ||
+						getDefaultViewConfig(nanoid(), nanoid(), newFlickOwner),
+					editorState: f.editorState || defaultDataConfig,
+					encodedEditorValue: f.encodedEditorValue || undefined,
+					name: f.name,
+					type: f.type,
+				})),
+			})
+			// add fragment data to live blocks and yjs redis
+			const newFragments = await ctx.prisma.fragment.findMany({
+				where: {
+					flickId: newFlick.id,
+				},
+				select: {
+					id: true,
+					configuration: true,
+					encodedEditorValue: true,
+					editorState: true,
+				},
+			})
+			newFragments.forEach(async f => {
+				try {
+					if (!f.configuration) throw Error('No configuration')
+					const viewConfig = JSON.parse(f.configuration.toString())
+
+					// init liveblocks
+					const introBlockId: string = viewConfig.blocks?.find(
+						(b: any) => b.type === 'introBlock'
+					)?.id
+					const outroBlockId: string = viewConfig.blocks?.find(
+						(b: any) => b.type === 'outroBlock'
+					)?.id
+
+					await createLiveBlocksRoom(
+						newFlick.id,
+						f.id,
+						viewConfig,
+						introBlockId,
+						outroBlockId
+					)
+
+					// Init redis on flick create with initial ast(data-config)
+					await initRedisWithDataConfig(
+						f.id,
+						f.editorState,
+						f.encodedEditorValue
+					)
+				} catch (e) {
+					// TODO: Sentry error logging
+					throw new TRPCError({
+						code: 'INTERNAL_SERVER_ERROR',
+						message: 'Story creation failed',
+						cause: JSON.stringify(e),
+					})
+				}
+				return {
+					id: newFlick.id,
+				}
+			})
+		},
+	})
 export default storyRouter

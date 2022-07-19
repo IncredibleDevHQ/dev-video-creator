@@ -6,6 +6,14 @@ import { TRPCError } from '@trpc/server'
 import { PrismaClient } from '@prisma/client'
 import Mux from '@mux/mux-node'
 import { s3 } from 'src/utils/aws'
+import * as Y from 'yjs'
+import { TiptapTransformer } from '@hocuspocus/transformer'
+import VideoBlock from 'editor/src/nodes/extension-video'
+import Paragraph from '@tiptap/extension-paragraph'
+import Document from '@tiptap/extension-document'
+import Text from '@tiptap/extension-text'
+// eslint-disable-next-line import/no-extraneous-dependencies
+import * as uuid from 'uuid'
 import serverEnvs from '../../utils/env'
 import {
 	sendTransactionalEmail,
@@ -18,6 +26,60 @@ const { Video: MuxVideo } = new Mux(
 	serverEnvs.MUX_TOKEN_SECRET, // config.services.mux.tokenSecret,
 	{}
 )
+
+export const defaultDataConfig = {
+	blocks: [
+		{
+			id: uuid.v4(),
+			type: 'introBlock',
+			pos: 0,
+			introBlock: {},
+		},
+		{
+			id: uuid.v4(),
+			type: 'outroBlock',
+			pos: 1,
+		},
+	],
+}
+
+export const getDefaultViewConfig = (
+	introBlockId: string,
+	outroBlockId: string,
+	ownerParticipant: any
+) => {
+	const blocks = {
+		[introBlockId]: {
+			layout: 'classic',
+			view: {
+				type: 'introBlock',
+				intro: {
+					order: [
+						{ enabled: true, state: 'userMedia' },
+						{ enabled: true, state: 'titleSplash' },
+					],
+				},
+			},
+		},
+		[outroBlockId]: {
+			layout: 'classic',
+			view: {
+				type: 'outroBlock',
+				outro: {
+					order: [{ enabled: true, state: 'titleSplash' }],
+				},
+			},
+		},
+	}
+	return {
+		selectedBlocks: [],
+		continuousRecording: false,
+		mode: 'Landscape',
+		speakers: ownerParticipant,
+		blocks,
+	}
+}
+
 export interface Meta {
 	hasAuth: boolean // can be used to disable auth for this specific routes
 }
@@ -117,10 +179,41 @@ export function generateSuggestionsFromEmail(email: string): string[] {
 }
 
 export const createLiveBlocksRoom = async (
-	roomId: string,
-	liveViewConfig: any,
-	livePayload: any
+	storyId: string,
+	fragmentId: string,
+	fragmentViewConfig: any,
+	introBlockId: string,
+	outroBlockId: string
 ) => {
+	// re-srctructure the view config for liveblocks
+	const roomId = `story-${storyId}`
+	const liveViewConfig: any = {}
+	liveViewConfig[fragmentId] = {
+		liveblocksType: 'LiveObject',
+		data: {
+			...fragmentViewConfig,
+			blocks: {
+				liveblocksType: 'LiveMap',
+				data: fragmentViewConfig.blocks,
+			},
+		},
+	}
+
+	// construct the payload for liveblocks
+	const payload: any = {}
+	payload[introBlockId] = {
+		liveblocksType: 'LiveObject',
+		data: {
+			activeIntroIndex: 0,
+		},
+	}
+	payload[outroBlockId] = {
+		liveblocksType: 'LiveObject',
+		data: {
+			activeOutroIndex: 0,
+		},
+	}
+
 	const liveblocksToken = await axios.post(
 		`https://liveblocks.io/api/authorize`,
 		{},
@@ -142,7 +235,7 @@ export const createLiveBlocksRoom = async (
 				},
 				payload: {
 					liveblocksType: 'LiveMap',
-					data: livePayload,
+					data: payload,
 				},
 			},
 		},
@@ -157,8 +250,33 @@ export const createLiveBlocksRoom = async (
 
 export const initRedisWithDataConfig = async (
 	fragmentId: string,
-	redisBody: any
+	fragmentDataConfig: any,
+	fragmentEncodedEditorValue: any
 ): Promise<void> => {
+	// Init yjs binary layer
+	let raw
+	let redisBody: any = {
+		ast: fragmentDataConfig,
+	}
+	if (fragmentEncodedEditorValue) {
+		const yDoc = TiptapTransformer.extensions([
+			VideoBlock,
+			Document,
+			Text,
+			Paragraph,
+		]).toYdoc(
+			JSON.parse(
+				Buffer.from(fragmentEncodedEditorValue, 'base64').toString('utf8')
+			)
+		)
+		const state = Buffer.from(Y.encodeStateAsUpdate(yDoc))
+		raw = Buffer.from(state).toString('binary')
+		redisBody = {
+			...redisBody,
+			raw,
+		}
+	}
+
 	await redisClient.connect()
 	redisClient.json
 		.set(fragmentId, '$', redisBody)
