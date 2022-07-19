@@ -2620,10 +2620,15 @@
   resolved "https://registry.npmjs.org/@liveblocks/client/-/client-0.17.5.tgz"
   integrity sha512-a3zyT2x8oW/i+OC3U38rMzQRbiO0p80qmWjXdW6F5OkAV7MAyhZyhwG52oO5sHV3QPjrczjXPXdnTzoxZ5sx3Q==
 
-"@liveblocks/react@^0.17.5":
-  version "0.17.5"
-  resolved "https://registry.npmjs.org/@liveblocks/react/-/react-0.17.5.tgz"
-  integrity sha512-KcNaIxO37ztJerCKzwxd2+0NQwiYxCvxoxlojMBafjVKoIk5aozNiUMft5TVCO2bjp/tA+S40KlTh+T2GRjPQQ==
+"@liveblocks/client@^0.17.6":
+  version "0.17.6"
+  resolved "https://registry.yarnpkg.com/@liveblocks/client/-/client-0.17.6.tgz#69c51acd160188a84adbbb8f4177f702321bddc9"
+  integrity sha512-oXkCmQd+O8T9Zu3IBGXIeYjYKY8yf6grSU8wTSa64eTndsQBe3ut9R4xlZoNRqLLFNFGzIWpI/4vr6QrUnuUJw==
+
+"@liveblocks/react@^0.17.6":
+  version "0.17.6"
+  resolved "https://registry.yarnpkg.com/@liveblocks/react/-/react-0.17.6.tgz#822dc90356113fc2db5afcc849706429e9c0e46e"
+  integrity sha512-vuyebLVgIt8m5YLZXOGKpKzw/T5bh2DQ7pfQsOJ/aZNyRXLX349b2V4hNn4Pb32nhko7n32obSgMF5H3rUmM/w==
 
 "@motionone/animation@^10.12.0":
   version "10.12.0"

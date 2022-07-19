@@ -17,7 +17,6 @@ import {
 	activeFragmentIdAtom,
 	astAtom,
 	currentBlockSelector,
-	flickAtom,
 	openStudioAtom,
 } from 'src/stores/flick.store'
 import { codePreviewStore } from 'src/stores/studio.store'
@@ -152,7 +151,6 @@ const getIcon = (tab: Tab, block?: BlockProperties) => {
 }
 
 const Preview = ({ centered }: { centered: boolean }) => {
-	const flickId = useRecoilValue(flickAtom)?.id
 	const activeFragmentId = useRecoilValue(activeFragmentIdAtom)
 	const openStudio = useRecoilValue(openStudioAtom)
 
@@ -254,7 +252,6 @@ const Preview = ({ centered }: { centered: boolean }) => {
 								},
 							}}
 							isPreview
-							flickId={flickId as string}
 							scale={0.83}
 						/>
 					)}
