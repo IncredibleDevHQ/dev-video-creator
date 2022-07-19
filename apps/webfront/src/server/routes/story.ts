@@ -294,7 +294,7 @@ const storyRouter = trpc
 					messageData: {
 						storyTitle: story.name,
 						receiverName: ownerParticipant.User.displayName as string,
-						btnUrl: `${serverEnvs.STUDIO_ENDPOINT}/story/${story.id}`,
+						btnUrl: `${serverEnvs.NEXT_STUDIO_BASE_URL}/story/${story.id}`,
 					},
 				})
 			} catch (e) {
