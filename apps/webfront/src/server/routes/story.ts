@@ -13,7 +13,7 @@ import {
 	initRedisWithDataConfig,
 	Meta,
 } from '../utils/helpers'
-import { FlickScopeEnum } from '../utils/enums'
+import { FlickScopeEnum, ParticipantRoleEnum } from '../utils/enums'
 import {
 	sendTransactionalEmail,
 	TransactionalMailType,
@@ -41,6 +41,61 @@ const storyRouter = trpc
 				user: ctx.user,
 			},
 		})
+	})
+	.query('presentationConfig', {
+		meta: {
+			hasAuth: false,
+		},
+		input: z.object({
+			fragmentId: z.string(),
+		}),
+		resolve: async ({ ctx, input }) => {
+			const config = await ctx.prisma.fragment.findUnique({
+				where: {
+					id: input.fragmentId,
+				},
+				select: {
+					editorState: true,
+					configuration: true,
+					Flick: {
+						select: {
+							id: true,
+							name: true,
+							themeName: true,
+							Branding: {
+								select: {
+									id: true,
+									branding: true,
+								},
+							},
+						},
+					},
+				},
+			})
+			const owner = await ctx.prisma.participant.findMany({
+				where: {
+					flickId: config?.Flick.id,
+					role: ParticipantRoleEnum.Host,
+				},
+				select: {
+					User: {
+						select: {
+							displayName: true,
+							picture: true,
+							organization: true,
+							designation: true,
+							username: true,
+						},
+					},
+				},
+			})
+			return {
+				configuration: config?.configuration,
+				editorState: config?.editorState,
+				flick: config?.Flick,
+				owner: owner?.[0]?.User,
+			}
+		},
 	})
 	// ACTIONS
 	.mutation('create', {
@@ -133,7 +188,7 @@ const storyRouter = trpc
 					createdAt: new Date(),
 					updatedAt: new Date(),
 					userSub: ctx.user!.sub,
-					role: 'Host',
+					role: ParticipantRoleEnum.Host,
 				},
 				select: {
 					id: true,
@@ -438,7 +493,7 @@ const storyRouter = trpc
 					createdAt: new Date(),
 					updatedAt: new Date(),
 					userSub: ctx.user!.sub,
-					role: 'Host',
+					role: ParticipantRoleEnum.Host,
 				},
 				select: {
 					id: true,
