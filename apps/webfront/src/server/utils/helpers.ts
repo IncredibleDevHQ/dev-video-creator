@@ -481,3 +481,33 @@ export const CreateMuxAsset = async (
 
 	return muxAsset.playback_ids[0]
 }
+
+/**
+ * Generate magic sign-in with email link using Firebase.
+ * @async
+ * @function
+ * @param {string} email - email id of the user.
+ * @param {string} continueUrl - url to redirect the user with the action code as query parameter.
+ * @return {Promise} Magic link to sign-in the user.
+ * @example
+ * // returns "https://incredibledev-next.firebaseapp.com/__/auth/action?continueUrl=..."
+ * await getEmailSignInLink({email:"johndoe@incredible.dev",continueUrl:"https://dev.incredible.dev/magiclink?state=3-2_1OMt4j-lecHS3ro7d"});
+ *
+ */
+export const getEmailSignInLink = async (
+	email: string,
+	continueUrl: string
+): Promise<string> => {
+	// create action code setting for email verification link
+	const actionCodeSettings = {
+		url: continueUrl,
+		// This must be true for email link sign-in
+		handleCodeInApp: true,
+		// FDL custom domain
+		dynamicLinkDomain: serverEnvs.SECURITY_DYN_LINK_DOMAIN,
+	}
+	const res = await admin
+		.auth()
+		.generateSignInWithEmailLink(email, actionCodeSettings)
+	return res
+}

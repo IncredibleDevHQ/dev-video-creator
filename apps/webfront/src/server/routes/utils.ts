@@ -6,9 +6,11 @@ import { getStoragePath, UploadType } from 'src/utils/helpers/s3-path-builder'
 import { s3 } from 'src/utils/aws'
 import serverEnvs from 'src/utils/env'
 import axios from 'axios'
+
 import { Context } from '../createContext'
 import { Meta } from '../utils/helpers'
 import { isKeyAllowed } from '../utils/upload'
+import generateAgoraToken from '../utils/generateAgoraToken'
 
 const utilsRouter = trpc
 	.router<Context, Meta>()
@@ -239,21 +241,9 @@ const utilsRouter = trpc
 				})
 			}
 			try {
-				const {
-					data: { token, success },
-				} = await axios.post(
-					serverEnvs.RTC_TOKEN_SVC_ENDPOINT,
-					{
-						user_uid: participant.id,
-						channel_name: input.huddle ? input.flickId : input.fragmentId,
-						role: 1,
-					},
-					{
-						headers: {
-							'x-auth-secret': serverEnvs.RTC_TOKEN_SVC_SECRET,
-							'Content-Type': 'application/json',
-						},
-					}
+				const { token, success } = generateAgoraToken(
+					input.huddle ? input.flickId : input.fragmentId,
+					participant.id
 				)
 				return { token, success }
 			} catch (e) {
