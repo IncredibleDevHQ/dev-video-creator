@@ -1,7 +1,7 @@
-import Konva from "konva"
-import { ThemeFragment } from "src/graphql/generated"
-import { Layout } from "utils/src"
-import { CONFIG, SHORTS_CONFIG, SocialHandles } from "../configs"
+import Konva from 'konva'
+import { ThemeFragment } from 'src/graphql/generated'
+import { Layout } from 'utils/src'
+import { CONFIG, SHORTS_CONFIG, SocialHandles } from '../configs'
 
 export interface OutroConfig {
 	layoutX: number
@@ -1532,7 +1532,6 @@ export const getTextWidth = ({
 
 	return konvaText.textWidth
 }
-
 
 export const getSocialHandlePositions = ({
 	layout,

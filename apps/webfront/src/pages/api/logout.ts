@@ -1,3 +1,4 @@
+/* eslint-disable no-underscore-dangle */
 import Cors from 'cors'
 import admin, { auth } from 'firebase-admin'
 import { NextApiRequest, NextApiResponse } from 'next'
@@ -22,7 +23,7 @@ const logout = async (req: NextApiRequest, res: NextApiResponse) => {
 				),
 			})
 		}
-		const sessionCookie = req.cookies?.thisIsASessionCookie || ''
+		const sessionCookie = req.cookies?.__session || ''
 		// If session Cookie is present revoke it
 		if (sessionCookie) {
 			const decodedClaims = await auth().verifySessionCookie(
@@ -32,7 +33,7 @@ const logout = async (req: NextApiRequest, res: NextApiResponse) => {
 			await auth().revokeRefreshTokens(decodedClaims.sub)
 		}
 		// clear session cookie on the client
-		setCookie(res, 'thisIsASessionCookie', '', {
+		setCookie(res, '__session', '', {
 			maxAge: -1,
 		})
 		return res.status(200).send('Logged out')

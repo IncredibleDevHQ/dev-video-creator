@@ -2,9 +2,11 @@ import { HeadingBlockProps } from 'editor/src/utils/types'
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
 import { Group, Text } from 'react-konva'
-import { useRecoilValue } from 'recoil'
-import studioStore, {
+import { useRecoilValue, useSetRecoilState } from 'recoil'
+import {
+	agoraUsersAtom,
 	brandingAtom,
+	controlsConfigAtom,
 	payloadFamily,
 	themeAtom,
 } from 'src/stores/studio.store'
@@ -45,7 +47,7 @@ const HeadingFragment = ({
 	isPreview: boolean
 	speakersLength: number
 }) => {
-	const { users } = useRecoilValue(studioStore)
+	const users = useRecoilValue(agoraUsersAtom)
 	const theme = useRecoilValue(themeAtom)
 	const branding = useRecoilValue(brandingAtom)
 	const payload = useRecoilValue(payloadFamily(dataConfig.id))
@@ -53,6 +55,7 @@ const HeadingFragment = ({
 		blockId: dataConfig.id,
 		shouldUpdateLiveblocks: !isPreview,
 	})
+	const setControlsConfig = useSetRecoilState(controlsConfigAtom)
 
 	const [title, setTitle] = useState('')
 
@@ -81,13 +84,17 @@ const HeadingFragment = ({
 
 	useEffect(() => {
 		if (!reset) return
+		setControlsConfig({
+			updatePayload,
+			blockId: dataConfig.id,
+		})
 		// eslint-disable-next-line consistent-return
 		return () => {
 			reset({
 				fragmentState: 'customLayout',
 			})
 		}
-	// eslint-disable-next-line react-hooks/exhaustive-deps
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [])
 
 	useEffect(() => {
@@ -232,7 +239,9 @@ const HeadingFragment = ({
 				layout: !isPreview
 					? layout || 'classic'
 					: viewConfig?.layout || 'classic',
-				noOfParticipants: !isPreview ? users.length + 1 : speakersLength,
+				noOfParticipants: !isPreview
+					? (users?.length || 0) + 1
+					: speakersLength,
 				fragmentState,
 				theme,
 		  })
@@ -240,7 +249,9 @@ const HeadingFragment = ({
 				layout: !isPreview
 					? layout || 'classic'
 					: viewConfig?.layout || 'classic',
-				noOfParticipants: !isPreview ? users.length + 1 : speakersLength,
+				noOfParticipants: !isPreview
+					? (users?.length || 0) + 1
+					: speakersLength,
 				fragmentState,
 				theme,
 		  })
@@ -254,8 +265,7 @@ const HeadingFragment = ({
 			isShorts={shortsMode}
 			blockType={dataConfig.type}
 			fragmentState={fragmentState}
-			updatePayload={updatePayload}
-			blockId={dataConfig.id}
+			speakersLength={speakersLength}
 		/>
 	)
 }

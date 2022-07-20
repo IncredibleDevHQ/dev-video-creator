@@ -11,3 +11,36 @@ fragment User on MeOutput {
 	designation
 	organization
 }
+
+subscription GetUserYTIntegration {
+	YoutubeIntegration {
+		id
+		userInfo
+	}
+}
+
+query IsUsernameAvailable($username: String!) {
+	UsernameAvailability(username: $username) {
+		message
+		suggestion
+		valid
+	}
+}
+
+mutation UserOnBoarding(
+	$designation: String = ""
+	$name: String!
+	$organization: String = ""
+	$profilePicture: String!
+	$username: String!
+) {
+	UserOnboarding(
+		designation: $designation
+		name: $name
+		organization: $organization
+		profilePicture: $profilePicture
+		userName: $username
+	) {
+		success
+	}
+}

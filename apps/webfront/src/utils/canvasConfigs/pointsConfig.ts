@@ -1,5 +1,5 @@
-import { Layout } from "utils/src"
-import { getCanvasGradient } from "./studioUserConfig"
+import { Layout } from 'utils/src'
+import { getCanvasGradient } from './studioUserConfig'
 
 export interface PointsConfig {
 	textFontSize: number

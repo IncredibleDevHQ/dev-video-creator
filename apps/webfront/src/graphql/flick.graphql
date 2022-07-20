@@ -80,3 +80,40 @@ mutation CreateNewFlick(
 		fragmentId
 	}
 }
+
+mutation UpdateFlick(
+	$flickId: String!
+	$name: String!
+	$organisationSlug: String
+	$scope: UpdateFlickScopeEnum
+	$difficulty: UpdateFlickDifficultyEnum
+) {
+	UpdateFlick(
+		flickId: $flickId
+		name: $name
+		organisationSlug: $organisationSlug
+		scope: $scope
+		difficulty: $difficulty
+	) {
+		id
+	}
+}
+
+mutation DeleteFlick($flickId: uuid!) {
+	DeleteFlick(flickId: $flickId) {
+		id
+	}
+}
+
+mutation DuplicateUserFlick($flickId: uuid!) {
+	DuplicateFlick(flickId: $flickId) {
+		id
+	}
+}
+
+mutation GetHuddleRtcToken($flickId: uuid!) {
+	HuddleRtcToken(flickId: $flickId) {
+		success
+		token
+	}
+}

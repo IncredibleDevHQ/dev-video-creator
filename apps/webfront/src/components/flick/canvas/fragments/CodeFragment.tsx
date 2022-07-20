@@ -4,21 +4,35 @@ import axios from 'axios'
 import { CodeBlockProps } from 'editor/src/utils/types'
 import useEdit from 'icanvas/src/hooks/useEdit'
 import Konva from 'konva'
-import React, { useEffect, useRef, useState } from 'react'
-import { useRecoilValue, useRecoilState } from 'recoil'
-import studioStore, {
+import React, { useContext, useEffect, useRef, useState } from 'react'
+import { Group } from 'react-konva'
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
+import {
+	agoraUsersAtom,
+	codePreviewStore,
 	colorCodesAtom,
+	controlsConfigAtom,
 	payloadFamily,
-	StudioProviderProps,
 	studioStateAtom,
 	themeAtom,
 } from 'src/stores/studio.store'
+import {
+	getFragmentLayoutConfig,
+	ObjectConfig,
+} from 'src/utils/canvasConfigs/fragmentLayoutConfig'
+import {
+	getShortsStudioUserConfiguration,
+	getStudioUserConfiguration,
+} from 'src/utils/canvasConfigs/studioUserConfig'
 import {
 	getThemeLayoutConfig,
 	ObjectRenderConfig,
 } from 'src/utils/canvasConfigs/themeConfig'
 import { FragmentState } from 'src/utils/configs'
 import useCode, { ComputedToken } from 'src/utils/hooks/useCode'
+import useUpdatePayload from 'src/utils/hooks/useUpdatePayload'
+import { UserContext } from 'src/utils/providers/auth'
+import { useDebouncedCallback } from 'use-debounce'
 import {
 	BlockProperties,
 	CodeAnimation,
@@ -29,20 +43,6 @@ import {
 	Layout,
 	useEnv,
 } from 'utils/src'
-import { Group } from 'react-konva'
-import {
-	getFragmentLayoutConfig,
-	ObjectConfig,
-} from 'src/utils/canvasConfigs/fragmentLayoutConfig'
-import {
-	getShortsStudioUserConfiguration,
-	getStudioUserConfiguration,
-} from 'src/utils/canvasConfigs/studioUserConfig'
-import { useDebouncedCallback } from 'use-debounce'
-import useUpdatePayload from 'src/utils/hooks/useUpdatePayload'
-import { useUser } from 'src/utils/providers/auth'
-import Concourse from '../Concourse'
-import FragmentBackground from '../FragmentBackground'
 import RenderTokens, {
 	getAllLineNumbers,
 	getRenderedTokens,
@@ -50,6 +50,8 @@ import RenderTokens, {
 	Position,
 	RenderHighlight,
 } from '../CodeAnimations'
+import Concourse from '../Concourse'
+import FragmentBackground from '../FragmentBackground'
 
 export const getColorCodes = async (
 	code: string,
@@ -141,7 +143,7 @@ const CodeFragment = ({
 	isPreview: boolean
 	speakersLength: number
 }) => {
-	const { users } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
+	const users = useRecoilValue(agoraUsersAtom)
 	const state = useRecoilValue(studioStateAtom)
 	const theme = useRecoilValue(themeAtom)
 	const payload = useRecoilValue(payloadFamily(dataConfig.id))
@@ -150,11 +152,12 @@ const CodeFragment = ({
 		blockId: dataConfig.id,
 		shouldUpdateLiveblocks: !isPreview,
 	})
+	const setControlsConfig = useSetRecoilState(controlsConfigAtom)
 
 	const { hasura } = useEnv()
-	const { token: userToken } = useUser()
+	const { token: userToken } = useContext(UserContext)
 
-	// const codePreviewValue = useRecoilValue(codePreviewStore)
+	const codePreviewValue = useRecoilValue(codePreviewStore)
 
 	const { initUseCode } = useCode()
 	const [computedTokens, setComputedTokens] = useState<ComputedToken[][]>([[]])
@@ -274,7 +277,7 @@ const CodeFragment = ({
 					if (
 						decodedCode &&
 						(code?.code !== decodedCode ||
-							codeBlockViewProps.theme !== code?.theme)
+							codeBlockViewProps?.theme !== code?.theme)
 					) {
 						debounceColorCodes({
 							decodedCode,
@@ -340,17 +343,14 @@ const CodeFragment = ({
 		)
 	}, [colorCodes, objectRenderConfig, fontSize])
 
-
-	// TODO
-	// useEffect(() => {
-	// 	setStudio({
-	// 		...studio,
-	// 		controlsConfig: {
-	// 			position,
-	// 			computedTokens: computedTokens[0],
-	// 		},
-	// 	})
-	// }, [state, position, computedTokens])
+	useEffect(() => {
+		setControlsConfig({
+			updatePayload,
+			blockId: dataConfig.id,
+			position,
+			computedTokens: computedTokens[0],
+		})
+	}, [state, position, computedTokens])
 
 	useEffect(() => {
 		setPosition({
@@ -529,18 +529,18 @@ const CodeFragment = ({
 		}
 	}, [payload?.fragmentState])
 
-	// TODO
-	// useEffect(() => {
-	// 	previewGroupRef?.current?.to({
-	// 		y:
-	// 			-(codePreviewValue * (8 * (fontSize + 8))) +
-	// 			objectRenderConfig.startY +
-	// 			24,
-	// 		duration: 0.5,
-	// 		easing: Konva.Easings.EaseInOut,
-	// 	})
-	// }, [objectRenderConfig, codePreviewValue])
+	useEffect(() => {
+		previewGroupRef?.current?.to({
+			y:
+				-(codePreviewValue * (8 * (fontSize + 8))) +
+				objectRenderConfig.startY +
+				24,
+			duration: 0.5,
+			easing: Konva.Easings.EaseInOut,
+		})
+	}, [objectRenderConfig, codePreviewValue])
 
+	// TODO
 	// useEffect(() => {
 	// 	if (fragment?.configuration?.continuousRecording) {
 	// 		if (
@@ -684,7 +684,9 @@ const CodeFragment = ({
 				layout: !isPreview
 					? layout || 'classic'
 					: viewConfig?.layout || 'classic',
-				noOfParticipants: !isPreview ? users.length + 1 : speakersLength,
+				noOfParticipants: !isPreview
+					? (users?.length || 0) + 1
+					: speakersLength,
 				fragmentState,
 				theme,
 		  })
@@ -692,7 +694,9 @@ const CodeFragment = ({
 				layout: !isPreview
 					? layout || 'classic'
 					: viewConfig?.layout || 'classic',
-				noOfParticipants: !isPreview ? users.length + 1 : speakersLength,
+				noOfParticipants: !isPreview
+					? (users?.length || 0) + 1
+					: speakersLength,
 				fragmentState,
 				theme,
 		  })
@@ -706,8 +710,7 @@ const CodeFragment = ({
 			isShorts={shortsMode}
 			blockType={dataConfig.type}
 			fragmentState={fragmentState}
-			updatePayload={updatePayload}
-			blockId={dataConfig.id}
+			speakersLength={speakersLength}
 		/>
 	)
 }

@@ -6,11 +6,12 @@ import Konva from 'konva'
 import { nanoid } from 'nanoid'
 import React, { useEffect, useRef, useState } from 'react'
 import { Group, Image, Rect, Text } from 'react-konva'
-import { useRecoilValue } from 'recoil'
-import studioStore, {
+import { useRecoilValue, useSetRecoilState } from 'recoil'
+import {
+	agoraUsersAtom,
 	brandingAtom,
+	controlsConfigAtom,
 	payloadFamily,
-	StudioProviderProps,
 	themeAtom,
 } from 'src/stores/studio.store'
 import {
@@ -18,13 +19,13 @@ import {
 	ObjectConfig,
 } from 'src/utils/canvasConfigs/fragmentLayoutConfig'
 import {
-	getThemeLayoutConfig,
-	ObjectRenderConfig,
-} from 'src/utils/canvasConfigs/themeConfig'
-import {
 	getShortsStudioUserConfiguration,
 	getStudioUserConfiguration,
 } from 'src/utils/canvasConfigs/studioUserConfig'
+import {
+	getThemeLayoutConfig,
+	ObjectRenderConfig,
+} from 'src/utils/canvasConfigs/themeConfig'
 import { FragmentState } from 'src/utils/configs'
 import usePoint from 'src/utils/hooks/usePoint'
 import useUpdatePayload from 'src/utils/hooks/useUpdatePayload'
@@ -32,9 +33,9 @@ import useImage from 'use-image'
 import {
 	BlockProperties,
 	CaptionTitleView,
-	Layout,
-	ImageBlockViewProps,
 	ImageBlockView,
+	ImageBlockViewProps,
+	Layout,
 } from 'utils/src'
 import Concourse from '../Concourse'
 import FragmentBackground from '../FragmentBackground'
@@ -59,8 +60,7 @@ const ImageFragment = ({
 	isPreview: boolean
 	speakersLength: number
 }) => {
-	const { users } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
-
+	const users = useRecoilValue(agoraUsersAtom)
 	const theme = useRecoilValue(themeAtom)
 	const branding = useRecoilValue(brandingAtom)
 	const payload = useRecoilValue(payloadFamily(dataConfig.id))
@@ -68,6 +68,7 @@ const ImageFragment = ({
 		blockId: dataConfig.id,
 		shouldUpdateLiveblocks: !isPreview,
 	})
+	const setControlsConfig = useSetRecoilState(controlsConfigAtom)
 
 	const [imageFragmentData, setImageFragmentData] = useState<{
 		title: string
@@ -122,14 +123,17 @@ const ImageFragment = ({
 			surfaceColor: '',
 		})
 
-	useEffect(
-		() => () => {
+	useEffect(() => {
+		setControlsConfig({
+			updatePayload,
+			blockId: dataConfig.id,
+		})
+		return () => {
 			reset({
 				fragmentState: 'customLayout',
 			})
-		},
-		[]
-	)
+		}
+	}, [])
 
 	useEffect(() => {
 		if (!dataConfig) return
@@ -594,7 +598,9 @@ const ImageFragment = ({
 				layout: !isPreview
 					? layout || 'classic'
 					: viewConfig?.layout || 'classic',
-				noOfParticipants: !isPreview ? users.length + 1 : speakersLength,
+				noOfParticipants: !isPreview
+					? (users?.length || 0) + 1
+					: speakersLength,
 				fragmentState,
 				theme,
 		  })
@@ -602,7 +608,9 @@ const ImageFragment = ({
 				layout: !isPreview
 					? layout || 'classic'
 					: viewConfig?.layout || 'classic',
-				noOfParticipants: !isPreview ? users.length + 1 : speakersLength,
+				noOfParticipants: !isPreview
+					? (users?.length || 0) + 1
+					: speakersLength,
 				fragmentState,
 				theme,
 		  })
@@ -616,8 +624,7 @@ const ImageFragment = ({
 			isShorts={shortsMode}
 			blockType={dataConfig.type}
 			fragmentState={fragmentState}
-			updatePayload={updatePayload}
-			blockId={dataConfig.id}
+			speakersLength={speakersLength}
 		/>
 	)
 }

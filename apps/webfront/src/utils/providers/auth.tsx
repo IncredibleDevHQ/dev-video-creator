@@ -29,7 +29,7 @@ const login = async (token: string) =>
 
 type User = FBUser & Partial<UserFragment>
 
-const UserContext = createContext<
+export const UserContext = createContext<
 	Partial<{
 		user: User | null
 		setUser: (user: User | null) => void
@@ -80,8 +80,8 @@ const handleUser = async (
 
 	if (hasuraClaim) {
 		login(token)
+		await getDBUser(user, token, setUser)
 		setUser(user)
-		getDBUser(user, token, setUser)
 		setToken(token)
 		setLoadingUser(false)
 	} else {

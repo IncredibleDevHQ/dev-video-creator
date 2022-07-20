@@ -4,17 +4,18 @@ import Konva from 'konva'
 import { nanoid } from 'nanoid'
 import React, { useEffect, useRef, useState } from 'react'
 import { Group } from 'react-konva'
-import { useRecoilValue } from 'recoil'
-import studioStore, {
+import { useRecoilValue, useSetRecoilState } from 'recoil'
+import {
+	agoraUsersAtom,
 	brandingAtom,
+	controlsConfigAtom,
 	payloadFamily,
-	StudioProviderProps,
 	studioStateAtom,
 	themeAtom,
 } from 'src/stores/studio.store'
 import {
-	getStudioUserConfiguration,
 	getShortsStudioUserConfiguration,
+	getStudioUserConfiguration,
 } from 'src/utils/canvasConfigs/studioUserConfig'
 import { CONFIG, SHORTS_CONFIG } from 'src/utils/configs'
 import useUpdatePayload from 'src/utils/hooks/useUpdatePayload'
@@ -46,7 +47,7 @@ const IntroFragment = ({
 	blockId: string
 	speakersLength: number
 }) => {
-	const { users } = (useRecoilValue(studioStore) as StudioProviderProps) || {}
+	const users = useRecoilValue(agoraUsersAtom)
 	const state = useRecoilValue(studioStateAtom)
 	const theme = useRecoilValue(themeAtom)
 	const branding = useRecoilValue(brandingAtom)
@@ -55,6 +56,7 @@ const IntroFragment = ({
 		blockId,
 		shouldUpdateLiveblocks: !isPreview,
 	})
+	const setControlsConfig = useSetRecoilState(controlsConfigAtom)
 
 	const titleScreenRef = React.useRef<Konva.Group>(null)
 	const brandVideoRef = React.useRef<Konva.Group>(null)
@@ -72,6 +74,10 @@ const IntroFragment = ({
 
 	useEffect(() => {
 		clearTimeout(timer.current)
+		setControlsConfig({
+			updatePayload,
+			blockId,
+		})
 		return () => {
 			clearTimeout(timer.current)
 			reset({
@@ -106,6 +112,7 @@ const IntroFragment = ({
 	useEffect(() => {
 		if (
 			state === 'startRecording' ||
+			state === 'recording' ||
 			state === 'ready' ||
 			state === 'resumed' ||
 			isPreview
@@ -140,7 +147,7 @@ const IntroFragment = ({
 		if (
 			!isPreview &&
 			introSequence[activeIntroIndex] === 'userMedia' &&
-			state === 'startRecording'
+			state === 'recording'
 		) {
 			timer.current = setTimeout(() => {
 				setTopLayerChildren?.({ id: nanoid(), state: 'lowerThird' })
@@ -201,7 +208,9 @@ const IntroFragment = ({
 	const studioUserConfig = !shortsMode
 		? getStudioUserConfiguration({
 				layout: 'classic',
-				noOfParticipants: !isPreview ? users.length + 1 : speakersLength,
+				noOfParticipants: !isPreview
+					? (users?.length || 0) + 1
+					: speakersLength,
 				fragmentState:
 					introSequence[payload?.activeIntroIndex || 0] === 'userMedia'
 						? 'onlyUserMedia'
@@ -224,8 +233,7 @@ const IntroFragment = ({
 			layerChildren={layerChildren}
 			blockType='introBlock'
 			isShorts={shortsMode}
-			updatePayload={updatePayload}
-			blockId={blockId}
+			speakersLength={speakersLength}
 		/>
 	)
 }

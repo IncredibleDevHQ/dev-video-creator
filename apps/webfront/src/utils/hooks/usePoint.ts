@@ -1,9 +1,15 @@
 import { ListItem } from 'editor/src/utils/types'
 import Konva from 'konva'
 import { useRef } from 'react'
-import { getRichTextData, RichTextContent } from 'src/components/flick/canvas/RichText'
+import {
+	getRichTextData,
+	RichTextContent,
+} from 'src/components/flick/canvas/RichText'
 import { ListOrientation, Layout } from 'utils/src'
-import { getPointsConfig, getBulletsConfig } from '../canvasConfigs/pointsConfig'
+import {
+	getPointsConfig,
+	getBulletsConfig,
+} from '../canvasConfigs/pointsConfig'
 import { ComputedPoint } from '../configs'
 
 const usePoint = () => {

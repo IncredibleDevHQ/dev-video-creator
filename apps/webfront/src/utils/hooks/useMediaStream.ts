@@ -71,7 +71,6 @@ const useMediaStream = () => {
 		videoDevices: Device[]
 	}>({ audioDevices: [], videoDevices: [] })
 
-
 	const getDevices = useCallback(async () => {
 		// @ts-ignore
 		navigator.permissions.query({ name: 'camera' }).then(result => {
@@ -127,7 +126,9 @@ const useMediaStream = () => {
 			setError(err => ({ ...err, microphone: mediaStreamError }))
 		}
 
-		const mediaDevices = (await navigator.mediaDevices.enumerateDevices()).reverse()
+		const mediaDevices = (
+			await navigator.mediaDevices.enumerateDevices()
+		).reverse()
 		const audioDevices: Device[] = mediaDevices
 			.filter(device => device.kind === 'audioinput')
 			.map(device => ({ id: device.deviceId, label: device.label }))
@@ -146,7 +147,7 @@ const useMediaStream = () => {
 		}
 	}
 
-  useEffect(() => {
+	useEffect(() => {
 		const init = async () => {
 			await getDevices()
 			setReady(true)

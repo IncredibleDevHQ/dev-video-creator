@@ -1,24 +1,24 @@
 import { EditorContent, useIncredibleEditor } from 'editor/src'
 import { useEffect, useRef } from 'react'
 import { useRecoilValue, useSetRecoilState } from 'recoil'
-import { astAtom, currentBlockIdAtom } from 'src/stores/flick.store'
+import {
+	astAtom,
+	currentBlockIdAtom,
+	previewPositionAtom,
+} from 'src/stores/flick.store'
+import BlockPreview from './BlockPreview'
+import EditorHeader from './EditorHeader'
 
 const EditorSection = () => {
 	const { editor, dragHandleRef } = useIncredibleEditor()
 	const editorContainerRef = useRef<HTMLDivElement>(null)
-	const previewRef = useRef<HTMLDivElement>(null)
 	const setCurrentBlockId = useSetRecoilState(currentBlockIdAtom)
+	const setPreviewPosition = useSetRecoilState(previewPositionAtom)
 
 	const ast = useRecoilValue(astAtom)
 
 	useEffect(() => {
-		if (
-			!editor ||
-			!editorContainerRef.current ||
-			editor.isDestroyed ||
-			!ast ||
-			!previewRef.current
-		)
+		if (!editor || !editorContainerRef.current || editor.isDestroyed || !ast)
 			return
 
 		const { from } = editor.state.selection
@@ -45,15 +45,27 @@ const EditorSection = () => {
 				editorContainerRef.current?.getBoundingClientRect().top ?? 0
 			const previewPosition = editorTop - editorContainerTop - 48 // adjust for padding
 
-			previewRef.current.style.top = `${previewPosition}px`
+			setPreviewPosition(previewPosition)
 		} else {
 			setCurrentBlockId(null)
 		}
-	}, [ast, editor, editor?.state.selection.anchor, setCurrentBlockId])
+	}, [
+		ast,
+		editor,
+		editor?.state.selection.anchor,
+		setCurrentBlockId,
+		setPreviewPosition,
+	])
+
+	useEffect(() => () => {
+		if (!dragHandleRef?.current) return
+		dragHandleRef.current.style.visibility = 'hidden'
+		dragHandleRef.current.style.display = 'hidden'
+	})
 
 	return (
 		<div
-			className='grid grid-cols-12 flex-1 h-full sticky top-0 overflow-y-auto'
+			className='grid grid-cols-12 flex-1 h-full sticky top-0 overflow-y-auto bg-white'
 			onScroll={() => {
 				const dragHandle = dragHandleRef?.current
 				if (dragHandle) {
@@ -63,9 +75,10 @@ const EditorSection = () => {
 			}}
 		>
 			<div
-				className='h-full w-full max-w-[750px] pt-12 pb-32 col-start-4 col-span-6'
+				className='h-full w-full max-w-[750px] pt-12 pb-32 col-start-4 col-span-6 mx-auto'
 				ref={editorContainerRef}
 			>
+				<EditorHeader />
 				<div
 					style={{
 						zIndex: 0,
@@ -89,12 +102,7 @@ const EditorSection = () => {
 				{editor && <EditorContent editor={editor} />}
 			</div>
 			<div className='col-start-10 col-end-12 relative border-none outline-none w-full mt-10  ml-10'>
-				<div
-					className='absolute w-full  aspect-[16/9] border flex items-center justify-center'
-					ref={previewRef}
-				>
-					Preview
-				</div>
+				<BlockPreview />
 			</div>
 		</div>
 	)

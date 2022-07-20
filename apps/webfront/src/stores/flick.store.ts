@@ -1,9 +1,20 @@
 import { Block, SimpleAST } from 'editor/src/utils/types'
 import { atom, DefaultValue, selector } from 'recoil'
+import {
+	ContentFragment,
+	FlickParticipantsFragment,
+} from 'src/graphql/generated'
+import { IntroBlockViewProps, Layout } from 'utils/src'
 
 /* Stores some basic flick details */
 const flickAtom = atom<{
 	id: string
+	owner: {
+		id: string
+		sub: string
+	}
+	joinLink: string
+	contents: ContentFragment[]
 } | null>({
 	key: 'flick',
 	default: null,
@@ -13,6 +24,12 @@ const flickAtom = atom<{
 const flickNameAtom = atom<string | null>({
 	key: 'flickName',
 	default: null,
+})
+
+/* This atom keeps track of flick participants */
+const participantsAtom = atom<FlickParticipantsFragment[]>({
+	key: 'participants',
+	default: [],
 })
 
 /* This atom stores the currently selected format */
@@ -62,10 +79,53 @@ const currentBlockSelector = selector<Block | undefined>({
 	},
 })
 
+/* Atom that stores preview position */
+const previewPositionAtom = atom<number | null>({
+	key: 'previewPosition',
+	default: null,
+})
+
+/* Atom that stores thumbnail config of current fragment */
+type ThumbnailProps = IntroBlockViewProps & { layout: Layout }
+const thumbnailAtom = atom<ThumbnailProps | null>({
+	key: 'thumbnail',
+	default: null,
+})
+
+const thumbnailObjectAtom = atom<string | null>({
+	key: 'thumbnailObject',
+	default: null,
+})
+
+export interface CallToAction {
+	seconds: number
+	text?: string
+	url?: string
+}
+export interface IPublish {
+	title?: string
+	description?: string
+	thumbnail?: {
+		objectId?: string
+		method?: 'generated' | 'uploaded'
+	}
+	ctas: CallToAction[]
+	discordCTA?: { url: string; text: string }
+}
+const publishConfigAtom = atom<IPublish | null>({
+	key: 'publishConfig',
+	default: null,
+})
+
 export type FragmentType = 'Portrait' | 'Landscape'
 const fragmentTypeAtom = atom<FragmentType>({
 	key: 'fragmentType',
 	default: 'Landscape',
+})
+
+const openStudioAtom = atom<boolean>({
+	key: 'openStudio',
+	default: false,
 })
 
 export {
@@ -76,8 +136,14 @@ export {
 	astAtom,
 	currentBlockIdAtom,
 	currentBlockSelector,
+	previewPositionAtom,
+	participantsAtom,
 	isTimelineVisibleAtom,
 	fragmentTypeAtom,
+	openStudioAtom,
+	thumbnailAtom,
+	thumbnailObjectAtom,
+	publishConfigAtom,
 }
-
 export { View }
+export type { ThumbnailProps }

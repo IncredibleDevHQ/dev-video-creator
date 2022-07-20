@@ -1,5 +1,6 @@
 import dynamic from 'next/dynamic'
 import { useEffect } from 'react'
+import Container from 'src/components/core/Container'
 import { FlickFragment } from 'src/graphql/generated'
 import requireAuth from 'src/utils/helpers/requireAuth'
 import useReplace from 'src/utils/hooks/useReplace'
@@ -24,7 +25,11 @@ const Flick = ({ id, fragmentId, flick }: FlickProps) => {
 		})
 	}, [replace, fragmentId, id])
 
-	return <FlickBody flick={flick} initialFragmentId={fragmentId} />
+	return (
+		<Container title={flick.name}>
+			<FlickBody flick={flick} initialFragmentId={fragmentId} />
+		</Container>
+	)
 }
 
 export const getServerSideProps = requireAuth()(async ({ query }) => {

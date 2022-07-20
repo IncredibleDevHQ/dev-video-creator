@@ -1,9 +1,11 @@
+/* eslint-disable no-underscore-dangle */
 import admin from 'firebase-admin'
 import { DecodedIdToken } from 'firebase-admin/lib/auth/token-verifier'
 import { getAuth, signInWithCustomToken, User } from 'firebase/auth'
 import { GetServerSidePropsContext, PreviewData } from 'next'
 import { parseCookies } from 'nookies'
 import { ParsedUrlQuery } from 'querystring'
+import serverEnvs from '../env'
 import { createFirebaseApp } from '../providers/auth'
 
 type SSRUserContext = GetServerSidePropsContext<ParsedUrlQuery, PreviewData> & {
@@ -23,7 +25,7 @@ const verifyCookie = async (
 		if (!admin.apps.length) {
 			admin.initializeApp({
 				credential: admin.credential.cert(
-					JSON.parse(process.env.FIREBASE_SERVICE_CONFIG as string)
+					JSON.parse(serverEnvs.FIREBASE_SERVICE_CONFIG as string)
 				),
 			})
 		}
@@ -69,10 +71,10 @@ const requireAuth =
 		}
 
 		const cookies = parseCookies(context)
-		if (!cookies.thisIsASessionCookie) return redirect
+		if (!cookies.__session) return redirect
 
 		const { authenticated, user, userInfo } = await verifyCookie(
-			cookies.thisIsASessionCookie,
+			cookies.__session,
 			requestUser
 		)
 

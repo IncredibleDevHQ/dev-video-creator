@@ -1,6 +1,6 @@
-import { ThemeFragment } from "src/graphql/generated"
-import { Layout } from "utils/src"
-import { getCanvasGradient } from "./studioUserConfig"
+import { ThemeFragment } from 'src/graphql/generated'
+import { Layout } from 'utils/src'
+import { getCanvasGradient } from './studioUserConfig'
 
 export interface IntroConfig {
 	layoutX: number

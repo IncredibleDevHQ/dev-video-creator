@@ -45,7 +45,7 @@ const login = async (req: NextApiRequest, res: NextApiResponse) => {
 
 				// Set cookie policy for session cookie.
 				// The cookie should have httpOnly=true, secure=true and sameSite=strict set
-				setCookie(res, 'thisIsASessionCookie', sessionCookie, {
+				setCookie(res, '__session', sessionCookie, {
 					maxAge: expiresIn,
 					httpOnly: true,
 					secure: true,

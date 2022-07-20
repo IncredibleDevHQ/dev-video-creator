@@ -229,7 +229,7 @@ export const handleOutroBlock = (
 	payload: any,
 	updatePayload: ((value: any) => void) | undefined,
 	updateActiveObjectIndex: ((value: any) => void) | undefined,
-  activeObjectIndex: number,
+	activeObjectIndex: number,
 	direction: 'next' | 'previous',
 	blockId: string
 ): boolean => {

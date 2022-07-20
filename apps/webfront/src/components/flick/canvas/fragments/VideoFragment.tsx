@@ -1,14 +1,16 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { Transformations, VideoBlockProps } from 'editor/src/utils/types'
 import useEdit from 'icanvas/src/hooks/useEdit'
+import { Video, VideoConfig } from 'icanvas/src/Video'
 import Konva from 'konva'
 import React, { useEffect, useRef, useState } from 'react'
 import { Group, Rect, Text } from 'react-konva'
-import { useRecoilValue } from 'recoil'
-import studioStore, {
+import { useRecoilValue, useSetRecoilState } from 'recoil'
+import {
+	agoraUsersAtom,
 	brandingAtom,
+	controlsConfigAtom,
 	payloadFamily,
-	StudioProviderProps,
 	studioStateAtom,
 	themeAtom,
 } from 'src/stores/studio.store'
@@ -17,13 +19,13 @@ import {
 	ObjectConfig,
 } from 'src/utils/canvasConfigs/fragmentLayoutConfig'
 import {
-	getThemeLayoutConfig,
-	ObjectRenderConfig,
-} from 'src/utils/canvasConfigs/themeConfig'
-import {
 	getShortsStudioUserConfiguration,
 	getStudioUserConfiguration,
 } from 'src/utils/canvasConfigs/studioUserConfig'
+import {
+	getThemeLayoutConfig,
+	ObjectRenderConfig,
+} from 'src/utils/canvasConfigs/themeConfig'
 import { FragmentState } from 'src/utils/configs'
 import usePoint from 'src/utils/hooks/usePoint'
 import useUpdatePayload from 'src/utils/hooks/useUpdatePayload'
@@ -34,7 +36,6 @@ import {
 	VideoBlockView,
 	VideoBlockViewProps,
 } from 'utils/src'
-import { VideoConfig, Video } from 'icanvas/src/Video'
 import Concourse from '../Concourse'
 import FragmentBackground from '../FragmentBackground'
 
@@ -57,13 +58,7 @@ const VideoFragment = ({
 	isPreview: boolean
 	speakersLength: number
 }) => {
-	const {
-		// fragment,
-		// state,
-		// preloadedBlobUrls,
-		users,
-	} = (useRecoilValue(studioStore) as StudioProviderProps) || {}
-
+	const users = useRecoilValue(agoraUsersAtom)
 	const state = useRecoilValue(studioStateAtom)
 	const theme = useRecoilValue(themeAtom)
 	const branding = useRecoilValue(brandingAtom)
@@ -72,6 +67,7 @@ const VideoFragment = ({
 		blockId: dataConfig.id,
 		shouldUpdateLiveblocks: !isPreview,
 	})
+	const setControlsConfig = useSetRecoilState(controlsConfigAtom)
 
 	// const [studio, setStudio] = useRecoilState(studioStore)
 
@@ -90,8 +86,7 @@ const VideoFragment = ({
 			height: 1,
 		},
 	})
-	// const [playing, setPlaying] = useState(false)
-	const [,setPlaying] = useState(false)
+	const [playing, setPlaying] = useState(false)
 
 	// ref to the object grp
 	const customLayoutRef = useRef<Konva.Group>(null)
@@ -184,15 +179,14 @@ const VideoFragment = ({
 		)
 	}, [objectConfig, theme])
 
-	// useEffect(() => {
-	// 	setStudio({
-	// 		...studio,
-	// 		controlsConfig: {
-	// 			playing,
-	// 			videoElement,
-	// 		},
-	// 	})
-	// }, [state, dataConfig, videoElement, playing])
+	useEffect(() => {
+		setControlsConfig({
+			updatePayload,
+			blockId: dataConfig.id,
+			playing,
+			videoElement,
+		})
+	}, [state, dataConfig, videoElement, playing])
 
 	useEffect(() => {
 		if (!videoElement) return
@@ -587,7 +581,9 @@ const VideoFragment = ({
 				layout: !isPreview
 					? layout || 'classic'
 					: viewConfig?.layout || 'classic',
-				noOfParticipants: !isPreview ? users.length + 1 : speakersLength,
+				noOfParticipants: !isPreview
+					? (users?.length || 0) + 1
+					: speakersLength,
 				fragmentState,
 				theme,
 		  })
@@ -595,7 +591,9 @@ const VideoFragment = ({
 				layout: !isPreview
 					? layout || 'classic'
 					: viewConfig?.layout || 'classic',
-				noOfParticipants: !isPreview ? users.length + 1 : speakersLength,
+				noOfParticipants: !isPreview
+					? (users?.length || 0) + 1
+					: speakersLength,
 				fragmentState,
 				theme,
 		  })
@@ -609,12 +607,9 @@ const VideoFragment = ({
 			isShorts={shortsMode}
 			blockType={dataConfig.type}
 			fragmentState={fragmentState}
-			updatePayload={updatePayload}
-			blockId={dataConfig.id}
+			speakersLength={speakersLength}
 		/>
 	)
 }
 
 export default VideoFragment
-
-

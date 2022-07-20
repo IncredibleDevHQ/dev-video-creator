@@ -1,6 +1,7 @@
 import { createClient, LiveMap, LiveObject } from '@liveblocks/client'
 import { createRoomContext } from '@liveblocks/react'
-import { StudioState } from 'src/stores/studio.store'
+import { BrandingFragment, ThemeFragment } from 'src/graphql/generated'
+import { StudioState, TransitionConfig } from 'src/stores/studio.store'
 import { getEnv, LiveViewConfig } from 'utils/src'
 import { FragmentPayload } from './configs'
 
@@ -38,42 +39,76 @@ export type Presence = {
 // automatically persisted and synced to all connected clients.
 type Storage = {
 	viewConfig: LiveMap<string, LiveObject<LiveViewConfig>>
-	payload: LiveMap<string, LiveObject<FragmentPayload>>
-	activeObjectIndex: LiveObject<{activeObjectIndex: number}>
-	state: LiveObject<{state: StudioState}>
-	studioControls: LiveObject<{
-		studioControllerSub: string
-		controlsRequestorSub: string
-	}>
+	// payload: LiveMap<string, LiveObject<FragmentPayload>>
+	activeObjectIndex: LiveObject<{ activeObjectIndex: number }>
+	// state: LiveObject<{ state: StudioState }>
+	recordedBlocks: LiveMap<string, string>
 }
 
 // Blank user meta for now
 type UserMeta = {}
 
-// TODO: The type of custom events broadcasted and listened for in this
+// The type of custom events broadcasted and listened for in this
 // room. Must be JSON-serializable.
 export enum RoomEventTypes {
 	ThemeChanged = 'themeChanged',
 	BrandingChanged = 'brandingChanged',
 	TransitionChanged = 'transitionChanged',
 	FlickNameChanged = 'flickNameChanged',
+	PayloadChanged = 'payloadChanged',
+	StateChanged = 'stateChanged',
+	RetakeButtonClick = 'retakeButtonClick',
+	SaveButtonClick = 'saveButtonClick',
+	RequestControls = 'requestControls',
+	ApproveRequestControls = 'approveRequestControls',
+	RevokeControls = 'revokeControls',
+	Zoom = 'zoom',
 }
 type RoomEvent =
 	| {
 			type: RoomEventTypes.ThemeChanged
-			payload: any
+			payload: ThemeFragment
 	  }
 	| {
 			type: RoomEventTypes.BrandingChanged
-			payload: any
+			payload: BrandingFragment | null
 	  }
 	| {
 			type: RoomEventTypes.TransitionChanged
-			payload: any
+			payload: TransitionConfig
 	  }
 	| {
 			type: RoomEventTypes.FlickNameChanged
+			payload: string
+	  }
+	| {
+			type: RoomEventTypes.PayloadChanged
+			payload: {
+				blockId: string
+				payload: FragmentPayload
+			}
+	  }
+	| {
+			type: RoomEventTypes.StateChanged
+			payload: StudioState
+	  }
+	| {
+			type: RoomEventTypes.RetakeButtonClick
 			payload: any
+	  }
+	| { type: RoomEventTypes.SaveButtonClick; payload: any }
+	| { type: RoomEventTypes.RequestControls; payload: { requestorSub: string } }
+	| {
+			type: RoomEventTypes.ApproveRequestControls
+			payload: { requestorSub: string }
+	  }
+	| { type: RoomEventTypes.RevokeControls; payload: any }
+	| {
+			type: RoomEventTypes.Zoom
+			payload: {
+				zoomPointer: { x: number; y: number } | undefined
+				shouldZoom: boolean
+			}
 	  }
 
 export const {
@@ -88,4 +123,5 @@ export const {
 	useRoom,
 	useBroadcastEvent,
 	useEventListener,
+	RoomContext,
 } = createRoomContext<Presence, Storage, UserMeta, RoomEvent>(client)

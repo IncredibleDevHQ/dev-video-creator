@@ -119,7 +119,7 @@ export const EditorProvider = ({
 					),
 				},
 			},
-			autofocus: 'start',
+			autofocus: false,
 			extensions: [
 				UniqueID.configure({
 					attributeName: 'id',

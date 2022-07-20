@@ -34,3 +34,137 @@ fragment FlickFragment on Fragment {
 		description
 	}
 }
+
+fragment Recording on Recording {
+	id
+	fragmentId
+	type
+	url
+	status
+	checkpoint
+	thumbnail
+	storyboard
+}
+
+query GetRecordings($flickId: uuid, $fragmentId: uuid) {
+	Recording(
+		where: { flickId: { _eq: $flickId }, fragmentId: { _eq: $fragmentId } }
+	) {
+		...Recording
+	}
+}
+
+mutation SaveRecordedBlock(
+	$flickId: uuid!
+	$fragmentId: uuid!
+	$objectUrl: String!
+	$recordingId: uuid!
+	$blockId: String!
+	$thumbnail: String
+	$playbackDuration: Float
+) {
+	SaveBlock(
+		flickId: $flickId
+		fragmentId: $fragmentId
+		objectUrl: $objectUrl
+		recordingId: $recordingId
+		thumbnail: $thumbnail
+		blockId: $blockId
+		playbackDuration: $playbackDuration
+	) {
+		id
+		success
+	}
+}
+
+mutation SaveMultipleBlocks(
+	$blocks: [json]!
+	$flickId: uuid!
+	$fragmentId: uuid!
+	$recordingId: uuid!
+	$url: String!
+) {
+	SaveMultiBlocks(
+		blocks: $blocks
+		flickId: $flickId
+		fragmentId: $fragmentId
+		recordingId: $recordingId
+		url: $url
+	) {
+		success
+	}
+}
+
+mutation DeleteBlockGroup($objectUrl: String!, $recordingId: uuid!) {
+	RetakeMultiBlocks(objectUrl: $objectUrl, recordingId: $recordingId) {
+		success
+	}
+}
+
+mutation SetupRecording(
+	$contentType: CONTENT_TYPES!
+	$editorState: json!
+	$flickId: uuid!
+	$fragmentId: uuid!
+	$viewConfig: json!
+) {
+	StartRecording(
+		contentType: $contentType
+		flickId: $flickId
+		fragmentId: $fragmentId
+		editorState: $editorState
+		viewConfig: $viewConfig
+	) {
+		recordingId
+		success
+	}
+}
+
+mutation UpdateThumbnail($id: uuid!, $thumbnailConfig: json!) {
+	update_Fragment_by_pk(
+		pk_columns: { id: $id }
+		_set: { thumbnailConfig: $thumbnailConfig }
+	) {
+		id
+	}
+}
+
+mutation UpdateThumbnailObject($id: uuid!, $thumbnailObject: String!) {
+	update_Fragment_by_pk(
+		pk_columns: { id: $id }
+		_set: { thumbnailObject: $thumbnailObject }
+	) {
+		id
+	}
+}
+
+mutation PublishVideoAction(
+	$data: json!
+	$fragmentId: uuid!
+	$recordingId: uuid!
+	$publishToYoutube: Boolean
+) {
+	PublishVideo(
+		data: $data
+		fragmentId: $fragmentId
+		recordingId: $recordingId
+		publishToYoutube: $publishToYoutube
+	) {
+		success
+	}
+}
+
+mutation UpdatePublish($id: uuid!, $publishConfig: json!) {
+	update_Fragment_by_pk(
+		pk_columns: { id: $id }
+		_set: { publishConfig: $publishConfig }
+	) {
+		id
+	}
+}
+
+mutation CompleteRecording($editorState: json!, $recordingId: uuid!) {
+	CompleteRecording(editorState: $editorState, recordingId: $recordingId) {
+		success
+	}
+}

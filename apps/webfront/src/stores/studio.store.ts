@@ -1,6 +1,6 @@
 import { IAgoraRTCRemoteUser } from 'agora-rtc-sdk-ng'
 import { atom, atomFamily } from 'recoil'
-import { ThemeFragment } from 'src/graphql/generated'
+import { ThemeFragment, TransitionFragment } from 'src/graphql/generated'
 import {
 	BrandingJSON,
 	ControlsConfig,
@@ -23,7 +23,6 @@ export interface RTCUser extends IAgoraRTCRemoteUser {
 }
 
 export interface StudioProviderProps {
-	users: RTCUser[]
 	isHost: boolean
 	shortsMode?: boolean
 }
@@ -46,15 +45,55 @@ export const themeAtom = atom<ThemeFragment>({
 	},
 })
 
+export const activeBrandIdAtom = atom<string | null>({
+	key: 'activeBrandId',
+	default: null,
+})
 export const brandingAtom = atom<BrandingJSON>({
 	key: 'branding',
 	default: {},
 })
 
-// stores the user media stream
-export const streamAtom = atom<MediaStream | null>({
+export type TransitionConfig = {
+	swapTransition?: TransitionFragment
+	blockTransition?: TransitionFragment
+}
+export const transitionAtom = atom<TransitionConfig>({
+	key: 'transition',
+	default: {},
+})
+
+// stores stream and audio from media
+interface AgoraStreamData {
+	stream: MediaStream
+	audios: MediaStream[]
+}
+export const streamAtom = atom<AgoraStreamData | null>({
 	key: 'stream',
 	default: null,
+})
+
+// join , leave , renew in diff
+interface AgoraActions {
+	join: any
+	leave: any
+	renewToken: any
+}
+
+export const agoraActionsAtom = atom<AgoraActions | null>({
+	key: 'agoraActions',
+	default: null,
+})
+
+// user
+export const agoraUsersAtom = atom<RTCUser[] | undefined>({
+	key: 'agoraUsers',
+	default: undefined,
+})
+
+// agora all channel users
+export const agoraChannelUsersAtom = atom<RTCUser[] | null>({
+	key: 'agoraChannelUsers',
 })
 
 export const payloadFamily = atomFamily<FragmentPayload, string>({
@@ -65,6 +104,16 @@ export const payloadFamily = atomFamily<FragmentPayload, string>({
 export const controlsConfigAtom = atom<ControlsConfig>({
 	key: 'controlsConfig',
 	default: {},
+})
+
+export const isStudioControllerAtom = atom<boolean>({
+	key: 'isStudioController',
+	default: false,
+})
+
+export const codePreviewStore = atom<number>({
+	key: 'codePreview',
+	default: 0,
 })
 
 export const colorCodesAtom = atom<{
@@ -81,7 +130,6 @@ export const colorCodesAtom = atom<{
 const studioAtom = atom<StudioProviderProps>({
 	key: 'studio',
 	default: {
-		users: [],
 		isHost: false,
 		shortsMode: false,
 	},
