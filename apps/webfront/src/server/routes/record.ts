@@ -4,7 +4,6 @@ import { z } from 'zod'
 import serverEnvs from 'src/utils/env'
 import { s3 } from 'src/utils/aws'
 import { nanoid } from 'nanoid'
-import axios from 'axios'
 import { Context } from '../createContext'
 import { BlocksEntity, Meta } from '../utils/helpers'
 import {
@@ -12,6 +11,7 @@ import {
 	OrientationEnum,
 	RecordingStatusEnum,
 } from '../utils/enums'
+import mediaConvertToMp4 from '../utils/mediaConvert'
 
 const recordingRouter = trpc
 	.router<Context, Meta>()
@@ -221,11 +221,6 @@ const recordingRouter = trpc
 
 			console.log({ recordingSequence })
 
-			const { endpoint, secret } = {
-				endpoint: serverEnvs.TRANSCODER_ENDPOINT,
-				secret: serverEnvs.TRANSCODER_SECRET,
-			}
-
 			// get all the blocks with a url
 			let inputVideos: string[] = recordingSequence.map(
 				(block: { id: string; objectUrl: string; updatedAt: string }) => {
@@ -251,35 +246,13 @@ const recordingRouter = trpc
 					? OrientationEnum.Landscape
 					: OrientationEnum.Portrait
 
-			/*
-        Recording Type is one of these values
-        export enum Content_Type_Enum_Enum {
-          Blog = 'Blog',
-          VerticalVideo = 'VerticalVideo',
-          Video = 'Video'
-        }
-      */
-			const payload = JSON.stringify({
-				records: [
-					{
-						value: {
-							flickId,
-							fragmentId,
-							inputVideos,
-							outputVideo,
-							recordingId: input.recordingId,
-							orientation,
-						},
-					},
-				],
-			})
-
-			// call transcoder , TODO: directly use aws sdk and do it in a lambda
-			await axios.post(endpoint, payload, {
-				headers: {
-					'x-secret': secret,
-					'Content-Type': 'application/vnd.kafka.json.v2+json',
-				},
+			await mediaConvertToMp4({
+				flickId,
+				fragmentId,
+				inputVideos,
+				outputVideo,
+				recordingId: input.recordingId,
+				orientation,
 			})
 
 			// mark the recording as processing
