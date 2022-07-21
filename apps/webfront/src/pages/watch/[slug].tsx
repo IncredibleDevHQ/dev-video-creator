@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useEffect, useRef, useState } from 'react'
+import { CopyToClipboard } from 'react-copy-to-clipboard'
 import { BsShare } from 'react-icons/bs'
 import { FaDiscord } from 'react-icons/fa'
 import { IoHeartOutline } from 'react-icons/io5'
@@ -278,11 +279,18 @@ const Watch = ({
 														: userFlickClaps}
 												</Text>
 											</button>
-											<IconButton
-												colorScheme='dark'
-												size='large'
-												icon={<BsShare />}
-											/>
+											<CopyToClipboard
+												text={`${process.env.NEXT_PUBLIC_PUBLIC_URL}/watch/${flick.joinLink}`}
+												onCopy={() => {
+													emitToast('Copied url to clipboard')
+												}}
+											>
+												<IconButton
+													colorScheme='dark'
+													size='large'
+													icon={<BsShare />}
+												/>
+											</CopyToClipboard>
 										</div>
 									</div>
 									<div className='mt-6'>
@@ -381,11 +389,18 @@ const Watch = ({
 																: userFlickClaps}
 														</Text>
 													</button>
-													<IconButton
-														colorScheme='dark'
-														size='large'
-														icon={<BsShare />}
-													/>
+													<CopyToClipboard
+														text={`${process.env.NEXT_PUBLIC_PUBLIC_URL}/watch/${flick.joinLink}`}
+														onCopy={() => {
+															emitToast('Copied url to clipboard')
+														}}
+													>
+														<IconButton
+															colorScheme='dark'
+															size='large'
+															icon={<BsShare />}
+														/>
+													</CopyToClipboard>
 												</div>
 											</div>
 										))}
