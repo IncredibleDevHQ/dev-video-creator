@@ -156,7 +156,7 @@ model Flick {
   joinLink         String          @unique @default(uuid())
   producedLink     String?
   deletedAt        DateTime?       @db.Timestamp(6)
-  ownerId          String?
+  ownerSub         String
   organisationSlug String?
   previewLink      String?
   configuration    Json?           @default("{ \"themeId\": 0 }") @db.Json
@@ -174,6 +174,7 @@ model Flick {
   Branding         Branding?       @relation(fields: [brandingId], references: [id], onUpdate: NoAction)
   Organisation     Organisation?   @relation(fields: [organisationSlug], references: [slug], onDelete: Cascade, map: "Flick_organisationId_fkey")
   Theme            Theme           @relation(fields: [themeName], references: [name], onUpdate: Restrict, map: "Flick_themeId_fkey")
+  Owner            User            @relation(fields: [ownerSub], references: [sub], onDelete: Cascade, onUpdate: Cascade)
   Participants     Participant[]
   Blocks           Blocks[]
   Content          Content[]
@@ -186,7 +187,7 @@ model Flick {
   Recording        Recording[]
   Subscription     Subscription[]
 
-  @@index([ownerId, joinLink, organisationSlug])
+  @@index([ownerSub, joinLink, organisationSlug])
 }
 
 model FlickActivity {
@@ -634,6 +635,7 @@ model User {
   Subscription                   Subscription[]
   other_User                     User[]                @relation("UserToUser_referred_by")
   YoutubeIntegration             YoutubeIntegration?
+  Flick                          Flick[]
 
   @@index([sub, email])
 }

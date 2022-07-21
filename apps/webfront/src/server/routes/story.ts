@@ -130,8 +130,8 @@ const storyRouter = trpc
 		resolve: async ({ input, ctx }) => {
 			if (!ctx.user?.sub)
 				throw new TRPCError({
-					code: 'INTERNAL_SERVER_ERROR',
-					message: 'Story creation failed',
+					code: 'UNAUTHORIZED',
+					message: 'Unauthorized request.',
 				})
 			// check if_Series and series ownership
 			if (input.seriesId) {
@@ -189,6 +189,7 @@ const storyRouter = trpc
 					useBranding: input.useBranding,
 					creationFlow: input.creationFlow,
 					joinLink: nanoid(6),
+					ownerSub: ctx.user!.sub,
 				},
 				select: {
 					id: true,
@@ -219,16 +220,6 @@ const storyRouter = trpc
 							username: true,
 						},
 					},
-				},
-			})
-
-			// update flick table with owner participant id as ownerId
-			await ctx.prisma.flick.update({
-				where: {
-					id: story.id,
-				},
-				data: {
-					ownerId: ownerParticipant.id,
 				},
 			})
 
@@ -351,25 +342,18 @@ const storyRouter = trpc
 					id: input.flickId,
 				},
 				select: {
-					ownerId: true,
+					ownerSub: true,
 				},
 			})
-			const userParticipantId = await ctx.prisma.participant.findFirst({
-				where: {
-					flickId: input.flickId,
-					userSub: ctx.user!.sub,
-				},
-				select: {
-					id: true,
-				},
-			})
-			if (flick?.ownerId !== userParticipantId?.id) {
+
+			if (flick?.ownerSub !== ctx.user!.sub) {
 				throw new TRPCError({
 					code: 'UNAUTHORIZED',
 					message:
 						'You are not authorized to delete this story.Contact the owner of the story.',
 				})
 			}
+
 			// delete the story
 			const story = await ctx.prisma.flick.delete({
 				where: {
@@ -437,7 +421,7 @@ const storyRouter = trpc
 					themeName: true,
 					brandingId: true,
 					useBranding: true,
-					ownerId: true,
+					ownerSub: true,
 					Participants: {
 						select: {
 							id: true,
@@ -473,10 +457,7 @@ const storyRouter = trpc
 					message: 'Story creation failed',
 				})
 
-			const ownerParticipant = flick.Participants.find(
-				p => p.userSub === ctx.user!.sub
-			)
-			if (flick.ownerId !== ownerParticipant?.id) {
+			if (flick.ownerSub !== ctx.user!.sub) {
 				throw new TRPCError({
 					code: 'UNAUTHORIZED',
 					message: 'You are not authorized to duplicate this story.',
@@ -494,28 +475,27 @@ const storyRouter = trpc
 					themeName: flick.themeName,
 					brandingId: flick.brandingId,
 					useBranding: flick.useBranding,
+					ownerSub: ctx.user!.sub,
+					Participants: {
+						create: {
+							userSub: ctx.user.sub,
+							role: ParticipantRoleEnum.Host,
+							status: InvitationStatusEnum.Accepted,
+						},
+					},
 				},
 				select: {
 					id: true,
-				},
-			})
-
-			// add owner as participant
-			const newFlickOwner = await ctx.prisma.participant.create({
-				data: {
-					flickId: newFlick.id,
-					createdAt: new Date(),
-					updatedAt: new Date(),
-					userSub: ctx.user!.sub,
-					role: ParticipantRoleEnum.Host,
-				},
-				select: {
-					id: true,
-					userSub: true,
-					status: true,
-					role: true,
-					inviteStatus: true,
-					User: {
+					Participants: {
+						select: {
+							id: true,
+							userSub: true,
+							status: true,
+							role: true,
+							inviteStatus: true,
+						},
+					},
+					Owner: {
 						select: {
 							sub: true,
 							email: true,
@@ -526,15 +506,14 @@ const storyRouter = trpc
 					},
 				},
 			})
-			// update flick table with owner participant id as ownerId
-			await ctx.prisma.flick.update({
-				where: {
-					id: newFlick.id,
+
+			const newFlickOwner = {
+				...newFlick.Participants[0],
+				User: {
+					...newFlick.Owner,
 				},
-				data: {
-					ownerId: newFlickOwner.id,
-				},
-			})
+			}
+
 			// add fragments
 			await ctx.prisma.fragment.createMany({
 				data: flick.Fragment.map(f => ({
@@ -548,6 +527,7 @@ const storyRouter = trpc
 					type: f.type,
 				})),
 			})
+
 			// add fragment data to live blocks and yjs redis
 			const newFragments = await ctx.prisma.fragment.findMany({
 				where: {
@@ -560,6 +540,7 @@ const storyRouter = trpc
 					editorState: true,
 				},
 			})
+
 			newFragments.forEach(async f => {
 				try {
 					if (!f.configuration) throw Error('No configuration')

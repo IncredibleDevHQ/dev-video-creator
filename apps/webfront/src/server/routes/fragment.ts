@@ -22,7 +22,11 @@ import {
 	Meta,
 	validateEmail,
 } from '../utils/helpers'
-import { ContentTypeEnum, FragmentTypeEnum } from '../../utils/enums'
+import {
+	ContentTypeEnum,
+	FragmentTypeEnum,
+	ParticipantRoleEnum,
+} from '../../utils/enums'
 
 const fragmentRouter = trpc
 	.router<Context, Meta>()
@@ -257,13 +261,14 @@ const fragmentRouter = trpc
 					Flick: {
 						select: {
 							id: true,
-							ownerId: true,
+							ownerSub: true,
 							joinLink: true,
 							name: true,
 							Participants: {
 								select: {
 									id: true,
 									userSub: true,
+									role: true,
 									User: {
 										select: {
 											username: true,
@@ -283,14 +288,15 @@ const fragmentRouter = trpc
 					message: 'Video not found!',
 					code: 'NOT_FOUND',
 				})
+
 			const ownerParticipant = fragmentData.Flick.Participants.find(
 				p => p.userSub === ctx.user!.sub
 			)
 
 			// allow only flick owner to publish the video
 			if (
-				!ownerParticipant ||
-				ownerParticipant.id !== fragmentData.Flick.ownerId
+				ownerParticipant?.role !== ParticipantRoleEnum.Host ||
+				ownerParticipant?.userSub !== fragmentData.Flick.ownerSub
 			)
 				throw new TRPCError({
 					code: 'UNAUTHORIZED',

@@ -171,21 +171,20 @@ const collaborateRouter = trpc
 				},
 				select: {
 					id: true,
-					ownerId: true,
+					ownerSub: true,
 					name: true,
 					Participants: {
 						select: {
 							id: true,
 							userSub: true,
+							role: true,
 						},
 					},
 				},
 			})
 			// Only story owner can invite a new user to a story
-			const ownerParticipant = flick?.Participants.find(
-				p => p.userSub === ctx.user!.sub
-			)
-			if (!ownerParticipant || flick?.ownerId !== ownerParticipant.id) {
+
+			if (flick?.ownerSub !== ctx.user!.sub) {
 				throw new TRPCError({
 					code: 'UNAUTHORIZED',
 					message: 'Unauthorized, only the story owner can invite new members.',
@@ -211,18 +210,25 @@ const collaborateRouter = trpc
 			email: z.string(),
 		}),
 		resolve: async ({ ctx, input }) => {
+			if (!ctx.user?.sub)
+				throw new TRPCError({
+					code: 'UNAUTHORIZED',
+					message: 'Unauthorized request.',
+				})
+
 			const flick = await ctx.prisma.flick.findUnique({
 				where: {
 					id: input.flickId,
 				},
 				select: {
 					id: true,
-					ownerId: true,
+					ownerSub: true,
 					name: true,
 					Participants: {
 						select: {
 							id: true,
 							userSub: true,
+							role: true,
 						},
 					},
 				},
@@ -232,9 +238,8 @@ const collaborateRouter = trpc
 				p => p.userSub === ctx.user!.sub
 			)
 			if (
-				!ownerParticipant ||
-				flick?.ownerId !== ownerParticipant.id ||
-				!ctx.user?.sub
+				ownerParticipant?.role === ParticipantRoleEnum.Host ||
+				flick?.ownerSub !== ctx.user?.sub
 			) {
 				throw new TRPCError({
 					code: 'UNAUTHORIZED',
@@ -257,7 +262,7 @@ const collaborateRouter = trpc
 					flickId: input.flickId,
 					message: 'You have been invite to collaborate!',
 					receiverId: user.sub,
-					senderId: ctx.user!.sub,
+					senderId: ctx.user.sub,
 				})
 				return res
 			}
@@ -447,11 +452,12 @@ const collaborateRouter = trpc
 				},
 				select: {
 					id: true,
-					ownerId: true,
+					ownerSub: true,
 					Participants: {
 						select: {
 							id: true,
 							userSub: true,
+							role: true,
 						},
 					},
 				},
@@ -460,7 +466,10 @@ const collaborateRouter = trpc
 			const ownerParticipant = flick?.Participants.find(
 				p => p.userSub === ctx.user!.sub
 			)
-			if (!ownerParticipant || flick?.ownerId !== ownerParticipant.id) {
+			if (
+				ownerParticipant?.role !== ParticipantRoleEnum.Host ||
+				flick?.ownerSub !== ctx.user!.sub
+			) {
 				throw new TRPCError({
 					code: 'UNAUTHORIZED',
 					message: 'Unauthorized, only the story owner can remove members.',
@@ -501,11 +510,12 @@ const collaborateRouter = trpc
 				},
 				select: {
 					id: true,
-					ownerId: true,
+					ownerSub: true,
 					Participants: {
 						select: {
 							id: true,
 							userSub: true,
+							role: true,
 						},
 					},
 				},
@@ -520,7 +530,10 @@ const collaborateRouter = trpc
 			const ownerParticipant = flick?.Participants.find(
 				p => p.userSub === ctx.user!.sub
 			)
-			if (!ownerParticipant || flick?.ownerId !== ownerParticipant.id) {
+			if (
+				ownerParticipant?.role !== ParticipantRoleEnum.Host ||
+				flick?.ownerSub !== ctx.user!.sub
+			) {
 				throw new TRPCError({
 					code: 'UNAUTHORIZED',
 					message: 'Unauthorized, only the story owner can transfer ownership.',
@@ -539,17 +552,37 @@ const collaborateRouter = trpc
 				})
 			}
 
-			// change ownerId on Flick table
+			// change ownerSub on Flick table
 			const res = await ctx.prisma.flick.update({
 				where: {
 					id: input.flickId,
 				},
 				data: {
-					ownerId: input.newOwnerParticipantId,
+					ownerSub: newOwnerParticipant.userSub,
 				},
 				select: {
 					id: true,
-					ownerId: true,
+					ownerSub: true,
+				},
+			})
+
+			// update Participant table
+			// make new owner as host
+			await ctx.prisma.participant.update({
+				where: {
+					id: input.newOwnerParticipantId,
+				},
+				data: {
+					role: ParticipantRoleEnum.Host,
+				},
+			})
+			// make old owner as assistant participant
+			await ctx.prisma.participant.update({
+				where: {
+					id: ownerParticipant.id,
+				},
+				data: {
+					role: ParticipantRoleEnum.Assistant,
 				},
 			})
 
