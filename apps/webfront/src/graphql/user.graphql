@@ -27,6 +27,14 @@ query IsUsernameAvailable($username: String!) {
 	}
 }
 
+query CheckFollowByIds($followerId: String!, $targetId: [String!]) {
+	Follow(
+		where: { followerId: { _eq: $followerId }, targetId: { _in: $targetId } }
+	) {
+		targetId
+	}
+}
+
 mutation UserOnBoarding(
 	$designation: String = ""
 	$name: String!

@@ -1,3 +1,11 @@
+fragment Series on Series {
+	id
+	name
+	flickCount {
+		count
+	}
+}
+
 fragment DashboardSeries on Series {
 	id
 	name

@@ -219,7 +219,10 @@ const Notifications = () => {
 		<Popover>
 			{({ open, close }) => (
 				<>
-					<Popover.Button as='button' className='relative cursor-pointer'>
+					<Popover.Button
+						as='button'
+						className='relative cursor-pointer flex items-center'
+					>
 						{data && data.Notifications_aggregate.aggregate?.count !== 0 && (
 							<GoPrimitiveDot
 								className={cx(
