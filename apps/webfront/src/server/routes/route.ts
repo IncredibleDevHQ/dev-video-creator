@@ -1,3 +1,4 @@
+import serverEnvs from 'src/utils/env'
 import createRouter from '../createRouter'
 import userRouter from './user'
 import utilsRouter from './utils'
@@ -26,6 +27,8 @@ const appRouter = createRouter()
 		data: {
 			error: {
 				code: error.code,
+				message: serverEnvs.NODE_ENV !== 'production' ? error.message : '',
+				stack: serverEnvs.NODE_ENV !== 'production' ? error.stack : '',
 			},
 		},
 	}))

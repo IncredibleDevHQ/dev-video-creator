@@ -13,7 +13,11 @@ import {
 	initRedisWithDataConfig,
 	Meta,
 } from '../utils/helpers'
-import { FlickScopeEnum, ParticipantRoleEnum } from '../utils/enums'
+import {
+	FlickScopeEnum,
+	InvitationStatusEnum,
+	ParticipantRoleEnum,
+} from '../../utils/enums'
 import {
 	sendTransactionalEmail,
 	TransactionalMailType,
@@ -103,7 +107,6 @@ const storyRouter = trpc
 			hasAuth: true,
 		},
 		input: z.object({
-			sub: z.string(),
 			name: z.string(),
 			description: z.string().optional(),
 			scope: z.nativeEnum(FlickScopeEnum).default(FlickScopeEnum.Private),
@@ -118,6 +121,7 @@ const storyRouter = trpc
 			fragmentViewConfig: z.any().optional(),
 			fragmentDataConfig: z.any().optional(),
 			fragmentEncodedEditorValue: z.any().optional(),
+			md: z.string().optional(),
 		}),
 		output: z.object({
 			id: z.string(),
@@ -171,9 +175,20 @@ const storyRouter = trpc
 			}
 
 			// Create new story|flick
+			// TODO: eval if we need this column md: Flick.md
 			const story = await ctx.prisma.flick.create({
 				data: {
-					...input,
+					name: input.name,
+					description: input.description,
+					organisationSlug: input.organisationSlug,
+					scope: input.scope,
+					dirty: input.dirty,
+					configuration: input.configuration || undefined,
+					themeName: input.themeName,
+					brandingId: input.brandingId,
+					useBranding: input.useBranding,
+					creationFlow: input.creationFlow,
+					joinLink: nanoid(6),
 				},
 				select: {
 					id: true,
@@ -185,10 +200,9 @@ const storyRouter = trpc
 			const ownerParticipant = await ctx.prisma.participant.create({
 				data: {
 					flickId: story.id,
-					createdAt: new Date(),
-					updatedAt: new Date(),
 					userSub: ctx.user!.sub,
 					role: ParticipantRoleEnum.Host,
+					inviteStatus: InvitationStatusEnum.Accepted,
 				},
 				select: {
 					id: true,

@@ -10,7 +10,7 @@ import {
 	ContentTypeEnum,
 	OrientationEnum,
 	RecordingStatusEnum,
-} from '../utils/enums'
+} from '../../utils/enums'
 import mediaConvertToMp4 from '../utils/mediaConvert'
 
 const recordingRouter = trpc

@@ -8,12 +8,12 @@ import Mux from '@mux/mux-node'
 import { s3 } from 'src/utils/aws'
 import * as Y from 'yjs'
 import { TiptapTransformer } from '@hocuspocus/transformer'
-import VideoBlock from 'editor/src/nodes/extension-video'
 import Paragraph from '@tiptap/extension-paragraph'
 import Document from '@tiptap/extension-document'
 import Text from '@tiptap/extension-text'
 // eslint-disable-next-line import/no-extraneous-dependencies
 import * as uuid from 'uuid'
+import VideoBlock from './VideoBlock'
 import serverEnvs from '../../utils/env'
 import {
 	sendTransactionalEmail,
@@ -213,6 +213,7 @@ export const createLiveBlocksRoom = async (
 			activeOutroIndex: 0,
 		},
 	}
+	console.log('Starting liveblocks Initialization .... ')
 
 	const liveblocksToken = await axios.post(
 		`https://liveblocks.io/api/authorize`,
@@ -246,6 +247,7 @@ export const createLiveBlocksRoom = async (
 			},
 		}
 	)
+	console.log('Completed liveblocks Initialization')
 }
 
 export const initRedisWithDataConfig = async (
@@ -253,12 +255,14 @@ export const initRedisWithDataConfig = async (
 	fragmentDataConfig: any,
 	fragmentEncodedEditorValue: any
 ): Promise<void> => {
+	console.log('Init redis for yjs....')
 	// Init yjs binary layer
 	let raw
 	let redisBody: any = {
 		ast: fragmentDataConfig,
 	}
 	if (fragmentEncodedEditorValue) {
+		console.log('creating buffer for yjs...')
 		const yDoc = TiptapTransformer.extensions([
 			VideoBlock,
 			Document,
@@ -275,9 +279,11 @@ export const initRedisWithDataConfig = async (
 			...redisBody,
 			raw,
 		}
+		console.log('buffer for yjs is ready.')
 	}
-
+	console.log('Connecting to redis...')
 	await redisClient.connect()
+	console.log('Connected to Redis')
 	redisClient.json
 		.set(fragmentId, '$', redisBody)
 		.then(() => console.log(`Stored on redis doc: ${fragmentId} `))
@@ -287,6 +293,7 @@ export const initRedisWithDataConfig = async (
 		.finally(() => {
 			redisClient.disconnect()
 		})
+	console.log('Completed redis init for yjs')
 }
 
 export const sendInviteEmail = async (

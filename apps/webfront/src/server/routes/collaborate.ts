@@ -10,7 +10,7 @@ import {
 	NotificationMetaTypeEnum,
 	NotificationTypeEnum,
 	ParticipantRoleEnum,
-} from '../utils/enums'
+} from '../../utils/enums'
 import {
 	sendTransactionalEmail,
 	TransactionalMailType,

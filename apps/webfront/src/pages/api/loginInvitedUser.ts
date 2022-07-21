@@ -1,11 +1,12 @@
 import { NextApiRequest, NextApiResponse } from 'next'
+
+import { getEmailSignInLink } from 'src/server/utils/helpers'
 import {
 	InvitationStatusEnum,
 	NotificationMetaTypeEnum,
 	NotificationTypeEnum,
 	ParticipantRoleEnum,
-} from 'src/server/utils/enums'
-import { getEmailSignInLink } from 'src/server/utils/helpers'
+} from 'src/utils/enums'
 import serverEnvs from 'src/utils/env'
 import prisma from '../../server/prisma'
 
@@ -151,7 +152,7 @@ export const loginInvitedUser = async (
 				flickId: inviteData.flickId,
 				userSub: user.sub,
 				role: ParticipantRoleEnum.Assistant,
-				inviteStatus: 'Yes',
+				inviteStatus: InvitationStatusEnum.Accepted,
 			},
 			select: {
 				id: true,

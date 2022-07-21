@@ -22,7 +22,7 @@ import {
 	Meta,
 	validateEmail,
 } from '../utils/helpers'
-import { ContentTypeEnum, FragmentTypeEnum } from '../utils/enums'
+import { ContentTypeEnum, FragmentTypeEnum } from '../../utils/enums'
 
 const fragmentRouter = trpc
 	.router<Context, Meta>()
@@ -108,7 +108,7 @@ const fragmentRouter = trpc
 				},
 			})
 			// update redis for hocuspocus
-			await initRedisWithDataConfig(fragment.id, editorState)
+			await initRedisWithDataConfig(fragment.id, editorState, undefined)
 
 			return {
 				fragmentId: fragment.id,

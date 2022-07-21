@@ -4,7 +4,7 @@ import {
 	__mapOf__string,
 	__listOfOutputGroup,
 } from 'aws-sdk/clients/mediaconvert'
-import { OrientationEnum } from './enums'
+import { OrientationEnum } from '../../utils/enums'
 
 export const mediaConvertToMp4 = ({
 	flickId,
