@@ -632,6 +632,10 @@ const storyRouter = trpc
 					id: newFlick.id,
 				}
 			})
+
+			return {
+				id: newFlick.id,
+			}
 		},
 	})
 export default storyRouter

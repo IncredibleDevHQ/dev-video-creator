@@ -12,7 +12,6 @@ import {
 	IoDocumentTextOutline,
 	IoTrashOutline,
 } from 'react-icons/io5'
-import { useDuplicateUserFlickMutation } from 'src/graphql/generated'
 import { useUser } from 'src/utils/providers/auth'
 import trpc, { inferQueryOutput } from 'src/utils/trpc'
 import { emitToast, Heading, Text, ThumbnailPreview } from 'ui/src'
@@ -55,10 +54,10 @@ const FlickTile = ({
 		})
 	}
 
-	const [duplicateFlick] = useDuplicateUserFlickMutation({
-		onCompleted(data) {
+	const duplicateFlick = trpc.useMutation(['story.duplicate'], {
+		onSuccess(data) {
 			emitToast('Successfully duplicated the flick', { type: 'success' })
-			handleCopy(id, data.DuplicateFlick?.id)
+			handleCopy(id, data.id)
 		},
 		onError() {
 			emitToast('Error making copy', {
@@ -211,7 +210,9 @@ const FlickTile = ({
 									)}
 									onClick={(e: any) => {
 										e.stopPropagation()
-										duplicateFlick()
+										duplicateFlick.mutateAsync({
+											flickId: id,
+										})
 									}}
 								>
 									<IoCopyOutline size={14} className='text-gray-100' />
