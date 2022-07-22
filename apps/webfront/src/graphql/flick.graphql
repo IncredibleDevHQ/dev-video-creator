@@ -62,6 +62,13 @@ fragment Flick on Flick {
 	}
 }
 
+fragment PublicSeriesFlick on Flick {
+	...BaseFlick
+	participants {
+		...SeriesParticipant
+	}
+}
+
 query GetFlickById($id: uuid!) {
 	Flick_by_pk(id: $id) {
 		...Flick
@@ -71,6 +78,19 @@ query GetFlickById($id: uuid!) {
 query GetFlick($joinLink: String!) {
 	Flick(where: { joinLink: { _eq: $joinLink } }) {
 		...Flick
+	}
+}
+
+query GetUserFlicks($sub: String!) {
+	Flick(
+		where: {
+			owner: { userSub: { _eq: $sub } }
+			participants: { userSub: { _eq: $sub } }
+			deletedAt: { _is_null: true }
+		}
+		order_by: { updatedAt: desc }
+	) {
+		...BaseFlick
 	}
 }
 

@@ -261,7 +261,7 @@ const Notifications = () => {
 						leaveFrom='transform opacity-100 scale-100'
 						leaveTo='transform opacity-0 scale-95'
 					>
-						<Popover.Panel as='div' className='absolute right-[75px]'>
+						<Popover.Panel as='div' className='absolute right-[75px] mt-4'>
 							<NotificationsList
 								isNotificationsOpen={open}
 								close={close}

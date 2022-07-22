@@ -6,6 +6,61 @@ fragment Series on Series {
 	}
 }
 
+fragment SeriesParticipant on Participant {
+	id
+	user {
+		sub
+		picture
+		username
+		displayName
+	}
+}
+
+fragment SeriesFlick on Flick_Series {
+	flick {
+		id
+		status
+		name
+		description
+		thumbnail
+		duration
+		configuration
+		ownerId
+		joinLink
+		topicTags
+		contents {
+			id
+			isPublic
+			type
+			resource
+			thumbnail
+			published_at
+		}
+		publishedAt
+		participants {
+			...SeriesParticipant
+		}
+	}
+}
+
+fragment SeriesFragment on Series {
+	id
+	name
+	description
+	picture
+	createdAt
+	updatedAt
+	owner {
+		displayName
+		username
+		picture
+		sub
+	}
+	Flick_Series {
+		...SeriesFlick
+	}
+}
+
 fragment DashboardSeries on Series {
 	id
 	name
@@ -15,9 +70,25 @@ fragment DashboardSeries on Series {
 	ownerSub
 }
 
+fragment BaseSeries on Series {
+	id
+	name
+	description
+	picture
+	createdAt
+	updatedAt
+	ownerSub
+}
+
 query GetDashboardUserSeries($limit: Int = 25, $offset: Int = 0) {
 	Series(order_by: { createdAt: desc }, limit: $limit, offset: $offset) {
 		...DashboardSeries
+	}
+}
+
+query GetUserSeries {
+	Series(order_by: { createdAt: desc }) {
+		...BaseSeries
 	}
 }
 

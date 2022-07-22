@@ -296,7 +296,7 @@ const Watch = ({
 									<div className='mt-6'>
 										<Heading as='h1'>{flick.name}</Heading>
 										<div className='flex items-center mt-2 gap-x-4'>
-											<div className='flex items-center'>
+											<div className='flex items-center -space-x-1.5'>
 												{flick.participants
 													?.sort(a => {
 														// owner first
@@ -305,7 +305,7 @@ const Watch = ({
 														}
 														return 1
 													})
-													?.map((participant, index) => (
+													?.map(participant => (
 														<Link
 															key={participant.id}
 															href={`/${participant.user.username}`}
@@ -315,14 +315,8 @@ const Watch = ({
 																<Avatar
 																	src={participant.user.picture as string}
 																	alt={participant.user.displayName ?? ''}
-																	className={cx(
-																		'w-6 h-6 border-2 rounded-full border-green-600 cursor-pointer',
-																		{
-																			'-m-1': index !== 0,
-																			'z-10': index === 0,
-																		}
-																	)}
 																	name={participant.user.displayName ?? ''}
+																	className='w-6 h-6 border-2 rounded-full border-green-600 cursor-pointer'
 																/>
 															</span>
 														</Link>

@@ -1,4 +1,4 @@
-fragment User on MeOutput {
+fragment Me on MeOutput {
 	createdAt
 	displayName
 	email
@@ -10,6 +10,44 @@ fragment User on MeOutput {
 	updatedAt
 	designation
 	organization
+}
+
+fragment UserProfile on Profile {
+	about
+	coverImage
+	githubProfile
+	hashnodeProfile
+	id
+	linkedinProfile
+	mediumProfile
+	tags
+	title
+	twitterProfile
+}
+
+fragment User on User {
+	picture
+	displayName
+	username
+	sub
+	profile {
+		...UserProfile
+	}
+}
+
+query UserProfile($username: String!) {
+	Flick(
+		where: { participants: { user: { username: { _eq: $username } } } }
+		order_by: { updatedAt: desc }
+	) {
+		...PublicSeriesFlick
+	}
+	User(where: { username: { _eq: $username } }) {
+		...User
+		series(order_by: { updatedAt: desc }) {
+			...SeriesFragment
+		}
+	}
 }
 
 subscription GetUserYTIntegration {
@@ -24,6 +62,14 @@ query IsUsernameAvailable($username: String!) {
 		message
 		suggestion
 		valid
+	}
+}
+
+query CheckFollow($followerId: String!, $targetId: String!) {
+	Follow(
+		where: { followerId: { _eq: $followerId }, targetId: { _eq: $targetId } }
+	) {
+		followerId
 	}
 }
 
@@ -49,6 +95,18 @@ mutation UserOnBoarding(
 		profilePicture: $profilePicture
 		userName: $username
 	) {
+		success
+	}
+}
+
+mutation Follow($targetId: String!, $followerId: String!) {
+	FollowUser(targetId: $targetId, followerId: $followerId) {
+		success
+	}
+}
+
+mutation Unfollow($followerId: String!, $targetId: String!) {
+	UnfollowUser(followerId: $followerId, targetId: $targetId) {
 		success
 	}
 }
