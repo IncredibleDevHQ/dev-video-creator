@@ -12,12 +12,9 @@ import {
 	IoDocumentTextOutline,
 	IoTrashOutline,
 } from 'react-icons/io5'
-import {
-	useDeleteFlickMutation,
-	useDuplicateUserFlickMutation,
-} from 'src/graphql/generated'
+import { useDuplicateUserFlickMutation } from 'src/graphql/generated'
 import { useUser } from 'src/utils/providers/auth'
-import { inferQueryOutput } from 'src/utils/trpc'
+import trpc, { inferQueryOutput } from 'src/utils/trpc'
 import { emitToast, Heading, Text, ThumbnailPreview } from 'ui/src'
 import {
 	Content_Type_Enum_Enum,
@@ -42,10 +39,10 @@ const FlickTile = ({
 
 	const router = useRouter()
 
-	const [deleteFlick] = useDeleteFlickMutation({
-		onCompleted(data) {
+	const deleteFlick = trpc.useMutation(['story.delete'], {
+		onSuccess(data) {
 			emitToast('Successfully deleted the flick', { type: 'success' })
-			handleDelete(data.DeleteFlick?.id)
+			handleDelete(data.flickId)
 		},
 		onError() {
 			emitToast('Error deleting flick', { type: 'error' })
@@ -53,10 +50,8 @@ const FlickTile = ({
 	})
 
 	const deleteFlickFunction = async () => {
-		await deleteFlick({
-			variables: {
-				flickId: id,
-			},
+		await deleteFlick.mutateAsync({
+			flickId: id,
 		})
 	}
 
