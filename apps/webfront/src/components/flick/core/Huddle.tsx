@@ -7,10 +7,10 @@ import { BiCheck } from 'react-icons/bi'
 import { FiMic, FiMicOff } from 'react-icons/fi'
 import { IoHeadsetOutline, IoChevronDownOutline } from 'react-icons/io5'
 import { useRecoilValue } from 'recoil'
-import { useGetHuddleRtcTokenMutation } from 'src/graphql/generated'
 import { flickAtom, participantsAtom } from 'src/stores/flick.store'
 import useAudio from 'src/utils/hooks/useAudio'
 import { useUpdateMyPresence } from 'src/utils/liveblocks.config'
+import trpc from 'src/utils/trpc'
 import { emitToast, Avatar } from 'ui/src'
 
 const Huddle = ({
@@ -48,7 +48,7 @@ const Huddle = ({
 			: undefined
 	)
 	const { ready: trackReady, error: trackError, track } = useTrack()
-	const [getHuddleToken] = useGetHuddleRtcTokenMutation()
+	const getHuddleToken = trpc.useMutation(['util.getRtcToken'])
 	const {
 		init,
 		mute,
@@ -99,35 +99,32 @@ const Huddle = ({
 		;(async () => {
 			try {
 				if (!trackReady || !track || !flickId || !participantId) return
-				const { data } = await getHuddleToken({
-					variables: {
-						flickId,
-					},
+				const { token, success } = await getHuddleToken.mutateAsync({
+					flickId,
+					huddle: true,
 				})
-				if (data?.HuddleRtcToken?.token) {
-					setRtcToken(data.HuddleRtcToken.token)
+				if (success && token) {
+					setRtcToken(token)
 				}
 				await init(
 					flickId,
 					{
 						onTokenWillExpire: async () => {
-							const { data: huddleTokenData } = await getHuddleToken({
-								variables: { flickId },
+							const { token: huddleToken } = await getHuddleToken.mutateAsync({
+								flickId,
+								huddle: true,
 							})
-							if (huddleTokenData?.HuddleRtcToken?.token) {
-								renewToken(huddleTokenData?.HuddleRtcToken?.token)
+							if (huddleToken) {
+								renewToken(huddleToken)
 							}
 						},
 						onTokenDidExpire: async () => {
-							const { data: huddleTokenData } = await getHuddleToken({
-								variables: { flickId },
+							const { token: huddleToken } = await getHuddleToken.mutateAsync({
+								flickId,
+								huddle: true,
 							})
-							if (huddleTokenData?.HuddleRtcToken?.token) {
-								join(
-									huddleTokenData?.HuddleRtcToken?.token,
-									participantId,
-									track
-								)
+							if (huddleToken) {
+								join(huddleToken, participantId, track)
 							}
 						},
 					},
@@ -253,9 +250,9 @@ const Huddle = ({
 						})}
 					>
 						<Avatar
-							src={participant.user.picture as string}
-							alt={participant.user.displayName || ''}
-							name={participant.user.displayName || ''}
+							src={participant.User.picture as string}
+							alt={participant.User.displayName || ''}
+							name={participant.User.displayName || ''}
 							className='rounded-full w-7 h-7 ml-2'
 						/>
 						{user.hasAudio ? null : (

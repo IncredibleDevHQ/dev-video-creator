@@ -75,7 +75,7 @@ export const getDefaultViewConfig = (
 		selectedBlocks: [],
 		continuousRecording: false,
 		mode: 'Landscape',
-		speakers: ownerParticipant,
+		speakers: [ownerParticipant],
 		blocks,
 	}
 }

@@ -46,6 +46,128 @@ const storyRouter = trpc
 			},
 		})
 	})
+	.query('byId', {
+		meta: {
+			hasAuth: true,
+		},
+		input: z.object({
+			id: z.string(),
+		}),
+		resolve: async ({ ctx, input }) => {
+			const story = await ctx.prisma.flick.findFirst({
+				where: {
+					id: input.id,
+					Participants: {
+						some: {
+							userSub: ctx.user!.sub,
+						},
+					},
+				},
+				select: {
+					name: true,
+					description: true,
+					joinLink: true,
+					lobbyPicture: true,
+					id: true,
+					scope: true,
+					md: true,
+					dirty: true,
+					ownerSub: true,
+					updatedAt: true,
+					thumbnail: true,
+					status: true,
+					deletedAt: true,
+					producedLink: true,
+					useBranding: true,
+					brandingId: true,
+					configuration: true,
+					Content: {
+						select: {
+							id: true,
+							isPublic: true,
+							seriesId: true,
+							resource: true,
+							preview: true,
+							thumbnail: true,
+							type: true,
+						},
+					},
+					Flick_Series: {
+						select: {
+							seriesId: true,
+						},
+					},
+					Fragment: {
+						select: {
+							configuration: true,
+							description: true,
+							flickId: true,
+							id: true,
+							name: true,
+							order: true,
+							type: true,
+							producedLink: true,
+							producedShortsLink: true,
+							editorState: true,
+							editorValue: true,
+							encodedEditorValue: true,
+							thumbnailConfig: true,
+							thumbnailObject: true,
+							publishConfig: true,
+							version: true,
+							Blocks: {
+								select: {
+									id: true,
+									objectUrl: true,
+									recordingId: true,
+									thumbnail: true,
+									playbackDuration: true,
+								},
+							},
+						},
+					},
+					Branding: {
+						select: {
+							id: true,
+							name: true,
+							branding: true,
+						},
+					},
+					Theme: {
+						select: {
+							name: true,
+							config: true,
+						},
+					},
+					Participants: {
+						select: {
+							id: true,
+							status: true,
+							role: true,
+							userSub: true,
+							inviteStatus: true,
+							User: {
+								select: {
+									displayName: true,
+									picture: true,
+									username: true,
+									email: true,
+									sub: true,
+								},
+							},
+						},
+					},
+				},
+			})
+			if (!story || !story.id) {
+				throw new TRPCError({
+					code: 'NOT_FOUND',
+					message: 'Story not found',
+				})
+			}
+			return story
+		},
+	})
 	.query('dashboardStories', {
 		meta: {
 			hasAuth: true,

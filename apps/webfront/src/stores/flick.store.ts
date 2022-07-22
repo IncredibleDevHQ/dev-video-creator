@@ -1,9 +1,6 @@
 import { Block, SimpleAST } from 'editor/src/utils/types'
 import { atom, DefaultValue, selector } from 'recoil'
-import {
-	ContentFragment,
-	FlickParticipantsFragment,
-} from 'src/graphql/generated'
+import { inferQueryOutput } from 'src/utils/trpc'
 import { IntroBlockViewProps, Layout } from 'utils/src'
 
 /* Stores some basic flick details */
@@ -14,7 +11,7 @@ const flickAtom = atom<{
 		sub: string
 	}
 	joinLink: string
-	contents: ContentFragment[]
+	contents: inferQueryOutput<'story.byId'>['Content']
 } | null>({
 	key: 'flick',
 	default: null,
@@ -27,7 +24,7 @@ const flickNameAtom = atom<string | null>({
 })
 
 /* This atom keeps track of flick participants */
-const participantsAtom = atom<FlickParticipantsFragment[]>({
+const participantsAtom = atom<inferQueryOutput<'story.byId'>['Participants']>({
 	key: 'participants',
 	default: [],
 })

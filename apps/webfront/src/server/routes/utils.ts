@@ -205,8 +205,8 @@ const utilsRouter = trpc
 			hasAuth: true,
 		},
 		input: z.object({
-			flickId: z.string(),
-			fragmentId: z.string(),
+			flickId: z.string().optional(),
+			fragmentId: z.string().optional(),
 			huddle: z.boolean(),
 		}),
 		output: z.object({
@@ -241,15 +241,24 @@ const utilsRouter = trpc
 				})
 			}
 			try {
+				if (!input.flickId && !input.fragmentId)
+					throw new TRPCError({
+						code: 'BAD_REQUEST',
+						message: 'Invalid Request',
+					})
+
 				const { token, success } = generateAgoraToken(
-					input.huddle ? input.flickId : input.fragmentId,
+					input.huddle ? input.flickId! : input.fragmentId!,
 					participant.id
 				)
 				return { token, success }
 			} catch (e) {
 				throw new TRPCError({
-					code: 'INTERNAL_SERVER_ERROR',
-					message: 'Failed to generate RTC token.',
+					code: e instanceof TRPCError ? e.code : 'INTERNAL_SERVER_ERROR',
+					message:
+						e instanceof TRPCError
+							? e.message
+							: 'Failed to generate RTC token.',
 				})
 			}
 		},

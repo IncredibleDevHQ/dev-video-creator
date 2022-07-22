@@ -5,10 +5,6 @@ import { FiX } from 'react-icons/fi'
 import { IoPersonCircleOutline } from 'react-icons/io5'
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
 import {
-	FlickParticipantsFragment,
-	useUpdateFlickMutation,
-} from 'src/graphql/generated'
-import {
 	activeFragmentIdAtom,
 	astAtom,
 	currentBlockIdAtom,
@@ -25,6 +21,7 @@ import {
 	useMap,
 	useRoom,
 } from 'src/utils/liveblocks.config'
+import trpc, { inferQueryOutput } from 'src/utils/trpc'
 import { Avatar, Text } from 'ui/src'
 import { useDebouncedCallback } from 'use-debounce'
 import { IntroBlockView } from 'utils/src'
@@ -35,7 +32,7 @@ const EditorHeader = () => {
 	const participants = useRecoilValue(participantsAtom)
 
 	const [flickName, setFlickName] = useRecoilState(flickNameAtom)
-	const [updateFlickMutation] = useUpdateFlickMutation()
+	const updateFlickMutation = trpc.useMutation(['story.update'])
 	const broadcast = useBroadcastEvent()
 
 	const blocks = useRecoilValue(astAtom)?.blocks
@@ -50,14 +47,14 @@ const EditorHeader = () => {
 	const setCurrentBlockId = useSetRecoilState(currentBlockIdAtom)
 	const setPreviewPosition = useSetRecoilState(previewPositionAtom)
 
-	const debounceUpdateFlickName = useDebouncedCallback(value => {
-		updateFlickMutation({
-			variables: {
+	const debounceUpdateFlickName = useDebouncedCallback(
+		value =>
+			updateFlickMutation.mutateAsync({
 				name: value,
-				flickId: flickId as string,
-			},
-		})
-	}, 1000)
+				id: flickId,
+			}),
+		1000
+	)
 
 	const updateFlickName = async (newName: string) => {
 		setFlickName(newName)
@@ -94,7 +91,9 @@ const EditorHeader = () => {
 
 	/* Speakers */
 
-	const [speakers, setSpeakers] = useState<FlickParticipantsFragment[]>([])
+	const [speakers, setSpeakers] = useState<
+		inferQueryOutput<'story.byId'>['Participants']
+	>([])
 	const room = useRoom()
 	useEffect(() => {
 		setSpeakers(viewConfig?.speakers ?? [])
@@ -115,16 +114,22 @@ const EditorHeader = () => {
 		}
 	}, [config, room])
 
-	const addSpeaker = (speaker: FlickParticipantsFragment) => {
+	const addSpeaker = (
+		speaker: inferQueryOutput<'story.byId'>['Participants'][number]
+	) => {
 		if (!config) return
 		config.set('speakers', [...(viewConfig?.speakers ?? []), speaker])
 	}
 
-	const deleteSpeaker = (speaker: FlickParticipantsFragment) => {
+	const deleteSpeaker = (
+		speaker: inferQueryOutput<'story.byId'>['Participants'][number]
+	) => {
 		if (!config) return
 		config.set(
 			'speakers',
-			viewConfig?.speakers?.filter(s => s.user.sub !== speaker.user.sub) ?? []
+			viewConfig?.speakers?.filter(
+				(s: { user: { sub: string } }) => s.user.sub !== speaker.User.sub
+			) ?? []
 		)
 	}
 
@@ -142,23 +147,28 @@ const EditorHeader = () => {
 				value={flickName ?? ''}
 			/>
 			<div className='flex items-center justify-start mt-2'>
-				{speakers?.map(s => (
-					<div
-						className='flex items-center px-2 py-1 mr-2 border border-gray-300 rounded-md font-body flex-shrink-0'
-						key={s.user.sub}
-					>
-						<Avatar
-							src={s.user.picture as string}
-							name={s.user.displayName as string}
-							alt={s.user.displayName as string}
-							className='w-5 h-5 rounded-full'
-						/>
-						<Text textStyle='caption' className='ml-1.5 mr-2 text-gray-600'>
-							{s.user.displayName}
-						</Text>
-						<FiX className='cursor-pointer' onClick={() => deleteSpeaker(s)} />
-					</div>
-				))}
+				{speakers &&
+					speakers.length > 0 &&
+					speakers.map(s => (
+						<div
+							className='flex items-center px-2 py-1 mr-2 border border-gray-300 rounded-md font-body flex-shrink-0'
+							key={s.User.sub}
+						>
+							<Avatar
+								src={s.User.picture as string}
+								name={s.User.displayName as string}
+								alt={s.User.displayName as string}
+								className='w-5 h-5 rounded-full'
+							/>
+							<Text textStyle='caption' className='ml-1.5 mr-2 text-gray-600'>
+								{s.User.displayName}
+							</Text>
+							<FiX
+								className='cursor-pointer'
+								onClick={() => deleteSpeaker(s)}
+							/>
+						</div>
+					))}
 				<Popover className='relative w-full'>
 					{speakers.length !== participants.length && (
 						<Popover.Button
@@ -171,33 +181,39 @@ const EditorHeader = () => {
 					<Popover.Panel className='absolute z-10' as='div'>
 						<div className='flex flex-col bg-white rounded-lg shadow-2xl font-body p-1'>
 							{participants
-								.filter(p => !speakers?.some(s => s.id === p.id))
-								.map(participant => (
-									<div
-										role='button'
-										tabIndex={0}
-										onKeyDown={() => null}
-										className={cx(
-											'flex items-center px-4 transition-colors hover:bg-gray-100 gap-x-2 py-1 rounded-sm'
-										)}
-										key={participant.id}
-										onClick={() => {
-											if (participant) {
-												addSpeaker(participant)
-											}
-										}}
-									>
-										<Avatar
-											src={participant.user.picture as string}
-											alt={participant.user.displayName as string}
-											name={participant.user.displayName as string}
-											className='w-6 h-6 rounded-full'
-										/>
-										<Text textStyle='caption'>
-											{participant.user.displayName}
-										</Text>
-									</div>
-								))}
+								.filter(
+									(p: { id: string }) => !speakers?.some(s => s.id === p.id)
+								)
+								.map(
+									(
+										participant: inferQueryOutput<'story.byId'>['Participants'][number]
+									) => (
+										<div
+											role='button'
+											tabIndex={0}
+											onKeyDown={() => null}
+											className={cx(
+												'flex items-center px-4 transition-colors hover:bg-gray-100 gap-x-2 py-1 rounded-sm'
+											)}
+											key={participant.id}
+											onClick={() => {
+												if (participant) {
+													addSpeaker(participant)
+												}
+											}}
+										>
+											<Avatar
+												src={participant.User.picture as string}
+												alt={participant.User.displayName as string}
+												name={participant.User.displayName as string}
+												className='w-6 h-6 rounded-full'
+											/>
+											<Text textStyle='caption'>
+												{participant.User.displayName}
+											</Text>
+										</div>
+									)
+								)}
 						</div>
 					</Popover.Panel>
 				</Popover>
