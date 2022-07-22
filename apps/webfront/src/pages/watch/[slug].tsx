@@ -95,7 +95,10 @@ const Watch = ({
 		const { errors } = await clapFlick({
 			variables: { flickId: flick.id, claps },
 		})
-		if (errors) emitToast('Something went wrong')
+		if (errors)
+			emitToast('Something went wrong', {
+				type: 'error',
+			})
 	}
 
 	useEffect(() => {
@@ -282,7 +285,9 @@ const Watch = ({
 											<CopyToClipboard
 												text={`${process.env.NEXT_PUBLIC_PUBLIC_URL}/watch/${flick.joinLink}`}
 												onCopy={() => {
-													emitToast('Copied url to clipboard')
+													emitToast('Copied url to clipboard', {
+														type: 'success',
+													})
 												}}
 											>
 												<IconButton
@@ -386,7 +391,9 @@ const Watch = ({
 													<CopyToClipboard
 														text={`${process.env.NEXT_PUBLIC_PUBLIC_URL}/watch/${flick.joinLink}`}
 														onCopy={() => {
-															emitToast('Copied url to clipboard')
+															emitToast('Copied url to clipboard', {
+																type: 'success',
+															})
 														}}
 													>
 														<IconButton

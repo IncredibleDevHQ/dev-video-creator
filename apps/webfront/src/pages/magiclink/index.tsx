@@ -27,7 +27,9 @@ const MagicLink = (
 			}
 		} catch (e) {
 			setError(true)
-			emitToast(`Could not log you in. Please try again. ${e}`)
+			emitToast(`Could not log you in. Please try again. ${e}`, {
+				type: 'error',
+			})
 		}
 	}
 
@@ -41,7 +43,9 @@ const MagicLink = (
 				replace(query.redirectURI as string)
 			} else if (query.error) {
 				setError(true)
-				emitToast(query.error as string)
+				emitToast(query.error as string, {
+					type: 'error',
+				})
 			} else {
 				replace('/dashboard')
 			}

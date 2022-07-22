@@ -47,11 +47,15 @@ const OnBoarding = () => {
 		})
 		if (data?.UserOnboarding?.success && setUser && user) {
 			setUser(Object.assign(user, { onboarded: true }))
-			emitToast('Successfully onboarded!')
+			emitToast('Successfully onboarded!', {
+				type: 'success',
+			})
 			push('/dashboard')
 		}
 		if (errors) {
-			emitToast('Something went wrong!')
+			emitToast('Something went wrong!', {
+				type: 'error',
+			})
 		}
 	}
 

@@ -46,7 +46,9 @@ const CreateFlickModal = ({
 				await createFlick({ variables: details })
 			}
 		} catch (e) {
-			emitToast('Could not create your flick.Please try again')
+			emitToast('Could not create your story.Please try again', {
+				type: 'error',
+			})
 		}
 	}
 
@@ -54,7 +56,9 @@ const CreateFlickModal = ({
 		if (!data) return
 		push(`/story/${data.CreateFlick?.id}`)
 		handleRefresh?.()
-		emitToast('Flick created successfully')
+		emitToast('Story created successfully', {
+			type: 'success',
+		})
 	}, [data])
 
 	return (
@@ -97,11 +101,11 @@ const CreateFlickModal = ({
 								)}
 							>
 								<Heading className='py-2 text-gray-100' textStyle='mediumTitle'>
-									Let&apos;s create a flick
+									Let&apos;s create a story
 								</Heading>
 
 								<TextField
-									label='Name your flick'
+									label='Name your story'
 									value={details.name}
 									onChange={e => {
 										setDetails({ ...details, name: e.currentTarget.value })
@@ -110,7 +114,7 @@ const CreateFlickModal = ({
 									className='w-full border-none py-3 mt-1.5 focus:outline-none text-gray-100 text-sm'
 								/>
 								<span className='mt-4 text-size-xs font-bold tracking-wide text-gray-100 font-main'>
-									Describe your flick
+									Describe your story
 								</span>
 								<textarea
 									value={details.description ?? ''}

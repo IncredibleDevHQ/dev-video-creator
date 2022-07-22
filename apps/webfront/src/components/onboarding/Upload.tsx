@@ -27,7 +27,9 @@ const Upload = () => {
 			})
 			setDetails({ ...details, profilePicture: url })
 		} catch (e) {
-			emitToast('Something went wrong. Please try again.')
+			emitToast('Something went wrong. Please try again.', {
+				type: 'error',
+			})
 		} finally {
 			setUploading(false)
 		}

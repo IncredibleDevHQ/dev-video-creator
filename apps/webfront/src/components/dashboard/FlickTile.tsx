@@ -43,11 +43,11 @@ const FlickTile = ({
 
 	const [deleteFlick] = useDeleteFlickMutation({
 		onCompleted(data) {
-			emitToast('Successfully deleted the flick', { type: 'success' })
+			emitToast('Successfully deleted the story', { type: 'success' })
 			handleDelete(data.DeleteFlick?.id)
 		},
 		onError() {
-			emitToast('Error deleting flick', { type: 'error' })
+			emitToast('Error deleting story', { type: 'error' })
 		},
 	})
 
@@ -61,7 +61,7 @@ const FlickTile = ({
 
 	const [duplicateFlick] = useDuplicateUserFlickMutation({
 		onCompleted(data) {
-			emitToast('Successfully duplicated the flick', { type: 'success' })
+			emitToast('Successfully duplicated the story', { type: 'success' })
 			handleCopy(id, data.DuplicateFlick?.id)
 		},
 		onError() {

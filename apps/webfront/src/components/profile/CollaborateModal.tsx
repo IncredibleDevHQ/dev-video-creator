@@ -145,7 +145,7 @@ const FlickCollaboration = ({
 			)}
 		>
 			<Text textStyle='body' className='text-dark-title-200'>
-				Choose a flick to collaborate
+				Choose a story to collaborate
 			</Text>
 
 			{loading && (
@@ -239,7 +239,7 @@ const FlickCollaboration = ({
 							})
 						}}
 					>
-						Create a flick
+						Create a story
 					</Button>
 				</div>
 			)}
@@ -254,7 +254,7 @@ const FlickCollaboration = ({
 			)}
 		>
 			<Text textStyle='body' className='text-dark-title-200'>
-				We will create a flick with {user.displayName} as a collaborator and
+				We will create a story with {user.displayName} as a collaborator and
 				send them an invite to join.
 			</Text>
 			<TextField
@@ -266,7 +266,7 @@ const FlickCollaboration = ({
 						title: e.currentTarget.value,
 					})
 				}}
-				placeholder='Flick name'
+				placeholder='Story name'
 				className='w-full border-none py-3 mt-1.5 focus:outline-none text-gray-100 text-sm'
 			/>
 			<span className='mt-4 text-size-xs font-bold tracking-wide text-gray-100 font-main'>
@@ -572,7 +572,9 @@ const CollaborateModal = ({
 
 	useEffect(() => {
 		if (!data) return
-		emitToast('Sent collaboration invite!')
+		emitToast('Sent collaboration invite!', {
+			type: 'success',
+		})
 		setModalState(initialModalState)
 		handleClose()
 	}, [data])
@@ -611,7 +613,9 @@ const CollaborateModal = ({
 				variables: params,
 			})
 		} catch (e) {
-			emitToast('Failed to send invite.Please try again!')
+			emitToast('Failed to send invite.Please try again!', {
+				type: 'error',
+			})
 		}
 	}
 

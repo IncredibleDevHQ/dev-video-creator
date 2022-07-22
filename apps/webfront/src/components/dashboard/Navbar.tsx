@@ -35,7 +35,7 @@ const Navbar = ({ className }: HTMLAttributes<HTMLDivElement>) => {
 	return (
 		<nav
 			className={cx(
-				'sticky top-0 flex justify-between items-center px-5 py-3 w-full bg-dark-500 z-[100]',
+				'sticky top-0 flex justify-between items-center px-5 py-3 w-full bg-dark-500 z-[100] h-[60px]',
 				className
 			)}
 		>
