@@ -205,7 +205,7 @@ const SeriesCard = ({ series }: { series: SeriesFragmentFragment }) => {
 	])
 
 	return (
-		<Link passHref href={`/series/${series.id}`}>
+		<Link passHref href={`/series/${series.name}--${series.id}`}>
 			<div className='cursor-pointer bg-dark-500 rounded-md'>
 				<div className='aspect-w-6 aspect-h-4 relative'>
 					<div className='flex items-center justify-center absolute overflow-hidden w-full h-full px-4'>
