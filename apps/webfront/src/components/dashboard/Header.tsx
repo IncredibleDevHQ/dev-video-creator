@@ -6,11 +6,9 @@ import React, { useEffect, useRef, useState } from 'react'
 import { IconType } from 'react-icons'
 import { HiOutlineDownload, HiOutlineSparkles } from 'react-icons/hi'
 import { IoAddOutline, IoCopyOutline } from 'react-icons/io5'
-import {
-	CreateFlickFlickScopeEnumEnum,
-	useCreateNewFlickMutation,
-} from 'src/graphql/generated'
+import { FlickScopeEnum } from 'src/utils/enums'
 import usePush from 'src/utils/hooks/usePush'
+import trpc from 'src/utils/trpc'
 import { Button, emitToast, Heading, Loader, Text } from 'ui/src'
 
 enum OptionType {
@@ -93,43 +91,39 @@ const CreateFlickModal = ({
 	const push = usePush()
 	const [url, setUrl] = useState('')
 
-	const [createFlick, { data, error }] = useCreateNewFlickMutation()
+	const createFlick = trpc.useMutation(['story.create'])
 	const [loading, setLoading] = useState(false)
 
 	useEffect(() => {
 		if (type !== OptionType.link)
 			if (markdownHTML) {
-				createFlick({
-					variables: {
-						name: 'Untitled',
-						scope: CreateFlickFlickScopeEnumEnum.Public,
-						md: markdownHTML,
-					},
+				createFlick.mutateAsync({
+					name: 'Untitled',
+					scope: FlickScopeEnum.Private,
+					md: markdownHTML,
 				})
 			} else {
-				createFlick({
-					variables: {
-						name: 'Untitled',
-						scope: CreateFlickFlickScopeEnumEnum.Public,
-					},
+				createFlick.mutateAsync({
+					name: 'Untitled',
+					scope: FlickScopeEnum.Private,
 				})
 			}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [])
 
 	useEffect(() => {
-		if (!data) return
+		if (!createFlick.data) return
 		handleClose()
-		push(`/story/${data.CreateFlick?.id}`)
-	}, [data, push, handleClose])
+		push(`/story/${createFlick.data.id}`)
+	}, [createFlick.data, push, handleClose])
 
 	useEffect(() => {
-		if (!error) return
+		if (!createFlick.error) return
 		emitToast('Could not create your story', {
 			type: 'error',
 		})
 		handleClose()
-	}, [error, handleClose])
+	}, [createFlick.error, createFlick.isError, handleClose])
 
 	const handleCreate = async () => {
 		try {
@@ -141,12 +135,10 @@ const CreateFlickModal = ({
 				smartLists: true,
 				smartypants: true,
 			})
-			await createFlick({
-				variables: {
-					name: 'Untitled',
-					scope: CreateFlickFlickScopeEnumEnum.Public,
-					md: html,
-				},
+			await createFlick.mutateAsync({
+				name: 'Untitled',
+				scope: FlickScopeEnum.Public,
+				md: html,
 			})
 		} catch (e) {
 			emitToast('Could not create your story', {

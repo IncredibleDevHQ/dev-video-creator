@@ -39,7 +39,7 @@ export default withTRPC<AppRouter>({
 			headers: () => ({
 				Authorization:
 					typeof window !== 'undefined'
-						? localStorage?.getItem('token')?.toString()
+						? `Bearer ${localStorage?.getItem('token')}`
 						: '',
 			}),
 			/**

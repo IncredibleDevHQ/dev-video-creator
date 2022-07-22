@@ -154,12 +154,17 @@ export const initFirebaseAdmin = () => {
 	return admin
 }
 
-export const redisClient = createClient({
-	socket: {
-		host: serverEnvs.REDIS_ENDPOINT,
-		port: Number(serverEnvs.REDIS_PORT),
-	},
-})
+export const redisClient =
+	serverEnvs.NODE_ENV === 'development'
+		? createClient({
+				socket: { host: '127.0.0.1', port: 6379 },
+		  })
+		: createClient({
+				socket: {
+					host: serverEnvs.REDIS_ENDPOINT,
+					port: Number(serverEnvs.REDIS_PORT),
+				},
+		  })
 
 export const validateEmail = (email: string) => {
 	const re =
@@ -281,7 +286,7 @@ export const initRedisWithDataConfig = async (
 		}
 		console.log('buffer for yjs is ready.')
 	}
-	console.log('Connecting to redis...')
+	console.log('Connecting to redis on ', serverEnvs.NODE_ENV, '...')
 	await redisClient.connect()
 	console.log('Connected to Redis')
 	redisClient.json

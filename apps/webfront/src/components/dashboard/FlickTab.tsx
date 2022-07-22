@@ -4,10 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import Skeleton, { SkeletonTheme } from 'react-loading-skeleton'
 import { useUser } from 'src/utils/providers/auth'
 import { Button, Heading, Text } from 'ui/src'
-import {
-	DashboardFlicksFragment,
-	useGetDashboardUserFlicksLazyQuery,
-} from 'utils/src/graphql/generated'
+import trpc, { inferQueryOutput } from 'src/utils/trpc'
 import Filter, { CollectionFilter } from './Filter'
 import FlickTile from './FlickTile'
 import Header from './Header'
@@ -34,36 +31,47 @@ const FlickTab = () => {
 	const { user } = useUser()
 	const verticalHeaderRef = useRef<HTMLDivElement>(null)
 
-	const [fetchFlickData, { data, error, loading, fetchMore, refetch }] =
-		useGetDashboardUserFlicksLazyQuery()
-
 	const [offset, setOffset] = useState(0)
-	const [allData, setAllData] = useState<DashboardFlicksFragment[]>()
+
+	// does not run initially , will only run on refetch because enabled:false
+	const {
+		refetch: fetchFlickData,
+		data,
+		error,
+		isLoading: loading,
+	} = trpc.useQuery(
+		[
+			'story.dashboardStories',
+			{
+				limit: 25,
+				offset,
+			},
+		],
+		{
+			enabled: false,
+		}
+	)
+
+	type DashboardStory = inferQueryOutput<'story.dashboardStories'>[number]
+	const [allData, setAllData] = useState<DashboardStory[]>()
 
 	const [collectionFilter, setCollectionFilter] = useState<CollectionFilter>(
 		CollectionFilter.all
 	)
 
 	useEffect(() => {
-		fetchFlickData({
-			variables: {
-				sub: user?.uid || '',
-			},
-		})
+		fetchFlickData()
 	}, [user?.uid])
 
 	useEffect(() => {
-		if (data?.Flick) {
-			setAllData(data.Flick)
+		if (data) {
+			setAllData(data)
 		}
 	}, [data])
 
 	const removeFlick = (id: string) => {
 		setAllData(allData?.filter(flick => flick.id !== id))
-		refetch({
-			limit: offset === 0 ? 25 : offset,
-			sub: user?.uid || '',
-		})
+		fetchFlickData()
 	}
 
 	const copyFlick = (id: string, newId: string) => {
@@ -90,18 +98,7 @@ const FlickTab = () => {
 						e.currentTarget.clientHeight + 2
 				) {
 					if (loading) return
-					fetchMore({
-						variables: {
-							offset: offset + 25,
-						},
-						updateQuery: (prev, { fetchMoreResult }) => {
-							if (!fetchMoreResult) return prev
-							return {
-								...prev,
-								Flick: [...prev.Flick, ...fetchMoreResult.Flick],
-							}
-						},
-					})
+
 					setOffset(offset + 25)
 				}
 			}}
@@ -146,7 +143,7 @@ const FlickTab = () => {
 							<Text className='text-lg'>
 								Something went wrong. Please try again.
 							</Text>
-							<Button onClick={() => refetch()}>Retry</Button>
+							<Button onClick={() => fetchFlickData()}>Retry</Button>
 						</div>
 					)}
 
@@ -155,16 +152,20 @@ const FlickTab = () => {
 							?.filter(flick => {
 								if (collectionFilter === CollectionFilter.all) return true
 								if (collectionFilter === CollectionFilter.owner)
-									return flick.owner?.userSub === user?.uid
+									return flick.ownerSub === user?.uid
 								if (collectionFilter === CollectionFilter.collaborator)
-									return flick.owner?.userSub !== user?.uid
+									return flick.ownerSub !== user?.uid
 								return true
 							})
 							.map(flick => (
 								<FlickTile
 									key={flick.id}
-									// eslint-disable-next-line react/jsx-props-no-spreading
-									{...flick}
+									id={flick.id}
+									name={flick.name}
+									Content={flick.Content}
+									updatedAt={flick.updatedAt}
+									ownerSub={flick.ownerSub}
+									joinLink={flick.joinLink}
 									handleDelete={id => {
 										removeFlick(id)
 									}}

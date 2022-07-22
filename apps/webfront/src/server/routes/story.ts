@@ -46,6 +46,58 @@ const storyRouter = trpc
 			},
 		})
 	})
+	.query('dashboardStories', {
+		meta: {
+			hasAuth: true,
+		},
+		input: z
+			.object({
+				limit: z.number().default(25),
+				offset: z.number().default(0),
+			})
+			.optional(),
+		resolve: async ({ ctx, input }) => {
+			const { limit, offset } = input || { limit: 25, offset: 0 }
+			// eslint-disable-next-line prefer-destructuring
+			const sub = ctx.user!.sub
+
+			const stories = await ctx.prisma.flick.findMany({
+				where: {
+					Participants: {
+						some: {
+							userSub: sub,
+						},
+					},
+					deletedAt: null,
+				},
+				select: {
+					id: true,
+					name: true,
+					joinLink: true,
+					ownerSub: true,
+					updatedAt: true,
+					Content: {
+						select: {
+							id: true,
+							isPublic: true,
+							seriesId: true,
+							resource: true,
+							preview: true,
+							thumbnail: true,
+							type: true,
+						},
+					},
+				},
+				skip: offset,
+				take: limit,
+				orderBy: {
+					updatedAt: 'desc',
+				},
+			})
+
+			return stories
+		},
+	})
 	.query('presentationConfig', {
 		meta: {
 			hasAuth: false,
@@ -175,7 +227,6 @@ const storyRouter = trpc
 			}
 
 			// Create new story|flick
-			// TODO: eval if we need this column md: Flick.md
 			const story = await ctx.prisma.flick.create({
 				data: {
 					name: input.name,
@@ -190,6 +241,7 @@ const storyRouter = trpc
 					creationFlow: input.creationFlow,
 					joinLink: nanoid(6),
 					ownerSub: ctx.user!.sub,
+					md: input.md,
 				},
 				select: {
 					id: true,

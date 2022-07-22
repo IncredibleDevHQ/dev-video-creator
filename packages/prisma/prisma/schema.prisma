@@ -171,6 +171,7 @@ model Flick {
   themeName        String          @default("DarkGradient") @db.Text
   dirty            Boolean         @default(true)
   creationFlow     String          @default("Notebook") @db.VarChar(255)
+  md               String?         @db.LongText
   Branding         Branding?       @relation(fields: [brandingId], references: [id], onUpdate: NoAction)
   Organisation     Organisation?   @relation(fields: [organisationSlug], references: [slug], onDelete: Cascade, map: "Flick_organisationId_fkey")
   Theme            Theme           @relation(fields: [themeName], references: [name], onUpdate: Restrict, map: "Flick_themeId_fkey")
