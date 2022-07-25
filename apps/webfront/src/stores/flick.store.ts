@@ -104,7 +104,7 @@ export interface IPublish {
 	description?: string
 	thumbnail?: {
 		objectId?: string
-		method?: 'generated' | 'uploaded'
+		method: 'generated' | 'uploaded'
 	}
 	ctas: CallToAction[]
 	discordCTA?: { url: string; text: string }

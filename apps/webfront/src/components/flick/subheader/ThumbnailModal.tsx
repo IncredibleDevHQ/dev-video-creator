@@ -21,16 +21,13 @@ import {
 	useRecoilValue,
 } from 'recoil'
 import {
-	useUpdateThumbnailMutation,
-	useUpdateThumbnailObjectMutation,
-} from 'src/graphql/generated'
-import {
 	activeFragmentIdAtom,
 	thumbnailAtom,
 	ThumbnailProps,
 } from 'src/stores/flick.store'
 import { CONFIG } from 'src/utils/configs'
 import { useUser } from 'src/utils/providers/auth'
+import trpc from 'src/utils/trpc'
 import { Button, emitToast, Heading, Text } from 'ui/src'
 import { useDebouncedCallback } from 'use-debounce'
 import { IntroBlockView, Layout, useUploadFile } from 'utils/src'
@@ -246,17 +243,17 @@ const ThumbnailModal = ({
 	})
 
 	const [updatingThumbnail, setUpdatingThumbnail] = useState(false)
-	const [updateThumbnail] = useUpdateThumbnailMutation()
-	const [updateThumbnailObject] = useUpdateThumbnailObjectMutation()
+	const updateThumbnail = trpc.useMutation(['fragment.updateThumbnail'])
+	// const [updateThumbnailObject] = useUpdateThumbnailObjectMutation()
 
 	const updateConfig = async () => {
 		setUpdatingThumbnail(true)
 		try {
-			await updateThumbnail({
-				variables: {
-					id: activeFragmentId,
-					thumbnailConfig,
-				},
+			if (!activeFragmentId)
+				throw new Error('No active fragment to save thumbnail.')
+			await updateThumbnail.mutateAsync({
+				id: activeFragmentId,
+				thumbnailConfig,
 			})
 		} catch (e) {
 			emitToast('Failed to update thumbnail', {
@@ -283,11 +280,11 @@ const ThumbnailModal = ({
 				extension: 'png',
 				file: blob,
 			})
-			await updateThumbnailObject({
-				variables: {
-					id: activeFragmentId,
-					thumbnailObject: uuid,
-				},
+			if (!activeFragmentId)
+				throw new Error('No active fragment to save thumbnail.')
+			await updateThumbnail.mutateAsync({
+				id: activeFragmentId,
+				thumbnailObject: uuid,
 			})
 			handleClose(uuid)
 		} catch (e) {

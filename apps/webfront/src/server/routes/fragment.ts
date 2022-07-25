@@ -197,37 +197,44 @@ const fragmentRouter = trpc
 
 	.mutation('publish', {
 		meta: { hasAuth: true },
+		// modeled after IPublish interface in flick.store
 		input: z.object({
 			data: z.object({
-				title: z.string(),
-				description: z.string(),
-				thumbnail: z.object({
-					objectId: z.string(),
-					method: z.enum(['generated', 'uploaded']),
-				}),
-				cta: z.array(
-					z.object({
-						seconds: z.number(),
-						text: z.string().optional(),
-						url: z.string().optional(),
+				title: z.string().optional(),
+				description: z.string().optional(),
+				thumbnail: z
+					.object({
+						objectId: z.string().optional(),
+						method: z.enum(['generated', 'uploaded']),
 					})
-				),
-				blocks: z.array(
-					z.object({
-						id: z.string(),
-						playbackDuration: z.number(),
-						thumbnail: z.string().optional(),
-						title: z.string(),
-						type: z.string(),
-						participants: z.array(
-							z.object({
-								username: z.string(),
-								displayName: z.string(),
-								picture: z.string(),
-							})
-						),
-					})
-				),
+					.optional(),
+				cta: z
+					.array(
+						z.object({
+							seconds: z.number(),
+							text: z.string().optional(),
+							url: z.string().optional(),
+						})
+					)
+					.optional(),
+				blocks: z
+					.array(
+						z.object({
+							id: z.string(),
+							playbackDuration: z.number(),
+							thumbnail: z.string().optional(),
+							title: z.string(),
+							type: z.string(),
+							participants: z.array(
+								z.object({
+									username: z.string(),
+									displayName: z.string(),
+									picture: z.string(),
+								})
+							),
+						})
+					)
+					.optional(),
 				discordCTA: z.object({ url: z.string(), text: z.string() }).optional(),
 			}),
 			fragmentId: z.string(),
@@ -631,6 +638,50 @@ const fragmentRouter = trpc
 			return {
 				success: true,
 			}
+		},
+	})
+	.mutation('updatePublished', {
+		meta: {
+			hasAuth: true,
+		},
+		input: z.object({
+			id: z.string(),
+			publishConfig: z.any(),
+		}),
+		resolve: async ({ input, ctx }) => {
+			await ctx.prisma.fragment.update({
+				where: {
+					id: input.id,
+				},
+				data: {
+					publishConfig: input.publishConfig,
+				},
+			})
+			return {
+				success: true,
+			}
+		},
+	})
+	.mutation('updateThumbnail', {
+		meta: {
+			hasAuth: true,
+		},
+		input: z.object({
+			id: z.string(),
+			thumbnailConfig: z.any().optional(),
+			thumbnailObject: z.string().optional(),
+		}),
+		resolve: async ({ ctx, input }) => {
+			const updatedFragment = await ctx.prisma.fragment.update({
+				where: {
+					id: input.id,
+				},
+				data: {
+					thumbnailConfig: input.thumbnailConfig || undefined,
+					thumbnailObject: input.thumbnailObject || undefined,
+				},
+			})
+			return { success: true, data: { id: updatedFragment.id } }
 		},
 	})
 
