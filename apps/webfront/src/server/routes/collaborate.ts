@@ -6,6 +6,7 @@ import serverEnvs from 'src/utils/env'
 import { Context } from '../createContext'
 import { Meta, sendInviteEmail } from '../utils/helpers'
 import {
+	FlickScopeEnum,
 	InvitationStatusEnum,
 	NotificationMetaTypeEnum,
 	NotificationTypeEnum,
@@ -15,6 +16,7 @@ import {
 	sendTransactionalEmail,
 	TransactionalMailType,
 } from '../utils/transactionalEmail'
+import { createFlick } from './story'
 
 /*
  * This is a helper method to abstract out the invitation logic.
@@ -26,7 +28,7 @@ import {
 const sendCollaborationInvite = async (
 	ctx: Context,
 	input: {
-		flickId: string
+		flickId?: string
 		message: string
 		receiverId: string
 		senderId: string
@@ -147,16 +149,96 @@ const collaborateRouter = trpc
 			},
 		})
 	})
+	.query('getParticipants', {
+		meta: {
+			hasAuth: true,
+		},
+		input: z.object({
+			id: z.string(),
+		}),
+		resolve: async ({ ctx, input }) => {
+			const flickParticipants = await ctx.prisma.participant.findMany({
+				where: {
+					flickId: input.id,
+				},
+				select: {
+					id: true,
+					status: true,
+					role: true,
+					userSub: true,
+					inviteStatus: true,
+					User: {
+						select: {
+							displayName: true,
+							picture: true,
+							username: true,
+							email: true,
+							sub: true,
+						},
+					},
+				},
+				orderBy: {
+					User: {
+						displayName: 'asc',
+					},
+				},
+			})
+			return flickParticipants
+		},
+	})
+	.query('pendingInvites', {
+		meta: {
+			hasAuth: true,
+		},
+		input: z.object({
+			id: z.string(),
+		}),
+		resolve: async ({ ctx, input }) => {
+			if (!ctx.user?.sub)
+				throw new TRPCError({
+					code: 'UNAUTHORIZED',
+				})
+
+			const invites = await ctx.prisma.invitations.findMany({
+				where: {
+					receiverId: ctx.user.sub,
+					OR: [
+						{
+							status: InvitationStatusEnum.Pending.toString(),
+						},
+						{
+							status: InvitationStatusEnum.Email.toString(),
+						},
+					],
+					flickId: input.id,
+				},
+				select: {
+					User_Invitations_receiverIdToUser: {
+						select: {
+							sub: true,
+							email: true,
+							displayName: true,
+							picture: true,
+						},
+					},
+				},
+			})
+			return invites
+		},
+	})
 	// ACTIONS
 	.mutation('invite', {
 		meta: {
 			hasAuth: true,
 		},
 		input: z.object({
-			flickId: z.string(),
+			flickId: z.string().optional(),
+			seriesId: z.string().optional(),
+			title: z.string().optional().default('Untitled'),
 			message: z.string(),
 			receiverId: z.string(),
 			senderId: z.string(),
+			isNew: z.boolean().default(false),
 		}),
 		resolve: async ({ ctx, input }) => {
 			if (input.senderId !== ctx.user!.sub) {
@@ -165,6 +247,39 @@ const collaborateRouter = trpc
 					message: 'Invalid invite request',
 				})
 			}
+
+			// if isNew then first create a new flick and then invite
+			if (input.isNew) {
+				const newStory = await createFlick(ctx, {
+					name: input.title,
+					scope: FlickScopeEnum.Private,
+					dirty: false,
+					themeName: 'DarkGradient',
+					useBranding: false,
+					creationFlow: 'Notebook',
+				})
+				// eslint-disable-next-line no-param-reassign
+				input.flickId = newStory.storyId
+
+				// add to series if seriesId is passed
+				if (input.seriesId) {
+					await ctx.prisma.flick_Series.create({
+						data: {
+							flickId: newStory.storyId,
+							seriesId: input.seriesId,
+							order: 0,
+						},
+					})
+				}
+			}
+
+			if (!input.flickId) {
+				throw new TRPCError({
+					code: 'INTERNAL_SERVER_ERROR',
+					message: 'Story is required',
+				})
+			}
+
 			const flick = await ctx.prisma.flick.findUnique({
 				where: {
 					id: input.flickId,
@@ -183,7 +298,6 @@ const collaborateRouter = trpc
 				},
 			})
 			// Only story owner can invite a new user to a story
-
 			if (flick?.ownerSub !== ctx.user!.sub) {
 				throw new TRPCError({
 					code: 'UNAUTHORIZED',
@@ -443,7 +557,7 @@ const collaborateRouter = trpc
 		meta: { hasAuth: true },
 		input: z.object({
 			flickId: z.string(),
-			participantId: z.string(),
+			userSubToRemove: z.string(),
 		}),
 		resolve: async ({ ctx, input }) => {
 			const flick = await ctx.prisma.flick.findUnique({
@@ -476,19 +590,16 @@ const collaborateRouter = trpc
 				})
 			}
 			// delete participant
-			const deletedParticipant = await ctx.prisma.participant.delete({
+			await ctx.prisma.participant.deleteMany({
 				where: {
-					id: input.participantId,
-				},
-				select: {
-					userSub: true,
+					userSub: input.userSubToRemove,
 				},
 			})
 			// delete invites for this removed user
 			await ctx.prisma.invitations.deleteMany({
 				where: {
 					flickId: input.flickId,
-					receiverId: deletedParticipant.userSub,
+					receiverId: input.userSubToRemove,
 				},
 			})
 			return {

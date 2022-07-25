@@ -4,10 +4,7 @@ import React, { Fragment, useEffect, useState } from 'react'
 import { FiLoader } from 'react-icons/fi'
 import { IoAlbumsOutline } from 'react-icons/io5'
 import {
-	CollaborateWithUserMutationVariables,
-	CollaborationTypes,
 	ContentContainerTypes,
-	useCollaborateWithUserMutation,
 	useGetUserFlicksLazyQuery,
 	useGetUserSeriesLazyQuery,
 	UserFragment,
@@ -15,6 +12,7 @@ import {
 import { useUser } from 'src/utils/providers/auth'
 import { Avatar, Button, emitToast, Heading, Text, TextField } from 'ui/src'
 import FlickIcon from 'svg/Flick.svg'
+import trpc, { inferMutationInput } from 'src/utils/trpc'
 
 const ChooseContent = ({
 	modalState,
@@ -568,7 +566,11 @@ const CollaborateModal = ({
 	const [modalState, setModalState] =
 		useState<CollaborateModalState>(initialModalState)
 
-	const [collaborate, { data, loading }] = useCollaborateWithUserMutation()
+	const {
+		mutateAsync: collaborate,
+		data,
+		isLoading: loading,
+	} = trpc.useMutation(['collab.invite'])
 
 	useEffect(() => {
 		if (!data) return
@@ -580,11 +582,10 @@ const CollaborateModal = ({
 	}, [data])
 
 	const submitCollaborationRequest = async () => {
-		let params: CollaborateWithUserMutationVariables = {
+		let params: inferMutationInput<'collab.invite'> = {
+			flickId: modalState.selectedFlickId,
 			senderId: loggedInUser?.sub as string,
 			receiverId: user.sub,
-			collaborationType: CollaborationTypes.Invite,
-			contentType: modalState.contentType,
 			isNew: !modalState.existingContent,
 			message: modalState.message,
 		}
@@ -604,14 +605,12 @@ const CollaborateModal = ({
 			params = {
 				...params,
 				title: modalState.title,
-				description: modalState.description,
+				isNew: true, // TODO: Verify if correct
 			}
 		}
 
 		try {
-			await collaborate({
-				variables: params,
-			})
+			await collaborate(params)
 		} catch (e) {
 			emitToast('Failed to send invite.Please try again!', {
 				type: 'error',

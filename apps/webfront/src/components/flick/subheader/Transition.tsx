@@ -5,18 +5,15 @@ import { IoCheckmark } from 'react-icons/io5'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import { transitionAtom, TransitionConfig } from 'src/stores/studio.store'
 import { useEnv } from 'utils/src'
-import {
-	TransitionFragment,
-	useGetTransitionsQuery,
-} from 'utils/src/graphql/generated'
+import { TransitionFragment } from 'utils/src/graphql/generated'
 import TransitionIcon from 'svg/TransitionIcon.svg'
 import {
 	RoomEventTypes,
 	useBroadcastEvent,
 	useEventListener,
 } from 'src/utils/liveblocks.config'
-import { useUpdateTransitionMutation } from 'src/graphql/generated'
 import { flickAtom } from 'src/stores/flick.store'
+import trpc from 'src/utils/trpc'
 
 const horizontalCustomScrollBar = css`
 	::-webkit-scrollbar {
@@ -105,21 +102,27 @@ const TransitionCard = ({
 const Transition = () => {
 	const [tab] = useState<'block' | 'swap'>('swap')
 
-	const { data } = useGetTransitionsQuery()
+	const { data } = trpc.useQuery([
+		'story.getTransitions',
+		{
+			limit: 25,
+			offset: 0,
+		},
+	])
 	const flickId = useRecoilValue(flickAtom)?.id
 	const [transitionConfig, setTransitionConfig] = useRecoilState(transitionAtom)
 
 	const broadcast = useBroadcastEvent()
-	const [updateConfig] = useUpdateTransitionMutation()
+	const { mutateAsync: updateConfig } = trpc.useMutation([
+		'story.updateTransition',
+	])
 
 	const updateTransitions = (config: TransitionConfig) => {
 		setTransitionConfig(config)
 		updateConfig({
-			variables: {
-				id: flickId as string,
-				flickConfiguration: {
-					transitions: config,
-				},
+			id: flickId as string,
+			config: {
+				transitions: config,
 			},
 		})
 		broadcast({
@@ -198,7 +201,7 @@ const Transition = () => {
 										horizontalCustomScrollBar
 									)}
 								>
-									{data?.Transition.map(transition => (
+									{data?.map(transition => (
 										<TransitionCard
 											tab={tab}
 											key={transition.name}

@@ -3,8 +3,8 @@ import { TRPCError } from '@trpc/server'
 
 import { z } from 'zod'
 
-import serverEnvs from 'src/utils/env'
 import { nanoid } from 'nanoid'
+import serverEnvs from 'src/utils/env'
 import type { Context } from '../createContext'
 import {
 	defaultDataConfig,
@@ -22,6 +22,223 @@ import {
 	sendTransactionalEmail,
 	TransactionalMailType,
 } from '../utils/transactionalEmail'
+
+export const createFlick = async (
+	ctx: Context,
+	input: {
+		name: string
+		description?: string
+		scope: FlickScopeEnum
+		configuration?: any
+		organisationSlug?: string
+		seriesId?: string
+		dirty?: boolean
+		themeName?: string
+		brandingId?: string
+		useBranding?: boolean
+		creationFlow?: string
+		fragmentViewConfig?: any
+		fragmentDataConfig?: any
+		fragmentEncodedEditorValue?: any
+		md?: string
+	}
+) => {
+	if (!ctx.user?.sub) {
+		throw new TRPCError({
+			code: 'UNAUTHORIZED',
+		})
+	}
+	// check if_Series and series ownership
+	if (input.seriesId) {
+		// get series owner and story count
+		const series = await ctx.prisma.series.findUnique({
+			where: {
+				id: input.seriesId,
+			},
+			select: {
+				id: true,
+				ownerSub: true,
+			},
+		})
+		if (series?.ownerSub !== ctx.user!.sub)
+			throw new TRPCError({
+				code: 'UNAUTHORIZED',
+				message: 'You are not authorized to add this story to this series',
+			})
+	}
+
+	// check if_Organization and organization ownership
+	if (input.organisationSlug) {
+		const org = await ctx.prisma.organisation.findUnique({
+			where: {
+				slug: input.organisationSlug,
+			},
+		})
+
+		if (org && org.ownerId !== ctx.user.sub)
+			throw new TRPCError({
+				code: 'UNAUTHORIZED',
+				message: 'You are not the owner of this organization.',
+				cause: 'Insufficient Permissions',
+			})
+	}
+
+	// setup fallback for data config if not present
+	if (!input.fragmentDataConfig) {
+		// eslint-disable-next-line no-param-reassign
+		input.fragmentDataConfig = defaultDataConfig
+	}
+
+	// Create new story|flick
+	const story = await ctx.prisma.flick.create({
+		data: {
+			name: input.name,
+			description: input.description,
+			organisationSlug: input.organisationSlug,
+			scope: input.scope,
+			dirty: input?.dirty,
+			configuration: input.configuration || undefined,
+			themeName: input.themeName,
+			brandingId: input.brandingId,
+			useBranding: input?.useBranding,
+			creationFlow: input.creationFlow,
+			joinLink: nanoid(6),
+			ownerSub: ctx.user.sub,
+			md: input.md,
+		},
+		select: {
+			id: true,
+			name: true,
+		},
+	})
+
+	//  Insert owner onto participant table
+	const ownerParticipant = await ctx.prisma.participant.create({
+		data: {
+			flickId: story.id,
+			userSub: ctx.user!.sub,
+			role: ParticipantRoleEnum.Host,
+			inviteStatus: InvitationStatusEnum.Accepted,
+		},
+		select: {
+			id: true,
+			status: true,
+			role: true,
+			userSub: true,
+			inviteStatus: true,
+			User: {
+				select: {
+					sub: true,
+					email: true,
+					displayName: true,
+					picture: true,
+					username: true,
+				},
+			},
+		},
+	})
+
+	// Add default fragment to flick
+	const fragment = await ctx.prisma.fragment.create({
+		data: {
+			flickId: story.id,
+			configuration: input.fragmentViewConfig,
+			editorState: input.fragmentDataConfig,
+			encodedEditorValue: input.fragmentEncodedEditorValue,
+			name: 'Untitled', // TODO: make this fun!
+			order: 0,
+			type: null,
+		},
+		select: {
+			id: true,
+		},
+	})
+
+	const introBlockId = input.fragmentDataConfig?.blocks?.find(
+		(b: any) => b.type === 'introBlock'
+	)?.id
+	const outroBlockId = input.fragmentDataConfig?.blocks?.find(
+		(b: any) => b.type === 'outroBlock'
+	)?.id
+
+	// Setup fallback view config if not present
+	// create the default view config
+	if (!input.fragmentViewConfig) {
+		// eslint-disable-next-line no-param-reassign
+		input.fragmentViewConfig = getDefaultViewConfig(
+			introBlockId,
+			outroBlockId,
+			ownerParticipant
+		)
+	}
+	try {
+		// init liveblocks
+		await createLiveBlocksRoom(
+			story.id,
+			fragment.id,
+			input.fragmentViewConfig,
+			introBlockId,
+			outroBlockId
+		)
+	} catch (e) {
+		// TODO: Sentry error logging
+		throw new TRPCError({
+			code: 'INTERNAL_SERVER_ERROR',
+			message: 'Story creation failed',
+			cause: JSON.stringify(e),
+		})
+	}
+
+	// Init redis on flick create with initial ast(data-config)
+	try {
+		await initRedisWithDataConfig(
+			fragment.id,
+			input.fragmentDataConfig,
+			input.fragmentEncodedEditorValue
+		)
+	} catch (e) {
+		// TODO: Sentry error logging
+		throw new TRPCError({
+			code: 'INTERNAL_SERVER_ERROR',
+			message: 'Story creation failed',
+			cause: JSON.stringify(e),
+		})
+	}
+
+	// Send notification email to owner
+	try {
+		if (!ownerParticipant.User.email) throw new Error('No email found')
+		await sendTransactionalEmail({
+			mailType: TransactionalMailType.CREATE_STORY,
+			sendToEmail: ownerParticipant.User.email,
+			messageData: {
+				storyTitle: story.name,
+				receiverName: ownerParticipant.User.displayName as string,
+				btnUrl: `${serverEnvs.NEXT_STUDIO_BASE_URL}/story/${story.id}`,
+			},
+		})
+	} catch (e) {
+		// TODO: capture on sentry and don't throw as its non-fatal error
+	}
+
+	// if_Series add to series
+	if (input.seriesId) {
+		const seriesStoryCount = await ctx.prisma.flick_Series.count({
+			where: {
+				seriesId: input.seriesId,
+			},
+		})
+		await ctx.prisma.flick_Series.create({
+			data: {
+				seriesId: input.seriesId,
+				flickId: story.id,
+				order: seriesStoryCount || 0,
+			},
+		})
+	}
+
+	return { storyId: story.id, fragmentId: fragment.id }
+}
 
 const storyRouter = trpc
 	.router<Context, Meta>()
@@ -285,6 +502,26 @@ const storyRouter = trpc
 			}
 		},
 	})
+	.query('getTransitions', {
+		meta: {
+			hasAuth: true,
+		},
+		input: z.object({
+			offset: z.number().default(0),
+			limit: z.number().default(25),
+		}),
+		resolve: async ({ ctx, input }) => {
+			const transitions = await ctx.prisma.transition.findMany({
+				select: {
+					name: true,
+					config: true,
+				},
+				skip: input.offset,
+				take: input.limit,
+			})
+			return transitions
+		},
+	})
 	// ACTIONS
 	.mutation('create', {
 		meta: {
@@ -317,198 +554,11 @@ const storyRouter = trpc
 					code: 'UNAUTHORIZED',
 					message: 'Unauthorized request.',
 				})
-			// check if_Series and series ownership
-			if (input.seriesId) {
-				// get series owner and story count
-				const series = await ctx.prisma.series.findUnique({
-					where: {
-						id: input.seriesId,
-					},
-					select: {
-						id: true,
-						ownerSub: true,
-					},
-				})
-				if (series?.ownerSub !== ctx.user!.sub)
-					throw new TRPCError({
-						code: 'UNAUTHORIZED',
-						message: 'You are not authorized to add this story to this series',
-					})
-			}
 
-			// check if_Organisation and organisation ownership
-			if (input.organisationSlug) {
-				const org = await ctx.prisma.organisation.findUnique({
-					where: {
-						slug: input.organisationSlug,
-					},
-				})
-
-				if (org && org.ownerId !== ctx.user!.sub)
-					throw new TRPCError({
-						code: 'UNAUTHORIZED',
-						message: 'You are not the owner of this organization.',
-						cause: 'Insufficient Permissions',
-					})
-			}
-
-			// setup fallback for data config if not present
-			if (!input.fragmentDataConfig) {
-				// eslint-disable-next-line no-param-reassign
-				input.fragmentDataConfig = defaultDataConfig
-			}
-
-			// Create new story|flick
-			const story = await ctx.prisma.flick.create({
-				data: {
-					name: input.name,
-					description: input.description,
-					organisationSlug: input.organisationSlug,
-					scope: input.scope,
-					dirty: input.dirty,
-					configuration: input.configuration || undefined,
-					themeName: input.themeName,
-					brandingId: input.brandingId,
-					useBranding: input.useBranding,
-					creationFlow: input.creationFlow,
-					joinLink: nanoid(6),
-					ownerSub: ctx.user!.sub,
-					md: input.md,
-				},
-				select: {
-					id: true,
-					name: true,
-				},
-			})
-
-			//  Insert owner onto participant table
-			const ownerParticipant = await ctx.prisma.participant.create({
-				data: {
-					flickId: story.id,
-					userSub: ctx.user!.sub,
-					role: ParticipantRoleEnum.Host,
-					inviteStatus: InvitationStatusEnum.Accepted,
-				},
-				select: {
-					id: true,
-					status: true,
-					role: true,
-					userSub: true,
-					inviteStatus: true,
-					User: {
-						select: {
-							sub: true,
-							email: true,
-							displayName: true,
-							picture: true,
-							username: true,
-						},
-					},
-				},
-			})
-
-			// Add default fragment to flick
-			const fragment = await ctx.prisma.fragment.create({
-				data: {
-					flickId: story.id,
-					configuration: input.fragmentViewConfig,
-					editorState: input.fragmentDataConfig,
-					encodedEditorValue: input.fragmentEncodedEditorValue,
-					name: 'Untitled', // TODO: make this fun!
-					order: 0,
-					type: null,
-				},
-				select: {
-					id: true,
-				},
-			})
-
-			const introBlockId = input.fragmentDataConfig?.blocks?.find(
-				(b: any) => b.type === 'introBlock'
-			)?.id
-			const outroBlockId = input.fragmentDataConfig?.blocks?.find(
-				(b: any) => b.type === 'outroBlock'
-			)?.id
-
-			// Setup fallback view config if not present
-			// create the default view config
-			if (!input.fragmentViewConfig) {
-				// eslint-disable-next-line no-param-reassign
-				input.fragmentViewConfig = getDefaultViewConfig(
-					introBlockId,
-					outroBlockId,
-					ownerParticipant
-				)
-			}
-			try {
-				// init liveblocks
-				await createLiveBlocksRoom(
-					story.id,
-					fragment.id,
-					input.fragmentViewConfig,
-					introBlockId,
-					outroBlockId
-				)
-			} catch (e) {
-				// TODO: Sentry error logging
-				throw new TRPCError({
-					code: 'INTERNAL_SERVER_ERROR',
-					message: 'Story creation failed',
-					cause: JSON.stringify(e),
-				})
-			}
-
-			// Init redis on flick create with initial ast(data-config)
-			try {
-				await initRedisWithDataConfig(
-					fragment.id,
-					input.fragmentDataConfig,
-					input.fragmentEncodedEditorValue
-				)
-			} catch (e) {
-				// TODO: Sentry error logging
-				throw new TRPCError({
-					code: 'INTERNAL_SERVER_ERROR',
-					message: 'Story creation failed',
-					cause: JSON.stringify(e),
-				})
-			}
-
-			// Send notification email to owner
-			try {
-				if (!ownerParticipant.User.email) throw new Error('No email found')
-				await sendTransactionalEmail({
-					mailType: TransactionalMailType.CREATE_STORY,
-					sendToEmail: ownerParticipant.User.email,
-					messageData: {
-						storyTitle: story.name,
-						receiverName: ownerParticipant.User.displayName as string,
-						btnUrl: `${serverEnvs.NEXT_STUDIO_BASE_URL}/story/${story.id}`,
-					},
-				})
-			} catch (e) {
-				// TODO: capture on sentry and don't throw as its non-fatal error
-			}
-
-			// if_Series add to series
-			if (input.seriesId) {
-				const seriesStoryCount = await ctx.prisma.flick_Series.count({
-					where: {
-						seriesId: input.seriesId,
-					},
-				})
-				await ctx.prisma.flick_Series.create({
-					data: {
-						seriesId: input.seriesId,
-						flickId: story.id,
-						order: seriesStoryCount || 0,
-					},
-				})
-			}
-
+			const { storyId, fragmentId } = await createFlick(ctx, input)
 			return {
-				id: story.id,
-				fragmentId: fragment.id,
+				id: storyId,
+				fragmentId,
 			}
 		},
 	})
@@ -768,6 +818,51 @@ const storyRouter = trpc
 			return {
 				id: newFlick.id,
 			}
+		},
+	})
+	.mutation('updateTheme', {
+		meta: {
+			hasAuth: true,
+		},
+		input: z.object({
+			id: z.string(),
+			themeName: z.string(),
+		}),
+		resolve: async ({ ctx, input }) => {
+			await ctx.prisma.flick.update({
+				where: {
+					id: input.id,
+				},
+				data: {
+					themeName: input.themeName,
+				},
+			})
+			return {
+				success: true,
+			}
+		},
+	})
+	.mutation('updateTransition', {
+		meta: {
+			hasAuth: true,
+		},
+		input: z.object({
+			id: z.string(),
+			config: z.any(),
+		}),
+		resolve: async ({ ctx, input }) => {
+			const res = await ctx.prisma.flick.update({
+				where: {
+					id: input.id,
+				},
+				data: {
+					configuration: input.config,
+				},
+				select: {
+					id: true,
+				},
+			})
+			return { id: res.id }
 		},
 	})
 export default storyRouter
