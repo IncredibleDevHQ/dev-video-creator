@@ -13,14 +13,6 @@ import { IoArrowBackOutline } from 'react-icons/io5'
 import useMeasure from 'react-use-measure'
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
 import {
-	Content_Types,
-	SetupRecordingMutationVariables,
-	useDeleteBlockGroupMutation,
-	useGetRecordingsLazyQuery,
-	useSaveRecordedBlockMutation,
-	useSetupRecordingMutation,
-} from 'src/graphql/generated'
-import {
 	flickAtom,
 	flickNameAtom,
 	openStudioAtom,
@@ -32,6 +24,7 @@ import {
 	streamAtom,
 	studioStateAtom,
 } from 'src/stores/studio.store'
+import { ContentTypeEnum } from 'src/utils/enums'
 import useCanvasRecorder from 'src/utils/hooks/useCanvasRecorder'
 import useUpdateState from 'src/utils/hooks/useUpdateState'
 import {
@@ -41,6 +34,7 @@ import {
 	useMap,
 } from 'src/utils/liveblocks.config'
 import { useUser } from 'src/utils/providers/auth'
+import trpc from 'src/utils/trpc'
 import {
 	Button,
 	dismissToast,
@@ -101,18 +95,18 @@ const Studio = ({
 	const confirmMultiBlockRetake = useRef<boolean>(false)
 
 	const [uploadFile] = useUploadFile()
-	const [saveBlock] = useSaveRecordedBlockMutation()
+	const saveBlock = trpc.useMutation(['block.save'])
 	// const [saveMultiBlocks] = useSaveMultipleBlocksMutation()
-	const [deleteBlockGroupMutation] = useDeleteBlockGroupMutation()
-	// to get the recording id
-	const [getRecordingId] = useGetRecordingsLazyQuery({
-		variables: {
-			flickId,
-			fragmentId,
-		},
-		fetchPolicy: 'cache-first',
-	})
-	const [setupRecording] = useSetupRecordingMutation()
+	const deleteBlockGroupMutation = trpc.useMutation('block.delete')
+
+	const { refetch: getRecordingId } = trpc.useQuery(
+		['recording.get', { flickId, fragmentId }],
+		{
+			enabled: false,
+		}
+	)
+
+	const setupRecording = trpc.useMutation(['recording.create'])
 
 	// used to measure the div
 	const [ref, bounds] = useMeasure()
@@ -248,17 +242,15 @@ const Studio = ({
 			// 	history.push(`/story/${fragment?.flickId}/${fragmentId}`)
 			// } else {
 			// Once the block video is uploaded to s3 , save the block to the table
-			await saveBlock({
-				variables: {
-					flickId,
-					fragmentId,
-					recordingId: recordingId.current,
-					objectUrl,
-					thumbnail: thumbnailFilename,
-					// TODO: Update creation meta and playbackDuration when implementing continuous recording
-					blockId,
-					playbackDuration: duration,
-				},
+			await saveBlock.mutateAsync({
+				flickId,
+				fragmentId,
+				recordingId: recordingId.current,
+				objectUrl,
+				thumbnail: thumbnailFilename || undefined,
+				// TODO: Update creation meta and playbackDuration when implementing continuous recording
+				blockId,
+				playbackDuration: duration,
 			})
 			recordedBlocks?.set(blockId, objectUrl)
 			// }
@@ -365,9 +357,7 @@ const Studio = ({
 	useEffect(() => {
 		;(async () => {
 			const { data: recordingsData } = await getRecordingId()
-			const recording = recordingsData?.Recording?.find(
-				r => r.fragmentId === fragmentId
-			)
+			const recording = recordingsData?.find(r => r.fragmentId === fragmentId)
 			if (recording) recordingId.current = recording.id
 			else {
 				const variables = {
@@ -377,11 +367,11 @@ const Studio = ({
 					viewConfig,
 					contentType:
 						viewConfig.mode === 'Portrait'
-							? Content_Types.VerticalVideo
-							: Content_Types.Video,
-				} as SetupRecordingMutationVariables
-				const { data } = await setupRecording({ variables })
-				recordingId.current = data?.StartRecording?.recordingId || ''
+							? ContentTypeEnum.VerticalVideo
+							: ContentTypeEnum.Video,
+				}
+				const data = await setupRecording.mutateAsync(variables)
+				recordingId.current = data.recordingId || ''
 			}
 		})()
 	}, [])
@@ -465,8 +455,9 @@ const Studio = ({
 							flickId={flickId}
 							fragmentId={fragmentId}
 							participantId={
-								viewConfig.speakers.find(({ userSub }) => userSub === user?.uid)
-									?.id
+								viewConfig.speakers.find(
+									({ userSub }: { userSub: string }) => userSub === user?.uid
+								)?.id
 							}
 						/>
 						<PresenceAvatars />
@@ -600,11 +591,9 @@ const Studio = ({
 															return
 															// eslint-disable-next-line no-else-return
 														} else {
-															deleteBlockGroupMutation({
-																variables: {
-																	objectUrl: currentBlockURL,
-																	recordingId: recordingId.current,
-																},
+															deleteBlockGroupMutation.mutateAsync({
+																objectUrl: currentBlockURL,
+																recordingId: recordingId.current,
 															})
 															confirmMultiBlockRetake.current = false
 
