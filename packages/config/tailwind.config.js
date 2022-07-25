@@ -3,6 +3,7 @@ const colors = require('tailwindcss/colors')
 const formsPlugin = require('@tailwindcss/forms')
 const aspectRatioPlugin = require('@tailwindcss/aspect-ratio')
 const typographyPlugin = require('@tailwindcss/typography')
+const lineClampPlugin = require('@tailwindcss/line-clamp')
 
 module.exports = {
 	content: [
@@ -61,5 +62,5 @@ module.exports = {
 		},
 	},
 	experimental: { optimizeUniversalDefaults: true },
-	plugins: [formsPlugin, aspectRatioPlugin, typographyPlugin],
+	plugins: [formsPlugin, aspectRatioPlugin, typographyPlugin, lineClampPlugin],
 }

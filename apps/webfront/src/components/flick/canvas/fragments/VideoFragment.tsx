@@ -158,7 +158,7 @@ const VideoFragment = ({
 				fragmentState: 'customLayout',
 			})
 		},
-		[reset, transformations?.clip?.start, videoElement]
+		[transformations?.clip?.start, videoElement]
 	)
 
 	useEffect(() => {

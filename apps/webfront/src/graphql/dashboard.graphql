@@ -1,5 +1,7 @@
 fragment Content on Content {
 	id
+	data
+	published_at
 	isPublic
 	seriesId
 	resource

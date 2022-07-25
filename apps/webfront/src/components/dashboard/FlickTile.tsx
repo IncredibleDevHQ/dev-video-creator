@@ -44,7 +44,7 @@ const FlickTile = ({
 			handleDelete(data.flickId)
 		},
 		onError() {
-			emitToast('Error deleting flick', { type: 'error' })
+			emitToast('Error deleting story', { type: 'error' })
 		},
 	})
 
