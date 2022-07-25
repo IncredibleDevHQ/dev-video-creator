@@ -86,5 +86,23 @@ const blockRouter = trpc
 			}
 		},
 	})
+	.mutation('delete', {
+		meta: {
+			hasAuth: true,
+		},
+		input: z.object({
+			objectUrl: z.string(),
+			recordingId: z.string(),
+		}),
+		resolve: async ({ ctx, input }) => {
+			const deleteBlock = await ctx.prisma.blocks.deleteMany({
+				where: {
+					objectUrl: input.objectUrl,
+					recordingId: input.recordingId,
+				},
+			})
+			return { success: true.valueOf, deleteCount: deleteBlock.count }
+		},
+	})
 
 export default blockRouter
