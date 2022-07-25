@@ -81,6 +81,7 @@ const storyRouter = trpc
 					useBranding: true,
 					brandingId: true,
 					configuration: true,
+					topicTags: true,
 					Content: {
 						select: {
 							id: true,
@@ -90,11 +91,18 @@ const storyRouter = trpc
 							preview: true,
 							thumbnail: true,
 							type: true,
+							published_at: true,
+							data: true,
 						},
 					},
 					Flick_Series: {
 						select: {
 							seriesId: true,
+							Series: {
+								select: {
+									name: true,
+								},
+							},
 						},
 					},
 					Fragment: {

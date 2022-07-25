@@ -1,6 +1,5 @@
 import { cx } from '@emotion/css'
 import { format } from 'date-fns'
-import { GetServerSideProps, InferGetServerSidePropsType } from 'next'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
@@ -12,15 +11,15 @@ import { IoHeartOutline } from 'react-icons/io5'
 import SEO from 'src/components/core/SEO'
 import Navbar from 'src/components/dashboard/Navbar'
 import {
-	ContentFragment,
 	Content_Type_Enum_Enum,
-	FlickFragment,
-	SeriesFragment,
 	useClapFlickMutation,
 	useGetFlickClapsByUserQuery,
 } from 'src/graphql/generated'
+import prisma from 'src/server/prisma'
+import { ParticipantRoleEnum } from 'src/utils/enums'
+import requireAuth from 'src/utils/helpers/requireAuth'
 import { useUser } from 'src/utils/providers/auth'
-import sdk from 'src/utils/sdk'
+import { inferQueryOutput } from 'src/utils/trpc'
 import {
 	Avatar,
 	Button,
@@ -41,9 +40,21 @@ const IncredibleVideoPlayer = dynamic<IncredibleVideoPlayerProps>(
 )
 
 interface FlickContent {
-	video?: ContentFragment | null
-	blog?: ContentFragment | null
-	verticalVideo?: ContentFragment[] | null
+	video?:
+		| (Omit<inferQueryOutput<'story.byId'>['Content'][number], 'data'> & {
+				data: any
+		  })
+		| null
+	blog?:
+		| (Omit<inferQueryOutput<'story.byId'>['Content'][number], 'data'> & {
+				data: any
+		  })
+		| null
+	verticalVideo?:
+		| (Omit<inferQueryOutput<'story.byId'>['Content'][number], 'data'> & {
+				data: any
+		  })[]
+		| null
 }
 
 const ListItem = ({ exists, active, children, handleClick }: any) => (
@@ -66,10 +77,13 @@ const ListItem = ({ exists, active, children, handleClick }: any) => (
 	</button>
 )
 
-const Watch = ({
-	flick,
-	flickContent,
-}: InferGetServerSidePropsType<typeof getServerSideProps>) => {
+type WatchProps = {
+	flick: inferQueryOutput<'story.byId'>
+	flickContent: FlickContent
+	// series: inferQueryOutput<'story.byId'>['Flick_Series'][number]
+}
+
+const Watch = ({ flick, flickContent }: WatchProps) => {
 	const { push, asPath } = useRouter()
 
 	const { user } = useUser()
@@ -130,7 +144,12 @@ const Watch = ({
 						? `${process.env.NEXT_PUBLIC_CDN_URL}/${flickContent?.video?.thumbnail}`
 						: `${process.env.NEXT_PUBLIC_PUBLIC_URL}/cover.png`
 				}
-				publishedAt={flick.publishedAt || flick.updatedAt}
+				publishedAt={(
+					flickContent.video?.published_at ||
+					flickContent.verticalVideo?.[0].published_at ||
+					flickContent.blog?.published_at ||
+					flick.updatedAt
+				).toISOString()}
 			/>
 			<Navbar />
 
@@ -143,10 +162,10 @@ const Watch = ({
 									<div className='flex md:flex-col items-center md:items-start'>
 										<div className='flex flex-col'>
 											<Heading textStyle='mediumTitle'>{flick.name}</Heading>
-											{flick.series.length > 0 && (
+											{flick.Flick_Series.length > 0 && (
 												<Link
 													passHref
-													href={`/series/${flick.series[0]?.series?.name}--${flick.series[0]?.series?.id}`}
+													href={`/series/${flick.Flick_Series[0]?.Series?.name}--${flick.Flick_Series[0]?.seriesId}`}
 												>
 													<span>
 														<Text
@@ -154,7 +173,7 @@ const Watch = ({
 															className='text-dark-title-200 hover:underline cursor-pointer'
 														>
 															Click to visit series{' '}
-															{flick.series[0]?.series?.name}
+															{flick.Flick_Series[0]?.Series?.name}
 														</Text>
 													</span>
 												</Link>
@@ -224,7 +243,7 @@ const Watch = ({
 										)}
 
 									{user?.uid &&
-										flick.participants.some(p => p.user.sub === user.sub) && (
+										flick.Participants.some(p => p.userSub === user.sub) && (
 											<a
 												href={`/story/${flick.id}`}
 												style={{
@@ -276,11 +295,13 @@ const Watch = ({
 													size={24}
 													className='my-2 md:my-1 group-hover:text-green-600 group-hover:animate-ping group-hover:animate-bounce group-hover:animate-pulse p-1 md:p-0'
 												/>
-												<Text className='text-center mr-1 md:mr-0'>
+												{/*
+                        TODO: Add clap count
+                        <Text className='text-center mr-1 md:mr-0'>
 													{flick.totalClaps
 														? parseInt(flick.totalClaps, 10) + userFlickClaps
 														: userFlickClaps}
-												</Text>
+												</Text> */}
 											</button>
 											<CopyToClipboard
 												text={`${process.env.NEXT_PUBLIC_PUBLIC_URL}/watch/${flick.joinLink}`}
@@ -302,34 +323,34 @@ const Watch = ({
 										<Heading as='h1'>{flick.name}</Heading>
 										<div className='flex items-center mt-2 gap-x-4'>
 											<div className='flex items-center -space-x-1.5'>
-												{flick.participants
-													?.sort(a => {
-														// owner first
-														if (a.id === flick.ownerId) {
-															return -1
-														}
-														return 1
-													})
-													?.map(participant => (
-														<Link
-															key={participant.id}
-															href={`/${participant.user.username}`}
-															passHref
-														>
-															<span>
-																<Avatar
-																	src={participant.user.picture as string}
-																	alt={participant.user.displayName ?? ''}
-																	name={participant.user.displayName ?? ''}
-																	className='w-6 h-6 border-2 rounded-full border-green-600 cursor-pointer'
-																/>
-															</span>
-														</Link>
-													))}
+												{flick.Participants?.sort(a => {
+													// owner first
+													if (a.role === ParticipantRoleEnum.Host) {
+														return -1
+													}
+													return 1
+												})?.map(participant => (
+													<Link
+														key={participant.id}
+														href={`/${participant.User.username}`}
+														passHref
+													>
+														<span>
+															<Avatar
+																src={participant.User.picture as string}
+																alt={participant.User.displayName ?? ''}
+																name={participant.User.displayName ?? ''}
+																className='w-6 h-6 border-2 rounded-full border-green-600 cursor-pointer'
+															/>
+														</span>
+													</Link>
+												))}
 											</div>
 											<Text textStyle='caption' className='text-dark-title-200'>
 												{format(
-													new Date(flick.publishedAt || flick.updatedAt),
+													new Date(
+														flick.Content?.[0].published_at || flick.updatedAt
+													),
 													'do MMMM yyyy'
 												)}
 											</Text>
@@ -381,12 +402,14 @@ const Watch = ({
 															size={24}
 															className='my-1 group-hover:text-green-600 group-hover:animate-ping group-hover:animate-bounce group-hover:animate-pulse p-1 md:p-0'
 														/>
-														<Text className='text-center mr-1 md:mr-0'>
+														{/*
+                            TODO: Add clap count
+                            <Text className='text-center mr-1 md:mr-0'>
 															{flick.totalClaps
 																? parseInt(flick.totalClaps, 10) +
 																  userFlickClaps
 																: userFlickClaps}
-														</Text>
+														</Text> */}
 													</button>
 													<CopyToClipboard
 														text={`${process.env.NEXT_PUBLIC_PUBLIC_URL}/watch/${flick.joinLink}`}
@@ -416,44 +439,177 @@ const Watch = ({
 	)
 }
 
-export const getServerSideProps: GetServerSideProps<{
-	flick: FlickFragment
-	series: SeriesFragment
-	flickContent?: FlickContent | null
-}> = async context => {
-	const slug = context.params?.slug
+export const getServerSideProps = requireAuth(true)(
+	async ({ params, user }) => {
+		const slug: string | undefined =
+			typeof params?.slug === 'string' ? params.slug : params?.slug?.[0]
 
-	const { data } = await sdk.GetFlick({ joinLink: slug as string })
+		if (!slug) {
+			return { props: { flick: null, series: null, flickContent: null } }
+		}
+		const flick = await prisma.flick.findFirst({
+			where: {
+				joinLink: slug,
+				Participants: {
+					some: {
+						userSub: user?.uid,
+					},
+				},
+			},
+			select: {
+				name: true,
+				description: true,
+				joinLink: true,
+				lobbyPicture: true,
+				id: true,
+				scope: true,
+				md: true,
+				dirty: true,
+				ownerSub: true,
+				updatedAt: true,
+				thumbnail: true,
+				status: true,
+				deletedAt: true,
+				producedLink: true,
+				useBranding: true,
+				brandingId: true,
+				configuration: true,
+				topicTags: true,
+				Content: {
+					select: {
+						id: true,
+						isPublic: true,
+						seriesId: true,
+						resource: true,
+						preview: true,
+						thumbnail: true,
+						type: true,
+						published_at: true,
+						data: true,
+					},
+				},
+				Flick_Series: {
+					select: {
+						seriesId: true,
+						Series: {
+							select: {
+								name: true,
+							},
+						},
+					},
+				},
+				Fragment: {
+					select: {
+						configuration: true,
+						description: true,
+						flickId: true,
+						id: true,
+						name: true,
+						order: true,
+						type: true,
+						producedLink: true,
+						producedShortsLink: true,
+						editorState: true,
+						editorValue: true,
+						encodedEditorValue: true,
+						thumbnailConfig: true,
+						thumbnailObject: true,
+						publishConfig: true,
+						version: true,
+						Blocks: {
+							select: {
+								id: true,
+								objectUrl: true,
+								recordingId: true,
+								thumbnail: true,
+								playbackDuration: true,
+							},
+						},
+					},
+				},
+				Branding: {
+					select: {
+						id: true,
+						name: true,
+						branding: true,
+					},
+				},
+				Theme: {
+					select: {
+						name: true,
+						config: true,
+					},
+				},
+				Participants: {
+					select: {
+						id: true,
+						status: true,
+						role: true,
+						userSub: true,
+						inviteStatus: true,
+						User: {
+							select: {
+								displayName: true,
+								picture: true,
+								username: true,
+								email: true,
+								sub: true,
+							},
+						},
+					},
+				},
+			},
+		})
+		// flick.topicTags =
+		// 	flick?.topicTags && flick.topicTags.length > 0
+		// 		? [...new Set(flick.topicTags.split(','))]
+		// 		: []
 
-	const flick = data?.Flick?.[0]
+		const flickContent: FlickContent | null = flick
+			? {
+					video:
+						flick.Content.find(
+							content => content.type === Content_Type_Enum_Enum.Video
+						) || null,
+					blog:
+						flick.Content.find(
+							content => content.type === Content_Type_Enum_Enum.Blog
+						) || null,
+					verticalVideo:
+						flick.Content.filter(
+							content => content.type === Content_Type_Enum_Enum.VerticalVideo
+						) || null,
+			  }
+			: null
 
-	flick.topicTags = [...new Set(flick.topicTags)]
+		if (flickContent?.verticalVideo)
+			flickContent.verticalVideo = flickContent.verticalVideo.map(v => {
+				// eslint-disable-next-line no-param-reassign
+				if (v) v.data = v.data ? JSON.parse(JSON.stringify(v.data)) : v.data
+				return v
+			})
 
-	const flickContent: FlickContent | null = flick
-		? {
-				video:
-					flick.contents.find(
-						content => content.type === Content_Type_Enum_Enum.Video
-					) || null,
-				blog:
-					flick.contents.find(
-						content => content.type === Content_Type_Enum_Enum.Blog
-					) || null,
-				verticalVideo:
-					flick.contents.filter(
-						content => content.type === Content_Type_Enum_Enum.VerticalVideo
-					) || null,
-		  }
-		: null
+		if (flickContent?.video) {
+			flickContent.video.data = JSON.parse(
+				JSON.stringify(flickContent.video.data)
+			)
+		}
 
-	return {
-		props: {
-			flick,
-			flickContent,
-			series: flick?.series?.[0]?.series || null,
-		},
-		notFound: !flick || !flickContent,
+		if (flickContent?.blog) {
+			flickContent.blog.data = JSON.parse(
+				JSON.stringify(flickContent.blog.data)
+			)
+		}
+
+		return {
+			props: {
+				flick,
+				flickContent,
+				series: flick?.Flick_Series?.[0] || null,
+			} as WatchProps,
+			notFound: !flick || !flickContent,
+		}
 	}
-}
+)
 
 export default Watch
