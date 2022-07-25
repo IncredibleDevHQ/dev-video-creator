@@ -36,6 +36,34 @@ const recordingRouter = trpc
 			},
 		})
 	})
+	.query('get', {
+		meta: {
+			hasAuth: true,
+		},
+		input: z.object({
+			flickId: z.string(),
+			fragmentId: z.string(),
+		}),
+		resolve: async ({ ctx, input }) => {
+			const recording = await ctx.prisma.recording.findMany({
+				where: {
+					flickId: input.flickId,
+					fragmentId: input.fragmentId,
+				},
+				select: {
+					id: true,
+					fragmentId: true,
+					type: true,
+					url: true,
+					status: true,
+					checkpoint: true,
+					thumbnail: true,
+					storyboard: true,
+				},
+			})
+			return recording
+		},
+	})
 	// ACTIONS
 	.mutation('create', {
 		meta: {

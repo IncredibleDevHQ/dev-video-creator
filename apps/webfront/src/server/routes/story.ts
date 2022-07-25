@@ -46,6 +46,8 @@ const storyRouter = trpc
 			},
 		})
 	})
+	// Note: this query's output-type used for both get byId in studio GSSP() and also
+	// for get using joinLink in watch page GSSP()
 	.query('byId', {
 		meta: {
 			hasAuth: true,
