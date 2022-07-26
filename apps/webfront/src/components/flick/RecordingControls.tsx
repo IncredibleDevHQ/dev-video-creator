@@ -2,6 +2,7 @@
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 import { cx } from '@emotion/css'
 import { Block, CodeBlockProps } from 'editor/src/utils/types'
+import Konva from 'konva'
 import { useMemo } from 'react'
 import {
 	IoArrowBackOutline,
@@ -41,12 +42,14 @@ const RecordingControls = ({
 	viewConfig,
 	shortsMode,
 	isPreview,
+	stageRef,
 	updateState,
 }: {
 	dataConfig: Block[]
 	viewConfig: ViewConfig
 	shortsMode: boolean
 	isPreview: boolean
+	stageRef?: React.RefObject<Konva.Stage>
 	updateState?: (state: StudioState) => void
 }) => {
 	const state = useRecoilValue(studioStateAtom)
@@ -149,7 +152,12 @@ const RecordingControls = ({
 	}
 
 	return (
-		<div className='grid grid-cols-12 w-full mb-2'>
+		<div
+			style={{
+				top: `${(stageRef?.current?.height() ?? 0) + (shortsMode ? 0 : 72)}px`,
+			}}
+			className='absolute grid grid-cols-12 w-full mb-2'
+		>
 			<div className='flex items-center col-span-8 col-start-3 pb-6'>
 				{/* Stop Recording Button */}
 				{(state === 'recording' || state === 'startRecording') && (
@@ -186,10 +194,7 @@ const RecordingControls = ({
 				{(state === 'ready' || state === 'resumed') && (
 					<button
 						className={cx(
-							'bg-red-500 text-white font-main backdrop-filter backdrop-blur-2xl px-4 py-2 rounded-sm absolute flex items-center gap-x-2 text-size-sm-title active:scale-95 transition-all',
-							{
-								'left-0': shortsMode,
-							}
+							'bg-red-500 text-white font-main backdrop-filter backdrop-blur-2xl px-4 py-2 rounded-sm absolute flex items-center gap-x-2 text-size-sm-title active:scale-95 transition-all'
 						)}
 						type='button'
 						onClick={() => {

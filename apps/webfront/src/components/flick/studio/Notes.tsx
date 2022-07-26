@@ -35,9 +35,11 @@ export const customScroll = css`
 const Notes = ({
 	dataConfig,
 	bounds,
+	shortsMode,
 }: {
 	dataConfig: Block[]
 	bounds: RectReadOnly
+	shortsMode: boolean
 }) => {
 	const activeObjectIndex = useRecoilValue(activeObjectIndexAtom)
 	const { note } = useMemo(() => {
@@ -109,7 +111,11 @@ const Notes = ({
 		}
 	}, [activeObjectIndex, dataConfig])
 	return (
-		<div className='col-span-2 col-start-11 w-full'>
+		<div
+			className={cx('col-span-2 col-start-11 w-full', {
+				'col-start-9': shortsMode,
+			})}
+		>
 			<div
 				style={{
 					height: `${bounds.height * 0.6}px`,

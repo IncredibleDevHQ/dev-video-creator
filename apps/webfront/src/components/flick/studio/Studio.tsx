@@ -131,14 +131,13 @@ const Studio = ({
 		// setResetTimer(false)
 	}
 
-  const updateRecordedBlocks = (blocks: { [key: string]: string } ) => {
-    setRecordedBlocks(blocks)
-    broadcast({
+	const updateRecordedBlocks = (blocks: { [key: string]: string }) => {
+		setRecordedBlocks(blocks)
+		broadcast({
 			type: RoomEventTypes.UpdateRecordedBlocks,
 			payload: blocks,
 		})
-  }
-
+	}
 
 	// function which gets triggered on stop, used for converting the blobs in to url and
 	// store it in recorded blocks and checking if the blobs are empty
@@ -166,7 +165,10 @@ const Studio = ({
 			return
 		}
 		const url = URL.createObjectURL(blob)
-		updateRecordedBlocks({ ...recordedBlocks, [currentBlockDataConfig.id]: url })
+		updateRecordedBlocks({
+			...recordedBlocks,
+			[currentBlockDataConfig.id]: url,
+		})
 		updateState('preview')
 	}
 
@@ -313,9 +315,9 @@ const Studio = ({
 				setIsStudioController(false)
 			}
 		}
-    if(event.type === RoomEventTypes.UpdateRecordedBlocks) {
-      setRecordedBlocks(event.payload)
-    }
+		if (event.type === RoomEventTypes.UpdateRecordedBlocks) {
+			setRecordedBlocks(event.payload)
+		}
 	})
 
 	// Hooks
@@ -450,22 +452,31 @@ const Studio = ({
 					</div>
 				</div>
 				{state !== 'preview' ? (
-					<>
-						<div className='grid grid-cols-12 flex-1 items-center'>
-							<div
-								className='flex justify-center items-start col-span-8 col-start-3 w-full h-full pt-16'
-								ref={ref}
-							>
-								<CanvasComponent
-									bounds={bounds}
-									dataConfig={dataConfig}
-									viewConfig={viewConfig}
-									isPreview={false}
-									stage={stageRef}
-								/>
-							</div>
-							<Notes dataConfig={dataConfig} bounds={bounds} />
+					<div className='grid grid-cols-12 flex-1 items-center relative'>
+						<div
+							className={cx(
+								'flex justify-center items-start col-span-8 col-start-3 w-full h-full pt-16',
+								{
+									'pt-8 col-span-4 col-start-5':
+										viewConfig?.mode === 'Portrait',
+								}
+							)}
+							ref={ref}
+						>
+							<CanvasComponent
+								bounds={bounds}
+								dataConfig={dataConfig}
+								viewConfig={viewConfig}
+								isPreview={false}
+								stage={stageRef}
+								scale={viewConfig?.mode === 'Portrait' ? 0.9 : 1}
+							/>
 						</div>
+						<Notes
+							dataConfig={dataConfig}
+							bounds={bounds}
+							shortsMode={viewConfig?.mode === 'Portrait'}
+						/>
 						{isStudioController && (
 							<RecordingControls
 								dataConfig={dataConfig}
@@ -473,9 +484,10 @@ const Studio = ({
 								shortsMode={viewConfig?.mode === 'Portrait'}
 								isPreview={false}
 								updateState={updateState}
+								stageRef={stageRef}
 							/>
 						)}
-					</>
+					</div>
 				) : (
 					<div className='flex items-center justify-center flex-col w-full flex-1 pt-4'>
 						{recordedBlocks && (
