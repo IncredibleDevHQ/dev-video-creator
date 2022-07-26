@@ -131,6 +131,14 @@ const Studio = ({
 		// setResetTimer(false)
 	}
 
+  const updateRecordedBlocks = (blocks: { [key: string]: string } ) => {
+    setRecordedBlocks(blocks)
+    broadcast({
+			type: RoomEventTypes.UpdateRecordedBlocks,
+			payload: blocks,
+		})
+  }
+
 
 	// function which gets triggered on stop, used for converting the blobs in to url and
 	// store it in recorded blocks and checking if the blobs are empty
@@ -158,7 +166,7 @@ const Studio = ({
 			return
 		}
 		const url = URL.createObjectURL(blob)
-		setRecordedBlocks({ ...recordedBlocks, [currentBlockDataConfig.id]: url })
+		updateRecordedBlocks({ ...recordedBlocks, [currentBlockDataConfig.id]: url })
 		updateState('preview')
 	}
 
@@ -246,7 +254,7 @@ const Studio = ({
 					playbackDuration: duration,
 				},
 			})
-			setRecordedBlocks({ ...recordedBlocks, [blockId]: objectUrl })
+			updateRecordedBlocks({ ...recordedBlocks, [blockId]: objectUrl })
 			// }
 			dismissToast(toast)
 		} catch (e) {
@@ -305,6 +313,9 @@ const Studio = ({
 				setIsStudioController(false)
 			}
 		}
+    if(event.type === RoomEventTypes.UpdateRecordedBlocks) {
+      setRecordedBlocks(event.payload)
+    }
 	})
 
 	// Hooks
@@ -335,7 +346,7 @@ const Studio = ({
 			if (recordedBlocks[dataConfig[activeObjectIndex].id]?.includes('blob')) {
 				const x = { ...recordedBlocks }
 				delete x[dataConfig[activeObjectIndex].id]
-				setRecordedBlocks(x)
+				updateRecordedBlocks(x)
 			}
 		},
 		[activeObjectIndex]
@@ -577,7 +588,7 @@ const Studio = ({
 																if (recordedBlocks[block] === currentBlockURL) {
 																	const x = { ...recordedBlocks }
 																	delete x[block]
-																	setRecordedBlocks(x)
+																	updateRecordedBlocks(x)
 																}
 															})
 														}
@@ -585,7 +596,7 @@ const Studio = ({
 														// deletes the current block id from recorded blocks
 														const x = { ...recordedBlocks }
 														delete x[dataConfig[activeObjectIndex].id]
-														setRecordedBlocks(x)
+														updateRecordedBlocks(x)
 													}
 												}
 												broadcast({
