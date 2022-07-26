@@ -43,11 +43,9 @@ export const getBlockTitle = (block: Block): string => {
 
 const MiniTimeline = ({
 	dataConfig,
-	continuousRecording,
 	updateState,
 }: {
 	dataConfig: Block[]
-	continuousRecording: boolean
 	updateState: (studioState: StudioState) => void
 }) => {
 	const timelineRef = useRef<HTMLDivElement>(null)
@@ -103,12 +101,11 @@ const MiniTimeline = ({
 						if (!isStudioController) return
 						// if continuous recording is enabled, disable mini-timeline onclick
 						if (
-							(continuousRecording && state === 'preview') ||
 							state === 'recording' ||
 							(recordedBlocks[dataConfig[index].id]?.includes('blob') &&
 								state === 'preview')
 						) {
-							// TODO emit toast to notify the user to svae and proceed
+							// TODO emit toast to notify the user to save and proceed
 							return
 						}
 						updateActiveObjectIndex(index)

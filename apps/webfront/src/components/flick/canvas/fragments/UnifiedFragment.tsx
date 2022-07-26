@@ -76,15 +76,12 @@ const UnifiedFragment = ({
 		setViewConfig(layoutConfig)
 	}, [config, layoutConfig])
 
-	// TODO: have to deal with theme and branding
-
 	useEffect(() => {
 		if (storeActiveObjectIndex === undefined || storeActiveObjectIndex === -1)
 			return
 		setActiveObjectIndex(storeActiveObjectIndex)
 	}, [storeActiveObjectIndex])
 
-	// TODO Deal with transitions
 	useEffect(() => {
 		if (!storeActiveObjectIndex || storeActiveObjectIndex === 0) return
 		if (payloadFragmentState === fragmentState) return
