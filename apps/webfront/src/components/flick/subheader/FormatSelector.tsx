@@ -187,6 +187,7 @@ const CreateFormat = ({
 											// Fragment_Type_Enum_Enum.Blog,
 										].map(format => (
 											<button
+												key={format}
 												disabled={!availableFormats.includes(format)}
 												onClick={() => {
 													setCreatingFragment(true)
