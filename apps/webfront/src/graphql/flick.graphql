@@ -9,6 +9,8 @@ fragment BaseFlick on Flick {
 	md
 	dirty
 	plannedEnd
+	publishedAt
+	totalClaps
 	startAt
 	ownerId
 	owner {
@@ -34,6 +36,7 @@ fragment BaseFlick on Flick {
 	contents {
 		...Content
 	}
+	topicTags
 	participants {
 		user {
 			sub
@@ -53,12 +56,41 @@ fragment Flick on Flick {
 	}
 	series {
 		seriesId
+		series {
+			...Series
+		}
+	}
+}
+
+fragment PublicSeriesFlick on Flick {
+	...BaseFlick
+	participants {
+		...SeriesParticipant
 	}
 }
 
 query GetFlickById($id: uuid!) {
 	Flick_by_pk(id: $id) {
 		...Flick
+	}
+}
+
+query GetFlick($joinLink: String!) {
+	Flick(where: { joinLink: { _eq: $joinLink } }) {
+		...Flick
+	}
+}
+
+query GetUserFlicks($sub: String!) {
+	Flick(
+		where: {
+			owner: { userSub: { _eq: $sub } }
+			participants: { userSub: { _eq: $sub } }
+			deletedAt: { _is_null: true }
+		}
+		order_by: { updatedAt: desc }
+	) {
+		...BaseFlick
 	}
 }
 
@@ -115,5 +147,21 @@ mutation GetHuddleRtcToken($flickId: uuid!) {
 	HuddleRtcToken(flickId: $flickId) {
 		success
 		token
+	}
+}
+
+query GetFlickClapsByUser($flickId: uuid!, $sub: String!) {
+	Flick(where: { id: { _eq: $flickId } }) {
+		claps_aggregate(where: { userId: { _eq: $sub } }) {
+			aggregate {
+				count
+			}
+		}
+	}
+}
+
+mutation ClapFlick($claps: Int!, $flickId: String!) {
+	ClapFlick(claps: $claps, flickId: $flickId) {
+		success
 	}
 }

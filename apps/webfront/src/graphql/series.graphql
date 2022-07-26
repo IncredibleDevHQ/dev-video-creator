@@ -1,3 +1,66 @@
+fragment Series on Series {
+	id
+	name
+	flickCount {
+		count
+	}
+}
+
+fragment SeriesParticipant on Participant {
+	id
+	user {
+		sub
+		picture
+		username
+		displayName
+	}
+}
+
+fragment SeriesFlick on Flick_Series {
+	flick {
+		id
+		status
+		name
+		description
+		thumbnail
+		duration
+		configuration
+		ownerId
+		joinLink
+		topicTags
+		contents {
+			id
+			isPublic
+			type
+			resource
+			thumbnail
+			published_at
+		}
+		publishedAt
+		participants {
+			...SeriesParticipant
+		}
+	}
+}
+
+fragment SeriesFragment on Series {
+	id
+	name
+	description
+	picture
+	createdAt
+	updatedAt
+	owner {
+		displayName
+		username
+		picture
+		sub
+	}
+	Flick_Series {
+		...SeriesFlick
+	}
+}
+
 fragment DashboardSeries on Series {
 	id
 	name
@@ -7,9 +70,97 @@ fragment DashboardSeries on Series {
 	ownerSub
 }
 
+fragment BaseSeries on Series {
+	id
+	name
+	description
+	picture
+	createdAt
+	updatedAt
+	ownerSub
+}
+
+query GetSeries($id: uuid!) {
+	Series_by_pk(id: $id) {
+		...SeriesFragment
+	}
+}
+
+query GetSeriesSubscription($seriesId: uuid!) {
+	Subscription_aggregate(where: { seriesId: { _eq: $seriesId } }) {
+		aggregate {
+			count
+		}
+	}
+}
+
+query GetSeriesStars($seriesId: uuid!) {
+	Series_Stars_aggregate(where: { seriesId: { _eq: $seriesId } }) {
+		aggregate {
+			count
+		}
+	}
+}
+
+query HasSeriesStarred($seriesId: uuid!, $sub: String!) {
+	Series_Stars(where: { seriesId: { _eq: $seriesId }, userId: { _eq: $sub } }) {
+		userId
+		seriesId
+	}
+}
+
+query HasSeriesSubscribed($seriesId: uuid!, $sub: String!) {
+	Subscription(
+		where: { seriesId: { _eq: $seriesId }, userSub: { _eq: $sub } }
+	) {
+		id
+	}
+}
+
 query GetDashboardUserSeries($limit: Int = 25, $offset: Int = 0) {
 	Series(order_by: { createdAt: desc }, limit: $limit, offset: $offset) {
 		...DashboardSeries
+	}
+}
+
+query GetUserSeries {
+	Series(order_by: { createdAt: desc }) {
+		...BaseSeries
+	}
+}
+
+mutation StarSeries($seriesId: String!) {
+	StarSeries(seriesId: $seriesId) {
+		success
+	}
+}
+
+mutation UnstarSeries($sub: String!, $seriesId: uuid!) {
+	delete_Series_Stars(
+		where: { userId: { _eq: $sub }, seriesId: { _eq: $seriesId } }
+	) {
+		affected_rows
+	}
+}
+
+mutation SubscribeSeries($emailId: String, $seriesId: String!) {
+	AddSeriesSubscriber(seriesId: $seriesId, emailId: $emailId) {
+		alreadyExists
+		success
+	}
+}
+
+mutation DeleteSeriesSubscription($seriesId: uuid!, $sub: String!) {
+	delete_Subscription(
+		where: { seriesId: { _eq: $seriesId }, userSub: { _eq: $sub } }
+	) {
+		affected_rows
+	}
+}
+
+mutation AddFlicksToSeries($flickIds: [uuid!]!, $seriesId: uuid!) {
+	UpdateSeriesFlicks(flickIds: $flickIds, seriesId: $seriesId) {
+		success
 	}
 }
 

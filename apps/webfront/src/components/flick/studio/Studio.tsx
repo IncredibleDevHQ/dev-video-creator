@@ -461,7 +461,6 @@ const Studio = ({
 									dataConfig={dataConfig}
 									viewConfig={viewConfig}
 									isPreview={false}
-									flickId={flickId}
 									stage={stageRef}
 								/>
 							</div>

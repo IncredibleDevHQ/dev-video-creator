@@ -40,7 +40,7 @@ const CreateSeriesModal = ({
 	useEffect(() => {
 		if (!data) return
 		emitToast('Series created successfully', {
-			type: 'error',
+			type: 'success',
 		})
 		push(`/series/${details.name}--${data?.CreateSeries?.id}?new=true`)
 		setDetails(defaults)

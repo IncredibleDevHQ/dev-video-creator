@@ -128,4 +128,5 @@ export const {
 	useRoom,
 	useBroadcastEvent,
 	useEventListener,
+	RoomContext,
 } = createRoomContext<Presence, Storage, UserMeta, RoomEvent>(client)
