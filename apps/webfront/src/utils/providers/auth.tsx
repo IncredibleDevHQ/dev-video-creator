@@ -3,7 +3,7 @@ import { getApp, getApps, initializeApp } from 'firebase/app'
 import { getAuth, onAuthStateChanged, User as FBUser } from 'firebase/auth'
 import { getDatabase, onValue, ref } from 'firebase/database'
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import { UserFragment } from 'src/graphql/generated'
+import { MeFragment } from 'src/graphql/generated'
 import { getEnv } from 'utils/src'
 import trpc from '../trpc'
 
@@ -27,7 +27,7 @@ const login = async (token: string) =>
 		}
 	)
 
-type User = FBUser & Partial<UserFragment>
+type User = FBUser & Partial<MeFragment>
 
 export const UserContext = createContext<
 	Partial<{

@@ -50,7 +50,7 @@ export const Button = ({
 
 			// sizes
 			{
-				'min-h-[40px] px-6 text-size-sm': size === 'large',
+				'min-h-[40px] px-4 text-size-sm': size === 'large',
 				'min-h-[32px] px-3 text-size-xs': size === 'small',
 			},
 

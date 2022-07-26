@@ -6,6 +6,7 @@
 import { css, cx } from '@emotion/css'
 import { Dialog, Listbox, Popover, Switch, Transition } from '@headlessui/react'
 import axios from 'axios'
+import Link from 'next/link'
 import React, {
 	ChangeEvent,
 	Fragment,
@@ -933,14 +934,14 @@ const Publish = ({
 											<div
 												className='flex flex-col w-full h-full items-start justify-center'
 												style={{
-													maxWidth: '420px',
+													maxWidth: '450px',
 													width: '100%',
 												}}
 											>
 												<div className='flex mx-auto'>
 													<div className='h-32 w-32 bg-gray-100 rounded-full z-0' />
 													<div className='z-20 w-32 h-32 -ml-32 rounded-full backdrop-filter backdrop-blur-xl' />
-													<div className='z-10 w-24 h-24 -ml-10 rounded-full bg-brand' />
+													<div className='z-10 w-24 h-24 -ml-10 rounded-full bg-green-600' />
 												</div>
 												<Heading className='mb-4 font-bold text-3xl mt-12'>
 													Congratulations! your story is out.
@@ -953,9 +954,9 @@ const Publish = ({
 													href={`/watch/${flick?.joinLink}`}
 													target='_blank'
 													rel='noreferrer noopener'
-													className='w-full flex my-4 border p-2 rounded-md items-center justify-between text-sm gap-x-12 text-gray-600 px-4'
+													className='w-full flex my-4 border p-2 rounded-md items-center justify-between text-size-sm gap-x-12 text-gray-600 px-4 pr-0'
 												>
-													{`/watch/${flick?.joinLink}`}
+													{`${process.env.NEXT_PUBLIC_PUBLIC_URL}/watch/${flick?.joinLink}`}
 													<FiExternalLink size={21} className='mx-2' />
 												</a>
 											</div>
@@ -982,14 +983,11 @@ const Publish = ({
 											</div>
 											<div className='flex items-center gap-x-4'>
 												{flick && flick.contents.length > 0 && (
-													<a
-														rel='noopener noreferrer'
-														target='_blank'
-														href={`/watch/${flick?.joinLink}`}
-														className='flex items-center gap-x-2 text-size-xs hover:underline'
-													>
-														Story page
-													</a>
+													<Link href={`/watch/${flick?.joinLink}`}>
+														<p className='flex items-center gap-x-2 text-size-xs hover:underline cursor-pointer'>
+															Story page
+														</p>
+													</Link>
 												)}
 												{ytIntegration?.picture && (
 													<Avatar
@@ -999,7 +997,7 @@ const Publish = ({
 														alt={ytIntegration?.name}
 													/>
 												)}
-												<Text textStyle='caption'> Publish to Youtube</Text>
+												<Text textStyle='caption'>Publish to Youtube</Text>
 												<Switch
 													checked={enablePublishToYT}
 													onClick={() => {

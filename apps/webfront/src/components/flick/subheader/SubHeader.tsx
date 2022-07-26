@@ -30,9 +30,14 @@ const AutoSave = () => {
 	const room = useRoom()
 
 	useEffect(() => {
-		setConnectionState(room.getConnectionState())
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [room.getConnectionState()])
+		const unsubscribe = room.subscribe('connection', status => {
+			setConnectionState(status)
+		})
+
+		return () => {
+			unsubscribe()
+		}
+	}, [room])
 
 	const isSaved = useMemo(() => {
 		if (

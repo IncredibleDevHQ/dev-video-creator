@@ -219,7 +219,10 @@ const Notifications = () => {
 		<Popover>
 			{({ open, close }) => (
 				<>
-					<Popover.Button as='button' className='relative cursor-pointer'>
+					<Popover.Button
+						as='button'
+						className='relative cursor-pointer flex items-center'
+					>
 						{data && data.Notifications_aggregate.aggregate?.count !== 0 && (
 							<GoPrimitiveDot
 								className={cx(
@@ -258,7 +261,7 @@ const Notifications = () => {
 						leaveFrom='transform opacity-100 scale-100'
 						leaveTo='transform opacity-0 scale-95'
 					>
-						<Popover.Panel as='div' className='absolute right-[75px]'>
+						<Popover.Panel as='div' className='absolute right-[75px] mt-3'>
 							<NotificationsList
 								isNotificationsOpen={open}
 								close={close}

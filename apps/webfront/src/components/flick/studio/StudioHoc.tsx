@@ -106,6 +106,7 @@ const StudioHoC = ({
 				temp[b.id] = b.objectUrl || ''
 			})
 			setRecordedBlocks(temp)
+      // makes sure that the recordedBlocks are set before the studio component is mounted
       setIsRecordedBlocksSet(true)
 		})()
 	}, [recordingId])

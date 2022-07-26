@@ -1,4 +1,3 @@
-import { LiveMap, LiveObject } from '@liveblocks/client'
 import { Block, IntroBlockProps } from 'editor/src/utils/types'
 import Konva from 'konva'
 import React, {
@@ -21,7 +20,7 @@ import {
 	transitionAtom,
 } from 'src/stores/studio.store'
 import { CONFIG, SHORTS_CONFIG } from 'src/utils/configs'
-import { RoomProvider } from 'src/utils/liveblocks.config'
+import { RoomContext, useRoom } from 'src/utils/liveblocks.config'
 import { UserContext, useUser } from 'src/utils/providers/auth'
 import { IntroBlockView, TopLayerChildren, ViewConfig } from 'utils/src'
 import UnifiedFragment from './fragments/UnifiedFragment'
@@ -64,7 +63,6 @@ const CanvasComponent = React.memo(
 		dataConfig,
 		viewConfig,
 		isPreview,
-		flickId,
 		scale = 1,
 		stage,
 	}: {
@@ -72,7 +70,6 @@ const CanvasComponent = React.memo(
 		dataConfig: Block[]
 		viewConfig: ViewConfig
 		isPreview: boolean
-		flickId: string
 		scale?: number
 		stage?: React.RefObject<Konva.Stage>
 	}) => {
@@ -116,6 +113,8 @@ const CanvasComponent = React.memo(
 			if (state === 'recording' && mountStage) start()
 		}, [state, mountStage])
 
+		const room = useRoom()
+
 		return (
 			<div>
 				{mountStage && (
@@ -133,13 +132,7 @@ const CanvasComponent = React.memo(
 					>
 						<Bridge>
 							<UserContext.Provider value={user}>
-								<RoomProvider
-									id={`story-${flickId}`}
-									initialStorage={() => ({
-										viewConfig: new LiveMap(),
-										activeObjectIndex: new LiveObject({ activeObjectIndex: 0 }),
-									})}
-								>
+								<RoomContext.Provider value={room}>
 									<Layer ref={layerRef}>
 										{(() => (
 											<Group>
@@ -176,7 +169,7 @@ const CanvasComponent = React.memo(
 											</Group>
 										))()}
 									</Layer>
-								</RoomProvider>
+								</RoomContext.Provider>
 							</UserContext.Provider>
 						</Bridge>
 					</Stage>

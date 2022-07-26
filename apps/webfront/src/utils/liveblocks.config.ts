@@ -63,6 +63,7 @@ export enum RoomEventTypes {
 	ApproveRequestControls = 'approveRequestControls',
 	RevokeControls = 'revokeControls',
 	Zoom = 'zoom',
+	UpdateRecordedBlocks = 'updateRecordedBlocks',
 }
 type RoomEvent =
 	| {
@@ -110,6 +111,10 @@ type RoomEvent =
 				shouldZoom: boolean
 			}
 	  }
+	| {
+			type: RoomEventTypes.UpdateRecordedBlocks
+			payload: { [key: string]: string }
+	  }
 
 export const {
 	RoomProvider,
@@ -123,4 +128,5 @@ export const {
 	useRoom,
 	useBroadcastEvent,
 	useEventListener,
+	RoomContext,
 } = createRoomContext<Presence, Storage, UserMeta, RoomEvent>(client)

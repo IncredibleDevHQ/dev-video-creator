@@ -3,6 +3,8 @@ const withTM = require('next-transpile-modules')([
 	'editor',
 	'icanvas',
 	'utils',
+	'@vime/core',
+	'@vime/react',
 ])
 
 module.exports = withTM({

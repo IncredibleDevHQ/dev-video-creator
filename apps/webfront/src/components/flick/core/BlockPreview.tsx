@@ -6,7 +6,6 @@ import { useRecoilValue } from 'recoil'
 import {
 	activeFragmentIdAtom,
 	currentBlockSelector,
-	flickAtom,
 	fragmentTypeAtom,
 	openStudioAtom,
 	previewPositionAtom,
@@ -22,7 +21,6 @@ const BlockPreview = () => {
 	const [previewOpen, setPreviewOpen] = useState(false)
 	const previewPosition = useRecoilValue(previewPositionAtom)
 
-	const flickId = useRecoilValue(flickAtom)?.id
 	const activeFragmentId = useRecoilValue(activeFragmentIdAtom)
 	const block = useRecoilValue(currentBlockSelector)
 	const openStudio = useRecoilValue(openStudioAtom)
@@ -66,7 +64,6 @@ const BlockPreview = () => {
 							},
 						}}
 						isPreview
-						flickId={flickId as string}
 						scale={1.03}
 					/>
 				)}
