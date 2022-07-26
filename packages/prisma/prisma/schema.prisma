@@ -526,6 +526,7 @@ model Series {
   organisationSlug String?
   ownerSub         String
   splashId         String?
+  scope            String         @default("Private")
   Organisation     Organisation?  @relation(fields: [organisationSlug], references: [slug], onDelete: Cascade)
   User             User           @relation(fields: [ownerSub], references: [sub], onDelete: Cascade)
   Content          Content[]
@@ -575,6 +576,8 @@ model Subscription {
   Flick     Flick?   @relation(fields: [flickId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   Series    Series?  @relation(fields: [seriesId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   User      User?    @relation(fields: [userSub], references: [sub], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([email, seriesId, userSub])
 }
 
 model Template {

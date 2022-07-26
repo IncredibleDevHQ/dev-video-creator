@@ -2,11 +2,9 @@ import { css, cx } from '@emotion/css'
 import { Dialog, Transition } from '@headlessui/react'
 import { Fragment, useEffect, useState } from 'react'
 import { IoAlbumsOutline } from 'react-icons/io5'
-import {
-	CreateUserSeriesMutationVariables,
-	useCreateUserSeriesMutation,
-} from 'src/graphql/generated'
+import { CreateUserSeriesMutationVariables } from 'src/graphql/generated'
 import usePush from 'src/utils/hooks/usePush'
+import trpc from 'src/utils/trpc'
 import { Button, emitToast, Heading } from 'ui/src'
 
 const defaults = {
@@ -23,13 +21,17 @@ const CreateSeriesModal = ({
 }) => {
 	const [details, setDetails] =
 		useState<CreateUserSeriesMutationVariables>(defaults)
-	const [createSeries, { data, loading }] = useCreateUserSeriesMutation()
+	const {
+		mutateAsync: createSeries,
+		data,
+		isLoading: loading,
+	} = trpc.useMutation(['series.create'])
 
 	const push = usePush()
 
 	const handleCreate = async () => {
 		try {
-			await createSeries({ variables: details })
+			await createSeries(details)
 		} catch (e) {
 			emitToast('Could not create your series.Please try again', {
 				type: 'error',
@@ -42,7 +44,7 @@ const CreateSeriesModal = ({
 		emitToast('Series created successfully', {
 			type: 'success',
 		})
-		push(`/series/${details.name}--${data?.CreateSeries?.id}?new=true`)
+		push(`/series/${details.name}--${data?.id}?new=true`)
 		setDetails(defaults)
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [data])

@@ -2,8 +2,6 @@
 import { css, cx } from '@emotion/css'
 import {
 	Content_Type_Enum_Enum,
-	SeriesFragmentFragment,
-	useAddFlicksToSeriesMutation,
 	useGetUserFlicksQuery,
 } from 'src/graphql/generated'
 import { Fragment, useEffect, useState } from 'react'
@@ -12,6 +10,7 @@ import { IoCheckmark } from 'react-icons/io5'
 import { useUser } from 'src/utils/providers/auth'
 import { Button, emitToast, Text } from 'ui/src'
 import { Dialog, Transition } from '@headlessui/react'
+import trpc, { inferQueryOutput } from 'src/utils/trpc'
 
 const AddExistingFlickModal = ({
 	open,
@@ -20,13 +19,13 @@ const AddExistingFlickModal = ({
 }: {
 	open: boolean
 	handleClose: (refetch?: boolean) => void
-	series: SeriesFragmentFragment
+	series: inferQueryOutput<'series.get'>
 }) => {
 	const { user } = useUser()
 	const [selectedFlicks, setSelectedFlicks] = useState<string[]>([])
 
 	useEffect(() => {
-		setSelectedFlicks(series.Flick_Series.map(fs => fs.flick?.id as string))
+		setSelectedFlicks(series.Flick_Series.map(fs => fs.Flick?.id as string))
 	}, [])
 
 	const { data, loading } = useGetUserFlicksQuery({
@@ -35,16 +34,17 @@ const AddExistingFlickModal = ({
 		},
 	})
 
-	const [addFlicks, { data: addData, loading: addLoading }] =
-		useAddFlicksToSeriesMutation()
+	const {
+		mutateAsync: addFlicks,
+		data: addData,
+		isLoading: addLoading,
+	} = trpc.useMutation(['series.add'])
 
 	const addFlicksToSeries = async () => {
 		try {
 			await addFlicks({
-				variables: {
-					flickIds: selectedFlicks,
-					seriesId: series.id,
-				},
+				storyIds: selectedFlicks,
+				seriesId: series.id,
 			})
 		} catch (e) {
 			emitToast('Failed to add stories. Please try again', {

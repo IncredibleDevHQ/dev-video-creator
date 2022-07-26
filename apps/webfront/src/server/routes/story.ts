@@ -401,7 +401,7 @@ const storyRouter = trpc
 		},
 		input: z
 			.object({
-				limit: z.number().default(25),
+				limit: z.number().max(25).default(25),
 				offset: z.number().default(0),
 			})
 			.optional(),
@@ -508,7 +508,7 @@ const storyRouter = trpc
 		},
 		input: z.object({
 			offset: z.number().default(0),
-			limit: z.number().default(25),
+			limit: z.number().max(25).default(25),
 		}),
 		resolve: async ({ ctx, input }) => {
 			const transitions = await ctx.prisma.transition.findMany({

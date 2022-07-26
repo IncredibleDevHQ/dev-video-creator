@@ -7,9 +7,11 @@ import collaborateRouter from './collaborate'
 import fragmentRouter from './fragment'
 import recordingRouter from './record'
 import blockRouter from './block'
+import seriesRouter from './series'
 
 const appRouter = createRouter()
 	.merge('user.', userRouter)
+	.merge('series.', seriesRouter)
 	.merge('story.', storyRouter)
 	.merge('collab.', collaborateRouter)
 	.merge('fragment.', fragmentRouter)

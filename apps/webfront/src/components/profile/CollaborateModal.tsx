@@ -6,7 +6,6 @@ import { IoAlbumsOutline } from 'react-icons/io5'
 import {
 	ContentContainerTypes,
 	useGetUserFlicksLazyQuery,
-	useGetUserSeriesLazyQuery,
 	UserFragment,
 } from 'src/graphql/generated'
 import { useUser } from 'src/utils/providers/auth'
@@ -312,12 +311,28 @@ const SeriesCollaboration = ({
 }) => {
 	const { user: loggedInUser } = useUser()
 
-	const [getSeries, { data, loading }] = useGetUserSeriesLazyQuery()
+	// TODO: Implement pagination here
+	const {
+		refetch: getSeries,
+		data,
+		isLoading: loading,
+	} = trpc.useQuery(
+		[
+			'series.dashboard',
+			{
+				limit: 25,
+				offset: 0,
+			},
+		],
+		{
+			enabled: false,
+		}
+	)
 
 	useEffect(() => {
 		if (!data) return
-		if (data.Series.length === 0) return
-		setModalState({ ...modalState, selectedSeriesId: data.Series[0].id })
+		if (data.length === 0) return
+		setModalState({ ...modalState, selectedSeriesId: data[0].id })
 	}, [data])
 
 	useEffect(() => {
@@ -345,7 +360,7 @@ const SeriesCollaboration = ({
 				</div>
 			)}
 
-			{data && data.Series.length > 0 && (
+			{data && data.length > 0 && (
 				<div
 					className={cx(
 						'flex-1 overflow-scroll',
@@ -359,45 +374,48 @@ const SeriesCollaboration = ({
 					)}
 				>
 					<div className='grid grid-cols-2 mt-4 gap-x-4 gap-y-4'>
-						{data.Series.filter(
-							series => series.ownerSub === loggedInUser?.sub
-						).map(series => (
-							<div key={series.id} className='flex flex-col w-full h-full'>
-								<button
-									type='button'
-									className='aspect-w-16 aspect-h-9'
-									onClick={() =>
-										setModalState({
-											...modalState,
-											selectedSeriesId: series.id,
-										})
-									}
-								>
-									<div
-										className={cx(
-											'flex items-center justify-center bg-dark-400 rounded-lg h-full w-full border-2 border-green-700 ',
-											{
-												'border-2 border-gray-700':
-													modalState.selectedSeriesId !== series.id,
-											}
-										)}
+						{data
+							.filter(series => series.ownerSub === loggedInUser?.sub)
+							.map(series => (
+								<div key={series.id} className='flex flex-col w-full h-full'>
+									<button
+										type='button'
+										className='aspect-w-16 aspect-h-9'
+										onClick={() =>
+											setModalState({
+												...modalState,
+												selectedSeriesId: series.id,
+											})
+										}
 									>
-										<IoAlbumsOutline size={36} className='text-dark-body-100' />
-									</div>
-								</button>
-								<Text
-									textStyle='body'
-									className='mt-2 text-gray-100 truncate overflow-ellipsis'
-								>
-									{series.name}
-								</Text>
-							</div>
-						))}
+										<div
+											className={cx(
+												'flex items-center justify-center bg-dark-400 rounded-lg h-full w-full border-2 border-green-700 ',
+												{
+													'border-2 border-gray-700':
+														modalState.selectedSeriesId !== series.id,
+												}
+											)}
+										>
+											<IoAlbumsOutline
+												size={36}
+												className='text-dark-body-100'
+											/>
+										</div>
+									</button>
+									<Text
+										textStyle='body'
+										className='mt-2 text-gray-100 truncate overflow-ellipsis'
+									>
+										{series.name}
+									</Text>
+								</div>
+							))}
 					</div>
 				</div>
 			)}
 
-			{data && data.Series.length > 0 && (
+			{data && data.length > 0 && (
 				<Button
 					className='mt-4 max-w-none w-full'
 					size='large'
@@ -409,7 +427,7 @@ const SeriesCollaboration = ({
 				</Button>
 			)}
 
-			{data && data.Series.length === 0 && (
+			{data && data.length === 0 && (
 				<div className='flex flex-col items-center justify-center w-full h-full'>
 					<div className='flex mt-auto'>
 						<div className='z-0 w-32 h-32 rounded-full bg-dark-100' />
