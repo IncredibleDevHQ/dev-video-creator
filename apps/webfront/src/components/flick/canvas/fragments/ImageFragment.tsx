@@ -408,7 +408,7 @@ const ImageFragment = ({
 	// }, [])
 
 	const layerChildren: any[] = [
-		<Group x={0} y={0} opacity={!isPreview ? 0 : 1} ref={customLayoutRef}>
+		<Group x={0} y={0} opacity={1} ref={customLayoutRef}>
 			<FragmentBackground
 				theme={theme}
 				objectConfig={objectConfig}
