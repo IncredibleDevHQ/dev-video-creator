@@ -1,9 +1,7 @@
 import dynamic from 'next/dynamic'
-import { useEffect } from 'react'
 import Container from 'src/components/core/Container'
 import { FlickFragment } from 'src/graphql/generated'
 import requireAuth from 'src/utils/helpers/requireAuth'
-import useReplace from 'src/utils/hooks/useReplace'
 import sdk from 'src/utils/sdk'
 
 const FlickBody = dynamic(() => import('src/components/flick'), {
@@ -11,26 +9,15 @@ const FlickBody = dynamic(() => import('src/components/flick'), {
 })
 
 type FlickProps = {
-	id: string
 	fragmentId: string | null
 	flick: FlickFragment
 }
 
-const Flick = ({ id, fragmentId, flick }: FlickProps) => {
-	const replace = useReplace()
-
-	useEffect(() => {
-		replace(`/story/${id}/${fragmentId}`, undefined, {
-			shallow: true,
-		})
-	}, [replace, fragmentId, id])
-
-	return (
-		<Container title={flick.name}>
-			<FlickBody flick={flick} initialFragmentId={fragmentId} />
-		</Container>
-	)
-}
+const Flick = ({ fragmentId, flick }: FlickProps) => (
+	<Container title={flick.name}>
+		<FlickBody flick={flick} initialFragmentId={fragmentId} />
+	</Container>
+)
 
 export const getServerSideProps = requireAuth()(async ({ query }) => {
 	const id = query.slug?.[0] ?? null
@@ -52,11 +39,10 @@ export const getServerSideProps = requireAuth()(async ({ query }) => {
 		}
 
 	const { fragments } = flick
-	if (fragments) {
+	if (fragments && !fragmentId) {
 		fragmentId = fragments.length > 0 ? fragments[0].id : null
 	}
 	const props: FlickProps = {
-		id,
 		fragmentId,
 		flick,
 	}

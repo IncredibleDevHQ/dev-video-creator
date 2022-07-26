@@ -7,6 +7,7 @@ import {
 	activeFragmentIdAtom,
 	currentBlockSelector,
 	flickAtom,
+	fragmentTypeAtom,
 	openStudioAtom,
 	previewPositionAtom,
 } from 'src/stores/flick.store'
@@ -25,6 +26,7 @@ const BlockPreview = () => {
 	const activeFragmentId = useRecoilValue(activeFragmentIdAtom)
 	const block = useRecoilValue(currentBlockSelector)
 	const openStudio = useRecoilValue(openStudioAtom)
+	const fragmentType = useRecoilValue(fragmentTypeAtom)
 
 	const { blockProperties } = useBlock(
 		activeFragmentId as string,
@@ -45,6 +47,8 @@ const BlockPreview = () => {
 				}}
 				className={cx('absolute w-full aspect-[16/9] border cursor-pointer', {
 					'border-transparent': !block,
+					'!aspect-[9/16] w-1/2 right-0 left-0 mx-auto':
+						fragmentType === 'Portrait',
 				})}
 				ref={ref}
 			>

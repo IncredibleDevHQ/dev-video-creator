@@ -5,18 +5,14 @@ import { Block } from 'editor/src/utils/types'
 import { useEffect, useMemo } from 'react'
 import { useRecoilCallback, useRecoilValue, useSetRecoilState } from 'recoil'
 import { FlickFragment } from 'src/graphql/generated'
-import { Fragment_Type_Enum_Enum } from 'src/graphql/generated-ssr'
 import {
 	activeFragmentIdAtom,
 	astAtom,
 	flickAtom,
 	flickNameAtom,
-	fragmentTypeAtom,
+	fragmentsAtom,
 	openStudioAtom,
 	participantsAtom,
-	publishConfigAtom,
-	thumbnailAtom,
-	thumbnailObjectAtom,
 	View,
 	viewAtom,
 } from 'src/stores/flick.store'
@@ -34,6 +30,7 @@ import {
 import { useUser } from 'src/utils/providers/auth'
 import EditorSection from './core/EditorSection'
 import Navbar from './core/Navbar'
+import FragmentStoreUpdater from './core/StoreUpdater'
 import ViewConfigUpdater from './core/ViewConfigUpdater'
 import Preview from './preview/Preview'
 import Timeline from './preview/Timeline'
@@ -50,10 +47,6 @@ const FlickBody = ({
 	const setStoresInitially = useRecoilCallback(
 		({ set }) =>
 			() => {
-				const initialFragment = flick.fragments.find(
-					fragment => fragment.id === initialFragmentId
-				)
-				const ast = initialFragment?.editorState
 				set(flickAtom, {
 					id: flick.id,
 					owner: {
@@ -65,21 +58,12 @@ const FlickBody = ({
 				})
 				set(flickNameAtom, flick.name)
 				set(activeFragmentIdAtom, initialFragmentId)
-				set(astAtom, ast ?? null)
 				set(participantsAtom, flick.participants)
 				set(brandingAtom, flick.useBranding ? flick.branding?.branding : {})
 				set(activeBrandIdAtom, flick.useBranding ? flick.branding?.id : null)
 				set(transitionAtom, flick.configuration?.transitions)
 				set(themeAtom, flick.theme)
-				set(thumbnailAtom, initialFragment?.thumbnailConfig ?? null)
-				set(
-					fragmentTypeAtom,
-					initialFragment?.type === Fragment_Type_Enum_Enum.Portrait
-						? 'Portrait'
-						: 'Landscape'
-				)
-				set(thumbnailObjectAtom, initialFragment?.thumbnailObject ?? null)
-				set(publishConfigAtom, initialFragment?.publishConfig ?? null)
+				set(fragmentsAtom, flick.fragments)
 			},
 		[]
 	)
@@ -89,7 +73,9 @@ const FlickBody = ({
 	}, [setStoresInitially])
 
 	const { user } = useUser()
+
 	const activeFragmentId = useRecoilValue(activeFragmentIdAtom)
+
 	const view = useRecoilValue(viewAtom)
 	const openStudio = useRecoilValue(openStudioAtom)
 
@@ -150,8 +136,6 @@ const FlickBody = ({
 		})
 	}
 
-	if (!activeFragmentId) return null
-
 	return (
 		<RoomProvider
 			id={`story-${flick.id}`}
@@ -164,21 +148,26 @@ const FlickBody = ({
 			<EditorProvider
 				handleUpdate={handleEditorChange}
 				displayName={user?.displayName || 'Anonymous'}
-				documentId={activeFragmentId as string}
+				documentId={activeFragmentId ?? undefined}
 			>
 				<div className='flex flex-col h-screen overflow-hidden'>
 					<Navbar />
 					<SubHeader />
-					{view === View.Notebook ? (
-						<EditorSection />
-					) : (
-						<Preview centered={false} />
+					<FragmentStoreUpdater />
+					{activeFragmentId && (
+						<>
+							{view === View.Notebook ? (
+								<EditorSection />
+							) : (
+								<Preview centered={false} />
+							)}
+							<Timeline persistentTimeline={false} shouldScrollToCurrentBlock />
+							<ViewConfigUpdater />
+						</>
 					)}
-					<Timeline persistentTimeline={false} shouldScrollToCurrentBlock />
-					<ViewConfigUpdater />
 				</div>
 			</EditorProvider>
-			{openStudio && (
+			{openStudio && activeFragmentId && (
 				<div className='absolute top-0 left-0 w-full h-screen z-[60]'>
 					<StudioHoC fragmentId={activeFragmentId} flickId={flick.id} />
 				</div>

@@ -62,7 +62,7 @@ export const EditorProvider = ({
 }: {
 	children: JSX.Element
 	handleUpdate?: (editor: CoreEditor) => void
-	documentId: string
+	documentId: string | undefined
 	displayName: string
 }): JSX.Element => {
 	const { hocuspocus } = useEnv()

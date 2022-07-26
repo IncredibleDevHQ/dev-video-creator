@@ -2,6 +2,7 @@ import { Block, SimpleAST } from 'editor/src/utils/types'
 import { atom, DefaultValue, selector } from 'recoil'
 import {
 	ContentFragment,
+	FlickFragmentFragment,
 	FlickParticipantsFragment,
 } from 'src/graphql/generated'
 import { IntroBlockViewProps, Layout } from 'utils/src'
@@ -36,6 +37,30 @@ const participantsAtom = atom<FlickParticipantsFragment[]>({
 const activeFragmentIdAtom = atom<string | null>({
 	key: 'activeFragmentId',
 	default: null,
+})
+
+/* This atom stores the list of fragments */
+const fragmentsAtom = atom<FlickFragmentFragment[]>({
+	key: 'fragments',
+	default: [],
+})
+
+const activeFragmentSelector = selector<FlickFragmentFragment | undefined>({
+	key: 'activeFragment',
+	get: ({ get }) => {
+		const activeFragmentId = get(activeFragmentIdAtom)
+		const fragments = get(fragmentsAtom)
+		return fragments.find(fragment => fragment.id === activeFragmentId)
+	},
+	set: ({ get, set }, newValue) => {
+		if (newValue instanceof DefaultValue || newValue === undefined) return
+		const fragments = get(fragmentsAtom)
+
+		const newFragments = fragments.map(fragment =>
+			fragment.id === newValue.id ? newValue : fragment
+		)
+		set(fragmentsAtom, newFragments)
+	},
 })
 
 /* This atom keeps track of whether to show the notebook or the full fledged canvas preview */
@@ -144,6 +169,8 @@ export {
 	thumbnailAtom,
 	thumbnailObjectAtom,
 	publishConfigAtom,
+	fragmentsAtom,
+	activeFragmentSelector,
 }
 export { View }
 export type { ThumbnailProps }
