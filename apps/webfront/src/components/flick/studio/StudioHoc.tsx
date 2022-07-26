@@ -26,7 +26,7 @@ const StudioHoC = ({
 	const [recordingId, setRecordingId] = useState<string>()
 	const ast = useRecoilValue(astAtom)
 	const setRecordedBlocks = useSetRecoilState(recordedBlocksAtom)
-  const [isRecordedBlocksSet, setIsRecordedBlocksSet] = useState<boolean>(false)
+	const [isRecordedBlocksSet, setIsRecordedBlocksSet] = useState<boolean>(false)
 
 	const viewConfigLiveMap = useMap('viewConfig')
 
@@ -55,14 +55,22 @@ const StudioHoC = ({
 		}
 	}, [fragmentId, viewConfig, viewConfigLiveMap])
 
-	// TODO on continous recording filter the dataConfig to only include the blocks that are recorded
 	useEffect(() => {
-		if (ast && !dataConfig) {
-			setDataConfig(
-				ast.blocks.filter((b: any) => b.type !== 'interactionBlock')
+		if (ast && !dataConfig && viewConfig) {
+			const config = ast.blocks.filter(
+				(b: any) => b.type !== 'interactionBlock'
 			)
+			if (viewConfig.continuousRecording) {
+				setDataConfig(
+					config.filter(b =>
+						viewConfig.selectedBlocks.find(blk => blk.blockId === b.id)
+					)
+				)
+			} else {
+				setDataConfig(config)
+			}
 		}
-	}, [ast, dataConfig])
+	}, [ast, dataConfig, viewConfig])
 
 	useEffect(() => {
 		if (!viewConfig) return
@@ -106,12 +114,13 @@ const StudioHoC = ({
 				temp[b.id] = b.objectUrl || ''
 			})
 			setRecordedBlocks(temp)
-      // makes sure that the recordedBlocks are set before the studio component is mounted
-      setIsRecordedBlocksSet(true)
+			// makes sure that the recordedBlocks are set before the studio component is mounted
+			setIsRecordedBlocksSet(true)
 		})()
 	}, [recordingId])
 
-	if (!viewConfig || !dataConfig || !recordingId || !isRecordedBlocksSet) return null
+	if (!viewConfig || !dataConfig || !recordingId || !isRecordedBlocksSet)
+		return null
 	return (
 		<StudioComponent
 			dataConfig={dataConfig}

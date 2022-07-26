@@ -14,6 +14,7 @@ import useMeasure from 'react-use-measure'
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
 import {
 	useDeleteBlockGroupMutation,
+	useSaveMultipleBlocksMutation,
 	useSaveRecordedBlockMutation,
 } from 'src/graphql/generated'
 import {
@@ -78,17 +79,20 @@ const Studio = ({
 	const setOpenStudio = useSetRecoilState(openStudioAtom)
 	const agoraStreamData = useRecoilValue(streamAtom)
 	const agoraActions = useRecoilValue(agoraActionsAtom)
-
-	const [isHost, setIsHost] = useState(false)
 	const [isStudioController, setIsStudioController] = useRecoilState(
 		isStudioControllerAtom
 	)
+	const [recordedBlocks, setRecordedBlocks] = useRecoilState(recordedBlocksAtom)
+
+	const [isHost, setIsHost] = useState(false)
+	const [continuousRecordedBlockIds, setContinuousRecordedBlockIds] = useState<
+		{ blockId: string; duration: number }[]
+	>([])
 	const [controlsRequestorSub, setControlsRequestorSub] = useState('')
 	// bool used to open the modal which asks the host to accept or reject the request from the collaborator to get controls
 	const [openControlsApprovalModal, setOpenControlsApprovalModal] =
 		useState(false)
 
-	const [recordedBlocks, setRecordedBlocks] = useRecoilState(recordedBlocksAtom)
 	const broadcast = useBroadcastEvent()
 
 	const blockThumbnails = useRef<{ [key: string]: string }>({})
@@ -98,7 +102,7 @@ const Studio = ({
 
 	const [uploadFile] = useUploadFile()
 	const [saveBlock] = useSaveRecordedBlockMutation()
-	// const [saveMultiBlocks] = useSaveMultipleBlocksMutation()
+	const [saveMultiBlocks] = useSaveMultipleBlocksMutation()
 	const [deleteBlockGroupMutation] = useDeleteBlockGroupMutation()
 
 	// used to measure the div
@@ -125,6 +129,8 @@ const Studio = ({
 				localStream: agoraStreamData?.stream as MediaStream,
 				remoteStreams: agoraStreamData?.audios as MediaStream[],
 			})
+			// resetting the contionuous recorded block ids
+			setContinuousRecordedBlockIds([])
 		} catch (e) {
 			console.log(e)
 		}
@@ -217,47 +223,49 @@ const Studio = ({
 				})
 				thumbnailFilename = uuid
 			}
-			// TODO
-			// if (
-			// 	viewConfig.continuousRecording &&
-			// 	continuousRecordedBlockIds
-			// ) {
-			// 	// if continuous recording is enabled, mark all the blocks that were recorded in the current take as saved
-			// 	continuousRecordedBlockIds.forEach(block => {
-			// 		updateRecordedBlocks(block.blockId, objectUrl)
-			// 	})
-			// 	console.log('continuous recorded blocks:', continuousRecordedBlockIds)
-			// 	// save all continuous recorded blocks to hasura
-			// 	await saveMultiBlocks({
-			// 		variables: {
-			// 			blocks: continuousRecordedBlockIds.map(block => ({
-			// 				blockId: block.blockId,
-			// 				duration: block.duration,
-			// 				thumbnail: blockThumbnail, // TODO: generate thumbnail for each block in continuous recording mode
-			// 			})),
-			// 			flickId: fragment?.flickId,
-			// 			fragmentId,
-			// 			recordingId: studio.recordingId,
-			// 			url: objectUrl,
-			// 		},
-			// 	})
-			// 	history.push(`/story/${fragment?.flickId}/${fragmentId}`)
-			// } else {
-			// Once the block video is uploaded to s3 , save the block to the table
-			await saveBlock({
-				variables: {
-					flickId,
-					fragmentId,
-					recordingId,
-					objectUrl,
-					thumbnail: thumbnailFilename,
-					// TODO: Update creation meta and playbackDuration when implementing continuous recording
-					blockId,
-					playbackDuration: duration,
-				},
-			})
-			updateRecordedBlocks({ ...recordedBlocks, [blockId]: objectUrl })
-			// }
+			if (
+				viewConfig.continuousRecording &&
+				continuousRecordedBlockIds.length > 0
+			) {
+				// if continuous recording is enabled, mark all the blocks that were recorded in the current take as saved
+				const tempContinousRecordedBlocks: { [key: string]: string } = {}
+				continuousRecordedBlockIds.forEach(block => {
+					tempContinousRecordedBlocks[block.blockId] = objectUrl
+				})
+				updateRecordedBlocks({
+					...recordedBlocks,
+					...tempContinousRecordedBlocks,
+				})
+				// save all continuous recorded blocks to hasura
+				await saveMultiBlocks({
+					variables: {
+						blocks: continuousRecordedBlockIds.map(block => ({
+							blockId: block.blockId,
+							duration: block.duration,
+							thumbnail: thumbnailFilename, // TODO: generate thumbnail for each block in continuous recording mode
+						})),
+						flickId,
+						fragmentId,
+						recordingId,
+						url: objectUrl,
+					},
+				})
+			} else {
+				// Once the block video is uploaded to s3 , save the block to the table
+				await saveBlock({
+					variables: {
+						flickId,
+						fragmentId,
+						recordingId,
+						objectUrl,
+						thumbnail: thumbnailFilename,
+						// TODO: Update creation meta and playbackDuration when implementing continuous recording
+						blockId,
+						playbackDuration: duration,
+					},
+				})
+				updateRecordedBlocks({ ...recordedBlocks, [blockId]: objectUrl })
+			}
 			dismissToast(toast)
 		} catch (e) {
 			console.error('Upload error : ', e)
@@ -387,11 +395,11 @@ const Studio = ({
 						className='flex items-center gap-x-2 cursor-pointer'
 						onClick={() => {
 							setOpenStudio(false)
-							if (!agoraStreamData?.stream || !agoraActions?.leave) return
+							if (agoraActions?.leave) agoraActions.leave()
+							if (!agoraStreamData?.stream) return
 							agoraStreamData.stream.getTracks().forEach(track => {
 								track.stop()
 							})
-							agoraActions.leave()
 						}}
 					>
 						<IoArrowBackOutline className='text-gray-400 h-4 w-4' />
@@ -485,6 +493,7 @@ const Studio = ({
 								isPreview={false}
 								updateState={updateState}
 								stageRef={stageRef}
+								setContinuousRecordedBlockIds={setContinuousRecordedBlockIds}
 							/>
 						)}
 					</div>
@@ -595,13 +604,13 @@ const Studio = ({
 															confirmMultiBlockRetake.current = false
 
 															// remove all the blocks with the current block url in recordedBlocks
+															const x = { ...recordedBlocks }
 															Object.keys(recordedBlocks).forEach(block => {
 																if (recordedBlocks[block] === currentBlockURL) {
-																	const x = { ...recordedBlocks }
 																	delete x[block]
-																	updateRecordedBlocks(x)
 																}
 															})
+															updateRecordedBlocks(x)
 														}
 													} else {
 														// deletes the current block id from recorded blocks
@@ -630,7 +639,6 @@ const Studio = ({
 				)}
 				<MiniTimeline
 					dataConfig={dataConfig}
-					continuousRecording={viewConfig?.continuousRecording}
 					updateState={updateState}
 				/>
 			</div>
