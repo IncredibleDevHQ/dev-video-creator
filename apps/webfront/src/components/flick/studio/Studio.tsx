@@ -31,6 +31,7 @@ import {
 	studioStateAtom,
 } from 'src/stores/studio.store'
 import useCanvasRecorder from 'src/utils/hooks/useCanvasRecorder'
+import useUpdateActiveObjectIndex from 'src/utils/hooks/useUpdateActiveObjectIndex'
 import useUpdateState from 'src/utils/hooks/useUpdateState'
 import {
 	RoomEventTypes,
@@ -72,8 +73,9 @@ const Studio = ({
 	const { storage } = useEnv()
 
 	const state = useRecoilValue(studioStateAtom)
-	const { updateState, reset } = useUpdateState(true)
+	const { updateState, reset: resetState } = useUpdateState(true)
 	const activeObjectIndex = useRecoilValue(activeObjectIndexAtom)
+	const { reset: resetActiveObjectIndex } = useUpdateActiveObjectIndex(true)
 	const flick = useRecoilValue(flickAtom)
 	const flickName = useRecoilValue(flickNameAtom)
 	const setOpenStudio = useSetRecoilState(openStudioAtom)
@@ -345,7 +347,8 @@ const Studio = ({
 			updateState('ready')
 		}
 		return () => {
-			reset('ready')
+			resetState('ready')
+      resetActiveObjectIndex(0)
 		}
 	}, [])
 
@@ -637,10 +640,7 @@ const Studio = ({
 						)}
 					</div>
 				)}
-				<MiniTimeline
-					dataConfig={dataConfig}
-					updateState={updateState}
-				/>
+				<MiniTimeline dataConfig={dataConfig} updateState={updateState} />
 			</div>
 			{/* Controls request modal */}
 			<Dialog
