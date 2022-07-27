@@ -10,6 +10,7 @@ import {
 	astAtom,
 	flickAtom,
 	flickNameAtom,
+	fragmentLoadingAtom,
 	fragmentsAtom,
 	openStudioAtom,
 	participantsAtom,
@@ -75,7 +76,7 @@ const FlickBody = ({
 	const { user } = useUser()
 
 	const activeFragmentId = useRecoilValue(activeFragmentIdAtom)
-
+	const fragmentLoading = useRecoilValue(fragmentLoadingAtom)
 	const view = useRecoilValue(viewAtom)
 	const openStudio = useRecoilValue(openStudioAtom)
 
@@ -150,11 +151,11 @@ const FlickBody = ({
 				displayName={user?.displayName || 'Anonymous'}
 				documentId={activeFragmentId ?? undefined}
 			>
-				<div className='flex flex-col h-screen overflow-hidden'>
+				<div className='flex flex-col h-screen overflow-hidden bg-white'>
 					<Navbar />
 					<SubHeader />
 					<FragmentStoreUpdater />
-					{activeFragmentId && (
+					{activeFragmentId && !fragmentLoading && (
 						<>
 							{view === View.Notebook ? (
 								<EditorSection />

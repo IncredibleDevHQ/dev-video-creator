@@ -33,6 +33,9 @@ fragment FlickFragment on Fragment {
 		name
 		description
 	}
+	recordings {
+		id
+	}
 }
 
 fragment Recording on Recording {

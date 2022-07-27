@@ -1,31 +1,37 @@
 import { useRouter } from 'next/router'
 import { useEffect } from 'react'
-import { useRecoilCallback, useRecoilValue } from 'recoil'
+import { useRecoilCallback, useRecoilValue, useSetRecoilState } from 'recoil'
+import {
+	FlickFragmentFragment,
+	useGetFlickFragmentLazyQuery,
+} from 'src/graphql/generated'
 import {
 	activeFragmentIdAtom,
 	astAtom,
 	flickAtom,
+	fragmentLoadingAtom,
 	fragmentsAtom,
 	fragmentTypeAtom,
 	publishConfigAtom,
 	thumbnailAtom,
 	thumbnailObjectAtom,
 } from 'src/stores/flick.store'
+import { recordedBlocksAtom, recordingIdAtom } from 'src/stores/studio.store'
 import { Fragment_Type_Enum_Enum } from 'utils/src/graphql/generated'
 
 const FragmentStoreUpdater = () => {
 	const { replace } = useRouter()
 
-	const fragments = useRecoilValue(fragmentsAtom)
 	const flickId = useRecoilValue(flickAtom)?.id
+	const setFragmentLoading = useSetRecoilState(fragmentLoadingAtom)
 
 	const setFragmentStores = useRecoilCallback(
 		({ set }) =>
-			(fragmentId: string) => {
-				const activeFragment = fragments.find(
-					fragment => fragment.id === fragmentId
-				)
+			(activeFragment: FlickFragmentFragment) => {
 				const ast = activeFragment?.editorState
+				set(fragmentsAtom, curr =>
+					curr.map(c => (c.id === activeFragment.id ? activeFragment : c))
+				)
 				set(astAtom, ast ?? null)
 				set(thumbnailAtom, activeFragment?.thumbnailConfig ?? null)
 				set(
@@ -36,8 +42,32 @@ const FragmentStoreUpdater = () => {
 				)
 				set(thumbnailObjectAtom, activeFragment?.thumbnailObject ?? null)
 				set(publishConfigAtom, activeFragment?.publishConfig ?? null)
+
+				const tempRecordedBlocks: {
+					[key: string]: string
+				} = {}
+				activeFragment?.blocks?.forEach(b => {
+					tempRecordedBlocks[b.id] = b.objectUrl || ''
+				})
+				set(recordedBlocksAtom, tempRecordedBlocks)
+				set(recordingIdAtom, activeFragment.recordings[0].id)
 			}
 	)
+
+	const [getFragment, { loading }] = useGetFlickFragmentLazyQuery({
+		onCompleted(data) {
+			if (!data.Fragment_by_pk) return
+			setFragmentStores(data.Fragment_by_pk)
+		},
+	})
+
+	useEffect(() => {
+		if (loading) {
+			setFragmentLoading(true)
+		} else {
+			setFragmentLoading(false)
+		}
+	}, [loading])
 
 	const activeFragmentId = useRecoilValue(activeFragmentIdAtom)
 	useEffect(() => {
@@ -47,7 +77,11 @@ const FragmentStoreUpdater = () => {
 			})
 			return
 		}
-		setFragmentStores(activeFragmentId)
+		getFragment({
+			variables: {
+				id: activeFragmentId,
+			},
+		})
 		replace(`/story/${flickId}/${activeFragmentId}`, undefined, {
 			shallow: true,
 		})

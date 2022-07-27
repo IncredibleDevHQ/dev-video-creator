@@ -39,6 +39,12 @@ const activeFragmentIdAtom = atom<string | null>({
 	default: null,
 })
 
+/* This atom stores if the current atom is being fetched */
+const fragmentLoadingAtom = atom<boolean>({
+	key: 'fragmentLoading',
+	default: false,
+})
+
 /* This atom stores the list of fragments */
 const fragmentsAtom = atom<FlickFragmentFragment[]>({
 	key: 'fragments',
@@ -171,6 +177,7 @@ export {
 	publishConfigAtom,
 	fragmentsAtom,
 	activeFragmentSelector,
+	fragmentLoadingAtom,
 }
 export { View }
 export type { ThumbnailProps }

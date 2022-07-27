@@ -111,6 +111,11 @@ export const isStudioControllerAtom = atom<boolean>({
 	default: false,
 })
 
+export const recordingIdAtom = atom<string | undefined>({
+	key: 'recordingId',
+	default: undefined,
+})
+
 export const recordedBlocksAtom = atom<{ [key: string]: string }>({
 	key: 'recordedBlocks',
 	default: {},
