@@ -1,6 +1,7 @@
 /* eslint-disable no-underscore-dangle */
 import * as trpc from '@trpc/server'
 import { TRPCError } from '@trpc/server'
+import { NotificationTypeEnum } from 'src/utils/enums'
 
 import { z } from 'zod'
 import type { Context } from '../createContext'
@@ -77,19 +78,187 @@ const userRouter = trpc
 			return me
 		},
 	})
+	.query('profile', {
+		meta: {
+			hasAuth: false,
+		},
+		input: z.object({
+			username: z.string(),
+		}),
+		resolve: async ({ input, ctx }) => {
+			const stories = await ctx.prisma.flick.findMany({
+				where: {
+					Participants: {
+						some: {
+							User: {
+								username: input.username,
+							},
+						},
+					},
+				},
+				orderBy: {
+					updatedAt: 'desc',
+				},
+				select: {
+					description: true,
+					joinLink: true,
+					lobbyPicture: true,
+					id: true,
+					name: true,
+					scope: true,
+					md: true,
+					dirty: true,
+					publishedAt: true,
+					ownerSub: true,
+					Owner: {
+						select: {
+							sub: true,
+						},
+					},
+					updatedAt: true,
+					thumbnail: true,
+					status: true,
+					deletedAt: true,
+					producedLink: true,
+					configuration: true,
+					Content: {
+						select: {
+							id: true,
+							data: true,
+							published_at: true,
+							isPublic: true,
+							seriesId: true,
+							resource: true,
+							preview: true,
+							thumbnail: true,
+							type: true,
+						},
+					},
+					topicTags: true,
+					Participants: {
+						select: {
+							id: true,
+							role: true,
+							User: {
+								select: {
+									sub: true,
+									displayName: true,
+									picture: true,
+									username: true,
+								},
+							},
+						},
+					},
+				},
+			})
+			const user = await ctx.prisma.user.findUnique({
+				where: {
+					username: input.username,
+				},
+				select: {
+					sub: true,
+					username: true,
+					displayName: true,
+					picture: true,
+					Profile: {
+						select: {
+							id: true,
+							title: true,
+							about: true,
+							coverImage: true,
+							githubProfile: true,
+							hashnodeProfile: true,
+							linkedinProfile: true,
+							mediumProfile: true,
+							twitterProfile: true,
+							tags: true,
+						},
+					},
+					Series: {
+						select: {
+							id: true,
+							name: true,
+							description: true,
+							picture: true,
+							createdAt: true,
+							updatedAt: true,
+							User: {
+								select: {
+									sub: true,
+									displayName: true,
+									picture: true,
+									username: true,
+								},
+							},
+							Flick_Series: {
+								select: {
+									Flick: {
+										select: {
+											id: true,
+											status: true,
+											name: true,
+											description: true,
+											thumbnail: true,
+											configuration: true,
+											ownerSub: true,
+											joinLink: true,
+											topicTags: true,
+											Content: {
+												select: {
+													id: true,
+													isPublic: true,
+													type: true,
+													resource: true,
+													thumbnail: true,
+													published_at: true,
+												},
+											},
+											Participants: {
+												select: {
+													id: true,
+													role: true,
+													User: {
+														select: {
+															sub: true,
+															picture: true,
+															username: true,
+															displayName: true,
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+						orderBy: {
+							updatedAt: 'desc',
+						},
+					},
+				},
+			})
+			if (!user || !user.Series) {
+				throw new TRPCError({
+					code: 'NOT_FOUND',
+				})
+			}
+			return {
+				user,
+				series: user.Series,
+				stories,
+			}
+		},
+	})
 	.query('availability', {
 		meta: {
 			hasAuth: true,
 		},
 		input: z.object({
 			username: z.string(),
-			senderEmail: z.string(),
+			senderEmail: z.string().optional(),
 		}),
-		output: z.object({
-			valid: z.boolean(),
-			message: z.string(),
-			suggestion: z.string().array().optional(),
-		}),
+
 		resolve: async ({ input, ctx }) => {
 			if (!/^[a-z0-9]+$/.test(input.username)) {
 				throw new TRPCError({
@@ -114,10 +283,45 @@ const userRouter = trpc
 					message: 'Username is available',
 				}
 			}
+
+			let suggestion = null
+			if (input.senderEmail)
+				suggestion = generateSuggestionsFromEmail(input.senderEmail)
+
 			return {
 				valid: false,
 				message: 'Username is not available',
-				suggestion: generateSuggestionsFromEmail(input.senderEmail),
+				suggestion,
+			}
+		},
+	})
+	.query('isFollowing', {
+		meta: {
+			hasAuth: true,
+		},
+		input: z.object({
+			followerId: z.string(),
+			targetId: z.string(),
+		}),
+		resolve: async ({ input, ctx }) => {
+			const follower = await ctx.prisma.follow.findUnique({
+				where: {
+					targetId_followerId: {
+						followerId: input.followerId,
+						targetId: input.targetId,
+					},
+				},
+				select: {
+					followerId: true,
+				},
+			})
+			if (follower?.followerId) {
+				return {
+					isFollowing: true,
+				}
+			}
+			return {
+				isFollowing: false,
 			}
 		},
 	})
@@ -174,6 +378,103 @@ const userRouter = trpc
 			return { success: false }
 		},
 	})
-// Data Mutations
+	.mutation('checkFollows', {
+		meta: {
+			hasAuth: true,
+		},
+		input: z.object({
+			followerId: z.string(),
+			targetIds: z.array(z.string()).min(1),
+		}),
+		resolve: async ({ input, ctx }) => {
+			const follows = await ctx.prisma.follow.findMany({
+				where: {
+					targetId: {
+						in: input.targetIds,
+					},
+					followerId: input.followerId,
+				},
+				select: {
+					targetId: true,
+				},
+			})
+			return follows
+		},
+	})
+	.mutation('follow', {
+		meta: {
+			hasAuth: true,
+		},
+		input: z.object({
+			followerId: z.string(),
+			targetId: z.string(),
+		}),
+		resolve: async ({ input, ctx }) => {
+			if (!ctx.user?.sub)
+				throw new TRPCError({
+					code: 'UNAUTHORIZED',
+				})
+			const follow = await ctx.prisma.follow.create({
+				data: {
+					followerId: ctx.user.sub,
+					targetId: input.targetId,
+					created_at: new Date(),
+				},
+				select: {
+					followerId: true,
+					User_Follow_followerIdToUser: {
+						select: {
+							displayName: true,
+						},
+					},
+				},
+			})
+			if (!follow.followerId)
+				return {
+					success: false,
+				}
+			// add notification
+			await ctx.prisma.notifications.create({
+				data: {
+					senderId: ctx.user.sub,
+					receiverId: input.targetId,
+					message: ` %${follow?.User_Follow_followerIdToUser.displayName}% has started following you.`,
+					type: NotificationTypeEnum.Event,
+				},
+			})
+
+			return {
+				success: true,
+			}
+		},
+	})
+	.mutation('unfollow', {
+		meta: {
+			hasAuth: true,
+		},
+		input: z.object({
+			followerId: z.string(),
+			targetId: z.string(),
+		}),
+		resolve: async ({ input, ctx }) => {
+			if (!ctx.user?.sub)
+				throw new TRPCError({
+					code: 'UNAUTHORIZED',
+				})
+
+			const unfollow = await ctx.prisma.follow.delete({
+				where: {
+					targetId_followerId: {
+						followerId: ctx.user.sub,
+						targetId: input.targetId,
+					},
+				},
+			})
+
+			if (!unfollow.targetId) return { success: false }
+
+			return { success: true }
+		},
+	})
 
 export default userRouter

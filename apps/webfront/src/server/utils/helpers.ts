@@ -172,15 +172,12 @@ export const validateEmail = (email: string) => {
 	return re.test(String(email).toLowerCase())
 }
 
-export function generateSuggestionsFromEmail(email: string): string[] {
-	const suggestions = []
+export function generateSuggestionsFromEmail(email: string): string {
+	const nameParts = email.replace(/@.+/, '')
+	const name = nameParts.replace(/[&/\\#,+()$~%._@'":*?<>{}]/g, '')
+	const suggestion = name + crypto.randomInt(100, 900).toString()
 
-	for (let i = 0; i < 3; i += 1) {
-		const nameParts = email.replace(/@.+/, '')
-		const name = nameParts.replace(/[&/\\#,+()$~%._@'":*?<>{}]/g, '')
-		suggestions.push(name + crypto.randomInt(100, 900).toString())
-	}
-	return suggestions
+	return suggestion
 }
 
 export const createLiveBlocksRoom = async (

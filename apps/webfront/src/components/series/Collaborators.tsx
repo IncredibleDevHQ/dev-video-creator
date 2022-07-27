@@ -2,14 +2,9 @@ import debounce from 'lodash/debounce'
 import Link from 'next/link'
 import ReactTooltip from 'react-tooltip'
 import { cx } from '@emotion/css'
-import {
-	FollowMutationVariables,
-	useFollowMutation,
-	useUnfollowMutation,
-} from 'src/graphql/generated'
 import { useUser } from 'src/utils/providers/auth'
 import { Avatar, Button, emitToast } from 'ui/src'
-import { inferQueryOutput } from 'src/utils/trpc'
+import trpc, { inferMutationInput, inferQueryOutput } from 'src/utils/trpc'
 
 type SeriesParticipantFragment =
 	inferQueryOutput<'series.get'>['Flick_Series'][number]['Flick']['Participants'][number]
@@ -27,15 +22,15 @@ const Collaborators = ({
 }) => {
 	const { uid: sub } = useUser().user ?? {}
 
-	const [follow] = useFollowMutation()
-	const [unfollow] = useUnfollowMutation()
+	const { mutateAsync: follow } = trpc.useMutation(['user.follow'])
+	const { mutateAsync: unfollow } = trpc.useMutation(['user.unfollow'])
 
 	const handleUserFollow = async ({
 		targetId,
 		followerId,
 		isFollowing,
 		participantId,
-	}: FollowMutationVariables & {
+	}: inferMutationInput<'user.follow'> & {
 		isFollowing: boolean
 		participantId: string
 	}) => {
@@ -44,30 +39,26 @@ const Collaborators = ({
 		if (participantIndex === -1) return
 
 		if (isFollowing) {
-			const { data, errors } = await unfollow({
-				variables: {
-					followerId,
-					targetId,
-				},
+			const { success } = await unfollow({
+				followerId,
+				targetId,
 			})
-			if (data?.UnfollowUser?.success) {
+			if (success) {
 				participants.splice(participantIndex, 1, {
 					...participants[participantIndex],
 					following: false,
 				})
 			}
-			if (errors)
+			if (!success)
 				emitToast('Something went wrong', {
 					type: 'error',
 				})
 		} else {
-			const { data, errors } = await follow({
-				variables: {
-					targetId,
-					followerId,
-				},
+			const { success } = await follow({
+				targetId,
+				followerId,
 			})
-			if (data) {
+			if (success) {
 				emitToast(
 					`Now following ${participants[participantIndex].User.displayName}`,
 					{
@@ -79,7 +70,7 @@ const Collaborators = ({
 					following: true,
 				})
 			}
-			if (errors)
+			if (!success)
 				emitToast('Something went wrong', {
 					type: 'error',
 				})

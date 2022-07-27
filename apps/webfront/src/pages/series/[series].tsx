@@ -18,11 +18,7 @@ import AddExistingFlickModal from 'src/components/series/AddExistingFlickModal'
 import Collaborators from 'src/components/series/Collaborators'
 import FlickCard from 'src/components/series/FlickCard'
 import SeriesActionButton from 'src/components/series/SeriesActionButton'
-import {
-	Content_Type_Enum_Enum,
-	SeriesFragment,
-	useCheckFollowByIdsLazyQuery,
-} from 'src/graphql/generated'
+import { Content_Type_Enum_Enum, SeriesFragment } from 'src/graphql/generated'
 import prisma from 'src/server/prisma'
 import { ContentTypeEnum, FlickScopeEnum } from 'src/utils/enums'
 import requireAuth from 'src/utils/helpers/requireAuth'
@@ -132,7 +128,7 @@ const Series = (
 		{ id: props.series?.id },
 	])
 
-	const [checkFollow] = useCheckFollowByIdsLazyQuery()
+	const { mutateAsync: checkFollow } = trpc.useMutation(['user.checkFollows'])
 
 	const {
 		refetch: refetchSeries,
@@ -213,14 +209,12 @@ const Series = (
 			})
 
 			if (user?.uid) {
-				const { data: followingParticipantsSubs } = await checkFollow({
-					variables: {
-						followerId: user.uid,
-						targetId: collaborators.map(collaborator => collaborator.User.sub),
-					},
+				const followingParticipantsSubs = await checkFollow({
+					followerId: user.uid,
+					targetIds: collaborators.map(collaborator => collaborator.User.sub),
 				})
 
-				followingParticipantsSubs?.Follow?.forEach(sub => {
+				followingParticipantsSubs?.forEach(sub => {
 					const collaboratorIndex = collaborators.findIndex(
 						c => c.User.sub === sub.targetId
 					)

@@ -10,7 +10,7 @@ import {
 	IoChevronForwardOutline,
 } from 'react-icons/io5'
 import { useRecoilState, useRecoilValue } from 'recoil'
-import { ThemeFragment, useGetThemesQuery } from 'src/graphql/generated'
+import { ThemeFragment } from 'src/graphql/generated'
 import { flickAtom } from 'src/stores/flick.store'
 import { themeAtom } from 'src/stores/studio.store'
 import {
@@ -53,7 +53,7 @@ const HorizontalContainer = ({
 )
 
 const Theme = () => {
-	const { data } = useGetThemesQuery()
+	const { data } = trpc.useQuery(['util.themes'])
 	const [activeTheme, setActiveTheme] = useRecoilState(themeAtom)
 
 	const flickId = useRecoilValue(flickAtom)?.id
@@ -210,7 +210,7 @@ const Theme = () => {
 											horizontalCustomScrollBar
 										)}
 									>
-										{data?.Theme.map(theme => (
+										{data?.map(theme => (
 											<button
 												type='button'
 												key={theme.name}
@@ -221,8 +221,10 @@ const Theme = () => {
 													className='object-cover w-64 border-2 border-gray-600 rounded-md shadow-md hover:border-brand h-36 relative'
 													style={{
 														background: `url(${
-															theme.config.thumbnail
-																? baseUrl + theme.config.thumbnail
+															JSON.parse(JSON.stringify(theme.config)).thumbnail
+																? baseUrl +
+																  JSON.parse(JSON.stringify(theme.config))
+																		.thumbnail
 																: ''
 														})`,
 														backgroundSize: '256px 144px',

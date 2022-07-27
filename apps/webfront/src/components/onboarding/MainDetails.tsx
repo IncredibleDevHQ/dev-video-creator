@@ -1,20 +1,26 @@
 /* eslint-disable no-nested-ternary */
-import { useIsUsernameAvailableLazyQuery } from 'src/graphql/generated'
 import React, { useContext, useEffect } from 'react'
 import { useDebounce } from 'use-debounce'
 import { Button, Heading, Text, TextField } from 'ui/src'
+import trpc from 'src/utils/trpc'
 import { OnBoardingContext, OnBoardingScreens } from './types'
 
 const MainDetails = () => {
 	const { details, setActiveScreen, setDetails } = useContext(OnBoardingContext)
 	const [localUsername] = useDebounce(details?.username, 500)
 
-	const [isUsernameAvailable, { data, error, loading }] =
-		useIsUsernameAvailableLazyQuery()
+	const {
+		refetch: isUsernameAvailable,
+		data,
+		error,
+		isLoading: loading,
+	} = trpc.useQuery(['user.availability', { username: localUsername }], {
+		enabled: false,
+	})
 
 	useEffect(() => {
 		if (localUsername) {
-			isUsernameAvailable({ variables: { username: localUsername } })
+			isUsernameAvailable()
 		}
 	}, [localUsername])
 
@@ -42,16 +48,11 @@ const MainDetails = () => {
 					setDetails({ ...details, username: e.target.value })
 				}
 				caption={
-					error?.message ||
-					(data?.UsernameAvailability
-						? data.UsernameAvailability.valid
-							? ''
-							: 'Not available'
-						: '')
+					error?.message || (data ? (data.valid ? '' : 'Not available') : '')
 				}
 				required
 			/>
-			{data?.UsernameAvailability && !data?.UsernameAvailability.valid && (
+			{data && !data?.valid && (
 				<div className='flex justify-between items-center w-full text-size-xxs'>
 					<span>You might like:</span>
 					<button
@@ -60,11 +61,11 @@ const MainDetails = () => {
 						onClick={() =>
 							setDetails({
 								...details,
-								username: data?.UsernameAvailability?.suggestion ?? '',
+								username: data?.suggestion ?? '',
 							})
 						}
 					>
-						{data?.UsernameAvailability?.suggestion}
+						{data?.suggestion}
 					</button>
 				</div>
 			)}
@@ -72,10 +73,7 @@ const MainDetails = () => {
 				className='max-w-none w-full mt-4'
 				size='large'
 				disabled={
-					loading ||
-					!details?.name ||
-					!details?.username ||
-					!data?.UsernameAvailability?.valid
+					loading || !details?.name || !details?.username || !data?.valid
 				}
 				onClick={() => setActiveScreen(OnBoardingScreens.PersonalDetails)}
 			>

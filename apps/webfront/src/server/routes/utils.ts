@@ -100,6 +100,28 @@ const utilsRouter = trpc
 			}
 		},
 	})
+	.query('themes', {
+		meta: {
+			hasAuth: true,
+		},
+		input: z
+			.object({
+				limit: z.number().default(25),
+				offset: z.number().default(0),
+			})
+			.optional(),
+		resolve: async ({ input, ctx }) => {
+			const theme = ctx.prisma.theme.findMany({
+				select: {
+					name: true,
+					config: true,
+				},
+				take: input?.limit || 25,
+				skip: input?.offset || 0,
+			})
+			return theme
+		},
+	})
 	/*
 		MUTATIONS
 	*/

@@ -412,35 +412,21 @@ model Mux_Assets {
   @@index([contentId])
 }
 
-model NOTIFICATION_META_TYPE_ENUM {
-  value         String          @id
-  description   String?
-  Notifications Notifications[]
-}
-
 model Notifications {
-  id                                  String                       @id @default(uuid())
+  id                                  String    @id @default(uuid())
   senderId                            String
   receiverId                          String
-  message                             String                       @db.VarChar(255)
-  meta                                Json?                        @db.Json
+  message                             String    @db.VarChar(255)
+  meta                                Json?     @db.Json
   type                                String
-  isRead                              Boolean                      @default(false)
+  isRead                              Boolean   @default(false)
   metaType                            String?
-  createdAt                           DateTime                     @default(now()) @db.Timestamp(6)
-  updatedAt                           DateTime?                    @default(now()) @db.Timestamp(6)
-  NOTIFICATION_META_TYPE_ENUM         NOTIFICATION_META_TYPE_ENUM? @relation(fields: [metaType], references: [value], onDelete: Restrict, onUpdate: Restrict)
-  User_Notifications_receiverIdToUser User                         @relation("Notifications_receiverIdToUser", fields: [receiverId], references: [sub], onDelete: Cascade)
-  User_Notifications_senderIdToUser   User                         @relation("Notifications_senderIdToUser", fields: [senderId], references: [sub], onDelete: Cascade)
-  NOTIFICATION_TYPE_ENUM              NOTIFICATION_TYPE_ENUM       @relation(fields: [type], references: [value], onUpdate: Restrict)
+  createdAt                           DateTime  @default(now()) @db.Timestamp(6)
+  updatedAt                           DateTime? @default(now()) @db.Timestamp(6)
+  User_Notifications_receiverIdToUser User      @relation("Notifications_receiverIdToUser", fields: [receiverId], references: [sub], onDelete: Cascade)
+  User_Notifications_senderIdToUser   User      @relation("Notifications_senderIdToUser", fields: [senderId], references: [sub], onDelete: Cascade)
 
   @@index([receiverId])
-}
-
-model NOTIFICATION_TYPE_ENUM {
-  value         String          @id
-  description   String?
-  Notifications Notifications[]
 }
 
 model Organisation {
