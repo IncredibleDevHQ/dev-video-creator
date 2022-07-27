@@ -73,7 +73,7 @@ const StudioHoC = ({
 	}, [ast, dataConfig, viewConfig])
 
 	useEffect(() => {
-		if (!viewConfig) return
+		if (!viewConfig || !dataConfig) return
 		;(async () => {
 			const { data: recordingsData } = await getRecordingId()
 			const recording = recordingsData?.Recording?.find(
@@ -96,7 +96,7 @@ const StudioHoC = ({
 				setRecordingId(data?.StartRecording?.recordingId || '')
 			}
 		})()
-	}, [viewConfig])
+	}, [viewConfig, dataConfig])
 
 	useEffect(() => {
 		if (!recordingId) return
