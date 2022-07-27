@@ -9,6 +9,7 @@ import { IntroBlockView, useUploadFile } from 'utils/src'
 import Dropzone from 'react-dropzone'
 import { DragDropContext, Draggable, Droppable } from 'react-beautiful-dnd'
 import { capitalCase } from 'change-case'
+import { UploadType } from 'utils/src/enums'
 
 const IntroContentTab = ({
 	view,
@@ -109,6 +110,8 @@ const PictureTab = ({
 		const { url } = await uploadFile({
 			extension: file.name.split('.').pop() as any,
 			file,
+			tag: UploadType.Profile,
+			meta: {},
 		})
 
 		setFileUploading(false)

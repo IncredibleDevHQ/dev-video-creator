@@ -1,5 +1,5 @@
 {
 	"extends": "config/tsconfig-ui.json",
-	"include": ["."],
+	"include": [".", "../utils/src/enums.ts"],
 	"exclude": ["dist", "build", "node_modules"]
 }

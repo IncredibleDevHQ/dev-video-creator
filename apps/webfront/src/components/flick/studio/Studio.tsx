@@ -25,6 +25,7 @@ import {
 	studioStateAtom,
 } from 'src/stores/studio.store'
 import { ContentTypeEnum } from 'src/utils/enums'
+import { UploadType } from 'utils/src/enums'
 import useCanvasRecorder from 'src/utils/hooks/useCanvasRecorder'
 import useUpdateState from 'src/utils/hooks/useUpdateState'
 import {
@@ -188,6 +189,12 @@ const Studio = ({
 			const { uuid: objectUrl } = await uploadFile({
 				extension: 'webm',
 				file: uploadVideoFile,
+				tag: UploadType.Block,
+				meta: {
+					flickId,
+					fragmentId,
+					recordingId: recordingId.current,
+				},
 				handleProgress: ({ percentage }) => {
 					updateToast(toast, `Pushing pixels... (${percentage}%)`, {
 						type: 'info',
@@ -206,6 +213,11 @@ const Studio = ({
 				const { uuid } = await uploadFile({
 					extension: 'png',
 					file: thumbnailBlob,
+					tag: UploadType.Asset,
+					meta: {
+						flickId,
+						fragmentId,
+					},
 					handleProgress: ({ percentage }) => {
 						updateToast(toast, `Pushing pixels... (${percentage}%)`, {
 							type: 'info',

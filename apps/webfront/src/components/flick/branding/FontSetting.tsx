@@ -10,6 +10,7 @@ import { useGetFontsQuery, useAddFontMutation } from 'src/graphql/generated'
 import { BrandingInterface, BrandingJSON } from 'src/utils/configs'
 import { emitToast, Heading, Button, Text } from 'ui/src'
 import { useUploadFile } from 'utils/src'
+import { UploadType } from 'utils/src/enums'
 import CustomFontPicker, { IFont } from './CustomFontPicker'
 
 const initialValue: BrandingJSON = {
@@ -89,6 +90,10 @@ const FontSetting = ({
 			const { url: uploadedUrl } = await uploadFile({
 				extension: file.name.split('.').pop() as any,
 				file,
+				tag: UploadType.Brand,
+				meta: {
+					brandId: branding.id,
+				},
 			})
 			setUrl(uploadedUrl)
 			setFileName(file.name)

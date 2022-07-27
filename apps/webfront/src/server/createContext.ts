@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client'
 import { inferAsyncReturnType } from '@trpc/server'
 import * as trpcNext from '@trpc/server/adapters/next'
-import verifyJwt from '../utils/jwt'
+import { verifyJwt, verifyCookie } from '../utils/jwt'
 import prisma from './prisma'
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
@@ -23,17 +23,33 @@ async function getUserFromRequestHeader(authHeader: string) {
 	return null
 }
 
+async function getUserFromSessionCookie(cookie: string) {
+	try {
+		const v = await verifyCookie(cookie)
+		return v
+	} catch (e) {
+		console.log(e)
+		return null
+	}
+}
+
 /**
  * Inner function for `createContext` where we create the context.
  * This is useful for testing when we don't want to mock Next.js' request/response
  */
 export async function createContextInner(
 	_opts: CreateContextOptions,
-	authHeader?: string
+	authHeader?: string,
+	sessionCookie?: string
 ) {
+	const user = authHeader ? await getUserFromRequestHeader(authHeader) : null
 	return {
 		..._opts,
-		user: authHeader ? await getUserFromRequestHeader(authHeader) : null,
+		user,
+		sessionCookie:
+			user && sessionCookie
+				? await getUserFromSessionCookie(sessionCookie)
+				: null,
 		prisma,
 	}
 }
@@ -44,5 +60,9 @@ export async function createContext(
 	opts: trpcNext.CreateNextContextOptions
 ): Promise<Context> {
 	const authHeader = opts.req.headers.authorization
-	return createContextInner(opts, authHeader)
+	// eslint-disable-next-line no-underscore-dangle
+	const sessionCookie = opts.req.headers['set-cookie']?.find(v =>
+		v.includes('__session')
+	)
+	return createContextInner(opts, authHeader, sessionCookie)
 }

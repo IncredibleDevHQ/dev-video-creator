@@ -1,7 +1,7 @@
 import { nanoid } from 'nanoid'
 import axios from 'axios'
 import mime from 'mime'
-import { useUploadFileMutation } from '../graphql/generated'
+import { UploadType } from '../enums'
 import { useEnv } from './use-env'
 
 export type AllowedFileExtensions =
@@ -23,6 +23,13 @@ export type AllowedFileExtensions =
 interface UploadFileProps {
 	extension: AllowedFileExtensions
 	file: Blob | File | Buffer
+	tag: UploadType
+	meta: {
+		flickId?: string
+		fragmentId?: string
+		brandId?: string
+		recordingId?: string
+	}
 	handleProgress?: ({
 		workDone,
 		percentage,
@@ -33,22 +40,37 @@ interface UploadFileProps {
 }
 
 export const useUploadFile = () => {
-	const [uploadFileMutation] = useUploadFileMutation()
-
 	const { storage } = useEnv()
 
 	const uploadFile = async ({
 		extension,
 		file,
+		tag,
+		meta,
 		handleProgress,
 	}: UploadFileProps) => {
 		const key = `${nanoid()}.${extension}`
-		const { data, errors } = await uploadFileMutation({ variables: { key } })
-		if (errors) {
-			throw errors[0]
+		const options = {
+			method: 'POST',
+			url: '/api/trpc/util.getUploadUrl',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			data: {
+				json: {
+					key,
+					tag,
+					meta,
+				},
+			},
+		}
+		const res = await axios.request(options)
+
+		if (!res.data?.json.success) {
+			throw new Error('Could not get upload URL')
 		}
 
-		const url = data?.UploadFile?.url
+		const url = res.data?.json.url
 
 		if (!url) {
 			throw Error('The server did not return an upload URL.')

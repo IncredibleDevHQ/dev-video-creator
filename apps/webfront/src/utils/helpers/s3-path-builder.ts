@@ -1,12 +1,6 @@
-export enum UploadType {
-	Asset = 'Asset',
-	Block = 'Block',
-	Brand = 'Brand',
-	Markdown = 'Markdown',
-	Thumbnail = 'Thumbnail',
-}
+import { UploadType } from 'utils/src/enums'
 
-export const getStoragePath = (
+const getStoragePath = (
 	userSub: string,
 	uploadType: UploadType,
 	meta: any
@@ -20,7 +14,7 @@ export const getStoragePath = (
 				? `story/${meta.flickId}/${meta.fragmentId}/assets/`
 				: new Error('Invalid meta') // config.aws.s3.assetPrefix
 		/*
-        User Brand Assets such as logos and bg images 
+        User Brand Assets such as logos and bg images
       */
 		case UploadType.Brand:
 			if (meta?.brandId) return `user/${userSub}/brand/${meta.brandId}/` // config.aws.s3.brandPrefix;
@@ -42,7 +36,14 @@ export const getStoragePath = (
 				? `story/${meta.flickId}/thumbnail/` // config.aws.s3.thumbnailPrefix;
 				: new Error('Invalid thumbnail meta')
 
+		case UploadType.Profile:
+			return meta.flickId
+				? `user/${userSub}/profile/`
+				: new Error('Invalid Profile meta')
+
 		default:
 			throw new Error('Invalid upload type')
 	}
 }
+
+export default getStoragePath

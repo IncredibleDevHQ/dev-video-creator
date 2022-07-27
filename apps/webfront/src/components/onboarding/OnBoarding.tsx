@@ -1,6 +1,7 @@
 /* eslint-disable react/jsx-no-constructed-context-values */
 import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
+import { UploadType } from 'src/utils/helpers/s3-path-builder'
 import { useUser } from 'src/utils/providers/auth'
 import trpc from 'src/utils/trpc'
 import Logo from 'svg/Logo.svg'
@@ -82,7 +83,7 @@ const OnBoarding = () => {
 						case OnBoardingScreens.PersonalDetails:
 							return <PersonalDetailsPage />
 						case OnBoardingScreens.Upload:
-							return <UploadPage />
+							return <UploadPage uploadTag={UploadType.Profile} />
 						default:
 							return null
 					}

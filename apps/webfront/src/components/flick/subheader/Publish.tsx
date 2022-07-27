@@ -50,6 +50,7 @@ import {
 	thumbnailObjectAtom,
 } from 'src/stores/flick.store'
 import { activeBrandIdAtom } from 'src/stores/studio.store'
+import { UploadType } from 'utils/src/enums'
 import { useUser } from 'src/utils/providers/auth'
 import trpc from 'src/utils/trpc'
 import CallToActionIcon from 'svg/CallToAction.svg'
@@ -464,9 +465,13 @@ const DetailsTab = ({
 const ThumbnailTab = ({
 	publish,
 	setPublish,
+	flickId,
+	fragmentId,
 }: {
 	publish: IPublish
 	setPublish: React.Dispatch<React.SetStateAction<IPublish>>
+	flickId?: string
+	fragmentId?: string
 }) => {
 	const activeFragmentId = useRecoilValue(activeBrandIdAtom)
 	const setThumbnailObject = useSetRecoilState(thumbnailObjectAtom)
@@ -480,10 +485,22 @@ const ThumbnailTab = ({
 			const file = files?.[0]
 			if (!file) return
 
+			if (!flickId || !fragmentId) {
+				emitToast('Flick or fragment id is missing', {
+					type: 'error',
+				})
+				return
+			}
+
 			setFileUploading(true)
 			const { uuid } = await uploadFile({
 				extension: file.name.split('.').pop() as any,
 				file,
+				tag: UploadType.Asset,
+				meta: {
+					fragmentId,
+					flickId,
+				},
 			})
 
 			setFileUploading(false)
@@ -1171,6 +1188,8 @@ const Publish = ({
 														<ThumbnailTab
 															publish={publish}
 															setPublish={setPublish}
+															flickId={flick?.id}
+															fragmentId={activeFragmentId ?? undefined}
 														/>
 													)}
 													{activeTab.id === tabs[2].id && (

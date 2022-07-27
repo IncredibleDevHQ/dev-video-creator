@@ -4,9 +4,25 @@ async function verifyJwt(token: string) {
 	if (!token) {
 		return null
 	}
-	const admin = initFirebaseAdmin()
-	const decoded = await admin.auth().verifyIdToken(token)
-	return decoded
+	try {
+		const admin = initFirebaseAdmin()
+		const decoded = await admin.auth().verifyIdToken(token)
+		return decoded
+	} catch (e) {
+		console.log(e)
+		return null
+	}
 }
 
-export default verifyJwt
+async function verifyCookie(cookie: string) {
+	try {
+		const admin = initFirebaseAdmin()
+		const decoded = await admin.auth().verifySessionCookie(cookie)
+		return decoded
+	} catch (e) {
+		console.log(e)
+		return null
+	}
+}
+
+export { verifyJwt, verifyCookie }

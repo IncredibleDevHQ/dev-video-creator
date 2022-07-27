@@ -7,6 +7,12 @@
 	"paths": {
 		"@/*": ["./src/*"]
 	},
-	"include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "pre-build.js"],
+	"include": [
+		"next-env.d.ts",
+		"**/*.ts",
+		"**/*.tsx",
+		"pre-build.js",
+		"../../packages/utils/src/hooks/use-upload-file.ts"
+	],
 	"exclude": ["node_modules"]
 }
