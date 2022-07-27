@@ -20,7 +20,7 @@ import { recordedBlocksAtom, recordingIdAtom } from 'src/stores/studio.store'
 import { Fragment_Type_Enum_Enum } from 'utils/src/graphql/generated'
 
 const FragmentStoreUpdater = () => {
-	const { replace } = useRouter()
+	const { replace, query } = useRouter()
 
 	const flickId = useRecoilValue(flickAtom)?.id
 	const setFragmentLoading = useSetRecoilState(fragmentLoadingAtom)
@@ -82,9 +82,14 @@ const FragmentStoreUpdater = () => {
 				id: activeFragmentId,
 			},
 		})
-		replace(`/story/${flickId}/${activeFragmentId}`, undefined, {
-			shallow: true,
-		})
+		const { slug, ...rest } = query
+		replace(
+			{ pathname: `/story/${flickId}/${activeFragmentId}`, query: rest },
+			undefined,
+			{
+				shallow: true,
+			}
+		)
 	}, [activeFragmentId])
 
 	return null

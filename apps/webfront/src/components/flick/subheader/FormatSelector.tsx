@@ -23,6 +23,7 @@ import {
 	activeFragmentIdAtom,
 	activeFragmentSelector,
 	flickAtom,
+	fragmentLoadingAtom,
 	fragmentsAtom,
 	participantsAtom,
 } from 'src/stores/flick.store'
@@ -46,6 +47,7 @@ const CreateFormat = ({
 	const [creatingFragment, setCreatingFragment] = useState(false)
 	const setFragments = useSetRecoilState(fragmentsAtom)
 	const setActiveFragmentId = useSetRecoilState(activeFragmentIdAtom)
+	const setFragmentLoading = useSetRecoilState(fragmentLoadingAtom)
 
 	const participants = useRecoilValue(participantsAtom)
 	const { user } = useUser()
@@ -116,6 +118,7 @@ const CreateFormat = ({
 			})
 
 			setCreatingFragment(false)
+			setFragmentLoading(true)
 			handleClose()
 
 			setActiveFragmentId(newFragment.id)
@@ -250,6 +253,8 @@ const FormatSelector = () => {
 	const [activeFragment, setActiveFragment] = useRecoilState(
 		activeFragmentSelector
 	)
+
+	const setFragmentLoading = useSetRecoilState(fragmentLoadingAtom)
 
 	const [availableFormats, setAvailableFormats] =
 		useState<Fragment_Type_Enum_Enum[]>()
@@ -409,6 +414,8 @@ const FormatSelector = () => {
 											key={fragment.id}
 											as='li'
 											onClick={() => {
+												if (activeFragmentId === fragment.id) return
+												setFragmentLoading(true)
 												setActiveFragmentId(fragment.id)
 											}}
 											className='hover:bg-dark-100 text-size-xs cursor-pointer text-dark-title flex items-center pl-2.5 pr-1 py-1 rounded-sm w-full justify-between'

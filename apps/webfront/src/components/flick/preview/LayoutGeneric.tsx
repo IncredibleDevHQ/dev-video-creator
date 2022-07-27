@@ -84,7 +84,7 @@ const LayoutGeneric = ({
 							className={cx(
 								'border border-gray-200 rounded-md cursor-pointer bg-white',
 								{
-									'border-green-600': isSelected,
+									'!border-green-600': isSelected,
 									'p-1 w-16 h-28': mode === 'Portrait',
 									'p-2 w-28 h-16': mode === 'Landscape',
 								}
@@ -107,7 +107,7 @@ const LayoutGeneric = ({
 							className={cx(
 								'border border-gray-200 rounded-md cursor-pointer flex gap-x-2',
 								{
-									'border-green-600': isSelected,
+									'!border-green-600': isSelected,
 									'p-1 w-16 h-28': mode === 'Portrait',
 									'p-2 w-28 h-16': mode === 'Landscape',
 									'bg-white': darkMode,
@@ -132,7 +132,7 @@ const LayoutGeneric = ({
 							className={cx(
 								'p-2 border border-gray-200 rounded-md cursor-pointer flex gap-x-2',
 								{
-									'border-green-600': isSelected,
+									'!border-green-600': isSelected,
 									'w-16 h-28': mode === 'Portrait',
 									'w-28 h-16': mode === 'Landscape',
 									'bg-white': darkMode,
@@ -157,7 +157,7 @@ const LayoutGeneric = ({
 							className={cx(
 								'p-2 border border-gray-200 rounded-md cursor-pointer flex justify-end items-center relative',
 								{
-									'border-green-600': isSelected,
+									'!border-green-600': isSelected,
 									'w-16 h-28': mode === 'Portrait',
 									'w-28 h-16': mode === 'Landscape',
 									'bg-white': darkMode,
@@ -182,7 +182,7 @@ const LayoutGeneric = ({
 							className={cx(
 								'p-2 border border-gray-200 rounded-md cursor-pointer flex justify-end items-end relative',
 								{
-									'border-green-600': isSelected,
+									'!border-green-600': isSelected,
 									'w-16 h-28': mode === 'Portrait',
 									'w-28 h-16': mode === 'Landscape',
 									'bg-white': darkMode,
@@ -207,7 +207,7 @@ const LayoutGeneric = ({
 							className={cx(
 								'p-2 border border-gray-200 rounded-md cursor-pointer flex justify-end items-end relative',
 								{
-									'border-green-600': isSelected,
+									'!border-green-600': isSelected,
 									'w-16 h-28': mode === 'Portrait',
 									'w-28 h-16': mode === 'Landscape',
 									'bg-white': darkMode,
@@ -232,7 +232,7 @@ const LayoutGeneric = ({
 							className={cx(
 								'border border-gray-200 rounded-md cursor-pointer flex justify-end items-end relative',
 								{
-									'border-green-600': isSelected,
+									'!border-green-600': isSelected,
 									'w-16 h-28': mode === 'Portrait',
 									'w-28 h-16': mode === 'Landscape',
 									'bg-white': darkMode,
@@ -257,7 +257,7 @@ const LayoutGeneric = ({
 							className={cx(
 								'border border-gray-200 rounded-md cursor-pointer flex justify-end items-end relative',
 								{
-									'border-green-600': isSelected,
+									'!border-green-600': isSelected,
 									'w-16 h-28': mode === 'Portrait',
 									'w-28 h-16': mode === 'Landscape',
 									'bg-white': darkMode,
@@ -282,7 +282,7 @@ const LayoutGeneric = ({
 							className={cx(
 								'border border-gray-200 rounded-md cursor-pointer flex items-center gap-x-2',
 								{
-									'border-green-600': isSelected,
+									'!border-green-600': isSelected,
 									'w-16 h-28': mode === 'Portrait',
 									'w-28 h-16': mode === 'Landscape',
 									'bg-white': darkMode,
@@ -307,7 +307,7 @@ const LayoutGeneric = ({
 							className={cx(
 								'border border-gray-200 rounded-md cursor-pointer flex items-center',
 								{
-									'border-green-600': isSelected,
+									'!border-green-600': isSelected,
 									'flex-col w-16 h-28 p-1.5 gap-y-1': mode === 'Portrait',
 									'w-28 h-16': mode === 'Landscape',
 									'bg-white': darkMode,
@@ -343,7 +343,7 @@ const LayoutGeneric = ({
 							className={cx(
 								'border border-gray-200 rounded-md cursor-pointer flex items-center relative',
 								{
-									'border-green-600': isSelected,
+									'!border-green-600': isSelected,
 									'w-16 h-28 justify-center': mode === 'Portrait',
 									'w-28 h-16': mode === 'Landscape',
 									'bg-white': darkMode,
@@ -373,7 +373,7 @@ const LayoutGeneric = ({
 							className={cx(
 								'border border-gray-200 rounded-md cursor-pointer flex items-center relative',
 								{
-									'border-green-600': isSelected,
+									'!border-green-600': isSelected,
 									'w-16 h-28 justify-center': mode === 'Portrait',
 									'w-28 h-16': mode === 'Landscape',
 									'bg-white': darkMode,
@@ -403,7 +403,7 @@ const LayoutGeneric = ({
 							className={cx(
 								'border border-gray-200 rounded-md cursor-pointer flex items-center relative',
 								{
-									'border-green-600': isSelected,
+									'!border-green-600': isSelected,
 									'w-16 h-28 justify-center': mode === 'Portrait',
 									'w-28 h-16': mode === 'Landscape',
 									'bg-white': darkMode,
