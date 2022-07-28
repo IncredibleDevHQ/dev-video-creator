@@ -1,20 +1,25 @@
 /* eslint-disable react/require-default-props */
+import { cx } from '@emotion/css'
 import { Switch as HeadlessSwitch } from '@headlessui/react'
 
 export const Switch = ({
 	label,
 	checked,
 	disabled,
+	labelClassName,
 	onChange,
 }: {
 	label?: string
 	checked: boolean
 	disabled?: boolean
+	labelClassName?: string
 	onChange: (checked: boolean) => void
 }) => (
 	<HeadlessSwitch.Group>
 		<div className='flex items-center'>
-			<HeadlessSwitch.Label className='mr-4'>{label}</HeadlessSwitch.Label>
+			<HeadlessSwitch.Label className={cx('mr-4', labelClassName)}>
+				{label}
+			</HeadlessSwitch.Label>
 			<HeadlessSwitch
 				checked={checked}
 				onChange={onChange}
