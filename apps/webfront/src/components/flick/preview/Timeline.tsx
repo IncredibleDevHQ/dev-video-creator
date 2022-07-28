@@ -350,29 +350,6 @@ const Timeline = ({
 						</Button>
 					</div>
 				)}
-
-				<Button
-					colorScheme='darker'
-					type='button'
-					size='small'
-					className={cx(
-						'flex items-center ml-4 mb-2 hover:bg-gray-700 max-w-max',
-						{
-							hidden: !showTimeline,
-						}
-					)}
-					onClick={() => {
-						config?.set('continuousRecording', !viewConfig?.continuousRecording)
-						config?.set(
-							'selectedBlocks',
-							viewConfig?.continuousRecording ? viewConfig?.selectedBlocks : []
-						)
-					}}
-				>
-					{viewConfig?.continuousRecording
-						? 'Block Recording'
-						: 'Continuous Recording (Experimental)'}
-				</Button>
 			</div>
 
 			<Transition
@@ -462,7 +439,7 @@ const Timeline = ({
 								{viewConfig?.continuousRecording &&
 									block.type !== 'interactionBlock' && (
 										<input
-											className='absolute top-0 right-0 origin-top-right'
+											className='absolute top-1 right-1 origin-top-right rounded-sm text-green-600'
 											type='checkbox'
 											checked={
 												!!config
@@ -470,6 +447,7 @@ const Timeline = ({
 													.find(b => b.blockId === block.id)
 											}
 											onClick={e => {
+												e.stopPropagation()
 												handleBlockSelect(
 													block.id,
 													e.currentTarget.checked ? 'added' : 'removed',
