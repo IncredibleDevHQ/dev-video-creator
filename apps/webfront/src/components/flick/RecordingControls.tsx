@@ -2,7 +2,8 @@
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 import { cx } from '@emotion/css'
 import { Block, CodeBlockProps } from 'editor/src/utils/types'
-import { useMemo } from 'react'
+import Konva from 'konva'
+import { SetStateAction, useMemo } from 'react'
 import {
 	IoArrowBackOutline,
 	IoArrowForwardOutline,
@@ -41,13 +42,24 @@ const RecordingControls = ({
 	viewConfig,
 	shortsMode,
 	isPreview,
+	stageRef,
 	updateState,
+	setContinuousRecordedBlockIds,
 }: {
 	dataConfig: Block[]
 	viewConfig: ViewConfig
 	shortsMode: boolean
 	isPreview: boolean
+	stageRef?: React.RefObject<Konva.Stage>
 	updateState?: (state: StudioState) => void
+	setContinuousRecordedBlockIds?: React.Dispatch<
+		SetStateAction<
+			{
+				blockId: string
+				duration: number
+			}[]
+		>
+	>
 }) => {
 	const state = useRecoilValue(studioStateAtom)
 	const controlsConfig = useRecoilValue(controlsConfigAtom)
@@ -149,14 +161,27 @@ const RecordingControls = ({
 	}
 
 	return (
-		<div className='grid grid-cols-12 w-full mb-2'>
+		<div
+			style={{
+				top: `${(stageRef?.current?.height() ?? 0) + (shortsMode ? 0 : 72)}px`,
+			}}
+			className='absolute grid grid-cols-12 w-full mb-2'
+		>
 			<div className='flex items-center col-span-8 col-start-3 pb-6'>
 				{/* Stop Recording Button */}
 				{(state === 'recording' || state === 'startRecording') && (
 					<button
 						type='button'
 						onClick={() => {
-							// studio.stopRecording()
+              if(viewConfig.continuousRecording){
+                setContinuousRecordedBlockIds?.(prev => [
+									...prev,
+									{
+										blockId: dataConfig[activeObjectIndex].id,
+										duration: 0,
+									},
+								])
+              }
 							updateState?.('stopRecording')
 						}}
 						className={cx(
@@ -186,10 +211,7 @@ const RecordingControls = ({
 				{(state === 'ready' || state === 'resumed') && (
 					<button
 						className={cx(
-							'bg-red-500 text-white font-main backdrop-filter backdrop-blur-2xl px-4 py-2 rounded-sm absolute flex items-center gap-x-2 text-size-sm-title active:scale-95 transition-all',
-							{
-								'left-0': shortsMode,
-							}
+							'bg-red-500 text-white font-main backdrop-filter backdrop-blur-2xl px-4 py-2 rounded-sm absolute flex items-center gap-x-2 text-size-sm-title active:scale-95 transition-all'
 						)}
 						type='button'
 						onClick={() => {
@@ -372,19 +394,19 @@ const RecordingControls = ({
 								) {
 									if (!viewConfig.continuousRecording) {
 										if (state === 'recording' || state === 'startRecording') {
-											// studio.stopRecording()
 											updateState?.('stopRecording')
 										}
 									} else {
-										// TODO
 										// If continuous recording is enabled, we need to track block completions and add metadata
-										// if (!currentBlock)
-										// 	throw new Error('currentBlock is not defined')
-
-										// addContinuousRecordedBlockIds(currentBlock.id, timer)
+										setContinuousRecordedBlockIds?.(prev => [
+											...prev,
+											{
+												blockId: dataConfig[activeObjectIndex].id,
+												duration: 0,
+											},
+										])
 
 										// After tracking metadata , update active object index
-										// eslint-disable-next-line no-lonely-if
 										if (
 											activeObjectIndex <
 											viewConfig.selectedBlocks.length - 1
@@ -395,7 +417,6 @@ const RecordingControls = ({
 											state === 'recording' ||
 											state === 'startRecording'
 										) {
-											// studio.stopRecording()
 											updateState?.('stopRecording')
 										}
 									}

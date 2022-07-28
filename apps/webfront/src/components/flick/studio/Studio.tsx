@@ -13,12 +13,9 @@ import { IoArrowBackOutline } from 'react-icons/io5'
 import useMeasure from 'react-use-measure'
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
 import {
-	Content_Types,
-	SetupRecordingMutationVariables,
 	useDeleteBlockGroupMutation,
-	useGetRecordingsLazyQuery,
+	useSaveMultipleBlocksMutation,
 	useSaveRecordedBlockMutation,
-	useSetupRecordingMutation,
 } from 'src/graphql/generated'
 import {
 	flickAtom,
@@ -29,16 +26,17 @@ import {
 	activeObjectIndexAtom,
 	agoraActionsAtom,
 	isStudioControllerAtom,
+	recordedBlocksAtom,
 	streamAtom,
 	studioStateAtom,
 } from 'src/stores/studio.store'
 import useCanvasRecorder from 'src/utils/hooks/useCanvasRecorder'
+import useUpdateActiveObjectIndex from 'src/utils/hooks/useUpdateActiveObjectIndex'
 import useUpdateState from 'src/utils/hooks/useUpdateState'
 import {
 	RoomEventTypes,
 	useBroadcastEvent,
 	useEventListener,
-	useMap,
 } from 'src/utils/liveblocks.config'
 import { useUser } from 'src/utils/providers/auth'
 import {
@@ -63,56 +61,51 @@ const Studio = ({
 	flickId,
 	dataConfig,
 	viewConfig,
+	recordingId,
 }: {
 	fragmentId: string
 	flickId: string
 	dataConfig: Block[]
 	viewConfig: ViewConfig
+	recordingId: string
 }) => {
 	const { user } = useUser()
 	const { storage } = useEnv()
 
 	const state = useRecoilValue(studioStateAtom)
-	const { updateState, reset } = useUpdateState(true)
+	const { updateState, reset: resetState } = useUpdateState(true)
 	const activeObjectIndex = useRecoilValue(activeObjectIndexAtom)
+	const { reset: resetActiveObjectIndex } = useUpdateActiveObjectIndex(true)
 	const flick = useRecoilValue(flickAtom)
 	const flickName = useRecoilValue(flickNameAtom)
 	const setOpenStudio = useSetRecoilState(openStudioAtom)
 	const agoraStreamData = useRecoilValue(streamAtom)
 	const agoraActions = useRecoilValue(agoraActionsAtom)
-
-	const [isHost, setIsHost] = useState(false)
 	const [isStudioController, setIsStudioController] = useRecoilState(
 		isStudioControllerAtom
 	)
+	const [recordedBlocks, setRecordedBlocks] = useRecoilState(recordedBlocksAtom)
+
+	const [isHost, setIsHost] = useState(false)
+	const [continuousRecordedBlockIds, setContinuousRecordedBlockIds] = useState<
+		{ blockId: string; duration: number }[]
+	>([])
 	const [controlsRequestorSub, setControlsRequestorSub] = useState('')
 	// bool used to open the modal which asks the host to accept or reject the request from the collaborator to get controls
 	const [openControlsApprovalModal, setOpenControlsApprovalModal] =
 		useState(false)
 
-	const recordedBlocks = useMap('recordedBlocks')
 	const broadcast = useBroadcastEvent()
 
 	const blockThumbnails = useRef<{ [key: string]: string }>({})
 	const stageRef = useRef<Konva.Stage>(null)
-	// ref to store the recording id
-	const recordingId = useRef<string>('')
 	// bool to warn and ask the users to retake the multi block recording
 	const confirmMultiBlockRetake = useRef<boolean>(false)
 
 	const [uploadFile] = useUploadFile()
 	const [saveBlock] = useSaveRecordedBlockMutation()
-	// const [saveMultiBlocks] = useSaveMultipleBlocksMutation()
+	const [saveMultiBlocks] = useSaveMultipleBlocksMutation()
 	const [deleteBlockGroupMutation] = useDeleteBlockGroupMutation()
-	// to get the recording id
-	const [getRecordingId] = useGetRecordingsLazyQuery({
-		variables: {
-			flickId,
-			fragmentId,
-		},
-		fetchPolicy: 'cache-first',
-	})
-	const [setupRecording] = useSetupRecordingMutation()
 
 	// used to measure the div
 	const [ref, bounds] = useMeasure()
@@ -138,13 +131,21 @@ const Studio = ({
 				localStream: agoraStreamData?.stream as MediaStream,
 				remoteStreams: agoraStreamData?.audios as MediaStream[],
 			})
+			// resetting the contionuous recorded block ids
+			setContinuousRecordedBlockIds([])
 		} catch (e) {
 			console.log(e)
 		}
 		// setResetTimer(false)
 	}
 
-	// console.log('studio', agoraStreamData)
+	const updateRecordedBlocks = (blocks: { [key: string]: string }) => {
+		setRecordedBlocks(blocks)
+		broadcast({
+			type: RoomEventTypes.UpdateRecordedBlocks,
+			payload: blocks,
+		})
+	}
 
 	// function which gets triggered on stop, used for converting the blobs in to url and
 	// store it in recorded blocks and checking if the blobs are empty
@@ -172,7 +173,10 @@ const Studio = ({
 			return
 		}
 		const url = URL.createObjectURL(blob)
-		recordedBlocks?.set(currentBlockDataConfig.id, url)
+		updateRecordedBlocks({
+			...recordedBlocks,
+			[currentBlockDataConfig.id]: url,
+		})
 		updateState('preview')
 	}
 
@@ -221,47 +225,49 @@ const Studio = ({
 				})
 				thumbnailFilename = uuid
 			}
-			// TODO
-			// if (
-			// 	viewConfig.continuousRecording &&
-			// 	continuousRecordedBlockIds
-			// ) {
-			// 	// if continuous recording is enabled, mark all the blocks that were recorded in the current take as saved
-			// 	continuousRecordedBlockIds.forEach(block => {
-			// 		updateRecordedBlocks(block.blockId, objectUrl)
-			// 	})
-			// 	console.log('continuous recorded blocks:', continuousRecordedBlockIds)
-			// 	// save all continuous recorded blocks to hasura
-			// 	await saveMultiBlocks({
-			// 		variables: {
-			// 			blocks: continuousRecordedBlockIds.map(block => ({
-			// 				blockId: block.blockId,
-			// 				duration: block.duration,
-			// 				thumbnail: blockThumbnail, // TODO: generate thumbnail for each block in continuous recording mode
-			// 			})),
-			// 			flickId: fragment?.flickId,
-			// 			fragmentId,
-			// 			recordingId: studio.recordingId,
-			// 			url: objectUrl,
-			// 		},
-			// 	})
-			// 	history.push(`/story/${fragment?.flickId}/${fragmentId}`)
-			// } else {
-			// Once the block video is uploaded to s3 , save the block to the table
-			await saveBlock({
-				variables: {
-					flickId,
-					fragmentId,
-					recordingId: recordingId.current,
-					objectUrl,
-					thumbnail: thumbnailFilename,
-					// TODO: Update creation meta and playbackDuration when implementing continuous recording
-					blockId,
-					playbackDuration: duration,
-				},
-			})
-			recordedBlocks?.set(blockId, objectUrl)
-			// }
+			if (
+				viewConfig.continuousRecording &&
+				continuousRecordedBlockIds.length > 0
+			) {
+				// if continuous recording is enabled, mark all the blocks that were recorded in the current take as saved
+				const tempContinousRecordedBlocks: { [key: string]: string } = {}
+				continuousRecordedBlockIds.forEach(block => {
+					tempContinousRecordedBlocks[block.blockId] = objectUrl
+				})
+				updateRecordedBlocks({
+					...recordedBlocks,
+					...tempContinousRecordedBlocks,
+				})
+				// save all continuous recorded blocks to hasura
+				await saveMultiBlocks({
+					variables: {
+						blocks: continuousRecordedBlockIds.map(block => ({
+							blockId: block.blockId,
+							duration: block.duration,
+							thumbnail: thumbnailFilename, // TODO: generate thumbnail for each block in continuous recording mode
+						})),
+						flickId,
+						fragmentId,
+						recordingId,
+						url: objectUrl,
+					},
+				})
+			} else {
+				// Once the block video is uploaded to s3 , save the block to the table
+				await saveBlock({
+					variables: {
+						flickId,
+						fragmentId,
+						recordingId,
+						objectUrl,
+						thumbnail: thumbnailFilename,
+						// TODO: Update creation meta and playbackDuration when implementing continuous recording
+						blockId,
+						playbackDuration: duration,
+					},
+				})
+				updateRecordedBlocks({ ...recordedBlocks, [blockId]: objectUrl })
+			}
 			dismissToast(toast)
 		} catch (e) {
 			console.error('Upload error : ', e)
@@ -319,6 +325,9 @@ const Studio = ({
 				setIsStudioController(false)
 			}
 		}
+		if (event.type === RoomEventTypes.UpdateRecordedBlocks) {
+			setRecordedBlocks(event.payload)
+		}
 	})
 
 	// Hooks
@@ -332,9 +341,14 @@ const Studio = ({
 
 	// on unmount changing the state back to ready
 	useEffect(() => {
-		updateState('ready')
+		if (recordedBlocks[dataConfig[activeObjectIndex].id]) {
+			updateState('preview')
+		} else {
+			updateState('ready')
+		}
 		return () => {
-			reset('ready')
+			resetState('ready')
+      resetActiveObjectIndex(0)
 		}
 	}, [])
 
@@ -342,10 +356,11 @@ const Studio = ({
 	// this happens only when the user records and doent take any action and leaves the page
 	useEffect(
 		() => () => {
-			if (
-				recordedBlocks?.get(dataConfig[activeObjectIndex].id)?.includes('blob')
-			)
-				recordedBlocks.delete(dataConfig[activeObjectIndex].id)
+			if (recordedBlocks[dataConfig[activeObjectIndex].id]?.includes('blob')) {
+				const x = { ...recordedBlocks }
+				delete x[dataConfig[activeObjectIndex].id]
+				updateRecordedBlocks(x)
+			}
 		},
 		[activeObjectIndex]
 	)
@@ -360,31 +375,6 @@ const Studio = ({
 	// 	},
 	// 	[agoraStreamData?.stream, agoraActions?.leave]
 	// )
-
-	// fetch recordingId on mount
-	useEffect(() => {
-		;(async () => {
-			const { data: recordingsData } = await getRecordingId()
-			const recording = recordingsData?.Recording?.find(
-				r => r.fragmentId === fragmentId
-			)
-			if (recording) recordingId.current = recording.id
-			else {
-				const variables = {
-					editorState: dataConfig,
-					flickId,
-					fragmentId,
-					viewConfig,
-					contentType:
-						viewConfig.mode === 'Portrait'
-							? Content_Types.VerticalVideo
-							: Content_Types.Video,
-				} as SetupRecordingMutationVariables
-				const { data } = await setupRecording({ variables })
-				recordingId.current = data?.StartRecording?.recordingId || ''
-			}
-		})()
-	}, [])
 
 	useEffect(() => {
 		if (!flick?.owner) return
@@ -408,11 +398,11 @@ const Studio = ({
 						className='flex items-center gap-x-2 cursor-pointer'
 						onClick={() => {
 							setOpenStudio(false)
-							if (!agoraStreamData?.stream || !agoraActions?.leave) return
+							if (agoraActions?.leave) agoraActions.leave()
+							if (!agoraStreamData?.stream) return
 							agoraStreamData.stream.getTracks().forEach(track => {
 								track.stop()
 							})
-							agoraActions.leave()
 						}}
 					>
 						<IoArrowBackOutline className='text-gray-400 h-4 w-4' />
@@ -473,22 +463,31 @@ const Studio = ({
 					</div>
 				</div>
 				{state !== 'preview' ? (
-					<>
-						<div className='grid grid-cols-12 flex-1 items-center'>
-							<div
-								className='flex justify-center items-start col-span-8 col-start-3 w-full h-full pt-16'
-								ref={ref}
-							>
-								<CanvasComponent
-									bounds={bounds}
-									dataConfig={dataConfig}
-									viewConfig={viewConfig}
-									isPreview={false}
-									stage={stageRef}
-								/>
-							</div>
-							<Notes dataConfig={dataConfig} bounds={bounds} />
+					<div className='grid grid-cols-12 flex-1 items-center relative'>
+						<div
+							className={cx(
+								'flex justify-center items-start col-span-8 col-start-3 w-full h-full pt-16',
+								{
+									'pt-8 col-span-4 col-start-5':
+										viewConfig?.mode === 'Portrait',
+								}
+							)}
+							ref={ref}
+						>
+							<CanvasComponent
+								bounds={bounds}
+								dataConfig={dataConfig}
+								viewConfig={viewConfig}
+								isPreview={false}
+								stage={stageRef}
+								scale={viewConfig?.mode === 'Portrait' ? 0.9 : 1}
+							/>
 						</div>
+						<Notes
+							dataConfig={dataConfig}
+							bounds={bounds}
+							shortsMode={viewConfig?.mode === 'Portrait'}
+						/>
 						{isStudioController && (
 							<RecordingControls
 								dataConfig={dataConfig}
@@ -496,9 +495,11 @@ const Studio = ({
 								shortsMode={viewConfig?.mode === 'Portrait'}
 								isPreview={false}
 								updateState={updateState}
+								stageRef={stageRef}
+								setContinuousRecordedBlockIds={setContinuousRecordedBlockIds}
 							/>
 						)}
-					</>
+					</div>
 				) : (
 					<div className='flex items-center justify-center flex-col w-full flex-1 pt-4'>
 						{recordedBlocks && (
@@ -520,8 +521,7 @@ const Studio = ({
 									autoPlay={false}
 									src={(() => {
 										const newSrc =
-											recordedBlocks?.get(dataConfig[activeObjectIndex].id) ||
-											''
+											recordedBlocks[dataConfig[activeObjectIndex].id] || ''
 										if (newSrc.includes('blob')) return newSrc
 										return `${storage.cdn}${newSrc}`
 									})()}
@@ -532,9 +532,9 @@ const Studio = ({
 										{
 											// if block already has a recording dont show save button
 											// checks if the url in the recorded blocks is a blob url
-											recordedBlocks
-												?.get(dataConfig[activeObjectIndex].id)
-												?.includes('blob') && (
+											recordedBlocks[
+												dataConfig[activeObjectIndex].id
+											]?.includes('blob') && (
 												// Save and continue button
 												<Button
 													leftIcon={<FiUpload size={14} />}
@@ -575,15 +575,13 @@ const Studio = ({
 											colorScheme='darker'
 											leftIcon={<FiRotateCcw size={14} />}
 											onClick={() => {
-												const currentBlockURL = recordedBlocks?.get(
-													dataConfig[activeObjectIndex].id
-												)
+												const currentBlockURL =
+													recordedBlocks[dataConfig[activeObjectIndex].id]
 												if (currentBlockURL) {
 													// if found in recordedBlocks, find if webm is duplicate (meaning its part of continuous recording)
 													const isPartOfContinuousRecording =
 														Object.keys(recordedBlocks).filter(
-															key =>
-																recordedBlocks?.get(key) === currentBlockURL
+															key => recordedBlocks[key] === currentBlockURL
 														).length > 1
 
 													// this if handles the case when the retake button is clicked on a block that is part of continuous recording
@@ -603,25 +601,25 @@ const Studio = ({
 															deleteBlockGroupMutation({
 																variables: {
 																	objectUrl: currentBlockURL,
-																	recordingId: recordingId.current,
+																	recordingId,
 																},
 															})
 															confirmMultiBlockRetake.current = false
 
 															// remove all the blocks with the current block url in recordedBlocks
+															const x = { ...recordedBlocks }
 															Object.keys(recordedBlocks).forEach(block => {
-																if (
-																	recordedBlocks.get(block) === currentBlockURL
-																) {
-																	recordedBlocks.delete(block)
+																if (recordedBlocks[block] === currentBlockURL) {
+																	delete x[block]
 																}
 															})
+															updateRecordedBlocks(x)
 														}
 													} else {
 														// deletes the current block id from recorded blocks
-														recordedBlocks.delete(
-															dataConfig[activeObjectIndex].id
-														)
+														const x = { ...recordedBlocks }
+														delete x[dataConfig[activeObjectIndex].id]
+														updateRecordedBlocks(x)
 													}
 												}
 												broadcast({
@@ -642,11 +640,7 @@ const Studio = ({
 						)}
 					</div>
 				)}
-				<MiniTimeline
-					dataConfig={dataConfig}
-					continuousRecording={viewConfig?.continuousRecording}
-					updateState={updateState}
-				/>
+				<MiniTimeline dataConfig={dataConfig} updateState={updateState} />
 			</div>
 			{/* Controls request modal */}
 			<Dialog

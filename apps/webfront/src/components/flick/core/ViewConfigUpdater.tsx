@@ -4,7 +4,7 @@
     Returns null
 */
 
-import { useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import { useRecoilValue } from 'recoil'
 import {
 	activeFragmentIdAtom,
@@ -146,8 +146,8 @@ const ViewConfigUpdater = () => {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [branding])
 
-	useEffect(() => {
-		const updateBlockProperties = (id: string, properties: BlockProperties) => {
+	const updateBlockProperties = useCallback(
+		(id: string, properties: BlockProperties) => {
 			if (!viewConfig) return
 
 			// Delete configs of blocks which are not there in the editor
@@ -158,8 +158,11 @@ const ViewConfigUpdater = () => {
 				})
 
 			viewConfig.blocks.set(id, properties)
-		}
+		},
+		[simpleAST?.blocks, viewConfig?.blocks, viewConfig]
+	)
 
+	useEffect(() => {
 		if (!currentBlock) return
 		if (viewConfig?.blocks.has(currentBlock.id)) return
 
@@ -239,7 +242,7 @@ const ViewConfigUpdater = () => {
 		}
 
 		updateBlockProperties(currentBlock.id, properties)
-	}, [currentBlock, simpleAST?.blocks, viewConfig, viewConfig?.blocks, theme])
+	}, [currentBlock, viewConfig, viewConfig?.blocks, theme])
 
 	return null
 }

@@ -1,7 +1,8 @@
 import { Block } from 'editor/src/utils/types'
-import React, { useState, useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useRecoilValue } from 'recoil'
 import { astAtom } from 'src/stores/flick.store'
+import { recordingIdAtom } from 'src/stores/studio.store'
 import { useMap } from 'src/utils/liveblocks.config'
 import { ViewConfig } from 'utils/src'
 import Studio from './Studio'
@@ -15,8 +16,10 @@ const StudioHoC = ({
 }) => {
 	const [viewConfig, setViewConfig] = useState<ViewConfig>()
 	const [dataConfig, setDataConfig] = useState<Block[]>()
-	const viewConfigLiveMap = useMap('viewConfig')
 	const ast = useRecoilValue(astAtom)
+	const recordingId = useRecoilValue(recordingIdAtom)
+
+	const viewConfigLiveMap = useMap('viewConfig')
 
 	const StudioComponent = React.memo(Studio)
 
@@ -33,22 +36,31 @@ const StudioHoC = ({
 		}
 	}, [fragmentId, viewConfig, viewConfigLiveMap])
 
-	// TODO on continous recording filter the dataConfig to only include the blocks that are recorded
 	useEffect(() => {
-		if (ast && !dataConfig) {
-			setDataConfig(
-				ast.blocks.filter((b: any) => b.type !== 'interactionBlock')
+		if (ast && !dataConfig && viewConfig) {
+			const config = ast.blocks.filter(
+				(b: any) => b.type !== 'interactionBlock'
 			)
+			if (viewConfig.continuousRecording) {
+				setDataConfig(
+					config.filter(b =>
+						viewConfig.selectedBlocks.find(blk => blk.blockId === b.id)
+					)
+				)
+			} else {
+				setDataConfig(config)
+			}
 		}
-	}, [ast, dataConfig])
+	}, [ast, dataConfig, viewConfig])
 
-	if (!viewConfig || !dataConfig) return null
+	if (!viewConfig || !dataConfig || !recordingId) return null
 	return (
 		<StudioComponent
 			dataConfig={dataConfig}
 			viewConfig={viewConfig}
 			fragmentId={fragmentId}
 			flickId={flickId}
+			recordingId={recordingId}
 		/>
 	)
 }
