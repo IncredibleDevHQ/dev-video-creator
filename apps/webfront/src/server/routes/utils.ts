@@ -123,6 +123,25 @@ const utilsRouter = trpc
 			return theme
 		},
 	})
+	.query('fonts', {
+		meta: {
+			hasAuth: true,
+		},
+		resolve: async ({ ctx }) => {
+			if (!ctx.user?.sub) throw new TRPCError({ code: 'UNAUTHORIZED' })
+			const fonts = await ctx.prisma.fonts.findMany({
+				where: {
+					userSub: ctx.user?.sub,
+				},
+				select: {
+					id: true,
+					family: true,
+					url: true,
+				},
+			})
+			return fonts
+		},
+	})
 	/*
 		MUTATIONS
 	*/
@@ -188,6 +207,100 @@ const utilsRouter = trpc
 							: 'Failed to generate RTC token.',
 				})
 			}
+		},
+	})
+	.mutation('createBranding', {
+		meta: {
+			hasAuth: true,
+		},
+		input: z.object({
+			name: z.string(),
+			branding: z.any(),
+		}),
+		resolve: async ({ ctx, input }) => {
+			if (!ctx.user?.sub) throw new TRPCError({ code: 'UNAUTHORIZED' })
+			const brand = await ctx.prisma.branding.create({
+				data: {
+					name: input.name,
+					branding: input.branding,
+					userSub: ctx.user.sub,
+				},
+				select: {
+					id: true,
+					name: true,
+					branding: true,
+				},
+			})
+			return brand
+		},
+	})
+	.mutation('updateBranding', {
+		meta: {
+			hasAuth: true,
+		},
+		input: z.object({
+			id: z.string(),
+			name: z.string().optional(),
+			branding: z.any(),
+		}),
+		resolve: async ({ ctx, input }) => {
+			const update = await ctx.prisma.branding.update({
+				where: {
+					id: input.id,
+				},
+				data: {
+					name: input.branding.name || undefined,
+					branding: input.branding,
+				},
+				select: {
+					id: true,
+				},
+			})
+			return { id: update.id }
+		},
+	})
+	.mutation('deleteBranding', {
+		meta: {
+			hasAuth: true,
+		},
+		input: z.object({
+			id: z.string(),
+		}),
+		resolve: async ({ ctx, input }) => {
+			const deleted = await ctx.prisma.branding.delete({
+				where: {
+					id: input.id,
+				},
+				select: {
+					id: true,
+				},
+			})
+			return { id: deleted.id }
+		},
+	})
+	.mutation('createFont', {
+		meta: {
+			hasAuth: true,
+		},
+		input: z.object({
+			family: z.string(),
+			url: z.string(),
+		}),
+		resolve: async ({ ctx, input }) => {
+			if (!ctx.user?.sub) throw new TRPCError({ code: 'UNAUTHORIZED' })
+			const font = await ctx.prisma.fonts.create({
+				data: {
+					family: input.family,
+					url: input.url,
+					userSub: ctx.user.sub,
+				},
+				select: {
+					id: true,
+					family: true,
+					url: true,
+				},
+			})
+			return font
 		},
 	})
 	// Session cookie middleware

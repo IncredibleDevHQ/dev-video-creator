@@ -22,17 +22,11 @@ import {
 } from 'react-icons/io5'
 import useMeasure from 'react-use-measure'
 import { useRecoilValue } from 'recoil'
-import {
-	useCreateBrandingMutation,
-	useDeleteBrandingMutation,
-	useGetBrandingQuery,
-	useUpdateBrandingMutation,
-} from 'src/graphql/generated'
 import { activeBrandIdAtom } from 'src/stores/studio.store'
 import { BrandingInterface, BrandingJSON } from 'src/utils/configs'
 import useDidUpdateEffect from 'src/utils/hooks/useDidUpdateEffect'
 import { loadFonts } from 'src/utils/hooks/useLoadFont'
-import { useUser } from 'src/utils/providers/auth'
+import trpc from 'src/utils/trpc'
 import BrandIcon from 'svg/BrandIcon.svg'
 import { Button, Heading, Text } from 'ui/src'
 import { useDebouncedCallback } from 'use-debounce'
@@ -106,39 +100,29 @@ const Branding = ({
 
 	const [brandings, setBrandings] = useState<BrandingInterface[]>([])
 
-	const { user } = useUser()
-
-	const {
-		data,
-		loading: fetching,
-		refetch,
-	} = useGetBrandingQuery({
-		variables: {
-			_eq: user?.uid as string,
-		},
-	})
+	const { data, isLoading: fetching, refetch } = trpc.useQuery(['user.brands'])
 
 	const branding = useMemo(
 		() => brandings.find(b => b.id === brandingId),
 		[brandings, brandingId]
 	)
 
-	const [createBranding, { loading }] = useCreateBrandingMutation()
+	const { mutateAsync: createBranding, isLoading: loading } = trpc.useMutation([
+		'util.createBranding',
+	])
 
-	const [deleteBrandingMutation, { loading: deletingBrand }] =
-		useDeleteBrandingMutation()
+	const { mutateAsync: deleteBrandingMutation, isLoading: deletingBrand } =
+		trpc.useMutation(['util.deleteBranding'])
 	const deleteBranding = async () => {
 		if (!branding) return
 		await deleteBrandingMutation({
-			variables: {
-				id: branding.id,
-			},
+			id: branding.id,
 		})
 		refetch()
 	}
 
-	const [updateBranding, { loading: updatingBrand }] =
-		useUpdateBrandingMutation()
+	const { mutateAsync: updateBranding, isLoading: updatingBrand } =
+		trpc.useMutation(['util.updateBranding'])
 
 	useEffect(() => {
 		loadFonts([
@@ -158,30 +142,32 @@ const Branding = ({
 	}, [branding])
 
 	useEffect(() => {
-		setBrandings(data?.Branding || [])
+		const d = data?.map(dat => ({
+			...dat,
+			branding: JSON.parse(JSON.stringify(dat.branding)),
+		}))
+		setBrandings(d || [])
 
-		if (!brandingId || !data?.Branding.find(b => b.id === brandingId)) {
-			setBrandingId(data?.Branding?.[0]?.id)
+		if (!brandingId || !data?.find(b => b.id === brandingId)) {
+			setBrandingId(data?.[0]?.id || '')
 		}
 	}, [brandingId, data])
 
 	const handleCreateBranding = async () => {
-		const { data: createData } = await createBranding({
-			variables: { name: 'Untitled Branding', branding: initialValue },
+		const createData = await createBranding({
+			name: 'Untitled Branding',
+			branding: initialValue,
 		})
 		await refetch()
-		setBrandingId(createData?.insert_Branding_one?.id)
+		setBrandingId(createData?.id)
 	}
 
-	const handleSave = async (cache?: boolean) => {
+	const handleSave = async () => {
 		if (!branding) return
 		await updateBranding({
-			fetchPolicy: cache ? 'network-only' : 'no-cache',
-			variables: {
-				branding: branding.branding,
-				name: branding.name,
-				id: branding.id,
-			},
+			branding: branding.branding,
+			name: branding.name,
+			id: branding.id,
 		})
 	}
 
@@ -205,7 +191,7 @@ const Branding = ({
 					padding: '0',
 				}}
 				onClose={() => {
-					handleSave(true)
+					handleSave()
 					handleClose()
 				}}
 			>
@@ -276,7 +262,7 @@ const Branding = ({
 											<div className='absolute top-0 right-0 m-4 w-56'>
 												<Listbox
 													value={branding}
-													onChange={value => setBrandingId(value?.id)}
+													onChange={value => setBrandingId(value?.id || '')}
 												>
 													{({ open: listOpen }) => (
 														<div className='relative mt-1'>

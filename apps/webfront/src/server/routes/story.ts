@@ -865,4 +865,29 @@ const storyRouter = trpc
 			return { id: res.id }
 		},
 	})
+	.mutation('updateBrand', {
+		meta: {
+			hasAuth: true,
+		},
+		input: z.object({
+			id: z.string(),
+			useBranding: z.boolean(),
+			brandingId: z.string().optional(),
+		}),
+		resolve: async ({ ctx, input }) => {
+			const update = await ctx.prisma.flick.update({
+				where: {
+					id: input.id,
+				},
+				data: {
+					useBranding: input.useBranding,
+					brandingId: input?.brandingId || undefined,
+				},
+				select: {
+					id: true,
+				},
+			})
+			return { id: update.id }
+		},
+	})
 export default storyRouter

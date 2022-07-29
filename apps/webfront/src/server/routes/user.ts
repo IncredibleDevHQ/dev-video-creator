@@ -382,6 +382,23 @@ const userRouter = trpc
 			return { count }
 		},
 	})
+	.query('brands', {
+		meta: { hasAuth: true },
+		resolve: async ({ ctx }) => {
+			if (!ctx.user) throw new TRPCError({ code: 'UNAUTHORIZED' })
+			const brands = await ctx.prisma.branding.findMany({
+				where: {
+					userSub: ctx.user.sub,
+				},
+				select: {
+					id: true,
+					name: true,
+					branding: true,
+				},
+			})
+			return brands
+		},
+	})
 	// Data Queries
 	/*
 		MUTATIONS
