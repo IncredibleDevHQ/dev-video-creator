@@ -12,6 +12,7 @@ const validateEnvs = (envs: any) => {
 		DATABASE_URL: z.string(),
 
 		LIVEBLOCKS_API_KEY: z.string(),
+		LIVEBLOCKS_PUBLIC_KEY: z.string(),
 		CUSTOMERIO_TRANSACTIONAL_APP_API_KEY: z.string(),
 		REDIS_ENDPOINT: z.string(),
 		REDIS_PORT: z.string(),

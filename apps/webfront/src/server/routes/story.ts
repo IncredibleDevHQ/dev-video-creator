@@ -171,6 +171,13 @@ export const createFlick = async (
 			ownerParticipant
 		)
 	}
+
+	// eslint-disable-next-line no-param-reassign
+	input.fragmentViewConfig = {
+		...input.fragmentViewConfig,
+		speakers: [ownerParticipant],
+	}
+
 	try {
 		// init liveblocks
 		await createLiveBlocksRoom(

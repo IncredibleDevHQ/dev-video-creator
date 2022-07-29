@@ -227,7 +227,7 @@ const Notifications = () => {
 		useState<inferQueryOutput<'user.notifications'>[number]>()
 
 	const { data } = trpc.useQuery(['user.notificationsCount'], {
-		refetchInterval: 5000,
+		refetchInterval: 20000,
 		refetchIntervalInBackground: true,
 		refetchOnReconnect: true,
 	})

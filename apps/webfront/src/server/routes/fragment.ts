@@ -5,6 +5,7 @@ import serverEnvs from 'src/utils/env'
 import { z } from 'zod'
 // eslint-disable-next-line import/no-extraneous-dependencies
 import * as uuid from 'uuid'
+import { createClient, LiveMap, LiveObject } from '@liveblocks/client'
 import {
 	sendTransactionalEmail,
 	TransactionalMailType,
@@ -111,6 +112,85 @@ const fragmentRouter = trpc
 					type: true,
 				},
 			})
+
+			// update liveblocks
+			const client = createClient({
+				publicApiKey: serverEnvs.LIVEBLOCKS_PUBLIC_KEY,
+				polyfills: {
+					fetch: fetch as any,
+					WebSocket,
+					atob(data) {
+						return Buffer.from(data, 'base64').toString('binary')
+					},
+				},
+			})
+
+			const room = client.enter(`story-${input.flickId}`, {
+				initialPresence: {
+					user: {
+						id: 'server',
+						name: 'server',
+						picture: 'server',
+					},
+					page: 'Notebook',
+					cursor: { x: 0, y: 0 },
+					inHuddle: false,
+				},
+			})
+
+			const currentViewConfig = (await room.getStorage()).root.get(
+				'viewConfig'
+			) as LiveMap<string, any>
+
+			const introBlockId = editorState?.blocks?.find(
+				(b: any) => b.type === 'introBlock'
+			)?.id
+			const outroBlockId = editorState?.blocks?.find(
+				(b: any) => b.type === 'outroBlock'
+			)?.id
+			if (!introBlockId || !outroBlockId)
+				throw new Error('introBlockId or outroBlockId not found')
+
+			const blocks = {
+				[introBlockId]: {
+					layout: 'classic',
+					view: {
+						type: 'introBlock',
+						intro: {
+							order: [
+								{ enabled: true, state: 'userMedia' },
+								{ enabled: true, state: 'titleSplash' },
+							],
+						},
+					},
+				},
+				[outroBlockId]: {
+					layout: 'classic',
+					view: {
+						type: 'outroBlock',
+						outro: {
+							order: [{ enabled: true, state: 'titleSplash' }],
+						},
+					},
+				},
+			}
+
+			const liveBlocks = new LiveMap()
+			Object.entries(blocks).forEach(([id, value]) => {
+				liveBlocks.set(id, value)
+			})
+
+			const fragmentViewConfig = {
+				selectedBlocks: [],
+				continuousRecording: false,
+				mode: input.type,
+				speakers: [participants],
+				blocks: liveBlocks,
+			}
+
+			currentViewConfig.set(fragment.id, new LiveObject(fragmentViewConfig))
+			client.leave(`story-${input.flickId}`)
+
 			// update redis for hocuspocus
 			await initRedisWithDataConfig(fragment.id, editorState, undefined)
 
