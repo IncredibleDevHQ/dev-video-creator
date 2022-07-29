@@ -9,22 +9,15 @@ import {
 	IoNotificationsOutline,
 	IoSyncOutline,
 } from 'react-icons/io5'
-import {
-	MyNotificationFragment,
-	Notification_Meta_Type_Enum_Enum,
-	Notification_Type_Enum_Enum,
-	useGetMyNotificationsLazyQuery,
-	useMarkAllNotificationsAsReadMutation,
-	useMarkNotificationAsReadMutation,
-	useMyUnreadNotificationsCountSubscription,
-} from 'src/graphql/generated'
+import { NotificationMetaTypeEnum, NotificationTypeEnum } from 'src/utils/enums'
+import trpc, { inferQueryOutput } from 'src/utils/trpc'
 import { Avatar, Button, Text } from 'ui/src'
 import CollaborationRespondModal from './CollaborationResponseModal'
 
 export const NotificationMessage = ({
 	notification,
 }: {
-	notification: MyNotificationFragment
+	notification: inferQueryOutput<'user.notifications'>[number]
 }) => {
 	const { message } = notification
 	const regex = /%(.*?)%/g
@@ -51,15 +44,23 @@ const NotificationsList = ({
 	isNotificationsOpen: boolean
 	close: () => void
 	setIsCollaborateRespondModalOpen: (open: boolean) => void
-	setNotification: (notification: MyNotificationFragment) => void
+	setNotification: (
+		notification: inferQueryOutput<'user.notifications'>[number]
+	) => void
 }) => {
-	const [getNotifications, { data, error, loading }] =
-		useGetMyNotificationsLazyQuery({
-			fetchPolicy: 'cache-and-network',
-		})
+	const {
+		refetch: getNotifications,
+		data,
+		error,
+		isLoading: loading,
+	} = trpc.useQuery(['user.notifications'], { enabled: false })
 
-	const [markAsRead] = useMarkNotificationAsReadMutation()
-	const [markAllAsRead] = useMarkAllNotificationsAsReadMutation()
+	const { mutateAsync: markAsRead } = trpc.useMutation([
+		'user.readNotification',
+	])
+	const { mutateAsync: markAllAsRead } = trpc.useMutation([
+		'user.readlAllNotifications',
+	])
 	const { push } = useRouter()
 
 	useEffect(
@@ -107,7 +108,7 @@ const NotificationsList = ({
 					<IoSyncOutline className='text-dark-title animate-spin' />
 				</div>
 			)}
-			{data && data.Notifications.length === 0 && (
+			{data && data.length === 0 && (
 				<div className='flex items-center justify-center flex-1 my-12'>
 					<Text className='italic text-gray-200'>
 						You do not have any notifications
@@ -127,7 +128,7 @@ const NotificationsList = ({
 				)}
 			>
 				{data &&
-					data.Notifications.map(notification => (
+					data.map(notification => (
 						<div
 							className='flex items-center hover:bg-dark-100 rounded-md'
 							key={notification.id}
@@ -137,44 +138,55 @@ const NotificationsList = ({
 								className='flex justify-start w-full p-3 cursor-pointer gap-x-4'
 								onClick={() => {
 									markAsRead({
-										variables: {
-											id: notification.id,
-										},
+										id: notification.id,
 									})
+									const meta = JSON.parse(JSON.stringify(notification.meta))
 									setNotification(notification)
 									close()
-									if (notification.type === Notification_Type_Enum_Enum.Event) {
+									if (notification.type === NotificationTypeEnum.Event) {
 										switch (notification.metaType) {
-											case Notification_Meta_Type_Enum_Enum.Follow:
-												push(`/${notification.sender.username}`)
+											case NotificationMetaTypeEnum.Follow:
+												push(
+													`/${notification.User_Notifications_senderIdToUser.username}`
+												)
 												break
-											case Notification_Meta_Type_Enum_Enum.User:
-												push(`/${notification.sender.username}`)
+											case NotificationMetaTypeEnum.User:
+												push(
+													`/${notification.User_Notifications_senderIdToUser.username}`
+												)
 												break
-											case Notification_Meta_Type_Enum_Enum.Flick:
-												push(`/story/${notification.meta?.flickId}`)
+											case NotificationMetaTypeEnum.Flick:
+												push(`/story/${meta?.flickId}`)
 												break
-											case Notification_Meta_Type_Enum_Enum.Series:
-												push(`/series/series--${notification.meta?.seriesId}`)
+											case NotificationMetaTypeEnum.Series:
+												push(`/series/series--${meta?.seriesId}`)
 												break
 											default:
 												break
 										}
 									}
 									if (
-										notification.type ===
-											Notification_Type_Enum_Enum.Invitation ||
-										notification.type === Notification_Type_Enum_Enum.Request
+										notification.type === NotificationTypeEnum.Invitation ||
+										notification.type === NotificationTypeEnum.Request
 									) {
 										setIsCollaborateRespondModalOpen(true)
 									}
 								}}
 							>
 								<Avatar
-									src={notification.sender.picture as string}
+									src={
+										notification.User_Notifications_senderIdToUser
+											.picture as string
+									}
 									className='h-8 rounded-full'
-									name={notification?.sender.displayName ?? ''}
-									alt={notification?.sender.displayName ?? ''}
+									name={
+										notification?.User_Notifications_senderIdToUser
+											.displayName ?? ''
+									}
+									alt={
+										notification?.User_Notifications_senderIdToUser
+											.displayName ?? ''
+									}
 								/>
 								<div className='flex flex-col w-full text-left'>
 									<NotificationMessage notification={notification} />
@@ -197,7 +209,7 @@ const NotificationsList = ({
 						</div>
 					))}
 			</div>
-			{data && data.Notifications.length >= 15 && (
+			{data && data.length >= 15 && (
 				<div className='flex items-center justify-center w-full py-2 border-t border-dark-100'>
 					<Button colorScheme='dark' onClick={() => push('/notifications')}>
 						See all
@@ -211,9 +223,14 @@ const NotificationsList = ({
 const Notifications = () => {
 	const [isCollaborateRespondModalOpen, setIsCollaborateRespondModalOpen] =
 		useState(false)
-	const [notification, setNotification] = useState<MyNotificationFragment>()
+	const [notification, setNotification] =
+		useState<inferQueryOutput<'user.notifications'>[number]>()
 
-	const { data } = useMyUnreadNotificationsCountSubscription()
+	const { data } = trpc.useQuery(['user.notificationsCount'], {
+		refetchInterval: 5000,
+		refetchIntervalInBackground: true,
+		refetchOnReconnect: true,
+	})
 
 	return (
 		<Popover>
@@ -223,7 +240,7 @@ const Notifications = () => {
 						as='button'
 						className='relative cursor-pointer flex items-center'
 					>
-						{data && data.Notifications_aggregate.aggregate?.count !== 0 && (
+						{data && data.count !== 0 && (
 							<GoPrimitiveDot
 								className={cx(
 									'text-red-500 absolute top-0 right-0 -mt-2 -mr-1.5 block'

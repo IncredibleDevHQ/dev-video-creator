@@ -325,6 +325,63 @@ const userRouter = trpc
 			}
 		},
 	})
+	.query('notifications', {
+		meta: {
+			hasAuth: true,
+		},
+		input: z
+			.object({
+				limit: z.number().optional().default(15),
+				offset: z.number().optional().default(0),
+			})
+			.optional(),
+		resolve: async ({ input, ctx }) => {
+			if (!ctx.user) throw new TRPCError({ code: 'UNAUTHORIZED' })
+			const notifications = await ctx.prisma.notifications.findMany({
+				where: {
+					receiverId: ctx.user.sub,
+				},
+				select: {
+					id: true,
+					type: true,
+					isRead: true,
+					createdAt: true,
+					message: true,
+					meta: true,
+					metaType: true,
+					User_Notifications_senderIdToUser: {
+						select: {
+							sub: true,
+							picture: true,
+							displayName: true,
+							username: true,
+						},
+					},
+				},
+				orderBy: {
+					createdAt: 'desc',
+				},
+				take: input?.limit || 15,
+				skip: input?.offset || 0,
+			})
+			return notifications
+		},
+	})
+	.query('notificationsCount', {
+		meta: {
+			hasAuth: true,
+		},
+		resolve: async ({ ctx }) => {
+			if (!ctx.user) throw new TRPCError({ code: 'UNAUTHORIZED' })
+			const count = await ctx.prisma.notifications.count({
+				where: {
+					receiverId: ctx.user.sub,
+					isRead: false,
+				},
+			})
+			return { count }
+		},
+	})
 	// Data Queries
 	/*
 		MUTATIONS
@@ -473,6 +530,49 @@ const userRouter = trpc
 
 			if (!unfollow.targetId) return { success: false }
 
+			return { success: true }
+		},
+	})
+	.mutation('readNotification', {
+		meta: {
+			hasAuth: true,
+		},
+		input: z.object({ id: z.string() }),
+		resolve: async ({ input, ctx }) => {
+			if (!ctx.user?.sub)
+				throw new TRPCError({
+					code: 'UNAUTHORIZED',
+				})
+			const notification = await ctx.prisma.notifications.update({
+				where: {
+					id: input.id,
+				},
+				data: {
+					isRead: true,
+				},
+			})
+			if (!notification) return { success: false }
+			return { success: true }
+		},
+	})
+	.mutation('readlAllNotifications', {
+		meta: {
+			hasAuth: true,
+		},
+		resolve: async ({ ctx }) => {
+			if (!ctx.user?.sub)
+				throw new TRPCError({
+					code: 'UNAUTHORIZED',
+				})
+			const notifications = await ctx.prisma.notifications.updateMany({
+				where: {
+					receiverId: ctx.user.sub,
+				},
+				data: {
+					isRead: true,
+				},
+			})
+			if (!notifications) return { success: false }
 			return { success: true }
 		},
 	})

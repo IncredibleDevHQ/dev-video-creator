@@ -1,10 +1,10 @@
-import { MyNotificationFragment } from 'src/graphql/generated'
+import { inferQueryOutput } from 'src/utils/trpc'
 import { Text } from 'ui/src'
 
 const NotificationMessage = ({
 	notification,
 }: {
-	notification: MyNotificationFragment
+	notification: inferQueryOutput<'user.notifications'>[number]
 }) => {
 	const { message } = notification
 	const regex = /%(.*?)%/g
