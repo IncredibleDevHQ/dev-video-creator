@@ -570,7 +570,7 @@ const VideoEditor = ({
 								<Transformer
 									ref={transformerRef}
 									anchorFill='#16A34A'
-									anchorSize={6}
+									anchorSize={14}
 									borderStroke='#16A34A'
 									borderStrokeWidth={1}
 									rotateEnabled={false}
