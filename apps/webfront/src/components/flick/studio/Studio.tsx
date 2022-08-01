@@ -349,6 +349,11 @@ const Studio = ({
 		return () => {
 			resetState('ready')
       resetActiveObjectIndex(0)
+      if (agoraActions?.leave) agoraActions.leave()
+			if (!agoraStreamData?.stream) return
+			agoraStreamData.stream.getTracks().forEach(track => {
+				track.stop()
+			})
 		}
 	}, [])
 
@@ -364,17 +369,6 @@ const Studio = ({
 		},
 		[activeObjectIndex]
 	)
-
-	// useEffect(
-	// 	() => () => {
-	// if (!agoraStreamData?.stream || !agoraActions?.leave) return
-	// agoraStreamData.stream.getTracks().forEach(track => {
-	// 	track.stop()
-	// })
-	// agoraActions.leave()
-	// 	},
-	// 	[agoraStreamData?.stream, agoraActions?.leave]
-	// )
 
 	useEffect(() => {
 		if (!flick?.owner) return
