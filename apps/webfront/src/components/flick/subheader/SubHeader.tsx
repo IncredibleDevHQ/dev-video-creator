@@ -146,18 +146,24 @@ const RecordButton = () => {
 	const setOpenStudio = useSetRecoilState(openStudioAtom)
 	const updateMyPresence = useUpdateMyPresence()
 
+	const handleContinuousToggle = () => {
+		config?.set('continuousRecording', !viewConfig?.continuousRecording)
+		config?.set(
+			'selectedBlocks',
+			viewConfig?.continuousRecording ? viewConfig?.selectedBlocks : []
+		)
+	}
+
 	return (
 		<>
-			<button
-				type='button'
+			<div
+				role='button'
+				tabIndex={0}
 				className='bg-dark-100 px-2 py-1.5 rounded-sm active:scale-95 transition-all cursor-pointer'
-				onClick={() => {
-					config?.set('continuousRecording', !viewConfig?.continuousRecording)
-					config?.set(
-						'selectedBlocks',
-						viewConfig?.continuousRecording ? viewConfig?.selectedBlocks : []
-					)
+				onKeyDown={e => {
+					if (e.key === 'Enter') handleContinuousToggle()
 				}}
+				onClick={handleContinuousToggle}
 			>
 				<Switch
 					label='Continuous recording'
@@ -165,7 +171,7 @@ const RecordButton = () => {
 					labelClassName='text-white !text-size-xs cursor-pointer'
 					onChange={() => {}}
 				/>
-			</button>
+			</div>
 
 			<Button
 				className='text-dark-title'
