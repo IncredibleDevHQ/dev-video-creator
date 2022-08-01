@@ -1,23 +1,19 @@
 import { LiveMap, LiveObject } from '@liveblocks/client'
 import { CoreEditorInstance, EditorProvider } from 'editor/src'
 import parser from 'editor/src/utils/parser'
-import { Block, SimpleAST } from 'editor/src/utils/types'
+import { Block } from 'editor/src/utils/types'
 import { useEffect, useMemo } from 'react'
 import { useRecoilCallback, useRecoilValue, useSetRecoilState } from 'recoil'
-import { Fragment_Type_Enum_Enum } from 'src/graphql/generated-ssr'
+
 import {
 	activeFragmentIdAtom,
 	astAtom,
 	flickAtom,
 	flickNameAtom,
-	fragmentTypeAtom,
-	IPublish,
+	fragmentLoadingAtom,
+	fragmentsAtom,
 	openStudioAtom,
 	participantsAtom,
-	publishConfigAtom,
-	thumbnailAtom,
-	thumbnailObjectAtom,
-	ThumbnailProps,
 	View,
 	viewAtom,
 } from 'src/stores/flick.store'
@@ -39,6 +35,7 @@ import { useUser } from 'src/utils/providers/auth'
 import { inferQueryOutput } from 'src/utils/trpc'
 import EditorSection from './core/EditorSection'
 import Navbar from './core/Navbar'
+import FragmentStoreUpdater from './core/StoreUpdater'
 import ViewConfigUpdater from './core/ViewConfigUpdater'
 import Preview from './preview/Preview'
 import Timeline from './preview/Timeline'
@@ -55,14 +52,6 @@ const FlickBody = ({
 	const setStoresInitially = useRecoilCallback(
 		({ set }) =>
 			() => {
-				const initialFragment = flick.Fragment.find(
-					fragment => fragment.id === initialFragmentId
-				)
-				let ast: SimpleAST | null = null
-				if (initialFragment?.editorState) {
-					ast = JSON.parse(JSON.stringify(initialFragment.editorState))
-				}
-
 				const transition = flick.configuration
 					? (JSON.parse(JSON.stringify(flick.configuration))
 							.transition as TransitionConfig)
@@ -81,7 +70,6 @@ const FlickBody = ({
 				})
 				set(flickNameAtom, flick.name)
 				set(activeFragmentIdAtom, initialFragmentId)
-				set(astAtom, ast)
 				set(participantsAtom, flick.Participants)
 				set(
 					brandingAtom,
@@ -95,23 +83,29 @@ const FlickBody = ({
 				)
 				set(transitionAtom, transition)
 				set(themeAtom, flick.Theme)
-				set(
-					thumbnailAtom,
-					(initialFragment?.thumbnailConfig as ThumbnailProps) ?? null
-				)
-				set(
-					fragmentTypeAtom,
-					initialFragment?.type === Fragment_Type_Enum_Enum.Portrait
-						? 'Portrait'
-						: 'Landscape'
-				)
-				set(thumbnailObjectAtom, initialFragment?.thumbnailObject ?? null)
-				set(
-					publishConfigAtom,
-					initialFragment
-						? (initialFragment.publishConfig as unknown as IPublish) ?? null
-						: null
-				)
+				// set(
+				// 	thumbnailAtom,
+				// 	(initialFragment?.thumbnailConfig as ThumbnailProps) ?? null
+				// )
+				// set(
+				// 	fragmentTypeAtom,
+				// 	initialFragment?.type === Fragment_Type_Enum_Enum.Portrait
+				// 		? 'Portrait'
+				// 		: 'Landscape'
+				// )
+				// set(thumbnailObjectAtom, initialFragment?.thumbnailObject ?? null)
+				// set(
+				// 	publishConfigAtom,
+				// 	initialFragment
+				// 		? (initialFragment.publishConfig as unknown as IPublish) ?? null
+				// 		: null
+				// )
+				// set(participantsAtom, flick.participants)
+				// set(brandingAtom, flick.useBranding ? flick.branding?.branding : {})
+				// set(activeBrandIdAtom, flick.useBranding ? flick.branding?.id : null)
+				// set(transitionAtom, flick.configuration?.transitions)
+				// set(themeAtom, flick.theme)
+				set(fragmentsAtom, flick.Fragment)
 			},
 		[]
 	)
@@ -121,7 +115,9 @@ const FlickBody = ({
 	}, [setStoresInitially])
 
 	const { user } = useUser()
+
 	const activeFragmentId = useRecoilValue(activeFragmentIdAtom)
+	const fragmentLoading = useRecoilValue(fragmentLoadingAtom)
 	const view = useRecoilValue(viewAtom)
 	const openStudio = useRecoilValue(openStudioAtom)
 
@@ -182,8 +178,6 @@ const FlickBody = ({
 		})
 	}
 
-	if (!activeFragmentId) return null
-
 	return (
 		<RoomProvider
 			id={`story-${flick.id}`}
@@ -191,27 +185,31 @@ const FlickBody = ({
 			initialStorage={() => ({
 				viewConfig: new LiveMap(),
 				activeObjectIndex: new LiveObject({ activeObjectIndex: 0 }),
-				recordedBlocks: new LiveMap(),
 			})}
 		>
 			<EditorProvider
 				handleUpdate={handleEditorChange}
 				displayName={user?.displayName || 'Anonymous'}
-				documentId={activeFragmentId as string}
+				documentId={activeFragmentId ?? undefined}
 			>
-				<div className='flex flex-col h-screen overflow-hidden'>
+				<div className='flex flex-col h-screen overflow-hidden bg-white'>
 					<Navbar />
 					<SubHeader />
-					{view === View.Notebook ? (
-						<EditorSection />
-					) : (
-						<Preview centered={false} />
+					<FragmentStoreUpdater />
+					{activeFragmentId && !fragmentLoading && (
+						<>
+							{view === View.Notebook ? (
+								<EditorSection />
+							) : (
+								<Preview centered={false} />
+							)}
+							<Timeline persistentTimeline={false} shouldScrollToCurrentBlock />
+							<ViewConfigUpdater />
+						</>
 					)}
-					<Timeline persistentTimeline={false} shouldScrollToCurrentBlock />
-					<ViewConfigUpdater />
 				</div>
 			</EditorProvider>
-			{openStudio && (
+			{openStudio && activeFragmentId && (
 				<div className='absolute top-0 left-0 w-full h-screen z-[60]'>
 					<StudioHoC fragmentId={activeFragmentId} flickId={flick.id} />
 				</div>

@@ -33,6 +33,9 @@ fragment FlickFragment on Fragment {
 		name
 		description
 	}
+	recordings {
+		id
+	}
 }
 
 fragment Recording on Recording {
@@ -46,11 +49,53 @@ fragment Recording on Recording {
 	storyboard
 }
 
+fragment RecordedBlocks on Blocks {
+	id
+	objectUrl
+	thumbnail
+	updatedAt
+}
+
+query GetFlickFragment($id: uuid!) {
+	Fragment_by_pk(id: $id) {
+		...FlickFragment
+	}
+}
+
 query GetRecordings($flickId: uuid, $fragmentId: uuid) {
 	Recording(
 		where: { flickId: { _eq: $flickId }, fragmentId: { _eq: $fragmentId } }
 	) {
 		...Recording
+	}
+}
+
+query GetRecordedBlocks($recordingId: uuid) {
+	Blocks(where: { recordingId: { _eq: $recordingId } }) {
+		...RecordedBlocks
+	}
+}
+
+mutation UpdateFragmentName($id: uuid!, $name: String!) {
+	update_Fragment_by_pk(pk_columns: { id: $id }, _set: { name: $name }) {
+		id
+	}
+}
+
+mutation AddFragment(
+	$name: String!
+	$flickId: uuid!
+	$type: FragmentTypeEnum!
+) {
+	CreateFragment(flickId: $flickId, name: $name, type: $type) {
+		fragmentId
+		type
+	}
+}
+
+mutation DeleteFragment($id: uuid!) {
+	delete_Fragment_by_pk(id: $id) {
+		id
 	}
 }
 

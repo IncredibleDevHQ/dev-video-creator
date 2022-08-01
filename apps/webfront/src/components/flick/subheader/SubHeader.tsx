@@ -3,15 +3,23 @@ import { useIncredibleEditor } from 'editor/src'
 import { useEffect, useMemo, useState } from 'react'
 import { BsCloudCheck } from 'react-icons/bs'
 import { IoImageOutline, IoWarningOutline } from 'react-icons/io5'
-import { useRecoilState, useSetRecoilState } from 'recoil'
-import { openStudioAtom, View, viewAtom } from 'src/stores/flick.store'
+import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
+import {
+	activeFragmentIdAtom,
+	openStudioAtom,
+	View,
+	viewAtom,
+} from 'src/stores/flick.store'
 import {
 	PresencePage,
+	useMap,
 	useRoom,
 	useUpdateMyPresence,
 } from 'src/utils/liveblocks.config'
-import { Button, Text } from 'ui/src'
+import { Button, Switch, Text } from 'ui/src'
+import { LiveViewConfig } from 'utils/src'
 import Brand from './Brand'
+import FormatSelector from './FormatSelector'
 import Publish from './Publish'
 import Theme from './Theme'
 import ThumbnailModal from './ThumbnailModal'
@@ -104,56 +112,128 @@ const ViewSwitch = (): JSX.Element => {
 	)
 }
 
-const SubHeader = (): JSX.Element => {
+const RecordButton = () => {
+	const activeFragmentId = useRecoilValue(activeFragmentIdAtom)
+	const room = useRoom()
+	const config = useMap('viewConfig')?.get(activeFragmentId as string)
+	const [viewConfig, setViewConfig] = useState<LiveViewConfig>()
+
+	useEffect(() => {
+		if (!config) return
+		setViewConfig({
+			...config.toObject(),
+		})
+	}, [config])
+
+	useEffect(() => {
+		let unsubscribe: any
+		if (config && !unsubscribe) {
+			unsubscribe = room.subscribe(
+				config,
+				() => {
+					setViewConfig({
+						...config.toObject(),
+					})
+				},
+				{ isDeep: true }
+			)
+		}
+		return () => {
+			unsubscribe?.()
+		}
+	}, [config, room])
+
 	const setOpenStudio = useSetRecoilState(openStudioAtom)
-	const [thumbnailModal, setThumbnailModal] = useState(false)
-	const [publishModal, setPublishModal] = useState(false)
 	const updateMyPresence = useUpdateMyPresence()
 
 	return (
+		<>
+			<button
+				type='button'
+				className='bg-dark-100 px-2 py-1.5 rounded-sm active:scale-95 transition-all cursor-pointer'
+				onClick={() => {
+					config?.set('continuousRecording', !viewConfig?.continuousRecording)
+					config?.set(
+						'selectedBlocks',
+						viewConfig?.continuousRecording ? viewConfig?.selectedBlocks : []
+					)
+				}}
+			>
+				<Switch
+					label='Continuous recording'
+					checked={viewConfig?.continuousRecording ?? false}
+					labelClassName='text-white !text-size-xs cursor-pointer'
+					onChange={() => {}}
+				/>
+			</button>
+
+			<Button
+				className='text-dark-title'
+				disabled={
+					viewConfig?.continuousRecording &&
+					viewConfig.selectedBlocks.length < 1
+				}
+				onClick={() => {
+					setOpenStudio(true)
+					updateMyPresence({
+						page: PresencePage.Backstage,
+					})
+				}}
+			>
+				{viewConfig?.continuousRecording && viewConfig.selectedBlocks.length < 1
+					? 'Select blocks to record'
+					: 'Record'}
+			</Button>
+		</>
+	)
+}
+
+const SubHeader = (): JSX.Element => {
+	const [thumbnailModal, setThumbnailModal] = useState(false)
+	const [publishModal, setPublishModal] = useState(false)
+	const activeFragmentId = useRecoilValue(activeFragmentIdAtom)
+
+	return (
 		<div className='flex h-12 flex-row justify-between bg-gray-800 px-5'>
-			<ViewSwitch />
+			<div className='flex items-center gap-x-4'>
+				<FormatSelector />
+				{activeFragmentId && <ViewSwitch />}
+			</div>
 			<div className='flex h-full items-center'>
 				<div className='mr-4'>
 					<AutoSave />
 				</div>
-				<div className='flex h-full items-center gap-x-2 border-l border-gray-700 px-2'>
+				<div className='flex h-full items-center gap-x-2 border-l border-gray-700 pl-2'>
 					<Theme />
 					<Brand />
 					<Transition />
 				</div>
 
-				<div className='flex h-full items-center gap-x-2 border-l border-gray-700 px-2'>
-					<Button
-						leftIcon={<IoImageOutline className='h-4 w-4' />}
-						appearance='none'
-						className='text-dark-title hover:bg-white/10 !px-2 transform active:scale-95'
-						onClick={() => setThumbnailModal(true)}
-					>
-						Thumbnail
-					</Button>
-				</div>
+				{activeFragmentId && (
+					<div className='flex h-full items-center gap-x-2 border-l border-gray-700 px-2 ml-2'>
+						<Button
+							leftIcon={<IoImageOutline className='h-4 w-4' />}
+							appearance='none'
+							className='text-dark-title hover:bg-white/10 !px-2 transform active:scale-95'
+							onClick={() => setThumbnailModal(true)}
+						>
+							Thumbnail
+						</Button>
+					</div>
+				)}
 
-				<div className='flex h-full items-center gap-x-2 border-l border-gray-700 pl-3'>
-					<Button
-						colorScheme='dark'
-						className='text-dark-title'
-						onClick={() => setPublishModal(true)}
-					>
-						Publish
-					</Button>
-					<Button
-						className='text-dark-title'
-						onClick={() => {
-							setOpenStudio(true)
-							updateMyPresence({
-								page: PresencePage.Backstage,
-							})
-						}}
-					>
-						Record
-					</Button>
-				</div>
+				{activeFragmentId && (
+					<div className='flex h-full items-center gap-x-2 border-l border-gray-700 pl-3'>
+						<Button
+							colorScheme='dark'
+							className='text-dark-title'
+							onClick={() => setPublishModal(true)}
+						>
+							Publish
+						</Button>
+						<RecordButton />
+					</div>
+				)}
 			</div>
 			{thumbnailModal && (
 				<ThumbnailModal

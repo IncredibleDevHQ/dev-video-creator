@@ -86,6 +86,52 @@ const blockRouter = trpc
 			}
 		},
 	})
+	.mutation('saveMany', {
+		meta: {
+			hasAuth: true,
+		},
+		input: z.object({
+			blocks: z.array(
+				z.object({
+					id: z.string(),
+					playbackDuration: z.number(),
+					thumbnail: z.string().nullish(),
+				})
+			),
+			flickId: z.string(),
+			fragmentId: z.string(),
+			recordingId: z.string(),
+			url: z.string(),
+		}),
+		resolve: async ({ ctx, input }) => {
+			const blocks = input.blocks.map(block => ({
+				id: block.id,
+				flickId: input.flickId,
+				fragmentId: input.fragmentId,
+				recordingId: input.recordingId,
+				objectUrl: input.url,
+				playbackDuration: block.playbackDuration,
+				thumbnail: block.thumbnail,
+			}))
+
+			await ctx.prisma.$transaction([
+				ctx.prisma.blocks.deleteMany({
+					where: {
+						id: {
+							in: blocks.map(block => block.id),
+						},
+					},
+				}),
+				ctx.prisma.blocks.createMany({
+					data: blocks,
+				}),
+			])
+
+			return {
+				success: true,
+			}
+		},
+	})
 	.mutation('delete', {
 		meta: {
 			hasAuth: true,

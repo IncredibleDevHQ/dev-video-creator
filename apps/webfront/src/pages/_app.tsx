@@ -1,6 +1,7 @@
 /* eslint-disable react/jsx-props-no-spreading */
 import { withTRPC } from '@trpc/next'
 import { AppProps } from 'next/app'
+import dynamic from 'next/dynamic'
 import NextNProgress from 'nextjs-progressbar'
 import { RecoilRoot } from 'recoil'
 import { AppRouter } from 'src/server/routes/route'
@@ -10,15 +11,24 @@ import superjson from 'superjson'
 import { ToastContainer } from 'ui/src'
 import '../styles/globals.css'
 
+const RecoilURLSyncJSON = dynamic<any>(
+	() => import('recoil-sync').then(module => module.RecoilURLSyncJSON),
+	{
+		ssr: false,
+	}
+)
+
 const MyApp = ({ Component, pageProps }: AppProps) => (
 	<RecoilRoot>
-		<UserProvider>
-			<NextNProgress color='#15803D' height={3} />
-			<ToastContainer limit={2} />
-			<AuthorizedApolloProvider>
-				<Component {...pageProps} />
-			</AuthorizedApolloProvider>
-		</UserProvider>
+		<RecoilURLSyncJSON location={{ part: 'queryParams' }}>
+			<UserProvider>
+				<NextNProgress color='#15803D' height={3} />
+				<ToastContainer limit={2} />
+				<AuthorizedApolloProvider>
+					<Component {...pageProps} />
+				</AuthorizedApolloProvider>
+			</UserProvider>
+		</RecoilURLSyncJSON>
 	</RecoilRoot>
 )
 

@@ -2,6 +2,8 @@ import { Block, SimpleAST } from 'editor/src/utils/types'
 import { atom, DefaultValue, selector } from 'recoil'
 import { inferQueryOutput } from 'src/utils/trpc'
 import { IntroBlockViewProps, Layout } from 'utils/src'
+import { urlSyncEffect } from 'recoil-sync'
+import refine from '@recoiljs/refine'
 
 /* Stores some basic flick details */
 const flickAtom = atom<{
@@ -33,6 +35,38 @@ const participantsAtom = atom<inferQueryOutput<'story.byId'>['Participants']>({
 const activeFragmentIdAtom = atom<string | null>({
 	key: 'activeFragmentId',
 	default: null,
+})
+
+/* This atom stores if the current atom is being fetched */
+const fragmentLoadingAtom = atom<boolean>({
+	key: 'fragmentLoading',
+	default: false,
+})
+
+/* This atom stores the list of fragments */
+const fragmentsAtom = atom<inferQueryOutput<'story.byId'>['Fragment']>({
+	key: 'fragments',
+	default: [],
+})
+
+const activeFragmentSelector = selector<
+	inferQueryOutput<'story.byId'>['Fragment'][number] | undefined
+>({
+	key: 'activeFragment',
+	get: ({ get }) => {
+		const activeFragmentId = get(activeFragmentIdAtom)
+		const fragments = get(fragmentsAtom)
+		return fragments.find(fragment => fragment.id === activeFragmentId)
+	},
+	set: ({ get, set }, newValue) => {
+		if (newValue instanceof DefaultValue || newValue === undefined) return
+		const fragments = get(fragmentsAtom)
+
+		const newFragments = fragments.map(fragment =>
+			fragment.id === newValue.id ? newValue : fragment
+		)
+		set(fragmentsAtom, newFragments)
+	},
 })
 
 /* This atom keeps track of whether to show the notebook or the full fledged canvas preview */
@@ -123,6 +157,12 @@ const fragmentTypeAtom = atom<FragmentType>({
 const openStudioAtom = atom<boolean>({
 	key: 'openStudio',
 	default: false,
+	effects: [
+		urlSyncEffect({
+			refine: refine.boolean(),
+			syncDefault: true,
+		}),
+	],
 })
 
 export {
@@ -141,6 +181,9 @@ export {
 	thumbnailAtom,
 	thumbnailObjectAtom,
 	publishConfigAtom,
+	fragmentsAtom,
+	activeFragmentSelector,
+	fragmentLoadingAtom,
 }
 export { View }
 export type { ThumbnailProps }

@@ -21,7 +21,7 @@ import useUpdatePayload from 'src/utils/hooks/useUpdatePayload'
 import { useMap, useRoom } from 'src/utils/liveblocks.config'
 import TimelineIcon from 'svg/Timeline.svg'
 import UserPlaceholder from 'svg/UserPlaceholder.svg'
-import { Button } from 'ui/src'
+import { Button, emitToast } from 'ui/src'
 import { IntroBlockView, LiveViewConfig, OutroBlockView } from 'utils/src'
 import { FragmentTypeIcon } from './LayoutGeneric'
 
@@ -224,6 +224,74 @@ const Timeline = ({
 	const config = useMap('viewConfig')?.get(activeFragmentId as string)
 	const [viewConfig, setViewConfig] = useState<LiveViewConfig>()
 
+	const checkInBetween = (start: number, end: number) => {
+		// check if all blocks in between are of type interaction
+		const inBetween = blocks?.slice(start + 1, end)
+
+		if (inBetween?.length === 0) return false
+
+		const isTrue = inBetween?.every(b => {
+			return b.type === 'interactionBlock'
+		})
+
+		return isTrue
+	}
+
+	const handleBlockSelect = (
+		blockId: string,
+		action: 'added' | 'removed',
+		timelineIndex: number
+	) => {
+		if (!viewConfig || !blocks) return
+		if (action === 'added') {
+			if (viewConfig.selectedBlocks?.length > 0) {
+				const currentBlockIndex = blocks?.findIndex(
+					block => block.id === blockId
+				)
+				if (viewConfig.selectedBlocks[0].pos - 1 === currentBlockIndex) {
+					config?.set('selectedBlocks', [
+						{ blockId, pos: timelineIndex },
+						...viewConfig.selectedBlocks,
+					])
+				} else if (
+					viewConfig.selectedBlocks[viewConfig.selectedBlocks.length - 1].pos +
+						1 ===
+					currentBlockIndex
+				) {
+					config?.set('selectedBlocks', [
+						...viewConfig.selectedBlocks,
+						{ blockId, pos: timelineIndex },
+					])
+				} else if (
+					checkInBetween(viewConfig.selectedBlocks[0].pos, currentBlockIndex) ||
+					checkInBetween(currentBlockIndex, viewConfig.selectedBlocks[0].pos)
+				) {
+					config?.set('selectedBlocks', [
+						...viewConfig.selectedBlocks,
+						{ blockId, pos: timelineIndex },
+					])
+				} else {
+					emitToast(
+						"You can't select this block! \n You can only select blocks adjacent to each other",
+						{
+							type: 'info',
+						}
+					)
+				}
+			} else {
+				// Adding the first block
+				config?.set('selectedBlocks', [{ blockId, pos: timelineIndex }])
+			}
+		}
+		if (action === 'removed') {
+			const index = viewConfig.selectedBlocks.findIndex(
+				b => b.blockId === blockId
+			)
+			const newSelectedBlocks = viewConfig.selectedBlocks?.slice(0, index)
+			config?.set('selectedBlocks', newSelectedBlocks)
+		}
+	}
+
 	useEffect(() => {
 		if (!config) return
 		setViewConfig({
@@ -266,21 +334,23 @@ const Timeline = ({
 				}
 			)}
 		>
-			{!persistentTimeline && view !== View.Preview && (
-				<div className='flex items-center'>
-					<Button
-						colorScheme='darker'
-						type='button'
-						className='ml-4 mb-2'
-						onClick={() => {
-							setShowTimeline(!showTimeline)
-						}}
-						leftIcon={<TimelineIcon />}
-					>
-						{showTimeline ? 'Close timeline' : 'Open timeline'}
-					</Button>
-				</div>
-			)}
+			<div className='flex flex-row'>
+				{!persistentTimeline && view !== View.Preview && (
+					<div className='flex items-center'>
+						<Button
+							colorScheme='darker'
+							type='button'
+							className='ml-4 mb-2'
+							onClick={() => {
+								setShowTimeline(!showTimeline)
+							}}
+							leftIcon={<TimelineIcon />}
+						>
+							{showTimeline ? 'Close timeline' : 'Open timeline'}
+						</Button>
+					</div>
+				)}
+			</div>
 
 			<Transition
 				show={showTimeline || persistentTimeline}
@@ -366,6 +436,26 @@ const Timeline = ({
 											)
 									}
 								})()}
+								{viewConfig?.continuousRecording &&
+									block.type !== 'interactionBlock' && (
+										<input
+											className='absolute top-1 right-1 origin-top-right rounded-sm text-green-600'
+											type='checkbox'
+											checked={
+												!!config
+													?.get('selectedBlocks')
+													.find(b => b.blockId === block.id)
+											}
+											onClick={e => {
+												e.stopPropagation()
+												handleBlockSelect(
+													block.id,
+													e.currentTarget.checked ? 'added' : 'removed',
+													index
+												)
+											}}
+										/>
+									)}
 							</a>
 						))}
 					</div>

@@ -40,7 +40,7 @@ const EditorHeader = () => {
 	const viewConfig = config?.toObject()
 
 	const { updatePayload } = useUpdatePayload({
-		blockId: blocks?.[0].id as string,
+		blockId: blocks?.[0]?.id as string,
 		shouldUpdateLiveblocks: false,
 	})
 
@@ -76,7 +76,7 @@ const EditorHeader = () => {
 			| React.MouseEvent<HTMLInputElement, MouseEvent>
 			| React.FocusEvent<HTMLInputElement, Element>
 	) => {
-		setCurrentBlockId(blocks?.[0].id ?? null)
+		setCurrentBlockId(blocks?.[0]?.id ?? null)
 		setPreviewPosition(e.currentTarget.offsetTop - 48)
 		if (!blocks) return
 		const introBlock = blocks[0]

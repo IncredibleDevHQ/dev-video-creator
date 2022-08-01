@@ -141,6 +141,7 @@ const Navbar = () => {
 						</button>
 						{peopleInHuddle?.map(otherPresence => (
 							<Avatar
+								key={otherPresence.user.id}
 								className='h-7 w-7 rounded-full'
 								src={otherPresence.user.picture}
 								name={otherPresence.user.name}
@@ -177,6 +178,7 @@ const Navbar = () => {
 								const otherPresence = presence as Presence
 								return otherPresence.inHuddle ? null : (
 									<Avatar
+										key={otherPresence.user.id}
 										src={otherPresence.user.picture}
 										name={otherPresence.user.name}
 										className='h-7 w-7 rounded-full'

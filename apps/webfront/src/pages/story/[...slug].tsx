@@ -1,9 +1,7 @@
 import dynamic from 'next/dynamic'
-import { useEffect } from 'react'
 import Container from 'src/components/core/Container'
 import prisma from 'src/server/prisma'
 import requireAuth from 'src/utils/helpers/requireAuth'
-import useReplace from 'src/utils/hooks/useReplace'
 import { inferQueryOutput } from 'src/utils/trpc'
 
 const FlickBody = dynamic(() => import('src/components/flick'), {
@@ -11,7 +9,6 @@ const FlickBody = dynamic(() => import('src/components/flick'), {
 })
 
 type FlickProps = {
-	id: string
 	fragmentId: string | null
 	flick: Omit<inferQueryOutput<'story.byId'>, 'updatedAt' | 'deletedAt'> & {
 		updatedAt: string
@@ -19,14 +16,7 @@ type FlickProps = {
 	}
 }
 
-const Flick = ({ id, fragmentId, flick }: FlickProps) => {
-	const replace = useReplace()
-	useEffect(() => {
-		replace(`/story/${id}/${fragmentId}`, undefined, {
-			shallow: true,
-		})
-	}, [replace, fragmentId, id])
-
+const Flick = ({ fragmentId, flick }: FlickProps) => {
 	const modFlick = {
 		...flick,
 		updatedAt: new Date(flick.updatedAt),
@@ -160,13 +150,12 @@ export const getServerSideProps = requireAuth(true)(async ({ query, user }) => {
 			notFound: true,
 		}
 
-	const { Fragment: fragments } = flick
-	if (fragments) {
-		fragmentId = fragments.length > 0 ? fragments[0].id : null
+	const { Fragment } = flick
+	if (Fragment && !fragmentId) {
+		fragmentId = Fragment.length > 0 ? Fragment[0].id : null
 	}
 
 	const props: FlickProps = {
-		id,
 		fragmentId,
 		flick: JSON.parse(JSON.stringify(flick)),
 	}

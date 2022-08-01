@@ -150,10 +150,12 @@ const Brand = () => {
 					</div>
 				)}
 			</Menu>
-			<Branding
-				open={brandingModal}
-				handleClose={() => setBrandingModal(false)}
-			/>
+			{brandingModal && (
+				<Branding
+					open={brandingModal}
+					handleClose={() => setBrandingModal(false)}
+				/>
+			)}
 		</>
 	)
 }

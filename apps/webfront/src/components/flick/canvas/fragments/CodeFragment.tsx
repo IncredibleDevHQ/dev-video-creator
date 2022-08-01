@@ -354,8 +354,8 @@ const CodeFragment = ({
 
 	useEffect(() => {
 		setPosition({
-			prevIndex: payload?.prevIndex || -1,
-			currentIndex: payload?.currentIndex || 0,
+			prevIndex: payload?.prevIndex ?? -1,
+			currentIndex: payload?.currentIndex ?? 0,
 		})
 		// setFocusCode(payload?.isFocus)
 		// if (codeAnimation === 'Insert in between') {
@@ -540,23 +540,8 @@ const CodeFragment = ({
 		})
 	}, [objectRenderConfig, codePreviewValue])
 
-	// TODO
-	// useEffect(() => {
-	// 	if (fragment?.configuration?.continuousRecording) {
-	// 		if (
-	// 			payload?.fragmentState === 'customLayout' ||
-	// 			payload?.fragmentState === 'onlyFragment'
-	// 		) {
-	// 			setLayout(viewConfig?.layout || 'classic')
-	// 			customLayoutRef?.current?.to({
-	// 				opacity: 1,
-	// 			})
-	// 		}
-	// 	}
-	// }, [])
-
 	const layerChildren: any[] = [
-		<Group x={0} y={0} opacity={isPreview ? 1 : 0} ref={customLayoutRef}>
+		<Group x={0} y={0} opacity={1} ref={customLayoutRef}>
 			<FragmentBackground
 				theme={theme}
 				objectConfig={objectConfig}
