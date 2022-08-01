@@ -24,9 +24,18 @@ const getStoragePath = (
         Recorded Block webm's
       */
 		case UploadType.Block:
-			if (meta?.blockId && meta?.fragmentId && meta?.flickId)
+			if (
+				meta?.blockId &&
+				meta?.fragmentId &&
+				meta?.flickId &&
+				meta?.recordingId
+			)
 				return `story/${meta.flickId}/${meta.fragmentId}/${meta.recordingId}/` // config.aws.s3.blockPrefix;
-			return new Error('Invalid meta when trying to save block')
+			return new Error(
+				`Invalid meta when trying to save block. meta: ${JSON.stringify(
+					meta
+				)}.\n`
+			)
 
 		/*
             For storing user generated thumbnail

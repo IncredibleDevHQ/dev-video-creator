@@ -210,6 +210,7 @@ const Studio = ({
 					flickId,
 					fragmentId,
 					recordingId,
+					blockId,
 				},
 				handleProgress: ({ percentage }) => {
 					updateToast(toast, `Pushing pixels... (${percentage}%)`, {
@@ -218,6 +219,7 @@ const Studio = ({
 					})
 				},
 			})
+			console.log('objectUrl', objectUrl)
 
 			let thumbnailFilename: string | null = null
 			// Upload block thumbnail

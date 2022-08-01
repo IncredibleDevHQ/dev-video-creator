@@ -304,19 +304,22 @@ const utilsRouter = trpc
 		},
 	})
 	// Session cookie middleware
-	.middleware(({ meta, ctx, next }) => {
-		// only check authorization if enabled
-		if (meta?.hasAuth && !ctx.user && !ctx.sessionCookie) {
-			throw new TRPCError({ code: 'UNAUTHORIZED' })
-		}
+	// .middleware(({ meta, ctx, next }) => {
+	// 	console.log('meta: ', meta)
+	// 	console.log('ctx: ', ctx.user?.sub)
+	// 	console.log('sess: ', ctx.sessionCookie)
+	// 	// only check authorization if enabled
+	// 	if (meta?.hasAuth && !ctx.user && !ctx.sessionCookie) {
+	// 		throw new TRPCError({ code: 'UNAUTHORIZED' })
+	// 	}
 
-		return next({
-			ctx: {
-				...ctx,
-				user: ctx.user ? ctx.user : ctx.sessionCookie,
-			},
-		})
-	})
+	// 	return next({
+	// 		ctx: {
+	// 			...ctx,
+	// 			user: ctx.user ? ctx.user : ctx.sessionCookie,
+	// 		},
+	// 	})
+	// })
 	.mutation('getUploadUrl', {
 		meta: {
 			hasAuth: true,
@@ -330,12 +333,9 @@ const utilsRouter = trpc
 					fragmentId: z.string().optional(),
 					brandId: z.string().optional(),
 					recordingId: z.string().optional(),
+					blockId: z.string().optional(),
 				})
 				.nullish(),
-		}),
-		output: z.object({
-			success: z.boolean(),
-			url: z.string(),
 		}),
 		resolve: async ({ input, ctx }) => {
 			let uploadType: UploadType
@@ -396,7 +396,15 @@ const utilsRouter = trpc
 					})
 				}
 				const userSub: string = (ctx.user?.sub || ctx.sessionCookie?.sub)! // guaranteed to exist
+
 				const path = getStoragePath(userSub, uploadType, input.meta)
+				if (path instanceof Error) {
+					throw new TRPCError({
+						code: 'INTERNAL_SERVER_ERROR',
+						message: path.message,
+					})
+				}
+
 				const url = await s3.getSignedUrlPromise('putObject', {
 					Bucket: serverEnvs.AWS_S3_UPLOAD_BUCKET,
 					Expires: 20 * 60,
@@ -404,12 +412,11 @@ const utilsRouter = trpc
 					ContentType: mime,
 				})
 				// TODO: Add entry on Assets table to track objects uploaded by user
-				return { success: true, url }
+				return { success: true, url, object: path + input.key }
 			} catch (e) {
-				// console.log('Error generating pre-signed URL :', e)
 				throw new TRPCError({
 					code: 'INTERNAL_SERVER_ERROR',
-					message: 'Failed to generate upload url.',
+					message: `Failed to generate upload url.${e.message}`,
 				})
 			}
 		},
