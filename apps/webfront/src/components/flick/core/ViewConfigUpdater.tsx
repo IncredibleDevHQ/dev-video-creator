@@ -212,13 +212,9 @@ const ViewConfigUpdater = () => {
 			)
 
 			if (position > firstBlockPosition && position < lastBlockPosition) {
-				const newSelectedBlocks = [
-					...viewConfig.selectedBlocks,
-					{
-						blockId: id,
-						pos: lastBlockPosition + 1,
-					},
-				]
+				const newSelectedBlocks = simpleAST.blocks
+					.slice(firstBlockPosition, lastBlockPosition + 1)
+					.map(b => ({ blockId: b.id, pos: b.pos }))
 				config?.set('selectedBlocks', newSelectedBlocks)
 			}
 		},
