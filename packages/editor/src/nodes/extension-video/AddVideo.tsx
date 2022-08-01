@@ -146,9 +146,9 @@ const AddVideo = ({
 
 			if (!extension) throw Error('Failed to get extension')
 
-			// ['alpha.incredible.dev', 'story', '<FLICK_ID>', '<FRAGMENT_ID>']
+			// ['incredible.dev', 'story', '<FLICK_ID>', '<FRAGMENT_ID>', '?', ...]
 			const href = window.location.href.replace('https://', '').split('/')
-			const fragmentId = href.pop()
+			const fragmentId = href.pop()?.split('?')[0]
 			const flickId = href.pop()
 
 			const { url } = await uploadVideo({
