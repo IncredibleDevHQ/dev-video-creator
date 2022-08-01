@@ -136,7 +136,6 @@ const Studio = ({
 		} catch (e) {
 			console.log(e)
 		}
-		// setResetTimer(false)
 	}
 
 	const updateRecordedBlocks = (blocks: { [key: string]: string }) => {
@@ -302,11 +301,9 @@ const Studio = ({
 		if (event.type === RoomEventTypes.RetakeButtonClick) {
 			resetCanvas()
 			// setTopLayerChildren?.({ id: nanoid(), state: '' })
-			// setResetTimer(true)
 		}
 		if (event.type === RoomEventTypes.SaveButtonClick) {
 			// setTopLayerChildren?.({ id: nanoid(), state: '' })
-			// setResetTimer(true)
 		}
 		if (event.type === RoomEventTypes.RequestControls) {
 			if (isStudioController) {
@@ -545,7 +542,6 @@ const Studio = ({
 														})
 														// TODO if we change the active object index we need to update the state
 														// setTopLayerChildren?.({ id: nanoid(), state: '',})
-														// setResetTimer(true)
 
 														if (dataConfig?.[activeObjectIndex]?.id)
 															// calls the upload function
@@ -623,7 +619,6 @@ const Studio = ({
 												resetCanvas()
 												updateState('resumed')
 												// setTopLayerChildren?.({ id: nanoid(), state: '' })
-												// setResetTimer(true)
 											}}
 										>
 											Retake
