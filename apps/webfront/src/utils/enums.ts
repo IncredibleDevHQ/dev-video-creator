@@ -2,6 +2,7 @@ export enum FragmentTypeEnum {
 	Landscape = 'Landscape',
 	Portrait = 'Portrait',
 	Presentation = 'Presentation',
+	Blog = 'Blog',
 }
 
 export enum FlickScopeEnum {

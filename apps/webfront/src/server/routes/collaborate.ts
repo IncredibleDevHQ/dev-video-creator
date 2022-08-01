@@ -201,7 +201,7 @@ const collaborateRouter = trpc
 
 			const invites = await ctx.prisma.invitations.findMany({
 				where: {
-					receiverId: ctx.user.sub,
+					flickId: input.id,
 					OR: [
 						{
 							status: InvitationStatusEnum.Pending.toString(),
@@ -210,7 +210,6 @@ const collaborateRouter = trpc
 							status: InvitationStatusEnum.Email.toString(),
 						},
 					],
-					flickId: input.id,
 				},
 				select: {
 					User_Invitations_receiverIdToUser: {

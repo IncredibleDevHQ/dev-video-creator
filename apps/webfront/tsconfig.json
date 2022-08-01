@@ -2,17 +2,14 @@
 	"extends": "config/tsconfig-webfront.json",
 	"compilerOptions": {
 		"baseUrl": ".",
-		"strict": true
+		"strict": true,
+		"disableSizeLimit": true,
+		"declaration": false,
+		"declarationMap": false
 	},
 	"paths": {
 		"@/*": ["./src/*"]
 	},
-	"include": [
-		"next-env.d.ts",
-		"**/*.ts",
-		"**/*.tsx",
-		"pre-build.js",
-		"../../packages/utils/src/hooks/use-upload-file.ts"
-	],
+	"include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "pre-build.js"],
 	"exclude": ["node_modules"]
 }

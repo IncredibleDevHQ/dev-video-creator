@@ -14,6 +14,7 @@ import {
 	Meta,
 } from '../utils/helpers'
 import {
+	ContentTypeEnum,
 	FlickScopeEnum,
 	InvitationStatusEnum,
 	ParticipantRoleEnum,
@@ -151,6 +152,18 @@ export const createFlick = async (
 		},
 		select: {
 			id: true,
+		},
+	})
+
+	// Add default recording
+	await ctx.prisma.recording.create({
+		data: {
+			flickId: story.id,
+			fragmentId: fragment.id,
+			type: ContentTypeEnum.Video,
+			editorState: input.fragmentDataConfig,
+			viewConfig: input.fragmentViewConfig,
+			status: 'pending',
 		},
 	})
 

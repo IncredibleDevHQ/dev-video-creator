@@ -6,6 +6,8 @@ import { z } from 'zod'
 // eslint-disable-next-line import/no-extraneous-dependencies
 import * as uuid from 'uuid'
 import { createClient, LiveMap, LiveObject } from '@liveblocks/client'
+// eslint-disable-next-line import/no-extraneous-dependencies
+import WebSocket from 'ws'
 import {
 	sendTransactionalEmail,
 	TransactionalMailType,
@@ -51,6 +53,70 @@ const fragmentRouter = trpc
 				user: ctx.user,
 			},
 		})
+	})
+	.mutation('get', {
+		meta: {
+			hasAuth: true,
+		},
+		input: z.object({
+			id: z.string(),
+		}),
+		resolve: async ({ input, ctx }) => {
+			const { id } = input
+
+			const fragment = await ctx.prisma.fragment.findUnique({
+				where: {
+					id,
+				},
+				select: {
+					configuration: true,
+					description: true,
+					flickId: true,
+					id: true,
+					name: true,
+					order: true,
+					type: true,
+					producedLink: true,
+					producedShortsLink: true,
+					editorState: true,
+					editorValue: true,
+					encodedEditorValue: true,
+					thumbnailConfig: true,
+					thumbnailObject: true,
+					publishConfig: true,
+					version: true,
+					Blocks: {
+						select: {
+							id: true,
+							objectUrl: true,
+							recordingId: true,
+							thumbnail: true,
+							playbackDuration: true,
+						},
+					},
+					Flick: {
+						select: {
+							name: true,
+							description: true,
+						},
+					},
+					Recording: {
+						select: {
+							id: true,
+						},
+					},
+				},
+			})
+
+			if (!fragment) {
+				throw new TRPCError({
+					code: 'NOT_FOUND',
+					message: 'Fragment not found',
+				})
+			}
+
+			return fragment
+		},
 	})
 	// ACTIONS
 	.mutation('create', {
@@ -194,6 +260,18 @@ const fragmentRouter = trpc
 			// update redis for hocuspocus
 			await initRedisWithDataConfig(fragment.id, editorState, undefined)
 
+			// add default recording
+			await ctx.prisma.recording.create({
+				data: {
+					flickId: input.flickId,
+					fragmentId: fragment.id,
+					type: ContentTypeEnum.Video,
+					editorState,
+					viewConfig: JSON.parse(JSON.stringify(fragmentViewConfig)),
+					status: 'pending',
+				},
+			})
+
 			return {
 				fragmentId: fragment.id,
 				type: fragment.type as FragmentTypeEnum,
@@ -274,7 +352,6 @@ const fragmentRouter = trpc
 			}
 		},
 	})
-
 	.mutation('publish', {
 		meta: { hasAuth: true },
 		// modeled after IPublish interface in flick.store
@@ -764,5 +841,24 @@ const fragmentRouter = trpc
 			return { success: true, data: { id: updatedFragment.id } }
 		},
 	})
-
+	.mutation('updateName', {
+		meta: {
+			hasAuth: true,
+		},
+		input: z.object({
+			id: z.string(),
+			name: z.string(),
+		}),
+		resolve: async ({ ctx, input }) => {
+			const updatedFragment = await ctx.prisma.fragment.update({
+				where: {
+					id: input.id,
+				},
+				data: {
+					name: input.name,
+				},
+			})
+			return { success: true, data: { id: updatedFragment.id } }
+		},
+	})
 export default fragmentRouter
