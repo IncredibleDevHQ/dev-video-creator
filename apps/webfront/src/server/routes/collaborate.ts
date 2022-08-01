@@ -351,8 +351,9 @@ const collaborateRouter = trpc
 			const ownerParticipant = flick?.Participants.find(
 				p => p.userSub === ctx.user!.sub
 			)
+
 			if (
-				ownerParticipant?.role === ParticipantRoleEnum.Host ||
+				ownerParticipant?.role !== ParticipantRoleEnum.Host ||
 				flick?.ownerSub !== ctx.user?.sub
 			) {
 				throw new TRPCError({
