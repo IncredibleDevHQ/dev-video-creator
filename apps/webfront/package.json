@@ -73,7 +73,6 @@
 		"react-tooltip": "^4.2.21",
 		"react-use-measure": "^2.1.1",
 		"recoil": "^0.7.4",
-		"recoil-sync": "^0.1.0",
 		"remark": "^14.0.2",
 		"remark-html": "^15.0.1",
 		"slugify": "^1.6.5",

@@ -198,7 +198,7 @@ const MediaControls = React.memo(
 					tracks?.[0]?.stop()
 					tracks?.[1]?.stop()
 					await leave()
-					emitToast('Failed to join channel', {
+					emitToast(`Failed to join channel ${error}`, {
 						type: 'error',
 					})
 				}

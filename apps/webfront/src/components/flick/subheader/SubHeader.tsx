@@ -1,5 +1,6 @@
 import { cx } from '@emotion/css'
 import { useIncredibleEditor } from 'editor/src'
+import { useRouter } from 'next/router'
 import { useEffect, useMemo, useState } from 'react'
 import { BsCloudCheck } from 'react-icons/bs'
 import { IoImageOutline, IoWarningOutline } from 'react-icons/io5'
@@ -117,6 +118,16 @@ const RecordButton = () => {
 	const room = useRoom()
 	const config = useMap('viewConfig')?.get(activeFragmentId as string)
 	const [viewConfig, setViewConfig] = useState<LiveViewConfig>()
+	const { query } = useRouter()
+
+	const setOpenStudio = useSetRecoilState(openStudioAtom)
+	const updateMyPresence = useUpdateMyPresence()
+
+	useEffect(() => {
+		if (query.openStudio === 'true') {
+			setOpenStudio(true)
+		}
+	}, [query.openStudio])
 
 	useEffect(() => {
 		if (!config) return
@@ -142,9 +153,6 @@ const RecordButton = () => {
 			unsubscribe?.()
 		}
 	}, [config, room])
-
-	const setOpenStudio = useSetRecoilState(openStudioAtom)
-	const updateMyPresence = useUpdateMyPresence()
 
 	const handleContinuousToggle = () => {
 		config?.set('continuousRecording', !viewConfig?.continuousRecording)

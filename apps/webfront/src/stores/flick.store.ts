@@ -6,8 +6,6 @@ import {
 	FlickParticipantsFragment,
 } from 'src/graphql/generated'
 import { IntroBlockViewProps, Layout } from 'utils/src'
-import { urlSyncEffect } from 'recoil-sync'
-import refine from '@recoiljs/refine'
 
 /* Stores some basic flick details */
 const flickAtom = atom<{
@@ -159,12 +157,6 @@ const fragmentTypeAtom = atom<FragmentType>({
 const openStudioAtom = atom<boolean>({
 	key: 'openStudio',
 	default: false,
-	effects: [
-		urlSyncEffect({
-			refine: refine.boolean(),
-			syncDefault: true,
-		}),
-	],
 })
 
 export {

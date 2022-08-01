@@ -1,4 +1,5 @@
 import { Block } from 'editor/src/utils/types'
+import { useRouter } from 'next/router'
 import React, { useEffect, useState } from 'react'
 import { useRecoilValue } from 'recoil'
 import { astAtom } from 'src/stores/flick.store'
@@ -14,6 +15,8 @@ const StudioHoC = ({
 	fragmentId: string
 	flickId: string
 }) => {
+	const { replace, query } = useRouter()
+
 	const [viewConfig, setViewConfig] = useState<ViewConfig>()
 	const [dataConfig, setDataConfig] = useState<Block[]>()
 	const ast = useRecoilValue(astAtom)
@@ -52,6 +55,20 @@ const StudioHoC = ({
 			}
 		}
 	}, [ast, dataConfig, viewConfig])
+
+	useEffect(
+		() => () => {
+			const { slug, openStudio, ...rest } = query
+			replace(
+				{ pathname: `/story/${flickId}/${fragmentId}`, query: rest },
+				undefined,
+				{
+					shallow: true,
+				}
+			)
+		},
+		[]
+	)
 
 	if (!viewConfig || !dataConfig || !recordingId) return null
 	return (

@@ -51,23 +51,16 @@ const FragmentStoreUpdater = () => {
 				})
 				set(recordedBlocksAtom, tempRecordedBlocks)
 				set(recordingIdAtom, activeFragment.recordings[0].id)
+				set(fragmentLoadingAtom, false)
 			}
 	)
 
-	const [getFragment, { loading }] = useGetFlickFragmentLazyQuery({
+	const [getFragment] = useGetFlickFragmentLazyQuery({
 		onCompleted(data) {
 			if (!data.Fragment_by_pk) return
 			setFragmentStores(data.Fragment_by_pk)
 		},
 	})
-
-	useEffect(() => {
-		if (loading) {
-			setFragmentLoading(true)
-		} else {
-			setFragmentLoading(false)
-		}
-	}, [loading])
 
 	const activeFragmentId = useRecoilValue(activeFragmentIdAtom)
 	useEffect(() => {
@@ -77,6 +70,7 @@ const FragmentStoreUpdater = () => {
 			})
 			return
 		}
+		setFragmentLoading(true)
 		getFragment({
 			variables: {
 				id: activeFragmentId,
