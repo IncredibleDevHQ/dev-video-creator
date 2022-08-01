@@ -67,9 +67,11 @@ const Theme = () => {
 		storage: { cdn: baseUrl },
 	} = useEnv()
 	const [activeScreen, setActiveScreen] = useState<'theme' | 'themes'>('themes')
-	const [tempActiveTheme, setTempActiveTheme] = useState<ThemeFragment | null>(
-		activeTheme
-	)
+	const [tempActiveTheme, setTempActiveTheme] = useState<ThemeFragment>()
+
+	useEffect(() => {
+		setTempActiveTheme(activeTheme)
+	}, [activeTheme])
 
 	const [updateTheme, { loading }] = useUpdateFlickThemeMutation()
 
@@ -158,7 +160,7 @@ const Theme = () => {
 											})}
 											onClick={() => {
 												setActiveScreen('themes')
-												setTempActiveTheme(null)
+												setTempActiveTheme(undefined)
 											}}
 										>
 											Themes
