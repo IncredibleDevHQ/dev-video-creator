@@ -151,7 +151,13 @@ const getIcon = (tab: Tab, block?: BlockProperties) => {
 	}
 }
 
-const Preview = ({ centered }: { centered: boolean }) => {
+const Preview = ({
+	centered,
+	handleClose,
+}: {
+	centered: boolean
+	handleClose?: () => void
+}) => {
 	const activeFragmentId = useRecoilValue(activeFragmentIdAtom)
 	const fragmentType = useRecoilValue(fragmentTypeAtom)
 	const openStudio = useRecoilValue(openStudioAtom)
@@ -265,6 +271,7 @@ const Preview = ({ centered }: { centered: boolean }) => {
 							size='large'
 							leftIcon={<BsFillRecordFill size={18} className='text-red-500' />}
 							onClick={() => {
+								handleClose?.()
 								setOpenStudio(true)
 								updateMyPresence({
 									page: PresencePage.Backstage,

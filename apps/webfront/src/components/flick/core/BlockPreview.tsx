@@ -92,7 +92,7 @@ const BlockPreview = () => {
 							leaveTo='opacity-0 scale-95'
 						>
 							<Dialog.Panel className='flex rounded-md flex-col h-[85vh] w-[90%] overflow-hidden'>
-								<Preview centered />
+								<Preview centered handleClose={() => setPreviewOpen(false)} />
 								<Timeline
 									persistentTimeline
 									shouldScrollToCurrentBlock={false}
