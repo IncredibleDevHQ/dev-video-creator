@@ -17,6 +17,7 @@ import {
 	activeFragmentIdAtom,
 	astAtom,
 	currentBlockSelector,
+	fragmentTypeAtom,
 	openStudioAtom,
 } from 'src/stores/flick.store'
 import { codePreviewStore } from 'src/stores/studio.store'
@@ -152,6 +153,7 @@ const getIcon = (tab: Tab, block?: BlockProperties) => {
 
 const Preview = ({ centered }: { centered: boolean }) => {
 	const activeFragmentId = useRecoilValue(activeFragmentIdAtom)
+	const fragmentType = useRecoilValue(fragmentTypeAtom)
 	const openStudio = useRecoilValue(openStudioAtom)
 
 	const config = useMap('viewConfig')
@@ -227,87 +229,95 @@ const Preview = ({ centered }: { centered: boolean }) => {
 
 	return (
 		<div className='flex justify-between flex-1 overflow-hidden'>
-			<div
-				className={cx(
-					'flex justify-center items-start bg-gray-100 flex-1 pl-0',
-					{
-						'items-center -mt-8': centered,
-						'pt-12': !centered,
-					}
-				)}
-				ref={ref}
-			>
-				<div className='flex items-center relative'>
-					{!openStudio && (
-						<CanvasComponent
-							bounds={bounds}
-							dataConfig={[block]}
-							viewConfig={{
-								mode: config?.mode || 'Landscape',
-								speakers: config?.speakers || [],
-								selectedBlocks: config?.selectedBlocks || [],
-								continuousRecording: config?.continuousRecording || false,
-								blocks: {
-									[block.id]: blockProperties || {},
-								},
+			<div className='flex flex-col flex-1'>
+				<div
+					className={cx(
+						'flex justify-center items-start bg-gray-100 flex-1 pl-0',
+						{
+							'items-center': centered,
+							'-mt-4': centered && fragmentType === 'Portrait',
+							'pt-8': !centered,
+						}
+					)}
+					ref={ref}
+				>
+					<div className='flex items-center relative'>
+						{!openStudio && (
+							<CanvasComponent
+								bounds={bounds}
+								dataConfig={[block]}
+								viewConfig={{
+									mode: config?.mode || 'Landscape',
+									speakers: config?.speakers || [],
+									selectedBlocks: config?.selectedBlocks || [],
+									continuousRecording: config?.continuousRecording || false,
+									blocks: {
+										[block.id]: blockProperties || {},
+									},
+								}}
+								isPreview
+								scale={0.95}
+							/>
+						)}
+						<Button
+							className='text-dark-title absolute -bottom-12 left-0'
+							colorScheme='darker'
+							size='large'
+							leftIcon={<BsFillRecordFill size={18} className='text-red-500' />}
+							onClick={() => {
+								setOpenStudio(true)
+								updateMyPresence({
+									page: PresencePage.Backstage,
+								})
 							}}
-							isPreview
-							scale={0.83}
-						/>
-					)}
-					<Button
-						className='text-dark-title absolute bottom-0 left-0 -mb-12'
-						colorScheme='darker'
-						size='large'
-						leftIcon={<BsFillRecordFill size={18} className='text-red-500' />}
-						onClick={() => {
-							setOpenStudio(true)
-							updateMyPresence({
-								page: PresencePage.Backstage,
-							})
-						}}
-					>
-						Record
-					</Button>
-					{block.type === 'codeBlock' && (
-						<div className='absolute bottom-0 right-0 -mb-11'>
-							<button
-								className={cx(
-									'bg-gray-800 border border-gray-200 text-white p-1.5 rounded-sm'
-								)}
-								type='button'
-								onClick={() => {
-									setCodePreviewValue?.(
-										codePreviewValue ? codePreviewValue - 1 : 0
-									)
-								}}
-							>
-								<IoArrowUpOutline
-									style={{
-										margin: '3px',
+						>
+							Record
+						</Button>
+						{block.type === 'codeBlock' && (
+							<div className='absolute -bottom-11 right-0'>
+								<button
+									className={cx(
+										'bg-gray-800 border border-gray-200 text-white p-1.5 rounded-sm'
+									)}
+									type='button'
+									onClick={() => {
+										setCodePreviewValue?.(
+											codePreviewValue ? codePreviewValue - 1 : 0
+										)
 									}}
-									className='w-4 h-4 p-px'
-								/>
-							</button>
-							<button
-								className={cx(
-									'bg-gray-800 border border-gray-200 text-white p-1.5 rounded-sm ml-2'
-								)}
-								type='button'
-								onClick={() => {
-									setCodePreviewValue?.(codePreviewValue + 1)
-								}}
-							>
-								<IoArrowDownOutline
-									style={{
-										margin: '3px',
+								>
+									<IoArrowUpOutline
+										style={{
+											margin: '3px',
+										}}
+										className='w-4 h-4 p-px'
+									/>
+								</button>
+								<button
+									className={cx(
+										'bg-gray-800 border border-gray-200 text-white p-1.5 rounded-sm ml-2'
+									)}
+									type='button'
+									onClick={() => {
+										setCodePreviewValue?.(codePreviewValue + 1)
 									}}
-									className='w-4 h-4 p-px'
-								/>
-							</button>
-						</div>
-					)}
+								>
+									<IoArrowDownOutline
+										style={{
+											margin: '3px',
+										}}
+										className='w-4 h-4 p-px'
+									/>
+								</button>
+							</div>
+						)}
+					</div>
 				</div>
+				<div
+					className={cx('h-40 bg-gray-100', {
+						'!h-6': centered,
+					})}
+				/>
 			</div>
 			{block.type !== 'interactionBlock' && (
 				<div className='flex w-[350px]'>
