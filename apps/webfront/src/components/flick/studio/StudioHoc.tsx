@@ -59,13 +59,15 @@ const StudioHoC = ({
 	useEffect(
 		() => () => {
 			const { slug, openStudio, ...rest } = query
-			replace(
-				{ pathname: `/story/${flickId}/${fragmentId}`, query: rest },
-				undefined,
-				{
-					shallow: true,
-				}
-			)
+			if (openStudio === 'true') {
+				replace(
+					{ pathname: `/story/${flickId}/${fragmentId}`, query: rest },
+					undefined,
+					{
+						shallow: true,
+					}
+				)
+			}
 		},
 		[]
 	)
