@@ -7,6 +7,7 @@ import { IoImageOutline, IoWarningOutline } from 'react-icons/io5'
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
 import {
 	activeFragmentIdAtom,
+	isTimelineVisibleAtom,
 	openStudioAtom,
 	View,
 	viewAtom,
@@ -17,7 +18,7 @@ import {
 	useRoom,
 	useUpdateMyPresence,
 } from 'src/utils/liveblocks.config'
-import { Button, Switch, Text } from 'ui/src'
+import { Button, emitToast, Switch, Text } from 'ui/src'
 import { LiveViewConfig } from 'utils/src'
 import Brand from './Brand'
 import FormatSelector from './FormatSelector'
@@ -121,6 +122,7 @@ const RecordButton = () => {
 	const { query } = useRouter()
 
 	const setOpenStudio = useSetRecoilState(openStudioAtom)
+	const setTimelineVisible = useSetRecoilState(isTimelineVisibleAtom)
 	const updateMyPresence = useUpdateMyPresence()
 
 	useEffect(() => {
@@ -183,20 +185,28 @@ const RecordButton = () => {
 
 			<Button
 				className='text-dark-title'
-				disabled={
-					viewConfig?.continuousRecording &&
-					viewConfig.selectedBlocks.length < 1
-				}
+				// disabled={
+				// 	viewConfig?.continuousRecording &&
+				// 	viewConfig.selectedBlocks.length < 1
+				// }
 				onClick={() => {
+					if (
+						viewConfig?.continuousRecording &&
+						viewConfig.selectedBlocks.length < 1
+					) {
+						emitToast('Please select at least one block to record', {
+							type: 'info',
+						})
+						setTimelineVisible(true)
+						return
+					}
 					setOpenStudio(true)
 					updateMyPresence({
 						page: PresencePage.Backstage,
 					})
 				}}
 			>
-				{viewConfig?.continuousRecording && viewConfig.selectedBlocks.length < 1
-					? 'Select blocks to record'
-					: 'Record'}
+				Record
 			</Button>
 		</>
 	)

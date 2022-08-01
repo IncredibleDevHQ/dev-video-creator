@@ -4,7 +4,7 @@
     Returns null
 */
 
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRecoilValue } from 'recoil'
 import {
 	activeFragmentIdAtom,
@@ -13,13 +13,14 @@ import {
 } from 'src/stores/flick.store'
 import { brandingAtom, themeAtom } from 'src/stores/studio.store'
 import { loadFonts } from 'src/utils/hooks/useLoadFont'
-import { useMap } from 'src/utils/liveblocks.config'
+import { useMap, useRoom } from 'src/utils/liveblocks.config'
 import {
 	BlockProperties,
 	CodeAnimation,
 	CodeStyle,
 	CodeTheme,
 	IntroBlockView,
+	LiveViewConfig,
 	OutroBlockView,
 } from 'utils/src'
 
@@ -30,9 +31,34 @@ const ViewConfigUpdater = () => {
 	const theme = useRecoilValue(themeAtom)
 	const branding = useRecoilValue(brandingAtom)
 
-	const viewConfig = useMap('viewConfig')
-		?.get(activeFragmentId as string)
-		?.toObject()
+	const room = useRoom()
+	const config = useMap('viewConfig')?.get(activeFragmentId as string)
+	const [viewConfig, setViewConfig] = useState<LiveViewConfig>()
+
+	useEffect(() => {
+		if (!config) return
+		setViewConfig({
+			...config.toObject(),
+		})
+	}, [config])
+
+	useEffect(() => {
+		let unsubscribe: any
+		if (config && !unsubscribe) {
+			unsubscribe = room.subscribe(
+				config,
+				() => {
+					setViewConfig({
+						...config.toObject(),
+					})
+				},
+				{ isDeep: true }
+			)
+		}
+		return () => {
+			unsubscribe?.()
+		}
+	}, [config, room])
 
 	useMemo(() => {
 		if (branding?.font)
@@ -146,6 +172,63 @@ const ViewConfigUpdater = () => {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [branding])
 
+	const updateSelectedBlocks = useCallback(
+		(id: string) => {
+			// return if its not continuous recording, or if there is 0/1 block selected
+			if (
+				!viewConfig?.continuousRecording ||
+				!viewConfig?.selectedBlocks ||
+				viewConfig?.selectedBlocks.length === 1 ||
+				!simpleAST
+			)
+				return
+
+			const position = simpleAST?.blocks.findIndex(b => b.id === id)
+			if (position === -1) return
+
+			const selectedBlocks = viewConfig.selectedBlocks.map(b => b.blockId)
+			const blocks: {
+				blockId: string
+				pos: number
+			}[] = []
+
+			simpleAST.blocks.forEach((b, i) => {
+				if (selectedBlocks.includes(b.id)) {
+					blocks.push({ blockId: b.id, pos: i })
+				}
+			})
+
+			// blocks are sorted by position
+			blocks.sort((a, b) => a.pos - b.pos)
+
+			const firstBlock = blocks[0]
+			const lastBlock = blocks[blocks.length - 1]
+
+			const firstBlockPosition = simpleAST.blocks.findIndex(
+				b => b.id === firstBlock.blockId
+			)
+			const lastBlockPosition = simpleAST.blocks.findIndex(
+				b => b.id === lastBlock.blockId
+			)
+
+			if (position > firstBlockPosition && position < lastBlockPosition) {
+				const newSelectedBlocks = [
+					...viewConfig.selectedBlocks,
+					{
+						blockId: id,
+						pos: lastBlockPosition + 1,
+					},
+				]
+				config?.set('selectedBlocks', newSelectedBlocks)
+			}
+		},
+		[
+			simpleAST?.blocks,
+			viewConfig?.selectedBlocks,
+			viewConfig?.continuousRecording,
+		]
+	)
+
 	const updateBlockProperties = useCallback(
 		(id: string, properties: BlockProperties) => {
 			if (!viewConfig) return
@@ -158,6 +241,7 @@ const ViewConfigUpdater = () => {
 				})
 
 			viewConfig.blocks.set(id, properties)
+			updateSelectedBlocks(id)
 		},
 		[simpleAST?.blocks, viewConfig?.blocks, viewConfig]
 	)

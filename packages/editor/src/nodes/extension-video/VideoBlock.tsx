@@ -235,7 +235,7 @@ export const VideoBlock = (props: any) => {
 		<NodeViewWrapper
 			as='div'
 			id={node.attrs.id}
-			className='w-full aspect-[16/9] relative group'
+			className='w-full aspect-[16/9] relative group mb-4'
 			ref={ref}
 		>
 			<VideoTooltip
