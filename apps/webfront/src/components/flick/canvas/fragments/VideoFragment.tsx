@@ -69,8 +69,6 @@ const VideoFragment = ({
 	})
 	const setControlsConfig = useSetRecoilState(controlsConfigAtom)
 
-	// const [studio, setStudio] = useRecoilState(studioStore)
-
 	const [videoConfig, setVideoConfig] = useState<VideoConfig>({
 		x: 0,
 		y: 0,
@@ -94,7 +92,7 @@ const VideoFragment = ({
 	// const [bgImage] = useImage(viewConfig?.background?.image || '', 'anonymous')
 	const [transformations, setTransformations] = useState<Transformations>()
 
-	const [layout, setLayout] = useState<Layout | undefined>()
+	const [layout, setLayout] = useState<Layout | undefined>(viewConfig?.layout)
 
 	const [objectConfig, setObjectConfig] = useState<ObjectConfig>({
 		x: 0,

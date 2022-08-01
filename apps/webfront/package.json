@@ -82,6 +82,7 @@
 		"use-debounce": "^8.0.1",
 		"use-font-face-observer": "^1.2.1",
 		"use-image": "^1.0.12",
+		"use-interval": "^1.4.0",
 		"utils": "*",
 		"uuid": "^8.3.2",
 		"yup": "^0.32.11",
