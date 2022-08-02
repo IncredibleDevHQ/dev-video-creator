@@ -1,5 +1,4 @@
 import admin from 'firebase-admin'
-import * as crypto from 'crypto'
 import axios from 'axios'
 import { createClient } from 'redis'
 import { TRPCError } from '@trpc/server'
@@ -170,14 +169,6 @@ export const validateEmail = (email: string) => {
 	const re =
 		/^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
 	return re.test(String(email).toLowerCase())
-}
-
-export function generateSuggestionsFromEmail(email: string): string {
-	const nameParts = email.replace(/@.+/, '')
-	const name = nameParts.replace(/[&/\\#,+()$~%._@'":*?<>{}]/g, '')
-	const suggestion = name + crypto.randomInt(100, 900).toString()
-
-	return suggestion
 }
 
 export const createLiveBlocksRoom = async (

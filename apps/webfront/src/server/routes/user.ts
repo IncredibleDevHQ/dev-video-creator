@@ -4,8 +4,9 @@ import { TRPCError } from '@trpc/server'
 import { NotificationTypeEnum } from 'src/utils/enums'
 
 import { z } from 'zod'
+import { generateSuggestionsFromEmail } from 'utils/src/helpers/suggestion'
 import type { Context } from '../createContext'
-import { generateSuggestionsFromEmail, Meta } from '../utils/helpers'
+import { Meta } from '../utils/helpers'
 
 const userRouter = trpc
 	.router<Context, Meta>()
