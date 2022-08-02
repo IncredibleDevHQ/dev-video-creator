@@ -892,7 +892,7 @@ const storyRouter = trpc
 		input: z.object({
 			id: z.string(),
 			useBranding: z.boolean(),
-			brandingId: z.string().optional(),
+			brandingId: z.string(),
 		}),
 		resolve: async ({ ctx, input }) => {
 			const update = await ctx.prisma.flick.update({

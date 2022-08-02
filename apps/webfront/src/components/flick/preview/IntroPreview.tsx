@@ -10,6 +10,8 @@ import Dropzone from 'react-dropzone'
 import { DragDropContext, Draggable, Droppable } from 'react-beautiful-dnd'
 import { capitalCase } from 'change-case'
 import { UploadType } from 'utils/src/enums'
+import { useRecoilValue } from 'recoil'
+import { flickAtom } from 'src/stores/flick.store'
 
 const IntroContentTab = ({
 	view,
@@ -101,6 +103,7 @@ const PictureTab = ({
 }) => {
 	const [uploadFile] = useUploadFile()
 	const [fileUploading, setFileUploading] = useState(false)
+	const flick = useRecoilValue(flickAtom)
 
 	const handleUploadFile = async (files: File[]) => {
 		const file = files?.[0]
@@ -111,7 +114,9 @@ const PictureTab = ({
 			extension: file.name.split('.').pop() as any,
 			file,
 			tag: UploadType.Profile,
-			meta: {},
+			meta: {
+				flickId: flick?.id,
+			},
 		})
 
 		setFileUploading(false)
