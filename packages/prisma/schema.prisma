@@ -174,7 +174,7 @@ model Flick {
   md               String?         @db.LongText
   Branding         Branding?       @relation(fields: [brandingId], references: [id], onUpdate: NoAction)
   Organisation     Organisation?   @relation(fields: [organisationSlug], references: [slug], onDelete: Cascade, map: "Flick_organisationId_fkey")
-  Theme            Theme           @relation(fields: [themeName], references: [name], onUpdate: Cascade, onDelete: SetNull, map: "Flick_themeId_fkey")
+  Theme            Theme           @relation(fields: [themeName], references: [name], onUpdate: Cascade, onDelete: NoAction, map: "Flick_themeId_fkey")
   Owner            User            @relation(fields: [ownerSub], references: [sub], onDelete: Cascade, onUpdate: Cascade)
   Participants     Participant[]
   Blocks           Blocks[]

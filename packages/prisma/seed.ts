@@ -15,8 +15,8 @@ async function main() {
 	// Seed transitions
 	console.log('Seeding transitions...')
 	await prisma.$transaction([
-		prisma.theme.deleteMany({ where: {} }),
-		prisma.theme.createMany({ data: transitions }),
+		prisma.transition.deleteMany({ where: {} }),
+		prisma.transition.createMany({ data: transitions }),
 	])
 	console.log(`Added ${transitions.length} transitions.`)
 }
