@@ -345,8 +345,8 @@ const Studio = ({
 		}
 		return () => {
 			resetState('ready')
-      resetActiveObjectIndex(0)
-      if (agoraActions?.leave) agoraActions.leave()
+			resetActiveObjectIndex(0)
+			if (agoraActions?.leave) agoraActions.leave()
 			if (!agoraStreamData?.stream) return
 			agoraStreamData.stream.getTracks().forEach(track => {
 				track.stop()
