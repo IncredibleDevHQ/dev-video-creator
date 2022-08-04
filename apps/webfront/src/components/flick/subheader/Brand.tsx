@@ -10,7 +10,7 @@ import {
 	useBroadcastEvent,
 	useEventListener,
 } from 'src/utils/liveblocks.config'
-import trpc from 'src/utils/trpc'
+import trpc from 'server/trpc'
 import BrandIcon from 'svg/BrandIcon.svg'
 import { Button, emitToast, Text } from 'ui/src'
 import Branding from '../branding/Branding'
@@ -118,6 +118,7 @@ const Brand = () => {
 										updateBrand({
 											id: flickId ?? '',
 											useBranding: false,
+											brandingId: null,
 										})
 										setActiveBrandId(null)
 										setBrandingJSON({})

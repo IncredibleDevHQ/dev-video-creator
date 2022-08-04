@@ -14,8 +14,7 @@
 		"codegen": "turbo run codegen",
 		"format": "prettier --write \"**/*.{ts,tsx,md}\"",
 		"prepare": "husky install && turbo run prepare",
-		"postinstall": "turbo run postinstall",
-		"seed": "ts-node packages/prisma/seed.ts"
+		"postinstall": "turbo run postinstall"
 	},
 	"devDependencies": {
 		"commitizen": "^4.2.4",

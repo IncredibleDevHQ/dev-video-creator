@@ -10,7 +10,7 @@ import { IoCheckmark } from 'react-icons/io5'
 import { useUser } from 'src/utils/providers/auth'
 import { Button, emitToast, Text } from 'ui/src'
 import { Dialog, Transition } from '@headlessui/react'
-import trpc, { inferQueryOutput } from 'src/utils/trpc'
+import trpc, { inferQueryOutput } from 'server/trpc'
 
 const AddExistingFlickModal = ({
 	open,

@@ -2,7 +2,7 @@ import { Dialog, Transition } from '@headlessui/react'
 import { useRouter } from 'next/router'
 import { Fragment, useEffect } from 'react'
 import { InvitationStatusEnum, NotificationTypeEnum } from 'src/utils/enums'
-import trpc, { inferQueryOutput } from 'src/utils/trpc'
+import trpc, { inferQueryOutput } from 'server/trpc'
 import { Avatar, Button, emitToast, Heading, Text } from 'ui/src'
 
 const CollaborationRespondModal = ({

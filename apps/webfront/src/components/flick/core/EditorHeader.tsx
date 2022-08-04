@@ -21,7 +21,7 @@ import {
 	useMap,
 	useRoom,
 } from 'src/utils/liveblocks.config'
-import trpc, { inferQueryOutput } from 'src/utils/trpc'
+import trpc, { inferQueryOutput } from 'server/trpc'
 import { Avatar, Text } from 'ui/src'
 import { useDebouncedCallback } from 'use-debounce'
 import { IntroBlockView } from 'utils/src'

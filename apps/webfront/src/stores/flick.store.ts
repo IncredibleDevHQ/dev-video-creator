@@ -1,6 +1,6 @@
 import { Block, SimpleAST } from 'editor/src/utils/types'
 import { atom, DefaultValue, selector } from 'recoil'
-import { inferQueryOutput } from 'src/utils/trpc'
+import { inferQueryOutput } from 'server/trpc'
 import { IntroBlockViewProps, Layout } from 'utils/src'
 import { urlSyncEffect } from 'recoil-sync'
 import refine from '@recoiljs/refine'

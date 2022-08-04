@@ -1,0 +1,23 @@
+{
+	"compilerOptions": {
+		"module": "esnext",
+		"noImplicitReturns": true,
+		"noUnusedLocals": true,
+		"outDir": "dist",
+		"sourceMap": true,
+		"strict": true,
+		"target": "es2017",
+		"skipLibCheck": true,
+		"esModuleInterop": true,
+		"declaration": false,
+		"typeRoots": ["node_modules/@types"],
+		"moduleResolution": "node"
+	},
+	"compileOnSave": true,
+	"include": [
+		"src",
+		"../../packages/utils/src/**/*.ts",
+		"../../packages/prisma-orm/*.ts"
+	],
+	"exclude": ["dist", "node_modules"]
+}

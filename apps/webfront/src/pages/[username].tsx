@@ -19,8 +19,8 @@ import { useUser } from 'src/utils/providers/auth'
 import { Avatar, Button, Heading, Text } from 'ui/src'
 import CreateFlickModal from 'src/components/dashboard/CreateFlickModal'
 import CollaborateModal from 'src/components/profile/CollaborateModal'
-import prisma from 'src/server/prisma'
-import trpc, { inferQueryOutput } from 'src/utils/trpc'
+import prisma from 'prisma-orm/prisma'
+import trpc, { inferQueryOutput } from 'server/trpc'
 import { ParticipantRoleEnum } from 'src/utils/enums'
 
 const FlickCard = ({

@@ -1,8 +1,8 @@
 import dynamic from 'next/dynamic'
 import Container from 'src/components/core/Container'
-import prisma from 'src/server/prisma'
+import prisma from 'prisma-orm/prisma'
 import requireAuth from 'src/utils/helpers/requireAuth'
-import { inferQueryOutput } from 'src/utils/trpc'
+import { inferQueryOutput } from 'server/trpc'
 
 const FlickBody = dynamic(() => import('src/components/flick'), {
 	ssr: false,

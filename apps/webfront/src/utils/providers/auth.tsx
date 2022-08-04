@@ -5,7 +5,7 @@ import { getDatabase, onValue, ref } from 'firebase/database'
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { MeFragment } from 'src/graphql/generated'
 import { getEnv } from 'utils/src'
-import trpc from '../trpc'
+import trpc from 'server/trpc'
 
 export const createFirebaseApp = () => {
 	const { firebaseConfig } = getEnv()

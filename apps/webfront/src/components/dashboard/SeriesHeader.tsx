@@ -4,7 +4,7 @@ import { Fragment, useEffect, useState } from 'react'
 import { IoAlbumsOutline } from 'react-icons/io5'
 import { CreateUserSeriesMutationVariables } from 'src/graphql/generated'
 import usePush from 'src/utils/hooks/usePush'
-import trpc from 'src/utils/trpc'
+import trpc from 'server/trpc'
 import { Button, emitToast, Heading } from 'ui/src'
 
 const defaults = {

@@ -1,4 +1,4 @@
-import { inferQueryOutput } from 'src/utils/trpc'
+import { inferQueryOutput } from 'server/trpc'
 import { Text } from 'ui/src'
 
 const NotificationMessage = ({

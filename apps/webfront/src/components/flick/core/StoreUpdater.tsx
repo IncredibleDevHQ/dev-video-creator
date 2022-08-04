@@ -14,7 +14,7 @@ import {
 	thumbnailObjectAtom,
 } from 'src/stores/flick.store'
 import { recordedBlocksAtom, recordingIdAtom } from 'src/stores/studio.store'
-import trpc, { inferMutationOutput } from 'src/utils/trpc'
+import trpc, { inferMutationOutput } from 'server/trpc'
 import { Fragment_Type_Enum_Enum } from 'utils/src/graphql/generated'
 
 const FragmentStoreUpdater = () => {

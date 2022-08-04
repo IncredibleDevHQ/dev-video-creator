@@ -13,7 +13,7 @@ import {
 	useEventListener,
 } from 'src/utils/liveblocks.config'
 import { flickAtom } from 'src/stores/flick.store'
-import trpc from 'src/utils/trpc'
+import trpc from 'server/trpc'
 
 const horizontalCustomScrollBar = css`
 	::-webkit-scrollbar {

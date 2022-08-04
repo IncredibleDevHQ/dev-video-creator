@@ -52,7 +52,7 @@ import {
 import { activeBrandIdAtom } from 'src/stores/studio.store'
 import { UploadType } from 'utils/src/enums'
 import { useUser } from 'src/utils/providers/auth'
-import trpc from 'src/utils/trpc'
+import trpc from 'server/trpc'
 import CallToActionIcon from 'svg/CallToAction.svg'
 import {
 	Avatar,

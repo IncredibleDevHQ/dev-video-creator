@@ -1,14 +1,14 @@
 import { NextApiRequest, NextApiResponse } from 'next'
 
-import { getEmailSignInLink } from 'src/server/utils/helpers'
+import { getEmailSignInLink } from 'server/utils/helpers'
 import {
 	InvitationStatusEnum,
 	NotificationMetaTypeEnum,
 	NotificationTypeEnum,
 	ParticipantRoleEnum,
 } from 'src/utils/enums'
-import serverEnvs from 'src/utils/env'
-import prisma from '../../server/prisma'
+import serverEnvs from 'server/utils/env'
+import prisma from 'prisma-orm/prisma'
 
 export const loginInvitedUser = async (
 	req: NextApiRequest,

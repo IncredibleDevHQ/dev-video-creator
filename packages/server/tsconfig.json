@@ -1,0 +1,11 @@
+{
+	"extends": "config/tsconfig-webfront.json",
+	"compilerOptions": {
+		"disableSizeLimit": true,
+		"declaration": false,
+		"declarationMap": false,
+		"skipLibCheck": true
+	},
+	"include": ["**/*.ts", "**/*.tsx", "pre-build.js"],
+	"exclude": ["dist", "build", "node_modules"]
+}

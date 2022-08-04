@@ -36,7 +36,7 @@ import {
 	useEventListener,
 } from 'src/utils/liveblocks.config'
 import { useUser } from 'src/utils/providers/auth'
-import trpc from 'src/utils/trpc'
+import trpc from 'server/trpc'
 import {
 	Button,
 	dismissToast,

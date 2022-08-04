@@ -11,7 +11,7 @@ import {
 import { useUser } from 'src/utils/providers/auth'
 import { Avatar, Button, emitToast, Heading, Text, TextField } from 'ui/src'
 import FlickIcon from 'svg/Flick.svg'
-import trpc, { inferMutationInput } from 'src/utils/trpc'
+import trpc, { inferMutationInput } from 'server/trpc'
 
 const ChooseContent = ({
 	modalState,

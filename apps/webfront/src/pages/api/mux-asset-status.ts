@@ -1,8 +1,8 @@
 import Mux from '@mux/mux-node'
 
 import { NextApiRequest, NextApiResponse } from 'next'
-import prisma from 'src/server/prisma'
-import serverEnvs from 'src/utils/env'
+import prisma from 'prisma-orm/prisma'
+import serverEnvs from 'server/utils/env'
 
 interface MuxMetaPassThrough {
 	contentId: string

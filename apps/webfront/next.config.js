@@ -3,6 +3,8 @@ const withTM = require('next-transpile-modules')([
 	'editor',
 	'icanvas',
 	'utils',
+	'server',
+	'prisma-orm',
 	'@vime/core',
 	'@vime/react',
 ])

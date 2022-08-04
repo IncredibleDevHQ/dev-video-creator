@@ -15,11 +15,11 @@ import {
 	useClapFlickMutation,
 	useGetFlickClapsByUserQuery,
 } from 'src/graphql/generated'
-import prisma from 'src/server/prisma'
+import prisma from 'prisma-orm/prisma'
 import { ParticipantRoleEnum } from 'src/utils/enums'
 import requireAuth from 'src/utils/helpers/requireAuth'
 import { useUser } from 'src/utils/providers/auth'
-import { inferQueryOutput } from 'src/utils/trpc'
+import { inferQueryOutput } from 'server/trpc'
 import {
 	Avatar,
 	Button,

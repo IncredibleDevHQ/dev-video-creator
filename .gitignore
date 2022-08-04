@@ -41,3 +41,15 @@ yarn-error.log*
 .turbo
 **/*/.vercel
 .npmrc
+
+*.log
+# Compiled JavaScript files
+**/*/lib/**/*.js
+**/*/lib/**/*.js.map
+**/*/dist
+
+
+# TypeScript v1 declaration files
+**/*/typings/
+
+**/*/env.webfront.js

@@ -11,7 +11,7 @@ import NotificationMessage from 'src/components/notifications/NotificationMessag
 import { useMarkNotificationAsReadMutation } from 'src/graphql/generated'
 import { NotificationMetaTypeEnum, NotificationTypeEnum } from 'src/utils/enums'
 import requireAuth from 'src/utils/helpers/requireAuth'
-import trpc, { inferQueryOutput } from 'src/utils/trpc'
+import trpc, { inferQueryOutput } from 'server/trpc'
 import { Avatar, Button, Heading, Text } from 'ui/src'
 import {} from 'utils/src/graphql/generated'
 import CollaborationRespondModal from '../../components/notifications/CollaborationResponseModal'
