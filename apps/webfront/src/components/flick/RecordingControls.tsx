@@ -210,7 +210,7 @@ const RecordingControls = ({
 					{/* Video Play button */}
 					{isVideo && (
 						<button
-							className='bg-grey-500 bg-opacity-50 border border-gray-600 backdrop-filter backdrop-blur-2xl p-1.5 rounded-sm text-gray-100'
+							className='bg-gray-600 border-gray-600 p-1.5 rounded-sm text-gray-100'
 							type='button'
 							onClick={() => {
 								const { playing, videoElement } = controlsConfig
@@ -246,7 +246,7 @@ const RecordingControls = ({
 									'bg-transparent py-1 px-1 rounded-sm my-1 ml-1 transition-all duration-200 filter',
 									{
 										'bg-transparent': isIntro || isOutro,
-										'bg-gray-800':
+										'!bg-gray-800':
 											payload?.fragmentState === 'onlyUserMedia' &&
 											!isIntro &&
 											!isOutro,
@@ -271,7 +271,7 @@ const RecordingControls = ({
 									'bg-transparent py-1 px-1 rounded-sm my-1 mr-1 transition-all duration-300 filter',
 									{
 										'bg-transparent': isIntro || isOutro,
-										'bg-gray-800':
+										'!bg-gray-800':
 											payload?.fragmentState === 'customLayout' &&
 											!isIntro &&
 											!isOutro,
@@ -296,7 +296,7 @@ const RecordingControls = ({
 									'bg-transparent py-1 px-1 rounded-sm my-1 mr-1 transition-all duration-300 filter',
 									{
 										'bg-transparent': isIntro || isOutro,
-										'bg-gray-800':
+										'!bg-gray-800':
 											payload?.fragmentState === 'onlyFragment' &&
 											!isIntro &&
 											!isOutro,
