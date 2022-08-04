@@ -24,8 +24,6 @@ const StudioHoC = ({
 
 	const viewConfigLiveMap = useMap('viewConfig')
 
-	const StudioComponent = React.memo(Studio)
-
 	useEffect(() => {
 		if (viewConfigLiveMap && !viewConfig) {
 			const fragmentViewConfig = viewConfigLiveMap.get(fragmentId)?.toObject()
@@ -74,7 +72,7 @@ const StudioHoC = ({
 
 	if (!viewConfig || !dataConfig || !recordingId) return null
 	return (
-		<StudioComponent
+		<Studio
 			dataConfig={dataConfig}
 			viewConfig={viewConfig}
 			fragmentId={fragmentId}

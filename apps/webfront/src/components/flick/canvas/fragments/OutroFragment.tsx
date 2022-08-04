@@ -444,7 +444,8 @@ const OutroFragment = ({
 						text={outroMsg}
 						align={
 							outroConfig?.textAlign ||
-							(viewConfig?.layout === 'classic' ? 'center' : 'left')
+							(viewConfig?.layout !== 'classic' ? 'left' : 'center') ||
+							'center'
 						}
 						fill={branding?.colors?.text || getThemeTextColor(theme)}
 						fontSize={outroConfig?.textFontSize || 0}
