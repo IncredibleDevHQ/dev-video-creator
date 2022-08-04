@@ -410,10 +410,9 @@ const Studio = ({
 					</Heading>
 					<div className='flex gap-x-3 items-center'>
 						{!isStudioController && (
-							<button
+							<Button
 								disabled={state === 'recording'}
-								type='button'
-								className='bg-dark-100 hover:bg-dark-200 active:bg-dark-300 text-gray-100 rounded-sm text-size-xs-title font-normal flex items-center px-2 disabled:opacity-70 disabled:cursor-not-allowed'
+								colorScheme='dark'
 								onClick={() => {
 									broadcast({
 										type: RoomEventTypes.RequestControls,
@@ -424,13 +423,12 @@ const Studio = ({
 								}}
 							>
 								Request Control
-							</button>
+							</Button>
 						)}
 						{isHost && !isStudioController && (
-							<button
+							<Button
 								disabled={state === 'recording'}
-								type='button'
-								className='bg-dark-100 hover:bg-dark-200 active:bg-dark-300 text-gray-100 rounded-sm text-size-xs-title font-normal flex items-center px-2 disabled:opacity-70 disabled:cursor-not-allowed'
+								colorScheme='dark'
 								onClick={() => {
 									broadcast({
 										type: RoomEventTypes.RevokeControls,
@@ -439,8 +437,8 @@ const Studio = ({
 									setIsStudioController(true)
 								}}
 							>
-								Request Control
-							</button>
+								Revoke Control
+							</Button>
 						)}
 						<MediaControls
 							flickId={flickId}
