@@ -247,7 +247,7 @@ export const VideoBlock = (props: any) => {
 			/>
 
 			<div
-				className='relative group-hover:bg-gray-200'
+				className='relative transition-all'
 				style={{
 					width: divWidth,
 					height: divHeight,
@@ -258,7 +258,7 @@ export const VideoBlock = (props: any) => {
 					height={canvasHeight}
 					width={canvasWidth}
 					ref={stageRef}
-					className='border'
+					className='bg-gray-100 rounded-md'
 					scale={{
 						x: Number((canvasHeight / size.height).toFixed(2)),
 						y: Number((canvasWidth / size.width).toFixed(2)),
@@ -270,24 +270,6 @@ export const VideoBlock = (props: any) => {
 								<Video
 									videoElement={videoRef.current}
 									videoConfig={videoConfig}
-								/>
-							)}
-							{!playing && (
-								<Rect
-									x={0}
-									y={0}
-									fill='#000000'
-									opacity={0.2}
-									width={
-										videoRef.current?.width
-											? videoRef.current.width
-											: canvasWidth
-									}
-									height={
-										videoRef.current?.height
-											? videoRef.current.height
-											: canvasHeight
-									}
 								/>
 							)}
 							{videoRef.current && (
