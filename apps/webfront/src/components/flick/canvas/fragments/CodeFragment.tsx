@@ -185,7 +185,7 @@ const CodeFragment = ({
 	// config for focusing the lines of code in codex format
 	const [blockConfig, setBlockConfig] = useState<CodeHighlightConfig[]>([])
 
-	const [layout, setLayout] = useState<Layout | undefined>()
+	const [layout, setLayout] = useState<Layout | undefined>(viewConfig?.layout)
 
 	const [objectConfig, setObjectConfig] = useState<ObjectConfig>({
 		x: 0,

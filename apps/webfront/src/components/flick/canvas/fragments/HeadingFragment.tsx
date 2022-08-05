@@ -62,7 +62,7 @@ const HeadingFragment = ({
 	// ref to the object grp
 	const customLayoutRef = useRef<Konva.Group>(null)
 
-	const [layout, setLayout] = useState<Layout | undefined>()
+	const [layout, setLayout] = useState<Layout | undefined>(viewConfig?.layout)
 
 	const [objectConfig, setObjectConfig] = useState<ObjectConfig>({
 		x: 0,

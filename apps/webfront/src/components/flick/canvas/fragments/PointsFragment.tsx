@@ -117,7 +117,7 @@ const PointsFragment = ({
 
 	const [computedPoints, setComputedPoints] = useState<ComputedPoint[]>([])
 
-	const [layout, setLayout] = useState<Layout | undefined>()
+	const [layout, setLayout] = useState<Layout | undefined>(viewConfig?.layout)
 
 	const [objectConfig, setObjectConfig] = useState<ObjectConfig>({
 		x: 0,

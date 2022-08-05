@@ -12,8 +12,9 @@ const editorStyle = css`
 	code {
 		color: #16a349;
 		font-weight: 600;
-		font-size: 1.1em;
+		font-size: 0.875em;
 		background-color: #f3f4f6;
+		padding: 0.25em 0.5em;
 		border-radius: 3px;
 	}
 
@@ -65,6 +66,14 @@ const editorStyle = css`
 		color: #383a42;
 		background: #f3f4f6;
 		margin: 0px;
+		code {
+			color: #16a349;
+			font-weight: 600;
+			font-size: 1.1em;
+			background-color: #f3f4f6;
+			border-radius: 3px;
+			padding: 0;
+		}
 	}
 
 	.hljs-comment,

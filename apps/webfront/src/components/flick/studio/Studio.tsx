@@ -136,7 +136,6 @@ const Studio = ({
 		} catch (e) {
 			console.log(e)
 		}
-		// setResetTimer(false)
 	}
 
 	const updateRecordedBlocks = (blocks: { [key: string]: string }) => {
@@ -294,7 +293,7 @@ const Studio = ({
 		// else {
 		stopCanvasRecording()
 		setTimeout(() => {
-			prepareVideo()
+			if (isStudioController) prepareVideo()
 		}, 250)
 	}
 
@@ -302,11 +301,9 @@ const Studio = ({
 		if (event.type === RoomEventTypes.RetakeButtonClick) {
 			resetCanvas()
 			// setTopLayerChildren?.({ id: nanoid(), state: '' })
-			// setResetTimer(true)
 		}
 		if (event.type === RoomEventTypes.SaveButtonClick) {
 			// setTopLayerChildren?.({ id: nanoid(), state: '' })
-			// setResetTimer(true)
 		}
 		if (event.type === RoomEventTypes.RequestControls) {
 			if (isStudioController) {
@@ -348,33 +345,14 @@ const Studio = ({
 		}
 		return () => {
 			resetState('ready')
-      resetActiveObjectIndex(0)
+			resetActiveObjectIndex(0)
+			if (agoraActions?.leave) agoraActions.leave()
+			if (!agoraStreamData?.stream) return
+			agoraStreamData.stream.getTracks().forEach(track => {
+				track.stop()
+			})
 		}
 	}, [])
-
-	// remove local blobs from recorded blocks on unmount
-	// this happens only when the user records and doent take any action and leaves the page
-	useEffect(
-		() => () => {
-			if (recordedBlocks[dataConfig[activeObjectIndex].id]?.includes('blob')) {
-				const x = { ...recordedBlocks }
-				delete x[dataConfig[activeObjectIndex].id]
-				updateRecordedBlocks(x)
-			}
-		},
-		[activeObjectIndex]
-	)
-
-	// useEffect(
-	// 	() => () => {
-	// if (!agoraStreamData?.stream || !agoraActions?.leave) return
-	// agoraStreamData.stream.getTracks().forEach(track => {
-	// 	track.stop()
-	// })
-	// agoraActions.leave()
-	// 	},
-	// 	[agoraStreamData?.stream, agoraActions?.leave]
-	// )
 
 	useEffect(() => {
 		if (!flick?.owner) return
@@ -419,10 +397,9 @@ const Studio = ({
 					</Heading>
 					<div className='flex gap-x-3 items-center'>
 						{!isStudioController && (
-							<button
+							<Button
 								disabled={state === 'recording'}
-								type='button'
-								className='bg-dark-100 hover:bg-dark-200 active:bg-dark-300 text-gray-100 rounded-sm text-size-xs-title font-normal flex items-center px-2 disabled:opacity-70 disabled:cursor-not-allowed'
+								colorScheme='dark'
 								onClick={() => {
 									broadcast({
 										type: RoomEventTypes.RequestControls,
@@ -433,13 +410,12 @@ const Studio = ({
 								}}
 							>
 								Request Control
-							</button>
+							</Button>
 						)}
 						{isHost && !isStudioController && (
-							<button
+							<Button
 								disabled={state === 'recording'}
-								type='button'
-								className='bg-dark-100 hover:bg-dark-200 active:bg-dark-300 text-gray-100 rounded-sm text-size-xs-title font-normal flex items-center px-2 disabled:opacity-70 disabled:cursor-not-allowed'
+								colorScheme='dark'
 								onClick={() => {
 									broadcast({
 										type: RoomEventTypes.RevokeControls,
@@ -448,8 +424,8 @@ const Studio = ({
 									setIsStudioController(true)
 								}}
 							>
-								Request Control
-							</button>
+								Revoke Control
+							</Button>
 						)}
 						<MediaControls
 							flickId={flickId}
@@ -551,7 +527,6 @@ const Studio = ({
 														})
 														// TODO if we change the active object index we need to update the state
 														// setTopLayerChildren?.({ id: nanoid(), state: '',})
-														// setResetTimer(true)
 
 														if (dataConfig?.[activeObjectIndex]?.id)
 															// calls the upload function
@@ -629,7 +604,6 @@ const Studio = ({
 												resetCanvas()
 												updateState('resumed')
 												// setTopLayerChildren?.({ id: nanoid(), state: '' })
-												// setResetTimer(true)
 											}}
 										>
 											Retake

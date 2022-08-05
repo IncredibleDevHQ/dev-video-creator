@@ -1,11 +1,13 @@
 import { cx } from '@emotion/css'
 import { useIncredibleEditor } from 'editor/src'
+import { useRouter } from 'next/router'
 import { useEffect, useMemo, useState } from 'react'
 import { BsCloudCheck } from 'react-icons/bs'
 import { IoImageOutline, IoWarningOutline } from 'react-icons/io5'
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
 import {
 	activeFragmentIdAtom,
+	isTimelineVisibleAtom,
 	openStudioAtom,
 	View,
 	viewAtom,
@@ -16,7 +18,7 @@ import {
 	useRoom,
 	useUpdateMyPresence,
 } from 'src/utils/liveblocks.config'
-import { Button, Switch, Text } from 'ui/src'
+import { Button, emitToast, Switch, Text } from 'ui/src'
 import { LiveViewConfig } from 'utils/src'
 import Brand from './Brand'
 import FormatSelector from './FormatSelector'
@@ -117,6 +119,17 @@ const RecordButton = () => {
 	const room = useRoom()
 	const config = useMap('viewConfig')?.get(activeFragmentId as string)
 	const [viewConfig, setViewConfig] = useState<LiveViewConfig>()
+	const { query } = useRouter()
+
+	const setOpenStudio = useSetRecoilState(openStudioAtom)
+	const setTimelineVisible = useSetRecoilState(isTimelineVisibleAtom)
+	const updateMyPresence = useUpdateMyPresence()
+
+	useEffect(() => {
+		if (query.openStudio === 'true') {
+			setOpenStudio(true)
+		}
+	}, [query.openStudio])
 
 	useEffect(() => {
 		if (!config) return
@@ -143,21 +156,24 @@ const RecordButton = () => {
 		}
 	}, [config, room])
 
-	const setOpenStudio = useSetRecoilState(openStudioAtom)
-	const updateMyPresence = useUpdateMyPresence()
+	const handleContinuousToggle = () => {
+		config?.set('continuousRecording', !viewConfig?.continuousRecording)
+		config?.set(
+			'selectedBlocks',
+			viewConfig?.continuousRecording ? viewConfig?.selectedBlocks : []
+		)
+	}
 
 	return (
 		<>
-			<button
-				type='button'
+			<div
+				role='button'
+				tabIndex={0}
 				className='bg-dark-100 px-2 py-1.5 rounded-sm active:scale-95 transition-all cursor-pointer'
-				onClick={() => {
-					config?.set('continuousRecording', !viewConfig?.continuousRecording)
-					config?.set(
-						'selectedBlocks',
-						viewConfig?.continuousRecording ? viewConfig?.selectedBlocks : []
-					)
+				onKeyDown={e => {
+					if (e.key === 'Enter') handleContinuousToggle()
 				}}
+				onClick={handleContinuousToggle}
 			>
 				<Switch
 					label='Continuous recording'
@@ -165,24 +181,32 @@ const RecordButton = () => {
 					labelClassName='text-white !text-size-xs cursor-pointer'
 					onChange={() => {}}
 				/>
-			</button>
+			</div>
 
 			<Button
 				className='text-dark-title'
-				disabled={
-					viewConfig?.continuousRecording &&
-					viewConfig.selectedBlocks.length < 1
-				}
+				// disabled={
+				// 	viewConfig?.continuousRecording &&
+				// 	viewConfig.selectedBlocks.length < 1
+				// }
 				onClick={() => {
+					if (
+						viewConfig?.continuousRecording &&
+						viewConfig.selectedBlocks.length < 1
+					) {
+						emitToast('Please select at least one block to record', {
+							type: 'info',
+						})
+						setTimelineVisible(true)
+						return
+					}
 					setOpenStudio(true)
 					updateMyPresence({
 						page: PresencePage.Backstage,
 					})
 				}}
 			>
-				{viewConfig?.continuousRecording && viewConfig.selectedBlocks.length < 1
-					? 'Select blocks to record'
-					: 'Record'}
+				Record
 			</Button>
 		</>
 	)

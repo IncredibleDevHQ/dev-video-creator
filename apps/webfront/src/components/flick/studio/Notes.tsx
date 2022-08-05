@@ -112,7 +112,7 @@ const Notes = ({
 	}, [activeObjectIndex, dataConfig])
 	return (
 		<div
-			className={cx('col-span-2 col-start-11 w-full', {
+			className={cx('col-span-2 col-start-11 w-full px-6', {
 				'col-start-9': shortsMode,
 			})}
 		>
@@ -121,7 +121,7 @@ const Notes = ({
 					height: `${bounds.height * 0.6}px`,
 				}}
 				className={cx(
-					'h-full w-[192px] mx-auto p-3 bg-zinc-800/90 border border-[#52525B] text-gray-100 text-left text-size-sm font-body rounded-sm outline-none focus:outline-none  overflow-y-auto whitespace-pre',
+					'h-full mx-auto p-3 bg-zinc-800/90 border border-[#52525B] text-gray-100 text-left text-size-sm font-body rounded-sm outline-none focus:outline-none overflow-y-auto whitespace-pre',
 					customScroll
 				)}
 			>
