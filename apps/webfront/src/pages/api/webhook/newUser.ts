@@ -1,9 +1,10 @@
-import * as functions from 'firebase-functions'
-// import * as Sentry from '@sentry/node'
-import { generateSuggestionsFromEmail } from 'utils/src/helpers/suggestion'
+import { NextApiRequest, NextApiResponse } from 'next'
 import prisma from 'prisma-orm/prisma'
+import { generateSuggestionsFromEmail } from 'utils/src/helpers/suggestion'
 
-export const createHasuraUser = functions.auth.user().onCreate(async user => {
+const createNewUser = async (req: NextApiRequest, res: NextApiResponse) => {
+	// TODO: Add secret header check
+	const { user } = req.body
 	const username = generateSuggestionsFromEmail(user.email as string)
 	const [providerData] = user.providerData
 	try {
@@ -33,16 +34,11 @@ export const createHasuraUser = functions.auth.user().onCreate(async user => {
 		if (!profile) {
 			throw Error('FATAL: Failed to create new user profile on Database!')
 		}
+		res.status(200).send({})
 	} catch (e) {
 		// Sentry.captureException(e)
 		console.error(e)
 	}
-})
+}
 
-// Take the text parameter passed to this HTTP endpoint and insert it into
-// Firestore under the path /messages/:documentId/original
-
-// exports.date = functions.https.onRequest((req, res) => {
-// 	const x = generateSuggestionsFromEmail('a@g.com')
-// 	res.send(x)
-// })
+export default createNewUser
