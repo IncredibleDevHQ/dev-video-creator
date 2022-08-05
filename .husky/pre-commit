@@ -1,6 +1,4 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-npx turbo run build --graph=dependency-graph.png
-git add dependency-graph.png
 npx lint-staged

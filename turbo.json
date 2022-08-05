@@ -1,7 +1,6 @@
 {
 	"globalDependencies": [".env, **/*/.env"],
 	"pipeline": {
-		"yarn": {},
 		"prepare": {},
 		"codegen": {},
 		"build": {
