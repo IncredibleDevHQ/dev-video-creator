@@ -52,4 +52,4 @@ yarn-error.log*
 # TypeScript v1 declaration files
 **/*/typings/
 
-**/*/env.webfront.js
+**/*/env.server.js

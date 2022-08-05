@@ -1,6 +1,6 @@
 import crypto from 'crypto'
 import { z } from 'zod'
-import env from '../env.webfront'
+import env from '../env.server'
 
 export type EnvType = {
 	[key: string]: string
@@ -58,11 +58,10 @@ const validateEnvs = (envs: any) => {
 	const verified = envSchema.safeParse(envs)
 
 	if (!verified.success) {
-		console.error(
-			'❌ Invalid environment variables:',
-			JSON.stringify(verified.error.format(), null, 4)
+		throw new Error(
+			`❌ Invalid environment variables:',
+			${JSON.stringify(verified.error.format(), null, 4)}`
 		)
-		process.exit(1)
 	}
 	return envs
 }
@@ -88,7 +87,7 @@ const decryptEnvs = (encrypted: string): EnvType => {
 		const envs: EnvType = JSON.parse(decrypted)
 		return validateEnvs(envs)
 	} catch (e) {
-		throw new Error(`Invalid encrypted env. ${e}`)
+		throw new Error(`Error decrypting envs ${e}`)
 	}
 }
 

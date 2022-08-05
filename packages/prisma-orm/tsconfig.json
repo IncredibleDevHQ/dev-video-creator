@@ -1,5 +1,5 @@
 {
-	"extends": "config/tsconfig-webfront.json",
+	"extends": "config/tsconfig-next.json",
 	"include": ["./*.ts", "**/*.ts", "**/*.tsx", "pre-build.js"],
 	"exclude": ["dist", "build", "node_modules"]
 }
