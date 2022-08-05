@@ -293,7 +293,7 @@ const Studio = ({
 		// else {
 		stopCanvasRecording()
 		setTimeout(() => {
-			prepareVideo()
+			if (isStudioController) prepareVideo()
 		}, 250)
 	}
 
@@ -353,19 +353,6 @@ const Studio = ({
 			})
 		}
 	}, [])
-
-	// remove local blobs from recorded blocks on unmount
-	// this happens only when the user records and doent take any action and leaves the page
-	useEffect(
-		() => () => {
-			if (recordedBlocks[dataConfig[activeObjectIndex].id]?.includes('blob')) {
-				const x = { ...recordedBlocks }
-				delete x[dataConfig[activeObjectIndex].id]
-				updateRecordedBlocks(x)
-			}
-		},
-		[activeObjectIndex]
-	)
 
 	useEffect(() => {
 		if (!flick?.owner) return
