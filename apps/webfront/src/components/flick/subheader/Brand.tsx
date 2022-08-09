@@ -10,9 +10,9 @@ import {
 	useBroadcastEvent,
 	useEventListener,
 } from 'src/utils/liveblocks.config'
-import trpc from 'server/trpc'
 import BrandIcon from 'svg/BrandIcon.svg'
-import { Button, emitToast, Text } from 'ui/src'
+import { Button, Text } from 'ui/src'
+import trpc from '../../../server/trpc'
 import Branding from '../branding/Branding'
 
 const Brand = () => {
@@ -38,11 +38,6 @@ const Brand = () => {
 			}
 		}
 	})
-
-	if (!flickId)
-		emitToast('No flickId', {
-			type: 'error',
-		})
 
 	return (
 		<>

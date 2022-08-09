@@ -10,9 +10,9 @@ import {
 	IoSyncOutline,
 } from 'react-icons/io5'
 import { NotificationMetaTypeEnum, NotificationTypeEnum } from 'src/utils/enums'
-import trpc, { inferQueryOutput } from 'server/trpc'
 import { Avatar, Button, Text } from 'ui/src'
 import CollaborationRespondModal from './CollaborationResponseModal'
+import trpc, { inferQueryOutput } from '../../server/trpc'
 
 export const NotificationMessage = ({
 	notification,

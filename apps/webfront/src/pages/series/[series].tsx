@@ -23,9 +23,9 @@ import prisma from 'prisma-orm/prisma'
 import { ContentTypeEnum, FlickScopeEnum } from 'src/utils/enums'
 import requireAuth from 'src/utils/helpers/requireAuth'
 import { useUser } from 'src/utils/providers/auth'
-import trpc, { inferMutationInput, inferQueryOutput } from 'server/trpc'
 import { Button, emitToast, Heading } from 'ui/src'
 import { validateEmail } from 'utils/src'
+import trpc, { inferMutationInput, inferQueryOutput } from '../../server/trpc'
 
 // Import component dynamically, with SSR disabled
 // Usage reference : https://github.com/wwayne/react-tooltip/issues/675#issuecomment-824897435

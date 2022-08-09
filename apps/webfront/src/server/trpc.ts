@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { createReactQueryHooks } from '@trpc/react'
 import type { inferProcedureInput, inferProcedureOutput } from '@trpc/server'
-import { AppRouter } from './routes/route'
+import { AppRouter } from 'server/routes/route'
 
 const trpc = createReactQueryHooks<AppRouter>()
 

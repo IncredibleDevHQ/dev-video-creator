@@ -1,7 +1,7 @@
 import { Block, SimpleAST } from 'editor/src/utils/types'
 import { atom, DefaultValue, selector } from 'recoil'
-import { inferQueryOutput } from 'server/trpc'
 import { IntroBlockViewProps, Layout } from 'utils/src'
+import { inferQueryOutput } from '../server/trpc'
 
 /* Stores some basic flick details */
 const flickAtom = atom<{

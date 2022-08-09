@@ -10,8 +10,8 @@ import { useRecoilValue } from 'recoil'
 import { flickAtom, participantsAtom } from 'src/stores/flick.store'
 import useAudio from 'src/utils/hooks/useAudio'
 import { useUpdateMyPresence } from 'src/utils/liveblocks.config'
-import trpc from 'server/trpc'
 import { emitToast, Avatar } from 'ui/src'
+import trpc from '../../../server/trpc'
 
 const Huddle = ({
 	devices,

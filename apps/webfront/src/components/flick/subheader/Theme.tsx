@@ -18,9 +18,9 @@ import {
 	useBroadcastEvent,
 	useEventListener,
 } from 'src/utils/liveblocks.config'
-import trpc from 'server/trpc'
 import { Button, emitToast } from 'ui/src'
 import { useEnv } from 'utils/src'
+import trpc from '../../../server/trpc'
 
 const horizontalCustomScrollBar = css`
 	::-webkit-scrollbar {

@@ -4,8 +4,8 @@ import { format } from 'date-fns'
 import Link from 'next/link'
 import { IoPlayOutline, IoSparklesOutline } from 'react-icons/io5'
 import { ContentTypeEnum } from 'src/utils/enums'
-import { inferQueryOutput } from 'server/trpc'
 import { Avatar } from 'ui/src'
+import { inferQueryOutput } from '../../server/trpc'
 
 const FlickCard = ({
 	flick,

@@ -49,10 +49,9 @@ import {
 	publishConfigAtom,
 	thumbnailObjectAtom,
 } from 'src/stores/flick.store'
-import { activeBrandIdAtom,recordedBlocksAtom } from 'src/stores/studio.store'
+import { activeBrandIdAtom, recordedBlocksAtom } from 'src/stores/studio.store'
 import { UploadType } from 'utils/src/enums'
 import { useUser } from 'src/utils/providers/auth'
-import trpc from 'server/trpc'
 import CallToActionIcon from 'svg/CallToAction.svg'
 import {
 	Avatar,
@@ -71,6 +70,7 @@ import {
 	Recording_Status_Enum_Enum,
 	useGetRecordingsQuery,
 } from 'utils/src/graphql/generated'
+import trpc from '../../../server/trpc'
 import ThumbnailModal from './ThumbnailModal'
 
 interface Tab {

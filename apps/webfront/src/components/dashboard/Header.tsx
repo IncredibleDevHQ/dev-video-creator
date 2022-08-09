@@ -8,8 +8,8 @@ import { HiOutlineDownload, HiOutlineSparkles } from 'react-icons/hi'
 import { IoAddOutline, IoCopyOutline } from 'react-icons/io5'
 import { FlickScopeEnum } from 'src/utils/enums'
 import usePush from 'src/utils/hooks/usePush'
-import trpc from 'server/trpc'
 import { Button, emitToast, Heading, Loader, Text } from 'ui/src'
+import trpc from '../../server/trpc'
 
 enum OptionType {
 	blank = 'blank',

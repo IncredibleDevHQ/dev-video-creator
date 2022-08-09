@@ -4,7 +4,7 @@ import ReactTooltip from 'react-tooltip'
 import { cx } from '@emotion/css'
 import { useUser } from 'src/utils/providers/auth'
 import { Avatar, Button, emitToast } from 'ui/src'
-import trpc, { inferMutationInput, inferQueryOutput } from 'server/trpc'
+import trpc, { inferMutationInput, inferQueryOutput } from '../../server/trpc'
 
 type SeriesParticipantFragment =
 	inferQueryOutput<'series.get'>['Flick_Series'][number]['Flick']['Participants'][number]

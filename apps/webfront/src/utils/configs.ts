@@ -2,8 +2,8 @@ import { RichTextContent } from 'editor/src/utils/types'
 import { ClipConfig } from 'icanvas/src/hooks/useEdit'
 import { Position } from 'src/components/flick/canvas/CodeAnimations'
 import { ComputedRichText } from 'src/components/flick/canvas/RichText'
-import { inferQueryOutput } from 'server/trpc'
 import { ComputedToken } from './hooks/useCode'
+import { inferQueryOutput } from '../server/trpc'
 
 export const CONFIG = {
 	width: 960,

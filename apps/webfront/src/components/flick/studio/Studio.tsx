@@ -35,7 +35,6 @@ import {
 	useEventListener,
 } from 'src/utils/liveblocks.config'
 import { useUser } from 'src/utils/providers/auth'
-import trpc from 'server/trpc'
 import {
 	Button,
 	dismissToast,
@@ -45,6 +44,7 @@ import {
 	updateToast,
 } from 'ui/src'
 import { useEnv, useUploadFile, ViewConfig } from 'utils/src'
+import trpc from '../../../server/trpc'
 import CanvasComponent, { StudioContext } from '../canvas/CanvasComponent'
 import RecordingControls from '../RecordingControls'
 import Countdown from './Countdown'
@@ -103,8 +103,6 @@ const Studio = ({
 	const { mutateAsync: saveBlock } = trpc.useMutation(['block.save'])
 	const { mutateAsync: saveMultiBlocks } = trpc.useMutation(['block.saveMany'])
 	const deleteBlockGroupMutation = trpc.useMutation('block.delete')
-
-
 
 	// used to measure the div
 	const [ref, bounds] = useMeasure()

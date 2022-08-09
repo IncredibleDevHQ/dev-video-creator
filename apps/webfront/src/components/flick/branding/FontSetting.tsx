@@ -7,10 +7,10 @@ import { BiFileBlank } from 'react-icons/bi'
 import { FiLoader, FiUploadCloud } from 'react-icons/fi'
 import { IoCloseOutline, IoCloseCircle } from 'react-icons/io5'
 import { BrandingInterface, BrandingJSON } from 'src/utils/configs'
-import trpc from 'server/trpc'
 import { emitToast, Heading, Button, Text } from 'ui/src'
 import { useUploadFile } from 'utils/src'
 import { UploadType } from 'utils/src/enums'
+import trpc from '../../../server/trpc'
 import CustomFontPicker, { IFont } from './CustomFontPicker'
 
 const initialValue: BrandingJSON = {

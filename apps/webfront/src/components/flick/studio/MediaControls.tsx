@@ -12,8 +12,8 @@ import {
 	streamAtom,
 } from 'src/stores/studio.store'
 import useAgora from 'src/utils/hooks/useAgora'
-import trpc from 'server/trpc'
 import { emitToast } from 'ui/src'
+import trpc from '../../../server/trpc'
 
 export type Device = {
 	label: string

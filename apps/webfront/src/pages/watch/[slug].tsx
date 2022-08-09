@@ -19,7 +19,6 @@ import prisma from 'prisma-orm/prisma'
 import { ParticipantRoleEnum } from 'src/utils/enums'
 import requireAuth from 'src/utils/helpers/requireAuth'
 import { useUser } from 'src/utils/providers/auth'
-import { inferQueryOutput } from 'server/trpc'
 import {
 	Avatar,
 	Button,
@@ -31,6 +30,7 @@ import {
 	Text,
 } from 'ui/src'
 import { useDebounce } from 'use-debounce'
+import { inferQueryOutput } from '../../server/trpc'
 
 const IncredibleVideoPlayer = dynamic<IncredibleVideoPlayerProps>(
 	() => import('ui/src').then(module => module.IncredibleVideoPlayer),

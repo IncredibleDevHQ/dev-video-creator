@@ -24,10 +24,10 @@ import {
 } from 'src/stores/flick.store'
 import { useMap } from 'src/utils/liveblocks.config'
 import { useUser } from 'src/utils/providers/auth'
-import trpc from 'server/trpc'
 import { Button, emitToast, Heading, Loader } from 'ui/src'
 import { useDebouncedCallback } from 'use-debounce'
 import { BlockProperties, LiveViewConfig } from 'utils/src'
+import trpc from '../../../server/trpc'
 
 const CreateFormat = ({
 	open,

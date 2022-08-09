@@ -29,12 +29,12 @@ import {
 import { CONFIG } from 'src/utils/configs'
 import { UploadType } from 'utils/src/enums'
 import { useUser } from 'src/utils/providers/auth'
-import trpc from 'server/trpc'
 import { Button, emitToast, Heading, Text } from 'ui/src'
 import { useDebouncedCallback } from 'use-debounce'
 import { IntroBlockView, Layout, useUploadFile } from 'utils/src'
 import { getIntegerHW } from '../canvas/CanvasComponent'
 import Thumbnail from '../canvas/Thumbnail'
+import trpc from '../../../server/trpc'
 import LayoutSelector from '../preview/LayoutSelector'
 
 interface Tab {

@@ -2,8 +2,8 @@
 import React, { useContext, useEffect } from 'react'
 import { useDebounce } from 'use-debounce'
 import { Button, Heading, Text, TextField } from 'ui/src'
-import trpc from 'server/trpc'
 import { OnBoardingContext, OnBoardingScreens } from './types'
+import trpc from '../../server/trpc'
 
 const MainDetails = () => {
 	const { details, setActiveScreen, setDetails } = useContext(OnBoardingContext)

@@ -13,13 +13,13 @@ import {
 	IoTrashOutline,
 } from 'react-icons/io5'
 import { useUser } from 'src/utils/providers/auth'
-import trpc, { inferQueryOutput } from 'server/trpc'
 import { emitToast, Heading, Text, ThumbnailPreview } from 'ui/src'
 import {
 	Content_Type_Enum_Enum,
 	// DashboardFlicksFragment,
 	OrientationEnum,
 } from 'utils/src/graphql/generated'
+import trpc, { inferQueryOutput } from '../../server/trpc'
 
 const FlickTile = ({
 	id,

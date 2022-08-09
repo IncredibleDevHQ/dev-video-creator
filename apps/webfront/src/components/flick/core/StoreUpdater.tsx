@@ -14,8 +14,8 @@ import {
 	thumbnailObjectAtom,
 } from 'src/stores/flick.store'
 import { recordedBlocksAtom, recordingIdAtom } from 'src/stores/studio.store'
-import trpc, { inferMutationOutput } from 'server/trpc'
 import { Fragment_Type_Enum_Enum } from 'utils/src/graphql/generated'
+import trpc, { inferMutationOutput } from '../../../server/trpc'
 
 const FragmentStoreUpdater = () => {
 	const { replace, query } = useRouter()
@@ -55,20 +55,16 @@ const FragmentStoreUpdater = () => {
 				})
 				set(recordedBlocksAtom, tempRecordedBlocks)
 				set(recordingIdAtom, activeFragment.Recording[0].id)
-        set(fragmentLoadingAtom, false)
-
+				set(fragmentLoadingAtom, false)
 			}
 	)
 
-	const { mutateAsync: getFragment } = trpc.useMutation(
-		['fragment.get'],
-		{
-			onSuccess(data) {
-				if (!data) return
-				setFragmentStores(data)
-			},
-		}
-	)
+	const { mutateAsync: getFragment } = trpc.useMutation(['fragment.get'], {
+		onSuccess(data) {
+			if (!data) return
+			setFragmentStores(data)
+		},
+	})
 
 	const activeFragmentId = useRecoilValue(activeFragmentIdAtom)
 	useEffect(() => {

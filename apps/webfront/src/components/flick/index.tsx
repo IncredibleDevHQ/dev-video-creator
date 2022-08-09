@@ -32,7 +32,7 @@ import {
 	RoomProvider,
 } from 'src/utils/liveblocks.config'
 import { useUser } from 'src/utils/providers/auth'
-import { inferQueryOutput } from 'server/trpc'
+import { inferQueryOutput } from '../../server/trpc'
 import EditorSection from './core/EditorSection'
 import Navbar from './core/Navbar'
 import FragmentStoreUpdater from './core/StoreUpdater'

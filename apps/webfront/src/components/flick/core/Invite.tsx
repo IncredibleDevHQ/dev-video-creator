@@ -15,7 +15,6 @@ import {
 	participantsAtom,
 } from 'src/stores/flick.store'
 import { useUser } from 'src/utils/providers/auth'
-import trpc from 'server/trpc'
 import {
 	Avatar,
 	Button,
@@ -25,6 +24,7 @@ import {
 	Text,
 	updateToast,
 } from 'ui/src'
+import trpc from '../../../server/trpc'
 
 interface Invitee {
 	name: string
