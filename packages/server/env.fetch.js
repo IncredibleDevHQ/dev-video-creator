@@ -49,13 +49,9 @@ if (require.main === module) {
 
 			console.log('PREBUILD-WF : UPDATING SECRETS FILE...')
 			fs.writeFileSync(
-				'env.webfront.js',
+				'env.server.js',
 				`// Do not modify, auto generated file \nmodule.exports = "${encryptedSecrets}"`
 			)
-			// fs.writeFileSync(
-			// 	'../../packages/prisma/env.webfront.js',
-			// 	`// Do not modify, auto generated file \nmodule.exports = "${encryptedSecrets}"`
-			// )
 
 			console.log('PREBUILD-WF : DONE!')
 		} catch (e) {

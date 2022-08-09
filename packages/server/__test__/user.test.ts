@@ -6,7 +6,7 @@ import {
 	inferMutationOutput,
 	inferQueryInput,
 	inferQueryOutput,
-} from 'server/trpc'
+} from '../trpc'
 
 import { Context } from '../createContext'
 import appRouter from '../routes/route'

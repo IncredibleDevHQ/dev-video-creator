@@ -39,6 +39,21 @@
 		"packages/ui/**/*.{js,ts,jsx,tsx}": [
 			"eslint --fix"
 		],
+		"packages/editor/**/*.{js,ts,jsx,tsx}": [
+			"eslint --fix"
+		],
+		"packages/icanvas/**/*.{js,ts,jsx,tsx}": [
+			"eslint --fix"
+		],
+		"packages/prisma-orm/**/*.{js,ts,jsx,tsx}": [
+			"eslint --fix"
+		],
+		"packages/server/**/*.{js,ts,jsx,tsx}": [
+			"eslint --fix"
+		],
+		"packages/utils/**/*.{js,ts,jsx,tsx}": [
+			"eslint --fix"
+		],
 		"*.json": [
 			"prettier --write"
 		]

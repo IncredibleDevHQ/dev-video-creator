@@ -1,5 +1,5 @@
 {
-	"extends": "config/tsconfig-webfront.json",
+	"extends": "config/tsconfig-next.json",
 	"compilerOptions": {
 		"baseUrl": ".",
 		"strict": true,

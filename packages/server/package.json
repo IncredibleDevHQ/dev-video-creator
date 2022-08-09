@@ -2,6 +2,10 @@
 	"name": "server",
 	"version": "0.0.0",
 	"private": true,
+	"engines": {
+		"npm": ">=7.0.0",
+		"node": ">=14.0.0"
+	},
 	"scripts": {
 		"test": "jest --setupFiles dotenv/config",
 		"lint": "eslint ./**/*.ts* --fix",
@@ -33,6 +37,7 @@
 		"superjson": "^1.9.1",
 		"utils": "*",
 		"uuid": "^8.3.2",
+		"ws": "^8.8.1",
 		"yjs": "^13.5.39",
 		"yup": "^0.32.11",
 		"zod": "^3.17.3"

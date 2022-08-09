@@ -1,7 +1,7 @@
-const eslintNext = require('config/eslint-next.js')
+const eslintNode = require('config/eslint-node.js')
 
 module.exports = {
-	...eslintNext,
+	...eslintNode,
 	parserOptions: {
 		tsconfigRootDir: __dirname,
 		project: './tsconfig.json',
