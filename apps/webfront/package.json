@@ -69,7 +69,6 @@
 		"react-tooltip": "^4.2.21",
 		"react-use-measure": "^2.1.1",
 		"recoil": "^0.7.4",
-		"recoil-sync": "0.1.0",
 		"remark": "^14.0.2",
 		"remark-html": "^15.0.1",
 		"superjson": "^1.9.1",
@@ -81,6 +80,7 @@
 		"use-debounce": "^8.0.1",
 		"use-font-face-observer": "^1.2.1",
 		"use-image": "^1.0.12",
+		"use-interval": "^1.4.0",
 		"utils": "*",
 		"uuid": "^8.3.2",
 		"yup": "^0.32.11"

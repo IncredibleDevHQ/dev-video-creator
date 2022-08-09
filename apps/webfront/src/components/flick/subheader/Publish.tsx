@@ -49,7 +49,7 @@ import {
 	publishConfigAtom,
 	thumbnailObjectAtom,
 } from 'src/stores/flick.store'
-import { activeBrandIdAtom } from 'src/stores/studio.store'
+import { activeBrandIdAtom,recordedBlocksAtom } from 'src/stores/studio.store'
 import { UploadType } from 'utils/src/enums'
 import { useUser } from 'src/utils/providers/auth'
 import trpc from 'server/trpc'
@@ -815,6 +815,8 @@ const Publish = ({
 
 	const [recording, setRecording] = useState<RecordingFragment>()
 
+	const recordedBlocks = useRecoilValue(recordedBlocksAtom)
+
 	const videoRef = useRef<HTMLVideoElement>(null)
 	const [currentTime, setCurrentTime] = useState(0)
 
@@ -1138,22 +1140,32 @@ const Publish = ({
 																switch (recording.status) {
 																	case Recording_Status_Enum_Enum.Pending:
 																	case Recording_Status_Enum_Enum.Completed:
+																		if (
+																			Object.entries(recordedBlocks).length > 0
+																		) {
+																			return (
+																				<>
+																					<Text className='font-body'>
+																						Produce video to see it here
+																					</Text>
+																					<Button
+																						onClick={() =>
+																							completeFragmentRecording(
+																								recording.id
+																							)
+																						}
+																						loading={loadingCompleteRecording}
+																					>
+																						Produce
+																					</Button>
+																				</>
+																			)
+																		}
 																		return (
-																			<>
-																				<Text className='font-body'>
-																					Produce video to see it here
-																				</Text>
-																				<Button
-																					onClick={() =>
-																						completeFragmentRecording(
-																							recording.id
-																						)
-																					}
-																					loading={loadingCompleteRecording}
-																				>
-																					Produce
-																				</Button>
-																			</>
+																			<Text className='text-center'>
+																				No blocks have been recorded. Please
+																				record and come back.
+																			</Text>
 																		)
 																	case Recording_Status_Enum_Enum.Processing:
 																		return (

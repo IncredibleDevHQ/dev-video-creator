@@ -55,10 +55,12 @@ const FragmentStoreUpdater = () => {
 				})
 				set(recordedBlocksAtom, tempRecordedBlocks)
 				set(recordingIdAtom, activeFragment.Recording[0].id)
+        set(fragmentLoadingAtom, false)
+
 			}
 	)
 
-	const { mutateAsync: getFragment, isLoading: loading } = trpc.useMutation(
+	const { mutateAsync: getFragment } = trpc.useMutation(
 		['fragment.get'],
 		{
 			onSuccess(data) {
@@ -68,14 +70,6 @@ const FragmentStoreUpdater = () => {
 		}
 	)
 
-	useEffect(() => {
-		if (loading) {
-			setFragmentLoading(true)
-		} else {
-			setFragmentLoading(false)
-		}
-	}, [loading])
-
 	const activeFragmentId = useRecoilValue(activeFragmentIdAtom)
 	useEffect(() => {
 		if (!activeFragmentId) {
@@ -84,6 +78,7 @@ const FragmentStoreUpdater = () => {
 			})
 			return
 		}
+		setFragmentLoading(true)
 		getFragment({
 			id: activeFragmentId,
 		})

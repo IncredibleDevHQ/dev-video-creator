@@ -71,7 +71,7 @@ const CollaborationRespondModal = ({
 				>
 					<div className='fixed inset-0 flex items-center justify-center p-4'>
 						<Dialog.Panel className='flex rounded-md flex-col w-[30%] overflow-hidden bg-dark-100 p-8'>
-							<div className='flex flex-col items-center justify-center'>
+							<div className='flex flex-col items-center justify-center text-center'>
 								<div className='flex gap-x-4'>
 									<Avatar
 										src={
@@ -106,15 +106,7 @@ const CollaborationRespondModal = ({
 										),
 									}}
 								/>
-								<div className='flex gap-x-4 mt-12 w-full items-center justify-center'>
-									<Button
-										appearance='none'
-										className='max-w-none w-full text-dark-title hover:underline'
-										size='large'
-										onClick={() => handleClose()}
-									>
-										Later
-									</Button>
+								<div className='flex flex-col gap-y-4 mt-12 w-full items-center justify-center'>
 									<Button
 										size='large'
 										className='max-w-none w-full'
@@ -124,6 +116,14 @@ const CollaborationRespondModal = ({
 										{notification.type === NotificationTypeEnum.Invitation
 											? 'I am in!'
 											: 'Accept'}
+									</Button>
+									<Button
+										appearance='none'
+										className='max-w-none w-full text-dark-title hover:underline'
+										size='large'
+										onClick={() => handleClose()}
+									>
+										Later
 									</Button>
 								</div>
 							</div>

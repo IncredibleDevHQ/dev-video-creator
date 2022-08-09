@@ -120,7 +120,7 @@ const CanvasComponent = React.memo(
 				{mountStage && (
 					<Stage
 						ref={stageRef}
-						className='mt-auto mb-auto'
+						className='mt-auto mb-auto ring-1 ring-gray-200'
 						width={stageWidth || 1}
 						height={stageHeight || 1}
 						scale={{

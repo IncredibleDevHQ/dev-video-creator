@@ -64,9 +64,11 @@ const Theme = () => {
 		storage: { cdn: baseUrl },
 	} = useEnv()
 	const [activeScreen, setActiveScreen] = useState<'theme' | 'themes'>('themes')
-	const [tempActiveTheme, setTempActiveTheme] = useState<ThemeFragment | null>(
-		activeTheme
-	)
+	const [tempActiveTheme, setTempActiveTheme] = useState<ThemeFragment>()
+
+	useEffect(() => {
+		setTempActiveTheme(activeTheme)
+	}, [activeTheme])
 
 	const { mutateAsync: updateTheme, isLoading: loading } = trpc.useMutation([
 		'story.updateTheme',
@@ -160,7 +162,7 @@ const Theme = () => {
 											})}
 											onClick={() => {
 												setActiveScreen('themes')
-												setTempActiveTheme(null)
+												setTempActiveTheme(undefined)
 											}}
 										>
 											Themes

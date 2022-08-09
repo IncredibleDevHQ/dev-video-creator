@@ -36,6 +36,7 @@ import {
 import CustomLayout from '../../../svg/RecordingScreen/CustomLayout.svg'
 import OnlyUserMedia from '../../../svg/RecordingScreen/OnlyUserMedia.svg'
 import ThreeWaySwap from '../../../svg/RecordingScreen/ThreeWaySwap.svg'
+import Timer from './studio/Timer'
 
 const RecordingControls = ({
 	dataConfig,
@@ -173,38 +174,21 @@ const RecordingControls = ({
 					<button
 						type='button'
 						onClick={() => {
-              if(viewConfig.continuousRecording){
-                setContinuousRecordedBlockIds?.(prev => [
+							if (viewConfig.continuousRecording) {
+								setContinuousRecordedBlockIds?.(prev => [
 									...prev,
 									{
 										blockId: dataConfig[activeObjectIndex].id,
 										duration: 0,
 									},
 								])
-              }
+							}
 							updateState?.('stopRecording')
 						}}
-						className={cx(
-							'flex gap-x-3 bg-white font-main items-center justify-between border backdrop-filter backdrop-blur-2xl px-4 py-2 rounded-sm w-24 absolute min-w-max text-size-sm-title active:scale-95 transition-all'
-							// {
-							// 	'left-0': shortsMode,
-							// 	'bg-grey-500 bg-opacity-50 border-gray-600': timeLimit
-							// 		? timer < timeLimit * 60
-							// 		: true,
-							// 	'bg-error-10 text-error border-error': timeLimit
-							// 		? timer >= timeLimit * 60
-							// 		: false,
-							// }
-						)}
+						className='flex gap-x-3 bg-white font-main items-center justify-between border backdrop-filter backdrop-blur-2xl px-4 py-2 rounded-sm w-24 absolute min-w-max text-size-sm-title active:scale-95 transition-all'
 					>
-						<div className='w-3 h-3 bg-red-600 rounded-sm' />
-						Stop Recording
-						{/* <Timer target={(timeLimit || 3) * 60} timer={timer} /> */}
-						{/* {timeLimit && (
-						<small className='text-xs flex-shrink-0 text-dark-title'>
-							Limit: {timeLimit}min{' '}
-						</small>
-					)} */}
+						<div className='w-3 h-3 bg-red-600 rounded-full' />
+						<Timer />
 					</button>
 				)}
 				{/* Start Recording button */}
@@ -226,7 +210,7 @@ const RecordingControls = ({
 					{/* Video Play button */}
 					{isVideo && (
 						<button
-							className='bg-grey-500 bg-opacity-50 border border-gray-600 backdrop-filter backdrop-blur-2xl p-1.5 rounded-sm text-gray-100'
+							className='bg-gray-600 border-gray-600 p-1.5 rounded-sm text-gray-100'
 							type='button'
 							onClick={() => {
 								const { playing, videoElement } = controlsConfig
@@ -262,7 +246,7 @@ const RecordingControls = ({
 									'bg-transparent py-1 px-1 rounded-sm my-1 ml-1 transition-all duration-200 filter',
 									{
 										'bg-transparent': isIntro || isOutro,
-										'bg-gray-800':
+										'!bg-gray-800':
 											payload?.fragmentState === 'onlyUserMedia' &&
 											!isIntro &&
 											!isOutro,
@@ -287,7 +271,7 @@ const RecordingControls = ({
 									'bg-transparent py-1 px-1 rounded-sm my-1 mr-1 transition-all duration-300 filter',
 									{
 										'bg-transparent': isIntro || isOutro,
-										'bg-gray-800':
+										'!bg-gray-800':
 											payload?.fragmentState === 'customLayout' &&
 											!isIntro &&
 											!isOutro,
@@ -312,7 +296,7 @@ const RecordingControls = ({
 									'bg-transparent py-1 px-1 rounded-sm my-1 mr-1 transition-all duration-300 filter',
 									{
 										'bg-transparent': isIntro || isOutro,
-										'bg-gray-800':
+										'!bg-gray-800':
 											payload?.fragmentState === 'onlyFragment' &&
 											!isIntro &&
 											!isOutro,

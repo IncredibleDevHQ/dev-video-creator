@@ -366,7 +366,10 @@ const Timeline = ({
 					<div className='h-24' />
 					<div className='flex items-center w-full bg-dark-500 py-4 gap-x-4 overflow-x-auto'>
 						{blocks?.map((block, index) => (
-							<a
+							<div
+								role='button'
+								onKeyDown={() => {}}
+								tabIndex={0}
 								key={block.id}
 								className={cx(
 									'group flex items-center gap-x-3 border border-transparent cursor-pointer relative',
@@ -378,9 +381,14 @@ const Timeline = ({
 										'mr-5': index === blocks.length - 1,
 									}
 								)}
-								href={shouldScrollToCurrentBlock ? `#${block.id}` : undefined}
 								onClick={() => {
 									setCurrentBlock(block)
+									if (!shouldScrollToCurrentBlock) return
+									const ele = document.getElementById(block.id)
+									ele?.scrollIntoView({
+										behavior: 'smooth',
+										block: 'center',
+									})
 								}}
 							>
 								{(() => {
@@ -446,17 +454,19 @@ const Timeline = ({
 													?.get('selectedBlocks')
 													.find(b => b.blockId === block.id)
 											}
-											onClick={e => {
-												e.stopPropagation()
+											onChange={e => {
 												handleBlockSelect(
 													block.id,
 													e.currentTarget.checked ? 'added' : 'removed',
 													index
 												)
 											}}
+											onClick={e => {
+												e.stopPropagation()
+											}}
 										/>
 									)}
-							</a>
+							</div>
 						))}
 					</div>
 				</div>
