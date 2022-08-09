@@ -1,0 +1,37 @@
+import { NextApiRequest, NextApiResponse } from 'next'
+import prisma from 'prisma-orm/prisma'
+import { RecordingStatusEnum } from 'utils/src/enums'
+
+type Payload = {
+	recordingId: string
+	flickId: string
+	outputKey: string
+	orientation?: string
+}
+
+const completeRecording = async (req: NextApiRequest, res: NextApiResponse) => {
+	if (req.headers['x-secret'] !== process.env.NEXT_PUBLIC_WEBHOOK_SECRET) {
+		res.status(401).send({})
+		return
+	}
+
+	const { recordingId, outputKey } = req.body as Payload
+	try {
+		prisma.recording.update({
+			where: {
+				id: recordingId,
+			},
+			data: {
+				url: outputKey,
+				status: RecordingStatusEnum.completed,
+			},
+		})
+		res.status(200).send({})
+	} catch (e) {
+		// TODO: Sentry.captureException(e)
+		console.error(e)
+		res.status(500).send({})
+	}
+}
+
+export default completeRecording

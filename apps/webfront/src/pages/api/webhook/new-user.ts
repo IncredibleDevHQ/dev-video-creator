@@ -3,7 +3,11 @@ import prisma from 'prisma-orm/prisma'
 import { generateSuggestionsFromEmail } from 'utils/src/helpers/suggestion'
 
 const createNewUser = async (req: NextApiRequest, res: NextApiResponse) => {
-	// TODO: Add secret header check
+	if (req.headers['x-secret'] !== process.env.NEXT_PUBLIC_WEBHOOK_SECRET) {
+		res.status(401).send({})
+		return
+	}
+
 	const { user } = req.body
 	const username = generateSuggestionsFromEmail(user.email as string)
 	const [providerData] = user.providerData
