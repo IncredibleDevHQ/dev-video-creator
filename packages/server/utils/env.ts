@@ -8,6 +8,7 @@ export type EnvType = {
 
 const validateEnvs = (envs: any) => {
 	const envSchema = z.object({
+		WEBHOOK_SECRET: z.string(),
 		NODE_ENV: z.string(),
 		DATABASE_URL: z.string(),
 

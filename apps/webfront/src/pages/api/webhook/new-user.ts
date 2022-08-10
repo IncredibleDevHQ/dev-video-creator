@@ -1,9 +1,10 @@
 import { NextApiRequest, NextApiResponse } from 'next'
 import prisma from 'prisma-orm/prisma'
+import serverEnvs from 'server/utils/env'
 import { generateSuggestionsFromEmail } from 'utils/src/helpers/suggestion'
 
 const createNewUser = async (req: NextApiRequest, res: NextApiResponse) => {
-	if (req.headers['x-secret'] !== process.env.NEXT_PUBLIC_WEBHOOK_SECRET) {
+	if (req.headers['x-secret'] !== serverEnvs.WEBHOOK_SECRET) {
 		res.status(401).send({})
 		return
 	}

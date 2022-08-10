@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next'
 import prisma from 'prisma-orm/prisma'
+import serverEnvs from 'server/utils/env'
 import { RecordingStatusEnum } from 'utils/src/enums'
 
 type Payload = {
@@ -10,7 +11,7 @@ type Payload = {
 }
 
 const completeRecording = async (req: NextApiRequest, res: NextApiResponse) => {
-	if (req.headers['x-secret'] !== process.env.NEXT_PUBLIC_WEBHOOK_SECRET) {
+	if (req.headers['x-secret'] !== serverEnvs.WEBHOOK_SECRET) {
 		res.status(401).send({})
 		return
 	}
