@@ -34,7 +34,7 @@ export const TextField = ({
 			</div>
 		</div>
 		{typeof C === 'string' ? (
-			<span className='text-xs mt-1 font-semibold text-red-600 ml-auto'>
+			<span className='text-size-xs font-body mt-1 font-semibold text-red-600 ml-auto'>
 				{C}
 			</span>
 		) : (

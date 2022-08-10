@@ -35,7 +35,7 @@ const userRouter = trpc
 		QUERIES
 	*/
 	// ACTION'S
-	.query('me', {
+	.mutation('me', {
 		meta: {
 			hasAuth: true,
 		},
