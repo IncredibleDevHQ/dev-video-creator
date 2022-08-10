@@ -2,10 +2,9 @@ import { css, cx } from '@emotion/css'
 import { Dialog, Transition } from '@headlessui/react'
 import { Fragment, useEffect, useState } from 'react'
 import { IoAlbumsOutline } from 'react-icons/io5'
-import { CreateUserSeriesMutationVariables } from 'src/graphql/generated'
 import usePush from 'src/utils/hooks/usePush'
 import { Button, emitToast, Heading } from 'ui/src'
-import trpc from '../../server/trpc'
+import trpc, { inferMutationInput } from '../../server/trpc'
 
 const defaults = {
 	name: '',
@@ -20,7 +19,7 @@ const CreateSeriesModal = ({
 	handleClose: (refresh?: boolean) => void
 }) => {
 	const [details, setDetails] =
-		useState<CreateUserSeriesMutationVariables>(defaults)
+		useState<inferMutationInput<'series.create'>>(defaults)
 	const {
 		mutateAsync: createSeries,
 		data,

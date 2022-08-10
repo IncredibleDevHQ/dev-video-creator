@@ -10,13 +10,8 @@ import { FaDiscord } from 'react-icons/fa'
 import { IoHeartOutline } from 'react-icons/io5'
 import SEO from 'src/components/core/SEO'
 import Navbar from 'src/components/dashboard/Navbar'
-import {
-	Content_Type_Enum_Enum,
-	useClapFlickMutation,
-	useGetFlickClapsByUserQuery,
-} from 'src/graphql/generated'
 import prisma from 'prisma-orm/prisma'
-import { ParticipantRoleEnum } from 'src/utils/enums'
+import { ContentTypeEnum, ParticipantRoleEnum } from 'utils/src/enums'
 import requireAuth from 'src/utils/helpers/requireAuth'
 import { useUser } from 'src/utils/providers/auth'
 import {
@@ -30,7 +25,7 @@ import {
 	Text,
 } from 'ui/src'
 import { useDebounce } from 'use-debounce'
-import { inferQueryOutput } from '../../server/trpc'
+import trpc, { inferQueryOutput } from '../../server/trpc'
 
 const IncredibleVideoPlayer = dynamic<IncredibleVideoPlayerProps>(
 	() => import('ui/src').then(module => module.IncredibleVideoPlayer),
@@ -98,21 +93,25 @@ const Watch = ({ flick, flickContent }: WatchProps) => {
 		}
 	}, [])
 
-	const { data: userClaps } = useGetFlickClapsByUserQuery({
-		variables: { flickId: flick.id, sub: user?.uid as string },
-	})
+	const { data: userClaps } = trpc.useQuery([
+		'story.getClaps',
+		{ id: flick.id },
+	])
 
-	const [clapFlick] = useClapFlickMutation()
+	const { mutateAsync: clapFlick } = trpc.useMutation('story.clap', {
+		onError(error) {
+			emitToast(`Something went wrong ${error}`, {
+				type: 'error',
+			})
+		},
+	})
 
 	const handleClap = async (claps: number) => {
 		if (!user?.sub) return
-		const { errors } = await clapFlick({
-			variables: { flickId: flick.id, claps },
+		await clapFlick({
+			id: flick.id,
+			count: claps,
 		})
-		if (errors)
-			emitToast('Something went wrong', {
-				type: 'error',
-			})
 	}
 
 	useEffect(() => {
@@ -121,9 +120,7 @@ const Watch = ({ flick, flickContent }: WatchProps) => {
 	}, [debouncedFlickClaps])
 
 	useEffect(() => {
-		setUserFlickClaps(
-			userClaps?.Flick?.[0]?.claps_aggregate?.aggregate?.count || 0
-		)
+		setUserFlickClaps(userClaps?.count || 0)
 	}, [userClaps])
 
 	const playerContainer = useRef<HTMLDivElement>(null)
@@ -569,15 +566,15 @@ export const getServerSideProps = requireAuth(true)(
 			? {
 					video:
 						flick.Content.find(
-							content => content.type === Content_Type_Enum_Enum.Video
+							content => content.type === ContentTypeEnum.Video
 						) || null,
 					blog:
 						flick.Content.find(
-							content => content.type === Content_Type_Enum_Enum.Blog
+							content => content.type === ContentTypeEnum.Blog
 						) || null,
 					verticalVideo:
 						flick.Content.filter(
-							content => content.type === Content_Type_Enum_Enum.VerticalVideo
+							content => content.type === ContentTypeEnum.VerticalVideo
 						) || null,
 			  }
 			: null

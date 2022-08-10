@@ -1,6 +1,6 @@
 import { IAgoraRTCRemoteUser } from 'agora-rtc-sdk-ng'
 import { atom, atomFamily } from 'recoil'
-import { ThemeFragment, TransitionFragment } from 'src/graphql/generated'
+import { inferQueryOutput } from 'src/server/trpc'
 import {
 	BrandingJSON,
 	ControlsConfig,
@@ -37,7 +37,7 @@ export const activeObjectIndexAtom = atom<number>({
 	default: 0,
 })
 
-export const themeAtom = atom<ThemeFragment>({
+export const themeAtom = atom<inferQueryOutput<'util.themes'>[number]>({
 	key: 'theme',
 	default: {
 		name: 'DarkGradient',
@@ -55,8 +55,8 @@ export const brandingAtom = atom<BrandingJSON>({
 })
 
 export type TransitionConfig = {
-	swapTransition?: TransitionFragment
-	blockTransition?: TransitionFragment
+	swapTransition?: inferQueryOutput<'story.getTransitions'>[number]
+	blockTransition?: inferQueryOutput<'story.getTransitions'>[number]
 }
 export const transitionAtom = atom<TransitionConfig>({
 	key: 'transition',

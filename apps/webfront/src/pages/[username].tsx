@@ -3,24 +3,18 @@
 import { css, cx } from '@emotion/css'
 import { differenceInMonths, format, formatDistance } from 'date-fns'
 import { GetServerSideProps, InferGetServerSidePropsType } from 'next'
+import Link from 'next/link'
 import { useRouter } from 'next/router'
+import prisma from 'prisma-orm/prisma'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { FiUser } from 'react-icons/fi'
-import {
-	useFollowMutation,
-	UserFragment,
-	useUnfollowMutation,
-} from 'src/graphql/generated'
-
-import Link from 'next/link'
 import SEO from 'src/components/core/SEO'
+import CreateFlickModal from 'src/components/dashboard/CreateFlickModal'
 import Navbar from 'src/components/dashboard/Navbar'
+import CollaborateModal from 'src/components/profile/CollaborateModal'
 import { useUser } from 'src/utils/providers/auth'
 import { Avatar, Button, Heading, Text } from 'ui/src'
-import CreateFlickModal from 'src/components/dashboard/CreateFlickModal'
-import CollaborateModal from 'src/components/profile/CollaborateModal'
-import prisma from 'prisma-orm/prisma'
-import { ParticipantRoleEnum } from 'src/utils/enums'
+import { ParticipantRoleEnum } from 'utils/src/enums'
 import trpc, { inferQueryOutput } from '../server/trpc'
 
 const FlickCard = ({
@@ -383,27 +377,24 @@ const ProfileCard = ({
 	user,
 	setOpenCollaborateModal,
 }: {
-	user: UserFragment
+	user: inferQueryOutput<'user.profile'>['user']
 	setOpenCollaborateModal: (val: boolean) => void
 }) => {
 	const { user: loggedInUser } = useUser()
 	const [isFollowing, setIsFollowing] = useState(false)
 	const router = useRouter()
 
-	const [follow, { data: performFollowData, loading }] = useFollowMutation({
-		variables: {
-			followerId: loggedInUser?.uid as string,
-			targetId: user.sub,
-		},
-	})
+	const {
+		mutateAsync: follow,
+		data: performFollowData,
+		isLoading: loading,
+	} = trpc.useMutation(['user.follow'])
 
-	const [unfollow, { data: performUnfollowData, loading: unfollowLoading }] =
-		useUnfollowMutation({
-			variables: {
-				followerId: loggedInUser?.uid as string,
-				targetId: user.sub,
-			},
-		})
+	const {
+		mutateAsync: unfollow,
+		data: performUnfollowData,
+		isLoading: unfollowLoading,
+	} = trpc.useMutation(['user.unfollow'])
 
 	const { data } = trpc.useQuery([
 		'user.isFollowing',
@@ -470,7 +461,10 @@ const ProfileCard = ({
 											)}`
 										)
 									} else {
-										follow()
+										follow({
+											followerId: loggedInUser?.uid as string,
+											targetId: user.sub,
+										})
 									}
 								}}
 							>
@@ -483,7 +477,10 @@ const ProfileCard = ({
 								className='border border-dark-100 !px-4 !py-2.5'
 								loading={unfollowLoading}
 								onClick={() => {
-									unfollow()
+									unfollow({
+										followerId: loggedInUser?.uid as string,
+										targetId: user.sub,
+									})
 								}}
 							>
 								Following
@@ -518,7 +515,7 @@ const EmptyProfile = ({
 	setIsCreateFlickOpen,
 	setOpenCollaborateModal,
 }: {
-	user: UserFragment
+	user: inferQueryOutput<'user.profile'>['user']
 	type: 'stories' | 'series'
 	setIsCreateFlickOpen: (val: boolean) => void
 	setOpenCollaborateModal: (val: boolean) => void

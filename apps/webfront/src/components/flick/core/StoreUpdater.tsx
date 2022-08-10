@@ -14,7 +14,7 @@ import {
 	thumbnailObjectAtom,
 } from 'src/stores/flick.store'
 import { recordedBlocksAtom, recordingIdAtom } from 'src/stores/studio.store'
-import { Fragment_Type_Enum_Enum } from 'utils/src/graphql/generated'
+import { FragmentTypeEnum } from 'utils/src/enums'
 import trpc, { inferMutationOutput } from '../../../server/trpc'
 
 const FragmentStoreUpdater = () => {
@@ -37,7 +37,7 @@ const FragmentStoreUpdater = () => {
 				)
 				set(
 					fragmentTypeAtom,
-					activeFragment?.type === Fragment_Type_Enum_Enum.Portrait
+					activeFragment?.type === FragmentTypeEnum.Portrait
 						? 'Portrait'
 						: 'Landscape'
 				)

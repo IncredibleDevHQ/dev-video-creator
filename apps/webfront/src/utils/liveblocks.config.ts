@@ -1,6 +1,6 @@
 import { createClient, LiveMap, LiveObject } from '@liveblocks/client'
 import { createRoomContext } from '@liveblocks/react'
-import { BrandingFragment, ThemeFragment } from 'src/graphql/generated'
+import { inferQueryOutput } from 'src/server/trpc'
 import { StudioState, TransitionConfig } from 'src/stores/studio.store'
 import { getEnv, LiveViewConfig } from 'utils/src'
 import { FragmentPayload } from './configs'
@@ -68,11 +68,11 @@ export enum RoomEventTypes {
 type RoomEvent =
 	| {
 			type: RoomEventTypes.ThemeChanged
-			payload: ThemeFragment
+			payload: inferQueryOutput<'util.themes'>[number]
 	  }
 	| {
 			type: RoomEventTypes.BrandingChanged
-			payload: BrandingFragment | null
+			payload: inferQueryOutput<'user.brands'>[number] | null
 	  }
 	| {
 			type: RoomEventTypes.TransitionChanged

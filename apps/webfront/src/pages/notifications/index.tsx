@@ -7,12 +7,9 @@ import Skeleton, { SkeletonTheme } from 'react-loading-skeleton'
 import Container from 'src/components/core/Container'
 import Navbar from 'src/components/dashboard/Navbar'
 import NotificationMessage from 'src/components/notifications/NotificationMessage'
-
-import { useMarkNotificationAsReadMutation } from 'src/graphql/generated'
-import { NotificationMetaTypeEnum, NotificationTypeEnum } from 'src/utils/enums'
+import { NotificationMetaTypeEnum, NotificationTypeEnum } from 'utils/src/enums'
 import requireAuth from 'src/utils/helpers/requireAuth'
 import { Avatar, Button, Heading, Text } from 'ui/src'
-import {} from 'utils/src/graphql/generated'
 import trpc, { inferQueryOutput } from '../../server/trpc'
 import CollaborationRespondModal from '../../components/notifications/CollaborationResponseModal'
 
@@ -29,7 +26,9 @@ const Notifications = () => {
 		refetch,
 	} = trpc.useQuery(['user.notifications', { limit: 15, offset }])
 
-	const [markAsRead] = useMarkNotificationAsReadMutation()
+	const { mutateAsync: markAsRead } = trpc.useMutation([
+		'user.readNotification',
+	])
 	const [isModalOpen, setIsModalOpen] = useState(false)
 	const [notification, setNotification] =
 		useState<inferQueryOutput<'user.notifications'>[number]>()
@@ -50,21 +49,6 @@ const Notifications = () => {
 							e.currentTarget.scrollHeight - e.currentTarget.scrollTop ===
 							e.currentTarget.clientHeight
 						) {
-							// fetchMore({
-							// 	variables: {
-							// 		offset: offset + 25,
-							// 	},
-							// 	updateQuery: (prev, { fetchMoreResult }) => {
-							// 		if (!fetchMoreResult) return prev
-							// 		return {
-							// 			...prev,
-							// 			Notifications: [
-							// 				...prev.Notifications,
-							// 				...fetchMoreResult.Notifications,
-							// 			],
-							// 		}
-							// 	},
-							// })
 							setOffset(offset + 25)
 						}
 					}}
@@ -105,9 +89,7 @@ const Notifications = () => {
 										className='flex justify-start w-full p-4 cursor-pointer gap-x-4'
 										onClick={() => {
 											markAsRead({
-												variables: {
-													id: notificationData.id,
-												},
+												id: notificationData.id,
 											})
 											setNotification(notificationData)
 

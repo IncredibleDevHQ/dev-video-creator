@@ -31,7 +31,7 @@ const Brand = () => {
 		if (event.type === RoomEventTypes.BrandingChanged) {
 			if (event.payload) {
 				setActiveBrandId(event.payload.id)
-				setBrandingJSON(event.payload.branding)
+				setBrandingJSON(JSON.parse(JSON.stringify(event.payload.branding)))
 			} else {
 				setActiveBrandId(null)
 				setBrandingJSON({})

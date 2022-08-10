@@ -107,7 +107,7 @@ const recordingRouter = trpc
 					type: input.contentType,
 					editorState: input.editorState,
 					viewConfig: input.viewconfig,
-					status: RecordingStatusEnum.pending,
+					status: RecordingStatusEnum.Pending,
 				},
 				select: {
 					id: true,
@@ -178,7 +178,7 @@ const recordingRouter = trpc
 			})
 
 			// if currently processing wait for it to finish
-			if (recordingData?.status === RecordingStatusEnum.processing) {
+			if (recordingData?.status === RecordingStatusEnum.Processing) {
 				throw new TRPCError({
 					code: 'CONFLICT',
 					message: 'Recording is currently processing...',
@@ -289,7 +289,7 @@ const recordingRouter = trpc
 					id: input.recordingId,
 				},
 				data: {
-					status: RecordingStatusEnum.processing,
+					status: RecordingStatusEnum.Processing,
 				},
 			})
 			return {

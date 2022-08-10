@@ -2,7 +2,7 @@ import { css, cx } from '@emotion/css'
 import { format } from 'date-fns'
 import Link from 'next/link'
 import React from 'react'
-import { DashboardSeriesFragment } from 'src/graphql/generated'
+import { inferQueryOutput } from 'src/server/trpc'
 
 const clamp = css`
 	display: -webkit-box;
@@ -11,7 +11,11 @@ const clamp = css`
 	overflow: hidden;
 `
 
-const SeriesTile = ({ series }: { series: DashboardSeriesFragment }) => (
+const SeriesTile = ({
+	series,
+}: {
+	series: inferQueryOutput<'series.dashboard'>[number]
+}) => (
 	<Link href={`/series/${series.name}--${series.id}`}>
 		<div className='aspect-w-10 aspect-h-6 cursor-pointer'>
 			<div className='flex flex-col border border-dark-200 rounded-lg p-6 h-full w-full hover:border-green-600 text-left'>

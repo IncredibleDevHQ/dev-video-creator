@@ -5,7 +5,6 @@ import NextNProgress from 'nextjs-progressbar'
 import { RecoilRoot } from 'recoil'
 import { AppRouter } from 'server/routes/route'
 import UserProvider from 'src/utils/providers/auth'
-import AuthorizedApolloProvider from 'src/utils/providers/authorized-apollo-provider'
 import superjson from 'superjson'
 import { ToastContainer } from 'ui/src'
 import '../styles/globals.css'
@@ -15,9 +14,7 @@ const MyApp = ({ Component, pageProps }: AppProps) => (
 		<UserProvider>
 			<NextNProgress color='#15803D' height={3} />
 			<ToastContainer limit={2} />
-			<AuthorizedApolloProvider>
-				<Component {...pageProps} />
-			</AuthorizedApolloProvider>
+			<Component {...pageProps} />
 		</UserProvider>
 	</RecoilRoot>
 )

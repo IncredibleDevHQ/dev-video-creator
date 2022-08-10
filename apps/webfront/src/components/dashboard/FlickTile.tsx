@@ -14,11 +14,7 @@ import {
 } from 'react-icons/io5'
 import { useUser } from 'src/utils/providers/auth'
 import { emitToast, Heading, Text, ThumbnailPreview } from 'ui/src'
-import {
-	Content_Type_Enum_Enum,
-	// DashboardFlicksFragment,
-	OrientationEnum,
-} from 'utils/src/graphql/generated'
+import { ContentTypeEnum, OrientationEnum } from 'utils/src/enums'
 import trpc, { inferQueryOutput } from '../../server/trpc'
 
 const FlickTile = ({
@@ -113,7 +109,7 @@ const FlickTile = ({
 											posterImageSource={Content[0]?.thumbnail || ''}
 											className='rounded-t-md w-full h-full'
 											orientation={
-												Content[0]?.type === Content_Type_Enum_Enum.Video
+												Content[0]?.type === ContentTypeEnum.Video
 													? OrientationEnum.Landscape
 													: OrientationEnum.Portrait
 											}
@@ -129,7 +125,7 @@ const FlickTile = ({
 											posterImageSource={Content[1]?.thumbnail || ''}
 											className='rounded-t-md w-full h-full'
 											orientation={
-												Content[1]?.type === Content_Type_Enum_Enum.Video
+												Content[1]?.type === ContentTypeEnum.Video
 													? OrientationEnum.Landscape
 													: OrientationEnum.Portrait
 											}

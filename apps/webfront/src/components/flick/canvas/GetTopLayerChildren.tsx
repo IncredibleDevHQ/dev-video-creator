@@ -1,4 +1,4 @@
-import { ThemeFragment } from 'src/graphql/generated'
+import { inferQueryOutput } from 'src/server/trpc'
 import { BrandingJSON } from 'src/utils/configs'
 import { IntroBlockViewProps, TopLayerChildren } from 'utils/src'
 import LowerThridProvider from './LowerThirdProvider'
@@ -20,7 +20,7 @@ const GetTopLayerChildren = ({
 		React.SetStateAction<{ id: string; state: TopLayerChildren }>
 	>
 	isShorts: boolean
-	theme: ThemeFragment
+	theme: inferQueryOutput<'util.themes'>[number]
 	transitionSettings?: { blockTransition?: string; swapTransition?: string }
 	branding?: BrandingJSON | null
 	performFinishAction?: () => void

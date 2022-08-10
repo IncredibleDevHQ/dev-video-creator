@@ -2,17 +2,14 @@ import { css, cx } from '@emotion/css'
 import { Dialog, Transition } from '@headlessui/react'
 import { useRouter } from 'next/router'
 import { Fragment, useEffect, useState } from 'react'
-import {
-	CreateFlickFlickScopeEnumEnum,
-	CreateNewFlickMutationVariables,
-	useCreateNewFlickMutation,
-} from 'src/graphql/generated'
+import trpc, { inferMutationInput } from 'src/server/trpc'
 import { Button, emitToast, Heading, TextField } from 'ui/src'
+import { FlickScopeEnum } from 'utils/src/enums'
 
 const defaults = {
 	name: '',
 	description: '',
-	scope: CreateFlickFlickScopeEnumEnum.Public,
+	scope: FlickScopeEnum.Public,
 }
 
 const CreateFlickModal = ({
@@ -27,9 +24,13 @@ const CreateFlickModal = ({
 	handleRefresh?: () => void
 }) => {
 	const [details, setDetails] =
-		useState<CreateNewFlickMutationVariables>(defaults)
+		useState<inferMutationInput<'story.create'>>(defaults)
 
-	const [createFlick, { data, loading }] = useCreateNewFlickMutation()
+	const {
+		mutateAsync: createFlick,
+		data,
+		isLoading: loading,
+	} = trpc.useMutation(['story.create'])
 
 	const { push } = useRouter()
 
@@ -37,13 +38,11 @@ const CreateFlickModal = ({
 		try {
 			if (seriesId) {
 				await createFlick({
-					variables: {
-						...details,
-						seriesId,
-					},
+					...details,
+					seriesId,
 				})
 			} else {
-				await createFlick({ variables: details })
+				await createFlick(details)
 			}
 		} catch (e) {
 			emitToast('Could not create your story.Please try again', {
@@ -54,7 +53,7 @@ const CreateFlickModal = ({
 
 	useEffect(() => {
 		if (!data) return
-		push(`/story/${data.CreateFlick?.id}`)
+		push(`/story/${data?.id}`)
 		handleRefresh?.()
 		emitToast('Story created successfully', {
 			type: 'success',

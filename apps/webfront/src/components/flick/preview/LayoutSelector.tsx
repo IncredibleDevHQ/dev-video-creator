@@ -2,7 +2,7 @@
 import { css, cx } from '@emotion/css'
 import { Block } from 'editor/src/utils/types'
 import { useRecoilValue } from 'recoil'
-import { ThemeFragment } from 'src/graphql/generated'
+import { inferQueryOutput } from 'src/server/trpc'
 import { themeAtom } from 'src/stores/studio.store'
 import {
 	getThemeBasedIntroLayouts,
@@ -35,7 +35,7 @@ const LayoutSelector = ({
 	mode: ViewConfig['mode']
 	updateLayout: (layout: Layout) => void
 	type: Block['type']
-	theme?: ThemeFragment
+	theme?: inferQueryOutput<'util.themes'>[number]
 	darkMode?: boolean
 }) => {
 	const activeTheme = useRecoilValue(themeAtom)

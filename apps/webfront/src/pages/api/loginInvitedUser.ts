@@ -6,7 +6,7 @@ import {
 	NotificationMetaTypeEnum,
 	NotificationTypeEnum,
 	ParticipantRoleEnum,
-} from 'src/utils/enums'
+} from 'utils/src/enums'
 import serverEnvs from 'server/utils/env'
 import prisma from 'prisma-orm/prisma'
 

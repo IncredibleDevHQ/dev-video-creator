@@ -4,7 +4,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable jsx-a11y/media-has-caption */
 import { css, cx } from '@emotion/css'
-import { Dialog, Listbox, Popover, Switch, Transition } from '@headlessui/react'
+import { Dialog, Listbox, Popover, Transition } from '@headlessui/react'
 import axios from 'axios'
 import Link from 'next/link'
 import React, {
@@ -36,10 +36,6 @@ import { MdOutlineTextFields } from 'react-icons/md'
 import useMeasure from 'react-use-measure'
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
 import {
-	useGetUserYtIntegrationSubscription,
-	useUpdateThumbnailObjectMutation,
-} from 'src/graphql/generated'
-import {
 	activeFragmentIdAtom,
 	astAtom,
 	CallToAction,
@@ -50,27 +46,16 @@ import {
 	thumbnailObjectAtom,
 } from 'src/stores/flick.store'
 import { activeBrandIdAtom, recordedBlocksAtom } from 'src/stores/studio.store'
-import { UploadType } from 'utils/src/enums'
-import { useUser } from 'src/utils/providers/auth'
 import CallToActionIcon from 'svg/CallToAction.svg'
-import {
-	Avatar,
-	Button,
-	Confetti,
-	emitToast,
-	Heading,
-	IconButton,
-	Text,
-} from 'ui/src'
+import { Button, Confetti, emitToast, Heading, IconButton, Text } from 'ui/src'
 import { useDebouncedCallback } from 'use-debounce'
 import { useEnv, useGetHW, useUploadFile } from 'utils/src'
 import {
-	Fragment_Type_Enum_Enum,
-	RecordingFragment,
-	Recording_Status_Enum_Enum,
-	useGetRecordingsQuery,
-} from 'utils/src/graphql/generated'
-import trpc from '../../../server/trpc'
+	FragmentTypeEnum,
+	RecordingStatusEnum,
+	UploadType,
+} from 'utils/src/enums'
+import trpc, { inferQueryOutput } from '../../../server/trpc'
 import ThumbnailModal from './ThumbnailModal'
 
 interface Tab {
@@ -434,7 +419,7 @@ const DetailsTab = ({
 					Title is required
 				</span>
 			)}
-			{fragmentType !== Fragment_Type_Enum_Enum.Portrait && (
+			{fragmentType !== FragmentTypeEnum.Portrait && (
 				<>
 					<Heading textStyle='extraSmallTitle' className='mt-8'>
 						Description*
@@ -478,7 +463,10 @@ const ThumbnailTab = ({
 	const [thumbnailModal, setThumbnailModal] = useState(false)
 	const [uploadFile] = useUploadFile()
 	const [fileUploading, setFileUploading] = useState(false)
-	const [updateThumbnailObject] = useUpdateThumbnailObjectMutation()
+
+	const { mutateAsync: updateThumbnailObject } = trpc.useMutation([
+		'fragment.updateThumbnail',
+	])
 
 	const handleUploadFile = async (files: File[]) => {
 		try {
@@ -505,10 +493,8 @@ const ThumbnailTab = ({
 
 			setFileUploading(false)
 			await updateThumbnailObject({
-				variables: {
-					id: activeFragmentId,
-					thumbnailObject: uuid,
-				},
+				id: activeFragmentId as string,
+				thumbnailObject: uuid,
 			})
 			setPublish({
 				...publish,
@@ -721,10 +707,6 @@ const Publish = ({
 
 	const simpleAST = useRecoilValue(astAtom)
 
-	const { token, user } = useUser()
-
-	const [enablePublishToYT, setEnablePublishToYT] = useState(false)
-
 	const thumbnailObject = useRecoilValue(thumbnailObjectAtom)
 	const [publishConfig, setPublishConfig] = useRecoilState(publishConfigAtom)
 
@@ -767,14 +749,6 @@ const Publish = ({
 		error: updatePublishError,
 	} = trpc.useMutation(['fragment.updatePublished'])
 
-	const {
-		data: ytData,
-		error: ytError,
-		loading: ytLoading,
-	} = useGetUserYtIntegrationSubscription()
-
-	const [ytIntegration, setYtIntegration] = useState<YTIntegration>()
-
 	useEffect(() => {
 		if (!updatePublishError) return
 		emitToast(`Couldn't update publish config ${updatePublishError.message}`, {
@@ -803,7 +777,6 @@ const Publish = ({
 
 	const {
 		storage: { cdn: baseUrl },
-		api,
 	} = useEnv()
 
 	const fragmentType = useRecoilValue(fragmentTypeAtom)
@@ -813,7 +786,8 @@ const Publish = ({
 		aspectRatio: fragmentType === 'Portrait' ? 9 / 16 : 16 / 9,
 	})
 
-	const [recording, setRecording] = useState<RecordingFragment>()
+	const [recording, setRecording] =
+		useState<inferQueryOutput<'recording.get'>[number]>()
 
 	const recordedBlocks = useRecoilValue(recordedBlocksAtom)
 
@@ -827,21 +801,30 @@ const Publish = ({
 	const {
 		data: recordingsData,
 		error: getRecordingsError,
-		loading: getRecordingsLoading,
+		isLoading: getRecordingsLoading,
 		refetch,
-		startPolling,
-		stopPolling,
-	} = useGetRecordingsQuery({
-		variables: {
-			flickId: flick?.id,
-			fragmentId: activeFragmentId,
+	} = trpc.useQuery([
+		'recording.get',
+		{
+			flickId: flick?.id as string,
+			fragmentId: activeFragmentId as string,
 		},
-	})
+	])
+
+	let timer: NodeJS.Timer
+	const startPolling = () => {
+		timer = setInterval(() => {
+			refetch()
+		}, 5000)
+	}
+	const stopPolling = () => {
+		clearInterval(timer)
+	}
 
 	useEffect(() => {
 		if (!recording) return
-		if (recording.status === Recording_Status_Enum_Enum.Processing) {
-			startPolling(5000)
+		if (recording.status === RecordingStatusEnum.Processing) {
+			startPolling()
 		} else {
 			stopPolling()
 		}
@@ -880,9 +863,9 @@ const Publish = ({
 	}
 
 	useEffect(() => {
-		if (!recordingsData?.Recording) return
-		if (recordingsData.Recording.length < 1) return
-		setRecording(recordingsData.Recording[0])
+		if (!recordingsData) return
+		if (recordingsData.length < 1) return
+		setRecording(recordingsData[0])
 	}, [recordingsData])
 
 	useEffect(() => {
@@ -900,402 +883,290 @@ const Publish = ({
 		}
 	}, [errorCompletingRecording, getRecordingsError])
 
-	const [openIntegrationModal, setOpenIntegrationModal] = useState(false)
-
-	useEffect(() => {
-		if (ytError || !ytData || ytData?.YoutubeIntegration.length === 0) {
-			if (ytError)
-				emitToast('Oops something is wrong with your Youtube Integration', {
-					type: 'error',
-				})
-			return
-		}
-		setYtIntegration(ytData?.YoutubeIntegration[0].userInfo as YTIntegration)
-		if (openIntegrationModal) setOpenIntegrationModal(false)
-	}, [ytLoading, ytData])
-
 	return (
-		<>
-			<Transition appear show={open} as={Fragment}>
-				<Dialog
-					onClose={() => {
-						handleClose()
-					}}
-					className='relative z-50'
+		<Transition appear show={open} as={Fragment}>
+			<Dialog
+				onClose={() => {
+					handleClose()
+				}}
+				className='relative z-50'
+			>
+				<Transition.Child
+					as={Fragment}
+					enter='ease-out duration-300'
+					enterFrom='opacity-0'
+					enterTo='opacity-100'
+					leave='ease-in duration-200'
+					leaveFrom='opacity-100'
+					leaveTo='opacity-0'
 				>
-					<Transition.Child
-						as={Fragment}
-						enter='ease-out duration-300'
-						enterFrom='opacity-0'
-						enterTo='opacity-100'
-						leave='ease-in duration-200'
-						leaveFrom='opacity-100'
-						leaveTo='opacity-0'
-					>
-						<div className='fixed inset-0 bg-black/60' aria-hidden='true' />
-					</Transition.Child>
-					<Transition.Child
-						as={Fragment}
-						enter='ease-out duration-300'
-						enterFrom='opacity-0 scale-95'
-						enterTo='opacity-100 scale-100'
-						leave='ease-in duration-200'
-						leaveFrom='opacity-100 scale-100'
-						leaveTo='opacity-0 scale-95'
-					>
-						<div className='fixed inset-0 flex items-center justify-center p-4'>
-							<Dialog.Panel className='h-[85vh] w-[90%] flex flex-col bg-white rounded-md overflow-hidden'>
-								{doPublishData && (
-									<>
-										<Confetti fire={showConfetti} />
-										<div className='flex w-full h-full items-center justify-center'>
-											<div
-												className='flex flex-col w-full h-full items-start justify-center'
-												style={{
-													maxWidth: '450px',
-													width: '100%',
+					<div className='fixed inset-0 bg-black/60' aria-hidden='true' />
+				</Transition.Child>
+				<Transition.Child
+					as={Fragment}
+					enter='ease-out duration-300'
+					enterFrom='opacity-0 scale-95'
+					enterTo='opacity-100 scale-100'
+					leave='ease-in duration-200'
+					leaveFrom='opacity-100 scale-100'
+					leaveTo='opacity-0 scale-95'
+				>
+					<div className='fixed inset-0 flex items-center justify-center p-4'>
+						<Dialog.Panel className='h-[85vh] w-[90%] flex flex-col bg-white rounded-md overflow-hidden'>
+							{doPublishData && (
+								<>
+									<Confetti fire={showConfetti} />
+									<div className='flex w-full h-full items-center justify-center'>
+										<div
+											className='flex flex-col w-full h-full items-start justify-center'
+											style={{
+												maxWidth: '450px',
+												width: '100%',
+											}}
+										>
+											<div className='flex mx-auto'>
+												<div className='h-32 w-32 bg-gray-100 rounded-full z-0' />
+												<div className='z-20 w-32 h-32 -ml-32 rounded-full backdrop-filter backdrop-blur-xl' />
+												<div className='z-10 w-24 h-24 -ml-10 rounded-full bg-green-600' />
+											</div>
+											<Heading className='mb-4 font-bold text-3xl mt-12'>
+												Congratulations! your story is out.
+											</Heading>
+											<Text className='font-body'>
+												Your story is available in this link. You can share it
+												with the world.
+											</Text>
+											<a
+												href={`/watch/${flick?.joinLink}`}
+												target='_blank'
+												rel='noreferrer noopener'
+												className='w-full flex my-4 border p-2 rounded-md items-center justify-between text-size-sm gap-x-12 text-gray-600 px-4 pr-0'
+											>
+												{`${process.env.NEXT_PUBLIC_PUBLIC_URL}/watch/${flick?.joinLink}`}
+												<FiExternalLink size={21} className='mx-2' />
+											</a>
+										</div>
+									</div>
+								</>
+							)}
+							{!doPublishData && (
+								<div className='flex flex-col w-full h-full'>
+									{/* Top bar */}
+									<div className='flex items-center justify-between w-full pl-4 pr-2 py-2 border-b border-gray-300'>
+										<div className='flex items-center gap-x-4'>
+											<Heading textStyle='smallTitle'>Publish</Heading>
+											{updatePublishLoading ? (
+												<div className='flex items-center mt-px mr-4 text-gray-400'>
+													<BsCloudUpload className='mr-1' />
+													<Text textStyle='bodySmall'>Saving...</Text>
+												</div>
+											) : (
+												<div className='flex items-center mt-px mr-4 text-gray-400'>
+													<BsCloudCheck className='mr-1' />
+													<Text textStyle='bodySmall'>Saved</Text>
+												</div>
+											)}
+										</div>
+										<div className='flex items-center gap-x-4'>
+											{flick && flick.contents.length > 0 && (
+												<Link href={`/watch/${flick?.joinLink}`}>
+													<p className='flex items-center gap-x-2 text-size-xs hover:underline cursor-pointer'>
+														Story page
+													</p>
+												</Link>
+											)}
+											<Button
+												disabled={
+													!publish.title ||
+													(fragmentType !== 'Portrait' &&
+														!publish.description) ||
+													!recording?.id ||
+													!recording.url ||
+													recording?.status !== RecordingStatusEnum.Completed ||
+													updatePublishLoading
+												}
+												loading={publishing}
+												onClick={() => {
+													if (!publish || !activeFragmentId) {
+														emitToast(
+															'Ops! Something went wrong, could not load the necessary data to publish.',
+															{
+																type: 'error',
+															}
+														)
+														return
+													}
+													doPublish({
+														data: publish,
+														fragmentId: activeFragmentId,
+														recordingId: recording?.id as string,
+														publishToYoutube: false,
+													})
 												}}
 											>
-												<div className='flex mx-auto'>
-													<div className='h-32 w-32 bg-gray-100 rounded-full z-0' />
-													<div className='z-20 w-32 h-32 -ml-32 rounded-full backdrop-filter backdrop-blur-xl' />
-													<div className='z-10 w-24 h-24 -ml-10 rounded-full bg-green-600' />
-												</div>
-												<Heading className='mb-4 font-bold text-3xl mt-12'>
-													Congratulations! your story is out.
-												</Heading>
-												<Text className='font-body'>
-													Your story is available in this link. You can share it
-													with the world.
-												</Text>
-												<a
-													href={`/watch/${flick?.joinLink}`}
-													target='_blank'
-													rel='noreferrer noopener'
-													className='w-full flex my-4 border p-2 rounded-md items-center justify-between text-size-sm gap-x-12 text-gray-600 px-4 pr-0'
-												>
-													{`${process.env.NEXT_PUBLIC_PUBLIC_URL}/watch/${flick?.joinLink}`}
-													<FiExternalLink size={21} className='mx-2' />
-												</a>
-											</div>
+												Publish
+											</Button>
 										</div>
-									</>
-								)}
-								{!doPublishData && (
-									<div className='flex flex-col w-full h-full'>
-										{/* Top bar */}
-										<div className='flex items-center justify-between w-full pl-4 pr-2 py-2 border-b border-gray-300'>
-											<div className='flex items-center gap-x-4'>
-												<Heading textStyle='smallTitle'>Publish</Heading>
-												{updatePublishLoading ? (
-													<div className='flex items-center mt-px mr-4 text-gray-400'>
-														<BsCloudUpload className='mr-1' />
-														<Text textStyle='bodySmall'>Saving...</Text>
-													</div>
-												) : (
-													<div className='flex items-center mt-px mr-4 text-gray-400'>
-														<BsCloudCheck className='mr-1' />
-														<Text textStyle='bodySmall'>Saved</Text>
-													</div>
-												)}
-											</div>
-											<div className='flex items-center gap-x-4'>
-												{flick && flick.contents.length > 0 && (
-													<Link href={`/watch/${flick?.joinLink}`}>
-														<p className='flex items-center gap-x-2 text-size-xs hover:underline cursor-pointer'>
-															Story page
-														</p>
-													</Link>
-												)}
-												{ytIntegration?.picture && (
-													<Avatar
-														className='rounded-full h-5 w-5'
-														src={ytIntegration?.picture}
-														name={ytIntegration?.name}
-														alt={ytIntegration?.name}
-													/>
-												)}
-												<Text textStyle='caption'>Publish to Youtube</Text>
-												<Switch
-													checked={enablePublishToYT}
-													onClick={() => {
-														// TODO: Remove this once we have public access to the youtube data API
-														// As of now we only have added @incredible.dev to tester group
-														if (!user?.email?.includes('@incredible.dev')) {
-															emitToast('Coming soon!', {
-																type: 'info',
-															})
-															return
-														}
-														if (!ytIntegration) {
-															setOpenIntegrationModal(true)
-														}
-													}}
-													onChange={() => {
-														if (ytIntegration)
-															setEnablePublishToYT(!enablePublishToYT)
-													}}
-													className={`${
-														enablePublishToYT ? 'bg-green-500' : 'bg-gray-200'
-													} relative inline-flex h-6 w-11 items-center rounded-full disabled:cursor-not-allowed`}
-												>
-													<span
-														className={`${
-															enablePublishToYT
-																? 'translate-x-6'
-																: 'translate-x-1'
-														} inline-block h-4 w-4 transform rounded-full bg-white`}
-													/>
-												</Switch>
-												<Button
-													disabled={
-														!publish.title ||
-														(fragmentType !== 'Portrait' &&
-															!publish.description) ||
-														!recording?.id ||
-														!recording.url ||
-														recording?.status !==
-															Recording_Status_Enum_Enum.Completed ||
-														updatePublishLoading
-													}
-													loading={publishing}
-													onClick={() => {
-														if (!publish || !activeFragmentId) {
-															emitToast(
-																'Ops! Something went wrong, could not load the necessary data to publish.',
-																{
-																	type: 'error',
-																}
-															)
-															return
-														}
-														doPublish({
-															data: publish,
-															fragmentId: activeFragmentId,
-															recordingId: recording?.id,
-															publishToYoutube: enablePublishToYT,
-														})
-													}}
-												>
-													Publish
-												</Button>
-											</div>
-										</div>
+									</div>
 
-										<div className='flex justify-between flex-1 w-full'>
-											{/* Video Section */}
-											<div
-												className='relative flex items-center justify-center w-full bg-gray-100 '
-												ref={ref}
-											>
-												{recording &&
-												((recording.url &&
-													recording.status !==
-														Recording_Status_Enum_Enum.Processing &&
-													!getRecordingsLoading &&
-													!loadingCompleteRecording) ||
-													loadingCompleteRecording) ? (
-													<div className='flex flex-col items-end gap-y-4'>
-														<video
-															ref={videoRef}
-															height={height}
-															width={width}
-															style={{
-																minWidth: width,
-																minHeight: height,
-															}}
-															className='flex-shrink-0'
-															controls
-															autoPlay={false}
-															src={baseUrl + recording.url}
+									<div className='flex justify-between flex-1 w-full'>
+										{/* Video Section */}
+										<div
+											className='relative flex items-center justify-center w-full bg-gray-100 '
+											ref={ref}
+										>
+											{recording &&
+											((recording.url &&
+												recording.status !== RecordingStatusEnum.Processing &&
+												!getRecordingsLoading &&
+												!loadingCompleteRecording) ||
+												loadingCompleteRecording) ? (
+												<div className='flex flex-col items-end gap-y-4'>
+													<video
+														ref={videoRef}
+														height={height}
+														width={width}
+														style={{
+															minWidth: width,
+															minHeight: height,
+														}}
+														className='flex-shrink-0'
+														controls
+														autoPlay={false}
+														src={baseUrl + recording.url}
+													/>
+													<div className='flex items-center gap-x-2'>
+														<IconButton
+															icon={<IoReloadOutline />}
+															colorScheme='dark'
+															onClick={() =>
+																completeFragmentRecording(recording.id)
+															}
+															loading={loadingCompleteRecording}
 														/>
-														<div className='flex items-center gap-x-2'>
-															<IconButton
-																icon={<IoReloadOutline />}
-																colorScheme='dark'
-																onClick={() =>
-																	completeFragmentRecording(recording.id)
-																}
-																loading={loadingCompleteRecording}
-															/>
 
-															<IconButton
-																colorScheme='dark'
-																icon={<HiOutlineDownload />}
-																onClick={downloadVideo}
-																loading={downloading}
-															/>
-														</div>
+														<IconButton
+															colorScheme='dark'
+															icon={<HiOutlineDownload />}
+															onClick={downloadVideo}
+															loading={downloading}
+														/>
 													</div>
-												) : (
-													recording && (
-														<div
-															className='bg-gray-300 flex items-center justify-center gap-y-4 flex-col'
-															style={{
-																width: `${width}px`,
-																height: `${height}px`,
-															}}
-														>
-															{(() => {
-																switch (recording.status) {
-																	case Recording_Status_Enum_Enum.Pending:
-																	case Recording_Status_Enum_Enum.Completed:
-																		if (
-																			Object.entries(recordedBlocks).length > 0
-																		) {
-																			return (
-																				<>
-																					<Text className='font-body'>
-																						Produce video to see it here
-																					</Text>
-																					<Button
-																						onClick={() =>
-																							completeFragmentRecording(
-																								recording.id
-																							)
-																						}
-																						loading={loadingCompleteRecording}
-																					>
-																						Produce
-																					</Button>
-																				</>
-																			)
-																		}
-																		return (
-																			<Text className='text-center'>
-																				No blocks have been recorded. Please
-																				record and come back.
-																			</Text>
-																		)
-																	case Recording_Status_Enum_Enum.Processing:
+												</div>
+											) : (
+												recording && (
+													<div
+														className='bg-gray-300 flex items-center justify-center gap-y-4 flex-col'
+														style={{
+															width: `${width}px`,
+															height: `${height}px`,
+														}}
+													>
+														{(() => {
+															switch (recording.status) {
+																case RecordingStatusEnum.Pending:
+																case RecordingStatusEnum.Completed:
+																	if (
+																		Object.entries(recordedBlocks).length > 0
+																	) {
 																		return (
 																			<>
-																				<FiRefreshCw
-																					size={21}
-																					className='animate-spin'
-																				/>
 																				<Text className='font-body'>
-																					Processing
+																					Produce video to see it here
 																				</Text>
+																				<Button
+																					onClick={() =>
+																						completeFragmentRecording(
+																							recording.id
+																						)
+																					}
+																					loading={loadingCompleteRecording}
+																				>
+																					Produce
+																				</Button>
 																			</>
 																		)
-																	default:
-																		return null
-																}
-															})()}
-														</div>
-													)
+																	}
+																	return (
+																		<Text className='text-center'>
+																			No blocks have been recorded. Please
+																			record and come back.
+																		</Text>
+																	)
+																case RecordingStatusEnum.Processing:
+																	return (
+																		<>
+																			<FiRefreshCw
+																				size={21}
+																				className='animate-spin'
+																			/>
+																			<Text className='font-body'>
+																				Processing
+																			</Text>
+																		</>
+																	)
+																default:
+																	return null
+															}
+														})()}
+													</div>
+												)
+											)}
+										</div>
+										{/* Sidebar */}
+										<div className='flex'>
+											<div className='w-64 px-4 pt-6 bg-white'>
+												{activeTab.id === tabs[0].id && (
+													<DetailsTab
+														publish={publish}
+														setPublish={setPublish}
+													/>
+												)}
+												{activeTab.id === tabs[1].id && (
+													<ThumbnailTab
+														publish={publish}
+														setPublish={setPublish}
+														flickId={flick?.id}
+														fragmentId={activeFragmentId ?? undefined}
+													/>
+												)}
+												{activeTab.id === tabs[2].id && (
+													<CTATab
+														publish={publish}
+														setPublish={setPublish}
+														currentTime={currentTime}
+													/>
 												)}
 											</div>
-											{/* Sidebar */}
-											<div className='flex'>
-												<div className='w-64 px-4 pt-6 bg-white'>
-													{activeTab.id === tabs[0].id && (
-														<DetailsTab
-															publish={publish}
-															setPublish={setPublish}
-														/>
-													)}
-													{activeTab.id === tabs[1].id && (
-														<ThumbnailTab
-															publish={publish}
-															setPublish={setPublish}
-															flickId={flick?.id}
-															fragmentId={activeFragmentId ?? undefined}
-														/>
-													)}
-													{activeTab.id === tabs[2].id && (
-														<CTATab
-															publish={publish}
-															setPublish={setPublish}
-															currentTime={currentTime}
-														/>
-													)}
-												</div>
-												<div className='flex h-full flex-col px-2 pt-4 bg-gray-50 gap-y-2 w-[88px]'>
-													{tabs.map(tab => (
-														<button
-															type='button'
-															onClick={() => setActiveTab(tab)}
-															className={cx(
-																'flex flex-col items-center bg-transparent py-3 px-1 rounded-md text-gray-500 gap-y-2 transition-all',
-																{
-																	'!bg-gray-200 text-gray-800':
-																		activeTab.id === tab.id,
-																	'hover:bg-gray-100': activeTab.id !== tab.id,
-																}
-															)}
-															key={tab.id}
-														>
-															{getIcon(tab.id)}
-															<Text textStyle='bodySmall'>{tab.name}</Text>
-														</button>
-													))}
-												</div>
+											<div className='flex h-full flex-col px-2 pt-4 bg-gray-50 gap-y-2 w-[88px]'>
+												{tabs.map(tab => (
+													<button
+														type='button'
+														onClick={() => setActiveTab(tab)}
+														className={cx(
+															'flex flex-col items-center bg-transparent py-3 px-1 rounded-md text-gray-500 gap-y-2 transition-all',
+															{
+																'!bg-gray-200 text-gray-800':
+																	activeTab.id === tab.id,
+																'hover:bg-gray-100': activeTab.id !== tab.id,
+															}
+														)}
+														key={tab.id}
+													>
+														{getIcon(tab.id)}
+														<Text textStyle='bodySmall'>{tab.name}</Text>
+													</button>
+												))}
 											</div>
 										</div>
 									</div>
-								)}
-							</Dialog.Panel>
-						</div>
-					</Transition.Child>
-				</Dialog>
-			</Transition>
-
-			<Dialog
-				open={openIntegrationModal}
-				onClose={() => {
-					setOpenIntegrationModal(false)
-				}}
-				className='relative z-[60]'
-			>
-				<div className='fixed inset-0 bg-black/60' aria-hidden='true' />
-
-				<div className='fixed inset-0 flex items-center justify-center p-4'>
-					<Dialog.Panel className='h-[330px] w-[320px] flex flex-col bg-white rounded-md overflow-hidden'>
-						<div className=' flex flex-col items-center text-center w-full h-full px-4'>
-							<Heading textStyle='mediumTitle' className='mt-12'>
-								Automatically share to Youtube
-							</Heading>
-							<Text textStyle='caption' className='pt-4'>
-								Publish videos you post on Incredible on Youtube too. You can
-								disable this anytime.
-							</Text>
-
-							<div className='flex flex-col items-center mt-auto mb-auto'>
-								<Button
-									size='small'
-									onClick={async () => {
-										const res = await axios.get(
-											`${api}integrations/youtube/authorize`,
-											{
-												headers: {
-													Authorization: `Bearer ${token}`,
-												},
-											}
-										)
-										setOpenIntegrationModal(false)
-										window.open(res.data, '_blank')
-									}}
-								>
-									Integrate Youtube
-								</Button>
-
-								<Button
-									appearance='none'
-									className='mt-2.5'
-									onClick={() => {
-										setOpenIntegrationModal(false)
-									}}
-								>
-									Not Now
-								</Button>
-							</div>
-						</div>
-					</Dialog.Panel>
-				</div>
+								</div>
+							)}
+						</Dialog.Panel>
+					</div>
+				</Transition.Child>
 			</Dialog>
-		</>
+		</Transition>
 	)
 }
 

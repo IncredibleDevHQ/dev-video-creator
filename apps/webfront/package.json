@@ -6,8 +6,7 @@
 		"dev": "next dev",
 		"build": "next build",
 		"start": "next start",
-		"lint": "eslint src --fix",
-		"codegen": "graphql-codegen --config codegen.yml -r dotenv/config"
+		"lint": "eslint src --fix"
 	},
 	"dependencies": {
 		"server": "*",
@@ -43,8 +42,6 @@
 		"fs": "^0.0.1-security",
 		"get-blob-duration": "^1.2.0",
 		"gifler": "^0.1.0",
-		"graphql": "^16.5.0",
-		"graphql-request": "^4.3.0",
 		"gray-matter": "^4.0.3",
 		"icanvas": "*",
 		"konva": "^8.3.10",
@@ -86,15 +83,6 @@
 		"yup": "^0.32.11"
 	},
 	"devDependencies": {
-		"@graphql-codegen/cli": "^2.0.1",
-		"@graphql-codegen/fragment-matcher": "^3.2.0",
-		"@graphql-codegen/introspection": "2.1.1",
-		"@graphql-codegen/jsdoc": "^2.2.5",
-		"@graphql-codegen/typescript": "^2.0.0",
-		"@graphql-codegen/typescript-document-nodes": "2.2.5",
-		"@graphql-codegen/typescript-graphql-request": "^4.4.10",
-		"@graphql-codegen/typescript-operations": "^2.3.2",
-		"@graphql-codegen/typescript-react-apollo": "^3.2.2",
 		"@svgr/webpack": "^6.2.1",
 		"@types/cookie": "^0.5.1",
 		"@types/cors": "^2.8.12",

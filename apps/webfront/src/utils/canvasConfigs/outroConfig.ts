@@ -1,5 +1,5 @@
 import Konva from 'konva'
-import { ThemeFragment } from 'src/graphql/generated'
+import { inferQueryOutput } from 'src/server/trpc'
 import { Layout } from 'utils/src'
 import { CONFIG, SHORTS_CONFIG, SocialHandles } from '../configs'
 
@@ -32,7 +32,7 @@ export const getOutroConfig = ({
 	layout,
 	isShorts,
 }: {
-	theme: ThemeFragment
+	theme: inferQueryOutput<'util.themes'>[number]
 	layout: Layout
 	isShorts?: boolean
 }): OutroConfig => {

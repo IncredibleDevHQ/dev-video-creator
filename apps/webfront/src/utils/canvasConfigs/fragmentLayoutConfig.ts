@@ -1,4 +1,4 @@
-import { ThemeFragment } from 'src/graphql/generated'
+import { inferQueryOutput } from 'src/server/trpc'
 import { Layout } from 'utils/src'
 import { getCanvasGradient } from './studioUserConfig'
 
@@ -21,7 +21,7 @@ export const getFragmentLayoutConfig = ({
 	layout,
 	isShorts,
 }: {
-	theme: ThemeFragment
+	theme: inferQueryOutput<'util.themes'>[number]
 	layout: Layout
 	isShorts?: boolean
 }): ObjectConfig => {
