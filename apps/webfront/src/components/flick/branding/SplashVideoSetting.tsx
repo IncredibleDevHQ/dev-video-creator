@@ -5,6 +5,7 @@ import Dropzone from 'react-dropzone'
 import { FiLoader, FiUploadCloud } from 'react-icons/fi'
 import { IoCloseCircle } from 'react-icons/io5'
 import { BrandingInterface } from 'src/utils/configs'
+import { UploadType } from 'utils/src/enums'
 import { Heading, Text } from 'ui/src'
 import { useUploadFile } from 'utils/src'
 
@@ -46,6 +47,10 @@ const SplashVideoSetting = ({
 		const { url } = await uploadFile({
 			extension: file.name.split('.').pop() as any,
 			file,
+			tag: UploadType.Brand,
+			meta: {
+				brandId: branding.id,
+			},
 		})
 
 		setFileUploading(false)

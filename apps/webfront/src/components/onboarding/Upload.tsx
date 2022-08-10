@@ -5,17 +5,25 @@ import { cx } from '@emotion/css'
 import React, { useContext, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { FiEdit2, FiLoader, FiUpload } from 'react-icons/fi'
+import { useRecoilValue } from 'recoil'
+import { activeFragmentIdAtom, flickAtom } from 'src/stores/flick.store'
 import { emitToast, Heading, Button, Text } from 'ui/src'
 import { useUploadFile, AllowedFileExtensions } from 'utils/src'
+import { UploadType } from 'utils/src/enums'
 import { rippleAnimation } from './People'
 import { OnBoardingContext } from './types'
 
-const Upload = () => {
+const Upload = (props: { uploadTag: UploadType }) => {
+	const { uploadTag } = props
+
 	const [uploading, setUploading] = useState(false)
 
 	const { details, loading, setDetails, handleOnBoarding } =
 		useContext(OnBoardingContext)
 	const [uploadFile] = useUploadFile()
+
+	const flick = useRecoilValue(flickAtom)
+	const fragmentId = useRecoilValue(activeFragmentIdAtom)
 
 	const onDrop = async (acceptedFiles: File[]) => {
 		try {
@@ -24,6 +32,11 @@ const Upload = () => {
 			const { url } = await uploadFile({
 				extension: file.name.split('.').pop() as AllowedFileExtensions,
 				file,
+				tag: uploadTag,
+				meta: {
+					flickId: flick?.id,
+					fragmentId: fragmentId ?? undefined,
+				},
 			})
 			setDetails({ ...details, profilePicture: url })
 		} catch (e) {

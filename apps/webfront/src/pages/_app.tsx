@@ -3,7 +3,7 @@ import { withTRPC } from '@trpc/next'
 import { AppProps } from 'next/app'
 import NextNProgress from 'nextjs-progressbar'
 import { RecoilRoot } from 'recoil'
-import { AppRouter } from 'src/server/routes/route'
+import { AppRouter } from 'server/routes/route'
 import UserProvider from 'src/utils/providers/auth'
 import AuthorizedApolloProvider from 'src/utils/providers/authorized-apollo-provider'
 import superjson from 'superjson'
@@ -39,7 +39,7 @@ export default withTRPC<AppRouter>({
 			headers: () => ({
 				Authorization:
 					typeof window !== 'undefined'
-						? localStorage?.getItem('token')?.toString()
+						? `Bearer ${localStorage?.getItem('token')}`
 						: '',
 			}),
 			/**

@@ -8,17 +8,7 @@ import {
 	IoCloseOutline,
 } from 'react-icons/io5'
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
-import {
-	CollaborationTypes,
-	ContentContainerTypes,
-	Participant_Role_Enum_Enum,
-	useCollaborateWithUserMutation,
-	useEmailInviteGuestUserMutation,
-	useGetFlickParticipantsLazyQuery,
-	useGetPendingInvitesQuery,
-	useRemoveFlickParticipantMutation,
-	useTransferFlickOwnershipMutation,
-} from 'src/graphql/generated'
+import { Participant_Role_Enum_Enum } from 'src/graphql/generated'
 import {
 	flickAtom,
 	flickNameAtom,
@@ -34,6 +24,7 @@ import {
 	Text,
 	updateToast,
 } from 'ui/src'
+import trpc from '../../../server/trpc'
 
 interface Invitee {
 	name: string
@@ -76,11 +67,12 @@ const AccessControl = ({
 }) => {
 	const [flick, setFlick] = useRecoilState(flickAtom)
 
-	const [removeParticipant, { data: removeData }] =
-		useRemoveFlickParticipantMutation()
+	const { mutateAsync: removeParticipant, data: removeData } = trpc.useMutation(
+		['collab.removeParticipant']
+	)
 
-	const [transferOwnership, { data: transferData }] =
-		useTransferFlickOwnershipMutation()
+	const { mutateAsync: transferOwnership, data: transferData } =
+		trpc.useMutation(['collab.transferOwnership'])
 
 	useEffect(() => {
 		if (removeData || transferData) {
@@ -93,11 +85,10 @@ const AccessControl = ({
 			type: 'info',
 		})
 		try {
+			if (!flick?.id) throw new Error('Story Id not found')
 			await removeParticipant({
-				variables: {
-					flickId: flick?.id,
-					userId,
-				},
+				flickId: flick.id,
+				userSubToRemove: userId,
 			})
 			updateToast(toast, 'Participant removed', {
 				type: 'success',
@@ -115,11 +106,10 @@ const AccessControl = ({
 			type: 'info',
 		})
 		try {
+			if (!flick?.id) throw new Error('Story Id not found')
 			await transferOwnership({
-				variables: {
-					flickId: flick?.id,
-					newOwnerId: pId,
-				},
+				flickId: flick.id,
+				newOwnerParticipantId: pId,
 			})
 			if (flick) {
 				setFlick({
@@ -271,15 +261,20 @@ const Invite = ({
 
 	const [search, setSearch] = useState<string>('')
 
-	const { data: pendingInvites, refetch } = useGetPendingInvitesQuery({
-		variables: {
-			flickId: flick?.id,
+	const { data: pendingInvites, refetch } = trpc.useQuery([
+		'collab.pendingInvites',
+		{
+			id: flick ? flick.id : '',
 		},
-	})
+	])
 
-	const [addMemberToFlickMutation] = useCollaborateWithUserMutation()
+	const { mutateAsync: addMemberToFlickMutation } = trpc.useMutation([
+		'collab.invite',
+	])
 
-	const [inviteGuestMember] = useEmailInviteGuestUserMutation()
+	const { mutateAsync: inviteGuestMember } = trpc.useMutation([
+		'collab.emailInvite',
+	])
 
 	const validateEmail = (email: string) =>
 		String(email)
@@ -294,22 +289,16 @@ const Invite = ({
 			// regex to check if input email
 			if (validateEmail(search)) {
 				await inviteGuestMember({
-					variables: {
-						email: search,
-						flickId: flick?.id as string,
-					},
+					email: search,
+					flickId: flick?.id as string,
 				})
 			} else {
+				if (!flick?.id) throw new Error('Story id not found. Please try again')
 				await addMemberToFlickMutation({
-					variables: {
-						flickId: flick?.id,
-						collaborationType: CollaborationTypes.Invite,
-						isNew: false,
-						senderId: flick?.owner?.sub as string,
-						receiverId: invitee.sub,
-						contentType: ContentContainerTypes.Flick,
-						message: `%${user?.displayName}% has invited you to collaborate on the flick ${flickName}`,
-					},
+					flickId: flick.id,
+					senderId: flick?.owner?.sub as string,
+					receiverId: invitee.sub,
+					message: `%${user?.displayName}% has invited you to collaborate on the flick ${flickName}`,
 				})
 			}
 			setSearch('')
@@ -327,18 +316,23 @@ const Invite = ({
 		}
 	}
 
-	const [getFlickParticipants, { data: participantsData }] =
-		useGetFlickParticipantsLazyQuery({
-			fetchPolicy: 'cache-and-network',
-			variables: {
-				flickId: flick?.id as string,
-			},
-		})
+	const { refetch: getFlickParticipants, data: participantsData } =
+		trpc.useQuery(
+			[
+				'collab.getParticipants',
+				{
+					id: flick?.id as string,
+				},
+			],
+			{
+				enabled: false,
+			}
+		)
 
 	useEffect(() => {
 		if (!participantsData) return
 		setIsOwner(flick?.owner?.sub === user?.uid)
-		setParticipants(participantsData.Participant)
+		setParticipants(participantsData)
 	}, [flick?.owner, participantsData, setParticipants, user?.uid])
 
 	useEffect(() => {
@@ -443,7 +437,7 @@ const Invite = ({
 								customScroll
 							)}
 						>
-							{participantsData?.Participant.map(participant => (
+							{participantsData?.map(participant => (
 								<div
 									className='grid items-center grid-cols-4'
 									key={participant.id}
@@ -451,15 +445,15 @@ const Invite = ({
 									<div className='flex flex-row items-center col-span-3 my-1.5'>
 										<Avatar
 											className='w-7 h-7 rounded-full'
-											name={participant.user.displayName ?? ''}
-											alt={participant.user.displayName ?? ''}
-											src={participant.user.picture ?? ''}
+											name={participant.User.displayName ?? ''}
+											alt={participant.User.displayName ?? ''}
+											src={participant.User.picture ?? ''}
 										/>
 										<Text
 											textStyle='caption'
 											className='ml-2 font-body text-gray-800'
 										>
-											{participant.user.displayName}
+											{participant.User.displayName}
 										</Text>
 									</div>
 									<AccessControl
@@ -472,22 +466,27 @@ const Invite = ({
 								</div>
 							))}
 
-							{pendingInvites?.Invitations?.map(pendingInvitee => (
+							{pendingInvites?.map(pendingInvitee => (
 								<div
 									className='grid items-center grid-cols-4'
-									key={pendingInvitee.receiver.sub}
+									key={pendingInvitee.User_Invitations_receiverIdToUser.sub}
 								>
 									<div className='flex items-center text-size-xs font-body my-1 gap-x-2 text-gray-400 col-span-3'>
 										<div className='h-7 w-7 rounded-full bg-gray-100 border border-gray-300' />
-										{pendingInvitee.receiver.email ===
-										pendingInvitee.receiver.sub
-											? pendingInvitee.receiver.email
-											: pendingInvitee.receiver.displayName}
+										{pendingInvitee.User_Invitations_receiverIdToUser.email ===
+										pendingInvitee.User_Invitations_receiverIdToUser.sub
+											? pendingInvitee.User_Invitations_receiverIdToUser.email
+											: pendingInvitee.User_Invitations_receiverIdToUser
+													.displayName}
 									</div>
 									<AccessControl
 										isOwner={isOwner}
-										participantSub={pendingInvitee.receiver.sub}
-										participantId={pendingInvitee.receiver.sub}
+										participantSub={
+											pendingInvitee.User_Invitations_receiverIdToUser.sub
+										}
+										participantId={
+											pendingInvitee.User_Invitations_receiverIdToUser.sub
+										}
 										isInvitee
 										refetch={() => refetch()}
 									/>

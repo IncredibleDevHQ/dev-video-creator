@@ -36,10 +36,7 @@ import { MdOutlineTextFields } from 'react-icons/md'
 import useMeasure from 'react-use-measure'
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
 import {
-	useCompleteRecordingMutation,
 	useGetUserYtIntegrationSubscription,
-	usePublishVideoActionMutation,
-	useUpdatePublishMutation,
 	useUpdateThumbnailObjectMutation,
 } from 'src/graphql/generated'
 import {
@@ -53,6 +50,7 @@ import {
 	thumbnailObjectAtom,
 } from 'src/stores/flick.store'
 import { activeBrandIdAtom, recordedBlocksAtom } from 'src/stores/studio.store'
+import { UploadType } from 'utils/src/enums'
 import { useUser } from 'src/utils/providers/auth'
 import CallToActionIcon from 'svg/CallToAction.svg'
 import {
@@ -72,6 +70,7 @@ import {
 	Recording_Status_Enum_Enum,
 	useGetRecordingsQuery,
 } from 'utils/src/graphql/generated'
+import trpc from '../../../server/trpc'
 import ThumbnailModal from './ThumbnailModal'
 
 interface Tab {
@@ -466,9 +465,13 @@ const DetailsTab = ({
 const ThumbnailTab = ({
 	publish,
 	setPublish,
+	flickId,
+	fragmentId,
 }: {
 	publish: IPublish
 	setPublish: React.Dispatch<React.SetStateAction<IPublish>>
+	flickId?: string
+	fragmentId?: string
 }) => {
 	const activeFragmentId = useRecoilValue(activeBrandIdAtom)
 	const setThumbnailObject = useSetRecoilState(thumbnailObjectAtom)
@@ -482,10 +485,22 @@ const ThumbnailTab = ({
 			const file = files?.[0]
 			if (!file) return
 
+			if (!flickId || !fragmentId) {
+				emitToast('Flick or fragment id is missing', {
+					type: 'error',
+				})
+				return
+			}
+
 			setFileUploading(true)
 			const { uuid } = await uploadFile({
 				extension: file.name.split('.').pop() as any,
 				file,
+				tag: UploadType.Asset,
+				meta: {
+					fragmentId,
+					flickId,
+				},
 			})
 
 			setFileUploading(false)
@@ -498,7 +513,7 @@ const ThumbnailTab = ({
 			setPublish({
 				...publish,
 				thumbnail: {
-					...publish.thumbnail,
+					method: publish.thumbnail?.method || 'generated',
 					objectId: uuid,
 				},
 			})
@@ -588,7 +603,7 @@ const ThumbnailTab = ({
 							setPublish({
 								...publish,
 								thumbnail: {
-									...publish.thumbnail,
+									method: publish.thumbnail?.method || 'generated',
 									objectId: uuid,
 								},
 							})
@@ -718,16 +733,18 @@ const Publish = ({
 			...initialState,
 			title: 'Untitled',
 			thumbnail: {
-				...initialState.thumbnail,
+				method: initialState.thumbnail?.method || 'generated',
 				objectId: thumbnailObject ?? undefined,
 			},
 		}
 	)
 
-	const [
-		doPublish,
-		{ data: doPublishData, loading: publishing, error: errorPublishing },
-	] = usePublishVideoActionMutation()
+	const {
+		mutate: doPublish,
+		data: doPublishData,
+		isLoading: publishing,
+		error: errorPublishing,
+	} = trpc.useMutation(['fragment.publish'])
 
 	useEffect(() => {
 		if (!doPublishData) return
@@ -744,15 +761,11 @@ const Publish = ({
 		})
 	}, [errorPublishing])
 
-	const [
-		updatePublishConfig,
-		{ loading: updatePublishLoading, error: updatePublishError },
-	] = useUpdatePublishMutation({
-		variables: {
-			id: activeFragmentId,
-			publishConfig: publish,
-		},
-	})
+	const {
+		mutateAsync: updatePublishConfig,
+		isLoading: updatePublishLoading,
+		error: updatePublishError,
+	} = trpc.useMutation(['fragment.updatePublished'])
 
 	const {
 		data: ytData,
@@ -771,7 +784,11 @@ const Publish = ({
 
 	const initialLoad = useRef<boolean>(true)
 	const debounced = useDebouncedCallback(() => {
-		updatePublishConfig()
+		if (!activeFragmentId) return
+		updatePublishConfig({
+			id: activeFragmentId,
+			publishConfig: publish,
+		})
 	}, 400)
 
 	useEffect(() => {
@@ -848,19 +865,18 @@ const Publish = ({
 		})
 	}
 
-	const [
-		completeRecording,
-		{ error: errorCompletingRecording, loading: loadingCompleteRecording },
-	] = useCompleteRecordingMutation()
+	const {
+		mutateAsync: completeRecording,
+		error: errorCompletingRecording,
+		isLoading: loadingCompleteRecording,
+	} = trpc.useMutation(['recording.complete'])
 
 	const completeFragmentRecording = async (recordingId: string) => {
-		const { data } = await completeRecording({
-			variables: {
-				editorState: JSON.stringify(simpleAST),
-				recordingId,
-			},
+		const data = await completeRecording({
+			editorState: JSON.stringify(simpleAST),
+			recordingId,
 		})
-		if (data?.CompleteRecording?.success) await refetch()
+		if (data.success) await refetch()
 	}
 
 	useEffect(() => {
@@ -1044,13 +1060,20 @@ const Publish = ({
 													}
 													loading={publishing}
 													onClick={() => {
+														if (!publish || !activeFragmentId) {
+															emitToast(
+																'Ops! Something went wrong, could not load the necessary data to publish.',
+																{
+																	type: 'error',
+																}
+															)
+															return
+														}
 														doPublish({
-															variables: {
-																data: publish,
-																fragmentId: activeFragmentId,
-																recordingId: recording?.id,
-																publishToYoutube: enablePublishToYT,
-															},
+															data: publish,
+															fragmentId: activeFragmentId,
+															recordingId: recording?.id,
+															publishToYoutube: enablePublishToYT,
 														})
 													}}
 												>
@@ -1177,6 +1200,8 @@ const Publish = ({
 														<ThumbnailTab
 															publish={publish}
 															setPublish={setPublish}
+															flickId={flick?.id}
+															fragmentId={activeFragmentId ?? undefined}
 														/>
 													)}
 													{activeTab.id === tabs[2].id && (

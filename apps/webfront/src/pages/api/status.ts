@@ -2,7 +2,7 @@
 import Cors from 'cors'
 import admin, { auth } from 'firebase-admin'
 import { NextApiRequest, NextApiResponse } from 'next'
-import serverEnvs from 'src/utils/env'
+import serverEnvs from 'server/utils/env'
 import initMiddleware from 'src/utils/helpers/initMiddleware'
 
 const cors = initMiddleware(

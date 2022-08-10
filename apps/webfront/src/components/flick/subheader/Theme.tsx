@@ -10,11 +10,7 @@ import {
 	IoChevronForwardOutline,
 } from 'react-icons/io5'
 import { useRecoilState, useRecoilValue } from 'recoil'
-import {
-	ThemeFragment,
-	useGetThemesQuery,
-	useUpdateFlickThemeMutation,
-} from 'src/graphql/generated'
+import { ThemeFragment } from 'src/graphql/generated'
 import { flickAtom } from 'src/stores/flick.store'
 import { themeAtom } from 'src/stores/studio.store'
 import {
@@ -24,6 +20,7 @@ import {
 } from 'src/utils/liveblocks.config'
 import { Button, emitToast } from 'ui/src'
 import { useEnv } from 'utils/src'
+import trpc from '../../../server/trpc'
 
 const horizontalCustomScrollBar = css`
 	::-webkit-scrollbar {
@@ -56,7 +53,7 @@ const HorizontalContainer = ({
 )
 
 const Theme = () => {
-	const { data } = useGetThemesQuery()
+	const { data } = trpc.useQuery(['util.themes'])
 	const [activeTheme, setActiveTheme] = useRecoilState(themeAtom)
 
 	const flickId = useRecoilValue(flickAtom)?.id
@@ -73,7 +70,9 @@ const Theme = () => {
 		setTempActiveTheme(activeTheme)
 	}, [activeTheme])
 
-	const [updateTheme, { loading }] = useUpdateFlickThemeMutation()
+	const { mutateAsync: updateTheme, isLoading: loading } = trpc.useMutation([
+		'story.updateTheme',
+	])
 
 	useEffect(() => {
 		if (tempActiveTheme) {
@@ -85,14 +84,17 @@ const Theme = () => {
 
 	const updateFlickTheme = async (close: () => void) => {
 		if (!tempActiveTheme) return
+		if (!flickId) {
+			console.error('flickId is null.Cant update theme')
+			return
+		}
 
-		const { data: updateData } = await updateTheme({
-			variables: {
-				id: flickId,
-				themeName: tempActiveTheme.name,
-			},
+		const updateData = await updateTheme({
+			id: flickId,
+			themeName: tempActiveTheme.name,
 		})
-		if (updateData) {
+
+		if (updateData.success) {
 			setActiveTheme(tempActiveTheme)
 			emitToast(`Theme Updated to ${tempActiveTheme.name} successfully`, {
 				type: 'success',
@@ -210,7 +212,7 @@ const Theme = () => {
 											horizontalCustomScrollBar
 										)}
 									>
-										{data?.Theme.map(theme => (
+										{data?.map(theme => (
 											<button
 												type='button'
 												key={theme.name}
@@ -221,8 +223,10 @@ const Theme = () => {
 													className='object-cover w-64 border-2 border-gray-600 rounded-md shadow-md hover:border-brand h-36 relative'
 													style={{
 														background: `url(${
-															theme.config.thumbnail
-																? baseUrl + theme.config.thumbnail
+															JSON.parse(JSON.stringify(theme.config)).thumbnail
+																? baseUrl +
+																  JSON.parse(JSON.stringify(theme.config))
+																		.thumbnail
 																: ''
 														})`,
 														backgroundSize: '256px 144px',

@@ -3,6 +3,7 @@
 	"pipeline": {
 		"prepare": {},
 		"codegen": {},
+		"postinstall": {},
 		"build": {
 			"dependsOn": ["^build"],
 			"outputs": ["dist/**", ".next/**"]

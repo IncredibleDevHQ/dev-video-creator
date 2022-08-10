@@ -1,12 +1,24 @@
 {
-	"extends": "config/tsconfig-webfront.json",
+	"extends": "config/tsconfig-next.json",
 	"compilerOptions": {
 		"baseUrl": ".",
-		"strict": true
+		"strict": true,
+		"disableSizeLimit": true,
+		"declaration": false,
+		"declarationMap": false,
+		"skipLibCheck": true
 	},
 	"paths": {
 		"@/*": ["./src/*"]
 	},
-	"include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "pre-build.js"],
+	"include": [
+		"next-env.d.ts",
+		"**/*.ts",
+		"**/*.tsx",
+		"pre-build.js",
+		"../../packages/server/utils/env.ts",
+		"../../packages/server/utils/s3-path-builder.ts",
+		"../../packages/server/utils/aws.ts"
+	],
 	"exclude": ["node_modules"]
 }

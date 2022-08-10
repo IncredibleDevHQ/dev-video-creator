@@ -1,0 +1,60 @@
+{
+	"name": "server",
+	"version": "0.0.0",
+	"private": true,
+	"engines": {
+		"npm": ">=7.0.0",
+		"node": ">=14.0.0"
+	},
+	"scripts": {
+		"test": "jest --setupFiles dotenv/config",
+		"lint": "eslint ./**/*.ts* --fix",
+		"seed": "ts-node packages/prisma-orm/seed.ts",
+		"prepare": "yarn fetch-env",
+		"fetch-env": "node -r dotenv/config env.fetch.js"
+	},
+	"dependencies": {
+		"@hocuspocus/transformer": "^1.0.0-alpha.23",
+		"@liveblocks/client": "^0.17.7",
+		"@mux/mux-node": "^5.1.0",
+		"@prisma/client": "^4.0.0",
+		"@tiptap/core": "^2.0.0-beta.182",
+		"@tiptap/extension-document": "^2.0.0-beta.17",
+		"@tiptap/extension-paragraph": "^2.0.0-beta.26",
+		"@tiptap/extension-text": "^2.0.0-beta.17",
+		"@trpc/react": "^9.26.2",
+		"@trpc/server": "^9.25.3",
+		"agora-access-token": "^2.0.4",
+		"aws-sdk": "^2.1167.0",
+		"axios": "^0.27.2",
+		"customerio-node": "^3.3.2",
+		"firebase": "^9.8.4",
+		"firebase-admin": "^11.0.0",
+		"mime": "^3.0.0",
+		"nanoid": "^4.0.0",
+		"prisma-orm": "*",
+		"redis": "^4.2.0",
+		"superjson": "^1.9.1",
+		"utils": "*",
+		"uuid": "^8.3.2",
+		"ws": "^8.8.1",
+		"yjs": "^13.5.39",
+		"yup": "^0.32.11",
+		"zod": "^3.17.3"
+	},
+	"devDependencies": {
+		"@types/jest": "^28.1.4",
+		"@types/mime": "3.0.0",
+		"@types/uuid": "^8.3.4",
+		"dotenv": "^16.0.1",
+		"eslint": "7.32.0",
+		"jest": "^28.1.2",
+		"jest-mock-extended": "^2.0.6",
+		"prisma": "^4.0.0",
+		"ts-jest": "^28.0.5",
+		"typescript": "^4.5.3"
+	},
+	"prisma": {
+		"schema": "prisma-orm/schema.prisma"
+	}
+}

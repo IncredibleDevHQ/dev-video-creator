@@ -11,6 +11,7 @@ import { BrandingInterface } from 'src/utils/configs'
 import { Heading, Text } from 'ui/src'
 import { HexColorInput, HexColorPicker } from 'react-colorful'
 import { useUploadFile } from 'utils/src'
+import { UploadType } from 'utils/src/enums'
 
 const colorPickerStyle = css`
 	.react-colorful__saturation {
@@ -93,6 +94,10 @@ const BackgroundSetting = ({
 		const { url } = await uploadFile({
 			extension: file.name.split('.').pop() as any,
 			file,
+			tag: UploadType.Brand,
+			meta: {
+				brandId: branding.id,
+			},
 		})
 
 		setFileUploading(false)

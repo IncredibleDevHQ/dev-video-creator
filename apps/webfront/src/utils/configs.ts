@@ -2,8 +2,8 @@ import { RichTextContent } from 'editor/src/utils/types'
 import { ClipConfig } from 'icanvas/src/hooks/useEdit'
 import { Position } from 'src/components/flick/canvas/CodeAnimations'
 import { ComputedRichText } from 'src/components/flick/canvas/RichText'
-import { GetBrandingQuery } from 'src/graphql/generated'
 import { ComputedToken } from './hooks/useCode'
+import { inferQueryOutput } from '../server/trpc'
 
 export const CONFIG = {
 	width: 960,
@@ -22,11 +22,16 @@ export interface IFont {
 	url?: string
 }
 
-type B = GetBrandingQuery['Branding'][0]
-
-export interface BrandingInterface extends B {
-	branding?: BrandingJSON | null
+export type BrandingInterface = Omit<
+	inferQueryOutput<'user.brands'>[number],
+	'branding'
+> & {
+	branding: BrandingJSON | null
 }
+
+// export interface BrandingInterface extends B {
+// 	branding?: BrandingJSON | null
+// }
 
 export interface BrandingJSON {
 	colors?: {

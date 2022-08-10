@@ -2,14 +2,12 @@ import debounce from 'lodash/debounce'
 import Link from 'next/link'
 import ReactTooltip from 'react-tooltip'
 import { cx } from '@emotion/css'
-import {
-	FollowMutationVariables,
-	SeriesParticipantFragment,
-	useFollowMutation,
-	useUnfollowMutation,
-} from 'src/graphql/generated'
 import { useUser } from 'src/utils/providers/auth'
 import { Avatar, Button, emitToast } from 'ui/src'
+import trpc, { inferMutationInput, inferQueryOutput } from '../../server/trpc'
+
+type SeriesParticipantFragment =
+	inferQueryOutput<'series.get'>['Flick_Series'][number]['Flick']['Participants'][number]
 
 const Collaborators = ({
 	seriesTags,
@@ -24,15 +22,15 @@ const Collaborators = ({
 }) => {
 	const { uid: sub } = useUser().user ?? {}
 
-	const [follow] = useFollowMutation()
-	const [unfollow] = useUnfollowMutation()
+	const { mutateAsync: follow } = trpc.useMutation(['user.follow'])
+	const { mutateAsync: unfollow } = trpc.useMutation(['user.unfollow'])
 
 	const handleUserFollow = async ({
 		targetId,
 		followerId,
 		isFollowing,
 		participantId,
-	}: FollowMutationVariables & {
+	}: inferMutationInput<'user.follow'> & {
 		isFollowing: boolean
 		participantId: string
 	}) => {
@@ -41,32 +39,28 @@ const Collaborators = ({
 		if (participantIndex === -1) return
 
 		if (isFollowing) {
-			const { data, errors } = await unfollow({
-				variables: {
-					followerId,
-					targetId,
-				},
+			const { success } = await unfollow({
+				followerId,
+				targetId,
 			})
-			if (data?.UnfollowUser?.success) {
+			if (success) {
 				participants.splice(participantIndex, 1, {
 					...participants[participantIndex],
 					following: false,
 				})
 			}
-			if (errors)
+			if (!success)
 				emitToast('Something went wrong', {
 					type: 'error',
 				})
 		} else {
-			const { data, errors } = await follow({
-				variables: {
-					targetId,
-					followerId,
-				},
+			const { success } = await follow({
+				targetId,
+				followerId,
 			})
-			if (data) {
+			if (success) {
 				emitToast(
-					`Now following ${participants[participantIndex].user.displayName}`,
+					`Now following ${participants[participantIndex].User.displayName}`,
 					{
 						type: 'success',
 					}
@@ -76,7 +70,7 @@ const Collaborators = ({
 					following: true,
 				})
 			}
-			if (errors)
+			if (!success)
 				emitToast('Something went wrong', {
 					type: 'error',
 				})
@@ -106,16 +100,16 @@ const Collaborators = ({
 					}
 
 					return (
-						<Link href={`/${participant.user.username}`} passHref>
-							<a href={`/${participant.user.username}`}>
+						<Link href={`/${participant.User.username}`} passHref>
+							<a href={`/${participant.User.username}`}>
 								<Avatar
-									src={participant.user.picture ?? ''}
-									alt={participant.user.displayName ?? ''}
+									src={participant.User.picture ?? ''}
+									alt={participant.User.displayName ?? ''}
 									className={cx(
 										'h-8 w-8 rounded-full border-2 cursor-pointer',
 										getRing(index)
 									)}
-									name={participant.user.displayName ?? ''}
+									name={participant.User.displayName ?? ''}
 								/>
 							</a>
 						</Link>
@@ -147,15 +141,15 @@ const Collaborators = ({
 								data-event-off='blur mouseleave'
 							>
 								<Avatar
-									src={participant.user.picture ?? ''}
-									alt={participant.user.displayName ?? ''}
+									src={participant.User.picture ?? ''}
+									alt={participant.User.displayName ?? ''}
 									className='cursor-pointer'
-									name={participant.user.displayName ?? ''}
+									name={participant.User.displayName ?? ''}
 								/>
 							</div>
-							<Link href={`/${participant.user.username}`} passHref>
+							<Link href={`/${participant.User.username}`} passHref>
 								<h6 className='text-size-sm cursor-pointer w-full'>
-									{participant.user.displayName}
+									{participant.User.displayName}
 								</h6>
 							</Link>
 							<ReactTooltip
@@ -167,7 +161,7 @@ const Collaborators = ({
 								clickable
 							>
 								<div className='flex flex-col items-start rounded-md'>
-									<Link href={`/${participant.user.username}`} passHref>
+									<Link href={`/${participant.User.username}`} passHref>
 										<div className='flex items-center justify-between cursor-pointer'>
 											<div
 												className={cx(
@@ -176,18 +170,18 @@ const Collaborators = ({
 												)}
 											>
 												<Avatar
-													src={participant.user.picture ?? ''}
-													alt={participant.user.displayName ?? ''}
+													src={participant.User.picture ?? ''}
+													alt={participant.User.displayName ?? ''}
 													className='cursor-pointer'
-													name={participant.user.displayName ?? ''}
+													name={participant.User.displayName ?? ''}
 												/>
 											</div>
 											<div>
 												<p className='text-size-xs'>
-													{participant.user.displayName}
+													{participant.User.displayName}
 												</p>
 												<p className='text-size-xxs text-dark-title-200'>
-													{`@${participant.user.username}`}
+													{`@${participant.User.username}`}
 												</p>
 											</div>
 										</div>
@@ -202,7 +196,7 @@ const Collaborators = ({
 										onClick={() =>
 											handleUserFollowDebounced({
 												followerId: sub as string,
-												targetId: participant.user.sub,
+												targetId: participant.User.sub,
 												isFollowing: participant.following ?? false,
 												participantId: participant.id,
 											})

@@ -1,10 +1,11 @@
 /* eslint-disable react/jsx-no-constructed-context-values */
 import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
-import { useUserOnBoardingMutation } from 'src/graphql/generated'
+import { UploadType } from 'utils/src/enums'
 import { useUser } from 'src/utils/providers/auth'
 import Logo from 'svg/Logo.svg'
 import { emitToast } from 'ui/src'
+import trpc from '../../server/trpc'
 import MainDetailsPage from './MainDetails'
 import People from './People'
 import PersonalDetailsPage from './PersonalDetails'
@@ -28,7 +29,8 @@ const OnBoarding = () => {
 		profilePicture: user?.picture || '',
 	})
 
-	const [completeUserOnBoarding, { loading }] = useUserOnBoardingMutation()
+	const { mutateAsync: completeUserOnBoarding, isLoading: loading } =
+		trpc.useMutation(['user.onboard'])
 
 	useEffect(() => {
 		setDetails({
@@ -42,17 +44,17 @@ const OnBoarding = () => {
 
 	const handleOnBoarding = async () => {
 		if (!details) return
-		const { data, errors } = await completeUserOnBoarding({
-			variables: { ...details },
+		const { success } = await completeUserOnBoarding({
+			...details,
 		})
-		if (data?.UserOnboarding?.success && setUser && user) {
+		if (success && setUser && user) {
 			setUser(Object.assign(user, { onboarded: true }))
 			emitToast('Successfully onboarded!', {
 				type: 'success',
 			})
 			push('/dashboard')
 		}
-		if (errors) {
+		if (!success) {
 			emitToast('Something went wrong!', {
 				type: 'error',
 			})
@@ -81,7 +83,7 @@ const OnBoarding = () => {
 						case OnBoardingScreens.PersonalDetails:
 							return <PersonalDetailsPage />
 						case OnBoardingScreens.Upload:
-							return <UploadPage />
+							return <UploadPage uploadTag={UploadType.Profile} />
 						default:
 							return null
 					}

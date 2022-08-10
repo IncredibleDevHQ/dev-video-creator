@@ -3,10 +3,6 @@ import { Menu, Transition } from '@headlessui/react'
 import { Fragment, useState } from 'react'
 import { BiCheck } from 'react-icons/bi'
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
-import {
-	useGetBrandingQuery,
-	useUpdateBrandMutation,
-} from 'src/graphql/generated'
 import { flickAtom } from 'src/stores/flick.store'
 import { activeBrandIdAtom, brandingAtom } from 'src/stores/studio.store'
 import {
@@ -14,24 +10,19 @@ import {
 	useBroadcastEvent,
 	useEventListener,
 } from 'src/utils/liveblocks.config'
-import { useUser } from 'src/utils/providers/auth'
 import BrandIcon from 'svg/BrandIcon.svg'
 import { Button, Text } from 'ui/src'
+import trpc from '../../../server/trpc'
 import Branding from '../branding/Branding'
 
 const Brand = () => {
 	const flickId = useRecoilValue(flickAtom)?.id
-	const { user } = useUser()
-	const { data } = useGetBrandingQuery({
-		variables: {
-			_eq: user?.uid as string,
-		},
-	})
+	const { data } = trpc.useQuery(['user.brands'])
 
 	const [activeBrandId, setActiveBrandId] = useRecoilState(activeBrandIdAtom)
 	const setBrandingJSON = useSetRecoilState(brandingAtom)
 
-	const [updateBrand] = useUpdateBrandMutation()
+	const { mutateAsync: updateBrand } = trpc.useMutation(['story.updateBrand'])
 	const broadcast = useBroadcastEvent()
 
 	const [brandingModal, setBrandingModal] = useState(false)
@@ -77,7 +68,7 @@ const Brand = () => {
 								as='ul'
 								className='absolute flex flex-col text-left bg-dark-300 bg-opacity-100 z-50 rounded-sm p-1.5 mt-2.5 min-w-[190px]'
 							>
-								{data?.Branding.map(branding => (
+								{data?.map(branding => (
 									<Menu.Item
 										as='li'
 										key={branding.id}
@@ -90,14 +81,14 @@ const Brand = () => {
 												payload: branding,
 											})
 											updateBrand({
-												variables: {
-													id: flickId,
-													useBranding: true,
-													brandingId: branding.id,
-												},
+												id: flickId ?? '',
+												useBranding: true,
+												brandingId: branding.id,
 											})
 											setActiveBrandId(branding.id)
-											setBrandingJSON(branding.branding)
+											setBrandingJSON(
+												JSON.parse(JSON.stringify(branding.branding))
+											)
 										}}
 									>
 										<BrandIcon className='mr-2' />
@@ -120,10 +111,9 @@ const Brand = () => {
 											payload: null,
 										})
 										updateBrand({
-											variables: {
-												id: flickId,
-												useBranding: false,
-											},
+											id: flickId ?? '',
+											useBranding: false,
+											brandingId: null,
 										})
 										setActiveBrandId(null)
 										setBrandingJSON({})
@@ -137,7 +127,7 @@ const Brand = () => {
 										<BiCheck className='ml-auto' size={16} />
 									)}
 								</Menu.Item>
-								{data && data.Branding.length > 0 && (
+								{data && data.length > 0 && (
 									<div className='border-t border-gray-600 mx-2 mt-1.5' />
 								)}
 								<Menu.Item as={Fragment}>

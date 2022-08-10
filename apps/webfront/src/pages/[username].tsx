@@ -1,22 +1,12 @@
 /* eslint-disable @next/next/no-img-element */
 /* eslint-disable react/jsx-props-no-spreading */
 import { css, cx } from '@emotion/css'
-import {
-	differenceInMonths,
-	format,
-	formatDistance,
-	intervalToDuration,
-} from 'date-fns'
+import { differenceInMonths, format, formatDistance } from 'date-fns'
 import { GetServerSideProps, InferGetServerSidePropsType } from 'next'
 import { useRouter } from 'next/router'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { FiUser } from 'react-icons/fi'
 import {
-	PublicSeriesFlickFragment,
-	SeriesFlickFragment,
-	SeriesFragmentFragment,
-	SeriesParticipantFragment,
-	useCheckFollowQuery,
 	useFollowMutation,
 	UserFragment,
 	useUnfollowMutation,
@@ -26,26 +16,27 @@ import Link from 'next/link'
 import SEO from 'src/components/core/SEO'
 import Navbar from 'src/components/dashboard/Navbar'
 import { useUser } from 'src/utils/providers/auth'
-import sdk from 'src/utils/sdk'
 import { Avatar, Button, Heading, Text } from 'ui/src'
 import CreateFlickModal from 'src/components/dashboard/CreateFlickModal'
 import CollaborateModal from 'src/components/profile/CollaborateModal'
+import prisma from 'prisma-orm/prisma'
+import { ParticipantRoleEnum } from 'src/utils/enums'
+import trpc, { inferQueryOutput } from '../server/trpc'
 
 const FlickCard = ({
 	flick,
 	isOwner,
 }: {
-	flick: Partial<PublicSeriesFlickFragment> &
-		Partial<SeriesFlickFragment['flick']>
+	flick: inferQueryOutput<'user.profile'>['stories'][number]
 	isOwner?: boolean
 }) => {
-	const duration = flick.duration
-		? intervalToDuration({ start: 0, end: flick.duration * 1000 })
-		: undefined
+	// const duration = flick.duration
+	// 	? intervalToDuration({ start: 0, end: flick.duration * 1000 })
+	// 	: undefined
 
 	const getThumbnail = (() => {
-		if (flick.contents && flick.contents.length > 0) {
-			const contentWithThumbnail = flick.contents?.find(
+		if (flick.Content && flick.Content.length > 0) {
+			const contentWithThumbnail = flick.Content?.find(
 				content => !!content.thumbnail
 			)
 			if (contentWithThumbnail?.thumbnail) {
@@ -76,11 +67,11 @@ const FlickCard = ({
 							Collaborator
 						</span>
 					)}
-					{duration && (
+					{/* {duration && (
 						<span className='absolute p-1 px-2 text-xs tracking-wide rounded-md shadow-sm bottom-3 right-3 bg-dark-200'>
 							{duration.minutes}:{duration.seconds}
 						</span>
-					)}
+					)} */}
 				</div>
 				<div className='p-4'>
 					<Heading textStyle='smallTitle' className='text-start'>
@@ -90,47 +81,49 @@ const FlickCard = ({
 						<time className='flex justify-end text-size-xs font-normal text-dark-title-200 font-body'>
 							{differenceInMonths(
 								new Date(),
-								new Date(flick.contents?.[0].published_at)
+								new Date(flick.Content?.[0].published_at)
 							) < 1
 								? formatDistance(
-										new Date(flick.contents?.[0].published_at),
+										new Date(flick.Content?.[0].published_at),
 										new Date(),
 										{
 											addSuffix: true,
 										}
 								  )
 								: format(
-										new Date(flick.contents?.[0].published_at),
+										new Date(flick.Content?.[0].published_at),
 										'do MMM yyyy'
 								  )}
 						</time>
 						<div className='flex justify-end'>
-							{flick.participants?.slice(0, 5).map(participant => (
-								<Link href={`/${participant.user.username}`}>
+							{flick.Participants?.slice(0, 5).map(participant => (
+								<Link href={`/${participant.User.username}`}>
 									<div
 										key={participant.id}
 										className={cx(
 											'border-2 w-7 h-7 rounded-full overflow-hidden -ml-2 border-dark-300'
 										)}
 										data-tip={
-											participant.id === flick.ownerId ? 'Host' : 'Collaborator'
+											participant.role === ParticipantRoleEnum.Host
+												? 'Host'
+												: 'Collaborator'
 										}
 										data-effect='solid'
 										data-place='bottom'
 									>
 										<Avatar
-											src={participant.user.picture ?? ''}
-											alt={participant.user.displayName ?? ''}
+											src={participant.User.picture ?? ''}
+											alt={participant.User.displayName ?? ''}
 											className='cursor-pointer'
-											name={participant.user.displayName ?? ''}
+											name={participant.User.displayName ?? ''}
 										/>
 									</div>
 								</Link>
 							))}
-							{flick.participants && flick.participants.length > 5 && (
+							{flick.Participants && flick.Participants.length > 5 && (
 								<div className='flex items-center justify-center -ml-2 rounded-full bg-dark-200 w-7 h-7'>
 									<span className='text-size-xxs text-dark-title'>
-										+{flick.participants.length - 5}
+										+{flick.Participants.length - 5}
 									</span>
 								</div>
 							)}
@@ -146,8 +139,8 @@ const Flicks = ({
 	flicks,
 	user,
 }: {
-	flicks: PublicSeriesFlickFragment[]
-	user: UserFragment
+	flicks: inferQueryOutput<'user.profile'>['stories']
+	user: inferQueryOutput<'user.profile'>['user']
 }) => (
 	<div className='my-6'>
 		<div className='grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 lg:gap-6'>
@@ -155,7 +148,7 @@ const Flicks = ({
 				<FlickCard
 					key={flick.id}
 					flick={flick}
-					isOwner={flick?.owner?.userSub === user?.sub}
+					isOwner={flick?.ownerSub === user?.sub}
 				/>
 			))}
 		</div>
@@ -167,20 +160,24 @@ const centerXCSS = css`
 	transform: translateX(-50%);
 `
 
-const SeriesCard = ({ series }: { series: SeriesFragmentFragment }) => {
+const SeriesCard = ({
+	series,
+}: {
+	series: inferQueryOutput<'user.profile'>['series'][number]
+}) => {
 	const getThumbnails = useCallback(
 		() =>
 			series?.Flick_Series?.filter(
-				({ flick }) => !!flick?.contents.find(({ thumbnail }) => !!thumbnail)
+				({ Flick: flick }) =>
+					!!flick?.Content.find(({ thumbnail }) => !!thumbnail)
 			)
 				.sort(
 					(a, b) =>
-						new Date(b.flick?.contents[0].published_at).getTime() -
-						new Date(a.flick?.contents[0].published_at).getTime()
+						new Date(b.Flick?.Content[0].published_at).getTime() -
+						new Date(a.Flick?.Content[0].published_at).getTime()
 				)
-				.map(({ flick }) => {
-					if (flick?.contents?.[0]?.thumbnail)
-						return flick.contents[0].thumbnail
+				.map(({ Flick: flick }) => {
+					if (flick?.Content?.[0]?.thumbnail) return flick.Content[0].thumbnail
 					return ''
 				}),
 		[series]
@@ -292,16 +289,17 @@ const SeriesCard = ({ series }: { series: SeriesFragmentFragment }) => {
 						</time>
 						<div className='flex justify-end'>
 							{(() => {
-								let collaborators: SeriesParticipantFragment[] = []
+								let collaborators: inferQueryOutput<'user.profile'>['series'][number]['Flick_Series'][number]['Flick']['Participants'] =
+									[]
 								series?.Flick_Series?.forEach(flick => {
-									flick?.flick?.participants?.forEach(participant => {
+									flick?.Flick?.Participants?.forEach(participant => {
 										collaborators.push({ ...participant })
 									})
 								})
 								collaborators = [
 									...new Map(
 										collaborators.map(collaborator => [
-											collaborator.user.sub,
+											collaborator.User.sub,
 											collaborator,
 										])
 									).values(),
@@ -313,14 +311,14 @@ const SeriesCard = ({ series }: { series: SeriesFragmentFragment }) => {
 											.slice(0, 5)
 											.filter((v, i, a) => a.indexOf(v) === i)
 											.map(participant => (
-												<Link href={`/${participant.user.username}`}>
+												<Link href={`/${participant.User.username}`}>
 													<div
 														key={participant.id}
 														className={cx(
 															'border-2 w-7 h-7 rounded-full overflow-hidden -ml-2 border-dark-300'
 														)}
 														data-tip={
-															participant.id === series.owner.sub
+															participant.role === ParticipantRoleEnum.Host
 																? 'Host'
 																: 'Collaborator'
 														}
@@ -328,10 +326,10 @@ const SeriesCard = ({ series }: { series: SeriesFragmentFragment }) => {
 														data-place='bottom'
 													>
 														<Avatar
-															src={participant.user.picture ?? ''}
-															alt={participant.user.displayName ?? ''}
+															src={participant.User.picture ?? ''}
+															alt={participant.User.displayName ?? ''}
 															className='cursor-pointer'
-															name={participant.user.displayName ?? ''}
+															name={participant.User.displayName ?? ''}
 														/>
 													</div>
 												</Link>
@@ -354,12 +352,18 @@ const SeriesCard = ({ series }: { series: SeriesFragmentFragment }) => {
 	)
 }
 
-const Series = ({ series }: { series: SeriesFragmentFragment[] }) => {
+const Series = ({
+	series,
+}: {
+	series: inferQueryOutput<'user.profile'>['series']
+}) => {
 	const filteredSeries = useCallback(
 		() =>
 			series.filter(
 				({ Flick_Series }) =>
-					!!Flick_Series.find(({ flick }) => (flick?.contents.length ?? -1) > 0)
+					!!Flick_Series.find(
+						({ Flick: flick }) => (flick?.Content.length ?? -1) > 0
+					)
 			),
 		[series]
 	)
@@ -401,12 +405,13 @@ const ProfileCard = ({
 			},
 		})
 
-	const { data } = useCheckFollowQuery({
-		variables: {
+	const { data } = trpc.useQuery([
+		'user.isFollowing',
+		{
 			followerId: loggedInUser?.uid as string,
 			targetId: user.sub,
 		},
-	})
+	])
 
 	useEffect(() => {
 		if (!performFollowData) return
@@ -415,7 +420,7 @@ const ProfileCard = ({
 
 	useEffect(() => {
 		if (!data) return
-		if (data.Follow.length > 0) setIsFollowing(true)
+		if (data.isFollowing) setIsFollowing(true)
 	}, [data])
 
 	useEffect(() => {
@@ -660,7 +665,7 @@ const Profile = (
 	return (
 		<>
 			<SEO
-				description={user.profile?.about || `Profile for ${user.displayName}`}
+				description={user.Profile?.about || `Profile for ${user.displayName}`}
 				title={`${user.displayName} | Incredible`}
 				keywords={
 					user.displayName
@@ -710,14 +715,175 @@ const Profile = (
 }
 
 export const getServerSideProps: GetServerSideProps<{
-	user: UserFragment
-	series: SeriesFragmentFragment[]
-	flicks: PublicSeriesFlickFragment[]
+	user: inferQueryOutput<'user.profile'>['user']
+	series: inferQueryOutput<'user.profile'>['series']
+	flicks: inferQueryOutput<'user.profile'>['stories']
 }> = async context => {
 	const username = context.params?.username as string
-	const { data } = await sdk.UserProfile({ username })
+	const stories = await prisma.flick.findMany({
+		where: {
+			Participants: {
+				some: {
+					User: {
+						username,
+					},
+				},
+			},
+		},
+		orderBy: {
+			updatedAt: 'desc',
+		},
+		select: {
+			description: true,
+			joinLink: true,
+			lobbyPicture: true,
+			id: true,
+			name: true,
+			scope: true,
+			md: true,
+			dirty: true,
+			publishedAt: true,
+			ownerSub: true,
+			Owner: {
+				select: {
+					sub: true,
+				},
+			},
+			updatedAt: true,
+			thumbnail: true,
+			status: true,
+			deletedAt: true,
+			producedLink: true,
+			configuration: true,
+			Content: {
+				select: {
+					id: true,
+					data: true,
+					published_at: true,
+					isPublic: true,
+					seriesId: true,
+					resource: true,
+					preview: true,
+					thumbnail: true,
+					type: true,
+				},
+			},
+			topicTags: true,
+			Participants: {
+				select: {
+					id: true,
+					role: true,
+					User: {
+						select: {
+							sub: true,
+							displayName: true,
+							picture: true,
+							username: true,
+						},
+					},
+				},
+			},
+		},
+	})
+	const user = await prisma.user.findUnique({
+		where: {
+			username,
+		},
+		select: {
+			sub: true,
+			username: true,
+			displayName: true,
+			picture: true,
+			Profile: {
+				select: {
+					id: true,
+					title: true,
+					about: true,
+					coverImage: true,
+					githubProfile: true,
+					hashnodeProfile: true,
+					linkedinProfile: true,
+					mediumProfile: true,
+					twitterProfile: true,
+					tags: true,
+				},
+			},
+			Series: {
+				select: {
+					id: true,
+					name: true,
+					description: true,
+					picture: true,
+					createdAt: true,
+					updatedAt: true,
+					User: {
+						select: {
+							sub: true,
+							displayName: true,
+							picture: true,
+							username: true,
+						},
+					},
+					Flick_Series: {
+						select: {
+							Flick: {
+								select: {
+									id: true,
+									status: true,
+									name: true,
+									description: true,
+									thumbnail: true,
+									configuration: true,
+									ownerSub: true,
+									joinLink: true,
+									topicTags: true,
+									Content: {
+										select: {
+											id: true,
+											isPublic: true,
+											type: true,
+											resource: true,
+											thumbnail: true,
+											published_at: true,
+										},
+									},
+									Participants: {
+										select: {
+											id: true,
+											role: true,
+											User: {
+												select: {
+													sub: true,
+													picture: true,
+													username: true,
+													displayName: true,
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				orderBy: {
+					updatedAt: 'desc',
+				},
+			},
+		},
+	})
 
-	if (!data || !data.User?.[0]) {
+	if (!user || !user.Series)
+		return {
+			notFound: true,
+		}
+	const data = {
+		user,
+		series: user.Series,
+		stories,
+	}
+
+	if (!data || !data.user) {
 		return {
 			notFound: true,
 		}
@@ -725,9 +891,9 @@ export const getServerSideProps: GetServerSideProps<{
 
 	return {
 		props: {
-			user: data.User[0],
-			series: data.User[0].series,
-			flicks: data.Flick.filter(flick => flick.contents.length > 0),
+			user: data.user,
+			series: data.series,
+			flicks: data.stories.filter(flick => flick.Content.length > 0),
 		},
 	}
 }

@@ -25,6 +25,7 @@ import {
 	useTimekeeper,
 	useUploadFile,
 } from 'utils/src'
+import { UploadType } from 'utils/src/enums'
 import VideoEditor, { Transformations } from './VideoEditor'
 import recordScreen from '../../assets/record-screen.jpeg'
 
@@ -145,10 +146,20 @@ const AddVideo = ({
 
 			if (!extension) throw Error('Failed to get extension')
 
+			// ['incredible.dev', 'story', '<FLICK_ID>', '<FRAGMENT_ID>', '?', ...]
+			const href = window.location.href.replace('https://', '').split('/')
+			const fragmentId = href.pop()?.split('?')[0]
+			const flickId = href.pop()
+
 			const { url } = await uploadVideo({
 				// @ts-ignore
 				extension,
 				file: video,
+				tag: UploadType.Asset,
+				meta: {
+					flickId,
+					fragmentId,
+				},
 				handleProgress: ({ percentage }) => {
 					setProgress(percentage)
 				},

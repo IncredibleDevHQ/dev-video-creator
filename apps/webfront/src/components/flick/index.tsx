@@ -4,7 +4,7 @@ import parser from 'editor/src/utils/parser'
 import { Block } from 'editor/src/utils/types'
 import { useEffect, useMemo } from 'react'
 import { useRecoilCallback, useRecoilValue, useSetRecoilState } from 'recoil'
-import { FlickFragment } from 'src/graphql/generated'
+
 import {
 	activeFragmentIdAtom,
 	astAtom,
@@ -22,13 +22,17 @@ import {
 	brandingAtom,
 	themeAtom,
 	transitionAtom,
+	TransitionConfig,
 } from 'src/stores/studio.store'
+import { BrandingJSON } from 'src/utils/configs'
+import { ParticipantRoleEnum } from 'src/utils/enums'
 import {
 	Presence,
 	PresencePage,
 	RoomProvider,
 } from 'src/utils/liveblocks.config'
 import { useUser } from 'src/utils/providers/auth'
+import { inferQueryOutput } from '../../server/trpc'
 import EditorSection from './core/EditorSection'
 import Navbar from './core/Navbar'
 import FragmentStoreUpdater from './core/StoreUpdater'
@@ -42,29 +46,66 @@ const FlickBody = ({
 	flick,
 	initialFragmentId,
 }: {
-	flick: FlickFragment
+	flick: inferQueryOutput<'story.byId'>
 	initialFragmentId: string | null
 }) => {
 	const setStoresInitially = useRecoilCallback(
 		({ set }) =>
 			() => {
+				const transition = flick.configuration
+					? (JSON.parse(JSON.stringify(flick.configuration))
+							.transition as TransitionConfig)
+					: {}
+
 				set(flickAtom, {
 					id: flick.id,
 					owner: {
-						id: flick.ownerId,
-						sub: flick.owner?.userSub as string,
+						id: flick.Participants.find(
+							p => p.role === ParticipantRoleEnum.Host
+						)!.id,
+						sub: flick.ownerSub as string,
 					},
 					joinLink: flick.joinLink,
-					contents: flick.contents,
+					contents: flick.Content,
 				})
 				set(flickNameAtom, flick.name)
 				set(activeFragmentIdAtom, initialFragmentId)
-				set(participantsAtom, flick.participants)
-				set(brandingAtom, flick.useBranding ? flick.branding?.branding : {})
-				set(activeBrandIdAtom, flick.useBranding ? flick.branding?.id : null)
-				set(transitionAtom, flick.configuration?.transitions)
-				set(themeAtom, flick.theme)
-				set(fragmentsAtom, flick.fragments)
+				set(participantsAtom, flick.Participants)
+				set(
+					brandingAtom,
+					flick.useBranding && flick.Branding
+						? (flick.Branding.branding as BrandingJSON)
+						: {}
+				)
+				set(
+					activeBrandIdAtom,
+					flick.useBranding && flick.Branding ? flick.Branding.id : null
+				)
+				set(transitionAtom, transition)
+				set(themeAtom, flick.Theme)
+				// set(
+				// 	thumbnailAtom,
+				// 	(initialFragment?.thumbnailConfig as ThumbnailProps) ?? null
+				// )
+				// set(
+				// 	fragmentTypeAtom,
+				// 	initialFragment?.type === Fragment_Type_Enum_Enum.Portrait
+				// 		? 'Portrait'
+				// 		: 'Landscape'
+				// )
+				// set(thumbnailObjectAtom, initialFragment?.thumbnailObject ?? null)
+				// set(
+				// 	publishConfigAtom,
+				// 	initialFragment
+				// 		? (initialFragment.publishConfig as unknown as IPublish) ?? null
+				// 		: null
+				// )
+				// set(participantsAtom, flick.participants)
+				// set(brandingAtom, flick.useBranding ? flick.branding?.branding : {})
+				// set(activeBrandIdAtom, flick.useBranding ? flick.branding?.id : null)
+				// set(transitionAtom, flick.configuration?.transitions)
+				// set(themeAtom, flick.theme)
+				set(fragmentsAtom, flick.Fragment)
 			},
 		[]
 	)

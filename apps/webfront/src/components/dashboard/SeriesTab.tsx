@@ -1,12 +1,9 @@
 import { cx } from '@emotion/css'
 import { useEffect, useState } from 'react'
 import Skeleton, { SkeletonTheme } from 'react-loading-skeleton'
-import {
-	DashboardSeriesFragment,
-	useGetDashboardUserSeriesLazyQuery,
-} from 'src/graphql/generated'
 import { useUser } from 'src/utils/providers/auth'
 import { Button, Heading, Text } from 'ui/src'
+import trpc, { inferQueryOutput } from '../../server/trpc'
 import { customScroll } from '../flick/studio/Notes'
 import Filter, { CollectionFilter } from './Filter'
 import SeriesHeader from './SeriesHeader'
@@ -15,24 +12,38 @@ import SeriesTile from './SeriesTile'
 const SeriesTab = () => {
 	const { user } = useUser()
 
-	const [fetchSeriesData, { data, error, loading, fetchMore, refetch }] =
-		useGetDashboardUserSeriesLazyQuery()
-
 	const [offset, setOffset] = useState(0)
-	const [allData, setAllData] = useState<DashboardSeriesFragment[]>()
+	const {
+		data,
+		error,
+		isLoading: loading,
+		refetch,
+	} = trpc.useQuery(
+		[
+			'series.dashboard',
+			{
+				limit: 10,
+				offset,
+			},
+		],
+		{
+			enabled: true,
+		}
+	)
+
+	const [allData, setAllData] = useState<inferQueryOutput<'series.dashboard'>>()
 
 	const [collectionFilter, setCollectionFilter] = useState<CollectionFilter>(
 		CollectionFilter.all
 	)
 
 	useEffect(() => {
-		fetchSeriesData()
-		// eslint-disable-next-line react-hooks/exhaustive-deps
+		refetch()
 	}, [])
 
 	useEffect(() => {
-		if (data?.Series) {
-			setAllData(data.Series)
+		if (data) {
+			setAllData(data)
 		}
 	}, [data])
 
@@ -50,18 +61,18 @@ const SeriesTab = () => {
 						e.currentTarget.clientHeight + 2
 				) {
 					if (loading) return
-					fetchMore({
-						variables: {
-							offset: offset + 25,
-						},
-						updateQuery: (prev, { fetchMoreResult }) => {
-							if (!fetchMoreResult) return prev
-							return {
-								...prev,
-								Series: [...prev.Series, ...fetchMoreResult.Series],
-							}
-						},
-					})
+					// fetchMore({
+					// 	variables: {
+					// 		offset: offset + 25,
+					// 	},
+					// 	updateQuery: (prev, { fetchMoreResult }) => {
+					// 		if (!fetchMoreResult) return prev
+					// 		return {
+					// 			...prev,
+					// 			Series: [...prev.Series, ...fetchMoreResult.Series],
+					// 		}
+					// 	},
+					// })
 					setOffset(offset + 25)
 				}
 			}}
@@ -91,9 +102,7 @@ const SeriesTab = () => {
 						/>
 						<SeriesHeader
 							refresh={() => {
-								refetch({
-									limit: offset === 0 ? 25 : offset,
-								})
+								refetch()
 							}}
 						/>
 					</div>

@@ -13,11 +13,6 @@ import { IoArrowBackOutline } from 'react-icons/io5'
 import useMeasure from 'react-use-measure'
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
 import {
-	useDeleteBlockGroupMutation,
-	useSaveMultipleBlocksMutation,
-	useSaveRecordedBlockMutation,
-} from 'src/graphql/generated'
-import {
 	flickAtom,
 	flickNameAtom,
 	openStudioAtom,
@@ -30,6 +25,7 @@ import {
 	streamAtom,
 	studioStateAtom,
 } from 'src/stores/studio.store'
+import { UploadType } from 'utils/src/enums'
 import useCanvasRecorder from 'src/utils/hooks/useCanvasRecorder'
 import useUpdateActiveObjectIndex from 'src/utils/hooks/useUpdateActiveObjectIndex'
 import useUpdateState from 'src/utils/hooks/useUpdateState'
@@ -48,6 +44,7 @@ import {
 	updateToast,
 } from 'ui/src'
 import { useEnv, useUploadFile, ViewConfig } from 'utils/src'
+import trpc from '../../../server/trpc'
 import CanvasComponent, { StudioContext } from '../canvas/CanvasComponent'
 import RecordingControls from '../RecordingControls'
 import Countdown from './Countdown'
@@ -103,9 +100,9 @@ const Studio = ({
 	const confirmMultiBlockRetake = useRef<boolean>(false)
 
 	const [uploadFile] = useUploadFile()
-	const [saveBlock] = useSaveRecordedBlockMutation()
-	const [saveMultiBlocks] = useSaveMultipleBlocksMutation()
-	const [deleteBlockGroupMutation] = useDeleteBlockGroupMutation()
+	const { mutateAsync: saveBlock } = trpc.useMutation(['block.save'])
+	const { mutateAsync: saveMultiBlocks } = trpc.useMutation(['block.saveMany'])
+	const deleteBlockGroupMutation = trpc.useMutation('block.delete')
 
 	// used to measure the div
 	const [ref, bounds] = useMeasure()
@@ -197,6 +194,13 @@ const Studio = ({
 			const { uuid: objectUrl } = await uploadFile({
 				extension: 'webm',
 				file: uploadVideoFile,
+				tag: UploadType.Block,
+				meta: {
+					flickId,
+					fragmentId,
+					recordingId,
+					blockId,
+				},
 				handleProgress: ({ percentage }) => {
 					updateToast(toast, `Pushing pixels... (${percentage}%)`, {
 						type: 'info',
@@ -204,6 +208,7 @@ const Studio = ({
 					})
 				},
 			})
+			console.log('objectUrl', objectUrl)
 
 			let thumbnailFilename: string | null = null
 			// Upload block thumbnail
@@ -215,6 +220,11 @@ const Studio = ({
 				const { uuid } = await uploadFile({
 					extension: 'png',
 					file: thumbnailBlob,
+					tag: UploadType.Asset,
+					meta: {
+						flickId,
+						fragmentId,
+					},
 					handleProgress: ({ percentage }) => {
 						updateToast(toast, `Pushing pixels... (${percentage}%)`, {
 							type: 'info',
@@ -239,31 +249,27 @@ const Studio = ({
 				})
 				// save all continuous recorded blocks to hasura
 				await saveMultiBlocks({
-					variables: {
-						blocks: continuousRecordedBlockIds.map(block => ({
-							blockId: block.blockId,
-							duration: block.duration,
-							thumbnail: thumbnailFilename, // TODO: generate thumbnail for each block in continuous recording mode
-						})),
-						flickId,
-						fragmentId,
-						recordingId,
-						url: objectUrl,
-					},
+					blocks: continuousRecordedBlockIds.map(block => ({
+						id: block.blockId,
+						playbackDuration: block.duration,
+						thumbnail: thumbnailFilename, // TODO: generate thumbnail for each block in continuous recording mode
+					})),
+					flickId,
+					fragmentId,
+					recordingId,
+					url: objectUrl,
 				})
 			} else {
 				// Once the block video is uploaded to s3 , save the block to the table
 				await saveBlock({
-					variables: {
-						flickId,
-						fragmentId,
-						recordingId,
-						objectUrl,
-						thumbnail: thumbnailFilename,
-						// TODO: Update creation meta and playbackDuration when implementing continuous recording
-						blockId,
-						playbackDuration: duration,
-					},
+					flickId,
+					fragmentId,
+					recordingId,
+					objectUrl,
+					thumbnail: thumbnailFilename || undefined,
+					// TODO: Update creation meta and playbackDuration when implementing continuous recording
+					blockId,
+					playbackDuration: duration,
 				})
 				updateRecordedBlocks({ ...recordedBlocks, [blockId]: objectUrl })
 			}
@@ -431,8 +437,9 @@ const Studio = ({
 							flickId={flickId}
 							fragmentId={fragmentId}
 							participantId={
-								viewConfig.speakers.find(({ userSub }) => userSub === user?.uid)
-									?.id
+								viewConfig.speakers.find(
+									({ userSub }: { userSub: string }) => userSub === user?.uid
+								)?.id
 							}
 						/>
 						<PresenceAvatars />
@@ -573,11 +580,9 @@ const Studio = ({
 															return
 															// eslint-disable-next-line no-else-return
 														} else {
-															deleteBlockGroupMutation({
-																variables: {
-																	objectUrl: currentBlockURL,
-																	recordingId,
-																},
+															deleteBlockGroupMutation.mutateAsync({
+																objectUrl: currentBlockURL,
+																recordingId,
 															})
 															confirmMultiBlockRetake.current = false
 

@@ -21,21 +21,20 @@ import {
 	useRecoilValue,
 } from 'recoil'
 import {
-	useUpdateThumbnailMutation,
-	useUpdateThumbnailObjectMutation,
-} from 'src/graphql/generated'
-import {
 	activeFragmentIdAtom,
+	flickAtom,
 	thumbnailAtom,
 	ThumbnailProps,
 } from 'src/stores/flick.store'
 import { CONFIG } from 'src/utils/configs'
+import { UploadType } from 'utils/src/enums'
 import { useUser } from 'src/utils/providers/auth'
 import { Button, emitToast, Heading, Text } from 'ui/src'
 import { useDebouncedCallback } from 'use-debounce'
 import { IntroBlockView, Layout, useUploadFile } from 'utils/src'
 import { getIntegerHW } from '../canvas/CanvasComponent'
 import Thumbnail from '../canvas/Thumbnail'
+import trpc from '../../../server/trpc'
 import LayoutSelector from '../preview/LayoutSelector'
 
 interface Tab {
@@ -65,11 +64,16 @@ const tabs: Tab[] = [
 const PictureTab = ({
 	thumbnailConfig,
 	setThumbnailConfig,
+	flickId,
+	fragmentId,
 }: {
 	thumbnailConfig: ThumbnailProps
 	setThumbnailConfig: (thumbnailConfig: ThumbnailProps) => void
+	flickId?: string
+	fragmentId?: string
 }) => {
 	const [uploadFile] = useUploadFile()
+
 	const [fileUploading, setFileUploading] = useState(false)
 
 	const handleUploadFile = async (files: File[]) => {
@@ -77,9 +81,20 @@ const PictureTab = ({
 		if (!file) return
 
 		setFileUploading(true)
+		if (!flickId || !fragmentId) {
+			emitToast('FlickId/FragmentId not found', {
+				type: 'error',
+			})
+			setFileUploading(false)
+		}
 		const { url } = await uploadFile({
 			extension: file.name.split('.').pop() as any,
 			file,
+			tag: UploadType.Asset,
+			meta: {
+				flickId,
+				fragmentId,
+			},
 		})
 
 		setFileUploading(false)
@@ -221,7 +236,7 @@ const ThumbnailModal = ({
 	isPublishFlow?: boolean
 }) => {
 	const activeFragmentId = useRecoilValue(activeFragmentIdAtom)
-
+	const flick = useRecoilValue(flickAtom)
 	const [fragmentThumbnailConfig, setFragmentThumbnailConfig] =
 		useRecoilState(thumbnailAtom)
 
@@ -246,17 +261,17 @@ const ThumbnailModal = ({
 	})
 
 	const [updatingThumbnail, setUpdatingThumbnail] = useState(false)
-	const [updateThumbnail] = useUpdateThumbnailMutation()
-	const [updateThumbnailObject] = useUpdateThumbnailObjectMutation()
+	const updateThumbnail = trpc.useMutation(['fragment.updateThumbnail'])
+	// const [updateThumbnailObject] = useUpdateThumbnailObjectMutation()
 
 	const updateConfig = async () => {
 		setUpdatingThumbnail(true)
 		try {
-			await updateThumbnail({
-				variables: {
-					id: activeFragmentId,
-					thumbnailConfig,
-				},
+			if (!activeFragmentId)
+				throw new Error('No active fragment to save thumbnail.')
+			await updateThumbnail.mutateAsync({
+				id: activeFragmentId,
+				thumbnailConfig,
 			})
 		} catch (e) {
 			emitToast('Failed to update thumbnail', {
@@ -282,12 +297,17 @@ const ThumbnailModal = ({
 			const { uuid } = await uploadFile({
 				extension: 'png',
 				file: blob,
-			})
-			await updateThumbnailObject({
-				variables: {
-					id: activeFragmentId,
-					thumbnailObject: uuid,
+				tag: UploadType.Asset,
+				meta: {
+					flickId: flick?.id,
+					fragmentId: activeFragmentId ?? undefined,
 				},
+			})
+			if (!activeFragmentId)
+				throw new Error('No active fragment to save thumbnail.')
+			await updateThumbnail.mutateAsync({
+				id: activeFragmentId,
+				thumbnailObject: uuid,
 			})
 			handleClose(uuid)
 		} catch (e) {
@@ -486,6 +506,8 @@ const ThumbnailModal = ({
 											<PictureTab
 												thumbnailConfig={thumbnailConfig}
 												setThumbnailConfig={setThumbnailConfig}
+												flickId={flick?.id}
+												fragmentId={activeFragmentId ?? undefined}
 											/>
 										)}
 									</div>

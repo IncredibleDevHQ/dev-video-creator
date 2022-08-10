@@ -13,7 +13,7 @@ import {
 } from 'src/stores/studio.store'
 import useAgora from 'src/utils/hooks/useAgora'
 import { emitToast } from 'ui/src'
-import { useGetRtcTokenMutation } from 'utils/src/graphql/generated'
+import trpc from '../../../server/trpc'
 
 export type Device = {
 	label: string
@@ -40,9 +40,8 @@ const MediaControls = React.memo(
 		const setAgoraActions = useSetRecoilState(agoraActionsAtom)
 		const setAgoraUsers = useSetRecoilState(agoraUsersAtom)
 
-		const [getRTCToken] = useGetRtcTokenMutation({
-			variables: { fragmentId, flickId },
-		})
+		const { mutateAsync: getRTCToken } = trpc.useMutation(['util.getRtcToken'])
+
 		const [rtcToken, setRtcToken] = useState<string | undefined>()
 
 		// Gives the tracks of camera and microphone, given the camera and microphone device ids
@@ -79,8 +78,12 @@ const MediaControls = React.memo(
 
 		useEffect(() => {
 			;(async () => {
-				const { data } = await getRTCToken()
-				setRtcToken(data?.RTCToken?.token)
+				const data = await getRTCToken({
+					fragmentId,
+					flickId,
+					huddle: false,
+				})
+				setRtcToken(data?.token)
 			})()
 			return () => {
 				setAgoraUsers(undefined)
@@ -151,19 +154,23 @@ const MediaControls = React.memo(
 						fragmentId,
 						{
 							onTokenWillExpire: async () => {
-								const { data } = await getRTCToken({
-									variables: { fragmentId, flickId },
+								const data = await getRTCToken({
+									fragmentId,
+									flickId,
+									huddle: false,
 								})
-								if (data?.RTCToken?.token) {
-									renewToken(data?.RTCToken?.token)
+								if (data?.token) {
+									renewToken(data?.token)
 								}
 							},
 							onTokenDidExpire: async () => {
-								const { data } = await getRTCToken({
-									variables: { flickId, fragmentId },
+								const data = await getRTCToken({
+									flickId,
+									fragmentId,
+									huddle: false,
 								})
-								if (data?.RTCToken?.token) {
-									join(data?.RTCToken?.token, participantId, tracks)
+								if (data?.token) {
+									join(data?.token, participantId, tracks)
 								}
 							},
 						},

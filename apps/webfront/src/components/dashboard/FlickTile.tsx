@@ -12,28 +12,25 @@ import {
 	IoDocumentTextOutline,
 	IoTrashOutline,
 } from 'react-icons/io5'
-import {
-	useDeleteFlickMutation,
-	useDuplicateUserFlickMutation,
-} from 'src/graphql/generated'
 import { useUser } from 'src/utils/providers/auth'
 import { emitToast, Heading, Text, ThumbnailPreview } from 'ui/src'
 import {
 	Content_Type_Enum_Enum,
-	DashboardFlicksFragment,
+	// DashboardFlicksFragment,
 	OrientationEnum,
 } from 'utils/src/graphql/generated'
+import trpc, { inferQueryOutput } from '../../server/trpc'
 
 const FlickTile = ({
 	id,
 	name,
-	contents,
+	Content,
 	updatedAt,
-	owner,
+	ownerSub,
 	handleDelete,
 	handleCopy,
 	joinLink,
-}: DashboardFlicksFragment & {
+}: inferQueryOutput<'story.dashboardStories'>[number] & {
 	handleDelete: (id: string) => void
 	handleCopy: (id: string, newId: string) => void
 }) => {
@@ -41,10 +38,10 @@ const FlickTile = ({
 
 	const router = useRouter()
 
-	const [deleteFlick] = useDeleteFlickMutation({
-		onCompleted(data) {
-			emitToast('Successfully deleted the story', { type: 'success' })
-			handleDelete(data.DeleteFlick?.id)
+	const deleteFlick = trpc.useMutation(['story.delete'], {
+		onSuccess(data) {
+			emitToast('Successfully deleted the flick', { type: 'success' })
+			handleDelete(data.flickId)
 		},
 		onError() {
 			emitToast('Error deleting story', { type: 'error' })
@@ -52,17 +49,15 @@ const FlickTile = ({
 	})
 
 	const deleteFlickFunction = async () => {
-		await deleteFlick({
-			variables: {
-				flickId: id,
-			},
+		await deleteFlick.mutateAsync({
+			flickId: id,
 		})
 	}
 
-	const [duplicateFlick] = useDuplicateUserFlickMutation({
-		onCompleted(data) {
-			emitToast('Successfully duplicated the story', { type: 'success' })
-			handleCopy(id, data.DuplicateFlick?.id)
+	const duplicateFlick = trpc.useMutation(['story.duplicate'], {
+		onSuccess(data) {
+			emitToast('Successfully duplicated the flick', { type: 'success' })
+			handleCopy(id, data.id)
 		},
 		onError() {
 			emitToast('Error making copy', {
@@ -102,7 +97,7 @@ const FlickTile = ({
 					}
 				}}
 			>
-				{contents.length > 0 && (
+				{Content.length > 0 && (
 					<div className='absolute z-10 text-size-xs bg-green-600 rounded-br-sm rounded-tl-sm px-1 py-px'>
 						Published
 					</div>
@@ -110,15 +105,15 @@ const FlickTile = ({
 				<div className='aspect-w-16 aspect-h-9'>
 					<div className='flex items-center justify-center bg-dark-300 w-full h-full rounded-md'>
 						{(() => {
-							if (contents.length > 0) {
-								if (contents[0]?.thumbnail && contents[0]?.preview) {
+							if (Content.length > 0) {
+								if (Content[0]?.thumbnail && Content[0]?.preview) {
 									return (
 										<ThumbnailPreview
-											backgroundImageSource={contents[0]?.preview || ''}
-											posterImageSource={contents[0]?.thumbnail || ''}
+											backgroundImageSource={Content[0]?.preview || ''}
+											posterImageSource={Content[0]?.thumbnail || ''}
 											className='rounded-t-md w-full h-full'
 											orientation={
-												contents[0]?.type === Content_Type_Enum_Enum.Video
+												Content[0]?.type === Content_Type_Enum_Enum.Video
 													? OrientationEnum.Landscape
 													: OrientationEnum.Portrait
 											}
@@ -127,14 +122,14 @@ const FlickTile = ({
 										/>
 									)
 								}
-								if (contents[1]?.thumbnail && contents[1]?.preview) {
+								if (Content[1]?.thumbnail && Content[1]?.preview) {
 									return (
 										<ThumbnailPreview
-											backgroundImageSource={contents[1]?.preview || ''}
-											posterImageSource={contents[1]?.thumbnail || ''}
+											backgroundImageSource={Content[1]?.preview || ''}
+											posterImageSource={Content[1]?.thumbnail || ''}
 											className='rounded-t-md w-full h-full'
 											orientation={
-												contents[1]?.type === Content_Type_Enum_Enum.Video
+												Content[1]?.type === Content_Type_Enum_Enum.Video
 													? OrientationEnum.Landscape
 													: OrientationEnum.Portrait
 											}
@@ -189,7 +184,7 @@ const FlickTile = ({
 								as='ul'
 								className='absolute top-10 right-2 bg-dark-400 flex flex-col p-1.5 rounded-md'
 							>
-								{contents.length > 0 && (
+								{Content.length > 0 && (
 									<Menu.Item
 										as='li'
 										className={cx(
@@ -210,12 +205,14 @@ const FlickTile = ({
 									className={cx(
 										' items-center hover:bg-dark-100 px-3 py-1.5 rounded-sm text-size-xs gap-x-3 hidden',
 										{
-											'cursor-not-allowed ': owner?.userSub !== user?.uid,
+											'cursor-not-allowed ': ownerSub !== user?.uid,
 										}
 									)}
 									onClick={(e: any) => {
 										e.stopPropagation()
-										duplicateFlick()
+										duplicateFlick.mutateAsync({
+											flickId: id,
+										})
 									}}
 								>
 									<IoCopyOutline size={14} className='text-gray-100' />
@@ -228,12 +225,12 @@ const FlickTile = ({
 									className={cx(
 										'flex items-center hover:bg-dark-100 px-3 py-1.5 rounded-sm text-size-xs gap-x-3',
 										{
-											'cursor-not-allowed ': owner?.userSub !== user?.uid,
+											'cursor-not-allowed ': ownerSub !== user?.uid,
 										}
 									)}
 									onClick={(e: any) => {
 										e.stopPropagation()
-										if (owner?.userSub !== user?.uid) return
+										if (ownerSub !== user?.uid) return
 										if (showDeleteConfirmation) {
 											deleteFlickFunction()
 										} else {
