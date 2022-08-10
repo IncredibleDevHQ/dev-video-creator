@@ -1,11 +1,7 @@
 import { Block, SimpleAST } from 'editor/src/utils/types'
 import { atom, DefaultValue, selector } from 'recoil'
-import {
-	ContentFragment,
-	FlickFragmentFragment,
-	FlickParticipantsFragment,
-} from 'src/graphql/generated'
 import { IntroBlockViewProps, Layout } from 'utils/src'
+import { inferQueryOutput } from '../server/trpc'
 
 /* Stores some basic flick details */
 const flickAtom = atom<{
@@ -15,7 +11,7 @@ const flickAtom = atom<{
 		sub: string
 	}
 	joinLink: string
-	contents: ContentFragment[]
+	contents: inferQueryOutput<'story.byId'>['Content']
 } | null>({
 	key: 'flick',
 	default: null,
@@ -28,7 +24,7 @@ const flickNameAtom = atom<string | null>({
 })
 
 /* This atom keeps track of flick participants */
-const participantsAtom = atom<FlickParticipantsFragment[]>({
+const participantsAtom = atom<inferQueryOutput<'story.byId'>['Participants']>({
 	key: 'participants',
 	default: [],
 })
@@ -46,12 +42,14 @@ const fragmentLoadingAtom = atom<boolean>({
 })
 
 /* This atom stores the list of fragments */
-const fragmentsAtom = atom<FlickFragmentFragment[]>({
+const fragmentsAtom = atom<inferQueryOutput<'story.byId'>['Fragment']>({
 	key: 'fragments',
 	default: [],
 })
 
-const activeFragmentSelector = selector<FlickFragmentFragment | undefined>({
+const activeFragmentSelector = selector<
+	inferQueryOutput<'story.byId'>['Fragment'][number] | undefined
+>({
 	key: 'activeFragment',
 	get: ({ get }) => {
 		const activeFragmentId = get(activeFragmentIdAtom)
@@ -138,7 +136,7 @@ export interface IPublish {
 	description?: string
 	thumbnail?: {
 		objectId?: string
-		method?: 'generated' | 'uploaded'
+		method: 'generated' | 'uploaded'
 	}
 	ctas: CallToAction[]
 	discordCTA?: { url: string; text: string }

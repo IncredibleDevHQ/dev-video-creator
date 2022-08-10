@@ -12,6 +12,8 @@ import { IoCloudUploadOutline, IoImageOutline } from 'react-icons/io5'
 import { SiGiphy } from 'react-icons/si'
 import { emitToast, Text } from 'ui/src'
 import { AllowedFileExtensions, useEnv, useUploadFile } from 'utils/src'
+import { UploadType } from 'utils/src/enums'
+
 import AppLogo from '../../assets/Logo.svg'
 import { GiphyTab } from './GiphyTab'
 import { IncredibleGifs } from './IncredibleGifs'
@@ -143,12 +145,23 @@ export const Image = (props: any) => {
 	const uploadMedia = async (files: File[]) => {
 		try {
 			setLoading(true)
+
+			// ['alpha.incredible.dev', 'story', '<FLICK_ID>', '<FRAGMENT_ID>']
+			const url = window.location.href.replace('https://', '').split('/')
+			const fragmentId = url.pop()
+			const flickId = url.pop()
+
 			const file = files?.[0]
 			if (!file) throw new Error('No file selected')
 			setMedia(file)
 			const { uuid } = await upload({
 				file,
 				extension: file.name.split('.').pop() as AllowedFileExtensions,
+				tag: UploadType.Asset,
+				meta: {
+					flickId,
+					fragmentId,
+				},
 				handleProgress: ({ percentage }) => {
 					setProgress(percentage)
 				},

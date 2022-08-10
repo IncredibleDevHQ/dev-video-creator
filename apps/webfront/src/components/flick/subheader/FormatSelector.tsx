@@ -12,13 +12,8 @@ import {
 } from 'react-icons/io5'
 import { MdOutlinePresentToAll } from 'react-icons/md'
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
-import {
-	Fragment_Type_Enum_Enum,
-	useAddFragmentMutation,
-	useDeleteFragmentMutation,
-	useGetFlickFragmentLazyQuery,
-	useUpdateFragmentNameMutation,
-} from 'src/graphql/generated'
+
+import { FragmentTypeEnum } from 'src/utils/enums'
 import {
 	activeFragmentIdAtom,
 	activeFragmentSelector,
@@ -32,6 +27,7 @@ import { useUser } from 'src/utils/providers/auth'
 import { Button, emitToast, Heading, Loader } from 'ui/src'
 import { useDebouncedCallback } from 'use-debounce'
 import { BlockProperties, LiveViewConfig } from 'utils/src'
+import trpc from '../../../server/trpc'
 
 const CreateFormat = ({
 	open,
@@ -39,7 +35,7 @@ const CreateFormat = ({
 	handleClose,
 }: {
 	open: boolean
-	availableFormats: Fragment_Type_Enum_Enum[] | undefined
+	availableFormats: FragmentTypeEnum[] | undefined
 	handleClose: () => void
 }) => {
 	const id = useRecoilValue(flickAtom)?.id
@@ -54,15 +50,14 @@ const CreateFormat = ({
 
 	const config = useMap('viewConfig')
 
-	const [getNewFragment] = useGetFlickFragmentLazyQuery({
-		fetchPolicy: 'no-cache',
-		onCompleted(data) {
-			const newFragment = data?.Fragment_by_pk
+	const { mutateAsync: getNewFragment } = trpc.useMutation(['fragment.get'], {
+		onSuccess(data) {
+			const newFragment = data
 
 			if (!newFragment) return
 
 			/* NOTE: Updating view config; Server side doesn't work */
-			const { editorState } = newFragment
+			const editorState = JSON.parse(JSON.stringify(newFragment.editorState))
 			const introBlockId = editorState?.blocks?.find(
 				(b: any) => b.type === 'introBlock'
 			)?.id
@@ -125,25 +120,26 @@ const CreateFormat = ({
 		},
 	})
 
-	const [createFragment] = useAddFragmentMutation({
-		onError(error) {
-			emitToast(`Could not create new format ${error.message}`, {
-				type: 'error',
-			})
-			setCreatingFragment(false)
-		},
-		onCompleted(data) {
-			const createFragmentResult = data?.CreateFragment
+	const { mutateAsync: createFragment } = trpc.useMutation(
+		['fragment.create'],
+		{
+			onError(error) {
+				emitToast(`Could not create new format ${error.message}`, {
+					type: 'error',
+				})
+				setCreatingFragment(false)
+			},
+			onSuccess(data) {
+				const createFragmentResult = data
 
-			if (!createFragmentResult) return
+				if (!createFragmentResult) return
 
-			getNewFragment({
-				variables: {
+				getNewFragment({
 					id: createFragmentResult.fragmentId,
-				},
-			})
-		},
-	})
+				})
+			},
+		}
+	)
 
 	if (!availableFormats) return null
 
@@ -184,22 +180,26 @@ const CreateFormat = ({
 									</Heading>
 									<div className='flex items-center gap-x-6'>
 										{[
-											Fragment_Type_Enum_Enum.Landscape,
-											Fragment_Type_Enum_Enum.Portrait,
-											// Fragment_Type_Enum_Enum.Presentation,
-											// Fragment_Type_Enum_Enum.Blog,
+											FragmentTypeEnum.Landscape,
+											FragmentTypeEnum.Portrait,
+											// FragmentTypeEnum.Presentation,
+											// FragmentTypeEnum.Blog,
 										].map(format => (
 											<button
 												key={format}
 												disabled={!availableFormats.includes(format)}
 												onClick={() => {
+													if (!id) {
+														emitToast('No id!', {
+															type: 'error',
+														})
+														return
+													}
 													setCreatingFragment(true)
 													createFragment({
-														variables: {
-															flickId: id,
-															name: 'Untitled',
-															type: format as any,
-														},
+														flickId: id,
+														name: 'Untitled',
+														type: format as any,
 													})
 												}}
 												type='button'
@@ -207,13 +207,13 @@ const CreateFormat = ({
 											>
 												{(() => {
 													switch (format) {
-														case Fragment_Type_Enum_Enum.Landscape:
+														case FragmentTypeEnum.Landscape:
 															return <IoPlayOutline size={24} />
-														case Fragment_Type_Enum_Enum.Portrait:
+														case FragmentTypeEnum.Portrait:
 															return <HiOutlineSparkles size={24} />
-														case Fragment_Type_Enum_Enum.Blog:
+														case FragmentTypeEnum.Blog:
 															return <IoMenuOutline size={24} />
-														case Fragment_Type_Enum_Enum.Presentation:
+														case FragmentTypeEnum.Presentation:
 															return <MdOutlinePresentToAll size={24} />
 														default:
 															return null
@@ -221,8 +221,8 @@ const CreateFormat = ({
 												})()}
 												<span className='text-size-xs'>
 													{format}{' '}
-													{format === Fragment_Type_Enum_Enum.Blog ||
-													format === Fragment_Type_Enum_Enum.Presentation
+													{format === FragmentTypeEnum.Blog ||
+													format === FragmentTypeEnum.Presentation
 														? ''
 														: 'video'}
 												</span>
@@ -250,36 +250,37 @@ const FormatSelector = () => {
 	const [activeFragmentId, setActiveFragmentId] =
 		useRecoilState(activeFragmentIdAtom)
 
+	const flick = useRecoilValue(flickAtom)
+
 	const [activeFragment, setActiveFragment] = useRecoilState(
 		activeFragmentSelector
 	)
 
 	const setFragmentLoading = useSetRecoilState(fragmentLoadingAtom)
 
-	const [availableFormats, setAvailableFormats] =
-		useState<Fragment_Type_Enum_Enum[]>()
+	const [availableFormats, setAvailableFormats] = useState<FragmentTypeEnum[]>()
 
 	useEffect(() => {
 		const formats = [
-			Fragment_Type_Enum_Enum.Landscape,
-			Fragment_Type_Enum_Enum.Portrait,
-			// Fragment_Type_Enum_Enum.Presentation,
-			// Fragment_Type_Enum_Enum.Blog,
+			FragmentTypeEnum.Landscape,
+			FragmentTypeEnum.Portrait,
+			// FragmentTypeEnum.Presentation,
+			// FragmentTypeEnum.Blog,
 		].filter(type => {
 			if (
-				type === Fragment_Type_Enum_Enum.Landscape &&
+				type === FragmentTypeEnum.Landscape &&
 				fragments.some(fragment => fragment.type === type || !fragment.type)
 			) {
 				return false
 			}
 			if (
-				type === Fragment_Type_Enum_Enum.Blog &&
+				type === FragmentTypeEnum.Blog &&
 				fragments.some(fragment => fragment.type === type)
 			) {
 				return false
 			}
 			if (
-				type === Fragment_Type_Enum_Enum.Presentation &&
+				type === FragmentTypeEnum.Presentation &&
 				fragments.some(fragment => fragment.type === type)
 			) {
 				return false
@@ -290,14 +291,15 @@ const FormatSelector = () => {
 		setAvailableFormats(formats)
 	}, [fragments])
 
-	const [updateFragmentName] = useUpdateFragmentNameMutation()
+	const { mutateAsync: updateFragmentName } = trpc.useMutation([
+		'fragment.updateName',
+	])
 
 	const debounceUpdateFlickName = useDebouncedCallback(value => {
+		if (!activeFragmentId) return
 		updateFragmentName({
-			variables: {
-				name: value,
-				id: activeFragmentId,
-			},
+			name: value,
+			id: activeFragmentId,
 		})
 	}, 1000)
 
@@ -311,34 +313,36 @@ const FormatSelector = () => {
 	}
 
 	const viewConfigLiveMap = useMap('viewConfig')
-	const [deleteFragment] = useDeleteFragmentMutation({
-		update(_, { data: updateDeleteFragmentData, errors }) {
-			const deletedFragmentId =
-				updateDeleteFragmentData?.delete_Fragment_by_pk?.id
-
-			if (errors) {
+	const { mutateAsync: deleteFragment } = trpc.useMutation(
+		['fragment.delete'],
+		{
+			onError(error) {
+				console.log('Error: ', error)
 				emitToast('Could not delete format', {
 					type: 'error',
 				})
-			}
+			},
+			onSuccess(data) {
+				const deletedFragmentId = data.fragmentId
 
-			if (!deletedFragmentId) return
-			emitToast('Format deleted', {
-				type: 'success',
-			})
+				if (!deletedFragmentId) return
+				emitToast('Format deleted', {
+					type: 'success',
+				})
 
-			const newFragments = fragments.filter(
-				fragment => fragment.id !== deletedFragmentId
-			)
+				const newFragments = fragments.filter(
+					fragment => fragment.id !== deletedFragmentId
+				)
 
-			setFragments(newFragments)
-			if (newFragments.length > 0 && deletedFragmentId === activeFragmentId)
-				setActiveFragmentId(newFragments[0].id)
+				setFragments(newFragments)
+				if (newFragments.length > 0 && deletedFragmentId === activeFragmentId)
+					setActiveFragmentId(newFragments[0].id)
 
-			if (newFragments.length === 0) setActiveFragmentId(null)
-			viewConfigLiveMap?.delete(deletedFragmentId)
-		},
-	})
+				if (newFragments.length === 0) setActiveFragmentId(null)
+				viewConfigLiveMap?.delete(deletedFragmentId)
+			},
+		}
+	)
 
 	return (
 		<>
@@ -369,13 +373,13 @@ const FormatSelector = () => {
 								<div className='flex items-center gap-x-1'>
 									{(() => {
 										switch (activeFragment?.type) {
-											case Fragment_Type_Enum_Enum.Landscape:
+											case FragmentTypeEnum.Landscape:
 												return <IoPlayOutline />
-											case Fragment_Type_Enum_Enum.Portrait:
+											case FragmentTypeEnum.Portrait:
 												return <HiOutlineSparkles />
-											case Fragment_Type_Enum_Enum.Blog:
+											case FragmentTypeEnum.Blog:
 												return <IoMenuOutline />
-											case Fragment_Type_Enum_Enum.Presentation:
+											case FragmentTypeEnum.Presentation:
 												return <MdOutlinePresentToAll />
 											default:
 												return <IoPlayOutline />
@@ -423,13 +427,13 @@ const FormatSelector = () => {
 											<div className='flex items-center gap-x-1'>
 												{(() => {
 													switch (fragment?.type) {
-														case Fragment_Type_Enum_Enum.Landscape:
+														case FragmentTypeEnum.Landscape:
 															return <IoPlayOutline />
-														case Fragment_Type_Enum_Enum.Portrait:
+														case FragmentTypeEnum.Portrait:
 															return <HiOutlineSparkles />
-														case Fragment_Type_Enum_Enum.Blog:
+														case FragmentTypeEnum.Blog:
 															return <IoMenuOutline />
-														case Fragment_Type_Enum_Enum.Presentation:
+														case FragmentTypeEnum.Presentation:
 															return <MdOutlinePresentToAll />
 														default:
 															return <IoPlayOutline />
@@ -442,10 +446,15 @@ const FormatSelector = () => {
 												className='p-1 hover:bg-white/10 rounded-sm active:scale-95 transition-all'
 												onClick={e => {
 													e.stopPropagation()
+													if (!flick?.id) {
+														emitToast('No story found!', {
+															type: 'error',
+														})
+														return
+													}
 													deleteFragment({
-														variables: {
-															id: fragment.id,
-														},
+														fragmentId: fragment.id,
+														flickId: flick.id,
 													})
 												}}
 											>

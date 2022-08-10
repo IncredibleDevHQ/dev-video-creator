@@ -6,7 +6,6 @@ const crypto = require('crypto')
 
 const getDopplerSecrets = async () => {
 	const dopplerToken = process.env.DOPPLER_TOKEN
-
 	if (!dopplerToken) {
 		throw new Error('DOPPLER_TOKEN is not set')
 	}
@@ -50,7 +49,7 @@ if (require.main === module) {
 
 			console.log('PREBUILD-WF : UPDATING SECRETS FILE...')
 			fs.writeFileSync(
-				'env.webfront.js',
+				'env.server.js',
 				`// Do not modify, auto generated file \nmodule.exports = "${encryptedSecrets}"`
 			)
 

@@ -13,7 +13,8 @@
 		"lint": "turbo run lint",
 		"codegen": "turbo run codegen",
 		"format": "prettier --write \"**/*.{ts,tsx,md}\"",
-		"prepare": "husky install && turbo run prepare"
+		"prepare": "husky install && turbo run prepare",
+		"postinstall": "turbo run postinstall"
 	},
 	"devDependencies": {
 		"commitizen": "^4.2.4",
@@ -21,6 +22,7 @@
 		"husky": "^8.0.1",
 		"lint-staged": "^13.0.2",
 		"prettier": "latest",
+		"ts-node": "^10.9.1",
 		"turbo": "latest"
 	},
 	"resolutions": {
@@ -35,6 +37,21 @@
 			"eslint --fix"
 		],
 		"packages/ui/**/*.{js,ts,jsx,tsx}": [
+			"eslint --fix"
+		],
+		"packages/editor/**/*.{js,ts,jsx,tsx}": [
+			"eslint --fix"
+		],
+		"packages/icanvas/**/*.{js,ts,jsx,tsx}": [
+			"eslint --fix"
+		],
+		"packages/prisma-orm/**/*.{js,ts,jsx,tsx}": [
+			"eslint --fix"
+		],
+		"packages/server/**/*.{js,ts,jsx,tsx}": [
+			"eslint --fix"
+		],
+		"packages/utils/**/*.{js,ts,jsx,tsx}": [
 			"eslint --fix"
 		],
 		"*.json": [

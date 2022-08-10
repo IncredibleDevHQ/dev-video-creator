@@ -8,34 +8,35 @@ import Container from 'src/components/core/Container'
 import Navbar from 'src/components/dashboard/Navbar'
 import NotificationMessage from 'src/components/notifications/NotificationMessage'
 
-import {
-	MyNotificationFragment,
-	useGetAllMyNotificationsQuery,
-	useMarkNotificationAsReadMutation,
-} from 'src/graphql/generated'
+import { useMarkNotificationAsReadMutation } from 'src/graphql/generated'
+import { NotificationMetaTypeEnum, NotificationTypeEnum } from 'src/utils/enums'
 import requireAuth from 'src/utils/helpers/requireAuth'
 import { Avatar, Button, Heading, Text } from 'ui/src'
-import {
-	Notification_Meta_Type_Enum_Enum,
-	Notification_Type_Enum_Enum,
-} from 'utils/src/graphql/generated'
+import {} from 'utils/src/graphql/generated'
+import trpc, { inferQueryOutput } from '../../server/trpc'
 import CollaborationRespondModal from '../../components/notifications/CollaborationResponseModal'
 
 const Notifications = () => {
 	const { push } = useRouter()
 	const [offset, setOffset] = useState(0)
 
-	const [allData, setAllData] = useState<MyNotificationFragment[]>()
-	const { data, loading, error, fetchMore, refetch } =
-		useGetAllMyNotificationsQuery()
+	const [allData, setAllData] =
+		useState<inferQueryOutput<'user.notifications'>>()
+	const {
+		data,
+		isLoading: loading,
+		error,
+		refetch,
+	} = trpc.useQuery(['user.notifications', { limit: 15, offset }])
 
 	const [markAsRead] = useMarkNotificationAsReadMutation()
 	const [isModalOpen, setIsModalOpen] = useState(false)
-	const [notification, setNotification] = useState<MyNotificationFragment>()
+	const [notification, setNotification] =
+		useState<inferQueryOutput<'user.notifications'>[number]>()
 
 	useEffect(() => {
 		if (!data) return
-		setAllData(data.Notifications)
+		setAllData(data)
 	}, [data])
 
 	return (
@@ -49,21 +50,21 @@ const Notifications = () => {
 							e.currentTarget.scrollHeight - e.currentTarget.scrollTop ===
 							e.currentTarget.clientHeight
 						) {
-							fetchMore({
-								variables: {
-									offset: offset + 25,
-								},
-								updateQuery: (prev, { fetchMoreResult }) => {
-									if (!fetchMoreResult) return prev
-									return {
-										...prev,
-										Notifications: [
-											...prev.Notifications,
-											...fetchMoreResult.Notifications,
-										],
-									}
-								},
-							})
+							// fetchMore({
+							// 	variables: {
+							// 		offset: offset + 25,
+							// 	},
+							// 	updateQuery: (prev, { fetchMoreResult }) => {
+							// 		if (!fetchMoreResult) return prev
+							// 		return {
+							// 			...prev,
+							// 			Notifications: [
+							// 				...prev.Notifications,
+							// 				...fetchMoreResult.Notifications,
+							// 			],
+							// 		}
+							// 	},
+							// })
 							setOffset(offset + 25)
 						}
 					}}
@@ -111,23 +112,27 @@ const Notifications = () => {
 											setNotification(notificationData)
 
 											if (
-												notificationData.type ===
-												Notification_Type_Enum_Enum.Event
+												notificationData.type === NotificationTypeEnum.Event
 											) {
+												const meta = JSON.parse(
+													JSON.stringify(notificationData.meta)
+												)
 												switch (notificationData.metaType) {
-													case Notification_Meta_Type_Enum_Enum.Follow:
-														push(`/${notificationData.sender.username}`)
-														break
-													case Notification_Meta_Type_Enum_Enum.User:
-														push(`/${notificationData.sender.username}`)
-														break
-													case Notification_Meta_Type_Enum_Enum.Flick:
-														push(`/story/${notificationData.meta?.flickId}`)
-														break
-													case Notification_Meta_Type_Enum_Enum.Series:
+													case NotificationMetaTypeEnum.Follow:
 														push(
-															`/series/series--${notificationData.meta?.seriesId}`
+															`/${notificationData.User_Notifications_senderIdToUser.username}`
 														)
+														break
+													case NotificationMetaTypeEnum.User:
+														push(
+															`/${notificationData.User_Notifications_senderIdToUser.username}`
+														)
+														break
+													case NotificationMetaTypeEnum.Flick:
+														push(`/story/${meta?.flickId}`)
+														break
+													case NotificationMetaTypeEnum.Series:
+														push(`/series/series--${meta?.seriesId}`)
 														break
 													default:
 														break
@@ -135,19 +140,27 @@ const Notifications = () => {
 											}
 											if (
 												notificationData.type ===
-													Notification_Type_Enum_Enum.Invitation ||
-												notificationData.type ===
-													Notification_Type_Enum_Enum.Request
+													NotificationTypeEnum.Invitation ||
+												notificationData.type === NotificationTypeEnum.Request
 											) {
 												setIsModalOpen(true)
 											}
 										}}
 									>
 										<Avatar
-											src={notificationData.sender.picture as string}
+											src={
+												notificationData.User_Notifications_senderIdToUser
+													.picture as string
+											}
 											className='h-8 rounded-full'
-											name={notificationData?.sender.displayName ?? ''}
-											alt={notificationData?.sender.displayName ?? ''}
+											name={
+												notificationData?.User_Notifications_senderIdToUser
+													.displayName ?? ''
+											}
+											alt={
+												notificationData?.User_Notifications_senderIdToUser
+													.displayName ?? ''
+											}
 										/>
 										<div className='flex flex-col w-full text-left'>
 											<NotificationMessage notification={notificationData} />

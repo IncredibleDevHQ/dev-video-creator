@@ -1,0 +1,11 @@
+{
+	"extends": "config/tsconfig-next.json",
+	"compilerOptions": {
+		"disableSizeLimit": true,
+		"declaration": false,
+		"declarationMap": false,
+		"skipLibCheck": true
+	},
+	"include": ["**/*.ts", "**/*.tsx", "env.fetch.js"],
+	"exclude": ["dist", "build", "node_modules"]
+}

@@ -1,8 +1,8 @@
+/* eslint-disable react/no-unused-prop-types */
 /* eslint-disable react/destructuring-assignment */
 import { css, cx } from '@emotion/css'
 import { Dialog, Menu } from '@headlessui/react'
 import debounce from 'lodash/debounce'
-import { GetServerSideProps, InferGetServerSidePropsType } from 'next'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
@@ -18,25 +18,14 @@ import AddExistingFlickModal from 'src/components/series/AddExistingFlickModal'
 import Collaborators from 'src/components/series/Collaborators'
 import FlickCard from 'src/components/series/FlickCard'
 import SeriesActionButton from 'src/components/series/SeriesActionButton'
-import {
-	Content_Type_Enum_Enum,
-	SeriesFragment,
-	SeriesFragmentFragment,
-	SeriesParticipantFragment,
-	SubscribeSeriesMutationVariables,
-	useCheckFollowByIdsLazyQuery,
-	useDeleteSeriesSubscriptionMutation,
-	useGetSeriesLazyQuery,
-	useHasSeriesStarredQuery,
-	useHasSeriesSubscribedQuery,
-	useStarSeriesMutation,
-	useSubscribeSeriesMutation,
-	useUnstarSeriesMutation,
-} from 'src/graphql/generated'
+import { Content_Type_Enum_Enum, SeriesFragment } from 'src/graphql/generated'
+import prisma from 'prisma-orm/prisma'
+import { ContentTypeEnum, FlickScopeEnum } from 'src/utils/enums'
+import requireAuth from 'src/utils/helpers/requireAuth'
 import { useUser } from 'src/utils/providers/auth'
-import sdk from 'src/utils/sdk'
 import { Button, emitToast, Heading } from 'ui/src'
 import { validateEmail } from 'utils/src'
+import trpc, { inferMutationInput, inferQueryOutput } from '../../server/trpc'
 
 // Import component dynamically, with SSR disabled
 // Usage reference : https://github.com/wwayne/react-tooltip/issues/675#issuecomment-824897435
@@ -54,7 +43,7 @@ const SeriesModal = ({
 	open: boolean
 	onClose: () => void
 	series: SeriesFragment
-	handleSubscribe: (props: SubscribeSeriesMutationVariables) => void
+	handleSubscribe: (props: inferMutationInput<'series.subscribe'>) => void
 	loading?: boolean
 }) => {
 	const [email, setEmail] = useState('')
@@ -83,9 +72,7 @@ const SeriesModal = ({
 					/>
 					<Button
 						loading={loading}
-						onClick={() =>
-							handleSubscribe({ emailId: email, seriesId: series.id })
-						}
+						onClick={() => handleSubscribe({ email, id: series.id })}
 						disabled={!validateEmail(email)}
 					>
 						{loading ? 'Submitting...' : 'Subscribe'}
@@ -96,22 +83,31 @@ const SeriesModal = ({
 	)
 }
 
+type SeriesProps = {
+	series: inferQueryOutput<'series.get'>
+	subscriptions: { count: number }
+	stars: { count: number }
+}
+
 const Series = (
-	props: InferGetServerSidePropsType<typeof getServerSideProps>
+	props: SeriesProps // InferGetServerSidePropsType<typeof getServerSideProps>
 ) => {
+	type SeriesParticipantFragment =
+		inferQueryOutput<'series.get'>['Flick_Series'][number]['Flick']['Participants'][number]
+
 	const [seriesModal, setSeriesModal] = useState(false)
 
 	const [series, setSeries] = useState<
-		InferGetServerSidePropsType<typeof getServerSideProps> & {
+		SeriesProps & {
 			isStarred?: boolean
 			isSubscribed?: boolean
 		}
 	>(props)
 	const [seriesTags, setSeriesTags] = useState<string[]>([])
 
-	const url = `${process.env.NEXT_PUBLIC_PUBLIC_URL}/series/${slugify(
-		props.series.name
-	)}--${props.series.id}`
+	const url = `${process.env.NEXT_PUBLIC_PUBLIC_URL}/series/${
+		props.series ? slugify(props.series.name) : ''
+	}--${props.series?.id}`
 
 	const [createNewFlickOpen, setCreateNewFlickOpen] = useState(false)
 	const [addExistingOpen, seAddExistingOpen] = useState(false)
@@ -120,25 +116,27 @@ const Series = (
 
 	const { user } = useUser()
 
-	const { data: isStarred } = useHasSeriesStarredQuery({
-		variables: {
-			seriesId: props.series.id,
-			sub: user?.uid as string,
+	const { data: isStarred } = trpc.useQuery([
+		'series.hasStarred',
+		{
+			id: props.series?.id,
 		},
-	})
-	const { data: isSubscribed } = useHasSeriesSubscribedQuery({
-		variables: {
-			seriesId: props.series.id,
-			sub: user?.uid as string,
-		},
-	})
+	])
 
-	const [checkFollow] = useCheckFollowByIdsLazyQuery()
+	const { data: isSubscribed } = trpc.useQuery([
+		'series.hasSubscribed',
+		{ id: props.series?.id },
+	])
 
-	const [refetchSeries, { data: seriesData, error: seriesError }] =
-		useGetSeriesLazyQuery({
-			fetchPolicy: 'network-only',
-		})
+	const { mutateAsync: checkFollow } = trpc.useMutation(['user.checkFollows'])
+
+	const {
+		refetch: refetchSeries,
+		data: seriesData,
+		error: seriesError,
+	} = trpc.useQuery(['series.get', { id: series?.series.id || '' }], {
+		enabled: false,
+	})
 
 	useEffect(() => {
 		if (!seriesError) return
@@ -148,18 +146,20 @@ const Series = (
 	}, [seriesError])
 
 	useEffect(() => {
-		if (!seriesData?.Series_by_pk) return
-		setSeries({ ...series, series: seriesData.Series_by_pk })
+		if (!seriesData) return
+		setSeries({ ...series, series: seriesData })
 	}, [seriesData])
 
-	const [subscribe, { loading: subscribeLoading }] =
-		useSubscribeSeriesMutation()
+	const { mutateAsync: subscribe, isLoading: subscribeLoading } =
+		trpc.useMutation(['series.subscribe'])
 
-	const [removeSubscription] = useDeleteSeriesSubscriptionMutation()
+	const { mutateAsync: removeSubscription } = trpc.useMutation([
+		'series.unsubscribe',
+	])
 
-	const [star] = useStarSeriesMutation()
+	const { mutateAsync: star } = trpc.useMutation(['series.star'])
 
-	const [unstarSeries] = useUnstarSeriesMutation()
+	const { mutateAsync: unstarSeries } = trpc.useMutation(['series.unstar'])
 
 	const [seriesParticipants, setSeriesParticipants] = useState<
 		(SeriesParticipantFragment & { following?: boolean })[]
@@ -173,14 +173,14 @@ const Series = (
 
 	useEffect(() => {
 		if (!isStarred) return
-		setSeries({ ...series, isStarred: isStarred?.Series_Stars?.length > 0 })
+		setSeries({ ...series, isStarred })
 	}, [isStarred])
 
 	useEffect(() => {
 		if (!isSubscribed) return
 		setSeries({
 			...series,
-			isSubscribed: isSubscribed?.Subscription?.length > 0,
+			isSubscribed,
 		})
 	}, [isSubscribed])
 
@@ -193,32 +193,30 @@ const Series = (
 			const tags: string[] = []
 
 			series?.series?.Flick_Series?.forEach(flick => {
-				flick?.flick?.topicTags?.forEach((tag: string) => {
+				flick?.Flick.topicTags?.split(',').forEach((tag: string) => {
 					tags.push(tag)
 				})
-				flick?.flick?.participants?.forEach(participant => {
+				flick?.Flick.Participants?.forEach(participant =>
 					collaborators.push({ ...participant, following: false })
-				})
+				)
 			})
 
 			collaborators = collaborators.filter((collaborator, index) => {
 				const i = collaborators.findIndex(
-					c => c.user.sub === collaborator.user.sub
+					c => c.User.sub === collaborator.User.sub
 				)
 				return index === i
 			})
 
 			if (user?.uid) {
-				const { data: followingParticipantsSubs } = await checkFollow({
-					variables: {
-						followerId: user.uid,
-						targetId: collaborators.map(collaborator => collaborator.user.sub),
-					},
+				const followingParticipantsSubs = await checkFollow({
+					followerId: user.uid,
+					targetIds: collaborators.map(collaborator => collaborator.User.sub),
 				})
 
-				followingParticipantsSubs?.Follow?.forEach(sub => {
+				followingParticipantsSubs?.forEach(sub => {
 					const collaboratorIndex = collaborators.findIndex(
-						c => c.user.sub === sub.targetId
+						c => c.User.sub === sub.targetId
 					)
 					if (collaboratorIndex !== -1)
 						collaborators[collaboratorIndex].following = true
@@ -233,30 +231,41 @@ const Series = (
 	const handleStar = async () => {
 		if (!user?.uid) return
 		if (series?.isStarred) {
-			setSeries({ ...series, stars: series.stars - 1, isStarred: false })
-			const { errors } = await unstarSeries({
-				variables: {
-					seriesId: series.series.id,
-					sub: user.uid,
-				},
+			setSeries({
+				...series,
+				stars: { count: series.stars.count - 1 },
+				isStarred: false,
 			})
-			if (errors) {
-				setSeries({ ...series, stars: series.stars + 1, isStarred: true })
+			const { success } = await unstarSeries({
+				id: series.series.id,
+			})
+			if (!success) {
+				setSeries({
+					...series,
+					stars: { count: series.stars.count + 1 },
+					isStarred: true,
+				})
 				emitToast('Something went wrong', {
 					type: 'error',
 				})
 			}
 		} else {
-			setSeries({ ...series, stars: series.stars + 1, isStarred: true })
-			const { data, errors } = await star({
-				variables: { seriesId: props.series.id },
+			setSeries({
+				...series,
+				stars: { count: series.stars.count + 1 },
+				isStarred: true,
 			})
-			if (data?.StarSeries?.success)
+			const { success } = await star({ id: props.series.id })
+			if (success)
 				emitToast('Series starred successfully', {
 					type: 'success',
 				})
-			if (errors) {
-				setSeries({ ...series, stars: series.stars - 1, isStarred: false })
+			else {
+				setSeries({
+					...series,
+					stars: { count: series.stars.count - 1 },
+					isStarred: false,
+				})
 				emitToast('Something went wrong', {
 					type: 'error',
 				})
@@ -267,25 +276,22 @@ const Series = (
 	const debouncedHandleStar = debounce(handleStar, 500)
 
 	const handleSubscribe = async ({
-		seriesId,
-		emailId,
-	}: SubscribeSeriesMutationVariables) => {
+		id,
+		email,
+	}: inferMutationInput<'series.subscribe'>) => {
 		if (series?.isSubscribed) {
 			setSeries({
 				...series,
-				subscriptions: (series?.subscriptions ?? 1) - 1,
+				subscriptions: { count: (series?.subscriptions.count ?? 1) - 1 },
 				isSubscribed: false,
 			})
-			const { errors } = await removeSubscription({
-				variables: {
-					seriesId: series.series.id,
-					sub: user?.uid as string,
-				},
+			const { success } = await removeSubscription({
+				id: series.series.id,
 			})
-			if (errors) {
+			if (!success) {
 				setSeries({
 					...series,
-					subscriptions: (series?.subscriptions ?? 1) + 1,
+					subscriptions: { count: (series?.subscriptions.count ?? 1) + 1 },
 					isSubscribed: true,
 				})
 				emitToast('Something went wrong', {
@@ -295,31 +301,31 @@ const Series = (
 		} else {
 			setSeries({
 				...series,
-				subscriptions: (series?.subscriptions ?? 1) + 1,
+				subscriptions: { count: (series?.subscriptions.count ?? 1) + 1 },
 				isSubscribed: true,
 			})
-			const { data, errors } = await subscribe({
-				variables: { emailId, seriesId },
+			const { success, alreadyExists } = await subscribe({
+				id,
+				email,
 			})
-			if (data?.AddSeriesSubscriber?.success) {
-				if (data.AddSeriesSubscriber.alreadyExists) {
+			if (success) {
+				if (alreadyExists) {
 					emitToast('Already subscribed', {
 						type: 'error',
 					})
 					setSeries({
 						...series,
-						subscriptions: (series?.subscriptions ?? 1) - 1,
+						subscriptions: { count: (series?.subscriptions.count ?? 1) - 1 },
 						isSubscribed: true,
 					})
 				} else
 					emitToast('Subscribed successfully!', {
 						type: 'success',
 					})
-			}
-			if (errors) {
+			} else {
 				setSeries({
 					...series,
-					subscriptions: (series?.subscriptions ?? 1) - 1,
+					subscriptions: { count: (series?.subscriptions.count ?? 1) - 1 },
 					isSubscribed: false,
 				})
 				emitToast('Something went wrong', {
@@ -360,9 +366,9 @@ const Series = (
 							textStyle='mediumTitle'
 							className='flex text-xl text-dark-title gap-x-2'
 						>
-							<Link href={`/${series?.series.owner?.username}`} passHref>
+							<Link href={`/${series?.series.User?.username}`} passHref>
 								<div className='cursor-pointer text-dark-title-200 hover:text-dark-title font-body'>
-									{series?.series.owner?.displayName}
+									{series?.series.User?.displayName}
 								</div>
 							</Link>
 							<span className='text-dark-title-200'> / </span>
@@ -378,7 +384,7 @@ const Series = (
 										<MdOutlineStarOutline size={20} />
 									)
 								}
-								number={series?.stars}
+								number={series?.stars.count}
 								onClick={() => {
 									if (user?.uid) debouncedHandleStar()
 									else
@@ -406,7 +412,7 @@ const Series = (
 									Copy Link
 								</SeriesActionButton>
 							</CopyToClipboard>
-							{user?.uid === series?.series.owner.sub && (
+							{user?.uid === series?.series.User.sub && (
 								<>
 									<div className='h-8 ml-4 border border-dark-300' />
 									<Menu as='div' className='relative'>
@@ -451,11 +457,7 @@ const Series = (
 							handleClose={async (refetch?: boolean) => {
 								seAddExistingOpen(false)
 								if (refetch) {
-									await refetchSeries({
-										variables: {
-											id: series?.series.id,
-										},
-									})
+									await refetchSeries()
 								}
 							}}
 							series={series?.series}
@@ -478,11 +480,7 @@ const Series = (
 									)
 								}
 								if (refetch) {
-									await refetchSeries({
-										variables: {
-											id: series?.series.id,
-										},
-									})
+									await refetchSeries()
 								}
 							}}
 						/>
@@ -517,15 +515,15 @@ const Series = (
 								{series?.series.Flick_Series.filter(f => {
 									let isParticipant = false
 									series.series.Flick_Series.forEach(seriesFlick => {
-										seriesFlick.flick?.participants?.forEach(p => {
-											if (p.user?.sub === user?.uid) {
+										seriesFlick.Flick?.Participants?.forEach(p => {
+											if (p.User?.sub === user?.uid) {
 												isParticipant = true
 											}
 										})
 									})
 									if (
 										!isParticipant &&
-										!f.flick?.contents?.find(
+										!f.Flick?.Content?.find(
 											c => c?.type === Content_Type_Enum_Enum.Video
 										)?.published_at
 									) {
@@ -538,21 +536,21 @@ const Series = (
 										(a, b) => {
 											const diff =
 												new Date(
-													a.flick?.contents?.find(
-														c => c?.type === Content_Type_Enum_Enum.Video
+													a.Flick?.Content?.find(
+														c => c?.type === ContentTypeEnum.Video
 													)?.published_at || 0
 												).getTime() -
 												new Date(
-													b.flick?.contents?.find(
-														c => c?.type === Content_Type_Enum_Enum.Video
+													b.Flick?.Content?.find(
+														c => c?.type === ContentTypeEnum.Video
 													)?.published_at || 0
 												).getTime()
 											if (
-												a.flick?.contents?.find(
-													c => c?.type === Content_Type_Enum_Enum.Video
+												a.Flick?.Content?.find(
+													c => c?.type === ContentTypeEnum.Video
 												)?.published_at &&
-												b.flick?.contents?.find(
-													c => c?.type === Content_Type_Enum_Enum.Video
+												b.Flick?.Content?.find(
+													c => c?.type === ContentTypeEnum.Video
 												)?.published_at
 											)
 												return diff
@@ -560,7 +558,7 @@ const Series = (
 										}
 									)
 									.map(flick => (
-										<FlickCard key={flick.flick?.id} flick={flick} />
+										<FlickCard key={flick.Flick?.id} flick={flick.Flick} />
 									))}
 							</div>
 						</div>
@@ -594,19 +592,105 @@ const Series = (
 	)
 }
 
-export const getServerSideProps: GetServerSideProps<{
-	series: SeriesFragmentFragment
-	subscriptions: number
-	stars: number
-}> = async context => {
+export const getServerSideProps = requireAuth(true)(async context => {
 	const id = (context.params?.series as string).split('--').pop()
-	const { data } = await sdk.GetSeries({ id })
-	const { data: seriesSubscription } = await sdk.GetSeriesSubscription({
-		seriesId: id,
-	})
-	const { data: seriesStars } = await sdk.GetSeriesStars({ seriesId: id })
 
-	const series = data?.Series_by_pk
+	const series = await prisma.series.findFirst({
+		where: {
+			id,
+			OR: [
+				{
+					scope: FlickScopeEnum.Public,
+				},
+				{
+					ownerSub: context.user?.uid,
+				},
+				{
+					Flick_Series: {
+						some: {
+							Flick: {
+								Participants: {
+									some: {
+										userSub: context.user?.uid,
+									},
+								},
+							},
+						},
+					},
+				},
+			],
+		},
+		select: {
+			id: true,
+			name: true,
+			description: true,
+			picture: true,
+			createdAt: true,
+			updatedAt: true,
+			scope: true,
+			User: {
+				select: {
+					displayName: true,
+					username: true,
+					picture: true,
+					sub: true,
+				},
+			},
+			Flick_Series: {
+				select: {
+					Flick: {
+						select: {
+							id: true,
+							status: true,
+							name: true,
+							description: true,
+							thumbnail: true,
+							configuration: true,
+							ownerSub: true,
+							joinLink: true,
+							topicTags: true,
+							publishedAt: true,
+							Content: {
+								select: {
+									id: true,
+									isPublic: true,
+									type: true,
+									resource: true,
+									thumbnail: true,
+									published_at: true,
+								},
+							},
+							Participants: {
+								select: {
+									id: true,
+									userSub: true,
+									User: {
+										select: {
+											sub: true,
+											displayName: true,
+											username: true,
+											picture: true,
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	const seriesSubscription = prisma.subscription.count({
+		where: {
+			seriesId: id,
+		},
+	})
+	const seriesStars = await prisma.series_Stars.count({
+		where: {
+			seriesId: id,
+		},
+	})
 
 	if (!series) {
 		return {
@@ -617,11 +701,9 @@ export const getServerSideProps: GetServerSideProps<{
 	return {
 		props: {
 			series,
-			subscriptions:
-				seriesSubscription?.Subscription_aggregate?.aggregate?.count || 0,
-			stars: seriesStars?.Series_Stars_aggregate?.aggregate?.count || 0,
+			subscriptions: { count: seriesSubscription || 0 },
+			stars: { count: seriesStars || 0 },
 		},
 	}
-}
-
+})
 export default Series

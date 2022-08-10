@@ -1,10 +1,7 @@
 import { useRouter } from 'next/router'
 import { useEffect } from 'react'
 import { useRecoilCallback, useRecoilValue, useSetRecoilState } from 'recoil'
-import {
-	FlickFragmentFragment,
-	useGetFlickFragmentLazyQuery,
-} from 'src/graphql/generated'
+
 import {
 	activeFragmentIdAtom,
 	astAtom,
@@ -18,6 +15,7 @@ import {
 } from 'src/stores/flick.store'
 import { recordedBlocksAtom, recordingIdAtom } from 'src/stores/studio.store'
 import { Fragment_Type_Enum_Enum } from 'utils/src/graphql/generated'
+import trpc, { inferMutationOutput } from '../../../server/trpc'
 
 const FragmentStoreUpdater = () => {
 	const { replace, query } = useRouter()
@@ -27,13 +25,16 @@ const FragmentStoreUpdater = () => {
 
 	const setFragmentStores = useRecoilCallback(
 		({ set }) =>
-			(activeFragment: FlickFragmentFragment) => {
-				const ast = activeFragment?.editorState
+			(activeFragment: inferMutationOutput<'fragment.get'>) => {
+				const ast = JSON.parse(JSON.stringify(activeFragment?.editorState))
 				set(fragmentsAtom, curr =>
 					curr.map(c => (c.id === activeFragment.id ? activeFragment : c))
 				)
 				set(astAtom, ast ?? null)
-				set(thumbnailAtom, activeFragment?.thumbnailConfig ?? null)
+				set(
+					thumbnailAtom,
+					JSON.parse(JSON.stringify(activeFragment?.thumbnailConfig)) ?? null
+				)
 				set(
 					fragmentTypeAtom,
 					activeFragment?.type === Fragment_Type_Enum_Enum.Portrait
@@ -41,24 +42,27 @@ const FragmentStoreUpdater = () => {
 						: 'Landscape'
 				)
 				set(thumbnailObjectAtom, activeFragment?.thumbnailObject ?? null)
-				set(publishConfigAtom, activeFragment?.publishConfig ?? null)
+				set(
+					publishConfigAtom,
+					JSON.parse(JSON.stringify(activeFragment?.publishConfig)) ?? null
+				)
 
 				const tempRecordedBlocks: {
 					[key: string]: string
 				} = {}
-				activeFragment?.blocks?.forEach(b => {
+				activeFragment?.Blocks?.forEach(b => {
 					tempRecordedBlocks[b.id] = b.objectUrl || ''
 				})
 				set(recordedBlocksAtom, tempRecordedBlocks)
-				set(recordingIdAtom, activeFragment.recordings[0].id)
+				set(recordingIdAtom, activeFragment.Recording[0].id)
 				set(fragmentLoadingAtom, false)
 			}
 	)
 
-	const [getFragment] = useGetFlickFragmentLazyQuery({
-		onCompleted(data) {
-			if (!data.Fragment_by_pk) return
-			setFragmentStores(data.Fragment_by_pk)
+	const { mutateAsync: getFragment } = trpc.useMutation(['fragment.get'], {
+		onSuccess(data) {
+			if (!data) return
+			setFragmentStores(data)
 		},
 	})
 
@@ -72,9 +76,7 @@ const FragmentStoreUpdater = () => {
 		}
 		setFragmentLoading(true)
 		getFragment({
-			variables: {
-				id: activeFragmentId,
-			},
+			id: activeFragmentId,
 		})
 		const { slug, ...rest } = query
 		replace(

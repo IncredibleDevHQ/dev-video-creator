@@ -1,12 +1,9 @@
 import { Dialog, Transition } from '@headlessui/react'
 import { useRouter } from 'next/router'
 import { Fragment, useEffect } from 'react'
-import {
-	MyNotificationFragment,
-	Notification_Type_Enum_Enum,
-	useAcceptCollaborationMutation,
-} from 'src/graphql/generated'
+import { InvitationStatusEnum, NotificationTypeEnum } from 'src/utils/enums'
 import { Avatar, Button, emitToast, Heading, Text } from 'ui/src'
+import trpc, { inferQueryOutput } from '../../server/trpc'
 
 const CollaborationRespondModal = ({
 	open,
@@ -15,22 +12,25 @@ const CollaborationRespondModal = ({
 }: {
 	open: boolean
 	handleClose: () => void
-	notification: MyNotificationFragment
+	notification: inferQueryOutput<'user.notifications'>[number]
 }) => {
 	const { push } = useRouter()
 
-	const [acceptCollaboration, { data, loading }] =
-		useAcceptCollaborationMutation({
-			variables: {
-				inviteId: notification.meta.inviteId,
-				notificationId: notification.id,
-			},
-		})
+	const {
+		mutateAsync: acceptCollaboration,
+		data,
+		isLoading: loading,
+	} = trpc.useMutation(['collab.respond'])
 
 	const respond = async () => {
 		try {
-			await acceptCollaboration()
-			push(`/story/${notification.meta?.flickId}`)
+			const meta = JSON.parse(JSON.stringify(notification.meta))
+			await acceptCollaboration({
+				inviteId: JSON.parse(JSON.stringify(notification.meta))?.inviteId,
+				nid: notification.id,
+				status: InvitationStatusEnum.Accepted,
+			})
+			push(`/story/${meta?.flickId}`)
 		} catch (e) {
 			emitToast('Failed to accept collaboration', { type: 'error' })
 		}
@@ -74,14 +74,27 @@ const CollaborationRespondModal = ({
 							<div className='flex flex-col items-center justify-center text-center'>
 								<div className='flex gap-x-4'>
 									<Avatar
-										src={notification.sender.picture ?? ''}
-										alt={notification.sender.displayName ?? ''}
+										src={
+											notification.User_Notifications_senderIdToUser.picture ??
+											''
+										}
+										alt={
+											notification.User_Notifications_senderIdToUser
+												.displayName ?? ''
+										}
 										className='rounded-lg h-16'
-										name={notification.sender.displayName ?? ''}
+										name={
+											notification.User_Notifications_senderIdToUser
+												.displayName ?? ''
+										}
 									/>
 								</div>
-								<Heading textStyle='mediumTitle' className='text-gray-100 mt-8'>
-									Collaborate with {notification.sender.displayName}
+								<Heading
+									textStyle='mediumTitle'
+									className='text-gray-100 mt-8 w-full'
+								>
+									Collaborate with{' '}
+									{notification.User_Notifications_senderIdToUser.displayName}
 								</Heading>
 								<Text
 									textStyle='body'
@@ -100,8 +113,7 @@ const CollaborationRespondModal = ({
 										loading={loading}
 										onClick={() => respond()}
 									>
-										{notification.type ===
-										Notification_Type_Enum_Enum.Invitation
+										{notification.type === NotificationTypeEnum.Invitation
 											? 'I am in!'
 											: 'Accept'}
 									</Button>

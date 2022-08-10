@@ -1,29 +1,30 @@
 /* eslint-disable @next/next/no-img-element */
 import { cx } from '@emotion/css'
-import { format, intervalToDuration } from 'date-fns'
+import { format } from 'date-fns'
 import Link from 'next/link'
 import { IoPlayOutline, IoSparklesOutline } from 'react-icons/io5'
-import {
-	Content_Type_Enum_Enum,
-	SeriesFlickFragment,
-} from 'src/graphql/generated'
+import { ContentTypeEnum } from 'src/utils/enums'
 import { Avatar } from 'ui/src'
+import { inferQueryOutput } from '../../server/trpc'
 
-const FlickCard = ({ flick }: { flick: SeriesFlickFragment }) => {
-	const duration = flick.flick?.duration
-		? intervalToDuration({ start: 0, end: flick.flick.duration * 1000 })
-		: undefined
+const FlickCard = ({
+	flick,
+}: {
+	flick: inferQueryOutput<'series.get'>['Flick_Series'][number]['Flick']
+}) => {
+	// TODO:Add duration data
+	// const duration = flick?.duration
+	// 	? intervalToDuration({ start: 0, end: flick.flick.duration * 1000 })
+	// 	: undefined
 
-	const hasFlick = !!flick.flick?.contents.find(
-		c => c.type === Content_Type_Enum_Enum.Video
-	)
+	const hasFlick = !!flick.Content.find(c => c.type === ContentTypeEnum.Video)
 
-	const hasHighlights = !!flick.flick?.contents.find(
-		c => c.type === Content_Type_Enum_Enum.VerticalVideo
+	const hasHighlights = !!flick.Content.find(
+		c => c.type === ContentTypeEnum.VerticalVideo
 	)
 
 	return (
-		<Link href={`/watch/${flick.flick?.joinLink}`}>
+		<Link href={`/watch/${flick.joinLink}`}>
 			<div className='flex flex-col relative items-stretch p-4 border rounded-md cursor-pointer md:flex-row group gap-x-6 border-dark-200 hover:border-green-600'>
 				<div className='relative flex flex-col justify-center md:w-2/5'>
 					<div className='relative aspect-w-5 aspect-h-3'>
@@ -31,32 +32,31 @@ const FlickCard = ({ flick }: { flick: SeriesFlickFragment }) => {
 							<img
 								className='object-cover w-full h-full transition-colors border-transparent rounded-md'
 								src={
-									flick.flick?.contents?.find(
-										f => f.type === Content_Type_Enum_Enum.Video
-									)?.thumbnail
+									flick.Content?.find(f => f.type === ContentTypeEnum.Video)
+										?.thumbnail
 										? `${process.env.NEXT_PUBLIC_CDN_URL}${
-												flick.flick?.contents?.find(
-													f => f.type === Content_Type_Enum_Enum.Video
+												flick.Content?.find(
+													f => f.type === ContentTypeEnum.Video
 												)?.thumbnail
 										  }`
 										: '/card_fallback.png'
 								}
-								alt={flick.flick?.name}
+								alt={flick.name}
 							/>
-							{duration && (
+							{/* {duration && (
 								<div className='absolute z-10 p-1 text-xs tracking-wide rounded-md shadow-sm bottom-3 right-3 bg-dark-200'>
 									{duration.minutes}:{duration.seconds}
 								</div>
-							)}
+							)} */}
 						</div>
 					</div>
 				</div>
 				<div className='flex flex-col flex-1 mt-4 md:mt-0 space-between'>
 					<div className='flex flex-col flex-1 space-between'>
-						<h2 className='mb-2 text-base font-main'>{flick.flick?.name}</h2>
-						{flick.flick?.description && (
+						<h2 className='mb-2 text-base font-main'>{flick.name}</h2>
+						{flick.description && (
 							<p className='mb-2 text-dark-title-200 text-size-xs md:text-size-sm line-clamp-2 md:line-clamp-3 w-full'>
-								{flick.flick.description}
+								{flick.description}
 							</p>
 						)}
 						<div className='flex items-center justify-start text-size-xxs gap-x-2 text-dark-title-200'>
@@ -74,7 +74,7 @@ const FlickCard = ({ flick }: { flick: SeriesFlickFragment }) => {
 					</div>
 
 					<div className='relative flex h-8 mt-4'>
-						{flick.flick?.participants.map((participant, index) => {
+						{flick.Participants.map((participant, index) => {
 							const getRing = (i: number) => {
 								if (i === 0) return 'border-green-500'
 								if (i === 1) return 'border-purple-400'
@@ -84,7 +84,7 @@ const FlickCard = ({ flick }: { flick: SeriesFlickFragment }) => {
 							}
 
 							return (
-								<Link href={`/${participant.user.username}`}>
+								<Link href={`/${participant.User.username}`}>
 									<div
 										key={participant.id}
 										className={cx(
@@ -95,7 +95,7 @@ const FlickCard = ({ flick }: { flick: SeriesFlickFragment }) => {
 											getRing(index % 3)
 										)}
 										data-tip={
-											participant.id === flick.flick?.ownerId
+											participant.userSub === flick.ownerSub
 												? 'Host'
 												: 'Collaborator'
 										}
@@ -103,25 +103,23 @@ const FlickCard = ({ flick }: { flick: SeriesFlickFragment }) => {
 										data-place='bottom'
 									>
 										<Avatar
-											src={participant.user.picture ?? ''}
-											alt={participant.user.displayName ?? ''}
+											src={participant.User.picture ?? ''}
+											alt={participant.User.displayName ?? ''}
 											className='cursor-pointer'
-											name={participant.user.displayName ?? ''}
+											name={participant.User.displayName ?? ''}
 										/>
 									</div>
 								</Link>
 							)
 						})}
 					</div>
-					{flick.flick?.contents?.find(
-						c => c.type === Content_Type_Enum_Enum.Video
-					)?.published_at ? (
+					{flick.Content?.find(c => c.type === ContentTypeEnum.Video)
+						?.published_at ? (
 						<time className='mt-1 text-size-xs md:text-size-sm text-dark-title-200'>
 							{format(
 								new Date(
-									flick.flick.contents.find(
-										c => c.type === Content_Type_Enum_Enum.Video
-									)?.published_at
+									flick.Content.find(c => c.type === ContentTypeEnum.Video)
+										?.published_at || 0 // TODO: Check if this value is correct
 								),
 								'do MMMM yyyy'
 							)}

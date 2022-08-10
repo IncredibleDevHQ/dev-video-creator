@@ -6,10 +6,11 @@ import Dropzone from 'react-dropzone'
 import { BiFileBlank } from 'react-icons/bi'
 import { FiLoader, FiUploadCloud } from 'react-icons/fi'
 import { IoCloseOutline, IoCloseCircle } from 'react-icons/io5'
-import { useGetFontsQuery, useAddFontMutation } from 'src/graphql/generated'
 import { BrandingInterface, BrandingJSON } from 'src/utils/configs'
 import { emitToast, Heading, Button, Text } from 'ui/src'
 import { useUploadFile } from 'utils/src'
+import { UploadType } from 'utils/src/enums'
+import trpc from '../../../server/trpc'
 import CustomFontPicker, { IFont } from './CustomFontPicker'
 
 const initialValue: BrandingJSON = {
@@ -32,8 +33,10 @@ const FontSetting = ({
 	branding: BrandingInterface
 	setBranding: (branding: BrandingInterface) => void
 }) => {
-	const { data, refetch } = useGetFontsQuery()
-	const [addFont, { loading }] = useAddFontMutation()
+	const { data, refetch } = trpc.useQuery(['util.fonts'])
+	const { mutateAsync: addFont, isLoading: loading } = trpc.useMutation([
+		'util.createFont',
+	])
 	const [showUploadFont, setShowUploadFont] = useState(false)
 	const [headingOrBody, setHeadingOrBody] = useState<'heading' | 'body'>(
 		'heading'
@@ -50,10 +53,8 @@ const FontSetting = ({
 	const handleAddFont = async () => {
 		try {
 			await addFont({
-				variables: {
-					url,
-					family: familyName,
-				},
+				url,
+				family: familyName,
 			})
 			setUrl('')
 			setShowUploadFont(false)
@@ -89,6 +90,10 @@ const FontSetting = ({
 			const { url: uploadedUrl } = await uploadFile({
 				extension: file.name.split('.').pop() as any,
 				file,
+				tag: UploadType.Brand,
+				meta: {
+					brandId: branding.id,
+				},
 			})
 			setUrl(uploadedUrl)
 			setFileName(file.name)
@@ -113,7 +118,7 @@ const FontSetting = ({
 						setHeadingOrBody('heading')
 					}}
 					customFonts={
-						data?.Fonts?.map(
+						data?.map(
 							f =>
 								({
 									family: f.family,
@@ -236,7 +241,7 @@ const FontSetting = ({
 					setHeadingOrBody('body')
 				}}
 				customFonts={
-					data?.Fonts?.map(
+					data?.map(
 						f =>
 							({
 								family: f.family,

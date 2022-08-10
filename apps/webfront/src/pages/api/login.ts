@@ -1,6 +1,6 @@
 import admin from 'firebase-admin'
 import { NextApiRequest, NextApiResponse } from 'next'
-import serverEnvs from 'src/utils/env'
+import serverEnvs from 'server/utils/env'
 import setCookie from 'src/utils/helpers/setCookie'
 
 const login = async (req: NextApiRequest, res: NextApiResponse) => {

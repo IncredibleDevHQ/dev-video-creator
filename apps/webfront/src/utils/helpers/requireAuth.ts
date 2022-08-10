@@ -5,7 +5,7 @@ import { getAuth, signInWithCustomToken, User } from 'firebase/auth'
 import { GetServerSidePropsContext, PreviewData } from 'next'
 import { parseCookies } from 'nookies'
 import { ParsedUrlQuery } from 'querystring'
-import serverEnvs from '../env'
+import serverEnvs from 'server/utils/env'
 import { createFirebaseApp } from '../providers/auth'
 
 type SSRUserContext = GetServerSidePropsContext<ParsedUrlQuery, PreviewData> & {

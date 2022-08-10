@@ -1,5 +1,5 @@
-import serverEnvs from 'src/utils/env'
 import mime from 'mime'
+import serverEnvs from './env'
 
 const allowedExtensions = serverEnvs.ALLOWED_EXT?.split(',') || []
 

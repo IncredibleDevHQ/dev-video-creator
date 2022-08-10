@@ -5,7 +5,7 @@ import { getDatabase, onValue, ref } from 'firebase/database'
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { MeFragment } from 'src/graphql/generated'
 import { getEnv } from 'utils/src'
-import trpc from '../trpc'
+import trpc from '../../server/trpc'
 
 export const createFirebaseApp = () => {
 	const { firebaseConfig } = getEnv()
@@ -101,7 +101,7 @@ const UserProvider = ({ children }: { children: React.ReactNode }) => {
 	const [token, setToken] = useState<string | null>(null)
 	const [loadingUser, setLoadingUser] = useState(true)
 	const trpcContext = trpc.useContext()
-
+	console.log('TRPC ctx = ', trpcContext)
 	useEffect(() => {
 		createFirebaseApp()
 		const auth = getAuth()
@@ -120,7 +120,7 @@ const UserProvider = ({ children }: { children: React.ReactNode }) => {
 
 	// update local storage on token refresh/change
 	useEffect(() => {
-		if (token && typeof window !== 'undefined') {
+		if (token && trpcContext && typeof window !== 'undefined') {
 			localStorage.setItem('token', token)
 			trpcContext.invalidateQueries()
 		}

@@ -6,10 +6,11 @@
 	"files": [
 		"eslint-next.js",
 		"eslint-react.js",
+		"eslint-node.js",
 		"tailwind.config.js",
 		"tsconfig-base.json",
-		"tsconfig-webfront.json",
-		"tsconfig-ui.json"
+		"tsconfig-next.json",
+		"tsconfig-react.json"
 	],
 	"dependencies": {
 		"@typescript-eslint/eslint-plugin": "^5.7.0",
@@ -23,6 +24,7 @@
 		"eslint-plugin-import": "^2.25.3",
 		"eslint-plugin-jest": "^25.3.0",
 		"eslint-plugin-jest-dom": "^4.0.1",
+		"eslint-plugin-node": "^11.1.0",
 		"eslint-plugin-react": "7.28.0",
 		"eslint-plugin-testing-library": "^5.0.1"
 	},
