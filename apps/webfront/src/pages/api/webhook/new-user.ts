@@ -44,7 +44,7 @@ const createNewUser = async (req: NextApiRequest, res: NextApiResponse) => {
 		// Sentry.captureException(e)
 		console.error(e)
 		res.status(500).json({
-			error: e.message,
+			error: (e as unknown as any).message,
 		})
 	}
 }
