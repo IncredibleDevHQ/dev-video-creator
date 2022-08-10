@@ -11,6 +11,7 @@
 		"lint": "eslint ./**/*.ts* --fix",
 		"seed": "ts-node packages/prisma-orm/seed.ts",
 		"prepare": "yarn fetch-env",
+		"prebuild": "yarn fetch-env",
 		"fetch-env": "node -r dotenv/config env.fetch.js"
 	},
 	"dependencies": {
