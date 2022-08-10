@@ -26,6 +26,7 @@ declare global {
 			NEXT_PUBLIC_FIREBASE_CONFIG: string
 			FIREBASE_SERVICE_CONFIG: string
 			COOKIE_DOMAIN: string
+			NEXT_PUBLIC_BASE_URL: string
 		}
 	}
 }

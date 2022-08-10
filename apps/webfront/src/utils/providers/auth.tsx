@@ -4,7 +4,7 @@ import { getAuth, onAuthStateChanged, User as FBUser } from 'firebase/auth'
 import { getDatabase, onValue, ref } from 'firebase/database'
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { getEnv } from 'utils/src'
-import trpc, { inferQueryOutput } from '../../server/trpc'
+import trpc, { inferMutationOutput } from '../../server/trpc'
 
 export const createFirebaseApp = () => {
 	const { firebaseConfig } = getEnv()
@@ -26,7 +26,7 @@ const login = async (token: string) =>
 		}
 	)
 
-type User = FBUser & Partial<inferQueryOutput<'user.me'>>
+type User = FBUser & Partial<inferMutationOutput<'user.me'>>
 
 export const UserContext = createContext<
 	Partial<{
@@ -42,11 +42,12 @@ const getDBUser = async (
 	idToken: string,
 	setUser: (user: User | null) => void
 ) => {
-	const { hasura } = getEnv()
 	const meResponse = await axios.post(
-		`${hasura.restServer}/me`,
+		`${process.env.NEXT_PUBLIC_BASE_URL}/api/trpc/user.me`,
 		{
-			sub: user.uid,
+			json: {
+				sub: user.uid,
+			},
 		},
 		{
 			headers: {
@@ -54,8 +55,9 @@ const getDBUser = async (
 			},
 		}
 	)
-	if (meResponse.data?.User_by_pk) {
-		setUser(Object.assign(user, meResponse.data?.User_by_pk))
+
+	if (meResponse?.data?.result?.data?.json) {
+		setUser(Object.assign(user, meResponse.data.result.data.json))
 	}
 }
 
