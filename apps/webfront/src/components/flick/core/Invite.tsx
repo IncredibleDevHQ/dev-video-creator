@@ -8,7 +8,6 @@ import {
 	IoCloseOutline,
 } from 'react-icons/io5'
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
-import { Participant_Role_Enum_Enum } from 'src/graphql/generated'
 import {
 	flickAtom,
 	flickNameAtom,
@@ -24,11 +23,12 @@ import {
 	Text,
 	updateToast,
 } from 'ui/src'
+import { ParticipantRoleEnum } from 'utils/src/enums'
 import trpc from '../../../server/trpc'
 
 interface Invitee {
 	name: string
-	role: Participant_Role_Enum_Enum
+	role: ParticipantRoleEnum
 	email: string
 	sub: string
 	image?: string
@@ -254,7 +254,7 @@ const Invite = ({
 	const [isOwner, setIsOwner] = useState(false)
 	const [invitee, setInvitee] = useState<Invitee>({
 		name: '',
-		role: Participant_Role_Enum_Enum.Viewer,
+		role: ParticipantRoleEnum.Viewer,
 		email: '',
 		sub: '',
 	})

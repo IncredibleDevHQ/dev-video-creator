@@ -9,7 +9,7 @@ import {
 	IoNotificationsOutline,
 	IoSyncOutline,
 } from 'react-icons/io5'
-import { NotificationMetaTypeEnum, NotificationTypeEnum } from 'src/utils/enums'
+import { NotificationMetaTypeEnum, NotificationTypeEnum } from 'utils/src/enums'
 import { Avatar, Button, Text } from 'ui/src'
 import CollaborationRespondModal from './CollaborationResponseModal'
 import trpc, { inferQueryOutput } from '../../server/trpc'

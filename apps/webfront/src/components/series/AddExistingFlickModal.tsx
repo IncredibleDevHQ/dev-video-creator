@@ -1,15 +1,11 @@
 /* eslint-disable @next/next/no-img-element */
 import { css, cx } from '@emotion/css'
-import {
-	Content_Type_Enum_Enum,
-	useGetUserFlicksQuery,
-} from 'src/graphql/generated'
+import { Dialog, Transition } from '@headlessui/react'
 import { Fragment, useEffect, useState } from 'react'
 import { FiLoader } from 'react-icons/fi'
 import { IoCheckmark } from 'react-icons/io5'
-import { useUser } from 'src/utils/providers/auth'
 import { Button, emitToast, Text } from 'ui/src'
-import { Dialog, Transition } from '@headlessui/react'
+import { ContentTypeEnum } from 'utils/src/enums'
 import trpc, { inferQueryOutput } from '../../server/trpc'
 
 const AddExistingFlickModal = ({
@@ -21,18 +17,13 @@ const AddExistingFlickModal = ({
 	handleClose: (refetch?: boolean) => void
 	series: inferQueryOutput<'series.get'>
 }) => {
-	const { user } = useUser()
 	const [selectedFlicks, setSelectedFlicks] = useState<string[]>([])
 
 	useEffect(() => {
 		setSelectedFlicks(series.Flick_Series.map(fs => fs.Flick?.id as string))
 	}, [])
 
-	const { data, loading } = useGetUserFlicksQuery({
-		variables: {
-			sub: user?.uid as string,
-		},
-	})
+	const { data, isLoading: loading } = trpc.useQuery(['story.dashboardStories'])
 
 	const {
 		mutateAsync: addFlicks,
@@ -108,7 +99,7 @@ const AddExistingFlickModal = ({
 									</div>
 								)}
 
-								{data && data.Flick.length > 0 && (
+								{data && data.length > 0 && (
 									<div
 										className={cx(
 											'flex-1 overflow-scroll',
@@ -122,7 +113,7 @@ const AddExistingFlickModal = ({
 										)}
 									>
 										<div className='grid grid-cols-2 mt-4 gap-x-4 gap-y-4'>
-											{data.Flick.map(flick => (
+											{data.map(flick => (
 												<div
 													key={flick.id}
 													className='relative flex flex-col w-full h-full'
@@ -154,14 +145,12 @@ const AddExistingFlickModal = ({
 													>
 														<img
 															src={
-																flick.contents.find(
-																	f => f.type === Content_Type_Enum_Enum.Video
+																flick.Content.find(
+																	f => f.type === ContentTypeEnum.Video
 																)?.thumbnail
 																	? `${process.env.NEXT_PUBLIC_CDN_URL}/${
-																			flick.contents.find(
-																				f =>
-																					f.type ===
-																					Content_Type_Enum_Enum.Video
+																			flick.Content.find(
+																				f => f.type === ContentTypeEnum.Video
 																			)?.thumbnail
 																	  }`
 																	: '/card_fallback.png'
@@ -185,7 +174,7 @@ const AddExistingFlickModal = ({
 									</div>
 								)}
 
-								{data && data.Flick.length > 0 && (
+								{data && data.length > 0 && (
 									<Button
 										className='mt-4 max-w-none w-full'
 										size='large'
@@ -198,7 +187,7 @@ const AddExistingFlickModal = ({
 									</Button>
 								)}
 
-								{data && data.Flick.length === 0 && (
+								{data && data.length === 0 && (
 									<div className='flex flex-col items-center justify-center w-full h-full'>
 										<div className='flex'>
 											<div className='z-0 w-32 h-32 rounded-full bg-dark-100' />

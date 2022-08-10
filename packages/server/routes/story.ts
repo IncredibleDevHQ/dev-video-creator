@@ -543,6 +543,24 @@ const storyRouter = trpc
 			return transitions
 		},
 	})
+	.query('getClaps', {
+		meta: {
+			hasAuth: false,
+		},
+		input: z.object({
+			id: z.string(),
+		}),
+		resolve: async ({ ctx, input }) => {
+			const claps = await ctx.prisma.flick_Claps.aggregate({
+				where: {
+					flickId: input.id,
+				},
+				_count: true,
+			})
+			// eslint-disable-next-line no-underscore-dangle
+			return { count: claps._count }
+		},
+	})
 	// ACTIONS
 	.mutation('create', {
 		meta: {
@@ -911,4 +929,34 @@ const storyRouter = trpc
 			return { id: update.id }
 		},
 	})
+	.mutation('clap', {
+		meta: {
+			hasAuth: true,
+		},
+		input: z.object({
+			id: z.string(),
+			count: z.number().default(1),
+		}),
+		resolve: async ({ ctx, input }) => {
+			if (!ctx.user?.sub)
+				throw new TRPCError({
+					code: 'UNAUTHORIZED',
+					message: 'User is not authenticated',
+				})
+			await ctx.prisma.flick_Claps.upsert({
+				where: {
+					flickId_userId: { flickId: input.id, userId: ctx.user.sub },
+				},
+				create: {
+					flickId: input.id,
+					userId: ctx.user.sub,
+					clapCount: input.count,
+				},
+				update: {
+					clapCount: input.count,
+				},
+			})
+		},
+	})
+
 export default storyRouter

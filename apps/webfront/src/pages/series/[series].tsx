@@ -18,9 +18,8 @@ import AddExistingFlickModal from 'src/components/series/AddExistingFlickModal'
 import Collaborators from 'src/components/series/Collaborators'
 import FlickCard from 'src/components/series/FlickCard'
 import SeriesActionButton from 'src/components/series/SeriesActionButton'
-import { Content_Type_Enum_Enum, SeriesFragment } from 'src/graphql/generated'
 import prisma from 'prisma-orm/prisma'
-import { ContentTypeEnum, FlickScopeEnum } from 'src/utils/enums'
+import { ContentTypeEnum, FlickScopeEnum } from 'utils/src/enums'
 import requireAuth from 'src/utils/helpers/requireAuth'
 import { useUser } from 'src/utils/providers/auth'
 import { Button, emitToast, Heading } from 'ui/src'
@@ -42,7 +41,7 @@ const SeriesModal = ({
 }: {
 	open: boolean
 	onClose: () => void
-	series: SeriesFragment
+	series: inferQueryOutput<'series.get'>
 	handleSubscribe: (props: inferMutationInput<'series.subscribe'>) => void
 	loading?: boolean
 }) => {
@@ -524,7 +523,7 @@ const Series = (
 									if (
 										!isParticipant &&
 										!f.Flick?.Content?.find(
-											c => c?.type === Content_Type_Enum_Enum.Video
+											c => c?.type === ContentTypeEnum.Video
 										)?.published_at
 									) {
 										return false

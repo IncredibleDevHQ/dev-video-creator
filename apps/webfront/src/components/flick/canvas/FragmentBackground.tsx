@@ -1,6 +1,6 @@
 import React from 'react'
 import { Circle, Group, Line, Rect } from 'react-konva'
-import { ThemeFragment } from 'src/graphql/generated'
+import { inferQueryOutput } from 'src/server/trpc'
 import { ObjectConfig } from 'src/utils/canvasConfigs/fragmentLayoutConfig'
 import { getCanvasGradient } from 'src/utils/canvasConfigs/studioUserConfig'
 
@@ -9,7 +9,7 @@ const FragmentBackground = ({
 	objectConfig,
 	backgroundRectColor,
 }: {
-	theme: ThemeFragment
+	theme: inferQueryOutput<'util.themes'>[number]
 	objectConfig: ObjectConfig
 	backgroundRectColor: string
 }) => {

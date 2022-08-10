@@ -1,4 +1,4 @@
-import { ThemeFragment } from 'src/graphql/generated'
+import { inferQueryOutput } from 'src/server/trpc'
 import { Layout } from 'utils/src'
 import { ObjectConfig } from './fragmentLayoutConfig'
 import { getCanvasGradient } from './studioUserConfig'
@@ -34,7 +34,7 @@ export const getThemeLayoutConfig = ({
 	theme,
 	layoutConfig,
 }: {
-	theme: ThemeFragment
+	theme: inferQueryOutput<'util.themes'>[number]
 	layoutConfig: ObjectConfig
 }): ObjectRenderConfig => {
 	switch (theme.name) {
@@ -333,7 +333,9 @@ export const getThemeLayoutConfig = ({
 }
 
 // used in intro and outro fragments
-export const getThemeTextColor = (theme: ThemeFragment): string => {
+export const getThemeTextColor = (
+	theme: inferQueryOutput<'util.themes'>[number]
+): string => {
 	switch (theme.name) {
 		case 'DarkGradient':
 		case 'LeeRob':
@@ -359,7 +361,9 @@ export const getThemeTextColor = (theme: ThemeFragment): string => {
 }
 
 // used in intro and outro fragments
-export const getThemeSurfaceColor = (theme: ThemeFragment): string => {
+export const getThemeSurfaceColor = (
+	theme: inferQueryOutput<'util.themes'>[number]
+): string => {
 	switch (theme.name) {
 		case 'DarkGradient':
 			return '#151D2C'
@@ -384,7 +388,9 @@ export const getThemeSurfaceColor = (theme: ThemeFragment): string => {
 	}
 }
 
-export const getThemeFont = (theme: ThemeFragment): string => {
+export const getThemeFont = (
+	theme: inferQueryOutput<'util.themes'>[number]
+): string => {
 	switch (theme.name) {
 		case 'DarkGradient':
 			return 'Gilroy'

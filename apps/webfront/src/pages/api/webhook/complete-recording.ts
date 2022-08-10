@@ -24,7 +24,7 @@ const completeRecording = async (req: NextApiRequest, res: NextApiResponse) => {
 			},
 			data: {
 				url: outputKey,
-				status: RecordingStatusEnum.completed,
+				status: RecordingStatusEnum.Completed,
 			},
 		})
 		res.status(200).send({})

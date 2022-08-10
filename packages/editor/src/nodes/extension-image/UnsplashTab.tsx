@@ -4,7 +4,7 @@ import { IoReloadOutline, IoSearchOutline } from 'react-icons/io5'
 import StackGrid from 'react-stack-grid'
 import { useDebouncedCallback } from 'use-debounce'
 import { Text } from 'ui/src'
-import { useGetImagesFromUnsplashLazyQuery } from '../../graphql/generated'
+import trpc from '../../server/trpc'
 
 const noScrollbar = css`
 	::-webkit-scrollbar {
@@ -22,15 +22,24 @@ export const UnsplashTab = ({
 	const [search, setSearch] = useState('enjoy')
 
 	const gridRef = useRef<StackGrid>(null)
-	const [getImages, { data, error, refetch }] =
-		useGetImagesFromUnsplashLazyQuery()
-
-	const debounced = useDebouncedCallback(() => {
-		getImages({
-			variables: {
+	const {
+		data,
+		error,
+		refetch: getImages,
+	} = trpc.useQuery(
+		[
+			'util.searchUnsplash',
+			{
 				query: search,
 			},
-		})
+		],
+		{
+			enabled: false,
+		}
+	)
+
+	const debounced = useDebouncedCallback(() => {
+		getImages()
 	}, 1000)
 
 	useEffect(() => {
@@ -45,7 +54,7 @@ export const UnsplashTab = ({
 			<Text
 				textStyle='caption'
 				className='text-blue-700 cursor-pointer hover:underline'
-				onClick={() => refetch?.()}
+				onClick={() => getImages()}
 			>
 				Retry
 			</Text>

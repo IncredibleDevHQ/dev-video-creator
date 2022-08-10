@@ -1,6 +1,6 @@
 import React from 'react'
 import { useRecoilValue } from 'recoil'
-import { ThemeFragment } from 'src/graphql/generated'
+import { inferQueryOutput } from 'src/server/trpc'
 import { brandingAtom } from 'src/stores/studio.store'
 import { BrandingJSON } from 'src/utils/configs'
 import { TopLayerChildren } from 'utils/src'
@@ -26,7 +26,7 @@ const TransitionProvider = ({
 	brandingJSON,
 	transitionSettings,
 }: {
-	theme: ThemeFragment
+	theme: inferQueryOutput<'util.themes'>[number]
 	isShorts: boolean
 	direction: string
 	setTopLayerChildren?: React.Dispatch<

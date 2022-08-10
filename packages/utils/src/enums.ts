@@ -50,10 +50,10 @@ export enum ContentTypeEnum {
 }
 
 export enum RecordingStatusEnum {
-	pending = 'pending',
-	checkpoint = 'checkpoint',
-	completed = 'completed',
-	processing = 'processing',
+	Pending = 'pending',
+	Checkpoint = 'checkpoint',
+	Completed = 'completed',
+	Processing = 'processing',
 }
 
 export enum OrientationEnum {
@@ -68,4 +68,9 @@ export enum UploadType {
 	Markdown = 'Markdown',
 	Thumbnail = 'Thumbnail',
 	Profile = 'Profile',
+}
+
+export enum ContentContainerEnum {
+	Flick = 'Flick',
+	Series = 'Series',
 }

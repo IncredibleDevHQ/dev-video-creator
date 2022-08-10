@@ -1,7 +1,7 @@
 import { Dialog, Transition } from '@headlessui/react'
 import { useRouter } from 'next/router'
 import { Fragment, useEffect } from 'react'
-import { InvitationStatusEnum, NotificationTypeEnum } from 'src/utils/enums'
+import { InvitationStatusEnum, NotificationTypeEnum } from 'utils/src/enums'
 import { Avatar, Button, emitToast, Heading, Text } from 'ui/src'
 import trpc, { inferQueryOutput } from '../../server/trpc'
 

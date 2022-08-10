@@ -3,7 +3,7 @@ import { cx } from '@emotion/css'
 import { format } from 'date-fns'
 import Link from 'next/link'
 import { IoPlayOutline, IoSparklesOutline } from 'react-icons/io5'
-import { ContentTypeEnum } from 'src/utils/enums'
+import { ContentTypeEnum } from 'utils/src/enums'
 import { Avatar } from 'ui/src'
 import { inferQueryOutput } from '../../server/trpc'
 

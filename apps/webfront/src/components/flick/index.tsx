@@ -25,7 +25,7 @@ import {
 	TransitionConfig,
 } from 'src/stores/studio.store'
 import { BrandingJSON } from 'src/utils/configs'
-import { ParticipantRoleEnum } from 'src/utils/enums'
+import { ParticipantRoleEnum } from 'utils/src/enums'
 import {
 	Presence,
 	PresencePage,

@@ -13,7 +13,7 @@ import {
 import { MdOutlinePresentToAll } from 'react-icons/md'
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil'
 
-import { FragmentTypeEnum } from 'src/utils/enums'
+import { FragmentTypeEnum } from 'utils/src/enums'
 import {
 	activeFragmentIdAtom,
 	activeFragmentSelector,

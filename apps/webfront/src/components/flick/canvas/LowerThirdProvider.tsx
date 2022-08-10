@@ -1,6 +1,6 @@
 import React from 'react'
 import { useRecoilValue } from 'recoil'
-import { ThemeFragment } from 'src/graphql/generated'
+import { inferQueryOutput } from 'src/server/trpc'
 import { brandingAtom } from 'src/stores/studio.store'
 import { BrandingJSON, CONFIG, SHORTS_CONFIG } from 'src/utils/configs'
 import { useUser } from 'src/utils/providers/auth'
@@ -28,7 +28,7 @@ const LowerThridProvider = ({
 	introBlockViewProps,
 	speakersLength,
 }: {
-	theme: ThemeFragment
+	theme: inferQueryOutput<'util.themes'>[number]
 	isShorts: boolean
 	setTopLayerChildren?: React.Dispatch<
 		React.SetStateAction<{ id: string; state: TopLayerChildren }>

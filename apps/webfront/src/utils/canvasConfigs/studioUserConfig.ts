@@ -1,4 +1,4 @@
-import { ThemeFragment } from 'src/graphql/generated'
+import { inferQueryOutput } from 'src/server/trpc'
 import { Layout } from 'utils/src'
 import { FragmentState, StudioUserConfig } from '../configs'
 
@@ -35,7 +35,7 @@ export const getStudioUserConfiguration = ({
 	layout: Layout
 	noOfParticipants: number
 	fragmentState: FragmentState
-	theme: ThemeFragment
+	theme: inferQueryOutput<'util.themes'>[number]
 }): StudioUserConfig[] => {
 	switch (theme.name) {
 		case 'DarkGradient':
@@ -6216,7 +6216,7 @@ export const getShortsStudioUserConfiguration = ({
 	layout: Layout
 	noOfParticipants: number
 	fragmentState: FragmentState
-	theme: ThemeFragment
+	theme: inferQueryOutput<'util.themes'>[number]
 }): StudioUserConfig[] => {
 	switch (theme.name) {
 		case 'DarkGradient':

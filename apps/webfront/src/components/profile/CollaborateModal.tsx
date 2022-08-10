@@ -3,15 +3,11 @@ import { Dialog, Transition } from '@headlessui/react'
 import React, { Fragment, useEffect, useState } from 'react'
 import { FiLoader } from 'react-icons/fi'
 import { IoAlbumsOutline } from 'react-icons/io5'
-import {
-	ContentContainerTypes,
-	useGetUserFlicksLazyQuery,
-	UserFragment,
-} from 'src/graphql/generated'
 import { useUser } from 'src/utils/providers/auth'
-import { Avatar, Button, emitToast, Heading, Text, TextField } from 'ui/src'
 import FlickIcon from 'svg/Flick.svg'
-import trpc, { inferMutationInput } from '../../server/trpc'
+import { Avatar, Button, emitToast, Heading, Text, TextField } from 'ui/src'
+import { ContentContainerEnum } from 'utils/src/enums'
+import trpc, { inferMutationInput, inferQueryOutput } from '../../server/trpc'
 
 const ChooseContent = ({
 	modalState,
@@ -32,13 +28,13 @@ const ChooseContent = ({
 					'flex flex-col items-center justify-center bg-dark-100 w-24 h-24 rounded-lg gap-y-2',
 					{
 						'border-2 border-green-700':
-							modalState.contentType === ContentContainerTypes.Flick,
+							modalState.contentType === ContentContainerEnum.Flick,
 					}
 				)}
 				onClick={() =>
 					setModalState({
 						...modalState,
-						contentType: ContentContainerTypes.Flick,
+						contentType: ContentContainerEnum.Flick,
 					})
 				}
 			>
@@ -53,13 +49,13 @@ const ChooseContent = ({
 					'flex flex-col items-center justify-center bg-dark-100 w-24 h-24 rounded-lg gap-y-2',
 					{
 						'border-2 border-green-700':
-							modalState.contentType === ContentContainerTypes.Series,
+							modalState.contentType === ContentContainerEnum.Series,
 					}
 				)}
 				onClick={() =>
 					setModalState({
 						...modalState,
-						contentType: ContentContainerTypes.Series,
+						contentType: ContentContainerEnum.Series,
 					})
 				}
 			>
@@ -110,20 +106,20 @@ const FlickCollaboration = ({
 	handleSubmit: () => void
 	modalState: CollaborateModalState
 	setModalState: React.Dispatch<React.SetStateAction<CollaborateModalState>>
-	user: UserFragment
+	user: inferQueryOutput<'user.profile'>['user']
 }) => {
-	const { user: loggedInUser } = useUser()
-
-	const [getFlicks, { data, loading }] = useGetUserFlicksLazyQuery({
-		variables: {
-			sub: loggedInUser?.sub as string,
-		},
+	const {
+		refetch: getFlicks,
+		data,
+		isLoading: loading,
+	} = trpc.useQuery(['story.dashboardStories'], {
+		enabled: false,
 	})
 
 	useEffect(() => {
 		if (!data) return
-		if (data.Flick.length === 0) return
-		setModalState({ ...modalState, selectedFlickId: data.Flick[0].id })
+		if (data.length === 0) return
+		setModalState({ ...modalState, selectedFlickId: data[0].id })
 	}, [data])
 
 	useEffect(() => {
@@ -151,7 +147,7 @@ const FlickCollaboration = ({
 				</div>
 			)}
 
-			{data && data.Flick.length > 0 && (
+			{data && data.length > 0 && (
 				<div
 					className={cx(
 						'flex-1 overflow-scroll',
@@ -165,7 +161,7 @@ const FlickCollaboration = ({
 					)}
 				>
 					<div className='grid grid-cols-2 mt-4 gap-x-4 gap-y-4'>
-						{data.Flick.map(flick => (
+						{data.map(flick => (
 							<div key={flick.id} className='flex flex-col w-full h-full'>
 								<button
 									type='button'
@@ -179,11 +175,7 @@ const FlickCollaboration = ({
 								>
 									{/* eslint-disable-next-line @next/next/no-img-element */}
 									<img
-										src={
-											flick.thumbnail
-												? `${process.env.NEXT_PUBLIC_CDN_URL}${flick.thumbnail}`
-												: '/card_fallback.png'
-										}
+										src='/card_fallback.png'
 										alt='thumbnail'
 										className={cx('object-cover h-full w-full rounded-md', {
 											'border-2 border-green-600':
@@ -203,7 +195,7 @@ const FlickCollaboration = ({
 				</div>
 			)}
 
-			{data && data.Flick.length > 0 && (
+			{data && data.length > 0 && (
 				<Button
 					className='mt-4 max-w-none w-full'
 					size='large'
@@ -218,7 +210,7 @@ const FlickCollaboration = ({
 				</Button>
 			)}
 
-			{data && data.Flick.length === 0 && (
+			{data && data.length === 0 && (
 				<div className='flex flex-col items-center justify-center w-full h-full'>
 					<div className='flex mt-auto'>
 						<div className='z-0 w-32 h-32 rounded-full bg-dark-100' />
@@ -307,7 +299,7 @@ const SeriesCollaboration = ({
 	handleSubmit: () => void
 	modalState: CollaborateModalState
 	setModalState: React.Dispatch<React.SetStateAction<CollaborateModalState>>
-	user: UserFragment
+	user: inferQueryOutput<'user.profile'>['user']
 }) => {
 	const { user: loggedInUser } = useUser()
 
@@ -506,7 +498,7 @@ const WriteMessage = ({
 	setModalState,
 	handleSubmit,
 }: {
-	user: UserFragment
+	user: inferQueryOutput<'user.profile'>['user']
 	loading: boolean
 	handleSubmit: () => void
 	modalState: CollaborateModalState
@@ -554,7 +546,7 @@ interface CollaborateModalState {
 	existingContent: boolean
 	selectedSeriesId: string
 	selectedFlickId: string
-	contentType: ContentContainerTypes
+	contentType: ContentContainerEnum
 	description: string
 	title: string
 	message: string
@@ -565,7 +557,7 @@ const initialModalState: CollaborateModalState = {
 	existingContent: false,
 	selectedSeriesId: '',
 	selectedFlickId: '',
-	contentType: ContentContainerTypes.Flick,
+	contentType: ContentContainerEnum.Flick,
 	description: '',
 	title: '',
 	message: '',
@@ -578,7 +570,7 @@ const CollaborateModal = ({
 }: {
 	open: boolean
 	handleClose: () => void
-	user: UserFragment
+	user: inferQueryOutput<'user.profile'>['user']
 }) => {
 	const { user: loggedInUser } = useUser()
 	const [modalState, setModalState] =
@@ -609,7 +601,7 @@ const CollaborateModal = ({
 		}
 
 		if (modalState.existingContent) {
-			if (modalState.contentType === ContentContainerTypes.Flick)
+			if (modalState.contentType === ContentContainerEnum.Flick)
 				params = {
 					...params,
 					flickId: modalState.selectedFlickId,
@@ -691,7 +683,7 @@ const CollaborateModal = ({
 								/>
 							)}
 							{modalState.page === 1 &&
-								modalState.contentType === ContentContainerTypes.Flick && (
+								modalState.contentType === ContentContainerEnum.Flick && (
 									<FlickCollaboration
 										modalState={modalState}
 										setModalState={setModalState}
@@ -703,7 +695,7 @@ const CollaborateModal = ({
 									/>
 								)}
 							{modalState.page === 1 &&
-								modalState.contentType === ContentContainerTypes.Series && (
+								modalState.contentType === ContentContainerEnum.Series && (
 									<SeriesCollaboration
 										modalState={modalState}
 										setModalState={setModalState}

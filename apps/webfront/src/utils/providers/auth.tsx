@@ -3,9 +3,8 @@ import { getApp, getApps, initializeApp } from 'firebase/app'
 import { getAuth, onAuthStateChanged, User as FBUser } from 'firebase/auth'
 import { getDatabase, onValue, ref } from 'firebase/database'
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import { MeFragment } from 'src/graphql/generated'
 import { getEnv } from 'utils/src'
-import trpc from '../../server/trpc'
+import trpc, { inferQueryOutput } from '../../server/trpc'
 
 export const createFirebaseApp = () => {
 	const { firebaseConfig } = getEnv()
@@ -27,7 +26,7 @@ const login = async (token: string) =>
 		}
 	)
 
-type User = FBUser & Partial<MeFragment>
+type User = FBUser & Partial<inferQueryOutput<'user.me'>>
 
 export const UserContext = createContext<
 	Partial<{
@@ -101,7 +100,7 @@ const UserProvider = ({ children }: { children: React.ReactNode }) => {
 	const [token, setToken] = useState<string | null>(null)
 	const [loadingUser, setLoadingUser] = useState(true)
 	const trpcContext = trpc.useContext()
-	console.log('TRPC ctx = ', trpcContext)
+
 	useEffect(() => {
 		createFirebaseApp()
 		const auth = getAuth()

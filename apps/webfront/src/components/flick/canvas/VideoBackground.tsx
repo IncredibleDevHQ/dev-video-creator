@@ -2,7 +2,7 @@ import { Video } from 'icanvas/src/Video'
 import React from 'react'
 import { Circle, Group, Image, Line, Rect, Ring, Text } from 'react-konva'
 import { useRecoilValue } from 'recoil'
-import { ThemeFragment } from 'src/graphql/generated'
+import { inferQueryOutput } from 'src/server/trpc'
 import { brandingAtom } from 'src/stores/studio.store'
 import { BrandingJSON } from 'src/utils/configs'
 import useImage from 'use-image'
@@ -13,7 +13,7 @@ const VideoBackground = ({
 	isShorts,
 	branding: brandingProp,
 }: {
-	theme: ThemeFragment
+	theme: inferQueryOutput<'util.themes'>[number]
 	stageConfig: {
 		width: number
 		height: number

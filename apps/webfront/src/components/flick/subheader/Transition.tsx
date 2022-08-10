@@ -5,7 +5,6 @@ import { IoCheckmark } from 'react-icons/io5'
 import { useRecoilState, useRecoilValue } from 'recoil'
 import { transitionAtom, TransitionConfig } from 'src/stores/studio.store'
 import { useEnv } from 'utils/src'
-import { TransitionFragment } from 'utils/src/graphql/generated'
 import TransitionIcon from 'svg/TransitionIcon.svg'
 import {
 	RoomEventTypes,
@@ -13,7 +12,7 @@ import {
 	useEventListener,
 } from 'src/utils/liveblocks.config'
 import { flickAtom } from 'src/stores/flick.store'
-import trpc from '../../../server/trpc'
+import trpc, { inferQueryOutput } from '../../../server/trpc'
 
 const horizontalCustomScrollBar = css`
 	::-webkit-scrollbar {
@@ -38,7 +37,7 @@ const TransitionCard = ({
 	transitionConfig,
 	updateTransitions,
 }: {
-	transition: TransitionFragment
+	transition: inferQueryOutput<'story.getTransitions'>[number]
 	active: boolean
 	tab: 'block' | 'swap'
 	transitionConfig: TransitionConfig | undefined
@@ -48,11 +47,11 @@ const TransitionCard = ({
 		storage: { cdn: baseUrl },
 	} = useEnv()
 
-	const imageSrc = transition.config.thumbnail
-		? baseUrl + transition.config.thumbnail
-		: ''
+	const tc = JSON.parse(JSON.stringify(transition.config))
 
-	const gifSrc = transition.config.gif ? baseUrl + transition.config.gif : ''
+	const imageSrc = tc.thumbnail ? baseUrl + tc.thumbnail : ''
+
+	const gifSrc = tc.gif ? baseUrl + tc.gif : ''
 
 	const [src, setSrc] = useState<string>(imageSrc)
 

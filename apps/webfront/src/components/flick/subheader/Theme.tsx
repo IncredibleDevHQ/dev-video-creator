@@ -10,7 +10,6 @@ import {
 	IoChevronForwardOutline,
 } from 'react-icons/io5'
 import { useRecoilState, useRecoilValue } from 'recoil'
-import { ThemeFragment } from 'src/graphql/generated'
 import { flickAtom } from 'src/stores/flick.store'
 import { themeAtom } from 'src/stores/studio.store'
 import {
@@ -20,7 +19,7 @@ import {
 } from 'src/utils/liveblocks.config'
 import { Button, emitToast } from 'ui/src'
 import { useEnv } from 'utils/src'
-import trpc from '../../../server/trpc'
+import trpc, { inferQueryOutput } from '../../../server/trpc'
 
 const horizontalCustomScrollBar = css`
 	::-webkit-scrollbar {
@@ -64,7 +63,8 @@ const Theme = () => {
 		storage: { cdn: baseUrl },
 	} = useEnv()
 	const [activeScreen, setActiveScreen] = useState<'theme' | 'themes'>('themes')
-	const [tempActiveTheme, setTempActiveTheme] = useState<ThemeFragment>()
+	const [tempActiveTheme, setTempActiveTheme] =
+		useState<inferQueryOutput<'util.themes'>[number]>()
 
 	useEffect(() => {
 		setTempActiveTheme(activeTheme)
@@ -188,22 +188,22 @@ const Theme = () => {
 								</div>
 								{activeScreen === 'theme' ? (
 									<HorizontalContainer>
-										{tempActiveTheme?.config?.previewImages?.map(
-											(image: string) => (
-												<button
-													type='button'
-													className='flex items-center justify-center mr-4 flex-shrink-0 py-4'
-													key={image}
-													onClick={() => updateFlickTheme(close)}
-												>
-													<img
-														className='object-cover w-64 border-2 border-gray-600 rounded-md shadow-md hover:border-brand h-36'
-														src={image ? baseUrl + image : ''}
-														alt='incredible'
-													/>
-												</button>
-											)
-										)}
+										{JSON.parse(
+											JSON.stringify(tempActiveTheme?.config)
+										)?.previewImages?.map((image: string) => (
+											<button
+												type='button'
+												className='flex items-center justify-center mr-4 flex-shrink-0 py-4'
+												key={image}
+												onClick={() => updateFlickTheme(close)}
+											>
+												<img
+													className='object-cover w-64 border-2 border-gray-600 rounded-md shadow-md hover:border-brand h-36'
+													src={image ? baseUrl + image : ''}
+													alt='incredible'
+												/>
+											</button>
+										))}
 									</HorizontalContainer>
 								) : (
 									<div

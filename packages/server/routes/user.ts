@@ -42,17 +42,6 @@ const userRouter = trpc
 		input: z.object({
 			sub: z.string(),
 		}),
-		output: z.object({
-			onboarded: z.boolean(),
-			sub: z.string(),
-			username: z.string(),
-			displayName: z.string().nullable(),
-			email: z.string().nullable(),
-			provider: z.string().nullable().optional().nullable(),
-			picture: z.string().nullable(),
-			updatedAt: z.date().nullable(),
-			createdAt: z.date(),
-		}),
 		resolve: async ({ input, ctx }) => {
 			const me = await ctx.prisma.user.findUnique({
 				where: {
@@ -68,6 +57,8 @@ const userRouter = trpc
 					picture: true,
 					updatedAt: true,
 					createdAt: true,
+					designation: true,
+					organization: true,
 				},
 			})
 			if (!me) {
