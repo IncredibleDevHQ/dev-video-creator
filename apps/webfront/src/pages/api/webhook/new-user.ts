@@ -9,7 +9,7 @@ const createNewUser = async (req: NextApiRequest, res: NextApiResponse) => {
 		return
 	}
 
-	const { user } = req.body
+	const user = req.body
 	const username = generateSuggestionsFromEmail(user.email as string)
 	const [providerData] = user.providerData
 	try {
@@ -43,8 +43,8 @@ const createNewUser = async (req: NextApiRequest, res: NextApiResponse) => {
 	} catch (e) {
 		// Sentry.captureException(e)
 		console.error(e)
-		res.status(500).send({
-			error: e,
+		res.status(500).json({
+			error: e.message,
 		})
 	}
 }
