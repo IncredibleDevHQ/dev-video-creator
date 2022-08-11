@@ -14,10 +14,10 @@ const prisma: PrismaClient =
 		datasources: {
 			db: { url: process.env.DATABASE_URL },
 		},
-		log:
-			process.env.NODE_ENV === 'development' || !process.env.NODE_ENV
-				? ['query', 'error', 'warn']
-				: ['error'],
+		// log:
+		// 	process.env.NODE_ENV === 'development' || !process.env.NODE_ENV
+		// 		? ['query', 'error', 'warn']
+		// 		: ['error'],
 	})
 
 if (process.env.NODE_ENV !== 'production') {

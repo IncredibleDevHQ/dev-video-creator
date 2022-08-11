@@ -249,7 +249,7 @@ const utilsRouter = trpc
 					id: input.id,
 				},
 				data: {
-					name: input.branding.name || undefined,
+					name: input.name || undefined,
 					branding: input.branding,
 				},
 				select: {

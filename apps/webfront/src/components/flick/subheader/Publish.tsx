@@ -811,15 +811,22 @@ const Publish = ({
 		},
 	])
 
-	let timer: NodeJS.Timer
+	const timer = useRef<NodeJS.Timer>()
 	const startPolling = () => {
-		timer = setInterval(() => {
+		timer.current = setInterval(() => {
 			refetch()
 		}, 5000)
 	}
 	const stopPolling = () => {
-		clearInterval(timer)
+		clearInterval(timer.current)
 	}
+
+	useEffect(
+		() => () => {
+			stopPolling()
+		},
+		[]
+	)
 
 	useEffect(() => {
 		if (!recording) return
@@ -1016,11 +1023,10 @@ const Publish = ({
 											ref={ref}
 										>
 											{recording &&
-											((recording.url &&
-												recording.status !== RecordingStatusEnum.Processing &&
-												!getRecordingsLoading &&
-												!loadingCompleteRecording) ||
-												loadingCompleteRecording) ? (
+											recording.url &&
+											recording.status !== RecordingStatusEnum.Processing &&
+											!getRecordingsLoading &&
+											!loadingCompleteRecording ? (
 												<div className='flex flex-col items-end gap-y-4'>
 													<video
 														ref={videoRef}
