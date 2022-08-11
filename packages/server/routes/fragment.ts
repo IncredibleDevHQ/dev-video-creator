@@ -698,7 +698,10 @@ const fragmentRouter = trpc
 					)
 					// only meta-data has changed, update the everything except resource
 					// store data to content table
-					await ctx.prisma.content.create({
+					await ctx.prisma.content.update({
+						where: {
+							id: contentCheck[0].id,
+						},
 						data: {
 							flickId: fragmentData.Flick.id,
 							fragmentId: input.fragmentId,
@@ -730,6 +733,14 @@ const fragmentRouter = trpc
 				/*
           First time publishing fragment
       */
+				const recording = await ctx.prisma.recording.findUnique({
+					where: {
+						id: input.recordingId,
+					},
+					select: {
+						url: true,
+					},
+				})
 				// store data to content table
 				const content = await ctx.prisma.content.create({
 					data: {
@@ -739,7 +750,7 @@ const fragmentRouter = trpc
 						published_at: new Date().toISOString(),
 						thumbnail: data.thumbnail?.objectId,
 						type: contentType,
-						resource: contentCheck[0].resource, // retain url/mux-id and re-publish all related meta info
+						resource: recording?.url as string, // retain url/mux-id and re-publish all related meta info
 						data,
 					},
 					select: {
