@@ -18,7 +18,7 @@ const completeRecording = async (req: NextApiRequest, res: NextApiResponse) => {
 
 	const { recordingId, outputKey } = req.body as Payload
 	try {
-		prisma.recording.update({
+		await prisma.recording.update({
 			where: {
 				id: recordingId,
 			},
