@@ -208,8 +208,6 @@ const Studio = ({
 					})
 				},
 			})
-			console.log('objectUrl', objectUrl)
-
 			let thumbnailFilename: string | null = null
 			// Upload block thumbnail
 			if (blockThumbnails.current[blockId]) {
@@ -601,6 +599,8 @@ const Studio = ({
 														delete x[dataConfig[activeObjectIndex].id]
 														updateRecordedBlocks(x)
 													}
+													if (currentBlockURL.includes('blob'))
+														URL.revokeObjectURL(currentBlockURL)
 												}
 												broadcast({
 													type: RoomEventTypes.RetakeButtonClick,
