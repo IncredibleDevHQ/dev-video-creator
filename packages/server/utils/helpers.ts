@@ -153,17 +153,13 @@ export const initFirebaseAdmin = () => {
 	return admin
 }
 
-export const redisClient =
-	serverEnvs.NODE_ENV === 'development'
-		? createClient({
-				socket: { host: '127.0.0.1', port: 6379 },
-		  })
-		: createClient({
-				socket: {
-					host: serverEnvs.REDIS_ENDPOINT,
-					port: Number(serverEnvs.REDIS_PORT),
-				},
-		  })
+export const redisClient = createClient({
+	socket: {
+		host: serverEnvs.REDIS_ENDPOINT,
+		port: Number(serverEnvs.REDIS_PORT),
+	},
+	password: serverEnvs.REDIS_PASSWORD,
+})
 
 export const validateEmail = (email: string) => {
 	const re =

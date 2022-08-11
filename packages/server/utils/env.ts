@@ -17,6 +17,7 @@ const validateEnvs = (envs: any) => {
 		CUSTOMERIO_TRANSACTIONAL_APP_API_KEY: z.string(),
 		REDIS_ENDPOINT: z.string(),
 		REDIS_PORT: z.string(),
+		REDIS_PASSWORD: z.string(),
 		AGORA_APP_ID: z.string(),
 		AGORA_APP_CERTIFICATE: z.string(),
 
