@@ -73,12 +73,45 @@ const ListItem = ({ exists, active, children, handleClick }: any) => (
 )
 
 type WatchProps = {
-	flick: inferQueryOutput<'story.byId'>
+	flick: Omit<inferQueryOutput<'story.byId'>, 'updatedAt' | 'deletedAt'> & {
+		updatedAt: string
+		deletedAt: string | null
+	}
 	flickContent: FlickContent
 	// series: inferQueryOutput<'story.byId'>['Flick_Series'][number]
 }
 
-const Watch = ({ flick, flickContent }: WatchProps) => {
+const Watch = ({
+	flick: flickProp,
+	flickContent: flickContentProp,
+}: WatchProps) => {
+	const flick = {
+		...flickProp,
+		updatedAt: new Date(flickProp.updatedAt),
+		deletedAt: flickProp.deletedAt ? new Date(flickProp.deletedAt) : null,
+	}
+	const flickContent = {
+		...flickContentProp,
+		video: flickContentProp.video
+			? {
+					...flickContentProp.video,
+					published_at: new Date(flickContentProp.video.published_at),
+			  }
+			: null,
+		verticalVideo: flickContentProp.verticalVideo
+			? flickContentProp.verticalVideo.map(video => ({
+					...video,
+					published_at: new Date(video.published_at),
+			  }))
+			: null,
+		blog: flickContentProp.blog
+			? {
+					...flickContentProp.blog,
+					published_at: new Date(flickContentProp.blog.published_at),
+			  }
+			: null,
+	}
+
 	const { push, asPath } = useRouter()
 
 	const { user } = useUser()
@@ -600,8 +633,8 @@ export const getServerSideProps = requireAuth(true)(
 
 		return {
 			props: {
-				flick,
-				flickContent,
+				flick: JSON.parse(JSON.stringify(flick)),
+				flickContent: JSON.parse(JSON.stringify(flickContent)),
 				series: flick?.Flick_Series?.[0] || null,
 			} as WatchProps,
 			notFound: !flick || !flickContent,

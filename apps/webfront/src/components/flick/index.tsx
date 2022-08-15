@@ -32,6 +32,7 @@ import {
 	RoomProvider,
 } from 'src/utils/liveblocks.config'
 import { useUser } from 'src/utils/providers/auth'
+import Konva from 'konva'
 import { inferQueryOutput } from '../../server/trpc'
 import EditorSection from './core/EditorSection'
 import Navbar from './core/Navbar'
@@ -49,6 +50,7 @@ const FlickBody = ({
 	flick: inferQueryOutput<'story.byId'>
 	initialFragmentId: string | null
 }) => {
+  Konva.showWarnings = false
 	const setStoresInitially = useRecoilCallback(
 		({ set }) =>
 			() => {
