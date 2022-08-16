@@ -26,7 +26,7 @@ const FlickTile = ({
 	handleDelete,
 	handleCopy,
 	joinLink,
-}: inferQueryOutput<'story.dashboardStories'>[number] & {
+}: inferQueryOutput<'story.infiniteStories'>['stories'][number] & {
 	handleDelete: (id: string) => void
 	handleCopy: (id: string, newId: string) => void
 }) => {
