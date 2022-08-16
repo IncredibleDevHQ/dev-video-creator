@@ -31,6 +31,7 @@ module.exports = {
 			'error',
 			{ ignores: ['modules'] },
 		],
+		'no-console': 'off',
 	},
 	overrides: [
 		{
