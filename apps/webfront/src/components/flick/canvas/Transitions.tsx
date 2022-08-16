@@ -551,7 +551,7 @@ export const PastelLinesTransition = ({
 	)
 }
 
-export const CassidooTransition = ({
+export const RainbowTransition = ({
 	direction,
 	isShorts,
 	color,
@@ -978,7 +978,7 @@ export const CassidooTransition = ({
 	)
 }
 
-export const LeeRobTransition = ({
+export const MidnightTransition = ({
 	direction,
 	isShorts,
 	// color,
@@ -1139,7 +1139,7 @@ export const LeeRobTransition = ({
 	)
 }
 
-export const Web3AuthTransition = ({
+export const SpiroTransition = ({
 	direction,
 	// isShorts,
 	// color,
@@ -1851,7 +1851,7 @@ export const DevsForUkraineTransition = ({
 	return null
 }
 
-export const Whitep4nth3rTransition = ({
+export const ObsidianTransition = ({
 	direction,
 	isShorts,
 	// color,
@@ -1974,7 +1974,7 @@ export const Whitep4nth3rTransition = ({
 	)
 }
 
-export const VetsWhoCodeTransition = ({
+export const CardinalTransition = ({
 	direction,
 	isShorts,
 	color,
@@ -2102,7 +2102,7 @@ export const VetsWhoCodeTransition = ({
 	)
 }
 
-export const ShrutiKapoorTransition = ({
+export const VelvetTransition = ({
 	direction,
 	isShorts,
 	// color,

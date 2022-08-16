@@ -28,28 +28,28 @@ const VideoBackground = ({
 		`${process.env.NEXT_PUBLIC_CDN_URL}themes/glassyThemeBackground.png`,
 		'anonymous'
 	)
-	const [cassidooThemeBg] = useImage(
-		`${process.env.NEXT_PUBLIC_CDN_URL}themes/cassidoo/cassidoo.svg`,
+	const [rainbowThemeBg] = useImage(
+		`${process.env.NEXT_PUBLIC_CDN_URL}themes/Rainbow/Rainbow.svg`,
 		'anonymous'
 	)
-	const [cassidooPortraitThemeBg] = useImage(
-		`${process.env.NEXT_PUBLIC_CDN_URL}themes/cassidoo/cassidooPortrait.svg`,
+	const [rainbowPortraitThemeBg] = useImage(
+		`${process.env.NEXT_PUBLIC_CDN_URL}themes/Rainbow/RainbowPortrait.svg`,
 		'anonymous'
 	)
-	const [lambdaTestThemeBg] = useImage(
-		`${process.env.NEXT_PUBLIC_CDN_URL}themes/LambdaTest/LambdaTestBg.svg`,
+	const [icebergThemeBg] = useImage(
+		`${process.env.NEXT_PUBLIC_CDN_URL}themes/Iceberg/IcebergBg.svg`,
 		'anonymous'
 	)
-	const [web3AuthThemeBg] = useImage(
-		`${process.env.NEXT_PUBLIC_CDN_URL}themes/Web3Auth/Web3AuthBg.svg`,
+	const [spiroThemeBg] = useImage(
+		`${process.env.NEXT_PUBLIC_CDN_URL}themes/Spiro/SpiroBg.svg`,
 		'anonymous'
 	)
-	const [web3AuthShortsThemeBg] = useImage(
-		`${process.env.NEXT_PUBLIC_CDN_URL}themes/Web3Auth/Web3AuthShortsBg.svg`,
+	const [spiroShortsThemeBg] = useImage(
+		`${process.env.NEXT_PUBLIC_CDN_URL}themes/Spiro/SpiroShortsBg.svg`,
 		'anonymous'
 	)
-	const [shrutiKapoorThemeBg] = useImage(
-		`${process.env.NEXT_PUBLIC_CDN_URL}themes/ShrutiKapoor/shrutiKapoorBg.svg`,
+	const [velvetThemeBg] = useImage(
+		`${process.env.NEXT_PUBLIC_CDN_URL}themes/Velvet/VelvetBg.svg`,
 		'anonymous'
 	)
 
@@ -304,7 +304,7 @@ const VideoBackground = ({
 						</Group>
 					)
 			}
-		case 'Cassidoo':
+		case 'Rainbow':
 			switch (branding?.background?.type) {
 				case 'image':
 					return (
@@ -317,7 +317,7 @@ const VideoBackground = ({
 								image={bgImage}
 							/>
 							<Text
-								text='Cassidoo'
+								text='Rainbow'
 								x={0}
 								y={0}
 								fontSize={2}
@@ -338,7 +338,7 @@ const VideoBackground = ({
 								fill={branding?.background?.color?.primary}
 							/>
 							<Text
-								text='Cassidoo'
+								text='Rainbow'
 								x={0}
 								y={0}
 								fontSize={2}
@@ -372,7 +372,7 @@ const VideoBackground = ({
 								/>
 							)}
 							<Text
-								text='Cassidoo'
+								text='Rainbow'
 								x={0}
 								y={0}
 								fontSize={2}
@@ -390,7 +390,7 @@ const VideoBackground = ({
 								y={0}
 								width={stageConfig.width}
 								height={stageConfig.height}
-								image={!isShorts ? cassidooThemeBg : cassidooPortraitThemeBg}
+								image={!isShorts ? rainbowThemeBg : rainbowPortraitThemeBg}
 								fillLinearGradientColorStops={[
 									0,
 									'#10A2F5',
@@ -406,7 +406,7 @@ const VideoBackground = ({
 								}}
 							/>
 							<Text
-								text='Cassidoo'
+								text='Rainbow'
 								x={0}
 								y={0}
 								fontSize={2}
@@ -418,7 +418,7 @@ const VideoBackground = ({
 					)
 				}
 			}
-		case 'LambdaTest':
+		case 'Iceberg':
 			switch (branding?.background?.type) {
 				case 'image':
 					return (
@@ -473,13 +473,13 @@ const VideoBackground = ({
 							y={0}
 							width={stageConfig.width}
 							height={stageConfig.height}
-							image={lambdaTestThemeBg}
+							image={icebergThemeBg}
 							fill='#6AB3D3'
 						/>
 					)
 				}
 			}
-		case 'LeeRob':
+		case 'Midnight':
 			switch (branding?.background?.type) {
 				case 'image':
 					return (
@@ -549,7 +549,7 @@ const VideoBackground = ({
 					)
 				}
 			}
-		case 'Web3Auth':
+		case 'Spiro':
 			switch (branding?.background?.type) {
 				case 'image':
 					return (
@@ -563,7 +563,7 @@ const VideoBackground = ({
 								fill='#040E22'
 							/>
 							<Text
-								text='Web3Auth'
+								text='Spiro'
 								x={0}
 								y={0}
 								fontSize={2}
@@ -584,7 +584,7 @@ const VideoBackground = ({
 								fill={branding?.background?.color?.primary}
 							/>
 							<Text
-								text='Web3Auth'
+								text='Spiro'
 								x={0}
 								y={0}
 								fontSize={2}
@@ -618,7 +618,7 @@ const VideoBackground = ({
 								/>
 							)}
 							<Text
-								text='Web3Auth'
+								text='Spiro'
 								x={0}
 								y={0}
 								fontSize={2}
@@ -636,11 +636,11 @@ const VideoBackground = ({
 								y={0}
 								width={stageConfig.width}
 								height={stageConfig.height}
-								image={!isShorts ? web3AuthThemeBg : web3AuthShortsThemeBg}
+								image={!isShorts ? spiroThemeBg : spiroShortsThemeBg}
 								fill='#27272A'
 							/>
 							<Text
-								text='Web3Auth'
+								text='Spiro'
 								x={0}
 								y={0}
 								fontSize={2}
@@ -781,7 +781,7 @@ const VideoBackground = ({
 					)
 				}
 			}
-		case 'Whitep4nth3r':
+		case 'Obsidian':
 			switch (branding?.background?.type) {
 				case 'image':
 					return (
@@ -882,7 +882,7 @@ const VideoBackground = ({
 					)
 				}
 			}
-		case 'VetsWhoCode':
+		case 'Cardinal':
 			switch (branding?.background?.type) {
 				case 'image':
 					return (
@@ -895,7 +895,7 @@ const VideoBackground = ({
 								image={bgImage}
 							/>
 							<Text
-								text='VetsWhoCode'
+								text='Cardinal'
 								x={0}
 								y={0}
 								fontSize={2}
@@ -904,7 +904,7 @@ const VideoBackground = ({
 								fontFamily='Gotham'
 							/>
 							<Text
-								text='VetsWhoCode'
+								text='Cardinal'
 								x={0}
 								y={0}
 								fontSize={2}
@@ -925,7 +925,7 @@ const VideoBackground = ({
 								fill={branding?.background?.color?.primary}
 							/>
 							<Text
-								text='VetsWhoCode'
+								text='Cardinal'
 								x={0}
 								y={0}
 								fontSize={2}
@@ -934,7 +934,7 @@ const VideoBackground = ({
 								fontFamily='Gotham'
 							/>
 							<Text
-								text='VetsWhoCode'
+								text='Cardinal'
 								x={0}
 								y={0}
 								fontSize={2}
@@ -968,7 +968,7 @@ const VideoBackground = ({
 								/>
 							)}
 							<Text
-								text='VetsWhoCode'
+								text='Cardinal'
 								x={0}
 								y={0}
 								fontSize={2}
@@ -977,7 +977,7 @@ const VideoBackground = ({
 								fontFamily='Gotham'
 							/>
 							<Text
-								text='VetsWhoCode'
+								text='Cardinal'
 								x={0}
 								y={0}
 								fontSize={2}
@@ -1011,7 +1011,7 @@ const VideoBackground = ({
 								dash={[10, 5.5]}
 							/>
 							<Text
-								text='VetsWhoCode'
+								text='Cardinal'
 								x={0}
 								y={0}
 								fontSize={2}
@@ -1020,7 +1020,7 @@ const VideoBackground = ({
 								fontFamily='Gotham'
 							/>
 							<Text
-								text='VetsWhoCode'
+								text='Cardinal'
 								x={0}
 								y={0}
 								fontSize={2}
@@ -1032,7 +1032,7 @@ const VideoBackground = ({
 					)
 				}
 			}
-		case 'ShrutiKapoor':
+		case 'Velvet':
 			switch (branding?.background?.type) {
 				case 'image':
 					return (
@@ -1046,7 +1046,7 @@ const VideoBackground = ({
 								fill='#040E22'
 							/>
 							<Text
-								text='ShrutiKapoor'
+								text='Velvet'
 								x={0}
 								y={0}
 								fontSize={2}
@@ -1067,7 +1067,7 @@ const VideoBackground = ({
 								fill={branding?.background?.color?.primary}
 							/>
 							<Text
-								text='ShrutiKapoor'
+								text='Velvet'
 								x={0}
 								y={0}
 								fontSize={2}
@@ -1101,7 +1101,7 @@ const VideoBackground = ({
 								/>
 							)}
 							<Text
-								text='ShrutiKapoor'
+								text='Velvet'
 								x={0}
 								y={0}
 								fontSize={2}
@@ -1119,11 +1119,11 @@ const VideoBackground = ({
 								y={0}
 								width={stageConfig.width}
 								height={stageConfig.height}
-								image={shrutiKapoorThemeBg}
+								image={velvetThemeBg}
 								fill='#18181B'
 							/>
 							<Text
-								text='ShrutiKapoor'
+								text='Velvet'
 								x={0}
 								y={0}
 								fontSize={2}
@@ -1135,7 +1135,7 @@ const VideoBackground = ({
 					)
 				}
 			}
-		case 'Mux':
+		case 'CherryBlossom':
 			switch (branding?.background?.type) {
 				case 'image':
 					return (
@@ -1148,7 +1148,7 @@ const VideoBackground = ({
 								image={bgImage}
 							/>
 							<Text
-								text='Mux'
+								text='CherryBlossom'
 								x={0}
 								y={0}
 								fontSize={2}
@@ -1179,7 +1179,7 @@ const VideoBackground = ({
 								strokeWidth={1}
 							/>
 							<Text
-								text='Mux'
+								text='CherryBlossom'
 								x={0}
 								y={0}
 								fontSize={2}
@@ -1213,7 +1213,7 @@ const VideoBackground = ({
 								/>
 							)}
 							<Text
-								text='Mux'
+								text='CherryBlossom'
 								x={0}
 								y={0}
 								fontSize={2}
@@ -1264,7 +1264,7 @@ const VideoBackground = ({
 								strokeWidth={1}
 							/>
 							<Text
-								text='Mux'
+								text='CherryBlossom'
 								x={0}
 								y={0}
 								fontSize={2}
@@ -1276,7 +1276,7 @@ const VideoBackground = ({
 					)
 				}
 			}
-		case 'WunderGraph':
+		case 'Lilac':
 			switch (branding?.background?.type) {
 				case 'image':
 					return (
@@ -1289,7 +1289,7 @@ const VideoBackground = ({
 								image={bgImage}
 							/>
 							<Text
-								text='WunderGraph'
+								text='Lilac'
 								x={0}
 								y={0}
 								fontSize={2}
@@ -1310,7 +1310,7 @@ const VideoBackground = ({
 								fill={branding?.background?.color?.primary}
 							/>
 							<Text
-								text='WunderGraph'
+								text='Lilac'
 								x={0}
 								y={0}
 								fontSize={2}
@@ -1344,7 +1344,7 @@ const VideoBackground = ({
 								/>
 							)}
 							<Text
-								text='WunderGraph'
+								text='Lilac'
 								x={0}
 								y={0}
 								fontSize={2}
@@ -1365,7 +1365,7 @@ const VideoBackground = ({
 								fill='#1A202C'
 							/>
 							<Text
-								text='WunderGraph'
+								text='Lilac'
 								x={0}
 								y={0}
 								fontSize={2}

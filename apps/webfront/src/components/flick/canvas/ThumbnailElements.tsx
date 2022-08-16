@@ -36,7 +36,7 @@ const ThumbnailElements = ({
 		'anonymous'
 	)
 	const [pantherBg] = useImage(
-		`${storage.cdn}themes/Whitep4nth3r/Whitep4nth3rBg.svg`,
+		`${storage.cdn}themes/Obsidian/ObsidianBg.svg`,
 		'anonymous'
 	)
 	switch (theme) {
@@ -191,7 +191,7 @@ const ThumbnailElements = ({
 				)
 			return null
 		}
-		case 'Whitep4nth3r': {
+		case 'Obsidian': {
 			if (layout === 'classic' && !isShorts)
 				return (
 					<Group>
@@ -242,7 +242,7 @@ const ThumbnailElements = ({
 				)
 			return null
 		}
-		case 'VetsWhoCode': {
+		case 'Cardinal': {
 			if (layout === 'classic' && !isShorts)
 				return (
 					<Rect

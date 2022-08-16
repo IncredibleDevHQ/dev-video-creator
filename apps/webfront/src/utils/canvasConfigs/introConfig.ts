@@ -267,7 +267,7 @@ export const getIntroConfig = ({
 							userImageBorderRadius: 0,
 						}
 				}
-			case 'Cassidoo':
+			case 'Rainbow':
 				switch (layout) {
 					case 'bottom-right-tile':
 						return {
@@ -368,7 +368,7 @@ export const getIntroConfig = ({
 							userImageBorderRadius: 96,
 						}
 				}
-			case 'LambdaTest':
+			case 'Iceberg':
 				switch (layout) {
 					case 'bottom-right-tile':
 						return {
@@ -469,7 +469,7 @@ export const getIntroConfig = ({
 							userImageBorderRadius: 12,
 						}
 				}
-			case 'LeeRob':
+			case 'Midnight':
 				switch (layout) {
 					case 'bottom-right-tile':
 						return {
@@ -572,7 +572,7 @@ export const getIntroConfig = ({
 							userImageBorderRadius: 0,
 						}
 				}
-			case 'Web3Auth':
+			case 'Spiro':
 				switch (layout) {
 					case 'bottom-right-tile':
 						return {
@@ -788,7 +788,7 @@ export const getIntroConfig = ({
 							userImageBorderRadius: 8,
 						}
 				}
-			case 'Whitep4nth3r':
+			case 'Obsidian':
 				switch (layout) {
 					case 'classic':
 						return {
@@ -899,7 +899,7 @@ export const getIntroConfig = ({
 							userImageBorderRadius: 0,
 						}
 				}
-			case 'VetsWhoCode':
+			case 'Cardinal':
 				switch (layout) {
 					case 'classic':
 						return {
@@ -1051,7 +1051,7 @@ export const getIntroConfig = ({
 							userImageBorderRadius: 0,
 						}
 				}
-			case 'ShrutiKapoor':
+			case 'Velvet':
 				switch (layout) {
 					case 'classic':
 						return {
@@ -1268,7 +1268,7 @@ export const getIntroConfig = ({
 							userImageBorderRadius: 0,
 						}
 				}
-			case 'Mux':
+			case 'CherryBlossom':
 				switch (layout) {
 					case 'classic':
 						return {
@@ -1431,7 +1431,7 @@ export const getIntroConfig = ({
 							userImageBorderRadius: 0,
 						}
 				}
-			case 'WunderGraph':
+			case 'Lilac':
 				switch (layout) {
 					case 'classic':
 						return {
@@ -1677,7 +1677,7 @@ export const getIntroConfig = ({
 				userImageHeight: 195,
 				userImageBorderRadius: 0,
 			}
-		case 'Cassidoo':
+		case 'Rainbow':
 			return {
 				layoutX: 16,
 				layoutY: 16,
@@ -1709,7 +1709,7 @@ export const getIntroConfig = ({
 				userImageHeight: 192,
 				userImageBorderRadius: 96,
 			}
-		case 'LambdaTest':
+		case 'Iceberg':
 			return {
 				layoutX: 16,
 				layoutY: 16,
@@ -1741,7 +1741,7 @@ export const getIntroConfig = ({
 				userImageHeight: 195,
 				userImageBorderRadius: 12,
 			}
-		case 'LeeRob':
+		case 'Midnight':
 			return {
 				layoutX: 16,
 				layoutY: 16,
@@ -1774,7 +1774,7 @@ export const getIntroConfig = ({
 				userImageHeight: 195,
 				userImageBorderRadius: 0,
 			}
-		case 'Web3Auth':
+		case 'Spiro':
 			return {
 				layoutX: 16,
 				layoutY: 16,
@@ -1844,7 +1844,7 @@ export const getIntroConfig = ({
 				userImageHeight: 128,
 				userImageBorderRadius: 8,
 			}
-		case 'VetsWhoCode':
+		case 'Cardinal':
 			return {
 				layoutX: 24,
 				layoutY: 24,
@@ -1876,7 +1876,7 @@ export const getIntroConfig = ({
 				userImageHeight: 192,
 				userImageBorderRadius: 96,
 			}
-		case 'ShrutiKapoor':
+		case 'Velvet':
 			return {
 				layoutX: 16,
 				layoutY: 16,
@@ -1921,7 +1921,7 @@ export const getIntroConfig = ({
 				),
 				userImageBorderWidth: 4,
 			}
-		case 'Mux':
+		case 'CherryBlossom':
 			return {
 				layoutX: 16,
 				layoutY: 32,
@@ -1955,7 +1955,7 @@ export const getIntroConfig = ({
 				userImageBorderColor: '#D4D4D8',
 				userImageBorderWidth: 2,
 			}
-		case 'WunderGraph':
+		case 'Lilac':
 			return {
 				layoutX: 16,
 				layoutY: 16,

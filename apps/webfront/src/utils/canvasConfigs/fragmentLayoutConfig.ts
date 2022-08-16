@@ -133,7 +133,7 @@ export const getFragmentLayoutConfig = ({
 							borderRadius: 0,
 						}
 				}
-			case 'Cassidoo':
+			case 'Rainbow':
 				switch (layout) {
 					case 'classic':
 					case 'padded-bottom-right-circle':
@@ -187,7 +187,7 @@ export const getFragmentLayoutConfig = ({
 							borderRadius: 16,
 						}
 				}
-			case 'LambdaTest':
+			case 'Iceberg':
 				switch (layout) {
 					case 'classic':
 					case 'padded-bottom-right-circle':
@@ -241,7 +241,7 @@ export const getFragmentLayoutConfig = ({
 							borderRadius: 16,
 						}
 				}
-			case 'LeeRob':
+			case 'Midnight':
 				switch (layout) {
 					case 'classic':
 					case 'padded-bottom-right-circle':
@@ -323,7 +323,7 @@ export const getFragmentLayoutConfig = ({
 							borderRadius: 0,
 						}
 				}
-			case 'Web3Auth':
+			case 'Spiro':
 				switch (layout) {
 					case 'classic':
 					case 'padded-bottom-right-circle':
@@ -381,8 +381,8 @@ export const getFragmentLayoutConfig = ({
 							borderRadius: 0,
 						}
 				}
-			case 'Whitep4nth3r':
-			case 'ShrutiKapoor':
+			case 'Obsidian':
+			case 'Velvet':
 				switch (layout) {
 					case 'classic':
 					case 'padded-bottom-right-circle':
@@ -436,7 +436,7 @@ export const getFragmentLayoutConfig = ({
 							borderRadius: 0,
 						}
 				}
-			case 'VetsWhoCode':
+			case 'Cardinal':
 				switch (layout) {
 					case 'classic':
 					case 'padded-bottom-right-circle':
@@ -494,7 +494,7 @@ export const getFragmentLayoutConfig = ({
 							borderRadius: 0,
 						}
 				}
-			case 'Mux':
+			case 'CherryBlossom':
 				switch (layout) {
 					case 'classic':
 					case 'padded-bottom-right-circle':
@@ -548,7 +548,7 @@ export const getFragmentLayoutConfig = ({
 							borderRadius: 0,
 						}
 				}
-			case 'WunderGraph':
+			case 'Lilac':
 				switch (layout) {
 					case 'classic':
 					case 'padded-bottom-right-circle':
@@ -799,7 +799,7 @@ export const getFragmentLayoutConfig = ({
 						borderRadius: 0,
 					}
 			}
-		case 'Cassidoo':
+		case 'Rainbow':
 			switch (layout) {
 				case 'classic':
 					return {
@@ -885,7 +885,7 @@ export const getFragmentLayoutConfig = ({
 						borderRadius: 16,
 					}
 			}
-		case 'LambdaTest':
+		case 'Iceberg':
 			switch (layout) {
 				case 'classic':
 					return {
@@ -969,7 +969,7 @@ export const getFragmentLayoutConfig = ({
 						borderRadius: 16,
 					}
 			}
-		case 'LeeRob':
+		case 'Midnight':
 			switch (layout) {
 				case 'classic':
 					return {
@@ -1074,7 +1074,7 @@ export const getFragmentLayoutConfig = ({
 						borderRadius: 0,
 					}
 			}
-		case 'Web3Auth':
+		case 'Spiro':
 			switch (layout) {
 				case 'classic':
 					return {
@@ -1155,7 +1155,7 @@ export const getFragmentLayoutConfig = ({
 						borderRadius: 0,
 					}
 			}
-		case 'Whitep4nth3r':
+		case 'Obsidian':
 			switch (layout) {
 				case 'classic':
 					return {
@@ -1232,7 +1232,7 @@ export const getFragmentLayoutConfig = ({
 						borderRadius: 0,
 					}
 			}
-		case 'VetsWhoCode':
+		case 'Cardinal':
 			switch (layout) {
 				case 'classic':
 					return {
@@ -1305,7 +1305,7 @@ export const getFragmentLayoutConfig = ({
 						borderRadius: 0,
 					}
 			}
-		case 'ShrutiKapoor':
+		case 'Velvet':
 			switch (layout) {
 				case 'classic':
 					return {
@@ -1389,7 +1389,7 @@ export const getFragmentLayoutConfig = ({
 						borderRadius: 0,
 					}
 			}
-		case 'Mux':
+		case 'CherryBlossom':
 			switch (layout) {
 				case 'classic':
 					return {
@@ -1467,7 +1467,7 @@ export const getFragmentLayoutConfig = ({
 						borderRadius: 0,
 					}
 			}
-		case 'WunderGraph':
+		case 'Lilac':
 			switch (layout) {
 				case 'classic':
 					return {

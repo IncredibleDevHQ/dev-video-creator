@@ -72,7 +72,7 @@ export const getThemeLayoutConfig = ({
 				horizontalPointRectStrokeColor: '#ffffff',
 				horizontalPointRectCornerRadius: 0,
 			}
-		case 'Cassidoo':
+		case 'Rainbow':
 			return {
 				startX: layoutConfig.x,
 				startY: layoutConfig.y + 56,
@@ -90,7 +90,7 @@ export const getThemeLayoutConfig = ({
 				horizontalPointRectStrokeColor: '#ffffff',
 				horizontalPointRectCornerRadius: 16,
 			}
-		case 'LambdaTest':
+		case 'Iceberg':
 			return {
 				startX: layoutConfig.x,
 				startY: layoutConfig.y,
@@ -120,7 +120,7 @@ export const getThemeLayoutConfig = ({
 				),
 				horizontalPointRectCornerRadius: 4,
 			}
-		case 'LeeRob':
+		case 'Midnight':
 			return {
 				startX: layoutConfig.x,
 				startY: layoutConfig.y,
@@ -150,7 +150,7 @@ export const getThemeLayoutConfig = ({
 				horizontalPointRectCornerRadius: 0,
 				horizontalPointTextVerticalAlign: 'top',
 			}
-		case 'Web3Auth':
+		case 'Spiro':
 			return {
 				startX: layoutConfig.x,
 				startY: layoutConfig.y,
@@ -197,7 +197,7 @@ export const getThemeLayoutConfig = ({
 				horizontalPointRectCornerRadius: 0,
 				horizontalPointTextVerticalAlign: 'top',
 			}
-		case 'Whitep4nth3r':
+		case 'Obsidian':
 			return {
 				startX: layoutConfig.x,
 				startY: layoutConfig.y,
@@ -217,7 +217,7 @@ export const getThemeLayoutConfig = ({
 				horizontalPointTextVerticalAlign: 'middle',
 				blockTitleFontSize: 32,
 			}
-		case 'VetsWhoCode':
+		case 'Cardinal':
 			return {
 				startX: layoutConfig.x,
 				startY: layoutConfig.y,
@@ -237,7 +237,7 @@ export const getThemeLayoutConfig = ({
 				horizontalPointsTextColor: '#091F40',
 				horizontalPointTextVerticalAlign: 'middle',
 			}
-		case 'ShrutiKapoor':
+		case 'Velvet':
 			return {
 				startX: layoutConfig.x,
 				startY: layoutConfig.y,
@@ -268,7 +268,7 @@ export const getThemeLayoutConfig = ({
 				horizontalPointsTextColor: '#ffffff',
 				horizontalPointTextVerticalAlign: 'middle',
 			}
-		case 'Mux':
+		case 'CherryBlossom':
 			return {
 				startX: layoutConfig.x,
 				startY: layoutConfig.y,
@@ -299,7 +299,7 @@ export const getThemeLayoutConfig = ({
 				horizontalPointsTextColor: '#383838',
 				horizontalPointTextVerticalAlign: 'middle',
 			}
-		case 'WunderGraph':
+		case 'Lilac':
 			return {
 				startX: layoutConfig.x,
 				startY: layoutConfig.y,
@@ -338,22 +338,22 @@ export const getThemeTextColor = (
 ): string => {
 	switch (theme.name) {
 		case 'DarkGradient':
-		case 'LeeRob':
-		case 'Web3Auth':
+		case 'Midnight':
+		case 'Spiro':
 		case 'DevsForUkraine':
-		case 'Whitep4nth3r':
-		case 'ShrutiKapoor':
-		case 'WunderGraph':
+		case 'Obsidian':
+		case 'Velvet':
+		case 'Lilac':
 			return '#ffffff'
 		case 'PastelLines':
 			return '#27272A'
-		case 'Cassidoo':
+		case 'Rainbow':
 			return '#27272A'
-		case 'LambdaTest':
+		case 'Iceberg':
 			return '#27272A'
-		case 'VetsWhoCode':
+		case 'Cardinal':
 			return '#091F40'
-		case 'Mux':
+		case 'CherryBlossom':
 			return '#383838'
 		default:
 			return '#ffffff'
@@ -368,20 +368,20 @@ export const getThemeSurfaceColor = (
 		case 'DarkGradient':
 			return '#151D2C'
 		case 'PastelLines':
-		case 'LeeRob':
-		case 'Web3Auth':
+		case 'Midnight':
+		case 'Spiro':
 		case 'DevsForUkraine':
-		case 'Whitep4nth3r':
-		case 'ShrutiKapoor':
+		case 'Obsidian':
+		case 'Velvet':
 			return ''
-		case 'Cassidoo':
+		case 'Rainbow':
 			return '#fafafa'
-		case 'LambdaTest':
-		case 'VetsWhoCode':
+		case 'Iceberg':
+		case 'Cardinal':
 			return '#ffffff'
-		case 'Mux':
+		case 'CherryBlossom':
 			return '#FAFAFC'
-		case 'WunderGraph':
+		case 'Lilac':
 			return '#2D3748'
 		default:
 			return '#ffffff'
@@ -396,22 +396,22 @@ export const getThemeFont = (
 			return 'Gilroy'
 		case 'PastelLines':
 			return 'Outfit'
-		case 'Cassidoo':
+		case 'Rainbow':
 			return 'Roboto Mono'
-		case 'LambdaTest':
-		case 'LeeRob':
-		case 'WunderGraph':
+		case 'Iceberg':
+		case 'Midnight':
+		case 'Lilac':
 			return 'Inter'
-		case 'Web3Auth':
+		case 'Spiro':
 			return 'DM Sans'
 		case 'DevsForUkraine':
 			return 'Montserrat'
-		case 'Whitep4nth3r':
-		case 'Mux':
+		case 'Obsidian':
+		case 'CherryBlossom':
 			return 'Work Sans'
-		case 'VetsWhoCode':
+		case 'Cardinal':
 			return 'Gotham'
-		case 'ShrutiKapoor':
+		case 'Velvet':
 			return 'Space Mono'
 		default:
 			return 'Gilroy'
@@ -447,7 +447,7 @@ export const getThemeSupportedUserMediaLayouts = (
 				'full-left',
 				'full-right',
 			]
-		case 'Cassidoo':
+		case 'Rainbow':
 			return [
 				'classic',
 				'float-full-right',
@@ -459,7 +459,7 @@ export const getThemeSupportedUserMediaLayouts = (
 				'full-left',
 				'full-right',
 			]
-		case 'LambdaTest':
+		case 'Iceberg':
 			return [
 				'classic',
 				'float-full-right',
@@ -471,7 +471,7 @@ export const getThemeSupportedUserMediaLayouts = (
 				'full-left',
 				'full-right',
 			]
-		case 'LeeRob':
+		case 'Midnight':
 			return [
 				'classic',
 				'float-full-right',
@@ -482,7 +482,7 @@ export const getThemeSupportedUserMediaLayouts = (
 				'full-left',
 				'full-right',
 			]
-		case 'Web3Auth':
+		case 'Spiro':
 			return [
 				'classic',
 				'float-full-right',
@@ -510,7 +510,7 @@ export const getThemeSupportedUserMediaLayouts = (
 				'full-left',
 				'full-right',
 			]
-		case 'Whitep4nth3r':
+		case 'Obsidian':
 			return [
 				'classic',
 				'float-full-right',
@@ -521,7 +521,7 @@ export const getThemeSupportedUserMediaLayouts = (
 				'full-left',
 				'full-right',
 			]
-		case 'VetsWhoCode':
+		case 'Cardinal':
 			return [
 				'classic',
 				'float-full-right',
@@ -531,7 +531,7 @@ export const getThemeSupportedUserMediaLayouts = (
 				'full-left',
 				'full-right',
 			]
-		case 'ShrutiKapoor':
+		case 'Velvet':
 			return [
 				'classic',
 				'float-full-right',
@@ -543,8 +543,8 @@ export const getThemeSupportedUserMediaLayouts = (
 				'full-left',
 				'full-right',
 			]
-		case 'Mux':
-		case 'WunderGraph':
+		case 'CherryBlossom':
+		case 'Lilac':
 			return [
 				'classic',
 				'float-full-right',
@@ -564,19 +564,19 @@ export const getThemeBasedIntroLayouts = (themeName: string): Layout[] => {
 	switch (themeName) {
 		case 'DarkGradient':
 		case 'PastelLines':
-		case 'Cassidoo':
-		case 'LambdaTest':
-		case 'LeeRob':
-		case 'Web3Auth':
+		case 'Rainbow':
+		case 'Iceberg':
+		case 'Midnight':
+		case 'Spiro':
 			return ['bottom-right-tile', 'float-full-right']
 		case 'DevsForUkraine':
-		case 'Whitep4nth3r':
+		case 'Obsidian':
 			return ['classic', 'bottom-right-tile']
-		case 'VetsWhoCode':
+		case 'Cardinal':
 			return ['classic', 'bottom-right-circle', 'float-full-right']
-		case 'ShrutiKapoor':
-		case 'Mux':
-		case 'WunderGraph':
+		case 'Velvet':
+		case 'CherryBlossom':
+		case 'Lilac':
 			return ['classic', 'bottom-right-tile', 'float-full-right']
 		default:
 			return []

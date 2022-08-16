@@ -237,7 +237,7 @@ const PointsFragment = ({
 			fontStyle: 'normal 800',
 		})
 		setNoOfLinesOfTitle(
-			theme?.name === 'Whitep4nth3r'
+			theme?.name === 'Obsidian'
 				? tempNoOfLinesOfTitle + 0.5
 				: tempNoOfLinesOfTitle
 		)
@@ -433,14 +433,14 @@ const PointsFragment = ({
 					'Gilroy'
 				}
 			/>
-			{theme.name === 'Whitep4nth3r' &&
+			{theme.name === 'Obsidian' &&
 				shouldDisplayTitle &&
 				dataConfig?.title !== undefined && (
 					<Rect
 						x={objectRenderConfig.startX + 30}
 						y={
 							appearance !== 'replace'
-								? // the no of line of title is used to calculate the height of the title and subtracting 0.25 bcoz we added 0.5 to no of lines if the theme is whitep4nth3r, so subtracting 0.25 to center the line
+								? // the no of line of title is used to calculate the height of the title and subtracting 0.25 bcoz we added 0.5 to no of lines if the theme is Obsidian, so subtracting 0.25 to center the line
 								  objectRenderConfig.startY +
 								  32 +
 								  (noOfLinesOfTitle - 0.25) * 50

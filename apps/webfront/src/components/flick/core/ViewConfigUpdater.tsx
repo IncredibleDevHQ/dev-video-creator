@@ -259,7 +259,7 @@ const ViewConfigUpdater = () => {
 						code: {
 							animation: CodeAnimation.TypeLines,
 							theme:
-								theme?.name !== 'Mux'
+								theme?.name !== 'CherryBlossom'
 									? CodeTheme.DarkPlus
 									: CodeTheme.LightPlus,
 							codeStyle: CodeStyle.Editor,

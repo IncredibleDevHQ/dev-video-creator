@@ -206,7 +206,7 @@ export const getOutroConfig = ({
 							logoHeight: 54,
 						}
 				}
-			case 'Cassidoo':
+			case 'Rainbow':
 				switch (layout) {
 					case 'classic':
 						return {
@@ -290,7 +290,7 @@ export const getOutroConfig = ({
 							logoHeight: 54,
 						}
 				}
-			case 'LambdaTest':
+			case 'Iceberg':
 				switch (layout) {
 					case 'classic':
 						return {
@@ -374,7 +374,7 @@ export const getOutroConfig = ({
 							logoHeight: 32,
 						}
 				}
-			case 'LeeRob':
+			case 'Midnight':
 				switch (layout) {
 					case 'classic':
 						return {
@@ -458,7 +458,7 @@ export const getOutroConfig = ({
 							logoHeight: 32,
 						}
 				}
-			case 'Web3Auth':
+			case 'Spiro':
 				switch (layout) {
 					case 'classic':
 						return {
@@ -629,7 +629,7 @@ export const getOutroConfig = ({
 							logoHeight: 32,
 						}
 				}
-			case 'Whitep4nth3r':
+			case 'Obsidian':
 				switch (layout) {
 					case 'classic':
 						return {
@@ -718,7 +718,7 @@ export const getOutroConfig = ({
 							logoHeight: 32,
 						}
 				}
-			case 'VetsWhoCode':
+			case 'Cardinal':
 				switch (layout) {
 					case 'classic':
 						return {
@@ -806,7 +806,7 @@ export const getOutroConfig = ({
 							logoHeight: 36,
 						}
 				}
-			case 'ShrutiKapoor':
+			case 'Velvet':
 				switch (layout) {
 					case 'classic':
 						return {
@@ -894,7 +894,7 @@ export const getOutroConfig = ({
 							logoHeight: 36,
 						}
 				}
-			case 'Mux':
+			case 'CherryBlossom':
 				switch (layout) {
 					case 'classic':
 						return {
@@ -982,7 +982,7 @@ export const getOutroConfig = ({
 							logoHeight: 36,
 						}
 				}
-			case 'WunderGraph':
+			case 'Lilac':
 				switch (layout) {
 					case 'classic':
 						return {
@@ -1221,7 +1221,7 @@ export const getOutroConfig = ({
 						logoHeight: 28,
 					}
 			}
-		case 'Cassidoo':
+		case 'Rainbow':
 			switch (layout) {
 				case 'classic':
 					return {
@@ -1285,11 +1285,11 @@ export const getOutroConfig = ({
 						logoHeight: 28,
 					}
 			}
-		case 'LambdaTest':
-		case 'LeeRob':
-		case 'Web3Auth':
+		case 'Iceberg':
+		case 'Midnight':
+		case 'Spiro':
 		case 'DevsForUkraine':
-		case 'Whitep4nth3r':
+		case 'Obsidian':
 			switch (layout) {
 				case 'classic':
 					return {
@@ -1353,8 +1353,8 @@ export const getOutroConfig = ({
 						logoHeight: 28,
 					}
 			}
-		case 'VetsWhoCode':
-		case 'WunderGraph':
+		case 'Cardinal':
+		case 'Lilac':
 			switch (layout) {
 				case 'classic':
 					return {
@@ -1418,7 +1418,7 @@ export const getOutroConfig = ({
 						logoHeight: 28,
 					}
 			}
-		case 'ShrutiKapoor':
+		case 'Velvet':
 			switch (layout) {
 				case 'classic':
 					return {

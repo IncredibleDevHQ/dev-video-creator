@@ -108,7 +108,7 @@ const OutroFragment = ({
 	)
 
 	const [pantherBg] = useImage(
-		`${storage.cdn}themes/Whitep4nth3r/Whitep4nth3rBg.svg`,
+		`${storage.cdn}themes/Obsidian/ObsidianBg.svg`,
 		'anonymous'
 	)
 
@@ -289,7 +289,7 @@ const OutroFragment = ({
 					fill='#1C1C1C'
 				/>
 			)}
-			{theme.name === 'Whitep4nth3r' && (
+			{theme.name === 'Obsidian' && (
 				<Group>
 					<Image
 						x={0}

@@ -180,7 +180,7 @@ const ImageFragment = ({
 			fontStyle: 'bold',
 		})
 		noOfLinesOfTitle =
-			theme?.name === 'Whitep4nth3r' ? noOfLinesOfTitle + 0.8 : noOfLinesOfTitle
+			theme?.name === 'Obsidian' ? noOfLinesOfTitle + 0.8 : noOfLinesOfTitle
 		const noOfLinesOfCaption = getNoOfLinesOfText({
 			text: imageFragmentData?.caption || '',
 			availableWidth: !shortsMode
@@ -449,31 +449,46 @@ const ImageFragment = ({
 						{(renderMode === 'titleOnly' ||
 							renderMode === 'titleAndCaption') && (
 							<Group>
-								{theme.name === 'Whitep4nth3r' &&
-									imageFragmentData?.title !== '' && (
-										<Rect
-											x={
-												(objectRenderConfig.availableWidth - 20) / 2 -
-												(noOfLinesOfText.noOfLinesOfTitle - 0.8 === 1
-													? getTextWidth(
-															imageFragmentData?.title || '',
-															branding?.font?.heading?.family ||
-																objectRenderConfig.titleFont ||
-																'Gilroy',
-															objectRenderConfig?.blockTitleFontSize || 24,
-															'bold'
-													  ) + 30
-													: objectRenderConfig.availableWidth - 80) /
-													2 +
-												10
-											}
-											y={
-												16 +
-												(noOfLinesOfText.noOfLinesOfTitle - 0.25) *
-													(objectRenderConfig?.blockTitleFontSize || 24)
-											}
-											width={
-												// checking if the no of lines of title is equal to 1, and based on that calculate the width of the title
+								{theme.name === 'Obsidian' && imageFragmentData?.title !== '' && (
+									<Rect
+										x={
+											(objectRenderConfig.availableWidth - 20) / 2 -
+											(noOfLinesOfText.noOfLinesOfTitle - 0.8 === 1
+												? getTextWidth(
+														imageFragmentData?.title || '',
+														branding?.font?.heading?.family ||
+															objectRenderConfig.titleFont ||
+															'Gilroy',
+														objectRenderConfig?.blockTitleFontSize || 24,
+														'bold'
+												  ) + 30
+												: objectRenderConfig.availableWidth - 80) /
+												2 +
+											10
+										}
+										y={
+											16 +
+											(noOfLinesOfText.noOfLinesOfTitle - 0.25) *
+												(objectRenderConfig?.blockTitleFontSize || 24)
+										}
+										width={
+											// checking if the no of lines of title is equal to 1, and based on that calculate the width of the title
+											noOfLinesOfText.noOfLinesOfTitle - 0.8 === 1
+												? getTextWidth(
+														imageFragmentData?.title || '',
+														branding?.font?.heading?.family ||
+															objectRenderConfig.titleFont ||
+															'Gilroy',
+														objectRenderConfig?.blockTitleFontSize || 24,
+														'bold'
+												  ) + 30
+												: objectRenderConfig.availableWidth - 80
+										}
+										height={5}
+										fillLinearGradientColorStops={[0, '#F11012', 1, '#FFB626']}
+										fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+										fillLinearGradientEndPoint={{
+											x:
 												noOfLinesOfText.noOfLinesOfTitle - 0.8 === 1
 													? getTextWidth(
 															imageFragmentData?.title || '',
@@ -483,32 +498,11 @@ const ImageFragment = ({
 															objectRenderConfig?.blockTitleFontSize || 24,
 															'bold'
 													  ) + 30
-													: objectRenderConfig.availableWidth - 80
-											}
-											height={5}
-											fillLinearGradientColorStops={[
-												0,
-												'#F11012',
-												1,
-												'#FFB626',
-											]}
-											fillLinearGradientStartPoint={{ x: 0, y: 0 }}
-											fillLinearGradientEndPoint={{
-												x:
-													noOfLinesOfText.noOfLinesOfTitle - 0.8 === 1
-														? getTextWidth(
-																imageFragmentData?.title || '',
-																branding?.font?.heading?.family ||
-																	objectRenderConfig.titleFont ||
-																	'Gilroy',
-																objectRenderConfig?.blockTitleFontSize || 24,
-																'bold'
-														  ) + 30
-														: objectRenderConfig.availableWidth - 80,
-												y: 0,
-											}}
-										/>
-									)}
+													: objectRenderConfig.availableWidth - 80,
+											y: 0,
+										}}
+									/>
+								)}
 								<Text
 									x={10}
 									y={16}

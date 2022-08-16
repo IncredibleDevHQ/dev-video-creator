@@ -1045,7 +1045,7 @@ export const getStudioUserConfiguration = ({
 						},
 					]
 			}
-		case 'Cassidoo': {
+		case 'Rainbow': {
 			if (fragmentState === 'onlyUserMedia') {
 				switch (noOfParticipants) {
 					case 2:
@@ -1682,7 +1682,7 @@ export const getStudioUserConfiguration = ({
 					]
 			}
 		}
-		case 'LambdaTest':
+		case 'Iceberg':
 			if (fragmentState === 'onlyUserMedia') {
 				switch (noOfParticipants) {
 					case 2:
@@ -2084,7 +2084,7 @@ export const getStudioUserConfiguration = ({
 						},
 					]
 			}
-		case 'LeeRob':
+		case 'Midnight':
 			if (fragmentState === 'onlyUserMedia') {
 				switch (noOfParticipants) {
 					case 2:
@@ -2720,7 +2720,7 @@ export const getStudioUserConfiguration = ({
 						},
 					]
 			}
-		case 'Web3Auth':
+		case 'Spiro':
 			if (fragmentState === 'onlyUserMedia') {
 				switch (noOfParticipants) {
 					case 2:
@@ -3750,7 +3750,7 @@ export const getStudioUserConfiguration = ({
 						},
 					]
 			}
-		case 'Whitep4nth3r':
+		case 'Obsidian':
 			if (fragmentState === 'onlyUserMedia') {
 				switch (noOfParticipants) {
 					case 2:
@@ -4230,7 +4230,7 @@ export const getStudioUserConfiguration = ({
 						},
 					]
 			}
-		case 'VetsWhoCode':
+		case 'Cardinal':
 			if (fragmentState === 'onlyUserMedia') {
 				switch (noOfParticipants) {
 					case 2:
@@ -4641,7 +4641,7 @@ export const getStudioUserConfiguration = ({
 						},
 					]
 			}
-		case 'ShrutiKapoor':
+		case 'Velvet':
 			if (fragmentState === 'onlyUserMedia') {
 				switch (noOfParticipants) {
 					case 2:
@@ -5236,7 +5236,7 @@ export const getStudioUserConfiguration = ({
 						},
 					]
 			}
-		case 'Mux':
+		case 'CherryBlossom':
 			if (fragmentState === 'onlyUserMedia') {
 				switch (noOfParticipants) {
 					case 2:
@@ -5711,7 +5711,7 @@ export const getStudioUserConfiguration = ({
 						},
 					]
 			}
-		case 'WunderGraph':
+		case 'Lilac':
 			if (fragmentState === 'onlyUserMedia') {
 				switch (noOfParticipants) {
 					case 2:
@@ -6887,7 +6887,7 @@ export const getShortsStudioUserConfiguration = ({
 						},
 					]
 			}
-		case 'Cassidoo': {
+		case 'Rainbow': {
 			if (fragmentState === 'onlyUserMedia') {
 				switch (noOfParticipants) {
 					case 2:
@@ -7242,7 +7242,7 @@ export const getShortsStudioUserConfiguration = ({
 					]
 			}
 		}
-		case 'LambdaTest':
+		case 'Iceberg':
 			if (fragmentState === 'onlyUserMedia') {
 				switch (noOfParticipants) {
 					case 2:
@@ -7544,7 +7544,7 @@ export const getShortsStudioUserConfiguration = ({
 						},
 					]
 			}
-		case 'LeeRob':
+		case 'Midnight':
 			if (fragmentState === 'onlyUserMedia') {
 				switch (noOfParticipants) {
 					case 2:
@@ -7898,7 +7898,7 @@ export const getShortsStudioUserConfiguration = ({
 						},
 					]
 			}
-		case 'Web3Auth':
+		case 'Spiro':
 			if (fragmentState === 'onlyUserMedia') {
 				switch (noOfParticipants) {
 					case 2:
@@ -8556,7 +8556,7 @@ export const getShortsStudioUserConfiguration = ({
 						},
 					]
 			}
-		case 'Whitep4nth3r':
+		case 'Obsidian':
 			if (fragmentState === 'onlyUserMedia') {
 				switch (noOfParticipants) {
 					case 2:
@@ -8870,7 +8870,7 @@ export const getShortsStudioUserConfiguration = ({
 						},
 					]
 			}
-		case 'VetsWhoCode':
+		case 'Cardinal':
 			if (fragmentState === 'onlyUserMedia') {
 				switch (noOfParticipants) {
 					case 2:
@@ -9184,7 +9184,7 @@ export const getShortsStudioUserConfiguration = ({
 						},
 					]
 			}
-		case 'ShrutiKapoor':
+		case 'Velvet':
 			if (fragmentState === 'onlyUserMedia') {
 				switch (noOfParticipants) {
 					case 2:
@@ -9564,7 +9564,7 @@ export const getShortsStudioUserConfiguration = ({
 						},
 					]
 			}
-		case 'Mux':
+		case 'CherryBlossom':
 			if (fragmentState === 'onlyUserMedia') {
 				switch (noOfParticipants) {
 					case 2:
@@ -9871,7 +9871,7 @@ export const getShortsStudioUserConfiguration = ({
 						},
 					]
 			}
-		case 'WunderGraph':
+		case 'Lilac':
 			if (fragmentState === 'onlyUserMedia') {
 				switch (noOfParticipants) {
 					case 2:

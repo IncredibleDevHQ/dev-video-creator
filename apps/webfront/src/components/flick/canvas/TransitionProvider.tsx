@@ -6,15 +6,15 @@ import { BrandingJSON } from 'src/utils/configs'
 import { TopLayerChildren } from 'utils/src'
 
 import {
-	CassidooTransition,
+	RainbowTransition,
 	DevsForUkraineTransition,
 	DipTransition,
-	LeeRobTransition,
+	MidnightTransition,
 	PastelLinesTransition,
-	ShrutiKapoorTransition,
+	VelvetTransition,
 	TrianglePathTransition,
-	VetsWhoCodeTransition,
-	Whitep4nth3rTransition,
+	CardinalTransition,
+	ObsidianTransition,
 } from './Transitions'
 
 const TransitionProvider = ({
@@ -81,7 +81,7 @@ const TransitionProvider = ({
 				)
 			case 'Rectangles':
 				return (
-					<Whitep4nth3rTransition
+					<ObsidianTransition
 						direction={direction}
 						isShorts={isShorts}
 						// color="black"
@@ -101,7 +101,7 @@ const TransitionProvider = ({
 				)
 			case 'Wipe':
 				return (
-					<LeeRobTransition
+					<MidnightTransition
 						direction={direction}
 						isShorts={isShorts}
 						// color={branding?.colors?.transition}
@@ -111,7 +111,7 @@ const TransitionProvider = ({
 				)
 			case 'CloseSides':
 				return (
-					<VetsWhoCodeTransition
+					<CardinalTransition
 						direction={direction}
 						isShorts={isShorts}
 						// color="black"
@@ -165,7 +165,7 @@ const TransitionProvider = ({
 						setTopLayerChildren={setTopLayerChildren}
 					/>
 				)
-			case 'Cassidoo':
+			case 'Rainbow':
 				if (direction === 'moveIn' || direction === 'moveAway') {
 					return (
 						<DipTransition
@@ -178,14 +178,14 @@ const TransitionProvider = ({
 					)
 				}
 				return (
-					<CassidooTransition
+					<RainbowTransition
 						direction={direction}
 						isShorts={isShorts}
 						color={branding?.colors?.transition}
 						setTopLayerChildren={setTopLayerChildren}
 					/>
 				)
-			case 'LambdaTest':
+			case 'Iceberg':
 				if (direction === 'moveIn' || direction === 'moveAway') {
 					return (
 						<DipTransition
@@ -205,7 +205,7 @@ const TransitionProvider = ({
 						setTopLayerChildren={setTopLayerChildren}
 					/>
 				)
-			case 'LeeRob':
+			case 'Midnight':
 				if (direction === 'moveIn' || direction === 'moveAway') {
 					return (
 						<DipTransition
@@ -218,7 +218,7 @@ const TransitionProvider = ({
 					)
 				}
 				return (
-					// <LeeRobTransition
+					// <MidnightTransition
 					//   direction={direction}
 					//   isShorts={isShorts}
 					//   // color={branding?.colors?.transition}
@@ -231,7 +231,7 @@ const TransitionProvider = ({
 						setTopLayerChildren={setTopLayerChildren}
 					/>
 				)
-			case 'Web3Auth':
+			case 'Spiro':
 				if (direction === 'moveIn' || direction === 'moveAway') {
 					return (
 						<DipTransition
@@ -250,7 +250,7 @@ const TransitionProvider = ({
 						color={branding?.colors?.transition}
 						performFinishAction={performFinishAction}
 					/>
-					// <Web3AuthTransition
+					// <SpiroTransition
 					//   direction={direction}
 					//   // isShorts={isShorts}
 					//   // color={branding?.colors?.transition}
@@ -277,7 +277,7 @@ const TransitionProvider = ({
 						setTopLayerChildren={setTopLayerChildren}
 					/>
 				)
-			case 'Whitep4nth3r':
+			case 'Obsidian':
 				if (direction === 'moveIn' || direction === 'moveAway') {
 					return (
 						<DipTransition
@@ -290,14 +290,14 @@ const TransitionProvider = ({
 					)
 				}
 				return (
-					<Whitep4nth3rTransition
+					<ObsidianTransition
 						direction={direction}
 						isShorts={isShorts}
 						// color="black"
 						setTopLayerChildren={setTopLayerChildren}
 					/>
 				)
-			case 'VetsWhoCode':
+			case 'Cardinal':
 				if (direction === 'moveIn' || direction === 'moveAway') {
 					return (
 						<DipTransition
@@ -310,14 +310,14 @@ const TransitionProvider = ({
 					)
 				}
 				return (
-					<VetsWhoCodeTransition
+					<CardinalTransition
 						direction={direction}
 						isShorts={isShorts}
 						// color="black"
 						setTopLayerChildren={setTopLayerChildren}
 					/>
 				)
-			case 'ShrutiKapoor':
+			case 'Velvet':
 				if (direction === 'moveIn' || direction === 'moveAway') {
 					return (
 						<DipTransition
@@ -330,14 +330,14 @@ const TransitionProvider = ({
 					)
 				}
 				return (
-					<ShrutiKapoorTransition
+					<VelvetTransition
 						direction={direction}
 						isShorts={isShorts}
 						// color="black"
 						setTopLayerChildren={setTopLayerChildren}
 					/>
 				)
-			case 'Mux':
+			case 'CherryBlossom':
 				if (direction === 'moveIn' || direction === 'moveAway') {
 					return (
 						<DipTransition
@@ -357,7 +357,7 @@ const TransitionProvider = ({
 						setTopLayerChildren={setTopLayerChildren}
 					/>
 				)
-			case 'WunderGraph':
+			case 'Lilac':
 				if (direction === 'moveIn' || direction === 'moveAway') {
 					return (
 						<DipTransition
