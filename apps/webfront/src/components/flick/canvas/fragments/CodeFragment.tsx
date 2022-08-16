@@ -56,38 +56,33 @@ import FragmentBackground from '../FragmentBackground'
 export const getColorCodes = async (
 	code: string,
 	language: string,
-	userToken: string,
 	codeTheme: CodeTheme,
 	endpoint: string
-) =>
-	axios.post(
-		endpoint,
-		{
-			query: `
-          query GetTokenisedCode(
-            $code: String!
-            $language: String!
-            $theme: String
-          ) {
-            TokenisedCode(code: $code, language: $language, theme: $theme) {
-              success
-              data
-            }
-          }
-        `,
-			variables: {
+) => {
+	try {
+		const {
+			data: { success, data },
+		} = await axios.post(
+			endpoint,
+			{
 				code,
-				language: language || 'javascript',
+				language,
 				theme: codeTheme,
 			},
-		},
-		{
-			headers: {
-				'Content-Type': 'application/json',
-				authorization: `Bearer ${userToken}`,
-			},
-		}
-	)
+			{
+				headers: {
+					'Content-Type': 'application/json',
+				},
+			}
+		)
+		if (!success) throw Error('Failed to get color codes')
+		return { data, success }
+	} catch (e) {
+		throw new Error(
+			(e as any).response.message || (e as any).response.data.error
+		)
+	}
+}
 
 export const getSurfaceColor = ({ codeTheme }: { codeTheme: CodeTheme }) => {
 	switch (codeTheme) {
@@ -154,7 +149,7 @@ const CodeFragment = ({
 	})
 	const setControlsConfig = useSetRecoilState(controlsConfigAtom)
 
-	const { hasura } = useEnv()
+	const { client } = useEnv()
 	const { token: userToken } = useContext(UserContext)
 
 	const codePreviewValue = useRecoilValue(codePreviewStore)
@@ -214,20 +209,20 @@ const CodeFragment = ({
 	const { clipRect } = useEdit()
 
 	const debounceColorCodes = useDebouncedCallback(async value => {
-		const { data } = await getColorCodes(
+		const { data, success } = await getColorCodes(
 			value.decodedCode,
 			value.language,
-			value.token,
 			value.theme,
-			hasura.server
+			client.tokenizerUrl!
 		)
-		if (!data?.errors) {
-			setColorCodes(data.data.TokenisedCode.data)
+
+		if (success) {
+			setColorCodes(data)
 			setCodes({
 				...codes,
 				[dataConfig.id]: {
 					code: value.decodedCode,
-					colorCode: data.data.TokenisedCode.data,
+					colorCode: data,
 					theme: value.theme,
 				},
 			})

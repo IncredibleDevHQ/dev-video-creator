@@ -3,11 +3,6 @@ const getEnv = () => ({
 	agora: {
 		appId: process.env.NEXT_PUBLIC_AGORA_APP_ID,
 	},
-	hasura: {
-		server: process.env.NEXT_PUBLIC_HASURA_SERVER,
-		restServer: process.env.NEXT_PUBLIC_HASURA_REST,
-		wsServer: process.env.NEXT_PUBLIC_HASURA_WS_SERVER,
-	},
 	api: process.env.NEXT_PUBLIC_API_ENDPOINT,
 	storage: {
 		cdn: process.env.NEXT_PUBLIC_CDN_URL,
@@ -15,6 +10,7 @@ const getEnv = () => ({
 	client: {
 		publicUrl: process.env.NEXT_PUBLIC_PUBLIC_URL,
 		embedPlayerUrl: process.env.NEXT_PUBLIC_EMBED_PLAYER_BASE_URL,
+		tokenizerUrl: process.env.NEXT_PUBLIC_TOKENIZE_ENDPOINT,
 	},
 	hocuspocus: process.env.NEXT_PUBLIC_HOCUSPOCUS_SERVER,
 	liveblocks: {

@@ -24,6 +24,11 @@ const getDopplerSecrets = async () => {
 	})
 }
 
+const getSecrets = () => {
+	const secrets = fs.readFileSync('./secrets.json')
+	return JSON.parse(secrets)
+}
+
 /* ref: https://gist.github.com/siwalikm/8311cf0a287b98ef67c73c1b03b47154#file-aes-256-cbc-js-L2 */
 const encryptEnv = val => {
 	const cipher = crypto.createCipheriv(
@@ -41,7 +46,10 @@ if (require.main === module) {
 	;(async () => {
 		try {
 			console.log('PREBUILD-WF : FETCHING SECRETS FROM DOPPLER ...')
-			const secrets = await getDopplerSecrets()
+			const secrets =
+				process.env.DEPLOY_ENV === 'develop'
+					? getSercets()
+					: await getDopplerSecrets()
 
 			console.log('PREBUILD-WF : ENCRYPTING SECRETS ...')
 			const rawSecrets = JSON.stringify(secrets)
