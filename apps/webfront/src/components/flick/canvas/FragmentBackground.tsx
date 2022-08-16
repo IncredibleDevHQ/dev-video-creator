@@ -44,7 +44,7 @@ const FragmentBackground = ({
 				</Group>
 			)
 		case 'PastelLines':
-		case 'Web3Auth':
+		case 'Spiro':
 			return (
 				<Rect
 					x={objectConfig.x}
@@ -57,10 +57,10 @@ const FragmentBackground = ({
 				/>
 			)
 		case 'DevsForUkraine':
-		case 'Whitep4nth3r':
-		case 'VetsWhoCode':
-		case 'Mux':
-		case 'WunderGraph':
+		case 'Obsidian':
+		case 'Cardinal':
+		case 'CherryBlossom':
+		case 'Lilac':
 			return (
 				<Rect
 					x={objectConfig.x}
@@ -70,7 +70,7 @@ const FragmentBackground = ({
 					fill={backgroundRectColor}
 				/>
 			)
-		case 'Cassidoo':
+		case 'Rainbow':
 			return (
 				<Group>
 					<Rect
@@ -110,7 +110,7 @@ const FragmentBackground = ({
 					/>
 				</Group>
 			)
-		case 'LambdaTest':
+		case 'Iceberg':
 			return (
 				<Group>
 					<Rect
@@ -137,7 +137,7 @@ const FragmentBackground = ({
 					/>
 				</Group>
 			)
-		case 'LeeRob':
+		case 'Midnight':
 			return (
 				<Rect
 					x={objectConfig.x}
@@ -149,7 +149,7 @@ const FragmentBackground = ({
 					strokeWidth={8}
 				/>
 			)
-		case 'ShrutiKapoor':
+		case 'Velvet':
 			return (
 				<Rect
 					x={objectConfig.x}

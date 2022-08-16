@@ -311,7 +311,7 @@ const VideoFragment = ({
 			fontStyle: 'bold',
 		})
 		noOfLinesOfTitle =
-			theme?.name === 'Whitep4nth3r' ? noOfLinesOfTitle + 0.8 : noOfLinesOfTitle
+			theme?.name === 'Obsidian' ? noOfLinesOfTitle + 0.8 : noOfLinesOfTitle
 		const noOfLinesOfCaption = getNoOfLinesOfText({
 			text: videoFragmentData?.caption || '',
 			availableWidth: !shortsMode
@@ -463,7 +463,7 @@ const VideoFragment = ({
 			<Group x={objectRenderConfig.startX} y={objectRenderConfig.startY}>
 				{(renderMode === 'titleOnly' || renderMode === 'titleAndCaption') && (
 					<Group>
-						{theme.name === 'Whitep4nth3r' && videoFragmentData?.title !== '' && (
+						{theme.name === 'Obsidian' && videoFragmentData?.title !== '' && (
 							<Rect
 								x={
 									(objectRenderConfig.availableWidth - 20) / 2 -

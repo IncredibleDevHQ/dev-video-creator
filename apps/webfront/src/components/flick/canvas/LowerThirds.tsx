@@ -1041,7 +1041,7 @@ export const PastelLinesLowerThirds = ({
 	)
 }
 
-export const CassidooLowerThirds = ({
+export const RainbowLowerThirds = ({
 	x,
 	y,
 	userName,
@@ -1283,7 +1283,7 @@ export const CassidooLowerThirds = ({
 	)
 }
 
-export const LambdaTestLowerThirds = ({
+export const IcebergLowerThirds = ({
 	x,
 	y,
 	userName,
@@ -1578,7 +1578,7 @@ export const LambdaTestLowerThirds = ({
 	)
 }
 
-export const LeeRobLowerThirds = ({
+export const MidnightLowerThirds = ({
 	x,
 	y,
 	userName,
@@ -1819,7 +1819,7 @@ export const LeeRobLowerThirds = ({
 	)
 }
 
-export const Web3AuthLowerThirds = ({
+export const SpiroLowerThirds = ({
 	x,
 	y,
 	userName,
@@ -2426,7 +2426,7 @@ export const DevsForUkraineLowerThirds = ({
 	)
 }
 
-export const Whitep4nth3rLowerThirds = ({
+export const ObsidianLowerThirds = ({
 	x,
 	y,
 	userName,
@@ -2612,7 +2612,7 @@ export const Whitep4nth3rLowerThirds = ({
 	)
 }
 
-export const VetsWhoCodeLowerThirds = ({
+export const CardinalLowerThirds = ({
 	x,
 	y,
 	userName,
@@ -2903,7 +2903,7 @@ export const VetsWhoCodeLowerThirds = ({
 	)
 }
 
-export const ShrutiKapoorLowerThirds = ({
+export const VelvetLowerThirds = ({
 	x,
 	y,
 	userName,
@@ -3094,7 +3094,7 @@ export const ShrutiKapoorLowerThirds = ({
 	)
 }
 
-export const MuxLowerThirds = ({
+export const CherryBlossomLowerThirds = ({
 	x,
 	y,
 	userName,
@@ -3234,7 +3234,7 @@ export const MuxLowerThirds = ({
 	)
 }
 
-export const WunderGraphLowerThirds = ({
+export const LilacLowerThirds = ({
 	x,
 	y,
 	userName,

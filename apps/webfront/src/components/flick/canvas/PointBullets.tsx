@@ -20,13 +20,13 @@ const HorizontalPointBullets = ({
 	switch (theme) {
 		case 'DarkGradient':
 		case 'PastelLines':
-		case 'Cassidoo':
-		case 'LambdaTest':
-		case 'LeeRob':
+		case 'Rainbow':
+		case 'Iceberg':
+		case 'Midnight':
 		case 'DevsForUkraine':
-		case 'Whitep4nth3r':
-		case 'Mux':
-		case 'WunderGraph':
+		case 'Obsidian':
+		case 'CherryBlossom':
+		case 'Lilac':
 			return (
 				<>
 					<Rect
@@ -53,7 +53,7 @@ const HorizontalPointBullets = ({
 					/>
 				</>
 			)
-		case 'Web3Auth':
+		case 'Spiro':
 			return (
 				<>
 					<Rect
@@ -108,7 +108,7 @@ const HorizontalPointBullets = ({
 					/>
 				</>
 			)
-		case 'VetsWhoCode':
+		case 'Cardinal':
 			return (
 				<Star
 					x={bulletsConfig.bulletXOffset}
@@ -119,7 +119,7 @@ const HorizontalPointBullets = ({
 					fill={bulletsConfig.bulletColor as string}
 				/>
 			)
-		case 'ShrutiKapoor':
+		case 'Velvet':
 			return (
 				<>
 					<Rect
@@ -166,19 +166,19 @@ export const PointBullets = ({
 }) => {
 	const branding = useRecoilValue(brandingAtom)
 	const { storage } = useEnv()
-	const [wunderGraphBullet] = useImage(
-		`${storage.cdn}themes/WunderGraph/wunderGraphBullet.svg`,
+	const [lilacBullet] = useImage(
+		`${storage.cdn}themes/Lilac/LilacBullet.svg`,
 		'anonymous'
 	)
 	switch (theme) {
 		case 'DarkGradient':
 		case 'PastelLines':
-		case 'Cassidoo':
-		case 'LambdaTest':
-		case 'LeeRob':
+		case 'Rainbow':
+		case 'Iceberg':
+		case 'Midnight':
 		case 'DevsForUkraine':
-		case 'Web3Auth':
-		case 'Mux':
+		case 'Spiro':
+		case 'CherryBlossom':
 			return (
 				<Rect
 					key='points'
@@ -206,7 +206,7 @@ export const PointBullets = ({
 					rotation={objectRenderConfig.pointsBulletRotation}
 				/>
 			)
-		case 'Whitep4nth3r':
+		case 'Obsidian':
 			return (
 				<Group
 					x={
@@ -260,7 +260,7 @@ export const PointBullets = ({
 					/>
 				</Group>
 			)
-		case 'VetsWhoCode':
+		case 'Cardinal':
 			return (
 				<Star
 					x={
@@ -282,7 +282,7 @@ export const PointBullets = ({
 					}}
 				/>
 			)
-		case 'ShrutiKapoor':
+		case 'Velvet':
 			return (
 				<Group
 					x={
@@ -326,11 +326,11 @@ export const PointBullets = ({
 					/>
 				</Group>
 			)
-		case 'WunderGraph':
+		case 'Lilac':
 			return (
 				<Image
 					key='points'
-					image={wunderGraphBullet}
+					image={lilacBullet}
 					x={
 						pointRenderMode === 'stack'
 							? -2 + (41 * (pointLevel - 1) || 0)

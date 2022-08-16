@@ -6,18 +6,18 @@ import { BrandingJSON, CONFIG, SHORTS_CONFIG } from 'src/utils/configs'
 import { useUser } from 'src/utils/providers/auth'
 import { IntroBlockViewProps, TopLayerChildren } from 'utils/src'
 import {
-	CassidooLowerThirds,
+	RainbowLowerThirds,
 	DevsForUkraineLowerThirds,
 	GlassyLowerThirds,
-	LambdaTestLowerThirds,
-	LeeRobLowerThirds,
-	MuxLowerThirds,
+	IcebergLowerThirds,
+	MidnightLowerThirds,
+	CherryBlossomLowerThirds,
 	PastelLinesLowerThirds,
-	ShrutiKapoorLowerThirds,
-	VetsWhoCodeLowerThirds,
-	Web3AuthLowerThirds,
-	Whitep4nth3rLowerThirds,
-	WunderGraphLowerThirds,
+	VelvetLowerThirds,
+	CardinalLowerThirds,
+	SpiroLowerThirds,
+	ObsidianLowerThirds,
+	LilacLowerThirds,
 } from './LowerThirds'
 
 const LowerThridProvider = ({
@@ -143,10 +143,10 @@ const LowerThridProvider = ({
             ))} */}
 				</>
 			)
-		case 'Cassidoo': {
+		case 'Rainbow': {
 			return (
 				<>
-					<CassidooLowerThirds
+					<RainbowLowerThirds
 						x={!isShorts ? lowerThirdCoordinates({ position: 'left' })[0] : 45}
 						y={!isShorts ? 400 : 560}
 						userName={lowerThirdUserName || ''}
@@ -158,7 +158,7 @@ const LowerThridProvider = ({
 						setTopLayerChildren={setTopLayerChildren}
 					/>
 					{/* {users.map((user, index) => (
-            <CassidooLowerThirds
+            <RainbowLowerThirds
               // eslint-disable-next-line react/no-array-index-key
               key={index}
               x={lowerThirdCoordinates({ position: 'left' })[index + 1]}
@@ -174,10 +174,10 @@ const LowerThridProvider = ({
 				</>
 			)
 		}
-		case 'LambdaTest': {
+		case 'Iceberg': {
 			return (
 				<>
-					<LambdaTestLowerThirds
+					<IcebergLowerThirds
 						x={!isShorts ? lowerThirdCoordinates({ position: 'left' })[0] : 45}
 						y={!isShorts ? 400 : 560}
 						userName={lowerThirdUserName || ''}
@@ -189,7 +189,7 @@ const LowerThridProvider = ({
 						setTopLayerChildren={setTopLayerChildren}
 					/>
 					{/* {users.map((user, index) => (
-            <LambdaTestLowerThirds
+            <IcebergLowerThirds
               // eslint-disable-next-line react/no-array-index-key
               key={index}
               x={lowerThirdCoordinates({ position: 'left' })[index + 1]}
@@ -205,10 +205,10 @@ const LowerThridProvider = ({
 				</>
 			)
 		}
-		case 'LeeRob': {
+		case 'Midnight': {
 			return (
 				<>
-					<LeeRobLowerThirds
+					<MidnightLowerThirds
 						x={!isShorts ? lowerThirdCoordinates({ position: 'left' })[0] : 45}
 						y={!isShorts ? 400 : 560}
 						userName={lowerThirdUserName || ''}
@@ -220,7 +220,7 @@ const LowerThridProvider = ({
 						setTopLayerChildren={setTopLayerChildren}
 					/>
 					{/* {users.map((user, index) => (
-            <LeeRobLowerThirds
+            <MidnightLowerThirds
               // eslint-disable-next-line react/no-array-index-key
               key={index}
               x={lowerThirdCoordinates({ position: 'left' })[index + 1]}
@@ -236,10 +236,10 @@ const LowerThridProvider = ({
 				</>
 			)
 		}
-		case 'Web3Auth': {
+		case 'Spiro': {
 			return (
 				<>
-					<Web3AuthLowerThirds
+					<SpiroLowerThirds
 						x={!isShorts ? lowerThirdCoordinates({ position: 'left' })[0] : 45}
 						y={!isShorts ? 400 : 560}
 						userName={lowerThirdUserName || ''}
@@ -251,7 +251,7 @@ const LowerThridProvider = ({
 						setTopLayerChildren={setTopLayerChildren}
 					/>
 					{/* {users.map((user, index) => (
-            <LeeRobLowerThirds
+            <MidnightLowerThirds
               // eslint-disable-next-line react/no-array-index-key
               key={index}
               x={lowerThirdCoordinates({ position: 'left' })[index + 1]}
@@ -282,7 +282,7 @@ const LowerThridProvider = ({
 						setTopLayerChildren={setTopLayerChildren}
 					/>
 					{/* {users.map((user, index) => (
-            <LeeRobLowerThirds
+            <MidnightLowerThirds
               // eslint-disable-next-line react/no-array-index-key
               key={index}
               x={lowerThirdCoordinates({ position: 'left' })[index + 1]}
@@ -298,10 +298,10 @@ const LowerThridProvider = ({
 				</>
 			)
 		}
-		case 'Whitep4nth3r': {
+		case 'Obsidian': {
 			return (
 				<>
-					<Whitep4nth3rLowerThirds
+					<ObsidianLowerThirds
 						x={!isShorts ? lowerThirdCoordinates({ position: 'left' })[0] : 45}
 						y={!isShorts ? 430 : 600}
 						userName={lowerThirdUserName || ''}
@@ -313,7 +313,7 @@ const LowerThridProvider = ({
 						setTopLayerChildren={setTopLayerChildren}
 					/>
 					{/* {users.map((user, index) => (
-            <LeeRobLowerThirds
+            <MidnightLowerThirds
               // eslint-disable-next-line react/no-array-index-key
               key={index}
               x={lowerThirdCoordinates({ position: 'left' })[index + 1]}
@@ -329,10 +329,10 @@ const LowerThridProvider = ({
 				</>
 			)
 		}
-		case 'VetsWhoCode': {
+		case 'Cardinal': {
 			return (
 				<>
-					<VetsWhoCodeLowerThirds
+					<CardinalLowerThirds
 						x={!isShorts ? lowerThirdCoordinates({ position: 'left' })[0] : 45}
 						y={!isShorts ? 390 : 600}
 						userName={lowerThirdUserName || ''}
@@ -344,7 +344,7 @@ const LowerThridProvider = ({
 						setTopLayerChildren={setTopLayerChildren}
 					/>
 					{/* {users.map((user, index) => (
-            <LeeRobLowerThirds
+            <MidnightLowerThirds
               // eslint-disable-next-line react/no-array-index-key
               key={index}
               x={lowerThirdCoordinates({ position: 'left' })[index + 1]}
@@ -360,10 +360,10 @@ const LowerThridProvider = ({
 				</>
 			)
 		}
-		case 'ShrutiKapoor':
+		case 'Velvet':
 			return (
 				<>
-					<ShrutiKapoorLowerThirds
+					<VelvetLowerThirds
 						x={!isShorts ? CONFIG.width - 56 : SHORTS_CONFIG.width - 16}
 						y={!isShorts ? 500 : 650}
 						userName={lowerThirdUserName || ''}
@@ -396,10 +396,10 @@ const LowerThridProvider = ({
             ))} */}
 				</>
 			)
-		case 'Mux': {
+		case 'CherryBlossom': {
 			return (
 				<>
-					<MuxLowerThirds
+					<CherryBlossomLowerThirds
 						x={!isShorts ? lowerThirdCoordinates({ position: 'left' })[0] : 25}
 						y={!isShorts ? 390 : 600}
 						userName={lowerThirdUserName || ''}
@@ -410,7 +410,7 @@ const LowerThridProvider = ({
 						setTopLayerChildren={setTopLayerChildren}
 					/>
 					{/* {users.map((user, index) => (
-            <LeeRobLowerThirds
+            <MidnightLowerThirds
               // eslint-disable-next-line react/no-array-index-key
               key={index}
               x={lowerThirdCoordinates({ position: 'left' })[index + 1]}
@@ -426,10 +426,10 @@ const LowerThridProvider = ({
 				</>
 			)
 		}
-		case 'WunderGraph': {
+		case 'Lilac': {
 			return (
 				<>
-					<WunderGraphLowerThirds
+					<LilacLowerThirds
 						x={!isShorts ? lowerThirdCoordinates({ position: 'left' })[0] : 45}
 						y={!isShorts ? 400 : 560}
 						userName={lowerThirdUserName || ''}
@@ -441,7 +441,7 @@ const LowerThridProvider = ({
 						setTopLayerChildren={setTopLayerChildren}
 					/>
 					{/* {users.map((user, index) => (
-            <LambdaTestLowerThirds
+            <IcebergLowerThirds
               // eslint-disable-next-line react/no-array-index-key
               key={index}
               x={lowerThirdCoordinates({ position: 'left' })[index + 1]}
