@@ -50,7 +50,7 @@ const FlickBody = ({
 	flick: inferQueryOutput<'story.byId'>
 	initialFragmentId: string | null
 }) => {
-  Konva.showWarnings = false
+	Konva.showWarnings = false
 	const setStoresInitially = useRecoilCallback(
 		({ set }) =>
 			() => {

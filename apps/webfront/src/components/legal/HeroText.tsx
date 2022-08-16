@@ -12,7 +12,9 @@ const Hero = ({
 			<h1 className='text-dark-title 2xl:text-[128px] 2xl:leading-[128px] xl:text-[90px] xl:leading-[90px] lg:text-[64px] lg:leading-[64px] text-[48px] leading-[48px] font-extrabold font-main'>
 				{title}
 			</h1>
-			<p className='mt-4 sm:w-1/2 text-dark-title-200 font-body'>{description}</p>
+			<p className='mt-4 sm:w-1/2 text-dark-title-200 font-body'>
+				{description}
+			</p>
 		</div>
 		<div className='relative sm:absolute sm:right-0'>
 			<Pattern />

@@ -52,7 +52,10 @@ const PostLayout = ({ title, date, content }: Props) => (
 		<div className='container mx-auto'>
 			<Hero
 				title={title}
-				description={`Effective: ${format(parseISO(JSON.parse(date)), 'LLL d, yyyy')}`}
+				description={`Effective: ${format(
+					parseISO(JSON.parse(date)),
+					'LLL d, yyyy'
+				)}`}
 			/>
 			<Content content={content} />
 		</div>
