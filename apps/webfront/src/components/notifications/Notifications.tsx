@@ -17,7 +17,7 @@ import trpc, { inferQueryOutput } from '../../server/trpc'
 export const NotificationMessage = ({
 	notification,
 }: {
-	notification: inferQueryOutput<'user.notifications'>[number]
+	notification: inferQueryOutput<'user.notifications'>['notifications'][number]
 }) => {
 	const { message } = notification
 	const regex = /%(.*?)%/g
@@ -45,7 +45,7 @@ const NotificationsList = ({
 	close: () => void
 	setIsCollaborateRespondModalOpen: (open: boolean) => void
 	setNotification: (
-		notification: inferQueryOutput<'user.notifications'>[number]
+		notification: inferQueryOutput<'user.notifications'>['notifications'][number]
 	) => void
 }) => {
 	const {
@@ -53,7 +53,10 @@ const NotificationsList = ({
 		data,
 		error,
 		isLoading: loading,
-	} = trpc.useQuery(['user.notifications'], { enabled: false })
+	} = trpc.useInfiniteQuery(['user.notifications', { limit: 15 }], {
+		enabled: false,
+		getNextPageParam: lastPage => lastPage.nextCursor,
+	})
 
 	const { mutateAsync: markAsRead } = trpc.useMutation([
 		'user.readNotification',
@@ -108,7 +111,7 @@ const NotificationsList = ({
 					<IoSyncOutline className='text-dark-title animate-spin' />
 				</div>
 			)}
-			{data && data.length === 0 && (
+			{data && data.pages.length === 0 && (
 				<div className='flex items-center justify-center flex-1 my-12'>
 					<Text className='italic text-gray-200'>
 						You do not have any notifications
@@ -127,8 +130,10 @@ const NotificationsList = ({
 					`
 				)}
 			>
-				{data &&
-					data.map(notification => (
+				{data?.pages &&
+					data.pages[
+						Number((data.pages.length / 25).toFixed(0)) || 0
+					].notifications.map(notification => (
 						<div
 							className='flex items-center hover:bg-dark-100 rounded-md'
 							key={notification.id}
@@ -209,13 +214,15 @@ const NotificationsList = ({
 						</div>
 					))}
 			</div>
-			{data && data.length >= 15 && (
-				<div className='flex items-center justify-center w-full py-2 border-t border-dark-100'>
-					<Button colorScheme='dark' onClick={() => push('/notifications')}>
-						See all
-					</Button>
-				</div>
-			)}
+			{data &&
+				data.pages[Number((data.pages.length / 25).toFixed(0)) || 0]
+					.notifications.length >= 15 && (
+					<div className='flex items-center justify-center w-full py-2 border-t border-dark-100'>
+						<Button colorScheme='dark' onClick={() => push('/notifications')}>
+							See all
+						</Button>
+					</div>
+				)}
 		</div>
 	)
 }
@@ -224,7 +231,7 @@ const Notifications = () => {
 	const [isCollaborateRespondModalOpen, setIsCollaborateRespondModalOpen] =
 		useState(false)
 	const [notification, setNotification] =
-		useState<inferQueryOutput<'user.notifications'>[number]>()
+		useState<inferQueryOutput<'user.notifications'>['notifications'][number]>()
 
 	const { data } = trpc.useQuery(['user.notificationsCount'], {
 		refetchInterval: 20000,

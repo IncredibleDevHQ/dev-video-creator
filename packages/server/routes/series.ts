@@ -142,10 +142,13 @@ const seriesRouter = trpc
 			hasAuth: true,
 		},
 		input: z.object({
-			limit: z.number().max(25).default(25),
-			offset: z.number().default(0),
+			limit: z.number().max(25).min(1).nullish(),
+			cursor: z.string().nullish(),
 		}),
 		resolve: async ({ ctx, input }) => {
+			const limit = input.limit || 25
+			const cursor = input.cursor || null
+
 			if (!ctx.user?.sub)
 				throw new TRPCError({
 					code: 'UNAUTHORIZED',
@@ -179,13 +182,18 @@ const seriesRouter = trpc
 					createdAt: true,
 					ownerSub: true,
 				},
-				take: input.limit,
-				skip: input.offset,
+				take: limit,
+				cursor: cursor ? { id: cursor } : undefined,
 				orderBy: {
 					createdAt: 'desc',
 				},
 			})
-			return series
+			let nextCursor: typeof cursor | null = null
+			if (series.length > limit) {
+				const nextSeries = series.pop()
+				nextCursor = nextSeries!.id
+			}
+			return { nextCursor, series }
 		},
 	})
 	.query('getSubsCount', {

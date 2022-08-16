@@ -416,18 +416,18 @@ const storyRouter = trpc
 			return story
 		},
 	})
-	.query('dashboardStories', {
+	.query('infiniteStories', {
 		meta: {
 			hasAuth: true,
 		},
-		input: z
-			.object({
-				limit: z.number().max(25).default(25),
-				offset: z.number().default(0),
-			})
-			.optional(),
+		input: z.object({
+			limit: z.number().max(25).min(1).nullish(),
+			cursor: z.string().nullish(),
+		}),
 		resolve: async ({ ctx, input }) => {
-			const { limit, offset } = input || { limit: 25, offset: 0 }
+			const limit = input.limit || 25
+			const cursor = input.cursor || null
+
 			// eslint-disable-next-line prefer-destructuring
 			const sub = ctx.user!.sub
 
@@ -458,14 +458,19 @@ const storyRouter = trpc
 						},
 					},
 				},
-				skip: offset,
-				take: limit,
+				take: limit + 1,
+				cursor: cursor ? { id: cursor } : undefined,
 				orderBy: {
 					updatedAt: 'desc',
 				},
 			})
 
-			return stories
+			let nextCursor: typeof cursor | null = null
+			if (stories.length > limit) {
+				const nextStory = stories.pop()
+				nextCursor = nextStory!.id
+			}
+			return { nextCursor, stories }
 		},
 	})
 	.query('presentationConfig', {
