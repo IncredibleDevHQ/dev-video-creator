@@ -1,0 +1,16 @@
+{
+	"extends": "config/tsconfig-next.json",
+	"compilerOptions": {
+		"baseUrl": ".",
+		"strict": true,
+		"disableSizeLimit": true,
+		"declaration": false,
+		"declarationMap": false,
+		"skipLibCheck": true
+	},
+	"paths": {
+		"@/*": ["./src/*"]
+	},
+	"include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
+	"exclude": ["node_modules"]
+}

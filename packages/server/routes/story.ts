@@ -561,6 +561,39 @@ const storyRouter = trpc
 			return { count: claps._count }
 		},
 	})
+	.query('getContent', {
+		meta: {
+			hasAuth: false,
+		},
+		input: z.object({
+			id: z.string(),
+		}),
+		resolve: async ({ ctx, input }) => {
+			const content = await ctx.prisma.content.findUniqueOrThrow({
+				where: {
+					id: input.id,
+				},
+				select: {
+					id: true,
+					isPublic: true,
+					preview: true,
+					resource: true,
+					thumbnail: true,
+					type: true,
+					data: true,
+					flickId: true,
+					seriesId: true,
+					Mux_Assets: {
+						select: {
+							muxPlaybackId: true,
+						},
+					},
+				},
+			})
+
+			return content
+		},
+	})
 	// ACTIONS
 	.mutation('create', {
 		meta: {

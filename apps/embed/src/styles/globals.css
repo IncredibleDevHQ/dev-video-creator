@@ -1,0 +1,79 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+	scroll-behavior: smooth;
+  color-scheme: dark;
+  @apply text-gray-800
+}
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  @apply font-main;
+}
+
+body {
+  @apply font-body;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::-moz-selection {
+  /* Code for Firefox */
+
+  @apply bg-green-600 text-white;
+}
+
+::selection {
+  @apply bg-green-600 text-white;
+}
+
+@layer base {
+  /* Gilroy ExtraBold - Subsetting : Latin */
+  @font-face {
+    font-family: "Gilroy";
+    font-style: normal;
+    font-weight: 800;
+    font-display: optional;
+    src: url("/fonts/Gilroy/gilroy-extrabold-latin.woff2") format("woff2");
+  }
+
+  /* Gilroy Bold - Subsetting : Latin */
+  @font-face {
+    font-family: "Gilroy";
+    font-style: normal;
+    font-weight: 700;
+    font-display: optional;
+    src: url("/fonts/Gilroy/gilroy-bold-latin.woff2") format("woff2");
+  }
+
+  /* Gilroy SemiBold - Subsetting : Latin */
+  @font-face {
+    font-family: "Gilroy";
+    font-style: normal;
+    font-weight: 600;
+    font-display: optional;
+    src: url("/fonts/Gilroy/gilroy-semibold-latin.woff2") format("woff2");
+  }
+
+  /* Inter Variable - Subsetting : Latin */
+  @font-face {
+    font-family: "Inter";
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: optional;
+    src: url("/fonts/Inter/inter-var-latin.woff2") format("woff2");
+  }
+}
+
