@@ -48,7 +48,7 @@ if (require.main === module) {
 			console.log('PREBUILD-WF : FETCHING SECRETS FROM DOPPLER ...')
 			const secrets =
 				process.env.DEPLOY_ENV === 'develop'
-					? getSercets()
+					? getSecrets()
 					: await getDopplerSecrets()
 
 			console.log('PREBUILD-WF : ENCRYPTING SECRETS ...')
