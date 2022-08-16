@@ -321,13 +321,13 @@ const userRouter = trpc
 		meta: {
 			hasAuth: true,
 		},
-		input: z
-			.object({
-				limit: z.number().optional().default(15),
-				offset: z.number().optional().default(0),
-			})
-			.optional(),
+		input: z.object({
+			limit: z.number().max(25).min(1).nullish(),
+			cursor: z.string().nullish(),
+		}),
 		resolve: async ({ input, ctx }) => {
+			const limit = input.limit || 25
+			const cursor = input.cursor || null
 			if (!ctx.user) throw new TRPCError({ code: 'UNAUTHORIZED' })
 			const notifications = await ctx.prisma.notifications.findMany({
 				where: {
@@ -353,10 +353,15 @@ const userRouter = trpc
 				orderBy: {
 					createdAt: 'desc',
 				},
-				take: input?.limit || 15,
-				skip: input?.offset || 0,
+				take: limit,
+				cursor: cursor ? { id: cursor } : undefined,
 			})
-			return notifications
+			let nextCursor: typeof cursor | null = null
+			if (notifications.length > limit) {
+				const nextNotif = notifications.pop()
+				nextCursor = nextNotif!.id
+			}
+			return { nextCursor, notifications }
 		},
 	})
 	.query('notificationsCount', {

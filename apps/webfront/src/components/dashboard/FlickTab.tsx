@@ -31,29 +31,28 @@ const FlickTab = () => {
 	const { user } = useUser()
 	const verticalHeaderRef = useRef<HTMLDivElement>(null)
 
-	const [offset, setOffset] = useState(0)
-
 	// does not run initially , will only run on refetch because enabled:false
 	const {
 		refetch: fetchFlickData,
 		data,
 		error,
 		isLoading: loading,
-	} = trpc.useQuery(
+		fetchNextPage,
+	} = trpc.useInfiniteQuery(
 		[
-			'story.dashboardStories',
+			'story.infiniteStories',
 			{
 				limit: 25,
-				offset,
 			},
 		],
 		{
 			enabled: false,
+			getNextPageParam: lastPage => lastPage.nextCursor,
 		}
 	)
 
-	type DashboardStory = inferQueryOutput<'story.dashboardStories'>[number]
-	const [allData, setAllData] = useState<DashboardStory[]>()
+	type DashboardStory = inferQueryOutput<'story.infiniteStories'>['stories']
+	const [allData, setAllData] = useState<DashboardStory>()
 
 	const [collectionFilter, setCollectionFilter] = useState<CollectionFilter>(
 		CollectionFilter.all
@@ -65,7 +64,8 @@ const FlickTab = () => {
 
 	useEffect(() => {
 		if (data) {
-			setAllData(data)
+			const pageNumber = Number((data.pages.length / 25).toFixed(0))
+			setAllData(data.pages[pageNumber > 0 ? pageNumber - 1 : 0].stories)
 		}
 	}, [data])
 
@@ -99,7 +99,7 @@ const FlickTab = () => {
 				) {
 					if (loading) return
 
-					setOffset(offset + 25)
+					fetchNextPage()
 				}
 			}}
 		>

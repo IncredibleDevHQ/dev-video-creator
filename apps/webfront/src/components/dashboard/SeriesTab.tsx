@@ -12,22 +12,21 @@ import SeriesTile from './SeriesTile'
 const SeriesTab = () => {
 	const { user } = useUser()
 
-	const [offset, setOffset] = useState(0)
 	const {
 		data,
 		error,
 		isLoading: loading,
 		refetch,
-	} = trpc.useQuery(
+		fetchNextPage,
+	} = trpc.useInfiniteQuery(
 		[
 			'series.dashboard',
 			{
 				limit: 10,
-				offset,
 			},
 		],
 		{
-			enabled: true,
+			getNextPageParam: lastPage => lastPage.nextCursor,
 		}
 	)
 
@@ -43,7 +42,8 @@ const SeriesTab = () => {
 
 	useEffect(() => {
 		if (data) {
-			setAllData(data)
+			const pageNumber = Number((data.pages.length / 25).toFixed(0))
+			setAllData(data.pages[pageNumber > 0 ? pageNumber - 1 : 0])
 		}
 	}, [data])
 
@@ -73,11 +73,11 @@ const SeriesTab = () => {
 					// 		}
 					// 	},
 					// })
-					setOffset(offset + 25)
+					fetchNextPage()
 				}
 			}}
 		>
-			{allData && allData.length === 0 && (
+			{allData && allData.series.length === 0 && (
 				<div className='flex-1 flex flex-col items-center justify-center gap-y-8'>
 					<Heading textStyle='mediumTitle'>
 						A series is a collection of your stories. Click below to create your
@@ -93,7 +93,7 @@ const SeriesTab = () => {
 
 			{((loading && user) ||
 				error ||
-				(data && allData && allData.length > 0)) && (
+				(data && allData && allData.series.length > 0)) && (
 				<div className='flex flex-col flex-1 py-8 container'>
 					<div className='flex items-center mb-8 justify-between'>
 						<Filter
@@ -125,8 +125,8 @@ const SeriesTab = () => {
 					)}
 
 					<div className='grid grid-cols-4 gap-10'>
-						{allData
-							?.filter(series => {
+						{allData?.series
+							.filter(series => {
 								if (collectionFilter === CollectionFilter.all) return true
 								if (collectionFilter === CollectionFilter.owner)
 									return series.ownerSub === user?.uid
