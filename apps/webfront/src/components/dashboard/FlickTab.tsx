@@ -38,6 +38,7 @@ const FlickTab = () => {
 		error,
 		isLoading: loading,
 		fetchNextPage,
+		hasNextPage,
 	} = trpc.useInfiniteQuery(
 		[
 			'story.infiniteStories',
@@ -64,8 +65,7 @@ const FlickTab = () => {
 
 	useEffect(() => {
 		if (data) {
-			const pageNumber = Number((data.pages.length / 25).toFixed(0))
-			setAllData(data.pages[pageNumber > 0 ? pageNumber - 1 : 0].stories)
+			setAllData(data.pages.flatMap(page => page.stories))
 		}
 	}, [data])
 
@@ -98,8 +98,9 @@ const FlickTab = () => {
 						e.currentTarget.clientHeight + 2
 				) {
 					if (loading) return
-
-					fetchNextPage()
+					if (hasNextPage) {
+						fetchNextPage()
+					}
 				}
 			}}
 		>
