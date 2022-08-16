@@ -14,7 +14,7 @@ const clamp = css`
 const SeriesTile = ({
 	series,
 }: {
-	series: inferQueryOutput<'series.dashboard'>[number]
+	series: inferQueryOutput<'series.dashboard'>['series'][number]
 }) => (
 	<Link href={`/series/${series.name}--${series.id}`}>
 		<div className='aspect-w-10 aspect-h-6 cursor-pointer'>

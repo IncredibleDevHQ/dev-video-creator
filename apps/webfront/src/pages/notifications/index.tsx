@@ -15,27 +15,31 @@ import CollaborationRespondModal from '../../components/notifications/Collaborat
 
 const Notifications = () => {
 	const { push } = useRouter()
-	const [offset, setOffset] = useState(0)
 
 	const [allData, setAllData] =
-		useState<inferQueryOutput<'user.notifications'>>()
+		useState<inferQueryOutput<'user.notifications'>['notifications']>()
+
 	const {
 		data,
 		isLoading: loading,
 		error,
+		fetchNextPage,
 		refetch,
-	} = trpc.useQuery(['user.notifications', { limit: 15, offset }])
+	} = trpc.useInfiniteQuery(['user.notifications', { limit: 30 }], {
+		getNextPageParam: lastPage => lastPage.nextCursor,
+	})
 
 	const { mutateAsync: markAsRead } = trpc.useMutation([
 		'user.readNotification',
 	])
 	const [isModalOpen, setIsModalOpen] = useState(false)
 	const [notification, setNotification] =
-		useState<inferQueryOutput<'user.notifications'>[number]>()
+		useState<inferQueryOutput<'user.notifications'>['notifications'][number]>()
 
 	useEffect(() => {
 		if (!data) return
-		setAllData(data)
+		const pageNumber = Number((data.pages.length / 25).toFixed(0))
+		setAllData(data.pages[pageNumber > 0 ? pageNumber - 1 : 0].notifications)
 	}, [data])
 
 	return (
@@ -49,7 +53,8 @@ const Notifications = () => {
 							e.currentTarget.scrollHeight - e.currentTarget.scrollTop ===
 							e.currentTarget.clientHeight
 						) {
-							setOffset(offset + 25)
+							if (loading) return
+							fetchNextPage()
 						}
 					}}
 				>

@@ -23,7 +23,12 @@ const AddExistingFlickModal = ({
 		setSelectedFlicks(series.Flick_Series.map(fs => fs.Flick?.id as string))
 	}, [])
 
-	const { data, isLoading: loading } = trpc.useQuery(['story.dashboardStories'])
+	const { data, isLoading: loading } = trpc.useQuery([
+		'story.infiniteStories',
+		{
+			limit: 25,
+		},
+	])
 
 	const {
 		mutateAsync: addFlicks,
@@ -99,7 +104,7 @@ const AddExistingFlickModal = ({
 									</div>
 								)}
 
-								{data && data.length > 0 && (
+								{data && data.stories.length > 0 && (
 									<div
 										className={cx(
 											'flex-1 overflow-scroll',
@@ -113,7 +118,7 @@ const AddExistingFlickModal = ({
 										)}
 									>
 										<div className='grid grid-cols-2 mt-4 gap-x-4 gap-y-4'>
-											{data.map(flick => (
+											{data.stories.map(flick => (
 												<div
 													key={flick.id}
 													className='relative flex flex-col w-full h-full'
@@ -174,7 +179,7 @@ const AddExistingFlickModal = ({
 									</div>
 								)}
 
-								{data && data.length > 0 && (
+								{data && data.stories.length > 0 && (
 									<Button
 										className='mt-4 max-w-none w-full'
 										size='large'
@@ -187,7 +192,7 @@ const AddExistingFlickModal = ({
 									</Button>
 								)}
 
-								{data && data.length === 0 && (
+								{data && data.stories.length === 0 && (
 									<div className='flex flex-col items-center justify-center w-full h-full'>
 										<div className='flex'>
 											<div className='z-0 w-32 h-32 rounded-full bg-dark-100' />

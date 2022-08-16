@@ -112,14 +112,22 @@ const FlickCollaboration = ({
 		refetch: getFlicks,
 		data,
 		isLoading: loading,
-	} = trpc.useQuery(['story.dashboardStories'], {
-		enabled: false,
-	})
+	} = trpc.useQuery(
+		[
+			'story.infiniteStories',
+			{
+				limit: 25,
+			},
+		],
+		{
+			enabled: false,
+		}
+	)
 
 	useEffect(() => {
 		if (!data) return
-		if (data.length === 0) return
-		setModalState({ ...modalState, selectedFlickId: data[0].id })
+		if (data.stories.length === 0) return
+		setModalState({ ...modalState, selectedFlickId: data.stories[0].id })
 	}, [data])
 
 	useEffect(() => {
@@ -147,7 +155,7 @@ const FlickCollaboration = ({
 				</div>
 			)}
 
-			{data && data.length > 0 && (
+			{data && data.stories.length > 0 && (
 				<div
 					className={cx(
 						'flex-1 overflow-scroll',
@@ -161,7 +169,7 @@ const FlickCollaboration = ({
 					)}
 				>
 					<div className='grid grid-cols-2 mt-4 gap-x-4 gap-y-4'>
-						{data.map(flick => (
+						{data.stories.map(flick => (
 							<div key={flick.id} className='flex flex-col w-full h-full'>
 								<button
 									type='button'
@@ -195,7 +203,7 @@ const FlickCollaboration = ({
 				</div>
 			)}
 
-			{data && data.length > 0 && (
+			{data && data.stories.length > 0 && (
 				<Button
 					className='mt-4 max-w-none w-full'
 					size='large'
@@ -210,7 +218,7 @@ const FlickCollaboration = ({
 				</Button>
 			)}
 
-			{data && data.length === 0 && (
+			{data && data.stories.length === 0 && (
 				<div className='flex flex-col items-center justify-center w-full h-full'>
 					<div className='flex mt-auto'>
 						<div className='z-0 w-32 h-32 rounded-full bg-dark-100' />
@@ -313,7 +321,6 @@ const SeriesCollaboration = ({
 			'series.dashboard',
 			{
 				limit: 25,
-				offset: 0,
 			},
 		],
 		{
@@ -323,8 +330,8 @@ const SeriesCollaboration = ({
 
 	useEffect(() => {
 		if (!data) return
-		if (data.length === 0) return
-		setModalState({ ...modalState, selectedSeriesId: data[0].id })
+		if (data.series.length === 0) return
+		setModalState({ ...modalState, selectedSeriesId: data.series[0].id })
 	}, [data])
 
 	useEffect(() => {
@@ -352,7 +359,7 @@ const SeriesCollaboration = ({
 				</div>
 			)}
 
-			{data && data.length > 0 && (
+			{data && data.series.length > 0 && (
 				<div
 					className={cx(
 						'flex-1 overflow-scroll',
@@ -366,7 +373,7 @@ const SeriesCollaboration = ({
 					)}
 				>
 					<div className='grid grid-cols-2 mt-4 gap-x-4 gap-y-4'>
-						{data
+						{data.series
 							.filter(series => series.ownerSub === loggedInUser?.sub)
 							.map(series => (
 								<div key={series.id} className='flex flex-col w-full h-full'>
@@ -407,7 +414,7 @@ const SeriesCollaboration = ({
 				</div>
 			)}
 
-			{data && data.length > 0 && (
+			{data && data.series.length > 0 && (
 				<Button
 					className='mt-4 max-w-none w-full'
 					size='large'
@@ -419,7 +426,7 @@ const SeriesCollaboration = ({
 				</Button>
 			)}
 
-			{data && data.length === 0 && (
+			{data && data.series.length === 0 && (
 				<div className='flex flex-col items-center justify-center w-full h-full'>
 					<div className='flex mt-auto'>
 						<div className='z-0 w-32 h-32 rounded-full bg-dark-100' />

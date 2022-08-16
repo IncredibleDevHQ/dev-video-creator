@@ -12,7 +12,7 @@ const CollaborationRespondModal = ({
 }: {
 	open: boolean
 	handleClose: () => void
-	notification: inferQueryOutput<'user.notifications'>[number]
+	notification: inferQueryOutput<'user.notifications'>['notifications'][number]
 }) => {
 	const { push } = useRouter()
 

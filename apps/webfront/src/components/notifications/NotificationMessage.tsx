@@ -4,7 +4,7 @@ import { inferQueryOutput } from '../../server/trpc'
 const NotificationMessage = ({
 	notification,
 }: {
-	notification: inferQueryOutput<'user.notifications'>[number]
+	notification: inferQueryOutput<'user.notifications'>['notifications'][number]
 }) => {
 	const { message } = notification
 	const regex = /%(.*?)%/g
