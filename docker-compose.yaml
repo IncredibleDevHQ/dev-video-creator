@@ -1,0 +1,49 @@
+version: '3.3'
+services:
+  colorcodes:
+    image: colorcodes
+    ports:
+      - "8080:3000"
+    environment:
+      - PORT=3000
+    expose:
+      - "8080"
+
+  redis:
+    image: redislabs/rejson
+    ports:
+      - "6379:6379"
+    expose:
+      - "6379"
+
+  minio:
+    image: minio/minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_storage:/data
+    environment:
+      MINIO_ROOT_USER: incredible
+      MINIO_ROOT_PASSWORD: SuperSecretRootPwd
+    command: server --console-address ":9001" /data
+
+  db:
+    image: mysql:5.7
+    restart: always
+    environment:
+      MYSQL_DATABASE: 'db'
+      MYSQL_USER: 'user'
+      MYSQL_PASSWORD: 'pwd123'
+      MYSQL_ROOT_PASSWORD: 'pwd321'
+    ports:
+      - '3306:3306'
+    expose:
+      - '3306'
+    volumes:
+      - my-db:/var/lib/mysql
+
+volumes:
+  my-db:
+  minio_storage: {}
+
