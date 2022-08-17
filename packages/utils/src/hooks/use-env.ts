@@ -3,7 +3,6 @@ const getEnv = () => ({
 	agora: {
 		appId: process.env.NEXT_PUBLIC_AGORA_APP_ID,
 	},
-	api: process.env.NEXT_PUBLIC_API_ENDPOINT,
 	storage: {
 		cdn: process.env.NEXT_PUBLIC_CDN_URL,
 	},
@@ -18,13 +17,6 @@ const getEnv = () => ({
 	},
 	googleFontsApiKey: process.env.NEXT_PUBLIC_GOOGLE_FONTS_API_KEY,
 	giphyApiKey: process.env.NEXT_PUBLIC_GIPHY_API_KEY,
-	logrocketAppId: process.env.NEXT_PUBLIC_LOGROCKET_APP_ID,
-	sentry: {
-		dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
-		enabled: process.env.NEXT_PUBLIC_DEPLOY_ENV !== 'develop',
-	},
-	segment: process.env.NEXT_PUBLIC_SEGMENT_WATCH_ID,
-	googleAnalytics: process.env.NEXT_PUBLIC_GA_TRACKING_CODE,
 	firebaseConfig: JSON.parse(
 		(process.env.NEXT_PUBLIC_FIREBASE_CONFIG as string) || '{}'
 	),
