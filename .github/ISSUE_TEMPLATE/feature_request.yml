@@ -1,0 +1,38 @@
+name: Feature request
+description: Suggest a new feature for Incredible
+labels:
+  - feature request
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you facing?
+      description: A clear and concise description of what the problem is.
+      placeholder: "I would love to be able to ... but I can't because ..."
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: What's the solution you would like to see?
+      description: A clear and concise description of what you want to happen.
+      placeholder: "I'd like …"
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What alternatives did you consider?
+      description: A clear and concise description of what you want to happen.
+      placeholder: "I've considered to …"
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Anything to add? (optional)
+      description: "Add any other context or screenshots here."
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to send us feedback <3 We really appreciate it!
