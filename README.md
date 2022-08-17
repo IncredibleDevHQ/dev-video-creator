@@ -8,22 +8,16 @@
   <a aria-label="Explore documentation" href="https://github.com/IncredibleDevHQ/Incredible/wiki" target="_blank">
     <img alt="" src="https://img.shields.io/badge/Docs-383b40.svg?style=for-the-badge&logo=readthedocs&logoColor=white">
   </a>
-  <a aria-label="Report an issue" href="https://github.com/IncredibleDevHQ/Incredible/issues" target="_blank">
+  <a aria-label="Report an issue" href="https://github.com/IncredibleDevHQ/Incredible/issues/new/choose" target="_blank">
       <img alt="" src="https://img.shields.io/badge/Report%20bug-383b40.svg?style=for-the-badge&logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAADMSURBVHgBjVILDcIwEL0uCJiESsAB4AAHWBgOcEKQgIKBg03B5mBzcLwjd9mlaZu95OWa9r32PiUqgJkj2NJeqKHnDZPs7TF6k6FPdQcVXxGGEMKs+3Oiay0bhAjdJ+jGA+EEvqiOGzjC2PkUO3DhMhZ9IFvf5OvipEm5Gjlzz1fjWWM0HVINjS0EmaZ4zE5HjUszknavgNbPs3EmmdVaMcpZb7/JXjyCI3gpmFc9E43MnGyO/1uQ/oq1XPIE32qS+d5xNngd1cCVT/4DeYu5iXz7pyIAAAAASUVORK5CYII=&logoColor=white">
   </a>
-  <a aria-label="Request a feature" href="https://github.com/IncredibleDevHQ/Incredible/discussions" target="_blank">
+  <a aria-label="Request a feature" href="https://github.com/IncredibleDevHQ/Incredible/issues/new?assignees=&labels=feature+request&template=feature_request.yml" target="_blank">
     <img alt="" src="https://img.shields.io/badge/Request%20Feature-383b40.svg?style=for-the-badge&logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAACTSURBVHgBlZJtDYYwDIRvKHglTAISJgEJrwQcIAUrOAAH4AAclDYZ4avdxpP0T9dbL7cBBkTkuX4ohYf/XCOdzNLLiTqyaVPWUqxX69VFG5BGRI0m9MjjNeGCPNOrI/5jghazeR0f1jEELZgaKXigUYThOVcp2g0FOGNruA05N6AEFvYxKKn+y0Z57OOXbLzxZX8HqsTUEzggWlEAAAAASUVORK5CYII=&logoColor=white">
   </a>
-  <br/>
-</p>
-
-<p align="center">
   <a aria-label="Join our community on Discord" href="https://discord.gg/jJQWQs8Fh2" target="_blank">
       <img alt="" src="https://img.shields.io/badge/Join%20our%20community-16a34a.svg?style=for-the-badge&logo=Discord&logoColor=white">
   </a>
-  <a aria-label="Follow Incredible on Twitter" href="https://twitter.com/IncredibleDevHQ" target="_blank">
-      <img alt="" src="https://img.shields.io/badge/Follow-16a34a.svg?style=for-the-badge&logo=Twitter&logoColor=white">
-  </a>
+  <br/>
 </p>
 
 ## 👋 &nbsp;Introduction
