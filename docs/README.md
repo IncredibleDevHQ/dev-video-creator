@@ -1,8 +1,12 @@
 # Incredible Dev
 
-## Introduction
+!!! WIP, refer oss branch !!!
 
-!!! WIP, ref oss branch !!!
+## Overview
+This project is a turbo repo with the main app written in NextJS(webfront) and other packages structured as shown below: 
+|![Project Structure](https://user-images.githubusercontent.com/52773149/185181583-2145f439-7c97-48da-adc0-f58f61ca4595.png)|
+|:--:|
+|<b>Project Structure</b>|
 
 ## What's inside?
 
@@ -166,3 +170,9 @@ yarn
 ```sh
 yarn dev
 ```
+
+---
+
+## User Journey
+![Screenshot 2022-08-17 at 9 01 59 PM](https://user-images.githubusercontent.com/52773149/185184443-aae0d2a5-d119-4784-b367-ccfc6e2629ce.png)
+
