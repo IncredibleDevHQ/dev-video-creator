@@ -19,12 +19,11 @@ import {
 	TransactionalMailType,
 } from './transactionalEmail'
 
-// Delete on mux
-const { Video: MuxVideo } = new Mux(
-	serverEnvs.MUX_TOKEN_ID, // config.services.mux.tokenId,
-	serverEnvs.MUX_TOKEN_SECRET, // config.services.mux.tokenSecret,
-	{}
-)
+
+let MuxVideo: Mux
+if (serverEnvs.MUX_TOKEN_ID && serverEnvs.MUX_TOKEN_SECRET) {
+	MuxVideo = new Mux(serverEnvs.MUX_TOKEN_ID, serverEnvs.MUX_TOKEN_SECRET, {})
+}
 
 export const defaultDataConfig = {
 	blocks: [
@@ -405,7 +404,7 @@ export const DeleteMuxAsset = async (
 		return
 	}
 
-	const res = await MuxVideo.Assets.del(muxDel.muxAssetId)
+	const res = await MuxVideo?.Video.Assets.del(muxDel.muxAssetId)
 	if (!res) {
 		console.log('Error deleting video on Mux : ', JSON.stringify(res.data))
 		// Sentry.captureException(
@@ -426,7 +425,7 @@ export const AddVideoToMux = async (
 		Key: objectKey,
 		Expires: 300, // in seconds
 	})
-	const res = await MuxVideo.Assets.create({
+	const res = await MuxVideo.Video.Assets.create({
 		input: presignedUrl,
 		playback_policy: 'public',
 		passthrough: JSON.stringify(passThrough), // NOTE: mux has a character limit on this - Max: 255 characters.

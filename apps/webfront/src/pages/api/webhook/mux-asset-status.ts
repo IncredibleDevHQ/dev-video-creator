@@ -56,6 +56,9 @@ export const muxAssetStatus = async (
 	res: NextApiResponse
 ) => {
 	try {
+		if (!signingSecret) {
+			return res.status(500).send('No mux signing secret!')
+		}
 		// Verify webhook signature
 		try {
 			const signature = req.headers['mux-signature']
