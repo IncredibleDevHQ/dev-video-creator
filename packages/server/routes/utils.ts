@@ -70,9 +70,8 @@ const utilsRouter = trpc
 				throw new TRPCError({
 					code: 'UNAUTHORIZED',
 				})
-			const { endpoint, secret } = {
+			const { endpoint } = {
 				endpoint: serverEnvs.TOKENIZE_ENDPOINT,
-				secret: serverEnvs.TOKENIZE_SECRET,
 			}
 			try {
 				const {
@@ -86,7 +85,6 @@ const utilsRouter = trpc
 					},
 					{
 						headers: {
-							'x-secret': secret,
 							'Content-Type': 'application/json',
 						},
 					}
