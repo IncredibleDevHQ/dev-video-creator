@@ -13,6 +13,7 @@ services:
     image: redislabs/rejson
     ports:
       - "6379:6379"
+    command: redis-server --requirepass redispwd
     expose:
       - "6379"
 

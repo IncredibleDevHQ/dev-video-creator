@@ -52,7 +52,8 @@ yarn workspace {app/package} add {dependency}
 
     This will be used by the `hocuspocus` service to provide realtime collaboration and autosave features.
 
-4. **minio**
+4. **Minio**
+
     This is an open-source alternative to AWS S3. It is used to store the files uploaded by the user.
 
 ---
