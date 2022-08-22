@@ -86,6 +86,7 @@ export const VideoBlock = (props: any) => {
 			const video = document.createElement('video')
 			video.width = size.width
 			video.height = size.height
+      video.crossOrigin = 'anonymous'
 			video.addEventListener('loadedmetadata', () => {
 				video.currentTime = transformations?.clip?.start || 0.1
 			})
