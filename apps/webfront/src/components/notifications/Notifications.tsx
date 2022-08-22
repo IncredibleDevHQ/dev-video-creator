@@ -257,65 +257,67 @@ const Notifications = () => {
 	})
 
 	return (
-		<Popover>
-			{({ open, close }) => (
-				<>
-					<Popover.Button
-						as='button'
-						className='relative cursor-pointer flex items-center'
-					>
-						{data && data.count !== 0 && (
-							<GoPrimitiveDot
-								className={cx(
-									'text-red-500 absolute top-0 right-0 -mt-2 -mr-1.5 block'
-								)}
-								size={21}
-							/>
-						)}
-						{open ? (
-							<IoNotifications
-								className='rounded-full text-gray-200'
-								size={24}
-							/>
-						) : (
-							<IoNotificationsOutline
-								className='rounded-full text-gray-200'
-								size={24}
-							/>
-						)}
-						{notification && (
-							<CollaborationRespondModal
-								open={isCollaborateRespondModalOpen}
-								notification={notification}
-								handleClose={() => {
-									setIsCollaborateRespondModalOpen(false)
-								}}
-							/>
-						)}
-					</Popover.Button>
-					<Transition
-						as={Fragment}
-						enter='transition ease-out duration-100'
-						enterFrom='transform opacity-0 scale-95'
-						enterTo='transform opacity-100 scale-100'
-						leave='transition ease-in duration-75'
-						leaveFrom='transform opacity-100 scale-100'
-						leaveTo='transform opacity-0 scale-95'
-					>
-						<Popover.Panel as='div' className='absolute right-[75px] mt-3'>
-							<NotificationsList
-								isNotificationsOpen={open}
-								close={close}
-								setIsCollaborateRespondModalOpen={
-									setIsCollaborateRespondModalOpen
-								}
-								setNotification={setNotification}
-							/>
-						</Popover.Panel>
-					</Transition>
-				</>
+		<>
+			<Popover>
+				{({ open, close }) => (
+					<>
+						<Popover.Button
+							as='button'
+							className='relative cursor-pointer flex items-center'
+						>
+							{data && data.count !== 0 && (
+								<GoPrimitiveDot
+									className={cx(
+										'text-red-500 absolute top-0 right-0 -mt-2 -mr-1.5 block'
+									)}
+									size={21}
+								/>
+							)}
+							{open ? (
+								<IoNotifications
+									className='rounded-full text-gray-200'
+									size={24}
+								/>
+							) : (
+								<IoNotificationsOutline
+									className='rounded-full text-gray-200'
+									size={24}
+								/>
+							)}
+						</Popover.Button>
+						<Transition
+							as={Fragment}
+							enter='transition ease-out duration-100'
+							enterFrom='transform opacity-0 scale-95'
+							enterTo='transform opacity-100 scale-100'
+							leave='transition ease-in duration-75'
+							leaveFrom='transform opacity-100 scale-100'
+							leaveTo='transform opacity-0 scale-95'
+						>
+							<Popover.Panel as='div' className='absolute right-[75px] mt-3'>
+								<NotificationsList
+									isNotificationsOpen={open}
+									close={close}
+									setIsCollaborateRespondModalOpen={
+										setIsCollaborateRespondModalOpen
+									}
+									setNotification={setNotification}
+								/>
+							</Popover.Panel>
+						</Transition>
+					</>
+				)}
+			</Popover>
+			{notification && (
+				<CollaborationRespondModal
+					open={isCollaborateRespondModalOpen}
+					notification={notification}
+					handleClose={() => {
+						setIsCollaborateRespondModalOpen(false)
+					}}
+				/>
 			)}
-		</Popover>
+		</>
 	)
 }
 
