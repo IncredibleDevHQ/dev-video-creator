@@ -65,7 +65,7 @@ const sendCollaborationInvite = async (
 			receiverId: input.receiverId,
 			senderId: ctx.user.sub,
 			status: InvitationStatusEnum.Pending.toString(),
-			type: 'Invite',
+			type: NotificationTypeEnum.Invitation,
 			flickId: input.flickId,
 		},
 		select: {

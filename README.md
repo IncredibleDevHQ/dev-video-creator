@@ -52,3 +52,5 @@ Creating vieos is hard! Imagine the sheer volume of developer video content we c
 |  [Konvajs](https://github.com/konvajs/konva)   |                                              | [Firebase](https://firebase.google.com/) |                                    |
 
 ## ✏️ &nbsp;License
+
+[AGPL-3.0 license](https://github.com/IncredibleDevHQ/Incredible/blob/main/LICENSE)
