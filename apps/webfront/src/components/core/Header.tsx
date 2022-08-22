@@ -16,13 +16,27 @@
 // along with this program\.  If not, see <http://www\.gnu\.org/licenses/>\.
 
 import NextLink from 'next/link'
+import { FaGithub } from 'react-icons/fa'
 import Logo from 'svg/Logo.svg'
+import { Button } from 'ui/src'
 
 const Header = () => (
 	<header className='flex justify-between sm:px-8 sm:py-6 p-6 relative md:absolute top-0 left-0 right-0 z-50'>
 		<NextLink href='/'>
 			<Logo />
 		</NextLink>
+
+		<a href='https://github.com/IncredibleDevHQ/Incredible'>
+			<Button
+				size='large'
+				className='text-size-md'
+				colorScheme='dark'
+				appearance='solid'
+				leftIcon={<FaGithub size={21} />}
+			>
+				Star Us
+			</Button>
+		</a>
 	</header>
 )
 
