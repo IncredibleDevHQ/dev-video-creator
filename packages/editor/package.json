@@ -39,7 +39,7 @@
 		"@tiptap/react": "^2.0.0-beta.114",
 		"@tiptap/starter-kit": "^2.0.0-beta.190",
 		"@tiptap/suggestion": "^2.0.0-beta.97",
-		"@trpc/react": "^9.27.0",
+		"axios": "^0.27.2",
 		"icanvas": "*",
 		"konva": "^8.3.10",
 		"lowlight": "1.20.0",

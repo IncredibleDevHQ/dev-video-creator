@@ -21,7 +21,7 @@ import { IoReloadOutline, IoSearchOutline } from 'react-icons/io5'
 import StackGrid from 'react-stack-grid'
 import { useDebouncedCallback } from 'use-debounce'
 import { Text } from 'ui/src'
-import trpc from '../../server/trpc'
+import axios from 'axios'
 
 const noScrollbar = css`
 	::-webkit-scrollbar {
@@ -38,22 +38,36 @@ export const UnsplashTab = ({
 }) => {
 	const [search, setSearch] = useState('enjoy')
 
+	const [data, setData] = useState<any[]>()
+	const [error, setError] = useState<string | undefined>()
+
 	const gridRef = useRef<StackGrid>(null)
-	const {
-		data,
-		error,
-		refetch: getImages,
-	} = trpc.useQuery(
-		[
-			'util.searchUnsplash',
-			{
-				query: search,
-			},
-		],
-		{
-			enabled: false,
+
+	const getImages = async () => {
+		try {
+			const response = await axios.post(
+				`${process.env.NEXT_PUBLIC_BASE_URL}/api/trpc/util.searchUnsplash`,
+				{
+					json: {
+						query: search,
+					},
+				},
+				{
+					headers: {
+						'Content-Type': 'application/json',
+					},
+				}
+			)
+			if (response.data?.result?.data?.json) {
+				setError(undefined)
+				setData(response.data.result.data.json)
+			} else {
+				setError('No results found')
+			}
+		} catch (e) {
+			setError((e as unknown as any).message)
 		}
-	)
+	}
 
 	const debounced = useDebouncedCallback(() => {
 		getImages()
@@ -105,8 +119,8 @@ export const UnsplashTab = ({
 				duration={0}
 			>
 				{data &&
-					data.SearchUnsplash &&
-					data.SearchUnsplash.results.map((r: any) => (
+					data &&
+					data.map((r: any) => (
 						<button
 							type='button'
 							onClick={() => {

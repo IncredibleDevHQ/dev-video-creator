@@ -51,9 +51,9 @@ const utilsRouter = trpc
 		})
 	})
 	// ACTIONS
-	.query('searchUnsplash', {
+	.mutation('searchUnsplash', {
 		meta: {
-			hasAuth: true,
+			hasAuth: false,
 		},
 		input: z.object({
 			query: z.string().optional(),
