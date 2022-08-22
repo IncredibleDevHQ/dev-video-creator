@@ -42,7 +42,7 @@ const Notifications = () => {
 		error,
 		fetchNextPage,
 		refetch,
-	} = trpc.useInfiniteQuery(['user.notifications', { limit: 30 }], {
+	} = trpc.useInfiniteQuery(['user.notifications', { limit: 25 }], {
 		getNextPageParam: lastPage => lastPage.nextCursor,
 	})
 

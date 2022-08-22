@@ -128,7 +128,7 @@ const NotificationsList = ({
 					<IoSyncOutline className='text-dark-title animate-spin' />
 				</div>
 			)}
-			{data && data.pages.length === 0 && (
+			{data && data.pages.flatMap(page => page.notifications).length === 0 && (
 				<div className='flex items-center justify-center flex-1 my-12'>
 					<Text className='italic text-gray-200'>
 						You do not have any notifications
