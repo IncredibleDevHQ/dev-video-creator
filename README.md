@@ -30,6 +30,11 @@ Incredible to simply put it, helps you transform your markdown/ideas/storyboard 
 
 Creating vieos is hard! Imagine the sheer volume of developer video content we could have had in this world if this process was easier. Imagine the number of self-serving developer communities that could create content in their own spoken languages to uplift their communities. While products like Repl.it make it easy to bring the next billion developers online with amazing online IDE’s, the lack of an easy process to create video content significantly cripples the mission! Without content, the job is only half done.
 
+## 🔗 &nbsp;Branch guide
+
+- `main` hosted at [https://oss.incredible.dev](https://oss.incredible.dev)
+- `legacy` hosted at [https://incredible.dev](https://incredible.dev) (Alpha users only. Will be deprecated soon. Please use the above version instead.)
+
 ## ✨ &nbsp;Features
 
 1. Storyboarding to preview with markdown support
