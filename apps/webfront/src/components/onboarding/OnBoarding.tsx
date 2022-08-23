@@ -55,7 +55,9 @@ const OnBoarding = () => {
 			username: user?.username || '',
 			designation: user?.designation || '',
 			organization: user?.organization || '',
-			profilePicture: user?.picture || '',
+			profilePicture: user?.picture?.includes('googleusercontent')
+				? ''
+				: user?.picture || '',
 		})
 	}, [user])
 
