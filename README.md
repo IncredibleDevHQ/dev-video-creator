@@ -24,6 +24,28 @@
 
 Incredible drastically simplifies creation of developer video content. It offers a unified workflow to storyboard, record, collaborate and produce the video.
 
+👉For those who are new to Incredible, here's the tour of the core experience.
+
+🚀 [Product Tour](https://www.loom.com/share/d5fd69a0d70f4dfd921bd4798bdb938c) 
+
+👉To get a glimpse of what Incredible is capable of here's a playlist of videos on Rust produced using Incredible.
+
+🦀 [Rust series made using Incredible](https://bit.ly/rust-series)
+
+👉Here's an example with Replit integration where you can watch the video and even run the code snippet
+
+👩🏻‍💻 [Rust tutorial with Repl.it integration](https://incredible.dev/watch/enm-qyp-zks)
+
+👉For portrait fans, here's a list of Youtube shorts, and Instagram reels produced using Incredible
+
+📺 [Youtube shorts made using Incredible](ttps://bit.ly/yt-ml-shorts)
+🎞 [Instagram Reels made using Incredible](https://www.instagram.com/incredibledevhq/)
+
+👉One of the top video made using Incredible
+
+📺 [Next.JS 12.2 release video](https://youtu.be/bQqN0fK3Gjg)
+
+## ᛘ Branches
 The main branch is hosted at [oss.incredible.dev](https://oss.incredible.dev). Do give it a try and please report the issues [here](https://github.com/IncredibleDevHQ/Incredible/issues). 
 
  The [legacy branch](https://github.com/IncredibleDevHQ/Incredible/tree/legacy) is hosted at [https://incredible.dev](https://incredible.dev) and it'll be deprecated soon!
