@@ -39,6 +39,8 @@ export const mediaConvertToMp4 = ({
 	orientation: OrientationEnum
 }) => {
 	const mc = new aws.MediaConvert({
+		accessKeyId: serverEnvs.AWS_ACCESS_KEY_ID,
+		secretAccessKey: serverEnvs.AWS_SECRET_ACCESS_KEY,
 		region: serverEnvs.AWS_MEDIA_CONVERT_REGION || 'us-west-1',
 		endpoint: serverEnvs.AWS_MEDIA_CONVERT_ENDPOINT,
 	})
