@@ -24,7 +24,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { Fragment, HTMLAttributes } from 'react'
 import { useUser } from 'src/utils/providers/auth'
-import { Button, emitToast } from 'ui/src'
+import { Avatar, Button, emitToast } from 'ui/src'
 import Notifications from '../notifications/Notifications'
 
 const Navbar = ({ className }: HTMLAttributes<HTMLDivElement>) => {
@@ -81,11 +81,10 @@ const Navbar = ({ className }: HTMLAttributes<HTMLDivElement>) => {
 					<Notifications />
 					<Menu>
 						<Menu.Button as='button' className='flex items-center'>
-							<Image
+							<Avatar
 								src={user?.picture || '/dp_fallback.png'}
-								className='rounded-full cursor-pointer'
-								width={35}
-								height={35}
+								className='rounded-full cursor-pointer w-8 h-8'
+								name={user?.displayName ?? ''}
 							/>
 						</Menu.Button>
 						<Transition
