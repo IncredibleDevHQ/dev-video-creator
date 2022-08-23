@@ -22,18 +22,14 @@
 
 ## 👋 &nbsp;Introduction
 
-Incredible to simply put it, helps you transform your markdown/ideas/storyboard into video content with ZERO editing and minimal effort. Got a code snippet? Got some hot takes? Imagine if you could write them down. Imagine if you could record yourself talking about them and sharing it to the world. And to top it off, imagine if you can collaborate on it with your buddy! This is the product for you!
+Incredible drastically simplifies creation of developer video content. It offers a unified workflow to storyboard, record, collaborate and produce the video.
 
+The main branch is hosted at [oss.incredible.dev](https://oss.incredible.dev). Do give it a try and please report the issues [here](https://github.com/IncredibleDevHQ/Incredible/issues). 
+
+ The [legacy branch](https://github.com/IncredibleDevHQ/Incredible/tree/legacy) is hosted at [https://incredible.dev](https://incredible.dev) and it'll be deprecated soon!
+ 
 ![Studio Main Page](assets/main.png)
 
-## 💡&nbsp;Motivation
-
-Creating vieos is hard! Imagine the sheer volume of developer video content we could have had in this world if this process was easier. Imagine the number of self-serving developer communities that could create content in their own spoken languages to uplift their communities. While products like Repl.it make it easy to bring the next billion developers online with amazing online IDE’s, the lack of an easy process to create video content significantly cripples the mission! Without content, the job is only half done.
-
-## 🔗 &nbsp;Branch guide
-
-- `main` hosted at [https://oss.incredible.dev](https://oss.incredible.dev)
-- `legacy` hosted at [https://incredible.dev](https://incredible.dev) (Alpha users only. Will be deprecated soon. Please use the above version instead.)
 
 ## ✨ &nbsp;Features
 
@@ -45,6 +41,12 @@ Creating vieos is hard! Imagine the sheer volume of developer video content we c
 6. Transitions
 7. Watch page you can share
 8. Series
+
+## 🏃🏽‍♂️ Instructions to Run
+Due to the properietary components, it'll be hard to run Incredible unless you create an account in each of them. 
+Refer to the wiki for the full list of third-party properiatary services and instructions to run.
+
+We are committed to the complete OSS porting of Incredivle without the third-party properietary services. We'll be annoucing a roadmap soon!
 
 ## 📚 &nbsp;Tech stack
 
