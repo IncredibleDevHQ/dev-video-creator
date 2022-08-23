@@ -3,7 +3,9 @@
 	"pipeline": {
 		"prepare": {},
 		"postinstall": {},
-		"prebuild": {},
+		"prebuild": {
+			"cache": false
+		},
 		"build": {
 			"dependsOn": ["prebuild", "^build"],
 			"outputs": ["dist/**", ".next/**"]

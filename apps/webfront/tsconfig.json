@@ -11,14 +11,6 @@
 	"paths": {
 		"@/*": ["./src/*"]
 	},
-	"include": [
-		"next-env.d.ts",
-		"**/*.ts",
-		"**/*.tsx",
-		"pre-build.js",
-		"../../packages/server/utils/env.ts",
-		"../../packages/server/utils/s3-path-builder.ts",
-		"../../packages/server/utils/aws.ts"
-	],
+	"include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
 	"exclude": ["node_modules"]
 }
