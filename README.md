@@ -43,10 +43,10 @@ The main branch is hosted at [oss.incredible.dev](https://oss.incredible.dev). D
 8. Series
 
 ## 🏃🏽‍♂️ Instructions to Run
-Due to the properietary components, it'll be hard to run Incredible unless you create an account in each of them. 
-Refer to the wiki for the full list of third-party properiatary services and instructions to run.
+Due to the proprietary components, it'll be hard to run Incredible unless you create an account in each of them. 
+Refer to the wiki for the full list of third-party proprietary services and instructions to run.
 
-We are committed to the complete OSS porting of Incredivle without the third-party properietary services. We'll be annoucing a roadmap soon!
+We are committed to the complete OSS porting of Incredivle without the third-party proprietary services. We'll be annoucing a roadmap soon!
 
 ## 📚 &nbsp;Tech stack
 
